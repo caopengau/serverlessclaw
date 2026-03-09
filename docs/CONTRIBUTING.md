@@ -70,12 +70,12 @@ serverlessclaw/
 ├── INDEX.md          ← Hub (start here)
 ├── README.md         ← Public-facing overview
 ├── ARCHITECTURE.md   ← System topology
-├── RESEARCH.md       ← Design decisions
-├── ROADMAP.md        ← Future plans
 ├── docs/
 │   ├── AGENTS.md     ← Agent roster & orchestration
 │   ├── TOOLS.md      ← Tool registry & lifecycle
 │   ├── SAFETY.md     ← All guardrails
+│   ├── RESEARCH.md   ← Design decisions
+│   ├── ROADMAP.md    ← Future plans
 │   └── CONTRIBUTING.md ← This file
 ├── src/              ← TypeScript source
 └── sst.config.ts     ← Infrastructure definition

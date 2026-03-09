@@ -10,8 +10,8 @@
 | [AGENTS.md](./docs/AGENTS.md) | Work on agent logic, prompts, orchestration, or sub-agents |
 | [TOOLS.md](./docs/TOOLS.md) | Add, modify, or understand any agent tool |
 | [SAFETY.md](./docs/SAFETY.md) | Understand guardrails, circuit breakers, rollback, or HITL |
-| [RESEARCH.md](./RESEARCH.md) | Review architectural decisions or LLM provider choices |
-| [ROADMAP.md](./ROADMAP.md) | Understand what's planned, pick the next task |
+| [RESEARCH.md](./docs/RESEARCH.md) | Review architectural decisions or LLM provider choices |
+| [ROADMAP.md](./docs/ROADMAP.md) | Understand what's planned, pick the next task |
 | [CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Understand how to contribute code or update documentation |
 
 ---

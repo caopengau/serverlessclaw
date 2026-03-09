@@ -31,7 +31,8 @@ pnpm exec sst deploy
 | [docs/TOOLS.md](./docs/TOOLS.md) | Full tool registry & deployment lifecycle |
 | [docs/SAFETY.md](./docs/SAFETY.md) | Circuit breakers, rollback, HITL guardrails |
 | [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Dev workflow & documentation standards |
-| [ROADMAP.md](./ROADMAP.md) | Planned features |
+| [docs/RESEARCH.md](./docs/RESEARCH.md) | Architectural decisions & design research |
+| [docs/ROADMAP.md](./docs/ROADMAP.md) | Planned features |
 
 ## License
 MIT
