@@ -32,11 +32,11 @@ help: ## Show all targets and descriptions in a markdown table
 
 pre-commit: ## Run pre-commit checks (fix, test, check)
 	@$(call log_step,Running pre-commit checks...)
-	@$(MAKE) fix
-	@$(MAKE) $(MAKE_PARALLEL) test check
+	@$(MAKE) lint-staged
+	@$(MAKE) test
 	@$(call log_success,Pre-commit checks passed)
 
-pre-push: ## Run pre-push checks (test, deploy)
+pre-push: ## Run pre-push checks (check, test, aiready)
 	@$(call log_step,Running pre-push checks...)
-	@$(MAKE) $(MAKE_PARALLEL) check test
+	@$(MAKE) check test aiready
 	@$(call log_success,Pre-push checks passed)

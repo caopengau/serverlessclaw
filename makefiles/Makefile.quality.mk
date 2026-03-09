@@ -3,7 +3,7 @@
 ###############################################################################
 include makefiles/Makefile.shared.mk
 
-.PHONY: check fix lint lint-fix format type-check aiready
+.PHONY: check fix lint lint-fix format format-check type-check aiready lint-staged
 
 check: ## Run all quality checks (lint, format, type-check)
 	@$(call log_step,Running all quality checks...)
@@ -33,5 +33,9 @@ type-check: ## Run TypeScript type checking
 	@$(PNPM) exec tsc --noEmit
 
 aiready: ## Run AIReady scan to evaluate agent-friendliness
-	@$(call log_info,Running AIReady scan...)
-	@aiready scan . || $(call log_warning,AIReady scan failed or returned warnings)
+	@$(call log_info,Running AIReady scan (threshold 80)...)
+	@aiready scan . --threshold 80 --exclude "node_modules/**,.sst/**" || $(call log_warning,AIReady scan failed or returned warnings)
+
+lint-staged: ## Run lint-staged for partial checks
+	@$(call log_info,Running lint-staged...)
+	@npx lint-staged
