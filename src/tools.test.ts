@@ -29,7 +29,7 @@ describe('Tools', () => {
   describe('getToolDefinitions', () => {
     it('should return formatted tool definitions', () => {
       const definitions = getToolDefinitions();
-      expect(definitions).toHaveLength(5);
+      expect(definitions).toHaveLength(8);
 
       const names = definitions.map((d) => d.function.name);
       expect(names).toContain('calculator');
@@ -37,6 +37,9 @@ describe('Tools', () => {
       expect(names).toContain('dispatch_task');
       expect(names).toContain('file_write');
       expect(names).toContain('trigger_deployment');
+      expect(names).toContain('validate_code');
+      expect(names).toContain('check_health');
+      expect(names).toContain('trigger_rollback');
     });
   });
 });

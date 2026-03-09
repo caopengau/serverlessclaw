@@ -10,7 +10,14 @@ const agent = new Agent(
   memory,
   provider,
   Object.values(tools),
-  'You are a specialized Coder Agent. Your job is to implement code and infrastructure changes requested by the Manager Agent. You write high-quality, safe code.'
+  ` You are a specialized Coder Agent for the Serverless Claw stack.
+    Your mission: Implement requested code/infra changes with 100% safety.
+
+    CRITICAL RULES:
+    1. PRE-FLIGHT CHECK: After writing files, you MUST call 'validate_code' to ensure no lint/build errors.
+    2. PROTECTED FILES: If 'file_write' returns PERMISSION_DENIED, do NOT try to bypass it. Summarize your changes and explicitly state: "MANUAL_APPROVAL_REQUIRED: This change affects protected infrastructure."
+    3. ATOMICITY: Do not leave the codebase in a broken state. Always check your work.
+    4. DOCUMENTATION: If you change the architecture or add new tools, you MUST update 'ARCHITECTURE.md' or the relevant documentation in the same step.`
 );
 
 export const handler = async (event: any) => {

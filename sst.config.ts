@@ -51,6 +51,12 @@ export default $config({
       link: [memoryTable, ...Object.values(secrets), deployer, bus],
     });
 
+    // Health probe endpoint for post-deployment validation
+    api.route('GET /health', {
+      handler: 'src/health.handler',
+      link: [memoryTable],
+    });
+
     // 6. Permissions
     // SST v3 'link' handles most of this.
 
