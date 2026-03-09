@@ -109,6 +109,28 @@ The agent can manage its own codebase and infrastructure through a Git-centric f
 2.  **Repo Management**: It can modify `sst.config.ts`, tool definitions, or prompt templates.
 3.  **Deployment**: Pushing to `main` triggers an SST deployment via GitHub Actions, effectively updating the agent's own infrastructure.
 
+### 4. Autonomous Deployer (Lambda + CodeBuild)
+To fully decouple from external CI/CD (GitHub Actions) while maintaining safety:
+
+```text
++--------------+       +------------------+       +-------------------+
+|              |       |                  |       |                   |
+|  Main Agent  +------>+  AWS CodeBuild   +------>+   Agent Stack     |
+| (Lambda)     |       | (Execution Env)  |       | (Self-Update)     |
+|              |       |                  |       |                   |
++--------------+       +---------+--------+       +-------------------+
+       |                         |
+       |     Protected Layer     |
+       +-------------------------+
+       |   Bootstrap Stack       |
+       | (Deployer & Roles)      |
+       +-------------------------+
+```
+
+1.  **The Bootstrap Stack**: This is the "God Stack" that defines the deployment engine (CodeBuild) and the necessary permissions. It is marked as **Protected** and is not modifiable by the agent itself.
+2.  **The Agent Stack**: This is the "Living Stack" that the agent can modify and redeploy.
+3.  **Loop Prevention**: The Agent's IAM policy allows `codebuild:StartBuild` only for projects targeting the `Agent Stack`. It has no permissions to touch the `Bootstrap Stack` or the CodeBuild resource definition itself.
+
 ### 3. Cost-Effectiveness & Safety
 To prevent excessive GitHub Actions billing and code corruption:
 

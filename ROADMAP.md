@@ -27,6 +27,7 @@ Our goal is to build the most customizable and cost-effective personal AI agent 
 
 ## Phase 5: Self-Evolving & Multi-Agent (2027)
 - [ ] **Infrastructure-as-Code Agent**: Capabilities to modify `sst.config.ts` and self-deploy.
+- [ ] **Autonomous Deployer**: Use Lambda-triggered CodeBuild sidecar for self-hosting (bypasses GitHub Actions).
 - [ ] **GitOps Integration**: Tooling for the agent to manage its own GitHub repository.
 - [ ] **Event-Driven Orchestrator**: EventBridge-based "Manager" agent to delegate complex tasks to specialized workers.
 - [ ] **Nested Sub-agents**: Recursive agent invocation patterns for deep research and heavy coding tasks.
