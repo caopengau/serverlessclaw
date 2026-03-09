@@ -1,4 +1,11 @@
-export function createDeployer() {
+interface DeployerContext {
+  stagingBucket: sst.aws.Bucket;
+  githubToken?: sst.Secret;
+}
+
+export function createDeployer(ctx: DeployerContext) {
+  const { stagingBucket, githubToken } = ctx;
+
   const deployerRole = new aws.iam.Role('DeployerRole', {
     assumeRolePolicy: JSON.stringify({
       Version: '2012-10-17',
@@ -17,6 +24,15 @@ export function createDeployer() {
     role: deployerRole.name,
   });
 
+  const envVars = [
+    { name: 'SST_STAGE', value: $app.stage },
+    { name: 'STAGING_BUCKET_NAME', value: stagingBucket.name },
+  ];
+
+  if (githubToken) {
+    envVars.push({ name: 'GITHUB_TOKEN', value: githubToken.value });
+  }
+
   const deployer = new aws.codebuild.Project('Deployer', {
     name: `${$app.name}-${$app.stage}-Deployer`,
     serviceRole: deployerRole.arn,
@@ -25,7 +41,7 @@ export function createDeployer() {
       computeType: 'BUILD_GENERAL1_SMALL',
       image: 'aws/codebuild/amazonlinux2-x86_64-standard:5.0',
       type: 'LINUX_CONTAINER',
-      environmentVariables: [{ name: 'SST_STAGE', value: $app.stage }],
+      environmentVariables: envVars,
     },
     source: {
       type: 'GITHUB',

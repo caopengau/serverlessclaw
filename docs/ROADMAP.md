@@ -38,10 +38,10 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 ## 🚀 Phase 6: Visibility & Native Observability
 - [x] **Claw-Trace**: Built-in tracing engine logging to DynamoDB.
 - [/] **Claw-Monitor Dashboard**: Next.js 16 (Canary) + Tailwind v4 UI (Scaffolded & Themed).
-- [ ] **Milestone 1: High-Fidelity Tracing**: Trace detail views with raw prompt/response/payload inspection.
-- [ ] **Milestone 2: Neural Path Visualizer**: XYFlow integration for branching agent logic diagrams.
-- [ ] **Milestone 3: Resilience Hub**: Dedicated views for self-healing logs and Dead Man's Switch status.
-- [ ] **Milestone 4: Memory Browser**: Inspect distilled facts, session history, and tool registry.
+- [x] **Milestone 1: High-Fidelity Tracing**: Trace detail views with raw prompt/response/payload inspection.
+- [x] **Milestone 2: Neural Path Visualizer**: XYFlow integration for branching agent logic diagrams.
+- [x] **Resilience Hub**: Dedicated views for self-healing logs and Dead Man's Switch status.
+- [x] **Memory Browser**: Inspect distilled facts, session history, and tool registry.
 
 ## 🔥 Phase 7: Autonomous Self-Improvement Loop
 - [ ] **Git Push Integration**: Enable CodeBuild to push approved code changes back to GitHub.

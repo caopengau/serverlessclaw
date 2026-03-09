@@ -20,10 +20,13 @@ export function createStorage() {
     ttl: 'expiresAt',
   });
 
+  const stagingBucket = new sst.aws.Bucket('StagingBucket');
+
   const secrets = {
     TELEGRAM_BOT_TOKEN: new sst.Secret('TelegramBotToken'),
     OPENAI_API_KEY: new sst.Secret('OpenAIApiKey'),
+    // We don't initialize GitHubToken here to make it optional for the deploy to start
   };
 
-  return { memoryTable, traceTable, secrets };
+  return { memoryTable, traceTable, stagingBucket, secrets };
 }
