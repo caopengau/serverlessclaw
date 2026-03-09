@@ -13,20 +13,20 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [x] DynamoDB-based session locking (mutex)
 - [x] Distilled Long-Term Memory (Reflection Loop)
 
-## ✅ Phase 5: Self-Evolving & Multi-Agent
+## ✅ Phase 3: Self-Evolving & Multi-Agent
 - [x] 3-Agent Architecture: Main → Coder → Deployer
 - [x] EventBridge `AgentBus` for async inter-agent communication
 - [x] `dispatch_task` and `trigger_deployment` tools
 - [x] AWS CodeBuild sidecar Deployer
 - [x] `file_write` tool for Coder Agent
 
-## ✅ Phase 6: Safety Guardrails
+## ✅ Phase 4: Safety Guardrails
 - [x] Resource Labeling (Protected file list in `file_write`)
 - [x] Deployment Circuit Breaker (5/day limit, DynamoDB-backed, TDD-verified)
 - [x] Pre-flight `validate_code` tool
 - [x] Human-in-the-Loop prompt instructions
 
-## ✅ Phase 7: Self-Healing & Rollback
+## ✅ Phase 5: Self-Healing & Rollback
 - [x] `check_health` tool — `GET /health` probe, rewards with counter decrement
 - [x] `trigger_rollback` tool — `git revert HEAD` + redeploy
 - [x] Build Monitor: Log-based error analysis and auto-fix loop
@@ -35,7 +35,7 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 
 ---
 
-## 🚀 Phase 3: Visibility & Native Observability (High Priority)
+## 🚀 Phase 6: Visibility & Native Observability (High Priority)
 - [ ] **Admin Dashboard**: Next.js 16 (Canary) + Tailwind v4 static site to visualize agent logic, memory, and builds.
     - **Style**: "Cyber-Industrial" aesthetic (High-contrast Dark Mode, Glassmorphism, Monospace typography).
     - **Features**: Agent Trace (XYFlow), Self-Healing Logs, Memory Browser.
@@ -43,7 +43,7 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [ ] **Cost Monitoring**: Real-time AWS and LLM cost breakdown inside your own dashboard.
 - [ ] **Multi-Channel Adapters**: Slack and Discord support to broaden the user base.
 
-## 🔥 Phase 4: Power Capabilities
+## 🔥 Phase 7: Power Capabilities
 - [ ] **Browser Automation**: Playwright Lambda Layer for autonomous web browsing/actions.
 - [ ] **Skill Marketplace**: CLI-based installation of community-contributed tools (`claw install notion`).
 - [ ] **Local CLI Chat**: A "Sandbox Mode" to chat with the agent directly in the terminal.
