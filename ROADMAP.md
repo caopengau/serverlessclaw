@@ -24,3 +24,9 @@ Our goal is to build the most customizable and cost-effective personal AI agent 
 - [ ] **Admin Dashboard**: An SST-hosted React Site to view agent logs, memory, and tool usage.
 - [ ] **Plugin Marketplace**: A repository of community-built AgentSkills.
 - [ ] **Voice Support**: Twilio/WebRTC integration for real-time talk mode.
+
+## Phase 5: Self-Evolving & Multi-Agent (2027)
+- [ ] **Infrastructure-as-Code Agent**: Capabilities to modify `sst.config.ts` and self-deploy.
+- [ ] **GitOps Integration**: Tooling for the agent to manage its own GitHub repository.
+- [ ] **Event-Driven Orchestrator**: EventBridge-based "Manager" agent to delegate complex tasks to specialized workers.
+- [ ] **Nested Sub-agents**: Recursive agent invocation patterns for deep research and heavy coding tasks.

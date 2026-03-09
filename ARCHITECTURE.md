@@ -86,6 +86,46 @@ The webhook handler can be extended to support multiple messaging platforms simu
 - **Routing**: Detect platform from payload headers/body.
 - **Formatting**: Platform-specific markdown/rich text conversion.
 
+## Self-Management & Orchestration
+
+Serverless Claw is designed to evolve itself and manage complex agent hierarchies.
+
+### 1. Self-Evolution (GitOps)
+The agent can manage its own codebase and infrastructure through a Git-centric feedback loop.
+
+```text
++--------------+       +--------------+       +-------------------+
+|              |       |              |       |                   |
+|  Main Agent  +------>+  GitHub API  +------>+  GitHub Actions   |
+| (Lambda)     |       | (Git Commit) |       | (SST Deploy)      |
+|              |       |              |       |                   |
++--------------+       +--------------+       +---------+---------+
+       ^                                                |
+       |               Self-Update Loop                 |
+       +------------------------------------------------+
+```
+
+1.  **Code Access**: The agent has a `GITHUB_TOKEN` secret.
+2.  **Repo Management**: It can modify `sst.config.ts`, tool definitions, or prompt templates.
+3.  **Deployment**: Pushing to `main` triggers an SST deployment via GitHub Actions, effectively updating the agent's own infrastructure.
+
+### 2. Sub-agent Orchestration
+Multi-agent tasks are handled through an event-driven "Manager-Worker" pattern.
+
+```text
+[ Main Agent ] --- (Task Event) ---> [ EventBridge Bus ]
+                                            |
+         +----------------------------------+----------------------------------+
+         v                                  v                                  v
+[ Researcher Agent ]               [ Coder Agent ]                    [ Reviewer Agent ]
+(Lambda / Task A)                  (Lambda / Task B)                  (Lambda / Task C)
+```
+
+- **Asynchronous Execution**: The manager emits specialized tasks to an EventBridge bus.
+- **State Tracking**: All sub-agent status and results are stored in the Shared DynamoDB MemoryTable, allowing the manager to "wait" or "gather" results across separate invocations.
+
+---
+
 ### 4. LLM Providers
 Provider-agnostic interface supporting:
 - OpenAI (GPT-5.4 / GPT-5-mini)
