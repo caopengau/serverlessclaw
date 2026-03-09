@@ -29,20 +29,14 @@ describe('Tools', () => {
   describe('getToolDefinitions', () => {
     it('should return formatted tool definitions', () => {
       const definitions = getToolDefinitions();
-      expect(definitions).toHaveLength(2);
-      expect(definitions[0]).toMatchObject({
-        type: 'function',
-        function: {
-          name: 'calculator',
-          description: 'Evaluates mathematical expressions.',
-        },
-      });
-      expect(definitions[1]).toMatchObject({
-        type: 'function',
-        function: {
-          name: 'get_weather',
-        },
-      });
+      expect(definitions).toHaveLength(5);
+
+      const names = definitions.map((d) => d.function.name);
+      expect(names).toContain('calculator');
+      expect(names).toContain('get_weather');
+      expect(names).toContain('dispatch_task');
+      expect(names).toContain('file_write');
+      expect(names).toContain('trigger_deployment');
     });
   });
 });
