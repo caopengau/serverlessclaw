@@ -36,10 +36,10 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 ---
 
 ## 🚀 Phase 6: Visibility & Native Observability (High Priority)
-- [ ] **Admin Dashboard**: Next.js 16 (Canary) + Tailwind v4 static site to visualize agent logic, memory, and builds.
+- [/] **Admin Dashboard**: Next.js 16 (Canary) + Tailwind v4 static site to visualize agent logic, memory, and builds (Scaffolded).
     - **Style**: "Cyber-Industrial" aesthetic (High-contrast Dark Mode, Glassmorphism, Monospace typography).
     - **Features**: Agent Trace (XYFlow), Self-Healing Logs, Memory Browser.
-- [ ] **Claw-Trace**: A built-in, serverless tracing engine that logs every LLM call and tool execution to DynamoDB.
+- [x] **Claw-Trace**: A built-in, serverless tracing engine that logs every LLM call and tool execution to DynamoDB.
 - [ ] **Cost Monitoring**: Real-time AWS and LLM cost breakdown inside your own dashboard.
 - [ ] **Multi-Channel Adapters**: Slack and Discord support to broaden the user base.
 

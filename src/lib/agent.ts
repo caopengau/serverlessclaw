@@ -1,4 +1,5 @@
 import { IMemory, IProvider, ITool, Message } from './types';
+import { ClawTracer } from './tracer';
 
 export class Agent {
   constructor(
@@ -27,6 +28,9 @@ export class Agent {
   ) {}
 
   async process(userId: string, userText: string): Promise<string> {
+    const tracer = new ClawTracer(userId);
+    await tracer.startTrace({ userText });
+
     // 1. Get history and distilled memory
     const history = await this.memory.getHistory(userId);
     const distilled = await this.memory.getDistilledMemory(userId);
@@ -37,7 +41,6 @@ export class Agent {
       const recoveryData = await this.memory.getDistilledMemory('RECOVERY');
       if (recoveryData) {
         recoveryContext = `\n\nSYSTEM_RECOVERY_LOG: Recent emergency rollback occurred. Details: ${recoveryData}`;
-        // Clear it so we don't keep reporting it in every turn
         await this.memory.updateDistilledMemory('RECOVERY', '');
       }
     } catch (e) {
@@ -64,30 +67,42 @@ export class Agent {
     let iterations = 0;
     const maxIterations = 5;
 
-    while (iterations < maxIterations) {
-      const aiResponse = await this.provider.call(messages, this.tools);
+    try {
+      while (iterations < maxIterations) {
+        await tracer.addStep({ type: 'llm_call', content: { messageCount: messages.length } });
+        const aiResponse = await this.provider.call(messages, this.tools);
 
-      if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
-        messages.push(aiResponse);
+        if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
+          messages.push(aiResponse);
 
-        for (const toolCall of aiResponse.tool_calls) {
-          const tool = this.tools.find((t) => t.name === toolCall.function.name);
-          if (tool) {
-            const args = JSON.parse(toolCall.function.arguments);
-            const result = await tool.execute(args);
-            messages.push({
-              role: 'tool',
-              tool_call_id: toolCall.id,
-              name: toolCall.function.name,
-              content: result,
-            });
+          for (const toolCall of aiResponse.tool_calls) {
+            const tool = this.tools.find((t) => t.name === toolCall.function.name);
+            if (tool) {
+              const args = JSON.parse(toolCall.function.arguments);
+              await tracer.addStep({ type: 'tool_call', content: { tool: tool.name, args } });
+
+              const result = await tool.execute(args);
+
+              await tracer.addStep({ type: 'tool_result', content: { tool: tool.name, result } });
+
+              messages.push({
+                role: 'tool',
+                tool_call_id: toolCall.id,
+                name: toolCall.function.name,
+                content: result,
+              });
+            }
           }
+          iterations++;
+        } else {
+          responseText = aiResponse.content;
+          break;
         }
-        iterations++;
-      } else {
-        responseText = aiResponse.content;
-        break;
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await tracer.addStep({ type: 'error', content: { errorMessage } });
+      responseText = `I encountered an internal error: ${errorMessage}`;
     }
 
     if (!responseText) responseText = 'Sorry, I reached my iteration limit.';
@@ -95,7 +110,10 @@ export class Agent {
     // 5. Save response
     await this.memory.addMessage(userId, { role: 'assistant', content: responseText });
 
-    // 6. Trigger Reflection (async)
+    // 6. Finalize Trace
+    await tracer.endTrace(responseText);
+
+    // 7. Trigger Reflection (async)
     this.reflect(userId, [...messages, { role: 'assistant', content: responseText }]).catch(
       console.error
     );

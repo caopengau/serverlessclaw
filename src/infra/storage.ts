@@ -12,5 +12,18 @@ export function createStorage() {
     OPENAI_API_KEY: new sst.Secret('OpenAIApiKey'),
   };
 
-  return { memoryTable, secrets };
+  const traceTable = new sst.aws.DynamoDB('TraceTable', {
+    fields: {
+      traceId: 'string',
+      userId: 'string',
+      timestamp: 'number',
+    },
+    primaryIndex: { hashKey: 'traceId', rangeKey: 'timestamp' },
+    globalIndexes: {
+      UserIndex: { hashKey: 'userId', rangeKey: 'timestamp' },
+    },
+    ttl: 'expiresAt',
+  });
+
+  return { memoryTable, traceTable, secrets };
 }

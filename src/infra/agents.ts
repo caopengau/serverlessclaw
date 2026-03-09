@@ -1,5 +1,6 @@
 interface AgentContext {
   memoryTable: sst.aws.DynamoDB;
+  traceTable: sst.aws.DynamoDB;
   secrets: Record<string, sst.Secret>;
   bus: sst.aws.Bus;
   deployer: sst.aws.CodeBuild;
@@ -7,25 +8,25 @@ interface AgentContext {
 }
 
 export function createAgents(ctx: AgentContext) {
-  const { memoryTable, secrets, bus, deployer, api } = ctx;
+  const { memoryTable, traceTable, secrets, bus, deployer, api } = ctx;
 
   // 1. Coder Agent
   const coderAgent = new sst.aws.Function('CoderAgent', {
     handler: 'src/agents/coder.handler',
-    link: [memoryTable, ...Object.values(secrets)],
+    link: [memoryTable, traceTable, ...Object.values(secrets)],
   });
   bus.subscribe('coder.task', coderAgent.arn);
 
   // 2. Build Monitor
   const buildMonitor = new sst.aws.Function('BuildMonitor', {
     handler: 'src/agents/monitor.handler',
-    link: [memoryTable, deployer, bus],
+    link: [memoryTable, traceTable, deployer, bus],
   });
 
   // 3. Event Handler
   const eventHandler = new sst.aws.Function('EventHandler', {
     handler: 'src/agents/events.handler',
-    link: [memoryTable, ...Object.values(secrets), deployer, bus],
+    link: [memoryTable, traceTable, ...Object.values(secrets), deployer, bus],
   });
   bus.subscribe('system.build.failed', eventHandler.arn);
 

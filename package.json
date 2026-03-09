@@ -34,7 +34,7 @@
     "sst": "^4.2.2"
   },
   "lint-staged": {
-    "*.ts": [
+    "{src,.}/**/*.ts": [
       "eslint --fix",
       "prettier --write"
     ]

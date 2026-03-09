@@ -1,9 +1,9 @@
-/// <reference path=".sst/platform/config.d.ts" />
 import { createStorage } from './src/infra/storage';
 import { createBus } from './src/infra/bus';
 import { createDeployer } from './src/infra/deployer';
 import { createApi } from './src/infra/api';
 import { createAgents } from './src/infra/agents';
+import { createDashboard } from './src/infra/dashboard';
 
 export default $config({
   app(input) {
@@ -16,7 +16,7 @@ export default $config({
   },
   async run() {
     // 1. Storage & Secrets
-    const { memoryTable, secrets } = createStorage();
+    const { memoryTable, traceTable, secrets } = createStorage();
 
     // 2. Multi-Agent Orchestration (EventBridge)
     const { bus } = createBus();
@@ -25,13 +25,17 @@ export default $config({
     const { deployer } = createDeployer();
 
     // 4. Webhook API
-    const { api } = createApi({ memoryTable, secrets, bus, deployer });
+    const { api } = createApi({ memoryTable, traceTable, secrets, bus, deployer });
 
     // 5. Sub-Agents
-    createAgents({ memoryTable, secrets, bus, deployer, api });
+    createAgents({ memoryTable, traceTable, secrets, bus, deployer, api });
+
+    // 6. Admin Dashboard (Next.js 16)
+    const { dashboard } = createDashboard({ memoryTable, traceTable });
 
     return {
       apiUrl: api.url,
+      dashboardUrl: dashboard.url,
       deployerName: deployer.name,
       busName: bus.name,
     };

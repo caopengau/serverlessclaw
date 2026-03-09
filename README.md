@@ -7,6 +7,7 @@
 - **Zero Idle Costs** — powered by AWS Lambda, pay per invocation only
 - **Self-Evolving (Code & Infra)** — the agent can write application code, modify its own AWS infrastructure via SST, validate, and redeploy itself safely
 - **Self-Healing & Resilient** — autonomously detects build failures, analyzes logs, and recovers from fatal errors with a 100% automated rollback loop
+- **Native Observability** — built-in, serverless tracing engine (Claw-Trace) and Next.js 16 Admin Dashboard
 - **Multi-Agent Orchestration** — Main Agent delegates to a Coder Agent via EventBridge
 - **Safety-First** — circuit breakers, protected resource labeling, health probes, and rollback
 - **Pluggable** — swap memory backends, LLM providers, or messaging channels

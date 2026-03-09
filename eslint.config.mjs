@@ -4,7 +4,7 @@ import prettierPlugin from 'eslint-plugin-prettier/recommended';
 
 export default tseslint.config(
   {
-    ignores: ['.sst/', '.git/', 'node_modules/', 'dist/'],
+    ignores: ['.sst/', '.git/', 'node_modules/', 'dist/', 'dashboard/'],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
