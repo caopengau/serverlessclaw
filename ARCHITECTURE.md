@@ -1,6 +1,8 @@
 # Serverless Claw: Architecture & Design
 
-This document outlines the high-level design of Serverless Claw, focusing on its serverless nature and its extensibility for developers.
+> **Navigation**: [← Index Hub](./INDEX.md) | [Agents ↗](./docs/AGENTS.md) | [Tools ↗](./docs/TOOLS.md) | [Safety ↗](./docs/SAFETY.md)
+
+This document covers the AWS topology and data flow. For agent logic and orchestration, see [docs/AGENTS.md](./docs/AGENTS.md).
 
 ## Design Philosophy
 
@@ -138,27 +140,41 @@ To prevent excessive GitHub Actions billing and code corruption:
 2.  **Hot-Reloading (Dynamic Config)**: Non-structural changes (prompts, tool parameters, system messages) are stored in **DynamoDB**. The agent can update these instantly via a tool without triggering a full CI/CD pipeline.
 3.  **Change Batching**: The agent is instructed to gather multiple improvements before performing a single "Self-Commit" to minimize build minutes.
 
-### 2. Sub-agent Orchestration
-Multi-agent tasks are handled through an event-driven "Manager-Worker" pattern.
+### 2. Self-Evolution (3-Agent Loop)
+
+The current production system uses a fully in-AWS self-evolution loop:
 
 ```text
-[ Main Agent ] --- (Task Event) ---> [ EventBridge Bus ]
-                                            |
-         +----------------------------------+----------------------------------+
-         v                                  v                                  v
-[ Researcher Agent ]               [ Coder Agent ]                    [ Reviewer Agent ]
-(Lambda / Task A)                  (Lambda / Task B)                  (Lambda / Task C)
+User
+ │
+ ▼
+Main Agent (Lambda)
+ │  dispatch_task
+ ▼
+Coder Agent (Lambda) ─── file_write ──► Codebase
+ │  validate_code                         │
+ │  (passes)                              │
+ ▼                                        │
+trigger_deployment                         │
+ │                                        │
+ ▼                                        │
+AWS CodeBuild (Deployer) ◄────────────────┘
+ │  sst deploy
+ ▼
+Deployed Stack
+ │
+ ▼
+check_health ──► GET /health
+ │
+ ├── OK  (counter –1, notify user)
+ └── FAIL → trigger_rollback → git revert HEAD → CodeBuild
 ```
 
-- **Asynchronous Execution**: The manager emits specialized tasks to an EventBridge bus.
-- **State Tracking**: All sub-agent status and results are stored in the Shared DynamoDB MemoryTable, allowing the manager to "wait" or "gather" results across separate invocations.
-
----
+See [docs/SAFETY.md](./docs/SAFETY.md) for guardrail details and [docs/AGENTS.md](./docs/AGENTS.md) for system prompts.
 
 ### 4. LLM Providers
 Provider-agnostic interface supporting:
 - OpenAI (GPT-5.4 / GPT-5-mini)
 - Anthropic (Claude 4.6 Sonnet)
 - Google (Gemini 3.1 / Gemini 3 Flash)
-- Emerging models (GLM 5, MiniMax 2.5)
-- Local models (via Ollama tunnel or AWS Bedrock)
+- Local models (via Ollama or AWS Bedrock)

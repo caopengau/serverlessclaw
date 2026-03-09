@@ -1,33 +1,54 @@
 # Serverless Claw Roadmap
 
-Our goal is to build the most customizable and cost-effective personal AI agent host.
+Our goal: the most customizable, cost-effective, and self-evolving personal AI agent host.
 
-## Phase 1: MVP (Current)
-- [x] Initial SST v3 (Ion) Setup.
-- [x] Telegram Webhook integration.
-- [x] DynamoDB basic history persistence.
-- [x] 2026 Model Integration (GPT-5-mini default).
-- [x] Basic Tool loop (Calculator, Search).
+## ✅ Phase 1: MVP
+- [x] SST v3 (Ion) setup
+- [x] Telegram Webhook integration
+- [x] DynamoDB history persistence
+- [x] Basic Tool loop (Calculator, Weather)
 
-## Phase 2: Developer Foundations (Q2 2026)
-- [ ] **Standardized Adapters**: Define TypeScript interfaces for `IMemory`, `IChannel`, and `ITool`.
-- [ ] **Session Locking**: Implement DynamoDB-based mutex to handle concurrent webhooks safely.
-- [ ] **Distilled Memory**: Implementation of the "Reflection" loop to summarize long-term user facts.
-- [ ] **pnpm Workspace Support**: Split core logic from demo implementations.
+## ✅ Phase 2: Developer Foundations
+- [x] Standardized `IMemory`, `IChannel`, `ITool` interfaces
+- [x] DynamoDB-based session locking (mutex)
+- [x] Distilled Long-Term Memory (Reflection Loop)
 
-## Phase 3: Capabilities Expansion (Q3 2026)
-- [ ] **Multi-Channel Router**: Single Lambda handling Telegram, Discord, and Slack via routing logic.
-- [ ] **Browser Automation**: Integration with `Playwright` via AWS Lambda Layers or external sandboxes.
-- [ ] **Local Model Tunnel**: Support for Ollama or local inference backends for privacy-first users.
+## ✅ Phase 5: Self-Evolving & Multi-Agent
+- [x] 3-Agent Architecture: Main → Coder → Deployer
+- [x] EventBridge `AgentBus` for async inter-agent communication
+- [x] `dispatch_task` and `trigger_deployment` tools
+- [x] AWS CodeBuild sidecar Deployer
+- [x] `file_write` tool for Coder Agent
 
-## Phase 4: Ecosystem & UI (Q4 2026)
-- [ ] **Admin Dashboard**: An SST-hosted React Site to view agent logs, memory, and tool usage.
-- [ ] **Plugin Marketplace**: A repository of community-built AgentSkills.
-- [ ] **Voice Support**: Twilio/WebRTC integration for real-time talk mode.
+## ✅ Phase 6: Safety Guardrails
+- [x] Resource Labeling (Protected file list in `file_write`)
+- [x] Deployment Circuit Breaker (5/day limit, DynamoDB-backed, TDD-verified)
+- [x] Pre-flight `validate_code` tool
+- [x] Human-in-the-Loop prompt instructions
 
-## Phase 5: Self-Evolving & Multi-Agent (2027)
-- [ ] **Infrastructure-as-Code Agent**: Capabilities to modify `sst.config.ts` and self-deploy.
-- [ ] **Autonomous Deployer**: Use Lambda-triggered CodeBuild sidecar for self-hosting (bypasses GitHub Actions).
-- [ ] **GitOps Integration**: Tooling for the agent to manage its own GitHub repository.
-- [ ] **Event-Driven Orchestrator**: EventBridge-based "Manager" agent to delegate complex tasks to specialized workers.
-- [ ] **Nested Sub-agents**: Recursive agent invocation patterns for deep research and heavy coding tasks.
+## ✅ Phase 7: Self-Healing & Rollback
+- [x] `check_health` tool — `GET /health` probe, rewards with counter decrement
+- [x] `trigger_rollback` tool — `git revert HEAD` + redeploy
+- [x] Main Agent orchestrates full deploy→verify→rollback cycle
+
+---
+
+## 🔜 Phase 3: Capabilities Expansion
+- [ ] Multi-Channel Router (Telegram + Discord + Slack)
+- [ ] Browser Automation via `Playwright` Lambda Layer
+- [ ] Local Model Tunnel (Ollama / AWS Bedrock)
+
+## 🔜 Phase 4: Ecosystem & UI
+- [ ] Admin Dashboard (SST React Site): agent logs, memory, tool usage
+- [ ] Plugin Marketplace for community `AgentSkills`
+- [ ] Voice Support (Twilio / WebRTC)
+
+## 🔜 Phase 8: Multi-Tenancy & Isolation
+- [ ] Agent Swarm Isolation by `employerId` (tenant partitioning)
+- [ ] Per-tenant EventBridge filtering
+- [ ] Tenant-aware rate limiting on Circuit Breaker
+
+## 🔜 Phase 9: Observability
+- [ ] Langfuse integration for LLM tracing
+- [ ] Per-tool latency / cost dashboards
+- [ ] Autonomous cost anomaly detection
