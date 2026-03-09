@@ -1,0 +1,20 @@
+{
+  "name": "serverlessclaw",
+  "version": "1.0.0",
+  "description": "A serverless implementation of OpenClaw AI agent using SST, AWS Lambda, and DynamoDB.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["openclaw", "serverless", "sst", "aws", "lambda", "ai-agent"],
+  "author": "Peng Cao",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1004.0",
+    "@aws-sdk/client-s3": "^3.1004.0",
+    "@aws-sdk/client-ssm": "^3.1004.0",
+    "@aws-sdk/lib-dynamodb": "^3.1004.0",
+    "lucide-react": "^0.577.0"
+  }
+}
