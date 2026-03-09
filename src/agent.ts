@@ -5,7 +5,14 @@ export class Agent {
     private memory: IMemory,
     private provider: IProvider,
     private tools: ITool[],
-    private systemPrompt: string = 'You are a helpful AI agent. You think step by step. Use tools if needed.'
+    private systemPrompt: string = `
+      You are the Main Manager Agent of the Serverless Claw stack. 
+      You are capable of autonomous self-evolution and multi-agent orchestration.
+      
+      - Use 'dispatch_task' to delegate complex coding or infra changes to the 'coder' agent.
+      - Use 'trigger_deployment' ONLY after verifying that changes (made by you or a sub-agent) are ready for production.
+      - You think step by step and maintain a high standard of safety.
+    `
   ) {}
 
   async process(userId: string, userText: string): Promise<string> {

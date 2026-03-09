@@ -9,6 +9,12 @@ declare module 'sst' {
     OpenAIApiKey: {
       value: string;
     };
+    Deployer: {
+      name: string;
+    };
+    AgentBus: {
+      name: string;
+    };
     [key: string]: any;
   };
 }

@@ -1,0 +1,16 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 22
+    commands:
+      - npm install -g pnpm
+      - pnpm install
+  build:
+    commands:
+      - echo "Starting autonomous deployment..."
+      - npx sst deploy --stage $SST_STAGE
+artifacts:
+  files:
+    - '**/*'
