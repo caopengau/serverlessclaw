@@ -4,9 +4,22 @@
   "description": "A serverless implementation of OpenClaw AI agent using SST, AWS Lambda, and DynamoDB.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "prepare": "husky"
   },
-  "keywords": ["openclaw", "serverless", "sst", "aws", "lambda", "ai-agent"],
+  "keywords": [
+    "openclaw",
+    "serverless",
+    "sst",
+    "aws",
+    "lambda",
+    "ai-agent"
+  ],
   "author": "Peng Cao",
   "license": "MIT",
   "type": "commonjs",
@@ -16,5 +29,25 @@
     "@aws-sdk/client-ssm": "^3.1004.0",
     "@aws-sdk/lib-dynamodb": "^3.1004.0",
     "lucide-react": "^0.577.0"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
+    "@vitest/ui": "^4.0.18",
+    "eslint": "^10.0.3",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.3.2",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.56.1",
+    "vitest": "^4.0.18"
   }
 }

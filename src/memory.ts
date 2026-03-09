@@ -1,12 +1,12 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
-import { Resource } from "sst";
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import { DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { Resource } from 'sst';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 
 export interface Message {
-  role: "user" | "assistant" | "system";
+  role: 'user' | 'assistant' | 'system';
   content: string;
 }
 
@@ -16,9 +16,9 @@ export class DynamoMemory {
   async getHistory(userId: string): Promise<Message[]> {
     const command = new QueryCommand({
       TableName: this.tableName,
-      KeyConditionExpression: "userId = :userId",
+      KeyConditionExpression: 'userId = :userId',
       ExpressionAttributeValues: {
-        ":userId": userId,
+        ':userId': userId,
       },
       ScanIndexForward: true, // Oldest first
     });
@@ -30,7 +30,7 @@ export class DynamoMemory {
         content: item.content,
       }));
     } catch (error) {
-      console.error("Error retrieving history from DynamoDB:", error);
+      console.error('Error retrieving history from DynamoDB:', error);
       return [];
     }
   }
@@ -49,7 +49,7 @@ export class DynamoMemory {
     try {
       await docClient.send(command);
     } catch (error) {
-      console.error("Error saving message to DynamoDB:", error);
+      console.error('Error saving message to DynamoDB:', error);
     }
   }
 }

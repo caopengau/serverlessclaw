@@ -7,14 +7,14 @@ export interface Tool {
 
 export const tools: Record<string, Tool> = {
   calculator: {
-    name: "calculator",
-    description: "Evaluates mathematical expressions.",
+    name: 'calculator',
+    description: 'Evaluates mathematical expressions.',
     parameters: {
-      type: "object",
+      type: 'object',
       properties: {
-        expression: { type: "string", description: "The expression to evaluate." },
+        expression: { type: 'string', description: 'The expression to evaluate.' },
       },
-      required: ["expression"],
+      required: ['expression'],
     },
     execute: async ({ expression }) => {
       try {
@@ -27,14 +27,14 @@ export const tools: Record<string, Tool> = {
     },
   },
   get_weather: {
-    name: "get_weather",
-    description: "Get the current weather in a given location.",
+    name: 'get_weather',
+    description: 'Get the current weather in a given location.',
     parameters: {
-      type: "object",
+      type: 'object',
       properties: {
-        location: { type: "string", description: "The city and state, e.g. San Francisco, CA" },
+        location: { type: 'string', description: 'The city and state, e.g. San Francisco, CA' },
       },
-      required: ["location"],
+      required: ['location'],
     },
     execute: async ({ location }) => {
       // Mock weather for now
@@ -45,7 +45,7 @@ export const tools: Record<string, Tool> = {
 
 export function getToolDefinitions() {
   return Object.values(tools).map((t) => ({
-    type: "function",
+    type: 'function',
     function: {
       name: t.name,
       description: t.description,

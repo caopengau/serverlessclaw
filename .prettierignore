@@ -1,0 +1,5 @@
+.sst/
+.git/
+node_modules/
+dist/
+pnpm-lock.yaml
