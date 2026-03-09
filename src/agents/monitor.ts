@@ -65,7 +65,7 @@ export const handler = async (event: { detail: Record<string, unknown> }) => {
       Entries: [
         {
           Source: 'build.monitor',
-          DetailType: 'system.build.failed',
+          DetailType: 'system_build_failed',
           Detail: JSON.stringify({
             userId,
             buildId,

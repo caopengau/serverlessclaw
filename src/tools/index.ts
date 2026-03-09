@@ -1,5 +1,6 @@
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
@@ -13,13 +14,71 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import * as archiver from 'archiver';
+import { createWriteStream } from 'fs';
 
 const execAsync = promisify(exec);
 const codebuild = new CodeBuildClient({});
 const eventbridge = new EventBridgeClient({});
+const s3 = new S3Client({});
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
 export const tools: Record<string, ITool> = {
+  stage_changes: {
+    name: 'stage_changes',
+    description: 'Stages modified files to S3 for persistent deployment.',
+    parameters: {
+      type: 'object',
+      properties: {
+        modifiedFiles: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of relative file paths that were modified.',
+        },
+      },
+      required: ['modifiedFiles'],
+    },
+    execute: async ({ modifiedFiles }) => {
+      if (!modifiedFiles || modifiedFiles.length === 0) {
+        return 'No files to stage.';
+      }
+
+      const zipPath = '/tmp/staged_changes.zip';
+      const output = createWriteStream(zipPath);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+
+      return new Promise((resolve) => {
+        output.on('close', async () => {
+          try {
+            const fileBuffer = await fs.readFile(zipPath);
+            await s3.send(
+              new PutObjectCommand({
+                Bucket: Resource.StagingBucket.name,
+                Key: 'staged_changes.zip',
+                Body: fileBuffer,
+              })
+            );
+            resolve(`Successfully staged ${modifiedFiles.length} files to S3.`);
+          } catch (error) {
+            resolve(
+              `Failed to upload staged changes: ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
+        });
+
+        archive.on('error', (err) => {
+          resolve(`Failed to create zip: ${err.message}`);
+        });
+
+        archive.pipe(output);
+        for (const file of modifiedFiles as string[]) {
+          const fullPath = path.resolve(process.cwd(), file);
+          archive.file(fullPath, { name: file });
+        }
+        archive.finalize();
+      });
+    },
+  },
   dispatch_task: {
     name: 'dispatch_task',
     description: 'Dispatches a specialized task to a sub-agent (e.g., coder).',
@@ -42,7 +101,7 @@ export const tools: Record<string, ITool> = {
         Entries: [
           {
             Source: 'main.agent',
-            DetailType: `${agentType}.task`,
+            DetailType: `${agentType}_task`,
             Detail: JSON.stringify({ userId, task }),
             EventBusName: Resource.AgentBus.name,
           },
@@ -78,16 +137,17 @@ export const tools: Record<string, ITool> = {
         'src/infra',
       ];
       const isProtected =
-        protectedFiles.some((f) => filePath.endsWith(f)) || filePath.includes('infra/bootstrap');
+        protectedFiles.some((f) => (filePath as string).endsWith(f)) ||
+        (filePath as string).includes('infra/bootstrap');
 
       if (isProtected) {
         return `PERMISSION_DENIED: The file '${filePath}' is labeled as [PROTECTED]. Autonomous modification is blocked. Please present the proposed changes to the user and request a 'MANUAL_APPROVAL'.`;
       }
 
       try {
-        const fullPath = path.resolve(process.cwd(), filePath);
+        const fullPath = path.resolve(process.cwd(), filePath as string);
         await fs.mkdir(path.dirname(fullPath), { recursive: true });
-        await fs.writeFile(fullPath, content, 'utf8');
+        await fs.writeFile(fullPath, content as string, 'utf8');
         return `Successfully wrote to ${filePath}`;
       } catch (error) {
         return `Failed to write file: ${error instanceof Error ? error.message : String(error)}`;
@@ -148,7 +208,7 @@ export const tools: Record<string, ITool> = {
               Item: {
                 userId: `BUILD#${buildId}`,
                 timestamp: Date.now(),
-                initiatorUserId: userId, // Assuming userId is available in the context or passed
+                initiatorUserId: userId,
               },
             })
           );
@@ -205,8 +265,6 @@ export const tools: Record<string, ITool> = {
     execute: async () => {
       try {
         console.log('Running pre-flight validation...');
-        // In a real Lambda, this might be restricted, but for our 'local-first' dev agent it's key.
-        // We trigger 'tsc' and 'eslint'.
         const { stdout: tscOut } = await execAsync('npx tsc --noEmit');
         const { stdout: lintOut } = await execAsync('npx eslint . --fix-dry-run');
         return `Validation Successful:\n${tscOut}\n${lintOut}`;
@@ -228,7 +286,7 @@ export const tools: Record<string, ITool> = {
     execute: async ({ url }) => {
       try {
         console.log(`Checking health at ${url}`);
-        const response = await fetch(url);
+        const response = await fetch(url as string);
         if (response.ok) {
           // Reward: Decrement daily limit by 1 on a healthy response
           const statsKey = 'system:deploy-stats';
@@ -236,7 +294,6 @@ export const tools: Record<string, ITool> = {
             new UpdateCommand({
               TableName: Resource.MemoryTable.name,
               Key: { id: statsKey },
-              // Reward a successful health check by decrementing the daily counter
               UpdateExpression: 'SET #count = if_not_exists(#count, :zero) - :one',
               ExpressionAttributeNames: { '#count': 'count' },
               ExpressionAttributeValues: { ':one': 1, ':zero': 0 },
@@ -263,9 +320,7 @@ export const tools: Record<string, ITool> = {
     execute: async ({ reason }) => {
       try {
         console.log(`ROLLBACK INITIATED: ${reason}`);
-        // 1. Revert last commit
         await execAsync('git revert HEAD --no-edit');
-        // 2. Trigger deployment
         const command = new StartBuildCommand({
           projectName: Resource.Deployer.name,
         });

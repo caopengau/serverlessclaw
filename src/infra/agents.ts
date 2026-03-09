@@ -1,9 +1,9 @@
 interface AgentContext {
-  memoryTable: sst.aws.DynamoDB;
-  traceTable: sst.aws.DynamoDB;
+  memoryTable: sst.aws.Dynamo;
+  traceTable: sst.aws.Dynamo;
   secrets: Record<string, sst.Secret>;
   bus: sst.aws.Bus;
-  deployer: sst.aws.CodeBuild;
+  deployer: aws.codebuild.Project;
   api: sst.aws.ApiGatewayV2;
 }
 
@@ -33,7 +33,7 @@ export function createAgents(ctx: AgentContext) {
   // 4. Dead Man's Switch
   const deadMansSwitch = new sst.aws.Function('DeadMansSwitch', {
     handler: 'src/agents/recovery.handler',
-    link: [memoryTable, deployer, api],
+    link: [memoryTable, traceTable, deployer, api],
   });
 
   // 15-min Schedule

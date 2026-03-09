@@ -92,35 +92,41 @@ The webhook handler can be extended to support multiple messaging platforms simu
 
 Serverless Claw is designed to evolve itself and manage complex agent hierarchies.
 
-### 1. Self-Evolution (3-Agent + CodeBuild Loop)
+### 1. Self-Evolution (The Persistence Loop)
 
-The stack deploys **itself**. There is no GitHub Actions CI/CD — all deployments are triggered programmatically by the Main Agent via AWS CodeBuild.
+The stack evolves by bridging the gap between temporary Lambda execution and persistent Git storage.
 
 ```text
 +--------------+       +------------------+       +-------------------+
-|              |       |                  |       |                   |
-|  Main Agent  +------>+  AWS CodeBuild   +------>+   Agent Stack     |
-| (Lambda)     | start | (Deployer)       |  sst  | (Self-Update)     |
-|              | build |  buildspec.yml   | deploy|                   |
+|  Coder Agent |------>|  Staging Bucket  |<------|   AWS CodeBuild   |
+| (Writes Code)| upload|    (S3)          | pull  |     (Deployer)    |
++--------------+       +------------------+       +---------+---------+
+                                                            |
+                                                            v
 +--------------+       +------------------+       +-------------------+
-       |                        |
-       | Protected (no writes)  |
-       +------------------------+
-       |     Bootstrap Stack    |
-       |  (CodeBuild + Roles)   |
-       +------------------------+
+|  Main Agent  +------>|  AWS CodeBuild   +------>|   Agent Stack     |
+| (Orchestrator)| trigger| (Deployer)       |  sst  | (Self-Update)     |
++--------------+       +------------------+       +---------+---------+
+                                                            |
+                                                            v
+                                                  +-------------------+
+                                                  |   GitHub Repo     |
+                                                  | (Final Persistence)|
+                                                  +-------------------+
 ```
 
 **How it works**:
-1. Main Agent calls `trigger_deployment` (circuit-breaker guarded, max 5/day).
-2. CodeBuild runs `pnpm sst deploy` from the repo using `buildspec.yml`.
-3. Main Agent calls `check_health` → `GET /health` to confirm success.
-4. On failure: `trigger_rollback` reverts the last Git commit and redeploys.
+1. **Coder Agent** implements changes using `file_write` and validates them.
+2. **Main Agent** (via tool) zips the modified workspace and uploads it to the **Staging Bucket** (S3).
+3. **Main Agent** calls `trigger_deployment`.
+4. **CodeBuild** starts:
+    - Pulls the latest code from **GitHub**.
+    - Pulls the modified files from the **Staging Bucket** and overwrites the local workspace.
+    - Runs `pnpm sst deploy`.
+5. **On Success**: CodeBuild uses a `GITHUB_TOKEN` to commit and push the staged changes back to the repository, closing the evolution loop.
+6. **On Failure**: `Dead Man's Switch` detects the unhealthy state and reverts the last commit in Git.
 
-**Stack Isolation** (loop prevention):
-- **Bootstrap Stack**: defines CodeBuild, IAM roles. **Agent cannot modify this.**
-- **Agent Stack**: everything else — Lambda, DynamoDB, API Gateway. The agent can evolve this.
-- The agent's IAM role only allows `codebuild:StartBuild` for the Agent Stack project. It cannot touch the Bootstrap Stack.
+---
 
 ### 3. Cost-Effectiveness & Safety (CodeBuild Edition)
 

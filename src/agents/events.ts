@@ -16,7 +16,7 @@ export const handler = async (event: {
 
   const { userId, buildId, errorLogs } = event.detail;
 
-  if (event['detail-type'] === 'system.build.failed') {
+  if (event['detail-type'] === 'system_build_failed') {
     const task = `CRITICAL: Deployment ${buildId} failed. 
     Here are the last few lines of the logs:
     ---

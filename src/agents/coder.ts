@@ -17,9 +17,10 @@ const agent = new Agent(
 
     CRITICAL RULES:
     1. PRE-FLIGHT CHECK: After writing files, you MUST call 'validate_code' to ensure no lint/build errors.
-    2. PROTECTED FILES: If 'file_write' returns PERMISSION_DENIED, do NOT try to bypass it. Summarize your changes and explicitly state: "MANUAL_APPROVAL_REQUIRED: This change affects protected infrastructure."
-    3. ATOMICITY: Do not leave the codebase in a broken state. Always check your work.
-    4. DOCUMENTATION: If you change the architecture or add new tools, you MUST update the relevant spoke in 'docs/' (see INDEX.md) in the same step.`
+    2. PERSISTENCE: After a successful 'validate_code', you MUST call 'stage_changes' with the list of files you modified. This ensures your work is saved to the persistent repository.
+    3. PROTECTED FILES: If 'file_write' returns PERMISSION_DENIED, do NOT try to bypass it. Summarize your changes and explicitly state: "MANUAL_APPROVAL_REQUIRED: This change affects protected infrastructure."
+    4. ATOMICITY: Do not leave the codebase in a broken state. Always check your work.
+    5. DOCUMENTATION: If you change the architecture or add new tools, you MUST update the relevant spoke in 'docs/' (see INDEX.md) in the same step.`
 );
 
 export const handler = async (event: { userId: string; task: string }) => {

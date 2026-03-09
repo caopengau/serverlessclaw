@@ -16,10 +16,34 @@ phases:
           git config --global user.name "Emergency Agent"
           git revert HEAD --no-edit
         fi
+      - |
+        if [ -n "$STAGING_BUCKET_NAME" ]; then
+          echo "Checking for staged changes in S3: $STAGING_BUCKET_NAME"
+          aws s3 cp s3://$STAGING_BUCKET_NAME/staged_changes.zip staged_changes.zip || echo "No staged changes found."
+          if [ -f "staged_changes.zip" ]; then
+            echo "Applying staged changes..."
+            unzip -o staged_changes.zip
+            rm staged_changes.zip
+          fi
+        fi
   build:
     commands:
       - echo "Starting autonomous deployment..."
       - npx sst deploy --stage $SST_STAGE
+  post_build:
+    commands:
+      - |
+        if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ -n "$GITHUB_TOKEN" ]; then
+          echo "Deployment successful. Pushing changes back to GitHub..."
+          git config --global user.email "agent@serverlessclaw.local"
+          git config --global user.name "Claw Coder Agent"
+          git add .
+          if git commit -m "chore: autonomous improvement by Claw Coder Agent [skip ci]"; then
+            git push https://$GITHUB_TOKEN@github.com/caopengau/serverlessclaw.git HEAD:main
+          else
+            echo "No changes to commit."
+          fi
+        fi
 artifacts:
   files:
     - '**/*'

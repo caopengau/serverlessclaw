@@ -1,5 +1,7 @@
 .sst
+sst-env.d.ts
 .aiready
+.vscode
 
 # dependencies
 node_modules
@@ -16,3 +18,12 @@ yarn-error.log*
 # misc
 .DS_Store
 dist
+*.zip
+
+# Next.js Dashboard
+dashboard/.next/
+dashboard/.open-next/
+dashboard/out/
+dashboard/build/
+dashboard/.sst/
+dashboard/sst-env.d.ts

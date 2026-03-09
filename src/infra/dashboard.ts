@@ -1,6 +1,6 @@
 interface DashboardContext {
-  memoryTable: sst.aws.DynamoDB;
-  traceTable: sst.aws.DynamoDB;
+  memoryTable: sst.aws.Dynamo;
+  traceTable: sst.aws.Dynamo;
 }
 
 export function createDashboard(ctx: DashboardContext) {

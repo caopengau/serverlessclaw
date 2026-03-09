@@ -1,9 +1,9 @@
 interface ApiContext {
-  memoryTable: sst.aws.DynamoDB;
-  traceTable: sst.aws.DynamoDB;
+  memoryTable: sst.aws.Dynamo;
+  traceTable: sst.aws.Dynamo;
   secrets: Record<string, sst.Secret>;
   bus: sst.aws.Bus;
-  deployer: sst.aws.CodeBuild;
+  deployer: aws.codebuild.Project;
 }
 
 export function createApi(ctx: ApiContext) {
