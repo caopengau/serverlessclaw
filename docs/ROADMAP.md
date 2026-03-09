@@ -35,22 +35,26 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 
 ---
 
-## 🔜 Phase 3: Capabilities Expansion
-- [ ] Multi-Channel Router (Telegram + Discord + Slack)
-- [ ] Browser Automation via `Playwright` Lambda Layer
-- [ ] Local Model Tunnel (Ollama / AWS Bedrock)
+## 🚀 Phase 3: Visibility & Native Observability (High Priority)
+- [ ] **Admin Dashboard**: Next.js 16 (Canary) + Tailwind v4 static site to visualize agent logic, memory, and builds.
+    - **Style**: "Cyber-Industrial" aesthetic (High-contrast Dark Mode, Glassmorphism, Monospace typography).
+    - **Features**: Agent Trace (XYFlow), Self-Healing Logs, Memory Browser.
+- [ ] **Claw-Trace**: A built-in, serverless tracing engine that logs every LLM call and tool execution to DynamoDB.
+- [ ] **Cost Monitoring**: Real-time AWS and LLM cost breakdown inside your own dashboard.
+- [ ] **Multi-Channel Adapters**: Slack and Discord support to broaden the user base.
 
-## 🔜 Phase 4: Ecosystem & UI
-- [ ] Admin Dashboard (SST React Site): agent logs, memory, tool usage
-- [ ] Plugin Marketplace for community `AgentSkills`
-- [ ] Voice Support (Twilio / WebRTC)
+## 🔥 Phase 4: Power Capabilities
+- [ ] **Browser Automation**: Playwright Lambda Layer for autonomous web browsing/actions.
+- [ ] **Skill Marketplace**: CLI-based installation of community-contributed tools (`claw install notion`).
+- [ ] **Local CLI Chat**: A "Sandbox Mode" to chat with the agent directly in the terminal.
+- [ ] **Voice Integration**: Twilio/WebRTC support for voice-enabled agents.
 
-## 🔜 Phase 8: Multi-Tenancy & Isolation
-- [ ] Agent Swarm Isolation by `employerId` (tenant partitioning)
-- [ ] Per-tenant EventBridge filtering
-- [ ] Tenant-aware rate limiting on Circuit Breaker
+## 🏢 Phase 8: Multi-Tenancy & Scale
+- [ ] Agent Swarm Isolation by `employerId` (tenant partitioning).
+- [ ] Per-tenant EventBridge filtering.
+- [ ] Tenant-aware rate limiting on Circuit Breaker.
 
-## 🔜 Phase 9: Observability
-- [ ] Langfuse integration for LLM tracing
-- [ ] Per-tool latency / cost dashboards
-- [ ] Autonomous cost anomaly detection
+## 🔜 Phase 9: Advanced AI Engineering
+- [ ] Local Model Tunnel (Ollama / AWS Bedrock).
+- [ ] Autonomous cost anomaly detection.
+- [ ] Automated "Prompt Engineering" optimization loop.
