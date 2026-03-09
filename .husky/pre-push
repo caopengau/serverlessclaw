@@ -1,1 +1,2 @@
 pnpm test
+aiready scan --threshold 80 --exclude "node_modules/**,.sst/**"
