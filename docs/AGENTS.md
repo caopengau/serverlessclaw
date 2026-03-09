@@ -6,10 +6,10 @@
 
 | Agent | Runtime | System Prompt Location | Responsibilities |
 |-------|---------|------------------------|-----------------|
-| **Main Agent** | `src/webhook.ts` + `src/agent.ts` | `src/agent.ts` (default param) | Interprets user intent, delegates, deploys |
-| **Coder Agent** | `src/coder.ts` | `src/coder.ts` | Writes code, runs pre-flight checks |
+| **Main Agent** | `src/agents/webhook.ts` + `src/lib/agent.ts` | `src/lib/agent.ts` (default param) | Interprets user intent, delegates, deploys |
+| **Coder Agent** | `src/agents/coder.ts` | `src/agents/coder.ts` | Writes code, runs pre-flight checks |
 | **Deployer** | AWS CodeBuild (`buildspec.yml`) | `buildspec.yml` | Runs `sst deploy` in isolated environment |
-| **Build Monitor** | `src/monitor.ts` | — | Watches for build failures, extracts logs |
+| **Build Monitor** | `src/agents/monitor.ts` | — | Watches for build failures, extracts logs |
 
 ---
 

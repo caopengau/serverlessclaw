@@ -7,7 +7,18 @@ export class OpenAIProvider implements IProvider {
   async call(messages: Message[], tools?: ITool[]): Promise<Message> {
     const apiKey = Resource.OpenAIApiKey.value;
 
-    const body: any = {
+    const body: {
+      model: string;
+      messages: Message[];
+      tools?: {
+        type: 'function';
+        function: {
+          name: string;
+          description: string;
+          parameters: unknown;
+        };
+      }[];
+    } = {
       model: this.model,
       messages: messages,
     };
@@ -32,8 +43,14 @@ export class OpenAIProvider implements IProvider {
       body: JSON.stringify(body),
     });
 
-    const data = (await response.json()) as any;
+    const data = (await response.json()) as {
+      choices?: { message: Message }[];
+    };
     const message = data.choices?.[0]?.message;
+
+    if (!message) {
+      return { role: 'assistant', content: 'Empty response from provider.' };
+    }
 
     return {
       role: message.role,

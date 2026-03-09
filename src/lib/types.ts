@@ -1,7 +1,7 @@
 export interface Message {
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
-  tool_calls?: any[];
+  tool_calls?: unknown[];
   tool_call_id?: string;
   name?: string;
 }
@@ -23,7 +23,7 @@ export interface IMemory {
 export interface ITool {
   name: string;
   description: string;
-  parameters: any;
+  parameters: unknown;
   execute(args: any): Promise<string>;
 }
 

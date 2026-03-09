@@ -22,7 +22,7 @@ export class DynamoMemory implements IMemory {
     try {
       const response = await docClient.send(command);
       return (response.Items || []).map((item) => ({
-        role: item.role as any,
+        role: item.role as 'user' | 'assistant' | 'system' | 'tool',
         content: item.content,
         tool_calls: item.tool_calls,
         tool_call_id: item.tool_call_id,

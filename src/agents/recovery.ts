@@ -28,17 +28,6 @@ export const handler = async () => {
   console.log("CRITICAL: Initiating Dead Man's Switch Recovery Flow...");
 
   try {
-    // 1. Revert last commit
-    // Note: In a Lambda environment, this requires the full repo to be present or a different strategy.
-    // For this architecture, CodeBuild handles the git state, but for a true "Dead Man's Switch"
-    // we want to ensure the NEXT build uses the reverted code.
-    // Since CodeBuild pulls from the source provider, we might need to push a revert commit.
-    // However, in this 'autonomous' setup, we'll assume the Deployer project has the capability.
-
-    // For now, we trigger the Rollback via CodeBuild by starting a build that specifically
-    // handles a rollback or just redeploys the last known good if we had a more complex setup.
-    // Since our trigger_rollback tool does 'git revert HEAD', we'll simulate the same intent.
-
     console.log('Triggering CodeBuild Deployer for emergency recovery...');
     const command = new StartBuildCommand({
       projectName: Resource.Deployer.name,

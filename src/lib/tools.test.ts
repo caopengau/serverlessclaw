@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { tools, getToolDefinitions } from './tools';
+import { tools, getToolDefinitions } from '../tools/index';
 
 describe('Tools', () => {
   describe('calculator', () => {

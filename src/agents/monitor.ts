@@ -10,12 +10,12 @@ const logs = new CloudWatchLogsClient({});
 const eventbridge = new EventBridgeClient({});
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 
-export const handler = async (event: { detail: Record<string, any> }) => {
+export const handler = async (event: { detail: Record<string, unknown> }) => {
   console.log('BuildMonitor received event:', JSON.stringify(event, null, 2));
 
-  const buildId = event.detail['build-id'];
-  const projectName = event.detail['project-name'];
-  const status = event.detail['build-status'];
+  const buildId = event.detail['build-id'] as string;
+  const projectName = event.detail['project-name'] as string;
+  const status = event.detail['build-status'] as string;
 
   if (status !== 'FAILED') return;
 
@@ -55,7 +55,9 @@ export const handler = async (event: { detail: Record<string, any> }) => {
           startFromHead: false,
         })
       );
-      errorLogs = logEvents.events?.map((e) => e.message).join('\n') || 'Logs are empty.';
+      errorLogs =
+        logEvents.events?.map((e: { message?: string }) => e.message).join('\n') ||
+        'Logs are empty.';
     }
 
     // 3. Notify Main Agent via AgentBus

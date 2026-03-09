@@ -1,7 +1,7 @@
-import { DynamoMemory } from './memory';
-import { Agent } from './agent';
-import { OpenAIProvider } from './provider';
-import { tools } from './tools';
+import { DynamoMemory } from '../lib/memory';
+import { Agent } from '../lib/agent';
+import { OpenAIProvider } from '../lib/provider';
+import { tools } from '../tools/index';
 
 const memory = new DynamoMemory();
 const provider = new OpenAIProvider();
@@ -22,7 +22,7 @@ const agent = new Agent(
     4. DOCUMENTATION: If you change the architecture or add new tools, you MUST update the relevant spoke in 'docs/' (see INDEX.md) in the same step.`
 );
 
-export const handler = async (event: any) => {
+export const handler = async (event: { userId: string; task: string }) => {
   console.log('Coder Agent received task:', JSON.stringify(event, null, 2));
 
   const { userId, task } = event;

@@ -28,8 +28,8 @@ export class DynamoLockManager implements ILockManager {
     try {
       await docClient.send(command);
       return true;
-    } catch (error: any) {
-      if (error.name === 'ConditionalCheckFailedException') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
         return false;
       }
       throw error;

@@ -1,9 +1,9 @@
 import { APIGatewayProxyEventV2 } from 'aws-lambda';
-import { DynamoMemory } from './memory';
-import { Agent } from './agent';
-import { OpenAIProvider } from './provider';
-import { tools } from './tools';
-import { DynamoLockManager } from './lock';
+import { DynamoMemory } from '../lib/memory';
+import { Agent } from '../lib/agent';
+import { OpenAIProvider } from '../lib/provider';
+import { tools } from '../tools/index';
+import { DynamoLockManager } from '../lib/lock';
 import { Resource } from 'sst';
 
 const memory = new DynamoMemory();

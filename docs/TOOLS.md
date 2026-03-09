@@ -19,7 +19,7 @@
 
 ## Adding a New Tool
 
-1. Open `src/tools.ts`.
+1. Open `src/tools/index.ts`.
 2. Add an entry to the `tools` record following the `ITool` interface.
 3. Run `validate_code` to check for regressions.
 4. Update the table above.

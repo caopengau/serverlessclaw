@@ -1,14 +1,17 @@
-import { DynamoMemory } from './memory';
-import { Agent } from './agent';
-import { OpenAIProvider } from './provider';
-import { tools } from './tools';
+import { DynamoMemory } from '../lib/memory';
+import { Agent } from '../lib/agent';
+import { OpenAIProvider } from '../lib/provider';
+import { tools } from '../tools/index';
 import { Resource } from 'sst';
 
 const memory = new DynamoMemory();
 const provider = new OpenAIProvider();
 const agent = new Agent(memory, provider, Object.values(tools));
 
-export const handler = async (event: { 'detail-type': string; detail: any }) => {
+export const handler = async (event: {
+  'detail-type': string;
+  detail: Record<string, unknown>;
+}) => {
   console.log('EventHandler received event:', JSON.stringify(event, null, 2));
 
   const { userId, buildId, errorLogs } = event.detail;

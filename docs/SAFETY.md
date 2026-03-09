@@ -6,13 +6,13 @@
 
 | Guardrail | Where Implemented | Trigger |
 |-----------|-------------------|---------|
-| **Resource Labeling** | `tools.ts → file_write` | Any write to a protected file |
-| **Circuit Breaker** | `tools.ts → trigger_deployment` | > 5 deployments/day (UTC) |
-| **Self-Healing Loop** | `src/monitor.ts` | CodeBuild FAILED event |
-| **Dead Man's Switch** | `src/recovery.ts` | 15-min health probe failure |
-| **Pre-flight Validation** | `tools.ts → validate_code` | Called by Coder Agent after writes |
-| **Health Probe** | `src/health.ts` → `GET /health` | Called by Main Agent after deployment |
-| **Rollback Signal** | `tools.ts → trigger_rollback` | Circuit breaker active or health failed |
+| **Resource Labeling** | `src/tools/index.ts → file_write` | Any write to a protected file |
+| **Circuit Breaker** | `src/tools/index.ts → trigger_deployment` | > 5 deployments/day (UTC) |
+| **Self-Healing Loop** | `src/agents/monitor.ts` | CodeBuild FAILED event |
+| **Dead Man's Switch** | `src/agents/recovery.ts` | 15-min health probe failure |
+| **Pre-flight Validation** | `src/tools/index.ts → validate_code` | Called by Coder Agent after writes |
+| **Health Probe** | `src/agents/health.ts` → `GET /health` | Called by Main Agent after deployment |
+| **Rollback Signal** | `src/tools/index.ts → trigger_rollback` | Circuit breaker active or health failed |
 | **Human-in-the-Loop** | Main Agent system prompt | `MANUAL_APPROVAL_REQUIRED` returned |
 
 ---

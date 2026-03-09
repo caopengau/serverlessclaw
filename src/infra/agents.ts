@@ -1,0 +1,90 @@
+interface AgentContext {
+  memoryTable: sst.aws.DynamoDB;
+  secrets: Record<string, sst.Secret>;
+  bus: sst.aws.Bus;
+  deployer: sst.aws.CodeBuild;
+  api: sst.aws.ApiGatewayV2;
+}
+
+export function createAgents(ctx: AgentContext) {
+  const { memoryTable, secrets, bus, deployer, api } = ctx;
+
+  // 1. Coder Agent
+  const coderAgent = new sst.aws.Function('CoderAgent', {
+    handler: 'src/agents/coder.handler',
+    link: [memoryTable, ...Object.values(secrets)],
+  });
+  bus.subscribe('coder.task', coderAgent.arn);
+
+  // 2. Build Monitor
+  const buildMonitor = new sst.aws.Function('BuildMonitor', {
+    handler: 'src/agents/monitor.handler',
+    link: [memoryTable, deployer, bus],
+  });
+
+  // 3. Event Handler
+  const eventHandler = new sst.aws.Function('EventHandler', {
+    handler: 'src/agents/events.handler',
+    link: [memoryTable, ...Object.values(secrets), deployer, bus],
+  });
+  bus.subscribe('system.build.failed', eventHandler.arn);
+
+  // 4. Dead Man's Switch
+  const deadMansSwitch = new sst.aws.Function('DeadMansSwitch', {
+    handler: 'src/agents/recovery.handler',
+    link: [memoryTable, deployer, api],
+  });
+
+  // 15-min Schedule
+  new aws.scheduler.Schedule('RecoverySchedule', {
+    scheduleExpression: 'rate(15 minutes)',
+    flexibleTimeWindow: { mode: 'OFF' },
+    target: {
+      arn: deadMansSwitch.arn,
+      roleArn: new aws.iam.Role('RecoveryScheduleRole', {
+        assumeRolePolicy: JSON.stringify({
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Action: 'sts:AssumeRole',
+              Effect: 'Allow',
+              Principal: { Service: 'scheduler.amazonaws.com' },
+            },
+          ],
+        }),
+      }).arn,
+    },
+  });
+
+  new aws.lambda.Permission('RecoveryPermission', {
+    action: 'lambda:InvokeFunction',
+    function: deadMansSwitch.name,
+    principal: 'scheduler.amazonaws.com',
+  });
+
+  // 5. CodeBuild Event Rule
+  const buildRule = new aws.cloudwatch.EventRule('BuildRule', {
+    eventPattern: JSON.stringify({
+      source: ['aws.codebuild'],
+      'detail-type': ['CodeBuild Build State Change'],
+      detail: {
+        'build-status': ['FAILED'],
+        'project-name': [deployer.name],
+      },
+    }),
+  });
+
+  new aws.cloudwatch.EventTarget('BuildTarget', {
+    rule: buildRule.name,
+    arn: buildMonitor.arn,
+  });
+
+  new aws.lambda.Permission('BuildPermission', {
+    action: 'lambda:InvokeFunction',
+    function: buildMonitor.name,
+    principal: 'events.amazonaws.com',
+    sourceArn: buildRule.arn,
+  });
+
+  return { coderAgent, buildMonitor, eventHandler, deadMansSwitch };
+}

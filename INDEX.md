@@ -39,9 +39,10 @@ pnpm exec sst deploy
 
 | Changed File | Update This Spoke |
 |---|---|
-| `src/tools.ts` | [TOOLS.md](./docs/TOOLS.md) |
-| `src/agent.ts` or `src/coder.ts` | [AGENTS.md](./docs/AGENTS.md) |
-| `src/tools.ts` (guardrails) | [SAFETY.md](./docs/SAFETY.md) |
+| `src/tools/index.ts` | [TOOLS.md](./docs/TOOLS.md) |
+| `src/agents/` | [AGENTS.md](./docs/AGENTS.md) |
+| `src/infra/` | [ARCHITECTURE.md](./ARCHITECTURE.md) |
+| `src/tools/index.ts` (guardrails) | [SAFETY.md](./docs/SAFETY.md) |
 | `sst.config.ts` | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 
 ---

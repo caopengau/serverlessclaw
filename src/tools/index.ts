@@ -8,7 +8,7 @@ import {
   PutCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
-import { ITool } from './types';
+import { ITool } from '../lib/types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { exec } from 'child_process';
@@ -70,7 +70,13 @@ export const tools: Record<string, ITool> = {
     },
     execute: async ({ filePath, content }) => {
       // Point 3: Protected Resource Labeling
-      const protectedFiles = ['sst.config.ts', 'src/tools.ts', 'src/agent.ts', 'buildspec.yml'];
+      const protectedFiles = [
+        'sst.config.ts',
+        'src/tools/index.ts',
+        'src/lib/agent.ts',
+        'buildspec.yml',
+        'src/infra',
+      ];
       const isProtected =
         protectedFiles.some((f) => filePath.endsWith(f)) || filePath.includes('infra/bootstrap');
 
