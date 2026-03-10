@@ -107,5 +107,14 @@ export function createAgents(ctx: AgentContext) {
     sourceArn: buildRule.arn,
   });
 
-  return { coderAgent, buildMonitor, eventHandler, deadMansSwitch };
+  // 5. Planner Agent
+  const plannerAgent = new sst.aws.Function('PlannerAgent', {
+    handler: 'src/agents/planner.handler',
+    link: [memoryTable, traceTable, configTable, ...Object.values(secrets), bus],
+    memory: '1024 MB',
+    timeout: '900 seconds',
+  });
+  bus.subscribe(EventType.EVOLUTION_PLAN, plannerAgent.arn);
+
+  return { coderAgent, buildMonitor, eventHandler, deadMansSwitch, plannerAgent };
 }

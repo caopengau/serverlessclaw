@@ -32,6 +32,7 @@ export enum AgentType {
   BUILD_MONITOR = 'monitor',
   EVENT_HANDLER = 'events',
   RECOVERY = 'recovery',
+  PLANNER = 'planner',
 }
 
 /**
@@ -42,6 +43,7 @@ export enum EventType {
   SYSTEM_BUILD_FAILED = 'system_build_failed',
   MONITOR_BUILD = 'monitor_build',
   RECOVERY_LOG = 'recovery_log',
+  EVOLUTION_PLAN = 'evolution_plan',
 }
 
 /**
@@ -96,6 +98,7 @@ export interface IMemory {
   clearHistory(userId: string): Promise<void>;
   getDistilledMemory(userId: string): Promise<string>;
   updateDistilledMemory(userId: string, facts: string): Promise<void>;
+  setGap(gapId: string, details: string): Promise<void>;
 }
 
 /**

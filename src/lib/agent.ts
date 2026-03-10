@@ -1,7 +1,19 @@
-import { IMemory, IProvider, ITool, Message, ReasoningProfile, MessageRole } from './types';
+import {
+  IMemory,
+  IProvider,
+  ITool,
+  Message,
+  ReasoningProfile,
+  MessageRole,
+  EventType,
+} from './types';
 import { ClawTracer } from './tracer';
+import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { Resource } from 'sst';
 
 export class Agent {
+  private eventbridge = new EventBridgeClient({});
+
   constructor(
     private memory: IMemory,
     private provider: IProvider,
@@ -9,12 +21,6 @@ export class Agent {
     private systemPrompt: string = `
       You are the Main Manager Agent of the Serverless Claw stack. 
       You are capable of autonomous self-evolution and multi-agent orchestration.
-      
-      - THOUGHT PROTOCOL: For every user request, you MUST mentally follow this sequence:
-        1. ANALYZE: What is the core goal? 
-        2. INVENTORY: Do I have the necessary tools or sub-agents in my current registry to fulfill this reliably?
-        3. DESIGN: If a capability gap exists, design the necessary sub-agent or tool.
-        4. PROPOSE: For any 'evolutionary' task (building a new sub-agent/tool or modifying core infra), you MUST first present a 'STRATEGIC_PLAN' to the user and wait for approval.
       
       - SYSTEM NOTIFICATIONS: If you receive a message starting with 'SYSTEM_NOTIFICATION', it means an automated process (like a build failure) needs your attention. 
         1. Notify the user immediately about the failure.
@@ -24,7 +30,7 @@ export class Agent {
 
       - RECOVERY EVENTS: If you see 'SYSTEM_RECOVERY_LOG' in your context, it means the Dead Man's Switch had to perform an emergency rollback because the system was down. Acknowledge this to the user and explain that you are back online.
 
-      - USE 'dispatch_task' ONLY AFTER a plan is shared and (if evolutionary) approved.
+      - Use 'dispatch_task' to delegate complex coding or infra changes to the 'coder' agent.
       - DEPLOY THEN VERIFY: After 'trigger_deployment', always call 'check_health' with the API URL to confirm success.
       - ROLLBACK SIGNAL: If 'trigger_deployment' returns CIRCUIT_BREAKER_ACTIVE or 'check_health' returns HEALTH_FAILED, you MUST call 'trigger_rollback' immediately and notify the user on Telegram.
       - HUMAN-IN-THE-LOOP: If a sub-agent reports 'MANUAL_APPROVAL_REQUIRED' or if you notice changes to 'sst.config.ts', you MUST stop and ask the human user for explicit approval on Telegram.
@@ -138,17 +144,19 @@ export class Agent {
 
     const reflectionPrompt = `
       You are an observer analyzing a conversation. 
-      Your goal is to extract key facts about the user to maintain long-term memory.
+      Your goal is twofold:
+      1. Extract key facts about the user to maintain long-term memory.
+      2. Identify CAPABILITY GAPS: Did the agent fail to fulfill a request? Is a tool missing? Did a plan fail?
       
       EXISTING FACTS:
       ${existingFacts || 'None'}
 
       CONVERSATION:
-      ${conversation.map((m) => `${m.role.toUpperCase()}: ${m.content}`).join('\n')}
+      ${conversation.map((m) => `${m.role.toUpperCase()}: ${m.content || (m.tool_calls ? '[Tool Calls]' : '')}`).join('\n')}
 
-      Update the EXISTING FACTS with any new information found in the CONVERSATION.
-      Be concise. Only include permanent facts (e.g., location, preferences, names, past events). 
-      Return the full updated list of facts.
+      RETURN FORMAT:
+      FACTS: <updated list of facts>
+      GAP: <description of identified gap, or 'NONE' if no gap found>
     `;
 
     // Reflection is a background task, using 'fast' profile for efficiency
@@ -159,7 +167,40 @@ export class Agent {
     );
 
     if (summaryResponse.content) {
-      await this.memory.updateDistilledMemory(userId, summaryResponse.content);
+      const content = summaryResponse.content;
+      const factsMatch = content.match(/FACTS:\s*([\s\S]*?)(?=GAP:|$)/);
+      const gapMatch = content.match(/GAP:\s*([\s\S]*)/);
+
+      if (factsMatch && factsMatch[1].trim()) {
+        await this.memory.updateDistilledMemory(userId, factsMatch[1].trim());
+      }
+
+      if (gapMatch && gapMatch[1].trim() && !gapMatch[1].includes('NONE')) {
+        const gapDescription = gapMatch[1].trim();
+        const gapId = Date.now().toString();
+        await this.memory.setGap(gapId, gapDescription);
+        console.log('Capability Gap Identified:', gapDescription);
+
+        // Notify Planner Agent via EventBridge
+        try {
+          const typedResource = Resource as any;
+          await this.eventbridge.send(
+            new PutEventsCommand({
+              Entries: [
+                {
+                  Source: 'main.agent',
+                  DetailType: EventType.EVOLUTION_PLAN,
+                  Detail: JSON.stringify({ gapId, details: gapDescription, contextUserId: userId }),
+                  EventBusName: typedResource.AgentBus.name,
+                },
+              ],
+            })
+          );
+          console.log('Evolution plan event emitted for gap:', gapId);
+        } catch (e) {
+          console.error('Failed to emit evolution plan event:', e);
+        }
+      }
     }
   }
 }

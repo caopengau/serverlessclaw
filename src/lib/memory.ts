@@ -89,4 +89,22 @@ export class DynamoMemory implements IMemory {
       console.error('Error updating distilled memory in DynamoDB:', error);
     }
   }
+
+  async setGap(gapId: string, details: string): Promise<void> {
+    const command = new PutCommand({
+      TableName: this.tableName,
+      Item: {
+        userId: `GAP#${gapId}`,
+        timestamp: Date.now(),
+        content: details,
+        status: 'OPEN',
+      },
+    });
+
+    try {
+      await docClient.send(command);
+    } catch (error) {
+      console.error('Error setting capablity gap in DynamoDB:', error);
+    }
+  }
 }
