@@ -53,7 +53,7 @@ This document covers the AWS topology and data flow. For agent logic and orchest
 ## Message Processing Flow
 
 ```text
-User Event      Webhook         LLM Agent        EventBridge        Memory           Tool Plugin
+User Event      Webhook         LLM Agent        ConfigTable        Memory           Tool Plugin
     |              |                |                |                |                 |
     +------------->|                |                |                |                 |
     |              +--------------->|                |                |                 |
@@ -146,10 +146,15 @@ Instead of loading all memories into every prompt, agents use `recall_knowledge(
 - **Workflow**: Main Agent sees a `[MEMORY_INDEX]`. If it needs details, it calls the tool.
 - **Efficiency**: Reduces input token costs by up to 90% for long-lived sessions.
 
-### 3. Tool Plugins
-Developers can add custom tools by implementing the `Tool` interface.
-- **Location**: `src/tools.ts`
-- **Capability**: Can reach out to any API or execute any Node.js logic within the Lambda environment.
+### 3. Dynamic Tool Scoping
+Agents no longer load the entire tool catalog. 
+- **Mechanism**: Every agent call triggers `getAgentTools(agentId)`.
+- **Registry**: The `ConfigTable` stores the allowed tool names for each agent.
+- **Self-Optimization**: The Planner Agent can use the `manage_agent_tools` tool to grant or revoke capabilities based on performance telemetry.
+- **Default Scopes**: 
+    - `main`: Orchestration & Recall.
+    - `coder`: Files & Validation.
+    - `planner`: Management & Search.
 
 ### 2. Memory Adapters
 While the default uses DynamoDB, the system can be adapted to use:

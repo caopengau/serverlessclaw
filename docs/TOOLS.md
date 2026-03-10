@@ -16,6 +16,8 @@
 | `trigger_rollback` | `git revert HEAD` + redeploy. Emergency use only | — | ✅ |
 | `switch_model` | Updates active provider/model in DynamoDB (Hot Config) | — | ✅ |
 | `run_tests` | Executes project unit tests (vitest) | — | — |
+| `manage_agent_tools` | Updates the active toolset for a specific agent | — | ✅ |
+| `recall_knowledge` | Retrieves distilled facts/lessons from memory | — | — |
 
 ---
 
@@ -23,9 +25,16 @@
 
 1. Open `src/tools/index.ts`.
 2. Add an entry to the `tools` record following the `ITool` interface.
-3. Run `validate_code` to check for regressions.
-4. Update the table above.
-5. Update `src/tools.test.ts` to include the new tool name.
+3. Add the tool name to the `defaults` record in `getAgentTools` (if it should be on by default).
+4. Run `validate_code` to check for regressions.
+5. Update the table above.
+6. Update `src/lib/tools.test.ts` to include the new tool name.
+
+### Dynamic Scoping
+Agents no longer receive all tools by default. They call `getAgentTools(agentId)` which:
+1. Checks the `ConfigTable` for `{key: "${agentId}_tools"}`.
+2. Returns a subset of tools (e.g., Coder gets file tools, Main gets orchestration tools).
+3. Allows the Planner to dynamically "evolve" an agent's capabilities by adding tools via `manage_agent_tools`.
 
 ### ITool Interface
 
