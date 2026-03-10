@@ -27,6 +27,12 @@ export function createApi(ctx: ApiContext) {
     ],
   });
 
+  // GitHub Webhook for Renovate/MendBot
+  api.route('POST /github/webhook', {
+    handler: 'src/agents/renobot.handler',
+    link: [memoryTable, traceTable, configTable, ...Object.values(secrets), deployer, bus],
+  });
+
   // Health Probe
   api.route('GET /health', {
     handler: 'src/agents/health.handler',
