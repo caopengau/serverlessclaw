@@ -12,20 +12,17 @@ export class OpenRouterProvider implements IProvider {
     const apiKey = (Resource as unknown as OpenRouterResource).OpenRouterApiKey?.value || '';
     const baseUrl = 'https://openrouter.ai/api/v1';
 
-    const body: {
-      model: string;
-      messages: Message[];
-      tools?: {
-        type: 'function';
-        function: {
-          name: string;
-          description: string;
-          parameters: unknown;
-        };
-      }[];
-    } = {
+    const body: any = {
       model: this.model,
       messages: messages,
+      // 2026 OpenRouter Enhancements:
+      // Provider routing preferences (prefer speed/cost)
+      route: 'fallback',
+      // Allow provider-specific transformations (e.g. prompt caching)
+      provider: {
+        allow_fallbacks: true,
+        data_collection: 'deny', // Privacy first
+      },
     };
 
     if (tools && tools.length > 0) {
@@ -46,6 +43,8 @@ export class OpenRouterProvider implements IProvider {
         Authorization: `Bearer ${apiKey}`,
         'HTTP-Referer': 'https://github.com/serverlessclaw/serverlessclaw',
         'X-Title': 'Serverless Claw',
+        // 2026 Optimization: Request caching if available on provider
+        'X-OpenRouter-Caching': 'true',
       },
       body: JSON.stringify(body),
     });

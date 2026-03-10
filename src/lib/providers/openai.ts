@@ -8,20 +8,19 @@ export class OpenAIProvider implements IProvider {
     const apiKey = Resource.OpenAIApiKey.value;
     const baseUrl = 'https://api.openai.com/v1';
 
-    const body: {
-      model: string;
-      messages: Message[];
-      tools?: {
-        type: 'function';
-        function: {
-          name: string;
-          description: string;
-          parameters: unknown;
-        };
-      }[];
-    } = {
+    // 2026 Optimization: Handle System vs Developer messages
+    // OpenAI now recommends 'developer' role for top-level instructions
+    const processedMessages = messages.map((m) => ({
+      ...m,
+      role: m.role === 'system' ? 'developer' : m.role,
+    }));
+
+    const body: any = {
       model: this.model,
-      messages: messages,
+      messages: processedMessages,
+      // 2026 Optimization: Reasoning Effort
+      // High for gpt-5.4 logic, medium for general tasks
+      ...(this.model.includes('gpt-5') ? { reasoning_effort: 'medium' } : {}),
     };
 
     if (tools && tools.length > 0) {
@@ -31,8 +30,14 @@ export class OpenAIProvider implements IProvider {
           name: t.name,
           description: t.description,
           parameters: t.parameters,
+          // 2026 Optimization: Strict Mode (Structured Outputs)
+          // Ensures model follows the JSON schema exactly
+          strict: true,
         },
       }));
+
+      // Control parallel tool calling to prevent resource exhaustion
+      body.parallel_tool_calls = false;
     }
 
     const response = await fetch(`${baseUrl}/chat/completions`, {

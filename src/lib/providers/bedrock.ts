@@ -17,6 +17,7 @@ export class BedrockProvider implements IProvider {
       region: typedResource.AwsRegion?.value || 'us-east-1',
     });
 
+    // 2026 Bedrock Optimization: Converse API System/User mapping
     const bedrockMessages = messages
       .filter((m) => m.role !== 'system')
       .map((m) => ({
@@ -46,6 +47,20 @@ export class BedrockProvider implements IProvider {
       system,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       toolConfig: bedrockTools ? { tools: bedrockTools as any[] } : undefined,
+      // 2026 Bedrock Optimization: Inference Configuration
+      inferenceConfig: {
+        maxTokens: 4096,
+        temperature: 0.7,
+        topP: 0.9,
+      },
+      // 2026 Bedrock Optimization: Additional Model Request Fields
+      // Specifically for Claude 4.6 Reasoning/Thinking blocks
+      additionalModelRequestFields: {
+        thinking: {
+          type: 'enabled',
+          budget_tokens: 1024,
+        },
+      },
     });
 
     const response = await client.send(command);
