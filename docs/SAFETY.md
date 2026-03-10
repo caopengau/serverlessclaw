@@ -30,6 +30,25 @@
 
 ## Self-Healing Loop
 
+```text
+    +-------------------+           +-----------+
+    |   Main Agent      | <-------+ |  Events   |
+    | (Brain/Lambda)    |           +-----------+
+    +---------+---------+                 ^
+              |                           |
+              v                           |
+    +---------+---------+           +-----+-----+
+    |   Coder Agent     |           |  Monitor  |
+    | (Repair/Fix)      |           | (Health)  |
+    +---------+---------+           +-----+-----+
+              |                           ^
+              v                           |
+    +---------+---------+                 |
+    |   Deployer        | ----------------+
+    | (CodeBuild/SST)   |
+    +-------------------+
+```
+
 1. **Detection**: `BuildMonitor` Lambda captures `FAILED` state changes from CodeBuild.
 2. **Diagnosis**: `BuildMonitor` fetches the last 50 lines of CloudWatch logs and identifies the original user context from DynamoDB.
 3. **Notification**: Dispatches a `system.build.failed` event to the `AgentBus`.

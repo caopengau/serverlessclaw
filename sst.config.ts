@@ -27,7 +27,7 @@ export default $config({
     // 3. The Deployer (CodeBuild) - Using optional chaining for GitHubToken
     const { deployer } = createDeployer({
       stagingBucket,
-      githubToken: (secrets as any).GITHUB_TOKEN,
+      githubToken: (secrets as Record<string, sst.aws.Secret>).GITHUB_TOKEN,
     });
 
     // 4. Webhook API

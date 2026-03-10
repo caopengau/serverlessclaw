@@ -113,6 +113,29 @@ The stack evolves by bridging the gap between temporary Lambda execution and per
                                                   |   GitHub Repo     |
                                                   | (Final Persistence)|
                                                   +-------------------+
+
+### 2. Self-Healing Loop
+
+If a deployment fails or the system becomes unstable, Serverless Claw automatically repairs itself.
+
+```text
+    +-------------------+           +-----------+
+    |   Main Agent      | <-------+ |  Events   |
+    | (Brain/Lambda)    |           +-----------+
+    +---------+---------+                 ^
+              |                           |
+              v                           |
+    +---------+---------+           +-----+-----+
+    |   Coder Agent     |           |  Monitor  |
+    | (Modification)    |           | (Health)  |
+    +---------+---------+           +-----+-----+
+              |                           ^
+              v                           |
+    +---------+---------+                 |
+    |   Deployer        | ----------------+
+    | (CodeBuild/SST)   |
+    +-------------------+
+```
 ```
 
 **How it works**:

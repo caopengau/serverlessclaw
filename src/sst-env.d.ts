@@ -3,6 +3,15 @@ declare module 'sst' {
     MemoryTable: {
       name: string;
     };
+    TraceTable: {
+      name: string;
+    };
+    StagingBucket: {
+      name: string;
+    };
+    WebhookApi: {
+      url: string;
+    };
     TelegramBotToken: {
       value: string;
     };
@@ -15,6 +24,6 @@ declare module 'sst' {
     AgentBus: {
       name: string;
     };
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }

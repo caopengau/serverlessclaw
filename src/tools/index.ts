@@ -38,7 +38,8 @@ export const tools: Record<string, ITool> = {
       },
       required: ['modifiedFiles'],
     },
-    execute: async ({ modifiedFiles }) => {
+    execute: async (args: Record<string, unknown>) => {
+      const { modifiedFiles } = args as { modifiedFiles: string[] };
       if (!modifiedFiles || modifiedFiles.length === 0) {
         return 'No files to stage.';
       }
@@ -95,7 +96,12 @@ export const tools: Record<string, ITool> = {
       },
       required: ['agentType', 'userId', 'task'],
     },
-    execute: async ({ agentType, userId, task }) => {
+    execute: async (args: Record<string, unknown>) => {
+      const { agentType, userId, task } = args as {
+        agentType: 'coder' | 'planner';
+        userId: string;
+        task: string;
+      };
       console.log(`Dispatching ${agentType} task for user ${userId}: ${task}`);
       const command = new PutEventsCommand({
         Entries: [
@@ -127,7 +133,8 @@ export const tools: Record<string, ITool> = {
       },
       required: ['filePath', 'content'],
     },
-    execute: async ({ filePath, content }) => {
+    execute: async (args: Record<string, unknown>) => {
+      const { filePath, content } = args as { filePath: string; content: string };
       // Point 3: Protected Resource Labeling
       const protectedFiles = [
         'sst.config.ts',
@@ -171,7 +178,8 @@ export const tools: Record<string, ITool> = {
       },
       required: ['reason', 'userId'],
     },
-    execute: async ({ reason, userId }) => {
+    execute: async (args: Record<string, unknown>) => {
+      const { reason, userId } = args as { reason: string; userId: string };
       // Point 2: Circuit Breaker
       const today = new Date().toISOString().split('T')[0];
 
@@ -251,7 +259,8 @@ export const tools: Record<string, ITool> = {
       },
       required: ['expression'],
     },
-    execute: async ({ expression }) => {
+    execute: async (args: Record<string, unknown>) => {
+      const { expression } = args as { expression: string };
       try {
         const result = Function(`"use strict"; return (${expression})`)();
         return `Result: ${result}`;
@@ -288,7 +297,8 @@ export const tools: Record<string, ITool> = {
       },
       required: ['url'],
     },
-    execute: async ({ url }) => {
+    execute: async (args: Record<string, unknown>) => {
+      const { url } = args as { url: string };
       try {
         console.log(`Checking health at ${url}`);
         const response = await fetch(url as string);
@@ -324,7 +334,8 @@ export const tools: Record<string, ITool> = {
       },
       required: ['reason'],
     },
-    execute: async ({ reason }) => {
+    execute: async (args: Record<string, unknown>) => {
+      const { reason } = args as { reason: string };
       try {
         console.log(`ROLLBACK INITIATED: ${reason}`);
         await execAsync('git revert HEAD --no-edit');
@@ -348,7 +359,8 @@ export const tools: Record<string, ITool> = {
       },
       required: ['location'],
     },
-    execute: async ({ location }) => {
+    execute: async (args: Record<string, unknown>) => {
+      const { location } = args as { location: string };
       return `The weather in ${location} is sunny and 72°F.`;
     },
   },

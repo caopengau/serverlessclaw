@@ -9,9 +9,9 @@ const docClient = DynamoDBDocumentClient.from(client);
 export interface TraceStep {
   stepId: string;
   type: 'llm_call' | 'tool_call' | 'tool_result' | 'error';
-  content: any;
+  content: unknown;
   timestamp: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class ClawTracer {
@@ -26,7 +26,7 @@ export class ClawTracer {
     this.startTime = Date.now();
   }
 
-  async startTrace(initialContext: Record<string, any>) {
+  async startTrace(initialContext: Record<string, unknown>) {
     const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7; // 7 days TTL
 
     await docClient.send(
@@ -67,7 +67,7 @@ export class ClawTracer {
     );
   }
 
-  async endTrace(finalResponse: string, metadata?: Record<string, any>) {
+  async endTrace(finalResponse: string, metadata?: Record<string, unknown>) {
     await docClient.send(
       new UpdateCommand({
         TableName: this.tableName,

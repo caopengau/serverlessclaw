@@ -33,7 +33,7 @@ export interface ITool {
   name: string;
   description: string;
   parameters: unknown;
-  execute(args: any): Promise<string>;
+  execute(args: Record<string, unknown>): Promise<string>;
 }
 
 /**

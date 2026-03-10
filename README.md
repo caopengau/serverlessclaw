@@ -1,6 +1,6 @@
 # Serverless Claw
 
-**Serverless Claw** is a self-evolving, cost-efficient AI agent platform built on AWS using [SST (v3/Ion)](https://sst.dev). It hosts intelligent agents that can receive messages, use tools, and autonomously modify and redeploy their own infrastructure.
+**Serverless Claw** is a self-evolving, self-healing, cost-efficient AI agent platform built on AWS using [SST (v3/Ion)](https://sst.dev). It hosts intelligent agents that can receive messages, use tools, and autonomously modify and redeploy their own infrastructure.
 
 ## Key Features
 
