@@ -27,13 +27,18 @@ export const handler = async (event: { userId: string; conversation: Message[] }
     provider,
     [], // No tools needed for reflection
     `You are the specialized Reflector Agent for the Serverless Claw stack.
-     Your goal is twofold:
-     1. Extract key facts about the user to maintain long-term memory.
-     2. Identify CAPABILITY GAPS: Did the agent fail to fulfill a request? Is a tool missing? Did a plan fail?
+     Your goal is to analyze conversations and extract insights.
+
+     1. EXTRACT FACTS: Identify permanent user details for long-term memory.
+     2. IDENTIFY GAPS: Analyze if the agent's response was lacking or if the system is missing a capability.
+     3. CLASSIFY GAPS:
+        - TACTICAL: A lesson learned about the user's preference or a better way to phrase things.
+        - STRATEGIC: A missing tool, sub-agent, or architectural feature.
 
      RETURN FORMAT:
      FACTS: <updated list of facts>
-     GAP: <description of identified gap, or 'NONE' if no gap found>`
+     TACTICAL_GAP: <lesson learned or 'NONE'>
+     STRATEGIC_GAP: <missing capability or 'NONE'>`
   );
 
   const existingFacts = await memory.getDistilledMemory(userId);
@@ -57,18 +62,29 @@ export const handler = async (event: { userId: string; conversation: Message[] }
   );
 
   if (response) {
-    const factsMatch = response.match(/FACTS:\s*([\s\S]*?)(?=GAP:|$)/);
-    const gapMatch = response.match(/GAP:\s*([\s\S]*)/);
+    const factsMatch = response.match(/FACTS:\s*([\s\S]*?)(?=TACTICAL_GAP:|$)/);
+    const tacticalMatch = response.match(/TACTICAL_GAP:\s*([\s\S]*?)(?=STRATEGIC_GAP:|$)/);
+    const strategicMatch = response.match(/STRATEGIC_GAP:\s*([\s\S]*)/);
 
-    if (factsMatch && factsMatch[1].trim()) {
-      await memory.updateDistilledMemory(userId, factsMatch[1].trim());
+    let updatedFacts = factsMatch ? factsMatch[1].trim() : existingFacts;
+
+    // Handle Tactical Gap (Lesson Learned)
+    if (tacticalMatch && tacticalMatch[1].trim() && !tacticalMatch[1].includes('NONE')) {
+      const lesson = tacticalMatch[1].trim();
+      updatedFacts = `${updatedFacts}\n\n[LESSON_LEARNED]: ${lesson}`;
+      console.log('Tactical Gap Added to Memory:', lesson);
     }
 
-    if (gapMatch && gapMatch[1].trim() && !gapMatch[1].includes('NONE')) {
-      const gapDescription = gapMatch[1].trim();
+    if (updatedFacts !== existingFacts) {
+      await memory.updateDistilledMemory(userId, updatedFacts);
+    }
+
+    // Handle Strategic Gap (Evolution Required)
+    if (strategicMatch && strategicMatch[1].trim() && !strategicMatch[1].includes('NONE')) {
+      const gapDescription = strategicMatch[1].trim();
       const gapId = Date.now().toString();
       await memory.setGap(gapId, gapDescription);
-      console.log('Capability Gap Identified by Reflector:', gapDescription);
+      console.log('Strategic Gap Identified by Reflector:', gapDescription);
 
       // Notify Planner Agent via EventBridge
       try {
