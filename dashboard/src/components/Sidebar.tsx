@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Activity, ShieldCheck, Cpu, MessageSquare, Settings } from 'lucide-react';
+import { Activity, ShieldCheck, Cpu, MessageSquare, Settings, Lock, Share2 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -32,6 +32,16 @@ export default function Sidebar() {
           <Activity size={16} /> TRACE_INTEL
         </Link>
         <Link 
+          href="/system-pulse" 
+          className={`flex items-center gap-3 px-2 py-2 rounded transition-colors ${
+            pathname === '/system-pulse' 
+              ? 'bg-white/5 text-cyber-green' 
+              : 'text-white/60 hover:bg-white/5'
+          }`}
+        >
+          <Share2 size={16} /> SYSTEM_PULSE
+        </Link>
+        <Link 
           href="/chat" 
           className={`flex items-center gap-3 px-2 py-2 rounded transition-colors ${
             pathname === '/chat' 
@@ -40,6 +50,16 @@ export default function Sidebar() {
           }`}
         >
           <MessageSquare size={16} /> CHAT_DIRECT
+        </Link>
+        <Link 
+          href="/locks" 
+          className={`flex items-center gap-3 px-2 py-2 rounded transition-colors ${
+            pathname === '/locks' 
+              ? 'bg-white/5 text-cyber-green' 
+              : 'text-white/60 hover:bg-white/5'
+          }`}
+        >
+          <Lock size={16} /> SESSION_TRAFFIC
         </Link>
         <Link 
           href="/settings" 
