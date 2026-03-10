@@ -18,25 +18,34 @@ This document covers the AWS topology and data flow. For agent logic and orchest
 ```text
 +-------------------+       +-----------------------+       +-------------------+
 |                   |       |                       |       |                   |
-| Messaging Client  +------>+   AWS API Gateway     +------>+   AWS Lambda      |
+| Messaging Client  +<----->+   AWS API Gateway     +------>+   AWS Lambda      |
 | (Telegram/Discord)|       | (Webhook Endpoint)    |       | (Agent Brain)     |
-|                   |       |                       |       |                   |
-+---------+---------+       +-----------------------+       +---------+---------+
-          ^                                                           |
-          |                  +-----------------------+                |
-          |                  |                       |                |
-          +------------------+   Messaging API       |<---------------+
-                             | (Telegram/Discord)    |
-                             |                       |
-                             +-----------------------+
-                                     |
-                                     v
-                             +-----------------------+
-                             |                       |
-                             |   Managed Services    |
-                             | (DynamoDB / S3)       |
-                             |                       |
-                             +-----------------------+
+|                   |       |                       |       |         +         |
++-------------------+       +-----------+-----------+       +---------|---------+
+                                        |                             |
+                                        v                             |
+                            +-----------+-----------+                 |
+                            |                       |                 |
+                            |      ClawCenter       |<----------------+
+                            |  (Next.js Dashboard)  |                 |
+                            |                       |                 |
+                            +-----------+-----------+                 |
+                                        |                             |
+                                        v                             |
+                            +-----------+-----------+                 |
+                            |                       |                 |
+                            |   EventBridge Bus     |<----------------+
+                            |     (AgentBus)        |
+                            |                       |
+                            +-----------+-----------+
+                                        |
+                                        v
+                            +-----------+-----------+
+                            |                       |
+                            |   Managed Services    |
+                            | (DynamoDB / S3)       |
+                            |                       |
+                            +-----------------------+
 ```
 
 ---
@@ -44,25 +53,28 @@ This document covers the AWS topology and data flow. For agent logic and orchest
 ## Message Processing Flow
 
 ```text
-User Event      Webhook         LLM Agent         Memory           Tool Plugin
-    |              |                |                |                 |
-    +------------->|                |                |                 |
-    |              +--------------->|                |                 |
-    |              |                +--------------->|                 |
-    |              |                | (Get History)  |                 |
-    |              |                |<---------------+                 |
-    |              |                |                |                 |
-    |              |                +--------------->|                 |
-    |              |                | (Save Message) |                 |
-    |              |                |                |                 |
-    |              |                +--------------------------------->|
-    |              |                |    (Execute Tool if needed)      |
-    |              |                |<---------------------------------+
-    |              |                |                |                 |
-    |              |                +--------------->|                 |
-    |              |                | (Save Token)   |                 |
-    |              |<---------------+                |                 |
-    |<-------------+                |                |                 |
+User Event      Webhook         LLM Agent        EventBridge        Memory           Tool Plugin
+    |              |                |                |                |                 |
+    +------------->|                |                |                |                 |
+    |              +--------------->|                |                |                 |
+    |              |                +-------------------------------->|                 |
+    |              |                |      (Get History)              |                 |
+    |              |                |<--------------------------------+                 |
+    |              |                |                |                |                 |
+    |              |                +-------------------------------->|                 |
+    |              |                |      (Save Message)             |                 |
+    |              |                |                |                |                 |
+    |              |                +-------------------------------------------------->|
+    |              |                |           (Execute Tool if needed)                |
+    |              |                |<--------------------------------------------------+
+    |              |                |                |                |                 |
+    |              |                +--------------->|                |                 |
+    |              |                | (Emit Event)   |                |                 |
+    |              |                |                |                |                 |
+    |              |                +-------------------------------->|                 |
+    |              |                | (Save Response)|                |                 |
+    |              |<---------------+                |                |                 |
+    |<-------------+                |                |                |                 |
 Response
 ```
 
@@ -86,25 +98,28 @@ Unlike traditional agent servers that process messages serially, Serverless Claw
 
 ## Multi-Agent Orchestration (EventBridge)
 
-Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This allows the system to remain decoupled and highly scalable.
+Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This is the **spine** of the system, allowing components to remain decoupled.
 
 ```text
-           [ EXTERNAL INPUT ] 
-                  |
-         _________V_________
-        |                   |
-        |    MAIN_MANAGER   | <--- [Dashboard Chat / Telegram]
-        |___________________|
-                  |
-        (1) DISPATCH_TASK (via AgentBus)
-                  |
-         _________V_________
-        |    EVENT_BUS      | ---- (3) [ BUILD_MONITOR ]
-        |   (AgentBus)      |           (Observes CodeBuild)
-        |___________________|
-                  |
-        (2) CODER_AGENT <---------- (4) ROLLBACK_SIGNAL
-            (Writes Code)               (If Build Fails)
+ [ Telegram ]      [ ClawCenter ]
+      |                 |
+      +--------+--------+
+               |
+      _________V_________
+     |                   |
+     |   MAIN_MANAGER    |
+     |___________________|
+               |
+    (1) DISPATCH_TASK (via AgentBus)
+               |
+      _________V_________           (3) [ BUILD_MONITOR ]
+     |    EVENT_BUS      | <-------  (Observes CodeBuild)
+     |   (AgentBus)      |
+     |___________________|          (4) [ EVENT_HANDLER ]
+               |                     (Handles Failures)
+               |
+    (2) CODER_AGENT <--------------+
+        (Writes Code)
 ```
 
 - **Pattern**: The Main Agent emits a `coder_task` event. The Coder Agent is subscribed to this event, processes the work, and updates the system state.
@@ -150,35 +165,36 @@ The stack evolves by bridging the gap between temporary Lambda execution and per
 +--------------+       +------------------+       +-------------------+
 |  Main Agent  +------>|  AWS CodeBuild   +------>|   Agent Stack     |
 | (Orchestrator)| trigger| (Deployer)       |  sst  | (Self-Update)     |
-+--------------+       +------------------+       +---------+---------+
-                                                            |
-                                                            v
-                                                  +-------------------+
-                                                  |   GitHub Repo     |
-                                                  | (Final Persistence)|
-                                                  +-------------------+
++--------------+       +-----------|------+       +---------+---------+
+                                   |                        |
+                                   v                        v
+                        +------------------+      +-------------------+
+                        |   EventBridge    |      |   GitHub Repo     |
+                        | (Status Updates) |      | (Final Persistence)|
+                        +------------------+      +-------------------+
+```
 
 ### 2. Self-Healing Loop
 
 If a deployment fails or the system becomes unstable, Serverless Claw automatically repairs itself.
 
 ```text
-    +-------------------+           +-----------+
-    |   Main Agent      | <-------+ |  Events   |
-    | (Brain/Lambda)    |           +-----------+
-    +---------+---------+                 ^
-              |                           |
-              v                           |
-    +---------+---------+           +-----+-----+
-    |   Coder Agent     |           |  Monitor  |
-    | (Modification)    |           | (Health)  |
-    +---------+---------+           +-----+-----+
-              |                           ^
-              v                           |
-    +---------+---------+                 |
-    |   Deployer        | ----------------+
-    | (CodeBuild/SST)   |
-    +-------------------+
+    +-----------+           +-----------+
+    | Main Agent| <-------+ |  Events   |
+    | (Brain)   |           +-----+-----+
+    +-----+-----+                 ^
+          |                       |
+          v                       |
+    +-----+-----+           +-----+-----+
+    | Coder Agent|          |  Monitor   |
+    | (Modify)  |           | (Health)  |
+    +-----+-----+           +-----+-----+
+          |                       ^
+          v                       |
+    +-----+-----+                 |
+    | Deployer  | ----------------+
+    | (CodeBuild)|
+    +-----------+
 ```
 ```
 
