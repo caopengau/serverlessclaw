@@ -1,29 +1,76 @@
 # Serverless Claw
 
-**Serverless Claw** is a self-evolving, self-healing, cost-efficient AI agent platform built on AWS using [SST (v3/Ion)](https://sst.dev). It hosts intelligent agents that can receive messages, use tools, and autonomously modify and redeploy their own infrastructure.
+**Serverless Claw** is a fully autonomous, serverless AI agent platform. It is designed from the ground up to be **Self-Evolving**, **Self-Healing**, and **Self-Cost Optimizing**. Deployed entirely on AWS using [SST (v3/Ion)](https://sst.dev), Serverless Claw features an orchestrated swarm of intelligent agents capable of writing code, modifying their own AWS infrastructure, and deploying updates with zero human intervention.
 
-## Key Features
+## 🧬 Core Philosophies
 
-- **Zero Idle Costs** — powered by AWS Lambda, pay per invocation only
-- **Evolutionary Tiered Memory** — Separates long-term **Facts** from dynamic **Tactical Lessons** with ROI-based prioritization and "Smart Recall" tool-based retrieval.
-- **Self-Evolving (Code & Infra)** — the agent can write application code, modify its own AWS infrastructure via SST, validate, and redeploy itself safely
-- **Evolution Control** — seamlessly toggle between "Human-In-The-Loop" capability upgrades or fully "Autonomous" direct-to-CodeBuild evolution.
-- **Self-Healing & Resilient** — autonomously detects build failures, analyzes logs, and recovers from fatal errors with a 100% automated rollback loop
-- **Native Observability** — built-in, serverless tracing engine (Claw-Trace) and Next.js 16 Admin Dashboard
-- **Multi-Model & Hot-Config** — Unified hub for OpenAI, Bedrock, and OpenRouter with zero-downtime model switching via ConfigTable
-- **Multi-Agent Orchestration** — Main Agent delegates to specialized sub-agents (Coder, Reflector, Planner) via EventBridge
-- **Multi-Channel Fan-Out** — Centralized `Notifier` decoupling agent LLM execution from messaging platforms (Telegram, Slack, etc.)
-- **Safety-First** — circuit breakers, protected resource labeling, health probes, and rollback
-- **Pluggable** — swap memory backends, LLM providers, or messaging channels
+### 1. Self-Evolving (Code & Infrastructure)
+The system is never static. Through the **Coder Agent** and **Planner Agent**, Serverless Claw can autonomously write new tools, tweak existing logic, and modify its own AWS infrastructure using SST. It triggers autonomous CI/CD pipelines via AWS CodeBuild. You can toggle between "Human-In-The-Loop" capability upgrades or fully "Autonomous" direct-to-production evolution.
 
-## 🛡️ Autonomous Resiliency
+### 2. Self-Healing & Resilient
+Designed to be "un-killable." If an autonomous deployment introduces a bug or causes a build failure, the **Build Monitor** intercepts the error logs and tasks the agent swarm to investigate and apply a fix. If the "brain" (Main Agent Lambda) becomes unresponsive, an immutable **Dead Man's Switch** (health probe) triggers a 100% automated git-revert and redeploys the last known stable state. No midnight wake-up calls.
 
-Serverless Claw is designed to be "un-killable" through two levels of autonomous recovery:
+### 3. Self-Cost Optimizing (Zero Idle Costs)
+Traditional AI agents run on expensive, always-on instances. Serverless Claw is 100% serverless. Powered by AWS Lambda, DynamoDB, and EventBridge, **you pay strictly per invocation**. When the agent is idle, your infrastructure cost is exactly $0.00. The system also dynamically hot-swaps between LLM models (e.g., OpenAI, Anthropic Bedrock) based on the task's complexity, optimizing token costs on the fly.
 
-1. **The Self-Healing Loop**: If a deployment fails (e.g., a bug in a new tool), the **Build Monitor** extracts the error logs, notifies the **Main Agent**, and automatically tasks the **Coder Agent** to investigate and apply a fix.
-2. **The Dead Man's Switch**: An immutable health probe runs every 15 minutes. If it detects the system is down or the "brain" (Lambda) is broken, it triggers an emergency **100% automated rollback** to the last known stable state.
+## 🏗️ Architecture & Tech Stack
 
-No human intervention required. No more midnight wake-up calls for broken deployments.
+### Tech Stack Overview
+- **Framework**: [SST (Serverless Stack) v3 / Ion](https://sst.dev)
+- **Compute**: AWS Lambda (Node.js)
+- **Database**: AWS DynamoDB (Single-Table Design)
+- **Storage**: AWS S3
+- **Event Bus**: AWS EventBridge
+- **CI/CD**: AWS CodeBuild
+- **Admin Dashboard**: Next.js 16 (React 19), TailwindCSS v4, deployed via OpenNext
+- **AI / LLMs**: OpenAI (gpt-4o), Anthropic Claude 3 (via Amazon Bedrock), OpenRouter
+- **Language**: TypeScript
+
+### ASCII Architecture Diagram
+
+```text
+                                  +-----------------------------------+
+                                  |         Next.js Dashboard         |
+                                  | (Observability, Traces, Config)   |
+                                  +-----------------------------------+
+                                                  |
+                                                  v
++----------------+      HTTP       +----------------------------------+
+| User / Webhook | --------------->|        Amazon API Gateway        |
++----------------+                 +----------------------------------+
+                                                  |
+                                                  v
+                                  +-----------------------------------+
+                                  |    Main Agent (AWS Lambda)        |
+                                  |  (Orchestrator, LLM Integration)  |
+                                  +-----------------------------------+
+                                                  |
+                                                  v
+                                  +-----------------------------------+
+                                  |        AWS EventBridge            |
+                                  |     (Asynchronous Task Bus)       |
+                                  +-----------------------------------+
+                                     /             |              \
+                                    /              |               \
+                   +------------------+   +------------------+   +------------------+
+                   |   Coder Agent    |   |  Planner Agent   |   | Reflector Agent  |
+                   |   (AWS Lambda)   |   |   (AWS Lambda)   |   |   (AWS Lambda)   |
+                   +------------------+   +------------------+   +------------------+
+                            |                      |                      |
+                            +----------------------+----------------------+
+                                                   |
+                   +------------------------------------------------------------------+
+                   |                    AWS Services & Resources                      |
+                   |                                                                  |
+                   |  [ DynamoDB ]   [ S3 Bucket ]   [ AWS CodeBuild ]   [ Secrets ]  |
+                   | (Memory/Traces) (Staging Code)  (Self-Deployment)   (API Keys)   |
+                   +------------------------------------------------------------------+
+                                                   |
+                   +------------------------------------------------------------------+
+                   |                 Build Monitor & Dead Man's Switch                |
+                   |                (Self-Healing & Rollback Mechanisms)              |
+                   +------------------------------------------------------------------+
+```
 
 ## Quick Start
 
@@ -40,7 +87,7 @@ make dev
 | Doc | Purpose |
 |-----|---------|
 | [INDEX.md](./INDEX.md) | **Hub** — start here, progressive context loading map |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | System topology & AWS resource diagram |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | System topology & detailed AWS resource diagram |
 | [docs/DEVOPS.md](./docs/DEVOPS.md) | **DevOps Hub** — automation, make targets, & CI/CD |
 | [docs/AGENTS.md](./docs/AGENTS.md) | Agent roster, orchestration flow, prompt summaries |
 | [docs/TOOLS.md](./docs/TOOLS.md) | Full tool registry & deployment lifecycle |
