@@ -62,7 +62,7 @@ describe('Tools', () => {
   describe('getToolDefinitions', () => {
     it('should return formatted tool definitions', () => {
       const definitions = getToolDefinitions();
-      expect(definitions).toHaveLength(12);
+      expect(definitions).toHaveLength(13);
 
       const names = definitions.map((d: { function: { name: string } }) => d.function.name);
       expect(names).toContain('calculator');
@@ -77,7 +77,7 @@ describe('Tools', () => {
       expect(names).toContain('switch_model');
       expect(names).toContain('run_tests');
       expect(names).toContain('recall_knowledge');
-      expect(names).not.toContain('manage_agent_tools');
+      expect(names).toContain('manage_agent_tools');
     });
   });
 });

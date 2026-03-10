@@ -93,7 +93,7 @@ export default function Sidebar() {
             }
 
             const isActive = item.activePaths 
-              ? item.activePaths.some(p => p === pathname || (p !== '/' && pathname.startsWith(p)))
+              ? item.activePaths.some(p => p === pathname || (p !== '/' && pathname?.startsWith(p)))
               : pathname === item.href;
             
             const Icon = item.icon;

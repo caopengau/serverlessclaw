@@ -5,7 +5,7 @@ include makefiles/Makefile.shared.mk
 
 LOCAL_STAGE ?= local
 
-.PHONY: dev deploy deploy-prod diff synth remove remove-local
+.PHONY: dev deploy deploy-prod diff synth remove remove-local clear-port
 
 dev: ## Start SST in development mode
 	@$(call log_step,Starting SST dev mode on stage $(LOCAL_STAGE)...)
@@ -34,3 +34,6 @@ remove: ## Remove SST resources for the specified environment
 
 remove-local: ## Remove SST resources for the local development stage
 	@$(MAKE) remove ENV=$(LOCAL_STAGE)
+
+clear-port: ## Clear common dev port
+	$(call kill_port,7777)

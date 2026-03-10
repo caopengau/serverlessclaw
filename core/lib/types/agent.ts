@@ -33,13 +33,6 @@ export enum EvolutionMode {
   HITL = 'hitl',
 }
 
-export interface ITool {
-  name: string;
-  description: string;
-  parameters: unknown;
-  execute(args: Record<string, unknown>): Promise<string>;
-}
-
 export interface IChannel {
   send(userId: string, text: string): Promise<void>;
 }

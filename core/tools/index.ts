@@ -10,6 +10,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { ITool, InsightCategory } from '../lib/types/index';
+import { toolDefinitions } from './definitions';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { exec } from 'child_process';
@@ -33,19 +34,7 @@ interface ToolsResource {
 
 export const tools: Record<string, ITool> = {
   stage_changes: {
-    name: 'stage_changes',
-    description: 'Stages modified files to S3 for persistent deployment.',
-    parameters: {
-      type: 'object',
-      properties: {
-        modifiedFiles: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'List of relative file paths that were modified.',
-        },
-      },
-      required: ['modifiedFiles'],
-    },
+    ...toolDefinitions.stage_changes,
     execute: async (args: Record<string, unknown>) => {
       const { modifiedFiles } = args as { modifiedFiles: string[] };
       if (!modifiedFiles || modifiedFiles.length === 0) {
@@ -90,21 +79,7 @@ export const tools: Record<string, ITool> = {
     },
   },
   dispatch_task: {
-    name: 'dispatch_task',
-    description: 'Dispatches a specialized task to a sub-agent.',
-    parameters: {
-      type: 'object',
-      properties: {
-        agentId: {
-          type: 'string',
-          description:
-            'The unique ID of the agent to invoke (e.g., coder, planner, or a custom agent ID).',
-        },
-        userId: { type: 'string', description: 'The user ID context for the task.' },
-        task: { type: 'string', description: 'The specific task for the sub-agent.' },
-      },
-      required: ['agentId', 'userId', 'task'],
-    },
+    ...toolDefinitions.dispatch_task,
     execute: async (args: Record<string, unknown>) => {
       const { agentId, userId, task } = args as {
         agentId: string;
@@ -113,7 +88,6 @@ export const tools: Record<string, ITool> = {
       };
 
       // Dynamic lookup to validate agent exists and is enabled
-      // Dynamic import to avoid circular dependency. Explicit .js extension for node16.
       const { AgentRegistry } = await import('../lib/registry');
       const config = await AgentRegistry.getAgentConfig(agentId);
 
@@ -131,7 +105,6 @@ export const tools: Record<string, ITool> = {
         Entries: [
           {
             Source: 'main.agent',
-            // Consistent event naming: <agentId>_task
             DetailType: `${agentId}_task`,
             Detail: JSON.stringify({ userId, task }),
             EventBusName: typedResource.AgentBus.name,
@@ -148,19 +121,9 @@ export const tools: Record<string, ITool> = {
     },
   },
   file_write: {
-    name: 'file_write',
-    description: 'Writes content to a file. Used by the Coder Agent to implement changes.',
-    parameters: {
-      type: 'object',
-      properties: {
-        filePath: { type: 'string', description: 'The relative path to the file.' },
-        content: { type: 'string', description: 'The content to write.' },
-      },
-      required: ['filePath', 'content'],
-    },
+    ...toolDefinitions.file_write,
     execute: async (args: Record<string, unknown>) => {
       const { filePath, content } = args as { filePath: string; content: string };
-      // Point 3: Protected Resource Labeling
       const protectedFiles = [
         'sst.config.ts',
         'src/tools/index.ts',
@@ -187,25 +150,9 @@ export const tools: Record<string, ITool> = {
     },
   },
   trigger_deployment: {
-    name: 'trigger_deployment',
-    description: 'Triggers an autonomous self-deployment of the agent infrastructure.',
-    parameters: {
-      type: 'object',
-      properties: {
-        reason: {
-          type: 'string',
-          description: 'The reason for the deployment (e.g., added a new tool).',
-        },
-        userId: {
-          type: 'string',
-          description: 'The user ID context for the deployment.',
-        },
-      },
-      required: ['reason', 'userId'],
-    },
+    ...toolDefinitions.trigger_deployment,
     execute: async (args: Record<string, unknown>) => {
       const { reason, userId } = args as { reason: string; userId: string };
-      // Point 2: Circuit Breaker
       const today = new Date().toISOString().split('T')[0];
       const typedResource = Resource as unknown as ToolsResource;
 
@@ -227,7 +174,6 @@ export const tools: Record<string, ITool> = {
           return `CIRCUIT_BREAKER_ACTIVE: Daily deployment limit reached (${LIMIT}). Autonomous deployment blocked for today (${today}). Reason for attempt: ${reason}`;
         }
 
-        // Proceed with deployment
         console.log(`Triggering deployment for reason: ${reason}`);
         const command = new StartBuildCommand({
           projectName: typedResource.Deployer.name,
@@ -237,7 +183,6 @@ export const tools: Record<string, ITool> = {
         const buildId = response.build?.id;
 
         if (buildId) {
-          // Store Build ID -> UserID mapping for the BuildMonitor
           await db.send(
             new PutCommand({
               TableName: typedResource.MemoryTable.name,
@@ -250,7 +195,6 @@ export const tools: Record<string, ITool> = {
           );
         }
 
-        // Update stats
         await db.send(
           new UpdateCommand({
             TableName: typedResource.MemoryTable.name,
@@ -276,15 +220,7 @@ export const tools: Record<string, ITool> = {
     },
   },
   calculator: {
-    name: 'calculator',
-    description: 'Evaluates mathematical expressions.',
-    parameters: {
-      type: 'object',
-      properties: {
-        expression: { type: 'string', description: 'The expression to evaluate.' },
-      },
-      required: ['expression'],
-    },
+    ...toolDefinitions.calculator,
     execute: async (args: Record<string, unknown>) => {
       const { expression } = args as { expression: string };
       try {
@@ -296,12 +232,7 @@ export const tools: Record<string, ITool> = {
     },
   },
   validate_code: {
-    name: 'validate_code',
-    description: 'Runs type checking and linting to ensure no regressions are introduced.',
-    parameters: {
-      type: 'object',
-      properties: {},
-    },
+    ...toolDefinitions.validate_code,
     execute: async () => {
       try {
         console.log('Running pre-flight validation...');
@@ -314,15 +245,7 @@ export const tools: Record<string, ITool> = {
     },
   },
   check_health: {
-    name: 'check_health',
-    description: 'Verify the health of the deployed agent API.',
-    parameters: {
-      type: 'object',
-      properties: {
-        url: { type: 'string', description: 'The health check endpoint URL.' },
-      },
-      required: ['url'],
-    },
+    ...toolDefinitions.check_health,
     execute: async (args: Record<string, unknown>) => {
       const { url } = args as { url: string };
       const typedResource = Resource as unknown as ToolsResource;
@@ -330,7 +253,6 @@ export const tools: Record<string, ITool> = {
         console.log(`Checking health at ${url}`);
         const response = await fetch(url as string);
         if (response.ok) {
-          // Reward: Decrement daily limit by 1 on a healthy response
           await db.send(
             new UpdateCommand({
               TableName: typedResource.MemoryTable.name,
@@ -352,15 +274,7 @@ export const tools: Record<string, ITool> = {
     },
   },
   trigger_rollback: {
-    name: 'trigger_rollback',
-    description: 'Trigger an emergency rollback by reverting the last commit and redeploying.',
-    parameters: {
-      type: 'object',
-      properties: {
-        reason: { type: 'string', description: 'The reason for the rollback.' },
-      },
-      required: ['reason'],
-    },
+    ...toolDefinitions.trigger_rollback,
     execute: async (args: Record<string, unknown>) => {
       const { reason } = args as { reason: string };
       const typedResource = Resource as unknown as ToolsResource;
@@ -378,27 +292,14 @@ export const tools: Record<string, ITool> = {
     },
   },
   get_weather: {
-    name: 'get_weather',
-    description: 'Get the current weather in a given location.',
-    parameters: {
-      type: 'object',
-      properties: {
-        location: { type: 'string', description: 'The city and state, e.g. San Francisco, CA' },
-      },
-      required: ['location'],
-    },
+    ...toolDefinitions.get_weather,
     execute: async (args: Record<string, unknown>) => {
       const { location } = args as { location: string };
       return `The weather in ${location} is sunny and 72°F.`;
     },
   },
   run_tests: {
-    name: 'run_tests',
-    description: 'Runs the project unit tests to verify changes before staging.',
-    parameters: {
-      type: 'object',
-      properties: {},
-    },
+    ...toolDefinitions.run_tests,
     execute: async () => {
       try {
         console.log('Running autonomous test suite...');
@@ -410,24 +311,7 @@ export const tools: Record<string, ITool> = {
     },
   },
   switch_model: {
-    name: 'switch_model',
-    description: 'Switch the active LLM provider and model at runtime.',
-    parameters: {
-      type: 'object',
-      properties: {
-        provider: {
-          type: 'string',
-          enum: ['openai', 'bedrock', 'openrouter'],
-          description: 'The LLM provider to switch to.',
-        },
-        model: {
-          type: 'string',
-          description:
-            'The specific model ID to use (e.g. gpt-5-mini, google/gemini-3-flash-preview).',
-        },
-      },
-      required: ['provider', 'model'],
-    },
+    ...toolDefinitions.switch_model,
     execute: async (args: Record<string, unknown>) => {
       const { provider, model } = args as { provider: string; model: string };
       const typedResource = Resource as unknown as ToolsResource;
@@ -451,32 +335,13 @@ export const tools: Record<string, ITool> = {
     },
   },
   recall_knowledge: {
-    name: 'recall_knowledge',
-    description:
-      "Searches the agent's long-term memory for relevant facts, lessons, or capability gaps.",
-    parameters: {
-      type: 'object',
-      properties: {
-        userId: { type: 'string', description: 'The user ID context.' },
-        query: {
-          type: 'string',
-          description: 'The search query or keyword (use "*" for all recent).',
-        },
-        category: {
-          type: 'string',
-          enum: ['user_preference', 'tactical_lesson', 'strategic_gap', 'system_knowledge'],
-          description: 'Optional category filter.',
-        },
-      },
-      required: ['userId', 'query'],
-    },
+    ...toolDefinitions.recall_knowledge,
     execute: async (args: Record<string, unknown>) => {
       const { userId, query, category } = args as {
         userId: string;
         query: string;
         category?: string;
       };
-      // Dynamic import to avoid circular dependency. Explicit .js extension for node16.
       const { DynamoMemory } = await import('../lib/memory');
       const memory = new DynamoMemory();
       const results = await memory.searchInsights(userId, query, category as InsightCategory);
@@ -500,6 +365,27 @@ export const tools: Record<string, ITool> = {
         .join('\n');
     },
   },
+  manage_agent_tools: {
+    ...toolDefinitions.manage_agent_tools,
+    execute: async (args: Record<string, unknown>) => {
+      const { agentId, toolNames } = args as { agentId: string; toolNames: string[] };
+      const typedResource = Resource as unknown as ToolsResource;
+      try {
+        await db.send(
+          new PutCommand({
+            TableName: typedResource.ConfigTable.name,
+            Item: {
+              key: `${agentId}_tools`,
+              value: toolNames,
+            },
+          })
+        );
+        return `Successfully updated tools for agent ${agentId}: ${toolNames.join(', ')}`;
+      } catch (error) {
+        return `Failed to update agent tools: ${error instanceof Error ? error.message : String(error)}`;
+      }
+    },
+  },
 };
 
 /**
@@ -507,7 +393,6 @@ export const tools: Record<string, ITool> = {
  * Now uses the AgentRegistry to get tools from both Backbone and DDB.
  */
 export async function getAgentTools(agentId: string): Promise<ITool[]> {
-  // Dynamic import to avoid circular dependency
   const { AgentRegistry } = await import('../lib/registry');
   const config = await AgentRegistry.getAgentConfig(agentId);
 

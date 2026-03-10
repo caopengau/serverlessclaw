@@ -1,4 +1,4 @@
-import { ITool } from './agent';
+import { ITool } from './tool';
 
 export interface ToolCall {
   id: string;
