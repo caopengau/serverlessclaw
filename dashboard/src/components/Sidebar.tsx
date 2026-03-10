@@ -15,7 +15,7 @@ export default function Sidebar() {
           <div className="w-8 h-8 bg-cyber-green rounded-sm flex items-center justify-center text-black font-bold group-hover:scale-105 transition-transform">
             C
           </div>
-          <h1 className="text-xl font-bold tracking-tighter">CLAW_MONITOR</h1>
+          <h1 className="text-xl font-bold tracking-tighter">CLAW_CENTER</h1>
         </Link>
       </div>
 

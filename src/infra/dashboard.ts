@@ -12,7 +12,7 @@ interface DashboardContext {
 export function createDashboard(ctx: DashboardContext) {
   const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer, api } = ctx;
 
-  const dashboard = new sst.aws.Nextjs('AdminDashboard', {
+  const dashboard = new sst.aws.Nextjs('ClawCenter', {
     path: 'dashboard',
     link: [
       memoryTable,

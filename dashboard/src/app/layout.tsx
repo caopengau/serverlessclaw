@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 import Sidebar from "@/components/Sidebar";
 
 export const metadata: Metadata = {
-  title: "Serverless Claw Monitor",
-  description: "Autonomous Agent Observability & Resilience Hub",
+  title: "ClawCenter | Neural Hub",
+  description: "Autonomous Agent Command & Control Hub",
 };
 
 export default function RootLayout({

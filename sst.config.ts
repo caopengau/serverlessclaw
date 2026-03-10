@@ -53,7 +53,7 @@ export default $config({
       api,
     });
 
-    // 6. Admin Dashboard (Next.js 16)
+    // 6. ClawCenter (Next.js 16)
     const { dashboard } = createDashboard({
       memoryTable,
       traceTable,
