@@ -1,0 +1,46 @@
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+
+/**
+ * Next.js 16 Proxy Function
+ * Replaces the deprecated middleware.ts for request interception.
+ */
+export function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Paths that don't require authentication
+  const isPublicPath = 
+    pathname === '/login' || 
+    pathname.startsWith('/api/auth');
+
+  // Skip static files and next internals
+  if (
+    pathname.startsWith('/_next') || 
+    pathname.startsWith('/favicon.ico') ||
+    pathname.startsWith('/api/chat') // Allow dashboard-user chat for now
+  ) {
+    return NextResponse.next();
+  }
+
+  const authSession = request.cookies.get('claw_auth_session');
+
+  // Redirect to login if accessing a protected path without a session
+  if (!isPublicPath && !authSession) {
+    const url = new URL('/login', request.url);
+    return NextResponse.redirect(url);
+  }
+
+  // Redirect to home if accessing login with a valid session
+  if (pathname === '/login' && authSession) {
+    return NextResponse.redirect(new URL('/', request.url));
+  }
+
+  return NextResponse.next();
+}
+
+// Matching Paths
+export const config = {
+  matcher: [
+    '/((?!api/chat|_next/static|_next/image|favicon.ico).*)',
+  ],
+};

@@ -14,6 +14,7 @@
 | **Health Probe** | `src/handlers/health.ts` → `GET /health` | Called by Main Agent after deployment |
 | **Rollback Signal** | `src/tools/index.ts → trigger_rollback` | Circuit breaker active or health failed |
 | **Human-in-the-Loop** | Main Agent system prompt | `MANUAL_APPROVAL_REQUIRED` returned |
+| **Dashboard Auth** | `dashboard/src/proxy.ts` | Unauthorized access to ClawCenter |
 
 ---
 

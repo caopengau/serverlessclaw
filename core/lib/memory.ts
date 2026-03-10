@@ -225,4 +225,50 @@ export class DynamoMemory implements IMemory {
 
     return allInsights.sort((a, b) => b.timestamp - a.timestamp);
   }
+
+  async updateInsightMetadata(
+    userId: string,
+    timestamp: number,
+    metadata: Partial<InsightMetadata>
+  ): Promise<void> {
+    // First, fetch the existing item to merge metadata
+    const getCommand = new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'userId = :userId AND #ts = :timestamp',
+      ExpressionAttributeNames: {
+        '#ts': 'timestamp',
+      },
+      ExpressionAttributeValues: {
+        ':userId': userId,
+        ':timestamp': timestamp,
+      },
+    });
+
+    try {
+      const response = await docClient.send(getCommand);
+      const item = response.Items?.[0];
+
+      if (!item) {
+        console.error('Item not found for update:', userId, timestamp);
+        return;
+      }
+
+      const updatedMetadata = {
+        ...(item.metadata || {}),
+        ...metadata,
+      };
+
+      const putCommand = new PutCommand({
+        TableName: this.tableName,
+        Item: {
+          ...item,
+          metadata: updatedMetadata,
+        },
+      });
+
+      await docClient.send(putCommand);
+    } catch (error) {
+      console.error('Error updating insight metadata in DynamoDB:', error);
+    }
+  }
 }

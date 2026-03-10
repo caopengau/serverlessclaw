@@ -21,11 +21,10 @@ dev-release: ## Full development release: test -> deploy -> verify
 	@$(call log_success,Development release completed successfully!)
 
 tag: ## Create and push a git tag for the current release
-	@$(call log_info,Creating release tag...)
-	@TAG="v$$(date +%Y%m%d-%H%M%S)"; \
-	git tag -a $$TAG -m "Release $$TAG"; \
-	git push origin $$TAG; \
-	$(call log_success,Tagged and pushed: $$TAG)
+	@$(call log_info,Bumping version and creating release tag...)
+	@npm version patch -m "chore: release version %s [skip ci]"
+	@git push origin main --follow-tags
+	@$(call log_success,Version bumped, tagged and pushed!)
 
 # Helper to get the production URL
 define get_prod_url

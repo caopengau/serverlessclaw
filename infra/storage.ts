@@ -37,6 +37,7 @@ export function createStorage() {
     ActiveProvider: new sst.Secret('ActiveProvider'),
     ActiveModel: new sst.Secret('ActiveModel'),
     GitHubToken: new sst.Secret('GitHubToken', ''),
+    DashboardPassword: new sst.Secret('DashboardPassword'),
   };
 
   return { memoryTable, traceTable, stagingBucket, secrets, configTable };

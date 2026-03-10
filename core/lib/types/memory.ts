@@ -43,4 +43,10 @@ export interface IMemory {
     query: string,
     category?: InsightCategory
   ): Promise<MemoryInsight[]>;
+
+  updateInsightMetadata(
+    userId: string,
+    timestamp: number,
+    metadata: Partial<InsightMetadata>
+  ): Promise<void>;
 }

@@ -15,6 +15,7 @@
 | [docs/DEVOPS.md](./docs/DEVOPS.md) | Run quality checks, tests, deployments, or releases |
 | [AGENTS.md](./docs/AGENTS.md) | Work on agent logic, prompts, orchestration, or sub-agents |
 | [TOOLS.md](./docs/TOOLS.md) | Add, modify, or understand any agent tool |
+| [docs/MEMORY.md](./docs/MEMORY.md) | Understand the tiered memory system and recall mechanism |
 | [SAFETY.md](./docs/SAFETY.md) | Understand guardrails, circuit breakers, rollback, or HITL |
 | [RESEARCH.md](./docs/RESEARCH.md) | Review architectural decisions or LLM provider choices |
 | [ROADMAP.md](./docs/ROADMAP.md) | Understand what's planned, pick the next task |
