@@ -29,11 +29,12 @@ export function createDeployer(ctx: DeployerContext) {
     { name: 'STAGING_BUCKET_NAME', value: stagingBucket.name },
   ];
 
-  const link = [stagingBucket];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const link: any[] = [stagingBucket];
 
   if (githubToken) {
     envVars.push({ name: 'GITHUB_TOKEN', value: githubToken.value });
-    link.push(githubToken as sst.aws.Secret);
+    link.push(githubToken);
   }
 
   const deployer = new aws.codebuild.Project('Deployer', {

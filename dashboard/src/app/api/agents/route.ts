@@ -3,7 +3,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { NextResponse } from 'next/server';
 
-import { AgentRegistry } from '@claw/core/lib/registry.js';
+import { AgentRegistry } from '@claw/core/lib/registry';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);

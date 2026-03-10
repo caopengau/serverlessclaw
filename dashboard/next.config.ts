@@ -1,16 +1,19 @@
 import type { NextConfig } from "next";
-import path from "path";
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  webpack: (config) => {
+    config.resolve.extensionAlias = {
+      ...config.resolve.extensionAlias,
+      ".js": [".ts", ".tsx", ".js", ".jsx"],
+      ".mjs": [".mts", ".mjs"],
+      ".cjs": [".cts", ".cjs"],
+    };
+    return config;
+  },
+  transpilePackages: ['@claw/core'],
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: true,
-  },
-  experimental: {
-    turbopack: {
-      root: path.resolve(__dirname, ".."),
-    },
   },
 };
 

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 7777",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint"
   },

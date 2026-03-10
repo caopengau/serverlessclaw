@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { DynamoMemory } from '@claw/core/lib/memory.js';
-import { Agent } from '@claw/core/lib/agent.js';
-import { ProviderManager } from '@claw/core/lib/providers/index.js';
-import { getAgentTools } from '@claw/core/tools/index.js';
-import { MANAGER_SYSTEM_PROMPT } from '@claw/core/agents/manager.js';
-import { MessageRole } from '@claw/core/lib/types/index.js';
+import { DynamoMemory } from '@claw/core/lib/memory';
+import { Agent } from '@claw/core/lib/agent';
+import { ProviderManager } from '@claw/core/lib/providers/index';
+import { getAgentTools } from '@claw/core/tools/index';
+import { MANAGER_SYSTEM_PROMPT } from '@claw/core/agents/manager';
+import { MessageRole } from '@claw/core/lib/types/index';
 
 export async function POST(req: NextRequest) {
   try {
