@@ -50,8 +50,9 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [x] **Direct Chat**: Dashboard-integrated neural interface for real-time agent interaction.
 - [x] **Session Traffic Control**: Manual lock management and zombie session cleanup.
 
-## 🔥 Phase 8: Autonomous Self-Improvement Loop
-- [ ] **Git Push Integration**: Enable CodeBuild to push approved code changes back to GitHub.
+## ✅ Phase 8: Autonomous Self-Improvement Loop
+- [x] **Git Push Integration**: CodeBuild pushes approved code changes back to GitHub.
+- [x] **Verification Tooling**: `run_tests` tool for agents to verify logic before deployment.
 - [ ] **Iteration Manager**: Allow the Coder agent to create branches and trigger tests.
 - [ ] **PR Bot**: Agent opens GitHub Pull Requests for its own improvements.
 

@@ -73,6 +73,16 @@ export default function Sidebar() {
         </Link>
         <div className="text-white/40 px-2 pt-4 uppercase text-[10px] tracking-widest font-bold">Observability</div>
         <Link 
+          href="/security" 
+          className={`flex items-center gap-3 px-2 py-2 rounded transition-colors ${
+            pathname === '/security' 
+              ? 'bg-white/5 text-cyber-green' 
+              : 'text-white/60 hover:bg-white/5'
+          }`}
+        >
+          <ShieldCheck size={16} /> SECURITY_MANIFEST
+        </Link>
+        <Link 
           href="/resilience" 
           className={`flex items-center gap-3 px-2 py-2 rounded transition-colors ${
             pathname === '/resilience' 
@@ -80,7 +90,7 @@ export default function Sidebar() {
               : 'text-white/60 hover:bg-white/5'
           }`}
         >
-          <ShieldCheck size={16} /> SELF_HEALING
+          <Zap size={16} /> SELF_HEALING
         </Link>
         <Link 
           href="/memory" 

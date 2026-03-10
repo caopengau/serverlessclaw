@@ -377,6 +377,23 @@ export const tools: Record<string, ITool> = {
       return `The weather in ${location} is sunny and 72°F.`;
     },
   },
+  run_tests: {
+    name: 'run_tests',
+    description: 'Runs the project unit tests to verify changes before staging.',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+    execute: async () => {
+      try {
+        console.log('Running autonomous test suite...');
+        const { stdout, stderr } = await execAsync('npm test');
+        return `Test Results:\n${stdout}\n${stderr}`;
+      } catch (error) {
+        return `Tests FAILED:\n${error instanceof Error ? error.message : String(error)}`;
+      }
+    },
+  },
   switch_model: {
     name: 'switch_model',
     description: 'Switch the active LLM provider and model at runtime.',
