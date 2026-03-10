@@ -1,7 +1,40 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { tools, getToolDefinitions } from '../tools/index';
 
+// Mock DynamoDB for tool execution tests
+vi.mock('@aws-sdk/lib-dynamodb', () => ({
+  DynamoDBDocumentClient: {
+    from: () => ({
+      send: vi.fn().mockResolvedValue({}),
+    }),
+  },
+  GetCommand: vi.fn(),
+  PutCommand: vi.fn(),
+  UpdateCommand: vi.fn(),
+}));
+
+vi.mock('sst', () => ({
+  Resource: {
+    ConfigTable: { name: 'MockConfigTable' },
+    MemoryTable: { name: 'MockMemoryTable' },
+    AgentBus: { name: 'MockBus' },
+    Deployer: { name: 'MockDeployer' },
+    StagingBucket: { name: 'MockBucket' },
+  },
+}));
+
 describe('Tools', () => {
+  describe('switch_model', () => {
+    it('should return success message when switching model', async () => {
+      const result = await tools.switch_model.execute({
+        provider: 'bedrock',
+        model: 'anthropic.claude-3-sonnet',
+      });
+      expect(result).toContain('Successfully switched to bedrock');
+      expect(result).toContain('anthropic.claude-3-sonnet');
+    });
+  });
+
   describe('calculator', () => {
     it('should evaluate 2 + 2 correctly', async () => {
       const result = await tools.calculator.execute({ expression: '2 + 2' });
