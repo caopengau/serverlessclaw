@@ -5,7 +5,7 @@
 ## Golden Rules
 
 1. **Tests first**: Use TDD for any new tool or guardrail logic.
-2. **Update the docs**: Every code change must update the relevant spoke in `docs/`. See `INDEX.md` for the mapping.
+2. **Iterate on Main**: Adopt Trunk-Based Evolution. Use `dev` stage for iteration and `prod` for stable releases.
 3. **No broken state**: `validate_code` must pass before any `trigger_deployment`.
 4. **Protected files require human approval**: Do not attempt to bypass `PERMISSION_DENIED`.
 

@@ -4,7 +4,11 @@ import { Resource } from 'sst';
 export class OpenAIProvider implements IProvider {
   constructor(private model: string = 'gpt-5.4') {}
 
-  async call(messages: Message[], tools?: ITool[]): Promise<Message> {
+  async call(
+    messages: Message[],
+    tools?: ITool[],
+    profile: ReasoningProfile = 'standard'
+  ): Promise<Message> {
     const apiKey = Resource.OpenAIApiKey.value;
     const baseUrl = 'https://api.openai.com/v1';
 
@@ -15,16 +19,25 @@ export class OpenAIProvider implements IProvider {
       role: m.role === 'system' ? 'developer' : m.role,
     }));
 
-    const body: any = {
+    // Map profile to reasoning_effort for gpt-5.4 models
+    let reasoningEffort = 'medium';
+    if (profile === 'fast') reasoningEffort = 'low';
+    if (profile === 'thinking') reasoningEffort = 'high';
+    if (profile === 'deep') reasoningEffort = 'xhigh';
+
+    const body: Record<string, unknown> = {
       model: this.model,
       messages: processedMessages,
       // 2026 Optimization: Reasoning Effort
       // High for gpt-5.4 logic, medium for general tasks
-      ...(this.model.includes('gpt-5') ? { reasoning_effort: 'medium' } : {}),
+      ...(this.model.includes('gpt-5') ? { reasoning_effort: reasoningEffort } : {}),
+      // 2026 Optimization: Predictive Outputs
+      // Set for latency optimization on repetitive tasks
+      ...(profile === 'fast' ? { prediction: { type: 'content' } } : {}),
     };
 
     if (tools && tools.length > 0) {
-      body.tools = tools.map((t) => ({
+      body['tools'] = tools.map((t) => ({
         type: 'function',
         function: {
           name: t.name,
@@ -37,7 +50,7 @@ export class OpenAIProvider implements IProvider {
       }));
 
       // Control parallel tool calling to prevent resource exhaustion
-      body.parallel_tool_calls = false;
+      body['parallel_tool_calls'] = false;
     }
 
     const response = await fetch(`${baseUrl}/chat/completions`, {

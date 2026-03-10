@@ -34,8 +34,8 @@ export const handler = async (event: { userId: string; task: string }) => {
   }
 
   // 1. Process the task
-  // Since this is a sub-agent, it might not need a lock or might use a sub-lock
-  const response = await agent.process(userId, `CODER TASK: ${task}`);
+  // 2026 Optimization: Use 'thinking' profile for coding tasks
+  const response = await agent.process(userId, `CODER TASK: ${task}`, 'thinking');
 
   console.log('Coder Agent completed task:', response);
 

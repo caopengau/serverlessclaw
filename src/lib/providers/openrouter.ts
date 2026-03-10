@@ -8,25 +8,33 @@ interface OpenRouterResource {
 export class OpenRouterProvider implements IProvider {
   constructor(private model: string = 'google/gemini-3-flash-preview') {}
 
-  async call(messages: Message[], tools?: ITool[]): Promise<Message> {
+  async call(
+    messages: Message[],
+    tools?: ITool[],
+    profile: ReasoningProfile = 'standard'
+  ): Promise<Message> {
     const apiKey = (Resource as unknown as OpenRouterResource).OpenRouterApiKey?.value || '';
     const baseUrl = 'https://openrouter.ai/api/v1';
 
-    const body: any = {
+    const body: Record<string, unknown> = {
       model: this.model,
       messages: messages,
       // 2026 OpenRouter Enhancements:
       // Provider routing preferences (prefer speed/cost)
-      route: 'fallback',
+      route: profile === 'fast' ? 'latency' : 'fallback',
       // Allow provider-specific transformations (e.g. prompt caching)
       provider: {
         allow_fallbacks: true,
         data_collection: 'deny', // Privacy first
+        // 2026: Enable prompt caching for high-volume sessions
+        prompt_cache: true,
       },
+      // Map profile to provider-specific reasoning if supported
+      ...(profile === 'thinking' || profile === 'deep' ? { include_reasoning: true } : {}),
     };
 
     if (tools && tools.length > 0) {
-      body.tools = tools.map((t) => ({
+      body['tools'] = tools.map((t) => ({
         type: 'function',
         function: {
           name: t.name,

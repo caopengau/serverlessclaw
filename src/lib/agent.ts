@@ -28,7 +28,11 @@ export class Agent {
     `
   ) {}
 
-  async process(userId: string, userText: string): Promise<string> {
+  async process(
+    userId: string,
+    userText: string,
+    profile: ReasoningProfile = 'standard'
+  ): Promise<string> {
     const tracer = new ClawTracer(userId);
     await tracer.startTrace({ userText });
 
@@ -71,7 +75,7 @@ export class Agent {
     try {
       while (iterations < maxIterations) {
         await tracer.addStep({ type: 'llm_call', content: { messageCount: messages.length } });
-        const aiResponse = await this.provider.call(messages, this.tools);
+        const aiResponse = await this.provider.call(messages, this.tools, profile);
 
         if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
           messages.push(aiResponse);
@@ -140,9 +144,12 @@ export class Agent {
       Return the full updated list of facts.
     `;
 
-    const summaryResponse = await this.provider.call([
-      { role: 'system', content: reflectionPrompt },
-    ]);
+    // Reflection is a background task, using 'fast' profile for efficiency
+    const summaryResponse = await this.provider.call(
+      [{ role: 'system', content: reflectionPrompt }],
+      undefined,
+      'fast'
+    );
 
     if (summaryResponse.content) {
       await this.memory.updateDistilledMemory(userId, summaryResponse.content);

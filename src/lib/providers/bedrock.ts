@@ -8,7 +8,11 @@ interface BedrockResource {
 export class BedrockProvider implements IProvider {
   constructor(private modelId: string = 'anthropic.claude-4-6-sonnet-20260215-v1:0') {}
 
-  async call(messages: Message[], tools?: ITool[]): Promise<Message> {
+  async call(
+    messages: Message[],
+    tools?: ITool[],
+    profile: ReasoningProfile = 'standard'
+  ): Promise<Message> {
     const { BedrockRuntimeClient, ConverseCommand } =
       await import('@aws-sdk/client-bedrock-runtime');
 
@@ -40,6 +44,19 @@ export class BedrockProvider implements IProvider {
       },
     }));
 
+    // Map profile to Claude 4.6 Thinking budget
+    let thinkingBudget = 1024;
+    let thinkingEnabled = true;
+
+    if (profile === 'fast') {
+      thinkingBudget = 0;
+      thinkingEnabled = false;
+    } else if (profile === 'thinking') {
+      thinkingBudget = 4096;
+    } else if (profile === 'deep') {
+      thinkingBudget = 16384;
+    }
+
     const command = new ConverseCommand({
       modelId: this.modelId,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -56,10 +73,14 @@ export class BedrockProvider implements IProvider {
       // 2026 Bedrock Optimization: Additional Model Request Fields
       // Specifically for Claude 4.6 Reasoning/Thinking blocks
       additionalModelRequestFields: {
-        thinking: {
-          type: 'enabled',
-          budget_tokens: 1024,
-        },
+        ...(thinkingEnabled
+          ? {
+              thinking: {
+                type: 'enabled',
+                budget_tokens: thinkingBudget,
+              },
+            }
+          : {}),
       },
     });
 

@@ -44,10 +44,19 @@ export interface IChannel {
 }
 
 /**
+ * Reasoning profiles for LLM providers.
+ * fast: Low reasoning, high speed (e.g., gpt-5-mini, flash models)
+ * standard: Balanced reasoning (e.g., gpt-5.4 default)
+ * thinking: High reasoning for complex logic (e.g., gpt-5.4 high)
+ * deep: Maximum reasoning for architecture or recovery (e.g., gpt-5.4 xhigh)
+ */
+export type ReasoningProfile = 'fast' | 'standard' | 'thinking' | 'deep';
+
+/**
  * Provider interface for LLM backends.
  */
 export interface IProvider {
-  call(messages: Message[], tools?: ITool[]): Promise<Message>;
+  call(messages: Message[], tools?: ITool[], profile?: ReasoningProfile): Promise<Message>;
 }
 
 /**

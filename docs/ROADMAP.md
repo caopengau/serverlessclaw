@@ -53,8 +53,8 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 ## ✅ Phase 8: Autonomous Self-Improvement Loop
 - [x] **Git Push Integration**: CodeBuild pushes approved code changes back to GitHub.
 - [x] **Verification Tooling**: `run_tests` tool for agents to verify logic before deployment.
-- [ ] **Iteration Manager**: Allow the Coder agent to create branches and trigger tests.
-- [ ] **PR Bot**: Agent opens GitHub Pull Requests for its own improvements.
+- [ ] **Trunk-Based Evolution**: Formalize main-branch iteration with dev/prod isolation.
+- [ ] **Promotion Manager**: Agent-driven promotion of validated `dev` builds to `prod`.
 
 ## 🏢 Phase 9: Power Capabilities
 - [ ] **Browser Automation**: Playwright Lambda Layer for autonomous web browsing/actions.
