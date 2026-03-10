@@ -68,6 +68,50 @@ Response
 
 ---
 
+## Concurrency & Session Isolation
+
+Unlike traditional agent servers that process messages serially, Serverless Claw uses **Distributed Locking** via DynamoDB to ensure session integrity in a stateless environment.
+
+```text
+[User Msg A] -> [Lambda 1] -> [Acquire Lock] -> [ EXECUTE ]
+[User Msg B] -> [Lambda 2] -> [ Lock Check ] -> [ FAIL/EXIT ]
+[User Msg C] -> [Lambda 3] -> [ Lock Check ] -> [ FAIL/EXIT ]
+```
+
+- **Mechanism**: A `LOCK#<chatId>` item is created in `MemoryTable` with a TTL.
+- **Observability**: The Dashboard's `SESSION_TRAFFIC` tab monitors these locks.
+- **Self-Healing**: If a Lambda crashes, the lock can be manually cleared or will auto-expire, preventing session deadlocks.
+
+---
+
+## Multi-Agent Orchestration (EventBridge)
+
+Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This allows the system to remain decoupled and highly scalable.
+
+```text
+           [ EXTERNAL INPUT ] 
+                  |
+         _________V_________
+        |                   |
+        |    MAIN_MANAGER   | <--- [Dashboard Chat / Telegram]
+        |___________________|
+                  |
+        (1) DISPATCH_TASK (via AgentBus)
+                  |
+         _________V_________
+        |    EVENT_BUS      | ---- (3) [ BUILD_MONITOR ]
+        |   (AgentBus)      |           (Observes CodeBuild)
+        |___________________|
+                  |
+        (2) CODER_AGENT <---------- (4) ROLLBACK_SIGNAL
+            (Writes Code)               (If Build Fails)
+```
+
+- **Pattern**: The Main Agent emits a `coder_task` event. The Coder Agent is subscribed to this event, processes the work, and updates the system state.
+- **Visualization**: The `SYSTEM_PULSE` dashboard page provides an interactive node graph of this topography.
+
+---
+
 ## Developer Customization
 
 Serverless Claw is designed to be highly customizable at every layer.
