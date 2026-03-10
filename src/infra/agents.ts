@@ -116,5 +116,14 @@ export function createAgents(ctx: AgentContext) {
   });
   bus.subscribe(EventType.EVOLUTION_PLAN, plannerAgent.arn);
 
-  return { coderAgent, buildMonitor, eventHandler, deadMansSwitch, plannerAgent };
+  // 6. Reflector Agent
+  const reflectorAgent = new sst.aws.Function('ReflectorAgent', {
+    handler: 'src/agents/reflector.handler',
+    link: [memoryTable, traceTable, configTable, ...Object.values(secrets), bus],
+    memory: '512 MB',
+    timeout: '900 seconds',
+  });
+  bus.subscribe(EventType.REFLECT_TASK, reflectorAgent.arn);
+
+  return { coderAgent, buildMonitor, eventHandler, deadMansSwitch, plannerAgent, reflectorAgent };
 }

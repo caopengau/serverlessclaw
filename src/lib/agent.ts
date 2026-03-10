@@ -6,10 +6,13 @@ import {
   ReasoningProfile,
   MessageRole,
   EventType,
+  SSTResource,
 } from './types';
 import { ClawTracer } from './tracer';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { Resource } from 'sst';
+
+const typedResource = Resource as unknown as SSTResource;
 
 export class Agent {
   private eventbridge = new EventBridgeClient({});
@@ -130,77 +133,28 @@ export class Agent {
     // 6. Finalize Trace
     await tracer.endTrace(responseText);
 
-    // 7. Trigger Reflection (async)
-    this.reflect(userId, [
-      ...messages,
-      { role: MessageRole.ASSISTANT, content: responseText },
-    ]).catch(console.error);
+    // 7. Trigger Reflection (async via EventBridge)
+    try {
+      await this.eventbridge.send(
+        new PutEventsCommand({
+          Entries: [
+            {
+              Source: 'main.agent',
+              DetailType: EventType.REFLECT_TASK,
+              Detail: JSON.stringify({
+                userId,
+                conversation: [...messages, { role: MessageRole.ASSISTANT, content: responseText }],
+              }),
+              EventBusName: typedResource.AgentBus.name,
+            },
+          ],
+        })
+      );
+      console.log('Reflection task emitted for user:', userId);
+    } catch (e) {
+      console.error('Failed to emit reflection task:', e);
+    }
 
     return responseText;
-  }
-
-  private async reflect(userId: string, conversation: Message[]) {
-    const existingFacts = await this.memory.getDistilledMemory(userId);
-
-    const reflectionPrompt = `
-      You are an observer analyzing a conversation. 
-      Your goal is twofold:
-      1. Extract key facts about the user to maintain long-term memory.
-      2. Identify CAPABILITY GAPS: Did the agent fail to fulfill a request? Is a tool missing? Did a plan fail?
-      
-      EXISTING FACTS:
-      ${existingFacts || 'None'}
-
-      CONVERSATION:
-      ${conversation.map((m) => `${m.role.toUpperCase()}: ${m.content || (m.tool_calls ? '[Tool Calls]' : '')}`).join('\n')}
-
-      RETURN FORMAT:
-      FACTS: <updated list of facts>
-      GAP: <description of identified gap, or 'NONE' if no gap found>
-    `;
-
-    // Reflection is a background task, using 'fast' profile for efficiency
-    const summaryResponse = await this.provider.call(
-      [{ role: MessageRole.SYSTEM, content: reflectionPrompt }],
-      undefined,
-      ReasoningProfile.FAST
-    );
-
-    if (summaryResponse.content) {
-      const content = summaryResponse.content;
-      const factsMatch = content.match(/FACTS:\s*([\s\S]*?)(?=GAP:|$)/);
-      const gapMatch = content.match(/GAP:\s*([\s\S]*)/);
-
-      if (factsMatch && factsMatch[1].trim()) {
-        await this.memory.updateDistilledMemory(userId, factsMatch[1].trim());
-      }
-
-      if (gapMatch && gapMatch[1].trim() && !gapMatch[1].includes('NONE')) {
-        const gapDescription = gapMatch[1].trim();
-        const gapId = Date.now().toString();
-        await this.memory.setGap(gapId, gapDescription);
-        console.log('Capability Gap Identified:', gapDescription);
-
-        // Notify Planner Agent via EventBridge
-        try {
-          const typedResource = Resource as any;
-          await this.eventbridge.send(
-            new PutEventsCommand({
-              Entries: [
-                {
-                  Source: 'main.agent',
-                  DetailType: EventType.EVOLUTION_PLAN,
-                  Detail: JSON.stringify({ gapId, details: gapDescription, contextUserId: userId }),
-                  EventBusName: typedResource.AgentBus.name,
-                },
-              ],
-            })
-          );
-          console.log('Evolution plan event emitted for gap:', gapId);
-        } catch (e) {
-          console.error('Failed to emit evolution plan event:', e);
-        }
-      }
-    }
   }
 }

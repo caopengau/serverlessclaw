@@ -33,6 +33,7 @@ export enum AgentType {
   EVENT_HANDLER = 'events',
   RECOVERY = 'recovery',
   PLANNER = 'planner',
+  REFLECTOR = 'reflector',
 }
 
 /**
@@ -44,6 +45,7 @@ export enum EventType {
   MONITOR_BUILD = 'monitor_build',
   RECOVERY_LOG = 'recovery_log',
   EVOLUTION_PLAN = 'evolution_plan',
+  REFLECT_TASK = 'reflect_task',
 }
 
 /**
@@ -144,4 +146,12 @@ export interface ILockManager {
 export interface ILockManager {
   acquire(lockId: string, ttlSeconds: number): Promise<boolean>;
   release(lockId: string): Promise<void>;
+}
+
+/**
+ * SST Resource types for better safety.
+ */
+export interface SSTResource {
+  AgentBus: { name: string };
+  TelegramBotToken: { value: string };
 }
