@@ -70,7 +70,7 @@ Link: ${pr.html_url}\n\n`;
 I have verified the daily run schedule. Would you like me to run 'validate_code' on this branch?`;
     }
 
-    await sendOutboundMessage('renobot.handler', adminChatId, message);
+    await sendOutboundMessage('renobot.handler', adminChatId, message, true);
   }
 
   return { statusCode: 200, body: 'OK' };
