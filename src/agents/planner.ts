@@ -1,7 +1,7 @@
 import { DynamoMemory } from '../lib/memory';
 import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers';
-import { AgentType, ReasoningProfile, EventType } from '../lib/types';
+import { AgentType, ReasoningProfile, EventType, EvolutionMode } from '../lib/types';
 import { getToolDefinitions } from '../tools/index';
 import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -89,7 +89,7 @@ export const handler = async (event: {
 
   const evolutionMode = await getEvolutionMode();
 
-  if (evolutionMode === 'auto') {
+  if (evolutionMode === EvolutionMode.AUTO) {
     console.log('Evolution mode is auto, dispatching CODER_TASK directly.');
     await sendOutboundMessage(
       'planner.agent',

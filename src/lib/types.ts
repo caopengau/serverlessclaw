@@ -50,6 +50,14 @@ export enum EventType {
 }
 
 /**
+ * Evolution Modes for system capability upgrades.
+ */
+export enum EvolutionMode {
+  AUTO = 'auto',
+  HITL = 'hitl',
+}
+
+/**
  * reasoning profiles for LLM providers.
  */
 export enum ReasoningProfile {
