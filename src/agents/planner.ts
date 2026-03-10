@@ -35,12 +35,18 @@ export const handler = async (event: {
   const { gapId, details, contextUserId, metadata } = event;
 
   // Planner always uses high-reasoning for deep thinking
-  const roiInfo = metadata
-    ? `\n(ESTIMATED ROI: ${metadata.estimatedROI}, PRIORITY: ${metadata.priority})`
+  const signals = metadata
+    ? `
+    [EVOLUTIONARY_SIGNALS]:
+    - IMPACT: ${metadata.impact}/10
+    - URGENCY: ${metadata.urgency}/10
+    - RISK: ${metadata.risk}/10
+    - PRIORITY: ${metadata.priority}/10 (Confidence: ${metadata.confidence}/10)
+  `
     : '';
   const result = await plannerAgent.process(
     `SYSTEM#PLANNER#${gapId}`,
-    `GAP IDENTIFIED: ${details}${roiInfo}\n\nUSER CONTEXT: Please design a STRATEGIC_PLAN to fix this gap for user ${contextUserId}.`,
+    `GAP IDENTIFIED: ${details}\n${signals}\n\nUSER CONTEXT: Please design a STRATEGIC_PLAN to fix this gap for user ${contextUserId}.`,
     ReasoningProfile.DEEP
   );
 

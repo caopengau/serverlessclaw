@@ -31,17 +31,40 @@ export const handler = async (event: { userId: string; conversation: Message[] }
 
      1. EXTRACT FACTS: Identify permanent user details for long-term memory.
      2. IDENTIFY GAPS: Analyze if the agent's response was lacking or if the system is missing a capability.
-     3. ESTIMATE ROI & PRIORITY: For each lesson or gap, estimate the Return on Investment (ROI) and Priority (1-10).
+     3. ESTIMATE SIGNALS: For each lesson or gap, estimate:
+        - Confidence (1-10): Certainty of the observation.
+        - Impact (1-10): Value added / friction removed.
+        - Complexity (1-10): Effort to implement/fix.
+        - Risk (1-10): Danger of regression.
+        - Urgency (1-10): Time-sensitivity.
      4. CATEGORIZE: Use categories: 'user_preference', 'tactical_lesson', 'strategic_gap', 'system_knowledge'.
 
      RETURN FORMAT (STRICT JSON):
      {
        "facts": "updated facts string",
        "lessons": [
-         { "content": "lesson content", "roi": number, "priority": number, "category": "user_preference" | "tactical_lesson" }
+         { 
+           "content": "lesson content", 
+           "confidence": number, 
+           "impact": number, 
+           "complexity": number, 
+           "risk": number, 
+           "urgency": number,
+           "priority": number,
+           "category": "user_preference" | "tactical_lesson" 
+         }
        ],
        "gaps": [
-         { "content": "gap description", "roi": number, "priority": number, "category": "strategic_gap" }
+         { 
+           "content": "gap description", 
+           "confidence": number, 
+           "impact": number, 
+           "complexity": number, 
+           "risk": number, 
+           "urgency": number,
+           "priority": number,
+           "category": "strategic_gap" 
+         }
        ]
      }
      
@@ -86,10 +109,14 @@ export const handler = async (event: { userId: string; conversation: Message[] }
           if (lesson.content && lesson.content !== 'NONE') {
             await memory.addLesson(userId, lesson.content, {
               category: lesson.category || InsightCategory.TACTICAL_LESSON,
-              estimatedROI: lesson.roi || 0,
-              priority: lesson.priority || 0,
+              confidence: lesson.confidence || 5,
+              impact: lesson.impact || 5,
+              complexity: lesson.complexity || 5,
+              risk: lesson.risk || 5,
+              urgency: lesson.urgency || 5,
+              priority: lesson.priority || 5,
             });
-            console.log('Lesson saved with ROI:', lesson.roi);
+            console.log('Lesson saved with impact:', lesson.impact);
           }
         }
       }
@@ -101,11 +128,15 @@ export const handler = async (event: { userId: string; conversation: Message[] }
             const gapId = Date.now().toString();
             const metadata = {
               category: InsightCategory.STRATEGIC_GAP,
-              estimatedROI: gap.roi || 0,
-              priority: gap.priority || 0,
+              confidence: gap.confidence || 5,
+              impact: gap.impact || 5,
+              complexity: gap.complexity || 5,
+              risk: gap.risk || 5,
+              urgency: gap.urgency || 5,
+              priority: gap.priority || 5,
             };
             await memory.setGap(gapId, gap.content, metadata);
-            console.log('Strategic Gap saved with ROI:', gap.roi);
+            console.log('Strategic Gap saved with impact:', gap.impact);
 
             // Notify Planner Agent via EventBridge
             try {

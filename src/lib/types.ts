@@ -106,8 +106,12 @@ export enum InsightCategory {
  */
 export interface InsightMetadata {
   category: InsightCategory;
-  estimatedROI: number; // 1-10
-  priority: number; // 1-10
+  confidence: number; // 1-10
+  impact: number; // 1-10
+  complexity: number; // 1-10
+  risk: number; // 1-10
+  urgency: number; // 1-10
+  priority: number; // 1-10 (Normalized overall priority)
   expiration?: number; // timestamp
 }
 

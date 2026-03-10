@@ -471,7 +471,7 @@ export const tools: Record<string, ITool> = {
       return results
         .map(
           (r: any) =>
-            `[${r.metadata.category.toUpperCase()}] (ROI: ${r.metadata.estimatedROI}) ${r.content}`
+            `[${r.metadata.category.toUpperCase()}] (Impact: ${r.metadata.impact}/10, Urgency: ${r.metadata.urgency}/10) ${r.content}`
         )
         .join('\n');
     },
