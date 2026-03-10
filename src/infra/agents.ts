@@ -15,21 +15,24 @@ export function createAgents(ctx: AgentContext) {
   const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer } = ctx;
 
   const validSecrets = Object.values(secrets).filter((s) => s !== undefined);
+  const liveInLocalOnly = $app.stage === 'local' ? undefined : false;
 
   // 1. Coder Agent
   const coderAgent = new sst.aws.Function('CoderAgent', {
     handler: 'src/core/agents/coder.handler',
+    dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, stagingBucket, ...validSecrets],
     memory: '1024 MB',
     timeout: '900 seconds',
   });
-  bus.subscribe('CoderTaskSubscriber', coderAgent.name, {
+  bus.subscribe('CoderTaskSubscriber', coderAgent.arn, {
     pattern: { detailType: [EventType.CODER_TASK] },
   });
 
   // 2. Build Monitor
   const buildMonitor = new sst.aws.Function('BuildMonitor', {
     handler: 'src/core/handlers/monitor.handler',
+    dev: liveInLocalOnly,
     link: [memoryTable, bus],
     memory: '256 MB',
     timeout: '60 seconds',
@@ -38,6 +41,7 @@ export function createAgents(ctx: AgentContext) {
   // 4. Dead Man's Switch (Recovery Agent)
   const deadMansSwitch = new sst.aws.Function('DeadMansSwitch', {
     handler: 'src/core/handlers/recovery.handler',
+    dev: liveInLocalOnly,
     link: [memoryTable, deployer],
     memory: '256 MB',
     timeout: '60 seconds',
@@ -97,56 +101,61 @@ export function createAgents(ctx: AgentContext) {
   // 5. Planner Agent
   const plannerAgent = new sst.aws.Function('PlannerAgent', {
     handler: 'src/core/agents/planner.handler',
+    dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
     memory: '1024 MB',
     timeout: '900 seconds',
   });
-  bus.subscribe('EvolutionPlanSubscriber', plannerAgent.name, {
+  bus.subscribe('EvolutionPlanSubscriber', plannerAgent.arn, {
     pattern: { detailType: [EventType.EVOLUTION_PLAN] },
   });
 
   // 3. Event Handler (System errors)
   const eventHandler = new sst.aws.Function('EventHandler', {
     handler: 'src/core/handlers/events.handler',
+    dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
     memory: '512 MB',
     timeout: '600 seconds',
   });
-  bus.subscribe('SystemBuildFailedSubscriber', eventHandler.name, {
+  bus.subscribe('SystemBuildFailedSubscriber', eventHandler.arn, {
     pattern: { detailType: [EventType.SYSTEM_BUILD_FAILED] },
   });
 
   // 6. Reflector Agent
   const reflectorAgent = new sst.aws.Function('ReflectorAgent', {
     handler: 'src/core/agents/reflector.handler',
+    dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
     memory: '512 MB',
     timeout: '900 seconds',
   });
-  bus.subscribe('ReflectTaskSubscriber', reflectorAgent.name, {
+  bus.subscribe('ReflectTaskSubscriber', reflectorAgent.arn, {
     pattern: { detailType: [EventType.REFLECT_TASK] },
   });
 
   // 7. Notifier
   const notifier = new sst.aws.Function('Notifier', {
     handler: 'src/core/handlers/notifier.handler',
+    dev: liveInLocalOnly,
     link: [configTable, secrets.TelegramBotToken],
     memory: '256 MB',
     timeout: '30 seconds',
   });
-  bus.subscribe('OutboundMessageSubscriber', notifier.name, {
+  bus.subscribe('OutboundMessageSubscriber', notifier.arn, {
     pattern: { detailType: [EventType.OUTBOUND_MESSAGE] },
   });
 
   // 8. Generic Worker Agent (Handles dynamic user-defined agents)
   const workerAgent = new sst.aws.Function('WorkerAgent', {
     handler: 'src/core/agents/worker.handler',
+    dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
     memory: '1024 MB',
     timeout: '900 seconds',
   });
   // Subscribe to all agent tasks that don't have a specific handler
-  bus.subscribe('WorkerAgentSubscriber', workerAgent.name, {
+  bus.subscribe('WorkerAgentSubscriber', workerAgent.arn, {
     pattern: {
       detailType: [
         {

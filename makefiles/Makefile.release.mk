@@ -9,7 +9,7 @@ release: ## Full production release: test -> deploy -> verify -> tag
 	@$(call log_step,Starting full production release...)
 	@$(MAKE) check test
 	@$(MAKE) deploy-prod
-	@$(MAKE) verify URL=$(call get_prod_url)
+	@$(MAKE) verify URL=$$(cat .sst/outputs.json | python3 -c "import json,sys; print(json.load(sys.stdin)['apiUrl'])")
 	@$(MAKE) tag
 	@$(call log_success,Release completed successfully!)
 
@@ -17,7 +17,7 @@ dev-release: ## Full development release: test -> deploy -> verify
 	@$(call log_step,Starting full development release...)
 	@$(MAKE) check test
 	@$(MAKE) deploy ENV=dev
-	@$(MAKE) verify URL=$(call get_dev_url)
+	@$(MAKE) verify URL=$$(cat .sst/outputs.json | python3 -c "import json,sys; print(json.load(sys.stdin)['apiUrl'])")
 	@$(call log_success,Development release completed successfully!)
 
 tag: ## Create and push a git tag for the current release

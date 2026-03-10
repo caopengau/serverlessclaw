@@ -2,6 +2,11 @@
 
 > **Agent Context Loading Protocol**: This is the hub. Start here. Load only the spokes relevant to your task.
 
+## Agent Entry Files
+
+- [`.github/copilot-instructions.md`](./.github/copilot-instructions.md): Copilot-specific startup instructions that route to this index and devops docs.
+- [`AGENTS.md`](./AGENTS.md): Generic root agent entrypoint used by non-Copilot agents.
+
 ## Hub-and-Spoke Map
 
 | Spoke | Load When You Need To... |
