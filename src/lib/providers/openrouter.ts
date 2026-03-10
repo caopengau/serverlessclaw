@@ -32,12 +32,30 @@ export class OpenRouterProvider implements IProvider {
       profile = ReasoningProfile.STANDARD;
     }
 
+    // 2026 OpenRouter Reasoning Mapping
+    let reasoning: Record<string, unknown> | undefined = undefined;
+    if (profile !== ReasoningProfile.FAST) {
+      reasoning = {
+        // Map profiles to effort levels
+        effort:
+          profile === ReasoningProfile.DEEP
+            ? 'high'
+            : profile === ReasoningProfile.THINKING
+              ? 'medium'
+              : 'low',
+        // Standardized reasoning toggle
+        enabled: true,
+      };
+    }
+
     const body: Record<string, unknown> = {
       model: this.model,
       messages: messages,
       // 2026 OpenRouter Enhancements:
       // Provider routing preferences (prefer speed/cost)
       route: profile === ReasoningProfile.FAST ? 'latency' : 'fallback',
+      // Reasoning settings
+      ...(reasoning ? { reasoning } : {}),
       // Allow provider-specific transformations (e.g. prompt caching)
       provider: {
         allow_fallbacks: true,
@@ -45,10 +63,6 @@ export class OpenRouterProvider implements IProvider {
         // 2026: Enable prompt caching for high-volume sessions
         prompt_cache: true,
       },
-      // Map profile to provider-specific reasoning if supported
-      ...(profile === ReasoningProfile.THINKING || profile === ReasoningProfile.DEEP
-        ? { include_reasoning: true }
-        : {}),
     };
 
     if (tools && tools.length > 0) {
@@ -81,12 +95,24 @@ export class OpenRouterProvider implements IProvider {
     }
 
     const data = (await response.json()) as {
-      choices?: { message: Message }[];
+      choices?: {
+        message: Message & {
+          reasoning_details?: any[];
+        };
+      }[];
     };
     const message = data.choices?.[0]?.message;
 
     if (!message) {
       return { role: MessageRole.ASSISTANT, content: 'Empty response from provider.' } as Message;
+    }
+
+    // 2026 Log reasoning details for observability if present
+    if (message.reasoning_details) {
+      console.debug(
+        `[OpenRouter Reasoning] for ${this.model}:`,
+        JSON.stringify(message.reasoning_details)
+      );
     }
 
     return {
@@ -97,13 +123,23 @@ export class OpenRouterProvider implements IProvider {
   }
 
   async getCapabilities() {
-    // OpenRouter is a passthrough; we can either have a generic set or a specific list
-    // For standardized models, we allow standard and fast.
-    const isStandardized = Object.values(OpenRouterModel).includes(this.model as any);
+    // These standardized models from OpenRouter all support advanced reasoning in 2026
+    const highCapabilityModels = [
+      OpenRouterModel.GLM_5,
+      OpenRouterModel.MINIMAX_2_5,
+      OpenRouterModel.GEMINI_3_FLASH,
+    ];
+
+    const isHighCapability = highCapabilityModels.includes(this.model as OpenRouterModel);
 
     return {
-      supportedReasoningProfiles: isStandardized
-        ? [ReasoningProfile.FAST, ReasoningProfile.STANDARD]
+      supportedReasoningProfiles: isHighCapability
+        ? [
+            ReasoningProfile.FAST,
+            ReasoningProfile.STANDARD,
+            ReasoningProfile.THINKING,
+            ReasoningProfile.DEEP,
+          ]
         : [ReasoningProfile.FAST, ReasoningProfile.STANDARD],
     };
   }
