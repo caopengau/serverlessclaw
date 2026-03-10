@@ -64,7 +64,7 @@ export class AgentRegistry {
     try {
       const { Item } = await docClient.send(
         new GetCommand({
-          TableName: (Resource as { ConfigTable: { name: string } }).ConfigTable.name,
+          TableName: (Resource as unknown as { ConfigTable: { name: string } }).ConfigTable.name,
           Key: { key: 'agents_config' },
         })
       );
@@ -81,7 +81,7 @@ export class AgentRegistry {
 
     await docClient.send(
       new PutCommand({
-        TableName: (Resource as { ConfigTable: { name: string } }).ConfigTable.name,
+        TableName: (Resource as unknown as { ConfigTable: { name: string } }).ConfigTable.name,
         Item: { key: 'agents_config', value: all },
       })
     );
