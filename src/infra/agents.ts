@@ -1,6 +1,7 @@
 interface AgentContext {
   memoryTable: sst.aws.Dynamo;
   traceTable: sst.aws.Dynamo;
+  configTable: sst.aws.Dynamo;
   stagingBucket: sst.aws.Bucket;
   secrets: Record<string, sst.Secret>;
   bus: sst.aws.Bus;
@@ -9,32 +10,40 @@ interface AgentContext {
 }
 
 export function createAgents(ctx: AgentContext) {
-  const { memoryTable, traceTable, stagingBucket, secrets, bus, deployer, api } = ctx;
+  const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer, api } = ctx;
 
   // 1. Coder Agent
   const coderAgent = new sst.aws.Function('CoderAgent', {
     handler: 'src/agents/coder.handler',
-    link: [memoryTable, traceTable, stagingBucket, ...Object.values(secrets)],
+    link: [memoryTable, traceTable, configTable, stagingBucket, ...Object.values(secrets)],
   });
   bus.subscribe('coder_task', coderAgent.arn);
 
   // 2. Build Monitor
   const buildMonitor = new sst.aws.Function('BuildMonitor', {
     handler: 'src/agents/monitor.handler',
-    link: [memoryTable, traceTable, stagingBucket, deployer, bus],
+    link: [memoryTable, traceTable, configTable, stagingBucket, deployer, bus],
   });
 
   // 3. Event Handler
   const eventHandler = new sst.aws.Function('EventHandler', {
     handler: 'src/agents/events.handler',
-    link: [memoryTable, traceTable, stagingBucket, ...Object.values(secrets), deployer, bus],
+    link: [
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      ...Object.values(secrets),
+      deployer,
+      bus,
+    ],
   });
   bus.subscribe('system_build_failed', eventHandler.arn);
 
   // 4. Dead Man's Switch
   const deadMansSwitch = new sst.aws.Function('DeadMansSwitch', {
     handler: 'src/agents/recovery.handler',
-    link: [memoryTable, traceTable, deployer, api],
+    link: [memoryTable, traceTable, configTable, deployer, api],
   });
 
   // 15-min Schedule

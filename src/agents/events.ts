@@ -1,11 +1,11 @@
 import { DynamoMemory } from '../lib/memory';
 import { Agent } from '../lib/agent';
-import { OpenAIProvider } from '../lib/provider';
+import { ProviderManager } from '../lib/providers';
 import { tools } from '../tools/index';
 import { Resource } from 'sst';
 
 const memory = new DynamoMemory();
-const provider = new OpenAIProvider();
+const provider = new ProviderManager();
 const agent = new Agent(memory, provider, Object.values(tools));
 
 export const handler = async (event: {

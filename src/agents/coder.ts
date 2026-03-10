@@ -1,10 +1,10 @@
 import { DynamoMemory } from '../lib/memory';
 import { Agent } from '../lib/agent';
-import { OpenAIProvider } from '../lib/provider';
+import { ProviderManager } from '../lib/providers';
 import { tools } from '../tools/index';
 
 const memory = new DynamoMemory();
-const provider = new OpenAIProvider();
+const provider = new ProviderManager();
 // The Coder Agent might have a different set of tools (e.g., FileWriteTool)
 const agent = new Agent(
   memory,

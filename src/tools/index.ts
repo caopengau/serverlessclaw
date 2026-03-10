@@ -364,6 +364,46 @@ export const tools: Record<string, ITool> = {
       return `The weather in ${location} is sunny and 72°F.`;
     },
   },
+  switch_model: {
+    name: 'switch_model',
+    description: 'Switch the active LLM provider and model at runtime.',
+    parameters: {
+      type: 'object',
+      properties: {
+        provider: {
+          type: 'string',
+          enum: ['openai', 'bedrock', 'openrouter'],
+          description: 'The LLM provider to switch to.',
+        },
+        model: {
+          type: 'string',
+          description:
+            'The specific model ID to use (e.g. gpt-5-mini, google/gemini-3-flash-preview).',
+        },
+      },
+      required: ['provider', 'model'],
+    },
+    execute: async (args: Record<string, unknown>) => {
+      const { provider, model } = args as { provider: string; model: string };
+      try {
+        await db.send(
+          new PutCommand({
+            TableName: Resource.ConfigTable.name,
+            Item: { key: 'active_provider', value: provider },
+          })
+        );
+        await db.send(
+          new PutCommand({
+            TableName: Resource.ConfigTable.name,
+            Item: { key: 'active_model', value: model },
+          })
+        );
+        return `Successfully switched to ${provider} with model ${model}. Hot config applied.`;
+      } catch (error) {
+        return `Failed to switch model: ${error instanceof Error ? error.message : String(error)}`;
+      }
+    },
+  },
 };
 
 export function getToolDefinitions() {

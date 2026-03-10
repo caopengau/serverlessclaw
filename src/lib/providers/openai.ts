@@ -1,11 +1,12 @@
-import { IProvider, Message, ITool } from './types';
+import { IProvider, Message, ITool } from '../types';
 import { Resource } from 'sst';
 
 export class OpenAIProvider implements IProvider {
-  constructor(private model: string = 'gpt-5-mini') {}
+  constructor(private model: string = 'gpt-5.4') {}
 
   async call(messages: Message[], tools?: ITool[]): Promise<Message> {
     const apiKey = Resource.OpenAIApiKey.value;
+    const baseUrl = 'https://api.openai.com/v1';
 
     const body: {
       model: string;
@@ -34,7 +35,7 @@ export class OpenAIProvider implements IProvider {
       }));
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -42,6 +43,11 @@ export class OpenAIProvider implements IProvider {
       },
       body: JSON.stringify(body),
     });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`OpenAI Provider error: ${response.status} - ${error}`);
+    }
 
     const data = (await response.json()) as {
       choices?: { message: Message }[];

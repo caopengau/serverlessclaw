@@ -22,11 +22,22 @@ export function createStorage() {
 
   const stagingBucket = new sst.aws.Bucket('StagingBucket');
 
+  const configTable = new sst.aws.Dynamo('ConfigTable', {
+    fields: {
+      key: 'string',
+    },
+    primaryIndex: { hashKey: 'key' },
+  });
+
   const secrets = {
     TELEGRAM_BOT_TOKEN: new sst.Secret('TelegramBotToken'),
     OPENAI_API_KEY: new sst.Secret('OpenAIApiKey'),
+    OPENROUTER_API_KEY: new sst.Secret('OpenRouterApiKey'),
+    AWS_REGION: new sst.Secret('AwsRegion'),
+    ACTIVE_PROVIDER: new sst.Secret('ActiveProvider'),
+    ACTIVE_MODEL: new sst.Secret('ActiveModel'),
     // We don't initialize GitHubToken here to make it optional for the deploy to start
   };
 
-  return { memoryTable, traceTable, stagingBucket, secrets };
+  return { memoryTable, traceTable, stagingBucket, secrets, configTable };
 }

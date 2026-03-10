@@ -19,7 +19,7 @@ export default $config({
     const { createDashboard } = await import('./src/infra/dashboard.js');
 
     // 1. Storage & Secrets
-    const { memoryTable, traceTable, stagingBucket, secrets } = createStorage();
+    const { memoryTable, traceTable, configTable, stagingBucket, secrets } = createStorage();
 
     // 2. Multi-Agent Orchestration (EventBridge)
     const { bus } = createBus();
@@ -31,13 +31,30 @@ export default $config({
     });
 
     // 4. Webhook API
-    const { api } = createApi({ memoryTable, traceTable, stagingBucket, secrets, bus, deployer });
+    const { api } = createApi({
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      secrets,
+      bus,
+      deployer,
+    });
 
     // 5. Sub-Agents (Handlers & Logic)
-    createAgents({ memoryTable, traceTable, stagingBucket, secrets, bus, deployer, api });
+    createAgents({
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      secrets,
+      bus,
+      deployer,
+      api,
+    });
 
     // 6. Admin Dashboard (Next.js 16)
-    const { dashboard } = createDashboard({ memoryTable, traceTable, api });
+    const { dashboard } = createDashboard({ memoryTable, traceTable, configTable, api });
 
     return {
       apiUrl: api.url,
