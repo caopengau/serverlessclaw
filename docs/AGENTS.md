@@ -4,12 +4,14 @@
 
 ## Agent Roster
 
-| Agent | Runtime | System Prompt Location | Responsibilities |
-|-------|---------|------------------------|-----------------|
-| **Main Agent** | `src/handlers/webhook.ts` + `src/lib/agent.ts` | `src/lib/agent.ts` (default param) | Interprets user intent, delegates, deploys |
-| **Coder Agent** | `src/agents/coder.ts` | `src/agents/coder.ts` | Writes code, runs pre-flight checks |
-| **Deployer** | AWS CodeBuild (`buildspec.yml`) | `buildspec.yml` | Runs `sst deploy` in isolated environment |
-| **Build Monitor Handler** | `src/handlers/monitor.ts` | — | Watches for build failures, extracts logs |
+| Agent | Runtime | Config Source | Responsibilities |
+|-------|---------|---------------|-----------------|
+| **Main Agent** | `src/handlers/webhook.ts` | `src/agents/manager.ts` | Interprets user intent, delegates, deploys |
+| **Coder Agent** | `src/agents/coder.ts` | `AgentRegistry` (Backbone) | Writes code, runs pre-flight checks |
+| **Worker Agent** | `src/agents/worker.ts` | `AgentRegistry` (Dynamic) | Generic runner for any user-defined agent |
+| **Planner Agent** | `src/agents/planner.ts` | `AgentRegistry` (Backbone) | Designs strategic evolution plans |
+| **Reflector Agent** | `src/agents/reflector.ts` | `AgentRegistry` (Backbone) | Distills long-term memory and lessons |
+| **Deployer** | AWS CodeBuild | `buildspec.yml` | Runs `sst deploy` in isolated environment |
 
 ---
 
@@ -21,13 +23,13 @@ User (Telegram)
       ▼
 POST /webhook → Main Agent (Lambda)
       │
-      ├──dispatch_task("coder", task)──► EventBridge AgentBus
+      ├──dispatch_task(agentId, task)─► EventBridge AgentBus
       │                                         │
       │                                         ▼
-      │                                  Coder Agent (Lambda)
-      │                                    │ file_write
-      │                                    │ validate_code
-      │                                    └─► (returns summary)
+      │                                  Worker Agent (Lambda)
+      │                                    │ 1. Load Persona (Registry)
+      │                                    │ 2. Load Tools (Registry)
+      │                                    └─► 3. Execute & Report
       │
       ├──trigger_deployment──► CodeBuild Deployer
       │                               │
@@ -41,7 +43,6 @@ POST /webhook → Main Agent (Lambda)
       │                                             dispatch_task("coder", fix)
       │
       └──check_health──► GET /health (src/handlers/health.ts)
-```
               ├── OK  → notify user, reward counter
               └── FAIL → trigger_rollback → notify user
 ```
@@ -52,13 +53,13 @@ POST /webhook → Main Agent (Lambda)
 
 - **Bus name**: `AgentBus` (SST resource)
 - **Event source**: `main.agent`
-- **Detail type for Coder**: `coder.task`
+- **Detail type pattern**: `<agentId>_task` (e.g. `coder_task`, `researcher_task`)
 - **Event payload**:
   ```json
   { "userId": "<string>", "task": "<natural language task description>" }
   ```
 
-All inter-agent state is tracked in **DynamoDB** (`MemoryTable`).
+All inter-agent discovery is handled by the **AgentRegistry** (`src/lib/registry.ts`), which merges backbone logic with user-defined personas from **DynamoDB**.
 
 ---
 
@@ -100,12 +101,18 @@ Key obligations (see `src/coder.ts` for the full prompt):
 
 Agents are not just autonomous; they are **co-managed** via the ClawCenter dashboard.
 
-### 1. Dynamic Toolsets
-Instead of a static roster, every agent loads its tools from the `ConfigTable` on every execution (`await getAgentTools(agentId)`).
-- **Control**: Users can toggle tools on/off at `/capabilities`.
-- **Optimization**: The Planner Agent can also "gift" tools to other agents based on performance telemetry.
+### 1. Neural Agent Registry
+Users can register new specialized agents at `/settings`. 
+- **Persona**: Define the system prompt (instructions) for the agent.
+- **Dynamic Scoping**: Toggle tools on/off for specific agents without redeploying.
+- **Immediate Availability**: Once registered, the Main Agent can immediately delegate tasks to the new node via `dispatch_task`.
 
-### 2. Autonomous Evolution (Auto vs HITL)
+### 2. Dynamic Toolsets
+Instead of a static roster, every agent loads its tools from the `AgentRegistry` on every execution.
+- **Control**: Users can hot-swap prompts and tools in the dashboard.
+- **Optimization**: The Planner Agent can also propose updates to these registries based on performance telemetry.
+
+### 3. Autonomous Evolution (Auto vs HITL)
 - **`hitl` mode**: Agents must request approval on Telegram/Slack for deployments or protected file writes.
 - **`auto` mode**: The system self-deploys and self-heals without human intervention.
 - **Switch**: Controlled in `/settings`.

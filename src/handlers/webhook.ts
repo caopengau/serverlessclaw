@@ -6,6 +6,7 @@ import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers';
 import { getAgentTools } from '../tools/index';
 import { DynamoLockManager } from '../lib/lock';
+import { MANAGER_SYSTEM_PROMPT } from '../agents/manager';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
@@ -38,7 +39,7 @@ export const handler = async (event: APIGatewayProxyEventV2) => {
   try {
     // 2. Process message via Agent
     const agentTools = await getAgentTools('main');
-    const agent = new Agent(memory, provider, agentTools);
+    const agent = new Agent(memory, provider, agentTools, MANAGER_SYSTEM_PROMPT);
     const responseText = await agent.process(chatId, userText);
 
     // 3. Send response to Notifier via AgentBus

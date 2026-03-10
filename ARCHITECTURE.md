@@ -123,10 +123,15 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
                     |
                     |                (6) [ NOTIFIER_HANDLER ]
                     +-----------------> (Listens for OUTBOUND_MESSAGE)
-                                         (Sends to Telegram/Slack)
+                    |                    (Sends to Telegram/Slack)
+                    |
+                    |                (7) [ WORKER_AGENT ]
+                    +-----------------> (Generic Runner for Custom Nodes)
+                                         (Loads Persona from AgentRegistry)
  ```
 
-- **Pattern**: The Main Agent emits a `coder_task` event. The Coder Agent is subscribed to this event, processes the work, and updates the system state.
+- **Pattern**: The Main Agent emits a `coder_task` or `custom_task` event. Specialized tasks go to backbone agents, while generic tasks are picked up by the **Worker Agent**.
+- **Discovery**: The `AgentRegistry` merges backbone logic with user-defined personas from DynamoDB.
 - **Visualization**: The `SYSTEM_PULSE` dashboard page provides an interactive node graph of this topography.
 
 ---
@@ -146,11 +151,11 @@ Instead of loading all memories into every prompt, agents use `recall_knowledge(
 - **Workflow**: Main Agent sees a `[MEMORY_INDEX]`. If it needs details, it calls the tool.
 - **Efficiency**: Reduces input token costs by up to 90% for long-lived sessions.
 
-### 3. Dynamic Tool Scoping
+### 3. Dynamic Tool Scoping & Discovery
 Agents no longer load the entire tool catalog. 
 - **Mechanism**: Every agent call triggers `getAgentTools(agentId)`.
-- **Registry**: The `ConfigTable` stores the allowed tool names for each agent.
-- **Self-Optimization**: The Planner Agent can use the `manage_agent_tools` tool to grant or revoke capabilities based on performance telemetry.
+- **Registry**: The `AgentRegistry` stores the allowed tool names and system prompts for each agent.
+- **Co-Management**: The **ClawCenter** dashboard serves as the UI for the `AgentRegistry`, allowing users to hot-swap prompts and tools without redeploying.
 - **Default Scopes**: 
     - `main`: Orchestration & Recall.
     - `coder`: Files & Validation.
@@ -196,8 +201,9 @@ The stack evolves by bridging the gap between temporary Lambda execution and per
                         +------------------+      +-------------------+
 ### 3. Capability Evolution (Co-Management)
 The system's evolution is a shared responsibility between the **Planner Agent** and the **Human Admin**.
-- **The Dashboard (ClawCenter)**: Serves as the Command & Control center.
-- **Dynamic Scoping**: Permissions are managed as data in DynamoDB, not as hardcoded logic.
+- **The Dashboard (ClawCenter)**: Serves as the Command & Control center for the **Agent Registry**.
+- **Dynamic Scoping**: Permissions and **Agent Personas** are managed as data in DynamoDB, not as hardcoded logic.
+- **Worker Nodes**: New agents can be registered in the UI and are immediately available for task dispatch via the generic **Worker Agent** Lambda.
 - **Pruning**: Human insight is used to "weed" the memory garden, ensuring high-quality self-improvement.
 ```
 

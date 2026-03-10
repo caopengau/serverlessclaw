@@ -37,8 +37,6 @@ export default function Sidebar() {
     { label: 'Observability', type: 'header', className: 'pt-4' },
     { href: '/security', label: 'SECURITY_MANIFEST', icon: ShieldCheck },
     { href: '/resilience', label: 'SELF_HEALING', icon: Zap },
-    { href: '/memory', label: 'MEMORY_VAULT', icon: Cpu },
-    { href: '/capabilities', label: 'CAPABILITIES_ROSTER', icon: Wrench },
   ];
 
   return (

@@ -126,6 +126,32 @@ export function createAgents(ctx: AgentContext) {
   });
   bus.subscribe(EventType.OUTBOUND_MESSAGE, notifier.arn);
 
+  // 8. Generic Worker Agent (Handles dynamic user-defined agents)
+  const workerAgent = new sst.aws.Function('WorkerAgent', {
+    handler: 'src/agents/worker.handler',
+    link: [memoryTable, traceTable, configTable, ...Object.values(secrets), bus],
+    memory: '1024 MB',
+    timeout: '900 seconds',
+  });
+  // Subscribe to all agent tasks that don't have a specific handler
+  bus.subscribe(
+    {
+      pattern: {
+        detailType: [
+          {
+            'anything-but': [
+              EventType.CODER_TASK,
+              EventType.REFLECT_TASK,
+              EventType.EVOLUTION_PLAN,
+              EventType.SYSTEM_BUILD_FAILED,
+            ],
+          },
+        ],
+      },
+    },
+    workerAgent.arn
+  );
+
   return {
     coderAgent,
     buildMonitor,
@@ -134,5 +160,6 @@ export function createAgents(ctx: AgentContext) {
     plannerAgent,
     reflectorAgent,
     notifier,
+    workerAgent,
   };
 }

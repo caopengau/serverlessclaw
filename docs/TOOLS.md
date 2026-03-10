@@ -16,7 +16,6 @@
 | `trigger_rollback` | `git revert HEAD` + redeploy. Emergency use only | — | ✅ |
 | `switch_model` | Updates active provider/model in DynamoDB (Hot Config) | — | ✅ |
 | `run_tests` | Executes project unit tests (vitest) | — | — |
-| `manage_agent_tools` | Updates the active toolset for a specific agent | — | ✅ |
 | `recall_knowledge` | Retrieves distilled facts/lessons from memory | — | — |
 
 ---
@@ -25,16 +24,16 @@
 
 1. Open `src/tools/index.ts`.
 2. Add an entry to the `tools` record following the `ITool` interface.
-3. Add the tool name to the `defaults` record in `getAgentTools` (if it should be on by default).
+3. If this should be available to a backbone agent by default, add it to their `tools` array in `src/lib/registry.ts`.
 4. Run `validate_code` to check for regressions.
 5. Update the table above.
 6. Update `src/lib/tools.test.ts` to include the new tool name.
 
 ### Dynamic Scoping
 Agents no longer receive all tools by default. They call `getAgentTools(agentId)` which:
-1. Checks the `ConfigTable` for `{key: "${agentId}_tools"}`.
-2. Returns a subset of tools (e.g., Coder gets file tools, Main gets orchestration tools).
-3. Allows the Planner to dynamically "evolve" an agent's capabilities by adding tools via `manage_agent_tools`.
+1. Checks the `AgentRegistry` (Backbone + DynamoDB).
+2. Returns a subset of tools assigned to that specific agent.
+3. Users can grant/revoke tools for any agent in the **ClawCenter** dashboard under `/settings`.
 
 ### ITool Interface
 
@@ -59,10 +58,11 @@ The `file_write` tool blocks writes to these files:
 
 ```
 sst.config.ts
-src/tools.ts
-src/agent.ts
+src/tools/index.ts
+src/agents/manager.ts
+src/lib/agent.ts
 buildspec.yml
-infra/bootstrap/**
+infra/**
 ```
 
 Any attempt returns `PERMISSION_DENIED` and the Coder Agent **must** request `MANUAL_APPROVAL` from the human.

@@ -1,3 +1,13 @@
+export interface IAgentConfig {
+  id: string;
+  name: string;
+  systemPrompt: string;
+  model?: string;
+  tools?: string[]; // Names of tools this agent can use
+  enabled: boolean;
+  isBackbone?: boolean;
+}
+
 export enum AgentType {
   MAIN = 'main',
   CODER = 'coder',

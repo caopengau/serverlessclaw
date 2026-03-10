@@ -4,6 +4,7 @@ import { ProviderManager } from '../lib/providers';
 import { getAgentTools } from '../tools/index';
 import { EventType } from '../lib/types';
 import { sendOutboundMessage } from '../lib/outbound';
+import { MANAGER_SYSTEM_PROMPT } from '../agents/manager';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
@@ -31,7 +32,7 @@ export const handler = async (event: {
 
     // Process the failure context via the Main Agent
     const agentTools = await getAgentTools('events');
-    const agent = new Agent(memory, provider, agentTools);
+    const agent = new Agent(memory, provider, agentTools, MANAGER_SYSTEM_PROMPT);
     const responseText = await agent.process(userId, `SYSTEM_NOTIFICATION: ${task}`);
 
     // Notify user via Notifier
