@@ -53,14 +53,19 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 ## ✅ Phase 8: Autonomous Self-Improvement Loop
 - [x] **Git Push Integration**: CodeBuild pushes approved code changes back to GitHub.
 - [x] **Verification Tooling**: `run_tests` tool for agents to verify logic before deployment.
-- [ ] **Trunk-Based Evolution**: Formalize main-branch iteration with dev/prod isolation.
+
+## ✅ Phase 9: Evolutionary Memory (Tiered)
+- [x] **Tiered Memory**: Separate Long-Term **Facts** from dynamic **Tactical Lessons**.
+- [x] **Reflector Agent**: Decoupled asynchronous reflection loop via EventBridge.
+- [x] **ROI-Driven Logic**: Automatic ROI (1-10) and Priority estimation for capability gaps.
+- [x] **Smart Recall**: Agents selectively retrieve knowledge via `recall_knowledge` tool.
+
+## 🏢 Phase 10: Advanced Autonomy
+- [ ] **Browser Automation**: Playwright Lambda Layer for autonomous web browsing.
 - [ ] **Promotion Manager**: Agent-driven promotion of validated `dev` builds to `prod`.
+- [ ] **Skill Marketplace**: CLI-based installation of community tools.
 
-## 🏢 Phase 9: Power Capabilities
-- [ ] **Browser Automation**: Playwright Lambda Layer for autonomous web browsing/actions.
-- [ ] **Skill Marketplace**: CLI-based installation of community-contributed tools.
-- [ ] **Multi-Channel Adapters**: Slack and Discord support.
-
-## 🏢 Phase 10: Multi-Tenancy & Scale
+## 🏢 Phase 11: Enterprise Scale
 - [ ] Agent Swarm Isolation by `employerId`.
 - [ ] Per-tenant EventBridge filtering.
+- [ ] Multi-Channel Adapters: Slack and Discord support.

@@ -110,16 +110,16 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
      |   MAIN_MANAGER    |
      |___________________|
                |
-    (1) DISPATCH_TASK (via AgentBus)
-               |
-      _________V_________           (3) [ BUILD_MONITOR ]
-     |    EVENT_BUS      | <-------  (Observes CodeBuild)
-     |   (AgentBus)      |
-     |___________________|          (4) [ EVENT_HANDLER ]
-               |                     (Handles Failures)
-               |
-    (2) CODER_AGENT <-------------- (5) [ RENOBOT ]
-        (Writes Code)                (Monitors GitHub/Renovate)
+     (1) DISPATCH_TASK (via AgentBus)
+                |
+       _________V_________           (3) [ BUILD_MONITOR ]
+      |    EVENT_BUS      | <-------  (Observes CodeBuild)
+      |   (AgentBus)      |
+      |___________________|          (4) [ REFLECTOR_AGENT ]
+          |         |                 (Analyzes Convos, ROI)
+          |         |
+     (2) CODER_AGENT|                (5) [ PLANNER_AGENT ]
+         (Writes Code)                (Strategic Backlog)
 ```
 
 - **Pattern**: The Main Agent emits a `coder_task` event. The Coder Agent is subscribed to this event, processes the work, and updates the system state.
@@ -131,7 +131,18 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
 
 Serverless Claw is designed to be highly customizable at every layer.
 
-### 1. Tool Plugins
+### 1. Evolutionary Memory (Tiered)
+The system prevents "prompt bloat" and "identity confusion" through a tiered approach:
+- **Long-Term Facts**: High-confidence user identity and permanent preferences.
+- **Tactical Lessons**: Short-term heuristics (e.g., "be more direct") that eventually expire or merge.
+- **Strategic Gaps**: Missing capabilities (tools/sub-agents) tracked in a backlog with **Estimated ROI**.
+
+### 2. The Smart Recall Tool
+Instead of loading all memories into every prompt, agents use `recall_knowledge(query)`.
+- **Workflow**: Main Agent sees a `[MEMORY_INDEX]`. If it needs details, it calls the tool.
+- **Efficiency**: Reduces input token costs by up to 90% for long-lived sessions.
+
+### 3. Tool Plugins
 Developers can add custom tools by implementing the `Tool` interface.
 - **Location**: `src/tools.ts`
 - **Capability**: Can reach out to any API or execute any Node.js logic within the Lambda environment.
