@@ -95,7 +95,7 @@ export const handler = async (event: {
       'planner.agent',
       contextUserId,
       `🚀 **Autonomous Evolution Triggered**\n\nI have identified a capability gap and designed a plan to fix it. The Coder Agent is now executing the following STRATEGIC_PLAN:\n\n${result}`,
-      true
+      [contextUserId]
     );
 
     await eventbridge.send(
@@ -120,7 +120,7 @@ export const handler = async (event: {
       'planner.agent',
       contextUserId,
       `🚀 **NEW STRATEGIC PLAN PROPOSED**\n\n${result}\n\nReply with 'APPROVE' to execute.`,
-      true
+      [contextUserId]
     );
   }
 

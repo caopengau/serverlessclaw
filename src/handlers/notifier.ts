@@ -1,4 +1,8 @@
 import { Resource } from 'sst';
+import { DynamoMemory } from '../lib/memory';
+import { MessageRole } from '../lib/types';
+
+const memory = new DynamoMemory();
 
 export const handler = async (event: any) => {
   console.log('NotifierAgent received event:', JSON.stringify(event, null, 2));
@@ -10,7 +14,18 @@ export const handler = async (event: any) => {
     return;
   }
 
-  const { userId, message } = payload;
+  const { userId, message, syncContexts } = payload;
+
+  // 1. Sync contexts to other agents if requested
+  if (Array.isArray(syncContexts)) {
+    for (const contextId of syncContexts) {
+      try {
+        await memory.addMessage(contextId, { role: MessageRole.ASSISTANT, content: message });
+      } catch (e) {
+        console.error(`Failed to sync context to ${contextId}:`, e);
+      }
+    }
+  }
 
   // Telegram Adapter
   await sendTelegramMessage(userId, message);

@@ -1,30 +1,23 @@
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { Resource } from 'sst';
-import { EventType, MessageRole } from './types';
-import { DynamoMemory } from './memory';
+import { EventType } from './types';
 
 const eventbridge = new EventBridgeClient({});
-const memory = new DynamoMemory();
 
 export async function sendOutboundMessage(
   source: string,
   userId: string,
   message: string,
-  saveContext: boolean = false
+  syncContext?: string[]
 ) {
   try {
-    if (saveContext) {
-      // Save to user context so the Main Agent knows what the sub-agent said
-      await memory.addMessage(userId, { role: MessageRole.ASSISTANT, content: message });
-    }
-
     await eventbridge.send(
       new PutEventsCommand({
         Entries: [
           {
             Source: source,
             DetailType: EventType.OUTBOUND_MESSAGE,
-            Detail: JSON.stringify({ userId, message }),
+            Detail: JSON.stringify({ userId, message, syncContext }),
             EventBusName: (Resource as any).AgentBus.name,
           },
         ],
