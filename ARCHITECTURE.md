@@ -112,7 +112,7 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
                |
      (1) DISPATCH_TASK (via AgentBus)
                |
-       _________V_________           (3) [ BUILD_MONITOR ]
+       _________V_________           (3) [ BUILD_MONITOR HANDLER ]
       |    EVENT_BUS      | <-------  (Observes CodeBuild)
       |   (AgentBus)      |
       |___________________|          (4) [ REFLECTOR_AGENT ]
@@ -121,7 +121,7 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
      (2) CODER_AGENT|                (5) [ PLANNER_AGENT ]
          (Writes Code)                (Designs STRATEGIC_PLAN)
                     |
-                    |                (6) [ NOTIFIER (Fan-Out) ]
+                    |                (6) [ NOTIFIER_HANDLER ]
                     +-----------------> (Listens for OUTBOUND_MESSAGE)
                                          (Sends to Telegram/Slack)
  ```
