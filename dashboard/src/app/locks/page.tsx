@@ -6,12 +6,17 @@ import { revalidatePath } from 'next/cache';
 
 async function getLocks() {
   try {
+    const tableName = Resource.MemoryTable?.name;
+    if (!tableName) {
+      console.error('MemoryTable name is missing from Resources');
+      return [];
+    }
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
     
     const { Items } = await docClient.send(
       new ScanCommand({
-        TableName: Resource.MemoryTable.name,
+        TableName: tableName,
         FilterExpression: 'begins_with(userId, :prefix)',
         ExpressionAttributeValues: {
           ':prefix': 'LOCK#',
@@ -36,12 +41,16 @@ async function getLocks() {
 async function forceUnlock(rawId: string) {
   'use server';
   try {
+    const tableName = Resource.MemoryTable?.name;
+    if (!tableName) {
+      throw new Error('MemoryTable name is missing from Resources');
+    }
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
     
     await docClient.send(
       new DeleteCommand({
-        TableName: Resource.MemoryTable.name,
+        TableName: tableName,
         Key: {
           userId: rawId,
           timestamp: 0,

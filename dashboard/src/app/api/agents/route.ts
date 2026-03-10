@@ -19,11 +19,15 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const tableName = (Resource as any).ConfigTable?.name;
+    if (!tableName) {
+      return NextResponse.json({ error: 'ConfigTable name is missing' }, { status: 500 });
+    }
     const body = await request.json();
     
     await docClient.send(
       new PutCommand({
-        TableName: (Resource as any).ConfigTable.name,
+        TableName: tableName,
         Item: { 
           key: 'agents_config', 
           value: body 
@@ -33,6 +37,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('Error updating agents config:', error);
     return NextResponse.json({ error: 'Failed to update agents' }, { status: 500 });
   }
 }

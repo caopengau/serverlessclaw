@@ -13,11 +13,16 @@ import {
 
 async function getHealth() {
   try {
-    const response = await fetch(`${Resource.WebhookApi.url}/health`, { cache: 'no-store' });
+    const apiUrl = (Resource as any).WebhookApi?.url;
+    if (!apiUrl) {
+      console.error('WebhookApi URL is missing from Resources');
+      return { status: 'error', message: 'API Configuration Missing' };
+    }
+    const response = await fetch(`${apiUrl}/health`, { cache: 'no-store' });
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Health check failed. Status:', response.status, 'Body:', errorText);
-      throw new Error(`Health check failed: ${response.status}`);
+      return { status: 'error', message: `Health check failed: ${response.status}` };
     }
     return await response.json();
   } catch (e) {

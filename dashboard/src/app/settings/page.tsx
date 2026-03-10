@@ -6,36 +6,56 @@ import { revalidatePath } from 'next/cache';
 import AgentsManager from './AgentsManager';
 
 async function getConfig() {
-  const client = new DynamoDBClient({});
-  const docClient = DynamoDBDocumentClient.from(client);
+  try {
+    const tableName = (Resource as any).ConfigTable?.name;
+    if (!tableName) {
+      console.error('ConfigTable name is missing from Resources');
+      return {
+        provider: 'unknown',
+        model: 'unknown',
+        evolutionMode: 'unknown',
+        optimizationPolicy: 'unknown',
+      };
+    }
+    const client = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(client);
 
-  const [providerRes, modelRes, modeRes, policyRes] = await Promise.all([
-    docClient.send(
-      new GetCommand({
-        TableName: (Resource as any).ConfigTable.name,
-        Key: { key: 'active_provider' },
-      })
-    ),
-    docClient.send(
-      new GetCommand({ TableName: (Resource as any).ConfigTable.name, Key: { key: 'active_model' } })
-    ),
-    docClient.send(
-      new GetCommand({ TableName: (Resource as any).ConfigTable.name, Key: { key: 'evolution_mode' } })
-    ),
-    docClient.send(
-      new GetCommand({
-        TableName: (Resource as any).ConfigTable.name,
-        Key: { key: 'optimization_policy' },
-      })
-    ),
-  ]);
+    const [providerRes, modelRes, modeRes, policyRes] = await Promise.all([
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'active_provider' },
+        })
+      ),
+      docClient.send(
+        new GetCommand({ TableName: tableName, Key: { key: 'active_model' } })
+      ),
+      docClient.send(
+        new GetCommand({ TableName: tableName, Key: { key: 'evolution_mode' } })
+      ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'optimization_policy' },
+        })
+      ),
+    ]);
 
-  return {
-    provider: providerRes.Item?.value || 'openai',
-    model: modelRes.Item?.value || 'gpt-5.4',
-    evolutionMode: modeRes.Item?.value || 'hitl',
-    optimizationPolicy: policyRes.Item?.value || 'balanced',
-  };
+    return {
+      provider: providerRes.Item?.value || 'openai',
+      model: modelRes.Item?.value || 'gpt-5.4',
+      evolutionMode: modeRes.Item?.value || 'hitl',
+      optimizationPolicy: policyRes.Item?.value || 'balanced',
+    };
+  } catch (e) {
+    console.error('Error fetching settings config:', e);
+    return {
+      provider: 'error',
+      model: 'error',
+      evolutionMode: 'error',
+      optimizationPolicy: 'error',
+    };
+  }
 }
 
 async function updateConfig(formData: FormData) {
@@ -45,37 +65,45 @@ async function updateConfig(formData: FormData) {
   const evolutionMode = formData.get('evolutionMode') as string;
   const optimizationPolicy = formData.get('optimizationPolicy') as string;
 
-  const client = new DynamoDBClient({});
-  const docClient = DynamoDBDocumentClient.from(client);
+  try {
+    const tableName = (Resource as any).ConfigTable?.name;
+    if (!tableName) {
+      throw new Error('ConfigTable name is missing from Resources');
+    }
+    const client = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(client);
 
-  await Promise.all([
-    docClient.send(
-      new PutCommand({
-        TableName: (Resource as any).ConfigTable.name,
-        Item: { key: 'active_provider', value: provider },
-      })
-    ),
-    docClient.send(
-      new PutCommand({
-        TableName: (Resource as any).ConfigTable.name,
-        Item: { key: 'active_model', value: model },
-      })
-    ),
-    docClient.send(
-      new PutCommand({
-        TableName: (Resource as any).ConfigTable.name,
-        Item: { key: 'evolution_mode', value: evolutionMode },
-      })
-    ),
-    docClient.send(
-      new PutCommand({
-        TableName: (Resource as any).ConfigTable.name,
-        Item: { key: 'optimization_policy', value: optimizationPolicy },
-      })
-    ),
-  ]);
+    await Promise.all([
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: { key: 'active_provider', value: provider },
+        })
+      ),
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: { key: 'active_model', value: model },
+        })
+      ),
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: { key: 'evolution_mode', value: evolutionMode },
+        })
+      ),
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: { key: 'optimization_policy', value: optimizationPolicy },
+        })
+      ),
+    ]);
 
-  revalidatePath('/settings');
+    revalidatePath('/settings');
+  } catch (e) {
+    console.error('Error updating settings config:', e);
+  }
 }
 
 export default async function SettingsPage() {

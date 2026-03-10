@@ -8,22 +8,32 @@ import { revalidatePath } from 'next/cache';
 const AGENT_TYPES = ['main', 'coder', 'planner', 'events'];
 
 async function getAgentConfigs() {
-  const client = new DynamoDBClient({});
-  const docClient = DynamoDBDocumentClient.from(client);
-  
-  const { Items } = await docClient.send(
-    new ScanCommand({
-      TableName: (Resource as any).ConfigTable.name,
-    })
-  );
-  
-  const configs: Record<string, string[]> = {};
-  AGENT_TYPES.forEach(agent => {
-    const item = Items?.find(i => i.key === `${agent}_tools`);
-    configs[agent] = item?.value || [];
-  });
-  
-  return configs;
+  try {
+    const tableName = (Resource as any).ConfigTable?.name;
+    if (!tableName) {
+      console.error('ConfigTable name is missing from Resources');
+      return {};
+    }
+    const client = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(client);
+    
+    const { Items } = await docClient.send(
+      new ScanCommand({
+        TableName: tableName,
+      })
+    );
+    
+    const configs: Record<string, string[]> = {};
+    AGENT_TYPES.forEach(agent => {
+      const item = Items?.find(i => i.key === `${agent}_tools`);
+      configs[agent] = item?.value || [];
+    });
+    
+    return configs;
+  } catch (e) {
+    console.error('Error fetching agent configs:', e);
+    return {};
+  }
 }
 
 async function updateAgentTools(formData: FormData) {
@@ -31,18 +41,26 @@ async function updateAgentTools(formData: FormData) {
   const agentId = formData.get('agentId') as string;
   const toolNames = formData.getAll('tools') as string[];
 
-  const client = new DynamoDBClient({});
-  const docClient = DynamoDBDocumentClient.from(client);
-
-  await docClient.send(new PutCommand({
-    TableName: (Resource as any).ConfigTable.name,
-    Item: {
-      key: `${agentId}_tools`,
-      value: toolNames
+  try {
+    const tableName = (Resource as any).ConfigTable?.name;
+    if (!tableName) {
+      throw new Error('ConfigTable name is missing from Resources');
     }
-  }));
+    const client = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(client);
 
-  revalidatePath('/capabilities');
+    await docClient.send(new PutCommand({
+      TableName: tableName,
+      Item: {
+        key: `${agentId}_tools`,
+        value: toolNames
+      }
+    }));
+
+    revalidatePath('/capabilities');
+  } catch (e) {
+    console.error('Error updating agent tools:', e);
+  }
 }
 
 export default async function CapabilitiesPage() {

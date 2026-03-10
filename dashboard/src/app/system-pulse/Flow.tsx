@@ -40,9 +40,9 @@ const nodeTypes = {
             <Zap size={14} className="text-orange-500" /> {data.label}
         </div>
         <Handle type="target" position={Position.Top} className="!bg-orange-500/50" />
-        <Handle type="source" position={Position.Bottom} className="!bg-orange-500/50" />
-        <Handle type="source" position={Position.Left} className="!bg-orange-500/50" />
-        <Handle type="source" position={Position.Right} className="!bg-orange-500/50" />
+        <Handle type="source" position={Position.Bottom} id="bottom" className="!bg-orange-500/50" />
+        <Handle type="source" position={Position.Left} id="left" className="!bg-orange-500/50" />
+        <Handle type="source" position={Position.Right} id="right" className="!bg-orange-500/50" />
     </div>
   ),
   infra: ({ data }: any) => (

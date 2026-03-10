@@ -6,12 +6,17 @@ import Link from 'next/link';
 
 async function getTraces() {
   try {
+    const tableName = Resource.TraceTable?.name;
+    if (!tableName) {
+      console.error('TraceTable name is missing from Resources');
+      return [];
+    }
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
     
     const { Items } = await docClient.send(
       new ScanCommand({
-        TableName: Resource.TraceTable.name,
+        TableName: tableName,
         Limit: 10,
       })
     );
@@ -25,12 +30,17 @@ async function getTraces() {
 
 async function getConfig() {
   try {
+    const tableName = (Resource as any).ConfigTable?.name;
+    if (!tableName) {
+      console.error('ConfigTable name is missing from Resources');
+      return { provider: 'unknown', model: 'unknown' };
+    }
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
     
     const [providerRes, modelRes] = await Promise.all([
-      docClient.send(new GetCommand({ TableName: (Resource as any).ConfigTable.name, Key: { key: 'active_provider' } })),
-      docClient.send(new GetCommand({ TableName: (Resource as any).ConfigTable.name, Key: { key: 'active_model' } }))
+      docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'active_provider' } })),
+      docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'active_model' } }))
     ]);
 
     return {
@@ -38,7 +48,8 @@ async function getConfig() {
       model: modelRes.Item?.value || 'gpt-5.4'
     };
   } catch (e) {
-    return { provider: 'unknown', model: 'unknown' };
+    console.error('Error fetching config:', e);
+    return { provider: 'error', model: 'error' };
   }
 }
 

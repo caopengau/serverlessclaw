@@ -94,3 +94,10 @@ endef
 
 endif
 
+
+# kill_port
+# usage: $(call kill_port_without_prompt,8888)
+define kill_port
+	@lsof -ti :$(1) >/dev/null 2>&1 && lsof -ti :$(1) | xargs kill || true
+	@$(call log_success,Port $(1) is now free)
+endef

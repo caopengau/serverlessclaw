@@ -18,12 +18,17 @@ import PathVisualizer from '@/components/PathVisualizer';
 
 async function getTrace(traceId: string, timestamp: number) {
   try {
+    const tableName = Resource.TraceTable?.name;
+    if (!tableName) {
+      console.error('TraceTable name is missing from Resources');
+      return null;
+    }
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
     
     const { Item } = await docClient.send(
       new GetCommand({
-        TableName: Resource.TraceTable.name,
+        TableName: tableName,
         Key: { traceId, timestamp },
       })
     );
