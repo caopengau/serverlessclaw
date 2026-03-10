@@ -4,7 +4,15 @@ import { MessageRole } from '../lib/types';
 
 const memory = new DynamoMemory();
 
-export const handler = async (event: any) => {
+interface NotifierEvent {
+  detail: {
+    userId: string;
+    message: string;
+    memoryContexts?: string[];
+  };
+}
+
+export const handler = async (event: NotifierEvent) => {
   console.log('NotifierAgent received event:', JSON.stringify(event, null, 2));
 
   // The event is wrapped by EventBridge, the actual payload is in event.detail
@@ -36,7 +44,8 @@ export const handler = async (event: any) => {
 
 async function sendTelegramMessage(chatId: string, text: string) {
   try {
-    const token = (Resource as any).TelegramBotToken.value;
+    const token = (Resource as unknown as { TelegramBotToken: { value: string } }).TelegramBotToken
+      .value;
     const url = `https://api.telegram.org/bot${token}/sendMessage`;
 
     const response = await fetch(url, {

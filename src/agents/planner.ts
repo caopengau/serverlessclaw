@@ -18,7 +18,7 @@ async function getEvolutionMode(): Promise<'auto' | 'hitl'> {
   try {
     const response = await db.send(
       new GetCommand({
-        TableName: (Resource as any).ConfigTable.name,
+        TableName: (Resource as unknown as { ConfigTable: { name: string } }).ConfigTable.name,
         Key: { key: 'evolution_mode' },
       })
     );
@@ -48,11 +48,19 @@ const plannerAgent = new Agent(
    CRUCIAL: Review the provided [SYSTEM_TELEMETRY] block before proposing a plan. DO NOT propose building a new tool if a similar tool already exists in the AVAILABLE_TOOLS registry. DO NOT propose a new agent if an existing ACTIVE_AGENT can handle the task.`
 );
 
+interface PlannerMetadata {
+  impact: number;
+  urgency: number;
+  risk: number;
+  priority: number;
+  confidence: number;
+}
+
 export const handler = async (event: {
   gapId: string;
   details: string;
   contextUserId: string;
-  metadata?: any;
+  metadata?: PlannerMetadata;
 }) => {
   console.log('Planner Agent received gap:', JSON.stringify(event, null, 2));
 
@@ -108,7 +116,7 @@ export const handler = async (event: {
               userId: contextUserId,
               task: result,
             }),
-            EventBusName: (Resource as any).AgentBus.name,
+            EventBusName: (Resource as unknown as { AgentBus: { name: string } }).AgentBus.name,
           },
         ],
       })

@@ -78,10 +78,10 @@ export class BedrockProvider implements IProvider {
         name: t.name,
         description: t.description,
         inputSchema: {
-          json: t.parameters as any,
+          json: t.parameters as Record<string, unknown>,
         },
       },
-    }));
+    })) as unknown as BedrockTool[];
 
     // Map profile to Claude 4.6 Thinking budget
     let thinkingBudget = 1024;
@@ -130,9 +130,17 @@ export class BedrockProvider implements IProvider {
       const msg = response.output.message;
 
       // 2026 Observability: Extract reasoningContent if present
+      interface ReasoningContentBlock {
+        reasoningContent?: {
+          reasoningText?: {
+            text?: string;
+          };
+        };
+      }
+
       const reasoning = msg.content
-        ?.filter((c) => (c as any).reasoningContent)
-        .map((c) => (c as any).reasoningContent?.reasoningText?.text || '')
+        ?.filter((c) => (c as ReasoningContentBlock).reasoningContent)
+        .map((c) => (c as ReasoningContentBlock).reasoningContent?.reasoningText?.text || '')
         .join('\n\n');
 
       if (reasoning) {

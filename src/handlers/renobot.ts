@@ -39,7 +39,7 @@ export const handler = async (event: APIGatewayProxyEventV2) => {
   try {
     const { Item } = await db.send(
       new GetCommand({
-        TableName: (Resource as any).ConfigTable.name,
+        TableName: (Resource as unknown as { ConfigTable: { name: string } }).ConfigTable.name,
         Key: { key: 'admin_chat_id' },
       })
     );
@@ -56,7 +56,7 @@ export const handler = async (event: APIGatewayProxyEventV2) => {
   // Notify on creation or update
   if (action === 'opened' || action === 'synchronize') {
     const isAutomerge =
-      pr.auto_merge !== null || pr.labels?.some((l: any) => l.name === 'automerge');
+      pr.auto_merge !== null || pr.labels?.some((l: { name: string }) => l.name === 'automerge');
 
     let message = `🛠 RENOBOT NOTIFICATION
 PR ${action}: ${pr.title}

@@ -9,7 +9,7 @@ import {
   PutCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
-import { ITool } from '../lib/types';
+import { ITool, InsightCategory } from '../lib/types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { exec } from 'child_process';
@@ -459,18 +459,27 @@ export const tools: Record<string, ITool> = {
       const { userId, query, category } = args as {
         userId: string;
         query: string;
-        category?: any;
+        category?: string;
       };
       // Dynamic import to avoid circular dependency. Explicit .js extension for node16.
       const { DynamoMemory } = await import('../lib/memory.js');
       const memory = new DynamoMemory();
-      const results = await memory.searchInsights(userId, query, category);
+      const results = await memory.searchInsights(userId, query, category as InsightCategory);
 
       if (results.length === 0) return 'No relevant knowledge found.';
 
-      return results
+      interface InsightResult {
+        content: string;
+        metadata: {
+          category: string;
+          impact: number;
+          urgency: number;
+        };
+      }
+
+      return (results as unknown as InsightResult[])
         .map(
-          (r: any) =>
+          (r) =>
             `[${r.metadata.category.toUpperCase()}] (Impact: ${r.metadata.impact}/10, Urgency: ${r.metadata.urgency}/10) ${r.content}`
         )
         .join('\n');

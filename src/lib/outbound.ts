@@ -18,7 +18,7 @@ export async function sendOutboundMessage(
             Source: source,
             DetailType: EventType.OUTBOUND_MESSAGE,
             Detail: JSON.stringify({ userId, message, memoryContexts }),
-            EventBusName: (Resource as any).AgentBus.name,
+            EventBusName: (Resource as { AgentBus: { name: string } }).AgentBus.name,
           },
         ],
       })

@@ -97,7 +97,7 @@ export class OpenRouterProvider implements IProvider {
     const data = (await response.json()) as {
       choices?: {
         message: Message & {
-          reasoning_details?: any[];
+          reasoning_details?: unknown[];
         };
       }[];
     };

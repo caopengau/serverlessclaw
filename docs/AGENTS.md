@@ -6,10 +6,10 @@
 
 | Agent | Runtime | System Prompt Location | Responsibilities |
 |-------|---------|------------------------|-----------------|
-| **Main Agent** | `src/agents/webhook.ts` + `src/lib/agent.ts` | `src/lib/agent.ts` (default param) | Interprets user intent, delegates, deploys |
+| **Main Agent** | `src/handlers/webhook.ts` + `src/lib/agent.ts` | `src/lib/agent.ts` (default param) | Interprets user intent, delegates, deploys |
 | **Coder Agent** | `src/agents/coder.ts` | `src/agents/coder.ts` | Writes code, runs pre-flight checks |
 | **Deployer** | AWS CodeBuild (`buildspec.yml`) | `buildspec.yml` | Runs `sst deploy` in isolated environment |
-| **Build Monitor** | `src/agents/monitor.ts` | — | Watches for build failures, extracts logs |
+| **Build Monitor Handler** | `src/handlers/monitor.ts` | — | Watches for build failures, extracts logs |
 
 ---
 
@@ -32,15 +32,15 @@ POST /webhook → Main Agent (Lambda)
       ├──trigger_deployment──► CodeBuild Deployer
       │                               │
       │      (ON FAILURE)             ▼
-      │      └────────────────── Build Monitor ──► system.build.failed (Bus)
+      │      └────────────────── Build Monitor Handler ──► system.build.failed (Bus)
       │                                                   │
       │                                                   ▼
-      │                                             EventHandler (Main Agent)
+      │                                             EventHandler (src/handlers/events.ts)
       │                                                   │
       │                                                   ▼
       │                                             dispatch_task("coder", fix)
       │
-      └──check_health──► GET /health (src/health.ts)
+      └──check_health──► GET /health (src/handlers/health.ts)
 ```
               ├── OK  → notify user, reward counter
               └── FAIL → trigger_rollback → notify user
