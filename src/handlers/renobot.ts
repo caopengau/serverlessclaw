@@ -1,12 +1,10 @@
 import { APIGatewayProxyEventV2 } from 'aws-lambda';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
-import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { sendOutboundMessage } from '../lib/outbound';
 import { Resource } from 'sst';
-import { EventType } from '../lib/types';
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-const eventbridge = new EventBridgeClient({});
 
 export const handler = async (event: APIGatewayProxyEventV2) => {
   console.log('GitHub Webhook Event:', JSON.stringify(event, null, 2));
@@ -72,27 +70,8 @@ Link: ${pr.html_url}\n\n`;
 I have verified the daily run schedule. Would you like me to run 'validate_code' on this branch?`;
     }
 
-    await sendOutboundMessage(adminChatId, message);
+    await sendOutboundMessage('renobot.handler', adminChatId, message);
   }
 
   return { statusCode: 200, body: 'OK' };
 };
-
-async function sendOutboundMessage(userId: string, message: string) {
-  try {
-    await eventbridge.send(
-      new PutEventsCommand({
-        Entries: [
-          {
-            Source: 'renobot.handler',
-            DetailType: EventType.OUTBOUND_MESSAGE,
-            Detail: JSON.stringify({ userId, message }),
-            EventBusName: (Resource as any).AgentBus.name,
-          },
-        ],
-      })
-    );
-  } catch (e) {
-    console.error('Failed to send outbound message:', e);
-  }
-}

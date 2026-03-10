@@ -15,7 +15,7 @@ export function createApi(ctx: ApiContext) {
 
   // Main Webhook
   api.route('ANY /webhook', {
-    handler: 'src/agents/webhook.handler',
+    handler: 'src/handlers/webhook.handler',
     link: [
       memoryTable,
       traceTable,
@@ -30,14 +30,14 @@ export function createApi(ctx: ApiContext) {
 
   // GitHub Webhook for Renovate/MendBot
   api.route('POST /github/webhook', {
-    handler: 'src/agents/renobot.handler',
+    handler: 'src/handlers/renobot.handler',
     link: [memoryTable, traceTable, configTable, ...Object.values(secrets), deployer, bus],
     timeout: '29 seconds',
   });
 
   // Health Probe
   api.route('GET /health', {
-    handler: 'src/agents/health.handler',
+    handler: 'src/handlers/health.handler',
     link: [memoryTable],
   });
 

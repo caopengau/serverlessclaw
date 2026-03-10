@@ -7,6 +7,7 @@ import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { sendOutboundMessage } from '../lib/outbound';
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const eventbridge = new EventBridgeClient({});
@@ -91,6 +92,7 @@ export const handler = async (event: {
   if (evolutionMode === 'auto') {
     console.log('Evolution mode is auto, dispatching CODER_TASK directly.');
     await sendOutboundMessage(
+      'planner.agent',
       contextUserId,
       `🚀 **Autonomous Evolution Triggered**\n\nI have identified a capability gap and designed a plan to fix it. The Coder Agent is now executing the following STRATEGIC_PLAN:\n\n${result}`
     );
@@ -114,6 +116,7 @@ export const handler = async (event: {
     console.log('Evolution mode is hitl, asking for approval.');
     // Send plan to user
     await sendOutboundMessage(
+      'planner.agent',
       contextUserId,
       `🚀 **NEW STRATEGIC PLAN PROPOSED**\n\n${result}\n\nReply with 'APPROVE' to execute.`
     );
@@ -121,18 +124,3 @@ export const handler = async (event: {
 
   return { gapId, plan: result };
 };
-
-async function sendOutboundMessage(userId: string, message: string) {
-  await eventbridge.send(
-    new PutEventsCommand({
-      Entries: [
-        {
-          Source: 'planner.agent',
-          DetailType: EventType.OUTBOUND_MESSAGE,
-          Detail: JSON.stringify({ userId, message }),
-          EventBusName: (Resource as any).AgentBus.name,
-        },
-      ],
-    })
-  );
-}

@@ -2,14 +2,12 @@ import { DynamoMemory } from '../lib/memory';
 import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers';
 import { tools } from '../tools/index';
-import { Resource } from 'sst';
 import { EventType } from '../lib/types';
-import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { sendOutboundMessage } from '../lib/outbound';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
 const agent = new Agent(memory, provider, Object.values(tools));
-const eventbridge = new EventBridgeClient({});
 
 export const handler = async (event: {
   'detail-type': string;
@@ -36,21 +34,6 @@ export const handler = async (event: {
     const responseText = await agent.process(userId, `SYSTEM_NOTIFICATION: ${task}`);
 
     // Notify user via Notifier
-    await sendOutboundMessage(userId, responseText);
+    await sendOutboundMessage('events.handler', userId, responseText);
   }
 };
-
-async function sendOutboundMessage(userId: string, message: string) {
-  await eventbridge.send(
-    new PutEventsCommand({
-      Entries: [
-        {
-          Source: 'events.handler',
-          DetailType: EventType.OUTBOUND_MESSAGE,
-          Detail: JSON.stringify({ userId, message }),
-          EventBusName: (Resource as any).AgentBus.name,
-        },
-      ],
-    })
-  );
-}

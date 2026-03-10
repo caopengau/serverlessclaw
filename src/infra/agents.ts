@@ -12,7 +12,7 @@ interface AgentContext {
 }
 
 export function createAgents(ctx: AgentContext) {
-  const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer, api } = ctx;
+  const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer } = ctx;
 
   // 1. Coder Agent
   const coderAgent = new sst.aws.Function('CoderAgent', {
@@ -25,35 +25,18 @@ export function createAgents(ctx: AgentContext) {
 
   // 2. Build Monitor
   const buildMonitor = new sst.aws.Function('BuildMonitor', {
-    handler: 'src/agents/monitor.handler',
-    link: [memoryTable, traceTable, configTable, stagingBucket, deployer, bus],
-    memory: '512 MB',
-    timeout: '900 seconds',
+    handler: 'src/handlers/monitor.handler',
+    link: [memoryTable, bus],
+    memory: '256 MB',
+    timeout: '60 seconds',
   });
 
-  // 3. Event Handler
-  const eventHandler = new sst.aws.Function('EventHandler', {
-    handler: 'src/agents/events.handler',
-    link: [
-      memoryTable,
-      traceTable,
-      configTable,
-      stagingBucket,
-      ...Object.values(secrets),
-      deployer,
-      bus,
-    ],
-    memory: '512 MB',
-    timeout: '900 seconds',
-  });
-  bus.subscribe(EventType.SYSTEM_BUILD_FAILED, eventHandler.arn);
-
-  // 4. Dead Man's Switch
+  // 4. Dead Man's Switch (Recovery Agent)
   const deadMansSwitch = new sst.aws.Function('DeadMansSwitch', {
-    handler: 'src/agents/recovery.handler',
-    link: [memoryTable, traceTable, configTable, deployer, api],
-    memory: '512 MB',
-    timeout: '900 seconds',
+    handler: 'src/handlers/recovery.handler',
+    link: [memoryTable, deployer],
+    memory: '256 MB',
+    timeout: '60 seconds',
   });
 
   // 15-min Schedule
@@ -115,6 +98,15 @@ export function createAgents(ctx: AgentContext) {
     timeout: '900 seconds',
   });
   bus.subscribe(EventType.EVOLUTION_PLAN, plannerAgent.arn);
+
+  // 3. Event Handler (System errors)
+  const eventHandler = new sst.aws.Function('EventHandler', {
+    handler: 'src/handlers/events.handler',
+    link: [memoryTable, traceTable, configTable, ...Object.values(secrets), bus],
+    memory: '512 MB',
+    timeout: '600 seconds',
+  });
+  bus.subscribe(EventType.SYSTEM_BUILD_FAILED, eventHandler.arn);
 
   // 6. Reflector Agent
   const reflectorAgent = new sst.aws.Function('ReflectorAgent', {
