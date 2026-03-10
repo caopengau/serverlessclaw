@@ -101,6 +101,8 @@ export interface IMemory {
   getDistilledMemory(userId: string): Promise<string>;
   updateDistilledMemory(userId: string, facts: string): Promise<void>;
   setGap(gapId: string, details: string): Promise<void>;
+  addLesson(userId: string, lesson: string): Promise<void>;
+  getLessons(userId: string): Promise<string[]>;
 }
 
 /**

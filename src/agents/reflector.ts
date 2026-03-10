@@ -66,17 +66,18 @@ export const handler = async (event: { userId: string; conversation: Message[] }
     const tacticalMatch = response.match(/TACTICAL_GAP:\s*([\s\S]*?)(?=STRATEGIC_GAP:|$)/);
     const strategicMatch = response.match(/STRATEGIC_GAP:\s*([\s\S]*)/);
 
-    let updatedFacts = factsMatch ? factsMatch[1].trim() : existingFacts;
-
     // Handle Tactical Gap (Lesson Learned)
     if (tacticalMatch && tacticalMatch[1].trim() && !tacticalMatch[1].includes('NONE')) {
       const lesson = tacticalMatch[1].trim();
-      updatedFacts = `${updatedFacts}\n\n[LESSON_LEARNED]: ${lesson}`;
-      console.log('Tactical Gap Added to Memory:', lesson);
+      await memory.addLesson(userId, lesson);
+      console.log('Tactical Gap Saved as Lesson:', lesson);
     }
 
-    if (updatedFacts !== existingFacts) {
-      await memory.updateDistilledMemory(userId, updatedFacts);
+    if (factsMatch && factsMatch[1].trim()) {
+      const newFacts = factsMatch[1].trim();
+      if (newFacts !== existingFacts) {
+        await memory.updateDistilledMemory(userId, newFacts);
+      }
     }
 
     // Handle Strategic Gap (Evolution Required)

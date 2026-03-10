@@ -51,9 +51,10 @@ export class Agent {
     const tracer = new ClawTracer(userId);
     await tracer.startTrace({ userText });
 
-    // 1. Get history and distilled memory
+    // 1. Get history, distilled facts, and tactical lessons
     const history = await this.memory.getHistory(userId);
     const distilled = await this.memory.getDistilledMemory(userId);
+    const lessons = await this.memory.getLessons(userId);
 
     // 2. Check for recent Recovery Events (Dead Man's Switch)
     let recoveryContext = '';
@@ -71,11 +72,13 @@ export class Agent {
     const userMessage: Message = { role: MessageRole.USER, content: userText };
     await this.memory.addMessage(userId, userMessage);
 
-    // 4. Complete context (inject distilled facts as a system instruction)
-    const contextPrompt =
-      distilled || recoveryContext
-        ? `${this.systemPrompt}${recoveryContext}\n\nLONG-TERM USER FACTS:\n${distilled}`
-        : this.systemPrompt;
+    // 4. Complete context (inject distilled facts and lessons as system instructions)
+    let contextPrompt = this.systemPrompt;
+    if (recoveryContext) contextPrompt += recoveryContext;
+    if (distilled) contextPrompt += `\n\nLONG-TERM USER FACTS:\n${distilled}`;
+    if (lessons.length > 0) {
+      contextPrompt += `\n\nRECENT TACTICAL LESSONS (Heuristics to follow):\n${lessons.map((l) => `- ${l}`).join('\n')}`;
+    }
 
     const messages: Message[] = [
       { role: MessageRole.SYSTEM, content: contextPrompt },
