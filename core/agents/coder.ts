@@ -104,7 +104,6 @@ export const handler = async (event: {
         logger.error('Failed to emit CODER_TASK_COMPLETED:', e);
       }
     }
-
   }
 
   return response;

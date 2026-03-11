@@ -71,7 +71,6 @@ export const handler = async (event: {
     return;
   }
 
-
   // 2. Fetch Strategic Plans for these gaps
   const plans = [];
   for (const gapId of gapIds) {
