@@ -11,21 +11,30 @@ import { UI_STRINGS, HTTP_STATUS } from '@/lib/constants';
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const { text } = await req.json();
+    const { text, sessionId } = await req.json();
     const userId = 'dashboard-user'; // Fixed ID for dashboard chat
+    
+    // Use a unique ID for the specific session history
+    const storageId = sessionId ? `CONV#${userId}#${sessionId}` : userId;
 
     if (!text) {
       return NextResponse.json({ error: UI_STRINGS.MISSING_MESSAGE }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
-    // We initialize these inside the handler because they depend on Resources 
-    // being available in the environment.
     const memory = new DynamoMemory();
     const provider = new ProviderManager();
     const agentTools = await getAgentTools('main');
     const agent = new Agent(memory, provider, agentTools, SUPERCLAW_SYSTEM_PROMPT);
 
-    const reply = await agent.process(userId, text);
+    const reply = await agent.process(storageId, text);
+
+    // Update conversation metadata for the sidebar
+    if (sessionId) {
+      await memory.saveConversationMeta(userId, sessionId, {
+        lastMessage: reply.length > 60 ? reply.substring(0, 60) + '...' : reply,
+        updatedAt: Date.now()
+      });
+    }
 
     return NextResponse.json({ reply });
   } catch (error) {
@@ -34,5 +43,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       { error: 'Internal Server Error', details: error instanceof Error ? error.message : String(error) },
       { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
+  }
+}
+
+/**
+ * Retrieves chat sessions or history
+ */
+export async function GET(req: NextRequest): Promise<NextResponse> {
+  try {
+    const userId = 'dashboard-user';
+    const sessionId = req.nextUrl.searchParams.get('sessionId');
+    const memory = new DynamoMemory();
+
+    if (sessionId) {
+      // Return history for a specific session
+      const history = await memory.getHistory(`CONV#${userId}#${sessionId}`);
+      return NextResponse.json({ history });
+    } else {
+      // Return list of sessions
+      const sessions = await memory.listConversations(userId);
+      return NextResponse.json({ sessions });
+    }
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch sessions' }, { status: 500 });
   }
 }

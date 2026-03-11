@@ -25,6 +25,13 @@ export interface MemoryInsight {
   timestamp: number;
 }
 
+export interface ConversationMeta {
+  sessionId: string;
+  title: string;
+  lastMessage: string;
+  updatedAt: number;
+}
+
 /**
  * Interface for managing conversation history
  */
@@ -32,6 +39,12 @@ export interface IHistoryStore {
   getHistory(userId: string): Promise<Message[]>;
   addMessage(userId: string, message: Message): Promise<void>;
   clearHistory(userId: string): Promise<void>;
+  listConversations(userId: string): Promise<ConversationMeta[]>;
+  saveConversationMeta(
+    userId: string,
+    sessionId: string,
+    meta: Partial<ConversationMeta>
+  ): Promise<void>;
 }
 
 /**

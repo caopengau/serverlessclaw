@@ -37,6 +37,7 @@ body {
 
 /* Custom Utilities for Dynamic Theme Colors */
 .bg-cyber-green { background-color: var(--color-cyber-green); }
+.bg-cyber-green\/5 { background-color: rgba(0, 255, 163, 0.05); }
 .bg-cyber-green\/10 { background-color: rgba(0, 255, 163, 0.1); }
 .bg-cyber-green\/20 { background-color: rgba(0, 255, 163, 0.2); }
 .text-cyber-green { color: var(--color-cyber-green); }

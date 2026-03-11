@@ -10,6 +10,7 @@ import {
   MemoryInsight,
   InsightCategory,
   GapStatus,
+  ConversationMeta,
 } from './types/index';
 import { logger } from './logger';
 
@@ -424,6 +425,77 @@ export class DynamoMemory implements IMemory {
       await docClient.send(putCommand);
     } catch (error) {
       logger.error('Error updating insight metadata in DynamoDB:', error);
+    }
+  }
+
+  /**
+   * Lists all sessions for a user by querying the SESSIONS# index
+   */
+  async listConversations(userId: string): Promise<ConversationMeta[]> {
+    const command = new QueryCommand({
+      TableName: this.tableName,
+      KeyConditionExpression: 'userId = :userId',
+      ExpressionAttributeValues: {
+        ':userId': `SESSIONS#${userId}`,
+      },
+      ScanIndexForward: false, // Newest first
+    });
+
+    try {
+      const response = await docClient.send(command);
+      return (response.Items || []).map((item) => ({
+        sessionId: item.sessionId,
+        title: item.title,
+        lastMessage: item.content, // We store last message in content
+        updatedAt: item.timestamp,
+      }));
+    } catch (error) {
+      logger.error('Error listing conversations from DynamoDB:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Saves or updates session metadata
+   */
+  async saveConversationMeta(
+    userId: string,
+    sessionId: string,
+    meta: Partial<ConversationMeta>
+  ): Promise<void> {
+    // First, try to find existing record for this session to avoid duplicates
+    const conversations = await this.listConversations(userId);
+    const existing = conversations.find((c) => c.sessionId === sessionId);
+
+    // If update, we delete the old one first because timestamp (sort key) might change
+    if (existing) {
+      const { DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
+      await docClient.send(
+        new DeleteCommand({
+          TableName: this.tableName,
+          Key: {
+            userId: `SESSIONS#${userId}`,
+            timestamp: existing.updatedAt,
+          },
+        })
+      );
+    }
+
+    const command = new PutCommand({
+      TableName: this.tableName,
+      Item: {
+        userId: `SESSIONS#${userId}`,
+        timestamp: Date.now(),
+        sessionId,
+        title: meta.title || existing?.title || 'New Conversation',
+        content: meta.lastMessage || existing?.lastMessage || '',
+      },
+    });
+
+    try {
+      await docClient.send(command);
+    } catch (error) {
+      logger.error('Error saving conversation meta to DynamoDB:', error);
     }
   }
 }

@@ -3,10 +3,12 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { Activity, ShieldCheck, Cpu, Terminal, Clock, ChevronRight, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
+import { SSTResource } from '@claw/core/lib/types/index';
 
 async function getTraces() {
   try {
-    const tableName = Resource.TraceTable?.name;
+    const typedResource = Resource as unknown as SSTResource;
+    const tableName = typedResource.TraceTable?.name;
     if (!tableName) {
       console.error('TraceTable name is missing from Resources');
       return [];
@@ -21,7 +23,7 @@ async function getTraces() {
       })
     );
     
-    return (Items || []).sort((a, b) => b.timestamp - a.timestamp);
+    return (Items || []).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
   } catch (e) {
     console.error('Error fetching traces:', e);
     return [];
@@ -30,7 +32,8 @@ async function getTraces() {
 
 async function getConfig() {
   try {
-    const tableName = (Resource as any).ConfigTable?.name;
+    const typedResource = Resource as unknown as SSTResource;
+    const tableName = typedResource.ConfigTable?.name;
     if (!tableName) {
       console.error('ConfigTable name is missing from Resources');
       return { provider: 'unknown', model: 'unknown' };
@@ -93,7 +96,7 @@ export default async function Dashboard() {
           
           <div className="grid gap-3">
             {traces.length > 0 ? (
-              traces.map((trace: any) => (
+              traces.map((trace: Record<string, any>) => (
                 <Link 
                   key={trace.traceId} 
                   href={`/trace/${trace.traceId}?t=${trace.timestamp}`}

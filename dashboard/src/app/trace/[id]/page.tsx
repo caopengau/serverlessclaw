@@ -16,16 +16,37 @@ import {
 import Link from 'next/link';
 import PathVisualizer from '@/components/PathVisualizer';
 import { UI_STRINGS, TRACE_TYPES, TRACE_STATUS } from '@/lib/constants';
+import { SSTResource } from '@claw/core/lib/types/index';
+
+/**
+ * Interface representing a trace record and its nested steps
+ */
+interface TraceStep {
+  stepId: string;
+  type: string;
+  timestamp: number;
+  content: any; // Raw payload from DynamoDB
+}
+
+interface Trace {
+  traceId: string;
+  timestamp: number;
+  userId: string;
+  status: string;
+  initialContext?: {
+    userText: string;
+  };
+  steps?: TraceStep[];
+  finalResponse?: string;
+}
 
 /**
  * Fetches a specific trace record from DynamoDB
- * @param traceId - The unique ID of the trace
- * @param timestamp - The timestamp sort key
- * @returns The trace item or null if not found
  */
-async function getTrace(traceId: string, timestamp: number): Promise<any> {
+async function getTrace(traceId: string, timestamp: number): Promise<Trace | null> {
   try {
-    const tableName = (Resource as any).TraceTable?.name;
+    const typedResource = Resource as unknown as SSTResource;
+    const tableName = typedResource.TraceTable?.name;
     if (!tableName) {
       console.error('TraceTable name is missing from Resources');
       return null;
@@ -40,7 +61,7 @@ async function getTrace(traceId: string, timestamp: number): Promise<any> {
       })
     );
     
-    return Item;
+    return Item as Trace;
   } catch (e) {
     console.error('Error fetching trace:', e);
     return null;
@@ -137,7 +158,7 @@ export default async function TraceDetailPage({
           </h2>
 
         <div className="space-y-4">
-          {trace.steps?.map((step: any, idx: number) => (
+          {trace.steps?.map((step: TraceStep, idx: number) => (
             <div key={step.stepId} className="glass-card border-white/5 overflow-hidden">
               <div className="p-4 flex items-center justify-between bg-white/[0.02]">
                 <div className="flex items-center gap-4">
