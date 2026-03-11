@@ -3,10 +3,11 @@ import { IToolDefinition } from '../lib/types/index';
 /**
  * Metadata and parameter schemas for all system tools.
  * These definitions are used by LLMs to understand how to invoke each tool.
+ * All tool names follow standard JavaScript camelCase naming conventions.
  */
 export const toolDefinitions: Record<string, IToolDefinition> = {
-  stage_changes: {
-    name: 'stage_changes',
+  stageChanges: {
+    name: 'stageChanges',
     description: 'Stages modified files to S3 for persistent deployment.',
     parameters: {
       type: 'object',
@@ -21,8 +22,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  dispatch_task: {
-    name: 'dispatch_task',
+  dispatchTask: {
+    name: 'dispatchTask',
     description: 'Dispatches a specialized task to a sub-agent.',
     parameters: {
       type: 'object',
@@ -39,8 +40,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  file_write: {
-    name: 'file_write',
+  fileWrite: {
+    name: 'fileWrite',
     description: 'Writes content to a file. Used by the Coder Agent to implement changes.',
     parameters: {
       type: 'object',
@@ -52,8 +53,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  trigger_deployment: {
-    name: 'trigger_deployment',
+  triggerDeployment: {
+    name: 'triggerDeployment',
     description: 'Triggers an autonomous self-deployment of the agent infrastructure.',
     parameters: {
       type: 'object',
@@ -83,8 +84,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  validate_code: {
-    name: 'validate_code',
+  validateCode: {
+    name: 'validateCode',
     description: 'Runs type checking and linting to ensure no regressions are introduced.',
     parameters: {
       type: 'object',
@@ -92,8 +93,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  check_health: {
-    name: 'check_health',
+  checkHealth: {
+    name: 'checkHealth',
     description: 'Verify the health of the deployed agent API.',
     parameters: {
       type: 'object',
@@ -104,8 +105,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  trigger_rollback: {
-    name: 'trigger_rollback',
+  triggerRollback: {
+    name: 'triggerRollback',
     description: 'Trigger an emergency rollback by reverting the last commit and redeploying.',
     parameters: {
       type: 'object',
@@ -116,8 +117,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  get_weather: {
-    name: 'get_weather',
+  getWeather: {
+    name: 'getWeather',
     description: 'Get the current weather in a given location.',
     parameters: {
       type: 'object',
@@ -128,8 +129,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  run_tests: {
-    name: 'run_tests',
+  runTests: {
+    name: 'runTests',
     description: 'Runs the project unit tests to verify changes before staging.',
     parameters: {
       type: 'object',
@@ -137,8 +138,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  run_shell_command: {
-    name: 'run_shell_command',
+  runShellCommand: {
+    name: 'runShellCommand',
     description: 'Executes a shell command in the agent environment.',
     parameters: {
       type: 'object',
@@ -153,8 +154,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  switch_model: {
-    name: 'switch_model',
+  switchModel: {
+    name: 'switchModel',
     description: 'Switch the active LLM provider and model at runtime.',
     parameters: {
       type: 'object',
@@ -174,8 +175,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  recall_knowledge: {
-    name: 'recall_knowledge',
+  recallKnowledge: {
+    name: 'recallKnowledge',
     description:
       "Searches the agent's long-term memory for relevant facts, lessons, or capability gaps.",
     parameters: {
@@ -196,8 +197,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  manage_agent_tools: {
-    name: 'manage_agent_tools',
+  manageAgentTools: {
+    name: 'manageAgentTools',
     description: 'Updates the active toolset for a specific agent.',
     parameters: {
       type: 'object',
@@ -209,8 +210,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  manage_gap: {
-    name: 'manage_gap',
+  manageGap: {
+    name: 'manageGap',
     description: 'Updates the status of a capability gap.',
     parameters: {
       type: 'object',
@@ -226,8 +227,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  file_read: {
-    name: 'file_read',
+  fileRead: {
+    name: 'fileRead',
     description: 'Reads the content of a file from the codebase.',
     parameters: {
       type: 'object',
@@ -238,8 +239,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  list_files: {
-    name: 'list_files',
+  listFiles: {
+    name: 'listFiles',
     description: 'Lists files in a directory to explore the project structure.',
     parameters: {
       type: 'object',
@@ -253,8 +254,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  set_system_config: {
-    name: 'set_system_config',
+  setSystemConfig: {
+    name: 'setSystemConfig',
     description: 'Updates a system-wide configuration value in the ConfigTable.',
     parameters: {
       type: 'object',
@@ -269,8 +270,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  list_agents: {
-    name: 'list_agents',
+  listAgents: {
+    name: 'listAgents',
     description: 'Lists all available specialized agents in the system and their capabilities.',
     parameters: {
       type: 'object',

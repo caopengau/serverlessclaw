@@ -17,7 +17,7 @@ const typedResource = Resource as unknown as SSTResource;
  */
 export class AgentRegistry {
   private static backboneConfigs: Record<string, IAgentConfig> = BACKBONE_REGISTRY;
-  private static DEFAULT_AGENT_TOOLS = ['recall_knowledge', 'list_agents', 'dispatch_task'];
+  private static DEFAULT_AGENT_TOOLS = ['recallKnowledge', 'listAgents', 'dispatchTask'];
 
   /**
    * Retrieves the configuration for a specific agent by ID.
@@ -57,7 +57,7 @@ export class AgentRegistry {
     if (!config) return undefined;
 
     // 2. Resolve Tool Overrides (Higher Priority)
-    // This unifies the manage_agent_tools logic which saves to ${id}_tools
+    // This unifies the manageAgentTools logic which saves to ${id}_tools
     const toolOverride = await this.getRawConfig(`${id}_tools`);
     if (toolOverride && Array.isArray(toolOverride)) {
       logger.info(`Applying dynamic tool override for agent ${id}:`, toolOverride);

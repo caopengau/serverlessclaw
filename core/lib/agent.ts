@@ -142,10 +142,10 @@ export class Agent {
 
     const memoryIndex = `
       [MEMORY_INDEX]:
-      - DISTILLED FACTS: ${distilled ? 'Available (load with recall_knowledge)' : 'None'}
+      - DISTILLED FACTS: ${distilled ? 'Available (load with recallKnowledge)' : 'None'}
       - TACTICAL LESSONS: ${lessons.length} recent available.
       
-      USE 'recall_knowledge' to retrieve details if they are relevant to the user request.
+      USE 'recallKnowledge' to retrieve details if they are relevant to the user request.
     `;
     contextPrompt += `\n\n${memoryIndex}`;
 

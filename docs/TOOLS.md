@@ -7,17 +7,17 @@
 | Tool | Purpose | Protected? | Writes to Cloud? |
 |------|---------|:---:|:---:|
 | `calculator` | Evaluates math expressions | — | — |
-| `get_weather` | Returns mock weather (demo) | — | — |
-| `dispatch_task` | Sends a task event to EventBridge → Coder Agent | — | ✅ |
-| `file_write` | Writes to a file in the codebase | ✅ Labelled | — |
-| `validate_code` | Runs `tsc --noEmit` + `eslint` pre-flight | — | — |
-| `trigger_deployment` | Starts a CodeBuild deploy (circuit-breaker protected) | ✅ Labelled | ✅ |
-| `check_health` | Hits `GET /health`. On success: decrements deploy counter | — | ✅ |
-| `trigger_rollback` | `git revert HEAD` + redeploy. Emergency use only | — | ✅ |
-| `switch_model` | Updates active provider/model in DynamoDB (Hot Config) | — | ✅ |
-| `run_tests` | Executes project unit tests (vitest) | — | — |
-| `recall_knowledge` | Retrieves distilled facts/lessons from memory | — | — |
-| `list_agents` | Discovers available specialized agents in the system | — | — |
+| `getWeather` | Returns mock weather (demo) | — | — |
+| `dispatchTask` | Sends a task event to EventBridge → Coder Agent | — | ✅ |
+| `fileWrite` | Writes to a file in the codebase | ✅ Labelled | — |
+| `validateCode` | Runs `tsc --noEmit` + `eslint` pre-flight | — | — |
+| `triggerDeployment` | Starts a CodeBuild deploy (circuit-breaker protected) | ✅ Labelled | ✅ |
+| `checkHealth` | Hits `GET /health`. On success: decrements deploy counter | — | ✅ |
+| `triggerRollback` | `git revert HEAD` + redeploy. Emergency use only | — | ✅ |
+| `switchModel` | Updates active provider/model in DynamoDB (Hot Config) | — | ✅ |
+| `runTests` | Executes project unit tests (vitest) | — | — |
+| `recallKnowledge` | Retrieves distilled facts/lessons from memory | — | — |
+| `listAgents` | Discovers available specialized agents in the system | — | — |
 
 ---
 
@@ -26,7 +26,7 @@
 1. Open `core/tools/index.ts`.
 2. Add an entry to the `tools` record following the `ITool` interface.
 3. If this should be available to a backbone agent by default, add it to their `tools` array in `core/lib/backbone.ts`.
-4. Run `validate_code` to check for regressions.
+4. Run `validateCode` to check for regressions.
 5. Update the table above.
 6. Update `src/lib/tools.test.ts` to include the new tool name.
 
@@ -55,7 +55,7 @@ export interface ITool {
 
 ## Protected Files
 
-The `file_write` tool blocks writes to these files:
+The `fileWrite` tool blocks writes to these files:
 
 ```
 sst.config.ts
@@ -73,11 +73,11 @@ Any attempt returns `PERMISSION_DENIED` and the Coder Agent **must** request `MA
 ## Deploy Lifecycle (Tool Sequence)
 
 ```
-dispatch_task (coder) → file_write → validate_code → [human approves if protected]
+dispatchTask (coder) → fileWrite → validateCode → [human approves if protected]
                                                     ↓
-                                          trigger_deployment
+                                          triggerDeployment
                                                     ↓
-                                            check_health
+                                            checkHealth
                                          ↓            ↓
-                                     OK (–1 count)  FAILED → trigger_rollback
+                                     OK (–1 count)  FAILED → triggerRollback
 ```

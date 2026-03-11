@@ -6,13 +6,13 @@
 
 | Guardrail | Where Implemented | Trigger |
 |-----------|-------------------|---------|
-| **Resource Labeling** | `core/tools/index.ts → file_write` | Any write to a protected file |
-| **Circuit Breaker** | `core/tools/index.ts → trigger_deployment` | > 5 deployments/day (UTC) |
+| **Resource Labeling** | `core/tools/index.ts → fileWrite` | Any write to a protected file |
+| **Circuit Breaker** | `core/tools/index.ts → triggerDeployment` | > 5 deployments/day (UTC) |
 | **Self-Healing Loop** | `core/handlers/monitor.ts` | CodeBuild FAILED event |
 | **Dead Man's Switch** | `core/handlers/recovery.ts` | 15-min health probe failure |
-| **Pre-flight Validation** | `core/tools/index.ts → validate_code` | Called by Coder Agent after writes |
+| **Pre-flight Validation** | `core/tools/index.ts → validateCode` | Called by Coder Agent after writes |
 | **Health Probe** | `core/handlers/health.ts` → `GET /health` | Called by SuperClaw after deployment |
-| **Rollback Signal** | `core/tools/index.ts → trigger_rollback` | Circuit breaker active or health failed |
+| **Rollback Signal** | `core/tools/index.ts → triggerRollback` | Circuit breaker active or health failed |
 | **Human-in-the-Loop** | SuperClaw system prompt | `MANUAL_APPROVAL_REQUIRED` returned |
 | **Dashboard Auth** | `dashboard/src/proxy.ts` | Unauthorized access to ClawCenter |
 
@@ -70,7 +70,7 @@ This loop is still subject to the **Circuit Breaker** to prevent infinite repair
 - If `lastReset` ≠ today (UTC): reset `count` to 0 (new day).
 - If `count >= LIMIT`: return `CIRCUIT_BREAKER_ACTIVE` — no CodeBuild triggered.
 - On each successful deploy: `count += 1`.
-- On each successful `check_health`: `count -= 1` (reward credit).
+- On each successful `checkHealth`: `count -= 1` (reward credit).
 
 **Limit Configuration**:
 - **Default**: 5 deployments / UTC day.
@@ -82,7 +82,7 @@ This loop is still subject to the **Circuit Breaker** to prevent infinite repair
 
 ## Protected Files
 
-Writes to these files return `PERMISSION_DENIED` from `file_write`:
+Writes to these files return `PERMISSION_DENIED` from `fileWrite`:
 
 ```
 sst.config.ts
@@ -106,14 +106,14 @@ infra/**
   { "status": "ok", "timestamp": "...", "deployCountToday": 2 }
   ```
 - **On success**: decrement circuit breaker counter by 1.
-- **On failure (503)**: SuperClaw must call `trigger_rollback`.
+- **On failure (503)**: SuperClaw must call `triggerRollback`.
 
 ---
 
 ## Emergency Rollback Flow
 
 ```
-trigger_rollback(reason)
+triggerRollback(reason)
       │
       ├── git revert HEAD --no-edit
       └── codebuild.startBuild(Deployer)

@@ -160,7 +160,7 @@ Serverless Claw is designed to be highly customizable at every layer.
 Serverless Claw isn't just a collection of scripts; it's a **living system**. It maintains a real-time topology of its own infrastructure and agent connections. The **Build Monitor** automatically scans the stack after every deployment to update the **System Pulse** map. Evolution follows a strict, verified lifecycle (**OPEN** → **PLANNED** → **PROGRESS** → **DEPLOYED** → **DONE**).
 
 ### 2. The Smart Recall Tool
-Instead of loading all memories into every prompt, agents use `recall_knowledge(query)`.
+Instead of loading all memories into every prompt, agents use `recallKnowledge(query)`.
 - **Workflow**: SuperClaw sees a `[MEMORY_INDEX]`. If it needs details, it calls the tool.
 - **Efficiency**: Reduces input token costs by up to 90% for long-lived sessions.
 
@@ -168,7 +168,7 @@ Instead of loading all memories into every prompt, agents use `recall_knowledge(
 Agents no longer load the entire tool catalog.
 - **Mechanism**: Every agent call triggers `getAgentTools(agentId)`.
 - **Registry**: The `AgentRegistry` stores the allowed tool names and system prompts for each agent, pulling from `backbone.ts`.
-- **Standard Support Profile**: Dynamic agents are automatically injected with core tools (`recall_knowledge`, `list_agents`, `dispatch_task`) to ensure baseline intelligence and collaboration.
+- **Standard Support Profile**: Dynamic agents are automatically injected with core tools (`recallKnowledge`, `listAgents`, `dispatchTask`) to ensure baseline intelligence and collaboration.
 - **Co-Management**: The **ClawCenter** dashboard serves as the UI for the registry, allowing zero-downtime hot-swaps.
 
 ### 4. Memory Adapters
@@ -242,9 +242,9 @@ If a deployment fails or the system becomes unstable, Serverless Claw automatica
 ```
 
 **How it works**:
-1. **Coder Agent** implements changes using `file_write` and validates them.
+1. **Coder Agent** implements changes using `fileWrite` and validates them.
 2. **SuperClaw** (via tool) zips the modified workspace and uploads it to the **Staging Bucket** (S3).
-3. **SuperClaw** calls `trigger_deployment`.
+3. **SuperClaw** calls `triggerDeployment`.
 4. **CodeBuild** starts:
     - Pulls the latest code from **GitHub**.
     - Pulls the modified files from the **Staging Bucket** and overwrites the local workspace.

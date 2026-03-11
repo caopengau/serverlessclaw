@@ -8,6 +8,7 @@ import { QA_SYSTEM_PROMPT } from '../agents/qa';
 /**
  * Backbone Registry: The single source of truth for essential system components.
  * Reserved for LLM-based Agents and logic-based Handlers.
+ * All tools assigned to agents follow camelCase naming conventions.
  */
 export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
   [AgentType.MAIN]: {
@@ -19,13 +20,13 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     enabled: true,
     isBackbone: true,
     tools: [
-      'dispatch_task',
-      'list_agents',
-      'recall_knowledge',
-      'switch_model',
-      'check_health',
-      'manage_gap',
-      'trigger_rollback',
+      'dispatchTask',
+      'listAgents',
+      'recallKnowledge',
+      'switchModel',
+      'checkHealth',
+      'manageGap',
+      'triggerRollback',
     ],
     connectionProfile: ['bus', 'memory', 'config', 'trace'],
   },
@@ -38,13 +39,13 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     enabled: true,
     isBackbone: true,
     tools: [
-      'file_write',
-      'file_read',
-      'validate_code',
-      'stage_changes',
-      'trigger_deployment',
-      'run_tests',
-      'run_shell_command',
+      'fileWrite',
+      'fileRead',
+      'validateCode',
+      'stageChanges',
+      'triggerDeployment',
+      'runTests',
+      'runShellCommand',
     ],
     maxIterations: 50,
     connectionProfile: ['bus', 'memory', 'storage', 'codebuild', 'config', 'trace'],
@@ -57,7 +58,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'Brain',
     enabled: true,
     isBackbone: true,
-    tools: ['recall_knowledge', 'manage_gap', 'dispatch_task', 'file_read', 'list_files'],
+    tools: ['recallKnowledge', 'manageGap', 'dispatchTask', 'fileRead', 'listFiles'],
     connectionProfile: ['bus', 'memory', 'config', 'trace'],
   },
   [AgentType.COGNITION_REFLECTOR]: {
@@ -68,7 +69,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'Search',
     enabled: true,
     isBackbone: true,
-    tools: ['recall_knowledge', 'manage_gap'],
+    tools: ['recallKnowledge', 'manageGap'],
     connectionProfile: ['bus', 'memory', 'config', 'trace'],
   },
   [AgentType.QA]: {
@@ -79,7 +80,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'FlaskConical',
     enabled: true,
     isBackbone: true,
-    tools: ['recall_knowledge', 'check_health', 'file_read', 'list_files'],
+    tools: ['recallKnowledge', 'checkHealth', 'fileRead', 'listFiles'],
     connectionProfile: ['bus', 'memory', 'config', 'trace'],
   },
   // Handlers (Logic-only, but registered for topology awareness)

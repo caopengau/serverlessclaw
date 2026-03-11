@@ -20,8 +20,8 @@ interface ToolsResource {
 /**
  * Stages modified files to S3 for a new deployment.
  */
-export const stage_changes = {
-  ...toolDefinitions.stage_changes,
+export const stageChanges = {
+  ...toolDefinitions.stageChanges,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { modifiedFiles } = args as { modifiedFiles: string[] };
     if (!modifiedFiles || modifiedFiles.length === 0) {
@@ -69,8 +69,8 @@ export const stage_changes = {
 /**
  * Writes content to a file, with protection for critical system files.
  */
-export const file_write = {
-  ...toolDefinitions.file_write,
+export const fileWrite = {
+  ...toolDefinitions.fileWrite,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { filePath, content } = args as { filePath: string; content: string };
 
@@ -107,8 +107,8 @@ export const file_write = {
 /**
  * Reads the content of a file from the local file system.
  */
-export const file_read = {
-  ...toolDefinitions.file_read,
+export const fileRead = {
+  ...toolDefinitions.fileRead,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { filePath } = args as { filePath: string };
     try {
@@ -124,8 +124,8 @@ export const file_read = {
 /**
  * Lists all files in a specific directory.
  */
-export const list_files = {
-  ...toolDefinitions.list_files,
+export const listFiles = {
+  ...toolDefinitions.listFiles,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { dirPath } = args as { dirPath?: string };
     try {
@@ -141,8 +141,8 @@ export const list_files = {
 /**
  * Executes an arbitrary shell command in a given directory.
  */
-export const run_shell_command = {
-  ...toolDefinitions.run_shell_command,
+export const runShellCommand = {
+  ...toolDefinitions.runShellCommand,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { command, dir_path } = args as { command: string; dir_path?: string };
     try {
@@ -160,8 +160,8 @@ export const run_shell_command = {
 /**
  * Runs the autonomous test suite using 'npm test'.
  */
-export const run_tests = {
-  ...toolDefinitions.run_tests,
+export const runTests = {
+  ...toolDefinitions.runTests,
   execute: async (): Promise<string> => {
     try {
       logger.info('Running autonomous test suite...');

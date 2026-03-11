@@ -16,19 +16,19 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 ## ✅ Phase 3: Self-Evolving & Multi-Agent
 - [x] 3-Agent Architecture: Main → Coder → Deployer
 - [x] EventBridge `AgentBus` for async inter-agent communication
-- [x] `dispatch_task` and `trigger_deployment` tools
+- [x] `dispatchTask` and `triggerDeployment` tools
 - [x] AWS CodeBuild sidecar Deployer
-- [x] `file_write` tool for Coder Agent
+- [x] `fileWrite` tool for Coder Agent
 
 ## ✅ Phase 4: Safety Guardrails
-- [x] Resource Labeling (Protected file list in `file_write`)
+- [x] Resource Labeling (Protected file list in `fileWrite`)
 - [x] Deployment Circuit Breaker (5/day limit, DynamoDB-backed, TDD-verified)
-- [x] Pre-flight `validate_code` tool
+- [x] Pre-flight `validateCode` tool
 - [x] Human-in-the-Loop prompt instructions
 
 ## ✅ Phase 5: Self-Healing & Rollback
-- [x] `check_health` tool — `GET /health` probe, rewards with counter decrement
-- [x] `trigger_rollback` tool — `git revert HEAD` + redeploy
+- [x] `checkHealth` tool — `GET /health` probe, rewards with counter decrement
+- [x] `triggerRollback` tool — `git revert HEAD` + redeploy
 - [x] Build Monitor: Log-based error analysis and auto-fix loop
 - [x] Dead Man's Switch: Scheduled health probe + emergency rollback
 - [x] SuperClaw orchestrates full deploy→verify→rollback cycle
@@ -52,12 +52,12 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 
 ## ✅ Phase 8: Autonomous Self-Improvement Loop
 - [x] **Git Push Integration**: CodeBuild pushes approved code changes back to GitHub.
-- [x] **Verification Tooling**: `run_tests` tool for agents to verify logic before deployment.
+- [x] **Verification Tooling**: `runTests` tool for agents to verify logic before deployment.
 
 ## ✅ Phase 9: Evolutionary Memory (Tiered)
 - [x] **Tiered Memory**: Separate Long-Term **Facts** from dynamic **Tactical Lessons**.
 - [x] **Reflector Agent**: Decoupled asynchronous reflection loop via EventBridge.
-- [x] **Smart Recall**: Agents selectively retrieve knowledge via `recall_knowledge` tool.
+- [x] **Smart Recall**: Agents selectively retrieve knowledge via `recallKnowledge` tool.
 
 ## ✅ Phase 10: Intelligent Prioritization
 - [x] **Granular Metrics**: Added Confidence, Impact, Complexity, Risk, and Urgency signals.

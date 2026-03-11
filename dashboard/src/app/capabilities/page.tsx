@@ -117,7 +117,7 @@ export default async function CapabilitiesPage() {
                         <span className={`text-[11px] font-bold uppercase tracking-tight ${isEnabled ? 'text-yellow-500' : ''}`}>
                           {tool.name}
                         </span>
-                        {tool.name === 'file_write' && <Shield size={10} className="text-red-500/60" />}
+                        {tool.name === 'fileWrite' && <Shield size={10} className="text-red-500/60" />}
                       </div>
                       <p className="text-[10px] leading-tight truncate">
                         {tool.description}
@@ -135,8 +135,8 @@ export default async function CapabilitiesPage() {
         <AlertCircle size={20} className="text-yellow-500/60 shrink-0" />
         <p className="text-xs italic leading-relaxed">
           [SYSTEM_ADVISORY]: Toggling tools takes effect immediately on the next agent turn. Removing core tools like 
-          <span className="text-white/100 mx-1 font-mono">dispatch_task</span> from the Main agent or 
-          <span className="text-white/100 mx-1 font-mono">file_write</span> from the Coder may cause severe system degradation.
+          <span className="text-white/100 mx-1 font-mono">dispatchTask</span> from the Main agent or 
+          <span className="text-white/100 mx-1 font-mono">fileWrite</span> from the Coder may cause severe system degradation.
         </p>
       </div>
     </main>

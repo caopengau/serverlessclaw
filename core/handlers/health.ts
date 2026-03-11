@@ -3,7 +3,7 @@ import { logger } from '../lib/logger';
 import { getDeployCountToday } from '../lib/deploy-stats';
 
 /**
- * Health probe Lambda, called by check_health tool after a deployment.
+ * Health probe Lambda, called by checkHealth tool after a deployment.
  * Returns 200 OK if the system and DynamoDB state are intact.
  */
 export const handler: APIGatewayProxyHandlerV2 = async () => {

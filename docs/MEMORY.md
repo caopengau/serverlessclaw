@@ -65,7 +65,7 @@ The raw execution logs of the last few interactions.
 
 ## The Smart Recall Mechanism
 
-Instead of shoving all history into every prompt, agents use the `recall_knowledge(query)` tool.
+Instead of shoving all history into every prompt, agents use the `recallKnowledge(query)` tool.
 
 1. **Query**: The agent generates a search query (e.g., "How does the user prefer code documentation?").
 2. **Search**: The system searches `LESSON#`, `GAP#`, and `DISTILLED#` keys in DynamoDB.

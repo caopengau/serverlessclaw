@@ -6,7 +6,7 @@
 
 1. **Tests first**: Use TDD for any new tool or guardrail logic.
 2. **Iterate on Main**: Adopt Trunk-Based Evolution. Use `dev` stage for iteration and `prod` for stable releases.
-3. **No broken state**: `validate_code` must pass before any `trigger_deployment`.
+3. **No broken state**: `validateCode` must pass before any `triggerDeployment`.
 4. **Protected files require human approval**: Do not attempt to bypass `PERMISSION_DENIED`.
 
 ---

@@ -10,6 +10,7 @@ import * as knowledgeTools from './knowledge';
 /**
  * Registry of all available tools for agents to execute.
  * Aggregates tools from specialized modules (system, fs, knowledge).
+ * All tool names follow standard JavaScript camelCase naming conventions.
  */
 export const tools: Record<string, ITool> = {
   // System & Deployment Tools
@@ -40,8 +41,8 @@ export const tools: Record<string, ITool> = {
   /**
    * Switches the active LLM provider and model for the system.
    */
-  switch_model: {
-    ...toolDefinitions.switch_model,
+  switchModel: {
+    ...toolDefinitions.switchModel,
     execute: async (args: Record<string, unknown>): Promise<string> => {
       const { provider, model } = args as { provider: string; model: string };
       try {
@@ -58,7 +59,7 @@ export const tools: Record<string, ITool> = {
 
 /**
  * Dynamically retrieves the tools assigned to a specific agent.
- * Uses the AgentRegistry to get tools from both Backbone and DDB.
+ * Uses the AgentRegistry to get tools from both Backbone and DynamoDB.
  * 
  * @param agentId - The ID of the agent to fetch tools for.
  * @returns A promise that resolves to an array of ITool implementations.
@@ -78,9 +79,9 @@ export async function getAgentTools(agentId: string): Promise<ITool[]> {
 }
 
 /**
- * Generates an array of tool definitions for use in LLM calls.
+ * Generates an array of tool definitions for use in LLM completion calls.
  * 
- * @returns Array of function definitions.
+ * @returns Array of function definitions formatted for LLM tool selection.
  */
 export function getToolDefinitions() {
   return Object.values(tools).map((t) => ({

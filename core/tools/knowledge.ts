@@ -19,8 +19,8 @@ interface ToolsResource {
 /**
  * Lists all registered agents and their current status.
  */
-export const list_agents = {
-  ...toolDefinitions.list_agents,
+export const listAgents = {
+  ...toolDefinitions.listAgents,
   execute: async (): Promise<string> => {
     const { AgentRegistry } = await import('../lib/registry');
     const configs = await AgentRegistry.getAllConfigs();
@@ -37,8 +37,8 @@ export const list_agents = {
 /**
  * Dispatches a specific task to another agent via EventBridge.
  */
-export const dispatch_task = {
-  ...toolDefinitions.dispatch_task,
+export const dispatchTask = {
+  ...toolDefinitions.dispatchTask,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { agentId, userId, task, metadata } = args as {
       agentId: string;
@@ -83,8 +83,8 @@ export const dispatch_task = {
 /**
  * Recalls distilled knowledge and lessons from DynamoDB memory.
  */
-export const recall_knowledge = {
-  ...toolDefinitions.recall_knowledge,
+export const recallKnowledge = {
+  ...toolDefinitions.recallKnowledge,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { userId, query, category } = args as {
       userId: string;
@@ -116,8 +116,8 @@ export const recall_knowledge = {
 /**
  * Updates the tools assigned to a specific agent.
  */
-export const manage_agent_tools = {
-  ...toolDefinitions.manage_agent_tools,
+export const manageAgentTools = {
+  ...toolDefinitions.manageAgentTools,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { agentId, toolNames } = args as { agentId: string; toolNames: string[] };
     const typedResource = Resource as unknown as ToolsResource;
@@ -141,8 +141,8 @@ export const manage_agent_tools = {
 /**
  * Updates the lifecycle status of a capability gap.
  */
-export const manage_gap = {
-  ...toolDefinitions.manage_gap,
+export const manageGap = {
+  ...toolDefinitions.manageGap,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { gapId, status } = args as { gapId: string; status: GapStatus };
     try {
@@ -157,8 +157,8 @@ export const manage_gap = {
 /**
  * Updates global system configuration in the ConfigTable.
  */
-export const set_system_config = {
-  ...toolDefinitions.set_system_config,
+export const setSystemConfig = {
+  ...toolDefinitions.setSystemConfig,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { key, value } = args as { key: string; value: unknown };
     const typedResource = Resource as unknown as ToolsResource;

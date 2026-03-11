@@ -38,7 +38,7 @@ User (Telegram)
       ▼
 POST /webhook → SuperClaw (Lambda)
       │
-      ├──dispatch_task(agentId, task)─► EventBridge AgentBus
+      ├──dispatchTask(agentId, task)─► EventBridge AgentBus
       │                                         │
       │                                         ▼
       │                                  Worker Agent (Lambda)
@@ -46,7 +46,7 @@ POST /webhook → SuperClaw (Lambda)
       │                                    │ 2. Load Tools (Registry)
       │                                    └─► 3. Execute & Report
       │
-      ├──trigger_deployment──► CodeBuild Deployer
+      ├──triggerDeployment──► CodeBuild Deployer
       │                               │
       │      (ON SUCCESS)             ▼
       │      └────────────────── Build Monitor Handler ──► system.build.success (Bus)
@@ -54,11 +54,11 @@ POST /webhook → SuperClaw (Lambda)
       │                                                   ▼
       │                                             QA Auditor (Audit & Verify)
       │
-      ├──manage_gap──────────► DynamoDB Gap Status Update (OPEN -> PLANNED -> PROGRESS -> DEPLOYED -> DONE)
+      ├──manageGap──────────► DynamoDB Gap Status Update (OPEN -> PLANNED -> PROGRESS -> DEPLOYED -> DONE)
       │
-      └──check_health──► GET /health (src/handlers/health.ts)
+      └──checkHealth──► GET /health (src/handlers/health.ts)
               ├── OK  → notify user, reward counter
-              └── FAIL → trigger_rollback → notify user
+              └── FAIL → triggerRollback → notify user
 ```
 
 ---
@@ -93,9 +93,9 @@ Serverless Claw supports zero-downtime model switching via the `ProviderManager`
 ## SuperClaw System Prompt (Summary)
 
 Key obligations (see `src/agent.ts` for the full prompt):
-1. **delegate** complex changes via `dispatch_task`
-2. **deploy then verify**: `trigger_deployment` → `check_health`
-3. **rollback on failure**: `CIRCUIT_BREAKER_ACTIVE` or `HEALTH_FAILED` → `trigger_rollback`
+1. **delegate** complex changes via `dispatchTask`
+2. **deploy then verify**: `triggerDeployment` → `checkHealth`
+3. **rollback on failure**: `CIRCUIT_BREAKER_ACTIVE` or `HEALTH_FAILED` → `triggerRollback`
 4. **HITL**: Stop and ask human on Telegram for any `MANUAL_APPROVAL_REQUIRED`
 5. **protect core**: 3 confirmations to delete `AgentBus` or `MemoryTable`
 
@@ -104,7 +104,7 @@ Key obligations (see `src/agent.ts` for the full prompt):
 ## Coder Agent System Prompt (Summary)
 
 Key obligations (see `src/coder.ts` for the full prompt):
-1. **pre-flight**: Call `validate_code` after every `file_write`
+1. **pre-flight**: Call `validateCode` after every `fileWrite`
 2. **protected files**: Return `MANUAL_APPROVAL_REQUIRED` — never bypass
 3. **atomicity**: Don't leave codebase in a broken state
 4. **documentation**: Update relevant `docs/*.md` in the same step as code changes
@@ -119,7 +119,7 @@ Agents are not just autonomous; they are **co-managed** via the ClawCenter dashb
 Users can register new specialized agents at `/settings`. 
 - **Persona**: Define the system prompt (instructions) for the agent.
 - **Dynamic Scoping**: Toggle tools on/off for specific agents without redeploying.
-- **Immediate Availability**: Once registered, the SuperClaw can immediately delegate tasks to the new node via `dispatch_task`.
+- **Immediate Availability**: Once registered, the SuperClaw can immediately delegate tasks to the new node via `dispatchTask`.
 
 ### 2. Dynamic Toolsets
 Instead of a static roster, every agent loads its tools from the `AgentRegistry` on every execution.
@@ -136,8 +136,8 @@ Users can "Prune" the agent's memory at `/memory` to remove incorrect lessons or
 
 ### 4. Dynamic Discovery & Tool Injection
 The system is designed for autonomous expansion where new nodes are born "intelligent":
-- **`list_agents`**: A core tool enabling any agent to discover other specialized nodes in the system at runtime.
-- **Standard Support Profile**: To ensure seamless integration, every dynamic agent is automatically injected with a default toolset (`recall_knowledge`, `list_agents`, `dispatch_task`) if no explicit tools are defined. This ensures every new agent is collaborative and informed from second one.
+- **`listAgents`**: A core tool enabling any agent to discover other specialized nodes in the system at runtime.
+- **Standard Support Profile**: To ensure seamless integration, every dynamic agent is automatically injected with a default toolset (`recallKnowledge`, `listAgents`, `dispatchTask`) if no explicit tools are defined. This ensures every new agent is collaborative and informed from second one.
 
 ---
 
@@ -190,7 +190,7 @@ Serverless Claw is not a static agent; it is a **self-evolving system** that ide
 3.  **Strategic Planning**: The **Strategic Planner** reviews these gaps during a **deterministic 12-hour review**. It designs a STRATEGIC_PLAN and moves gaps to `PLANNED`.
 4.  **Execution**: Once the plan is approved (or automatically triggered in `auto` mode), the **Coder Agent** moves gaps to `PROGRESS`, writes the code, and triggers a deployment.
 5.  **Technical Success**: The **Build Monitor** detects a successful CodeBuild run and moves gaps to `DEPLOYED`. The code is live, but not yet verified.
-6.  **Verified Satisfaction**: The **QA Auditor** (via Reflector Audit) monitors subsequent conversations. If the user successfully uses the new capability or confirms satisfaction, the Reflector marks the gap as `DONE`. In `hitl` mode, this requires a final "YES" from the user via the `manage_gap` tool.
+6.  **Verified Satisfaction**: The **QA Auditor** (via Reflector Audit) monitors subsequent conversations. If the user successfully uses the new capability or confirms satisfaction, the Reflector marks the gap as `DONE`. In `hitl` mode, this requires a final "YES" from the user via the `manageGap` tool.
 
 ---
 

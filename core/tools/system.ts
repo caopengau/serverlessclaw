@@ -27,8 +27,8 @@ interface ToolsResource {
 /**
  * Triggers a new CodeBuild deployment, with daily limits and circuit breaking.
  */
-export const trigger_deployment = {
-  ...toolDefinitions.trigger_deployment,
+export const triggerDeployment = {
+  ...toolDefinitions.triggerDeployment,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { reason, userId } = args as { reason: string; userId: string };
     const today = new Date().toISOString().split('T')[0];
@@ -94,8 +94,8 @@ export const trigger_deployment = {
 /**
  * Checks system health at a given URL and rewards deployment limits on success.
  */
-export const check_health = {
-  ...toolDefinitions.check_health,
+export const checkHealth = {
+  ...toolDefinitions.checkHealth,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { url } = args as { url: string };
     try {
@@ -115,8 +115,8 @@ export const check_health = {
 /**
  * Reverts the last commit and re-triggers a deployment.
  */
-export const trigger_rollback = {
-  ...toolDefinitions.trigger_rollback,
+export const triggerRollback = {
+  ...toolDefinitions.triggerRollback,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { reason } = args as { reason: string };
     const typedResource = Resource as unknown as ToolsResource;
@@ -137,8 +137,8 @@ export const trigger_rollback = {
 /**
  * Validates the current codebase using type checking and linting.
  */
-export const validate_code = {
-  ...toolDefinitions.validate_code,
+export const validateCode = {
+  ...toolDefinitions.validateCode,
   execute: async (): Promise<string> => {
     try {
       logger.info('Running pre-flight validation...');
