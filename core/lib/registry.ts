@@ -111,14 +111,16 @@ export class AgentRegistry {
     if (this.backboneConfigs[id]) {
       config = { ...this.backboneConfigs[id] };
       // Apply backbone-level overrides from DDB if any
-      const ddbAgents = (await this.getRawConfig('agents_config')) || {};
+      const ddbAgents =
+        ((await this.getRawConfig('agents_config')) as Record<string, unknown>) || {};
       if (ddbAgents[id]) {
         config = { ...config, ...ddbAgents[id] };
       }
     } else {
       // User-defined from DDB
-      const ddbAgents = (await this.getRawConfig('agents_config')) || {};
-      config = ddbAgents[id];
+      const ddbAgents =
+        ((await this.getRawConfig('agents_config')) as Record<string, unknown>) || {};
+      config = ddbAgents[id] as IAgentConfig;
     }
 
     if (!config) return undefined;
@@ -190,7 +192,7 @@ export class AgentRegistry {
    * @returns A promise that resolves when the configuration is saved.
    */
   static async saveConfig(id: string, config: IAgentConfig): Promise<void> {
-    const all = (await this.getRawConfig('agents_config')) || {};
+    const all = ((await this.getRawConfig('agents_config')) as Record<string, unknown>) || {};
     all[id] = config;
 
     await docClient.send(
