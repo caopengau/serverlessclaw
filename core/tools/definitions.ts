@@ -127,6 +127,21 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       properties: {},
     },
   },
+  run_shell_command: {
+    name: 'run_shell_command',
+    description: 'Executes a shell command in the agent environment.',
+    parameters: {
+      type: 'object',
+      properties: {
+        command: { type: 'string', description: 'The shell command to execute.' },
+        dir_path: {
+          type: 'string',
+          description: 'The directory path to run the command in (relative to project root).',
+        },
+      },
+      required: ['command'],
+    },
+  },
   switch_model: {
     name: 'switch_model',
     description: 'Switch the active LLM provider and model at runtime.',

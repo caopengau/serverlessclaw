@@ -342,6 +342,21 @@ export const tools: Record<string, ITool> = {
       }
     },
   },
+  run_shell_command: {
+    ...toolDefinitions.run_shell_command,
+    execute: async (args: Record<string, unknown>): Promise<string> => {
+      const { command, dir_path } = args as { command: string; dir_path?: string };
+      try {
+        logger.info(`Executing shell command: ${command} in ${dir_path || 'root'}`);
+        const { stdout, stderr } = await execAsync(command, {
+          cwd: dir_path ? path.resolve(process.cwd(), dir_path) : process.cwd(),
+        });
+        return `Output:\n${stdout}\n${stderr}`;
+      } catch (error) {
+        return `Execution FAILED:\n${error instanceof Error ? error.message : String(error)}`;
+      }
+    },
+  },
   switch_model: {
     ...toolDefinitions.switch_model,
     execute: async (args: Record<string, unknown>) => {

@@ -38,13 +38,21 @@ export class AgentRegistry {
       2. PERSISTENCE: After a successful 'validate_code', you MUST call 'stage_changes' with the list of files you modified.
       3. PROTECTED FILES: If 'file_write' returns PERMISSION_DENIED, do NOT try to bypass it. 
       4. ATOMICITY: Do not leave the codebase in a broken state. 
+      5. ENVIRONMENT: Use 'run_shell_command' to manage dependencies or execute framework-specific CLI commands when necessary.
       6. KEEP IT VERY CONCISE. It should be only an explanation without the plan.`,
       description:
         'Specialised agent that performs heavy lifting like writing code, modifying infra, and triggering builds.',
       icon: 'Code',
       enabled: true,
       isBackbone: true,
-      tools: ['file_write', 'validate_code', 'stage_changes', 'trigger_deployment', 'run_tests'],
+      tools: [
+        'file_write',
+        'validate_code',
+        'stage_changes',
+        'trigger_deployment',
+        'run_tests',
+        'run_shell_command',
+      ],
     },
     [AgentType.QA]: {
       id: AgentType.QA,
