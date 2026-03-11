@@ -71,7 +71,11 @@ export class AgentRegistry {
 
     // Merge in DDB agents
     for (const [id, config] of Object.entries(ddbConfig as Record<string, IAgentConfig>)) {
-      all[id] = { ...all[id], ...config };
+      all[id] = {
+        isBackbone: false, // Default for dynamic agents
+        ...all[id],
+        ...config,
+      };
     }
 
     return all;

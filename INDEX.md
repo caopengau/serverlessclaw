@@ -11,9 +11,9 @@
 
 | Spoke | Load When You Need To... |
 |-------|--------------------------|
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Understand system structure, data flow, or AWS topology |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Understand system structure, data flow, or self-aware AWS topology |
 | [docs/DEVOPS.md](./docs/DEVOPS.md) | Run quality checks, tests, deployments, or releases |
-| [AGENTS.md](./docs/AGENTS.md) | Work on agent logic, prompts, orchestration, or sub-agents |
+| [AGENTS.md](./docs/AGENTS.md) | Work on agent logic, prompts, orchestration, or backbone registry |
 | [TOOLS.md](./docs/TOOLS.md) | Add, modify, or understand any agent tool |
 | [docs/MEMORY.md](./docs/MEMORY.md) | Understand the tiered memory system and recall mechanism |
 | [SAFETY.md](./docs/SAFETY.md) | Understand guardrails, circuit breakers, rollback, or HITL |
@@ -45,10 +45,10 @@ make dev
 
 | Changed File | Update This Spoke |
 |---|---|
-| `core/tools/index.ts` | [TOOLS.md](./docs/TOOLS.md) |
-| `core/agents/` | [AGENTS.md](./docs/AGENTS.md) |
+| `core/lib/backbone.ts` | [AGENTS.md](./docs/AGENTS.md) |
+| `core/handlers/monitor.ts` | [ARCHITECTURE.md](./ARCHITECTURE.md) |
+| `core/tools/` | [TOOLS.md](./docs/TOOLS.md) |
 | `infra/` | [ARCHITECTURE.md](./ARCHITECTURE.md) |
-| `core/tools/index.ts` (guardrails) | [SAFETY.md](./docs/SAFETY.md) |
 | `sst.config.ts` | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | `makefiles/` | [DEVOPS.md](./docs/DEVOPS.md) |
 
