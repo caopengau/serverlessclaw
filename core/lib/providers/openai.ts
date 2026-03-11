@@ -20,7 +20,8 @@ export class OpenAIProvider implements IProvider {
     messages: Message[],
     tools?: ITool[],
     profile: ReasoningProfile = ReasoningProfile.STANDARD,
-    model?: string
+    model?: string,
+    _provider?: string
   ): Promise<Message> {
     const apiKey = typedResource.OpenAIApiKey.value;
     const client = new OpenAI({ apiKey });
@@ -93,8 +94,9 @@ export class OpenAIProvider implements IProvider {
     } as Message;
   }
 
-  async getCapabilities() {
-    const isGpt54 = this.model.includes(OpenAIModel.GPT_5_4);
+  async getCapabilities(model?: string) {
+    const activeModel = model || this.model;
+    const isGpt54 = activeModel.includes(OpenAIModel.GPT_5_4);
     return {
       supportedReasoningProfiles: isGpt54
         ? [

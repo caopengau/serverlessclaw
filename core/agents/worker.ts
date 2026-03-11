@@ -58,7 +58,7 @@ export const handler = async (event: WorkerEvent): Promise<string | undefined> =
 
   // 2. Initialization: Setup tools and prompt
   const agentTools = await getAgentTools(agentId);
-  const agent = new Agent(memory, provider, agentTools, config.systemPrompt);
+  const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
 
   // 3. Execution
   // Use model overwrite if provided in config

@@ -28,7 +28,8 @@ export class BedrockProvider implements IProvider {
     messages: Message[],
     tools?: ITool[],
     profile: ReasoningProfile = ReasoningProfile.STANDARD,
-    model?: string
+    model?: string,
+    _provider?: string
   ): Promise<Message> {
     const typedResource = Resource as unknown as BedrockResource;
     const client = new BedrockRuntimeClient({
@@ -184,8 +185,9 @@ export class BedrockProvider implements IProvider {
     return { role: MessageRole.ASSISTANT, content: 'Empty response from Bedrock.' } as Message;
   }
 
-  async getCapabilities() {
-    const isClaude46 = this.modelId.includes('claude-sonnet-4-6');
+  async getCapabilities(model?: string) {
+    const activeModelId = model || this.modelId;
+    const isClaude46 = activeModelId.includes('claude-sonnet-4-6');
     return {
       supportedReasoningProfiles: isClaude46
         ? [

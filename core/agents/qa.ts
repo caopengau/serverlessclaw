@@ -8,6 +8,7 @@ import {
   EvolutionMode,
   GapStatus,
   SSTResource,
+  AgentType,
 } from '../lib/types/index';
 import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -85,18 +86,15 @@ export const handler = async (event: {
   }
 
   // 3. Run QA Audit
+  const { AgentRegistry } = await import('../lib/registry');
+  const config = await AgentRegistry.getAgentConfig(AgentType.QA);
+  if (!config) {
+    logger.error('Failed to load QA configuration');
+    return;
+  }
+
   const agentTools = await getAgentTools('qa');
-  const qaAgent = new Agent(
-    memory,
-    provider,
-    agentTools,
-    `You are the specialized QA Auditor. 
-    Audit these gaps and plans against the latest system state and conversation.
-    
-    ASSOCIATED GAPS & PLANS:
-    ${plans.join('\n---\n')}
-    `
-  );
+  const qaAgent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
 
   const auditReport = await qaAgent.process(
     userId,

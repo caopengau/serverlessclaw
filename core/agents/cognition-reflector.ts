@@ -8,6 +8,7 @@ import {
   SSTResource,
   InsightCategory,
   GapStatus,
+  AgentType,
 } from '../lib/types/index';
 import { Resource } from 'sst';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
@@ -39,34 +40,15 @@ export const handler = async (event: {
   }
 
   // Reflector Agent is a specialized Agent instance
+  const { AgentRegistry } = await import('../lib/registry');
+  const config = await AgentRegistry.getAgentConfig(AgentType.COGNITION_REFLECTOR);
+  if (!config) {
+    logger.error('Failed to load Reflector configuration');
+    return;
+  }
+
   const agentTools = await (await import('../tools/index')).getAgentTools('cognition-reflector');
-  const reflector = new Agent(
-    memory,
-    provider,
-    agentTools,
-    `You are the specialized Reflector Agent for the Serverless Claw stack.
-     Your goal is to analyze conversations and extract insights.
-
-     1. EXTRACT FACTS: Identify permanent user details for long-term memory.
-     2. IDENTIFY GAPS: Analyze if the agent's response was lacking or if the system is missing a capability.
-     3. ESTIMATE SIGNALS: For each lesson or gap, estimate:
-        - Confidence (1-10): Certainty of the observation.
-        - Impact (1-10): Value added / friction removed.
-        - Complexity (1-10): Effort to implement/fix.
-        - Risk (1-10): Danger of regression.
-        - Urgency (1-10): Time-sensitivity.
-     4. CATEGORIZE: Use categories: 'user_preference', 'tactical_lesson', 'strategic_gap', 'system_knowledge'.
-
-     RETURN FORMAT (STRICT JSON):
-     {
-       "facts": "updated facts string",
-       "lessons": [...],
-       "gaps": [...],
-       "resolvedGapIds": ["gapId1", "gapId2"]
-     }
-     
-     Keep "facts" as a single cohesive string representing all available knowledge about the user.`
-  );
+  const reflector = new Agent(memory, provider, agentTools, config.systemPrompt, config);
 
   const existingFacts = await memory.getDistilledMemory(userId);
   const deployedGaps = await memory.getAllGaps(GapStatus.DEPLOYED);

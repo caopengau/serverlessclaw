@@ -26,47 +26,52 @@ interface ProviderResource {
 }
 
 export class ProviderManager implements IProvider {
-  static async getActiveProvider(): Promise<IProvider> {
+  static async getActiveProvider(
+    overrideProvider?: string,
+    overrideModel?: string
+  ): Promise<IProvider> {
     const typedResource = Resource as unknown as ProviderResource;
-    let providerType = typedResource.ActiveProvider?.value || LLMProvider.OPENAI;
-    let model = typedResource.ActiveModel?.value;
+    let providerType =
+      overrideProvider || typedResource.ActiveProvider?.value || LLMProvider.OPENAI;
+    let model = overrideModel || typedResource.ActiveModel?.value;
 
-    try {
-      const { Item } = await db.send(
-        new GetCommand({
-          TableName: typedResource.ConfigTable.name,
-          Key: { key: 'active_provider' },
-        })
-      );
-      if (Item && Item.value) {
-        providerType = Item.value;
-      }
+    if (!overrideProvider || !overrideModel) {
+      try {
+        if (!overrideProvider) {
+          const { Item } = await db.send(
+            new GetCommand({
+              TableName: typedResource.ConfigTable.name,
+              Key: { key: 'active_provider' },
+            })
+          );
+          if (Item && Item.value) {
+            providerType = Item.value;
+          }
+        }
 
-      const { Item: modelItem } = await db.send(
-        new GetCommand({
-          TableName: typedResource.ConfigTable.name,
-          Key: { key: 'active_model' },
-        })
-      );
-      if (modelItem && modelItem.value) {
-        model = modelItem.value;
+        if (!overrideModel) {
+          const { Item: modelItem } = await db.send(
+            new GetCommand({
+              TableName: typedResource.ConfigTable.name,
+              Key: { key: 'active_model' },
+            })
+          );
+          if (modelItem && modelItem.value) {
+            model = modelItem.value;
+          }
+        }
+      } catch (e) {
+        logger.warn('Could not fetch hot config from ConfigTable, falling back to secrets:', e);
       }
-    } catch (e) {
-      logger.warn('Could not fetch hot config from ConfigTable, falling back to secrets:', e);
     }
 
     switch (providerType) {
       case LLMProvider.BEDROCK:
-        // Native Bedrock for high-performance Claude 4.6
         return new BedrockProvider(model || BedrockModel.CLAUDE_4_6);
-
       case LLMProvider.OPENROUTER:
-        // Aggregator for cost-effective models: Gemini 3 Flash, GLM-5, Minimax 2.5
         return new OpenRouterProvider(model || OpenRouterModel.GEMINI_3_FLASH);
-
       case LLMProvider.OPENAI:
       default:
-        // Native OpenAI for GPT-5.4 (Power) and GPT-5-mini (Efficiency)
         return new OpenAIProvider(model || OpenAIModel.GPT_5_4);
     }
   }
@@ -75,14 +80,15 @@ export class ProviderManager implements IProvider {
     messages: Message[],
     tools?: ITool[],
     profile: ReasoningProfile = ReasoningProfile.STANDARD,
-    model?: string
+    model?: string,
+    provider?: string
   ): Promise<Message> {
-    const provider = await ProviderManager.getActiveProvider();
-    return provider.call(messages, tools, profile, model);
+    const activeProvider = await ProviderManager.getActiveProvider(provider, model);
+    return activeProvider.call(messages, tools, profile, model);
   }
 
-  async getCapabilities() {
-    const provider = await ProviderManager.getActiveProvider();
-    return provider.getCapabilities();
+  async getCapabilities(model?: string) {
+    const provider = await ProviderManager.getActiveProvider(undefined, model);
+    return provider.getCapabilities(model);
   }
 }

@@ -25,6 +25,9 @@ export async function POST(request: Request) {
     }
     const body = await request.json();
     
+    // Validate or transform body if necessary
+    // Current body is Record<string, AgentConfig>
+    
     await docClient.send(
       new PutCommand({
         TableName: tableName,

@@ -20,7 +20,8 @@ export class OpenRouterProvider implements IProvider {
     messages: Message[],
     tools?: ITool[],
     profile: ReasoningProfile = ReasoningProfile.STANDARD,
-    model?: string
+    model?: string,
+    _provider?: string
   ): Promise<Message> {
     const apiKey = (Resource as unknown as OpenRouterResource).OpenRouterApiKey?.value || '';
     const baseUrl = 'https://openrouter.ai/api/v1';
@@ -125,7 +126,8 @@ export class OpenRouterProvider implements IProvider {
     } as Message;
   }
 
-  async getCapabilities() {
+  async getCapabilities(model?: string) {
+    const activeModel = model || this.model;
     // These standardized models from OpenRouter all support advanced reasoning in 2026
     const highCapabilityModels = [
       OpenRouterModel.GLM_5,
@@ -133,7 +135,7 @@ export class OpenRouterProvider implements IProvider {
       OpenRouterModel.GEMINI_3_FLASH,
     ];
 
-    const isHighCapability = highCapabilityModels.includes(this.model as OpenRouterModel);
+    const isHighCapability = highCapabilityModels.includes(activeModel as OpenRouterModel);
 
     return {
       supportedReasoningProfiles: isHighCapability

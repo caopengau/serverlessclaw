@@ -1,0 +1,279 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { Bot, Save, Plus, Trash2, Shield, Settings2, RefreshCw, Cpu, ChevronRight } from 'lucide-react';
+
+interface AgentConfig {
+  id: string;
+  name: string;
+  systemPrompt: string;
+  provider?: string;
+  model?: string;
+  enabled: boolean;
+  isBackbone?: boolean;
+}
+
+const PROVIDERS = {
+  openai: {
+    label: 'OpenAI (Native)',
+    models: ['gpt-5.4', 'gpt-5-mini'],
+  },
+  bedrock: {
+    label: 'AWS Bedrock (Native)',
+    models: ['global.anthropic.claude-sonnet-4-6'],
+  },
+  openrouter: {
+    label: 'OpenRouter (Aggregator)',
+    models: ['zhipu/glm-5', 'minimax/minimax-2.5', 'google/gemini-3-flash-preview'],
+  },
+};
+
+export default function AgentsPage() {
+  const [agents, setAgents] = useState<Record<string, AgentConfig>>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/agents')
+      .then((res) => res.json())
+      .then((data) => {
+        setAgents(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error('Failed to load agents:', err);
+        setLoading(false);
+      });
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch('/api/agents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(agents),
+      });
+      if (!response.ok) throw new Error('Failed to save');
+      alert('Neural nodes synchronized successfully');
+    } catch (err) {
+      alert('Failed to save neural states');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateAgent = (id: string, updates: Partial<AgentConfig>) => {
+    setAgents((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], ...updates },
+    }));
+  };
+
+  const addAgent = () => {
+    const id = `agent_${Date.now()}`;
+    setAgents((prev) => ({
+      ...prev,
+      [id]: {
+        id,
+        name: 'New Specialized Node',
+        systemPrompt: 'You are a specialized agent...',
+        enabled: true,
+        isBackbone: false,
+      },
+    }));
+  };
+
+  const deleteAgent = (id: string) => {
+    if (agents[id].isBackbone) return;
+    const next = { ...agents };
+    delete next[id];
+    setAgents(next);
+  };
+
+  if (loading)
+    return (
+      <main className="flex-1 p-10 flex items-center justify-center">
+        <div className="text-cyber-blue animate-pulse font-mono tracking-widest uppercase text-sm flex items-center gap-3">
+          <RefreshCw className="animate-spin" size={20} /> Initializing Neural Hub...
+        </div>
+      </main>
+    );
+
+  return (
+    <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
+      <header className="flex justify-between items-end border-b border-white/5 pb-6">
+        <div>
+          <h2 className="text-2xl lg:text-3xl font-bold tracking-tight glow-text uppercase">
+            NEURAL_NODES
+          </h2>
+          <p className="text-white/100 text-xs lg:text-sm mt-2 font-light">
+            Manage backbone orchestrators and specialized autonomous agents.
+          </p>
+        </div>
+        <button
+          onClick={addAgent}
+          className="bg-white/5 hover:bg-white/10 text-white/100 px-4 py-2 rounded text-xs font-bold border border-white/10 flex items-center gap-2 transition-all hover:border-cyber-blue/50 uppercase tracking-widest shadow-[0_0_15px_rgba(255,255,255,0.02)]"
+        >
+          <Plus size={14} /> REGISTER_NEW_NODE
+        </button>
+      </header>
+
+      <div className="max-w-6xl space-y-8 pb-20">
+        <div className="grid grid-cols-1 gap-6">
+          {Object.values(agents).map((agent) => (
+            <div
+              key={agent.id}
+              className={`glass-card p-6 border-l-2 transition-all ${
+                agent.isBackbone
+                  ? 'border-cyber-blue shadow-[0_0_20px_rgba(0,224,255,0.05)]'
+                  : 'border-white/10 hover:border-white/20'
+              }`}
+            >
+              <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`p-3 rounded-sm ${
+                      agent.isBackbone
+                        ? 'bg-cyber-blue/20 text-cyber-blue'
+                        : 'bg-white/5 text-white/100'
+                    }`}
+                  >
+                    {agent.isBackbone ? <Shield size={20} /> : <Bot size={20} />}
+                  </div>
+                  <div>
+                    <input
+                      value={agent.name}
+                      onChange={(e) => updateAgent(agent.id, { name: e.target.value })}
+                      className="bg-transparent border-none text-white font-bold outline-none focus:ring-1 focus:ring-white/20 rounded px-1 text-base uppercase tracking-tight"
+                      placeholder="Agent Name"
+                    />
+                    <div className="text-[10px] text-white/50 mt-1 font-mono flex items-center gap-2">
+                      {agent.id} {agent.isBackbone && <span className="text-cyber-blue font-bold tracking-widest">[BACKBONE_PROTECTED]</span>}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-6 self-end lg:self-center">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <span className="text-[10px] font-bold text-white/100 tracking-widest group-hover:text-cyber-green transition-colors">ACTIVE_STATUS</span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={agent.enabled}
+                        onChange={(e) => updateAgent(agent.id, { enabled: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-white/10 rounded-full peer peer-checked:bg-cyber-green/40 relative transition-all border border-white/5 after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white/20 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5 peer-checked:after:bg-cyber-green shadow-inner"></div>
+                    </div>
+                  </label>
+                  {!agent.isBackbone && (
+                    <button
+                      onClick={() => deleteAgent(agent.id)}
+                      className="p-2 hover:bg-red-500/20 text-white/50 hover:text-red-500 rounded transition-colors border border-transparent hover:border-red-500/30"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                {/* Prompt Section */}
+                <div className="lg:col-span-7 space-y-3">
+                  <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold flex items-center gap-2">
+                    <Settings2 size={12} className="text-cyber-blue" /> Neural Core Instructions (System Prompt)
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      value={agent.systemPrompt}
+                      onChange={(e) => updateAgent(agent.id, { systemPrompt: e.target.value })}
+                      className="w-full bg-black/40 border border-white/10 rounded p-4 text-xs text-white/90 font-mono min-h-[180px] outline-none focus:border-cyber-blue/40 transition-all leading-relaxed custom-scrollbar"
+                      placeholder="Enter the system instructions for this node..."
+                    />
+                  </div>
+                </div>
+
+                {/* Model & Config Section */}
+                <div className="lg:col-span-5 space-y-6">
+                  <div className="space-y-4 bg-white/[0.02] p-4 rounded border border-white/5">
+                    <h4 className="text-[10px] font-bold text-white/100 uppercase tracking-widest flex items-center gap-2">
+                        <Cpu size={12} className="text-cyber-green" /> Hardware_Alignment
+                    </h4>
+                    
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-[9px] uppercase text-white/100 tracking-widest font-bold opacity-60">LLM Provider</label>
+                        <select
+                          value={agent.provider || ''}
+                          onChange={(e) => updateAgent(agent.id, { provider: e.target.value, model: '' })}
+                          className="w-full bg-black/60 border border-white/10 rounded px-3 py-2 text-xs text-white/100 outline-none focus:border-cyber-green/50 transition-all cursor-pointer hover:bg-white/5 themed-select"
+                        >
+                          <option value="">INHERIT_SYSTEM_DEFAULT</option>
+                          {Object.entries(PROVIDERS).map(([id, p]) => (
+                            <option key={id} value={id}>{p.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[9px] uppercase text-white/100 tracking-widest font-bold opacity-60">Neural Model ID</label>
+                        <select
+                          value={agent.model || ''}
+                          onChange={(e) => updateAgent(agent.id, { model: e.target.value })}
+                          className="w-full bg-black/60 border border-white/10 rounded px-3 py-2 text-xs text-white/100 outline-none focus:border-cyber-green/50 transition-all cursor-pointer hover:bg-white/5 themed-select"
+                          disabled={!agent.provider}
+                        >
+                          <option value="">{agent.provider ? 'SELECT_MODEL' : 'SELECT_PROVIDER_FIRST'}</option>
+                          {agent.provider && PROVIDERS[agent.provider as keyof typeof PROVIDERS]?.models.map(m => (
+                            <option key={m} value={m}>{m}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 border border-cyber-blue/10 bg-cyber-blue/[0.02] rounded">
+                    <div className="text-[10px] font-bold text-cyber-blue uppercase tracking-widest flex items-center gap-2 mb-2">
+                        <ChevronRight size={12} /> Execution_Context
+                    </div>
+                    <p className="text-[10px] text-white/100 font-light leading-relaxed italic">
+                        Node type: {agent.isBackbone ? 'PERSISTENT_BACKBONE' : 'DYNAMIC_SPOKE'}.
+                        Authorized to interact with global bus and session memory.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Floating Save Button */}
+      <div className="fixed bottom-10 right-10 z-30">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-cyber-blue text-black px-8 py-4 rounded text-xs font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all cursor-pointer shadow-[0_0_30px_rgba(0,243,255,0.4)] disabled:opacity-50 uppercase tracking-widest border border-white/20"
+        >
+          {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
+          Synchronize_Neural_States
+        </button>
+      </div>
+
+      <style jsx global>{`
+        .themed-select {
+          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+          background-repeat: no-repeat;
+          background-position: right 0.75rem center;
+          padding-right: 2.5rem;
+        }
+        .themed-select option {
+          background: #000;
+          color: #fff;
+          padding: 10px;
+        }
+      `}</style>
+    </main>
+  );
+}

@@ -1,9 +1,9 @@
 import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { Settings, Save, RefreshCw, AlertTriangle, Zap } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
-import AgentsManager from './AgentsManager';
+import SettingsForm from './SettingsForm';
 
 async function getConfig() {
   try {
@@ -116,6 +116,10 @@ async function getConfig() {
       reflectionFrequency: '3',
       strategicReviewFrequency: '12',
       minGapsForReview: '3',
+      maxToolIterations: '5',
+      circuitBreakerThreshold: '3',
+      consecutiveBuildFailures: 0,
+      protectedResources: 'sst.config.ts, buildspec.yml, infra/',
     };
   }
 }
@@ -245,194 +249,7 @@ export default async function SettingsPage() {
       </header>
 
       <div className="max-w-4xl space-y-10">
-        <form action={updateConfig} className="glass-card p-6 lg:p-8 space-y-8 cyber-border">
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold flex items-center gap-2 text-cyber-blue uppercase tracking-wider">
-              <Settings size={16} /> LLM_PROVIDER_ROUTING
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
-                  Active Provider
-                </label>
-                <select
-                  name="provider"
-                  defaultValue={config.provider}
-                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-blue transition-colors cursor-pointer"
-                >
-                  <option value="openai">OpenAI (Native)</option>
-                  <option value="bedrock">AWS Bedrock (Native)</option>
-                  <option value="openrouter">OpenRouter (Aggregator)</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
-                  Default Model ID
-                </label>
-                <input
-                  name="model"
-                  type="text"
-                  defaultValue={config.model}
-                  placeholder="e.g. gpt-5.4"
-                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-blue transition-colors font-mono"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-white/5 space-y-4">
-            <h3 className="text-sm font-bold flex items-center gap-2 text-cyber-green uppercase tracking-wider">
-              <Zap size={16} /> EVOLUTION_ENGINE_CONTROL
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
-                  Evolution Mode
-                </label>
-                <select
-                  name="evolutionMode"
-                  defaultValue={config.evolutionMode}
-                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-green transition-colors cursor-pointer"
-                >
-                  <option value="hitl">Human-in-the-Loop (Safe)</option>
-                  <option value="auto">Fully Autonomous (Live)</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
-                  Optimization Policy
-                </label>
-                <select
-                  name="optimizationPolicy"
-                  defaultValue={config.optimizationPolicy}
-                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-green transition-colors cursor-pointer"
-                >
-                  <option value="aggressive">Aggressive (Velocity)</option>
-                  <option value="balanced">Balanced (Stability)</option>
-                  <option value="conservative">Conservative (Safety)</option>
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
-                  Max Tool Iterations
-                </label>
-                <input
-                  name="maxToolIterations"
-                  type="number"
-                  defaultValue={config.maxToolIterations}
-                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-green transition-colors font-mono"
-                />
-                <p className="text-[9px] text-white/50 italic">
-                  Maximum number of tool-calling loops per request.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold flex justify-between">
-                  <span>Circuit Breaker Threshold</span>
-                  <span
-                    className={
-                      Number(config.consecutiveBuildFailures) > 0
-                        ? 'text-red-500'
-                        : 'text-cyber-green'
-                    }
-                  >
-                    Current Failures: {config.consecutiveBuildFailures}
-                  </span>
-                </label>
-                <input
-                  name="circuitBreakerThreshold"
-                  type="number"
-                  defaultValue={config.circuitBreakerThreshold}
-                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-green transition-colors font-mono"
-                />
-                <p className="text-[9px] text-white/50 italic">
-                  Number of failures before auto-switching to HITL mode.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
-                  Protected Resource Scopes
-                </label>
-                <input
-                  name="protectedResources"
-                  type="text"
-                  defaultValue={config.protectedResources}
-                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-green transition-colors font-mono"
-                />
-                <p className="text-[9px] text-white/50 italic">
-                  Comma-separated list of protected files or paths.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-8 border-t border-white/5 space-y-4">
-            <h3 className="text-sm font-bold flex items-center gap-2 text-purple-400 uppercase tracking-wider">
-              <RefreshCw size={16} /> NEURAL_REFLECTION_CONFIG
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
-                  Reflection Frequency (msgs)
-                </label>
-                <input
-                  name="reflectionFrequency"
-                  type="number"
-                  defaultValue={config.reflectionFrequency}
-                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-purple-400 transition-colors font-mono"
-                />
-                <p className="text-[9px] text-white/50 italic">
-                  How many messages before triggering Reflector agent. 0 to disable.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
-                  Strategic Review Interval (hrs)
-                </label>
-                <input
-                  name="strategicReviewFrequency"
-                  type="number"
-                  defaultValue={config.strategicReviewFrequency}
-                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-purple-400 transition-colors font-mono"
-                />
-                <p className="text-[9px] text-white/50 italic">
-                  How often to aggregate all gaps and design evolution plans.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
-                  Min Gaps for Review
-                </label>
-                <input
-                  name="minGapsForReview"
-                  type="number"
-                  defaultValue={config.minGapsForReview}
-                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-purple-400 transition-colors font-mono"
-                />
-                <p className="text-[9px] text-white/50 italic">
-                  Minimum number of OPEN gaps required to trigger a scheduled review.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-white/5 flex justify-end">
-            <button
-              type="submit"
-              className="bg-cyber-blue text-black px-6 py-2.5 rounded text-xs font-bold flex items-center gap-2 hover:scale-105 transition-transform cursor-pointer shadow-[0_0_15px_rgba(0,243,255,0.3)] uppercase tracking-widest"
-            >
-              <Save size={14} /> COMMIT_SYSTEM_CHANGES
-            </button>
-          </div>
-        </form>
-
-        <AgentsManager />
+        <SettingsForm config={config} updateConfig={updateConfig} />
 
         <div className="glass-card p-6 lg:p-8 space-y-6 border-red-900/20 bg-red-950/5">
           <h3 className="text-sm font-bold flex items-center gap-2 text-red-500 uppercase tracking-wider">

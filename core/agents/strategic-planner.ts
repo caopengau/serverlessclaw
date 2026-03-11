@@ -28,25 +28,6 @@ async function getEvolutionMode(): Promise<'auto' | 'hitl'> {
   }
 }
 
-const plannerAgent = new Agent(
-  memory,
-  providerManager,
-  [], // Planner doesn't need external tools, it just designs plans
-  `You are the specialized Strategic Planner for the Serverless Claw stack.
-   
-   Your mission: Transform 'Capability Gaps' into formal, safer, and highly effective STRATEGIC_PLAN documents.
-   
-   PLANNING PROTOCOL:
-   1. CONTEXT: Analyze the identified gap and the previous conversation context.
-   2. DESIGN: Outline exactly what needs to be changed (new tools, modified logic, infrastructure updates).
-   3. SAFETY: Identify any [PROTECTED] files or high-risk infrastructure changes that will require manual approval.
-   4. OUTPUT: Return a markdown-formatted STRATEGIC_PLAN.
-   
-   Your plan will be reviewed by the user. Once approved, it will be executed by the Coder Agent.
-   
-   CRUCIAL: Review the provided [SYSTEM_TELEMETRY] block before proposing a plan. DO NOT propose building a new tool if a similar tool already exists in the AVAILABLE_TOOLS registry. DO NOT propose a new agent if an existing ACTIVE_AGENT can handle the task.`
-);
-
 interface PlannerMetadata {
   impact: number;
   urgency: number;
@@ -79,7 +60,15 @@ export const handler = async (event: {
   const { gapId, details, contextUserId, metadata, isScheduledReview } = event;
 
   // 1. Fetch System Context
+  const { AgentRegistry } = await import('../lib/registry');
+  const config = await AgentRegistry.getAgentConfig(AgentType.STRATEGIC_PLANNER);
+  if (!config) {
+    logger.error('Failed to load Strategic Planner configuration');
+    throw new Error('Config load failed');
+  }
+
   const agentTools = await getAgentTools('planner');
+  const plannerAgent = new Agent(memory, providerManager, agentTools, config.systemPrompt, config);
   const toolsList = agentTools
     .map((t: { name: string; description: string }) => `- ${t.name}: ${t.description}`)
     .join('\n    ');

@@ -62,7 +62,8 @@ export interface IProvider {
     messages: Message[],
     tools?: ITool[],
     profile?: ReasoningProfile,
-    model?: string
+    model?: string,
+    provider?: string
   ): Promise<Message>;
-  getCapabilities(): Promise<ICapabilities>;
+  getCapabilities(model?: string): Promise<ICapabilities>;
 }

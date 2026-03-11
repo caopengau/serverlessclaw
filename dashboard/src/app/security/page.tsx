@@ -119,7 +119,7 @@ export default function SecurityManifestPage() {
 
         {/* Right: Protected Resources */}
         <div className="lg:col-span-5 space-y-8">
-          <section className="glass-card p-6 border-white/10 bg-black/40 sticky top-10">
+          <section className="glass-card p-6 border-white/10 bg-black/40">
             <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/100 flex items-center gap-2 mb-6">
               <Lock size={14} className="text-red-500" /> Protected Resource Labeling
             </h3>

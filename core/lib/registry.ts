@@ -127,18 +127,15 @@ export class AgentRegistry {
     if (this.backboneConfigs[id]) {
       config = { ...this.backboneConfigs[id] };
 
-      // 2026 Hot-Swap Logic: Check for Prompt/Description Overrides in DDB
-      const overrides = (await this.getRawConfig(`agent_override_${id}`)) as Partial<IAgentConfig>;
-      if (overrides) {
-        if (overrides.systemPrompt) config.systemPrompt = overrides.systemPrompt;
-        if (overrides.description) config.description = overrides.description;
-      }
-
-      // Apply legacy backbone-level overrides from agents_config if any
+      // Apply overrides from agents_config (This allows hot-swapping prompts/models for backbone agents)
       const ddbAgents =
-        ((await this.getRawConfig('agents_config')) as Record<string, unknown>) || {};
+        ((await this.getRawConfig('agents_config')) as Record<string, Partial<IAgentConfig>>) || {};
       if (ddbAgents[id]) {
-        config = { ...config, ...ddbAgents[id] };
+        if (ddbAgents[id].systemPrompt) config.systemPrompt = ddbAgents[id].systemPrompt!;
+        if (ddbAgents[id].description) config.description = ddbAgents[id].description;
+        if (ddbAgents[id].model) config.model = ddbAgents[id].model;
+        if (ddbAgents[id].provider) config.provider = ddbAgents[id].provider;
+        if (ddbAgents[id].enabled !== undefined) config.enabled = ddbAgents[id].enabled;
       }
     } else {
       // User-defined from DDB

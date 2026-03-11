@@ -5,6 +5,7 @@ export interface IAgentConfig {
   description?: string;
   icon?: string;
   model?: string;
+  provider?: string;
   tools?: string[]; // Names of tools this agent can use
   enabled: boolean;
   isBackbone?: boolean;

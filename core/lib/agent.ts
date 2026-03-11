@@ -6,6 +6,7 @@ import {
   ReasoningProfile,
   MessageRole,
   EventType,
+  IAgentConfig,
 } from './types/index';
 import { ClawTracer } from './tracer';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
@@ -28,12 +29,14 @@ export class Agent {
    * @param provider - The LLM provider (OpenAI, Bedrock, etc.)
    * @param tools - The set of tools the agent is authorized to use
    * @param systemPrompt - The base personality and instruction set for the agent
+   * @param config - Optional agent configuration (contains hot-swappable overrides)
    */
   constructor(
     private memory: IMemory,
     private provider: IProvider,
     private tools: ITool[],
-    private systemPrompt: string
+    private systemPrompt: string,
+    public config?: IAgentConfig
   ) {}
 
   /**
@@ -72,16 +75,21 @@ export class Agent {
     const userMessage: Message = { role: MessageRole.USER, content: userText };
     await this.memory.addMessage(userId, userMessage);
 
-    // 2026 Hot-Swap Strategy: Resolve Model from Reasoning Profile via DDB
-    let activeModel: string | undefined;
+    // 2026 Hot-Swap Strategy: Resolve Model/Provider from DDB
+    let activeModel: string | undefined = this.config?.model;
+    const activeProvider: string | undefined = this.config?.provider;
+
     try {
       const { AgentRegistry } = await import('./registry');
-      const profileMap = (await AgentRegistry.getRawConfig('reasoning_profiles')) as Record<
-        string,
-        string
-      >;
-      if (profileMap && profileMap[profile]) {
-        activeModel = profileMap[profile];
+      // If agent doesn't have a specific model, fallback to reasoning profile mapping
+      if (!activeModel) {
+        const profileMap = (await AgentRegistry.getRawConfig('reasoning_profiles')) as Record<
+          string,
+          string
+        >;
+        if (profileMap && profileMap[profile]) {
+          activeModel = profileMap[profile];
+        }
       }
     } catch {
       logger.warn('Failed to fetch reasoning_profiles from DDB, using hardcoded defaults.');
@@ -123,7 +131,13 @@ export class Agent {
     try {
       while (iterations < maxIterations) {
         await tracer.addStep({ type: 'llm_call', content: { messageCount: messages.length } });
-        const aiResponse = await this.provider.call(messages, this.tools, profile, activeModel);
+        const aiResponse = await this.provider.call(
+          messages,
+          this.tools,
+          profile,
+          activeModel,
+          activeProvider
+        );
 
         if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
           messages.push(aiResponse);

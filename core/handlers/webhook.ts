@@ -7,7 +7,6 @@ import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers/index';
 import { getAgentTools } from '../tools/index';
 import { DynamoLockManager } from '../lib/lock';
-import { SUPERCLAW_SYSTEM_PROMPT } from '../agents/superclaw';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
@@ -46,8 +45,12 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<APIGateway
 
   try {
     // 2. Process message via Agent
+    const { AgentRegistry } = await import('../lib/registry');
+    const config = await AgentRegistry.getAgentConfig('main');
+    if (!config) throw new Error('Main agent config missing');
+
     const agentTools = await getAgentTools('main');
-    const agent = new Agent(memory, provider, agentTools, SUPERCLAW_SYSTEM_PROMPT);
+    const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
     const responseText = await agent.process(chatId, userText);
 
     // 3. Send response to Notifier via AgentBus
