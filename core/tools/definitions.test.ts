@@ -14,6 +14,22 @@ describe('Tool Definitions Schema Validation', () => {
         `Tool "${toolName}" parameters MUST have additionalProperties: false for LLM compatibility.`
       ).toBe(false);
 
+      // NEW: All properties MUST be in the required array for strict mode
+      if (
+        definition.parameters.properties &&
+        Object.keys(definition.parameters.properties).length > 0
+      ) {
+        const propKeys = Object.keys(definition.parameters.properties);
+        const requiredKeys = definition.parameters.required || [];
+
+        propKeys.forEach((key) => {
+          expect(
+            requiredKeys,
+            `Tool "${toolName}" is missing "${key}" from its "required" array. Strict mode requires all properties to be required.`
+          ).toContain(key);
+        });
+      }
+
       // Recursive check for nested properties
       if (definition.parameters.properties) {
         Object.entries(definition.parameters.properties).forEach(([propName, propSchema]) => {
