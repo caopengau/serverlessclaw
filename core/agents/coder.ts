@@ -47,8 +47,9 @@ export const handler = async (event: {
 
   // 2. Mark gaps as DONE if successful
   // We assume success if the agent successfully staged changes and didn't hit a manual approval gate
-  const isSuccess = response.includes('Successfully staged') && !response.includes('MANUAL_APPROVAL_REQUIRED');
-  
+  const isSuccess =
+    response.includes('Successfully staged') && !response.includes('MANUAL_APPROVAL_REQUIRED');
+
   if (isSuccess && metadata?.gapIds && metadata.gapIds.length > 0) {
     logger.info(`Task successful. Marking ${metadata.gapIds.length} gaps as DONE.`);
     for (const gapId of metadata.gapIds) {

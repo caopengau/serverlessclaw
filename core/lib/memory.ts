@@ -100,7 +100,9 @@ export class DynamoMemory implements IMemory {
     }
   }
 
-  async getAllGaps(status: 'OPEN' | 'PLANNED' | 'DONE' | 'ARCHIVED' = 'OPEN'): Promise<MemoryInsight[]> {
+  async getAllGaps(
+    status: 'OPEN' | 'PLANNED' | 'DONE' | 'ARCHIVED' = 'OPEN'
+  ): Promise<MemoryInsight[]> {
     // In a real system, we would have a GSI for Category=GAP
     // For now, we query with the GAP# prefix using a Scan
     const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');

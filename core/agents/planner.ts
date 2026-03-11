@@ -98,7 +98,9 @@ export const handler = async (event: {
       const now = Date.now();
 
       if (now - lastReview < frequencyHrs * 60 * 60 * 1000) {
-        logger.info(`Scheduled review skipped. Interval: ${frequencyHrs}h. Last run: ${new Date(lastReview).toISOString()}`);
+        logger.info(
+          `Scheduled review skipped. Interval: ${frequencyHrs}h. Last run: ${new Date(lastReview).toISOString()}`
+        );
         return { status: 'SKIPPED_INTERVAL' };
       }
 
@@ -138,7 +140,6 @@ export const handler = async (event: {
     // Update last review timestamp
     await memory.updateDistilledMemory('LAST#STRATEGIC_REVIEW', Date.now().toString());
   } else {
-
     // Reactionary single gap handling
     const signals = metadata
       ? `
@@ -180,7 +181,7 @@ export const handler = async (event: {
   }
 
   // 5. Gap Sink: Mark gaps as PLANNED after review to prevent re-planning
-  let processedGapIds: string[] = [];
+  const processedGapIds: string[] = [];
   if (isScheduledReview && result && !result.includes('internal error')) {
     const allGaps = await memory.getAllGaps('OPEN');
     logger.info(`Marking ${allGaps.length} gaps as PLANNED after successful strategic review.`);
