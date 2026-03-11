@@ -132,7 +132,23 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
 
 - **Pattern**: The SuperClaw emits a `coder_task` or `custom_task` event. Specialized tasks go to backbone agents, while generic tasks are picked up by the **Worker Agent**.
 - **Discovery**: The `AgentRegistry` merges backbone logic with user-defined personas from DynamoDB.
-- **Visualization**: The `SYSTEM_PULSE` dashboard page provides an interactive node graph, dynamically rendering both Agent structures and live Infrastructure state polled from DynamoDB (populated by the Build Monitor post-deployment).
+- **Visualization**: The **ClawCenter Dashboard** (`SYSTEM_PULSE`) fetches a unified graph via `/api/infrastructure` and renders it using React Flow.
+
+---
+
+## 🧠 Self-Aware Topology Discovery
+
+Serverless Claw implements a **Self-Aware Infrastructure** model. Rather than relying on hardcoded diagrams, the system discovers its own topology post-deployment.
+
+### The Discovery Flow
+1. **Deployment**: The `Coder Agent` triggers a CodeBuild deployment.
+2. **Observation**: The `Build Monitor` receives the `SUCCEEDED` event.
+3. **Scan**: The monitor calls `discoverSystemTopology()`, which:
+    - Scans the SST `Resource` object for infrastructure (S3, DynamoDB, EventBridge).
+    - Scans the `AgentRegistry` for LLM agents and logical handlers.
+    - Resolves connections based on the `connectionProfile` defined in `core/lib/backbone.ts`.
+4. **Persistence**: The resulting JSON graph (nodes + edges) is saved to the `ConfigTable` under the `system_topology` key.
+5. **Visualization**: The dashboard updates **automatically** without any frontend code changes.
 
 ---
 
@@ -140,11 +156,8 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
 
 Serverless Claw is designed to be highly customizable at every layer.
 
-### 1. Evolutionary Memory (Tiered)
-The system prevents "prompt bloat" and "identity confusion" through a tiered approach:
-- **Long-Term Facts**: High-confidence user identity and permanent preferences.
-- **Tactical Lessons**: Short-term heuristics (e.g., "be more direct") that eventually expire or merge.
-- **Strategic Gaps**: Missing capabilities (tools/sub-agents) tracked in a backlog with **Estimated ROI**.
+### 1. Self-Aware & Evolutionary
+Serverless Claw isn't just a collection of scripts; it's a **living system**. It maintains a real-time topology of its own infrastructure and agent connections. The **Build Monitor** automatically scans the stack after every deployment to update the **System Pulse** map. Evolution follows a strict, verified lifecycle (**OPEN** → **PLANNED** → **PROGRESS** → **DEPLOYED** → **DONE**).
 
 ### 2. The Smart Recall Tool
 Instead of loading all memories into every prompt, agents use `recall_knowledge(query)`.

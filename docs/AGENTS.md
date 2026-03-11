@@ -192,10 +192,25 @@ Serverless Claw is not a static agent; it is a **self-evolving system** that ide
 
 ---
 
-## Adding a New Sub-Agent
+## 🦾 The Backbone Registry
 
-1. Create `src/<name>.ts` with an `Agent` instance and `export const handler`.
-2. Add a new `sst.aws.Function` in `sst.config.ts` with appropriate links.
-3. Add a `bus.subscribe('<name>.task', ...)` subscription.
-4. Add a new `agentType` enum value in `dispatch_task`'s parameters in `src/tools.ts`.
-5. Update this file and `INDEX.md`.
+The system identity is defined in `core/lib/backbone.ts`. This centralized registry acts as the "genetic code" of the stack:
+
+- **Identity**: Every agent's name, icon, and description.
+- **Backbone Status**: Marks agents as core system components.
+- **Connection Profile**: Defines which infrastructure nodes the agent interacts with (e.g., `['bus', 'memoryTable']`).
+
+The **Build Monitor** uses this registry to dynamically generate the neural map visualized in the dashboard.
+
+---
+
+## 🛠️ Adding a New Agent
+
+To evolve the system with a new specialized node:
+
+1. **Implement**: Create `core/agents/<name>.ts` with the agent's logic and tools.
+2. **Register Identity**: Add the agent to `BACKBONE_REGISTRY` in `core/lib/backbone.ts`.
+    - Define its `name`, `description`, `icon`, and `connectionProfile`.
+3. **Link Infra**: In `infra/agents.ts`, create the Lambda function and link necessary resources (tables, bus).
+4. **Subscribe**: Ensure the agent is subscribed to its task type in the EventBus.
+5. **Deploy**: Run `sst deploy`. The **Build Monitor** will automatically discover the new agent and add it to the **System Pulse** map.
