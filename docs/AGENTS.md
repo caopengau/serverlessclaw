@@ -10,7 +10,8 @@
 | **Coder Agent** | `src/agents/coder.ts` | `AgentRegistry` (Backbone) | Writes code, runs pre-flight checks |
 | **Worker Agent** | `src/agents/worker.ts` | `AgentRegistry` (Dynamic) | Generic runner for any user-defined agent |
 | **Planner Agent** | `src/agents/planner.ts` | `AgentRegistry` (Backbone) | Designs strategic evolution plans |
-| **Reflector Agent** | `src/agents/reflector.ts` | `AgentRegistry` (Backbone) | Distills long-term memory and lessons |
+| **Reflector Agent** | `src/agents/reflector.ts` | `AgentRegistry` (Backbone) | Distills memory and extracts gaps |
+| **QA Auditor** | `src/agents/qa.ts` | `AgentRegistry` (Backbone) | Verifies satisfaction of deployed changes |
 | **Deployer** | AWS CodeBuild | `buildspec.yml` | Runs `sst deploy` in isolated environment |
 
 ---
@@ -33,14 +34,13 @@ POST /webhook → Main Agent (Lambda)
       │
       ├──trigger_deployment──► CodeBuild Deployer
       │                               │
-      │      (ON FAILURE)             ▼
-      │      └────────────────── Build Monitor Handler ──► system.build.failed (Bus)
+      │      (ON SUCCESS)             ▼
+      │      └────────────────── Build Monitor Handler ──► system.build.success (Bus)
       │                                                   │
       │                                                   ▼
-      │                                             EventHandler (src/handlers/events.ts)
-      │                                                   │
-      │                                                   ▼
-      │                                             dispatch_task("coder", fix)
+      │                                             QA Auditor (Audit & Verify)
+      │
+      ├──manage_gap──────────► DynamoDB Gap Status Update (OPEN -> PLANNED -> PROGRESS -> DEPLOYED -> DONE)
       │
       └──check_health──► GET /health (src/handlers/health.ts)
               ├── OK  → notify user, reward counter
@@ -129,7 +129,7 @@ Users can "Prune" the agent's memory at `/memory` to:
 
 Serverless Claw is not a static agent; it is a **self-evolving system** that identifies its own weaknesses and implements its own upgrades.
 
-### Evolutionary Flow Diagram
+### Evolutionary Flow Diagram (Verified Satisfaction)
 
 ```text
     +-------------------+       1. OBSERVE        +-------------------+
@@ -137,11 +137,11 @@ Serverless Claw is not a static agent; it is a **self-evolving system** that ide
     |   Agent           |      (Signals)          |   (User context)  |
     +---------+---------+                         +-------------------+
               |
-              | 2. LOG STRATEGIC_GAP (DDB)
+              | 2. LOG STRATEGIC_GAP (DDB: OPEN)
               v
     +---------+---------+       3. DESIGN         +-------------------+
     |   Planner         |------------------------>|   Strategic Plan  |
-    |   Agent           |      (ROI & Impact)     |   (Proposal)      |
+    |   Agent           |      (DDB: PLANNED)     |   (Proposal)      |
     +---------+---------+                         +-------------------+
               |                                             |
               | 4. DISPATCH_TASK (if auto/approved)         | (Notify)
@@ -149,26 +149,32 @@ Serverless Claw is not a static agent; it is a **self-evolving system** that ide
               v                                     +-------------------+
     +---------+---------+       5. IMPLEMENT        |   Human Admin     |
     |   Coder           |------------------------>|   (HITL Mode)     |
-    |   Agent           |      (Tools & Logic)      +-------------------+
+    |   Agent           |      (DDB: PROGRESS)      +-------------------+
     +---------+---------+                         
               |
               | 6. TRIGGER_DEPLOYMENT (SST)
               |    [CIRCUIT BREAKER]
               v
-    +---------+---------+       7. REGISTER        +-------------------+
-    |   Agent           |------------------------>|   Agent Registry  |
-    |   Registry        |      (Tool Scoping)     |   (Hot Config)    |
+    +---------+---------+       7. MONITOR         +-------------------+
+    |   Build           |------------------------>|   Gap Status      |
+    |   Monitor         |      (DDB: DEPLOYED)    |   (Live in AWS)   |
+    +---------+---------+                         +-------------------+
+              |
+              | 8. AUDIT & VERIFY (Reflector Audit)
+              v
+    +---------+---------+       9. SATISFACTION    +-------------------+
+    |   QA Auditor      |------------------------>|   Status: DONE    |
+    |   Agent           |      (User Feedback)    |   (Loop Closed)   |
     +-------------------+                         +-------------------+
 ```
 
 ### How it works:
 1.  **Observation**: The **Reflector Agent** analyzes every interaction. It looks for "I can't do that" moments or complex multi-step failures.
-2.  **Gap Analysis**: These failures are logged as `strategic_gap` items in DynamoDB, ranked by **Impact** (how much user friction they cause) and **Urgency**.
-3.  **Strategic Planning**: The **Planner Agent** reviews these gaps. It designs a plan to either:
-    *   **Create a new tool**: Implement a new capability (e.g., `google_search`).
-    *   **Register a new agent**: Create a specialized sub-node for a specific domain.
-4.  **Execution**: Once the plan is approved (or automatically triggered in `auto` mode), the **Coder Agent** writes the code and triggers a deployment.
-5.  **Runtime Injection**: After the code is deployed, the **Agent Registry** (DDB + Backbone) dynamically injects the new tool into the target agent's context. The agent gains the new power **instantly** without a restart.
+2.  **Gap Analysis**: These failures are logged as `strategic_gap` items in DynamoDB, ranked by **Impact** and **Urgency**. Status set to `OPEN`.
+3.  **Strategic Planning**: The **Planner Agent** reviews these gaps during a **deterministic 12-hour review**. It designs a STRATEGIC_PLAN and moves gaps to `PLANNED`.
+4.  **Execution**: Once the plan is approved (or automatically triggered in `auto` mode), the **Coder Agent** moves gaps to `PROGRESS`, writes the code, and triggers a deployment.
+5.  **Technical Success**: The **Build Monitor** detects a successful CodeBuild run and moves gaps to `DEPLOYED`. The code is live, but not yet verified.
+6.  **Verified Satisfaction**: The **QA Auditor** (via Reflector Audit) monitors subsequent conversations. If the user successfully uses the new capability or confirms satisfaction, the Reflector marks the gap as `DONE`. In `hitl` mode, this requires a final "YES" from the user via the `manage_gap` tool.
 
 ---
 
