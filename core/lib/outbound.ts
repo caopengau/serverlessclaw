@@ -1,9 +1,11 @@
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { Resource } from 'sst';
+import { SSTResource } from './types/index';
 import { EventType } from './types/index';
 import { logger } from './logger';
 
 const eventbridge = new EventBridgeClient({});
+const typedResource = Resource as unknown as SSTResource;
 
 export async function sendOutboundMessage(
   source: string,
@@ -19,7 +21,7 @@ export async function sendOutboundMessage(
             Source: source,
             DetailType: EventType.OUTBOUND_MESSAGE,
             Detail: JSON.stringify({ userId, message, memoryContexts }),
-            EventBusName: (Resource as { AgentBus: { name: string } }).AgentBus.name,
+            EventBusName: typedResource.AgentBus.name,
           },
         ],
       })

@@ -6,9 +6,12 @@ import {
   ReasoningProfile,
   MessageRole,
   OpenAIModel,
+  SSTResource,
 } from '../types/index';
 import { Resource } from 'sst';
 import { logger } from '../logger';
+
+const typedResource = Resource as unknown as SSTResource;
 
 export class OpenAIProvider implements IProvider {
   constructor(private model: string = OpenAIModel.GPT_5_4) {}
@@ -18,7 +21,7 @@ export class OpenAIProvider implements IProvider {
     tools?: ITool[],
     profile: ReasoningProfile = ReasoningProfile.STANDARD
   ): Promise<Message> {
-    const apiKey = Resource.OpenAIApiKey.value;
+    const apiKey = typedResource.OpenAIApiKey.value;
     const client = new OpenAI({ apiKey });
 
     // Fallback if profile not supported

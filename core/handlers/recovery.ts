@@ -3,12 +3,14 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
+import { SSTResource } from '../lib/types/index';
 
 const codebuild = new CodeBuildClient({});
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const typedResource = Resource as unknown as SSTResource;
 
 export const handler = async () => {
-  const healthUrl = `${Resource.WebhookApi.url}/health`;
+  const healthUrl = `${typedResource.WebhookApi.url}/health`;
   logger.info(`Dead Man's Switch checking health at: ${healthUrl}`);
 
   try {
@@ -31,7 +33,7 @@ export const handler = async () => {
   try {
     logger.info('Triggering CodeBuild Deployer for emergency recovery...');
     const command = new StartBuildCommand({
-      projectName: (Resource as unknown as { Deployer: { name: string } }).Deployer.name,
+      projectName: typedResource.Deployer.name,
       // We could pass an environment variable to the build to tell it to revert first
       environmentVariablesOverride: [{ name: 'EMERGENCY_ROLLBACK', value: 'true' }],
     });
@@ -41,7 +43,7 @@ export const handler = async () => {
     // 2. Log recovery event for Main Agent awareness
     await db.send(
       new PutCommand({
-        TableName: Resource.MemoryTable.name,
+        TableName: typedResource.MemoryTable.name,
         Item: {
           userId: 'DISTILLED#RECOVERY',
           timestamp: Date.now(),

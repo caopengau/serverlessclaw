@@ -1,10 +1,12 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
+import { SSTResource } from './types/index';
 import { v4 as uuidv4 } from 'uuid';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
+const typedResource = Resource as unknown as SSTResource;
 
 export interface TraceStep {
   stepId: string;
@@ -15,7 +17,7 @@ export interface TraceStep {
 }
 
 export class ClawTracer {
-  private tableName = Resource.TraceTable.name;
+  private tableName = typedResource.TraceTable.name;
   private traceId: string;
   private userId: string;
   private startTime: number;

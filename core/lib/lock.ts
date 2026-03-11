@@ -1,14 +1,16 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
+import { SSTResource } from './types/index';
 import { ILockManager } from './types/index';
 import { logger } from './logger';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
+const typedResource = Resource as unknown as SSTResource;
 
 export class DynamoLockManager implements ILockManager {
-  private tableName = Resource.MemoryTable.name; // Re-using table, but with a different partition key prefix or dedicated table
+  private tableName = typedResource.MemoryTable.name; // Re-using table, but with a different partition key prefix or dedicated table
 
   async acquire(lockId: string, ttlSeconds: number = 30): Promise<boolean> {
     const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;

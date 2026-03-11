@@ -1,6 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
+import { SSTResource } from './types/index';
 import {
   IMemory,
   Message,
@@ -13,9 +14,10 @@ import { logger } from './logger';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
+const typedResource = Resource as unknown as SSTResource;
 
 export class DynamoMemory implements IMemory {
-  private tableName = Resource.MemoryTable.name;
+  private tableName = typedResource.MemoryTable.name;
 
   async getHistory(userId: string): Promise<Message[]> {
     const command = new QueryCommand({

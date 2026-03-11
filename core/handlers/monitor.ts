@@ -5,11 +5,13 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
+import { SSTResource } from '../lib/types/index';
 
 const codebuild = new CodeBuildClient({});
 const logs = new CloudWatchLogsClient({});
 const eventbridge = new EventBridgeClient({});
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const typedResource = Resource as unknown as SSTResource;
 
 export const handler = async (event: { detail: Record<string, unknown> }) => {
   logger.info('BuildMonitor received event:', JSON.stringify(event, null, 2));
@@ -24,7 +26,7 @@ export const handler = async (event: { detail: Record<string, unknown> }) => {
     // 1. Get Initiator User ID from DynamoDB
     const { Item } = await db.send(
       new GetCommand({
-        TableName: Resource.MemoryTable.name,
+        TableName: typedResource.MemoryTable.name,
         Key: { userId: `BUILD#${buildId}` },
       })
     );
@@ -73,7 +75,7 @@ export const handler = async (event: { detail: Record<string, unknown> }) => {
             projectName,
             errorLogs: errorLogs.substring(errorLogs.length - 3000), // Limit payload size
           }),
-          EventBusName: Resource.AgentBus.name,
+          EventBusName: typedResource.AgentBus.name,
         },
       ],
     });
