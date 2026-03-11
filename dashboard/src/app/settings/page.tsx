@@ -20,41 +20,76 @@ async function getConfig() {
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
 
-    const [providerRes, modelRes, modeRes, policyRes, reflectRes, reviewRes, minGapsRes] =
-      await Promise.all([
-        docClient.send(
-          new GetCommand({
-            TableName: tableName,
-            Key: { key: 'active_provider' },
-          })
-        ),
-        docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'active_model' } })),
-        docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'evolution_mode' } })),
-        docClient.send(
-          new GetCommand({
-            TableName: tableName,
-            Key: { key: 'optimization_policy' },
-          })
-        ),
-        docClient.send(
-          new GetCommand({
-            TableName: tableName,
-            Key: { key: 'reflection_frequency' },
-          })
-        ),
-        docClient.send(
-          new GetCommand({
-            TableName: tableName,
-            Key: { key: 'strategic_review_frequency' },
-          })
-        ),
-        docClient.send(
-          new GetCommand({
-            TableName: tableName,
-            Key: { key: 'min_gaps_for_review' },
-          })
-        ),
-      ]);
+    const [
+      providerRes,
+      modelRes,
+      modeRes,
+      policyRes,
+      reflectRes,
+      reviewRes,
+      minGapsRes,
+      maxIterRes,
+      cbThresholdRes,
+      cbFailuresRes,
+      protectedRes,
+    ] = await Promise.all([
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'active_provider' },
+        })
+      ),
+      docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'active_model' } })),
+      docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'evolution_mode' } })),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'optimization_policy' },
+        })
+      ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'reflection_frequency' },
+        })
+      ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'strategic_review_frequency' },
+        })
+      ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'min_gaps_for_review' },
+        })
+      ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'max_tool_iterations' },
+        })
+      ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'circuit_breaker_threshold' },
+        })
+      ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'consecutive_build_failures' },
+        })
+      ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'protected_resources' },
+        })
+      ),
+    ]);
 
     return {
       provider: providerRes.Item?.value || 'openai',
@@ -64,6 +99,12 @@ async function getConfig() {
       reflectionFrequency: reflectRes.Item?.value || '3',
       strategicReviewFrequency: reviewRes.Item?.value || '12',
       minGapsForReview: minGapsRes.Item?.value || '3',
+      maxToolIterations: maxIterRes.Item?.value || '5',
+      circuitBreakerThreshold: cbThresholdRes.Item?.value || '3',
+      consecutiveBuildFailures: cbFailuresRes.Item?.value || 0,
+      protectedResources: Array.isArray(protectedRes.Item?.value)
+        ? protectedRes.Item.value.join(', ')
+        : 'sst.config.ts, buildspec.yml, infra/',
     };
   } catch (e) {
     console.error('Error fetching settings config:', e);
@@ -88,6 +129,12 @@ async function updateConfig(formData: FormData) {
   const reflectionFrequency = formData.get('reflectionFrequency') as string;
   const strategicReviewFrequency = formData.get('strategicReviewFrequency') as string;
   const minGapsForReview = formData.get('minGapsForReview') as string;
+  const maxToolIterations = formData.get('maxToolIterations') as string;
+  const circuitBreakerThreshold = formData.get('circuitBreakerThreshold') as string;
+  const protectedResources = (formData.get('protectedResources') as string)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
   try {
     const tableName = (Resource as any).ConfigTable?.name;
@@ -143,6 +190,33 @@ async function updateConfig(formData: FormData) {
           Item: {
             key: 'min_gaps_for_review',
             value: minGapsForReview,
+          },
+        })
+      ),
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: {
+            key: 'max_tool_iterations',
+            value: maxToolIterations,
+          },
+        })
+      ),
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: {
+            key: 'circuit_breaker_threshold',
+            value: circuitBreakerThreshold,
+          },
+        })
+      ),
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: {
+            key: 'protected_resources',
+            value: protectedResources,
           },
         })
       ),
@@ -239,6 +313,60 @@ export default async function SettingsPage() {
                   <option value="balanced">Balanced (Stability)</option>
                   <option value="conservative">Conservative (Safety)</option>
                 </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
+                  Max Tool Iterations
+                </label>
+                <input
+                  name="maxToolIterations"
+                  type="number"
+                  defaultValue={config.maxToolIterations}
+                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-green transition-colors font-mono"
+                />
+                <p className="text-[9px] text-white/50 italic">
+                  Maximum number of tool-calling loops per request.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold flex justify-between">
+                  <span>Circuit Breaker Threshold</span>
+                  <span
+                    className={
+                      Number(config.consecutiveBuildFailures) > 0
+                        ? 'text-red-500'
+                        : 'text-cyber-green'
+                    }
+                  >
+                    Current Failures: {config.consecutiveBuildFailures}
+                  </span>
+                </label>
+                <input
+                  name="circuitBreakerThreshold"
+                  type="number"
+                  defaultValue={config.circuitBreakerThreshold}
+                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-green transition-colors font-mono"
+                />
+                <p className="text-[9px] text-white/50 italic">
+                  Number of failures before auto-switching to HITL mode.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
+                  Protected Resource Scopes
+                </label>
+                <input
+                  name="protectedResources"
+                  type="text"
+                  defaultValue={config.protectedResources}
+                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-green transition-colors font-mono"
+                />
+                <p className="text-[9px] text-white/50 italic">
+                  Comma-separated list of protected files or paths.
+                </p>
               </div>
             </div>
           </div>
