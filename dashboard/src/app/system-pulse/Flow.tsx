@@ -19,7 +19,7 @@ import {
   Database, Brain, Activity, Search, FlaskConical, 
   Settings2, RefreshCw, Radio, Info, Plus, Minus, Maximize, Lock
 } from 'lucide-react';
-import { useReactFlow } from '@xyflow/react';
+import { useReactFlow, ReactFlowProvider } from '@xyflow/react';
 
 const nodeTypes = {
   agent: ({ data }: any) => (
@@ -136,7 +136,7 @@ const getAgentDescription = (id: string) => {
   return descMap[id] || 'Neural spoke for dynamic task execution and decentralized intelligence.';
 };
 
-export default function SystemPulseFlow() {
+export function FlowContent() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [loading, setLoading] = useState(true);
@@ -373,5 +373,13 @@ export default function SystemPulseFlow() {
           </button>
       </div>
     </div>
+  );
+}
+
+export default function SystemPulseFlow() {
+  return (
+    <ReactFlowProvider>
+      <FlowContent />
+    </ReactFlowProvider>
   );
 }
