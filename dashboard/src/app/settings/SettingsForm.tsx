@@ -219,4 +219,3 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
     </>
   );
 }
-}
