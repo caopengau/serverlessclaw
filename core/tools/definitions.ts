@@ -250,4 +250,12 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       required: ['key', 'value'],
     },
   },
+  list_agents: {
+    name: 'list_agents',
+    description: 'Lists all available specialized agents in the system and their capabilities.',
+    parameters: {
+      type: 'object',
+      properties: {},
+    },
+  },
 };

@@ -35,3 +35,75 @@ body {
   border-left: 2px solid var(--color-cyber-green);
 }
 
+/* Custom Utilities for Dynamic Theme Colors */
+.bg-cyber-green { background-color: var(--color-cyber-green); }
+.bg-cyber-green\/10 { background-color: rgba(0, 255, 163, 0.1); }
+.bg-cyber-green\/20 { background-color: rgba(0, 255, 163, 0.2); }
+.text-cyber-green { color: var(--color-cyber-green); }
+.border-cyber-green { border-color: var(--color-cyber-green); }
+.border-cyber-green\/10 { border-color: rgba(0, 255, 163, 0.1); }
+.border-cyber-green\/30 { border-color: rgba(0, 255, 163, 0.3); }
+.border-l-2 { border-left-width: 2px; }
+.border-l-cyber-green { border-left-color: var(--color-cyber-green); }
+.border-l-cyber-blue { border-left-color: var(--color-cyber-blue); }
+.group:hover .group-hover\:text-cyber-green { color: var(--color-cyber-green); }
+.hover\:text-cyber-green:hover { color: var(--color-cyber-green); }
+.hover\:bg-cyber-green\/5:hover { background-color: rgba(0, 255, 163, 0.05); }
+.hover\:border-cyber-green\/50:hover { border-color: rgba(0, 255, 163, 0.5); }
+
+.bg-cyber-blue { background-color: var(--color-cyber-blue); }
+.bg-cyber-blue\/5 { background-color: rgba(0, 224, 255, 0.05); }
+.bg-cyber-blue\/10 { background-color: rgba(0, 224, 255, 0.1); }
+.bg-cyber-blue\/20 { background-color: rgba(0, 224, 255, 0.2); }
+.bg-cyber-blue\/\[0\.02\] { background-color: rgba(0, 224, 255, 0.02); }
+.text-cyber-blue { color: var(--color-cyber-blue); }
+.border-cyber-blue { border-color: var(--color-cyber-blue); }
+.border-cyber-blue\/10 { border-color: rgba(0, 224, 255, 0.1); }
+.border-cyber-blue\/30 { border-color: rgba(0, 224, 255, 0.3); }
+.border-cyber-blue\/40 { border-color: rgba(0, 224, 255, 0.4); }
+.hover\:bg-cyber-blue\/5:hover { background-color: rgba(0, 224, 255, 0.05); }
+.hover\:border-cyber-blue\/40:hover { border-color: rgba(0, 224, 255, 0.4); }
+.hover\:border-cyber-blue\/50:hover { border-color: rgba(0, 224, 255, 0.5); }
+
+.bg-purple-400 { background-color: #c084fc; }
+.bg-purple-400\/10 { background-color: rgba(192, 132, 252, 0.1); }
+.text-purple-400 { color: #c084fc; }
+.border-purple-400 { border-color: #c084fc; }
+.focus\:border-purple-400:focus { border-color: #c084fc; }
+
+.bg-red-500 { background-color: #ef4444; }
+.bg-red-500\/10 { background-color: rgba(239, 68, 68, 0.1); }
+.bg-red-500\/20 { background-color: rgba(239, 68, 68, 0.2); }
+.bg-red-500\/\[0\.02\] { background-color: rgba(239, 68, 68, 0.02); }
+.text-red-500 { color: #ef4444; }
+.border-red-500 { border-color: #ef4444; }
+.border-red-500\/10 { border-color: rgba(239, 68, 68, 0.1); }
+.border-red-500\/20 { border-color: rgba(239, 68, 68, 0.2); }
+.border-red-500\/30 { border-color: rgba(239, 68, 68, 0.3); }
+.hover\:bg-red-500\/20:hover { background-color: rgba(239, 68, 68, 0.2); }
+.hover\:text-red-500:hover { color: #ef4444; }
+.hover\:border-red-500\/30:hover { border-color: rgba(239, 68, 68, 0.3); }
+
+.bg-orange-400 { background-color: #fb923c; }
+.bg-orange-400\/10 { background-color: rgba(251, 146, 60, 0.1); }
+.text-orange-400 { color: #fb923c; }
+.border-orange-400 { border-color: #fb923c; }
+.border-orange-400\/30 { border-color: rgba(251, 146, 60, 0.3); }
+
+.bg-yellow-400 { background-color: #facc15; }
+.text-yellow-400 { color: #facc15; }
+.border-yellow-400 { border-color: #facc15; }
+
+/* Peer-checked states for the toggle */
+.peer:checked ~ .peer-checked\:bg-cyber-green\/40 {
+  background-color: rgba(0, 255, 163, 0.4);
+}
+
+.peer:checked ~ .peer-checked\:after\:bg-cyber-green::after {
+  background-color: var(--color-cyber-green);
+}
+
+.peer:checked ~ .peer-checked\:after\:translate-x-5::after {
+  transform: translateX(1rem);
+}
+

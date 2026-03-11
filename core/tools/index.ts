@@ -90,6 +90,23 @@ export const tools: Record<string, ITool> = {
     },
   },
   /**
+   * Lists all registered agents and their current status.
+   */
+  list_agents: {
+    ...toolDefinitions.list_agents,
+    execute: async (): Promise<string> => {
+      const { AgentRegistry } = await import('../lib/registry');
+      const configs = await AgentRegistry.getAllConfigs();
+
+      const summary = Object.values(configs)
+        .filter((a) => a.enabled)
+        .map((a) => `- [${a.id}] ${a.name}: ${a.description} (Backbone: ${a.isBackbone || false})`)
+        .join('\n');
+
+      return summary || 'No enabled agents found in the registry.';
+    },
+  },
+  /**
    * Dispatches a specific task to another agent via EventBridge
    */
   dispatch_task: {

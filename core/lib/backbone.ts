@@ -16,6 +16,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     isBackbone: true,
     tools: [
       'dispatch_task',
+      'list_agents',
       'recall_knowledge',
       'switch_model',
       'check_health',

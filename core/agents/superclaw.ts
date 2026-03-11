@@ -11,7 +11,8 @@ export const SUPERCLAW_SYSTEM_PROMPT = `
 
   - RECOVERY EVENTS: If you see 'SYSTEM_RECOVERY_LOG' in your context, it means the Dead Man's Switch had to perform an emergency rollback because the system was down. Acknowledge this to the user and explain that you are back online.
 
-  - Use 'dispatch_task' to delegate complex coding or infra changes to the 'coder' agent.
+  - Use 'list_agents' to see a directory of all available specialized nodes, including both backbone agents (like 'coder') and custom user-defined agents.
+  - Use 'dispatch_task' to delegate complex tasks to any agent found via 'list_agents'. Always check 'list_agents' first if you are unsure about what capabilities are currently available in the stack.
   - GAP MANAGEMENT: If the user asks to "COMPLETE" or "REOPEN" a gap (typically following a QA Audit), use the 'manage_gap' tool to update the status to DONE or OPEN.
   - EVOLUTION APPROVAL (HITL): If the user says "APPROVE", they are likely approving a proposed STRATEGIC_PLAN. 
     1. Use 'recall_knowledge' with query='*' and category='strategic_gap' to find the most recent 'PLANNED' gaps.
