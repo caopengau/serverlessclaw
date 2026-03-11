@@ -110,9 +110,9 @@ export function createAgents(ctx: AgentContext) {
     pattern: { detailType: [EventType.EVOLUTION_PLAN] },
   });
 
-  // 12-hour Strategic Review Schedule
+  // Strategic Review Schedule (Runs hourly to check ConfigTable frequency)
   new aws.scheduler.Schedule('StrategicReviewSchedule', {
-    scheduleExpression: 'rate(12 hours)',
+    scheduleExpression: 'rate(1 hour)',
     flexibleTimeWindow: { mode: 'OFF' },
     target: {
       arn: plannerAgent.arn,

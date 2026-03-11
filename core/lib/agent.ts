@@ -124,12 +124,24 @@ export class Agent {
     await tracer.endTrace(responseText);
 
     // 7. Trigger Reflection (async via EventBridge)
-    // 2026 Optimization: We only trigger reflection on every 3rd message or if the user
-    // explicitly asks for a change/learning to save tokens in standard chats.
+    // 2026 Optimization: Reflection frequency is now configurable.
+    // Default is every 3 messages.
+    let reflectionFrequency = 3;
+    try {
+      const { AgentRegistry } = await import('./registry');
+      const customFreq = await AgentRegistry.getRawConfig('reflection_frequency');
+      if (customFreq !== undefined) {
+        reflectionFrequency = parseInt(String(customFreq), 10);
+      }
+    } catch {
+      logger.warn('Failed to fetch reflection_frequency, using default 3.');
+    }
+
     const shouldReflect =
-      history.length % 3 === 0 ||
-      userText.toLowerCase().includes('remember') ||
-      userText.toLowerCase().includes('learn');
+      reflectionFrequency > 0 &&
+      (history.length % reflectionFrequency === 0 ||
+        userText.toLowerCase().includes('remember') ||
+        userText.toLowerCase().includes('learn'));
 
     if (shouldReflect) {
       try {

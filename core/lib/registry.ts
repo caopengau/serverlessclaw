@@ -87,7 +87,7 @@ export class AgentRegistry {
   /**
    * Fetches a raw value from the ConfigTable by key.
    */
-  private static async getRawConfig(key: string): Promise<any> {
+  public static async getRawConfig(key: string): Promise<any> {
     try {
       const { Item } = await docClient.send(
         new GetCommand({

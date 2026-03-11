@@ -165,6 +165,39 @@ export class DynamoMemory implements IMemory {
     }
   }
 
+  async archiveGap(gapId: string): Promise<void> {
+    const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+    const command = new UpdateCommand({
+      TableName: this.tableName,
+      Key: {
+        userId: `GAP#${gapId}`,
+        timestamp: parseInt(gapId, 10) || 0, // Assuming gapId is timestamp
+      },
+      UpdateExpression: 'SET #status = :archived',
+      ExpressionAttributeNames: {
+        '#status': 'status',
+      },
+      ExpressionAttributeValues: {
+        ':archived': 'ARCHIVED',
+      },
+    });
+
+    // Try to find the exact item if timestamp is not in gapId
+    if (isNaN(parseInt(gapId, 10))) {
+      const gaps = await this.getAllGaps();
+      const target = gaps.find((g) => g.id === `GAP#${gapId}`);
+      if (target) {
+        command.input.Key = { userId: `GAP#${gapId}`, timestamp: target.timestamp };
+      }
+    }
+
+    try {
+      await docClient.send(command);
+    } catch (error) {
+      logger.error('Error archiving gap in DynamoDB:', error);
+    }
+  }
+
   async addLesson(userId: string, lesson: string, metadata?: InsightMetadata): Promise<void> {
     const command = new PutCommand({
       TableName: this.tableName,

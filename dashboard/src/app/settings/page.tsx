@@ -20,23 +20,31 @@ async function getConfig() {
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
 
-    const [providerRes, modelRes, modeRes, policyRes] = await Promise.all([
+    const [providerRes, modelRes, modeRes, policyRes, reflectRes, reviewRes] = await Promise.all([
       docClient.send(
         new GetCommand({
           TableName: tableName,
           Key: { key: 'active_provider' },
         })
       ),
-      docClient.send(
-        new GetCommand({ TableName: tableName, Key: { key: 'active_model' } })
-      ),
-      docClient.send(
-        new GetCommand({ TableName: tableName, Key: { key: 'evolution_mode' } })
-      ),
+      docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'active_model' } })),
+      docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'evolution_mode' } })),
       docClient.send(
         new GetCommand({
           TableName: tableName,
           Key: { key: 'optimization_policy' },
+        })
+      ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'reflection_frequency' },
+        })
+      ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'strategic_review_frequency' },
         })
       ),
     ]);
@@ -46,6 +54,8 @@ async function getConfig() {
       model: modelRes.Item?.value || 'gpt-5.4',
       evolutionMode: modeRes.Item?.value || 'hitl',
       optimizationPolicy: policyRes.Item?.value || 'balanced',
+      reflectionFrequency: reflectRes.Item?.value || '3',
+      strategicReviewFrequency: reviewRes.Item?.value || '12',
     };
   } catch (e) {
     console.error('Error fetching settings config:', e);
@@ -54,6 +64,8 @@ async function getConfig() {
       model: 'error',
       evolutionMode: 'error',
       optimizationPolicy: 'error',
+      reflectionFrequency: '3',
+      strategicReviewFrequency: '12',
     };
   }
 }
@@ -64,6 +76,8 @@ async function updateConfig(formData: FormData) {
   const model = formData.get('model') as string;
   const evolutionMode = formData.get('evolutionMode') as string;
   const optimizationPolicy = formData.get('optimizationPolicy') as string;
+  const reflectionFrequency = formData.get('reflectionFrequency') as string;
+  const strategicReviewFrequency = formData.get('strategicReviewFrequency') as string;
 
   try {
     const tableName = (Resource as any).ConfigTable?.name;
@@ -96,6 +110,21 @@ async function updateConfig(formData: FormData) {
         new PutCommand({
           TableName: tableName,
           Item: { key: 'optimization_policy', value: optimizationPolicy },
+        })
+      ),
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: { key: 'reflection_frequency', value: reflectionFrequency },
+        })
+      ),
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: {
+            key: 'strategic_review_frequency',
+            value: strategicReviewFrequency,
+          },
         })
       ),
     ]);
@@ -191,6 +220,43 @@ export default async function SettingsPage() {
                   <option value="balanced">Balanced (Stability)</option>
                   <option value="conservative">Conservative (Safety)</option>
                 </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-8 border-t border-white/5 space-y-4">
+            <h3 className="text-sm font-bold flex items-center gap-2 text-purple-400 uppercase tracking-wider">
+              <RefreshCw size={16} /> NEURAL_REFLECTION_CONFIG
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase text-white/40 tracking-widest font-bold">
+                  Reflection Frequency (msgs)
+                </label>
+                <input
+                  name="reflectionFrequency"
+                  type="number"
+                  defaultValue={config.reflectionFrequency}
+                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-purple-400 transition-colors font-mono"
+                />
+                <p className="text-[9px] text-white/20 italic">
+                  How many messages before triggering Reflector agent. 0 to disable.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase text-white/40 tracking-widest font-bold">
+                  Strategic Review Interval (hrs)
+                </label>
+                <input
+                  name="strategicReviewFrequency"
+                  type="number"
+                  defaultValue={config.strategicReviewFrequency}
+                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-purple-400 transition-colors font-mono"
+                />
+                <p className="text-[9px] text-white/20 italic">
+                  How often to aggregate all gaps and design evolution plans.
+                </p>
               </div>
             </div>
           </div>
