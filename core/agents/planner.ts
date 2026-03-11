@@ -80,8 +80,8 @@ export const handler = async (event: {
     ${toolsList}
   `;
 
-  let prompt = '';
-  let id = gapId || `REVIEW#${Date.now()}`;
+  let plannerPrompt: string;
+  const id = gapId || `REVIEW#${Date.now()}`;
 
   if (isScheduledReview) {
     // Deterministic Review of all Gaps
@@ -98,13 +98,13 @@ export const handler = async (event: {
       )
       .join('\n');
 
-    prompt = `
+    plannerPrompt = `
       [SCHEDULED_STRATEGIC_REVIEW]
       I have detected the following ${allGaps.length} capability gaps:
       ${gapSummary}
-      
+
       ${telemetry}
-      
+
       Please analyze these gaps, prioritize them based on ROI (Impact vs Complexity), and design a STRATEGIC_PLAN for the MOST IMPORTANT evolution.
     `;
   } else {
@@ -118,8 +118,9 @@ export const handler = async (event: {
     `
       : '';
 
-    prompt = `GAP IDENTIFIED: ${details}\n${signals}\n${telemetry}\n\nUSER CONTEXT: Please design a STRATEGIC_PLAN to fix this gap for user ${contextUserId}.`;
+    plannerPrompt = `GAP IDENTIFIED: ${details}\n${signals}\n${telemetry}\n\nUSER CONTEXT: Please design a STRATEGIC_PLAN to fix this gap for user ${contextUserId}.`;
   }
+
 
   // 2. Self-Evolution Loop Protection (Cool-down)
   // Logic: Check if we have tried to evolve a similar gap recently
@@ -131,13 +132,20 @@ export const handler = async (event: {
   }
 
   // 3. Process with High Reasoning
-  const result = await plannerAgent.process(`SYSTEM#PLANNER#${id}`, prompt, ReasoningProfile.DEEP);
+  const result = await plannerAgent.process(
+    `SYSTEM#PLANNER#${id}`,
+    plannerPrompt,
+    ReasoningProfile.DEEP
+  );
 
   logger.info('Strategic Plan Generated:', result);
 
   // 4. Record evolution attempt in history for cooldown logic
   if (details) {
-    const updatedHistory = `${details.substring(0, 50)} | ${evolutionHistory || ''}`.substring(0, 500);
+    const updatedHistory = `${details.substring(0, 50)} | ${evolutionHistory || ''}`.substring(
+      0,
+      500
+    );
     await memory.updateDistilledMemory('EVOLUTION#HISTORY', updatedHistory);
   }
 

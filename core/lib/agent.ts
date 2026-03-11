@@ -124,10 +124,13 @@ export class Agent {
     await tracer.endTrace(responseText);
 
     // 7. Trigger Reflection (async via EventBridge)
-    // 2026 Optimization: We only trigger reflection on every 3rd message or if the user 
+    // 2026 Optimization: We only trigger reflection on every 3rd message or if the user
     // explicitly asks for a change/learning to save tokens in standard chats.
-    const shouldReflect = history.length % 3 === 0 || userText.toLowerCase().includes('remember') || userText.toLowerCase().includes('learn');
-    
+    const shouldReflect =
+      history.length % 3 === 0 ||
+      userText.toLowerCase().includes('remember') ||
+      userText.toLowerCase().includes('learn');
+
     if (shouldReflect) {
       try {
         await this.eventbridge.send(
@@ -138,7 +141,10 @@ export class Agent {
                 DetailType: EventType.REFLECT_TASK,
                 Detail: JSON.stringify({
                   userId,
-                  conversation: [...messages, { role: MessageRole.ASSISTANT, content: responseText }],
+                  conversation: [
+                    ...messages,
+                    { role: MessageRole.ASSISTANT, content: responseText },
+                  ],
                 }),
                 EventBusName: typedResource.AgentBus.name,
               },
