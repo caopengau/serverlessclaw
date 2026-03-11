@@ -8,10 +8,14 @@ import { logger } from '../lib/logger';
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
 
-export const handler = async (event: { userId: string; task: string }) => {
+export const handler = async (event: {
+  userId: string;
+  task: string;
+  metadata?: { gapIds?: string[] };
+}) => {
   logger.info('Coder Agent received task:', JSON.stringify(event, null, 2));
 
-  const { userId, task } = event;
+  const { userId, task, metadata } = event;
 
   if (!userId || !task) {
     logger.error('Invalid event payload');
@@ -41,6 +45,16 @@ export const handler = async (event: { userId: string; task: string }) => {
 
   logger.info('Coder Agent completed task:', response);
 
-  // 2. Future: Emit completion event back to the bus
+  // 2. Mark gaps as DONE if successful
+  // We assume success if the agent successfully staged changes and didn't hit a manual approval gate
+  const isSuccess = response.includes('Successfully staged') && !response.includes('MANUAL_APPROVAL_REQUIRED');
+  
+  if (isSuccess && metadata?.gapIds && metadata.gapIds.length > 0) {
+    logger.info(`Task successful. Marking ${metadata.gapIds.length} gaps as DONE.`);
+    for (const gapId of metadata.gapIds) {
+      await memory.updateGapStatus(gapId, 'DONE');
+    }
+  }
+
   return response;
 };

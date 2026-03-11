@@ -100,19 +100,19 @@ export class DynamoMemory implements IMemory {
     }
   }
 
-  async getAllGaps(): Promise<MemoryInsight[]> {
+  async getAllGaps(status: 'OPEN' | 'PLANNED' | 'DONE' | 'ARCHIVED' = 'OPEN'): Promise<MemoryInsight[]> {
     // In a real system, we would have a GSI for Category=GAP
-    // For now, we query with the GAP# prefix using a Scan (not ideal for high volume, but ok for this phase)
+    // For now, we query with the GAP# prefix using a Scan
     const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
     const command = new ScanCommand({
       TableName: this.tableName,
-      FilterExpression: 'begins_with(userId, :prefix) AND #status = :open',
+      FilterExpression: 'begins_with(userId, :prefix) AND #status = :status',
       ExpressionAttributeNames: {
         '#status': 'status',
       },
       ExpressionAttributeValues: {
         ':prefix': 'GAP#',
-        ':open': 'OPEN',
+        ':status': status,
       },
     });
 
@@ -133,7 +133,7 @@ export class DynamoMemory implements IMemory {
         },
       }));
     } catch (error) {
-      logger.error('Error scanning gaps from DynamoDB:', error);
+      logger.error(`Error scanning ${status} gaps from DynamoDB:`, error);
       return [];
     }
   }
@@ -143,7 +143,7 @@ export class DynamoMemory implements IMemory {
       TableName: this.tableName,
       Item: {
         userId: `GAP#${gapId}`,
-        timestamp: Date.now(),
+        timestamp: parseInt(gapId, 10) || Date.now(),
         content: details,
         status: 'OPEN',
         metadata: metadata || {
@@ -165,36 +165,50 @@ export class DynamoMemory implements IMemory {
     }
   }
 
-  async archiveGap(gapId: string): Promise<void> {
+  async updateGapStatus(
+    gapId: string,
+    status: 'OPEN' | 'PLANNED' | 'DONE' | 'ARCHIVED'
+  ): Promise<void> {
     const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+    const numericId = gapId.replace('GAP#', '');
     const command = new UpdateCommand({
       TableName: this.tableName,
       Key: {
-        userId: `GAP#${gapId}`,
-        timestamp: parseInt(gapId, 10) || 0, // Assuming gapId is timestamp
+        userId: `GAP#${numericId}`,
+        timestamp: parseInt(numericId, 10) || 0,
       },
-      UpdateExpression: 'SET #status = :archived',
+      UpdateExpression: 'SET #status = :status',
       ExpressionAttributeNames: {
         '#status': 'status',
       },
       ExpressionAttributeValues: {
-        ':archived': 'ARCHIVED',
+        ':status': status,
       },
     });
 
-    // Try to find the exact item if timestamp is not in gapId
-    if (isNaN(parseInt(gapId, 10))) {
-      const gaps = await this.getAllGaps();
-      const target = gaps.find((g) => g.id === `GAP#${gapId}`);
-      if (target) {
-        command.input.Key = { userId: `GAP#${gapId}`, timestamp: target.timestamp };
+    // Try to find the exact item if timestamp is not in gapId or if 0 doesn't work
+    if (isNaN(parseInt(numericId, 10)) || command.input.Key?.timestamp === 0) {
+      const statuses: Array<'OPEN' | 'PLANNED' | 'DONE' | 'ARCHIVED'> = [
+        'OPEN',
+        'PLANNED',
+        'DONE',
+        'ARCHIVED',
+      ];
+      for (const s of statuses) {
+        const gaps = await this.getAllGaps(s);
+        const target = gaps.find((g) => g.id === `GAP#${numericId}`);
+        if (target) {
+          command.input.Key = { userId: `GAP#${numericId}`, timestamp: target.timestamp };
+          break;
+        }
       }
     }
 
     try {
       await docClient.send(command);
+      logger.info(`Gap ${gapId} status updated to ${status}`);
     } catch (error) {
-      logger.error('Error archiving gap in DynamoDB:', error);
+      logger.error(`Error updating gap ${gapId} status to ${status}:`, error);
     }
   }
 

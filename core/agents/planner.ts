@@ -84,28 +84,36 @@ export const handler = async (event: {
   const id = gapId || `REVIEW#${Date.now()}`;
 
   if (isScheduledReview) {
-    // 1. Check Frequency
+    // 1. Check Frequency and Min Gaps
     try {
       const { AgentRegistry } = await import('../lib/registry');
       const customFreq = await AgentRegistry.getRawConfig('strategic_review_frequency');
+      const customMinGaps = await AgentRegistry.getRawConfig('min_gaps_for_review');
+
       const frequencyHrs = parseInt(String(customFreq || '12'), 10);
+      const minGaps = parseInt(String(customMinGaps || '3'), 10);
 
       const lastReviewStr = await memory.getDistilledMemory('LAST#STRATEGIC_REVIEW');
       const lastReview = lastReviewStr ? parseInt(lastReviewStr, 10) : 0;
       const now = Date.now();
 
       if (now - lastReview < frequencyHrs * 60 * 60 * 1000) {
-        logger.info(
-          `Scheduled review skipped. Interval: ${frequencyHrs}h. Last run: ${new Date(lastReview).toISOString()}`
-        );
+        logger.info(`Scheduled review skipped. Interval: ${frequencyHrs}h. Last run: ${new Date(lastReview).toISOString()}`);
         return { status: 'SKIPPED_INTERVAL' };
       }
+
+      // Check min gaps
+      const allGaps = await memory.getAllGaps('OPEN');
+      if (allGaps.length < minGaps) {
+        logger.info(`Scheduled review skipped. Need ${minGaps} gaps, found ${allGaps.length}.`);
+        return { status: 'INSUFFICIENT_GAPS' };
+      }
     } catch {
-      logger.warn('Failed to verify strategic review interval, proceeding anyway.');
+      logger.warn('Failed to verify strategic review interval/min_gaps, proceeding anyway.');
     }
 
     // Deterministic Review of all Gaps
-    const allGaps = await memory.getAllGaps();
+    const allGaps = await memory.getAllGaps('OPEN');
     if (allGaps.length === 0) {
       logger.info('No gaps found during scheduled review. Skipping evolution.');
       return { status: 'NO_GAPS' };
@@ -130,6 +138,7 @@ export const handler = async (event: {
     // Update last review timestamp
     await memory.updateDistilledMemory('LAST#STRATEGIC_REVIEW', Date.now().toString());
   } else {
+
     // Reactionary single gap handling
     const signals = metadata
       ? `
@@ -170,17 +179,20 @@ export const handler = async (event: {
     await memory.updateDistilledMemory('EVOLUTION#HISTORY', updatedHistory);
   }
 
-  // 5. Gap Sink: Archive gaps after review to prevent piling up
+  // 5. Gap Sink: Mark gaps as PLANNED after review to prevent re-planning
+  let processedGapIds: string[] = [];
   if (isScheduledReview && result && !result.includes('internal error')) {
-    const allGaps = await memory.getAllGaps();
-    logger.info(`Archiving ${allGaps.length} gaps after successful strategic review.`);
+    const allGaps = await memory.getAllGaps('OPEN');
+    logger.info(`Marking ${allGaps.length} gaps as PLANNED after successful strategic review.`);
     for (const gap of allGaps) {
       const numericId = gap.id.replace('GAP#', '');
-      await memory.archiveGap(numericId);
+      await memory.updateGapStatus(numericId, 'PLANNED');
+      processedGapIds.push(numericId);
     }
   } else if (!isScheduledReview && gapId && result && !result.includes('internal error')) {
-    logger.info(`Archiving specific gap ${gapId} after design.`);
-    await memory.archiveGap(gapId);
+    logger.info(`Marking specific gap ${gapId} as PLANNED after design.`);
+    await memory.updateGapStatus(gapId, 'PLANNED');
+    processedGapIds.push(gapId);
   }
 
   const evolutionMode = await getEvolutionMode();
@@ -203,6 +215,9 @@ export const handler = async (event: {
             Detail: JSON.stringify({
               userId: contextUserId,
               task: result,
+              metadata: {
+                gapIds: processedGapIds,
+              },
             }),
             EventBusName: (Resource as unknown as { AgentBus: { name: string } }).AgentBus.name,
           },

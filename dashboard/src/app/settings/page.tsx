@@ -20,34 +20,41 @@ async function getConfig() {
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
 
-    const [providerRes, modelRes, modeRes, policyRes, reflectRes, reviewRes] = await Promise.all([
-      docClient.send(
-        new GetCommand({
-          TableName: tableName,
-          Key: { key: 'active_provider' },
-        })
-      ),
-      docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'active_model' } })),
-      docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'evolution_mode' } })),
-      docClient.send(
-        new GetCommand({
-          TableName: tableName,
-          Key: { key: 'optimization_policy' },
-        })
-      ),
-      docClient.send(
-        new GetCommand({
-          TableName: tableName,
-          Key: { key: 'reflection_frequency' },
-        })
-      ),
-      docClient.send(
-        new GetCommand({
-          TableName: tableName,
-          Key: { key: 'strategic_review_frequency' },
-        })
-      ),
-    ]);
+    const [providerRes, modelRes, modeRes, policyRes, reflectRes, reviewRes, minGapsRes] =
+      await Promise.all([
+        docClient.send(
+          new GetCommand({
+            TableName: tableName,
+            Key: { key: 'active_provider' },
+          })
+        ),
+        docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'active_model' } })),
+        docClient.send(new GetCommand({ TableName: tableName, Key: { key: 'evolution_mode' } })),
+        docClient.send(
+          new GetCommand({
+            TableName: tableName,
+            Key: { key: 'optimization_policy' },
+          })
+        ),
+        docClient.send(
+          new GetCommand({
+            TableName: tableName,
+            Key: { key: 'reflection_frequency' },
+          })
+        ),
+        docClient.send(
+          new GetCommand({
+            TableName: tableName,
+            Key: { key: 'strategic_review_frequency' },
+          })
+        ),
+        docClient.send(
+          new GetCommand({
+            TableName: tableName,
+            Key: { key: 'min_gaps_for_review' },
+          })
+        ),
+      ]);
 
     return {
       provider: providerRes.Item?.value || 'openai',
@@ -56,6 +63,7 @@ async function getConfig() {
       optimizationPolicy: policyRes.Item?.value || 'balanced',
       reflectionFrequency: reflectRes.Item?.value || '3',
       strategicReviewFrequency: reviewRes.Item?.value || '12',
+      minGapsForReview: minGapsRes.Item?.value || '3',
     };
   } catch (e) {
     console.error('Error fetching settings config:', e);
@@ -66,6 +74,7 @@ async function getConfig() {
       optimizationPolicy: 'error',
       reflectionFrequency: '3',
       strategicReviewFrequency: '12',
+      minGapsForReview: '3',
     };
   }
 }
@@ -78,6 +87,7 @@ async function updateConfig(formData: FormData) {
   const optimizationPolicy = formData.get('optimizationPolicy') as string;
   const reflectionFrequency = formData.get('reflectionFrequency') as string;
   const strategicReviewFrequency = formData.get('strategicReviewFrequency') as string;
+  const minGapsForReview = formData.get('minGapsForReview') as string;
 
   try {
     const tableName = (Resource as any).ConfigTable?.name;
@@ -124,6 +134,15 @@ async function updateConfig(formData: FormData) {
           Item: {
             key: 'strategic_review_frequency',
             value: strategicReviewFrequency,
+          },
+        })
+      ),
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: {
+            key: 'min_gaps_for_review',
+            value: minGapsForReview,
           },
         })
       ),
@@ -256,6 +275,20 @@ export default async function SettingsPage() {
                 />
                 <p className="text-[9px] text-white/20 italic">
                   How often to aggregate all gaps and design evolution plans.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase text-white/40 tracking-widest font-bold">
+                  Min Gaps for Review
+                </label>
+                <input
+                  name="minGapsForReview"
+                  type="number"
+                  defaultValue={config.minGapsForReview}
+                  className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-purple-400 transition-colors font-mono"
+                />
+                <p className="text-[9px] text-white/20 italic">
+                  Minimum number of OPEN gaps required to trigger a scheduled review.
                 </p>
               </div>
             </div>
