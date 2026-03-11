@@ -4,7 +4,7 @@ import { Agent } from '@claw/core/lib/agent';
 import { ProviderManager } from '@claw/core/lib/providers/index';
 import { getAgentTools } from '@claw/core/tools/index';
 import { MANAGER_SYSTEM_PROMPT } from '@claw/core/agents/manager';
-import { UI_STRINGS, HTTP_STATUS } from '../../../lib/constants';
+import { UI_STRINGS, HTTP_STATUS } from '@/lib/constants';
 
 /**
  * Handles chat messages from the dashboard UI using the Manager agent

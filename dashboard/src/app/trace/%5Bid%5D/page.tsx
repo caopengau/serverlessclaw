@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import PathVisualizer from '@/components/PathVisualizer';
-import { UI_STRINGS, TRACE_TYPES, TRACE_STATUS } from '../../../lib/constants';
+import { UI_STRINGS, TRACE_TYPES, TRACE_STATUS } from '@/lib/constants';
 
 /**
  * Fetches a specific trace record from DynamoDB
