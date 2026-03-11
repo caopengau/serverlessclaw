@@ -42,7 +42,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
               name="provider"
               value={activeProvider}
               onChange={(e) => setActiveProvider(e.target.value)}
-              className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-blue transition-colors cursor-pointer themed-select"
+              className="w-full cyber-select"
             >
               {Object.entries(PROVIDERS).map(([id, p]) => (
                 <option key={id} value={id}>
@@ -58,7 +58,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
             <select
               name="model"
               defaultValue={config.model}
-              className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-blue transition-colors cursor-pointer themed-select font-mono"
+              className="w-full cyber-select font-mono"
             >
               {PROVIDERS[activeProvider as keyof typeof PROVIDERS]?.models.map((m) => (
                 <option key={m} value={m}>
@@ -83,7 +83,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
             <select
               name="evolutionMode"
               defaultValue={config.evolutionMode}
-              className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-green transition-colors cursor-pointer themed-select"
+              className="w-full cyber-select"
             >
               <option value="hitl">Human-in-the-Loop (Safe)</option>
               <option value="auto">Fully Autonomous (Live)</option>
@@ -96,7 +96,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
             <select
               name="optimizationPolicy"
               defaultValue={config.optimizationPolicy}
-              className="w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-cyber-green transition-colors cursor-pointer themed-select"
+              className="w-full cyber-select"
             >
               <option value="aggressive">Aggressive (Velocity)</option>
               <option value="balanced">Balanced (Stability)</option>
@@ -137,7 +137,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
           </div>
         </div>
         <div className="space-y-2">
-          <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold font-bold">
+          <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
             Protected Resource Scopes
           </label>
           <input
@@ -181,7 +181,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
             />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold font-bold">
+            <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold">
               Min Gaps for Review
             </label>
             <input
@@ -204,21 +204,6 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
           SAVE_SYSTEM_CONFIG
         </button>
       </div>
-
-      <style jsx global>{`
-        .themed-select {
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 0.75rem center;
-          padding-right: 2.5rem;
-          appearance: none;
-        }
-        .themed-select option {
-          background: #000;
-          color: #fff;
-          padding: 10px;
-        }
-      `}</style>
     </form>
   );
 }
