@@ -1,21 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DynamoMemory } from '@claw/core/lib/memory';
+import { HTTP_STATUS } from '@/lib/constants';
 
-export async function POST(req: NextRequest) {
+/**
+ * POST handler for prioritizing memory insights.
+ * Updates the metadata (priority, urgency, impact) for a specific memory insight.
+ * 
+ * @param req - The incoming NextRequest containing the update parameters.
+ * @returns A promise that resolves to a NextResponse indicating success or failure.
+ */
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { userId, timestamp, priority, urgency, impact } = await req.json();
 
     if (!userId || !timestamp) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing required parameters: userId and timestamp are mandatory.' }, 
+        { status: HTTP_STATUS.BAD_REQUEST }
+      );
     }
 
     const memory = new DynamoMemory();
     
     // Update metadata
     await memory.updateInsightMetadata(userId, timestamp, {
-      priority: typeof priority === 'number' ? priority : undefined,
-      urgency: typeof urgency === 'number' ? urgency : undefined,
-      impact: typeof impact === 'number' ? impact : undefined,
+      priority: typeof priority === 'number' ? (priority as number) : undefined,
+      urgency: typeof urgency === 'number' ? (urgency as number) : undefined,
+      impact: typeof impact === 'number' ? (impact as number) : undefined,
     });
 
     return NextResponse.json({ success: true });
@@ -23,7 +34,7 @@ export async function POST(req: NextRequest) {
     console.error('Prioritize API Error:', error);
     return NextResponse.json(
       { error: 'Internal Server Error', details: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }
 }

@@ -3,7 +3,27 @@ import { NextResponse } from 'next/server';
 import { AgentRegistry } from '@claw/core/lib/registry';
 import { discoverSystemTopology } from '@claw/core/handlers/monitor';
 
-export async function GET() {
+const INFRA_IDS = {
+  BUS: 'bus',
+  MEMORY: 'memory',
+  CODEBUILD: 'codebuild',
+  STORAGE: 'storage',
+} as const;
+
+const INFRA_LABELS = {
+  BUS: 'EventBridge AgentBus',
+  MEMORY: 'DynamoDB Memory',
+  CODEBUILD: 'AWS CodeBuild',
+  STORAGE: 'Staging Bucket',
+} as const;
+
+/**
+ * GET handler for infrastructure topology.
+ * Discovers and returns the system's infrastructure nodes and their relationships.
+ * 
+ * @returns A promise that resolves to a NextResponse containing the topology JSON.
+ */
+export async function GET(): Promise<NextResponse> {
   try {
     // 1. Try to load full system topology from DynamoDB (persisted by Build Monitor)
     const topology = await AgentRegistry.getFullTopology();
@@ -24,17 +44,17 @@ export async function GET() {
       return NextResponse.json({ nodes: dynamicInfra, edges: [] });
     }
 
-    // 3. Static Fallback for initial deployment
+    // 4. Static Fallback for initial deployment
     const infraNodes = [];
     if (Resource.AgentBus) {
-      infraNodes.push({ id: 'bus', type: 'bus', label: 'EventBridge AgentBus' });
+      infraNodes.push({ id: INFRA_IDS.BUS, type: 'bus', label: INFRA_LABELS.BUS });
     }
     if (Resource.MemoryTable) {
-      infraNodes.push({ id: 'memory', type: 'infra', label: 'DynamoDB Memory' });
+      infraNodes.push({ id: INFRA_IDS.MEMORY, type: 'infra', label: INFRA_LABELS.MEMORY });
     }
-    infraNodes.push({ id: 'codebuild', type: 'infra', label: 'AWS CodeBuild' });
+    infraNodes.push({ id: INFRA_IDS.CODEBUILD, type: 'infra', label: INFRA_LABELS.CODEBUILD });
     if (Resource.StagingBucket) {
-      infraNodes.push({ id: 'storage', type: 'infra', label: 'Staging Bucket' });
+      infraNodes.push({ id: INFRA_IDS.STORAGE, type: 'infra', label: INFRA_LABELS.STORAGE });
     }
 
     return NextResponse.json({ nodes: infraNodes, edges: [] });

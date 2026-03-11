@@ -18,6 +18,11 @@ export const API_ROUTES = {
   MEMORY_PRIORITIZE: '/api/memory/prioritize',
 } as const;
 
+export const DYNAMO_KEYS = {
+  DEPLOY_LIMIT: 'deploy_limit',
+  AGENTS_CONFIG: 'agents_config',
+} as const;
+
 export const HTTP_STATUS = {
   OK: 200,
   BAD_REQUEST: 400,

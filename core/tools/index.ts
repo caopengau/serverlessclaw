@@ -22,6 +22,12 @@ import { createWriteStream } from 'fs';
 
 import { SYSTEM, STORAGE, PROTECTED_FILES, DYNAMO_KEYS } from '../lib/constants';
 
+import {
+  getDeployCountToday,
+  incrementDeployCount,
+  rewardDeployLimit,
+} from '../lib/deploy-stats';
+
 const execAsync = promisify(exec);
 const codebuild = new CodeBuildClient({});
 const eventbridge = new EventBridgeClient({});
@@ -201,17 +207,7 @@ export const tools: Record<string, ITool> = {
       const typedResource = Resource as unknown as ToolsResource;
 
       try {
-        const { Item } = await db.send(
-          new GetCommand({
-            TableName: typedResource.MemoryTable.name,
-            Key: {
-              userId: SYSTEM.DEPLOY_STATS_KEY,
-              timestamp: 0,
-            },
-          })
-        );
-
-        const count = Item?.lastReset === today ? Item?.count || 0 : 0;
+        const count = await getDeployCountToday();
 
         const { Item: configItem } = await db.send(
           new GetCommand({
@@ -258,25 +254,9 @@ export const tools: Record<string, ITool> = {
           );
         }
 
-        await db.send(
-          new UpdateCommand({
-            TableName: typedResource.MemoryTable.name,
-            Key: {
-              userId: 'SYSTEM#DEPLOY_STATS',
-              timestamp: 0,
-            },
-            UpdateExpression:
-              count === 0 ? 'SET #count = :one, lastReset = :today' : 'SET #count = #count + :inc',
-            ExpressionAttributeNames: { '#count': 'count' },
-            ExpressionAttributeValues: {
-              ':one': 1,
-              ':today': today,
-              ':inc': 1,
-            },
-          })
-        );
+        await incrementDeployCount(today, count);
 
-        return `Deployment started successfully. Build ID: ${buildId}. Build counter: ${count + 1}/${LIMIT}. Reason: ${reason}`;
+        return `Deployment started successfully. Build ID: ${buildId}. Build counter: ${count + 1}/${LIMIT}. Reason: ${reason}${warning}`;
       } catch (error) {
         return `Failed to trigger deployment: ${error instanceof Error ? error.message : String(error)}`;
       }
@@ -311,23 +291,11 @@ export const tools: Record<string, ITool> = {
     ...toolDefinitions.check_health,
     execute: async (args: Record<string, unknown>) => {
       const { url } = args as { url: string };
-      const typedResource = Resource as unknown as ToolsResource;
       try {
         logger.info(`Checking health at ${url}`);
         const response = await fetch(url as string);
         if (response.ok) {
-          await db.send(
-            new UpdateCommand({
-              TableName: typedResource.MemoryTable.name,
-              Key: {
-                userId: 'SYSTEM#DEPLOY_STATS',
-                timestamp: 0,
-              },
-              UpdateExpression: 'SET #count = if_not_exists(#count, :zero) - :one',
-              ExpressionAttributeNames: { '#count': 'count' },
-              ExpressionAttributeValues: { ':one': 1, ':zero': 0 },
-            })
-          );
+          await rewardDeployLimit();
           return `HEALTH_OK: System is responsive. Deployment limit rewarded (-1).`;
         }
         return `HEALTH_FAILED: Received status ${response.status}.`;

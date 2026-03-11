@@ -27,6 +27,7 @@ export const STORAGE = {
 
 export const DYNAMO_KEYS = {
   DEPLOY_LIMIT: 'deploy_limit',
+  AGENTS_CONFIG: 'agents_config',
 } as const;
 
 export const HTTP_STATUS = {
