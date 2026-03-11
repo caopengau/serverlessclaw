@@ -14,8 +14,42 @@ import { Resource } from 'sst';
 import { logger } from './logger';
 import { SSTResource } from './types/index';
 import { Context as LambdaContext } from 'aws-lambda';
+import { SYSTEM } from './constants';
 
 const typedResource = Resource as unknown as SSTResource;
+
+const AGENT_DEFAULTS = {
+  MAX_ITERATIONS: 15,
+  REFLECTION_FREQUENCY: 3,
+  TIMEOUT_BUFFER_MS: 30000, // 30 seconds
+} as const;
+
+const AGENT_LOG_MESSAGES = {
+  TIMEOUT_APPROACHING: 'Lambda timeout approaching, pausing task...',
+  RECOVERY_LOG_PREFIX: '\n\nSYSTEM_RECOVERY_LOG: Recent emergency rollback occurred. Details: ',
+  TASK_PAUSED_TIMEOUT: 'TASK_PAUSED: I need more time to complete this. I have checkpointed my progress and am resuming in a fresh execution...',
+  TASK_PAUSED_ITERATION_LIMIT: 'TASK_PAUSED: This task is complex and requires multiple steps. I have reached my single-turn safety limit and am resuming in a fresh execution...',
+} as const;
+
+/**
+ * Processing options for the agent's process method.
+ */
+export interface AgentProcessOptions {
+  /**
+   * The reasoning profile to use for the LLM call.
+   * @default ReasoningProfile.STANDARD
+   */
+  profile?: ReasoningProfile;
+  /**
+   * The AWS Lambda context for timeout monitoring.
+   */
+  context?: LambdaContext;
+  /**
+   * Whether this is a continuation of a previously paused task.
+   * @default false
+   */
+  isContinuation?: boolean;
+}
 
 /**
  * The core Agent class responsible for orchestrating LLM calls, tool execution,
@@ -44,17 +78,13 @@ export class Agent {
    * Processes a user message, potentially performing multiple tool-calling iterations
    * @param userId - Unique identifier for the user or session
    * @param userText - The raw input message from the user
-   * @param options - Optional configuration for this process run
-   * @returns The final textual response from the agent
+   * @param options - Configuration for this process run
+   * @returns A promise that resolves to the final textual response from the agent
    */
   async process(
     userId: string,
     userText: string,
-    options: {
-      profile?: ReasoningProfile;
-      context?: LambdaContext;
-      isContinuation?: boolean;
-    } = {}
+    options: AgentProcessOptions = {}
   ): Promise<string> {
     const { profile = ReasoningProfile.STANDARD, context, isContinuation = false } = options;
 
@@ -62,8 +92,6 @@ export class Agent {
     if (!isContinuation) {
       await tracer.startTrace({ userText });
     }
-
-    // ... (rest of the code is unchanged until the bottom)
 
     // 1. Get history, distilled facts, and tactical lessons
     const history = await this.memory.getHistory(userId);
@@ -73,10 +101,10 @@ export class Agent {
     // 2. Check for recent Recovery Events (Dead Man's Switch)
     let recoveryContext = '';
     try {
-      const recoveryData = await this.memory.getDistilledMemory('RECOVERY');
+      const recoveryData = await this.memory.getDistilledMemory(SYSTEM.RECOVERY_KEY || 'RECOVERY');
       if (recoveryData) {
-        recoveryContext = `\n\nSYSTEM_RECOVERY_LOG: Recent emergency rollback occurred. Details: ${recoveryData}`;
-        await this.memory.updateDistilledMemory('RECOVERY', '');
+        recoveryContext = `${AGENT_LOG_MESSAGES.RECOVERY_LOG_PREFIX}${recoveryData}`;
+        await this.memory.updateDistilledMemory(SYSTEM.RECOVERY_KEY || 'RECOVERY', '');
       }
     } catch (e) {
       logger.error('Error checking recovery context:', e);
@@ -129,7 +157,7 @@ export class Agent {
 
     let responseText = '';
     let iterations = 0;
-    let maxIterations = this.config?.maxIterations || 15; // Global default now 15
+    let maxIterations = this.config?.maxIterations || AGENT_DEFAULTS.MAX_ITERATIONS;
 
     try {
       const { AgentRegistry } = await import('./registry');
@@ -138,7 +166,7 @@ export class Agent {
         maxIterations = parseInt(String(customMax), 10);
       }
     } catch {
-      logger.warn('Failed to fetch max_tool_iterations from DDB, using default 5.');
+      logger.warn(`Failed to fetch max_tool_iterations from DDB, using default ${maxIterations}.`);
     }
 
     try {
@@ -146,14 +174,13 @@ export class Agent {
         // Pause/Resume Logic: Check for Lambda Timeout
         if (context) {
           const remainingTime = context.getRemainingTimeInMillis();
-          if (remainingTime < 30000) {
-            // 30 seconds buffer
-            logger.info('Lambda timeout approaching, pausing task...', {
+          if (remainingTime < AGENT_DEFAULTS.TIMEOUT_BUFFER_MS) {
+            logger.info(AGENT_LOG_MESSAGES.TIMEOUT_APPROACHING, {
               remainingTime,
               iterations,
             });
             await this.emitContinuation(userId, userText, tracer.getTraceId());
-            return 'TASK_PAUSED: I need more time to complete this. I have checkpointed my progress and am resuming in a fresh execution...';
+            return AGENT_LOG_MESSAGES.TASK_PAUSED_TIMEOUT;
           }
         }
 
@@ -203,7 +230,7 @@ export class Agent {
       if (iterations >= maxIterations) {
         logger.info('Iteration limit reached, pausing task...', { iterations });
         await this.emitContinuation(userId, userText, tracer.getTraceId());
-        return 'TASK_PAUSED: This task is complex and requires multiple steps. I have reached my single-turn safety limit and am resuming in a fresh execution...';
+        return AGENT_LOG_MESSAGES.TASK_PAUSED_ITERATION_LIMIT;
       }
       responseText = 'Sorry, I reached my iteration limit.';
     }
@@ -216,8 +243,7 @@ export class Agent {
 
     // 7. Trigger Reflection (async via EventBridge)
     // 2026 Optimization: Reflection frequency is now configurable.
-    // Default is every 3 messages.
-    let reflectionFrequency = 3;
+    let reflectionFrequency = AGENT_DEFAULTS.REFLECTION_FREQUENCY;
     try {
       const { AgentRegistry } = await import('./registry');
       const customFreq = await AgentRegistry.getRawConfig('reflection_frequency');
@@ -225,7 +251,7 @@ export class Agent {
         reflectionFrequency = parseInt(String(customFreq), 10);
       }
     } catch {
-      logger.warn('Failed to fetch reflection_frequency, using default 3.');
+      logger.warn(`Failed to fetch reflection_frequency, using default ${reflectionFrequency}.`);
     }
 
     const shouldReflect =
@@ -248,6 +274,7 @@ export class Agent {
                   conversation: [
                     ...messages,
                     { role: MessageRole.ASSISTANT, content: responseText },
+                    { role: MessageRole.ASSISTANT, content: responseText },
                   ],
                 }),
                 EventBusName: typedResource.AgentBus.name,
@@ -266,6 +293,9 @@ export class Agent {
 
   /**
    * Emits an event to trigger a continuation of the current task
+   * @param userId - Unique identifier for the user or session
+   * @param task - The raw input message or task description
+   * @param traceId - The trace identifier for linking continued executions
    */
   private async emitContinuation(userId: string, task: string, traceId: string): Promise<void> {
     try {
