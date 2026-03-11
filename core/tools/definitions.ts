@@ -235,4 +235,19 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       },
     },
   },
+  set_system_config: {
+    name: 'set_system_config',
+    description: 'Updates a system-wide configuration value in the ConfigTable.',
+    parameters: {
+      type: 'object',
+      properties: {
+        key: {
+          type: 'string',
+          description: 'The configuration key (e.g. evolution_mode, deploy_limit).',
+        },
+        value: { type: 'any', description: 'The new value for the configuration.' },
+      },
+      required: ['key', 'value'],
+    },
+  },
 };

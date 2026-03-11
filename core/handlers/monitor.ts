@@ -56,6 +56,19 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
     if (status === 'SUCCEEDED') {
       logger.info(`Build ${buildId} SUCCEEDED. Marking ${gapIds.length} gaps as DEPLOYED.`);
 
+      // Reset failure counter on success
+      try {
+        const { PutCommand } = await import('@aws-sdk/lib-dynamodb');
+        await db.send(
+          new PutCommand({
+            TableName: typedResource.ConfigTable.name,
+            Item: { key: 'consecutive_build_failures', value: 0 },
+          })
+        );
+      } catch (e) {
+        logger.error('Failed to reset build failure counter:', e);
+      }
+
       // Transition gaps to DEPLOYED (Verification phase starts)
       for (const gapId of gapIds) {
         await memory.updateGapStatus(gapId, GapStatus.DEPLOYED);
@@ -145,6 +158,44 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
       );
     } else if (status === 'FAILED') {
       logger.info(`Build ${buildId} FAILED. Marking ${gapIds.length} gaps as FAILED.`);
+
+      // 2026 Circuit Breaker Logic
+      try {
+        const { GetCommand, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+        const { Item } = await db.send(
+          new GetCommand({
+            TableName: typedResource.ConfigTable.name,
+            Key: { key: 'consecutive_build_failures' },
+          })
+        );
+        const failures = (Item?.value || 0) + 1;
+        await db.send(
+          new PutCommand({
+            TableName: typedResource.ConfigTable.name,
+            Item: { key: 'consecutive_build_failures', value: failures },
+          })
+        );
+
+        const { Item: thresholdItem } = await db.send(
+          new GetCommand({
+            TableName: typedResource.ConfigTable.name,
+            Key: { key: 'circuit_breaker_threshold' },
+          })
+        );
+        const threshold = thresholdItem?.value || 3;
+
+        if (failures >= threshold) {
+          logger.warn(`Circuit Breaker Active! ${failures} build failures. Flipping to HITL mode.`);
+          await db.send(
+            new PutCommand({
+              TableName: typedResource.ConfigTable.name,
+              Item: { key: 'evolution_mode', value: 'hitl' },
+            })
+          );
+        }
+      } catch (e) {
+        logger.error('Failed to update circuit breaker counter:', e);
+      }
 
       // Transition gaps to FAILED
       for (const gapId of gapIds) {

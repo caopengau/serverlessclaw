@@ -19,16 +19,18 @@ export class OpenAIProvider implements IProvider {
   async call(
     messages: Message[],
     tools?: ITool[],
-    profile: ReasoningProfile = ReasoningProfile.STANDARD
+    profile: ReasoningProfile = ReasoningProfile.STANDARD,
+    model?: string
   ): Promise<Message> {
     const apiKey = typedResource.OpenAIApiKey.value;
     const client = new OpenAI({ apiKey });
+    const activeModel = model || this.model;
 
     // Fallback if profile not supported
     const capabilities = await this.getCapabilities();
     if (!capabilities.supportedReasoningProfiles.includes(profile)) {
       logger.warn(
-        `Profile ${profile} not supported for model ${this.model}, falling back to STANDARD`
+        `Profile ${profile} not supported for model ${activeModel}, falling back to STANDARD`
       );
       profile = ReasoningProfile.STANDARD;
     }
@@ -58,9 +60,9 @@ export class OpenAIProvider implements IProvider {
     if (profile === ReasoningProfile.DEEP) reasoningEffort = 'xhigh';
 
     const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
-      model: this.model,
+      model: activeModel,
       messages: processedMessages,
-      ...(this.model.includes(OpenAIModel.GPT_5_4) ? { reasoning_effort: reasoningEffort } : {}),
+      ...(activeModel.includes(OpenAIModel.GPT_5_4) ? { reasoning_effort: reasoningEffort } : {}),
       // 2026 Optimization: Prediction removed if no content provided to avoid lint error
     };
 

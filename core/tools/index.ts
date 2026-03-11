@@ -142,8 +142,21 @@ export const tools: Record<string, ITool> = {
     ...toolDefinitions.file_write,
     execute: async (args: Record<string, unknown>): Promise<string> => {
       const { filePath, content } = args as { filePath: string; content: string };
+
+      // 2026 Hot-Swap Logic: Check DDB for protected resources list
+      let protectedList: string[] = [...PROTECTED_FILES];
+      try {
+        const { AgentRegistry } = await import('../lib/registry');
+        const ddbProtected = (await AgentRegistry.getRawConfig('protected_resources')) as string[];
+        if (ddbProtected && Array.isArray(ddbProtected)) {
+          protectedList = ddbProtected;
+        }
+      } catch {
+        logger.warn('Failed to fetch protected_resources from DDB, using hardcoded defaults.');
+      }
+
       const isProtected =
-        PROTECTED_FILES.some((f) => (filePath as string).endsWith(f)) ||
+        protectedList.some((f) => (filePath as string).endsWith(f)) ||
         (filePath as string).includes('infra/');
 
       if (isProtected) {
@@ -469,6 +482,25 @@ export const tools: Record<string, ITool> = {
         return files.join('\n');
       } catch (error) {
         return `Failed to list files: ${error instanceof Error ? error.message : String(error)}`;
+      }
+    },
+  },
+  set_system_config: {
+    ...toolDefinitions.set_system_config,
+    execute: async (args: Record<string, unknown>) => {
+      const { key, value } = args as { key: string; value: unknown };
+      const typedResource = Resource as unknown as ToolsResource;
+      try {
+        const { PutCommand } = await import('@aws-sdk/lib-dynamodb');
+        await db.send(
+          new PutCommand({
+            TableName: typedResource.ConfigTable.name,
+            Item: { key, value },
+          })
+        );
+        return `Successfully updated system config: ${key} = ${JSON.stringify(value)}`;
+      } catch (error) {
+        return `Failed to update system config: ${error instanceof Error ? error.message : String(error)}`;
       }
     },
   },

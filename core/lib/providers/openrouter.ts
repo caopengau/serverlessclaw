@@ -19,16 +19,18 @@ export class OpenRouterProvider implements IProvider {
   async call(
     messages: Message[],
     tools?: ITool[],
-    profile: ReasoningProfile = ReasoningProfile.STANDARD
+    profile: ReasoningProfile = ReasoningProfile.STANDARD,
+    model?: string
   ): Promise<Message> {
     const apiKey = (Resource as unknown as OpenRouterResource).OpenRouterApiKey?.value || '';
     const baseUrl = 'https://openrouter.ai/api/v1';
+    const activeModel = model || this.model;
 
     // Fallback if profile not supported
     const capabilities = await this.getCapabilities();
     if (!capabilities.supportedReasoningProfiles.includes(profile)) {
       logger.warn(
-        `Profile ${profile} not supported for OpenRouter model ${this.model}, falling back to STANDARD`
+        `Profile ${profile} not supported for OpenRouter model ${activeModel}, falling back to STANDARD`
       );
       profile = ReasoningProfile.STANDARD;
     }
@@ -50,7 +52,7 @@ export class OpenRouterProvider implements IProvider {
     }
 
     const body: Record<string, unknown> = {
-      model: this.model,
+      model: activeModel,
       messages: messages,
       // 2026 OpenRouter Enhancements:
       // Provider routing preferences (prefer speed/cost)
@@ -111,7 +113,7 @@ export class OpenRouterProvider implements IProvider {
     // 2026 Log reasoning details for observability if present
     if (message.reasoning_details) {
       logger.debug(
-        `[OpenRouter Reasoning] for ${this.model}:`,
+        `[OpenRouter Reasoning] for ${activeModel}:`,
         JSON.stringify(message.reasoning_details)
       );
     }

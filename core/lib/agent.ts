@@ -72,6 +72,21 @@ export class Agent {
     const userMessage: Message = { role: MessageRole.USER, content: userText };
     await this.memory.addMessage(userId, userMessage);
 
+    // 2026 Hot-Swap Strategy: Resolve Model from Reasoning Profile via DDB
+    let activeModel: string | undefined;
+    try {
+      const { AgentRegistry } = await import('./registry');
+      const profileMap = (await AgentRegistry.getRawConfig('reasoning_profiles')) as Record<
+        string,
+        string
+      >;
+      if (profileMap && profileMap[profile]) {
+        activeModel = profileMap[profile];
+      }
+    } catch {
+      logger.warn('Failed to fetch reasoning_profiles from DDB, using hardcoded defaults.');
+    }
+
     // 4. Complete context (Smart Recall Index)
     let contextPrompt = this.systemPrompt;
     if (recoveryContext) contextPrompt += recoveryContext;
@@ -93,12 +108,22 @@ export class Agent {
 
     let responseText = '';
     let iterations = 0;
-    const maxIterations = 5;
+    let maxIterations = 5;
+
+    try {
+      const { AgentRegistry } = await import('./registry');
+      const customMax = await AgentRegistry.getRawConfig('max_tool_iterations');
+      if (customMax !== undefined) {
+        maxIterations = parseInt(String(customMax), 10);
+      }
+    } catch {
+      logger.warn('Failed to fetch max_tool_iterations from DDB, using default 5.');
+    }
 
     try {
       while (iterations < maxIterations) {
         await tracer.addStep({ type: 'llm_call', content: { messageCount: messages.length } });
-        const aiResponse = await this.provider.call(messages, this.tools, profile);
+        const aiResponse = await this.provider.call(messages, this.tools, profile, activeModel);
 
         if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
           messages.push(aiResponse);

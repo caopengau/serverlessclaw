@@ -4,6 +4,7 @@ include makefiles/Makefile.quality.mk
 include makefiles/Makefile.test.mk
 include makefiles/Makefile.deploy.mk
 include makefiles/Makefile.release.mk
+include task.mk
 
 .DEFAULT_GOAL := help
 

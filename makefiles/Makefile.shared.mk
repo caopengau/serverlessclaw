@@ -112,3 +112,8 @@ define kill_port
 	@lsof -ti :$(1) >/dev/null 2>&1 && lsof -ti :$(1) | xargs kill || true
 	@$(call log_success,Port $(1) is now free)
 endef
+
+seed-config: ## Seed the DynamoDB ConfigTable with hardcoded defaults (bootstrapping)
+	@$(call log_step,Seeding ConfigTable with defaults...)
+	@npx sst shell "tsx scripts/seed-config.ts"
+	@$(call log_success,ConfigTable seeded successfully)

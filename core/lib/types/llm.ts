@@ -58,6 +58,11 @@ export interface ICapabilities {
 }
 
 export interface IProvider {
-  call(messages: Message[], tools?: ITool[], profile?: ReasoningProfile): Promise<Message>;
+  call(
+    messages: Message[],
+    tools?: ITool[],
+    profile?: ReasoningProfile,
+    model?: string
+  ): Promise<Message>;
   getCapabilities(): Promise<ICapabilities>;
 }

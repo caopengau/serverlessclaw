@@ -27,18 +27,20 @@ export class BedrockProvider implements IProvider {
   async call(
     messages: Message[],
     tools?: ITool[],
-    profile: ReasoningProfile = ReasoningProfile.STANDARD
+    profile: ReasoningProfile = ReasoningProfile.STANDARD,
+    model?: string
   ): Promise<Message> {
     const typedResource = Resource as unknown as BedrockResource;
     const client = new BedrockRuntimeClient({
       region: typedResource.AwsRegion?.value || 'ap-southeast-2',
     });
+    const activeModelId = model || this.modelId;
 
     // Fallback if profile not supported
     const capabilities = await this.getCapabilities();
     if (!capabilities.supportedReasoningProfiles.includes(profile)) {
       logger.warn(
-        `Profile ${profile} not supported for model ${this.modelId}, falling back to STANDARD`
+        `Profile ${profile} not supported for model ${activeModelId}, falling back to STANDARD`
       );
       profile = ReasoningProfile.STANDARD;
     }
@@ -113,7 +115,7 @@ export class BedrockProvider implements IProvider {
     }
 
     const command = new ConverseCommand({
-      modelId: this.modelId,
+      modelId: activeModelId,
       messages: bedrockMessages,
       system,
       toolConfig: bedrockTools ? { tools: bedrockTools } : undefined,
@@ -154,7 +156,7 @@ export class BedrockProvider implements IProvider {
         .join('\n\n');
 
       if (reasoning) {
-        logger.debug(`[Bedrock Reasoning] for ${this.modelId}:`, reasoning);
+        logger.debug(`[Bedrock Reasoning] for ${activeModelId}:`, reasoning);
       }
 
       // Aggregate all text blocks (model might return multiple)

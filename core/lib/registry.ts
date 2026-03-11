@@ -126,7 +126,15 @@ export class AgentRegistry {
     // 1. Resolve Base Config
     if (this.backboneConfigs[id]) {
       config = { ...this.backboneConfigs[id] };
-      // Apply backbone-level overrides from DDB if any
+
+      // 2026 Hot-Swap Logic: Check for Prompt/Description Overrides in DDB
+      const overrides = (await this.getRawConfig(`agent_override_${id}`)) as Partial<IAgentConfig>;
+      if (overrides) {
+        if (overrides.systemPrompt) config.systemPrompt = overrides.systemPrompt;
+        if (overrides.description) config.description = overrides.description;
+      }
+
+      // Apply legacy backbone-level overrides from agents_config if any
       const ddbAgents =
         ((await this.getRawConfig('agents_config')) as Record<string, unknown>) || {};
       if (ddbAgents[id]) {
