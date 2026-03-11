@@ -38,6 +38,7 @@ vi.mock('sst', () => ({
     Deployer: { name: 'MockDeployer' },
     MemoryTable: { name: 'MockTable' },
     AgentBus: { name: 'MockBus' },
+    ConfigTable: { name: 'MockConfigTable' },
   },
 }));
 
@@ -52,13 +53,18 @@ describe('Deployment Circuit Breaker', () => {
   it('should block deployment if daily limit is reached (5)', async () => {
     mocks.dbSend.mockImplementation((command: unknown) => {
       if (command instanceof GetCommand) {
-        return Promise.resolve({
-          Item: {
-            id: 'system:deploy-stats',
-            count: 5,
-            lastReset: new Date().toISOString().split('T')[0],
-          },
-        });
+        // Return different items based on the "TableName" (approximated here by call order or logic)
+        // trigger_deployment calls GetCommand twice: 1. Deploy Stats, 2. deploy_limit
+        if (mocks.dbSend.mock.calls.length === 1) {
+          return Promise.resolve({
+            Item: {
+              userId: 'SYSTEM#DEPLOY_STATS',
+              count: 5,
+              lastReset: new Date().toISOString().split('T')[0],
+            },
+          });
+        }
+        return Promise.resolve({ Item: { value: '5' } }); // deploy_limit
       }
       return Promise.resolve({});
     });
@@ -75,13 +81,16 @@ describe('Deployment Circuit Breaker', () => {
   it('should allow deployment and increment counter if limit not reached', async () => {
     mocks.dbSend.mockImplementation((command: unknown) => {
       if (command instanceof GetCommand) {
-        return Promise.resolve({
-          Item: {
-            id: 'system:deploy-stats',
-            count: 2,
-            lastReset: new Date().toISOString().split('T')[0],
-          },
-        });
+        if (mocks.dbSend.mock.calls.length === 1) {
+          return Promise.resolve({
+            Item: {
+              userId: 'SYSTEM#DEPLOY_STATS',
+              count: 2,
+              lastReset: new Date().toISOString().split('T')[0],
+            },
+          });
+        }
+        return Promise.resolve({ Item: { value: '5' } });
       }
       return Promise.resolve({});
     });
@@ -100,13 +109,16 @@ describe('Deployment Circuit Breaker', () => {
   it('should reset counter if the day has changed', async () => {
     mocks.dbSend.mockImplementation((command: unknown) => {
       if (command instanceof GetCommand) {
-        return Promise.resolve({
-          Item: {
-            id: 'system:deploy-stats',
-            count: 5,
-            lastReset: '2000-01-01', // Old date
-          },
-        });
+        if (mocks.dbSend.mock.calls.length === 1) {
+          return Promise.resolve({
+            Item: {
+              userId: 'SYSTEM#DEPLOY_STATS',
+              count: 5,
+              lastReset: '2000-01-01', // Old date
+            },
+          });
+        }
+        return Promise.resolve({ Item: { value: '5' } });
       }
       return Promise.resolve({});
     });
@@ -120,5 +132,32 @@ describe('Deployment Circuit Breaker', () => {
     expect(result).toContain('Deployment started successfully');
     expect(mocks.dbSend).toHaveBeenCalledWith(expect.any(PutCommand));
     expect(mocks.dbSend).toHaveBeenCalledWith(expect.any(UpdateCommand));
+  });
+
+  it('should respect custom deploy_limit from config', async () => {
+    mocks.dbSend.mockImplementation((command: unknown) => {
+      if (command instanceof GetCommand) {
+        if (mocks.dbSend.mock.calls.length === 1) {
+          return Promise.resolve({
+            Item: {
+              userId: 'SYSTEM#DEPLOY_STATS',
+              count: 10,
+              lastReset: new Date().toISOString().split('T')[0],
+            },
+          });
+        }
+        return Promise.resolve({ Item: { value: '20' } }); // Increased limit
+      }
+      return Promise.resolve({});
+    });
+    mocks.cbSend.mockResolvedValue({ build: { id: 'test-build-id' } });
+
+    const result = await tools.trigger_deployment.execute({
+      reason: 'testing custom limit',
+      userId: 'user123',
+    });
+
+    expect(result).toContain('Deployment started successfully');
+    expect(mocks.cbSend).toHaveBeenCalled();
   });
 });

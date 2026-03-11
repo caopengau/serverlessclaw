@@ -169,13 +169,32 @@ export const tools: Record<string, ITool> = {
         );
 
         const count = Item?.lastReset === today ? Item?.count || 0 : 0;
-        const LIMIT = 5;
+
+        const { Item: configItem } = await db.send(
+          new GetCommand({
+            TableName: typedResource.ConfigTable.name,
+            Key: { key: 'deploy_limit' },
+          })
+        );
+
+        let LIMIT = 5;
+        if (configItem?.value) {
+          const customLimit = parseInt(configItem.value, 10);
+          if (!isNaN(customLimit)) {
+            LIMIT = Math.min(100, Math.max(1, customLimit));
+          }
+        }
 
         if (count >= LIMIT) {
           return `CIRCUIT_BREAKER_ACTIVE: Daily deployment limit reached (${LIMIT}). Autonomous deployment blocked for today (${today}). Reason for attempt: ${reason}`;
         }
 
-        logger.info(`Triggering deployment for reason: ${reason}`);
+        const warning =
+          LIMIT > 20
+            ? `\n⚠️ WARNING: High deployment limit (${LIMIT}) may result in significant LLM token consumption and AWS costs.`
+            : '';
+
+        logger.info(`Triggering deployment for reason: ${reason}${warning}`);
         const command = new StartBuildCommand({
           projectName: typedResource.Deployer.name,
         });

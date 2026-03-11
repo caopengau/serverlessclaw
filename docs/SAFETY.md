@@ -68,11 +68,15 @@ This loop is still subject to the **Circuit Breaker** to prevent infinite repair
 
 **Logic**:
 - If `lastReset` ≠ today (UTC): reset `count` to 0 (new day).
-- If `count >= 5`: return `CIRCUIT_BREAKER_ACTIVE` — no CodeBuild triggered.
+- If `count >= LIMIT`: return `CIRCUIT_BREAKER_ACTIVE` — no CodeBuild triggered.
 - On each successful deploy: `count += 1`.
 - On each successful `check_health`: `count -= 1` (reward credit).
 
-**Limit**: 5 deployments / UTC day. Adjustable in `tools.ts` (`LIMIT = 5`).
+**Limit Configuration**:
+- **Default**: 5 deployments / UTC day.
+- **Customization**: Set `deploy_limit` in the `ConfigTable` (DynamoDB).
+- **Cap**: The system enforces a hard cap of **100** deployments per day to prevent runaway costs.
+- **Warning**: Setting a limit > 20 will trigger high-consumption warnings in the logs. High limits significantly increase LLM token consumption and AWS resource costs during autonomous evolution loops.
 
 ---
 

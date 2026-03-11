@@ -145,14 +145,16 @@ Serverless Claw is not a static agent; it is a **self-evolving system** that ide
     +---------+---------+                         +-------------------+
               |                                             |
               | 4. DISPATCH_TASK (if auto/approved)         | (Notify)
-              v                                             v
-    +---------+---------+       5. IMPLEMENT       +-------------------+
-    |   Coder           |------------------------>|   Source Code     |
-    |   Agent           |      (Tools & Logic)    |   (Filesystem)    |
-    +---------+---------+                         +-------------------+
-              |                                             |
-              | 6. TRIGGER_DEPLOYMENT (SST)                 |
-              v                                             v
+              |    [APPROVAL GATE]                          v
+              v                                     +-------------------+
+    +---------+---------+       5. IMPLEMENT        |   Human Admin     |
+    |   Coder           |------------------------>|   (HITL Mode)     |
+    |   Agent           |      (Tools & Logic)      +-------------------+
+    +---------+---------+                         
+              |
+              | 6. TRIGGER_DEPLOYMENT (SST)
+              |    [CIRCUIT BREAKER]
+              v
     +---------+---------+       7. REGISTER        +-------------------+
     |   Agent           |------------------------>|   Agent Registry  |
     |   Registry        |      (Tool Scoping)     |   (Hot Config)    |
