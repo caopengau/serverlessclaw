@@ -19,7 +19,16 @@ const memory = new DynamoMemory();
 const provider = new ProviderManager();
 const eventbridge = new EventBridgeClient({});
 
-export const handler = async (event: { userId: string; conversation: Message[] }) => {
+/**
+ * Reflector Agent handler. Analyzes conversations to extract facts, lessons, and capability gaps.
+ *
+ * @param event - The event containing userId and the conversation history.
+ * @returns A promise that resolves to the reflection report string, or undefined on error.
+ */
+export const handler = async (event: {
+  userId: string;
+  conversation: Message[];
+}): Promise<string | undefined> => {
   logger.info('Reflector Agent received task:', JSON.stringify(event, null, 2));
 
   const { userId, conversation } = event;

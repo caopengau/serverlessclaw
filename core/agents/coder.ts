@@ -12,11 +12,18 @@ const provider = new ProviderManager();
 const eventbridge = new EventBridgeClient({});
 const typedResource = Resource as unknown as SSTResource;
 
+/**
+ * Coder Agent handler. Processes coding tasks, implements changes,
+ * and optionally triggers deployments or notifies QA.
+ *
+ * @param event - The event containing userId, task, and optional metadata.
+ * @returns A promise that resolves to the agent's response string, or undefined on error.
+ */
 export const handler = async (event: {
   userId: string;
   task: string;
   metadata?: { gapIds?: string[] };
-}) => {
+}): Promise<string | undefined> => {
   logger.info('Coder Agent received task:', JSON.stringify(event, null, 2));
 
   const { userId, task, metadata } = event;

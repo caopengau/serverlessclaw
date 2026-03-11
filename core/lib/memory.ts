@@ -17,9 +17,18 @@ const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 const typedResource = Resource as unknown as SSTResource;
 
+/**
+ * Implementation of IMemory using AWS DynamoDB for persistent storage
+ * of session history, distilled knowledge, and strategic insights.
+ */
 export class DynamoMemory implements IMemory {
-  private tableName = typedResource.MemoryTable.name;
+  private tableName: string = typedResource.MemoryTable.name;
 
+  /**
+   * Retrieves the conversation history for a specific user or session
+   * @param userId - Unique identifier for the user or session
+   * @returns Array of messages sorted by timestamp (oldest first)
+   */
   async getHistory(userId: string): Promise<Message[]> {
     const command = new QueryCommand({
       TableName: this.tableName,
@@ -45,7 +54,12 @@ export class DynamoMemory implements IMemory {
     }
   }
 
-  async addMessage(userId: string, message: Message) {
+  /**
+   * Appends a new message to the conversation history
+   * @param userId - Unique identifier for the user or session
+   * @param message - The message object to be stored
+   */
+  async addMessage(userId: string, message: Message): Promise<void> {
     const command = new PutCommand({
       TableName: this.tableName,
       Item: {
@@ -62,10 +76,18 @@ export class DynamoMemory implements IMemory {
     }
   }
 
-  async clearHistory(userId: string) {
+  /**
+   * Placeholder for clearing user history (not fully implemented)
+   */
+  async clearHistory(userId: string): Promise<void> {
     logger.info('Clear history requested for', userId);
   }
 
+  /**
+   * Retrieves distilled facts and lessons for a specific user
+   * @param userId - Unique identifier for the user
+   * @returns String containing concatenated facts and lessons
+   */
   async getDistilledMemory(userId: string): Promise<string> {
     const command = new QueryCommand({
       TableName: this.tableName,
@@ -84,6 +106,11 @@ export class DynamoMemory implements IMemory {
     }
   }
 
+  /**
+   * Updates the distilled memory (facts and lessons) for a user
+   * @param userId - Unique identifier for the user
+   * @param facts - The new textual content for the distilled memory
+   */
   async updateDistilledMemory(userId: string, facts: string): Promise<void> {
     const command = new PutCommand({
       TableName: this.tableName,
@@ -101,6 +128,11 @@ export class DynamoMemory implements IMemory {
     }
   }
 
+  /**
+   * Retrieves all capability gaps filtered by status
+   * @param status - The current status of the gaps to retrieve (defaults to OPEN)
+   * @returns Array of MemoryInsight objects representing the gaps
+   */
   async getAllGaps(status: GapStatus = GapStatus.OPEN): Promise<MemoryInsight[]> {
     // In a real system, we would have a GSI for Category=GAP
     // For now, we query with the GAP# prefix using a Scan
@@ -139,6 +171,12 @@ export class DynamoMemory implements IMemory {
     }
   }
 
+  /**
+   * Records or updates a capability gap identified by the system
+   * @param gapId - Unique ID for the gap
+   * @param details - Description of the gap
+   * @param metadata - Strategic metadata (impact, complexity, etc.)
+   */
   async setGap(gapId: string, details: string, metadata?: InsightMetadata): Promise<void> {
     const command = new PutCommand({
       TableName: this.tableName,
@@ -166,6 +204,11 @@ export class DynamoMemory implements IMemory {
     }
   }
 
+  /**
+   * Transitions a capability gap to a new status
+   * @param gapId - The ID of the gap to update
+   * @param status - The new GapStatus
+   */
   async updateGapStatus(gapId: string, status: GapStatus): Promise<void> {
     const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
     const numericId = gapId.replace('GAP#', '');
@@ -205,6 +248,12 @@ export class DynamoMemory implements IMemory {
     }
   }
 
+  /**
+   * Adds a tactical lesson learned from recent agent operations
+   * @param userId - Unique identifier for the user
+   * @param lesson - Textual content of the lesson
+   * @param metadata - Insight metadata
+   */
   async addLesson(userId: string, lesson: string, metadata?: InsightMetadata): Promise<void> {
     const command = new PutCommand({
       TableName: this.tableName,
@@ -231,6 +280,11 @@ export class DynamoMemory implements IMemory {
     }
   }
 
+  /**
+   * Retrieves the most recent tactical lessons for a user
+   * @param userId - Unique identifier for the user
+   * @returns Array of textual lessons
+   */
   async getLessons(userId: string): Promise<string[]> {
     const command = new QueryCommand({
       TableName: this.tableName,
@@ -251,6 +305,20 @@ export class DynamoMemory implements IMemory {
     }
   }
 
+  /**
+   * Searches for insights across all categories based on a query string
+   * @param userId - Unique identifier for the user
+   * @param query - Keyword query string or '*' for all
+   * @param category - Optional category filter
+   * @returns Array of MemoryInsight objects
+   */
+  /**
+   * Searches for insights across all categories based on a query string
+   * @param userId - Unique identifier for the user
+   * @param query - Keyword query string or '*' for all
+   * @param category - Optional category filter
+   * @returns Array of MemoryInsight objects
+   */
   async searchInsights(
     userId: string,
     query: string,
@@ -274,9 +342,9 @@ export class DynamoMemory implements IMemory {
       try {
         const response = await docClient.send(command);
         const insights = (response.Items || []).map((item) => ({
-          id: item.userId,
-          content: item.content,
-          metadata: item.metadata || {
+          id: item.userId as string,
+          content: item.content as string,
+          metadata: (item.metadata as InsightMetadata) || {
             category: InsightCategory.SYSTEM_KNOWLEDGE,
             confidence: 0,
             impact: 0,
@@ -285,7 +353,7 @@ export class DynamoMemory implements IMemory {
             urgency: 0,
             priority: 0,
           },
-          timestamp: item.timestamp,
+          timestamp: item.timestamp as number,
         }));
         allInsights = [...allInsights, ...insights];
       } catch (e) {
@@ -307,6 +375,12 @@ export class DynamoMemory implements IMemory {
     return allInsights.sort((a, b) => b.timestamp - a.timestamp);
   }
 
+  /**
+   * Updates the metadata for a specific insight item
+   * @param userId - Unique identifier for the user or insight prefix
+   * @param timestamp - The timestamp (sort key) of the item
+   * @param metadata - Partial metadata object to merge
+   */
   async updateInsightMetadata(
     userId: string,
     timestamp: number,

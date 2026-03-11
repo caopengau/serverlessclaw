@@ -1,20 +1,28 @@
 import { EventType } from '../core/lib/types/agent';
+import { SharedContext, getValidSecrets, AGENT_CONFIG } from './shared';
 
-interface AgentContext {
-  memoryTable: sst.aws.Dynamo;
-  traceTable: sst.aws.Dynamo;
-  configTable: sst.aws.Dynamo;
-  stagingBucket: sst.aws.Bucket;
-  secrets: Record<string, sst.Secret>;
-  bus: sst.aws.Bus;
-  deployer: aws.codebuild.Project;
-  api: sst.aws.ApiGatewayV2;
-}
+const RECOVERY_SCHEDULE_RATE = 'rate(15 minutes)';
+const STRATEGIC_REVIEW_RATE = 'rate(1 hour)';
 
-export function createAgents(ctx: AgentContext) {
+/**
+ * Deploys the full set of autonomous agents as Lambda functions and sets up their event subscriptions.
+ *
+ * @param ctx - The shared context containing system resources.
+ * @returns A record of the created agent function resources.
+ */
+export function createAgents(ctx: SharedContext): {
+  coderAgent: sst.aws.Function;
+  buildMonitor: sst.aws.Function;
+  eventHandler: sst.aws.Function;
+  deadMansSwitch: sst.aws.Function;
+  plannerAgent: sst.aws.Function;
+  reflectorAgent: sst.aws.Function;
+  notifier: sst.aws.Function;
+  workerAgent: sst.aws.Function;
+} {
   const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer } = ctx;
 
-  const validSecrets = Object.values(secrets).filter((s) => s !== undefined);
+  const validSecrets = getValidSecrets(secrets);
   const liveInLocalOnly = $app.stage === 'local' ? undefined : false;
 
   // 1. Coder Agent
@@ -22,8 +30,8 @@ export function createAgents(ctx: AgentContext) {
     handler: 'core/agents/coder.handler',
     dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, stagingBucket, ...validSecrets],
-    memory: '1024 MB',
-    timeout: '900 seconds',
+    memory: AGENT_CONFIG.memory.LARGE,
+    timeout: AGENT_CONFIG.timeout.MAX,
   });
   bus.subscribe('CoderTaskSubscriber', coderAgent.arn, {
     pattern: { detailType: [EventType.CODER_TASK] },
@@ -34,8 +42,8 @@ export function createAgents(ctx: AgentContext) {
     handler: 'core/handlers/monitor.handler',
     dev: liveInLocalOnly,
     link: [memoryTable, bus],
-    memory: '256 MB',
-    timeout: '60 seconds',
+    memory: AGENT_CONFIG.memory.SMALL,
+    timeout: AGENT_CONFIG.timeout.MEDIUM,
   });
 
   // 4. Dead Man's Switch (Recovery Agent)
@@ -43,13 +51,13 @@ export function createAgents(ctx: AgentContext) {
     handler: 'core/handlers/recovery.handler',
     dev: liveInLocalOnly,
     link: [memoryTable, deployer],
-    memory: '256 MB',
-    timeout: '60 seconds',
+    memory: AGENT_CONFIG.memory.SMALL,
+    timeout: AGENT_CONFIG.timeout.MEDIUM,
   });
 
   // 15-min Schedule
   new aws.scheduler.Schedule('RecoverySchedule', {
-    scheduleExpression: 'rate(15 minutes)',
+    scheduleExpression: RECOVERY_SCHEDULE_RATE,
     flexibleTimeWindow: { mode: 'OFF' },
     target: {
       arn: deadMansSwitch.arn,
@@ -103,8 +111,8 @@ export function createAgents(ctx: AgentContext) {
     handler: 'core/agents/planner.handler',
     dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
-    memory: '1024 MB',
-    timeout: '900 seconds',
+    memory: AGENT_CONFIG.memory.LARGE,
+    timeout: AGENT_CONFIG.timeout.MAX,
   });
   bus.subscribe('EvolutionPlanSubscriber', plannerAgent.arn, {
     pattern: { detailType: [EventType.EVOLUTION_PLAN] },
@@ -112,7 +120,7 @@ export function createAgents(ctx: AgentContext) {
 
   // Strategic Review Schedule (Runs hourly to check ConfigTable frequency)
   new aws.scheduler.Schedule('StrategicReviewSchedule', {
-    scheduleExpression: 'rate(1 hour)',
+    scheduleExpression: STRATEGIC_REVIEW_RATE,
     flexibleTimeWindow: { mode: 'OFF' },
     target: {
       arn: plannerAgent.arn,
@@ -146,8 +154,8 @@ export function createAgents(ctx: AgentContext) {
     handler: 'core/handlers/events.handler',
     dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
-    memory: '512 MB',
-    timeout: '600 seconds',
+    memory: AGENT_CONFIG.memory.MEDIUM,
+    timeout: AGENT_CONFIG.timeout.LONG,
   });
   bus.subscribe('SystemBuildFailedSubscriber', eventHandler.arn, {
     pattern: { detailType: [EventType.SYSTEM_BUILD_FAILED, EventType.SYSTEM_BUILD_SUCCESS] },
@@ -158,8 +166,8 @@ export function createAgents(ctx: AgentContext) {
     handler: 'core/agents/reflector.handler',
     dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
-    memory: '512 MB',
-    timeout: '900 seconds',
+    memory: AGENT_CONFIG.memory.MEDIUM,
+    timeout: AGENT_CONFIG.timeout.MAX,
   });
   bus.subscribe('ReflectTaskSubscriber', reflectorAgent.arn, {
     pattern: { detailType: [EventType.REFLECT_TASK] },
@@ -170,8 +178,8 @@ export function createAgents(ctx: AgentContext) {
     handler: 'core/agents/qa.handler',
     dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
-    memory: '1024 MB',
-    timeout: '900 seconds',
+    memory: AGENT_CONFIG.memory.LARGE,
+    timeout: AGENT_CONFIG.timeout.MAX,
   });
   bus.subscribe('QaVerificationSubscriber', qaAgent.arn, {
     pattern: {
@@ -184,8 +192,8 @@ export function createAgents(ctx: AgentContext) {
     handler: 'core/handlers/notifier.handler',
     dev: liveInLocalOnly,
     link: [configTable, secrets.TelegramBotToken],
-    memory: '256 MB',
-    timeout: '30 seconds',
+    memory: AGENT_CONFIG.memory.SMALL,
+    timeout: AGENT_CONFIG.timeout.SHORT,
   });
   bus.subscribe('OutboundMessageSubscriber', notifier.arn, {
     pattern: { detailType: [EventType.OUTBOUND_MESSAGE] },
@@ -196,8 +204,8 @@ export function createAgents(ctx: AgentContext) {
     handler: 'core/agents/worker.handler',
     dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
-    memory: '1024 MB',
-    timeout: '900 seconds',
+    memory: AGENT_CONFIG.memory.LARGE,
+    timeout: AGENT_CONFIG.timeout.MAX,
   });
   // Subscribe to all agent tasks that don't have a specific handler
   bus.subscribe('WorkerAgentSubscriber', workerAgent.arn, {

@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resource } from 'sst';
+import { AUTH, HTTP_STATUS } from '../../../lib/constants';
 
-export async function POST(req: NextRequest) {
+/**
+ * Handles dashboard login and sets the session cookie
+ */
+export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { password } = await req.json();
     const correctPassword = (Resource as any).DashboardPassword?.value;
@@ -10,22 +14,20 @@ export async function POST(req: NextRequest) {
       const response = NextResponse.json({ success: true });
       
       // Set a secure, HttpOnly cookie for "authentication"
-      // In a real system, this would be a signed JWT or session ID.
-      // For this backdoor, we'll use a simple token.
-      response.cookies.set('claw_auth_session', 'authenticated', {
+      response.cookies.set(AUTH.COOKIE_NAME, AUTH.COOKIE_VALUE, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        maxAge: 60 * 60 * 24 * 7, // 1 week
+        maxAge: AUTH.COOKIE_MAX_AGE,
         path: '/',
       });
       
       return response;
     }
 
-    return NextResponse.json({ error: 'INVALID_CREDENTIALS' }, { status: 401 });
+    return NextResponse.json({ error: AUTH.ERROR_INVALID_CREDENTIALS }, { status: HTTP_STATUS.UNAUTHORIZED });
   } catch (error) {
     console.error('Auth Error:', error);
-    return NextResponse.json({ error: 'SYSTEM_FAILURE' }, { status: 500 });
+    return NextResponse.json({ error: AUTH.ERROR_SYSTEM_FAILURE }, { status: HTTP_STATUS.INTERNAL_SERVER_ERROR });
   }
 }

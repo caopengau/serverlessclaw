@@ -7,12 +7,21 @@ import { logger } from './logger';
 const eventbridge = new EventBridgeClient({});
 const typedResource = Resource as unknown as SSTResource;
 
+/**
+ * Sends an outbound message event to the system bus.
+ *
+ * @param source - The source of the message (e.g., 'webhook.handler').
+ * @param userId - The ID of the user to receive the message.
+ * @param message - The content of the message.
+ * @param memoryContexts - Optional array of context IDs to sync the message to.
+ * @returns A promise that resolves when the event has been sent.
+ */
 export async function sendOutboundMessage(
   source: string,
   userId: string,
   message: string,
   memoryContexts?: string[]
-) {
+): Promise<void> {
   try {
     await eventbridge.send(
       new PutEventsCommand({

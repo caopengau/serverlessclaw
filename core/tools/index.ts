@@ -20,6 +20,8 @@ import { promisify } from 'util';
 import archiver from 'archiver';
 import { createWriteStream } from 'fs';
 
+import { SYSTEM, STORAGE, PROTECTED_FILES, DYNAMO_KEYS } from '../lib/constants';
+
 const execAsync = promisify(exec);
 const codebuild = new CodeBuildClient({});
 const eventbridge = new EventBridgeClient({});
@@ -35,17 +37,23 @@ interface ToolsResource {
   MemoryTable: { name: string };
 }
 
+/**
+ * Registry of all available tools for agents to execute
+ */
 export const tools: Record<string, ITool> = {
+  /**
+   * Stages modified files to S3 for a new deployment
+   */
   stage_changes: {
     ...toolDefinitions.stage_changes,
-    execute: async (args: Record<string, unknown>) => {
+    execute: async (args: Record<string, unknown>): Promise<string> => {
       const { modifiedFiles } = args as { modifiedFiles: string[] };
       if (!modifiedFiles || modifiedFiles.length === 0) {
         return 'No files to stage.';
       }
 
       const typedResource = Resource as unknown as ToolsResource;
-      const zipPath = '/tmp/staged_changes.zip';
+      const zipPath = STORAGE.TMP_STAGING_ZIP;
       const output = createWriteStream(zipPath);
       const archive = archiver('zip', { zlib: { level: 9 } });
 
@@ -56,7 +64,7 @@ export const tools: Record<string, ITool> = {
             await s3.send(
               new PutObjectCommand({
                 Bucket: typedResource.StagingBucket.name,
-                Key: 'staged_changes.zip',
+                Key: STORAGE.STAGING_ZIP,
                 Body: fileBuffer,
               })
             );
@@ -81,9 +89,12 @@ export const tools: Record<string, ITool> = {
       });
     },
   },
+  /**
+   * Dispatches a specific task to another agent via EventBridge
+   */
   dispatch_task: {
     ...toolDefinitions.dispatch_task,
-    execute: async (args: Record<string, unknown>) => {
+    execute: async (args: Record<string, unknown>): Promise<string> => {
       const { agentId, userId, task } = args as {
         agentId: string;
         userId: string;
@@ -123,19 +134,15 @@ export const tools: Record<string, ITool> = {
       }
     },
   },
+  /**
+   * Writes content to a file, with protection for critical system files
+   */
   file_write: {
     ...toolDefinitions.file_write,
-    execute: async (args: Record<string, unknown>) => {
+    execute: async (args: Record<string, unknown>): Promise<string> => {
       const { filePath, content } = args as { filePath: string; content: string };
-      const protectedFiles = [
-        'sst.config.ts',
-        'src/tools/index.ts',
-        'src/agents/manager.ts',
-        'src/lib/agent.ts',
-        'buildspec.yml',
-      ];
       const isProtected =
-        protectedFiles.some((f) => (filePath as string).endsWith(f)) ||
+        PROTECTED_FILES.some((f) => (filePath as string).endsWith(f)) ||
         (filePath as string).includes('infra/');
 
       if (isProtected) {
@@ -152,9 +159,12 @@ export const tools: Record<string, ITool> = {
       }
     },
   },
+  /**
+   * Triggers a new CodeBuild deployment, with daily limits and circuit breaking
+   */
   trigger_deployment: {
     ...toolDefinitions.trigger_deployment,
-    execute: async (args: Record<string, unknown>) => {
+    execute: async (args: Record<string, unknown>): Promise<string> => {
       const { reason, userId } = args as { reason: string; userId: string };
       const today = new Date().toISOString().split('T')[0];
       const typedResource = Resource as unknown as ToolsResource;
@@ -164,7 +174,7 @@ export const tools: Record<string, ITool> = {
           new GetCommand({
             TableName: typedResource.MemoryTable.name,
             Key: {
-              userId: 'SYSTEM#DEPLOY_STATS',
+              userId: SYSTEM.DEPLOY_STATS_KEY,
               timestamp: 0,
             },
           })
@@ -175,15 +185,15 @@ export const tools: Record<string, ITool> = {
         const { Item: configItem } = await db.send(
           new GetCommand({
             TableName: typedResource.ConfigTable.name,
-            Key: { key: 'deploy_limit' },
+            Key: { key: DYNAMO_KEYS.DEPLOY_LIMIT },
           })
         );
 
-        let LIMIT = 5;
+        let LIMIT: number = SYSTEM.DEFAULT_DEPLOY_LIMIT;
         if (configItem?.value) {
           const customLimit = parseInt(configItem.value, 10);
           if (!isNaN(customLimit)) {
-            LIMIT = Math.min(100, Math.max(1, customLimit));
+            LIMIT = Math.min(SYSTEM.MAX_DEPLOY_LIMIT, Math.max(1, customLimit));
           }
         }
 

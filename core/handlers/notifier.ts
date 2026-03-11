@@ -13,7 +13,13 @@ interface NotifierEvent {
   };
 }
 
-export const handler = async (event: NotifierEvent) => {
+/**
+ * Handles outbound messages by syncing context with memory and sending via Telegram.
+ *
+ * @param event - The Notifier event containing userId, message, and memoryContexts.
+ * @returns A promise that resolves when the notification has been processed.
+ */
+export const handler = async (event: NotifierEvent): Promise<void> => {
   logger.info('NotifierAgent received event:', JSON.stringify(event, null, 2));
 
   // The event is wrapped by EventBridge, the actual payload is in event.detail
@@ -43,7 +49,14 @@ export const handler = async (event: NotifierEvent) => {
   // based on ConfigTable preferences
 };
 
-async function sendTelegramMessage(chatId: string, text: string) {
+/**
+ * Sends a message via the Telegram Bot API.
+ *
+ * @param chatId - The Telegram chat ID to send the message to.
+ * @param text - The text of the message to send.
+ * @returns A promise that resolves when the message has been sent.
+ */
+async function sendTelegramMessage(chatId: string, text: string): Promise<void> {
   try {
     const token = (Resource as unknown as { TelegramBotToken: { value: string } }).TelegramBotToken
       .value;

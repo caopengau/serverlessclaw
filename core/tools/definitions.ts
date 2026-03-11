@@ -1,5 +1,9 @@
 import { IToolDefinition } from '../lib/types/index';
 
+/**
+ * Metadata and parameter schemas for all system tools.
+ * These definitions are used by LLMs to understand how to invoke each tool.
+ */
 export const toolDefinitions: Record<string, IToolDefinition> = {
   stage_changes: {
     name: 'stage_changes',

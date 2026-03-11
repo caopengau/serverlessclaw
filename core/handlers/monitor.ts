@@ -15,7 +15,14 @@ const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const typedResource = Resource as unknown as SSTResource;
 const memory = new DynamoMemory();
 
-export const handler = async (event: { detail: Record<string, unknown> }) => {
+/**
+ * Monitors CodeBuild build states and transitions associated Gaps to DEPLOYED or FAILED.
+ * Sends success or failure events to the system bus for further processing.
+ *
+ * @param event - The EventBridge event containing CodeBuild detail.
+ * @returns A promise that resolves when the build state has been processed.
+ */
+export const handler = async (event: { detail: Record<string, unknown> }): Promise<void> => {
   logger.info('BuildMonitor received event:', JSON.stringify(event, null, 2));
 
   const buildId = event.detail['build-id'] as string;

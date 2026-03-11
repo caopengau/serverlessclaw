@@ -9,7 +9,12 @@ const codebuild = new CodeBuildClient({});
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const typedResource = Resource as unknown as SSTResource;
 
-export const handler = async () => {
+/**
+ * Performs a health check on the system and triggers an emergency recovery (rollback) if unhealthy.
+ *
+ * @returns A promise that resolves when the recovery check is complete.
+ */
+export const handler = async (): Promise<void> => {
   const healthUrl = `${typedResource.WebhookApi.url}/health`;
   logger.info(`Dead Man's Switch checking health at: ${healthUrl}`);
 

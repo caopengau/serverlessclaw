@@ -60,6 +60,12 @@ export class AgentRegistry {
     },
   };
 
+  /**
+   * Retrieves the configuration for a specific agent by ID.
+   *
+   * @param id - The unique ID of the agent.
+   * @returns A promise that resolves to the agent configuration or undefined if not found.
+   */
   static async getAgentConfig(id: string): Promise<IAgentConfig | undefined> {
     let config: IAgentConfig | undefined;
 
@@ -90,6 +96,11 @@ export class AgentRegistry {
     return config;
   }
 
+  /**
+   * Retrieves configurations for all registered agents.
+   *
+   * @returns A promise that resolves to a record of agent IDs to their configurations.
+   */
   static async getAllConfigs(): Promise<Record<string, IAgentConfig>> {
     const ddbConfig = (await this.getRawConfig('agents_config')) || {};
     const all: Record<string, IAgentConfig> = { ...this.backboneConfigs };
@@ -104,6 +115,9 @@ export class AgentRegistry {
 
   /**
    * Fetches a raw value from the ConfigTable by key.
+   *
+   * @param key - The key to fetch from the ConfigTable.
+   * @returns A promise that resolves to the value associated with the key, or undefined.
    */
   public static async getRawConfig(key: string): Promise<any> {
     try {
@@ -120,6 +134,13 @@ export class AgentRegistry {
     }
   }
 
+  /**
+   * Saves or updates an agent configuration in the ConfigTable.
+   *
+   * @param id - The unique ID of the agent.
+   * @param config - The configuration object to save.
+   * @returns A promise that resolves when the configuration is saved.
+   */
   static async saveConfig(id: string, config: IAgentConfig): Promise<void> {
     const all = (await this.getRawConfig('agents_config')) || {};
     all[id] = config;

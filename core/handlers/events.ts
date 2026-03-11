@@ -10,10 +10,17 @@ import { logger } from '../lib/logger';
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
 
+/**
+ * Handles system-level events such as build successes or failures.
+ * Triggers agent processing for failures and sends notifications to users.
+ *
+ * @param event - The EventBridge event containing detail-type and detail.
+ * @returns A promise that resolves when the event has been processed.
+ */
 export const handler = async (event: {
   'detail-type': string;
   detail: Record<string, unknown>;
-}) => {
+}): Promise<void> => {
   logger.info('EventHandler received event:', JSON.stringify(event, null, 2));
 
   const { userId, buildId, errorLogs } = event.detail as {

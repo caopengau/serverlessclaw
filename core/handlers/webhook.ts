@@ -13,7 +13,14 @@ const memory = new DynamoMemory();
 const provider = new ProviderManager();
 const lockManager = new DynamoLockManager();
 
-export const handler = async (event: APIGatewayProxyEventV2) => {
+/**
+ * Main entry point for Telegram webhooks.
+ * Processes user messages, acquires session locks, and delegates to the Main Agent.
+ *
+ * @param event - The API Gateway event containing the Telegram update.
+ * @returns A promise that resolves to an API Gateway response.
+ */
+export const handler = async (event: APIGatewayProxyEventV2): Promise<any> => {
   logger.info('Received event:', JSON.stringify(event, null, 2));
 
   if (!event.body) {

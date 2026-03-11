@@ -1,18 +1,15 @@
-interface DashboardContext {
-  memoryTable: sst.aws.Dynamo;
-  traceTable: sst.aws.Dynamo;
-  configTable: sst.aws.Dynamo;
-  stagingBucket: sst.aws.Bucket;
-  secrets: Record<string, sst.Secret>;
-  bus: sst.aws.Bus;
-  deployer: aws.codebuild.Project;
-  api: sst.aws.ApiGatewayV2;
-}
+import { SharedContext, getValidSecrets } from './shared';
 
-export function createDashboard(ctx: DashboardContext) {
+/**
+ * Deploys the Next.js dashboard for monitoring and managing the agents.
+ *
+ * @param ctx - The shared context containing system resources.
+ * @returns An object containing the created dashboard resource.
+ */
+export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs } {
   const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer, api } = ctx;
 
-  const validSecrets = Object.values(secrets).filter((s) => s !== undefined);
+  const validSecrets = getValidSecrets(secrets);
 
   const dashboard = new sst.aws.Nextjs('ClawCenter', {
     path: 'dashboard',
@@ -24,7 +21,7 @@ export function createDashboard(ctx: DashboardContext) {
       ...validSecrets,
       bus,
       deployer,
-      api,
+      api!,
     ],
   });
 

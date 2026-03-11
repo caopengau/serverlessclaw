@@ -25,19 +25,38 @@ export interface MemoryInsight {
   timestamp: number;
 }
 
-export interface IMemory {
+/**
+ * Interface for managing conversation history
+ */
+export interface IHistoryStore {
   getHistory(userId: string): Promise<Message[]>;
   addMessage(userId: string, message: Message): Promise<void>;
   clearHistory(userId: string): Promise<void>;
+}
 
+/**
+ * Interface for managing distilled knowledge and lessons
+ */
+export interface IKnowledgeStore {
   getDistilledMemory(userId: string): Promise<string>;
   updateDistilledMemory(userId: string, facts: string): Promise<void>;
-
-  setGap(gapId: string, details: string, metadata?: InsightMetadata): Promise<void>;
-
   addLesson(userId: string, lesson: string, metadata?: InsightMetadata): Promise<void>;
   getLessons(userId: string): Promise<string[]>;
+}
 
+/**
+ * Interface for managing capability gaps and strategic insights
+ */
+export interface IGapManager {
+  setGap(gapId: string, details: string, metadata?: InsightMetadata): Promise<void>;
+  getAllGaps(status?: string): Promise<MemoryInsight[]>;
+  updateGapStatus(gapId: string, status: string): Promise<void>;
+}
+
+/**
+ * Unified interface for agent memory, composed of specialized stores
+ */
+export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
   searchInsights(
     userId: string,
     query: string,

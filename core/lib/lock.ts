@@ -9,21 +9,37 @@ const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
 const typedResource = Resource as unknown as SSTResource;
 
+const LOCK_PREFIX = 'LOCK#';
+const DEFAULT_LOCK_TTL = 30;
+const DYNAMO_CONDITION_EXPRESSION = 'attribute_not_exists(userId) OR expiresAt < :now';
+const DYNAMO_ERROR_CONDITIONAL_CHECK_FAILED = 'ConditionalCheckFailedException';
+
+/**
+ * DynamoDB-based lock manager implementation for distributed locking.
+ * @implements {ILockManager}
+ */
 export class DynamoLockManager implements ILockManager {
   private tableName = typedResource.MemoryTable.name; // Re-using table, but with a different partition key prefix or dedicated table
 
-  async acquire(lockId: string, ttlSeconds: number = 30): Promise<boolean> {
+  /**
+   * Acquires a distributed lock using DynamoDB's conditional writes.
+   * @param lockId - Unique identifier for the lock.
+   * @param ttlSeconds - Time-to-live for the lock in seconds. Defaults to 30.
+   * @returns A promise that resolves to true if the lock was acquired, false otherwise.
+   * @throws Will throw an error if the DynamoDB operation fails for reasons other than conditional check failure.
+   */
+  async acquire(lockId: string, ttlSeconds: number = DEFAULT_LOCK_TTL): Promise<boolean> {
     const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
 
     const command = new PutCommand({
       TableName: this.tableName,
       Item: {
-        userId: `LOCK#${lockId}`,
+        userId: `${LOCK_PREFIX}${lockId}`,
         timestamp: 0,
         expiresAt: expiresAt,
         acquiredAt: Date.now(), // Store actual time in a non-key field if needed
       },
-      ConditionExpression: 'attribute_not_exists(userId) OR expiresAt < :now',
+      ConditionExpression: DYNAMO_CONDITION_EXPRESSION,
       ExpressionAttributeValues: {
         ':now': Math.floor(Date.now() / 1000),
       },
@@ -33,18 +49,23 @@ export class DynamoLockManager implements ILockManager {
       await docClient.send(command);
       return true;
     } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+      if (error instanceof Error && error.name === DYNAMO_ERROR_CONDITIONAL_CHECK_FAILED) {
         return false;
       }
       throw error;
     }
   }
 
+  /**
+   * Releases a distributed lock by deleting its record from DynamoDB.
+   * @param lockId - Unique identifier for the lock to release.
+   * @returns A promise that resolves when the release operation is complete.
+   */
   async release(lockId: string): Promise<void> {
     const command = new DeleteCommand({
       TableName: this.tableName,
       Key: {
-        userId: `LOCK#${lockId}`,
+        userId: `${LOCK_PREFIX}${lockId}`,
         timestamp: 0,
       },
     });

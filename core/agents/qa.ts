@@ -35,6 +35,12 @@ async function getEvolutionMode(): Promise<'auto' | 'hitl'> {
   }
 }
 
+/**
+ * QA Agent handler. Audits strategic plans and verifies implementation satisfaction.
+ *
+ * @param event - The event containing buildId, gapIds, and audit details.
+ * @returns A promise that resolves when the audit cycle is complete.
+ */
 export const handler = async (event: {
   'detail-type': string;
   detail: {
@@ -44,7 +50,7 @@ export const handler = async (event: {
     task?: string;
     result?: string;
   };
-}) => {
+}): Promise<void> => {
   const detail = event.detail;
   const isBuildSuccess = event['detail-type'] === EventType.SYSTEM_BUILD_SUCCESS;
 

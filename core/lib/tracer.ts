@@ -28,7 +28,13 @@ export class ClawTracer {
     this.startTime = Date.now();
   }
 
-  async startTrace(initialContext: Record<string, unknown>) {
+  /**
+   * Initializes a new trace in DynamoDB.
+   *
+   * @param initialContext - Initial context for the trace (e.g., user input).
+   * @returns A promise that resolves to the trace ID.
+   */
+  async startTrace(initialContext: Record<string, unknown>): Promise<string> {
     const expiresAt = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7; // 7 days TTL
 
     await docClient.send(
@@ -48,7 +54,13 @@ export class ClawTracer {
     return this.traceId;
   }
 
-  async addStep(step: Omit<TraceStep, 'stepId' | 'timestamp'>) {
+  /**
+   * Adds a step to the current trace.
+   *
+   * @param step - The step content and type.
+   * @returns A promise that resolves when the step is added.
+   */
+  async addStep(step: Omit<TraceStep, 'stepId' | 'timestamp'>): Promise<void> {
     const fullStep: TraceStep = {
       ...step,
       stepId: uuidv4(),
@@ -69,7 +81,14 @@ export class ClawTracer {
     );
   }
 
-  async endTrace(finalResponse: string, metadata?: Record<string, unknown>) {
+  /**
+   * Ends the trace with a final response and optional metadata.
+   *
+   * @param finalResponse - The final response sent to the user.
+   * @param metadata - Additional metadata for the trace.
+   * @returns A promise that resolves when the trace is closed.
+   */
+  async endTrace(finalResponse: string, metadata?: Record<string, unknown>): Promise<void> {
     await docClient.send(
       new UpdateCommand({
         TableName: this.tableName,
@@ -87,7 +106,12 @@ export class ClawTracer {
     );
   }
 
-  getTraceId() {
+  /**
+   * Returns the current trace ID.
+   *
+   * @returns The trace ID.
+   */
+  getTraceId(): string {
     return this.traceId;
   }
 }

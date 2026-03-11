@@ -6,18 +6,29 @@ import {
   ReasoningProfile,
   MessageRole,
   EventType,
-  SSTResource,
 } from './types/index';
 import { ClawTracer } from './tracer';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { Resource } from 'sst';
 import { logger } from './logger';
+import { SSTResource } from './types/index';
 
 const typedResource = Resource as unknown as SSTResource;
 
+/**
+ * The core Agent class responsible for orchestrating LLM calls, tool execution,
+ * and memory management.
+ */
 export class Agent {
-  private eventbridge = new EventBridgeClient({});
+  private eventbridge: EventBridgeClient = new EventBridgeClient({});
 
+  /**
+   * Initializes a new Agent instance
+   * @param memory - The memory provider for session history and distilled knowledge
+   * @param provider - The LLM provider (OpenAI, Bedrock, etc.)
+   * @param tools - The set of tools the agent is authorized to use
+   * @param systemPrompt - The base personality and instruction set for the agent
+   */
   constructor(
     private memory: IMemory,
     private provider: IProvider,
@@ -25,6 +36,13 @@ export class Agent {
     private systemPrompt: string
   ) {}
 
+  /**
+   * Processes a user message, potentially performing multiple tool-calling iterations
+   * @param userId - Unique identifier for the user or session
+   * @param userText - The raw input message from the user
+   * @param profile - The reasoning profile (affects model choice and temperature)
+   * @returns The final textual response from the agent
+   */
   async process(
     userId: string,
     userText: string,
