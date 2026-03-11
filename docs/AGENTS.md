@@ -9,8 +9,8 @@
 | **Main Agent** | `src/handlers/webhook.ts` | `src/agents/manager.ts` | Interprets user intent, delegates, deploys |
 | **Coder Agent** | `src/agents/coder.ts` | `AgentRegistry` (Backbone) | Writes code, runs pre-flight checks |
 | **Worker Agent** | `src/agents/worker.ts` | `AgentRegistry` (Dynamic) | Generic runner for any user-defined agent |
-| **Planner Agent** | `src/agents/planner.ts` | `AgentRegistry` (Backbone) | Designs strategic evolution plans |
-| **Reflector Agent** | `src/agents/reflector.ts` | `AgentRegistry` (Backbone) | Distills memory and extracts gaps |
+| **Strategic Planner** | `src/agents/strategic-planner.ts` | `AgentRegistry` (Backbone) | Designs strategic evolution plans |
+| **Cognition Reflector** | `src/agents/cognition-reflector.ts` | `AgentRegistry` (Backbone) | Distills memory and extracts gaps |
 | **QA Auditor** | `src/agents/qa.ts` | `AgentRegistry` (Backbone) | Verifies satisfaction of deployed changes |
 | **Deployer** | AWS CodeBuild | `buildspec.yml` | Runs `sst deploy` in isolated environment |
 
@@ -133,15 +133,15 @@ Serverless Claw is not a static agent; it is a **self-evolving system** that ide
 
 ```text
     +-------------------+       1. OBSERVE        +-------------------+
-    |   Reflector       |<------------------------|   Conversations   |
-    |   Agent           |      (Signals)          |   (User context)  |
+    |   Cognition       |<------------------------|   Conversations   |
+    |   Reflector       |      (Signals)          |   (User context)  |
     +---------+---------+                         +-------------------+
               |
               | 2. LOG STRATEGIC_GAP (DDB: OPEN)
               v
     +---------+---------+       3. DESIGN         +-------------------+
-    |   Planner         |------------------------>|   Strategic Plan  |
-    |   Agent           |      (DDB: PLANNED)     |   (Proposal)      |
+    |   Strategic       |------------------------>|   Strategic Plan  |
+    |   Planner         |      (DDB: PLANNED)     |   (Proposal)      |
     +---------+---------+                         +-------------------+
               |                                             |
               | 4. DISPATCH_TASK (if auto/approved)         | (Notify)
@@ -169,9 +169,9 @@ Serverless Claw is not a static agent; it is a **self-evolving system** that ide
 ```
 
 ### How it works:
-1.  **Observation**: The **Reflector Agent** analyzes every interaction. It looks for "I can't do that" moments or complex multi-step failures.
+1.  **Observation**: The **Cognition Reflector** analyzes every interaction. It looks for "I can't do that" moments or complex multi-step failures.
 2.  **Gap Analysis**: These failures are logged as `strategic_gap` items in DynamoDB, ranked by **Impact** and **Urgency**. Status set to `OPEN`.
-3.  **Strategic Planning**: The **Planner Agent** reviews these gaps during a **deterministic 12-hour review**. It designs a STRATEGIC_PLAN and moves gaps to `PLANNED`.
+3.  **Strategic Planning**: The **Strategic Planner** reviews these gaps during a **deterministic 12-hour review**. It designs a STRATEGIC_PLAN and moves gaps to `PLANNED`.
 4.  **Execution**: Once the plan is approved (or automatically triggered in `auto` mode), the **Coder Agent** moves gaps to `PROGRESS`, writes the code, and triggers a deployment.
 5.  **Technical Success**: The **Build Monitor** detects a successful CodeBuild run and moves gaps to `DEPLOYED`. The code is live, but not yet verified.
 6.  **Verified Satisfaction**: The **QA Auditor** (via Reflector Audit) monitors subsequent conversations. If the user successfully uses the new capability or confirms satisfaction, the Reflector marks the gap as `DONE`. In `hitl` mode, this requires a final "YES" from the user via the `manage_gap` tool.

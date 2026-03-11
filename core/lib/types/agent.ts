@@ -14,8 +14,8 @@ export enum AgentType {
   BUILD_MONITOR = 'monitor',
   EVENT_HANDLER = 'events',
   RECOVERY = 'recovery',
-  PLANNER = 'planner',
-  REFLECTOR = 'reflector',
+  STRATEGIC_PLANNER = 'strategic-planner',
+  COGNITION_REFLECTOR = 'cognition-reflector',
   QA = 'qa',
 }
 

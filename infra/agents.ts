@@ -108,7 +108,7 @@ export function createAgents(ctx: SharedContext): {
 
   // 5. Planner Agent
   const plannerAgent = new sst.aws.Function('PlannerAgent', {
-    handler: 'core/agents/planner.handler',
+    handler: 'core/agents/strategic-planner.handler',
     dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
     memory: AGENT_CONFIG.memory.LARGE,
@@ -163,7 +163,7 @@ export function createAgents(ctx: SharedContext): {
 
   // 6. Reflector Agent
   const reflectorAgent = new sst.aws.Function('ReflectorAgent', {
-    handler: 'core/agents/reflector.handler',
+    handler: 'core/agents/cognition-reflector.handler',
     dev: liveInLocalOnly,
     link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
     memory: AGENT_CONFIG.memory.MEDIUM,

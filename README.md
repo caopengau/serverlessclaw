@@ -7,7 +7,8 @@
 ## 🧬 Core Philosophies
 
 ### 1. Self-Evolving (Verified & Audited)
-The system is never static. Through the **Reflector**, **Planner**, **Coder**, and **QA Auditor** agents, Serverless Claw autonomously discovers gaps, designs plans, writes new tools, and modifies its own infrastructure. Evolution follows a strict, verified lifecycle (**OPEN** → **PLANNED** → **PROGRESS** → **DEPLOYED** → **DONE**). No change is marked as complete until the **QA Auditor** verifies its real-world satisfaction in subsequent user interactions. **[Read more about the Evolutionary Lifecycle ↗](./docs/AGENTS.md#the-evolutionary-lifecycle-self-evolution-loop)**
+The system is never static. Through the **Cognition Reflector**, **Strategic Planner**, **Coder**, and **QA Auditor** agents, Serverless Claw autonomously discovers gaps, designs plans, writes new tools, and modifies its own infrastructure.
+ Evolution follows a strict, verified lifecycle (**OPEN** → **PLANNED** → **PROGRESS** → **DEPLOYED** → **DONE**). No change is marked as complete until the **QA Auditor** verifies its real-world satisfaction in subsequent user interactions. **[Read more about the Evolutionary Lifecycle ↗](./docs/AGENTS.md#the-evolutionary-lifecycle-self-evolution-loop)**
 
 ### 2. Self-Healing & Resilient
 Designed to be "un-killable." If an autonomous deployment introduces a bug or causes a build failure, the **Build Monitor** intercepts the error logs and tasks the agent swarm to investigate and apply a fix. If the "brain" (Main Agent Lambda) becomes unresponsive, an immutable **Dead Man's Switch** (health probe) triggers a 100% automated git-revert and redeploys the last known stable state. No midnight wake-up calls.
@@ -57,10 +58,10 @@ Avoid the "black box" of agent long-term memory. Through the **ClawCenter Dashbo
                                   +-----------------------------------+
                                    /        |            |        \
                                   /         |            |         \
-                  +----------------+ +--------------+ +-------------+ +-------------+
-                  |  Coder Agent   | |Planner Agent | |Reflector Agt| | QA Auditor  |
+                  +----------------+ +----------------+ +-------------+ +-------------+
+                  |  Coder Agent   | |Strategic Planr | |Cognition Ref| | QA Auditor  |
                   |  (AWS Lambda)  | | (AWS Lambda) | | (AWS Lambda)| | (AWS Lambda)|
-                  +----------------+ +--------------+ +-------------+ +-------------+
+                  +----------------+ +----------------+ +-------------+ +-------------+
                            |                |                |               |
                            +----------------+-------+--------+---------------+
                                                     |

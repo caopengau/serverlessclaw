@@ -58,8 +58,8 @@ export class AgentRegistry {
       isBackbone: true,
       tools: ['recall_knowledge', 'check_health'],
     },
-    [AgentType.REFLECTOR]: {
-      id: AgentType.REFLECTOR,
+    [AgentType.COGNITION_REFLECTOR]: {
+      id: AgentType.COGNITION_REFLECTOR,
       name: 'Cognition Reflector',
       systemPrompt: `You are the Cognition Reflector. 
       Your mission: Analyze agent traces to distill long-term memory, tactical lessons, and strategic capability gaps.
@@ -71,8 +71,8 @@ export class AgentRegistry {
       isBackbone: true,
       tools: ['recall_knowledge', 'manage_gap'],
     },
-    [AgentType.PLANNER]: {
-      id: AgentType.PLANNER,
+    [AgentType.STRATEGIC_PLANNER]: {
+      id: AgentType.STRATEGIC_PLANNER,
       name: 'Strategic Planner',
       systemPrompt: `You are the Strategic Planner.
       Your mission: Analyze the list of Capability Gaps and the Current System Index to prioritize evolution.

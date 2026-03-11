@@ -75,8 +75,8 @@ const nodeTypes = {
 const getAgentIcon = (id: string) => {
   if (id === 'main') return <Bot size={16} />;
   if (id === 'coder') return <Code size={16} />;
-  if (id === 'planner') return <Brain size={16} />;
-  if (id === 'reflector') return <Search size={16} />;
+  if (id === 'strategic-planner') return <Brain size={16} />;
+  if (id === 'cognition-reflector') return <Search size={16} />;
   if (id === 'monitor') return <Activity size={16} />;
   if (id === 'qa') return <FlaskConical size={16} />;
   return <Settings2 size={16} />;
@@ -166,20 +166,20 @@ export default function SystemPulseFlow() {
             style: { stroke: agent.enabled ? '#f97316' : '#444' },
             markerEnd: { type: MarkerType.ArrowClosed, color: agent.enabled ? '#f97316' : '#444' }
           });
-        }
-
         // INFRASTRUCTURE CONNECTIONS
         if (agent.enabled) {
-          // All agents use Memory
-          newEdges.push({ 
-            id: `${agent.id}-mem`, 
-            source: agent.id, 
-            target: 'memory', 
-            style: { stroke: '#00f3ff', strokeDasharray: '5,5', opacity: 0.3 } 
-          });
+          // Connections based on ID
+          if (['strategic-planner', 'cognition-reflector', 'qa', 'main'].includes(agent.id)) {
+            newEdges.push({ 
+              id: `${agent.id}-mem`, 
+              source: agent.id, 
+              target: 'memory', 
+              style: { stroke: '#00f3ff', strokeDasharray: '5,5', opacity: 0.3 } 
+            });
+          }
 
-          // Specialized connections
           if (agent.id === 'coder') {
+
             newEdges.push({ 
               id: 'coder-s3', 
               source: 'coder', 
