@@ -7,6 +7,7 @@ import {
   EventType,
   SSTResource,
   InsightCategory,
+  GapStatus,
 } from '../lib/types/index';
 import { Resource } from 'sst';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
@@ -58,14 +59,15 @@ export const handler = async (event: { userId: string; conversation: Message[] }
   );
 
   const existingFacts = await memory.getDistilledMemory(userId);
-  const deployedGaps = await memory.getAllGaps('DEPLOYED');
-  
-  const deployedGapsContext = deployedGaps.length > 0 
-    ? `\nRECENTLY DEPLOYED CHANGES (Audit required):
-       ${deployedGaps.map(g => `- [ID: ${g.id.replace('GAP#', '')}] ${g.content}`).join('\n')}
+  const deployedGaps = await memory.getAllGaps(GapStatus.DEPLOYED);
+
+  const deployedGapsContext =
+    deployedGaps.length > 0
+      ? `\nRECENTLY DEPLOYED CHANGES (Audit required):
+       ${deployedGaps.map((g) => `- [ID: ${g.id.replace('GAP#', '')}] ${g.content}`).join('\n')}
        
        TASK: Look at the CONVERSATION. If the user successfully used these new capabilities or if the conversation proves these gaps are now filled, include their IDs in "resolvedGapIds".`
-    : '';
+      : '';
 
   const reflectionPrompt = `
     EXISTING FACTS:
@@ -163,7 +165,7 @@ export const handler = async (event: { userId: string; conversation: Message[] }
       if (Array.isArray(parsed.resolvedGapIds)) {
         for (const rId of parsed.resolvedGapIds) {
           logger.info(`Verification successful for gap ${rId}. Marking as DONE.`);
-          await memory.updateGapStatus(rId, 'DONE');
+          await memory.updateGapStatus(rId, GapStatus.DONE);
         }
       }
     } catch (e) {

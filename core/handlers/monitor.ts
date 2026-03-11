@@ -5,7 +5,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
-import { SSTResource, EventType } from '../lib/types/index';
+import { SSTResource, EventType, GapStatus } from '../lib/types/index';
 import { DynamoMemory } from '../lib/memory';
 
 const codebuild = new CodeBuildClient({});
@@ -51,7 +51,7 @@ export const handler = async (event: { detail: Record<string, unknown> }) => {
 
       // Transition gaps to DEPLOYED (Verification phase starts)
       for (const gapId of gapIds) {
-        await memory.updateGapStatus(gapId, 'DEPLOYED');
+        await memory.updateGapStatus(gapId, GapStatus.DEPLOYED);
       }
 
       // Notify success
@@ -72,7 +72,7 @@ export const handler = async (event: { detail: Record<string, unknown> }) => {
 
       // Transition gaps to FAILED
       for (const gapId of gapIds) {
-        await memory.updateGapStatus(gapId, 'FAILED');
+        await memory.updateGapStatus(gapId, GapStatus.FAILED);
       }
 
       // Get logs for failure analysis

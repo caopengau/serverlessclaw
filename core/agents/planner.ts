@@ -1,7 +1,13 @@
 import { DynamoMemory } from '../lib/memory';
 import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers/index';
-import { AgentType, ReasoningProfile, EventType, EvolutionMode } from '../lib/types/index';
+import {
+  AgentType,
+  ReasoningProfile,
+  EventType,
+  EvolutionMode,
+  GapStatus,
+} from '../lib/types/index';
 import { getAgentTools } from '../tools/index';
 import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
@@ -24,8 +30,8 @@ async function getEvolutionMode(): Promise<'auto' | 'hitl'> {
       })
     );
     return response.Item?.value === 'auto' ? 'auto' : 'hitl';
-  } catch (e) {
-    logger.warn('Failed to fetch evolution_mode, defaulting to hitl:', e);
+  } catch {
+    logger.warn('Failed to fetch evolution_mode, defaulting to hitl:');
     return 'hitl';
   }
 }
@@ -105,7 +111,7 @@ export const handler = async (event: {
       }
 
       // Check min gaps
-      const allGaps = await memory.getAllGaps('OPEN');
+      const allGaps = await memory.getAllGaps(GapStatus.OPEN);
       if (allGaps.length < minGaps) {
         logger.info(`Scheduled review skipped. Need ${minGaps} gaps, found ${allGaps.length}.`);
         return { status: 'INSUFFICIENT_GAPS' };
@@ -115,7 +121,7 @@ export const handler = async (event: {
     }
 
     // Deterministic Review of all Gaps
-    const allGaps = await memory.getAllGaps('OPEN');
+    const allGaps = await memory.getAllGaps(GapStatus.OPEN);
     if (allGaps.length === 0) {
       logger.info('No gaps found during scheduled review. Skipping evolution.');
       return { status: 'NO_GAPS' };
@@ -183,16 +189,16 @@ export const handler = async (event: {
   // 5. Gap Sink: Mark gaps as PLANNED after review to prevent re-planning
   const processedGapIds: string[] = [];
   if (isScheduledReview && result && !result.includes('internal error')) {
-    const allGaps = await memory.getAllGaps('OPEN');
+    const allGaps = await memory.getAllGaps(GapStatus.OPEN);
     logger.info(`Marking ${allGaps.length} gaps as PLANNED after successful strategic review.`);
     for (const gap of allGaps) {
       const numericId = gap.id.replace('GAP#', '');
-      await memory.updateGapStatus(numericId, 'PLANNED');
+      await memory.updateGapStatus(numericId, GapStatus.PLANNED);
       processedGapIds.push(numericId);
     }
   } else if (!isScheduledReview && gapId && result && !result.includes('internal error')) {
     logger.info(`Marking specific gap ${gapId} as PLANNED after design.`);
-    await memory.updateGapStatus(gapId, 'PLANNED');
+    await memory.updateGapStatus(gapId, GapStatus.PLANNED);
     processedGapIds.push(gapId);
   }
 

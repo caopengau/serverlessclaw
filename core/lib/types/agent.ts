@@ -35,6 +35,16 @@ export enum EvolutionMode {
   HITL = 'hitl',
 }
 
+export enum GapStatus {
+  OPEN = 'OPEN',
+  PLANNED = 'PLANNED',
+  PROGRESS = 'PROGRESS',
+  DEPLOYED = 'DEPLOYED',
+  DONE = 'DONE',
+  FAILED = 'FAILED',
+  ARCHIVED = 'ARCHIVED',
+}
+
 export interface IChannel {
   send(userId: string, text: string): Promise<void>;
 }

@@ -9,6 +9,7 @@ import {
   InsightMetadata,
   MemoryInsight,
   InsightCategory,
+  GapStatus,
 } from './types/index';
 import { logger } from './logger';
 
@@ -100,9 +101,7 @@ export class DynamoMemory implements IMemory {
     }
   }
 
-  async getAllGaps(
-    status: 'OPEN' | 'PLANNED' | 'PROGRESS' | 'DEPLOYED' | 'DONE' | 'FAILED' | 'ARCHIVED' = 'OPEN'
-  ): Promise<MemoryInsight[]> {
+  async getAllGaps(status: GapStatus = GapStatus.OPEN): Promise<MemoryInsight[]> {
     // In a real system, we would have a GSI for Category=GAP
     // For now, we query with the GAP# prefix using a Scan
     const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
@@ -147,7 +146,7 @@ export class DynamoMemory implements IMemory {
         userId: `GAP#${gapId}`,
         timestamp: parseInt(gapId, 10) || Date.now(),
         content: details,
-        status: 'OPEN',
+        status: GapStatus.OPEN,
         metadata: metadata || {
           category: InsightCategory.STRATEGIC_GAP,
           confidence: 5,
@@ -167,10 +166,7 @@ export class DynamoMemory implements IMemory {
     }
   }
 
-  async updateGapStatus(
-    gapId: string,
-    status: 'OPEN' | 'PLANNED' | 'PROGRESS' | 'DEPLOYED' | 'DONE' | 'FAILED' | 'ARCHIVED'
-  ): Promise<void> {
+  async updateGapStatus(gapId: string, status: GapStatus): Promise<void> {
     const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
     const numericId = gapId.replace('GAP#', '');
     const command = new UpdateCommand({
@@ -190,15 +186,7 @@ export class DynamoMemory implements IMemory {
 
     // Try to find the exact item if timestamp is not in gapId or if 0 doesn't work
     if (isNaN(parseInt(numericId, 10)) || command.input.Key?.timestamp === 0) {
-      const statuses: Array<'OPEN' | 'PLANNED' | 'PROGRESS' | 'DEPLOYED' | 'DONE' | 'FAILED' | 'ARCHIVED'> = [
-        'OPEN',
-        'PLANNED',
-        'PROGRESS',
-        'DEPLOYED',
-        'DONE',
-        'FAILED',
-        'ARCHIVED',
-      ];
+      const statuses = Object.values(GapStatus);
       for (const s of statuses) {
         const gaps = await this.getAllGaps(s);
         const target = gaps.find((g) => g.id === `GAP#${numericId}`);

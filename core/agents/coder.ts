@@ -2,7 +2,7 @@ import { DynamoMemory } from '../lib/memory';
 import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers/index';
 import { getAgentTools } from '../tools/index';
-import { ReasoningProfile } from '../lib/types/index';
+import { ReasoningProfile, GapStatus } from '../lib/types/index';
 import { logger } from '../lib/logger';
 
 const memory = new DynamoMemory();
@@ -26,7 +26,7 @@ export const handler = async (event: {
   if (metadata?.gapIds && metadata.gapIds.length > 0) {
     logger.info(`Picking up task. Marking ${metadata.gapIds.length} gaps as PROGRESS.`);
     for (const gapId of metadata.gapIds) {
-      await memory.updateGapStatus(gapId, 'PROGRESS');
+      await memory.updateGapStatus(gapId, GapStatus.PROGRESS);
     }
   }
 
@@ -74,7 +74,7 @@ export const handler = async (event: {
         `Task successful without deployment. Marking ${metadata.gapIds.length} gaps as DONE.`
       );
       for (const gapId of metadata.gapIds) {
-        await memory.updateGapStatus(gapId, 'DONE');
+        await memory.updateGapStatus(gapId, GapStatus.DONE);
       }
     }
   }
