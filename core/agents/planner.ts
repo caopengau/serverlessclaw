@@ -93,8 +93,7 @@ export const handler = async (event: {
 
     const gapSummary = allGaps
       .map(
-        (g) =>
-          `- [Impact: ${g.metadata.impact}/10] ${g.content} (Priority: ${g.metadata.priority})`
+        (g) => `- [Impact: ${g.metadata.impact}/10] ${g.content} (Priority: ${g.metadata.priority})`
       )
       .join('\n');
 
@@ -120,7 +119,6 @@ export const handler = async (event: {
 
     plannerPrompt = `GAP IDENTIFIED: ${details}\n${signals}\n${telemetry}\n\nUSER CONTEXT: Please design a STRATEGIC_PLAN to fix this gap for user ${contextUserId}.`;
   }
-
 
   // 2. Self-Evolution Loop Protection (Cool-down)
   // Logic: Check if we have tried to evolve a similar gap recently
