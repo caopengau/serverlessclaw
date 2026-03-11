@@ -110,6 +110,37 @@ export function createAgents(ctx: AgentContext) {
     pattern: { detailType: [EventType.EVOLUTION_PLAN] },
   });
 
+  // 12-hour Strategic Review Schedule
+  new aws.scheduler.Schedule('StrategicReviewSchedule', {
+    scheduleExpression: 'rate(12 hours)',
+    flexibleTimeWindow: { mode: 'OFF' },
+    target: {
+      arn: plannerAgent.arn,
+      input: JSON.stringify({
+        isScheduledReview: true,
+        userId: 'SYSTEM',
+      }),
+      roleArn: new aws.iam.Role('StrategicReviewRole', {
+        assumeRolePolicy: JSON.stringify({
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Action: 'sts:AssumeRole',
+              Effect: 'Allow',
+              Principal: { Service: 'scheduler.amazonaws.com' },
+            },
+          ],
+        }),
+      }).arn,
+    },
+  });
+
+  new aws.lambda.Permission('StrategicReviewPermission', {
+    action: 'lambda:InvokeFunction',
+    function: plannerAgent.name,
+    principal: 'scheduler.amazonaws.com',
+  });
+
   // 3. Event Handler (System errors)
   const eventHandler = new sst.aws.Function('EventHandler', {
     handler: 'core/handlers/events.handler',

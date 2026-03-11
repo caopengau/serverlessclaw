@@ -58,26 +58,17 @@ interface PlannerMetadata {
 }
 
 export const handler = async (event: {
-  gapId: string;
-  details: string;
+  gapId?: string;
+  details?: string;
   contextUserId: string;
   metadata?: PlannerMetadata;
+  isScheduledReview?: boolean;
 }) => {
-  logger.info('Planner Agent received gap:', JSON.stringify(event, null, 2));
+  logger.info('Planner Agent received task:', JSON.stringify(event, null, 2));
 
-  const { gapId, details, contextUserId, metadata } = event;
+  const { gapId, details, contextUserId, metadata, isScheduledReview } = event;
 
-  // Planner always uses high-reasoning for deep thinking
-  const signals = metadata
-    ? `
-    [EVOLUTIONARY_SIGNALS]:
-    - IMPACT: ${metadata.impact}/10
-    - URGENCY: ${metadata.urgency}/10
-    - RISK: ${metadata.risk}/10
-    - PRIORITY: ${metadata.priority}/10 (Confidence: ${metadata.confidence}/10)
-  `
-    : '';
-
+  // 1. Fetch System Context
   const agentTools = await getAgentTools('planner');
   const toolsList = agentTools
     .map((t: { name: string; description: string }) => `- ${t.name}: ${t.description}`)
@@ -89,13 +80,66 @@ export const handler = async (event: {
     ${toolsList}
   `;
 
-  const result = await plannerAgent.process(
-    `SYSTEM#PLANNER#${gapId}`,
-    `GAP IDENTIFIED: ${details}\n${signals}\n${telemetry}\n\nUSER CONTEXT: Please design a STRATEGIC_PLAN to fix this gap for user ${contextUserId}.`,
-    ReasoningProfile.DEEP
-  );
+  let prompt = '';
+  let id = gapId || `REVIEW#${Date.now()}`;
+
+  if (isScheduledReview) {
+    // Deterministic Review of all Gaps
+    const allGaps = await memory.getAllGaps();
+    if (allGaps.length === 0) {
+      logger.info('No gaps found during scheduled review. Skipping evolution.');
+      return { status: 'NO_GAPS' };
+    }
+
+    const gapSummary = allGaps
+      .map(
+        (g) =>
+          `- [Impact: ${g.metadata.impact}/10] ${g.content} (Priority: ${g.metadata.priority})`
+      )
+      .join('\n');
+
+    prompt = `
+      [SCHEDULED_STRATEGIC_REVIEW]
+      I have detected the following ${allGaps.length} capability gaps:
+      ${gapSummary}
+      
+      ${telemetry}
+      
+      Please analyze these gaps, prioritize them based on ROI (Impact vs Complexity), and design a STRATEGIC_PLAN for the MOST IMPORTANT evolution.
+    `;
+  } else {
+    // Reactionary single gap handling
+    const signals = metadata
+      ? `
+      [EVOLUTIONARY_SIGNALS]:
+      - IMPACT: ${metadata.impact}/10
+      - URGENCY: ${metadata.urgency}/10
+      - RISK: ${metadata.risk}/10
+    `
+      : '';
+
+    prompt = `GAP IDENTIFIED: ${details}\n${signals}\n${telemetry}\n\nUSER CONTEXT: Please design a STRATEGIC_PLAN to fix this gap for user ${contextUserId}.`;
+  }
+
+  // 2. Self-Evolution Loop Protection (Cool-down)
+  // Logic: Check if we have tried to evolve a similar gap recently
+  const evolutionHistory = await memory.getDistilledMemory('EVOLUTION#HISTORY');
+  const isDuplicate = details && evolutionHistory?.includes(details.substring(0, 50));
+  if (isDuplicate) {
+    logger.warn('Evolution loop detected or cooldown active for this gap. Aborting.');
+    return { status: 'COOLDOWN_ACTIVE' };
+  }
+
+  // 3. Process with High Reasoning
+  const result = await plannerAgent.process(`SYSTEM#PLANNER#${id}`, prompt, ReasoningProfile.DEEP);
 
   logger.info('Strategic Plan Generated:', result);
+
+  // 4. Record evolution attempt in history for cooldown logic
+  if (details) {
+    const updatedHistory = `${details.substring(0, 50)} | ${evolutionHistory || ''}`.substring(0, 500);
+    await memory.updateDistilledMemory('EVOLUTION#HISTORY', updatedHistory);
+  }
 
   const evolutionMode = await getEvolutionMode();
 

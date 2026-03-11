@@ -100,6 +100,44 @@ export class DynamoMemory implements IMemory {
     }
   }
 
+  async getAllGaps(): Promise<MemoryInsight[]> {
+    // In a real system, we would have a GSI for Category=GAP
+    // For now, we query with the GAP# prefix using a Scan (not ideal for high volume, but ok for this phase)
+    const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
+    const command = new ScanCommand({
+      TableName: this.tableName,
+      FilterExpression: 'begins_with(userId, :prefix) AND #status = :open',
+      ExpressionAttributeNames: {
+        '#status': 'status',
+      },
+      ExpressionAttributeValues: {
+        ':prefix': 'GAP#',
+        ':open': 'OPEN',
+      },
+    });
+
+    try {
+      const response = await docClient.send(command);
+      return (response.Items || []).map((item) => ({
+        id: item.userId,
+        content: item.content,
+        timestamp: item.timestamp,
+        metadata: item.metadata || {
+          category: InsightCategory.STRATEGIC_GAP,
+          confidence: 0,
+          impact: 0,
+          complexity: 0,
+          risk: 0,
+          urgency: 0,
+          priority: 0,
+        },
+      }));
+    } catch (error) {
+      logger.error('Error scanning gaps from DynamoDB:', error);
+      return [];
+    }
+  }
+
   async setGap(gapId: string, details: string, metadata?: InsightMetadata): Promise<void> {
     const command = new PutCommand({
       TableName: this.tableName,

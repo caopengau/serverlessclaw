@@ -124,25 +124,31 @@ export class Agent {
     await tracer.endTrace(responseText);
 
     // 7. Trigger Reflection (async via EventBridge)
-    try {
-      await this.eventbridge.send(
-        new PutEventsCommand({
-          Entries: [
-            {
-              Source: 'main.agent',
-              DetailType: EventType.REFLECT_TASK,
-              Detail: JSON.stringify({
-                userId,
-                conversation: [...messages, { role: MessageRole.ASSISTANT, content: responseText }],
-              }),
-              EventBusName: typedResource.AgentBus.name,
-            },
-          ],
-        })
-      );
-      logger.info('Reflection task emitted for user:', userId);
-    } catch (e) {
-      logger.error('Failed to emit reflection task:', e);
+    // 2026 Optimization: We only trigger reflection on every 3rd message or if the user 
+    // explicitly asks for a change/learning to save tokens in standard chats.
+    const shouldReflect = history.length % 3 === 0 || userText.toLowerCase().includes('remember') || userText.toLowerCase().includes('learn');
+    
+    if (shouldReflect) {
+      try {
+        await this.eventbridge.send(
+          new PutEventsCommand({
+            Entries: [
+              {
+                Source: 'main.agent',
+                DetailType: EventType.REFLECT_TASK,
+                Detail: JSON.stringify({
+                  userId,
+                  conversation: [...messages, { role: MessageRole.ASSISTANT, content: responseText }],
+                }),
+                EventBusName: typedResource.AgentBus.name,
+              },
+            ],
+          })
+        );
+        logger.info('Reflection task emitted for user:', userId);
+      } catch (e) {
+        logger.error('Failed to emit reflection task:', e);
+      }
     }
 
     return responseText;
