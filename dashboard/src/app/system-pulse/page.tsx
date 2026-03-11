@@ -46,7 +46,7 @@ export default function SystemPulsePage() {
         <div className="glass-card p-6 space-y-3">
             <div className="text-[10px] font-bold text-cyber-green uppercase">Logic_Core</div>
             <p className="text-xs text-white/80 leading-relaxed">
-                The Main Manager Lambda. Processes input, retrieves long-term memory, and decides when to delegate tasks to spokes.
+                SuperClaw. Processes input, retrieves long-term memory, and decides when to delegate tasks to spokes.
             </p>
         </div>
         <div className="glass-card p-6 space-y-3 border-orange-500/10">

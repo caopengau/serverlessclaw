@@ -6,7 +6,7 @@
 
 | Agent | Runtime | Config Source | Responsibilities |
 |-------|---------|---------------|-----------------|
-| **Main Agent** | `src/handlers/webhook.ts` | `src/agents/manager.ts` | Interprets user intent, delegates, deploys |
+| **SuperClaw** | `src/handlers/webhook.ts` | `src/agents/superclaw.ts` | Interprets user intent, delegates, deploys |
 | **Coder Agent** | `src/agents/coder.ts` | `AgentRegistry` (Backbone) | Writes code, runs pre-flight checks |
 | **Worker Agent** | `src/agents/worker.ts` | `AgentRegistry` (Dynamic) | Generic runner for any user-defined agent |
 | **Strategic Planner** | `src/agents/strategic-planner.ts` | `AgentRegistry` (Backbone) | Designs strategic evolution plans |
@@ -22,7 +22,7 @@
 User (Telegram)
       │
       ▼
-POST /webhook → Main Agent (Lambda)
+POST /webhook → SuperClaw (Lambda)
       │
       ├──dispatch_task(agentId, task)─► EventBridge AgentBus
       │                                         │
@@ -76,7 +76,7 @@ Serverless Claw supports zero-downtime model switching via the `ProviderManager`
 
 ---
 
-## Main Agent System Prompt (Summary)
+## SuperClaw System Prompt (Summary)
 
 Key obligations (see `src/agent.ts` for the full prompt):
 1. **delegate** complex changes via `dispatch_task`
@@ -105,7 +105,7 @@ Agents are not just autonomous; they are **co-managed** via the ClawCenter dashb
 Users can register new specialized agents at `/settings`. 
 - **Persona**: Define the system prompt (instructions) for the agent.
 - **Dynamic Scoping**: Toggle tools on/off for specific agents without redeploying.
-- **Immediate Availability**: Once registered, the Main Agent can immediately delegate tasks to the new node via `dispatch_task`.
+- **Immediate Availability**: Once registered, the SuperClaw can immediately delegate tasks to the new node via `dispatch_task`.
 
 ### 2. Dynamic Toolsets
 Instead of a static roster, every agent loads its tools from the `AgentRegistry` on every execution.

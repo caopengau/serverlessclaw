@@ -3,7 +3,7 @@ import { ShieldCheck, Lock, Eye, FileWarning, Globe, Server, Database } from 'lu
 
 const AGENT_POLICIES = [
   {
-    agent: 'Main Manager',
+    agent: 'SuperClaw',
     capabilities: ['Read/Write Memory', 'Dispatch Tasks', 'Trigger Deployments', 'Read Traces'],
     resources: ['MemoryTable', 'AgentBus', 'Deployer', 'TraceTable'],
     risk: 'Medium'

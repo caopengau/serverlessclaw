@@ -45,7 +45,7 @@ export const handler = async (): Promise<void> => {
 
     await codebuild.send(command);
 
-    // 2. Log recovery event for Main Agent awareness
+    // 2. Log recovery event for SuperClaw awareness
     await db.send(
       new PutCommand({
         TableName: typedResource.MemoryTable.name,

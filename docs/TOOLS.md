@@ -59,7 +59,7 @@ The `file_write` tool blocks writes to these files:
 ```
 sst.config.ts
 src/tools/index.ts
-src/agents/manager.ts
+src/agents/superclaw.ts
 src/lib/agent.ts
 buildspec.yml
 infra/**

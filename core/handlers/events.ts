@@ -4,7 +4,7 @@ import { ProviderManager } from '../lib/providers/index';
 import { getAgentTools } from '../tools/index';
 import { EventType } from '../lib/types/index';
 import { sendOutboundMessage } from '../lib/outbound';
-import { MANAGER_SYSTEM_PROMPT } from '../agents/manager';
+import { SUPERCLAW_SYSTEM_PROMPT } from '../agents/superclaw';
 import { logger } from '../lib/logger';
 
 const memory = new DynamoMemory();
@@ -38,9 +38,9 @@ export const handler = async (event: {
     Please investigate the codebase, find the root cause, fix the issue, and trigger a new deployment. 
     Explain your plan to the user before proceeding.`;
 
-    // Process the failure context via the Main Agent
+    // Process the failure context via the SuperClaw
     const agentTools = await getAgentTools('events');
-    const agent = new Agent(memory, provider, agentTools, MANAGER_SYSTEM_PROMPT);
+    const agent = new Agent(memory, provider, agentTools, SUPERCLAW_SYSTEM_PROMPT);
     const responseText = await agent.process(userId, `SYSTEM_NOTIFICATION: ${task}`);
 
     // Notify user via Notifier

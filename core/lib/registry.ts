@@ -2,7 +2,7 @@ import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { IAgentConfig, AgentType } from './types/agent';
-import { MANAGER_SYSTEM_PROMPT } from '../agents/manager';
+import { SUPERCLAW_SYSTEM_PROMPT } from '../agents/superclaw';
 import { logger } from './logger';
 import { SSTResource } from './types/index';
 
@@ -18,8 +18,8 @@ export class AgentRegistry {
   private static backboneConfigs: Record<string, IAgentConfig> = {
     [AgentType.MAIN]: {
       id: AgentType.MAIN,
-      name: 'Main Manager',
-      systemPrompt: MANAGER_SYSTEM_PROMPT,
+      name: 'SuperClaw',
+      systemPrompt: SUPERCLAW_SYSTEM_PROMPT,
       enabled: true,
       isBackbone: true,
       tools: ['dispatch_task', 'recall_knowledge', 'switch_model', 'check_health', 'manage_gap'],

@@ -3,7 +3,7 @@ import { DynamoMemory } from '@claw/core/lib/memory';
 import { Agent } from '@claw/core/lib/agent';
 import { ProviderManager } from '@claw/core/lib/providers/index';
 import { getAgentTools } from '@claw/core/tools/index';
-import { MANAGER_SYSTEM_PROMPT } from '@claw/core/agents/manager';
+import { SUPERCLAW_SYSTEM_PROMPT } from '@claw/core/agents/superclaw';
 import { UI_STRINGS, HTTP_STATUS } from '@/lib/constants';
 
 /**
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const memory = new DynamoMemory();
     const provider = new ProviderManager();
     const agentTools = await getAgentTools('main');
-    const agent = new Agent(memory, provider, agentTools, MANAGER_SYSTEM_PROMPT);
+    const agent = new Agent(memory, provider, agentTools, SUPERCLAW_SYSTEM_PROMPT);
 
     const reply = await agent.process(userId, text);
 

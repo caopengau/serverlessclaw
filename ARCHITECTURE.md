@@ -107,7 +107,7 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
                |
       _________V_________
      |                   |
-     |   MAIN_MANAGER    |
+     |   SUPERCLAW    |
      |___________________|
                |
      (1) DISPATCH_TASK (via AgentBus)
@@ -130,7 +130,7 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
                                          (Loads Persona from AgentRegistry)
  ```
 
-- **Pattern**: The Main Agent emits a `coder_task` or `custom_task` event. Specialized tasks go to backbone agents, while generic tasks are picked up by the **Worker Agent**.
+- **Pattern**: The SuperClaw emits a `coder_task` or `custom_task` event. Specialized tasks go to backbone agents, while generic tasks are picked up by the **Worker Agent**.
 - **Discovery**: The `AgentRegistry` merges backbone logic with user-defined personas from DynamoDB.
 - **Visualization**: The `SYSTEM_PULSE` dashboard page provides an interactive node graph of this topography.
 
@@ -148,7 +148,7 @@ The system prevents "prompt bloat" and "identity confusion" through a tiered app
 
 ### 2. The Smart Recall Tool
 Instead of loading all memories into every prompt, agents use `recall_knowledge(query)`.
-- **Workflow**: Main Agent sees a `[MEMORY_INDEX]`. If it needs details, it calls the tool.
+- **Workflow**: SuperClaw sees a `[MEMORY_INDEX]`. If it needs details, it calls the tool.
 - **Efficiency**: Reduces input token costs by up to 90% for long-lived sessions.
 
 ### 3. Dynamic Tool Scoping & Discovery
@@ -193,7 +193,7 @@ The stack evolves by bridging the gap between temporary Lambda execution and per
                                                             |
                                                             v
 +--------------+       +------------------+       +-------------------+
-|  Main Agent  +------>|  AWS CodeBuild   +------>|   Agent Stack     |
+|  SuperClaw  +------>|  AWS CodeBuild   +------>|   Agent Stack     |
 | (Orchestrator)| trigger| (Deployer)       |  sst  | (Self-Update)     |
 +--------------+       +-----------|------+       +---------+---------+
                                    |                        |
@@ -213,7 +213,7 @@ If a deployment fails or the system becomes unstable, Serverless Claw automatica
 
 ```text
     +-----------+           +-----------+
-    | Main Agent| <-------+ |  Events   |
+    | SuperClaw| <-------+ |  Events   |
     | (Brain)   |           +-----+-----+
     +-----+-----+                 ^
           |                       |
@@ -233,8 +233,8 @@ If a deployment fails or the system becomes unstable, Serverless Claw automatica
 
 **How it works**:
 1. **Coder Agent** implements changes using `file_write` and validates them.
-2. **Main Agent** (via tool) zips the modified workspace and uploads it to the **Staging Bucket** (S3).
-3. **Main Agent** calls `trigger_deployment`.
+2. **SuperClaw** (via tool) zips the modified workspace and uploads it to the **Staging Bucket** (S3).
+3. **SuperClaw** calls `trigger_deployment`.
 4. **CodeBuild** starts:
     - Pulls the latest code from **GitHub**.
     - Pulls the modified files from the **Staging Bucket** and overwrites the local workspace.

@@ -7,7 +7,7 @@ import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers/index';
 import { getAgentTools } from '../tools/index';
 import { DynamoLockManager } from '../lib/lock';
-import { MANAGER_SYSTEM_PROMPT } from '../agents/manager';
+import { SUPERCLAW_SYSTEM_PROMPT } from '../agents/superclaw';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
@@ -15,7 +15,7 @@ const lockManager = new DynamoLockManager();
 
 /**
  * Main entry point for Telegram webhooks.
- * Processes user messages, acquires session locks, and delegates to the Main Agent.
+ * Processes user messages, acquires session locks, and delegates to the SuperClaw.
  *
  * @param event - The API Gateway event containing the Telegram update.
  * @returns A promise that resolves to an API Gateway response.
@@ -47,7 +47,7 @@ export const handler = async (event: APIGatewayProxyEventV2): Promise<any> => {
   try {
     // 2. Process message via Agent
     const agentTools = await getAgentTools('main');
-    const agent = new Agent(memory, provider, agentTools, MANAGER_SYSTEM_PROMPT);
+    const agent = new Agent(memory, provider, agentTools, SUPERCLAW_SYSTEM_PROMPT);
     const responseText = await agent.process(chatId, userText);
 
     // 3. Send response to Notifier via AgentBus
