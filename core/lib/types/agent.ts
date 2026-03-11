@@ -10,6 +10,8 @@ export interface IAgentConfig {
   enabled: boolean;
   isBackbone?: boolean;
   connectionProfile?: string[]; // IDs of resources this agent connects to (e.g., 'bus', 'memory')
+  maxIterations?: number;
+  parallelToolCalls?: boolean;
 }
 
 export enum AgentType {
@@ -33,6 +35,7 @@ export enum EventType {
   EVOLUTION_PLAN = 'evolution_plan',
   REFLECT_TASK = 'reflect_task',
   OUTBOUND_MESSAGE = 'outbound_message',
+  CONTINUATION_TASK = 'continuation_task',
 }
 
 export enum EvolutionMode {

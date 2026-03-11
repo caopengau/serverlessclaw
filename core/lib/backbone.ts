@@ -42,6 +42,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       'run_tests',
       'run_shell_command',
     ],
+    maxIterations: 50,
     connectionProfile: ['bus', 'memory', 'storage', 'codebuild', 'config', 'trace'],
   },
   [AgentType.STRATEGIC_PLANNER]: {

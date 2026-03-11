@@ -5,6 +5,7 @@ import { getAgentTools } from '../tools/index';
 import { EventType } from '../lib/types/index';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
+import { Context } from 'aws-lambda';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
@@ -14,12 +15,16 @@ const provider = new ProviderManager();
  * Triggers agent processing for failures and sends notifications to users.
  *
  * @param event - The EventBridge event containing detail-type and detail.
+ * @param context - The AWS Lambda context.
  * @returns A promise that resolves when the event has been processed.
  */
-export const handler = async (event: {
-  'detail-type': string;
-  detail: Record<string, unknown>;
-}): Promise<void> => {
+export const handler = async (
+  event: {
+    'detail-type': string;
+    detail: Record<string, unknown>;
+  },
+  context: Context
+): Promise<void> => {
   logger.info('EventHandler received event:', JSON.stringify(event, null, 2));
 
   const { userId, buildId, errorLogs } = event.detail as {
@@ -47,10 +52,14 @@ export const handler = async (event: {
 
     const agentTools = await getAgentTools('events');
     const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
-    const responseText = await agent.process(userId, `SYSTEM_NOTIFICATION: ${task}`);
+    const responseText = await agent.process(userId, `SYSTEM_NOTIFICATION: ${task}`, {
+      context,
+    });
 
-    // Notify user via Notifier
-    await sendOutboundMessage('events.handler', userId, responseText);
+    // Notify user via Notifier (if not paused)
+    if (!responseText.startsWith('TASK_PAUSED')) {
+      await sendOutboundMessage('events.handler', userId, responseText);
+    }
   } else if (event['detail-type'] === EventType.SYSTEM_BUILD_SUCCESS) {
     const message = `✅ **DEPLOYMENT SUCCESSFUL**
 Build ID: ${buildId}
@@ -59,5 +68,30 @@ The system has successfully evolved and all planned gaps have been marked as DON
 I am ready for further tasks or instructions.`;
 
     await sendOutboundMessage('events.handler', userId, message);
+  } else if (event['detail-type'] === EventType.CONTINUATION_TASK) {
+    const { userId, task, traceId } = event.detail as {
+      userId: string;
+      task: string;
+      traceId: string;
+    };
+
+    logger.info('Handling continuation task for user:', userId, { traceId });
+
+    const { AgentRegistry } = await import('../lib/registry');
+    const config = await AgentRegistry.getAgentConfig('main');
+    if (!config) return;
+
+    const agentTools = await getAgentTools('events');
+    const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
+
+    // Resume with isContinuation = true
+    const responseText = await agent.process(userId, task, {
+      context,
+      isContinuation: true,
+    });
+
+    if (!responseText.startsWith('TASK_PAUSED')) {
+      await sendOutboundMessage('events.handler', userId, responseText);
+    }
   }
 };

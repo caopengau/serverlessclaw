@@ -96,13 +96,13 @@ export const handler = async (event: {
   const agentTools = await getAgentTools('qa');
   const qaAgent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
 
-  const auditReport = await qaAgent.process(
-    userId,
-    `Please verify if the implementation for these gaps is satisfactory. 
+  const auditPrompt = `Please verify if the implementation for these gaps is satisfactory. 
     Review the codebase if needed via tools.
-    Final response MUST include VERIFICATION_SUCCESSFUL or REOPEN_REQUIRED.`,
-    ReasoningProfile.STANDARD
-  );
+    Final response MUST include VERIFICATION_SUCCESSFUL or REOPEN_REQUIRED.`;
+
+  const auditReport = await qaAgent.process(userId, auditPrompt, {
+    profile: ReasoningProfile.STANDARD,
+  });
 
   logger.info('QA Audit Report:', auditReport);
 

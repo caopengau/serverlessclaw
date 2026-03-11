@@ -80,7 +80,7 @@ export const handler = async (event: {
   `;
 
   let plannerPrompt: string;
-  const id = gapId || `REVIEW#${Date.now()}`;
+  // const id = gapId || `REVIEW#${Date.now()}`;
 
   if (isScheduledReview) {
     // 1. Check Frequency and Min Gaps
@@ -162,11 +162,10 @@ export const handler = async (event: {
   }
 
   // 3. Process with High Reasoning
-  const result = await plannerAgent.process(
-    `SYSTEM#PLANNER#${id}`,
-    plannerPrompt,
-    ReasoningProfile.DEEP
-  );
+  // 3. Process with High Reasoning
+  const result = await plannerAgent.process(contextUserId, plannerPrompt, {
+    profile: ReasoningProfile.DEEP,
+  });
 
   logger.info('Strategic Plan Generated:', result);
 

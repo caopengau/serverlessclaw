@@ -61,7 +61,9 @@ export const handler = async (event: {
 
   const agentTools = await getAgentTools('coder');
   const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
-  const response = await agent.process(userId, `CODER TASK: ${task}`, ReasoningProfile.THINKING);
+  const response = await agent.process(userId, `CODER TASK: ${task}`, {
+    profile: ReasoningProfile.THINKING,
+  });
 
   logger.info('Coder Agent completed task:', response);
 

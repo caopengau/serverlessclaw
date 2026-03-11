@@ -40,6 +40,10 @@ export class AgentRegistry {
         if (ddbAgents[id].model) config.model = ddbAgents[id].model;
         if (ddbAgents[id].provider) config.provider = ddbAgents[id].provider;
         if (ddbAgents[id].enabled !== undefined) config.enabled = ddbAgents[id].enabled;
+        if (ddbAgents[id].maxIterations !== undefined)
+          config.maxIterations = ddbAgents[id].maxIterations;
+        if (ddbAgents[id].parallelToolCalls !== undefined)
+          config.parallelToolCalls = ddbAgents[id].parallelToolCalls;
       }
     } else {
       // User-defined from DDB

@@ -13,6 +13,7 @@ import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge
 import { Resource } from 'sst';
 import { logger } from './logger';
 import { SSTResource } from './types/index';
+import { Context as LambdaContext } from 'aws-lambda';
 
 const typedResource = Resource as unknown as SSTResource;
 
@@ -43,16 +44,26 @@ export class Agent {
    * Processes a user message, potentially performing multiple tool-calling iterations
    * @param userId - Unique identifier for the user or session
    * @param userText - The raw input message from the user
-   * @param profile - The reasoning profile (affects model choice and temperature)
+   * @param options - Optional configuration for this process run
    * @returns The final textual response from the agent
    */
   async process(
     userId: string,
     userText: string,
-    profile: ReasoningProfile = ReasoningProfile.STANDARD
+    options: {
+      profile?: ReasoningProfile;
+      context?: LambdaContext;
+      isContinuation?: boolean;
+    } = {}
   ): Promise<string> {
+    const { profile = ReasoningProfile.STANDARD, context, isContinuation = false } = options;
+
     const tracer = new ClawTracer(userId);
-    await tracer.startTrace({ userText });
+    if (!isContinuation) {
+      await tracer.startTrace({ userText });
+    }
+
+    // ... (rest of the code is unchanged until the bottom)
 
     // 1. Get history, distilled facts, and tactical lessons
     const history = await this.memory.getHistory(userId);
@@ -71,9 +82,11 @@ export class Agent {
       logger.error('Error checking recovery context:', e);
     }
 
-    // 3. Add user message
+    // 3. Add user message (Skip if continuation as it's already in history)
     const userMessage: Message = { role: MessageRole.USER, content: userText };
-    await this.memory.addMessage(userId, userMessage);
+    if (!isContinuation) {
+      await this.memory.addMessage(userId, userMessage);
+    }
 
     // 2026 Hot-Swap Strategy: Resolve Model/Provider from DDB
     let activeModel: string | undefined = this.config?.model;
@@ -116,7 +129,7 @@ export class Agent {
 
     let responseText = '';
     let iterations = 0;
-    let maxIterations = 5;
+    let maxIterations = this.config?.maxIterations || 15; // Global default now 15
 
     try {
       const { AgentRegistry } = await import('./registry');
@@ -130,6 +143,20 @@ export class Agent {
 
     try {
       while (iterations < maxIterations) {
+        // Pause/Resume Logic: Check for Lambda Timeout
+        if (context) {
+          const remainingTime = context.getRemainingTimeInMillis();
+          if (remainingTime < 30000) {
+            // 30 seconds buffer
+            logger.info('Lambda timeout approaching, pausing task...', {
+              remainingTime,
+              iterations,
+            });
+            await this.emitContinuation(userId, userText, tracer.getTraceId());
+            return 'TASK_PAUSED: I need more time to complete this. I have checkpointed my progress and am resuming in a fresh execution...';
+          }
+        }
+
         await tracer.addStep({ type: 'llm_call', content: { messageCount: messages.length } });
         const aiResponse = await this.provider.call(
           messages,
@@ -172,7 +199,14 @@ export class Agent {
       responseText = `I encountered an internal error: ${errorMessage}`;
     }
 
-    if (!responseText) responseText = 'Sorry, I reached my iteration limit.';
+    if (!responseText) {
+      if (iterations >= maxIterations) {
+        logger.info('Iteration limit reached, pausing task...', { iterations });
+        await this.emitContinuation(userId, userText, tracer.getTraceId());
+        return 'TASK_PAUSED: This task is complex and requires multiple steps. I have reached my single-turn safety limit and am resuming in a fresh execution...';
+      }
+      responseText = 'Sorry, I reached my iteration limit.';
+    }
 
     // 5. Save response
     await this.memory.addMessage(userId, { role: MessageRole.ASSISTANT, content: responseText });
@@ -228,5 +262,33 @@ export class Agent {
     }
 
     return responseText;
+  }
+
+  /**
+   * Emits an event to trigger a continuation of the current task
+   */
+  private async emitContinuation(userId: string, task: string, traceId: string): Promise<void> {
+    try {
+      await this.eventbridge.send(
+        new PutEventsCommand({
+          Entries: [
+            {
+              Source: 'main.agent',
+              DetailType: EventType.CONTINUATION_TASK,
+              Detail: JSON.stringify({
+                userId,
+                task,
+                isContinuation: true,
+                traceId,
+              }),
+              EventBusName: typedResource.AgentBus.name,
+            },
+          ],
+        })
+      );
+      logger.info('Continuation task emitted for user:', userId);
+    } catch (e) {
+      logger.error('Failed to emit continuation task:', e);
+    }
   }
 }

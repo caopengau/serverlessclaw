@@ -77,7 +77,10 @@ export class OpenAIProvider implements IProvider {
           strict: true,
         },
       }));
-      params.parallel_tool_calls = false;
+      params.parallel_tool_calls = this.model.includes(OpenAIModel.GPT_5_4); // Default true for new models
+      if (profile === ReasoningProfile.DEEP || profile === ReasoningProfile.THINKING) {
+        params.parallel_tool_calls = false; // Disable for reasoning models as they often prefer sequential
+      }
     }
 
     const response = await client.chat.completions.create(params);

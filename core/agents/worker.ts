@@ -5,6 +5,7 @@ import { getAgentTools } from '../tools/index';
 import { AgentRegistry } from '../lib/registry';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
+import { Context } from 'aws-lambda';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
@@ -14,6 +15,8 @@ interface WorkerEvent {
   detail: {
     userId: string;
     task: string;
+    isContinuation?: boolean;
+    traceId?: string;
   };
 }
 
@@ -21,9 +24,13 @@ interface WorkerEvent {
  * Worker Agent handler. Dynamically loads agent configurations and executes tasks.
  *
  * @param event - The event containing agentId, userId, and task details.
+ * @param context - The AWS Lambda context.
  * @returns A promise that resolves to the worker's response string, or undefined on error.
  */
-export const handler = async (event: WorkerEvent): Promise<string | undefined> => {
+export const handler = async (
+  event: WorkerEvent,
+  context: Context
+): Promise<string | undefined> => {
   logger.info('Worker Agent received event:', JSON.stringify(event, null, 2));
 
   // Extract agentId from the event source or detail-type
@@ -36,7 +43,7 @@ export const handler = async (event: WorkerEvent): Promise<string | undefined> =
     return;
   }
 
-  const { userId, task } = event.detail;
+  const { userId, task, isContinuation } = event.detail;
 
   if (!userId || !task) {
     logger.error('Invalid event payload: missing userId or task');
@@ -61,18 +68,18 @@ export const handler = async (event: WorkerEvent): Promise<string | undefined> =
   const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
 
   // 3. Execution
-  // Use model overwrite if provided in config
-  if (config.model) {
-    // We'd need to extend ProviderManager/Provider to support per-call model overrides
-    // For now, we use the global active model
-  }
-
-  const response = await agent.process(userId, task);
+  const response = await agent.process(userId, task, {
+    context,
+    isContinuation: !!isContinuation,
+  });
 
   logger.info(`Worker Agent [${agentId}] completed task:`, response);
 
   // 4. Notification (Optional: Worker could be silent or chatty)
-  await sendOutboundMessage(`worker.agent.${agentId}`, userId, response, [userId]);
+  // Only send if not paused (Agent returns a specific string if paused)
+  if (!response.startsWith('TASK_PAUSED')) {
+    await sendOutboundMessage(`worker.agent.${agentId}`, userId, response, [userId]);
+  }
 
   return response;
 };
