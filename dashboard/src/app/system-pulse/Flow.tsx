@@ -166,6 +166,8 @@ export default function SystemPulseFlow() {
             style: { stroke: agent.enabled ? '#f97316' : '#444' },
             markerEnd: { type: MarkerType.ArrowClosed, color: agent.enabled ? '#f97316' : '#444' }
           });
+        }
+
         // INFRASTRUCTURE CONNECTIONS
         if (agent.enabled) {
           // Connections based on ID
