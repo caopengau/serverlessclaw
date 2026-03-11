@@ -240,7 +240,7 @@ export default async function SettingsPage() {
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
           <h2 className="text-2xl lg:text-3xl font-bold tracking-tight glow-text uppercase">
-            SYSTEM_CONFIG
+            CONFIG
           </h2>
           <p className="text-white/100 text-xs lg:text-sm mt-2 font-light">
             Hot-swappable neural architecture and provider routing.

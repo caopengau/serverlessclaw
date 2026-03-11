@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bot, Save, Plus, Trash2, Shield, Settings2, RefreshCw, Cpu, ChevronRight } from 'lucide-react';
+import { Bot, Save, Plus, Trash2, Shield, Settings2, RefreshCw, Cpu, ChevronRight, ShieldAlert, X } from 'lucide-react';
 import CyberSelect from '@/components/CyberSelect';
 import { THEME } from '@/lib/theme';
 
@@ -37,6 +37,14 @@ export default function AgentsPage() {
   const [saving, setSaving] = useState(false);
   const [showBackboneWarning, setShowBackboneWarning] = useState(false);
   const [backboneChanges, setBackboneChanges] = useState<string[]>([]);
+  const [showNewAgentModal, setShowNewAgentModal] = useState(false);
+  const [newAgent, setNewAgent] = useState<Partial<AgentConfig>>({
+    name: '',
+    id: '',
+    systemPrompt: '',
+    enabled: true,
+    isBackbone: false,
+  });
 
   useEffect(() => {
     fetch('/api/agents')
@@ -101,17 +109,27 @@ export default function AgentsPage() {
   };
 
   const addAgent = () => {
-    const id = `agent_${Date.now()}`;
+    setShowNewAgentModal(true);
+    setNewAgent({
+      name: 'New Specialized Node',
+      id: `agent_${Date.now()}`,
+      systemPrompt: 'You are a specialized agent that...',
+      enabled: true,
+      isBackbone: false,
+    });
+  };
+
+  const finalizeNewAgent = () => {
+    if (!newAgent.id || !newAgent.name) {
+        alert('Agent ID and Name are required.');
+        return;
+    }
+    
     setAgents((prev) => ({
       ...prev,
-      [id]: {
-        id,
-        name: 'New Specialized Node',
-        systemPrompt: 'You are a specialized agent...',
-        enabled: true,
-        isBackbone: false,
-      },
+      [newAgent.id!]: newAgent as AgentConfig,
     }));
+    setShowNewAgentModal(false);
   };
 
   const deleteAgent = (id: string) => {
@@ -153,137 +171,158 @@ export default function AgentsPage() {
 
       <div className="max-w-6xl space-y-8 pb-20">
         <div className="grid grid-cols-1 gap-6">
-          {Object.values(agents).map((agent) => (
-            <div
-              key={agent.id}
-              className={`glass-card p-6 border-l-2 transition-all ${
-                agent.isBackbone
-                  ? `border-${THEME.COLORS.INTEL} shadow-[0_0_20px_rgba(0,224,255,0.05)]`
-                  : 'border-white/10 hover:border-white/20'
-              }`}
-            >
-              <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`p-3 rounded-sm ${
-                      agent.isBackbone
-                        ? `bg-${THEME.COLORS.INTEL}/20 text-${THEME.COLORS.INTEL}`
-                        : 'bg-white/5 text-white/100'
-                    }`}
-                  >
-                    {agent.isBackbone ? <Shield size={20} /> : <Bot size={20} />}
-                  </div>
-                  <div>
-                    <input
-                      value={agent.name}
-                      onChange={(e) => updateAgent(agent.id, { name: e.target.value })}
-                      className="bg-transparent border-none text-white font-bold outline-none focus:ring-1 focus:ring-white/20 rounded px-1 text-base uppercase tracking-tight"
-                      placeholder="Agent Name"
-                    />
-                    <div className="text-[10px] text-white/50 mt-1 font-mono flex items-center gap-2">
-                      {agent.id} {agent.isBackbone && <span className={`text-${THEME.COLORS.INTEL} font-bold tracking-widest`}>[BACKBONE_PROTECTED]</span>}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-6 self-end lg:self-center">
-                  <label className="flex items-center gap-3 cursor-pointer group">
-                    <span className={`text-[10px] font-bold text-white/100 tracking-widest group-hover:text-${THEME.COLORS.PRIMARY} transition-colors`}>ACTIVE_STATUS</span>
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={agent.enabled}
-                        onChange={(e) => updateAgent(agent.id, { enabled: e.target.checked })}
-                        className="sr-only peer"
-                      />
-                      <div className={`w-10 h-5 bg-white/10 rounded-full peer peer-checked:bg-${THEME.COLORS.PRIMARY}/40 relative transition-all border border-white/5 overflow-hidden after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white/20 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:toggle-move peer-checked:after:bg-${THEME.COLORS.PRIMARY} shadow-inner`}></div>
-                    </div>
-                  </label>
-                  {!agent.isBackbone && (
-                    <button
-                      onClick={() => deleteAgent(agent.id)}
-                      className={`p-2 hover:bg-${THEME.COLORS.DANGER}/20 text-white/50 hover:text-${THEME.COLORS.DANGER} rounded transition-colors border border-transparent hover:border-${THEME.COLORS.DANGER}/30`}
+          {Object.values(agents).map((agent) => {
+            const isLogicOnly = agent.id === 'monitor' || agent.id === 'recovery' || agent.id === 'events';
+            
+            return (
+              <div
+                key={agent.id}
+                className={`glass-card p-6 border-l-2 transition-all ${
+                  agent.isBackbone
+                    ? `border-${THEME.COLORS.INTEL} shadow-[0_0_20px_rgba(0,224,255,0.05)]`
+                    : 'border-white/10 hover:border-white/20'
+                }`}
+              >
+                <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4 mb-6">
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`p-3 rounded-sm ${
+                        agent.isBackbone
+                          ? `bg-${THEME.COLORS.INTEL}/20 text-${THEME.COLORS.INTEL}`
+                          : 'bg-white/5 text-white/100'
+                      }`}
                     >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                {/* Prompt Section */}
-                <div className="lg:col-span-7 space-y-3">
-                  <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold flex items-center gap-2">
-                    <Settings2 size={12} className={`text-${THEME.COLORS.INTEL}`} /> Neural Core Instructions (System Prompt)
-                  </label>
-                  <div className="relative">
-                    <textarea
-                      value={agent.systemPrompt}
-                      onChange={(e) => updateAgent(agent.id, { systemPrompt: e.target.value })}
-                      className={`w-full bg-black/40 border border-white/10 rounded p-4 text-xs text-white/90 font-mono min-h-[180px] outline-none focus:border-${THEME.COLORS.INTEL}/40 transition-all leading-relaxed custom-scrollbar`}
-                      placeholder="Enter the system instructions for this node..."
-                    />
-                  </div>
-                </div>
-
-                {/* Model & Config Section */}
-                <div className="lg:col-span-5 space-y-6">
-                  <div className="space-y-4 bg-white/[0.02] p-4 rounded border border-white/5">
-                    <h4 className="text-[10px] font-bold text-white/100 uppercase tracking-widest flex items-center gap-2">
-                        <Cpu size={12} className={`text-${THEME.COLORS.PRIMARY}`} /> Hardware_Alignment
-                    </h4>
-                    
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-[9px] uppercase text-white/100 tracking-widest font-bold opacity-60">LLM Provider</label>
-                        <CyberSelect
-                          value={agent.provider || ''}
-                          onChange={(val) => updateAgent(agent.id, { provider: val, model: '' })}
-                          options={[
-                            { value: '', label: 'INHERIT_SYSTEM_DEFAULT' },
-                            ...Object.entries(PROVIDERS).map(([id, p]) => ({
-                              value: id,
-                              label: p.label,
-                            })),
-                          ]}
-                          className="w-full"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-[9px] uppercase text-white/100 tracking-widest font-bold opacity-60">Neural Model ID</label>
-                        <CyberSelect
-                          value={agent.model || ''}
-                          onChange={(val) => updateAgent(agent.id, { model: val })}
-                          options={
-                            agent.provider
-                              ? PROVIDERS[agent.provider as keyof typeof PROVIDERS]?.models.map((m) => ({
-                                  value: m,
-                                  label: m,
-                                }))
-                              : []
-                          }
-                          disabled={!agent.provider}
-                          placeholder={agent.provider ? 'SELECT_MODEL' : 'SELECT_PROVIDER_FIRST'}
-                          className="w-full"
-                        />
+                      {isLogicOnly ? <ShieldAlert size={20} /> : (agent.isBackbone ? <Shield size={20} /> : <Bot size={20} />)}
+                    </div>
+                    <div>
+                      <input
+                        value={agent.name}
+                        onChange={(e) => updateAgent(agent.id, { name: e.target.value })}
+                        className="bg-transparent border-none text-white font-bold outline-none focus:ring-1 focus:ring-white/20 rounded px-1 text-base uppercase tracking-tight"
+                        placeholder="Agent Name"
+                      />
+                      <div className="text-[10px] text-white/50 mt-1 font-mono flex items-center gap-2">
+                        {agent.id} 
+                        {agent.isBackbone && <span className={`text-${THEME.COLORS.INTEL} font-bold tracking-widest`}>[BACKBONE_PROTECTED]</span>}
+                        {isLogicOnly && <span className="text-yellow-500 font-bold tracking-widest">[SYSTEM_LOGIC_ONLY]</span>}
                       </div>
                     </div>
                   </div>
 
-                  <div className={`p-4 border border-${THEME.COLORS.INTEL}/10 bg-${THEME.COLORS.INTEL}/[0.02] rounded`}>
-                    <div className={`text-[10px] font-bold text-${THEME.COLORS.INTEL} uppercase tracking-widest flex items-center gap-2 mb-2`}>
-                        <ChevronRight size={12} /> Execution_Context
+                  <div className="flex items-center gap-6 self-end lg:self-center">
+                    <label className={`flex items-center gap-3 ${agent.isBackbone ? 'cursor-not-allowed' : 'cursor-pointer'} group`}>
+                      <span className={`text-[10px] font-bold text-white/100 tracking-widest group-hover:text-${THEME.COLORS.PRIMARY} transition-colors`}>ACTIVE_STATUS</span>
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={agent.enabled}
+                          disabled={agent.isBackbone}
+                          onChange={(e) => updateAgent(agent.id, { enabled: e.target.checked })}
+                          className="sr-only peer"
+                        />
+                        <div className={`w-10 h-5 bg-white/10 rounded-full peer peer-checked:bg-${THEME.COLORS.PRIMARY}/40 relative transition-all border border-white/5 overflow-hidden ${agent.isBackbone ? 'opacity-50 grayscale-[0.5]' : ''} after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white/20 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:toggle-move peer-checked:after:bg-${THEME.COLORS.PRIMARY} shadow-inner`}></div>
+                      </div>
+                      {agent.isBackbone && <span className="text-[8px] font-bold text-white/30 uppercase tracking-tighter">READ_ONLY</span>}
+                    </label>
+                    {!agent.isBackbone && (
+                      <button
+                        onClick={() => deleteAgent(agent.id)}
+                        className={`p-2 hover:bg-${THEME.COLORS.DANGER}/20 text-white/50 hover:text-${THEME.COLORS.DANGER} rounded transition-colors border border-transparent hover:border-${THEME.COLORS.DANGER}/30`}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  {/* Prompt Section */}
+                  <div className="lg:col-span-7 space-y-3">
+                    <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold flex items-center gap-2">
+                      <Settings2 size={12} className={`text-${THEME.COLORS.INTEL}`} /> 
+                      {isLogicOnly ? 'Execution Parameters' : 'Neural Core Instructions (System Prompt)'}
+                    </label>
+                    <div className="relative">
+                      {isLogicOnly ? (
+                        <div className="w-full bg-black/40 border border-white/5 rounded p-6 text-[10px] text-white/40 font-mono italic leading-relaxed min-h-[280px]">
+                          This node operates on deterministic system logic rather than neural inference. 
+                          Instructions are hardcoded in the codebase for maximum reliability and safety.
+                          <br /><br />
+                          <span className="text-white/60 uppercase tracking-widest not-italic font-bold flex items-center gap-2 mt-4">
+                            <ChevronRight size={10} /> source_path: core/handlers/{agent.id}.ts
+                          </span>
+                        </div>
+                      ) : (
+                        <textarea
+                          value={agent.systemPrompt}
+                          onChange={(e) => updateAgent(agent.id, { systemPrompt: e.target.value })}
+                          className={`w-full bg-black/40 border border-white/10 rounded p-4 text-xs text-white/90 font-mono min-h-[280px] outline-none focus:border-${THEME.COLORS.INTEL}/40 transition-all leading-relaxed custom-scrollbar`}
+                          placeholder="Enter the system instructions for this node..."
+                        />
+                      )}
                     </div>
-                    <p className="text-[10px] text-white/100 font-light leading-relaxed italic">
-                        Node type: {agent.isBackbone ? 'PERSISTENT_BACKBONE' : 'DYNAMIC_SPOKE'}.
-                        Authorized to interact with global bus and session memory.
-                    </p>
+                  </div>
+                  {/* Model & Config Section */}
+                  <div className="lg:col-span-5 space-y-6">
+                    {!isLogicOnly && (
+                      <div className="space-y-4 bg-white/[0.02] p-4 rounded border border-white/5">
+                        <h4 className="text-[10px] font-bold text-white/100 uppercase tracking-widest flex items-center gap-2">
+                            <Cpu size={12} className={`text-${THEME.COLORS.PRIMARY}`} /> Hardware_Alignment
+                        </h4>
+                        
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <label className="text-[9px] uppercase text-white/100 tracking-widest font-bold opacity-60">LLM Provider</label>
+                            <CyberSelect
+                              value={agent.provider || ''}
+                              onChange={(val) => updateAgent(agent.id, { provider: val, model: '' })}
+                              options={[
+                                { value: '', label: 'INHERIT_SYSTEM_DEFAULT' },
+                                ...Object.entries(PROVIDERS).map(([id, p]) => ({
+                                  value: id,
+                                  label: p.label,
+                                })),
+                              ]}
+                              className="w-full"
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-[9px] uppercase text-white/100 tracking-widest font-bold opacity-60">Neural Model ID</label>
+                            <CyberSelect
+                              value={agent.model || ''}
+                              onChange={(val) => updateAgent(agent.id, { model: val })}
+                              options={
+                                agent.provider
+                                  ? PROVIDERS[agent.provider as keyof typeof PROVIDERS]?.models.map((m) => ({
+                                      value: m,
+                                      label: m,
+                                    }))
+                                  : []
+                              }
+                              disabled={!agent.provider}
+                              placeholder={agent.provider ? 'SELECT_MODEL' : 'SELECT_PROVIDER_FIRST'}
+                              className="w-full"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className={`p-4 border border-${THEME.COLORS.INTEL}/10 bg-${THEME.COLORS.INTEL}/[0.02] rounded`}>
+                      <div className={`text-[10px] font-bold text-${THEME.COLORS.INTEL} uppercase tracking-widest flex items-center gap-2 mb-2`}>
+                          <ChevronRight size={12} /> Execution_Context
+                      </div>
+                      <p className="text-[10px] text-white/100 font-light leading-relaxed italic">
+                          Node type: {agent.isBackbone ? 'PERSISTENT_BACKBONE' : 'DYNAMIC_SPOKE'}.
+                          {isLogicOnly ? ' Core resilience logic.' : ' Authorized to interact with global bus and session memory.'}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -341,6 +380,109 @@ export default function AgentsPage() {
                 className="w-full bg-white/5 hover:bg-white/10 text-white/60 font-bold py-3 rounded-sm text-xs uppercase tracking-widest transition-all border border-white/10"
               >
                 ABORT_MODIFICATION
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* New Agent Modal */}
+      {showNewAgentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-[#050505] border border-white/10 max-w-2xl w-full p-8 rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)] space-y-6 relative">
+            <button 
+              onClick={() => setShowNewAgentModal(false)}
+              className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+
+            <div className="flex items-center gap-4 text-cyber-green">
+              <Plus size={32} />
+              <h3 className="text-xl font-black tracking-tighter uppercase italic">CONFIG NEW AGENT</h3>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase text-white/50 tracking-widest font-bold">Node Name</label>
+                  <input
+                    value={newAgent.name}
+                    onChange={(e) => setNewAgent(prev => ({ ...prev, name: e.target.value }))}
+                    className="w-full bg-black/40 border border-white/10 rounded p-3 text-sm text-white outline-none focus:border-cyber-green/50 transition-all font-mono"
+                    placeholder="e.g. Security Auditor"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase text-white/50 tracking-widest font-bold">System ID (Immutable)</label>
+                  <input
+                    value={newAgent.id}
+                    onChange={(e) => setNewAgent(prev => ({ ...prev, id: e.target.value.toLowerCase().replace(/\s+/g, '_') }))}
+                    className="w-full bg-black/40 border border-white/10 rounded p-3 text-sm text-white outline-none focus:border-cyber-green/50 transition-all font-mono"
+                    placeholder="e.g. auditor_01"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] uppercase text-white/50 tracking-widest font-bold">Neural Core Instructions (System Prompt)</label>
+                <textarea
+                  value={newAgent.systemPrompt}
+                  onChange={(e) => setNewAgent(prev => ({ ...prev, systemPrompt: e.target.value }))}
+                  className="w-full bg-black/40 border border-white/10 rounded p-4 text-xs text-white/90 font-mono min-h-[220px] outline-none focus:border-cyber-green/50 transition-all leading-relaxed custom-scrollbar"
+                  placeholder="Define the agent's behavior, personality, and constraints..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase text-white/50 tracking-widest font-bold">Initial Provider</label>
+                  <CyberSelect
+                    value={newAgent.provider || ''}
+                    onChange={(val) => setNewAgent(prev => ({ ...prev, provider: val, model: '' }))}
+                    options={[
+                      { value: '', label: 'SYSTEM_DEFAULT' },
+                      ...Object.entries(PROVIDERS).map(([id, p]) => ({
+                        value: id,
+                        label: p.label,
+                      })),
+                    ]}
+                    className="w-full"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase text-white/50 tracking-widest font-bold">Initial Model</label>
+                  <CyberSelect
+                    value={newAgent.model || ''}
+                    onChange={(val) => setNewAgent(prev => ({ ...prev, model: val }))}
+                    options={
+                      newAgent.provider
+                        ? PROVIDERS[newAgent.provider as keyof typeof PROVIDERS]?.models.map((m) => ({
+                            value: m,
+                            label: m,
+                          }))
+                        : []
+                    }
+                    disabled={!newAgent.provider}
+                    placeholder="SELECT_MODEL"
+                    className="w-full"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button
+                onClick={finalizeNewAgent}
+                className="flex-1 bg-cyber-green text-black font-black py-4 rounded-sm text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(0,255,163,0.2)] hover:scale-[1.02]"
+              >
+                AUTHORIZE_NODE_INITIALIZATION
+              </button>
+              <button
+                onClick={() => setShowNewAgentModal(false)}
+                className="px-8 bg-white/5 hover:bg-white/10 text-white/60 font-bold py-4 rounded-sm text-xs uppercase tracking-widest transition-all border border-white/10"
+              >
+                CANCEL
               </button>
             </div>
           </div>

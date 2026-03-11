@@ -36,7 +36,7 @@ export default function Sidebar() {
     { label: 'System', type: 'header', className: 'pt-4' },
     { href: '/system-pulse', label: 'SYSTEM_PULSE', icon: Share2 },
     { href: '/locks', label: 'SESSION_TRAFFIC', icon: Lock },
-    { href: '/settings', label: 'SYSTEM_CONFIG', icon: Settings },
+    { href: '/settings', label: 'CONFIG', icon: Settings },
     { label: 'Observability', type: 'header', className: 'pt-4' },
     { href: '/security', label: 'SECURITY_MANIFEST', icon: ShieldCheck },
     { href: '/resilience', label: 'SELF_HEALING', icon: Zap },
