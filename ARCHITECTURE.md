@@ -165,16 +165,13 @@ Instead of loading all memories into every prompt, agents use `recall_knowledge(
 - **Efficiency**: Reduces input token costs by up to 90% for long-lived sessions.
 
 ### 3. Dynamic Tool Scoping & Discovery
-Agents no longer load the entire tool catalog. 
+Agents no longer load the entire tool catalog.
 - **Mechanism**: Every agent call triggers `getAgentTools(agentId)`.
-- **Registry**: The `AgentRegistry` stores the allowed tool names and system prompts for each agent.
-- **Co-Management**: The **ClawCenter** dashboard serves as the UI for the `AgentRegistry`, allowing users to hot-swap prompts and tools without redeploying.
-- **Default Scopes**: 
-    - `main`: Orchestration & Recall.
-    - `coder`: Files & Validation.
-    - `planner`: Management & Search.
+- **Registry**: The `AgentRegistry` stores the allowed tool names and system prompts for each agent, pulling from `backbone.ts`.
+- **Standard Support Profile**: Dynamic agents are automatically injected with core tools (`recall_knowledge`, `list_agents`, `dispatch_task`) to ensure baseline intelligence and collaboration.
+- **Co-Management**: The **ClawCenter** dashboard serves as the UI for the registry, allowing zero-downtime hot-swaps.
 
-### 2. Memory Adapters
+### 4. Memory Adapters
 While the default uses DynamoDB, the system can be adapted to use:
 - **Redis (Upstash)** for even lower latency.
 - **PostgreSQL (Drizzle/Prisma)** for complex relational memory.

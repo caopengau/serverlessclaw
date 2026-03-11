@@ -17,7 +17,10 @@ Designed to be "un-killable." If an autonomous deployment introduces a bug or ca
 Traditional AI agents run on expensive, always-on instances. Serverless Claw is 100% serverless. Powered by AWS Lambda, DynamoDB, and EventBridge, **you pay strictly per invocation**. When the agent is idle, your infrastructure cost is exactly $0.00. The system also dynamically hot-swaps between LLM models (e.g., OpenAI, Anthropic Bedrock) based on the task's complexity, optimizing token costs on the fly.
 
 ### 4. Human-Agent Memory Co-Management
-Avoid the "black box" of agent long-term memory. Through the **ClawCenter Dashboard**, humans can audit distilled tactical lessons and strategic capability gaps. You can explicitly **prioritize** what the system should focus on next or "weed" the memory garden to remove hallucinations. This ensures long-term alignment between human intent and autonomous evolution.
+Avoid the "black box" of agent long-term memory. Through the **ClawCenter Dashboard**, humans can audit distilled tactical lessons and strategic capability gaps. You can explicitly **prioritize** what the system should focus on next or "weed" the memory garden.
+
+### 5. Self-Aware Discovery
+The system maintains a real-time topology of itself. Using the **Build Monitor** and the `list_agents` tool, Serverless Claw nodes autonomously discover each other and their underlying infrastructure, ensuring that the system remains coherent as it expands with new specialized agents.
 
 ## 🏗️ Architecture & Tech Stack
 

@@ -132,10 +132,12 @@ Instead of a static roster, every agent loads its tools from the `AgentRegistry`
 - **Switch**: Controlled in `/settings`.
 
 ### 3. Memory Curation
-Users can "Prune" the agent's memory at `/memory` to:
-- Delete incorrect tactical lessons.
-- Remove hallucinated user preferences.
-- Clear stale strategic gaps.
+Users can "Prune" the agent's memory at `/memory` to remove incorrect lessons or stale gaps.
+
+### 4. Dynamic Discovery & Tool Injection
+The system is designed for autonomous expansion where new nodes are born "intelligent":
+- **`list_agents`**: A core tool enabling any agent to discover other specialized nodes in the system at runtime.
+- **Standard Support Profile**: To ensure seamless integration, every dynamic agent is automatically injected with a default toolset (`recall_knowledge`, `list_agents`, `dispatch_task`) if no explicit tools are defined. This ensures every new agent is collaborative and informed from second one.
 
 ---
 
