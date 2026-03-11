@@ -35,6 +35,8 @@ export default function AgentsPage() {
   const [initialAgents, setInitialAgents] = useState<Record<string, AgentConfig>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showBackboneWarning, setShowBackboneWarning] = useState(false);
+  const [backboneChanges, setBackboneChanges] = useState<string[]>([]);
 
   useEffect(() => {
     fetch('/api/agents')
@@ -50,7 +52,29 @@ export default function AgentsPage() {
       });
   }, []);
 
-  const handleSave = async () => {
+  const handleSave = async (force: boolean = false) => {
+    // Detect backbone changes
+    if (!force) {
+      const changedBackbone = Object.values(agents).filter(agent => {
+        if (!agent.isBackbone) return false;
+        const initial = initialAgents[agent.id];
+        if (!initial) return false;
+        return (
+          agent.name !== initial.name ||
+          agent.systemPrompt !== initial.systemPrompt ||
+          agent.model !== initial.model ||
+          agent.provider !== initial.provider ||
+          agent.enabled !== initial.enabled
+        );
+      }).map(a => a.name || a.id);
+
+      if (changedBackbone.length > 0) {
+        setBackboneChanges(changedBackbone);
+        setShowBackboneWarning(true);
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const response = await fetch('/api/agents', {
@@ -61,6 +85,7 @@ export default function AgentsPage() {
       if (!response.ok) throw new Error('Failed to save');
       setInitialAgents(JSON.parse(JSON.stringify(agents)));
       alert('Neural nodes synchronized successfully');
+      setShowBackboneWarning(false);
     } catch (err) {
       alert('Failed to save neural states');
     } finally {
@@ -265,14 +290,62 @@ export default function AgentsPage() {
       {/* Floating Save Button */}
       <div className="fixed bottom-10 right-10 z-30">
         <button
-          onClick={handleSave}
+          onClick={() => handleSave()}
           disabled={saving || !hasChanges}
-          className={`${THEME.CLASSES.BUTTON_PRIMARY} px-8 py-4 rounded text-xs font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale disabled:scale-100 uppercase tracking-widest border border-white/20`}
+          className={`${THEME.COLORS.PRIMARY === 'cyan' ? 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 border-cyan-500/50' : `bg-${THEME.COLORS.PRIMARY}-500/10 hover:bg-${THEME.COLORS.PRIMARY}-500/20 text-${THEME.COLORS.PRIMARY}-500 border-${THEME.COLORS.PRIMARY}-500/50`} px-8 py-4 rounded text-xs font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale disabled:scale-100 uppercase tracking-widest border shadow-[0_0_20px_rgba(0,0,0,0.5)]`}
         >
           {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
           SAVE_AGENT_CONFIG
         </button>
       </div>
+
+      {/* Backbone Warning Modal */}
+      {showBackboneWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-[#050505] border-2 border-red-500/50 max-w-lg w-full p-8 rounded-sm shadow-[0_0_50px_rgba(239,68,68,0.2)] space-y-6">
+            <div className="flex items-center gap-4 text-red-500">
+              <Shield size={32} className="animate-pulse" />
+              <h3 className="text-xl font-black tracking-tighter uppercase italic">CRITICAL_BACKBONE_MODIFICATION</h3>
+            </div>
+            
+            <div className="space-y-4 font-mono text-[11px] leading-relaxed">
+              <p className="text-white/80">
+                <span className="text-red-500 font-bold">WARNING:</span> You are attempting to modify core backbone orchestrators:
+              </p>
+              <div className="bg-red-500/5 border border-red-500/20 p-3 rounded">
+                {backboneChanges.map(name => (
+                  <div key={name} className="text-red-400 font-bold">
+                    {`> DETECTED_CHANGE: ${name}`}
+                  </div>
+                ))}
+              </div>
+              <p className="text-white/60">
+                Backbone agents are critical to the system's neural connectivity and core logic. 
+                Unauthorized or incorrect modifications can lead to cascading failures, deadlocked tasks, 
+                or loss of system autonomy.
+              </p>
+              <p className="text-white font-bold italic border-l-2 border-red-500 pl-3">
+                "I understand that these changes affect the system's fundamental architecture and I take full responsibility for this modification."
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => handleSave(true)}
+                className="w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 rounded-sm text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-[1.02]"
+              >
+                I_UNDERSTAND_PROCEED_WITH_SAVE
+              </button>
+              <button
+                onClick={() => setShowBackboneWarning(false)}
+                className="w-full bg-white/5 hover:bg-white/10 text-white/60 font-bold py-3 rounded-sm text-xs uppercase tracking-widest transition-all border border-white/10"
+              >
+                ABORT_MODIFICATION
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
