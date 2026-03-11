@@ -50,12 +50,12 @@ export default function LoginPage() {
             <Lock size={32} />
           </div>
           <h1 className="text-2xl font-bold tracking-tighter glow-text uppercase">CLAW_CENTER_AUTH</h1>
-          <p className="text-white/40 text-[10px] mt-2 tracking-[0.2em]">RESTRICTED_ACCESS // NEURAL_GATEWAY_V1.0</p>
+          <p className="text-white/80 text-[10px] mt-2 tracking-[0.2em]">RESTRICTED_ACCESS // NEURAL_GATEWAY_V1.0</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[10px] text-white/40 font-bold uppercase tracking-widest block ml-1">
+            <label className="text-[10px] text-white/80 font-bold uppercase tracking-widest block ml-1">
               Neural Keyphrase
             </label>
             <div className="relative">

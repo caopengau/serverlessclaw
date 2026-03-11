@@ -104,7 +104,7 @@ export default async function MemoryVault() {
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight glow-text-blue uppercase">NEURAL_RESERVE</h2>
-          <p className="text-white/40 text-sm mt-2 font-light">Human-Agent Collaborative Memory Tiering & Prioritization Hub.</p>
+          <p className="text-white/80 text-sm mt-2 font-light">Human-Agent Collaborative Memory Tiering & Prioritization Hub.</p>
         </div>
         <div className="flex gap-4 text-center">
             <div className="glass-card px-4 py-2 text-[10px]">
@@ -284,7 +284,7 @@ export default async function MemoryVault() {
         <div className="xl:col-span-4 space-y-10">
           <section className="glass-card p-6 border-white/10 bg-black/40">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/40 flex items-center gap-2">
+              <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/80 flex items-center gap-2">
                 <Wrench size={14} className="text-yellow-500" /> Active Arsenal
               </h3>
               <span className="text-[8px] text-cyber-green font-bold animate-pulse">CAPABLE</span>
@@ -292,7 +292,7 @@ export default async function MemoryVault() {
             <div className="space-y-3">
               {toolList.slice(0, 12).map((tool, i) => (
                 <div key={i} className="px-3 py-2 bg-white/[0.02] border border-white/5 rounded flex items-center justify-between group">
-                  <span className="text-[11px] font-bold text-white/60 group-hover:text-yellow-500/80 transition-colors uppercase tracking-tight">{tool.name}</span>
+                  <span className="text-[11px] font-bold text-white/80 group-hover:text-yellow-500/80 transition-colors uppercase tracking-tight">{tool.name}</span>
                   <Shield size={10} className="text-white/10 group-hover:text-cyber-green" />
                 </div>
               ))}

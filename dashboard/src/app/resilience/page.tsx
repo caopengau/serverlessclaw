@@ -64,7 +64,7 @@ export default async function ResilienceHub() {
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight glow-text-yellow">RESILIENCE_HUB</h2>
-          <p className="text-white/40 text-sm mt-2 font-light">Autonomous self-healing and system recovery monitor.</p>
+          <p className="text-white/80 text-sm mt-2 font-light">Autonomous self-healing and system recovery monitor.</p>
         </div>
         <div className="flex gap-4">
           <div className={`glass-card px-4 py-2 text-[12px] border-2 ${isHealthy ? 'border-cyber-green/30' : 'border-red-500/50 animate-pulse'}`}>
@@ -85,23 +85,23 @@ export default async function ResilienceHub() {
         {/* Left Column: Health & DMS */}
         <div className="lg:col-span-1 space-y-8">
           <section className="glass-card p-6 border-white/10 bg-black/40">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/40 flex items-center gap-2 mb-6">
+            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/80 flex items-center gap-2 mb-6">
               <Activity size={14} className="text-cyber-green" /> Real-time Diagnostics
             </h3>
             
             <div className="space-y-6">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-white/60">Core API</span>
+                <span className="text-white/80">Core API</span>
                 <span className="text-cyber-green font-bold">STABLE</span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-white/60">DynamoDB Layer</span>
+                <span className="text-white/80">DynamoDB Layer</span>
                 <span className="text-cyber-green font-bold text-xs">
                   {health.deployCountToday !== undefined ? `ACTIVE (${health.deployCountToday} deploys today)` : 'ACTIVE'}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
-                <span className="text-white/60">Last Probe</span>
+                <span className="text-white/80">Last Probe</span>
                 <span className="text-white/30 text-[10px]">{new Date().toLocaleTimeString()}</span>
               </div>
             </div>
@@ -115,7 +115,7 @@ export default async function ResilienceHub() {
 
           <section className="glass-card p-6 border-white/10 bg-black/40 relative overflow-hidden">
              <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/40 flex items-center gap-2 mb-6">
+            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/80 flex items-center gap-2 mb-6">
               <Timer size={14} className="text-yellow-500" /> Dead Man's Switch
             </h3>
             
@@ -125,17 +125,17 @@ export default async function ResilienceHub() {
               </div>
               <div>
                 <div className="text-xs font-bold text-white/90">Autonomous Pulse</div>
-                <div className="text-[10px] text-white/40">Schedules: Every 15 minutes</div>
+                <div className="text-[10px] text-white/80">Schedules: Every 15 minutes</div>
               </div>
             </div>
 
             <div className="p-3 bg-white/[0.02] border border-white/5 rounded space-y-2">
               <div className="flex justify-between text-[10px]">
-                <span className="text-white/40 uppercase">Mode</span>
+                <span className="text-white/80 uppercase">Mode</span>
                 <span className="text-yellow-500/80 font-bold">AUTO_RECOVERY</span>
               </div>
               <div className="flex justify-between text-[10px]">
-                <span className="text-white/40 uppercase">Action</span>
+                <span className="text-white/80 uppercase">Action</span>
                 <span className="text-white/70 italic">TRIGGER_ROLLBACK</span>
               </div>
             </div>
@@ -145,7 +145,7 @@ export default async function ResilienceHub() {
         {/* Right Column: Recovery Logs */}
         <div className="lg:col-span-2">
           <section className="space-y-4">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/40 flex items-center gap-2">
+            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/80 flex items-center gap-2">
               <ShieldCheck size={14} className="text-yellow-500" /> recovery_operations_log
             </h3>
             
@@ -162,7 +162,7 @@ export default async function ResilienceHub() {
                         <Clock size={10} /> {new Date(log.timestamp).toLocaleString()}
                       </div>
                     </div>
-                    <p className="text-xs text-white/60 font-mono leading-relaxed pl-5 italic">
+                    <p className="text-xs text-white/80 font-mono leading-relaxed pl-5 italic">
                       {log.content}
                     </p>
                   </div>

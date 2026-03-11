@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   ReactFlow,
   Background,
@@ -10,23 +10,29 @@ import {
   Node,
   Edge,
   MarkerType,
+  useNodesState,
+  useEdgesState,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Bot, Zap, Code, ShieldCheck, Terminal, Cpu } from 'lucide-react';
+import { 
+  Bot, Zap, Code, ShieldCheck, Terminal, Cpu, 
+  Database, Brain, Activity, Search, FlaskConical, 
+  Settings2, RefreshCw, Radio
+} from 'lucide-react';
 
 const nodeTypes = {
   agent: ({ data }: any) => (
-    <div className="px-4 py-2 shadow-lg rounded-md bg-black border border-cyber-green/50 min-w-[150px] relative overflow-hidden group">
+    <div className="px-4 py-3 shadow-lg rounded-md bg-black border border-cyber-green/50 min-w-[180px] max-w-[240px] relative overflow-hidden group">
       <div className="absolute top-0 right-0 w-16 h-16 bg-cyber-green/5 rounded-full blur-xl -mr-8 -mt-8"></div>
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-cyber-green/10 rounded-sm text-cyber-green">
+        <div className={`p-2 rounded-sm shrink-0 ${data.enabled ? 'bg-cyber-green/10 text-cyber-green' : 'bg-red-500/10 text-red-500'}`}>
           {data.icon}
         </div>
-        <div>
-          <div className="text-[10px] font-bold text-cyber-green uppercase tracking-tighter">
-            {data.type}
+        <div className="overflow-hidden">
+          <div className={`text-[10px] font-bold uppercase tracking-tighter truncate ${data.enabled ? 'text-cyber-green' : 'text-red-500'}`}>
+            {data.type || 'NEURAL_NODE'} {!data.enabled && '[OFFLINE]'}
           </div>
-          <div className="text-sm font-bold text-white/90">{data.label}</div>
+          <div className="text-sm font-bold text-white/90 break-words leading-tight">{data.label}</div>
         </div>
       </div>
       <Handle type="target" position={Position.Top} className="!bg-cyber-green/50 !border-none !w-2 !h-2" />
@@ -34,9 +40,10 @@ const nodeTypes = {
     </div>
   ),
   bus: ({ data }: any) => (
-    <div className="px-4 py-2 shadow-lg rounded-md bg-black border border-orange-500/50 min-w-[200px] text-center cyber-border-orange relative">
-        <div className="text-[8px] font-bold text-orange-500 uppercase tracking-[0.3em] mb-1">Central_Orchestrator</div>
-        <div className="text-xs font-bold text-white flex items-center justify-center gap-2">
+    <div className="px-4 py-2 shadow-lg rounded-md bg-black border border-orange-500/50 min-w-[220px] text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-orange-500/5 animate-pulse"></div>
+        <div className="text-[8px] font-bold text-orange-500 uppercase tracking-[0.3em] mb-1 relative z-10">Central_Orchestrator</div>
+        <div className="text-xs font-bold text-white flex items-center justify-center gap-2 relative z-10">
             <Zap size={14} className="text-orange-500" /> {data.label}
         </div>
         <Handle type="target" position={Position.Top} className="!bg-orange-500/50" />
@@ -46,140 +53,231 @@ const nodeTypes = {
     </div>
   ),
   infra: ({ data }: any) => (
-    <div className="px-4 py-2 shadow-lg rounded-md bg-black border border-cyber-blue/30 min-w-[150px]">
+    <div className="px-4 py-2 shadow-lg rounded-md bg-[#0a0a0a] border border-cyber-blue/30 min-w-[150px] relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-12 h-12 bg-cyber-blue/5 rounded-full blur-lg -mr-6 -mt-6"></div>
       <div className="flex items-center gap-3">
         <div className="p-2 bg-cyber-blue/10 rounded-sm text-cyber-blue">
           {data.icon}
         </div>
         <div>
           <div className="text-[10px] font-bold text-cyber-blue uppercase tracking-tighter">
-            INFRA_SPOKE
+            {data.type || 'INFRA_SPOKE'}
           </div>
           <div className="text-sm font-bold text-white/90">{data.label}</div>
         </div>
       </div>
       <Handle type="target" position={Position.Top} className="!bg-cyber-blue/50" />
+      <Handle type="source" position={Position.Bottom} className="!bg-cyber-blue/50" />
     </div>
   ),
 };
 
-const initialNodes: Node[] = [
-  {
-    id: 'main',
-    type: 'agent',
-    position: { x: 250, y: 0 },
-    data: { label: 'Main Manager', type: 'Logic_Core', icon: <Bot size={16} /> },
-  },
-  {
-    id: 'bus',
-    type: 'bus',
-    position: { x: 200, y: 120 },
-    data: { label: 'EventBridge AgentBus' },
-  },
-  {
-    id: 'coder',
-    type: 'agent',
-    position: { x: 50, y: 250 },
-    data: { label: 'Coder Agent', type: 'Worker_Spoke', icon: <Code size={16} /> },
-  },
-  {
-    id: 'monitor',
-    type: 'agent',
-    position: { x: 450, y: 250 },
-    data: { label: 'Build Monitor', type: 'Observatory', icon: <ShieldCheck size={16} /> },
-  },
-  {
-    id: 'codebuild',
-    type: 'infra',
-    position: { x: 450, y: 400 },
-    data: { label: 'AWS CodeBuild', icon: <Terminal size={16} /> },
-  },
-  {
-    id: 's3',
-    type: 'infra',
-    position: { x: 50, y: 400 },
-    data: { label: 'Staging Bucket', icon: <Cpu size={16} /> },
-  },
-];
-
-const initialEdges: Edge[] = [
-  { 
-    id: 'main-bus', 
-    source: 'main', 
-    target: 'bus', 
-    animated: true, 
-    label: 'DISPATCH',
-    labelStyle: { fill: '#fff', fontSize: 10, fontWeight: 'bold' },
-    style: { stroke: '#00ff91', strokeWidth: 2 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#00ff91' }
-  },
-  { 
-    id: 'bus-coder', 
-    source: 'bus', 
-    target: 'coder', 
-    sourceHandle: 'left',
-    animated: true,
-    style: { stroke: '#f97316' },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#f97316' } 
-  },
-  { 
-    id: 'bus-monitor', 
-    source: 'bus', 
-    target: 'monitor', 
-    sourceHandle: 'right',
-    animated: true,
-    style: { stroke: '#f97316' },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#f97316' } 
-  },
-  { 
-    id: 'monitor-codebuild', 
-    source: 'monitor', 
-    target: 'codebuild', 
-    style: { stroke: '#00f3ff', strokeDasharray: '5,5' },
-    label: 'OBSERVE',
-    labelStyle: { fill: '#00f3ff', fontSize: 8 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#00f3ff' } 
-  },
-  { 
-    id: 'coder-s3', 
-    source: 'coder', 
-    target: 's3', 
-    style: { stroke: '#00f3ff', strokeDasharray: '5,5' },
-    label: 'STAGE',
-    labelStyle: { fill: '#00f3ff', fontSize: 8 },
-    markerEnd: { type: MarkerType.ArrowClosed, color: '#00f3ff' } 
-  },
-];
+const getAgentIcon = (id: string) => {
+  if (id === 'main') return <Bot size={16} />;
+  if (id === 'coder') return <Code size={16} />;
+  if (id === 'planner') return <Brain size={16} />;
+  if (id === 'reflector') return <Search size={16} />;
+  if (id === 'monitor') return <Activity size={16} />;
+  if (id === 'qa') return <FlaskConical size={16} />;
+  return <Settings2 size={16} />;
+};
 
 export default function SystemPulseFlow() {
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchBlueprint = useCallback(async () => {
+    try {
+      const res = await fetch('/api/agents');
+      const agents: Record<string, any> = await res.json();
+      
+      const newNodes: Node[] = [];
+      const newEdges: Edge[] = [];
+
+      // 1. Add Infrastructure Core
+      newNodes.push({
+        id: 'bus',
+        type: 'bus',
+        position: { x: 400, y: 100 },
+        data: { label: 'EventBridge AgentBus' },
+      });
+
+      newNodes.push({
+        id: 'memory',
+        type: 'infra',
+        position: { x: 100, y: 500 },
+        data: { label: 'DynamoDB Memory', type: 'DATA_STORE', icon: <Database size={16} /> },
+      });
+
+      newNodes.push({
+        id: 'codebuild',
+        type: 'infra',
+        position: { x: 400, y: 500 },
+        data: { label: 'AWS CodeBuild', type: 'COMPUTE', icon: <Terminal size={16} /> },
+      });
+
+      newNodes.push({
+        id: 's3',
+        type: 'infra',
+        position: { x: 700, y: 500 },
+        data: { label: 'Staging Bucket', type: 'STORAGE', icon: <Cpu size={16} /> },
+      });
+
+      // 2. Map Agents
+      const agentList = Object.values(agents);
+      agentList.forEach((agent, index) => {
+        // Dynamic layout spacing
+        const xPos = 100 + (index * 220);
+        const isMain = agent.id === 'main';
+        
+        newNodes.push({
+          id: agent.id,
+          type: 'agent',
+          position: { x: isMain ? 425 : xPos, y: isMain ? -50 : 300 },
+          data: { 
+            label: agent.name, 
+            enabled: agent.enabled,
+            type: isMain ? 'Logic_Core' : 'Neural_Worker',
+            icon: getAgentIcon(agent.id) 
+          },
+        });
+
+        // MANDATORY: Every agent is connected to the Bus (Input/Output)
+        if (isMain) {
+          newEdges.push({
+            id: `main-bus`,
+            source: 'main',
+            target: 'bus',
+            animated: agent.enabled,
+            label: 'ORCHESTRATE',
+            labelStyle: { fill: '#00ffa3', fontSize: 10, fontWeight: 'bold' },
+            style: { stroke: '#00ffa3', strokeWidth: 2 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: '#00ffa3' }
+          });
+        } else {
+          newEdges.push({
+            id: `bus-${agent.id}`,
+            source: 'bus',
+            target: agent.id,
+            animated: agent.enabled,
+            label: 'SIGNAL',
+            labelStyle: { fill: agent.enabled ? '#f97316' : '#444', fontSize: 8 },
+            style: { stroke: agent.enabled ? '#f97316' : '#444' },
+            markerEnd: { type: MarkerType.ArrowClosed, color: agent.enabled ? '#f97316' : '#444' }
+          });
+        }
+
+        // INFRASTRUCTURE CONNECTIONS
+        if (agent.enabled) {
+          // All agents use Memory
+          newEdges.push({ 
+            id: `${agent.id}-mem`, 
+            source: agent.id, 
+            target: 'memory', 
+            style: { stroke: '#00f3ff', strokeDasharray: '5,5', opacity: 0.3 } 
+          });
+
+          // Specialized connections
+          if (agent.id === 'coder') {
+            newEdges.push({ 
+              id: 'coder-s3', 
+              source: 'coder', 
+              target: 's3', 
+              label: 'UPLOAD', 
+              labelStyle: { fill: '#00f3ff', fontSize: 8, fontWeight: 'bold' }, 
+              labelBgStyle: { fill: 'transparent' },
+              style: { stroke: '#00f3ff' } 
+            });
+            newEdges.push({ 
+              id: 'coder-build', 
+              source: 'coder', 
+              target: 'codebuild', 
+              label: 'TRIGGER', 
+              labelStyle: { fill: '#00f3ff', fontSize: 8, fontWeight: 'bold' }, 
+              labelBgStyle: { fill: 'transparent' },
+              style: { stroke: '#00f3ff', strokeDasharray: '2,2' } 
+            });
+          }
+          if (agent.id === 'monitor') {
+            newEdges.push({ 
+              id: 'monitor-build', 
+              source: 'monitor', 
+              target: 'codebuild', 
+              label: 'WATCH', 
+              labelStyle: { fill: '#00f3ff', fontSize: 8, fontWeight: 'bold' }, 
+              labelBgStyle: { fill: 'transparent' },
+              style: { stroke: '#00f3ff' } 
+            });
+          }
+        }
+      });
+
+      // Add edge between Infra components
+      newEdges.push({
+        id: 's3-codebuild',
+        source: 's3',
+        target: 'codebuild',
+        label: 'SOURCE_PULL',
+        labelStyle: { fill: '#00f3ff', fontSize: 7, fontWeight: 'bold' },
+        labelBgStyle: { fill: 'transparent' },
+        style: { stroke: '#00f3ff', opacity: 0.4 }
+      });
+
+      setNodes(newNodes);
+      setEdges(newEdges);
+      setLoading(false);
+    } catch (e) {
+      console.error('Failed to fetch system blueprint:', e);
+      setLoading(false);
+    }
+  }, [setNodes, setEdges]);
+
+  useEffect(() => { fetchBlueprint(); }, [fetchBlueprint]);
+
   return (
-    <div className="h-[600px] w-full bg-[#050505] rounded-lg border border-white/5 relative">
-      <ReactFlow
-        nodes={initialNodes}
-        edges={initialEdges}
-        nodeTypes={nodeTypes}
-        fitView
-        className="bg-dot-pattern"
-      >
-        <Background color="#333" gap={20} />
-        <Controls />
-      </ReactFlow>
+    <div className="h-[700px] w-full bg-[#050505] rounded-lg border border-white/5 relative overflow-hidden">
+      {loading ? (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-4">
+            <RefreshCw size={32} className="text-cyber-green animate-spin" />
+            <div className="text-xs font-bold text-cyber-green animate-pulse tracking-[0.3em]">SYNCHRONIZING_NEURAL_MAP...</div>
+          </div>
+        </div>
+      ) : (
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
+          fitView
+          className="bg-dot-pattern"
+        >
+          <Background color="#222" gap={20} />
+          <Controls 
+            className="!bg-black !border !border-white/10 !fill-white !rounded-md overflow-hidden"
+            style={{ 
+              backgroundColor: '#000', 
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '4px' 
+            }}
+          />
+        </ReactFlow>
+      )}
       
       <div className="absolute top-4 left-4 z-10 space-y-2 pointer-events-none">
           <div className="flex items-center gap-2 px-3 py-1 bg-black/80 border border-cyber-green/30 rounded-full">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-green opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyber-green"></span>
-              </span>
-              <span className="text-[10px] font-bold text-cyber-green uppercase">Logic_Core_Online</span>
+              <Radio size={12} className="text-cyber-green animate-pulse" />
+              <span className="text-[10px] font-bold text-cyber-green uppercase tracking-wider">LIVE_ARCHITECTURE_FEED</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1 bg-black/80 border border-orange-500/30 rounded-full">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-500 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-orange-500"></span>
-              </span>
-              <span className="text-[10px] font-bold text-orange-500 uppercase">AgentBus_Active</span>
-          </div>
+          <button 
+            onClick={() => { setLoading(true); fetchBlueprint(); }}
+            className="flex items-center gap-2 px-3 py-1 bg-black/80 border border-white/10 rounded-full hover:bg-white/5 transition-colors pointer-events-auto cursor-pointer group"
+          >
+              <RefreshCw size={10} className="text-white/60 group-hover:rotate-180 transition-transform duration-500" />
+              <span className="text-[10px] font-bold text-white/60 uppercase">Manual_Resync</span>
+          </button>
       </div>
     </div>
   );

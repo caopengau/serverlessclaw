@@ -72,7 +72,7 @@ export default async function LocksPage() {
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight glow-text-orange">SESSION_TRAFFIC</h2>
-          <p className="text-white/40 text-sm mt-2 font-light">Real-time distributed lock manager for session isolation.</p>
+          <p className="text-white/80 text-sm mt-2 font-light">Real-time distributed lock manager for session isolation.</p>
         </div>
         <div className="flex gap-4">
           <div className="glass-card px-4 py-2 text-[12px]">
@@ -81,14 +81,14 @@ export default async function LocksPage() {
           </div>
           <div className="glass-card px-4 py-2 text-[12px]">
             <div className="text-white/30 mb-1">ZOMBIE_LOCKS</div>
-            <div className="font-bold text-white/40">{locks.filter(l => l.isExpired).length}</div>
+            <div className="font-bold text-white/80">{locks.filter(l => l.isExpired).length}</div>
           </div>
         </div>
       </header>
 
       <section className="space-y-6">
         <div className="flex items-center justify-between">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/40 flex items-center gap-2">
+            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/80 flex items-center gap-2">
                 <Zap size={14} className="text-orange-500" /> Lane Concurrency Monitor
             </h3>
             <div className="flex items-center gap-2 text-[10px] text-white/20 uppercase font-mono">
@@ -153,7 +153,7 @@ export default async function LocksPage() {
         <h4 className="text-[10px] uppercase font-bold text-orange-500 mb-2 flex items-center gap-2">
             <ShieldAlert size={12} /> Recovery Protocol
         </h4>
-        <p className="text-xs text-white/40 leading-relaxed italic">
+        <p className="text-xs text-white/80 leading-relaxed italic">
             "Ghost Locks" occur when an agent crashes before releasing its session. Force releasing a lock allows the user to start a new session immediately. Caution: Releasing an active lock may cause state corruption.
         </p>
       </div>

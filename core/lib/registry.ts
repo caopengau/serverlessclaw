@@ -58,6 +58,29 @@ export class AgentRegistry {
       isBackbone: true,
       tools: ['recall_knowledge', 'check_health'],
     },
+    [AgentType.REFLECTOR]: {
+      id: AgentType.REFLECTOR,
+      name: 'Cognition Reflector',
+      systemPrompt: `You are the Cognition Reflector. 
+      Your mission: Analyze agent traces to distill long-term memory, tactical lessons, and strategic capability gaps.
+      Extract:
+      1. FACTS: Verified technical or user-specific information.
+      2. LESSONS: Tactical advice to avoid repeat mistakes.
+      3. GAPS: Functional requirements that currently fail.`,
+      enabled: true,
+      isBackbone: true,
+      tools: ['recall_knowledge', 'manage_gap'],
+    },
+    [AgentType.PLANNER]: {
+      id: AgentType.PLANNER,
+      name: 'Strategic Planner',
+      systemPrompt: `You are the Strategic Planner.
+      Your mission: Analyze the list of Capability Gaps and the Current System Index to prioritize evolution.
+      Output a 'STRATEGIC_PLAN' that guides the Coder Agent.`,
+      enabled: true,
+      isBackbone: true,
+      tools: ['recall_knowledge', 'manage_gap', 'dispatch_task'],
+    },
   };
 
   /**

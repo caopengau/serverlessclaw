@@ -61,7 +61,7 @@ export default async function Dashboard() {
         <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
           <div className="max-w-xl">
             <h2 className="text-2xl lg:text-3xl font-bold tracking-tight glow-text uppercase">TRACE_INTELLIGENCE</h2>
-            <p className="text-white/40 text-xs lg:text-sm mt-2 font-light leading-relaxed">Neural observation of autonomous agent logic paths and decision matrices.</p>
+            <p className="text-white/80 text-xs lg:text-sm mt-2 font-light leading-relaxed">Neural observation of autonomous agent logic paths and decision matrices.</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:flex gap-3 lg:gap-4">
             <div className="glass-card px-4 py-2.5 text-[11px] lg:text-[12px]">
@@ -85,7 +85,7 @@ export default async function Dashboard() {
         {/* Traces Grid */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/40 flex items-center gap-2">
+            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/80 flex items-center gap-2">
               <Terminal size={14} className="text-cyber-green" /> Recent Neural Paths
             </h3>
             <span className="text-[9px] text-white/20 font-mono hidden md:block">LAST_UPDATE: {new Date().toISOString()}</span>
@@ -125,7 +125,7 @@ export default async function Dashboard() {
                         step.type === 'tool_call' ? 'border-cyber-blue/20 bg-cyber-blue/5 text-cyber-blue' : 
                         step.type === 'error' ? 'border-red-500/20 bg-red-500/5 text-red-400' : 
                         step.type === 'llm_call' ? 'border-purple-500/20 bg-purple-500/5 text-purple-400' :
-                        'border-white/5 bg-white/5 text-white/40'
+                        'border-white/5 bg-white/5 text-white/80'
                       }`}>
                         {step.type.toUpperCase()}
                       </span>

@@ -95,7 +95,7 @@ export default function AgentsManager() {
           <div key={agent.id} className={`glass-card p-6 border-l-2 ${agent.isBackbone ? 'border-cyber-blue shadow-[0_0_15px_rgba(0,224,255,0.05)]' : 'border-white/10'}`}>
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded ${agent.isBackbone ? 'bg-cyber-blue/20 text-cyber-blue' : 'bg-white/5 text-white/40'}`}>
+                <div className={`p-2 rounded ${agent.isBackbone ? 'bg-cyber-blue/20 text-cyber-blue' : 'bg-white/5 text-white/80'}`}>
                   {agent.isBackbone ? <Shield size={18} /> : <Bot size={18} />}
                 </div>
                 <div>
@@ -110,7 +110,7 @@ export default function AgentsManager() {
               </div>
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="text-[9px] font-bold text-white/40 tracking-widest">ACTIVE</span>
+                  <span className="text-[9px] font-bold text-white/80 tracking-widest">ACTIVE</span>
                   <input 
                     type="checkbox"
                     checked={agent.enabled}
@@ -138,20 +138,31 @@ export default function AgentsManager() {
                 <textarea 
                   value={agent.systemPrompt}
                   onChange={e => updateAgent(agent.id, { systemPrompt: e.target.value })}
-                  className="w-full bg-black/40 border border-white/5 rounded p-3 text-xs text-white/60 font-mono min-h-[120px] outline-none focus:border-cyber-green/30 transition-colors leading-relaxed"
+                  className="w-full bg-black/40 border border-white/5 rounded p-3 text-xs text-white/80 font-mono min-h-[120px] outline-none focus:border-cyber-green/30 transition-colors leading-relaxed"
                   disabled={agent.isBackbone}
                 />
               </div>
               <div className="flex gap-4">
                 <div className="flex-1 space-y-2">
-                  <label className="text-[10px] uppercase text-white/30 tracking-widest font-bold">Inference Model Overwrite</label>
-                  <input 
-                    value={agent.model || ''}
-                    onChange={e => updateAgent(agent.id, { model: e.target.value })}
-                    placeholder="Inherit from global config"
-                    className="w-full bg-black/40 border border-white/5 rounded px-3 py-2 text-[11px] text-white/80 outline-none focus:border-cyber-green/30 transition-colors"
-                    disabled={agent.isBackbone}
-                  />
+                  <label className="text-[10px] uppercase text-white/30 tracking-widest font-bold">Neural Model Alignment</label>
+                  <div className="relative group">
+                    <select 
+                      value={agent.model || ''}
+                      onChange={e => updateAgent(agent.id, { model: e.target.value })}
+                      className="w-full bg-black/60 border border-white/10 rounded px-3 py-2 text-[11px] text-white/80 outline-none focus:border-cyber-green/50 transition-all appearance-none cursor-pointer hover:bg-white/5"
+                      disabled={agent.isBackbone}
+                    >
+                      <option value="">INHERIT_SYSTEM_DEFAULT</option>
+                      <option value="gpt-4o">GPT-4o (High Intelligence)</option>
+                      <option value="gpt-4o-mini">GPT-4o-mini (Speed Optimized)</option>
+                      <option value="o1-preview">o1-preview (Advanced Reasoning)</option>
+                      <option value="anthropic/claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                      <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/20">
+                      <Settings2 size={12} />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

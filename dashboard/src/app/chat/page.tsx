@@ -81,7 +81,7 @@ export default function ChatPage() {
           <div key={i} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex gap-4 max-w-[80%] ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
               <div className={`w-8 h-8 rounded shrink-0 flex items-center justify-center border ${
-                m.role === 'user' ? 'bg-white/5 border-white/10 text-white/40' : 'bg-cyber-green/10 border-cyber-green/30 text-cyber-green'
+                m.role === 'user' ? 'bg-white/5 border-white/10 text-white/80' : 'bg-cyber-green/10 border-cyber-green/30 text-cyber-green'
               }`}>
                 {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
               </div>

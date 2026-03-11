@@ -164,7 +164,7 @@ export default async function SettingsPage() {
           <h2 className="text-2xl lg:text-3xl font-bold tracking-tight glow-text uppercase">
             SYSTEM_CONFIG
           </h2>
-          <p className="text-white/40 text-xs lg:text-sm mt-2 font-light">
+          <p className="text-white/80 text-xs lg:text-sm mt-2 font-light">
             Hot-swappable neural architecture and provider routing.
           </p>
         </div>
@@ -179,7 +179,7 @@ export default async function SettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/40 tracking-widest font-bold">
+                <label className="text-[10px] uppercase text-white/80 tracking-widest font-bold">
                   Active Provider
                 </label>
                 <select
@@ -193,7 +193,7 @@ export default async function SettingsPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/40 tracking-widest font-bold">
+                <label className="text-[10px] uppercase text-white/80 tracking-widest font-bold">
                   Default Model ID
                 </label>
                 <input
@@ -214,7 +214,7 @@ export default async function SettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/40 tracking-widest font-bold">
+                <label className="text-[10px] uppercase text-white/80 tracking-widest font-bold">
                   Evolution Mode
                 </label>
                 <select
@@ -227,7 +227,7 @@ export default async function SettingsPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/40 tracking-widest font-bold">
+                <label className="text-[10px] uppercase text-white/80 tracking-widest font-bold">
                   Optimization Policy
                 </label>
                 <select
@@ -250,7 +250,7 @@ export default async function SettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/40 tracking-widest font-bold">
+                <label className="text-[10px] uppercase text-white/80 tracking-widest font-bold">
                   Reflection Frequency (msgs)
                 </label>
                 <input
@@ -264,7 +264,7 @@ export default async function SettingsPage() {
                 </p>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/40 tracking-widest font-bold">
+                <label className="text-[10px] uppercase text-white/80 tracking-widest font-bold">
                   Strategic Review Interval (hrs)
                 </label>
                 <input
@@ -278,7 +278,7 @@ export default async function SettingsPage() {
                 </p>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/40 tracking-widest font-bold">
+                <label className="text-[10px] uppercase text-white/80 tracking-widest font-bold">
                   Min Gaps for Review
                 </label>
                 <input
@@ -315,7 +315,7 @@ export default async function SettingsPage() {
               <div className="text-xs font-bold text-white/90 uppercase tracking-tight">
                 FORCE_INFRA_REBUILD
               </div>
-              <div className="text-[10px] text-white/40 mt-1 font-medium">
+              <div className="text-[10px] text-white/80 mt-1 font-medium">
                 Triggers a full SST deploy via CodeBuild. Use only if sst.config.ts changed.
               </div>
             </div>

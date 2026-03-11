@@ -20,7 +20,7 @@ export default function SystemPulsePage() {
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
           <h2 className="text-3xl font-bold tracking-tight glow-text-orange text-orange-500">SYSTEM_PULSE</h2>
-          <p className="text-white/40 text-sm mt-2 font-light">Interactive topography of multi-agent orchestration and event bus flow.</p>
+          <p className="text-white/80 text-sm mt-2 font-light">Interactive topography of multi-agent orchestration and event bus flow.</p>
         </div>
         <div className="flex gap-4">
           <div className="glass-card px-4 py-2 text-[12px] border-orange-500/30">
@@ -35,7 +35,7 @@ export default function SystemPulsePage() {
       </header>
 
       <section className="space-y-4">
-        <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/40 flex items-center gap-2">
+        <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/80 flex items-center gap-2">
           <Zap size={14} className="text-orange-500" /> Neural Architecture Map
         </h3>
         
@@ -45,19 +45,19 @@ export default function SystemPulsePage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="glass-card p-6 space-y-3">
             <div className="text-[10px] font-bold text-cyber-green uppercase">Logic_Core</div>
-            <p className="text-xs text-white/60 leading-relaxed">
+            <p className="text-xs text-white/80 leading-relaxed">
                 The Main Manager Lambda. Processes input, retrieves long-term memory, and decides when to delegate tasks to spokes.
             </p>
         </div>
         <div className="glass-card p-6 space-y-3 border-orange-500/10">
             <div className="text-[10px] font-bold text-orange-500 uppercase">AgentBus</div>
-            <p className="text-xs text-white/60 leading-relaxed">
+            <p className="text-xs text-white/80 leading-relaxed">
                 AWS EventBridge. The asynchronous backbone that allows decoupled agents to communicate without direct dependencies.
             </p>
         </div>
         <div className="glass-card p-6 space-y-3 border-cyber-blue/10">
             <div className="text-[10px] font-bold text-cyber-blue uppercase">Worker_Spokes</div>
-            <p className="text-xs text-white/60 leading-relaxed">
+            <p className="text-xs text-white/80 leading-relaxed">
                 Specialised agents (Coder, Monitor) that perform heavy lifting like writing code or observing build logs.
             </p>
         </div>

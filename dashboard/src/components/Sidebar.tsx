@@ -28,10 +28,11 @@ export default function Sidebar() {
   }, [pathname]);
 
   const navItems = [
-    { label: 'System', type: 'header' },
-    { href: '/', label: 'TRACE_INTEL', icon: Activity, activePaths: ['/', '/trace'] },
-    { href: '/system-pulse', label: 'SYSTEM_PULSE', icon: Share2 },
+    { label: 'Intelligence', type: 'header' },
     { href: '/chat', label: 'CHAT_DIRECT', icon: MessageSquare },
+    { href: '/', label: 'TRACE_INTEL', icon: Activity, activePaths: ['/', '/trace'] },
+    { label: 'System', type: 'header', className: 'pt-4' },
+    { href: '/system-pulse', label: 'SYSTEM_PULSE', icon: Share2 },
     { href: '/locks', label: 'SESSION_TRAFFIC', icon: Lock },
     { href: '/settings', label: 'SYSTEM_CONFIG', icon: Settings },
     { label: 'Observability', type: 'header', className: 'pt-4' },
@@ -77,7 +78,7 @@ export default function Sidebar() {
             </div>
             <h1 className="text-xl font-bold tracking-tighter">CLAW_CENTER</h1>
           </Link>
-          <button className="lg:hidden p-1 text-white/40" onClick={() => setIsOpen(false)}>
+          <button className="lg:hidden p-1 text-white/80" onClick={() => setIsOpen(false)}>
             <X size={20} />
           </button>
         </div>
@@ -86,7 +87,7 @@ export default function Sidebar() {
           {navItems.map((item, idx) => {
             if (item.type === 'header') {
               return (
-                <div key={idx} className={`text-white/40 px-2 uppercase text-[10px] tracking-widest font-bold mb-2 ${item.className || ''}`}>
+                <div key={idx} className={`text-white/80 px-2 uppercase text-[10px] tracking-widest font-bold mb-2 ${item.className || ''}`}>
                   {item.label}
                 </div>
               );
@@ -105,11 +106,11 @@ export default function Sidebar() {
                 className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded transition-all group ${
                   isActive 
                     ? 'bg-cyber-green/10 text-cyber-green border-l-2 border-cyber-green' 
-                    : 'text-white/60 hover:bg-white/5 hover:text-white'
+                    : 'text-white/80 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  {Icon && <Icon size={16} className={isActive ? 'text-cyber-green' : 'text-white/40 group-hover:text-white/60'} />}
+                  {Icon && <Icon size={16} className={isActive ? 'text-cyber-green' : 'text-white/80 group-hover:text-white/80'} />}
                   <span className="font-medium tracking-tight uppercase text-xs">{item.label}</span>
                 </div>
                 {isActive && <ChevronRight size={12} className="text-cyber-green" />}

@@ -53,7 +53,7 @@ const ToolNode = ({ data }: any) => (
       <Wrench size={14} className="text-yellow-500 mr-2" />
       <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-500/80">Tool:: {data.toolName}</span>
     </div>
-    <div className="text-[9px] font-mono text-white/60 truncate italic">
+    <div className="text-[9px] font-mono text-white/80 truncate italic">
       {data.status || 'Executing...'}
     </div>
     <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-yellow-500 border-none" />
