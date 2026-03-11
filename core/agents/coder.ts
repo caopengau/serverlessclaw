@@ -70,7 +70,9 @@ export const handler = async (event: {
         content: JSON.stringify(metadata.gapIds),
       });
     } else {
-      logger.info(`Task successful without deployment. Marking ${metadata.gapIds.length} gaps as DONE.`);
+      logger.info(
+        `Task successful without deployment. Marking ${metadata.gapIds.length} gaps as DONE.`
+      );
       for (const gapId of metadata.gapIds) {
         await memory.updateGapStatus(gapId, 'DONE');
       }

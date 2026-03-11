@@ -216,7 +216,6 @@ export class DynamoMemory implements IMemory {
     }
   }
 
-
   async addLesson(userId: string, lesson: string, metadata?: InsightMetadata): Promise<void> {
     const command = new PutCommand({
       TableName: this.tableName,
