@@ -165,7 +165,22 @@ export function createAgents(ctx: AgentContext) {
     pattern: { detailType: [EventType.REFLECT_TASK] },
   });
 
-  // 7. Notifier
+  // 7. QA Agent (Verifies satisfaction after deploy)
+  const qaAgent = new sst.aws.Function('QaAgent', {
+    handler: 'core/agents/qa.handler',
+    dev: liveInLocalOnly,
+    link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
+    memory: '1024 MB',
+    timeout: '900 seconds',
+  });
+  bus.subscribe('QaVerificationSubscriber', qaAgent.arn, {
+    pattern: {
+      source: ['build.monitor'],
+      detailType: [EventType.SYSTEM_BUILD_SUCCESS],
+    },
+  });
+
+  // 8. Notifier
   const notifier = new sst.aws.Function('Notifier', {
     handler: 'core/handlers/notifier.handler',
     dev: liveInLocalOnly,

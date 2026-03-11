@@ -16,6 +16,7 @@ export enum AgentType {
   RECOVERY = 'recovery',
   PLANNER = 'planner',
   REFLECTOR = 'reflector',
+  QA = 'qa',
 }
 
 export enum EventType {

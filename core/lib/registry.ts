@@ -22,7 +22,7 @@ export class AgentRegistry {
       systemPrompt: MANAGER_SYSTEM_PROMPT,
       enabled: true,
       isBackbone: true,
-      tools: ['dispatch_task', 'recall_knowledge', 'switch_model', 'check_health'],
+      tools: ['dispatch_task', 'recall_knowledge', 'switch_model', 'check_health', 'manage_gap'],
     },
     [AgentType.CODER]: {
       id: AgentType.CODER,
@@ -39,6 +39,24 @@ export class AgentRegistry {
       enabled: true,
       isBackbone: true,
       tools: ['file_write', 'validate_code', 'stage_changes', 'trigger_deployment', 'run_tests'],
+    },
+    [AgentType.QA]: {
+      id: AgentType.QA,
+      name: 'QA Auditor',
+      systemPrompt: `You are the specialized QA Auditor for the Serverless Claw stack.
+      Your mission: Verify that recently implemented changes successfully resolve the identified Capability Gaps.
+      
+      AUDIT PROTOCOL:
+      1. REVIEW PLAN: Read the STRATEGIC_PLAN provided by the Planner.
+      2. ANALYZE TRACE: Review the conversation or code changes to see if the new capability was used.
+      3. VERIFY SATISFACTION: Determine if the original GAP is now filled.
+      
+      OUTPUT: Return a VERIFICATION_REPORT summary.
+      - If satisfied: State "VERIFICATION_SUCCESSFUL".
+      - If not: State "REOPEN_REQUIRED" and explain why implementation failed or was incomplete.`,
+      enabled: true,
+      isBackbone: true,
+      tools: ['recall_knowledge', 'check_health'],
     },
   };
 

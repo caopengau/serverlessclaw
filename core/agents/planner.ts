@@ -202,6 +202,11 @@ export const handler = async (event: {
     processedGapIds.push(gapId);
   }
 
+  // 6. Save plan for QA auditing
+  for (const gapIdToSave of processedGapIds) {
+    await memory.updateDistilledMemory(`PLAN#${gapIdToSave}`, result);
+  }
+
   const evolutionMode = await getEvolutionMode();
 
   if (evolutionMode === EvolutionMode.AUTO) {

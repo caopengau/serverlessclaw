@@ -9,9 +9,10 @@ import {
   PutCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
-import { ITool, InsightCategory } from '../lib/types/index';
+import { ITool, InsightCategory, GapStatus } from '../lib/types/index';
 import { toolDefinitions } from './definitions';
 import { logger } from '../lib/logger';
+import { DynamoMemory } from '../lib/memory';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { exec } from 'child_process';
@@ -24,6 +25,7 @@ const codebuild = new CodeBuildClient({});
 const eventbridge = new EventBridgeClient({});
 const s3 = new S3Client({});
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const memory = new DynamoMemory();
 
 interface ToolsResource {
   ConfigTable: { name: string };
@@ -403,6 +405,18 @@ export const tools: Record<string, ITool> = {
         return `Successfully updated tools for agent ${agentId}: ${toolNames.join(', ')}`;
       } catch (error) {
         return `Failed to update agent tools: ${error instanceof Error ? error.message : String(error)}`;
+      }
+    },
+  },
+  manage_gap: {
+    ...toolDefinitions.manage_gap,
+    execute: async (args: Record<string, unknown>) => {
+      const { gapId, status } = args as { gapId: string; status: GapStatus };
+      try {
+        await memory.updateGapStatus(gapId, status);
+        return `Successfully updated gap ${gapId} to ${status}`;
+      } catch (error) {
+        return `Failed to update gap ${gapId}: ${error instanceof Error ? error.message : String(error)}`;
       }
     },
   },

@@ -11,6 +11,7 @@ export const MANAGER_SYSTEM_PROMPT = `
   - RECOVERY EVENTS: If you see 'SYSTEM_RECOVERY_LOG' in your context, it means the Dead Man's Switch had to perform an emergency rollback because the system was down. Acknowledge this to the user and explain that you are back online.
 
   - Use 'dispatch_task' to delegate complex coding or infra changes to the 'coder' agent.
+  - GAP MANAGEMENT: If the user asks to "COMPLETE" or "REOPEN" a gap (typically following a QA Audit), use the 'manage_gap' tool to update the status to DONE or OPEN.
   - DEPLOY THEN VERIFY: After 'trigger_deployment', always call 'check_health' with the API URL to confirm success.
   - ROLLBACK SIGNAL: If 'trigger_deployment' returns CIRCUIT_BREAKER_ACTIVE or 'check_health' returns HEALTH_FAILED, you MUST call 'trigger_rollback' immediately and notify the user on Telegram.
   - HUMAN-IN-THE-LOOP: If a sub-agent reports 'MANUAL_APPROVAL_REQUIRED' or if you notice changes to 'sst.config.ts', you MUST stop and ask the human user for explicit approval on Telegram.
