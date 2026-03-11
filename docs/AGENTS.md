@@ -125,6 +125,51 @@ Users can "Prune" the agent's memory at `/memory` to:
 
 ---
 
+## The Evolutionary Lifecycle (Self-Evolution Loop)
+
+Serverless Claw is not a static agent; it is a **self-evolving system** that identifies its own weaknesses and implements its own upgrades.
+
+### Evolutionary Flow Diagram
+
+```text
+    +-------------------+       1. OBSERVE        +-------------------+
+    |   Reflector       |<------------------------|   Conversations   |
+    |   Agent           |      (Signals)          |   (User context)  |
+    +---------+---------+                         +-------------------+
+              |
+              | 2. LOG STRATEGIC_GAP (DDB)
+              v
+    +---------+---------+       3. DESIGN         +-------------------+
+    |   Planner         |------------------------>|   Strategic Plan  |
+    |   Agent           |      (ROI & Impact)     |   (Proposal)      |
+    +---------+---------+                         +-------------------+
+              |                                             |
+              | 4. DISPATCH_TASK (if auto/approved)         | (Notify)
+              v                                             v
+    +---------+---------+       5. IMPLEMENT       +-------------------+
+    |   Coder           |------------------------>|   Source Code     |
+    |   Agent           |      (Tools & Logic)    |   (Filesystem)    |
+    +---------+---------+                         +-------------------+
+              |                                             |
+              | 6. TRIGGER_DEPLOYMENT (SST)                 |
+              v                                             v
+    +---------+---------+       7. REGISTER        +-------------------+
+    |   Agent           |------------------------>|   Agent Registry  |
+    |   Registry        |      (Tool Scoping)     |   (Hot Config)    |
+    +-------------------+                         +-------------------+
+```
+
+### How it works:
+1.  **Observation**: The **Reflector Agent** analyzes every interaction. It looks for "I can't do that" moments or complex multi-step failures.
+2.  **Gap Analysis**: These failures are logged as `strategic_gap` items in DynamoDB, ranked by **Impact** (how much user friction they cause) and **Urgency**.
+3.  **Strategic Planning**: The **Planner Agent** reviews these gaps. It designs a plan to either:
+    *   **Create a new tool**: Implement a new capability (e.g., `google_search`).
+    *   **Register a new agent**: Create a specialized sub-node for a specific domain.
+4.  **Execution**: Once the plan is approved (or automatically triggered in `auto` mode), the **Coder Agent** writes the code and triggers a deployment.
+5.  **Runtime Injection**: After the code is deployed, the **Agent Registry** (DDB + Backbone) dynamically injects the new tool into the target agent's context. The agent gains the new power **instantly** without a restart.
+
+---
+
 ## Adding a New Sub-Agent
 
 1. Create `src/<name>.ts` with an `Agent` instance and `export const handler`.

@@ -7,7 +7,7 @@
 ## 🧬 Core Philosophies
 
 ### 1. Self-Evolving (Code & Infrastructure)
-The system is never static. Through the **Coder Agent** and **Planner Agent**, Serverless Claw can autonomously write new tools, tweak existing logic, and modify its own AWS infrastructure using SST. It triggers autonomous CI/CD pipelines via AWS CodeBuild. You can toggle between "Human-In-The-Loop" capability upgrades or fully "Autonomous" direct-to-production evolution.
+The system is never static. Through the **Coder Agent** and **Planner Agent**, Serverless Claw can autonomously write new tools, tweak existing logic, and modify its own AWS infrastructure using SST. It triggers autonomous CI/CD pipelines via AWS CodeBuild. You can toggle between "Human-In-The-Loop" capability upgrades or fully "Autonomous" direct-to-production evolution. **[Read more about the Evolutionary Lifecycle ↗](./docs/AGENTS.md#the-evolutionary-lifecycle-self-evolution-loop)**
 
 ### 2. Self-Healing & Resilient
 Designed to be "un-killable." If an autonomous deployment introduces a bug or causes a build failure, the **Build Monitor** intercepts the error logs and tasks the agent swarm to investigate and apply a fix. If the "brain" (Main Agent Lambda) becomes unresponsive, an immutable **Dead Man's Switch** (health probe) triggers a 100% automated git-revert and redeploys the last known stable state. No midnight wake-up calls.
