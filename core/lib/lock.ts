@@ -16,17 +16,16 @@ const DYNAMO_ERROR_CONDITIONAL_CHECK_FAILED = 'ConditionalCheckFailedException';
 
 /**
  * DynamoDB-based lock manager implementation for distributed locking.
- * @implements {ILockManager}
  */
 export class DynamoLockManager implements ILockManager {
-  private tableName = typedResource.MemoryTable.name; // Re-using table, but with a different partition key prefix or dedicated table
+  private tableName: string = typedResource.MemoryTable.name;
 
   /**
    * Acquires a distributed lock using DynamoDB's conditional writes.
+   * 
    * @param lockId - Unique identifier for the lock.
-   * @param ttlSeconds - Time-to-live for the lock in seconds. Defaults to 30.
+   * @param ttlSeconds - Time-to-live for the lock in seconds.
    * @returns A promise that resolves to true if the lock was acquired, false otherwise.
-   * @throws Will throw an error if the DynamoDB operation fails for reasons other than conditional check failure.
    */
   async acquire(lockId: string, ttlSeconds: number = DEFAULT_LOCK_TTL): Promise<boolean> {
     const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
@@ -37,7 +36,7 @@ export class DynamoLockManager implements ILockManager {
         userId: `${LOCK_PREFIX}${lockId}`,
         timestamp: 0,
         expiresAt: expiresAt,
-        acquiredAt: Date.now(), // Store actual time in a non-key field if needed
+        acquiredAt: Date.now(),
       },
       ConditionExpression: DYNAMO_CONDITION_EXPRESSION,
       ExpressionAttributeValues: {
@@ -58,6 +57,7 @@ export class DynamoLockManager implements ILockManager {
 
   /**
    * Releases a distributed lock by deleting its record from DynamoDB.
+   * 
    * @param lockId - Unique identifier for the lock to release.
    * @returns A promise that resolves when the release operation is complete.
    */

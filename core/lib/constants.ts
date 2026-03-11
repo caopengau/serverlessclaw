@@ -42,7 +42,14 @@ export const HTTP_STATUS = {
   INTERNAL_SERVER_ERROR: 500,
 } as const;
 
-export const AGENT_MODES = {
-  HITL: 'hitl',
-  AUTO: 'auto',
+export const TRACE_TYPES = {
+  LLM_CALL: 'llm_call',
+  TOOL_CALL: 'tool_call',
+  TOOL_RESULT: 'tool_result',
+  ERROR: 'error',
+} as const;
+
+export const TRACE_STATUS = {
+  STARTED: 'started',
+  COMPLETED: 'completed',
 } as const;
