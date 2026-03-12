@@ -82,37 +82,54 @@ export class OpenAIProvider implements IProvider {
 
     if (useResponsesAPI) {
       logger.info(`Using OpenAI Responses API for model ${activeModel}`);
-      const response = (await client.responses.create({
-        model: activeModel as OpenAI.ResponsesModel,
-        input: messages.map((m) => {
-          if (m.role === MessageRole.TOOL) {
-            return {
-              type: 'custom_tool_call_output',
+
+      // Map to the new flat Responses API input schema
+      const responsesInput = messages.flatMap((m) => {
+        if (m.role === MessageRole.TOOL) {
+          return [
+            {
+              type: 'tool_call_output',
               call_id: m.tool_call_id || '',
               output: m.content || '',
-            };
-          }
+            },
+          ];
+        }
+
+        const items: any[] = [];
+
+        // 1. Add text content if present
+        if (m.content) {
           let role: 'user' | 'assistant' | 'system' | 'developer' = 'user';
           if (m.role === MessageRole.SYSTEM) role = 'developer';
           else if (m.role === MessageRole.ASSISTANT) role = 'assistant';
           else if (m.role === MessageRole.DEVELOPER) role = 'developer';
 
-          return {
+          items.push({
             type: 'message',
             role,
-            content: m.content || '',
-            ...(m.tool_calls
-              ? {
-                  call: m.tool_calls.map((tc) => ({
-                    type: 'function_call',
-                    call_id: tc.id,
-                    name: tc.function.name,
-                    arguments: tc.function.arguments,
-                  })),
-                }
-              : {}),
-          };
-        }) as any[],
+            content: m.content,
+          });
+        }
+
+        // 2. Add tool calls as separate items (flattened)
+        if (m.tool_calls && m.tool_calls.length > 0) {
+          for (const tc of m.tool_calls) {
+            items.push({
+              type: 'tool_call',
+              id: tc.id,
+              name: tc.function.name,
+              arguments: tc.function.arguments,
+            });
+          }
+        }
+
+        return items;
+      });
+
+      const response = (await client.responses.create({
+        model: activeModel as OpenAI.ResponsesModel,
+        input: responsesInput,
+        reasoning: { effort: reasoningEffort },
         ...(hasTools
           ? {
               tools: tools.map((t) => ({
