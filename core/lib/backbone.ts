@@ -1,4 +1,4 @@
-import { AgentType, IAgentConfig } from './types/agent';
+import { AgentType, IAgentConfig, AgentCategory } from './types/agent';
 import { SUPERCLAW_SYSTEM_PROMPT } from '../agents/superclaw';
 import { CODER_SYSTEM_PROMPT } from '../agents/coder';
 import { PLANNER_SYSTEM_PROMPT } from '../agents/strategic-planner';
@@ -16,6 +16,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     name: 'SuperClaw',
     systemPrompt: SUPERCLAW_SYSTEM_PROMPT,
     description: 'Orchestrator node. Directs traffic, retrieves memory, and delegates tasks.',
+    category: AgentCategory.SYSTEM,
     icon: 'Bot',
     enabled: true,
     isBackbone: true,
@@ -35,6 +36,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     name: 'Coder Agent',
     systemPrompt: CODER_SYSTEM_PROMPT,
     description: 'Autonomous builder. Implements changes and validates via pre-flight checks.',
+    category: AgentCategory.SYSTEM,
     icon: 'Code',
     enabled: true,
     isBackbone: true,
@@ -56,6 +58,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     name: 'Strategic Planner',
     systemPrompt: PLANNER_SYSTEM_PROMPT,
     description: 'Design node. Identifies missing features and architecting upgrades.',
+    category: AgentCategory.SYSTEM,
     icon: 'Brain',
     enabled: true,
     isBackbone: true,
@@ -67,6 +70,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     name: 'Cognition Reflector',
     systemPrompt: REFLECTOR_SYSTEM_PROMPT,
     description: 'Intelligence audit node. Extracts facts, lessons, and gaps from logs.',
+    category: AgentCategory.SYSTEM,
     icon: 'Search',
     enabled: true,
     isBackbone: true,
@@ -78,6 +82,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     name: 'QA Auditor',
     systemPrompt: QA_SYSTEM_PROMPT,
     description: 'Validation node. Audits deployments to ensure they actually solve the gaps.',
+    category: AgentCategory.SYSTEM,
     icon: 'FlaskConical',
     enabled: true,
     isBackbone: true,
@@ -90,6 +95,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     name: 'Build Monitor',
     systemPrompt: 'LOGIC_ONLY',
     description: 'Observability node. Watches builds, updates gaps, and discovers infra.',
+    category: AgentCategory.SYSTEM,
     icon: 'Activity',
     enabled: true,
     isBackbone: true,
@@ -100,6 +106,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     name: "Dead Man's Switch",
     systemPrompt: 'LOGIC_ONLY',
     description: 'Resilience node. Performs health probes and emergency git-reverts.',
+    category: AgentCategory.SYSTEM,
     icon: 'ShieldCheck',
     enabled: true,
     isBackbone: true,

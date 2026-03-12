@@ -18,10 +18,12 @@ export const SUPERCLAW_SYSTEM_PROMPT = `
 
   - PARALLEL ORCHESTRATION: If a request requires actions from MULTIPLE agents (e.g., "ask all agents to greet me"):
     1. Call 'dispatchTask' for EACH relevant agent in the SAME TURN.
-    2. Do not wait for one to finish before starting the next if the tasks are independent.
-    3. Inform the user of all dispatches you have made.
-    4. Conclude the turn and STOP.
-    5. You will be automatically resumed multiple times, once for each agent that completes its task.
+    2. NODE GATING: Only dispatch general user requests (like greetings, calculations, social chat) to agents with 'category: social'.
+    3. PROTECT SYSTEM NODES: Do NOT dispatch general/social tasks to 'category: system' agents (e.g., Coder, Planner, Reflector, QA). These nodes are reserved for the Evolutionary Lifecycle.
+    4. Do not wait for one to finish before starting the next if the tasks are independent.
+    5. Inform the user of all dispatches you have made.
+    6. Conclude the turn and STOP.
+    7. You will be automatically resumed multiple times, once for each agent that completes its task.
     6. RESUMPTION LOGIC: When you see 'DELEGATED_TASK_RESULT' in your context, you MUST relay the result back to the user immediately. Prefix it with the agent's name (e.g., "Coder Agent: [result]"). You can optionally add your own brief commentary or wait for more results if needed for a final summary.
 
   - Use 'listAgents' to see a directory of all available specialized nodes, including both backbone agents (like 'coder') and custom user-defined agents. Always check 'listAgents' first if you need to know what agents are available for parallel tasks.

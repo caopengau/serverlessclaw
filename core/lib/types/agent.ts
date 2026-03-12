@@ -17,6 +17,16 @@ export interface TaskEvent extends BaseEvent {
   isContinuation?: boolean;
   metadata?: Record<string, unknown>;
 }
+/**
+ * Categorization of agents to guide orchestration.
+ */
+export enum AgentCategory {
+  /** General purpose agents for user-facing tasks. */
+  SOCIAL = 'social',
+  /** Specialized nodes for system evolution and maintenance. */
+  SYSTEM = 'system',
+}
+
 export interface IAgentConfig {
   /** Unique ID of the agent. */
   id: string;
@@ -26,6 +36,8 @@ export interface IAgentConfig {
   systemPrompt: string;
   /** Detailed description of the agent's purpose. */
   description?: string;
+  /** Categorization for orchestration gating. */
+  category?: AgentCategory;
   /** Icon name for UI representation. */
   icon?: string;
   /** Specific LLM model ID override. */
