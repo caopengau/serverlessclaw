@@ -281,7 +281,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
   },
   inspectTrace: {
     name: 'inspectTrace',
-    description: 'Retrieves the full mechanical monologue (tool calls, intermediate reasoning) for a specific trace ID.',
+    description:
+      'Retrieves the full mechanical monologue (tool calls, intermediate reasoning) for a specific trace ID.',
     parameters: {
       type: 'object',
       properties: {

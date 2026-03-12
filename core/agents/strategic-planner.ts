@@ -103,7 +103,9 @@ export const handler = async (event: {
       const frequencyHrs = parseInt(String(customFreq || '12'), 10);
       const minGaps = parseInt(String(customMinGaps || '3'), 10);
 
-      const lastReviewStr = await memory.getDistilledMemory(`LAST#STRATEGIC_REVIEW#${contextUserId}`);
+      const lastReviewStr = await memory.getDistilledMemory(
+        `LAST#STRATEGIC_REVIEW#${contextUserId}`
+      );
       const lastReview = lastReviewStr ? parseInt(lastReviewStr, 10) : 0;
       const now = Date.now();
 
@@ -148,7 +150,10 @@ export const handler = async (event: {
     `;
 
     // Update last review timestamp
-    await memory.updateDistilledMemory(`LAST#STRATEGIC_REVIEW#${contextUserId}`, Date.now().toString());
+    await memory.updateDistilledMemory(
+      `LAST#STRATEGIC_REVIEW#${contextUserId}`,
+      Date.now().toString()
+    );
   } else {
     // Reactionary single gap handling
     const signals = metadata

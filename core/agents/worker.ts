@@ -43,7 +43,7 @@ export const handler = async (
     return;
   }
 
-  const { userId, task, isContinuation, traceId } = event.detail;
+  const { userId, task, isContinuation, traceId: _traceId } = event.detail;
 
   if (!userId || !task) {
     logger.error('Invalid event payload: missing userId or task');

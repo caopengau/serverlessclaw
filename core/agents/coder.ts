@@ -48,7 +48,7 @@ export const handler = async (event: {
 }): Promise<string | undefined> => {
   logger.info('Coder Agent received task:', JSON.stringify(event, null, 2));
 
-  const { userId, task, metadata, traceId } = event;
+  const { userId, task, metadata, traceId: _traceId } = event;
 
   if (!userId || !task) {
     logger.error('Invalid event payload');
