@@ -1,8 +1,11 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, User, Bot, Loader2, MessageSquare, Terminal, Plus, Clock, ChevronRight } from 'lucide-react';
+import { Send, User, Bot, Loader2, MessageSquare, Terminal, Plus, Clock, ChevronRight, Zap } from 'lucide-react';
 import { THEME } from '@/lib/theme';
+// @ts-ignore
+import { realtime } from 'sst/realtime/client';
+import { Resource } from 'sst';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -23,12 +26,39 @@ export default function ChatPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessions, setSessions] = useState<ConversationMeta[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
+  const [isRealtimeActive, setIsRealtimeActive] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Fetch session list on mount
   useEffect(() => {
     fetchSessions();
   }, []);
+
+  // Setup Realtime Push Notifications
+  useEffect(() => {
+    const userId = 'dashboard-user';
+    const topic = `users/${userId}/signal`;
+
+    console.log('[Realtime] Connecting to:', (Resource as any).RealtimeBus.url);
+    
+    const client = realtime.connect((Resource as any).RealtimeBus.url);
+    
+    client.on('connected', () => {
+      console.log('[Realtime] Connected to push bus');
+      setIsRealtimeActive(true);
+    });
+
+    client.subscribe(topic, (message: any) => {
+      console.log('[Realtime] Received signal:', message);
+      if (activeSessionId) {
+        fetchHistorySilently(activeSessionId);
+      }
+    });
+
+    return () => {
+      client.disconnect();
+    };
+  }, [activeSessionId]);
 
   // Fetch history when active session changes
   useEffect(() => {
@@ -70,19 +100,37 @@ export default function ChatPage() {
     }
   };
 
-  // Passive Polling for background updates (Coder/QA completions)
+  // Passive Polling for background updates (Fallback)
   useEffect(() => {
     if (!activeSessionId) return;
 
     const interval = setInterval(() => {
-      // Only poll if we're not currently doing an explicit action
-      if (!isLoading && !document.hidden) {
-        fetchHistory(activeSessionId);
+      // If realtime is active, we poll MUCH slower as a fallback (heartbeat)
+      // If realtime is NOT active, we poll at a reasonable rate
+      const isIdle = !isLoading && !document.hidden;
+      if (isIdle) {
+        fetchHistorySilently(activeSessionId);
       }
-    }, 10000); // 10 seconds
+    }, isRealtimeActive ? 60000 : 10000); // 1 min fallback vs 10s active poll
 
     return () => clearInterval(interval);
-  }, [activeSessionId, isLoading]);
+  }, [activeSessionId, isRealtimeActive, isLoading]);
+
+  const fetchHistorySilently = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/chat?sessionId=${sessionId}`);
+      const data = await response.json();
+      if (data.history) {
+        setMessages(data.history.map((m: any) => ({
+          role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
+          content: m.content,
+          agentName: m.agentName,
+        })).filter((m: any) => m.content));
+      }
+    } catch (e) {
+      console.warn('Silent History fetch failed:', e);
+    }
+  };
 
   const createNewChat = () => {
     const newId = `session_${Date.now()}`;
@@ -200,7 +248,13 @@ export default function ChatPage() {
             </h2>
             <p className="text-[10px] text-white/90 uppercase tracking-widest mt-1">Real-time interaction with CLAW_CORE</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+              {isRealtimeActive && (
+                <div className="flex items-center gap-1.5 px-2 py-1 bg-cyber-green/5 border border-cyber-green/20 rounded-full animate-pulse">
+                  <Zap size={10} className="text-cyber-green" />
+                  <span className="text-[8px] font-black text-cyber-green uppercase tracking-tighter">Live_Link_Active</span>
+                </div>
+              )}
               <div className="text-[10px] px-2 py-1 bg-cyber-green/10 text-cyber-green border border-cyber-green/20 rounded font-bold uppercase tracking-tighter italic">
                   {activeSessionId ? `SESSION_ID: ${activeSessionId.substring(0, 12)}...` : 'IDLE_WAITING'}
               </div>

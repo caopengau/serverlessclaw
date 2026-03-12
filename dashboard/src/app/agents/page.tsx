@@ -331,7 +331,7 @@ export default function AgentsPage() {
         <button
           onClick={() => handleSave()}
           disabled={saving || !hasChanges}
-          className={`${THEME.COLORS.PRIMARY === 'cyan' ? 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 border-cyan-500/50' : `bg-${THEME.COLORS.PRIMARY}-500/10 hover:bg-${THEME.COLORS.PRIMARY}-500/20 text-${THEME.COLORS.PRIMARY}-500 border-${THEME.COLORS.PRIMARY}-500/50`} px-8 py-4 rounded text-xs font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale disabled:scale-100 uppercase tracking-widest border shadow-[0_0_20px_rgba(0,0,0,0.5)]`}
+          className={`${THEME.COLORS.PRIMARY === ('cyan' as any) ? 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 border-cyan-500/50' : `bg-${THEME.COLORS.PRIMARY}-500/10 hover:bg-${THEME.COLORS.PRIMARY}-500/20 text-${THEME.COLORS.PRIMARY}-500 border-${THEME.COLORS.PRIMARY}-500/50`} px-8 py-4 rounded text-xs font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale disabled:scale-100 uppercase tracking-widest border shadow-[0_0_20px_rgba(0,0,0,0.5)]`}
         >
           {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
           SAVE_AGENT_CONFIG

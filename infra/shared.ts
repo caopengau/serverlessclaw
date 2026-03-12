@@ -7,6 +7,7 @@ export interface SharedContext {
   bus: sst.aws.Bus;
   deployer: aws.codebuild.Project;
   api?: sst.aws.ApiGatewayV2;
+  realtime?: sst.aws.Realtime;
 }
 
 /**

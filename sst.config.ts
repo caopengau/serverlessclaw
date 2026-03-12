@@ -22,7 +22,7 @@ export default $config({
     const { memoryTable, traceTable, configTable, stagingBucket, secrets } = createStorage();
 
     // 2. Multi-Agent Orchestration (EventBridge)
-    const { bus } = createBus();
+    const { bus, realtime } = createBus();
 
     // 3. The Deployer (CodeBuild)
     const { deployer } = createDeployer({
@@ -51,6 +51,7 @@ export default $config({
       bus,
       deployer,
       api,
+      realtime,
     });
 
     // 6. ClawCenter (Next.js 16)
@@ -63,6 +64,7 @@ export default $config({
       bus,
       deployer,
       api,
+      realtime,
     });
 
     return {

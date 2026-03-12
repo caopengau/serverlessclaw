@@ -19,6 +19,7 @@ export function createAgents(ctx: SharedContext): {
   reflectorAgent: sst.aws.Function;
   notifier: sst.aws.Function;
   workerAgent: sst.aws.Function;
+  bridge: sst.aws.Function;
 } {
   const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer } = ctx;
 
@@ -235,6 +236,23 @@ export function createAgents(ctx: SharedContext): {
     },
   });
 
+  // 9. Realtime Bridge (EventBridge -> IoT Core)
+  const bridge = new sst.aws.Function('RealtimeBridge', {
+    handler: 'core/handlers/bridge.ts.handler',
+    dev: liveInLocalOnly,
+    link: [ctx.realtime!],
+  });
+  bus.subscribe('RealtimeBridgeSubscriber', bridge.arn, {
+    pattern: {
+      detailType: [
+        EventType.OUTBOUND_MESSAGE,
+        EventType.CODER_TASK_COMPLETED,
+        EventType.SYSTEM_BUILD_SUCCESS,
+        EventType.SYSTEM_BUILD_FAILED,
+      ],
+    },
+  });
+
   return {
     coderAgent,
     buildMonitor,
@@ -244,5 +262,6 @@ export function createAgents(ctx: SharedContext): {
     reflectorAgent,
     notifier,
     workerAgent,
+    bridge,
   };
 }
