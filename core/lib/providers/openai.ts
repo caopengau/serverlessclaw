@@ -106,14 +106,15 @@ export class OpenAIProvider implements IProvider {
               })),
             }
           : {}),
-      })) as any; // Cast to any once at the boundary to isolate unsafe access
+      })) as unknown as Record<string, unknown>; // Isolate unsafe access
 
       // Extract output
       const content = (response.output_text as string) || '';
       const toolCalls: Message['tool_calls'] = [];
 
-      if (Array.isArray(response.output)) {
-        for (const item of response.output) {
+      const outputArray = response.output as any[];
+      if (Array.isArray(outputArray)) {
+        for (const item of outputArray) {
           if (item.type === 'function_call') {
             toolCalls.push({
               id: item.call_id as string,
@@ -156,9 +157,13 @@ export class OpenAIProvider implements IProvider {
       }
     }
 
-    const response = (await client.chat.completions.create(params)) as any;
+    const response = (await client.chat.completions.create(params)) as unknown as Record<
+      string,
+      unknown
+    >;
     const choices = response.choices as any[];
-    const message = choices?.[0]?.message;
+    const firstChoice = choices?.[0] as Record<string, unknown>;
+    const message = firstChoice?.message as Record<string, unknown>;
 
     if (!message) {
       return { role: MessageRole.ASSISTANT, content: 'Empty response from OpenAI.' };
