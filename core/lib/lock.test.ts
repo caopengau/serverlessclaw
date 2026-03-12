@@ -8,8 +8,8 @@ const ddbMock = mockClient(DynamoDBDocumentClient);
 // Mock SST Resource
 vi.mock('sst', () => ({
   Resource: {
-    MemoryTable: { name: 'test-memory-table' }
-  }
+    MemoryTable: { name: 'test-memory-table' },
+  },
 }));
 
 describe('DynamoLockManager', () => {
@@ -55,7 +55,7 @@ describe('DynamoLockManager', () => {
       const call = ddbMock.call(0);
       expect(call.args[0].input).toMatchObject({
         TableName: 'test-memory-table',
-        Key: { userId: 'LOCK#test-lock', timestamp: 0 }
+        Key: { userId: 'LOCK#test-lock', timestamp: 0 },
       });
     });
   });

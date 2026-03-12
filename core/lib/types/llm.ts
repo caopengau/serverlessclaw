@@ -113,7 +113,7 @@ export interface ICapabilities {
 export interface IProvider {
   /**
    * Performs a completion call to the LLM.
-   * 
+   *
    * @param messages - The full conversation history.
    * @param tools - Optional list of tools the LLM can call.
    * @param profile - The desired reasoning profile.
@@ -131,7 +131,7 @@ export interface IProvider {
 
   /**
    * Retrieves the capabilities of a specific model.
-   * 
+   *
    * @param model - The model ID to query.
    * @returns A promise resolving to the capabilities object.
    */

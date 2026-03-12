@@ -27,8 +27,10 @@ const AGENT_DEFAULTS = {
 const AGENT_LOG_MESSAGES = {
   TIMEOUT_APPROACHING: 'Lambda timeout approaching, pausing task...',
   RECOVERY_LOG_PREFIX: '\n\nSYSTEM_RECOVERY_LOG: Recent emergency rollback occurred. Details: ',
-  TASK_PAUSED_TIMEOUT: 'TASK_PAUSED: I need more time to complete this. I have checkpointed my progress and am resuming in a fresh execution...',
-  TASK_PAUSED_ITERATION_LIMIT: 'TASK_PAUSED: This task is complex and requires multiple steps. I have reached my single-turn safety limit and am resuming in a fresh execution...',
+  TASK_PAUSED_TIMEOUT:
+    'TASK_PAUSED: I need more time to complete this. I have checkpointed my progress and am resuming in a fresh execution...',
+  TASK_PAUSED_ITERATION_LIMIT:
+    'TASK_PAUSED: This task is complex and requires multiple steps. I have reached my single-turn safety limit and am resuming in a fresh execution...',
 } as const;
 
 /**

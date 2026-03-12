@@ -22,7 +22,7 @@ export class DynamoLockManager implements ILockManager {
 
   /**
    * Acquires a distributed lock using DynamoDB's conditional writes.
-   * 
+   *
    * @param lockId - Unique identifier for the lock.
    * @param ttlSeconds - Time-to-live for the lock in seconds.
    * @returns A promise that resolves to true if the lock was acquired, false otherwise.
@@ -57,7 +57,7 @@ export class DynamoLockManager implements ILockManager {
 
   /**
    * Releases a distributed lock by deleting its record from DynamoDB.
-   * 
+   *
    * @param lockId - Unique identifier for the lock to release.
    * @returns A promise that resolves when the release operation is complete.
    */

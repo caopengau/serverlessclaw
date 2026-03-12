@@ -234,14 +234,30 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
     // 1. Discover Infrastructure from SST Resource
     const resourceMap = Resource as unknown as Record<string, unknown>;
-    const infraMap: Record<string, { id: string; type: string; label: string; iconType?: string }> = {
-      AgentBus: { id: 'bus', type: 'bus', label: 'EventBridge AgentBus' },
-      ConfigTable: { id: 'config', type: 'infra', label: 'DynamoDB Config', iconType: 'Database' },
-      MemoryTable: { id: 'memory', type: 'infra', label: 'DynamoDB Memory', iconType: 'Database' },
-      TraceTable: { id: 'trace', type: 'infra', label: 'DynamoDB Trace', iconType: 'Database' },
-      StagingBucket: { id: 'storage', type: 'infra', label: 'Staging Bucket', iconType: 'Database' },
-      Deployer: { id: 'codebuild', type: 'infra', label: 'AWS CodeBuild', iconType: 'Terminal' },
-    };
+    const infraMap: Record<string, { id: string; type: string; label: string; iconType?: string }> =
+      {
+        AgentBus: { id: 'bus', type: 'bus', label: 'EventBridge AgentBus' },
+        ConfigTable: {
+          id: 'config',
+          type: 'infra',
+          label: 'DynamoDB Config',
+          iconType: 'Database',
+        },
+        MemoryTable: {
+          id: 'memory',
+          type: 'infra',
+          label: 'DynamoDB Memory',
+          iconType: 'Database',
+        },
+        TraceTable: { id: 'trace', type: 'infra', label: 'DynamoDB Trace', iconType: 'Database' },
+        StagingBucket: {
+          id: 'storage',
+          type: 'infra',
+          label: 'Staging Bucket',
+          iconType: 'Database',
+        },
+        Deployer: { id: 'codebuild', type: 'infra', label: 'AWS CodeBuild', iconType: 'Terminal' },
+      };
 
     // Special hardcoded nodes that always exist
     nodes.push({
@@ -264,14 +280,18 @@ export async function discoverSystemTopology(): Promise<Topology> {
       type: 'infra',
       label: 'Build Monitor',
       iconType: 'Activity',
-      description: 'Logic-based handler that watches for deployment signals and triggers rollbacks.',
+      description:
+        'Logic-based handler that watches for deployment signals and triggers rollbacks.',
     });
 
     Object.keys(infraMap).forEach((resKey) => {
       // Allow partial match for Resource keys (e.g. MemoryTableTable vs MemoryTable)
-      const actualKey = Object.keys(resourceMap).find(k => k === resKey || k.startsWith(`${resKey}Table`) || k.startsWith(resKey));
-      
-      if (actualKey || resKey === 'Deployer') { // Deployer is often just an ARN in context, handle as fallback
+      const actualKey = Object.keys(resourceMap).find(
+        (k) => k === resKey || k.startsWith(`${resKey}Table`) || k.startsWith(resKey)
+      );
+
+      if (actualKey || resKey === 'Deployer') {
+        // Deployer is often just an ARN in context, handle as fallback
         const cfg = infraMap[resKey];
         nodes.push({
           id: cfg.id,
@@ -315,7 +335,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
           if (targetId === 'stagingBucket') actualTarget = 'storage';
           if (targetId === 'deployer') actualTarget = 'codebuild';
 
-          // Special logic for Bus: 
+          // Special logic for Bus:
           // SuperClaw (main) -> Bus [ORCHESTRATE]
           // Bus -> Sub-Agents [SIGNAL]
           // Sub-Agents -> Bus [RESULT/EMIT]
@@ -353,7 +373,9 @@ export async function discoverSystemTopology(): Promise<Topology> {
       }
 
       // Every agent connects to the bus by default if not specified
-      const hasBusConnection = agent.connectionProfile?.some((t: string) => t === 'bus' || t === 'AgentBus');
+      const hasBusConnection = agent.connectionProfile?.some(
+        (t: string) => t === 'bus' || t === 'AgentBus'
+      );
       if (!hasBusConnection && agent.id !== 'main' && agent.enabled) {
         edges.push({
           id: `bus-${agent.id}`,
@@ -371,7 +393,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
     });
 
     // 3. Add Infrastructure Inflow Edges
-    if (nodes.find(n => n.id === 'codebuild') && nodes.find(n => n.id === 'bus')) {
+    if (nodes.find((n) => n.id === 'codebuild') && nodes.find((n) => n.id === 'bus')) {
       edges.push({
         id: 'codebuild-bus',
         source: 'codebuild',
@@ -380,16 +402,16 @@ export async function discoverSystemTopology(): Promise<Topology> {
       });
     }
 
-    if (nodes.find(n => n.id === 'monitor') && nodes.find(n => n.id === 'bus')) {
-        edges.push({
-          id: 'monitor-bus',
-          source: 'monitor',
-          target: 'bus',
-          label: 'SIGNAL_FAILURE',
-        });
+    if (nodes.find((n) => n.id === 'monitor') && nodes.find((n) => n.id === 'bus')) {
+      edges.push({
+        id: 'monitor-bus',
+        source: 'monitor',
+        target: 'bus',
+        label: 'SIGNAL_FAILURE',
+      });
     }
 
-    if (nodes.find(n => n.id === 'dashboard') && nodes.find(n => n.id === 'api')) {
+    if (nodes.find((n) => n.id === 'dashboard') && nodes.find((n) => n.id === 'api')) {
       edges.push({
         id: 'dashboard-api',
         source: 'dashboard',
@@ -397,7 +419,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
       });
     }
 
-    if (nodes.find(n => n.id === 'api') && nodes.find(n => n.id === 'main')) {
+    if (nodes.find((n) => n.id === 'api') && nodes.find((n) => n.id === 'main')) {
       edges.push({
         id: 'api-main',
         source: 'api',
@@ -406,10 +428,10 @@ export async function discoverSystemTopology(): Promise<Topology> {
       });
     }
 
-    if (nodes.find(n => n.id === 'api')) {
+    if (nodes.find((n) => n.id === 'api')) {
       // API links to core infra for webhooks
-      ['memory', 'config', 'storage', 'bus'].forEach(target => {
-        if (nodes.find(n => n.id === target)) {
+      ['memory', 'config', 'storage', 'bus'].forEach((target) => {
+        if (nodes.find((n) => n.id === target)) {
           edges.push({
             id: `api-${target}`,
             source: 'api',

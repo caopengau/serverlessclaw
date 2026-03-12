@@ -5,7 +5,7 @@ import { toolDefinitions } from './definitions';
 import { logger } from '../lib/logger';
 import { DynamoMemory } from '../lib/memory';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
-import { ITool, InsightCategory, GapStatus } from '../lib/types/index';
+import { InsightCategory, GapStatus } from '../lib/types/index';
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const eventbridge = new EventBridgeClient({});

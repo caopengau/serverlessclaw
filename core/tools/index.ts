@@ -60,7 +60,7 @@ export const tools: Record<string, ITool> = {
 /**
  * Dynamically retrieves the tools assigned to a specific agent.
  * Uses the AgentRegistry to get tools from both Backbone and DynamoDB.
- * 
+ *
  * @param agentId - The ID of the agent to fetch tools for.
  * @returns A promise that resolves to an array of ITool implementations.
  */
@@ -80,7 +80,7 @@ export async function getAgentTools(agentId: string): Promise<ITool[]> {
 
 /**
  * Generates an array of tool definitions for use in LLM completion calls.
- * 
+ *
  * @returns Array of function definitions formatted for LLM tool selection.
  */
 export function getToolDefinitions() {

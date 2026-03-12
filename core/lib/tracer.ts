@@ -1,5 +1,10 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  PutCommand,
+  UpdateCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { SSTResource } from './types/index';
 import { v4 as uuidv4 } from 'uuid';
@@ -21,7 +26,7 @@ export interface TraceStep {
   /** Unique identifier for the step. */
   stepId: string;
   /** The type of event being recorded. */
-  type: typeof TRACE_TYPES[keyof typeof TRACE_TYPES];
+  type: (typeof TRACE_TYPES)[keyof typeof TRACE_TYPES];
   /** The content of the step (e.g., LLM prompts, tool results). */
   content: unknown;
   /** Timestamp (Unix epoch) of the step. */
@@ -41,7 +46,7 @@ export interface Trace {
   /** Start timestamp of the trace. */
   timestamp: number;
   /** Current status of the trace. */
-  status: typeof TRACE_STATUS[keyof typeof TRACE_STATUS] | string;
+  status: (typeof TRACE_STATUS)[keyof typeof TRACE_STATUS] | string;
   /** Initial context provided when the trace was started. */
   initialContext: Record<string, unknown>;
   /** Sequential list of steps performed during the trace. */
@@ -68,7 +73,7 @@ export class ClawTracer {
 
   /**
    * Initializes a new ClawTracer instance.
-   * 
+   *
    * @param userId - Unique identifier for the user or session.
    * @param traceId - Optional override for the trace ID.
    */
@@ -85,7 +90,8 @@ export class ClawTracer {
    * @returns A promise that resolves to the trace ID.
    */
   async startTrace(initialContext: Record<string, unknown>): Promise<string> {
-    const expiresAt = Math.floor(Date.now() / 1000) + TRACE_CONFIG.TTL_DAYS * TRACE_CONFIG.SECONDS_IN_DAY;
+    const expiresAt =
+      Math.floor(Date.now() / 1000) + TRACE_CONFIG.TTL_DAYS * TRACE_CONFIG.SECONDS_IN_DAY;
 
     await docClient.send(
       new PutCommand({
@@ -167,7 +173,7 @@ export class ClawTracer {
 
   /**
    * Retrieves a full trace from DynamoDB by its ID.
-   * 
+   *
    * @param traceId - The trace ID to retrieve.
    * @returns A promise resolving to the full trace object or undefined if not found.
    */

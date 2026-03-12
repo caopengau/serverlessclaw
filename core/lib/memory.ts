@@ -493,7 +493,9 @@ export class DynamoMemory implements IMemory {
       },
     });
 
-    console.log(`[DynamoMemory] Saving session meta for ${sessionId} under userId: SESSIONS#${userId}`);
+    console.log(
+      `[DynamoMemory] Saving session meta for ${sessionId} under userId: SESSIONS#${userId}`
+    );
     try {
       await docClient.send(command);
       console.log(`[DynamoMemory] Successfully saved session meta for ${sessionId}`);

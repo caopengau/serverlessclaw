@@ -35,7 +35,10 @@ export class AgentRegistry {
 
       // Apply overrides from agents_config (This allows hot-swapping prompts/models for backbone agents)
       const ddbAgents =
-        ((await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<string, Partial<IAgentConfig>>) || {};
+        ((await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<
+          string,
+          Partial<IAgentConfig>
+        >) || {};
       if (ddbAgents[id]) {
         if (ddbAgents[id].systemPrompt) config.systemPrompt = ddbAgents[id].systemPrompt!;
         if (ddbAgents[id].description) config.description = ddbAgents[id].description;

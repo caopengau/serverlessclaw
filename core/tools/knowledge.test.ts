@@ -9,30 +9,32 @@ const ddbMock = mockClient(DynamoDBDocumentClient);
 vi.mock('sst', () => ({
   Resource: {
     ConfigTable: { name: 'test-config-table' },
-    AgentBus: { name: 'test-bus' }
-  }
+    AgentBus: { name: 'test-bus' },
+  },
 }));
 
 // Mock DynamoMemory
 vi.mock('../lib/memory', () => ({
-  DynamoMemory: vi.fn().mockImplementation(function() {
+  DynamoMemory: vi.fn().mockImplementation(function () {
     return {
-      searchInsights: vi.fn().mockResolvedValue([
-        { content: 'insight 1', metadata: { category: 'lesson', impact: 10, urgency: 10 } }
-      ]),
-      updateGapStatus: vi.fn().mockResolvedValue(undefined)
+      searchInsights: vi
+        .fn()
+        .mockResolvedValue([
+          { content: 'insight 1', metadata: { category: 'lesson', impact: 10, urgency: 10 } },
+        ]),
+      updateGapStatus: vi.fn().mockResolvedValue(undefined),
     };
-  })
+  }),
 }));
 
 // Mock AgentRegistry
 vi.mock('../lib/registry', () => ({
   AgentRegistry: {
     getAllConfigs: vi.fn().mockResolvedValue({
-      main: { id: 'main', name: 'Main', description: 'desc', enabled: true, isBackbone: true }
+      main: { id: 'main', name: 'Main', description: 'desc', enabled: true, isBackbone: true },
     }),
-    getAgentConfig: vi.fn().mockResolvedValue({ enabled: true })
-  }
+    getAgentConfig: vi.fn().mockResolvedValue({ enabled: true }),
+  },
 }));
 
 describe('knowledge tools', () => {
@@ -50,7 +52,11 @@ describe('knowledge tools', () => {
 
   describe('recallKnowledge', () => {
     it('should return search results from memory', async () => {
-      const result = await recallKnowledge.execute({ userId: 'user-1', query: 'test', category: 'tactical_lesson' });
+      const result = await recallKnowledge.execute({
+        userId: 'user-1',
+        query: 'test',
+        category: 'tactical_lesson',
+      });
       expect(result).toContain('insight 1');
     });
   });

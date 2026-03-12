@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { triggerDeployment, checkHealth, triggerRollback, validateCode } from './system';
+import { triggerDeployment, checkHealth, triggerRollback } from './system';
 
 const codebuildMock = mockClient(CodeBuildClient);
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -12,15 +12,15 @@ vi.mock('sst', () => ({
   Resource: {
     MemoryTable: { name: 'test-memory-table' },
     ConfigTable: { name: 'test-config-table' },
-    Deployer: { name: 'test-deployer' }
-  }
+    Deployer: { name: 'test-deployer' },
+  },
 }));
 
 // Mock deploy-stats
 vi.mock('../lib/deploy-stats', () => ({
   getDeployCountToday: vi.fn(),
   incrementDeployCount: vi.fn(),
-  rewardDeployLimit: vi.fn()
+  rewardDeployLimit: vi.fn(),
 }));
 
 import { getDeployCountToday, incrementDeployCount, rewardDeployLimit } from '../lib/deploy-stats';
@@ -82,7 +82,7 @@ describe('system tools', () => {
     it('should trigger rollback build', async () => {
       // Mock exec
       vi.mock('child_process', () => ({
-        exec: vi.fn((cmd, cb) => cb(null, { stdout: 'ok', stderr: '' }))
+        exec: vi.fn((cmd, cb) => cb(null, { stdout: 'ok', stderr: '' })),
       }));
 
       codebuildMock.on(StartBuildCommand).resolves({});

@@ -36,7 +36,7 @@ export interface IToolDefinition {
 export interface ITool extends IToolDefinition {
   /**
    * Executes the tool with the provided arguments.
-   * 
+   *
    * @param args - Key-value pairs of arguments as defined in the parameters schema.
    * @returns A promise resolving to the string output of the tool execution.
    */

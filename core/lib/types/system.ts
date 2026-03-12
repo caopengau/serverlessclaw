@@ -4,7 +4,7 @@
 export interface ILockManager {
   /**
    * Attempts to acquire a lock.
-   * 
+   *
    * @param lockId - Unique identifier for the lock.
    * @param ttlSeconds - Time-to-live for the lock in seconds.
    * @returns A promise resolving to true if the lock was acquired, false otherwise.
@@ -12,7 +12,7 @@ export interface ILockManager {
   acquire(lockId: string, ttlSeconds: number): Promise<boolean>;
   /**
    * Releases a previously acquired lock.
-   * 
+   *
    * @param lockId - Unique identifier for the lock.
    */
   release(lockId: string): Promise<void>;

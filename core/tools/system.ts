@@ -6,11 +6,7 @@ import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 import { toolDefinitions } from './definitions';
 import { logger } from '../lib/logger';
 import { SYSTEM, DYNAMO_KEYS } from '../lib/constants';
-import {
-  getDeployCountToday,
-  incrementDeployCount,
-  rewardDeployLimit,
-} from '../lib/deploy-stats';
+import { getDeployCountToday, incrementDeployCount, rewardDeployLimit } from '../lib/deploy-stats';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 

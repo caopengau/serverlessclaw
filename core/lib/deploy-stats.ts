@@ -9,7 +9,7 @@ const typedResource = Resource as unknown as SSTResource;
 
 /**
  * Retrieves the current deployment count for today.
- * 
+ *
  * @returns A promise that resolves to the current deployment count.
  */
 export async function getDeployCountToday(): Promise<number> {
@@ -29,7 +29,7 @@ export async function getDeployCountToday(): Promise<number> {
 
 /**
  * Increments the deployment count for today.
- * 
+ *
  * @param today - The current date string (YYYY-MM-DD).
  * @param currentCount - The current count to increment from.
  * @returns A promise that resolves when the count is updated.
@@ -56,7 +56,7 @@ export async function incrementDeployCount(today: string, currentCount: number):
 
 /**
  * Rewards a deployment limit (decrements the count).
- * 
+ *
  * @returns A promise that resolves when the count is rewarded.
  */
 export async function rewardDeployLimit(): Promise<void> {

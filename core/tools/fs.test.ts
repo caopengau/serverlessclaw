@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
 import { fileWrite, fileRead, listFiles } from './fs';
 import * as fs from 'fs/promises';
 
@@ -9,8 +9,8 @@ const s3Mock = mockClient(S3Client);
 // Mock SST Resource
 vi.mock('sst', () => ({
   Resource: {
-    StagingBucket: { name: 'test-bucket' }
-  }
+    StagingBucket: { name: 'test-bucket' },
+  },
 }));
 
 // Mock fs/promises
@@ -18,7 +18,7 @@ vi.mock('fs/promises', () => ({
   readFile: vi.fn(),
   writeFile: vi.fn(),
   mkdir: vi.fn(),
-  readdir: vi.fn()
+  readdir: vi.fn(),
 }));
 
 describe('fs tools', () => {
