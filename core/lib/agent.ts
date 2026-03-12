@@ -241,7 +241,11 @@ export class Agent {
     }
 
     // 5. Save response
-    await this.memory.addMessage(userId, { role: MessageRole.ASSISTANT, content: responseText });
+    await this.memory.addMessage(userId, {
+      role: MessageRole.ASSISTANT,
+      content: responseText,
+      agentName: this.config?.name || 'ClawAgent',
+    });
 
     // 6. Finalize Trace
     await tracer.endTrace(responseText);

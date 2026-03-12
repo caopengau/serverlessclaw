@@ -45,8 +45,10 @@ export interface Message {
   tool_calls?: ToolCall[];
   /** The ID of the tool call this message is responding to (if role is TOOL). */
   tool_call_id?: string;
-  /** The name of the tool this message is responding from (if role is TOOL). */
+  /** The name of the tool or agent this message is responding from. */
   name?: string;
+  /** Optional human-readable name of the agent that generated this message. */
+  agentName?: string;
 }
 
 /**

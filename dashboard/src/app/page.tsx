@@ -7,6 +7,7 @@ import { THEME } from '@/lib/theme';
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  agentName?: string;
 }
 
 interface ConversationMeta {
@@ -58,7 +59,8 @@ export default function ChatPage() {
       if (data.history) {
         setMessages(data.history.map((m: any) => ({
           role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
-          content: m.content
+          content: m.content,
+          agentName: m.agentName,
         })).filter((m: any) => m.content)); // Filter out tool calls for simplicity in UI
       }
     } catch (error) {
@@ -105,7 +107,7 @@ export default function ChatPage() {
       });
 
       const data = await response.json();
-      setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: data.reply, agentName: data.agentName }]);
       
       // Refresh session list to show updated last message/title
       fetchSessions();
@@ -212,10 +214,18 @@ export default function ChatPage() {
                 }`}>
                   {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
                 </div>
-                <div className={`p-4 rounded-lg text-sm leading-relaxed whitespace-pre-wrap ${
-                  m.role === 'user' ? 'bg-white/5 text-white/90 border border-white/10' : 'glass-card text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
-                }`}>
-                  {m.content}
+                <div className="flex flex-col gap-1">
+                  {m.role === 'assistant' && m.agentName && (
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-cyber-green/60 flex items-center gap-1 pl-1">
+                      <span className="w-1 h-1 rounded-full bg-cyber-green/60 inline-block" />
+                      {m.agentName}
+                    </span>
+                  )}
+                  <div className={`p-4 rounded-lg text-sm leading-relaxed whitespace-pre-wrap ${
+                    m.role === 'user' ? 'bg-white/5 text-white/90 border border-white/10' : 'glass-card text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
+                  }`}>
+                    {m.content}
+                  </div>
                 </div>
               </div>
             </div>

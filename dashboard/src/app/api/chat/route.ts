@@ -39,7 +39,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       });
     }
 
-    return NextResponse.json({ reply });
+    return NextResponse.json({ reply, agentName: 'SuperClaw' });
   } catch (error) {
     console.error(UI_STRINGS.API_CHAT_ERROR, error);
     return NextResponse.json(
