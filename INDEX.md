@@ -12,6 +12,7 @@
 | Spoke | Load When You Need To... |
 |-------|--------------------------|
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Understand system structure, data flow, or self-aware AWS topology |
+| [docs/LLM.md](./docs/LLM.md) | Deep dive into 2026 reasoning profiles and the OpenAI Response API bridge |
 | [docs/DEVOPS.md](./docs/DEVOPS.md) | Run quality checks, tests, deployments, or releases |
 | [AGENTS.md](./docs/AGENTS.md) | Work on agent logic, prompts, orchestration, or backbone registry |
 | [TOOLS.md](./docs/TOOLS.md) | Add, modify, or understand any agent tool |
@@ -45,6 +46,7 @@ make dev
 
 | Changed File | Update This Spoke |
 |---|---|
+| `core/lib/providers/` | [docs/LLM.md](./docs/LLM.md) |
 | `core/lib/backbone.ts` | [AGENTS.md](./docs/AGENTS.md) |
 | `core/handlers/monitor.ts` | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | `core/tools/` | [TOOLS.md](./docs/TOOLS.md) |

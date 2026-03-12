@@ -1,6 +1,6 @@
 # Serverless Claw: Architecture & Design
 
-> **Navigation**: [← Index Hub](./INDEX.md) | [Agents ↗](./docs/AGENTS.md) | [Memory ↗](./docs/MEMORY.md) | [Tools ↗](./docs/TOOLS.md) | [Safety ↗](./docs/SAFETY.md)
+> **Navigation**: [← Index Hub](./INDEX.md) | [Agents ↗](./docs/AGENTS.md) | [Memory ↗](./docs/MEMORY.md) | [LLM / Reasoning ↗](./docs/LLM.md) | [Tools ↗](./docs/TOOLS.md) | [Safety ↗](./docs/SAFETY.md)
 
 This document covers the AWS topology and data flow. For agent logic and orchestration, see [docs/AGENTS.md](./docs/AGENTS.md).
 
@@ -269,3 +269,25 @@ Provider-agnostic interface supporting:
 - Anthropic (Claude 4.6 Sonnet)
 - Google (Gemini-3 Flash, GLM-5, Minimax 2.5)
 - Local models (via Ollama or AWS Bedrock)
+
+#### Reasoning Engine & Adapters
+The system uses a unified **Reasoning Adapter** to map logical "Thinking" states to provider-specific APIs.
+
+```text
+ [ ReasoningProfile ]
+ (FAST, STANDARD, THINKING, DEEP)
+          |
+          v
+ [ Reasoning Mapper ] -----------------+
+ (effort, budget, temp)                |
+          |                            |
+  +-------+-------+           +--------v--------+
+  | OpenAI Adapter|           | Bedrock Adapter |
+  | (Responses API)|           | (Converse API)  |
+  +-------+-------+           +--------+--------+
+          |                            |
+          v                            v
+   /v1/responses              ConverseCommand
+```
+
+For a deep dive into the reasoning profiles and the OpenAI Response API bridge, see [docs/LLM.md](./docs/LLM.md).
