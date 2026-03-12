@@ -13,6 +13,16 @@ interface OpenRouterResource {
   OpenRouterApiKey: { value: string };
 }
 
+const OPENROUTER_REASONING_MAP: Record<
+  ReasoningProfile,
+  { effort: 'low' | 'medium' | 'high'; enabled: boolean; route: 'latency' | 'fallback' }
+> = {
+  [ReasoningProfile.FAST]: { effort: 'low', enabled: false, route: 'latency' },
+  [ReasoningProfile.STANDARD]: { effort: 'low', enabled: true, route: 'fallback' },
+  [ReasoningProfile.THINKING]: { effort: 'medium', enabled: true, route: 'fallback' },
+  [ReasoningProfile.DEEP]: { effort: 'high', enabled: true, route: 'fallback' },
+};
+
 export class OpenRouterProvider implements IProvider {
   constructor(private model: string = OpenRouterModel.GEMINI_3_FLASH) {}
 
@@ -36,37 +46,25 @@ export class OpenRouterProvider implements IProvider {
       profile = ReasoningProfile.STANDARD;
     }
 
-    // 2026 OpenRouter Reasoning Mapping
-    let reasoning: Record<string, unknown> | undefined = undefined;
-    if (profile !== ReasoningProfile.FAST) {
-      reasoning = {
-        // Map profiles to effort levels
-        effort:
-          profile === ReasoningProfile.DEEP
-            ? 'high'
-            : profile === ReasoningProfile.THINKING
-              ? 'medium'
-              : 'low',
-        // Standardized reasoning toggle
-        enabled: true,
-      };
-    }
+    const reasoningConfig = OPENROUTER_REASONING_MAP[profile];
 
     const body: Record<string, unknown> = {
       model: activeModel,
       messages: messages,
-      // 2026 OpenRouter Enhancements:
-      // Provider routing preferences (prefer speed/cost)
-      route: profile === ReasoningProfile.FAST ? 'latency' : 'fallback',
-      // Reasoning settings
-      ...(reasoning ? { reasoning } : {}),
-      // Allow provider-specific transformations (e.g. prompt caching)
+      route: reasoningConfig.route,
+      reasoning: {
+        effort: reasoningConfig.effort,
+        enabled: reasoningConfig.enabled,
+      },
+      // 2026: Provider routing and privacy defaults
       provider: {
         allow_fallbacks: true,
-        data_collection: 'deny', // Privacy first
-        // 2026: Enable prompt caching for high-volume sessions
+        data_collection: 'deny',
         prompt_cache: true,
       },
+      // 2026: specialized model-specific extra bodies
+      ...(activeModel.includes('minimax') ? { plugin_id: 'reasoning' } : {}),
+      ...(activeModel.includes('gemini-3') ? { safety_settings: 'off' } : {}),
     };
 
     if (tools && tools.length > 0) {
@@ -87,7 +85,6 @@ export class OpenRouterProvider implements IProvider {
         Authorization: `Bearer ${apiKey}`,
         'HTTP-Referer': 'https://github.com/serverlessclaw/serverlessclaw',
         'X-Title': 'Serverless Claw',
-        // 2026 Optimization: Request caching if available on provider
         'X-OpenRouter-Caching': 'true',
       },
       body: JSON.stringify(body),

@@ -21,6 +21,40 @@ interface BedrockResource {
   AwsRegion: { value: string };
 }
 
+interface BedrockReasoningConfig {
+  thinkingBudget: number;
+  thinkingEnabled: boolean;
+  maxTokens: number;
+  temperature: number;
+}
+
+const BEDROCK_REASONING_MAP: Record<ReasoningProfile, BedrockReasoningConfig> = {
+  [ReasoningProfile.FAST]: {
+    thinkingBudget: 0,
+    thinkingEnabled: false,
+    maxTokens: 4096,
+    temperature: 0.7,
+  },
+  [ReasoningProfile.STANDARD]: {
+    thinkingBudget: 1024,
+    thinkingEnabled: true,
+    maxTokens: 8192,
+    temperature: 0.7,
+  },
+  [ReasoningProfile.THINKING]: {
+    thinkingBudget: 4096,
+    thinkingEnabled: true,
+    maxTokens: 12288,
+    temperature: 1.0,
+  },
+  [ReasoningProfile.DEEP]: {
+    thinkingBudget: 32768,
+    thinkingEnabled: true,
+    maxTokens: 49152,
+    temperature: 1.0,
+  },
+};
+
 export class BedrockProvider implements IProvider {
   constructor(private modelId: string = BedrockModel.CLAUDE_4_6) {}
 
@@ -45,6 +79,8 @@ export class BedrockProvider implements IProvider {
       );
       profile = ReasoningProfile.STANDARD;
     }
+
+    const reasoningConfig = BEDROCK_REASONING_MAP[profile];
 
     // 2026 Bedrock Optimization: Converse API System/User mapping
     const bedrockMessages: BedrockMessage[] = messages
@@ -96,41 +132,22 @@ export class BedrockProvider implements IProvider {
       },
     })) as unknown as BedrockTool[];
 
-    // Map profile to Claude 4.6 Thinking budget
-    let thinkingBudget = 1024;
-    let thinkingEnabled = true;
-    let maxTokens = 8192; // Default sufficient for STANDARD
-    let temperature = 0.7;
-
-    if (profile === ReasoningProfile.FAST) {
-      thinkingBudget = 0;
-      thinkingEnabled = false;
-    } else if (profile === ReasoningProfile.THINKING) {
-      thinkingBudget = 4096;
-      maxTokens = 12288;
-      temperature = 1.0; // Optimized for thinking
-    } else if (profile === ReasoningProfile.DEEP) {
-      thinkingBudget = 32768; // Increased for Claude 4.6 DEEP
-      maxTokens = 49152;
-      temperature = 1.0;
-    }
-
     const command = new ConverseCommand({
       modelId: activeModelId,
       messages: bedrockMessages,
       system,
       toolConfig: bedrockTools ? { tools: bedrockTools } : undefined,
       inferenceConfig: {
-        maxTokens,
-        temperature,
+        maxTokens: reasoningConfig.maxTokens,
+        temperature: reasoningConfig.temperature,
         topP: 0.9,
       },
       additionalModelRequestFields: {
-        ...(thinkingEnabled
+        ...(reasoningConfig.thinkingEnabled
           ? {
               thinking: {
                 type: 'enabled',
-                budget_tokens: thinkingBudget,
+                budget_tokens: reasoningConfig.thinkingBudget,
               },
             }
           : {}),

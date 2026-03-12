@@ -13,6 +13,13 @@ import { logger } from '../logger';
 
 const typedResource = Resource as unknown as SSTResource;
 
+const REASONING_MAP: Record<ReasoningProfile, OpenAI.ReasoningEffort> = {
+  [ReasoningProfile.FAST]: 'low',
+  [ReasoningProfile.STANDARD]: 'medium',
+  [ReasoningProfile.THINKING]: 'high',
+  [ReasoningProfile.DEEP]: 'xhigh',
+};
+
 export class OpenAIProvider implements IProvider {
   constructor(private model: string = OpenAIModel.GPT_5_4) {}
 
@@ -36,6 +43,8 @@ export class OpenAIProvider implements IProvider {
       profile = ReasoningProfile.STANDARD;
     }
 
+    const reasoningEffort = REASONING_MAP[profile];
+
     // Map internal message role to OpenAI SDK role
     const processedMessages = messages.map((m) => {
       let role: OpenAI.Chat.ChatCompletionRole = 'user';
@@ -53,12 +62,6 @@ export class OpenAIProvider implements IProvider {
         ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
       };
     }) as OpenAI.Chat.ChatCompletionMessageParam[];
-
-    // Map profile to reasoning_effort for gpt-5.4 models
-    let reasoningEffort: OpenAI.Chat.ChatCompletionCreateParams['reasoning_effort'] = 'medium';
-    if (profile === ReasoningProfile.FAST) reasoningEffort = 'low';
-    if (profile === ReasoningProfile.THINKING) reasoningEffort = 'high';
-    if (profile === ReasoningProfile.DEEP) reasoningEffort = 'xhigh';
 
     // Determining if we should use the new Responses API (/v1/responses)
     // gpt-5.4 doesn't support reasoning_effort + tools on /chat/completions
@@ -91,7 +94,7 @@ export class OpenAIProvider implements IProvider {
             ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
           } as any;
         }),
-        reasoning: { effort: reasoningEffort as OpenAI.ReasoningEffort },
+        reasoning: { effort: reasoningEffort },
         ...(hasTools
           ? {
               tools: tools.map((t) => ({
