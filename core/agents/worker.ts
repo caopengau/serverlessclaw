@@ -3,7 +3,6 @@ import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers/index';
 import { getAgentTools } from '../tools/index';
 import { AgentRegistry } from '../lib/registry';
-import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
@@ -41,7 +40,6 @@ export const handler = async (
   // Extract agentId from the event source or detail-type
   // Pattern: <agentId>_task
   const detailType = event['detail-type'] || '';
-  const agentId = detailType.replace('_task', '');
 
   // Safety list of system events that the Worker should NEVER try to process as an agent
   const systemEvents = [
@@ -56,11 +54,12 @@ export const handler = async (
     EventType.RECOVERY_LOG,
   ];
 
-  if (!agentId || systemEvents.includes(agentId as any)) {
-    logger.info('Skipping system event in Worker Agent:', agentId);
+  if (!detailType || systemEvents.includes(detailType as any)) {
+    logger.info('Skipping system event in Worker Agent:', detailType);
     return;
   }
 
+  const agentId = detailType.replace('_task', '');
   const { userId, task, isContinuation, traceId, sessionId } = event.detail;
 
   if (!userId || !task) {
@@ -100,28 +99,14 @@ export const handler = async (
   logger.info(`Worker Agent [${agentId}] completed task:`, response);
 
   // 4. Notification (Optional: Worker could be silent or chatty)
-  // Only send if not paused (Agent returns a specific string if paused)
+  // ... (rest of the file)
   if (!response.startsWith('TASK_PAUSED')) {
-    // The userId here is the main conversation ID (e.g. CONV#user#session)
-    // We want to sync the message to this context so the user sees it.
-    const memoryContexts = [userId];
-
-    await sendOutboundMessage(
-      `worker.agent.${agentId}`,
-      userId,
-      response,
-      memoryContexts,
-      sessionId,
-      config.name
-    );
-
-    // Emit Task Completion for Orchestrator Resumption
     try {
       await eventbridge.send(
         new PutEventsCommand({
           Entries: [
             {
-              Source: `worker.agent.${agentId}`,
+              Source: `${agentId}.agent`,
               DetailType: EventType.TASK_COMPLETED,
               Detail: JSON.stringify({
                 userId,
@@ -129,9 +114,9 @@ export const handler = async (
                 task,
                 response,
                 traceId,
+                sessionId,
                 initiatorId: (event.detail as any).initiatorId,
                 depth: (event.detail as any).depth,
-                sessionId,
               }),
               EventBusName: (Resource as any).AgentBus.name,
             },

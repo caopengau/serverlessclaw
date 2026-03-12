@@ -88,7 +88,7 @@ export class OpenAIProvider implements IProvider {
         if (m.role === MessageRole.TOOL) {
           return [
             {
-              type: 'tool_call_output',
+              type: 'function_call_output',
               call_id: m.tool_call_id || '',
               output: m.content || '',
             },
@@ -115,8 +115,8 @@ export class OpenAIProvider implements IProvider {
         if (m.tool_calls && m.tool_calls.length > 0) {
           for (const tc of m.tool_calls) {
             items.push({
-              type: 'tool_call',
-              id: tc.id,
+              type: 'function_call',
+              call_id: tc.id,
               name: tc.function.name,
               arguments: tc.function.arguments,
             });
