@@ -45,11 +45,8 @@ export async function incrementDeployCount(today: string, currentCount: number):
       UpdateExpression:
         currentCount === 0 ? 'SET #count = :one, lastReset = :today' : 'SET #count = #count + :inc',
       ExpressionAttributeNames: { '#count': 'count' },
-      ExpressionAttributeValues: {
-        ':one': 1,
-        ':today': today,
-        ':inc': 1,
-      },
+      ExpressionAttributeValues:
+        currentCount === 0 ? { ':one': 1, ':today': today } : { ':inc': 1 },
     })
   );
 }

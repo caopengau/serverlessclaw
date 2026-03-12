@@ -38,28 +38,42 @@ const memory = new DynamoMemory();
 export const handler = async (event: { detail: Record<string, unknown> }): Promise<void> => {
   logger.info('BuildMonitor received event:', JSON.stringify(event, null, 2));
 
-  const buildId = event.detail['build-id'] as string;
+  let buildId = event.detail['build-id'] as string;
   const projectName = event.detail['project-name'] as string;
   const status = event.detail['build-status'] as string;
 
+  // Normalize buildId if it's an ARN (EventBridge sends full ARN, Memory stores projectName:id)
+  if (buildId.startsWith('arn:aws:codebuild:')) {
+    buildId = buildId.split('/').pop() || buildId;
+  }
+
   try {
     // 1. Get Build Context (Initiator and associated Gaps)
-    const { Items } = await db.send(
+    const { Items: buildItems } = await db.send(
       new QueryCommand({
         TableName: typedResource.MemoryTable.name,
-        KeyConditionExpression: 'userId = :b or userId = :g',
-        ExpressionAttributeValues: {
-          ':b': `BUILD#${buildId}`,
-          ':g': `BUILD_GAPS#${buildId}`,
-        },
+        KeyConditionExpression: 'userId = :b',
+        ExpressionAttributeValues: { ':b': `BUILD#${buildId}` },
+        Limit: 1,
+        ScanIndexForward: false,
       })
     );
+    const buildMeta = buildItems?.[0];
 
-    const buildMeta = Items?.find((i) => i.userId.startsWith('BUILD#'));
-    const gapsMeta = Items?.find((i) => i.userId.startsWith('BUILD_GAPS#'));
+    const { Items: gapsItems } = await db.send(
+      new QueryCommand({
+        TableName: typedResource.MemoryTable.name,
+        KeyConditionExpression: 'userId = :g',
+        ExpressionAttributeValues: { ':g': `BUILD_GAPS#${buildId}` },
+        Limit: 1,
+        ScanIndexForward: false,
+      })
+    );
+    const gapsMeta = gapsItems?.[0];
 
     const userId = buildMeta?.initiatorUserId;
-    const gapIds: string[] = gapsMeta ? JSON.parse(gapsMeta.content) : [];
+    const breakingTraceId = buildMeta?.traceId;
+    const gapIds: string[] = gapsMeta?.content ? JSON.parse(gapsMeta.content) : [];
 
     if (!userId) {
       logger.warn(`No initiator found for build ${buildId}`);
@@ -211,7 +225,9 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
                 userId,
                 buildId,
                 projectName,
-                errorLogs: errorLogs.substring(errorLogs.length - 3000),
+                errorLogs: errorLogs.substring(Math.max(0, errorLogs.length - 3000)),
+                gapIds,
+                breakingTraceId,
               }),
               EventBusName: typedResource.AgentBus.name,
             },

@@ -36,21 +36,36 @@ export const handler = async (
       buildId,
       errorLogs,
       traceId: incomingTraceId,
+      breakingTraceId,
+      gapIds,
       sessionId,
     } = event.detail as {
       userId: string;
       buildId?: string;
       errorLogs?: string;
       traceId?: string;
+      breakingTraceId?: string;
+      gapIds?: string[];
       sessionId?: string;
     };
 
+    const gapsContext =
+      gapIds && gapIds.length > 0
+        ? `This deployment was addressing the following gaps: ${gapIds.join(', ')}.`
+        : '';
+    const traceContext = breakingTraceId
+      ? `Refer to the previous reasoning trace for context: ${breakingTraceId}`
+      : '';
+
     const task = `CRITICAL: Deployment ${buildId} failed. 
+    ${gapsContext}
+    ${traceContext}
+
     Here are the last few lines of the logs:
     ---
     ${errorLogs}
     ---
-    Please investigate the codebase, find the root cause, fix the issue, and trigger a new deployment. 
+    Please investigate the codebase using your tools, find the root cause, fix the issue, and trigger a new deployment. 
     Explain your plan to the user before proceeding.`;
 
     // Process the failure context via the SuperClaw

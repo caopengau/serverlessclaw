@@ -104,7 +104,7 @@ export function createAgents(ctx: SharedContext): {
 
   // 5. CodeBuild Event Rule (Monitor both success and failure for gap lifecycle)
   const buildRule = new aws.cloudwatch.EventRule('BuildRule', {
-    eventPattern: JSON.stringify({
+    eventPattern: $util.jsonStringify({
       source: ['aws.codebuild'],
       'detail-type': ['CodeBuild Build State Change'],
       detail: {
