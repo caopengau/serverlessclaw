@@ -66,7 +66,10 @@ export const handler = async (event: any): Promise<string | undefined> => {
     try {
       const { ClawTracer } = await import('../lib/tracer');
       const trace = await ClawTracer.getTrace(traceId);
-      if (trace && trace.steps) {
+
+      // Safety: Only analyze user-facing interactions (Dashboard/Telegram)
+      // Ignore system-initiated traces (like previous reflector runs) to prevent self-audit loops.
+      if (trace && trace.source !== TraceSource.SYSTEM && trace.steps) {
         let fullTrace = trace.steps
           .map((s) => `[${s.type.toUpperCase()}] ${JSON.stringify(s.content)}`)
           .join('\n');
@@ -77,6 +80,8 @@ export const handler = async (event: any): Promise<string | undefined> => {
         }
 
         traceContext = `\nEXECUTION TRACE (Mechanical Steps):\n${fullTrace}\n`;
+      } else if (trace?.source === TraceSource.SYSTEM) {
+        logger.info('Reflector skipping system-initiated trace audit.');
       }
     } catch (e) {
       logger.warn('Failed to fetch trace for Reflector:', e);
