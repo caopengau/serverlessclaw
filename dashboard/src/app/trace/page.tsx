@@ -19,11 +19,11 @@ async function getTraces() {
     const { Items } = await docClient.send(
       new ScanCommand({
         TableName: tableName,
-        Limit: 10,
+        Limit: 50,
       })
     );
     
-    return (Items || []).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    return (Items || []).sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
   } catch (e) {
     console.error('Error fetching traces:', e);
     return [];

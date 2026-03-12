@@ -31,39 +31,37 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 
 ---
 
-## Orchestration Flow
+## Orchestration Flow (Asynchronous "Pause and Resume")
 
+Serverless Claw uses an asynchronous, non-blocking orchestration pattern. Agents do not wait for results; they emit tasks and terminate, resuming only when a completion event is routed back to them.
+
+```text
+User (Telegram)       SuperClaw (Lambda)       AgentBus (EB)       Specialized Agent (Coder)
+      |                      |                      |                      |
+      +---- "Feature X" ---->|                      |                      |
+      |                      +--- dispatchTask ---->|                      |
+      |                      | (initiator:SC, dep:0)|                      |
+      |                      |                      +---- coder_task ----->|
+      |                 [TERMINATE]                 |                      |
+      |                      |                      |                      |
+      |                      |                      |       [THINK & EXECUTE]
+      |                      |                      |                      |
+      |                      |                      |<--- TASK_COMPLETED --+
+      |                      |                      | (result, traceId, SC)|
+      |                      |      [EH ROUTE]      |       [TERMINATE]
+      |                      |                      |
+      |                      |<-- CONTINUATION_TASK-+
+      |                      | (result, depth: 1)   |
+      |                      |                      |
+      |                      +--- "X Completed" --->|
+      v                      |                      v
 ```
-User (Telegram)       Dashboard (Web/IoT)
-      │                      ▲
-      ▼                      │ (Push: IoT Core)
-POST /webhook → SuperClaw (Lambda)
-      │
-      ├──dispatchTask(agentId, task)─► EventBridge AgentBus
-      │                                         │
-      │                                         ├──► Worker Agent (Lambda)
-      │                                         │      │ 1. Load Persona (Registry)
-      │                                         │      │ 2. Load Tools (Registry)
-      │                                         │      └─► 3. Execute & Report
-      │                                         │
-      │                                         └──► Real-time Bridge (Lambda)
-      │                                                │
-      │                                                └─► Publish to users/{id}/signal
-      │
-      ├──triggerDeployment──► CodeBuild Deployer
-      │                               │
-      │      (ON SUCCESS)             ▼
-      │      └────────────────── Build Monitor Handler ──► system.build.success (Bus)
-      │                                                   │
-      │                                                   ▼
-      │                                             QA Auditor (Audit & Verify)
-      │
-      ├──manageGap──────────► DynamoDB Gap Status Update (OPEN -> PLANNED -> PROGRESS -> DEPLOYED -> DONE)
-      │
-      └──checkHealth──► GET /health (src/handlers/health.ts)
-              ├── OK  → notify user, reward counter
-              └── FAIL → triggerRollback → notify user
-```
+
+### Routing Metadata
+Every event on the `AgentBus` carries critical routing metadata:
+- **`traceId`**: Consolidates all agent steps into a single unified timeline.
+- **`initiatorId`**: The ID of the agent that started the task (used to route results back).
+- **`depth`**: Current recursion level. The system automatically terminates tasks exceeding a depth of **5** to prevent infinite loops.
 
 ---
 

@@ -13,7 +13,7 @@ export function createStorage() {
       userId: 'string',
       timestamp: 'number',
     },
-    primaryIndex: { hashKey: 'traceId', rangeKey: 'timestamp' },
+    primaryIndex: { hashKey: 'traceId' },
     globalIndexes: {
       UserIndex: { hashKey: 'userId', rangeKey: 'timestamp' },
     },

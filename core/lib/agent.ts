@@ -221,7 +221,13 @@ export class Agent {
           }
         }
 
-        await tracer.addStep({ type: 'llm_call', content: { messageCount: messages.length } });
+        await tracer.addStep({
+          type: 'llm_call',
+          content: {
+            messageCount: messages.length,
+            messages: messages.map((m) => ({ role: m.role, content: m.content })),
+          },
+        });
         const aiResponse = await this.provider.call(
           messages,
           this.tools,
@@ -229,6 +235,14 @@ export class Agent {
           activeModel,
           activeProvider
         );
+
+        await tracer.addStep({
+          type: 'llm_response',
+          content: {
+            content: aiResponse.content,
+            tool_calls: aiResponse.tool_calls,
+          },
+        });
 
         if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
           messages.push(aiResponse);
@@ -243,13 +257,16 @@ export class Agent {
                 args.initiatorId = currentInitiator;
                 args.depth = depth;
               }
-              await tracer.addStep({ type: 'tool_call', content: { toolName: tool.name, args } });
+              await tracer.addStep({
+                type: 'tool_call',
+                content: { toolName: tool.name, args: args },
+              });
 
               const result = await tool.execute(args);
 
               await tracer.addStep({
                 type: 'tool_result',
-                content: { toolName: tool.name, result },
+                content: { toolName: tool.name, result: result },
               });
 
               messages.push({

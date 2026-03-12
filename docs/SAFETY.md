@@ -15,6 +15,21 @@
 | **Rollback Signal** | `core/tools/index.ts → triggerRollback` | Circuit breaker active or health failed |
 | **Human-in-the-Loop** | SuperClaw system prompt | `MANUAL_APPROVAL_REQUIRED` returned |
 | **Dashboard Auth** | `dashboard/src/proxy.ts` | Unauthorized access to ClawCenter |
+| **Recursion Guard** | `core/handlers/events.ts` | Agent-to-agent hop depth > 5 |
+
+---
+
+## Recursion Safety Detail
+
+To prevent infinite loops during autonomous multi-agent coordination, Serverless Claw enforces a strict **Recursion Depth Limit**.
+
+1. **Hop Tracking**: Every event carries a `depth` counter.
+2. **Increment**: The `EventHandler` increments this counter before dispatching a `CONTINUATION_TASK`.
+3. **Threshold**: The maximum allowed depth is **5 hops**.
+4. **Intervention**: If `depth > 5`:
+    - The `EventHandler` immediately logs a critical loop warning.
+    - The task is terminated.
+    - The `SuperClaw` is notified to inform the user of the "Infinite Loop Detected" and request manual intervention.
 
 ---
 

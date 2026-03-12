@@ -9,6 +9,7 @@ import { Resource } from 'sst';
 import { SSTResource } from './types/index';
 import { v4 as uuidv4 } from 'uuid';
 import { TRACE_TYPES, TRACE_STATUS } from './constants';
+import { logger } from './logger';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -93,20 +94,29 @@ export class ClawTracer {
     const expiresAt =
       Math.floor(Date.now() / 1000) + TRACE_CONFIG.TTL_DAYS * TRACE_CONFIG.SECONDS_IN_DAY;
 
-    await docClient.send(
-      new PutCommand({
-        TableName: this.tableName,
-        Item: {
-          traceId: this.traceId,
-          userId: this.userId,
-          timestamp: this.startTime,
-          status: TRACE_STATUS.STARTED,
-          initialContext,
-          steps: [],
-          expiresAt,
-        },
-      })
-    );
+    try {
+      await docClient.send(
+        new PutCommand({
+          TableName: this.tableName,
+          Item: {
+            traceId: this.traceId,
+            userId: this.userId,
+            timestamp: this.startTime,
+            status: TRACE_STATUS.STARTED,
+            initialContext,
+            steps: [],
+            expiresAt,
+          },
+          ConditionExpression: 'attribute_not_exists(traceId)',
+        })
+      );
+    } catch (e: any) {
+      if (e.name === 'ConditionalCheckFailedException') {
+        logger.info(`Trace ${this.traceId} already exists, skipping initialization.`);
+      } else {
+        throw e;
+      }
+    }
     return this.traceId;
   }
 
@@ -126,7 +136,7 @@ export class ClawTracer {
     await docClient.send(
       new UpdateCommand({
         TableName: this.tableName,
-        Key: { traceId: this.traceId, timestamp: this.startTime },
+        Key: { traceId: this.traceId },
         UpdateExpression: 'SET #steps = list_append(if_not_exists(#steps, :empty_list), :step)',
         ExpressionAttributeNames: { '#steps': 'steps' },
         ExpressionAttributeValues: {
@@ -148,7 +158,7 @@ export class ClawTracer {
     await docClient.send(
       new UpdateCommand({
         TableName: this.tableName,
-        Key: { traceId: this.traceId, timestamp: this.startTime },
+        Key: { traceId: this.traceId },
         UpdateExpression:
           'SET #status = :status, finalResponse = :resp, endTime = :end, metadata = :meta',
         ExpressionAttributeNames: { '#status': 'status' },

@@ -134,9 +134,21 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
                                          (Loads Persona from AgentRegistry)
  ```
 
-- **Pattern**: The SuperClaw emits a `coder_task` or `custom_task` event. Specialized tasks go to backbone agents, while generic tasks are picked up by the **Worker Agent**.
+- **Pattern**: The SuperClaw emits a `coder_task` or `custom_task` event. When an agent completes a task, it emits a `TASK_COMPLETED` event, which the `EventHandler` routes back to the `initiatorId` as a `CONTINUATION_TASK`.
 - **Discovery**: The `AgentRegistry` merges backbone logic with user-defined personas from DynamoDB.
-- **Visualization**: The **ClawCenter Dashboard** (`SYSTEM_PULSE`) fetches a unified graph via `/api/infrastructure` and renders it using React Flow.
+- **Visualization**: The **ClawCenter Dashboard** renders a unified graph of these interactions, even across asynchronous boundaries.
+
+---
+
+## 📈 Unified Tracing Architecture
+
+Serverless Claw uses a **Consolidated Trace Model** to provide a seamless view of complex, multi-agent workflows.
+
+### Trace Consolidation
+1. **Trace ID Propagation**: The `traceId` is generated at the start of a user session and passed to every agent in the chain.
+2. **Unified Record**: Unlike standard logs, all agents contribute to a **single record** in the `TraceTable` (DynamoDB), indexed by `traceId`.
+3. **Atomic Appends**: `ClawTracer` uses DynamoDB's `list_append` to atomically add steps (LLM calls, tool execution) from different Lambda instances into a shared timeline.
+4. **Rich Details**: Every step captures "In/Out" data (prompts, raw AI responses, tool arguments, and results), which is inspectable in the dashboard's **Neural Inspect** panel.
 
 ---
 

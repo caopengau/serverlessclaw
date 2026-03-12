@@ -115,7 +115,7 @@ export default async function TraceDetailPage({
 
   return (
     <div className="flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
-      <header className="max-w-5xl mx-auto mb-10">
+      <header className="mb-10">
         <Link href="/trace" className="text-white/100 hover:text-cyber-green transition-colors flex items-center gap-2 text-xs mb-6 group">
           <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> {UI_STRINGS.BACK_TO_INTELLIGENCE}
         </Link>
@@ -144,7 +144,7 @@ export default async function TraceDetailPage({
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto space-y-12">
+      <main className="space-y-12">
         {/* Visualizer Section */}
         <section>
           <h2 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/100 flex items-center gap-2 mb-4">

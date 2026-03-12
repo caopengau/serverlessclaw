@@ -44,6 +44,7 @@ export const HTTP_STATUS = {
 
 export const TRACE_TYPES = {
   LLM_CALL: 'llm_call',
+  LLM_RESPONSE: 'llm_response',
   TOOL_CALL: 'tool_call',
   TOOL_RESULT: 'tool_result',
   ERROR: 'error',
