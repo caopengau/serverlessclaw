@@ -9,26 +9,33 @@ const iot = new IoTDataPlaneClient({});
 export const handler = async (event: any) => {
   console.log('[RealtimeBridge] Received event:', event['detail-type']);
 
-  const userId = event.detail.userId || 'dashboard-user';
-  const sessionId = event.detail.sessionId;
+  const detail = event.detail || {};
+  // Standardize userId: fallback to dashboard-user, then ensure it's a clean string
+  let userId = detail.userId || 'dashboard-user';
+  if (typeof userId !== 'string') userId = 'dashboard-user';
+
+  // Clean userId for MQTT topic (no special chars except allowed ones)
+  const safeUserId = userId.replace(/[#+]/g, '_');
+  const sessionId = detail.sessionId;
 
   // If we have a sessionId, we can target the specific chat session
   // Otherwise fallback to the generic user signal topic
   const topic = sessionId
-    ? `users/${userId}/sessions/${sessionId}/signal`
-    : `users/${userId}/signal`;
+    ? `users/${safeUserId}/sessions/${sessionId}/signal`
+    : `users/${safeUserId}/signal`;
 
   try {
+    console.log(`[RealtimeBridge] Publishing to: ${topic}`);
     // AWS IoT requires payload to be a Uint8Array or string
     const command = new PublishCommand({
       topic,
-      payload: Buffer.from(JSON.stringify(event.detail)),
+      payload: Buffer.from(JSON.stringify(detail)),
       qos: 1,
     });
 
     await iot.send(command);
-    console.log(`[RealtimeBridge] Published to ${topic}`);
+    console.log(`[RealtimeBridge] Successfully published to ${topic}`);
   } catch (error) {
-    console.error('[RealtimeBridge] Failed to publish:', error);
+    console.error(`[RealtimeBridge] Failed to publish to ${topic}:`, error);
   }
 };

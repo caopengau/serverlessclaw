@@ -99,7 +99,6 @@ export const handler = async (
   logger.info(`Worker Agent [${agentId}] completed task:`, response);
 
   // 4. Notification (Optional: Worker could be silent or chatty)
-  // ... (rest of the file)
   if (!response.startsWith('TASK_PAUSED')) {
     try {
       await eventbridge.send(

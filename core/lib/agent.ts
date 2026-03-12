@@ -447,7 +447,7 @@ export class Agent {
                 isContinuation: true,
                 traceId,
                 initiatorId: metadata.initiatorId,
-                depth: metadata.depth,
+                depth: (metadata.depth || 0) + 1,
                 sessionId: metadata.sessionId,
               }),
               EventBusName: typedResource.AgentBus.name,
