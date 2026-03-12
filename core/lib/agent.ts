@@ -375,6 +375,7 @@ export class Agent {
     }
 
     const shouldReflect =
+      !isIsolated &&
       reflectionFrequency > 0 &&
       (history.length % reflectionFrequency === 0 ||
         userText.toLowerCase().includes('remember') ||

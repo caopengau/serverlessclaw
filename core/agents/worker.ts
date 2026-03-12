@@ -45,15 +45,18 @@ export const handler = async (
 
   // Safety list of system events that the Worker should NEVER try to process as an agent
   const systemEvents = [
-    'continuation',
-    'task_completed',
-    'task_failed',
-    'outbound_message',
-    'system_build_failed',
-    'system_build_success',
+    EventType.CONTINUATION_TASK,
+    EventType.TASK_COMPLETED,
+    EventType.TASK_FAILED,
+    EventType.OUTBOUND_MESSAGE,
+    EventType.SYSTEM_BUILD_FAILED,
+    EventType.SYSTEM_BUILD_SUCCESS,
+    EventType.CODER_TASK_COMPLETED,
+    EventType.MONITOR_BUILD,
+    EventType.RECOVERY_LOG,
   ];
 
-  if (!agentId || systemEvents.includes(agentId)) {
+  if (!agentId || systemEvents.includes(agentId as any)) {
     logger.info('Skipping system event in Worker Agent:', agentId);
     return;
   }
