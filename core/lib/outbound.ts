@@ -1,7 +1,6 @@
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { Resource } from 'sst';
-import { SSTResource } from './types/index';
-import { EventType } from './types/index';
+import { SSTResource, EventType } from './types/index';
 import { logger } from './logger';
 
 const eventbridge = new EventBridgeClient({});
