@@ -1,6 +1,5 @@
 import { realtime } from 'sst/aws/realtime';
 import { Resource } from 'sst';
-import { EventType } from '../lib/types/agent';
 
 /**
  * Bridges AgentBus (EventBridge) to RealtimeBus (IoT Core).
@@ -8,10 +7,10 @@ import { EventType } from '../lib/types/agent';
  */
 export const handler = async (event: any) => {
   console.log('[RealtimeBridge] Received event:', event['detail-type']);
-  
+
   const userId = event.detail.userId || 'dashboard-user';
   const topic = `users/${userId}/signal`;
-  
+
   try {
     await (realtime as any).publish((Resource as any).RealtimeBus, {
       topic,
