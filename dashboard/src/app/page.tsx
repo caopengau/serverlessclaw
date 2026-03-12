@@ -5,7 +5,6 @@ import { Send, User, Bot, Loader2, MessageSquare, Terminal, Plus, Clock, Chevron
 import { THEME } from '@/lib/theme';
 // @ts-ignore
 import { realtime } from 'sst/realtime/client';
-import { Resource } from 'sst';
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -38,25 +37,38 @@ export default function ChatPage() {
   useEffect(() => {
     const userId = 'dashboard-user';
     const topic = `users/${userId}/signal`;
+    let client: any;
 
-    console.log('[Realtime] Connecting to:', (Resource as any).RealtimeBus.url);
-    
-    const client = realtime.connect((Resource as any).RealtimeBus.url);
-    
-    client.on('connected', () => {
-      console.log('[Realtime] Connected to push bus');
-      setIsRealtimeActive(true);
-    });
+    const connect = async () => {
+      try {
+        const res = await fetch('/api/config');
+        const config = await res.json();
+        
+        if (!config.realtime?.url) return;
 
-    client.subscribe(topic, (message: any) => {
-      console.log('[Realtime] Received signal:', message);
-      if (activeSessionId) {
-        fetchHistorySilently(activeSessionId);
+        console.log('[Realtime] Connecting...');
+        client = realtime.connect(config.realtime.url);
+        
+        client.on('connected', () => {
+          console.log('[Realtime] Connected to push bus');
+          setIsRealtimeActive(true);
+        });
+
+        client.subscribe(topic, (message: any) => {
+          console.log('[Realtime] Received signal:', message);
+          if (activeSessionId) {
+            fetchHistorySilently(activeSessionId);
+          }
+        });
+      } catch (e) {
+        console.error('[Realtime] Setup failed:', e);
       }
-    });
+    };
+
+    connect();
 
     return () => {
-      client.disconnect();
+      if (client) client.disconnect();
     };
   }, [activeSessionId]);
 
