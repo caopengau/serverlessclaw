@@ -234,13 +234,13 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
     // 1. Discover Infrastructure from SST Resource
     const resourceMap = Resource as unknown as Record<string, unknown>;
-    const infraMap: Record<string, string> = {
-      AgentBus: 'bus',
-      ConfigTable: 'config',
-      MemoryTable: 'memory',
-      TraceTable: 'trace',
-      StagingBucket: 'storage',
-      Deployer: 'codebuild',
+    const infraMap: Record<string, { id: string; type: string; label: string; iconType?: string }> = {
+      AgentBus: { id: 'bus', type: 'bus', label: 'EventBridge AgentBus' },
+      ConfigTable: { id: 'config', type: 'infra', label: 'DynamoDB Config', iconType: 'Database' },
+      MemoryTable: { id: 'memory', type: 'infra', label: 'DynamoDB Memory', iconType: 'Database' },
+      TraceTable: { id: 'trace', type: 'infra', label: 'DynamoDB Trace', iconType: 'Database' },
+      StagingBucket: { id: 'storage', type: 'infra', label: 'Staging Bucket', iconType: 'Database' },
+      Deployer: { id: 'codebuild', type: 'infra', label: 'AWS CodeBuild', iconType: 'Terminal' },
     };
 
     // Special hardcoded nodes that always exist
@@ -251,14 +251,33 @@ export async function discoverSystemTopology(): Promise<Topology> {
       description: 'Next.js management console for monitoring and evolving the system.',
     });
 
+    nodes.push({
+      id: 'api',
+      type: 'infra',
+      label: 'System API',
+      iconType: 'Radio',
+      description: 'Unified entry point for webhooks and dashboard interactions.',
+    });
+
+    nodes.push({
+      id: 'monitor',
+      type: 'infra',
+      label: 'Build Monitor',
+      iconType: 'Activity',
+      description: 'Logic-based handler that watches for deployment signals and triggers rollbacks.',
+    });
+
     Object.keys(infraMap).forEach((resKey) => {
-      if (resourceMap[resKey]) {
-        const id = infraMap[resKey];
+      // Allow partial match for Resource keys (e.g. MemoryTableTable vs MemoryTable)
+      const actualKey = Object.keys(resourceMap).find(k => k === resKey || k.startsWith(`${resKey}Table`) || k.startsWith(resKey));
+      
+      if (actualKey || resKey === 'Deployer') { // Deployer is often just an ARN in context, handle as fallback
+        const cfg = infraMap[resKey];
         nodes.push({
-          id,
-          type: 'infra',
-          label: resKey.replace(/([A-Z])/g, ' $1').trim(),
-          iconType: resKey === 'Deployer' ? 'Terminal' : 'Database',
+          id: cfg.id,
+          type: cfg.type as any,
+          label: cfg.label,
+          iconType: cfg.iconType,
           description: `AWS Resource: ${resKey}`,
         });
       }
@@ -266,7 +285,15 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
     // 2. Discover Agents from Registry
     const { AgentRegistry } = await import('../lib/registry');
-    const agents = await AgentRegistry.getAllConfigs();
+    let agents: Record<string, any> = {};
+    try {
+      agents = await AgentRegistry.getAllConfigs();
+    } catch (e) {
+      logger.error('Failed to load agents for topology, falling back to backbone.', e);
+      const { BACKBONE_REGISTRY } = await import('../lib/backbone');
+      agents = BACKBONE_REGISTRY;
+    }
+
     Object.values(agents).forEach((agent) => {
       nodes.push({
         id: agent.id,
@@ -280,7 +307,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
       // 3. Generate Edges based on connectionProfile
       if (agent.connectionProfile && agent.enabled) {
-        agent.connectionProfile.forEach((targetId) => {
+        agent.connectionProfile.forEach((targetId: string) => {
           // Map common resource aliases to node IDs (Backward compatibility)
           let actualTarget = targetId;
           if (targetId === 'memoryTable') actualTarget = 'memory';
@@ -288,23 +315,110 @@ export async function discoverSystemTopology(): Promise<Topology> {
           if (targetId === 'stagingBucket') actualTarget = 'storage';
           if (targetId === 'deployer') actualTarget = 'codebuild';
 
-          edges.push({
-            id: `${agent.id}-${actualTarget}`,
-            source: agent.id,
-            target: actualTarget,
-          });
+          // Special logic for Bus: 
+          // SuperClaw (main) -> Bus [ORCHESTRATE]
+          // Bus -> Sub-Agents [SIGNAL]
+          // Sub-Agents -> Bus [RESULT/EMIT]
+          if (actualTarget === 'bus' || actualTarget === 'AgentBus') {
+            if (agent.id === 'main') {
+              edges.push({
+                id: `${agent.id}-bus`,
+                source: agent.id,
+                target: 'bus',
+                label: 'ORCHESTRATE',
+              });
+            } else {
+              // Bi-directional for sub-agents
+              edges.push({
+                id: `bus-${agent.id}`,
+                source: 'bus',
+                target: agent.id,
+                label: 'SIGNAL',
+              });
+              edges.push({
+                id: `${agent.id}-bus`,
+                source: agent.id,
+                target: 'bus',
+                label: 'RESULT',
+              });
+            }
+          } else {
+            edges.push({
+              id: `${agent.id}-${actualTarget}`,
+              source: agent.id,
+              target: actualTarget,
+            });
+          }
         });
       }
 
       // Every agent connects to the bus by default if not specified
-      if (!agent.connectionProfile?.includes('bus') && agent.id !== 'main' && agent.enabled) {
+      const hasBusConnection = agent.connectionProfile?.some((t: string) => t === 'bus' || t === 'AgentBus');
+      if (!hasBusConnection && agent.id !== 'main' && agent.enabled) {
         edges.push({
           id: `bus-${agent.id}`,
           source: 'bus',
           target: agent.id,
+          label: 'SIGNAL',
+        });
+        edges.push({
+          id: `${agent.id}-bus`,
+          source: agent.id,
+          target: 'bus',
+          label: 'RESULT',
         });
       }
     });
+
+    // 3. Add Infrastructure Inflow Edges
+    if (nodes.find(n => n.id === 'codebuild') && nodes.find(n => n.id === 'bus')) {
+      edges.push({
+        id: 'codebuild-bus',
+        source: 'codebuild',
+        target: 'bus',
+        label: 'SIGNAL_BUILD',
+      });
+    }
+
+    if (nodes.find(n => n.id === 'monitor') && nodes.find(n => n.id === 'bus')) {
+        edges.push({
+          id: 'monitor-bus',
+          source: 'monitor',
+          target: 'bus',
+          label: 'SIGNAL_FAILURE',
+        });
+    }
+
+    if (nodes.find(n => n.id === 'dashboard') && nodes.find(n => n.id === 'api')) {
+      edges.push({
+        id: 'dashboard-api',
+        source: 'dashboard',
+        target: 'api',
+      });
+    }
+
+    if (nodes.find(n => n.id === 'api') && nodes.find(n => n.id === 'main')) {
+      edges.push({
+        id: 'api-main',
+        source: 'api',
+        target: 'main',
+        label: 'INVOKE',
+      });
+    }
+
+    if (nodes.find(n => n.id === 'api')) {
+      // API links to core infra for webhooks
+      ['memory', 'config', 'storage', 'bus'].forEach(target => {
+        if (nodes.find(n => n.id === target)) {
+          edges.push({
+            id: `api-${target}`,
+            source: 'api',
+            target: target,
+            label: target === 'bus' ? 'SIGNAL' : undefined,
+          });
+        }
+      });
+    }
 
     return { nodes, edges };
   } catch (e) {

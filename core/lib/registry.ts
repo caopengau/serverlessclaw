@@ -125,6 +125,11 @@ export class AgentRegistry {
    * @returns A promise that resolves to the value associated with the key, or undefined.
    */
   public static async getRawConfig(key: string): Promise<unknown> {
+    if (!typedResource.ConfigTable?.name) {
+      logger.warn(`ConfigTable not linked. Skipping fetch for ${key}`);
+      return undefined;
+    }
+
     try {
       const { Item } = await docClient.send(
         new GetCommand({
@@ -141,20 +146,53 @@ export class AgentRegistry {
 
   /**
    * Saves or updates an agent configuration in the ConfigTable.
+   * Also triggers a topology refresh to ensure the Pulse map is updated.
    *
    * @param id - The unique ID of the agent.
    * @param config - The configuration object to save.
    * @returns A promise that resolves when the configuration is saved.
    */
   static async saveConfig(id: string, config: IAgentConfig): Promise<void> {
-    const all = ((await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<string, unknown>) || {};
-    all[id] = config;
+    if (!typedResource.ConfigTable?.name) {
+      logger.warn(`ConfigTable not linked. Skipping save for ${id}`);
+      return;
+    }
 
+    // Basic Validation
+    if (!config.name || !config.systemPrompt) {
+      throw new Error('Invalid agent configuration: name and systemPrompt are required.');
+    }
+
+    // Use atomic UpdateCommand to prevent race conditions during concurrent agent saves
+    const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
     await docClient.send(
-      new PutCommand({
+      new UpdateCommand({
         TableName: typedResource.ConfigTable.name,
-        Item: { key: DYNAMO_KEYS.AGENTS_CONFIG, value: all },
+        Key: { key: DYNAMO_KEYS.AGENTS_CONFIG },
+        UpdateExpression: 'SET #agents.#id = :config',
+        ExpressionAttributeNames: {
+          '#agents': 'value',
+          '#id': id,
+        },
+        ExpressionAttributeValues: {
+          ':config': config,
+        },
       })
     );
+
+    // Trigger Topology Discovery Refresh
+    try {
+      const { discoverSystemTopology } = await import('../handlers/monitor');
+      const topology = await discoverSystemTopology();
+      await docClient.send(
+        new PutCommand({
+          TableName: typedResource.ConfigTable.name,
+          Item: { key: DYNAMO_KEYS.SYSTEM_TOPOLOGY, value: topology },
+        })
+      );
+      logger.info('Topology auto-refreshed after agent save.');
+    } catch (e) {
+      logger.error('Failed to auto-refresh topology:', e);
+    }
   }
 }

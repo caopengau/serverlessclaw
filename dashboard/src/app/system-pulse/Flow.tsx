@@ -158,22 +158,29 @@ export function FlowContent() {
         
         // Logical clustering for core resources
         if (node.id === 'bus') { xPos = 400; yPos = 150; }
-        else if (node.id === 'memory') { xPos = 700; yPos = 550; }
-        else if (node.id === 'codebuild') { xPos = 400; yPos = 550; }
-        else if (node.id === 'storage') { xPos = 100; yPos = 550; }
-        else if (node.id === 'api') { xPos = 100; yPos = 150; }
-        else if (node.id === 'dashboard') { xPos = 700; yPos = 150; }
-        else if (node.id === 'main') { xPos = 425; yPos = -50; }
+        else if (node.id === 'memory') { xPos = 700; yPos = 700; }
+        else if (node.id === 'codebuild') { xPos = 400; yPos = 700; }
+        else if (node.id === 'storage') { xPos = 100; yPos = 700; }
+        else if (node.id === 'config') { xPos = 900; yPos = 700; }
+        else if (node.id === 'trace') { xPos = -200; yPos = 700; }
+        else if (node.id === 'api') { xPos = 100; yPos = -100; }
+        else if (node.id === 'dashboard') { xPos = -200; yPos = -100; }
+        else if (node.id === 'main') { xPos = 400; yPos = -100; }
+        else if (node.id === 'monitor') { xPos = -200; yPos = 400; }
         else if (node.type === 'agent') {
-            const agentIndex = topology.nodes.filter(n => n.type === 'agent' && n.id !== 'main').indexOf(node);
-            xPos = 100 + (agentIndex * 220);
-            yPos = 300;
+            const agentsList = topology.nodes.filter(n => n.type === 'agent' && n.id !== 'main');
+            const agentIndex = agentsList.indexOf(node);
+            const totalAgents = agentsList.length;
+            const startX = 400 - ((totalAgents - 1) * 125);
+            xPos = startX + (agentIndex * 250);
+            yPos = 400;
         }
 
         let icon = <Database size={16} />;
         if (node.iconType === 'Terminal' || node.id === 'codebuild') icon = <Terminal size={16} />;
         else if (node.iconType === 'Dashboard' || node.id === 'dashboard') icon = <LayoutDashboard size={16} />;
-        else if (node.iconType === 'Radio' || node.id === 'api') icon = <Radio size={16} />;
+        else if (node.id === 'api') icon = <Radio size={16} />;
+        else if (node.id === 'monitor') icon = <Activity size={16} />;
         else if (node.type === 'agent') icon = getAgentIcon(node.id, node.icon);
 
         newNodes.push({
@@ -192,26 +199,34 @@ export function FlowContent() {
 
       // 2. Process Edges
       topology.edges.forEach((edge: any) => {
-        const isMainOrch = edge.source === 'main' && edge.target === 'bus';
-        const isBusSignal = edge.source === 'bus';
+        const isMainOrch = edge.label === 'ORCHESTRATE' || (edge.source === 'main' && edge.target === 'bus');
+        const isBusSignal = edge.label === 'SIGNAL' || edge.label?.startsWith('SIGNAL_') || edge.source === 'bus';
+        const isResult = edge.label === 'RESULT';
+        const isInvoke = edge.label === 'INVOKE';
         
+        let strokeColor = '#00f3ff'; // Cyber blue (Default)
+        if (isMainOrch) strokeColor = '#00ffa3'; // Neon green
+        if (isBusSignal) strokeColor = '#f97316'; // Vivid orange
+        if (isResult) strokeColor = '#00d4ff'; // Sky blue
+        if (isInvoke) strokeColor = '#ffcf00'; // Yellow
+
         newEdges.push({
           id: edge.id,
           source: edge.source,
           target: edge.target,
           animated: true,
-          label: isMainOrch ? 'ORCHESTRATE' : (isBusSignal ? 'SIGNAL' : undefined),
-          labelStyle: { fill: isMainOrch ? '#00ffa3' : (isBusSignal ? '#f97316' : '#00f3ff'), fontSize: isMainOrch ? 10 : 8, fontWeight: 'bold' },
+          label: edge.label || (isMainOrch ? 'ORCHESTRATE' : (isBusSignal ? 'SIGNAL' : undefined)),
+          labelStyle: { fill: strokeColor, fontSize: isMainOrch ? 10 : 8, fontWeight: 'bold' },
           labelBgStyle: { fill: 'transparent', strokeWidth: 0 },
           style: { 
-            stroke: isMainOrch ? '#00ffa3' : (isBusSignal ? '#f97316' : '#00f3ff'), 
-            strokeWidth: isMainOrch ? 2 : 1,
-            opacity: (isMainOrch || isBusSignal) ? 1 : 0.4,
-            strokeDasharray: (isMainOrch || isBusSignal) ? undefined : '5,5'
+            stroke: strokeColor, 
+            strokeWidth: isMainOrch ? 2 : (isBusSignal ? 1.5 : 1),
+            opacity: (isMainOrch || isBusSignal || isResult || isInvoke) ? 1 : 0.4,
+            strokeDasharray: (isMainOrch || isBusSignal || isResult || isInvoke) ? undefined : '5,5'
           },
           markerEnd: { 
             type: MarkerType.ArrowClosed, 
-            color: isMainOrch ? '#00ffa3' : (isBusSignal ? '#f97316' : '#00f3ff') 
+            color: strokeColor 
           }
         });
       });
@@ -226,6 +241,12 @@ export function FlowContent() {
   }, [setNodes, setEdges]);
 
   useEffect(() => { fetchBlueprint(); }, [fetchBlueprint]);
+
+  const handleReset = useCallback(async () => {
+    setLoading(true);
+    await fetchBlueprint();
+    setTimeout(() => fitView(), 100);
+  }, [fetchBlueprint, fitView]);
 
   return (
     <div className="h-full w-full bg-[#050505] rounded-lg border border-white/5 relative overflow-hidden">
@@ -268,9 +289,9 @@ export function FlowContent() {
                   <Minus size={18} className="group-active:scale-90 transition-transform" />
               </button>
               <button 
-                onClick={() => fitView()}
+                onClick={handleReset}
                 className={`p-3 text-white/60 hover:text-${THEME.COLORS.PRIMARY} hover:bg-white/5 transition-all group pointer-events-auto`}
-                title="Fit View"
+                title="Reset View & Layout"
               >
                   <Maximize size={18} className="group-active:scale-90 transition-transform" />
               </button>

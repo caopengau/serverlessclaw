@@ -78,6 +78,10 @@ export interface TopologyEdge {
   source: string;
   /** ID of the target node. */
   target: string;
+  /** Optional semantic label for the connection. */
+  label?: string;
+  /** Optional category of the connection (e.g., 'event', 'data'). */
+  type?: string;
 }
 
 /**

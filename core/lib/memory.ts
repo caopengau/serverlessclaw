@@ -61,6 +61,7 @@ export class DynamoMemory implements IMemory {
    * @param message - The message object to be stored
    */
   async addMessage(userId: string, message: Message): Promise<void> {
+    console.log(`[DynamoMemory] Adding message for userId: ${userId}`);
     const command = new PutCommand({
       TableName: this.tableName,
       Item: {
@@ -492,8 +493,10 @@ export class DynamoMemory implements IMemory {
       },
     });
 
+    console.log(`[DynamoMemory] Saving session meta for ${sessionId} under userId: SESSIONS#${userId}`);
     try {
       await docClient.send(command);
+      console.log(`[DynamoMemory] Successfully saved session meta for ${sessionId}`);
     } catch (error) {
       logger.error('Error saving conversation meta to DynamoDB:', error);
     }

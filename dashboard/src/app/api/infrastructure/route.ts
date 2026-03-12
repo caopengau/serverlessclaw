@@ -27,35 +27,31 @@ export async function GET(): Promise<NextResponse> {
   try {
     // 1. Try to load full system topology from DynamoDB (persisted by Build Monitor)
     const topology = await AgentRegistry.getFullTopology();
+    
+    // 2. Perform Live Discovery to get latest state
+    console.log('Performing live topology discovery...');
+    const liveTopology = await discoverSystemTopology();
+
+    // 3. Merge Strategies
+    if (liveTopology && liveTopology.nodes.length > 0) {
+      // If we have live data, it's generally preferred over persisted data for dev/local
+      // but we might want to merge if persisted has something live is missing
+      return NextResponse.json(liveTopology);
+    }
+
     if (topology && topology.nodes.length > 0) {
       return NextResponse.json(topology);
     }
 
-    // 2. Fallback: Live Discovery (Crucial for Local Dev)
-    console.log('No persisted topology found. Performing live discovery...');
-    const liveTopology = await discoverSystemTopology();
-    if (liveTopology && liveTopology.nodes.length > 0) {
-      return NextResponse.json(liveTopology);
-    }
-
-    // 3. Last Resort Fallback (Should rarely be hit now)
-    const dynamicInfra = await AgentRegistry.getInfraConfig();
-    if (dynamicInfra && dynamicInfra.length > 0) {
-      return NextResponse.json({ nodes: dynamicInfra, edges: [] });
-    }
-
-    // 4. Static Fallback for initial deployment
-    const infraNodes = [];
+    // 4. Static Fallback for initial deployment or broken environments
+    const infraNodes: any[] = [];
     if (Resource.AgentBus) {
       infraNodes.push({ id: INFRA_IDS.BUS, type: 'bus', label: INFRA_LABELS.BUS });
     }
     if (Resource.MemoryTable) {
       infraNodes.push({ id: INFRA_IDS.MEMORY, type: 'infra', label: INFRA_LABELS.MEMORY });
     }
-    infraNodes.push({ id: INFRA_IDS.CODEBUILD, type: 'infra', label: INFRA_LABELS.CODEBUILD });
-    if (Resource.StagingBucket) {
-      infraNodes.push({ id: INFRA_IDS.STORAGE, type: 'infra', label: INFRA_LABELS.STORAGE });
-    }
+    infraNodes.push({ id: INFRA_IDS.CODEBUILD, type: 'infra', label: INFRA_LABELS.CODEBUILD, description: 'AWS CodeBuild Service' });
 
     return NextResponse.json({ nodes: infraNodes, edges: [] });
   } catch (error) {

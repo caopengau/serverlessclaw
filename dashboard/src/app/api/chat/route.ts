@@ -21,6 +21,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: UI_STRINGS.MISSING_MESSAGE }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
+    console.log(`[Chat API] POST request - text: ${text.substring(0, 20)}..., sessionId: ${sessionId}`);
+    console.log(`[Chat API] Using storageId: ${storageId}`);
+
     const memory = new DynamoMemory();
     const provider = new ProviderManager();
     const agentTools = await getAgentTools('main');
@@ -62,6 +65,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     } else {
       // Return list of sessions
       const sessions = await memory.listConversations(userId);
+      console.log(`[Chat API] Returning ${sessions.length} sessions to frontend`);
       return NextResponse.json({ sessions });
     }
   } catch (error) {
