@@ -29,8 +29,8 @@ describe('fs tools', () => {
 
   describe('fileWrite', () => {
     it('should write content to a file', async () => {
-      (fs.writeFile as any).mockResolvedValue(undefined);
-      (fs.mkdir as any).mockResolvedValue(undefined);
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
 
       const result = await fileWrite.execute({ filePath: 'test.txt', content: 'hello' });
 
@@ -47,7 +47,8 @@ describe('fs tools', () => {
 
   describe('fileRead', () => {
     it('should read content from a file', async () => {
-      (fs.readFile as any).mockResolvedValue('file content');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(fs.readFile).mockResolvedValue('file content' as any);
 
       const result = await fileRead.execute({ filePath: 'test.txt' });
 
@@ -58,7 +59,8 @@ describe('fs tools', () => {
 
   describe('listFiles', () => {
     it('should list files in a directory', async () => {
-      (fs.readdir as any).mockResolvedValue(['file1.ts', 'file2.ts']);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      vi.mocked(fs.readdir).mockResolvedValue(['file1.ts', 'file2.ts'] as any);
 
       const result = await listFiles.execute({ dirPath: 'src' });
 

@@ -47,8 +47,8 @@ export const tools: Record<string, ITool> = {
       const { provider, model } = args as { provider: string; model: string };
       try {
         const { AgentRegistry } = await import('../lib/registry');
-        await AgentRegistry.saveConfig('active_provider', provider as any);
-        await AgentRegistry.saveConfig('active_model', model as any);
+        await AgentRegistry.saveRawConfig('active_provider', provider);
+        await AgentRegistry.saveRawConfig('active_model', model);
         return `Successfully switched to ${provider} with model ${model}. Hot config applied.`;
       } catch (error) {
         return `Failed to switch model: ${error instanceof Error ? error.message : String(error)}`;

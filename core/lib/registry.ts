@@ -148,6 +148,32 @@ export class AgentRegistry {
   }
 
   /**
+   * Saves a raw configuration value to the ConfigTable.
+   *
+   * @param key - The key to save in the ConfigTable.
+   * @param value - The value to associate with the key.
+   * @returns A promise that resolves when the configuration is saved.
+   */
+  public static async saveRawConfig(key: string, value: unknown): Promise<void> {
+    if (!typedResource.ConfigTable?.name) {
+      logger.warn(`ConfigTable not linked. Skipping save for ${key}`);
+      return;
+    }
+
+    try {
+      await docClient.send(
+        new PutCommand({
+          TableName: typedResource.ConfigTable.name,
+          Item: { key, value },
+        })
+      );
+    } catch (e) {
+      logger.error(`Failed to save ${key} to DDB:`, e);
+      throw e;
+    }
+  }
+
+  /**
    * Saves or updates an agent configuration in the ConfigTable.
    * Also triggers a topology refresh to ensure the Pulse map is updated.
    *

@@ -34,7 +34,7 @@ describe('system tools', () => {
 
   describe('triggerDeployment', () => {
     it('should trigger deployment if limit not reached', async () => {
-      (getDeployCountToday as any).mockResolvedValue(5);
+      vi.mocked(getDeployCountToday).mockResolvedValue(5);
       ddbMock.on(GetCommand).resolves({ Item: { value: 10 } }); // limit
       codebuildMock.on(StartBuildCommand).resolves({ build: { id: 'build-123' } });
       ddbMock.on(PutCommand).resolves({});
@@ -47,7 +47,7 @@ describe('system tools', () => {
     });
 
     it('should reject if limit reached', async () => {
-      (getDeployCountToday as any).mockResolvedValue(10);
+      vi.mocked(getDeployCountToday).mockResolvedValue(10);
       ddbMock.on(GetCommand).resolves({ Item: { value: 10 } }); // limit
 
       const result = await triggerDeployment.execute({ reason: 'test', userId: 'user-1' });

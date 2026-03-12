@@ -159,9 +159,17 @@ export class BedrockProvider implements IProvider {
     if (response.output?.message) {
       const msg = response.output.message;
 
-      const reasoning = (msg.content as any[])
-        ?.filter((c) => !!c.reasoningContent)
-        .map((c) => c.reasoningContent?.reasoningText?.text || '')
+      interface ReasoningBlock {
+        reasoningContent?: {
+          reasoningText?: {
+            text?: string;
+          };
+        };
+      }
+
+      const reasoning = (msg.content as (ContentBlock | ReasoningBlock)[])
+        ?.filter((c) => !!(c as ReasoningBlock).reasoningContent)
+        .map((c) => (c as ReasoningBlock).reasoningContent?.reasoningText?.text || '')
         .join('\n\n');
 
       if (reasoning) {

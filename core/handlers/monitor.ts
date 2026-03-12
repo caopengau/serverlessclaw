@@ -17,6 +17,7 @@ import {
   TopologyNode,
   TopologyEdge,
   Topology,
+  IAgentConfig,
 } from '../lib/types/index';
 import { DynamoMemory } from '../lib/memory';
 
@@ -295,7 +296,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
         const cfg = infraMap[resKey];
         nodes.push({
           id: cfg.id,
-          type: cfg.type as any,
+          type: cfg.type as 'infra',
           label: cfg.label,
           iconType: cfg.iconType,
           description: `AWS Resource: ${resKey}`,
@@ -305,13 +306,13 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
     // 2. Discover Agents from Registry
     const { AgentRegistry } = await import('../lib/registry');
-    let agents: Record<string, any> = {};
+    let agents: Record<string, IAgentConfig> = {};
     try {
-      agents = await AgentRegistry.getAllConfigs();
+      agents = (await AgentRegistry.getAllConfigs()) as Record<string, IAgentConfig>;
     } catch (e) {
       logger.error('Failed to load agents for topology, falling back to backbone.', e);
       const { BACKBONE_REGISTRY } = await import('../lib/backbone');
-      agents = BACKBONE_REGISTRY;
+      agents = BACKBONE_REGISTRY as Record<string, IAgentConfig>;
     }
 
     Object.values(agents).forEach((agent) => {

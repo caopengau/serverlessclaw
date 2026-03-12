@@ -95,7 +95,7 @@ export class OpenAIProvider implements IProvider {
           ];
         }
 
-        const items: any[] = [];
+        const items: Array<Record<string, unknown>> = [];
 
         // 1. Add text content if present
         if (m.content) {
@@ -128,7 +128,8 @@ export class OpenAIProvider implements IProvider {
 
       const response = (await client.responses.create({
         model: activeModel as OpenAI.ResponsesModel,
-        input: responsesInput,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        input: responsesInput as any,
         reasoning: { effort: reasoningEffort },
         ...(hasTools
           ? {

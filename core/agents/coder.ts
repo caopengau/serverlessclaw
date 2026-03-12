@@ -9,6 +9,8 @@ import { Resource } from 'sst';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { Context } from 'aws-lambda';
+import { ReasoningProfile, GapStatus } from '../lib/types/index';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
@@ -27,27 +29,36 @@ Key Obligations:
 6. **Clarity**: Explain your technical decisions and follow the project's architecture as defined in 'ARCHITECTURE.md'.
 `;
 
-import { ReasoningProfile, GapStatus } from '../lib/types/index';
+interface CoderPayload {
+  userId: string;
+  task: string;
+  metadata?: { gapIds?: string[] };
+  traceId?: string;
+  sessionId?: string;
+  isContinuation?: boolean;
+  initiatorId?: string;
+  depth?: number;
+}
+
+interface CoderEvent {
+  detail?: CoderPayload;
+  source?: string;
+}
 
 /**
  * Coder Agent handler. Processes coding tasks, implements changes,
  * and optionally triggers deployments or notifies QA.
  *
  * @param event - The EventBridge event.
+ * @param context - The AWS Lambda context.
  * @returns A promise that resolves to the agent's response string, or undefined on error.
  */
-export const handler = async (event: any): Promise<string | undefined> => {
+export const handler = async (event: CoderEvent, context: Context): Promise<string | undefined> => {
   logger.info('Coder Agent received task:', JSON.stringify(event, null, 2));
 
   // EventBridge wraps the payload in 'detail'
-  const payload = event.detail || event;
-  const { userId, task, metadata, traceId, sessionId } = payload as {
-    userId: string;
-    task: string;
-    metadata?: { gapIds?: string[] };
-    traceId?: string;
-    sessionId?: string;
-  };
+  const payload = event.detail || (event as unknown as CoderPayload);
+  const { userId, task, metadata, traceId, sessionId } = payload;
 
   if (!userId || !task) {
     logger.error('Invalid event payload');
@@ -76,7 +87,7 @@ export const handler = async (event: any): Promise<string | undefined> => {
   const response = await agent.process(userId, task, {
     profile: ReasoningProfile.THINKING,
     isIsolated: true,
-    context: (event as any).context,
+    context,
     isContinuation: !!payload.isContinuation,
     initiatorId: payload.initiatorId,
     depth: payload.depth,

@@ -8,6 +8,7 @@ import {
   GapStatus,
   EventType,
   TraceSource,
+  SSTResource,
 } from '../lib/types/index';
 import { getAgentTools } from '../tools/index';
 import { Resource } from 'sst';
@@ -16,11 +17,13 @@ import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { Context } from 'aws-lambda';
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const memory = new DynamoMemory();
 const providerManager = new ProviderManager();
 const eventbridge = new EventBridgeClient({});
+const typedResource = Resource as unknown as SSTResource;
 
 export const PLANNER_SYSTEM_PROMPT = `
 You are the Strategic Planner for Serverless Claw. Your role is to analyze capability gaps identified by the Reflector and design detailed architectural evolutions.
@@ -37,7 +40,7 @@ async function getEvolutionMode(): Promise<'auto' | 'hitl'> {
   try {
     const response = await db.send(
       new GetCommand({
-        TableName: (Resource as unknown as { ConfigTable: { name: string } }).ConfigTable.name,
+        TableName: typedResource.ConfigTable.name,
         Key: { key: 'evolution_mode' },
       })
     );
@@ -56,6 +59,22 @@ interface PlannerMetadata {
   confidence: number;
 }
 
+interface PlannerPayload {
+  gapId?: string;
+  details?: string;
+  contextUserId: string;
+  metadata?: PlannerMetadata;
+  isScheduledReview?: boolean;
+  traceId?: string;
+  initiatorId?: string;
+  depth?: number;
+  sessionId?: string;
+}
+
+interface PlannerEvent {
+  detail?: PlannerPayload;
+}
+
 interface PlannerResult {
   gapId?: string;
   plan?: string;
@@ -66,13 +85,14 @@ interface PlannerResult {
  * Planner Agent handler. Analyzes capability gaps and generates strategic plans.
  *
  * @param event - The event containing gap details or scheduling information.
+ * @param context - The AWS Lambda context.
  * @returns A promise that resolves to an object with gapId and the plan, or a status object.
  */
-export const handler = async (event: any): Promise<PlannerResult> => {
+export const handler = async (event: PlannerEvent, _context: Context): Promise<PlannerResult> => {
   logger.info('Planner Agent received task:', JSON.stringify(event, null, 2));
 
   // EventBridge wraps the payload in 'detail'
-  const payload = event.detail || event;
+  const payload = event.detail || (event as unknown as PlannerPayload);
   const {
     gapId,
     details,
@@ -83,17 +103,7 @@ export const handler = async (event: any): Promise<PlannerResult> => {
     initiatorId,
     depth,
     sessionId,
-  } = payload as {
-    gapId?: string;
-    details?: string;
-    contextUserId: string;
-    metadata?: PlannerMetadata;
-    isScheduledReview?: boolean;
-    traceId?: string;
-    initiatorId?: string;
-    depth?: number;
-    sessionId?: string;
-  };
+  } = payload;
 
   // 1. Fetch System Context
   const { AgentRegistry } = await import('../lib/registry');
@@ -233,7 +243,7 @@ export const handler = async (event: any): Promise<PlannerResult> => {
               depth: payload.depth,
               sessionId,
             }),
-            EventBusName: (Resource as any).AgentBus.name,
+            EventBusName: typedResource.AgentBus.name,
           },
         ],
       })

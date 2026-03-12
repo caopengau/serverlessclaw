@@ -125,8 +125,13 @@ export class ClawTracer {
           ConditionExpression: 'attribute_not_exists(traceId)',
         })
       );
-    } catch (e: any) {
-      if (e.name === 'ConditionalCheckFailedException') {
+    } catch (e: unknown) {
+      if (
+        e &&
+        typeof e === 'object' &&
+        'name' in e &&
+        e.name === 'ConditionalCheckFailedException'
+      ) {
         logger.info(`Trace ${this.traceId} already exists, skipping initialization.`);
       } else {
         throw e;

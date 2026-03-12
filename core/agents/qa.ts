@@ -14,6 +14,7 @@ import {
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
 import { AgentRegistry } from '../lib/registry';
+import { Context } from 'aws-lambda';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
@@ -29,16 +30,31 @@ Key Obligations:
 4. **Safety**: Do not approve changes that introduce obvious security risks or architectural regressions.
 `;
 
+interface QAPayload {
+  userId: string;
+  gapIds: string[];
+  response: string;
+  traceId?: string;
+  initiatorId?: string;
+  depth?: number;
+}
+
+interface QAEvent {
+  detail?: QAPayload;
+  source?: string;
+}
+
 /**
  * QA Agent handler. Triggered after a build success or coder task completion.
  *
  * @param event - The EventBridge event containing task and implementation details.
+ * @param context - The AWS Lambda context.
  * @returns A promise that resolves when the audit is complete.
  */
-export const handler = async (event: any): Promise<void> => {
+export const handler = async (event: QAEvent, _context: Context): Promise<void> => {
   logger.info('QA Agent received verification task:', JSON.stringify(event, null, 2));
 
-  const payload = event.detail || event;
+  const payload = event.detail || (event as unknown as QAPayload);
   const { userId, gapIds, response: implementationResponse, traceId } = payload;
 
   if (!userId || !gapIds || !Array.isArray(gapIds) || gapIds.length === 0) {

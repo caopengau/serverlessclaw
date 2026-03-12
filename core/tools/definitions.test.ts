@@ -6,20 +6,21 @@ describe('Tool Definitions Schema Integrity', () => {
 
   it('should not expose system-managed "userId" in LLM schemas', () => {
     for (const tool of tools) {
-      const properties = tool.parameters.properties;
+      const properties = tool.parameters.properties as Record<string, unknown> | undefined;
       if (properties) {
-        expect((properties as any).userId).toBeUndefined();
+        expect(properties.userId).toBeUndefined();
       }
     }
   });
 
   it('should ensure all required properties are defined in the schema', () => {
     for (const tool of tools) {
-      const { properties, required } = tool.parameters;
+      const properties = tool.parameters.properties as Record<string, unknown> | undefined;
+      const { required } = tool.parameters;
       if (required && properties) {
         for (const req of required) {
           expect(
-            (properties as any)[req],
+            properties[req],
             `Tool "${tool.name}" requires "${req}" but it is not defined in properties.`
           ).toBeDefined();
         }

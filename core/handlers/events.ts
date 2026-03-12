@@ -2,13 +2,15 @@ import { DynamoMemory } from '../lib/memory';
 import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers/index';
 import { getAgentTools } from '../tools/index';
-import { EventType, TraceSource } from '../lib/types/index';
+import { EventType, TraceSource, SSTResource } from '../lib/types/index';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
+import { Resource } from 'sst';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
+const typedResource = Resource as unknown as SSTResource;
 
 /**
  * Handles system-level events such as build successes or failures.
@@ -178,7 +180,6 @@ I am ready for further tasks or instructions.`;
         : initiatorId || 'main';
 
     const { EventBridgeClient, PutEventsCommand } = await import('@aws-sdk/client-eventbridge');
-    const { Resource } = await import('sst');
     const eb = new EventBridgeClient({});
 
     await eb.send(
@@ -201,7 +202,7 @@ I am ready for further tasks or instructions.`;
               depth: currentDepth,
               sessionId,
             }),
-            EventBusName: (Resource as any).AgentBus.name,
+            EventBusName: typedResource.AgentBus.name,
           },
         ],
       })

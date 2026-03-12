@@ -14,6 +14,7 @@ import {
 import { Resource } from 'sst';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { logger } from '../lib/logger';
+import { Context } from 'aws-lambda';
 
 const typedResource = Resource as unknown as SSTResource;
 
@@ -33,23 +34,36 @@ Key Obligations:
 6. **Output Format**: You MUST respond in valid JSON format as specified in your handler logic.
 `;
 
+interface ReflectorPayload {
+  userId: string;
+  conversation: Message[];
+  traceId?: string;
+  sessionId?: string;
+  initiatorId?: string;
+  depth?: number;
+}
+
+interface ReflectorEvent {
+  detail?: ReflectorPayload;
+  source?: string;
+}
+
 /**
  * Reflector Agent handler. Analyzes conversations to extract facts, lessons, and capability gaps.
  *
  * @param event - The event containing userId and the conversation history.
+ * @param context - The AWS Lambda context.
  * @returns A promise that resolves to the reflection report string, or undefined on error.
  */
-export const handler = async (event: any): Promise<string | undefined> => {
+export const handler = async (
+  event: ReflectorEvent,
+  _context: Context
+): Promise<string | undefined> => {
   logger.info('Reflector Agent received task:', JSON.stringify(event, null, 2));
 
   // EventBridge wraps the payload in 'detail'
-  const payload = event.detail || event;
-  const { userId, conversation, traceId, sessionId } = payload as {
-    userId: string;
-    conversation: Message[];
-    traceId?: string;
-    sessionId?: string;
-  };
+  const payload = event.detail || (event as unknown as ReflectorPayload);
+  const { userId, conversation, traceId, sessionId } = payload;
 
   if (!userId || !conversation) {
     logger.warn('Reflector received incomplete payload, skipping audit.', {
@@ -243,8 +257,8 @@ export const handler = async (event: any): Promise<string | undefined> => {
               task: 'Session Reflection',
               response: response || 'No insights extracted.',
               traceId,
-              initiatorId: (event.detail as any).initiatorId,
-              depth: (event.detail as any).depth,
+              initiatorId: payload.initiatorId,
+              depth: payload.depth,
               sessionId,
             }),
             EventBusName: typedResource.AgentBus.name,

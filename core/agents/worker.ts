@@ -7,21 +7,16 @@ import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { Resource } from 'sst';
-import { EventType, TraceSource } from '../lib/types/index';
+import { EventType, TraceSource, TaskEvent, SSTResource } from '../lib/types/index';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
 const eventbridge = new EventBridgeClient({});
+const typedResource = Resource as unknown as SSTResource;
 
 interface WorkerEvent {
   'detail-type': string;
-  detail: {
-    userId: string;
-    task: string;
-    isContinuation?: boolean;
-    traceId?: string;
-    sessionId?: string;
-  };
+  detail: TaskEvent;
 }
 
 /**
@@ -54,7 +49,7 @@ export const handler = async (
     EventType.RECOVERY_LOG,
   ];
 
-  if (!detailType || systemEvents.includes(detailType as any)) {
+  if (!detailType || (systemEvents as string[]).includes(detailType)) {
     logger.info('Skipping system event in Worker Agent:', detailType);
     return;
   }
@@ -89,8 +84,8 @@ export const handler = async (
     context,
     isContinuation: !!isContinuation,
     isIsolated: true,
-    initiatorId: (event.detail as any).initiatorId,
-    depth: (event.detail as any).depth,
+    initiatorId: event.detail.initiatorId,
+    depth: event.detail.depth,
     traceId: traceId,
     sessionId,
     source: TraceSource.SYSTEM,
@@ -114,10 +109,10 @@ export const handler = async (
                 response,
                 traceId,
                 sessionId,
-                initiatorId: (event.detail as any).initiatorId,
-                depth: (event.detail as any).depth,
+                initiatorId: event.detail.initiatorId,
+                depth: event.detail.depth,
               }),
-              EventBusName: (Resource as any).AgentBus.name,
+              EventBusName: typedResource.AgentBus.name,
             },
           ],
         })

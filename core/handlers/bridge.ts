@@ -1,12 +1,27 @@
 import { IoTDataPlaneClient, PublishCommand } from '@aws-sdk/client-iot-data-plane';
+import { Context } from 'aws-lambda';
 
 const iot = new IoTDataPlaneClient({});
+
+interface BridgePayload {
+  userId?: string;
+  sessionId?: string;
+  [key: string]: unknown;
+}
+
+interface BridgeEvent {
+  'detail-type': string;
+  detail: BridgePayload;
+}
 
 /**
  * Bridges AgentBus (EventBridge) to RealtimeBus (IoT Core).
  * This allows the dashboard to receive background updates in real-time.
+ *
+ * @param event - The EventBridge event.
+ * @param context - The AWS Lambda context.
  */
-export const handler = async (event: any) => {
+export const handler = async (event: BridgeEvent, _context: Context) => {
   console.log('[RealtimeBridge] Received event:', event['detail-type']);
 
   const detail = event.detail || {};

@@ -6,6 +6,7 @@ export interface BaseEvent {
   traceId?: string;
   initiatorId?: string; // The agent ID that started this task
   depth?: number; // To prevent infinite loops
+  sessionId?: string;
 }
 
 /**
