@@ -7,7 +7,7 @@ import { SharedContext, getValidSecrets } from './shared';
  * @returns An object containing the created dashboard resource.
  */
 export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs } {
-  const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer, api } = ctx;
+  const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer, api, realtime } = ctx;
 
   const validSecrets = getValidSecrets(secrets);
 
@@ -22,6 +22,7 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
       bus,
       deployer,
       api!,
+      realtime!,
     ],
   });
 
