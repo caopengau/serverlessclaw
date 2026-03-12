@@ -26,11 +26,18 @@ export function createAgents(ctx: SharedContext): {
   const validSecrets = getValidSecrets(secrets);
   const liveInLocalOnly = $app.stage === 'local' ? undefined : false;
 
+  /**
+   * BASE RESOURCE POLICY:
+   * All autonomous agents require access to the Bus, Memory, and Tracing for baseline coordination.
+   * New agents should inherit this baseLink array.
+   */
+  const baseLink = [bus, memoryTable, traceTable, configTable, ...validSecrets];
+
   // 1. Coder Agent
   const coderAgent = new sst.aws.Function('CoderAgent', {
     handler: 'core/agents/coder.handler',
     dev: liveInLocalOnly,
-    link: [memoryTable, traceTable, configTable, stagingBucket, bus, ...validSecrets],
+    link: [...baseLink, stagingBucket],
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
   });
@@ -42,7 +49,7 @@ export function createAgents(ctx: SharedContext): {
   const buildMonitor = new sst.aws.Function('BuildMonitor', {
     handler: 'core/handlers/monitor.handler',
     dev: liveInLocalOnly,
-    link: [memoryTable, configTable, bus],
+    link: baseLink,
     permissions: [
       {
         actions: ['codebuild:BatchGetBuilds'],
@@ -63,7 +70,7 @@ export function createAgents(ctx: SharedContext): {
   const deadMansSwitch = new sst.aws.Function('DeadMansSwitch', {
     handler: 'core/handlers/recovery.handler',
     dev: liveInLocalOnly,
-    link: [memoryTable, deployer, bus],
+    link: [...baseLink, deployer],
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.MEDIUM,
   });
@@ -123,7 +130,7 @@ export function createAgents(ctx: SharedContext): {
   const plannerAgent = new sst.aws.Function('PlannerAgent', {
     handler: 'core/agents/strategic-planner.handler',
     dev: liveInLocalOnly,
-    link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
+    link: baseLink,
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
   });
@@ -166,7 +173,7 @@ export function createAgents(ctx: SharedContext): {
   const eventHandler = new sst.aws.Function('EventHandler', {
     handler: 'core/handlers/events.handler',
     dev: liveInLocalOnly,
-    link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
+    link: baseLink,
     memory: AGENT_CONFIG.memory.MEDIUM,
     timeout: AGENT_CONFIG.timeout.LONG,
   });
@@ -185,7 +192,7 @@ export function createAgents(ctx: SharedContext): {
   const reflectorAgent = new sst.aws.Function('ReflectorAgent', {
     handler: 'core/agents/cognition-reflector.handler',
     dev: liveInLocalOnly,
-    link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
+    link: baseLink,
     memory: AGENT_CONFIG.memory.MEDIUM,
     timeout: AGENT_CONFIG.timeout.MAX,
   });
@@ -197,7 +204,7 @@ export function createAgents(ctx: SharedContext): {
   const qaAgent = new sst.aws.Function('QaAgent', {
     handler: 'core/agents/qa.handler',
     dev: liveInLocalOnly,
-    link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
+    link: baseLink,
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
   });
@@ -211,7 +218,7 @@ export function createAgents(ctx: SharedContext): {
   const notifier = new sst.aws.Function('Notifier', {
     handler: 'core/handlers/notifier.handler',
     dev: liveInLocalOnly,
-    link: [memoryTable, configTable, secrets.TelegramBotToken],
+    link: baseLink,
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.SHORT,
   });
@@ -223,7 +230,7 @@ export function createAgents(ctx: SharedContext): {
   const workerAgent = new sst.aws.Function('WorkerAgent', {
     handler: 'core/agents/worker.handler',
     dev: liveInLocalOnly,
-    link: [memoryTable, traceTable, configTable, ...validSecrets, bus],
+    link: baseLink,
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
   });
@@ -247,7 +254,7 @@ export function createAgents(ctx: SharedContext): {
   const bridge = new sst.aws.Function('RealtimeBridge', {
     handler: 'core/handlers/bridge.handler',
     dev: liveInLocalOnly,
-    link: [ctx.realtime!],
+    link: [ctx.realtime!, bus],
   });
   bus.subscribe('RealtimeBridgeSubscriber', bridge.arn, {
     pattern: {
