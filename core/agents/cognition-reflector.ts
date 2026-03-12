@@ -234,6 +234,7 @@ export const handler = async (
                         details: gap.content,
                         metadata,
                         contextUserId: userId,
+                        sessionId, // Propagate session context for history syncing
                       }),
                       EventBusName: typedResource.AgentBus.name,
                     },
