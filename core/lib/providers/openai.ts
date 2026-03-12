@@ -101,10 +101,18 @@ export class OpenAIProvider implements IProvider {
             type: 'message',
             role,
             content: m.content || '',
-            ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
+            ...(m.tool_calls
+              ? {
+                  call: m.tool_calls.map((tc) => ({
+                    type: 'function_call',
+                    call_id: tc.id,
+                    name: tc.function.name,
+                    arguments: tc.function.arguments,
+                  })),
+                }
+              : {}),
           };
-        }),
-        reasoning: { effort: reasoningEffort },
+        }) as any[],
         ...(hasTools
           ? {
               tools: tools.map((t) => ({

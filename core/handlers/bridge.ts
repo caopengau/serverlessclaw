@@ -1,4 +1,6 @@
-import { Resource } from 'sst';
+import { IoTDataPlaneClient, PublishCommand } from '@aws-sdk/client-iot-data-plane';
+
+const iot = new IoTDataPlaneClient({});
 
 /**
  * Bridges AgentBus (EventBridge) to RealtimeBus (IoT Core).
@@ -17,11 +19,14 @@ export const handler = async (event: any) => {
     : `users/${userId}/signal`;
 
   try {
-    // SST v3+ uses Resource.<Name>.publish for Realtime resources
-    await (Resource as any).RealtimeBus.publish({
+    // AWS IoT requires payload to be a Uint8Array or string
+    const command = new PublishCommand({
       topic,
-      payload: event.detail,
+      payload: Buffer.from(JSON.stringify(event.detail)),
+      qos: 1,
     });
+
+    await iot.send(command);
     console.log(`[RealtimeBridge] Published to ${topic}`);
   } catch (error) {
     console.error('[RealtimeBridge] Failed to publish:', error);
