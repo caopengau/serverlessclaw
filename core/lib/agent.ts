@@ -21,7 +21,7 @@ const typedResource = Resource as unknown as SSTResource;
 
 const AGENT_DEFAULTS = {
   MAX_ITERATIONS: 15,
-  REFLECTION_FREQUENCY: 3,
+  REFLECTION_FREQUENCY: 10,
   TIMEOUT_BUFFER_MS: 30000, // 30 seconds
 } as const;
 

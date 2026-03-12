@@ -7,6 +7,7 @@ import { SSTResource } from '@claw/core/lib/types/index';
 import DeleteTraceButton from '@/components/DeleteTraceButton';
 import DeleteAllTracesButton from '@/components/DeleteAllTracesButton';
 import { TRACE_TYPES } from '@/lib/constants';
+import { TraceSource } from '@claw/core/lib/types/index';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,7 +38,11 @@ async function getTraces() {
     const uniqueMap = new Map();
     merged.forEach(item => uniqueMap.set(item.traceId, item));
     
-    return Array.from(uniqueMap.values()).sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+    const allItems = Array.from(uniqueMap.values()).sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+    
+    // Filter out internal reflector/system tasks to keep the view clean for the user
+    // but keep dashboard/telegram traces
+    return allItems.filter(item => item.source !== TraceSource.SYSTEM);
   } catch (e) {
     console.error('Error fetching traces:', e);
     return [];

@@ -67,9 +67,16 @@ export const handler = async (event: any): Promise<string | undefined> => {
       const { ClawTracer } = await import('../lib/tracer');
       const trace = await ClawTracer.getTrace(traceId);
       if (trace && trace.steps) {
-        traceContext = `\nEXECUTION TRACE (Mechanical Steps):
-        ${trace.steps.map((s) => `[${s.type.toUpperCase()}] ${JSON.stringify(s.content)}`).join('\n')}
-        `;
+        let fullTrace = trace.steps
+          .map((s) => `[${s.type.toUpperCase()}] ${JSON.stringify(s.content)}`)
+          .join('\n');
+
+        // Truncate trace if it's too large to prevent LLM/DDB issues
+        if (fullTrace.length > 5000) {
+          fullTrace = fullTrace.substring(0, 5000) + '\n... [TRACE_TRUNCATED]';
+        }
+
+        traceContext = `\nEXECUTION TRACE (Mechanical Steps):\n${fullTrace}\n`;
       }
     } catch (e) {
       logger.warn('Failed to fetch trace for Reflector:', e);
