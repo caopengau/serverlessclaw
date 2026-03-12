@@ -7,6 +7,7 @@ import {
   EvolutionMode,
   GapStatus,
   EventType,
+  TraceSource,
 } from '../lib/types/index';
 import { getAgentTools } from '../tools/index';
 import { Resource } from 'sst';
@@ -209,7 +210,7 @@ export const handler = async (event: any): Promise<PlannerResult> => {
     depth,
     traceId,
     sessionId,
-    source: 'system',
+    source: TraceSource.SYSTEM,
   });
 
   logger.info('Strategic Plan Generated:', result);

@@ -2,7 +2,7 @@ import { DynamoMemory } from '../lib/memory';
 import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers/index';
 import { getAgentTools } from '../tools/index';
-import { EventType } from '../lib/types/index';
+import { EventType, TraceSource } from '../lib/types/index';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
@@ -64,7 +64,7 @@ export const handler = async (
       context,
       traceId: incomingTraceId,
       sessionId,
-      source: 'system',
+      source: TraceSource.SYSTEM,
     });
 
     // Notify user via Notifier (if not paused)
@@ -115,7 +115,7 @@ I am ready for further tasks or instructions.`;
       isContinuation: true,
       traceId,
       sessionId,
-      source: 'system',
+      source: TraceSource.SYSTEM,
     });
 
     if (!responseText.startsWith('TASK_PAUSED')) {

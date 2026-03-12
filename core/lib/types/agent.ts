@@ -68,6 +68,16 @@ export enum AgentType {
 }
 
 /**
+ * Origin of a request or task.
+ */
+export enum TraceSource {
+  DASHBOARD = 'dashboard',
+  TELEGRAM = 'telegram',
+  SYSTEM = 'system',
+  UNKNOWN = 'unknown',
+}
+
+/**
  * Standard system event types for communication between agents.
  */
 export enum EventType {

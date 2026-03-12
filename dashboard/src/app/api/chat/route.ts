@@ -6,6 +6,7 @@ import { getAgentTools } from '@claw/core/tools/index';
 import { SUPERCLAW_SYSTEM_PROMPT } from '@claw/core/agents/superclaw';
 import { UI_STRINGS, HTTP_STATUS } from '@/lib/constants';
 import { revalidatePath } from 'next/cache';
+import { TraceSource } from '@claw/core/lib/types/index';
 
 /**
  * Handles chat messages from the dashboard UI using the Manager agent
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const agentTools = await getAgentTools('main');
     const agent = new Agent(memory, provider, agentTools, SUPERCLAW_SYSTEM_PROMPT);
 
-    const reply = await agent.process(storageId, text, { sessionId, source: 'dashboard' });
+    const reply = await agent.process(storageId, text, { sessionId, source: TraceSource.DASHBOARD });
 
     // Update conversation metadata for the sidebar
     if (sessionId) {

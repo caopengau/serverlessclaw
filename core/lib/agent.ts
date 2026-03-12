@@ -7,6 +7,7 @@ import {
   MessageRole,
   EventType,
   IAgentConfig,
+  TraceSource,
 } from './types/index';
 import { ClawTracer } from './tracer';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
@@ -74,9 +75,9 @@ export interface AgentProcessOptions {
   sessionId?: string;
   /**
    * The origin of the request (e.g., 'dashboard', 'telegram', 'system').
-   * @default 'unknown'
+   * @default TraceSource.UNKNOWN
    */
-  source?: string;
+  source?: TraceSource | string;
 }
 
 /**
@@ -123,7 +124,7 @@ export class Agent {
       depth = 0,
       traceId: incomingTraceId,
       sessionId,
-      source = 'unknown',
+      source = TraceSource.UNKNOWN,
     } = options;
 
     // Extract base userId for tool context and tracing (remove CONV# prefix if present)

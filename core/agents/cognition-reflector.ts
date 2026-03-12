@@ -9,6 +9,7 @@ import {
   InsightCategory,
   GapStatus,
   AgentType,
+  TraceSource,
 } from '../lib/types/index';
 import { Resource } from 'sst';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
@@ -125,7 +126,7 @@ export const handler = async (event: any): Promise<string | undefined> => {
   const response = await reflector.process(userId, reflectionPrompt, {
     profile: ReasoningProfile.FAST,
     isIsolated: true,
-    source: 'system',
+    source: TraceSource.SYSTEM,
   });
 
   if (response) {

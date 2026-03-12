@@ -9,6 +9,7 @@ import {
   AgentType,
   EvolutionMode,
   SSTResource,
+  TraceSource,
 } from '../lib/types/index';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
@@ -69,7 +70,7 @@ export const handler = async (event: any): Promise<void> => {
   const auditReport = await qaAgent.process(userId, auditPrompt, {
     profile: ReasoningProfile.THINKING,
     isIsolated: true,
-    source: 'system',
+    source: TraceSource.SYSTEM,
     initiatorId: payload.initiatorId,
     depth: payload.depth,
     traceId,

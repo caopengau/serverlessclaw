@@ -7,7 +7,7 @@ import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers/index';
 import { getAgentTools } from '../tools/index';
 import { DynamoLockManager } from '../lib/lock';
-import { ReasoningProfile } from '../lib/types/index';
+import { ReasoningProfile, TraceSource } from '../lib/types/index';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
@@ -73,7 +73,7 @@ export const handler = async (
     const responseText = await agent.process(chatId, cleanText, {
       profile,
       context,
-      source: 'telegram',
+      source: TraceSource.TELEGRAM,
       // isContinuation is not directly applicable to APIGatewayProxyEventV2 from Telegram
     });
 

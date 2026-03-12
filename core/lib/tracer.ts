@@ -7,6 +7,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { SSTResource } from './types/index';
+import { TraceSource } from './types/agent';
 import { v4 as uuidv4 } from 'uuid';
 import { TRACE_TYPES, TRACE_STATUS } from './constants';
 import { logger } from './logger';
@@ -49,7 +50,7 @@ export interface Trace {
   /** The ID of the user or session the trace belongs to. */
   userId: string;
   /** The origin of the request (e.g., 'dashboard', 'telegram', 'system'). */
-  source: string;
+  source: TraceSource | string;
   /** Start timestamp of the trace. */
   timestamp: number;
   /** Current status of the trace. */
@@ -76,7 +77,7 @@ export class ClawTracer {
   private tableName: string = typedResource.TraceTable.name;
   private traceId: string;
   private userId: string;
-  private source: string;
+  private source: TraceSource | string;
   private startTime: number;
 
   /**
@@ -86,7 +87,11 @@ export class ClawTracer {
    * @param source - Origin of the request.
    * @param traceId - Optional override for the trace ID.
    */
-  constructor(userId: string, source: string = 'unknown', traceId?: string) {
+  constructor(
+    userId: string,
+    source: TraceSource | string = TraceSource.UNKNOWN,
+    traceId?: string
+  ) {
     this.userId = userId;
     this.source = source;
     this.traceId = traceId || uuidv4();

@@ -8,7 +8,7 @@ import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { Resource } from 'sst';
-import { EventType } from '../lib/types/index';
+import { EventType, TraceSource } from '../lib/types/index';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
@@ -94,7 +94,7 @@ export const handler = async (
     depth: (event.detail as any).depth,
     traceId: traceId,
     sessionId,
-    source: 'system',
+    source: TraceSource.SYSTEM,
   });
 
   logger.info(`Worker Agent [${agentId}] completed task:`, response);
