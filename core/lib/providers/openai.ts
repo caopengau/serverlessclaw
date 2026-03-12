@@ -60,14 +60,82 @@ export class OpenAIProvider implements IProvider {
     if (profile === ReasoningProfile.THINKING) reasoningEffort = 'high';
     if (profile === ReasoningProfile.DEEP) reasoningEffort = 'xhigh';
 
+    // Determining if we should use the new Responses API (/v1/responses)
+    // gpt-5.4 doesn't support reasoning_effort + tools on /chat/completions
+    const isGpt54 = activeModel.includes(OpenAIModel.GPT_5_4);
+    const hasTools = tools && tools.length > 0;
+    const isReasoning = profile !== ReasoningProfile.STANDARD;
+    const useResponsesAPI = isGpt54 && (hasTools || isReasoning);
+
+    if (useResponsesAPI) {
+      logger.info(`Using OpenAI Responses API for model ${activeModel}`);
+      const response = await client.responses.create({
+        model: activeModel as OpenAI.ResponsesModel,
+        input: messages.map((m) => {
+          if (m.role === MessageRole.TOOL) {
+            return {
+              type: 'tool_call_output',
+              call_id: m.tool_call_id || '',
+              output: m.content || '',
+            } as any;
+          }
+          let role: 'user' | 'assistant' | 'system' | 'developer' = 'user';
+          if (m.role === MessageRole.SYSTEM) role = 'developer';
+          else if (m.role === MessageRole.ASSISTANT) role = 'assistant';
+          else if (m.role === MessageRole.DEVELOPER) role = 'developer';
+
+          return {
+            type: 'message',
+            role,
+            content: m.content || '',
+            ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
+          } as any;
+        }),
+        reasoning: { effort: reasoningEffort as OpenAI.ReasoningEffort },
+        ...(hasTools
+          ? {
+              tools: tools.map((t) => ({
+                type: 'function',
+                name: t.name,
+                description: t.description,
+                parameters: t.parameters as any,
+                strict: true,
+              })) as any,
+            }
+          : {}),
+      });
+
+      // Extract output
+      let content = response.output_text || '';
+      const toolCalls: any[] = [];
+
+      for (const item of response.output) {
+        if (item.type === 'function_call') {
+          toolCalls.push({
+            id: item.call_id,
+            type: 'function',
+            function: {
+              name: item.name,
+              arguments: item.arguments,
+            },
+          });
+        }
+      }
+
+      return {
+        role: MessageRole.ASSISTANT,
+        content,
+        tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+      } as Message;
+    }
+
     const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
       model: activeModel,
       messages: processedMessages,
-      ...(activeModel.includes(OpenAIModel.GPT_5_4) ? { reasoning_effort: reasoningEffort } : {}),
-      // 2026 Optimization: Prediction removed if no content provided to avoid lint error
+      ...(isGpt54 ? { reasoning_effort: reasoningEffort } : {}),
     };
 
-    if (tools && tools.length > 0) {
+    if (hasTools) {
       params.tools = tools.map((t) => ({
         type: 'function',
         function: {
@@ -77,9 +145,9 @@ export class OpenAIProvider implements IProvider {
           strict: true,
         },
       }));
-      params.parallel_tool_calls = this.model.includes(OpenAIModel.GPT_5_4); // Default true for new models
+      params.parallel_tool_calls = isGpt54;
       if (profile === ReasoningProfile.DEEP || profile === ReasoningProfile.THINKING) {
-        params.parallel_tool_calls = false; // Disable for reasoning models as they often prefer sequential
+        params.parallel_tool_calls = false;
       }
     }
 
