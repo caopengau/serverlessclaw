@@ -2,8 +2,6 @@
 
 > **Agent Context Loading**: Load this file when you need to modify agent logic, prompts, communication patterns, or add a new sub-agent.
 
-## Agent Roster
-
 ## 🤖 Agent Roster
 
 We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and **System Handlers** (deterministic logic for monitoring and recovery).
@@ -61,93 +59,29 @@ User (Telegram)       SuperClaw (Lambda)       AgentBus (EB)       Specialized A
 Every event on the `AgentBus` carries critical routing metadata:
 - **`traceId`**: Consolidates all agent steps into a single unified timeline.
 - **`initiatorId`**: The ID of the agent that started the task (used to route results back).
-- **`depth`**: Current recursion level. The system automatically terminates tasks exceeding a depth of **5** to prevent infinite loops.
-
----
-
-## Communication Protocol (EventBridge)
-
-- **Bus name**: `AgentBus` (SST resource)
-- **Event source**: `main.agent`
-- **Detail type pattern**: `<agentId>_task` (e.g. `coder_task`, `researcher_task`)
-- **Event payload**:
-  ```json
-  { "userId": "<string>", "task": "<natural language task description>" }
-  ```
-
-All inter-agent discovery is handled by the **AgentRegistry** (`src/lib/registry.ts`), which merges backbone logic with user-defined personas from **DynamoDB**.
-
----
-
-## Hot Configuration & Dynamic Providers
-
-Serverless Claw supports zero-downtime model switching via the `ProviderManager`.
-
-- **Mechanism**: The `ProviderManager` checks `ConfigTable` (DynamoDB) for `active_provider` and `active_model` before every LLM call.
-- **Fallbacks**: If no config is found in the database, it falls back to SST `Resource` secrets.
-- **Provider Hubs**:
-    - **OpenAI**: Native access to GPT-5.4 and GPT-5-mini.
-    - **Bedrock**: High-performance, AWS-native Claude 4.6 Sonnet.
-    - **OpenRouter**: Cost-effective hub for Gemini 3 Flash, GLM-5, and Minimax 2.5.
-
----
-
-## SuperClaw System Prompt (Summary)
-
-Key obligations (see `src/agent.ts` for the full prompt):
-1. **delegate** complex changes via `dispatchTask`
-2. **deploy then verify**: `triggerDeployment` → `checkHealth`
-3. **rollback on failure**: `CIRCUIT_BREAKER_ACTIVE` or `HEALTH_FAILED` → `triggerRollback`
-4. **HITL**: Stop and ask human on Telegram for any `MANUAL_APPROVAL_REQUIRED`
-5. **protect core**: 3 confirmations to delete `AgentBus` or `MemoryTable`
-
----
-
-## Coder Agent System Prompt (Summary)
-
-Key obligations (see `src/coder.ts` for the full prompt):
-1. **pre-flight**: Call `validateCode` after every `fileWrite`
-2. **protected files**: Return `MANUAL_APPROVAL_REQUIRED` — never bypass
-3. **atomicity**: Don't leave codebase in a broken state
-4. **documentation**: Update relevant `docs/*.md` in the same step as code changes
+- **`depth`**: Current recursion level. The system automatically terminates tasks exceeding the **Recursion Limit** (Default: 50) to prevent infinite loops. This limit is hot-swappable in the Dashboard Settings.
 
 ---
 
 ## Co-Management & Evolution
 
-Agents are not just autonomous; they are **co-managed** via the ClawCenter dashboard.
+Agents are not just autonomous; they are **co-managed** via the ClawCenter dashboard, structured into four sectors: **Intelligence**, **Evolution**, **Infrastructure**, and **Observability**.
 
-### 1. Neural Agent Registry
-Users can register new specialized agents at `/settings`. 
+### 1. Neural Agent Registry (Evolution)
+Users can register and configure agents in the **Evolution** sector. 
 - **Persona**: Define the system prompt (instructions) for the agent.
 - **Dynamic Scoping**: Toggle tools on/off for specific agents without redeploying.
 - **Immediate Availability**: Once registered, the SuperClaw can immediately delegate tasks to the new node via `dispatchTask`.
 
-### 2. Dynamic Toolsets
-Instead of a static roster, every agent loads its tools from the `AgentRegistry` on every execution.
-- **Control**: Users can hot-swap prompts and tools in the dashboard.
-- **Optimization**: The Planner Agent can also propose updates to these registries based on performance telemetry.
+### 2. Global Optimization Policy (Infrastructure)
+Users can set a global `optimization_policy` to control system-wide reasoning depth:
+- **AGGRESSIVE**: Forces `DEEP` reasoning for all nodes (Highest Quality, Highest Cost).
+- **CONSERVATIVE**: Forces `FAST` reasoning (Lowest Latency, Lowest Cost).
+- **BALANCED**: Respects the task's intended profile.
 
-### 3. Autonomous Evolution (Auto vs HITL)
-- **`hitl` mode**: Agents must request approval on Telegram/Slack for deployments or protected file writes.
-- **`auto` mode**: The system self-deploys and self-heals without human intervention.
-- **Switch**: Controlled in `/settings`.
+### 3. Evolutionary Lifecycle (Verified Satisfaction)
 
-### 3. Memory Curation
-Users can "Prune" the agent's memory at `/memory` to remove incorrect lessons or stale gaps.
-
-### 4. Dynamic Discovery & Tool Injection
-The system is designed for autonomous expansion where new nodes are born "intelligent":
-- **`listAgents`**: A core tool enabling any agent to discover other specialized nodes in the system at runtime.
-- **Standard Support Profile**: To ensure seamless integration, every dynamic agent is automatically injected with a default toolset (`recallKnowledge`, `listAgents`, `dispatchTask`) if no explicit tools are defined. This ensures every new agent is collaborative and informed from second one.
-
----
-
-## The Evolutionary Lifecycle (Self-Evolution Loop)
-
-Serverless Claw is not a static agent; it is a **self-evolving system** that identifies its own weaknesses and implements its own upgrades.
-
-### Evolutionary Flow Diagram (Verified Satisfaction)
+Serverless Claw is a **self-evolving system** that identifies its own weaknesses and implements its own upgrades.
 
 ```text
     +-------------------+       1. OBSERVE        +-------------------+
@@ -186,37 +120,26 @@ Serverless Claw is not a static agent; it is a **self-evolving system** that ide
     +-------------------+                         +-------------------+
 ```
 
-### How it works:
-1.  **Observation**: The **Cognition Reflector** analyzes every interaction. It looks for "I can't do that" moments or complex multi-step failures.
-2.  **Gap Analysis**: These failures are logged as `strategic_gap` items in DynamoDB, ranked by **Impact** and **Urgency**. Status set to `OPEN`.
-3.  **Strategic Planning**: The **Strategic Planner** reviews these gaps during a **deterministic 12-hour review**. It designs a STRATEGIC_PLAN and moves gaps to `PLANNED`.
+1.  **Observation**: The **Cognition Reflector** analyzes interactions to find "I can't do that" moments or complex failures.
+2.  **Gap Analysis**: Failures are logged as `strategic_gap` items in DynamoDB, ranked by **Impact** and **Urgency**.
+3.  **Strategic Planning**: The **Strategic Planner** reviews gaps during a **deterministic 24-hour review**. It designs a STRATEGIC_PLAN and moves gaps to `PLANNED`.
 4.  **Execution**: Once the plan is approved (or automatically triggered in `auto` mode), the **Coder Agent** moves gaps to `PROGRESS`, writes the code, and triggers a deployment.
-5.  **Technical Success**: The **Build Monitor** detects a successful CodeBuild run and moves gaps to `DEPLOYED`. The code is live, but not yet verified.
-6.  **Verified Satisfaction**: The **QA Auditor** (via Reflector Audit) monitors subsequent conversations. If the user successfully uses the new capability or confirms satisfaction, the Reflector marks the gap as `DONE`. In `hitl` mode, this requires a final "YES" from the user via the `manageGap` tool.
+5.  **Technical Success**: The **Build Monitor** detects a successful CodeBuild run and moves gaps to `DEPLOYED`.
+6.  **Verified Satisfaction**: The **QA Auditor** (via Reflector Audit) monitors subsequent conversations. If the user successfully uses the new capability, the Reflector marks the gap as `DONE`.
 
 ---
 
 ## 🦾 The Backbone Registry
 
-The system identity is defined in `core/lib/backbone.ts`. This centralized registry acts as the "genetic code" of the stack:
+The system identity is defined in `core/lib/backbone.ts`. This centralized registry acts as the "genetic code" of the stack. The **Build Monitor** uses this registry to dynamically generate the neural map visualized in the dashboard.
 
-- **Identity**: Every agent's name, icon, and description.
-- **Backbone Status**: Marks agents as core system components.
-- **Connection Profile**: Defines which infrastructure nodes the agent interacts with (e.g., `['bus', 'memoryTable']`).
+### Permissions vs. Topology
 
-The **Build Monitor** uses this registry to dynamically generate the neural map visualized in the dashboard.
-
----
-
-### 4. Permissions vs. Topology
-
-It is critical to distinguish between **Topology Connectivity** and **IAM Permissions**:
-
-- **Topology Connectivity**: Declared in `backbone.ts` (for backbone nodes) or via the Dashboard (for custom nodes). This is used only for **visualization** in System Pulse and for providing **context** to agents about what they *should* be able to access.
+- **Topology Connectivity**: Declared in `backbone.ts` (for backbone nodes) or via the Dashboard (for custom nodes). This is used only for **visualization** in System Pulse.
 - **IAM Permissions**: Managed in `infra/agents.ts` via the `link` property. This is the **hard security layer**.
 
 > [!WARNING]
-> Adding a connection in the Dashboard or `backbone.ts` does **NOT** automatically grant AWS permissions. If a new agent type requires access to a new resource (e.g., a specific S3 bucket), you must still modify `infra/agents.ts` to link that resource to the `Worker Agent` (for custom agents) or the specific backbone agent.
+> Adding a connection in the Dashboard or `backbone.ts` does **NOT** automatically grant AWS permissions. You must still modify `infra/agents.ts` to link new resources.
 
 ## 🛠️ Adding a New Agent
 
@@ -224,7 +147,6 @@ To evolve the system with a new specialized node:
 
 1. **Implement**: Create `core/agents/<name>.ts` with the agent's logic and tools.
 2. **Register Identity**: Add the agent to `BACKBONE_REGISTRY` in `core/lib/backbone.ts`.
-    - Define its `name`, `description`, `icon`, and `connectionProfile`.
-3. **Link Infra**: In `infra/agents.ts`, create the Lambda function and link necessary resources (tables, bus).
+3. **Link Infra**: In `infra/agents.ts`, create the Lambda function and link necessary resources.
 4. **Subscribe**: Ensure the agent is subscribed to its task type in the EventBus.
-5. **Deploy**: Run `sst deploy`. The **Build Monitor** will automatically discover the new agent and add it to the **System Pulse** map.
+5. **Deploy**: Run `sst deploy`. The **Build Monitor** will automatically discover the new agent.

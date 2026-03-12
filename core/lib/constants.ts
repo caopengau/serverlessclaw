@@ -15,9 +15,9 @@ export const SYSTEM = {
 
 export const PROTECTED_FILES = [
   'sst.config.ts',
-  'src/tools/index.ts',
-  'src/agents/superclaw.ts',
-  'src/lib/agent.ts',
+  'core/tools/index.ts',
+  'core/agents/superclaw.ts',
+  'core/lib/agent.ts',
   'buildspec.yml',
   'infra/',
 ] as const;

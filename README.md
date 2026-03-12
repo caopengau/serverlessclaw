@@ -24,12 +24,26 @@ The system maintains a real-time topology of itself. Using the **Build Monitor**
 
 ## 🏗️ Architecture & Tech Stack
 
+### Dashboard Organization (ClawCenter)
+The dashboard is structured into four primary command sectors:
+- **Intelligence**: Real-time chat interface and high-fidelity neural traces.
+- **Evolution**: Management of agent personas, tiered memory (Facts, Lessons, Gaps), and tool capabilities.
+- **Infrastructure**: System pulse (real-time topology), session traffic control, and global hot-swappable configuration.
+- **Observability**: Security manifests and self-healing resilience hubs.
+
+### Tiered Memory Engine
+Serverless Claw uses a tiered, evolutionary memory system:
+- **`DISTILLED#` (Facts)**: Long-term user preferences and project context.
+- **`LESSON#` (Tactical)**: Short-term heuristics and technical "gotchas" learned from errors.
+- **`GAP#` (Strategic)**: A backlog of missing capabilities identified by the Reflector.
+- **`TRACE#` (Short-term)**: Mechanical execution logs of current and recent sessions.
+
 ### Tech Stack Overview
 - **Framework**: [SST (Serverless Stack) v3 / Ion](https://sst.dev)
 - **Compute**: AWS Lambda (Node.js)
 - **Database**: AWS DynamoDB (Single-Table Design)
 - **Storage**: AWS S3
-- **Event Bus**: AWS EventBridge
+- **Event Bus**: AWS EventBridge (The **AgentBus**)
 - **CI/CD**: AWS CodeBuild
 - **Admin Dashboard**: Next.js 16 (React 19), TailwindCSS v4, deployed via OpenNext
 - **AI / LLMs**: OpenAI (GPT-5.4, GPT-5-mini), Anthropic Claude 4.6 Sonnet (via Amazon Bedrock), OpenRouter (Gemini-3 Flash, GLM-5, Minimax 2.5)
@@ -40,7 +54,7 @@ The system maintains a real-time topology of itself. Using the **Build Monitor**
 ```text
                                   +-----------------------------------+
                                   |         Next.js Dashboard         |
-                                  | (Observability, Traces, Config)   |
+                                  | (Intelligence, Evolution, Infra)  |
                                   +-----------------------------------+
                                                   |
                                                   v
@@ -57,7 +71,7 @@ The system maintains a real-time topology of itself. Using the **Build Monitor**
                                                   v
                                   +-----------------------------------+
                                   |        AWS EventBridge            |
-                                  |     (Asynchronous Task Bus)       |
+                                  |     (Asynchronous AgentBus)       |
                                   +-----------------------------------+
                                    /        |            |        \
                                   /         |            |         \
@@ -88,6 +102,14 @@ pnpm install
 # Populate .env with SST_SECRET_ prefixes (e.g. SST_SECRET_OpenAIApiKey)
 make dev
 ```
+
+## Resilience & Safety Guardrails
+- **Circuit Breaker**: Prevents "Deployment Death Spirals" by limiting deploys (Default: 5/day).
+- **Recursion Limit**: Protects against infinite agent-to-agent delegation loops (Default: 50).
+- **Optimization Policy**: Global toggle for `Aggressive` (Quality-first) or `Conservative` (Cost-first) reasoning.
+- **Dead Man's Switch**: Immutable health probe that triggers automated git-reverts on failure.
+- **Protected Scopes**: Hardcoded list of files (e.g., `sst.config.ts`) that require human approval to modify.
+
 
 ## Documentation
 

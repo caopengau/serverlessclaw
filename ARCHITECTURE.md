@@ -10,6 +10,7 @@ This document covers the AWS topology and data flow. For agent logic and orchest
 1.  **Stateless**: The core execution is entirely stateless, with persistence offloaded to highly available managed services (DynamoDB).
 2.  **Extensible**: Every major component (Memory, Messaging, Tools) is designed as a pluggable adapter.
 3.  **Low Latency**: Optimized for fast startup times to minimize "time-to-first-token".
+4.  **Safety-First**: Implements nested guardrails including Circuit Breakers, Recursion Limits, and Protected Scopes.
 
 ---
 
@@ -27,7 +28,7 @@ This document covers the AWS topology and data flow. For agent logic and orchest
                             +-----------+-----------+                 |
                             |                       |                 |
                             |      ClawCenter       |<----------------+
-                            | (Co-Management Hub)   |                 |
+                            | (Intelligence Sector) |                 |
                             |                       |                 |
                             +-----------+-----------+                 |
                                         |                             |
@@ -95,7 +96,7 @@ Unlike traditional agent servers that process messages serially, Serverless Claw
 ```
 
 - **Mechanism**: A `LOCK#<chatId>` item is created in `MemoryTable` with a TTL.
-- **Observability**: The Dashboard's `SESSION_TRAFFIC` tab monitors these locks.
+- **Observability**: The Dashboard's `SESSION_TRAFFIC` (Infrastructure) sector monitors these locks.
 - **Self-Healing**: If a Lambda crashes, the lock can be manually cleared or will auto-expire, preventing session deadlocks.
 
 ---
@@ -111,32 +112,32 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
                |
       _________V_________
      |                   |
-     |   SUPERCLAW    |
+     |   SUPERCLAW       | (Orchestrator)
      |___________________|
                |
      (1) DISPATCH_TASK (via AgentBus)
                |
-       _________V_________           (3) [ BUILD_MONITOR HANDLER ]
-      |    EVENT_BUS      | <-------  (Observes CodeBuild)
+       _________V_________           (3) [ BUILD_MONITOR ]
+      |    EVENT_BUS      | <-------  (Deterministic Logic)
       |   (AgentBus)      |
       |___________________|          (4) [ REFLECTOR_AGENT ]
-          |         |                 (Mechanical Audit via Traces)
+          |         |                 (Cognition Reflection)
           |         |
      (2) CODER_AGENT|                (5) [ PLANNER_AGENT ]
          (Writes Code)                (Designs STRATEGIC_PLAN)
                     |
                     |                (6) [ NOTIFIER_HANDLER ]
                     +-----------------> (Listens for OUTBOUND_MESSAGE)
-                    |                    (Sends to Telegram/Slack)
                     |
-                    |                (7) [ WORKER_AGENT ]
-                    +-----------------> (Generic Runner for Custom Nodes)
-                                         (Loads Persona from AgentRegistry)
+                    |                (7) [ DEAD MAN'S SWITCH ]
+                    +-----------------> (Emergency Recovery)
+                                         (logic-based rollback)
  ```
 
 - **Pattern**: The SuperClaw emits a `coder_task` or `custom_task` event. When an agent completes a task, it emits a `TASK_COMPLETED` event, which the `EventHandler` routes back to the `initiatorId` as a `CONTINUATION_TASK`.
+- **Recursion Control**: To prevent infinite delegation loops, the `EventHandler` enforces a **Recursion Limit** (Default: 50), which can be adjusted in the System Settings.
 - **Discovery**: The `AgentRegistry` merges backbone logic with user-defined personas from DynamoDB.
-- **Visualization**: The **ClawCenter Dashboard** renders a unified graph of these interactions, even across asynchronous boundaries.
+- **Visualization**: The **System Pulse** map in ClawCenter renders a unified graph of these interactions.
 
 ---
 
@@ -146,9 +147,8 @@ Serverless Claw uses a **Consolidated Trace Model** to provide a seamless view o
 
 ### Trace Consolidation
 1. **Trace ID Propagation**: The `traceId` is generated at the start of a user session and passed to every agent in the chain.
-2. **Unified Record**: Unlike standard logs, all agents contribute to a **single record** in the `TraceTable` (DynamoDB), indexed by `traceId`.
-3. **Atomic Appends**: `ClawTracer` uses DynamoDB's `list_append` to atomically add steps (LLM calls, tool execution) from different Lambda instances into a shared timeline.
-4. **Rich Details**: Every step captures "In/Out" data (prompts, raw AI responses, tool arguments, and results), which is inspectable in the dashboard's **Neural Inspect** panel.
+2. **Unified Record**: All agents contribute to a **single record** in the `TraceTable` (DynamoDB), indexed by `traceId`.
+3. **Atomic Appends**: `ClawTracer` uses DynamoDB's `list_append` to atomically add steps from different Lambda instances into a shared timeline.
 
 ---
 
@@ -158,13 +158,12 @@ Serverless Claw implements a **Self-Aware Infrastructure** model. Rather than re
 
 ### The Discovery Flow
 1. **Deployment**: The `Coder Agent` triggers a CodeBuild deployment.
-2. **Observation**: The `Build Monitor` receives the `SUCCEEDED` event.
+2. **Observation**: The **Build Monitor** receives the `SUCCEEDED` event.
 3. **Scan**: The monitor calls `discoverSystemTopology()`, which:
     - Scans the SST `Resource` object for infrastructure (S3, DynamoDB, EventBridge).
     - Scans the `AgentRegistry` for LLM agents and logical handlers.
-    - Resolves connections based on the `connectionProfile` defined in `core/lib/backbone.ts`.
-4. **Persistence**: The resulting JSON graph (nodes + edges) is saved to the `ConfigTable` under the `system_topology` key.
-5. **Visualization**: The dashboard updates **automatically** without any frontend code changes.
+4. **Persistence**: The resulting JSON graph is saved to the `ConfigTable`.
+5. **Visualization**: The dashboard updates **automatically**.
 
 ---
 
