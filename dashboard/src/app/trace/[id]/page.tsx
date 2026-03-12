@@ -1,3 +1,4 @@
+import React from 'react';
 import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
@@ -71,7 +72,7 @@ async function getTrace(traceId: string, timestamp: number): Promise<Trace | nul
 /**
  * Returns the appropriate icon for a trace step type
  */
-function StepIcon({ type }: { type: string }): JSX.Element {
+function StepIcon({ type }: { type: string }): React.ReactElement {
   switch (type) {
     case TRACE_TYPES.LLM_CALL:
       return <MessageSquare size={16} className="text-cyber-blue" />;
@@ -95,7 +96,7 @@ export default async function TraceDetailPage({
 }: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ t: string }>;
-}): Promise<JSX.Element> {
+}): Promise<React.ReactElement> {
   const { id } = await params;
   const { t } = await searchParams;
   const trace = await getTrace(id, parseInt(t));
@@ -168,8 +169,8 @@ export default async function TraceDetailPage({
                   <div>
                     <div className="text-[10px] text-white/100 font-bold uppercase tracking-wider">{step.type}</div>
                     <div className="text-sm font-medium">
-                      {step.type === TRACE_TYPES.TOOL_CALL ? `Executing ${step.content.toolName}` : 
-                       step.type === TRACE_TYPES.TOOL_RESULT ? 'Observation received' :
+                      {step.type === TRACE_TYPES.TOOL_CALL ? `Executing ${step.content.tool || step.content.toolName || ''}` : 
+                       step.type === TRACE_TYPES.TOOL_RESULT ? `Observation from ${step.content.tool || step.content.toolName || 'tool'}` :
                        step.type === TRACE_TYPES.LLM_CALL ? 'LLM Synthesis' : 'Error detected'}
                     </div>
                   </div>

@@ -202,11 +202,11 @@ export class Agent {
             const tool = this.tools.find((t) => t.name === toolCall.function.name);
             if (tool) {
               const args = JSON.parse(toolCall.function.arguments);
-              await tracer.addStep({ type: 'tool_call', content: { tool: tool.name, args } });
+              await tracer.addStep({ type: 'tool_call', content: { toolName: tool.name, args } });
 
               const result = await tool.execute(args);
 
-              await tracer.addStep({ type: 'tool_result', content: { tool: tool.name, result } });
+              await tracer.addStep({ type: 'tool_result', content: { toolName: tool.name, result } });
 
               messages.push({
                 role: MessageRole.TOOL,

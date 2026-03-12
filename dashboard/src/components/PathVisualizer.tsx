@@ -114,17 +114,19 @@ export default function PathVisualizer({ trace }: PathVisualizerProps) {
           position: { x: 250, y: currentY },
         });
       } else if (step.type === 'tool_call') {
+        const tName = step.content.tool || step.content.toolName || 'Unknown';
         initialNodes.push({
           id: nodeId,
           type: 'tool',
-          data: { toolName: step.content.toolName, status: 'Active' },
+          data: { toolName: tName, status: 'Active' },
           position: { x: 250, y: currentY },
         });
       } else if (step.type === 'tool_result') {
+         const tName = step.content.tool || step.content.toolName || 'OBSERVATION';
          initialNodes.push({
           id: nodeId,
           type: 'tool',
-          data: { toolName: 'OBSERVATION', status: 'Completed' },
+          data: { toolName: tName, status: 'Completed' },
           position: { x: 250, y: currentY },
         });
       } else {
