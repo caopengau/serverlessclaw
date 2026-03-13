@@ -4,6 +4,9 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { Share2, Zap, Info } from 'lucide-react';
 import { THEME } from '@/lib/theme';
+import Badge from '@/components/ui/Badge';
+import Typography from '@/components/ui/Typography';
+import Card from '@/components/ui/Card';
 
 // Dynamic import for React Flow component to avoid SSR issues
 const Flow = dynamic(() => import('./Flow'), { 
@@ -19,21 +22,28 @@ const Flow = dynamic(() => import('./Flow'), {
 
 export default function SystemPulsePage() {
   return (
-    <main className={`flex-1 h-screen overflow-hidden flex flex-col p-10 space-y-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-${THEME.COLORS.INTEL}/5 via-transparent to-transparent`}>
+    <main className={`flex-1 h-screen overflow-hidden flex flex-col p-6 lg:p-10 space-y-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-${THEME.COLORS.INTEL}/5 via-transparent to-transparent`}>
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
-          <h2 className={`text-3xl font-bold tracking-tight text-white/90 uppercase`}>SYSTEM_PULSE</h2>
-          <p className="text-white/100 text-sm mt-2 font-light">Real-time infrastructure topology and neural routing visualization.</p>
+          <Typography variant="h2" color="white" glow uppercase>
+            System Pulse
+          </Typography>
+          <Typography variant="body" color="muted" className="mt-2 block">
+            Real-time infrastructure topology and neural routing visualization.
+          </Typography>
         </div>
         <div className="flex gap-4">
-          <div className="glass-card px-4 py-2 text-[12px] border-white/10">
-            <div className="text-white/90 mb-1 font-bold uppercase tracking-widest opacity-50">SYNC_STATUS</div>
-            <div className={`font-bold text-${THEME.COLORS.PRIMARY}`}>STABLE</div>
-          </div>
-          <div className="glass-card px-4 py-2 text-[12px] border-white/10 text-white/90">
-            <div className="mb-1 font-bold uppercase tracking-widest opacity-50">NODES_ACTIVE</div>
-            <div className="font-bold font-mono">14</div>
-          </div>
+            <div className="flex flex-col items-center">
+                <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">LATENCY</Typography>
+                <Badge variant="primary" className="px-4 py-1 font-black text-xs bg-orange-500/10 text-orange-400 border-orange-500/20">42MS</Badge>
+            </div>
+            <div className="flex flex-col items-center text-center">
+                <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">STATUS</Typography>
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-green-500/10 border border-green-500/20 rounded-sm">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.8)]" />
+                    <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">Live</span>
+                </div>
+            </div>
         </div>
       </header>
 
@@ -59,31 +69,27 @@ export default function SystemPulsePage() {
         </div>
       </div>
 
-      <footer className="grid grid-cols-3 gap-6">
-        <div className="glass-card p-4 flex gap-4 items-start">
+      <footer className="grid grid-cols-3 gap-6 shrink-0 pt-4">
+        <div className="glass-card p-4 flex gap-4 items-start border-white/5 bg-black/20">
           <div className="p-2 rounded bg-white/5">
             <Info size={16} className="text-white/50" />
           </div>
           <div>
-            <div className="text-[10px] font-bold uppercase text-white/90 tracking-widest">Topology_Scan</div>
-            <p className="text-[10px] text-white/50 mt-1 leading-relaxed italic">
+            <Typography variant="mono" weight="bold" color="white" className="text-[10px] uppercase tracking-widest block">Topology_Scan</Typography>
+            <p className="text-[10px] text-white/40 mt-1 leading-relaxed italic uppercase">
               Mapping autonomous agent dependencies and IAM-hardware boundaries.
             </p>
           </div>
         </div>
-        <div className="col-span-2 glass-card p-4 flex items-center justify-between">
+        <div className="col-span-2 glass-card p-4 flex items-center justify-between border-white/5 bg-black/20">
             <div className="flex gap-8">
                 <div>
-                    <div className="text-[8px] uppercase text-white/40 font-bold tracking-[0.3em]">Latency_ms</div>
-                    <div className="text-sm font-mono font-bold text-white/90">42ms</div>
+                    <Typography variant="mono" color="muted" className="text-[8px] uppercase tracking-[0.3em] block mb-1">Traffic_Load</Typography>
+                    <Typography variant="mono" weight="bold" color="white" className="text-sm uppercase">Nominal</Typography>
                 </div>
                 <div>
-                    <div className="text-[8px] uppercase text-white/40 font-bold tracking-[0.3em]">Traffic_Load</div>
-                    <div className="text-sm font-mono font-bold text-white/90">NOMINAL</div>
-                </div>
-                <div>
-                    <div className="text-[8px] uppercase text-white/40 font-bold tracking-[0.3em]">Trace_Density</div>
-                    <div className="text-sm font-mono font-bold text-white/90">HIGH</div>
+                    <Typography variant="mono" color="muted" className="text-[8px] uppercase tracking-[0.3em] block mb-1">Trace_Density</Typography>
+                    <Typography variant="mono" weight="bold" color="white" className="text-sm uppercase">High</Typography>
                 </div>
             </div>
             <div className="flex items-center gap-2 text-[10px] font-bold text-white/100 uppercase tracking-widest">

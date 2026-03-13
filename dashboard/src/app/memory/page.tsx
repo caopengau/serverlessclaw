@@ -105,29 +105,29 @@ export default async function MemoryVault() {
   const toolList = Object.values(tools);
 
   return (
-    <main className="flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
+    <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
-          <Typography variant="h1" color="primary" glow uppercase className="mb-2">
+          <Typography variant="h2" color="white" glow uppercase>
             Neural Reserve
           </Typography>
-          <Typography variant="body" color="muted">
+          <Typography variant="body" color="muted" className="mt-2 block">
             Human-Agent Collaborative Memory Tiering & Prioritization Hub.
           </Typography>
         </div>
         <div className="flex gap-4 text-center">
-            <Card variant="solid" padding="sm" className="min-w-[80px]">
-                <Typography variant="caption" weight="bold" color="muted" uppercase className="mb-1 block">Facts</Typography>
-                <Typography variant="h2" color="primary" weight="bold">{distilled.length}</Typography>
-            </Card>
-            <Card variant="solid" padding="sm" className="min-w-[80px]">
-                <Typography variant="caption" weight="bold" color="muted" uppercase className="mb-1 block">Lessons</Typography>
-                <Typography variant="h2" color="intel" weight="bold">{lessons.length}</Typography>
-            </Card>
-            <Card variant="solid" padding="sm" className="min-w-[80px]">
-                <Typography variant="caption" weight="bold" color="muted" uppercase className="mb-1 block">Gaps</Typography>
-                <Typography variant="h2" color="danger" weight="bold">{gaps.length}</Typography>
-            </Card>
+            <div className="flex flex-col items-center">
+                <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">FACTS</Typography>
+                <Badge variant="primary" className="px-4 py-1 font-black text-xs">{distilled.length}</Badge>
+            </div>
+            <div className="flex flex-col items-center">
+                <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">LESSONS</Typography>
+                <Badge variant="primary" className={`px-4 py-1 font-black text-xs bg-blue-500/10 text-blue-400 border-blue-500/20`}>{lessons.length}</Badge>
+            </div>
+            <div className="flex flex-col items-center">
+                <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">GAPS</Typography>
+                <Badge variant="primary" className={`px-4 py-1 font-black text-xs bg-red-500/10 text-red-400 border-red-500/20`}>{gaps.length}</Badge>
+            </div>
         </div>
       </header>
 

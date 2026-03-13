@@ -505,7 +505,7 @@ function ChatContent() {
 
       {/* Main Chat Area */}
       <main className="flex-1 flex flex-col min-w-0 bg-[#0a0a0a]">
-        <header className="p-6 border-b border-white/5 flex justify-between items-center shrink-0">
+        <header className="p-6 border-b border-white/5 flex justify-between items-end shrink-0 min-h-[110px] pb-6">
           <div className="flex-1 min-w-0 mr-4">
             {activeSessionId && sessions.find(s => s.sessionId === activeSessionId) ? (
               <div className="flex items-center gap-3 group/title">
@@ -541,40 +541,45 @@ function ChatContent() {
                     />
                   </div>
                 ) : (
-                  <>
-                    <Typography variant="h2" weight="bold" color="white" className="truncate">
-                      {currentSession?.title || 'Untitled Trace'}
-                    </Typography>
-                    <Button 
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsEditingTitle(true)}
-                      className="p-1 opacity-0 group-hover/title:opacity-50 hover:opacity-100 text-white h-auto"
-                      icon={<Edit2 size={14} />}
-                    />
-                  </>
-                )}
-              </div>
-            ) : (
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <Typography variant="h2" weight="bold" color="white" glow className="truncate uppercase">
+                        {currentSession?.title || 'Untitled Trace'}
+                      </Typography>
+                      <Button 
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditingTitle(true)}
+                        className="p-1 opacity-0 group-hover/title:opacity-50 hover:opacity-100 text-white h-auto"
+                        icon={<Edit2 size={14} />}
+                      />
+                    </div>
+                    <Typography variant="body" color="muted" className="mt-1 block">Active neural path execution log.</Typography>
+                  </div>
+                ) : (
               <div>
-                <Typography variant="h2" weight="bold" color="white" className="flex items-center gap-2">
-                  <MessageSquare size={20} className="text-cyber-green" /> Chat Direct
+                <Typography variant="h2" weight="bold" color="white" glow className="uppercase">
+                  Direct Chat
                 </Typography>
-                <Typography variant="caption" color="white" className="mt-1 block opacity-90">
-                  Real-time interaction with Super Claw
+                <Typography variant="body" color="muted" className="mt-1 block">
+                  Real-time interaction with Super Claw.
                 </Typography>
               </div>
             )}
           </div>
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-4">
               {isRealtimeActive && (
-                <Badge variant="primary" glow>
-                  <Zap size={10} className="inline mr-1" /> Live Link Active
-                </Badge>
+                <div className="flex flex-col items-center">
+                    <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">LINK</Typography>
+                    <Badge variant="primary" glow className="px-4 py-1 font-black text-xs">LIVE</Badge>
+                </div>
               )}
-              <Badge variant="primary" className="italic">
-                  {activeSessionId ? `Session ID: ${activeSessionId.substring(0, 12)}...` : 'Idle Waiting'}
-              </Badge>
+              <div className="flex flex-col items-center">
+                  <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">SESSION</Typography>
+                  <Badge variant="outline" className="px-4 py-1 font-bold text-xs border-white/10 text-white/60 uppercase">
+                      {activeSessionId ? activeSessionId.substring(0, 8).toUpperCase() : 'IDLE'}
+                  </Badge>
+              </div>
           </div>
         </header>
 

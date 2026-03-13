@@ -82,29 +82,30 @@ export default async function Dashboard() {
   const [traces, config] = await Promise.all([getTraces(), getConfig()]);
 
   return (
-    <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-8 lg:space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-green/5 via-transparent to-transparent">
+    <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-green/5 via-transparent to-transparent">
         <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
-          <div className="max-w-xl">
-            <Typography variant="h2" weight="bold" color="white" glow className="tracking-tight">Trace Intelligence</Typography>
-            <Typography variant="body" color="white" className="mt-2 block opacity-80 leading-relaxed font-light">Neural observation of autonomous agent logic paths and decision matrices.</Typography>
+          <div>
+            <Typography variant="h2" color="white" glow uppercase>
+              Trace Intelligence
+            </Typography>
+            <Typography variant="body" color="muted" className="mt-2 block">
+              Neural observation of autonomous agent logic paths and decision matrices.
+            </Typography>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:flex gap-3 lg:gap-4">
             <DeleteAllTracesButton />
-            <Card variant="glass" padding="sm" className="px-4 py-2.5 min-w-[120px]">
-              <Typography variant="mono" color="muted" weight="bold" className="tracking-widest text-[9px] mb-1 block">Provider</Typography>
-              <Typography variant="mono" weight="bold" color="intel" className="truncate uppercase block">{config.provider}</Typography>
-            </Card>
-            <Card variant="glass" padding="sm" className="px-4 py-2.5 min-w-[120px]">
-              <Typography variant="mono" color="muted" weight="bold" className="tracking-widest text-[9px] mb-1 block">Model</Typography>
-              <Typography variant="mono" weight="bold" className="truncate max-w-[100px] lg:max-w-[120px] uppercase block">{config.model}</Typography>
-            </Card>
-            <Card variant="glass" padding="sm" className="px-4 py-2.5 min-w-[120px] border-[var(--cyber-green)]/30 col-span-2 md:col-span-1">
-              <Typography variant="mono" color="primary" weight="bold" className="tracking-widest text-[9px] mb-1 block opacity-60">Total Ops</Typography>
-              <div className="font-bold flex items-center gap-2">
-                <Typography variant="body" weight="bold">{traces.length}</Typography>
-                <span className="w-1.5 h-1.5 bg-[var(--cyber-green)] rounded-full animate-pulse"></span>
-              </div>
-            </Card>
+            <div className="flex flex-col items-center">
+                <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">PROVIDER</Typography>
+                <Badge variant="outline" className="px-4 py-1 font-bold text-xs border-cyber-blue/20 text-cyber-blue/60 uppercase">{config.provider}</Badge>
+            </div>
+            <div className="flex flex-col items-center">
+                <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">MODEL</Typography>
+                <Badge variant="outline" className="px-4 py-1 font-bold text-xs border-white/10 text-white/60 uppercase">{config.model}</Badge>
+            </div>
+            <div className="flex flex-col items-center">
+                <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">TOTAL_OPS</Typography>
+                <Badge variant="primary" className="px-4 py-1 font-black text-xs">{traces.length}</Badge>
+            </div>
           </div>
         </header>
 

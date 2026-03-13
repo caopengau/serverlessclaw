@@ -263,15 +263,21 @@ export default function AgentsPage() {
             Manage backbone orchestrators and specialized autonomous agents.
           </Typography>
         </div>
-        <Button
-          onClick={addAgent}
-          variant="outline"
-          size="sm"
-          icon={<Plus size={14} />}
-          uppercase
-        >
-          New Agent
-        </Button>
+        <div className="flex gap-4 items-end">
+            <div className="flex flex-col items-center">
+                <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">NODES</Typography>
+                <Badge variant="outline" className={`px-4 py-1 font-bold text-xs border-${THEME.COLORS.INTEL}/20 text-${THEME.COLORS.INTEL}/60 uppercase`}>{Object.keys(agents).length}</Badge>
+            </div>
+            <Button
+              onClick={addAgent}
+              variant="outline"
+              size="sm"
+              icon={<Plus size={14} />}
+              className="h-[34px] uppercase font-black tracking-widest"
+            >
+              New Agent
+            </Button>
+        </div>
       </header>
 
       <div className="max-w-6xl space-y-8 pb-20">

@@ -2,6 +2,8 @@ export const dynamic = 'force-dynamic';
 import { AlertCircle } from 'lucide-react';
 import { tools } from '@/lib/tool-definitions';
 import CapabilitiesView from '@/components/CapabilitiesView';
+import Typography from '@/components/ui/Typography';
+import Badge from '@/components/ui/Badge';
 
 async function getMCPServers() {
   try {
@@ -62,11 +64,25 @@ export default async function CapabilitiesPage() {
   const allTools = await getAllTools(usage);
 
   return (
-    <main className="flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-blue-500/5 via-transparent to-transparent">
+    <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
-          <h2 className="text-3xl font-black tracking-tighter glow-text-blue">TOOLS & SKILLS</h2>
-          <p className="text-white/40 text-[10px] mt-2 font-bold uppercase tracking-[0.3em]">Global registry of atomic capabilities and external skill bridges.</p>
+          <Typography variant="h2" color="white" glow uppercase>
+            Capabilities
+          </Typography>
+          <Typography variant="body" color="muted" className="mt-2 block">
+            Neural Skill Discovery & External Bridge Management.
+          </Typography>
+        </div>
+        <div className="flex gap-4">
+            <div className="flex flex-col items-center">
+                <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">LOCAL</Typography>
+                <Badge variant="outline" className="px-4 py-1 font-bold text-xs border-yellow-500/20 text-yellow-500/60 uppercase">{allTools.filter(t => !t.isExternal).length}</Badge>
+            </div>
+            <div className="flex flex-col items-center">
+                <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">BRIDGES</Typography>
+                <Badge variant="outline" className="px-4 py-1 font-bold text-xs border-cyber-blue/20 text-cyber-blue/60 uppercase">{Object.keys(mcpServers).length}</Badge>
+            </div>
         </div>
       </header>
 
