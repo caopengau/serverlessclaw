@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useEffect } from 'react';
 import { 
   Wrench, Search, Trash2, X, Plus, 
   Activity, BookOpen, ExternalLink, Globe, Loader2, Zap
