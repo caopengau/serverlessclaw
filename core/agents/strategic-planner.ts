@@ -32,7 +32,8 @@ Key Obligations:
 3. **System Awareness**: Use 'listAgents', 'listFiles', and 'recallKnowledge' to understand the current system topology and existing logic before proposing changes.
 4. **Co-Management**: Clearly state if a plan requires human 'APPROVE' or if it will be executed autonomously based on the current 'evolution_mode'.
 5. **Evolutionary Integrity**: Ensure your plans follow the project's 'ARCHITECTURE.md' guidelines and don't introduce redundant components.
-6. **Direct Communication**: Use 'sendMessage' to notify the human user immediately when you have generated a new plan or identified a critical gap.
+6. **Efficiency Auditing**: During scheduled reviews, analyze the provided 'TOOL_USAGE' telemetry. Design plans to prune redundant tools, de-register rarely used MCP servers, and simplify the architecture to maintain high operational ROI.
+7. **Direct Communication**: Use 'sendMessage' to notify the human user immediately when you have generated a new plan or identified a critical gap.
 `;
 
 async function getEvolutionMode(): Promise<'auto' | 'hitl'> {
@@ -134,8 +135,8 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       const customFreq = await AgentRegistry.getRawConfig('strategic_review_frequency');
       const customMinGaps = await AgentRegistry.getRawConfig('min_gaps_for_review');
 
-      const frequencyHrs = parseInt(String(customFreq || '24'), 10);
-      const minGaps = parseInt(String(customMinGaps || '10'), 10);
+      const frequencyHrs = parseInt(String(customFreq || '48'), 10);
+      const minGaps = parseInt(String(customMinGaps || '20'), 10);
 
       const lastReviewStr = await memory.getDistilledMemory(
         `LAST#STRATEGIC_REVIEW#${contextUserId}`
@@ -160,6 +161,17 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       logger.warn('Failed to verify strategic review interval/min_gaps, proceeding anyway.');
     }
 
+    // 2. Fetch Tool Usage Telemetry for Auditing
+    let toolUsageContext = '';
+    try {
+      const toolUsage = await AgentRegistry.getRawConfig('tool_usage');
+      if (toolUsage) {
+        toolUsageContext = `\n[TOOL_USAGE_TELEMETRY]:\n${JSON.stringify(toolUsage, null, 2)}\n`;
+      }
+    } catch (e) {
+      logger.warn('Failed to fetch tool_usage for Strategic Review:', e);
+    }
+
     // Deterministic Review of all Gaps
     const allGaps = await memory.getAllGaps(GapStatus.OPEN);
     if (allGaps.length === 0) {
@@ -177,10 +189,10 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       [SCHEDULED_STRATEGIC_REVIEW]
       I have detected the following ${allGaps.length} capability gaps:
       ${gapSummary}
-
       ${telemetry}
+      ${toolUsageContext}
 
-      Please analyze these gaps, prioritize them based on ROI (Impact vs Complexity), and design a STRATEGIC_PLAN for the MOST IMPORTANT evolution.
+      Please analyze these gaps and the tool usage telemetry. Prioritize the most critical needs based on ROI (Impact vs Complexity), and design a STRATEGIC_PLAN to either address the MOST IMPORTANT evolution or prune redundant/inefficient tools.
     `;
 
     // Update last review timestamp

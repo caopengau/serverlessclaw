@@ -6,21 +6,20 @@
 
 | Tool | Purpose | Protected? | Writes to Cloud? |
 |------|---------|:---:|:---:|
-| `calculator` | Evaluates math expressions | — | — |
-| `getWeather` | Returns mock weather (demo) | — | — |
-| `dispatchTask` | Sends a task event to EventBridge → Specialized Agent | — | ✅ |
-| `fileWrite` | Writes to a file in the codebase | ✅ Labelled | — |
-| `validateCode` | Runs `tsc --noEmit` + `eslint` pre-flight | — | — |
-| `triggerDeployment` | Starts a CodeBuild deploy (SST v4, circuit-breaker protected) | ✅ Labelled | ✅ |
-| `checkHealth` | Hits `GET /health`. On success: decrements deploy counter | — | ✅ |
-| `triggerRollback` | `git revert HEAD` + redeploy. Emergency use only | — | ✅ |
-| `manageGap` | Updates the status of a Strategic Gap (QA Verification) | — | ✅ |
-| `switchModel` | Updates active provider/model in DynamoDB (Hot Config) | — | ✅ |
-| `runTests` | Executes project unit tests (vitest) | — | — |
-| `recallKnowledge` | Retrieves distilled facts/lessons from memory (JIT context) | — | — |
-| `listAgents` | Discovers available specialized agents in the system | — | — |
-| `discoverSkills` | Searches the global Skills Marketplace for new capabilities | — | — |
-| `installSkill` | Dynamically adds a new skill to the agent's current toolset | — | ✅ |
+| `dispatchTask` | Sends a task to EventBridge → Specialized Agent | — | ✅ |
+| `triggerDeployment` | Starts a CodeBuild deploy (circuit-breaker protected) | ✅ | ✅ |
+| `checkHealth` | Hits `/health` and rewards successful evolution | — | ✅ |
+| `triggerRollback` | Emergency Git revert + redeploy | — | ✅ |
+| `reportGap` | Records a capability gap or technical failure | — | ✅ |
+| `manageGap` | Updates gap status (QA Verification) | — | ✅ |
+| `recallKnowledge` | JIT retrieval of distilled facts/lessons | — | — |
+| `listAgents` | Discovers available specialized agents | — | — |
+| `discoverSkills` | Searches MCP marketplace for new capabilities | — | — |
+| `registerMCPServer` | Dynamically connects a new MCP bridge | — | ✅ |
+| `unregisterMCPServer` | Removes an MCP connection | — | ✅ |
+| `installSkill` | Adds a tool to an agent's roster | — | ✅ |
+| `uninstallSkill` | Removes a tool from an agent's roster | — | ✅ |
+| `mcp-filesystem-*` | MCP-driven file operations (read/write/list/search) | ✅ | — |
 
 ---
 
@@ -92,11 +91,11 @@ Any attempt returns `PERMISSION_DENIED` and the Coder Agent **must** request `MA
 ## 📡 Deploy Lifecycle (Tool Sequence)
 
 ```text
-dispatchTask (coder) → fileWrite → validateCode → [human approves if protected]
-                                                    ↓
-                                          triggerDeployment (SST v4)
-                                                    ↓
-                                            checkHealth (Health Probe)
-                                         ↓            ↓
-                                     OK (–1 count)  FAILED → triggerRollback
+dispatchTask (coder) → mcp-filesystem-write → [human approves if protected]
+                                                     ↓
+                                           triggerDeployment
+                                                     ↓
+                                             checkHealth (Health Probe)
+                                          ↓            ↓
+                                      OK (–1 count)  FAILED → triggerRollback
 ```

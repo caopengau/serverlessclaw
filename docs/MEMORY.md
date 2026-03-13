@@ -56,7 +56,7 @@ Short-term heuristics distilled by the **Cognition Reflector**. If the agent mak
 ### 3. Strategic Gaps (`GAP#`)
 A backlog of missing capabilities identified by the Reflector. These gaps are the primary driver for the system's **Self-Evolution**.
 - **Tracking**: Includes ROI, Complexity, and Risk signals.
-- **Evolution**: The **Strategic Planner** reviews these during its deterministic **24-hour review** cycle to design the next system upgrade.
+- **Evolution**: The **Strategic Planner** reviews these during its deterministic **48-hour review** cycle to design the next system upgrade.
 
 ### 4. Recent Traces (`TRACE#`)
 The raw, mechanical execution logs of every interaction. 

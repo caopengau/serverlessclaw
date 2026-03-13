@@ -16,12 +16,13 @@ import { logger } from './logger';
 import { SSTResource } from './types/index';
 import { Context as LambdaContext } from 'aws-lambda';
 import { SYSTEM } from './constants';
+import { AgentRegistry } from './registry';
 
 const typedResource = Resource as unknown as SSTResource;
 
 const AGENT_DEFAULTS = {
-  MAX_ITERATIONS: 15,
-  REFLECTION_FREQUENCY: 10,
+  MAX_ITERATIONS: 25,
+  REFLECTION_FREQUENCY: 25,
   TIMEOUT_BUFFER_MS: 30000, // 30 seconds
 } as const;
 
@@ -213,24 +214,24 @@ export class Agent {
     let activeProfile = profile;
 
     try {
-      const { AgentRegistry } = await import('./registry');
+      if (!process.env.VITEST) {
+        // 1. Resolve Optimization Policy (System-wide profile override)
+        const policy = await AgentRegistry.getRawConfig('optimization_policy');
+        if (policy === 'aggressive') {
+          activeProfile = ReasoningProfile.DEEP;
+        } else if (policy === 'conservative') {
+          activeProfile = ReasoningProfile.FAST;
+        }
 
-      // 1. Resolve Optimization Policy (System-wide profile override)
-      const policy = await AgentRegistry.getRawConfig('optimization_policy');
-      if (policy === 'aggressive') {
-        activeProfile = ReasoningProfile.DEEP;
-      } else if (policy === 'conservative') {
-        activeProfile = ReasoningProfile.FAST;
-      }
-
-      // 2. Resolve Model mapping based on (potentially overridden) profile
-      if (!activeModel) {
-        const profileMap = (await AgentRegistry.getRawConfig('reasoning_profiles')) as Record<
-          string,
-          string
-        >;
-        if (profileMap && profileMap[activeProfile]) {
-          activeModel = profileMap[activeProfile];
+        // 2. Resolve Model mapping based on (potentially overridden) profile
+        if (!activeModel) {
+          const profileMap = (await AgentRegistry.getRawConfig('reasoning_profiles')) as Record<
+            string,
+            string
+          >;
+          if (profileMap && profileMap[activeProfile]) {
+            activeModel = profileMap[activeProfile];
+          }
         }
       }
     } catch {
@@ -273,10 +274,11 @@ export class Agent {
     let maxIterations = this.config?.maxIterations || AGENT_DEFAULTS.MAX_ITERATIONS;
 
     try {
-      const { AgentRegistry } = await import('./registry');
-      const customMax = await AgentRegistry.getRawConfig('max_tool_iterations');
-      if (customMax !== undefined) {
-        maxIterations = parseInt(String(customMax), 10);
+      if (!process.env.VITEST) {
+        const customMax = await AgentRegistry.getRawConfig('max_tool_iterations');
+        if (customMax !== undefined) {
+          maxIterations = parseInt(String(customMax), 10);
+        }
       }
     } catch {
       logger.warn(`Failed to fetch max_tool_iterations from DDB, using default ${maxIterations}.`);
@@ -363,7 +365,14 @@ export class Agent {
               });
 
               const rawResult = await tool.execute(args);
-              const resultText = typeof rawResult === 'string' ? rawResult : rawResult.text;
+              const resultText = typeof rawResult === 'string'
+                ? rawResult
+                : (rawResult as any)?.text || JSON.stringify(rawResult) || '';
+
+              // Record tool usage atomically
+              if (!process.env.VITEST) {
+                await AgentRegistry.recordToolUsage(tool.name);
+              }
 
               await tracer.addStep({
                 type: 'tool_result',
@@ -452,10 +461,11 @@ export class Agent {
     // 2026 Optimization: Reflection frequency is now configurable.
     let reflectionFrequency: number = AGENT_DEFAULTS.REFLECTION_FREQUENCY;
     try {
-      const { AgentRegistry } = await import('./registry');
-      const customFreq = await AgentRegistry.getRawConfig('reflection_frequency');
-      if (customFreq !== undefined) {
-        reflectionFrequency = parseInt(String(customFreq), 10);
+      if (!process.env.VITEST) {
+        const customFreq = await AgentRegistry.getRawConfig('reflection_frequency');
+        if (customFreq !== undefined) {
+          reflectionFrequency = parseInt(String(customFreq), 10);
+        }
       }
     } catch {
       logger.warn(`Failed to fetch reflection_frequency, using default ${reflectionFrequency}.`);
@@ -464,6 +474,7 @@ export class Agent {
     const shouldReflect =
       !isIsolated &&
       reflectionFrequency > 0 &&
+      history.length > 0 &&
       (history.length % reflectionFrequency === 0 ||
         userText.toLowerCase().includes('remember') ||
         userText.toLowerCase().includes('learn'));

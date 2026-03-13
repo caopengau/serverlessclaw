@@ -273,4 +273,45 @@ export class AgentRegistry {
       logger.error('Failed to auto-refresh topology:', e);
     }
   }
+
+  /**
+   * Atomically records tool usage (count and last used timestamp) in the ConfigTable.
+   *
+   * @param toolName - The name of the tool being executed.
+   */
+  static async recordToolUsage(toolName: string): Promise<void> {
+    if (!typedResource.ConfigTable?.name) return;
+
+    const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+    try {
+      await docClient.send(
+        new UpdateCommand({
+          TableName: typedResource.ConfigTable.name,
+          Key: { key: DYNAMO_KEYS.TOOL_USAGE },
+          UpdateExpression:
+            'SET #usage.#tool.#count = if_not_exists(#usage.#tool.#count, :zero) + :one, #usage.#tool.#last = :now',
+          ExpressionAttributeNames: {
+            '#usage': 'value',
+            '#tool': toolName,
+            '#count': 'count',
+            '#last': 'lastUsed',
+          },
+          ExpressionAttributeValues: {
+            ':one': 1,
+            ':zero': 0,
+            ':now': Date.now(),
+          },
+        })
+      );
+    } catch (e: any) {
+      // If the map doesn't exist yet, initialize it
+      if (e.name === 'ValidationException' && e.message.includes('path')) {
+        await this.saveRawConfig(DYNAMO_KEYS.TOOL_USAGE, {
+          [toolName]: { count: 1, lastUsed: Date.now() },
+        });
+      } else {
+        logger.error(`Failed to record tool usage for ${toolName}:`, e);
+      }
+    }
+  }
 }

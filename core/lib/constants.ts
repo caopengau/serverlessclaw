@@ -42,6 +42,7 @@ export const DYNAMO_KEYS = {
   INFRA_CONFIG: 'infra_config',
   SYSTEM_TOPOLOGY: 'system_topology',
   RETENTION_CONFIG: 'retention_config',
+  TOOL_USAGE: 'tool_usage',
 } as const;
 
 export const HTTP_STATUS = {

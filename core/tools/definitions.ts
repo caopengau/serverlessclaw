@@ -268,6 +268,21 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
+  unregisterMCPServer: {
+    name: 'unregisterMCPServer',
+    description: 'Removes an MCP server and all its associated tools from the system.',
+    parameters: {
+      type: 'object',
+      properties: {
+        serverName: {
+          type: 'string',
+          description: 'The name of the MCP server to remove.',
+        },
+      },
+      required: ['serverName'],
+      additionalProperties: false,
+    },
+  },
   listAgents: {
     name: 'listAgents',
     description: 'Lists all available specialized agents in the system and their capabilities.',
@@ -316,21 +331,6 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
         skillName: { type: 'string', description: 'The name of the skill to install.' },
       },
       required: ['skillName'],
-      additionalProperties: false,
-    },
-  },
-  sendMessage: {
-    name: 'sendMessage',
-    description: 'Sends a direct message to the human user in their current chat session.',
-    parameters: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          description: 'The content of the message to send.',
-        },
-      },
-      required: ['message'],
       additionalProperties: false,
     },
   },

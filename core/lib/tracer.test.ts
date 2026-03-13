@@ -6,6 +6,7 @@ import { AgentRegistry } from './registry';
 vi.mock('./registry', () => ({
   AgentRegistry: {
     getRetentionDays: vi.fn(),
+    recordToolUsage: vi.fn().mockResolvedValue(undefined),
   },
 }));
 

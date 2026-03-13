@@ -22,6 +22,8 @@ interface ToolsResource {
   AgentBus: { name: string };
 }
 
+const typedResource = Resource as unknown as ToolsResource;
+
 /**
  * Lists all registered agents and their current status.
  */
@@ -80,7 +82,6 @@ export const dispatchTask = {
     logger.info(
       `Dispatching ${agentId} task (Depth: ${nextDepth}, Node: ${childTracer.getNodeId()}, Parent: ${tracer.getNodeId()}) for user ${userId}: ${task}`
     );
-    const typedResource = Resource as unknown as ToolsResource;
     const command = new PutEventsCommand({
       Entries: [
         {
@@ -237,7 +238,6 @@ export const manageAgentTools = {
   ...toolDefinitions.manageAgentTools,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { agentId, toolNames } = args as { agentId: string; toolNames: string[] };
-    const typedResource = Resource as unknown as ToolsResource;
     try {
       await db.send(
         new PutCommand({
@@ -301,7 +301,6 @@ export const reportGap = {
       await getMemory().setGap(gapId, content, metadata);
 
       // Emit EventBridge event for cross-agent coordination
-      const typedResource = Resource as unknown as ToolsResource;
       await eventbridge.send(
         new PutEventsCommand({
           Entries: [
@@ -335,7 +334,6 @@ export const setSystemConfig = {
   ...toolDefinitions.setSystemConfig,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { key, value } = args as { key: string; value: unknown };
-    const typedResource = Resource as unknown as ToolsResource;
     try {
       await db.send(
         new PutCommand({
@@ -361,7 +359,6 @@ export const registerMCPServer = {
       command: string;
       env?: Record<string, string>;
     };
-    const typedResource = Resource as unknown as ToolsResource;
 
     try {
       const { AgentRegistry } = await import('../lib/registry');
@@ -383,6 +380,78 @@ export const registerMCPServer = {
       return `Successfully registered MCP server '${serverName}'. You can now use 'discoverSkills' to find tools from this server.`;
     } catch (error) {
       return `Failed to register MCP server: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  },
+};
+
+/**
+ * Removes an MCP server and its associated tools.
+ */
+export const unregisterMCPServer = {
+  ...toolDefinitions.unregisterMCPServer,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { serverName } = args as { serverName: string };
+
+    try {
+      const { AgentRegistry } = await import('../lib/registry');
+      const mcpServers =
+        ((await AgentRegistry.getRawConfig('mcp_servers')) as Record<string, unknown>) || {};
+
+      if (!mcpServers[serverName]) {
+        return `FAILED: MCP server '${serverName}' is not registered.`;
+      }
+
+      delete mcpServers[serverName];
+
+      await db.send(
+        new PutCommand({
+          TableName: typedResource.ConfigTable.name,
+          Item: {
+            key: 'mcp_servers',
+            value: mcpServers,
+          },
+        })
+      );
+
+      return `Successfully unregistered MCP server '${serverName}'. Any associated tools will no longer be available.`;
+    } catch (error) {
+      return `Failed to unregister MCP server: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  },
+};
+
+/**
+ * Uninstalls a skill from an agent's toolset.
+ */
+export const uninstallSkill = {
+  ...toolDefinitions.uninstallSkill,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { skillName, agentId } = args as { skillName: string; agentId?: string };
+    const targetAgentId = agentId || 'main';
+
+    try {
+      const { AgentRegistry } = await import('../lib/registry');
+      const currentTools = (await AgentRegistry.getRawConfig(`${targetAgentId}_tools`)) as string[];
+
+      if (!currentTools || !currentTools.includes(skillName)) {
+        return `FAILED: Skill '${skillName}' is not installed for agent ${targetAgentId}.`;
+      }
+
+      const updatedTools = currentTools.filter((t) => t !== skillName);
+
+      await db.send(
+        new PutCommand({
+          TableName: typedResource.ConfigTable.name,
+          Item: {
+            key: `${targetAgentId}_tools`,
+            value: updatedTools,
+          },
+        })
+      );
+
+      return `Successfully uninstalled skill '${skillName}' from agent ${targetAgentId}.`;
+    } catch (error) {
+      return `Failed to uninstall skill: ${error instanceof Error ? error.message : String(error)}`;
     }
   },
 };

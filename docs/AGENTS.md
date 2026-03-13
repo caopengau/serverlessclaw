@@ -79,6 +79,53 @@ Users can set a global `optimization_policy` to control system-wide reasoning de
 - **CONSERVATIVE**: Forces `FAST` reasoning (Lowest Latency, Lowest Cost).
 - **BALANCED**: Respects the task's intended profile.
 
+---
+
+## 🔄 Autonomous Expansion (The Discovery Loop)
+
+Serverless Claw agents are capable of self-provisioning new tools when they encounter a `strategic_gap` that requires external capabilities.
+
+```text
+       [ SuperClaw ]
+             |
+      1. discoverSkills("git management")
+             |
+      2. registerMCPServer("mcp-server-git", "npx ...")
+             |
+      3. installSkill("git_push", agentId: "coder")
+             |
+    +--------V--------+
+    |   Coder Agent   | <--- Now equipped with structured Git pushing
+    +-----------------+
+```
+
+1. **Discovery**: When an agent realizes it lacks a specific capability (e.g., "I need to query a Postgres DB"), it uses `discoverSkills` to search for relevant MCP servers.
+2. **Registration**: The agent uses `registerMCPServer` to add the MCP server to the global configuration. This tells the `MCPBridge` how to spawn the server (usually via `npx`).
+3. **Equipment**: The agent uses `installSkill` to add specific tools from the new server to its own toolset or the toolset of a specialized peer (like the Coder).
+4. **Persistence & Telemetry**: These changes are saved atomically to the `ConfigTable`. Every subsequent tool execution is recorded (`tool_usage`), providing the data signature needed for future audits.
+
+### 🔄 The Efficiency Loop (Dynamic Pruning)
+
+To balance rapid expansion, the system implements a long-term **Efficiency Loop** to identify and remove deadweight.
+
+```text
+       [ ConfigTable ] 
+              |
+       1. RECORD_USAGE (per tool call)
+              |
+       2. AUDIT_TELEMETRY (48-hr Strategic Review)
+              |
+       3. SUGGEST_PRUNING (Refiner/Planner)
+              |
+    +---------+---------+
+    |   Human Admin     | <--- Approve/Execute removal via Dashboard
+    +-------------------+
+```
+
+- **Deterministic Auditing**: Every 48 hours (or after 20 gaps), the Strategic Planner analyzes the `tool_usage` telemetry.
+- **Redundancy Detection**: If two MCP servers provide overlapping capabilities, or if a tool hasn't been used in 30 days, the Planner suggests a `PRUNE_CAPABILITY` plan.
+- **Manual Intervention**: Humans can instantly unregister servers or uninstall skills via the **Evolution** sector in the Dashboard.
+
 ### 3. Evolutionary Lifecycle (Verified Satisfaction)
 
 Serverless Claw is a **self-evolving system** that identifies its own weaknesses and implements its own upgrades.
@@ -122,10 +169,11 @@ Serverless Claw is a **self-evolving system** that identifies its own weaknesses
 
 1.  **Observation**: The **Cognition Reflector** analyzes interactions to find "I can't do that" moments or complex failures.
 2.  **Gap Analysis**: Failures are logged as `strategic_gap` items in DynamoDB, ranked by **Impact** and **Urgency**.
-3.  **Strategic Planning**: The **Strategic Planner** reviews gaps during a **deterministic 24-hour review**. It designs a STRATEGIC_PLAN and moves gaps to `PLANNED`.
-4.  **Execution**: Once the plan is approved (or automatically triggered in `auto` mode), the **Coder Agent** moves gaps to `PROGRESS`, writes the code, and triggers a deployment.
-5.  **Technical Success**: The **Build Monitor** detects a successful CodeBuild run and moves gaps to `DEPLOYED`.
-6.  **Verified Satisfaction**: The **QA Auditor** (via Reflector Audit) monitors subsequent conversations. If the user successfully uses the new capability, the Reflector marks the gap as `DONE`.
+3.  **Efficiency Audit**: Every 48 hours, the **Strategic Planner** reviews the `tool_usage` telemetry and all open gaps.
+4.  **Strategic Planning**: The Planner designs a STRATEGIC_PLAN (Expansion or Pruning) and moves gaps to `PLANNED`.
+5.  **Execution**: Once approved, the **Coder Agent** moves gaps to `PROGRESS`, writes code/config, and triggers a deploy.
+6.  **Technical Success**: The **Build Monitor** detects a successful build and moves gaps to `DEPLOYED`.
+7.  **Verified Satisfaction**: The **QA Auditor** verifies the fix. If successful, the Reflector marks it `DONE`.
 
 ---
 

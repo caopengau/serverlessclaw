@@ -85,19 +85,9 @@ Response
 
 ---
 
-## Concurrency & Session Isolation
-
-Unlike traditional agent servers that process messages serially, Serverless Claw uses **Distributed Locking** via DynamoDB to ensure session integrity in a stateless environment.
-
-```text
-[User Msg A] -> [Lambda 1] -> [Acquire Lock] -> [ EXECUTE ]
-[User Msg B] -> [Lambda 2] -> [ Lock Check ] -> [ FAIL/EXIT ]
-[User Msg C] -> [Lambda 3] -> [ Lock Check ] -> [ FAIL/EXIT ]
-```
-
-- **Mechanism**: A `LOCK#<chatId>` item is created in `MemoryTable` with a TTL.
-- **Observability**: The Dashboard's `SESSION_TRAFFIC` (Infrastructure) sector monitors these locks.
-- **Self-Healing**: If a Lambda crashes, the lock can be manually cleared or will auto-expire, preventing session deadlocks.
+## Distributed Concurrency
+Serverless Claw uses **Distributed Locking** via DynamoDB to ensure session integrity in a stateless environment.
+- **Deep Dive**: [Concurrency & Locking ↗](./docs/CONCURRENCY.md)
 
 ---
 
@@ -142,40 +132,8 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
 ---
 
 ## 📈 Unified Tracing Architecture
-
-Serverless Claw uses a **Branched Neural Path Tracing** model to visualize complex, parallel multi-agent workflows.
-
-### Trace Graph Model
-Instead of a linear log, the system records a **Directed Acyclic Graph (DAG)** of execution nodes.
-
-```text
- [ User Msg ] 
-      |
-   (root) 
-  SuperClaw
-      |
-      +---------------------------+
-      |                           |
-  (node_A)                    (node_B)
-  Planner Agent               Coder Agent
-      |                           |
-   [Research]                  [Fix Code]
-      |                           |
-      +------------+--------------+
-                   |
-                (node_C)
-                QA Agent
-```
-
-1. **Trace ID Propagation**: A global `traceId` links all nodes in a single request lifecycle.
-2. **Node Branching**: When an agent uses `dispatchTask`, a child `nodeId` is generated, linked to the `parentId`.
-3. **DAG Visualization**: The ClawCenter dashboard renders this as a neural map, allowing users to drill down into specific parallel execution branches.
-
-### Storage Optimization
-To support efficient retrieval of entire execution graphs, the **TraceTable** (DynamoDB) uses a **Composite Primary Key**:
-- **Hash Key (`traceId`)**: Links all nodes in a single user request.
-- **Range Key (`nodeId`)**: Identifies individual agent executions or parallel branches.
-This structure allows a single `Query` operation to retrieve the complete neural path for visualization.
+Serverless Claw uses a **Branched Neural Path Tracing** model to visualize complex, parallel multi-agent workflows as a Directed Acyclic Graph (DAG).
+- **Deep Dive**: [Tracing & DAG Model ↗](./docs/TRACING.md)
 
 ---
 
@@ -202,13 +160,13 @@ Serverless Claw has evolved from static tools to a **Dynamic Skill Architecture*
 ```
 
 ### 1. Custom Skills (Internal)
-Tools written specifically for the ServerlessClaw environment (e.g., `triggerDeployment`). These run within the agent's AWS Lambda execution context.
+Tools written specifically for the ServerlessClaw environment (e.g., `triggerDeployment`). These run within the agent's AWS Lambda execution context and are defined in `core/tools/`.
 
-### 2. MCP Skills (External)
-Connected via the **Model Context Protocol (MCP)**.
-- **Local MCP**: Spawned as sub-processes (e.g., via `npx`).
-- **Remote MCP**: Connected via URLs (SSE).
-This gives agents instant access to the entire open-source tool ecosystem (GitHub, Google, etc.).
+### 2. MCP Skills (External Bridge)
+Connected via the **Model Context Protocol (MCP)**. This is the primary scaling vector for the system.
+- **Dynamic Spawning**: The `MCPBridge` uses `npx` to fetch and run servers on-demand based on the `mcp_servers` configuration in DynamoDB.
+- **Encapsulated Environments**: Servers run as independent sub-processes, ensuring isolation from the core agent runtime.
+- **Persistence & Auditing**: Once an agent calls `registerMCPServer`, the server is recorded in the `ConfigTable`. Every subsequent tool call is tracked (count and last-used timestamp) to enable data-driven pruning.
 
 ### 3. Built-in Skills (Model-Native)
 Native capabilities provided by the LLM provider (e.g., OpenAI's **Code Interpreter** or Gemini's **Grounded Search**). The system passes these through while maintaining trace visibility.
@@ -218,18 +176,9 @@ Tools can now return **Structured Results** (`ToolResult`) containing text, imag
 
 ---
 
-## 🧠 Self-Aware Topology Discovery
-
-Serverless Claw implements a **Self-Aware Infrastructure** model. Rather than relying on hardcoded diagrams, the system discovers its own topology post-deployment.
-
-### The Discovery Flow
-1. **Deployment**: The `Coder Agent` triggers a CodeBuild deployment.
-2. **Observation**: The **Build Monitor** receives the `SUCCEEDED` event.
-3. **Scan**: The monitor calls `discoverSystemTopology()`, which:
-    - Scans the SST `Resource` object for infrastructure (S3, DynamoDB, EventBridge).
-    - Scans the `AgentRegistry` for LLM agents and logical handlers.
-4. **Persistence**: The resulting JSON graph is saved to the `ConfigTable`.
-5. **Visualization**: The dashboard updates **automatically**.
+## 🧠 Infrastructure Discovery
+The system implements a **Self-Aware Infrastructure** model where the topology is discovered post-deployment rather than hardcoded.
+- **Deep Dive**: [Infra & Discovery ↗](./docs/INFRASTRUCTURE.md)
 
 ---
 
@@ -247,10 +196,10 @@ Instead of loading all memories into every prompt, agents use `recallKnowledge(q
 
 ### 3. Dynamic Tool Scoping & Discovery
 Agents no longer load the entire tool catalog.
-- **Mechanism**: Every agent call triggers `getAgentTools(agentId)`.
-- **Registry**: The `AgentRegistry` stores the allowed tool names and system prompts for each agent, pulling from `backbone.ts`.
-- **Standard Support Profile**: Dynamic agents are automatically injected with core tools (`recallKnowledge`, `listAgents`, `dispatchTask`) to ensure baseline intelligence and collaboration.
-- **Co-Management**: The **ClawCenter** dashboard serves as the UI for the registry, allowing zero-downtime hot-swaps.
+- **Registry**: The `AgentRegistry` stores the allowed tool names and system prompts for each agent. It merges backbone defaults from `backbone.ts` with dynamic overrides in DynamoDB.
+- **Autonomous Expansion**: Agents can use `discoverSkills` to find new capabilities in the marketplace and `installSkill` to permanently add them to their own (and others') rosters.
+- **Standard Support Profile**: Dynamic agents are automatically injected with core tools (`recallKnowledge`, `listAgents`, `dispatchTask`, `discoverSkills`) to ensure baseline intelligence and collaboration.
+- **Co-Management**: The **ClawCenter** dashboard serves as the UI for the registry, allowing zero-downtime hot-swaps and (coming soon) usage tracking.
 
 ### 4. Memory Adapters
 While the default uses DynamoDB, the system can be adapted to use:
@@ -259,154 +208,23 @@ While the default uses DynamoDB, the system can be adapted to use:
 - **S3** for long-term archival.
 
 ## 📡 Real-time Communication (IoT Core)
-
-To ensure the **ClawCenter Dashboard** receives instantaneous updates without polling, we use a **Real-time Bridge** pattern over AWS IoT Core.
-
-```text
- [ Agent / Handler ]
-          |
-   (Publish Event)
-          |
-          v
- [ AgentBus (EventBridge) ]
-          |
-      (Rule Match)
-          |
-          v
- [ Realtime Bridge (Lambda) ]
-          |
-   (re-wrap & publish)
-          |
-          v
- [ AWS IoT Core (MQTT) ] ----> [ Dashboard (React Flow) ]
- (Topic: users/{id}/signal)      (Instant Neural Pulse)
-```
-
-- **Efficiency**: Reduces latency from seconds (polling) to milliseconds (push).
-- **Scale**: Supports thousands of concurrent dashboard users via MQTT.
+To ensure the **ClawCenter Dashboard** receives instantaneous updates, we use a **Real-time Bridge** pattern over AWS IoT Core and MQTT.
+- **Deep Dive**: [Real-time Signaling ↗](./docs/REALTIME.md)
 
 ### 5. Channel Adapters (Fan-Out)
 Instead of hardcoding API requests to a single platform, agents emit an `OUTBOUND_MESSAGE` event onto the AgentBus.
 - **Notifier Handler**: A dedicated lightweight Lambda (`src/handlers/notifier.ts`) listens to these events.
 - **Multi-Channel**: The Notifier reads user preferences from the `ConfigTable` and fans the message out to the appropriate adapters (Telegram, Slack, and the **Real-time Signal Bridge**).
 
-## Self-Management & Orchestration
+## 🔄 Self-Evolution & Stability
+The system's evolution is a co-managed process between the **Strategic Planner** and the **Human Admin**.
+- **Deep Dive**: [Self-Evolution ↗](./docs/EVOLUTION.md)
+- **Deep Dive**: [Health & Recovery ↗](./docs/HEALTH.md)
 
-Serverless Claw is designed to evolve itself and manage complex agent hierarchies.
+### Evolution Modes
+- **`hitl` (Default)**: Strategic plans require explicit user "APPROVE" via Telegram.
+- **`auto`**: Planner directly triggers `CODER_TASK` upon identification.
 
-### 1. Evolution Control (Auto vs HITL)
-The `evolution_mode` key in the `ConfigTable` dictates how the system upgrades itself:
-- **`hitl` (Default)**: The Planner designs a capability upgrade but requires the user to explicitly reply "APPROVE" on messaging channels.
-- **`auto` (Dangerous)**: The Planner agent directly publishes a `CODER_TASK` to the AgentBus, initiating the build immediately and merely notifying the user.
-
-### 2. Self-Evolution (The Persistence Loop)
-
-The stack evolves by bridging the gap between temporary Lambda execution and persistent Git storage.
-
-```text
-+--------------+       +------------------+       +-------------------+
-|  Coder Agent |------>|  Staging Bucket  |<------|   AWS CodeBuild   |
-| (Writes Code)| upload|    (S3)          | pull  |     (Deployer)    |
-+--------------+       +------------------+       +---------+---------+
-                                                            |
-                                                            v
-+--------------+       +------------------+       +-------------------+
-|  SuperClaw  +------>|  AWS CodeBuild   +------>|   Agent Stack     |
-| (Orchestrator)| trigger| (Deployer)       |  sst  | (Self-Update)     |
-+--------------+       +-----------|------+       +---------+---------+
-                                   |                        |
-                                   v                        v
-                        +------------------+      +-------------------+
-### 3. Capability Evolution (Co-Management)
-The system's evolution is a shared responsibility between the **Planner Agent** and the **Human Admin**.
-- **The Dashboard (ClawCenter)**: Serves as the Command & Control center for the **Agent Registry**.
-- **Dynamic Scoping**: Permissions and **Agent Personas** are managed as data in DynamoDB, not as hardcoded logic.
-- **Worker Nodes**: New agents can be registered in the UI and are immediately available for task dispatch via the generic **Worker Agent** Lambda.
-- **Pruning**: Human insight is used to "weed" the memory garden, ensuring high-quality self-improvement.
-```
-
-### 2. Self-Healing Loop
-
-If a deployment fails or the system becomes unstable, Serverless Claw automatically repairs itself.
-
-```text
-    +-----------+           +-----------+
-    | SuperClaw| <-------+ |  Events   |
-    | (Brain)   |           +-----+-----+
-    +-----+-----+                 ^
-          |                       |
-          v                       |
-    +-----+-----+           +-----+-----+
-    | Coder Agent|          |   Build   |
-    | (Modify)  |           |  Monitor  |
-    +-----+-----+           +-----+-----+
-          |                       ^
-          v                       |
-    +-----+-----+                 |
-    | Deployer  | ----------------+
-    | (CodeBuild)|
-    +-----------+
-```
-
-**How it works**:
-1. **Coder Agent** implements changes using `fileWrite` and validates them.
-2. **SuperClaw** (via tool) zips the modified workspace and uploads it to the **Staging Bucket** (S3).
-3. **SuperClaw** calls `triggerDeployment`.
-4. **CodeBuild** starts:
-    - Pulls the latest code from **GitHub**.
-    - Pulls the modified files from the **Staging Bucket** and overwrites the local workspace.
-    - Runs `pnpm sst deploy`.
-5. **On Success**: CodeBuild uses a `GITHUB_TOKEN` to commit and push the staged changes back to the repository, closing the evolution loop.
-6. **On Failure**: 
-    - **Build Monitor** detects the failure and retrieves the `traceId` of the reasoning session that triggered it.
-    - **Enrichment**: It emits a `SYSTEM_BUILD_FAILED` event containing the `traceId`, `gapIds`, and `errorLogs`.
-    - **Triage**: The **EventHandler** injects this context into a recovery task, allowing the next agent to look back at the "breaking reasoning" via the trace.
-    - **Dead Man's Switch**: Reverts the last commit in Git if consecutive failures are detected.
-
----
-
-### 4. Cost-Effectiveness & Safety (CodeBuild Edition)
-
-Replacing legacy GitHub Actions cost controls with in-AWS equivalents:
-
-1. **Circuit Breaker**: Max 5 deploys/UTC day tracked in DynamoDB. See [docs/SAFETY.md](./docs/SAFETY.md).
-2. **Health Probe Reward**: Successful `GET /health` decrements the counter (-1), allowing continued evolution for healthy changes.
-3. **Self-Reporting Health**: Components use `reportHealthIssue` to signal the AgentBus when internal invariants are violated (e.g., database failures, API timeouts).
-4. **Config-as-Data**: Non-structural changes (prompts, tool params) live in DynamoDB — no deploy needed.
-5. **Human-in-the-Loop**: Protected files (`sst.config.ts`, etc.) require explicit Telegram approval before any change deploys.
-
----
-
-## ⚕️ Autonomous Health Monitoring
-
-Beyond build failures, the system monitors its own operational integrity through **Signal-based Triage**.
-
-```text
- [ Any Component ]
-        |
- (Health Violation)
-        |
-        +----------------------------+
-        |  SYSTEM_HEALTH_REPORT      |
-        |  (AgentBus)                |
-        +-------------+--------------+
-                      |
-        ______________V______________
-       |                             |
-       |     EVENT_HANDLER           | (SuperClaw)
-       |     (Triage Brain)          |
-       |_____________________________|
-              |
-      (Reason & Dispatch)
-              |
-      +-------+-------+
-      |               |
- [ Coder Agent ]  [ Recovery Agent ]
- (Fix Code)       (Cycle Resource)
-```
-
-- **Proactivity**: While currently event-driven (Self-Reporting), the system is architected for active heartbeating via the `/health` tool.
-- **Root Cause Analysis**: The SuperClaw receives the full error context and stack traces, allowing it to delegate to the **Coder Agent** for permanent fixes or the **Recovery Agent** for immediate stabilization.
 
 ### 4. LLM Providers
 Provider-agnostic interface supporting:

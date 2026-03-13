@@ -30,3 +30,33 @@ export async function updateAgentTools(formData: FormData) {
     console.error('Error updating agent tools:', e);
   }
 }
+
+export async function deleteMCPServer(serverName: string) {
+  try {
+    const tableName = (Resource as any).ConfigTable?.name;
+    if (!tableName) throw new Error('ConfigTable name is missing');
+    
+    const client = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(client);
+
+    // 1. Get current servers
+    const { GetCommand, PutCommand } = await import('@aws-sdk/lib-dynamodb');
+    const { Item } = await docClient.send(new GetCommand({
+      TableName: tableName,
+      Key: { key: 'mcp_servers' }
+    }));
+
+    const servers = Item?.value || {};
+    if (servers[serverName]) {
+      delete servers[serverName];
+      await docClient.send(new PutCommand({
+        TableName: tableName,
+        Item: { key: 'mcp_servers', value: servers }
+      }));
+    }
+
+    revalidatePath('/capabilities');
+  } catch (e) {
+    console.error('Error deleting MCP server:', e);
+  }
+}

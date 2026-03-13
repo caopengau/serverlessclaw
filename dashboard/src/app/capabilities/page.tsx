@@ -21,11 +21,34 @@ async function getAgentConfigs() {
   }
 }
 
+async function getMCPServers() {
+  try {
+    const { AgentRegistry } = await import('@claw/core/lib/registry');
+    return (await AgentRegistry.getRawConfig('mcp_servers')) as Record<string, any> || {};
+  } catch (e) {
+    console.error('Error fetching MCP servers:', e);
+    return {};
+  }
+}
+
+async function getToolUsage() {
+  try {
+    const { AgentRegistry } = await import('@claw/core/lib/registry');
+    return (await AgentRegistry.getRawConfig('tool_usage')) as Record<string, { count: number; lastUsed: number }> || {};
+  } catch (e) {
+    console.error('Error fetching tool usage:', e);
+    return {};
+  }
+}
+
 export default async function CapabilitiesPage() {
   const agents = await getAgentConfigs();
+  const usage = await getToolUsage();
+  const mcpServers = await getMCPServers();
   const allTools = Object.values(tools).map(t => ({
     name: t.name,
-    description: t.description
+    description: t.description,
+    usage: usage[t.name] || { count: 0, lastUsed: 0 }
   }));
 
   return (
@@ -37,7 +60,11 @@ export default async function CapabilitiesPage() {
         </div>
       </header>
 
-      <CapabilitiesView agents={agents} allTools={allTools} />
+      <CapabilitiesView 
+        agents={agents} 
+        allTools={allTools} 
+        mcpServers={mcpServers}
+      />
 
       <div className="glass-card p-6 border-white/5 text-white/40 flex items-center gap-4">
         <AlertCircle size={20} className="text-yellow-500/60 shrink-0" />

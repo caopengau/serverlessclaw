@@ -7,11 +7,9 @@ import {
 import { Resource } from 'sst';
 import { toolDefinitions } from './definitions';
 import { logger } from '../lib/logger';
-import * as fs from 'fs/promises';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { PROTECTED_FILES } from '../lib/constants';
 import { ToolResult } from '../lib/types/tool';
 
 const execAsync = promisify(exec);
