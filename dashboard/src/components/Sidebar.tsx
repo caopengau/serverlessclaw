@@ -53,6 +53,7 @@ export default function Sidebar() {
     { href: ROUTES.MEMORY, label: UI_STRINGS.MEMORY_RESERVE, icon: Brain },
     
     { label: UI_STRINGS.PIPELINE_HEADER, type: 'header' },
+    { href: ROUTES.PIPELINE, label: UI_STRINGS.EVOLUTION_PIPELINE, icon: Server },
     { href: ROUTES.CAPABILITIES, label: UI_STRINGS.CAPABILITIES, icon: Wrench },
     
     { label: UI_STRINGS.INFRA_HEADER, type: 'header' },
@@ -61,6 +62,8 @@ export default function Sidebar() {
     
     { label: UI_STRINGS.CONFIGURATION_HEADER, type: 'header' },
     { href: ROUTES.SETTINGS, label: UI_STRINGS.CONFIG, icon: Settings },
+    
+    { label: UI_STRINGS.OBSERVABILITY_HEADER, type: 'header' },
     { href: ROUTES.SECURITY, label: UI_STRINGS.SECURITY_MANIFEST, icon: ShieldCheck },
     { href: ROUTES.RESILIENCE, label: UI_STRINGS.SELF_HEALING, icon: Zap },
   ];
