@@ -41,7 +41,7 @@ export function createAgents(ctx: SharedContext): {
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
     logging: {
-      retention: '30 days',
+      retention: '1 month',
     },
   });
   bus.subscribe('CoderTaskSubscriber', coderAgent.arn, {
@@ -68,7 +68,7 @@ export function createAgents(ctx: SharedContext): {
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.MEDIUM,
     logging: {
-      retention: '30 days',
+      retention: '1 month',
     },
   });
 
@@ -80,7 +80,7 @@ export function createAgents(ctx: SharedContext): {
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.MEDIUM,
     logging: {
-      retention: '30 days',
+      retention: '1 month',
     },
   });
 
@@ -143,7 +143,7 @@ export function createAgents(ctx: SharedContext): {
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
     logging: {
-      retention: '30 days',
+      retention: '1 month',
     },
   });
   bus.subscribe('EvolutionPlanSubscriber', plannerAgent.arn, {
@@ -189,7 +189,7 @@ export function createAgents(ctx: SharedContext): {
     memory: AGENT_CONFIG.memory.MEDIUM,
     timeout: AGENT_CONFIG.timeout.LONG,
     logging: {
-      retention: '30 days',
+      retention: '1 month',
     },
   });
   bus.subscribe('SystemBuildFailedSubscriber', eventHandler.arn, {
@@ -212,7 +212,7 @@ export function createAgents(ctx: SharedContext): {
     memory: AGENT_CONFIG.memory.MEDIUM,
     timeout: AGENT_CONFIG.timeout.MAX,
     logging: {
-      retention: '30 days',
+      retention: '1 month',
     },
   });
   bus.subscribe('ReflectTaskSubscriber', reflectorAgent.arn, {
@@ -227,7 +227,7 @@ export function createAgents(ctx: SharedContext): {
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
     logging: {
-      retention: '30 days',
+      retention: '1 month',
     },
   });
   bus.subscribe('QaVerificationSubscriber', qaAgent.arn, {
@@ -256,7 +256,7 @@ export function createAgents(ctx: SharedContext): {
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
     logging: {
-      retention: '30 days',
+      retention: '1 month',
     },
   });
   // Subscribe to all agent tasks that don't have a specific handler
@@ -281,7 +281,7 @@ export function createAgents(ctx: SharedContext): {
     dev: liveInLocalOnly,
     link: [ctx.realtime!, bus],
     logging: {
-      retention: '30 days',
+      retention: '1 month',
     },
   });
   bus.subscribe('RealtimeBridgeSubscriber', bridge.arn, {

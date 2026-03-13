@@ -4,7 +4,7 @@ export function createBus() {
     authorizer: {
       handler: 'core/handlers/realtime-auth.handler',
       logging: {
-        retention: '30 days',
+        retention: '1 month',
       },
     },
   });

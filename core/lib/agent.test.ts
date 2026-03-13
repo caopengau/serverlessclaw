@@ -64,7 +64,7 @@ describe('Agent Trace Propagation', () => {
     const mockTool = {
       name: 'testTool',
       description: 'Test Tool',
-      parameters: {},
+      parameters: { type: 'object', properties: {} },
       execute: vi.fn().mockResolvedValue('Tool result'),
     };
 
@@ -91,6 +91,8 @@ describe('Agent Trace Propagation', () => {
     const agent = new Agent(mockMemory, mockProvider, [mockTool], 'System prompt', {
       id: 'test-agent',
       name: 'Test Agent',
+      enabled: true,
+      systemPrompt: 'System prompt',
     });
 
     await agent.process('user-1', 'Hello', {
@@ -112,7 +114,7 @@ describe('Agent Trace Propagation', () => {
     const mockTool = {
       name: 'multiModalTool',
       description: 'Test Tool',
-      parameters: {},
+      parameters: { type: 'object', properties: {} },
       execute: vi.fn().mockResolvedValue({
         text: 'Result text',
         images: ['base64-image-data'],
@@ -138,6 +140,8 @@ describe('Agent Trace Propagation', () => {
     const agent = new Agent(mockMemory, mockProvider, [mockTool], 'System', {
       id: 'test',
       name: 'Test',
+      enabled: true,
+      systemPrompt: 'System',
     });
 
     await agent.process('user-1', 'Hello', {});
@@ -174,7 +178,7 @@ describe('Agent Trace Propagation', () => {
       .mockResolvedValueOnce({ role: MessageRole.ASSISTANT, content: 'Calculated' });
 
     // No tools provided to agent, but provider requests code_interpreter
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', { id: 'test', name: 'Test' });
+    const agent = new Agent(mockMemory, mockProvider, [], 'System', { id: 'test', name: 'Test', enabled: true, systemPrompt: 'System' });
 
     await agent.process('user-1', 'Run code', {});
 
@@ -200,7 +204,7 @@ describe('Agent Trace Propagation', () => {
       .fn()
       .mockResolvedValue({ role: MessageRole.ASSISTANT, content: 'I see it' });
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', { id: 'test', name: 'Test' });
+    const agent = new Agent(mockMemory, mockProvider, [], 'System', { id: 'test', name: 'Test', enabled: true, systemPrompt: 'System' });
 
     await agent.process('user-1', 'What is this?', { attachments });
 

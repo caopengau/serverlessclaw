@@ -84,7 +84,8 @@ export const handler = async (
   if (traceId) {
     try {
       const { ClawTracer } = await import('../lib/tracer');
-      const trace = await ClawTracer.getTrace(traceId);
+      const traceNodes = await ClawTracer.getTrace(traceId);
+      const trace = traceNodes[0]; // Primary node
 
       // Safety: Only analyze user-facing interactions (Dashboard/Telegram)
       // Ignore system-initiated traces (like previous reflector runs) to prevent self-audit loops.

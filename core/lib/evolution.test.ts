@@ -74,6 +74,8 @@ describe('Agent Evolution Flow', () => {
     const agent = new Agent(mockMemory, mockProvider, initialTools, 'System', {
       id: 'superclaw',
       name: 'SuperClaw',
+      enabled: true,
+      systemPrompt: 'System',
     });
 
     // 2. LLM decides to discover skills

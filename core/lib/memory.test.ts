@@ -45,7 +45,7 @@ describe('DynamoMemory Retention', () => {
     expect(calls).toHaveLength(1);
 
     const item = calls[0].args[0].input.Item;
-    expect(item.expiresAt).toBe(Math.floor(now / 1000) + 30 * 24 * 60 * 60);
+    expect(item?.expiresAt).toBe(Math.floor(now / 1000) + 30 * 24 * 60 * 60);
 
     vi.useRealTimers();
   });
@@ -61,7 +61,7 @@ describe('DynamoMemory Retention', () => {
 
     const calls = ddbMock.commandCalls(PutCommand);
     const item = calls[0].args[0].input.Item;
-    expect(item.expiresAt).toBe(Math.floor(now / 1000) + 90 * 24 * 60 * 60);
+    expect(item?.expiresAt).toBe(Math.floor(now / 1000) + 90 * 24 * 60 * 60);
 
     vi.useRealTimers();
   });

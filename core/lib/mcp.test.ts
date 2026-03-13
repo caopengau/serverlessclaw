@@ -44,7 +44,7 @@ describe('MCPBridge', () => {
   });
 
   it('should fetch and map tools from an MCP server', async () => {
-    const tools = await MCPBridge.getToolsFromServer('github', 'npx', ['@mcp/github']);
+    const tools = await MCPBridge.getToolsFromServer('github', 'npx @mcp/github');
 
     expect(tools).toHaveLength(1);
     expect(tools[0].name).toBe('github_get_repo');
@@ -52,7 +52,7 @@ describe('MCPBridge', () => {
   });
 
   it('should execute an external tool', async () => {
-    const tools = await MCPBridge.getToolsFromServer('github', 'npx', ['@mcp/github']);
+    const tools = await MCPBridge.getToolsFromServer('github', 'npx @mcp/github');
     const result = await tools[0].execute({});
 
     expect(result).toContain('repo data');
