@@ -15,10 +15,10 @@ describe('Tool Schema Validation', () => {
       parameters: {
         type: 'object',
         properties: {
-          foo: { type: 'string' }
+          foo: { type: 'string' },
         },
-        required: []
-      }
+        required: [],
+      },
     };
     const errors = validateToolSchema(invalidTool);
     expect(errors).toContain("Tool 'invalid' property 'foo' is missing from 'required' array.");
@@ -31,12 +31,14 @@ describe('Tool Schema Validation', () => {
       parameters: {
         type: 'object',
         properties: {
-          foo: { type: 'string' }
+          foo: { type: 'string' },
         },
-        required: ['foo']
-      }
+        required: ['foo'],
+      },
     };
     const errors = validateToolSchema(invalidTool);
-    expect(errors).toContain("Tool 'invalid' should have 'additionalProperties: false' for strict compliance.");
+    expect(errors).toContain(
+      "Tool 'invalid' should have 'additionalProperties: false' for strict compliance."
+    );
   });
 });

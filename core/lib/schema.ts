@@ -39,7 +39,9 @@ export function validateToolSchema(tool: IToolDefinition): string[] {
 
   // Check additionalProperties
   if (parameters.additionalProperties !== false && propertyKeys.length > 0) {
-    errors.push(`Tool '${tool.name}' should have 'additionalProperties: false' for strict compliance.`);
+    errors.push(
+      `Tool '${tool.name}' should have 'additionalProperties: false' for strict compliance.`
+    );
   }
 
   return errors;
