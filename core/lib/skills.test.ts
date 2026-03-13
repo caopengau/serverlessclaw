@@ -20,6 +20,13 @@ vi.mock('./registry', () => ({
   },
 }));
 
+// Mock MCPBridge
+vi.mock('./mcp', () => ({
+  MCPBridge: {
+    getAllExternalTools: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 describe('SkillRegistry', () => {
   beforeEach(() => {
     vi.clearAllMocks();

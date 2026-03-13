@@ -72,11 +72,24 @@ export class MCPBridge {
    * Discovers and loads all tools from all configured MCP servers.
    */
   static async getAllExternalTools(): Promise<ITool[]> {
-    const serversConfig =
-      ((await AgentRegistry.getRawConfig('mcp_servers')) as Record<
-        string,
-        string | { command: string; env?: Record<string, string> }
-      >) || {};
+    let serversConfig = (await AgentRegistry.getRawConfig('mcp_servers')) as Record<
+      string,
+      string | { command: string; env?: Record<string, string> }
+    >;
+
+    // 2026: Bootstrap default filesystem server if none exists
+    if (!serversConfig || Object.keys(serversConfig).length === 0) {
+      logger.info('No MCP servers found. Bootstrapping default filesystem bridge.');
+      serversConfig = {
+        filesystem: {
+          command: 'npx -y @modelcontextprotocol/server-filesystem .',
+          env: {},
+        },
+      };
+      // Persist it for future runs/dashboard visibility
+      await AgentRegistry.saveRawConfig('mcp_servers', serversConfig);
+    }
+
     const allTools: ITool[] = [];
 
     for (const [name, config] of Object.entries(serversConfig)) {
