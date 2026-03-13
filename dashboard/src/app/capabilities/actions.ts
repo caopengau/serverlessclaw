@@ -12,7 +12,7 @@ export async function updateAgentTools(formData: FormData) {
   try {
     const tableName = (Resource as any).ConfigTable?.name;
     if (!tableName) {
-      throw new Error('ConfigTable name is missing from Resources');
+      return { error: 'ConfigTable name is missing from Resources' };
     }
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
@@ -26,8 +26,10 @@ export async function updateAgentTools(formData: FormData) {
     }));
 
     revalidatePath('/capabilities');
+    return { success: true };
   } catch (e) {
     console.error('Error updating agent tools:', e);
+    return { error: e instanceof Error ? e.message : 'Failed to update tools' };
   }
 }
 

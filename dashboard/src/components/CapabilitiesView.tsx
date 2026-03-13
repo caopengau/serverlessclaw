@@ -27,35 +27,78 @@ interface CapabilitiesViewProps {
   mcpServers: Record<string, any>;
 }
 
-export default function CapabilitiesView({ agents, allTools, mcpServers }: CapabilitiesViewProps) {
+export default function CapabilitiesView({ agents: initialAgents, allTools, mcpServers }: CapabilitiesViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'agents' | 'library' | 'mcp'>('agents');
   const [isPending, startTransition] = useTransition();
+  const [optimisticAgents, setOptimisticAgents] = useState(initialAgents);
+
+  // Sync with props if they change
+  React.useEffect(() => {
+    setOptimisticAgents(initialAgents);
+  }, [initialAgents]);
 
   const filteredTools = allTools.filter(tool => 
     tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tool.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleToggleTool = async (agent: AgentConfig, toolName: string) => {
+  const handleToggleTool = (agentId: string, toolName: string) => {
+    const agent = optimisticAgents.find(a => a.id === agentId);
+    if (!agent) return;
+
     const isEnabled = agent.tools.includes(toolName);
+    
+    if (isEnabled && !confirm(`Are you sure you want to remove '${toolName}' from ${agent.name}?`)) {
+      return;
+    }
+
     const newTools = isEnabled 
       ? agent.tools.filter(t => t !== toolName)
       : [...agent.tools, toolName];
     
+    // 1. Optimistic Update
+    setOptimisticAgents(prev => prev.map(a => 
+      a.id === agentId ? { ...a, tools: newTools } : a
+    ));
+
+    // 2. Server Sync
     const formData = new FormData();
-    formData.append('agentId', agent.id);
+    formData.append('agentId', agentId);
     newTools.forEach(t => formData.append('tools', t));
 
+    console.log(`Syncing neural roster for ${agentId}...`, newTools);
+
     startTransition(async () => {
-      await updateAgentTools(formData);
+      try {
+        const result = await updateAgentTools(formData);
+        if (result?.error) {
+          throw new Error(result.error);
+        }
+      } catch (error) {
+        console.error('Failed to update tools:', error);
+        alert(`Failed to sync neural roster: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        // Revert optimistic update on failure
+        setOptimisticAgents(initialAgents);
+      }
     });
   };
 
   const universalSkills = ['discoverSkills', 'installSkill'];
 
   return (
-    <div className="space-y-10">
+    <div className={`space-y-10 transition-all duration-500 ${isPending ? 'opacity-80' : 'opacity-100'}`}>
+      {isPending && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="flex flex-col items-center gap-6 glass-card p-10 border-yellow-500/20 shadow-[0_0_50px_rgba(234,179,8,0.1)]">
+            <Zap size={48} className="text-yellow-500 animate-pulse" />
+            <div className="space-y-2 text-center">
+              <span className="text-[12px] font-black text-yellow-500 uppercase tracking-[0.5em] block">Syncing_Neural_Roster...</span>
+              <span className="text-[8px] text-white/20 uppercase tracking-[0.3em] block">Rewriting_Cognitive_Pathways</span>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Navigation & Search */}
       <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center sticky top-0 z-20 bg-black/80 backdrop-blur-xl p-4 -m-4 border-b border-white/5">
         <nav className="flex gap-1 bg-white/5 p-1 rounded-sm border border-white/5">
@@ -145,7 +188,7 @@ export default function CapabilitiesView({ agents, allTools, mcpServers }: Capab
       {activeTab === 'agents' && (
         <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="grid grid-cols-1 gap-8">
-            {agents.map(agent => (
+            {optimisticAgents.map(agent => (
               <div key={agent.id} className="glass-card p-8 cyber-border border-yellow-500/10 hover:border-yellow-500/20 transition-all relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-2 opacity-5">
                    <Zap size={120} className="text-yellow-500" />
@@ -197,7 +240,7 @@ export default function CapabilitiesView({ agents, allTools, mcpServers }: Capab
                               {isUniversal && <span className="ml-2 text-[8px] opacity-40">(CORE)</span>}
                             </span>
                             <button
-                              onClick={() => handleToggleTool(agent, toolName)}
+                              onClick={() => handleToggleTool(agent.id, toolName)}
                               disabled={isPending || isUniversal}
                               className={`p-1 transition-all rounded-sm ${
                                 isUniversal 
@@ -227,7 +270,7 @@ export default function CapabilitiesView({ agents, allTools, mcpServers }: Capab
                         .map(tool => (
                           <button
                             key={tool.name}
-                            onClick={() => handleToggleTool(agent, tool.name)}
+                            onClick={() => handleToggleTool(agent.id, tool.name)}
                             disabled={isPending}
                             className="flex flex-col items-start text-left p-3 rounded-sm border border-white/5 bg-white/[0.02] hover:bg-yellow-500/10 hover:border-yellow-500/30 transition-all group/item"
                           >
