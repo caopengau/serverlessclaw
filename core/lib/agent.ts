@@ -371,9 +371,9 @@ export class Agent {
                   ? rawResult
                   : (rawResult as ToolResult).text || JSON.stringify(rawResult) || '';
 
-              // Record tool usage atomically
+              // Record tool usage atomically (Global + Agent-specific)
               if (!process.env.VITEST) {
-                await AgentRegistry.recordToolUsage(tool.name);
+                await AgentRegistry.recordToolUsage(tool.name, this.config?.id || 'unknown');
               }
 
               await tracer.addStep({

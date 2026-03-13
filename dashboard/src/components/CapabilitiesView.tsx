@@ -24,36 +24,73 @@ interface Tool {
   };
 }
 
+interface AgentConfig {
+  id: string;
+  name: string;
+  tools: string[];
+  usage?: Record<string, { count: number; lastUsed: number }>;
+}
+
 interface CapabilitiesViewProps {
   allTools: Tool[];
   mcpServers: Record<string, any>;
+  agents: AgentConfig[];
 }
 
-export default function CapabilitiesView({ allTools, mcpServers }: CapabilitiesViewProps) {
+export default function CapabilitiesView({ allTools, mcpServers, agents }: CapabilitiesViewProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'library' | 'mcp'>('library');
+  const [activeTab, setActiveTab] = useState<'library' | 'analytics' | 'mcp'>('analytics');
   const [isPending, startTransition] = useTransition();
+  const [optimisticAgents, setOptimisticAgents] = useState(agents);
+
   const [newBridge, setNewBridge] = useState({ name: '', command: '', env: '{}' });
 
-  const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    onConfirm: () => void;
-    variant: 'danger' | 'warning';
-  }>({
-    isOpen: false,
-    title: '',
-    message: '',
-    onConfirm: () => {},
-    variant: 'warning'
-  });
+  // Sync with props if they change
+  useEffect(() => {
+    setOptimisticAgents(agents);
+  }, [agents]);
+
+  const sortedByUsage = [...allTools].sort((a, b) => (b.usage?.count || 0) - (a.usage?.count || 0));
+  const totalInvocations = allTools.reduce((acc, t) => acc + (t.usage?.count || 0), 0);
 
   const filteredTools = allTools.filter(tool => 
     tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tool.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleDetachTool = (agentId: string, toolName: string) => {
+    const agent = optimisticAgents.find(a => a.id === agentId);
+    if (!agent) return;
+
+    if (!confirm(`Are you sure you want to detach '${toolName}' from ${agent.name}?`)) {
+      return;
+    }
+
+    const newTools = agent.tools.filter(t => t !== toolName);
+    
+    // 1. Optimistic Update
+    setOptimisticAgents(prev => prev.map(a => 
+      a.id === agentId ? { ...a, tools: newTools } : a
+    ));
+
+    // 2. Server Sync
+    const formData = new FormData();
+    formData.append('agentId', agentId);
+    newTools.forEach(t => formData.append('tools', t));
+
+    startTransition(async () => {
+      try {
+        await updateAgentTools(formData);
+        toast.success(`Tool detached from ${agentId}`);
+        router.refresh();
+      } catch (error) {
+        console.error('Failed to detach tool:', error);
+        toast.error('Failed to sync neural roster.');
+        setOptimisticAgents(agents);
+      }
+    });
+  };
 
   const handleRemoveMCPServer = (name: string) => {
     setConfirmModal({
@@ -121,7 +158,8 @@ export default function CapabilitiesView({ allTools, mcpServers }: CapabilitiesV
       <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center sticky top-0 z-20 bg-black/80 backdrop-blur-xl p-4 -m-4 border-b border-white/5">
         <nav className="flex gap-1 bg-white/5 p-1 rounded-sm border border-white/5">
           {[
-            { id: 'library', label: 'Tool Library', icon: BookOpen },
+            { id: 'analytics', label: 'Usage Analytics', icon: Activity },
+            { id: 'library', label: 'Capability Library', icon: BookOpen },
             { id: 'mcp', label: 'Skill Bridges', icon: ExternalLink },
           ].map(tab => (
             <Button
@@ -142,6 +180,160 @@ export default function CapabilitiesView({ allTools, mcpServers }: CapabilitiesV
         </nav>
 
         <div className="relative flex-1 max-w-xl group">
+...
+      {activeTab === 'analytics' && (
+        <section className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {/* Global Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card variant="glass" padding="lg" className="border-cyber-blue/20">
+              <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-2 block">Total_Neural_Invocations</Typography>
+              <Typography variant="h2" color="white" weight="black" glow className="text-4xl tracking-tighter">{totalInvocations}</Typography>
+            </Card>
+            <Card variant="glass" padding="lg" className="border-cyber-green/20">
+              <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-2 block">Most_Active_Skill</Typography>
+              <Typography variant="h2" color="primary" weight="black" className="text-xl uppercase truncate tracking-tight">{sortedByUsage[0]?.name || 'N/A'}</Typography>
+            </Card>
+            <Card variant="glass" padding="lg" className="border-purple-500/20">
+              <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-2 block">Bridge_Efficiency</Typography>
+              <Typography variant="h2" color="white" weight="black" className="text-4xl tracking-tighter">{allTools.filter(t => t.isExternal && (t.usage?.count || 0) > 0).length} / {allTools.filter(t => t.isExternal).length}</Typography>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            {/* Per-Agent Usage & Pruning */}
+            <div className="xl:col-span-12 space-y-6">
+              <h4 className="text-[12px] font-black uppercase tracking-[0.4em] text-white/40 flex items-center gap-2">
+                <Activity size={16} className="text-cyber-blue" /> Per-Agent_Efficiency_Audit
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {agents.filter(a => a.id !== 'monitor' && a.id !== 'events').map(agent => {
+                  const agentUsage = agent.usage || {};
+                  const neverUsedTools = agent.tools.filter(t => !agentUsage[t]);
+                  const lowUsageTools = agent.tools
+                    .filter(t => agentUsage[t] && agentUsage[t].count < 3)
+                    .sort((a, b) => (agentUsage[a]?.count || 0) - (agentUsage[b]?.count || 0));
+
+                  return (
+                    <Card key={agent.id} variant="glass" padding="lg" className="border-white/5 bg-black/40">
+                      <div className="flex justify-between items-start mb-6 border-b border-white/5 pb-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded bg-cyber-blue/10 flex items-center justify-center text-cyber-blue border border-cyber-blue/20 shadow-[0_0_15px_rgba(0,224,255,0.1)]">
+                            {agent.id === 'main' ? <Zap size={16} /> : <Cpu size={16} />}
+                          </div>
+                          <Typography variant="body" weight="black" color="white" className="uppercase tracking-widest">{agent.name}</Typography>
+                        </div>
+                        <Badge variant="outline" className="text-[8px] opacity-40 uppercase">Efficiency: {Math.round((agent.tools.length - neverUsedTools.length) / (agent.tools.length || 1) * 100)}%</Badge>
+                      </div>
+
+                      <div className="space-y-6">
+                        {/* Pruning Candidates */}
+                        {(neverUsedTools.length > 0 || lowUsageTools.length > 0) && (
+                          <div>
+                            <Typography variant="mono" color="muted" className="text-[9px] uppercase tracking-widest mb-3 block text-red-500/60 font-bold">Optimization_Advisory</Typography>
+                            <div className="flex flex-wrap gap-2">
+                              {neverUsedTools.map(t => (
+                                <button 
+                                  key={t} 
+                                  onClick={() => handleDetachTool(agent.id, t)}
+                                  className="group flex items-center gap-2 px-2 py-1 bg-red-500/5 border border-red-500/20 rounded hover:bg-red-500/20 transition-all"
+                                  title="Detaching this tool will save tokens"
+                                >
+                                  <span className="text-[9px] font-black text-red-400 uppercase">{t}</span>
+                                  <span className="text-[8px] opacity-40 text-red-400 font-bold uppercase tracking-tighter text-[7px]">Detach</span>
+                                </button>
+                              ))}
+                              {lowUsageTools.map(t => (
+                                <button 
+                                  key={t} 
+                                  onClick={() => handleDetachTool(agent.id, t)}
+                                  className="group flex items-center gap-2 px-2 py-1 bg-orange-500/5 border border-orange-500/20 rounded hover:bg-orange-500/20 transition-all"
+                                >
+                                  <span className="text-[9px] font-black text-orange-400 uppercase">{t}</span>
+                                  <span className="text-[8px] opacity-40 text-orange-400 font-bold uppercase tracking-tighter text-[7px]">{agentUsage[t].count} Calls</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <div>
+                          <Typography variant="mono" color="muted" className="text-[9px] uppercase tracking-widest mb-3 block opacity-40">Active_Tool_Profile</Typography>
+                          <div className="grid grid-cols-2 gap-4">
+                            {agent.tools.filter(t => agentUsage[t] && agentUsage[t].count >= 3).map(t => (
+                              <div key={t} className="flex justify-between items-center bg-white/[0.02] p-2 rounded border border-white/5">
+                                <span className="text-[10px] font-black text-white/60 uppercase truncate mr-2">{t}</span>
+                                <span className="text-[10px] font-mono text-cyber-green">{agentUsage[t].count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Total Leaderboard */}
+            <div className="xl:col-span-12 space-y-6 pt-10">
+              <h4 className="text-[12px] font-black uppercase tracking-[0.4em] text-white/40 flex items-center gap-2">
+                <Activity size={16} className="text-cyber-blue" /> Total_Neural_Invocations
+              </h4>
+              <Card variant="solid" className="border-white/5 bg-black/40 overflow-hidden">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-white/5 bg-white/[0.02]">
+                      <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Capability</th>
+                      <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Total_Invocations</th>
+                      <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Last_Active</th>
+                      <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Attached_Nodes</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedByUsage.filter(t => (t.usage?.count || 0) > 0).map(tool => {
+                      const attachedAgents = agents.filter(a => a.tools.includes(tool.name));
+                      return (
+                        <tr key={tool.name} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
+                          <td className="p-4">
+                            <div className="flex flex-col">
+                              <span className={`text-xs font-black uppercase tracking-wider ${tool.isExternal ? 'text-purple-400' : 'text-yellow-500'}`}>{tool.name}</span>
+                              {tool.isExternal && <span className="text-[8px] opacity-30 font-bold uppercase">External_Bridge</span>}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <div className="h-1.5 bg-white/5 rounded-full flex-1 max-w-[100px] overflow-hidden">
+                                <div 
+                                  className={`h-full ${tool.isExternal ? 'bg-purple-500' : 'bg-yellow-500'}`} 
+                                  style={{ width: `${Math.min(100, (tool.usage?.count || 0) / (sortedByUsage[0]?.usage?.count || 1) * 100)}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-mono font-bold text-white/80">{tool.usage?.count}</span>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className="text-[10px] font-mono text-white/40">{tool.usage?.lastUsed ? new Date(tool.usage.lastUsed).toLocaleTimeString() : 'NEVER'}</span>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex -space-x-2">
+                              {attachedAgents.map(a => (
+                                <div key={a.id} title={a.name} className="w-6 h-6 rounded-full bg-cyber-blue/20 border border-cyber-blue/40 flex items-center justify-center text-[8px] font-black text-cyber-blue uppercase ring-2 ring-black">
+                                  {a.name.substring(0, 1)}
+                                </div>
+                              ))}
+                              {attachedAgents.length === 0 && <span className="text-[10px] text-white/10 uppercase italic">Unassigned</span>}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </Card>
+            </div>
+          </div>
+        </section>
+      )}
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search size={16} className="text-cyber-blue/50" />
           </div>

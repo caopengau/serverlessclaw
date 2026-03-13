@@ -62,11 +62,19 @@ async function getAgentConfigs() {
   try {
     const { AgentRegistry } = await import('@claw/core/lib/registry');
     const configs = await AgentRegistry.getAllConfigs();
-    return Object.values(configs).map(c => ({
+    const agents = Object.values(configs).map(c => ({
       id: c.id,
       name: c.name,
       tools: c.tools || []
     }));
+
+    // Fetch individual usage for each agent
+    const agentsWithUsage = await Promise.all(agents.map(async (a) => {
+      const usage = await AgentRegistry.getRawConfig(`tool_usage_${a.id}`) || {};
+      return { ...a, usage };
+    }));
+
+    return agentsWithUsage;
   } catch (e) {
     console.error('Error fetching agent configs:', e);
     return [];

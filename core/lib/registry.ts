@@ -288,13 +288,17 @@ export class AgentRegistry {
 
   /**
    * Atomically records tool usage (count and last used timestamp) in the ConfigTable.
+   * Records both global usage and agent-specific usage.
    *
    * @param toolName - The name of the tool being executed.
+   * @param agentId - The ID of the agent using the tool.
    */
-  static async recordToolUsage(toolName: string): Promise<void> {
+  static async recordToolUsage(toolName: string, agentId: string = 'unknown'): Promise<void> {
     if (!typedResource.ConfigTable?.name) return;
 
     const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+
+    // 1. Update Global Usage
     try {
       await docClient.send(
         new UpdateCommand({
@@ -316,13 +320,40 @@ export class AgentRegistry {
         })
       );
     } catch (e: unknown) {
-      // If the map doesn't exist yet, initialize it
       if (e instanceof Error && e.name === 'ValidationException' && e.message.includes('path')) {
         await this.saveRawConfig(DYNAMO_KEYS.TOOL_USAGE, {
           [toolName]: { count: 1, lastUsed: Date.now() },
         });
-      } else {
-        logger.error(`Failed to record tool usage for ${toolName}:`, e);
+      }
+    }
+
+    // 2. Update Agent-Specific Usage
+    try {
+      const agentKey = `tool_usage_${agentId}`;
+      await docClient.send(
+        new UpdateCommand({
+          TableName: typedResource.ConfigTable.name,
+          Key: { key: agentKey },
+          UpdateExpression:
+            'SET #usage.#tool.#count = if_not_exists(#usage.#tool.#count, :zero) + :one, #usage.#tool.#last = :now',
+          ExpressionAttributeNames: {
+            '#usage': 'value',
+            '#tool': toolName,
+            '#count': 'count',
+            '#last': 'lastUsed',
+          },
+          ExpressionAttributeValues: {
+            ':one': 1,
+            ':zero': 0,
+            ':now': Date.now(),
+          },
+        })
+      );
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'ValidationException' && e.message.includes('path')) {
+        await this.saveRawConfig(`tool_usage_${agentId}`, {
+          [toolName]: { count: 1, lastUsed: Date.now() },
+        });
       }
     }
   }
