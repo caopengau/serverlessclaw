@@ -1,5 +1,8 @@
 import React from 'react';
 import { ShieldCheck, Lock, Eye, FileWarning, Globe, Server, Database } from 'lucide-react';
+import Typography from '@/components/ui/Typography';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
 import { THEME } from '@/lib/theme';
 
 const AGENT_POLICIES = [
@@ -52,43 +55,40 @@ const PROTECTED_RESOURCES = [
 
 export default function SecurityManifestPage() {
   return (
-    <main className={`flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-${THEME.COLORS.PRIMARY}/5 via-transparent to-transparent`}>
+    <main className={`flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[${THEME.COLORS.PRIMARY}]/5 via-transparent to-transparent`}>
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight glow-text uppercase">SECURITY_MANIFEST</h2>
-          <p className="text-white/100 text-sm mt-2 font-light">Governance boundaries and autonomous permission boundaries.</p>
+          <Typography variant="h2" weight="bold" color="white" glow>Security Manifest</Typography>
+          <Typography variant="body" color="white" className="mt-2 block opacity-80">Governance boundaries and autonomous permission boundaries.</Typography>
         </div>
         <div className="flex gap-4">
-          <div className={`glass-card px-4 py-2 text-[12px] border-${THEME.COLORS.PRIMARY}/30`}>
-            <div className="text-white/90 mb-1">COMPLIANCE_MODE</div>
-            <div className={`font-bold text-${THEME.COLORS.PRIMARY}`}>STRICT_ENFORCEMENT</div>
-          </div>
+          <Card variant="glass" padding="sm" className={`border-[${THEME.COLORS.PRIMARY}]/30`}>
+            <Typography variant="mono" color="muted" className="mb-1 block">Compliance Mode</Typography>
+            <Typography variant="mono" weight="bold" color="primary">Strict Enforcement</Typography>
+          </Card>
         </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left: Agent Capabilities */}
-        <div className="lg:col-span-7 space-y-8">
+        <div className="lg:col-span-12 space-y-8">
           <section>
-            <h3 className={`text-[10px] uppercase tracking-[0.2em] font-bold text-white/100 flex items-center gap-2 mb-6`}>
-              <Globe size={14} className={`text-${THEME.COLORS.PRIMARY}`} /> Agent Capability Matrix
-            </h3>
+            <Typography variant="caption" weight="bold" className={`tracking-[0.2em] flex items-center gap-2 mb-6`}>
+              <Globe size={14} className={`text-[${THEME.COLORS.PRIMARY}]`} /> Agent Capability Matrix
+            </Typography>
             <div className="space-y-4">
               {AGENT_POLICIES.map((policy, i) => (
                 <div key={i} className="glass-card p-6 border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded bg-${THEME.COLORS.PRIMARY}/10 flex items-center justify-center text-${THEME.COLORS.PRIMARY}`}>
+                      <div className={`w-8 h-8 rounded bg-[${THEME.COLORS.PRIMARY}]/10 flex items-center justify-center text-[${THEME.COLORS.PRIMARY}]`}>
                         <Server size={16} />
                       </div>
-                      <h4 className="font-bold text-white/90">{policy.agent}</h4>
+                      <Typography variant="body" weight="bold">{policy.agent}</Typography>
                     </div>
-                    <span className={`text-[10px] px-2 py-0.5 rounded font-bold border ${
-                      policy.risk === 'High' ? `border-${THEME.COLORS.DANGER}/30 text-${THEME.COLORS.DANGER}` : 
-                      policy.risk === 'Medium' ? `border-${THEME.COLORS.WARNING}/30 text-${THEME.COLORS.WARNING}` : `border-${THEME.COLORS.PRIMARY}/30 text-${THEME.COLORS.PRIMARY}`
-                    }`}>
-                      {policy.risk}_RISK
-                    </span>
+                    <Badge variant={policy.risk === 'High' ? 'danger' : policy.risk === 'Medium' ? 'warning' : 'primary'}>
+                      {policy.risk} Risk
+                    </Badge>
                   </div>
                   <div className="grid grid-cols-2 gap-6">
                     <div>

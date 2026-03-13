@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { Lock, Zap, ArrowRight, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import Button from '@/components/ui/Button';
+import Typography from '@/components/ui/Typography';
 
 export default function LoginPage() {
   const [password, setPassword] = useState('');
@@ -49,8 +51,12 @@ export default function LoginPage() {
           <div className="w-16 h-16 bg-cyber-green/10 rounded-sm flex items-center justify-center text-cyber-green mb-4 border border-cyber-green/30">
             <Lock size={32} />
           </div>
-          <h1 className="text-2xl font-bold tracking-tighter glow-text uppercase">CLAW_CENTER_AUTH</h1>
-          <p className="text-white/100 text-[10px] mt-2 tracking-[0.2em]">RESTRICTED_ACCESS // NEURAL_GATEWAY_V1.0</p>
+          <Typography variant="h1" color="primary" glow uppercase className="mb-2">
+            Claw Center Auth
+          </Typography>
+          <Typography variant="mono" color="muted" uppercase>
+            Restricted Access // Neural Gateway v1.0
+          </Typography>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
@@ -81,18 +87,17 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="w-full bg-white text-black font-bold py-3 rounded text-xs uppercase tracking-widest hover:bg-cyber-green transition-all flex items-center justify-center gap-2 group disabled:opacity-50 disabled:cursor-not-allowed"
+            loading={loading}
+            fullWidth
+            size="lg"
+            icon={<ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />}
+            className="flex-row-reverse"
           >
-            {loading ? 'SYNCHRONIZING...' : (
-              <>
-                Initialize Link
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </>
-            )}
-          </button>
+            {loading ? 'Synchronizing' : 'Initialize Link'}
+          </Button>
         </form>
 
         <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center text-[9px] text-white/50 font-bold tracking-widest">

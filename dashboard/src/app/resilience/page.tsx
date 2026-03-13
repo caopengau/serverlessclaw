@@ -10,6 +10,10 @@ import {
   Zap,
   Timer
 } from 'lucide-react';
+import Typography from '@/components/ui/Typography';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import { THEME } from '@/lib/theme';
 
 async function getHealth() {
   try {
@@ -63,31 +67,31 @@ export default async function ResilienceHub() {
     <main className="flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-yellow-500/5 via-transparent to-transparent">
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight glow-text-yellow">RESILIENCE_HUB</h2>
-          <p className="text-white/100 text-sm mt-2 font-light">Autonomous self-healing and system recovery monitor.</p>
+          <Typography variant="h2" weight="bold" color="white" glow className="!text-yellow-500">Resilience Hub</Typography>
+          <Typography variant="body" color="white" className="mt-2 block opacity-80">Autonomous self-healing and system recovery monitor.</Typography>
         </div>
         <div className="flex gap-4">
-          <div className={`glass-card px-4 py-2 text-[12px] border-2 ${isHealthy ? 'border-cyber-green/30' : 'border-red-500/50 animate-pulse'}`}>
-            <div className="text-white/90 mb-1">SYSTEM_STATUS</div>
-            <div className={`font-bold flex items-center gap-2 ${isHealthy ? 'text-cyber-green' : 'text-red-500'}`}>
+          <Card variant="glass" padding="sm" className={`px-4 py-2 min-w-[120px] border-2 ${isHealthy ? 'border-[var(--cyber-green)]/30' : 'border-red-500/50 animate-pulse'}`}>
+            <Typography variant="mono" color="white" className="mb-1 block opacity-90">System Status</Typography>
+            <div className={`font-bold flex items-center gap-2 ${isHealthy ? 'text-[var(--cyber-green)]' : 'text-red-500'}`}>
               {isHealthy ? <CheckCircle size={14} /> : <AlertTriangle size={14} />}
-              {health.status.toUpperCase()}
+              {health.status}
             </div>
-          </div>
-          <div className="glass-card px-4 py-2 text-[12px]">
-            <div className="text-white/90 mb-1">RECOVERY_OPS</div>
-            <div className="font-bold text-yellow-500">{logs.length}</div>
-          </div>
+          </Card>
+          <Card variant="glass" padding="sm" className="px-4 py-2 min-w-[120px]">
+            <Typography variant="mono" color="white" className="mb-1 block opacity-90">Recovery Ops</Typography>
+            <Typography variant="h3" weight="bold" className="text-yellow-500">{logs.length}</Typography>
+          </Card>
         </div>
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Health & DMS */}
         <div className="lg:col-span-1 space-y-8">
-          <section className="glass-card p-6 border-white/10 bg-black/40">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/100 flex items-center gap-2 mb-6">
-              <Activity size={14} className="text-cyber-green" /> Real-time Diagnostics
-            </h3>
+          <Card variant="glass" padding="lg" className="border-white/10 bg-black/40">
+            <Typography variant="caption" weight="bold" className="tracking-[0.2em] flex items-center gap-2 mb-6">
+              <Activity size={14} className="text-[var(--cyber-green)]" /> Real-time Diagnostics
+            </Typography>
             
             <div className="space-y-6">
               <div className="flex justify-between items-center text-sm">
@@ -111,13 +115,13 @@ export default async function ResilienceHub() {
                 CAUTION: {health.message || 'System health check falling below threshold. Investigate logs.'}
               </div>
             )}
-          </section>
+          </Card>
 
-          <section className="glass-card p-6 border-white/10 bg-black/40 relative overflow-hidden">
+          <Card variant="glass" padding="lg" className="border-white/10 bg-black/40 relative overflow-hidden">
              <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/100 flex items-center gap-2 mb-6">
+            <Typography variant="caption" weight="bold" className="tracking-[0.2em] flex items-center gap-2 mb-6">
               <Timer size={14} className="text-yellow-500" /> Dead Man's Switch
-            </h3>
+            </Typography>
             
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-full border border-yellow-500/20 flex items-center justify-center bg-yellow-500/5">
@@ -139,15 +143,15 @@ export default async function ResilienceHub() {
                 <span className="text-white/70 italic">TRIGGER_ROLLBACK</span>
               </div>
             </div>
-          </section>
+          </Card>
         </div>
 
         {/* Right Column: Recovery Logs */}
         <div className="lg:col-span-2">
-          <section className="space-y-4">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/100 flex items-center gap-2">
-              <ShieldCheck size={14} className="text-yellow-500" /> recovery_operations_log
-            </h3>
+          <Card variant="solid" padding="lg" className="space-y-4 border-white/5">
+            <Typography variant="caption" weight="bold" className="tracking-[0.2em] flex items-center gap-2">
+              <ShieldCheck size={14} className="text-yellow-500" /> Recovery Operations Log
+            </Typography>
             
             <div className="space-y-3">
               {logs.length > 0 ? (
@@ -156,7 +160,7 @@ export default async function ResilienceHub() {
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-3">
                         <div className="w-2 h-2 rounded-full bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]"></div>
-                        <div className="text-sm font-bold text-white/90 uppercase tracking-tighter">Emergency Recovery Triggered</div>
+                        <Typography variant="body" weight="bold" className="tracking-tighter">Emergency Recovery Triggered</Typography>
                       </div>
                       <div className="flex items-center gap-2 text-[10px] text-white/90">
                         <Clock size={10} /> {new Date(log.timestamp).toLocaleString()}
@@ -174,7 +178,7 @@ export default async function ResilienceHub() {
                 </div>
               )}
             </div>
-          </section>
+          </Card>
         </div>
       </div>
     </main>

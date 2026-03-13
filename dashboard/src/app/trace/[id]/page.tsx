@@ -19,6 +19,9 @@ import {
 import Link from 'next/link';
 import PathVisualizer from '@/components/PathVisualizer';
 import { UI_STRINGS, TRACE_TYPES, TRACE_STATUS } from '@/lib/constants';
+import Typography from '@/components/ui/Typography';
+import Card from '@/components/ui/Card';
+import { THEME } from '@/lib/theme';
 import { SSTResource } from '@claw/core/lib/types/index';
 
 export const dynamic = 'force-dynamic';
@@ -117,11 +120,13 @@ export default async function TraceDetailPage({
 
   if (!nodes || nodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-[#0a0a0a] text-white/100">
-        <ShieldAlert size={48} className="mb-4 opacity-20" />
-        <h1 className="text-xl font-bold">{UI_STRINGS.TRACE_NOT_FOUND}</h1>
-        <Link href="/trace" className="mt-4 text-cyber-green hover:underline flex items-center gap-2">
-          <ArrowLeft size={16} /> {UI_STRINGS.RETURN_TO_BASE}
+      <div className="flex flex-col items-center justify-center h-screen bg-[#0a0a0a]">
+        <ShieldAlert size={48} className="mb-4 opacity-20 text-red-500" />
+        <Typography variant="h2" weight="bold" color="white">{UI_STRINGS.TRACE_NOT_FOUND}</Typography>
+        <Link href="/trace" className="mt-4 flex items-center gap-2">
+          <Typography variant="caption" color="primary" weight="bold" className="hover:underline">
+            <ArrowLeft size={16} className="inline mr-1" /> {UI_STRINGS.RETURN_TO_BASE}
+          </Typography>
         </Link>
       </div>
     );
@@ -133,8 +138,10 @@ export default async function TraceDetailPage({
   return (
     <div className="flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
       <header className="mb-10">
-        <Link href="/trace" className="text-white/100 hover:text-cyber-green transition-colors flex items-center gap-2 text-xs mb-6 group">
-          <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> {UI_STRINGS.BACK_TO_INTELLIGENCE}
+        <Link href="/trace" className="group">
+          <Typography variant="caption" color="white" weight="bold" className="flex items-center gap-2 mb-6 hover:text-cyber-green transition-colors">
+            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> {UI_STRINGS.BACK_TO_INTELLIGENCE}
+          </Typography>
         </Link>
         
         <div className="flex justify-between items-end border-b border-white/5 pb-8">
@@ -143,24 +150,30 @@ export default async function TraceDetailPage({
               <span className={`text-[10px] px-2 py-0.5 rounded-sm font-bold ${
                 rootNode.status === TRACE_STATUS.COMPLETED ? 'bg-cyber-green/20 text-cyber-green' : 'bg-yellow-500/20 text-yellow-500'
               }`}>
-                {rootNode.status.toUpperCase()}
+                {rootNode.status}
               </span>
-              <h1 className="text-2xl font-bold tracking-tighter">TRACE::{rootNode.traceId.slice(0, 8)}</h1>
+              <Typography variant="h1" weight="bold" className="tracking-tighter">
+                Trace::{rootNode.traceId.slice(0, 8)}
+              </Typography>
             </div>
-            <p className="text-white/100 text-sm max-w-2xl">
+            <Typography variant="body" color="white" className="max-w-2xl block">
               {rootNode.initialContext?.userText || 'System orchestrated task execution.'}
-            </p>
+            </Typography>
           </div>
           
-          <div className="text-right text-[12px] text-white/90 space-y-1">
-            <div className="flex items-center justify-end gap-2">
+          <div className="text-right space-y-1">
+            <Typography variant="mono" color="white" className="flex items-center justify-end gap-2 text-[10px]">
               <Clock size={12} /> {new Date(rootNode.timestamp).toLocaleString()}
-            </div>
-            <div>SOURCE: <span className="text-cyber-blue uppercase font-bold">{rootNode.source || 'UNKNOWN'}</span></div>
-            <div>USER_ID: {rootNode.userId}</div>
-            <div className="flex items-center justify-end gap-2">
-              NODES: <span className="text-cyber-green font-bold">{nodes.length}</span>
-            </div>
+            </Typography>
+            <Typography variant="mono" color="white" className="text-[10px] block">
+              Source: <Typography variant="mono" weight="bold" color="intel">{rootNode.source || 'Unknown'}</Typography>
+            </Typography>
+            <Typography variant="mono" color="white" className="text-[10px] block">
+              USER_ID: {rootNode.userId}
+            </Typography>
+            <Typography variant="mono" color="white" className="flex items-center justify-end gap-2 text-[10px]">
+              NODES: <Typography variant="mono" weight="bold" color="primary">{nodes.length}</Typography>
+            </Typography>
           </div>
         </div>
       </header>
@@ -168,18 +181,18 @@ export default async function TraceDetailPage({
       <main className="space-y-12">
         {/* Visualizer Section */}
         <section>
-          <h2 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/100 flex items-center gap-2 mb-4">
-            <LayoutGrid size={14} className="text-cyber-green" /> {UI_STRINGS.NEURAL_PATH_VISUALIZER}
-          </h2>
+          <Typography variant="caption" weight="black" className="tracking-[0.2em] flex items-center gap-2 mb-4">
+            <LayoutGrid size={14} className={`text-${THEME.COLORS.PRIMARY}`} /> {UI_STRINGS.NEURAL_PATH_VISUALIZER}
+          </Typography>
           {/* PathVisualizer will now receive all nodes to render the graph */}
           <PathVisualizer trace={{ ...rootNode, nodes }} />
         </section>
 
         {nodes.sort((a, b) => a.timestamp - b.timestamp).map((node) => (
           <section key={node.nodeId} className="space-y-6">
-            <h2 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/100 flex items-center gap-2 mb-4">
-              <Activity size={14} className="text-cyber-green" /> NODE::{node.nodeId} {node.parentId ? `(Parent: ${node.parentId.slice(0,8)})` : '(ROOT)'}
-            </h2>
+            <Typography variant="caption" weight="black" className="tracking-[0.2em] flex items-center gap-2 mb-4">
+              <Activity size={14} className={`text-${THEME.COLORS.PRIMARY}`} /> Node::{node.nodeId} {node.parentId ? `(Parent: ${node.parentId.slice(0,8)})` : '(Root)'}
+            </Typography>
 
             <div className="space-y-4">
               {node.steps?.map((step: TraceStep, idx: number) => (
@@ -190,18 +203,18 @@ export default async function TraceDetailPage({
                         <StepIcon type={step.type} />
                       </div>
                       <div>
-                        <div className="text-[10px] text-white/100 font-bold uppercase tracking-wider">{step.type}</div>
-                        <div className="text-sm font-medium">
+                        <Typography variant="caption" weight="bold" color="white" className="tracking-wider block">{step.type}</Typography>
+                        <Typography variant="caption" weight="medium" color="white" className="block">
                           {step.type === TRACE_TYPES.TOOL_CALL ? `Executing ${step.content.tool || step.content.toolName || ''}` : 
                            step.type === TRACE_TYPES.TOOL_RESULT ? `Observation from ${step.content.tool || step.content.toolName || 'tool'}` :
                            step.type === TRACE_TYPES.LLM_CALL ? 'Neural Core Synthesis (Input)' : 
                            step.type === TRACE_TYPES.LLM_RESPONSE ? 'Neural Core Generation (Output)' : 'Error detected'}
-                        </div>
+                        </Typography>
                       </div>
                     </div>
-                    <div className="text-[10px] text-white/50">
+                    <Typography variant="mono" color="muted" className="text-[9px]">
                       {new Date(step.timestamp).toLocaleTimeString()}
-                    </div>
+                    </Typography>
                   </div>
                   
                   <div className="p-4 bg-black/40 border-t border-white/5">
@@ -250,11 +263,11 @@ export default async function TraceDetailPage({
                     ) : null}
 
                     <details className="group">
-                      <summary className="list-none cursor-pointer flex items-center justify-between text-[10px] text-cyber-green/60 hover:text-cyber-green transition-colors">
-                        <span className="flex items-center gap-1 uppercase tracking-widest font-bold">
+                      <summary className="list-none cursor-pointer flex items-center justify-between">
+                        <Typography variant="mono" weight="bold" color="primary" className="tracking-widest flex items-center gap-1 hover:text-cyber-green transition-colors">
                           {UI_STRINGS.RAW_PAYLOAD}
-                        </span>
-                        <ChevronDown size={14} className="group-open:rotate-180 transition-transform" />
+                        </Typography>
+                        <ChevronDown size={14} className="text-cyber-green/60 group-open:rotate-180 transition-transform" />
                       </summary>
                       <div className="mt-4 p-4 bg-black/60 rounded border border-white/5 overflow-x-auto">
                         <pre className="text-[11px] leading-relaxed text-cyber-blue/80">
@@ -271,14 +284,14 @@ export default async function TraceDetailPage({
 
         {rootNode.finalResponse && (
           <section className="mt-12">
-            <h2 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/100 flex items-center gap-2 mb-4">
-              <CheckCircle size={14} className="text-cyber-green" /> {UI_STRINGS.FINAL_OUTPUT}
-            </h2>
-            <div className="glass-card p-6 border-cyber-green/20 bg-cyber-green/[0.02]">
-              <div className="prose prose-invert max-w-none text-sm leading-relaxed text-white/90">
+            <Typography variant="caption" weight="black" className="tracking-[0.2em] flex items-center gap-2 mb-4">
+              <CheckCircle size={14} className={`text-${THEME.COLORS.PRIMARY}`} /> {UI_STRINGS.FINAL_OUTPUT}
+            </Typography>
+            <Card variant="glass" padding="lg" className="border-cyber-green/20 bg-cyber-green/[0.02]">
+              <Typography variant="body" color="white" className="leading-relaxed whitespace-pre-wrap">
                 {rootNode.finalResponse}
-              </div>
-            </div>
+              </Typography>
+            </Card>
           </section>
         )}
       </main>

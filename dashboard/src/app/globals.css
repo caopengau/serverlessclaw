@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0a0a0a;
-  --color-foreground: #ededed;
-  --color-cyber-green: #00ffa3;
-  --color-cyber-blue: #00e0ff;
+  --color-cyber-green: var(--cyber-green);
+  --color-cyber-blue: var(--cyber-blue);
   --font-mono: "Geist Mono", "SF Mono", "Roboto Mono", monospace;
 }
 
 :root {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --cyber-green: #00ffa3;
+  --cyber-blue: #00e0ff;
+  --card-bg: rgba(255, 255, 255, 0.03);
+  --card-border: rgba(255, 255, 255, 0.1);
+  --muted: rgba(255, 255, 255, 0.4);
 }
 
 body {
@@ -21,8 +24,8 @@ body {
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
   backdrop-filter: blur(12px);
   border-radius: 8px;
 }

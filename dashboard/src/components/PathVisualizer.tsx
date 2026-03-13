@@ -20,6 +20,10 @@ import {
   MessageSquare, Wrench, CheckCircle, ShieldAlert, Zap, X, Code, Terminal, Brain, Activity 
 } from 'lucide-react';
 import { TRACE_TYPES } from '@/lib/constants';
+import Button from './ui/Button';
+import Typography from './ui/Typography';
+import Card from './ui/Card';
+import { THEME } from '@/lib/theme';
 
 // --- Custom Node Components ---
 
@@ -250,7 +254,7 @@ function processTraceNodes(
         added = true;
       }
 
-      if (added) {
+      if (added && lastStepId) {
         initialEdges.push({
           id: `e-${lastStepId}-${stepNodeId}`,
           source: lastStepId,
@@ -358,23 +362,24 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
         <div className="absolute top-4 right-4 bottom-4 w-96 bg-[#0a0f1a]/95 border border-cyber-green/30 shadow-[0_0_30px_rgba(0,255,163,0.1)] z-50 rounded-lg flex flex-col animate-in slide-in-from-right-10 duration-300">
           <header className="p-4 border-b border-white/10 flex justify-between items-center bg-black/40 shrink-0">
             <div className="flex items-center gap-2">
-              <Brain size={16} className="text-cyber-green" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">Neural_Inspect</span>
+              <Brain size={16} className={`text-${THEME.COLORS.PRIMARY}`} />
+              <Typography variant="caption" weight="black" uppercase className="tracking-[0.2em]">Neural Inspect</Typography>
             </div>
-            <button 
+            <Button 
+              variant="ghost"
+              size="sm"
               onClick={() => setSelectedStep(null)}
-              className="text-white/40 hover:text-white transition-colors"
-            >
-              <X size={16} />
-            </button>
+              className="text-white/40 hover:text-white p-2 h-auto"
+              icon={<X size={16} />}
+            />
           </header>
 
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
             <div className="space-y-1">
-              <div className="text-[10px] text-cyber-green font-bold uppercase tracking-tighter">Event_Type</div>
-              <div className="text-xs font-mono text-white/90 bg-white/5 p-2 rounded border border-white/5 capitalize">
+              <Typography variant="mono" weight="bold" color="primary" uppercase className="text-[9px] tracking-tighter">Event Type</Typography>
+              <Typography variant="caption" weight="bold" color="white" className="bg-white/5 p-2 rounded border border-white/5 capitalize block">
                 {selectedStep.type.replace('_', ' ')}
-              </div>
+              </Typography>
             </div>
 
             {selectedStep.type === TRACE_TYPES.LLM_CALL && selectedStep.content.messages && (
@@ -474,12 +479,12 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
           </div>
 
           <footer className="p-3 border-t border-white/10 bg-black/20 shrink-0 flex justify-between">
-             <div className="text-[8px] text-white/20 uppercase tracking-widest font-mono italic">
+             <Typography variant="mono" color="muted" uppercase className="text-[7px] tracking-widest italic opacity-40">
                ID: {selectedStep.stepId?.substring(0,8) || 'N/A'}
-             </div>
-             <div className="text-[8px] text-white/20 uppercase tracking-widest font-mono italic">
+             </Typography>
+             <Typography variant="mono" color="muted" uppercase className="text-[7px] tracking-widest italic opacity-40">
                {selectedStep.timestamp ? new Date(selectedStep.timestamp).toLocaleTimeString() : ''}
-             </div>
+             </Typography>
           </footer>
         </div>
       )}

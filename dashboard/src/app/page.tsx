@@ -6,6 +6,10 @@ import { THEME } from '@/lib/theme';
 import mqtt from 'mqtt';
 import { useSearchParams, useRouter } from 'next/navigation';
 import CyberConfirm from '@/components/CyberConfirm';
+import Button from '@/components/ui/Button';
+import Typography from '@/components/ui/Typography';
+import Badge from '@/components/ui/Badge';
+import Card from '@/components/ui/Card';
 interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -396,88 +400,95 @@ function ChatContent() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a] overflow-hidden">
+    <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Session Sidebar */}
       <aside className="w-80 border-r border-white/5 flex flex-col bg-black/20 shrink-0">
         <div className="p-6 shrink-0">
-          <button
+          <Button
             onClick={createNewChat}
-            className={`w-full py-4 border border-${THEME.COLORS.PRIMARY}/30 bg-${THEME.COLORS.PRIMARY}/5 hover:bg-${THEME.COLORS.PRIMARY}/10 text-${THEME.COLORS.PRIMARY} rounded-sm flex items-center justify-center gap-2 transition-all group shadow-[0_0_15px_rgba(0,255,163,0.05)]`}
+            fullWidth
+            icon={<Plus size={16} className="group-hover:rotate-90 transition-transform" />}
           >
-            <Plus size={16} className="group-hover:rotate-90 transition-transform" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] italic">
-              Start New Chat
-            </span>
-          </button>
+            Start New Chat
+          </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-6 space-y-2">
-          <div className="text-[9px] uppercase text-white/60 tracking-[0.3em] font-bold mb-4 px-2 flex items-center justify-between">
+          <div className="mb-4 px-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock size={10} /> RECENT_NEURAL_LOGS
+              <Clock size={10} className="text-white/60" /> 
+              <Typography variant="caption" weight="bold" color="muted">
+                Recent Neural Logs
+              </Typography>
             </div>
             {sessions.length > 0 && (
-              <button 
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowDeleteAllConfirm(true)}
-                className="text-red-500/60 hover:text-red-500 transition-colors flex items-center gap-1 group/purge"
-                title="Purge All Conversations"
+                className="text-red-500/60 hover:text-red-500 p-0 h-auto gap-1"
+                icon={<Trash2 size={10} />}
               >
-                <Trash2 size={10} className="group-hover/purge:scale-110 transition-transform" />
-                <span className="text-[8px] tracking-tighter">PURGE_ALL</span>
-              </button>
+                <Typography variant="mono" color="danger" className="text-[8px]">PURGE_ALL</Typography>
+              </Button>
             )}
           </div>
           
           {sessions.length === 0 ? (
-            <div className="p-4 text-center border border-white/5 bg-white/[0.01] rounded italic text-[10px] text-white/20">
-              No active session traces found.
-            </div>
+            <Card variant="solid" padding="sm" className="text-center italic text-white/20">
+              <Typography variant="caption">No active session traces found.</Typography>
+            </Card>
           ) : (
             sessions.map((s) => (
-              <button
+              <Button
                 key={s.sessionId}
+                variant="ghost"
+                fullWidth
                 onClick={() => {
                   if (activeSessionId !== s.sessionId) {
                     setMessages([]);
                     setActiveSessionId(s.sessionId);
                   }
                 }}
-                className={`w-full p-4 rounded-sm border transition-all text-left space-y-2 group ${
+                className={`!p-4 !h-auto flex flex-col items-stretch rounded-sm border transition-all text-left space-y-2 group !justify-start !bg-transparent ${
                   activeSessionId === s.sessionId
-                    ? `bg-${THEME.COLORS.PRIMARY}/5 border-${THEME.COLORS.PRIMARY}/30 shadow-[0_0_20px_rgba(0,255,163,0.02)]`
-                    : 'bg-white/[0.02] border-white/5 hover:border-white/10'
+                    ? `!border-${THEME.COLORS.PRIMARY}/30 shadow-[0_0_20px_rgba(0,255,163,0.02)] !text-inherit`
+                    : '!border-white/5 hover:!border-white/10 !text-inherit'
                 }`}
               >
-                <div className="flex justify-between items-start gap-2">
-                  <span className={`text-[10px] font-bold uppercase tracking-tight truncate ${
-                    activeSessionId === s.sessionId ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/80'
-                  }`}>
-                    {s.title || 'Untitled_Trace'}
-                  </span>
+                <div className="flex justify-between items-start gap-2 w-full">
+                  <Typography 
+                    variant="caption" 
+                    weight="bold" 
+                    className={`truncate ${activeSessionId === s.sessionId ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/80'}`}
+                  >
+                    {s.title || 'Untitled Trace'}
+                  </Typography>
                   <div className="flex items-center gap-1">
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={(e) => deleteSession(e, s.sessionId)}
-                      className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-1 text-red-500 transition-all"
+                      className="opacity-0 group-hover:opacity-60 hover:!opacity-100 p-1 text-red-500 h-auto"
+                      icon={<Trash2 size={12} />}
                       title="Delete Conversation"
-                    >
-                      <Trash2 size={12} />
-                    </button>
+                    />
                     <ChevronRight size={12} className={activeSessionId === s.sessionId ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/10'} />
                   </div>
                 </div>
-                <div className="text-[9px] text-white/40 font-mono truncate h-4 italic">
-                  {s.lastMessage || 'Waiting_for_signal...'}
-                </div>
-                <div className="text-[8px] text-white/20 font-mono uppercase tracking-tighter">
+                <Typography variant="mono" color="muted" className="truncate italic block h-4 w-full">
+                  {s.lastMessage || 'Waiting for signal...'}
+                </Typography>
+                <Typography variant="mono" color="muted" className="text-[8px] w-full">
                     {new Date(s.updatedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                </div>
-              </button>
+                </Typography>
+              </Button>
             ))
           )}
         </div>
 
-        <div className="p-6 border-t border-white/5 text-[9px] text-white/20 uppercase tracking-widest font-mono">
-           Core_Interface_Node: v2.6.4
+        <div className="p-6 border-t border-white/5 font-mono">
+           <Typography variant="mono" color="muted">Core Interface Node: v2.6.4</Typography>
         </div>
       </aside>
 
@@ -498,51 +509,61 @@ function ChatContent() {
                         if (e.key === 'Enter') saveTitle();
                         if (e.key === 'Escape') {
                           setIsEditingTitle(false);
-                          setEditedTitle(currentSession?.title || 'Untitled_Trace');
+                          setEditedTitle(currentSession?.title || 'Untitled Trace');
                         }
                       }}
                       className="bg-white/5 border border-cyber-green/30 rounded px-2 py-1 text-lg font-bold text-white outline-none w-full"
                     />
-                    <button onClick={saveTitle} className="p-1 hover:text-cyber-green transition-colors">
-                      <Check size={18} />
-                    </button>
-                    <button onClick={() => setIsEditingTitle(false)} className="p-1 hover:text-red-500 transition-colors">
-                      <X size={18} />
-                    </button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={saveTitle} 
+                      className="p-1 hover:text-cyber-green h-auto"
+                      icon={<Check size={18} />}
+                    />
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setIsEditingTitle(false)} 
+                      className="p-1 hover:text-red-500 h-auto"
+                      icon={<X size={18} />}
+                    />
                   </div>
                 ) : (
                   <>
-                    <h2 className="text-xl font-bold tracking-tight text-white/90 truncate">
-                      {currentSession?.title || 'Untitled_Trace'}
-                    </h2>
-                    <button 
+                    <Typography variant="h2" weight="bold" color="white" className="truncate">
+                      {currentSession?.title || 'Untitled Trace'}
+                    </Typography>
+                    <Button 
+                      variant="ghost"
+                      size="sm"
                       onClick={() => setIsEditingTitle(true)}
-                      className="p-1 opacity-0 group-hover/title:opacity-50 hover:opacity-100 transition-all text-white"
-                    >
-                      <Edit2 size={14} />
-                    </button>
+                      className="p-1 opacity-0 group-hover/title:opacity-50 hover:opacity-100 text-white h-auto"
+                      icon={<Edit2 size={14} />}
+                    />
                   </>
                 )}
               </div>
             ) : (
               <div>
-                <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                  <MessageSquare size={20} className="text-cyber-green" /> CHAT_DIRECT
-                </h2>
-                <p className="text-[10px] text-white/90 uppercase tracking-widest mt-1">Real-time interaction with SUPER_CLAW</p>
+                <Typography variant="h2" weight="bold" color="white" className="flex items-center gap-2">
+                  <MessageSquare size={20} className="text-cyber-green" /> Chat Direct
+                </Typography>
+                <Typography variant="caption" color="white" className="mt-1 block opacity-90">
+                  Real-time interaction with Super Claw
+                </Typography>
               </div>
             )}
           </div>
           <div className="flex gap-2 items-center">
               {isRealtimeActive && (
-                <div className="flex items-center gap-1.5 px-2 py-1 bg-cyber-green/5 border border-cyber-green/20 rounded-full animate-pulse">
-                  <Zap size={10} className="text-cyber-green" />
-                  <span className="text-[8px] font-black text-cyber-green uppercase tracking-tighter">Live_Link_Active</span>
-                </div>
+                <Badge variant="primary" glow>
+                  <Zap size={10} className="inline mr-1" /> Live Link Active
+                </Badge>
               )}
-              <div className="text-[10px] px-2 py-1 bg-cyber-green/10 text-cyber-green border border-cyber-green/20 rounded font-bold uppercase tracking-tighter italic">
-                  {activeSessionId ? `SESSION_ID: ${activeSessionId.substring(0, 12)}...` : 'IDLE_WAITING'}
-              </div>
+              <Badge variant="primary" className="italic">
+                  {activeSessionId ? `Session ID: ${activeSessionId.substring(0, 12)}...` : 'Idle Waiting'}
+              </Badge>
           </div>
         </header>
 
@@ -554,8 +575,12 @@ function ChatContent() {
           {messages.length === 0 && !isLoading && (
               <div className="h-full flex flex-col items-center justify-center text-white/80">
                   <Terminal size={48} className="mb-4 opacity-10" />
-                  <p className="text-sm font-light uppercase tracking-widest">SYSTEM_READY // WAITING_FOR_INPUT</p>
-                  <p className="text-[10px] mt-2 opacity-80 uppercase tracking-tighter font-mono">Input signal to initialize neural translation</p>
+                  <Typography variant="h3" weight="normal" color="white" className="opacity-80">
+                    System Ready // Waiting for Input
+                  </Typography>
+                  <Typography variant="mono" color="muted" className="mt-2 block">
+                    Input signal to initialize neural translation
+                  </Typography>
               </div>
           )}
 
@@ -569,16 +594,16 @@ function ChatContent() {
                 </div>
                 <div className="flex flex-col gap-1">
                   {m.role === 'assistant' && m.agentName && (
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-cyber-green/60 flex items-center gap-1 pl-1">
+                    <Typography variant="caption" weight="bold" color="primary" className="flex items-center gap-1 pl-1">
                       <span className="w-1 h-1 rounded-full bg-cyber-green/60 inline-block" />
                       {m.agentName}
-                    </span>
+                    </Typography>
                   )}
-                  <div className={`p-4 rounded-lg text-sm leading-relaxed whitespace-pre-wrap ${
-                    m.role === 'user' ? 'bg-white/5 text-white/90 border border-white/10' : 'glass-card text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
+                  <Card variant="glass" padding="md" className={`rounded-lg ${
+                    m.role === 'user' ? 'bg-white/5 text-white/90 border border-white/10' : 'text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
                   }`}>
-                    {m.content}
-                  </div>
+                    <Typography variant="body">{m.content}</Typography>
+                  </Card>
                 </div>
               </div>
             </div>
@@ -589,10 +614,12 @@ function ChatContent() {
               <div className="w-8 h-8 rounded shrink-0 flex items-center justify-center border bg-cyber-green/10 border-cyber-green/30 text-cyber-green animate-pulse">
                   <Bot size={16} />
               </div>
-              <div className="p-4 rounded-lg glass-card flex items-center gap-3">
+              <Card variant="glass" padding="md" className="flex items-center gap-3">
                 <Loader2 size={16} className="animate-spin text-cyber-green" />
-                <span className="text-xs text-cyber-green/60 font-bold animate-pulse uppercase tracking-widest">Processing neural path...</span>
-              </div>
+                <Typography variant="caption" weight="bold" color="primary" className="animate-pulse">
+                  Processing neural path...
+                </Typography>
+              </Card>
             </div>
           )}
         </div>
@@ -604,23 +631,23 @@ function ChatContent() {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Enter command or query for SUPER_CLAW..."
-              className={`w-full bg-black border border-white/10 rounded-lg py-4 pl-6 pr-16 text-sm outline-none focus:border-cyber-green/50 transition-all placeholder:text-white/50 ${
+              placeholder="Enter command or query for Super Claw..."
+              className={`w-full bg-black border border-white/10 rounded-lg py-4 pl-6 pr-16 text-base outline-none focus:border-cyber-green/50 transition-all placeholder:text-white/50 ${
                 isShaking ? 'animate-shake border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]' : ''
               }`}
               disabled={isLoading}
             />
-            <button 
-              type="submit"
-              disabled={isLoading || !input.trim()}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-cyber-green text-black rounded flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-30 disabled:hover:scale-100 disabled:grayscale cursor-pointer shadow-[0_0_15px_rgba(0,255,163,0.3)]"
-            >
-              <Send size={18} />
-            </button>
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center">
+              <Button 
+                type="submit"
+                variant="primary"
+                size="sm"
+                disabled={isLoading || !input.trim()}
+                className="w-10 h-10 p-0 shadow-[0_0_15px_rgba(0,255,163,0.3)] !rounded-md"
+                icon={<Send size={18} />}
+              />
+            </div>
           </form>
-          <p className="text-center text-[9px] text-white/80 mt-4 uppercase tracking-[0.2em] font-mono">
-            Secure Neural Translink Active // Latency: 22ms // Node: Core_Manager
-          </p>
         </div>
       </main>
 
@@ -629,7 +656,7 @@ function ChatContent() {
         title="Trace Erasure"
         message="You are about to purge this neural path from the permanent record. This action is irreversible and will fragment the historical context."
         variant="danger"
-        confirmText="CONFIRM_PURGE"
+        confirmText="Confirm Purge"
         onConfirm={confirmDelete}
         onCancel={() => setShowDeleteConfirm(false)}
       />
@@ -639,7 +666,7 @@ function ChatContent() {
         title="Total Memory Wipe"
         message="You are about to permanently erase ALL conversation histories from the database. This action is irreversible and cannot be undone."
         variant="danger"
-        confirmText="CONFIRM_TOTAL_PURGE"
+        confirmText="Confirm Total Purge"
         onConfirm={confirmDeleteAll}
         onCancel={() => setShowDeleteAllConfirm(false)}
       />

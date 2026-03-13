@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { AlertTriangle, X } from 'lucide-react';
+import Typography from './ui/Typography';
+import Button from './ui/Button';
 
 interface CyberConfirmProps {
   isOpen: boolean;
@@ -20,8 +22,8 @@ export default function CyberConfirm({
   onCancel,
   title,
   message,
-  confirmText = 'CONFIRM_ACTION',
-  cancelText = 'ABORT_OPERATION',
+  confirmText = 'Confirm Action',
+  cancelText = 'Abort Operation',
   variant = 'warning'
 }: CyberConfirmProps) {
   if (!isOpen) return null;
@@ -49,28 +51,35 @@ export default function CyberConfirm({
             <AlertTriangle size={32} className="animate-pulse" />
           </div>
           <div className="space-y-2">
-            <h3 className="text-xl font-black uppercase tracking-[0.2em] text-white italic">{title}</h3>
-            <p className="text-xs text-white/60 leading-relaxed font-mono uppercase tracking-widest">
+            <Typography variant="h3" weight="black" className="tracking-[0.2em] italic">
+              {title}
+            </Typography>
+            <Typography variant="caption" color="muted" className="leading-relaxed tracking-widest block">
               {message}
-            </p>
+            </Typography>
           </div>
         </div>
 
         <div className="flex flex-col gap-3 relative">
-          <button
-            onClick={() => {
-              onConfirm();
-            }}
-            className={`w-full bg-${color}-600 hover:bg-${color}-500 text-white font-black py-4 rounded-sm text-[10px] uppercase tracking-[0.3em] transition-all shadow-[0_0_20px_rgba(0,0,0,0.3)] hover:scale-[1.02] border border-${color}-400/50`}
+          <Button
+            variant={variant === 'danger' ? 'danger' : 'primary'}
+            size="lg"
+            fullWidth
+            onClick={onConfirm}
+            className="tracking-[0.3em] font-black"
           >
             {confirmText}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            fullWidth
             onClick={onCancel}
-            className="w-full bg-white/5 hover:bg-white/10 text-white/40 font-bold py-3 rounded-sm text-[10px] uppercase tracking-[0.3em] transition-all border border-white/5 flex items-center justify-center gap-2"
+            icon={<X size={12} />}
+            className="text-white/40 border border-white/5 font-bold tracking-[0.3em]"
           >
-            <X size={12} /> {cancelText}
-          </button>
+            {cancelText}
+          </Button>
         </div>
       </div>
     </div>

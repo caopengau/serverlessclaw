@@ -4,6 +4,9 @@ import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dyn
 import { AlertTriangle } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import SettingsForm from './SettingsForm';
+import Typography from '@/components/ui/Typography';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
 
 async function getConfig() {
   try {
@@ -258,36 +261,36 @@ export default async function SettingsPage() {
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
-          <h2 className="text-2xl lg:text-3xl font-bold tracking-tight glow-text uppercase">
-            CONFIG
-          </h2>
-          <p className="text-white/100 text-xs lg:text-sm mt-2 font-light">
+          <Typography variant="h1" color="white" glow uppercase>
+            Config
+          </Typography>
+          <Typography variant="body" color="muted" className="mt-2 block">
             Hot-swappable neural architecture and provider routing.
-          </p>
+          </Typography>
         </div>
       </header>
 
       <div className="max-w-4xl space-y-10">
         <SettingsForm config={config} updateConfig={updateConfig} />
 
-        <div className="glass-card p-6 lg:p-8 space-y-6 border-red-900/20 bg-red-950/5">
-          <h3 className="text-sm font-bold flex items-center gap-2 text-red-500 uppercase tracking-wider">
-            <AlertTriangle size={16} /> DANGER_ZONE
-          </h3>
+        <Card variant="solid" padding="lg" className="border-red-900/20 bg-red-950/5 space-y-6">
+          <Typography variant="caption" weight="bold" color="danger" uppercase className="flex items-center gap-2">
+            <AlertTriangle size={16} /> Danger Zone
+          </Typography>
           <div className="flex flex-col md:flex-row md:justify-between md:items-center bg-red-950/20 p-6 rounded border border-red-900/30 gap-4">
             <div>
-              <div className="text-xs font-bold text-white/90 uppercase tracking-tight">
-                FORCE_INFRA_REBUILD
-              </div>
-              <div className="text-[10px] text-white/100 mt-1 font-medium">
+              <Typography variant="caption" weight="bold" color="white" uppercase>
+                Force Infra Rebuild
+              </Typography>
+              <Typography variant="caption" color="white" className="mt-1 block opacity-70">
                 Triggers a full SST deploy via CodeBuild. Use only if sst.config.ts changed.
-              </div>
+              </Typography>
             </div>
-            <button className="bg-red-900/40 hover:bg-red-900/60 text-red-200 px-5 py-2 rounded text-[10px] font-bold transition-colors border border-red-800/50 uppercase tracking-widest">
-              TRIGGER_REBUILD
-            </button>
+            <Button variant="danger" size="sm" uppercase className="px-5">
+              Trigger Rebuild
+            </Button>
           </div>
-        </div>
+        </Card>
       </div>
     </main>
   );

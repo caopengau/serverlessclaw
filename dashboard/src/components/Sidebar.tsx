@@ -15,12 +15,19 @@ import {
   Users,
   Brain,
   Wrench,
-  Server
+  Server,
+  Sun,
+  Moon
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { THEME } from '@/lib/theme';
 import { UI_STRINGS, ROUTES } from '@/lib/constants';
+import Typography from '@/components/ui/Typography';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
+import Card from '@/components/ui/Card';
 
 /**
  * Main application sidebar component.
@@ -61,19 +68,27 @@ export default function Sidebar() {
     <>
       {/* Mobile Header - Visible only on small screens */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 border-b border-white/10 bg-black/80 backdrop-blur-md z-40 px-6 flex items-center justify-between">
-        <Link href={ROUTES.HOME} className="flex items-center gap-3 group">
-          <div className={`w-8 h-8 bg-${THEME.COLORS.PRIMARY} rounded-sm flex items-center justify-center text-black font-bold`}>
-            C
-          </div>
-          <h1 className="text-lg font-bold tracking-tighter">CLAW_CENTER</h1>
-        </Link>
-        <button 
+        <div className="flex-1 flex justify-center lg:justify-start">
+          <Link href={ROUTES.HOME} className="flex items-center group">
+            <Image 
+              src="/logo-text-transparent.png" 
+              alt="Claw Center" 
+              width={140} 
+              height={40} 
+              priority
+              unoptimized
+              className="h-8 w-auto object-contain"
+            />
+          </Link>
+        </div>
+        <Button 
+          variant="ghost"
+          size="sm"
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Toggle navigation"
-          className="p-2 hover:bg-white/5 rounded-md text-white"
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+          className="p-2 h-auto text-white"
+          icon={isOpen ? <X size={24} /> : <Menu size={24} />}
+        />
       </div>
 
       {/* Mobile Backdrop */}
@@ -86,30 +101,44 @@ export default function Sidebar() {
 
       {/* Sidebar Container */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 lg:w-64 border-r border-white/10 flex flex-col p-6 space-y-8 bg-[#0d0d0d] lg:bg-black/20 shrink-0 transition-transform duration-300 lg:relative lg:translate-x-0
+        fixed inset-y-0 left-0 z-50 w-72 lg:w-64 border-r border-white/10 flex flex-col p-6 bg-[#0d0d0d] lg:bg-black/20 shrink-0 transition-transform duration-300 lg:relative lg:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="flex items-center justify-between lg:justify-start gap-3">
-          <Link href={ROUTES.HOME} className="flex items-center gap-3 group">
-            <div className={`w-8 h-8 bg-${THEME.COLORS.PRIMARY} rounded-sm flex items-center justify-center text-black font-bold group-hover:scale-105 transition-transform`}>
-              C
-            </div>
-            <h1 className="text-xl font-bold tracking-tighter">CLAW_CENTER</h1>
+        <div className="flex items-center justify-center w-full mb-2">
+          <Link href={ROUTES.HOME} className="flex items-center group">
+            <Image 
+              src="/logo-text-transparent.png" 
+              alt="Claw Center" 
+              width={180} 
+              height={54} 
+              priority
+              unoptimized
+              className="h-12 w-auto object-contain group-hover:scale-[1.02] transition-transform"
+            />
           </Link>
-          <button className="lg:hidden p-1 text-white/100" onClick={() => setIsOpen(false)}>
-            <X size={20} />
-          </button>
+          <div className="absolute right-6 flex items-center gap-2 lg:hidden">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setIsOpen(false)}
+              className="p-1 text-white h-auto"
+              icon={<X size={20} />}
+            />
+          </div>
         </div>
 
-        <nav className="flex-1 space-y-1 text-sm overflow-y-auto pr-2 custom-scrollbar">
+        <nav className="flex-1 space-y-1 text-sm overflow-y-auto pr-2 custom-scrollbar mt-2">
           {navItems.map((item, idx) => {
             if (item.type === 'header') {
               return (
-                <div key={idx} className={`text-white/100 px-2 uppercase text-[10px] tracking-widest font-bold mb-2 ${item.className || ''}`}>
-                  {item.label}
+                <div key={idx} className={`px-2 mt-4 mb-2 ${item.className || ''}`}>
+                  <Typography variant="caption" weight="bold" color="muted">
+                    {item.label}
+                  </Typography>
                 </div>
               );
             }
+// ... rest of map code unchanged ...
 
             const isActive = item.activePaths 
               ? item.activePaths.some(p => p === pathname || (p !== ROUTES.HOME && pathname?.startsWith(p)))
@@ -129,7 +158,13 @@ export default function Sidebar() {
               >
                 <div className="flex items-center gap-3">
                   {Icon && <Icon size={16} className={isActive ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/100 group-hover:text-white/100'} />}
-                  <span className="font-medium tracking-tight uppercase text-xs">{item.label}</span>
+                  <Typography 
+                    variant="caption" 
+                    weight="medium" 
+                    className={isActive ? `text-${THEME.COLORS.PRIMARY}` : ''}
+                  >
+                    {item.label}
+                  </Typography>
                 </div>
                 {isActive && <ChevronRight size={12} className={`text-${THEME.COLORS.PRIMARY}`} />}
               </Link>
@@ -137,21 +172,12 @@ export default function Sidebar() {
           })}
         </nav>
 
-        <div className="pt-6 border-t border-white/5 space-y-4">
-          <div className="bg-white/5 rounded p-3">
-            <div className="text-[10px] text-white/90 font-bold uppercase tracking-wider">{UI_STRINGS.NODE_STATUS}</div>
-            <div className={`text-[10px] text-${THEME.COLORS.PRIMARY} mt-1.5 flex items-center gap-2`}>
-              <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-${THEME.COLORS.PRIMARY} opacity-75`}></span>
-                <span className={`relative inline-flex rounded-full h-2 w-2 bg-${THEME.COLORS.PRIMARY}`}></span>
-              </span>
-              {UI_STRINGS.SYSTEM_ONLINE}
-            </div>
+        <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between px-1 opacity-30">
+          <div className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--cyber-green)]" />
+            <Typography variant="mono" className="text-[8px]">ONLINE</Typography>
           </div>
-          <div className="flex items-center justify-between text-[10px] text-white/50 font-bold tracking-widest">
-            <span>{UI_STRINGS.VERSION_PROTOTYPE}</span>
-            <span className="text-white/10 px-1 border border-white/10 rounded">{UI_STRINGS.BUILD_YEAR}</span>
-          </div>
+          <Typography variant="mono" className="text-[8px]">v1.0.0-PROTOTYPE</Typography>
         </div>
       </aside>
     </>

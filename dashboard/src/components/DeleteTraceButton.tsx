@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import CyberConfirm from './CyberConfirm';
+import Button from './ui/Button';
 
 interface DeleteTraceButtonProps {
   traceId: string;
@@ -44,17 +45,18 @@ export default function DeleteTraceButton({ traceId }: DeleteTraceButtonProps) {
         onConfirm={handleDelete}
         onCancel={() => setShowConfirm(false)}
       />
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           setShowConfirm(true);
         }}
-        className="p-2 opacity-0 group-hover:opacity-40 hover:!opacity-100 text-white transition-all hover:text-red-500 z-10"
+        className="opacity-0 group-hover:opacity-40 hover:!opacity-100 text-white transition-all hover:text-red-500 z-10 p-2"
+        icon={<Trash2 size={16} />}
         title="Delete Trace"
-      >
-        <Trash2 size={16} />
-      </button>
+      />
     </>
   );
 }

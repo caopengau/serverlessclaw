@@ -21,6 +21,9 @@ import {
 } from 'lucide-react';
 import { useReactFlow, ReactFlowProvider } from '@xyflow/react';
 import { THEME } from '@/lib/theme';
+import Button from '@/components/ui/Button';
+import Typography from '@/components/ui/Typography';
+import Card from '@/components/ui/Card';
 
 const nodeTypes = {
   agent: ({ data }: any) => (
@@ -273,29 +276,32 @@ export function FlowContent() {
       
       {/* Custom Themed Map Controls */}
       <div className="absolute bottom-6 left-6 z-20 flex flex-col gap-2">
-          <div className="flex flex-col bg-black/80 border border-white/10 rounded-lg overflow-hidden backdrop-blur-md shadow-2xl">
-              <button 
+          <Card variant="solid" padding="none" className="flex flex-col overflow-hidden backdrop-blur-md shadow-2xl">
+              <Button 
+                variant="ghost"
+                size="sm"
                 onClick={() => zoomIn()}
-                className={`p-3 text-white/60 hover:text-${THEME.COLORS.PRIMARY} hover:bg-white/5 transition-all border-b border-white/5 group pointer-events-auto`}
+                className="border-b border-white/5 p-3 rounded-none text-white/60 hover:text-cyber-green"
                 title="Zoom In"
-              >
-                  <Plus size={18} className="group-active:scale-90 transition-transform" />
-              </button>
-              <button 
+                icon={<Plus size={18} className="group-active:scale-90 transition-transform" />}
+              />
+              <Button 
+                variant="ghost"
+                size="sm"
                 onClick={() => zoomOut()}
-                className={`p-3 text-white/60 hover:text-${THEME.COLORS.PRIMARY} hover:bg-white/5 transition-all border-b border-white/5 group pointer-events-auto`}
+                className="border-b border-white/5 p-3 rounded-none text-white/60 hover:text-cyber-green"
                 title="Zoom Out"
-              >
-                  <Minus size={18} className="group-active:scale-90 transition-transform" />
-              </button>
-              <button 
+                icon={<Minus size={18} className="group-active:scale-90 transition-transform" />}
+              />
+              <Button 
+                variant="ghost"
+                size="sm"
                 onClick={handleReset}
-                className={`p-3 text-white/60 hover:text-${THEME.COLORS.PRIMARY} hover:bg-white/5 transition-all group pointer-events-auto`}
+                className="p-3 rounded-none text-white/60 hover:text-cyber-green"
                 title="Reset View & Layout"
-              >
-                  <Maximize size={18} className="group-active:scale-90 transition-transform" />
-              </button>
-          </div>
+                icon={<Maximize size={18} className="group-active:scale-90 transition-transform" />}
+              />
+          </Card>
           
           <div className="bg-black/80 border border-white/10 rounded-lg p-3 backdrop-blur-md shadow-2xl flex items-center justify-center">
               <Lock size={14} className="text-white/30" />
@@ -305,15 +311,17 @@ export function FlowContent() {
       <div className="absolute top-4 right-4 z-10 space-y-2 pointer-events-none">
           <div className={`flex items-center gap-2 px-3 py-1 bg-black/80 border border-${THEME.COLORS.PRIMARY}/30 rounded-full`}>
               <Radio size={12} className={`text-${THEME.COLORS.PRIMARY} animate-pulse`} />
-              <span className={`text-[10px] font-bold text-${THEME.COLORS.PRIMARY} uppercase tracking-wider`}>LIVE_ARCHITECTURE_FEED</span>
+              <Typography variant="caption" weight="bold" color="primary" uppercase>Live Architecture Feed</Typography>
           </div>
-          <button 
+          <Button 
+            variant="outline"
+            size="sm"
             onClick={() => { setLoading(true); fetchBlueprint(); }}
-            className="flex items-center gap-2 px-3 py-1 bg-black/80 border border-white/10 rounded-full hover:bg-white/5 transition-colors pointer-events-auto cursor-pointer group"
+            className="bg-black/80 rounded-full hover:bg-white/5 group"
+            icon={<RefreshCw size={10} className="text-white/90 group-hover:rotate-180 transition-transform duration-500" />}
           >
-              <RefreshCw size={10} className="text-white/90 group-hover:rotate-180 transition-transform duration-500" />
-              <span className="text-[10px] font-bold text-white/90 uppercase">Manual_Resync</span>
-          </button>
+            <Typography variant="caption" weight="bold" color="white" uppercase>Manual Resync</Typography>
+          </Button>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { Trash2, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import CyberConfirm from './CyberConfirm';
+import Button from './ui/Button';
 
 export default function DeleteAllTracesButton() {
   const router = useRouter();
@@ -41,19 +42,21 @@ export default function DeleteAllTracesButton() {
         title="Total Archive Purge"
         message="You are about to permanently erase ALL neural execution traces from the database. This will eliminate the entire historical logic record."
         variant="danger"
-        confirmText={isDeleting ? 'PURGING...' : 'CONFIRM_TOTAL_PURGE'}
+        confirmText={isDeleting ? 'Purging...' : 'Confirm Total Purge'}
         onConfirm={handleDeleteAll}
         onCancel={() => setShowConfirm(false)}
       />
-      <button
+      <Button
+        variant="outline"
+        size="sm"
         disabled={isDeleting}
         onClick={() => setShowConfirm(true)}
-        className="glass-card px-4 py-2.5 text-[11px] lg:text-[12px] border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-2 disabled:opacity-50"
+        className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+        icon={isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
         title="Purge All Traces"
       >
-        {isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-        <span className="font-bold tracking-widest text-[9px]">PURGE_ALL_TRACES</span>
-      </button>
+        Purge All Traces
+      </Button>
     </>
   );
 }

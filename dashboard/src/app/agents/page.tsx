@@ -1,11 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { bot, save, plus, trash2, shield, settings2, refreshcw, cpu, chevronright, shieldalert, x } from 'lucide-react';
+import { Bot, Save, Plus, Trash2, Shield, Settings2, RefreshCw, Cpu, ChevronRight, ShieldAlert, X } from 'lucide-react';
 import CyberSelect from '@/components/CyberSelect';
 import { THEME } from '@/lib/theme';
 import { toast } from 'sonner';
 import CyberConfirm from '@/components/CyberConfirm';
+import Button from '@/components/ui/Button';
+import Typography from '@/components/ui/Typography';
+import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
 
 interface AgentConfig {
   id: string;
@@ -167,9 +171,9 @@ export default function AgentsPage() {
   if (loading)
     return (
       <main className="flex-1 p-10 flex items-center justify-center">
-        <div className={`text-${THEME.COLORS.INTEL} animate-pulse font-mono tracking-widest uppercase text-sm flex items-center gap-3`}>
+        <Typography variant="mono" color="intel" uppercase className="flex items-center gap-3 animate-pulse">
           <RefreshCw className="animate-spin" size={20} /> Initializing Neural Hub...
-        </div>
+        </Typography>
       </main>
     );
 
@@ -185,19 +189,22 @@ export default function AgentsPage() {
       />
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
-          <h2 className="text-2xl lg:text-3xl font-bold tracking-tight glow-text uppercase">
-            AGENTS
-          </h2>
-          <p className="text-white/100 text-xs lg:text-sm mt-2 font-light">
+          <Typography variant="h1" color="white" glow uppercase>
+            Agents
+          </Typography>
+          <Typography variant="body" color="muted" className="mt-2 block">
             Manage backbone orchestrators and specialized autonomous agents.
-          </p>
+          </Typography>
         </div>
-        <button
+        <Button
           onClick={addAgent}
-          className={`bg-white/5 hover:bg-white/10 text-white/100 px-4 py-2 rounded text-xs font-bold border border-white/10 flex items-center gap-2 transition-all hover:border-${THEME.COLORS.INTEL}/50 uppercase tracking-widest shadow-[0_0_15px_rgba(255,255,255,0.02)]`}
+          variant="outline"
+          size="sm"
+          icon={<Plus size={14} />}
+          uppercase
         >
-          <Plus size={14} /> NEW_AGENT
-        </button>
+          New Agent
+        </Button>
       </header>
 
       <div className="max-w-6xl space-y-8 pb-20">
@@ -206,9 +213,11 @@ export default function AgentsPage() {
             const isLogicOnly = agent.id === 'monitor' || agent.id === 'recovery' || agent.id === 'events';
             
             return (
-              <div
+              <Card
                 key={agent.id}
-                className={`glass-card p-6 border-l-2 transition-all ${
+                variant="glass"
+                padding="md"
+                className={`border-l-2 transition-all ${
                   agent.isBackbone
                     ? `border-${THEME.COLORS.INTEL} shadow-[0_0_20px_rgba(0,224,255,0.05)]`
                     : 'border-white/10 hover:border-white/20'
@@ -234,15 +243,15 @@ export default function AgentsPage() {
                       />
                       <div className="text-[10px] text-white/50 mt-1 font-mono flex items-center gap-2">
                         {agent.id} 
-                        {agent.isBackbone && <span className={`text-${THEME.COLORS.INTEL} font-bold tracking-widest`}>[BACKBONE_PROTECTED]</span>}
-                        {isLogicOnly && <span className="text-yellow-500 font-bold tracking-widest">[SYSTEM_LOGIC_ONLY]</span>}
+                        {agent.isBackbone && <Badge variant="primary" className="py-0">Backbone Protected</Badge>}
+                        {isLogicOnly && <Badge variant="primary" className="bg-yellow-500/10 text-yellow-500 py-0">System Logic Only</Badge>}
                       </div>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-6 self-end lg:self-center">
                     <label className={`flex items-center gap-3 ${agent.isBackbone ? 'cursor-not-allowed' : 'cursor-pointer'} group`}>
-                      <span className={`text-[10px] font-bold text-white/100 tracking-widest group-hover:text-${THEME.COLORS.PRIMARY} transition-colors`}>ACTIVE_STATUS</span>
+                      <Typography variant="caption" weight="bold" color="white" uppercase className="group-hover:text-cyber-green transition-colors">Active Status</Typography>
                       <div className="relative">
                         <input
                           type="checkbox"
@@ -253,15 +262,16 @@ export default function AgentsPage() {
                         />
                         <div className={`w-10 h-5 bg-white/10 rounded-full peer peer-checked:bg-${THEME.COLORS.PRIMARY}/40 relative transition-all border border-white/5 overflow-hidden ${agent.isBackbone ? 'opacity-50 grayscale-[0.5]' : ''} after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white/20 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:toggle-move peer-checked:after:bg-${THEME.COLORS.PRIMARY} shadow-inner`}></div>
                       </div>
-                      {agent.isBackbone && <span className="text-[8px] font-bold text-white/30 uppercase tracking-tighter">READ_ONLY</span>}
+                      {agent.isBackbone && <Typography variant="mono" color="muted" className="text-[8px]" uppercase>Read Only</Typography>}
                     </label>
                     {!agent.isBackbone && (
-                      <button
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => deleteAgent(agent.id)}
-                        className={`p-2 hover:bg-${THEME.COLORS.DANGER}/20 text-white/50 hover:text-${THEME.COLORS.DANGER} rounded transition-colors border border-transparent hover:border-${THEME.COLORS.DANGER}/30`}
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                        className="text-white/50 hover:text-red-500 p-2 h-auto"
+                        icon={<Trash2 size={16} />}
+                      />
                     )}
                   </div>
                 </div>
@@ -269,20 +279,20 @@ export default function AgentsPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   {/* Prompt Section */}
                   <div className="lg:col-span-7 space-y-3">
-                    <label className="text-[10px] uppercase text-white/100 tracking-widest font-bold flex items-center gap-2">
+                    <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center gap-2">
                       <Settings2 size={12} className={`text-${THEME.COLORS.INTEL}`} /> 
                       {isLogicOnly ? 'Execution Parameters' : 'Neural Core Instructions (System Prompt)'}
-                    </label>
+                    </Typography>
                     <div className="relative">
                       {isLogicOnly ? (
-                        <div className="w-full bg-black/40 border border-white/5 rounded p-6 text-[10px] text-white/40 font-mono italic leading-relaxed min-h-[280px]">
+                        <Card variant="solid" padding="md" className="w-full text-[10px] text-white/40 font-mono italic leading-relaxed min-h-[280px]">
                           This node operates on deterministic system logic rather than neural inference. 
                           Instructions are hardcoded in the codebase for maximum reliability and safety.
                           <br /><br />
-                          <span className="text-white/60 uppercase tracking-widest not-italic font-bold flex items-center gap-2 mt-4">
+                          <Typography variant="mono" weight="bold" color="white" uppercase className="flex items-center gap-2 mt-4 opacity-60">
                             <ChevronRight size={10} /> source_path: core/handlers/{agent.id}.ts
-                          </span>
-                        </div>
+                          </Typography>
+                        </Card>
                       ) : (
                         <textarea
                           value={agent.systemPrompt}
@@ -296,14 +306,14 @@ export default function AgentsPage() {
                   {/* Model & Config Section */}
                   <div className="lg:col-span-5 space-y-6">
                     {!isLogicOnly && (
-                      <div className="space-y-4 bg-white/[0.02] p-4 rounded border border-white/5">
-                        <h4 className="text-[10px] font-bold text-white/100 uppercase tracking-widest flex items-center gap-2">
-                            <Cpu size={12} className={`text-${THEME.COLORS.PRIMARY}`} /> Hardware_Alignment
-                        </h4>
+                      <Card variant="solid" padding="sm" className="space-y-4">
+                        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center gap-2">
+                            <Cpu size={12} className={`text-${THEME.COLORS.PRIMARY}`} /> Hardware Alignment
+                        </Typography>
                         
                         <div className="space-y-4">
                           <div className="space-y-2">
-                            <label className="text-[9px] uppercase text-white/100 tracking-widest font-bold opacity-60">LLM Provider</label>
+                            <Typography variant="mono" weight="bold" color="white" uppercase className="text-[9px] opacity-60">LLM Provider</Typography>
                             <CyberSelect
                               value={agent.provider || ''}
                               onChange={(val) => updateAgent(agent.id, { provider: val, model: '' })}
@@ -319,7 +329,7 @@ export default function AgentsPage() {
                           </div>
 
                           <div className="space-y-2">
-                            <label className="text-[9px] uppercase text-white/100 tracking-widest font-bold opacity-60">Neural Model ID</label>
+                            <Typography variant="mono" weight="bold" color="white" uppercase className="text-[9px] opacity-60">Neural Model ID</Typography>
                             <CyberSelect
                               value={agent.model || ''}
                               onChange={(val) => updateAgent(agent.id, { model: val })}
@@ -337,21 +347,21 @@ export default function AgentsPage() {
                             />
                           </div>
                         </div>
-                      </div>
+                      </Card>
                     )}
 
-                    <div className={`p-4 border border-${THEME.COLORS.INTEL}/10 bg-${THEME.COLORS.INTEL}/[0.02] rounded`}>
-                      <div className={`text-[10px] font-bold text-${THEME.COLORS.INTEL} uppercase tracking-widest flex items-center gap-2 mb-2`}>
-                          <ChevronRight size={12} /> Execution_Context
-                      </div>
-                      <p className="text-[10px] text-white/100 font-light leading-relaxed italic">
+                    <Card variant="solid" padding="sm" className={`border-${THEME.COLORS.INTEL}/10 bg-${THEME.COLORS.INTEL}/[0.02]`}>
+                      <Typography variant="caption" weight="bold" color="intel" uppercase className="flex items-center gap-2 mb-2">
+                          <ChevronRight size={12} /> Execution Context
+                      </Typography>
+                      <Typography variant="caption" color="white" className="italic block opacity-70">
                           Node type: {agent.isBackbone ? 'PERSISTENT_BACKBONE' : 'DYNAMIC_SPOKE'}.
                           {isLogicOnly ? ' Core resilience logic.' : ' Authorized to interact with global bus and session memory.'}
-                      </p>
-                    </div>
+                      </Typography>
+                    </Card>
                   </div>
                 </div>
-              </div>
+              </Card>
             );
           })}
         </div>
@@ -359,23 +369,26 @@ export default function AgentsPage() {
 
       {/* Floating Save Button */}
       <div className="fixed bottom-10 right-10 z-30">
-        <button
+        <Button
           onClick={() => handleSave()}
           disabled={saving || !hasChanges}
-          className={`${THEME.COLORS.PRIMARY === ('cyan' as any) ? 'bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 border-cyan-500/50' : `bg-${THEME.COLORS.PRIMARY}-500/10 hover:bg-${THEME.COLORS.PRIMARY}-500/20 text-${THEME.COLORS.PRIMARY}-500 border-${THEME.COLORS.PRIMARY}-500/50`} px-8 py-4 rounded text-xs font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed disabled:grayscale disabled:scale-100 uppercase tracking-widest border shadow-[0_0_20px_rgba(0,0,0,0.5)]`}
+          loading={saving}
+          size="lg"
+          icon={<Save size={16} />}
+          uppercase
+          className="shadow-[0_0_20px_rgba(0,0,0,0.5)] scale-105 active:scale-95"
         >
-          {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />}
-          SAVE_AGENT_CONFIG
-        </button>
+          Save Agent Config
+        </Button>
       </div>
 
       {/* Backbone Warning Modal */}
       {showBackboneWarning && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-[#050505] border-2 border-red-500/50 max-w-lg w-full p-8 rounded-sm shadow-[0_0_50px_rgba(239,68,68,0.2)] space-y-6">
+          <Card variant="solid" padding="lg" className="border-2 border-red-500/50 max-w-lg w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] space-y-6">
             <div className="flex items-center gap-4 text-red-500">
               <Shield size={32} className="animate-pulse" />
-              <h3 className="text-xl font-black tracking-tighter uppercase italic">CRITICAL_BACKBONE_MODIFICATION</h3>
+              <Typography variant="h3" color="danger" weight="black" uppercase className="italic">Critical Backbone Modification</Typography>
             </div>
             
             <div className="space-y-4 font-mono text-[11px] leading-relaxed">
@@ -400,43 +413,52 @@ export default function AgentsPage() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <button
+              <Button
                 onClick={() => handleSave(true)}
-                className="w-full bg-red-600 hover:bg-red-500 text-white font-black py-4 rounded-sm text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-[1.02]"
+                variant="danger"
+                size="lg"
+                uppercase
+                fullWidth
+                className="shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-[1.02]"
               >
-                I_UNDERSTAND_PROCEED_WITH_SAVE
-              </button>
-              <button
+                I Understand Proceed with Save
+              </Button>
+              <Button
                 onClick={() => setShowBackboneWarning(false)}
-                className="w-full bg-white/5 hover:bg-white/10 text-white/60 font-bold py-3 rounded-sm text-xs uppercase tracking-widest transition-all border border-white/10"
+                variant="outline"
+                size="md"
+                uppercase
+                fullWidth
+                className="text-white/60"
               >
-                ABORT_MODIFICATION
-              </button>
+                Abort Modification
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* New Agent Modal */}
       {showNewAgentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-[#050505] border border-white/10 max-w-2xl w-full p-8 rounded-sm shadow-[0_0_50px_rgba(0,0,0,0.5)] space-y-6 relative">
-            <button 
+          <Card variant="solid" padding="lg" className="max-w-2xl w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] space-y-6 relative">
+            <Button 
+              variant="ghost"
+              size="sm"
               onClick={() => setShowNewAgentModal(false)}
-              className="absolute top-4 right-4 text-white/40 hover:text-white transition-colors"
-            >
-              <X size={20} />
-            </button>
+              className="absolute top-4 right-4 text-white/40 hover:text-white p-0 h-auto"
+              icon={<X size={20} />}
+            />
 
             <div className="flex items-center gap-4 text-cyber-green">
               <Plus size={32} />
-              <h3 className="text-xl font-black tracking-tighter uppercase italic">CONFIG NEW AGENT</h3>
+              <Typography variant="h2" color="primary" weight="black" uppercase className="italic">Config New Agent</Typography>
             </div>
             
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase text-white/50 tracking-widest font-bold">Node Name</label>
+                  <Typography variant="mono" weight="bold" color="white" uppercase className="text-[10px] opacity-50">Node Name</Typography>
                   <input
                     value={newAgent.name}
                     onChange={(e) => setNewAgent(prev => ({ ...prev, name: e.target.value }))}
@@ -445,7 +467,7 @@ export default function AgentsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase text-white/50 tracking-widest font-bold">System ID (Immutable)</label>
+                  <Typography variant="mono" weight="bold" color="white" uppercase className="text-[10px] opacity-50">System ID (Immutable)</Typography>
                   <input
                     value={newAgent.id}
                     onChange={(e) => setNewAgent(prev => ({ ...prev, id: e.target.value.toLowerCase().replace(/\s+/g, '_') }))}
@@ -456,7 +478,7 @@ export default function AgentsPage() {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] uppercase text-white/50 tracking-widest font-bold">Neural Core Instructions (System Prompt)</label>
+                <Typography variant="mono" weight="bold" color="white" uppercase className="text-[10px] opacity-50">Neural Core Instructions (System Prompt)</Typography>
                 <textarea
                   value={newAgent.systemPrompt}
                   onChange={(e) => setNewAgent(prev => ({ ...prev, systemPrompt: e.target.value }))}
@@ -467,7 +489,7 @@ export default function AgentsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase text-white/50 tracking-widest font-bold">Initial Provider</label>
+                  <Typography variant="mono" weight="bold" color="white" uppercase className="text-[10px] opacity-50">Initial Provider</Typography>
                   <CyberSelect
                     value={newAgent.provider || ''}
                     onChange={(val) => setNewAgent(prev => ({ ...prev, provider: val, model: '' }))}
@@ -482,7 +504,7 @@ export default function AgentsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase text-white/50 tracking-widest font-bold">Initial Model</label>
+                  <Typography variant="mono" weight="bold" color="white" uppercase className="text-[10px] opacity-50">Initial Model</Typography>
                   <CyberSelect
                     value={newAgent.model || ''}
                     onChange={(val) => setNewAgent(prev => ({ ...prev, model: val }))}
@@ -503,20 +525,27 @@ export default function AgentsPage() {
             </div>
 
             <div className="flex gap-4 pt-4">
-              <button
+              <Button
                 onClick={finalizeNewAgent}
-                className="flex-1 bg-cyber-green text-black font-black py-4 rounded-sm text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(0,255,163,0.2)] hover:scale-[1.02]"
+                variant="primary"
+                size="lg"
+                uppercase
+                fullWidth
+                className="shadow-[0_0_20px_rgba(0,255,163,0.2)] hover:scale-[1.02]"
               >
-                AUTHORIZE_NODE_INITIALIZATION
-              </button>
-              <button
+                Authorize Node Initialization
+              </Button>
+              <Button
                 onClick={() => setShowNewAgentModal(false)}
-                className="px-8 bg-white/5 hover:bg-white/10 text-white/60 font-bold py-4 rounded-sm text-xs uppercase tracking-widest transition-all border border-white/10"
+                variant="outline"
+                size="lg"
+                uppercase
+                className="px-8 text-white/60"
               >
-                CANCEL
-              </button>
+                Cancel
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       )}
     </main>
