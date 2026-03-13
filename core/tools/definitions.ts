@@ -39,19 +39,6 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  fileWrite: {
-    name: 'fileWrite',
-    description: 'Writes content to a file. Used by the Coder Agent to implement changes.',
-    parameters: {
-      type: 'object',
-      properties: {
-        filePath: { type: 'string', description: 'The relative path to the file.' },
-        content: { type: 'string', description: 'The content to write.' },
-      },
-      required: ['filePath', 'content'],
-      additionalProperties: false,
-    },
-  },
   triggerDeployment: {
     name: 'triggerDeployment',
     description: 'Triggers an autonomous self-deployment of the agent infrastructure.',
@@ -98,18 +85,6 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
         reason: { type: 'string', description: 'The reason for the rollback.' },
       },
       required: ['reason'],
-      additionalProperties: false,
-    },
-  },
-  getWeather: {
-    name: 'getWeather',
-    description: 'Get the current weather in a given location.',
-    parameters: {
-      type: 'object',
-      properties: {
-        location: { type: 'string', description: 'The city and state, e.g. San Francisco, CA' },
-      },
-      required: ['location'],
       additionalProperties: false,
     },
   },
@@ -250,33 +225,6 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  fileRead: {
-    name: 'fileRead',
-    description: 'Reads the content of a file from the codebase.',
-    parameters: {
-      type: 'object',
-      properties: {
-        filePath: { type: 'string', description: 'The relative path to the file.' },
-      },
-      required: ['filePath'],
-      additionalProperties: false,
-    },
-  },
-  listFiles: {
-    name: 'listFiles',
-    description: 'Lists files in a directory to explore the project structure.',
-    parameters: {
-      type: 'object',
-      properties: {
-        dirPath: {
-          type: 'string',
-          description: 'The relative path to the directory (defaults to root).',
-        },
-      },
-      required: ['dirPath'],
-      additionalProperties: false,
-    },
-  },
   setSystemConfig: {
     name: 'setSystemConfig',
     description: 'Updates a system-wide configuration value in the ConfigTable.',
@@ -385,18 +333,6 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       required: ['message'],
       additionalProperties: false,
     },
-  },
-  codeInterpreter: {
-    name: 'code_interpreter',
-    description: 'Executes Python code in a sandboxed environment (OpenAI Built-in).',
-    type: 'code_interpreter',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
-  },
-  fileSearch: {
-    name: 'file_search',
-    description: 'Searches through uploaded documents (OpenAI Built-in).',
-    type: 'file_search',
-    parameters: { type: 'object', properties: {}, additionalProperties: false },
   },
   fileUpload: {
     name: 'fileUpload',
