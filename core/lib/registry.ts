@@ -27,6 +27,14 @@ export class AgentRegistry {
     'listUploadedFiles',
   ];
 
+  private static DISCOVERY_BOOTLOADER_TOOLS = [
+    'recallKnowledge',
+    'listAgents',
+    'discoverSkills',
+    'sendMessage',
+    'checkConfig',
+  ];
+
   /**
    * Retrieves the retention period in days for a specific item type.
    * Checks for overrides in the ConfigTable before falling back to system defaults.
@@ -85,7 +93,20 @@ export class AgentRegistry {
 
     if (!config) return undefined;
 
-    // 2. Resolve Tool Overrides (Higher Priority)
+    // 2. Filter tools if selective_discovery_mode is active
+    const isDiscoveryMode = (await this.getRawConfig('selective_discovery_mode')) === true;
+    if (isDiscoveryMode && config.tools) {
+      // Core system tools that should never be removed from backbone agents
+      const coreTools = ['dispatchTask', 'recallKnowledge', 'discoverSkills', 'checkConfig'];
+      config.tools = config.tools.filter((t: string) => coreTools.includes(t));
+
+      // Inject bootloader set if toolset becomes too empty
+      if (config.tools.length < 3) {
+        config.tools = Array.from(new Set([...config.tools, ...AgentRegistry.DISCOVERY_BOOTLOADER_TOOLS]));
+      }
+    }
+
+    // 3. Resolve Tool Overrides (Higher Priority)
     // This unifies the manageAgentTools logic which saves to ${id}_tools
     const toolOverride = await this.getRawConfig(`${id}_tools`);
     if (toolOverride && Array.isArray(toolOverride)) {

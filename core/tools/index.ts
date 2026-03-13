@@ -38,18 +38,6 @@ export const tools: Record<string, ITool> = {
  * Evaluates a mathematical expression safely.
 ...
    */
-  calculator: {
-    ...toolDefinitions.calculator,
-    execute: async (args: Record<string, unknown>): Promise<string> => {
-      const { expression } = args as { expression: string };
-      try {
-        const result = Function(`"use strict"; return (${expression})`)();
-        return `Result: ${result}`;
-      } catch (e) {
-        return `Error: ${e instanceof Error ? e.message : String(e)}`;
-      }
-    },
-  },
 
   /**
    * Switches the active LLM provider and model for the system.

@@ -67,18 +67,6 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  calculator: {
-    name: 'calculator',
-    description: 'Evaluates mathematical expressions.',
-    parameters: {
-      type: 'object',
-      properties: {
-        expression: { type: 'string', description: 'The expression to evaluate.' },
-      },
-      required: ['expression'],
-      additionalProperties: false,
-    },
-  },
   validateCode: {
     name: 'validateCode',
     description: 'Runs type checking and linting to ensure no regressions are introduced.',
