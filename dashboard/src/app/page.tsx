@@ -688,7 +688,7 @@ function ChatContent() {
               <div className="h-full flex flex-col items-center justify-center text-white/80">
                   <Terminal size={48} className="mb-4 opacity-10" />
                   <Typography variant="h3" weight="normal" color="white" className="opacity-80">
-                    System Ready // Waiting for Input
+                    System Ready // Waiting for Input Command/File
                   </Typography>
                   <Typography variant="mono" color="muted" className="mt-2 block">
                     Initialise interaction by sending a message

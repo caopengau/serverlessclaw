@@ -223,6 +223,7 @@ INITIATOR: ${initiatorId}
 TRACE_ID: ${traceId}
 ACTIVE_PROVIDER: ${injectedProvider || ddbProvider || 'openai (default)'}
 ACTIVE_MODEL: ${injectedModel || ddbModel || 'gpt-4o-mini (default)'}
+STAGING_BUCKET: ${Resource.StagingBucket.name}
     `.trim();
   },
 };

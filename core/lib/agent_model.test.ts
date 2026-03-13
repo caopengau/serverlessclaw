@@ -1,4 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mock SST Resource
+vi.mock('sst', () => ({
+  Resource: {
+    StagingBucket: { name: 'test-bucket' },
+  },
+}));
 import { Agent } from './agent';
 import { IMemory, IProvider, MessageRole } from './types/index';
 import { AgentRegistry } from './registry';

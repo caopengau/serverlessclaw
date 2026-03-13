@@ -333,22 +333,6 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  fileRead: {
-    name: 'fileRead',
-    description: "Reads the content of a file from the agent's persistent storage.",
-    parameters: {
-      type: 'object',
-      properties: {
-        fileName: {
-          type: 'string',
-          description:
-            'The name or path of the file to read (relative to the user storage or chat-attachments).',
-        },
-      },
-      required: ['fileName'],
-      additionalProperties: false,
-    },
-  },
   saveKnowledge: {
     name: 'saveKnowledge',
     description: 'Directly saves a new fact or user preference into the system memory.',
