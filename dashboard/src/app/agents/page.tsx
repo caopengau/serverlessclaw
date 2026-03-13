@@ -642,8 +642,8 @@ export default function AgentsPage() {
                 <Wrench size={24} />
                 <Typography variant="h2" color="primary" weight="black" uppercase className="italic">Manage Agent Tools</Typography>
               </div>
-              <Typography variant="body" color="white" className="opacity-60 block">
-                Assign functional capabilities to <span className="text-white font-bold">{agents[selectedAgentIdForTools].name}</span>
+              <Typography variant="body" color="white" className="opacity-80 block">
+                Assign functional capabilities to <span className="text-white font-black underline decoration-cyber-green/30 underline-offset-4">{agents[selectedAgentIdForTools].name}</span>
               </Typography>
             </header>
 
@@ -686,8 +686,8 @@ export default function AgentsPage() {
                           size="sm"
                           onClick={() => handleToggleTool(selectedAgentIdForTools, toolName)}
                           disabled={isUpdatingTools || isUniversal}
-                          className="p-1 hover:bg-red-500/10 hover:text-red-500 opacity-40 group-hover:opacity-100 transition-all h-6 w-6"
-                          icon={<X size={10} />}
+                          className="p-1 hover:bg-red-500/20 text-red-500/60 hover:text-red-500 transition-all h-6 w-6"
+                          icon={<Trash2 size={10} />}
                         />
                       </div>
                     );
@@ -717,12 +717,12 @@ export default function AgentsPage() {
                         className={`flex flex-col items-start p-3 rounded-sm border border-white/5 bg-white/[0.02] hover:bg-cyber-green/10 hover:border-cyber-green/30 transition-all h-auto text-left group`}
                       >
                         <div className="flex justify-between items-center w-full mb-1">
-                          <Typography variant="mono" className="text-[10px] font-bold text-white/60 group-hover:text-cyber-green transition-colors uppercase">
+                          <Typography variant="mono" className="text-[10px] font-bold text-white/90 group-hover:text-cyber-green transition-colors uppercase">
                             {tool.name}
                           </Typography>
-                          <Plus size={10} className="text-white/20 group-hover:text-cyber-green" />
+                          <Plus size={10} className="text-white/40 group-hover:text-cyber-green" />
                         </div>
-                        <Typography variant="mono" color="muted" className="text-[9px] line-clamp-2 leading-relaxed h-8">
+                        <Typography variant="mono" className="text-[9px] line-clamp-2 leading-relaxed h-8 text-white/50 group-hover:text-white/70 transition-colors">
                           {tool.description}
                         </Typography>
                       </Button>
