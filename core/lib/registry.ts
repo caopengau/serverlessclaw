@@ -102,7 +102,9 @@ export class AgentRegistry {
 
       // Inject bootloader set if toolset becomes too empty
       if (config.tools.length < 3) {
-        config.tools = Array.from(new Set([...config.tools, ...AgentRegistry.DISCOVERY_BOOTLOADER_TOOLS]));
+        config.tools = Array.from(
+          new Set([...config.tools, ...AgentRegistry.DISCOVERY_BOOTLOADER_TOOLS])
+        );
       }
     }
 
