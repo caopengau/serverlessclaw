@@ -253,7 +253,8 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
   },
   checkConfig: {
     name: 'checkConfig',
-    description: 'Retrieves the current runtime configuration, including active LLM provider and model.',
+    description:
+      'Retrieves the current runtime configuration, including active LLM provider and model.',
     parameters: {
       type: 'object',
       properties: {},
