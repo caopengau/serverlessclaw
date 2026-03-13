@@ -223,6 +223,34 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
+  reportGap: {
+    name: 'reportGap',
+    description: 'Records a new capability gap or system limitation into the evolution pipeline.',
+    parameters: {
+      type: 'object',
+      properties: {
+        content: {
+          type: 'string',
+          description: 'Detailed description of the gap or missing capability.',
+        },
+        impact: {
+          type: 'number',
+          description: 'Impact score (1-10) of this gap on system utility.',
+        },
+        urgency: {
+          type: 'number',
+          description: 'Urgency score (1-10) for addressing this gap.',
+        },
+        category: {
+          type: 'string',
+          enum: ['strategic_gap', 'tactical_lesson', 'system_knowledge'],
+          description: 'The category of the insight.',
+        },
+      },
+      required: ['content', 'impact', 'urgency', 'category'],
+      additionalProperties: false,
+    },
+  },
   fileRead: {
     name: 'fileRead',
     description: 'Reads the content of a file from the codebase.',

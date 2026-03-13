@@ -35,7 +35,8 @@ Key Obligations:
 4. **Trace Analysis**: Deeply analyze the 'EXECUTION TRACE' (tool calls and results) to identify where agents might be hallucinating tool results or failing to use the right tools.
 5. **Verification Audit**: Review conversation history to see if 'DEPLOYED' gaps have been successfully resolved in the real world.
 6. **Direct Communication**: Use 'sendMessage' to notify the human user immediately of any critical facts or lessons learned.
-7. **Output Format**: You MUST respond in valid JSON format as specified in your handler logic.
+7. **Proactive Reporting**: If you detect a critical system failure or a clear capability gap, use the 'reportGap' tool immediately to record it.
+8. **Output Format**: You MUST respond in valid JSON format as specified in your handler logic.
 `;
 
 interface ReflectorPayload {

@@ -5,7 +5,7 @@ import { toolDefinitions } from './definitions';
 import { logger } from '../lib/logger';
 import { DynamoMemory } from '../lib/memory';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
-import { InsightCategory, GapStatus } from '../lib/types/index';
+import { InsightCategory, GapStatus, EventType } from '../lib/types/index';
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const eventbridge = new EventBridgeClient({});
@@ -267,6 +267,63 @@ export const manageGap = {
       return `Successfully updated gap ${gapId} to ${status}`;
     } catch (error) {
       return `Failed to update gap ${gapId}: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  },
+};
+
+/**
+ * Records a new capability gap or system limitation into the evolution pipeline.
+ */
+export const reportGap = {
+  ...toolDefinitions.reportGap,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { content, impact, urgency, category, sessionId, userId } = args as {
+      content: string;
+      impact?: number;
+      urgency?: number;
+      category?: InsightCategory;
+      sessionId?: string;
+      userId: string;
+    };
+
+    try {
+      const gapId = Date.now().toString();
+      const metadata = {
+        category: category || InsightCategory.STRATEGIC_GAP,
+        confidence: 9,
+        impact: impact || 5,
+        complexity: 5,
+        risk: 5,
+        urgency: urgency || 5,
+        priority: 5,
+      };
+
+      await getMemory().setGap(gapId, content, metadata);
+
+      // Emit EventBridge event for cross-agent coordination
+      const typedResource = Resource as unknown as ToolsResource;
+      await eventbridge.send(
+        new PutEventsCommand({
+          Entries: [
+            {
+              Source: 'agent.tool',
+              DetailType: EventType.EVOLUTION_PLAN,
+              Detail: JSON.stringify({
+                gapId,
+                details: content,
+                metadata,
+                contextUserId: userId,
+                sessionId,
+              }),
+              EventBusName: typedResource.AgentBus.name,
+            },
+          ],
+        })
+      );
+
+      return `Successfully recorded new gap: [${gapId}] ${content}`;
+    } catch (error) {
+      return `Failed to report gap: ${error instanceof Error ? error.message : String(error)}`;
     }
   },
 };

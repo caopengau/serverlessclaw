@@ -30,6 +30,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       'triggerRollback',
       'discoverSkills',
       'installSkill',
+      'reportGap',
     ],
     connectionProfile: ['bus', 'memory', 'config', 'trace'],
   },
@@ -85,7 +86,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'Search',
     enabled: true,
     isBackbone: true,
-    tools: ['recallKnowledge', 'manageGap', 'sendMessage'],
+    tools: ['recallKnowledge', 'manageGap', 'reportGap', 'sendMessage'],
     connectionProfile: ['bus', 'memory', 'config', 'trace'],
   },
   [AgentType.QA]: {
