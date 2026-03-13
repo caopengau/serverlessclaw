@@ -205,6 +205,25 @@ export default async function TraceDetailPage({
                   </div>
                   
                   <div className="p-4 bg-black/40 border-t border-white/5">
+                    {step.type === TRACE_TYPES.TOOL_RESULT && step.content.result && typeof step.content.result === 'object' && step.content.result.images && (
+                      <div className="mb-4 space-y-4">
+                        <div className="text-[10px] text-cyber-blue/60 uppercase font-bold tracking-widest flex items-center gap-2">
+                           <LayoutGrid size={12} /> Generated_Visuals
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {step.content.result.images.map((img: string, imgIdx: number) => (
+                            <div key={imgIdx} className="border border-white/10 rounded overflow-hidden bg-black/20 group/img relative">
+                              <img 
+                                src={img.startsWith('data:') ? img : `data:image/png;base64,${img}`} 
+                                alt={`Output ${imgIdx}`}
+                                className="w-full h-auto object-contain max-h-[400px]"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {step.type === 'llm_response' && step.content.content ? (
                       <div className="mb-4 p-4 bg-cyber-green/[0.03] border border-cyber-green/10 rounded">
                         <div className="text-[10px] text-cyber-green/60 uppercase font-bold mb-2 tracking-widest flex items-center gap-2">

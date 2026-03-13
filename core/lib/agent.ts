@@ -82,6 +82,16 @@ export interface AgentProcessOptions {
    */
   sessionId?: string;
   /**
+   * Optional attachments (images, files) for the current turn.
+   */
+  attachments?: Array<{
+    type: 'image' | 'file';
+    url?: string;
+    base64?: string;
+    name?: string;
+    mimeType?: string;
+  }>;
+  /**
    * The origin of the request (e.g., 'dashboard', 'telegram', 'system').
    * @default TraceSource.UNKNOWN
    */
@@ -134,6 +144,7 @@ export class Agent {
       nodeId: incomingNodeId,
       parentId: incomingParentId,
       sessionId,
+      attachments,
       source = TraceSource.UNKNOWN,
     } = options;
 
@@ -157,7 +168,7 @@ export class Agent {
     const mainConversationId = userId;
 
     if (!isContinuation) {
-      await tracer.startTrace({ userText, sessionId, agentId: this.config?.id });
+      await tracer.startTrace({ userText, sessionId, agentId: this.config?.id, hasAttachments: !!attachments });
     }
 
     // Determine storage identifier (Namespaced if isolated)
@@ -186,7 +197,7 @@ export class Agent {
     }
 
     // 3. Add user message (Skip if continuation as it's already in history)
-    const userMessage: Message = { role: MessageRole.USER, content: userText };
+    const userMessage: Message = { role: MessageRole.USER, content: userText, attachments };
     if (!isContinuation) {
       await this.memory.addMessage(storageId, userMessage);
     }

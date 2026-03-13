@@ -63,15 +63,33 @@ export class OpenAIProvider implements IProvider {
       else if (m.role === MessageRole.TOOL) role = 'tool';
       else if (m.role === MessageRole.DEVELOPER) role = 'developer';
 
+      const content: OpenAI.Chat.ChatCompletionContentPart[] = [];
+      if (m.content) {
+        content.push({ type: 'text', text: m.content });
+      }
+
+      if (m.attachments) {
+        m.attachments.forEach((att) => {
+          if (att.type === 'image') {
+            content.push({
+              type: 'image_url',
+              image_url: {
+                url: att.url || `data:${att.mimeType || 'image/png'};base64,${att.base64}`,
+              },
+            });
+          }
+        });
+      }
+
       return {
         role,
-        content: m.content || '',
+        content: content.length === 1 && content[0].type === 'text' ? m.content : content,
         ...(m.tool_calls
           ? { tool_calls: m.tool_calls as OpenAI.Chat.ChatCompletionMessageToolCall[] }
           : {}),
         ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
-      };
-    }) as OpenAI.Chat.ChatCompletionMessageParam[];
+      } as OpenAI.Chat.ChatCompletionMessageParam;
+    });
 
     // Determining if we should use the new Responses API (/v1/responses)
     // gpt-5.4 doesn't support reasoning_effort + tools on /chat/completions
@@ -97,17 +115,33 @@ export class OpenAIProvider implements IProvider {
 
         const items: Array<Record<string, unknown>> = [];
 
-        // 1. Add text content if present
-        if (m.content) {
+        // 1. Add message content if present
+        if (m.content || (m.attachments && m.attachments.length > 0)) {
           let role: 'user' | 'assistant' | 'system' | 'developer' = 'user';
           if (m.role === MessageRole.SYSTEM) role = 'developer';
           else if (m.role === MessageRole.ASSISTANT) role = 'assistant';
           else if (m.role === MessageRole.DEVELOPER) role = 'developer';
 
+          const content: any[] = [];
+          if (m.content) content.push({ type: 'text', text: m.content });
+
+          if (m.attachments) {
+            m.attachments.forEach((att) => {
+              if (att.type === 'image') {
+                content.push({
+                  type: 'image_url',
+                  image_url: {
+                    url: att.url || `data:${att.mimeType || 'image/png'};base64,${att.base64}`,
+                  },
+                });
+              }
+            });
+          }
+
           items.push({
             type: 'message',
             role,
-            content: m.content,
+            content: content.length === 1 && content[0].type === 'text' ? m.content : content,
           });
         }
 

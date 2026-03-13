@@ -22,6 +22,9 @@ export class AgentRegistry {
     'listAgents',
     'dispatchTask',
     'discoverSkills',
+    'fileUpload',
+    'fileDelete',
+    'listUploadedFiles',
   ];
 
   /**

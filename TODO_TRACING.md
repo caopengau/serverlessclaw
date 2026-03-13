@@ -27,10 +27,10 @@ Goal: Move from a linear trace log to a distributed, branched execution graph th
 - [x] Refactor `TraceDetailPage` to query all nodes for a trace.
 - [x] Refactor `PathVisualizer.tsx` to render a Directed Acyclic Graph (DAG) instead of a vertical list.
 - [x] Add visual indicators for parallel execution branches.
-- [ ] Add support for rendering multi-modal outputs (images/plots) in the trace timeline.
+- [x] Add support for rendering multi-modal outputs (images/plots) in the trace timeline.
 
 ## 6. Multi-Provider Alignment
 - [x] Implement built-in tool pass-through for OpenAI.
 - [x] Implement built-in tool pass-through for OpenRouter.
-- [ ] Implement Host Capability adapters for Anthropic (Claude Computer Use).
-- [ ] Implement Grounded Search adapter for Google Gemini.
+- [x] Implement Host Capability adapters for Anthropic (Claude Computer Use).
+- [x] Implement Grounded Search adapter for Google Gemini.

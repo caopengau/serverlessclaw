@@ -81,6 +81,16 @@ export class OpenRouterProvider implements IProvider {
           },
         };
       });
+
+      // 2026: Specialized Google Gemini Grounded Search
+      if (activeModel.includes('gemini') && tools.some((t) => t.type === 'google_search_retrieval')) {
+        body['google_search_retrieval'] = {
+          dynamic_retrieval: {
+            mode: 'unspecified',
+            dynamic_threshold: 0.3,
+          },
+        };
+      }
     }
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
