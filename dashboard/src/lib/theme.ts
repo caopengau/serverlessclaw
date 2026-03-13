@@ -5,8 +5,8 @@
 
 export const THEME = {
   COLORS: {
-    PRIMARY: 'var(--cyber-green)',
-    INTEL: 'var(--cyber-blue)',
+    PRIMARY: 'cyber-green',
+    INTEL: 'cyber-blue',
     REFLECT: 'purple-400',
     DANGER: 'red-500',
     WARNING: 'orange-400',

@@ -336,7 +336,7 @@ export default function AgentsPage() {
                           onChange={(e) => updateAgent(agent.id, { enabled: e.target.checked })}
                           className="sr-only peer"
                         />
-                        <div className={`w-10 h-5 bg-white/10 rounded-full peer peer-checked:bg-${THEME.COLORS.PRIMARY}/40 relative transition-all border border-white/5 overflow-hidden ${agent.isBackbone ? 'opacity-50 grayscale-[0.5]' : ''} after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white/20 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:toggle-move peer-checked:after:bg-${THEME.COLORS.PRIMARY} shadow-inner`}></div>
+                        <div className={`w-10 h-5 bg-white/5 rounded-full peer peer-checked:bg-${THEME.COLORS.PRIMARY}/30 relative transition-all border border-white/5 overflow-hidden ${agent.isBackbone ? 'opacity-50 grayscale-[0.5]' : ''} after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white/40 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:toggle-move peer-checked:after:bg-${THEME.COLORS.PRIMARY} peer-checked:after:shadow-[0_0_8px_rgba(0,255,163,0.8)] shadow-inner`}></div>
                       </div>
                       {agent.isBackbone && <Typography variant="mono" color="muted" className="text-[8px]" uppercase>Read Only</Typography>}
                     </label>
