@@ -69,9 +69,9 @@ export class MCPBridge {
   }
 
   /**
-   * Discovers and loads all tools from all configured MCP servers.
+   * Discovers and loads tools from configured MCP servers, optionally filtered by requested tool names.
    */
-  static async getAllExternalTools(): Promise<ITool[]> {
+  static async getExternalTools(requestedTools?: string[]): Promise<ITool[]> {
     let serversConfig = (await AgentRegistry.getRawConfig('mcp_servers')) as Record<
       string,
       string | { command: string; env?: Record<string, string> }
@@ -106,6 +106,10 @@ export class MCPBridge {
         command: 'npx -y @modelcontextprotocol/server-aws',
         env: {},
       },
+      'aws-s3': {
+        command: 'npx -y @modelcontextprotocol/server-aws-s3',
+        env: {},
+      },
     };
 
     if (!serversConfig) serversConfig = {};
@@ -123,6 +127,15 @@ export class MCPBridge {
     }
 
     for (const [name, config] of Object.entries(serversConfig)) {
+      // Lazy loading: only connect if we don't have requestedTools OR if one of them starts with the server name prefix
+      const needsThisServer =
+        !requestedTools || requestedTools.some((t) => t.startsWith(`${name}_`));
+
+      if (!needsThisServer) {
+        logger.debug(`Skipping MCP server ${name} (not requested by agent)`);
+        continue;
+      }
+
       const connectionString = typeof config === 'string' ? config : config.command;
       const env = typeof config === 'string' ? undefined : config.env;
 

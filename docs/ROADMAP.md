@@ -79,23 +79,29 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [ ] **Real-time Resilience Gauge**: Dashboard HUD for Circuit Breaker status and token burn-rate monitoring.
 - [ ] **Interactive Gap Refinement**: Feedback loop for users to edit and improve strategic plans before implementation.
 
-## 🏢 Phase 13: Advanced Autonomy
+## 🏗️ Phase 13: Multi-Modal Chat & File Handling
+- [ ] **Rich Media Receiver**: Webhook support for Photos, Documents, and Voice messages via S3 bridging.
+- [ ] **S3 Memory Integration**: Attachments linked to session history with TTL-aware lifecycle.
+- [ ] **Multi-Modal Provider Support**: Full support for image and file analysis in OpenAI/Gemini/Bedrock adapters.
+- [ ] **Rich Media Notifier**: Capability for agents to send files, charts, and generated images back to chat channels.
+
+## 🏢 Phase 14: Advanced Autonomy
 - [ ] **Browser Automation**: Playwright Lambda Layer for autonomous web browsing.
 - [ ] **Promotion Manager**: Agent-driven promotion of validated `dev` builds to `prod`.
 - [ ] **Skill Marketplace**: CLI-based installation of community tools.
 
-## 🏢 Phase 14: Enterprise Scale
+## 🏢 Phase 15: Enterprise Scale
 - [ ] Agent Swarm Isolation by `employerId`.
 - [ ] Per-tenant EventBridge filtering.
 - [ ] Multi-Channel Adapters: Slack and Discord support.
 
-## 🏢 Phase 15: Evolution Analytics & Tool ROI
+## 🏢 Phase 16: Evolution Analytics & Tool ROI
 - [ ] **Quantitative Tool Dashboard**: Frequency, success rates, and token cost per tool.
 - [ ] **Negative Memory Tier**: `FAILED_PLANS#` storage to prevent the Strategic Planner from repeating unsuccessful designs.
 - [ ] **Optimizer Agent**: Specialized auditor that suggests tool pruning or splitting based on usage patterns.
 - [ ] **Automated Cost Guardrails**: Budget-aware planning that prioritizes cheaper models for low-impact gaps.
 
-## 🏢 Phase 16: Advanced Cognitive Resilience
+## 🏢 Phase 17: Advanced Cognitive Resilience
 - [ ] **Static Analysis Feed**: Inject `package.json` and environmental constraints directly into the Planner's telemetry.
 - [ ] **Interactive Strategic Planning**: "Reject with Reason" feedback loop in dashboard that converts into immediate `TACTICAL_LESSONS`.
 - [ ] **Multi-Agent Conflict Resolution**: Detection and mediation of overlapping plans between different autonomous nodes.

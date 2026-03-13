@@ -81,6 +81,35 @@ User Event      Webhook         AgentBus         LLM Agent        Memory        
     |              |<---------------+                |                |                 |               |
     |<-------------+  (HTTP 200)    |                |                |                 |               |
 Response
+
+---
+
+## Multi-Modal Storage Flow
+
+When a user sends media (photos, documents, voice) via Telegram, the system bridges it to internal storage before agent processing.
+
+```text
+User Event      Webhook         Telegram API      Staging Bucket (S3)    SuperClaw (Agent)
+    |              |                |                    |                      |
+    +------------->|                |                    |                      |
+    |  (Media Msg) |                |                    |                      |
+    |              +--------------->|                    |                      |
+    |              | (Get File URL) |                    |                      |
+    |              |<---------------+                    |                      |
+    |              |                |                    |                      |
+    |              +--------------->|                    |                      |
+    |              |  (Download)    |                    |                      |
+    |              |<---------------+                    |                      |
+    |              |                |                    |                      |
+    |              +------------------------------------>|                      |
+    |              |         (S3 Upload / lifecycle)     |                      |
+    |              |                |                    |                      |
+    |              +----------------------------------------------------------->|
+    |              |                |                    |    (Process w/ URL)  |
+```
+
+- **S3 Staging**: Media is stored in the `StagingBucket` with a 30-day TTL lifecycle policy.
+- **Vision Integration**: For small images, the Webhook provides a Base64 string directly to the agent's Vision context for zero-latency analysis.
 ```
 
 ---
@@ -174,7 +203,9 @@ Tools written specifically for the ServerlessClaw environment (e.g., `triggerDep
 
 ### 2. MCP Skills (External Bridge)
 Connected via the **Model Context Protocol (MCP)**. This is the primary scaling vector for the system.
+- **Lazy Loading (Requested Tool Filtering)**: The `MCPBridge` ensures that external servers are only connected to when an agent's specific toolset requires them. This prevents resource waste and minimizes startup latency for agents that don't need external integrations.
 - **Dynamic Spawning**: The `MCPBridge` uses `npx` to fetch and run servers on-demand based on the `mcp_servers` configuration in DynamoDB.
+- **Curated Ecosystem**: Includes bootstrapped servers for `aws-ss3`, `google-search`, and `filesystem`.
 - **Encapsulated Environments**: Servers run as independent sub-processes, ensuring isolation from the core agent runtime.
 - **Persistence & Auditing**: Once an agent calls `registerMCPServer`, the server is recorded in the `ConfigTable`. Every subsequent tool call is tracked (count and last-used timestamp) to enable data-driven pruning.
 

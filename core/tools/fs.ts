@@ -3,6 +3,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   ListObjectsV2Command,
+  GetObjectCommand,
 } from '@aws-sdk/client-s3';
 import { Resource } from 'sst';
 import { toolDefinitions } from './definitions';
@@ -118,6 +119,46 @@ export const listUploadedFiles = {
     } catch (error) {
       return `Failed to list files: ${error instanceof Error ? error.message : String(error)}`;
     }
+  },
+};
+
+/**
+ * Reads the content of a file from S3 storage.
+ */
+export const fileRead = {
+  ...toolDefinitions.fileRead,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { fileName, userId } = args as { fileName: string; userId?: string };
+
+    const typedResource = Resource as unknown as ToolsResource;
+    const bucketName = typedResource.StagingBucket.name;
+
+    // Try multiple possible paths:
+    // 1. Direct path (if provided as a full S3 key or relative to chat-attachments)
+    // 2. User-specific path
+    const possibleKeys = [fileName, `chat-attachments/${fileName}`];
+
+    if (userId) {
+      possibleKeys.push(`users/${userId}/files/${fileName}`);
+    }
+
+    for (const key of possibleKeys) {
+      try {
+        const response = await s3.send(
+          new GetObjectCommand({
+            Bucket: bucketName,
+            Key: key,
+          })
+        );
+
+        const content = await response.Body?.transformToString();
+        return content || 'FAILED: File is empty.';
+      } catch {
+        // Continue to next possible key
+      }
+    }
+
+    return `FAILED: Could not find or read file ${fileName} in S3.`;
   },
 };
 

@@ -164,8 +164,17 @@ I am ready for further tasks or instructions.`;
       );
     }
   } else if (event['detail-type'] === EventType.CONTINUATION_TASK) {
-    const { userId, agentId, task, traceId, sessionId, isContinuation, depth, initiatorId } =
-      event.detail as unknown as TaskEvent & { agentId?: string };
+    const {
+      userId,
+      agentId,
+      task,
+      traceId,
+      sessionId,
+      isContinuation,
+      depth,
+      initiatorId,
+      attachments,
+    } = event.detail as unknown as TaskEvent & { agentId?: string };
 
     const targetAgentId = agentId || 'main';
     logger.info(`Handling continuation task for agent ${targetAgentId}, user:`, userId, {
@@ -191,6 +200,7 @@ I am ready for further tasks or instructions.`;
       sessionId,
       depth,
       initiatorId,
+      attachments,
       source: TraceSource.SYSTEM,
     });
 

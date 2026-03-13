@@ -7,7 +7,12 @@ import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers/index';
 import { getAgentTools } from '../tools/index';
 import { DynamoLockManager } from '../lib/lock';
-import { ReasoningProfile, TraceSource } from '../lib/types/index';
+import { ReasoningProfile, TraceSource, SSTResource } from '../lib/types/index';
+import { Resource } from 'sst';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+
+const typedResource = Resource as unknown as SSTResource;
+const s3 = new S3Client({});
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
@@ -39,7 +44,10 @@ export const handler = async (
   }
 
   const chatId = message.chat.id.toString();
-  const userText = message.text;
+  const userText = message.text || message.caption || ''; // Support captions on media
+
+  // Handle Media Attachments
+  const attachments = await processTelegramMedia(message);
 
   // 1. Acquire Lock
   const acquired = await lockManager.acquire(chatId, 60);
@@ -74,6 +82,7 @@ export const handler = async (
       profile,
       context,
       source: TraceSource.TELEGRAM,
+      attachments,
       // isContinuation is not directly applicable to APIGatewayProxyEventV2 from Telegram
     });
 
@@ -86,3 +95,108 @@ export const handler = async (
 
   return { statusCode: 200, body: 'OK' };
 };
+
+/**
+ * Processes Telegram media attachments (photos, documents).
+ */
+async function processTelegramMedia(message: Record<string, any>): Promise<any[]> {
+  const attachments: any[] = [];
+  const token = typedResource.TelegramBotToken.value;
+
+  try {
+    if (message.photo) {
+      // Pick the largest photo size
+      const photo = message.photo[message.photo.length - 1];
+      const result = await handleTelegramFile(photo.file_id, 'image', token);
+      if (result) attachments.push(result);
+    }
+
+    if (message.document) {
+      const result = await handleTelegramFile(
+        message.document.file_id,
+        'file',
+        token,
+        message.document.file_name,
+        message.document.mime_type
+      );
+      if (result) attachments.push(result);
+    }
+
+    if (message.voice) {
+      const result = await handleTelegramFile(
+        message.voice.file_id,
+        'file',
+        token,
+        'voice.ogg',
+        'audio/ogg'
+      );
+      if (result) attachments.push(result);
+    }
+  } catch (error) {
+    logger.error('Error processing Telegram media:', error);
+  }
+
+  return attachments;
+}
+
+/**
+ * Downloads a file from Telegram and uploads it to S3.
+ */
+async function handleTelegramFile(
+  fileId: string,
+  type: 'image' | 'file',
+  token: string,
+  fileName?: string,
+  mimeType?: string
+): Promise<any | null> {
+  try {
+    // 1. Get file path from Telegram
+    const fileInfoResponse = await fetch(
+      `https://api.telegram.org/bot${token}/getFile?file_id=${fileId}`
+    );
+    const fileInfo = await fileInfoResponse.json();
+    if (!fileInfo.ok) {
+      logger.error('Telegram getFile failed:', fileInfo.description);
+      return null;
+    }
+
+    const filePath = fileInfo.result.file_path;
+    const downloadUrl = `https://api.telegram.org/file/bot${token}/${filePath}`;
+
+    // 2. Download file buffer
+    const response = await fetch(downloadUrl);
+    const buffer = Buffer.from(await response.arrayBuffer());
+
+    // 3. Upload to S3 StagingBucket
+    const key = `chat-attachments/${Date.now()}-${fileName || fileId}`;
+    const bucketName = (typedResource as any).StagingBucket.name;
+
+    await s3.send(
+      new PutObjectCommand({
+        Bucket: bucketName,
+        Key: key,
+        Body: buffer,
+        ContentType: mimeType,
+      })
+    );
+
+    const s3Url = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+
+    const attachment: any = {
+      type,
+      name: fileName || key.split('/').pop(),
+      mimeType,
+      url: s3Url,
+    };
+
+    // For images, provide base64 for direct vision processing if small enough
+    if (type === 'image' && buffer.length < 5 * 1024 * 1024) {
+      attachment.base64 = buffer.toString('base64');
+    }
+
+    return attachment;
+  } catch (error) {
+    logger.error('Failed to handle telegram file:', error);
+    return null;
+  }
+}

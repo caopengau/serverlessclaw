@@ -18,7 +18,13 @@ export async function sendOutboundMessage(
   message: string,
   memoryContexts?: string[],
   sessionId?: string,
-  agentName?: string
+  agentName?: string,
+  attachments?: Array<{
+    type: 'image' | 'file';
+    url: string;
+    name?: string;
+    mimeType?: string;
+  }>
 ): Promise<void> {
   await emitEvent(source, EventType.OUTBOUND_MESSAGE, {
     userId,
@@ -26,5 +32,6 @@ export async function sendOutboundMessage(
     memoryContexts,
     sessionId,
     agentName,
+    attachments,
   });
 }

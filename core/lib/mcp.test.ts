@@ -2,71 +2,75 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MCPBridge } from './mcp';
 import { AgentRegistry } from './registry';
 
-// Mock MCP SDK
-vi.mock('@modelcontextprotocol/sdk/client/index.js', () => {
-  return {
-    Client: class {
-      connect = vi.fn().mockResolvedValue(undefined);
-      listTools = vi.fn().mockResolvedValue({
-        tools: [
-          {
-            name: 'get_repo',
-            description: 'Get GitHub repo',
-            inputSchema: { type: 'object', properties: {} },
-          },
-        ],
-      });
-      callTool = vi.fn().mockResolvedValue({ content: [{ type: 'text', text: 'repo data' }] });
-      close = vi.fn().mockResolvedValue(undefined);
-    },
-  };
-});
-
-vi.mock('@modelcontextprotocol/sdk/client/stdio.js', () => {
-  return {
-    StdioClientTransport: class {
-      constructor(public options: unknown) {}
-    },
-  };
-});
-
-// Mock AgentRegistry
+// Mock dependencies
 vi.mock('./registry', () => ({
   AgentRegistry: {
     getRawConfig: vi.fn(),
-    saveRawConfig: vi.fn().mockResolvedValue(undefined),
+    saveRawConfig: vi.fn().mockResolvedValue(true),
   },
+}));
+
+vi.mock('./logger', () => ({
+  logger: {
+    info: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+  },
+}));
+
+// Mock MCP SDK
+const mockConnect = vi.fn().mockResolvedValue(true);
+const mockListTools = vi
+  .fn()
+  .mockResolvedValue({ tools: [{ name: 'test_tool', description: 'desc', inputSchema: {} }] });
+const mockCallTool = vi.fn().mockResolvedValue({ content: [] });
+
+vi.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
+  Client: class {
+    connect = mockConnect;
+    listTools = mockListTools;
+    callTool = mockCallTool;
+    close = vi.fn().mockResolvedValue(true);
+  },
+}));
+
+vi.mock('@modelcontextprotocol/sdk/client/stdio.js', () => ({
+  StdioClientTransport: class {},
 }));
 
 describe('MCPBridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Reset singleton state if needed (not strictly possible with static but let's clear mocks)
+    (MCPBridge as any).clients.clear();
   });
 
-  it('should fetch and map tools from an MCP server', async () => {
-    const tools = await MCPBridge.getToolsFromServer('github', 'npx @mcp/github');
-
-    expect(tools).toHaveLength(1);
-    expect(tools[0].name).toBe('github_get_repo');
-    expect(tools[0].description).toBe('Get GitHub repo');
-  });
-
-  it('should execute an external tool', async () => {
-    const tools = await MCPBridge.getToolsFromServer('github', 'npx @mcp/github');
-    const result = await tools[0].execute({});
-
-    expect(result).toContain('repo data');
-  });
-
-  it('should discover all configured external tools', async () => {
-    vi.mocked(AgentRegistry.getRawConfig).mockResolvedValue({
-      github: 'npx @mcp/github',
-      slack: 'npx @mcp/slack',
+  it('should lazy load ONLY requested servers', async () => {
+    (AgentRegistry.getRawConfig as any).mockResolvedValue({
+      srv1: { command: 'npx srv1' },
+      srv2: { command: 'npx srv2' },
     });
 
-    const allTools = await MCPBridge.getAllExternalTools();
-    // github has 1 tool in our mock, slack will have 1 too
-    expect(allTools.length).toBeGreaterThanOrEqual(2);
+    const tools = await MCPBridge.getExternalTools(['srv1_test_tool']);
+
+    expect(tools.length).toBe(1);
+    expect(tools[0].name).toBe('srv1_test_tool');
+
+    expect((MCPBridge as any).clients.size).toBe(1);
+    expect((MCPBridge as any).clients.has('srv1')).toBe(true);
+    expect((MCPBridge as any).clients.has('srv2')).toBe(false);
+  });
+
+  it('should load all servers if no requestedTools provided', async () => {
+    (AgentRegistry.getRawConfig as any).mockResolvedValue({
+      srv1: { command: 'npx srv1' },
+      srv2: { command: 'npx srv2' },
+    });
+
+    const tools = await MCPBridge.getExternalTools();
+
+    // Default servers (7) + our mock servers (2) = 9
+    expect(tools.length).toBe(9);
+    expect((MCPBridge as any).clients.size).toBe(9);
   });
 });

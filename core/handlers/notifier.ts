@@ -12,6 +12,12 @@ interface NotifierEvent {
     memoryContexts?: string[];
     sessionId?: string;
     agentName?: string;
+    attachments?: Array<{
+      type: 'image' | 'file';
+      url: string;
+      name?: string;
+      mimeType?: string;
+    }>;
   };
 }
 
@@ -31,7 +37,7 @@ export const handler = async (event: NotifierEvent): Promise<void> => {
     return;
   }
 
-  const { userId, message, memoryContexts, sessionId, agentName } = payload;
+  const { userId, message, memoryContexts, sessionId, agentName, attachments } = payload;
 
   const contextsToSync = new Set<string>(memoryContexts || []);
   contextsToSync.add(userId); // Always sync to the base user history
@@ -46,6 +52,7 @@ export const handler = async (event: NotifierEvent): Promise<void> => {
         role: MessageRole.ASSISTANT,
         content: message,
         agentName: agentName,
+        attachments: attachments,
       });
     } catch (e) {
       logger.error(`Failed to sync context to ${contextId}:`, e);
@@ -53,7 +60,14 @@ export const handler = async (event: NotifierEvent): Promise<void> => {
   }
 
   // 2. Telegram Adapter
-  await sendTelegramMessage(userId, message);
+  // 2. Telegram Adapter
+  if (attachments && attachments.length > 0) {
+    for (const attachment of attachments) {
+      await sendTelegramMedia(userId, attachment, message);
+    }
+  } else {
+    await sendTelegramMessage(userId, message);
+  }
 
   // Future Adapters (Slack, Discord, Dashboard WebSockets) can be added here
   // based on ConfigTable preferences
@@ -88,5 +102,46 @@ async function sendTelegramMessage(chatId: string, text: string): Promise<void> 
     }
   } catch (e) {
     logger.error('Failed to send Telegram message:', e);
+  }
+}
+
+/**
+ * Sends media via the Telegram Bot API.
+ */
+async function sendTelegramMedia(
+  chatId: string,
+  attachment: { type: 'image' | 'file'; url: string; name?: string; mimeType?: string },
+  caption?: string
+): Promise<void> {
+  try {
+    const token = (Resource as unknown as { TelegramBotToken: { value: string } }).TelegramBotToken
+      .value;
+
+    let method = 'sendDocument';
+    let bodyKey = 'document';
+
+    if (attachment.type === 'image') {
+      method = 'sendPhoto';
+      bodyKey = 'photo';
+    }
+
+    const url = `https://api.telegram.org/bot${token}/${method}`;
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        [bodyKey]: attachment.url,
+        caption: caption,
+        parse_mode: 'Markdown',
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      logger.error(`Telegram API error (${method}):`, errorText);
+    }
+  } catch (e) {
+    logger.error('Failed to send Telegram media:', e);
   }
 }

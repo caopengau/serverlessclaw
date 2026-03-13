@@ -22,6 +22,9 @@ Avoid the "black box" of agent long-term memory. Through the **ClawCenter Dashbo
 ### 5. Self-Aware Discovery
 The system maintains a real-time topology of itself. Using the **Build Monitor** and the `listAgents` tool, Serverless Claw nodes autonomously discover each other and their underlying infrastructure, ensuring that the system remains coherent as it expands with new specialized agents.
 
+### 6. Multi-Modal Vision & File Intelligence
+The agent swarm isn't limited to text. By bridging Telegram media to S3, Serverless Claw can analyze photos, summarize PDFs, and process audio messages in real-time. It leverages the latest Vision-language models (VLM) for direct image comprehension and custom tools for deep file introspection.
+
 ## 🏗️ Architecture & Tech Stack
 
 ### Dashboard Organization (ClawCenter)
@@ -42,7 +45,7 @@ Serverless Claw uses a tiered, evolutionary memory system:
 - **Framework**: [SST (Serverless Stack) v3 / Ion](https://sst.dev)
 - **Compute**: AWS Lambda (Node.js)
 - **Database**: AWS DynamoDB (Single-Table Design)
-- **Storage**: AWS S3
+- **Storage**: AWS S3 (Staging & Long-term Artifacts)
 - **Event Bus**: AWS EventBridge (The **AgentBus**)
 - **CI/CD**: AWS CodeBuild
 - **Admin Dashboard**: Next.js 16 (React 19), TailwindCSS v4, deployed via OpenNext

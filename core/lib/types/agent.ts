@@ -16,6 +16,13 @@ export interface TaskEvent extends BaseEvent {
   task: string;
   isContinuation?: boolean;
   metadata?: Record<string, unknown>;
+  attachments?: Array<{
+    type: 'image' | 'file';
+    url?: string;
+    base64?: string;
+    name?: string;
+    mimeType?: string;
+  }>;
 }
 
 /**
@@ -36,6 +43,28 @@ export interface CompletionEvent extends BaseEvent {
   agentId: string;
   task: string;
   response: string;
+  attachments?: Array<{
+    type: 'image' | 'file';
+    url?: string;
+    base64?: string;
+    name?: string;
+    mimeType?: string;
+  }>;
+}
+
+/**
+ * Outbound message event for external channels.
+ */
+export interface OutboundMessageEvent extends BaseEvent {
+  message: string;
+  agentName?: string;
+  memoryContexts?: string[];
+  attachments?: Array<{
+    type: 'image' | 'file';
+    url: string;
+    name?: string;
+    mimeType?: string;
+  }>;
 }
 
 /**

@@ -224,6 +224,7 @@ export class Agent {
         sessionId,
         nodeId: nodeId || 'unknown',
         parentId: parentId || 'unknown',
+        attachments,
       });
       return pauseMessage!;
     }
@@ -343,6 +344,13 @@ export class Agent {
       sessionId?: string;
       nodeId?: string;
       parentId?: string;
+      attachments?: Array<{
+        type: 'image' | 'file';
+        url?: string;
+        base64?: string;
+        name?: string;
+        mimeType?: string;
+      }>;
     } = {}
   ): Promise<void> {
     try {
@@ -363,6 +371,7 @@ export class Agent {
                 initiatorId: metadata.initiatorId,
                 depth: (metadata.depth || 0) + 1,
                 sessionId: metadata.sessionId,
+                attachments: metadata.attachments,
               }),
               EventBusName: typedResource.AgentBus.name,
             },
