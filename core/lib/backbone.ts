@@ -28,6 +28,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       'checkHealth',
       'manageGap',
       'triggerRollback',
+      'discoverSkills',
+      'installSkill',
     ],
     connectionProfile: ['bus', 'memory', 'config', 'trace'],
   },

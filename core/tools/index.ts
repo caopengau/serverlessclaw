@@ -18,12 +18,25 @@ export const tools: Record<string, ITool> = {
 
   // File System & Validation Tools
   ...fsTools,
-
   // Knowledge & Agent Management Tools
   ...knowledgeTools,
 
   /**
-   * Evaluates a mathematical expression safely.
+   * Pass-through tools for model built-in capabilities (e.g. OpenAI Code Interpreter)
+   * These have no local execution logic as the provider handles them.
+   */
+  code_interpreter: {
+    ...toolDefinitions.codeInterpreter,
+    execute: async () => 'BUILT_IN_TOOL_EXECUTED_BY_MODEL',
+  },
+  file_search: {
+    ...toolDefinitions.fileSearch,
+    execute: async () => 'BUILT_IN_TOOL_EXECUTED_BY_MODEL',
+  },
+
+  /**
+ * Evaluates a mathematical expression safely.
+...
    */
   calculator: {
     ...toolDefinitions.calculator,
@@ -60,12 +73,15 @@ export const tools: Record<string, ITool> = {
 /**
  * Dynamically retrieves the tools assigned to a specific agent.
  * Uses the AgentRegistry to get tools from both Backbone and DynamoDB.
+ * Now also dynamically resolves external MCP tools if they are in the agent's toolset.
  *
  * @param agentId - The ID of the agent to fetch tools for.
  * @returns A promise that resolves to an array of ITool implementations.
  */
 export async function getAgentTools(agentId: string): Promise<ITool[]> {
   const { AgentRegistry } = await import('../lib/registry');
+  const { MCPBridge } = await import('../lib/mcp');
+
   const config = await AgentRegistry.getAgentConfig(agentId);
 
   if (!config || !config.tools) {
@@ -73,9 +89,16 @@ export async function getAgentTools(agentId: string): Promise<ITool[]> {
     return [];
   }
 
-  return config.tools
+  // 1. Resolve local tools
+  const localTools = config.tools
     .map((name: string) => (tools as Record<string, ITool>)[name])
     .filter((t: ITool | undefined): t is ITool => !!t);
+
+  // 2. Resolve external MCP tools if any match the requested tool names
+  const externalTools = await MCPBridge.getAllExternalTools();
+  const matchedExternal = externalTools.filter((t) => config.tools!.includes(t.name));
+
+  return [...localTools, ...matchedExternal];
 }
 
 /**

@@ -70,6 +70,14 @@ export interface AgentProcessOptions {
    */
   traceId?: string;
   /**
+   * The current node identifier in the trace graph.
+   */
+  nodeId?: string;
+  /**
+   * The parent node identifier that spawned this execution.
+   */
+  parentId?: string;
+  /**
    * The current dashboard session ID (if applicable).
    */
   sessionId?: string;
@@ -123,6 +131,8 @@ export class Agent {
       initiatorId,
       depth = 0,
       traceId: incomingTraceId,
+      nodeId: incomingNodeId,
+      parentId: incomingParentId,
       sessionId,
       source = TraceSource.UNKNOWN,
     } = options;
@@ -130,8 +140,16 @@ export class Agent {
     // Extract base userId for tool context and tracing (remove CONV# prefix if present)
     const baseUserId = userId.startsWith('CONV#') ? userId.split('#')[1] : userId;
 
-    const tracer = new ClawTracer(baseUserId, source, incomingTraceId);
+    const tracer = new ClawTracer(
+      baseUserId,
+      source,
+      incomingTraceId,
+      incomingNodeId,
+      incomingParentId
+    );
     const traceId = tracer.getTraceId();
+    const nodeId = tracer.getNodeId();
+    const parentId = tracer.getParentId();
 
     const currentInitiator = initiatorId || this.config?.id || 'unknown';
 
@@ -139,7 +157,7 @@ export class Agent {
     const mainConversationId = userId;
 
     if (!isContinuation) {
-      await tracer.startTrace({ userText, sessionId });
+      await tracer.startTrace({ userText, sessionId, agentId: this.config?.id });
     }
 
     // Determine storage identifier (Namespaced if isolated)
@@ -261,6 +279,8 @@ export class Agent {
               initiatorId: currentInitiator,
               depth,
               sessionId,
+              nodeId,
+              parentId,
             });
             return pauseMsg;
           }
@@ -296,9 +316,11 @@ export class Agent {
             const tool = this.tools.find((t) => t.name === toolCall.function.name);
             if (tool) {
               const args = JSON.parse(toolCall.function.arguments);
-              // Inject traceId for propagation and peeking
+              // Inject trace context for propagation and peeking
               if (args && typeof args === 'object') {
                 args.traceId = traceId;
+                args.nodeId = nodeId;
+                args.parentId = parentId;
                 args.initiatorId = currentInitiator;
                 args.depth = depth;
                 args.sessionId = sessionId;
@@ -311,18 +333,40 @@ export class Agent {
                 content: { toolName: tool.name, args: args },
               });
 
-              const result = await tool.execute(args);
+              const rawResult = await tool.execute(args);
+              const resultText = typeof rawResult === 'string' ? rawResult : rawResult.text;
 
               await tracer.addStep({
                 type: 'tool_result',
-                content: { toolName: tool.name, result: result },
+                content: { toolName: tool.name, result: rawResult },
               });
 
               messages.push({
                 role: MessageRole.TOOL,
                 tool_call_id: toolCall.id,
                 name: toolCall.function.name,
-                content: result,
+                content: resultText,
+              });
+            } else {
+              // This might be a model built-in tool (e.g., code_interpreter)
+              // that the provider handles internally but returns a reference to.
+              logger.info(
+                `Tool ${toolCall.function.name} requested but no local implementation found. Skipping execution (assuming built-in).`
+              );
+              await tracer.addStep({
+                type: 'tool_call',
+                content: {
+                  toolName: toolCall.function.name,
+                  note: 'Skipped - Model built-in or unsupported type.',
+                },
+              });
+
+              // We add a dummy result to keep the message flow valid if the provider requires it
+              messages.push({
+                role: MessageRole.TOOL,
+                tool_call_id: toolCall.id,
+                name: toolCall.function.name,
+                content: 'EXECUTED_BY_PROVIDER',
               });
             }
           }
@@ -356,6 +400,8 @@ export class Agent {
           initiatorId: currentInitiator,
           depth,
           sessionId,
+          nodeId,
+          parentId,
         });
         return pauseMsg;
       }
@@ -404,6 +450,8 @@ export class Agent {
                 Detail: JSON.stringify({
                   userId,
                   traceId: tracer.getTraceId(),
+                  nodeId,
+                  parentId,
                   sessionId,
                   conversation: [
                     ...messages,
@@ -436,13 +484,19 @@ export class Agent {
    * @param userId - Unique identifier for the user or session
    * @param task - The raw input message or task description
    * @param traceId - The trace identifier for linking continued executions
-   * @param metadata - Routing metadata (initiatorId, depth, sessionId)
+   * @param metadata - Routing metadata (initiatorId, depth, sessionId, nodeId, parentId)
    */
   private async emitContinuation(
     userId: string,
     task: string,
     traceId: string,
-    metadata: { initiatorId?: string; depth?: number; sessionId?: string } = {}
+    metadata: {
+      initiatorId?: string;
+      depth?: number;
+      sessionId?: string;
+      nodeId?: string;
+      parentId?: string;
+    } = {}
   ): Promise<void> {
     try {
       await this.eventbridge.send(
@@ -457,6 +511,8 @@ export class Agent {
                 task,
                 isContinuation: true,
                 traceId,
+                nodeId: metadata.nodeId,
+                parentId: metadata.parentId,
                 initiatorId: metadata.initiatorId,
                 depth: (metadata.depth || 0) + 1,
                 sessionId: metadata.sessionId,

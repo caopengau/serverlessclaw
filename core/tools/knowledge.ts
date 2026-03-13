@@ -40,16 +40,18 @@ export const listAgents = {
 export const dispatchTask = {
   ...toolDefinitions.dispatchTask,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { agentId, userId, task, metadata, traceId, initiatorId, depth, sessionId } = args as {
-      agentId: string;
-      userId: string;
-      task: string;
-      metadata?: Record<string, unknown>;
-      traceId?: string;
-      initiatorId?: string;
-      depth?: number;
-      sessionId?: string;
-    };
+    const { agentId, userId, task, metadata, traceId, nodeId, initiatorId, depth, sessionId } =
+      args as {
+        agentId: string;
+        userId: string;
+        task: string;
+        metadata?: Record<string, unknown>;
+        traceId?: string;
+        nodeId?: string;
+        initiatorId?: string;
+        depth?: number;
+        sessionId?: string;
+      };
 
     const { AgentRegistry } = await import('../lib/registry');
     const config = await AgentRegistry.getAgentConfig(agentId);
@@ -64,11 +66,13 @@ export const dispatchTask = {
 
     const nextDepth = (depth || 0) + 1;
 
-    // The Agent core now injects the correct baseUserId if this is missing or generic.
-    // We trust the injected 'userId' argument here.
+    // Use ClawTracer to branch the execution path
+    const { ClawTracer } = await import('../lib/tracer');
+    const tracer = new ClawTracer(userId, 'system', traceId, nodeId);
+    const childTracer = tracer.getChildTracer();
 
     logger.info(
-      `Dispatching ${agentId} task (Depth: ${nextDepth}, Initiator: ${initiatorId || 'N/A'}, Session: ${sessionId}) for user ${userId}: ${task}`
+      `Dispatching ${agentId} task (Depth: ${nextDepth}, Node: ${childTracer.getNodeId()}, Parent: ${tracer.getNodeId()}) for user ${userId}: ${task}`
     );
     const typedResource = Resource as unknown as ToolsResource;
     const command = new PutEventsCommand({
@@ -80,7 +84,9 @@ export const dispatchTask = {
             userId,
             task,
             metadata,
-            traceId,
+            traceId: childTracer.getTraceId(),
+            nodeId: childTracer.getNodeId(),
+            parentId: childTracer.getParentId(),
             initiatorId: initiatorId || 'main.agent',
             depth: nextDepth,
             sessionId,
@@ -92,7 +98,7 @@ export const dispatchTask = {
 
     try {
       await eventbridge.send(command);
-      return `Task successfully dispatched to ${agentId} agent. Trace ID: ${traceId || 'N/A'}`;
+      return `Task successfully dispatched to ${agentId} agent. Trace ID: ${childTracer.getTraceId()} / Node ID: ${childTracer.getNodeId()}`;
     } catch (error) {
       return `Failed to dispatch task: ${error instanceof Error ? error.message : String(error)}`;
     }
@@ -110,16 +116,20 @@ export const inspectTrace = {
 
     try {
       const { ClawTracer } = await import('../lib/tracer');
-      const trace = await ClawTracer.getTrace(traceId);
-      if (!trace) return `FAILED: Trace with ID '${traceId}' not found.`;
+      const nodes = await ClawTracer.getTrace(traceId);
+      if (!nodes || nodes.length === 0) return `FAILED: Trace with ID '${traceId}' not found.`;
 
       const summary = `
 [TRACE_INSPECTION]
 ID: ${traceId}
-STATUS: ${trace.status}
-USER: ${trace.userId}
+NODES: ${nodes.length}
+${nodes
+  .map(
+    (n) => `
+--- NODE: ${n.nodeId} (Parent: ${n.parentId || 'None'}) ---
+STATUS: ${n.status}
 STEPS:
-${trace.steps
+${n.steps
   .map(
     (s) =>
       `- [${new Date(s.timestamp).toISOString()}] [${s.type.toUpperCase()}] ${
@@ -127,10 +137,56 @@ ${trace.steps
       }`
   )
   .join('\n')}
+`
+  )
+  .join('\n')}
       `;
       return summary;
     } catch (error) {
       return `Failed to inspect trace: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  },
+};
+
+/**
+ * Searches for new capabilities based on a query.
+ */
+export const discoverSkills = {
+  ...toolDefinitions.discoverSkills,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { query, category } = args as { query: string; category?: string };
+    try {
+      const { SkillRegistry } = await import('../lib/skills');
+      const results = await SkillRegistry.discoverSkills(query, category);
+
+      if (results.length === 0) return 'No matching skills found in the marketplace.';
+
+      return (
+        `Found ${results.length} matching skills:\n` +
+        results.map((s) => `- ${s.name}: ${s.description}`).join('\n') +
+        '\n\nUSE "installSkill" to add any of these to your current toolset.'
+      );
+    } catch (error) {
+      return `Failed to discover skills: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  },
+};
+
+/**
+ * Installs a new skill into the agent's current toolset.
+ */
+export const installSkill = {
+  ...toolDefinitions.installSkill,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { skillName, agentId } = args as { skillName: string; agentId?: string };
+    const targetAgentId = agentId || 'main'; // Default to main if not provided (though injected usually)
+
+    try {
+      const { SkillRegistry } = await import('../lib/skills');
+      await SkillRegistry.installSkill(targetAgentId, skillName);
+      return `Skill '${skillName}' successfully installed for agent ${targetAgentId}. You can now use it.`;
+    } catch (error) {
+      return `Failed to install skill: ${error instanceof Error ? error.message : String(error)}`;
     }
   },
 };

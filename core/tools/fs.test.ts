@@ -1,8 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
-import { S3Client } from '@aws-sdk/client-s3';
-import { fileWrite, fileRead, listFiles } from './fs';
-import * as fs from 'fs/promises';
+import {
+  S3Client,
+  PutObjectCommand,
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+} from '@aws-sdk/client-s3';
+import { fileUpload, fileDelete, listUploadedFiles } from './fs';
 
 const s3Mock = mockClient(S3Client);
 
@@ -13,59 +17,77 @@ vi.mock('sst', () => ({
   },
 }));
 
-// Mock fs/promises
-vi.mock('fs/promises', () => ({
-  readFile: vi.fn(),
-  writeFile: vi.fn(),
-  mkdir: vi.fn(),
-  readdir: vi.fn(),
-}));
-
-describe('fs tools', () => {
+describe('file management tools', () => {
   beforeEach(() => {
     s3Mock.reset();
     vi.clearAllMocks();
   });
 
-  describe('fileWrite', () => {
-    it('should write content to a file', async () => {
-      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
-      vi.mocked(fs.mkdir).mockResolvedValue(undefined);
+  describe('fileUpload', () => {
+    it('should upload a text file to S3 with userId isolation', async () => {
+      s3Mock.on(PutObjectCommand).resolves({});
 
-      const result = await fileWrite.execute({ filePath: 'test.txt', content: 'hello' });
+      const result = await (fileUpload.execute({
+        fileName: 'test.txt',
+        content: 'hello world',
+        userId: 'user-123',
+      }) as Promise<string>);
 
-      expect(result).toContain('Successfully wrote to test.txt');
-      expect(fs.writeFile).toHaveBeenCalled();
+      expect(result).toContain('Successfully uploaded test.txt');
+      const calls = s3Mock.commandCalls(PutObjectCommand);
+      expect(calls[0].args[0].input).toMatchObject({
+        Bucket: 'test-bucket',
+        Key: 'users/user-123/files/test.txt',
+        Body: 'hello world',
+      });
     });
 
-    it('should block protected files', async () => {
-      const result = await fileWrite.execute({ filePath: 'sst.config.ts', content: 'hacked' });
-      expect(result).toContain('PERMISSION_DENIED');
-      expect(fs.writeFile).not.toHaveBeenCalled();
+    it('should handle base64 encoding', async () => {
+      s3Mock.on(PutObjectCommand).resolves({});
+
+      await fileUpload.execute({
+        fileName: 'image.png',
+        content: 'YmFzZTY0ZGF0YQ==',
+        encoding: 'base64',
+        userId: 'user-123',
+      });
+
+      const calls = s3Mock.commandCalls(PutObjectCommand);
+      expect(calls[0].args[0].input.Body).toBeInstanceOf(Buffer);
     });
   });
 
-  describe('fileRead', () => {
-    it('should read content from a file', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(fs.readFile).mockResolvedValue('file content' as any);
+  describe('fileDelete', () => {
+    it('should delete a file from S3', async () => {
+      s3Mock.on(DeleteObjectCommand).resolves({});
 
-      const result = await fileRead.execute({ filePath: 'test.txt' });
+      const result = await fileDelete.execute({
+        fileName: 'test.txt',
+        userId: 'user-123',
+      });
 
-      expect(result).toBe('file content');
-      expect(fs.readFile).toHaveBeenCalled();
+      expect(result).toContain('Successfully deleted test.txt');
+      expect(s3Mock.commandCalls(DeleteObjectCommand)[0].args[0].input).toMatchObject({
+        Key: 'users/user-123/files/test.txt',
+      });
     });
   });
 
-  describe('listFiles', () => {
-    it('should list files in a directory', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      vi.mocked(fs.readdir).mockResolvedValue(['file1.ts', 'file2.ts'] as any);
+  describe('listUploadedFiles', () => {
+    it('should list files for a user', async () => {
+      s3Mock.on(ListObjectsV2Command).resolves({
+        Contents: [
+          { Key: 'users/user-123/files/file1.txt', Size: 1024, LastModified: new Date() },
+          { Key: 'users/user-123/files/file2.jpg', Size: 2048, LastModified: new Date() },
+        ],
+      });
 
-      const result = await listFiles.execute({ dirPath: 'src' });
+      const result = await listUploadedFiles.execute({
+        userId: 'user-123',
+      });
 
-      expect(result).toContain('file1.ts');
-      expect(result).toContain('file2.ts');
+      expect(result).toContain('file1.txt');
+      expect(result).toContain('file2.jpg');
     });
   });
 });

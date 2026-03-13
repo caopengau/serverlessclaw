@@ -68,14 +68,19 @@ export class OpenRouterProvider implements IProvider {
     };
 
     if (tools && tools.length > 0) {
-      body['tools'] = tools.map((t) => ({
-        type: 'function',
-        function: {
-          name: t.name,
-          description: t.description,
-          parameters: t.parameters,
-        },
-      }));
+      body['tools'] = tools.map((t) => {
+        if (t.type && t.type !== 'function') {
+          return { type: t.type };
+        }
+        return {
+          type: 'function',
+          function: {
+            name: t.name,
+            description: t.description,
+            parameters: t.parameters,
+          },
+        };
+      });
     }
 
     const response = await fetch(`${baseUrl}/chat/completions`, {

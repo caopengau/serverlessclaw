@@ -1,9 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { listAgents, recallKnowledge, manageAgentTools } from './knowledge';
+import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import {
+  listAgents,
+  recallKnowledge,
+  manageAgentTools,
+  dispatchTask,
+  manageGap,
+} from './knowledge';
+import { GapStatus } from '../lib/types/index';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
+const ebMock = mockClient(EventBridgeClient);
+
+// Hoist mocks
+const mocks = vi.hoisted(() => ({
+  updateGapStatus: vi.fn().mockResolvedValue(undefined),
+}));
 
 // Mock SST Resource
 vi.mock('sst', () => ({
@@ -22,7 +36,7 @@ vi.mock('../lib/memory', () => ({
         .mockResolvedValue([
           { content: 'insight 1', metadata: { category: 'lesson', impact: 10, urgency: 10 } },
         ]),
-      updateGapStatus: vi.fn().mockResolvedValue(undefined),
+      updateGapStatus: mocks.updateGapStatus,
     };
   }),
 }));
@@ -33,13 +47,34 @@ vi.mock('../lib/registry', () => ({
     getAllConfigs: vi.fn().mockResolvedValue({
       main: { id: 'main', name: 'Main', description: 'desc', enabled: true, isBackbone: true },
     }),
-    getAgentConfig: vi.fn().mockResolvedValue({ enabled: true }),
+    getAgentConfig: vi.fn().mockResolvedValue({ enabled: true, id: 'coder' }),
+  },
+}));
+
+// Mock Tracer
+vi.mock('../lib/tracer', () => ({
+  ClawTracer: class {
+    constructor(
+      public userId: string,
+      public source: any,
+      public traceId: string,
+      public nodeId: string
+    ) {}
+    getTraceId = vi.fn().mockReturnValue('trace-123');
+    getNodeId = vi.fn().mockReturnValue('node-parent');
+    getParentId = vi.fn().mockReturnValue(undefined);
+    getChildTracer = vi.fn().mockReturnValue({
+      getTraceId: () => 'trace-123',
+      getNodeId: () => 'node-child',
+      getParentId: () => 'node-parent',
+    });
   },
 }));
 
 describe('knowledge tools', () => {
   beforeEach(() => {
     ddbMock.reset();
+    ebMock.reset();
     vi.clearAllMocks();
   });
 
@@ -69,6 +104,41 @@ describe('knowledge tools', () => {
 
       expect(result).toContain('Successfully updated tools');
       expect(ddbMock.calls()).toHaveLength(1);
+    });
+  });
+
+  describe('dispatchTask', () => {
+    it('should branch trace and dispatch task via EventBridge', async () => {
+      ebMock.on(PutEventsCommand).resolves({});
+
+      const result = await dispatchTask.execute({
+        agentId: 'coder',
+        userId: 'user-1',
+        task: 'build something',
+        traceId: 'trace-123',
+        nodeId: 'node-parent',
+      });
+
+      expect(result).toContain('Task successfully dispatched');
+
+      const ebCalls = ebMock.commandCalls(PutEventsCommand);
+      expect(ebCalls).toHaveLength(1);
+
+      const payload = JSON.parse(ebCalls[0].args[0].input.Entries![0].Detail!);
+      expect(payload).toMatchObject({
+        traceId: 'trace-123',
+        nodeId: 'node-child',
+        parentId: 'node-parent',
+        task: 'build something',
+      });
+    });
+  });
+
+  describe('manageGap', () => {
+    it('should update gap status in memory', async () => {
+      const result = await manageGap.execute({ gapId: 'gap-1', status: GapStatus.PLANNED });
+      expect(result).toContain('Successfully updated gap gap-1 to PLANNED');
+      expect(mocks.updateGapStatus).toHaveBeenCalledWith('gap-1', GapStatus.PLANNED);
     });
   });
 });

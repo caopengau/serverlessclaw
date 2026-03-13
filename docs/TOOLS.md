@@ -19,6 +19,24 @@
 | `runTests` | Executes project unit tests (vitest) | — | — |
 | `recallKnowledge` | Retrieves distilled facts/lessons from memory (JIT context) | — | — |
 | `listAgents` | Discovers available specialized agents in the system | — | — |
+| `discoverSkills` | Searches the global Skills Marketplace for new capabilities | — | — |
+| `installSkill` | Dynamically adds a new skill to the agent's current toolset | — | ✅ |
+
+---
+
+## 🦾 Skill-Based Architecture (New in 2026)
+
+We have evolved from a static tool registry to a **dynamic Skill-Based Architecture**. This solves the "Context Window Bloat" problem where agents were overwhelmed by too many tool definitions.
+
+### How it works:
+1. **Minimal Default Toolset**: Agents start with a core set of "Essential Skills" (Recall, Discovery, Dispatch).
+2. **Just-in-Time Discovery**: If an agent needs a capability they don't have, they use `discoverSkills` to search the marketplace.
+3. **Dynamic Installation**: They can then use `installSkill` to temporarily or permanently add that capability to their logic core.
+
+### Adding a New Skill
+1. Implement the tool in `core/tools/`.
+2. Add the definition to `core/tools/definitions.ts`.
+3. It is now automatically discoverable by all agents via `discoverSkills`.
 
 ---
 

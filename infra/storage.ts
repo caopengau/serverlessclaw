@@ -10,10 +10,11 @@ export function createStorage() {
   const traceTable = new sst.aws.Dynamo('TraceTable', {
     fields: {
       traceId: 'string',
+      nodeId: 'string',
       userId: 'string',
       timestamp: 'number',
     },
-    primaryIndex: { hashKey: 'traceId' },
+    primaryIndex: { hashKey: 'traceId', rangeKey: 'nodeId' },
     globalIndexes: {
       UserIndex: { hashKey: 'userId', rangeKey: 'timestamp' },
     },

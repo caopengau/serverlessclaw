@@ -286,6 +286,34 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
+  discoverSkills: {
+    name: 'discoverSkills',
+    description: 'Searches the global Skills Marketplace for new capabilities based on a query.',
+    parameters: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'The functionality you are looking for.' },
+        category: {
+          type: 'string',
+          description: 'Optional category filter (e.g., infra, build, knowledge).',
+        },
+      },
+      required: ['query'],
+      additionalProperties: false,
+    },
+  },
+  installSkill: {
+    name: 'installSkill',
+    description: "Installs a new skill into the agent's current toolset.",
+    parameters: {
+      type: 'object',
+      properties: {
+        skillName: { type: 'string', description: 'The name of the skill to install.' },
+      },
+      required: ['skillName'],
+      additionalProperties: false,
+    },
+  },
   sendMessage: {
     name: 'sendMessage',
     description: 'Sends a direct message to the human user in their current chat session.',
@@ -298,6 +326,57 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
         },
       },
       required: ['message'],
+      additionalProperties: false,
+    },
+  },
+  codeInterpreter: {
+    name: 'code_interpreter',
+    description: 'Executes Python code in a sandboxed environment (OpenAI Built-in).',
+    type: 'code_interpreter',
+    parameters: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  fileSearch: {
+    name: 'file_search',
+    description: 'Searches through uploaded documents (OpenAI Built-in).',
+    type: 'file_search',
+    parameters: { type: 'object', properties: {}, additionalProperties: false },
+  },
+  fileUpload: {
+    name: 'fileUpload',
+    description: "Uploads a file to the agent's persistent storage.",
+    parameters: {
+      type: 'object',
+      properties: {
+        fileName: { type: 'string', description: 'The name of the file to save.' },
+        content: { type: 'string', description: 'The content of the file (text or base64).' },
+        encoding: {
+          type: 'string',
+          enum: ['text', 'base64'],
+          description: 'Content encoding type.',
+        },
+      },
+      required: ['fileName', 'content'],
+      additionalProperties: false,
+    },
+  },
+  fileDelete: {
+    name: 'fileDelete',
+    description: "Deletes a file from the agent's persistent storage.",
+    parameters: {
+      type: 'object',
+      properties: {
+        fileName: { type: 'string', description: 'The name of the file to delete.' },
+      },
+      required: ['fileName'],
+      additionalProperties: false,
+    },
+  },
+  listUploadedFiles: {
+    name: 'listUploadedFiles',
+    description: "Lists all files currently stored in the agent's persistent storage for the user.",
+    parameters: {
+      type: 'object',
+      properties: {},
       additionalProperties: false,
     },
   },

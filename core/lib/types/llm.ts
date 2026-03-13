@@ -51,6 +51,16 @@ export interface Message {
   agentName?: string;
   /** Link to the isolated mechanical monologue for this message */
   traceId?: string;
+  /**
+   * Optional attachments (images, files) associated with the message.
+   */
+  attachments?: Array<{
+    type: 'image' | 'file';
+    url?: string;
+    base64?: string;
+    name?: string;
+    mimeType?: string;
+  }>;
 }
 
 /**

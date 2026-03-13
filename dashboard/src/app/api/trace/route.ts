@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resource } from 'sst';
 export const dynamic = 'force-dynamic';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, DeleteCommand, ScanCommand, BatchWriteCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, DeleteCommand, ScanCommand, BatchWriteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { SSTResource } from '@claw/core/lib/types/index';
 import { revalidatePath } from 'next/cache';
 
@@ -45,7 +45,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
           }));
           
           if (scanRes.Items && scanRes.Items.length > 0) {
-            console.log(`[Trace API] Processing ${scanRes.Items.length} traces for deletion`);
+            console.log(`[Trace API] Processing ${scanRes.Items.length} trace nodes for deletion`);
             
             // Group into batches of 25 (DynamoDB limit for BatchWrite)
             for (let i = 0; i < scanRes.Items.length; i += 25) {
@@ -53,7 +53,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
               let requestItems = {
                 [tableName]: batch.map(item => ({
                   DeleteRequest: {
-                    Key: { traceId: item.traceId }
+                    Key: { traceId: item.traceId, nodeId: item.nodeId }
                   }
                 }))
               };
@@ -104,7 +104,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
           lastKey = scanRes.LastEvaluatedKey;
         } while (lastKey);
 
-        console.log(`[Trace API] Successfully purged ${deletedCount} traces`);
+        console.log(`[Trace API] Successfully purged ${deletedCount} trace nodes`);
         revalidatePath('/trace');
         return NextResponse.json({ success: true, count: deletedCount });
       } catch (scanError: any) {
@@ -113,13 +113,34 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    console.log('[Trace API] Deleting single trace:', traceId);
-    await docClient.send(
-      new DeleteCommand({
-        TableName: tableName,
-        Key: { traceId },
-      })
-    );
+    console.log('[Trace API] Deleting all nodes for trace:', traceId);
+    
+    // 1. Query all nodes for this traceId
+    const { Items } = await docClient.send(new QueryCommand({
+      TableName: tableName,
+      KeyConditionExpression: 'traceId = :tid',
+      ExpressionAttributeValues: { ':tid': traceId },
+      ProjectionExpression: 'traceId, nodeId'
+    }));
+
+    if (Items && Items.length > 0) {
+      // 2. Delete all found nodes
+      for (let i = 0; i < Items.length; i += 25) {
+        const batch = Items.slice(i, i + 25);
+        await docClient.send(new BatchWriteCommand({
+          RequestItems: {
+            [tableName]: batch.map(item => ({
+              DeleteRequest: {
+                Key: { traceId: item.traceId, nodeId: item.nodeId }
+              }
+            }))
+          }
+        }));
+      }
+      console.log(`[Trace API] Successfully deleted ${Items.length} nodes for trace ${traceId}`);
+    } else {
+      console.warn(`[Trace API] No nodes found for traceId ${traceId}`);
+    }
 
     revalidatePath('/trace');
     return NextResponse.json({ success: true });

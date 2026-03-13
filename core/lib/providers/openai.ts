@@ -133,13 +133,18 @@ export class OpenAIProvider implements IProvider {
         reasoning: { effort: reasoningEffort },
         ...(hasTools
           ? {
-              tools: tools.map((t) => ({
-                type: 'function',
-                name: t.name,
-                description: t.description,
-                parameters: t.parameters as unknown as Record<string, unknown>,
-                strict: true,
-              })),
+              tools: tools.map((t) => {
+                if (t.type && t.type !== 'function') {
+                  return { type: t.type } as any;
+                }
+                return {
+                  type: 'function',
+                  name: t.name,
+                  description: t.description,
+                  parameters: t.parameters as unknown as Record<string, unknown>,
+                  strict: true,
+                };
+              }),
             }
           : {}),
       })) as unknown as OpenAIResponse; // Isolate unsafe access
@@ -177,15 +182,20 @@ export class OpenAIProvider implements IProvider {
     };
 
     if (hasTools) {
-      params.tools = tools.map((t) => ({
-        type: 'function',
-        function: {
-          name: t.name,
-          description: t.description,
-          parameters: t.parameters as unknown as Record<string, unknown>,
-          strict: true,
-        },
-      }));
+      params.tools = tools.map((t) => {
+        if (t.type && t.type !== 'function') {
+          return { type: t.type } as any;
+        }
+        return {
+          type: 'function',
+          function: {
+            name: t.name,
+            description: t.description,
+            parameters: t.parameters as unknown as Record<string, unknown>,
+            strict: true,
+          },
+        };
+      });
       params.parallel_tool_calls = isReasoningModel;
       if (profile === ReasoningProfile.DEEP || profile === ReasoningProfile.THINKING) {
         params.parallel_tool_calls = false;

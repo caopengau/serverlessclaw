@@ -122,15 +122,17 @@ export class BedrockProvider implements IProvider {
       .filter((m) => m.role === MessageRole.SYSTEM || m.role === MessageRole.DEVELOPER)
       .map((m) => ({ text: m.content || '' }));
 
-    const bedrockTools: BedrockTool[] | undefined = tools?.map((t) => ({
-      toolSpec: {
-        name: t.name,
-        description: t.description,
-        inputSchema: {
-          json: t.parameters as unknown as Record<string, unknown>,
+    const bedrockTools: BedrockTool[] | undefined = tools
+      ?.filter((t) => !t.type || t.type === 'function')
+      .map((t) => ({
+        toolSpec: {
+          name: t.name,
+          description: t.description,
+          inputSchema: {
+            json: t.parameters as unknown as Record<string, unknown>,
+          },
         },
-      },
-    })) as unknown as BedrockTool[];
+      })) as unknown as BedrockTool[];
 
     const command = new ConverseCommand({
       modelId: activeModelId,

@@ -114,6 +114,187 @@ const nodeTypes = {
   result: ResultNode,
 };
 
+/**
+ * Helper to process trace nodes and steps into React Flow nodes and edges.
+ */
+function processTraceNodes(
+  traceNodes: any[],
+  initialNodes: Node[],
+  initialEdges: Edge[],
+  setSelectedStep: (step: any) => void
+) {
+  const nodeMap = new Map<string, any>();
+  traceNodes.forEach((n) => nodeMap.set(n.nodeId, n));
+
+  // Find root node
+  const rootTraceNode = traceNodes.find((n) => n.nodeId === 'root') || traceNodes[0];
+  if (!rootTraceNode) return;
+
+  const processedNodes = new Set<string>();
+  const xOffsetMap = new Map<string, number>(); // To handle branching offsets
+
+  function renderBranch(traceNode: any, startX: number, startY: number, parentStepId?: string): number {
+    if (processedNodes.has(traceNode.nodeId)) return startY;
+    processedNodes.add(traceNode.nodeId);
+
+    let currentY = startY;
+    let lastStepId = parentStepId;
+
+    // 1. Initial Trigger / Entry Node for this branch
+    const entryId = `${traceNode.nodeId}-entry`;
+    initialNodes.push({
+      id: entryId,
+      type: 'trigger',
+      data: {
+        label: traceNode.nodeId === 'root' 
+          ? (traceNode.initialContext?.userText || 'System Task')
+          : `Delegated to ${traceNode.initialContext?.agentId || 'Agent'}`,
+        onClick: () => setSelectedStep({ type: 'trigger', content: traceNode.initialContext })
+      },
+      position: { x: startX, y: currentY },
+    });
+
+    if (lastStepId) {
+      initialEdges.push({
+        id: `e-${lastStepId}-${entryId}`,
+        source: lastStepId,
+        target: entryId,
+        animated: true,
+        style: { stroke: '#f97316', strokeWidth: 2, strokeDasharray: '5,5' },
+        label: 'DELEGATE',
+        labelStyle: { fill: '#f97316', fontSize: 8, fontWeight: 'bold' },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#f97316' },
+      });
+    }
+
+    lastStepId = entryId;
+    currentY += 120;
+
+    // 2. Process Steps
+    traceNode.steps?.forEach((step: any, idx: number) => {
+      const stepNodeId = `${traceNode.nodeId}-step-${idx}`;
+      let added = false;
+
+      if (step.type === TRACE_TYPES.LLM_CALL) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'llm',
+          data: {
+            type: TRACE_TYPES.LLM_CALL,
+            label: 'Requesting LLM synthesis.',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.LLM_RESPONSE) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'llm',
+          data: {
+            type: TRACE_TYPES.LLM_RESPONSE,
+            label: step.content.content || 'LLM provided a response or tool call.',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.TOOL_CALL) {
+        const tName = step.content.tool || step.content.toolName || 'Unknown';
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'tool',
+          data: {
+            toolName: tName,
+            status: 'Executing Arg: ' + JSON.stringify(step.content.args).substring(0, 20) + '...',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+
+        // CHECK FOR BRANCHING (dispatchTask)
+        if (tName === 'dispatchTask' && step.content.args?.agentId) {
+          const targetAgentId = step.content.args.agentId;
+          // Find the child node that has this parent
+          const childNode = traceNodes.find(n => n.parentId === traceNode.nodeId && (n.initialContext?.agentId === targetAgentId || n.nodeId.includes(targetAgentId)));
+          if (childNode) {
+            const branchOffset = (xOffsetMap.get(traceNode.nodeId) || 0) + 350;
+            xOffsetMap.set(traceNode.nodeId, branchOffset);
+            renderBranch(childNode, startX + branchOffset, currentY, stepNodeId);
+          }
+        }
+      } else if (step.type === TRACE_TYPES.TOOL_RESULT) {
+        const tName = step.content.tool || step.content.toolName || 'OBSERVATION';
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'tool',
+          data: {
+            toolName: tName,
+            status: 'Result: ' + String(step.content.result).substring(0, 20) + '...',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.ERROR) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'error',
+          data: {
+            label: step.content.errorMessage || 'Unknown Error',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      }
+
+      if (added) {
+        initialEdges.push({
+          id: `e-${lastStepId}-${stepNodeId}`,
+          source: lastStepId,
+          target: stepNodeId,
+          animated: true,
+          style: { stroke: '#00ff9f', strokeWidth: 1.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#00ff9f' },
+        });
+
+        lastStepId = stepNodeId;
+        currentY += 140;
+      }
+    });
+
+    // 3. Final Result Node
+    if (traceNode.finalResponse) {
+      const resultId = `${traceNode.nodeId}-result`;
+      initialNodes.push({
+        id: resultId,
+        type: 'result',
+        data: {
+          label: traceNode.finalResponse,
+          onClick: () => setSelectedStep({ type: 'result', content: { response: traceNode.finalResponse } })
+        },
+        position: { x: startX, y: currentY },
+      });
+
+      initialEdges.push({
+        id: `e-${lastStepId}-${resultId}`,
+        source: lastStepId,
+        target: resultId,
+        animated: false,
+        style: { stroke: '#00ff9f', strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#00ff9f' },
+      });
+      currentY += 140;
+    }
+
+    return currentY;
+  }
+
+  renderBranch(rootTraceNode, 250, 0);
+}
+
 // --- Main Path Visualizer Content ---
 
 interface PathVisualizerProps {
@@ -130,130 +311,12 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
     const initialNodes: Node[] = [];
     const initialEdges: Edge[] = [];
     
-    // 1. Initial Trigger Node
-    initialNodes.push({
-      id: 'trigger',
-      type: 'trigger',
-      data: { 
-        label: trace.initialContext?.userText || 'System Task',
-        onClick: () => setSelectedStep({ type: 'trigger', content: trace.initialContext })
-      },
-      position: { x: 250, y: 0 },
-    });
-
-    let lastNodeId = 'trigger';
-    let currentY = 120;
-
-    // 2. Process Steps
-    trace.steps?.forEach((step: any, idx: number) => {
-      const nodeId = `step-${idx}`;
-      let added = false;
-      
-      if (step.type === TRACE_TYPES.LLM_CALL) {
-        initialNodes.push({
-          id: nodeId,
-          type: 'llm',
-          data: { 
-            type: TRACE_TYPES.LLM_CALL,
-            label: 'Requesting LLM synthesis.',
-            onClick: () => setSelectedStep(step)
-          },
-          position: { x: 250, y: currentY },
-        });
-        added = true;
-      } else if (step.type === TRACE_TYPES.LLM_RESPONSE) {
-        initialNodes.push({
-          id: nodeId,
-          type: 'llm',
-          data: { 
-            type: TRACE_TYPES.LLM_RESPONSE,
-            label: step.content.content || 'LLM provided a response or tool call.',
-            onClick: () => setSelectedStep(step)
-          },
-          position: { x: 250, y: currentY },
-        });
-        added = true;
-      } else if (step.type === TRACE_TYPES.TOOL_CALL) {
-        const tName = step.content.tool || step.content.toolName || 'Unknown';
-        initialNodes.push({
-          id: nodeId,
-          type: 'tool',
-          data: { 
-            toolName: tName, 
-            status: 'Executing Arg: ' + JSON.stringify(step.content.args).substring(0, 20) + '...',
-            onClick: () => setSelectedStep(step)
-          },
-          position: { x: 250, y: currentY },
-        });
-        added = true;
-      } else if (step.type === TRACE_TYPES.TOOL_RESULT) {
-         const tName = step.content.tool || step.content.toolName || 'OBSERVATION';
-         initialNodes.push({
-          id: nodeId,
-          type: 'tool',
-          data: { 
-            toolName: tName, 
-            status: 'Result: ' + String(step.content.result).substring(0, 20) + '...',
-            onClick: () => setSelectedStep(step)
-          },
-          position: { x: 250, y: currentY },
-        });
-        added = true;
-      } else if (step.type === TRACE_TYPES.ERROR) {
-        initialNodes.push({
-          id: nodeId,
-          type: 'error',
-          data: { 
-            label: step.content.errorMessage || 'Unknown Error',
-            onClick: () => setSelectedStep(step)
-          },
-          position: { x: 250, y: currentY },
-        });
-        added = true;
-      }
-
-      if (added) {
-        initialEdges.push({
-          id: `e-${lastNodeId}-${nodeId}`,
-          source: lastNodeId,
-          target: nodeId,
-          animated: true,
-          style: { stroke: '#00ff9f', strokeWidth: 1.5 },
-          markerEnd: { 
-            type: MarkerType.ArrowClosed, 
-            color: '#00ff9f' 
-          },
-        });
-
-        lastNodeId = nodeId;
-        currentY += 140;
-      }
-    });
-
-    // 3. Final Result Node
-    if (trace.finalResponse) {
-      const resultId = 'result';
-      initialNodes.push({
-        id: resultId,
-        type: 'result',
-        data: { 
-          label: trace.finalResponse,
-          onClick: () => setSelectedStep({ type: 'result', content: { response: trace.finalResponse } })
-        },
-        position: { x: 250, y: currentY },
-      });
-
-      initialEdges.push({
-        id: `e-${lastNodeId}-${resultId}`,
-        source: lastNodeId,
-        target: resultId,
-        animated: false,
-        style: { stroke: '#00ff9f', strokeWidth: 2 },
-        markerEnd: { 
-          type: MarkerType.ArrowClosed, 
-          color: '#00ff9f' 
-        },
-      });
+    if (!trace.nodes || trace.nodes.length === 0) {
+      // Fallback to legacy single-node rendering if nodes array is missing
+      const nodesToProcess = [trace];
+      processTraceNodes(nodesToProcess, initialNodes, initialEdges, setSelectedStep);
+    } else {
+      processTraceNodes(trace.nodes, initialNodes, initialEdges, setSelectedStep);
     }
 
     setNodes(initialNodes);
@@ -262,10 +325,12 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
     // Fit view after state updates
     setTimeout(() => {
       fitView({ padding: 0.2 });
-    }, 50);
+    }, 100);
   }, [trace, setNodes, setEdges, fitView]);
 
   return (
+    // ... same JSX ...
+
     <div className="h-[600px] w-full bg-black/40 rounded-lg border border-white/5 relative group overflow-hidden cyber-border">
       <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
          <div className="text-[10px] text-cyber-green/60 font-mono tracking-widest uppercase bg-black/80 px-2 py-1 border border-cyber-green/30">

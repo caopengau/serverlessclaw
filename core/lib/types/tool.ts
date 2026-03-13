@@ -28,6 +28,20 @@ export interface IToolDefinition {
   description: string;
   /** Schema defining the arguments expected by the tool. */
   parameters: JsonSchema;
+  /** The type of tool (defaults to 'function'). */
+  type?: 'function' | 'code_interpreter' | 'file_search' | string;
+}
+
+/**
+ * Structured output from a tool execution.
+ */
+export interface ToolResult {
+  /** Textual output (required). */
+  text: string;
+  /** Optional base64 encoded images (for plots, screenshots). */
+  images?: string[];
+  /** Optional file references or metadata. */
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -38,7 +52,7 @@ export interface ITool extends IToolDefinition {
    * Executes the tool with the provided arguments.
    *
    * @param args - Key-value pairs of arguments as defined in the parameters schema.
-   * @returns A promise resolving to the string output of the tool execution.
+   * @returns A promise resolving to the tool result.
    */
-  execute(args: Record<string, unknown>): Promise<string>;
+  execute(args: Record<string, unknown>): Promise<string | ToolResult>;
 }

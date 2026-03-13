@@ -17,7 +17,12 @@ const typedResource = Resource as unknown as SSTResource;
  */
 export class AgentRegistry {
   private static backboneConfigs: Record<string, IAgentConfig> = BACKBONE_REGISTRY;
-  private static DEFAULT_AGENT_TOOLS = ['recallKnowledge', 'listAgents', 'dispatchTask'];
+  private static DEFAULT_AGENT_TOOLS = [
+    'recallKnowledge',
+    'listAgents',
+    'dispatchTask',
+    'discoverSkills',
+  ];
 
   /**
    * Retrieves the configuration for a specific agent by ID.

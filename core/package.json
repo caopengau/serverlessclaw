@@ -9,5 +9,10 @@
     "./agents/*": "./agents/*.js",
     "./tools/*": "./tools/*.js",
     "./handlers/*": "./handlers/*.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@openai/agents-core": "^0.7.0",
+    "zod": "^4.3.6"
   }
 }

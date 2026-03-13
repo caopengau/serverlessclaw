@@ -42,11 +42,15 @@ export interface TraceStep {
 }
 
 /**
- * Full record of an agent's reasoning trace.
+ * Full record of an agent's reasoning trace node.
  */
 export interface Trace {
   /** Unique identifier for the trace. */
   traceId: string;
+  /** Unique identifier for this specific node in the trace graph. */
+  nodeId: string;
+  /** Unique identifier for the parent node that spawned this one. */
+  parentId?: string;
   /** The ID of the user or session the trace belongs to. */
   userId: string;
   /** The origin of the request (e.g., 'dashboard', 'telegram', 'system'). */
@@ -76,6 +80,8 @@ export interface Trace {
 export class ClawTracer {
   private tableName: string = typedResource.TraceTable.name;
   private traceId: string;
+  private nodeId: string;
+  private parentId?: string;
   private userId: string;
   private source: TraceSource | string;
   private startTime: number;
@@ -85,21 +91,27 @@ export class ClawTracer {
    *
    * @param userId - Unique identifier for the user or session.
    * @param source - Origin of the request.
-   * @param traceId - Optional override for the trace ID.
+   * @param traceId - Unique ID for the entire conversation/workflow.
+   * @param nodeId - Unique ID for this specific agent execution or branch.
+   * @param parentId - Optional ID of the node that spawned this one.
    */
   constructor(
     userId: string,
     source: TraceSource | string = TraceSource.UNKNOWN,
-    traceId?: string
+    traceId?: string,
+    nodeId?: string,
+    parentId?: string
   ) {
     this.userId = userId;
     this.source = source;
     this.traceId = traceId || uuidv4();
+    this.nodeId = nodeId || 'root';
+    this.parentId = parentId;
     this.startTime = Date.now();
   }
 
   /**
-   * Initializes a new trace in DynamoDB.
+   * Initializes a new trace node in DynamoDB.
    *
    * @param initialContext - Initial context for the trace (e.g., user input).
    * @returns A promise that resolves to the trace ID.
@@ -114,6 +126,8 @@ export class ClawTracer {
           TableName: this.tableName,
           Item: {
             traceId: this.traceId,
+            nodeId: this.nodeId,
+            parentId: this.parentId,
             userId: this.userId,
             source: this.source,
             timestamp: this.startTime,
@@ -122,7 +136,7 @@ export class ClawTracer {
             steps: [],
             expiresAt,
           },
-          ConditionExpression: 'attribute_not_exists(traceId)',
+          ConditionExpression: 'attribute_not_exists(traceId) AND attribute_not_exists(nodeId)',
         })
       );
     } catch (e: unknown) {
@@ -132,7 +146,7 @@ export class ClawTracer {
         'name' in e &&
         e.name === 'ConditionalCheckFailedException'
       ) {
-        logger.info(`Trace ${this.traceId} already exists, skipping initialization.`);
+        logger.info(`Trace node ${this.traceId}/${this.nodeId} already exists, skipping.`);
       } else {
         throw e;
       }
@@ -141,7 +155,23 @@ export class ClawTracer {
   }
 
   /**
-   * Adds a step to the current trace.
+   * Spawns a new child tracer for parallel or delegated execution.
+   *
+   * @param newNodeId - Optional ID for the new node.
+   * @returns A new ClawTracer instance correctly linked to this parent.
+   */
+  getChildTracer(newNodeId?: string): ClawTracer {
+    return new ClawTracer(
+      this.userId,
+      this.source,
+      this.traceId,
+      newNodeId || uuidv4(),
+      this.nodeId
+    );
+  }
+
+  /**
+   * Adds a step to the current trace node.
    *
    * @param step - The step content and type.
    * @returns A promise that resolves when the step is added.
@@ -156,7 +186,7 @@ export class ClawTracer {
     await docClient.send(
       new UpdateCommand({
         TableName: this.tableName,
-        Key: { traceId: this.traceId },
+        Key: { traceId: this.traceId, nodeId: this.nodeId },
         UpdateExpression: 'SET #steps = list_append(if_not_exists(#steps, :empty_list), :step)',
         ExpressionAttributeNames: { '#steps': 'steps' },
         ExpressionAttributeValues: {
@@ -168,7 +198,7 @@ export class ClawTracer {
   }
 
   /**
-   * Ends the trace with a final response and optional metadata.
+   * Ends the trace node with a final response and optional metadata.
    *
    * @param finalResponse - The final response sent to the user.
    * @param metadata - Additional metadata for the trace.
@@ -178,7 +208,7 @@ export class ClawTracer {
     await docClient.send(
       new UpdateCommand({
         TableName: this.tableName,
-        Key: { traceId: this.traceId },
+        Key: { traceId: this.traceId, nodeId: this.nodeId },
         UpdateExpression:
           'SET #status = :status, finalResponse = :resp, endTime = :end, metadata = :meta',
         ExpressionAttributeNames: { '#status': 'status' },
@@ -202,20 +232,37 @@ export class ClawTracer {
   }
 
   /**
-   * Retrieves a full trace from DynamoDB by its ID.
+   * Returns the current node ID.
+   *
+   * @returns The node ID string.
+   */
+  getNodeId(): string {
+    return this.nodeId;
+  }
+
+  /**
+   * Returns the parent node ID.
+   *
+   * @returns The parent node ID string or undefined.
+   */
+  getParentId(): string | undefined {
+    return this.parentId;
+  }
+
+  /**
+   * Retrieves all nodes belonging to a specific traceId.
    *
    * @param traceId - The trace ID to retrieve.
-   * @returns A promise resolving to the full trace object or undefined if not found.
+   * @returns A promise resolving to an array of trace nodes.
    */
-  static async getTrace(traceId: string): Promise<Trace | undefined> {
+  static async getTrace(traceId: string): Promise<Trace[]> {
     const response = await docClient.send(
       new QueryCommand({
         TableName: typedResource.TraceTable.name,
         KeyConditionExpression: 'traceId = :tid',
         ExpressionAttributeValues: { ':tid': traceId },
-        Limit: 1,
       })
     );
-    return response.Items?.[0] as Trace | undefined;
+    return (response.Items as Trace[]) || [];
   }
 }
