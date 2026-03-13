@@ -56,4 +56,11 @@ export class ConfigManager {
       throw e;
     }
   }
+
+  /**
+   * Resolves the table name for the configured ConfigTable.
+   */
+  public static async resolveTableName(): Promise<string | undefined> {
+    return typedResource.ConfigTable?.name;
+  }
 }

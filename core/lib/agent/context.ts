@@ -7,7 +7,13 @@ export class AgentContext {
   /**
    * Generates the system identity block.
    */
-  static getIdentityBlock(config: IAgentConfig | undefined, model: string, provider: string, profile: ReasoningProfile, depth: number): string {
+  static getIdentityBlock(
+    config: IAgentConfig | undefined,
+    model: string,
+    provider: string,
+    profile: ReasoningProfile,
+    depth: number
+  ): string {
     return `
       [SYSTEM_IDENTITY]:
       - AGENT_NAME: ${config?.name || 'SuperClaw'}

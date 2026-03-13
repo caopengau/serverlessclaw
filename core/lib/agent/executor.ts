@@ -167,7 +167,10 @@ export class AgentExecutor {
               await AgentRegistry.recordToolUsage(tool.name, this.agentId);
             }
 
-            await tracer.addStep({ type: 'tool_result', content: { toolName: tool.name, result: rawResult } });
+            await tracer.addStep({
+              type: 'tool_result',
+              content: { toolName: tool.name, result: rawResult },
+            });
 
             messages.push({
               role: MessageRole.TOOL,
@@ -176,7 +179,9 @@ export class AgentExecutor {
               content: resultText,
             });
           } else {
-            logger.info(`Tool ${toolCall.function.name} requested but no local implementation found.`);
+            logger.info(
+              `Tool ${toolCall.function.name} requested but no local implementation found.`
+            );
             messages.push({
               role: MessageRole.TOOL,
               tool_call_id: toolCall.id,

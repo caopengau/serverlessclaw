@@ -85,18 +85,31 @@ export class Agent {
     } = options;
 
     const baseUserId = userId.startsWith('CONV#') ? userId.split('#')[1] : userId;
-    const tracer = new ClawTracer(baseUserId, source, incomingTraceId, incomingNodeId, incomingParentId);
+    const tracer = new ClawTracer(
+      baseUserId,
+      source,
+      incomingTraceId,
+      incomingNodeId,
+      incomingParentId
+    );
     const traceId = tracer.getTraceId();
     const nodeId = tracer.getNodeId();
     const parentId = tracer.getParentId();
     const currentInitiator = initiatorId || this.config?.id || 'unknown';
 
     if (!isContinuation) {
-      await tracer.startTrace({ userText, sessionId, agentId: this.config?.id, hasAttachments: !!attachments });
+      await tracer.startTrace({
+        userText,
+        sessionId,
+        agentId: this.config?.id,
+        hasAttachments: !!attachments,
+      });
     }
 
-    const storageId = isIsolated ? `${(this.config?.id || 'unknown').toUpperCase()}#${userId}#${traceId}` : userId;
-    
+    const storageId = isIsolated
+      ? `${(this.config?.id || 'unknown').toUpperCase()}#${userId}#${traceId}`
+      : userId;
+
     // 1. Memory Retrieval
     const history = await this.memory.getHistory(storageId);
     const distilled = await this.memory.getDistilledMemory(baseUserId);
@@ -114,7 +127,11 @@ export class Agent {
     }
 
     if (!isContinuation) {
-      await this.memory.addMessage(storageId, { role: MessageRole.USER, content: userText, attachments });
+      await this.memory.addMessage(storageId, {
+        role: MessageRole.USER,
+        content: userText,
+        attachments,
+      });
     }
 
     // 2. Model/Provider Resolution
@@ -134,7 +151,10 @@ export class Agent {
         else if (policy === 'conservative') activeProfile = ReasoningProfile.FAST;
 
         if (!globalModel && !activeModel) {
-          const profileMap = (await AgentRegistry.getRawConfig('reasoning_profiles')) as Record<string, string>;
+          const profileMap = (await AgentRegistry.getRawConfig('reasoning_profiles')) as Record<
+            string,
+            string
+          >;
           if (profileMap && profileMap[activeProfile]) activeModel = profileMap[activeProfile];
         }
       }
@@ -219,7 +239,20 @@ export class Agent {
     await tracer.endTrace(responseText);
 
     // 6. Reflection Trigger
-    await this.considerReflection(isIsolated, userId, history, userText, tracer.getTraceId(), messages, responseText, nodeId, parentId, sessionId, currentInitiator, depth);
+    await this.considerReflection(
+      isIsolated,
+      userId,
+      history,
+      userText,
+      tracer.getTraceId(),
+      messages,
+      responseText,
+      nodeId,
+      parentId,
+      sessionId,
+      currentInitiator,
+      depth
+    );
 
     return responseText;
   }
@@ -275,7 +308,12 @@ export class Agent {
                   sessionId,
                   conversation: [
                     ...messages,
-                    { role: MessageRole.ASSISTANT, content: responseText, agentName: this.config?.name || 'SuperClaw', traceId: traceId || 'unknown' },
+                    {
+                      role: MessageRole.ASSISTANT,
+                      content: responseText,
+                      agentName: this.config?.name || 'SuperClaw',
+                      traceId: traceId || 'unknown',
+                    },
                   ],
                   initiatorId: currentInitiator,
                   depth,

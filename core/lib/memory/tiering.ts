@@ -1,57 +1,68 @@
+import { logger } from '../logger';
+import { ConfigManager } from '../registry/config';
 import { RETENTION } from '../constants';
 
 /**
- * Handles logic for memory tiering and data lifecycle.
+ * Retention IDs for different system logs based on 2026 usage patterns.
+ */
+export enum RetentionTiers {
+  STANDARD = 'MESSAGES_DAYS',
+  CRITICAL = 'LESSONS_DAYS',
+  EPHEMERAL = 'SESSIONS_DAYS',
+  TRAILS = 'TRACES_DAYS',
+}
+
+/**
+ * RetentionManager centralizes logic for system data aging and TTL.
  */
 export class RetentionManager {
   /**
-   * Calculates the expiration timestamp for a given item type and unit.
+   * Resolves the TTL timestamp and type for a specific memory category.
    */
-  static async getExpiresAt(prefix: string, userId: string): Promise<{ expiresAt: number, type: string }> {
-    const now = Math.floor(Date.now() / 1000);
-    
-    // 1. Transient System Logs (1 hour)
-    if (userId.startsWith('RECOVERY') || userId.startsWith('SYSTEM#')) {
-      return { 
-        expiresAt: now + 3600, 
-        type: 'MESSAGE' 
-      };
-    }
-
-    // 2. Internal Agent Traces (1 day)
-    const agentPrefixes = ['COGNITION-REFLECTOR#', 'CODER#', 'STRATEGIC-PLANNER#', 'QA#'];
-    if (userId.includes('#') && agentPrefixes.some(p => userId.startsWith(p))) {
-      return { 
-        expiresAt: now + 24 * 60 * 60, 
-        type: 'MESSAGE' 
-      };
-    }
-
-    // 3. Strategic Intelligence (2 years)
-    if (prefix === 'DISTILLED' || prefix === 'GAP' || prefix === 'LESSON') {
-      return { 
-        expiresAt: now + 730 * 24 * 60 * 60, 
-        type: prefix 
-      };
-    }
-
-    // 4. Default: Human Conversations (Fetch from AgentRegistry)
+  static async getExpiresAt(
+    category: string,
+    userId: string = ''
+  ): Promise<{ expiresAt: number; type: string }> {
     const { AgentRegistry } = await import('../registry');
-    let days = 30; // Safe default
-    try {
-      if (prefix === 'SESSIONS') {
-        days = await AgentRegistry.getRetentionDays('SESSIONS_DAYS');
-      } else {
-        days = await AgentRegistry.getRetentionDays('MESSAGES_DAYS');
-      }
-    } catch (e) {
-      // Fallback
-      days = prefix === 'SESSIONS' ? RETENTION.SESSIONS_DAYS : RETENTION.MESSAGES_DAYS;
+
+    let tier = RetentionTiers.STANDARD;
+    let type = 'msg';
+
+    const upperCategory = category.toUpperCase();
+
+    if (
+      upperCategory === 'LESSONS' ||
+      upperCategory === 'LESSON' ||
+      upperCategory === 'IMPORTANT'
+    ) {
+      tier = RetentionTiers.CRITICAL;
+      type = 'lesson';
+    } else if (
+      upperCategory === 'TRACE' ||
+      upperCategory === 'TRAILS' ||
+      upperCategory === 'TRACES'
+    ) {
+      tier = RetentionTiers.TRAILS;
+      type = 'trace';
+    } else if (userId.startsWith('TEMP#') || upperCategory === 'EPHEMERAL') {
+      tier = RetentionTiers.EPHEMERAL;
+      type = 'temp';
     }
 
-    return { 
-      expiresAt: now + days * 24 * 60 * 60, 
-      type: prefix === 'SESSIONS' ? 'SESSION' : 'MESSAGE' 
-    };
+    const days = await AgentRegistry.getRetentionDays(tier as keyof typeof RETENTION);
+    const expiresAt = Math.floor(Date.now() / 1000) + days * 86400;
+
+    return { expiresAt, type };
+  }
+
+  /**
+   * Cleans up transient or failed states from the system.
+   */
+  static async performSystemCleanup(): Promise<void> {
+    try {
+      await ConfigManager.saveRawConfig('consecutive_build_failures', 0);
+    } catch {
+      logger.error('Failed to reset build failure counter');
+    }
   }
 }

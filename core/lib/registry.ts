@@ -46,7 +46,10 @@ export class AgentRegistry {
    * Retrieves the retention period in days for a specific item type.
    */
   static async getRetentionDays(item: keyof typeof RETENTION): Promise<number> {
-    const config = (await this.getRawConfig(DYNAMO_KEYS.RETENTION_CONFIG)) as Record<string, number>;
+    const config = (await this.getRawConfig(DYNAMO_KEYS.RETENTION_CONFIG)) as Record<
+      string,
+      number
+    >;
     return config && config[item] !== undefined ? config[item] : RETENTION[item];
   }
 
@@ -59,10 +62,15 @@ export class AgentRegistry {
     // 1. Resolve Base Config
     if (this.backboneConfigs[id]) {
       config = { ...this.backboneConfigs[id] };
-      const ddbAgents = ((await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<string, Partial<IAgentConfig>>) || {};
+      const ddbAgents =
+        ((await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<
+          string,
+          Partial<IAgentConfig>
+        >) || {};
       if (ddbAgents[id]) Object.assign(config, ddbAgents[id]);
     } else {
-      const ddbAgents = ((await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<string, unknown>) || {};
+      const ddbAgents =
+        ((await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<string, unknown>) || {};
       config = ddbAgents[id] as IAgentConfig;
     }
 
@@ -71,21 +79,33 @@ export class AgentRegistry {
     // 2. Discovery Mode Filter
     const isDiscoveryMode = (await this.getRawConfig('selective_discovery_mode')) === true;
     if (isDiscoveryMode && config.tools) {
-      config.tools = config.tools.filter((t: string) => AgentRegistry.ESSENTIAL_SYSTEM_TOOLS.includes(t));
+      config.tools = config.tools.filter((t: string) =>
+        AgentRegistry.ESSENTIAL_SYSTEM_TOOLS.includes(t)
+      );
       if (config.tools.length < 4) {
-        config.tools = Array.from(new Set([...config.tools, ...AgentRegistry.DISCOVERY_BOOTLOADER_TOOLS]));
+        config.tools = Array.from(
+          new Set([...config.tools, ...AgentRegistry.DISCOVERY_BOOTLOADER_TOOLS])
+        );
       }
     }
 
     // 3. Tool Overrides
     const toolOverride = (await this.getRawConfig(`${id}_tools`)) as string[];
     if (toolOverride && Array.isArray(toolOverride)) {
-      config.tools = Array.from(new Set([...toolOverride, ...(this.backboneConfigs[id]?.tools || AgentRegistry.ESSENTIAL_SYSTEM_TOOLS)]));
+      config.tools = Array.from(
+        new Set([
+          ...toolOverride,
+          ...(this.backboneConfigs[id]?.tools || AgentRegistry.ESSENTIAL_SYSTEM_TOOLS),
+        ])
+      );
     } else {
-      config.tools = Array.from(new Set([...(config.tools || []), ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS]));
+      config.tools = Array.from(
+        new Set([...(config.tools || []), ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS])
+      );
     }
 
-    if (!config.tools || config.tools.length === 0) config.tools = [...AgentRegistry.DEFAULT_AGENT_TOOLS];
+    if (!config.tools || config.tools.length === 0)
+      config.tools = [...AgentRegistry.DEFAULT_AGENT_TOOLS];
 
     return config;
   }
@@ -96,7 +116,9 @@ export class AgentRegistry {
   static async getAllConfigs(): Promise<Record<string, IAgentConfig>> {
     const ddbConfig = (await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) || {};
     const all: Record<string, IAgentConfig> = { ...this.backboneConfigs };
-    const agentIds = Array.from(new Set([...Object.keys(all), ...Object.keys(ddbConfig as Record<string, unknown>)]));
+    const agentIds = Array.from(
+      new Set([...Object.keys(all), ...Object.keys(ddbConfig as Record<string, unknown>)])
+    );
 
     for (const id of agentIds) {
       const config = await this.getAgentConfig(id);
@@ -175,8 +197,14 @@ export class AgentRegistry {
           new UpdateCommand({
             TableName: ConfigTable.name,
             Key: { key },
-            UpdateExpression: 'SET #usage.#tool.#count = if_not_exists(#usage.#tool.#count, :zero) + :one, #usage.#tool.#last = :now',
-            ExpressionAttributeNames: { '#usage': 'value', '#tool': toolName, '#count': 'count', '#last': 'lastUsed' },
+            UpdateExpression:
+              'SET #usage.#tool.#count = if_not_exists(#usage.#tool.#count, :zero) + :one, #usage.#tool.#last = :now',
+            ExpressionAttributeNames: {
+              '#usage': 'value',
+              '#tool': toolName,
+              '#count': 'count',
+              '#last': 'lastUsed',
+            },
             ExpressionAttributeValues: { ':one': 1, ':zero': 0, ':now': Date.now() },
           })
         );

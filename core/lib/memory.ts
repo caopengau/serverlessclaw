@@ -14,7 +14,7 @@ import { RetentionManager } from './memory/tiering';
 /**
  * Implementation of IMemory using AWS DynamoDB for persistent storage
  * with a tiered retention strategy.
- * 
+ *
  * This class acts as a high-level facade orchestrating core storage (BaseMemoryProvider)
  * and data lifecycle management (RetentionManager).
  */

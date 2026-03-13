@@ -79,8 +79,7 @@ describe('Autonomous Loop Closure', () => {
       },
     };
 
-    // @ts-expect-error - mockEvent does not match exact Lambda event type
-    await eventHandler(mockEvent, { getRemainingTimeInMillis: () => 300000 } as any);
+    await eventHandler(mockEvent as any, { getRemainingTimeInMillis: () => 300000 } as any);
 
     const ebCalls = ebMock.commandCalls(PutEventsCommand);
     const continuationCall = ebCalls.find(
@@ -109,8 +108,7 @@ describe('Autonomous Loop Closure', () => {
     // Mock the tracer start call
     ddbMock.on(PutCommand).resolves({});
 
-    // @ts-expect-error - mockEvent does not match exact Lambda event type
-    await eventHandler(mockEvent, { getRemainingTimeInMillis: () => 300000 } as any);
+    await eventHandler(mockEvent as any, { getRemainingTimeInMillis: () => 300000 } as any);
 
     const ebCalls = ebMock.commandCalls(PutEventsCommand);
     const continuationCall = ebCalls.find(

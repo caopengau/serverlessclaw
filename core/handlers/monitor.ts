@@ -1,18 +1,10 @@
 import { CodeBuildClient, BatchGetBuildsCommand } from '@aws-sdk/client-codebuild';
 import { CloudWatchLogsClient, GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DynamoDBDocumentClient,
-  QueryCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
-import {
-  SSTResource,
-  EventType,
-  GapStatus,
-  TopologyNode,
-} from '../lib/types/index';
+import { SSTResource, EventType, GapStatus, TopologyNode } from '../lib/types/index';
 import { DynamoMemory } from '../lib/memory';
 import { reportHealthIssue } from '../lib/health';
 import { ConfigManager } from '../lib/registry/config';
@@ -126,11 +118,14 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
 
       // 2026 Circuit Breaker Logic
       try {
-        const currentFailures = (await ConfigManager.getRawConfig('consecutive_build_failures')) as number;
+        const currentFailures = (await ConfigManager.getRawConfig(
+          'consecutive_build_failures'
+        )) as number;
         const failures = (currentFailures || 0) + 1;
         await ConfigManager.saveRawConfig('consecutive_build_failures', failures);
 
-        const threshold = (await ConfigManager.getRawConfig('circuit_breaker_threshold')) as number || 3;
+        const threshold =
+          ((await ConfigManager.getRawConfig('circuit_breaker_threshold')) as number) || 3;
 
         if (failures >= threshold) {
           logger.warn(`Circuit Breaker Active! ${failures} build failures. Flipping to HITL mode.`);

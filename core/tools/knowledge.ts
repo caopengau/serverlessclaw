@@ -1,5 +1,4 @@
 import { toolDefinitions } from './definitions';
-import { logger } from '../lib/logger';
 import { DynamoMemory } from '../lib/memory';
 import { InsightCategory, GapStatus, EventType } from '../lib/types/index';
 import { ConfigManager } from '../lib/registry/config';
@@ -101,7 +100,7 @@ STATUS: ${n.status}
 STEPS:
 ${n.steps
   .map(
-    (s) =>
+    (s: any) =>
       `- [${new Date(s.timestamp).toISOString()}] [${s.type.toUpperCase()}] ${
         typeof s.content === 'string' ? s.content : JSON.stringify(s.content)
       }`
@@ -194,8 +193,8 @@ export const manageAgentTools = {
     try {
       await ConfigManager.saveRawConfig(`${agentId}_tools`, toolNames);
       return `Successfully updated tools for agent ${agentId}: ${toolNames.join(', ')}`;
-    } catch (error) {
-      return `Failed to update agent tools: ${error instanceof Error ? error.message : String(error)}`;
+    } catch {
+      return `Failed to update agent tools`;
     }
   },
 };
@@ -254,8 +253,8 @@ export const reportGap = {
       });
 
       return `Successfully recorded new gap: [${gapId}] ${content}`;
-    } catch (error) {
-      return `Failed to report gap: ${error instanceof Error ? error.message : String(error)}`;
+    } catch {
+      return `Failed to report gap`;
     }
   },
 };
@@ -300,13 +299,14 @@ export const registerMCPServer = {
       if (env) {
         try {
           parsedEnv = typeof env === 'string' ? JSON.parse(env) : env;
-        } catch (e) {
+        } catch {
           return `Failed to parse environment variables. Ensure 'env' is a valid JSON string.`;
         }
       }
 
       const { AgentRegistry } = await import('../lib/registry');
-      const mcpServers = ((await AgentRegistry.getRawConfig('mcp_servers')) as Record<string, unknown>) || {};
+      const mcpServers =
+        ((await AgentRegistry.getRawConfig('mcp_servers')) as Record<string, unknown>) || {};
       mcpServers[serverName] = { command, env: parsedEnv };
 
       await ConfigManager.saveRawConfig('mcp_servers', mcpServers);
@@ -327,7 +327,8 @@ export const unregisterMCPServer = {
 
     try {
       const { AgentRegistry } = await import('../lib/registry');
-      const mcpServers = ((await AgentRegistry.getRawConfig('mcp_servers')) as Record<string, unknown>) || {};
+      const mcpServers =
+        ((await AgentRegistry.getRawConfig('mcp_servers')) as Record<string, unknown>) || {};
 
       if (!mcpServers[serverName]) return `FAILED: MCP server '${serverName}' is not registered.`;
 

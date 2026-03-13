@@ -34,7 +34,8 @@ help: ## Show all targets and descriptions in a markdown table
 
 pre-commit: ## Run pre-commit checks (fix, test, check)
 	@$(call log_step,Running pre-commit checks...)
-	@$(MAKE) lint-staged
+	@$(MAKE) fix
+	@git add .
 	@$(MAKE) test-silent
 	@$(call log_success,Pre-commit checks passed)
 
