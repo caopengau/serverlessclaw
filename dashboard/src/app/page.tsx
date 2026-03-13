@@ -556,7 +556,9 @@ function ChatContent() {
                     </div>
                     <Typography variant="body" color="muted" className="mt-1 block">Active neural path execution log.</Typography>
                   </div>
-                ) : (
+                )}
+              </div>
+            ) : (
               <div>
                 <Typography variant="h2" weight="bold" color="white" glow className="uppercase">
                   Direct Chat
