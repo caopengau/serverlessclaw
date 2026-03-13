@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Trash2, Loader2, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 export default function DeleteAllTracesButton() {
   const router = useRouter();
@@ -18,14 +19,15 @@ export default function DeleteAllTracesButton() {
 
       if (response.ok) {
         setShowConfirm(false);
+        toast.success('Neural archive purged successfully');
         router.refresh();
       } else {
         const error = await response.json();
-        alert(`Failed to purge traces: ${error.error}`);
+        toast.error(`Failed to purge traces: ${error.error}`);
       }
     } catch (error) {
       console.error('Delete all traces error:', error);
-      alert('Failed to purge traces.');
+      toast.error('Failed to purge traces.');
     } finally {
       setIsDeleting(false);
     }

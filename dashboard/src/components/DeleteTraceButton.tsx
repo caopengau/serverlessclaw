@@ -3,6 +3,7 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface DeleteTraceButtonProps {
   traceId: string;
@@ -23,14 +24,15 @@ export default function DeleteTraceButton({ traceId }: DeleteTraceButtonProps) {
       });
 
       if (response.ok) {
+        toast.success('Neural trace deleted');
         router.refresh();
       } else {
         const error = await response.json();
-        alert(`Failed to delete trace: ${error.error}`);
+        toast.error(`Failed to delete trace: ${error.error}`);
       }
     } catch (error) {
       console.error('Delete trace error:', error);
-      alert('Failed to delete trace.');
+      toast.error('Failed to delete trace.');
     }
   };
 

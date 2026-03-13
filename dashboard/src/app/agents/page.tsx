@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bot, Save, Plus, Trash2, Shield, Settings2, RefreshCw, Cpu, ChevronRight, ShieldAlert, X } from 'lucide-react';
+import { bot, save, plus, trash2, shield, settings2, refreshcw, cpu, chevronright, shieldalert, x } from 'lucide-react';
 import CyberSelect from '@/components/CyberSelect';
 import { THEME } from '@/lib/theme';
+import { toast } from 'sonner';
 
 interface AgentConfig {
   id: string;
@@ -92,10 +93,10 @@ export default function AgentsPage() {
       });
       if (!response.ok) throw new Error('Failed to save');
       setInitialAgents(JSON.parse(JSON.stringify(agents)));
-      alert('Neural nodes synchronized successfully');
+      toast.success('Neural nodes synchronized successfully');
       setShowBackboneWarning(false);
     } catch (err) {
-      alert('Failed to save neural states');
+      toast.error('Failed to save neural states');
     } finally {
       setSaving(false);
     }
@@ -121,7 +122,7 @@ export default function AgentsPage() {
 
   const finalizeNewAgent = () => {
     if (!newAgent.id || !newAgent.name) {
-        alert('Agent ID and Name are required.');
+        toast.error('Agent ID and Name are required.');
         return;
     }
     

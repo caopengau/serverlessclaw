@@ -3,6 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import { Wrench, Shield, Zap, Cpu, Settings, Save, Search, Trash2, X, Plus, Activity, BookOpen, ExternalLink } from 'lucide-react';
 import { updateAgentTools, deleteMCPServer } from '../app/capabilities/actions';
+import { toast } from 'sonner';
 
 interface Tool {
   name: string;
@@ -77,7 +78,7 @@ export default function CapabilitiesView({ agents: initialAgents, allTools, mcpS
         }
       } catch (error) {
         console.error('Failed to update tools:', error);
-        alert(`Failed to sync neural roster: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        toast.error(`Failed to sync neural roster: ${error instanceof Error ? error.message : 'Unknown error'}`);
         // Revert optimistic update on failure
         setOptimisticAgents(initialAgents);
       }

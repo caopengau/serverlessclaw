@@ -148,7 +148,9 @@ export class AgentRegistry {
     const all: Record<string, IAgentConfig> = { ...this.backboneConfigs };
 
     // Merge in DDB agents and resolve ALL tool overrides
-    const agentIds = Array.from(new Set([...Object.keys(all), ...Object.keys(ddbConfig as any)]));
+    const agentIds = Array.from(
+      new Set([...Object.keys(all), ...Object.keys(ddbConfig as Record<string, unknown>)])
+    );
 
     for (const id of agentIds) {
       const config = await this.getAgentConfig(id);
