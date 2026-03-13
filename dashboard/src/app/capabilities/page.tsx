@@ -58,9 +58,27 @@ async function getToolUsage() {
   }
 }
 
+async function getAgentConfigs() {
+  try {
+    const { AgentRegistry } = await import('@claw/core/lib/registry');
+    const configs = await AgentRegistry.getAllConfigs();
+    return Object.values(configs).map(c => ({
+      id: c.id,
+      name: c.name,
+      tools: c.tools || []
+    }));
+  } catch (e) {
+    console.error('Error fetching agent configs:', e);
+    return [];
+  }
+}
+
 export default async function CapabilitiesPage() {
-  const usage = await getToolUsage();
-  const mcpServers = await getMCPServers();
+  const [usage, mcpServers, agents] = await Promise.all([
+    getToolUsage(),
+    getMCPServers(),
+    getAgentConfigs()
+  ]);
   const allTools = await getAllTools(usage);
 
   return (
@@ -68,18 +86,18 @@ export default async function CapabilitiesPage() {
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
           <Typography variant="h2" color="white" glow uppercase>
-            Capabilities
+            Tools & Skills
           </Typography>
           <Typography variant="body" color="muted" className="mt-2 block">
             Neural Skill Discovery & External Bridge Management.
           </Typography>
         </div>
         <div className="flex gap-4">
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center text-center">
                 <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">LOCAL</Typography>
                 <Badge variant="outline" className="px-4 py-1 font-bold text-xs border-yellow-500/20 text-yellow-500/60 uppercase">{allTools.filter(t => !t.isExternal).length}</Badge>
             </div>
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center text-center">
                 <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-1">BRIDGES</Typography>
                 <Badge variant="outline" className="px-4 py-1 font-bold text-xs border-cyber-blue/20 text-cyber-blue/60 uppercase">{Object.keys(mcpServers).length}</Badge>
             </div>
@@ -89,6 +107,7 @@ export default async function CapabilitiesPage() {
       <CapabilitiesView 
         allTools={allTools} 
         mcpServers={mcpServers}
+        agents={agents}
       />
 
       <div className="glass-card p-6 border-white/5 text-white/40 flex items-center gap-4">

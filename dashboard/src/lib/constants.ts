@@ -46,7 +46,6 @@ export const UI_STRINGS = {
   FINAL_OUTPUT: 'Final Output',
   INTELLIGENCE_HEADER: 'Intelligence',
   EVOLUTION_HEADER: 'Evolution',
-  PIPELINE_HEADER: 'Pipeline',
   INFRA_HEADER: 'Infrastructure',
   CONFIGURATION_HEADER: 'Configuration',
   OBSERVABILITY_HEADER: 'Observability',
