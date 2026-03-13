@@ -229,6 +229,7 @@ export const fileRead = {
 
 /**
  * Lists all files in a specific directory.
+ * @deprecated Use MCP filesystem server instead.
  */
 export const listFiles = {
   ...toolDefinitions.listFiles,
@@ -236,7 +237,7 @@ export const listFiles = {
     const { dirPath } = args as { dirPath?: string };
     try {
       const targetDir = dirPath ? path.resolve(process.cwd(), dirPath) : process.cwd();
-      const files = await fs.readdir(targetDir);
+      const files = await promisify(require('fs').readdir)(targetDir);
       return files.join('\n');
     } catch (error) {
       return `Failed to list files: ${error instanceof Error ? error.message : String(error)}`;

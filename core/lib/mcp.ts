@@ -15,7 +15,11 @@ export class MCPBridge {
   /**
    * Connects to an MCP server (Local or Remote) and returns its tools.
    */
-  static async getToolsFromServer(serverName: string, connectionString: string): Promise<ITool[]> {
+  static async getToolsFromServer(
+    serverName: string,
+    connectionString: string,
+    env?: Record<string, string>
+  ): Promise<ITool[]> {
     try {
       let client = this.clients.get(serverName);
 
@@ -30,7 +34,11 @@ export class MCPBridge {
           const command = parts[0];
           const args = parts.slice(1);
           logger.info(`Spawning Local MCP Server: ${serverName} (${command} ${args.join(' ')})`);
-          transport = new StdioClientTransport({ command, args });
+          transport = new StdioClientTransport({
+            command,
+            args,
+            env: { ...(process.env as Record<string, string>), ...env },
+          });
         }
 
         client = new Client(
@@ -65,11 +73,17 @@ export class MCPBridge {
    */
   static async getAllExternalTools(): Promise<ITool[]> {
     const serversConfig =
-      ((await AgentRegistry.getRawConfig('mcp_servers')) as Record<string, string>) || {};
+      ((await AgentRegistry.getRawConfig('mcp_servers')) as Record<
+        string,
+        string | { command: string; env?: Record<string, string> }
+      >) || {};
     const allTools: ITool[] = [];
 
-    for (const [name, connectionString] of Object.entries(serversConfig)) {
-      const serverTools = await this.getToolsFromServer(name, connectionString);
+    for (const [name, config] of Object.entries(serversConfig)) {
+      const connectionString = typeof config === 'string' ? config : config.command;
+      const env = typeof config === 'string' ? undefined : config.env;
+
+      const serverTools = await this.getToolsFromServer(name, connectionString, env);
       allTools.push(...serverTools);
     }
 

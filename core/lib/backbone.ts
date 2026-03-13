@@ -41,7 +41,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'Code',
     enabled: true,
     isBackbone: true,
-    tools: ['fileWrite', 'fileRead', 'runTests', 'runShellCommand', 'sendMessage'],
+    tools: ['runTests', 'runShellCommand', 'sendMessage', 'discoverSkills'],
     maxIterations: 50,
     connectionProfile: ['bus', 'memory', 'storage', 'codebuild', 'config', 'trace'],
   },
@@ -57,7 +57,6 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     tools: [
       'recallKnowledge',
       'dispatchTask',
-      'fileRead',
       'sendMessage',
       'manageAgentTools',
       'discoverSkills',
@@ -85,7 +84,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'FlaskConical',
     enabled: true,
     isBackbone: true,
-    tools: ['recallKnowledge', 'checkHealth', 'fileRead', 'listFiles', 'sendMessage'],
+    tools: ['recallKnowledge', 'checkHealth', 'sendMessage', 'discoverSkills'],
     connectionProfile: ['bus', 'memory', 'config', 'trace'],
   },
   // Handlers (Logic-only, but registered for topology awareness)
