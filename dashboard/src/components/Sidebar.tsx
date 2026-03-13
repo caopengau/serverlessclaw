@@ -69,7 +69,7 @@ export default function Sidebar() {
           <div className={`w-8 h-8 bg-${THEME.COLORS.PRIMARY} rounded-sm flex items-center justify-center text-black font-bold`}>
             C
           </div>
-          <Typography variant="h3" weight="black" className="text-lg tracking-tighter">CLAW_CENTER</Typography>
+          <Typography variant="h3" weight="black" className="text-lg tracking-tighter">ClawCenter</Typography>
         </Link>
         <Button 
           variant="ghost"
@@ -99,7 +99,7 @@ export default function Sidebar() {
             <div className={`w-8 h-8 bg-${THEME.COLORS.PRIMARY} rounded-sm flex items-center justify-center text-black font-bold group-hover:scale-105 transition-transform`}>
               C
             </div>
-            <Typography variant="h2" weight="black" className="text-xl tracking-tighter">CLAW_CENTER</Typography>
+            <Typography variant="h2" weight="black" className="text-xl tracking-tighter">ClawCenter</Typography>
           </Link>
           <div className="lg:hidden flex items-center">
             <Button 
@@ -116,7 +116,7 @@ export default function Sidebar() {
           {navItems.map((item, idx) => {
             if (item.type === 'header') {
               return (
-                <div key={idx} className={`text-white/100 px-2 uppercase text-[10px] tracking-[0.2em] font-black mb-2 ${idx !== 0 ? 'pt-4' : ''}`}>
+                <div key={idx} className={`text-white/100 px-2 text-[10px] tracking-[0.2em] font-black mb-2 ${idx !== 0 ? 'pt-4' : ''}`}>
                   {item.label}
                 </div>
               );
@@ -143,7 +143,7 @@ export default function Sidebar() {
                   <Typography 
                     variant="caption" 
                     weight={isActive ? "bold" : "medium"}
-                    className={`${isActive ? `text-${THEME.COLORS.PRIMARY}` : ''} uppercase text-xs tracking-tight`}
+                    className={`${isActive ? `text-${THEME.COLORS.PRIMARY}` : ''} text-xs tracking-tight`}
                   >
                     {item.label}
                   </Typography>
@@ -156,8 +156,8 @@ export default function Sidebar() {
 
         <div className="pt-6 border-t border-white/5 space-y-4">
           <div className="bg-white/5 rounded p-3">
-            <Typography variant="mono" weight="bold" className="text-[10px] text-white/90 uppercase tracking-wider">{UI_STRINGS.NODE_STATUS}</Typography>
-            <div className={`text-[10px] text-${THEME.COLORS.PRIMARY} mt-1.5 flex items-center gap-2 font-bold uppercase`}>
+            <Typography variant="mono" weight="bold" className="text-[10px] text-white/90 tracking-wider">Agent status</Typography>
+            <div className={`text-[10px] text-${THEME.COLORS.PRIMARY} mt-1.5 flex items-center gap-2 font-bold`}>
               <span className="relative flex h-2 w-2">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-${THEME.COLORS.PRIMARY} opacity-75`}></span>
                 <span className={`relative inline-flex rounded-full h-2 w-2 bg-${THEME.COLORS.PRIMARY}`}></span>
@@ -165,7 +165,7 @@ export default function Sidebar() {
               {UI_STRINGS.SYSTEM_ONLINE}
             </div>
           </div>
-          <div className="flex items-center justify-between text-[10px] text-white/50 font-bold tracking-widest uppercase">
+          <div className="flex items-center justify-between text-[10px] text-white/50 font-bold tracking-widest">
             <Typography variant="mono">{UI_STRINGS.VERSION_PROTOTYPE}</Typography>
             <span className="text-white/10 px-1 border border-white/10 rounded">{UI_STRINGS.BUILD_YEAR}</span>
           </div>

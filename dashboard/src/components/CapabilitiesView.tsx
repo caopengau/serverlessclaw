@@ -44,6 +44,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
   const [isPending, startTransition] = useTransition();
   const [optimisticAgents, setOptimisticAgents] = useState(agents);
   const [newBridge, setNewBridge] = useState({ name: '', command: '', env: '{}' });
+  const [selectedTool, setSelectedTool] = useState<typeof allTools[0] | null>(null);
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -175,6 +176,40 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
 
   const universalSkills = ['discoverSkills', 'installSkill'];
 
+  const handleToggleToolAssignment = async (agentId: string, toolName: string, isAttached: boolean) => {
+    const formData = new FormData();
+    formData.append('agentId', agentId);
+    
+    const agent = optimisticAgents.find(a => a.id === agentId);
+    if (!agent) return;
+
+    let newTools: string[];
+    if (isAttached) {
+        newTools = agent.tools.filter(t => t !== toolName);
+    } else {
+        newTools = [...agent.tools, toolName];
+    }
+    
+    newTools.forEach(t => formData.append('tools', t));
+
+    // Optimistic update
+    setOptimisticAgents(prev => prev.map(a => 
+      a.id === agentId ? { ...a, tools: newTools } : a
+    ));
+
+    startTransition(async () => {
+      try {
+        const result = await updateAgentTools(formData);
+        if (result?.error) throw new Error(result.error);
+        toast.success(isAttached ? `Revoked ${toolName} from ${agentId}` : `Assigned ${toolName} to ${agentId}`);
+        router.refresh();
+      } catch (error) {
+        toast.error('Sync failed. Reverting changes.');
+        setOptimisticAgents(agents); // Rollback
+      }
+    });
+  };
+
   return (
     <div className={`space-y-10 transition-all duration-500 ${isPending ? 'opacity-80' : 'opacity-100'}`}>
       <CyberConfirm 
@@ -190,8 +225,8 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
           <Card variant="glass" padding="lg" className="flex flex-col items-center gap-6 border-cyber-blue/20 shadow-[0_0_50px_rgba(0,224,255,0.1)]">
             <Loader2 size={48} className="text-cyber-blue animate-spin" />
             <div className="space-y-2 text-center">
-               <Typography variant="caption" weight="black" color="intel" className="tracking-[0.5em] block uppercase">Synchronizing Neural Network...</Typography>
-              <Typography variant="mono" color="muted" className="tracking-[0.3em] block text-[8px]">Rewriting Cognitive Pathways</Typography>
+               <Typography variant="caption" weight="black" color="intel" className="tracking-[0.5em] block">Synchronizing Neural Network...</Typography>
+              <Typography variant="mono" color="muted" className="tracking-[0.3em] block text-[8px]">Rewriting cognitive pathways</Typography>
             </div>
           </Card>
         </div>
@@ -201,8 +236,8 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
       <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center sticky top-0 z-20 bg-black/90 backdrop-blur-xl p-6 border-b border-white/5 -mx-6 lg:-mx-10 -mt-10 mb-10">
         <nav className="flex gap-1 bg-white/5 p-1 rounded-sm border border-white/5">
           {[
-            { id: 'agents', label: 'Neural Assignments', icon: Cpu },
-            { id: 'analytics', label: 'Neural Analytics', icon: Activity },
+            { id: 'agents', label: 'Tool Assignments', icon: Cpu },
+            { id: 'analytics', label: 'Tool Analytics', icon: Activity },
             { id: 'library', label: 'Capability Library', icon: BookOpen },
             { id: 'mcp', label: 'Skill Bridges', icon: ExternalLink },
           ].map(tab => (
@@ -229,7 +264,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
           </div>
           <input
             type="text"
-            placeholder="SEARCH_CURRENT_CAPABILITIES..."
+            placeholder="Search current capabilities..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-black/60 border border-white/10 focus:border-cyber-blue/40 rounded-sm py-3 pl-12 pr-4 text-[10px] outline-none transition-all placeholder:text-white/20 font-mono tracking-widest"
@@ -243,9 +278,9 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                   </div>
                   <button 
                     onClick={() => window.location.href = `/?prompt=Discover new tools for ${searchQuery}`}
-                    className="text-[9px] font-black text-cyber-blue hover:text-cyber-blue/80 transition-colors uppercase tracking-tighter flex items-center gap-1"
+                    className="text-[9px] font-black text-cyber-blue hover:text-cyber-blue/80 transition-colors tracking-tighter flex items-center gap-1"
                   >
-                    TRIGGER_GLOBAL_DISCOVERY <ExternalLink size={10} />
+                    Trigger global discovery <ExternalLink size={10} />
                   </button>
                </div>
             </div>
@@ -258,15 +293,15 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
           {/* Global Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card variant="glass" padding="lg" className="border-cyber-blue/20">
-              <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-2 block">Total_Neural_Invocations</Typography>
+              <Typography variant="mono" color="muted" className="text-[10px] tracking-widest opacity-40 mb-2 block">Total neural invocations</Typography>
               <Typography variant="h2" color="white" weight="black" glow className="text-4xl tracking-tighter">{totalInvocations}</Typography>
             </Card>
             <Card variant="glass" padding="lg" className="border-cyber-green/20">
-              <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-2 block">Most_Active_Skill</Typography>
-              <Typography variant="h2" color="primary" weight="black" className="text-xl uppercase truncate tracking-tight">{sortedByUsage[0]?.name || 'N/A'}</Typography>
+              <Typography variant="mono" color="muted" className="text-[10px] tracking-widest opacity-40 mb-2 block">Most active skill</Typography>
+              <Typography variant="h2" color="primary" weight="black" className="text-xl truncate tracking-tight">{sortedByUsage[0]?.name || 'N/A'}</Typography>
             </Card>
             <Card variant="glass" padding="lg" className="border-purple-500/20">
-              <Typography variant="mono" color="muted" className="text-[10px] uppercase tracking-widest opacity-40 mb-2 block">Bridge_Efficiency</Typography>
+              <Typography variant="mono" color="muted" className="text-[10px] tracking-widest opacity-40 mb-2 block">Bridge efficiency</Typography>
               <Typography variant="h2" color="white" weight="black" className="text-4xl tracking-tighter">{allTools.filter(t => t.isExternal && (t.usage?.count || 0) > 0).length} / {allTools.filter(t => t.isExternal).length}</Typography>
             </Card>
           </div>
@@ -275,7 +310,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
             {/* Per-Agent Usage & Pruning */}
             <div className="xl:col-span-12 space-y-6">
               <h4 className="text-[12px] font-black uppercase tracking-[0.4em] text-white/40 flex items-center gap-2">
-                <Activity size={16} className="text-cyber-blue" /> Per-Agent_Efficiency_Audit
+                <Activity size={16} className="text-cyber-blue" /> Per-agent efficiency audit
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {optimisticAgents.filter(a => a.id !== 'monitor' && a.id !== 'events').map(agent => {
@@ -292,16 +327,16 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                           <div className="w-8 h-8 rounded bg-cyber-blue/10 flex items-center justify-center text-cyber-blue border border-cyber-blue/20 shadow-[0_0_15px_rgba(0,224,255,0.1)]">
                             {agent.id === 'main' ? <Zap size={16} /> : <Cpu size={16} />}
                           </div>
-                          <Typography variant="body" weight="black" color="white" className="uppercase tracking-widest">{agent.name}</Typography>
+                          <Typography variant="body" weight="black" color="white" className="tracking-widest capitalize">{agent.name}</Typography>
                         </div>
-                        <Badge variant="outline" className="text-[8px] opacity-40 uppercase">Efficiency: {Math.round((agent.tools.length - neverUsedTools.length) / (agent.tools.length || 1) * 100)}%</Badge>
+                        <Badge variant="outline" className="text-[8px] opacity-40">Efficiency: {Math.round((agent.tools.length - neverUsedTools.length) / (agent.tools.length || 1) * 100)}%</Badge>
                       </div>
 
                       <div className="space-y-6">
                         {/* Pruning Candidates */}
                         {(neverUsedTools.length > 0 || lowUsageTools.length > 0) && (
                           <div>
-                            <Typography variant="mono" color="muted" className="text-[9px] uppercase tracking-widest mb-3 block text-red-500/60 font-bold">Optimization_Advisory</Typography>
+                            <Typography variant="mono" color="muted" className="text-[9px] tracking-widest mb-3 block text-red-500/60 font-bold">Optimization advisory</Typography>
                             <div className="flex flex-wrap gap-2">
                               {neverUsedTools.map(t => (
                                 <button 
@@ -310,8 +345,8 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                                   className="group flex items-center gap-2 px-2 py-1 bg-red-500/5 border border-red-500/20 rounded hover:bg-red-500/20 transition-all"
                                   title="Detaching this tool will save tokens"
                                 >
-                                  <span className="text-[9px] font-black text-red-400 uppercase">{t}</span>
-                                  <span className="text-[8px] opacity-40 text-red-400 font-bold uppercase tracking-tighter">Detach</span>
+                                  <span className="text-[9px] font-black text-red-400">{t}</span>
+                                  <span className="text-[8px] opacity-40 text-red-400 font-bold tracking-tighter">Detach</span>
                                 </button>
                               ))}
                               {lowUsageTools.map(t => (
@@ -320,8 +355,8 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                                   onClick={() => handleDetachTool(agent.id, t)}
                                   className="group flex items-center gap-2 px-2 py-1 bg-orange-500/5 border border-orange-500/20 rounded hover:bg-orange-500/20 transition-all"
                                 >
-                                  <span className="text-[9px] font-black text-orange-400 uppercase">{t}</span>
-                                  <span className="text-[8px] opacity-40 text-orange-400 font-bold uppercase tracking-tighter">{agentUsage[t].count} Calls</span>
+                                  <span className="text-[9px] font-black text-orange-400">{t}</span>
+                                  <span className="text-[8px] opacity-40 text-orange-400 font-bold tracking-tighter">{agentUsage[t].count} calls</span>
                                 </button>
                               ))}
                             </div>
@@ -329,11 +364,11 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                         )}
 
                         <div>
-                          <Typography variant="mono" color="muted" className="text-[9px] uppercase tracking-widest mb-3 block opacity-40">Active_Tool_Profile</Typography>
+                          <Typography variant="mono" color="muted" className="text-[9px] tracking-widest mb-3 block opacity-40">Active tool profile</Typography>
                           <div className="grid grid-cols-2 gap-4">
                             {agent.tools.filter(t => agentUsage[t] && agentUsage[t].count >= 3).map(t => (
                               <div key={t} className="flex justify-between items-center bg-white/[0.02] p-2 rounded border border-white/5">
-                                <span className="text-[10px] font-black text-white/60 uppercase truncate mr-2">{t}</span>
+                                <span className="text-[10px] font-black text-white/60 truncate mr-2">{t}</span>
                                 <span className="text-[10px] font-mono text-cyber-green">{agentUsage[t].count}</span>
                               </div>
                             ))}
@@ -349,56 +384,59 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
             {/* Total Leaderboard */}
             <div className="xl:col-span-12 space-y-6 pt-10">
               <h4 className="text-[12px] font-black uppercase tracking-[0.4em] text-white/40 flex items-center gap-2">
-                <Activity size={16} className="text-cyber-blue" /> Total_Neural_Invocations
+                <Activity size={16} className="text-cyber-blue" /> Total neural invocations
               </h4>
               <Card variant="solid" className="border-white/5 bg-black/40 overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/[0.02]">
-                      <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Capability</th>
-                      <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Total_Invocations</th>
-                      <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Last_Active</th>
-                      <th className="p-4 text-[10px] font-black uppercase tracking-widest text-white/40">Attached_Nodes</th>
+                      <th className="p-4 text-[10px] font-black tracking-widest text-white/40">Capability</th>
+                      <th className="p-4 text-[10px] font-black tracking-widest text-white/40">Total invocations</th>
+                      <th className="p-4 text-[10px] font-black tracking-widest text-white/40">Last active</th>
+                      <th className="p-4 text-[10px] font-black tracking-widest text-white/40">Attached nodes</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedByUsage.filter(t => (t.usage?.count || 0) > 0).map(tool => {
-                      const attachedAgents = optimisticAgents.filter(a => a.tools.includes(tool.name));
-                      return (
-                        <tr key={tool.name} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
-                          <td className="p-4">
-                            <div className="flex flex-col">
-                              <span className={`text-xs font-black uppercase tracking-wider ${tool.isExternal ? 'text-purple-400' : 'text-yellow-500'}`}>{tool.name}</span>
-                              {tool.isExternal && <span className="text-[8px] opacity-30 font-bold uppercase">External_Bridge</span>}
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex items-center gap-2">
-                              <div className="h-1.5 bg-white/5 rounded-full flex-1 max-w-[100px] overflow-hidden">
-                                <div 
-                                  className={`h-full ${tool.isExternal ? 'bg-purple-500' : 'bg-yellow-500'}`} 
-                                  style={{ width: `${Math.min(100, (tool.usage?.count || 0) / (sortedByUsage[0]?.usage?.count || 1) * 100)}%` }}
-                                />
+                    {sortedByUsage
+                      .filter(t => (t.usage?.count || 0) > 0)
+                      .filter(t => !searchQuery || t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                      .map(tool => {
+                        const attachedAgents = optimisticAgents.filter(a => a.tools.includes(tool.name));
+                        return (
+                          <tr key={tool.name} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
+                            <td className="p-4">
+                              <div className="flex flex-col">
+                                <span className={`text-xs font-black tracking-wider ${tool.isExternal ? 'text-purple-400' : 'text-yellow-500'}`}>{tool.name}</span>
+                                {tool.isExternal && <span className="text-[8px] opacity-30 font-bold">External bridge</span>}
                               </div>
-                              <span className="text-xs font-mono font-bold text-white/80">{tool.usage?.count}</span>
-                            </div>
-                          </td>
-                          <td className="p-4">
-                            <span className="text-[10px] font-mono text-white/40">{tool.usage?.lastUsed ? new Date(tool.usage.lastUsed).toLocaleTimeString() : 'NEVER'}</span>
-                          </td>
-                          <td className="p-4">
-                            <div className="flex -space-x-2">
-                              {attachedAgents.map(a => (
-                                <div key={a.id} title={a.name} className="w-6 h-6 rounded-full bg-cyber-blue/20 border border-cyber-blue/40 flex items-center justify-center text-[8px] font-black text-cyber-blue uppercase ring-2 ring-black">
-                                  {a.name.substring(0, 1)}
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center gap-2">
+                                <div className="h-1.5 bg-white/5 rounded-full flex-1 max-w-[100px] overflow-hidden">
+                                  <div 
+                                    className={`h-full ${tool.isExternal ? 'bg-purple-500' : 'bg-yellow-500'}`} 
+                                    style={{ width: `${Math.min(100, (tool.usage?.count || 0) / (sortedByUsage[0]?.usage?.count || 1) * 100)}%` }}
+                                  />
                                 </div>
-                              ))}
-                              {attachedAgents.length === 0 && <span className="text-[10px] text-white/10 uppercase italic">Unassigned</span>}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                                <span className="text-xs font-mono font-bold text-white/80">{tool.usage?.count}</span>
+                              </div>
+                            </td>
+                            <td className="p-4">
+                              <span className="text-[10px] font-mono text-white/40">{tool.usage?.lastUsed ? new Date(tool.usage.lastUsed).toLocaleTimeString() : 'NEVER'}</span>
+                            </td>
+                            <td className="p-4">
+                              <div className="flex -space-x-2">
+                                {attachedAgents.map(a => (
+                                  <div key={a.id} title={a.name} className="w-6 h-6 rounded-full bg-cyber-blue/20 border border-cyber-blue/40 flex items-center justify-center text-[8px] font-black text-cyber-blue ring-2 ring-black">
+                                    {a.name.substring(0, 1)}
+                                  </div>
+                                ))}
+                                {attachedAgents.length === 0 && <span className="text-[10px] text-white/10 italic">Unassigned</span>}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </Card>
@@ -425,28 +463,30 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                       <Typography variant="h3" weight="black" color="primary" className="tracking-[0.3em] mb-1">
                         {agent.name}
                       </Typography>
-                      <Typography variant="caption" color="muted" className="uppercase tracking-widest max-w-xl block leading-relaxed">
-                        Neural Core Node: Configured for specialized operations.
+                      <Typography variant="caption" color="muted" className="tracking-widest max-w-xl block leading-relaxed">
+                        Neural core node: Configured for specialized operations.
                       </Typography>
                     </div>
                   </div>
                   
                   <div className="flex gap-3">
-                    <Badge variant="outline" className="px-4 py-2 border-white/5 text-white/20 font-bold uppercase tracking-widest">
-                      {agent.tools.length} ACTIVE_CHIPS
+                    <Badge variant="outline" className="px-4 py-2 border-white/5 text-white/20 font-bold tracking-widest">
+                      {agent.tools.length} active tools
                     </Badge>
                   </div>
                 </div>
 
                 <div className="space-y-6 relative border-t border-white/5 pt-8">
                   <div>
-                    <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-4 flex items-center gap-2">
+                    <h5 className="text-[10px] font-black tracking-[0.3em] text-white/40 mb-4 flex items-center gap-2">
                       <Activity size={12} className="text-yellow-500/50" /> 
-                      Active_Neural_Chips
+                      Active neural tools
                     </h5>
                     <div className="flex flex-wrap gap-2">
                       {agent.tools.map(toolName => {
                         const tool = allTools.find(t => t.name === toolName);
+                        if (searchQuery && !toolName.toLowerCase().includes(searchQuery.toLowerCase()) && !tool?.description.toLowerCase().includes(searchQuery.toLowerCase())) return null;
+                        
                         const isUniversal = universalSkills.includes(toolName);
                         const isExternal = tool?.isExternal;
 
@@ -461,10 +501,10 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                                 : 'bg-yellow-500/5 border-yellow-500/20 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.02)]'
                             }`}
                           >
-                            <span className="text-[10px] font-black uppercase tracking-widest">
+                            <span className="text-[10px] font-black tracking-widest">
                               {toolName}
-                              {isUniversal && <span className="ml-2 text-[8px] opacity-40">(CORE)</span>}
-                              {isExternal && <span className="ml-2 text-[8px] opacity-40">(EXTERNAL)</span>}
+                              {isUniversal && <span className="ml-2 text-[8px] opacity-40">(Core)</span>}
+                              {isExternal && <span className="ml-2 text-[8px] opacity-40">(External)</span>}
                             </span>
                             <button
                               onClick={() => handleToggleTool(agent.id, toolName)}
@@ -485,9 +525,9 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                   </div>
 
                   <div className="pt-6 border-t border-white/5">
-                    <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-4 flex items-center gap-2">
+                    <h5 className="text-[10px] font-black tracking-[0.3em] text-white/40 mb-4 flex items-center gap-2">
                       <Plus size={12} className="text-yellow-500/50" /> 
-                      Available_Insertions
+                      Available insertions
                     </h5>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -506,14 +546,14 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                             }`}
                           >
                             <div className="flex justify-between items-center w-full mb-1">
-                              <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
+                              <span className={`text-[10px] font-black tracking-widest transition-colors ${
                                 tool.isExternal ? 'text-purple-400/60 group-hover/item:text-purple-400' : 'text-white/60 group-hover/item:text-yellow-500'
                               }`}>
                                 {tool.name}
                               </span>
                               <Plus size={10} className={`${tool.isExternal ? 'text-purple-400/20 group-hover/item:text-purple-400' : 'text-white/20 group-hover/item:text-yellow-500'}`} />
                             </div>
-                            <p className="text-[8px] text-white/20 leading-tight line-clamp-2 uppercase tracking-tighter">
+                            <p className="text-[8px] text-white/20 leading-tight line-clamp-2 tracking-tighter">
                               {tool.description}
                             </p>
                           </button>
@@ -521,7 +561,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                       }
                       {allTools.filter(t => !agent.tools.includes(t.name)).length === 0 && (
                         <div className="col-span-full py-4 text-center border border-dashed border-white/5 rounded-sm">
-                           <span className="text-[8px] text-white/10 uppercase tracking-[0.3em]">Full_Potential_Reached</span>
+                           <span className="text-[8px] text-white/10 tracking-[0.3em]">Full potential reached</span>
                         </div>
                       )}
                     </div>
@@ -537,12 +577,12 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
         <section className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* New Bridge Form */}
           <Card variant="glass" padding="lg" className="border-cyber-blue/10 bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
-            <h4 className="text-[12px] font-black uppercase tracking-[0.4em] text-cyber-blue/80 mb-6 flex items-center gap-2">
-              <Plus size={16} /> Establish_New_Bridge
+            <h4 className="text-[12px] font-black tracking-[0.4em] text-cyber-blue/80 mb-6 flex items-center gap-2">
+              <Plus size={16} /> Establish new bridge
             </h4>
             <form onSubmit={handleAddBridge} className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <Typography variant="mono" weight="bold" color="muted" className="text-[9px] tracking-widest ml-1 uppercase">Bridge_Identifier</Typography>
+                <Typography variant="mono" weight="bold" color="muted" className="text-[9px] tracking-widest ml-1">Bridge identifier</Typography>
                 <input 
                   type="text" 
                   placeholder="e.g. brave-search"
@@ -552,7 +592,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Typography variant="mono" weight="bold" color="muted" className="text-[9px] tracking-widest ml-1 uppercase">Activation_Command</Typography>
+                <Typography variant="mono" weight="bold" color="muted" className="text-[9px] tracking-widest ml-1">Activation command</Typography>
                 <input 
                   type="text" 
                   placeholder="npx -y @modelcontextprotocol/server-brave-search"
@@ -562,7 +602,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                 />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Typography variant="mono" weight="bold" color="muted" className="text-[9px] tracking-widest ml-1 uppercase">Environment_Variables (JSON)</Typography>
+                <Typography variant="mono" weight="bold" color="muted" className="text-[9px] tracking-widest ml-1">Environment variables (JSON)</Typography>
                 <textarea 
                   placeholder='{ "BRAVE_API_KEY": "..." }'
                   value={newBridge.env}
@@ -579,21 +619,28 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                   className="w-full h-[46px] shadow-[0_0_30px_rgba(0,224,255,0.1)]"
                   icon={isPending ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
                 >
-                  INITIATE_BRIDGE
+                  Initiate bridge
                 </Button>
               </div>
             </form>
           </Card>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Object.entries(mcpServers).map(([name, config]) => (
+              {Object.entries(mcpServers)
+                .filter(([name, config]) => {
+                  if (!searchQuery) return true;
+                  const query = searchQuery.toLowerCase();
+                  const cmd = typeof config === 'string' ? config : config.command;
+                  return name.toLowerCase().includes(query) || cmd.toLowerCase().includes(query);
+                })
+                .map(([name, config]) => (
                   <Card variant="glass" padding="md" key={name} className="group hover:border-red-500/20 transition-all relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-32 h-32 bg-cyber-blue/5 blur-3xl -mr-16 -mt-16 pointer-events-none" />
                       <div className="flex justify-between items-start mb-6 relative">
                           <div>
                             <Typography variant="body" weight="black" color="white" className="tracking-[0.2em] mb-1">{name}</Typography>
-                            <Badge variant="primary" className="bg-cyber-blue/10 text-cyber-blue/60 font-bold uppercase">
-                                Bridge Active
+                            <Badge variant="primary" className="bg-cyber-blue/10 text-cyber-blue/60 font-bold">
+                                Bridge active
                             </Badge>
                           </div>
                           <Button 
@@ -605,13 +652,13 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                           />
                       </div>
                       <div className="space-y-4 relative">
-                          <p className="text-[10px] font-mono text-white/40 break-all bg-black/60 p-3 rounded-sm border border-white/5 leading-relaxed uppercase">
+                          <p className="text-[10px] font-mono text-white/40 break-all bg-black/60 p-3 rounded-sm border border-white/5 leading-relaxed">
                               {typeof config === 'string' ? config : config.command}
                           </p>
                           {typeof config !== 'string' && config.env && (
                               <div className="flex flex-wrap gap-2">
                                   {Object.keys(config.env).map(key => (
-                                    <Badge key={key} variant="primary" className="border-cyber-blue/20 text-cyber-blue/60 font-bold uppercase py-0 text-[8px]">
+                                    <Badge key={key} variant="primary" className="border-cyber-blue/20 text-cyber-blue/60 font-bold py-0 text-[8px]">
                                         {key}
                                     </Badge>
                                   ))}
@@ -630,41 +677,157 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
       )}
 
       {activeTab === 'library' && (
-        <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTools.map(tool => (
-                <Card variant="solid" padding="lg" key={tool.name} className={`flex flex-col justify-between hover:border-cyber-blue/20 transition-all ${tool.isExternal ? 'border-purple-500/10' : 'border-white/5'}`}>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex flex-col gap-1">
-                        <Typography variant="body" weight="black" color={tool.isExternal ? 'intel' : 'primary'} className="tracking-widest uppercase">
-                          {tool.name}
-                        </Typography>
-                        {tool.isExternal && <Typography variant="mono" color="muted" className="tracking-tighter block text-[7px] opacity-40 uppercase">External MCP Bridge</Typography>}
-                      </div>
-                      {tool.usage && tool.usage.count > 0 && (
-                        <div className="flex items-center gap-1 text-white/20">
-                          <Activity size={10} />
-                          <span className="text-[9px] font-bold">{tool.usage.count}</span>
-                        </div>
-                      )}
-                    </div>
-                    <Typography variant="caption" color="muted" className="leading-relaxed tracking-widest block uppercase text-[10px]">
-                      {tool.description}
-                    </Typography>
+        <section className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {(() => {
+              // Group tools by their prefix or source
+              const groups: Record<string, typeof filteredTools> = {};
+              filteredTools.forEach(tool => {
+                let group = 'CORE_UNIFIED';
+                if (tool.isExternal) {
+                  const parts = tool.name.split('_');
+                  group = parts.length > 1 ? parts[0] : 'EXTERNAL_MISC';
+                } else if (tool.name.includes('_')) {
+                    group = tool.name.split('_')[0];
+                }
+                
+                if (!groups[group]) groups[group] = [];
+                groups[group].push(tool);
+              });
+
+              return Object.entries(groups).map(([groupName, groupTools]) => (
+                <div key={groupName} className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="h-px flex-1 bg-white/5"></div>
+                    <h3 className="text-[10px] font-black tracking-[0.5em] text-cyber-blue flex items-center gap-2">
+                       <Cpu size={14} className="opacity-50" /> {groupName} Subsystem
+                    </h3>
+                    <div className="h-px flex-1 bg-white/5"></div>
                   </div>
                   
-                  {tool.usage && tool.usage.lastUsed > 0 && (
-                    <div className="mt-6 pt-4 border-t border-white/5">
-                      <Typography variant="mono" color="muted" className="tracking-[0.2em] block text-[8px] opacity-40 uppercase">
-                        Last Invocation: {new Date(tool.usage.lastUsed).toLocaleString()}
-                      </Typography>
-                    </div>
-                  )}
-                </Card>
-              ))}
-           </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {groupTools.map(tool => (
+                      <button 
+                        key={tool.name} 
+                        onClick={() => setSelectedTool(tool)}
+                        className={`group p-4 glass-card border-white/5 hover:border-cyber-blue/20 transition-all flex flex-col justify-between min-h-[100px] text-left ${tool.isExternal ? 'border-purple-500/10' : ''}`}
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <Typography variant="mono" weight="black" className={`text-[10px] tracking-wider ${tool.isExternal ? 'text-purple-400' : 'text-cyber-blue'}`}>
+                            {tool.name.includes('_') ? tool.name.split('_').slice(1).join('_') : tool.name}
+                          </Typography>
+                          {tool.usage && tool.usage.count > 0 && (
+                            <div className="px-1.5 py-0.5 bg-white/5 rounded text-[8px] font-bold text-white/40">
+                              {tool.usage.count}
+                            </div>
+                          )}
+                        </div>
+                        <Typography variant="caption" className="text-[9px] text-white/40 tracking-tighter leading-tight line-clamp-2">
+                          {tool.description}
+                        </Typography>
+                        
+                        <div className="mt-3 flex items-center justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                           <span className="text-[7px] text-white/20 font-mono tracking-widest">Configure access</span>
+                           <Settings size={10} className="text-white/20" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
         </section>
+      )}
+      {/* Selection Modal */}
+      {selectedTool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="w-full max-w-2xl glass-card border-white/10 overflow-hidden animate-in zoom-in-95 duration-300 shadow-2xl">
+            <div className="p-8 border-b border-white/5 flex justify-between items-start bg-[radial-gradient(circle_at_top_left,_var(--tw-gradient-stops))] from-cyber-blue/10 via-transparent to-transparent">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3">
+                    <Typography variant="h3" weight="black" color="white" glow className="tracking-[0.2em]">{selectedTool.name}</Typography>
+                    {selectedTool.isExternal && <Badge variant="primary" className="bg-purple-500/10 text-purple-400 font-bold border-purple-500/20 py-0.5">Neural bridge</Badge>}
+                </div>
+                <Typography variant="body" color="muted" className="text-[10px] tracking-widest leading-relaxed max-w-lg block">
+                  {selectedTool.description}
+                </Typography>
+              </div>
+              <button 
+                onClick={() => setSelectedTool(null)}
+                className="p-2 bg-white/5 hover:bg-white/10 rounded-sm text-white/40 hover:text-white transition-colors border border-white/5"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-8 space-y-8">
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 flex items-center gap-2">
+                  <Cpu size={14} /> Agent_Connectivity_Registry
+                </h4>
+                
+                <div className="space-y-3">
+                  {optimisticAgents.filter(a => a.id !== 'monitor' && a.id !== 'events').map(agent => {
+                    const isAttached = agent.tools.includes(selectedTool.name);
+                    const isUniversal = universalSkills.includes(selectedTool.name);
+                    
+                    return (
+                      <div key={agent.id} className="flex items-center justify-between p-4 bg-white/[0.02] border border-white/5 rounded-sm group hover:border-white/10 transition-all">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-10 h-10 rounded bg-white/5 flex items-center justify-center border border-white/5 transition-colors ${isAttached ? 'border-cyber-blue/30 text-cyber-blue bg-cyber-blue/5' : 'text-white/20'}`}>
+                            {agent.id === 'main' ? <Zap size={18} /> : <Cpu size={18} />}
+                          </div>
+                          <div>
+                            <Typography variant="body" weight="black" color="white" className="uppercase tracking-widest">{agent.name}</Typography>
+                            <Typography variant="caption" className="text-[8px] text-white/20 uppercase tracking-widest block font-mono">ID: {agent.id}</Typography>
+                          </div>
+                        </div>
+                        
+                        <Button 
+                          variant={isAttached ? 'primary' : 'ghost'}
+                          size="sm"
+                          disabled={isPending || isUniversal}
+                          onClick={() => handleToggleToolAssignment(agent.id, selectedTool.name, isAttached)}
+                          className={`min-w-[120px] font-black tracking-widest text-[9px] transition-all duration-300 relative group/btn ${
+                            isAttached 
+                              ? 'bg-cyber-blue/80 hover:bg-red-500/80 hover:border-red-500 shadow-[0_0_15px_rgba(0,224,255,0.2)]' 
+                              : 'border-white/10 text-white/40 hover:text-white hover:border-cyber-blue/40'
+                          }`}
+                          icon={
+                            isPending ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <div className="relative w-3 h-3">
+                                <span className="absolute inset-0 transition-opacity duration-300 group-hover/btn:opacity-0 flex items-center justify-center">
+                                  {isAttached ? <Zap size={12} strokeWidth={3} /> : <Plus size={12} />}
+                                </span>
+                                <span className="absolute inset-0 transition-opacity duration-300 opacity-0 group-hover/btn:opacity-100 flex items-center justify-center">
+                                  {isAttached ? <X size={12} strokeWidth={3} /> : <Zap size={12} strokeWidth={3} />}
+                                </span>
+                              </div>
+                            )
+                          }
+                        >
+                          <span className="group-hover/btn:hidden">
+                            {isAttached ? 'Attached' : 'Unassigned'}
+                          </span>
+                          <span className="hidden group-hover/btn:inline">
+                            {isAttached ? 'Detach' : 'Assign'}
+                          </span>
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-white/[0.02] border-t border-white/5 text-center">
+               <Typography variant="mono" color="muted" className="text-[8px] tracking-[0.3em] opacity-30">
+                 [Secure access granted] - Tool assignments are live-synced to the neural core.
+               </Typography>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

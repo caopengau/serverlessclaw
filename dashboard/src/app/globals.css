@@ -122,3 +122,34 @@ body {
   animation: shake 0.2s ease-in-out 0s 2;
 }
 
+/* Custom Cyber Toasts */
+.cyber-toast {
+  background: rgba(5, 5, 5, 0.9) !important;
+  border: 1px solid rgba(0, 224, 255, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+  color: white !important;
+  font-family: var(--font-mono) !important;
+  border-radius: 2px !important;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 224, 255, 0.1) !important;
+  padding: 16px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+}
+
+.cyber-toast-success {
+  border-left: 4px solid var(--cyber-green) !important;
+}
+
+.cyber-toast-error {
+  border-left: 4px solid #ef4444 !important;
+}
+
+.cyber-toast-description {
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-size: 9px !important;
+  font-weight: 400 !important;
+  margin-top: 4px !important;
+}
+

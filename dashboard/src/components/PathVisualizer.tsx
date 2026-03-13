@@ -34,7 +34,7 @@ const TriggerNode = ({ data }: any) => (
   >
     <div className="flex items-center border-b border-white/10 pb-1 mb-2">
       <Zap size={14} className="text-cyber-green mr-2" />
-      <span className="text-[10px] font-bold uppercase tracking-widest text-cyber-green/80">Trigger</span>
+      <span className="text-[10px] font-bold tracking-widest text-cyber-green/80">Trigger</span>
     </div>
     <div className="text-[11px] font-mono line-clamp-2 text-white/70 italic">
       "{data.label}"
@@ -51,7 +51,7 @@ const LLMNode = ({ data }: any) => (
     <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-cyber-blue border-none" />
     <div className="flex items-center mb-2">
       <MessageSquare size={14} className="text-cyber-blue mr-2" />
-      <span className="text-[10px] font-bold uppercase tracking-widest text-cyber-blue/80">{data.type === TRACE_TYPES.LLM_CALL ? 'Agent Request' : 'Agent Processing'}</span>
+      <span className="text-[10px] font-bold tracking-widest text-cyber-blue/80">{data.type === TRACE_TYPES.LLM_CALL ? 'Agent Request' : 'Agent processing'}</span>
     </div>
     <div className="text-[11px] font-mono text-white/100 leading-tight line-clamp-2">
       {data.label || 'Reasoning...'}
@@ -68,7 +68,7 @@ const ToolNode = ({ data }: any) => (
      <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-yellow-500 border-none" />
     <div className="flex items-center mb-2">
       <Wrench size={14} className="text-yellow-500 mr-2" />
-      <span className="text-[10px] font-bold uppercase tracking-widest text-yellow-500/80">Tool:: {data.toolName}</span>
+      <span className="text-[10px] font-bold tracking-widest text-yellow-500/80">Tool: {data.toolName}</span>
     </div>
     <div className="text-[9px] font-mono text-white/100 truncate italic">
       {data.status || 'Executing...'}
@@ -85,7 +85,7 @@ const ErrorNode = ({ data }: any) => (
     <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-red-500 border-none" />
     <div className="flex items-center mb-2">
       <ShieldAlert size={14} className="text-red-500 mr-2" />
-      <span className="text-[10px] font-bold uppercase tracking-widest text-red-500">Execution_Error</span>
+      <span className="text-[10px] font-bold tracking-widest text-red-500">Execution error</span>
     </div>
     <div className="text-[11px] font-mono text-white line-clamp-2">
       {data.label}
@@ -102,7 +102,7 @@ const ResultNode = ({ data }: any) => (
     <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-cyber-green border-none" />
     <div className="flex items-center mb-2">
       <CheckCircle size={14} className="text-cyber-green mr-2" />
-      <span className="text-[10px] font-bold uppercase tracking-widest text-cyber-green">Final Response</span>
+      <span className="text-[10px] font-bold tracking-widest text-cyber-green">Final response</span>
     </div>
     <div className="text-[11px] font-mono text-white line-clamp-3">
       {data.label}
@@ -337,8 +337,8 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
 
     <div className="h-[600px] w-full bg-black/40 rounded-lg border border-white/5 relative group overflow-hidden cyber-border">
       <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-         <div className="text-[10px] text-cyber-green/60 font-mono tracking-widest uppercase bg-black/80 px-2 py-1 border border-cyber-green/30">
-           Trace_Visualizer
+         <div className="text-[10px] text-cyber-green/60 font-mono tracking-widest bg-black/80 px-2 py-1 border border-cyber-green/30">
+           Trace visualizer
          </div>
       </div>
       
@@ -363,7 +363,7 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
           <header className="p-4 border-b border-white/10 flex justify-between items-center bg-black/40 shrink-0">
             <div className="flex items-center gap-2">
               <Brain size={16} className={`text-${THEME.COLORS.PRIMARY}`} />
-              <Typography variant="caption" weight="black" uppercase className="tracking-[0.2em]">Step Details</Typography>
+              <Typography variant="caption" weight="black" className="tracking-[0.2em]">Step details</Typography>
             </div>
             <Button 
               variant="ghost"
@@ -376,7 +376,7 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
 
           <div className="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-4">
             <div className="space-y-1">
-              <Typography variant="mono" weight="bold" color="primary" uppercase className="text-[9px] tracking-tighter">Event Type</Typography>
+              <Typography variant="mono" weight="bold" color="primary" className="text-[9px] tracking-tighter">Event type</Typography>
               <Typography variant="caption" weight="bold" color="white" className="bg-white/5 p-2 rounded border border-white/5 capitalize block">
                 {selectedStep.type.replace('_', ' ')}
               </Typography>
@@ -384,13 +384,13 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
 
             {selectedStep.type === TRACE_TYPES.LLM_CALL && selectedStep.content.messages && (
               <div className="space-y-2">
-                <div className="text-[10px] text-cyber-blue font-bold uppercase tracking-tighter flex items-center gap-1">
-                  <Code size={12} /> PROMPT_CONTEXT
+                <div className="text-[10px] text-cyber-blue font-bold tracking-tighter flex items-center gap-1">
+                  <Code size={12} /> Prompt context
                 </div>
                 <div className="space-y-2">
                   {selectedStep.content.messages.map((m: any, i: number) => (
                     <div key={i} className="p-2 bg-white/[0.02] border border-white/5 rounded text-[11px] font-mono">
-                      <div className="text-cyber-blue/60 mb-1 uppercase text-[9px] font-bold">[{m.role}]</div>
+                      <div className="text-cyber-blue/60 mb-1 text-[9px] font-bold">[{m.role}]</div>
                       <div className="text-white/80 whitespace-pre-wrap leading-relaxed">{m.content}</div>
                     </div>
                   ))}
@@ -401,8 +401,8 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
             {selectedStep.type === TRACE_TYPES.LLM_RESPONSE && (
               <div className="space-y-4">
                  <div className="space-y-2">
-                  <div className="text-[10px] text-cyber-green font-bold uppercase tracking-tighter flex items-center gap-1">
-                    <MessageSquare size={12} /> LLM_CONTENT
+                  <div className="text-[10px] text-cyber-green font-bold tracking-tighter flex items-center gap-1">
+                    <MessageSquare size={12} /> LLM content
                   </div>
                   <div className="p-2 bg-white/[0.02] border border-white/5 rounded text-[11px] font-mono text-white/80 whitespace-pre-wrap">
                     {selectedStep.content.content || 'No text content provided.'}
@@ -410,12 +410,12 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
                 </div>
                 {selectedStep.content.tool_calls && (
                   <div className="space-y-2">
-                    <div className="text-[10px] text-yellow-500 font-bold uppercase tracking-tighter flex items-center gap-1">
-                      <Wrench size={12} /> DELEGATED_TOOLS
+                    <div className="text-[10px] text-yellow-500 font-bold tracking-tighter flex items-center gap-1">
+                      <Wrench size={12} /> Delegated tools
                     </div>
                     {selectedStep.content.tool_calls.map((tc: any, i: number) => (
                       <div key={i} className="p-2 bg-yellow-500/5 border border-yellow-500/20 rounded text-[10px] font-mono">
-                         <div className="text-yellow-500/80 mb-1 uppercase font-bold">{tc.function.name}</div>
+                         <div className="text-yellow-500/80 mb-1 font-bold">{tc.function.name}</div>
                          <div className="text-white/60 truncate">{tc.function.arguments}</div>
                       </div>
                     ))}
@@ -426,8 +426,8 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
 
             {selectedStep.type === TRACE_TYPES.TOOL_CALL && (
               <div className="space-y-2">
-                <div className="text-[10px] text-yellow-500 font-bold uppercase tracking-tighter flex items-center gap-1">
-                  <Terminal size={12} /> TOOL_INPUT (JSON)
+                <div className="text-[10px] text-yellow-500 font-bold tracking-tighter flex items-center gap-1">
+                  <Terminal size={12} /> Tool input (JSON)
                 </div>
                 <div className="p-3 bg-black/60 border border-yellow-500/20 rounded text-[11px] font-mono text-yellow-500/90 whitespace-pre-wrap shadow-inner">
                   {JSON.stringify(selectedStep.content.args, null, 2)}
@@ -437,8 +437,8 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
 
             {selectedStep.type === TRACE_TYPES.TOOL_RESULT && (
               <div className="space-y-2">
-                <div className="text-[10px] text-cyber-green font-bold uppercase tracking-tighter flex items-center gap-1">
-                  <CheckCircle size={12} /> TOOL_OUTPUT
+                <div className="text-[10px] text-cyber-green font-bold tracking-tighter flex items-center gap-1">
+                  <CheckCircle size={12} /> Tool output
                 </div>
                 <div className="p-3 bg-black/60 border border-cyber-green/20 rounded text-[11px] font-mono text-white/90 whitespace-pre-wrap shadow-inner overflow-x-auto">
                   {typeof selectedStep.content.result === 'string' 
@@ -450,8 +450,8 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
 
             {selectedStep.type === TRACE_TYPES.ERROR && (
               <div className="space-y-2">
-                <div className="text-[10px] text-red-500 font-bold uppercase tracking-tighter flex items-center gap-1">
-                  <ShieldAlert size={12} /> ERROR_DETAILS
+                <div className="text-[10px] text-red-500 font-bold tracking-tighter flex items-center gap-1">
+                  <ShieldAlert size={12} /> Error details
                 </div>
                 <div className="p-3 bg-red-500/5 border border-red-500/20 rounded text-[11px] font-mono text-red-400 whitespace-pre-wrap shadow-inner">
                   {selectedStep.content.errorMessage}
@@ -461,7 +461,7 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
 
             {selectedStep.type === 'trigger' && (
               <div className="space-y-2">
-                <div className="text-[10px] text-white/60 font-bold uppercase tracking-tighter">Initial_Context</div>
+                <div className="text-[10px] text-white/60 font-bold">Initial context</div>
                 <div className="p-3 bg-white/[0.02] border border-white/10 rounded text-xs text-white/80">
                   {JSON.stringify(selectedStep.content, null, 2)}
                 </div>
@@ -470,7 +470,7 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
 
             {selectedStep.type === 'result' && (
               <div className="space-y-2">
-                <div className="text-[10px] text-cyber-green font-bold uppercase tracking-tighter">Transmission_Complete</div>
+                <div className="text-[10px] text-cyber-green font-bold">Transmission complete</div>
                 <div className="p-3 bg-cyber-green/5 border border-cyber-green/20 rounded text-xs text-white/90 whitespace-pre-wrap">
                   {selectedStep.content.response}
                 </div>
@@ -479,10 +479,10 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
           </div>
 
           <footer className="p-3 border-t border-white/10 bg-black/20 shrink-0 flex justify-between">
-             <Typography variant="mono" color="muted" uppercase className="text-[7px] tracking-widest italic opacity-40">
+             <Typography variant="mono" color="muted" className="text-[7px] tracking-widest italic opacity-40">
                ID: {selectedStep.stepId?.substring(0,8) || 'N/A'}
              </Typography>
-             <Typography variant="mono" color="muted" uppercase className="text-[7px] tracking-widest italic opacity-40">
+             <Typography variant="mono" color="muted" className="text-[7px] tracking-widest italic opacity-40">
                {selectedStep.timestamp ? new Date(selectedStep.timestamp).toLocaleTimeString() : ''}
              </Typography>
           </footer>

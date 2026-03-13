@@ -34,7 +34,17 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex bg-[#0a0a0a] text-white font-mono text-base">
-        <Toaster position="bottom-right" richColors />
+        <Toaster 
+          position="bottom-right" 
+          toastOptions={{
+            className: 'cyber-toast',
+            classNames: {
+              success: 'cyber-toast-success',
+              error: 'cyber-toast-error',
+              description: 'cyber-toast-description',
+            },
+          }} 
+        />
         <div className="flex h-screen w-full overflow-hidden">
           <Sidebar />
           <div className="flex-1 flex flex-col min-w-0 relative">
