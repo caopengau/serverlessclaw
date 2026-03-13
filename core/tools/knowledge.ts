@@ -349,3 +349,42 @@ export const setSystemConfig = {
     }
   },
 };
+
+/**
+ * Registers a new MCP server in the global configuration.
+ */
+export const registerMCPServer = {
+  ...toolDefinitions.registerMCPServer,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { serverName, command, env } = args as {
+      serverName: string;
+      command: string;
+      env?: Record<string, string>;
+    };
+    const typedResource = Resource as unknown as ToolsResource;
+
+    try {
+      const { AgentRegistry } = await import('../lib/registry');
+      const mcpServers = ((await AgentRegistry.getRawConfig('mcp_servers')) as Record<
+        string,
+        unknown
+      >) || {};
+
+      mcpServers[serverName] = env ? { command, env } : command;
+
+      await db.send(
+        new PutCommand({
+          TableName: typedResource.ConfigTable.name,
+          Item: {
+            key: 'mcp_servers',
+            value: mcpServers,
+          },
+        })
+      );
+
+      return `Successfully registered MCP server '${serverName}'. You can now use 'discoverSkills' to find tools from this server.`;
+    } catch (error) {
+      return `Failed to register MCP server: ${error instanceof Error ? error.message : String(error)}`;
+    }
+  },
+};

@@ -27,6 +27,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       'checkConfig',
       'discoverSkills',
       'installSkill',
+      'registerMCPServer',
       'manageGap',
       'reportGap',
     ],

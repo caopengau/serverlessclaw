@@ -287,9 +287,36 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
           type: 'string',
           description: 'The configuration key (e.g. evolution_mode, deploy_limit).',
         },
-        value: { type: 'any', description: 'The new value for the configuration.' },
+        value: {
+          type: 'object',
+          description: 'The new value for the configuration.',
+          additionalProperties: true,
+        },
       },
       required: ['key', 'value'],
+      additionalProperties: false,
+    },
+  },
+  registerMCPServer: {
+    name: 'registerMCPServer',
+    description: 'Registers a new Model Context Protocol (MCP) server for dynamic tool discovery.',
+    parameters: {
+      type: 'object',
+      properties: {
+        serverName: {
+          type: 'string',
+          description: 'A unique name for the server (e.g., git, search).',
+        },
+        command: {
+          type: 'string',
+          description: 'The command to run the server (e.g., npx @mcp/server-git).',
+        },
+        env: {
+          type: 'object',
+          description: 'Optional environment variables for the server.',
+        },
+      },
+      required: ['serverName', 'command', 'env'],
       additionalProperties: false,
     },
   },
