@@ -180,36 +180,31 @@ export default function CapabilitiesView({ agents, allTools, mcpServers }: Capab
                       Active_Neural_Chips
                     </h5>
                     <div className="flex flex-wrap gap-2">
-                      {/* Unified Evolutionary Core Chip */}
-                      {agent.tools.includes('discoverSkills') && agent.tools.includes('installSkill') && (
-                        <div className="bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center gap-3 px-4 py-2 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
-                           <Zap size={12} className="text-blue-400 animate-pulse" />
-                           <span className="text-[10px] font-black uppercase tracking-widest">
-                              Evolutionary_Core
-                           </span>
-                           <span className="text-[8px] opacity-40 uppercase font-bold tracking-tighter">
-                              (Discovery + Installation)
-                           </span>
-                        </div>
-                      )}
-
                       {agent.tools.map(toolName => {
-                        if (universalSkills.includes(toolName)) return null;
-                        
                         const tool = allTools.find(t => t.name === toolName);
+                        const isUniversal = universalSkills.includes(toolName);
                         return (
                           <div 
                             key={toolName} 
-                            className="group flex items-center gap-3 pl-4 pr-2 py-2 border transition-all bg-yellow-500/5 border-yellow-500/20 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.02)] hover:border-yellow-500/40"
+                            className={`group flex items-center gap-3 pl-4 pr-2 py-2 border transition-all ${
+                              isUniversal 
+                                ? 'bg-blue-500/5 border-blue-500/20 text-blue-400' 
+                                : 'bg-yellow-500/5 border-yellow-500/20 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.02)]'
+                            }`}
                           >
                             <span className="text-[10px] font-black uppercase tracking-widest">
                               {toolName}
+                              {isUniversal && <span className="ml-2 text-[8px] opacity-40">(CORE)</span>}
                             </span>
                             <button
                               onClick={() => handleToggleTool(agent, toolName)}
-                              disabled={isPending}
-                              className="p-1 transition-all rounded-sm hover:bg-red-500 hover:text-white opacity-40 group-hover:opacity-100"
-                              title="Remove Tool"
+                              disabled={isPending || isUniversal}
+                              className={`p-1 transition-all rounded-sm ${
+                                isUniversal 
+                                  ? 'opacity-20 cursor-not-allowed' 
+                                  : 'hover:bg-red-500 hover:text-white opacity-40 group-hover:opacity-100'
+                              }`}
+                              title={isUniversal ? "Universal Core Skill" : "Remove Tool"}
                             >
                               <X size={10} />
                             </button>
