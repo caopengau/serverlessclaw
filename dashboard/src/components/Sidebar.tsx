@@ -65,19 +65,12 @@ export default function Sidebar() {
     <>
       {/* Mobile Header - Visible only on small screens */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 border-b border-white/10 bg-black/80 backdrop-blur-md z-40 px-6 flex items-center justify-between">
-        <div className="flex-1 flex justify-center lg:justify-start">
-          <Link href={ROUTES.HOME} className="flex items-center group">
-            <Image 
-              src="/logo-text-transparent.png" 
-              alt="Claw Center" 
-              width={140} 
-              height={40} 
-              priority
-              unoptimized
-              className="h-8 w-auto object-contain"
-            />
-          </Link>
-        </div>
+        <Link href={ROUTES.HOME} className="flex items-center gap-3 group">
+          <div className={`w-8 h-8 bg-${THEME.COLORS.PRIMARY} rounded-sm flex items-center justify-center text-black font-bold`}>
+            C
+          </div>
+          <Typography variant="h3" weight="black" className="text-lg tracking-tighter">CLAW_CENTER</Typography>
+        </Link>
         <Button 
           variant="ghost"
           size="sm"
@@ -98,22 +91,17 @@ export default function Sidebar() {
 
       {/* Sidebar Container */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 lg:w-64 border-r border-white/10 flex flex-col p-6 bg-[#0d0d0d] lg:bg-black/20 shrink-0 transition-transform duration-300 lg:relative lg:translate-x-0
+        fixed inset-y-0 left-0 z-50 w-72 lg:w-64 border-r border-white/10 flex flex-col p-6 space-y-8 bg-[#0d0d0d] lg:bg-black/20 shrink-0 transition-transform duration-300 lg:relative lg:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
-        <div className="flex items-center justify-center w-full mb-2">
-          <Link href={ROUTES.HOME} className="flex items-center group">
-            <Image 
-              src="/logo-text-transparent.png" 
-              alt="Claw Center" 
-              width={180} 
-              height={54} 
-              priority
-              unoptimized
-              className="h-12 w-auto object-contain group-hover:scale-[1.02] transition-transform"
-            />
+        <div className="flex items-center justify-between lg:justify-start gap-3">
+          <Link href={ROUTES.HOME} className="flex items-center gap-3 group">
+            <div className={`w-8 h-8 bg-${THEME.COLORS.PRIMARY} rounded-sm flex items-center justify-center text-black font-bold group-hover:scale-105 transition-transform`}>
+              C
+            </div>
+            <Typography variant="h2" weight="black" className="text-xl tracking-tighter">CLAW_CENTER</Typography>
           </Link>
-          <div className="absolute right-6 flex items-center gap-2 lg:hidden">
+          <div className="lg:hidden flex items-center">
             <Button 
               variant="ghost" 
               size="sm" 
@@ -124,14 +112,12 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <nav className="flex-1 text-sm overflow-y-auto pr-2 custom-scrollbar mt-2">
+        <nav className="flex-1 space-y-1 text-sm overflow-y-auto pr-2 custom-scrollbar">
           {navItems.map((item, idx) => {
             if (item.type === 'header') {
               return (
-                <div key={idx} className={`px-3 mb-1 ${idx === 0 ? 'mt-0' : 'mt-4'}`}>
-                  <Typography variant="mono" weight="black" color="white" className="text-[11px] uppercase tracking-[0.3em] opacity-90">
-                    {item.label}
-                  </Typography>
+                <div key={idx} className={`text-white/100 px-2 uppercase text-[10px] tracking-[0.2em] font-black mb-2 ${idx !== 0 ? 'pt-4' : ''}`}>
+                  {item.label}
                 </div>
               );
             }
@@ -146,36 +132,44 @@ export default function Sidebar() {
               <Link 
                 key={idx}
                 href={item.href!} 
-                className={`flex items-center justify-between gap-3 px-3 py-1.5 rounded-sm transition-all group mb-0.5 ${
+                className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded transition-all group ${
                   isActive 
-                    ? `bg-${THEME.COLORS.PRIMARY}/10 text-${THEME.COLORS.PRIMARY} border-l-2 border-${THEME.COLORS.PRIMARY} shadow-[inset_0_0_10px_rgba(0,255,163,0.05)]` 
-                    : 'text-white/60 hover:bg-white/5 hover:text-white'
+                    ? `bg-${THEME.COLORS.PRIMARY}/10 text-${THEME.COLORS.PRIMARY} border-l-2 border-${THEME.COLORS.PRIMARY}` 
+                    : 'text-white/100 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  {Icon && <Icon size={14} className={isActive ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/20 group-hover:text-white/80 transition-colors'} />}
+                  {Icon && <Icon size={16} className={isActive ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/100 group-hover:text-white/100'} />}
                   <Typography 
                     variant="caption" 
                     weight={isActive ? "bold" : "medium"}
-                    className={`${isActive ? `text-${THEME.COLORS.PRIMARY}` : 'tracking-wide'} uppercase text-[11px]`}
+                    className={`${isActive ? `text-${THEME.COLORS.PRIMARY}` : ''} uppercase text-xs tracking-tight`}
                   >
                     {item.label}
                   </Typography>
                 </div>
-                {isActive && <div className={`w-1 h-1 rounded-full bg-${THEME.COLORS.PRIMARY} shadow-[0_0_8px_rgba(0,255,163,0.8)]`} />}
+                {isActive && <ChevronRight size={12} className={`text-${THEME.COLORS.PRIMARY}`} />}
               </Link>
             );
           })}
         </nav>
 
-        <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between px-1 opacity-30">
-          <div className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--cyber-green)]" />
-            <Typography variant="mono" className="text-[8px]">ONLINE</Typography>
+        <div className="pt-6 border-t border-white/5 space-y-4">
+          <div className="bg-white/5 rounded p-3">
+            <Typography variant="mono" weight="bold" className="text-[10px] text-white/90 uppercase tracking-wider">{UI_STRINGS.NODE_STATUS}</Typography>
+            <div className={`text-[10px] text-${THEME.COLORS.PRIMARY} mt-1.5 flex items-center gap-2 font-bold uppercase`}>
+              <span className="relative flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-${THEME.COLORS.PRIMARY} opacity-75`}></span>
+                <span className={`relative inline-flex rounded-full h-2 w-2 bg-${THEME.COLORS.PRIMARY}`}></span>
+              </span>
+              {UI_STRINGS.SYSTEM_ONLINE}
+            </div>
           </div>
-          <Typography variant="mono" className="text-[8px]">v1.0.0-PROTOTYPE</Typography>
+          <div className="flex items-center justify-between text-[10px] text-white/50 font-bold tracking-widest uppercase">
+            <Typography variant="mono">{UI_STRINGS.VERSION_PROTOTYPE}</Typography>
+            <span className="text-white/10 px-1 border border-white/10 rounded">{UI_STRINGS.BUILD_YEAR}</span>
+          </div>
         </div>
       </aside>
     </>
-  );
-}
+  );}
