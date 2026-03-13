@@ -64,7 +64,12 @@ describe('Agent Trace Propagation', () => {
     const mockTool = {
       name: 'testTool',
       description: 'Test Tool',
-      parameters: { type: 'object', properties: {} },
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+        additionalProperties: false,
+      },
       execute: vi.fn().mockResolvedValue('Tool result'),
     };
 
@@ -114,7 +119,12 @@ describe('Agent Trace Propagation', () => {
     const mockTool = {
       name: 'multiModalTool',
       description: 'Test Tool',
-      parameters: { type: 'object', properties: {} },
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+        additionalProperties: false,
+      },
       execute: vi.fn().mockResolvedValue({
         text: 'Result text',
         images: ['base64-image-data'],

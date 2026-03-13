@@ -85,6 +85,7 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
     parameters: {
       type: 'object',
       properties: {},
+      required: [],
       additionalProperties: false,
     },
   },
@@ -130,6 +131,7 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
     parameters: {
       type: 'object',
       properties: {},
+      required: [],
       additionalProperties: false,
     },
   },
@@ -270,6 +272,7 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
     parameters: {
       type: 'object',
       properties: {},
+      required: [],
       additionalProperties: false,
     },
   },
@@ -298,7 +301,7 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
           description: 'Optional category filter (e.g., infra, build, knowledge).',
         },
       },
-      required: ['query'],
+      required: ['query', 'category'],
       additionalProperties: false,
     },
   },
@@ -355,7 +358,7 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
           description: 'Content encoding type.',
         },
       },
-      required: ['fileName', 'content'],
+      required: ['fileName', 'content', 'encoding'],
       additionalProperties: false,
     },
   },
@@ -377,6 +380,7 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
     parameters: {
       type: 'object',
       properties: {},
+      required: [],
       additionalProperties: false,
     },
   },
