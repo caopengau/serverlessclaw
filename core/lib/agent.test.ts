@@ -178,7 +178,12 @@ describe('Agent Trace Propagation', () => {
       .mockResolvedValueOnce({ role: MessageRole.ASSISTANT, content: 'Calculated' });
 
     // No tools provided to agent, but provider requests code_interpreter
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', { id: 'test', name: 'Test', enabled: true, systemPrompt: 'System' });
+    const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+      id: 'test',
+      name: 'Test',
+      enabled: true,
+      systemPrompt: 'System',
+    });
 
     await agent.process('user-1', 'Run code', {});
 
@@ -204,7 +209,12 @@ describe('Agent Trace Propagation', () => {
       .fn()
       .mockResolvedValue({ role: MessageRole.ASSISTANT, content: 'I see it' });
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', { id: 'test', name: 'Test', enabled: true, systemPrompt: 'System' });
+    const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+      id: 'test',
+      name: 'Test',
+      enabled: true,
+      systemPrompt: 'System',
+    });
 
     await agent.process('user-1', 'What is this?', { attachments });
 
