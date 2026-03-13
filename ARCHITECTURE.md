@@ -171,6 +171,12 @@ Instead of a linear log, the system records a **Directed Acyclic Graph (DAG)** o
 2. **Node Branching**: When an agent uses `dispatchTask`, a child `nodeId` is generated, linked to the `parentId`.
 3. **DAG Visualization**: The ClawCenter dashboard renders this as a neural map, allowing users to drill down into specific parallel execution branches.
 
+### Storage Optimization
+To support efficient retrieval of entire execution graphs, the **TraceTable** (DynamoDB) uses a **Composite Primary Key**:
+- **Hash Key (`traceId`)**: Links all nodes in a single user request.
+- **Range Key (`nodeId`)**: Identifies individual agent executions or parallel branches.
+This structure allows a single `Query` operation to retrieve the complete neural path for visualization.
+
 ---
 
 ## 🦾 Hybrid Skill-Based Tooling
