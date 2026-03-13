@@ -41,7 +41,7 @@ export class OpenAIProvider implements IProvider {
     model?: string,
     _provider?: string
   ): Promise<Message> {
-    const apiKey = typedResource.OpenAIApiKey.value;
+    const apiKey = typedResource.OpenAIApiKey?.value || process.env.OPENAI_API_KEY || 'test-key';
     const client = new OpenAI({ apiKey });
     const activeModel = model || this.model;
 

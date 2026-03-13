@@ -5,7 +5,6 @@ import { getAgentTools } from '../tools/index';
 import {
   EventType,
   TraceSource,
-  SSTResource,
   BuildEvent,
   TaskEvent,
   CompletionEvent,
@@ -15,14 +14,12 @@ import {
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
-import { Resource } from 'sst';
 import { SYSTEM, DYNAMO_KEYS } from '../lib/constants';
-import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { ConfigManager } from '../lib/registry/config';
+import { emitEvent } from '../lib/utils/bus';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
-const typedResource = Resource as unknown as SSTResource;
-const eb = new EventBridgeClient({});
 
 /**
  * Wake up the initiator agent when a delegated task or system event completes.
@@ -41,26 +38,15 @@ async function wakeupInitiator(
     ? initiatorId.replace('.agent', '')
     : initiatorId;
 
-  await eb.send(
-    new PutEventsCommand({
-      Entries: [
-        {
-          Source: 'events.handler',
-          DetailType: EventType.CONTINUATION_TASK,
-          Detail: JSON.stringify({
-            userId,
-            agentId: initiatorAgentId,
-            task,
-            traceId,
-            initiatorId,
-            sessionId,
-            depth: depth + 1,
-          }),
-          EventBusName: typedResource.AgentBus.name,
-        },
-      ],
-    })
-  );
+  await emitEvent('events.handler', EventType.CONTINUATION_TASK, {
+    userId,
+    agentId: initiatorAgentId,
+    task,
+    traceId,
+    initiatorId,
+    sessionId,
+    depth: depth + 1,
+  });
 }
 
 /**
@@ -288,8 +274,7 @@ I am ready for further tasks or instructions.`;
     // Resolve recursion limit from DDB or fallback to default
     let RECURSION_LIMIT: number = SYSTEM.DEFAULT_RECURSION_LIMIT;
     try {
-      const { AgentRegistry } = await import('../lib/registry');
-      const customLimit = await AgentRegistry.getRawConfig(DYNAMO_KEYS.RECURSION_LIMIT);
+      const customLimit = await ConfigManager.getRawConfig(DYNAMO_KEYS.RECURSION_LIMIT);
       if (customLimit !== undefined) {
         RECURSION_LIMIT = parseInt(String(customLimit), 10);
       }

@@ -40,6 +40,23 @@ vi.mock('./memory', () => ({
     getLessons = vi.fn().mockResolvedValue([]);
     addMessage = vi.fn().mockResolvedValue(undefined);
     updateDistilledMemory = vi.fn().mockResolvedValue(undefined);
+    searchInsights = vi.fn().mockResolvedValue([]);
+    setGap = vi.fn().mockResolvedValue(undefined);
+    updateGapStatus = vi.fn().mockResolvedValue(undefined);
+  },
+}));
+
+// Mock ProviderManager to avoid real LLM calls
+vi.mock('./providers/index', () => ({
+  ProviderManager: class {
+    call = vi.fn().mockResolvedValue({
+      content: 'Mocked response',
+      role: 'assistant',
+    });
+    getCapabilities = vi.fn().mockResolvedValue({
+      supportedReasoningProfiles: ['standard'],
+      maxReasoningEffort: 'medium',
+    });
   },
 }));
 
@@ -63,7 +80,7 @@ describe('Autonomous Loop Closure', () => {
     };
 
     // @ts-expect-error - mockEvent does not match exact Lambda event type
-    await eventHandler(mockEvent, {});
+    await eventHandler(mockEvent, { getRemainingTimeInMillis: () => 300000 } as any);
 
     const ebCalls = ebMock.commandCalls(PutEventsCommand);
     const continuationCall = ebCalls.find(
@@ -93,7 +110,7 @@ describe('Autonomous Loop Closure', () => {
     ddbMock.on(PutCommand).resolves({});
 
     // @ts-expect-error - mockEvent does not match exact Lambda event type
-    await eventHandler(mockEvent, {});
+    await eventHandler(mockEvent, { getRemainingTimeInMillis: () => 300000 } as any);
 
     const ebCalls = ebMock.commandCalls(PutEventsCommand);
     const continuationCall = ebCalls.find(

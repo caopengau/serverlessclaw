@@ -1,15 +1,10 @@
-import { Resource } from 'sst';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import { IAgentConfig } from './types/agent';
 import { BACKBONE_REGISTRY } from './backbone';
 import { logger } from './logger';
-import { SSTResource, Topology, TopologyNode } from './types/index';
+import { Topology, TopologyNode } from './types/index';
 import { DYNAMO_KEYS, RETENTION } from './constants';
-
-const client = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(client);
-const typedResource = Resource as unknown as SSTResource;
+import { ConfigManager, docClient } from './registry/config';
 
 /**
  * AgentRegistry handles discovery and configuration of agents.
@@ -42,29 +37,21 @@ export class AgentRegistry {
   ];
 
   /**
+   * Delegates raw config operations to ConfigManager.
+   */
+  public static getRawConfig = ConfigManager.getRawConfig;
+  public static saveRawConfig = ConfigManager.saveRawConfig;
+
+  /**
    * Retrieves the retention period in days for a specific item type.
-   * Checks for overrides in the ConfigTable before falling back to system defaults.
-   *
-   * @param item - The retention key (from RETENTION constants)
-   * @returns The number of days to keep the item.
    */
   static async getRetentionDays(item: keyof typeof RETENTION): Promise<number> {
-    const config = (await this.getRawConfig(DYNAMO_KEYS.RETENTION_CONFIG)) as Record<
-      string,
-      number
-    >;
-    if (config && config[item] !== undefined) {
-      return config[item];
-    }
-    return RETENTION[item];
+    const config = (await this.getRawConfig(DYNAMO_KEYS.RETENTION_CONFIG)) as Record<string, number>;
+    return config && config[item] !== undefined ? config[item] : RETENTION[item];
   }
 
   /**
    * Retrieves the configuration for a specific agent by ID.
-   * Merges hardcoded backbone defaults with dynamic overrides from DynamoDB.
-   *
-   * @param id - The unique ID of the agent (e.g., 'main', 'coder').
-   * @returns A promise that resolves to the agent configuration or undefined if not found.
    */
   static async getAgentConfig(id: string): Promise<IAgentConfig | undefined> {
     let config: IAgentConfig | undefined;
@@ -72,100 +59,48 @@ export class AgentRegistry {
     // 1. Resolve Base Config
     if (this.backboneConfigs[id]) {
       config = { ...this.backboneConfigs[id] };
-
-      // Apply overrides from agents_config (This allows hot-swapping prompts/models for backbone agents)
-      const ddbAgents =
-        ((await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<
-          string,
-          Partial<IAgentConfig>
-        >) || {};
-      if (ddbAgents[id]) {
-        if (ddbAgents[id].systemPrompt) config.systemPrompt = ddbAgents[id].systemPrompt!;
-        if (ddbAgents[id].description) config.description = ddbAgents[id].description;
-        if (ddbAgents[id].model) config.model = ddbAgents[id].model;
-        if (ddbAgents[id].provider) config.provider = ddbAgents[id].provider;
-        if (ddbAgents[id].enabled !== undefined) config.enabled = ddbAgents[id].enabled;
-        if (ddbAgents[id].maxIterations !== undefined)
-          config.maxIterations = ddbAgents[id].maxIterations;
-        if (ddbAgents[id].parallelToolCalls !== undefined)
-          config.parallelToolCalls = ddbAgents[id].parallelToolCalls;
-      }
+      const ddbAgents = ((await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<string, Partial<IAgentConfig>>) || {};
+      if (ddbAgents[id]) Object.assign(config, ddbAgents[id]);
     } else {
-      // User-defined from DDB
-      const ddbAgents =
-        ((await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<string, unknown>) || {};
+      const ddbAgents = ((await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<string, unknown>) || {};
       config = ddbAgents[id] as IAgentConfig;
     }
 
     if (!config) return undefined;
 
-    // 2. Filter tools if selective_discovery_mode is active
+    // 2. Discovery Mode Filter
     const isDiscoveryMode = (await this.getRawConfig('selective_discovery_mode')) === true;
     if (isDiscoveryMode && config.tools) {
-      // Core system tools that should never be removed from backbone agents
-      const coreTools = AgentRegistry.ESSENTIAL_SYSTEM_TOOLS;
-      config.tools = config.tools.filter((t: string) => coreTools.includes(t));
-
-      // Inject bootloader set if toolset becomes too empty
+      config.tools = config.tools.filter((t: string) => AgentRegistry.ESSENTIAL_SYSTEM_TOOLS.includes(t));
       if (config.tools.length < 4) {
-        config.tools = Array.from(
-          new Set([...config.tools, ...AgentRegistry.DISCOVERY_BOOTLOADER_TOOLS])
-        );
+        config.tools = Array.from(new Set([...config.tools, ...AgentRegistry.DISCOVERY_BOOTLOADER_TOOLS]));
       }
     }
 
-    // 3. Resolve Tool Overrides (Higher Priority)
-    // This unifies the manageAgentTools logic which saves to ${id}_tools
-    const toolOverride = await this.getRawConfig(`${id}_tools`);
+    // 3. Tool Overrides
+    const toolOverride = (await this.getRawConfig(`${id}_tools`)) as string[];
     if (toolOverride && Array.isArray(toolOverride)) {
-      logger.info(`Applying dynamic tool override for agent ${id}:`, toolOverride);
-
-      // Smart Default: If it's a backbone agent, merge code tools with overrides
-      // This ensures that newly added tools in the codebase are immediately available
-      // even if a user has a stale override in DynamoDB.
-      if (this.backboneConfigs[id]) {
-        config.tools = Array.from(
-          new Set([...toolOverride, ...(this.backboneConfigs[id].tools || [])])
-        );
-      } else {
-        config.tools = Array.from(
-          new Set([...toolOverride, ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS])
-        );
-      }
+      config.tools = Array.from(new Set([...toolOverride, ...(this.backboneConfigs[id]?.tools || AgentRegistry.ESSENTIAL_SYSTEM_TOOLS)]));
     } else {
-      // Ensure essential tools are present even if not in the base config or no override
-      config.tools = Array.from(
-        new Set([...(config.tools || []), ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS])
-      );
+      config.tools = Array.from(new Set([...(config.tools || []), ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS]));
     }
 
-    // Inject defaults if still missing tools
-    if (!config.tools || config.tools.length === 0) {
-      config.tools = [...AgentRegistry.DEFAULT_AGENT_TOOLS];
-    }
+    if (!config.tools || config.tools.length === 0) config.tools = [...AgentRegistry.DEFAULT_AGENT_TOOLS];
 
     return config;
   }
 
   /**
    * Retrieves configurations for all registered agents.
-   *
-   * @returns A promise that resolves to a record of agent IDs to their configurations.
    */
   static async getAllConfigs(): Promise<Record<string, IAgentConfig>> {
     const ddbConfig = (await this.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) || {};
     const all: Record<string, IAgentConfig> = { ...this.backboneConfigs };
-
-    // Merge in DDB agents and resolve ALL tool overrides
-    const agentIds = Array.from(
-      new Set([...Object.keys(all), ...Object.keys(ddbConfig as Record<string, unknown>)])
-    );
+    const agentIds = Array.from(new Set([...Object.keys(all), ...Object.keys(ddbConfig as Record<string, unknown>)]));
 
     for (const id of agentIds) {
       const config = await this.getAgentConfig(id);
-      if (config) {
-        all[id] = config;
-      }
+      if (config) all[id] = config;
     }
 
     return all;
@@ -173,8 +108,6 @@ export class AgentRegistry {
 
   /**
    * Retrieves infrastructure configurations from the ConfigTable.
-   *
-   * @returns A promise that resolves to an array of infrastructure node objects.
    */
   static async getInfraConfig(): Promise<TopologyNode[]> {
     const ddbConfig = await this.getRawConfig(DYNAMO_KEYS.INFRA_CONFIG);
@@ -182,110 +115,43 @@ export class AgentRegistry {
   }
 
   /**
-   * Retrieves the full system topology (nodes + edges).
-   *
-   * @returns A promise that resolves to the system topology or undefined if not recorded.
+   * Retrieves the full system topology.
    */
   static async getFullTopology(): Promise<Topology | undefined> {
-    const topology = await this.getRawConfig(DYNAMO_KEYS.SYSTEM_TOPOLOGY);
-    return topology as Topology | undefined;
+    return (await this.getRawConfig(DYNAMO_KEYS.SYSTEM_TOPOLOGY)) as Topology | undefined;
   }
 
   /**
-   * Fetches a raw value from the ConfigTable by key.
-   *
-   * @param key - The key to fetch from the ConfigTable.
-   * @returns A promise that resolves to the value associated with the key, or undefined.
-   */
-  public static async getRawConfig(key: string): Promise<unknown> {
-    if (!typedResource.ConfigTable?.name) {
-      logger.warn(`ConfigTable not linked. Skipping fetch for ${key}`);
-      return undefined;
-    }
-
-    try {
-      const { Item } = await docClient.send(
-        new GetCommand({
-          TableName: typedResource.ConfigTable.name,
-          Key: { key },
-        })
-      );
-      return Item?.value;
-    } catch (e) {
-      logger.warn(`Failed to fetch ${key} from DDB:`, e);
-      return undefined;
-    }
-  }
-
-  /**
-   * Saves a raw configuration value to the ConfigTable.
-   *
-   * @param key - The key to save in the ConfigTable.
-   * @param value - The value to associate with the key.
-   * @returns A promise that resolves when the configuration is saved.
-   */
-  public static async saveRawConfig(key: string, value: unknown): Promise<void> {
-    if (!typedResource.ConfigTable?.name) {
-      logger.warn(`ConfigTable not linked. Skipping save for ${key}`);
-      return;
-    }
-
-    try {
-      await docClient.send(
-        new PutCommand({
-          TableName: typedResource.ConfigTable.name,
-          Item: { key, value },
-        })
-      );
-    } catch (e) {
-      logger.error(`Failed to save ${key} to DDB:`, e);
-      throw e;
-    }
-  }
-
-  /**
-   * Saves or updates an agent configuration in the ConfigTable.
-   * Also triggers a topology refresh to ensure the Pulse map is updated.
-   *
-   * @param id - The unique ID of the agent.
-   * @param config - The configuration object to save.
-   * @returns A promise that resolves when the configuration is saved.
+   * Saves or updates an agent configuration and triggers topology refresh.
    */
   static async saveConfig(id: string, config: IAgentConfig): Promise<void> {
-    if (!typedResource.ConfigTable?.name) {
+    const { ConfigTable } = (await import('sst')).Resource as any;
+    if (!ConfigTable?.name) {
       logger.warn(`ConfigTable not linked. Skipping save for ${id}`);
       return;
     }
 
-    // Basic Validation
     if (!config.name || !config.systemPrompt) {
       throw new Error('Invalid agent configuration: name and systemPrompt are required.');
     }
 
-    // Use atomic UpdateCommand to prevent race conditions during concurrent agent saves
     const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
     await docClient.send(
       new UpdateCommand({
-        TableName: typedResource.ConfigTable.name,
+        TableName: ConfigTable.name,
         Key: { key: DYNAMO_KEYS.AGENTS_CONFIG },
         UpdateExpression: 'SET #agents.#id = :config',
-        ExpressionAttributeNames: {
-          '#agents': 'value',
-          '#id': id,
-        },
-        ExpressionAttributeValues: {
-          ':config': config,
-        },
+        ExpressionAttributeNames: { '#agents': 'value', '#id': id },
+        ExpressionAttributeValues: { ':config': config },
       })
     );
 
-    // Trigger Topology Discovery Refresh
     try {
-      const { discoverSystemTopology } = await import('../handlers/monitor');
+      const { discoverSystemTopology } = await import('./utils/topology');
       const topology = await discoverSystemTopology();
       await docClient.send(
         new PutCommand({
-          TableName: typedResource.ConfigTable.name,
+          TableName: ConfigTable.name,
           Item: { key: DYNAMO_KEYS.SYSTEM_TOPOLOGY, value: topology },
         })
       );
@@ -296,74 +162,32 @@ export class AgentRegistry {
   }
 
   /**
-   * Atomically records tool usage (count and last used timestamp) in the ConfigTable.
-   * Records both global usage and agent-specific usage.
-   *
-   * @param toolName - The name of the tool being executed.
-   * @param agentId - The ID of the agent using the tool.
+   * Records tool usage atomically.
    */
   static async recordToolUsage(toolName: string, agentId: string = 'unknown'): Promise<void> {
-    if (!typedResource.ConfigTable?.name) return;
+    const { ConfigTable } = (await import('sst')).Resource as any;
+    if (!ConfigTable?.name) return;
 
     const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-
-    // 1. Update Global Usage
-    try {
-      await docClient.send(
-        new UpdateCommand({
-          TableName: typedResource.ConfigTable.name,
-          Key: { key: DYNAMO_KEYS.TOOL_USAGE },
-          UpdateExpression:
-            'SET #usage.#tool.#count = if_not_exists(#usage.#tool.#count, :zero) + :one, #usage.#tool.#last = :now',
-          ExpressionAttributeNames: {
-            '#usage': 'value',
-            '#tool': toolName,
-            '#count': 'count',
-            '#last': 'lastUsed',
-          },
-          ExpressionAttributeValues: {
-            ':one': 1,
-            ':zero': 0,
-            ':now': Date.now(),
-          },
-        })
-      );
-    } catch (e: unknown) {
-      if (e instanceof Error && e.name === 'ValidationException' && e.message.includes('path')) {
-        await this.saveRawConfig(DYNAMO_KEYS.TOOL_USAGE, {
-          [toolName]: { count: 1, lastUsed: Date.now() },
-        });
+    const updateUsage = async (key: string) => {
+      try {
+        await docClient.send(
+          new UpdateCommand({
+            TableName: ConfigTable.name,
+            Key: { key },
+            UpdateExpression: 'SET #usage.#tool.#count = if_not_exists(#usage.#tool.#count, :zero) + :one, #usage.#tool.#last = :now',
+            ExpressionAttributeNames: { '#usage': 'value', '#tool': toolName, '#count': 'count', '#last': 'lastUsed' },
+            ExpressionAttributeValues: { ':one': 1, ':zero': 0, ':now': Date.now() },
+          })
+        );
+      } catch (e: any) {
+        if (e.name === 'ValidationException') {
+          await this.saveRawConfig(key, { [toolName]: { count: 1, lastUsed: Date.now() } });
+        }
       }
-    }
+    };
 
-    // 2. Update Agent-Specific Usage
-    try {
-      const agentKey = `tool_usage_${agentId}`;
-      await docClient.send(
-        new UpdateCommand({
-          TableName: typedResource.ConfigTable.name,
-          Key: { key: agentKey },
-          UpdateExpression:
-            'SET #usage.#tool.#count = if_not_exists(#usage.#tool.#count, :zero) + :one, #usage.#tool.#last = :now',
-          ExpressionAttributeNames: {
-            '#usage': 'value',
-            '#tool': toolName,
-            '#count': 'count',
-            '#last': 'lastUsed',
-          },
-          ExpressionAttributeValues: {
-            ':one': 1,
-            ':zero': 0,
-            ':now': Date.now(),
-          },
-        })
-      );
-    } catch (e: unknown) {
-      if (e instanceof Error && e.name === 'ValidationException' && e.message.includes('path')) {
-        await this.saveRawConfig(`tool_usage_${agentId}`, {
-          [toolName]: { count: 1, lastUsed: Date.now() },
-        });
-      }
-    }
+    await updateUsage(DYNAMO_KEYS.TOOL_USAGE);
+    await updateUsage(`tool_usage_${agentId}`);
   }
 }
