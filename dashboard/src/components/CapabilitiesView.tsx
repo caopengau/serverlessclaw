@@ -219,29 +219,35 @@ export default function CapabilitiesView({ agents, allTools, mcpServers }: Capab
                       <Plus size={12} className="text-yellow-500/50" /> 
                       Available_Insertions
                     </h5>
-                    <div className="relative group">
-                      <select 
-                        onChange={(e) => {
-                          if (e.target.value) {
-                            handleToggleTool(agent, e.target.value);
-                            e.target.value = '';
-                          }
-                        }}
-                        className="w-full bg-black/40 border border-white/5 group-hover:border-white/20 rounded-sm py-3 px-4 text-[10px] uppercase font-mono tracking-widest outline-none transition-all appearance-none text-white/30"
-                      >
-                        <option value="">-- SELECT_CHIP_TO_INSERT --</option>
-                        {allTools
-                          .filter(t => !agent.tools.includes(t.name))
-                          .map(t => (
-                            <option key={t.name} value={t.name}>
-                              {t.name.toUpperCase()} - {t.description.substring(0, 60)}...
-                            </option>
-                          ))
-                        }
-                      </select>
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none text-white/20 group-hover:text-yellow-500/50 transition-colors">
-                        <Plus size={16} />
-                      </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {allTools
+                        .filter(t => !agent.tools.includes(t.name))
+                        .filter(t => !searchQuery || t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.description.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map(tool => (
+                          <button
+                            key={tool.name}
+                            onClick={() => handleToggleTool(agent, tool.name)}
+                            disabled={isPending}
+                            className="flex flex-col items-start text-left p-3 rounded-sm border border-white/5 bg-white/[0.02] hover:bg-yellow-500/10 hover:border-yellow-500/30 transition-all group/item"
+                          >
+                            <div className="flex justify-between items-center w-full mb-1">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-white/60 group-hover/item:text-yellow-500">
+                                {tool.name}
+                              </span>
+                              <Plus size={10} className="text-white/20 group-hover/item:text-yellow-500" />
+                            </div>
+                            <p className="text-[8px] text-white/20 leading-tight line-clamp-2 uppercase tracking-tighter">
+                              {tool.description}
+                            </p>
+                          </button>
+                        ))
+                      }
+                      {allTools.filter(t => !agent.tools.includes(t.name)).length === 0 && (
+                        <div className="col-span-full py-4 text-center border border-dashed border-white/5 rounded-sm">
+                           <span className="text-[8px] text-white/10 uppercase tracking-[0.3em]">Full_Potential_Reached</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
