@@ -5,7 +5,7 @@ import {
   Wrench, Search, Trash2, X, Plus, 
   Activity, BookOpen, ExternalLink, Globe, Loader2, Zap, Cpu 
 } from 'lucide-react';
-import { deleteMCPServer, registerMCPServer } from '../app/capabilities/actions';
+import { updateAgentTools, deleteMCPServer, registerMCPServer } from '../app/capabilities/actions';
 import { toast } from 'sonner';
 import CyberConfirm from './CyberConfirm';
 import { useRouter } from 'next/navigation';
@@ -76,9 +76,19 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
     const agent = optimisticAgents.find(a => a.id === agentId);
     if (!agent) return;
 
-    if (!confirm(`Are you sure you want to detach '${toolName}' from ${agent.name}?`)) {
-      return;
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: 'Neural Decoupling',
+      message: `Are you sure you want to detach '${toolName}' from ${agent.name}? This will immediately revoke its access to this capability.`,
+      variant: 'warning',
+      onConfirm: () => executeDetach(agentId, toolName)
+    });
+  };
+
+  const executeDetach = (agentId: string, toolName: string) => {
+    setConfirmModal(prev => ({ ...prev, isOpen: false }));
+    const agent = optimisticAgents.find(a => a.id === agentId);
+    if (!agent) return;
 
     const newTools = agent.tools.filter(t => t !== toolName);
     
@@ -94,7 +104,10 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
 
     startTransition(async () => {
       try {
-        await updateAgentTools(formData);
+        const result = await updateAgentTools(formData);
+        if (result?.error) {
+          throw new Error(result.error);
+        }
         toast.success(`Tool detached from ${agentId}`);
         router.refresh();
       } catch (error) {
@@ -171,7 +184,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
       <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center sticky top-0 z-20 bg-black/80 backdrop-blur-xl p-4 -m-4 border-b border-white/5">
         <nav className="flex gap-1 bg-white/5 p-1 rounded-sm border border-white/5">
           {[
-            { id: 'analytics', label: 'Usage Analytics', icon: Activity },
+            { id: 'analytics', label: 'Neural Analytics', icon: Activity },
             { id: 'library', label: 'Capability Library', icon: BookOpen },
             { id: 'mcp', label: 'Skill Bridges', icon: ExternalLink },
           ].map(tab => (
@@ -193,7 +206,35 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
         </nav>
 
         <div className="relative flex-1 max-w-xl group">
-...
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <Search size={16} className="text-cyber-blue/50" />
+          </div>
+          <input
+            type="text"
+            placeholder="SEARCH_CURRENT_CAPABILITIES..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-black/60 border border-white/10 focus:border-cyber-blue/40 rounded-sm py-3 pl-12 pr-4 text-[10px] outline-none transition-all placeholder:text-white/20 font-mono tracking-widest"
+          />
+          {searchQuery && (
+            <div className="absolute top-full left-0 right-0 mt-2 p-4 glass-card border-cyber-blue/20 animate-in slide-in-from-top-2 duration-300 z-30 shadow-2xl">
+               <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 text-[9px] text-white/40 uppercase tracking-widest font-bold">
+                    <Globe size={12} className="text-cyber-blue" />
+                    Cannot find what you need?
+                  </div>
+                  <button 
+                    onClick={() => window.location.href = `/?prompt=Discover new tools for ${searchQuery}`}
+                    className="text-[9px] font-black text-cyber-blue hover:text-cyber-blue/80 transition-colors uppercase tracking-tighter flex items-center gap-1"
+                  >
+                    TRIGGER_GLOBAL_DISCOVERY <ExternalLink size={10} />
+                  </button>
+               </div>
+            </div>
+          )}
+        </div>
+      </div>
+
       {activeTab === 'analytics' && (
         <section className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Global Stats */}
@@ -219,7 +260,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                 <Activity size={16} className="text-cyber-blue" /> Per-Agent_Efficiency_Audit
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {agents.filter(a => a.id !== 'monitor' && a.id !== 'events').map(agent => {
+                {optimisticAgents.filter(a => a.id !== 'monitor' && a.id !== 'events').map(agent => {
                   const agentUsage = agent.usage || {};
                   const neverUsedTools = agent.tools.filter(t => !agentUsage[t]);
                   const lowUsageTools = agent.tools
@@ -252,7 +293,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                                   title="Detaching this tool will save tokens"
                                 >
                                   <span className="text-[9px] font-black text-red-400 uppercase">{t}</span>
-                                  <span className="text-[8px] opacity-40 text-red-400 font-bold uppercase tracking-tighter text-[7px]">Detach</span>
+                                  <span className="text-[8px] opacity-40 text-red-400 font-bold uppercase tracking-tighter">Detach</span>
                                 </button>
                               ))}
                               {lowUsageTools.map(t => (
@@ -262,7 +303,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                                   className="group flex items-center gap-2 px-2 py-1 bg-orange-500/5 border border-orange-500/20 rounded hover:bg-orange-500/20 transition-all"
                                 >
                                   <span className="text-[9px] font-black text-orange-400 uppercase">{t}</span>
-                                  <span className="text-[8px] opacity-40 text-orange-400 font-bold uppercase tracking-tighter text-[7px]">{agentUsage[t].count} Calls</span>
+                                  <span className="text-[8px] opacity-40 text-orange-400 font-bold uppercase tracking-tighter">{agentUsage[t].count} Calls</span>
                                 </button>
                               ))}
                             </div>
@@ -304,7 +345,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                   </thead>
                   <tbody>
                     {sortedByUsage.filter(t => (t.usage?.count || 0) > 0).map(tool => {
-                      const attachedAgents = agents.filter(a => a.tools.includes(tool.name));
+                      const attachedAgents = optimisticAgents.filter(a => a.tools.includes(tool.name));
                       return (
                         <tr key={tool.name} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors group">
                           <td className="p-4">
@@ -347,34 +388,6 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
           </div>
         </section>
       )}
-          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search size={16} className="text-cyber-blue/50" />
-          </div>
-          <input
-            type="text"
-            placeholder="SEARCH_CURRENT_CAPABILITIES..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-black/60 border border-white/10 focus:border-cyber-blue/40 rounded-sm py-3 pl-12 pr-4 text-[10px] outline-none transition-all placeholder:text-white/20 font-mono tracking-widest"
-          />
-          {searchQuery && (
-            <div className="absolute top-full left-0 right-0 mt-2 p-4 glass-card border-cyber-blue/20 animate-in slide-in-from-top-2 duration-300 z-30 shadow-2xl">
-               <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2 text-[9px] text-white/40 uppercase tracking-widest font-bold">
-                    <Globe size={12} className="text-cyber-blue" />
-                    Cannot find what you need?
-                  </div>
-                  <button 
-                    onClick={() => window.location.href = `/?prompt=Discover new tools for ${searchQuery}`}
-                    className="text-[9px] font-black text-cyber-blue hover:text-cyber-blue/80 transition-colors uppercase tracking-tighter flex items-center gap-1"
-                  >
-                    TRIGGER_GLOBAL_DISCOVERY <ExternalLink size={10} />
-                  </button>
-               </div>
-            </div>
-          )}
-        </div>
-      </div>
 
       {activeTab === 'mcp' && (
         <section className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
