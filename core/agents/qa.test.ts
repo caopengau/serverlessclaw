@@ -1,6 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './qa';
-import { GapStatus, EvolutionMode } from '../lib/types/index';
+import { GapStatus, EvolutionMode, AgentType } from '../lib/types/index';
+
+vi.mock('../lib/utils/agent-helpers', () => ({
+  extractPayload: vi.fn((event: any) => event.detail || event),
+  loadAgentConfig: vi.fn().mockResolvedValue({
+    id: 'qa',
+    name: 'QA',
+    systemPrompt: 'QA prompt',
+    enabled: true,
+  }),
+  getAgentContext: vi.fn().mockResolvedValue({
+    memory: {
+      updateGapStatus: memoryMocks.updateGapStatus,
+      incrementGapAttemptCount: memoryMocks.incrementGapAttemptCount,
+    },
+    provider: {
+      call: vi.fn(),
+    },
+  }),
+  emitTaskEvent: vi.fn().mockResolvedValue(undefined),
+}));
 
 const memoryMocks = vi.hoisted(() => ({
   updateGapStatus: vi.fn().mockResolvedValue(undefined),

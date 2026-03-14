@@ -91,6 +91,19 @@ vi.mock('../lib/utils/agent-helpers', () => ({
     userId.startsWith('CONV#') ? userId.split('#')[1] : userId
   ),
   emitTaskEvent: vi.fn().mockResolvedValue(undefined),
+  getAgentContext: vi.fn().mockResolvedValue({
+    memory: {
+      getDistilledMemory: vi.fn().mockResolvedValue('Old facts'),
+      getAllGaps: vi.fn().mockResolvedValue([]),
+      updateDistilledMemory: mocks.updateDistilledMemory,
+      addLesson: mocks.addLesson,
+      setGap: mocks.setGap,
+      updateGapStatus: mocks.updateGapStatus,
+    },
+    provider: {
+      call: vi.fn(),
+    },
+  }),
 }));
 
 describe('Cognition Reflector Handler', () => {

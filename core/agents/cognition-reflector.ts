@@ -1,7 +1,3 @@
-import { DynamoMemory } from '../lib/memory';
-import { Agent } from '../lib/agent';
-import { ProviderManager } from '../lib/providers/index';
-import { LIMITS } from '../lib/constants';
 import {
   ReasoningProfile,
   Message,
@@ -11,6 +7,7 @@ import {
   AgentType,
   TraceSource,
 } from '../lib/types/index';
+import { LIMITS } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import {
@@ -20,11 +17,9 @@ import {
   loadAgentConfig,
   extractBaseUserId,
   emitTaskEvent,
+  getAgentContext,
 } from '../lib/utils/agent-helpers';
 import { emitEvent } from '../lib/utils/bus';
-
-const memory = new DynamoMemory();
-const provider = new ProviderManager();
 
 interface ReflectorPayload {
   userId: string;
@@ -57,7 +52,7 @@ export const handler = async (
   // EventBridge wraps the payload in 'detail'
   const payload = extractPayload<ReflectorEvent>(event);
   const { userId, conversation, traceId, sessionId, task, initiatorId, depth } =
-    payload.detail || {};
+    payload.detail || (payload as any); // Double safety for direct or wrapped event
 
   if (!userId || !conversation) {
     logger.warn('Reflector received incomplete payload, skipping audit.', {
@@ -102,9 +97,11 @@ export const handler = async (
 
   // Reflector Agent is a specialized Agent instance
   const config = await loadAgentConfig(AgentType.COGNITION_REFLECTOR);
+  const { memory, provider: providerManager } = await getAgentContext();
 
   const agentTools = await (await import('../tools/index')).getAgentTools('cognition-reflector');
-  const reflector = new Agent(memory, provider, agentTools, config.systemPrompt, config);
+  const { Agent } = await import('../lib/agent');
+  const reflector = new Agent(memory, providerManager, agentTools, config.systemPrompt, config);
 
   // 2. Handle simple direct tasks (e.g. greetings)
   if (task) {
@@ -147,7 +144,7 @@ export const handler = async (
     ${existingFacts || 'None'}
  
     CONVERSATION:
-    ${conversation.map((m) => `${m.role.toUpperCase()}: ${m.content || (m.tool_calls ? '[Tool Calls]' : '')}`).join('\n')}
+    ${conversation.map((m: Message) => `${m.role.toUpperCase()}: ${m.content || (m.tool_calls ? '[Tool Calls]' : '')}`).join('\n')}
     ${traceContext}
     ${deployedGapsContext}
     ${activeGapsContext}

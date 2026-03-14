@@ -1,25 +1,19 @@
-import { DynamoMemory } from '../lib/memory';
-import { Agent } from '../lib/agent';
-import { ProviderManager } from '../lib/providers/index';
-import { getAgentTools } from '../tools/index';
 import {
   ReasoningProfile,
-  EventType,
   GapStatus,
   AgentType,
   EvolutionMode,
-  SSTResource,
   TraceSource,
 } from '../lib/types/index';
-import { sendOutboundMessage } from '../lib/outbound';
-import { Resource } from 'sst';
 import { logger } from '../lib/logger';
-import { AgentRegistry } from '../lib/registry';
 import { Context } from 'aws-lambda';
-
-const memory = new DynamoMemory();
-const provider = new ProviderManager();
-const typedResource = Resource as unknown as SSTResource;
+import {
+  extractPayload,
+  loadAgentConfig,
+  getAgentContext,
+  emitTaskEvent,
+} from '../lib/utils/agent-helpers';
+import { sendOutboundMessage } from '../lib/outbound';
 
 interface QAPayload {
   userId: string;
@@ -28,6 +22,7 @@ interface QAPayload {
   traceId?: string;
   initiatorId?: string;
   depth?: number;
+  sessionId?: string;
 }
 
 interface QAEvent {
@@ -45,23 +40,22 @@ interface QAEvent {
 export const handler = async (event: QAEvent, _context: Context): Promise<void> => {
   logger.info('QA Agent received verification task:', JSON.stringify(event, null, 2));
 
-  const payload = event.detail || (event as unknown as QAPayload);
-  const { userId, gapIds, response: implementationResponse, traceId } = payload;
+  const payload = extractPayload<QAPayload>(event);
+  const { userId, gapIds, response: implementationResponse, traceId, sessionId, initiatorId, depth } = payload;
 
   if (!userId || !gapIds || !Array.isArray(gapIds) || gapIds.length === 0) {
     logger.warn('QA Auditor received incomplete payload, skipping verification.');
     return;
   }
 
-  // 1. Discovery
-  const config = await AgentRegistry.getAgentConfig(AgentType.QA);
-  if (!config) {
-    logger.error('Failed to load QA configuration');
-    return;
-  }
+  // 1. Discovery & Initialization
+  const config = await loadAgentConfig(AgentType.QA);
+  const { memory, provider: providerManager } = await getAgentContext();
 
+  const { getAgentTools } = await import('../tools/index');
   const agentTools = await getAgentTools('qa');
-  const qaAgent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
+  const { Agent } = await import('../lib/agent');
+  const qaAgent = new Agent(memory, providerManager, agentTools, config.systemPrompt, config);
 
   // IMPORTANT: The Coder's implementation response is provided below only as background context.
   // Do NOT anchor your verdict on the Coder's self-reported success — it may be inaccurate.
@@ -91,9 +85,10 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
       profile: ReasoningProfile.THINKING,
       isIsolated: true,
       source: TraceSource.SYSTEM,
-      initiatorId: payload.initiatorId,
-      depth: payload.depth,
+      initiatorId,
+      depth,
       traceId,
+      sessionId,
     }
   );
 
@@ -117,6 +112,7 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
   // Resolve evolution mode
   let evolutionMode = EvolutionMode.HITL;
   try {
+    const { AgentRegistry } = await import('../lib/registry');
     const mode = await AgentRegistry.getRawConfig('evolution_mode');
     if (mode === 'auto') evolutionMode = EvolutionMode.AUTO;
   } catch {
@@ -153,6 +149,7 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
     }
 
     if (escalatedGaps.length > 0) {
+      const { AgentRegistry } = await import('../lib/registry');
       await AgentRegistry.saveRawConfig('evolution_mode', 'hitl');
       await sendOutboundMessage(
         'qa.agent',
@@ -160,8 +157,7 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
         `⚠️ **Evolution Escalation Required**\n\nGaps ${escalatedGaps.join(', ')} have failed QA verification ${MAX_REOPEN_ATTEMPTS} times and cannot be autonomously resolved. Evolution mode has been switched to **HITL**.\n\nPlease review the implementation manually and re-approve when ready.`,
         [userId],
         traceId,
-        config.name,
-        undefined
+        config.name
       );
     }
   }
@@ -177,31 +173,17 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
     resultAttachments
   );
 
-  // Universal Coordination: Notify Initiator (if any)
-  try {
-    const { EventBridgeClient, PutEventsCommand } = await import('@aws-sdk/client-eventbridge');
-    const eb = new EventBridgeClient({});
-    await eb.send(
-      new PutEventsCommand({
-        Entries: [
-          {
-            Source: 'qa.agent',
-            DetailType: EventType.TASK_COMPLETED,
-            Detail: JSON.stringify({
-              userId,
-              agentId: AgentType.QA,
-              task: `Audit gaps: ${gapIds.join(', ')}`,
-              response: auditReport,
-              traceId,
-              initiatorId: payload.initiatorId,
-              depth: payload.depth,
-            }),
-            EventBusName: typedResource.AgentBus.name,
-          },
-        ],
-      })
-    );
-  } catch (e) {
-    logger.error('Failed to emit TASK_COMPLETED from QA Auditor:', e);
-  }
+  // 2. Universal Coordination: Notify Initiator (if any)
+  await emitTaskEvent({
+    source: 'qa.agent',
+    agentId: AgentType.QA,
+    userId,
+    task: `Audit gaps: ${gapIds.join(', ')}`,
+    response: auditReport,
+    attachments: resultAttachments,
+    traceId,
+    sessionId,
+    initiatorId,
+    depth,
+  });
 };
