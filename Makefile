@@ -7,6 +7,17 @@ include makefiles/Makefile.release.mk
 
 .DEFAULT_GOAL := help
 
+pre-commit: ## Run pre-commit checks (lint-staged, test-silent)
+	@$(call log_step,Running pre-commit checks...)
+	@$(MAKE) lint-staged
+	@$(MAKE) test-silent
+	@$(call log_success,Pre-commit checks passed)
+
+pre-push: ## Run pre-push checks (check, test-silent, aiready)
+	@$(call log_step,Running pre-push checks...)
+	@$(MAKE) check test-silent aiready
+	@$(call log_success,Pre-push checks passed)
+
 help-agent: help ## Show optimized help for AI agents
 
 help: ## Show all targets and descriptions in a markdown table
@@ -31,15 +42,3 @@ help: ## Show all targets and descriptions in a markdown table
 			printf "  \033[1m%-20s\033[0m %s\n" "$$target" "$$desc"; \
 		done; \
 	done
-
-pre-commit: ## Run pre-commit checks (fix, test, check)
-	@$(call log_step,Running pre-commit checks...)
-	@$(MAKE) fix
-	@git add .
-	@$(MAKE) test-silent
-	@$(call log_success,Pre-commit checks passed)
-
-pre-push: ## Run pre-push checks (check, test, aiready)
-	@$(call log_step,Running pre-push checks...)
-	@$(MAKE) check test-silent aiready
-	@$(call log_success,Pre-push checks passed)
