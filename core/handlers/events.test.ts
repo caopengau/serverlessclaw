@@ -115,7 +115,7 @@ describe('EventHandler', () => {
       // Verify outbound message
       const { sendOutboundMessage } = await import('../lib/outbound');
       expect(sendOutboundMessage).toHaveBeenCalledWith(
-        'events.handler',
+        'health-handler',
         'user-1',
         expect.stringContaining('CRITICAL'),
         undefined,
@@ -208,7 +208,7 @@ describe('EventHandler', () => {
 
       const { sendOutboundMessage } = await import('../lib/outbound');
       expect(sendOutboundMessage).toHaveBeenCalledWith(
-        'events.handler',
+        'build-handler',
         'user-1',
         expect.stringContaining('DEPLOYMENT SUCCESSFUL'),
         undefined,
@@ -318,7 +318,7 @@ describe('EventHandler', () => {
 
       const { sendOutboundMessage } = await import('../lib/outbound');
       expect(sendOutboundMessage).toHaveBeenCalledWith(
-        'events.handler',
+        'task-result-handler',
         'user-1',
         expect.stringContaining('Recursion Limit Exceeded'),
         undefined,
@@ -345,7 +345,7 @@ describe('EventHandler', () => {
 
       const { sendOutboundMessage } = await import('../lib/outbound');
       expect(sendOutboundMessage).toHaveBeenCalledWith(
-        'events.handler',
+        'continuation-handler',
         'user-2',
         expect.stringContaining('Recursion Limit Exceeded'),
         undefined,

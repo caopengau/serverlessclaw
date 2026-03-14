@@ -1,22 +1,13 @@
-import fs from 'fs';
-import path from 'path';
+import SUPERCLAW_SYSTEM_PROMPT from './superclaw.md';
+import CODER_SYSTEM_PROMPT from './coder.md';
+import PLANNER_SYSTEM_PROMPT from './planner.md';
+import REFLECTOR_SYSTEM_PROMPT from './reflector.md';
+import QA_SYSTEM_PROMPT from './qa.md';
 
-/**
- * Loads a prompt from a markdown file in the same directory.
- * Synchronous read is preferred for Lambda initialization performance.
- */
-function loadPrompt(fileName: string): string {
-  try {
-    const filePath = path.join(__dirname, fileName);
-    return fs.readFileSync(filePath, 'utf-8').trim();
-  } catch (error) {
-    console.error(`Failed to load prompt from ${fileName}:`, error);
-    return 'Failed to load system prompt.';
-  }
-}
-
-export const SUPERCLAW_SYSTEM_PROMPT = loadPrompt('superclaw.md');
-export const CODER_SYSTEM_PROMPT = loadPrompt('coder.md');
-export const PLANNER_SYSTEM_PROMPT = loadPrompt('planner.md');
-export const REFLECTOR_SYSTEM_PROMPT = loadPrompt('reflector.md');
-export const QA_SYSTEM_PROMPT = loadPrompt('qa.md');
+export {
+    SUPERCLAW_SYSTEM_PROMPT,
+    CODER_SYSTEM_PROMPT,
+    PLANNER_SYSTEM_PROMPT,
+    REFLECTOR_SYSTEM_PROMPT,
+    QA_SYSTEM_PROMPT,
+};

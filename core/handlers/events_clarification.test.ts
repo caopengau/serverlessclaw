@@ -139,7 +139,7 @@ describe('EventHandler - Clarification', () => {
 
     const { sendOutboundMessage } = await import('../lib/outbound');
     expect(sendOutboundMessage).toHaveBeenCalledWith(
-      'events.handler',
+      'clarification-handler',
       'user-1',
       expect.stringContaining('Recursion Limit Exceeded'),
       undefined,
