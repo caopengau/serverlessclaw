@@ -21,13 +21,6 @@ import { TIME, LIMITS } from './constants';
  */
 export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   /**
-   * Retrieves the conversation history for a specific user or session
-   */
-  async getHistory(userId: string): Promise<Message[]> {
-    return this._getHistory(userId);
-  }
-
-  /**
    * Appends a new message with tiered retention.
    */
   async addMessage(userId: string, message: Message): Promise<void> {
@@ -39,13 +32,6 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
       expiresAt,
       ...message,
     });
-  }
-
-  /**
-   * Clears the conversation history
-   */
-  async clearHistory(userId: string): Promise<void> {
-    return this._clearHistory(userId);
   }
 
   /**
@@ -63,13 +49,6 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
     }
 
     await this.clearHistory(`CONV#${userId}#${sessionId}`);
-  }
-
-  /**
-   * Retrieves distilled memory facts
-   */
-  async getDistilledMemory(userId: string): Promise<string> {
-    return this._getDistilledMemory(userId);
   }
 
   /**
@@ -346,26 +325,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
     content: string,
     metadata?: Partial<InsightMetadata>
   ): Promise<number> {
-    const { expiresAt } = await RetentionManager.getExpiresAt('INSIGHT', scopeId);
-    const timestamp = Date.now();
-    await this.putItem({
-      userId: scopeId,
-      timestamp,
-      type: `INSIGHT:${category.toUpperCase()}`,
-      expiresAt,
-      content,
-      metadata: {
-        category,
-        confidence: 10,
-        impact: 5,
-        complexity: 5,
-        risk: 5,
-        urgency: 5,
-        priority: 5,
-        ...(metadata || {}),
-      },
-    });
-    return timestamp;
+    return this._addRecord('INSIGHT', scopeId, category, content, metadata);
   }
 
   /**
@@ -377,12 +337,25 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
     content: string,
     metadata?: Partial<InsightMetadata>
   ): Promise<number> {
-    const { expiresAt } = await RetentionManager.getExpiresAt('MEMORY', scopeId);
+    return this._addRecord('MEMORY', scopeId, category, content, metadata);
+  }
+
+  /**
+   * Shared implementation for adding granular records (Insights/Memories)
+   */
+  private async _addRecord(
+    baseCategory: 'INSIGHT' | 'MEMORY',
+    scopeId: string,
+    category: InsightCategory | string,
+    content: string,
+    metadata?: Partial<InsightMetadata>
+  ): Promise<number> {
+    const { expiresAt } = await RetentionManager.getExpiresAt(baseCategory, scopeId);
     const timestamp = Date.now();
     await this.putItem({
       userId: scopeId,
       timestamp,
-      type: `MEMORY:${category.toUpperCase()}`,
+      type: `${baseCategory}:${category.toUpperCase()}`,
       expiresAt,
       content,
       metadata: {
@@ -488,13 +461,6 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
       ...item,
       metadata: { ...(item.metadata || {}), ...metadata },
     });
-  }
-
-  /**
-   * Lists all conversation sessions
-   */
-  async listConversations(userId: string): Promise<ConversationMeta[]> {
-    return this._listConversations(userId);
   }
 
   /**

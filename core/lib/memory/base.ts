@@ -82,7 +82,7 @@ export class BaseMemoryProvider {
   /**
    * Standard implementation for getHistory
    */
-  protected async _getHistory(userId: string): Promise<Message[]> {
+  async getHistory(userId: string): Promise<Message[]> {
     const items = await this.queryItems({
       KeyConditionExpression: 'userId = :userId',
       ExpressionAttributeValues: {
@@ -105,7 +105,7 @@ export class BaseMemoryProvider {
   /**
    * Standard implementation for clearHistory
    */
-  protected async _clearHistory(userId: string): Promise<void> {
+  async clearHistory(userId: string): Promise<void> {
     const items = await this.queryItems({
       KeyConditionExpression: 'userId = :userId',
       ExpressionAttributeValues: {
@@ -125,7 +125,7 @@ export class BaseMemoryProvider {
   /**
    * Standard implementation for getDistilledMemory
    */
-  protected async _getDistilledMemory(userId: string): Promise<string> {
+  async getDistilledMemory(userId: string): Promise<string> {
     const items = await this.queryItems({
       KeyConditionExpression: 'userId = :userId',
       ExpressionAttributeValues: {
@@ -141,7 +141,7 @@ export class BaseMemoryProvider {
   /**
    * Standard implementation for listConversations
    */
-  protected async _listConversations(userId: string): Promise<ConversationMeta[]> {
+  async listConversations(userId: string): Promise<ConversationMeta[]> {
     const items = await this.queryItems({
       KeyConditionExpression: 'userId = :userId',
       ExpressionAttributeValues: {

@@ -4,20 +4,19 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
-import { SSTResource, EventType, GapStatus, TopologyNode } from '../lib/types/index';
-import { DynamoMemory } from '../lib/memory';
+import { EventType, GapStatus } from '../lib/types/agent';
+import { SSTResource, TopologyNode } from '../lib/types/system';
 import { reportHealthIssue } from '../lib/health';
-import { ConfigManager } from '../lib/registry/config';
-import { discoverSystemTopology } from '../lib/utils/topology';
 import { emitEvent } from '../lib/utils/bus';
 
 const codebuild = new CodeBuildClient({});
 const logs = new CloudWatchLogsClient({});
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const typedResource = Resource as unknown as SSTResource;
-const memory = new DynamoMemory();
 
 /**
+ * monitors-codebuild-build-states
+ *
  * Monitors CodeBuild build states and transitions associated Gaps to DEPLOYED or FAILED.
  * Sends success or failure events to the system bus for further processing.
  *
@@ -26,6 +25,11 @@ const memory = new DynamoMemory();
  */
 export const handler = async (event: { detail: Record<string, unknown> }): Promise<void> => {
   logger.info('BuildMonitor received event:', JSON.stringify(event, null, 2));
+
+  // Lazy load large dependencies to break context fragmentation
+  const { DynamoMemory } = await import('../lib/memory');
+  const { ConfigManager } = await import('../lib/registry/config');
+  const memory = new DynamoMemory();
 
   let buildId = event.detail['build-id'] as string;
   const projectName = event.detail['project-name'] as string;
@@ -88,6 +92,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
       }
 
       // Self-Aware Topology Discovery
+      const { discoverSystemTopology } = await import('../lib/utils/topology');
       const topology = await discoverSystemTopology();
 
       try {

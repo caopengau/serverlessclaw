@@ -1,12 +1,13 @@
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { EventBridgeClient } from '@aws-sdk/client-eventbridge';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
 import { SSTResource, EventType, OutboundMessageEvent } from '../lib/types/index';
 import { DynamoLockManager } from '../lib/lock';
 import { DynamoMemory } from '../lib/memory';
+import { emitEvent } from '../lib/utils/bus';
 
 const codebuild = new CodeBuildClient({});
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -75,17 +76,10 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
         agentName: 'DeadManSwitch',
       };
 
-      await eventbridge.send(
-        new PutEventsCommand({
-          Entries: [
-            {
-              Source: 'system.recovery',
-              DetailType: EventType.OUTBOUND_MESSAGE,
-              Detail: JSON.stringify(alert),
-              EventBusName: typedResource.AgentBus.name,
-            },
-          ],
-        })
+      await emitEvent(
+        'system.recovery',
+        EventType.OUTBOUND_MESSAGE,
+        alert as unknown as Record<string, unknown>
       );
 
       await db.send(

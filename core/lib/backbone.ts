@@ -1,9 +1,11 @@
 import { AgentType, IAgentConfig, AgentCategory } from './types/agent';
-import { SUPERCLAW_SYSTEM_PROMPT } from '../agents/superclaw';
-import { CODER_SYSTEM_PROMPT } from '../agents/coder';
-import { PLANNER_SYSTEM_PROMPT } from '../agents/strategic-planner';
-import { REFLECTOR_SYSTEM_PROMPT } from '../agents/cognition-reflector';
-import { QA_SYSTEM_PROMPT } from '../agents/qa';
+import {
+  SUPERCLAW_SYSTEM_PROMPT,
+  CODER_SYSTEM_PROMPT,
+  PLANNER_SYSTEM_PROMPT,
+  REFLECTOR_SYSTEM_PROMPT,
+  QA_SYSTEM_PROMPT,
+} from '../agents/prompts/index';
 
 /**
  * Backbone Registry: The single source of truth for essential system components.

@@ -1,8 +1,6 @@
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
-import { EventType, TraceSource, TaskEvent, SSTResource } from '../lib/types/index';
-import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
-import { Resource } from 'sst';
+import { TraceSource, TaskEvent } from '../lib/types/index';
 import {
   getAgentContext,
   extractPayload,
@@ -12,10 +10,8 @@ import {
   createAgent,
   validatePayload,
   buildProcessOptions,
+  emitTaskEvent,
 } from '../lib/utils/agent-helpers';
-
-const eventbridge = new EventBridgeClient({});
-const typedResource = Resource as unknown as SSTResource;
 
 interface WorkerEvent {
   'detail-type': string;
@@ -94,32 +90,18 @@ export const handler = async (
   // 4. Notification (Optional: Worker could be silent or chatty)
   if (!isTaskPaused(responseText)) {
     const isFailure = detectFailure(responseText);
-    try {
-      await eventbridge.send(
-        new PutEventsCommand({
-          Entries: [
-            {
-              Source: `${agentId}.agent`,
-              DetailType: isFailure ? EventType.TASK_FAILED : EventType.TASK_COMPLETED,
-              Detail: JSON.stringify({
-                userId,
-                agentId,
-                task,
-                [isFailure ? 'error' : 'response']: responseText,
-                attachments: resultAttachments,
-                traceId,
-                sessionId,
-                initiatorId: payload.initiatorId,
-                depth: payload.depth,
-              }),
-              EventBusName: typedResource.AgentBus.name,
-            },
-          ],
-        })
-      );
-    } catch (e) {
-      logger.error(`Failed to emit ${isFailure ? 'TASK_FAILED' : 'TASK_COMPLETED'}:`, e);
-    }
+    await emitTaskEvent({
+      source: `${agentId}.agent`,
+      agentId,
+      userId,
+      task,
+      [isFailure ? 'error' : 'response']: responseText,
+      attachments: resultAttachments,
+      traceId,
+      sessionId,
+      initiatorId: payload.initiatorId,
+      depth: payload.depth,
+    });
   }
 
   return responseText;

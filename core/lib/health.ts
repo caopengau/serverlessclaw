@@ -1,8 +1,4 @@
-import {
-  EventBridgeClient,
-  PutEventsCommand,
-  ListEventBusesCommand,
-} from '@aws-sdk/client-eventbridge';
+import { EventBridgeClient, ListEventBusesCommand } from '@aws-sdk/client-eventbridge';
 import {
   DynamoDBClient,
   PutItemCommand,
@@ -12,6 +8,7 @@ import {
 import { Resource } from 'sst';
 import { EventType, SSTResource } from './types/index';
 import { logger } from './logger';
+import { emitEvent } from './utils/bus';
 
 const eventbridge = new EventBridgeClient({});
 const dynamodb = new DynamoDBClient({});
@@ -35,17 +32,10 @@ export async function reportHealthIssue(report: HealthIssue): Promise<void> {
   });
 
   try {
-    await eventbridge.send(
-      new PutEventsCommand({
-        Entries: [
-          {
-            Source: 'system.health',
-            DetailType: EventType.SYSTEM_HEALTH_REPORT,
-            Detail: JSON.stringify(report),
-            EventBusName: (Resource as unknown as SSTResource).AgentBus.name,
-          },
-        ],
-      })
+    await emitEvent(
+      'system.health',
+      EventType.SYSTEM_HEALTH_REPORT,
+      report as unknown as Record<string, unknown>
     );
     logger.info(`Health issue reported successfully for component: ${report.component}`);
   } catch (error) {
