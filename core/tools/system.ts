@@ -31,13 +31,14 @@ export const triggerDeployment = {
     const typedResource = Resource as unknown as ToolsResource;
 
     try {
-      const { reason, userId, traceId, initiatorId, sessionId, task } = args as {
+      const { reason, userId, traceId, initiatorId, sessionId, task, gapIds } = args as {
         reason: string;
         userId: string;
         traceId?: string;
         initiatorId?: string;
         sessionId?: string;
         task?: string;
+        gapIds?: string[];
       };
       const count = await getDeployCountToday();
 
@@ -74,6 +75,7 @@ export const triggerDeployment = {
       const buildId = response.build?.id;
 
       if (buildId) {
+        // 1. Save Build Metadata
         await db.send(
           new PutCommand({
             TableName: typedResource.MemoryTable.name,
@@ -88,6 +90,22 @@ export const triggerDeployment = {
             },
           })
         );
+
+        // 2. Save Gap Mapping Atomically (If provided)
+        if (gapIds && gapIds.length > 0) {
+          logger.info(`Mapping ${gapIds.length} gaps to build ${buildId} atomically.`);
+          await db.send(
+            new PutCommand({
+              TableName: typedResource.MemoryTable.name,
+              Item: {
+                userId: `BUILD_GAPS#${buildId}`,
+                timestamp: 0, // Fixed lookup for Monitor and QA Auditor
+                role: 'system',
+                content: JSON.stringify(gapIds),
+              },
+            })
+          );
+        }
       }
 
       await incrementDeployCount(today, count);

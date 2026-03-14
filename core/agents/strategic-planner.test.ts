@@ -113,13 +113,16 @@ describe('Strategic Planner — selective PLANNED marking', () => {
     });
   });
 
-  it('should only mark gaps PLANNED whose content appears in the plan text (scheduled review)', async () => {
-    // Plan references ONLY gap A content
-    const planText = `STRATEGIC_PLAN: Add Slack search integration. The system cannot search Slack messages so we will implement a new tool.`;
-    agentProcess.mockResolvedValue(planText);
+  it('should mark gaps PLANNED based on coveredGapIds in structured output (scheduled review)', async () => {
+    // Structured response explicitly covering Gap A
+    const planResponse = JSON.stringify({
+      status: 'SUCCESS',
+      plan: 'Add Slack search integration.',
+      coveredGapIds: ['GAP#1001'],
+      reasoning: 'Missing tools',
+    });
+    agentProcess.mockResolvedValue(planResponse);
 
-    // Simulate scheduled review passing minimum requirements
-    // (frequency and min-gap checks are bypassed by mocking)
     const event = {
       detail: {
         contextUserId: 'user-1',
@@ -134,17 +137,14 @@ describe('Strategic Planner — selective PLANNED marking', () => {
     const plannedCalls = memoryMocks.updateGapStatus.mock.calls.filter(
       (c: unknown[]) => c[1] === GapStatus.PLANNED
     );
-    const openCalls = memoryMocks.updateGapStatus.mock.calls.filter(
-      (c: unknown[]) => c[1] === GapStatus.OPEN
-    );
 
-    // Only covered gap should be PLANNED, not all gaps
+    // Only covered gap should be PLANNED
     expect(plannedCalls.length).toBeGreaterThan(0);
-    // Gap B content ('image recognition') is NOT in the plan — it must NOT be PLANNED
+    expect(plannedCalls.some((c: unknown[]) => String(c[0]).includes('1001'))).toBe(true);
+
+    // Gap B (1002) was not in coveredGapIds and should NOT be PLANNED
     const gapBPlanned = plannedCalls.some((c: unknown[]) => String(c[0]).includes('1002'));
     expect(gapBPlanned).toBe(false);
-    // Gap B stays OPEN
-    expect(openCalls.length).toBe(0); // updateGapStatus for OPEN not called directly by planner
   });
 
   it('should return COOLDOWN_ACTIVE if the same gapId was planned recently', async () => {

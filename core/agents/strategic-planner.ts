@@ -38,6 +38,15 @@ Key Obligations:
 6. **Self-Deduplication**: Before generating a new plan, use 'recallKnowledge' or 'listFiles' to ensure the requested capability doesn't already exist or isn't already being worked on. If you see a 'PROGRESS' gap that is similar, ABORT with a status message.
 7. **Efficiency Auditing**: During scheduled reviews, analyze the provided 'TOOL_USAGE' telemetry. Design plans to prune redundant tools, de-register rarely used MCP servers, and simplify the architecture to maintain high operational ROI.
 8. **Direct Communication**: Use 'sendMessage' to notify the human user immediately when you have generated a new plan or identified a critical gap.
+
+OUTPUT FORMAT:
+You MUST return your final response as a JSON object with the following schema:
+{
+  "status": "SUCCESS" | "FAILED" | "CONTINUE",
+  "plan": "string (The detailed strategic plan markdown)",
+  "coveredGapIds": ["string (IDs of gaps addressed in this plan)"],
+  "reasoning": "string (Short summary of the architectural reasoning)"
+}
 `;
 
 async function getEvolutionMode(): Promise<'auto' | 'hitl'> {
@@ -231,6 +240,7 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   //   a) evicted entries as the buffer filled (same gap became "new" again)
   //   b) did text-prefix matching easily bypassed by rephrased descriptions
   //   c) was never checked for scheduled reviews (details === undefined)
+  const COOLDOWN_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
   if (gapId) {
     const cooldownKey = `COOLDOWN_GAPS#${baseUserId}`;
     try {
@@ -248,7 +258,7 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   }
 
   // 3. Process with High Reasoning
-  const result = await plannerAgent.process(contextUserId, plannerPrompt, {
+  const rawResponse = await plannerAgent.process(contextUserId, plannerPrompt, {
     profile: ReasoningProfile.DEEP,
     isIsolated: true,
     initiatorId,
@@ -258,22 +268,37 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
     source: TraceSource.SYSTEM,
   });
 
-  logger.info('Strategic Plan Generated:', result);
+  logger.info('Strategic Plan Raw Response:', rawResponse);
+
+  let status = 'SUCCESS';
+  let plan = rawResponse;
+  let coveredGapIds: string[] = [];
+
+  try {
+    const jsonContent = rawResponse.replace(/```json\n?|\n?```/g, '').trim();
+    const parsed = JSON.parse(jsonContent);
+    status = parsed.status || 'SUCCESS';
+    plan = parsed.plan || rawResponse;
+    coveredGapIds = parsed.coveredGapIds || [];
+    logger.info(`Parsed Strategic Plan. Status: ${status}, Gaps: ${coveredGapIds.join(', ')}`);
+  } catch (e) {
+    logger.warn('Failed to parse Planner structured response, falling back to raw text.', e);
+  }
 
   // 1. Notify user directly in the chat session
   await sendOutboundMessage(
     'planner.agent',
     contextUserId,
-    `🚀 **Strategic Plan Generated**\n\n${result}`,
+    `🚀 **Strategic Plan Generated**\n\n${plan}`,
     [contextUserId],
     sessionId,
     config.name
   );
 
-  const isFailure = result.startsWith('I encountered an internal error');
+  const isFailure = status === 'FAILED' || plan.startsWith('I encountered an internal error');
 
   // 2. Emit Task Result for Universal Coordination
-  if (!result.startsWith('TASK_PAUSED')) {
+  if (!rawResponse.startsWith('TASK_PAUSED')) {
     try {
       const { EventBridgeClient, PutEventsCommand } = await import('@aws-sdk/client-eventbridge');
       const eb = new EventBridgeClient({});
@@ -287,7 +312,7 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
                 userId: contextUserId,
                 agentId: AgentType.STRATEGIC_PLANNER,
                 task: isScheduledReview ? 'Scheduled Review' : details,
-                [isFailure ? 'error' : 'response']: result,
+                [isFailure ? 'error' : 'response']: plan,
                 traceId,
                 initiatorId: payload.initiatorId,
                 depth: payload.depth,
@@ -306,7 +331,6 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   // 4. Record gap in structured cooldown store
   if (gapId && !isFailure) {
     const cooldownKey = `COOLDOWN_GAPS#${baseUserId}`;
-    const COOLDOWN_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
     try {
       const raw = await memory.getDistilledMemory(cooldownKey);
       const entries: Array<{ gapId: string; expiresAt: number }> = raw ? JSON.parse(raw) : [];
@@ -320,77 +344,64 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
     }
   }
 
-  // 5. Gap Sink: Mark only gaps whose content is actually referenced in the plan as PLANNED.
-  // Bulk-marking every open gap would incorrectly suppress future planning for gaps the LLM
-  // never addressed in this plan output.
+  // 5. Gap Sink: Mark covered gaps as PLANNED
   const processedGapIds: string[] = [];
-  if (isScheduledReview && result && !result.includes('internal error')) {
-    const allGaps = await memory.getAllGaps(GapStatus.OPEN);
-    const resultLower = result.toLowerCase();
-    logger.info(
-      `Scheduled review complete. Checking which of ${allGaps.length} gaps are covered by the plan.`
-    );
-    for (const gap of allGaps) {
-      // A gap is "covered" if a meaningful excerpt of its description appears in the plan text.
-      const excerpt = gap.content.substring(0, 60).toLowerCase();
-      if (excerpt.length > 0 && resultLower.includes(excerpt)) {
-        const numericId = gap.id.replace('GAP#', '');
+  if (!isFailure) {
+    if (isScheduledReview) {
+      logger.info(`Marking ${coveredGapIds.length} gaps as PLANNED based on structured output.`);
+      for (const gId of coveredGapIds) {
+        const numericId = gId.replace('GAP#', '');
         await memory.updateGapStatus(numericId, GapStatus.PLANNED);
         processedGapIds.push(numericId);
-        logger.info(`Gap ${numericId} marked as PLANNED (plan references its content).`);
-      } else {
-        logger.info(`Gap ${gap.id} not covered by this plan — leaving as OPEN.`);
       }
+    } else if (gapId) {
+      logger.info(`Marking specific gap ${gapId} as PLANNED after design.`);
+      await memory.updateGapStatus(gapId, GapStatus.PLANNED);
+      processedGapIds.push(gapId);
     }
-  } else if (!isScheduledReview && gapId && result && !result.includes('internal error')) {
-    logger.info(`Marking specific gap ${gapId} as PLANNED after design.`);
-    await memory.updateGapStatus(gapId, GapStatus.PLANNED);
-    processedGapIds.push(gapId);
   }
 
   // 6. Save plan for QA auditing
   for (const gapIdToSave of processedGapIds) {
-    await memory.updateDistilledMemory(`PLAN#${gapIdToSave}`, result);
+    await memory.updateDistilledMemory(`PLAN#${gapIdToSave}`, plan);
   }
 
   const evolutionMode = await getEvolutionMode();
 
-  if (evolutionMode === EvolutionMode.AUTO) {
+  if (evolutionMode === EvolutionMode.AUTO && !isFailure) {
     logger.info('Evolution mode is auto, dispatching CODER_TASK directly.');
     await sendOutboundMessage(
       'planner.agent',
       contextUserId,
-      `🚀 **Autonomous Evolution Triggered**\n\nI have identified a capability gap and designed a plan to fix it. The Coder Agent is now executing the following STRATEGIC_PLAN:\n\n${result}`,
+      `🚀 **Autonomous Evolution Triggered**\n\nI have identified a capability gap and designed a plan to fix it. The Coder Agent is now executing the following STRATEGIC_PLAN:\n\n${plan}`,
       [contextUserId],
       sessionId,
       config.name
     );
 
-    // 2026 Optimization: Use the dispatchTask tool logic via EventBridge directly
     const { tools } = await import('../tools/index');
     const dispatcher = tools.dispatchTask;
     await dispatcher.execute({
       agentId: AgentType.CODER,
       userId: contextUserId,
-      task: result,
+      task: plan,
       metadata: {
         gapIds: processedGapIds,
       },
-      traceId, // Propagate traceId
+      traceId,
       sessionId,
     });
-  } else {
+  } else if (!isFailure) {
     logger.info('Evolution mode is hitl, asking for approval.');
-    // Send plan to user
     await sendOutboundMessage(
       'planner.agent',
       contextUserId,
-      `🚀 **NEW STRATEGIC PLAN PROPOSED**\n\n${result}\n\nReply with 'APPROVE' to execute.`,
+      `🚀 **NEW STRATEGIC PLAN PROPOSED**\n\n${plan}\n\nReply with 'APPROVE' to execute.`,
       [contextUserId],
       sessionId,
       config.name
     );
   }
 
-  return { gapId, plan: result };
+  return { gapId, plan: plan };
 };

@@ -258,13 +258,14 @@ Instead of hardcoding API requests to a single platform, agents emit an `OUTBOUN
 - **Multi-Channel**: The Notifier reads user preferences from the `ConfigTable` and fans the message out to the appropriate adapters (Telegram, Slack, and the **Real-time Signal Bridge**).
 
 ## 🔄 Self-Evolution & Stability
-The system's evolution is a co-managed process between the **Strategic Planner** and the **Human Admin**.
+The system's evolution is a co-managed process between the **Strategic Planner** and the **Human Admin**. Resilience is ensured via **Structured Signaling** (JSON-based status) and **Atomic Deployment Mapping** (direct gap-to-build syncing).
 - **Deep Dive**: [Self-Evolution ↗](./docs/EVOLUTION.md)
 - **Deep Dive**: [Health & Recovery ↗](./docs/HEALTH.md)
 
-### Evolution Modes
-- **`hitl` (Default)**: Strategic plans require explicit user "APPROVE" via Telegram.
-- **`auto`**: Planner directly triggers `CODER_TASK` upon identification.
+### Evolution Safeguards
+- **Structured JSON Hub**: Agents emit deterministic signals (`SUCCESS`, `FAILED`, `REOPEN`) rather than brittle free-text responses.
+- **Atomic Metadata Sync**: The `triggerDeployment` tool handles gap-to-build mapping internally to prevent metadata loss.
+- **Deep Health Probes**: The Dead Man's Switch verifies both API responsiveness and backbone connectivity (EventBus).
 
 
 ### 4. LLM Providers

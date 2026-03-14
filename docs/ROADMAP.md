@@ -71,6 +71,12 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [x] **QA Auditor Agent**: Specialized node for satisfaction verification and loop closure.
 - [x] **Deterministic Review**: Scheduled strategic reviews based on gap volume and frequency thresholds.
 
+## 🏗️ Phase 11.5: Self-Evolution Loop Resilience
+- [ ] **Structured Agent Signaling**: Enforce JSON-based status reporting (`SUCCESS`, `FAILED`, `CONTINUE`) to remove brittle string matching.
+- [ ] **Atomic Deployment Sync**: Pass `gapIds` directly to the `triggerDeployment` tool for failure-proof metadata mapping.
+- [ ] **Deep Cognitive Health**: Pulse checks that verify agent-to-agent communication and tool functionality.
+- [ ] **Plan Decomposition**: Hierarchical task breakdown to prevent Coder Agent logic overload.
+
 ## 🏗️ Phase 12: Evolutionary Command Center (ClawCenter v2)
 - [x] **Evolution Pipeline Board**: Kanban visualization of the 5-stage gap lifecycle.
 - [x] **Neural Map**: Dependency graph visualization of agent-to-agent delegation paths and dynamic infrastructure state from DynamoDB.

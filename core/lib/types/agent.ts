@@ -222,6 +222,26 @@ export enum GapStatus {
 }
 
 /**
+ * Standardized execution status for autonomous agents.
+ */
+export enum AgentStatus {
+  SUCCESS = 'SUCCESS',
+  FAILED = 'FAILED',
+  CONTINUE = 'CONTINUE',
+  REOPEN = 'REOPEN',
+}
+
+/**
+ * Structured output signal for agent orchestration.
+ */
+export interface AgentSignal {
+  status: AgentStatus;
+  coveredGapIds?: string[];
+  buildId?: string;
+  reasoning?: string;
+}
+
+/**
  * Generic interface for communication channels.
  */
 export interface IChannel {

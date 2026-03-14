@@ -80,8 +80,13 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
     registryMocks.getRawConfig.mockResolvedValue(EvolutionMode.AUTO);
   });
 
-  it('should set gaps to DONE and not escalate on VERIFICATION_SUCCESSFUL (auto mode)', async () => {
-    agentProcess.mockResolvedValue('VERIFICATION_SUCCESSFUL — implementation is correct.');
+  it('should set gaps to DONE and not escalate on SUCCESS (auto mode)', async () => {
+    agentProcess.mockResolvedValue(
+      JSON.stringify({
+        status: 'SUCCESS',
+        auditReport: 'implementation is correct.',
+      })
+    );
     registryMocks.getRawConfig.mockResolvedValue('auto');
 
     await handler(BASE_PAYLOAD as any, {} as any);
@@ -91,8 +96,13 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
     expect(registryMocks.saveRawConfig).not.toHaveBeenCalled();
   });
 
-  it('should REOPEN gap and increment attempt count on REOPEN_REQUIRED below cap', async () => {
-    agentProcess.mockResolvedValue('REOPEN_REQUIRED — the file was not changed.');
+  it('should REOPEN gap and increment attempt count on REOPEN status below cap', async () => {
+    agentProcess.mockResolvedValue(
+      JSON.stringify({
+        status: 'REOPEN',
+        auditReport: 'the file was not changed.',
+      })
+    );
     memoryMocks.incrementGapAttemptCount.mockResolvedValue(1); // attempt 1 of 3
 
     await handler(BASE_PAYLOAD as any, {} as any);
@@ -104,7 +114,12 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
   });
 
   it('should escalate to HITL and send alert when reopen cap (3) is reached', async () => {
-    agentProcess.mockResolvedValue('REOPEN_REQUIRED — still broken.');
+    agentProcess.mockResolvedValue(
+      JSON.stringify({
+        status: 'REOPEN',
+        auditReport: 'still broken.',
+      })
+    );
     memoryMocks.incrementGapAttemptCount.mockResolvedValue(3); // cap reached
 
     await handler(BASE_PAYLOAD as any, {} as any);

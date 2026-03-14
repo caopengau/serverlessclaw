@@ -26,11 +26,19 @@ You are the QA Auditor for Serverless Claw. Your role is to verify that recent c
 
 Key Obligations:
 1. **Validation (MECHANICAL GATING)**: You MUST call at least one system or exploration tool (e.g., 'read_file', 'checkHealth', 'validateCode', 'listFiles') to verify the change before reporting status. You cannot rely on Coder Agent's testimony alone.
-2. **Success Criteria**: If the gap is definitively resolved according to your manual checks, respond with "VERIFICATION_SUCCESSFUL".
-3. **Failure Criteria**: If the implementation is missing, buggy, or incomplete, respond with "REOPEN_REQUIRED" and explain why.
+2. **Success Criteria**: If the gap is definitively resolved according to your manual checks, set status to "SUCCESS".
+3. **Failure Criteria**: If the implementation is missing, buggy, or incomplete, set status to "REOPEN" and explain why.
 4. **Safety**: Do not approve changes that introduce obvious security risks or architectural regressions.
 5. **Direct Communication**: Use 'sendMessage' to notify the human user immediately of your audit results (Success or Reopen).
 6. **User Guidance**: If the feature is deployed and working, but requires user interaction to fully verify (e.g., "try this new command"), explicitly tell the user how to test it in your final message.
+
+OUTPUT FORMAT:
+You MUST return your final response as a JSON object with the following schema:
+{
+  "status": "SUCCESS" | "REOPEN",
+  "auditReport": "string (The detailed summary of your verification tests)",
+  "reasoning": "string (Why you reached this verdict)"
+}
 `;
 
 interface QAPayload {
@@ -96,7 +104,7 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
 
     Final response MUST include VERIFICATION_SUCCESSFUL or REOPEN_REQUIRED.`;
 
-  const auditReport = await qaAgent.process(userId, auditPrompt, {
+  const rawResponse = await qaAgent.process(userId, auditPrompt, {
     profile: ReasoningProfile.THINKING,
     isIsolated: true,
     source: TraceSource.SYSTEM,
@@ -105,9 +113,22 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
     traceId,
   });
 
-  logger.info('QA Audit Report:', auditReport);
+  logger.info('QA Agent Raw Response:', rawResponse);
 
-  const isSatisfied = auditReport.includes('VERIFICATION_SUCCESSFUL');
+  let status = 'REOPEN';
+  let auditReport = rawResponse;
+
+  try {
+    const jsonContent = rawResponse.replace(/```json\n?|\n?```/g, '').trim();
+    const parsed = JSON.parse(jsonContent);
+    status = parsed.status === 'SUCCESS' ? 'SUCCESS' : 'REOPEN';
+    auditReport = parsed.auditReport || rawResponse;
+    logger.info(`Parsed QA Result. Status: ${status}`);
+  } catch (e) {
+    logger.warn('Failed to parse QA structured response, falling back to raw text.', e);
+  }
+
+  const isSatisfied = status === 'SUCCESS';
 
   // Resolve evolution mode
   let evolutionMode = EvolutionMode.HITL;
@@ -126,7 +147,6 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
       }
     } else {
       logger.info('Verification successful. Awaiting human confirmation (HITL).');
-      // In HITL mode, we stay in DEPLOYED until human marks as DONE via ManageGap tool
     }
   } else {
     // Reopen failed verification. Track attempt count and escalate to HITL if cap reached.
@@ -149,7 +169,6 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
     }
 
     if (escalatedGaps.length > 0) {
-      // Force HITL to stop autonomous loop for these persistently failing gaps
       await AgentRegistry.saveRawConfig('evolution_mode', 'hitl');
       await sendOutboundMessage(
         'qa.agent',

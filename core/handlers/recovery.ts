@@ -27,14 +27,21 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
 
   try {
     const response = await fetch(healthUrl);
-    if (response.ok) {
-      logger.info('System is healthy. No action needed.');
-      return;
+    if (!response.ok) {
+      throw new Error(`Health endpoint returned ${response.status}`);
     }
-    logger.error(`System health check FAILED with status: ${response.status}`);
+
+    // DEEP HEALTH: Verify EventBridge accessibility
+    const { EventBridgeClient, ListEventBusesCommand } =
+      await import('@aws-sdk/client-eventbridge');
+    const eb = new EventBridgeClient({});
+    await eb.send(new ListEventBusesCommand({ NamePrefix: typedResource.AgentBus.name }));
+
+    logger.info('System is healthy (Deep Check PASSED). No action needed.');
+    return;
   } catch (error) {
     logger.error(
-      `System health check FAILED with error: ${error instanceof Error ? error.message : String(error)}`
+      `System health check FAILED: ${error instanceof Error ? error.message : String(error)}`
     );
   }
 

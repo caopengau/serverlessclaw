@@ -1,17 +1,8 @@
 import { DynamoMemory } from '../lib/memory';
 import { ProviderManager } from '../lib/providers/index';
-import {
-  SSTResource,
-  MessageRole,
-  AgentType,
-  GapStatus,
-  ReasoningProfile,
-} from '../lib/types/index';
+import { AgentType, GapStatus, ReasoningProfile } from '../lib/types/index';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
-import { Resource } from 'sst';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { Context } from 'aws-lambda';
 import {
   extractPayload,
@@ -26,7 +17,6 @@ import {
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
-const typedResource = Resource as unknown as SSTResource;
 
 export const CODER_SYSTEM_PROMPT = `
 You are the Coder Agent for Serverless Claw. Your role is to implement requested technical changes, write high-quality TypeScript code, and manage AWS infrastructure via SST.
@@ -41,9 +31,18 @@ Key Obligations:
    - Running 'runTests' if available to ensure tests pass
    - Reading key files to verify the implementation matches requirements
    Only proceed to 'triggerDeployment' after verification passes.
-6. **Deployment**: Trigger a deployment via 'triggerDeployment' only after verifying the build locally with 'validateCode' and 'runTests'.
+6. **Deployment**: Trigger a deployment via 'triggerDeployment' only after verifying the build locally with 'validateCode' and 'runTests'. You MUST pass the 'gapIds' provided in your metadata to the 'triggerDeployment' tool.
 7. **Clarity**: Explain your technical decisions and follow the project's architecture as defined in 'ARCHITECTURE.md'.
 8. **Direct Communication**: Use 'sendMessage' to notify the human user immediately when you start a significant implementation, encounter a blocker, or complete a task. Do not wait for the final response to provide status updates.
+
+OUTPUT FORMAT:
+You MUST return your final response as a JSON object with the following schema:
+{
+  "status": "SUCCESS" | "FAILED" | "CONTINUE",
+  "response": "string (The detailed summary of what you implemented)",
+  "buildId": "string (The ID from triggerDeployment, if applicable)",
+  "reasoning": "string (Short summary of technical changes made)"
+}
 `;
 
 interface CoderPayload {
@@ -91,11 +90,10 @@ export const handler = async (event: CoderEvent, context: Context): Promise<stri
   }
 
   // 2. Process the task
-  // 2026 Optimization: Use 'thinking' profile for coding tasks
   const config = await loadAgentConfig(AgentType.CODER);
 
   const agent = await createAgent('coder', config, memory, provider);
-  const response = await agent.process(
+  const rawResponse = await agent.process(
     userId,
     task,
     buildProcessOptions({
@@ -110,43 +108,40 @@ export const handler = async (event: CoderEvent, context: Context): Promise<stri
     })
   );
 
-  logger.info('Coder Agent completed task:', response);
+  logger.info('Coder Agent Raw Response:', rawResponse);
 
-  // 3. Notify user directly if not a silent internal task
-  if (!isTaskPaused(response)) {
-    await sendOutboundMessage('coder.agent', userId, response, [userId], sessionId, config.name);
+  let status = 'SUCCESS';
+  let responseText = rawResponse;
+  let buildId: string | undefined = undefined;
+
+  try {
+    const jsonContent = rawResponse.replace(/```json\n?|\n?```/g, '').trim();
+    const parsed = JSON.parse(jsonContent);
+    status = parsed.status || 'SUCCESS';
+    responseText = parsed.response || rawResponse;
+    buildId = parsed.buildId;
+    logger.info(`Parsed Coder Result. Status: ${status}, BuildId: ${buildId}`);
+  } catch (e) {
+    logger.warn('Failed to parse Coder structured response, falling back to raw text.', e);
   }
 
-  const isFailure = detectFailure(response);
+  // 3. Notify user directly if not a silent internal task
+  if (!isTaskPaused(rawResponse)) {
+    await sendOutboundMessage(
+      'coder.agent',
+      userId,
+      responseText,
+      [userId],
+      sessionId,
+      config.name
+    );
+  }
 
-  // 4. Mark gaps as DONE if successful or map them to a build
-  const isSuccess =
-    !isFailure &&
-    (response.includes('Successfully staged') ||
-      response.includes('Neural Core Synthesis') ||
-      response.includes('greeting'));
+  const isFailure = status === 'FAILED' || detectFailure(responseText);
 
-  if (isSuccess && metadata?.gapIds && metadata.gapIds.length > 0) {
-    // Check if a deployment was triggered
-    const buildMatch = response.match(/Build ID: ([a-zA-Z0-9:-]+)/);
-    const buildId = buildMatch ? buildMatch[1] : null;
-
-    if (buildId) {
-      logger.info(`Deployment triggered (${buildId}). Mapping gaps to build for monitor.`);
-      // 2026 Fix: Use timestamp 0 for fixed lookup compatibility with QA Auditor
-      const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-      await db.send(
-        new PutCommand({
-          TableName: typedResource.MemoryTable.name,
-          Item: {
-            userId: `BUILD_GAPS#${buildId}`,
-            timestamp: 0,
-            role: MessageRole.SYSTEM,
-            content: JSON.stringify(metadata.gapIds),
-          },
-        })
-      );
-    } else {
+  // 4. Trace gap transitions (Build Monitor handles the rest via atomic mapping in tools)
+  if (!isFailure && status === 'SUCCESS') {
+    if (!buildId && metadata?.gapIds?.length) {
       logger.info(
         `Task successful without deployment. Marking ${metadata.gapIds.length} gaps as DEPLOYED.`
       );
@@ -157,13 +152,13 @@ export const handler = async (event: CoderEvent, context: Context): Promise<stri
   }
 
   // 5. Notify Resumption Loop (Universal Coordination)
-  if (!isTaskPaused(response)) {
+  if (!isTaskPaused(rawResponse)) {
     await emitTaskEvent({
       source: 'coder.agent',
       agentId: AgentType.CODER,
       userId,
       task,
-      response,
+      response: responseText,
       traceId,
       sessionId,
       initiatorId,
@@ -171,5 +166,5 @@ export const handler = async (event: CoderEvent, context: Context): Promise<stri
     });
   }
 
-  return response;
+  return responseText;
 };
