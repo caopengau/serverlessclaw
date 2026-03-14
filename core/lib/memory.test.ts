@@ -124,7 +124,8 @@ describe('DynamoMemory Retention', () => {
       expect(updateCalls).toHaveLength(2);
 
       // The second call should use the updated timestamp from the lookup
-      expect(updateCalls[1].args[0].input.Key.timestamp).toBe(timestamp + 1);
+      const secondCallInput = updateCalls[1].args[0].input;
+      expect(secondCallInput.Key?.timestamp).toBe(timestamp + 1);
     });
 
     it('should handle gapId that is not a numeric timestamp by searching all gaps', async () => {
