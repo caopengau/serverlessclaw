@@ -18,11 +18,22 @@ vi.mock('../lib/lock', () => ({
   },
 }));
 
+const memoryMocks = vi.hoisted(() => ({
+  getLatestLKGHash: vi.fn(),
+}));
+
+vi.mock('../lib/memory', () => ({
+  DynamoMemory: class {
+    getLatestLKGHash = memoryMocks.getLatestLKGHash;
+  },
+}));
+
 vi.mock('sst', () => ({
   Resource: {
     WebhookApi: { url: 'https://test.example.com' },
     Deployer: { name: 'test-deployer' },
     MemoryTable: { name: 'test-memory-table' },
+    AgentBus: { name: 'test-bus' }, // Added AgentBus for deep check mock
   },
 }));
 
@@ -31,7 +42,6 @@ describe('Dead Man Switch Recovery Handler', () => {
     ddbMock.reset();
     codeBuildMock.reset();
     vi.clearAllMocks();
-    // Default: health check returns OK
     global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
   });
 
@@ -42,38 +52,38 @@ describe('Dead Man Switch Recovery Handler', () => {
     expect(codeBuildMock.calls()).toHaveLength(0);
   });
 
-  it('should acquire a lock and trigger CodeBuild on health failure', async () => {
+  it('should retrieve LKG hash and trigger CodeBuild on health failure', async () => {
     lockMocks.acquire.mockResolvedValue(true);
+    memoryMocks.getLatestLKGHash.mockResolvedValue('lkg-commit-123');
     ddbMock.on(PutCommand).resolves({});
     codeBuildMock.on(StartBuildCommand).resolves({ build: { id: 'test-build' } });
 
     const { handler } = await import('./recovery');
     await handler();
 
-    expect(lockMocks.acquire).toHaveBeenCalledWith('dead-mans-switch-recovery', expect.any(Number));
+    expect(memoryMocks.getLatestLKGHash).toHaveBeenCalled();
     expect(codeBuildMock.commandCalls(StartBuildCommand)).toHaveLength(1);
     const buildInput = codeBuildMock.commandCalls(StartBuildCommand)[0].args[0].input;
+    expect(buildInput.environmentVariablesOverride).toContainEqual(
+      expect.objectContaining({ name: 'LKG_HASH', value: 'lkg-commit-123' })
+    );
     expect(buildInput.environmentVariablesOverride).toContainEqual(
       expect.objectContaining({ name: 'EMERGENCY_ROLLBACK', value: 'true' })
     );
   });
 
-  it('should NOT trigger CodeBuild if lock is already held (idempotency)', async () => {
-    lockMocks.acquire.mockResolvedValue(false); // Lock already held
-
-    const { handler } = await import('./recovery');
-    await handler();
-
-    expect(codeBuildMock.commandCalls(StartBuildCommand)).toHaveLength(0);
-  });
-
-  it('should release lock on CodeBuild failure so next check can retry', async () => {
+  it('should fallback to empty LKG_HASH if none found in memory', async () => {
     lockMocks.acquire.mockResolvedValue(true);
-    codeBuildMock.on(StartBuildCommand).rejects(new Error('CodeBuild unavailable'));
+    memoryMocks.getLatestLKGHash.mockResolvedValue(null);
+    ddbMock.on(PutCommand).resolves({});
+    codeBuildMock.on(StartBuildCommand).resolves({ build: { id: 'test-build' } });
 
     const { handler } = await import('./recovery');
     await handler();
 
-    expect(lockMocks.release).toHaveBeenCalledWith('dead-mans-switch-recovery');
+    const buildInput = codeBuildMock.commandCalls(StartBuildCommand)[0].args[0].input;
+    expect(buildInput.environmentVariablesOverride).toContainEqual(
+      expect.objectContaining({ name: 'LKG_HASH', value: '' })
+    );
   });
 });

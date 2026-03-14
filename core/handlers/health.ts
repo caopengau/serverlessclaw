@@ -1,6 +1,9 @@
 import { APIGatewayProxyHandlerV2 } from 'aws-lambda';
 import { logger } from '../lib/logger';
-import { getDeployCountToday } from '../lib/deploy-stats';
+import { runDeepHealthCheck } from '../lib/health';
+import { DynamoMemory } from '../lib/memory';
+
+const memory = new DynamoMemory();
 
 /**
  * Health probe Lambda, called by checkHealth tool after a deployment.
@@ -8,7 +11,17 @@ import { getDeployCountToday } from '../lib/deploy-stats';
  */
 export const handler: APIGatewayProxyHandlerV2 = async () => {
   try {
-    const deployCount = await getDeployCountToday();
+    const deepCheck = await runDeepHealthCheck();
+
+    if (!deepCheck.ok) {
+      throw new Error(`Deep health check failed: ${deepCheck.details}`);
+    }
+
+    // Save current hash as LKG if check passes
+    const currentHash = process.env.GIT_HASH || 'unknown';
+    if (currentHash !== 'unknown') {
+      await memory.saveLKGHash(currentHash);
+    }
 
     return {
       statusCode: 200,
@@ -16,8 +29,8 @@ export const handler: APIGatewayProxyHandlerV2 = async () => {
       body: JSON.stringify({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        deployCountToday: deployCount,
-        message: 'System healthy.',
+        gitHash: currentHash,
+        message: 'System healthy (Deep Check PASSED). LKG updated.',
       }),
     };
   } catch (error) {

@@ -543,4 +543,35 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
       Limit: limit,
     })) as Record<string, unknown>[];
   }
+
+  /**
+   * Saves the Last Known Good (LKG) commit hash after a successful health check.
+   */
+  async saveLKGHash(hash: string): Promise<void> {
+    const { expiresAt, type } = await RetentionManager.getExpiresAt('DISTILLED', 'SYSTEM#LKG');
+    await this.putItem({
+      userId: 'SYSTEM#LKG',
+      timestamp: Date.now(),
+      type,
+      expiresAt,
+      content: hash,
+    });
+    logger.info(`Saved new Last Known Good (LKG) hash: ${hash}`);
+  }
+
+  /**
+   * Retrieves the most recent Last Known Good (LKG) commit hash.
+   */
+  async getLatestLKGHash(): Promise<string | null> {
+    const items = await this.queryItems({
+      KeyConditionExpression: 'userId = :userId',
+      ExpressionAttributeValues: {
+        ':userId': 'SYSTEM#LKG',
+      },
+      Limit: 1,
+      ScanIndexForward: false,
+    });
+
+    return (items[0]?.content as string) || null;
+  }
 }

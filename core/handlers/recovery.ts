@@ -5,11 +5,13 @@ import { Resource } from 'sst';
 import { logger } from '../lib/logger';
 import { SSTResource } from '../lib/types/index';
 import { DynamoLockManager } from '../lib/lock';
+import { DynamoMemory } from '../lib/memory';
 
 const codebuild = new CodeBuildClient({});
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const typedResource = Resource as unknown as SSTResource;
 const lockManager = new DynamoLockManager();
+const memory = new DynamoMemory();
 
 const RECOVERY_LOCK_ID = 'dead-mans-switch-recovery';
 // TTL slightly longer than the Dead Man's Switch schedule (15 min) to guarantee one-at-a-time.
@@ -49,9 +51,6 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
   // CRITICAL: Triggering Emergency Recovery
   logger.info("CRITICAL: Initiating Dead Man's Switch Recovery Flow...");
 
-  // Idempotency guard: prevent concurrent recoveries from racing (e.g., two Lambda invocations
-  // triggered within the same 15-min window via at-least-once EventBridge delivery, or an
-  // in-progress deploy that temporarily returns 5xx).
   const lockAcquired = await lockManager.acquire(RECOVERY_LOCK_ID, RECOVERY_LOCK_TTL_SECONDS);
   if (!lockAcquired) {
     logger.info(
@@ -61,11 +60,21 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
   }
 
   try {
-    logger.info('Triggering CodeBuild Deployer for emergency recovery...');
+    // 1. Retrieve Last Known Good (LKG) Hash
+    const lkgHash = await memory.getLatestLKGHash();
+    if (!lkgHash) {
+      logger.warn('No LKG hash found in memory. Falling back to generic HEAD revert.');
+    }
+
+    logger.info(
+      `Triggering CodeBuild Deployer for emergency recovery to LKG: ${lkgHash || 'HEAD^'}...`
+    );
     const command = new StartBuildCommand({
       projectName: typedResource.Deployer.name,
-      // We could pass an environment variable to the build to tell it to revert first
-      environmentVariablesOverride: [{ name: 'EMERGENCY_ROLLBACK', value: 'true' }],
+      environmentVariablesOverride: [
+        { name: 'EMERGENCY_ROLLBACK', value: 'true' },
+        { name: 'LKG_HASH', value: lkgHash || '' },
+      ],
     });
 
     await codebuild.send(command);
@@ -77,7 +86,7 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
         Item: {
           userId: 'DISTILLED#RECOVERY',
           timestamp: Date.now(),
-          content: "Dead Man's Switch detected unhealthy system and triggered emergency rollback.",
+          content: `Dead Man's Switch detected unhealthy system and triggered emergency rollback to ${lkgHash || 'previous state'}.`,
         },
       })
     );
@@ -85,9 +94,6 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
     logger.info('Emergency recovery initiated successfully.');
   } catch (recoveryError) {
     logger.error("FATAL: Dead Man's Switch recovery flow failed!", recoveryError);
-    // Release lock on failure so the next scheduled check can retry.
     await lockManager.release(RECOVERY_LOCK_ID);
   }
-  // Note: on success we intentionally leave the lock in place for its full TTL.
-  // The in-progress CodeBuild deploy will keep the system "in recovery" for that window.
 };
