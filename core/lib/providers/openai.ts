@@ -148,9 +148,10 @@ export class OpenAIProvider implements IProvider {
                 });
               } else if (att.type === 'file') {
                 content.push({
-                  type: 'input_file',
-                  file_data: att.base64,
-                } as any);
+                  type: 'input_file' as const,
+                  filename: att.name || 'document.pdf',
+                  file_data: `data:${att.mimeType || 'application/octet-stream'};base64,${att.base64}`,
+                });
               }
             });
           }

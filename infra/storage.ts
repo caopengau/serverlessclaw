@@ -49,6 +49,8 @@ export function createStorage() {
     primaryIndex: { hashKey: 'key' },
   });
 
+  const knowledgeBucket = new sst.aws.Bucket('KnowledgeBucket');
+
   const secrets = {
     TelegramBotToken: new sst.Secret('TelegramBotToken'),
     OpenAIApiKey: new sst.Secret('OpenAIApiKey'),
@@ -60,5 +62,5 @@ export function createStorage() {
     DashboardPassword: new sst.Secret('DashboardPassword'),
   };
 
-  return { memoryTable, traceTable, stagingBucket, secrets, configTable };
+  return { memoryTable, traceTable, stagingBucket, knowledgeBucket, secrets, configTable };
 }

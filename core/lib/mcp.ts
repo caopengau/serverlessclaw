@@ -87,27 +87,27 @@ export class MCPBridge {
         env: {},
       },
       git: {
-        command: 'npx -y @modelcontextprotocol/server-git',
+        command: 'npx -y @cyanheads/git-mcp-server',
         env: {},
       },
       'google-search': {
-        command: 'npx -y @modelcontextprotocol/server-google-search',
+        command: 'npx -y @mcp-server/google-search-mcp',
         env: {},
       },
       puppeteer: {
-        command: 'npx -y @modelcontextprotocol/server-puppeteer',
+        command: 'npx -y @kirkdeam/puppeteer-mcp-server',
         env: {},
       },
       fetch: {
-        command: 'npx -y @modelcontextprotocol/server-fetch',
+        command: 'npx -y mcp-fetch-server',
         env: {},
       },
       aws: {
-        command: 'npx -y @modelcontextprotocol/server-aws',
+        command: 'npx -y mcp-aws-devops-server',
         env: {},
       },
       'aws-s3': {
-        command: 'npx -y @modelcontextprotocol/server-aws-s3',
+        command: 'npx -y @geunoh/s3-mcp-server',
         env: {},
       },
     };

@@ -19,7 +19,8 @@ export default $config({
     const { createDashboard } = await import('./infra/dashboard.js');
 
     // 1. Storage & Secrets
-    const { memoryTable, traceTable, configTable, stagingBucket, secrets } = createStorage();
+    const { memoryTable, traceTable, configTable, stagingBucket, knowledgeBucket, secrets } =
+      createStorage();
 
     // 2. Multi-Agent Orchestration (EventBridge)
     const { bus, realtime } = createBus();
@@ -30,12 +31,13 @@ export default $config({
       githubToken: secrets.GitHubToken,
     });
 
-    // 4. Webhook API
+    // 4. API & Realtime
     const { api } = createApi({
       memoryTable,
       traceTable,
       configTable,
       stagingBucket,
+      knowledgeBucket,
       secrets,
       bus,
       deployer,
@@ -47,6 +49,7 @@ export default $config({
       traceTable,
       configTable,
       stagingBucket,
+      knowledgeBucket,
       secrets,
       bus,
       deployer,
@@ -60,6 +63,7 @@ export default $config({
       traceTable,
       configTable,
       stagingBucket,
+      knowledgeBucket,
       secrets,
       bus,
       deployer,

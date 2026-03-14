@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OpenAIProvider } from './openai';
-import { MessageRole } from '../types/index';
+import { MessageRole, Message } from '../types/index';
 
 // Mock OpenAI SDK
 const mockCreateResponse = vi.fn();
@@ -95,7 +95,7 @@ describe('OpenAIProvider', () => {
       },
     ];
 
-    await provider.call(messages as any, []);
+    await provider.call(messages as Message[], []);
 
     expect(mockCreateResponse).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -107,7 +107,8 @@ describe('OpenAIProvider', () => {
               expect.objectContaining({ type: 'input_text', text: 'Check this file' }),
               expect.objectContaining({
                 type: 'input_file',
-                file_data: 'SGVsbG8gd29ybGQ=',
+                filename: 'test.txt',
+                file_data: 'data:text/plain;base64,SGVsbG8gd29ybGQ=',
               }),
             ]),
           }),

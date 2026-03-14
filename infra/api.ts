@@ -7,7 +7,16 @@ import { SharedContext, getValidSecrets, AGENT_CONFIG, getDomainConfig } from '.
  * @returns An object containing the created API resource.
  */
 export function createApi(ctx: SharedContext): { api: sst.aws.ApiGatewayV2 } {
-  const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer } = ctx;
+  const {
+    memoryTable,
+    traceTable,
+    configTable,
+    stagingBucket,
+    knowledgeBucket,
+    secrets,
+    bus,
+    deployer,
+  } = ctx;
 
   const apiDomain = getDomainConfig('api');
   const api = new sst.aws.ApiGatewayV2('WebhookApi', {
@@ -19,7 +28,16 @@ export function createApi(ctx: SharedContext): { api: sst.aws.ApiGatewayV2 } {
   // Main Webhook
   api.route('ANY /webhook', {
     handler: 'core/handlers/webhook.handler',
-    link: [memoryTable, traceTable, configTable, stagingBucket, ...validSecrets, deployer, bus],
+    link: [
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      knowledgeBucket,
+      ...validSecrets,
+      deployer,
+      bus,
+    ],
     timeout: AGENT_CONFIG.timeout.SHORT,
     logging: {
       retention: '1 month',

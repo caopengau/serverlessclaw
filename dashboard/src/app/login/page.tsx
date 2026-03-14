@@ -55,14 +55,14 @@ export default function LoginPage() {
             Claw Center Auth
           </Typography>
           <Typography variant="mono" color="muted" uppercase>
-            Restricted Access // Neural Gateway v1.0
+            Restricted Access
           </Typography>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
             <label className="text-[10px] text-white/100 font-bold uppercase tracking-widest block ml-1">
-              Neural Keyphrase
+              Claw Keyphrase
             </label>
             <div className="relative">
               <input
@@ -96,7 +96,7 @@ export default function LoginPage() {
             icon={<ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />}
             className="flex-row-reverse"
           >
-            {loading ? 'Synchronizing' : 'Initialize Link'}
+            {loading ? 'Synchronizing' : 'Initialize Claw Link'}
           </Button>
         </form>
 

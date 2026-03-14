@@ -21,7 +21,16 @@ export function createAgents(ctx: SharedContext): {
   workerAgent: sst.aws.Function;
   bridge: sst.aws.Function;
 } {
-  const { memoryTable, traceTable, configTable, stagingBucket, secrets, bus, deployer } = ctx;
+  const {
+    memoryTable,
+    traceTable,
+    configTable,
+    stagingBucket,
+    knowledgeBucket,
+    secrets,
+    bus,
+    deployer,
+  } = ctx;
 
   const validSecrets = getValidSecrets(secrets);
   const liveInLocalOnly = $app.stage === 'local' ? undefined : false;
@@ -31,7 +40,7 @@ export function createAgents(ctx: SharedContext): {
    * All autonomous agents require access to the Bus, Memory, and Tracing for baseline coordination.
    * New agents should inherit this baseLink array.
    */
-  const baseLink = [bus, memoryTable, traceTable, configTable, ...validSecrets];
+  const baseLink = [bus, memoryTable, traceTable, configTable, knowledgeBucket, ...validSecrets];
 
   // 1. Coder Agent
   const coderAgent = new sst.aws.Function('CoderAgent', {
