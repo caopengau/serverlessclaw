@@ -58,26 +58,15 @@ export const handler = async (
 
   try {
     // 2. Process message via Agent
+    const { SuperClaw } = await import('../agents/superclaw');
     const { AgentRegistry } = await import('../lib/registry');
     const config = await AgentRegistry.getAgentConfig('main');
     if (!config) throw new Error('Main agent config missing');
 
-    // Detect Reasoning Profile from commands
-    let profile: ReasoningProfile | undefined;
-    let cleanText = userText;
-    if (userText.startsWith('/deep ')) {
-      profile = ReasoningProfile.DEEP;
-      cleanText = userText.replace('/deep ', '');
-    } else if (userText.startsWith('/thinking ')) {
-      profile = ReasoningProfile.THINKING;
-      cleanText = userText.replace('/thinking ', '');
-    } else if (userText.startsWith('/fast ')) {
-      profile = ReasoningProfile.FAST;
-      cleanText = userText.replace('/fast ', '');
-    }
+    const { profile, cleanText } = SuperClaw.parseCommand(userText);
 
     const agentTools = await getAgentTools('main');
-    const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
+    const agent = new SuperClaw(memory, provider, agentTools, config);
     const { responseText, attachments: resultAttachments } = await agent.process(
       chatId,
       cleanText,
@@ -86,7 +75,6 @@ export const handler = async (
         context,
         source: TraceSource.TELEGRAM,
         attachments,
-        // isContinuation is not directly applicable to APIGatewayProxyEventV2 from Telegram
       }
     );
 
