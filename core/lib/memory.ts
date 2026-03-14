@@ -120,6 +120,66 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   }
 
   /**
+   * Archives stale gaps that have been open for longer than the specified days.
+   * Returns the number of gaps archived.
+   */
+  async archiveStaleGaps(staleDays: number = 30): Promise<number> {
+    const cutoffTime = Date.now() - staleDays * 24 * 60 * 60 * 1000;
+
+    // Get all OPEN and PLANNED gaps
+    const items = await this.queryItems({
+      IndexName: 'TypeTimestampIndex',
+      KeyConditionExpression: '#type = :type',
+      FilterExpression: '#status IN (:open, :planned)',
+      ExpressionAttributeNames: {
+        '#type': 'type',
+        '#status': 'status',
+      },
+      ExpressionAttributeValues: {
+        ':type': 'GAP',
+        ':status': GapStatus.OPEN,
+        ':planned': GapStatus.PLANNED,
+      },
+    });
+
+    const staleGaps = items.filter((item) => item.timestamp && item.timestamp < cutoffTime);
+
+    let archived = 0;
+    for (const gap of staleGaps) {
+      try {
+        const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+        await docClient.send(
+          new UpdateCommand({
+            TableName: this.tableName,
+            Key: {
+              userId: gap.userId,
+              timestamp: gap.timestamp,
+            },
+            UpdateExpression: 'SET #status = :archived, updatedAt = :now',
+            ExpressionAttributeNames: {
+              '#status': 'status',
+            },
+            ExpressionAttributeValues: {
+              ':archived': GapStatus.ARCHIVED,
+              ':now': Date.now(),
+            },
+          })
+        );
+        archived++;
+        logger.info(`Archived stale gap: ${gap.userId}`);
+      } catch (error) {
+        logger.warn(`Failed to archive gap ${gap.userId}:`, error);
+      }
+    }
+
+    if (archived > 0) {
+      logger.info(`Archived ${archived} stale gaps older than ${staleDays} days`);
+    }
+
+    return archived;
+  }
+
+  /**
    * Records a new capability gap
    */
   async setGap(gapId: string, details: string, metadata?: InsightMetadata): Promise<void> {

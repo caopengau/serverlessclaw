@@ -110,6 +110,8 @@ export interface IGapManager {
   getAllGaps(status?: string): Promise<MemoryInsight[]>;
   /** Updates the lifecycle status of a specific capability gap. */
   updateGapStatus(gapId: string, status: string): Promise<void>;
+  /** Archives stale gaps older than specified days. Returns count of archived gaps. */
+  archiveStaleGaps(staleDays?: number): Promise<number>;
 }
 
 /**

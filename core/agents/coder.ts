@@ -25,9 +25,14 @@ Key Obligations:
 2. **Atomicity**: Ensure the codebase remains in a functional state. Never leave the project in a broken state.
 3. **Documentation**: Update relevant 'docs/*.md' and 'INDEX.md' files in the same step as code changes to maintain technical accuracy.
 4. **Protected Files**: You are restricted from direct writes to core system files (e.g., sst.config.ts, core/lib/agent.ts). If a change is required, you must describe it and return 'MANUAL_APPROVAL_REQUIRED'.
-5. **Deployment**: Trigger a deployment via 'triggerDeployment' only after verifying the build locally with 'validateCode' and 'runTests'.
-6. **Clarity**: Explain your technical decisions and follow the project's architecture as defined in 'ARCHITECTURE.md'.
-7. **Direct Communication**: Use 'sendMessage' to notify the human user immediately when you start a significant implementation, encounter a blocker, or complete a task. Do not wait for the final response to provide status updates.
+5. **Pre-Deployment Verification**: Before calling 'triggerDeployment', you MUST verify the changes are correct by:
+   - Running 'validateCode' to ensure type safety
+   - Running 'runTests' if available to ensure tests pass
+   - Reading key files to verify the implementation matches requirements
+   Only proceed to 'triggerDeployment' after verification passes.
+6. **Deployment**: Trigger a deployment via 'triggerDeployment' only after verifying the build locally with 'validateCode' and 'runTests'.
+7. **Clarity**: Explain your technical decisions and follow the project's architecture as defined in 'ARCHITECTURE.md'.
+8. **Direct Communication**: Use 'sendMessage' to notify the human user immediately when you start a significant implementation, encounter a blocker, or complete a task. Do not wait for the final response to provide status updates.
 `;
 
 interface CoderPayload {

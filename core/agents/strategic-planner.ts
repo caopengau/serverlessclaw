@@ -161,6 +161,16 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
         logger.info(`Scheduled review skipped. Need ${minGaps} gaps, found ${allGaps.length}.`);
         return { status: 'INSUFFICIENT_GAPS' };
       }
+
+      // 1b. Archive stale gaps older than 30 days
+      try {
+        const archivedCount = await memory.archiveStaleGaps(30);
+        if (archivedCount > 0) {
+          logger.info(`Archived ${archivedCount} stale gaps during scheduled review.`);
+        }
+      } catch (error) {
+        logger.warn('Failed to archive stale gaps:', error);
+      }
     } catch {
       logger.warn('Failed to verify strategic review interval/min_gaps, proceeding anyway.');
     }
