@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SelfVerifier } from './self-verify';
-import { Resource } from 'sst';
 import { GapStatus } from './types/index';
 
 // Mock SST
@@ -26,9 +25,15 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
       send: mockSend,
     }),
   },
-  GetCommand: class { constructor(public input: any) {} },
-  ScanCommand: class { constructor(public input: any) {} },
-  QueryCommand: class { constructor(public input: any) {} },
+  GetCommand: class {
+    constructor(public input: unknown) {}
+  },
+  ScanCommand: class {
+    constructor(public input: unknown) {}
+  },
+  QueryCommand: class {
+    constructor(public input: unknown) {}
+  },
 }));
 
 describe('SelfVerifier', () => {
@@ -119,11 +124,7 @@ describe('SelfVerifier', () => {
 
       // 2. Mock registry
       mockSend.mockResolvedValueOnce({
-        Items: [
-          { id: 'AGENT#sc' },
-          { id: 'AGENT#ca' },
-          { id: 'AGENT#wa' },
-        ],
+        Items: [{ id: 'AGENT#sc' }, { id: 'AGENT#ca' }, { id: 'AGENT#wa' }],
       });
 
       const result = await verifier.verifyAwareness();

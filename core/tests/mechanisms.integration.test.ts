@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler as recoveryHandler } from '../handlers/recovery';
-import { Resource } from 'sst';
 import { SelfVerifier } from '../lib/self-verify';
 
 // Mock dependencies
@@ -21,14 +20,18 @@ vi.mock('@aws-sdk/client-codebuild', () => ({
   CodeBuildClient: class {
     send = vi.fn().mockResolvedValue({});
   },
-  StartBuildCommand: class { constructor(public input: any) {} },
+  StartBuildCommand: class {
+    constructor(public input: unknown) {}
+  },
 }));
 
 vi.mock('@aws-sdk/client-eventbridge', () => ({
   EventBridgeClient: class {
     send = vi.fn().mockResolvedValue({});
   },
-  ListEventBusesCommand: class { constructor(public input: any) {} },
+  ListEventBusesCommand: class {
+    constructor(public input: unknown) {}
+  },
 }));
 
 const { mockSend } = vi.hoisted(() => ({
@@ -41,11 +44,21 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
       send: mockSend,
     }),
   },
-  GetCommand: class { constructor(public input: any) {} },
-  PutCommand: class { constructor(public input: any) {} },
-  ScanCommand: class { constructor(public input: any) {} },
-  UpdateCommand: class { constructor(public input: any) {} },
-  DeleteCommand: class { constructor(public input: any) {} },
+  GetCommand: class {
+    constructor(public input: unknown) {}
+  },
+  PutCommand: class {
+    constructor(public input: unknown) {}
+  },
+  ScanCommand: class {
+    constructor(public input: unknown) {}
+  },
+  UpdateCommand: class {
+    constructor(public input: unknown) {}
+  },
+  DeleteCommand: class {
+    constructor(public input: unknown) {}
+  },
 }));
 
 describe('Integrated Mechanism Verification', () => {
@@ -62,7 +75,7 @@ describe('Integrated Mechanism Verification', () => {
     it('should reflect recovery activity in verification status after health failure', async () => {
       // 1. Simulate failure
       mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
-      
+
       // Mock DDB calls for recovery handler
       mockSend.mockResolvedValue({ Item: { count: 1 } }); // Lock acquisition/Memory check
 
@@ -112,10 +125,7 @@ describe('Integrated Mechanism Verification', () => {
 
       // Mock registry with 2 agents
       mockSend.mockResolvedValueOnce({
-        Items: [
-          { id: 'AGENT#agent-1' },
-          { id: 'AGENT#agent-2' },
-        ],
+        Items: [{ id: 'AGENT#agent-1' }, { id: 'AGENT#agent-2' }],
       });
 
       const status = await verifier.verifyAwareness();
