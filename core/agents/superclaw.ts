@@ -10,19 +10,13 @@ export { SUPERCLAW_SYSTEM_PROMPT };
  */
 export class SuperClaw extends Agent {
   constructor(memory: IMemory, provider: IProvider, tools: ITool[], config?: IAgentConfig) {
-    super(
-      memory,
-      provider,
-      tools,
-      config?.systemPrompt || SUPERCLAW_SYSTEM_PROMPT,
-      config
-    );
+    super(memory, provider, tools, config?.systemPrompt || SUPERCLAW_SYSTEM_PROMPT, config);
   }
 
   /**
    * Static method to parse reasoning profile from user text.
    * Handles commands like /deep, /thinking, and /fast.
-   * 
+   *
    * @param text - The raw user input text.
    * @returns An object containing the detected profile and the cleaned text.
    */

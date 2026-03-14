@@ -3,11 +3,10 @@ import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 
 import { DynamoMemory } from '../lib/memory';
-import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers/index';
 import { getAgentTools } from '../tools/index';
 import { DynamoLockManager } from '../lib/lock';
-import { ReasoningProfile, TraceSource, SSTResource } from '../lib/types/index';
+import { TraceSource, SSTResource } from '../lib/types/index';
 import { Resource } from 'sst';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 

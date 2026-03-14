@@ -41,7 +41,15 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
   logger.info('QA Agent received verification task:', JSON.stringify(event, null, 2));
 
   const payload = extractPayload<QAPayload>(event);
-  const { userId, gapIds, response: implementationResponse, traceId, sessionId, initiatorId, depth } = payload;
+  const {
+    userId,
+    gapIds,
+    response: implementationResponse,
+    traceId,
+    sessionId,
+    initiatorId,
+    depth,
+  } = payload;
 
   if (!userId || !gapIds || !Array.isArray(gapIds) || gapIds.length === 0) {
     logger.warn('QA Auditor received incomplete payload, skipping verification.');
