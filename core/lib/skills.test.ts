@@ -59,6 +59,7 @@ describe('SkillRegistry', () => {
         systemPrompt: '...',
         enabled: true,
         isBackbone: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
 
       await SkillRegistry.installSkill('agent-1', 'tool1');
@@ -77,6 +78,7 @@ describe('SkillRegistry', () => {
         systemPrompt: '...',
         enabled: true,
         isBackbone: true,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
 
       await SkillRegistry.installSkill('agent-1', 'tool1');

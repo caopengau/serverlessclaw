@@ -25,7 +25,7 @@ const INFRA_LABELS = {
 export async function GET(): Promise<NextResponse> {
   try {
     const { AgentRegistry } = await import('@claw/core/lib/registry');
-    const { discoverSystemTopology } = await import('@claw/core/handlers/monitor');
+    const { discoverSystemTopology } = await import('@claw/core/lib/utils/topology');
 
     // 1. Try to load full system topology from DynamoDB (persisted by Build Monitor)
     const topology = await AgentRegistry.getFullTopology();

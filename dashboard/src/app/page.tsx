@@ -22,6 +22,13 @@ interface ChatMessage {
   }>;
 }
 
+interface HistoryMessage {
+  role: string;
+  content: string;
+  agentName?: string;
+  attachments?: ChatMessage['attachments'];
+}
+
 interface ConversationMeta {
   sessionId: string;
   title: string;
@@ -78,7 +85,7 @@ function ChatContent() {
 
   const handleFiles = async (files: File[]) => {
     const newAttachments = await Promise.all(files.map(async (file) => {
-      const type = file.type.startsWith('image/') ? 'image' : 'file';
+      const type = (file.type.startsWith('image/') ? 'image' : 'file') as 'image' | 'file';
       let preview = '';
       if (type === 'image') {
         preview = await new Promise<string>((resolve) => {
@@ -344,12 +351,12 @@ function ChatContent() {
       const response = await fetch(`/api/chat?sessionId=${sessionId}`);
       const data = await response.json();
       if (data.history) {
-        setMessages(data.history.map((m: any) => ({
+        setMessages(data.history.map((m: HistoryMessage) => ({
           role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
           content: m.content,
           agentName: m.agentName || (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
           attachments: m.attachments,
-        })).filter((m: any) => m.content || (m.attachments && m.attachments.length > 0))); // Filter out tool calls for simplicity in UI
+        })).filter((m: ChatMessage) => m.content || (m.attachments && m.attachments.length > 0))); // Filter out tool calls for simplicity in UI
       }
     } catch (error) {
       console.error('Failed to fetch history:', error);
@@ -379,12 +386,12 @@ function ChatContent() {
       const response = await fetch(`/api/chat?sessionId=${sessionId}`);
       const data = await response.json();
       if (data.history) {
-        setMessages(data.history.map((m: any) => ({
+        setMessages(data.history.map((m: HistoryMessage) => ({
           role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
           content: m.content,
           agentName: m.agentName || (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
           attachments: m.attachments,
-        })).filter((m: any) => m.content || (m.attachments && m.attachments.length > 0)));
+        })).filter((m: ChatMessage) => m.content || (m.attachments && m.attachments.length > 0)));
       }
     } catch (e) {
       console.warn('Silent History fetch failed:', e);

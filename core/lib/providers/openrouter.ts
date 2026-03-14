@@ -50,6 +50,7 @@ export class OpenRouterProvider implements IProvider {
         return m;
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const content: any[] = [];
       if (m.content) {
         content.push({ type: 'text', text: m.content });
@@ -66,6 +67,7 @@ export class OpenRouterProvider implements IProvider {
         } else if (att.type === 'file') {
           // OpenRouter/OpenAI-compatible file input
           content.push({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             type: 'input_file' as any,
             input_file: {
               file_id:
@@ -172,10 +174,14 @@ export class OpenRouterProvider implements IProvider {
       role: MessageRole.ASSISTANT,
       content: message.content || '',
       tool_calls: message.tool_calls,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       usage: (data as any).usage
         ? {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             prompt_tokens: (data as any).usage.prompt_tokens || 0,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             completion_tokens: (data as any).usage.completion_tokens || 0,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             total_tokens: (data as any).usage.total_tokens || 0,
           }
         : undefined,

@@ -31,6 +31,7 @@ export class BaseMemoryProvider {
   /**
    * Internal helper to put an item into DynamoDB
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected async putItem(item: any): Promise<void> {
     const command = new PutCommand({
       TableName: this.tableName,
@@ -46,6 +47,7 @@ export class BaseMemoryProvider {
   /**
    * Internal helper for Query commands
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected async queryItems(params: any): Promise<any[]> {
     const command = new QueryCommand({
       TableName: this.tableName,
@@ -63,6 +65,7 @@ export class BaseMemoryProvider {
   /**
    * Internal helper for Delete commands
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   protected async deleteItem(key: Record<string, any>): Promise<void> {
     try {
       await docClient.send(

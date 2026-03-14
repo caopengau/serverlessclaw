@@ -38,8 +38,10 @@ describe('Notifier Handler', () => {
         userId: '123456789',
         message: 'Hello user',
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (global.fetch as any).mockResolvedValue({ ok: true });
 
     await handler(event);

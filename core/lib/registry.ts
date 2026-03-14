@@ -147,6 +147,7 @@ export class AgentRegistry {
    * Saves or updates an agent configuration and triggers topology refresh.
    */
   static async saveConfig(id: string, config: IAgentConfig): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { ConfigTable } = (await import('sst')).Resource as any;
     if (!ConfigTable?.name) {
       logger.warn(`ConfigTable not linked. Skipping save for ${id}`);
@@ -187,6 +188,7 @@ export class AgentRegistry {
    * Records tool usage atomically.
    */
   static async recordToolUsage(toolName: string, agentId: string = 'unknown'): Promise<void> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { ConfigTable } = (await import('sst')).Resource as any;
     if (!ConfigTable?.name) return;
 
@@ -208,6 +210,7 @@ export class AgentRegistry {
             ExpressionAttributeValues: { ':one': 1, ':zero': 0, ':now': Date.now() },
           })
         );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (e: any) {
         if (e.name === 'ValidationException') {
           await this.saveRawConfig(key, { [toolName]: { count: 1, lastUsed: Date.now() } });

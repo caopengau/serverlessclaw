@@ -79,12 +79,14 @@ export class OpenAIProvider implements IProvider {
           } else if (att.type === 'file') {
             // OpenAI v1/responses and some /chat/completions models support file input in 2026
             content.push({
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               type: 'input_file' as any,
               input_file: {
                 file_id:
                   att.url ||
                   `data:${att.mimeType || 'application/octet-stream'};base64,${att.base64}`,
               },
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
           }
         });
@@ -145,12 +147,14 @@ export class OpenAIProvider implements IProvider {
                 });
               } else if (att.type === 'file') {
                 content.push({
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   type: 'input_file' as any,
                   input_file: {
                     file_id:
                       att.url ||
                       `data:${att.mimeType || 'application/octet-stream'};base64,${att.base64}`,
                   },
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any);
               }
             });
@@ -226,8 +230,11 @@ export class OpenAIProvider implements IProvider {
         content,
         tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         usage: {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           prompt_tokens: (response as any).usage?.prompt_tokens || 0,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           completion_tokens: (response as any).usage?.completion_tokens || 0,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           total_tokens: (response as any).usage?.total_tokens || 0,
         },
       } as Message;

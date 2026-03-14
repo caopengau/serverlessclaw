@@ -42,10 +42,12 @@ vi.mock('@modelcontextprotocol/sdk/client/stdio.js', () => ({
 describe('MCPBridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (MCPBridge as any).clients.clear();
   });
 
   it('should lazy load ONLY requested servers', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (AgentRegistry.getRawConfig as any).mockResolvedValue({
       srv1: { command: 'npx srv1' },
       srv2: { command: 'npx srv2' },
@@ -56,12 +58,16 @@ describe('MCPBridge', () => {
     expect(tools.length).toBe(1);
     expect(tools[0].name).toBe('srv1_test_tool');
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((MCPBridge as any).clients.size).toBe(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((MCPBridge as any).clients.has('srv1')).toBe(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((MCPBridge as any).clients.has('srv2')).toBe(false);
   });
 
   it('should load all servers if no requestedTools provided', async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (AgentRegistry.getRawConfig as any).mockResolvedValue({
       srv1: { command: 'npx srv1' },
       srv2: { command: 'npx srv2' },
@@ -71,6 +77,7 @@ describe('MCPBridge', () => {
 
     // Default servers (7) + our mock servers (2) = 9
     expect(tools.length).toBe(9);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect((MCPBridge as any).clients.size).toBe(9);
   });
 });

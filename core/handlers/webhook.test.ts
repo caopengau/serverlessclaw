@@ -73,8 +73,10 @@ describe('Webhook Handler', () => {
           text: 'Hello bot',
         },
       }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = (await handler(event, {} as any)) as any;
 
     expect(result.statusCode).toBe(200);
@@ -91,9 +93,11 @@ describe('Webhook Handler', () => {
           photo: [{ file_id: 'small_id' }, { file_id: 'large_id' }],
         },
       }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
 
     // Mock Telegram getFile
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (global.fetch as any)
       .mockResolvedValueOnce({
         json: () => Promise.resolve({ ok: true, result: { file_path: 'photos/file.jpg' } }),
@@ -105,6 +109,7 @@ describe('Webhook Handler', () => {
 
     s3Mock.on(PutObjectCommand).resolves({});
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = (await handler(event, {} as any)) as any;
 
     expect(result.statusCode).toBe(200);

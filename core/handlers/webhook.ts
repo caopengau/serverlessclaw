@@ -99,7 +99,9 @@ export const handler = async (
 /**
  * Processes Telegram media attachments (photos, documents).
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function processTelegramMedia(message: Record<string, any>): Promise<any[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const attachments: any[] = [];
   const token = typedResource.TelegramBotToken.value;
 
@@ -148,6 +150,7 @@ async function handleTelegramFile(
   token: string,
   fileName?: string,
   mimeType?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): Promise<any | null> {
   try {
     // 1. Get file path from Telegram
@@ -169,6 +172,7 @@ async function handleTelegramFile(
 
     // 3. Upload to S3 StagingBucket
     const key = `chat-attachments/${Date.now()}-${fileName || fileId}`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const bucketName = (typedResource as any).StagingBucket.name;
 
     await s3.send(
@@ -182,6 +186,7 @@ async function handleTelegramFile(
 
     const s3Url = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const attachment: any = {
       type,
       name: fileName || key.split('/').pop(),

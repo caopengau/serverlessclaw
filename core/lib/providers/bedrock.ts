@@ -107,11 +107,13 @@ export class BedrockProvider implements IProvider {
               content.push({
                 document: {
                   name: att.name || 'document',
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   format: (att.mimeType?.split('/')[1] || 'pdf') as any,
                   source: {
                     bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
                   },
                 },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } as any);
             }
           });
@@ -158,11 +160,13 @@ export class BedrockProvider implements IProvider {
                 toolContent.push({
                   document: {
                     name: att.name || 'document',
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     format: (att.mimeType?.split('/')[1] || 'pdf') as any,
                     source: {
                       bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
                     },
                   },
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 } as any);
               }
             });

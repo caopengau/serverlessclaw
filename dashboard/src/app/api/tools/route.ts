@@ -17,8 +17,8 @@ async function getAllTools(usage: Record<string, { count: number; lastUsed: numb
     }));
 
     // 2. MCP tools
-    const externalTools = await MCPBridge.getAllExternalTools();
-    const mcpTools = externalTools.map(t => ({
+    const externalTools = await MCPBridge.getExternalTools();
+    const mcpTools = externalTools.map((t: any) => ({
       name: t.name,
       description: t.description,
       usage: usage[t.name] || { count: 0, lastUsed: 0 },

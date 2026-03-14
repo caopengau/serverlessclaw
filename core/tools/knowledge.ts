@@ -100,6 +100,7 @@ STATUS: ${n.status}
 STEPS:
 ${n.steps
   .map(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (s: any) =>
       `- [${new Date(s.timestamp).toISOString()}] [${s.type.toUpperCase()}] ${
         typeof s.content === 'string' ? s.content : JSON.stringify(s.content)
@@ -176,6 +177,7 @@ export const recallKnowledge = {
 
     return results
       .map(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (r: any) =>
           `[${r.metadata.category.toUpperCase()}] (Impact: ${r.metadata.impact}/10, Urgency: ${r.metadata.urgency}/10) ${r.content}`
       )
@@ -393,6 +395,7 @@ export const saveKnowledge = {
 
     const gapId = Date.now().toString();
     const metadata = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       category: category as any,
       confidence: 10,
       impact: 5,

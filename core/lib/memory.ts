@@ -339,6 +339,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   /**
    * Universal fetcher for memory items by their type using the GSI.
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getMemoryByType(type: string, limit: number = 100): Promise<any[]> {
     return this.queryItems({
       IndexName: 'TypeTimestampIndex',
