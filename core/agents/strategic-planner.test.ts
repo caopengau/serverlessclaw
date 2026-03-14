@@ -121,7 +121,7 @@ describe('Strategic Planner — selective PLANNED marking', () => {
       coveredGapIds: ['GAP#1001'],
       reasoning: 'Missing tools',
     });
-    agentProcess.mockResolvedValue(planResponse);
+    agentProcess.mockResolvedValue({ responseText: planResponse });
 
     const event = {
       detail: {
@@ -177,7 +177,7 @@ describe('Strategic Planner — selective PLANNED marking', () => {
       { gapId: 'GAP#5002', expiresAt: Date.now() - 1000 }, // expired
     ]);
     memoryMocks.getDistilledMemory.mockResolvedValue(cooldownStore);
-    agentProcess.mockResolvedValue('STRATEGIC_PLAN: fix things');
+    agentProcess.mockResolvedValue({ responseText: 'STRATEGIC_PLAN: fix things' });
 
     const event = {
       detail: {
@@ -201,7 +201,7 @@ describe('Strategic Planner — selective PLANNED marking', () => {
       { gapId: 'GAP#9999', expiresAt: Date.now() + 3_600_000 },
     ]);
     memoryMocks.getDistilledMemory.mockResolvedValue(cooldownStore);
-    agentProcess.mockResolvedValue('STRATEGIC_PLAN: review result');
+    agentProcess.mockResolvedValue({ responseText: 'STRATEGIC_PLAN: review result' });
 
     const event = {
       detail: {

@@ -133,13 +133,14 @@ export const handler = async (
   if (task) {
     const taskLower = task.toLowerCase();
     if (taskLower.includes('greet') || taskLower.includes('hi') || taskLower.includes('hello')) {
-      return await reflector.process(userId, task, {
+      const { responseText } = await reflector.process(userId, task, {
         profile: ReasoningProfile.FAST,
         isIsolated: true,
         traceId,
         sessionId,
         source: TraceSource.SYSTEM,
       });
+      return responseText;
     }
   }
 
@@ -167,13 +168,13 @@ export const handler = async (
   const reflectionPrompt = `
     EXISTING FACTS:
     ${existingFacts || 'None'}
-
+ 
     CONVERSATION:
     ${conversation.map((m) => `${m.role.toUpperCase()}: ${m.content || (m.tool_calls ? '[Tool Calls]' : '')}`).join('\n')}
     ${traceContext}
     ${deployedGapsContext}
     ${activeGapsContext}
-
+ 
     Analyze the CONVERSATION and EXECUTION TRACE to extract intelligence and capability gaps.
     
     You MUST return your response as a valid JSON object with the following schema:
@@ -191,13 +192,17 @@ export const handler = async (
 
   // Use 'standard' profile for reflection — FAST was too shallow for reliable gap closure detection
   // and produced false-positive "resolved" signals from vague user messages.
-  const response = await reflector.process(baseUserId, reflectionPrompt, {
-    profile: ReasoningProfile.STANDARD,
-    isIsolated: true,
-    traceId,
-    sessionId,
-    source: TraceSource.SYSTEM,
-  });
+  const { responseText: response, attachments: resultAttachments } = await reflector.process(
+    baseUserId,
+    reflectionPrompt,
+    {
+      profile: ReasoningProfile.STANDARD,
+      isIsolated: true,
+      traceId,
+      sessionId,
+      source: TraceSource.SYSTEM,
+    }
+  );
 
   const isFailure = detectFailure(response);
 
@@ -296,6 +301,7 @@ export const handler = async (
       userId,
       task: task || 'Session Reflection',
       response: response || 'No insights extracted.',
+      attachments: resultAttachments,
       traceId,
       sessionId,
       initiatorId,

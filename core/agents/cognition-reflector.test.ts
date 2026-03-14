@@ -106,7 +106,7 @@ describe('Cognition Reflector Handler', () => {
       resolvedGapIds: ['gap-123'],
     });
 
-    mocks.agentProcess.mockResolvedValue(mockReflectionResponse);
+    mocks.agentProcess.mockResolvedValue({ responseText: mockReflectionResponse });
 
     const event = {
       detail: {
@@ -133,7 +133,7 @@ describe('Cognition Reflector Handler', () => {
   });
 
   it('should handle non-JSON responses gracefully', async () => {
-    mocks.agentProcess.mockResolvedValue('I updated the facts for you.');
+    mocks.agentProcess.mockResolvedValue({ responseText: 'I updated the facts for you.' });
 
     const event = {
       detail: {
@@ -155,9 +155,14 @@ describe('Cognition Reflector Handler', () => {
     mocks.agentProcess.mockImplementation(
       (_userId: string, _prompt: string, options: Record<string, unknown>) => {
         capturedOptions = options;
-        return Promise.resolve(
-          JSON.stringify({ facts: 'facts', lessons: [], gaps: [], resolvedGapIds: [] })
-        );
+        return Promise.resolve({
+          responseText: JSON.stringify({
+            facts: 'facts',
+            lessons: [],
+            gaps: [],
+            resolvedGapIds: [],
+          }),
+        });
       }
     );
 

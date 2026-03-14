@@ -258,15 +258,19 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   }
 
   // 3. Process with High Reasoning
-  const rawResponse = await plannerAgent.process(contextUserId, plannerPrompt, {
-    profile: ReasoningProfile.DEEP,
-    isIsolated: true,
-    initiatorId,
-    depth,
-    traceId,
-    sessionId,
-    source: TraceSource.SYSTEM,
-  });
+  const { responseText: rawResponse, attachments: resultAttachments } = await plannerAgent.process(
+    contextUserId,
+    plannerPrompt,
+    {
+      profile: ReasoningProfile.DEEP,
+      isIsolated: true,
+      initiatorId,
+      depth,
+      traceId,
+      sessionId,
+      source: TraceSource.SYSTEM,
+    }
+  );
 
   logger.info('Strategic Plan Raw Response:', rawResponse);
 
@@ -292,7 +296,8 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
     `🚀 **Strategic Plan Generated**\n\n${plan}`,
     [contextUserId],
     sessionId,
-    config.name
+    config.name,
+    resultAttachments
   );
 
   const isFailure = status === 'FAILED' || plan.startsWith('I encountered an internal error');
@@ -376,7 +381,8 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       `🚀 **Autonomous Evolution Triggered**\n\nI have identified a capability gap and designed a plan to fix it. The Coder Agent is now executing the following STRATEGIC_PLAN:\n\n${plan}`,
       [contextUserId],
       sessionId,
-      config.name
+      config.name,
+      undefined
     );
 
     const { tools } = await import('../tools/index');
@@ -399,7 +405,8 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       `🚀 **NEW STRATEGIC PLAN PROPOSED**\n\n${plan}\n\nReply with 'APPROVE' to execute.`,
       [contextUserId],
       sessionId,
-      config.name
+      config.name,
+      undefined
     );
   }
 

@@ -104,14 +104,18 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
 
     Final response MUST include VERIFICATION_SUCCESSFUL or REOPEN_REQUIRED.`;
 
-  const rawResponse = await qaAgent.process(userId, auditPrompt, {
-    profile: ReasoningProfile.THINKING,
-    isIsolated: true,
-    source: TraceSource.SYSTEM,
-    initiatorId: payload.initiatorId,
-    depth: payload.depth,
-    traceId,
-  });
+  const { responseText: rawResponse, attachments: resultAttachments } = await qaAgent.process(
+    userId,
+    auditPrompt,
+    {
+      profile: ReasoningProfile.THINKING,
+      isIsolated: true,
+      source: TraceSource.SYSTEM,
+      initiatorId: payload.initiatorId,
+      depth: payload.depth,
+      traceId,
+    }
+  );
 
   logger.info('QA Agent Raw Response:', rawResponse);
 
@@ -176,7 +180,8 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
         `⚠️ **Evolution Escalation Required**\n\nGaps ${escalatedGaps.join(', ')} have failed QA verification ${MAX_REOPEN_ATTEMPTS} times and cannot be autonomously resolved. Evolution mode has been switched to **HITL**.\n\nPlease review the implementation manually and re-approve when ready.`,
         [userId],
         traceId,
-        config.name
+        config.name,
+        undefined
       );
     }
   }
@@ -188,7 +193,8 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
     `🔍 **QA Audit Complete**\n\n${auditReport}`,
     [userId],
     traceId,
-    config.name
+    config.name,
+    resultAttachments
   );
 
   // Universal Coordination: Notify Initiator (if any)

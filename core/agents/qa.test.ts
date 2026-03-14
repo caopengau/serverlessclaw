@@ -81,12 +81,12 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
   });
 
   it('should set gaps to DONE and not escalate on SUCCESS (auto mode)', async () => {
-    agentProcess.mockResolvedValue(
-      JSON.stringify({
+    agentProcess.mockResolvedValue({
+      responseText: JSON.stringify({
         status: 'SUCCESS',
         auditReport: 'implementation is correct.',
-      })
-    );
+      }),
+    });
     registryMocks.getRawConfig.mockResolvedValue('auto');
 
     await handler(
@@ -100,12 +100,12 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
   });
 
   it('should REOPEN gap and increment attempt count on REOPEN status below cap', async () => {
-    agentProcess.mockResolvedValue(
-      JSON.stringify({
+    agentProcess.mockResolvedValue({
+      responseText: JSON.stringify({
         status: 'REOPEN',
         auditReport: 'the file was not changed.',
-      })
-    );
+      }),
+    });
     memoryMocks.incrementGapAttemptCount.mockResolvedValue(1); // attempt 1 of 3
 
     await handler(
@@ -120,12 +120,12 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
   });
 
   it('should escalate to HITL and send alert when reopen cap (3) is reached', async () => {
-    agentProcess.mockResolvedValue(
-      JSON.stringify({
+    agentProcess.mockResolvedValue({
+      responseText: JSON.stringify({
         status: 'REOPEN',
         auditReport: 'still broken.',
-      })
-    );
+      }),
+    });
     memoryMocks.incrementGapAttemptCount.mockResolvedValue(3); // cap reached
 
     await handler(
@@ -143,7 +143,7 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
     let capturedPrompt = '';
     agentProcess.mockImplementation((userId: string, prompt: string) => {
       capturedPrompt = prompt;
-      return Promise.resolve('VERIFICATION_SUCCESSFUL');
+      return Promise.resolve({ responseText: 'VERIFICATION_SUCCESSFUL' });
     });
     registryMocks.getRawConfig.mockResolvedValue('auto');
 
