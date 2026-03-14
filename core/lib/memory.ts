@@ -155,32 +155,53 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
         userId: `GAP#${numericId}`,
         timestamp: parseInt(numericId, 10) || 0,
       },
-      UpdateExpression: 'SET #status = :status',
+      UpdateExpression: 'SET #status = :status, updatedAt = :now',
+      ConditionExpression: 'attribute_exists(userId)',
       ExpressionAttributeNames: {
         '#status': 'status',
       },
       ExpressionAttributeValues: {
         ':status': status,
+        ':now': Date.now(),
       },
     });
 
-    // Fallback for non-numeric IDs
+    // Strategy 2: If primary key fails, search and retry exactly ONCE with specific timestamp
     if (isNaN(parseInt(numericId, 10)) || command.input.Key?.timestamp === 0) {
-      const statuses = Object.values(GapStatus);
-      for (const s of statuses) {
+      const allStatuses = Object.values(GapStatus);
+      let found = false;
+      for (const s of allStatuses) {
         const gaps = await this.getAllGaps(s);
         const target = gaps.find((g) => g.id === `GAP#${numericId}`);
         if (target) {
           command.input.Key = { userId: `GAP#${numericId}`, timestamp: target.timestamp };
+          found = true;
           break;
         }
+      }
+      if (!found) {
+        logger.error(`Gap update aborted: ID ${gapId} not found in any status.`);
+        return;
       }
     }
 
     try {
       await docClient.send(command);
-    } catch (error) {
-      logger.error(`Error updating gap ${gapId} status:`, error);
+    } catch (error: any) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        logger.warn(
+          `Gap update race condition or missing item: ${gapId}. Retrying with fresh lookup.`
+        );
+        // Final desperate attempted lookup to see if timestamp shifted
+        const all = await this.getAllGaps();
+        const retryTarget = all.find((g) => g.id === `GAP#${numericId}`);
+        if (retryTarget) {
+          command.input.Key = { userId: `GAP#${numericId}`, timestamp: retryTarget.timestamp };
+          await docClient.send(command);
+        }
+      } else {
+        logger.error(`Error updating gap ${gapId} status:`, error);
+      }
     }
   }
 

@@ -67,10 +67,13 @@ describe('DynamoMemory Retention', () => {
   });
 
   describe('updateGapStatus', () => {
-    it('should send UpdateCommand with correct parameters when gapId contains timestamp', async () => {
+    it('should send UpdateCommand with correct parameters when gapId contains timestamp and include updatedAt', async () => {
       const timestamp = 1710240000000;
       const gapId = `GAP#${timestamp}`;
       ddbMock.on(UpdateCommand).resolves({});
+
+      const now = Date.now();
+      vi.setSystemTime(now);
 
       await memory.updateGapStatus(gapId, GapStatus.PLANNED);
 
@@ -82,24 +85,66 @@ describe('DynamoMemory Retention', () => {
           userId: `GAP#${timestamp}`,
           timestamp: timestamp,
         },
-        UpdateExpression: 'SET #status = :status',
+        UpdateExpression: 'SET #status = :status, updatedAt = :now',
+        ConditionExpression: 'attribute_exists(userId)',
         ExpressionAttributeNames: {
           '#status': 'status',
         },
         ExpressionAttributeValues: {
           ':status': GapStatus.PLANNED,
+          ':now': now,
         },
       });
+      vi.useRealTimers();
     });
 
-    it('should handle gapId that is not a numeric timestamp by defaulting timestamp to 0', async () => {
+    it('should retry with fresh lookup on ConditionalCheckFailedException', async () => {
+      const timestamp = 1710240000000;
+      const gapId = `GAP#${timestamp}`;
+
+      // First call fails with ConditionalCheckFailedException
+      const error = new Error('ConditionalCheckFailedException');
+      error.name = 'ConditionalCheckFailedException';
+      ddbMock.on(UpdateCommand).rejectsOnce(error).resolves({});
+
+      // Mock the getItems call within getAllGaps that updateGapStatus uses
+      // Note: we need to mock the correct command based on what getAllGaps calls
+      // Assuming it's QueryCommand based on DynamoMemory implementation
+      const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          { userId: `GAP#${timestamp}`, timestamp: timestamp + 1, content: 'test', type: 'GAP' },
+        ],
+      });
+
+      await memory.updateGapStatus(gapId, GapStatus.DONE);
+
+      // Should have 2 UpdateCommand calls (initial + retry)
+      const updateCalls = ddbMock.commandCalls(UpdateCommand);
+      expect(updateCalls).toHaveLength(2);
+
+      // The second call should use the updated timestamp from the lookup
+      expect(updateCalls[1].args[0].input.Key.timestamp).toBe(timestamp + 1);
+    });
+
+    it('should handle gapId that is not a numeric timestamp by searching all gaps', async () => {
       const gapId = 'GAP#some-unique-string';
+      const actualTimestamp = 123456789;
+
+      const { QueryCommand } = await import('@aws-sdk/lib-dynamodb');
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{ userId: gapId, timestamp: actualTimestamp, content: 'test', type: 'GAP' }],
+      });
       ddbMock.on(UpdateCommand).resolves({});
 
       await memory.updateGapStatus(gapId, GapStatus.PROGRESS);
 
-      const calls = ddbMock.commandCalls(UpdateCommand);
-      expect(calls.length).toBeGreaterThanOrEqual(1);
+      const updateCalls = ddbMock.commandCalls(UpdateCommand);
+      expect(updateCalls).toHaveLength(1);
+      expect(updateCalls[0].args[0].input.Key).toEqual({
+        userId: gapId,
+        timestamp: actualTimestamp,
+      });
     });
   });
 });

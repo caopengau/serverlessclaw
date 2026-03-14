@@ -17,6 +17,12 @@ The stack evolves by bridging the gap between temporary Lambda execution and per
 |  SuperClaw  +------>|  AWS CodeBuild   +------>|   Agent Stack     |
 | (Orchestrator)| trigger| (Deployer)       |  sst  | (Self-Update)     |
 +--------------+       +-----------|------+       +---------+---------+
+                                                            |
+                                                            v
++--------------+       +------------------+       +-------------------+
+|  QA Auditor  +------>|  Mechanical Gate |<------+   User Feedback   |
+| (Verifies)   | tool  | (Status: DONE)   | chat  |  (Closes Loop)    |
++--------------+       +------------------+       +-------------------+
 ```
 
 ## Capability Lifecycle
@@ -24,10 +30,14 @@ The stack evolves by bridging the gap between temporary Lambda execution and per
 The system's evolution follows a strict, verified hierarchy:
 1. **Observation**: Reflector identifies a `strategic_gap` from conversation logs.
 2. **Audit & Optimization**: Every 48 hours, the **Strategic Planner** reviews all open gaps and `tool_usage` telemetry.
+   - **Deduplication**: Planner performs a semantic check to prevent redundant plans for the same gap.
 3. **Planning**: Planner designs a `STRATEGIC_PLAN` (Expansion or Pruning).
 4. **Approval**: Depending on `evolution_mode` (`hitl` vs `auto`), the user approves or the system proceeds.
 5. **Implementation**: Coder Agent writes code and triggers deployment.
-6. **Verification**: QA Auditor verifies the satisfaction of the change in real-world usage.
+6. **Verification (Mechanical Gating)**: QA Auditor MUST verify the change using system tools (e.g., `checkHealth`, `validateCode`).
+7. **Nudging & Completion**: 
+   - Reflector nudges the user to test `DEPLOYED` features.
+   - SuperClaw proactively marks gaps as `DONE` when the user confirms satisfaction.
 
 ## Self-Healing Loop
 

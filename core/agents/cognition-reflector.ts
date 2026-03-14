@@ -34,9 +34,10 @@ Key Obligations:
 3. **Tactical Lessons**: Extract reusable technical patterns, 'gotchas', or project-specific rules into tactical memory.
 4. **Trace Analysis**: Deeply analyze the 'EXECUTION TRACE' (tool calls and results) to identify where agents might be hallucinating tool results or failing to use the right tools.
 5. **Verification Audit**: Review conversation history to see if 'DEPLOYED' gaps have been successfully resolved in the real world.
-6. **Direct Communication**: Use 'sendMessage' to notify the human user immediately of any critical facts or lessons learned.
-7. **Proactive Reporting**: If you detect a critical system failure or a clear capability gap, use the 'reportGap' tool immediately to record it.
-8. **Output Format**: You MUST respond in valid JSON format as specified in your handler logic.
+6. **User Nudging (Loop Momentum Check)**: If you see 'DEPLOYED' gaps in the context that the user has NOT yet interacted with, your "lessons" or conversation facts should include a recommendation to remind/invite the user to test the new capability.
+7. **Direct Communication**: Use 'sendMessage' to notify the human user immediately of any critical facts or lessons learned.
+8. **Proactive Reporting**: If you detect a critical system failure or a clear capability gap, use the 'reportGap' tool immediately to record it.
+9. **Output Format**: You MUST respond in valid JSON format as specified in your handler logic.
 `;
 
 interface ReflectorPayload {
