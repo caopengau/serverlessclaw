@@ -48,6 +48,12 @@ export function createApi(ctx: SharedContext): { api: sst.aws.ApiGatewayV2 } {
   api.route('GET /health', {
     handler: 'core/handlers/health.handler',
     link: [memoryTable, bus],
+    permissions: [
+      {
+        actions: ['events:ListEventBuses'],
+        resources: ['*'],
+      },
+    ],
     environment: {
       GIT_HASH: process.env.GIT_HASH || 'dev',
     },
