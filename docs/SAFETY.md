@@ -26,8 +26,8 @@ To prevent infinite loops during autonomous multi-agent coordination, Serverless
 
 1. **Hop Tracking**: Every event carries a `depth` counter.
 2. **Increment**: The `EventHandler` increments this counter before dispatching a `CONTINUATION_TASK`.
-3. **Threshold**: The maximum allowed depth is **5 hops**.
-4. **Intervention**: If `depth > 5`:
+3. **Threshold**: The maximum allowed depth is **50 hops** (configurable via `recursion_limit` in ConfigTable).
+4. **Intervention**: If `depth >= 50`:
     - The `EventHandler` immediately logs a critical loop warning.
     - The task is terminated.
     - The `SuperClaw` is notified to inform the user of the "Infinite Loop Detected" and request manual intervention.
@@ -79,17 +79,20 @@ This loop is still subject to the **Circuit Breaker** to prevent infinite repair
 ## Circuit Breaker Detail
 
 **State**: Stored in DynamoDB `MemoryTable` under key `system:deploy-stats`:
+
 ```json
 { "id": "system:deploy-stats", "count": 3, "lastReset": "2026-03-09" }
 ```
 
 **Logic**:
+
 - If `lastReset` ≠ today (UTC): reset `count` to 0 (new day).
 - If `count >= LIMIT`: return `CIRCUIT_BREAKER_ACTIVE` — no CodeBuild triggered.
 - On each successful deploy: `count += 1`.
 - On each successful `checkHealth`: `count -= 1` (reward credit).
 
 **Limit Configuration**:
+
 - **Default**: 5 deployments / UTC day.
 - **Customization**: Set `deploy_limit` in the `ConfigTable` (DynamoDB).
 - **Cap**: The system enforces a hard cap of **100** deployments per day to prevent runaway costs.
@@ -119,9 +122,11 @@ infra/**
 - **Endpoint**: `GET /health` (handled by `core/handlers/health.ts`)
 - **Checks**: DynamoDB connectivity, returns `deployCountToday`
 - **Response shape**:
+
   ```json
   { "status": "ok", "timestamp": "...", "deployCountToday": 2 }
   ```
+
 - **On success**: decrement circuit breaker counter by 1.
 - **On failure (503)**: SuperClaw must call `triggerRollback`.
 

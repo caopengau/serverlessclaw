@@ -324,5 +324,31 @@ describe('EventHandler', () => {
         'SuperClaw'
       );
     });
+
+    it('should abort CONTINUATION_TASK if recursion limit reached', async () => {
+      const event = {
+        'detail-type': EventType.CONTINUATION_TASK,
+        detail: {
+          userId: 'user-2',
+          agentId: 'superclaw',
+          task: 'Continue processing',
+          initiatorId: 'main',
+          depth: 100, // Exceeds default limit of 50
+        },
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await handler(event as any, {} as any);
+
+      const { sendOutboundMessage } = await import('../lib/outbound');
+      expect(sendOutboundMessage).toHaveBeenCalledWith(
+        'events.handler',
+        'user-2',
+        expect.stringContaining('Recursion Limit Exceeded'),
+        undefined,
+        undefined,
+        'SuperClaw'
+      );
+    });
   });
 });

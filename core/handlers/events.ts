@@ -176,6 +176,34 @@ I am ready for further tasks or instructions.`;
       attachments,
     } = event.detail as unknown as TaskEvent & { agentId?: string };
 
+    const currentDepth = depth || 1;
+
+    // 1. Loop Protection - Check recursion depth before processing
+    let RECURSION_LIMIT: number = SYSTEM.DEFAULT_RECURSION_LIMIT;
+    try {
+      const customLimit = await ConfigManager.getRawConfig(DYNAMO_KEYS.RECURSION_LIMIT);
+      if (customLimit !== undefined) {
+        RECURSION_LIMIT = parseInt(String(customLimit), 10);
+      }
+    } catch {
+      logger.warn('Failed to fetch recursion_limit from DDB, using default.');
+    }
+
+    if (currentDepth >= RECURSION_LIMIT) {
+      logger.error(
+        `Recursion Limit Exceeded for CONTINUATION_TASK (Depth: ${currentDepth}) for user ${userId}. Aborting.`
+      );
+      await sendOutboundMessage(
+        'events.handler',
+        userId,
+        `⚠️ **Recursion Limit Exceeded**\n\nI have detected an infinite loop in task continuation (Depth: ${currentDepth}). I've intervened to stop the process. Please check the orchestration logic.`,
+        undefined,
+        sessionId,
+        'SuperClaw'
+      );
+      return;
+    }
+
     const targetAgentId = agentId || 'main';
     logger.info(`Handling continuation task for agent ${targetAgentId}, user:`, userId, {
       traceId,
