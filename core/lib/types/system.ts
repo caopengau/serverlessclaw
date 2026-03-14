@@ -93,3 +93,33 @@ export interface Topology {
   /** All identified relationships between nodes. */
   edges: TopologyEdge[];
 }
+
+/**
+ * Health status and telemetry for the system's "Self" mechanisms.
+ */
+export interface SelfVerificationStatus {
+  evolution: {
+    /** Total number of identified strategic gaps. */
+    totalGaps: number;
+    /** Number of gaps in OPEN or PROGRESS state. */
+    activeGaps: number;
+    /** Success rate of autonomous fix attempts. */
+    fixSuccessRate: number;
+  };
+  resilience: {
+    /** Is the circuit breaker currently engaged? */
+    circuitBreakerActive: boolean;
+    /** Current deployment count towards the daily limit. */
+    deployCountToday: number;
+    /** Is the health probe endpoint responding normally? */
+    apiHealthy: boolean;
+  };
+  awareness: {
+    /** Number of discovered infrastructure nodes. */
+    nodeCount: number;
+    /** Timestamp of the last successful infrastructure scan. */
+    lastScanTimestamp?: string;
+    /** Percentage of agents currently registered in the topology. */
+    registryCoverage: number;
+  };
+}
