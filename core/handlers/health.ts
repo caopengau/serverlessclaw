@@ -17,6 +17,9 @@ export const handler: APIGatewayProxyHandlerV2 = async () => {
       throw new Error(`Deep health check failed: ${deepCheck.details}`);
     }
 
+    // Reset recovery attempts on success
+    await memory.resetRecoveryAttemptCount();
+
     // Save current hash as LKG if check passes
     const currentHash = process.env.GIT_HASH || 'unknown';
     if (currentHash !== 'unknown') {

@@ -42,6 +42,12 @@ phases:
   post_build:
     commands:
       - |
+        if [ "$EMERGENCY_ROLLBACK" = "true" ]; then
+          echo "Verifying emergency recovery..."
+          make verify || (echo "EMERGENCY RECOVERY VERIFICATION FAILED" && exit 1)
+        fi
+      - echo build completed on `date`
+      - |
         if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ]; then
           echo "Deployment successful. Verifying health..."
           API_URL=$(python3 -c "import json; print(json.load(open('.sst/outputs.json'))['apiUrl'])")

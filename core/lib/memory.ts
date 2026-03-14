@@ -574,4 +574,49 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
 
     return (items[0]?.content as string) || null;
   }
+
+  /**
+   * Atomically increments the system-wide recovery attempt count.
+   */
+  async incrementRecoveryAttemptCount(): Promise<number> {
+    const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+    const command = new UpdateCommand({
+      TableName: this.tableName,
+      Key: {
+        userId: 'SYSTEM#RECOVERY#STATS',
+        timestamp: 0,
+      },
+      UpdateExpression: 'SET attempts = if_not_exists(attempts, :zero) + :one, updatedAt = :now',
+      ExpressionAttributeValues: {
+        ':zero': 0,
+        ':one': 1,
+        ':now': Date.now(),
+      },
+      ReturnValues: 'ALL_NEW',
+    });
+
+    const result = await docClient.send(command);
+    return (result.Attributes?.attempts as number) ?? 1;
+  }
+
+  /**
+   * Resets the system-wide recovery attempt count.
+   */
+  async resetRecoveryAttemptCount(): Promise<void> {
+    const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+    await docClient.send(
+      new UpdateCommand({
+        TableName: this.tableName,
+        Key: {
+          userId: 'SYSTEM#RECOVERY#STATS',
+          timestamp: 0,
+        },
+        UpdateExpression: 'SET attempts = :zero, updatedAt = :now',
+        ExpressionAttributeValues: {
+          ':zero': 0,
+          ':now': Date.now(),
+        },
+      })
+    );
+  }
 }

@@ -1,14 +1,16 @@
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
+import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
-import { SSTResource } from '../lib/types/index';
+import { SSTResource, EventType, OutboundMessageEvent } from '../lib/types/index';
 import { DynamoLockManager } from '../lib/lock';
 import { DynamoMemory } from '../lib/memory';
 
 const codebuild = new CodeBuildClient({});
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const eventbridge = new EventBridgeClient({});
 const typedResource = Resource as unknown as SSTResource;
 const lockManager = new DynamoLockManager();
 const memory = new DynamoMemory();
@@ -16,6 +18,7 @@ const memory = new DynamoMemory();
 const RECOVERY_LOCK_ID = 'dead-mans-switch-recovery';
 // TTL slightly longer than the Dead Man's Switch schedule (15 min) to guarantee one-at-a-time.
 const RECOVERY_LOCK_TTL_SECONDS = 20 * 60;
+const MAX_RECOVERY_ATTEMPTS = 2;
 
 /**
  * Performs a health check on the system and triggers an emergency recovery (rollback) if unhealthy.
@@ -34,10 +37,8 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
     }
 
     // DEEP HEALTH: Verify EventBridge accessibility
-    const { EventBridgeClient, ListEventBusesCommand } =
-      await import('@aws-sdk/client-eventbridge');
-    const eb = new EventBridgeClient({});
-    await eb.send(new ListEventBusesCommand({ NamePrefix: typedResource.AgentBus.name }));
+    const { ListEventBusesCommand } = await import('@aws-sdk/client-eventbridge');
+    await eventbridge.send(new ListEventBusesCommand({ NamePrefix: typedResource.AgentBus.name }));
 
     logger.info('System is healthy (Deep Check PASSED). No action needed.');
     return;
@@ -60,7 +61,47 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
   }
 
   try {
-    // 1. Retrieve Last Known Good (LKG) Hash
+    // 1. Check Circuit Breaker: Recovery Attempt Count
+    const attemptCount = await memory.incrementRecoveryAttemptCount();
+    logger.info(`Recovery attempt count: ${attemptCount}/${MAX_RECOVERY_ATTEMPTS}`);
+
+    if (attemptCount > MAX_RECOVERY_ATTEMPTS) {
+      logger.error('CRITICAL: Recovery circuit-breaker triggered. Too many consecutive failures.');
+
+      // Escalation: Send alert to all channels via Notifier
+      const alert: OutboundMessageEvent = {
+        userId: 'ADMIN', // Or a system-wide broadcast ID
+        message: `🚨 *CRITICAL SYSTEM FAILURE*: Automatic recovery has failed after ${attemptCount} attempts. Manual intervention required immediately. Health Check: ${healthUrl}`,
+        agentName: 'DeadManSwitch',
+      };
+
+      await eventbridge.send(
+        new PutEventsCommand({
+          Entries: [
+            {
+              Source: 'system.recovery',
+              DetailType: EventType.OUTBOUND_MESSAGE,
+              Detail: JSON.stringify(alert),
+              EventBusName: typedResource.AgentBus.name,
+            },
+          ],
+        })
+      );
+
+      await db.send(
+        new PutCommand({
+          TableName: typedResource.MemoryTable.name,
+          Item: {
+            userId: 'DISTILLED#RECOVERY',
+            timestamp: Date.now(),
+            content: `Recovery halted. Circuit-breaker triggered after ${attemptCount} failed attempts. Escallated via Notifier.`,
+          },
+        })
+      );
+      return;
+    }
+
+    // 2. Retrieve Last Known Good (LKG) Hash
     const lkgHash = await memory.getLatestLKGHash();
     if (!lkgHash) {
       logger.warn('No LKG hash found in memory. Falling back to generic HEAD revert.');
@@ -79,14 +120,14 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
 
     await codebuild.send(command);
 
-    // 2. Log recovery event for SuperClaw awareness
+    // 3. Log recovery event for SuperClaw awareness
     await db.send(
       new PutCommand({
         TableName: typedResource.MemoryTable.name,
         Item: {
           userId: 'DISTILLED#RECOVERY',
           timestamp: Date.now(),
-          content: `Dead Man's Switch detected unhealthy system and triggered emergency rollback to ${lkgHash || 'previous state'}.`,
+          content: `Dead Man's Switch detected unhealthy system and triggered attempt #${attemptCount} for rollback to ${lkgHash || 'previous state'}.`,
         },
       })
     );

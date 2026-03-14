@@ -6,6 +6,7 @@ const healthMocks = vi.hoisted(() => ({
 
 const memoryMocks = vi.hoisted(() => ({
   saveLKGHash: vi.fn(),
+  resetRecoveryAttemptCount: vi.fn(),
 }));
 
 vi.mock('../lib/health', () => ({
@@ -15,6 +16,7 @@ vi.mock('../lib/health', () => ({
 vi.mock('../lib/memory', () => ({
   DynamoMemory: class {
     saveLKGHash = memoryMocks.saveLKGHash;
+    resetRecoveryAttemptCount = memoryMocks.resetRecoveryAttemptCount;
   },
 }));
 
@@ -24,7 +26,7 @@ describe('Health Handler', () => {
     process.env.GIT_HASH = 'test-hash';
   });
 
-  it('should return 200 and save LKG if deep check passes', async () => {
+  it('should return 200 and save LKG/reset attempts if deep check passes', async () => {
     healthMocks.runDeepHealthCheck.mockResolvedValue({ ok: true });
 
     const { handler } = await import('./health');
@@ -32,6 +34,7 @@ describe('Health Handler', () => {
 
     expect(result.statusCode).toBe(200);
     expect(memoryMocks.saveLKGHash).toHaveBeenCalledWith('test-hash');
+    expect(memoryMocks.resetRecoveryAttemptCount).toHaveBeenCalled();
     const body = JSON.parse(result.body);
     expect(body.status).toBe('ok');
     expect(body.gitHash).toBe('test-hash');

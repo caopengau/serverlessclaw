@@ -2,9 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
+import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
+import { EventType } from '../lib/types/index';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 const codeBuildMock = mockClient(CodeBuildClient);
+const ebMock = mockClient(EventBridgeClient);
 
 const lockMocks = vi.hoisted(() => ({
   acquire: vi.fn(),
@@ -20,11 +23,13 @@ vi.mock('../lib/lock', () => ({
 
 const memoryMocks = vi.hoisted(() => ({
   getLatestLKGHash: vi.fn(),
+  incrementRecoveryAttemptCount: vi.fn(),
 }));
 
 vi.mock('../lib/memory', () => ({
   DynamoMemory: class {
     getLatestLKGHash = memoryMocks.getLatestLKGHash;
+    incrementRecoveryAttemptCount = memoryMocks.incrementRecoveryAttemptCount;
   },
 }));
 
@@ -33,7 +38,7 @@ vi.mock('sst', () => ({
     WebhookApi: { url: 'https://test.example.com' },
     Deployer: { name: 'test-deployer' },
     MemoryTable: { name: 'test-memory-table' },
-    AgentBus: { name: 'test-bus' }, // Added AgentBus for deep check mock
+    AgentBus: { name: 'test-bus' },
   },
 }));
 
@@ -41,8 +46,10 @@ describe('Dead Man Switch Recovery Handler', () => {
   beforeEach(() => {
     ddbMock.reset();
     codeBuildMock.reset();
+    ebMock.reset();
     vi.clearAllMocks();
     global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503 });
+    memoryMocks.incrementRecoveryAttemptCount.mockResolvedValue(1);
   });
 
   it('should NOT trigger CodeBuild if health check passes', async () => {
@@ -52,8 +59,24 @@ describe('Dead Man Switch Recovery Handler', () => {
     expect(codeBuildMock.calls()).toHaveLength(0);
   });
 
+  it('should circuit-break after MAX_ATTEMPTS and send alert', async () => {
+    lockMocks.acquire.mockResolvedValue(true);
+    memoryMocks.incrementRecoveryAttemptCount.mockResolvedValue(3); // 3 > 2
+    ebMock.on(PutEventsCommand).resolves({});
+
+    const { handler } = await import('./recovery');
+    await handler();
+
+    expect(codeBuildMock.commandCalls(StartBuildCommand)).toHaveLength(0);
+    expect(ebMock.commandCalls(PutEventsCommand)).toHaveLength(1);
+    const ebInput = ebMock.commandCalls(PutEventsCommand)[0].args[0].input;
+    expect(ebInput.Entries![0].DetailType).toBe(EventType.OUTBOUND_MESSAGE);
+    expect(ebInput.Entries![0].Detail).toContain('🚨 *CRITICAL SYSTEM FAILURE*');
+  });
+
   it('should retrieve LKG hash and trigger CodeBuild on health failure', async () => {
     lockMocks.acquire.mockResolvedValue(true);
+    memoryMocks.incrementRecoveryAttemptCount.mockResolvedValue(1);
     memoryMocks.getLatestLKGHash.mockResolvedValue('lkg-commit-123');
     ddbMock.on(PutCommand).resolves({});
     codeBuildMock.on(StartBuildCommand).resolves({ build: { id: 'test-build' } });
