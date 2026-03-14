@@ -64,7 +64,7 @@ export class AgentExecutor {
     responseText: string;
     paused?: boolean;
     pauseMessage?: string;
-    attachments?: any[];
+    attachments?: NonNullable<Message['attachments']>;
   }> {
     const {
       maxIterations,
@@ -86,7 +86,7 @@ export class AgentExecutor {
 
     let iterations = 0;
     let responseText = '';
-    const attachments: any[] = [];
+    const attachments: NonNullable<Message['attachments']> = [];
 
     while (iterations < maxIterations) {
       // 1. Timeout Check
@@ -179,7 +179,9 @@ export class AgentExecutor {
                 }
               }
               if (res.metadata?.attachments && Array.isArray(res.metadata.attachments)) {
-                attachments.push(...res.metadata.attachments);
+                attachments.push(
+                  ...(res.metadata.attachments as NonNullable<Message['attachments']>)
+                );
               }
             }
 

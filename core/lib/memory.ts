@@ -280,8 +280,9 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
 
     try {
       await docClient.send(command);
-    } catch (error: any) {
-      if (error.name === 'ConditionalCheckFailedException') {
+    } catch (error) {
+      const err = error as { name?: string };
+      if (err.name === 'ConditionalCheckFailedException') {
         logger.warn(
           `Gap update race condition or missing item: ${gapId}. Retrying with fresh lookup.`
         );

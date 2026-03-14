@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { APIGatewayProxyHandlerV2, APIGatewayProxyEventV2, Context } from 'aws-lambda';
 
 const healthMocks = vi.hoisted(() => ({
   runDeepHealthCheck: vi.fn(),
@@ -30,7 +31,10 @@ describe('Health Handler', () => {
     healthMocks.runDeepHealthCheck.mockResolvedValue({ ok: true });
 
     const { handler } = await import('./health');
-    const result = await (handler as any)({}, {});
+    const result = (await (handler as APIGatewayProxyHandlerV2)(
+      {} as unknown as APIGatewayProxyEventV2,
+      {} as unknown as Context
+    )) as { statusCode: number; body: string };
 
     expect(result.statusCode).toBe(200);
     expect(memoryMocks.saveLKGHash).toHaveBeenCalledWith('test-hash');
@@ -45,7 +49,10 @@ describe('Health Handler', () => {
     healthMocks.runDeepHealthCheck.mockResolvedValue({ ok: true });
 
     const { handler } = await import('./health');
-    const result = await (handler as any)({}, {});
+    const result = (await (handler as APIGatewayProxyHandlerV2)(
+      {} as unknown as APIGatewayProxyEventV2,
+      {} as unknown as Context
+    )) as { statusCode: number; body: string };
 
     expect(result.statusCode).toBe(200);
     expect(memoryMocks.resetRecoveryAttemptCount).toHaveBeenCalled();
@@ -58,7 +65,10 @@ describe('Health Handler', () => {
     healthMocks.runDeepHealthCheck.mockResolvedValue({ ok: false, details: 'DynamoDB error' });
 
     const { handler } = await import('./health');
-    const result = await (handler as any)({}, {});
+    const result = (await (handler as APIGatewayProxyHandlerV2)(
+      {} as unknown as APIGatewayProxyEventV2,
+      {} as unknown as Context
+    )) as { statusCode: number; body: string };
 
     expect(result.statusCode).toBe(503);
     const body = JSON.parse(result.body);
@@ -74,7 +84,10 @@ describe('Health Handler', () => {
 
     // We expect it to NOT throw and still return 200, or at least try to reset.
     // In current implementation, if any error happens in mid-handler it catches.
-    const result = await (handler as any)({}, {});
+    const result = (await (handler as APIGatewayProxyHandlerV2)(
+      {} as unknown as APIGatewayProxyEventV2,
+      {} as unknown as Context
+    )) as { statusCode: number; body: string };
     expect(result.statusCode).toBe(503); // It catches the error and returns 503
     expect(memoryMocks.resetRecoveryAttemptCount).toHaveBeenCalled();
   });
