@@ -1,20 +1,31 @@
 import { DynamoMemory } from '../lib/memory';
-import { Agent } from '../lib/agent';
 import { ProviderManager } from '../lib/providers/index';
-import { getAgentTools } from '../tools/index';
-import { EventType, SSTResource, MessageRole, AgentType } from '../lib/types/index';
+import {
+  SSTResource,
+  MessageRole,
+  AgentType,
+  GapStatus,
+  ReasoningProfile,
+} from '../lib/types/index';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { Resource } from 'sst';
-import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { Context } from 'aws-lambda';
-import { ReasoningProfile, GapStatus } from '../lib/types/index';
+import {
+  extractPayload,
+  detectFailure,
+  isTaskPaused,
+  loadAgentConfig,
+  createAgent,
+  validatePayload,
+  buildProcessOptions,
+  emitTaskEvent,
+} from '../lib/utils/agent-helpers';
 
 const memory = new DynamoMemory();
 const provider = new ProviderManager();
-const eventbridge = new EventBridgeClient({});
 const typedResource = Resource as unknown as SSTResource;
 
 export const CODER_SYSTEM_PROMPT = `
@@ -63,11 +74,11 @@ export const handler = async (event: CoderEvent, context: Context): Promise<stri
   logger.info('Coder Agent received task:', JSON.stringify(event, null, 2));
 
   // EventBridge wraps the payload in 'detail'
-  const payload = event.detail || (event as unknown as CoderPayload);
-  const { userId, task, metadata, traceId, sessionId } = payload;
+  const payload = extractPayload<CoderPayload>(event);
+  const { userId, task, metadata, traceId, sessionId, isContinuation, initiatorId, depth } =
+    payload;
 
-  if (!userId || !task) {
-    logger.error('Invalid event payload');
+  if (!validatePayload({ userId, task }, ['userId', 'task'])) {
     return;
   }
 
@@ -81,34 +92,32 @@ export const handler = async (event: CoderEvent, context: Context): Promise<stri
 
   // 2. Process the task
   // 2026 Optimization: Use 'thinking' profile for coding tasks
-  const { AgentRegistry } = await import('../lib/registry');
-  const config = await AgentRegistry.getAgentConfig(AgentType.CODER);
-  if (!config) {
-    logger.error('Failed to load Coder configuration');
-    return;
-  }
+  const config = await loadAgentConfig(AgentType.CODER);
 
-  const agentTools = await getAgentTools('coder');
-  const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
-  const response = await agent.process(userId, task, {
-    profile: ReasoningProfile.THINKING,
-    isIsolated: true,
-    context,
-    isContinuation: !!payload.isContinuation,
-    initiatorId: payload.initiatorId,
-    depth: payload.depth,
-    traceId,
-    sessionId,
-  });
+  const agent = await createAgent('coder', config, memory, provider);
+  const response = await agent.process(
+    userId,
+    task,
+    buildProcessOptions({
+      profile: ReasoningProfile.THINKING,
+      isIsolated: true,
+      context,
+      isContinuation,
+      initiatorId,
+      depth,
+      traceId,
+      sessionId,
+    })
+  );
 
   logger.info('Coder Agent completed task:', response);
 
   // 3. Notify user directly if not a silent internal task
-  if (!response.startsWith('TASK_PAUSED')) {
+  if (!isTaskPaused(response)) {
     await sendOutboundMessage('coder.agent', userId, response, [userId], sessionId, config.name);
   }
 
-  const isFailure = response.startsWith('I encountered an internal error');
+  const isFailure = detectFailure(response);
 
   // 4. Mark gaps as DONE if successful or map them to a build
   const isSuccess =
@@ -148,32 +157,18 @@ export const handler = async (event: CoderEvent, context: Context): Promise<stri
   }
 
   // 5. Notify Resumption Loop (Universal Coordination)
-  if (!response.startsWith('TASK_PAUSED')) {
-    try {
-      await eventbridge.send(
-        new PutEventsCommand({
-          Entries: [
-            {
-              Source: 'coder.agent',
-              DetailType: isFailure ? EventType.TASK_FAILED : EventType.TASK_COMPLETED,
-              Detail: JSON.stringify({
-                userId,
-                agentId: AgentType.CODER,
-                task,
-                [isFailure ? 'error' : 'response']: response,
-                traceId,
-                initiatorId: payload.initiatorId,
-                depth: payload.depth,
-                sessionId,
-              }),
-              EventBusName: typedResource.AgentBus.name,
-            },
-          ],
-        })
-      );
-    } catch (e) {
-      logger.error('Failed to emit result from Coder:', e);
-    }
+  if (!isTaskPaused(response)) {
+    await emitTaskEvent({
+      source: 'coder.agent',
+      agentId: AgentType.CODER,
+      userId,
+      task,
+      response,
+      traceId,
+      sessionId,
+      initiatorId,
+      depth,
+    });
   }
 
   return response;

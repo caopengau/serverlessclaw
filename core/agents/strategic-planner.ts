@@ -18,6 +18,8 @@ import { DynamoDBDocumentClient, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
+import { AgentRegistry } from '../lib/registry';
+import { extractPayload, loadAgentConfig, extractBaseUserId } from '../lib/utils/agent-helpers';
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const memory = new DynamoMemory();
@@ -94,7 +96,7 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   logger.info('Planner Agent received task:', JSON.stringify(event, null, 2));
 
   // EventBridge wraps the payload in 'detail'
-  const payload = event.detail || (event as unknown as PlannerPayload);
+  const payload = extractPayload<PlannerPayload>(event);
   const {
     gapId,
     details,
@@ -108,17 +110,10 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   } = payload;
 
   // Extract base userId (remove CONV# prefix if present)
-  const baseUserId = contextUserId.startsWith('CONV#')
-    ? contextUserId.split('#')[1]
-    : contextUserId;
+  const baseUserId = extractBaseUserId(contextUserId);
 
   // 1. Fetch System Context
-  const { AgentRegistry } = await import('../lib/registry');
-  const config = await AgentRegistry.getAgentConfig(AgentType.STRATEGIC_PLANNER);
-  if (!config) {
-    logger.error('Failed to load Strategic Planner configuration');
-    throw new Error('Config load failed');
-  }
+  const config = await loadAgentConfig(AgentType.STRATEGIC_PLANNER);
 
   const agentTools = await getAgentTools('planner');
   const plannerAgent = new Agent(memory, providerManager, agentTools, config.systemPrompt, config);
@@ -230,12 +225,26 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   }
 
   // 2. Self-Evolution Loop Protection (Cool-down)
-  // Logic: Check if we have tried to evolve a similar gap recently
-  const evolutionHistory = await memory.getDistilledMemory(`EVOLUTION#HISTORY#${baseUserId}`);
-  const isDuplicate = details && evolutionHistory?.includes(details.substring(0, 50));
-  if (isDuplicate) {
-    logger.warn('Evolution loop detected or cooldown active for this gap. Aborting.');
-    return { status: 'COOLDOWN_ACTIVE' };
+  // Cooldown is tracked per gap ID in a structured JSON list stored in DDB.
+  // Each entry carries an `expiresAt` epoch so old entries naturally become inactive.
+  // This replaces the previous brittle 500-char rolling text buffer which:
+  //   a) evicted entries as the buffer filled (same gap became "new" again)
+  //   b) did text-prefix matching easily bypassed by rephrased descriptions
+  //   c) was never checked for scheduled reviews (details === undefined)
+  if (gapId) {
+    const cooldownKey = `COOLDOWN_GAPS#${baseUserId}`;
+    try {
+      const raw = await memory.getDistilledMemory(cooldownKey);
+      const entries: Array<{ gapId: string; expiresAt: number }> = raw ? JSON.parse(raw) : [];
+      const now = Date.now();
+      const active = entries.filter((e) => e.expiresAt > now);
+      if (active.some((e) => e.gapId === gapId)) {
+        logger.warn(`Evolution cooldown active for gap ${gapId}. Aborting.`);
+        return { status: 'COOLDOWN_ACTIVE' };
+      }
+    } catch {
+      logger.warn('Failed to read cooldown state, proceeding anyway.');
+    }
   }
 
   // 3. Process with High Reasoning
@@ -294,24 +303,44 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
     }
   }
 
-  // 4. Record evolution attempt in history for cooldown logic
-  if (details && !isFailure) {
-    const updatedHistory = `${details.substring(0, 50)} | ${evolutionHistory || ''}`.substring(
-      0,
-      500
-    );
-    await memory.updateDistilledMemory(`EVOLUTION#HISTORY#${baseUserId}`, updatedHistory);
+  // 4. Record gap in structured cooldown store
+  if (gapId && !isFailure) {
+    const cooldownKey = `COOLDOWN_GAPS#${baseUserId}`;
+    const COOLDOWN_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+    try {
+      const raw = await memory.getDistilledMemory(cooldownKey);
+      const entries: Array<{ gapId: string; expiresAt: number }> = raw ? JSON.parse(raw) : [];
+      const now = Date.now();
+      // Prune expired entries, then add the current gap
+      const active = entries.filter((e) => e.expiresAt > now);
+      active.push({ gapId, expiresAt: now + COOLDOWN_TTL_MS });
+      await memory.updateDistilledMemory(cooldownKey, JSON.stringify(active));
+    } catch (e) {
+      logger.warn('Failed to record cooldown entry:', e);
+    }
   }
 
-  // 5. Gap Sink: Mark gaps as PLANNED after review to prevent re-planning
+  // 5. Gap Sink: Mark only gaps whose content is actually referenced in the plan as PLANNED.
+  // Bulk-marking every open gap would incorrectly suppress future planning for gaps the LLM
+  // never addressed in this plan output.
   const processedGapIds: string[] = [];
   if (isScheduledReview && result && !result.includes('internal error')) {
     const allGaps = await memory.getAllGaps(GapStatus.OPEN);
-    logger.info(`Marking ${allGaps.length} gaps as PLANNED after successful strategic review.`);
+    const resultLower = result.toLowerCase();
+    logger.info(
+      `Scheduled review complete. Checking which of ${allGaps.length} gaps are covered by the plan.`
+    );
     for (const gap of allGaps) {
-      const numericId = gap.id.replace('GAP#', '');
-      await memory.updateGapStatus(numericId, GapStatus.PLANNED);
-      processedGapIds.push(numericId);
+      // A gap is "covered" if a meaningful excerpt of its description appears in the plan text.
+      const excerpt = gap.content.substring(0, 60).toLowerCase();
+      if (excerpt.length > 0 && resultLower.includes(excerpt)) {
+        const numericId = gap.id.replace('GAP#', '');
+        await memory.updateGapStatus(numericId, GapStatus.PLANNED);
+        processedGapIds.push(numericId);
+        logger.info(`Gap ${numericId} marked as PLANNED (plan references its content).`);
+      } else {
+        logger.info(`Gap ${gap.id} not covered by this plan — leaving as OPEN.`);
+      }
     }
   } else if (!isScheduledReview && gapId && result && !result.includes('internal error')) {
     logger.info(`Marking specific gap ${gapId} as PLANNED after design.`);

@@ -1,16 +1,10 @@
-import { DynamoMemory } from '../lib/memory';
-import { Agent } from '../lib/agent';
-import { ProviderManager } from '../lib/providers/index';
-import { getAgentTools } from '../tools/index';
-import { AgentRegistry } from '../lib/registry';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
+import { EventType, TraceSource, TaskEvent, SSTResource } from '../lib/types/index';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { Resource } from 'sst';
-import { EventType, TraceSource, TaskEvent, SSTResource } from '../lib/types/index';
+import { loadAgentConfig, createAgent, validatePayload } from '../lib/utils/agent-helpers';
 
-const memory = new DynamoMemory();
-const provider = new ProviderManager();
 const eventbridge = new EventBridgeClient({});
 const typedResource = Resource as unknown as SSTResource;
 
@@ -56,47 +50,41 @@ export const handler = async (
   }
 
   const agentId = detailType.replace('_task', '');
-  const { userId, task, isContinuation, traceId, sessionId } = event.detail;
+  const payload = extractPayload<TaskEvent>(event.detail);
+  const { userId, task, isContinuation, traceId, sessionId } = payload;
 
-  if (!userId || !task) {
-    logger.error('Invalid event payload: missing userId or task');
+  if (!validatePayload({ userId, task }, ['userId', 'task'])) {
     return;
   }
 
   // 1. Discovery: Load dynamic config
-  const config = await AgentRegistry.getAgentConfig(agentId);
-
-  if (!config) {
-    logger.error(`Agent configuration for '${agentId}' not found in Registry.`);
-    return;
-  }
-
-  if (!config.enabled) {
-    logger.warn(`Agent '${agentId}' is disabled. Skipping task.`);
-    return;
-  }
+  const config = await loadAgentConfig(agentId);
 
   // 2. Initialization: Setup tools and prompt
-  const agentTools = await getAgentTools(agentId);
-  const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
+  const { memory, provider } = getAgentContext();
+  const agent = await createAgent(agentId, config, memory, provider);
 
   // 3. Execution
-  const response = await agent.process(userId, task, {
-    context,
-    isContinuation: !!isContinuation,
-    isIsolated: true,
-    initiatorId: event.detail.initiatorId,
-    depth: event.detail.depth,
-    traceId: traceId,
-    sessionId,
-    source: TraceSource.SYSTEM,
-  });
+  const response = await agent.process(
+    userId,
+    task,
+    buildProcessOptions({
+      isContinuation,
+      isIsolated: true,
+      initiatorId: payload.initiatorId,
+      depth: payload.depth,
+      traceId,
+      sessionId,
+      source: TraceSource.SYSTEM,
+      context,
+    })
+  );
 
   logger.info(`Worker Agent [${agentId}] completed task:`, response);
 
   // 4. Notification (Optional: Worker could be silent or chatty)
-  if (!response.startsWith('TASK_PAUSED')) {
-    const isFailure = response.startsWith('I encountered an internal error');
+  if (!isTaskPaused(response)) {
+    const isFailure = detectFailure(response);
     try {
       await eventbridge.send(
         new PutEventsCommand({
@@ -111,8 +99,8 @@ export const handler = async (
                 [isFailure ? 'error' : 'response']: response,
                 traceId,
                 sessionId,
-                initiatorId: event.detail.initiatorId,
-                depth: event.detail.depth,
+                initiatorId: payload.initiatorId,
+                depth: payload.depth,
               }),
               EventBusName: typedResource.AgentBus.name,
             },

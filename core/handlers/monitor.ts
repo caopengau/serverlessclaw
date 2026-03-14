@@ -143,9 +143,20 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
         });
       }
 
-      // Transition gaps to FAILED
+      // Transition gaps: increment attempt counter, archive if exhausted, else reopen.
+      // This rescues FAILED gaps from being orphaned and prevents an unbounded reopen cycle.
+      const MAX_GAP_ATTEMPTS = 3;
       for (const gapId of gapIds) {
-        await memory.updateGapStatus(gapId, GapStatus.FAILED);
+        const attempts = await memory.incrementGapAttemptCount(gapId);
+        if (attempts >= MAX_GAP_ATTEMPTS) {
+          logger.warn(
+            `Gap ${gapId} has failed ${attempts} times. Archiving to prevent runaway loop.`
+          );
+          await memory.updateGapStatus(gapId, GapStatus.ARCHIVED);
+        } else {
+          logger.info(`Gap ${gapId} attempt ${attempts}/${MAX_GAP_ATTEMPTS}. Reopening.`);
+          await memory.updateGapStatus(gapId, GapStatus.OPEN);
+        }
       }
 
       // Get logs for failure analysis

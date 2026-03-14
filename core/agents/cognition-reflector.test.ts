@@ -65,6 +65,34 @@ vi.mock('@aws-sdk/client-eventbridge', () => ({
   },
 }));
 
+// Mock SST Resource — required to prevent typedResource.AgentBus.name from throwing
+vi.mock('sst', () => ({
+  Resource: {
+    AgentBus: { name: 'test-bus' },
+    MemoryTable: { name: 'test-memory' },
+    ConfigTable: { name: 'test-config' },
+    TraceTable: { name: 'test-trace' },
+  },
+}));
+
+// Mock agent-helpers: keep pure fn behaviour, stub async side-effects
+vi.mock('../lib/utils/agent-helpers', () => ({
+  // extractPayload must return the outer event so handler can access .detail on it
+  extractPayload: vi.fn((event: unknown) => event),
+  detectFailure: vi.fn((r: string) => r.startsWith('I encountered an internal error')),
+  isTaskPaused: vi.fn((r: string) => r.startsWith('TASK_PAUSED')),
+  loadAgentConfig: vi.fn().mockResolvedValue({
+    id: 'cognition-reflector',
+    name: 'Reflector',
+    systemPrompt: 'Reflector Prompt',
+    enabled: true,
+  }),
+  extractBaseUserId: vi.fn((userId: string) =>
+    userId.startsWith('CONV#') ? userId.split('#')[1] : userId
+  ),
+  emitTaskEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
 describe('Cognition Reflector Handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -120,5 +148,30 @@ describe('Cognition Reflector Handler', () => {
 
     // Memory should NOT be updated with structured data
     expect(mocks.updateDistilledMemory).not.toHaveBeenCalled();
+  });
+
+  it('should use STANDARD reasoning profile (not FAST) to avoid shallow gap closure signals', async () => {
+    let capturedOptions: Record<string, unknown> = {};
+    mocks.agentProcess.mockImplementation(
+      (_userId: string, _prompt: string, options: Record<string, unknown>) => {
+        capturedOptions = options;
+        return Promise.resolve(
+          JSON.stringify({ facts: 'facts', lessons: [], gaps: [], resolvedGapIds: [] })
+        );
+      }
+    );
+
+    const event = {
+      detail: {
+        userId: 'user-123',
+        conversation: [{ role: MessageRole.USER, content: 'test' }],
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await handler(event as any, {} as any);
+
+    expect(capturedOptions.profile).toBe('standard');
+    expect(capturedOptions.profile).not.toBe('fast');
   });
 });

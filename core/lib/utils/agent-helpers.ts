@@ -12,7 +12,14 @@ import { getAgentTools } from '../../tools/index';
 import { logger } from '../logger';
 import { Resource } from 'sst';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
-import { EventType, SSTResource, TraceSource, IAgentConfig, AgentType } from '../types/index';
+import {
+  EventType,
+  SSTResource,
+  TraceSource,
+  IAgentConfig,
+  AgentType,
+  ReasoningProfile,
+} from '../types/index';
 
 /** Singleton agent context - shared across all agent handlers */
 let _memory: DynamoMemory | undefined;
@@ -62,7 +69,7 @@ export function extractBaseUserId(userId: string): string {
  * Extract and normalize payload from EventBridge event.
  * EventBridge wraps the payload in 'detail', but direct invocations pass it directly.
  */
-export function extractPayload<T extends Record<string, unknown>>(event: { detail?: T } | T): T {
+export function extractPayload<T extends object>(event: { detail?: T } | T): T {
   return (event as { detail?: T }).detail || (event as T);
 }
 
@@ -160,11 +167,24 @@ export async function emitTaskEvent(params: {
   }
 }
 
+/** Options for building process options */
+export interface ProcessOptionsParams {
+  isContinuation?: boolean;
+  isIsolated?: boolean;
+  initiatorId?: string;
+  depth?: number;
+  traceId?: string;
+  sessionId?: string;
+  source?: TraceSource;
+  profile?: ReasoningProfile;
+  context?: import('aws-lambda').Context;
+}
+
 /**
  * Build a common process options object for agent.process() calls.
  * Reduces duplication in the agent execution pattern.
  */
-export function buildProcessOptions(params: {
+export function buildProcessOptions(params: ProcessOptionsParams): {
   isContinuation?: boolean;
   isIsolated?: boolean;
   initiatorId?: string;
@@ -172,18 +192,8 @@ export function buildProcessOptions(params: {
   traceId?: string;
   sessionId?: string;
   source?: TraceSource;
-  profile?: string;
-  context?: unknown;
-}): {
-  isContinuation?: boolean;
-  isIsolated?: boolean;
-  initiatorId?: string;
-  depth?: number;
-  traceId?: string;
-  sessionId?: string;
-  source?: TraceSource;
-  profile?: string;
-  context?: unknown;
+  profile?: ReasoningProfile;
+  context?: import('aws-lambda').Context;
 } {
   return {
     isContinuation: !!params.isContinuation,

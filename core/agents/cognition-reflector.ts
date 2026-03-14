@@ -16,6 +16,14 @@ import { Resource } from 'sst';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
+import {
+  extractPayload,
+  detectFailure,
+  isTaskPaused,
+  loadAgentConfig,
+  extractBaseUserId,
+  emitTaskEvent,
+} from '../lib/utils/agent-helpers';
 
 const typedResource = Resource as unknown as SSTResource;
 
@@ -70,10 +78,9 @@ export const handler = async (
   logger.info('Reflector Agent received task:', JSON.stringify(event, null, 2));
 
   // EventBridge wraps the payload in 'detail'
-  const payload = event.detail || (event as unknown as ReflectorPayload);
-  const { userId, conversation, traceId, sessionId } = payload;
-  // Extract base userId (remove CONV# prefix if present)
-  const baseUserId = userId.startsWith('CONV#') ? userId.split('#')[1] : userId;
+  const payload = extractPayload<ReflectorEvent>(event);
+  const { userId, conversation, traceId, sessionId, task, initiatorId, depth } =
+    payload.detail || {};
 
   if (!userId || !conversation) {
     logger.warn('Reflector received incomplete payload, skipping audit.', {
@@ -83,6 +90,8 @@ export const handler = async (
     });
     return;
   }
+
+  const baseUserId = extractBaseUserId(userId);
 
   // 1. Fetch Execution Trace (Deeper detail than conversation)
   let traceContext = '';
@@ -115,21 +124,16 @@ export const handler = async (
   }
 
   // Reflector Agent is a specialized Agent instance
-  const { AgentRegistry } = await import('../lib/registry');
-  const config = await AgentRegistry.getAgentConfig(AgentType.COGNITION_REFLECTOR);
-  if (!config) {
-    logger.error('Failed to load Reflector configuration');
-    return;
-  }
+  const config = await loadAgentConfig(AgentType.COGNITION_REFLECTOR);
 
   const agentTools = await (await import('../tools/index')).getAgentTools('cognition-reflector');
   const reflector = new Agent(memory, provider, agentTools, config.systemPrompt, config);
 
   // 2. Handle simple direct tasks (e.g. greetings)
-  if (payload.task) {
-    const taskLower = payload.task.toLowerCase();
+  if (task) {
+    const taskLower = task.toLowerCase();
     if (taskLower.includes('greet') || taskLower.includes('hi') || taskLower.includes('hello')) {
-      return await reflector.process(userId, payload.task, {
+      return await reflector.process(userId, task, {
         profile: ReasoningProfile.FAST,
         isIsolated: true,
         traceId,
@@ -185,16 +189,17 @@ export const handler = async (
     }
   `;
 
-  // Use 'fast' profile for cost-effective reflection
+  // Use 'standard' profile for reflection — FAST was too shallow for reliable gap closure detection
+  // and produced false-positive "resolved" signals from vague user messages.
   const response = await reflector.process(baseUserId, reflectionPrompt, {
-    profile: ReasoningProfile.FAST,
+    profile: ReasoningProfile.STANDARD,
     isIsolated: true,
     traceId,
     sessionId,
     source: TraceSource.SYSTEM,
   });
 
-  const isFailure = response.startsWith('I encountered an internal error');
+  const isFailure = detectFailure(response);
 
   if (response && !isFailure) {
     try {
@@ -284,34 +289,18 @@ export const handler = async (
   }
 
   // Universal Coordination: Notify Initiator (if any)
-  if (!response.startsWith('TASK_PAUSED')) {
-    try {
-      const { EventBridgeClient, PutEventsCommand } = await import('@aws-sdk/client-eventbridge');
-      const eb = new EventBridgeClient({});
-      await eb.send(
-        new PutEventsCommand({
-          Entries: [
-            {
-              Source: 'reflector.agent',
-              DetailType: isFailure ? EventType.TASK_FAILED : EventType.TASK_COMPLETED,
-              Detail: JSON.stringify({
-                userId,
-                agentId: AgentType.COGNITION_REFLECTOR,
-                task: payload.task || 'Session Reflection',
-                [isFailure ? 'error' : 'response']: response || 'No insights extracted.',
-                traceId,
-                initiatorId: payload.initiatorId,
-                depth: payload.depth,
-                sessionId,
-              }),
-              EventBusName: typedResource.AgentBus.name,
-            },
-          ],
-        })
-      );
-    } catch (e) {
-      logger.error('Failed to emit result from Reflector:', e);
-    }
+  if (!isTaskPaused(response)) {
+    await emitTaskEvent({
+      source: 'reflector.agent',
+      agentId: AgentType.COGNITION_REFLECTOR,
+      userId,
+      task: task || 'Session Reflection',
+      response: response || 'No insights extracted.',
+      traceId,
+      sessionId,
+      initiatorId,
+      depth,
+    });
   }
 
   return response;

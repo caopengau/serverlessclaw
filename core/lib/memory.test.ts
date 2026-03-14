@@ -148,4 +148,37 @@ describe('DynamoMemory Retention', () => {
       });
     });
   });
+
+  describe('incrementGapAttemptCount', () => {
+    it('should send an UpdateCommand with atomic ADD and return the new count', async () => {
+      ddbMock.on(UpdateCommand).resolves({
+        Attributes: { attemptCount: 2 },
+      });
+
+      const count = await memory.incrementGapAttemptCount('GAP#1710240000000');
+
+      expect(count).toBe(2);
+      const calls = ddbMock.commandCalls(UpdateCommand);
+      expect(calls).toHaveLength(1);
+      expect(calls[0].args[0].input).toMatchObject({
+        UpdateExpression:
+          'SET attemptCount = if_not_exists(attemptCount, :zero) + :one, updatedAt = :now',
+        ReturnValues: 'ALL_NEW',
+      });
+    });
+
+    it('should return 1 if the DDB response has no Attributes (first attempt)', async () => {
+      ddbMock.on(UpdateCommand).resolves({ Attributes: undefined });
+
+      const count = await memory.incrementGapAttemptCount('GAP#1001');
+      expect(count).toBe(1);
+    });
+
+    it('should return 1 (not throw) if DDB call errors', async () => {
+      ddbMock.on(UpdateCommand).rejects(new Error('DDB timeout'));
+
+      const count = await memory.incrementGapAttemptCount('GAP#1001');
+      expect(count).toBe(1);
+    });
+  });
 });

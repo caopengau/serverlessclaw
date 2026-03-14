@@ -205,6 +205,38 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   }
 
   /**
+   * Atomically increments the attempt counter on a capability gap and returns the new count.
+   * Used by the self-healing loop to cap infinite reopen/redeploy cycles.
+   */
+  async incrementGapAttemptCount(gapId: string): Promise<number> {
+    const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+    const numericId = gapId.replace('GAP#', '');
+    const command = new UpdateCommand({
+      TableName: this.tableName,
+      Key: {
+        userId: `GAP#${numericId}`,
+        timestamp: parseInt(numericId, 10) || 0,
+      },
+      UpdateExpression:
+        'SET attemptCount = if_not_exists(attemptCount, :zero) + :one, updatedAt = :now',
+      ExpressionAttributeValues: {
+        ':zero': 0,
+        ':one': 1,
+        ':now': Date.now(),
+      },
+      ReturnValues: 'ALL_NEW',
+    });
+
+    try {
+      const result = await docClient.send(command);
+      return (result.Attributes?.attemptCount as number) ?? 1;
+    } catch (error) {
+      logger.error(`Error incrementing attempt count for gap ${gapId}:`, error);
+      return 1;
+    }
+  }
+
+  /**
    * Transitions a capability gap to a new status
    */
   async updateGapStatus(gapId: string, status: GapStatus): Promise<void> {

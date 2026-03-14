@@ -76,7 +76,7 @@ describe('deploy-stats utility', () => {
   });
 
   describe('rewardDeployLimit', () => {
-    it('should send UpdateCommand to decrement count', async () => {
+    it('should use a floored conditional decrement (ConditionExpression: count > 0)', async () => {
       ddbMock.on(UpdateCommand).resolves({});
 
       await rewardDeployLimit();
@@ -85,8 +85,24 @@ describe('deploy-stats utility', () => {
       const call = ddbMock.call(0);
       expect(call.args[0].input).toMatchObject({
         TableName: 'test-memory-table',
-        UpdateExpression: 'SET #count = if_not_exists(#count, :zero) - :one',
+        UpdateExpression: 'SET #count = #count - :one',
+        ConditionExpression: '#count > :zero',
       });
+    });
+
+    it('should NOT throw when count is already 0 (ConditionalCheckFailedException swallowed)', async () => {
+      const error = new Error('Conditional check failed');
+      error.name = 'ConditionalCheckFailedException';
+      ddbMock.on(UpdateCommand).rejects(error);
+
+      // Must resolve without throwing — floor is enforced, no negative counts
+      await expect(rewardDeployLimit()).resolves.toBeUndefined();
+    });
+
+    it('should re-throw non-condition errors', async () => {
+      ddbMock.on(UpdateCommand).rejects(new Error('Network failure'));
+
+      await expect(rewardDeployLimit()).rejects.toThrow('Network failure');
     });
   });
 });

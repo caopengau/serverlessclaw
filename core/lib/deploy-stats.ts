@@ -3,6 +3,7 @@ import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-
 import { Resource } from 'sst';
 import { SSTResource } from './types/index';
 import { SYSTEM } from './constants';
+import { logger } from './logger';
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const typedResource = Resource as unknown as SSTResource;
@@ -52,21 +53,33 @@ export async function incrementDeployCount(today: string, currentCount: number):
 }
 
 /**
- * Rewards a deployment limit (decrements the count).
+ * Rewards a deployment limit (decrements the count, floored at 0).
+ * Uses a conditional write to prevent the counter from going negative,
+ * which would silently grant extra deploy budget beyond the configured limit.
  *
  * @returns A promise that resolves when the count is rewarded.
  */
 export async function rewardDeployLimit(): Promise<void> {
-  await db.send(
-    new UpdateCommand({
-      TableName: typedResource.MemoryTable.name,
-      Key: {
-        userId: SYSTEM.DEPLOY_STATS_KEY || 'SYSTEM#DEPLOY_STATS',
-        timestamp: 0,
-      },
-      UpdateExpression: 'SET #count = if_not_exists(#count, :zero) - :one',
-      ExpressionAttributeNames: { '#count': 'count' },
-      ExpressionAttributeValues: { ':one': 1, ':zero': 0 },
-    })
-  );
+  try {
+    await db.send(
+      new UpdateCommand({
+        TableName: typedResource.MemoryTable.name,
+        Key: {
+          userId: SYSTEM.DEPLOY_STATS_KEY || 'SYSTEM#DEPLOY_STATS',
+          timestamp: 0,
+        },
+        UpdateExpression: 'SET #count = #count - :one',
+        ConditionExpression: '#count > :zero',
+        ExpressionAttributeNames: { '#count': 'count' },
+        ExpressionAttributeValues: { ':one': 1, ':zero': 0 },
+      })
+    );
+  } catch (error: unknown) {
+    // ConditionalCheckFailedException means count is already 0 — that is fine, nothing to do.
+    if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+      logger.info('rewardDeployLimit: count already at 0, skipping decrement.');
+      return;
+    }
+    throw error;
+  }
 }

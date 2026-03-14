@@ -148,8 +148,8 @@ export const handler = async (
     const message = `✅ **DEPLOYMENT SUCCESSFUL**
 Build ID: ${buildId}
 
-The system has successfully evolved and all planned gaps have been marked as DONE. 
-I am ready for further tasks or instructions.`;
+The build completed successfully. Associated gaps have been marked as **DEPLOYED** and are pending QA verification.
+The QA Auditor will verify the changes shortly. Gaps are only marked **DONE** after QA passes (auto mode) or you confirm (HITL mode).`;
 
     await sendOutboundMessage('events.handler', userId, message, undefined, sessionId, 'SuperClaw');
 

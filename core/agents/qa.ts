@@ -75,10 +75,20 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
   const agentTools = await getAgentTools('qa');
   const qaAgent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
 
-  const auditPrompt = `Please verify if the implementation for these gaps is satisfactory. 
-    Review the codebase if needed via tools.
-    
-    Implementation Response from Coder:
+  // IMPORTANT: The Coder's implementation response is provided below only as background context.
+  // Do NOT anchor your verdict on the Coder's self-reported success — it may be inaccurate.
+  // You MUST independently verify using at least one of: validateCode, read_file, listFiles, checkHealth.
+  // Only issue VERIFICATION_SUCCESSFUL after your own mechanical checks confirm the change is live and correct.
+  const auditPrompt = `You are auditing the following gaps independently. Do NOT trust the Coder's response alone.
+
+    STEP 1 — MECHANICAL CHECK (mandatory): Call at least one verification tool before forming a verdict:
+      - Use 'validateCode' to confirm no type errors were introduced.
+      - Use 'read_file' or 'listFiles' to verify the relevant code was actually written/modified.
+      - Use 'checkHealth' if the change affects a live endpoint.
+
+    STEP 2 — VERDICT: After your tool checks, respond with VERIFICATION_SUCCESSFUL or REOPEN_REQUIRED.
+
+    Background (Coder's self-report — treat as unverified):
     ${implementationResponse}
 
     Target Gaps:
@@ -119,9 +129,36 @@ export const handler = async (event: QAEvent, _context: Context): Promise<void> 
       // In HITL mode, we stay in DEPLOYED until human marks as DONE via ManageGap tool
     }
   } else {
-    logger.warn('Verification failed. Reopening gaps.');
+    // Reopen failed verification. Track attempt count and escalate to HITL if cap reached.
+    const MAX_REOPEN_ATTEMPTS = 3;
+    logger.warn('Verification failed. Checking reopen attempt counts.');
+    const escalatedGaps: string[] = [];
+
     for (const gapId of gapIds) {
-      await memory.updateGapStatus(gapId, GapStatus.OPEN);
+      const attempts = await memory.incrementGapAttemptCount(gapId);
+      if (attempts >= MAX_REOPEN_ATTEMPTS) {
+        logger.warn(
+          `Gap ${gapId} has been reopened ${attempts} times. Escalating to HITL and halting autonomous evolution.`
+        );
+        await memory.updateGapStatus(gapId, GapStatus.OPEN);
+        escalatedGaps.push(gapId);
+      } else {
+        logger.info(`Gap ${gapId} reopen attempt ${attempts}/${MAX_REOPEN_ATTEMPTS}.`);
+        await memory.updateGapStatus(gapId, GapStatus.OPEN);
+      }
+    }
+
+    if (escalatedGaps.length > 0) {
+      // Force HITL to stop autonomous loop for these persistently failing gaps
+      await AgentRegistry.saveRawConfig('evolution_mode', 'hitl');
+      await sendOutboundMessage(
+        'qa.agent',
+        userId,
+        `⚠️ **Evolution Escalation Required**\n\nGaps ${escalatedGaps.join(', ')} have failed QA verification ${MAX_REOPEN_ATTEMPTS} times and cannot be autonomously resolved. Evolution mode has been switched to **HITL**.\n\nPlease review the implementation manually and re-approve when ready.`,
+        [userId],
+        traceId,
+        config.name
+      );
     }
   }
 

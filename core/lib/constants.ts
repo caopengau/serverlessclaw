@@ -10,7 +10,9 @@ export const SYSTEM = {
   RECOVERY_KEY: 'SYSTEM#RECOVERY',
   DEFAULT_DEPLOY_LIMIT: 5,
   MAX_DEPLOY_LIMIT: 100,
-  DEFAULT_RECURSION_LIMIT: 50,
+  // 15 hops allows ~4 full plan→code→QA→reopen cycles before the guard fires.
+  // The old value of 50 allowed ~12 autonomous infrastructure cycles — dangerously high.
+  DEFAULT_RECURSION_LIMIT: 15,
 } as const;
 
 export const PROTECTED_FILES = [
