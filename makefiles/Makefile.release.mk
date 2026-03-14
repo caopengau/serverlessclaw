@@ -30,10 +30,10 @@ tag: ## Create and push a git tag for the current release
 
 # Helper to get the production URL
 define get_prod_url
-	$$(npx sst shell --stage prod "echo \$$API_URL")
+	$$($(SST) shell --stage prod "echo \$$API_URL")
 endef
 
 # Helper to get the development URL
 define get_dev_url
-	$$(npx sst shell --stage dev "echo \$$API_URL")
+	$$($(SST) shell --stage dev "echo \$$API_URL")
 endef

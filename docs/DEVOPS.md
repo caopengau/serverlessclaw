@@ -28,6 +28,8 @@ The main `Makefile` at the root is the "Hub". It includes specialized "Spoke" fi
 | `make test` | Test | Run the full unit test suite |
 | `make release`| Release | Perform a full production release + Git tagging |
 
+Note: SST-related Make targets invoke the workspace-local SST binary (`./node_modules/.bin/sst`) directly rather than `pnpm sst`.
+
 ---
 
 ## Environment & Secrets

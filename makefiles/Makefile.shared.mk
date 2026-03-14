@@ -19,6 +19,10 @@ BOLD       := $(shell printf '\033[1m')
 # Dynamically resolve package manager
 PNPM := $(shell command -v pnpm 2>/dev/null || echo npm)
 
+# Prefer the local SST binary directly to avoid package-manager-specific env leakage
+# (e.g. pnpm-only npm_config_* values causing nested npm warnings).
+SST := $(if $(wildcard ./node_modules/.bin/sst),./node_modules/.bin/sst,npx --yes sst)
+
 # Logging macros
 define log_info
 	printf '$(CYAN)[INFO] %s$(RESET)\n' "$(1)"
