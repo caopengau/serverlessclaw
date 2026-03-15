@@ -33,7 +33,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex bg-[#0a0a0a] text-white font-mono text-base">
+      <body suppressHydrationWarning className="min-h-full flex bg-[#0a0a0a] text-white font-mono text-base">
         <Toaster 
           position="bottom-right" 
           toastOptions={{

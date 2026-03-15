@@ -63,15 +63,21 @@ export function ChatSidebar({
           </Card>
         ) : (
           sessions.map((s) => (
-            <Button
+            <div
               key={s.sessionId}
-              variant="ghost"
-              fullWidth
+              role="button"
+              tabIndex={0}
               onClick={() => onSessionSelect(s.sessionId)}
-              className={`!p-4 !h-auto flex flex-col items-stretch rounded-sm border transition-all text-left space-y-2 group !justify-start !bg-transparent ${
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSessionSelect(s.sessionId);
+                }
+              }}
+              className={`p-4 flex flex-col items-stretch rounded-sm border transition-all text-left space-y-2 group cursor-pointer bg-transparent ${
                 activeSessionId === s.sessionId
-                  ? `!border-${THEME.COLORS.PRIMARY}/30 shadow-[0_0_20px_rgba(0,255,163,0.02)] !text-inherit`
-                  : '!border-white/5 hover:!border-white/10 !text-inherit'
+                  ? `border-${THEME.COLORS.PRIMARY}/30 shadow-[0_0_20px_rgba(0,255,163,0.02)]`
+                  : 'border-white/5 hover:border-white/10'
               }`}
             >
               <div className="flex justify-between items-start gap-2 w-full">
@@ -86,21 +92,21 @@ export function ChatSidebar({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={(e) => onDeleteSession(e, s.sessionId)}
-                    className="p-1 text-red-500/40 hover:text-red-500 h-auto transition-colors"
+                    onClick={(e) => { e.stopPropagation(); onDeleteSession(e, s.sessionId); }}
+                    className="p-1 text-red-500/40 hover:text-red-500 h-auto transition-colors z-10"
                     icon={<Trash2 size={12} />}
                     title="Delete Conversation"
                   />
                   <ChevronRight size={12} className={activeSessionId === s.sessionId ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/10'} />
                 </div>
               </div>
-              <Typography variant="mono" color="muted" className="truncate italic block h-4 w-full">
+              <Typography variant="mono" color="muted" className="truncate italic block h-4 w-full cursor-pointer">
                 {s.lastMessage || 'Waiting for signal...'}
               </Typography>
-              <Typography variant="mono" color="muted" className="text-[8px] w-full">
+              <Typography variant="mono" color="muted" className="text-[8px] w-full cursor-pointer">
                   {new Date(s.updatedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
               </Typography>
-            </Button>
+            </div>
           ))
         )}
       </div>

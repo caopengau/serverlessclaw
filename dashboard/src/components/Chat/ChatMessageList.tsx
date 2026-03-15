@@ -3,6 +3,8 @@ import { User, Bot, Terminal, File, Loader2 } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import { ChatMessage } from './types';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
@@ -48,7 +50,36 @@ export function ChatMessageList({ messages, isLoading, scrollRef }: ChatMessageL
                   <Card variant="glass" padding="sm" className={`rounded-lg ${
                     m.role === 'user' ? 'bg-white/5 text-white/90 border border-white/10' : 'text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
                   }`}>
-                    <Typography variant="body">{m.content}</Typography>
+                    <ReactMarkdown 
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ children }) => <Typography variant="body" className="block mb-2 last:mb-0 break-words">{children}</Typography>,
+                        h1: ({ children }) => <Typography variant="h3" className="block mt-4 mb-2 text-cyber-green" glow>{children}</Typography>,
+                        h2: ({ children }) => <Typography variant="h3" className="block mt-3 mb-1 text-cyber-green/90">{children}</Typography>,
+                        h3: ({ children }) => <Typography variant="body" weight="bold" className="block mt-2 mb-1 text-cyber-green/80">{children}</Typography>,
+                        ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+                        li: ({ children }) => <li><Typography variant="body" className="inline">{children}</Typography></li>,
+                        code: ({ children, className }) => {
+                          const inline = !className?.includes('language-');
+                          return inline ? (
+                            <code className="bg-white/10 px-1 rounded font-mono text-sm text-cyber-green/100">{children}</code>
+                          ) : (
+                            <pre className="bg-black/40 p-3 rounded-md border border-white/10 my-2 overflow-x-auto custom-scrollbar">
+                              <code className="font-mono text-sm text-cyber-green/90">{children}</code>
+                            </pre>
+                          );
+                        },
+                        strong: ({ children }) => <Typography variant="body" weight="bold" className="inline text-white">{children}</Typography>,
+                        a: ({ children, href }) => (
+                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyber-green hover:underline decoration-cyber-green/50 underline-offset-4">
+                            {children}
+                          </a>
+                        ),
+                      }}
+                    >
+                      {m.content}
+                    </ReactMarkdown>
                   </Card>
                 )}
                 
