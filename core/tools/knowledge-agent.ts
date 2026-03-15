@@ -7,8 +7,8 @@ import { formatErrorMessage } from '../lib/utils/error';
 /**
  * Lists all registered agents and their current status.
  */
-export const getAgentRegistrySummary = {
-  ...toolDefinitions.getAgentRegistrySummary,
+export const listAgents = {
+  ...toolDefinitions.listAgents,
   execute: async (): Promise<string> => {
     const { AgentRegistry } = await import('../lib/registry');
     const configs = await AgentRegistry.getAllConfigs();

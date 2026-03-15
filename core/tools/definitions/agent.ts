@@ -45,8 +45,8 @@ export const agentTools: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
-  getAgentRegistrySummary: {
-    name: 'getAgentRegistrySummary',
+  listAgents: {
+    name: 'listAgents',
     description: 'Lists all available specialized agents in the system and their capabilities.',
     parameters: {
       type: TYPE_OBJECT,
