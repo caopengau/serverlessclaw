@@ -53,6 +53,7 @@ describe('transformToolsToOpenAI', () => {
         name: 'some_image',
         type: 'image',
         description: 'An image',
+        parameters: { type: 'object', properties: {} },
         execute: async () => 'result',
       } as ITool,
     ];
