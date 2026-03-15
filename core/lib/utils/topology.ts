@@ -32,6 +32,8 @@ export async function discoverSystemTopology(): Promise<Topology> {
     { id: INFRA_NODE_ID.NOTIFIER, type: NODE_TYPE.INFRA, label: 'Notifier', icon: 'Bell' },
     { id: INFRA_NODE_ID.BRIDGE, type: NODE_TYPE.INFRA, label: 'Realtime Bridge', icon: 'Zap' },
     { id: INFRA_NODE_ID.TELEGRAM, type: NODE_TYPE.INFRA, label: 'Telegram', icon: 'Send' },
+    { id: INFRA_NODE_ID.SCHEDULER, type: NODE_TYPE.INFRA, label: 'AWS Scheduler', icon: 'Calendar' },
+    { id: INFRA_NODE_ID.HEARTBEAT, type: NODE_TYPE.INFRA, label: 'Heartbeat Engine', icon: 'Zap' },
     {
       id: INFRA_NODE_ID.DASHBOARD,
       type: NODE_TYPE.DASHBOARD,
@@ -41,6 +43,18 @@ export async function discoverSystemTopology(): Promise<Topology> {
   ];
 
   const edges: TopologyEdge[] = [
+    {
+      id: 'scheduler-heartbeat',
+      source: INFRA_NODE_ID.SCHEDULER,
+      target: INFRA_NODE_ID.HEARTBEAT,
+      label: EDGE_LABEL.HEARTBEAT,
+    },
+    {
+      id: 'heartbeat-bus',
+      source: INFRA_NODE_ID.HEARTBEAT,
+      target: INFRA_NODE_ID.BUS,
+      label: EDGE_LABEL.SIGNAL,
+    },
     {
       id: 'api-main',
       source: INFRA_NODE_ID.API,
@@ -150,6 +164,8 @@ export async function discoverSystemTopology(): Promise<Topology> {
     if (tool === 'sendMessage') return INFRA_NODE_ID.NOTIFIER;
     if (tool.startsWith('aws-s3_')) return INFRA_NODE_ID.STORAGE;
     if (tool.startsWith('knowledge_')) return INFRA_NODE_ID.KNOWLEDGE;
+    if (tool === 'scheduleGoal' || tool === 'cancelGoal' || tool === 'listGoals')
+      return INFRA_NODE_ID.SCHEDULER;
     return null;
   };
 

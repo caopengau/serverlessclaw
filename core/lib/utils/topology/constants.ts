@@ -12,6 +12,8 @@ export const INFRA_NODE_ID = {
   BRIDGE: 'bridge',
   TELEGRAM: 'telegram',
   DASHBOARD: 'dashboard',
+  SCHEDULER: 'scheduler',
+  HEARTBEAT: 'heartbeat',
 } as const;
 
 /** Node type discriminators for the topology graph renderer. */
@@ -38,4 +40,6 @@ export const EDGE_LABEL = {
   SYNC: 'SYNC',
   ORCHESTRATE: 'ORCHESTRATE',
   USE: 'USE',
+  SCHEDULE: 'SCHEDULE',
+  HEARTBEAT: 'HEARTBEAT',
 } as const;
