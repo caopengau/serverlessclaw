@@ -8,6 +8,7 @@ import {
   IAgentConfig,
   TraceSource,
   Attachment,
+  InsightCategory,
 } from './types/index';
 import { ClawTracer } from './tracer';
 import { logger } from './logger';
@@ -256,7 +257,7 @@ export class Agent {
           gapId,
           `Execution failure for user ${userId} / session ${sessionId}. Error: ${errorDetail}`,
           {
-            category: 'strategic_gap' as any,
+            category: InsightCategory.STRATEGIC_GAP,
             confidence: 10,
             impact: 8,
             complexity: 5,

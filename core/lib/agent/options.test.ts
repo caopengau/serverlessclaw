@@ -12,7 +12,7 @@ describe('AgentProcessOptions', () => {
   });
 
   it('should allow specifying all options', () => {
-    const mockContext = {} as any;
+    const mockContext = {} as import('aws-lambda').Context;
     const attachments = [{ type: 'image' as const, base64: 'abc123' }];
 
     const options: AgentProcessOptions = {

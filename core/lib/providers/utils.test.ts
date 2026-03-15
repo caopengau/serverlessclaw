@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { transformToolsToOpenAI, mapToOpenAIRole, capEffort } from './utils';
+import { ITool } from '../types/index';
 
 describe('transformToolsToOpenAI', () => {
   it('should return empty array for undefined tools', () => {
@@ -53,7 +54,7 @@ describe('transformToolsToOpenAI', () => {
         type: 'image',
         description: 'An image',
         execute: async () => 'result',
-      } as any,
+      } as ITool,
     ];
 
     const result = transformToolsToOpenAI(tools);

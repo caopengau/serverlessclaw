@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { tools, getToolDefinitions, getAgentTools } from './index';
+import { IAgentConfig } from '../lib/types/index';
 
 vi.mock('../lib/registry', () => ({
   AgentRegistry: {
@@ -62,7 +63,7 @@ describe('getAgentTools', () => {
     const { AgentRegistry } = await import('../lib/registry');
     vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValue({
       name: 'test',
-    } as any);
+    } as IAgentConfig);
 
     const result = await getAgentTools('test-agent');
     expect(result).toEqual([]);

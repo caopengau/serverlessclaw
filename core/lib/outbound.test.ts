@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { sendOutboundMessage } from './outbound';
 import * as bus from './utils/bus';
+import { Attachment } from './types/index';
 
 vi.mock('./utils/bus', () => ({
   emitEvent: vi.fn().mockResolvedValue(undefined),
@@ -37,7 +38,7 @@ describe('sendOutboundMessage', () => {
       ['context-1', 'context-2'],
       'session-789',
       'test-agent',
-      attachments as any
+      attachments as Attachment[]
     );
 
     expect(mockEmitEvent).toHaveBeenCalledWith('agent.handler', 'outbound_message', {

@@ -48,8 +48,11 @@ async function main() {
 
       process.exit(0);
     }
-  } catch (error: any) {
-    console.error('❌ ERROR: Verification failed to execute:', error.message);
+  } catch (error: unknown) {
+    console.error(
+      '❌ ERROR: Verification failed to execute:',
+      error instanceof Error ? error.message : error
+    );
     process.exit(1);
   }
 }
