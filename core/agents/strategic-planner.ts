@@ -14,7 +14,10 @@ import {
   extractBaseUserId,
   getAgentContext,
   emitTaskEvent,
+  isTaskPaused,
 } from '../lib/utils/agent-helpers';
+import { parseConfigInt } from '../lib/providers/utils';
+import { MEMORY_KEYS } from '../lib/constants';
 
 async function getEvolutionMode(): Promise<'auto' | 'hitl'> {
   try {
@@ -123,11 +126,13 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       const customFreq = await AgentRegistry.getRawConfig('strategic_review_frequency');
       const customMinGaps = await AgentRegistry.getRawConfig('min_gaps_for_review');
 
-      const frequencyHrs = parseInt(String(customFreq || '48'), 10);
-      const minGaps = parseInt(String(customMinGaps || '20'), 10);
+      const frequencyHrs = parseConfigInt(customFreq, 48);
+      const minGaps = parseConfigInt(customMinGaps, 20);
 
-      const lastReviewStr = await memory.getDistilledMemory(`LAST#STRATEGIC_REVIEW#${baseUserId}`);
-      const lastReview = lastReviewStr ? parseInt(lastReviewStr, 10) : 0;
+      const lastReviewStr = await memory.getDistilledMemory(
+        `${MEMORY_KEYS.STRATEGIC_REVIEW}#${baseUserId}`
+      );
+      const lastReview = parseConfigInt(lastReviewStr, 0);
       const now = Date.now();
 
       const { TIME } = await import('../lib/constants');
@@ -195,7 +200,7 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
 
     // Update last review timestamp
     await memory.updateDistilledMemory(
-      `LAST#STRATEGIC_REVIEW#${baseUserId}`,
+      `${MEMORY_KEYS.STRATEGIC_REVIEW}#${baseUserId}`,
       Date.now().toString()
     );
   } else {
@@ -282,7 +287,7 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   const isFailure = status === 'FAILED' || plan.startsWith('I encountered an internal error');
 
   // 2. Emit Task Result for Universal Coordination
-  if (!rawResponse.startsWith('TASK_PAUSED')) {
+  if (!isTaskPaused(rawResponse)) {
     await emitTaskEvent({
       source: 'planner.agent',
       userId: contextUserId,

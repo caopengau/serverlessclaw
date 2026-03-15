@@ -45,9 +45,7 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
     logger.info('System is healthy (Deep Check PASSED). No action needed.');
     return;
   } catch (error) {
-    logger.error(
-      `System health check FAILED: ${formatErrorMessage(error)}`
-    );
+    logger.error(`System health check FAILED: ${formatErrorMessage(error)}`);
   }
 
   // If we reach here, the health check failed or timed out.

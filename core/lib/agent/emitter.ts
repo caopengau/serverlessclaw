@@ -5,6 +5,7 @@ import { Message, MessageRole, EventType, IAgentConfig } from '../types/index';
 import { AgentRegistry } from '../registry';
 import { SSTResource } from '../types/index';
 import { AGENT_DEFAULTS } from './executor';
+import { parseConfigInt } from '../providers/utils';
 
 const typedResource = Resource as unknown as SSTResource;
 
@@ -52,7 +53,8 @@ export class AgentEmitter {
     try {
       if (!process.env.VITEST) {
         const customFreq = await AgentRegistry.getRawConfig('reflection_frequency');
-        if (customFreq !== undefined) reflectionFrequency = parseInt(String(customFreq), 10);
+        if (customFreq !== undefined)
+          reflectionFrequency = parseConfigInt(customFreq, reflectionFrequency);
       }
     } catch {
       logger.warn(`Failed to fetch reflection_frequency, using default ${reflectionFrequency}.`);

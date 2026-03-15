@@ -112,6 +112,13 @@ export const GAP_STATUS = {
 } as const;
 
 /**
+ * Memory key prefixes for distilled memory storage
+ */
+export const MEMORY_KEYS = {
+  STRATEGIC_REVIEW: 'LAST#STRATEGIC_REVIEW',
+} as const;
+
+/**
  * Memory tiers for retention
  */
 export const MEMORY_TIER = {

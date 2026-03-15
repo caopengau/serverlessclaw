@@ -34,7 +34,7 @@ type-check: ## Run TypeScript type checking
 
 aiready: ## Run AIReady scan to evaluate agent-friendliness
 	@$(call log_info,Running AIReady scan (threshold 80)...)
-	@aiready scan . --threshold 80 --exclude "node_modules/**,.sst/**" || $(call log_warning,AIReady scan failed or returned warnings)
+	@aiready scan . --threshold 80 --exclude "node_modules/**,.sst/**,dashboard/**" || $(call log_warning,AIReady scan failed or returned warnings)
 
 lint-staged: ## Run lint-staged for partial checks
 	@$(call log_info,Running lint-staged...)

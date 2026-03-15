@@ -17,6 +17,7 @@ import { AgentContext } from './agent/context';
 import { AgentExecutor, AGENT_DEFAULTS, AGENT_LOG_MESSAGES } from './agent/executor';
 import { AgentProcessOptions } from './agent/options';
 import { AgentEmitter } from './agent/emitter';
+import { parseConfigInt } from './providers/utils';
 
 // Re-export for backward compatibility
 export { AgentProcessOptions };
@@ -163,7 +164,7 @@ export class Agent {
     try {
       if (!process.env.VITEST) {
         const customMax = await AgentRegistry.getRawConfig('max_tool_iterations');
-        if (customMax !== undefined) maxIterations = parseInt(String(customMax), 10);
+        if (customMax !== undefined) maxIterations = parseConfigInt(customMax, maxIterations);
       }
     } catch {
       logger.warn(`Failed to fetch max_tool_iterations from DDB, using default ${maxIterations}.`);

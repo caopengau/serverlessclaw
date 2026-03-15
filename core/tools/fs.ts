@@ -48,9 +48,7 @@ export const stageChanges = {
           );
           resolve(`Successfully staged ${modifiedFiles.length} files to S3.`);
         } catch (error) {
-          resolve(
-            `Failed to upload staged changes: ${formatErrorMessage(error)}`
-          );
+          resolve(`Failed to upload staged changes: ${formatErrorMessage(error)}`);
         }
       });
 

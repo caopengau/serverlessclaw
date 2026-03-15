@@ -10,7 +10,7 @@ import {
 } from '../types/index';
 import { Resource } from 'sst';
 import { logger } from '../logger';
-import { normalizeProfile, capEffort } from './utils';
+import { normalizeProfile, capEffort, createEmptyResponse } from './utils';
 
 interface OpenAIResponse {
   output_text?: string;
@@ -268,7 +268,7 @@ export class OpenAIProvider implements IProvider {
     const message = response.choices?.[0]?.message;
 
     if (!message) {
-      return { role: MessageRole.ASSISTANT, content: 'Empty response from OpenAI.' };
+      return createEmptyResponse('OpenAI');
     }
 
     return {

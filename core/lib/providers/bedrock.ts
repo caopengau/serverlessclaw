@@ -17,7 +17,7 @@ import {
 } from '../types/index';
 import { Resource } from 'sst';
 import { logger } from '../logger';
-import { normalizeProfile } from './utils';
+import { normalizeProfile, createEmptyResponse, SUPPORTED_IMAGE_FORMATS } from './utils';
 
 interface BedrockResource {
   AwsRegion: { value: string };
@@ -30,7 +30,7 @@ interface BedrockReasoningConfig {
   temperature: number;
 }
 
-const imgFormats = ['png', 'jpeg', 'gif', 'webp'];
+const imgFormats = SUPPORTED_IMAGE_FORMATS;
 
 const BEDROCK_REASONING_MAP: Record<ReasoningProfile, BedrockReasoningConfig> = {
   [ReasoningProfile.FAST]: {
@@ -93,7 +93,7 @@ export class BedrockProvider implements IProvider {
         if (m.attachments && m.role !== MessageRole.TOOL) {
           m.attachments.forEach((att) => {
             const format = (att.mimeType?.split('/')[1] || 'png').toLowerCase();
-            if (att.type === 'image' && imgFormats.includes(format)) {
+            if (att.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
               content.push({
                 image: {
                   format: format as 'png' | 'jpeg' | 'gif' | 'webp',
@@ -147,7 +147,7 @@ export class BedrockProvider implements IProvider {
           if (m.attachments) {
             m.attachments.forEach((att) => {
               const format = (att.mimeType?.split('/')[1] || 'png').toLowerCase();
-              if (att.type === 'image' && imgFormats.includes(format)) {
+              if (att.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
                 toolContent.push({
                   image: {
                     format: format as 'png' | 'jpeg' | 'gif' | 'webp',
@@ -290,7 +290,7 @@ export class BedrockProvider implements IProvider {
       } as Message;
     }
 
-    return { role: MessageRole.ASSISTANT, content: 'Empty response from Bedrock.' } as Message;
+    return createEmptyResponse('Bedrock');
   }
 
   async getCapabilities(model?: string) {

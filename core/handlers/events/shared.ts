@@ -6,6 +6,8 @@ import { ConfigManager } from '../../lib/registry/config';
 import { emitEvent } from '../../lib/utils/bus';
 import { TraceSource, Attachment } from '../../lib/types/index';
 import { Context } from 'aws-lambda';
+import { parseConfigInt } from '../../lib/providers/utils';
+import { isTaskPaused } from '../../lib/utils/agent-helpers';
 
 /**
  * Wake up the initiator agent when a delegated task or system event completes.
@@ -43,7 +45,7 @@ export async function getRecursionLimit(): Promise<number> {
   try {
     const customLimit = await ConfigManager.getRawConfig(DYNAMO_KEYS.RECURSION_LIMIT);
     if (customLimit !== undefined) {
-      RECURSION_LIMIT = parseInt(String(customLimit), 10);
+      RECURSION_LIMIT = parseConfigInt(customLimit, SYSTEM.DEFAULT_RECURSION_LIMIT);
     }
   } catch {
     logger.warn('Failed to fetch recursion_limit from DDB, using default.');
@@ -123,7 +125,7 @@ export async function processEventWithAgent(
     }
   );
 
-  if (!responseText.startsWith('TASK_PAUSED')) {
+  if (!isTaskPaused(responseText)) {
     const finalMessage = options.formatResponse
       ? options.formatResponse(responseText, resultAttachments || [])
       : responseText;
