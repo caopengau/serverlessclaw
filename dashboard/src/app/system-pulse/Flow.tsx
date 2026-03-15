@@ -173,9 +173,9 @@ export function FlowContent() {
         else if (node.id === 'main') { xPos = 350; yPos = 50; }
         
         // 2. Layer 2: Neural Bus & Comms (Y: 200)
-        else if (node.id === 'bus') { xPos = 350; yPos = 200; }
+        else if (node.id === 'bus' || node.id === 'agentbus') { xPos = 350; yPos = 200; }
         else if (node.id === 'notifier') { xPos = 650; yPos = 200; }
-        else if (node.id === 'bridge') { xPos = 50; yPos = 200; }
+        else if (node.id === 'bridge' || node.id === 'realtimebridge') { xPos = 50; yPos = 200; }
         
         // 2.5 Layer 2.5: Proactive Goals & Scheduling (Y: 325)
         else if (node.id === 'scheduler') { xPos = 550; yPos = 325; }
@@ -184,7 +184,7 @@ export function FlowContent() {
         // 3. Layer 3: Logic Units & Workers (Y: 450)
         else if (node.type === 'agent' || node.id === 'monitor') {
             const allAgents = topology.nodes.filter(n => 
-                (n.type === 'agent' || n.id === 'monitor') && n.id !== 'main'
+                (n.type === 'agent' || n.id === 'monitor') && n.id !== 'main' && n.id !== 'superclaw'
             );
             const agentIndex = allAgents.findIndex(n => n.id === node.id);
             const totalAgents = allAgents.length;
@@ -196,7 +196,7 @@ export function FlowContent() {
         // 4. Layer 4: Bottom - Infrastructure & Persistence (Y: 800)
         else {
             const infraNodes = [
-                'traces', 'storage', 'memory', 'config', 'codebuild', 'knowledge'
+                'tracetable', 'stagingbucket', 'memorytable', 'configtable', 'deployer', 'knowledgebucket'
             ];
             const infraIndex = infraNodes.indexOf(node.id);
             if (infraIndex !== -1) {
@@ -211,7 +211,7 @@ export function FlowContent() {
         }
 
         let icon = <Database size={16} />;
-        if (node.iconType === 'Terminal' || node.id === 'codebuild') icon = <Terminal size={16} />;
+        if (node.iconType === 'Terminal' || node.id === 'codebuild' || node.id === 'deployer') icon = <Terminal size={16} />;
         else if (node.iconType === 'Dashboard' || node.id === 'dashboard') icon = <LayoutDashboard size={16} />;
         else if (node.id === 'api') icon = <Radio size={16} />;
         else if (node.id === 'monitor') icon = <Activity size={16} />;

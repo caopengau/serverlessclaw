@@ -2,8 +2,7 @@ import { DynamoDBClient, ScanCommand } from '@aws-sdk/client-dynamodb';
 import { Topology, TopologyNode, TopologyEdge, IAgentConfig } from '../types/index';
 import { ConfigManager } from '../registry/config';
 import { BACKBONE_REGISTRY } from '../backbone';
-import { AgentType } from '../types/agent';
-import { INFRA_NODE_ID, NODE_TYPE, EDGE_LABEL } from './topology/constants';
+import { NODE_TYPE, EDGE_LABEL } from './topology/constants';
 
 // Re-export constants for backward compatibility
 export { INFRA_NODE_ID, NODE_TYPE, EDGE_LABEL } from './topology/constants';
@@ -11,210 +10,170 @@ export { INFRA_NODE_ID, NODE_TYPE, EDGE_LABEL } from './topology/constants';
 const db = new DynamoDBClient({});
 
 /**
- * Discovers the active system topology by scanning SST resources and Agent configs.
- * Designed to be highly resilient and self-aware.
+ * Discovers the active system topology by reflecting on SST resources and Agent configs.
+ * Designed to be highly resilient and truly self-aware.
  */
 export async function discoverSystemTopology(): Promise<Topology> {
-  const nodes: TopologyNode[] = [
-    { id: INFRA_NODE_ID.API, type: NODE_TYPE.INFRA, label: 'API Gateway', icon: 'Globe' },
-    { id: INFRA_NODE_ID.BUS, type: NODE_TYPE.INFRA, label: 'AgentBus', icon: 'MessageCircle' },
-    { id: INFRA_NODE_ID.CODEBUILD, type: NODE_TYPE.INFRA, label: 'BuildEngine', icon: 'Hammer' },
-    { id: INFRA_NODE_ID.CONFIG, type: NODE_TYPE.INFRA, label: 'DynamoDB Config', icon: 'Database' },
-    { id: INFRA_NODE_ID.MEMORY, type: NODE_TYPE.INFRA, label: 'DynamoDB Memory', icon: 'Database' },
-    { id: INFRA_NODE_ID.STORAGE, type: NODE_TYPE.INFRA, label: 'Staging Bucket', icon: 'Database' },
-    { id: INFRA_NODE_ID.TRACES, type: NODE_TYPE.INFRA, label: 'DynamoDB Traces', icon: 'Database' },
-    {
-      id: INFRA_NODE_ID.KNOWLEDGE,
-      type: NODE_TYPE.INFRA,
-      label: 'Knowledge Bucket',
-      icon: 'Database',
-    },
-    { id: INFRA_NODE_ID.NOTIFIER, type: NODE_TYPE.INFRA, label: 'Notifier', icon: 'Bell' },
-    { id: INFRA_NODE_ID.BRIDGE, type: NODE_TYPE.INFRA, label: 'Realtime Bridge', icon: 'Zap' },
-    { id: INFRA_NODE_ID.TELEGRAM, type: NODE_TYPE.INFRA, label: 'Telegram', icon: 'Send' },
-    {
-      id: INFRA_NODE_ID.SCHEDULER,
-      type: NODE_TYPE.INFRA,
-      label: 'AWS Scheduler',
-      icon: 'Calendar',
-    },
-    { id: INFRA_NODE_ID.HEARTBEAT, type: NODE_TYPE.INFRA, label: 'Heartbeat Engine', icon: 'Zap' },
-    {
-      id: INFRA_NODE_ID.DASHBOARD,
-      type: NODE_TYPE.DASHBOARD,
-      label: 'ClawCenter',
-      icon: 'LayoutDashboard',
-    },
+  const { Resource } = await import('sst');
+  const nodes: TopologyNode[] = [];
+  const edges: TopologyEdge[] = [];
+
+  // 1. Reflective Node Discovery (SST Linked Resources)
+  // We iterate over everything linked to this execution context.
+  const resourceMap = Resource as any;
+  Object.keys(resourceMap).forEach((key) => {
+    const res = resourceMap[key];
+    if (!res || typeof res !== 'object') return;
+
+    // Categorize based on Naming or Type
+    let type: any = NODE_TYPE.INFRA;
+    let icon = 'Database';
+    let label = key;
+
+    const lowerKey = key.toLowerCase();
+    if (
+      lowerKey.includes('agent') ||
+      lowerKey.includes('worker') ||
+      lowerKey === 'superclaw' ||
+      lowerKey === 'coder' ||
+      lowerKey === 'strategicplanner' ||
+      lowerKey === 'reflector' ||
+      lowerKey === 'qa'
+    ) {
+      type = NODE_TYPE.AGENT;
+      icon = 'Cpu';
+    } else if (key === 'AgentBus') {
+      icon = 'MessageCircle';
+      label = 'AgentBus';
+    } else if (key.includes('Api')) {
+      icon = 'Globe';
+    } else if (key === 'Deployer') {
+      icon = 'Hammer';
+    } else if (key === 'Notifier') {
+      icon = 'Bell';
+    } else if (key === 'RealtimeBridge') {
+      icon = 'Zap';
+    }
+
+    nodes.push({
+      id: lowerKey,
+      type,
+      label,
+      icon,
+      isBackbone: true,
+    });
+  });
+
+  // 2. Add Critical Non-Linked Nodes (Orphans)
+  const orphans = [
+    { id: 'scheduler', label: 'AWS Scheduler', icon: 'Calendar', type: NODE_TYPE.INFRA },
+    { id: 'telegram', label: 'Telegram', icon: 'Send', type: NODE_TYPE.INFRA },
+    { id: 'heartbeat', label: 'Heartbeat Engine', icon: 'Zap', type: NODE_TYPE.INFRA },
   ];
 
-  const edges: TopologyEdge[] = [
-    {
-      id: 'scheduler-heartbeat',
-      source: INFRA_NODE_ID.SCHEDULER,
-      target: INFRA_NODE_ID.HEARTBEAT,
-      label: EDGE_LABEL.HEARTBEAT,
-    },
-    {
-      id: 'heartbeat-bus',
-      source: INFRA_NODE_ID.HEARTBEAT,
-      target: INFRA_NODE_ID.BUS,
-      label: EDGE_LABEL.SIGNAL,
-    },
-    {
-      id: 'api-main',
-      source: INFRA_NODE_ID.API,
-      target: AgentType.MAIN,
-      label: EDGE_LABEL.INBOUND,
-    },
-    {
-      id: 'api-bus',
-      source: INFRA_NODE_ID.API,
-      target: INFRA_NODE_ID.BUS,
-      label: EDGE_LABEL.SIGNAL,
-    },
-    {
-      id: 'api-config',
-      source: INFRA_NODE_ID.API,
-      target: INFRA_NODE_ID.CONFIG,
-      label: EDGE_LABEL.MANAGE,
-    },
-    {
-      id: 'bus-codebuild',
-      source: INFRA_NODE_ID.BUS,
-      target: INFRA_NODE_ID.CODEBUILD,
-      label: EDGE_LABEL.DEPLOY,
-    },
-    {
-      id: 'bus-notifier',
-      source: INFRA_NODE_ID.BUS,
-      target: INFRA_NODE_ID.NOTIFIER,
-      label: EDGE_LABEL.EVENT,
-    },
-    {
-      id: 'bus-bridge',
-      source: INFRA_NODE_ID.BUS,
-      target: INFRA_NODE_ID.BRIDGE,
-      label: EDGE_LABEL.EVENT,
-    },
-    {
-      id: 'bridge-dashboard',
-      source: INFRA_NODE_ID.BRIDGE,
-      target: INFRA_NODE_ID.DASHBOARD,
-      label: EDGE_LABEL.REALTIME,
-    },
-    {
-      id: 'dashboard-api',
-      source: INFRA_NODE_ID.DASHBOARD,
-      target: INFRA_NODE_ID.API,
-      label: EDGE_LABEL.QUERY,
-    },
-    {
-      id: 'main-dashboard-rt',
-      source: AgentType.MAIN,
-      target: INFRA_NODE_ID.DASHBOARD,
-      label: EDGE_LABEL.REALTIME,
-    },
-    {
-      id: 'telegram-api',
-      source: INFRA_NODE_ID.TELEGRAM,
-      target: INFRA_NODE_ID.API,
-      label: EDGE_LABEL.WEBHOOK,
-    },
-    {
-      id: 'main-knowledge',
-      source: AgentType.MAIN,
-      target: INFRA_NODE_ID.KNOWLEDGE,
-      label: EDGE_LABEL.READ_FILES,
-    },
-    {
-      id: 'coder-knowledge',
-      source: AgentType.CODER,
-      target: INFRA_NODE_ID.KNOWLEDGE,
-      label: EDGE_LABEL.MANAGE_FILES,
-    },
-    {
-      id: 'planner-knowledge',
-      source: AgentType.STRATEGIC_PLANNER,
-      target: INFRA_NODE_ID.KNOWLEDGE,
-      label: EDGE_LABEL.QUERY,
-    },
-    {
-      id: 'reflector-knowledge',
-      source: AgentType.COGNITION_REFLECTOR,
-      target: INFRA_NODE_ID.KNOWLEDGE,
-      label: EDGE_LABEL.ARCHIVE,
-    },
-    {
-      id: 'notifier-telegram',
-      source: INFRA_NODE_ID.NOTIFIER,
-      target: INFRA_NODE_ID.TELEGRAM,
-      label: EDGE_LABEL.OUTBOUND,
-    },
-    {
-      id: 'notifier-memory',
-      source: INFRA_NODE_ID.NOTIFIER,
-      target: INFRA_NODE_ID.MEMORY,
-      label: EDGE_LABEL.SYNC,
-    },
-  ];
+  orphans.forEach((o) => {
+    if (!nodes.find((n) => n.id === o.id)) nodes.push(o as any);
+  });
 
-  // Tool to Resource Mapping Strategy
-  const mapToolToResource = (tool: string): string | null => {
-    if (tool === 'dispatchTask' || tool === 'listAgents') return INFRA_NODE_ID.BUS;
-    if (tool === 'recallKnowledge' || tool === 'saveMemory') return INFRA_NODE_ID.MEMORY;
+  // 3. Dynamic Edge Inference
+  // A. Agent to Bus Relationship
+  nodes
+    .filter((n) => n.type === NODE_TYPE.AGENT)
+    .forEach((agent) => {
+      edges.push({
+        id: `${agent.id}-agentbus-orch`,
+        source: agent.id,
+        target: 'agentbus',
+        label: EDGE_LABEL.ORCHESTRATE,
+      });
+      edges.push({
+        id: `agentbus-${agent.id}-signal`,
+        source: 'agentbus',
+        target: agent.id,
+        label: EDGE_LABEL.SIGNAL,
+      });
+    });
+
+  // B. Scheduler to Heartbeat
+  edges.push({
+    id: 'scheduler-heartbeat',
+    source: 'scheduler',
+    target: 'heartbeat',
+    label: EDGE_LABEL.HEARTBEAT,
+  });
+  edges.push({
+    id: 'heartbeat-agentbus',
+    source: 'heartbeat',
+    target: 'agentbus',
+    label: EDGE_LABEL.SIGNAL,
+  });
+
+  // C. API to Bus
+  edges.push({
+    id: 'api-agentbus',
+    source: 'api',
+    target: 'agentbus',
+    label: EDGE_LABEL.SIGNAL,
+  });
+
+  // 4. Map Tool-to-Resource Edges Dynamically
+  const mapToolToResource = (tool: string): { target: string; label: string } | null => {
+    if (tool === 'dispatchTask' || tool === 'listAgents')
+      return { target: 'agentbus', label: EDGE_LABEL.ORCHESTRATE };
+    if (tool === 'recallKnowledge' || tool === 'saveMemory')
+      return { target: 'memorytable', label: EDGE_LABEL.USE };
     if (tool === 'checkConfig' || tool === 'manageGap' || tool === 'reportGap')
-      return INFRA_NODE_ID.CONFIG;
-    if (tool === 'inspectTrace') return INFRA_NODE_ID.TRACES;
-    if (tool === 'triggerDeployment') return INFRA_NODE_ID.CODEBUILD;
-    if (tool === 'sendMessage') return INFRA_NODE_ID.NOTIFIER;
-    if (tool.startsWith('aws-s3_')) return INFRA_NODE_ID.STORAGE;
-    if (tool.startsWith('knowledge_')) return INFRA_NODE_ID.KNOWLEDGE;
+      return { target: 'configtable', label: EDGE_LABEL.USE };
+    if (tool === 'inspectTrace') return { target: 'tracetable', label: EDGE_LABEL.USE };
+    if (tool === 'triggerDeployment') return { target: 'deployer', label: EDGE_LABEL.USE };
+    if (tool === 'sendMessage') return { target: 'notifier', label: EDGE_LABEL.USE };
+    if (tool.startsWith('aws-s3_')) return { target: 'stagingbucket', label: EDGE_LABEL.USE };
+    if (tool.startsWith('knowledge_')) return { target: 'knowledgebucket', label: EDGE_LABEL.USE };
     if (tool === 'scheduleGoal' || tool === 'cancelGoal' || tool === 'listGoals')
-      return INFRA_NODE_ID.SCHEDULER;
+      return { target: 'scheduler', label: EDGE_LABEL.USE };
     return null;
   };
 
   try {
-    // 1. Add Backbone Agents (Always include these for resilience)
+    // 5. Merge with Backbone Metadata & Dynamic Agents
     for (const [id, config] of Object.entries(BACKBONE_REGISTRY)) {
-      if (!nodes.find((n) => n.id === id)) {
+      const lowerId = id.toLowerCase();
+      const existingNode = nodes.find((n) => n.id === lowerId);
+
+      if (existingNode) {
+        // Enrich existing reflective node with registry metadata
+        existingNode.label = config.name || existingNode.label;
+        existingNode.description = config.description;
+      } else {
         nodes.push({
-          id,
+          id: lowerId,
           type: NODE_TYPE.AGENT,
-          label: config.name || id,
+          label: config.name || lowerId,
           icon: config.isBackbone ? 'Brain' : 'Cpu',
           description: config.description,
         });
+      }
 
-        // Implicit edges for all backbone agents
-        edges.push({
-          id: `${id}-bus-orch`,
-          source: id,
-          target: INFRA_NODE_ID.BUS,
-          label: EDGE_LABEL.ORCHESTRATE,
-        });
-        edges.push({
-          id: `bus-${id}-signal`,
-          source: INFRA_NODE_ID.BUS,
-          target: id,
-          label: EDGE_LABEL.SIGNAL,
-        });
-
-        if (config.tools) {
-          for (const tool of config.tools) {
-            const target = mapToolToResource(tool);
-            if (target) {
-              const edgeId = `${id}-${target}-use`;
-              if (!edges.find((e) => e.id === edgeId)) {
-                edges.push({ id: edgeId, source: id, target, label: EDGE_LABEL.USE });
-              }
+      // Tool usage edges for backbone agents
+      if (config.tools) {
+        for (const tool of config.tools) {
+          const mapping = mapToolToResource(tool);
+          if (mapping) {
+            const edgeId = `${lowerId}-${mapping.target}-use`;
+            if (!edges.find((e) => e.id === edgeId)) {
+              edges.push({
+                id: edgeId,
+                source: lowerId,
+                target: mapping.target,
+                label: mapping.label,
+              });
             }
           }
         }
       }
     }
 
-    // 2. Add Dynamic Agents from DynamoDB (Wrapped in try-catch for resilience)
+    // 6. Add Dynamic Agents from DynamoDB (Wrapped in try-catch for resilience)
     try {
       const tableName = await ConfigManager.resolveTableName();
       if (tableName) {
@@ -228,35 +187,41 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
         for (const item of Items) {
           const agent = (item.config?.M ? item.config.M : {}) as unknown as IAgentConfig;
-          if (!agent.id || nodes.find((n) => n.id === agent.id)) continue;
+          if (!agent.id || nodes.find((n) => n.id === agent.id.toLowerCase())) continue;
 
+          const lowerAgentId = agent.id.toLowerCase();
           nodes.push({
-            id: agent.id,
+            id: lowerAgentId,
             type: NODE_TYPE.AGENT,
-            label: agent.name || agent.id,
+            label: agent.name || lowerAgentId,
             icon: 'Cpu',
           });
 
           edges.push({
-            id: `${agent.id}-bus-orch`,
-            source: agent.id,
-            target: INFRA_NODE_ID.BUS,
+            id: `${lowerAgentId}-bus-orch`,
+            source: lowerAgentId,
+            target: 'agentbus',
             label: EDGE_LABEL.ORCHESTRATE,
           });
           edges.push({
-            id: `bus-${agent.id}-signal`,
-            source: INFRA_NODE_ID.BUS,
-            target: agent.id,
+            id: `bus-${lowerAgentId}-signal`,
+            source: 'agentbus',
+            target: lowerAgentId,
             label: EDGE_LABEL.SIGNAL,
           });
 
           if (agent.tools && Array.isArray(agent.tools)) {
             for (const tool of agent.tools) {
-              const target = mapToolToResource(tool);
-              if (target) {
-                const edgeId = `${agent.id}-${target}-use`;
+              const mapping = mapToolToResource(tool);
+              if (mapping) {
+                const edgeId = `${lowerAgentId}-${mapping.target}-use`;
                 if (!edges.find((e) => e.id === edgeId)) {
-                  edges.push({ id: edgeId, source: agent.id, target, label: EDGE_LABEL.USE });
+                  edges.push({
+                    id: edgeId,
+                    source: lowerAgentId,
+                    target: mapping.target,
+                    label: mapping.label,
+                  });
                 }
               }
             }

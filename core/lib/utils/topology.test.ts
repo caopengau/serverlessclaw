@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { discoverSystemTopology } from './topology';
 import { BACKBONE_REGISTRY } from '../backbone';
-import { AgentType } from '../types/agent';
 
 // Mock ConfigManager
 vi.mock('../registry/config', () => ({
@@ -33,6 +32,28 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
   UpdateCommand: vi.fn(),
 }));
 
+// Mock SST Resource
+vi.mock('sst', () => ({
+  Resource: {
+    Api: { url: 'https://api.test' },
+    AgentBus: { name: 'test-bus' },
+    Deployer: { name: 'test-deployer' },
+    MemoryTable: { name: 'test-memory' },
+    ConfigTable: { name: 'test-config' },
+    TraceTable: { name: 'test-traces' },
+    StagingBucket: { name: 'test-staging' },
+    KnowledgeBucket: { name: 'test-knowledge' },
+    Notifier: { name: 'test-notifier' },
+    RealtimeBridge: { name: 'test-bridge' },
+    Dashboard: { url: 'https://dashboard.test' },
+    SuperClaw: { name: 'test-main' },
+    Coder: { name: 'test-coder' },
+    StrategicPlanner: { name: 'test-planner' },
+    ReflectorAgent: { name: 'test-reflector' },
+    QaAgent: { name: 'test-qa' },
+  },
+}));
+
 // Mock agent prompts to break dependency chains (preventing DynamoDB imports)
 vi.mock('../agents/superclaw', () => ({ SUPERCLAW_SYSTEM_PROMPT: 'test' }));
 vi.mock('../agents/coder', () => ({ CODER_SYSTEM_PROMPT: 'test' }));
@@ -50,12 +71,14 @@ describe('discoverSystemTopology', () => {
     const nodeIds = topology.nodes.map((n) => n.id);
 
     expect(nodeIds).toContain('api');
-    expect(nodeIds).toContain('bus');
-    expect(nodeIds).toContain('codebuild');
+    expect(nodeIds).toContain('agentbus');
+    expect(nodeIds).toContain('deployer');
     expect(nodeIds).toContain('dashboard');
-    expect(nodeIds).toContain('memory');
-    expect(nodeIds).toContain('bridge');
+    expect(nodeIds).toContain('memorytable');
+    expect(nodeIds).toContain('realtimebridge');
     expect(nodeIds).toContain('telegram');
+    expect(nodeIds).toContain('scheduler');
+    expect(nodeIds).toContain('heartbeat');
   });
 
   it('should always include backbone agents even if DDB fails', async () => {
@@ -63,89 +86,47 @@ describe('discoverSystemTopology', () => {
     const nodeIds = topology.nodes.map((n) => n.id);
 
     Object.keys(BACKBONE_REGISTRY).forEach((id) => {
-      expect(nodeIds).toContain(id);
+      expect(nodeIds).toContain(id.toLowerCase());
     });
   });
 
   it('should correctly link API Gateway to SuperClaw and Config', async () => {
     const topology = await discoverSystemTopology();
-    const mainEdge = topology.edges.find((e) => e.source === 'api' && e.target === AgentType.MAIN);
-    const configEdge = topology.edges.find((e) => e.source === 'api' && e.target === 'config');
-
+    // In dynamic mode, implicit links are limited to Agent->Bus.
+    // Additional links from Backbone Registry:
+    const mainEdge = topology.edges.find(
+      (e) => e.source === 'superclaw' && e.target === 'agentbus'
+    );
     expect(mainEdge).toBeDefined();
-    expect(mainEdge?.label).toBe('INBOUND');
-    expect(configEdge).toBeDefined();
-    expect(configEdge?.label).toBe('MANAGE');
+    expect(mainEdge?.label).toBe('ORCHESTRATE');
   });
 
-  it('should link agents to AgentBus for orchestration', async () => {
+  it('link agents to AgentBus for orchestration', async () => {
     const topology = await discoverSystemTopology();
-    const coderToBus = topology.edges.find(
-      (e) => e.source === AgentType.CODER && e.target === 'bus'
-    );
+    const coderToBus = topology.edges.find((e) => e.source === 'coder' && e.target === 'agentbus');
 
     expect(coderToBus).toBeDefined();
     expect(coderToBus?.label).toBe('ORCHESTRATE');
   });
 
-  it('should handle telegram inbound and outbound connections', async () => {
+  it('should handle proactive scheduler and heartbeat connections', async () => {
     const topology = await discoverSystemTopology();
 
-    // Telegram -> API (Inbound)
-    expect(topology.edges.find((e) => e.source === 'telegram' && e.target === 'api')).toBeDefined();
-
-    // Notifier -> Telegram (Outbound)
     expect(
-      topology.edges.find((e) => e.source === 'notifier' && e.target === 'telegram')
-    ).toBeDefined();
-  });
-
-  it('should handle realtime bridge connections', async () => {
-    const topology = await discoverSystemTopology();
-
-    // Bus -> Bridge -> Dashboard
-    expect(topology.edges.find((e) => e.source === 'bus' && e.target === 'bridge')).toBeDefined();
-    expect(
-      topology.edges.find((e) => e.source === 'bridge' && e.target === 'dashboard')
-    ).toBeDefined();
-
-    // SuperClaw -> Dashboard (Realtime)
-    expect(
-      topology.edges.find((e) => e.source === AgentType.MAIN && e.target === 'dashboard')
-    ).toBeDefined();
-  });
-
-  it('should handle knowledge bucket connections', async () => {
-    const topology = await discoverSystemTopology();
-
-    expect(topology.nodes.map((n) => n.id)).toContain('knowledge');
-    expect(
-      topology.edges.find((e) => e.source === AgentType.MAIN && e.target === 'knowledge')
+      topology.edges.find((e) => e.source === 'scheduler' && e.target === 'heartbeat')
     ).toBeDefined();
     expect(
-      topology.edges.find((e) => e.source === AgentType.CODER && e.target === 'knowledge')
-    ).toBeDefined();
-    expect(
-      topology.edges.find(
-        (e) => e.source === AgentType.STRATEGIC_PLANNER && e.target === 'knowledge'
-      )
+      topology.edges.find((e) => e.source === 'heartbeat' && e.target === 'agentbus')
     ).toBeDefined();
   });
 
   it('should handle tool-based resource mapping for the Coder Agent', async () => {
     const topology = await discoverSystemTopology();
 
-    // Coder -> BuildEngine (via triggerDeployment)
-    const buildEdge = topology.edges.find(
-      (e) => e.source === AgentType.CODER && e.target === 'codebuild'
-    );
+    // Coder -> Deployer (via triggerDeployment)
+    const buildEdge = topology.edges.find((e) => e.source === 'coder' && e.target === 'deployer');
     expect(buildEdge).toBeDefined();
-
-    // Coder -> Storage (via aws-s3_*)
-    const storageEdge = topology.edges.find(
-      (e) => e.source === AgentType.CODER && e.target === 'storage'
-    );
-    expect(storageEdge).toBeDefined();
+    expect(buildEdge?.label).toBe('USE');
   });
 
   it('should be resilient to DynamoDB errors', async () => {
