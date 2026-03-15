@@ -45,9 +45,7 @@ export class AgentEmitter {
     responseText: string,
     nodeId: string,
     parentId: string | undefined,
-    sessionId: string | undefined,
-    _currentInitiator: string,
-    _depth: number
+    sessionId: string | undefined
   ): Promise<void> {
     let reflectionFrequency: number = AGENT_DEFAULTS.REFLECTION_FREQUENCY;
     try {

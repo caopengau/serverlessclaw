@@ -240,9 +240,7 @@ export class Agent {
         responseText,
         nodeId,
         parentId,
-        sessionId,
-        currentInitiator,
-        depth
+        sessionId
       );
 
       return { responseText: responseText, attachments: resultAttachments, traceId };
