@@ -61,26 +61,96 @@ export async function discoverSystemTopology(): Promise<Topology> {
     { id: INFRA_NODE_ID.MEMORY, type: NODE_TYPE.INFRA, label: 'DynamoDB Memory', icon: 'Database' },
     { id: INFRA_NODE_ID.STORAGE, type: NODE_TYPE.INFRA, label: 'Staging Bucket', icon: 'Database' },
     { id: INFRA_NODE_ID.TRACES, type: NODE_TYPE.INFRA, label: 'DynamoDB Traces', icon: 'Database' },
-    { id: INFRA_NODE_ID.KNOWLEDGE, type: NODE_TYPE.INFRA, label: 'Knowledge Bucket', icon: 'Database' },
+    {
+      id: INFRA_NODE_ID.KNOWLEDGE,
+      type: NODE_TYPE.INFRA,
+      label: 'Knowledge Bucket',
+      icon: 'Database',
+    },
     { id: INFRA_NODE_ID.NOTIFIER, type: NODE_TYPE.INFRA, label: 'Notifier', icon: 'Bell' },
     { id: INFRA_NODE_ID.BRIDGE, type: NODE_TYPE.INFRA, label: 'Realtime Bridge', icon: 'Zap' },
     { id: INFRA_NODE_ID.TELEGRAM, type: NODE_TYPE.INFRA, label: 'Telegram', icon: 'Send' },
-    { id: INFRA_NODE_ID.DASHBOARD, type: NODE_TYPE.DASHBOARD, label: 'ClawCenter', icon: 'LayoutDashboard' },
+    {
+      id: INFRA_NODE_ID.DASHBOARD,
+      type: NODE_TYPE.DASHBOARD,
+      label: 'ClawCenter',
+      icon: 'LayoutDashboard',
+    },
   ];
 
   const edges: TopologyEdge[] = [
-    { id: 'api-main', source: INFRA_NODE_ID.API, target: AgentType.MAIN, label: EDGE_LABEL.INBOUND },
-    { id: 'api-bus', source: INFRA_NODE_ID.API, target: INFRA_NODE_ID.BUS, label: EDGE_LABEL.SIGNAL },
-    { id: 'api-config', source: INFRA_NODE_ID.API, target: INFRA_NODE_ID.CONFIG, label: EDGE_LABEL.MANAGE },
-    { id: 'bus-codebuild', source: INFRA_NODE_ID.BUS, target: INFRA_NODE_ID.CODEBUILD, label: EDGE_LABEL.DEPLOY },
-    { id: 'bus-notifier', source: INFRA_NODE_ID.BUS, target: INFRA_NODE_ID.NOTIFIER, label: EDGE_LABEL.EVENT },
-    { id: 'bus-bridge', source: INFRA_NODE_ID.BUS, target: INFRA_NODE_ID.BRIDGE, label: EDGE_LABEL.EVENT },
-    { id: 'bridge-dashboard', source: INFRA_NODE_ID.BRIDGE, target: INFRA_NODE_ID.DASHBOARD, label: EDGE_LABEL.REALTIME },
-    { id: 'dashboard-api', source: INFRA_NODE_ID.DASHBOARD, target: INFRA_NODE_ID.API, label: EDGE_LABEL.QUERY },
-    { id: 'main-dashboard-rt', source: AgentType.MAIN, target: INFRA_NODE_ID.DASHBOARD, label: EDGE_LABEL.REALTIME },
-    { id: 'telegram-api', source: INFRA_NODE_ID.TELEGRAM, target: INFRA_NODE_ID.API, label: EDGE_LABEL.WEBHOOK },
-    { id: 'main-knowledge', source: AgentType.MAIN, target: INFRA_NODE_ID.KNOWLEDGE, label: EDGE_LABEL.READ_FILES },
-    { id: 'coder-knowledge', source: AgentType.CODER, target: INFRA_NODE_ID.KNOWLEDGE, label: EDGE_LABEL.MANAGE_FILES },
+    {
+      id: 'api-main',
+      source: INFRA_NODE_ID.API,
+      target: AgentType.MAIN,
+      label: EDGE_LABEL.INBOUND,
+    },
+    {
+      id: 'api-bus',
+      source: INFRA_NODE_ID.API,
+      target: INFRA_NODE_ID.BUS,
+      label: EDGE_LABEL.SIGNAL,
+    },
+    {
+      id: 'api-config',
+      source: INFRA_NODE_ID.API,
+      target: INFRA_NODE_ID.CONFIG,
+      label: EDGE_LABEL.MANAGE,
+    },
+    {
+      id: 'bus-codebuild',
+      source: INFRA_NODE_ID.BUS,
+      target: INFRA_NODE_ID.CODEBUILD,
+      label: EDGE_LABEL.DEPLOY,
+    },
+    {
+      id: 'bus-notifier',
+      source: INFRA_NODE_ID.BUS,
+      target: INFRA_NODE_ID.NOTIFIER,
+      label: EDGE_LABEL.EVENT,
+    },
+    {
+      id: 'bus-bridge',
+      source: INFRA_NODE_ID.BUS,
+      target: INFRA_NODE_ID.BRIDGE,
+      label: EDGE_LABEL.EVENT,
+    },
+    {
+      id: 'bridge-dashboard',
+      source: INFRA_NODE_ID.BRIDGE,
+      target: INFRA_NODE_ID.DASHBOARD,
+      label: EDGE_LABEL.REALTIME,
+    },
+    {
+      id: 'dashboard-api',
+      source: INFRA_NODE_ID.DASHBOARD,
+      target: INFRA_NODE_ID.API,
+      label: EDGE_LABEL.QUERY,
+    },
+    {
+      id: 'main-dashboard-rt',
+      source: AgentType.MAIN,
+      target: INFRA_NODE_ID.DASHBOARD,
+      label: EDGE_LABEL.REALTIME,
+    },
+    {
+      id: 'telegram-api',
+      source: INFRA_NODE_ID.TELEGRAM,
+      target: INFRA_NODE_ID.API,
+      label: EDGE_LABEL.WEBHOOK,
+    },
+    {
+      id: 'main-knowledge',
+      source: AgentType.MAIN,
+      target: INFRA_NODE_ID.KNOWLEDGE,
+      label: EDGE_LABEL.READ_FILES,
+    },
+    {
+      id: 'coder-knowledge',
+      source: AgentType.CODER,
+      target: INFRA_NODE_ID.KNOWLEDGE,
+      label: EDGE_LABEL.MANAGE_FILES,
+    },
     {
       id: 'planner-knowledge',
       source: AgentType.STRATEGIC_PLANNER,
@@ -93,15 +163,26 @@ export async function discoverSystemTopology(): Promise<Topology> {
       target: INFRA_NODE_ID.KNOWLEDGE,
       label: EDGE_LABEL.ARCHIVE,
     },
-    { id: 'notifier-telegram', source: INFRA_NODE_ID.NOTIFIER, target: INFRA_NODE_ID.TELEGRAM, label: EDGE_LABEL.OUTBOUND },
-    { id: 'notifier-memory', source: INFRA_NODE_ID.NOTIFIER, target: INFRA_NODE_ID.MEMORY, label: EDGE_LABEL.SYNC },
+    {
+      id: 'notifier-telegram',
+      source: INFRA_NODE_ID.NOTIFIER,
+      target: INFRA_NODE_ID.TELEGRAM,
+      label: EDGE_LABEL.OUTBOUND,
+    },
+    {
+      id: 'notifier-memory',
+      source: INFRA_NODE_ID.NOTIFIER,
+      target: INFRA_NODE_ID.MEMORY,
+      label: EDGE_LABEL.SYNC,
+    },
   ];
 
   // Tool to Resource Mapping Strategy
   const mapToolToResource = (tool: string): string | null => {
     if (tool === 'dispatchTask' || tool === 'listAgents') return INFRA_NODE_ID.BUS;
     if (tool === 'recallKnowledge' || tool === 'saveMemory') return INFRA_NODE_ID.MEMORY;
-    if (tool === 'checkConfig' || tool === 'manageGap' || tool === 'reportGap') return INFRA_NODE_ID.CONFIG;
+    if (tool === 'checkConfig' || tool === 'manageGap' || tool === 'reportGap')
+      return INFRA_NODE_ID.CONFIG;
     if (tool === 'inspectTrace') return INFRA_NODE_ID.TRACES;
     if (tool === 'triggerDeployment') return INFRA_NODE_ID.CODEBUILD;
     if (tool === 'sendMessage') return INFRA_NODE_ID.NOTIFIER;
@@ -123,8 +204,18 @@ export async function discoverSystemTopology(): Promise<Topology> {
         });
 
         // Implicit edges for all backbone agents
-        edges.push({ id: `${id}-bus-orch`, source: id, target: INFRA_NODE_ID.BUS, label: EDGE_LABEL.ORCHESTRATE });
-        edges.push({ id: `bus-${id}-signal`, source: INFRA_NODE_ID.BUS, target: id, label: EDGE_LABEL.SIGNAL });
+        edges.push({
+          id: `${id}-bus-orch`,
+          source: id,
+          target: INFRA_NODE_ID.BUS,
+          label: EDGE_LABEL.ORCHESTRATE,
+        });
+        edges.push({
+          id: `bus-${id}-signal`,
+          source: INFRA_NODE_ID.BUS,
+          target: id,
+          label: EDGE_LABEL.SIGNAL,
+        });
 
         if (config.tools) {
           for (const tool of config.tools) {
