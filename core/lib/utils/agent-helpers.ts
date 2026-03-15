@@ -66,7 +66,10 @@ export function extractPayload<T extends object>(event: { detail?: T } | T): T {
  * Used consistently across all agents to determine failure state.
  */
 export function detectFailure(response: string): boolean {
-  return response === AGENT_ERRORS.PROCESS_FAILURE || response.startsWith('I encountered an internal error');
+  return (
+    response === AGENT_ERRORS.PROCESS_FAILURE ||
+    response.startsWith('I encountered an internal error')
+  );
 }
 
 /**

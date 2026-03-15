@@ -96,7 +96,9 @@ export class Agent {
 
       let recoveryContext = '';
       try {
-        const recoveryData = await this.memory.getDistilledMemory(SYSTEM.RECOVERY_KEY || 'RECOVERY');
+        const recoveryData = await this.memory.getDistilledMemory(
+          SYSTEM.RECOVERY_KEY || 'RECOVERY'
+        );
         if (recoveryData) {
           recoveryContext = `${AGENT_LOG_MESSAGES.RECOVERY_LOG_PREFIX}${recoveryData}`;
           await this.memory.updateDistilledMemory(SYSTEM.RECOVERY_KEY || 'RECOVERY', '');
@@ -168,7 +170,9 @@ export class Agent {
           if (customMax !== undefined) maxIterations = parseConfigInt(customMax, maxIterations);
         }
       } catch {
-        logger.warn(`Failed to fetch max_tool_iterations from DDB, using default ${maxIterations}.`);
+        logger.warn(
+          `Failed to fetch max_tool_iterations from DDB, using default ${maxIterations}.`
+        );
       }
 
       const {
@@ -248,15 +252,19 @@ export class Agent {
       // Log a strategic gap for the system to evolve
       try {
         const gapId = `GAP#PROC#${Date.now()}`;
-        await this.memory.setGap(gapId, `Execution failure for user ${userId} / session ${sessionId}. Error: ${errorDetail}`, {
-          category: 'strategic_gap' as any,
-          confidence: 10,
-          impact: 8,
-          complexity: 5,
-          risk: 5,
-          urgency: 7,
-          priority: 7
-        });
+        await this.memory.setGap(
+          gapId,
+          `Execution failure for user ${userId} / session ${sessionId}. Error: ${errorDetail}`,
+          {
+            category: 'strategic_gap' as any,
+            confidence: 10,
+            impact: 8,
+            complexity: 5,
+            risk: 5,
+            urgency: 7,
+            priority: 7,
+          }
+        );
       } catch (gapError) {
         logger.error('Failed to log strategic gap during error recovery:', gapError);
       }
