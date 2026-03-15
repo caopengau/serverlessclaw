@@ -207,15 +207,6 @@ export async function updateGapStatus(
       if (target) {
         params.Key = { userId: `GAP#${numericId}`, timestamp: target.timestamp };
 
-        // Ensure state transition rule for DONE still holds if found via search
-        if (
-          status === GapStatus.DONE &&
-          target.metadata?.status !== GapStatus.DEPLOYED &&
-          (target as any).status !== GapStatus.DEPLOYED
-        ) {
-          // Check status directly if it's in the root
-          // Wait, we can just let DDB handle it via ConditionExpression.
-        }
         found = true;
         break;
       }

@@ -295,10 +295,10 @@ export async function getLowUtilizationMemory(
       if (!meta) return false;
 
       const isHitCountLow = meta.hitCount === undefined || meta.hitCount === 0;
-      const timeSinceAccess = now - (meta.lastAccessed || item.timestamp || now);
+      const lastAccessed = meta.lastAccessed || (item.timestamp as number) || now;
+      const timeSinceAccess = now - lastAccessed;
 
-      return isHitCountLow && timeSinceAccess > STALE_THRESHOLD_MS;
-    });
+      return isHitCountLow && timeSinceAccess > STALE_THRESHOLD_MS;    });
 
     staleItems = [...staleItems, ...stale];
   }

@@ -93,13 +93,15 @@ export const knowledgeTools: Record<string, IToolDefinition> = {
   },
   pruneMemory: {
     name: 'pruneMemory',
-    description: 'Permanently deletes a specific memory item from the neural reserve. Use this to remove stale, incorrect, or redundant information.',
+    description:
+      'Permanently deletes a specific memory item from the neural reserve. Use this to remove stale, incorrect, or redundant information.',
     parameters: {
       type: TYPE_OBJECT,
       properties: {
         partitionKey: {
           type: TYPE_STRING,
-          description: 'The full partition key (ID) of the memory item (e.g., "USER#123", "LESSON#456").',
+          description:
+            'The full partition key (ID) of the memory item (e.g., "USER#123", "LESSON#456").',
         },
         timestamp: {
           type: TYPE_NUMBER,

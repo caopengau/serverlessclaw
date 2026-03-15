@@ -50,7 +50,7 @@ describe('DynamoMemory Evolution — Hit Tracking & Registry', () => {
       });
       // The Set is handled by the marshaller, but we can check the value
       const values = updateCalls[0].args[0].input.ExpressionAttributeValues;
-      expect(values[':type']).toBeDefined();
+      expect(values?.[':type']).toBeDefined();
     });
 
     it('should initialize hitCount and lastAccessed in metadata', async () => {
@@ -65,7 +65,7 @@ describe('DynamoMemory Evolution — Hit Tracking & Registry', () => {
       const putCalls = ddbMock.commandCalls(PutCommand);
       expect(putCalls).toHaveLength(1);
       const item = putCalls[0].args[0].input.Item;
-      expect(item.metadata).toMatchObject({
+      expect(item?.metadata).toMatchObject({
         hitCount: 0,
         lastAccessed: now,
       });

@@ -177,7 +177,6 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
 
     let staleMemoryContext = '';
     try {
-      // @ts-expect-error - DynamoMemory has this method now
       const staleItems = await memory.getLowUtilizationMemory(10);
       if (staleItems && staleItems.length > 0) {
         staleMemoryContext = `\n[LOW_UTILIZATION_MEMORY]:\nThese dynamic memory items have not been recalled recently. Consider recommending pruning them if they are no longer relevant to system goals.\n${JSON.stringify(
