@@ -231,7 +231,12 @@ export function FlowContent() {
             description: node.description || getAgentDescription(node.id),
             icon,
             enabled: node.enabled !== undefined ? node.enabled : true,
-            type: node.id === 'main' ? 'Logic_Core' : (node.type === 'agent' ? 'Neural_Worker' : (node.id === 'memory' ? 'DATA_STORE' : (node.id === 'storage' ? 'STORAGE' : 'COMPUTE')))
+            type: node.id === 'main' || node.id === 'superclaw' ? 'Logic_Core' : 
+                  (node.id === 'agentbus' || node.id === 'bus' ? 'ORCHESTRATOR' :
+                  (node.type === 'agent' ? 'Neural_Worker' : 
+                  (node.id === 'memorytable' ? 'DATA_STORE' : 
+                  (node.id === 'stagingbucket' ? 'STORAGE' : 
+                  (node.id === 'deployer' ? 'COMPUTE' : 'INFRA_NODE')))))
           },
         });
       });

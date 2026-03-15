@@ -31,7 +31,25 @@ export async function discoverSystemTopology(): Promise<Topology> {
     let label = key;
 
     const lowerKey = key.toLowerCase();
-    if (
+
+    // EXPLICIT INFRASTRUCTURE OVERRIDES (Prevent misclassification as agents)
+    if (lowerKey === 'agentbus' || lowerKey === 'bus') {
+      type = NODE_TYPE.INFRA;
+      icon = 'MessageCircle';
+      label = 'AgentBus';
+    } else if (lowerKey.includes('api')) {
+      type = NODE_TYPE.INFRA;
+      icon = 'Globe';
+    } else if (lowerKey === 'deployer') {
+      type = NODE_TYPE.INFRA;
+      icon = 'Hammer';
+    } else if (lowerKey === 'notifier') {
+      type = NODE_TYPE.INFRA;
+      icon = 'Bell';
+    } else if (lowerKey.includes('bridge') || lowerKey.includes('realtime')) {
+      type = NODE_TYPE.INFRA;
+      icon = 'Zap';
+    } else if (
       lowerKey.includes('agent') ||
       lowerKey.includes('worker') ||
       lowerKey === 'superclaw' ||
@@ -42,17 +60,6 @@ export async function discoverSystemTopology(): Promise<Topology> {
     ) {
       type = NODE_TYPE.AGENT;
       icon = 'Cpu';
-    } else if (key === 'AgentBus') {
-      icon = 'MessageCircle';
-      label = 'AgentBus';
-    } else if (key.toLowerCase().includes('api')) {
-      icon = 'Globe';
-    } else if (key === 'Deployer') {
-      icon = 'Hammer';
-    } else if (key === 'Notifier') {
-      icon = 'Bell';
-    } else if (key.includes('Bridge') || key.includes('Realtime')) {
-      icon = 'Zap';
     }
 
     nodes.push({
@@ -147,6 +154,18 @@ export async function discoverSystemTopology(): Promise<Topology> {
     return null;
   };
 
+  const mapProfileToResource = (profile: string): string | null => {
+    const p = profile.toLowerCase();
+    if (p === 'bus') return 'agentbus';
+    if (p === 'memory' || p === 'memorytable') return 'memorytable';
+    if (p === 'config' || p === 'configtable') return 'configtable';
+    if (p === 'trace' || p === 'tracetable') return 'tracetable';
+    if (p === 'storage' || p === 'stagingbucket') return 'stagingbucket';
+    if (p === 'codebuild' || p === 'deployer') return 'deployer';
+    if (p === 'knowledge' || p === 'knowledgebucket') return 'knowledgebucket';
+    return null;
+  };
+
   try {
     // 5. Merge with Backbone Metadata & Dynamic Agents
     for (const [id, config] of Object.entries(BACKBONE_REGISTRY)) {
@@ -165,6 +184,19 @@ export async function discoverSystemTopology(): Promise<Topology> {
           icon: config.isBackbone ? 'Brain' : 'Cpu',
           description: config.description,
         });
+      }
+
+      // Profile-based edges (Explicit connections)
+      if (config.connectionProfile) {
+        for (const profile of config.connectionProfile) {
+          const target = mapProfileToResource(profile);
+          if (target && nodes.find((n) => n.id === target)) {
+            const edgeId = `${lowerId}-${target}-profile`;
+            if (!edges.find((e) => e.id === edgeId)) {
+              edges.push({ id: edgeId, source: lowerId, target, label: EDGE_LABEL.USE });
+            }
+          }
+        }
       }
 
       // Tool usage edges for backbone agents
