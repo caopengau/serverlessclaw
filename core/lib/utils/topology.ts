@@ -32,7 +32,12 @@ export async function discoverSystemTopology(): Promise<Topology> {
     { id: INFRA_NODE_ID.NOTIFIER, type: NODE_TYPE.INFRA, label: 'Notifier', icon: 'Bell' },
     { id: INFRA_NODE_ID.BRIDGE, type: NODE_TYPE.INFRA, label: 'Realtime Bridge', icon: 'Zap' },
     { id: INFRA_NODE_ID.TELEGRAM, type: NODE_TYPE.INFRA, label: 'Telegram', icon: 'Send' },
-    { id: INFRA_NODE_ID.SCHEDULER, type: NODE_TYPE.INFRA, label: 'AWS Scheduler', icon: 'Calendar' },
+    {
+      id: INFRA_NODE_ID.SCHEDULER,
+      type: NODE_TYPE.INFRA,
+      label: 'AWS Scheduler',
+      icon: 'Calendar',
+    },
     { id: INFRA_NODE_ID.HEARTBEAT, type: NODE_TYPE.INFRA, label: 'Heartbeat Engine', icon: 'Zap' },
     {
       id: INFRA_NODE_ID.DASHBOARD,

@@ -177,6 +177,10 @@ export function FlowContent() {
         else if (node.id === 'notifier') { xPos = 650; yPos = 200; }
         else if (node.id === 'bridge') { xPos = 50; yPos = 200; }
         
+        // 2.5 Layer 2.5: Proactive Goals & Scheduling (Y: 325)
+        else if (node.id === 'scheduler') { xPos = 550; yPos = 325; }
+        else if (node.id === 'heartbeat') { xPos = 350; yPos = 325; }
+        
         // 3. Layer 3: Logic Units & Workers (Y: 450)
         else if (node.type === 'agent' || node.id === 'monitor') {
             const allAgents = topology.nodes.filter(n => 
@@ -214,6 +218,8 @@ export function FlowContent() {
         else if (node.id === 'telegram') icon = <MessageSquare size={16} />;
         else if (node.id === 'bridge') icon = <Zap size={16} />;
         else if (node.id === 'notifier') icon = <Info size={16} />;
+        else if (node.id === 'scheduler') icon = <Radio size={16} />;
+        else if (node.id === 'heartbeat') icon = <Zap size={16} />;
         else if (node.type === 'agent') icon = getAgentIcon(node.id, node.icon);
 
         newNodes.push({
@@ -236,12 +242,14 @@ export function FlowContent() {
         const isBusSignal = edge.label === 'SIGNAL' || edge.label?.startsWith('SIGNAL_') || edge.source === 'bus';
         const isResult = edge.label === 'RESULT';
         const isInvoke = edge.label === 'INVOKE';
+        const isProactive = edge.label === 'SCHEDULE' || edge.label === 'HEARTBEAT';
         
         let strokeColor = '#00f3ff'; // Cyber blue (Default)
         if (isMainOrch) strokeColor = '#00ffa3'; // Neon green
         if (isBusSignal) strokeColor = '#f97316'; // Vivid orange
         if (isResult) strokeColor = '#00d4ff'; // Sky blue
         if (isInvoke) strokeColor = '#ffcf00'; // Yellow
+        if (isProactive) strokeColor = '#d946ef'; // Fuchsia
 
         const isBiDirectional = topology.edges.some((e: any) => e.source === edge.target && e.target === edge.source);
         const edgeIndex = topology.edges.indexOf(edge);
@@ -257,7 +265,7 @@ export function FlowContent() {
           label: edge.label || (isMainOrch ? 'ORCHESTRATE' : (isBusSignal ? 'SIGNAL' : undefined)),
           labelStyle: { 
             fill: strokeColor, 
-            fontSize: isMainOrch ? 10 : 8, 
+            fontSize: (isMainOrch || isProactive) ? 10 : 8, 
             fontWeight: 'black', 
             fontFamily: 'monospace',
             transform: isBiDirectional ? `translate(0, ${isPrimary ? -12 : 12}px)` : undefined
@@ -267,9 +275,9 @@ export function FlowContent() {
           labelBgBorderRadius: 4,
           style: { 
             stroke: strokeColor, 
-            strokeWidth: isMainOrch ? 2.5 : (isBusSignal ? 1.5 : 1.2),
-            opacity: (isMainOrch || isBusSignal || isResult || isInvoke) ? 1 : 0.6,
-            strokeDasharray: (isMainOrch || isBusSignal || isResult || isInvoke) ? undefined : '5,5'
+            strokeWidth: (isMainOrch || isProactive) ? 2.5 : (isBusSignal ? 1.5 : 1.2),
+            opacity: (isMainOrch || isBusSignal || isResult || isInvoke || isProactive) ? 1 : 0.6,
+            strokeDasharray: (isMainOrch || isBusSignal || isResult || isInvoke || isProactive) ? undefined : '5,5'
           },
           markerEnd: { 
             type: MarkerType.ArrowClosed, 
