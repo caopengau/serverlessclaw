@@ -95,6 +95,8 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
     sessionId,
   } = payload;
 
+  const isProactive = (metadata as any)?.isProactive || isScheduledReview;
+
   // Extract base userId (remove CONV# prefix if present)
   const baseUserId = extractBaseUserId(contextUserId);
 
@@ -104,6 +106,38 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
 
   const { getAgentTools } = await import('../tools/index');
   const agentTools = await getAgentTools('planner');
+
+  // Self-Scheduling: If this is a proactive review, or we are running for any reason,
+  // ensure the NEXT proactive review is scheduled if not already present.
+  if (isProactive) {
+    try {
+      const { DynamicScheduler } = await import('../lib/scheduler');
+      const GOAL_ID = `PLANNER#STRATEGIC_REVIEW#${baseUserId}`;
+      const existing = await DynamicScheduler.getSchedule(GOAL_ID);
+
+      if (!existing) {
+        const { AgentRegistry } = await import('../lib/registry');
+        const customFreq = await AgentRegistry.getRawConfig('strategic_review_frequency');
+        const frequencyHrs = parseConfigInt(customFreq, 24); // Default to daily for proactive
+
+        logger.info(`Scheduling next proactive review in ${frequencyHrs}h`);
+        await DynamicScheduler.upsertSchedule(
+          GOAL_ID,
+          {
+            agentId: AgentType.STRATEGIC_PLANNER,
+            task: 'Proactive Strategic Review',
+            goalId: GOAL_ID,
+            userId: contextUserId,
+            metadata: { isProactive: true },
+          },
+          `rate(${frequencyHrs} hours)`
+        );
+      }
+    } catch (e) {
+      logger.warn('Failed to manage proactive self-scheduling:', e);
+    }
+  }
+
   const { Agent } = await import('../lib/agent');
   const plannerAgent = new Agent(memory, providerManager, agentTools, config.systemPrompt, config);
   const toolsList = agentTools
@@ -119,7 +153,7 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   let plannerPrompt: string;
   // const id = gapId || `REVIEW#${Date.now()}`;
 
-  if (isScheduledReview) {
+  if (isProactive) {
     // 1. Check Frequency and Min Gaps
     try {
       const { AgentRegistry } = await import('../lib/registry');
@@ -127,7 +161,7 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       const customMinGaps = await AgentRegistry.getRawConfig('min_gaps_for_review');
 
       const frequencyHrs = parseConfigInt(customFreq, 48);
-      const minGaps = parseConfigInt(customMinGaps, 20);
+      const minGaps = parseConfigInt(customMinGaps, 5); // Proactive lower threshold for progress
 
       const lastReviewStr = await memory.getDistilledMemory(
         `${MEMORY_KEYS.STRATEGIC_REVIEW}#${baseUserId}`
@@ -136,17 +170,21 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       const now = Date.now();
 
       const { TIME } = await import('../lib/constants');
-      if (now - lastReview < frequencyHrs * TIME.SECONDS_IN_HOUR * TIME.MS_PER_SECOND) {
+      // Only enforce strict interval for fully automated crons, proactive can be more flexible
+      if (
+        !isScheduledReview &&
+        now - lastReview < (frequencyHrs / 2) * TIME.SECONDS_IN_HOUR * TIME.MS_PER_SECOND
+      ) {
         logger.info(
-          `Scheduled review skipped. Interval: ${frequencyHrs}h. Last run: ${new Date(lastReview).toISOString()}`
+          `Proactive review skipped: too recent. Last run: ${new Date(lastReview).toISOString()}`
         );
-        return { status: 'SKIPPED_INTERVAL' };
+        return { status: 'SKIPPED_TOO_RECENT' };
       }
 
       // Check min gaps
       const allGaps = await memory.getAllGaps(GapStatus.OPEN);
       if (allGaps.length < minGaps) {
-        logger.info(`Scheduled review skipped. Need ${minGaps} gaps, found ${allGaps.length}.`);
+        logger.info(`Proactive review skipped. Need ${minGaps} gaps, found ${allGaps.length}.`);
         return { status: 'INSUFFICIENT_GAPS' };
       }
 
@@ -154,13 +192,13 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       try {
         const archivedCount = await memory.archiveStaleGaps(30);
         if (archivedCount > 0) {
-          logger.info(`Archived ${archivedCount} stale gaps during scheduled review.`);
+          logger.info(`Archived ${archivedCount} stale gaps during proactive review.`);
         }
       } catch (error) {
         logger.warn('Failed to archive stale gaps:', error);
       }
     } catch {
-      logger.warn('Failed to verify strategic review interval/min_gaps, proceeding anyway.');
+      logger.warn('Failed to verify proactive review interval/min_gaps, proceeding anyway.');
     }
 
     // 2. Fetch Tool Usage Telemetry for Auditing
@@ -198,7 +236,7 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
     // Deterministic Review of all Gaps
     const allGaps = await memory.getAllGaps(GapStatus.OPEN);
     if (allGaps.length === 0) {
-      logger.info('No gaps found during scheduled review. Skipping evolution.');
+      logger.info('No gaps found during proactive review. Skipping evolution.');
       return { status: 'NO_GAPS' };
     }
 
@@ -209,8 +247,8 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       .join('\n');
 
     plannerPrompt = `
-      [SCHEDULED_STRATEGIC_REVIEW]
-      I have detected the following ${allGaps.length} capability gaps:
+      [PROACTIVE_STRATEGIC_REVIEW]
+      I have woken up for a scheduled self-audit. I have detected the following ${allGaps.length} capability gaps:
       ${gapSummary}
       ${telemetry}
       ${toolUsageContext}

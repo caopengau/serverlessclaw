@@ -78,6 +78,20 @@ export interface HealthReportEvent extends BaseEvent {
 }
 
 /**
+ * Payload for a proactive heartbeat signal from the dynamic scheduler.
+ */
+export interface ProactiveHeartbeatPayload extends BaseEvent {
+  /** The ID of the agent that should respond to this heartbeat. */
+  agentId: string;
+  /** The task or goal to be performed. */
+  task: string;
+  /** Unique ID for the goal or schedule. */
+  goalId: string;
+  /** Optional additional metadata. */
+  metadata?: Record<string, unknown>;
+}
+
+/**
  * Categorization of agents to guide orchestration.
  */
 export enum AgentCategory {
@@ -182,6 +196,10 @@ export enum EventType {
   SYSTEM_HEALTH_REPORT = 'system_health_report',
   /** Request for clarification from an initiator agent. */
   CLARIFICATION_REQUEST = 'clarification_request',
+  /** Request to schedule a future task or heartbeat. */
+  SCHEDULE_TASK = 'schedule_task',
+  /** Proactive heartbeat signal indicating a scheduled goal or task activation. */
+  HEARTBEAT_PROACTIVE = 'heartbeat_proactive',
 }
 
 /**

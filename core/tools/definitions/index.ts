@@ -7,6 +7,7 @@ import { mcpTools } from './mcp';
 import { skillsTools } from './skills';
 import { systemTools } from './system';
 import { clarificationTools } from './clarification';
+import { schedulerDefinitions } from './scheduler';
 
 /**
  * Combined tool definitions for all system tools.
@@ -22,6 +23,7 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
   ...skillsTools,
   ...systemTools,
   ...clarificationTools,
+  ...schedulerDefinitions,
 };
 
 // Re-export individual tool categories for modular access
@@ -34,4 +36,5 @@ export {
   skillsTools,
   systemTools,
   clarificationTools,
+  schedulerDefinitions,
 };

@@ -61,6 +61,12 @@ export const handler = async (
       break;
     }
 
+    case EventType.HEARTBEAT_PROACTIVE: {
+      const { handleProactiveHeartbeat } = await import('./events/proactive-handler');
+      await handleProactiveHeartbeat(eventDetail, context);
+      break;
+    }
+
     default:
       logger.warn(`Unhandled event type: ${detailType}`);
   }

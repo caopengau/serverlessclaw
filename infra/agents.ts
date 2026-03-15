@@ -2,7 +2,6 @@ import { EventType } from '../core/lib/types/agent';
 import { SharedContext, getValidSecrets, AGENT_CONFIG } from './shared';
 
 const RECOVERY_SCHEDULE_RATE = 'rate(15 minutes)';
-const STRATEGIC_REVIEW_RATE = 'rate(1 hour)';
 
 /**
  * Deploys the full set of autonomous agents as Lambda functions and sets up their event subscriptions.
@@ -96,6 +95,65 @@ export function createAgents(ctx: SharedContext): {
     },
   });
 
+  // 4.5 Proactive Heartbeat Handler (Target for Dynamic Scheduler)
+  const heartbeatHandler = new sst.aws.Function('HeartbeatHandler', {
+    handler: 'core/handlers/heartbeat.handler',
+    dev: liveInLocalOnly,
+    link: baseLink,
+    nodejs: { loader: { '.md': 'text' } },
+    memory: AGENT_CONFIG.memory.SMALL,
+    timeout: AGENT_CONFIG.timeout.SHORT,
+    logging: {
+      retention: '1 month',
+    },
+  });
+
+  // Role for AWS Scheduler to invoke HeartbeatHandler
+  const schedulerRole = new aws.iam.Role('DynamicSchedulerRole', {
+    assumeRolePolicy: JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Action: 'sts:AssumeRole',
+          Effect: 'Allow',
+          Principal: { Service: 'scheduler.amazonaws.com' },
+        },
+      ],
+    }),
+  });
+
+  new aws.iam.RolePolicy('DynamicSchedulerPolicy', {
+    role: schedulerRole.name,
+    policy: JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Action: 'lambda:InvokeFunction',
+          Effect: 'Allow',
+          Resource: [heartbeatHandler.arn],
+        },
+      ],
+    }),
+  });
+
+  // Grant agents permission to manage schedules
+  const schedulerPermissions = [
+    {
+      actions: [
+        'scheduler:CreateSchedule',
+        'scheduler:DeleteSchedule',
+        'scheduler:GetSchedule',
+        'scheduler:ListSchedules',
+        'scheduler:UpdateSchedule',
+      ],
+      resources: ['*'], // Namespaced by agentId usually, but '*' for simplicity in this implementation
+    },
+    {
+      actions: ['iam:PassRole'],
+      resources: [schedulerRole.arn],
+    },
+  ];
+
   // 15-min Schedule
   new aws.scheduler.Schedule('RecoverySchedule', {
     scheduleExpression: RECOVERY_SCHEDULE_RATE,
@@ -153,6 +211,11 @@ export function createAgents(ctx: SharedContext): {
     dev: liveInLocalOnly,
     link: baseLink,
     nodejs: { loader: { '.md': 'text' } },
+    permissions: schedulerPermissions,
+    environment: {
+      SCHEDULER_ROLE_ARN: schedulerRole.arn,
+      HEARTBEAT_HANDLER_ARN: heartbeatHandler.arn,
+    },
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
     logging: {
@@ -161,37 +224,6 @@ export function createAgents(ctx: SharedContext): {
   });
   bus.subscribe('EvolutionPlanSubscriber', plannerAgent.arn, {
     pattern: { detailType: [EventType.EVOLUTION_PLAN] },
-  });
-
-  // Strategic Review Schedule (Runs hourly to check ConfigTable frequency)
-  new aws.scheduler.Schedule('StrategicReviewSchedule', {
-    scheduleExpression: STRATEGIC_REVIEW_RATE,
-    flexibleTimeWindow: { mode: 'OFF' },
-    target: {
-      arn: plannerAgent.arn,
-      input: JSON.stringify({
-        isScheduledReview: true,
-        userId: 'SYSTEM',
-      }),
-      roleArn: new aws.iam.Role('StrategicReviewRole', {
-        assumeRolePolicy: JSON.stringify({
-          Version: '2012-10-17',
-          Statement: [
-            {
-              Action: 'sts:AssumeRole',
-              Effect: 'Allow',
-              Principal: { Service: 'scheduler.amazonaws.com' },
-            },
-          ],
-        }),
-      }).arn,
-    },
-  });
-
-  new aws.lambda.Permission('StrategicReviewPermission', {
-    action: 'lambda:InvokeFunction',
-    function: plannerAgent.name,
-    principal: 'scheduler.amazonaws.com',
   });
 
   // 3. Event Handler (System errors)
@@ -214,6 +246,7 @@ export function createAgents(ctx: SharedContext): {
         EventType.TASK_COMPLETED,
         EventType.TASK_FAILED,
         EventType.SYSTEM_HEALTH_REPORT,
+        EventType.HEARTBEAT_PROACTIVE,
       ],
     },
   });
@@ -224,6 +257,11 @@ export function createAgents(ctx: SharedContext): {
     dev: liveInLocalOnly,
     link: baseLink,
     nodejs: { loader: { '.md': 'text' } },
+    permissions: schedulerPermissions,
+    environment: {
+      SCHEDULER_ROLE_ARN: schedulerRole.arn,
+      HEARTBEAT_HANDLER_ARN: heartbeatHandler.arn,
+    },
     memory: AGENT_CONFIG.memory.MEDIUM,
     timeout: AGENT_CONFIG.timeout.MAX,
     logging: {
@@ -240,6 +278,11 @@ export function createAgents(ctx: SharedContext): {
     dev: liveInLocalOnly,
     link: baseLink,
     nodejs: { loader: { '.md': 'text' } },
+    permissions: schedulerPermissions,
+    environment: {
+      SCHEDULER_ROLE_ARN: schedulerRole.arn,
+      HEARTBEAT_HANDLER_ARN: heartbeatHandler.arn,
+    },
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
     logging: {
@@ -271,6 +314,11 @@ export function createAgents(ctx: SharedContext): {
     dev: liveInLocalOnly,
     link: baseLink,
     nodejs: { loader: { '.md': 'text' } },
+    permissions: schedulerPermissions,
+    environment: {
+      SCHEDULER_ROLE_ARN: schedulerRole.arn,
+      HEARTBEAT_HANDLER_ARN: heartbeatHandler.arn,
+    },
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
     logging: {

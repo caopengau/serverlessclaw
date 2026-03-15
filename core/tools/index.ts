@@ -7,6 +7,7 @@ import { formatErrorMessage } from '../lib/utils/error';
 import * as systemTools from './system';
 import * as fsTools from './fs';
 import * as knowledgeTools from './knowledge';
+import * as schedulerTools from './scheduler';
 
 // Filter knowledgeTools to only include ITool exports (exclude utility functions like formatErrorMessage)
 const knowledgeToolEntries = Object.entries(knowledgeTools).filter(
@@ -27,6 +28,9 @@ export const tools: Record<string, ITool> = {
   ...fsTools,
   // Knowledge & Agent Management Tools
   ...knowledgeToolsFiltered,
+
+  // Proactive Scheduling Tools
+  ...schedulerTools,
 
   /**
    * Switches the active LLM provider and model for the system.
