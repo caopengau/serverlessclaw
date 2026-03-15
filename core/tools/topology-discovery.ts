@@ -11,21 +11,21 @@ export const inspectTopology = {
   execute: async (): Promise<string> => {
     try {
       const topology = await discoverSystemTopology();
-      
+
       // Return a condensed summary to avoid token bloat
       const summary = {
-        nodes: topology.nodes.map(n => ({
+        nodes: topology.nodes.map((n) => ({
           id: n.id,
           label: n.label,
           type: n.type,
           tier: n.tier,
-          isBackbone: n.isBackbone
+          isBackbone: n.isBackbone,
         })),
-        edges: topology.edges.map(e => ({
+        edges: topology.edges.map((e) => ({
           from: e.source,
           to: e.target,
-          label: e.label
-        }))
+          label: e.label,
+        })),
       };
 
       return JSON.stringify(summary, null, 2);

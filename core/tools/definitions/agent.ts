@@ -24,6 +24,7 @@ export const agentTools: Record<string, IToolDefinition> = {
       required: ['agentId', 'task'],
       additionalProperties: false,
     },
+    connectionProfile: ['bus'],
   },
   manageAgentTools: {
     name: 'manageAgentTools',
@@ -44,6 +45,7 @@ export const agentTools: Record<string, IToolDefinition> = {
       required: ['agentId', 'toolNames'],
       additionalProperties: false,
     },
+    connectionProfile: ['bus'],
   },
   listAgents: {
     name: 'listAgents',
@@ -54,5 +56,6 @@ export const agentTools: Record<string, IToolDefinition> = {
       required: [],
       additionalProperties: false,
     },
+    connectionProfile: ['bus'],
   },
 };

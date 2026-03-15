@@ -56,6 +56,7 @@ export const systemTools: Record<string, IToolDefinition> = {
       required: ['traceId'],
       additionalProperties: false,
     },
+    connectionProfile: ['trace'],
   },
   inspectTopology: {
     name: 'inspectTopology',
@@ -67,5 +68,6 @@ export const systemTools: Record<string, IToolDefinition> = {
       required: [],
       additionalProperties: false,
     },
+    connectionProfile: ['config'],
   },
 };

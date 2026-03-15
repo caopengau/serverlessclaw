@@ -142,6 +142,12 @@ export interface IAgentConfig {
   maxIterations?: number;
   /** Whether the agent can call multiple tools in parallel. */
   parallelToolCalls?: boolean;
+  /** Explicit UI metadata overrides for topology visualization. */
+  topologyOverride?: {
+    label?: string;
+    icon?: string;
+    tier?: 'APP' | 'COMM' | 'AGENT' | 'INFRA';
+  };
 }
 
 /**

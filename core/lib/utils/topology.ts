@@ -4,6 +4,7 @@ import { ConnectionProfile } from '../types/agent';
 import { ConfigManager } from '../registry/config';
 import { BACKBONE_REGISTRY } from '../backbone';
 import { NODE_TYPE, EDGE_LABEL, NODE_TIER, RESOURCE_ICON } from './topology/constants';
+import { tools } from '../../tools/index';
 
 // Re-export constants for backward compatibility
 export { INFRA_NODE_ID, NODE_TYPE, EDGE_LABEL, NODE_TIER } from './topology/constants';
@@ -69,7 +70,10 @@ const CLASSIFIERS: ResourceClassifier[] = [
     tier: NODE_TIER.COMM,
   },
   {
-    match: (k) => ['superclaw', 'main', 'coder', 'strategicplanner', 'reflector', 'qa'].includes(k) || k.includes('agent') || k.includes('worker'),
+    match: (k) =>
+      ['superclaw', 'main', 'coder', 'strategicplanner', 'reflector', 'qa'].includes(k) ||
+      k.includes('agent') ||
+      k.includes('worker'),
     type: NODE_TYPE.AGENT,
     icon: RESOURCE_ICON.BOT,
     tier: NODE_TIER.AGENT,
@@ -92,15 +96,24 @@ export async function discoverSystemTopology(): Promise<Topology> {
     if (!res || typeof res !== 'object') return;
 
     const lowerKey = key.toLowerCase();
-    const sensitiveWords = ['token', 'key', 'password', 'secret', 'awsregion', 'activemodel', 'activeprovider', 'app'];
-    
-    if (sensitiveWords.some(word => lowerKey.includes(word)) || lowerKey === 'app') {
+    const sensitiveWords = [
+      'token',
+      'key',
+      'password',
+      'secret',
+      'awsregion',
+      'activemodel',
+      'activeprovider',
+      'app',
+    ];
+
+    if (sensitiveWords.some((word) => lowerKey.includes(word)) || lowerKey === 'app') {
       return;
     }
 
     // Find first matching classifier
-    const classifier = CLASSIFIERS.find(c => c.match(lowerKey));
-    
+    const classifier = CLASSIFIERS.find((c) => c.match(lowerKey));
+
     const type = classifier?.type || NODE_TYPE.INFRA;
     const icon = classifier?.icon || RESOURCE_ICON.DATABASE;
     const label = classifier?.label || key;
@@ -123,12 +136,48 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
   // 2. Add Critical Non-Linked Nodes (Orphans)
   const orphans = [
-    { id: 'dashboard', label: 'ClawCenter (Next.js)', icon: RESOURCE_ICON.DASHBOARD, type: NODE_TYPE.DASHBOARD, tier: NODE_TIER.APP },
-    { id: 'scheduler', label: 'AWS Scheduler', icon: RESOURCE_ICON.CALENDAR, type: NODE_TYPE.INFRA, tier: NODE_TIER.APP }, // USER FEEDBACK: Top Tier
-    { id: 'telegram', label: 'Telegram', icon: RESOURCE_ICON.SEND, type: NODE_TYPE.INFRA, tier: NODE_TIER.APP },
-    { id: 'heartbeat', label: 'Heartbeat Engine', icon: RESOURCE_ICON.SIGNAL, type: NODE_TYPE.INFRA, tier: NODE_TIER.COMM },
-    { id: 'realtimebridge', label: 'Realtime Bridge (Lambda)', icon: RESOURCE_ICON.SIGNAL, type: NODE_TYPE.INFRA, tier: NODE_TIER.COMM },
-    { id: 'realtimebus', label: 'Realtime Bus (IoT Core)', icon: RESOURCE_ICON.RADIO, type: NODE_TYPE.INFRA, tier: NODE_TIER.COMM },
+    {
+      id: 'dashboard',
+      label: 'ClawCenter (Next.js)',
+      icon: RESOURCE_ICON.DASHBOARD,
+      type: NODE_TYPE.DASHBOARD,
+      tier: NODE_TIER.APP,
+    },
+    {
+      id: 'scheduler',
+      label: 'AWS Scheduler',
+      icon: RESOURCE_ICON.CALENDAR,
+      type: NODE_TYPE.INFRA,
+      tier: NODE_TIER.APP,
+    }, // USER FEEDBACK: Top Tier
+    {
+      id: 'telegram',
+      label: 'Telegram',
+      icon: RESOURCE_ICON.SEND,
+      type: NODE_TYPE.INFRA,
+      tier: NODE_TIER.APP,
+    },
+    {
+      id: 'heartbeat',
+      label: 'Heartbeat Engine',
+      icon: RESOURCE_ICON.SIGNAL,
+      type: NODE_TYPE.INFRA,
+      tier: NODE_TIER.COMM,
+    },
+    {
+      id: 'realtimebridge',
+      label: 'Realtime Bridge (Lambda)',
+      icon: RESOURCE_ICON.SIGNAL,
+      type: NODE_TYPE.INFRA,
+      tier: NODE_TIER.COMM,
+    },
+    {
+      id: 'realtimebus',
+      label: 'Realtime Bus (IoT Core)',
+      icon: RESOURCE_ICON.RADIO,
+      type: NODE_TYPE.INFRA,
+      tier: NODE_TIER.COMM,
+    },
   ];
 
   orphans.forEach((o) => {
@@ -138,7 +187,10 @@ export async function discoverSystemTopology(): Promise<Topology> {
   // 3. Dynamic Edge Inference
   // A. Agent to Bus Relationship
   nodes
-    .filter((n) => n.type === NODE_TYPE.AGENT || n.id === 'monitor' || n.id === 'superclaw' || n.id === 'main')
+    .filter(
+      (n) =>
+        n.type === NODE_TYPE.AGENT || n.id === 'monitor' || n.id === 'superclaw' || n.id === 'main'
+    )
     .forEach((agent) => {
       edges.push({
         id: `${agent.id}-agentbus-orch`,
@@ -188,7 +240,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
   }
 
   // E. Real-time Signaling Flow
-  if (nodes.find(n => n.id === 'realtimebridge') && nodes.find(n => n.id === 'agentbus')) {
+  if (nodes.find((n) => n.id === 'realtimebridge') && nodes.find((n) => n.id === 'agentbus')) {
     edges.push({
       id: 'agentbus-realtimebridge',
       source: 'agentbus',
@@ -196,8 +248,8 @@ export async function discoverSystemTopology(): Promise<Topology> {
       label: EDGE_LABEL.SIGNAL,
     });
   }
-  
-  if (nodes.find(n => n.id === 'realtimebridge') && nodes.find(n => n.id === 'realtimebus')) {
+
+  if (nodes.find((n) => n.id === 'realtimebridge') && nodes.find((n) => n.id === 'realtimebus')) {
     edges.push({
       id: 'realtimebridge-realtimebus',
       source: 'realtimebridge',
@@ -205,9 +257,12 @@ export async function discoverSystemTopology(): Promise<Topology> {
       label: EDGE_LABEL.REALTIME,
     });
   }
-  
-  if (nodes.find(n => n.id === 'realtimebus') && nodes.find(n => n.type === NODE_TYPE.DASHBOARD)) {
-    const dashNode = nodes.find(n => n.type === NODE_TYPE.DASHBOARD);
+
+  if (
+    nodes.find((n) => n.id === 'realtimebus') &&
+    nodes.find((n) => n.type === NODE_TYPE.DASHBOARD)
+  ) {
+    const dashNode = nodes.find((n) => n.type === NODE_TYPE.DASHBOARD);
     if (dashNode) {
       edges.push({
         id: `realtimebus-${dashNode.id}`,
@@ -219,9 +274,9 @@ export async function discoverSystemTopology(): Promise<Topology> {
   }
 
   // F. Dashboard (ClawCenter) explicitly linked to SuperClaw
-  const dashboardNode = nodes.find(n => n.type === NODE_TYPE.DASHBOARD);
-  if (dashboardNode && nodes.find(n => n.id === 'superclaw' || n.id === 'main')) {
-    const superclawId = nodes.find(n => n.id === 'superclaw' || n.id === 'main')!.id;
+  const dashboardNode = nodes.find((n) => n.type === NODE_TYPE.DASHBOARD);
+  if (dashboardNode && nodes.find((n) => n.id === 'superclaw' || n.id === 'main')) {
+    const superclawId = nodes.find((n) => n.id === 'superclaw' || n.id === 'main')!.id;
     edges.push({
       id: `${dashboardNode.id}-${superclawId}`,
       source: dashboardNode.id,
@@ -230,24 +285,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
     });
   }
 
-  // 4. Map Tool-to-Resource Edges Dynamically
-  const mapToolToResource = (tool: string): { target: string; label: string } | null => {
-    if (tool === 'dispatchTask' || tool === 'listAgents')
-      return { target: 'agentbus', label: EDGE_LABEL.ORCHESTRATE };
-    if (tool === 'recallKnowledge' || tool === 'saveMemory')
-      return { target: 'memorytable', label: EDGE_LABEL.USE };
-    if (tool === 'checkConfig' || tool === 'manageGap' || tool === 'reportGap')
-      return { target: 'configtable', label: EDGE_LABEL.USE };
-    if (tool === 'inspectTrace') return { target: 'tracetable', label: EDGE_LABEL.USE };
-    if (tool === 'triggerDeployment') return { target: 'deployer', label: EDGE_LABEL.USE };
-    if (tool === 'sendMessage') return { target: 'notifier', label: EDGE_LABEL.USE };
-    if (tool.startsWith('aws-s3_')) return { target: 'stagingbucket', label: EDGE_LABEL.USE };
-    if (tool.includes('knowledge_') || tool === 'recallKnowledge') return { target: 'knowledgebucket', label: EDGE_LABEL.USE };
-    if (tool === 'scheduleGoal' || tool === 'cancelGoal' || tool === 'listGoals')
-      return { target: 'scheduler', label: EDGE_LABEL.USE };
-    return null;
-  };
-
+  // 4. Map Tool-to-Resource Edges Dynamically (Declarative)
   const mapProfileToResource = (profile: string): string | null => {
     const p = profile.toLowerCase();
     if (p === ConnectionProfile.BUS) return 'agentbus';
@@ -255,9 +293,23 @@ export async function discoverSystemTopology(): Promise<Topology> {
     if (p === ConnectionProfile.CONFIG || p === 'configtable') return 'configtable';
     if (p === ConnectionProfile.TRACE || p === 'tracetable') return 'tracetable';
     if (p === ConnectionProfile.STORAGE || p === 'stagingbucket') return 'stagingbucket';
-    if (p === ConnectionProfile.CODEBUILD || p === ConnectionProfile.DEPLOYER || p === 'deployer') return 'deployer';
+    if (p === ConnectionProfile.CODEBUILD || p === ConnectionProfile.DEPLOYER || p === 'deployer')
+      return 'deployer';
     if (p === ConnectionProfile.KNOWLEDGE || p === 'knowledgebucket') return 'knowledgebucket';
+    if (p === 'scheduler') return 'scheduler';
+    if (p === 'notifier') return 'notifier';
     return null;
+  };
+
+  const mapToolToResources = (toolName: string): string[] => {
+    const tool = tools[toolName];
+    if (!tool || !tool.connectionProfile) {
+        // Fallback for legacy hardcoded tools if any
+        if (toolName === 'sendMessage') return ['notifier'];
+        if (toolName.startsWith('aws-s3_')) return ['stagingbucket'];
+        return [];
+    }
+    return tool.connectionProfile;
   };
 
   try {
@@ -268,21 +320,23 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
       if (existingNode) {
         // Enrichment
-        existingNode.label = config.name || existingNode.label;
+        existingNode.label = config.topologyOverride?.label || config.name || existingNode.label;
         existingNode.description = config.description;
-        // Reinforce Tier for SuperClaw (it must be at the top)
+        existingNode.icon = config.topologyOverride?.icon || existingNode.icon;
+        existingNode.tier = config.topologyOverride?.tier || existingNode.tier;
+
+        // Reinforce Tier for SuperClaw (it must be at the top), but respect explicit override
         if (lowerId === 'main' || lowerId === 'superclaw') {
-            existingNode.tier = NODE_TIER.APP;
+          existingNode.tier = config.topologyOverride?.tier || NODE_TIER.APP;
         }
       } else {
         nodes.push({
           id: lowerId,
           type: NODE_TYPE.AGENT,
-          label: config.name || lowerId,
-          icon: config.isBackbone ? RESOURCE_ICON.BRAIN : RESOURCE_ICON.BOT,
+          label: config.topologyOverride?.label || config.name || lowerId,
+          icon: config.topologyOverride?.icon || (config.isBackbone ? RESOURCE_ICON.BRAIN : RESOURCE_ICON.BOT),
           description: config.description,
-          // SuperClaw is always top tier
-          tier: (lowerId === 'main' || lowerId === 'superclaw') ? NODE_TIER.APP : NODE_TIER.AGENT,
+          tier: config.topologyOverride?.tier || (lowerId === 'main' || lowerId === 'superclaw' ? NODE_TIER.APP : NODE_TIER.AGENT),
         });
       }
 
@@ -301,17 +355,20 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
       // Tool usage edges for backbone agents
       if (config.tools) {
-        for (const tool of config.tools) {
-          const mapping = mapToolToResource(tool);
-          if (mapping) {
-            const edgeId = `${lowerId}-${mapping.target}-use`;
-            if (!edges.find((e) => e.id === edgeId)) {
-              edges.push({
-                id: edgeId,
-                source: lowerId,
-                target: mapping.target,
-                label: mapping.label,
-              });
+        for (const toolName of config.tools) {
+          const targets = mapToolToResources(toolName);
+          for (const profile of targets) {
+            const targetId = mapProfileToResource(profile);
+            if (targetId && nodes.find((n) => n.id === targetId)) {
+                const edgeId = `${lowerId}-${targetId}-tool`;
+                if (!edges.find((e) => e.id === edgeId)) {
+                  edges.push({
+                    id: edgeId,
+                    source: lowerId,
+                    target: targetId,
+                    label: EDGE_LABEL.USE,
+                  });
+                }
             }
           }
         }
@@ -338,11 +395,12 @@ export async function discoverSystemTopology(): Promise<Topology> {
           nodes.push({
             id: lowerAgentId,
             type: NODE_TYPE.AGENT,
-            label: agent.name || lowerAgentId,
-            icon: RESOURCE_ICON.BOT,
-            tier: NODE_TIER.AGENT,
+            label: agent.topologyOverride?.label || agent.name || lowerAgentId,
+            icon: agent.topologyOverride?.icon || RESOURCE_ICON.BOT,
+            tier: agent.topologyOverride?.tier || NODE_TIER.AGENT,
           });
 
+          // Standard Orchestration Edges
           edges.push({
             id: `${lowerAgentId}-bus-orch`,
             source: lowerAgentId,
@@ -356,20 +414,24 @@ export async function discoverSystemTopology(): Promise<Topology> {
             label: EDGE_LABEL.SIGNAL,
           });
 
+          // Tool usage for dynamic agents
           if (agent.tools && Array.isArray(agent.tools)) {
-            for (const tool of agent.tools) {
-              const mapping = mapToolToResource(tool);
-              if (mapping) {
-                const edgeId = `${lowerAgentId}-${mapping.target}-use`;
-                if (!edges.find((e) => e.id === edgeId)) {
-                  edges.push({
-                    id: edgeId,
-                    source: lowerAgentId,
-                    target: mapping.target,
-                    label: mapping.label,
-                  });
+            for (const toolName of agent.tools) {
+                const targets = mapToolToResources(toolName);
+                for (const profile of targets) {
+                    const targetId = mapProfileToResource(profile);
+                    if (targetId && nodes.find((n) => n.id === targetId)) {
+                        const edgeId = `${lowerAgentId}-${targetId}-tool`;
+                        if (!edges.find((e) => e.id === edgeId)) {
+                          edges.push({
+                            id: edgeId,
+                            source: lowerAgentId,
+                            target: targetId,
+                            label: EDGE_LABEL.USE,
+                          });
+                        }
+                    }
                 }
-              }
             }
           }
         }

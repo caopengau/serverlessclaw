@@ -30,6 +30,8 @@ export interface IToolDefinition {
   parameters: JsonSchema;
   /** The type of tool (defaults to 'function'). */
   type?: 'function' | 'code_interpreter' | 'file_search' | string;
+  /** Optional resource connections this tool utilizes (used for topology discovery). */
+  connectionProfile?: string[];
 }
 
 /**

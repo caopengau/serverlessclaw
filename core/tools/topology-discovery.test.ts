@@ -17,9 +17,7 @@ describe('inspectTopology tool', () => {
         { id: 'main', label: 'SuperClaw', type: 'agent', tier: 'APP', isBackbone: true },
         { id: 'agentbus', label: 'AgentBus', type: 'bus', tier: 'COMM', isBackbone: true },
       ],
-      edges: [
-        { source: 'main', target: 'agentbus', label: 'ORCHESTRATE' },
-      ],
+      edges: [{ source: 'main', target: 'agentbus', label: 'ORCHESTRATE' }],
     };
 
     vi.mocked(discoverSystemTopology).mockResolvedValue(mockTopology as any);

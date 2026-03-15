@@ -45,7 +45,7 @@ export const NODE_TYPE = {
   BUS: 'bus' as const,
 };
 
-/** 
+/**
  * Vertical placement tiers for nodes.
  * 1: User-facing / Entry points
  * 2: Communication / Logic Hub

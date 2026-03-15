@@ -40,6 +40,7 @@ export const schedulerDefinitions: Record<string, IToolDefinition> = {
       required: ['goalId', 'task', 'scheduleExpression', 'agentId', 'metadata'],
       additionalProperties: false,
     },
+    connectionProfile: ['scheduler'],
   },
 
   /**
@@ -56,6 +57,7 @@ export const schedulerDefinitions: Record<string, IToolDefinition> = {
       required: ['goalId'],
       additionalProperties: false,
     },
+    connectionProfile: ['scheduler'],
   },
 
   /**
@@ -72,5 +74,6 @@ export const schedulerDefinitions: Record<string, IToolDefinition> = {
       required: ['namePrefix'],
       additionalProperties: false,
     },
+    connectionProfile: ['scheduler'],
   },
 };

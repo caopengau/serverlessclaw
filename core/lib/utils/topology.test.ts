@@ -89,8 +89,8 @@ describe('discoverSystemTopology', () => {
     Object.keys(BACKBONE_REGISTRY).forEach((id) => {
       const lowerId = id.toLowerCase();
       expect(nodeIds).toContain(lowerId);
-      
-      const node = topology.nodes.find(n => n.id === lowerId);
+
+      const node = topology.nodes.find((n) => n.id === lowerId);
       if (lowerId === 'main' || lowerId === 'superclaw') {
         expect(node?.tier).toBe('APP');
       }
@@ -99,7 +99,7 @@ describe('discoverSystemTopology', () => {
 
   it('should place ClawCenter in the APP tier', async () => {
     const topology = await discoverSystemTopology();
-    const dashboard = topology.nodes.find(n => n.id === 'dashboard');
+    const dashboard = topology.nodes.find((n) => n.id === 'dashboard');
     expect(dashboard).toBeDefined();
     expect(dashboard?.tier).toBe('APP');
   });
@@ -157,6 +157,34 @@ describe('discoverSystemTopology', () => {
     const buildEdge = topology.edges.find((e) => e.source === 'coder' && e.target === 'deployer');
     expect(buildEdge).toBeDefined();
     expect(buildEdge?.label).toBe('USE');
+  });
+
+  it('should respect topologyOverride in agent configurations', async () => {
+    // Inject an override into a backbone agent for testing
+    BACKBONE_REGISTRY['main'].topologyOverride = {
+      label: 'Commander-in-Chief',
+      icon: 'Shield',
+      tier: 'INFRA',
+    };
+
+    const { nodes } = await discoverSystemTopology();
+    const mainNode = nodes.find((n) => n.id === 'main');
+
+    expect(mainNode?.label).toBe('Commander-in-Chief');
+    expect(mainNode?.icon).toBe('Shield');
+    // For SuperClaw, reinforcement currently wins IF it's an existing node, 
+    // but the override wins if it's a new node. Let's make it consistent.
+    expect(mainNode?.tier).toBe('INFRA');
+
+    // Test override on another agent
+    BACKBONE_REGISTRY['coder'].topologyOverride = {
+      label: 'Lead Builder',
+      tier: 'COMM',
+    };
+    const { nodes: nodes2 } = await discoverSystemTopology();
+    const coderNode = nodes2.find((n) => n.id === 'coder');
+    expect(coderNode?.label).toBe('Lead Builder');
+    expect(coderNode?.tier).toBe('COMM');
   });
 
   it('should be resilient to DynamoDB errors', async () => {

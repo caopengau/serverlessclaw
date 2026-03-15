@@ -23,6 +23,7 @@ export const deploymentTools: Record<string, IToolDefinition> = {
       required: ['modifiedFiles'],
       additionalProperties: false,
     },
+    connectionProfile: ['storage'],
   },
   triggerDeployment: {
     name: 'triggerDeployment',
@@ -43,6 +44,7 @@ export const deploymentTools: Record<string, IToolDefinition> = {
       required: ['reason', 'gapIds'],
       additionalProperties: false,
     },
+    connectionProfile: ['codebuild'],
   },
   validateCode: {
     name: 'validateCode',
@@ -77,6 +79,7 @@ export const deploymentTools: Record<string, IToolDefinition> = {
       required: ['reason'],
       additionalProperties: false,
     },
+    connectionProfile: ['codebuild'],
   },
   runTests: {
     name: 'runTests',

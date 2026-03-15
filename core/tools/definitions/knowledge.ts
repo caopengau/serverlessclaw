@@ -28,6 +28,7 @@ export const knowledgeTools: Record<string, IToolDefinition> = {
       required: ['query', 'category'],
       additionalProperties: false,
     },
+    connectionProfile: ['memory'],
   },
   saveMemory: {
     name: 'saveMemory',
@@ -45,6 +46,7 @@ export const knowledgeTools: Record<string, IToolDefinition> = {
       required: ['content', 'category'],
       additionalProperties: false,
     },
+    connectionProfile: ['memory'],
   },
   reportGap: {
     name: 'reportGap',
@@ -73,6 +75,7 @@ export const knowledgeTools: Record<string, IToolDefinition> = {
       required: ['content', 'impact', 'urgency', 'category'],
       additionalProperties: false,
     },
+    connectionProfile: ['config'],
   },
   manageGap: {
     name: 'manageGap',
@@ -90,6 +93,7 @@ export const knowledgeTools: Record<string, IToolDefinition> = {
       required: ['gapId', 'status'],
       additionalProperties: false,
     },
+    connectionProfile: ['config'],
   },
   pruneMemory: {
     name: 'pruneMemory',
