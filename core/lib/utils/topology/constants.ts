@@ -21,6 +21,7 @@ export const NODE_TYPE = {
   INFRA: 'infra' as const,
   AGENT: 'agent' as const,
   DASHBOARD: 'dashboard' as const,
+  BUS: 'bus' as const,
 };
 
 /** Standard edge label vocabulary for topology links. */

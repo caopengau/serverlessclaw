@@ -119,6 +119,23 @@ describe('discoverSystemTopology', () => {
     ).toBeDefined();
   });
 
+  it('should handle real-time signaling flow', async () => {
+    const topology = await discoverSystemTopology();
+
+    // AgentBus -> Bridge
+    expect(
+      topology.edges.find((e) => e.source === 'agentbus' && e.target === 'realtimebridge')
+    ).toBeDefined();
+    // Bridge -> RealtimeBus
+    expect(
+      topology.edges.find((e) => e.source === 'realtimebridge' && e.target === 'realtimebus')
+    ).toBeDefined();
+    // RealtimeBus -> Dashboard
+    expect(
+      topology.edges.find((e) => e.source === 'realtimebus' && e.target === 'dashboard')
+    ).toBeDefined();
+  });
+
   it('should handle tool-based resource mapping for the Coder Agent', async () => {
     const topology = await discoverSystemTopology();
 

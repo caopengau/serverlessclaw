@@ -176,10 +176,15 @@ export function FlowContent() {
         // 2. Layer 2: Neural Bus & Comms (Y: 200)
         else if (node.id === 'bus' || node.id === 'agentbus') { xPos = 350; yPos = 200; }
         else if (node.id === 'notifier') { xPos = 650; yPos = 200; }
-        else if (node.id === 'bridge' || node.id === 'realtimebridge' || node.id === 'realtimebus') { xPos = 50; yPos = 200; }
+        else if (node.id === 'bridge' || node.id === 'realtimebridge') { xPos = 50; yPos = 200; }
+        
         // 2.5 Layer 2.5: Proactive Goals & Scheduling (Y: 325)
         else if (node.id === 'scheduler') { xPos = 550; yPos = 325; }
         else if (node.id === 'heartbeat') { xPos = 350; yPos = 325; }
+        else if (node.id === 'realtimebus') { xPos = 50; yPos = 325; }
+        
+        // 2.7 Layer 2.7: Interfaces (Y: 0)
+        else if (node.id === 'dashboard') { xPos = 50; yPos = 0; }
         
         // 3. Layer 3: Logic Units & Workers (Y: 450)
         else if (node.type === 'agent' || node.id === 'monitor') {
@@ -216,7 +221,7 @@ export function FlowContent() {
         else if (node.id === 'api' || node.id === 'webhookapi') icon = <Radio size={16} />;
         else if (node.id === 'monitor') icon = <Activity size={16} />;
         else if (node.id === 'telegram') icon = <MessageSquare size={16} />;
-        else if (node.id === 'bridge' || node.id === 'realtimebus') icon = <Zap size={16} />;
+        else if (node.id === 'bridge' || node.id === 'realtimebridge' || node.id === 'realtimebus') icon = <Zap size={16} />;
         else if (node.id === 'notifier') icon = <Info size={16} />;
         else if (node.id === 'scheduler') icon = <Radio size={16} />;
         else if (node.id === 'heartbeat') icon = <Zap size={16} />;

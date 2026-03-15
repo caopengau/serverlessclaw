@@ -34,7 +34,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
     // EXPLICIT INFRASTRUCTURE OVERRIDES (Prevent misclassification as agents)
     if (lowerKey === 'agentbus' || lowerKey === 'bus') {
-      type = NODE_TYPE.INFRA;
+      type = NODE_TYPE.BUS;
       icon = 'MessageCircle';
       label = 'AgentBus';
     } else if (lowerKey.includes('api')) {
@@ -46,9 +46,18 @@ export async function discoverSystemTopology(): Promise<Topology> {
     } else if (lowerKey === 'notifier') {
       type = NODE_TYPE.INFRA;
       icon = 'Bell';
-    } else if (lowerKey.includes('bridge') || lowerKey.includes('realtime')) {
+    } else if (lowerKey === 'dashboard') {
+      type = NODE_TYPE.DASHBOARD;
+      icon = 'LayoutDashboard';
+      label = 'ClawCenter';
+    } else if (lowerKey === 'realtimebridge' || lowerKey === 'bridge') {
       type = NODE_TYPE.INFRA;
       icon = 'Zap';
+      label = 'Realtime Bridge';
+    } else if (lowerKey === 'realtimebus') {
+      type = NODE_TYPE.INFRA;
+      icon = 'Radio';
+      label = 'Realtime Bus (IoT)';
     } else if (
       lowerKey.includes('agent') ||
       lowerKey.includes('worker') ||
@@ -135,6 +144,26 @@ export async function discoverSystemTopology(): Promise<Topology> {
       label: EDGE_LABEL.WEBHOOK,
     });
   }
+
+  // E. Real-time Signaling Flow
+  edges.push({
+    id: 'agentbus-realtimebridge',
+    source: 'agentbus',
+    target: 'realtimebridge',
+    label: EDGE_LABEL.SIGNAL,
+  });
+  edges.push({
+    id: 'realtimebridge-realtimebus',
+    source: 'realtimebridge',
+    target: 'realtimebus',
+    label: EDGE_LABEL.REALTIME,
+  });
+  edges.push({
+    id: 'realtimebus-dashboard',
+    source: 'realtimebus',
+    target: 'dashboard',
+    label: EDGE_LABEL.REALTIME,
+  });
 
   // 4. Map Tool-to-Resource Edges Dynamically
   const mapToolToResource = (tool: string): { target: string; label: string } | null => {

@@ -33,6 +33,15 @@ vi.mock('../lib/registry', () => ({
   AgentRegistry: registryMocks,
 }));
 
+vi.mock('../lib/scheduler', () => ({
+  DynamicScheduler: {
+    getSchedule: vi.fn().mockResolvedValue(null),
+    upsertSchedule: vi.fn().mockResolvedValue(undefined),
+    removeSchedule: vi.fn().mockResolvedValue(undefined),
+    listSchedules: vi.fn().mockResolvedValue([]),
+  },
+}));
+
 vi.mock('../lib/agent', () => ({
   Agent: class {
     process = agentProcess;
