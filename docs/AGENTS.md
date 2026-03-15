@@ -22,10 +22,11 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 | Component | Runtime | Trigger | Responsibilities |
 |-----------|---------|---------|------------------|
 | **Build Monitor** | `core/handlers/monitor.ts` | CodeBuild Event | Observes builds, updates gap status, circuit breaking |
-| **Dead Man's Switch** | `core/handlers/recovery.ts` | EventBridge Schedule | Hourly health checks, emergency git rollback |
+| **Dead Man's Switch** | `core/handlers/recovery.ts` | EventBridge Schedule (`rate(15 minutes)`) | Deep health checks and emergency rollback orchestration |
+| **Event Handler** | `core/handlers/events.ts` | AgentBus System Events | Routes build/health/result/continuation/clarification signals |
 | **Notifier** | `core/handlers/notifier.ts` | AgentBus Event | Formats and sends messages to Telegram/Slack |
 | **Real-time Bridge** | `core/handlers/bridge.ts` | AgentBus Event | Bridges EventBridge signals to AWS IoT Core (MQTT) |
-| **Deployer** | AWS CodeBuild | `buildspec.yml` | Runs `sst deploy` in isolated environment |
+| **Deployer** | AWS CodeBuild | `buildspec.yml` | Runs `make deploy ENV=$SST_STAGE` in isolated environment |
 
 ---
 
@@ -66,12 +67,12 @@ Initiator (Planner)     AgentBus (EB)       Follower (Coder)
       |                      +---- coder_task ----->|
       |                 [TERMINATE]                 |
       |                      |               [THINK: Ambiguity!]
-      |                      |<-- seekClarification-+
-      |      [EH ROUTE]      |   (question, task)   |
-      |                      |       [PAUSE/TERMINATE]
-      |<-- CONTINUATION_TASK-+                      |
-      | (CLARIFICATION_REQ)  |                      |
-      |                      |                      |
+       |                      |<-- seekClarification-+
+       |      [EH ROUTE]      |   (question, task)   |
+       |                      |       [PAUSE/TERMINATE]
+       |<-- CONTINUATION_TASK-+                      |
+       | (CLARIFICATION_REQUEST)                      |
+       |                      |                      |
       | [THINK: Answer]      |                      |
       |                      |                      |
       +-- provideClarification                      |
@@ -86,7 +87,7 @@ Initiator (Planner)     AgentBus (EB)       Follower (Coder)
 Every event on the `AgentBus` carries critical routing metadata:
 - **`traceId`**: Consolidates all agent steps into a single unified timeline.
 - **`initiatorId`**: The ID of the agent that started the task (used to route results back).
-- **`depth`**: Current recursion level. The system automatically terminates tasks exceeding the **Recursion Limit** (Default: 50) to prevent infinite loops. This limit is hot-swappable in the Dashboard Settings.
+- **`depth`**: Current recursion level. The system automatically terminates tasks exceeding the **Recursion Limit** (Default: 15) to prevent infinite loops. This limit is hot-swappable in the Dashboard Settings.
 
 ---
 
@@ -178,7 +179,7 @@ Serverless Claw is a **self-evolving system** that identifies its own weaknesses
     |   Agent           |      (DDB: PROGRESS)      +-------------------+
     +---------+---------+                         
               |
-              | 6. TRIGGER_DEPLOYMENT (SST)
+              | 6. TRIGGER_DEPLOYMENT (CodeBuild -> make deploy)
               |    [CIRCUIT BREAKER]
               v
     +---------+---------+       7. MONITOR         +-------------------+
@@ -224,4 +225,4 @@ To evolve the system with a new specialized node:
 2. **Register Identity**: Add the agent to `BACKBONE_REGISTRY` in `core/lib/backbone.ts`.
 3. **Link Infra**: In `infra/agents.ts`, create the Lambda function and link necessary resources.
 4. **Subscribe**: Ensure the agent is subscribed to its task type in the EventBus.
-5. **Deploy**: Run `sst deploy`. The **Build Monitor** will automatically discover the new agent.
+5. **Deploy**: Run `make deploy ENV=dev` (or `make dev` for local stage work). The **Build Monitor** will automatically discover the new agent.

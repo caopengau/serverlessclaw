@@ -171,10 +171,10 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
           |         |               (6) [ WORKER_AGENT ]           |
           |         |                (Signals Dynamic Results)     |
           |         |                                              |
-          +---------+-----> [ EVENT_HANDLER ] ---------------------+
-                                (Callback & Relay)
-                                (Recursion Guard)
-                                (Trace Propagation)
+          +---------+-----> [ EVENT_HANDLER_ROUTER ] --------------+
+                    (build/continuation/task-result)
+                    (clarification/health routes)
+                    (Recursion Guard + Trace Propagation)
                                         |
                                         +-----> [ NOTIFIER ]
                                         |       (Telegram/Slack)
@@ -186,7 +186,7 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
 - **Pattern**: Standardized events (`CODER_TASK`, `EVOLUTION_PLAN`, `TASK_COMPLETED`, `TASK_FAILED`) flow through the Bus. 
 - **Relay Loop**: When a sub-agent emits `TASK_COMPLETED` or `TASK_FAILED`, the `EventHandler` routes it back to the `initiatorId` as a `CONTINUATION_TASK`.
 - **Metadata**: Every event carries a standardized `traceId` (for visual DAG tracing) and a `depth` counter (for loop protection).
-- **Recursion Control**: The `EventHandler` enforces a **Recursion Limit** (Default: 5), aborting flows that exceed it.
+- **Recursion Control**: The `EventHandler` enforces a **Recursion Limit** (Default: 15), aborting flows that exceed it.
 - **Discovery**: The `AgentRegistry` and `topology.ts` utility perform post-deployment discovery, merging backbone logic with user-defined personas.
 - **Visualization**: The **System Pulse** map in ClawCenter renders a unified, resilient graph of these interactions, covering the full stack from API Gateway to individual agent tools.
 
@@ -287,7 +287,7 @@ To ensure the **ClawCenter Dashboard** receives instantaneous updates, we use a 
 
 ### 5. Channel Adapters (Fan-Out)
 Instead of hardcoding API requests to a single platform, agents emit an `OUTBOUND_MESSAGE` event onto the AgentBus.
-- **Notifier Handler**: A dedicated lightweight Lambda (`src/handlers/notifier.ts`) listens to these events.
+- **Notifier Handler**: A dedicated lightweight Lambda (`core/handlers/notifier.ts`) listens to these events.
 - **Multi-Channel**: The Notifier reads user preferences from the `ConfigTable` and fans the message out to the appropriate adapters (Telegram, Slack, and the **Real-time Signal Bridge**).
 
 ## 🔄 Self-Evolution & Stability
@@ -299,6 +299,27 @@ The system's evolution is a co-managed process between the **Strategic Planner**
 - **Structured JSON Hub**: Agents emit deterministic signals (`SUCCESS`, `FAILED`, `REOPEN`) rather than brittle free-text responses.
 - **Atomic Metadata Sync**: The `triggerDeployment` tool handles gap-to-build mapping internally to prevent metadata loss.
 - **Deep Health Probes**: The Dead Man's Switch verifies both API responsiveness and backbone connectivity (EventBus).
+
+### Dead Man's Switch Recovery Loop (15-min Cadence)
+
+```text
+ [ Scheduler ] --rate(15m)--> [ DeadMansSwitch ]
+                     |
+                     +--> GET /health + ListEventBuses
+                     |        |
+                     |        +--> PASS: reset counters (exit)
+                     |
+                     +--> FAIL: acquire recovery lock (20m TTL)
+                        |
+                        +--> increment recovery_attempt_count
+                        |        |
+                        |        +--> >2 attempts: emit OUTBOUND_MESSAGE (critical escalation)
+                        |
+                        +--> load LKG hash from MemoryTable
+                        |
+                        +--> CodeBuild StartBuild
+                            (EMERGENCY_ROLLBACK=true, LKG_HASH=...)
+```
 
 
 ### 4. LLM Providers
