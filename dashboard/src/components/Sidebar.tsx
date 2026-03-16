@@ -166,18 +166,18 @@ export default function Sidebar() {
           })}
         </nav>
 
-        <div className="pt-6 border-t border-white/5 space-y-4">
-          <div className="bg-white/5 rounded p-3">
-            <Typography variant="mono" weight="bold" className="text-[10px] text-white/90 tracking-wider uppercase">Neural_Synchronization</Typography>
+        <Link href={ROUTES.SYSTEM_PULSE} className="block pt-6 border-t border-white/5 space-y-4 group/status">
+          <div className="bg-white/5 rounded p-3 group-hover/status:bg-white/10 transition-colors cursor-pointer">
+            <Typography variant="mono" weight="bold" className="text-[10px] text-white/90 tracking-wider uppercase">SYSTEM_STATUS</Typography>
             <div className={`text-[10px] text-${THEME.COLORS.PRIMARY} mt-1.5 flex items-center gap-2 font-bold uppercase`}>
               <span className="relative flex h-2 w-2">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-${THEME.COLORS.PRIMARY} opacity-75`}></span>
                 <span className={`relative inline-flex rounded-full h-2 w-2 bg-${THEME.COLORS.PRIMARY}`}></span>
               </span>
-              CORE_ACTIVE &gt; {UI_STRINGS.SYSTEM_ONLINE}
+              SYSTEM_ONLINE &gt; CONNECTED
             </div>
           </div>
-        </div>
+        </Link>
       </aside>
     </>
   );}

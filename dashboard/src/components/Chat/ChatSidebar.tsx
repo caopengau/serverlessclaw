@@ -135,7 +135,7 @@ export function ChatSidebar({
               
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <Typography variant="mono" color="muted" className="text-[8px] cursor-pointer opacity-60">
+                  <Typography variant="mono" color="muted" className="text-[8px] cursor-pointer opacity-80">
                       {new Date(s.updatedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
                   </Typography>
                   {!s.isPinned && s.expiresAt && (
