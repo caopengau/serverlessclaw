@@ -369,8 +369,8 @@ export default function ScheduleList() {
               <div className="flex items-center gap-2 mb-4">
                 <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[9px] font-black uppercase tracking-widest">Autonomous Role</Badge>
               </div>
-              <Typography variant="body" weight="bold" className="mb-2 text-white/90">Strategic Planner Agent</Typography>
-              <Typography variant="body" className="text-xs text-white/60 leading-relaxed">
+              <Typography variant="body" weight="bold" className="mb-3 text-white/90 block">Strategic Planner Agent</Typography>
+              <Typography variant="body" className="text-xs text-white/60 leading-relaxed block">
                 The core intelligence autonomously creates, adjusts, and retires schedules based on identified <span className="text-blue-400 font-mono">evolution_gaps</span> and system health telemetry. It operates on a 24h recursive audit cycle to ensure proactive system growth.
               </Typography>
               <div className="mt-6 flex items-center gap-4 border-t border-white/5 pt-4">
@@ -394,7 +394,7 @@ export default function ScheduleList() {
               <div className="flex items-center gap-2 mb-4">
                 <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[9px] font-black uppercase tracking-widest">Human Co-Manager</Badge>
               </div>
-              <Typography variant="body" weight="bold" className="mb-2 text-white/90">Intervention Privileges</Typography>
+              <Typography variant="body" weight="bold" className="mb-3 text-white/90 block">Intervention Privileges</Typography>
               <ul className="space-y-2">
                 {[
                   'Bypass time windows with "Trigger Now" execution',
