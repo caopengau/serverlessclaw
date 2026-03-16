@@ -120,6 +120,11 @@ export default function ScheduleList() {
     fetchSchedules();
   }, []);
 
+  const filteredSchedules = schedules.filter(s => 
+    !s.Name.startsWith('TRIGGER-') && 
+    s.Name !== 'RecoverySchedule'
+  );
+
   const handleTrigger = async (name: string) => {
     setActionInProgress(name + '-trigger');
     try {
@@ -218,7 +223,7 @@ export default function ScheduleList() {
             <Typography variant="caption" className="text-white/60 uppercase tracking-widest">Active Goals</Typography>
             <Target size={16} className="text-blue-500" />
           </div>
-          <Typography variant="h3" weight="bold">{schedules.length}</Typography>
+          <Typography variant="h3" weight="bold">{filteredSchedules.length}</Typography>
         </Card>
         
         <Card variant="glass" padding="md" className="border-white/5">
@@ -227,7 +232,7 @@ export default function ScheduleList() {
             <Zap size={16} className="text-yellow-500" />
           </div>
           <Typography variant="h3" weight="bold">
-            {schedules.find(s => s?.Name?.includes('PLANNER')) ? 'In ~24h' : 'None Scheduled'}
+            {filteredSchedules.find(s => s?.Name?.includes('PLANNER')) ? 'In ~24h' : 'None Scheduled'}
           </Typography>
         </Card>
 
@@ -257,10 +262,8 @@ export default function ScheduleList() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {schedules.length > 0 ? schedules.map((s) => {
+              {filteredSchedules.length > 0 ? filteredSchedules.map((s) => {
                 const payload = s.Target?.Input ? JSON.parse(s.Target.Input) : {};
-                const isSystem = s.Name.startsWith('TRIGGER-');
-                if (isSystem) return null; // Hide internal trigger schedules
 
                 return (
                   <tr key={s.Name} className="hover:bg-white/[0.01] group transition-colors">
