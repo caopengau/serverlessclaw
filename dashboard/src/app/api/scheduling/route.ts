@@ -52,12 +52,15 @@ export async function GET() {
 }
 
 /**
- * POST handler to "Trigger Now" (create a one-time execution).
+ * POST handler to "Trigger Now" or create a new schedule.
  */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, action } = body;
+    const { name, action, expression, description, payload } = body;
+
+    const roleArn = (Resource as any).DynamicSchedulerRole?.arn;
+    const targetArn = (Resource as any).HeartbeatHandler?.arn;
 
     if (action === 'trigger') {
       const existing = await scheduler.send(new GetScheduleCommand({ Name: name }));
@@ -83,11 +86,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, triggerName });
     }
 
+    if (action === 'create') {
+      if (!roleArn || !targetArn) {
+        return NextResponse.json({ error: 'Scheduler resources not found' }, { status: 500 });
+      }
+
+      await scheduler.send(new CreateScheduleCommand({
+        Name: name,
+        ScheduleExpression: expression,
+        Description: description,
+        FlexibleTimeWindow: { Mode: FlexibleTimeWindowMode.OFF },
+        Target: {
+          Arn: targetArn,
+          RoleArn: roleArn,
+          Input: JSON.stringify(payload),
+        },
+        State: 'ENABLED',
+      }));
+
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
-    console.error('Failed to trigger schedule:', error);
+    console.error('Failed to process schedule POST:', error);
     return NextResponse.json(
-      { error: 'Failed to trigger schedule', details: error instanceof Error ? error.message : String(error) }, 
+      { error: 'Failed to process request', details: error instanceof Error ? error.message : String(error) }, 
       { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }

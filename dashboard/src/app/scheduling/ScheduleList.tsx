@@ -17,7 +17,8 @@ import {
   ShieldCheck,
   Brain,
   Users,
-  ChevronRight
+  ChevronRight,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Typography from '@/components/ui/Typography';
@@ -99,10 +100,13 @@ export default function ScheduleList() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState(false);
+  const [showNewGoalModal, setShowNewGoalModal] = useState(false);
 
   const fetchSchedules = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
+    setFetchError(false);
     
     try {
       const response = await fetch('/api/scheduling');
@@ -113,6 +117,7 @@ export default function ScheduleList() {
       ));
     } catch (error) {
       console.error(error);
+      setFetchError(true);
       toast.error('Failed to load schedules');
     } finally {
       setLoading(false);
@@ -129,6 +134,9 @@ export default function ScheduleList() {
     !s.Name.startsWith('RecoverySchedule') &&
     !s.Name.startsWith('StrategicReviewSchedule')
   );
+
+  const plannerSchedule = schedules.find(s => s?.Name?.includes('PLANNER'));
+  const nextEvolution = plannerSchedule ? getNextRun(plannerSchedule) : 'None Scheduled';
 
   const handleTrigger = async (name: string) => {
     setActionInProgress(name + '-trigger');
@@ -214,8 +222,8 @@ export default function ScheduleList() {
           <Button 
             variant="primary" 
             size="sm" 
-            className="bg-blue-600 hover:bg-blue-500"
-            onClick={() => toast.info('AI agents create goals automatically. UI for manual creation coming soon.')}
+            className="bg-blue-600 hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.2)]"
+            onClick={() => setShowNewGoalModal(true)}
           >
             <Plus size={14} className="mr-2" /> New Goal
           </Button>
@@ -237,16 +245,23 @@ export default function ScheduleList() {
             <Zap size={16} className="text-yellow-500" />
           </div>
           <Typography variant="h3" weight="bold">
-            {filteredSchedules.find(s => s?.Name?.includes('PLANNER')) ? 'In ~24h' : 'None Scheduled'}
+            {nextEvolution}
           </Typography>
         </Card>
 
         <Card variant="glass" padding="md" className="border-white/5">
           <div className="flex justify-between items-start mb-2">
             <Typography variant="caption" className="text-white/60 uppercase tracking-widest">Scheduler Health</Typography>
-            <ActivityIcon size={16} className="text-green-500" />
+            <ActivityIcon size={16} className={fetchError ? 'text-red-500' : 'text-green-500'} />
           </div>
-          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">OPERATIONAL</Badge>
+          <Badge 
+            variant="outline" 
+            className={fetchError 
+              ? "bg-red-500/10 text-red-500 border-red-500/20" 
+              : "bg-green-500/10 text-green-500 border-green-500/20"}
+          >
+            {fetchError ? 'DISCONNECTED' : 'OPERATIONAL'}
+          </Badge>
         </Card>
       </div>
 
@@ -412,6 +427,128 @@ export default function ScheduleList() {
           </Card>
         </div>
       </section>
+
+      {/* New Goal Modal */}
+      {showNewGoalModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowNewGoalModal(false)} />
+          <Card variant="glass" className="w-full max-w-md border-blue-500/20 shadow-[0_0_30px_rgba(37,99,235,0.1)] relative z-10 overflow-hidden">
+            <div className="p-6 border-b border-white/5 flex justify-between items-center">
+              <Typography variant="h3" weight="bold">NEW_PROACTIVE_GOAL</Typography>
+              <Button variant="ghost" size="sm" onClick={() => setShowNewGoalModal(false)} className="h-8 w-8 !p-0">
+                <X size={18} />
+              </Button>
+            </div>
+            
+            <form className="p-6 space-y-4" onSubmit={async (e) => {
+              e.preventDefault();
+              const formData = new FormData(e.currentTarget);
+              const name = formData.get('name') as string;
+              const task = formData.get('task') as string;
+              const agentId = formData.get('agentId') as string;
+              const freqValue = formData.get('frequency') as string;
+              const freqUnit = formData.get('unit') as string;
+
+              if (!name || !task || !agentId || !freqValue) {
+                toast.error('All fields are required');
+                return;
+              }
+
+              setActionInProgress('creating');
+              try {
+                const response = await fetch('/api/scheduling', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'create',
+                    name,
+                    expression: `rate(${freqValue} ${freqUnit})`,
+                    description: task,
+                    payload: { goalId: name, task, agentId, userId: 'SYSTEM' }
+                  }),
+                });
+
+                if (!response.ok) throw new Error('Failed to create goal');
+                toast.success(`Goal ${name} established`);
+                setShowNewGoalModal(false);
+                fetchSchedules(true);
+              } catch (error) {
+                toast.error('Failed to establish goal');
+              } finally {
+                setActionInProgress(null);
+              }
+            }}>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Goal Identifier (Unique)</label>
+                <input 
+                  name="name"
+                  placeholder="e.g., SECURITY_AUDIT_S3"
+                  required
+                  className="w-full bg-white/[0.03] border border-white/10 focus:border-blue-500/40 rounded-lg py-2.5 px-4 text-xs text-white outline-none transition-all"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Task Specification</label>
+                <textarea 
+                  name="task"
+                  placeholder="What should the agent perform?"
+                  required
+                  rows={3}
+                  className="w-full bg-white/[0.03] border border-white/10 focus:border-blue-500/40 rounded-lg py-2.5 px-4 text-xs text-white outline-none transition-all resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Target Agent</label>
+                  <select 
+                    name="agentId"
+                    className="w-full bg-white/[0.03] border border-white/10 focus:border-blue-500/40 rounded-lg py-2.5 px-3 text-xs text-white outline-none transition-all appearance-none"
+                  >
+                    <option value="planner" className="bg-slate-900">PLANNER</option>
+                    <option value="coder" className="bg-slate-900">CODER</option>
+                    <option value="worker" className="bg-slate-900">WORKER</option>
+                    <option value="reflector" className="bg-slate-900">REFLECTOR</option>
+                  </select>
+                </div>
+                
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">Frequency</label>
+                  <div className="flex gap-2">
+                    <input 
+                      name="frequency"
+                      type="number"
+                      defaultValue="24"
+                      className="w-16 bg-white/[0.03] border border-white/10 focus:border-blue-500/40 rounded-lg py-2.5 px-2 text-xs text-white outline-none transition-all"
+                    />
+                    <select 
+                      name="unit"
+                      className="flex-1 bg-white/[0.03] border border-white/10 focus:border-blue-500/40 rounded-lg py-2.5 px-2 text-xs text-white outline-none transition-all appearance-none"
+                    >
+                      <option value="hours" className="bg-slate-900">HOURS</option>
+                      <option value="minutes" className="bg-slate-900">MINUTES</option>
+                      <option value="days" className="bg-slate-900">DAYS</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <Button 
+                  type="submit"
+                  fullWidth
+                  variant="primary"
+                  className="bg-blue-600 hover:bg-blue-500"
+                  disabled={actionInProgress === 'creating'}
+                >
+                  {actionInProgress === 'creating' ? <Loader2 size={16} className="animate-spin" /> : 'ESTABLISH_GOAL'}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
