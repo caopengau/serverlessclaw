@@ -24,6 +24,8 @@ export interface ConversationMeta {
   title: string;
   lastMessage: string;
   updatedAt: number;
+  isPinned?: boolean;
+  expiresAt?: number;
 }
 
 export interface AttachmentPreview {

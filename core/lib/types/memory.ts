@@ -66,6 +66,10 @@ export interface ConversationMeta {
   lastMessage: string;
   /** Timestamp (Unix epoch) of the last message. */
   updatedAt: number;
+  /** Whether the session is pinned to the top. */
+  isPinned?: boolean;
+  /** Optional expiration timestamp (Unix epoch). */
+  expiresAt?: number;
 }
 
 /**

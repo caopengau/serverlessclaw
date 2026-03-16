@@ -33,10 +33,11 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'agents' | 'library' | 'analytics' | 'mcp'>('analytics');
   const [isPending, startTransition] = useTransition();
+  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
   const [optimisticAgents, setOptimisticAgents] = useState(agents);
   const [newBridge, setNewBridge] = useState({ name: '', command: '', env: '{}' });
-  const [selectedTool, setSelectedTool] = useState<typeof allTools[0] | null>(null);
-
+  const [selectedTool, setSelectedTool] = useState<Tool | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -201,6 +202,18 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
     });
   };
 
+  const selectedAgent = optimisticAgents.find(a => a.id === selectedAgentId);
+
+  const getToolGroup = (toolName: string) => {
+    if (toolName.startsWith('aws-s3')) return 'S3_STORAGE';
+    if (toolName.startsWith('aws')) return 'AWS_INFRA';
+    if (toolName.startsWith('filesystem')) return 'FILESYSTEM';
+    if (toolName.startsWith('git')) return 'GIT_VERSIONING';
+    if (toolName.startsWith('google-search') || toolName.startsWith('puppeteer') || toolName.startsWith('fetch')) return 'WEB_INTEL';
+    if (universalSkills.includes(toolName)) return 'CORE_NEURAL';
+    return 'DYNAMO_SKILLS';
+  };
+
   return (
     <div className={`space-y-10 transition-all duration-500 ${isPending ? 'opacity-80' : 'opacity-100'}`}>
       <CyberConfirm 
@@ -304,7 +317,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                 <Activity size={16} className="text-cyber-blue" /> Per-agent efficiency audit
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {optimisticAgents.filter(a => a.id !== 'monitor' && a.id !== 'events').map(agent => {
+                {optimisticAgents.filter(a => a.id !== 'monitor' && a.id !== 'events' && a.id !== 'recovery').map(agent => {
                   const agentUsage = agent.usage || {};
                   const neverUsedTools = agent.tools.filter(t => !agentUsage[t]);
                   const lowUsageTools = agent.tools
@@ -438,129 +451,194 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
 
       {activeTab === 'agents' && (
         <section className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="grid grid-cols-1 gap-8">
-            {optimisticAgents.map(agent => (
-              <Card variant="glass" padding="lg" key={agent.id} className="cyber-border border-yellow-500/10 hover:border-yellow-500/20 transition-all relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-2 opacity-5">
-                   <Zap size={120} className="text-yellow-500" />
-                </div>
-                
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 relative">
-                  <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 rounded-sm bg-yellow-500/10 flex items-center justify-center text-yellow-500 border border-yellow-500/20 shadow-[0_0_30px_rgba(234,179,8,0.1)]">
-                       {agent.id === 'main' ? <Zap size={28} /> : agent.id === 'coder' ? <Cpu size={28} /> : <Settings size={28} />}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {optimisticAgents
+              .filter((a: any) => a.id !== 'monitor' && a.id !== 'events' && a.id !== 'recovery')
+              .filter((a: any) => {
+                if (!searchQuery) return true;
+                const query = searchQuery.toLowerCase();
+                return a.name.toLowerCase().includes(query) || a.tools.some((t: any) => t.toLowerCase().includes(query));
+              })
+              .map(agent => (
+                <Card 
+                  variant="glass" 
+                  padding="lg" 
+                  key={agent.id} 
+                  className="cyber-border border-white/5 hover:border-yellow-500/20 transition-all flex flex-col justify-between group"
+                >
+                  <div className="space-y-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded bg-yellow-500/10 flex items-center justify-center text-yellow-500 border border-yellow-500/20 shadow-[0_0_20px_rgba(234,179,8,0.1)]">
+                         {agent.id === 'main' ? <Zap size={24} /> : agent.id === 'coder' ? <Cpu size={24} /> : <Settings size={24} />}
+                      </div>
+                      <div>
+                        <Typography variant="body" weight="black" color="white" className="tracking-widest uppercase text-sm">
+                          {agent.name}
+                        </Typography>
+                        <Typography variant="mono" color="muted" className="text-[8px] uppercase tracking-tighter opacity-40">
+                          NEURAL_ID: {agent.id}
+                        </Typography>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4 border-y border-white/5 py-6">
+                      <div className="text-center">
+                        <Typography variant="h3" color="primary" weight="black" className="text-xl leading-none">{agent.tools.length}</Typography>
+                        <Typography variant="mono" color="muted" className="text-[8px] uppercase tracking-widest mt-1 opacity-40">Active Skills</Typography>
+                      </div>
+                      <div className="text-center border-l border-white/5">
+                        <Typography variant="h3" color="white" weight="black" className="text-xl leading-none opacity-40">{allTools.length - agent.tools.length}</Typography>
+                        <Typography variant="mono" color="muted" className="text-[8px] uppercase tracking-widest mt-1 opacity-40">Untapped</Typography>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-8">
+                    <Button
+                      onClick={() => setSelectedAgentId(agent.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="w-full font-black text-[9px] tracking-[0.2em] border-white/10 hover:border-yellow-500/40 hover:text-yellow-500 group-hover:bg-yellow-500/5 transition-all"
+                      icon={<Settings size={12} />}
+                    >
+                      OPEN NEURAL ROSTER
+                    </Button>
+                  </div>
+                </Card>
+            ))}
+          </div>
+
+          {/* Neural Roster Management Modal */}
+          {selectedAgent && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-xl animate-in fade-in duration-300">
+              <Card variant="glass" className="w-full max-w-4xl max-h-[90vh] flex flex-col border-yellow-500/20 shadow-[0_0_100px_rgba(234,179,8,0.1)] overflow-hidden">
+                {/* Modal Header */}
+                <div className="p-8 border-b border-white/10 flex justify-between items-center bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-yellow-500/5 via-transparent to-transparent">
+                  <div className="flex items-center gap-6">
+                    <div className="w-14 h-14 rounded bg-yellow-500/20 flex items-center justify-center text-yellow-500 border border-yellow-500/40 shadow-[0_0_30px_rgba(234,179,8,0.2)]">
+                       {selectedAgent.id === 'main' ? <Zap size={32} /> : selectedAgent.id === 'coder' ? <Cpu size={32} /> : <Settings size={32} />}
                     </div>
                     <div>
                       <Typography variant="h3" weight="black" color="primary" className="tracking-[0.3em] mb-1">
-                        {agent.name}
+                        {selectedAgent.name}
                       </Typography>
-                      <Typography variant="caption" color="muted" className="tracking-widest max-w-xl block leading-relaxed">
-                        Neural core node: Configured for specialized operations.
+                      <Typography variant="caption" color="muted" className="tracking-widest uppercase opacity-60">
+                         Cognitive Pathway Configuration Registry
                       </Typography>
                     </div>
                   </div>
-                  
-                  <div className="flex gap-3">
-                    <Badge variant="outline" className="px-4 py-2 border-white/5 text-white/20 font-bold tracking-widest">
-                      {agent.tools.length} active tools
-                    </Badge>
+                  <button 
+                    onClick={() => { setSelectedAgentId(null); setModalSearchQuery(''); }}
+                    className="p-3 bg-white/5 hover:bg-red-500/20 hover:text-red-500 border border-white/10 transition-all rounded"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
+
+                {/* Sub-header with Search */}
+                <div className="px-8 py-4 bg-white/[0.02] border-b border-white/10 flex gap-4">
+                  <div className="relative flex-1 group">
+                    <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-yellow-500 transition-colors" />
+                    <input 
+                      type="text"
+                      placeholder="Filter neural patterns by name or protocol..."
+                      value={modalSearchQuery}
+                      onChange={(e) => setModalSearchQuery(e.target.value)}
+                      className="w-full bg-black/40 border border-white/10 focus:border-yellow-500/40 rounded p-3 pl-10 text-[10px] font-mono outline-none tracking-widest placeholder:text-white/10"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 px-4 border border-white/10 rounded bg-black/40">
+                     <Typography variant="mono" color="muted" className="text-[10px] tracking-widest uppercase opacity-40">Status:</Typography>
+                     <Badge variant="outline" className="text-[10px] border-yellow-500/20 text-yellow-500">{selectedAgent.tools.length} Attached</Badge>
                   </div>
                 </div>
 
-                <div className="space-y-6 relative border-t border-white/5 pt-8">
-                  <div>
-                    <h5 className="text-[10px] font-black tracking-[0.3em] text-white/40 mb-4 flex items-center gap-2">
-                      <Activity size={12} className="text-yellow-500/50" /> 
-                      Active neural tools
-                    </h5>
-                    <div className="flex flex-wrap gap-2">
-                      {agent.tools.map(toolName => {
-                        const tool = allTools.find(t => t.name === toolName);
-                        if (searchQuery && !toolName.toLowerCase().includes(searchQuery.toLowerCase()) && !tool?.description.toLowerCase().includes(searchQuery.toLowerCase())) return null;
-                        
-                        const isUniversal = universalSkills.includes(toolName);
-                        const isExternal = tool?.isExternal;
+                {/* Modal Body - Scrollable Area */}
+                <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-12">
+                  {(() => {
+                    const categorizedTools: Record<string, Tool[]> = {};
+                    allTools.forEach(tool => {
+                      if (modalSearchQuery && !tool.name.toLowerCase().includes(modalSearchQuery.toLowerCase()) && !tool.description.toLowerCase().includes(modalSearchQuery.toLowerCase())) return;
+                      const group = getToolGroup(tool.name);
+                      if (!categorizedTools[group]) categorizedTools[group] = [];
+                      categorizedTools[group].push(tool);
+                    });
 
-                        return (
-                          <div 
-                            key={toolName} 
-                            className={`group flex items-center gap-3 pl-4 pr-2 py-2 border transition-all ${
-                              isUniversal 
-                                ? 'bg-blue-500/5 border-blue-500/20 text-blue-400' 
-                                : isExternal
-                                ? 'bg-purple-500/5 border-purple-500/20 text-purple-400'
-                                : 'bg-yellow-500/5 border-yellow-500/20 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.02)]'
-                            }`}
-                          >
-                            <span className="text-[10px] font-black tracking-widest">
-                              {toolName}
-                              {isUniversal && <span className="ml-2 text-[8px] opacity-40">(Core)</span>}
-                              {isExternal && <span className="ml-2 text-[8px] opacity-40">(External)</span>}
-                            </span>
-                            <button
-                              onClick={() => handleToggleTool(agent.id, toolName)}
-                              disabled={isPending || isUniversal}
-                              className={`p-1 transition-all rounded-sm ${
-                                isUniversal 
-                                  ? 'opacity-20 cursor-not-allowed' 
-                                  : 'hover:bg-red-500 hover:text-white opacity-40 group-hover:opacity-100'
-                              }`}
-                              title={isUniversal ? "Universal Core Skill" : "Remove Tool"}
-                            >
-                              <X size={10} />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="pt-6 border-t border-white/5">
-                    <h5 className="text-[10px] font-black tracking-[0.3em] text-white/40 mb-4 flex items-center gap-2">
-                      <Plus size={12} className="text-yellow-500/50" /> 
-                      Available insertions
-                    </h5>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {allTools
-                        .filter(t => !agent.tools.includes(t.name))
-                        .filter(t => !searchQuery || t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.description.toLowerCase().includes(searchQuery.toLowerCase()))
-                        .map(tool => (
-                          <button
-                            key={tool.name}
-                            onClick={() => handleToggleTool(agent.id, tool.name)}
-                            disabled={isPending}
-                            className={`flex flex-col items-start text-left p-3 rounded-sm border transition-all group/item ${
-                              tool.isExternal 
-                                ? 'border-purple-500/10 bg-purple-500/[0.02] hover:bg-purple-500/10 hover:border-purple-500/30'
-                                : 'border-white/5 bg-white/[0.02] hover:bg-yellow-500/10 hover:border-yellow-500/30'
-                            }`}
-                          >
-                            <div className="flex justify-between items-center w-full mb-1">
-                              <span className={`text-[10px] font-black tracking-widest transition-colors ${
-                                tool.isExternal ? 'text-purple-400/60 group-hover/item:text-purple-400' : 'text-white/60 group-hover/item:text-yellow-500'
-                              }`}>
-                                {tool.name}
-                              </span>
-                              <Plus size={10} className={`${tool.isExternal ? 'text-purple-400/20 group-hover/item:text-purple-400' : 'text-white/20 group-hover/item:text-yellow-500'}`} />
-                            </div>
-                            <p className="text-[8px] text-white/20 leading-tight line-clamp-2 tracking-tighter">
-                              {tool.description}
-                            </p>
-                          </button>
-                        ))
-                      }
-                      {allTools.filter(t => !agent.tools.includes(t.name)).length === 0 && (
-                        <div className="col-span-full py-4 text-center border border-dashed border-white/5 rounded-sm">
-                           <span className="text-[8px] text-white/10 tracking-[0.3em]">Full potential reached</span>
+                    if (Object.keys(categorizedTools).length === 0) {
+                      return (
+                        <div className="flex flex-col items-center justify-center py-20 opacity-20 border border-dashed border-white/10 rounded">
+                           <Search size={48} className="mb-4" />
+                           <Typography variant="mono" className="tracking-widest">NO_PATTERNS_MATCHED</Typography>
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      );
+                    }
+
+                    return Object.entries(categorizedTools).map(([groupName, groupTools]) => (
+                      <div key={groupName} className="space-y-6">
+                        <div className="flex items-center gap-4">
+                          <Typography variant="mono" color="muted" className="text-[10px] tracking-[0.5em] uppercase font-black whitespace-nowrap opacity-40">
+                            {groupName.replace('_', ' ')}
+                          </Typography>
+                          <div className="h-px w-full bg-white/5" />
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {groupTools.map(tool => {
+                            const isAttached = selectedAgent.tools.includes(tool.name);
+                            const isUniversal = universalSkills.includes(tool.name);
+                            
+                            return (
+                              <div 
+                                key={tool.name}
+                                className={`group/item p-4 border rounded transition-all flex justify-between items-center ${
+                                  isAttached 
+                                    ? 'bg-yellow-500/[0.03] border-yellow-500/20' 
+                                    : 'bg-white/[0.01] border-white/5 hover:border-white/10'
+                                }`}
+                              >
+                                <div className="space-y-1 pr-6 flex-1 min-w-0">
+                                   <div className="flex items-center gap-2">
+                                      <Typography variant="mono" weight="black" className={`text-xs truncate ${isAttached ? 'text-yellow-500' : 'text-white/60'}`}>
+                                        {tool.name}
+                                      </Typography>
+                                      {tool.isExternal && <Badge variant="outline" className="text-[7px] py-0 border-purple-500/20 text-purple-400">BRIDGE</Badge>}
+                                   </div>
+                                   <Typography variant="caption" className="text-[9px] text-white/20 line-clamp-1 tracking-tighter">
+                                      {tool.description}
+                                   </Typography>
+                                </div>
+
+                                <Button 
+                                  variant={isAttached ? 'primary' : 'ghost'}
+                                  size="sm"
+                                  disabled={isPending || isUniversal}
+                                  onClick={() => handleToggleToolAssignment(selectedAgent.id, tool.name, isAttached)}
+                                  className={`min-w-[100px] font-black tracking-widest text-[8px] h-9 transition-all relative group/btn ${
+                                    isAttached 
+                                      ? 'bg-red-500/80 hover:bg-red-600 border-red-500/40 shadow-[0_0_15px_rgba(239,68,68,0.2)]' 
+                                      : 'border-white/10 text-white/40 hover:text-white hover:border-yellow-500/40'
+                                  }`}
+                                  icon={isPending ? <Loader2 size={10} className="animate-spin" /> : <Zap size={10} />}
+                                >
+                                  {isAttached ? 'DETACH' : 'ATTACH'}
+                                </Button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+
+                <div className="p-6 bg-yellow-500/[0.02] border-t border-white/5 text-center">
+                   <Typography variant="mono" color="muted" className="text-[8px] tracking-[0.4em] opacity-30">
+                     NEURAL_SYNC_ACTIVE: CHANGES_IMMEDIATELY_PERSISTED_TO_DYNAMODB_CORE
+                   </Typography>
                 </div>
               </Card>
-            ))}
-          </div>
+            </div>
+          )}
         </section>
       )}
 
@@ -757,7 +835,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                 </h4>
                 
                 <div className="space-y-3">
-                  {optimisticAgents.filter(a => a.id !== 'monitor' && a.id !== 'events').map(agent => {
+                  {optimisticAgents.filter(a => a.id !== 'monitor' && a.id !== 'events' && a.id !== 'recovery').map(agent => {
                     const isAttached = agent.tools.includes(selectedTool.name);
                     const isUniversal = universalSkills.includes(selectedTool.name);
                     

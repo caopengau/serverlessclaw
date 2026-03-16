@@ -26,7 +26,7 @@ export function ChatInput({
   onFileSelect
 }: ChatInputProps) {
   return (
-    <div className="p-6 border-t border-white/5 bg-black/40 shrink-0">
+    <div className="p-4 border-t border-white/5 bg-black/40 shrink-0">
       <form onSubmit={onSend} className="max-w-4xl mx-auto relative group">
         {/* Attachment Previews */}
         {attachments.length > 0 && (
@@ -55,7 +55,7 @@ export function ChatInput({
           </div>
         )}
 
-        <div className="relative flex items-end gap-3">
+        <div className="relative flex items-stretch gap-3">
           <input
             type="file"
             ref={fileInputRef}
@@ -68,11 +68,11 @@ export function ChatInput({
             variant="ghost"
             size="sm"
             onClick={() => fileInputRef.current?.click()}
-            className="p-3 h-[52px] w-[52px] !rounded-lg border border-white/5 hover:border-cyber-green/30 bg-white/[0.02]"
+            className="h-[52px] w-[52px] !rounded-lg border border-white/5 hover:border-cyber-green/30 bg-white/[0.02] flex items-center justify-center p-0 self-center"
             icon={<Paperclip size={20} className="text-white/40 group-hover:text-cyber-green transition-colors" />}
           />
           
-          <div className="flex-1 relative">
+          <div className="flex-1 relative flex">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -83,16 +83,18 @@ export function ChatInput({
                 }
               }}
               placeholder="Execute command or query system..."
-              className="w-full bg-white/[0.02] border border-white/5 focus:border-cyber-green/40 rounded-lg p-4 pr-12 text-sm text-white outline-none transition-all placeholder:text-white/20 resize-none min-h-[52px] max-h-[200px] overflow-hidden"
+              className="w-full h-full bg-white/[0.02] border border-white/5 focus:border-cyber-green/40 rounded-lg py-[15px] px-4 pr-12 text-sm text-white outline-none transition-all placeholder:text-white/20 resize-none max-h-[200px] overflow-hidden leading-5 box-border"
               rows={1}
-              style={{ height: 'auto' }}
+              style={{ height: '52px' }}
               onInput={(e) => {
                 const target = e.target as HTMLTextAreaElement;
-                target.style.height = 'auto';
-                target.style.height = `${target.scrollHeight}px`;
+                target.style.height = '52px';
+                if (target.scrollHeight > 52) {
+                    target.style.height = `${target.scrollHeight}px`;
+                }
               }}
             />
-            <div className="absolute top-2 right-2 text-[8px] font-mono text-white/10 uppercase pointer-events-none group-focus-within:text-cyber-green/40 transition-colors">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-mono text-white/10 uppercase pointer-events-none group-focus-within:text-cyber-green/40 transition-colors">
               Cmd + Enter
             </div>
           </div>
@@ -100,7 +102,7 @@ export function ChatInput({
           <Button
             type="submit"
             disabled={(!input.trim() && attachments.length === 0) || isLoading}
-            className="h-[52px] px-6 !rounded-lg shadow-[0_0_20px_rgba(0,255,163,0.1)] group-hover:shadow-[0_0_30px_rgba(0,255,163,0.2)]"
+            className="h-[52px] px-6 !rounded-lg shadow-[0_0_20px_rgba(0,255,163,0.1)] group-hover:shadow-[0_0_30px_rgba(0,255,163,0.2)] self-center"
             variant="primary"
             icon={<Send size={18} className={isLoading ? 'animate-ping' : ''} />}
           >
@@ -108,16 +110,6 @@ export function ChatInput({
           </Button>
         </div>
       </form>
-      <div className="mt-4 flex justify-center items-center gap-6 opacity-20 group-focus-within:opacity-40 transition-opacity">
-         <div className="flex items-center gap-2">
-            <div className="w-1 h-1 rounded-full bg-cyber-green animate-pulse" />
-            <Typography variant="mono" className="text-[7px] tracking-[0.2em] font-black">ENCRYPTED_CHANNEL</Typography>
-         </div>
-         <div className="flex items-center gap-2">
-            <div className="w-1 h-1 rounded-full bg-cyber-green animate-pulse" />
-            <Typography variant="mono" className="text-[7px] tracking-[0.2em] font-black">NEURAL_SYNC_READY</Typography>
-         </div>
-      </div>
     </div>
   );
 }

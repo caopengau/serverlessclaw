@@ -60,10 +60,8 @@ export const UI_STRINGS = {
   SECURITY_MANIFEST: 'Security Manifest',
   SELF_HEALING: 'Self Healing',
   SCHEDULING: 'Autonomous Scheduling',
-  NODE_STATUS: 'Agent Status',
-  SYSTEM_ONLINE: 'System Online',
-  VERSION_PROTOTYPE: 'v1.0.0-Prototype',
-  BUILD_YEAR: '2026',
+  NODE_STATUS: 'CORE_SYNC',
+  SYSTEM_ONLINE: 'LINK_ESTABLISHED',
 } as const;
 
 export const ROUTES = {

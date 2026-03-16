@@ -168,18 +168,14 @@ export default function Sidebar() {
 
         <div className="pt-6 border-t border-white/5 space-y-4">
           <div className="bg-white/5 rounded p-3">
-            <Typography variant="mono" weight="bold" className="text-[10px] text-white/90 tracking-wider">Agent status</Typography>
-            <div className={`text-[10px] text-${THEME.COLORS.PRIMARY} mt-1.5 flex items-center gap-2 font-bold`}>
+            <Typography variant="mono" weight="bold" className="text-[10px] text-white/90 tracking-wider uppercase">Neural_Synchronization</Typography>
+            <div className={`text-[10px] text-${THEME.COLORS.PRIMARY} mt-1.5 flex items-center gap-2 font-bold uppercase`}>
               <span className="relative flex h-2 w-2">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-${THEME.COLORS.PRIMARY} opacity-75`}></span>
                 <span className={`relative inline-flex rounded-full h-2 w-2 bg-${THEME.COLORS.PRIMARY}`}></span>
               </span>
-              {UI_STRINGS.SYSTEM_ONLINE}
+              CORE_ACTIVE &gt; {UI_STRINGS.SYSTEM_ONLINE}
             </div>
-          </div>
-          <div className="flex items-center justify-between text-[10px] text-white/50 font-bold tracking-widest">
-            <Typography variant="mono">{UI_STRINGS.VERSION_PROTOTYPE}</Typography>
-            <span className="text-white/10 px-1 border border-white/10 rounded">{UI_STRINGS.BUILD_YEAR}</span>
           </div>
         </div>
       </aside>

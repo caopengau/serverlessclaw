@@ -165,14 +165,16 @@ export default async function TraceDetailPage({
             <Typography variant="mono" color="white" className="flex items-center justify-end gap-2 text-[10px]">
               <Clock size={12} /> {new Date(rootNode.timestamp).toLocaleString()}
             </Typography>
-            <Typography variant="mono" color="white" className="text-[10px] block">
-              Source: <Typography variant="mono" weight="bold" color="intel">{rootNode.source || 'Unknown'}</Typography>
-            </Typography>
-            <Typography variant="mono" color="white" className="text-[10px] block">
-              USER_ID: {rootNode.userId}
-            </Typography>
+            <div className="flex items-center justify-end gap-2">
+              <Typography variant="mono" color="white" className="text-[10px] block">
+                Source: <span className="text-cyber-blue font-bold tracking-tighter ml-1">[{rootNode.source || 'Unknown'}]</span>
+              </Typography>
+              <Typography variant="mono" color="white" className="text-[10px] border-l border-white/10 pl-2 ml-1">
+                UID: {rootNode.userId}
+              </Typography>
+            </div>
             <Typography variant="mono" color="white" className="flex items-center justify-end gap-2 text-[10px]">
-              TOTAL STEPS: <Typography variant="mono" weight="bold" color="primary">{nodes.length}</Typography>
+              TOTAL STEPS: <Typography variant="mono" weight="bold" color="primary" className="bg-primary/10 px-1 rounded-sm">{nodes.reduce((acc, n) => acc + (n.steps?.length || 0), 0)}</Typography>
             </Typography>
           </div>
         </div>
@@ -181,9 +183,6 @@ export default async function TraceDetailPage({
       <main className="space-y-12">
         {/* Visualizer Section */}
         <section>
-          <Typography variant="caption" weight="black" className="tracking-[0.2em] flex items-center gap-2 mb-4">
-            <LayoutGrid size={14} className={`text-${THEME.COLORS.PRIMARY}`} /> {UI_STRINGS.NEURAL_PATH_VISUALIZER}
-          </Typography>
           {/* PathVisualizer will now receive all nodes to render the graph */}
           <PathVisualizer trace={{ ...rootNode, nodes }} />
         </section>

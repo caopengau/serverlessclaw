@@ -77,16 +77,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
  */
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
-    const { sessionId, title } = await req.json();
+    const { sessionId, title, isPinned } = await req.json();
     const userId = 'dashboard-user';
     const { DynamoMemory } = await import('@claw/core/lib/memory');
     const memory = new DynamoMemory();
 
-    if (!sessionId || !title) {
-      return NextResponse.json({ error: 'Missing sessionId or title' }, { status: 400 });
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
     }
 
-    await memory.saveConversationMeta(userId, sessionId, { title, updatedAt: Date.now() });
+    await memory.saveConversationMeta(userId, sessionId, { title, isPinned, updatedAt: Date.now() });
     
     return NextResponse.json({ success: true });
   } catch (error) {

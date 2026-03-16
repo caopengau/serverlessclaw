@@ -1,9 +1,7 @@
-import React from 'react';
-import { Plus, Clock, Trash2, ChevronRight } from 'lucide-react';
+import { Plus, Clock, Trash2, ChevronRight, Search, Pin, PinOff } from 'lucide-react';
 import { THEME } from '@/lib/theme';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
-import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import { ConversationMeta } from './types';
 
@@ -14,6 +12,9 @@ interface ChatSidebarProps {
   onNewChat: () => void;
   onDeleteSession: (e: React.MouseEvent, sessionId: string) => void;
   onDeleteAll: () => void;
+  onTogglePin: (sessionId: string, isPinned: boolean) => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
 export function ChatSidebar({ 
@@ -22,26 +23,56 @@ export function ChatSidebar({
   onSessionSelect, 
   onNewChat, 
   onDeleteSession, 
-  onDeleteAll 
+  onDeleteAll,
+  onTogglePin,
+  searchQuery,
+  setSearchQuery
 }: ChatSidebarProps) {
+  const filteredSessions = sessions
+    .filter(s => s.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                 s.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      return b.updatedAt - a.updatedAt;
+    });
+
+  const getExpiryText = (expiresAt?: number) => {
+    if (!expiresAt) return null;
+    const now = Math.floor(Date.now() / 1000);
+    const diff = expiresAt - now;
+    if (diff <= 0) return 'Expired';
+    
+    const hours = Math.floor(diff / (60 * 60));
+    if (hours < 1) return 'Expires soon';
+    if (hours < 24) return `Expires in ${hours}h`;
+    
+    const days = Math.floor(hours / 24);
+    return `Expires in ${days}d`;
+  };
+
   return (
-    <aside className="w-80 border-r border-white/5 flex flex-col bg-black/20 shrink-0">
-      <div className="p-6 shrink-0">
-        <Button
-          onClick={onNewChat}
-          fullWidth
-          icon={<Plus size={16} className="group-hover:rotate-90 transition-transform" />}
-        >
-          Start New Chat
-        </Button>
+    <aside className="w-80 border-r border-white/5 flex flex-col bg-black/20 shrink-0 overflow-hidden">
+      {/* Search Header */}
+      <div className="p-6 shrink-0 border-b border-white/5">
+        <div className="relative group/search">
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within/search:text-cyber-green transition-colors" />
+          <input
+            type="text"
+            placeholder="Search sessions..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white/[0.03] border border-white/5 focus:border-cyber-green/40 rounded-lg py-2.5 pl-9 pr-4 text-xs text-white outline-none transition-all placeholder:text-white/10"
+          />
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-6 space-y-2">
+      <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-6 pb-2 space-y-2">
         <div className="mb-4 px-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock size={10} className="text-white/60" /> 
             <Typography variant="caption" weight="bold" color="muted">
-              Recent Logs
+              CONVERSATION_LOGS
             </Typography>
           </div>
           {sessions.length > 0 && (
@@ -57,12 +88,14 @@ export function ChatSidebar({
           )}
         </div>
         
-        {sessions.length === 0 ? (
+        {filteredSessions.length === 0 ? (
           <Card variant="solid" padding="sm" className="text-center italic text-white/20">
-            <Typography variant="caption">No active logs found.</Typography>
+            <Typography variant="caption">
+              {searchQuery ? 'No matches found.' : 'No active logs found.'}
+            </Typography>
           </Card>
         ) : (
-          sessions.map((s) => (
+          filteredSessions.map((s) => (
             <div
               key={s.sessionId}
               role="button"
@@ -74,12 +107,18 @@ export function ChatSidebar({
                   onSessionSelect(s.sessionId);
                 }
               }}
-              className={`p-4 flex flex-col items-stretch rounded-sm border transition-all text-left space-y-2 group cursor-pointer bg-transparent ${
+              className={`p-4 flex flex-col items-stretch rounded-lg border transition-all text-left space-y-2 group cursor-pointer bg-transparent relative overflow-hidden ${
                 activeSessionId === s.sessionId
-                  ? `border-${THEME.COLORS.PRIMARY}/30 shadow-[0_0_20px_rgba(0,255,163,0.02)]`
-                  : 'border-white/5 hover:border-white/10'
+                  ? `border-${THEME.COLORS.PRIMARY}/40 bg-${THEME.COLORS.PRIMARY}/5 shadow-[0_0_20px_rgba(0,255,163,0.05)]`
+                  : 'border-white/5 hover:border-white/10 hover:bg-white/[0.02]'
               }`}
             >
+              {s.isPinned && (
+                <div className={`absolute top-0 right-0 w-8 h-8 flex items-center justify-end pr-2 pt-1 opacity-40 text-${THEME.COLORS.PRIMARY}`}>
+                   <Pin size={10} className="rotate-45" />
+                </div>
+              )}
+
               <div className="flex justify-between items-start gap-2 w-full">
                 <Typography 
                   variant="caption" 
@@ -88,7 +127,33 @@ export function ChatSidebar({
                 >
                   {s.title || 'Untitled Trace'}
                 </Typography>
-                <div className="flex items-center gap-1">
+              </div>
+
+              <Typography variant="mono" color="muted" className="truncate italic block h-4 w-full cursor-pointer leading-tight">
+                {s.lastMessage || 'Waiting for signal...'}
+              </Typography>
+              
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3">
+                  <Typography variant="mono" color="muted" className="text-[8px] cursor-pointer opacity-60">
+                      {new Date(s.updatedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                  </Typography>
+                  {!s.isPinned && s.expiresAt && (
+                    <Typography variant="mono" className="text-[8px] text-amber-500/60 lowercase italic">
+                        {getExpiryText(s.expiresAt)}
+                    </Typography>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                   <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => { e.stopPropagation(); onTogglePin(s.sessionId, !s.isPinned); }}
+                    className={`p-1 h-auto transition-colors z-10 ${s.isPinned ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/20'}`}
+                    icon={s.isPinned ? <PinOff size={12} /> : <Pin size={12} />}
+                    title={s.isPinned ? "Unpin Session" : "Pin Session"}
+                  />
                   <Button
                     variant="ghost"
                     size="sm"
@@ -97,22 +162,23 @@ export function ChatSidebar({
                     icon={<Trash2 size={12} />}
                     title="Delete Conversation"
                   />
-                  <ChevronRight size={12} className={activeSessionId === s.sessionId ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/10'} />
                 </div>
               </div>
-              <Typography variant="mono" color="muted" className="truncate italic block h-4 w-full cursor-pointer">
-                {s.lastMessage || 'Waiting for signal...'}
-              </Typography>
-              <Typography variant="mono" color="muted" className="text-[8px] w-full cursor-pointer">
-                  {new Date(s.updatedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-              </Typography>
             </div>
           ))
         )}
       </div>
 
-      <div className="p-6 border-t border-white/5 font-mono">
-         <Typography variant="mono" color="muted">Application Interface: v2.6.4</Typography>
+      <div className="p-4 border-t border-white/5 bg-black/40">
+        <Button
+          onClick={onNewChat}
+          fullWidth
+          variant="outline"
+          className="h-11 border-dashed border-white/10 hover:border-cyber-green/40 hover:bg-cyber-green/5 group"
+          icon={<Plus size={16} className="group-hover:rotate-90 transition-transform text-cyber-green" />}
+        >
+          <span className="group-hover:text-cyber-green transition-colors font-bold uppercase tracking-wider text-xs">Start New Chat</span>
+        </Button>
       </div>
     </aside>
   );

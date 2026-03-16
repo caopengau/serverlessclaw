@@ -168,6 +168,8 @@ export class BaseMemoryProvider {
       title: item.title,
       lastMessage: item.content,
       updatedAt: item.timestamp,
+      isPinned: !!item.isPinned,
+      expiresAt: item.expiresAt,
     }));
   }
 }

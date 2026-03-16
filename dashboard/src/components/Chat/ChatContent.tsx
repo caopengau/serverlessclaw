@@ -27,6 +27,7 @@ export default function ChatContent() {
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeSessionRef = useRef<string>('');
@@ -63,6 +64,19 @@ export default function ChatContent() {
       fetchSessions();
     } catch (error) {
       console.error('Failed to save title:', error);
+    }
+  };
+
+  const togglePin = async (sessionId: string, isPinned: boolean) => {
+    try {
+      await fetch('/api/chat', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, isPinned }),
+      });
+      fetchSessions();
+    } catch (error) {
+      console.error('Failed to toggle pin:', error);
     }
   };
 
@@ -287,6 +301,9 @@ export default function ChatContent() {
         onNewChat={createNewChat}
         onDeleteSession={deleteSession}
         onDeleteAll={() => setShowDeleteAllConfirm(true)}
+        onTogglePin={togglePin}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
       />
 
       <main 
