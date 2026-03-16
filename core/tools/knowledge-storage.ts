@@ -219,6 +219,7 @@ export const reportGap = {
 
 /**
  * Directly saves project knowledge (facts, insights, preferences) into the system memory.
+ * Implements semantic deduplication to prevent redundant or conflicting entries.
  */
 export const saveMemory = {
   ...toolDefinitions.saveMemory,
@@ -232,6 +233,36 @@ export const saveMemory = {
     const memory = getMemory();
     const baseUserId = userId.startsWith('CONV#') ? userId.split('#')[1] : userId;
     const scopeId = category === 'user_preference' ? `USER#${baseUserId}` : 'SYSTEM#GLOBAL';
+
+    // --- Start Semantic Deduplication ---
+    try {
+      // 1. Search for existing memories in the same category and scope
+      const existing = await memory.searchInsights(baseUserId, '*', category as InsightCategory);
+      
+      // 2. Filter for the exact same scope to avoid pruning global knowledge from a user context
+      const relevantExisting = existing.filter(e => e.id === scopeId);
+
+      if (relevantExisting.length > 0) {
+        const newKeywords = content.toLowerCase().split(/\W+/).filter(w => w.length > 3);
+        
+        for (const oldMem of relevantExisting) {
+          const oldKeywords = oldMem.content.toLowerCase().split(/\W+/).filter(w => w.length > 3);
+          
+          // Simple Jaccard-ish similarity check for high-confidence conflicts
+          const intersection = newKeywords.filter(w => oldKeywords.includes(w));
+          const similarity = intersection.length / Math.max(newKeywords.length, oldKeywords.length);
+
+          // If > 60% similarity, assume it's an update/redundancy and prune the old one
+          if (similarity > 0.6) {
+            console.log(`[Deduplication] Pruning similar memory: "${oldMem.content}" (Similarity: ${Math.round(similarity * 100)}%)`);
+            await memory.deleteItem({ userId: scopeId, timestamp: oldMem.timestamp });
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Deduplication check failed, proceeding with standard save:', error);
+    }
+    // --- End Semantic Deduplication ---
 
     const metadata = {
       category: category as InsightCategory,
