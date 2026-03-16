@@ -37,7 +37,14 @@ export class MCPBridge {
           transport = new StdioClientTransport({
             command,
             args,
-            env: { ...(process.env as Record<string, string>), ...env },
+            env: {
+              ...(process.env as Record<string, string>),
+              ...env,
+              // Critical for AWS Lambda: ensures npx/npm has a writable directory to cache packages
+              XDG_CACHE_HOME: '/tmp/mcp-cache',
+              NPM_CONFIG_CACHE: '/tmp/npm-cache',
+              HOME: '/tmp',
+            },
           });
 
           // Hack to capture stderr from the internal child process if possible
@@ -67,7 +74,7 @@ export class MCPBridge {
           logger.warn(`MCP Server connection closed: ${serverName}. Removing from cache.`);
           this.clients.delete(serverName);
         };
-        
+
         transport.onerror = (err: any) => {
           logger.error(`MCP Transport Error (${serverName}):`, err);
           this.clients.delete(serverName);
@@ -95,10 +102,10 @@ export class MCPBridge {
               nodeVersion: process.version,
               memoryUsage: process.memoryUsage(),
               server: serverName,
-              tool: mcpTool.name
+              tool: mcpTool.name,
             };
             logger.error(`MCP Tool Execution Error Details:`, JSON.stringify(errorDetails));
-            
+
             if (execError?.message?.includes('Connection closed')) {
               this.clients.delete(serverName); // Force re-connect on next call
             }
