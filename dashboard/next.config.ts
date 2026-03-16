@@ -6,6 +6,9 @@ const nextConfig: any = {
   outputFileTracingRoot: path.join(__dirname, '../'),
   transpilePackages: ['@claw/core'],
   reactStrictMode: true,
+  images: {
+    unoptimized: true,
+  },
   typescript: {
     ignoreBuildErrors: true,
   },

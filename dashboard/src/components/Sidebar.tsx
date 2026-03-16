@@ -70,7 +70,7 @@ export default function Sidebar() {
         <Link href={ROUTES.HOME} className="flex items-center gap-3 group">
           <div className="relative w-8 h-8 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
             <Image
-              src="/logo-text-transparent.png"
+              src="/logo.png"
               alt="ClawCenter Logo"
               fill
               className="object-contain"
@@ -105,7 +105,7 @@ export default function Sidebar() {
           <Link href={ROUTES.HOME} className="flex items-center gap-3 group">
             <div className="relative w-8 h-8 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
               <Image
-                src="/logo-text-transparent.png"
+                src="/logo.png"
                 alt="ClawCenter Logo"
                 fill
                 className="object-contain"
