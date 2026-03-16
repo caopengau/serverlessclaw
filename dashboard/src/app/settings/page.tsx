@@ -36,6 +36,7 @@ async function getConfig() {
       cbFailuresRes,
       protectedRes,
       recursionRes,
+      deployRes,
     ] = await Promise.all([
       docClient.send(
         new GetCommand({
@@ -99,6 +100,12 @@ async function getConfig() {
           Key: { key: 'recursion_limit' },
         })
       ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'deploy_limit' },
+        })
+      ),
     ]);
 
     return {
@@ -112,6 +119,7 @@ async function getConfig() {
       maxToolIterations: maxIterRes.Item?.value || '15',
       circuitBreakerThreshold: cbThresholdRes.Item?.value || '5',
       recursionLimit: recursionRes.Item?.value || '50',
+      deployLimit: deployRes.Item?.value || '5',
       consecutiveBuildFailures: cbFailuresRes.Item?.value || 0,
       protectedResources: Array.isArray(protectedRes.Item?.value)
         ? protectedRes.Item.value.join(', ')
@@ -148,6 +156,7 @@ async function updateConfig(formData: FormData) {
   const maxToolIterations = formData.get('maxToolIterations') as string;
   const circuitBreakerThreshold = formData.get('circuitBreakerThreshold') as string;
   const recursionLimit = formData.get('recursionLimit') as string;
+  const deployLimit = formData.get('deployLimit') as string;
   const protectedResources = (formData.get('protectedResources') as string)
     .split(',')
     .map((s) => s.trim())
@@ -234,6 +243,15 @@ async function updateConfig(formData: FormData) {
           Item: {
             key: 'recursion_limit',
             value: recursionLimit,
+          },
+        })
+      ),
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: {
+            key: 'deploy_limit',
+            value: deployLimit,
           },
         })
       ),

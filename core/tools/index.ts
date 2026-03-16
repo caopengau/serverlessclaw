@@ -8,6 +8,7 @@ import * as systemTools from './system';
 import * as fsTools from './fs';
 import * as knowledgeTools from './knowledge';
 import * as schedulerTools from './scheduler';
+import * as metadataTools from './metadata';
 
 // Filter knowledgeTools to only include ITool exports (exclude utility functions like formatErrorMessage)
 const knowledgeToolEntries = Object.entries(knowledgeTools).filter(
@@ -31,6 +32,9 @@ export const tools: Record<string, ITool> = {
 
   // Proactive Scheduling Tools
   ...schedulerTools,
+
+  // Metadata & SSOT Tools
+  ...metadataTools,
 
   /**
    * Switches the active LLM provider and model for the system.

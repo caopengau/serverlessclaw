@@ -17,7 +17,8 @@ import {
   Wrench,
   Server,
   Sun,
-  Moon
+  Moon,
+  Calendar
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -53,6 +54,7 @@ export default function Sidebar() {
     { href: ROUTES.MEMORY, label: UI_STRINGS.MEMORY_RESERVE, icon: Brain },
     { href: ROUTES.PIPELINE, label: UI_STRINGS.EVOLUTION_PIPELINE, icon: Server },
     { href: ROUTES.CAPABILITIES, label: UI_STRINGS.CAPABILITIES, icon: Wrench },
+    { href: ROUTES.SCHEDULING, label: UI_STRINGS.SCHEDULING, icon: Calendar },
     
     { label: UI_STRINGS.INFRA_HEADER, type: 'header' },
     { href: ROUTES.SYSTEM_PULSE, label: UI_STRINGS.SYSTEM_PULSE, icon: Share2 },

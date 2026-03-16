@@ -95,4 +95,39 @@ describe('DynamicScheduler', () => {
     const result = await DynamicScheduler.getSchedule('not-found');
     expect(result).toBeNull();
   });
+
+  describe('ensureProactiveGoal', () => {
+    it('should create a schedule if it does not exist', async () => {
+      schedulerMock.on(GetScheduleCommand).rejects({ name: 'ResourceNotFoundException' });
+      schedulerMock.on(CreateScheduleCommand).resolves({});
+
+      await DynamicScheduler.ensureProactiveGoal({
+        goalId: 'new-goal',
+        agentId: 'test-agent',
+        task: 'test-task',
+        userId: 'test-user',
+        frequencyHrs: 24,
+      });
+
+      expect(schedulerMock.commandCalls(CreateScheduleCommand)).toHaveLength(1);
+      const call = schedulerMock.commandCalls(CreateScheduleCommand)[0];
+      const input = call.args[0].input as CreateScheduleCommandInput;
+      expect(input.Name).toBe('new-goal');
+      expect(input.ScheduleExpression).toBe('rate(24 hours)');
+    });
+
+    it('should do nothing if schedule already exists', async () => {
+      schedulerMock.on(GetScheduleCommand).resolves({ Name: 'existing-goal' } as any);
+
+      await DynamicScheduler.ensureProactiveGoal({
+        goalId: 'existing-goal',
+        agentId: 'test-agent',
+        task: 'test-task',
+        userId: 'test-user',
+        frequencyHrs: 24,
+      });
+
+      expect(schedulerMock.commandCalls(CreateScheduleCommand)).toHaveLength(0);
+    });
+  });
 });

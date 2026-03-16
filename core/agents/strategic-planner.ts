@@ -112,27 +112,20 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   if (isProactive) {
     try {
       const { DynamicScheduler } = await import('../lib/scheduler');
+      const { AgentRegistry } = await import('../lib/registry');
+
       const GOAL_ID = `PLANNER#STRATEGIC_REVIEW#${baseUserId}`;
-      const existing = await DynamicScheduler.getSchedule(GOAL_ID);
+      const customFreq = await AgentRegistry.getRawConfig('strategic_review_frequency');
+      const frequencyHrs = parseConfigInt(customFreq, 24);
 
-      if (!existing) {
-        const { AgentRegistry } = await import('../lib/registry');
-        const customFreq = await AgentRegistry.getRawConfig('strategic_review_frequency');
-        const frequencyHrs = parseConfigInt(customFreq, 24); // Default to daily for proactive
-
-        logger.info(`Scheduling next proactive review in ${frequencyHrs}h`);
-        await DynamicScheduler.upsertSchedule(
-          GOAL_ID,
-          {
-            agentId: AgentType.STRATEGIC_PLANNER,
-            task: 'Proactive Strategic Review',
-            goalId: GOAL_ID,
-            userId: contextUserId,
-            metadata: { isProactive: true },
-          },
-          `rate(${frequencyHrs} hours)`
-        );
-      }
+      await DynamicScheduler.ensureProactiveGoal({
+        goalId: GOAL_ID,
+        agentId: AgentType.STRATEGIC_PLANNER,
+        task: 'Proactive Strategic Review',
+        userId: contextUserId,
+        frequencyHrs,
+        metadata: { isProactive: true },
+      });
     } catch (e) {
       logger.warn('Failed to manage proactive self-scheduling:', e);
     }

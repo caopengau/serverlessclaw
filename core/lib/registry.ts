@@ -20,6 +20,9 @@ export class AgentRegistry {
     'installSkill',
     'saveMemory',
     'checkConfig',
+    'setSystemConfig',
+    'listSystemConfigs',
+    'getSystemConfigMetadata',
   ];
 
   private static DEFAULT_AGENT_TOOLS = [

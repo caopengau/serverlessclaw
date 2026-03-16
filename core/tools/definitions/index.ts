@@ -8,6 +8,7 @@ import { skillsTools } from './skills';
 import { systemTools } from './system';
 import { clarificationTools } from './clarification';
 import { schedulerDefinitions } from './scheduler';
+import { metadataTools } from './metadata';
 
 /**
  * Combined tool definitions for all system tools.
@@ -24,6 +25,7 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
   ...systemTools,
   ...clarificationTools,
   ...schedulerDefinitions,
+  ...metadataTools,
 };
 
 // Re-export individual tool categories for modular access
@@ -37,4 +39,5 @@ export {
   systemTools,
   clarificationTools,
   schedulerDefinitions,
+  metadataTools,
 };

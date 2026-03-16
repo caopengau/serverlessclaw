@@ -1,4 +1,5 @@
 import { Resource } from 'sst';
+import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { toolDefinitions } from './definitions';
 
 /**
@@ -33,8 +34,44 @@ AGENT_NAME: ${agentName}
 INITIATOR: ${initiatorId}
 TRACE_ID: ${traceId}
 ACTIVE_PROVIDER: ${injectedProvider || ddbProvider || 'openai (default)'}
-ACTIVE_MODEL: ${injectedModel || ddbModel || 'gpt-4o-mini (default)'}
+ACTIVE_MODEL: ${injectedModel || ddbModel || 'gpt-5-mini (default)'}
 STAGING_BUCKET: ${Resource.StagingBucket.name}
     `.trim();
+  },
+};
+
+/**
+ * Lists all available runtime configuration keys and their current values.
+ */
+export const listSystemConfigs = {
+  ...toolDefinitions.listSystemConfigs,
+  execute: async (): Promise<string> => {
+    try {
+      const { docClient } = await import('../lib/registry/config');
+      const { ConfigTable } = Resource as any;
+
+      if (!ConfigTable?.name) {
+        return 'ConfigTable not linked. Unable to list configurations.';
+      }
+
+      const { Items } = await docClient.send(
+        new ScanCommand({
+          TableName: ConfigTable.name,
+        })
+      );
+
+      if (!Items || Items.length === 0) {
+        return 'No system configurations found.';
+      }
+
+      const configMap = Items.map((item) => `- ${item.key}: ${JSON.stringify(item.value)}`).join(
+        '\n'
+      );
+
+      return `[SYSTEM_CONFIGURATIONS]\n${configMap}`;
+    } catch (e) {
+      const { formatErrorMessage } = await import('../lib/utils/error');
+      return `Failed to list configurations: ${formatErrorMessage(e)}`;
+    }
   },
 };

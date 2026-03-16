@@ -19,7 +19,7 @@ export class AgentContext {
       - AGENT_NAME: ${config?.name || 'SuperClaw'}
       - AGENT_ID: ${config?.id || 'main'}
       - ACTIVE_PROVIDER: ${provider || 'openai (default)'}
-      - ACTIVE_MODEL: ${model || 'gpt-4o-mini (default)'}
+      - ACTIVE_MODEL: ${model || 'gpt-5-mini (default)'}
       - REASONING_PROFILE: ${profile}
       - RECURSION_DEPTH: ${depth}
     `;

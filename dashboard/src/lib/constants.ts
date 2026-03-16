@@ -59,6 +59,7 @@ export const UI_STRINGS = {
   CONFIG: 'Configuration',
   SECURITY_MANIFEST: 'Security Manifest',
   SELF_HEALING: 'Self Healing',
+  SCHEDULING: 'Autonomous Scheduling',
   NODE_STATUS: 'Agent Status',
   SYSTEM_ONLINE: 'System Online',
   VERSION_PROTOTYPE: 'v1.0.0-Prototype',
@@ -78,6 +79,7 @@ export const ROUTES = {
   SETTINGS: '/settings',
   SECURITY: '/security',
   RESILIENCE: '/resilience',
+  SCHEDULING: '/scheduling',
 } as const;
 
 export const TRACE_TYPES = {

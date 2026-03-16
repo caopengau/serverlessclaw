@@ -119,4 +119,35 @@ export class DynamicScheduler {
       throw error;
     }
   }
+
+  /**
+   * Ensures a specific proactive goal is scheduled.
+   * If the schedule already exists, it does nothing (preserving existing jitter/timing).
+   * Otherwise, it creates it with the given frequency.
+   */
+  static async ensureProactiveGoal(params: {
+    goalId: string;
+    agentId: string;
+    task: string;
+    userId: string;
+    frequencyHrs: number;
+    metadata?: Record<string, unknown>;
+  }): Promise<void> {
+    const existing = await this.getSchedule(params.goalId);
+    if (!existing) {
+      logger.info(`Goal ${params.goalId} not found, scheduling proactive task.`);
+      await this.upsertSchedule(
+        params.goalId,
+        {
+          agentId: params.agentId,
+          task: params.task,
+          goalId: params.goalId,
+          userId: params.userId,
+          metadata: { ...params.metadata, isProactive: true },
+        },
+        `rate(${params.frequencyHrs} hours)`,
+        `Proactive goal for ${params.agentId}: ${params.task}`
+      );
+    }
+  }
 }

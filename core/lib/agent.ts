@@ -148,7 +148,7 @@ export class Agent {
       let contextPrompt = this.systemPrompt;
       if (recoveryContext) contextPrompt += recoveryContext;
       contextPrompt += `\n\n${AgentContext.getMemoryIndexBlock(distilled, lessons.length)}`;
-      contextPrompt += `\n\n${AgentContext.getIdentityBlock(this.config, activeModel || 'gpt-4o-mini', activeProvider || 'openai', activeProfile, depth)}`;
+      contextPrompt += `\n\n${AgentContext.getIdentityBlock(this.config, activeModel || 'gpt-5-mini', activeProvider || 'openai', activeProfile, depth)}`;
 
       const messages: Message[] = [
         { role: MessageRole.SYSTEM, content: contextPrompt },

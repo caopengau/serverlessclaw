@@ -34,4 +34,14 @@ export const configTools: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
+  listSystemConfigs: {
+    name: 'listSystemConfigs',
+    description: 'Lists all available runtime configuration keys and their current values.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+      additionalProperties: false,
+    },
+  },
 };
