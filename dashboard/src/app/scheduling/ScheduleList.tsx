@@ -24,14 +24,70 @@ import { THEME } from '@/lib/theme';
 
 interface Schedule {
   Name: string;
-  ScheduleExpression: string;
   State: string;
   Description?: string;
   CreationDate?: string;
+  ScheduleExpression: string;
   Target?: {
     Input?: string;
   };
 }
+
+const formatFrequency = (expression: string) => {
+  if (expression.startsWith('rate(')) {
+    const match = expression.match(/rate\((\d+)\s+(\w+)\)/);
+    if (match) {
+      const [_, value, unit] = match;
+      const unitShort = unit.endsWith('s') ? unit.slice(0, -1) : unit;
+      return `Every ${value} ${unitShort}${parseInt(value) > 1 ? 's' : ''}`;
+    }
+  }
+  if (expression.startsWith('cron(')) {
+    return 'Recurring (Cron)';
+  }
+  if (expression.startsWith('at(')) {
+    return 'One-time (At)';
+  }
+  return expression;
+};
+
+const getNextRun = (schedule: Schedule) => {
+  if (schedule.State !== 'ENABLED') return 'Paused';
+  if (!schedule.CreationDate) return 'Unknown';
+
+  const expression = schedule.ScheduleExpression;
+  const created = new Date(schedule.CreationDate).getTime();
+  const now = Date.now();
+
+  if (expression.startsWith('rate(')) {
+    const match = expression.match(/rate\((\d+)\s+(\w+)\)/);
+    if (match) {
+      const value = parseInt(match[1]);
+      const unit = match[2];
+      
+      let msPerUnit = 60 * 1000; // default minutes
+      if (unit.startsWith('hour')) msPerUnit = 60 * 60 * 1000;
+      if (unit.startsWith('day')) msPerUnit = 24 * 60 * 60 * 1000;
+      
+      const interval = value * msPerUnit;
+      const elapsed = now - created;
+      const nextRunTime = created + (Math.floor(elapsed / interval) + 1) * interval;
+      
+      return new Date(nextRunTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+  }
+
+  if (expression.startsWith('at(')) {
+    const match = expression.match(/at\((.+)\)/);
+    if (match) {
+      const atDate = new Date(match[1]);
+      if (atDate.getTime() < now) return 'Executed';
+      return atDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+  }
+
+  return 'Calculated on trigger';
+};
 
 export default function ScheduleList() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -214,8 +270,13 @@ export default function ScheduleList() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-[10px] font-mono text-white/100">
-                        <Clock size={10} className="text-blue-400" /> {s.ScheduleExpression}
+                      <div className="flex flex-col gap-1">
+                        <div className={`text-[10px] font-mono text-${THEME.COLORS.PRIMARY} font-bold flex items-center gap-1`}>
+                          <RefreshCw size={10} /> {formatFrequency(s.ScheduleExpression)}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] font-mono text-white/40">
+                          <Clock size={10} /> Next: {getNextRun(s)}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
