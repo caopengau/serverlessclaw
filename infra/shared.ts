@@ -28,7 +28,7 @@ export const AGENT_CONFIG = {
   memory: {
     SMALL: '256 MB',
     MEDIUM: '512 MB',
-    LARGE: '1024 MB',
+    LARGE: '2048 MB',
   },
   timeout: {
     SHORT: '30 seconds',

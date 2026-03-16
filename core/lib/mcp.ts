@@ -39,14 +39,31 @@ export class MCPBridge {
             args,
             env: { ...(process.env as Record<string, string>), ...env },
           });
+
+          // Hack to capture stderr from the internal child process if possible
+          // Note: The SDK doesn't natively expose the process, but we can wrap it if needed.
+          // For now, we'll rely on the client.connect error which usually captures spawn failures.
         }
 
         client = new Client(
           { name: 'ServerlessClaw-Client', version: '1.0.0' },
           { capabilities: {} }
         );
-        await client.connect(transport);
+
+        // Add a timeout to connection to prevent hanging Lambdas
+        const connectTimeout = 30000; // 30s
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`MCP Connection timeout after ${connectTimeout}ms`)), connectTimeout)
+        );
+
+        await Promise.race([client.connect(transport), timeoutPromise]);
         this.clients.set(serverName, client);
+
+        // Listen for close event if the SDK supports it or handle it in the execute wrap
+        transport.onclose = () => {
+          logger.warn(`MCP Server connection closed: ${serverName}. Removing from cache.`);
+          this.clients.delete(serverName);
+        };
       }
 
       const response = await client.listTools();
@@ -55,15 +72,25 @@ export class MCPBridge {
         description: mcpTool.description || `Tool from ${serverName} server.`,
         parameters: mcpTool.inputSchema as JsonSchema,
         execute: async (toolArgs: Record<string, unknown>) => {
-          const result = await client!.callTool({
-            name: mcpTool.name,
-            arguments: toolArgs,
-          });
-          return JSON.stringify(result.content);
+          try {
+            if (!client) throw new Error('MCP Client not initialized');
+            const result = await client.callTool({
+              name: mcpTool.name,
+              arguments: toolArgs,
+            });
+            return JSON.stringify(result.content);
+          } catch (execError: any) {
+            logger.error(`MCP Tool Execution Error (${serverName}.${mcpTool.name}):`, execError);
+            if (execError?.message?.includes('Connection closed')) {
+              this.clients.delete(serverName); // Force re-connect on next call
+            }
+            throw execError;
+          }
         },
       }));
-    } catch (e) {
+    } catch (e: any) {
       logger.error(`Failed to fetch tools from MCP server ${serverName}:`, e);
+      this.clients.delete(serverName); // Clean up failed attempts
       return [];
     }
   }
