@@ -113,12 +113,18 @@ export default function ChatContent() {
       const data = await response.json();
       if (data.history) {
         seenMessageIds.current.clear();
-        setMessages(data.history.map((m: HistoryMessage) => ({
-          role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
-          content: m.content,
-          agentName: m.agentName || (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
-          attachments: m.attachments,
-        })).filter((m: ChatMessage) => m.content || (m.attachments && m.attachments.length > 0)));
+        setMessages(prev => {
+          const history = data.history.map((m: HistoryMessage) => ({
+            role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
+            content: m.content,
+            agentName: m.agentName || (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
+            attachments: m.attachments,
+          })).filter((m: ChatMessage) => m.content || (m.attachments && m.attachments.length > 0));
+
+          // Preserve local-only error messages that aren't in history yet
+          const localErrors = prev.filter(m => m.agentName === 'SystemGuard');
+          return [...history, ...localErrors];
+        });
       }
     } catch (error) {
       console.error('Failed to fetch history:', error);

@@ -34,12 +34,18 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
       const data = await response.json();
       if (data.history) {
         seenMessageIds.current.clear();
-        setMessages(data.history.map((m: HistoryMessage) => ({
-          role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
-          content: m.content,
-          agentName: m.agentName || (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
-          attachments: m.attachments,
-        })).filter((m: ChatMessage) => m.content || (m.attachments && m.attachments.length > 0)));
+        setMessages(prev => {
+          const history = data.history.map((m: HistoryMessage) => ({
+            role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
+            content: m.content,
+            agentName: m.agentName || (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
+            attachments: m.attachments,
+          })).filter((m: ChatMessage) => m.content || (m.attachments && m.attachments.length > 0));
+
+          // Preserve local-only error messages (like connection failures)
+          const localErrors = prev.filter(m => m.agentName === 'SystemGuard');
+          return [...history, ...localErrors];
+        });
       }
     } catch (e) {
       console.warn('Silent History fetch failed:', e);

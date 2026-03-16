@@ -53,7 +53,10 @@ export class MCPBridge {
         // Add a timeout to connection to prevent hanging Lambdas
         const connectTimeout = 30000; // 30s
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error(`MCP Connection timeout after ${connectTimeout}ms`)), connectTimeout)
+          setTimeout(
+            () => reject(new Error(`MCP Connection timeout after ${connectTimeout}ms`)),
+            connectTimeout
+          )
         );
 
         await Promise.race([client.connect(transport), timeoutPromise]);
@@ -62,6 +65,11 @@ export class MCPBridge {
         // Listen for close event if the SDK supports it or handle it in the execute wrap
         transport.onclose = () => {
           logger.warn(`MCP Server connection closed: ${serverName}. Removing from cache.`);
+          this.clients.delete(serverName);
+        };
+        
+        transport.onerror = (err: any) => {
+          logger.error(`MCP Transport Error (${serverName}):`, err);
           this.clients.delete(serverName);
         };
       }
@@ -80,7 +88,17 @@ export class MCPBridge {
             });
             return JSON.stringify(result.content);
           } catch (execError: any) {
-            logger.error(`MCP Tool Execution Error (${serverName}.${mcpTool.name}):`, execError);
+            const errorDetails = {
+              message: execError?.message,
+              code: execError?.code,
+              stack: execError?.stack,
+              nodeVersion: process.version,
+              memoryUsage: process.memoryUsage(),
+              server: serverName,
+              tool: mcpTool.name
+            };
+            logger.error(`MCP Tool Execution Error Details:`, JSON.stringify(errorDetails));
+            
             if (execError?.message?.includes('Connection closed')) {
               this.clients.delete(serverName); // Force re-connect on next call
             }
