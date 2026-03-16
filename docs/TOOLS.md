@@ -63,18 +63,35 @@ Agents no longer receive all tools by default. They call `getAgentTools(agentId)
 
 ### ITool Interface
 
+Definitions are now strictly typed using a unified `JsonSchema` interface to ensure compatibility across providers.
+
 ```typescript
-export interface ITool {
+export interface JsonSchema {
+  /** The data type (e.g., 'string', 'object', 'array'). */
+  type: 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
+  description?: string;
+  properties?: Record<string, JsonSchema>;
+  required?: string[];
+  items?: JsonSchema;
+  enum?: string[];
+  additionalProperties?: boolean;
+}
+
+export interface IToolDefinition {
   name: string;
-  description: string; // Shown to the LLM — be precise!
-  parameters: {        // JSON Schema for the args
-    type: 'object';
-    properties: Record<string, { type: string; description: string; enum?: string[] }>;
-    required?: string[];
-  };
-  execute: (args: any) => Promise<string>; // Always returns a string result
+  description: string;
+  parameters: JsonSchema;
+  // ...
 }
 ```
+
+### AI-Native Coding Standards (April 2026 Refresh)
+
+To maximize semantic transparency for both humans and AI agents, follow these rules when defining tools:
+
+1. **Avoid redundant indirection**: Use direct string literals (e.g., `type: 'string'`) instead of local constants like `const TYPE_STRING = 'string'`. Indirection creates "Lookup Friction" for LLMs.
+2. **Strict Typing**: Always use `as const` for mock tool definitions in tests to align with the strictly typed union of schema types.
+3. **Precise Descriptions**: Tool descriptions are NOT just documentation; they are **Instructions** for the LLM. Be verbose about constraints and edge cases.
 
 ---
 

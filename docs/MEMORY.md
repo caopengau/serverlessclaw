@@ -23,7 +23,7 @@ Serverless Claw uses a tiered, evolutionary memory system designed to provide co
 +---------------------------------------------------------------------+
 |                                                                     |
 |  [ TIER 1: CORE INTELLIGENCE ] --------> Retain: 2 Years (730d)     |
-|  - Key: DISTILLED# / LESSON# / GAP#                                 |
+|  - Key: DISTILLED# / LESSON# / GAP# / INSIGHT: / MEMORY:            |
 |  - Purpose: Permanent identity, tactical lessons, strategic roadmaps.|
 |                                                                     |
 |  [ TIER 2: HUMAN CONVERSATION ] -------> Retain: 30 Days            |

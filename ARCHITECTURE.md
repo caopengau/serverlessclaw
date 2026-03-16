@@ -12,6 +12,7 @@ This document covers the AWS topology and data flow. For agent logic and orchest
 3.  **Low Latency**: Optimized for fast startup times to minimize "time-to-first-token".
 4.  **Safety-First**: Implements nested guardrails including Circuit Breakers, Recursion Limits, and Protected Scopes.
 5.  **Proactive**: Agents can self-schedule future tasks and "wake-up" calls, moving beyond reactive event processing to autonomous goal achievement.
+6.  **AI-Native**: Optimized for agent-human pair programming by prioritizing semantic transparency, strict neural typing, and direct schema definitions over traditional boilerplate indirection.
 
 ---
 

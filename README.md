@@ -46,6 +46,9 @@ The system maintains a real-time topology of itself. Using the **Build Monitor**
 ### 6. Multi-Modal Vision & File Intelligence
 The agent swarm isn't limited to text. By bridging Telegram media to S3, Serverless Claw can analyze photos, summarize PDFs, and process audio messages in real-time. It leverages the latest Vision-language models (VLM) for direct image comprehension and custom tools for deep file introspection.
 
+### 7. AI-Native Coding for LLM Transparency
+We prioritize **Semantic Transparency** over traditional boilerplate. By using direct string literals for schema definitions (avoiding redundant constant indirections) and strict TypeScript union types, we minimize the "Reasoning Tax" on LLMs. The codebase is designed to be as readable to an agent as it is to a human developer, maximizing zero-shot task accuracy.
+
 ## 🏗️ Architecture & Tech Stack
 
 ### Dashboard Organization (ClawCenter)
@@ -56,11 +59,12 @@ The dashboard is structured into four primary command sectors:
 - **Observability**: Security manifests and self-healing resilience hubs.
 
 ### Tiered Memory Engine
-Serverless Claw uses a tiered, evolutionary memory system:
-- **`DISTILLED#` (Facts)**: Long-term user preferences and project context.
-- **`LESSON#` (Tactical)**: Short-term heuristics and technical "gotchas" learned from errors.
-- **`GAP#` (Strategic)**: A backlog of missing capabilities identified by the Reflector.
-- **`TRACE#` (Short-term)**: Mechanical execution logs of current and recent sessions.
+Serverless Claw uses a tiered, evolutionary memory system with **Flexible Neural Typing**:
+- **`DISTILLED#` (Facts)**: Long-term user preferences and project identity.
+- **`LESSON#` (Tactical)**: Actionable heuristics learned from past technical failures.
+- **`GAP#` (Strategic)**: Capability backlog driving the Self-Evolution loop.
+- **`INSIGHT:` / `MEMORY:` (Flexible)**: Dynamic, self-registered categories (e.g., `MEMORY:ARCHITECTURE_CHOICES`) for specialized reasoning context.
+- **`TRACE#` (Operational)**: Short-term mechanical execution logs (24h retention).
 
 ### Tech Stack Overview
 - **Framework**: [SST (Serverless Stack) v3 / Ion](https://sst.dev)
@@ -143,12 +147,13 @@ make dev
 | Doc | Purpose |
 |-----|---------|
 | [INDEX.md](./INDEX.md) | **Hub** — start here, progressive context loading map |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | System topology & detailed AWS resource diagram |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | System topology, data flow, & **AI-Native Principles** |
 | [docs/DEVOPS.md](./docs/DEVOPS.md) | **DevOps Hub** — automation, make targets, & CI/CD |
-| [docs/AGENTS.md](./docs/AGENTS.md) | Agent roster, orchestration flow, prompt summaries |
+| [docs/AGENTS.md](./docs/AGENTS.md) | Agent roster, orchestration flow, & Evolutionary loop |
+| [docs/LLM.md](./docs/LLM.md) | Reasoning profiles & LLM provider bridges |
 | [docs/MEMORY.md](./docs/MEMORY.md) | Tiered memory engine & co-management prioritization |
-| [docs/TOOLS.md](./docs/TOOLS.md) | Full tool registry & deployment lifecycle |
-| [docs/SAFETY.md](./docs/SAFETY.md) | Circuit breakers, rollback, HITL guardrails |
+| [docs/TOOLS.md](./docs/TOOLS.md) | Full tool registry & **AI-Native Tool Standards** |
+| [docs/SAFETY.md](./docs/SAFETY.md) | Circuit breakers, rollback, & HITL guardrails |
 | [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Dev workflow & documentation standards |
 | [docs/RESEARCH.md](./docs/RESEARCH.md) | Architectural decisions & design research |
 | [docs/ROADMAP.md](./docs/ROADMAP.md) | Planned features |
