@@ -33,7 +33,8 @@ interface Schedule {
   };
 }
 
-const formatFrequency = (expression: string) => {
+const formatFrequency = (expression?: string) => {
+  if (!expression) return 'Unknown';
   if (expression.startsWith('rate(')) {
     const match = expression.match(/rate\((\d+)\s+(\w+)\)/);
     if (match) {
@@ -53,7 +54,7 @@ const formatFrequency = (expression: string) => {
 
 const getNextRun = (schedule: Schedule) => {
   if (schedule.State !== 'ENABLED') return 'Paused';
-  if (!schedule.CreationDate) return 'Unknown';
+  if (!schedule.CreationDate || !schedule.ScheduleExpression) return 'Unknown';
 
   const expression = schedule.ScheduleExpression;
   const created = new Date(schedule.CreationDate).getTime();
