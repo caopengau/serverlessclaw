@@ -87,18 +87,18 @@ export async function saveConversationMeta(
   }
 
   const isPinned = meta.isPinned !== undefined ? meta.isPinned : existing?.isPinned || false;
-  
+
   let expiresAt: number | undefined;
   if (isPinned) {
     // Pinned items do not expire (effectively)
-    expiresAt = 0; 
+    expiresAt = 0;
   } else {
     const retention = await RetentionManager.getExpiresAt('SESSIONS', userId);
     expiresAt = retention.expiresAt;
   }
 
   const { type } = await RetentionManager.getExpiresAt('SESSIONS', userId);
-  
+
   await base.putItem({
     userId: `SESSIONS#${userId}`,
     timestamp: Date.now(),
