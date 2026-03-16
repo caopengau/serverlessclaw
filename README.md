@@ -25,7 +25,7 @@ Our agents have calculated a 99.8% probability that a **Star** or **Fork** from 
 
 ---
 
-**Serverless Claw** is a production-grade implementation of the **OpenClaw** platform, optimized for zero human intervention. It features an orchestrated swarm of agents that can write code, modify their own AWS infrastructure, and deploy updates on the fly—all with **Zero Idle Costs**.
+**Serverless Claw** is a **cutting-edge, event-driven, and AI-native** implementation of the **OpenClaw** platform, currently in its **evolving** early-access phase. It features an orchestrated swarm of agents that can write code, modify their own AWS infrastructure, and deploy updates on the fly—all with **Zero Idle Costs**.
 
 ![Serverless Claw Dashboard](./dashboard/public/clawcenter.png)
 
