@@ -1,4 +1,4 @@
-import { SharedContext, getValidSecrets, getDomainConfig } from './shared';
+import { SharedContext, getValidSecrets, getDomainConfig, AGENT_CONFIG } from './shared';
 
 /**
  * Deploys the Next.js dashboard for monitoring and managing the agents.
