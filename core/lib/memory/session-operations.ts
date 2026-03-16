@@ -8,6 +8,7 @@
 import { Message, ConversationMeta } from '../types/index';
 import { RetentionManager } from './tiering';
 import type { BaseMemoryProvider } from './base';
+import { filterPIIFromObject } from '../utils/pii';
 
 /**
  * Appends a new message with tiered retention.
@@ -18,12 +19,13 @@ export async function addMessage(
   message: Message
 ): Promise<void> {
   const { expiresAt, type } = await RetentionManager.getExpiresAt('MESSAGES', userId);
+  const scrubbedMessage = filterPIIFromObject(message);
   await base.putItem({
     userId,
     timestamp: Date.now(),
     type,
     expiresAt,
-    ...message,
+    ...scrubbedMessage,
   });
 }
 

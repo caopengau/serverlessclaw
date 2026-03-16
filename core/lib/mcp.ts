@@ -4,6 +4,7 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { ITool, JsonSchema } from './types/tool';
 import { logger } from './logger';
 import { AgentRegistry } from './registry';
+import { checkFileSecurity } from './utils/fs-security';
 
 /**
  * MCPBridge allows ServerlessClaw to connect to external Model Context Protocol servers.
@@ -135,38 +136,71 @@ export class MCPBridge {
       }
 
       const response = await client!.listTools();
-      return response.tools.map((mcpTool) => ({
-        name: `${serverName}_${mcpTool.name}`,
-        description: mcpTool.description || `Tool from ${serverName} server.`,
-        parameters: mcpTool.inputSchema as JsonSchema,
-        execute: async (toolArgs: Record<string, unknown>) => {
-          try {
-            if (!client) throw new Error('MCP Client not initialized');
-            const result = await client.callTool({
-              name: mcpTool.name,
-              arguments: toolArgs,
-            });
-            return JSON.stringify(result.content);
-          } catch (execError: unknown) {
-            const error = execError as Error & { code?: string };
-            const errorDetails = {
-              message: error?.message,
-              code: error?.code,
-              stack: error?.stack,
-              nodeVersion: process.version,
-              memoryUsage: process.memoryUsage(),
-              server: serverName,
-              tool: mcpTool.name,
-            };
-            logger.error(`MCP Tool Execution Error Details:`, JSON.stringify(errorDetails));
+      return response.tools.map((mcpTool) => {
+        const isFilesystemTool =
+          serverName === 'filesystem' || mcpTool.name.startsWith('filesystem_');
+        const toolName = `${serverName}_${mcpTool.name}`;
 
-            if (error?.message?.includes('Connection closed')) {
-              this.clients.delete(serverName); // Force re-connect on next call
+        // 2026: Inject manuallyApproved parameter into filesystem tool schemas for human-in-the-loop self-evolution
+        const parameters = mcpTool.inputSchema as JsonSchema;
+        if (isFilesystemTool && parameters.type === 'object' && parameters.properties) {
+          parameters.properties.manuallyApproved = {
+            type: 'boolean',
+            description:
+              'Must be true if modifying a protected system file, after explicit human approval.',
+          };
+        }
+
+        return {
+          name: toolName,
+          description: mcpTool.description || `Tool from ${serverName} server.`,
+          parameters,
+          execute: async (toolArgs: Record<string, unknown>) => {
+            // Enforcement Layer for MCP Filesystem tools
+            if (isFilesystemTool) {
+              const filePath =
+                (toolArgs.path as string) ||
+                (toolArgs.path_to_file as string) ||
+                (toolArgs.file_path as string) ||
+                (toolArgs.path as string);
+              if (filePath) {
+                const securityError = checkFileSecurity(
+                  filePath,
+                  toolArgs.manuallyApproved as boolean,
+                  `MCP operation (${mcpTool.name})`
+                );
+                if (securityError) return securityError;
+              }
             }
-            throw execError;
-          }
-        },
-      }));
+
+            try {
+              if (!client) throw new Error('MCP Client not initialized');
+              const result = await client.callTool({
+                name: mcpTool.name,
+                arguments: toolArgs,
+              });
+              return JSON.stringify(result.content);
+            } catch (execError: unknown) {
+              const error = execError as Error & { code?: string };
+              const errorDetails = {
+                message: error?.message,
+                code: error?.code,
+                stack: error?.stack,
+                nodeVersion: process.version,
+                memoryUsage: process.memoryUsage(),
+                server: serverName,
+                tool: mcpTool.name,
+              };
+              logger.error(`MCP Tool Execution Error Details:`, JSON.stringify(errorDetails));
+
+              if (error?.message?.includes('Connection closed')) {
+                this.clients.delete(serverName); // Force re-connect on next call
+              }
+              throw execError;
+            }
+          },
+        };
+      });
     } catch (e: unknown) {
       logger.error(`Failed to fetch tools from MCP server ${serverName}:`, e);
       this.clients.delete(serverName); // Clean up failed attempts

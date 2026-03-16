@@ -8,6 +8,7 @@
 import { MemoryInsight, InsightMetadata, InsightCategory } from '../types/index';
 import { RetentionManager } from './tiering';
 import type { BaseMemoryProvider } from './base';
+import { filterPII } from '../utils/pii';
 
 /**
  * Shared implementation for adding granular records (Insights/Memories)
@@ -22,6 +23,7 @@ async function addRecord(
 ): Promise<number> {
   const { expiresAt } = await RetentionManager.getExpiresAt(baseCategory, scopeId);
   const timestamp = Date.now();
+  const scrubbedContent = filterPII(content);
   // Unify all flexible memory under the MEMORY: prefix for 2026 simplicity
   const fullType = `MEMORY:${category.toUpperCase()}`;
 
@@ -47,7 +49,7 @@ async function addRecord(
     timestamp,
     type: fullType,
     expiresAt,
-    content,
+    content: scrubbedContent,
     metadata: {
       category,
       confidence: 10,
@@ -106,7 +108,7 @@ export async function addLesson(
     timestamp,
     type,
     expiresAt,
-    content: lesson,
+    content: filterPII(lesson),
     metadata: metadata || {
       category: InsightCategory.TACTICAL_LESSON,
       confidence: 5,

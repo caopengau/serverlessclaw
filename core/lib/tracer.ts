@@ -11,6 +11,7 @@ import { TraceSource } from './types/agent';
 import { v4 as uuidv4 } from 'uuid';
 import { TRACE_STATUS, TIME } from './constants';
 import { logger } from './logger';
+import { filterPIIFromObject } from './utils/pii';
 import type { TraceStep, Trace } from './tracer/types';
 
 // Re-export types for backward compatibility
@@ -129,11 +130,11 @@ export class ClawTracer {
    * @returns A promise that resolves when the step is added.
    */
   async addStep(step: Omit<TraceStep, 'stepId' | 'timestamp'>): Promise<void> {
-    const fullStep: TraceStep = {
+    const fullStep: TraceStep = filterPIIFromObject({
       ...step,
       stepId: uuidv4(),
       timestamp: Date.now(),
-    } as TraceStep;
+    }) as TraceStep;
 
     await docClient.send(
       new UpdateCommand({

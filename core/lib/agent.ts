@@ -108,13 +108,11 @@ export class Agent {
         logger.error('Error checking recovery context:', e);
       }
 
-      if (!isContinuation) {
-        await this.memory.addMessage(storageId, {
-          role: MessageRole.USER,
-          content: userText,
-          attachments: incomingAttachments,
-        });
-      }
+      await this.memory.addMessage(storageId, {
+        role: MessageRole.USER,
+        content: userText,
+        attachments: incomingAttachments,
+      });
 
       // 2. Model/Provider Resolution
       let activeModel: string | undefined = this.config?.model;

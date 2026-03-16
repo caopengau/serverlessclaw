@@ -97,7 +97,7 @@ To maximize semantic transparency for both humans and AI agents, follow these ru
 
 ## 🛡️ Protected Files
 
-The `fileWrite` tool blocks writes to these files to prevent accidental system destruction:
+The system enforces protection via a centralized `isProtectedPath` utility. All filesystem-related tools (both local and MCP-driven like `filesystem_write_file`) block writes to these files to prevent accidental system destruction:
 
 ```
 sst.config.ts
@@ -108,7 +108,7 @@ buildspec.yml
 infra/**
 ```
 
-Any attempt returns `PERMISSION_DENIED` and the Coder Agent **must** request `MANUAL_APPROVAL_REQUIRED` from the human on Telegram/Slack.
+Any attempt without explicit approval returns `PERMISSION_DENIED`. The Coder Agent **must** request `MANUAL_APPROVAL_REQUIRED` from the human on Telegram/Slack. Once approved, the agent can retry with the `manuallyApproved: true` parameter.
 
 ---
 
@@ -185,7 +185,7 @@ To ensure tools are always available even in unstable network conditions or Lamb
 ## 📡 Deploy Lifecycle (Tool Sequence)
 
 ```text
-dispatchTask (coder) → mcp-filesystem-write → [human approves if protected]
+dispatchTask (coder) → filesystem_write_file → [human approves if protected]
                                                      ↓
                                            triggerDeployment
                                                      ↓

@@ -58,6 +58,23 @@ export const triggerDeployment = {
         return `CIRCUIT_BREAKER_ACTIVE: Daily deployment limit reached (${LIMIT}). Autonomous deployment blocked for today (${today}). Reason for attempt: ${reason}`;
       }
 
+      // Check for exponential backoff on gaps
+      if (gapIds && gapIds.length > 0) {
+        const { getAgentContext } = await import('../lib/utils/agent-helpers');
+        const { memory } = await getAgentContext();
+        for (const gapId of gapIds) {
+          const gaps = await memory.getAllGaps();
+          const gap = gaps.find((g) => g.id === `GAP#${gapId}` || g.id === gapId);
+          if (gap && gap.metadata.retryCount && gap.metadata.retryCount > 0) {
+            const backoffTime = Math.pow(2, gap.metadata.retryCount) * 15 * 60 * 1000; // base 15 mins
+            const lastAttempt = gap.timestamp; // Not ideal, but we can use this or add a lastAttempt field
+            if (Date.now() - lastAttempt < backoffTime) {
+              return `BACKOFF_ACTIVE: Gap ${gapId} is in exponential backoff. Next attempt allowed in ${Math.round((backoffTime - (Date.now() - lastAttempt)) / 60000)} minutes.`;
+            }
+          }
+        }
+      }
+
       const warning =
         LIMIT > 20
           ? `\n⚠️ WARNING: High deployment limit (${LIMIT}) may result in significant LLM token consumption and AWS costs.`

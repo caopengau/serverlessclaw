@@ -38,6 +38,8 @@ export interface InsightMetadata {
   hitCount?: number;
   /** Timestamp (Unix epoch) of the last time this memory was recalled. */
   lastAccessed?: number;
+  /** Number of times we have attempted to resolve this gap. */
+  retryCount?: number;
 }
 
 /**

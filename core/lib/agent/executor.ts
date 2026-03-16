@@ -88,6 +88,21 @@ export class AgentExecutor {
     let responseText = '';
     const attachments: NonNullable<Message['attachments']> = [];
 
+    // 0. Global Pause Check (Kill Switch)
+    try {
+      const { DYNAMO_KEYS } = await import('../constants');
+      const isPaused = await AgentRegistry.getRawConfig(DYNAMO_KEYS.GLOBAL_PAUSE);
+      if (isPaused === true) {
+        logger.warn(`Agent execution blocked: GLOBAL_PAUSE is active.`);
+        return {
+          responseText:
+            'SYSTEM_PAUSED: All autonomous agent activities have been globally suspended by the administrator. Please contact your system operator to resume operations.',
+        };
+      }
+    } catch (e) {
+      logger.error('Failed to check GLOBAL_PAUSE status, proceeding with caution:', e);
+    }
+
     while (iterations < maxIterations) {
       // 1. Timeout Check
       if (context && typeof context.getRemainingTimeInMillis === 'function') {
@@ -200,6 +215,16 @@ export class AgentExecutor {
               name: toolCall.function.name,
               content: resultText,
             });
+
+            // 4. HITL/Pause Optimization: Break loop immediately if tool returns TASK_PAUSED
+            if (resultText.startsWith('TASK_PAUSED')) {
+              return {
+                responseText: resultText,
+                paused: true,
+                pauseMessage: resultText,
+                attachments,
+              };
+            }
           } else {
             logger.info(
               `Tool ${toolCall.function.name} requested but no local implementation found.`

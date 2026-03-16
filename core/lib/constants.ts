@@ -21,6 +21,10 @@ export const PROTECTED_FILES = [
   'core/agents/superclaw.ts',
   'core/lib/agent.ts',
   'buildspec.yml',
+  'core/lib/constants.ts',
+  'package.json',
+  'package-lock.json',
+  '.env',
   'infra/',
 ] as const;
 
@@ -40,6 +44,7 @@ export const RETENTION = {
 export const DYNAMO_KEYS = {
   DEPLOY_LIMIT: 'deploy_limit',
   RECURSION_LIMIT: 'recursion_limit',
+  GLOBAL_PAUSE: 'global_pause',
   AGENTS_CONFIG: 'agents_config',
   INFRA_CONFIG: 'infra_config',
   SYSTEM_TOPOLOGY: 'system_topology',
