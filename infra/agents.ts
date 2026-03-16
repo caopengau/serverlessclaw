@@ -124,7 +124,7 @@ export function createAgents(ctx: SharedContext): {
 
   new aws.iam.RolePolicy('DynamicSchedulerPolicy', {
     role: schedulerRole.name,
-    policy: JSON.stringify({
+    policy: $util.jsonStringify({
       Version: '2012-10-17',
       Statement: [
         {

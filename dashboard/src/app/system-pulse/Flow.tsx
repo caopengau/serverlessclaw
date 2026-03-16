@@ -251,11 +251,11 @@ export function FlowContent() {
             fontSize: (isMainOrch || isProactive) ? 10 : 8, 
             fontWeight: 'black', 
             fontFamily: 'monospace',
-            transform: isBiDirectional ? `translate(0, ${isPrimary ? -12 : 12}px)` : undefined
+            transform: isBiDirectional ? `translate(0, ${isPrimary ? -16 : 16}px)` : undefined
           },
-          labelBgStyle: { fill: '#010101', fillOpacity: 0.95 },
-          labelBgPadding: [6, 4],
-          labelBgBorderRadius: 4,
+          labelBgStyle: { fill: '#010101', fillOpacity: 0.7 },
+          labelBgPadding: [4, 2],
+          labelBgBorderRadius: 2,
           style: { 
             stroke: strokeColor, 
             strokeWidth: (isMainOrch || isProactive) ? 2.5 : (isBusSignal ? 1.5 : 1.2),
