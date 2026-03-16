@@ -506,10 +506,11 @@ export default function ScheduleList() {
                     name="agentId"
                     className="w-full bg-white/[0.03] border border-white/10 focus:border-blue-500/40 rounded-lg py-2.5 px-3 text-xs text-white outline-none transition-all appearance-none"
                   >
-                    <option value="planner" className="bg-slate-900">PLANNER</option>
+                    <option value="strategic-planner" className="bg-slate-900">PLANNER</option>
                     <option value="coder" className="bg-slate-900">CODER</option>
-                    <option value="worker" className="bg-slate-900">WORKER</option>
-                    <option value="reflector" className="bg-slate-900">REFLECTOR</option>
+                    <option value="cognition-reflector" className="bg-slate-900">REFLECTOR</option>
+                    <option value="qa" className="bg-slate-900">QA_ENGINEER</option>
+                    <option value="worker" className="bg-slate-900">GENERIC_WORKER</option>
                   </select>
                 </div>
                 
