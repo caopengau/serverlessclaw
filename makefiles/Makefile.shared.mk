@@ -81,9 +81,9 @@ endef
 
 .PHONY: show-env
 show-env: ## Show current environment variables (filtered)
-	@$(call load_env)
-	@$(call log_info,Current Environment Settings:)
-	@env | grep -E "^(SST_|AWS_|TELEGRAM_|OPENAI_|GITHUB_)" | sort || true
+	@$(call load_env); \
+	$(call log_info,Current Environment Settings (Loaded from files):); \
+	env | grep -E "^(SST_|AWS_|TELEGRAM_|OPENAI_|GITHUB_)" | sort || true
 
 # Common track_time macro
 define track_time
