@@ -65,6 +65,7 @@
     ]
   },
   "devDependencies": {
+    "@aiready/cli": "0.14.7",
     "@eslint/js": "^10.0.1",
     "@types/archiver": "^7.0.0",
     "@types/aws-lambda": "^8.10.161",
