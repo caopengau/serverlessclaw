@@ -16,6 +16,12 @@ export class MCPBridge {
 
   /**
    * Connects to an MCP server (Local or Remote) and returns its tools.
+   *
+   * @param serverName - The unique identifier for the MCP server.
+   * @param connectionString - The command to spawn or URL to connect to.
+   * @param env - Optional environment variables for the server process.
+   * @param forceLocal - Whether to force a local connection even if a hub is available.
+   * @returns A promise resolving to an array of discovered ITool objects.
    */
   static async getToolsFromServer(
     serverName: string,
@@ -210,6 +216,9 @@ export class MCPBridge {
 
   /**
    * Discovers and loads tools from configured MCP servers, optionally filtered by requested tool names.
+   *
+   * @param requestedTools - Optional list of tool names the agent wants to use.
+   * @returns A promise resolving to an array of consolidated ITool objects.
    */
   static async getExternalTools(requestedTools?: string[]): Promise<ITool[]> {
     let serversConfig = (await AgentRegistry.getRawConfig('mcp_servers')) as Record<
@@ -298,6 +307,8 @@ export class MCPBridge {
 
   /**
    * Retrieves tool definitions from cache without connecting to MCP servers.
+   *
+   * @returns A promise resolving to an array of partially defined cached tool objects.
    */
   static async getCachedTools(): Promise<Partial<ITool>[]> {
     const cached = await AgentRegistry.getRawConfig('mcp_tools_cache');
@@ -306,6 +317,8 @@ export class MCPBridge {
 
   /**
    * Cleanup connections.
+   *
+   * @returns A promise resolving when all connections are closed.
    */
   static async closeAll(): Promise<void> {
     for (const client of this.clients.values()) {

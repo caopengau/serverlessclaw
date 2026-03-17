@@ -24,13 +24,18 @@ const typedResource = Resource as unknown as SSTResource;
 export class BaseMemoryProvider {
   /**
    * Resolves table name lazily.
+   *
+   * @returns The resolved table name string.
    */
   protected get tableName(): string {
     return typedResource?.MemoryTable?.name || 'MemoryTable';
   }
 
   /**
-   * Internal helper to put an item into DynamoDB
+   * Internal helper to put an item into DynamoDB.
+   *
+   * @param item - The item object to store.
+   * @returns A promise resolving when the operation is complete.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async putItem(item: any): Promise<void> {
@@ -46,7 +51,10 @@ export class BaseMemoryProvider {
   }
 
   /**
-   * Internal helper for Query commands
+   * Internal helper for Query commands.
+   *
+   * @param params - The DynamoDB QueryCommand parameters.
+   * @returns A promise resolving to an array of items.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async queryItems(params: any): Promise<any[]> {
@@ -64,7 +72,10 @@ export class BaseMemoryProvider {
   }
 
   /**
-   * Internal helper for Delete commands
+   * Internal helper for Delete commands.
+   *
+   * @param key - The primary key of the item to delete.
+   * @returns A promise resolving when the operation is complete.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async deleteItem(key: Record<string, any>): Promise<void> {
@@ -81,7 +92,10 @@ export class BaseMemoryProvider {
   }
 
   /**
-   * Internal helper for Update commands
+   * Internal helper for Update commands.
+   *
+   * @param params - The DynamoDB UpdateCommand parameters.
+   * @returns A promise resolving to the update result.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public async updateItem(params: any): Promise<any> {
@@ -93,7 +107,10 @@ export class BaseMemoryProvider {
   }
 
   /**
-   * Standard implementation for getHistory
+   * Standard implementation for getHistory.
+   *
+   * @param userId - The user identifier to retrieve history for.
+   * @returns A promise resolving to an array of Message objects.
    */
   async getHistory(userId: string): Promise<Message[]> {
     const items = await this.queryItems({
@@ -116,7 +133,10 @@ export class BaseMemoryProvider {
   }
 
   /**
-   * Standard implementation for clearHistory
+   * Standard implementation for clearHistory.
+   *
+   * @param userId - The user identifier to clear history for.
+   * @returns A promise resolving when history is cleared.
    */
   async clearHistory(userId: string): Promise<void> {
     const items = await this.queryItems({
@@ -136,7 +156,10 @@ export class BaseMemoryProvider {
   }
 
   /**
-   * Standard implementation for getDistilledMemory
+   * Standard implementation for getDistilledMemory.
+   *
+   * @param userId - The user identifier to retrieve distilled memory for.
+   * @returns A promise resolving to the distilled memory string.
    */
   async getDistilledMemory(userId: string): Promise<string> {
     const items = await this.queryItems({
@@ -152,7 +175,10 @@ export class BaseMemoryProvider {
   }
 
   /**
-   * Standard implementation for listConversations
+   * Standard implementation for listConversations.
+   *
+   * @param userId - The user identifier to list conversations for.
+   * @returns A promise resolving to an array of ConversationMeta objects.
    */
   async listConversations(userId: string): Promise<ConversationMeta[]> {
     const items = await this.queryItems({

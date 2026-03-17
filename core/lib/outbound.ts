@@ -11,6 +11,7 @@ import { EventType, Attachment } from './types/index';
  * @param sessionId - Optional dashboard session ID for targeted delivery.
  * @param agentName - Optional name of the agent sending the message.
  * @param attachments - Optional attachments to include in the message.
+ * @param messageId - Optional ID for the message to track it throughout the system.
  * @returns A promise that resolves when the event has been sent.
  */
 export async function sendOutboundMessage(

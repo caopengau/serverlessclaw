@@ -12,6 +12,11 @@ import { filterPIIFromObject } from '../utils/pii';
 
 /**
  * Appends a new message with tiered retention.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The user identifier.
+ * @param message - The message object to add.
+ * @returns A promise resolving when the message is added.
  */
 export async function addMessage(
   base: BaseMemoryProvider,
@@ -30,7 +35,12 @@ export async function addMessage(
 }
 
 /**
- * Deletes a conversation session and its history
+ * Deletes a conversation session and its history.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The user identifier.
+ * @param sessionId - The session identifier to delete.
+ * @returns A promise resolving when the conversation is deleted.
  */
 export async function deleteConversation(
   base: BaseMemoryProvider,
@@ -53,6 +63,11 @@ export async function deleteConversation(
 /**
  * Updates distilled memory with a 2-year retention policy.
  * Uses a fixed timestamp (0) to ensure we only keep the latest version per user.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The user identifier.
+ * @param facts - The distilled facts string to store.
+ * @returns A promise resolving when memory is updated.
  */
 export async function updateDistilledMemory(
   base: BaseMemoryProvider,
@@ -70,7 +85,13 @@ export async function updateDistilledMemory(
 }
 
 /**
- * Saves or updates session metadata
+ * Saves or updates session metadata.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The user identifier.
+ * @param sessionId - The session identifier.
+ * @param meta - Partial conversation metadata to update.
+ * @returns A promise resolving when metadata is saved.
  */
 export async function saveConversationMeta(
   base: BaseMemoryProvider,
@@ -115,6 +136,11 @@ export async function saveConversationMeta(
 
 /**
  * Universal fetcher for memory items by their type using the GSI.
+ *
+ * @param base - The base memory provider instance.
+ * @param type - The memory type to query.
+ * @param limit - The maximum number of items to retrieve.
+ * @returns A promise resolving to an array of memory items.
  */
 export async function getMemoryByType(
   base: BaseMemoryProvider,
@@ -137,6 +163,9 @@ export async function getMemoryByType(
 
 /**
  * Retrieves the list of active memory types that have been dynamically registered.
+ *
+ * @param base - The base memory provider instance.
+ * @returns A promise resolving to an array of active memory type strings.
  */
 export async function getRegisteredMemoryTypes(base: BaseMemoryProvider): Promise<string[]> {
   const items = await base.queryItems({
@@ -159,6 +188,10 @@ export async function getRegisteredMemoryTypes(base: BaseMemoryProvider): Promis
 
 /**
  * Saves the Last Known Good (LKG) commit hash after a successful health check.
+ *
+ * @param base - The base memory provider instance.
+ * @param hash - The Git commit hash or reference string.
+ * @returns A promise resolving when the hash is saved.
  */
 export async function saveLKGHash(base: BaseMemoryProvider, hash: string): Promise<void> {
   const { expiresAt, type } = await RetentionManager.getExpiresAt('DISTILLED', 'SYSTEM#LKG');
@@ -173,6 +206,9 @@ export async function saveLKGHash(base: BaseMemoryProvider, hash: string): Promi
 
 /**
  * Retrieves the most recent Last Known Good (LKG) commit hash.
+ *
+ * @param base - The base memory provider instance.
+ * @returns A promise resolving to the latest LKG hash or null if not found.
  */
 export async function getLatestLKGHash(base: BaseMemoryProvider): Promise<string | null> {
   const items = await base.queryItems({
@@ -189,6 +225,9 @@ export async function getLatestLKGHash(base: BaseMemoryProvider): Promise<string
 
 /**
  * Atomically increments the system-wide recovery attempt count.
+ *
+ * @param base - The base memory provider instance.
+ * @returns A promise resolving to the new recovery attempt count.
  */
 export async function incrementRecoveryAttemptCount(base: BaseMemoryProvider): Promise<number> {
   const result = await base.updateItem({
@@ -210,6 +249,9 @@ export async function incrementRecoveryAttemptCount(base: BaseMemoryProvider): P
 
 /**
  * Resets the system-wide recovery attempt count.
+ *
+ * @param base - The base memory provider instance.
+ * @returns A promise resolving when the counter is reset.
  */
 export async function resetRecoveryAttemptCount(base: BaseMemoryProvider): Promise<void> {
   await base.updateItem({

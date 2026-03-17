@@ -11,7 +11,15 @@ import type { BaseMemoryProvider } from './base';
 import { filterPII } from '../utils/pii';
 
 /**
- * Shared implementation for adding granular records (Insights/Memories)
+ * Shared implementation for adding granular records (Insights/Memories).
+ *
+ * @param base - The base memory provider instance.
+ * @param baseCategory - The primary category (e.g., 'MEMORY').
+ * @param scopeId - The scope identifier (user or system).
+ * @param category - The specific insight category.
+ * @param content - The textual content of the memory.
+ * @param metadata - Optional additional metadata.
+ * @returns A promise resolving to the timestamp of the record.
  */
 async function addRecord(
   base: BaseMemoryProvider,
@@ -68,6 +76,11 @@ async function addRecord(
 
 /**
  * Atomically increments the hit count and updates the lastAccessed timestamp for a memory item.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The user identifier or scope.
+ * @param timestamp - The unique timestamp of the memory item.
+ * @returns A promise resolving when the hit is recorded.
  */
 export async function recordMemoryHit(
   base: BaseMemoryProvider,
@@ -93,7 +106,13 @@ export async function recordMemoryHit(
 }
 
 /**
- * Adds a tactical lesson
+ * Adds a tactical lesson.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The user identifier.
+ * @param lesson - The lesson content.
+ * @param metadata - Optional insight metadata.
+ * @returns A promise resolving when the lesson is added.
  */
 export async function addLesson(
   base: BaseMemoryProvider,
@@ -124,7 +143,11 @@ export async function addLesson(
 }
 
 /**
- * Retrieves recent tactical lessons
+ * Retrieves recent tactical lessons.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The user identifier.
+ * @returns A promise resolving to an array of lesson content strings.
  */
 export async function getLessons(base: BaseMemoryProvider, userId: string): Promise<string[]> {
   const items = await base.queryItems({
@@ -140,6 +163,13 @@ export async function getLessons(base: BaseMemoryProvider, userId: string): Prom
 
 /**
  * Adds a new granular memory item into the user or global scope.
+ *
+ * @param base - The base memory provider instance.
+ * @param scopeId - The scope identifier (e.g., USER#id or SYSTEM#GLOBAL).
+ * @param category - The memory category.
+ * @param content - The memory content.
+ * @param metadata - Optional insight metadata.
+ * @returns A promise resolving to the timestamp of the new memory item.
  */
 export async function addMemory(
   base: BaseMemoryProvider,
@@ -154,7 +184,13 @@ export async function addMemory(
 import { getRegisteredMemoryTypes, getMemoryByType } from './session-operations';
 
 /**
- * Searches for insights across all categories
+ * Searches for insights across all categories.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The user identifier to scope user-specific insights.
+ * @param query - The search query string (supports '*' for all).
+ * @param category - Optional category to filter results.
+ * @returns A promise resolving to an array of matching MemoryInsight objects.
  */
 export async function searchInsights(
   base: BaseMemoryProvider,
@@ -233,7 +269,13 @@ export async function searchInsights(
 }
 
 /**
- * Updates metadata for a specific insight
+ * Updates metadata for a specific insight.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The user identifier or scope.
+ * @param timestamp - The unique timestamp of the insight.
+ * @param metadata - Partial metadata to update.
+ * @returns A promise resolving when the metadata is updated.
  */
 export async function updateInsightMetadata(
   base: BaseMemoryProvider,
@@ -264,6 +306,10 @@ export async function updateInsightMetadata(
 /**
  * Retrieves memory items with low utilization (low hitCount and old lastAccessed).
  * Scans dynamically registered memory types.
+ *
+ * @param base - The base memory provider instance.
+ * @param limit - The maximum number of stale items to retrieve.
+ * @returns A promise resolving to an array of low-utilization memory items.
  */
 export async function getLowUtilizationMemory(
   base: BaseMemoryProvider,

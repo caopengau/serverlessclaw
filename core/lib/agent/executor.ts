@@ -40,6 +40,10 @@ export class AgentExecutor {
 
   /**
    * Runs the core reasoning loop.
+   *
+   * @param messages - The initial array of messages for the conversation.
+   * @param options - Execution options including model, provider, profile, and trace details.
+   * @returns A promise resolving to the final response text and optional pause state/attachments.
    */
   async runLoop(
     messages: Message[],

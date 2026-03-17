@@ -15,6 +15,9 @@ const PII_PATTERNS = {
 
 /**
  * Filter PII from a string by masking matches with [REDACTED].
+ *
+ * @param text - The text to filter.
+ * @returns The filtered text with sensitive information masked.
  */
 export function filterPII(text: string): string {
   if (!text) return text;
@@ -45,6 +48,9 @@ export function filterPII(text: string): string {
 
 /**
  * Recursively filter PII from an object's string properties.
+ *
+ * @param obj - The object to filter.
+ * @returns A deep copy of the object with PII masked in all string properties.
  */
 export function filterPIIFromObject<T>(obj: T): T {
   if (!obj || typeof obj !== 'object') return obj;

@@ -6,6 +6,13 @@ import { IAgentConfig, ReasoningProfile } from '../types/index';
 export class AgentContext {
   /**
    * Generates the system identity block.
+   *
+   * @param config - The agent configuration object.
+   * @param model - The active model name.
+   * @param provider - The active provider name.
+   * @param profile - The reasoning profile being used.
+   * @param depth - The current recursion depth.
+   * @returns A formatted string containing the system identity.
    */
   static getIdentityBlock(
     config: IAgentConfig | undefined,
@@ -27,6 +34,10 @@ export class AgentContext {
 
   /**
    * Generates the memory index block.
+   *
+   * @param distilled - The distilled facts string.
+   * @param lessonsCount - The number of tactical lessons available.
+   * @returns A formatted string containing the memory index.
    */
   static getMemoryIndexBlock(distilled: string, lessonsCount: number): string {
     return `

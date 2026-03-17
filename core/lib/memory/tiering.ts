@@ -18,6 +18,10 @@ export enum RetentionTiers {
 export class RetentionManager {
   /**
    * Resolves the TTL timestamp and type for a specific memory category.
+   *
+   * @param category - The memory category (e.g., 'MESSAGES', 'LESSONS', 'TRACES').
+   * @param userId - Optional user identifier to handle ephemeral/temporary logic.
+   * @returns A promise resolving to an object containing the expiration timestamp and memory type.
    */
   static async getExpiresAt(
     category: string,
@@ -58,6 +62,8 @@ export class RetentionManager {
 
   /**
    * Cleans up transient or failed states from the system.
+   *
+   * @returns A promise resolving when the cleanup is complete.
    */
   static async performSystemCleanup(): Promise<void> {
     try {

@@ -12,7 +12,11 @@ import { LIMITS, TIME } from '../constants';
 import type { BaseMemoryProvider } from './base';
 
 /**
- * Retrieves all capability gaps filtered by status
+ * Retrieves all capability gaps filtered by status.
+ *
+ * @param base - The base memory provider instance.
+ * @param status - The gap status to filter by (default: OPEN).
+ * @returns A promise resolving to an array of MemoryInsight objects representing gaps.
  */
 export async function getAllGaps(
   base: BaseMemoryProvider,
@@ -51,6 +55,10 @@ export async function getAllGaps(
 /**
  * Archives stale gaps that have been open for longer than the specified days.
  * Returns the number of gaps archived.
+ *
+ * @param base - The base memory provider instance.
+ * @param staleDays - The number of days after which a gap is considered stale.
+ * @returns A promise resolving to the number of archived gaps.
  */
 export async function archiveStaleGaps(
   base: BaseMemoryProvider,
@@ -108,7 +116,13 @@ export async function archiveStaleGaps(
 }
 
 /**
- * Records a new capability gap
+ * Records a new capability gap.
+ *
+ * @param base - The base memory provider instance.
+ * @param gapId - The unique identifier for the gap (usually a timestamp).
+ * @param details - The textual description of the gap.
+ * @param metadata - Optional insight metadata.
+ * @returns A promise resolving when the gap is recorded.
  */
 export async function setGap(
   base: BaseMemoryProvider,
@@ -139,6 +153,10 @@ export async function setGap(
 /**
  * Atomically increments the attempt counter on a capability gap and returns the new count.
  * Used by the self-healing loop to cap infinite reopen/redeploy cycles.
+ *
+ * @param base - The base memory provider instance.
+ * @param gapId - The unique identifier for the gap.
+ * @returns A promise resolving to the new attempt count.
  */
 export async function incrementGapAttemptCount(
   base: BaseMemoryProvider,
@@ -168,7 +186,12 @@ export async function incrementGapAttemptCount(
 }
 
 /**
- * Transitions a capability gap to a new status
+ * Transitions a capability gap to a new status.
+ *
+ * @param base - The base memory provider instance.
+ * @param gapId - The unique identifier for the gap.
+ * @param status - The new status to transition to.
+ * @returns A promise resolving when the status is updated.
  */
 export async function updateGapStatus(
   base: BaseMemoryProvider,

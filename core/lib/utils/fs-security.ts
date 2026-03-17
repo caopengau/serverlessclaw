@@ -2,6 +2,9 @@ import { PROTECTED_FILES } from '../constants';
 
 /**
  * Checks if a file path is protected based on the system's PROTECTED_FILES list.
+ *
+ * @param filePath - The path to the file to check.
+ * @returns True if the file path is protected, otherwise false.
  */
 export function isProtectedPath(filePath: string): boolean {
   if (!filePath) return false;
@@ -37,6 +40,10 @@ export function isProtectedPath(filePath: string): boolean {
 
 /**
  * Validates a file operation against protection rules.
+ *
+ * @param path - The file path to validate.
+ * @param manuallyApproved - Whether the operation has been manually approved by the user.
+ * @param operation - The type of operation being performed (e.g., 'writes', 'deletes'). Defaults to 'writes'.
  * @returns An error message if protected and not approved, otherwise null.
  */
 export function checkFileSecurity(
