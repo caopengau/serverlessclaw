@@ -83,6 +83,39 @@ Initiator (Planner)     AgentBus (EB)       Follower (Coder)
       |                      |                      |
 ```
 
+### Dual-Mode Communication (Intent-Based Orchestration)
+
+To balance deterministic coordination with natural user interaction, the system supports two communication modes, toggled via `AgentProcessOptions.communicationMode`.
+
+| Mode | Target | Protocol | Benefit |
+|------|--------|----------|---------|
+| **JSON** | Agents / System | Native JSON Schema (`strict: true`) | Guaranteed parsing, automated state updates, zero regex. |
+| **Text** | Humans (Chat) | Natural Language | Empathy, nuance, and lower token latency. |
+
+#### Mode Switching Logic
+The `Agent` core automatically injects the **Standard Signal Schema** when `communicationMode: 'json'` is requested. It also performs **Intelligent Response Extraction** to ensure human-readable segments (like plans or messages) are still available for logging and dashboards even when the model output is raw JSON.
+
+```text
+  [ Task Intent ]
+         |
+    +----v----+          (communicationMode)
+    |  Agent  |----------+----------+
+    +---------+          |          |
+         |             [JSON]     [TEXT]
+         |               |          |
+         v               v          v
+    [ Executor ]    (Inject Schema) (Standard)
+         |               |          |
+         v               +----------+
+    [ LLM Call ] ----------> [ Response ]
+                                |
+                    +-----------+-----------+
+                    |                       |
+             (Extract Text)          (Store JSON)
+                    |                       |
+             [ User Chat ]           [ System State ]
+```
+
 ### Routing Metadata
 Every event on the `AgentBus` carries critical routing metadata:
 - **`traceId`**: Consolidates all agent steps into a single unified timeline.

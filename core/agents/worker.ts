@@ -82,6 +82,7 @@ export const handler = async (
       sessionId,
       source: TraceSource.SYSTEM,
       context,
+      communicationMode: config?.defaultCommunicationMode,
     })
   );
 

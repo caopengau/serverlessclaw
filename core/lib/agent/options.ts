@@ -23,4 +23,5 @@ export interface AgentProcessOptions {
   }>;
   source?: TraceSource | string;
   responseFormat?: import('../types/index').ResponseFormat;
+  communicationMode?: 'json' | 'text';
 }

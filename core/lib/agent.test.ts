@@ -249,4 +249,106 @@ describe('Agent Trace Propagation', () => {
       undefined
     );
   });
+
+  describe('Dual-Mode Communication', () => {
+    it('should use text mode by default when not specified', async () => {
+      mockProvider.call = vi
+        .fn()
+        .mockResolvedValue({ role: MessageRole.ASSISTANT, content: 'Hello human' });
+
+      const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+        id: 'test-agent',
+        name: 'Test Agent',
+        enabled: true,
+        systemPrompt: 'System prompt',
+        defaultCommunicationMode: 'text',
+      });
+
+      await agent.process('user-1', 'hi', { source: TraceSource.TELEGRAM });
+
+      expect(mockProvider.call).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.any(Array),
+        expect.anything(),
+        undefined,
+        undefined,
+        undefined // No responseFormat in text mode
+      );
+    });
+
+    it('should inject structured output when communicationMode is json', async () => {
+      const jsonOutput = JSON.stringify({
+        status: 'SUCCESS',
+        message: 'Task completed successfully',
+      });
+      mockProvider.call = vi
+        .fn()
+        .mockResolvedValue({ role: MessageRole.ASSISTANT, content: jsonOutput });
+
+      // Mock capabilities to support structured output
+      mockProvider.getCapabilities = vi.fn().mockResolvedValue({
+        supportedReasoningProfiles: ['standard'],
+        supportsStructuredOutput: true,
+      });
+
+      const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+        id: 'test-agent',
+        name: 'Test Agent',
+        enabled: true,
+        systemPrompt: 'System prompt',
+        defaultCommunicationMode: 'json',
+      });
+
+      await agent.process('user-1', 'do math', { source: TraceSource.SYSTEM });
+
+      // Verify schema was injected (it should be DEFAULT_SIGNAL_SCHEMA)
+      expect(mockProvider.call).toHaveBeenCalledWith(
+        expect.any(Array),
+        expect.any(Array),
+        expect.anything(),
+        undefined,
+        undefined,
+        expect.objectContaining({
+          type: 'json_schema',
+          json_schema: expect.objectContaining({ name: 'agent_signal' }),
+        })
+      );
+
+      // Verify intelligent extraction of the "message" field for the chat history
+      expect(mockMemory.addMessage).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({ content: 'Task completed successfully' })
+      );
+    });
+
+    it('should extract "plan" field from structured output when applicable', async () => {
+      const jsonOutput = JSON.stringify({
+        status: 'SUCCESS',
+        plan: 'New strategy designed.',
+      });
+      mockProvider.call = vi
+        .fn()
+        .mockResolvedValue({ role: MessageRole.ASSISTANT, content: jsonOutput });
+
+      mockProvider.getCapabilities = vi.fn().mockResolvedValue({
+        supportedReasoningProfiles: ['standard'],
+        supportsStructuredOutput: true,
+      });
+
+      const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+        id: 'test-agent',
+        name: 'Test Agent',
+        enabled: true,
+        systemPrompt: 'System prompt',
+        defaultCommunicationMode: 'json',
+      });
+
+      await agent.process('user-1', 'plan', { source: TraceSource.SYSTEM });
+
+      expect(mockMemory.addMessage).toHaveBeenCalledWith(
+        'user-1',
+        expect.objectContaining({ content: 'New strategy designed.' })
+      );
+    });
+  });
 });

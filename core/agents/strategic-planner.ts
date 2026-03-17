@@ -309,6 +309,7 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       traceId,
       sessionId,
       source: TraceSource.SYSTEM,
+      communicationMode: 'json',
       responseFormat: {
         type: 'json_schema',
         json_schema: {

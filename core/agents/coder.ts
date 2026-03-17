@@ -67,6 +67,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       depth,
       traceId,
       sessionId,
+      communicationMode: 'json',
       responseFormat: {
         type: 'json_schema',
         json_schema: {

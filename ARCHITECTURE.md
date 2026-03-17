@@ -306,7 +306,8 @@ The system's evolution is a co-managed process between the **Strategic Planner**
 - **Deep Dive**: [Health & Recovery ↗](./docs/HEALTH.md)
 
 ### Evolution Safeguards
-- **Structured JSON Hub**: Agents emit deterministic signals (`SUCCESS`, `FAILED`, `REOPEN`) rather than brittle free-text responses.
+- **Intent-Based Dual Mode**: Agents toggle between **JSON Mode** (for strict handoffs and state sync) and **Text Mode** (for user-facing empathy). 
+- **Structured JSON Hub**: When in JSON mode, agents emit deterministic signals (`SUCCESS`, `FAILED`, `REOPEN`) matching a strict native schema.
 - **Atomic Metadata Sync**: The `triggerDeployment` tool handles gap-to-build mapping internally to prevent metadata loss.
 - **Deep Health Probes**: The Dead Man's Switch verifies both API responsiveness and backbone connectivity (EventBus).
 

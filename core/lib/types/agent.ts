@@ -161,6 +161,8 @@ export interface IAgentConfig {
   maxIterations?: number;
   /** Whether the agent can call multiple tools in parallel. */
   parallelToolCalls?: boolean;
+  /** Default communication style (JSON for system, Text for human). */
+  defaultCommunicationMode?: 'json' | 'text';
   /** Explicit UI metadata overrides for topology visualization. */
   topologyOverride?: {
     label?: string;

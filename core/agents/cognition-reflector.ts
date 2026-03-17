@@ -187,6 +187,7 @@ export const handler = async (
       traceId,
       sessionId,
       source: TraceSource.SYSTEM,
+      communicationMode: 'json',
       responseFormat: {
         type: 'json_schema',
         json_schema: {

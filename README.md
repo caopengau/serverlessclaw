@@ -41,6 +41,7 @@ A **Star** or **Fork** genuinely helps this project reach more developers. The a
 | *Agent Runtime* | | | | |
 | **Multi-Agent** | Basic "Fire & Forget" | Containerized Swarms | Trait-based Modular | **Non-blocking (Pause & Resume)** |
 | **Self-Evolution** | Plugin-based (Static) | Manual (Human-coded) | Hardware-focused | **Verified Refactor → Planner Loop** |
+| **Communication Mode** | Natural Language | Structured (JSON) | Low-level Buffers | **Dual-Mode (Intent-Based JSON + Text)** |
 | **Skill Acquisition** | Static (Hardcoded) | Static (Hardcoded) | Static (Config-based) | **Just-in-Time (JIT) Skill Discovery** |
 | *Tooling & Integration* | | | | |
 | **Tooling Architecture** | Static Registry | Static (JSON) | Static (Hardcoded) | **Hub-First Dynamic Discovery** |
@@ -62,7 +63,8 @@ A **Star** or **Fork** genuinely helps this project reach more developers. The a
 4. **[Hub-First MCP (JIT Skills)](./docs/TOOLS.md#mcp-skills-external--hybrid)**: Prioritizes external skill hubs with graceful local fallback for infinite tool scaling.
 5. **[Dead Man's Switch (DMS)](./docs/SAFETY.md#dead-mans-switch)**: 15-minute heartbeat probe that triggers automated rollbacks on system failure.
 6. **[Multi-Modal Vision](./ARCHITECTURE.md#multi-modal-storage-flow)**: Bridge Telegram media to S3 for agent-led PDF analysis and image comprehension.
-7. **[AI-Native Codebase](./ARCHITECTURE.md#design-philosophy)**: Semantic transparency and strict neural typing optimized for 0.1s reasoning accuracy.
+7. **[Intent-Based Dual-Mode](./docs/AGENTS.md#dual-mode-communication-intent-based-orchestration)**: Toggles between strict JSON (system) and natural language (human) with intelligent parsing.
+8. **[AI-Native Codebase](./ARCHITECTURE.md#design-philosophy)**: Semantic transparency and strict neural typing optimized for 0.1s reasoning accuracy.
 
 ## 🏗️ Technical Blueprint
 

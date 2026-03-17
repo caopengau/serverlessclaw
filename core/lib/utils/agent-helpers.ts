@@ -241,6 +241,7 @@ export interface ProcessOptionsParams {
   profile?: ReasoningProfile;
   context?: import('aws-lambda').Context;
   responseFormat?: import('../types/index').ResponseFormat;
+  communicationMode?: 'json' | 'text';
 }
 
 /**
@@ -261,6 +262,7 @@ export function buildProcessOptions(params: ProcessOptionsParams): {
   profile?: ReasoningProfile;
   context?: import('aws-lambda').Context;
   responseFormat?: import('../types/index').ResponseFormat;
+  communicationMode?: 'json' | 'text';
 } {
   return {
     isContinuation: !!params.isContinuation,
@@ -273,6 +275,7 @@ export function buildProcessOptions(params: ProcessOptionsParams): {
     profile: params.profile,
     context: params.context,
     responseFormat: params.responseFormat,
+    communicationMode: params.communicationMode,
   };
 }
 

@@ -34,6 +34,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'Bot',
     enabled: true,
     isBackbone: true,
+    defaultCommunicationMode: 'text',
     tools: [
       'dispatchTask',
       'listAgents',
@@ -67,6 +68,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'Code',
     enabled: true,
     isBackbone: true,
+    defaultCommunicationMode: 'json',
     tools: [
       'runTests',
       'runShellCommand',
@@ -119,6 +121,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'Brain',
     enabled: true,
     isBackbone: true,
+    defaultCommunicationMode: 'json',
     tools: [
       TOOL_RECALL_KNOWLEDGE,
       'dispatchTask',
@@ -150,6 +153,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'Search',
     enabled: true,
     isBackbone: true,
+    defaultCommunicationMode: 'json',
     tools: [
       TOOL_RECALL_KNOWLEDGE,
       TOOL_MANAGE_GAP,
@@ -177,6 +181,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'FlaskConical',
     enabled: true,
     isBackbone: true,
+    defaultCommunicationMode: 'json',
     tools: [
       TOOL_RECALL_KNOWLEDGE,
       TOOL_CHECK_HEALTH,

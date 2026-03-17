@@ -9,6 +9,7 @@ import {
   TraceSource,
   Attachment,
   InsightCategory,
+  ResponseFormat,
 } from './types/index';
 import { ClawTracer } from './tracer';
 import { logger } from './logger';
@@ -22,6 +23,28 @@ import { parseConfigInt } from './providers/utils';
 
 // Re-export for backward compatibility
 export type { AgentProcessOptions };
+
+/**
+ * Standard structured output schema for agent coordination.
+ */
+const DEFAULT_SIGNAL_SCHEMA: ResponseFormat = {
+  type: 'json_schema',
+  json_schema: {
+    name: 'agent_signal',
+    strict: true,
+    schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['SUCCESS', 'FAILED', 'CONTINUE', 'REOPEN'] },
+        message: { type: 'string' },
+        data: { type: 'object', additionalProperties: true },
+        coveredGapIds: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['status', 'message'],
+      additionalProperties: false,
+    },
+  },
+};
 
 /**
  * The core Agent class responsible for orchestrating LLM calls, tool execution,
@@ -61,8 +84,14 @@ export class Agent {
       sessionId,
       attachments: incomingAttachments,
       source = TraceSource.UNKNOWN,
-      responseFormat,
+      responseFormat: initialResponseFormat,
+      communicationMode = this.config?.defaultCommunicationMode || 'text',
     } = options;
+
+    const responseFormat =
+      communicationMode === 'json'
+        ? initialResponseFormat || DEFAULT_SIGNAL_SCHEMA
+        : initialResponseFormat;
 
     const baseUserId = userId.startsWith('CONV#') ? userId.split('#')[1] : userId;
     const tracer = new ClawTracer(
@@ -176,7 +205,7 @@ export class Agent {
       }
 
       const {
-        responseText,
+        responseText: initialResponseText,
         paused,
         pauseMessage,
         attachments: resultAttachments,
@@ -199,6 +228,8 @@ export class Agent {
         responseFormat,
       });
 
+      let responseText = initialResponseText;
+
       if (paused) {
         await this.memory.addMessage(storageId, {
           role: MessageRole.ASSISTANT,
@@ -219,6 +250,20 @@ export class Agent {
       }
 
       // 5. Finalize and Response
+      // 2026: Intelligently extract responseText for humans if in JSON mode
+      if (communicationMode === 'json' && responseText) {
+        try {
+          const parsed = JSON.parse(responseText);
+          // Standard field names for human messaging
+          if (parsed.message) responseText = parsed.message;
+          else if (parsed.plan)
+            responseText = parsed.plan; // Better UX for Planner
+          else if (parsed.response) responseText = parsed.response; // Legacy/Coder
+        } catch {
+          // Keep raw text if not JSON-parseable (fallback)
+        }
+      }
+
       await this.memory.addMessage(storageId, {
         role: MessageRole.ASSISTANT,
         content: responseText,
