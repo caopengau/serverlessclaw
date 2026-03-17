@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
-import path from "path";
+const path = require("path");
 
-const nextConfig: any = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   output: 'standalone',
   outputFileTracingRoot: path.join(__dirname, '../'),
   transpilePackages: ['@claw/core'],
@@ -13,6 +13,7 @@ const nextConfig: any = {
     ignoreBuildErrors: true,
   },
   turbopack: {
+    root: path.join(__dirname, '../'),
     rules: {
       '*.md': {
         loaders: ['raw-loader'],
@@ -29,4 +30,4 @@ const nextConfig: any = {
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

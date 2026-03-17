@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Next.js 16 Proxy Function
- * Replaces the deprecated middleware.ts for request interception.
+ * Next.js Proxy Function
+ * Handles request interception for authentication and path filtering.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

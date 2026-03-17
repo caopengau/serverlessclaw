@@ -58,7 +58,7 @@ export function createStorage() {
     AwsRegion: new sst.Secret('AwsRegion'),
     ActiveProvider: new sst.Secret('ActiveProvider'),
     ActiveModel: new sst.Secret('ActiveModel'),
-    GitHubToken: new sst.Secret('GitHubToken', ''),
+    GitHubToken: new sst.Secret('GitHubToken'),
     DashboardPassword: new sst.Secret('DashboardPassword'),
   };
 

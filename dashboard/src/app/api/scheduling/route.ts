@@ -59,8 +59,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { name, action, expression, description, payload } = body;
 
-    const roleArn = (Resource as any).DynamicSchedulerRole?.arn;
-    const targetArn = (Resource as any).HeartbeatHandler?.arn;
+    const roleArn = process.env.DYNAMIC_SCHEDULER_ROLE_ARN;
+    const targetArn = process.env.HEARTBEAT_HANDLER_ARN;
 
     if (action === 'trigger') {
       const existing = await scheduler.send(new GetScheduleCommand({ Name: name }));
