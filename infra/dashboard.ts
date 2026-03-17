@@ -1,4 +1,4 @@
-import { SharedContext, getValidSecrets, getDomainConfig, AGENT_CONFIG } from './shared';
+import { SharedContext, getDomainConfig, AGENT_CONFIG } from './shared';
 
 /**
  * Deploys the Next.js dashboard for monitoring and managing the agents.
@@ -7,29 +7,13 @@ import { SharedContext, getValidSecrets, getDomainConfig, AGENT_CONFIG } from '.
  * @returns An object containing the created dashboard resource.
  */
 export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs } {
-  const {
-    memoryTable,
-    traceTable,
-    configTable,
-    stagingBucket,
-    knowledgeBucket,
-    secrets,
-    bus,
-    deployer,
-    api,
-    realtime,
-  } = ctx;
-
-  const validSecrets = getValidSecrets(secrets);
+  const { memoryTable, traceTable, stagingBucket, knowledgeBucket, bus, deployer, api } = ctx;
 
   const dashboardDomain = getDomainConfig('dashboard');
   const dashboard = new sst.aws.Nextjs('ClawCenter', {
     domain: dashboardDomain,
     path: 'dashboard',
-    link: [
-      memoryTable,
-      traceTable,
-    ],
+    link: [memoryTable, traceTable],
     environment: {
       DEPLOYER_NAME: deployer.name,
       DYNAMIC_SCHEDULER_ROLE_ARN: ctx.schedulerRole!.arn,
@@ -46,7 +30,12 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
     permissions: [
       {
         actions: ['s3:GetObject', 's3:PutObject', 's3:ListBucket', 's3:DeleteObject'],
-        resources: [ctx.stagingBucket.arn, $util.interpolate`${ctx.stagingBucket.arn}/*`, ctx.knowledgeBucket.arn, $util.interpolate`${ctx.knowledgeBucket.arn}/*`],
+        resources: [
+          ctx.stagingBucket.arn,
+          $util.interpolate`${ctx.stagingBucket.arn}/*`,
+          ctx.knowledgeBucket.arn,
+          $util.interpolate`${ctx.knowledgeBucket.arn}/*`,
+        ],
       },
       {
         actions: ['events:PutEvents'],
