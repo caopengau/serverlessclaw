@@ -85,13 +85,11 @@ export default $config({
       realtime,
       heartbeatHandler,
       schedulerRole,
-    } as any);
+    });
 
     return {
       apiUrl: api.url,
       dashboardUrl: dashboard.url,
-      deployerName: deployer.name,
-      busName: bus.name,
     };
   },
 });
