@@ -43,11 +43,16 @@ export const AGENT_CONFIG = {
 /**
  * Returns the optional domain configuration for a component.
  *
- * @param component - The component to get the domain for ('api' | 'dashboard').
+ * @param component - The component to get the domain for ('api' | 'dashboard' | 'router').
  * @returns The domain configuration or undefined if not set.
  */
-export function getDomainConfig(component: 'api' | 'dashboard'): string | undefined {
-  const envVar = component === 'api' ? 'CLAW_DOMAIN_API' : 'CLAW_DOMAIN_DASHBOARD';
+export function getDomainConfig(component: 'api' | 'dashboard' | 'router'): string | undefined {
+  const envVarMap = {
+    api: 'CLAW_DOMAIN_API',
+    dashboard: 'CLAW_DOMAIN_DASHBOARD',
+    router: 'CLAW_DOMAIN_ROUTER',
+  };
+  const envVar = envVarMap[component];
   const domain = process.env[envVar];
 
   if (!domain) return undefined;
