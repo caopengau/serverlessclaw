@@ -12,6 +12,11 @@
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
+    },
+    {
+      "description": "Prevent sst upgrade to v4.3.x which breaks CloudFront subfolder routing",
+      "matchPackageNames": ["sst"],
+      "allowedVersions": "<4.3.0"
     }
   ],
   "vulnerabilityAlerts": {
