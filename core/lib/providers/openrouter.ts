@@ -32,7 +32,8 @@ export class OpenRouterProvider implements IProvider {
     tools?: ITool[],
     profile: ReasoningProfile = ReasoningProfile.STANDARD,
     model?: string,
-    _provider?: string
+    _provider?: string,
+    responseFormat?: import('../types/index').ResponseFormat
   ): Promise<Message> {
     const apiKey = (Resource as unknown as OpenRouterResource).OpenRouterApiKey?.value || '';
     const baseUrl = 'https://openrouter.ai/api/v1';
@@ -92,6 +93,7 @@ export class OpenRouterProvider implements IProvider {
         effort: reasoningEffort,
         enabled: reasoningConfig.enabled,
       },
+      ...(responseFormat ? { response_format: responseFormat } : {}),
       // 2026: Provider routing and privacy defaults
       provider: {
         allow_fallbacks: true,

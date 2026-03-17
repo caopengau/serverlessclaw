@@ -67,7 +67,8 @@ export class BedrockProvider implements IProvider {
     tools?: ITool[],
     profile: ReasoningProfile = ReasoningProfile.STANDARD,
     model?: string,
-    _provider?: string
+    _provider?: string,
+    _responseFormat?: import('../types/index').ResponseFormat
   ): Promise<Message> {
     const typedResource = Resource as unknown as BedrockResource;
     const client = new BedrockRuntimeClient({

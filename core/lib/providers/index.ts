@@ -81,10 +81,11 @@ export class ProviderManager implements IProvider {
     tools?: ITool[],
     profile: ReasoningProfile = ReasoningProfile.STANDARD,
     model?: string,
-    provider?: string
+    provider?: string,
+    responseFormat?: import('../types/index').ResponseFormat
   ): Promise<Message> {
     const activeProvider = await ProviderManager.getActiveProvider(provider, model);
-    return activeProvider.call(messages, tools, profile, model);
+    return activeProvider.call(messages, tools, profile, model, undefined, responseFormat);
   }
 
   async getCapabilities(model?: string) {

@@ -61,6 +61,7 @@ export class Agent {
       sessionId,
       attachments: incomingAttachments,
       source = TraceSource.UNKNOWN,
+      responseFormat,
     } = options;
 
     const baseUserId = userId.startsWith('CONV#') ? userId.split('#')[1] : userId;
@@ -195,6 +196,7 @@ export class Agent {
         userId: baseUserId,
         userText,
         mainConversationId: userId,
+        responseFormat,
       });
 
       if (paused) {

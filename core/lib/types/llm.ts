@@ -132,6 +132,18 @@ export interface ICapabilities {
 }
 
 /**
+ * Format specification for the LLM response.
+ */
+export interface ResponseFormat {
+  type: 'json_schema';
+  json_schema: {
+    name: string;
+    strict: boolean;
+    schema: Record<string, unknown>;
+  };
+}
+
+/**
  * Interface for LLM provider implementations.
  */
 export interface IProvider {
@@ -143,6 +155,7 @@ export interface IProvider {
    * @param profile - The desired reasoning profile.
    * @param model - Optional override for the model ID.
    * @param provider - Optional override for the provider name.
+   * @param responseFormat - Optional structured format for the response.
    * @returns A promise resolving to the AI's message response.
    */
   call(
@@ -150,7 +163,8 @@ export interface IProvider {
     tools?: ITool[],
     profile?: ReasoningProfile,
     model?: string,
-    provider?: string
+    provider?: string,
+    responseFormat?: ResponseFormat
   ): Promise<Message>;
 
   /**

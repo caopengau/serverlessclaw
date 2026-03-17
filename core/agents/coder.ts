@@ -66,6 +66,23 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       depth,
       traceId,
       sessionId,
+      responseFormat: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'coder_result',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['SUCCESS', 'FAILED'] },
+              response: { type: 'string' },
+              buildId: { type: 'string' },
+            },
+            required: ['status', 'response'],
+            additionalProperties: false,
+          },
+        },
+      },
     })
   );
 
@@ -76,8 +93,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   let buildId: string | undefined = undefined;
 
   try {
-    const jsonContent = rawResponse.replace(/```json\n?|\n?```/g, '').trim();
-    const parsed = JSON.parse(jsonContent);
+    const parsed = JSON.parse(rawResponse);
     status = parsed.status || 'SUCCESS';
     responseText = parsed.response || rawResponse;
     buildId = parsed.buildId;

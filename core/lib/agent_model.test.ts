@@ -83,7 +83,8 @@ describe('Agent Model Overrides', () => {
       expect.any(Array),
       expect.any(String),
       'anthropic.claude-3-sonnet',
-      'bedrock'
+      'bedrock',
+      undefined
     );
   });
 

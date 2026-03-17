@@ -186,6 +186,64 @@ export const handler = async (
       traceId,
       sessionId,
       source: TraceSource.SYSTEM,
+      responseFormat: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'reflection_report',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              facts: { type: 'string' },
+              lessons: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    content: { type: 'string' },
+                    category: { type: 'string' },
+                    impact: { type: 'integer', minimum: 1, maximum: 10 },
+                  },
+                  required: ['content', 'category', 'impact'],
+                  additionalProperties: false,
+                },
+              },
+              gaps: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    content: { type: 'string' },
+                    impact: { type: 'integer', minimum: 1, maximum: 10 },
+                    urgency: { type: 'integer', minimum: 1, maximum: 10 },
+                  },
+                  required: ['content', 'impact', 'urgency'],
+                  additionalProperties: false,
+                },
+              },
+              updatedGaps: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    impact: { type: 'integer', minimum: 1, maximum: 10 },
+                    urgency: { type: 'integer', minimum: 1, maximum: 10 },
+                  },
+                  required: ['id', 'impact', 'urgency'],
+                  additionalProperties: false,
+                },
+              },
+              resolvedGapIds: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+            required: ['facts', 'lessons', 'gaps', 'updatedGaps', 'resolvedGapIds'],
+            additionalProperties: false,
+          },
+        },
+      },
     }
   );
 
@@ -193,9 +251,7 @@ export const handler = async (
 
   if (response && !isFailure) {
     try {
-      // Clean potential markdown formatting from JSON
-      const jsonContent = response.replace(/```json\n?|\n?```/g, '').trim();
-      const parsed = JSON.parse(jsonContent);
+      const parsed = JSON.parse(response);
 
       // 1. Handle Facts
       if (parsed.facts && parsed.facts !== existingFacts) {

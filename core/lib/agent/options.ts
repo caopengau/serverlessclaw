@@ -22,4 +22,5 @@ export interface AgentProcessOptions {
     mimeType?: string;
   }>;
   source?: TraceSource | string;
+  responseFormat?: import('../types/index').ResponseFormat;
 }

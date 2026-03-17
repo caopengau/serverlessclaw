@@ -63,6 +63,7 @@ export class AgentExecutor {
       userId: string;
       userText: string;
       mainConversationId: string;
+      responseFormat?: import('../types/index').ResponseFormat;
     }
   ): Promise<{
     responseText: string;
@@ -86,6 +87,7 @@ export class AgentExecutor {
       userId,
       userText,
       mainConversationId,
+      responseFormat,
     } = options;
 
     let iterations = 0;
@@ -145,7 +147,8 @@ export class AgentExecutor {
         this.tools,
         normalizedProfile,
         activeModel,
-        activeProvider
+        activeProvider,
+        responseFormat
       );
 
       await tracer.addStep({

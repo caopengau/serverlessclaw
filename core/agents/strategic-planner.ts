@@ -308,6 +308,23 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       traceId,
       sessionId,
       source: TraceSource.SYSTEM,
+      responseFormat: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'strategic_plan',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              status: { type: 'string', enum: ['SUCCESS', 'FAILED'] },
+              plan: { type: 'string' },
+              coveredGapIds: { type: 'array', items: { type: 'string' } },
+            },
+            required: ['status', 'plan', 'coveredGapIds'],
+            additionalProperties: false,
+          },
+        },
+      },
     }
   );
 
@@ -318,8 +335,7 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   let coveredGapIds: string[] = [];
 
   try {
-    const jsonContent = rawResponse.replace(/```json\n?|\n?```/g, '').trim();
-    const parsed = JSON.parse(jsonContent);
+    const parsed = JSON.parse(rawResponse);
     status = parsed.status || 'SUCCESS';
     plan = parsed.plan || rawResponse;
     coveredGapIds = parsed.coveredGapIds || [];

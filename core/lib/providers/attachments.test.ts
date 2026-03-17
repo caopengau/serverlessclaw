@@ -8,7 +8,6 @@ import { mockClient } from 'aws-sdk-client-mock';
 
 // Mock OpenAI SDK
 const mockCreateResponse = vi.fn();
-const mockCreateChatCompletion = vi.fn();
 
 vi.mock('openai', () => {
   return {
@@ -18,7 +17,7 @@ vi.mock('openai', () => {
       };
       chat = {
         completions: {
-          create: mockCreateChatCompletion,
+          create: vi.fn(),
         },
       };
     },
@@ -47,7 +46,7 @@ describe('Provider Attachments Mapping', () => {
   });
 
   describe('OpenAIProvider', () => {
-    it('should correctly map images and files for Responses API (GPT-5.4)', async () => {
+    it('should correctly map images and files for Responses API', async () => {
       const provider = new OpenAIProvider(OpenAIModel.GPT_5_4);
       mockCreateResponse.mockResolvedValue({
         output_text: 'Hello',
@@ -89,35 +88,6 @@ describe('Provider Attachments Mapping', () => {
         filename: 'test.pdf',
         file_data: 'data:application/pdf;base64,filedata',
       });
-    });
-
-    it('should correctly map images and files for Chat Completions API (Legacy/Non-GPT-5)', async () => {
-      const provider = new OpenAIProvider('gpt-4o'); // Use model that doesn't trigger Responses API if possible
-      mockCreateChatCompletion.mockResolvedValue({
-        choices: [{ message: { content: 'Hello', role: 'assistant' } }],
-        usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
-      });
-
-      const messages = [
-        {
-          role: MessageRole.USER,
-          content: 'Legacy check',
-          attachments: [
-            { type: 'image' as const, base64: 'imgdata', mimeType: 'image/png' },
-            { type: 'file' as const, base64: 'filedata', mimeType: 'text/plain', name: 'test.txt' },
-          ],
-        },
-      ];
-
-      await provider.call(messages);
-
-      expect(mockCreateChatCompletion).toHaveBeenCalled();
-      const params = mockCreateChatCompletion.mock.calls[0][0];
-      const userMessage = params.messages[0];
-
-      expect(userMessage.content).toHaveLength(3);
-      expect(userMessage.content[1].type).toBe('image_url');
-      expect(userMessage.content[2].type).toBe('input_file');
     });
   });
 

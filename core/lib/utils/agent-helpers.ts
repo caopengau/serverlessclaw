@@ -208,6 +208,7 @@ export interface ProcessOptionsParams {
   source?: TraceSource;
   profile?: ReasoningProfile;
   context?: import('aws-lambda').Context;
+  responseFormat?: import('../types/index').ResponseFormat;
 }
 
 /**
@@ -227,6 +228,7 @@ export function buildProcessOptions(params: ProcessOptionsParams): {
   source?: TraceSource;
   profile?: ReasoningProfile;
   context?: import('aws-lambda').Context;
+  responseFormat?: import('../types/index').ResponseFormat;
 } {
   return {
     isContinuation: !!params.isContinuation,
@@ -238,6 +240,7 @@ export function buildProcessOptions(params: ProcessOptionsParams): {
     source: params.source ?? TraceSource.SYSTEM,
     profile: params.profile,
     context: params.context,
+    responseFormat: params.responseFormat,
   };
 }
 

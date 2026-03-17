@@ -4,7 +4,6 @@ import { MessageRole, Message } from '../types/index';
 
 // Mock OpenAI SDK
 const mockCreateResponse = vi.fn();
-const mockCreateChatCompletion = vi.fn();
 
 vi.mock('openai', () => {
   return {
@@ -14,7 +13,7 @@ vi.mock('openai', () => {
       };
       chat = {
         completions: {
-          create: mockCreateChatCompletion,
+          create: vi.fn(), // Should no longer be used
         },
       };
     },
@@ -68,10 +67,6 @@ describe('OpenAIProvider', () => {
         ],
       })
     );
-
-    // Built-in tools should NOT have name/description/parameters in the OpenAI request for non-function types
-    const builtInTool = mockCreateResponse.mock.calls[0][0].tools[1];
-    expect(builtInTool.name).toBeUndefined();
   });
 
   it('should correctly format file attachments for the Responses API', async () => {
@@ -117,42 +112,33 @@ describe('OpenAIProvider', () => {
     );
   });
 
-  it('should correctly map different tool types for Chat Completions API', async () => {
-    mockCreateChatCompletion.mockResolvedValue({
-      choices: [{ message: { content: 'Hello', role: 'assistant' } }],
+  it('should include responseFormat in the Responses API call', async () => {
+    mockCreateResponse.mockResolvedValue({
+      output_text: '{"status": "SUCCESS"}',
+      output: [],
     });
 
-    // Use a model that doesn't trigger Responses API (if we had one, but gpt-5.4 currently does)
-    // Let's force a non-reasoning model name for this test
-    const legacyProvider = new OpenAIProvider('gpt-4');
-
-    const tools = [
-      {
-        name: 'local_tool',
-        description: 'A local tool',
-        parameters: { type: 'object' as const, properties: {} },
-        execute: async () => 'done',
+    const responseFormat = {
+      type: 'json_schema' as const,
+      json_schema: {
+        name: 'test_schema',
+        strict: true,
+        schema: { type: 'object', properties: { status: { type: 'string' } } },
       },
-      {
-        name: 'code_interpreter',
-        description: 'Built-in python',
-        type: 'code_interpreter',
-        parameters: { type: 'object' as const, properties: {} },
-        execute: async () => 'done',
-      },
-    ];
+    };
 
-    await legacyProvider.call([{ role: MessageRole.USER, content: 'test' }], tools);
+    await provider.call(
+      [{ role: MessageRole.USER, content: 'test' }],
+      [],
+      undefined,
+      undefined,
+      undefined,
+      responseFormat
+    );
 
-    expect(mockCreateChatCompletion).toHaveBeenCalledWith(
+    expect(mockCreateResponse).toHaveBeenCalledWith(
       expect.objectContaining({
-        tools: [
-          expect.objectContaining({
-            type: 'function',
-            function: expect.objectContaining({ name: 'local_tool' }),
-          }),
-          expect.objectContaining({ type: 'code_interpreter' }),
-        ],
+        response_format: responseFormat,
       })
     );
   });

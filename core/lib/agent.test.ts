@@ -204,6 +204,7 @@ describe('Agent Trace Propagation', () => {
       expect.anything(),
       expect.anything(),
       undefined,
+      undefined,
       undefined
     );
   });
@@ -243,6 +244,7 @@ describe('Agent Trace Propagation', () => {
       ]),
       expect.anything(),
       expect.anything(),
+      undefined,
       undefined,
       undefined
     );
