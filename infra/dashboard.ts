@@ -7,13 +7,22 @@ import { SharedContext, getDomainConfig, AGENT_CONFIG } from './shared';
  * @returns An object containing the created dashboard resource.
  */
 export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs } {
-  const { memoryTable, traceTable, stagingBucket, knowledgeBucket, bus, deployer, api } = ctx;
+  const {
+    memoryTable,
+    traceTable,
+    configTable,
+    stagingBucket,
+    knowledgeBucket,
+    bus,
+    deployer,
+    api,
+  } = ctx;
 
   const dashboardDomain = getDomainConfig('dashboard');
   const dashboard = new sst.aws.Nextjs('ClawCenter', {
     domain: dashboardDomain,
     path: 'dashboard',
-    link: [memoryTable, traceTable],
+    link: [memoryTable, traceTable, configTable],
     environment: {
       DEPLOYER_NAME: deployer.name,
       DYNAMIC_SCHEDULER_ROLE_ARN: ctx.schedulerRole!.arn,
