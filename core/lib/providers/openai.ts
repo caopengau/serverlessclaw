@@ -218,7 +218,8 @@ export class OpenAIProvider implements IProvider {
 
   async getCapabilities(model?: string) {
     const activeModel = model ?? this.model;
-    const isReasoningModel = activeModel.includes('gpt-5.4') || activeModel.includes('gpt-5-mini');
+    // 2026: Generalized reasoning model check to include all gpt-5 family
+    const isReasoningModel = activeModel.includes('gpt-5');
     const isMiniModel = activeModel.includes('mini');
     const isNanoModel = activeModel.includes('nano');
 

@@ -192,14 +192,14 @@ export class OpenRouterProvider implements IProvider {
 
   async getCapabilities(model?: string) {
     const activeModel = model ?? this.model;
-    // These standardized models from OpenRouter all support advanced reasoning in 2026
-    const highCapabilityModels = [
-      OpenRouterModel.GLM_5,
-      OpenRouterModel.MINIMAX_2_5,
-      OpenRouterModel.GEMINI_3_FLASH,
-    ];
-
-    const isHighCapability = highCapabilityModels.includes(activeModel as OpenRouterModel);
+    // 2026: Dynamic capability detection based on model ID patterns.
+    // Standardized reasoning models in OpenRouter usually contain these keywords.
+    const isHighCapability =
+      activeModel.includes('glm') ||
+      activeModel.includes('minimax') ||
+      activeModel.includes('gemini-3') ||
+      activeModel.includes('claude-3-7') || // Hypothetical 2026 Claude
+      activeModel.includes('gpt-5');
 
     return {
       supportedReasoningProfiles: isHighCapability

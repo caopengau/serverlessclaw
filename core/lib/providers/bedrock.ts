@@ -296,7 +296,12 @@ export class BedrockProvider implements IProvider {
 
   async getCapabilities(model?: string) {
     const activeModelId = model ?? this.modelId;
-    const isClaude46 = activeModelId.includes('claude-sonnet-4-6');
+    // 2026: Expanded check for all Claude 4.6 variations (Sonnet, Haiku, Opus)
+    const isClaude46 =
+      activeModelId.includes('claude-sonnet-4-6') ||
+      activeModelId.includes('claude-4-6') ||
+      activeModelId.includes('claude-v4.6');
+
     return {
       supportedReasoningProfiles: isClaude46
         ? [
