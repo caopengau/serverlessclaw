@@ -4,7 +4,7 @@ set -e
 STAGE=${1:-dev}
 PROFILE=${AWS_PROFILE:-aiready}
 
-echo "Starting Comprehensive Post-Deploy CloudFront Fix for stage: $STAGE (Account: $PROFILE)"
+echo "Starting Robust CloudFront Fix for stage: $STAGE (Account: $PROFILE)"
 
 # 1. Identify CloudFront Distribution ID for ClawCenter
 DIST_ID=$(aws cloudfront list-distributions --profile "$PROFILE" --query "DistributionList.Items[?Comment=='ClawCenter app'].Id" --output text | awk '{print $1}')
@@ -26,19 +26,7 @@ fi
 SERVER_HOST=$(echo "$SERVER_URL" | sed 's/https:\/\///' | sed 's/\///')
 echo "Found Server Host: $SERVER_HOST"
 
-# 3. Identify Image Optimizer Lambda URL
-IMAGE_URL=$(aws lambda get-function-url-config --function-name "serverlessclaw-$STAGE-ClawCenterImageOptimizerFunction" --profile "$PROFILE" --query "FunctionUrl" --output text 2>/dev/null || \
-            aws lambda list-functions --profile "$PROFILE" --query "Functions[?contains(FunctionName, 'ClawCenterImageOptimizer')].FunctionName" --output text | head -n 1 | xargs -I {} aws lambda get-function-url-config --function-name {} --profile "$PROFILE" --query "FunctionUrl" --output text)
-
-if [ -z "$IMAGE_URL" ] || [ "$IMAGE_URL" == "None" ]; then
-    echo "Warning: Could not find Image Optimizer URL, using Server Host instead"
-    IMAGE_HOST=$SERVER_HOST
-else
-    IMAGE_HOST=$(echo "$IMAGE_URL" | sed 's/https:\/\///' | sed 's/\///')
-fi
-echo "Found Image Host: $IMAGE_HOST"
-
-# 4. Identify S3 Assets Bucket
+# 3. Identify S3 Assets Bucket
 S3_BUCKET=$(aws s3 ls --profile "$PROFILE" | grep "clawcenterassetsbucket" | awk '{print $NF}' | head -n 1)
 if [ -z "$S3_BUCKET" ]; then
     echo "Error: Could not find S3 Assets Bucket"
@@ -47,70 +35,102 @@ fi
 S3_DOMAIN="$S3_BUCKET.s3.ap-southeast-2.amazonaws.com"
 echo "Found S3 Domain: $S3_DOMAIN"
 
-# 5. Update CloudFront Distribution Origin
-echo "Updating CloudFront Distribution Origin to Server Host..."
+# 4. Identify CloudFront Function ARN
+CF_FUNC_ARN=$(aws cloudfront list-functions --profile "$PROFILE" --query "FunctionList.Items[?contains(Name, 'ClawCenterRouter')].FunctionMetadata.FunctionARN" --output text | awk '{print $1}' | head -n 1)
+if [ -z "$CF_FUNC_ARN" ] || [ "$CF_FUNC_ARN" == "None" ]; then
+    CF_FUNC_ARN=$(aws cloudfront get-distribution-config --id "$DIST_ID" --profile "$PROFILE" --query "DistributionConfig.DefaultCacheBehavior.FunctionAssociations.Items[?EventType=='viewer-request'].FunctionARN" --output text | awk '{print $1}')
+fi
+echo "Found CloudFront Function ARN: $CF_FUNC_ARN"
+
+# 5. OAC ID
+OAC_ID="EKO5N1P5RDMN6"
+
+# 6. Patch CloudFront Distribution
+echo "Patching CloudFront Distribution with Explicit Asset Routing..."
+
 ETAG=$(aws cloudfront get-distribution-config --id "$DIST_ID" --profile "$PROFILE" --query "ETag" --output text)
 aws cloudfront get-distribution-config --id "$DIST_ID" --profile "$PROFILE" --query "DistributionConfig" > dist-config.json
-# Using temporary file for jq update to avoid potential pipe issues
-jq ".Origins.Items[0].DomainName = \"$SERVER_HOST\" | .Origins.Items[0].CustomOriginConfig.OriginProtocolPolicy = \"https-only\"" dist-config.json > updated-dist-config.json
+
+CACHE_POLICY_ID=$(jq -r '.DefaultCacheBehavior.CachePolicyId' dist-config.json)
+
+jq "
+  .Origins.Items[0].DomainName = \"$SERVER_HOST\" |
+  .Origins.Items[0].CustomOriginConfig.OriginProtocolPolicy = \"https-only\" |
+  
+  # Ensure S3 origin exists with OriginPath /_assets
+  if (.Origins.Items | any(.Id == \"s3-assets\")) then
+    (.Origins.Items[] | select(.Id == \"s3-assets\")) |= (
+      .DomainName = \"$S3_DOMAIN\" | 
+      .OriginAccessControlId = \"$OAC_ID\" | 
+      .OriginPath = \"/_assets\"
+    )
+  else
+    .Origins.Items += [{
+      \"Id\": \"s3-assets\",
+      \"DomainName\": \"$S3_DOMAIN\",
+      \"OriginPath\": \"/_assets\",
+      \"OriginAccessControlId\": \"$OAC_ID\",
+      \"S3OriginConfig\": { \"OriginAccessIdentity\": \"\" },
+      \"CustomHeaders\": { \"Quantity\": 0 },
+      \"ConnectionAttempts\": 3,
+      \"ConnectionTimeout\": 10,
+      \"OriginShield\": { \"Enabled\": false }
+    }] |
+    .Origins.Quantity = (.Origins.Items | length)
+  end |
+  
+  # Create Explicit Behaviors for Assets
+  .CacheBehaviors = {
+    \"Quantity\": 3,
+    \"Items\": [
+      {
+        \"PathPattern\": \"/_next/static/*\",
+        \"TargetOriginId\": \"s3-assets\",
+        \"ViewerProtocolPolicy\": \"redirect-to-https\",
+        \"AllowedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"], \"CachedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"] } },
+        \"Compress\": true,
+        \"CachePolicyId\": \"$CACHE_POLICY_ID\",
+        \"SmoothStreaming\": false,
+        \"FieldLevelEncryptionId\": \"\",
+        \"LambdaFunctionAssociations\": { \"Quantity\": 0 },
+        \"FunctionAssociations\": { \"Quantity\": 0 }
+      },
+      {
+        \"PathPattern\": \"/_assets/*\",
+        \"TargetOriginId\": \"s3-assets\",
+        \"ViewerProtocolPolicy\": \"redirect-to-https\",
+        \"AllowedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"], \"CachedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"] } },
+        \"Compress\": true,
+        \"CachePolicyId\": \"$CACHE_POLICY_ID\",
+        \"SmoothStreaming\": false,
+        \"FieldLevelEncryptionId\": \"\",
+        \"LambdaFunctionAssociations\": { \"Quantity\": 0 },
+        \"FunctionAssociations\": { \"Quantity\": 0 }
+      },
+      {
+        \"PathPattern\": \"/*.png\",
+        \"TargetOriginId\": \"s3-assets\",
+        \"ViewerProtocolPolicy\": \"redirect-to-https\",
+        \"AllowedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"], \"CachedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"] } },
+        \"Compress\": true,
+        \"CachePolicyId\": \"$CACHE_POLICY_ID\",
+        \"SmoothStreaming\": false,
+        \"FieldLevelEncryptionId\": \"\",
+        \"LambdaFunctionAssociations\": { \"Quantity\": 0 },
+        \"FunctionAssociations\": { \"Quantity\": 0 }
+      }
+    ]
+  } |
+  
+  .DefaultCacheBehavior.FunctionAssociations.Quantity = 1 |
+  .DefaultCacheBehavior.FunctionAssociations.Items = [{
+    \"FunctionARN\": \"$CF_FUNC_ARN\",
+    \"EventType\": \"viewer-request\"
+  }]
+" dist-config.json > updated-dist-config.json
+
 aws cloudfront update-distribution --id "$DIST_ID" --distribution-config file://updated-dist-config.json --if-match "$ETAG" --profile "$PROFILE" > /dev/null
-echo "Distribution Origin Updated"
 
-# 6. Create and Update CloudFront Function with Enhanced Routing Logic
-echo "Updating CloudFront Function with Routing Logic..."
-CF_FUNC_NAME=$(aws cloudfront get-distribution-config --id "$DIST_ID" --profile "$PROFILE" --query "DistributionConfig.DefaultCacheBehavior.FunctionAssociations.Items[?EventType=='viewer-request'].FunctionARN" --output text | awk -F/ '{print $NF}')
-
-if [ -z "$CF_FUNC_NAME" ] || [ "$CF_FUNC_NAME" == "None" ]; then
-    echo "Error: Could not find CloudFront Function association"
-    exit 1
-fi
-echo "Found CloudFront Function: $CF_FUNC_NAME"
-
-cat <<EOF > router-cf.js
-function handler(event) {
-  var request = event.request;
-  var uri = request.uri;
-
-  // 1. Explicit Assets -> S3
-  if (uri.startsWith("/_next/static/") || uri.startsWith("/_assets/")) {
-    request.uri = "/_assets" + uri;
-    return request;
-  }
-
-  // 2. Images (Next.js API) -> Image Optimizer
-  if (uri.startsWith("/_next/image")) {
-    request.headers["x-forwarded-host"] = { value: request.headers.host.value };
-    return request;
-  }
-
-  // 3. Root Level Static Assets (logo.png, favicon.ico, etc.) -> S3
-  var staticExtensions = [".png", ".ico", ".svg", ".jpg", ".jpeg", ".css", ".js", ".js.map", ".woff", ".woff2", ".ttf", ".otf", ".json", ".txt"];
-  var lowerUri = uri.toLowerCase();
-  for (var i = 0; i < staticExtensions.length; i++) {
-    var ext = staticExtensions[i];
-    if (lowerUri.length >= ext.length && lowerUri.substr(lowerUri.length - ext.length) === ext) {
-      request.uri = "/_assets" + uri;
-      return request;
-    }
-  }
-
-  // 4. Default -> Lambda Server
-  request.headers["x-forwarded-host"] = { value: request.headers.host.value };
-  return request;
-}
-EOF
-
-# Update Function
-FUNC_ETAG=$(aws cloudfront describe-function --name "$CF_FUNC_NAME" --stage LIVE --profile "$PROFILE" --query "ETag" --output text)
-aws cloudfront update-function --name "$CF_FUNC_NAME" --if-match "$FUNC_ETAG" --function-code fileb://router-cf.js --function-config "{\"Comment\":\"Post-deploy router fix with legacy string compat\",\"Runtime\":\"cloudfront-js-2.0\"}" --profile "$PROFILE" > /dev/null
-
-# Publish Function
-DEV_ETAG=$(aws cloudfront describe-function --name "$CF_FUNC_NAME" --stage DEVELOPMENT --profile "$PROFILE" --query "ETag" --output text)
-aws cloudfront publish-function --name "$CF_FUNC_NAME" --if-match "$DEV_ETAG" --profile "$PROFILE" > /dev/null
-
-echo "CloudFront Function Updated and Published with Routing Logic (Legacy String Compat)"
-
-# Cleanup
-rm dist-config.json updated-dist-config.json router-cf.js 2>/dev/null || true
-
+echo "Distribution Patched Successfully"
+rm dist-config.json updated-dist-config.json 2>/dev/null || true
 echo "Post-Deploy CloudFront Fix Completed Successfully"

@@ -49,7 +49,7 @@ export const AGENT_CONFIG = {
  * @param component - The component to get the domain for ('api' | 'dashboard' | 'router').
  * @returns The domain configuration or undefined if not set.
  */
-export function getDomainConfig(component: 'api' | 'dashboard' | 'router'): string | undefined {
+export function getDomainConfig(component: 'api' | 'dashboard' | 'router'): any {
   const envVarMap: Record<string, string> = {
     api: 'CLAW_DOMAIN_API',
     dashboard: 'CLAW_DOMAIN_DASHBOARD',
@@ -59,6 +59,16 @@ export function getDomainConfig(component: 'api' | 'dashboard' | 'router'): stri
   const domain = process.env[envVar];
 
   if (!domain) return undefined;
+
+  const zoneId = process.env.CLOUDFLARE_ZONE_ID;
+  if (zoneId) {
+    return {
+      name: domain,
+      dns: sst.cloudflare.dns({
+        zone: zoneId,
+      }),
+    };
+  }
 
   return domain;
 }

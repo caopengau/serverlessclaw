@@ -11,6 +11,7 @@ export default $config({
         aws: {
           region: 'ap-southeast-2',
         },
+        cloudflare: true,
       },
       defaults: {
         function: {
