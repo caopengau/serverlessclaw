@@ -52,8 +52,18 @@ const DEFAULT_SIGNAL_SCHEMA: ResponseFormat = {
  * backbone (system) and user-defined agents.
  */
 export class Agent {
+  /** Emitter for agent-related events. */
   private emitter: AgentEmitter;
 
+  /**
+   * Initializes a new Agent instance.
+   *
+   * @param memory - The memory provider for history and distillation.
+   * @param provider - The LLM provider for model interactions.
+   * @param tools - The list of tools available to the agent.
+   * @param systemPrompt - The core identity and instructions for the agent.
+   * @param config - Optional configuration and metadata for the agent.
+   */
   constructor(
     private memory: IMemory,
     private provider: IProvider,
@@ -69,10 +79,10 @@ export class Agent {
    * This method handles memory retrieval, model/provider resolution, prompt assembly,
    * and the core execution loop.
    *
-   * @param userId - The unique identifier for the user.
+   * @param userId - The unique identifier for the user or conversation.
    * @param userText - The text content of the user's message.
    * @param options - Optional configuration for this specific processing run.
-   * @returns A promise that resolves to the agent's response, including text and any attachments.
+   * @returns A promise that resolves to the agent's response, including text, attachments, and trace ID.
    */
   async process(
     userId: string,
