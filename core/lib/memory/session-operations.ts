@@ -129,8 +129,8 @@ export async function saveConversationMeta(
     expiresAt,
     sessionId,
     isPinned,
-    title: meta.title || existing?.title || 'New Conversation',
-    content: meta.lastMessage || existing?.lastMessage || '',
+    title: (meta.title || existing?.title) ?? 'New Conversation',
+    content: (meta.lastMessage || existing?.lastMessage) ?? '',
   });
 }
 
@@ -170,7 +170,7 @@ export async function getLatestLKGHash(base: BaseMemoryProvider): Promise<string
     ScanIndexForward: false,
   });
 
-  return (items[0]?.content as string) || null;
+  return (items[0]?.content as string) ?? null;
 }
 
 /**

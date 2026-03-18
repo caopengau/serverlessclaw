@@ -50,7 +50,7 @@ async function getRecoveryLogs() {
       })
     );
     
-    return (Items || []).sort((a, b) => b.timestamp - a.timestamp);
+    return (Items ?? []).sort((a, b) => b.timestamp - a.timestamp);
   } catch (e) {
     console.error('Error fetching recovery logs:', e);
     return [];

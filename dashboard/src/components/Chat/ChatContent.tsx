@@ -48,7 +48,7 @@ export default function ChatContent() {
 
   useEffect(() => {
     if (currentSession) {
-      setEditedTitle(currentSession.title || 'Untitled Trace');
+      setEditedTitle(currentSession.title ?? 'Untitled Trace');
     }
   }, [currentSession]);
 
@@ -131,7 +131,7 @@ export default function ChatContent() {
           const history = data.history.map((m: HistoryMessage) => ({
             role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
             content: m.content,
-            agentName: m.agentName || (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
+            agentName: m.agentName ?? (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
             attachments: m.attachments,
           })).filter((m: ChatMessage) => m.content || (m.attachments && m.attachments.length > 0));
 
@@ -336,7 +336,7 @@ export default function ChatContent() {
                         if (e.key === 'Enter') saveTitle();
                         if (e.key === 'Escape') {
                           setIsEditingTitle(false);
-                          setEditedTitle(currentSession?.title || 'Untitled Trace');
+                          setEditedTitle(currentSession?.title ?? 'Untitled Trace');
                         }
                       }}
                       className="bg-white/5 border border-cyber-green/30 rounded px-2 py-1 text-lg font-bold text-white outline-none w-full"

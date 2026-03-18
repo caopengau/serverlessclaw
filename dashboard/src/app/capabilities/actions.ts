@@ -10,7 +10,7 @@ export async function updateAgentTools(formData: FormData) {
   const toolNames = formData.getAll('tools') as string[];
 
   try {
-    const tableName = (Resource as any).ConfigTable?.name;
+    const tableName = (Resource as Record<string, { name?: string }>).ConfigTable?.name;
     if (!tableName) {
       return { error: 'ConfigTable name is missing from Resources' };
     }
@@ -35,7 +35,7 @@ export async function updateAgentTools(formData: FormData) {
 
 export async function registerMCPServer(name: string, command: string, env: string = '{}') {
   try {
-    const tableName = (Resource as any).ConfigTable?.name;
+    const tableName = (Resource as Record<string, { name?: string }>).ConfigTable?.name;
     if (!tableName) return { error: 'ConfigTable name is missing' };
     
     const client = new DynamoDBClient({});
@@ -48,13 +48,13 @@ export async function registerMCPServer(name: string, command: string, env: stri
       Key: { key: 'mcp_servers' }
     }));
 
-    const servers = Item?.value || {};
+    const servers = Item?.value ?? {};
     
     // Parse env if provided
     let parsedEnv = {};
     try {
       parsedEnv = JSON.parse(env);
-    } catch (e) {
+    } catch {
       return { error: 'Invalid JSON format for environment variables.' };
     }
 
@@ -78,7 +78,7 @@ export async function registerMCPServer(name: string, command: string, env: stri
 
 export async function deleteMCPServer(serverName: string) {
   try {
-    const tableName = (Resource as any).ConfigTable?.name;
+    const tableName = (Resource as Record<string, { name?: string }>).ConfigTable?.name;
     if (!tableName) return { error: 'ConfigTable name is missing' };
     
     const client = new DynamoDBClient({});
@@ -91,7 +91,7 @@ export async function deleteMCPServer(serverName: string) {
       Key: { key: 'mcp_servers' }
     }));
 
-    const servers = Item?.value || {};
+    const servers = Item?.value ?? {};
     if (servers[serverName]) {
       delete servers[serverName];
       await docClient.send(new PutCommand({

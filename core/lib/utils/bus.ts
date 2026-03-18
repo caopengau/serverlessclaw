@@ -14,7 +14,7 @@ export async function emitEvent(
   type: EventType | string,
   detail: Record<string, unknown>
 ): Promise<void> {
-  const busName = typedResource.AgentBus?.name || 'AgentBus';
+  const busName = typedResource.AgentBus?.name ?? 'AgentBus';
 
   try {
     const command = new PutEventsCommand({

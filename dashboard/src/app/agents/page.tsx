@@ -145,7 +145,7 @@ export default function AgentsPage() {
           agent.provider !== initial.provider ||
           agent.enabled !== initial.enabled
         );
-      }).map(a => a.name || a.id);
+      }).map(a => a.name ?? a.id);
 
       if (changedBackbone.length > 0) {
         setBackboneChanges(changedBackbone);
@@ -235,7 +235,7 @@ export default function AgentsPage() {
       // Revert
       setAgents(prev => ({
         ...prev,
-        [agentId]: { ...prev[agentId], tools: initialAgents[agentId]?.tools || [] }
+        [agentId]: { ...prev[agentId], tools: initialAgents[agentId]?.tools ?? [] }
       }));
     } finally {
       setIsUpdatingTools(false);
@@ -367,7 +367,7 @@ export default function AgentsPage() {
                           className="text-white/50 hover:text-[var(--cyber-green)] p-2 h-auto flex items-center gap-2"
                         >
                           <Wrench size={14} />
-                          <span className="text-[10px] font-bold uppercase tracking-widest">Tools ({agent.tools?.length || 0})</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest">Tools ({agent.tools?.length ?? 0})</span>
                         </Button>
                       <label className={`flex items-center gap-3 ${agent.isBackbone ? 'cursor-not-allowed' : 'cursor-pointer'} group`}>
                       <Typography variant="caption" weight="bold" color="white" uppercase className="group-hover:text-cyber-green transition-colors">Active Status</Typography>

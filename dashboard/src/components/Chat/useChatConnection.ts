@@ -6,7 +6,7 @@ import { isDuplicate } from './dedup';
 export function useChatConnection(activeSessionId: string, setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>, setIsLoading: React.Dispatch<React.SetStateAction<boolean>>, isPostInFlight: React.MutableRefObject<boolean>) {
   const [isRealtimeActive, setIsRealtimeActive] = useState(false);
   const [sessions, setSessions] = useState<ConversationMeta[]>([]);
-  const mqttClientRef = useRef<any>(null);
+  const mqttClientRef = useRef<mqtt.MqttClient | null>(null);
   const activeSessionRef = useRef<string>(activeSessionId);
   const skipNextHistoryFetch = useRef<boolean>(false);
   const seenMessageIds = useRef<Set<string>>(new Set());
@@ -38,7 +38,7 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
           const history = data.history.map((m: HistoryMessage) => ({
             role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
             content: m.content,
-            agentName: m.agentName || (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
+            agentName: m.agentName ?? (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
             attachments: m.attachments,
           })).filter((m: ChatMessage) => m.content || (m.attachments && m.attachments.length > 0));
 
@@ -53,6 +53,7 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSessions();
   }, []);
 
@@ -81,9 +82,9 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
           client.subscribe(userTopic);
         });
 
-        client.on('message', (t: string, payload: any) => {
+        client.on('message', (t: string, payload: unknown) => {
           try {
-            const data = JSON.parse(payload.toString());
+            const data = JSON.parse(String(payload));
             const currentActiveId = activeSessionRef.current;
             if (!data.sessionId || data.sessionId === currentActiveId) {
               if (data.message && data.userId === userId) {
@@ -93,7 +94,7 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
                     role: 'assistant',
                     content: data.message,
                     messageId: data.messageId,
-                    agentName: data.agentName || 'SuperClaw'
+                    agentName: data.agentName ?? 'SuperClaw'
                   }];
                 });
               } else if (currentActiveId) {
@@ -105,7 +106,7 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
           }
         });
 
-        client.on('error', (err: any) => {
+        client.on('error', (err: unknown) => {
           console.error('[Realtime] MQTT Error:', err);
           setIsRealtimeActive(false);
         });

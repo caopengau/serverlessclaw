@@ -35,9 +35,9 @@ export class OpenRouterProvider implements IProvider {
     _provider?: string,
     responseFormat?: import('../types/index').ResponseFormat
   ): Promise<Message> {
-    const apiKey = (Resource as unknown as OpenRouterResource).OpenRouterApiKey?.value || '';
+    const apiKey = (Resource as unknown as OpenRouterResource).OpenRouterApiKey?.value ?? '';
     const baseUrl = 'https://openrouter.ai/api/v1';
-    const activeModel = model || this.model;
+    const activeModel = model ?? this.model;
 
     // Fallback if profile not supported
     const capabilities = await this.getCapabilities(activeModel);
@@ -62,7 +62,7 @@ export class OpenRouterProvider implements IProvider {
           content.push({
             type: 'image_url',
             image_url: {
-              url: att.url || `data:${att.mimeType || 'image/png'};base64,${att.base64}`,
+              url: att.url ?? `data:${att.mimeType ?? 'image/png'};base64,${att.base64}`,
             },
           });
         } else if (att.type === 'file') {
@@ -72,8 +72,8 @@ export class OpenRouterProvider implements IProvider {
             type: 'input_file' as any,
             input_file: {
               file_id:
-                att.url ||
-                `data:${att.mimeType || 'application/octet-stream'};base64,${att.base64}`,
+                att.url ??
+                `data:${att.mimeType ?? 'application/octet-stream'};base64,${att.base64}`,
             },
           });
         }
@@ -174,24 +174,24 @@ export class OpenRouterProvider implements IProvider {
 
     return {
       role: MessageRole.ASSISTANT,
-      content: message.content || '',
+      content: message.content ?? '',
       tool_calls: message.tool_calls,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       usage: (data as any).usage
         ? {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            prompt_tokens: (data as any).usage.prompt_tokens || 0,
+            prompt_tokens: (data as any).usage.prompt_tokens ?? 0,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            completion_tokens: (data as any).usage.completion_tokens || 0,
+            completion_tokens: (data as any).usage.completion_tokens ?? 0,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            total_tokens: (data as any).usage.total_tokens || 0,
+            total_tokens: (data as any).usage.total_tokens ?? 0,
           }
         : undefined,
     } as Message;
   }
 
   async getCapabilities(model?: string) {
-    const activeModel = model || this.model;
+    const activeModel = model ?? this.model;
     // These standardized models from OpenRouter all support advanced reasoning in 2026
     const highCapabilityModels = [
       OpenRouterModel.GLM_5,

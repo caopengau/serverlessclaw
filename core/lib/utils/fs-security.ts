@@ -25,7 +25,7 @@ export function isProtectedPath(filePath: string): boolean {
   }
 
   try {
-    const protectedFiles = PROTECTED_FILES || [];
+    const protectedFiles = PROTECTED_FILES ?? [];
     return protectedFiles.some((p: string) => {
       if (p.endsWith('/')) {
         return normalized.startsWith(p);

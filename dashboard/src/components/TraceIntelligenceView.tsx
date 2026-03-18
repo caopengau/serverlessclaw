@@ -42,19 +42,19 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
         ? Array.from(new Set(
             trace.steps
               .filter((s: any) => s.type === TRACE_TYPES.TOOL_CALL)
-              .map((s: any) => s.content.toolName || s.content.tool)
+              .map((s: any) => s.content.toolName ?? s.content.tool)
           ))
         : [];
 
       // Extract LLM used
       const llmStep = trace.steps?.find((s: any) => s.type === TRACE_TYPES.LLM_CALL);
-      const model = trace.initialContext?.model || llmStep?.content?.model || llmStep?.metadata?.model || 'UNKNOWN_MODEL';
+      const model = trace.initialContext?.model || llmStep?.content?.model || llmStep?.metadata?.model ?? 'UNKNOWN_MODEL';
 
       // Calculate total tokens
       let totalTokens = 0;
       trace.steps?.forEach((s: any) => {
         if (s.type === TRACE_TYPES.LLM_RESPONSE && s.content.usage) {
-          totalTokens += s.content.usage.total_tokens || 0;
+          totalTokens += s.content.usage.total_tokens ?? 0;
         }
       });
 
@@ -63,7 +63,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
         toolsUsed,
         model,
         totalTokens,
-        sessionId: trace.initialContext?.sessionId || 'ANONYMOUS_SESSION'
+        sessionId: trace.initialContext?.sessionId ?? 'ANONYMOUS_SESSION'
       };
     });
   }, [initialTraces]);
@@ -73,7 +73,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
     return traces.filter(trace => {
       const matchesSearch = 
         trace.traceId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (trace.initialContext?.userText || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (trace.initialContext?.userText ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         trace.toolsUsed.some((t: string) => t.toLowerCase().includes(searchQuery.toLowerCase()));
       
       const matchesStatus = statusFilter === 'all' || trace.status === statusFilter;
@@ -139,10 +139,10 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
               {trace.status.toUpperCase()}
             </div>
             <div className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-cyber-blue/20 text-cyber-blue/80 uppercase">
-              {trace.source || 'UNKNOWN'}
+              {trace.source ?? 'UNKNOWN'}
             </div>
             <div className="text-sm font-medium text-white/90 truncate max-w-[200px] md:max-w-md">
-              {trace.initialContext?.userText || 'System Task'}
+              {trace.initialContext?.userText ?? 'System Task'}
             </div>
           </div>
           <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6 text-[11px] text-white/90 pr-8">

@@ -122,10 +122,10 @@ export async function discoverSystemTopology(): Promise<Topology> {
     // Find first matching classifier
     const classifier = CLASSIFIERS.find((c) => c.match(lowerKey));
 
-    const type = classifier?.type || NODE_TYPE.INFRA;
-    const icon = classifier?.icon || RESOURCE_ICON.DATABASE;
-    const label = classifier?.label || key;
-    let tier = classifier?.tier || NODE_TIER.INFRA;
+    const type = classifier?.type ?? NODE_TYPE.INFRA;
+    const icon = classifier?.icon ?? RESOURCE_ICON.DATABASE;
+    const label = classifier?.label ?? key;
+    let tier = classifier?.tier ?? NODE_TIER.INFRA;
 
     // Special Promotion Logic (SuperClaw is top tier)
     if (lowerKey === 'superclaw' || lowerKey === 'main') {
@@ -133,7 +133,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
     }
 
     nodes.push({
-      id: classifier?.idOverride || lowerKey,
+      id: classifier?.idOverride ?? lowerKey,
       type: type as TopologyNode['type'],
       label,
       icon,
@@ -200,26 +200,26 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
       if (existingNode) {
         // Enrichment
-        existingNode.label = config.topologyOverride?.label || config.name || existingNode.label;
+        existingNode.label = (config.topologyOverride?.label || config.name) ?? existingNode.label;
         existingNode.description = config.description;
-        existingNode.icon = config.topologyOverride?.icon || existingNode.icon;
-        existingNode.tier = config.topologyOverride?.tier || existingNode.tier;
+        existingNode.icon = config.topologyOverride?.icon ?? existingNode.icon;
+        existingNode.tier = config.topologyOverride?.tier ?? existingNode.tier;
 
         // Reinforce Tier for SuperClaw (it must be at the top), but respect explicit override
         if (lowerId === 'main' || lowerId === 'superclaw') {
-          existingNode.tier = config.topologyOverride?.tier || NODE_TIER.APP;
+          existingNode.tier = config.topologyOverride?.tier ?? NODE_TIER.APP;
         }
       } else {
         nodes.push({
           id: lowerId,
           type: NODE_TYPE.AGENT,
-          label: config.topologyOverride?.label || config.name || lowerId,
+          label: (config.topologyOverride?.label || config.name) ?? lowerId,
           icon:
-            config.topologyOverride?.icon ||
+            config.topologyOverride?.icon ??
             (config.isBackbone ? RESOURCE_ICON.BRAIN : RESOURCE_ICON.BOT),
           description: config.description,
           tier:
-            config.topologyOverride?.tier ||
+            config.topologyOverride?.tier ??
             (lowerId === 'main' || lowerId === 'superclaw' ? NODE_TIER.APP : NODE_TIER.AGENT),
         });
       }
@@ -245,9 +245,9 @@ export async function discoverSystemTopology(): Promise<Topology> {
           nodes.push({
             id: lowerAgentId,
             type: NODE_TYPE.AGENT,
-            label: agent.topologyOverride?.label || agent.name || lowerAgentId,
-            icon: agent.topologyOverride?.icon || RESOURCE_ICON.BOT,
-            tier: agent.topologyOverride?.tier || NODE_TIER.AGENT,
+            label: (agent.topologyOverride?.label || agent.name) ?? lowerAgentId,
+            icon: agent.topologyOverride?.icon ?? RESOURCE_ICON.BOT,
+            tier: agent.topologyOverride?.tier ?? NODE_TIER.AGENT,
           });
         }
       }
@@ -262,7 +262,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
   const busNode = nodes.find(
     (n) => n.type === NODE_TYPE.BUS || n.id === 'agentbus' || n.id === 'bus'
   );
-  const busId = busNode?.id || 'agentbus';
+  const busId = busNode?.id ?? 'agentbus';
 
   const mapProfileToResource = (profile: string): string | null => {
     const p = profile.toLowerCase();

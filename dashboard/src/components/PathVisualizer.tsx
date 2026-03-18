@@ -54,7 +54,7 @@ const LLMNode = ({ data }: any) => (
       <span className="text-[10px] font-bold tracking-widest text-cyber-blue/80">{data.type === TRACE_TYPES.LLM_CALL ? 'Agent Request' : 'Agent processing'}</span>
     </div>
     <div className="text-[11px] font-mono text-white/100 leading-tight line-clamp-2">
-      {data.label || 'Reasoning...'}
+      {data.label ?? 'Reasoning...'}
     </div>
     <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-cyber-blue border-none" />
   </div>
@@ -71,7 +71,7 @@ const ToolNode = ({ data }: any) => (
       <span className="text-[10px] font-bold tracking-widest text-yellow-500/80">Tool: {data.toolName}</span>
     </div>
     <div className="text-[9px] font-mono text-white/100 truncate italic">
-      {data.status || 'Executing...'}
+      {data.status ?? 'Executing...'}
     </div>
     <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-yellow-500 border-none" />
   </div>
@@ -131,7 +131,7 @@ function processTraceNodes(
   traceNodes.forEach((n) => nodeMap.set(n.nodeId, n));
 
   // Find root node
-  const rootTraceNode = traceNodes.find((n) => n.nodeId === 'root') || traceNodes[0];
+  const rootTraceNode = traceNodes.find((n) => n.nodeId === 'root') ?? traceNodes[0];
   if (!rootTraceNode) return;
 
   const processedNodes = new Set<string>();
@@ -152,7 +152,7 @@ function processTraceNodes(
       data: {
         label: traceNode.nodeId === 'root' 
           ? (traceNode.initialContext?.userText || 'System Task')
-          : `Delegated to ${traceNode.initialContext?.agentId || 'Agent'}`,
+          : `Delegated to ${traceNode.initialContext?.agentId ?? 'Agent'}`,
         onClick: () => setSelectedStep({ type: 'trigger', content: traceNode.initialContext })
       },
       position: { x: startX, y: currentY },
@@ -197,14 +197,14 @@ function processTraceNodes(
           type: 'llm',
           data: {
             type: TRACE_TYPES.LLM_RESPONSE,
-            label: step.content.content || 'LLM provided a response or tool call.',
+            label: step.content.content ?? 'LLM provided a response or tool call.',
             onClick: () => setSelectedStep(step)
           },
           position: { x: startX, y: currentY },
         });
         added = true;
       } else if (step.type === TRACE_TYPES.TOOL_CALL) {
-        const tName = step.content.tool || step.content.toolName || 'Unknown';
+        const tName = step.content.tool || step.content.toolName ?? 'Unknown';
         initialNodes.push({
           id: stepNodeId,
           type: 'tool',
@@ -223,13 +223,13 @@ function processTraceNodes(
           // Find the child node that has this parent
           const childNode = traceNodes.find(n => n.parentId === traceNode.nodeId && (n.initialContext?.agentId === targetAgentId || n.nodeId.includes(targetAgentId)));
           if (childNode) {
-            const branchOffset = (xOffsetMap.get(traceNode.nodeId) || 0) + 350;
+            const branchOffset = (xOffsetMap.get(traceNode.nodeId) ?? 0) + 350;
             xOffsetMap.set(traceNode.nodeId, branchOffset);
             renderBranch(childNode, startX + branchOffset, currentY, stepNodeId);
           }
         }
       } else if (step.type === TRACE_TYPES.TOOL_RESULT) {
-        const tName = step.content.tool || step.content.toolName || 'OBSERVATION';
+        const tName = step.content.tool || step.content.toolName ?? 'OBSERVATION';
         initialNodes.push({
           id: stepNodeId,
           type: 'tool',
@@ -246,7 +246,7 @@ function processTraceNodes(
           id: stepNodeId,
           type: 'error',
           data: {
-            label: step.content.errorMessage || 'Unknown Error',
+            label: step.content.errorMessage ?? 'Unknown Error',
             onClick: () => setSelectedStep(step)
           },
           position: { x: startX, y: currentY },

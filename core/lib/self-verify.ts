@@ -44,7 +44,7 @@ export class SelfVerifier {
       })
     );
 
-    const gaps = gapResult.Items || [];
+    const gaps = gapResult.Items ?? [];
     const totalGaps = gaps.length;
     const activeGaps = gaps.filter(
       (g) => g.status === GapStatus.OPEN || g.status === GapStatus.PROGRESS
@@ -73,7 +73,7 @@ export class SelfVerifier {
         Key: { id: 'system:config' },
       })
     );
-    const deployLimit = configRes.Item?.deploy_limit || 5;
+    const deployLimit = configRes.Item?.deploy_limit ?? 5;
 
     // 2. Check Circuit Breaker State
     const statsResult = await docClient.send(
@@ -83,7 +83,7 @@ export class SelfVerifier {
       })
     );
 
-    const stats = statsResult.Item || { count: 0 };
+    const stats = statsResult.Item ?? { count: 0 };
     const deployCountToday = stats.count;
     const circuitBreakerActive = deployCountToday >= deployLimit;
 
@@ -111,7 +111,7 @@ export class SelfVerifier {
       })
     );
 
-    const topo = topoResult.Item || { nodes: [], edges: [], updatedAt: undefined };
+    const topo = topoResult.Item ?? { nodes: [], edges: [], updatedAt: undefined };
     const nodeCount = topo.nodes.length;
     const lastScanTimestamp = topo.updatedAt;
 
@@ -127,7 +127,7 @@ export class SelfVerifier {
       })
     );
 
-    const registeredAgents = registryResult.Items || [];
+    const registeredAgents = registryResult.Items ?? [];
     const agentsInTopo = topo.nodes.filter((n: { type: string }) => n.type === 'agent').length;
 
     const registryCoverage =

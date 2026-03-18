@@ -47,18 +47,18 @@ function ConfigTooltip({ id }: { id: string }) {
 }
 
 export default function SettingsForm({ config, updateConfig }: SettingsFormProps) {
-  const [activeProvider, setActiveProvider] = useState(config.provider || 'openai');
-  const [activeModel, setActiveModel] = useState(config.model || 'gpt-5.4');
-  const [evolutionMode, setEvolutionMode] = useState(config.evolutionMode || 'hitl');
-  const [optimizationPolicy, setOptimizationPolicy] = useState(config.optimizationPolicy || 'balanced');
-  const [maxToolIterations, setMaxToolIterations] = useState(config.maxToolIterations || '5');
-  const [circuitBreakerThreshold, setCircuitBreakerThreshold] = useState(config.circuitBreakerThreshold || '3');
-  const [protectedResources, setProtectedResources] = useState(config.protectedResources || '');
-  const [reflectionFrequency, setReflectionFrequency] = useState(config.reflectionFrequency || '3');
-  const [strategicReviewFrequency, setStrategicReviewFrequency] = useState(config.strategicReviewFrequency || '12');
-  const [minGapsForReview, setMinGapsForReview] = useState(config.minGapsForReview || '3');
-  const [recursionLimit, setRecursionLimit] = useState(config.recursionLimit || '50');
-  const [deployLimit, setDeployLimit] = useState(config.deployLimit || '5');
+  const [activeProvider, setActiveProvider] = useState(config.provider ?? 'openai');
+  const [activeModel, setActiveModel] = useState(config.model ?? 'gpt-5.4');
+  const [evolutionMode, setEvolutionMode] = useState(config.evolutionMode ?? 'hitl');
+  const [optimizationPolicy, setOptimizationPolicy] = useState(config.optimizationPolicy ?? 'balanced');
+  const [maxToolIterations, setMaxToolIterations] = useState(config.maxToolIterations ?? '5');
+  const [circuitBreakerThreshold, setCircuitBreakerThreshold] = useState(config.circuitBreakerThreshold ?? '3');
+  const [protectedResources, setProtectedResources] = useState(config.protectedResources ?? '');
+  const [reflectionFrequency, setReflectionFrequency] = useState(config.reflectionFrequency ?? '3');
+  const [strategicReviewFrequency, setStrategicReviewFrequency] = useState(config.strategicReviewFrequency ?? '12');
+  const [minGapsForReview, setMinGapsForReview] = useState(config.minGapsForReview ?? '3');
+  const [recursionLimit, setRecursionLimit] = useState(config.recursionLimit ?? '50');
+  const [deployLimit, setDeployLimit] = useState(config.deployLimit ?? '5');
 
   const hasChanges = 
     activeProvider !== config.provider ||

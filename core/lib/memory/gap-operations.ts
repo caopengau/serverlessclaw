@@ -42,7 +42,7 @@ export async function getAllGaps(
     content: item.content,
     timestamp: item.timestamp,
     metadata: createMetadata(
-      item.metadata || { category: InsightCategory.STRATEGIC_GAP },
+      item.metadata ?? { category: InsightCategory.STRATEGIC_GAP },
       item.timestamp
     ),
   }));
@@ -129,12 +129,12 @@ export async function setGap(
   const { expiresAt, type } = await RetentionManager.getExpiresAt('GAP', '');
   await base.putItem({
     userId: `GAP#${gapId}`,
-    timestamp: parseInt(gapId, 10) || Date.now(),
+    timestamp: parseInt(gapId, 10) ?? Date.now(),
     type,
     expiresAt,
     content: details,
     status: GapStatus.OPEN,
-    metadata: createMetadata(metadata || { category: InsightCategory.STRATEGIC_GAP }),
+    metadata: createMetadata(metadata ?? { category: InsightCategory.STRATEGIC_GAP }),
   });
 }
 
@@ -155,7 +155,7 @@ export async function incrementGapAttemptCount(
     const result = await base.updateItem({
       Key: {
         userId: `GAP#${numericId}`,
-        timestamp: parseInt(numericId, 10) || 0,
+        timestamp: parseInt(numericId, 10) ?? 0,
       },
       UpdateExpression:
         'SET attemptCount = if_not_exists(attemptCount, :zero) + :one, updatedAt = :now',
@@ -190,7 +190,7 @@ export async function updateGapStatus(
   const params: Record<string, unknown> = {
     Key: {
       userId: `GAP#${numericId}`,
-      timestamp: parseInt(numericId, 10) || 0,
+      timestamp: parseInt(numericId, 10) ?? 0,
     },
     UpdateExpression: 'SET #status = :status, updatedAt = :now',
     ConditionExpression: 'attribute_exists(userId)',

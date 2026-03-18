@@ -35,11 +35,11 @@ async function getTraces() {
     const scanRes = await generalScan;
     
     // Merge and deduplicate by traceId
-    const merged = [...(scanRes.Items || [])];
+    const merged = [...(scanRes.Items ?? [])];
     const uniqueMap = new Map();
     merged.forEach(item => uniqueMap.set(item.traceId, item));
     
-    const allItems = Array.from(uniqueMap.values()).sort((a, b) => (Number(b.timestamp) || 0) - (Number(a.timestamp) || 0));
+    const allItems = Array.from(uniqueMap.values()).sort((a, b) => (Number(b.timestamp) ?? 0) - (Number(a.timestamp) ?? 0));
     
     // Filter out internal reflector/system tasks to keep the view clean for the user
     // but keep dashboard/telegram traces
@@ -67,8 +67,8 @@ async function getConfig() {
     ]);
 
     return {
-      provider: providerRes.Item?.value || 'openai',
-      model: modelRes.Item?.value || 'gpt-5.4'
+      provider: providerRes.Item?.value ?? 'openai',
+      model: modelRes.Item?.value ?? 'gpt-5.4'
     };
   } catch (e) {
     console.error('Error fetching config:', e);
@@ -97,7 +97,7 @@ async function getSessionTitles() {
     const titles: Record<string, string> = {};
     res.Items?.forEach(item => {
       if (item.sessionId) {
-        titles[item.sessionId] = item.title || 'Untitled Conversation';
+        titles[item.sessionId] = item.title ?? 'Untitled Conversation';
       }
     });
     return titles;

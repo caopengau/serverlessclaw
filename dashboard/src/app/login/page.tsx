@@ -29,7 +29,7 @@ export default function LoginPage() {
         router.refresh();
       } else {
         const data = await response.json();
-        setError(data.error || 'ACCESS_DENIED // SHA256_MISMATCH');
+        setError(data.error ?? 'ACCESS_DENIED // SHA256_MISMATCH');
       }
     } catch (err) {
       setError('NEURAL_LINK_FAILURE');

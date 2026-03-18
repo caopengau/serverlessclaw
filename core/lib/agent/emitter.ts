@@ -85,8 +85,8 @@ export class AgentEmitter {
                     {
                       role: MessageRole.ASSISTANT,
                       content: responseText,
-                      agentName: this.config?.name || 'SuperClaw',
-                      traceId: traceId || 'unknown',
+                      agentName: this.config?.name ?? 'SuperClaw',
+                      traceId: traceId ?? 'unknown',
                     },
                   ],
                 }),
@@ -116,18 +116,18 @@ export class AgentEmitter {
         new PutEventsCommand({
           Entries: [
             {
-              Source: this.config?.id || 'main.agent',
+              Source: this.config?.id ?? 'main.agent',
               DetailType: EventType.CONTINUATION_TASK,
               Detail: JSON.stringify({
                 userId,
-                agentId: this.config?.id || 'main',
+                agentId: this.config?.id ?? 'main',
                 task,
                 isContinuation: true,
                 traceId,
                 nodeId: metadata.nodeId,
                 parentId: metadata.parentId,
                 initiatorId: metadata.initiatorId,
-                depth: (metadata.depth || 0) + 1,
+                depth: (metadata.depth ?? 0) + 1,
                 sessionId: metadata.sessionId,
                 attachments: metadata.attachments,
               }),

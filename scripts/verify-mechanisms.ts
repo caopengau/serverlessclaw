@@ -25,7 +25,7 @@ async function main() {
     console.log('🧠 AWARENESS:');
     console.log(`  - Discovered Nodes: ${status.awareness.nodeCount}`);
     console.log(`  - Registry Coverage: ${status.awareness.registryCoverage.toFixed(2)}%`);
-    console.log(`  - Last Scan: ${status.awareness.lastScanTimestamp || 'Never'}\n`);
+    console.log(`  - Last Scan: ${status.awareness.lastScanTimestamp ?? 'Never'}\n`);
 
     const overallHealthy =
       status.evolution.fixSuccessRate > 50 &&

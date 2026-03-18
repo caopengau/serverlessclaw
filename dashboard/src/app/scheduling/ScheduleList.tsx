@@ -290,7 +290,7 @@ export default function ScheduleList() {
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">{s.Name}</span>
-                        <span className="text-[10px] text-white/50 line-clamp-1 italic">{s.Description || 'No description provided.'}</span>
+                        <span className="text-[10px] text-white/50 line-clamp-1 italic">{s.Description ?? 'No description provided.'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -305,7 +305,7 @@ export default function ScheduleList() {
                     </td>
                     <td className="px-6 py-4">
                       <Badge variant="outline" className="text-[10px] font-bold border-white/10 text-white/70">
-                        {payload.agentId || 'SYSTEM'}
+                        {payload.agentId ?? 'SYSTEM'}
                       </Badge>
                     </td>
                     <td className="px-6 py-4">

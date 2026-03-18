@@ -44,7 +44,7 @@ export class DynamicScheduler {
           Name: name,
           ScheduleExpression: expression,
           Description:
-            description || `Dynamic goal-oriented schedule for ${payload.agentId || 'system'}`,
+            description ?? `Dynamic goal-oriented schedule for ${payload.agentId ?? 'system'}`,
           FlexibleTimeWindow: { Mode: FlexibleTimeWindowMode.OFF },
           Target: {
             Arn: targetArn,
@@ -106,7 +106,7 @@ export class DynamicScheduler {
           NamePrefix: namePrefix,
         })
       );
-      return response.Schedules || [];
+      return response.Schedules ?? [];
     } catch (error: unknown) {
       logger.error('Failed to list schedules:', error);
       throw error;

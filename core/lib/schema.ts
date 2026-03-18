@@ -22,9 +22,9 @@ export function validateToolSchema(tool: IToolDefinition): string[] {
     return errors;
   }
 
-  const properties = parameters.properties || {};
+  const properties = parameters.properties ?? {};
   const propertyKeys = Object.keys(properties);
-  const required = parameters.required || [];
+  const required = parameters.required ?? [];
 
   // Check if all properties are in required
   for (const key of propertyKeys) {

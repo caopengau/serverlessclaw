@@ -18,7 +18,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: UI_STRINGS.MISSING_MESSAGE }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
-    console.log(`[Chat API] POST request - text: ${text?.substring(0, 20)}..., sessionId: ${sessionId}, attachments: ${attachments?.length || 0}`);
+    console.log(`[Chat API] POST request - text: ${text?.substring(0, 20)}..., sessionId: ${sessionId}, attachments: ${attachments?.length ?? 0}`);
     console.log(`[Chat API] Using storageId: ${storageId}`);
     
     const { DynamoMemory } = await import('@claw/core/lib/memory');
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const agentTools = await getAgentTools('main');
     const agent = new Agent(memory, provider, agentTools, SUPERCLAW_SYSTEM_PROMPT);
 
-    const { responseText, attachments: resultAttachments, traceId } = await agent.process(storageId, text || '', { sessionId, source: TraceSource.DASHBOARD, attachments });
+    const { responseText, attachments: resultAttachments, traceId } = await agent.process(storageId, text ?? '', { sessionId, source: TraceSource.DASHBOARD, attachments });
 
     // Update conversation metadata for the sidebar
     if (sessionId) {

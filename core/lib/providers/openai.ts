@@ -48,11 +48,11 @@ export class OpenAIProvider implements IProvider {
     _provider?: string,
     responseFormat?: import('../types/index').ResponseFormat
   ): Promise<Message> {
-    const apiKey = typedResource.OpenAIApiKey?.value || process.env.OPENAI_API_KEY || 'test-key';
+    const apiKey = (typedResource.OpenAIApiKey?.value || process.env.OPENAI_API_KEY) ?? 'test-key';
     const client = new OpenAI({ apiKey });
 
     // Resolve model if only profile is provided
-    let activeModel = model || this.model;
+    let activeModel = model ?? this.model;
     if (!model && profile) {
       const profileToModel: Record<ReasoningProfile, string> = {
         [ReasoningProfile.FAST]: OpenAIModel.GPT_5_4_NANO,
@@ -60,7 +60,7 @@ export class OpenAIProvider implements IProvider {
         [ReasoningProfile.THINKING]: OpenAIModel.GPT_5_4_MINI,
         [ReasoningProfile.DEEP]: OpenAIModel.GPT_5_4,
       };
-      activeModel = profileToModel[profile] || activeModel;
+      activeModel = profileToModel[profile] ?? activeModel;
     }
 
     // Fallback if profile not supported
@@ -82,8 +82,8 @@ export class OpenAIProvider implements IProvider {
         return [
           {
             type: OPENAI.ITEM_TYPES.FUNCTION_CALL_OUTPUT,
-            call_id: m.tool_call_id || '',
-            output: m.content || '',
+            call_id: m.tool_call_id ?? '',
+            output: m.content ?? '',
           },
         ];
       }
@@ -107,14 +107,14 @@ export class OpenAIProvider implements IProvider {
               content.push({
                 type: OPENAI.CONTENT_TYPES.IMAGE_URL,
                 image_url: {
-                  url: att.url || `data:${att.mimeType || 'image/png'};base64,${att.base64}`,
+                  url: att.url ?? `data:${att.mimeType ?? 'image/png'};base64,${att.base64}`,
                 },
               });
             } else if (att.type === 'file') {
               content.push({
                 type: OPENAI.CONTENT_TYPES.INPUT_FILE,
-                filename: att.name || OPENAI.DEFAULT_FILE_NAME,
-                file_data: `data:${att.mimeType || OPENAI.DEFAULT_MIME_TYPE};base64,${att.base64}`,
+                filename: att.name ?? OPENAI.DEFAULT_FILE_NAME,
+                file_data: `data:${att.mimeType ?? OPENAI.DEFAULT_MIME_TYPE};base64,${att.base64}`,
               });
             }
           });
@@ -180,18 +180,18 @@ export class OpenAIProvider implements IProvider {
       })) as unknown as OpenAIResponse; // Isolate unsafe access
 
       // Extract output
-      const content = response.output_text || '';
+      const content = response.output_text ?? '';
       const toolCalls: Message['tool_calls'] = [];
 
       if (response.output && Array.isArray(response.output)) {
         for (const item of response.output) {
           if (item.type === OPENAI.ITEM_TYPES.FUNCTION_CALL) {
             toolCalls.push({
-              id: item.call_id || '',
+              id: item.call_id ?? '',
               type: OPENAI.FUNCTION_TYPE,
               function: {
-                name: item.name || '',
-                arguments: item.arguments || '',
+                name: item.name ?? '',
+                arguments: item.arguments ?? '',
               },
             });
           }
@@ -204,9 +204,9 @@ export class OpenAIProvider implements IProvider {
         tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         usage: response.usage
           ? {
-              prompt_tokens: response.usage.prompt_tokens || 0,
-              completion_tokens: response.usage.completion_tokens || 0,
-              total_tokens: response.usage.total_tokens || 0,
+              prompt_tokens: response.usage.prompt_tokens ?? 0,
+              completion_tokens: response.usage.completion_tokens ?? 0,
+              total_tokens: response.usage.total_tokens ?? 0,
             }
           : undefined,
       };
@@ -217,7 +217,7 @@ export class OpenAIProvider implements IProvider {
   }
 
   async getCapabilities(model?: string) {
-    const activeModel = model || this.model;
+    const activeModel = model ?? this.model;
     const isReasoningModel = activeModel.includes('gpt-5.4') || activeModel.includes('gpt-5-mini');
     const isMiniModel = activeModel.includes('mini');
     const isNanoModel = activeModel.includes('nano');

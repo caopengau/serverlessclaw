@@ -45,7 +45,7 @@ export class SkillRegistry {
     const currentConfig = await AgentRegistry.getAgentConfig(agentId);
     if (!currentConfig) throw new Error(`Agent ${agentId} not found`);
 
-    const tools = currentConfig.tools || [];
+    const tools = currentConfig.tools ?? [];
     if (!tools.includes(skillName)) {
       await AgentRegistry.saveRawConfig(`${agentId}_tools`, [...tools, skillName]);
       logger.info(`Skill '${skillName}' installed for agent ${agentId}`);

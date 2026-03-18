@@ -70,7 +70,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
                   
                   // Update deletedCount for what actually worked
                   const attemptedCount = requestItems[tableName].length;
-                  const unprocessedCount = result.UnprocessedItems?.[tableName]?.length || 0;
+                  const unprocessedCount = result.UnprocessedItems?.[tableName]?.length ?? 0;
                   deletedCount += (attemptedCount - unprocessedCount);
 
                   // Set unprocessed items for the next retry attempt
@@ -146,7 +146,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ success: true });
   } catch (error: any) {
     console.error('[Trace API] Critical failure:', error);
-    const message = error?.message || String(error);
+    const message = error?.message ?? String(error);
     return NextResponse.json({ 
       error: message, 
       details: error instanceof Error ? error.stack : undefined 

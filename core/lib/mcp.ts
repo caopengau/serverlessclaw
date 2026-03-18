@@ -102,7 +102,7 @@ export class MCPBridge {
             // Add a timeout to connection to prevent hanging Lambdas
             const isHub =
               connectionString.startsWith('http') &&
-              connectionString.includes(process.env.MCP_HUB_URL || '___none___');
+              connectionString.includes(process.env.MCP_HUB_URL ?? '___none___');
             const connectTimeout = isHub ? 5000 : 60000; // 5s for Hub, 60s for Local/Direct
             const timeoutPromise = new Promise<never>((_, reject) =>
               setTimeout(
@@ -161,15 +161,15 @@ export class MCPBridge {
 
         return {
           name: toolName,
-          description: mcpTool.description || `Tool from ${serverName} server.`,
+          description: mcpTool.description ?? `Tool from ${serverName} server.`,
           parameters,
           execute: async (toolArgs: Record<string, unknown>) => {
             // Enforcement Layer for MCP Filesystem tools
             if (isFilesystemTool) {
               const filePath =
-                (toolArgs.path as string) ||
-                (toolArgs.path_to_file as string) ||
-                (toolArgs.file_path as string) ||
+                ((toolArgs.path as string) ||
+                  (toolArgs.path_to_file as string) ||
+                  (toolArgs.file_path as string)) ??
                 (toolArgs.path as string);
               if (filePath) {
                 const securityError = checkFileSecurity(
@@ -256,7 +256,7 @@ export class MCPBridge {
       },
     };
 
-    const finalConfig = serversConfig || {};
+    const finalConfig = serversConfig ?? {};
 
     for (const [name, defaultConfig] of Object.entries(defaultServers)) {
       if (!finalConfig[name]) {
@@ -284,9 +284,9 @@ export class MCPBridge {
       if (typeof config === 'object' && config.type === 'managed') {
         logger.info(`Adding Managed Connector: ${name} (${config.connector_id})`);
         allTools.push({
-          name: config.name || name,
-          description: config.description || `Managed tool for ${name}`,
-          parameters: config.parameters || { type: 'object', properties: {} },
+          name: config.name ?? name,
+          description: config.description ?? `Managed tool for ${name}`,
+          parameters: config.parameters ?? { type: 'object', properties: {} },
           connector_id: config.connector_id,
           type: 'mcp',
           execute: async () => {

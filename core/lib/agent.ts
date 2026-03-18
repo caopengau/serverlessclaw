@@ -90,7 +90,7 @@ export class Agent {
     options: AgentProcessOptions = {}
   ): Promise<{ responseText: string; attachments?: Attachment[]; traceId?: string }> {
     const {
-      profile = this.config?.reasoningProfile || ReasoningProfile.STANDARD,
+      profile = this.config?.reasoningProfile ?? ReasoningProfile.STANDARD,
       context,
       isContinuation = false,
       isIsolated = false,
@@ -103,7 +103,7 @@ export class Agent {
       attachments: incomingAttachments,
       source = TraceSource.UNKNOWN,
       responseFormat: initialResponseFormat,
-      communicationMode = this.config?.defaultCommunicationMode || 'text',
+      communicationMode = this.config?.defaultCommunicationMode ?? 'text',
     } = options;
 
     const responseFormat =
@@ -124,7 +124,7 @@ export class Agent {
     const traceId = tracer.getTraceId();
     const nodeId = tracer.getNodeId();
     const parentId = tracer.getParentId();
-    const currentInitiator = initiatorId || this.config?.id || 'unknown';
+    const currentInitiator = (initiatorId || this.config?.id) ?? 'unknown';
 
     if (!isContinuation) {
       await tracer.startTrace({
@@ -136,7 +136,7 @@ export class Agent {
     }
 
     const storageId = isIsolated
-      ? `${(this.config?.id || 'unknown').toUpperCase()}#${userId}#${traceId}`
+      ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
 
     try {
@@ -148,11 +148,11 @@ export class Agent {
       let recoveryContext = '';
       try {
         const recoveryData = await this.memory.getDistilledMemory(
-          SYSTEM.RECOVERY_KEY || MEMORY_KEYS.RECOVERY
+          SYSTEM.RECOVERY_KEY ?? MEMORY_KEYS.RECOVERY
         );
         if (recoveryData) {
           recoveryContext = `${AGENT_LOG_MESSAGES.RECOVERY_LOG_PREFIX}${recoveryData}`;
-          await this.memory.updateDistilledMemory(SYSTEM.RECOVERY_KEY || MEMORY_KEYS.RECOVERY, '');
+          await this.memory.updateDistilledMemory(SYSTEM.RECOVERY_KEY ?? MEMORY_KEYS.RECOVERY, '');
         }
       } catch (e) {
         logger.error('Error checking recovery context:', e);
@@ -262,16 +262,16 @@ export class Agent {
         await this.memory.addMessage(storageId, {
           role: MessageRole.ASSISTANT,
           content: pauseMessage!,
-          agentName: this.config?.name || 'SuperClaw',
+          agentName: this.config?.name ?? 'SuperClaw',
           traceId,
         });
 
-        await this.emitter.emitContinuation(userId, userText, tracer.getTraceId() || 'unknown', {
+        await this.emitter.emitContinuation(userId, userText, tracer.getTraceId() ?? 'unknown', {
           initiatorId: currentInitiator,
           depth,
           sessionId,
-          nodeId: nodeId || 'unknown',
-          parentId: parentId || 'unknown',
+          nodeId: nodeId ?? 'unknown',
+          parentId: parentId ?? 'unknown',
           attachments: incomingAttachments,
         });
         return { responseText: pauseMessage!, attachments: resultAttachments, traceId };
@@ -295,7 +295,7 @@ export class Agent {
       await this.memory.addMessage(storageId, {
         role: MessageRole.ASSISTANT,
         content: responseText,
-        agentName: this.config?.name || 'SuperClaw',
+        agentName: this.config?.name ?? 'SuperClaw',
         traceId,
         attachments: resultAttachments,
       });

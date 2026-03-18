@@ -56,8 +56,8 @@ export class ClawTracer {
   ) {
     this.userId = userId;
     this.source = source;
-    this.traceId = traceId || uuidv4();
-    this.nodeId = nodeId || 'root';
+    this.traceId = traceId ?? uuidv4();
+    this.nodeId = nodeId ?? 'root';
     this.parentId = parentId;
     this.startTime = Date.now();
   }
@@ -118,7 +118,7 @@ export class ClawTracer {
       this.userId,
       this.source,
       this.traceId,
-      newNodeId || uuidv4(),
+      newNodeId ?? uuidv4(),
       this.nodeId
     );
   }
@@ -169,7 +169,7 @@ export class ClawTracer {
           ':status': TRACE_STATUS.COMPLETED,
           ':resp': finalResponse,
           ':end': Date.now(),
-          ':meta': metadata || {},
+          ':meta': metadata ?? {},
         },
       })
     );
@@ -216,6 +216,6 @@ export class ClawTracer {
         ExpressionAttributeValues: { ':tid': traceId },
       })
     );
-    return (response.Items as Trace[]) || [];
+    return (response.Items as Trace[]) ?? [];
   }
 }

@@ -74,7 +74,7 @@ export default function AgentToolsModal({
               Active Skills
             </Typography>
             <div className="flex flex-wrap gap-2">
-              {(agents[selectedAgentIdForTools].tools || []).map((toolName: string) => {
+              {(agents[selectedAgentIdForTools].tools ?? []).map((toolName: string) => {
                 const isUniversal = ['discoverSkills', 'installSkill'].includes(toolName);
                 return (
                   <div 
@@ -91,7 +91,7 @@ export default function AgentToolsModal({
                       variant="ghost"
                       size="sm"
                       onClick={() => handleToggleTool(selectedAgentIdForTools, toolName)}
-                      disabled={isUpdatingTools || isUniversal}
+                      disabled={isUpdatingTools ?? isUniversal}
                       className="p-1 hover:bg-red-500/20 text-red-500/60 hover:text-red-500 transition-all h-6 w-6"
                       icon={<Plus size={10} />}
                     />
@@ -119,7 +119,7 @@ export default function AgentToolsModal({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {allTools
-                  .filter(t => !(agents[selectedAgentIdForTools]?.tools || []).includes(t.name))
+                  .filter(t => !(agents[selectedAgentIdForTools]?.tools ?? []).includes(t.name))
                   .filter(t => !searchQuery || t.name.toLowerCase().includes(searchQuery.toLowerCase()) || t.description.toLowerCase().includes(searchQuery.toLowerCase()))
                   .map(tool => (
                     <Button

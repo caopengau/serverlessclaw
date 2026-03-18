@@ -111,7 +111,7 @@ export const LIMITS = {
  * DynamoDB table and index names
  */
 export const DYNAMO = {
-  TABLE_NAME: process.env.MEMORY_TABLE || 'ServerlessClaw-Memory',
+  TABLE_NAME: process.env.MEMORY_TABLE ?? 'ServerlessClaw-Memory',
   TYPE_TIMESTAMP_INDEX: 'TypeTimestampIndex',
 } as const;
 

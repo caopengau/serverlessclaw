@@ -62,7 +62,7 @@ async function addRecord(
     metadata: createMetadata(
       {
         category,
-        ...(metadata || {}),
+        ...(metadata ?? {}),
       },
       timestamp
     ),
@@ -124,7 +124,7 @@ export async function addLesson(
     type,
     expiresAt,
     content: filterPII(lesson),
-    metadata: createMetadata(metadata || { category: InsightCategory.TACTICAL_LESSON }, timestamp),
+    metadata: createMetadata(metadata ?? { category: InsightCategory.TACTICAL_LESSON }, timestamp),
   });
 }
 
@@ -220,7 +220,7 @@ export async function searchInsights(
 
   let allInsights: MemoryInsight[] = Array.from(uniqueItemsMap.values()).map((item) => {
     const scope = item.userId as string;
-    const metadata = (item.metadata as InsightMetadata) || {
+    const metadata = (item.metadata as InsightMetadata) ?? {
       category: scope.startsWith('DISTILLED')
         ? InsightCategory.USER_PREFERENCE
         : scope.startsWith('LESSON')
@@ -285,7 +285,7 @@ export async function updateInsightMetadata(
 
   await base.putItem({
     ...item,
-    metadata: { ...(item.metadata || {}), ...metadata },
+    metadata: { ...(item.metadata ?? {}), ...metadata },
   });
 }
 
@@ -316,7 +316,7 @@ export async function getLowUtilizationMemory(
       if (!meta) return false;
 
       const isHitCountLow = meta.hitCount === undefined || meta.hitCount === 0;
-      const lastAccessed = meta.lastAccessed || (item.timestamp as number) || now;
+      const lastAccessed = (meta.lastAccessed || (item.timestamp as number)) ?? now;
       const timeSinceAccess = now - lastAccessed;
 
       return isHitCountLow && timeSinceAccess > STALE_THRESHOLD_MS;
@@ -329,9 +329,9 @@ export async function getLowUtilizationMemory(
   return staleItems
     .sort((a, b) => {
       const tA =
-        (a.metadata as Record<string, unknown>)?.lastAccessed || (a.timestamp as number) || 0;
+        ((a.metadata as Record<string, unknown>)?.lastAccessed || (a.timestamp as number)) ?? 0;
       const tB =
-        (b.metadata as Record<string, unknown>)?.lastAccessed || (b.timestamp as number) || 0;
+        ((b.metadata as Record<string, unknown>)?.lastAccessed || (b.timestamp as number)) ?? 0;
       return (tA as number) - (tB as number);
     })
     .slice(0, limit);

@@ -68,7 +68,7 @@ export function extractBaseUserId(userId: string): string {
  * @returns The extracted payload.
  */
 export function extractPayload<T extends object>(event: { detail?: T } | T): T {
-  return (event as { detail?: T }).detail || (event as T);
+  return (event as { detail?: T }).detail ?? (event as T);
 }
 
 /**
@@ -179,7 +179,7 @@ export async function emitTaskEvent(params: {
               userId: params.userId,
               agentId: params.agentId,
               task: params.task,
-              [isFailure ? 'error' : 'response']: params.error || params.response || '',
+              [isFailure ? 'error' : 'response']: (params.error || params.response) ?? '',
               attachments: params.attachments,
               traceId: params.traceId,
               initiatorId: params.initiatorId,

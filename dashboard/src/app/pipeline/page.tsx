@@ -33,7 +33,7 @@ async function getGaps() {
       })
     );
     
-    return (Items || []).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    return (Items ?? []).sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
   } catch (e) {
     console.error('Error fetching gaps:', e);
     return [];
@@ -154,10 +154,10 @@ export default async function EvolutionPipeline() {
 
                     <div className="mt-2 flex gap-3 text-[8px] text-white/30 uppercase font-bold tracking-tighter">
                         <div className="flex items-center gap-1">
-                            <TrendingUp size={8} className="text-cyber-green" /> Imp: {gap.metadata?.impact || 5}
+                            <TrendingUp size={8} className="text-cyber-green" /> Imp: {gap.metadata?.impact ?? 5}
                         </div>
                         <div className="flex items-center gap-1">
-                            <Brain size={8} className="text-amber-500" /> Prio: {gap.metadata?.priority || 5}
+                            <Brain size={8} className="text-amber-500" /> Prio: {gap.metadata?.priority ?? 5}
                         </div>
                     </div>
                   </div>

@@ -72,9 +72,9 @@ export class BedrockProvider implements IProvider {
   ): Promise<Message> {
     const typedResource = Resource as unknown as BedrockResource;
     const client = new BedrockRuntimeClient({
-      region: typedResource.AwsRegion?.value || 'ap-southeast-2',
+      region: typedResource.AwsRegion?.value ?? 'ap-southeast-2',
     });
-    const activeModelId = model || this.modelId;
+    const activeModelId = model ?? this.modelId;
 
     // Fallback if profile not supported
     const capabilities = await this.getCapabilities(activeModelId);
@@ -89,11 +89,11 @@ export class BedrockProvider implements IProvider {
         let role: 'user' | 'assistant' = 'user';
         if (m.role === MessageRole.ASSISTANT) role = 'assistant';
 
-        const content: ContentBlock[] = [{ text: m.content || '' }];
+        const content: ContentBlock[] = [{ text: m.content ?? '' }];
 
         if (m.attachments && m.role !== MessageRole.TOOL) {
           m.attachments.forEach((att) => {
-            const format = (att.mimeType?.split('/')[1] || 'png').toLowerCase();
+            const format = (att.mimeType?.split('/')[1] ?? 'png').toLowerCase();
             if (att.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
               content.push({
                 image: {
@@ -107,9 +107,9 @@ export class BedrockProvider implements IProvider {
               // 2026 Bedrock Converse API: Support for document attachments
               content.push({
                 document: {
-                  name: att.name || 'document',
+                  name: att.name ?? 'document',
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  format: (att.mimeType?.split('/')[1] || 'pdf') as any,
+                  format: (att.mimeType?.split('/')[1] ?? 'pdf') as any,
                   source: {
                     bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
                   },
@@ -142,12 +142,12 @@ export class BedrockProvider implements IProvider {
           // But if we want to pass images back to the model, we need to handle it here.
           // Wait, the Message interface doesn't store the full ToolResult, only the text content is added to history currently.
 
-          toolContent.push({ text: m.content || '' });
+          toolContent.push({ text: m.content ?? '' });
 
           // In 2026, we also support passing attachments from previous turns
           if (m.attachments) {
             m.attachments.forEach((att) => {
-              const format = (att.mimeType?.split('/')[1] || 'png').toLowerCase();
+              const format = (att.mimeType?.split('/')[1] ?? 'png').toLowerCase();
               if (att.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
                 toolContent.push({
                   image: {
@@ -160,9 +160,9 @@ export class BedrockProvider implements IProvider {
               } else if (att.type === 'file') {
                 toolContent.push({
                   document: {
-                    name: att.name || 'document',
+                    name: att.name ?? 'document',
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    format: (att.mimeType?.split('/')[1] || 'pdf') as any,
+                    format: (att.mimeType?.split('/')[1] ?? 'pdf') as any,
                     source: {
                       bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
                     },
@@ -187,7 +187,7 @@ export class BedrockProvider implements IProvider {
 
     const system: SystemContentBlock[] = messages
       .filter((m) => m.role === MessageRole.SYSTEM || m.role === MessageRole.DEVELOPER)
-      .map((m) => ({ text: m.content || '' }));
+      .map((m) => ({ text: m.content ?? '' }));
 
     const bedrockTools: BedrockTool[] | undefined = tools
       ?.filter((t) => !t.type || t.type === 'function' || t.type === 'computer_use')
@@ -255,7 +255,7 @@ export class BedrockProvider implements IProvider {
 
       const reasoning = (msg.content as (ContentBlock | ReasoningBlock)[])
         ?.filter((c) => !!(c as ReasoningBlock).reasoningContent)
-        .map((c) => (c as ReasoningBlock).reasoningContent?.reasoningText?.text || '')
+        .map((c) => (c as ReasoningBlock).reasoningContent?.reasoningText?.text ?? '')
         .join('\n\n');
 
       if (reasoning) {
@@ -270,7 +270,7 @@ export class BedrockProvider implements IProvider {
 
       return {
         role: MessageRole.ASSISTANT,
-        content: content || '',
+        content: content ?? '',
         tool_calls: msg.content
           ?.filter((c) => c.toolUse)
           .map((c) => ({
@@ -283,9 +283,9 @@ export class BedrockProvider implements IProvider {
           })),
         usage: response.usage
           ? {
-              prompt_tokens: response.usage.inputTokens || 0,
-              completion_tokens: response.usage.outputTokens || 0,
-              total_tokens: response.usage.totalTokens || 0,
+              prompt_tokens: response.usage.inputTokens ?? 0,
+              completion_tokens: response.usage.outputTokens ?? 0,
+              total_tokens: response.usage.totalTokens ?? 0,
             }
           : undefined,
       } as Message;
@@ -295,7 +295,7 @@ export class BedrockProvider implements IProvider {
   }
 
   async getCapabilities(model?: string) {
-    const activeModelId = model || this.modelId;
+    const activeModelId = model ?? this.modelId;
     const isClaude46 = activeModelId.includes('claude-sonnet-4-6');
     return {
       supportedReasoningProfiles: isClaude46

@@ -36,7 +36,7 @@ const nodeTypes = {
           </div>
           <div className="overflow-hidden">
             <div className={`text-[10px] font-bold uppercase tracking-tighter truncate ${data.enabled ? 'text-cyber-green' : 'text-red-500'}`}>
-              {data.type || 'NEURAL_NODE'} {!data.enabled && '[OFFLINE]'}
+              {data.type ?? 'NEURAL_NODE'} {!data.enabled && '[OFFLINE]'}
             </div>
             <div className="text-sm font-bold text-white/90 break-words leading-tight">{data.label}</div>
           </div>
@@ -89,7 +89,7 @@ const nodeTypes = {
           </div>
           <div>
             <div className={`text-[10px] font-bold text-${THEME.COLORS.INTEL} uppercase tracking-tighter`}>
-              {data.type || 'INFRA_SPOKE'}
+              {data.type ?? 'INFRA_SPOKE'}
             </div>
             <div className="text-sm font-bold text-white/90">{data.label}</div>
           </div>
@@ -137,7 +137,7 @@ const getAgentDescription = (id: string) => {
     'monitor': 'Real-time observability node. Watches AWS CodeBuild events and triggers fix tasks on failure.',
     'qa': 'Verification node. Audits recently deployed code to ensure it actually solves the intended capability gap.',
   };
-  return descMap[id] || 'Neural spoke for dynamic task execution and decentralized intelligence.';
+  return descMap[id] ?? 'Neural spoke for dynamic task execution and decentralized intelligence.';
 };
 
 const getEdgeType = (source: string, target: string, allEdges: any[]) => {
@@ -161,8 +161,8 @@ export function FlowContent() {
       // 1. Pre-calculate connectivity (Degree) for each node
       const nodeDegrees: Record<string, number> = {};
       topology.edges.forEach((edge: any) => {
-        nodeDegrees[edge.source] = (nodeDegrees[edge.source] || 0) + 1;
-        nodeDegrees[edge.target] = (nodeDegrees[edge.target] || 0) + 1;
+        nodeDegrees[edge.source] = (nodeDegrees[edge.source] ?? 0) + 1;
+        nodeDegrees[edge.target] = (nodeDegrees[edge.target] ?? 0) + 1;
       });
 
       // 2. Process Nodes with Centered Connectivity Sorting
@@ -173,7 +173,7 @@ export function FlowContent() {
         const nodesInTier = topology.nodes.filter((n: any) => (n.tier || 'INFRA') === t);
         
         // Sort by degree descending
-        nodesInTier.sort((a, b) => (nodeDegrees[b.id] || 0) - (nodeDegrees[a.id] || 0));
+        nodesInTier.sort((a, b) => (nodeDegrees[b.id] ?? 0) - (nodeDegrees[a.id] ?? 0));
         
         // Reorder to put highest degree in middle: [side, side, center, side, side]
         const centered: any[] = [];
@@ -197,7 +197,7 @@ export function FlowContent() {
           'INFRA': 700
         };
         
-        const yPos = TIER_Y[tier as keyof typeof TIER_Y] || 700;
+        const yPos = TIER_Y[tier as keyof typeof TIER_Y] ?? 700;
         
         // Define horizontal spacing per tier
         let spacing = 250;
@@ -228,7 +228,7 @@ export function FlowContent() {
             position: { x: xPos, y: yPos },
             data: { 
               label: node.label,
-              description: node.description || getAgentDescription(node.id),
+              description: node.description ?? getAgentDescription(node.id),
               icon,
               enabled: node.enabled !== undefined ? node.enabled : true,
               type: node.id === 'main' || node.id === 'superclaw' ? 'Logic_Core' : 
@@ -268,7 +268,7 @@ export function FlowContent() {
           target: edge.target,
           animated: true,
           type: 'default',
-          label: edge.label || (isMainOrch ? 'ORCHESTRATE' : (isBusSignal ? 'SIGNAL' : undefined)),
+          label: edge.label ?? (isMainOrch ? 'ORCHESTRATE' : (isBusSignal ? 'SIGNAL' : undefined)),
           labelStyle: { 
             fill: strokeColor, 
             fontSize: (isMainOrch || isProactive) ? 10 : 8, 

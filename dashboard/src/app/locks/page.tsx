@@ -29,7 +29,7 @@ async function getLocks() {
       })
     );
     
-    return (Items || []).map(item => ({
+    return (Items ?? []).map(item => ({
       lockId: item.userId.replace('LOCK#', ''),
       rawId: item.userId,
       expiresAt: item.expiresAt,

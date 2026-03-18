@@ -8,7 +8,7 @@ import { tools } from './tool-definitions';
 export async function getToolUsage(): Promise<Record<string, { count: number; lastUsed: number }>> {
   try {
     const { AgentRegistry } = await import('@claw/core/lib/registry');
-    return (await AgentRegistry.getRawConfig('tool_usage')) as Record<string, { count: number; lastUsed: number }> || {};
+    return (await AgentRegistry.getRawConfig('tool_usage')) as Record<string, { count: number; lastUsed: number }> ?? {};
   } catch (e) {
     console.error('Error fetching tool usage:', e);
     return {};
@@ -23,12 +23,12 @@ export async function getAllTools(usage: Record<string, { count: number; lastUse
     const localTools = Object.values(tools).map(t => ({
       name: t.name,
       description: t.description,
-      usage: usage[t.name] || { count: 0, lastUsed: 0 },
+      usage: usage[t.name] ?? { count: 0, lastUsed: 0 },
       isExternal: false
     }));
 
     // 2. MCP tools (use cache by default for dashboard speed)
-    let externalToolsDefinitions: any[] = [];
+    let externalToolsDefinitions: { name: string; description: string }[] = [];
     if (forceRefresh) {
       externalToolsDefinitions = await MCPBridge.getExternalTools();
     } else {
@@ -39,10 +39,10 @@ export async function getAllTools(usage: Record<string, { count: number; lastUse
       }
     }
 
-    const mcpTools = externalToolsDefinitions.map((t: any) => ({
+    const mcpTools = externalToolsDefinitions.map((t: { name: string; description: string }) => ({
       name: t.name,
       description: t.description,
-      usage: usage[t.name] || { count: 0, lastUsed: 0 },
+      usage: usage[t.name] ?? { count: 0, lastUsed: 0 },
       isExternal: true
     }));
 
@@ -52,7 +52,7 @@ export async function getAllTools(usage: Record<string, { count: number; lastUse
     return Object.values(tools).map(t => ({
       name: t.name,
       description: t.description,
-      usage: usage[t.name] || { count: 0, lastUsed: 0 },
+      usage: usage[t.name] ?? { count: 0, lastUsed: 0 },
       isExternal: false
     }));
   }

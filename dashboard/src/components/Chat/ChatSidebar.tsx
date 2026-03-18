@@ -125,12 +125,12 @@ export function ChatSidebar({
                   weight="bold" 
                   className={`truncate ${activeSessionId === s.sessionId ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/80'}`}
                 >
-                  {s.title || 'Untitled Trace'}
+                  {s.title ?? 'Untitled Trace'}
                 </Typography>
               </div>
 
               <Typography variant="mono" color="muted" className="truncate italic block h-4 w-full cursor-pointer leading-tight">
-                {s.lastMessage || 'Waiting for signal...'}
+                {s.lastMessage ?? 'Waiting for signal...'}
               </Typography>
               
               <div className="flex items-center justify-between w-full">

@@ -138,7 +138,7 @@ export class AgentExecutor {
       let effectiveResponseFormat = undefined;
       try {
         const capabilities = await this.provider.getCapabilities(activeModel);
-        normalizedProfile = normalizeProfile(activeProfile, capabilities, activeModel || 'default');
+        normalizedProfile = normalizeProfile(activeProfile, capabilities, activeModel ?? 'default');
         if (capabilities.supportsStructuredOutput) {
           effectiveResponseFormat = responseFormat;
         }
@@ -180,7 +180,7 @@ export class AgentExecutor {
               initiatorId: currentInitiator,
               depth,
               sessionId,
-              userId: args.userId || userId,
+              userId: args.userId ?? userId,
               mainConversationId,
               agentName: this.agentName,
               activeModel,
@@ -250,7 +250,7 @@ export class AgentExecutor {
         }
         iterations++;
       } else {
-        responseText = aiResponse.content || '';
+        responseText = aiResponse.content ?? '';
         break;
       }
     }
@@ -265,7 +265,7 @@ export class AgentExecutor {
     }
 
     return {
-      responseText: responseText || 'Sorry, I reached my iteration limit.',
+      responseText: responseText ?? 'Sorry, I reached my iteration limit.',
       attachments: attachments.length > 0 ? attachments : undefined,
     };
   }

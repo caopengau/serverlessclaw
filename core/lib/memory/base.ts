@@ -28,7 +28,7 @@ export class BaseMemoryProvider {
    * @returns The resolved table name string.
    */
   protected get tableName(): string {
-    return typedResource?.MemoryTable?.name || 'MemoryTable';
+    return typedResource?.MemoryTable?.name ?? 'MemoryTable';
   }
 
   /**
@@ -64,7 +64,7 @@ export class BaseMemoryProvider {
     });
     try {
       const response = await docClient.send(command);
-      return response.Items || [];
+      return response.Items ?? [];
     } catch (error) {
       logger.error('Error querying DynamoDB:', error);
       return [];
@@ -171,7 +171,7 @@ export class BaseMemoryProvider {
       Limit: 1,
     });
 
-    return items?.[0]?.content || '';
+    return items?.[0]?.content ?? '';
   }
 
   /**

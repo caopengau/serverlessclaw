@@ -31,7 +31,7 @@ export function createMetadata(
     ...DEFAULT_INSIGHT_METADATA,
     hitCount: 0,
     lastAccessed: timestamp,
-    ...(overrides || {}),
+    ...(overrides ?? {}),
   } as InsightMetadata;
 }
 

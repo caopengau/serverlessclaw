@@ -71,7 +71,7 @@ export default function NewAgentModal({ show, onClose, newAgent, setNewAgent, fi
             <div className="space-y-2">
               <Typography variant="mono" weight="bold" color="white" uppercase className="text-[10px] opacity-50">Initial Provider</Typography>
               <CyberSelect
-                value={newAgent.provider || ''}
+                value={newAgent.provider ?? ''}
                 onChange={(val) => setNewAgent(prev => ({ ...prev, provider: val, model: '' }))}
                 options={[
                   { value: '', label: 'SYSTEM_DEFAULT' },
@@ -83,7 +83,7 @@ export default function NewAgentModal({ show, onClose, newAgent, setNewAgent, fi
             <div className="space-y-2">
               <Typography variant="mono" weight="bold" color="white" uppercase className="text-[10px] opacity-50">Initial Model</Typography>
               <CyberSelect
-                value={newAgent.model || ''}
+                value={newAgent.model ?? ''}
                 onChange={(val) => setNewAgent(prev => ({ ...prev, model: val }))}
                 options={
                   newAgent.provider

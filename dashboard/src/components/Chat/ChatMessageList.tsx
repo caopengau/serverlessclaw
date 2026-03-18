@@ -90,7 +90,7 @@ export function ChatMessageList({ messages, isLoading, scrollRef }: ChatMessageL
                         {a.type === 'image' && (a.url || a.base64) ? (
                           <div className="w-32 h-32 rounded-lg overflow-hidden border border-white/10 hover:border-cyber-green/50 transition-colors shadow-lg">
                             <img 
-                              src={a.url || `data:${a.mimeType || 'image/png'};base64,${a.base64}`} 
+                              src={a.url || `data:${a.mimeType ?? 'image/png'};base64,${a.base64}`} 
                               alt={a.name} 
                               className="w-full h-full object-cover cursor-zoom-in"
                               onClick={() => a.url && window.open(a.url, '_blank')}

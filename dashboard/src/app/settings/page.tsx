@@ -109,18 +109,18 @@ async function getConfig() {
     ]);
 
     return {
-      provider: providerRes.Item?.value || 'openai',
-      model: modelRes.Item?.value || 'gpt-5.4',
-      evolutionMode: modeRes.Item?.value || 'hitl',
-      optimizationPolicy: policyRes.Item?.value || 'balanced',
-      reflectionFrequency: reflectRes.Item?.value || '10',
-      strategicReviewFrequency: reviewRes.Item?.value || '24',
-      minGapsForReview: minGapsRes.Item?.value || '10',
-      maxToolIterations: maxIterRes.Item?.value || '15',
-      circuitBreakerThreshold: cbThresholdRes.Item?.value || '5',
-      recursionLimit: recursionRes.Item?.value || '50',
-      deployLimit: deployRes.Item?.value || '5',
-      consecutiveBuildFailures: cbFailuresRes.Item?.value || 0,
+      provider: providerRes.Item?.value ?? 'openai',
+      model: modelRes.Item?.value ?? 'gpt-5.4',
+      evolutionMode: modeRes.Item?.value ?? 'hitl',
+      optimizationPolicy: policyRes.Item?.value ?? 'balanced',
+      reflectionFrequency: reflectRes.Item?.value ?? '10',
+      strategicReviewFrequency: reviewRes.Item?.value ?? '24',
+      minGapsForReview: minGapsRes.Item?.value ?? '10',
+      maxToolIterations: maxIterRes.Item?.value ?? '15',
+      circuitBreakerThreshold: cbThresholdRes.Item?.value ?? '5',
+      recursionLimit: recursionRes.Item?.value ?? '50',
+      deployLimit: deployRes.Item?.value ?? '5',
+      consecutiveBuildFailures: cbFailuresRes.Item?.value ?? 0,
       protectedResources: Array.isArray(protectedRes.Item?.value)
         ? protectedRes.Item.value.join(', ')
         : 'sst.config.ts, buildspec.yml, infra/',

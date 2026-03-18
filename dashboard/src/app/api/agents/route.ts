@@ -50,7 +50,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       new PutCommand({
         TableName: tableName,
         Item: { 
-          key: DYNAMO_KEYS.AGENTS_CONFIG || 'agents_config', 
+          key: DYNAMO_KEYS.AGENTS_CONFIG ?? 'agents_config', 
           value: body 
         },
       })

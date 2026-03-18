@@ -9,7 +9,7 @@ import { getToolUsage, getAllTools } from '@/lib/tool-utils';
 async function getMCPServers() {
   try {
     const { AgentRegistry } = await import('@claw/core/lib/registry');
-    return (await AgentRegistry.getRawConfig('mcp_servers')) as Record<string, any> || {};
+    return (await AgentRegistry.getRawConfig('mcp_servers')) as Record<string, any> ?? {};
   } catch (e) {
     console.error('Error fetching MCP servers:', e);
     return {};
@@ -25,12 +25,12 @@ async function getAgentConfigs() {
     const agents = Object.values(configs).map(c => ({
       id: c.id,
       name: c.name,
-      tools: c.tools || []
+      tools: c.tools ?? []
     }));
 
     // Fetch individual usage for each agent
     const agentsWithUsage = await Promise.all(agents.map(async (a) => {
-      const usage = (await AgentRegistry.getRawConfig(`tool_usage_${a.id}`)) as Record<string, { count: number; lastUsed: number }> || {};
+      const usage = (await AgentRegistry.getRawConfig(`tool_usage_${a.id}`)) as Record<string, { count: number; lastUsed: number }> ?? {};
       return { ...a, usage };
     }));
 

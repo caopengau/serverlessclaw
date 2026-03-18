@@ -98,7 +98,7 @@ async function getMemoryData() {
             userId,
             lastActive: Math.max(...allItems
                 .filter(item => item.userId === userId)
-                .map(item => item.timestamp || 0))
+                .map(item => item.timestamp ?? 0))
             })),
         dynamicCategories: {}
     };
@@ -112,7 +112,7 @@ async function getMemoryData() {
       const prioA = a.metadata?.priority ?? 5;
       const prioB = b.metadata?.priority ?? 5;
       if (prioA !== prioB) return prioB - prioA;
-      return (b.timestamp || 0) - (a.timestamp || 0);
+      return (b.timestamp ?? 0) - (a.timestamp ?? 0);
     }), 
     sessions: sessions.map(s => ({
         userId: s.userId.replace('SESSIONS#', ''),
@@ -205,7 +205,7 @@ export default async function MemoryVault() {
                         <div className="flex justify-between items-start mb-3 relative z-10">
                             <div className="flex flex-col gap-1">
                               <Badge variant="primary" className="bg-amber-500/10 text-amber-500">
-                                  {gap.metadata?.category || 'STRATEGIC_GAP'}
+                                  {gap.metadata?.category ?? 'STRATEGIC_GAP'}
                               </Badge>
                               <Typography variant="mono" color="muted" className="text-[9px]">ID: {gap.userId.split('#')[1]}</Typography>
                             </div>
@@ -214,7 +214,7 @@ export default async function MemoryVault() {
                                 <MemoryPrioritySelector 
                                   userId={gap.userId} 
                                   timestamp={gap.timestamp} 
-                                  currentPriority={gap.metadata?.priority || 5} 
+                                  currentPriority={gap.metadata?.priority ?? 5} 
                                 />
 
                                <form action={pruneMemory} className="opacity-0 group-hover:opacity-100 transition-opacity">
@@ -232,7 +232,7 @@ export default async function MemoryVault() {
                          <div className="mt-4 flex gap-4 relative z-10 border-t border-white/5 pt-3">
                              <div className="flex items-center gap-1.5">
                                <TrendingUp size={10} className="text-cyber-green" /> 
-                               <Typography variant="mono" color="muted" className="text-[9px]" uppercase>Impact: {gap.metadata?.impact || 5}/10</Typography>
+                               <Typography variant="mono" color="muted" className="text-[9px]" uppercase>Impact: {gap.metadata?.impact ?? 5}/10</Typography>
                              </div>
                              <div className="flex items-center gap-1.5">
                                <Clock size={10} className="text-white/50" />
@@ -290,7 +290,7 @@ export default async function MemoryVault() {
                     <div className="mt-3 flex gap-3 opacity-60">
                       <div className="flex items-center gap-1">
                         <BarChart2 size={10} />
-                        <Typography variant="mono" className="text-[8px] uppercase">Recalls: {lesson.metadata?.hitCount || 0}</Typography>
+                        <Typography variant="mono" className="text-[8px] uppercase">Recalls: {lesson.metadata?.hitCount ?? 0}</Typography>
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock size={10} />
@@ -331,7 +331,7 @@ export default async function MemoryVault() {
                     <div className="mt-4 pt-2 border-t border-white/5 flex gap-3 opacity-40">
                       <div className="flex items-center gap-1">
                         <Zap size={10} className="text-cyber-blue" />
-                        <Typography variant="mono" className="text-[8px] uppercase">Utility: {(fact.metadata as any)?.hitCount || 0}</Typography>
+                        <Typography variant="mono" className="text-[8px] uppercase">Utility: {(fact.metadata as any)?.hitCount ?? 0}</Typography>
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock size={10} />
@@ -350,7 +350,7 @@ export default async function MemoryVault() {
           </section>
 
           {/* Dynamically Discovered Knowledge Types */}
-          {Object.entries(dynamicCategories || {}).map(([type, items]) => (
+          {Object.entries(dynamicCategories ?? {}).map(([type, items]) => (
             <section key={type}>
               <Typography variant="caption" weight="black" uppercase className="tracking-[0.2em] flex items-center gap-2 mb-6 text-purple-400 opacity-60">
                 <Database size={14} className="text-purple-400" /> {type.replace('MEMORY:', '').replace(/_/g, ' ')}
@@ -375,7 +375,7 @@ export default async function MemoryVault() {
                     <div className="mt-4 pt-2 border-t border-white/5 flex gap-4 opacity-40">
                       <div className="flex items-center gap-1">
                         <BarChart2 size={10} className="text-purple-400" />
-                        <Typography variant="mono" className="text-[8px] uppercase">Hits: {item.metadata?.hitCount || 0}</Typography>
+                        <Typography variant="mono" className="text-[8px] uppercase">Hits: {item.metadata?.hitCount ?? 0}</Typography>
                       </div>
                       <div className="flex items-center gap-1">
                         <Clock size={10} />

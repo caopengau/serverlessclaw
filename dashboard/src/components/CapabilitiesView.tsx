@@ -57,8 +57,8 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
     setOptimisticAgents(agents);
   }, [agents]);
 
-  const sortedByUsage = [...allTools].sort((a, b) => (b.usage?.count || 0) - (a.usage?.count || 0));
-  const totalInvocations = allTools.reduce((acc, t) => acc + (t.usage?.count || 0), 0);
+  const sortedByUsage = [...allTools].sort((a, b) => (b.usage?.count ?? 0) - (a.usage?.count ?? 0));
+  const totalInvocations = allTools.reduce((acc, t) => acc + (t.usage?.count ?? 0), 0);
 
   const filteredTools = allTools.filter(tool => 
     tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -318,11 +318,11 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {optimisticAgents.filter(a => a.id !== 'monitor' && a.id !== 'events' && a.id !== 'recovery').map(agent => {
-                  const agentUsage = agent.usage || {};
+                  const agentUsage = agent.usage ?? {};
                   const neverUsedTools = agent.tools.filter(t => !agentUsage[t]);
                   const lowUsageTools = agent.tools
                     .filter(t => agentUsage[t] && agentUsage[t].count < 3)
-                    .sort((a, b) => (agentUsage[a]?.count || 0) - (agentUsage[b]?.count || 0));
+                    .sort((a, b) => (agentUsage[a]?.count ?? 0) - (agentUsage[b]?.count ?? 0));
 
                   return (
                     <Card key={agent.id} variant="glass" padding="lg" className="border-white/5 bg-black/40">
@@ -333,7 +333,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                           </div>
                           <Typography variant="body" weight="black" color="white" className="tracking-widest capitalize">{agent.name}</Typography>
                         </div>
-                        <Badge variant="outline" className="text-[8px] opacity-40">Efficiency: {Math.round((agent.tools.length - neverUsedTools.length) / (agent.tools.length || 1) * 100)}%</Badge>
+                        <Badge variant="outline" className="text-[8px] opacity-40">Efficiency: {Math.round((agent.tools.length - neverUsedTools.length) / (agent.tools.length ?? 1) * 100)}%</Badge>
                       </div>
 
                       <div className="space-y-6">
@@ -419,7 +419,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                                 <div className="h-1.5 bg-white/5 rounded-full flex-1 max-w-[100px] overflow-hidden">
                                   <div 
                                     className={`h-full ${tool.isExternal ? 'bg-purple-500' : 'bg-yellow-500'}`} 
-                                    style={{ width: `${Math.min(100, (tool.usage?.count || 0) / (sortedByUsage[0]?.usage?.count || 1) * 100)}%` }}
+                                    style={{ width: `${Math.min(100, (tool.usage?.count ?? 0) / (sortedByUsage[0]?.usage?.count ?? 1) * 100)}%` }}
                                   />
                                 </div>
                                 <span className="text-xs font-mono font-bold text-white/80">{tool.usage?.count}</span>

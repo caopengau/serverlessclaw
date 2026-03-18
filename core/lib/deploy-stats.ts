@@ -19,7 +19,7 @@ export async function getDeployCountToday(): Promise<number> {
     new GetCommand({
       TableName: typedResource.MemoryTable.name,
       Key: {
-        userId: SYSTEM.DEPLOY_STATS_KEY || 'SYSTEM#DEPLOY_STATS',
+        userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
         timestamp: 0,
       },
     })
@@ -40,7 +40,7 @@ export async function incrementDeployCount(today: string, currentCount: number):
     new UpdateCommand({
       TableName: typedResource.MemoryTable.name,
       Key: {
-        userId: SYSTEM.DEPLOY_STATS_KEY || 'SYSTEM#DEPLOY_STATS',
+        userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
         timestamp: 0,
       },
       UpdateExpression:
@@ -65,7 +65,7 @@ export async function rewardDeployLimit(): Promise<void> {
       new UpdateCommand({
         TableName: typedResource.MemoryTable.name,
         Key: {
-          userId: SYSTEM.DEPLOY_STATS_KEY || 'SYSTEM#DEPLOY_STATS',
+          userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
           timestamp: 0,
         },
         UpdateExpression: 'SET #count = #count - :one',

@@ -78,7 +78,7 @@ async function getTraceNodes(traceId: string): Promise<TraceNode[]> {
       })
     );
     
-    return (Items as TraceNode[]) || [];
+    return (Items as TraceNode[]) ?? [];
   } catch (e) {
     console.error('Error fetching trace nodes:', e);
     return [];
@@ -133,7 +133,7 @@ export default async function TraceDetailPage({
   }
 
   // Use the root node (usually the first one or one with nodeId='root') for header info
-  const rootNode = nodes.find(n => n.nodeId === 'root') || nodes[0];
+  const rootNode = nodes.find(n => n.nodeId === 'root') ?? nodes[0];
 
   return (
     <div className="flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
@@ -157,7 +157,7 @@ export default async function TraceDetailPage({
               </Typography>
             </div>
             <Typography variant="body" color="white" className="max-w-2xl block">
-              {rootNode.initialContext?.userText || 'System orchestrated task execution.'}
+              {rootNode.initialContext?.userText ?? 'System orchestrated task execution.'}
             </Typography>
           </div>
           
@@ -167,14 +167,14 @@ export default async function TraceDetailPage({
             </Typography>
             <div className="flex items-center justify-end gap-2">
               <Typography variant="mono" color="white" className="text-[10px] block">
-                Source: <span className="text-cyber-blue font-bold tracking-tighter ml-1">[{rootNode.source || 'Unknown'}]</span>
+                Source: <span className="text-cyber-blue font-bold tracking-tighter ml-1">[{rootNode.source ?? 'Unknown'}]</span>
               </Typography>
               <Typography variant="mono" color="white" className="text-[10px] border-l border-white/10 pl-2 ml-1">
                 UID: {rootNode.userId}
               </Typography>
             </div>
             <Typography variant="mono" color="white" className="flex items-center justify-end gap-2 text-[10px]">
-              TOTAL STEPS: <Typography variant="mono" weight="bold" color="primary" className="bg-primary/10 px-1 rounded-sm">{nodes.reduce((acc, n) => acc + (n.steps?.length || 0), 0)}</Typography>
+              TOTAL STEPS: <Typography variant="mono" weight="bold" color="primary" className="bg-primary/10 px-1 rounded-sm">{nodes.reduce((acc, n) => acc + (n.steps?.length ?? 0), 0)}</Typography>
             </Typography>
           </div>
         </div>
@@ -204,8 +204,8 @@ export default async function TraceDetailPage({
                       <div>
                         <Typography variant="caption" weight="bold" color="white" className="tracking-wider block">{step.type}</Typography>
                          <Typography variant="caption" weight="medium" color="white" className="block">
-                          {step.type === TRACE_TYPES.TOOL_CALL ? `Executing ${step.content.tool || step.content.toolName || ''}` : 
-                           step.type === TRACE_TYPES.TOOL_RESULT ? `Observation from ${step.content.tool || step.content.toolName || 'tool'}` :
+                          {step.type === TRACE_TYPES.TOOL_CALL ? `Executing ${step.content.tool || step.content.toolName ?? ''}` : 
+                           step.type === TRACE_TYPES.TOOL_RESULT ? `Observation from ${step.content.tool || step.content.toolName ?? 'tool'}` :
                            step.type === TRACE_TYPES.LLM_CALL ? 'Agent Processing (Input)' : 
                            step.type === TRACE_TYPES.LLM_RESPONSE ? 'Agent Response (Output)' : 'Error detected'}
                         </Typography>
