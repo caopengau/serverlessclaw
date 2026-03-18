@@ -13,6 +13,10 @@ interface ProviderResource {
   ConfigTable: { name: string };
 }
 
+/**
+ * ProviderManager handles the resolution and execution of LLM provider calls.
+ * It acts as a central hub for switching between OpenAI, Bedrock, and OpenRouter.
+ */
 export class ProviderManager implements IProvider {
   /**
    * Resolves the active provider and model using a hierarchy:
@@ -20,6 +24,10 @@ export class ProviderManager implements IProvider {
    * 2. Hot configuration (DynamoDB ConfigTable)
    * 3. SST Static Resources (if linked)
    * 4. System Constants (last resort)
+   *
+   * @param overrideProvider - Optional provider name to override defaults.
+   * @param overrideModel - Optional model name to override defaults.
+   * @returns A promise resolving to the active IProvider implementation.
    */
   static async getActiveProvider(
     overrideProvider?: string,
@@ -51,6 +59,17 @@ export class ProviderManager implements IProvider {
     }
   }
 
+  /**
+   * Performs a completion call to the active LLM provider.
+   *
+   * @param messages - The conversation history.
+   * @param tools - Optional tools available to the LLM.
+   * @param profile - The desired reasoning profile.
+   * @param model - Optional model override.
+   * @param provider - Optional provider override.
+   * @param responseFormat - Optional structured output format.
+   * @returns A promise resolving to the AI response message.
+   */
   async call(
     messages: Message[],
     tools?: ITool[],
@@ -63,6 +82,12 @@ export class ProviderManager implements IProvider {
     return activeProvider.call(messages, tools, profile, model, undefined, responseFormat);
   }
 
+  /**
+   * Retrieves the capabilities of the active model.
+   *
+   * @param model - Optional model identifier.
+   * @returns A promise resolving to the capabilities of the model.
+   */
   async getCapabilities(model?: string) {
     const provider = await ProviderManager.getActiveProvider(undefined, model);
     return provider.getCapabilities(model);
