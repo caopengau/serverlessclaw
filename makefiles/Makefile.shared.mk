@@ -76,6 +76,10 @@ define load_env
 	if [ -z "$$AWS_PROFILE" ]; then \
 		$(call log_error,AWS_PROFILE is not set. Please ensure it is defined in your .env file.); \
 		exit 1; \
+	fi; \
+	if { [ "$(ENV)" = "dev" ] || [ "$(ENV)" = "production" ]; } && [ -z "$$EXPECTED_ACCOUNT" ]; then \
+		$(call log_error,EXPECTED_ACCOUNT is not set for stage $(ENV). Please ensure it is defined in your .env file.); \
+		exit 1; \
 	fi
 endef
 
@@ -83,7 +87,7 @@ endef
 show-env: ## Show current environment variables (filtered)
 	@$(call load_env); \
 	$(call log_info,Current Environment Settings (Loaded from files):); \
-	env | grep -E "^(SST_|AWS_|TELEGRAM_|OPENAI_|GITHUB_)" | sort || true
+	env | grep -E "^(SST_|AWS_|TELEGRAM_|OPENAI_|GITHUB_|EXPECTED_ACCOUNT)" | sort || true
 
 # Common track_time macro
 define track_time

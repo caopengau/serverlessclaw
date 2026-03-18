@@ -13,7 +13,9 @@ dev: ## Start SST in development mode
 
 deploy: ## Deploy SST to the specified environment (default: dev)
 	@$(call log_step,Deploying to environment: $(ENV)...)
-	@$(call load_env); $(SST) deploy --stage $(ENV) --yes
+	@$(call load_env); \
+	./scripts/check-aws-account.sh $(ENV) $$EXPECTED_ACCOUNT && \
+	$(SST) deploy --stage $(ENV) --yes
 	@if [ -f scripts/fix-cloudfront.sh ]; then \
 		$(call log_info,Running CloudFront fix script...); \
 		./scripts/fix-cloudfront.sh $(ENV); \
@@ -28,15 +30,15 @@ deploy-prod: ## Deploy SST to production
 
 diff: ## Show SST infrastructure changes
 	@$(call log_info,SST diff for $(ENV)...)
-	@$(SST) diff --stage $(ENV)
+	@$(call load_env); $(SST) diff --stage $(ENV)
 
 synth: ## Synthesize SST resources
 	@$(call log_info,SST synth for $(ENV)...)
-	@$(SST) synth --stage $(ENV)
+	@$(call load_env); $(SST) synth --stage $(ENV)
 
 remove: ## Remove SST resources for the specified environment
 	@$(call log_warning,WARNING: Removing SST resources for stage $(ENV)!)
-	@$(SST) remove --stage $(ENV) --yes
+	@$(call load_env); $(SST) remove --stage $(ENV) --yes
 
 remove-local: ## Remove SST resources for the local development stage
 	@$(MAKE) remove ENV=$(LOCAL_STAGE)

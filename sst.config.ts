@@ -2,23 +2,6 @@
 
 export default $config({
   app(input) {
-    const EXPECTED_ACCOUNT = process.env.EXPECTED_ACCOUNT;
-    const isSharedStage = ['dev', 'production'].includes(input?.stage);
-
-    if (isSharedStage && EXPECTED_ACCOUNT) {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const { execSync } = require('child_process');
-      const currentAccount = execSync('aws sts get-caller-identity --query Account --output text')
-        .toString()
-        .trim();
-
-      if (currentAccount !== EXPECTED_ACCOUNT) {
-        throw new Error(
-          `❌ Deployment blocked: Stage "${input.stage}" MUST be deployed to the configured AWS account (${EXPECTED_ACCOUNT}). Current account is ${currentAccount}.`
-        );
-      }
-    }
-
     return {
       name: 'serverlessclaw',
       removal: input?.stage === 'production' ? 'retain' : 'remove',
