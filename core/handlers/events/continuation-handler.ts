@@ -5,6 +5,9 @@ import { getRecursionLimit, handleRecursionLimitExceeded, processEventWithAgent 
 
 /**
  * Handles continuation task events - resumes agent processing with context.
+ *
+ * @param eventDetail - The task event detail containing the agentId, task, and context.
+ * @param context - The AWS Lambda context.
  */
 export async function handleContinuationTask(
   eventDetail: Record<string, unknown>,

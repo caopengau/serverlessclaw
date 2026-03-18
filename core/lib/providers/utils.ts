@@ -4,6 +4,9 @@ import { logger } from '../logger';
 /**
  * Transforms internal tools to OpenAI function format.
  * Consolidates tool transformation logic used in OpenAI and OpenRouter providers.
+ *
+ * @param tools - An array of internal tools to transform.
+ * @returns An array of OpenAI-compatible function definitions.
  */
 export function transformToolsToOpenAI(tools?: ITool[]): Array<{
   type: 'function';
@@ -31,6 +34,9 @@ export function transformToolsToOpenAI(tools?: ITool[]): Array<{
 
 /**
  * Maps internal message roles to OpenAI-compatible roles.
+ *
+ * @param role - The internal message role string.
+ * @returns The corresponding OpenAI-compatible role string.
  */
 export function mapToOpenAIRole(
   role: string
@@ -51,6 +57,11 @@ export function mapToOpenAIRole(
 /**
  * Normalizes a reasoning profile based on model capabilities.
  * Ensures the agent never requests a profile that will cause a provider error.
+ *
+ * @param requested - The desired reasoning profile.
+ * @param capabilities - The model capabilities object.
+ * @param modelId - The model ID string for logging.
+ * @returns The normalized reasoning profile.
  */
 export function normalizeProfile(
   requested: ReasoningProfile,
@@ -95,6 +106,10 @@ export const SUPPORTED_IMAGE_FORMATS = ['png', 'jpeg', 'gif', 'webp'] as const;
 
 /**
  * Caps a provider-specific effort string based on model limits.
+ *
+ * @param requested - The desired effort string.
+ * @param max - The maximum supported effort string for the model.
+ * @returns The capped effort string.
  */
 export function capEffort(requested: string, max?: string): string {
   if (!max) return requested;
@@ -112,6 +127,9 @@ export function capEffort(requested: string, max?: string): string {
 /**
  * Creates a standardized empty response message.
  * Deduplicates empty response handling across all provider implementations.
+ *
+ * @param providerName - The name of the provider.
+ * @returns A standardized empty response message.
  */
 export function createEmptyResponse(providerName: string): Message {
   return {
@@ -123,6 +141,10 @@ export function createEmptyResponse(providerName: string): Message {
 /**
  * Parses a config value to integer with a fallback.
  * Deduplicates parseInt(String(value), 10) patterns across the codebase.
+ *
+ * @param value - The value to parse as an integer.
+ * @param fallback - The value to return if parsing fails.
+ * @returns The parsed integer or the fallback value.
  */
 export function parseConfigInt(value: unknown, fallback: number): number {
   if (value === undefined || value === null) return fallback;

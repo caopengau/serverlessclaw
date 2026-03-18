@@ -4,6 +4,9 @@ import { wakeupInitiator, processEventWithAgent } from './shared';
 
 /**
  * Handles build failure events - triggers agent to investigate and fix.
+ *
+ * @param eventDetail - The build event detail.
+ * @param context - The AWS Lambda context.
  */
 export async function handleBuildFailure(
   eventDetail: Record<string, unknown>,
@@ -66,6 +69,9 @@ export async function handleBuildFailure(
 
 /**
  * Handles build success events - notifies user and wakes up initiator.
+ *
+ * @param eventDetail - The build event detail.
+ * @returns A promise resolving when the success event is processed.
  */
 export async function handleBuildSuccess(eventDetail: Record<string, unknown>): Promise<void> {
   const { userId, buildId, sessionId, initiatorId, task, traceId } =

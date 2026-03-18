@@ -522,12 +522,12 @@ export default function AgentsPage() {
                 ))}
               </div>
               <p className="text-white/60">
-                Backbone agents are critical to the system's connectivity and core logic. 
+                Backbone agents are critical to the system&apos;s connectivity and core logic. 
                 Unauthorized or incorrect modifications can lead to cascading failures, deadlocked tasks, 
                 or loss of system autonomy.
               </p>
               <p className="text-white font-bold italic border-l-2 border-red-500 pl-3">
-                "I understand that these changes affect the system's fundamental architecture and I take full responsibility for this modification."
+                &quot;I understand that these changes affect the system&apos;s fundamental architecture and I take full responsibility for this modification.&quot;
               </p>
             </div>
 

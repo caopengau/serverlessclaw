@@ -9,6 +9,9 @@ import { logger } from './logger';
  * 2. If properties exist, 'required' must be present.
  * 3. 'required' must contain ALL keys present in 'properties'.
  * 4. 'additionalProperties' should be false for strict schema compliance.
+ *
+ * @param tool - The tool definition to validate.
+ * @returns An array of validation error messages.
  */
 export function validateToolSchema(tool: IToolDefinition): string[] {
   const errors: string[] = [];
@@ -49,6 +52,8 @@ export function validateToolSchema(tool: IToolDefinition): string[] {
 
 /**
  * Validates all system tools.
+ *
+ * @returns True if all tools are valid, false otherwise.
  */
 export function validateAllTools(): boolean {
   let allValid = true;

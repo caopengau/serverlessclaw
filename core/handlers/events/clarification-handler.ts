@@ -2,6 +2,9 @@ import { getRecursionLimit, handleRecursionLimitExceeded, wakeupInitiator } from
 
 /**
  * Handles clarification request events - relays clarification question to initiator.
+ *
+ * @param eventDetail - The clarification request event detail.
+ * @returns A promise resolving when the clarification request is processed.
  */
 export async function handleClarificationRequest(
   eventDetail: Record<string, unknown>

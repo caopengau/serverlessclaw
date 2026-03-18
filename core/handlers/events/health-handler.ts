@@ -4,6 +4,10 @@ import { processEventWithAgent } from './shared';
 
 /**
  * Handles system health report events - triggers agent to investigate issues.
+ *
+ * @param eventDetail - The health report event detail.
+ * @param context - The AWS Lambda context.
+ * @returns A promise resolving when the health report is processed.
  */
 export async function handleHealthReport(
   eventDetail: Record<string, unknown>,

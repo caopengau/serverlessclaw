@@ -32,7 +32,7 @@
     "@types/node": "^24.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "eslint": "^10.0.0",
+    "eslint": "^10.0.3",
     "eslint-config-next": "^16.1.7",
     "raw-loader": "^4.0.2",
     "tailwindcss": "^4",

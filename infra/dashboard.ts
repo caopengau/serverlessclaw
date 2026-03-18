@@ -66,22 +66,28 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
       },
     ],
     transform: {
+      /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
       cdn: (args: any) => {
         // 1. Ensure the server origin uses https-only (fixes 502/origin issues)
         if (args.origins) {
-          args.origins = $util.output(args.origins).apply((origins: any[]) =>
-            origins.map((origin: any) => {
-              if (origin.customOriginConfig) {
-                return {
-                  ...origin,
-                  customOriginConfig: {
-                    ...origin.customOriginConfig,
-                    originProtocolPolicy: 'https-only',
-                  },
-                };
-              }
-              return origin;
-            })
+          args.origins = $util.output(args.origins).apply(
+            (
+              /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+              origins: any[]
+            ) =>
+              /* eslint-disable-next-line @typescript-eslint/no-explicit-any */
+              origins.map((origin: any) => {
+                if (origin.customOriginConfig) {
+                  return {
+                    ...origin,
+                    customOriginConfig: {
+                      ...origin.customOriginConfig,
+                      originProtocolPolicy: 'https-only',
+                    },
+                  };
+                }
+                return origin;
+              })
           );
         }
 

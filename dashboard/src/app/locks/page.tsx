@@ -165,7 +165,7 @@ export default async function LocksPage() {
             <ShieldAlert size={12} /> Recovery Protocol
         </Typography>
         <Typography variant="body" color="white" italic className="leading-relaxed block">
-            "Ghost Locks" occur when an agent crashes before releasing its session. Force releasing a lock allows the user to start a new session immediately. Caution: Releasing an active lock may cause state corruption.
+            &quot;Ghost Locks&quot; occur when an agent crashes before releasing its session. Force releasing a lock allows the user to start a new session immediately. Caution: Releasing an active lock may cause state corruption.
         </Typography>
       </Card>
     </main>
