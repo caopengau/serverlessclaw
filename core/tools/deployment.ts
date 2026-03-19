@@ -3,7 +3,7 @@ import { Resource } from 'sst';
 import { GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 import { logger } from '../lib/logger';
 import { SYSTEM, DYNAMO_KEYS } from '../lib/constants';
 import { getDeployCountToday, incrementDeployCount } from '../lib/deploy-stats';

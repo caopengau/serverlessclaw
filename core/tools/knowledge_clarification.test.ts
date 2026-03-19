@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
-import { seekClarification, provideClarification } from './knowledge';
+import { SEEK_CLARIFICATION, PROVIDE_CLARIFICATION } from './knowledge-agent';
 import { EventType } from '../lib/types/index';
 
 const ebMock = mockClient(EventBridgeClient);
@@ -23,7 +23,7 @@ describe('Clarification Tools', () => {
     it('should emit CLARIFICATION_REQUEST event', async () => {
       ebMock.on(PutEventsCommand).resolves({});
 
-      const result = await seekClarification.execute({
+      const result = await SEEK_CLARIFICATION.execute({
         userId: 'user-1',
         question: 'What is the color of the sky?',
         originalTask: 'Design the sky',
@@ -54,7 +54,7 @@ describe('Clarification Tools', () => {
     it('should use "task" if "originalTask" is missing', async () => {
       ebMock.on(PutEventsCommand).resolves({});
 
-      await seekClarification.execute({
+      await SEEK_CLARIFICATION.execute({
         userId: 'user-1',
         question: 'Question?',
         task: 'Original Task',
@@ -71,7 +71,7 @@ describe('Clarification Tools', () => {
     it('should emit CONTINUATION_TASK event', async () => {
       ebMock.on(PutEventsCommand).resolves({});
 
-      const result = await provideClarification.execute({
+      const result = await PROVIDE_CLARIFICATION.execute({
         userId: 'user-1',
         agentId: 'coder',
         answer: 'The sky is blue.',

@@ -1,4 +1,4 @@
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 import { ConfigManager } from '../lib/registry/config';
 import { emitEvent } from '../lib/utils/bus';
 import { EventType } from '../lib/types/index';
@@ -184,11 +184,3 @@ export const PROVIDE_CLARIFICATION = {
     }
   },
 };
-
-// CamelCase aliases for backward compatibility with tests
-export const listAgents = LIST_AGENTS;
-export const dispatchTask = DISPATCH_TASK;
-export const manageAgentTools = MANAGE_AGENT_TOOLS;
-export const setSystemConfig = SET_SYSTEM_CONFIG;
-export const seekClarification = SEEK_CLARIFICATION;
-export const provideClarification = PROVIDE_CLARIFICATION;

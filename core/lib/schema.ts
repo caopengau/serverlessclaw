@@ -1,4 +1,4 @@
-import { toolDefinitions } from '../tools/definitions';
+import { toolDefinitions } from '../tools/definitions/index';
 import { IToolDefinition } from './types/index';
 import { logger } from './logger';
 

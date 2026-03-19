@@ -1,4 +1,4 @@
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 import { SYSTEM_CONFIG_METADATA } from '../lib/metadata';
 
 /**

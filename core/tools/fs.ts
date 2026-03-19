@@ -1,6 +1,6 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Resource } from 'sst';
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 import { logger } from '../lib/logger';
 import { STORAGE } from '../lib/constants';
 import * as path from 'path';

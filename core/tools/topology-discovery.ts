@@ -1,4 +1,4 @@
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 import { discoverSystemTopology } from '../lib/utils/topology';
 import { formatErrorMessage } from '../lib/utils/error';
 

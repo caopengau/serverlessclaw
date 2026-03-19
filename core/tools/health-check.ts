@@ -1,4 +1,4 @@
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 import { logger } from '../lib/logger';
 import { rewardDeployLimit } from '../lib/deploy-stats';
 import { formatErrorMessage } from '../lib/utils/error';

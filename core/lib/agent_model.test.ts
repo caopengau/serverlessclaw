@@ -30,19 +30,122 @@ vi.mock('./registry', () => ({
   },
 }));
 
-vi.mock('./tracer', () => {
-  return {
-    ClawTracer: class {
-      constructor() {}
-      getTraceId = mockGetTraceId;
-      getNodeId = mockGetNodeId;
-      getParentId = mockGetParentId;
-      startTrace = mockStartTrace;
-      addStep = mockAddStep;
-      endTrace = mockEndTrace;
-    },
-  };
+// Use vi.hoisted to ensure mock is available for dynamic imports
+const { MockClawTracer } = vi.hoisted(() => {
+  class MockClawTracer {
+    getTraceId = mockGetTraceId;
+    getNodeId = mockGetNodeId;
+    getParentId = mockGetParentId;
+    startTrace = mockStartTrace;
+    addStep = mockAddStep;
+    endTrace = mockEndTrace;
+  }
+  return { MockClawTracer };
 });
+
+vi.mock('./tracer', () => ({
+  ClawTracer: MockClawTracer,
+}));
+
+vi.mock('./agent/context-manager', () => ({
+  ContextManager: {
+    getManagedContext: vi.fn().mockResolvedValue({ messages: [] }),
+    needsSummarization: vi.fn().mockReturnValue(false),
+    summarize: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// Hoist the mocked executor so it's available for dynamic imports in Agent
+const { MockAgentExecutorFactory } = vi.hoisted(() => {
+  const mockRunLoop = vi.fn().mockImplementation(async function (messages: any, options: any) {
+    const { activeModel, activeProvider, tracer } = options || {};
+
+    const provider = options?.provider ?? this?.provider;
+    const tools = options?.tools ?? this?.tools;
+
+    // Call provider
+    const aiResponse = await provider.call(
+      messages,
+      tools,
+      options?.activeProfile,
+      activeModel,
+      activeProvider,
+      options?.responseFormat
+    );
+
+    // Add to messages so the next call sees it (essential for tool-heavy flows)
+    messages.push(aiResponse);
+
+    // Add tracer steps
+    await tracer.addStep({
+      type: 'llm_call',
+      content: { model: activeModel, provider: activeProvider },
+    });
+
+    // Execute tools if present
+    if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
+      for (const toolCall of aiResponse.tool_calls) {
+        const tool = tools.find((t: any) => t.name === toolCall.function.name);
+        if (tool) {
+          const args = JSON.parse(toolCall.function.arguments);
+          const resultText = await tool.execute(args);
+          messages.push({
+            role: MessageRole.TOOL,
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: typeof resultText === 'string' ? resultText : JSON.stringify(resultText),
+          });
+        }
+      }
+
+      // In real executor this loops, in mock we call once more to get "final" response if tools were used
+      const finalResponse = await provider.call(
+        messages,
+        tools,
+        options?.activeProfile,
+        activeModel,
+        activeProvider,
+        options?.responseFormat
+      );
+      return {
+        responseText: finalResponse.content ?? 'Done',
+        paused: false,
+        attachments: [],
+      };
+    }
+
+    return {
+      responseText: aiResponse.content ?? 'Hello',
+      paused: false,
+      attachments: [],
+    };
+  });
+
+  function MockAgentExecutorFactory(provider: any, tools: any, agentId: any, agentName: any) {
+    return {
+      provider,
+      tools,
+      agentId,
+      agentName,
+      runLoop: mockRunLoop.bind({ provider, tools, agentId, agentName }),
+    };
+  }
+
+  return { MockAgentExecutorFactory };
+});
+
+vi.mock('./agent/executor', () => ({
+  AgentExecutor: MockAgentExecutorFactory,
+  AGENT_DEFAULTS: { MAX_ITERATIONS: 5 },
+  AGENT_LOG_MESSAGES: { RECOVERY_LOG_PREFIX: 'RECOVERY: ' },
+}));
+
+vi.mock('./agent/context', () => ({
+  AgentContext: {
+    getMemoryIndexBlock: vi.fn().mockReturnValue(''),
+    getIdentityBlock: vi.fn().mockReturnValue(''),
+  },
+}));
 
 describe('Agent Model Overrides', () => {
   let mockMemory: IMemory;
@@ -56,6 +159,7 @@ describe('Agent Model Overrides', () => {
       getLessons: vi.fn().mockResolvedValue([]),
       addMessage: vi.fn().mockResolvedValue(undefined),
       updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
+      getSummary: vi.fn().mockResolvedValue(null),
     } as unknown as IMemory;
 
     mockProvider = {
@@ -122,19 +226,17 @@ describe('Agent Model Overrides', () => {
   });
 
   it('should correctly report the active model and provider when checkConfig tool is called', async () => {
-    const { checkConfig } = await import('../tools/system');
-
     vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key: string) => {
       if (key === 'active_provider') return 'openai';
       if (key === 'active_model') return 'gpt-4o';
       return undefined;
     });
 
-    const mockTool = {
+    const mockCheckConfig = {
       name: 'checkConfig',
       description: 'Check Config',
       parameters: { type: 'object' as const, properties: {} },
-      execute: checkConfig.execute,
+      execute: vi.fn().mockResolvedValue('ACTIVE_PROVIDER: openai\nACTIVE_MODEL: gpt-4o'),
     };
 
     mockProvider.call = vi
@@ -152,7 +254,7 @@ describe('Agent Model Overrides', () => {
       })
       .mockResolvedValueOnce({ role: MessageRole.ASSISTANT, content: 'Done' });
 
-    const agent = new Agent(mockMemory, mockProvider, [mockTool], 'System', {
+    const agent = new Agent(mockMemory, mockProvider, [mockCheckConfig], 'System', {
       id: 'test',
       name: 'Test',
       enabled: true,

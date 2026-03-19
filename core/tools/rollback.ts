@@ -1,6 +1,6 @@
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import { Resource } from 'sst';
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 import { logger } from '../lib/logger';
 import { SSTResource } from '../lib/types/system';
 import { formatErrorMessage } from '../lib/utils/error';

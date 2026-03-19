@@ -1,6 +1,6 @@
 import { Resource } from 'sst';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 
 /**
  * Retrieves the current runtime configuration, including active LLM provider and model.

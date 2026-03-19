@@ -1,10 +1,11 @@
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 import { logger } from '../lib/logger';
 import { ITool } from '../lib/types/index';
 import { formatErrorMessage } from '../lib/utils/error';
 
 // Import split tool implementations
-import * as systemTools from './system';
+import * as deploymentTools from './deployment';
+import * as rollbackTools from './rollback';
 import * as fsTools from './fs';
 import * as knowledgeTools from './knowledge';
 import * as schedulerTools from './scheduler';
@@ -23,7 +24,18 @@ const knowledgeToolsFiltered = Object.fromEntries(knowledgeToolEntries) as Recor
  */
 export const TOOLS: Record<string, ITool> = {
   // System & Deployment Tools
-  ...systemTools,
+  ...Object.fromEntries(
+    Object.entries(deploymentTools).map(([k, v]) => [
+      k.toLowerCase().replace(/_([a-z])/g, (g) => g[1]),
+      v,
+    ])
+  ),
+  ...Object.fromEntries(
+    Object.entries(rollbackTools).map(([k, v]) => [
+      k.toLowerCase().replace(/_([a-z])/g, (g) => g[1]),
+      v,
+    ])
+  ),
 
   // File System & Validation Tools
   ...Object.fromEntries(
@@ -72,9 +84,6 @@ export const TOOLS: Record<string, ITool> = {
     },
   },
 };
-
-// Add camelCase alias for switchModel for backward compatibility
-TOOLS.switchModel = TOOLS.SWITCH_MODEL;
 
 // Export camelCase aliases for compatibility
 export const tools = TOOLS;

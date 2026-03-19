@@ -1,4 +1,4 @@
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 import { DynamoMemory } from '../lib/memory';
 import { InsightCategory, GapStatus, EventType } from '../lib/types/index';
 import { emitEvent } from '../lib/utils/bus';
@@ -309,14 +309,3 @@ export const PRUNE_MEMORY = {
     }
   },
 };
-
-// CamelCase aliases for backward compatibility with tests
-export const inspectTrace = INSPECT_TRACE;
-export const discoverSkills = DISCOVER_SKILLS;
-export const installSkill = INSTALL_SKILL;
-export const uninstallSkill = UNINSTALL_SKILL;
-export const recallKnowledge = RECALL_KNOWLEDGE;
-export const manageGap = MANAGE_GAP;
-export const reportGap = REPORT_GAP;
-export const saveMemory = SAVE_MEMORY;
-export const pruneMemory = PRUNE_MEMORY;

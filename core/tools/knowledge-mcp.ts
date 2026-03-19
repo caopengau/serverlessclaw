@@ -1,4 +1,4 @@
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 import { ConfigManager } from '../lib/registry/config';
 import { formatErrorMessage } from '../lib/utils/error';
 

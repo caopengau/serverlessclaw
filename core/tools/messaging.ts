@@ -1,4 +1,4 @@
-import { toolDefinitions } from './definitions';
+import { toolDefinitions } from './definitions/index';
 import { sendOutboundMessage } from '../lib/outbound';
 import { formatErrorMessage } from '../lib/utils/error';
 
