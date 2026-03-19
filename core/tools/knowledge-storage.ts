@@ -14,7 +14,7 @@ function getMemory() {
 /**
  * Inspects a mechanical trace by ID.
  */
-export const inspectTrace = {
+export const INSPECT_TRACE = {
   ...toolDefinitions.inspectTrace,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { traceId } = args as { traceId: string };
@@ -53,7 +53,7 @@ ${n.steps
 /**
  * Searches for new capabilities based on a query.
  */
-export const discoverSkills = {
+export const DISCOVER_SKILLS = {
   ...toolDefinitions.discoverSkills,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { query, category } = args as { query: string; category?: string };
@@ -77,7 +77,7 @@ export const discoverSkills = {
 /**
  * Installs a new skill into the agent's current toolset.
  */
-export const installSkill = {
+export const INSTALL_SKILL = {
   ...toolDefinitions.installSkill,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { skillName, agentId } = args as { skillName: string; agentId?: string };
@@ -96,7 +96,7 @@ export const installSkill = {
 /**
  * Uninstalls a skill from an agent's toolset.
  */
-export const uninstallSkill = {
+export const UNINSTALL_SKILL = {
   ...toolDefinitions.uninstallSkill,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { skillName, agentId } = args as { skillName: string; agentId?: string };
@@ -124,7 +124,7 @@ export const uninstallSkill = {
 /**
  * Recalls distilled knowledge and lessons from DynamoDB memory.
  */
-export const recallKnowledge = {
+export const RECALL_KNOWLEDGE = {
   ...toolDefinitions.recallKnowledge,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { userId, query, category } = args as {
@@ -155,7 +155,7 @@ export const recallKnowledge = {
 /**
  * Updates the lifecycle status of a capability gap.
  */
-export const manageGap = {
+export const MANAGE_GAP = {
   ...toolDefinitions.manageGap,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { gapId, status } = args as { gapId: string; status: GapStatus };
@@ -171,7 +171,7 @@ export const manageGap = {
 /**
  * Records a new capability gap or system limitation.
  */
-export const reportGap = {
+export const REPORT_GAP = {
   ...toolDefinitions.reportGap,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { content, impact, urgency, category, sessionId, userId } = args as {
@@ -221,7 +221,7 @@ export const reportGap = {
  * Directly saves project knowledge (facts, insights, preferences) into the system memory.
  * Implements semantic deduplication to prevent redundant or conflicting entries.
  */
-export const saveMemory = {
+export const SAVE_MEMORY = {
   ...toolDefinitions.saveMemory,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { content, category, userId } = args as {
@@ -291,7 +291,7 @@ export const saveMemory = {
 /**
  * Permanently deletes a specific memory item from the neural reserve.
  */
-export const pruneMemory = {
+export const PRUNE_MEMORY = {
   ...toolDefinitions.pruneMemory,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { partitionKey, timestamp } = args as { partitionKey: string; timestamp: number };
@@ -309,3 +309,14 @@ export const pruneMemory = {
     }
   },
 };
+
+// CamelCase aliases for backward compatibility with tests
+export const inspectTrace = INSPECT_TRACE;
+export const discoverSkills = DISCOVER_SKILLS;
+export const installSkill = INSTALL_SKILL;
+export const uninstallSkill = UNINSTALL_SKILL;
+export const recallKnowledge = RECALL_KNOWLEDGE;
+export const manageGap = MANAGE_GAP;
+export const reportGap = REPORT_GAP;
+export const saveMemory = SAVE_MEMORY;
+export const pruneMemory = PRUNE_MEMORY;

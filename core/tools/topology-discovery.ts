@@ -6,7 +6,7 @@ import { formatErrorMessage } from '../lib/utils/error';
  * Tool to allow agents to inspect the system topology.
  * Provides a structured overview of agents, infrastructure, and their connections.
  */
-export const inspectTopology = {
+export const INSPECT_TOPOLOGY = {
   ...toolDefinitions.inspectTopology,
   execute: async (): Promise<string> => {
     try {

@@ -5,7 +5,7 @@ import { toolDefinitions } from './definitions';
 /**
  * Retrieves the current runtime configuration, including active LLM provider and model.
  */
-export const checkConfig = {
+export const CHECK_CONFIG = {
   ...toolDefinitions.checkConfig,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const {
@@ -43,7 +43,7 @@ STAGING_BUCKET: ${Resource.StagingBucket.name}
 /**
  * Lists all available runtime configuration keys and their current values.
  */
-export const listSystemConfigs = {
+export const LIST_SYSTEM_CONFIGS = {
   ...toolDefinitions.listSystemConfigs,
   execute: async (): Promise<string> => {
     try {

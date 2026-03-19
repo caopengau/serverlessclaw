@@ -59,6 +59,10 @@ const BEDROCK_REASONING_MAP: Record<ReasoningProfile, BedrockReasoningConfig> = 
   },
 };
 
+/**
+ * Provider for AWS Bedrock LLM services, specifically optimized for Anthropic Claude 4.6.
+ * Implements 'thinking' budgets and native multi-modal support via the Converse API.
+ */
 export class BedrockProvider implements IProvider {
   constructor(private modelId: string = BedrockModel.CLAUDE_4_6) {}
 

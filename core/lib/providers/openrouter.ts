@@ -24,6 +24,10 @@ const OPENROUTER_REASONING_MAP: Record<
   [ReasoningProfile.DEEP]: { effort: 'high', enabled: true, route: 'fallback' },
 };
 
+/**
+ * Provider for OpenRouter, aggregating multiple high-capability models (GLM, MiniMax, Gemini).
+ * Implements dynamic capability detection and standardized reasoning parameters.
+ */
 export class OpenRouterProvider implements IProvider {
   constructor(private model: string = OpenRouterModel.GEMINI_3_FLASH) {}
 

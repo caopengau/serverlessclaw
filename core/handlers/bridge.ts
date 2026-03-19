@@ -11,7 +11,7 @@ const iot = new IoTDataPlaneClient({});
  * @param event - The EventBridge event.
  * @param context - The AWS Lambda context.
  */
-export const handler = async (event: Record<string, unknown>, _context: Context) => {
+export async function handler(event: Record<string, unknown>, _context: Context): Promise<void> {
   const parsedEventResult = BridgeEventSchema.safeParse(event);
   if (!parsedEventResult.success) {
     console.error('[RealtimeBridge] Invalid bridge event payload:', parsedEventResult.error);
@@ -50,4 +50,4 @@ export const handler = async (event: Record<string, unknown>, _context: Context)
   } catch (error) {
     console.error(`[RealtimeBridge] Failed to publish to ${topic}:`, error);
   }
-};
+}

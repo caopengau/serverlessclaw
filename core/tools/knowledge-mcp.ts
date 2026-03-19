@@ -5,7 +5,7 @@ import { formatErrorMessage } from '../lib/utils/error';
 /**
  * Registers a new MCP server in the global configuration.
  */
-export const registerMCPServer = {
+export const REGISTER_MCP_SERVER = {
   ...toolDefinitions.registerMCPServer,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { serverName, command, env } = args as {
@@ -39,7 +39,7 @@ export const registerMCPServer = {
 /**
  * Removes an MCP server and its associated tools.
  */
-export const unregisterMCPServer = {
+export const UNREGISTER_MCP_SERVER = {
   ...toolDefinitions.unregisterMCPServer,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { serverName } = args as { serverName: string };

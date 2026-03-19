@@ -94,6 +94,10 @@ export interface IHistoryStore {
   ): Promise<void>;
   /** Deletes a conversation session and its history. */
   deleteConversation(userId: string, sessionId: string): Promise<void>;
+  /** Retrieves the latest summary for a conversation session. */
+  getSummary(userId: string): Promise<string | null>;
+  /** Updates the latest summary for a conversation session. */
+  updateSummary(userId: string, summary: string): Promise<void>;
 }
 
 /**

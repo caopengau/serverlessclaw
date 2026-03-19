@@ -14,18 +14,17 @@ import {
   QA_SYSTEM_PROMPT,
 } from '../agents/prompts/index';
 
-const TOOL_DISCOVER_SKILLS = TOOLS.DISCOVER_SKILLS;
-const TOOL_INSTALL_SKILL = TOOLS.INSTALL_SKILL;
-const TOOL_SAVE_MEMORY = TOOLS.SAVE_MEMORY;
-const TOOL_SEEK_CLARIFICATION = TOOLS.SEEK_CLARIFICATION;
-const TOOL_PROVIDE_CLARIFICATION = TOOLS.PROVIDE_CLARIFICATION;
-const TOOL_RECALL_KNOWLEDGE = TOOLS.RECALL_KNOWLEDGE;
-const TOOL_SEND_MESSAGE = TOOLS.SEND_MESSAGE;
-const TOOL_MANAGE_GAP = TOOLS.MANAGE_GAP;
-const TOOL_REPORT_GAP = TOOLS.REPORT_GAP;
-const TOOL_CHECK_HEALTH = TOOLS.CHECK_HEALTH;
-const TOOL_INSPECT_TOPOLOGY = TOOLS.INSPECT_TOPOLOGY;
-
+const TOOL_DISCOVER_SKILLS = TOOLS.discoverSkills;
+const TOOL_INSTALL_SKILL = TOOLS.installSkill;
+const TOOL_SAVE_MEMORY = TOOLS.saveMemory;
+const TOOL_SEEK_CLARIFICATION = TOOLS.seekClarification;
+const TOOL_PROVIDE_CLARIFICATION = TOOLS.provideClarification;
+const TOOL_RECALL_KNOWLEDGE = TOOLS.recallKnowledge;
+const TOOL_SEND_MESSAGE = TOOLS.sendMessage;
+const TOOL_MANAGE_GAP = TOOLS.manageGap;
+const TOOL_REPORT_GAP = TOOLS.reportGap;
+const TOOL_CHECK_HEALTH = TOOLS.checkHealth;
+const TOOL_INSPECT_TOPOLOGY = TOOLS.inspectTopology;
 /**
  * Backbone Registry: The single source of truth for essential system components.
  * Reserved for LLM-based Agents and logic-based Handlers.
@@ -45,13 +44,16 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     reasoningProfile: ReasoningProfile.STANDARD,
     defaultCommunicationMode: 'text',
     tools: [
-      TOOLS.DISPATCH_TASK,
-      TOOLS.LIST_AGENTS,
+      TOOLS.dispatchTask,
+
+      TOOLS.listAgents,
       TOOL_RECALL_KNOWLEDGE,
-      TOOLS.CHECK_CONFIG,
+
+      TOOLS.checkConfig,
       TOOL_DISCOVER_SKILLS,
       TOOL_INSTALL_SKILL,
-      TOOLS.REGISTER_MCP_SERVER,
+
+      TOOLS.registerMCPServer,
       TOOL_MANAGE_GAP,
       TOOL_REPORT_GAP,
       TOOL_SAVE_MEMORY,
@@ -79,13 +81,18 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     isBackbone: true,
     defaultCommunicationMode: 'json',
     tools: [
-      TOOLS.RUN_TESTS,
-      TOOLS.RUN_SHELL_COMMAND,
-      TOOLS.STAGE_CHANGES,
-      TOOLS.TRIGGER_DEPLOYMENT,
-      TOOLS.VALIDATE_CODE,
+      TOOLS.runTests,
+
+      TOOLS.runShellCommand,
+
+      TOOLS.stageChanges,
+
+      TOOLS.triggerDeployment,
+
+      TOOLS.validateCode,
       TOOL_CHECK_HEALTH,
-      TOOLS.INSPECT_TRACE,
+
+      TOOLS.inspectTrace,
       'aws-s3_read_file',
       'aws-s3_write_file',
       'aws-s3_list_objects',

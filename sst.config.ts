@@ -1,5 +1,9 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
+/**
+ * SST v3 Platform Configuration for ServerlessClaw.
+ * Defines the main application entry point, infrastructure providers, and modular resource setup.
+ */
 export default $config({
   app(input) {
     return {

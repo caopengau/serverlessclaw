@@ -25,10 +25,7 @@ interface WorkerEvent {
  * @param context - The AWS Lambda context.
  * @returns A promise that resolves to the worker's response string, or undefined on error.
  */
-export const handler = async (
-  event: WorkerEvent,
-  context: Context
-): Promise<string | undefined> => {
+export async function handler(event: WorkerEvent, context: Context): Promise<string | undefined> {
   logger.info('Worker Agent received event:', JSON.stringify(event, null, 2));
 
   // Extract agentId from the event source or detail-type
@@ -106,4 +103,4 @@ export const handler = async (
   }
 
   return responseText;
-};
+}

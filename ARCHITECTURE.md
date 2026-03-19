@@ -224,9 +224,9 @@ Serverless Claw has evolved from static tools to a **Dynamic Skill Architecture*
  (Lambda)         (SSE)     (Provider)
     |          +------+------+ |
     |          |             | |
- - deploy      v             v - python
- - memory   [ Hub ] ----> [ Local ] - search
- - health   (Prim)  (Fallback) - files
+ - TRIGGER_DEPLOYMENT v             v - python
+ - RECALL_KNOWLEDGE  [ Hub ] ----> [ Local ] - search
+ - CHECK_HEALTH      (Prim)  (Fallback) - files
 ```
 
 ### 1. Custom Skills (Internal)
@@ -335,7 +335,7 @@ The system's evolution is a co-managed process between the **Strategic Planner**
 
 ### 4. LLM Providers
 Provider-agnostic interface supporting:
-- OpenAI (GPT-5.4 / GPT-5-mini)
+- OpenAI (gpt-5.4 / gpt-5.4-mini)
 - Anthropic (Claude 4.6 Sonnet)
 - Google (Gemini-3 Flash, GLM-5, Minimax 2.5)
 - Local models (via Ollama or AWS Bedrock)

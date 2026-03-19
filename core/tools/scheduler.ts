@@ -6,7 +6,7 @@ import { formatErrorMessage } from '../lib/utils/error';
  * scheduleGoal
  * Allows an agent to proactively schedule a future task for itself or the system.
  */
-export const scheduleGoal: ITool = {
+export const SCHEDULE_GOAL: ITool = {
   name: 'scheduleGoal',
   description:
     'Proactively schedules a future task or recurring "wake-up" heartbeat to achieve a goal.',
@@ -63,7 +63,7 @@ export const scheduleGoal: ITool = {
  * cancelGoal
  * Removes a previously scheduled proactive goal.
  */
-export const cancelGoal: ITool = {
+export const CANCEL_GOAL: ITool = {
   name: 'cancelGoal',
   description: 'Cancels and removes a previously scheduled proactive goal/heartbeat.',
   parameters: {
@@ -87,7 +87,7 @@ export const cancelGoal: ITool = {
  * listGoals
  * Lists all active proactive schedules.
  */
-export const listGoals: ITool = {
+export const LIST_GOALS: ITool = {
   name: 'listGoals',
   description: 'Lists all currently active proactive goals and scheduled heartbeats.',
   parameters: {

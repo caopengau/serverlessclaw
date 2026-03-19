@@ -10,6 +10,8 @@ import { logger } from '../logger';
 import { AgentRegistry } from '../registry';
 import { normalizeProfile } from '../providers/utils';
 import { ClawTracer } from '../tracer';
+import { LIMITS } from '../constants';
+import { ContextManager } from './context-manager';
 import { Context as LambdaContext } from 'aws-lambda';
 
 export const AGENT_DEFAULTS = {
@@ -122,6 +124,15 @@ export class AgentExecutor {
             attachments,
           };
         }
+      }
+
+      // 1.5 Context Size Safeguard
+      const currentTokens = ContextManager.estimateTokens(messages);
+      if (currentTokens > LIMITS.MAX_CONTEXT_LENGTH * 0.9) {
+        logger.warn(
+          `Approaching context limit in execution loop: ${currentTokens}/${LIMITS.MAX_CONTEXT_LENGTH}.`
+        );
+        // In a more advanced implementation, we could try to summarize intermediate results here
       }
 
       // 2. LLM Call

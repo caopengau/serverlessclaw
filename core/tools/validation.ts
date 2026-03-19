@@ -9,7 +9,7 @@ const execAsync = promisify(exec);
 /**
  * Validates the current codebase using type checking and linting.
  */
-export const validateCode = {
+export const VALIDATE_CODE = {
   ...toolDefinitions.validateCode,
   execute: async (): Promise<string> => {
     try {

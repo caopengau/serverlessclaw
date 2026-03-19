@@ -6,7 +6,7 @@ import { formatErrorMessage } from '../lib/utils/error';
 /**
  * Checks system health at a given URL and rewards deployment limits on success.
  */
-export const checkHealth = {
+export const CHECK_HEALTH = {
   ...toolDefinitions.checkHealth,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { url } = args as { url: string };

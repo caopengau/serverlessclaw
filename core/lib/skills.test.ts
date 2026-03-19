@@ -4,7 +4,7 @@ import { AgentRegistry } from './registry';
 
 // Mock tools
 vi.mock('../tools/index', () => ({
-  tools: {
+  TOOLS: {
     tool1: { name: 'tool1', description: 'Search for files', parameters: {} },
     tool2: { name: 'tool2', description: 'Deploy to AWS', parameters: {} },
   },

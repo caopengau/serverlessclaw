@@ -62,12 +62,12 @@ Instead of provider-specific logic scattered throughout the codebase, we use a *
 ### 1. OpenAI (Strategic Branching)
 The **OpenAIProvider** dynamically switches between the legacy `Chat Completions` API and the modern `Responses` API depending on the model and reasoning requirements.
 
-- **Condition**: `isReasoningModel` (includes `gpt-5.4` and `gpt-5-mini`)
-- **Behavior**: Uses `/v1/responses` for all gpt-5 reasoning models to ensure consistent support for `reasoning_effort` and tool use.
-- **Mapping**: Our internal `ReasoningProfile` maps to OpenAI's native `ReasoningEffort` levels (`low`, `medium`, `high`, `xhigh`).
+- **Condition**: `isReasoningModel` (includes `gpt-5` family, `o1`, and `o3` series)
+- **Behavior**: Uses `/v1/responses` for all reasoning models to ensure consistent support for `reasoning_effort` and tool use.
+- **Mapping**: Our internal `ReasoningProfile` maps to OpenAI's native `ReasoningEffort` levels (`low`, `medium`, `high`, `xhigh`). `gpt-5-mini` specifically supports `xhigh` reasoning effort.
 
 ### 2. AWS Bedrock (Thinking Budgets)
-The **BedrockProvider** utilizes the `ConverseCommand` and fine-tunes Claude's "thinking" budget.
+The **BedrockProvider** utilizes the `ConverseCommand` and fine-tunes Claude 4.6 (Sonnet, Haiku, Opus) "thinking" budgets.
 
 - **Mapping**:
     - `FAST`: Thinking disabled.
@@ -76,9 +76,9 @@ The **BedrockProvider** utilizes the `ConverseCommand` and fine-tunes Claude's "
     - `DEEP`: 32,768 token budget + max output expansion.
 
 ### 3. OpenRouter (Multi-Engine Synergy)
-Supports specialized models like **GLM-5**, **MiniMax-2.5**, and **Gemini-3 Flash** using OpenRouter's standardized reasoning signals and routing preferences.
+Supports specialized models like **GLM-5**, **MiniMax-2.5**, and **Gemini-3 Flash** using dynamic pattern matching on model IDs for automatic support of new high-capability models.
 
-- **Route Preference**: `latency` for FAST, `fallback` (with reasoning) for others.
+- **Route Preference**: `latency` for FAST, `fallback` (with reasoning) for others. Data collection is set to `deny` for privacy.
 - **Extra Body Parameters**: Injects `plugin_id: 'reasoning'` (MiniMax) or `safety_settings` (Gemini) as needed.
 
 ---

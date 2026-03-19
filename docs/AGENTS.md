@@ -160,10 +160,10 @@ Serverless Claw agents are capable of self-provisioning new tools when they enco
     +-----------------+
 ```
 
-1. **Discovery**: When an agent realizes it lacks a specific capability (e.g., "I need to query a Postgres DB"), it uses `discoverSkills` to search for relevant MCP servers.
-2. **Registration**: The agent uses `registerMCPServer` to add the MCP server to the global configuration. This tells the `MCPBridge` how to spawn the server (usually via `npx`).
+1. **Discovery**: When an agent realizes it lacks a specific capability (e.g., "I need to query a Postgres DB"), it uses `discoverSkills` to search for relevant MCP servers via the `MCPToolMapper`.
+2. **Registration**: The agent uses `registerMCPServer` to add the MCP server to the global configuration. The `MCPClientManager` then handles the lifecycle of these external connections.
 3. **Equipment**: The agent uses `installSkill` to add specific tools from the new server to its own toolset or the toolset of a specialized peer (like the Coder).
-4. **Persistence & Telemetry**: These changes are saved atomically to the `ConfigTable`. Every subsequent tool execution is recorded (`tool_usage`), providing the data signature needed for future audits.
+4. **Persistence & Telemetry**: These changes are saved atomically to the `ConfigTable` using the `AgentRegistry`. Every subsequent tool execution is recorded (`tool_usage`), providing the data signature needed for future audits.
 
 ### 🔄 The Efficiency Loop (Dynamic Pruning)
 

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MCPBridge } from './mcp';
 import { AgentRegistry } from './registry';
+import { MCPClientManager } from './mcp/client-manager';
 
 // Mock dependencies
 vi.mock('./registry', () => ({
@@ -16,6 +17,14 @@ vi.mock('./logger', () => ({
     error: vi.fn(),
     debug: vi.fn(),
     warn: vi.fn(),
+  },
+}));
+
+vi.mock('./mcp/client-manager', () => ({
+  MCPClientManager: {
+    connect: vi.fn(),
+    deleteClient: vi.fn(),
+    closeAll: vi.fn(),
   },
 }));
 
@@ -42,8 +51,9 @@ vi.mock('@modelcontextprotocol/sdk/client/stdio.js', () => ({
 describe('MCPBridge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (MCPBridge as any).clients.clear();
+    vi.mocked(MCPClientManager.connect).mockReset();
+    vi.mocked(MCPClientManager.deleteClient).mockReset();
+    vi.mocked(MCPClientManager.closeAll).mockReset();
   });
 
   it('should lazy load ONLY requested servers', async () => {
@@ -53,17 +63,19 @@ describe('MCPBridge', () => {
       srv2: { command: 'npx srv2' },
     });
 
+    const mockClient = {
+      listTools: vi.fn().mockResolvedValue({ tools: [{ name: 'test_tool', description: 'desc', inputSchema: {} }] }),
+    };
+    vi.mocked(MCPClientManager.connect).mockResolvedValue(mockClient as any);
+
     const tools = await MCPBridge.getExternalTools(['srv1_test_tool']);
 
     expect(tools.length).toBe(1);
     expect(tools[0].name).toBe('srv1_test_tool');
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((MCPBridge as any).clients.size).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((MCPBridge as any).clients.has('srv1')).toBe(true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((MCPBridge as any).clients.has('srv2')).toBe(false);
+    // Verify MCPClientManager.connect was called only for srv1
+    expect(MCPClientManager.connect).toHaveBeenCalledTimes(1);
+    expect(MCPClientManager.connect).toHaveBeenCalledWith('srv1', expect.any(String), undefined);
   });
 
   it('should load all servers if no requestedTools provided', async () => {
@@ -73,12 +85,17 @@ describe('MCPBridge', () => {
       srv2: { command: 'npx srv2' },
     });
 
+    const mockClient = {
+      listTools: vi.fn().mockResolvedValue({ tools: [{ name: 'test_tool', description: 'desc', inputSchema: {} }] }),
+    };
+    vi.mocked(MCPClientManager.connect).mockResolvedValue(mockClient as any);
+
     const tools = await MCPBridge.getExternalTools();
 
     // Default servers (7) + our mock servers (2) = 9
     expect(tools.length).toBe(9);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((MCPBridge as any).clients.size).toBe(9);
+    // Verify MCPClientManager.connect was called for all servers
+    expect(MCPClientManager.connect).toHaveBeenCalledTimes(9);
   });
 
   it('should correctly handle managed connectors without spawning local processes', async () => {
@@ -98,12 +115,11 @@ describe('MCPBridge', () => {
     expect(tools[0].connector_id).toBe('connector_googledrive');
     expect(tools[0].type).toBe('mcp');
 
-    // Should not have created an MCP client
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    expect((MCPBridge as any).clients.size).toBe(0);
+    // Should not have created an MCP client for managed connectors
+    expect(MCPClientManager.connect).not.toHaveBeenCalled();
 
     // Execution should be a placeholder
     const result = await tools[0].execute({});
-    expect(result).toContain('managed by the model provider');
+    expect(result).toContain('managed');
   });
 });

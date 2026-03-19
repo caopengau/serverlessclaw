@@ -138,13 +138,18 @@ export interface ICapabilities {
 }
 
 /**
- * Format specification for the LLM response.
+ * Format specification for the LLM response, used to enforce structured output.
  */
 export interface ResponseFormat {
+  /** The type of format, currently only 'json_schema' is supported for strict enforcement. */
   type: 'json_schema';
+  /** The detailed JSON schema definition. */
   json_schema: {
+    /** A descriptive name for the schema. */
     name: string;
+    /** Whether to strictly enforce the schema (OpenAI specific). */
     strict: boolean;
+    /** The actual JSON schema object. */
     schema: Record<string, unknown>;
   };
 }

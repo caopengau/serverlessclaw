@@ -9,42 +9,26 @@ import {
   TraceSource,
   Attachment,
   InsightCategory,
-  ResponseFormat,
 } from './types/index';
-import { ClawTracer } from './tracer';
 import { logger } from './logger';
-import { SYSTEM, AGENT_ERRORS, MEMORY_KEYS, CONFIG_KEYS, OPTIMIZATION_POLICIES } from './constants';
+import {
+  SYSTEM,
+  AGENT_ERRORS,
+  MEMORY_KEYS,
+  CONFIG_KEYS,
+  OPTIMIZATION_POLICIES,
+  LIMITS,
+} from './constants';
 import { ConfigManager } from './registry/config';
-import { AgentContext } from './agent/context';
-import { AgentExecutor, AGENT_DEFAULTS, AGENT_LOG_MESSAGES } from './agent/executor';
 import { AgentProcessOptions } from './agent/options';
 import { AgentEmitter } from './agent/emitter';
 import { parseConfigInt } from './providers/utils';
+import { DEFAULT_SIGNAL_SCHEMA } from './agent/schema';
 
 // Re-export for backward compatibility
 export type { AgentProcessOptions };
 
-/**
- * Standard structured output schema for agent coordination.
- */
-const DEFAULT_SIGNAL_SCHEMA: ResponseFormat = {
-  type: 'json_schema',
-  json_schema: {
-    name: 'agent_signal',
-    strict: true,
-    schema: {
-      type: 'object',
-      properties: {
-        status: { type: 'string', enum: ['SUCCESS', 'FAILED', 'CONTINUE', 'REOPEN'] },
-        message: { type: 'string' },
-        data: { type: 'object', additionalProperties: true },
-        coveredGapIds: { type: 'array', items: { type: 'string' } },
-      },
-      required: ['status', 'message'],
-      additionalProperties: false,
-    },
-  },
-};
+// DEFAULT_SIGNAL_SCHEMA moved to ./agent/schema.ts
 
 /**
  * The core Agent class responsible for orchestrating LLM calls, tool execution,
@@ -52,7 +36,7 @@ const DEFAULT_SIGNAL_SCHEMA: ResponseFormat = {
  * backbone (system) and user-defined agents.
  */
 export class Agent {
-  /** Emitter for agent-related events. */
+  /** Emitter for agent-related events, including reflections and continuations. */
   private emitter: AgentEmitter;
 
   /**
@@ -114,6 +98,11 @@ export class Agent {
     const baseUserId = userId.startsWith(MEMORY_KEYS.CONVERSATION_PREFIX)
       ? userId.split('#')[1]
       : userId;
+    const { ClawTracer } = await import('./tracer');
+    const { ContextManager } = await import('./agent/context-manager');
+    const { AgentExecutor, AGENT_DEFAULTS, AGENT_LOG_MESSAGES } = await import('./agent/executor');
+    const { AgentContext } = await import('./agent/context');
+
     const tracer = new ClawTracer(
       baseUserId,
       source,
@@ -206,13 +195,33 @@ export class Agent {
         depth
       )}`;
 
-      const messages: Message[] = [
-        { role: MessageRole.SYSTEM, content: contextPrompt },
-        ...history,
-        { role: MessageRole.USER, content: userText, attachments: incomingAttachments },
-      ];
+      const currentMessage: Message = {
+        role: MessageRole.USER,
+        content: userText,
+        attachments: incomingAttachments,
+      };
 
-      // 4. Execution Loop
+      const fullHistory = [...history, currentMessage];
+      const summary = await this.memory.getSummary(storageId);
+
+      const managed = await ContextManager.getManagedContext(
+        fullHistory,
+        summary,
+        contextPrompt,
+        LIMITS.MAX_CONTEXT_LENGTH
+      );
+
+      const messages: Message[] = managed.messages;
+
+      // 4. Summarization Trigger (Background)
+      if (ContextManager.needsSummarization(fullHistory)) {
+        // Fire and forget summarization for the next turn
+        ContextManager.summarize(this.memory, storageId, this.provider, fullHistory).catch((e) =>
+          logger.error('Background summarization failed:', e)
+        );
+      }
+
+      // 5. Execution Loop
       const executor = new AgentExecutor(
         this.provider,
         this.tools,
@@ -278,7 +287,9 @@ export class Agent {
       }
 
       // 5. Finalize and Response
-      // 2026: Intelligently extract responseText for humans if in JSON mode
+      // 2026 Strategy: Intelligently extract responseText for humans if in JSON mode.
+      // This allows the agent to maintain structured communication with its peers while
+      // still providing legible status updates to the user.
       if (communicationMode === 'json' && responseText) {
         try {
           const parsed = JSON.parse(responseText);

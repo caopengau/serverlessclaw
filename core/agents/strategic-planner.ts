@@ -79,7 +79,7 @@ interface PlannerResult {
  * @param context - The AWS Lambda context.
  * @returns A promise that resolves to an object with gapId and the plan, or a status object.
  */
-export const handler = async (event: PlannerEvent, _context: Context): Promise<PlannerResult> => {
+export async function handler(event: PlannerEvent, _context: Context): Promise<PlannerResult> {
   logger.info('Planner Agent received task:', JSON.stringify(event, null, 2));
 
   // EventBridge wraps the payload in 'detail'
@@ -431,8 +431,8 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
       undefined
     );
 
-    const { tools } = await import('../tools/index');
-    const dispatcher = tools.dispatchTask;
+    const { TOOLS } = await import('../tools/index');
+    const dispatcher = TOOLS.dispatchTask;
     await dispatcher.execute({
       agentId: AgentType.CODER,
       userId: contextUserId,
@@ -457,4 +457,4 @@ export const handler = async (event: PlannerEvent, _context: Context): Promise<P
   }
 
   return { gapId, plan: plan };
-};
+}

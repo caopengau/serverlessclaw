@@ -6,7 +6,7 @@ import { formatErrorMessage } from '../lib/utils/error';
  * Sends a direct message to the user chat session.
  * Used by agents to communicate findings, status, or greetings directly.
  */
-export const sendMessage = {
+export const SEND_MESSAGE = {
   ...toolDefinitions.sendMessage,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { message, userId, sessionId, agentName, traceId } = args as {

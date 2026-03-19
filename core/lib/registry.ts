@@ -14,29 +14,29 @@ export class AgentRegistry {
   private static backboneConfigs: Record<string, IAgentConfig> = BACKBONE_REGISTRY;
 
   private static ESSENTIAL_SYSTEM_TOOLS = [
-    TOOLS.DISPATCH_TASK,
-    TOOLS.RECALL_KNOWLEDGE,
-    TOOLS.DISCOVER_SKILLS,
-    TOOLS.INSTALL_SKILL,
-    TOOLS.SAVE_MEMORY,
-    TOOLS.CHECK_CONFIG,
-    TOOLS.SET_SYSTEM_CONFIG,
-    TOOLS.LIST_SYSTEM_CONFIGS,
-    TOOLS.GET_SYSTEM_CONFIG_METADATA,
+    TOOLS.dispatchTask,
+    TOOLS.recallKnowledge,
+    TOOLS.discoverSkills,
+    TOOLS.installSkill,
+    TOOLS.saveMemory,
+    TOOLS.checkConfig,
+    TOOLS.setSystemConfig,
+    TOOLS.listSystemConfigs,
+    TOOLS.getSystemConfigMetadata,
   ];
 
   private static DEFAULT_AGENT_TOOLS = [
     ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS,
-    TOOLS.LIST_AGENTS,
-    TOOLS.FILE_UPLOAD,
-    TOOLS.FILE_DELETE,
-    TOOLS.LIST_UPLOADED_FILES,
+    TOOLS.listAgents,
+    TOOLS.fileUpload,
+    TOOLS.fileDelete,
+    TOOLS.listUploadedFiles,
   ];
 
   private static DISCOVERY_BOOTLOADER_TOOLS = [
     ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS,
-    TOOLS.LIST_AGENTS,
-    TOOLS.SEND_MESSAGE,
+    TOOLS.listAgents,
+    TOOLS.sendMessage,
   ];
 
   /**
@@ -137,7 +137,8 @@ export class AgentRegistry {
   }
 
   /**
-   * Retrieves configurations for all registered agents.
+   * Retrieves configurations for all registered agents, merging backbone and dynamic configs.
+   * This is a heavy operation used primarily for discovery and topology visualization.
    *
    * @returns A promise resolving to a record of all agent configurations.
    */
@@ -185,6 +186,7 @@ export class AgentRegistry {
 
   /**
    * Retrieves infrastructure configurations from the ConfigTable.
+   * Includes connection nodes for the bus, storage, and other resources.
    *
    * @returns A promise resolving to an array of topology nodes.
    */
@@ -247,10 +249,12 @@ export class AgentRegistry {
   }
 
   /**
-   * Records tool usage atomically.
+   * Records tool usage atomically in the ConfigTable.
+   * Tracks both global tool popularity and per-agent usage stats.
    *
    * @param toolName - The name of the tool used.
    * @param agentId - The ID of the agent that used the tool.
+   * @returns A promise that resolves when the usage has been recorded.
    */
   static async recordToolUsage(toolName: string, agentId: string = 'unknown'): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

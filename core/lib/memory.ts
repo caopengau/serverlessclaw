@@ -196,4 +196,18 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   async resetRecoveryAttemptCount(): Promise<void> {
     return SessionOps.resetRecoveryAttemptCount(this);
   }
+
+  /**
+   * Retrieves the latest summary for a conversation session.
+   */
+  async getSummary(userId: string): Promise<string | null> {
+    return SessionOps.getSummary(this, userId);
+  }
+
+  /**
+   * Updates the latest summary for a conversation session.
+   */
+  async updateSummary(userId: string, summary: string): Promise<void> {
+    return SessionOps.updateSummary(this, userId, summary);
+  }
 }

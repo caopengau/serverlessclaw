@@ -54,6 +54,8 @@ describe('Agent Trace Propagation', () => {
       updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
       searchInsights: vi.fn().mockResolvedValue([]),
       updateGapStatus: vi.fn().mockResolvedValue(undefined),
+      getSummary: vi.fn().mockResolvedValue(null),
+      updateSummary: vi.fn().mockResolvedValue(undefined),
     } as unknown as IMemory;
 
     mockProvider = {

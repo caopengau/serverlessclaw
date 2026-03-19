@@ -7,7 +7,7 @@ import { formatErrorMessage } from '../lib/utils/error';
 /**
  * Lists all registered agents and their current status.
  */
-export const listAgents = {
+export const LIST_AGENTS = {
   ...toolDefinitions.listAgents,
   execute: async (): Promise<string> => {
     const { AgentRegistry } = await import('../lib/registry');
@@ -25,7 +25,7 @@ export const listAgents = {
 /**
  * Dispatches a specific task to another agent via EventBridge.
  */
-export const dispatchTask = {
+export const DISPATCH_TASK = {
   ...toolDefinitions.dispatchTask,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { agentId, userId, task, metadata, traceId, nodeId, initiatorId, depth, sessionId } =
@@ -74,7 +74,7 @@ export const dispatchTask = {
 /**
  * Updates the tools assigned to a specific agent.
  */
-export const manageAgentTools = {
+export const MANAGE_AGENT_TOOLS = {
   ...toolDefinitions.manageAgentTools,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { agentId, toolNames } = args as { agentId: string; toolNames: string[] };
@@ -90,7 +90,7 @@ export const manageAgentTools = {
 /**
  * Updates global system configuration in the ConfigTable.
  */
-export const setSystemConfig = {
+export const SET_SYSTEM_CONFIG = {
   ...toolDefinitions.setSystemConfig,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { key, value } = args as { key: string; value: string };
@@ -113,7 +113,7 @@ export const setSystemConfig = {
 /**
  * Pauses the current agent and requests clarification from the initiator.
  */
-export const seekClarification = {
+export const SEEK_CLARIFICATION = {
   ...toolDefinitions.seekClarification,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { userId, question, traceId, initiatorId, depth, sessionId, originalTask, task } =
@@ -148,7 +148,7 @@ export const seekClarification = {
 /**
  * Provides an answer to a clarification request, resuming the target agent.
  */
-export const provideClarification = {
+export const PROVIDE_CLARIFICATION = {
   ...toolDefinitions.provideClarification,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { userId, agentId, answer, traceId, sessionId, depth, initiatorId, originalTask } =
@@ -184,3 +184,11 @@ export const provideClarification = {
     }
   },
 };
+
+// CamelCase aliases for backward compatibility with tests
+export const listAgents = LIST_AGENTS;
+export const dispatchTask = DISPATCH_TASK;
+export const manageAgentTools = MANAGE_AGENT_TOOLS;
+export const setSystemConfig = SET_SYSTEM_CONFIG;
+export const seekClarification = SEEK_CLARIFICATION;
+export const provideClarification = PROVIDE_CLARIFICATION;

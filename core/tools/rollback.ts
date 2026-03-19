@@ -13,7 +13,7 @@ const codebuild = new CodeBuildClient({});
 /**
  * Reverts the last commit and re-triggers a deployment.
  */
-export const triggerRollback = {
+export const TRIGGER_ROLLBACK = {
   ...toolDefinitions.triggerRollback,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { reason } = args as { reason: string };

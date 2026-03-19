@@ -216,3 +216,46 @@ export async function resetRecoveryAttemptCount(base: BaseMemoryProvider): Promi
     },
   });
 }
+
+/**
+ * Retrieves the latest summary for a conversation session.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The user identifier or conversation ID.
+ * @returns A promise resolving to the summary string or null if not found.
+ */
+export async function getSummary(base: BaseMemoryProvider, userId: string): Promise<string | null> {
+  const items = await base.queryItems({
+    KeyConditionExpression: 'userId = :userId',
+    ExpressionAttributeValues: {
+      ':userId': `SUMMARY#${userId}`,
+    },
+    Limit: 1,
+    ScanIndexForward: false, // Latest first
+  });
+
+  return (items[0]?.content as string) ?? null;
+}
+
+/**
+ * Updates the latest summary for a conversation session.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The user identifier or conversation ID.
+ * @param summary - The summary string to store.
+ * @returns A promise resolving when the summary is updated.
+ */
+export async function updateSummary(
+  base: BaseMemoryProvider,
+  userId: string,
+  summary: string
+): Promise<void> {
+  const { expiresAt } = await RetentionManager.getExpiresAt('SESSIONS', userId);
+  await base.putItem({
+    userId: `SUMMARY#${userId}`,
+    timestamp: Date.now(),
+    type: 'SUMMARY',
+    expiresAt,
+    content: summary,
+  });
+}

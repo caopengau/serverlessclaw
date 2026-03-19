@@ -21,26 +21,43 @@ const knowledgeToolsFiltered = Object.fromEntries(knowledgeToolEntries) as Recor
  * Aggregates tools from specialized modules (system, fs, knowledge).
  * All tool names follow standard JavaScript camelCase naming conventions.
  */
-export const tools: Record<string, ITool> = {
+export const TOOLS: Record<string, ITool> = {
   // System & Deployment Tools
   ...systemTools,
 
   // File System & Validation Tools
-  ...fsTools,
+  ...Object.fromEntries(
+    Object.entries(fsTools).map(([k, v]) => [k.toLowerCase().replace(/_([a-z])/g, (g) => g[1]), v])
+  ),
 
   // Knowledge & Agent Management Tools
-  ...knowledgeToolsFiltered,
+  ...Object.fromEntries(
+    Object.entries(knowledgeToolsFiltered).map(([k, v]) => [
+      k.toLowerCase().replace(/_([a-z])/g, (g) => g[1]),
+      v,
+    ])
+  ),
 
   // Proactive Scheduling Tools
-  ...schedulerTools,
+  ...Object.fromEntries(
+    Object.entries(schedulerTools).map(([k, v]) => [
+      k.toLowerCase().replace(/_([a-z])/g, (g) => g[1]),
+      v,
+    ])
+  ),
 
   // Metadata & SSOT Tools
-  ...metadataTools,
+  ...Object.fromEntries(
+    Object.entries(metadataTools).map(([k, v]) => [
+      k.toLowerCase().replace(/_([a-z])/g, (g) => g[1]),
+      v,
+    ])
+  ),
 
   /**
    * Switches the active LLM provider and model for the system.
    */
-  switchModel: {
+  SWITCH_MODEL: {
     ...toolDefinitions.switchModel,
     execute: async (args: Record<string, unknown>): Promise<string> => {
       const { provider, model } = args as { provider: string; model: string };
@@ -55,6 +72,12 @@ export const tools: Record<string, ITool> = {
     },
   },
 };
+
+// Add camelCase alias for switchModel for backward compatibility
+TOOLS.switchModel = TOOLS.SWITCH_MODEL;
+
+// Export camelCase aliases for compatibility
+export const tools = TOOLS;
 
 /**
  * Dynamically retrieves the tools assigned to a specific agent.
@@ -77,7 +100,7 @@ export async function getAgentTools(agentId: string): Promise<ITool[]> {
 
   // 1. Resolve local tools
   const localTools = config.tools
-    .map((name: string) => (tools as Record<string, ITool>)[name])
+    .map((name: string) => (TOOLS as Record<string, ITool>)[name])
     .filter((t: ITool | undefined): t is ITool => !!t);
 
   // 2. Resolve external MCP tools if any match the requested tool names
@@ -93,7 +116,7 @@ export async function getAgentTools(agentId: string): Promise<ITool[]> {
  * @returns Array of function definitions formatted for LLM tool selection.
  */
 export function getToolDefinitions() {
-  return Object.values(tools).map((t) => ({
+  return Object.values(TOOLS).map((t) => ({
     type: 'function',
     function: {
       name: t.name,

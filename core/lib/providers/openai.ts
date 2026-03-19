@@ -37,6 +37,10 @@ const REASONING_MAP: Record<ReasoningProfile, OpenAI.ReasoningEffort> = {
   [ReasoningProfile.DEEP]: 'xhigh',
 };
 
+/**
+ * Provider for OpenAI's LLM services, supporting GPT-5 and reasoning models.
+ * Utilizes the Responses API for 2026-grade reasoning and tool use.
+ */
 export class OpenAIProvider implements IProvider {
   constructor(private model: string = OpenAIModel.GPT_5_4) {}
 

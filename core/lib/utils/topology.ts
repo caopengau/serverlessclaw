@@ -4,7 +4,7 @@ import { ConnectionProfile } from '../types/agent';
 import { ConfigManager } from '../registry/config';
 import { BACKBONE_REGISTRY } from '../backbone';
 import { NODE_TYPE, EDGE_LABEL, NODE_TIER, RESOURCE_ICON } from './topology/constants';
-import { tools } from '../../tools/index';
+import { TOOLS } from '../../tools/index';
 
 // Re-export constants and types for backward compatibility
 export { INFRA_NODE_ID, NODE_TYPE, EDGE_LABEL, NODE_TIER } from './topology/constants';
@@ -280,7 +280,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
   };
 
   const mapToolToResources = (toolName: string): string[] => {
-    const tool = tools[toolName];
+    const tool = TOOLS[toolName];
     if (!tool || !tool.connectionProfile) {
       if (toolName === 'sendMessage') return ['notifier'];
       // Agents use both S3 buckets depending on the task (Deployment vs Knowledge)

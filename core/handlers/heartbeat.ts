@@ -11,10 +11,7 @@ import { EventType, ProactiveHeartbeatPayload } from '../lib/types/agent';
  * @param event - The payload from the AWS Scheduler.
  * @param context - The AWS Lambda context.
  */
-export const handler = async (
-  event: ProactiveHeartbeatPayload,
-  _context: Context
-): Promise<void> => {
+export async function handler(event: ProactiveHeartbeatPayload, _context: Context): Promise<void> {
   logger.info('HeartbeatHandler triggered by schedule:', JSON.stringify(event, null, 2));
 
   try {
@@ -38,4 +35,4 @@ export const handler = async (
   } catch (error) {
     logger.error('Failed to process proactive heartbeat:', error);
   }
-};
+}

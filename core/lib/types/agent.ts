@@ -288,12 +288,17 @@ export enum AgentStatus {
 }
 
 /**
- * Structured output signal for agent orchestration.
+ * Structured output signal for agent orchestration, often returned in JSON mode.
+ * Guided by the Standard Signal Schema for deterministic state transitions.
  */
 export interface AgentSignal {
+  /** Final operational status of the agent task. */
   status: AgentStatus;
+  /** List of gap IDs that this task has addressed or closed. */
   coveredGapIds?: string[];
+  /** Optional ID of a build or deployment triggered during execution. */
   buildId?: string;
+  /** Inner monologue or reasoning steps explaining the result. */
   reasoning?: string;
 }
 

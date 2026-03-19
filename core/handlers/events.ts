@@ -11,13 +11,13 @@ import { Context } from 'aws-lambda';
  * @param context - The AWS Lambda context.
  * @returns A promise that resolves when the event has been processed.
  */
-export const handler = async (
+export async function handler(
   event: {
     'detail-type': string;
     detail: Record<string, unknown>;
   },
   context: Context
-): Promise<void> => {
+): Promise<void> {
   logger.info('EventHandler received event:', JSON.stringify(event, null, 2));
 
   const detailType = event['detail-type'];
@@ -70,4 +70,4 @@ export const handler = async (
     default:
       logger.warn(`Unhandled event type: ${detailType}`);
   }
-};
+}

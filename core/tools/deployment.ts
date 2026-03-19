@@ -21,7 +21,7 @@ interface ToolsResource {
 /**
  * Triggers a new CodeBuild deployment, with daily limits and circuit breaking.
  */
-export const triggerDeployment = {
+export const TRIGGER_DEPLOYMENT = {
   ...toolDefinitions.triggerDeployment,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const today = new Date().toISOString().split('T')[0];

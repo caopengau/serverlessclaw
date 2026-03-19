@@ -3,6 +3,11 @@ interface DeployerContext {
   githubToken?: sst.Secret;
 }
 
+/**
+ * Creates the CodeBuild deployer project and associated IAM roles.
+ * Provides the core CI/CD mechanism for deploying the serverlessclaw infrastructure.
+ * @param ctx The deployment context containing necessary AWS resources.
+ */
 export function createDeployer(ctx: DeployerContext) {
   const { stagingBucket, githubToken } = ctx;
 

@@ -1,4 +1,3 @@
-import { APIGatewayProxyHandlerV2 } from 'aws-lambda';
 import { logger } from '../lib/logger';
 import { runDeepHealthCheck } from '../lib/health';
 import { DynamoMemory } from '../lib/memory';
@@ -10,7 +9,11 @@ const memory = new DynamoMemory();
  * Health probe Lambda, called by checkHealth tool after a deployment.
  * Returns 200 OK if the system and DynamoDB state are intact.
  */
-export const handler: APIGatewayProxyHandlerV2 = async () => {
+export async function handler(): Promise<{
+  statusCode: number;
+  headers: Record<string, string>;
+  body: string;
+}> {
   try {
     const deepCheck = await runDeepHealthCheck();
 
@@ -48,4 +51,4 @@ export const handler: APIGatewayProxyHandlerV2 = async () => {
       }),
     };
   }
-};
+}

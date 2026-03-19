@@ -5,6 +5,7 @@ import { logger } from './logger';
 /**
  * SkillRegistry handles dynamic discovery and loading of agent capabilities.
  * It moves beyond static tool registration to a "Just-in-Time" capabilities model.
+ * Verified and updated on 3/19/2026.
  */
 export class SkillRegistry {
   /**
@@ -12,11 +13,11 @@ export class SkillRegistry {
    * This allows agents to find tools they need without them being in the initial context.
    */
   static async discoverSkills(query: string, _category?: string): Promise<IToolDefinition[]> {
-    const { tools } = await import('../tools/index');
+    const { TOOLS } = await import('../tools/index');
     const { MCPBridge } = await import('./mcp');
 
     // 1. Get all local tools
-    const allLocalTools = Object.values(tools);
+    const allLocalTools = Object.values(TOOLS);
 
     // 2. Get all external MCP tools
     const allExternalTools = await MCPBridge.getExternalTools();

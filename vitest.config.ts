@@ -1,6 +1,10 @@
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
+/**
+ * Vitest configuration for the project, providing unified test execution
+ * for both core logic and dashboard components with 2026-grade aliases.
+ */
 export default defineConfig({
   assetsInclude: ['**/*.md'],
   test: {
