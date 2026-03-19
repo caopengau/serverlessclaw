@@ -250,7 +250,7 @@ export class BedrockProvider implements IProvider {
             },
           }
         : {}),
-    });
+    } as any);
 
     const response = await client.send(command);
 

@@ -36,6 +36,9 @@ export const DYNAMO_KEYS = {
   OPTIMIZATION_POLICY: 'optimization_policy',
   REASONING_PROFILES: 'reasoning_profiles',
   MAX_TOOL_ITERATIONS: 'max_tool_iterations',
+  GLOBAL_PAUSE: 'global_pause',
+  INFRA_CONFIG: 'infra_config',
+  SYSTEM_TOPOLOGY: 'system_topology',
 } as const;
 
 /**
@@ -48,6 +51,7 @@ export const CONFIG_KEYS = {
   REASONING_PROFILES: 'reasoning_profiles',
   MAX_TOOL_ITERATIONS: 'max_tool_iterations',
   RECURSION_LIMIT: 'recursion_limit',
+  SELECTIVE_DISCOVERY_MODE: 'selective_discovery_mode',
 } as const;
 
 /**
@@ -184,6 +188,65 @@ export const TOOLS = {
   reportGap: 'reportGap',
   checkHealth: 'checkHealth',
   inspectTopology: 'inspectTopology',
+  setSystemConfig: 'setSystemConfig',
+  listSystemConfigs: 'listSystemConfigs',
+  getSystemConfigMetadata: 'getSystemConfigMetadata',
+  fileUpload: 'fileUpload',
+  fileDelete: 'fileDelete',
+  listUploadedFiles: 'listUploadedFiles',
+  runShellCommand: 'runShellCommand',
+  stageChanges: 'stageChanges',
+  triggerDeployment: 'triggerDeployment',
+  validateCode: 'validateCode',
+  triggerRollback: 'triggerRollback',
+  queryStats: 'queryStats',
+  runTests: 'runTests',
+  inspectTrace: 'inspectTrace',
+} as const;
+
+/**
+ * OpenAI-specific configuration and role mapping.
+ */
+export const OPENAI = {
+  ROLES: {
+    USER: 'user',
+    ASSISTANT: 'assistant',
+    DEVELOPER: 'developer',
+  },
+  ITEM_TYPES: {
+    MESSAGE: 'message',
+    FUNCTION_CALL: 'function_call',
+    FUNCTION_CALL_OUTPUT: 'function_call_output',
+  },
+  CONTENT_TYPES: {
+    INPUT_TEXT: 'input_text',
+    INPUT_FILE: 'input_file',
+    IMAGE_URL: 'image_url',
+  },
+  DEFAULT_FILE_NAME: 'document.pdf',
+  DEFAULT_MIME_TYPE: 'application/octet-stream',
+  FUNCTION_TYPE: 'function',
+  MCP_TYPE: 'mcp',
+} as const;
+
+/**
+ * Security-protected files that should not be modified by agents.
+ */
+export const PROTECTED_FILES = [
+  '.git',
+  '.env',
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+  'node_modules',
+];
+
+/**
+ * Storage configuration and limits.
+ */
+export const STORAGE = {
+  MAX_FILE_SIZE_MB: 10,
+  ALLOWED_EXTENSIONS: ['.ts', '.tsx', '.js', '.jsx', '.json', '.md', '.txt', '.yml', '.yaml'],
 } as const;
 
 /**

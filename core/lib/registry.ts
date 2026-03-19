@@ -4,7 +4,7 @@ import { BACKBONE_REGISTRY } from './backbone';
 import { logger } from './logger';
 import type { Topology, TopologyNode } from './types/index';
 import { DYNAMO_KEYS, RETENTION, TOOLS, CONFIG_KEYS } from './constants';
-import { ConfigManager, docClient } from './registry/config';
+import { ConfigManager, defaultDocClient } from './registry/config';
 
 /**
  * AgentRegistry handles discovery and configuration of agents.
@@ -223,7 +223,7 @@ export class AgentRegistry {
     }
 
     const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-    await docClient.send(
+    await defaultDocClient.send(
       new UpdateCommand({
         TableName: ConfigTable.name,
         Key: { key: DYNAMO_KEYS.AGENTS_CONFIG },
@@ -236,7 +236,7 @@ export class AgentRegistry {
     try {
       const { discoverSystemTopology } = await import('./utils/topology');
       const topology = await discoverSystemTopology();
-      await docClient.send(
+      await defaultDocClient.send(
         new PutCommand({
           TableName: ConfigTable.name,
           Item: { key: DYNAMO_KEYS.SYSTEM_TOPOLOGY, value: topology },
@@ -264,7 +264,7 @@ export class AgentRegistry {
     const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
     const updateUsage = async (key: string) => {
       try {
-        await docClient.send(
+        await defaultDocClient.send(
           new UpdateCommand({
             TableName: ConfigTable.name,
             Key: { key },
