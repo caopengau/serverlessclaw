@@ -1,6 +1,5 @@
 import {
   ReasoningProfile,
-  Message,
   EventType,
   InsightCategory,
   GapStatus,
@@ -21,21 +20,8 @@ import {
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
 import { parseStructuredResponse } from '../lib/utils/agent-helpers/llm-utils';
 import { emitEvent } from '../lib/utils/bus';
-
-interface ReflectorPayload {
-  userId: string;
-  conversation: Message[];
-  traceId?: string;
-  sessionId?: string;
-  task?: string;
-  initiatorId?: string;
-  depth?: number;
-}
-
-interface ReflectorEvent {
-  detail?: ReflectorPayload;
-  source?: string;
-}
+import { buildReflectionPrompt, getGapContext } from './cognition-reflector/prompts';
+import type { ReflectorEvent } from './cognition-reflector/types';
 
 /**
  * Reflector Agent handler. Analyzes conversations to extract facts, lessons, and capability gaps.
@@ -121,60 +107,18 @@ export const handler = async (
   }
 
   const existingFacts = await memory.getDistilledMemory(baseUserId);
-  const deployedGaps = await memory.getAllGaps(GapStatus.DEPLOYED);
-  const activeGaps = [
-    ...(await memory.getAllGaps(GapStatus.PLANNED)),
-    ...(await memory.getAllGaps(GapStatus.PROGRESS)),
-  ];
 
-  const deployedGapsContext =
-    deployedGaps.length > 0
-      ? `\nRECENTLY DEPLOYED CHANGES (Audit required):
-       ${deployedGaps.map((g) => `- [ID: ${g.id.replace('GAP#', '')}] ${g.content}`).join('\n')}
-       
-       TASK: Look at the CONVERSATION. If the user successfully used these new capabilities or if the conversation proves these gaps are now filled, include their IDs in "resolvedGapIds".`
-      : '';
+  // Get gap context
+  const { deployedGaps, activeGaps } = await getGapContext(memory);
 
-  const activeGapsContext =
-    activeGaps.length > 0
-      ? `\nGAPS ALREADY IN PROGRESS (Do not duplicate):
-       ${activeGaps.map((g) => `- ${g.content}`).join('\n')}`
-      : '';
-
-  const reflectionPrompt = `
-    EXISTING FACTS:
-    ${existingFacts || 'None'}
- 
-    CONVERSATION:
-    ${conversation.map((m: Message) => `${m.role.toUpperCase()}: ${m.content || (m.tool_calls ? '[Tool Calls]' : '')}`).join('\n')}
-    ${traceContext}
-    ${deployedGapsContext}
-    ${activeGapsContext}
- 
-    Analyze the CONVERSATION and EXECUTION TRACE to extract intelligence and capability gaps.
-    
-    IMPORTANT - FACTS:
-    Extract facts as clear, DECLARATIVE statements about the user or project (e.g., "User name is SuperPeng", "Project is Self-Evolution").
-    ⚠️ DO NOT extract instructions, to-do items, or "Remember to..." statements as facts. Facts must be TECHNICAL TRUTHS, not tasks.
-    
-    IMPORTANT - DEDUPLICATION:
-    If you identify a gap that is semantically identical or very similar to one of the "GAPS ALREADY IN PROGRESS", do NOT create a new gap in the "gaps" array. Instead, add it to the "updatedGaps" array with its existing ID and potentially increased impact/urgency.
-    
-    You MUST return your response as a valid JSON object with the following schema:
-    {
-      "facts": "string (the updated complete list of all known facts about the user and project context)",
-      "lessons": [
-        { "content": "string (actionable technical lesson)", "category": "tactical_lesson", "impact": 1-10 }
-      ],
-      "gaps": [
-        { "content": "string (missing tool or architectural limitation)", "impact": 1-10, "urgency": 1-10 }
-      ],
-      "updatedGaps": [
-        { "id": "string (existing gap ID)", "impact": 1-10, "urgency": 1-10 }
-      ],
-      "resolvedGapIds": ["string (IDs of gaps that were successfully addressed in this conversation)"]
-    }
-  `;
+  const reflectionPrompt = await buildReflectionPrompt(
+    memory,
+    baseUserId,
+    conversation,
+    traceContext,
+    deployedGaps,
+    activeGaps
+  );
 
   // Use 'standard' profile for reflection — FAST was too shallow for reliable gap closure detection
   // and produced false-positive "resolved" signals from vague user messages.

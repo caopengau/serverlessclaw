@@ -1,5 +1,5 @@
 import { emitEvent } from './utils/bus';
-import { EventType, Attachment } from './types/index';
+import { EventType, Attachment } from './types/agent';
 
 /**
  * Sends an outbound message event to the system bus.

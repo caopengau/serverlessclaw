@@ -18,59 +18,13 @@ import {
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
 import { parseStructuredResponse } from '../lib/utils/agent-helpers/llm-utils';
 import { parseConfigInt } from '../lib/providers/utils';
-import { MEMORY_KEYS } from '../lib/constants';
-
-async function getEvolutionMode(): Promise<'auto' | 'hitl'> {
-  try {
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
-    const { Resource } = await import('sst');
-
-    const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-    const typedResource = Resource as unknown as { ConfigTable: { name: string } };
-
-    const response = await db.send(
-      new GetCommand({
-        TableName: typedResource.ConfigTable.name,
-        Key: { key: 'evolution_mode' },
-      })
-    );
-    return response.Item?.value === 'auto' ? 'auto' : 'hitl';
-  } catch (error) {
-    logger.warn('Failed to fetch evolution_mode, defaulting to hitl:', error);
-    return 'hitl';
-  }
-}
-
-interface PlannerMetadata {
-  impact: number;
-  urgency: number;
-  risk: number;
-  priority: number;
-  confidence: number;
-}
-
-interface PlannerPayload {
-  gapId?: string;
-  details?: string;
-  contextUserId: string;
-  metadata?: PlannerMetadata;
-  isScheduledReview?: boolean;
-  traceId?: string;
-  initiatorId?: string;
-  depth?: number;
-  sessionId?: string;
-}
-
-interface PlannerEvent {
-  detail?: PlannerPayload;
-}
-
-interface PlannerResult {
-  gapId?: string;
-  plan?: string;
-  status?: string;
-}
+import { getEvolutionMode, recordCooldown, isGapInCooldown } from './strategic-planner/evolution';
+import {
+  buildProactiveReviewPrompt,
+  buildReactivePrompt,
+  buildTelemetry,
+} from './strategic-planner/prompts';
+import type { PlannerEvent, PlannerResult, PlannerPayload } from './strategic-planner/types';
 
 /**
  * Planner Agent handler. Analyzes capability gaps and generates strategic plans.
@@ -138,162 +92,34 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   const toolsList = agentTools
     .map((t: { name: string; description: string }) => `- ${t.name}: ${t.description}`)
     .join('\n    ');
-  const telemetry = `
-    [SYSTEM_TELEMETRY]:
-    - ACTIVE_AGENTS: ${Object.values(AgentType).join(', ')}
-    - AVAILABLE_TOOLS:
-    ${toolsList}
-  `;
+  const telemetry = buildTelemetry(toolsList);
 
   let plannerPrompt: string;
-  // const id = gapId || `REVIEW#${Date.now()}`;
 
   if (isProactive) {
-    // 1. Check Frequency and Min Gaps
-    try {
-      const { AgentRegistry } = await import('../lib/registry');
-      const customFreq = await AgentRegistry.getRawConfig('strategic_review_frequency');
-      const customMinGaps = await AgentRegistry.getRawConfig('min_gaps_for_review');
-
-      const frequencyHrs = parseConfigInt(customFreq, 48);
-      const minGaps = parseConfigInt(customMinGaps, 5); // Proactive lower threshold for progress
-
-      const lastReviewStr = await memory.getDistilledMemory(
-        `${MEMORY_KEYS.STRATEGIC_REVIEW}#${baseUserId}`
-      );
-      const lastReview = parseConfigInt(lastReviewStr, 0);
-      const now = Date.now();
-
-      const { TIME } = await import('../lib/constants');
-      // Only enforce strict interval for fully automated crons, proactive can be more flexible
-      if (
-        !isScheduledReview &&
-        now - lastReview < (frequencyHrs / 2) * TIME.SECONDS_IN_HOUR * TIME.MS_PER_SECOND
-      ) {
-        logger.info(
-          `Proactive review skipped: too recent. Last run: ${new Date(lastReview).toISOString()}`
-        );
-        return { status: 'SKIPPED_TOO_RECENT' };
-      }
-
-      // Check min gaps
-      const allGaps = await memory.getAllGaps(GapStatus.OPEN);
-      if (allGaps.length < minGaps) {
-        logger.info(`Proactive review skipped. Need ${minGaps} gaps, found ${allGaps.length}.`);
-        return { status: 'INSUFFICIENT_GAPS' };
-      }
-
-      // 1b. Archive stale gaps older than 30 days
-      try {
-        const archivedCount = await memory.archiveStaleGaps(30);
-        if (archivedCount > 0) {
-          logger.info(`Archived ${archivedCount} stale gaps during proactive review.`);
-        }
-      } catch (error) {
-        logger.warn('Failed to archive stale gaps:', error);
-      }
-    } catch {
-      logger.warn('Failed to verify proactive review interval/min_gaps, proceeding anyway.');
-    }
-
-    // 2. Fetch Tool Usage Telemetry for Auditing
-    let toolUsageContext = '';
-    try {
-      const { AgentRegistry } = await import('../lib/registry');
-      const toolUsage = await AgentRegistry.getRawConfig('tool_usage');
-      if (toolUsage) {
-        toolUsageContext = `\n[TOOL_USAGE_TELEMETRY]:\n${JSON.stringify(toolUsage, null, 2)}\n`;
-      }
-    } catch (e) {
-      logger.warn('Failed to fetch tool_usage for Strategic Review:', e);
-    }
-
-    let staleMemoryContext = '';
-    try {
-      const staleItems = await memory.getLowUtilizationMemory(10);
-      if (staleItems && staleItems.length > 0) {
-        staleMemoryContext = `\n[LOW_UTILIZATION_MEMORY]:\nThese dynamic memory items have not been recalled recently. Consider recommending pruning them if they are no longer relevant to system goals.\n${JSON.stringify(
-          staleItems.map((i: Record<string, unknown>) => ({
-            id: i.userId,
-            timestamp: i.timestamp,
-            content: i.content,
-            hitCount: (i.metadata as Record<string, unknown>)?.hitCount,
-            lastAccessed: (i.metadata as Record<string, unknown>)?.lastAccessed,
-          })),
-          null,
-          2
-        )}\n`;
-      }
-    } catch (e) {
-      logger.warn('Failed to fetch stale memory for Strategic Review:', e);
-    }
-
-    // Deterministic Review of all Gaps
-    const allGaps = await memory.getAllGaps(GapStatus.OPEN);
-    if (allGaps.length === 0) {
-      logger.info('No gaps found during proactive review. Skipping evolution.');
-      return { status: 'NO_GAPS' };
-    }
-
-    const gapSummary = allGaps
-      .map(
-        (g) => `- [Impact: ${g.metadata.impact}/10] ${g.content} (Priority: ${g.metadata.priority})`
-      )
-      .join('\n');
-
-    plannerPrompt = `
-      [PROACTIVE_STRATEGIC_REVIEW]
-      I have woken up for a scheduled self-audit. I have detected the following ${allGaps.length} capability gaps:
-      ${gapSummary}
-      ${telemetry}
-      ${toolUsageContext}
-      ${staleMemoryContext}
-
-      Please analyze these gaps, the tool usage telemetry, and the memory utilization audit. Prioritize the most critical needs based on ROI (Impact vs Complexity), and design a STRATEGIC_PLAN to either address the MOST IMPORTANT evolution or prune redundant/inefficient tools and stale memories.
-      
-      If low-utilization memory is no longer relevant, recommend pruning it by suggesting the use of 'pruneMemory' tool or explaining why it should be archived.
-    `;
-
-    // Update last review timestamp
-    await memory.updateDistilledMemory(
-      `${MEMORY_KEYS.STRATEGIC_REVIEW}#${baseUserId}`,
-      Date.now().toString()
+    const proactiveResult = await buildProactiveReviewPrompt(
+      memory,
+      baseUserId,
+      telemetry,
+      isScheduledReview ?? false
     );
+
+    if (!proactiveResult.shouldRun) {
+      return { status: proactiveResult.status };
+    }
+
+    plannerPrompt = proactiveResult.prompt;
   } else {
     // Reactionary single gap handling
-    const signals = metadata
-      ? `
-      [EVOLUTIONARY_SIGNALS]:
-      - IMPACT: ${metadata.impact}/10
-      - URGENCY: ${metadata.urgency}/10
-      - RISK: ${metadata.risk}/10
-    `
-      : '';
-
-    plannerPrompt = `GAP IDENTIFIED: ${details}\n${signals}\n${telemetry}\n\nUSER CONTEXT: Please design a STRATEGIC_PLAN to fix this gap for user ${contextUserId}.`;
+    plannerPrompt = buildReactivePrompt(payload, telemetry);
   }
 
   // 2. Self-Evolution Loop Protection (Cool-down)
-  // Cooldown is tracked per gap ID in a structured JSON list stored in DDB.
-  // Each entry carries an `expiresAt` epoch so old entries naturally become inactive.
-  // This replaces the previous brittle 500-char rolling text buffer which:
-  //   a) evicted entries as the buffer filled (same gap became "new" again)
-  //   b) did text-prefix matching easily bypassed by rephrased descriptions
-  //   c) was never checked for scheduled reviews (details === undefined)
-  const COOLDOWN_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
   if (gapId) {
-    const cooldownKey = `COOLDOWN_GAPS#${baseUserId}`;
-    try {
-      const raw = await memory.getDistilledMemory(cooldownKey);
-      const entries: Array<{ gapId: string; expiresAt: number }> = raw ? JSON.parse(raw) : [];
-      const now = Date.now();
-      const active = entries.filter((e) => e.expiresAt > now);
-      if (active.some((e) => e.gapId === gapId)) {
-        logger.warn(`Evolution cooldown active for gap ${gapId}. Aborting.`);
-        return { status: 'COOLDOWN_ACTIVE' };
-      }
-    } catch {
-      logger.warn('Failed to read cooldown state, proceeding anyway.');
+    const inCooldown = await isGapInCooldown(memory, gapId, baseUserId);
+    if (inCooldown) {
+      logger.warn(`Evolution cooldown active for gap ${gapId}. Aborting.`);
+      return { status: 'COOLDOWN_ACTIVE' };
     }
   }
 
@@ -381,18 +207,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   // 4. Record gap in structured cooldown store
   if (gapId && !isFailure) {
-    const cooldownKey = `COOLDOWN_GAPS#${baseUserId}`;
-    try {
-      const raw = await memory.getDistilledMemory(cooldownKey);
-      const entries: Array<{ gapId: string; expiresAt: number }> = raw ? JSON.parse(raw) : [];
-      const now = Date.now();
-      // Prune expired entries, then add the current gap
-      const active = entries.filter((e) => e.expiresAt > now);
-      active.push({ gapId, expiresAt: now + COOLDOWN_TTL_MS });
-      await memory.updateDistilledMemory(cooldownKey, JSON.stringify(active));
-    } catch (e) {
-      logger.warn('Failed to record cooldown entry:', e);
-    }
+    await recordCooldown(memory, gapId, baseUserId);
   }
 
   // 5. Gap Sink: Mark covered gaps as PLANNED

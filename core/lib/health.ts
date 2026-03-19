@@ -6,7 +6,8 @@ import {
   DeleteItemCommand,
 } from '@aws-sdk/client-dynamodb';
 import { Resource } from 'sst';
-import { EventType, SSTResource } from './types/index';
+import { EventType } from './types/agent';
+import { SSTResource } from './types/system';
 import { logger } from './logger';
 import { emitEvent } from './utils/bus';
 import { formatErrorMessage } from './utils/error';

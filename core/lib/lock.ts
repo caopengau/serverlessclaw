@@ -1,8 +1,8 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
-import { SSTResource } from './types/index';
-import { ILockManager } from './types/index';
+import { SSTResource } from './types/system';
+import { ILockManager } from './types/system';
 import { logger } from './logger';
 import { TIME, LIMITS } from './constants';
 

@@ -51,7 +51,7 @@ export const AGENT_CONFIG = {
  */
 export function getDomainConfig(
   component: 'api' | 'dashboard' | 'router'
-): string | { name: string; dns: ReturnType<typeof sst.cloudflare.dns> } | undefined {
+): { name: string; dns?: ReturnType<typeof sst.cloudflare.dns> } | undefined {
   const envVarMap: Record<string, string> = {
     api: 'CLAW_DOMAIN_API',
     dashboard: 'CLAW_DOMAIN_DASHBOARD',
@@ -72,5 +72,5 @@ export function getDomainConfig(
     };
   }
 
-  return domain;
+  return { name: domain };
 }

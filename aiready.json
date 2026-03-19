@@ -1,11 +1,162 @@
 {
+  "$schema": "https://getaiready.dev/schema.json",
+  "threshold": 70,
   "scan": {
-    "exclude": ["node_modules/**", ".sst/**", "dashboard/**"]
+    "include": [
+      "core/**/*.ts",
+      "dashboard/src/**/*.{ts,tsx}",
+      "infra/**/*.ts",
+      "scripts/**/*.ts"
+    ],
+    "exclude": [
+      "**/node_modules/**",
+      "**/.sst/**",
+      "**/.next/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/*.test.ts",
+      "**/*.spec.ts",
+      "**/*.test.tsx"
+    ],
+    "tools": [
+      "pattern-detect",
+      "context-analyzer",
+      "naming-consistency",
+      "ai-signal-clarity",
+      "agent-grounding",
+      "testability-index",
+      "doc-drift",
+      "dependency-health",
+      "change-amplification"
+    ]
+  },
+  "output": {
+    "format": "console",
+    "showBreakdown": true,
+    "saveTo": "aiready-report.json"
+  },
+  "scoring": {
+    "profile": "balanced",
+    "showBreakdown": true
   },
   "tools": {
+    "pattern-detect": {
+      "minSimilarity": 0.8,
+      "minLines": 5,
+      "minSharedTokens": 10,
+      "approx": true,
+      "batchSize": 300,
+      "maxCandidatesPerBlock": 500,
+      "minClusterFiles": 3,
+      "minClusterTokenCost": 1000
+    },
     "context-analyzer": {
-      "maxContextBudget": 30000
-    }
+      "maxContextBudget": 128000,
+      "minCohesion": 0.6,
+      "maxDepth": 7,
+      "maxFragmentation": 0.4,
+      "focus": "all",
+      "includeNodeModules": false
+    },
+    "naming-consistency": {
+      "checkNaming": true,
+      "checkPatterns": true,
+      "checkArchitecture": true,
+      "shortWords": [
+        "id",
+        "db",
+        "ui",
+        "ai"
+      ],
+      "acceptedAbbreviations": [
+        "API",
+        "JSON",
+        "CSV",
+        "HTML",
+        "CSS",
+        "HTTP",
+        "URL",
+        "SDK",
+        "CLI",
+        "AI",
+        "ML",
+        "ID",
+        "DB",
+        "UI",
+        "UX",
+        "DOM",
+        "UUID",
+        "GUID",
+        "DEFAULT",
+        "MAX",
+        "MIN",
+        "config",
+        "INIT",
+        "SKILL",
+        "ENV",
+        "DEV",
+        "PROD",
+        "AWS",
+        "S3",
+        "ARN",
+        "SST",
+        "DDB",
+        "TTL",
+        "PK",
+        "SK",
+        "LKG"
+      ],
+      "disableChecks": []
+    },
+    "ai-signal-clarity": {
+      "checkMagicLiterals": true,
+      "checkBooleanTraps": true,
+      "checkAmbiguousNames": true,
+      "checkUndocumentedExports": true,
+      "checkImplicitSideEffects": true,
+      "checkDeepCallbacks": true,
+      "checkOverloadedSymbols": true,
+      "checkLargeFiles": true
+    },
+    "agent-grounding": {
+      "maxRecommendedDepth": 5,
+      "readmeStaleDays": 30,
+      "additionalVagueNames": [
+        "stuff",
+        "misc",
+        "temp",
+        "test"
+      ]
+    },
+    "testability-index": {
+      "minCoverageRatio": 0.7,
+      "testPatterns": [
+        "**/*.test.ts",
+        "**/*.test.tsx",
+        "**/__tests__/**",
+        "**/*.spec.ts"
+      ],
+      "maxDepth": 10
+    },
+    "doc-drift": {
+      "maxCommits": 50,
+      "staleMonths": 3
+    },
+    "dependency-health": {
+      "trainingCutoffYear": 2023
+    },
+    "change-amplification": {}
   },
-  "threshold": 75
+  "visualizer": {
+    "groupingDirs": [
+      "core",
+      "dashboard",
+      "infra",
+      "scripts"
+    ],
+    "graph": {
+      "maxNodes": 5000,
+      "maxEdges": 10000
+    }
+  }
 }

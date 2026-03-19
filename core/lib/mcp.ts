@@ -1,4 +1,5 @@
-import { ITool, MCPServerConfig } from './types/index';
+import { ITool } from './types/tool';
+import { MCPServerConfig } from './types/mcp';
 import { logger } from './logger';
 import { AgentRegistry } from './registry';
 import { MCPClientManager } from './mcp/client-manager';
