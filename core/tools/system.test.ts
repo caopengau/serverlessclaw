@@ -2,7 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { TRIGGER_DEPLOYMENT, CHECK_HEALTH, TRIGGER_ROLLBACK } from './system';
+import { TRIGGER_DEPLOYMENT } from './deployment';
+import { CHECK_HEALTH } from './health-check';
+import { TRIGGER_ROLLBACK } from './rollback';
 
 const codebuildMock = mockClient(CodeBuildClient);
 const ddbMock = mockClient(DynamoDBDocumentClient);
