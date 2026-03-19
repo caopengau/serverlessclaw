@@ -3,6 +3,7 @@ set -e
 
 STAGE=${1:-dev}
 PROFILE=${AWS_PROFILE:-aiready}
+APP_NAME=${APP_NAME:-serverlessclaw}
 
 echo "Starting Robust CloudFront Fix for stage: $STAGE (Account: $PROFILE)"
 
@@ -26,8 +27,8 @@ fi
 SERVER_HOST=$(echo "$SERVER_URL" | sed 's/https:\/\///' | sed 's/\///')
 echo "Found Server Host: $SERVER_HOST"
 
-# 3. Identify S3 Assets Bucket
-S3_BUCKET=$(aws s3 ls --profile "$PROFILE" | grep "clawcenterassetsbucket" | awk '{print $NF}' | head -n 1)
+# 3. Identify stage-specific S3 Assets Bucket
+S3_BUCKET=$(aws s3api list-buckets --profile "$PROFILE" --query "Buckets[?contains(Name, '${APP_NAME}-${STAGE}-clawcenterassetsbucket-')].Name" --output text | awk '{print $1}')
 if [ -z "$S3_BUCKET" ]; then
     echo "Error: Could not find S3 Assets Bucket"
     exit 1
@@ -42,9 +43,6 @@ if [ -z "$CF_FUNC_ARN" ] || [ "$CF_FUNC_ARN" == "None" ]; then
 fi
 echo "Found CloudFront Function ARN: $CF_FUNC_ARN"
 
-# 5. OAC ID
-OAC_ID="EKO5N1P5RDMN6"
-
 # 6. Patch CloudFront Distribution
 echo "Patching CloudFront Distribution with Explicit Asset Routing..."
 
@@ -52,10 +50,27 @@ ETAG=$(aws cloudfront get-distribution-config --id "$DIST_ID" --profile "$PROFIL
 aws cloudfront get-distribution-config --id "$DIST_ID" --profile "$PROFILE" --query "DistributionConfig" > dist-config.json
 
 CACHE_POLICY_ID=$(jq -r '.DefaultCacheBehavior.CachePolicyId' dist-config.json)
+OAC_ID=$(jq -r '.Origins.Items[] | select(.Id == "s3-assets") | .OriginAccessControlId' dist-config.json)
+
+if [ -z "$OAC_ID" ] || [ "$OAC_ID" == "null" ]; then
+  # Fallback for older stacks where s3-assets origin does not exist yet.
+  OAC_ID="EKO5N1P5RDMN6"
+fi
+
+if [ -z "$CACHE_POLICY_ID" ] || [ "$CACHE_POLICY_ID" == "null" ]; then
+  echo "Error: Could not read DefaultCacheBehavior.CachePolicyId"
+  exit 1
+fi
 
 jq "
-  .Origins.Items[0].DomainName = \"$SERVER_HOST\" |
-  .Origins.Items[0].CustomOriginConfig.OriginProtocolPolicy = \"https-only\" |
+  .Origins.Items |= map(
+    if .Id == \"default\" then
+      .DomainName = \"$SERVER_HOST\" |
+      .CustomOriginConfig.OriginProtocolPolicy = \"https-only\"
+    else
+      .
+    end
+  ) |
   
   # Ensure S3 origin exists with OriginPath /_assets
   if (.Origins.Items | any(.Id == \"s3-assets\")) then
