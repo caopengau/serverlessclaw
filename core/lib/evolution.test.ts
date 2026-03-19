@@ -31,7 +31,11 @@ vi.mock('./registry', () => ({
 
 // Use vi.hoisted to ensure mock is available for dynamic imports
 const { MockClawTracer, MockAgentExecutorFactory } = vi.hoisted(() => {
-  const mockRunLoop = vi.fn().mockImplementation(async function (messages: any, options: any) {
+  const mockRunLoop = vi.fn().mockImplementation(async function (
+    this: any,
+    messages: any,
+    options: any
+  ) {
     const { activeModel, activeProvider, tracer } = options || {};
 
     const provider = options?.provider ?? this?.provider;

@@ -57,7 +57,11 @@ vi.mock('./agent/context-manager', () => ({
 
 // Hoist the mocked executor so it's available for dynamic imports in Agent
 const { MockAgentExecutorFactory } = vi.hoisted(() => {
-  const mockRunLoop = vi.fn().mockImplementation(async function (messages: any, options: any) {
+  const mockRunLoop = vi.fn().mockImplementation(async function (
+    this: any,
+    messages: any,
+    options: any
+  ) {
     const { activeModel, activeProvider, tracer } = options || {};
 
     const provider = options?.provider ?? this?.provider;
