@@ -57,14 +57,32 @@ A **Star** or **Fork** genuinely helps this project reach more developers. The a
 
 ## 🚀 Key Innovations
 
+> **Layer Ordering**: Innovations are ordered from infrastructure (least technical) to user-facing/agent concepts (most technical).
+
+### Layer 1: Infrastructure / Data
+
+1. **[Tiered Neural Memory](./docs/MEMORY.md)**: Flexible tiered memory engine with configurable retention (user-defined TTL), hit-tracking, and neural pruning.
+2. **[Dead Man's Switch (DMS)](./docs/SAFETY.md#dead-mans-switch)**: 15-minute heartbeat probe that triggers automated rollbacks on system failure.
+
+### Layer 2: Human-Agent Collaboration
+
+1. **[Human-Agent Co-Management (Neural Reserve)](./docs/MEMORY.md#human-agent-co-management-neural-reserve)**: Dashboard-based memory auditing, prioritization, and pruning via ClawCenter.
+2. **[Evolution Path (Verified Lifecycle)](./docs/EVOLUTION.md)**: OPEN → PLANNED → PROGRESS → DEPLOYED → DONE lifecycle with QA gating, gap aging, and retry logic.
+
+### Layer 3: Integration / Tooling
+
+1. **[Hub-First MCP (JIT Skills)](./docs/TOOLS.md#mcp-skills-external--hybrid)**: Prioritizes external skill hubs with graceful local fallback for infinite tool scaling; tools/skills have hit-tracking and neural pruning (unused tools auto-detected via 48hr Strategic Planner review).
+2. **[Multi-Modal Vision](./ARCHITECTURE.md#multi-modal-storage-flow)**: Bridge Telegram media to S3 for agent-led PDF analysis and image comprehension.
+
+### Layer 4: Agent Orchestration
+
 1. **[Ask-Back Clarification Protocol](./docs/AGENTS.md#clarification-protocol)**: Sub-agents stop and ask for info via AgentBus rather than guessing.
-2. **[Tiered Neural Memory](./docs/MEMORY.md)**: DynamoDB-backed memory system with hit-tracking and automatic 2-year retention.
-3. **[Self-Aware Topology](./ARCHITECTURE.md#infrastructure-discovery)**: Real-time discovery of agent-tool linkages for 100% accurate system visualization.
-4. **[Hub-First MCP (JIT Skills)](./docs/TOOLS.md#mcp-skills-external--hybrid)**: Prioritizes external skill hubs with graceful local fallback for infinite tool scaling.
-5. **[Dead Man's Switch (DMS)](./docs/SAFETY.md#dead-mans-switch)**: 15-minute heartbeat probe that triggers automated rollbacks on system failure.
-6. **[Multi-Modal Vision](./ARCHITECTURE.md#multi-modal-storage-flow)**: Bridge Telegram media to S3 for agent-led PDF analysis and image comprehension.
-7. **[Intent-Based Dual-Mode](./docs/AGENTS.md#dual-mode-communication-intent-based-orchestration)**: Toggles between strict JSON (system) and natural language (human) with intelligent parsing.
-8. **[AI-Native Codebase](./ARCHITECTURE.md#design-philosophy)**: Semantic transparency and strict neural typing optimized for 0.1s reasoning accuracy.
+2. **[Intent-Based Dual-Mode](./docs/AGENTS.md#dual-mode-communication-intent-based-orchestration)**: Toggles between strict JSON (system) and natural language (human) with intelligent parsing.
+3. **[Goal-Driven Proactive Autonomy](./core/lib/scheduler.ts)**: Dynamic scheduling via AWS EventBridge Scheduler enables agents to set self-initiated tasks (vs reactive DMS heartbeat).
+
+### Layer 5: Core / Advanced
+
+1. **[Self-Aware Topology](./ARCHITECTURE.md#infrastructure-discovery)**: Real-time discovery of agent-tool linkages for 100% accurate system visualization.
 
 ## 🏗️ Technical Blueprint
 
@@ -103,4 +121,3 @@ Start with **[INDEX.md](./INDEX.md)** — the progressive context loading map fo
 ## 📜 License
 
 MIT
-# test
