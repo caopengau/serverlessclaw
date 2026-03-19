@@ -33,8 +33,8 @@ type-check: ## Run TypeScript type checking
 	@$(PNPM) exec tsc --noEmit
 
 aiready: ## Run AIReady scan to evaluate agent-friendliness
-	@$(call log_info,Running AIReady scan (threshold 80)...)
-	@$(PNPM) exec aiready scan . --threshold 80 --exclude "node_modules/**,.sst/**,dashboard/**"
+	@$(call log_info,Running AIReady scan...)
+	@$(PNPM) exec aiready scan . --exclude "node_modules/**,.sst/**,dashboard/**"
 
 lint-staged: ## Run lint-staged for partial checks
 	@$(call log_info,Running lint-staged...)

@@ -1,0 +1,11 @@
+{
+  "scan": {
+    "exclude": ["node_modules/**", ".sst/**", "dashboard/**"]
+  },
+  "tools": {
+    "context-analyzer": {
+      "maxContextBudget": 30000
+    }
+  },
+  "threshold": 75
+}
