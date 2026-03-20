@@ -48,8 +48,13 @@ export class MCPBridge {
 
   /**
    * Discovers and loads tools from configured MCP servers.
+   * @param requestedTools - Optional list of specific tools to load
+   * @param skipConnection - If true, returns tool definitions without connecting to servers (for dashboard display)
    */
-  static async getExternalTools(requestedTools?: string[]): Promise<ITool[]> {
+  static async getExternalTools(
+    requestedTools?: string[],
+    skipConnection: boolean = false
+  ): Promise<ITool[]> {
     const serversConfig = (await AgentRegistry.getRawConfig('mcp_servers')) as Record<
       string,
       string | MCPServerConfig
@@ -93,6 +98,18 @@ export class MCPBridge {
           connector_id: config.connector_id,
           type: 'mcp',
           execute: async () => `Managed tool (${name}) executed autonomously by provider.`,
+        });
+        continue;
+      }
+
+      // When skipConnection is true, return placeholder definitions without connecting
+      if (skipConnection) {
+        allTools.push({
+          name: `${name}_tools`,
+          description: `Tools from ${name} MCP server`,
+          parameters: { type: 'object', properties: {} },
+          type: 'mcp',
+          execute: async () => `MCP server ${name} placeholder`,
         });
         continue;
       }

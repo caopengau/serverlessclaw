@@ -33,9 +33,10 @@ export async function getAllTools(usage: Record<string, { count: number; lastUse
       externalToolsDefinitions = await MCPBridge.getExternalTools();
     } else {
       externalToolsDefinitions = await MCPBridge.getCachedTools();
-      // If cache is empty, fallback to one-time discovery
+      // If cache is empty, use skipConnection mode to avoid timeout
+      // This shows server names without actually connecting to them
       if (externalToolsDefinitions.length === 0) {
-        externalToolsDefinitions = await MCPBridge.getExternalTools();
+        externalToolsDefinitions = await MCPBridge.getExternalTools(undefined, true);
       }
     }
 

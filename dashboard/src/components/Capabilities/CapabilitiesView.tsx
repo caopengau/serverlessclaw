@@ -25,7 +25,10 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
     optimisticAgents,
     setOptimisticAgents,
     isPending,
-    handleToggleToolAssignment
+    handleToggleToolAssignment,
+    handleDetachTool,
+    confirmModal,
+    setConfirmModal
   } = useAgentTools(agents);
 
   // Sync with props if they change
