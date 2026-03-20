@@ -58,7 +58,7 @@ export default function AnalyticsTab({
       )}
 
       {/* Global Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card variant="glass" padding="lg" className="border-cyber-blue/20">
           <Typography variant="mono" color="muted" className="text-[10px] tracking-widest opacity-40 mb-2 block">Total neural invocations</Typography>
           <Typography variant="h2" color="white" weight="black" glow className="text-4xl tracking-tighter">{totalInvocations}</Typography>
@@ -68,20 +68,21 @@ export default function AnalyticsTab({
           <Typography variant="h2" color="primary" weight="black" className="text-xl truncate tracking-tight">{sortedByUsage[0]?.name || 'N/A'}</Typography>
         </Card>
         <Card variant="glass" padding="lg" className="border-purple-500/20">
-          <Typography variant="mono" color="muted" className="text-[10px] tracking-widest opacity-40 mb-2 block">Bridge efficiency</Typography>
-          <div className="space-y-2">
-            <div className="flex items-baseline gap-2">
-              <Typography variant="h2" color="white" weight="black" className="text-2xl tracking-tighter">
-                {new Set(allTools.filter(t => t.isExternal && (t.usage?.count || 0) > 0).map(t => t.name.split('_')[0])).size}
-              </Typography>
-              <Typography variant="mono" color="muted" className="text-[10px]">/ {new Set(allTools.filter(t => t.isExternal).map(t => t.name.split('_')[0])).size} servers</Typography>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <Typography variant="h2" color="purple-400" weight="black" className="text-2xl tracking-tighter">
-                {allTools.filter(t => t.isExternal && (t.usage?.count || 0) > 0).length}
-              </Typography>
-              <Typography variant="mono" color="muted" className="text-[10px]">/ {allTools.filter(t => t.isExternal).length} tools</Typography>
-            </div>
+          <Typography variant="mono" color="muted" className="text-[10px] tracking-widest opacity-40 mb-2 block">MCP Server efficiency</Typography>
+          <div className="flex items-baseline gap-2">
+            <Typography variant="h2" color="white" weight="black" className="text-4xl tracking-tighter">
+              {new Set(allTools.filter(t => t.isExternal && (t.usage?.count || 0) > 0).map(t => t.name.split('_')[0])).size}
+            </Typography>
+            <Typography variant="mono" color="muted" className="text-[10px]">/ {new Set(allTools.filter(t => t.isExternal).map(t => t.name.split('_')[0])).size} servers</Typography>
+          </div>
+        </Card>
+        <Card variant="glass" padding="lg" className="border-purple-400/20">
+          <Typography variant="mono" color="muted" className="text-[10px] tracking-widest opacity-40 mb-2 block">Tool efficiency</Typography>
+          <div className="flex items-baseline gap-2">
+            <Typography variant="h2" color="purple-400" weight="black" className="text-4xl tracking-tighter">
+              {allTools.filter(t => t.isExternal && (t.usage?.count || 0) > 0).length}
+            </Typography>
+            <Typography variant="mono" color="muted" className="text-[10px]">/ {allTools.filter(t => t.isExternal).length} tools</Typography>
           </div>
         </Card>
       </div>
