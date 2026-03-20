@@ -36,8 +36,8 @@ Note: SST-related Make targets invoke the workspace-local SST binary (`./node_mo
 ### Stage Hygiene (Safety-Critical)
 
 - Local development must use stage `local`: `make dev` (defaults to `LOCAL_STAGE=local`).
-- Shared deployment must use stage `dev`: `make deploy ENV=dev` or `make dev-release`.
-- Do not run `sst dev --stage dev` against shared environments.
+- Deployment uses a single environment (default: `dev`): `make deploy` or `make release`.
+- Do not run `sst dev` against the deployment stage.
 
 ---
 
