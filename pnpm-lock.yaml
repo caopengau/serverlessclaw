@@ -87,8 +87,8 @@ importers:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       sst:
-        specifier: ^4.2.2
-        version: 4.2.2
+        specifier: ^4.5.1
+        version: 4.5.1
       tailwindcss:
         specifier: ^4.2.1
         version: 4.2.1
@@ -722,8 +722,14 @@ packages:
   '@emnapi/core@1.9.0':
     resolution: {integrity: sha512-0DQ98G9ZQZOxfUcQn1waV2yS8aWdZ6kJMbYCJB3oUBecjWYO1fqJ+a1DRfPF3O5JEkwqwP1A9QEN/9mYm2Yd0w==}
 
+  '@emnapi/core@1.9.1':
+    resolution: {integrity: sha512-mukuNALVsoix/w1BJwFzwXBN/dHeejQtuVzcDsfOEsdpCumXb/E9j8w11h5S54tT1xhifGfbbSm/ICrObRb3KA==}
+
   '@emnapi/runtime@1.9.0':
     resolution: {integrity: sha512-QN75eB0IH2ywSpRpNddCRfQIhmJYBCJ1x5Lb3IscKAL8bMnVAKnRg8dCoXbHzVLLH7P38N2Z3mtulB7W0J0FKw==}
+
+  '@emnapi/runtime@1.9.1':
+    resolution: {integrity: sha512-VYi5+ZVLhpgK4hQ0TAjiQiZ6ol0oe4mBx7mVv7IflsiEp0OWoVsp/+f9Vc1hOhE0TtkORVrI1GvzyreqpgWtkA==}
 
   '@emnapi/wasi-threads@1.2.0':
     resolution: {integrity: sha512-N10dEJNSsUx41Z6pZsXU8FjPjpBEplgH24sfkmITrBED1/U2Esum9F3lfLrMjKHHjmi557zQn7kR9R+XWXu5Rg==}
@@ -4626,8 +4632,18 @@ packages:
     cpu: [arm64]
     os: [darwin]
 
+  sst-darwin-arm64@4.5.1:
+    resolution: {integrity: sha512-ViLqLzugjmd2WEJ/mxSVb40w58vWWdEeUwRg7DYCy1F+G7IBfsduLW/QCYVNVV74egfNOWTS6zRVXX18Fsmn3A==}
+    cpu: [arm64]
+    os: [darwin]
+
   sst-darwin-x64@4.2.2:
     resolution: {integrity: sha512-KGIjkYI3WDRNq+z3AGKYe69IvZP8prMm3mbI5ali5cl1hxiq10CAza+N+qpRXCtxt6vgbwdvmIoWTPYoKBtCIA==}
+    cpu: [x64]
+    os: [darwin]
+
+  sst-darwin-x64@4.5.1:
+    resolution: {integrity: sha512-VJvpylbQRfZ1IrJvQKjVurZTi1L7E7zoc5FY+iv8/2jO+rdxKLlZMshSj7sFeS7ZnAbMlO37e4LiTRQ9Pcs2Dw==}
     cpu: [x64]
     os: [darwin]
 
@@ -4636,8 +4652,18 @@ packages:
     cpu: [arm64]
     os: [linux]
 
+  sst-linux-arm64@4.5.1:
+    resolution: {integrity: sha512-ZscGWwt/L3UBcpd0xZ0rt/ceJEVxiYgtIzA/XJS2FMRA1Yw+6m87tTIYNEXfOip/hM9u9Ay6vaGp7N160yy5nw==}
+    cpu: [arm64]
+    os: [linux]
+
   sst-linux-x64@4.2.2:
     resolution: {integrity: sha512-1wwjpX0Qxo6OFkF6Q8NM8BT9oQvkZpKDMrUqce86rMuqHEzVo7GTXuqku6ouapjeMN+ZDC2vW2ReiR6W4Eh2Hw==}
+    cpu: [x64]
+    os: [linux]
+
+  sst-linux-x64@4.5.1:
+    resolution: {integrity: sha512-AJVV+XboqLpfEL8oTHi0VmtlfPldo66zC8YNfDQNLWAtqzuZ6QBHKGuSfP7D1vXbGsQrSzEoRD80/5S4a/CwZw==}
     cpu: [x64]
     os: [linux]
 
@@ -4646,8 +4672,18 @@ packages:
     cpu: [x86]
     os: [linux]
 
+  sst-linux-x86@4.5.1:
+    resolution: {integrity: sha512-tlufp3W0MBYXOA4N7i7Oe1oCyoGtKn3cA384s32zZP6+t90cpoWsDdQTyOGIVJlnTFaM6bXK5rbDVUVNBWMGNQ==}
+    cpu: [x86]
+    os: [linux]
+
   sst-win32-arm64@4.2.2:
     resolution: {integrity: sha512-AV9njoZ20SCyCXdcdRrZk9o06o0iOzzb7jAMcAP4EG6SfP/cyTNYoeMW7vEl/8cVWL0SBaTs0tyIzLWT9f84mg==}
+    cpu: [arm64]
+    os: [win32]
+
+  sst-win32-arm64@4.5.1:
+    resolution: {integrity: sha512-j3L5/HMiTdeiSBWWgo4eV2IExgsZpql+4l3IGPKEV46gYBwGrgi7Azm118IUTk5nK58jIIA5pRXCBn8oqEfEwQ==}
     cpu: [arm64]
     os: [win32]
 
@@ -4656,13 +4692,27 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  sst-win32-x64@4.5.1:
+    resolution: {integrity: sha512-knzqsXGb4jYPopOwDn7Uf2QbizdiCB9C4/oOZLyEYNq4qpYAGoSXfYgN3aVjJ4kdhPOtNfBmasf65SwEF5h5jA==}
+    cpu: [x64]
+    os: [win32]
+
   sst-win32-x86@4.2.2:
     resolution: {integrity: sha512-JBREFAzf8NFdh5zB22WGoIeQ24iRxZ1MPF7EvV9zcqLobBFuFWqVwIFkmFkHOT/cP2JhAAniyFnD32O6b1cePw==}
     cpu: [x86]
     os: [win32]
 
+  sst-win32-x86@4.5.1:
+    resolution: {integrity: sha512-0FNix7w67d/6ft7Yg+/iykp6ggTVee+YhzSwOp/HWTuzgnQ3wfJJaENL0qVzuEJNtbZ6De2RgZi3o6Gx0icwUg==}
+    cpu: [x86]
+    os: [win32]
+
   sst@4.2.2:
     resolution: {integrity: sha512-l/Vy78te8l6Typ/oFCL947WBSShljy3S9ugRSnG3zZAvRI9AC5KZJKHBkt+CT/WSK0eromSOO2FBvG2ErCbaxw==}
+    hasBin: true
+
+  sst@4.5.1:
+    resolution: {integrity: sha512-sKTe4lluXbP41o3rSM+S1RV8vZKzK81L8+WoO55EAz7xNpzflJ2/ZQcvCXEvU5JpU89ireAtC9inrqeBEAd1bA==}
     hasBin: true
 
   stable-hash@0.0.5:
@@ -6752,7 +6802,18 @@ snapshots:
       tslib: 2.8.1
     optional: true
 
+  '@emnapi/core@1.9.1':
+    dependencies:
+      '@emnapi/wasi-threads': 1.2.0
+      tslib: 2.8.1
+    optional: true
+
   '@emnapi/runtime@1.9.0':
+    dependencies:
+      tslib: 2.8.1
+    optional: true
+
+  '@emnapi/runtime@1.9.1':
     dependencies:
       tslib: 2.8.1
     optional: true
@@ -7130,8 +7191,8 @@ snapshots:
 
   '@napi-rs/wasm-runtime@1.1.1':
     dependencies:
-      '@emnapi/core': 1.9.0
-      '@emnapi/runtime': 1.9.0
+      '@emnapi/core': 1.9.1
+      '@emnapi/runtime': 1.9.1
       '@tybys/wasm-util': 0.10.1
     optional: true
 
@@ -9007,8 +9068,8 @@ snapshots:
       '@next/eslint-plugin-next': 16.1.7
       eslint: 10.0.3(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@10.0.3(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@10.0.3(jiti@2.6.1))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@10.0.3(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@10.0.3(jiti@2.6.1))
       eslint-plugin-react-hooks: 7.0.1(eslint@10.0.3(jiti@2.6.1))
@@ -9034,7 +9095,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@10.0.3(jiti@2.6.1)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3
@@ -9045,22 +9106,22 @@ snapshots:
       tinyglobby: 0.2.15
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@10.0.3(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@10.0.3(jiti@2.6.1)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
       eslint: 10.0.3(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@10.0.3(jiti@2.6.1))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1)(eslint@10.0.3(jiti@2.6.1)):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -9071,7 +9132,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 10.0.3(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.9
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1)(eslint@10.0.3(jiti@2.6.1))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint-import-resolver-node@0.3.9)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1)))(eslint@10.0.3(jiti@2.6.1))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -11082,25 +11143,49 @@ snapshots:
   sst-darwin-arm64@4.2.2:
     optional: true
 
+  sst-darwin-arm64@4.5.1:
+    optional: true
+
   sst-darwin-x64@4.2.2:
+    optional: true
+
+  sst-darwin-x64@4.5.1:
     optional: true
 
   sst-linux-arm64@4.2.2:
     optional: true
 
+  sst-linux-arm64@4.5.1:
+    optional: true
+
   sst-linux-x64@4.2.2:
+    optional: true
+
+  sst-linux-x64@4.5.1:
     optional: true
 
   sst-linux-x86@4.2.2:
     optional: true
 
+  sst-linux-x86@4.5.1:
+    optional: true
+
   sst-win32-arm64@4.2.2:
+    optional: true
+
+  sst-win32-arm64@4.5.1:
     optional: true
 
   sst-win32-x64@4.2.2:
     optional: true
 
+  sst-win32-x64@4.5.1:
+    optional: true
+
   sst-win32-x86@4.2.2:
+    optional: true
+
+  sst-win32-x86@4.5.1:
     optional: true
 
   sst@4.2.2:
@@ -11117,6 +11202,21 @@ snapshots:
       sst-win32-arm64: 4.2.2
       sst-win32-x64: 4.2.2
       sst-win32-x86: 4.2.2
+
+  sst@4.5.1:
+    dependencies:
+      aws4fetch: 1.0.18
+      jose: 5.2.3
+      openid-client: 5.6.4
+    optionalDependencies:
+      sst-darwin-arm64: 4.5.1
+      sst-darwin-x64: 4.5.1
+      sst-linux-arm64: 4.5.1
+      sst-linux-x64: 4.5.1
+      sst-linux-x86: 4.5.1
+      sst-win32-arm64: 4.5.1
+      sst-win32-x64: 4.5.1
+      sst-win32-x86: 4.5.1
 
   stable-hash@0.0.5: {}
 
