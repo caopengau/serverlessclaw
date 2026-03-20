@@ -3,7 +3,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
-import { EventType } from '../lib/types/index';
+import { EventType } from '../lib/types/agent';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 const codeBuildMock = mockClient(CodeBuildClient);

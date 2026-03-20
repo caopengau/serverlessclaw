@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { TOOLS, getToolDefinitions, getAgentTools } from './index';
-import { IAgentConfig } from '../lib/types/index';
+import { IAgentConfig } from '../lib/types/agent';
 
 vi.mock('../lib/registry', () => ({
   AgentRegistry: {
@@ -25,20 +25,20 @@ describe('tools', () => {
 
 describe('getToolDefinitions', () => {
   it('should return an array of tool definitions', () => {
-    const definitions = getToolDefinitions();
+    const definitions = getToolDefinitions(TOOLS);
     expect(Array.isArray(definitions)).toBe(true);
     expect(definitions.length).toBeGreaterThan(0);
   });
 
   it('should include switchModel in definitions', () => {
-    const definitions = getToolDefinitions();
+    const definitions = getToolDefinitions(TOOLS);
     const switchModelDef = definitions.find((d) => d.function?.name === 'switchModel');
     expect(switchModelDef).toBeDefined();
     expect(switchModelDef!.function?.description).toBeDefined();
   });
 
   it('should have proper type and function structure', () => {
-    const definitions = getToolDefinitions();
+    const definitions = getToolDefinitions(TOOLS);
     definitions.forEach((def) => {
       expect(def.type).toBe('function');
       expect(def.function).toBeDefined();

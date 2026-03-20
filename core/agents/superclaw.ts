@@ -1,5 +1,8 @@
 import { Agent } from '../lib/agent';
-import { IMemory, IProvider, ITool, ReasoningProfile, IAgentConfig } from '../lib/types/index';
+import { IMemory } from '../lib/types/memory';
+import { IProvider, ReasoningProfile } from '../lib/types/llm';
+import { ITool } from '../lib/types/tool';
+import { IAgentConfig } from '../lib/types/agent';
 import { SUPERCLAW_SYSTEM_PROMPT } from './prompts/index';
 
 export { SUPERCLAW_SYSTEM_PROMPT };

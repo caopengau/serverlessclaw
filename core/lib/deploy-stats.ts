@@ -1,7 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
-import { SSTResource } from './types/index';
+import { SSTResource } from './types/system';
 import { SYSTEM } from './constants';
 import { logger } from './logger';
 

@@ -1,4 +1,4 @@
-import { EventType } from '../lib/types/index';
+import { EventType } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 // Sub-handlers are imported lazily per-event to minimise static import depth and context budget.

@@ -1,6 +1,7 @@
 import { Resource } from 'sst';
 import { DynamoMemory } from '../lib/memory';
-import { MessageRole, Attachment } from '../lib/types/index';
+import { MessageRole } from '../lib/types/llm';
+import { Attachment } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 
 const memory = new DynamoMemory();

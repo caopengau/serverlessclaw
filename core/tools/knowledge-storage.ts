@@ -1,6 +1,7 @@
 import { toolDefinitions } from './definitions/index';
 import { DynamoMemory } from '../lib/memory';
-import { InsightCategory, GapStatus, EventType } from '../lib/types/index';
+import { InsightCategory } from '../lib/types/memory';
+import { GapStatus, EventType } from '../lib/types/agent';
 import { emitEvent } from '../lib/utils/bus';
 import { formatErrorMessage } from '../lib/utils/error';
 

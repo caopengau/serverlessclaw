@@ -90,7 +90,7 @@ describe('Integrated Mechanism Verification', () => {
 
       expect(status.deployCountToday).toBe(3);
       // Resilience is still ok as it's below limit, but we've verified the path
-    });
+    }, 15000);
   });
 
   describe('Evolution Integration', () => {

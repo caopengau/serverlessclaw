@@ -1,4 +1,4 @@
-import { TraceSource, TaskEvent, EventType } from '../lib/types/index';
+import { TraceSource, TaskEvent, EventType } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import {

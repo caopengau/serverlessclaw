@@ -1,7 +1,8 @@
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2, Context } from 'aws-lambda';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
-import { TraceSource, SSTResource } from '../lib/types/index';
+import { TraceSource } from '../lib/types/agent';
+import { SSTResource } from '../lib/types/system';
 import { Resource } from 'sst';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { z } from 'zod';

@@ -6,6 +6,9 @@ import type { PlannerPayload } from './types';
 
 /**
  * Builds telemetry information about available agents and tools.
+ *
+ * @param toolsList - A formatted string list of available tools.
+ * @returns A string containing the system telemetry.
  */
 export function buildTelemetry(toolsList: string): string {
   return `
@@ -18,6 +21,13 @@ export function buildTelemetry(toolsList: string): string {
 
 /**
  * Checks if proactive review should run based on frequency and minimum gaps.
+ *
+ * @param memory - The DynamoDB memory instance.
+ * @param isScheduledReview - Whether this is a system-triggered scheduled review.
+ * @param baseUserId - The sanitized user ID.
+ * @param frequencyHrs - The review frequency in hours.
+ * @param minGaps - The minimum number of gaps required to trigger a review.
+ * @returns A promise resolving to an object indicating if it should run and why.
  */
 export async function shouldRunProactiveReview(
   memory: DynamoMemory,
@@ -102,6 +112,12 @@ export async function fetchStaleMemoryContext(memory: DynamoMemory): Promise<str
 
 /**
  * Builds the proactive strategic review prompt.
+ *
+ * @param memory - The DynamoDB memory instance.
+ * @param baseUserId - The sanitized user ID.
+ * @param telemetry - System telemetry string.
+ * @param isScheduledReview - Whether this is a system-triggered scheduled review.
+ * @returns A promise resolving to the prompt and run status.
  */
 export async function buildProactiveReviewPrompt(
   memory: DynamoMemory,
@@ -184,6 +200,10 @@ export async function buildProactiveReviewPrompt(
 
 /**
  * Builds the reactive (single gap) prompt.
+ *
+ * @param payload - The planner payload containing gap details.
+ * @param telemetry - System telemetry string.
+ * @returns The formatted prompt string.
  */
 export function buildReactivePrompt(payload: PlannerPayload, telemetry: string): string {
   const { details, metadata } = payload;

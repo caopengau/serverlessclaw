@@ -1,10 +1,5 @@
-import {
-  AgentType,
-  ReasoningProfile,
-  EvolutionMode,
-  GapStatus,
-  TraceSource,
-} from '../lib/types/index';
+import { AgentType, EvolutionMode, GapStatus, TraceSource } from '../lib/types/agent';
+import { ReasoningProfile } from '../lib/types/llm';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
@@ -60,7 +55,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   const config = await loadAgentConfig(AgentType.STRATEGIC_PLANNER);
   const { memory, provider: providerManager } = await getAgentContext();
 
-  const { getAgentTools } = await import('../tools/index');
+  const { getAgentTools } = await import('../tools/registry-utils');
   const agentTools = await getAgentTools('planner');
 
   // Self-Scheduling: If this is a proactive review, or we are running for any reason,
@@ -246,8 +241,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       undefined
     );
 
-    const { TOOLS } = await import('../tools/index');
-    const dispatcher = TOOLS.dispatchTask;
+    const { DISPATCH_TASK: dispatcher } = await import('../tools/knowledge-agent');
     await dispatcher.execute({
       agentId: AgentType.CODER,
       userId: contextUserId,

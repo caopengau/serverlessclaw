@@ -1,10 +1,5 @@
-import {
-  AgentType,
-  GapStatus,
-  ReasoningProfile,
-  AgentEvent,
-  AgentPayload,
-} from '../lib/types/index';
+import { AgentType, GapStatus, AgentEvent, AgentPayload } from '../lib/types/agent';
+import { ReasoningProfile } from '../lib/types/llm';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';

@@ -1,5 +1,5 @@
 import { DynamoDBClient, ScanCommand } from '@aws-sdk/client-dynamodb';
-import type { Topology, TopologyNode, TopologyEdge } from '../types/index';
+import type { Topology, TopologyNode, TopologyEdge } from '../types/system';
 import { ConfigManager } from '../registry/config';
 import {
   discoverSstNodes,

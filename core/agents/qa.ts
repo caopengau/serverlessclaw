@@ -1,12 +1,12 @@
+import { ReasoningProfile } from '../lib/types/llm';
 import {
-  ReasoningProfile,
   GapStatus,
   AgentType,
   EvolutionMode,
   TraceSource,
   AgentEvent,
   AgentPayload,
-} from '../lib/types/index';
+} from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import { extractPayload, loadAgentConfig, getAgentContext } from '../lib/utils/agent-helpers';

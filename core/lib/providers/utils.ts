@@ -1,4 +1,5 @@
-import { ReasoningProfile, ICapabilities, ITool, Message, MessageRole } from '../types/index';
+import { ReasoningProfile, ICapabilities, Message, MessageRole } from '../types/llm';
+import { ITool } from '../types/tool';
 import { logger } from '../logger';
 
 /**

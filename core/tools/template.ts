@@ -2,7 +2,7 @@
  * This is a template file for creating new tools.
  * Copy this file and modify it to create new tools.
  */
-import { ITool } from '../lib/types/index';
+import { ITool } from '../lib/types/tool';
 import { formatErrorMessage } from '../lib/utils/error';
 
 export const MY_NEW_TOOL: ITool = {

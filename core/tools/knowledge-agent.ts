@@ -1,7 +1,7 @@
 import { toolDefinitions } from './definitions/index';
 import { ConfigManager } from '../lib/registry/config';
 import { emitEvent } from '../lib/utils/bus';
-import { EventType } from '../lib/types/index';
+import { EventType } from '../lib/types/agent';
 import { formatErrorMessage } from '../lib/utils/error';
 
 /**

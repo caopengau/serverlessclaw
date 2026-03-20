@@ -30,7 +30,7 @@ vi.mock('../lib/agent', () => {
 
 // Import local code AFTER the mocks
 import { handler } from './events';
-import { EventType } from '../lib/types/index';
+import { EventType } from '../lib/types/agent';
 
 // Mock AgentRegistry
 vi.mock('../lib/registry', () => ({
@@ -46,6 +46,7 @@ vi.mock('../lib/registry', () => ({
 // Mock tools and outbound
 vi.mock('../tools', () => ({
   getAgentTools: vi.fn().mockResolvedValue([]),
+  TOOLS: {},
 }));
 
 const { mockSend } = vi.hoisted(() => ({

@@ -1,11 +1,6 @@
-import {
-  ReasoningProfile,
-  EventType,
-  InsightCategory,
-  GapStatus,
-  AgentType,
-  TraceSource,
-} from '../lib/types/index';
+import { ReasoningProfile } from '../lib/types/llm';
+import { EventType, GapStatus, AgentType, TraceSource } from '../lib/types/agent';
+import { InsightCategory } from '../lib/types/memory';
 import { LIMITS } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';

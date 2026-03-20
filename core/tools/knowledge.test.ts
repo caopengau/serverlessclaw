@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { TraceSource } from '../lib/types';
+import { TraceSource, GapStatus } from '../lib/types/agent';
+import { InsightCategory } from '../lib/types/memory';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
@@ -11,7 +12,6 @@ import {
   MANAGE_GAP,
   SAVE_MEMORY,
 } from './knowledge';
-import { GapStatus, InsightCategory } from '../lib/types/index';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 const ebMock = mockClient(EventBridgeClient);

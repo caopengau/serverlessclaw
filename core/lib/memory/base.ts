@@ -8,7 +8,9 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from '../logger';
-import { SSTResource, Message, MessageRole, ConversationMeta } from '../types/index';
+import { SSTResource } from '../types/system';
+import { Message, MessageRole } from '../types/llm';
+import { ConversationMeta } from '../types/memory';
 
 // Default client for backward compatibility - can be overridden via constructor for testing
 const defaultClient = new DynamoDBClient({});

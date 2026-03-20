@@ -5,7 +5,7 @@
  * These functions operate on a BaseMemoryProvider instance.
  */
 
-import { MemoryInsight, InsightMetadata, InsightCategory } from '../types/index';
+import { MemoryInsight, InsightMetadata, InsightCategory } from '../types/memory';
 import { RetentionManager } from './tiering';
 import type { BaseMemoryProvider } from './base';
 import { filterPII } from '../utils/pii';

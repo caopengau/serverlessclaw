@@ -1,4 +1,4 @@
-import { ITool } from '../lib/types/index';
+import { ITool } from '../lib/types/tool';
 import { DynamicScheduler } from '../lib/scheduler';
 import { formatErrorMessage } from '../lib/utils/error';
 

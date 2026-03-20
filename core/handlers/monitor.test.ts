@@ -3,7 +3,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { CodeBuildClient, BatchGetBuildsCommand } from '@aws-sdk/client-codebuild';
 import { CloudWatchLogsClient, GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
-import { GapStatus } from '../lib/types/index';
+import { GapStatus } from '../lib/types/agent';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 const cbMock = mockClient(CodeBuildClient);

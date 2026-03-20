@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { SEEK_CLARIFICATION, PROVIDE_CLARIFICATION } from './knowledge-agent';
-import { EventType } from '../lib/types/index';
+import { EventType } from '../lib/types/agent';
 
 const ebMock = mockClient(EventBridgeClient);
 

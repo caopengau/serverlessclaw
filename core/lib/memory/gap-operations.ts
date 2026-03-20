@@ -5,7 +5,8 @@
  * These functions operate on a BaseMemoryProvider instance.
  */
 
-import { MemoryInsight, InsightMetadata, GapStatus, InsightCategory } from '../types/index';
+import { MemoryInsight, InsightMetadata, InsightCategory } from '../types/memory';
+import { GapStatus } from '../types/agent';
 import { logger } from '../logger';
 import { RetentionManager } from './tiering';
 import { LIMITS, TIME } from '../constants';

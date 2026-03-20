@@ -6,7 +6,7 @@ import {
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
-import { SSTResource } from './types/index';
+import { SSTResource } from './types/system';
 import { TraceSource } from './types/agent';
 import { v4 as uuidv4 } from 'uuid';
 import { TRACE_STATUS, TIME } from './constants';

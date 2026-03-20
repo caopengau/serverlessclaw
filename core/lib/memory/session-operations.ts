@@ -5,7 +5,8 @@
  * These functions operate on a BaseMemoryProvider instance.
  */
 
-import { Message, ConversationMeta } from '../types/index';
+import { Message } from '../types/llm';
+import { ConversationMeta } from '../types/memory';
 import { RetentionManager } from './tiering';
 import type { BaseMemoryProvider } from './base';
 import { filterPIIFromObject } from '../utils/pii';

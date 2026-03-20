@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './strategic-planner';
-import { GapStatus } from '../lib/types/index';
+import { GapStatus } from '../lib/types/agent';
 
 const memoryMocks = vi.hoisted(() => ({
   updateGapStatus: vi.fn().mockResolvedValue(undefined),
@@ -39,6 +39,7 @@ vi.mock('../lib/scheduler', () => ({
     upsertSchedule: vi.fn().mockResolvedValue(undefined),
     removeSchedule: vi.fn().mockResolvedValue(undefined),
     listSchedules: vi.fn().mockResolvedValue([]),
+    ensureProactiveGoal: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -54,7 +55,13 @@ vi.mock('../lib/providers/index', () => ({
 
 vi.mock('../tools/index', () => ({
   getAgentTools: vi.fn().mockResolvedValue([]),
-  tools: { dispatchTask: { execute: vi.fn().mockResolvedValue(undefined) } },
+  getToolDefinitions: vi.fn().mockReturnValue([]),
+  TOOLS: { dispatchTask: { execute: vi.fn().mockResolvedValue(undefined) } },
+}));
+
+vi.mock('../tools/registry-utils', () => ({
+  getAgentTools: vi.fn().mockResolvedValue([]),
+  getToolDefinitions: vi.fn().mockReturnValue([]),
 }));
 
 vi.mock('../lib/outbound', () => ({
