@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
     const usage = await getToolUsage();
     const allTools = await getAllTools(usage, refresh);
-    return NextResponse.json(allTools);
+    return NextResponse.json({ tools: allTools });
   } catch (error) {
     console.error('Failed to fetch tools:', error);
     return NextResponse.json(

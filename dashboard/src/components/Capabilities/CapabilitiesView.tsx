@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, Loader2, 
-  Activity, BookOpen, ExternalLink, Zap, Cpu 
+  Search, Loader2, RefreshCw,
+  Activity, BookOpen, ExternalLink, Zap, Cpu,
+  Sparkles
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Typography from '../ui/Typography';
@@ -14,6 +15,7 @@ import AgentsTab from './AgentsTab';
 import MCPTab from './MCPTab';
 import LibraryTab from './LibraryTab';
 import { useAgentTools } from './useAgentTools';
+import { useMCPTools } from './useMCPTools';
 
 import { AgentConfig, CapabilitiesViewProps } from './types';
 
@@ -31,6 +33,14 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
     setConfirmModal
   } = useAgentTools(agents);
 
+  const {
+    mcpTools,
+    isLoading: isDiscovering,
+    discoveredCount,
+    totalCount,
+    refresh: refreshTools
+  } = useMCPTools(allTools);
+
   // Sync with props if they change
   useEffect(() => {
     setOptimisticAgents(agents);
@@ -46,6 +56,51 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
                <Typography variant="caption" weight="black" color="intel" className="tracking-[0.5em] block">Synchronizing Neural Network...</Typography>
               <Typography variant="mono" color="muted" className="tracking-[0.3em] block text-[8px]">Rewriting cognitive pathways</Typography>
             </div>
+          </Card>
+        </div>
+      )}
+
+      {/* MCP Discovery Banner */}
+      {isDiscovering && (
+        <div className="fixed top-4 right-4 z-[200] animate-in fade-in slide-in-from-top-4 duration-300">
+          <Card variant="glass" padding="sm" className="flex items-center gap-4 border-cyber-blue/30 shadow-[0_0_30px_rgba(0,224,255,0.15)] pr-6">
+            <div className="relative">
+              <Sparkles size={20} className="text-cyber-blue animate-pulse" />
+              <div className="absolute inset-0 animate-ping">
+                <Sparkles size={20} className="text-cyber-blue/30" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Typography variant="mono" color="intel" className="text-[10px] tracking-widest font-bold">
+                Discovering MCP Servers
+              </Typography>
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  {[...Array(totalCount)].map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                        i < discoveredCount 
+                          ? 'bg-cyber-blue shadow-[0_0_8px_rgba(0,224,255,0.5)]' 
+                          : 'bg-white/10'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <Typography variant="mono" color="muted" className="text-[8px]">
+                  {discoveredCount}/{totalCount} servers
+                </Typography>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshTools}
+              className="ml-2"
+              icon={<RefreshCw size={12} className={isDiscovering ? 'animate-spin' : ''} />}
+            >
+              Refresh
+            </Button>
           </Card>
         </div>
       )}
@@ -92,7 +147,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
 
       {activeTab === 'analytics' && (
         <AnalyticsTab 
-          allTools={allTools}
+          allTools={mcpTools}
           agents={agents}
           optimisticAgents={optimisticAgents}
           setOptimisticAgents={setOptimisticAgents}
@@ -105,7 +160,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
 
       {activeTab === 'agents' && (
         <AgentsTab 
-          allTools={allTools}
+          allTools={mcpTools}
           agents={agents}
           optimisticAgents={optimisticAgents}
           setOptimisticAgents={setOptimisticAgents}
@@ -119,7 +174,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
 
       {activeTab === 'library' && (
         <LibraryTab 
-          allTools={allTools}
+          allTools={mcpTools}
           optimisticAgents={optimisticAgents}
           searchQuery={searchQuery}
           handleToggleToolAssignment={handleToggleToolAssignment}
