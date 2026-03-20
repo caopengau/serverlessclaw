@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 
 interface MCPTool {
@@ -23,8 +23,10 @@ export function useMCPTools(initialTools: MCPTool[]): UseMCPToolsResult {
   const [isLoading, setIsLoading] = useState(false);
   const [discoveredCount, setDiscoveredCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const hasAttemptedDiscovery = useRef(false);
 
   const discoverTools = useCallback(async () => {
+    hasAttemptedDiscovery.current = true;
     // Only discover if we have placeholder tools (skipConnection mode)
     const placeholderTools = initialTools.filter(t => 
       t.isExternal && t.name.endsWith('_tools')
@@ -78,7 +80,7 @@ export function useMCPTools(initialTools: MCPTool[]): UseMCPToolsResult {
       t.isExternal && t.name.endsWith('_tools')
     );
     
-    if (placeholderTools.length > 0) {
+    if (placeholderTools.length > 0 && !hasAttemptedDiscovery.current) {
       // Delay slightly to let page render first
       const timer = setTimeout(() => {
         discoverTools();

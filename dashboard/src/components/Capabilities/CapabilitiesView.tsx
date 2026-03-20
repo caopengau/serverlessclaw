@@ -34,13 +34,17 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
     setConfirmModal
   } = useAgentTools(agents);
 
+  const mappedTools = React.useMemo(() => 
+    allTools.map(t => ({ ...t, isExternal: !!t.isExternal })), 
+  [allTools]);
+
   const {
     mcpTools,
     isLoading: isDiscovering,
     discoveredCount,
     totalCount,
     refresh: refreshTools
-  } = useMCPTools(allTools.map(t => ({ ...t, isExternal: !!t.isExternal })));
+  } = useMCPTools(mappedTools);
 
   // Sync with props if they change
   useEffect(() => {
