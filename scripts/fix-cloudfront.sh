@@ -1,140 +1,153 @@
 #!/bin/bash
-
 set -e
 
-STAGE="${1:-.}"
-if [ "$STAGE" = "." ]; then
-    STAGE="."
+STAGE=${1:-dev}
+PROFILE=${AWS_PROFILE}
+APP_NAME=${APP_NAME:-serverlessclaw}
+
+export AWS_PROFILE="$PROFILE"
+
+echo "Starting Robust CloudFront Fix for stage: $STAGE (Account: $PROFILE)"
+
+# 1. Identify CloudFront Distribution ID for ClawCenter
+DIST_ID=$(aws cloudfront list-distributions --query "DistributionList.Items[?Comment=='ClawCenter app'].Id" --output text | awk '{print $1}')
+
+if [ -z "$DIST_ID" ] || [ "$DIST_ID" == "None" ]; then
+    echo "Error: Could not find CloudFront distribution for ClawCenter"
+    exit 1
 fi
+echo "Found Distribution ID: $DIST_ID"
 
-# Load environment variables
-set -a
-[ -f .env ] && source .env
-set +a
+# 2. Identify Lambda Function URL for ClawCenter Server
+SERVER_URL=$(aws lambda get-function-url-config --function-name "serverlessclaw-$STAGE-ClawCenterServerApsoutheast2Function" --query "FunctionUrl" --output text 2>/dev/null || \
+             aws lambda list-functions --query "Functions[?contains(FunctionName, 'ClawCenterServer')].FunctionName" --output text | head -n 1 | xargs -I {} aws lambda get-function-url-config --function-name {} --query "FunctionUrl" --output text)
 
-# Verify required environment variables
-: "${CLOUDFLARE_ZONE_ID:?'CLOUDFLARE_ZONE_ID is not set'}"
-: "${CLOUDFLARE_API_TOKEN:?'CLOUDFLARE_API_TOKEN is not set'}"
-
-echo "[INFO] Fixing CloudFront routing for Next.js application..."
-
-# 1. Find the CloudFront distribution with comment='ClawCenter app'
-echo "[DEBUG] Searching for ClawCenter CloudFront distribution..."
-DISTRIBUTION_ID=$(aws cloudfront list-distributions \
-  --query "DistributionList.Items[?Comment=='ClawCenter app'].Id" \
-  --output text)
-
-if [ -z "$DISTRIBUTION_ID" ]; then
-    echo "[WARNING] No CloudFront distribution found with comment='ClawCenter app', skipping fix"
-    exit 0
+if [ -z "$SERVER_URL" ] || [ "$SERVER_URL" == "None" ]; then
+    echo "Error: Could not find Lambda Function URL for ClawCenter Server"
+    exit 1
 fi
+SERVER_HOST=$(echo "$SERVER_URL" | sed 's/https:\/\///' | sed 's/\///')
+echo "Found Server Host: $SERVER_HOST"
 
-echo "[INFO] Found distribution: $DISTRIBUTION_ID"
-
-# 2. Get the distribution config
-echo "[DEBUG] Retrieving distribution configuration..."
-DIST_CONFIG=$(aws cloudfront get-distribution-config --id "$DISTRIBUTION_ID")
-ETAG=$(echo "$DIST_CONFIG" | jq -r .ETag)
-CONFIG=$(echo "$DIST_CONFIG" | jq .DistributionConfig)
-
-# 3. Find Lambda Function URL (for server origin)
-echo "[DEBUG] Finding Lambda Function URL..."
-FUNCTION_URL=$(aws lambda list-functions \
-  --query "Functions[?contains(FunctionName, 'ClawCenter') && contains(FunctionName, 'Server')].FunctionArn" \
-  --output text | head -1)
-
-if [ -z "$FUNCTION_URL" ]; then
-    echo "[WARNING] Could not find Lambda Function URL, skipping origin update"
-else
-    # Extract domain from Lambda Function URL
-    FUNCTION_DOMAIN=$(echo "$FUNCTION_URL" | sed 's/arn:aws:lambda:[^:]*:[^:]*:function://g' | sed 's/:.*/execute-api.ap-southeast-2.amazonaws.com/')
-fi
-
-# 4. Find S3 bucket for assets
-echo "[DEBUG] Finding S3 bucket for assets..."
-S3_BUCKET=$(aws s3api list-buckets \
-  --query "Buckets[?contains(Name, 'serverlessclaw') && contains(Name, 'assets')].Name" \
-  --output text | head -1)
-
+# 3. Identify stage-specific S3 Assets Bucket
+S3_BUCKET=$(aws s3api list-buckets --query "Buckets[?contains(Name, '${APP_NAME}-${STAGE}-clawcenterassetsbucket-')].Name" --output text | awk '{print $1}')
 if [ -z "$S3_BUCKET" ]; then
-    echo "[WARNING] Could not find assets S3 bucket"
+    echo "Error: Could not find S3 Assets Bucket"
+    exit 1
+fi
+S3_DOMAIN="$S3_BUCKET.s3.ap-southeast-2.amazonaws.com"
+echo "Found S3 Domain: $S3_DOMAIN"
+
+# 4. Identify CloudFront Function ARN
+CF_FUNC_ARN=$(aws cloudfront list-functions --query "FunctionList.Items[?contains(Name, 'ClawCenterRouter')].FunctionMetadata.FunctionARN" --output text | awk '{print $1}' | head -n 1)
+if [ -z "$CF_FUNC_ARN" ] || [ "$CF_FUNC_ARN" == "None" ]; then
+    CF_FUNC_ARN=$(aws cloudfront get-distribution-config --id "$DIST_ID" --query "DistributionConfig.DefaultCacheBehavior.FunctionAssociations.Items[?EventType=='viewer-request'].FunctionARN" --output text | awk '{print $1}')
+fi
+echo "Found CloudFront Function ARN: $CF_FUNC_ARN"
+
+# 6. Patch CloudFront Distribution
+echo "Patching CloudFront Distribution with Explicit Asset Routing..."
+
+ETAG=$(aws cloudfront get-distribution-config --id "$DIST_ID" --query "ETag" --output text)
+aws cloudfront get-distribution-config --id "$DIST_ID" --query "DistributionConfig" > dist-config.json
+
+CACHE_POLICY_ID=$(jq -r '.DefaultCacheBehavior.CachePolicyId' dist-config.json)
+OAC_ID=$(jq -r '.Origins.Items[] | select(.Id == "s3-assets") | .OriginAccessControlId' dist-config.json)
+
+if [ -z "$OAC_ID" ] || [ "$OAC_ID" == "null" ]; then
+  # Fallback for older stacks where s3-assets origin does not exist yet.
+  OAC_ID="EKO5N1P5RDMN6"
 fi
 
-# 5. Find CloudFront Function ARN
-echo "[DEBUG] Finding CloudFront Function..."
-CF_FUNCTION_ARN=$(aws cloudfront list-functions \
-  --query "FunctionList[?contains(Name, 'Router')].FunctionMetadata.FunctionARN" \
-  --output text | head -1)
+if [ -z "$CACHE_POLICY_ID" ] || [ "$CACHE_POLICY_ID" == "null" ]; then
+  echo "Error: Could not read DefaultCacheBehavior.CachePolicyId"
+  exit 1
+fi
 
-# 6. Update distribution with cache behaviors for Next.js
-echo "[INFO] Adding Next.js-specific cache behaviors..."
-
-# First, add the cache behaviors
-CONFIG=$(echo "$CONFIG" | jq \
-  --arg cf_func "$CF_FUNCTION_ARN" \
-  '.CacheBehaviors.Items += [
-    {
-      "PathPattern": "/_next/static/*",
-      "ViewerProtocolPolicy": "allow-all",
-      "AllowedMethods": ["GET", "HEAD"],
-      "CachedMethods": ["GET", "HEAD"],
-      "Compress": true,
-      "ForwardedValues": {
-        "QueryString": false,
-        "Cookies": {"Forward": "none"},
-        "Headers": ["Accept-Encoding"]
+jq "
+  .Origins.Items |= map(
+    if .Id == \"default\" then
+      .DomainName = \"$SERVER_HOST\" |
+      .CustomOriginConfig.OriginProtocolPolicy = \"https-only\"
+    else
+      .
+    end
+  ) |
+  
+  # Ensure S3 origin exists with OriginPath /_assets
+  if (.Origins.Items | any(.Id == \"s3-assets\")) then
+    (.Origins.Items[] | select(.Id == \"s3-assets\")) |= (
+      .DomainName = \"$S3_DOMAIN\" | 
+      .OriginAccessControlId = \"$OAC_ID\" | 
+      .OriginPath = \"/_assets\"
+    )
+  else
+    .Origins.Items += [{
+      \"Id\": \"s3-assets\",
+      \"DomainName\": \"$S3_DOMAIN\",
+      \"OriginPath\": \"/_assets\",
+      \"OriginAccessControlId\": \"$OAC_ID\",
+      \"S3OriginConfig\": { \"OriginAccessIdentity\": \"\" },
+      \"CustomHeaders\": { \"Quantity\": 0 },
+      \"ConnectionAttempts\": 3,
+      \"ConnectionTimeout\": 10,
+      \"OriginShield\": { \"Enabled\": false }
+    }] |
+    .Origins.Quantity = (.Origins.Items | length)
+  end |
+  
+  # Create Explicit Behaviors for Assets
+  .CacheBehaviors = {
+    \"Quantity\": 3,
+    \"Items\": [
+      {
+        \"PathPattern\": \"/_next/static/*\",
+        \"TargetOriginId\": \"s3-assets\",
+        \"ViewerProtocolPolicy\": \"redirect-to-https\",
+        \"AllowedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"], \"CachedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"] } },
+        \"Compress\": true,
+        \"CachePolicyId\": \"$CACHE_POLICY_ID\",
+        \"SmoothStreaming\": false,
+        \"FieldLevelEncryptionId\": \"\",
+        \"LambdaFunctionAssociations\": { \"Quantity\": 0 },
+        \"FunctionAssociations\": { \"Quantity\": 0 }
       },
-      "MinTTL": 31536000,
-      "DefaultTTL": 31536000,
-      "MaxTTL": 31536000,
-      "FunctionAssociations": {
-        "Items": [
-          {
-            "EventType": "viewer-request",
-            "FunctionARN": $cf_func
-          }
-        ],
-        "Quantity": 1
+      {
+        \"PathPattern\": \"/_assets/*\",
+        \"TargetOriginId\": \"s3-assets\",
+        \"ViewerProtocolPolicy\": \"redirect-to-https\",
+        \"AllowedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"], \"CachedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"] } },
+        \"Compress\": true,
+        \"CachePolicyId\": \"$CACHE_POLICY_ID\",
+        \"SmoothStreaming\": false,
+        \"FieldLevelEncryptionId\": \"\",
+        \"LambdaFunctionAssociations\": { \"Quantity\": 0 },
+        \"FunctionAssociations\": { \"Quantity\": 0 }
+      },
+      {
+        \"PathPattern\": \"/*.png\",
+        \"TargetOriginId\": \"s3-assets\",
+        \"ViewerProtocolPolicy\": \"redirect-to-https\",
+        \"AllowedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"], \"CachedMethods\": { \"Quantity\": 2, \"Items\": [\"GET\", \"HEAD\"] } },
+        \"Compress\": true,
+        \"CachePolicyId\": \"$CACHE_POLICY_ID\",
+        \"SmoothStreaming\": false,
+        \"FieldLevelEncryptionId\": \"\",
+        \"LambdaFunctionAssociations\": { \"Quantity\": 0 },
+        \"FunctionAssociations\": { \"Quantity\": 0 }
       }
-    },
-    {
-      "PathPattern": "/_assets/*",
-      "ViewerProtocolPolicy": "allow-all",
-      "AllowedMethods": ["GET", "HEAD"],
-      "CachedMethods": ["GET", "HEAD"],
-      "Compress": true,
-      "ForwardedValues": {
-        "QueryString": false,
-        "Cookies": {"Forward": "none"}
-      },
-      "MinTTL": 31536000,
-      "DefaultTTL": 31536000,
-      "MaxTTL": 31536000
-    },
-    {
-      "PathPattern": "*.png",
-      "ViewerProtocolPolicy": "allow-all",
-      "AllowedMethods": ["GET", "HEAD"],
-      "CachedMethods": ["GET", "HEAD"],
-      "Compress": true,
-      "ForwardedValues": {
-        "QueryString": false,
-        "Cookies": {"Forward": "none"}
-      },
-      "MinTTL": 604800,
-      "DefaultTTL": 604800,
-      "MaxTTL": 604800
-    }
-  ]')
+    ]
+  } |
+  
+  .DefaultCacheBehavior.FunctionAssociations.Quantity = 1 |
+  .DefaultCacheBehavior.FunctionAssociations.Items = [{
+    \"FunctionARN\": \"$CF_FUNC_ARN\",
+    \"EventType\": \"viewer-request\"
+  }]
+" dist-config.json > updated-dist-config.json
 
-# Then, update the Quantity to match the Items array length
-CONFIG=$(echo "$CONFIG" | jq '.CacheBehaviors.Quantity = (.CacheBehaviors.Items | length)')
+aws cloudfront update-distribution --id "$DIST_ID" --distribution-config file://updated-dist-config.json --if-match "$ETAG" > /dev/null
 
-# 7. Update the distribution configuration in AWS
-echo "[INFO] Updating CloudFront distribution..."
-aws cloudfront update-distribution \
-  --id "$DISTRIBUTION_ID" \
-  --distribution-config "$CONFIG" \
-  --if-match "$ETAG" > /dev/null
-
-echo "[SUCCESS] CloudFront distribution updated with Next.js routing configuration"
+echo "Distribution Patched Successfully"
+rm dist-config.json updated-dist-config.json 2>/dev/null || true
+echo "Post-Deploy CloudFront Fix Completed Successfully"
