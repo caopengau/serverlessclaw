@@ -59,7 +59,7 @@ export const UI_STRINGS = {
   CONFIG: 'Configuration',
   SECURITY_MANIFEST: 'Security Manifest',
   SELF_HEALING: 'Self Healing',
-  SCHEDULING: 'Autonomous Scheduling',
+  SCHEDULING: 'Goal Scheduling',
   NODE_STATUS: 'CORE_SYNC',
   SYSTEM_ONLINE: 'LINK_ESTABLISHED',
 } as const;

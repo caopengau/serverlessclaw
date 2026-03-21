@@ -205,7 +205,7 @@ export default function ScheduleList() {
     <div className="space-y-10">
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
-          <Typography variant="h2" weight="bold" color="white" glow className="!text-blue-500">Autonomous Scheduling</Typography>
+          <Typography variant="h2" weight="bold" color="white" glow className="!text-blue-500">Goal Scheduling</Typography>
           <Typography variant="body" color="white" className="mt-2 block opacity-80">Co-manage proactive agent goals and system-wide heartbeats.</Typography>
         </div>
         <div className="flex gap-3">

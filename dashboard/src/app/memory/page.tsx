@@ -1,7 +1,7 @@
 import { Resource } from 'sst';
 export const dynamic = 'force-dynamic';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { 
   Database, 
   Clock, 
@@ -47,14 +47,30 @@ async function getMemoryData(activeTab: string, query: string, nextToken?: strin
   const memory = new DynamoMemory();
   
   // 1. Fetch the dynamic registry of memory types
-  const registeredTypes = await memory.getRegisteredMemoryTypes();
+  let registeredTypes = await memory.getRegisteredMemoryTypes();
   const knownTypes = new Set(['DISTILLED', 'LESSON', 'GAP', 'SESSION', 'MEMORY:USER_PREFERENCE']);
-  const dynamicTypes = registeredTypes.filter(type => !knownTypes.has(type));
+  
+  // FALLBACK DISCOVERY: If registry is empty, try to find types via a shallow scan
+  if (registeredTypes.length === 0) {
+    const client = new DynamoDBClient({});
+    const docClient = DynamoDBDocumentClient.from(client);
+    const { Items } = await docClient.send(new ScanCommand({
+        TableName: (Resource as Record<string, { name: string }>).MemoryTable.name,
+        ProjectionExpression: "#tp",
+        ExpressionAttributeNames: { "#tp": "type" },
+        Limit: 100
+    }));
+    if (Items) {
+        registeredTypes = Array.from(new Set(Items.map(i => i.type).filter(Boolean)));
+    }
+  }
+
+  const dynamicTypes = registeredTypes.filter(type => !knownTypes.has(type) && type.startsWith('MEMORY:'));
 
   const parsedNext = nextToken ? JSON.parse(Buffer.from(nextToken, 'base64').toString()) : undefined;
 
   // Handle Search Tab
-  if (activeTab === 'search' || query) {
+  if (query) {
      const result = await memory.searchInsights(undefined, query, undefined, 20, parsedNext);
      return {
          items: result.items as MemoryItem[],
@@ -67,11 +83,12 @@ async function getMemoryData(activeTab: string, query: string, nextToken?: strin
   }
 
   // Define counts fetcher (parallel)
+  // 2026 Strategy: Fetch enough to show approximate numbers without expensive full table counts
   const countPromises = [
-    memory.getMemoryByType('DISTILLED', 1),
-    memory.getMemoryByType('LESSON', 1),
-    memory.getMemoryByType('GAP', 1),
-    ...dynamicTypes.map(t => memory.getMemoryByType(t, 1))
+    memory.getMemoryByType('DISTILLED', 50),
+    memory.getMemoryByType('LESSON', 50),
+    memory.getMemoryByType('GAP', 50),
+    ...dynamicTypes.map(t => memory.getMemoryByType(t, 50))
   ];
   
   // For pagination, we only fetch the active tab's data
@@ -99,18 +116,17 @@ async function getMemoryData(activeTab: string, query: string, nextToken?: strin
       }
   }
 
-  // Get total counts for badges (limit to a reasonable number or just check existence)
-  // Real implementation might need a dedicated count metadata record for performance
   const countResults = await Promise.all(countPromises);
+  const formatCount = (arr: unknown[]) => arr.length === 50 ? '50+' : arr.length;
 
   return {
     items,
     nextToken: next ? Buffer.from(JSON.stringify(next)).toString('base64') : undefined,
     dynamicTypes,
     counts: {
-        facts: countResults[0].length > 0 ? '50+' : 0, // Placeholder for real counts
-        lessons: countResults[1].length > 0 ? '50+' : 0,
-        gaps: countResults[2].length > 0 ? '50+' : 0,
+        facts: formatCount(countResults[0]),
+        lessons: formatCount(countResults[1]),
+        gaps: formatCount(countResults[2]),
         dynamic: dynamicTypes.length
     }
   };
@@ -144,16 +160,16 @@ export default async function MemoryVault({
   const nextToken = params.next;
   const subType = params.type;
 
-  const { items, nextToken: next, dynamicTypes } = await getMemoryData(activeTab, query, nextToken, subType);
+  const { items, nextToken: next, dynamicTypes, counts } = await getMemoryData(activeTab, query, nextToken, subType);
   
   const tabs = [
-    { id: 'facts', label: 'Distilled Facts', count: items.length, icon: <Brain size={14} /> },
-    { id: 'lessons', label: 'Tactical Lessons', count: items.length, icon: <Lightbulb size={14} /> },
-    { id: 'gaps', label: 'Strategic Gaps', count: items.length, icon: <Target size={14} /> },
+    { id: 'facts', label: 'Distilled Facts', count: counts.facts, icon: <Brain size={14} /> },
+    { id: 'lessons', label: 'Tactical Lessons', count: counts.lessons, icon: <Lightbulb size={14} /> },
+    { id: 'gaps', label: 'Strategic Gaps', count: counts.gaps, icon: <Target size={14} /> },
   ];
 
   if (dynamicTypes.length > 0) {
-    tabs.push({ id: 'dynamic', label: 'Miscellaneous', count: dynamicTypes.length, icon: <Database size={14} /> });
+    tabs.push({ id: 'dynamic', label: 'Miscellaneous', count: counts.dynamic, icon: <Database size={14} /> });
   }
 
   if (query) {
