@@ -65,7 +65,8 @@ async function getMemoryData(activeTab: string, query: string, nextToken?: strin
     }
   }
 
-  const dynamicTypes = registeredTypes.filter(type => !knownTypes.has(type) && type.startsWith('MEMORY:'));
+  const dynamicTypes = registeredTypes.filter(type => !knownTypes.has(type));
+  console.log('[MemoryVault] Discovered types:', registeredTypes, 'Filtered dynamic types:', dynamicTypes);
 
   const parsedNext = nextToken ? JSON.parse(Buffer.from(nextToken, 'base64').toString()) : undefined;
 

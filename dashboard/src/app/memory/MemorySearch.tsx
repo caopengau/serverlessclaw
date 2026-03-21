@@ -11,6 +11,10 @@ export default function MemorySearch() {
 
   // Update URL when query changes, with a small debounce
   useEffect(() => {
+    // Check if the query in state is different from the one in searchParams
+    const currentQ = searchParams.get('q') || '';
+    if (query === currentQ) return;
+
     const timer = setTimeout(() => {
       const params = new URLSearchParams(searchParams.toString());
       if (query) {
@@ -21,10 +25,7 @@ export default function MemorySearch() {
       // Reset pagination when searching
       params.delete('next');
       
-      const newUrl = `/memory?${params.toString()}`;
-      if (window.location.search !== `?${params.toString()}`) {
-        router.push(newUrl);
-      }
+      router.push(`/memory?${params.toString()}`);
     }, 400);
 
     return () => clearTimeout(timer);
