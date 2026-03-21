@@ -1,9 +1,11 @@
 import { TraceSource, TaskEvent, EventType } from '../lib/types/agent';
+import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import {
   getAgentContext,
   extractPayload,
+  extractBaseUserId,
   detectFailure,
   isTaskPaused,
   loadAgentConfig,

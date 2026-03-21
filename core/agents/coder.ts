@@ -8,6 +8,7 @@ import {
   detectFailure,
   isTaskPaused,
   loadAgentConfig,
+  extractBaseUserId,
   createAgent,
   validatePayload,
   buildProcessOptions,

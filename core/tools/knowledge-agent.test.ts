@@ -59,7 +59,7 @@ describe('Knowledge Agent Tools (Delegation Signals)', () => {
 
     it('should handle missing agent config gracefully', async () => {
       const { AgentRegistry } = await import('../lib/registry');
-      vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValueOnce(null);
+      vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValueOnce(undefined);
 
       const result = await DISPATCH_TASK.execute({ agentId: 'unknown', userId: 'u1', task: 't' });
       expect(result).toContain("FAILED: Agent 'unknown' is not registered");

@@ -24,7 +24,7 @@ vi.mock('@aws-sdk/client-eventbridge', () => ({
   EventBridgeClient: vi.fn().mockImplementation(function () {
     return { send: mockSend };
   }),
-  PutEventsCommand: vi.fn().mockImplementation(function (args) {
+  PutEventsCommand: vi.fn().mockImplementation(function (this: any, args) {
     this.input = args;
     return this;
   }),

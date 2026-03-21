@@ -186,6 +186,7 @@ export const TOOLS = {
   sendMessage: 'sendMessage',
   manageGap: 'manageGap',
   reportGap: 'reportGap',
+  manageAgentTools: 'manageAgentTools',
   checkHealth: 'checkHealth',
   inspectTopology: 'inspectTopology',
   setSystemConfig: 'setSystemConfig',
