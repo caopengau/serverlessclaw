@@ -41,6 +41,10 @@ export const DISPATCH_TASK = {
         sessionId?: string;
       };
 
+    if (agentId === 'main') {
+      return `FAILED: Cannot dispatch tasks to the 'main' agent (SuperClaw). The main agent is the orchestrator, not a worker node. Please delegate to a specialized agent like 'strategic-planner' or 'coder'.`;
+    }
+
     const { AgentRegistry } = await import('../lib/registry');
     const config = await AgentRegistry.getAgentConfig(agentId);
 

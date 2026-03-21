@@ -57,6 +57,19 @@ describe('Knowledge Agent Tools (Delegation Signals)', () => {
       );
     });
 
+    it('should prevent dispatching to the main agent', async () => {
+      const args = {
+        agentId: 'main',
+        userId: 'user-1',
+        task: 'build a feature',
+      };
+
+      const result = await DISPATCH_TASK.execute(args);
+
+      expect(result).toContain("FAILED: Cannot dispatch tasks to the 'main' agent");
+      expect(emitEvent).not.toHaveBeenCalled();
+    });
+
     it('should handle missing agent config gracefully', async () => {
       const { AgentRegistry } = await import('../lib/registry');
       vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValueOnce(undefined);
