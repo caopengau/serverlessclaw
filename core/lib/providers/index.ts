@@ -7,12 +7,6 @@ import { BedrockProvider } from './bedrock';
 import { SYSTEM, CONFIG_KEYS } from '../constants';
 import { ConfigManager } from '../registry/config';
 
-interface ProviderResource {
-  ActiveProvider?: { value: string };
-  ActiveModel?: { value: string };
-  ConfigTable: { name: string };
-}
-
 /**
  * ProviderManager handles the resolution and execution of LLM provider calls.
  * It acts as a central hub for switching between OpenAI, Bedrock, and OpenRouter.
@@ -33,20 +27,22 @@ export class ProviderManager implements IProvider {
     overrideProvider?: string,
     overrideModel?: string
   ): Promise<IProvider> {
-    const typedResource = Resource as unknown as ProviderResource;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resource = Resource as any;
 
     // Resolve Provider
     const providerType = (overrideProvider ??
       (await ConfigManager.getTypedConfig(
         CONFIG_KEYS.ACTIVE_PROVIDER,
-        typedResource.ActiveProvider?.value ?? SYSTEM.DEFAULT_PROVIDER
+        ('ActiveProvider' in resource ? resource.ActiveProvider.value : undefined) ??
+          SYSTEM.DEFAULT_PROVIDER
       ))) as LLMProvider;
 
     // Resolve Model
     const model =
       overrideModel ??
       ((await ConfigManager.getRawConfig(CONFIG_KEYS.ACTIVE_MODEL)) as string) ??
-      typedResource.ActiveModel?.value;
+      ('ActiveModel' in resource ? resource.ActiveModel.value : undefined);
 
     switch (providerType) {
       case LLMProvider.BEDROCK:

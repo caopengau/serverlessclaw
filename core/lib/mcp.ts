@@ -126,7 +126,12 @@ export class MCPBridge {
         env = config.env;
       } else return [];
 
-      return await this.getToolsFromServer(name, connectionString, env);
+      try {
+        return await this.getToolsFromServer(name, connectionString, env);
+      } catch (e) {
+        logger.error(`Discovery failed for MCP server ${name}:`, e);
+        return [];
+      }
     });
 
     const results = await Promise.all(serverPromises);

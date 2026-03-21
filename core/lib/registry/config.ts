@@ -1,7 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
-import { SSTResource } from '../types/index';
 import { logger } from '../logger';
 
 // Default client for backward compatibility - can be overridden for testing
@@ -23,8 +22,6 @@ function getDocClient(): DynamoDBDocumentClient {
   return injectedDocClient ?? defaultDocClient;
 }
 
-const typedResource = Resource as unknown as SSTResource;
-
 /**
  * Handles raw configuration storage and retrieval from DynamoDB.
  * @since 2026-03-19
@@ -37,7 +34,9 @@ export class ConfigManager {
    * @returns A promise resolving to the configuration value or undefined.
    */
   public static async getRawConfig(key: string): Promise<unknown> {
-    if (!typedResource.ConfigTable?.name) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resource = Resource as any;
+    if (!('ConfigTable' in resource)) {
       logger.warn(`ConfigTable not linked. Skipping fetch for ${key}`);
       return undefined;
     }
@@ -45,7 +44,7 @@ export class ConfigManager {
     try {
       const { Item } = await getDocClient().send(
         new GetCommand({
-          TableName: typedResource.ConfigTable.name,
+          TableName: resource.ConfigTable.name,
           Key: { key },
         })
       );
@@ -75,7 +74,9 @@ export class ConfigManager {
    * @param value - The value to store.
    */
   public static async saveRawConfig(key: string, value: unknown): Promise<void> {
-    if (!typedResource.ConfigTable?.name) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resource = Resource as any;
+    if (!('ConfigTable' in resource)) {
       logger.warn(`ConfigTable not linked. Skipping save for ${key}`);
       return;
     }
@@ -83,7 +84,7 @@ export class ConfigManager {
     try {
       await getDocClient().send(
         new PutCommand({
-          TableName: typedResource.ConfigTable.name,
+          TableName: resource.ConfigTable.name,
           Item: { key, value },
         })
       );
@@ -99,6 +100,8 @@ export class ConfigManager {
    * @returns A promise resolving to the table name or undefined.
    */
   public static async resolveTableName(): Promise<string | undefined> {
-    return typedResource.ConfigTable?.name;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resource = Resource as any;
+    return 'ConfigTable' in resource ? resource.ConfigTable.name : undefined;
   }
 }

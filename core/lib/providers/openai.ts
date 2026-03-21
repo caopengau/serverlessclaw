@@ -6,7 +6,6 @@ import {
   ReasoningProfile,
   MessageRole,
   OpenAIModel,
-  SSTResource,
 } from '../types/index';
 import { Resource } from 'sst';
 import { OPENAI } from '../constants';
@@ -27,8 +26,6 @@ interface OpenAIResponse {
     total_tokens: number;
   };
 }
-
-const typedResource = Resource as unknown as SSTResource;
 
 const REASONING_MAP: Record<ReasoningProfile, OpenAI.ReasoningEffort> = {
   [ReasoningProfile.FAST]: 'low',
@@ -52,7 +49,12 @@ export class OpenAIProvider implements IProvider {
     _provider?: string,
     responseFormat?: import('../types/index').ResponseFormat
   ): Promise<Message> {
-    const apiKey = typedResource.OpenAIApiKey?.value || process.env.OPENAI_API_KEY || 'test-key';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resource = Resource as any;
+    const apiKey =
+      ('OpenAIApiKey' in resource ? resource.OpenAIApiKey.value : undefined) ||
+      process.env.OPENAI_API_KEY ||
+      'test-key';
     const client = new OpenAI({ apiKey });
 
     // Resolve model if only profile is provided
@@ -176,7 +178,7 @@ export class OpenAIProvider implements IProvider {
                   name: t.name,
                   description: t.description,
                   parameters: t.parameters as unknown as Record<string, unknown>,
-                  strict: true,
+                  strict: false,
                 };
               }),
             }
@@ -215,7 +217,17 @@ export class OpenAIProvider implements IProvider {
           : undefined,
       };
     } catch (err) {
-      logger.error('OpenAI Responses API failed, check if model supports it:', err);
+      logger.error('OpenAI Responses API failed:', err);
+      if (err instanceof Error) {
+        logger.error('Error details:', {
+          message: err.message,
+          stack: err.stack,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          cause: (err as any).cause,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          body: (err as any).body,
+        });
+      }
       return createEmptyResponse('OpenAI');
     }
   }

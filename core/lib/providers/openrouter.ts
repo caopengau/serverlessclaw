@@ -10,10 +10,6 @@ import { Resource } from 'sst';
 import { logger } from '../logger';
 import { normalizeProfile, capEffort, createEmptyResponse } from './utils';
 
-interface OpenRouterResource {
-  OpenRouterApiKey: { value: string };
-}
-
 const OPENROUTER_REASONING_MAP: Record<
   ReasoningProfile,
   { effort: 'low' | 'medium' | 'high'; enabled: boolean; route: 'latency' | 'fallback' }
@@ -39,7 +35,9 @@ export class OpenRouterProvider implements IProvider {
     _provider?: string,
     responseFormat?: import('../types/index').ResponseFormat
   ): Promise<Message> {
-    const apiKey = (Resource as unknown as OpenRouterResource).OpenRouterApiKey?.value ?? '';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resource = Resource as any;
+    const apiKey = ('OpenRouterApiKey' in resource ? resource.OpenRouterApiKey.value : '') ?? '';
     const baseUrl = 'https://openrouter.ai/api/v1';
     const activeModel = model ?? this.model;
 

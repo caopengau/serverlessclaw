@@ -19,10 +19,6 @@ import { Resource } from 'sst';
 import { logger } from '../logger';
 import { normalizeProfile, createEmptyResponse, SUPPORTED_IMAGE_FORMATS } from './utils';
 
-interface BedrockResource {
-  AwsRegion: { value: string };
-}
-
 interface BedrockReasoningConfig {
   thinkingBudget: number;
   thinkingEnabled: boolean;
@@ -74,9 +70,10 @@ export class BedrockProvider implements IProvider {
     _provider?: string,
     responseFormat?: import('../types/index').ResponseFormat
   ): Promise<Message> {
-    const typedResource = Resource as unknown as BedrockResource;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resource = Resource as any;
     const client = new BedrockRuntimeClient({
-      region: typedResource.AwsRegion?.value ?? 'ap-southeast-2',
+      region: ('AwsRegion' in resource ? resource.AwsRegion.value : undefined) ?? 'ap-southeast-2',
     });
     const activeModelId = model ?? this.modelId;
 

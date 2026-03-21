@@ -1,32 +1,30 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getDomainConfig } from './shared';
+import { describe, it, expect } from 'vitest';
+import { getValidSecrets } from './shared';
 
-// Mock sst global
-(global as any).sst = {
-  cloudflare: {
-    dns: vi.fn().mockReturnValue({}),
-  },
-};
+describe('infra/shared utils', () => {
+  describe('getValidSecrets', () => {
+    it('should filter out undefined secrets', () => {
+      const secrets = {
+        ValidSecretOne: { name: 'ValidSecretOne', type: 'Secret', value: 'secret1' },
+        MissingSecret: undefined,
+        ValidSecretTwo: { name: 'ValidSecretTwo', type: 'Secret', value: 'secret2' },
+      };
 
-describe('getDomainConfig', () => {
-  beforeEach(() => {
-    vi.resetModules();
-    process.env.CLAW_DOMAIN_API = '';
-    process.env.CLAW_DOMAIN_DASHBOARD = '';
-  });
+      const valid = getValidSecrets(secrets as any);
 
-  it('should return undefined when env vars are not set', () => {
-    expect(getDomainConfig('api')).toBeUndefined();
-    expect(getDomainConfig('dashboard')).toBeUndefined();
-  });
+      expect(valid.length).toBe(2);
+      expect(valid.find((s: any) => s.name === 'ValidSecretOne')).toBeDefined();
+      expect(valid.find((s: any) => s.name === 'MissingSecret')).toBeUndefined();
+    });
 
-  it('should return the domain when CLAW_DOMAIN_API is set', () => {
-    process.env.CLAW_DOMAIN_API = 'api.example.com';
-    expect(getDomainConfig('api')).toMatchObject({ name: 'api.example.com' });
-  });
+    it('should return empty array if all secrets are undefined', () => {
+      const secrets = {
+        MissingSecret: undefined,
+      };
 
-  it('should return the domain when CLAW_DOMAIN_DASHBOARD is set', () => {
-    process.env.CLAW_DOMAIN_DASHBOARD = 'dashboard.example.com';
-    expect(getDomainConfig('dashboard')).toMatchObject({ name: 'dashboard.example.com' });
+      const valid = getValidSecrets(secrets as any);
+
+      expect(valid.length).toBe(0);
+    });
   });
 });

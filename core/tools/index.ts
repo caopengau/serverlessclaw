@@ -10,6 +10,7 @@ import * as fsTools from './fs';
 import * as knowledgeTools from './knowledge';
 import * as schedulerTools from './scheduler';
 import * as metadataTools from './metadata';
+import * as debugTools from './debug';
 
 // Filter knowledgeTools to only include ITool exports (exclude utility functions like formatErrorMessage)
 const knowledgeToolEntries = Object.entries(knowledgeTools).filter(
@@ -61,6 +62,14 @@ export const TOOLS: Record<string, ITool> = {
   // Metadata & SSOT Tools
   ...Object.fromEntries(
     Object.entries(metadataTools).map(([k, v]) => [
+      k.toLowerCase().replace(/_([a-z])/g, (g) => g[1]),
+      v,
+    ])
+  ),
+
+  // Debug & Investigation Tools
+  ...Object.fromEntries(
+    Object.entries(debugTools).map(([k, v]) => [
       k.toLowerCase().replace(/_([a-z])/g, (g) => g[1]),
       v,
     ])

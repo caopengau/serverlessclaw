@@ -1,4 +1,4 @@
-import { SharedContext, getDomainConfig, AGENT_CONFIG } from './shared';
+import { SharedContext, getDomainConfig, AGENT_CONFIG, getValidSecrets } from './shared';
 
 /**
  * Deploys the Next.js dashboard for monitoring and managing the agents.
@@ -29,7 +29,7 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
       bus,
       ...(api ? [api] : []),
       ...(ctx.realtime ? [ctx.realtime] : []),
-      ...(ctx.secrets.DashboardPassword ? [ctx.secrets.DashboardPassword] : []),
+      ...getValidSecrets(ctx.secrets),
     ],
     environment: {
       DEPLOYER_NAME: deployer.name,

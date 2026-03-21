@@ -42,4 +42,13 @@ export const mcpTools: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
+  getMcpConfig: {
+    name: 'getMcpConfig',
+    description: 'Retrieves the current Model Context Protocol (MCP) servers configuration.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      additionalProperties: false,
+    },
+  },
 };
