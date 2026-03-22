@@ -49,10 +49,17 @@ const LLMNode = ({ data }: any) => (
     className="px-4 py-3 shadow-lg rounded-md bg-[#0f172a] border border-cyber-blue text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
   >
     <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-cyber-blue border-none" />
-    <div className="flex items-center mb-2">
+    <div className="flex items-center mb-1">
       <MessageSquare size={14} className="text-cyber-blue mr-2" />
-      <span className="text-[10px] font-bold tracking-widest text-cyber-blue/80">{data.type === TRACE_TYPES.LLM_CALL ? 'Agent Request' : 'Agent processing'}</span>
+      <span className="text-[10px] font-bold tracking-widest text-cyber-blue/80 uppercase">
+        {data.type === TRACE_TYPES.LLM_CALL ? 'Agent Request' : 'Agent Response'}
+      </span>
     </div>
+    {data.agentId && (
+      <div className="text-[9px] font-mono text-cyber-blue/60 mb-2 font-bold uppercase tracking-tighter">
+        Node: {data.agentId}
+      </div>
+    )}
     <div className="text-[11px] font-mono text-white/100 leading-tight line-clamp-2">
       {data.label ?? 'Reasoning...'}
     </div>
@@ -66,11 +73,19 @@ const ToolNode = ({ data }: any) => (
     className="px-4 py-3 shadow-lg rounded-md bg-[#1e1b1e] border border-yellow-500/50 text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
   >
      <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-yellow-500 border-none" />
-    <div className="flex items-center mb-2">
+    <div className="flex items-center mb-1">
       <Wrench size={14} className="text-yellow-500 mr-2" />
-      <span className="text-[10px] font-bold tracking-widest text-yellow-500/80">Tool: {data.toolName}</span>
+      <span className="text-[10px] font-bold tracking-widest text-yellow-500/80">Tool Execution</span>
     </div>
-    <div className="text-[9px] font-mono text-white/100 truncate italic">
+    {data.agentId && (
+      <div className="text-[9px] font-mono text-yellow-500/50 mb-2 font-bold uppercase tracking-tighter">
+        Owner: {data.agentId}
+      </div>
+    )}
+    <div className="text-[11px] font-mono text-white/100 font-bold mb-1">
+      {data.toolName}
+    </div>
+    <div className="text-[9px] font-mono text-white/60 truncate italic">
       {data.status ?? 'Executing...'}
     </div>
     <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-yellow-500 border-none" />
@@ -175,6 +190,7 @@ function processTraceNodes(
     currentY += 120;
 
     // 2. Process Steps
+    const agentId = traceNode.initialContext?.agentId || traceNode.nodeId;
     traceNode.steps?.forEach((step: any, idx: number) => {
       const stepNodeId = `${traceNode.nodeId}-step-${idx}`;
       let added = false;
@@ -186,6 +202,7 @@ function processTraceNodes(
           data: {
             type: TRACE_TYPES.LLM_CALL,
             label: 'Requesting LLM synthesis.',
+            agentId,
             onClick: () => setSelectedStep(step)
           },
           position: { x: startX, y: currentY },
@@ -198,6 +215,7 @@ function processTraceNodes(
           data: {
             type: TRACE_TYPES.LLM_RESPONSE,
             label: step.content.content ?? 'LLM provided a response or tool call.',
+            agentId,
             onClick: () => setSelectedStep(step)
           },
           position: { x: startX, y: currentY },
@@ -211,6 +229,7 @@ function processTraceNodes(
           data: {
             toolName: tName,
             status: 'Executing Arg: ' + JSON.stringify(step.content.args).substring(0, 20) + '...',
+            agentId,
             onClick: () => setSelectedStep(step)
           },
           position: { x: startX, y: currentY },
@@ -236,6 +255,7 @@ function processTraceNodes(
           data: {
             toolName: tName,
             status: 'Result: ' + String(step.content.result).substring(0, 20) + '...',
+            agentId,
             onClick: () => setSelectedStep(step)
           },
           position: { x: startX, y: currentY },
@@ -404,8 +424,17 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
                   <div className="text-[10px] text-cyber-green font-bold tracking-tighter flex items-center gap-1">
                     <MessageSquare size={12} /> LLM content
                   </div>
-                  <div className="p-2 bg-white/[0.02] border border-white/5 rounded text-[11px] font-mono text-white/80 whitespace-pre-wrap">
-                    {selectedStep.content.content || 'No text content provided.'}
+                  <div className="p-2 bg-white/[0.02] border border-white/5 rounded text-[11px] font-mono text-white/80 whitespace-pre-wrap leading-relaxed">
+                    {(() => {
+                      const content = selectedStep.content.content;
+                      if (!content) return 'No text content provided.';
+                      try {
+                        const parsed = JSON.parse(content);
+                        return JSON.stringify(parsed, null, 2);
+                      } catch {
+                        return content;
+                      }
+                    })()}
                   </div>
                 </div>
                 {selectedStep.content.tool_calls && (

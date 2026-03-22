@@ -33,7 +33,7 @@ interface TraceStep {
   stepId: string;
   type: string;
   timestamp: number;
-  content: any; // Raw payload from DynamoDB
+  content: Record<string, unknown> | any; // Raw payload from DynamoDB
 }
 
 interface TraceNode {
@@ -206,7 +206,7 @@ export default async function TraceDetailPage({
                          <Typography variant="caption" weight="medium" color="white" className="block">
                           {step.type === TRACE_TYPES.TOOL_CALL ? `Executing ${step.content.tool || step.content.toolName || ''}` : 
                           step.type === TRACE_TYPES.TOOL_RESULT ? `Observation from ${step.content.tool || step.content.toolName || 'tool'}` :
-                           step.type === TRACE_TYPES.LLM_CALL ? 'Agent Processing (Input)' : 
+                           step.type === TRACE_TYPES.LLM_CALL ? 'Agent Request (Input)' : 
                            step.type === TRACE_TYPES.LLM_RESPONSE ? 'Agent Response (Output)' : 'Error detected'}
                         </Typography>
                       </div>
@@ -242,7 +242,16 @@ export default async function TraceDetailPage({
                            <Bot size={12} /> Generated_Response
                         </div>
                         <div className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap font-mono">
-                          {step.content.content}
+                          {(() => {
+                            const content = step.content.content;
+                            if (!content) return '';
+                            try {
+                              const parsed = JSON.parse(content);
+                              return JSON.stringify(parsed, null, 2);
+                            } catch {
+                              return content;
+                            }
+                          })()}
                         </div>
                         {step.content.tool_calls && step.content.tool_calls.length > 0 && (
                           <div className="mt-4 pt-4 border-t border-cyber-green/10">
@@ -250,7 +259,7 @@ export default async function TraceDetailPage({
                                Requested_Tools
                              </div>
                              <div className="space-y-2">
-                               {step.content.tool_calls.map((tc: any, tci: number) => (
+                               {step.content.tool_calls.map((tc: Record<string, any>, tci: number) => (
                                  <div key={tci} className="text-[10px] bg-yellow-500/5 border border-yellow-500/10 p-2 rounded font-mono text-yellow-500/80">
                                    {tc.function.name}({tc.function.arguments})
                                  </div>
