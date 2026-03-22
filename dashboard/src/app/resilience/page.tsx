@@ -1,6 +1,4 @@
 import { Resource } from 'sst';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { 
   ShieldCheck, 
   Activity, 
@@ -12,28 +10,52 @@ import {
 } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
-import { THEME } from '@/lib/theme';
 import { DynamoMemory } from '@claw/core/lib/memory';
 
 
+
 async function getHealth() {
+  const apiUrl = Resource.WebhookApi.url || process.env.API_URL;
+
+  
+  if (!apiUrl) {
+    console.error('API URL is missing from Resources and Environment');
+    return { status: 'error', message: 'API Configuration Missing' };
+  }
+
   try {
-    const apiUrl = (Resource as any).WebhookApi?.url;
-    if (!apiUrl) {
-      console.error('WebhookApi URL is missing from Resources');
-      return { status: 'error', message: 'API Configuration Missing' };
-    }
-    const response = await fetch(`${apiUrl}/health`, { cache: 'no-store' });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+
+    const response = await fetch(`${apiUrl}/health`, { 
+      cache: 'no-store',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Health check failed. Status:', response.status, 'Body:', errorText);
-      return { status: 'error', message: `Health check failed: ${response.status}` };
+      return { 
+        status: 'error', 
+        message: `Health check failed: ${response.status}`,
+        details: errorText,
+        url: apiUrl
+      };
     }
     return await response.json();
-  } catch (e) {
-    console.error('Error fetching health status:', e);
-    return { status: 'error', message: 'System unreachable or unresponsive.' };
+  } catch (e: unknown) {
+    const error = e as Error;
+    console.error('Error fetching health status:', error);
+    const isTimeout = error.name === 'AbortError';
+
+    return { 
+      status: 'error', 
+      message: isTimeout ? 'System request timed out (5s).' : 'System unreachable or unresponsive.',
+      details: error.message,
+      url: apiUrl
+    };
   }
 }
 
@@ -41,7 +63,9 @@ async function getRecoveryLogs() {
   try {
     const memory = new DynamoMemory();
     const items = await memory.listByPrefix('DISTILLED#RECOVERY');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (items ?? []).sort((a: any, b: any) => b.timestamp - a.timestamp);
+
   } catch (e) {
     console.error('Error fetching recovery logs:', e);
     return [];
@@ -104,8 +128,25 @@ export default async function ResilienceHub() {
             </div>
 
             {!isHealthy && (
-              <div className="mt-8 p-4 bg-red-500/10 border border-red-500/30 rounded text-red-400 text-xs leading-relaxed italic">
-                CAUTION: {health.message || 'System health check falling below threshold. Investigate logs.'}
+              <div className="mt-8 p-4 bg-red-500/10 border border-red-500/30 rounded text-red-400 text-xs leading-relaxed italic space-y-2">
+                <div className="font-bold">
+                  CAUTION: {health.message || 'System health check falling below threshold. Investigate logs.'}
+                </div>
+                {health.details && (
+                  <div className="opacity-80">
+                    <span className="font-mono uppercase text-[10px] mr-2">Error:</span>
+                    {health.details}
+                  </div>
+                )}
+                {health.url && (
+                  <div className="opacity-80 break-all">
+                    <span className="font-mono uppercase text-[10px] mr-2">Target:</span>
+                    {health.url}/health
+                  </div>
+                )}
+                <div className="pt-2 text-[10px] opacity-60 not-italic">
+                  If this is a local development environment, ensure the WebhookApi is reachable or check your networking.
+                </div>
               </div>
             )}
           </Card>
@@ -113,8 +154,9 @@ export default async function ResilienceHub() {
           <Card variant="glass" padding="lg" className="border-white/10 bg-black/40 relative overflow-hidden">
              <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-3xl -mr-16 -mt-16"></div>
             <Typography variant="caption" weight="bold" className="tracking-[0.2em] flex items-center gap-2 mb-6">
-              <Timer size={14} className="text-yellow-500" /> Dead Man's Switch
+              <Timer size={14} className="text-yellow-500" /> Dead Man&apos;s Switch
             </Typography>
+
             
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-full border border-yellow-500/20 flex items-center justify-center bg-yellow-500/5">
@@ -148,7 +190,9 @@ export default async function ResilienceHub() {
             
             <div className="space-y-3">
               {logs.length > 0 ? (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 logs.map((log: any, idx: number) => (
+
                   <div key={idx} className="glass-card p-4 border-white/5 hover:bg-white/[0.02] transition-all group">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex items-center gap-3">

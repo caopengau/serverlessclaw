@@ -60,7 +60,8 @@ export function getDomainConfig(
   const envVar = envVarMap[component];
   const domain = process.env[envVar];
 
-  if (!domain) return undefined;
+  // Skip custom domains for local development to avoid resolution/connectivity issues
+  if (!domain || $app.stage === 'local') return undefined;
 
   const zoneId = process.env.CLOUDFLARE_ZONE_ID;
   if (zoneId) {
