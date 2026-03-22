@@ -7,8 +7,8 @@
 | Guardrail                 | Where Implemented                         | Trigger                                 |
 | ------------------------- | ----------------------------------------- | --------------------------------------- |
 | **Resource Labeling**     | `core/tools/index.ts → fileWrite`         | Any write to a protected file           |
-| **Daily Limit**         | `core/lib/deploy-stats.ts`                | > N deployments/day (UTC)               |
-| **Circuit Breaker**     | `core/lib/circuit-breaker.ts`             | Failures in sliding window              |
+| **Daily Limit**           | `core/lib/deploy-stats.ts`                | > N deployments/day (UTC)               |
+| **Circuit Breaker**       | `core/lib/circuit-breaker.ts`             | Failures in sliding window              |
 | **Self-Healing Loop**     | `core/handlers/monitor.ts`                | CodeBuild FAILED event + Enrichment     |
 | **Dead Man's Switch**     | `core/handlers/recovery.ts`               | 15-min health probe failure             |
 | **Pre-flight Validation** | `core/tools/index.ts → validateCode`      | Called by Coder Agent after writes      |
@@ -82,15 +82,18 @@ This loop is still subject to the **Circuit Breaker** to prevent infinite repair
 Serverless Claw employs a two-layer safety architecture to prevent runaway autonomous deployments and protect system integrity.
 
 ### Layer 1: Daily Deployment Limit
+
 **State**: Stored in DynamoDB `MemoryTable` under key `SYSTEM#DEPLOY_STATS`.
 
 **Logic**:
+
 - Enforces an absolute cap on deployments per UTC day.
 - **Default**: 5 deployments / day.
 - **Reward**: Successful `checkHealth` calls decrement this counter by 1.
 - **Cap**: Enforced hard limit of 100 deployments/day to prevent runaway costs.
 
 ### Layer 2: Sliding Window Circuit Breaker
+
 **State**: Stored in DynamoDB `ConfigTable` under key `circuit_breaker_state`.
 
 **Logic**:
@@ -149,6 +152,69 @@ triggerRollback(reason)
 ```
 
 Returns `ROLLBACK_SUCCESSFUL` or `ROLLBACK_FAILED` (requires human intervention).
+
+---
+
+## Autonomous Context Compaction
+
+Serverless Claw implements a three-tier context management strategy to prevent context window overflow while preserving critical information in long-running autonomous tasks.
+
+### Three-Tier Architecture
+
+| Tier                                      | Content                                     | Budget Allocation                                            |
+| ----------------------------------------- | ------------------------------------------- | ------------------------------------------------------------ |
+| **System Tier** (Fixed)                   | System prompt, identity block, memory index | Immutable — always included                                  |
+| **Compressed History Tier** (Synthesized) | Prior summary + extracted key facts         | Configurable via `context_summary_ratio` (default 30%)       |
+| **Active Window Tier** (Prioritized)      | Recent messages selected by priority score  | Configurable via `context_active_window_ratio` (default 70%) |
+
+### Priority Scoring
+
+Messages in the active window are selected by a priority score that considers message type and recency:
+
+| Message Type          | Base Priority | Notes                                                                           |
+| --------------------- | ------------- | ------------------------------------------------------------------------------- |
+| System                | 1.0           | Highest — never dropped                                                         |
+| Tool Error            | 0.9           | Detected by content patterns (`Error:`, `FAIL`, `Exception`, `exit code [1-9]`) |
+| User Instruction      | 0.8           | User-provided constraints and goals                                             |
+| Tool Result (Success) | 0.6           | Decision-relevant outcomes                                                      |
+| Assistant Reasoning   | 0.4           | Thinking blocks — lowest priority                                               |
+
+**Recency bonus**: `+0.1 × (position / total_messages)` — newer messages receive a bonus among equal-base-priority messages.
+
+**Length penalty**: `-0.1` for messages > 2000 characters (bloated outputs deprioritized).
+
+### Key Fact Extraction
+
+When history exceeds the active window budget, critical information is preserved as key facts in the compressed tier:
+
+- **File paths** (regex-extracted from tool results)
+- **Error messages** (first 80 chars of Error/FAIL/Exception lines)
+- **Commit hashes** (7-40 char hex strings)
+- **Build statuses** (BUILD SUCCESS/FAILED patterns)
+- **Explicit decisions** (lines containing `decision:`, `chose to`, `will do`)
+
+### In-Loop Truncation
+
+During the tool-calling execution loop, if context usage exceeds **90%** of the provider's context window:
+
+1. `AgentExecutor` calls `ContextManager.getManagedContext()` to rebuild the message array mid-loop
+2. The rebuild uses the same three-tier strategy with the current `systemPrompt` and session `summary`
+3. Any pre-existing `System` messages in the array are dynamically stripped before deduplication to prevent exponential prompt growth.
+4. **Atomic Blocks**: `ASSISTANT` messages containing `tool_calls` are tightly coupled with their subsequent `TOOL` response messages. The system treats them as an atomic block during priority scoring. If the block is dropped or kept, it happens as a single unit, guaranteeing strict provider API schema compliance and preventing "Missing tool response" crashes.
+5. Low-priority blocks (assistant thinking, bloated tool results) are dropped first
+6. Tool errors and user instructions are preserved
+7. A structured log is emitted with token counts and tier breakdown
+
+This prevents catastrophic context overflow during multi-step tool-calling sessions (e.g., 50-iteration loops).
+
+### Configuration
+
+| Config Key                      | Default | Hot-Swappable |
+| ------------------------------- | ------- | ------------- |
+| `context_safety_margin`         | 0.2     | Yes           |
+| `context_summary_trigger_ratio` | 0.8     | Yes           |
+| `context_summary_ratio`         | 0.3     | Yes           |
+| `context_active_window_ratio`   | 0.7     | Yes           |
 
 ---
 

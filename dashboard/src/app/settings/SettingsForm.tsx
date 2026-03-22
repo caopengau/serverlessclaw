@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Settings, Save, RefreshCw, Zap, Settings2, ShieldAlert, Shield, Bot, Trash2, ChevronRight, AlertTriangle } from 'lucide-react';
+import { 
+  Settings, Zap, RefreshCw, Save, LogOut, CheckCircle, 
+  AlertTriangle, Bot, Trash2
+} from 'lucide-react';
 import { SYSTEM_CONFIG_METADATA } from '@claw/core/lib/metadata';
 import CyberSelect from '@/components/CyberSelect';
 import CyberTooltip from '@/components/CyberTooltip';
@@ -25,8 +28,24 @@ const PROVIDERS = {
   },
 };
 
+interface SystemConfig {
+  provider?: string;
+  model?: string;
+  evolutionMode?: string;
+  optimizationPolicy?: string;
+  maxToolIterations?: string | number;
+  circuitBreakerThreshold?: string | number;
+  protectedResources?: string;
+  reflectionFrequency?: string | number;
+  strategicReviewFrequency?: string | number;
+  minGapsForReview?: string | number;
+  recursionLimit?: string | number;
+  deployLimit?: string | number;
+  consecutiveBuildFailures?: number;
+}
+
 interface SettingsFormProps {
-  config: any;
+  config: SystemConfig;
   updateConfig: (formData: FormData) => Promise<void>;
 }
 
@@ -163,7 +182,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   Optimization Policy
                   <CyberTooltip content={
                     <div className="space-y-2">
-                      <p><span className="text-cyber-blue font-bold">PRECEDENCE:</span> Priority 2. Overrides the "intended" profile of a task unless the Agent has a hardcoded Model.</p>
+                      <p><span className="text-cyber-blue font-bold">PRECEDENCE:</span> Priority 2. Overrides the &quot;intended&quot; profile of a task unless the Agent has a hardcoded Model.</p>
                       <p><span className="text-cyber-blue font-bold">BALANCED:</span> Respects task requirements.</p>
                       <p><span className="text-red-400 font-bold">AGGRESSIVE:</span> Forces DEEP reasoning for all nodes (High Quality/Cost).</p>
                       <p><span className="text-green-400 font-bold">CONSERVATIVE:</span> Forces FAST reasoning (Low Cost/Complexity).</p>
@@ -274,8 +293,8 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   Reflection Frequency (msgs)
                   <CyberTooltip content={
                     <div className="space-y-2">
-                      <p><span className="text-cyber-blue font-bold">BENEFIT:</span> How often the system "thinks" about the conversation to extract new facts and lessons.</p>
-                      <p><span className="text-red-400 font-bold">CONS:</span> Low values ( &lt; 5) increase token cost and can cause "Cognitive Overload" (too many minor facts).</p>
+                      <p><span className="text-cyber-blue font-bold">BENEFIT:</span> How often the system &quot;thinks&quot; about the conversation to extract new facts and lessons.</p>
+                      <p><span className="text-red-400 font-bold">CONS:</span> Low values ( &lt; 5) increase token cost and can cause &quot;Cognitive Overload&quot; (too many minor facts).</p>
                       <p><span className="text-green-400 font-bold">RECOMMENDED:</span> 10-15.</p>
                     </div>
                   } />
@@ -312,7 +331,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   <CyberTooltip content={
                     <div className="space-y-2">
                       <p><span className="text-cyber-blue font-bold">BENEFIT:</span> Minimum number of identified capability gaps required to trigger a Strategic Review.</p>
-                      <p><span className="text-green-400 font-bold">BENEFIT:</span> Ensures reviews only happen when there is enough "evidence" to justify a system change.</p>
+                      <p><span className="text-green-400 font-bold">BENEFIT:</span> Ensures reviews only happen when there is enough &quot;evidence&quot; to justify a system change.</p>
                     </div>
                   } />
                 </Typography>

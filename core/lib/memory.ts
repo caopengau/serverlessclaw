@@ -228,7 +228,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   /**
    * Universal fetcher for memory items by their prefix.
    */
-  async listByPrefix(prefix: string): Promise<any[]> {
+  async listByPrefix(prefix: string): Promise<Record<string, unknown>[]> {
     return this.scanByPrefix(prefix);
   }
 

@@ -156,8 +156,8 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
     query?: string,
     category?: InsightCategory,
     limit?: number,
-    lastEvaluatedKey?: any
-  ): Promise<{ items: MemoryInsight[]; lastEvaluatedKey?: any }>;
+    lastEvaluatedKey?: Record<string, unknown>
+  ): Promise<{ items: MemoryInsight[]; lastEvaluatedKey?: Record<string, unknown> }>;
 
   /** Adds a new granular memory item into the user or global scope. */
   addMemory(
@@ -177,7 +177,7 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
   /**
    * Universal fetcher for memory items by their prefix.
    */
-  listByPrefix(prefix: string): Promise<any[]>;
+  listByPrefix(prefix: string): Promise<Record<string, unknown>[]>;
 
   /** Saves a clarification request to DynamoDB for state persistence. */
   saveClarificationRequest(

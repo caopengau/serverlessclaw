@@ -1,5 +1,5 @@
-import React from 'react';
 import { Send, Paperclip, X, ImageIcon, File } from 'lucide-react';
+import Image from 'next/image';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import { AttachmentPreview } from './types';
@@ -34,8 +34,8 @@ export function ChatInput({
             {attachments.map((a, i) => (
               <div key={i} className="relative group/preview">
                 {a.type === 'image' ? (
-                  <div className="w-16 h-16 rounded border border-white/10 overflow-hidden">
-                    <img src={a.preview} alt="preview" className="w-full h-full object-cover" />
+                  <div className="w-16 h-16 rounded border border-white/10 overflow-hidden relative">
+                    <Image src={a.preview} alt="preview" fill className="object-cover" />
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 bg-white/5 p-2 rounded border border-white/10">

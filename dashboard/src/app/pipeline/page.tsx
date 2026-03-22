@@ -1,9 +1,9 @@
 import { Resource } from 'sst';
 export const dynamic = 'force-dynamic';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
-import { 
-  AlertCircle, 
+import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  AlertCircle,
   Kanban
 } from 'lucide-react';
 import { GapStatus } from '@claw/core/lib/types';
@@ -19,7 +19,7 @@ async function getGaps(): Promise<GapItem[]> {
   try {
     const memory = new DynamoMemory();
     const items = await memory.listByPrefix('GAP#');
-    return (items as GapItem[] ?? []).sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
+    return (items as unknown as GapItem[] ?? []).sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
   } catch (e) {
     console.error('Error fetching gaps:', e);
     return [];
@@ -46,7 +46,7 @@ async function pruneGap(gapId: string, timestamp: number) {
     const docClient = DynamoDBDocumentClient.from(client);
     
     await docClient.send(new DeleteCommand({
-      TableName: (Resource as Record<string, { name: string }>).MemoryTable.name,
+      TableName: (Resource as unknown as Record<string, { name: string }>).MemoryTable.name,
       Key: { userId: gapId, timestamp }
     }));
     

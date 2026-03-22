@@ -138,6 +138,12 @@ describe('Backend API Integration', () => {
         },
       ],
       tokenEstimate: 100,
+      tierBreakdown: {
+        systemPrompt: 0,
+        compressedHistory: 0,
+        activeWindow: 100,
+        factsExtracted: 0,
+      },
     });
 
     // 3. Process

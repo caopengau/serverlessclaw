@@ -53,8 +53,7 @@ export class BaseMemoryProvider {
    * @param item - The item object to store.
    * @returns A promise resolving when the operation is complete.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async putItem(item: any): Promise<void> {
+  public async putItem(item: Record<string, unknown>): Promise<void> {
     const command = new PutCommand({
       TableName: this.tableName,
       Item: item,
@@ -72,8 +71,10 @@ export class BaseMemoryProvider {
    * @param params - The DynamoDB QueryCommand parameters.
    * @returns A promise resolving to an object containing items and an optional LastEvaluatedKey.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async queryItemsPaginated(params: any): Promise<{ items: any[]; lastEvaluatedKey?: any }> {
+  public async queryItemsPaginated(params: Record<string, unknown>): Promise<{
+    items: Record<string, unknown>[];
+    lastEvaluatedKey?: Record<string, unknown>;
+  }> {
     const command = new QueryCommand({
       TableName: this.tableName,
       ...params,
@@ -96,8 +97,7 @@ export class BaseMemoryProvider {
    * @param params - The DynamoDB QueryCommand parameters.
    * @returns A promise resolving to an array of items.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async queryItems(params: any): Promise<any[]> {
+  public async queryItems(params: Record<string, unknown>): Promise<Record<string, unknown>[]> {
     const { items } = await this.queryItemsPaginated(params);
     return items;
   }
@@ -108,8 +108,7 @@ export class BaseMemoryProvider {
    * @param key - The primary key of the item to delete.
    * @returns A promise resolving when the operation is complete.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async deleteItem(key: Record<string, any>): Promise<void> {
+  public async deleteItem(key: Record<string, unknown>): Promise<void> {
     try {
       await this.docClient.send(
         new DeleteCommand({
@@ -129,11 +128,11 @@ export class BaseMemoryProvider {
    * @returns A promise resolving to the update result.
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async updateItem(params: any): Promise<any> {
+  public async updateItem(params: Record<string, any>): Promise<any> {
     const command = new UpdateCommand({
       TableName: this.tableName,
       ...params,
-    });
+    } as import('@aws-sdk/lib-dynamodb').UpdateCommandInput);
     return this.docClient.send(command);
   }
 
@@ -144,7 +143,7 @@ export class BaseMemoryProvider {
    * @param prefix - The prefix to search for in the userId field.
    * @returns A promise resolving to an array of items.
    */
-  public async scanByPrefix(prefix: string): Promise<any[]> {
+  public async scanByPrefix(prefix: string): Promise<Record<string, unknown>[]> {
     const command = new ScanCommand({
       TableName: this.tableName,
       FilterExpression: 'begins_with(userId, :prefix)',
@@ -178,12 +177,13 @@ export class BaseMemoryProvider {
 
     return items.map((item) => ({
       role: item.role as MessageRole,
-      content: item.content,
-      tool_calls: item.tool_calls,
-      tool_call_id: item.tool_call_id,
-      name: item.name,
-      agentName: item.agentName,
-      traceId: item.traceId,
+      content: item.content as string | undefined,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tool_calls: item.tool_calls as any,
+      tool_call_id: item.tool_call_id as string | undefined,
+      name: item.name as string | undefined,
+      agentName: item.agentName as string | undefined,
+      traceId: item.traceId as string | undefined,
     }));
   }
 
@@ -226,7 +226,7 @@ export class BaseMemoryProvider {
       Limit: 1,
     });
 
-    return items?.[0]?.content ?? '';
+    return (items?.[0]?.content as string) ?? '';
   }
 
   /**
@@ -245,12 +245,12 @@ export class BaseMemoryProvider {
     });
 
     return items.map((item) => ({
-      sessionId: item.sessionId,
-      title: item.title,
-      lastMessage: item.content,
-      updatedAt: item.timestamp,
+      sessionId: item.sessionId as string,
+      title: item.title as string,
+      lastMessage: item.content as string,
+      updatedAt: item.timestamp as number,
       isPinned: !!item.isPinned,
-      expiresAt: item.expiresAt,
+      expiresAt: item.expiresAt as number | undefined,
     }));
   }
 }

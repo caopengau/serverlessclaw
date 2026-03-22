@@ -39,6 +39,7 @@ export function ChatSidebar({
 
   const getExpiryText = (expiresAt?: number) => {
     if (!expiresAt) return null;
+    // eslint-disable-next-line react-hooks/purity
     const now = Math.floor(Date.now() / 1000);
     const diff = expiresAt - now;
     if (diff <= 0) return 'Expired';

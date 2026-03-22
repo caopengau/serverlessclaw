@@ -31,7 +31,7 @@ export default function LoginPage() {
         const data = await response.json();
         setError(data.error ?? 'ACCESS_DENIED // SHA256_MISMATCH');
       }
-    } catch (err) {
+    } catch {
       setError('NEURAL_LINK_FAILURE');
     } finally {
       setLoading(false);

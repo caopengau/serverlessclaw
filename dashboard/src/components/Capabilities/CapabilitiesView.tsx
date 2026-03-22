@@ -1,24 +1,23 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import AgentsTab from './AgentsTab';
+import AnalyticsTab from './AnalyticsTab';
+import Button from '../ui/Button';
+import Typography from '../ui/Typography';
+import Card from '../ui/Card';
 import { 
   Search, Loader2, RefreshCw,
   Activity, BookOpen, ExternalLink, Zap, Cpu,
   Sparkles
 } from 'lucide-react';
-import Button from '../ui/Button';
-import Typography from '../ui/Typography';
-import Card from '../ui/Card';
-import type { Tool } from '@/lib/types/ui';
-import AnalyticsTab from './AnalyticsTab';
-import AgentsTab from './AgentsTab';
 import MCPTab from './MCPTab';
 import LibraryTab from './LibraryTab';
 import LeaderboardTab from './LeaderboardTab';
 import { useAgentTools } from './useAgentTools';
 import { useMCPTools } from './useMCPTools';
 
-import { AgentConfig, CapabilitiesViewProps } from './types';
+import { CapabilitiesViewProps } from './types';
 
 export default function CapabilitiesView({ allTools, mcpServers, agents }: CapabilitiesViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,10 +39,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
 
   const {
     mcpTools,
-    isLoading: isDiscovering,
-    discoveredCount,
-    totalCount,
-    refresh: refreshTools
+    refresh: _refreshTools
   } = useMCPTools(mappedTools);
 
   // Sync with props if they change
@@ -71,7 +67,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
               key={tab.id}
               variant={activeTab === tab.id ? 'primary' : 'ghost'}
               size="sm"
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'agents' | 'library' | 'analytics' | 'mcp' | 'usage')}
               icon={<tab.icon size={12} />}
               className={`px-6 font-black tracking-widest transition-all whitespace-nowrap ${
                 activeTab === tab.id 
@@ -130,7 +126,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
       )}
 
       {activeTab === 'mcp' && (
-        <MCPTab mcpServers={mcpServers} searchQuery={searchQuery} />
+        <MCPTab mcpServers={mcpServers as unknown as MCPTool[]} searchQuery={searchQuery} />
       )}
 
       {activeTab === 'library' && (

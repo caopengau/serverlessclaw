@@ -11,51 +11,27 @@ import {
   CheckCircle, 
   ShieldAlert,
   ChevronDown,
-  ChevronUp,
   LayoutGrid,
   Bot,
   Zap
 } from 'lucide-react';
 import Link from 'next/link';
 import PathVisualizer from '@/components/PathVisualizer';
+import Image from 'next/image';
 import { UI_STRINGS, TRACE_TYPES, TRACE_STATUS } from '@/lib/constants';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import { THEME } from '@/lib/theme';
 import { SSTResource } from '@claw/core/lib/types/index';
+import { Trace, TraceStep } from '@/lib/types/ui';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Interface representing a trace record and its nested steps
- */
-interface TraceStep {
-  stepId: string;
-  type: string;
-  timestamp: number;
-  content: Record<string, unknown> | any; // Raw payload from DynamoDB
-}
-
-interface TraceNode {
-  traceId: string;
-  nodeId: string;
-  parentId?: string;
-  timestamp: number;
-  userId: string;
-  source: string;
-  status: string;
-  initialContext?: {
-    userText: string;
-    agentId?: string;
-  };
-  steps?: TraceStep[];
-  finalResponse?: string;
-}
 
 /**
  * Fetches all nodes for a specific trace record from DynamoDB
  */
-async function getTraceNodes(traceId: string): Promise<TraceNode[]> {
+async function getTraceNodes(traceId: string): Promise<Trace[]> {
   try {
     const typedResource = Resource as unknown as SSTResource;
     const tableName = typedResource.TraceTable?.name;
@@ -78,7 +54,7 @@ async function getTraceNodes(traceId: string): Promise<TraceNode[]> {
       })
     );
     
-    return (Items as TraceNode[]) ?? [];
+    return (Items as Trace[]) ?? [];
   } catch (e) {
     console.error('Error fetching trace nodes:', e);
     return [];
@@ -110,10 +86,8 @@ function StepIcon({ type }: { type: string }): React.ReactElement {
  */
 export default async function TraceDetailPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ t: string }>;
 }): Promise<React.ReactElement> {
   const { id } = await params;
   const nodes = await getTraceNodes(id);
@@ -163,7 +137,7 @@ export default async function TraceDetailPage({
           
           <div className="text-right space-y-1">
             <Typography variant="mono" color="white" className="flex items-center justify-end gap-2 text-[10px]">
-              <Clock size={12} /> {new Date(rootNode.timestamp).toLocaleString()}
+              <Clock size={12} /> {new Date(rootNode.timestamp as number).toLocaleString()}
             </Typography>
             <div className="flex items-center justify-end gap-2">
               <Typography variant="mono" color="white" className="text-[10px] block">
@@ -184,10 +158,10 @@ export default async function TraceDetailPage({
         {/* Visualizer Section */}
         <section>
           {/* PathVisualizer will now receive all nodes to render the graph */}
-          <PathVisualizer trace={{ ...rootNode, nodes }} />
+          <PathVisualizer trace={{ ...rootNode, nodes } as Trace} />
         </section>
 
-        {nodes.sort((a, b) => a.timestamp - b.timestamp).map((node) => (
+        {nodes.sort((a, b) => (a.timestamp as number) - (b.timestamp as number)).map((node) => (
           <section key={node.nodeId} className="space-y-6">
             <Typography variant="caption" weight="black" className="tracking-[0.2em] flex items-center gap-2 mb-4">
               <Activity size={14} className={`text-${THEME.COLORS.PRIMARY}`} /> Step::{node.nodeId} {node.parentId ? `(Parent: ${node.parentId.slice(0,8)})` : '(Root)'}
@@ -204,30 +178,32 @@ export default async function TraceDetailPage({
                       <div>
                         <Typography variant="caption" weight="bold" color="white" className="tracking-wider block">{step.type}</Typography>
                          <Typography variant="caption" weight="medium" color="white" className="block">
-                          {step.type === TRACE_TYPES.TOOL_CALL ? `Executing ${step.content.tool || step.content.toolName || ''}` : 
-                          step.type === TRACE_TYPES.TOOL_RESULT ? `Observation from ${step.content.tool || step.content.toolName || 'tool'}` :
+                          {step.type === TRACE_TYPES.TOOL_CALL ? `Executing ${(step.content?.tool as string) || (step.content?.toolName as string) || ''}` : 
+                          step.type === TRACE_TYPES.TOOL_RESULT ? `Observation from ${(step.content?.tool as string) || (step.content?.toolName as string) || 'tool'}` :
                            step.type === TRACE_TYPES.LLM_CALL ? 'Agent Request (Input)' : 
                            step.type === TRACE_TYPES.LLM_RESPONSE ? 'Agent Response (Output)' : 'Error detected'}
                         </Typography>
                       </div>
                     </div>
                     <Typography variant="mono" color="muted" className="text-[9px]">
-                      {new Date(step.timestamp).toLocaleTimeString()}
+                      {new Date(step.timestamp as number).toLocaleTimeString()}
                     </Typography>
                   </div>
                   
                   <div className="p-4 bg-black/40 border-t border-white/5">
-                    {step.type === TRACE_TYPES.TOOL_RESULT && step.content.result && typeof step.content.result === 'object' && step.content.result.images && (
+                    {step.type === TRACE_TYPES.TOOL_RESULT && step.content?.result && typeof step.content.result === 'object' && step.content.result.images && (
                       <div className="mb-4 space-y-4">
                         <div className="text-[10px] text-cyber-blue/60 uppercase font-bold tracking-widest flex items-center gap-2">
                            <LayoutGrid size={12} /> Generated_Visuals
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {step.content.result.images.map((img: string, imgIdx: number) => (
+                           {step.content.result.images.map((img: string, imgIdx: number) => (
                             <div key={imgIdx} className="border border-white/10 rounded overflow-hidden bg-black/20 group/img relative">
-                              <img 
+                              <Image 
                                 src={img.startsWith('data:') ? img : `data:image/png;base64,${img}`} 
                                 alt={`Output ${imgIdx}`}
+                                width={800}
+                                height={600}
                                 className="w-full h-auto object-contain max-h-[400px]"
                               />
                             </div>
@@ -259,7 +235,7 @@ export default async function TraceDetailPage({
                                Requested_Tools
                              </div>
                              <div className="space-y-2">
-                               {step.content.tool_calls.map((tc: Record<string, any>, tci: number) => (
+                               {step.content.tool_calls.map((tc: { function: { name: string; arguments: string } }, tci: number) => (
                                  <div key={tci} className="text-[10px] bg-yellow-500/5 border border-yellow-500/10 p-2 rounded font-mono text-yellow-500/80">
                                    {tc.function.name}({tc.function.arguments})
                                  </div>

@@ -13,7 +13,7 @@ import CyberConfirm from '../CyberConfirm';
 import { ConfirmModalState } from './types';
 
 interface MCPTabProps {
-  mcpServers: Record<string, any>;
+  mcpServers: Record<string, string | { command: string; env?: Record<string, string> }>;
   searchQuery: string;
 }
 

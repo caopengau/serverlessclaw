@@ -33,7 +33,7 @@ export async function saveClarificationRequest(
     expiresAt: Math.floor(Date.now() / TIME.MS_PER_SECOND) + ttlBufferSeconds,
   };
 
-  await base.putItem(item);
+  await base.putItem(item as unknown as Record<string, unknown>);
   logger.info(`Saved clarification request: traceId=${state.traceId}, agentId=${state.agentId}`);
 }
 
@@ -64,7 +64,7 @@ export async function getClarificationRequest(
     return null;
   }
 
-  return items[0] as ClarificationState;
+  return items[0] as unknown as ClarificationState;
 }
 
 /**
@@ -128,7 +128,7 @@ export async function findExpiredClarifications(
     },
   });
 
-  return items as ClarificationState[];
+  return items as unknown as ClarificationState[];
 }
 
 /**
@@ -155,5 +155,5 @@ export async function incrementClarificationRetry(
     ReturnValues: 'ALL_NEW',
   });
 
-  return (result as ClarificationState)?.retryCount ?? 0;
+  return (result as unknown as ClarificationState)?.retryCount ?? 0;
 }

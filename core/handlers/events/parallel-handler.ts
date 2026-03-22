@@ -6,7 +6,7 @@ import { ParallelDispatchParams } from '../../lib/agent/schema';
 import { DynamicScheduler } from '../../lib/scheduler';
 import { ConfigManager } from '../../lib/registry/config';
 
-interface ParallelTaskEvent {
+export interface ParallelTaskEvent {
   userId: string;
   sessionId?: string;
   traceId?: string;

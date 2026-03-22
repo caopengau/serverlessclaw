@@ -70,7 +70,12 @@ export async function handler(
 
     case EventType.PARALLEL_TASK_DISPATCH: {
       const { handleParallelDispatch } = await import('./events/parallel-handler');
-      await handleParallelDispatch(event as any);
+      await handleParallelDispatch(
+        event as unknown as import('aws-lambda').EventBridgeEvent<
+          string,
+          import('./events/parallel-handler').ParallelTaskEvent
+        >
+      );
       break;
     }
 
@@ -83,7 +88,12 @@ export async function handler(
 
     case EventType.TASK_CANCELLED: {
       const { handleTaskCancellation } = await import('./events/cancellation-handler');
-      await handleTaskCancellation(event as any);
+      await handleTaskCancellation(
+        event as unknown as import('aws-lambda').EventBridgeEvent<
+          string,
+          import('../lib/agent/schema').TaskCancellation
+        >
+      );
       break;
     }
 

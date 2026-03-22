@@ -50,7 +50,7 @@ export async function getMemoryByTypePaginated(
   limit: number = 100,
   lastEvaluatedKey?: Record<string, unknown>
 ): Promise<{ items: Record<string, unknown>[]; lastEvaluatedKey?: Record<string, unknown> }> {
-  const result = await (base as any).queryItemsPaginated({
+  const result = await base.queryItemsPaginated({
     IndexName: 'TypeTimestampIndex',
     KeyConditionExpression: '#type = :type',
     ExpressionAttributeNames: {

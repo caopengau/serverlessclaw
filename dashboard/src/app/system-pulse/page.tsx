@@ -2,11 +2,10 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { Share2, Zap, Info } from 'lucide-react';
-import { THEME } from '@/lib/theme';
-import Badge from '@/components/ui/Badge';
+import { Activity, LayoutGrid, Zap, Search } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
-import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import { THEME } from '@/lib/theme';
 
 // Dynamic import for React Flow component to avoid SSR issues
 const Flow = dynamic(() => import('./Flow'), { 

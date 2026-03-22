@@ -40,12 +40,13 @@ export async function getAllGaps(
   });
 
   return items.map((item) => ({
-    id: item.userId,
-    content: item.content,
-    timestamp: item.timestamp,
+    id: item.userId as string,
+    content: item.content as string,
+    timestamp: item.timestamp as number,
     metadata: createMetadata(
-      item.metadata ?? { category: InsightCategory.STRATEGIC_GAP },
-      item.timestamp
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (item.metadata as any) ?? { category: InsightCategory.STRATEGIC_GAP },
+      item.timestamp as number
     ),
   }));
 }
@@ -80,7 +81,9 @@ export async function archiveStaleGaps(
     },
   });
 
-  const staleGaps = items.filter((item) => item.timestamp && item.timestamp < cutoffTime);
+  const staleGaps = items.filter(
+    (item) => item.timestamp && (item.timestamp as number) < cutoffTime
+  );
 
   let archived = 0;
   for (const gap of staleGaps) {
@@ -178,7 +181,8 @@ export async function incrementGapAttemptCount(
       },
       ReturnValues: 'ALL_NEW',
     });
-    return (result.Attributes?.attemptCount as number) ?? 1;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return ((result as any).Attributes?.attemptCount as number) ?? 1;
   } catch (error) {
     logger.error(`Error incrementing attempt count for gap ${gapId}:`, error);
     return 1;

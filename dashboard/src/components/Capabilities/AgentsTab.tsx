@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useTransition, useEffect } from 'react';
-import { Cpu, Zap, Loader2, X, Search, ExternalLink } from 'lucide-react';
+import React, { useState, useTransition } from 'react';
+import { Cpu, Zap, Loader2, X, Search } from 'lucide-react';
 import { updateAgentTools } from '../../app/capabilities/actions';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -95,11 +95,11 @@ export default function AgentsTab({
   const selectedAgent = optimisticAgents.find(a => a.id === selectedAgentId);
 
   const filteredAgents = optimisticAgents
-    .filter((a: any) => a.id !== 'monitor' && a.id !== 'events' && a.id !== 'recovery')
-    .filter((a: any) => {
+    .filter((a: AgentConfig) => a.id !== 'monitor' && a.id !== 'events' && a.id !== 'recovery')
+    .filter((a: AgentConfig) => {
       if (!searchQuery) return true;
       const query = searchQuery.toLowerCase();
-      return a.name.toLowerCase().includes(query) || a.tools.some((t: any) => t.toLowerCase().includes(query));
+      return a.name.toLowerCase().includes(query) || a.tools.some((t: string) => t.toLowerCase().includes(query));
     });
 
   return (

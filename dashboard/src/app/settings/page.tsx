@@ -10,7 +10,7 @@ import Card from '@/components/ui/Card';
 
 async function getConfig() {
   try {
-    const tableName = (Resource as any).ConfigTable?.name;
+    const tableName = (Resource as unknown as Record<string, { name: string }>).ConfigTable?.name;
     if (!tableName) {
       console.error('ConfigTable name is missing from Resources');
       return {
@@ -163,7 +163,7 @@ async function updateConfig(formData: FormData) {
     .filter(Boolean);
 
   try {
-    const tableName = (Resource as any).ConfigTable?.name;
+    const tableName = (Resource as unknown as Record<string, { name: string }>).ConfigTable?.name;
     if (!tableName) {
       throw new Error('ConfigTable name is missing from Resources');
     }

@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Bot, Save, Plus, Trash2, Shield, Settings2, RefreshCw, Cpu, ChevronRight, ShieldAlert, X, Wrench, Search, Activity, Zap } from 'lucide-react';
-import Link from 'next/link';
+import { Bot, Save, Plus, Trash2, Shield, Settings2, RefreshCw, Cpu, ChevronRight, ShieldAlert, Wrench } from 'lucide-react';
 import CyberSelect from '@/components/CyberSelect';
 import { THEME } from '@/lib/theme';
 import { toast } from 'sonner';
@@ -13,19 +12,9 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import NewAgentModal from './NewAgentModal';
 import AgentToolsModal from './AgentToolsModal';
-import type { Tool } from '@/lib/types/ui';
+import { Tool, Agent } from '@/lib/types/ui';
 
-interface AgentConfig {
-  id: string;
-  name: string;
-  systemPrompt: string;
-  provider?: string;
-  model?: string;
-  reasoningProfile?: string;
-  enabled: boolean;
-  tools: string[];
-  isBackbone?: boolean;
-}
+// Agent interface moved to ui.ts
 
 const PROVIDERS = {
   openai: {
@@ -52,8 +41,8 @@ const REASONING_PROFILES = [
 
 /** AgentsPage — manages the Neural Agent Registry: configure agent personas, toggle tool scopes, and register new dynamic agents without redeploying. */
 export default function AgentsPage() {
-  const [agents, setAgents] = useState<Record<string, AgentConfig>>({});
-  const [initialAgents, setInitialAgents] = useState<Record<string, AgentConfig>>({});
+  const [agents, setAgents] = useState<Record<string, Agent>>({});
+  const [initialAgents, setInitialAgents] = useState<Record<string, Agent>>({});
   const [loading, setLoading] = useState(true);
   const [loadingTools, setLoadingTools] = useState(false);
   const [refreshingTools, setRefreshingTools] = useState(false);
@@ -61,7 +50,7 @@ export default function AgentsPage() {
   const [showBackboneWarning, setShowBackboneWarning] = useState(false);
   const [backboneChanges, setBackboneChanges] = useState<string[]>([]);
   const [showNewAgentModal, setShowNewAgentModal] = useState(false);
-  const [newAgent, setNewAgent] = useState<Partial<AgentConfig>>({
+  const [newAgent, setNewAgent] = useState<Partial<Agent>>({
     name: '',
     id: '',
     systemPrompt: '',
@@ -138,7 +127,7 @@ export default function AgentsPage() {
     if (selectedAgentIdForTools && allTools.length === 0 && !loadingTools) {
       loadTools();
     }
-  }, [selectedAgentIdForTools]);
+  }, [selectedAgentIdForTools, allTools.length, loadingTools]);
 
   const handleSave = async (force: boolean = false) => {
     // Detect backbone changes
@@ -176,13 +165,14 @@ export default function AgentsPage() {
       toast.success('Agent configurations synchronized successfully');
       setShowBackboneWarning(false);
     } catch (err) {
+      console.error('Failed to save agent configuration:', err);
       toast.error('Failed to save agent configuration');
     } finally {
       setSaving(false);
     }
   };
 
-  const updateAgent = (id: string, updates: Partial<AgentConfig>) => {
+  const updateAgent = (id: string, updates: Partial<Agent>) => {
     setAgents((prev) => ({
       ...prev,
       [id]: { ...prev[id], ...updates },
@@ -209,7 +199,7 @@ export default function AgentsPage() {
     
     setAgents((prev) => ({
       ...prev,
-      [newAgent.id!]: { ...newAgent, tools: [] } as AgentConfig,
+      [newAgent.id!]: { ...newAgent, tools: [] } as Agent,
     }));
     setShowNewAgentModal(false);
   };
@@ -241,6 +231,7 @@ export default function AgentsPage() {
       
       toast.success(`Agent tools updated`);
     } catch (err) {
+      console.error('Failed to update tools:', err);
       toast.error('Failed to update tools');
       // Revert
       setAgents(prev => ({
@@ -598,6 +589,7 @@ export default function AgentsPage() {
         setSelectedAgentIdForTools={setSelectedAgentIdForTools}
         handleToggleTool={handleToggleTool}
         isUpdatingTools={isUpdatingTools}
-      />    </main>
+      />
+    </main>
   );
 }

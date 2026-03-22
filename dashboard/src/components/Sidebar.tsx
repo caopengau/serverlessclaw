@@ -41,6 +41,7 @@ export default function Sidebar() {
 
   // Close sidebar on navigation to improve mobile UX
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsOpen(false);
   }, [pathname]);
 

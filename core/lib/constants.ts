@@ -46,6 +46,10 @@ export const DYNAMO_KEYS = {
   SYSTEM_TOPOLOGY: 'system_topology',
   CLARIFICATION_TIMEOUT_MS: 'clarification_timeout_ms',
   CLARIFICATION_MAX_RETRIES: 'clarification_max_retries',
+  CONTEXT_SAFETY_MARGIN: 'context_safety_margin',
+  CONTEXT_SUMMARY_TRIGGER_RATIO: 'context_summary_trigger_ratio',
+  CONTEXT_SUMMARY_RATIO: 'context_summary_ratio',
+  CONTEXT_ACTIVE_WINDOW_RATIO: 'context_active_window_ratio',
 } as const;
 
 /**

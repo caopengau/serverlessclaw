@@ -42,7 +42,10 @@ export class AgentExecutor {
     private provider: IProvider,
     private tools: ITool[],
     private agentId: string,
-    private agentName: string
+    private agentName: string,
+    private systemPrompt: string = '',
+    private summary: string | null = null,
+    private contextLimit: number = LIMITS.MAX_CONTEXT_LENGTH
   ) {}
 
   /**
@@ -224,11 +227,23 @@ export class AgentExecutor {
         logger.warn('Failed to check task cancellation status, proceeding:', e);
       }
 
-      // 1.5 Context Size Safeguard
+      // 1.5 Context Size Safeguard — active truncation at 90%
       const currentTokens = ContextManager.estimateTokens(messages);
-      if (currentTokens > LIMITS.MAX_CONTEXT_LENGTH * 0.9) {
+      if (currentTokens > this.contextLimit * 0.9 && this.systemPrompt) {
+        const rebuilt = await ContextManager.getManagedContext(
+          messages,
+          this.summary,
+          this.systemPrompt,
+          this.contextLimit
+        );
+        const prevCount = messages.length;
+        messages.length = 0;
+        messages.push(...rebuilt.messages);
         logger.warn(
-          `Approaching context limit in execution loop: ${currentTokens}/${LIMITS.MAX_CONTEXT_LENGTH}.`
+          `Context truncation: ${currentTokens}→${rebuilt.tokenEstimate} tokens, ${prevCount}→${messages.length} messages. ` +
+            `Breakdown: sys=${rebuilt.tierBreakdown.systemPrompt} ` +
+            `comp=${rebuilt.tierBreakdown.compressedHistory}(${rebuilt.tierBreakdown.factsExtracted} facts) ` +
+            `active=${rebuilt.tierBreakdown.activeWindow}`
         );
       }
 

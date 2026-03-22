@@ -225,6 +225,38 @@ export const CONFIG_DEFAULTS = {
     description:
       'Fraction of parallel tasks that must succeed for overall status to be "partial" instead of "failed".',
   },
+
+  /** Fraction of context reserved for response and safety. Default: 0.2 */
+  CONTEXT_SAFETY_MARGIN: {
+    code: 0.2,
+    hotSwappable: true,
+    configKey: 'context_safety_margin',
+    description: 'Fraction of max context reserved for LLM response and safety buffer.',
+  },
+
+  /** Ratio of history usage that triggers summarization/compaction. Default: 0.8 */
+  CONTEXT_SUMMARY_TRIGGER_RATIO: {
+    code: 0.8,
+    hotSwappable: true,
+    configKey: 'context_summary_trigger_ratio',
+    description: 'Ratio of context usage that triggers history summarization.',
+  },
+
+  /** Budget fraction for compressed history (key facts). Default: 0.3 */
+  CONTEXT_SUMMARY_RATIO: {
+    code: 0.3,
+    hotSwappable: true,
+    configKey: 'context_summary_ratio',
+    description: 'Fraction of available context budget for compressed history (key facts).',
+  },
+
+  /** Budget fraction for active message window. Default: 0.7 */
+  CONTEXT_ACTIVE_WINDOW_RATIO: {
+    code: 0.7,
+    hotSwappable: true,
+    configKey: 'context_active_window_ratio',
+    description: 'Fraction of available context budget for active message window.',
+  },
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_DEFAULTS;

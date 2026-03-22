@@ -148,7 +148,7 @@ export async function getLessons(base: BaseMemoryProvider, userId: string): Prom
     Limit: 10,
     ScanIndexForward: false,
   });
-  return items.map((item) => item.content);
+  return items.map((item) => item.content as string);
 }
 
 /**

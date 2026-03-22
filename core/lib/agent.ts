@@ -220,8 +220,7 @@ export class Agent {
       const messages: Message[] = managed.messages;
 
       // 4. Summarization Trigger (Background)
-      if (ContextManager.needsSummarization(fullHistory, contextLimit)) {
-        // Fire and forget summarization for the next turn
+      if (await ContextManager.needsSummarization(fullHistory, contextLimit)) {
         ContextManager.summarize(this.memory, storageId, this.provider, fullHistory).catch((e) =>
           logger.error('Background summarization failed:', e)
         );
@@ -232,7 +231,10 @@ export class Agent {
         this.provider,
         this.tools,
         this.config?.id ?? 'unknown',
-        this.config?.name ?? 'SuperClaw'
+        this.config?.name ?? 'SuperClaw',
+        contextPrompt,
+        summary,
+        contextLimit
       );
 
       let maxIterations = this.config?.maxIterations ?? AGENT_DEFAULTS.MAX_ITERATIONS;

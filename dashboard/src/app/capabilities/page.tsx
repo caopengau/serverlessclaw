@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic';
 import { AlertCircle } from 'lucide-react';
-import { tools } from '@/lib/tool-definitions';
 import CapabilitiesView from '@/components/CapabilitiesView';
 import Typography from '@/components/ui/Typography';
 import Badge from '@/components/ui/Badge';
@@ -9,7 +8,7 @@ import { getToolUsage, getAllTools } from '@/lib/tool-utils';
 async function getMCPServers() {
   try {
     const { AgentRegistry } = await import('@claw/core/lib/registry');
-    return (await AgentRegistry.getRawConfig('mcp_servers')) as Record<string, any> ?? {};
+    return (await AgentRegistry.getRawConfig('mcp_servers')) as Record<string, unknown> ?? {};
   } catch (e) {
     console.error('Error fetching MCP servers:', e);
     return {};
@@ -82,7 +81,7 @@ export default async function CapabilitiesPage() {
         <AlertCircle size={20} className="text-[var(--cyber-blue)]/60 shrink-0" />
         <p className="text-[10px] uppercase tracking-widest leading-relaxed">
           [SYSTEM_ADVISORY]: This registry defines the global functional baseline. To assign these tools to specific agents, 
-          navigate to the <span className="text-[var(--cyber-blue)] mx-1 font-bold">Agents</span> page and select "Configure Tools" for the desired entity.
+          navigate to the <span className="text-[var(--cyber-blue)] mx-1 font-bold">Agents</span> page and select &quot;Configure Tools&quot; for the desired entity.
         </p>
       </div>
     </main>

@@ -1,9 +1,7 @@
 import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
-import { Activity, ShieldCheck, Cpu, Terminal, Clock, ChevronRight, MessageSquare } from 'lucide-react';
-import Link from 'next/link';
-import { SSTResource } from '@claw/core/lib/types/index';
+import Sidebar from '@/components/Sidebar';
 import DeleteAllTracesButton from '@/components/DeleteAllTracesButton';
 import { TraceSource } from '@claw/core/lib/types/index';
 import Typography from '@/components/ui/Typography';
@@ -14,7 +12,7 @@ export const dynamic = 'force-dynamic';
 
 async function getTraces() {
   try {
-    const typedResource = Resource as unknown as SSTResource;
+    const typedResource = Resource as unknown as { TraceTable?: { name: string } };
     const tableName = typedResource.TraceTable?.name;
     if (!tableName) {
       console.error('TraceTable name is missing from Resources');
@@ -56,7 +54,7 @@ async function getTraces() {
 
 async function getConfig() {
   try {
-    const typedResource = Resource as unknown as SSTResource;
+    const typedResource = Resource as unknown as { ConfigTable?: { name: string } };
     const tableName = typedResource.ConfigTable?.name;
     if (!tableName) {
       console.error('ConfigTable name is missing from Resources');
@@ -82,7 +80,7 @@ async function getConfig() {
 
 async function getSessionTitles() {
   try {
-    const typedResource = Resource as unknown as SSTResource;
+    const typedResource = Resource as unknown as { MemoryTable?: { name: string } };
     const tableName = typedResource.MemoryTable?.name;
     if (!tableName) return {};
     
@@ -111,7 +109,7 @@ async function getSessionTitles() {
   }
 }
 
-export default async function Dashboard() {
+export default async function AnalyticsTab() {
   const [traces, config, sessionTitles] = await Promise.all([
     getTraces(), 
     getConfig(), 

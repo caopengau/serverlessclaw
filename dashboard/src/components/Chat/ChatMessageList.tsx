@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { User, Bot, Terminal, File, Loader2 } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
@@ -90,11 +91,12 @@ export function ChatMessageList({ messages, isLoading, scrollRef, onOptionClick 
                     {m.attachments.map((a, ai) => (
                       <div key={ai} className="relative group/att">
                         {a.type === 'image' && (a.url || a.base64) ? (
-                          <div className="w-32 h-32 rounded-lg overflow-hidden border border-white/10 hover:border-cyber-green/50 transition-colors shadow-lg">
-                            <img 
+                          <div className="w-32 h-32 rounded-lg overflow-hidden border border-white/10 hover:border-cyber-green/50 transition-colors shadow-lg relative">
+                            <Image 
                               src={a.url || `data:${a.mimeType ?? 'image/png'};base64,${a.base64}`} 
-                              alt={a.name} 
-                              className="w-full h-full object-cover cursor-zoom-in"
+                              alt={a.name ?? 'Attachment'} 
+                              fill
+                              className="object-cover cursor-zoom-in"
                               onClick={() => a.url && window.open(a.url, '_blank')}
                             />
                           </div>

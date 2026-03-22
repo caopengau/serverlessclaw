@@ -5,11 +5,11 @@ import { Search, Plus, Wrench, X, RefreshCw } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Typography from '@/components/ui/Typography';
-import { Tool } from '@/lib/types/ui';
+import { Tool, Agent } from '@/lib/types/ui';
 
 interface Props {
   selectedAgentIdForTools: string | null;
-  agents: Record<string, any>;
+  agents: Record<string, Agent>;
   allTools: Tool[];
   loadingTools: boolean;
   searchQuery: string;

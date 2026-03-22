@@ -7,13 +7,15 @@ import Card from '@/components/ui/Card';
 import Typography from '@/components/ui/Typography';
 import CyberSelect from '@/components/CyberSelect';
 
+import { Agent, ProviderModel } from '@/lib/types/ui';
+
 interface Props {
   show: boolean;
   onClose: () => void;
-  newAgent: any;
-  setNewAgent: (v: any) => void;
+  newAgent: Partial<Agent>;
+  setNewAgent: React.Dispatch<React.SetStateAction<Partial<Agent>>>;
   finalizeNewAgent: () => void;
-  PROVIDERS: Record<string, any>;
+  PROVIDERS: Record<string, ProviderModel>;
 }
 
 export default function NewAgentModal({ show, onClose, newAgent, setNewAgent, finalizeNewAgent, PROVIDERS }: Props) {

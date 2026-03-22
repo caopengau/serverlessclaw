@@ -102,4 +102,33 @@ export const SYSTEM_CONFIG_METADATA: Record<string, ConfigOptionMetadata> = {
     risk: 'High values increase per-request cost significantly.',
     default: '15',
   },
+  context_safety_margin: {
+    label: 'Context Safety Margin',
+    description: 'Fraction of context window reserved for the LLM response and safety buffer.',
+    implication: 'Higher values reduce the risk of context overflow errors during long tasks.',
+    risk: 'Setting too high (>0.4) wastes available context budget for conversation.',
+    default: '0.2',
+  },
+  context_summary_trigger_ratio: {
+    label: 'Context Summary Trigger',
+    description: 'Ratio of context usage that triggers background history summarization.',
+    implication: 'Lower values trigger compaction earlier, preserving more structure.',
+    risk: 'Too aggressive triggering (<0.5) loses recent context before summarization completes.',
+    default: '0.8',
+  },
+  context_summary_ratio: {
+    label: 'Compressed History Budget',
+    description: 'Fraction of available context budget allocated to the compressed history tier.',
+    implication:
+      'Higher values preserve more historical context but reduce room for recent messages.',
+    default: '0.3',
+  },
+  context_active_window_ratio: {
+    label: 'Active Window Budget',
+    description:
+      'Fraction of available context budget allocated to the priority-scored active window.',
+    implication: 'Works in concert with compressed history budget (must sum to ≤1.0).',
+    risk: 'Values close to 1.0 leave no room for compressed history/facts.',
+    default: '0.7',
+  },
 };

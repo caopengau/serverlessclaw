@@ -13,11 +13,10 @@ import {
   useEdgesState,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { 
-  Bot, Zap, Code, ShieldCheck, Terminal, Cpu, 
-  Database, Brain, Activity, Search, FlaskConical, 
+import {
+  Zap, Terminal, Database, Brain, Activity, Search, FlaskConical,
   Settings2, RefreshCw, Radio, Info, Plus, Minus, Maximize, Lock,
-  LayoutDashboard, Send, MessageSquare
+  LayoutDashboard, MessageSquare, Bot, Code
 } from 'lucide-react';
 import { useReactFlow, ReactFlowProvider } from '@xyflow/react';
 import { THEME } from '@/lib/theme';
@@ -25,8 +24,16 @@ import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 
+interface FlowNodeData {
+  label: string;
+  description: string;
+  icon: React.ReactNode;
+  enabled: boolean;
+  type: string;
+}
+
 const nodeTypes = {
-  agent: ({ data }: any) => (
+  agent: ({ data }: { data: FlowNodeData }) => (
     <div className="relative group transition-all duration-300 z-10 hover:z-50">
       <div className={`px-4 py-3 shadow-lg rounded-md bg-black border border-cyber-green/50 min-w-[180px] max-w-[240px] relative overflow-hidden`}>
         <div className="absolute top-0 right-0 w-16 h-16 bg-cyber-green/5 rounded-full blur-xl -mr-8 -mt-8"></div>
@@ -44,7 +51,7 @@ const nodeTypes = {
         <Handle type="target" position={Position.Top} className="!bg-cyber-green/50 !border-none !w-2 !h-2" />
         <Handle type="source" position={Position.Bottom} className="!bg-cyber-green/50 !border-none !w-2 !h-2" />
       </div>
-      
+
       {/* Description Tooltip Above on Hover */}
       <div className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-[220px] bg-[#0a0a0a] border border-cyber-green/30 p-3 rounded-md shadow-[0_10px_30px_rgba(0,0,0,0.8)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[100] pointer-events-none after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-8 after:border-transparent after:border-t-[#0a0a0a]">
         <div className="flex items-center gap-2 mb-1">
@@ -55,7 +62,7 @@ const nodeTypes = {
       </div>
     </div>
   ),
-  bus: ({ data }: any) => (
+  bus: ({ data }: { data: FlowNodeData }) => (
     <div className="relative group transition-all duration-300 z-10 hover:z-50">
       <div className="px-4 py-2 shadow-lg rounded-md bg-black border border-orange-500/50 min-w-[220px] text-center relative overflow-hidden">
           <div className="absolute inset-0 bg-orange-500/5 animate-pulse"></div>
@@ -79,7 +86,7 @@ const nodeTypes = {
       </div>
     </div>
   ),
-  infra: ({ data }: any) => (
+  infra: ({ data }: { data: FlowNodeData }) => (
     <div className="relative group transition-all duration-300 z-10 hover:z-50">
       <div className={`px-4 py-2 shadow-lg rounded-md bg-[#0a0a0a] border border-${THEME.COLORS.INTEL}/30 min-w-[150px] relative overflow-hidden`}>
         <div className={`absolute top-0 right-0 w-12 h-12 bg-${THEME.COLORS.INTEL}/5 rounded-full blur-lg -mr-6 -mt-6`}></div>
@@ -117,7 +124,7 @@ const getAgentIcon = (id: string, iconName?: string) => {
   if (iconName === 'Search') return <Search size={16} />;
   if (iconName === 'Activity') return <Activity size={16} />;
   if (iconName === 'FlaskConical') return <FlaskConical size={16} />;
-  
+
   // Fallbacks if not provided in config
   if (id === 'main') return <Bot size={16} />;
   if (id === 'coder') return <Code size={16} />;
@@ -140,7 +147,7 @@ const getAgentDescription = (id: string) => {
   return descMap[id] ?? 'Neural spoke for dynamic task execution and decentralized intelligence.';
 };
 
-const getEdgeType = (source: string, target: string, allEdges: any[]) => {
+const getEdgeType = () => {
   return 'default'; // Use Bezier curves as preferred by the user
 };
 
@@ -153,30 +160,30 @@ export function FlowContent() {
   const fetchBlueprint = useCallback(async () => {
     try {
       const infraRes = await fetch('/api/infrastructure');
-      const topology: { nodes: any[]; edges: any[] } = await infraRes.json();
+      const topology: { nodes: { id: string; type: string; tier: string; label: string; description?: string; icon?: string; iconType?: string; enabled?: boolean }[]; edges: { id: string; source: string; target: string; label?: string }[] } = await infraRes.json();
       
       const newNodes: Node[] = [];
       const newEdges: Edge[] = [];
 
       // 1. Pre-calculate connectivity (Degree) for each node
       const nodeDegrees: Record<string, number> = {};
-      topology.edges.forEach((edge: any) => {
+      topology.edges.forEach((edge) => {
         nodeDegrees[edge.source] = (nodeDegrees[edge.source] ?? 0) + 1;
         nodeDegrees[edge.target] = (nodeDegrees[edge.target] ?? 0) + 1;
       });
 
       // 2. Process Nodes with Centered Connectivity Sorting
       const tiers = ['APP', 'COMM', 'AGENT', 'INFRA'];
-      const tierNodesMap: Record<string, any[]> = {};
+      const tierNodesMap: Record<string, { id: string; type: string; tier: string; label: string; description?: string; icon?: string; iconType?: string; enabled?: boolean }[]> = {};
       
       tiers.forEach(t => {
-        const nodesInTier = topology.nodes.filter((n: any) => (n.tier || 'INFRA') === t);
+        const nodesInTier = topology.nodes.filter((n) => (n.tier || 'INFRA') === t);
         
         // Sort by degree descending
         nodesInTier.sort((a, b) => (nodeDegrees[b.id] ?? 0) - (nodeDegrees[a.id] ?? 0));
         
         // Reorder to put highest degree in middle: [side, side, center, side, side]
-        const centered: any[] = [];
+        const centered: { id: string; type: string; tier: string; label: string; description?: string; icon?: string; iconType?: string; enabled?: boolean }[] = [];
         nodesInTier.forEach((node, idx) => {
           if (idx % 2 === 0) centered.push(node);
           else centered.unshift(node);
@@ -243,7 +250,7 @@ export function FlowContent() {
       });
 
       // 3. Process Edges
-      topology.edges.forEach((edge: any) => {
+      topology.edges.forEach((edge) => {
         const isMainOrch = edge.label === 'ORCHESTRATE' || (edge.source === 'main' && edge.target === 'bus');
         const isBusSignal = edge.label === 'SIGNAL' || edge.label?.startsWith('SIGNAL_') || edge.source === 'bus';
         const isResult = edge.label === 'RESULT';
@@ -257,9 +264,9 @@ export function FlowContent() {
         if (isInvoke) strokeColor = '#ffcf00'; // Yellow
         if (isProactive) strokeColor = '#d946ef'; // Fuchsia
 
-        const isBiDirectional = topology.edges.some((e: any) => e.source === edge.target && e.target === edge.source);
+        const isBiDirectional = topology.edges.some((e) => e.source === edge.target && e.target === edge.source);
         const edgeIndex = topology.edges.indexOf(edge);
-        const reverseEdgeIndex = topology.edges.findIndex((e: any) => e.source === edge.target && e.target === edge.source);
+        const reverseEdgeIndex = topology.edges.findIndex((e) => e.source === edge.target && e.target === edge.source);
         const isPrimary = !isBiDirectional || edgeIndex < reverseEdgeIndex;
         
         newEdges.push({
@@ -303,7 +310,10 @@ export function FlowContent() {
     }
   }, [setNodes, setEdges]);
 
-  useEffect(() => { fetchBlueprint(); }, [fetchBlueprint]);
+  useEffect(() => { 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchBlueprint(); 
+  }, [fetchBlueprint]);
 
   const handleReset = useCallback(async () => {
     setLoading(true);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   ReactFlow,
   Handle,
@@ -17,17 +17,17 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { 
-  MessageSquare, Wrench, CheckCircle, ShieldAlert, Zap, X, Code, Terminal, Brain, Activity 
+  MessageSquare, Wrench, CheckCircle, ShieldAlert, Zap, X, Code, Terminal, Brain
 } from 'lucide-react';
 import { TRACE_TYPES } from '@/lib/constants';
 import Button from './ui/Button';
 import Typography from './ui/Typography';
-import Card from './ui/Card';
 import { THEME } from '@/lib/theme';
+import { Trace, TraceStep } from '@/lib/types/ui';
 
 // --- Custom Node Components ---
 
-const TriggerNode = ({ data }: any) => (
+const TriggerNode = ({ data }: { data: { label: string; onClick?: () => void } }) => (
   <div 
     onClick={() => data.onClick && data.onClick()}
     className="px-4 py-2 shadow-md rounded-md bg-[#1a1a1a] border-2 border-cyber-green text-white min-w-[150px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
@@ -37,13 +37,13 @@ const TriggerNode = ({ data }: any) => (
       <span className="text-[10px] font-bold tracking-widest text-cyber-green/80">Trigger</span>
     </div>
     <div className="text-[11px] font-mono line-clamp-2 text-white/70 italic">
-      "{data.label}"
+      &quot;{data.label}&quot;
     </div>
     <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-cyber-green border-none" />
   </div>
 );
 
-const LLMNode = ({ data }: any) => (
+const LLMNode = ({ data }: { data: { type: string; agentId?: string; label?: string; onClick?: () => void } }) => (
   <div 
     onClick={() => data.onClick && data.onClick()}
     className="px-4 py-3 shadow-lg rounded-md bg-[#0f172a] border border-cyber-blue text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
@@ -67,7 +67,7 @@ const LLMNode = ({ data }: any) => (
   </div>
 );
 
-const ToolNode = ({ data }: any) => (
+const ToolNode = ({ data }: { data: { agentId?: string; toolName: string; status?: string; onClick?: () => void } }) => (
   <div 
     onClick={() => data.onClick && data.onClick()}
     className="px-4 py-3 shadow-lg rounded-md bg-[#1e1b1e] border border-yellow-500/50 text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
@@ -92,7 +92,7 @@ const ToolNode = ({ data }: any) => (
   </div>
 );
 
-const ErrorNode = ({ data }: any) => (
+const ErrorNode = ({ data }: { data: { label: string; onClick?: () => void } }) => (
   <div 
     onClick={() => data.onClick && data.onClick()}
     className="px-4 py-3 shadow-lg rounded-md bg-red-500/10 border-2 border-red-500 text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
@@ -109,7 +109,7 @@ const ErrorNode = ({ data }: any) => (
   </div>
 );
 
-const ResultNode = ({ data }: any) => (
+const ResultNode = ({ data }: { data: { label: string; onClick?: () => void } }) => (
   <div 
     onClick={() => data.onClick && data.onClick()}
     className="px-4 py-3 shadow-xl rounded-md bg-cyber-green/10 border-2 border-cyber-green text-white min-w-[200px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
@@ -137,12 +137,12 @@ const nodeTypes = {
  * Helper to process trace nodes and steps into React Flow nodes and edges.
  */
 function processTraceNodes(
-  traceNodes: any[],
+  traceNodes: Trace[],
   initialNodes: Node[],
   initialEdges: Edge[],
-  setSelectedStep: (step: any) => void
+  setSelectedStep: (step: TraceStep | { type: string; content: Record<string, unknown> }) => void
 ) {
-  const nodeMap = new Map<string, any>();
+  const nodeMap = new Map<string, Trace>();
   traceNodes.forEach((n) => nodeMap.set(n.nodeId, n));
 
   // Find root node
@@ -152,7 +152,7 @@ function processTraceNodes(
   const processedNodes = new Set<string>();
   const xOffsetMap = new Map<string, number>(); // To handle branching offsets
 
-  function renderBranch(traceNode: any, startX: number, startY: number, parentStepId?: string): number {
+  function renderBranch(traceNode: Trace, startX: number, startY: number, parentStepId?: string): number {
     if (processedNodes.has(traceNode.nodeId)) return startY;
     processedNodes.add(traceNode.nodeId);
 
@@ -168,7 +168,7 @@ function processTraceNodes(
         label: traceNode.nodeId === 'root' 
           ? (traceNode.initialContext?.userText || 'System Task')
           : `Delegated to ${traceNode.initialContext?.agentId ?? 'Agent'}`,
-        onClick: () => setSelectedStep({ type: 'trigger', content: traceNode.initialContext })
+        onClick: () => setSelectedStep({ type: 'trigger', content: traceNode.initialContext as Record<string, unknown> })
       },
       position: { x: startX, y: currentY },
     });
@@ -191,7 +191,7 @@ function processTraceNodes(
 
     // 2. Process Steps
     const agentId = traceNode.initialContext?.agentId || traceNode.nodeId;
-    traceNode.steps?.forEach((step: any, idx: number) => {
+    traceNode.steps?.forEach((step: TraceStep, idx: number) => {
       const stepNodeId = `${traceNode.nodeId}-step-${idx}`;
       let added = false;
 
@@ -228,7 +228,7 @@ function processTraceNodes(
           type: 'tool',
           data: {
             toolName: tName,
-            status: 'Executing Arg: ' + JSON.stringify(step.content.args).substring(0, 20) + '...',
+            status: 'Executing Arg: ' + JSON.stringify(step.content?.args || {}).substring(0, 20) + '...',
             agentId,
             onClick: () => setSelectedStep(step)
           },
@@ -254,7 +254,7 @@ function processTraceNodes(
           type: 'tool',
           data: {
             toolName: tName,
-            status: 'Result: ' + String(step.content.result).substring(0, 20) + '...',
+            status: 'Result: ' + String(step.content?.result || '').substring(0, 20) + '...',
             agentId,
             onClick: () => setSelectedStep(step)
           },
@@ -266,7 +266,7 @@ function processTraceNodes(
           id: stepNodeId,
           type: 'error',
           data: {
-            label: step.content.errorMessage ?? 'Unknown Error',
+            label: (step.content?.errorMessage as string) ?? 'Unknown Error',
             onClick: () => setSelectedStep(step)
           },
           position: { x: startX, y: currentY },
@@ -322,11 +322,11 @@ function processTraceNodes(
 // --- Main Path Visualizer Content ---
 
 interface PathVisualizerProps {
-  trace: any;
+  trace: Trace;
 }
 
 function PathVisualizerContent({ trace }: PathVisualizerProps) {
-  const [selectedStep, setSelectedStep] = React.useState<any>(null);
+  const [selectedStep, setSelectedStep] = React.useState<TraceStep | { type: string; content: Record<string, unknown> } | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const { fitView } = useReactFlow();
@@ -408,10 +408,10 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
                   <Code size={12} /> Prompt context
                 </div>
                 <div className="space-y-2">
-                  {selectedStep.content.messages.map((m: any, i: number) => (
-                    <div key={i} className="p-2 bg-white/[0.02] border border-white/5 rounded text-[11px] font-mono">
-                      <div className="text-cyber-blue/60 mb-1 text-[9px] font-bold">[{m.role}]</div>
-                      <div className="text-white/80 whitespace-pre-wrap leading-relaxed">{m.content}</div>
+                  {selectedStep.content.messages?.map((msg: { role: string; content: string }, idx: number) => (
+                    <div key={idx} className="p-2 bg-white/[0.02] border border-white/5 rounded text-[11px] font-mono">
+                      <div className="text-cyber-blue/60 mb-1 text-[9px] font-bold">[{msg.role}]</div>
+                      <div className="text-white/80 whitespace-pre-wrap leading-relaxed">{msg.content}</div>
                     </div>
                   ))}
                 </div>
@@ -442,8 +442,8 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
                     <div className="text-[10px] text-yellow-500 font-bold tracking-tighter flex items-center gap-1">
                       <Wrench size={12} /> Delegated tools
                     </div>
-                    {selectedStep.content.tool_calls.map((tc: any, i: number) => (
-                      <div key={i} className="p-2 bg-yellow-500/5 border border-yellow-500/20 rounded text-[10px] font-mono">
+                    {selectedStep.content.tool_calls?.map((tc: { function: { name: string; arguments: string } }, idx: number) => (
+                      <div key={idx} className="p-2 bg-yellow-500/5 border border-yellow-500/20 rounded text-[10px] font-mono">
                          <div className="text-yellow-500/80 mb-1 font-bold">{tc.function.name}</div>
                          <div className="text-white/60 truncate">{tc.function.arguments}</div>
                       </div>
@@ -470,7 +470,8 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
                   <CheckCircle size={12} /> Tool output
                 </div>
                 <div className="p-3 bg-black/60 border border-cyber-green/20 rounded text-[11px] font-mono text-white/90 whitespace-pre-wrap shadow-inner overflow-x-auto">
-                  {typeof selectedStep.content.result === 'string' 
+                  {typeof selectedStep.content.result === 'string' && selectedStep.content.agentId}
+                    {typeof selectedStep.content.result === 'string' 
                     ? selectedStep.content.result 
                     : JSON.stringify(selectedStep.content.result, null, 2)}
                 </div>
@@ -483,7 +484,7 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
                   <ShieldAlert size={12} /> Error details
                 </div>
                 <div className="p-3 bg-red-500/5 border border-red-500/20 rounded text-[11px] font-mono text-red-400 whitespace-pre-wrap shadow-inner">
-                  {selectedStep.content.errorMessage}
+                  {selectedStep.content?.errorMessage as string}
                 </div>
               </div>
             )}
@@ -509,10 +510,10 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
 
           <footer className="p-3 border-t border-white/10 bg-black/20 shrink-0 flex justify-between">
              <Typography variant="mono" color="muted" className="text-[7px] tracking-widest italic opacity-40">
-               ID: {selectedStep.stepId?.substring(0,8) || 'N/A'}
+               ID: {(selectedStep as TraceStep).stepId?.substring(0,8) || 'N/A'}
              </Typography>
              <Typography variant="mono" color="muted" className="text-[7px] tracking-widest italic opacity-40">
-               {selectedStep.timestamp ? new Date(selectedStep.timestamp).toLocaleTimeString() : ''}
+               {(selectedStep as TraceStep).timestamp ? new Date((selectedStep as TraceStep).timestamp!).toLocaleTimeString() : ''}
              </Typography>
           </footer>
         </div>
