@@ -15,6 +15,7 @@ import * as GapOps from './memory/gap-operations';
 import * as InsightOps from './memory/insight-operations';
 import * as SessionOps from './memory/session-operations';
 import * as MemoryUtils from './memory/utils';
+import * as ClarificationOps from './memory/clarification-operations';
 
 /**
  * Implementation of IMemory using AWS DynamoDB for persistent storage
@@ -229,5 +230,49 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
    */
   async listByPrefix(prefix: string): Promise<any[]> {
     return this.scanByPrefix(prefix);
+  }
+
+  /**
+   * Saves a clarification request to DynamoDB for state persistence.
+   */
+  async saveClarificationRequest(
+    state: Omit<import('./types/memory').ClarificationState, 'type' | 'expiresAt' | 'timestamp'>
+  ): Promise<void> {
+    return ClarificationOps.saveClarificationRequest(this, state);
+  }
+
+  /**
+   * Retrieves a clarification request by traceId and agentId.
+   */
+  async getClarificationRequest(
+    traceId: string,
+    agentId: string
+  ): Promise<import('./types/memory').ClarificationState | null> {
+    return ClarificationOps.getClarificationRequest(this, traceId, agentId);
+  }
+
+  /**
+   * Updates the status of a clarification request.
+   */
+  async updateClarificationStatus(
+    traceId: string,
+    agentId: string,
+    status: import('./types/memory').ClarificationStatus
+  ): Promise<void> {
+    return ClarificationOps.updateClarificationStatus(this, traceId, agentId, status);
+  }
+
+  /**
+   * Finds all expired clarification requests (for orphan detection).
+   */
+  async findExpiredClarifications(): Promise<import('./types/memory').ClarificationState[]> {
+    return ClarificationOps.findExpiredClarifications(this);
+  }
+
+  /**
+   * Increments the retry count for a clarification request.
+   */
+  async incrementClarificationRetry(traceId: string, agentId: string): Promise<number> {
+    return ClarificationOps.incrementClarificationRetry(this, traceId, agentId);
   }
 }

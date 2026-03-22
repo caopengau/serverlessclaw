@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AgentExecutor } from './executor';
 import { MessageRole, ReasoningProfile } from '../types/index';
 
+vi.mock('../../handlers/events/cancellation-handler', () => ({
+  isTaskCancelled: vi.fn().mockResolvedValue(false),
+  handleTaskCancellation: vi.fn(),
+}));
+
 describe('AgentExecutor', () => {
   let mockProvider: any;
   let mockTracer: any;
@@ -52,6 +57,7 @@ describe('AgentExecutor', () => {
       maxIterations: 5,
       tracer: mockTracer as any,
       traceId: 'trace-123',
+      taskId: 'trace-123',
       nodeId: 'node-1',
       parentId: undefined,
       currentInitiator: 'main',
@@ -93,6 +99,7 @@ describe('AgentExecutor', () => {
       maxIterations: 5,
       tracer: mockTracer as any,
       traceId: 't1',
+      taskId: 't1',
       nodeId: 'n1',
       parentId: undefined,
       currentInitiator: 'main',
@@ -143,6 +150,7 @@ describe('AgentExecutor', () => {
       maxIterations: 1,
       tracer: mockTracer as any,
       traceId: 't-123',
+      taskId: 't-123',
       nodeId: 'n-1',
       parentId: undefined,
       currentInitiator: 'main',
@@ -204,6 +212,7 @@ describe('AgentExecutor', () => {
       maxIterations: 1,
       tracer: mockTracer as any,
       traceId: 'trace-abc',
+      taskId: 'trace-abc',
       nodeId: 'node-1',
       parentId: undefined,
       currentInitiator: 'main',
@@ -223,5 +232,30 @@ describe('AgentExecutor', () => {
     expect(finalArgs.executorAgentId).toBe('main');
     expect(finalArgs.initiatorId).toBe('main');
     expect(finalArgs.originalUserTask).toBe('How many agents do we have?');
+  });
+
+  it('should abort and return TASK_CANCELLED if task is marked as cancelled', async () => {
+    const { isTaskCancelled } = await import('../../handlers/events/cancellation-handler');
+    vi.mocked(isTaskCancelled).mockResolvedValue(true);
+
+    const executor = new AgentExecutor(mockProvider as any, [], 'agent-1', 'Agent 1');
+
+    const result = await executor.runLoop([], {
+      activeProfile: ReasoningProfile.STANDARD,
+      maxIterations: 5,
+      tracer: mockTracer as any,
+      traceId: 'trace-cancel',
+      taskId: 'task-cancel',
+      nodeId: 'node-1',
+      parentId: undefined,
+      currentInitiator: 'main',
+      depth: 0,
+      userId: 'user-1',
+      userText: 'work',
+      mainConversationId: 'session-1',
+    });
+
+    expect(result.responseText).toContain('TASK_CANCELLED');
+    expect(mockProvider.call).not.toHaveBeenCalled();
   });
 });

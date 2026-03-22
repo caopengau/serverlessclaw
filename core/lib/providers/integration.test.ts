@@ -166,6 +166,7 @@ describe('Backend API Integration', () => {
       maxIterations: 25,
       tracer: { getTraceId: () => 'test-trace' } as any,
       traceId: 'test-trace',
+      taskId: 'test-trace',
       nodeId: 'test-node',
       parentId: undefined,
       currentInitiator: 'test',

@@ -17,6 +17,7 @@ export interface AgentProcessOptions {
   initiatorId?: string;
   depth?: number;
   traceId?: string;
+  taskId?: string;
   nodeId?: string;
   parentId?: string;
   sessionId?: string;

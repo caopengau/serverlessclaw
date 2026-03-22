@@ -12,6 +12,7 @@ export interface Attachment {
 export interface BaseEvent {
   userId: string;
   traceId?: string;
+  taskId?: string; // Unique ID for a specific task/execution unit
   initiatorId?: string; // The agent ID that started this task
   depth?: number; // To prevent infinite loops
   sessionId?: string;
@@ -248,6 +249,8 @@ export enum EventType {
   SYSTEM_HEALTH_REPORT = 'system_health_report',
   /** Request for clarification from an initiator agent. */
   CLARIFICATION_REQUEST = 'clarification_request',
+  /** Timeout signal for a clarification request that was not answered. */
+  CLARIFICATION_TIMEOUT = 'clarification_timeout',
   /** Request to schedule a future task or heartbeat. */
   SCHEDULE_TASK = 'schedule_task',
   /** Proactive heartbeat signal indicating a scheduled goal or task activation. */
@@ -258,6 +261,8 @@ export enum EventType {
   PARALLEL_TASK_DISPATCH = 'parallel_task_dispatch',
   /** Parallel task completion with aggregated results. */
   PARALLEL_TASK_COMPLETED = 'parallel_task_completed',
+  /** Parallel task barrier timeout - straggler tasks should be marked as timed out. */
+  PARALLEL_BARRIER_TIMEOUT = 'parallel_barrier_timeout',
 }
 
 /**

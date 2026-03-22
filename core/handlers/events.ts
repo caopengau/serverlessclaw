@@ -62,9 +62,22 @@ export async function handler(
       break;
     }
 
+    case EventType.CLARIFICATION_TIMEOUT: {
+      const { handleClarificationTimeout } = await import('./events/clarification-timeout-handler');
+      await handleClarificationTimeout(eventDetail);
+      break;
+    }
+
     case EventType.PARALLEL_TASK_DISPATCH: {
       const { handleParallelDispatch } = await import('./events/parallel-handler');
       await handleParallelDispatch(event as any);
+      break;
+    }
+
+    case EventType.PARALLEL_BARRIER_TIMEOUT: {
+      const { handleParallelBarrierTimeout } =
+        await import('./events/parallel-barrier-timeout-handler');
+      await handleParallelBarrierTimeout(eventDetail);
       break;
     }
 

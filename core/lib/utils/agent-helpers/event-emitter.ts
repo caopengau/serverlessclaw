@@ -134,6 +134,7 @@ export async function emitTaskEvent(params: {
   error?: string;
   attachments?: Attachment[];
   traceId?: string;
+  taskId?: string;
   sessionId?: string;
   initiatorId?: string;
   depth?: number;
@@ -152,6 +153,7 @@ export async function emitTaskEvent(params: {
     [isFailure ? 'error' : 'response']: params.error || params.response || '',
     attachments: params.attachments,
     traceId: params.traceId,
+    taskId: params.taskId,
     initiatorId: params.initiatorId,
     depth: params.depth,
     sessionId: params.sessionId,

@@ -55,7 +55,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
 
   const agentId = detailType.replace('_task', '');
   const payload = extractPayload<TaskEvent>(event.detail);
-  const { userId, task, isContinuation, traceId, sessionId } = payload;
+  const { userId, task, isContinuation, traceId, taskId, sessionId } = payload;
 
   if (!validatePayload({ userId, task }, ['userId', 'task'])) {
     return;
@@ -84,6 +84,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       initiatorId: payload.initiatorId,
       depth: payload.depth,
       traceId,
+      taskId,
       sessionId,
       source: TraceSource.SYSTEM,
       context,
@@ -117,6 +118,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       [isFailure ? 'error' : 'response']: responseText,
       attachments: resultAttachments,
       traceId,
+      taskId,
       sessionId,
       initiatorId: payload.initiatorId,
       depth: payload.depth,

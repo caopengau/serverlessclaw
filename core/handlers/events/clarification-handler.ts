@@ -1,4 +1,7 @@
 import { getRecursionLimit, handleRecursionLimitExceeded, wakeupInitiator } from './shared';
+import { DynamicScheduler } from '../../lib/scheduler';
+import { ConfigManager } from '../../lib/registry/config';
+import { EventType } from '../../lib/types/agent';
 
 /**
  * Handles clarification request events - relays clarification question to initiator.
@@ -9,28 +12,40 @@ import { getRecursionLimit, handleRecursionLimitExceeded, wakeupInitiator } from
 export async function handleClarificationRequest(
   eventDetail: Record<string, unknown>
 ): Promise<void> {
-  const { userId, agentId, question, traceId, initiatorId, depth, sessionId, originalTask } =
-    eventDetail as unknown as {
-      userId: string;
-      agentId: string;
-      question: string;
-      traceId?: string;
-      initiatorId?: string;
-      depth?: number;
-      sessionId?: string;
-      originalTask: string;
-    };
+  const {
+    userId,
+    agentId,
+    question,
+    traceId,
+    initiatorId,
+    depth,
+    sessionId,
+    originalTask,
+    retryCount,
+  } = eventDetail as unknown as {
+    userId: string;
+    agentId: string;
+    question: string;
+    traceId?: string;
+    initiatorId?: string;
+    depth?: number;
+    sessionId?: string;
+    originalTask: string;
+    retryCount?: number;
+  };
 
   const currentDepth = depth ?? 1;
+  const currentRetryCount = retryCount ?? 0;
 
-  // Use shared logger
-  const { logger } = await import('../../lib/logger');
+  const { logger, DynamoMemory } = await import('../../lib/logger').then(async (m) => {
+    const mem = await import('../../lib/memory');
+    return { logger: m.logger, DynamoMemory: mem.DynamoMemory };
+  });
 
   logger.info(
-    `Relaying clarification request from ${agentId} to Initiator: ${initiatorId ?? 'Orchestrator'} (Depth: ${currentDepth}, Session: ${sessionId})`
+    `Relaying clarification request from ${agentId} to Initiator: ${initiatorId ?? 'Orchestrator'} (Depth: ${currentDepth}, Session: ${sessionId}, Retry: ${currentRetryCount})`
   );
 
-  // 1. Loop Protection - Use shared function
   const RECURSION_LIMIT = await getRecursionLimit();
 
   if (currentDepth >= RECURSION_LIMIT) {
@@ -44,6 +59,53 @@ export async function handleClarificationRequest(
       `I have detected an infinite loop in clarification requests (Depth: ${currentDepth}). I've intervened to stop the process.`
     );
     return;
+  }
+
+  try {
+    const memory = new DynamoMemory();
+    const safeTraceId = traceId ?? `unknown-${Date.now()}`;
+    const safeAgentId = agentId ?? 'unknown';
+
+    await memory.saveClarificationRequest({
+      userId: `CLARIFICATION#${safeTraceId}#${safeAgentId}`,
+      agentId: safeAgentId,
+      initiatorId: initiatorId ?? 'main',
+      question,
+      originalTask,
+      traceId: safeTraceId,
+      sessionId,
+      depth: currentDepth,
+      status: 'pending',
+      createdAt: Date.now(),
+      retryCount: currentRetryCount,
+    });
+
+    const timeoutMs =
+      ((await ConfigManager.getRawConfig('clarification_timeout_ms')) as number) ?? 300000;
+    const targetTime = Date.now() + timeoutMs;
+    const timeoutId = `clarify-${safeTraceId}-${safeAgentId}-${Date.now()}`;
+
+    await DynamicScheduler.scheduleOneShotTimeout(
+      timeoutId,
+      {
+        userId,
+        agentId: safeAgentId,
+        traceId: safeTraceId,
+        initiatorId: initiatorId ?? 'main',
+        originalTask,
+        question,
+        sessionId,
+        depth: currentDepth,
+        retryCount: currentRetryCount,
+      },
+      targetTime,
+      EventType.CLARIFICATION_TIMEOUT
+    );
+    logger.info(
+      `Scheduled clarification timeout for ${timeoutId}: ${new Date(targetTime).toISOString()}`
+    );
+  } catch (error) {
+    logger.warn(`Failed to process clarification request:`, error);
   }
 
   await wakeupInitiator(

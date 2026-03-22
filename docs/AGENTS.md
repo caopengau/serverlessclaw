@@ -60,29 +60,72 @@ User (Telegram)       SuperClaw (Lambda)       AgentBus (EB)       Specialized A
 
 ### Clarification Protocol (Conversational Mid-task Coordination)
 
-Unlike a standard handoff, the Clarification Protocol allows a sub-agent to pause and seek directions from its initiator without failing the task.
+Unlike a standard handoff, the Clarification Protocol allows a sub-agent to pause and seek directions from its initiator without failing the task. It includes built-in timeout resilience and automated retries.
 
 ```text
-Initiator (Planner)     AgentBus (EB)       Follower (Coder)
-      |                      |                      |
-      +--- dispatchTask ---->|                      |
-      |                      +---- coder_task ----->|
-      |                 [TERMINATE]                 |
-      |                      |               [THINK: Ambiguity!]
-       |                      |<-- seekClarification-+
-       |      [EH ROUTE]      |   (question, task)   |
-       |                      |       [PAUSE/TERMINATE]
-       |<-- CONTINUATION_TASK-+                      |
-       | (CLARIFICATION_REQUEST)                      |
-       |                      |                      |
-      | [THINK: Answer]      |                      |
-      |                      |                      |
-      +-- provideClarification                      |
-      |   (answer) --------->|                      |
-      |                      +-- CONTINUATION_TASK->|
-      |                 [TERMINATE]                 |
-      |                      |              [RESUME with Answer]
-      |                      |                      |
+Initiator (Planner)     AgentBus (EB)       Follower (Coder)      Scheduler (EB)
+      |                      |                      |                    |
+      +--- dispatchTask ---->|                      |                    |
+      |                      +---- coder_task ----->|                    |
+      |                 [TERMINATE]                 |                    |
+      |                      |               [THINK: Ambiguity!]         |
+      |                      |<-- seekClarification-+                    |
+      |      [EH ROUTE]      |   (question, task)   |                    |
+      |                      |       [PAUSE/TERMINATE]                   |
+      |                      |                      |                    |
+      |                      +--- scheduleTimeout ---------------------->|
+      |                      |                      |                    |
+      |<-- CONTINUATION_TASK-+                      |                    |
+      | (CLARIFICATION_REQUEST)                     |                    |
+      |                      |                      |                    |
+      |            [ IF TIMEOUT FIRES ]             |                    |
+      |                      |<------------------- CLARIFICATION_TIMEOUT +
+      |                      |                      |                    |
+      |            [ IF RETRY < MAX ]               |                    |
+      |                      +-- CLARIFICATION_REQUEST (RETRY) --------->|
+      |                      |                      |                    |
+      |            [ IF RETRY >= MAX ]              |                    |
+      |                      +-- TASK_FAILED ------>|                    |
+      |                      +-- OUTBOUND (User)    |                    |
+      |                      |                      |                    |
+      |            [ IF ANSWERED ]                  |                    |
+      +-- provideClarification                      |                    |
+      |   (answer) --------->|                      |                    |
+      |                      +-- CONTINUATION_TASK->|                    |
+      |                 [TERMINATE]                 |                    |
+      |                      |              [RESUME with Answer]         |
+      |                      |                      |                    |
+```
+
+### Parallel Dispatch Protocol (Fan-out/Fan-in)
+
+The Parallel Dispatch Protocol enables an agent to delegate multiple independent sub-tasks concurrently. It uses a barrier timeout to ensure the system remains responsive even if some sub-agents stall.
+
+```text
+Initiator (Planner)     AgentBus (EB)       Sub-Agents (xN)      Aggregator (DDB)
+      |                      |                      |                    |
+      +--- dispatchTask ---->|                      |                    |
+      |                      +-- PARALLEL_DISPATCH -+------------------->|
+      |                      |                      |             [INIT State]
+      |                      +-- <agent>_task (1) ->|                    |
+      |                      +-- <agent>_task (2) ->|                    |
+      |                      +-- <agent>_task (N) ->|                    |
+      |                      |                      |                    |
+      |             [ AS SUB-TASKS COMPLETE ]       |                    |
+      |                      |<-- TASK_COMPLETED ---+                    |
+      |                      +----------------------+------------------->|
+      |                      |                      |             [ADD Result]
+      |                      |                      |             [IF COMPLETE]
+      |                      |<-- PARALLEL_COMPLETED+<-------------------+
+      |                      |                      |                    |
+      |             [ IF BARRIER TIMEOUT FIRES ]    |                    |
+      |                      |<-- BARRIER_TIMEOUT --+                    |
+      |                      +----------------------+------------------->|
+      |                      |                      |             [TIMEOUT Missing]
+      |                      |<-- PARALLEL_COMPLETED+<-------------------+
+      |                      |                      |                    |
+      |<-- CONTINUATION_TASK-+                      |                    |
+      | (PARALLEL_COMPLETED) |                      |                    |
 ```
 
 ### Dual-Mode Communication (Intent-Based Orchestration)

@@ -8,6 +8,7 @@ import {
   ActionAfterCompletion,
 } from '@aws-sdk/client-scheduler';
 import { logger } from './logger';
+import { EventType } from './types/agent';
 
 const scheduler = new SchedulerClient({});
 
@@ -159,6 +160,72 @@ export class DynamicScheduler {
         `rate(${params.frequencyHrs} hours)`,
         `Proactive goal for ${params.agentId}: ${params.task}`
       );
+    }
+  }
+
+  /**
+   * Schedules a one-shot timeout event.
+   * The schedule will be auto-deleted after firing.
+   *
+   * @param timeoutId - Unique ID for this timeout.
+   * @param payload - Data to be delivered when the timeout fires.
+   * @param targetTime - Unix timestamp (ms) when the timeout should fire.
+   * @param eventType - The detail-type for the event. Defaults to CLARIFICATION_TIMEOUT.
+   */
+  static async scheduleOneShotTimeout(
+    timeoutId: string,
+    payload: Record<string, unknown>,
+    targetTime: number,
+    eventType: EventType = EventType.CLARIFICATION_TIMEOUT
+  ): Promise<void> {
+    const roleArn = process.env.SCHEDULER_ROLE_ARN;
+    const targetArn = process.env.EVENT_HANDLER_ARN ?? process.env.HEARTBEAT_HANDLER_ARN;
+
+    if (!roleArn || !targetArn) {
+      logger.warn(
+        'SCHEDULER_ROLE_ARN or EVENT_HANDLER_ARN not configured, skipping timeout scheduling.'
+      );
+      return;
+    }
+
+    const date = new Date(targetTime);
+    const atExpression = `at(${date.toISOString()})`;
+
+    logger.info(
+      `Scheduling one-shot timeout: ${timeoutId} (${eventType}) for ${date.toISOString()}`
+    );
+
+    try {
+      await scheduler.send(
+        new CreateScheduleCommand({
+          Name: timeoutId,
+          ScheduleExpression: atExpression,
+          Description: `One-shot timeout for ${payload.traceId ?? 'unknown'}`,
+          FlexibleTimeWindow: { Mode: FlexibleTimeWindowMode.OFF },
+          Target: {
+            Arn: targetArn,
+            RoleArn: roleArn,
+            Input: JSON.stringify({
+              'detail-type': eventType,
+              detail: payload,
+            }),
+          },
+          ActionAfterCompletion: ActionAfterCompletion.DELETE,
+          State: 'ENABLED',
+        })
+      );
+    } catch (error: unknown) {
+      if (
+        error instanceof Error &&
+        (error as Error & { name: string }).name === 'ConflictException'
+      ) {
+        logger.info(`Timeout ${timeoutId} already exists, replacing...`);
+        await this.removeSchedule(timeoutId);
+        await this.scheduleOneShotTimeout(timeoutId, payload, targetTime, eventType);
+      } else {
+        logger.error(`Failed to schedule one-shot timeout ${timeoutId}:`, error);
+        throw error;
+      }
     }
   }
 }

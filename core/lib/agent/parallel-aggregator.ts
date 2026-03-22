@@ -31,7 +31,8 @@ export class ParallelAggregator {
     traceId: string,
     taskCount: number,
     initiatorId: string,
-    sessionId?: string
+    sessionId?: string,
+    taskMapping?: Array<{ taskId: string; agentId: string }>
   ): Promise<void> {
     const expiresAt = Math.floor(Date.now() / TIME.MS_PER_SECOND) + TIME.SECONDS_IN_HOUR;
 
@@ -49,6 +50,7 @@ export class ParallelAggregator {
           expiresAt,
           status: 'pending',
           createdAt: Date.now(),
+          taskMapping: taskMapping ?? [],
         },
       })
     );
@@ -125,6 +127,46 @@ export class ParallelAggregator {
       })
     );
     return response.Item;
+  }
+
+  /**
+   * Updates progress for a specific task in a parallel dispatch.
+   */
+  async updateProgress(
+    userId: string,
+    traceId: string,
+    taskId: string,
+    progressPercent: number,
+    status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled' = 'in_progress'
+  ): Promise<void> {
+    try {
+      await docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: {
+            userId: `USER#${userId}`,
+            timestamp: `${PARALLEL_PREFIX}${traceId}`,
+          },
+          UpdateExpression: `
+            SET progress = if_not_exists(progress, :empty_map),
+                progress.#taskId = :progress
+          `,
+          ExpressionAttributeNames: {
+            '#taskId': taskId,
+          },
+          ExpressionAttributeValues: {
+            ':progress': {
+              status,
+              progressPercent,
+              lastUpdate: Date.now(),
+            },
+            ':empty_map': {},
+          },
+        })
+      );
+    } catch (error) {
+      logger.error('Error updating parallel task progress:', error);
+    }
   }
 }
 

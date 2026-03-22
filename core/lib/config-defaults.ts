@@ -168,6 +168,39 @@ export const CONFIG_DEFAULTS = {
     configKey: 'tool_prune_threshold_days',
     description: 'Days without tool usage before auto-prune eligible.',
   },
+
+  /** Timeout for clarification requests before escalation. Default: 300000 (5 min) */
+  CLARIFICATION_TIMEOUT_MS: {
+    code: 300000,
+    hotSwappable: true,
+    configKey: 'clarification_timeout_ms',
+    description: 'Timeout for clarification requests before escalation.',
+  },
+
+  /** Max clarification retries before marking task failed. Default: 1 */
+  CLARIFICATION_MAX_RETRIES: {
+    code: 1,
+    hotSwappable: true,
+    configKey: 'clarification_max_retries',
+    description: 'Max clarification retries before marking task failed.',
+  },
+
+  /** Barrier timeout for parallel tasks. Default: 300000 (5 min) */
+  PARALLEL_BARRIER_TIMEOUT_MS: {
+    code: 300000,
+    hotSwappable: true,
+    configKey: 'parallel_barrier_timeout_ms',
+    description: 'Barrier timeout for parallel task dispatch.',
+  },
+
+  /** Partial success threshold for parallel tasks. Default: 0.5 (50%) */
+  PARALLEL_PARTIAL_SUCCESS_THRESHOLD: {
+    code: 0.5,
+    hotSwappable: true,
+    configKey: 'parallel_partial_success_threshold',
+    description:
+      'Fraction of parallel tasks that must succeed for overall status to be "partial" instead of "failed".',
+  },
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_DEFAULTS;

@@ -178,4 +178,44 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
    * Universal fetcher for memory items by their prefix.
    */
   listByPrefix(prefix: string): Promise<any[]>;
+
+  /** Saves a clarification request to DynamoDB for state persistence. */
+  saveClarificationRequest(
+    state: Omit<ClarificationState, 'type' | 'expiresAt' | 'timestamp'>
+  ): Promise<void>;
+
+  /** Retrieves a clarification request by traceId and agentId. */
+  getClarificationRequest(traceId: string, agentId: string): Promise<ClarificationState | null>;
+
+  /** Updates the status of a clarification request. */
+  updateClarificationStatus(
+    traceId: string,
+    agentId: string,
+    status: ClarificationStatus
+  ): Promise<void>;
+
+  /** Finds all expired clarification requests (for orphan detection). */
+  findExpiredClarifications(): Promise<ClarificationState[]>;
+
+  /** Increments the retry count for a clarification request. */
+  incrementClarificationRetry(traceId: string, agentId: string): Promise<number>;
+}
+
+export type ClarificationStatus = 'pending' | 'answered' | 'timed_out' | 'escalated';
+
+export interface ClarificationState {
+  userId: string;
+  timestamp: number;
+  type: 'CLARIFICATION_PENDING';
+  agentId: string;
+  initiatorId: string;
+  question: string;
+  originalTask: string;
+  traceId: string;
+  sessionId?: string;
+  depth: number;
+  status: ClarificationStatus;
+  createdAt: number;
+  expiresAt: number;
+  retryCount: number;
 }

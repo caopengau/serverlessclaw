@@ -44,6 +44,8 @@ export const DYNAMO_KEYS = {
   GLOBAL_PAUSE: 'global_pause',
   INFRA_CONFIG: 'infra_config',
   SYSTEM_TOPOLOGY: 'system_topology',
+  CLARIFICATION_TIMEOUT_MS: 'clarification_timeout_ms',
+  CLARIFICATION_MAX_RETRIES: 'clarification_max_retries',
 } as const;
 
 /**

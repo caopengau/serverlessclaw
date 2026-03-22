@@ -62,6 +62,7 @@ export class AgentExecutor {
       tracer: ClawTracer;
       context?: LambdaContext;
       traceId: string;
+      taskId: string;
       nodeId: string;
       parentId: string | undefined;
       currentInitiator: string;
@@ -90,6 +91,7 @@ export class AgentExecutor {
       tracer,
       context,
       traceId,
+      taskId,
       nodeId,
       parentId,
       currentInitiator,
@@ -207,6 +209,19 @@ export class AgentExecutor {
           }
           // 'continue' just falls through
         }
+      }
+
+      // 1.2 Cancellation Check
+      try {
+        const { isTaskCancelled } = await import('../../handlers/events/cancellation-handler');
+        if (await isTaskCancelled(taskId)) {
+          logger.info(`Task execution cancelled: ${taskId}`);
+          return {
+            responseText: `TASK_CANCELLED: This task has been cancelled by the user or an initiator agent.`,
+          };
+        }
+      } catch (e) {
+        logger.warn('Failed to check task cancellation status, proceeding:', e);
       }
 
       // 1.5 Context Size Safeguard

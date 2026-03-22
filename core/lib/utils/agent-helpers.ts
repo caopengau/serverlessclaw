@@ -11,6 +11,7 @@
 import { logger } from '../logger';
 import { TraceSource, AgentType, ReasoningProfile } from '../types/index';
 import { AGENT_ERRORS } from '../constants';
+import { AgentProcessOptions } from '../agent/options';
 
 /**
  * Extract the base userId by removing CONV# prefix if present.
@@ -113,6 +114,7 @@ export interface ProcessOptionsParams {
   initiatorId?: string;
   depth?: number;
   traceId?: string;
+  taskId?: string;
   sessionId?: string;
   source?: TraceSource;
   profile?: ReasoningProfile;
@@ -128,25 +130,14 @@ export interface ProcessOptionsParams {
  * @param params - The input parameters for building process options.
  * @returns A process options object.
  */
-export function buildProcessOptions(params: ProcessOptionsParams): {
-  isContinuation?: boolean;
-  isIsolated?: boolean;
-  initiatorId?: string;
-  depth?: number;
-  traceId?: string;
-  sessionId?: string;
-  source?: TraceSource;
-  profile?: ReasoningProfile;
-  context?: import('aws-lambda').Context;
-  responseFormat?: import('../types/index').ResponseFormat;
-  communicationMode?: 'json' | 'text';
-} {
+export function buildProcessOptions(params: ProcessOptionsParams): AgentProcessOptions {
   return {
     isContinuation: !!params.isContinuation,
     isIsolated: params.isIsolated ?? true,
     initiatorId: params.initiatorId,
     depth: params.depth,
     traceId: params.traceId,
+    taskId: params.taskId,
     sessionId: params.sessionId,
     source: params.source ?? TraceSource.SYSTEM,
     profile: params.profile,

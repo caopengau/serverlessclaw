@@ -78,6 +78,7 @@ export class Agent {
       initiatorId,
       depth = 0,
       traceId: incomingTraceId,
+      taskId,
       nodeId: incomingNodeId,
       parentId: incomingParentId,
       sessionId,
@@ -112,6 +113,7 @@ export class Agent {
       this.config?.id
     );
     const traceId = tracer.getTraceId();
+    const effectiveTaskId = taskId ?? traceId;
     const nodeId = tracer.getNodeId();
     const parentId = tracer.getParentId();
     const currentInitiator = initiatorId ?? this.config?.id ?? 'unknown';
@@ -258,6 +260,7 @@ export class Agent {
         tracer,
         context,
         traceId,
+        taskId: effectiveTaskId,
         nodeId,
         parentId,
         currentInitiator,

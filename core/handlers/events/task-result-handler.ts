@@ -77,23 +77,26 @@ export async function handleTaskResult(
   // Check if this result is part of a parallel dispatch
   if (traceId) {
     const { aggregator } = await import('../../lib/agent/parallel-aggregator');
+    const { ConfigManager } = await import('../../lib/registry/config');
     const aggregateState = await aggregator.addResult(userId, traceId, {
       taskId: (eventDetail.taskId as string) ?? agentId,
       agentId,
       status: isFailure ? 'failed' : 'success',
       result: response,
-      durationMs: 0, // Could be calculated if available
+      durationMs: 0,
     });
 
     if (aggregateState?.isComplete) {
       logger.info(`Parallel dispatch ${traceId} complete! Emitting aggregated results.`);
       const { emitEvent } = await import('../../lib/utils/bus');
 
-      const overallStatus = aggregateState.results.every((r) => r.status === 'success')
-        ? 'success'
-        : aggregateState.results.some((r) => r.status === 'success')
-          ? 'partial'
-          : 'failed';
+      const threshold =
+        ((await ConfigManager.getRawConfig('parallel_partial_success_threshold')) as number) ?? 0.5;
+      const successCount = aggregateState.results.filter((r) => r.status === 'success').length;
+      const successRate = successCount / aggregateState.taskCount;
+
+      const overallStatus =
+        successRate === 1 ? 'success' : successRate >= threshold ? 'partial' : 'failed';
 
       await emitEvent('events.handler', EventType.PARALLEL_TASK_COMPLETED, {
         userId,

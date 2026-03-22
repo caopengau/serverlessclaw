@@ -193,6 +193,17 @@ export const PROVIDE_CLARIFICATION = {
         initiatorId,
         isContinuation: true,
       });
+
+      if (traceId && agentId) {
+        try {
+          const { DynamoMemory } = await import('../lib/memory');
+          const memory = new DynamoMemory();
+          await memory.updateClarificationStatus(traceId, agentId, 'answered');
+        } catch (memError) {
+          console.warn('Failed to update clarification status:', memError);
+        }
+      }
+
       return `Clarification provided to ${agentId}. Continuation task emitted.`;
     } catch (error) {
       return `Failed to provide clarification: ${formatErrorMessage(error)}`;
