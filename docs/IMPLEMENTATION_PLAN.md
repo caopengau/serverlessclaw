@@ -707,6 +707,7 @@ Leverage feature flags with `rolloutPercent`:
 - New key pattern: `agent_config_<agentId>_<configKey>` in ConfigTable
 - New key pattern: `config_version_<versionId>` in ConfigTable
 - New key pattern: `feature_flag_<flagName>` in ConfigTable
+- New key: `feature_flags_list` in ConfigTable (array of flag names)
 
 ---
 

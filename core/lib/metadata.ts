@@ -131,4 +131,12 @@ export const SYSTEM_CONFIG_METADATA: Record<string, ConfigOptionMetadata> = {
     risk: 'Values close to 1.0 leave no room for compressed history/facts.',
     default: '0.7',
   },
+  feature_flags_enabled: {
+    label: 'Feature Flags',
+    description: 'Global enable/disable for feature flag evaluation.',
+    implication: 'When disabled, all feature flags evaluate to false regardless of flag state.',
+    risk: 'Disabling mid-features may leave agents in undefined state.',
+    safeguard: 'Flags are evaluated per-invocation; disabling halts new evaluations immediately.',
+    default: 'true',
+  },
 };

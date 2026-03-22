@@ -68,17 +68,65 @@ export class ConfigManager {
   }
 
   /**
+   * Fetches a configuration value with agent-specific override precedence.
+   * Checks agent_config_<agentId>_<key> first, then falls back to global key.
+   *
+   * @param agentId - The agent identifier.
+   * @param key - The configuration key.
+   * @param fallback - The value to use if neither override nor global exists.
+   * @returns A promise resolving to the effective configuration value.
+   */
+  public static async getAgentOverrideConfig<T>(
+    agentId: string,
+    key: string,
+    fallback: T
+  ): Promise<T> {
+    const agentKey = `agent_config_${agentId}_${key}`;
+    const agentValue = await this.getRawConfig(agentKey);
+    if (agentValue !== undefined) return agentValue as T;
+    return this.getTypedConfig<T>(key, fallback);
+  }
+
+  /**
    * Saves a raw configuration value to the ConfigTable.
+   * Optionally snapshots the old value for versioning.
    *
    * @param key - The unique configuration key.
    * @param value - The value to store.
+   * @param options - Optional versioning and audit options.
    */
-  public static async saveRawConfig(key: string, value: unknown): Promise<void> {
+  public static async saveRawConfig(
+    key: string,
+    value: unknown,
+    options?: {
+      author?: string;
+      description?: string;
+      skipVersioning?: boolean;
+    }
+  ): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resource = Resource as any;
     if (!('ConfigTable' in resource)) {
       logger.warn(`ConfigTable not linked. Skipping save for ${key}`);
       return;
+    }
+
+    if (!options?.skipVersioning) {
+      try {
+        const oldValue = await this.getRawConfig(key);
+        if (JSON.stringify(oldValue) !== JSON.stringify(value)) {
+          const { ConfigVersioning } = await import('../config-versioning');
+          await ConfigVersioning.snapshot(
+            key,
+            oldValue,
+            value,
+            options?.author ?? 'system',
+            options?.description
+          );
+        }
+      } catch (e) {
+        logger.warn(`Failed to snapshot config version for ${key}:`, e);
+      }
     }
 
     try {

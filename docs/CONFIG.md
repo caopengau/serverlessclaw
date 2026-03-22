@@ -104,3 +104,60 @@ This document outlines the system-wide configuration keys available in the `Conf
   - Works in concert with `context_summary_ratio` (values should sum to ≤ 1.0).
   - **Increasing**: More recent messages in the active window. Better for short tasks.
   - **Decreasing**: More room for compressed facts. Better for long-running tasks requiring historical awareness.
+
+### `feature_flags_enabled`
+
+- **Default**: `true` (boolean)
+- **Purpose**: Global kill switch for feature flag evaluation. When `false`, all feature flags evaluate to `false` regardless of individual flag state.
+- **Implications**:
+  - **Turning OFF**: Immediately disables all feature-flagged behaviors across all agents. Useful for emergency stabilization.
+  - **Turning ON**: Re-enables feature flag evaluation. Flags must still be individually enabled and meet rollout criteria.
+
+## Per-Agent Configuration Overrides
+
+Agent-specific config values can be set via `ConfigManager.getAgentOverrideConfig(agentId, key, fallback)`. The lookup order is:
+
+1. `agent_config_<agentId>_<key>` — agent-specific override (highest priority)
+2. `<key>` — global config value
+3. `fallback` — code default (lowest priority)
+
+This allows per-agent customization of hot-swappable parameters (e.g., giving the Coder agent a higher `max_tool_iterations` than the Strategic Planner).
+
+## Feature Flags
+
+Feature flags control gradual rollout of new behaviors. Flags are evaluated deterministically via hash-based activation:
+
+```
+hashCode(agentId + flagName) % 100 < rolloutPercent
+```
+
+### Flag Structure
+
+| Field            | Type                | Description                                       |
+| ---------------- | ------------------- | ------------------------------------------------- |
+| `name`           | string              | Unique flag identifier                            |
+| `enabled`        | boolean             | Master toggle for this flag                       |
+| `rolloutPercent` | number (0-100)      | Percentage of agents that see this flag as `true` |
+| `targetAgents`   | string[] (optional) | If set, only these agents can evaluate this flag  |
+| `description`    | string              | Human-readable description                        |
+
+### Evaluation Flow
+
+1. If `feature_flags_enabled` global config is `false` → return `false`
+2. If flag doesn't exist or `enabled === false` → return `false`
+3. If `targetAgents` is set and agent not in list → return `false`
+4. If `rolloutPercent === 100` → return `true`
+5. If `rolloutPercent === 0` → return `false`
+6. Hash `agentId + flagName`, take modulo 100, compare to `rolloutPercent`
+
+### Caching
+
+Flag results are cached in-memory with a 60-second TTL to reduce DynamoDB latency on hot paths.
+
+### Flag Persistence
+
+Individual flags are saved to `ConfigTable` with the key prefix `feature_flag_<name>`. A centralized `feature_flags_list` key maintains an array of all known flag names to allow iteration and management via the `listFlags()` method.
+
+### Config Versioning
+
+All `saveRawConfig` calls automatically snapshot the old value before overwriting (unless `skipVersioning: true`). Version history is stored per config key, capped at 20 entries. Rollback restores a previous value and snapshots the current state for reversibility.

@@ -130,7 +130,7 @@ describe('knowledge tools', () => {
       const result = await MANAGE_AGENT_TOOLS.execute({ agentId: 'main', toolNames: ['tool1'] });
 
       expect(result).toContain('Successfully updated tools');
-      expect(ddbMock.calls()).toHaveLength(1);
+      expect(ddbMock.calls().length).toBeGreaterThanOrEqual(1);
     });
   });
 

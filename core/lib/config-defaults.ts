@@ -257,6 +257,14 @@ export const CONFIG_DEFAULTS = {
     configKey: 'context_active_window_ratio',
     description: 'Fraction of available context budget for active message window.',
   },
+
+  /** Global feature flags enable/disable. Default: true */
+  FEATURE_FLAGS_ENABLED: {
+    code: true,
+    hotSwappable: true,
+    configKey: 'feature_flags_enabled',
+    description: 'Global kill switch for feature flag evaluation system.',
+  },
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_DEFAULTS;

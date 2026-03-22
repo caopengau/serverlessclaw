@@ -44,6 +44,7 @@ export class AgentRegistry {
    */
   public static getRawConfig = ConfigManager.getRawConfig;
   public static saveRawConfig = ConfigManager.saveRawConfig;
+  public static getAgentOverrideConfig = ConfigManager.getAgentOverrideConfig;
 
   /**
    * Retrieves the retention period in days for a specific item type.
