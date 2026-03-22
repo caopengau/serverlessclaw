@@ -335,6 +335,29 @@ export class ContextManager {
         await memory.updateSummary(userId, response.content);
         logger.info(`Successfully updated summary for session ${userId}`);
       }
+
+      // Persist summarization token usage
+      if (response.usage && response.usage.total_tokens > 0) {
+        try {
+          const { TokenTracker } = await import('../token-usage');
+          await TokenTracker.recordInvocation({
+            timestamp: Date.now(),
+            traceId: '',
+            agentId: 'context-manager',
+            provider: 'summarization',
+            model: 'unknown',
+            inputTokens: response.usage.prompt_tokens,
+            outputTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+            toolCalls: 0,
+            taskType: 'summarization',
+            success: true,
+            durationMs: 0,
+          });
+        } catch {
+          // non-critical
+        }
+      }
     } catch (e) {
       logger.error(`Failed to summarize conversation for ${userId}:`, e);
     }

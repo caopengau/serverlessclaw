@@ -161,3 +161,20 @@ Individual flags are saved to `ConfigTable` with the key prefix `feature_flag_<n
 ### Config Versioning
 
 All `saveRawConfig` calls automatically snapshot the old value before overwriting (unless `skipVersioning: true`). Version history is stored per config key, capped at 20 entries. Rollback restores a previous value and snapshots the current state for reversibility.
+
+## Alert Configuration
+
+### `alert_error_rate_threshold`
+
+- **Default**: 0.3 (30%)
+- **Purpose**: Error rate threshold for agent alerting. Triggers an `OUTBOUND_MESSAGE` to ADMIN when agent error rate exceeds this value.
+
+### `alert_dlq_threshold`
+
+- **Default**: 10
+- **Purpose**: Number of DLQ (Dead Letter Queue) events before alerting. Triggers when failed events accumulate beyond this count.
+
+### `alert_token_anomaly_multiplier`
+
+- **Default**: 3.0
+- **Purpose**: Alert if an agent's token usage exceeds this multiplier above its rolling average. Detects sudden spikes that may indicate loops or provider issues.

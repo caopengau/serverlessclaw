@@ -265,6 +265,30 @@ export const CONFIG_DEFAULTS = {
     configKey: 'feature_flags_enabled',
     description: 'Global kill switch for feature flag evaluation system.',
   },
+
+  /** Error rate threshold for agent alerting. Default: 0.3 (30%) */
+  ALERT_ERROR_RATE_THRESHOLD: {
+    code: 0.3,
+    hotSwappable: true,
+    configKey: 'alert_error_rate_threshold',
+    description: 'Error rate threshold for agent alerting.',
+  },
+
+  /** DLQ event count threshold for alerting. Default: 10 */
+  ALERT_DLQ_THRESHOLD: {
+    code: 10,
+    hotSwappable: true,
+    configKey: 'alert_dlq_threshold',
+    description: 'DLQ event count threshold for alerting.',
+  },
+
+  /** Token anomaly multiplier for alerting. Default: 3.0 */
+  ALERT_TOKEN_ANOMALY_MULTIPLIER: {
+    code: 3.0,
+    hotSwappable: true,
+    configKey: 'alert_token_anomaly_multiplier',
+    description: 'Alert if tokens exceed this multiplier above rolling average.',
+  },
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_DEFAULTS;

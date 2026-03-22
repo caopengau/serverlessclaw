@@ -178,4 +178,28 @@ export const Metrics = {
       Dimensions: [{ Name: 'Success', Value: String(success) }],
     };
   },
+
+  tokensInput(inputTokens: number, agentId: string, provider: string): MetricDatum {
+    return {
+      MetricName: 'TokensInput',
+      Value: inputTokens,
+      Unit: 'Count',
+      Dimensions: [
+        { Name: 'AgentId', Value: agentId },
+        { Name: 'Provider', Value: provider },
+      ],
+    };
+  },
+
+  tokensOutput(outputTokens: number, agentId: string, provider: string): MetricDatum {
+    return {
+      MetricName: 'TokensOutput',
+      Value: outputTokens,
+      Unit: 'Count',
+      Dimensions: [
+        { Name: 'AgentId', Value: agentId },
+        { Name: 'Provider', Value: provider },
+      ],
+    };
+  },
 };

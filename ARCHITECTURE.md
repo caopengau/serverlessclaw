@@ -53,15 +53,15 @@ This document covers the AWS topology and data flow. For agent logic and orchest
     |  Managed Services |     |   AWS Scheduler   +<----+  HeartbeatHandler |
     | (DynamoDB / S3)   |     | (Dynamic Goals)   |     | (Proactive Pulse) |
     |                   |     |                   |     |                   |
-    +-------------------+     +-------------------+     +-------------------+
-                                        |                             |
-                                        v                             |
-                            +-----------+-----------+                 |
-                            |                       |                 |
-                            |  IoT Core (Realtime)  |<----------------+
-                            |     (Dashboard)       |
-                            |                       |
-                            +-----------------------+
+    +---------+---------+     +-------------------+     +-------------------+
+              |                         |                             |
+              v                         v                             |
+    +---------+---------+   +-----------+-----------+                 |
+    |                   |   |                       |                 |
+    |   Observability   |   |  IoT Core (Realtime)  |<----------------+
+    | (CloudWatch/SLO)  |   |     (Dashboard)       |
+    |                   |   |                       |
+    +-------------------+   +-----------------------+
 ```
 
 ---

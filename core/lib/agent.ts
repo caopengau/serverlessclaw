@@ -254,6 +254,7 @@ export class Agent {
         paused,
         asyncWait,
         attachments: resultAttachments,
+        usage: loopUsage,
       } = await executor.runLoop(messages, {
         activeModel,
         activeProvider,
@@ -276,6 +277,42 @@ export class Agent {
         timeoutBehavior,
         sessionStateManager,
       });
+
+      // Emit agent-level metrics + persist token usage
+      if (!process.env.VITEST && loopUsage) {
+        try {
+          const { emitMetrics, Metrics } = await import('./metrics');
+          emitMetrics([
+            Metrics.agentDuration(this.config?.id ?? 'unknown', loopUsage.durationMs),
+            Metrics.agentInvoked(this.config?.id ?? 'unknown'),
+          ]).catch(() => {});
+
+          const { TokenTracker } = await import('./token-usage');
+          const agentId = this.config?.id ?? 'unknown';
+          await TokenTracker.recordInvocation({
+            timestamp: Date.now(),
+            traceId: traceId ?? '',
+            agentId,
+            provider: activeProvider ?? 'unknown',
+            model: activeModel ?? 'unknown',
+            inputTokens: loopUsage.totalInputTokens,
+            outputTokens: loopUsage.totalOutputTokens,
+            totalTokens: loopUsage.totalInputTokens + loopUsage.totalOutputTokens,
+            toolCalls: loopUsage.toolCallCount,
+            taskType: 'agent_process',
+            success: !paused,
+            durationMs: loopUsage.durationMs,
+          });
+          await TokenTracker.updateRollup(agentId, {
+            inputTokens: loopUsage.totalInputTokens,
+            outputTokens: loopUsage.totalOutputTokens,
+            toolCalls: loopUsage.toolCallCount,
+            success: !paused,
+          });
+        } catch {
+          logger.warn('Failed to emit agent metrics or persist token usage');
+        }
+      }
 
       let responseText = initialResponseText;
 

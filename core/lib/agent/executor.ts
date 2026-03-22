@@ -85,6 +85,12 @@ export class AgentExecutor {
     asyncWait?: boolean;
     pauseMessage?: string;
     attachments?: NonNullable<Message['attachments']>;
+    usage?: {
+      totalInputTokens: number;
+      totalOutputTokens: number;
+      toolCallCount: number;
+      durationMs: number;
+    };
   }> {
     const {
       maxIterations,
@@ -112,6 +118,10 @@ export class AgentExecutor {
     let iterations = 0;
     let responseText = '';
     const attachments: NonNullable<Message['attachments']> = [];
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let toolCallCount = 0;
+    const loopStartTime = Date.now();
 
     console.log(`[EXECUTOR] Available Tools: ${this.tools.map((t) => t.name).join(', ')}`);
 
@@ -291,6 +301,28 @@ export class AgentExecutor {
         },
       });
 
+      // 2.5 Token Accumulation
+      if (aiResponse.usage) {
+        totalInputTokens += aiResponse.usage.prompt_tokens;
+        totalOutputTokens += aiResponse.usage.completion_tokens;
+
+        if (!process.env.VITEST) {
+          const { emitMetrics, Metrics } = await import('../metrics');
+          emitMetrics([
+            Metrics.tokensInput(
+              aiResponse.usage.prompt_tokens,
+              this.agentId,
+              activeProvider ?? 'unknown'
+            ),
+            Metrics.tokensOutput(
+              aiResponse.usage.completion_tokens,
+              this.agentId,
+              activeProvider ?? 'unknown'
+            ),
+          ]).catch(() => {});
+        }
+      }
+
       // 3. Tool Processing
       if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
         messages.push(aiResponse);
@@ -360,6 +392,13 @@ export class AgentExecutor {
             if (!process.env.VITEST) {
               await AgentRegistry.recordToolUsage(tool.name, this.agentId);
             }
+            toolCallCount++;
+
+            if (!process.env.VITEST) {
+              const toolSuccess = !resultText.startsWith('FAILED');
+              const { emitMetrics, Metrics } = await import('../metrics');
+              emitMetrics([Metrics.toolExecuted(tool.name, toolSuccess)]).catch(() => {});
+            }
 
             await tracer.addStep({
               type: 'tool_result',
@@ -408,12 +447,24 @@ export class AgentExecutor {
         paused: true,
         pauseMessage: AGENT_LOG_MESSAGES.TASK_PAUSED_ITERATION_LIMIT,
         attachments,
+        usage: {
+          totalInputTokens,
+          totalOutputTokens,
+          toolCallCount,
+          durationMs: Date.now() - loopStartTime,
+        },
       };
     }
 
     return {
       responseText: responseText ?? 'Sorry, I reached my iteration limit.',
       attachments: attachments.length > 0 ? attachments : undefined,
+      usage: {
+        totalInputTokens,
+        totalOutputTokens,
+        toolCallCount,
+        durationMs: Date.now() - loopStartTime,
+      },
     };
   }
 

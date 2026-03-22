@@ -79,6 +79,8 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
 
     if (status === 'SUCCEEDED') {
       logger.info(`Build ${buildId} SUCCEEDED. Marking ${gapIds.length} gaps as DEPLOYED.`);
+      const { emitMetrics, Metrics } = await import('../lib/metrics');
+      emitMetrics([Metrics.deploymentCompleted(true)]).catch(() => {});
 
       // Reset failure counter on success
       try {
@@ -127,6 +129,8 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
       );
     } else if (['FAILED', 'STOPPED', 'TIMED_OUT', 'FAULT'].includes(status)) {
       logger.info(`Build ${buildId} ${status}. Marking ${gapIds.length} gaps as FAILED.`);
+      const { emitMetrics, Metrics } = await import('../lib/metrics');
+      emitMetrics([Metrics.deploymentCompleted(false)]).catch(() => {});
 
       // Circuit Breaker: record failure in sliding window
       try {

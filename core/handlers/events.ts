@@ -24,6 +24,13 @@ export async function handler(
   console.log(`[EVENTS] Received: ${detailType} | Session: ${eventDetail.sessionId ?? 'N/A'}`);
   logger.info('EventHandler received event:', JSON.stringify(event, null, 2));
 
+  try {
+    const { emitMetrics, Metrics } = await import('../lib/metrics');
+    emitMetrics([Metrics.agentInvoked(detailType)]).catch(() => {});
+  } catch {
+    // metrics module may not be available in all environments
+  }
+
   switch (detailType) {
     case EventType.SYSTEM_BUILD_FAILED: {
       const { handleBuildFailure } = await import('./events/build-handler');

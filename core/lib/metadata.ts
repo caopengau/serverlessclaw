@@ -139,4 +139,24 @@ export const SYSTEM_CONFIG_METADATA: Record<string, ConfigOptionMetadata> = {
     safeguard: 'Flags are evaluated per-invocation; disabling halts new evaluations immediately.',
     default: 'true',
   },
+  alert_error_rate_threshold: {
+    label: 'Error Rate Alert',
+    description: 'Error rate threshold (0-1) for agent alerting.',
+    implication: 'Lower values trigger alerts more frequently.',
+    risk: 'Too low (<0.1) may cause alert fatigue.',
+    default: '0.3',
+  },
+  alert_dlq_threshold: {
+    label: 'DLQ Overflow Alert',
+    description: 'Number of DLQ events before alerting.',
+    implication: 'Lower values catch issues earlier.',
+    default: '10',
+  },
+  alert_token_anomaly_multiplier: {
+    label: 'Token Anomaly Multiplier',
+    description: 'Alert if tokens exceed this multiplier above rolling average.',
+    implication: 'Higher values reduce false positives but may miss gradual drift.',
+    risk: 'Too low (<2.0) may cause alert fatigue on normal variance.',
+    default: '3.0',
+  },
 };

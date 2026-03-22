@@ -711,54 +711,148 @@ Leverage feature flags with `rolloutPercent`:
 
 ---
 
-## Phase 9: Observability & Metrics (Low)
+## Phase 9: Observability, Metrics & Token Tracking (Low)
 
 ### Problem Statement
 
 1. CloudWatch metrics infrastructure exists (`core/lib/metrics.ts`) but is rarely called.
-2. No per-agent performance dashboards.
-3. No alerting for critical communication failures.
+2. No token usage tracking per agent/tool/invocation.
+3. No alerting for critical communication failures or anomalous token usage.
 4. No SLA/SLO tracking.
 
 ### Implementation Steps
 
-#### Step 9.1 — Instrument Key Code Paths
+#### Step 9.0 — New Metric Constructors in metrics.ts
 
-**File**: Various handlers
-
-Add `emitMetrics()` calls at these critical points:
-
-| Location                                      | Metric                                    |
-| --------------------------------------------- | ----------------------------------------- |
-| `core/handlers/events.ts`                     | `EventHandlerReceived` (by detail-type)   |
-| `core/handlers/monitor.ts`                    | `BuildResult` (success/failure)           |
-| `core/handlers/events/parallel-handler.ts`    | `ParallelDispatchSize`                    |
-| `core/handlers/events/task-result-handler.ts` | `TaskRelayLatency`                        |
-| `core/lib/agent.ts`                           | `AgentProcessDuration`, `AgentTokenUsage` |
-| `core/lib/utils/bus.ts`                       | `EventBridgeEmitLatency`, `DLQWrite`      |
-| `core/handlers/recovery.ts`                   | `RecoveryAttempt`, `HealthProbeResult`    |
-
-#### Step 9.2 — Per-Agent Performance Tracking
-
-**File**: `core/lib/agent-metrics.ts` (NEW)
-
+Add to the existing Metrics factory:
 ```typescript
-interface AgentMetrics {
-  agentId: string;
-  windowStart: number;
-  invocations: number;
-  successes: number;
-  failures: number;
-  avgDurationMs: number;
-  p95DurationMs: number;
+tokensInput(inputTokens: number, agentId: string, provider: string): MetricDatum
+tokensOutput(outputTokens: number, agentId: string, provider: string): MetricDatum
+// agentInvoked(agentId)  // already exists
+// agentDuration(agentId, ms)  // already exists
+// toolExecuted(toolName, success)  // already exists
+// toolDuration(toolName, ms)  // already exists
+```
+
+#### Step 9.1a — Instrumentation Points
+
+| File | Line(s) | Metric |
+|------|---------|--------|
+| `executor.ts` | After `aiResponse.usage` (line ~292) | `Metrics.tokensInput`, `Metrics.tokensOutput` |
+| `executor.ts` | After tool execution (line ~362) | `Metrics.toolExecuted`, `Metrics.toolDuration` |
+| `agent.ts` | After `runLoop` returns | `Metrics.agentDuration`, `Metrics.agentInvoked` |
+| `monitor.ts` | On build success/failure | `Metrics.deploymentCompleted` |
+| `recovery.ts` | After health probe | `Metrics.mcpHubPing`, `Metrics.lockAcquired`, `Metrics.circuitBreakerTriggered` |
+| `bus.ts` | After `PutEventsCommand` | `Metrics.eventBridgeEmit`, `Metrics.dlqEvents` |
+| `events.ts` | Top of handler | `Metrics.agentInvoked` by event type |
+
+#### Step 9.1b — Token Accumulation in Executor
+
+Add running totals inside `runLoop`:
+```typescript
+let totalInputTokens = 0;
+let totalOutputTokens = 0;
+let toolCallCount = 0;
+
+// After each LLM call:
+if (aiResponse.usage) {
+  totalInputTokens += aiResponse.usage.inputTokens;
+  totalOutputTokens += aiResponse.usage.outputTokens;
+}
+
+// After each tool call:
+toolCallCount++;
+```
+
+Update `runLoop` return type:
+```typescript
+usage?: {
   totalInputTokens: number;
   totalOutputTokens: number;
+  toolCallCount: number;
+  durationMs: number;
 }
 ```
 
-Store in MemoryTable with key `AGENT_METRICS#<agentId>#<windowStart>` and daily TTL.
+#### Step 9.2a — Per-Invocation Records
 
-Emit aggregated metrics to CloudWatch every hour via a scheduled event.
+**File**: `core/lib/token-usage.ts` (NEW)
+
+```typescript
+interface TokenUsageRecord {
+  userId: string;           // TOKEN#<agentId>#<timestamp>
+  timestamp: number;
+  traceId: string;
+  agentId: string;
+  provider: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  toolCalls: number;
+  taskType: 'agent_process' | 'summarization' | 'other';
+  success: boolean;
+  durationMs: number;
+  expiresAt: number;        // TTL 7 days
+}
+
+class TokenTracker {
+  static async recordInvocation(record: TokenUsageRecord): Promise<void>;
+  static async getInvocationHistory(agentId: string, limit?: number): Promise<TokenUsageRecord[]>;
+}
+```
+
+#### Step 9.2b — Daily Rollups
+
+**File**: `core/lib/token-usage.ts`
+
+```typescript
+interface TokenRollup {
+  userId: string;           // TOKEN_ROLLUP#<agentId>#<YYYY-MM-DD>
+  timestamp: number;        // day start epoch
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  invocationCount: number;
+  toolCalls: number;
+  avgTokensPerInvocation: number;
+  successCount: number;
+  expiresAt: number;        // TTL 90 days
+}
+
+class TokenTracker {
+  // ...
+  static async updateRollup(agentId: string, usage: { inputTokens: number, outputTokens: number, toolCalls: number, success: boolean }): Promise<void>;
+  static async getRollup(agentId: string, date: string): Promise<TokenRollup | null>;
+  static async getRollupRange(agentId: string, days: number): Promise<TokenRollup[]>;
+}
+```
+Uses MemoryTable with the existing composite key pattern (userId + timestamp).
+
+#### Step 9.2c — Per-Tool Rollups
+
+**File**: `core/lib/token-usage.ts`
+
+```typescript
+interface ToolTokenRollup {
+  userId: string;           // TOOL_TOKEN#<toolName>#<YYYY-MM-DD>
+  timestamp: number;
+  invocationCount: number;
+  successCount: number;
+  avgInputTokens: number;   // tracked via context estimation (input to the LLM call that used this tool)
+  expiresAt: number;
+}
+
+class TokenTracker {
+  // ...
+  static async updateToolRollup(toolName: string, success: boolean, inputTokens?: number): Promise<void>;
+}
+```
+
+#### Step 9.2d — Summarization Usage Capture
+
+Update `core/lib/agent/context-manager.ts` `summarize()`:
+- Return `{ summary: string, usage?: { inputTokens, outputTokens } }` instead of `void`
+- Call `TokenTracker.recordInvocation()` with `taskType: 'summarization'`
 
 #### Step 9.3 — Critical Alerting
 
@@ -766,17 +860,18 @@ Emit aggregated metrics to CloudWatch every hour via a scheduled event.
 
 ```typescript
 class Alerting {
-  async alertClarificationOrphan(count: number): Promise<void>;
-  async alertCircuitBreakerOpen(type: string): Promise<void>;
-  async alertDLQOverflow(count: number): Promise<void>;
-  async alertHighErrorRate(agentId: string, rate: number): Promise<void>;
+  static async alertHighTokenUsage(agentId: string, tokens: number, threshold: number): Promise<void>;
+  static async alertCircuitBreakerOpen(type: string): Promise<void>;
+  static async alertDLQOverflow(count: number): Promise<void>;
+  static async alertHighErrorRate(agentId: string, rate: number): Promise<void>;
 }
 ```
 
-Alerts emit `OUTBOUND_MESSAGE` to SuperClaw for Telegram notification and push to Dashboard.
+Alerts emit `OUTBOUND_MESSAGE` event pattern → Notifier → Telegram.
 
 **File**: `core/lib/config-defaults.ts`
 
+Add alert config defaults:
 ```typescript
 ALERT_ERROR_RATE_THRESHOLD: {
   code: 0.3, // 30% error rate
@@ -790,6 +885,12 @@ ALERT_DLQ_THRESHOLD: {
   configKey: 'alert_dlq_threshold',
   description: 'DLQ event count threshold for alerting.',
 },
+ALERT_TOKEN_ANOMALY_MULTIPLIER: {
+  code: 3.0,
+  hotSwappable: true,
+  configKey: 'alert_token_anomaly_multiplier',
+  description: 'Alert if tokens are greater than 3x rolling average.',
+}
 ```
 
 #### Step 9.4 — SLA/SLO Tracking
@@ -801,7 +902,7 @@ Define SLOs and track against them:
 ```typescript
 interface SLODefinition {
   name: string;
-  target: number; // e.g., 0.99 for 99%
+  target: number;
   window: 'daily' | 'weekly' | 'monthly';
   metric: 'availability' | 'task_success_rate' | 'p95_latency';
 }
@@ -811,14 +912,18 @@ const DEFAULT_SLOS: SLODefinition[] = [
   { name: 'task_success_rate', target: 0.95, window: 'weekly', metric: 'task_success_rate' },
   { name: 'response_latency', target: 30000, window: 'daily', metric: 'p95_latency' },
 ];
-```
 
-Store SLO burn rate in ConfigTable, emit CloudWatch dashboard metric, alert when error budget is being consumed too fast.
+class SLOTracker {
+  static async checkSLO(name: string, rollups: TokenRollup[]): Promise<{ burnRate: number, withinBudget: boolean }>;
+  static async getSLOStatus(): Promise<Record<string, { current: number, target: number }>>;
+}
+```
 
 ### Config Changes
 
 - `alert_error_rate_threshold` (hot-swappable, default 0.3)
 - `alert_dlq_threshold` (hot-swappable, default 10)
+- `alert_token_anomaly_multiplier` (hot-swappable, default 3.0)
 
 ---
 
@@ -889,4 +994,4 @@ Each phase requires:
 | 6     | `context-strategies.ts`                                           | `context-manager.ts`                                                                                                                  |
 | 7     | `agent-routing.ts`                                                | `insight-operations.ts`, `cognition-reflector.ts`, `strategic-planner.ts`, `registry.ts`                                              |
 | 8     | `config-versioning.ts`, `feature-flags.ts`                        | `registry/config.ts`, `registry.ts`, `config-defaults.ts`                                                                             |
-| 9     | `agent-metrics.ts`, `alerting.ts`, `slo.ts`                       | `events.ts`, `monitor.ts`, `parallel-handler.ts`, `task-result-handler.ts`, `agent.ts`, `bus.ts`, `recovery.ts`, `config-defaults.ts` |
+| 9     | `token-usage.ts`, `alerting.ts`, `slo.ts`, `token-usage.test.ts`, `alerting.test.ts`, `slo.test.ts` | `metrics.ts`, `agent/executor.ts`, `agent.ts`, `agent/context-manager.ts`, `config-defaults.ts`, `metadata.ts`, `monitor.ts`, `recovery.ts`, `events.ts`, `bus.ts`, `docs/CONFIG.md` |
