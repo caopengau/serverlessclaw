@@ -218,22 +218,32 @@ export class AgentExecutor {
           console.log(`[EXECUTOR] Found tool ${toolCall.function.name}: ${!!tool}`);
           if (tool) {
             const args = JSON.parse(toolCall.function.arguments);
-            // Context injection
-            Object.assign(args, {
+            // 2.2 Context injection (Safely merge system-provided context without overwriting LLM args)
+            const contextArgs: Record<string, unknown> = {
               traceId,
               nodeId,
               parentId,
+              executorAgentId: this.agentId,
+              executorAgentName: this.agentName,
               initiatorId: currentInitiator,
               depth,
               sessionId,
-              userId: args.userId ?? userId,
               mainConversationId,
-              agentName: this.agentName,
-              agentId: this.agentId,
               activeModel,
               activeProvider,
-              task: userText,
+              originalUserTask: userText,
+            };
+
+            // Safely populate args: only add if the tool didn't already provide it
+            Object.entries(contextArgs).forEach(([key, value]) => {
+              if (args[key] === undefined) {
+                args[key] = value;
+              }
             });
+
+            // Ensure standard identifiers are present
+            args.userId = args.userId ?? userId;
+            args.sessionId = args.sessionId ?? sessionId;
 
             console.log(
               `[EXECUTOR] Calling tool: ${tool.name} | Args:`,

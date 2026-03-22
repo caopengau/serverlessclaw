@@ -104,4 +104,124 @@ describe('AgentExecutor', () => {
 
     expect(result.responseText).toBe('Just wait.');
   });
+
+  it('should not overwrite tool arguments with system context', async () => {
+    const mockTool = {
+      name: 'dispatchTask',
+      execute: vi.fn().mockImplementation((args) => {
+        return `SUCCESS: dispatched to ${args.agentId} with task: ${args.task}`;
+      }),
+    };
+
+    const executorWithTool = new AgentExecutor(
+      mockProvider as any,
+      [mockTool as any],
+      'main-agent',
+      'Main Agent'
+    );
+
+    mockProvider.call.mockResolvedValue({
+      role: MessageRole.ASSISTANT,
+      content: '',
+      tool_calls: [
+        {
+          id: 'call-dispatch',
+          type: 'function',
+          function: {
+            name: 'dispatchTask',
+            arguments: JSON.stringify({
+              agentId: 'special-agent',
+              task: 'sub-task content',
+            }),
+          },
+        },
+      ],
+    });
+
+    await executorWithTool.runLoop([], {
+      activeProfile: ReasoningProfile.STANDARD,
+      maxIterations: 1,
+      tracer: mockTracer as any,
+      traceId: 't-123',
+      nodeId: 'n-1',
+      parentId: undefined,
+      currentInitiator: 'main',
+      depth: 0,
+      userId: 'u-1',
+      userText: 'original user query',
+      mainConversationId: 'c-1',
+    });
+
+    // The result should contain the arguments provided by the LLM, not the ones from system context
+    expect(mockTool.execute).toHaveBeenCalled();
+    const callArgs = (mockTool.execute as any).mock.calls[0][0];
+    expect(callArgs.agentId).toBe('special-agent'); // Not 'main-agent'
+    expect(callArgs.task).toBe('sub-task content'); // Not 'original user query'
+    expect(callArgs.executorAgentId).toBe('main-agent'); // New prefixed field
+    expect(callArgs.originalUserTask).toBe('original user query'); // New prefixed field
+  });
+
+  it('should allow SuperClaw (main) to dispatch to strategic-planner without collision', async () => {
+    // Mimic the real dispatchTask implementation's check
+    const mockDispatchTask = {
+      name: 'dispatchTask',
+      execute: vi.fn().mockImplementation(async (args) => {
+        if (args.agentId === 'main') {
+          return 'FAILED: Cannot dispatch to main';
+        }
+        return `SUCCESS: dispatched to ${args.agentId}`;
+      }),
+    };
+
+    const executor = new AgentExecutor(
+      mockProvider as any,
+      [mockDispatchTask as any],
+      'main',
+      'SuperClaw'
+    );
+
+    mockProvider.call.mockResolvedValue({
+      role: MessageRole.ASSISTANT,
+      content: 'I am consulting the Strategic Planner...',
+      tool_calls: [
+        {
+          id: 'call-123',
+          type: 'function',
+          function: {
+            name: 'dispatchTask',
+            arguments: JSON.stringify({
+              agentId: 'strategic-planner',
+              task: 'How many agents?',
+              metadata: {},
+            }),
+          },
+        },
+      ],
+    });
+
+    await executor.runLoop([], {
+      activeProfile: ReasoningProfile.STANDARD,
+      maxIterations: 1,
+      tracer: mockTracer as any,
+      traceId: 'trace-abc',
+      nodeId: 'node-1',
+      parentId: undefined,
+      currentInitiator: 'main',
+      depth: 0,
+      userId: 'user-789',
+      userText: 'How many agents do we have?',
+      mainConversationId: 'session-123',
+    });
+
+    // Verify it SUCCEEDED (did not receive the 'FAILED: Cannot dispatch to main' message)
+    expect(mockDispatchTask.execute).toHaveBeenCalled();
+    const resultText = (mockDispatchTask.execute as any).mock.results[0].value;
+    expect(await resultText).toBe('SUCCESS: dispatched to strategic-planner');
+
+    // Check that we also have the executor context available under safe names
+    const finalArgs = (mockDispatchTask.execute as any).mock.calls[0][0];
+    expect(finalArgs.executorAgentId).toBe('main');
+    expect(finalArgs.initiatorId).toBe('main');
+    expect(finalArgs.originalUserTask).toBe('How many agents do we have?');
+  });
 });
