@@ -9,7 +9,7 @@ import { Resource } from 'sst';
 import { EventType } from './types/agent';
 import { SSTResource } from './types/system';
 import { logger } from './logger';
-import { emitEvent } from './utils/bus';
+import { emitEvent, EventPriority } from './utils/bus';
 import { formatErrorMessage } from './utils/error';
 
 // Default clients for backward compatibility - can be overridden for testing
@@ -63,11 +63,19 @@ export async function reportHealthIssue(report: HealthIssue): Promise<void> {
     traceId: report.traceId,
   });
 
+  const priority =
+    report.severity === 'critical' || report.severity === 'high'
+      ? EventPriority.CRITICAL
+      : report.severity === 'medium'
+        ? EventPriority.HIGH
+        : EventPriority.NORMAL;
+
   try {
     await emitEvent(
       'system.health',
       EventType.SYSTEM_HEALTH_REPORT,
-      report as unknown as Record<string, unknown>
+      report as unknown as Record<string, unknown>,
+      { priority }
     );
     logger.info(`Health issue reported successfully for component: ${report.component}`);
   } catch (error) {

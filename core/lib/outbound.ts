@@ -1,4 +1,4 @@
-import { emitEvent } from './utils/bus';
+import { emitEvent, EventPriority } from './utils/bus';
 import { EventType, Attachment } from './types/agent';
 import { extractBaseUserId } from './utils/agent-helpers';
 
@@ -33,14 +33,19 @@ export async function sendOutboundMessage(
   // Normalize userId to base form to ensure consistent routing and syncing
   const baseUserId = extractBaseUserId(userId);
 
-  await emitEvent(source, EventType.OUTBOUND_MESSAGE, {
-    userId: baseUserId,
-    message,
-    memoryContexts,
-    sessionId,
-    agentName,
-    attachments,
-    messageId,
-    options,
-  });
+  await emitEvent(
+    source,
+    EventType.OUTBOUND_MESSAGE,
+    {
+      userId: baseUserId,
+      message,
+      memoryContexts,
+      sessionId,
+      agentName,
+      attachments,
+      messageId,
+      options,
+    },
+    { priority: EventPriority.HIGH }
+  );
 }

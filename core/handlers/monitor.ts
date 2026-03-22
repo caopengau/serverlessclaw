@@ -7,7 +7,7 @@ import { logger } from '../lib/logger';
 import { EventType, GapStatus } from '../lib/types/agent';
 import { SSTResource, TopologyNode } from '../lib/types/system';
 import { reportHealthIssue } from '../lib/health';
-import { emitEvent } from '../lib/utils/bus';
+import { emitEvent, EventPriority } from '../lib/utils/bus';
 
 const codebuild = new CodeBuildClient({});
 const logs = new CloudWatchLogsClient({});
@@ -109,15 +109,20 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
       }
 
       // Notify success
-      await emitEvent('build.monitor', EventType.SYSTEM_BUILD_SUCCESS, {
-        userId,
-        buildId,
-        projectName,
-        initiatorId,
-        sessionId,
-        task: originalTask,
-        traceId,
-      });
+      await emitEvent(
+        'build.monitor',
+        EventType.SYSTEM_BUILD_SUCCESS,
+        {
+          userId,
+          buildId,
+          projectName,
+          initiatorId,
+          sessionId,
+          task: originalTask,
+          traceId,
+        },
+        { priority: EventPriority.HIGH }
+      );
     } else if (['FAILED', 'STOPPED', 'TIMED_OUT', 'FAULT'].includes(status)) {
       logger.info(`Build ${buildId} ${status}. Marking ${gapIds.length} gaps as FAILED.`);
 
@@ -191,17 +196,22 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
       }
 
       // Notify failure
-      await emitEvent('build.monitor', EventType.SYSTEM_BUILD_FAILED, {
-        userId,
-        buildId,
-        projectName,
-        errorLogs: errorLogs.substring(Math.max(0, errorLogs.length - 3000)),
-        gapIds,
-        traceId,
-        initiatorId,
-        sessionId,
-        task: originalTask,
-      });
+      await emitEvent(
+        'build.monitor',
+        EventType.SYSTEM_BUILD_FAILED,
+        {
+          userId,
+          buildId,
+          projectName,
+          errorLogs: errorLogs.substring(Math.max(0, errorLogs.length - 3000)),
+          gapIds,
+          traceId,
+          initiatorId,
+          sessionId,
+          task: originalTask,
+        },
+        { priority: EventPriority.CRITICAL }
+      );
     }
   } catch (error) {
     logger.error('Error in BuildMonitor:', error);

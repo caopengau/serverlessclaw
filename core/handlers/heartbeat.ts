@@ -1,6 +1,6 @@
 import { Context } from 'aws-lambda';
 import { logger } from '../lib/logger';
-import { emitEvent } from '../lib/utils/bus';
+import { emitEvent, EventPriority } from '../lib/utils/bus';
 import { EventType, ProactiveHeartbeatPayload } from '../lib/types/agent';
 
 /**
@@ -26,7 +26,8 @@ export async function handler(event: ProactiveHeartbeatPayload, _context: Contex
     await emitEvent(
       'heartbeat.scheduler',
       EventType.HEARTBEAT_PROACTIVE,
-      event as unknown as Record<string, unknown>
+      event as unknown as Record<string, unknown>,
+      { priority: EventPriority.HIGH }
     );
 
     logger.info(
