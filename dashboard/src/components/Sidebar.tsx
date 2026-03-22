@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Activity, 
-  ShieldCheck, 
   MessageSquare, 
   Settings, 
   Lock, 
@@ -16,8 +15,6 @@ import {
   Brain,
   Wrench,
   Server,
-  Sun,
-  Moon,
   Calendar
 } from 'lucide-react';
 import Link from 'next/link';
@@ -26,9 +23,7 @@ import { usePathname } from 'next/navigation';
 import { THEME } from '@/lib/theme';
 import { UI_STRINGS, ROUTES } from '@/lib/constants';
 import Typography from '@/components/ui/Typography';
-import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
 
 /**
  * Main application sidebar component.

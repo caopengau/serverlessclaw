@@ -4,11 +4,9 @@ import React, { useState, useEffect } from 'react';
 import AgentsTab from './AgentsTab';
 import AnalyticsTab from './AnalyticsTab';
 import Button from '../ui/Button';
-import Typography from '../ui/Typography';
-import Card from '../ui/Card';
 import { 
-  Search, Loader2, RefreshCw,
-  Activity, BookOpen, ExternalLink, Zap, Cpu,
+  Search,
+  Activity, BookOpen, ExternalLink, Cpu,
   Sparkles
 } from 'lucide-react';
 import MCPTab from './MCPTab';
@@ -38,8 +36,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
   [allTools]);
 
   const {
-    mcpTools,
-    refresh: _refreshTools
+    mcpTools
   } = useMCPTools(mappedTools);
 
   // Sync with props if they change
@@ -49,10 +46,6 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
 
   return (
     <div className={`space-y-10 transition-all duration-500 ${isPending ? 'opacity-80' : 'opacity-100'}`}>
-      {/* ... Loader logic ... */}
-      
-      {/* ... MCP Discovery Banner ... */}
-
       {/* Navigation & Search */}
       <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center sticky top-0 z-20 bg-black/90 backdrop-blur-xl p-6 border-b border-white/5 -mx-6 lg:-mx-10 -mt-10 mb-10">
         <nav className="flex gap-1 bg-white/5 p-1 rounded-sm border border-white/5 overflow-x-auto no-scrollbar">
@@ -97,9 +90,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
       {activeTab === 'analytics' && (
         <AnalyticsTab 
           allTools={mcpTools}
-          agents={agents}
           optimisticAgents={optimisticAgents}
-          setOptimisticAgents={setOptimisticAgents}
           handleDetachTool={handleDetachTool}
           confirmModal={confirmModal}
           setConfirmModal={setConfirmModal}
@@ -126,7 +117,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
       )}
 
       {activeTab === 'mcp' && (
-        <MCPTab mcpServers={mcpServers as unknown as MCPTool[]} searchQuery={searchQuery} />
+        <MCPTab mcpServers={mcpServers} searchQuery={searchQuery} />
       )}
 
       {activeTab === 'library' && (

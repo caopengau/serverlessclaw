@@ -2,9 +2,8 @@
 
 import React from 'react';
 import { Activity, Cpu, Zap, Loader2 } from 'lucide-react';
-import Button from '../ui/Button';
-import Typography from '../ui/Typography';
-import Card from '../ui/Card';
+import Typography from '@/components/ui/Typography';
+import Card from '@/components/ui/Card';
 import Badge from '../ui/Badge';
 import CyberConfirm from '../CyberConfirm';
 import type { Tool } from '@/lib/types/ui';
@@ -24,7 +23,6 @@ interface AnalyticsTabProps {
 
 export default function AnalyticsTab({ 
   allTools, 
-  agents, 
   optimisticAgents,
   handleDetachTool,
   confirmModal,

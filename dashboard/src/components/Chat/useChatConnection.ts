@@ -54,7 +54,6 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSessions();
   }, []);
 
@@ -127,6 +126,7 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
         mqttClientRef.current.end();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -153,6 +153,7 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
       }
     }, isRealtimeActive ? 60000 : 10000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSessionId, isRealtimeActive]);
 
   return { isRealtimeActive, sessions, fetchSessions, skipNextHistoryFetch, seenMessageIds };

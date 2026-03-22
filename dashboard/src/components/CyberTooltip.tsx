@@ -9,7 +9,12 @@ interface CyberTooltipProps {
   position?: 'top' | 'bottom' | 'left' | 'right';
 }
 
-export default function CyberTooltip({ content, children, position = 'top' }: CyberTooltipProps) {
+export default function CyberTooltip({ 
+  content, 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  children, 
+  position = 'top' 
+}: CyberTooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   const positionClasses = {

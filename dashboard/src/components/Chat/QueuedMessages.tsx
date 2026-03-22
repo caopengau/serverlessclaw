@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Clock, Edit2, X, Check } from 'lucide-react';
+import { Clock, Edit2, X, Check } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -137,10 +137,9 @@ interface QueuedMessagesListProps {
   messages: PendingMessage[];
   onEdit: (messageId: string, newContent: string) => Promise<void>;
   onRemove: (messageId: string) => Promise<void>;
-  isLoading?: boolean;
 }
 
-export function QueuedMessagesList({ messages, onEdit, onRemove, isLoading }: QueuedMessagesListProps) {
+export function QueuedMessagesList({ messages, onEdit, onRemove }: QueuedMessagesListProps) {
   if (messages.length === 0) return null;
 
   return (

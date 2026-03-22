@@ -2,9 +2,8 @@
 
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { Activity, LayoutGrid, Zap, Search } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
-import Button from '@/components/ui/Button';
 import { THEME } from '@/lib/theme';
 
 // Dynamic import for React Flow component to avoid SSR issues

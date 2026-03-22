@@ -147,10 +147,6 @@ const getAgentDescription = (id: string) => {
   return descMap[id] ?? 'Neural spoke for dynamic task execution and decentralized intelligence.';
 };
 
-const getEdgeType = () => {
-  return 'default'; // Use Bezier curves as preferred by the user
-};
-
 export function FlowContent() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);

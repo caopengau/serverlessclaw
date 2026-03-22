@@ -2,8 +2,7 @@
 
 import React, { useState } from 'react';
 import { 
-  Settings, Zap, RefreshCw, Save, LogOut, CheckCircle, 
-  AlertTriangle, Bot, Trash2
+  Settings, Zap, RefreshCw, Save
 } from 'lucide-react';
 import { SYSTEM_CONFIG_METADATA } from '@claw/core/lib/metadata';
 import CyberSelect from '@/components/CyberSelect';

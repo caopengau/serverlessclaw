@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Cpu, Settings } from 'lucide-react';
 import Typography from '../ui/Typography';
-import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import type { Tool } from '@/lib/types/ui';
 

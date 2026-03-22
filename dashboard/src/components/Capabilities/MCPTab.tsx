@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
-import { Plus, Loader2, Zap, Trash2, ExternalLink } from 'lucide-react';
+import { Plus, Loader2, Zap, Trash2 } from 'lucide-react';
 import { deleteMCPServer, registerMCPServer } from '../../app/capabilities/actions';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -10,7 +10,6 @@ import Typography from '../ui/Typography';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import CyberConfirm from '../CyberConfirm';
-import { ConfirmModalState } from './types';
 
 interface MCPTabProps {
   mcpServers: Record<string, string | { command: string; env?: Record<string, string> }>;

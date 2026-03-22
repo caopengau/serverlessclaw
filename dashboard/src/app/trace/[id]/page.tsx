@@ -168,7 +168,7 @@ export default async function TraceDetailPage({
             </Typography>
 
             <div className="space-y-4">
-              {node.steps?.map((step: TraceStep, idx: number) => (
+              {node.steps?.map((step: TraceStep) => (
                 <div key={step.stepId} className="glass-card border-white/5 overflow-hidden">
                   <div className="p-4 flex items-center justify-between bg-white/[0.02]">
                     <div className="flex items-center gap-4">
@@ -217,6 +217,7 @@ export default async function TraceDetailPage({
                         <div className="text-[10px] text-cyber-green/60 uppercase font-bold mb-2 tracking-widest flex items-center gap-2">
                            <Bot size={12} /> Generated_Response
                         </div>
+                        <span className="text-white/40">{step.timestamp}</span>
                         <div className="text-xs text-white/90 leading-relaxed whitespace-pre-wrap font-mono">
                           {(() => {
                             const content = step.content.content;

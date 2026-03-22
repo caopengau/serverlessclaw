@@ -42,7 +42,7 @@ export function useAgentTools(agents: AgentConfig[]) {
         if (result?.error) throw new Error(result.error);
         toast.success(isAttached ? `Revoked ${toolName} from ${agentId}` : `Assigned ${toolName} to ${agentId}`);
         router.refresh();
-      } catch (_error) {
+      } catch {
         toast.error('Sync failed. Reverting changes.');
         setOptimisticAgents(agents);
       }

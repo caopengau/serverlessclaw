@@ -1,4 +1,4 @@
-import { Plus, Clock, Trash2, ChevronRight, Search, Pin, PinOff } from 'lucide-react';
+import { Plus, Clock, Trash2, Search, Pin, PinOff } from 'lucide-react';
 import { THEME } from '@/lib/theme';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';

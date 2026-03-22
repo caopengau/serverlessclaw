@@ -19,6 +19,7 @@ export default function ChatContent() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isShaking, setIsShaking] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
@@ -97,6 +98,7 @@ export default function ChatContent() {
       hasProcessedPrompt.current = true;
       setTimeout(() => sendMessage(prompt), 500);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   useEffect(() => {
@@ -107,18 +109,6 @@ export default function ChatContent() {
       }
     }
   }, [activeSessionId, router]);
-
-  useEffect(() => {
-    if (activeSessionId) {
-      if (skipNextHistoryFetch.current) {
-        skipNextHistoryFetch.current = false;
-        return;
-      }
-      fetchHistory(activeSessionId);
-    } else {
-      setMessages([]);
-    }
-  }, [activeSessionId]);
 
   const fetchHistory = async (sessionId: string) => {
     setIsLoading(true);
@@ -147,6 +137,19 @@ export default function ChatContent() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (activeSessionId) {
+      if (skipNextHistoryFetch.current) {
+        skipNextHistoryFetch.current = false;
+        return;
+      }
+      fetchHistory(activeSessionId);
+    } else {
+      setMessages([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSessionId]);
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldCheck, Lock, Eye, FileWarning, Globe, Server, Database } from 'lucide-react';
+import { Lock, Eye, FileWarning, Globe, Server, Database } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';

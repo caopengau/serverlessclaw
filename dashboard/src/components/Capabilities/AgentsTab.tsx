@@ -85,7 +85,7 @@ export default function AgentsTab({
         if (result?.error) throw new Error(result.error);
         toast.success(isAttached ? `Revoked ${toolName} from ${agentId}` : `Assigned ${toolName} to ${agentId}`);
         router.refresh();
-      } catch (error) {
+      } catch {
         toast.error('Sync failed. Reverting changes.');
         setOptimisticAgents(agents);
       }

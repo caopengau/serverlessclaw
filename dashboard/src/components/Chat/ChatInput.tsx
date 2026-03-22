@@ -1,4 +1,7 @@
-import { Send, Paperclip, X, ImageIcon, File } from 'lucide-react';
+'use client';
+
+import React from 'react';
+import { Send, Paperclip, X, File } from 'lucide-react';
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';

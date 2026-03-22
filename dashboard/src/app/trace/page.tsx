@@ -1,7 +1,6 @@
 import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
-import Sidebar from '@/components/Sidebar';
 import DeleteAllTracesButton from '@/components/DeleteAllTracesButton';
 import { TraceSource } from '@claw/core/lib/types/index';
 import Typography from '@/components/ui/Typography';
