@@ -181,9 +181,10 @@ export class OpenAIProvider implements IProvider {
                 if (t.connector_id) {
                   return {
                     type: OPENAI.MCP_TYPE,
-                    name: t.name,
+                    server_label: t.name,
+
                     connector_id: t.connector_id,
-                  };
+                  } as any;
                 }
                 if (t.type && t.type !== OPENAI.FUNCTION_TYPE) {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -384,9 +385,10 @@ export class OpenAIProvider implements IProvider {
                 if (t.connector_id) {
                   return {
                     type: OPENAI.MCP_TYPE,
-                    name: t.name,
+                    server_label: t.name,
+
                     connector_id: t.connector_id,
-                  };
+                  } as any;
                 }
                 return {
                   type: OPENAI.FUNCTION_TYPE,
