@@ -213,8 +213,20 @@ export default function ChatContent() {
     if (!currentSessionId) {
        currentSessionId = `session_${Date.now()}`;
        skipNextHistoryFetch.current = true;
+       activeSessionRef.current = currentSessionId;
        setActiveSessionId(currentSessionId);
     }
+
+    const traceId = crypto.randomUUID();
+    seenMessageIds.current.add(traceId);
+
+    // Add placeholder immediately so MQTT chunks have a message to append to
+    setMessages(prev => [...prev, {
+      role: 'assistant',
+      content: '',
+      messageId: traceId,
+      agentName: 'SuperClaw',
+    }]);
 
     try {
       const apiAttachments = await Promise.all(currentAttachments.map(async (a) => {
@@ -229,29 +241,28 @@ export default function ChatContent() {
       const response = await fetch('/api/chat?stream=true', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: userMsg, sessionId: currentSessionId, attachments: apiAttachments }),
+        body: JSON.stringify({ text: userMsg, sessionId: currentSessionId, attachments: apiAttachments, traceId }),
       });
 
       const data = await response.json();
-      
+
       // Handle error responses from the API
       if (!response.ok || data.error) {
         const errorContent = data.details || data.error || AGENT_ERRORS.PROCESS_FAILURE;
         console.error('Chat API error:', data);
         if (currentSessionId === activeSessionRef.current) {
-          setMessages(prev => [...prev, { 
-            role: 'assistant', 
-            content: errorContent, 
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: errorContent,
             agentName: 'SystemGuard',
-            isError: true 
+            isError: true
           }]);
         }
         fetchSessions();
         return;
       }
-      
-      // On streaming success, we don't append the message immediately.
-      // Chunks will arrive via MQTT.
+
+      // Streaming chunks will arrive via MQTT and update the placeholder.
       fetchSessions();
     } catch (error) {
       console.error('Chat error:', error);

@@ -506,6 +506,12 @@ export class Agent {
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
 
+    await this.memory.addMessage(storageId, {
+      role: MessageRole.USER,
+      content: userText,
+      attachments: incomingAttachments,
+    });
+
     const history = await this.memory.getHistory(storageId);
     const distilled = await this.memory.getDistilledMemory(baseUserId);
     const lessons = await this.memory.getLessons(baseUserId);

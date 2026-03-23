@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 // ── Core mocks ────────────────────────────────────────────────────────────────
 
 const mockProcess = vi.fn();
+const mockStream = vi.fn();
 const mockSaveConversationMeta = vi.fn().mockResolvedValue(undefined);
 const mockGetHistory = vi.fn().mockResolvedValue([]);
 const mockAddMessage = vi.fn().mockResolvedValue(undefined);
@@ -32,6 +33,7 @@ vi.mock('@claw/core/tools/index', () => ({
 vi.mock('@claw/core/lib/agent', () => ({
   Agent: class {
     process = mockProcess;
+    stream = mockStream;
   },
 }));
 
@@ -256,6 +258,116 @@ describe('Dashboard API: POST /api/chat', () => {
     expect(consoleSpy).toHaveBeenCalledWith('Failed to persist error message:', expect.any(Error));
 
     consoleSpy.mockRestore();
+  });
+});
+
+describe('Dashboard API: POST /api/chat (streaming)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('passes client traceId to agent.stream when stream=true', async () => {
+    async function* fakeStream() {
+      yield { content: 'chunk1' };
+    }
+    mockStream.mockReturnValue(fakeStream());
+
+    const { POST } = await import('./route');
+    const res = await POST(
+      makeRequest(
+        { text: 'Hello', sessionId: 'sess-stream-1', traceId: 'client-trace-42' },
+        { searchParams: { stream: 'true' } }
+      )
+    );
+    const data = await res.json();
+
+    expect(mockStream).toHaveBeenCalledWith(
+      'CONV#dashboard-user#sess-stream-1',
+      'Hello',
+      expect.objectContaining({
+        sessionId: 'sess-stream-1',
+        traceId: 'client-trace-42',
+      })
+    );
+    expect(data.streaming).toBe(true);
+    expect(data.sessionId).toBe('sess-stream-1');
+  });
+
+  it('passes undefined traceId when client does not provide one', async () => {
+    async function* fakeStream() {
+      yield { content: 'chunk1' };
+    }
+    mockStream.mockReturnValue(fakeStream());
+
+    const { POST } = await import('./route');
+    await POST(
+      makeRequest(
+        { text: 'Hello', sessionId: 'sess-stream-2' },
+        { searchParams: { stream: 'true' } }
+      )
+    );
+
+    expect(mockStream).toHaveBeenCalledWith(
+      'CONV#dashboard-user#sess-stream-2',
+      'Hello',
+      expect.objectContaining({
+        traceId: undefined,
+      })
+    );
+  });
+
+  it('awaits stream completion before returning', async () => {
+    let streamDone = false;
+    async function* fakeStream() {
+      yield { content: 'chunk1' };
+      yield { content: 'chunk2' };
+      streamDone = true;
+    }
+    mockStream.mockReturnValue(fakeStream());
+
+    const { POST } = await import('./route');
+    const res = await POST(
+      makeRequest(
+        { text: 'Stream me', sessionId: 'sess-stream-3' },
+        { searchParams: { stream: 'true' } }
+      )
+    );
+
+    // Stream must be fully consumed before the response is sent
+    expect(streamDone).toBe(true);
+    expect(res.status).toBe(200);
+  });
+
+  it('saves conversation meta with truncated final response after streaming', async () => {
+    const longContent = 'A'.repeat(100);
+    async function* fakeStream() {
+      yield { content: longContent };
+    }
+    mockStream.mockReturnValue(fakeStream());
+
+    const { POST } = await import('./route');
+    await POST(
+      makeRequest(
+        { text: 'Long response', sessionId: 'sess-stream-trunc' },
+        { searchParams: { stream: 'true' } }
+      )
+    );
+
+    expect(mockSaveConversationMeta).toHaveBeenCalledWith(
+      'dashboard-user',
+      'sess-stream-trunc',
+      expect.objectContaining({
+        lastMessage: 'A'.repeat(60) + '...',
+      })
+    );
+  });
+
+  it('returns 400 for streaming request with no text or attachments', async () => {
+    const { POST } = await import('./route');
+    const res = await POST(
+      makeRequest({}, { searchParams: { stream: 'true' } })
+    );
+    expect(res.status).toBe(400);
   });
 });
 

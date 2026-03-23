@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import mqtt from 'mqtt';
 import { ChatMessage, ConversationMeta, HistoryMessage } from './types';
-import { isDuplicate } from './dedup';
+import { shouldProcessChunk, applyChunkToMessages, mergeHistoryWithMessages } from './message-handler';
 
 export function useChatConnection(activeSessionId: string, setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>, setIsLoading: React.Dispatch<React.SetStateAction<boolean>>, isPostInFlight: React.MutableRefObject<boolean>) {
   const [isRealtimeActive, setIsRealtimeActive] = useState(false);
@@ -33,21 +33,10 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
       const response = await fetch(`/api/chat?sessionId=${sessionId}`);
       const data = await response.json();
       if (data.history) {
-        seenMessageIds.current.clear();
         setMessages(prev => {
-          const history = data.history.map((m: HistoryMessage) => ({
-            role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
-            content: m.content,
-            thought: m.thought,
-            agentName: m.agentName ?? (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
-            attachments: m.attachments,
-            options: m.options,
-            tool_calls: m.tool_calls,
-          }));
-
-          // Preserve local-only error messages (like connection failures)
-          const localErrors = prev.filter(m => m.agentName === 'SystemGuard');
-          return [...history, ...localErrors];
+          const { messages, seenIds } = mergeHistoryWithMessages(prev, data.history);
+          seenMessageIds.current = seenIds;
+          return messages;
         });
       }
     } catch (e) {
@@ -88,49 +77,10 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
           try {
             const data = JSON.parse(String(payload));
             const currentActiveId = activeSessionRef.current;
-            if (!data.sessionId || data.sessionId === currentActiveId) {
-              if (data.message && data.userId === userId) {
-                setMessages(prev => {
-                  // Check if this is a chunk for an existing message
-                  const existingIndex = prev.findIndex(m => m.messageId === data.messageId && m.role === 'assistant');
-                  
-                  if (existingIndex !== -1) {
-                    const updated = [...prev];
-                    const existing = updated[existingIndex];
-                    if (data.isThought) {
-                      updated[existingIndex] = {
-                        ...existing,
-                        thought: (existing.thought ?? '') + data.message,
-                        options: data.options ?? existing.options,
-                      };
-                    } else {
-                      updated[existingIndex] = {
-                        ...existing,
-                        content: (existing.content ?? '') + data.message,
-                        attachments: data.attachments ?? existing.attachments,
-                        tool_calls: data.toolCalls || data.tool_calls || existing.tool_calls,
-                        options: data.options ?? existing.options,
-                      };
-                    }
-                    return updated;
-                  }
-
-                  if (isDuplicate(seenMessageIds.current, prev, data.messageId, data.message)) return prev;
-                  
-                  return [...prev, {
-                    role: 'assistant',
-                    content: data.isThought ? '' : data.message,
-                    thought: data.isThought ? data.message : undefined,
-                    messageId: data.messageId,
-                    agentName: data.agentName ?? 'SuperClaw',
-                    attachments: data.attachments,
-                    options: data.options,
-                    tool_calls: data.toolCalls || data.tool_calls,
-                  }];
-                });
-              } else if (currentActiveId) {
-                fetchHistorySilently(currentActiveId);
-              }
+            if (shouldProcessChunk(data, currentActiveId, userId)) {
+              setMessages(prev => applyChunkToMessages(prev, data, seenMessageIds.current));
+            } else if (currentActiveId) {
+              fetchHistorySilently(currentActiveId);
             }
           } catch (e) {
             console.error('[Realtime] Failed to parse message:', e);

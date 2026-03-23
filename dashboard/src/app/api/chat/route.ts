@@ -8,7 +8,7 @@ import { revalidatePath } from 'next/cache';
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const { text, sessionId, attachments, approvedToolCalls } = await req.json();
+    const { text, sessionId, attachments, approvedToolCalls, traceId: clientTraceId } = await req.json();
     const isStream = req.nextUrl.searchParams.get('stream') === 'true';
     const userId = 'dashboard-user'; // Fixed ID for dashboard chat
     
@@ -48,11 +48,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       
       const streamPromise = (async () => {
         try {
-          const stream = agent.stream(storageId, text ?? '', { 
-            sessionId, 
-            source: TraceSource.DASHBOARD, 
+          const stream = agent.stream(storageId, text ?? '', {
+            sessionId,
+            source: TraceSource.DASHBOARD,
             attachments,
-            approvedToolCalls 
+            approvedToolCalls,
+            traceId: clientTraceId || undefined,
           });
           let finalResponse = '';
           for await (const chunk of stream) {
