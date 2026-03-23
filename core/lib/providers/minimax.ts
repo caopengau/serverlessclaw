@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk';
 import {
   IProvider,
   Message,
@@ -10,15 +11,13 @@ import { Resource } from 'sst';
 import { logger } from '../logger';
 import { createEmptyResponse } from './utils';
 
-const MINIMAX_REASONING_MAP: Record<
-  ReasoningProfile,
-  { effort: 'low' | 'medium' | 'high'; enabled: boolean }
-> = {
-  [ReasoningProfile.FAST]: { effort: 'low', enabled: false },
-  [ReasoningProfile.STANDARD]: { effort: 'low', enabled: true },
-  [ReasoningProfile.THINKING]: { effort: 'medium', enabled: true },
-  [ReasoningProfile.DEEP]: { effort: 'high', enabled: true },
-};
+const MINIMAX_REASONING_MAP: Record<ReasoningProfile, { budget_tokens: number; enabled: boolean }> =
+  {
+    [ReasoningProfile.FAST]: { budget_tokens: 2000, enabled: false },
+    [ReasoningProfile.STANDARD]: { budget_tokens: 4000, enabled: true },
+    [ReasoningProfile.THINKING]: { budget_tokens: 8000, enabled: true },
+    [ReasoningProfile.DEEP]: { budget_tokens: 16000, enabled: true },
+  };
 
 /**
  * Direct provider for MiniMax API using Anthropic-compatible endpoint.
@@ -49,21 +48,25 @@ export class MiniMaxProvider implements IProvider {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resource = Resource as any;
     const apiKey = ('MiniMaxApiKey' in resource ? resource.MiniMaxApiKey.value : '') ?? '';
-    const baseUrl = 'https://api.minimax.io/v1';
     const activeModel = model ?? this.model;
 
     const reasoningConfig = MINIMAX_REASONING_MAP[profile];
 
-    // Anthropic-compatible API format
-    const { systemMessage, userMessages } = this.extractSystemMessage(messages);
+    // Initialize Anthropic client with MiniMax's base URL
+    const client = new Anthropic({
+      apiKey,
+      baseURL: 'https://api.minimax.io/anthropic',
+    });
 
-    const body: Record<string, unknown> = {
-      anthropic_version: '2024-10-22',
+    // Extract system message and convert messages to Anthropic format
+    const { systemMessage, anthropicMessages } = this.convertMessages(messages);
+
+    // Build request parameters
+    const requestParams: Record<string, unknown> = {
       model: activeModel,
       max_tokens: 4096,
-      messages: userMessages,
+      messages: anthropicMessages,
       ...(systemMessage ? { system: systemMessage } : {}),
-      // MiniMax reasoning configuration - only include when enabled
       ...(reasoningConfig.enabled
         ? {
             thinking: {
@@ -75,93 +78,99 @@ export class MiniMaxProvider implements IProvider {
     };
 
     if (tools && tools.length > 0) {
-      body['tools'] = this.transformToolsToAnthropic(tools);
+      requestParams['tools'] = this.transformToolsToAnthropic(tools);
     }
 
-    // Anthropic API endpoint for messages
-    const response = await fetch(`${baseUrl}/messages`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2024-10-22',
-      },
-      body: JSON.stringify(body),
-    });
+    // Make the API call
+    const response = await client.messages.create(requestParams as any);
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`MiniMax Provider error: ${response.status} - ${error}`);
-    }
-
-    // Parse Anthropic API response format
-    const data = (await response.json()) as {
-      id?: string;
-      type?: string;
-      content?: Array<{ type: string; text?: string; thinking?: string }>;
-      stop_reason?: string;
-      usage?: {
-        input_tokens?: number;
-        output_tokens?: number;
-      };
-    };
-
-    if (!data.content || data.content.length === 0) {
+    // Handle response with thinking blocks
+    const content = response.content;
+    if (!content || content.length === 0) {
       return createEmptyResponse('MiniMax');
     }
 
-    // Extract text content from response
-    const textContent = data.content
-      .filter((c) => c.type === 'text')
-      .map((c) => c.text ?? '')
-      .join('');
-
-    // Log thinking content for observability
-    const thinkingContent = data.content.find((c) => c.type === 'thinking');
-    if (thinkingContent) {
-      logger.debug(`[MiniMax Thinking] for ${activeModel}:`, thinkingContent.thinking ?? '');
+    // Extract text content and log thinking content
+    let textContent = '';
+    for (const block of content) {
+      if (block.type === 'thinking') {
+        logger.debug(`[MiniMax Thinking] for ${activeModel}:`, (block as any).thinking ?? '');
+      } else if (block.type === 'text') {
+        textContent += block.text;
+      }
     }
 
     return {
       role: MessageRole.ASSISTANT,
       content: textContent,
-      usage: data.usage
+      usage: response.usage
         ? {
-            prompt_tokens: data.usage.input_tokens ?? 0,
-            completion_tokens: data.usage.output_tokens ?? 0,
-            total_tokens: (data.usage.input_tokens ?? 0) + (data.usage.output_tokens ?? 0),
+            prompt_tokens: response.usage.input_tokens,
+            completion_tokens: response.usage.output_tokens,
+            total_tokens: response.usage.input_tokens + response.usage.output_tokens,
           }
         : undefined,
     } as Message;
   }
 
   /**
-   * Extract system message and convert remaining messages to Anthropic format.
+   * Extract system message and convert messages to Anthropic SDK format.
    */
-  private extractSystemMessage(messages: Message[]): {
+  private convertMessages(messages: Message[]): {
     systemMessage: string | undefined;
-    userMessages: { role: string; content: string }[];
+    anthropicMessages: Anthropic.MessageParam[];
   } {
     let systemMessage: string | undefined;
-    const userMessages: { role: string; content: string }[] = [];
+    const anthropicMessages: Anthropic.MessageParam[] = [];
 
     for (const msg of messages) {
       if (msg.role === MessageRole.SYSTEM) {
-        systemMessage = msg.content;
+        systemMessage = msg.content ?? undefined;
       } else if (msg.role === MessageRole.USER) {
-        userMessages.push({
+        anthropicMessages.push({
           role: 'user',
           content: msg.content ?? '',
         });
       } else if (msg.role === MessageRole.ASSISTANT) {
-        userMessages.push({
-          role: 'assistant',
-          content: msg.content ?? '',
+        // For assistant messages with tool calls, we need to convert them
+        if (msg.tool_calls && msg.tool_calls.length > 0) {
+          // Convert tool calls to Anthropic format
+          const toolUseBlocks: Anthropic.ToolUseBlock[] = msg.tool_calls.map((tc) => ({
+            type: 'tool_use' as const,
+            id: tc.id,
+            name: tc.function.name,
+            input: JSON.parse(tc.function.arguments || '{}'),
+          }));
+
+          anthropicMessages.push({
+            role: 'assistant',
+            content: [
+              ...(msg.content ? [{ type: 'text' as const, text: msg.content }] : []),
+              ...toolUseBlocks,
+            ],
+          });
+        } else {
+          anthropicMessages.push({
+            role: 'assistant',
+            content: msg.content ?? '',
+          });
+        }
+      } else if (msg.role === MessageRole.TOOL) {
+        // Tool result messages
+        anthropicMessages.push({
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: msg.tool_call_id ?? '',
+              content: msg.content ?? '',
+            },
+          ],
         });
       }
     }
 
-    return { systemMessage, userMessages };
+    return { systemMessage, anthropicMessages };
   }
 
   /**

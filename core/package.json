@@ -11,6 +11,7 @@
     "./handlers/*": "./handlers/*.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
     "@aws-sdk/client-cloudwatch": "^3.1014.0",
     "@aws-sdk/client-lambda": "^3.1014.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
