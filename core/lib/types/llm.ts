@@ -41,6 +41,8 @@ export interface Message {
   role: MessageRole;
   /** The textual content of the message. */
   content?: string;
+  /** Optional intermediate reasoning content (e.g. <thought> tags). */
+  thought?: string;
   /** Optional tool calls requested by the assistant. */
   tool_calls?: ToolCall[];
   /** The ID of the tool call this message is responding to (if role is TOOL). */
@@ -178,6 +180,32 @@ export interface ResponseFormat {
 }
 
 /**
+ * A partial chunk of a message during streaming.
+ */
+export interface MessageChunk {
+  /** The specific role (usually assistant). */
+  role?: MessageRole;
+  /** Partial text content. */
+  content?: string;
+  /** Partial reasoning content. */
+  thought?: string;
+  /** Partial tool calls. */
+  tool_calls?: ToolCall[];
+  /** Optional UI options (buttons) for the user. */
+  options?: Array<{
+    label: string;
+    value: string;
+    type?: string;
+  }>;
+  /** Optional usage stats (usually in the final chunk). */
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
+
+/**
  * Interface for LLM provider implementations.
  */
 export interface IProvider {
@@ -200,6 +228,26 @@ export interface IProvider {
     provider?: string,
     responseFormat?: ResponseFormat
   ): Promise<Message>;
+
+  /**
+   * Performs a streaming completion call to the LLM.
+   *
+   * @param messages - The full conversation history.
+   * @param tools - Optional list of tools the LLM can call.
+   * @param profile - The desired reasoning profile.
+   * @param model - Optional override for the model ID.
+   * @param provider - Optional override for the provider name.
+   * @param responseFormat - Optional structured format for the response.
+   * @returns An AsyncIterable yielding message chunks.
+   */
+  stream(
+    messages: Message[],
+    tools?: ITool[],
+    profile?: ReasoningProfile,
+    model?: string,
+    provider?: string,
+    responseFormat?: ResponseFormat
+  ): AsyncIterable<MessageChunk>;
 
   /**
    * Retrieves the capabilities of a specific model.

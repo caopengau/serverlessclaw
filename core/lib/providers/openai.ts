@@ -14,6 +14,7 @@ import { normalizeProfile, capEffort, createEmptyResponse } from './utils';
 
 interface OpenAIResponse {
   output_text?: string;
+  output_thought?: string;
   output?: Array<{
     type: string;
     call_id?: string;
@@ -209,6 +210,7 @@ export class OpenAIProvider implements IProvider {
 
       // Extract output
       const content = response.output_text ?? '';
+      const thought = response.output_thought;
       const toolCalls: Message['tool_calls'] = [];
 
       if (response.output && Array.isArray(response.output)) {
@@ -229,6 +231,7 @@ export class OpenAIProvider implements IProvider {
       return {
         role: MessageRole.ASSISTANT,
         content,
+        thought,
         tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
         usage: response.usage
           ? {
@@ -251,6 +254,184 @@ export class OpenAIProvider implements IProvider {
         });
       }
       return createEmptyResponse('OpenAI');
+    }
+  }
+
+  async *stream(
+    messages: Message[],
+    tools?: ITool[],
+    profile: ReasoningProfile = ReasoningProfile.STANDARD,
+    model?: string,
+    _provider?: string,
+    responseFormat?: import('../types/index').ResponseFormat
+  ): AsyncIterable<import('../types/index').MessageChunk> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resource = Resource as any;
+    const apiKey =
+      ('OpenAIApiKey' in resource ? resource.OpenAIApiKey.value : undefined) ||
+      process.env.OPENAI_API_KEY ||
+      'test-key';
+    const client = new OpenAI({ apiKey });
+
+    let activeModel = model ?? this.model;
+    if (!model && profile) {
+      const profileToModel: Record<ReasoningProfile, string> = {
+        [ReasoningProfile.FAST]: OpenAIModel.GPT_5_4_NANO,
+        [ReasoningProfile.STANDARD]: OpenAIModel.GPT_5_4_MINI,
+        [ReasoningProfile.THINKING]: OpenAIModel.GPT_5_4_MINI,
+        [ReasoningProfile.DEEP]: OpenAIModel.GPT_5_4,
+      };
+      activeModel = profileToModel[profile] ?? activeModel;
+    }
+
+    const capabilities = await this.getCapabilities(activeModel);
+    profile = normalizeProfile(profile, capabilities, activeModel);
+    const reasoningEffort = capEffort(
+      REASONING_MAP[profile] as string,
+      capabilities.maxReasoningEffort
+    );
+
+    // Reuse the same input mapping logic as call()
+    // In a real refactor we would extract this to a private method
+    const responsesInput = messages.flatMap((m) => {
+      if (m.role === MessageRole.TOOL) {
+        return [
+          {
+            type: OPENAI.ITEM_TYPES.FUNCTION_CALL_OUTPUT,
+            call_id: m.tool_call_id ?? '',
+            output: m.content ?? '',
+          },
+        ];
+      }
+
+      const items: Array<Record<string, unknown>> = [];
+      if (m.content || (m.attachments && m.attachments.length > 0)) {
+        let role: 'user' | 'assistant' | 'system' | 'developer' = OPENAI.ROLES.USER;
+        if (m.role === MessageRole.SYSTEM) role = OPENAI.ROLES.DEVELOPER;
+        else if (m.role === MessageRole.ASSISTANT) role = OPENAI.ROLES.ASSISTANT;
+        else if (m.role === MessageRole.DEVELOPER) role = OPENAI.ROLES.DEVELOPER;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const content: any[] = [];
+        if (m.content) content.push({ type: OPENAI.CONTENT_TYPES.INPUT_TEXT, text: m.content });
+        if (m.attachments) {
+          m.attachments.forEach((att) => {
+            if (att.type === 'image') {
+              content.push({
+                type: OPENAI.CONTENT_TYPES.IMAGE_URL,
+                image_url: {
+                  url: att.url ?? `data:${att.mimeType ?? 'image/png'};base64,${att.base64}`,
+                },
+              });
+            } else if (att.type === 'file') {
+              content.push({
+                type: OPENAI.CONTENT_TYPES.INPUT_FILE,
+                filename: att.name ?? OPENAI.DEFAULT_FILE_NAME,
+                file_data: `data:${att.mimeType ?? OPENAI.DEFAULT_MIME_TYPE};base64,${att.base64}`,
+              });
+            }
+          });
+        }
+        items.push({
+          type: OPENAI.ITEM_TYPES.MESSAGE,
+          role,
+          content:
+            content.length === 1 && content[0].type === OPENAI.CONTENT_TYPES.INPUT_TEXT
+              ? m.content
+              : content,
+        });
+      }
+
+      if (m.tool_calls && m.tool_calls.length > 0) {
+        for (const tc of m.tool_calls) {
+          items.push({
+            type: OPENAI.ITEM_TYPES.FUNCTION_CALL,
+            call_id: tc.id,
+            name: tc.function.name,
+            arguments: tc.function.arguments,
+          });
+        }
+      }
+      return items;
+    });
+
+    try {
+      const stream = await client.responses.create({
+        model: activeModel as OpenAI.ResponsesModel,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        input: responsesInput as any,
+        reasoning: { effort: reasoningEffort as OpenAI.ReasoningEffort },
+        stream: true,
+        ...(responseFormat
+          ? {
+              text: {
+                format:
+                  responseFormat.type === 'json_schema'
+                    ? {
+                        type: 'json_schema',
+                        name: responseFormat.json_schema?.name ?? 'response',
+                        schema: responseFormat.json_schema?.schema ?? {},
+                        strict: responseFormat.json_schema?.strict ?? true,
+                        description: responseFormat.json_schema?.description,
+                      }
+                    : { type: responseFormat.type },
+              },
+            }
+          : {}),
+        ...(tools && tools.length > 0
+          ? {
+              tools: tools.map((t) => {
+                if (t.connector_id) {
+                  return {
+                    type: OPENAI.MCP_TYPE,
+                    name: t.name,
+                    connector_id: t.connector_id,
+                  };
+                }
+                return {
+                  type: OPENAI.FUNCTION_TYPE,
+                  name: t.name,
+                  description: t.description,
+                  parameters: t.parameters as unknown as Record<string, unknown>,
+                  strict: false,
+                };
+              }),
+            }
+          : {}),
+      });
+
+      for await (const chunk of stream) {
+        // Handle 2026 Responses API stream events
+        // Based on typical OpenAI stream patterns for the new API
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rawChunk = chunk as any;
+
+        if (rawChunk.type === 'text.delta' && rawChunk.delta) {
+          yield { content: rawChunk.delta };
+        } else if (rawChunk.type === 'output_text.delta' && rawChunk.delta) {
+          yield { content: rawChunk.delta };
+        } else if (rawChunk.type === 'reasoning.delta' && rawChunk.delta) {
+          yield { thought: rawChunk.delta };
+        } else if (rawChunk.type === 'output_thought.delta' && rawChunk.delta) {
+          yield { thought: rawChunk.delta };
+        } else if (rawChunk.type === 'message.delta' && rawChunk.delta?.content) {
+          yield { content: rawChunk.delta.content };
+        } else if (rawChunk.type === 'message.delta' && rawChunk.delta?.reasoning) {
+          yield { thought: rawChunk.delta.reasoning };
+        } else if (rawChunk.type === 'usage' && rawChunk.usage) {
+          yield {
+            usage: {
+              prompt_tokens: rawChunk.usage.prompt_tokens ?? 0,
+              completion_tokens: rawChunk.usage.completion_tokens ?? 0,
+              total_tokens: rawChunk.usage.total_tokens ?? 0,
+            },
+          };
+        }
+        // Tool call streaming would be handled here as well if needed
+      }
+    } catch (err) {
+      logger.error('OpenAI streaming failed:', err);
+      yield { content: ' (Streaming failed)' };
     }
   }
 

@@ -49,6 +49,19 @@ export function ChatMessageList({ messages, isLoading, scrollRef, onOptionClick 
                 </Typography>
               )}
               <div className="flex flex-col gap-2">
+                {m.role === 'assistant' && m.thought && (
+                  <Card 
+                    variant="glass" 
+                    padding="sm" 
+                    className="rounded-lg bg-black/20 border-dashed border-cyber-green/10 text-cyber-green/60 italic text-xs leading-relaxed max-w-full"
+                  >
+                    <div className="flex items-start gap-2">
+                      <Terminal size={12} className="shrink-0 mt-0.5 opacity-50" />
+                      <div className="whitespace-pre-wrap">{m.thought}</div>
+                    </div>
+                  </Card>
+                )}
+                
                 {(m.role === 'assistant' || m.content) && (
                   <Card variant="glass" padding="sm" className={`rounded-lg ${
                     m.role === 'user' ? 'bg-white/5 text-white/90 border border-white/10' : 'text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
@@ -88,7 +101,7 @@ export function ChatMessageList({ messages, isLoading, scrollRef, onOptionClick 
                       <div className="flex items-center gap-2 py-1">
                         <Loader2 size={14} className="animate-spin text-cyber-green/60" />
                         <Typography variant="body" color="inherit" className="italic opacity-70">
-                          Processing...
+                          {m.thought ? 'Formulating response...' : 'Processing...'}
                         </Typography>
                       </div>
                     )}

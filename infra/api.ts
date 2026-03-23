@@ -48,6 +48,7 @@ export function createApi(ctx: SharedContext): { api: sst.aws.ApiGatewayV2 } {
       bus,
     ],
     permissions: apiPermissions,
+    architecture: 'arm64',
     timeout: AGENT_CONFIG.timeout.SHORT,
     logging: {
       retention: '1 month',
@@ -66,6 +67,7 @@ export function createApi(ctx: SharedContext): { api: sst.aws.ApiGatewayV2 } {
         resources: ['*'],
       },
     ],
+    architecture: 'arm64',
     environment: {
       GIT_HASH: process.env.GIT_HASH || 'dev',
     },

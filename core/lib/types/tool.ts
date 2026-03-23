@@ -45,6 +45,8 @@ export interface IToolDefinition {
     type: 'oauth' | 'api_key' | string;
     resource_id?: string;
   };
+  /** Whether this tool requires manual human approval before execution. */
+  requiresApproval?: boolean;
 }
 
 /**

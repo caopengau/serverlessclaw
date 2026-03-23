@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ClawTracer } from './tracer';
+import { TRACE_TYPES } from './constants';
 import { AgentRegistry } from './registry';
 
 // Mock AgentRegistry
@@ -98,7 +99,7 @@ describe('ClawTracer', () => {
 
   it('should add a step to the correct node', async () => {
     const tracer = new ClawTracer('user-123', 'dashboard', 'trace-1', 'node-1');
-    await tracer.addStep({ type: 'llm_call', content: 'test' });
+    await tracer.addStep({ type: TRACE_TYPES.LLM_CALL, content: 'test' });
 
     expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({

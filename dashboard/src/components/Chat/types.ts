@@ -22,6 +22,7 @@ export interface PendingMessage {
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  thought?: string;
   messageId?: string;
   agentName?: string;
   isError?: boolean;
@@ -47,6 +48,7 @@ export interface ChatMessage {
 export interface HistoryMessage {
   role: string;
   content: string;
+  thought?: string;
   agentName?: string;
   traceId?: string; // Added for reconciliation
   attachments: ChatMessage['attachments'];

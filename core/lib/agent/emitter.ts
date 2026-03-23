@@ -142,4 +142,44 @@ export class AgentEmitter {
       logger.error('Failed to emit continuation task:', e);
     }
   }
+
+  /**
+   * Emits a real-time message chunk to the AgentBus
+   */
+  async emitChunk(
+    userId: string,
+    sessionId: string | undefined,
+    traceId: string,
+    chunk: string,
+    agentName?: string,
+    isThought?: boolean,
+    options?: Array<{ label: string; value: string; type?: string }>
+  ): Promise<void> {
+    try {
+      await this.eventbridge.send(
+        new PutEventsCommand({
+          Entries: [
+            {
+              Source: this.config?.id ?? 'superclaw.agent',
+              DetailType: EventType.CHUNK,
+              Detail: JSON.stringify({
+                userId,
+                sessionId,
+                traceId,
+                messageId: traceId,
+                message: chunk,
+                isThought,
+                options,
+                agentName: agentName ?? this.config?.name ?? 'SuperClaw',
+              }),
+              EventBusName: typedResource.AgentBus.name,
+            },
+          ],
+        })
+      );
+    } catch (e) {
+      // Don't let chunk emission failures block the main loop
+      logger.warn('Failed to emit chunk:', e);
+    }
+  }
 }

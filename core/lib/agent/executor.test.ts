@@ -324,4 +324,107 @@ describe('AgentExecutor', () => {
     expect(result.tool_calls).toBeDefined();
     expect(result.tool_calls?.[0].id).toBe('tc-pause');
   });
+
+  it('should pause and request approval for high-risk tools', async () => {
+    const mockHighRiskTool = {
+      name: 'deleteDatabase',
+      description: 'Deletes a database',
+      parameters: { type: 'object', properties: {} },
+      requiresApproval: true,
+      execute: vi.fn().mockResolvedValue('SUCCESS: deleted'),
+    };
+
+    const executor = new AgentExecutor(
+      mockProvider as any,
+      [mockHighRiskTool as any],
+      'test-agent',
+      'Test Agent'
+    );
+
+    mockProvider.call.mockResolvedValue({
+      role: MessageRole.ASSISTANT,
+      content: 'I will delete the database.',
+      tool_calls: [
+        {
+          id: 'call-high-risk',
+          type: 'function',
+          function: { name: 'deleteDatabase', arguments: '{}' },
+        },
+      ],
+    });
+
+    const result = await executor.runLoop([], {
+      activeProfile: ReasoningProfile.STANDARD,
+      maxIterations: 5,
+      tracer: mockTracer as any,
+      traceId: 't1',
+      taskId: 't1',
+      nodeId: 'n1',
+      parentId: undefined,
+      currentInitiator: 'superclaw',
+      depth: 0,
+      userId: 'u1',
+      userText: 'delete db',
+      mainConversationId: 'c1',
+    });
+
+    expect(result.paused).toBe(true);
+    expect(result.pauseMessage).toBe('APPROVAL_REQUIRED:call-high-risk');
+    expect(result.options).toBeDefined();
+    expect(result.options?.[0].value).toContain('APPROVE_TOOL_CALL:call-high-risk');
+    expect(mockHighRiskTool.execute).not.toHaveBeenCalled();
+  });
+
+  it('should execute high-risk tool if call ID is in approvedToolCalls', async () => {
+    const mockHighRiskTool = {
+      name: 'deleteDatabase',
+      description: 'Deletes a database',
+      parameters: { type: 'object', properties: {} },
+      requiresApproval: true,
+      execute: vi.fn().mockResolvedValue('SUCCESS: deleted'),
+    };
+
+    const executor = new AgentExecutor(
+      mockProvider as any,
+      [mockHighRiskTool as any],
+      'test-agent',
+      'Test Agent'
+    );
+
+    mockProvider.call
+      .mockResolvedValueOnce({
+        role: MessageRole.ASSISTANT,
+        content: 'I will delete the database.',
+        tool_calls: [
+          {
+            id: 'call-approved',
+            type: 'function',
+            function: { name: 'deleteDatabase', arguments: '{}' },
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        role: MessageRole.ASSISTANT,
+        content: 'SUCCESS: deleted',
+      });
+
+    const result = await executor.runLoop([], {
+      activeProfile: ReasoningProfile.STANDARD,
+      maxIterations: 2,
+      tracer: mockTracer as any,
+      traceId: 't1',
+      taskId: 't1',
+      nodeId: 'n1',
+      parentId: undefined,
+      currentInitiator: 'superclaw',
+      depth: 0,
+      userId: 'u1',
+      userText: 'delete db',
+      mainConversationId: 'c1',
+      approvedToolCalls: ['call-approved'],
+    });
+
+    expect(mockHighRiskTool.execute).toHaveBeenCalled();
+    expect(result.responseText).toBe('SUCCESS: deleted');
+  });
 });

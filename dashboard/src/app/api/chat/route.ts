@@ -8,7 +8,8 @@ import { revalidatePath } from 'next/cache';
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
-    const { text, sessionId, attachments } = await req.json();
+    const { text, sessionId, attachments, approvedToolCalls } = await req.json();
+    const isStream = req.nextUrl.searchParams.get('stream') === 'true';
     const userId = 'dashboard-user'; // Fixed ID for dashboard chat
     
     // Use a unique ID for the specific session history
@@ -18,8 +19,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: UI_STRINGS.MISSING_MESSAGE }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
-    console.log(`[Chat API] POST request - text: ${text?.substring(0, 20)}..., sessionId: ${sessionId}, attachments: ${attachments?.length ?? 0}`);
-    console.log(`[Chat API] Using storageId: ${storageId}`);
+    console.log(`[Chat API] POST request - text: ${text?.substring(0, 20)}..., sessionId: ${sessionId}, attachments: ${attachments?.length ?? 0}, stream: ${isStream}`);
     
     const { DynamoMemory } = await import('@claw/core/lib/memory');
     const { ProviderManager } = await import('@claw/core/lib/providers/index');
@@ -29,14 +29,61 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const { TraceSource, AgentType } = await import('@claw/core/lib/types/index');
     const { AgentRegistry } = await import('@claw/core/lib/registry');
 
-    console.log('[Chat API] Debug - Core Library version check: 2026-03-21-V2');
     const memory = new DynamoMemory();
     const provider = new ProviderManager();
     const config = await AgentRegistry.getAgentConfig(AgentType.SUPERCLAW);
     const agentTools = await getAgentTools(AgentType.SUPERCLAW);
     const agent = new Agent(memory, provider, agentTools, config?.systemPrompt ?? SUPERCLAW_SYSTEM_PROMPT, config ?? undefined);
 
-    const { responseText, attachments: resultAttachments, tool_calls: resultToolCalls, traceId } = await agent.process(storageId, text ?? '', { sessionId, source: TraceSource.DASHBOARD, attachments });
+    if (isStream) {
+      // In a serverless environment like AWS Lambda, we can't easily "background" a task
+      // without keeping the response open or using a separate trigger.
+      // However, SST/Next.js on Lambda often supports Response Streaming.
+      // For this implementation, we consume the stream and the chunks are emitted 
+      // via EventBridge -> IoT Core in the background.
+      
+      // We start the stream but don't await its full completion before returning to the UI
+      // IF the platform supports it. On standard Lambda, we MUST await or the process dies.
+      // But we can return the initial "accepted" response and let chunks flow via IoT.
+      
+      const streamPromise = (async () => {
+        try {
+          const stream = agent.stream(storageId, text ?? '', { 
+            sessionId, 
+            source: TraceSource.DASHBOARD, 
+            attachments,
+            approvedToolCalls 
+          });
+          let finalResponse = '';
+          for await (const chunk of stream) {
+            if (chunk.content) finalResponse += chunk.content;
+          }
+          
+          if (sessionId) {
+            await memory.saveConversationMeta(userId, sessionId, {
+              lastMessage: finalResponse.length > 60 ? finalResponse.substring(0, 60) + '...' : finalResponse,
+              updatedAt: Date.now()
+            });
+          }
+        } catch (e) {
+          console.error('[Chat API] Stream background error:', e);
+        }
+      })();
+
+      // If we're on a platform that supports backgrounding, we could return early.
+      // On Lambda, we must await the stream to ensure chunks are sent.
+      // To the user, this still feels "real-time" because chunks appear on the dashboard via IoT.
+      await streamPromise; 
+
+      return NextResponse.json({ streaming: true, sessionId });
+    }
+
+    const { responseText, attachments: resultAttachments, tool_calls: resultToolCalls, traceId } = await agent.process(storageId, text ?? '', { 
+      sessionId, 
+      source: TraceSource.DASHBOARD, 
+      attachments,
+      approvedToolCalls 
+    });
 
     // Update conversation metadata for the sidebar
     if (sessionId) {

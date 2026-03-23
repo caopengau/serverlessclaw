@@ -199,6 +199,23 @@ export class OpenRouterProvider implements IProvider {
     } as Message;
   }
 
+  async *stream(
+    messages: Message[],
+    tools?: ITool[],
+    profile: ReasoningProfile = ReasoningProfile.STANDARD,
+    model?: string,
+    provider?: string,
+    responseFormat?: import('../types/index').ResponseFormat
+  ): AsyncIterable<import('../types/index').MessageChunk> {
+    const response = await this.call(messages, tools, profile, model, provider, responseFormat);
+    yield {
+      role: response.role,
+      content: response.content,
+      tool_calls: response.tool_calls,
+      usage: response.usage,
+    };
+  }
+
   async getCapabilities(model?: string) {
     const activeModel = model ?? this.model;
     // 2026: Dynamic capability detection based on model ID patterns.

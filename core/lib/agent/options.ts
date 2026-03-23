@@ -45,4 +45,8 @@ export interface AgentProcessOptions {
    * Enables pending message injection during long-running tasks.
    */
   sessionStateManager?: SessionStateManager;
+  /**
+   * List of tool call IDs that have been explicitly approved by the user.
+   */
+  approvedToolCalls?: string[];
 }

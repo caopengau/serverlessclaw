@@ -128,6 +128,34 @@ Initiator (Planner)     AgentBus (EB)       Sub-Agents (xN)      Aggregator (DDB
       | (PARALLEL_COMPLETED) |                      |                    |
 ```
 
+### Granular HITL Tool Approval (Tool-level Gates)
+
+For security-sensitive operations (e.g., deleting data, triggering deployments), tools can be marked with `requiresApproval: true`. The `AgentExecutor` automatically pauses before executing such tools, allowing for granular human oversight without pausing the entire session.
+
+```text
+User (Dashboard)       Agent (Lambda)       AgentBus (EB)       High-Risk Tool (DDB)
+      |                      |                    |                    |
+      +---- "Delete DB" ---->|                    |                    |
+      |                      |--- [LLM Thought] ->|                    |
+      |                      |                    |                    |
+      |                      |--- (1) Emit CHUNK (Thought) ----------->|
+      |                      |                    |                    |
+      |                      |--- (2) Check Tool: deleteDatabase ---->|
+      |                      |        [requiresApproval: true]         |
+      |                      |                    |                    |
+      |                      |<-- (3) TASK_PAUSED (APPROVAL_REQUIRED) -|
+      |                      |                    |                    |
+      |<--- [UI: Approve?] --|--- (4) Emit CHUNK (with Options) ------>|
+      |                      |                    |                    |
+      +---- [APPROVE] ------>|                    |                    |
+      |                      |--- (5) Resume Loop (approvedCalls:[ID])|
+      |                      |                    |                    |
+      |                      |--- (6) EXECUTE ------------------------>|
+      |                      |                    |                    |
+      |<--- [UI: Success] ---|--- (7) Emit TASK_COMPLETED ------------>|
+      v                      |                    v                    v
+```
+
 ### Dual-Mode Communication (Intent-Based Orchestration)
 
 To balance deterministic coordination with natural user interaction, the system supports two communication modes, toggled via `AgentProcessOptions.communicationMode`.

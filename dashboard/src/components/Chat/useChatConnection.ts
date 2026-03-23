@@ -38,6 +38,7 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
           const history = data.history.map((m: HistoryMessage) => ({
             role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
             content: m.content,
+            thought: m.thought,
             agentName: m.agentName ?? (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
             attachments: m.attachments,
             options: m.options,
@@ -90,10 +91,36 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
             if (!data.sessionId || data.sessionId === currentActiveId) {
               if (data.message && data.userId === userId) {
                 setMessages(prev => {
+                  // Check if this is a chunk for an existing message
+                  const existingIndex = prev.findIndex(m => m.messageId === data.messageId && m.role === 'assistant');
+                  
+                  if (existingIndex !== -1) {
+                    const updated = [...prev];
+                    const existing = updated[existingIndex];
+                    if (data.isThought) {
+                      updated[existingIndex] = {
+                        ...existing,
+                        thought: (existing.thought ?? '') + data.message,
+                        options: data.options ?? existing.options,
+                      };
+                    } else {
+                      updated[existingIndex] = {
+                        ...existing,
+                        content: (existing.content ?? '') + data.message,
+                        attachments: data.attachments ?? existing.attachments,
+                        tool_calls: data.toolCalls || data.tool_calls || existing.tool_calls,
+                        options: data.options ?? existing.options,
+                      };
+                    }
+                    return updated;
+                  }
+
                   if (isDuplicate(seenMessageIds.current, prev, data.messageId, data.message)) return prev;
+                  
                   return [...prev, {
                     role: 'assistant',
-                    content: data.message,
+                    content: data.isThought ? '' : data.message,
+                    thought: data.isThought ? data.message : undefined,
                     messageId: data.messageId,
                     agentName: data.agentName ?? 'SuperClaw',
                     attachments: data.attachments,

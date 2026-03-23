@@ -82,6 +82,29 @@ export class ProviderManager implements IProvider {
   }
 
   /**
+   * Performs a streaming completion call to the active LLM provider.
+   *
+   * @param messages - The conversation history.
+   * @param tools - Optional tools available to the LLM.
+   * @param profile - The desired reasoning profile.
+   * @param model - Optional model override.
+   * @param provider - Optional provider override.
+   * @param responseFormat - Optional structured output format.
+   * @returns An AsyncIterable yielding message chunks.
+   */
+  async *stream(
+    messages: Message[],
+    tools?: ITool[],
+    profile: ReasoningProfile = ReasoningProfile.STANDARD,
+    model?: string,
+    provider?: string,
+    responseFormat?: import('../types/index').ResponseFormat
+  ): AsyncIterable<import('../types/index').MessageChunk> {
+    const activeProvider = await ProviderManager.getActiveProvider(provider, model);
+    yield* activeProvider.stream(messages, tools, profile, model, undefined, responseFormat);
+  }
+
+  /**
    * Retrieves the capabilities of the active model.
    *
    * @param model - Optional model identifier.

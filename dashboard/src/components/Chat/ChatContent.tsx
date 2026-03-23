@@ -226,7 +226,7 @@ export default function ChatContent() {
         return { type: a.type, name: a.file.name, mimeType: a.file.type, base64 };
       }));
 
-      const response = await fetch('/api/chat', {
+      const response = await fetch('/api/chat?stream=true', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: userMsg, sessionId: currentSessionId, attachments: apiAttachments }),
@@ -250,19 +250,8 @@ export default function ChatContent() {
         return;
       }
       
-      if (currentSessionId === activeSessionRef.current) {
-        setMessages(prev => {
-          if (isDuplicate(seenMessageIds.current, prev, data.messageId, data.reply)) return prev;
-          return [...prev, { 
-            role: 'assistant', 
-            content: data.reply, 
-            messageId: data.messageId, 
-            agentName: data.agentName,
-            attachments: data.attachments,
-            tool_calls: data.tool_calls
-          }];
-        });
-      }
+      // On streaming success, we don't append the message immediately.
+      // Chunks will arrive via MQTT.
       fetchSessions();
     } catch (error) {
       console.error('Chat error:', error);
@@ -293,6 +282,47 @@ export default function ChatContent() {
     } finally {
       isPostInFlight.current = false;
       setIsLoading(false);
+    }
+  };
+
+  const handleOptionClick = async (value: string) => {
+    if (value.startsWith('APPROVE_TOOL_CALL:')) {
+      const callId = value.split(':')[1];
+      const currentSessionId = activeSessionRef.current;
+      
+      setIsLoading(true);
+      isPostInFlight.current = true;
+      
+      try {
+        const response = await fetch('/api/chat?stream=true', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            text: 'I approve the tool execution.', 
+            sessionId: currentSessionId, 
+            approvedToolCalls: [callId] 
+          }),
+        });
+        
+        if (!response.ok) {
+          const data = await response.json();
+          setMessages(prev => [...prev, { 
+            role: 'assistant', 
+            content: `Error during approval: ${data.error || 'Unknown error'}`, 
+            agentName: 'SystemGuard',
+            isError: true 
+          }]);
+        }
+        fetchSessions();
+      } catch (error) {
+        console.error('Approval error:', error);
+      } finally {
+        isPostInFlight.current = false;
+        setIsLoading(false);
+      }
+    } else {
+      // Handle other options as standard messages
+      handleSendMessage(value);
     }
   };
 
@@ -431,17 +461,11 @@ export default function ChatContent() {
             </div>
           )}
         </header>
-
         <ChatMessageList 
           messages={messages} 
           isLoading={isLoading} 
-          scrollRef={scrollRef} 
-          onOptionClick={(value) => {
-            setInput(value + ' ');
-            // Focus the textarea if possible
-            const textarea = document.querySelector('textarea');
-            if (textarea) textarea.focus();
-          }}
+          scrollRef={scrollRef}
+          onOptionClick={handleOptionClick}
         />
 
         <ChatInput 

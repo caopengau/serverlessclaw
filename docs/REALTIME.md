@@ -10,6 +10,7 @@ To ensure the **ClawCenter Dashboard** receives instantaneous updates without po
  [ Agent / Handler ]
           |
    (Publish Event)
+   (CHUNK, TASK_COMPLETED, etc.)
           |
           v
  [ AgentBus (EventBridge) ]
@@ -30,7 +31,15 @@ To ensure the **ClawCenter Dashboard** receives instantaneous updates without po
 
 1. **IoT Core (MQTT)**: Acts as the low-latency message broker for telemetry and signal data.
 2. **Real-time Bridge**: A lightweight Lambda that reformats internal EventBridge events into MQTT-compatible payloads.
-3. **MQTT Bridge (ClawCenter)**: The Next.js dashboard uses `aws-iot-device-sdk-v2` to maintain a persistent WebSocket connection to IoT Core.
+3. **MQTT Bridge (ClawCenter)**: The Next.js dashboard uses `mqtt` (v5) to maintain a persistent WebSocket connection to IoT Core.
+
+## Real-time Streaming (CHUNK)
+To minimize "Time-to-First-Token" (TTFT), agents can emit partial response chunks during the reasoning process.
+
+1. **Streaming Initiation**: When the Dashboard sends a message with `stream=true`, the SuperClaw initiates a streaming LLM call.
+2. **Chunk Emission**: As the LLM yields tokens, the agent emits a `CHUNK` event to the `AgentBus` for every few tokens.
+3. **IoT Relay**: The `RealtimeBridge` forwards these chunks to the dashboard's MQTT topic.
+4. **UI Reconciliation**: The Dashboard appends chunks to the active message based on the `messageId`, providing a smooth "typing" experience.
 
 ## Performance
 - **Latency**: Sub-100ms from Lambda execution to Dashboard visualization.

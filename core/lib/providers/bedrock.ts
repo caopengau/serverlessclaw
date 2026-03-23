@@ -304,6 +304,23 @@ export class BedrockProvider implements IProvider {
     return createEmptyResponse('Bedrock');
   }
 
+  async *stream(
+    messages: Message[],
+    tools?: ITool[],
+    profile: ReasoningProfile = ReasoningProfile.STANDARD,
+    model?: string,
+    provider?: string,
+    responseFormat?: import('../types/index').ResponseFormat
+  ): AsyncIterable<import('../types/index').MessageChunk> {
+    const response = await this.call(messages, tools, profile, model, provider, responseFormat);
+    yield {
+      role: response.role,
+      content: response.content,
+      tool_calls: response.tool_calls,
+      usage: response.usage,
+    };
+  }
+
   async getCapabilities(model?: string) {
     const activeModelId = model ?? this.modelId;
     // 2026: Expanded check for all Claude 4.6 variations (Sonnet, Haiku, Opus)

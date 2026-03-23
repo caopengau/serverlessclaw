@@ -14,9 +14,21 @@ export interface IProvider {
     messages: Message[],
     tools?: ITool[],
     profile?: ReasoningProfile,
-    model?: string
+    model?: string,
+    provider?: string,
+    responseFormat?: ResponseFormat
   ): Promise<Message>;
-  getCapabilities(model?: string): Promise<ProviderCapabilities>;
+
+  stream(
+    messages: Message[],
+    tools?: ITool[],
+    profile?: ReasoningProfile,
+    model?: string,
+    provider?: string,
+    responseFormat?: ResponseFormat
+  ): AsyncIterable<MessageChunk>;
+
+  getCapabilities(model?: string): Promise<ICapabilities>;
 }
 ```
 
@@ -162,7 +174,16 @@ The **Neural Path Visualizer** in the dashboard is equipped to render these visu
 
 ## Observability & Debugging
 
-Reasoning details (the "thought process") are extracted and logged at the `DEBUG` level:
+### Real-time Reasoning Streaming (Shared Whiteboard)
+To improve transparency and multi-agent alignment, the system implements a **Shared Reasoning Whiteboard**. 
+
+1. **Extraction**: The `IProvider.stream()` method extracts intermediate reasoning tokens (e.g., OpenAI `reasoning.delta` or Bedrock `thinking` blocks).
+2. **Chunking**: These tokens are yielded as `thought` chunks in the `MessageChunk` interface.
+3. **Broadcasting**: The `AgentEmitter` broadcasts these chunks via the `CHUNK` event with an `isThought: true` flag.
+4. **Visualization**: The ClawCenter dashboard renders these thoughts in a dedicated "Thinking" sector of the chat bubble in real-time, allowing users to see the agent's strategy before the final response is formulated.
+
+### Trace Logging
+Reasoning details are also logged at the `DEBUG` level and persisted in the `MemoryTable`:
 
 ```text
 [Bedrock Reasoning] for claude-sonnet-4-6:

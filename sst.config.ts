@@ -19,12 +19,34 @@ export default $config({
       },
       defaults: {
         function: {
+          architecture: 'arm64',
           environment: {
             AWS_PROFILE: '', // Clear profile to avoid conflict warning as SST injects static credentials
           },
           nodejs: {
             loader: {
               '.md': 'text',
+            },
+            esbuild: {
+              // AWS SDK v3 is included in Lambda's managed Node.js 24.x runtime.
+              // Externalizing it reduces bundle size by ~2-3MB per function.
+              external: [
+                '@aws-sdk/*',
+                // Dashboard-only packages — safety net against accidental bundling
+                'next',
+                'react',
+                'react-dom',
+                'lucide-react',
+                '@xyflow/react',
+                '@opennextjs/aws',
+                'sonner',
+                'react-markdown',
+                'remark-gfm',
+                'raw-loader',
+                '@tailwindcss/postcss',
+                'tailwindcss',
+                'mqtt',
+              ],
             },
           },
         },

@@ -95,6 +95,7 @@ export class Agent {
       timeoutBehavior = 'pause',
       communicationMode = this.config?.defaultCommunicationMode ?? 'text',
       sessionStateManager,
+      approvedToolCalls,
     } = options;
 
     const responseFormat =
@@ -292,6 +293,7 @@ export class Agent {
         taskTimeoutMs,
         timeoutBehavior,
         sessionStateManager,
+        approvedToolCalls,
       });
 
       // Emit agent-level metrics + persist token usage
@@ -432,5 +434,166 @@ export class Agent {
 
       return { responseText: AGENT_ERRORS.PROCESS_FAILURE };
     }
+  }
+
+  /**
+   * Performs a streaming completion call to the agent.
+   */
+  async *stream(
+    userId: string,
+    userText: string,
+    options: AgentProcessOptions = {}
+  ): AsyncIterable<import('./types/index').MessageChunk> {
+    const {
+      profile = this.config?.reasoningProfile ?? ReasoningProfile.STANDARD,
+      context,
+      isContinuation = false,
+      isIsolated = false,
+      initiatorId,
+      depth = 0,
+      traceId: incomingTraceId,
+      taskId,
+      nodeId: incomingNodeId,
+      parentId: incomingParentId,
+      sessionId,
+      attachments: incomingAttachments,
+      source = TraceSource.UNKNOWN,
+      responseFormat: initialResponseFormat,
+      taskTimeoutMs,
+      timeoutBehavior = 'pause',
+      communicationMode = this.config?.defaultCommunicationMode ?? 'text',
+      sessionStateManager,
+      approvedToolCalls,
+    } = options;
+
+    const responseFormat =
+      communicationMode === 'json'
+        ? initialResponseFormat || DEFAULT_SIGNAL_SCHEMA
+        : initialResponseFormat;
+
+    const baseUserId = userId.startsWith(MEMORY_KEYS.CONVERSATION_PREFIX)
+      ? userId.split('#')[1]
+      : userId;
+    const { ClawTracer } = await import('./tracer');
+    const { ContextManager } = await import('./agent/context-manager');
+    const { AgentExecutor, AGENT_DEFAULTS } = await import('./agent/executor');
+    const { AgentContext } = await import('./agent/context');
+
+    const tracer = new ClawTracer(
+      baseUserId,
+      source,
+      incomingTraceId,
+      incomingNodeId,
+      incomingParentId,
+      this.config?.id
+    );
+    const traceId = tracer.getTraceId();
+    const effectiveTaskId = taskId ?? traceId;
+    const nodeId = tracer.getNodeId();
+    const parentId = tracer.getParentId();
+    const currentInitiator = initiatorId ?? this.config?.id ?? 'unknown';
+
+    if (!isContinuation) {
+      await tracer.startTrace({
+        userText,
+        sessionId,
+        agentId: this.config?.id,
+        hasAttachments: !!incomingAttachments,
+      });
+    }
+
+    const storageId = isIsolated
+      ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
+      : userId;
+
+    const history = await this.memory.getHistory(storageId);
+    const distilled = await this.memory.getDistilledMemory(baseUserId);
+    const lessons = await this.memory.getLessons(baseUserId);
+
+    const activeModel = this.config?.model ?? SYSTEM.DEFAULT_MODEL;
+    const activeProvider = this.config?.provider ?? SYSTEM.DEFAULT_PROVIDER;
+    const activeProfile = profile;
+
+    // (Simplified model resolution for brevity)
+    let contextPrompt = this.systemPrompt;
+    contextPrompt += `\n\n${AgentContext.getMemoryIndexBlock(distilled, lessons.length)}`;
+    contextPrompt += `\n\n${AgentContext.getIdentityBlock(
+      this.config,
+      activeModel ?? SYSTEM.DEFAULT_MODEL,
+      activeProvider ?? SYSTEM.DEFAULT_PROVIDER,
+      activeProfile,
+      depth
+    )}`;
+
+    const currentMessage: Message = {
+      role: MessageRole.USER,
+      content: userText,
+      attachments: incomingAttachments,
+    };
+    const fullHistory = [...history, currentMessage];
+    const summary = await this.memory.getSummary(storageId);
+
+    const capabilities = await this.provider.getCapabilities(activeModel);
+    const contextLimit = capabilities.contextWindow ?? LIMITS.MAX_CONTEXT_LENGTH;
+
+    const managed = await ContextManager.getManagedContext(
+      fullHistory,
+      summary,
+      contextPrompt,
+      contextLimit,
+      { model: activeModel, provider: activeProvider }
+    );
+
+    const executor = new AgentExecutor(
+      this.provider,
+      this.tools,
+      this.config?.id ?? 'unknown',
+      this.config?.name ?? 'SuperClaw',
+      contextPrompt,
+      summary,
+      contextLimit
+    );
+
+    const stream = executor.streamLoop(managed.messages, {
+      activeModel,
+      activeProvider,
+      activeProfile,
+      maxIterations: this.config?.maxIterations ?? AGENT_DEFAULTS.MAX_ITERATIONS,
+      tracer,
+      emitter: this.emitter,
+      context,
+      traceId,
+      taskId: effectiveTaskId,
+      nodeId,
+      parentId,
+      currentInitiator,
+      depth,
+      sessionId,
+      userId: baseUserId,
+      userText,
+      mainConversationId: userId,
+      responseFormat,
+      taskTimeoutMs,
+      timeoutBehavior,
+      sessionStateManager,
+      approvedToolCalls,
+    });
+    let fullContent = '';
+    let fullThought = '';
+    for await (const chunk of stream) {
+      if (chunk.content) fullContent += chunk.content;
+      if (chunk.thought) fullThought += chunk.thought;
+      yield chunk;
+    }
+
+    // After stream completes, save to memory and end trace
+    await this.memory.addMessage(storageId, {
+      role: MessageRole.ASSISTANT,
+      content: fullContent,
+      thought: fullThought,
+      agentName: this.config?.name ?? 'SuperClaw',
+      traceId,
+    });
+    await tracer.endTrace(fullContent);
   }
 }

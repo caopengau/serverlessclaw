@@ -263,6 +263,8 @@ export enum EventType {
   PARALLEL_TASK_COMPLETED = 'parallel_task_completed',
   /** Parallel task barrier timeout - straggler tasks should be marked as timed out. */
   PARALLEL_BARRIER_TIMEOUT = 'parallel_barrier_timeout',
+  /** Real-time message chunk for streaming responses. */
+  CHUNK = 'chunk',
 }
 
 /**
