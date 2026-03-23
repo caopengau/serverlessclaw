@@ -132,3 +132,24 @@ export const BRIDGE_EVENT_SCHEMA = z
     detail: BRIDGE_DETAIL_PAYLOAD_SCHEMA,
   })
   .passthrough(); // Allows other EventBridge event properties if any
+/**
+ * Schema for ParallelTaskCompletedEvent.
+ */
+export const PARALLEL_TASK_COMPLETED_EVENT_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  userId: z.string(),
+  overallStatus: z.enum(['success', 'partial', 'failed']),
+  results: z.array(
+    z.object({
+      taskId: z.string(),
+      agentId: z.string(),
+      status: z.string(),
+      result: z.string().optional().nullable(),
+      error: z.string().optional().nullable(),
+    })
+  ),
+  taskCount: z.number(),
+  completedCount: z.number(),
+  elapsedMs: z.number().optional(),
+  aggregationType: z.enum(['summary', 'agent_guided']).optional(),
+  aggregationPrompt: z.string().optional(),
+});

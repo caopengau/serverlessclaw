@@ -214,7 +214,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       const gapContent = `[TOOL_OPTIMIZATION] Action: ${opt.action}, Tool: ${opt.toolName}. Reason: ${opt.reason}`;
       logger.info(`Recording tool optimization gap: ${gapContent}`);
       await memory.setGap(toolGapId, gapContent, {
-        category: InsightCategory.STRATEGIC_GAP,
+        category: InsightCategory.SYSTEM_IMPROVEMENT,
         confidence: 9,
         impact: 6,
         complexity: 4,

@@ -14,6 +14,8 @@ export interface ParallelTaskEvent {
   depth?: number;
   tasks: ParallelDispatchParams['tasks'];
   barrierTimeoutMs?: number;
+  aggregationType?: ParallelDispatchParams['aggregationType'];
+  aggregationPrompt?: ParallelDispatchParams['aggregationPrompt'];
 }
 
 const DEFAULT_BARRIER_TIMEOUT_MS = 300000;
@@ -21,7 +23,17 @@ const DEFAULT_BARRIER_TIMEOUT_MS = 300000;
 export async function handleParallelDispatch(
   event: EventBridgeEvent<string, ParallelTaskEvent>
 ): Promise<void> {
-  const { userId, tasks, barrierTimeoutMs, traceId, initiatorId, depth, sessionId } = event.detail;
+  const {
+    userId,
+    tasks,
+    barrierTimeoutMs,
+    traceId,
+    initiatorId,
+    depth,
+    sessionId,
+    aggregationType,
+    aggregationPrompt,
+  } = event.detail;
 
   const timeoutMs =
     ((await ConfigManager.getRawConfig('parallel_barrier_timeout_ms')) as number) ??
@@ -44,7 +56,9 @@ export async function handleParallelDispatch(
     tasks.length,
     initiatorId ?? 'parallel-dispatcher',
     sessionId,
-    tasks.map((t) => ({ taskId: t.taskId, agentId: t.agentId }))
+    tasks.map((t) => ({ taskId: t.taskId, agentId: t.agentId })),
+    aggregationType,
+    aggregationPrompt
   );
 
   for (const task of tasks) {

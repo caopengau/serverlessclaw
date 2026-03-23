@@ -17,6 +17,8 @@ interface ParallelTaskCompletedEvent {
   taskCount: number;
   completedCount: number;
   elapsedMs?: number;
+  aggregationType?: 'summary' | 'agent_guided';
+  aggregationPrompt?: string;
 }
 
 /**
@@ -38,6 +40,8 @@ export async function handleParallelTaskCompleted(
     taskCount,
     completedCount,
     elapsedMs,
+    aggregationType,
+    aggregationPrompt,
   } = eventDetail as unknown as ParallelTaskCompletedEvent;
 
   if (!initiatorId) {
@@ -75,9 +79,43 @@ export async function handleParallelTaskCompleted(
     taskSummaries,
   ].join('\n');
 
-  logger.info(
-    `Parallel dispatch ${traceId ?? 'N/A'} completed with status ${overallStatus}. Waking up initiator ${initiatorId}.`
-  );
+  if (aggregationType === 'agent_guided') {
+    logger.info(`Parallel dispatch ${traceId ?? 'N/A'} requesting agent-guided aggregation.`);
+    try {
+      const { Agent } = await import('../../lib/agent');
+      const { getAgentContext, loadAgentConfig } = await import('../../lib/utils/agent-helpers');
+      const { AgentType, TraceSource } = await import('../../lib/types/agent');
+      const { ReasoningProfile } = await import('../../lib/types/llm');
+
+      const config = await loadAgentConfig(AgentType.SUPERCLAW); // Reuse SuperClaw for aggregation
+      const { memory, provider: providerManager } = await getAgentContext();
+
+      // Simple aggregator doesn't need tools, just reasoning
+      const aggregatorAgent = new Agent(memory, providerManager, [], config.systemPrompt, config);
+
+      const prompt =
+        aggregationPrompt ??
+        `I have completed a parallel dispatch of ${taskCount} tasks. Here are the results:
+        
+        ${taskSummaries}
+        
+        Please synthesize these results and determine the next logical action for the system. Return your response as a clear recommendation for the user or the next task to be executed.`;
+
+      const { responseText } = await aggregatorAgent.process(userId, prompt, {
+        profile: ReasoningProfile.STANDARD,
+        isIsolated: true,
+        traceId,
+        sessionId,
+        source: TraceSource.SYSTEM,
+      });
+
+      logger.info(`Agent-guided aggregation complete for ${traceId}. Waking up initiator.`);
+      await wakeupInitiator(userId, initiatorId, responseText, traceId, sessionId, 1);
+      return;
+    } catch (error) {
+      logger.error('Failed to perform agent-guided aggregation, falling back to summary:', error);
+    }
+  }
 
   await wakeupInitiator(userId, initiatorId, summary, traceId, sessionId, 1);
 }

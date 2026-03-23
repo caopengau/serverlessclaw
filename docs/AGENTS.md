@@ -99,7 +99,11 @@ Initiator (Planner)     AgentBus (EB)       Follower (Coder)      Scheduler (EB)
 
 ### Parallel Dispatch Protocol (Fan-out/Fan-in)
 
-The Parallel Dispatch Protocol enables an agent to delegate multiple independent sub-tasks concurrently. It uses a barrier timeout to ensure the system remains responsive even if some sub-agents stall.
+The Parallel Dispatch Protocol enables an agent to delegate multiple independent sub-tasks concurrently. It uses a barrier timeout to ensure the system remains responsive even if some sub-agents stall. 
+
+It supports two aggregation modes for result processing:
+- **Summary**: (Default) Aggregates results into a structured Markdown summary for the initiator.
+- **Agent-guided**: Invokes an aggregator agent to synthesize results and determine the next logical action based on an optional `aggregationPrompt`.
 
 ```text
 Initiator (Planner)     AgentBus (EB)       Sub-Agents (xN)      Aggregator (DDB)
@@ -262,7 +266,7 @@ To balance rapid expansion, the system implements a long-term **Efficiency Loop*
 
 ### 3. Evolutionary Lifecycle (Verified Satisfaction)
 
-Serverless Claw is a **self-evolving system** that identifies its own weaknesses and implements its own upgrades.
+Serverless Claw is a **proactive self-evolving system** that identifies its own weaknesses and implements its own upgrades. Unlike purely reactive systems, it actively scans for optimizations even when no failures occur.
 
 ```text
     +-------------------+       1. OBSERVE        +-------------------+
@@ -301,9 +305,9 @@ Serverless Claw is a **self-evolving system** that identifies its own weaknesses
     +-------------------+                         +-------------------+
 ```
 
-1.  **Observation**: The **Cognition Reflector** analyzes interactions to find "I can't do that" moments or complex failures.
-2.  **Gap Analysis**: Failures are logged as `strategic_gap` items in DynamoDB, ranked by **Impact** and **Urgency**.
-3.  **Efficiency Audit**: Every 48 hours, the **Strategic Planner** reviews the `tool_usage` telemetry and all open gaps.
+1.  **Observation**: The **Cognition Reflector** analyzes interactions to find "I can't do that" moments (Gaps) or optimization opportunities (Improvements).
+2.  **Gap/Improvement Analysis**: Identified items are logged as `strategic_gap` or `system_improvement` in DynamoDB, ranked by **Impact** and **Urgency**.
+3.  **Proactive Review**: Every 48 hours (or triggered by significant signals), the **Strategic Planner** reviews telemetry, failure patterns, and improvements.
 4.  **Strategic Planning**: The Planner designs a STRATEGIC_PLAN (Expansion or Pruning) and moves gaps to `PLANNED`.
 5.  **Execution**: Once approved, the **Coder Agent** moves gaps to `PROGRESS`, writes code/config, and triggers a deploy.
 6.  **Technical Success**: The **Build Monitor** detects a successful build and moves gaps to `DEPLOYED`.

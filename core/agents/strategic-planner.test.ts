@@ -9,6 +9,7 @@ const memoryMocks = vi.hoisted(() => ({
   updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
   getFailurePatterns: vi.fn().mockResolvedValue([]),
   setGap: vi.fn().mockResolvedValue(undefined),
+  searchInsights: vi.fn().mockResolvedValue({ items: [], lastEvaluatedKey: null }),
 }));
 
 const agentProcess = vi.hoisted(() => vi.fn());
@@ -28,6 +29,7 @@ vi.mock('../lib/memory', () => ({
     updateDistilledMemory = memoryMocks.updateDistilledMemory;
     getFailurePatterns = memoryMocks.getFailurePatterns;
     setGap = memoryMocks.setGap;
+    searchInsights = memoryMocks.searchInsights;
     archiveStaleGaps = vi.fn().mockResolvedValue(0);
     getLowUtilizationMemory = vi.fn().mockResolvedValue([]);
   },

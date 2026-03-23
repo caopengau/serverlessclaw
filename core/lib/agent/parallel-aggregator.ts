@@ -32,7 +32,9 @@ export class ParallelAggregator {
     taskCount: number,
     initiatorId: string,
     sessionId?: string,
-    taskMapping?: Array<{ taskId: string; agentId: string }>
+    taskMapping?: Array<{ taskId: string; agentId: string }>,
+    aggregationType?: 'summary' | 'agent_guided',
+    aggregationPrompt?: string
   ): Promise<void> {
     const expiresAt = Math.floor(Date.now() / TIME.MS_PER_SECOND) + TIME.SECONDS_IN_HOUR;
 
@@ -52,6 +54,8 @@ export class ParallelAggregator {
           createdAt: Date.now(),
           taskMapping: taskMapping ?? [],
           results_ids: new Set([]),
+          aggregationType,
+          aggregationPrompt,
         },
       })
     );
@@ -72,6 +76,8 @@ export class ParallelAggregator {
     initiatorId: string;
     sessionId?: string;
     status: string;
+    aggregationType?: 'summary' | 'agent_guided';
+    aggregationPrompt?: string;
   } | null> {
     try {
       const response = await docClient.send(
@@ -114,6 +120,8 @@ export class ParallelAggregator {
         initiatorId: updated.initiatorId,
         sessionId: updated.sessionId,
         status: updated.status,
+        aggregationType: updated.aggregationType,
+        aggregationPrompt: updated.aggregationPrompt,
       };
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {

@@ -160,11 +160,13 @@ describe('Parallel Dispatch Resilience', () => {
         'trace-1',
         2,
         'parallel-dispatcher',
-        undefined,
+        undefined, // sessionId
         [
           { taskId: 'task-1', agentId: 'coder' },
           { taskId: 'task-2', agentId: 'qa' },
-        ]
+        ],
+        undefined, // aggregationType
+        undefined // aggregationPrompt
       );
 
       const { emitEvent } = await import('../lib/utils/bus');

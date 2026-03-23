@@ -15,6 +15,8 @@ export enum InsightCategory {
   SYSTEM_KNOWLEDGE = 'system_knowledge',
   /** Recurring failure patterns: tool misuse, hallucinations, timeouts. */
   FAILURE_PATTERN = 'failure_pattern',
+  /** Proactive suggestions for system optimization or refinement. */
+  SYSTEM_IMPROVEMENT = 'system_improvement',
 }
 
 /**

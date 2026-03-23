@@ -54,12 +54,18 @@ export async function shouldRunProactiveReview(
       };
     }
 
-    // Check min gaps
+    // Check min gaps or optimizations
     const allGaps = await memory.getAllGaps(GapStatus.OPEN);
-    if (allGaps.length < minGaps) {
+    const allImprovements = await memory.searchInsights(
+      baseUserId,
+      '*',
+      'system_improvement' as any
+    );
+
+    if (allGaps.length < minGaps && allImprovements.items.length === 0) {
       return {
         shouldRun: false,
-        reason: 'INSUFFICIENT_GAPS',
+        reason: 'INSUFFICIENT_GAPS_OR_OPTIMIZATIONS',
       };
     }
 
@@ -205,10 +211,10 @@ export async function buildProactiveReviewPrompt(
     return { prompt: '', shouldRun: false, status: 'NO_GAPS' };
   }
 
-  const gapSummary = allGaps
-    .map(
-      (g) => `- [Impact: ${g.metadata.impact}/10] ${g.content} (Priority: ${g.metadata.priority})`
-    )
+  // Fetch Improvements
+  const allImprovements = await memory.searchInsights(baseUserId, '*', 'system_improvement' as any);
+  const improvementSummary = allImprovements.items
+    .map((i) => `- [Impact: ${i.metadata.impact}/10] ${i.content}`)
     .join('\n');
 
   const failureContext =
@@ -219,7 +225,10 @@ export async function buildProactiveReviewPrompt(
   const prompt = `
     [PROACTIVE_STRATEGIC_REVIEW]
     I have woken up for a scheduled self-audit. I have detected the following ${allGaps.length} capability gaps:
-    ${gapSummary}
+    ${allGaps.map((g) => `- [Impact: ${g.metadata.impact}/10] ${g.content}`).join('\n')}
+
+    [SYSTEM_IMPROVEMENTS_IDENTIFIED]:
+    ${improvementSummary || 'No specific improvements logged yet. Please identify some during this review.'}
     ${telemetry}
     ${toolUsageContext}
     ${staleMemoryContext}

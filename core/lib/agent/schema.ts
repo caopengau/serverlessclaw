@@ -55,6 +55,8 @@ export interface ParallelDispatchParams {
     metadata?: Record<string, unknown>;
   }>;
   barrierTimeoutMs?: number;
+  aggregationType?: 'summary' | 'agent_guided';
+  aggregationPrompt?: string;
 }
 
 /**

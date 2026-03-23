@@ -7,6 +7,7 @@ import {
   BUILD_EVENT_SCHEMA,
   HEALTH_REPORT_EVENT_SCHEMA,
   OUTBOUND_MESSAGE_EVENT_SCHEMA,
+  PARALLEL_TASK_COMPLETED_EVENT_SCHEMA,
 } from '../lib/schema/events';
 
 describe('Event Contract Verification', () => {
@@ -119,6 +120,47 @@ describe('Event Contract Verification', () => {
     it('should fail if message is missing', () => {
       const payload = { ...common, agentName: 'Agent' };
       expect(() => OUTBOUND_MESSAGE_EVENT_SCHEMA.parse(payload)).toThrow();
+    });
+  });
+
+  describe('PARALLEL_TASK_COMPLETED_EVENT_SCHEMA', () => {
+    it('should validate a correct parallel completion event (summary)', () => {
+      const payload = {
+        ...common,
+        overallStatus: 'success',
+        results: [
+          { taskId: 't1', agentId: 'a1', status: 'success', result: 'done' },
+          { taskId: 't2', agentId: 'a2', status: 'failed', error: 'boom' },
+        ],
+        taskCount: 2,
+        completedCount: 2,
+        aggregationType: 'summary',
+      };
+      expect(() => PARALLEL_TASK_COMPLETED_EVENT_SCHEMA.parse(payload)).not.toThrow();
+    });
+
+    it('should validate a correct parallel completion event (agent_guided)', () => {
+      const payload = {
+        ...common,
+        overallStatus: 'partial',
+        results: [{ taskId: 't1', agentId: 'a1', status: 'success', result: 'ok' }],
+        taskCount: 1,
+        completedCount: 1,
+        aggregationType: 'agent_guided',
+        aggregationPrompt: 'Please summarize this.',
+      };
+      expect(() => PARALLEL_TASK_COMPLETED_EVENT_SCHEMA.parse(payload)).not.toThrow();
+    });
+
+    it('should fail if overallStatus is invalid', () => {
+      const payload = {
+        ...common,
+        overallStatus: 'UNKNOWN',
+        results: [],
+        taskCount: 0,
+        completedCount: 0,
+      };
+      expect(() => PARALLEL_TASK_COMPLETED_EVENT_SCHEMA.parse(payload)).toThrow();
     });
   });
 });

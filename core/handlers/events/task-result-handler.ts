@@ -112,6 +112,8 @@ export async function handleTaskResult(
           taskCount: aggregateState.taskCount,
           completedCount: aggregateState.results.length,
           elapsedMs: 0,
+          aggregationType: aggregateState.aggregationType,
+          aggregationPrompt: aggregateState.aggregationPrompt,
         });
       } else {
         logger.info(`Parallel dispatch ${traceId} already marked as completed, skipping event.`);
