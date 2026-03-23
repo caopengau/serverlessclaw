@@ -42,13 +42,9 @@ export function createAgents(ctx: SharedContext): {
    * All autonomous agents require access to the Bus, Memory, and Tracing for baseline coordination.
    * New agents should inherit this baseLink array.
    */
-  const baseLink = [
-    bus,
-    memoryTable,
-    traceTable,
-    configTable,
-    knowledgeBucket,
-    ...validSecrets,
+  const baseLink = [bus, memoryTable, traceTable, configTable, knowledgeBucket, ...validSecrets];
+
+  const basePermissions = [
     {
       actions: ['cloudwatch:PutMetricData'],
       resources: ['*'],
@@ -60,6 +56,7 @@ export function createAgents(ctx: SharedContext): {
     handler: 'core/agents/coder.handler',
     dev: liveInLocalOnly,
     link: [...baseLink, stagingBucket],
+    permissions: basePermissions,
     nodejs: { loader: { '.md': 'text' } },
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
@@ -78,6 +75,7 @@ export function createAgents(ctx: SharedContext): {
     link: baseLink,
     nodejs: { loader: { '.md': 'text' } },
     permissions: [
+      ...basePermissions,
       {
         actions: ['codebuild:BatchGetBuilds'],
         resources: [deployer.arn],
@@ -101,6 +99,7 @@ export function createAgents(ctx: SharedContext): {
     handler: 'core/handlers/recovery.handler',
     dev: liveInLocalOnly,
     link: [...baseLink, deployer],
+    permissions: basePermissions,
     nodejs: { loader: { '.md': 'text' } },
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.MEDIUM,
@@ -114,6 +113,7 @@ export function createAgents(ctx: SharedContext): {
     handler: 'core/handlers/heartbeat.handler',
     dev: liveInLocalOnly,
     link: baseLink,
+    permissions: basePermissions,
     nodejs: { loader: { '.md': 'text' } },
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.SHORT,
@@ -225,7 +225,7 @@ export function createAgents(ctx: SharedContext): {
     dev: liveInLocalOnly,
     link: baseLink,
     nodejs: { loader: { '.md': 'text' } },
-    permissions: schedulerPermissions,
+    permissions: [...basePermissions, ...schedulerPermissions],
     environment: {
       SCHEDULER_ROLE_ARN: schedulerRole.arn,
       HEARTBEAT_HANDLER_ARN: heartbeatHandler.arn,
@@ -247,6 +247,7 @@ export function createAgents(ctx: SharedContext): {
     handler: 'core/handlers/events.handler',
     dev: liveInLocalOnly,
     link: baseLink,
+    permissions: basePermissions,
     nodejs: { loader: { '.md': 'text' } },
     memory: AGENT_CONFIG.memory.MEDIUM,
     timeout: AGENT_CONFIG.timeout.LONG,
@@ -280,7 +281,7 @@ export function createAgents(ctx: SharedContext): {
     dev: liveInLocalOnly,
     link: baseLink,
     nodejs: { loader: { '.md': 'text' } },
-    permissions: schedulerPermissions,
+    permissions: [...basePermissions, ...schedulerPermissions],
     environment: {
       SCHEDULER_ROLE_ARN: schedulerRole.arn,
       HEARTBEAT_HANDLER_ARN: heartbeatHandler.arn,
@@ -303,7 +304,7 @@ export function createAgents(ctx: SharedContext): {
     dev: liveInLocalOnly,
     link: baseLink,
     nodejs: { loader: { '.md': 'text' } },
-    permissions: schedulerPermissions,
+    permissions: [...basePermissions, ...schedulerPermissions],
     environment: {
       SCHEDULER_ROLE_ARN: schedulerRole.arn,
       HEARTBEAT_HANDLER_ARN: heartbeatHandler.arn,
@@ -329,6 +330,7 @@ export function createAgents(ctx: SharedContext): {
     handler: 'core/handlers/notifier.handler',
     dev: liveInLocalOnly,
     link: baseLink,
+    permissions: basePermissions,
     nodejs: { loader: { '.md': 'text' } },
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.SHORT,
@@ -343,7 +345,7 @@ export function createAgents(ctx: SharedContext): {
     dev: liveInLocalOnly,
     link: baseLink,
     nodejs: { loader: { '.md': 'text' } },
-    permissions: schedulerPermissions,
+    permissions: [...basePermissions, ...schedulerPermissions],
     environment: {
       SCHEDULER_ROLE_ARN: schedulerRole.arn,
       HEARTBEAT_HANDLER_ARN: heartbeatHandler.arn,
@@ -389,6 +391,7 @@ export function createAgents(ctx: SharedContext): {
     handler: 'core/handlers/bridge.handler',
     dev: liveInLocalOnly,
     link: [ctx.realtime!, bus],
+    permissions: basePermissions,
     nodejs: { loader: { '.md': 'text' } },
     logging: {
       retention: '1 month',
@@ -415,7 +418,7 @@ export function createAgents(ctx: SharedContext): {
     dev: liveInLocalOnly,
     link: [memoryTable, bus],
     nodejs: { loader: { '.md': 'text' } },
-    permissions: [{ actions: ['lambda:GetAccountSettings'], resources: ['*'] }],
+    permissions: [...basePermissions, { actions: ['lambda:GetAccountSettings'], resources: ['*'] }],
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.SHORT,
     logging: {

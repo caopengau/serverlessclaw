@@ -42,11 +42,18 @@ export class MCPClientManager {
 
         // Resolve npx full path if needed (especially for Lambda)
         if (command === 'npx') {
+          const isLambda = !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+          if (isLambda) {
+            throw new Error(
+              `Cannot spawn local MCP server '${serverName}' using npx in Lambda environment. Please use MCP_HUB_URL for external tools.`
+            );
+          }
+
           try {
             const { execSync } = await import('child_process');
             command = execSync('which npx', { encoding: 'utf8' }).trim();
           } catch {
-            // Fallback for AWS Lambda Node.js runtimes
+            // Fallback for environments where 'which' fails or npx is in common paths
             const fs = await import('fs');
             const commonPaths = ['/var/lang/bin/npx', '/usr/bin/npx', '/usr/local/bin/npx'];
             for (const p of commonPaths) {

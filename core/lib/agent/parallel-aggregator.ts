@@ -86,7 +86,10 @@ export class ParallelAggregator {
             'completedCount = completedCount + :one, ' +
             'results_ids = list_append(if_not_exists(results_ids, :empty_list), :new_id)',
           ConditionExpression:
-            'attribute_exists(userId) AND status = :pending AND NOT contains(results_ids, :taskId)',
+            'attribute_exists(userId) AND #status = :pending AND NOT contains(results_ids, :taskId)',
+          ExpressionAttributeNames: {
+            '#status': 'status',
+          },
           ExpressionAttributeValues: {
             ':new_result': [result],
             ':new_id': [result.taskId],

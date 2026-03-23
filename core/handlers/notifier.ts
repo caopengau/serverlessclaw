@@ -92,6 +92,13 @@ export const handler = async (event: NotifierEvent): Promise<void> => {
  * @param text - The text of the message to send.
  * @returns A promise that resolves when the message has been sent.
  */
+/**
+ * Sends a message via the Telegram Bot API.
+ *
+ * @param chatId - The Telegram chat ID to send the message to.
+ * @param text - The text of the message to send.
+ * @returns A promise that resolves when the message has been sent.
+ */
 async function sendTelegramMessage(
   chatId: string,
   text: string,
@@ -104,8 +111,8 @@ async function sendTelegramMessage(
 
     const body: Record<string, unknown> = {
       chat_id: chatId,
-      text: text,
-      parse_mode: 'Markdown',
+      text: escapeHtml(text),
+      parse_mode: 'HTML',
     };
 
     if (options && options.length > 0) {
@@ -154,8 +161,8 @@ async function sendTelegramMedia(
     const body: Record<string, unknown> = {
       chat_id: chatId,
       [bodyKey]: attachment.url,
-      caption: caption,
-      parse_mode: 'Markdown',
+      caption: caption ? escapeHtml(caption) : undefined,
+      parse_mode: 'HTML',
     };
 
     if (options && options.length > 0) {
@@ -177,4 +184,11 @@ async function sendTelegramMedia(
   } catch (e) {
     logger.error('Failed to send Telegram media:', e);
   }
+}
+
+/**
+ * Escapes special characters for Telegram HTML parse mode.
+ */
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
