@@ -58,6 +58,7 @@ export function createStorage() {
 
   const secrets = {
     TelegramBotToken: new sst.Secret('TelegramBotToken'),
+    MiniMaxApiKey: new sst.Secret('MiniMaxApiKey'),
     OpenAIApiKey: new sst.Secret('OpenAIApiKey'),
     OpenRouterApiKey: new sst.Secret('OpenRouterApiKey'),
     AwsRegion: new sst.Secret('AwsRegion'),

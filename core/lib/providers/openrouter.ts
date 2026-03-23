@@ -21,7 +21,7 @@ const OPENROUTER_REASONING_MAP: Record<
 };
 
 /**
- * Provider for OpenRouter, aggregating multiple high-capability models (GLM, MiniMax, Gemini).
+ * Provider for OpenRouter, aggregating multiple high-capability models (GLM, Gemini).
  * Implements dynamic capability detection and standardized reasoning parameters.
  */
 export class OpenRouterProvider implements IProvider {
@@ -105,9 +105,6 @@ export class OpenRouterProvider implements IProvider {
         ...(responseFormat || (tools && tools.length > 0) ? { require_parameters: true } : {}),
       },
       // 2026: specialized model-specific extra bodies
-      ...(activeModel.includes('minimax')
-        ? { plugin_id: 'reasoning', include_reasoning: true }
-        : {}),
       ...(activeModel.includes('glm') ? { plugin_id: 'reasoning', include_reasoning: true } : {}),
       ...(activeModel.includes('gemini-3') ? { safety_settings: 'off' } : {}),
     };
@@ -208,14 +205,12 @@ export class OpenRouterProvider implements IProvider {
     // Standardized reasoning models in OpenRouter usually contain these keywords.
     const isHighCapability =
       activeModel.includes('glm') ||
-      activeModel.includes('minimax') ||
       activeModel.includes('gemini-3') ||
       activeModel.includes('claude-3-7') || // Hypothetical 2026 Claude
       activeModel.includes('gpt-5');
 
     let contextWindow = 128000;
     if (activeModel.includes('gemini-3')) contextWindow = 1048576;
-    else if (activeModel.includes('minimax')) contextWindow = 205000;
     else if (activeModel.includes('glm')) contextWindow = 200000;
 
     return {

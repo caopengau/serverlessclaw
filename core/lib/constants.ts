@@ -13,11 +13,12 @@ import { CONFIG_DEFAULTS } from './config-defaults';
  * System-wide defaults and operational limits.
  */
 export const SYSTEM = {
-  DEFAULT_PROVIDER: 'openrouter',
-  DEFAULT_MODEL: 'minimax/minimax-m2.7',
+  DEFAULT_PROVIDER: 'minimax',
+  DEFAULT_MODEL: 'MiniMax-M2.7',
   DEFAULT_OPENAI_MODEL: 'gpt-5.4-mini',
   DEFAULT_BEDROCK_MODEL: 'claude-sonnet-4-6',
-  DEFAULT_OPENROUTER_MODEL: 'minimax/minimax-m2.7',
+  DEFAULT_OPENROUTER_MODEL: 'MiniMax-M2.7',
+  DEFAULT_MINIMAX_MODEL: 'MiniMax-M2.7',
   DEFAULT_RECURSION_LIMIT: CONFIG_DEFAULTS.RECURSION_LIMIT.code,
   DEFAULT_DEPLOY_LIMIT: CONFIG_DEFAULTS.DEPLOY_LIMIT.code,
   MAX_DEPLOY_LIMIT: CONFIG_DEFAULTS.MAX_DEPLOY_LIMIT.code,

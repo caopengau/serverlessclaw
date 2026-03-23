@@ -21,12 +21,12 @@ describe('OpenRouterProvider', () => {
     provider = new OpenRouterProvider('minimax/minimax-m2.7');
   });
 
-  it('should include specialized body parameters for MiniMax', async () => {
+  it('should use standard OpenRouter format for MiniMax models', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: () =>
         Promise.resolve({
-          choices: [{ message: { role: 'assistant', content: 'Thinking...' } }],
+          choices: [{ message: { role: 'assistant', content: 'Response...' } }],
         }),
     });
 
@@ -35,10 +35,11 @@ describe('OpenRouterProvider', () => {
     const fetchArgs = mockFetch.mock.calls[0];
     const body = JSON.parse(fetchArgs[1].body);
 
+    // MiniMax now uses direct API, OpenRouter should use standard format
     expect(body).toEqual(
       expect.objectContaining({
-        plugin_id: 'reasoning',
-        include_reasoning: true,
+        model: 'minimax/minimax-m2.7',
+        messages: [{ role: 'user', content: 'test' }],
       })
     );
   });
@@ -147,8 +148,9 @@ describe('OpenRouterProvider', () => {
     const geminiCaps = await provider.getCapabilities('google/gemini-3-flash-preview');
     expect(geminiCaps.contextWindow).toBe(1048576);
 
+    // MiniMax is now a direct provider, OpenRouter returns default context window
     const minimaxCaps = await provider.getCapabilities('minimax/minimax-m2.7');
-    expect(minimaxCaps.contextWindow).toBe(205000);
+    expect(minimaxCaps.contextWindow).toBe(128000);
 
     const defaultCaps = await provider.getCapabilities('other/model');
     expect(defaultCaps.contextWindow).toBe(128000);

@@ -103,6 +103,8 @@ export enum LLMProvider {
   BEDROCK = 'bedrock',
   /** OpenRouter (Aggregator for multiple providers). */
   OPENROUTER = 'openrouter',
+  /** MiniMax (Direct API via Anthropic SDK). */
+  MINIMAX = 'minimax',
 }
 
 /**
@@ -129,8 +131,17 @@ export enum BedrockModel {
  */
 export enum OpenRouterModel {
   GLM_5 = 'zhipu/glm-5',
-  MINIMAX_M2_7 = 'minimax/minimax-m2.7',
   GEMINI_3_FLASH = 'google/gemini-3-flash-preview',
+}
+
+/**
+ * Specific model identifiers for MiniMax (Direct API).
+ */
+export enum MiniMaxModel {
+  /** M2.7 with interleaved thinking and advanced reasoning (60 tps). */
+  M2_7 = 'MiniMax-M2.7',
+  /** M2.7 highspeed variant with same performance but faster output (100 tps). */
+  M2_7_HIGHSPEED = 'MiniMax-M2.7-highspeed',
 }
 
 /**

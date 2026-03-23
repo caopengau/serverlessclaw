@@ -4,6 +4,7 @@ import { Resource } from 'sst';
 import { OpenAIProvider } from './openai';
 import { OpenRouterProvider } from './openrouter';
 import { BedrockProvider } from './bedrock';
+import { MiniMaxProvider } from './minimax';
 import { SYSTEM, CONFIG_KEYS } from '../constants';
 import { ConfigManager } from '../registry/config';
 
@@ -49,6 +50,8 @@ export class ProviderManager implements IProvider {
         return new BedrockProvider(model ?? SYSTEM.DEFAULT_BEDROCK_MODEL);
       case LLMProvider.OPENROUTER:
         return new OpenRouterProvider(model ?? SYSTEM.DEFAULT_OPENROUTER_MODEL);
+      case LLMProvider.MINIMAX:
+        return new MiniMaxProvider(model ?? SYSTEM.DEFAULT_MINIMAX_MODEL);
       case LLMProvider.OPENAI:
       default:
         return new OpenAIProvider(model ?? SYSTEM.DEFAULT_OPENAI_MODEL);

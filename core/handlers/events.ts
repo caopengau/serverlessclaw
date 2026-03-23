@@ -93,6 +93,13 @@ export async function handler(
       break;
     }
 
+    case EventType.PARALLEL_TASK_COMPLETED: {
+      const { handleParallelTaskCompleted } =
+        await import('./events/parallel-task-completed-handler');
+      await handleParallelTaskCompleted(eventDetail);
+      break;
+    }
+
     case EventType.TASK_CANCELLED: {
       const { handleTaskCancellation } = await import('./events/cancellation-handler');
       await handleTaskCancellation(
