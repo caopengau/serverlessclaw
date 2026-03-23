@@ -24,9 +24,14 @@ describe('shouldProcessChunk', () => {
     expect(shouldProcessChunk(chunk, 'sess-1', 'user-1')).toBe(false);
   });
 
-  it('returns false when chunk has no message', () => {
+  it('returns false when chunk has no message and no thought', () => {
     const chunk: IncomingChunk = { userId: 'user-1', sessionId: 'sess-1' };
     expect(shouldProcessChunk(chunk, 'sess-1', 'user-1')).toBe(false);
+  });
+
+  it('returns true when chunk has empty message but isThought is set', () => {
+    const chunk: IncomingChunk = { userId: 'user-1', sessionId: 'sess-1', message: '', isThought: true };
+    expect(shouldProcessChunk(chunk, 'sess-1', 'user-1')).toBe(true);
   });
 
   it('returns false when chunk userId does not match', () => {

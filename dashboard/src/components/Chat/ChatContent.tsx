@@ -217,17 +217,6 @@ export default function ChatContent() {
        setActiveSessionId(currentSessionId);
     }
 
-    const traceId = crypto.randomUUID();
-    seenMessageIds.current.add(traceId);
-
-    // Add placeholder immediately so MQTT chunks have a message to append to
-    setMessages(prev => [...prev, {
-      role: 'assistant',
-      content: '',
-      messageId: traceId,
-      agentName: 'SuperClaw',
-    }]);
-
     try {
       const apiAttachments = await Promise.all(currentAttachments.map(async (a) => {
         const base64 = await new Promise<string>((resolve) => {
@@ -241,7 +230,7 @@ export default function ChatContent() {
       const response = await fetch('/api/chat?stream=true', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: userMsg, sessionId: currentSessionId, attachments: apiAttachments, traceId }),
+        body: JSON.stringify({ text: userMsg, sessionId: currentSessionId, attachments: apiAttachments }),
       });
 
       const data = await response.json();

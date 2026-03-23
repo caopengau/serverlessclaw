@@ -1,5 +1,4 @@
 import { ChatMessage, HistoryMessage } from './types';
-import { isDuplicate } from './dedup';
 
 /**
  * Data shape for an incoming MQTT chunk message.
@@ -25,7 +24,8 @@ export function shouldProcessChunk(
   currentActiveId: string,
   expectedUserId: string
 ): boolean {
-  if (!data.message || data.userId !== expectedUserId) return false;
+  if (data.userId !== expectedUserId) return false;
+  if (!data.message && !data.isThought) return false;
   if (!data.sessionId || data.sessionId === currentActiveId) return true;
   return false;
 }
@@ -37,7 +37,7 @@ export function shouldProcessChunk(
 export function applyChunkToMessages(
   prev: ChatMessage[],
   data: IncomingChunk,
-  seenIds: Set<string>
+  _seenIds: Set<string>
 ): ChatMessage[] {
   // Find existing message with matching messageId
   const existingIndex = prev.findIndex(
@@ -65,8 +65,13 @@ export function applyChunkToMessages(
     return updated;
   }
 
-  // Dedup check
-  if (isDuplicate(seenIds, prev, data.messageId, data.message ?? '')) return prev;
+  // No existing message found — check for exact content duplicate
+  if (data.messageId && data.message) {
+    const isExactDup = prev.some(
+      (m) => m.messageId === data.messageId && m.content === data.message
+    );
+    if (isExactDup) return prev;
+  }
 
   // Add new message
   return [
