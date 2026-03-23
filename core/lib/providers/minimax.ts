@@ -63,11 +63,15 @@ export class MiniMaxProvider implements IProvider {
       max_tokens: 4096,
       messages: userMessages,
       ...(systemMessage ? { system: systemMessage } : {}),
-      // MiniMax reasoning configuration
-      thinking: {
-        budget_tokens: this.getThinkingBudget(reasoningConfig.effort),
-        type: reasoningConfig.enabled ? 'enabled' : 'disabled',
-      },
+      // MiniMax reasoning configuration - only include when enabled
+      ...(reasoningConfig.enabled
+        ? {
+            thinking: {
+              type: 'enabled',
+              budget_tokens: this.getThinkingBudget(reasoningConfig.effort),
+            },
+          }
+        : {}),
     };
 
     if (tools && tools.length > 0) {
