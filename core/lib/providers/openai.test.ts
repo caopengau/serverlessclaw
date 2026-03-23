@@ -120,7 +120,7 @@ describe('OpenAIProvider', () => {
         tools: [
           expect.objectContaining({
             type: 'mcp',
-            name: 'google_drive',
+            server_label: 'google_drive',
             connector_id: 'connector_googledrive',
           }),
         ],
