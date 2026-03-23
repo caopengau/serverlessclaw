@@ -4,6 +4,8 @@ import {
   AgentCategory,
   ConnectionProfile,
   ReasoningProfile,
+  LLMProvider,
+  MiniMaxModel,
 } from './types/index';
 import { TOOLS } from './constants';
 import {
@@ -41,8 +43,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'Bot',
     enabled: true,
     isBackbone: true,
-    provider: 'openrouter',
-    model: 'minimax/minimax-m2.7',
+    provider: LLMProvider.MINIMAX,
+    model: MiniMaxModel.M2_7,
     reasoningProfile: ReasoningProfile.STANDARD,
     defaultCommunicationMode: 'text',
     tools: [
@@ -120,8 +122,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       TOOL_INSPECT_TOPOLOGY,
     ],
     maxIterations: 50,
-    provider: 'openrouter',
-    model: 'minimax/minimax-m2.7',
+    provider: LLMProvider.MINIMAX,
+    model: MiniMaxModel.M2_7,
     reasoningProfile: ReasoningProfile.DEEP,
     connectionProfile: [
       ConnectionProfile.BUS,
@@ -142,8 +144,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'Brain',
     enabled: true,
     isBackbone: true,
-    provider: 'openrouter',
-    model: 'minimax/minimax-m2.7',
+    provider: LLMProvider.MINIMAX,
+    model: MiniMaxModel.M2_7,
     reasoningProfile: ReasoningProfile.DEEP,
     defaultCommunicationMode: 'json',
     tools: [
@@ -178,8 +180,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'Search',
     enabled: true,
     isBackbone: true,
-    provider: 'openrouter',
-    model: 'minimax/minimax-m2.7',
+    provider: LLMProvider.MINIMAX,
+    model: MiniMaxModel.M2_7,
     reasoningProfile: ReasoningProfile.STANDARD,
     defaultCommunicationMode: 'json',
     tools: [
@@ -209,8 +211,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     icon: 'FlaskConical',
     enabled: true,
     isBackbone: true,
-    provider: 'openrouter',
-    model: 'minimax/minimax-m2.7',
+    provider: LLMProvider.MINIMAX,
+    model: MiniMaxModel.M2_7,
     reasoningProfile: ReasoningProfile.STANDARD,
     defaultCommunicationMode: 'json',
     tools: [

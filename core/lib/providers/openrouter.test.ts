@@ -18,10 +18,10 @@ describe('OpenRouterProvider', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    provider = new OpenRouterProvider('minimax/minimax-m2.7');
+    provider = new OpenRouterProvider('zhipu/glm-5');
   });
 
-  it('should use standard OpenRouter format for MiniMax models', async () => {
+  it('should use standard OpenRouter format for aggregator models', async () => {
     mockFetch.mockResolvedValue({
       ok: true,
       json: () =>
@@ -35,10 +35,10 @@ describe('OpenRouterProvider', () => {
     const fetchArgs = mockFetch.mock.calls[0];
     const body = JSON.parse(fetchArgs[1].body);
 
-    // MiniMax now uses direct API, OpenRouter should use standard format
+    // Aggregator models should use standard format
     expect(body).toEqual(
       expect.objectContaining({
-        model: 'minimax/minimax-m2.7',
+        model: 'zhipu/glm-5',
         messages: [{ role: 'user', content: 'test' }],
       })
     );
@@ -148,9 +148,9 @@ describe('OpenRouterProvider', () => {
     const geminiCaps = await provider.getCapabilities('google/gemini-3-flash-preview');
     expect(geminiCaps.contextWindow).toBe(1048576);
 
-    // MiniMax is now a direct provider, OpenRouter returns default context window
-    const minimaxCaps = await provider.getCapabilities('minimax/minimax-m2.7');
-    expect(minimaxCaps.contextWindow).toBe(128000);
+    // Aggregator models return default context window
+    const genericCaps = await provider.getCapabilities('mistral/mistral-large');
+    expect(genericCaps.contextWindow).toBe(128000);
 
     const defaultCaps = await provider.getCapabilities('other/model');
     expect(defaultCaps.contextWindow).toBe(128000);
