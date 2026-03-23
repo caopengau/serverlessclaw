@@ -7,11 +7,15 @@
 
 const PII_PATTERNS = {
   EMAIL: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-  API_KEY:
-    /(?:api|secret|key|token|auth|password|pwd)(?:\s*[:=]\s*|\s+)(?:"|')?([a-zA-Z0-9-_.]{8,})(?:"|')?/gi,
   CREDIT_CARD: /\b(?:\d[ -]*?){13,16}\b/g,
   IP_ADDRESS: /\b\d{1,3}(?:\.\d{1,3}){3}\b/g,
+  // Improved regex for secrets: keyword followed by separator and then the secret
+  SECRET:
+    /\b(api_?key|secret|key|token|auth|password|pwd)(\s*[:=is]+\s*|\s+)(["']?)([a-zA-Z0-9-_.]{4,})\3/gi,
 };
+
+// Common keywords that usually precede a secret or credential
+const SECRET_KEYWORDS = ['api', 'secret', 'key', 'token', 'auth', 'password', 'pwd'];
 
 /**
  * Filter PII from a string by masking matches with [REDACTED].
@@ -27,14 +31,9 @@ export function filterPII(text: string): string {
   // 1. Mask Emails
   filtered = filtered.replace(PII_PATTERNS.EMAIL, '[EMAIL_REDACTED]');
 
-  // 2. Mask API Keys / Secrets (preserving the key name)
-  filtered = filtered.replace(PII_PATTERNS.API_KEY, (match, key) => {
-    // We want to replace the FIRST occurrence of the secret 'key' after the key-name prefix
-    const keyIndex = match.lastIndexOf(key);
-    if (keyIndex === -1) return match;
-    return (
-      match.substring(0, keyIndex) + '[SECRET_REDACTED]' + match.substring(keyIndex + key.length)
-    );
+  // 2. Mask Secrets
+  filtered = filtered.replace(PII_PATTERNS.SECRET, (match, key, sep, quote, _secret) => {
+    return `${key}${sep}${quote}[SECRET_REDACTED]${quote}`;
   });
 
   // 3. Mask Credit Cards
@@ -62,7 +61,23 @@ export function filterPIIFromObject<T>(obj: T): T {
   const filteredObj = { ...obj } as Record<string, unknown>;
 
   for (const key in filteredObj) {
+    const lowerKey = key.toLowerCase();
+
+    // skip filtering for tool call function names and arguments to avoid breaking structured JSON
+    // or corrupting the schema definition.
+    if (lowerKey === 'function' || lowerKey === 'tool_calls' || lowerKey === 'tool_call_id') {
+      continue;
+    }
+
     const value = filteredObj[key];
+
+    // If the KEY itself is sensitive, mask the value completely
+    const isSensitiveKey = SECRET_KEYWORDS.some((k) => lowerKey.includes(k));
+    if (isSensitiveKey && typeof value === 'string') {
+      filteredObj[key] = '[SECRET_REDACTED]';
+      continue;
+    }
+
     if (typeof value === 'string') {
       filteredObj[key] = filterPII(value);
     } else if (typeof value === 'object') {

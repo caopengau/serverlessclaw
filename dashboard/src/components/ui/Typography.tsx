@@ -2,7 +2,7 @@ import React from 'react';
 
 interface TypographyProps {
   variant?: 'h1' | 'h2' | 'h3' | 'body' | 'caption' | 'mono';
-  color?: 'primary' | 'intel' | 'danger' | 'warning' | 'muted' | 'white';
+  color?: 'primary' | 'intel' | 'danger' | 'warning' | 'muted' | 'white' | 'inherit';
   uppercase?: boolean;
   glow?: boolean;
   weight?: 'normal' | 'medium' | 'bold' | 'black';
@@ -38,6 +38,7 @@ const Typography: React.FC<TypographyProps> = ({
     warning: 'text-orange-400',
     muted: 'text-[var(--muted)]',
     white: 'text-[var(--foreground)]',
+    inherit: '',
   }[color];
 
   const weightStyles = {

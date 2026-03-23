@@ -43,9 +43,12 @@ body {
 .bg-cyber-green\/5 { background-color: rgba(0, 255, 163, 0.05); }
 .bg-cyber-green\/10 { background-color: rgba(0, 255, 163, 0.1); }
 .bg-cyber-green\/20 { background-color: rgba(0, 255, 163, 0.2); }
+.bg-cyber-green\/60 { background-color: rgba(0, 255, 163, 0.6); }
 .text-cyber-green { color: var(--color-cyber-green); }
+.text-cyber-green\/90 { color: rgba(0, 255, 163, 0.9); }
 .border-cyber-green { border-color: var(--color-cyber-green); }
 .border-cyber-green\/10 { border-color: rgba(0, 255, 163, 0.1); }
+.border-cyber-green\/20 { border-color: rgba(0, 255, 163, 0.2); }
 .border-cyber-green\/30 { border-color: rgba(0, 255, 163, 0.3); }
 .border-l-2 { border-left-width: 2px; }
 .border-l-cyber-green { border-left-color: var(--color-cyber-green); }

@@ -6,6 +6,7 @@ import {
   ReasoningProfile,
   MessageRole,
   MiniMaxModel,
+  ToolCall,
 } from '../types/index';
 import { Resource } from 'sst';
 import { logger } from '../logger';
@@ -94,6 +95,8 @@ export class MiniMaxProvider implements IProvider {
 
     // Extract text content and log thinking content
     let textContent = '';
+    const tool_calls: ToolCall[] = [];
+
     for (const block of content) {
       if (block.type === 'thinking') {
         logger.debug(
@@ -102,12 +105,22 @@ export class MiniMaxProvider implements IProvider {
         );
       } else if (block.type === 'text') {
         textContent += block.text;
+      } else if (block.type === 'tool_use') {
+        tool_calls.push({
+          id: block.id,
+          type: 'function',
+          function: {
+            name: block.name,
+            arguments: JSON.stringify(block.input),
+          },
+        });
       }
     }
 
     return {
       role: MessageRole.ASSISTANT,
-      content: textContent,
+      content: textContent || undefined,
+      tool_calls: tool_calls.length > 0 ? tool_calls : undefined,
       usage: response.usage
         ? {
             prompt_tokens: response.usage.input_tokens,

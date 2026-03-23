@@ -3,7 +3,8 @@
  * Re-exports shared types from core to avoid duplication
  */
 import type { ConversationMeta } from '../../../../core/lib/types/memory';
-export type { ConversationMeta };
+import type { ToolCall } from '../../../../core/lib/types/llm';
+export type { ConversationMeta, ToolCall };
 
 export interface PendingMessage {
   id: string;
@@ -40,14 +41,17 @@ export interface ChatMessage {
     value: string;
     type?: 'primary' | 'secondary' | 'danger';
   }>;
+  tool_calls?: ToolCall[];
 }
 
 export interface HistoryMessage {
   role: string;
   content: string;
   agentName?: string;
+  traceId?: string; // Added for reconciliation
   attachments: ChatMessage['attachments'];
   options?: ChatMessage['options'];
+  tool_calls?: ToolCall[];
 }
 
 export interface AttachmentPreview {

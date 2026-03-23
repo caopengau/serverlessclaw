@@ -9,6 +9,7 @@ import {
   TraceSource,
   Attachment,
   InsightCategory,
+  ToolCall,
 } from './types/index';
 import { logger } from './logger';
 import {
@@ -69,7 +70,12 @@ export class Agent {
     userId: string,
     userText: string,
     options: AgentProcessOptions = {}
-  ): Promise<{ responseText: string; attachments?: Attachment[]; traceId?: string }> {
+  ): Promise<{
+    responseText: string;
+    attachments?: Attachment[];
+    tool_calls?: ToolCall[];
+    traceId?: string;
+  }> {
     const {
       profile = this.config?.reasoningProfile ?? ReasoningProfile.STANDARD,
       context,
@@ -263,6 +269,7 @@ export class Agent {
         paused,
         asyncWait,
         attachments: resultAttachments,
+        tool_calls: resultToolCalls,
         usage: loopUsage,
       } = await executor.runLoop(messages, {
         activeModel,
@@ -331,6 +338,7 @@ export class Agent {
           content: responseText,
           agentName: this.config?.name ?? 'SuperClaw',
           traceId,
+          tool_calls: resultToolCalls,
         });
 
         // Only emit continuation if NOT waiting for an asynchronous delegation/event
@@ -344,7 +352,12 @@ export class Agent {
             attachments: incomingAttachments,
           });
         }
-        return { responseText, attachments: resultAttachments, traceId };
+        return {
+          responseText,
+          attachments: resultAttachments,
+          tool_calls: resultToolCalls,
+          traceId,
+        };
       }
 
       // 5. Finalize and Response
@@ -368,6 +381,7 @@ export class Agent {
         agentName: this.config?.name ?? 'SuperClaw',
         traceId,
         attachments: resultAttachments,
+        tool_calls: resultToolCalls,
       });
 
       await tracer.endTrace(responseText);
@@ -386,7 +400,12 @@ export class Agent {
         sessionId
       );
 
-      return { responseText: responseText, attachments: resultAttachments, traceId };
+      return {
+        responseText: responseText,
+        attachments: resultAttachments,
+        tool_calls: resultToolCalls,
+        traceId,
+      };
     } catch (error) {
       const errorDetail = error instanceof Error ? error.message : String(error);
       logger.error(`[Agent.process] Critical failure: ${errorDetail}`, error);

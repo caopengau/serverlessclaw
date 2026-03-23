@@ -236,7 +236,7 @@ describe('AgentExecutor', () => {
 
   it('should abort and return TASK_CANCELLED if task is marked as cancelled', async () => {
     const { isTaskCancelled } = await import('../../handlers/events/cancellation-handler');
-    vi.mocked(isTaskCancelled).mockResolvedValue(true);
+    vi.mocked(isTaskCancelled).mockImplementation(async (taskId) => taskId === 'task-to-cancel');
 
     const executor = new AgentExecutor(mockProvider as any, [], 'agent-1', 'Agent 1');
 
@@ -245,7 +245,7 @@ describe('AgentExecutor', () => {
       maxIterations: 5,
       tracer: mockTracer as any,
       traceId: 'trace-cancel',
-      taskId: 'task-cancel',
+      taskId: 'task-to-cancel',
       nodeId: 'node-1',
       parentId: undefined,
       currentInitiator: 'main',
@@ -257,5 +257,71 @@ describe('AgentExecutor', () => {
 
     expect(result.responseText).toContain('TASK_CANCELLED');
     expect(mockProvider.call).not.toHaveBeenCalled();
+  });
+
+  it('should return tool_calls in the final result', async () => {
+    const executor = new AgentExecutor(mockProvider as any, [], 'test', 'Test');
+    mockProvider.call.mockResolvedValue({
+      role: MessageRole.ASSISTANT,
+      content: 'Here are some tools',
+      tool_calls: [{ id: 'tc1', type: 'function', function: { name: 't1', arguments: '{}' } }],
+    });
+
+    const result = await executor.runLoop([], {
+      activeProfile: ReasoningProfile.STANDARD,
+      maxIterations: 1,
+      tracer: mockTracer as any,
+      traceId: 't1',
+      taskId: 't1',
+      nodeId: 'n1',
+      parentId: undefined,
+      currentInitiator: 'main',
+      depth: 0,
+      userId: 'u1',
+      userText: 'test',
+      mainConversationId: 'c1',
+    });
+
+    if (!result.tool_calls) {
+      console.log('DEBUG: runLoop result:', JSON.stringify(result, null, 2));
+    }
+
+    expect(result.tool_calls).toBeDefined();
+    expect(result.tool_calls?.[0].id).toBe('tc1');
+  });
+
+  it('should capture tool_calls when loop is paused', async () => {
+    const mockTool = {
+      name: 'pauseTool',
+      execute: vi.fn().mockResolvedValue('TASK_PAUSED: wait'),
+    };
+    const executor = new AgentExecutor(mockProvider as any, [mockTool as any], 'test', 'Test');
+
+    mockProvider.call.mockResolvedValue({
+      role: MessageRole.ASSISTANT,
+      content: 'pausing...',
+      tool_calls: [
+        { id: 'tc-pause', type: 'function', function: { name: 'pauseTool', arguments: '{}' } },
+      ],
+    });
+
+    const result = await executor.runLoop([], {
+      activeProfile: ReasoningProfile.STANDARD,
+      maxIterations: 5,
+      tracer: mockTracer as any,
+      traceId: 't1',
+      taskId: 't1',
+      nodeId: 'n1',
+      parentId: undefined,
+      currentInitiator: 'main',
+      depth: 0,
+      userId: 'u1',
+      userText: 'test',
+      mainConversationId: 'c1',
+    });
+
+    expect(result.paused).toBe(true);
+    expect(result.tool_calls).toBeDefined();
+    expect(result.tool_calls?.[0].id).toBe('tc-pause');
   });
 });

@@ -41,7 +41,8 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
             agentName: m.agentName ?? (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
             attachments: m.attachments,
             options: m.options,
-          })).filter((m: ChatMessage) => m.content || (m.attachments && m.attachments.length > 0));
+            tool_calls: m.tool_calls,
+          }));
 
           // Preserve local-only error messages (like connection failures)
           const localErrors = prev.filter(m => m.agentName === 'SystemGuard');
@@ -97,6 +98,7 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
                     agentName: data.agentName ?? 'SuperClaw',
                     attachments: data.attachments,
                     options: data.options,
+                    tool_calls: data.toolCalls || data.tool_calls,
                   }];
                 });
               } else if (currentActiveId) {

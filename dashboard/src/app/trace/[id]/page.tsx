@@ -212,7 +212,7 @@ export default async function TraceDetailPage({
                       </div>
                     )}
 
-                    {step.type === 'llm_response' && step.content.content ? (
+                    {step.type === 'llm_response' ? (
                       <div className="mb-4 p-4 bg-cyber-green/[0.03] border border-cyber-green/10 rounded">
                         <div className="text-[10px] text-cyber-green/60 uppercase font-bold mb-2 tracking-widest flex items-center gap-2">
                            <Bot size={12} /> Generated_Response

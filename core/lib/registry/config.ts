@@ -5,7 +5,12 @@ import { logger } from '../logger';
 
 // Default client for backward compatibility - can be overridden for testing
 const defaultClient = new DynamoDBClient({});
-export const defaultDocClient = DynamoDBDocumentClient.from(defaultClient);
+export const defaultDocClient = DynamoDBDocumentClient.from(defaultClient, {
+  marshallOptions: {
+    removeUndefinedValues: true,
+    convertEmptyValues: true,
+  },
+});
 
 // Allow tests to inject a custom docClient
 let injectedDocClient: DynamoDBDocumentClient | undefined;

@@ -49,40 +49,49 @@ export function ChatMessageList({ messages, isLoading, scrollRef, onOptionClick 
                 </Typography>
               )}
               <div className="flex flex-col gap-2">
-                {m.content && (
+                {(m.role === 'assistant' || m.content) && (
                   <Card variant="glass" padding="sm" className={`rounded-lg ${
                     m.role === 'user' ? 'bg-white/5 text-white/90 border border-white/10' : 'text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
                   }`}>
-                    <ReactMarkdown 
-                      remarkPlugins={[remarkGfm]}
-                      components={{
-                        p: ({ children }) => <Typography variant="body" className="block mb-2 last:mb-0 break-words">{children}</Typography>,
-                        h1: ({ children }) => <Typography variant="h3" className="block mt-4 mb-2 text-cyber-green" glow>{children}</Typography>,
-                        h2: ({ children }) => <Typography variant="h3" className="block mt-3 mb-1 text-cyber-green/90">{children}</Typography>,
-                        h3: ({ children }) => <Typography variant="body" weight="bold" className="block mt-2 mb-1 text-cyber-green/80">{children}</Typography>,
-                        ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
-                        ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
-                        li: ({ children }) => <li><Typography variant="body" className="inline">{children}</Typography></li>,
-                        code: ({ children, className }) => {
-                          const inline = !className?.includes('language-');
-                          return inline ? (
-                            <code className="bg-white/10 px-1 rounded font-mono text-sm text-cyber-green/100">{children}</code>
-                          ) : (
-                            <pre className="bg-black/40 p-3 rounded-md border border-white/10 my-2 overflow-x-auto custom-scrollbar">
-                              <code className="font-mono text-sm text-cyber-green/90">{children}</code>
-                            </pre>
-                          );
-                        },
-                        strong: ({ children }) => <Typography variant="body" weight="bold" className="inline text-white">{children}</Typography>,
-                        a: ({ children, href }) => (
-                          <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyber-green hover:underline decoration-cyber-green/50 underline-offset-4">
-                            {children}
-                          </a>
-                        ),
-                      }}
-                    >
-                      {m.content}
-                    </ReactMarkdown>
+                    {m.content ? (
+                      <ReactMarkdown 
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          p: ({ children }) => <Typography variant="body" color={m.role === 'assistant' ? 'inherit' : 'white'} className="block mb-2 last:mb-0 break-words">{children}</Typography>,
+                          h1: ({ children }) => <Typography variant="h3" color={m.role === 'assistant' ? 'inherit' : 'white'} className="block mt-4 mb-2 text-cyber-green" glow>{children}</Typography>,
+                          h2: ({ children }) => <Typography variant="h3" color={m.role === 'assistant' ? 'inherit' : 'white'} className="block mt-3 mb-1 text-cyber-green/90">{children}</Typography>,
+                          h3: ({ children }) => <Typography variant="body" weight="bold" color={m.role === 'assistant' ? 'inherit' : 'white'} className="block mt-2 mb-1 text-cyber-green/80">{children}</Typography>,
+                          ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+                          li: ({ children }) => <li><Typography variant="body" color={m.role === 'assistant' ? 'inherit' : 'white'} className="inline">{children}</Typography></li>,
+                          code: ({ children, className }) => {
+                            const inline = !className?.includes('language-');
+                            return inline ? (
+                              <code className="bg-white/10 px-1 rounded font-mono text-sm text-cyber-green/100">{children}</code>
+                            ) : (
+                              <pre className="bg-black/40 p-3 rounded-md border border-white/10 my-2 overflow-x-auto custom-scrollbar">
+                                <code className="font-mono text-sm text-cyber-green/90">{children}</code>
+                              </pre>
+                            );
+                          },
+                          strong: ({ children }) => <Typography variant="body" weight="bold" color={m.role === 'assistant' ? 'inherit' : 'white'} className="inline text-white">{children}</Typography>,
+                          a: ({ children, href }) => (
+                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyber-green hover:underline decoration-cyber-green/50 underline-offset-4">
+                              {children}
+                            </a>
+                          ),
+                        }}
+                      >
+                        {m.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <div className="flex items-center gap-2 py-1">
+                        <Loader2 size={14} className="animate-spin text-cyber-green/60" />
+                        <Typography variant="body" color="inherit" className="italic opacity-70">
+                          Processing...
+                        </Typography>
+                      </div>
+                    )}
                   </Card>
                 )}
                 

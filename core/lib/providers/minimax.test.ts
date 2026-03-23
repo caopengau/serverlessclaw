@@ -200,6 +200,53 @@ describe('MiniMaxProvider', () => {
     );
   });
 
+  it('should extract tool_calls from response blocks', async () => {
+    mockCreateMessage.mockResolvedValue({
+      content: [
+        { type: 'thinking', thinking: 'I need to use a tool' },
+        {
+          type: 'tool_use',
+          id: 'call_123',
+          name: 'save_memory',
+          input: { content: 'test', category: 'fact' },
+        },
+      ],
+      usage: { input_tokens: 50, output_tokens: 100 },
+    });
+
+    const response = await provider.call([{ role: MessageRole.USER, content: 'save this' }]);
+
+    expect(response.tool_calls).toBeDefined();
+    expect(response.tool_calls?.[0]).toEqual({
+      id: 'call_123',
+      type: 'function',
+      function: {
+        name: 'save_memory',
+        arguments: '{"content":"test","category":"fact"}',
+      },
+    });
+    expect(response.content).toBeUndefined();
+  });
+
+  it('should extract both text content and tool_calls', async () => {
+    mockCreateMessage.mockResolvedValue({
+      content: [
+        { type: 'text', text: 'I will save that for you.' },
+        {
+          type: 'tool_use',
+          id: 'call_456',
+          name: 'save_memory',
+          input: { content: 'test' },
+        },
+      ],
+    });
+
+    const response = await provider.call([{ role: MessageRole.USER, content: 'save this' }]);
+
+    expect(response.content).toBe('I will save that for you.');
+    expect(response.tool_calls?.[0].function.name).toBe('save_memory');
+  });
+
   it('should report correct capabilities', async () => {
     const caps = await provider.getCapabilities();
     expect(caps.contextWindow).toBe(204800);

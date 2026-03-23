@@ -29,21 +29,26 @@ describe('isDuplicate', () => {
     expect(seenIds.has('abc-123')).toBe(true);
   });
 
-  it('rejects a message whose messageId was already seen', () => {
-    isDuplicate(seenIds, [], 'abc-123', 'Hello');
-    expect(isDuplicate(seenIds, [], 'abc-123', 'Hello')).toBe(true);
+  it('rejects a message whose messageId is already in state', () => {
+    const prev = [assistant('Hello', 'abc-123')];
+    expect(isDuplicate(seenIds, prev, 'abc-123', 'Hello')).toBe(true);
+  });
+
+  it('accepts a messageId even if in seenIds, as long as it is NOT in state (POST winning over MQTT)', () => {
+    seenIds.add('abc-123');
+    const prev: ChatMessage[] = []; // empty state
+    expect(isDuplicate(seenIds, prev, 'abc-123', 'Full response')).toBe(false);
   });
 
   it('accepts a different messageId even if content is identical', () => {
-    isDuplicate(seenIds, [assistant('Same text', 'id-1')], 'id-1', 'Same text');
-    // id-1 already in seenIds — next must have a new id
-    expect(isDuplicate(seenIds, [assistant('Same text', 'id-1')], 'id-2', 'Same text')).toBe(false);
+    const prev = [assistant('Same text', 'id-1')];
+    expect(isDuplicate(seenIds, prev, 'id-2', 'Same text')).toBe(false);
   });
 
   it('does not add to seenIds when a duplicate is rejected', () => {
-    isDuplicate(seenIds, [], 'id-1', 'text');
+    const prev = [assistant('text', 'id-1')];
     const sizeBefore = seenIds.size;
-    isDuplicate(seenIds, [], 'id-1', 'text'); // duplicate → rejected
+    isDuplicate(seenIds, prev, 'id-1', 'text'); // duplicate → rejected
     expect(seenIds.size).toBe(sizeBefore);
   });
 

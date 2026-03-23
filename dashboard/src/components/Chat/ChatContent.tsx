@@ -124,11 +124,22 @@ export default function ChatContent() {
             agentName: m.agentName ?? (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
             attachments: m.attachments,
             options: m.options,
-          })).filter((m: ChatMessage) => m.content || (m.attachments && m.attachments.length > 0));
+            tool_calls: m.tool_calls,
+            messageId: m.traceId,
+          }));
 
-          // Preserve local-only error messages that aren't in history yet
-          const localErrors = prev.filter(m => m.agentName === 'SystemGuard');
-          return [...history, ...localErrors];
+          // Preserve local-only messages (like SystemGuard errors) that aren't in history yet
+          const historyIds = new Set(history.map((m: ChatMessage) => m.messageId).filter(Boolean));
+          const localOnly = prev.filter((m: ChatMessage) => 
+            m.role === 'assistant' && m.messageId && !historyIds.has(m.messageId)
+          );
+
+          // Track IDs from history too
+          history.forEach(m => {
+            if (m.messageId) seenMessageIds.current.add(m.messageId);
+          });
+
+          return [...history, ...localOnly];
         });
       }
     } catch (error) {
@@ -242,7 +253,14 @@ export default function ChatContent() {
       if (currentSessionId === activeSessionRef.current) {
         setMessages(prev => {
           if (isDuplicate(seenMessageIds.current, prev, data.messageId, data.reply)) return prev;
-          return [...prev, { role: 'assistant', content: data.reply, messageId: data.messageId, agentName: data.agentName }];
+          return [...prev, { 
+            role: 'assistant', 
+            content: data.reply, 
+            messageId: data.messageId, 
+            agentName: data.agentName,
+            attachments: data.attachments,
+            tool_calls: data.tool_calls
+          }];
         });
       }
       fetchSessions();
@@ -250,7 +268,15 @@ export default function ChatContent() {
       console.error('Chat error:', error);
       const errorMsg = AGENT_ERRORS.CONNECTION_FAILURE;
       if (currentSessionId === activeSessionRef.current) {
-        setMessages(prev => [...prev, { role: 'assistant', content: errorMsg, agentName: 'SystemGuard' }]);
+        const errorId = `error_${Date.now()}`;
+        seenMessageIds.current.add(errorId);
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: errorMsg, 
+          agentName: 'SystemGuard',
+          messageId: errorId,
+          isError: true
+        }]);
       }
       try {
         await fetch('/api/memory/gap', {

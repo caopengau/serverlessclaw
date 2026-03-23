@@ -5,6 +5,7 @@ import {
   ReasoningProfile,
   MessageRole,
   ToolResult,
+  ToolCall,
 } from '../types/index';
 import { logger } from '../logger';
 import { AgentRegistry } from '../registry';
@@ -85,6 +86,7 @@ export class AgentExecutor {
     asyncWait?: boolean;
     pauseMessage?: string;
     attachments?: NonNullable<Message['attachments']>;
+    tool_calls?: ToolCall[];
     usage?: {
       totalInputTokens: number;
       totalOutputTokens: number;
@@ -118,6 +120,8 @@ export class AgentExecutor {
     let iterations = 0;
     let responseText = '';
     const attachments: NonNullable<Message['attachments']> = [];
+    let aiResponse: Message | undefined;
+    let lastAiResponse: Message | undefined;
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
     let toolCallCount = 0;
@@ -280,7 +284,7 @@ export class AgentExecutor {
         logger.warn('Failed to fetch capabilities, using requested profile:', e);
       }
 
-      const aiResponse = await this.provider.call(
+      aiResponse = await this.provider.call(
         messages,
         this.tools,
         normalizedProfile,
@@ -288,6 +292,7 @@ export class AgentExecutor {
         activeProvider,
         effectiveResponseFormat
       );
+      lastAiResponse = aiResponse;
 
       console.log(
         `[EXECUTOR] AI Response: ${aiResponse.content?.substring(0, 50)}... | Tools: ${aiResponse.tool_calls?.length ?? 0}`
@@ -428,11 +433,12 @@ export class AgentExecutor {
             // 4. HITL/Pause Optimization: Break loop immediately if tool returns TASK_PAUSED
             if (resultText.startsWith('TASK_PAUSED')) {
               return {
-                responseText: aiResponse.content || this.formatUserFriendlyResponse(resultText),
+                responseText: aiResponse?.content || this.formatUserFriendlyResponse(resultText),
                 paused: true,
                 asyncWait: true,
                 pauseMessage: resultText,
                 attachments,
+                tool_calls: aiResponse?.tool_calls ?? [],
               };
             }
           } else {
@@ -460,6 +466,7 @@ export class AgentExecutor {
         paused: true,
         pauseMessage: AGENT_LOG_MESSAGES.TASK_PAUSED_ITERATION_LIMIT,
         attachments,
+        tool_calls: lastAiResponse?.tool_calls ?? [],
         usage: {
           totalInputTokens,
           totalOutputTokens,
@@ -472,6 +479,7 @@ export class AgentExecutor {
     return {
       responseText: responseText ?? 'Sorry, I reached my iteration limit.',
       attachments: attachments.length > 0 ? attachments : undefined,
+      tool_calls: lastAiResponse?.tool_calls ?? [],
       usage: {
         totalInputTokens,
         totalOutputTokens,
