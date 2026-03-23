@@ -20,13 +20,13 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
     }),
   },
   GetCommand: class {
-    constructor(public input: unknown) { }
+    constructor(public input: unknown) {}
   },
   PutCommand: class {
-    constructor(public input: unknown) { }
+    constructor(public input: unknown) {}
   },
   UpdateCommand: class {
-    constructor(public input: unknown) { }
+    constructor(public input: unknown) {}
   },
 }));
 

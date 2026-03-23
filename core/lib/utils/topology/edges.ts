@@ -47,10 +47,7 @@ export function inferNodeEdges(nodes: TopologyNode[]): TopologyEdge[] {
 
   // A. Agent <-> Bus Relationship
   nodes
-    .filter(
-      (n) =>
-        n.type === NODE_TYPE.AGENT || n.id === 'monitor' || n.id === 'superclaw'
-    )
+    .filter((n) => n.type === NODE_TYPE.AGENT || n.id === 'monitor' || n.id === 'superclaw')
     .forEach((agent) => {
       edges.push({
         id: `${agent.id}-${busId}-orch`,

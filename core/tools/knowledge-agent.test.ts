@@ -35,7 +35,12 @@ describe('Knowledge Agent Tools (Delegation Signals)', () => {
     it('should list enabled agents but exclude main', async () => {
       const { AgentRegistry } = await import('../lib/registry');
       vi.mocked(AgentRegistry.getAllConfigs).mockResolvedValueOnce({
-        superclaw: { id: 'superclaw', name: 'SuperClaw', enabled: true, description: 'Orchestrator' } as any,
+        superclaw: {
+          id: 'superclaw',
+          name: 'SuperClaw',
+          enabled: true,
+          description: 'Orchestrator',
+        } as any,
         coder: { id: 'coder', name: 'Coder', enabled: true, description: 'Writes code' } as any,
         disabled: { id: 'bad', name: 'Bad', enabled: false, description: 'Off' } as any,
       });
