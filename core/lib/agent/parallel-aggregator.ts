@@ -42,8 +42,8 @@ export class ParallelAggregator {
       new PutCommand({
         TableName: this.tableName,
         Item: {
-          userId: `USER#${userId}`,
-          timestamp: `${PARALLEL_PREFIX}${traceId}`,
+          userId: `${PARALLEL_PREFIX}${userId}#${traceId}`,
+          timestamp: 0,
           taskCount,
           completedCount: 0,
           results: [],
@@ -84,8 +84,8 @@ export class ParallelAggregator {
         new UpdateCommand({
           TableName: this.tableName,
           Key: {
-            userId: `USER#${userId}`,
-            timestamp: `${PARALLEL_PREFIX}${traceId}`,
+            userId: `${PARALLEL_PREFIX}${userId}#${traceId}`,
+            timestamp: 0,
           },
           UpdateExpression:
             'SET results = list_append(if_not_exists(results, :empty_list), :new_result), ' +
@@ -146,8 +146,8 @@ export class ParallelAggregator {
         new UpdateCommand({
           TableName: this.tableName,
           Key: {
-            userId: `USER#${userId}`,
-            timestamp: `${PARALLEL_PREFIX}${traceId}`,
+            userId: `${PARALLEL_PREFIX}${userId}#${traceId}`,
+            timestamp: 0,
           },
           UpdateExpression: 'SET #status = :status, completedAt = :now',
           ConditionExpression: 'attribute_exists(userId) AND #status = :pending',
@@ -178,8 +178,8 @@ export class ParallelAggregator {
       new GetCommand({
         TableName: this.tableName,
         Key: {
-          userId: `USER#${userId}`,
-          timestamp: `${PARALLEL_PREFIX}${traceId}`,
+          userId: `${PARALLEL_PREFIX}${userId}#${traceId}`,
+          timestamp: 0,
         },
       })
     );
@@ -201,8 +201,8 @@ export class ParallelAggregator {
         new UpdateCommand({
           TableName: this.tableName,
           Key: {
-            userId: `USER#${userId}`,
-            timestamp: `${PARALLEL_PREFIX}${traceId}`,
+            userId: `${PARALLEL_PREFIX}${userId}#${traceId}`,
+            timestamp: 0,
           },
           UpdateExpression: `
             SET progress = if_not_exists(progress, :empty_map),

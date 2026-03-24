@@ -263,7 +263,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       initiatorId: payload.initiatorId,
       depth: payload.depth,
       sessionId,
-      userNotified: true,
+      userNotified: !isFailure,
     });
   }
 

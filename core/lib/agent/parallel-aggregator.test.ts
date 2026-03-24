@@ -122,5 +122,24 @@ describe('ParallelAggregator', () => {
       expect(Array.isArray(item!.results)).toBe(true);
       expect(item!.results).toEqual([]);
     });
+
+    it('should use a valid schema for HK and SK (Fix for ValidationException)', async () => {
+      mockSend.mockResolvedValueOnce({});
+
+      await aggregator.init('user123', 'trace456', 2, 'superclaw', 'session-1');
+
+      const command = mockSend.mock.calls[0][0] as PutCommand;
+      const item = command.input.Item;
+
+      // HK should be a string with the parallel prefix
+      expect(typeof item!.userId).toBe('string');
+      expect(item!.userId).toContain('PARALLEL#');
+      expect(item!.userId).toContain('user123');
+      expect(item!.userId).toContain('trace456');
+
+      // SK (timestamp) MUST be a number
+      expect(typeof item!.timestamp).toBe('number');
+      expect(item!.timestamp).toBe(0);
+    });
   });
 });

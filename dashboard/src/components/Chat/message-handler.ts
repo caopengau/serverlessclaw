@@ -117,9 +117,14 @@ export function mergeHistoryWithMessages(
   const seenIds = new Set<string>();
   const history = rawHistory.map(mapHistoryMessage);
 
-  // Track IDs from history for dedup
+  // Track unique message identifiers from history for dedup.
+  // We use a combination of messageId and role because a turn (user + assistant) shares the same traceId.
+  const historyKeys = new Set<string>();
   history.forEach((m) => {
-    if (m.messageId) seenIds.add(m.messageId);
+    if (m.messageId) {
+      seenIds.add(m.messageId);
+      historyKeys.add(`${m.role}:${m.messageId}`);
+    }
   });
 
   // Detect streaming placeholders (assistant messages with empty content and a messageId)
@@ -127,26 +132,32 @@ export function mergeHistoryWithMessages(
     (m) => m.role === 'assistant' && m.messageId && m.content === ''
   );
 
-  // If there are active streaming placeholders, don't replace - just merge user messages
+  // Preserve local-only messages:
+  // 1. Assistant messages that are still streaming (not yet in history with 'assistant' role)
+  // 2. Error messages (SystemGuard) that are not in history
+  const localOnly = prev.filter((m) => {
+    if (!m.messageId) return false;
+    // If it's a user message, we prefer the history version (which has the real ID)
+    if (m.role === 'user') return false;
+    // If it's an assistant message, keep it if it's NOT in history yet
+    return !historyKeys.has(`${m.role}:${m.messageId}`);
+  });
+
+  // If there are active streaming placeholders, we might be in the middle of a turn.
+  // We want to avoid prepending everything and duplicating.
   if (streamingPlaceholders.length > 0) {
-    const existingContent = new Set(prev.map((m) => m.content));
-    const newUserMessages = history.filter(
-      (m) => m.role === 'user' && !existingContent.has(m.content)
+    const historyUserContent = new Set(history.filter(m => m.role === 'user').map(m => m.content));
+    const newHistoryUserMessages = history.filter(
+      (m) => m.role === 'user' && !prev.some(p => p.role === 'user' && p.content === m.content)
     );
+    
+    // In streaming mode, we mainly want to refresh the history of PREVIOUS turns
+    // while keeping the CURRENT turn's streaming state.
     return {
-      messages: [
-        ...newUserMessages,
-        ...prev.filter((m) => m.role === 'user' || m.role === 'assistant'),
-      ],
+      messages: [...history, ...localOnly],
       seenIds,
     };
   }
-
-  // Preserve local-only messages (errors, streaming placeholders) not yet in history
-  const historyIds = new Set(history.map((m) => m.messageId).filter(Boolean));
-  const localOnly = prev.filter(
-    (m) => m.role === 'assistant' && m.messageId && !historyIds.has(m.messageId)
-  );
 
   return { messages: [...history, ...localOnly], seenIds };
 }

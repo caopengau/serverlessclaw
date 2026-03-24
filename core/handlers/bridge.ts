@@ -1,6 +1,7 @@
 import { IoTDataPlaneClient, PublishCommand } from '@aws-sdk/client-iot-data-plane';
 import { Context } from 'aws-lambda';
 import { BRIDGE_EVENT_SCHEMA } from '../lib/schema/events';
+import { extractBaseUserId } from '../lib/utils/agent-helpers';
 
 const iot = new IoTDataPlaneClient({});
 
@@ -26,11 +27,16 @@ export async function handler(event: Record<string, unknown>, _context: Context)
   let userId = detail.userId ?? 'dashboard-user';
   if (typeof userId !== 'string') userId = 'dashboard-user';
 
+  // Normalize userId to base form for MQTT topic consistency
+  const baseUserId = extractBaseUserId(userId);
+
   // Clean userId for MQTT topic (no special chars except allowed ones)
-  const safeUserId = userId.replace(/[#+]/g, '_');
+  const safeUserId = baseUserId.replace(/[#+]/g, '_');
   const sessionId = detail.sessionId;
 
-  console.log(`[RealtimeBridge] Routing: User=${userId} | Session=${sessionId}`);
+  console.log(
+    `[RealtimeBridge] Routing: User=${userId} | BaseUser=${baseUserId} | Session=${sessionId}`
+  );
 
   // If we have a sessionId, we can target the specific chat session
   // Otherwise fallback to the generic user signal topic

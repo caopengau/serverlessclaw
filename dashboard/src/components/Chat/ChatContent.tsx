@@ -253,13 +253,24 @@ export default function ChatContent() {
       // Append the assistant response (stream now returns full response like non-streaming)
       if (currentSessionId === activeSessionRef.current) {
         seenMessageIds.current.add(data.messageId);
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: data.reply || (data.tool_calls ? 'Executing tools...' : ''),
-          messageId: data.messageId,
-          agentName: data.agentName || 'SuperClaw',
-          tool_calls: data.tool_calls,
-        }]);
+        setMessages(prev => {
+          const exists = prev.some(m => m.messageId === data.messageId && m.role === 'assistant');
+          if (exists) {
+            return prev.map(m => m.messageId === data.messageId && m.role === 'assistant' ? {
+              ...m,
+              content: data.reply || m.content,
+              tool_calls: data.tool_calls || m.tool_calls,
+              agentName: data.agentName || m.agentName
+            } : m);
+          }
+          return [...prev, {
+            role: 'assistant',
+            content: data.reply || (data.tool_calls ? 'Executing tools...' : ''),
+            messageId: data.messageId,
+            agentName: data.agentName || 'SuperClaw',
+            tool_calls: data.tool_calls,
+          }];
+        });
       }
       fetchSessions();
     } catch (error) {

@@ -91,6 +91,16 @@ describe('RealtimeBridge Handler', () => {
     expect(cmd.topic).toBe('users/dashboard-user/sessions/sess-1/signal');
   });
 
+  it('normalizes userId with CONV# prefix for MQTT topics', async () => {
+    const event = chunkEvent({ userId: 'CONV#dashboard-user#sess-1' });
+    mockSafeParse.mockReturnValue({ success: true, data: event });
+
+    await handler(event, fakeContext);
+
+    const cmd = mockSend.mock.calls[mockSend.mock.calls.length - 1][0];
+    expect(cmd.topic).toBe('users/dashboard-user/sessions/sess-1/signal');
+  });
+
   it('does not publish when event schema validation fails', async () => {
     const event = chunkEvent();
     mockSafeParse.mockReturnValue({ success: false, error: 'bad payload' });

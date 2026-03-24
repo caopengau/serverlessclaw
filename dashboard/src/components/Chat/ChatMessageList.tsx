@@ -62,11 +62,11 @@ export function ChatMessageList({ messages, isLoading, scrollRef, onOptionClick 
                   </Card>
                 )}
                 
-                {(m.role === 'assistant' || m.content) && (
+                {(m.role === 'user' || m.content) && (
                   <Card variant="glass" padding="sm" className={`rounded-lg ${
                     m.role === 'user' ? 'bg-white/5 text-white/90 border border-white/10' : 'text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
                   }`}>
-                    {m.content ? (
+                    {m.content && (
                       <ReactMarkdown 
                         remarkPlugins={[remarkGfm]}
                         components={{
@@ -97,13 +97,6 @@ export function ChatMessageList({ messages, isLoading, scrollRef, onOptionClick 
                       >
                         {m.content}
                       </ReactMarkdown>
-                    ) : (
-                      <div className="flex items-center gap-2 py-1">
-                        <Loader2 size={14} className="animate-spin text-cyber-green/60" />
-                        <Typography variant="body" color="inherit" className="italic opacity-70">
-                          {m.thought ? 'Formulating response...' : 'Processing...'}
-                        </Typography>
-                      </div>
                     )}
                   </Card>
                 )}
