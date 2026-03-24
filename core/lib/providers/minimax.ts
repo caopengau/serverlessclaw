@@ -136,16 +136,98 @@ export class MiniMaxProvider implements IProvider {
     tools?: ITool[],
     profile: ReasoningProfile = ReasoningProfile.STANDARD,
     model?: string,
-    provider?: string,
-    responseFormat?: import('../types/index').ResponseFormat
+    _provider?: string,
+    _responseFormat?: import('../types/index').ResponseFormat
   ): AsyncIterable<import('../types/index').MessageChunk> {
-    const response = await this.call(messages, tools, profile, model, provider, responseFormat);
-    yield {
-      role: response.role,
-      content: response.content,
-      tool_calls: response.tool_calls,
-      usage: response.usage,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resource = Resource as any;
+    const apiKey = ('MiniMaxApiKey' in resource ? resource.MiniMaxApiKey.value : '') ?? '';
+    const activeModel = model ?? this.model;
+
+    const reasoningConfig = MINIMAX_REASONING_MAP[profile];
+
+    // Initialize Anthropic client with MiniMax's base URL
+    const client = new Anthropic({
+      apiKey,
+      baseURL: 'https://api.minimax.io/anthropic',
+    });
+
+    // Extract system message and convert messages to Anthropic format
+    const { systemMessage, anthropicMessages } = this.convertMessages(messages);
+
+    // Build request parameters
+    const requestParams: Record<string, unknown> = {
+      model: activeModel,
+      max_tokens: 4096,
+      messages: anthropicMessages,
+      stream: true,
+      ...(systemMessage ? { system: systemMessage } : {}),
+      ...(reasoningConfig.enabled
+        ? {
+            thinking: {
+              type: 'enabled',
+              budget_tokens: reasoningConfig.budget_tokens,
+            },
+          }
+        : {}),
     };
+
+    if (tools && tools.length > 0) {
+      requestParams['tools'] = this.transformToolsToAnthropic(tools);
+    }
+
+    try {
+      const stream = (await client.messages.create(
+        requestParams as unknown as Anthropic.MessageCreateParams
+      )) as unknown as AsyncIterable<Anthropic.MessageStreamEvent>;
+
+      let currentToolCall: ToolCall | null = null;
+      const toolCalls: ToolCall[] = [];
+
+      for await (const chunk of stream) {
+        if (chunk.type === 'content_block_start' && chunk.content_block.type === 'tool_use') {
+          currentToolCall = {
+            id: chunk.content_block.id,
+            type: 'function',
+            function: {
+              name: chunk.content_block.name,
+              arguments: '',
+            },
+          };
+        } else if (chunk.type === 'content_block_delta') {
+          if (chunk.delta.type === 'thinking_delta') {
+            yield { thought: chunk.delta.thinking };
+          } else if (chunk.delta.type === 'text_delta') {
+            yield { content: chunk.delta.text };
+          } else if (chunk.delta.type === 'input_json_delta' && currentToolCall) {
+            currentToolCall.function.arguments += chunk.delta.partial_json;
+          }
+        } else if (chunk.type === 'content_block_stop' && currentToolCall) {
+          toolCalls.push(currentToolCall);
+          yield { tool_calls: [currentToolCall] };
+          currentToolCall = null;
+        } else if (chunk.type === 'message_delta' && chunk.usage) {
+          yield {
+            usage: {
+              prompt_tokens: 0,
+              completion_tokens: chunk.usage.output_tokens,
+              total_tokens: chunk.usage.output_tokens,
+            },
+          };
+        } else if (chunk.type === 'message_start' && chunk.message.usage) {
+          yield {
+            usage: {
+              prompt_tokens: chunk.message.usage.input_tokens,
+              completion_tokens: chunk.message.usage.output_tokens,
+              total_tokens: chunk.message.usage.input_tokens + chunk.message.usage.output_tokens,
+            },
+          };
+        }
+      }
+    } catch (err) {
+      logger.error('MiniMax streaming failed:', err);
+      yield { content: ' (Streaming failed)' };
+    }
   }
 
   /**
