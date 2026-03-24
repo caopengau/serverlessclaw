@@ -369,6 +369,95 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
     );
     expect(res.status).toBe(400);
   });
+
+  it('captures tool_calls from stream when provider returns them (MiniMax scenario)', async () => {
+    // MiniMax fake-stream: yields content then tool_calls in separate chunks
+    async function* fakeStream() {
+      yield { content: 'Let me check.' };
+      yield {
+        tool_calls: [
+          {
+            id: 'call-1',
+            type: 'function',
+            function: { name: 'recallKnowledge', arguments: '{"query":"user identity"}' },
+          },
+        ],
+      };
+    }
+    mockStream.mockReturnValue(fakeStream());
+
+    const { POST } = await import('./route');
+    const res = await POST(
+      makeRequest(
+        { text: 'remember who i am?', sessionId: 'sess-tc-1' },
+        { searchParams: { stream: 'true' } }
+      )
+    );
+    const data = await res.json();
+
+    expect(data.reply).toBe('Let me check.');
+    expect(data.tool_calls).toHaveLength(1);
+    expect(data.tool_calls[0].function.name).toBe('recallKnowledge');
+  });
+
+  it('returns empty reply with tool_calls when provider emits only tool_calls (no text)', async () => {
+    // MiniMax scenario: provider returns tool_calls with empty content
+    async function* fakeStream() {
+      yield {
+        content: '',
+        tool_calls: [
+          {
+            id: 'call-2',
+            type: 'function',
+            function: { name: 'search', arguments: '{"q":"test"}' },
+          },
+        ],
+      };
+    }
+    mockStream.mockReturnValue(fakeStream());
+
+    const { POST } = await import('./route');
+    const res = await POST(
+      makeRequest(
+        { text: 'search for test', sessionId: 'sess-tc-2' },
+        { searchParams: { stream: 'true' } }
+      )
+    );
+    const data = await res.json();
+
+    expect(data.reply).toBe('');
+    expect(data.tool_calls).toHaveLength(1);
+    expect(data.tool_calls[0].function.name).toBe('search');
+  });
+
+  it('captures thought content as reply when provider emits only thoughts', async () => {
+    async function* fakeStream() {
+      yield { thought: 'Let me think about this...' };
+      yield {
+        tool_calls: [
+          {
+            id: 'call-3',
+            type: 'function',
+            function: { name: 'think', arguments: '{}' },
+          },
+        ],
+      };
+    }
+    mockStream.mockReturnValue(fakeStream());
+
+    const { POST } = await import('./route');
+    const res = await POST(
+      makeRequest(
+        { text: 'think about it', sessionId: 'sess-tc-3' },
+        { searchParams: { stream: 'true' } }
+      )
+    );
+    const data = await res.json();
+
+    // Thought should be captured as fallback when no content
+    expect(data.reply).toBe('Let me think about this...');
+    expect(data.tool_calls).toHaveLength(1);
+  });
 });
 
 describe('Dashboard API: PATCH /api/chat', () => {

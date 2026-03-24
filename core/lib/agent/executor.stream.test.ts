@@ -145,4 +145,135 @@ describe('AgentExecutor.streamLoop', () => {
       false
     );
   });
+
+  it('should yield tool_calls when provider returns only tool_calls with no content (MiniMax scenario)', async () => {
+    const executor = new AgentExecutor(mockProvider as any, [], 'test-agent', 'Test Agent');
+
+    // MiniMax fake-stream: single chunk with tool_calls but empty content
+    async function* mockMiniMaxStream() {
+      yield {
+        content: '',
+        tool_calls: [
+          {
+            id: 'call-mm-1',
+            type: 'function',
+            function: { name: 'recallKnowledge', arguments: '{"query":"user identity"}' },
+          },
+        ],
+      };
+    }
+    mockProvider.stream.mockReturnValue(mockMiniMaxStream());
+
+    const chunks = [];
+    const stream = executor.streamLoop([], {
+      activeProfile: ReasoningProfile.STANDARD,
+      maxIterations: 5,
+      tracer: mockTracer as any,
+      emitter: mockEmitter as any,
+      traceId: 'trace-mm',
+      taskId: 'trace-mm',
+      nodeId: 'node-1',
+      parentId: undefined,
+      currentInitiator: 'superclaw',
+      depth: 0,
+      userId: 'user-1',
+      userText: 'remember who i am?',
+      mainConversationId: 'conv-1',
+      sessionId: 'sess-mm',
+    });
+
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+
+    // Should yield the tool_calls chunk even with empty content
+    const toolCallChunks = chunks.filter((c) => c.tool_calls);
+    expect(toolCallChunks).toHaveLength(1);
+    expect(toolCallChunks[0].tool_calls![0].function.name).toBe('recallKnowledge');
+  });
+
+  it('should yield tool_calls when provider returns content and tool_calls in same chunk', async () => {
+    const executor = new AgentExecutor(mockProvider as any, [], 'test-agent', 'Test Agent');
+
+    // Provider returns both content and tool_calls in one chunk
+    async function* mockCombinedStream() {
+      yield {
+        content: 'Let me look that up.',
+        tool_calls: [
+          {
+            id: 'call-cmb-1',
+            type: 'function',
+            function: { name: 'search', arguments: '{"q":"test"}' },
+          },
+        ],
+      };
+    }
+    mockProvider.stream.mockReturnValue(mockCombinedStream());
+
+    const chunks = [];
+    const stream = executor.streamLoop([], {
+      activeProfile: ReasoningProfile.STANDARD,
+      maxIterations: 5,
+      tracer: mockTracer as any,
+      emitter: mockEmitter as any,
+      traceId: 'trace-cmb',
+      taskId: 'trace-cmb',
+      nodeId: 'node-1',
+      parentId: undefined,
+      currentInitiator: 'superclaw',
+      depth: 0,
+      userId: 'user-1',
+      userText: 'search for test',
+      mainConversationId: 'conv-1',
+      sessionId: 'sess-cmb',
+    });
+
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+
+    // Content chunk yielded (with tool_calls from provider) + explicit tool_calls yield
+    expect(chunks.filter((c) => c.content)).toHaveLength(1);
+    expect(chunks.find((c) => c.content)!.content).toBe('Let me look that up.');
+    // At least one chunk has tool_calls (the explicit yield ensures route captures them)
+    const tcChunks = chunks.filter((c) => c.tool_calls);
+    expect(tcChunks.length).toBeGreaterThanOrEqual(1);
+    expect(tcChunks.some((c) => c.tool_calls![0].id === 'call-cmb-1')).toBe(true);
+  });
+
+  it('should NOT yield extra tool_calls chunk when no tool calls are present', async () => {
+    const executor = new AgentExecutor(mockProvider as any, [], 'test-agent', 'Test Agent');
+
+    async function* mockTextOnlyStream() {
+      yield { content: 'Hello there!' };
+    }
+    mockProvider.stream.mockReturnValue(mockTextOnlyStream());
+
+    const chunks = [];
+    const stream = executor.streamLoop([], {
+      activeProfile: ReasoningProfile.STANDARD,
+      maxIterations: 5,
+      tracer: mockTracer as any,
+      emitter: mockEmitter as any,
+      traceId: 'trace-txt',
+      taskId: 'trace-txt',
+      nodeId: 'node-1',
+      parentId: undefined,
+      currentInitiator: 'superclaw',
+      depth: 0,
+      userId: 'user-1',
+      userText: 'hello',
+      mainConversationId: 'conv-1',
+      sessionId: 'sess-txt',
+    });
+
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+
+    // Only the content chunk, no tool_calls chunk
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].content).toBe('Hello there!');
+    expect(chunks[0].tool_calls).toBeUndefined();
+  });
 });
