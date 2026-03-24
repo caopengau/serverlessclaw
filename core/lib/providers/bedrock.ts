@@ -1,11 +1,13 @@
 import {
   BedrockRuntimeClient,
   ConverseCommand,
+  ConverseStreamCommand,
   Message as BedrockMessage,
   SystemContentBlock,
   Tool as BedrockTool,
   ContentBlock,
   ToolResultContentBlock,
+  ConverseStreamOutput,
 } from '@aws-sdk/client-bedrock-runtime';
 import {
   IProvider,
@@ -281,6 +283,7 @@ export class BedrockProvider implements IProvider {
       return {
         role: MessageRole.ASSISTANT,
         content: content ?? '',
+        thought: reasoning || undefined,
         tool_calls: msg.content
           ?.filter((c) => c.toolUse)
           .map((c) => ({
@@ -312,13 +315,251 @@ export class BedrockProvider implements IProvider {
     provider?: string,
     responseFormat?: import('../types/index').ResponseFormat
   ): AsyncIterable<import('../types/index').MessageChunk> {
-    const response = await this.call(messages, tools, profile, model, provider, responseFormat);
-    yield {
-      role: response.role,
-      content: response.content,
-      tool_calls: response.tool_calls,
-      usage: response.usage,
-    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resource = Resource as any;
+    const client = new BedrockRuntimeClient({
+      region: ('AwsRegion' in resource ? resource.AwsRegion.value : undefined) ?? 'ap-southeast-2',
+    });
+    const activeModelId = model ?? this.modelId;
+
+    const capabilities = await this.getCapabilities(activeModelId);
+    profile = normalizeProfile(profile, capabilities, activeModelId);
+
+    const reasoningConfig = BEDROCK_REASONING_MAP[profile];
+
+    // Reuse message conversion from call()
+    const bedrockMessages: BedrockMessage[] = messages
+      .filter((m) => m.role !== MessageRole.SYSTEM && m.role !== MessageRole.DEVELOPER)
+      .map((m) => {
+        let role: 'user' | 'assistant' = 'user';
+        if (m.role === MessageRole.ASSISTANT) role = 'assistant';
+
+        const content: ContentBlock[] = [{ text: m.content ?? '' }];
+
+        if (m.attachments && m.role !== MessageRole.TOOL) {
+          m.attachments.forEach((att) => {
+            const format = (att.mimeType?.split('/')[1] ?? 'png').toLowerCase();
+            if (att.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
+              content.push({
+                image: {
+                  format: format as 'png' | 'jpeg' | 'gif' | 'webp',
+                  source: {
+                    bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                  },
+                },
+              });
+            } else if (att.type === 'file') {
+              content.push({
+                document: {
+                  name: att.name ?? 'document',
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  format: (att.mimeType?.split('/')[1] ?? 'pdf') as any,
+                  source: {
+                    bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                  },
+                },
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              } as any);
+            }
+          });
+        }
+
+        if (m.tool_calls) {
+          m.tool_calls.forEach(
+            (tc: { id: string; function: { name: string; arguments: string } }) => {
+              content.push({
+                toolUse: {
+                  toolUseId: tc.id,
+                  name: tc.function.name,
+                  input: JSON.parse(tc.function.arguments),
+                },
+              });
+            }
+          );
+        }
+
+        if (m.role === MessageRole.TOOL) {
+          const toolContent: ToolResultContentBlock[] = [];
+          toolContent.push({ text: m.content ?? '' });
+
+          if (m.attachments) {
+            m.attachments.forEach((att) => {
+              const format = (att.mimeType?.split('/')[1] ?? 'png').toLowerCase();
+              if (att.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
+                toolContent.push({
+                  image: {
+                    format: format as 'png' | 'jpeg' | 'gif' | 'webp',
+                    source: {
+                      bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                    },
+                  },
+                });
+              } else if (att.type === 'file') {
+                toolContent.push({
+                  document: {
+                    name: att.name ?? 'document',
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    format: (att.mimeType?.split('/')[1] ?? 'pdf') as any,
+                    source: {
+                      bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                    },
+                  },
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                } as any);
+              }
+            });
+          }
+
+          content.push({
+            toolResult: {
+              toolUseId: m.tool_call_id!,
+              content: toolContent,
+              status: 'success',
+            },
+          });
+        }
+
+        return { role, content };
+      });
+
+    const system: SystemContentBlock[] = messages
+      .filter((m) => m.role === MessageRole.SYSTEM || m.role === MessageRole.DEVELOPER)
+      .map((m) => ({ text: m.content ?? '' }));
+
+    const bedrockTools: BedrockTool[] | undefined = tools
+      ?.filter((t) => !t.type || t.type === 'function' || t.type === 'computer_use')
+      .map((t) => {
+        if (t.type === 'computer_use') {
+          return {
+            [t.name]: {
+              display_name: t.name,
+              type: t.type,
+              ...(t.name === 'computer'
+                ? {
+                    options: { display_height: 768, display_width: 1024, display_number: 0 },
+                  }
+                : {}),
+            },
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          } as any;
+        }
+        return {
+          toolSpec: {
+            name: t.name,
+            description: t.description,
+            inputSchema: {
+              json: t.parameters as unknown as Record<string, unknown>,
+            },
+          },
+        };
+      }) as unknown as BedrockTool[];
+
+    try {
+      const command = new ConverseStreamCommand({
+        modelId: activeModelId,
+        messages: bedrockMessages,
+        system,
+        toolConfig: bedrockTools ? { tools: bedrockTools } : undefined,
+        inferenceConfig: {
+          maxTokens: reasoningConfig.maxTokens,
+          temperature: reasoningConfig.temperature,
+          topP: 0.9,
+        },
+        additionalModelRequestFields: {
+          ...(reasoningConfig.thinkingEnabled
+            ? {
+                thinking: {
+                  type: 'enabled',
+                  budget_tokens: reasoningConfig.thinkingBudget,
+                },
+              }
+            : {}),
+        },
+        ...(responseFormat?.type === 'json_schema'
+          ? {
+              outputConfig: {
+                format: 'json',
+              },
+            }
+          : {}),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any);
+
+      const response = await client.send(command);
+
+      if (!response.stream) {
+        yield { content: ' (No stream)' };
+        return;
+      }
+
+      // Track tool calls across stream events
+      const activeToolCalls: Map<number, { id: string; name: string; arguments: string }> =
+        new Map();
+
+      for await (const event of response.stream as AsyncIterable<ConverseStreamOutput>) {
+        if (event.contentBlockDelta) {
+          const delta = event.contentBlockDelta.delta;
+          if (!delta) continue;
+
+          if ('text' in delta && delta.text) {
+            yield { content: delta.text };
+          } else if ('reasoningContent' in delta && delta.reasoningContent) {
+            const rc = delta.reasoningContent;
+            if ('text' in rc && rc.text) {
+              yield { thought: rc.text };
+            }
+          } else if ('toolUse' in delta && delta.toolUse) {
+            const idx = event.contentBlockDelta.contentBlockIndex ?? 0;
+            const existing = activeToolCalls.get(idx);
+            if (existing) {
+              existing.arguments += (delta.toolUse as { input?: string }).input ?? '';
+            }
+          }
+        } else if (event.contentBlockStart) {
+          const start = event.contentBlockStart.start;
+          if (start && 'toolUse' in start && start.toolUse) {
+            const idx = event.contentBlockStart.contentBlockIndex ?? 0;
+            activeToolCalls.set(idx, {
+              id: start.toolUse.toolUseId ?? '',
+              name: start.toolUse.name ?? '',
+              arguments: '',
+            });
+          }
+        } else if (event.contentBlockStop) {
+          const idx = event.contentBlockStop.contentBlockIndex ?? 0;
+          const toolCall = activeToolCalls.get(idx);
+          if (toolCall) {
+            yield {
+              tool_calls: [
+                {
+                  id: toolCall.id,
+                  type: 'function',
+                  function: {
+                    name: toolCall.name,
+                    arguments: toolCall.arguments,
+                  },
+                },
+              ],
+            };
+            activeToolCalls.delete(idx);
+          }
+        } else if (event.metadata) {
+          const usage = event.metadata.usage;
+          if (usage) {
+            yield {
+              usage: {
+                prompt_tokens: usage.inputTokens ?? 0,
+                completion_tokens: usage.outputTokens ?? 0,
+                total_tokens: usage.totalTokens ?? 0,
+              },
+            };
+          }
+        }
+      }
+    } catch (err) {
+      logger.error('Bedrock streaming failed:', err);
+      yield { content: ' (Streaming failed)' };
+    }
   }
 
   async getCapabilities(model?: string) {
