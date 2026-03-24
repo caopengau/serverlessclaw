@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './strategic-planner';
 import { GapStatus } from '../lib/types/agent';
+import { AgentType } from '../lib/types/index';
 
 const memoryMocks = vi.hoisted(() => ({
   updateGapStatus: vi.fn().mockResolvedValue(undefined),
@@ -65,10 +66,11 @@ vi.mock('../tools/index', () => ({
   TOOLS: { dispatchTask: { execute: vi.fn().mockResolvedValue(undefined) } },
 }));
 
-vi.mock('../tools/registry-utils', () => ({
+const registryUtilsMocks = vi.hoisted(() => ({
   getAgentTools: vi.fn().mockResolvedValue([]),
-  getToolDefinitions: vi.fn().mockReturnValue([]),
 }));
+
+vi.mock('../tools/registry-utils', () => registryUtilsMocks);
 
 vi.mock('../lib/outbound', () => ({
   sendOutboundMessage: vi.fn().mockResolvedValue(undefined),
@@ -273,5 +275,35 @@ describe('Strategic Planner — selective PLANNED marking', () => {
       expect.stringContaining('[TOOL_OPTIMIZATION] Action: PRUNE, Tool: oldSearchTool'),
       expect.any(Object)
     );
+  });
+});
+
+describe('Strategic Planner — tool loading (Bug 1 regression)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    memoryMocks.getDistilledMemory.mockResolvedValue(null);
+    memoryMocks.getAllGaps.mockResolvedValue([]);
+    registryMocks.getRawConfig.mockResolvedValue(undefined);
+    registryMocks.getAgentConfig.mockResolvedValue({
+      id: AgentType.STRATEGIC_PLANNER,
+      name: 'Strategic Planner',
+      systemPrompt: 'Planner prompt',
+      enabled: true,
+    });
+    agentProcess.mockResolvedValue({ responseText: '{"status":"SUCCESS","plan":"noop"}' });
+  });
+
+  it('should call getAgentTools with AgentType.STRATEGIC_PLANNER, not "planner"', async () => {
+    const event = {
+      detail: {
+        userId: 'user-1',
+        isScheduledReview: true,
+      },
+    };
+
+    await handler(event as any, {} as any);
+
+    expect(registryUtilsMocks.getAgentTools).toHaveBeenCalledWith(AgentType.STRATEGIC_PLANNER);
+    expect(registryUtilsMocks.getAgentTools).not.toHaveBeenCalledWith('planner');
   });
 });

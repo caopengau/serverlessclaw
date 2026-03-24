@@ -11,7 +11,8 @@ import {
   Wrench, 
   Zap,
   BarChart3,
-  LayoutGrid
+  LayoutGrid,
+  Cpu
 } from 'lucide-react';
 import Link from 'next/link';
 import Typography from '@/components/ui/Typography';
@@ -24,7 +25,7 @@ interface TraceIntelligenceViewProps {
   sessionTitles?: Record<string, string>;
 }
 
-type TabType = 'timeline' | 'sessions' | 'models' | 'tools' | 'usage';
+type TabType = 'timeline' | 'sessions' | 'models' | 'tools' | 'usage' | 'agents';
 
 export default function TraceIntelligenceView({ initialTraces, sessionTitles }: TraceIntelligenceViewProps) {
   const [activeTab, setActiveTab] = useState<TabType>('timeline');
@@ -72,7 +73,8 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
         toolsUsed,
         model,
         totalTokens,
-        sessionId: trace.initialContext?.sessionId ?? 'ANONYMOUS_SESSION'
+        sessionId: trace.initialContext?.sessionId ?? 'ANONYMOUS_SESSION',
+        agentId: trace.agentId || trace.initialContext?.agentId || 'UNKNOWN_AGENT'
       };
     });
   }, [initialTraces]);
@@ -95,6 +97,16 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
 
   // Grouping logic
   const groupedData = useMemo(() => {
+    if (activeTab === 'agents') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const groups: Record<string, any[]> = {};
+      filteredTraces.forEach(t => {
+        if (!groups[t.agentId]) groups[t.agentId] = [];
+        groups[t.agentId].push(t);
+      });
+      return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+    }
+
     if (activeTab === 'sessions') {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const groups: Record<string, any[]> = {};
@@ -218,6 +230,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
           {[
             { id: 'timeline', label: 'Timeline', icon: Clock },
             { id: 'sessions', label: 'Sessions', icon: LayoutGrid },
+            { id: 'agents', label: 'Agents', icon: Cpu },
             { id: 'models', label: 'Models', icon: Bot },
             { id: 'tools', label: 'Tools', icon: Wrench },
             { id: 'usage', label: 'Usage', icon: BarChart3 },

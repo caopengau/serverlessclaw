@@ -3,6 +3,14 @@ import { COMPLETION_EVENT_SCHEMA, FAILURE_EVENT_SCHEMA } from '../../lib/schema/
 import { getRecursionLimit, handleRecursionLimitExceeded, wakeupInitiator } from './shared';
 
 /**
+ * In-memory dedup set for EventBridge's at-least-once delivery.
+ * Prevents duplicate task_completed/task_failed processing within the same Lambda process.
+ * Bounded to 10k entries to avoid memory leaks; resets when exceeded.
+ */
+const processedEvents = new Set<string>();
+const DEDUP_MAX_SIZE = 10_000;
+
+/**
  * Handles task completion and failure events - relays results to initiator.
  *
  * @param eventDetail - The detail of the EventBridge event.
@@ -13,6 +21,20 @@ export async function handleTaskResult(
   eventDetail: Record<string, unknown>,
   detailType: string
 ): Promise<void> {
+  // In-memory dedup: skip if this exact event was already processed
+  const eventId = eventDetail.id as string | undefined;
+  if (eventId) {
+    if (processedEvents.has(eventId)) {
+      const { logger } = await import('../../lib/logger');
+      logger.info(`Duplicate event ${eventId} detected, skipping.`);
+      return;
+    }
+    processedEvents.add(eventId);
+    if (processedEvents.size > DEDUP_MAX_SIZE) {
+      processedEvents.clear();
+    }
+  }
+
   const isFailure = detailType === EventType.TASK_FAILED;
   const parsedEvent = isFailure
     ? FAILURE_EVENT_SCHEMA.parse(eventDetail)

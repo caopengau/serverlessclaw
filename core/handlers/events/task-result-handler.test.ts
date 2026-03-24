@@ -135,3 +135,95 @@ describe('task-result-handler (Direct Voice Flow)', () => {
     );
   });
 });
+
+describe('task-result-handler (Bug 4 — duplicate event dedup)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should skip processing when the same event id is received twice', async () => {
+    const eventDetail = {
+      id: 'evt-dedup-001',
+      userId: 'user-123',
+      agentId: 'coder',
+      task: 'Implement feature',
+      response: 'Feature implemented',
+      initiatorId: 'superclaw',
+      depth: 1,
+      sessionId: 'session-1',
+    };
+
+    // First call — should process
+    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    const firstCallCount = mockSend.mock.calls.length;
+    expect(firstCallCount).toBeGreaterThan(0);
+
+    // Second call with same id — should be skipped
+    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    expect(mockSend.mock.calls.length).toBe(firstCallCount); // no new calls
+  });
+
+  it('should process events with different ids', async () => {
+    const event1 = {
+      id: 'evt-dedup-002',
+      userId: 'user-123',
+      agentId: 'coder',
+      task: 'Task A',
+      response: 'Done A',
+      initiatorId: 'superclaw',
+      depth: 1,
+    };
+    const event2 = {
+      id: 'evt-dedup-003',
+      userId: 'user-123',
+      agentId: 'coder',
+      task: 'Task B',
+      response: 'Done B',
+      initiatorId: 'superclaw',
+      depth: 1,
+    };
+
+    await handleTaskResult(event1, EventType.TASK_COMPLETED);
+    const afterFirst = mockSend.mock.calls.length;
+
+    await handleTaskResult(event2, EventType.TASK_COMPLETED);
+    expect(mockSend.mock.calls.length).toBeGreaterThan(afterFirst);
+  });
+
+  it('should deduplicate failure events with the same id', async () => {
+    const eventDetail = {
+      id: 'evt-dedup-004',
+      userId: 'user-123',
+      agentId: 'qa',
+      task: 'Run tests',
+      error: 'Test failure',
+      initiatorId: 'superclaw',
+      depth: 1,
+    };
+
+    await handleTaskResult(eventDetail, EventType.TASK_FAILED);
+    const afterFirst = mockSend.mock.calls.length;
+
+    // Duplicate failure
+    await handleTaskResult(eventDetail, EventType.TASK_FAILED);
+    expect(mockSend.mock.calls.length).toBe(afterFirst);
+  });
+
+  it('should still process events that have no id field', async () => {
+    const eventDetail = {
+      userId: 'user-123',
+      agentId: 'monitor',
+      task: 'Health check',
+      response: 'All good',
+      initiatorId: 'superclaw',
+      depth: 1,
+    };
+
+    // Both calls should process (no id to dedup on)
+    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    const afterFirst = mockSend.mock.calls.length;
+
+    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    expect(mockSend.mock.calls.length).toBeGreaterThan(afterFirst);
+  });
+});

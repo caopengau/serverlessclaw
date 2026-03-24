@@ -66,7 +66,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   const { memory, provider: providerManager } = await getAgentContext();
 
   const { getAgentTools } = await import('../tools/registry-utils');
-  const agentTools = await getAgentTools('planner');
+  const agentTools = await getAgentTools(AgentType.STRATEGIC_PLANNER);
 
   // Self-Scheduling: If this is a proactive review, or we are running for any reason,
   // ensure the NEXT proactive review is scheduled if not already present.

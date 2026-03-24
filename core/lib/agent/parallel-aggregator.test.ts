@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ParallelAggregator } from './parallel-aggregator';
-import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 const { mockSend } = vi.hoisted(() => ({
   mockSend: vi.fn(),
@@ -91,6 +91,36 @@ describe('ParallelAggregator', () => {
       expect(command.input.ExpressionAttributeNames?.['#status']).toBe('status');
       expect(command.input.ConditionExpression).toContain('NOT contains(results_ids, :taskId)');
       expect(command.input.ExpressionAttributeValues?.[':taskId']).toBe('taskA');
+    });
+  });
+
+  describe('init (Bug 3 regression)', () => {
+    it('should write results_ids as an array, not a DynamoDB Set', async () => {
+      mockSend.mockResolvedValueOnce({});
+
+      await aggregator.init('user123', 'trace456', 2, 'superclaw', 'session-1');
+
+      expect(mockSend).toHaveBeenCalledWith(expect.any(PutCommand));
+      const command = mockSend.mock.calls[0][0] as PutCommand;
+      const item = command.input.Item;
+
+      expect(item).toBeDefined();
+      expect(Array.isArray(item!.results_ids)).toBe(true);
+      expect(item!.results_ids).toEqual([]);
+      // Must NOT be a Set — DynamoDB Set type (SS) is incompatible with list_append
+      expect(item!.results_ids).not.toBeInstanceOf(Set);
+    });
+
+    it('should write results as an empty array', async () => {
+      mockSend.mockResolvedValueOnce({});
+
+      await aggregator.init('user123', 'trace456', 2, 'superclaw', 'session-1');
+
+      const command = mockSend.mock.calls[0][0] as PutCommand;
+      const item = command.input.Item;
+
+      expect(Array.isArray(item!.results)).toBe(true);
+      expect(item!.results).toEqual([]);
     });
   });
 });

@@ -53,7 +53,7 @@ export class ParallelAggregator {
           status: 'pending',
           createdAt: Date.now(),
           taskMapping: taskMapping ?? [],
-          results_ids: new Set([]),
+          results_ids: [],
           aggregationType,
           aggregationPrompt,
         },

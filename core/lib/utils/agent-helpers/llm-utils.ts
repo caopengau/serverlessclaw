@@ -15,13 +15,17 @@ import { logger } from '../../logger';
  * @returns The parsed JSON object of type T.
  */
 export function parseStructuredResponse<T>(rawResponse: string): T {
+  // Pre-clean: strip [TOOL_CALL]...[/TOOL_CALL] blocks the LLM may embed
+  // when it references tools it intended to call but couldn't execute.
+  const cleaned = rawResponse.replace(/\[TOOL_CALL\][\s\S]*?\[\/TOOL_CALL\]/g, '').trim();
+
   try {
     // 1. Try direct parsing
-    return JSON.parse(rawResponse.trim()) as T;
+    return JSON.parse(cleaned) as T;
   } catch {
     // 2. Try cleaning potential markdown formatting
     try {
-      const jsonContent = rawResponse.replace(/```json\n?|\n?```/g, '').trim();
+      const jsonContent = cleaned.replace(/```json\n?|\n?```/g, '').trim();
       return JSON.parse(jsonContent) as T;
     } catch (innerE) {
       logger.error('Failed to parse structured response:', {
