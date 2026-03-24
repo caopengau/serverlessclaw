@@ -58,6 +58,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         let streamToolCalls: unknown[] | undefined;
         for await (const chunk of stream) {
           if (chunk.content) finalResponse += chunk.content;
+          if (chunk.thought && !finalResponse) finalResponse += chunk.thought;
           if (chunk.tool_calls) streamToolCalls = chunk.tool_calls;
         }
 

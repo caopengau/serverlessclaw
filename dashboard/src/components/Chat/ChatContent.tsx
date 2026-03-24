@@ -252,11 +252,11 @@ export default function ChatContent() {
       }
 
       // Append the assistant response (stream now returns full response like non-streaming)
-      if (data.reply && currentSessionId === activeSessionRef.current) {
+      if (currentSessionId === activeSessionRef.current) {
         seenMessageIds.current.add(data.messageId);
         setMessages(prev => [...prev, {
           role: 'assistant',
-          content: data.reply,
+          content: data.reply || (data.tool_calls ? 'Executing tools...' : ''),
           messageId: data.messageId,
           agentName: data.agentName || 'SuperClaw',
           tool_calls: data.tool_calls,
