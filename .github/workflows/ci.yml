@@ -3,12 +3,10 @@ name: CI
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
-  quality-and-test:
-    name: Quality Checks & Unit Tests
+  quality-gate:
+    name: Quality Gate
     runs-on: ubuntu-latest
 
     steps:
@@ -36,11 +34,5 @@ jobs:
           AWS_SECRET_ACCESS_KEY: mock-secret
           AWS_REGION: ap-southeast-2
 
-      - name: Run Quality Checks
-        run: make check
-
-      - name: Run Unit Tests
-        run: make test-silent
-
-      - name: Run AIReady Scan
-        run: make aiready
+      - name: Quality Gate (parallel)
+        run: make gate

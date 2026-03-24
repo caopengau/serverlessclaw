@@ -5,10 +5,10 @@ include makefiles/Makefile.shared.mk
 
 .PHONY: release tag
 
-release: ## Full release: test -> deploy -> verify -> tag
+release: ## Full release: gate -> deploy -> verify -> tag
 	@$(call log_step,Starting full release...)
 	@$(call verify_clean)
-	@$(MAKE) check test
+	@$(MAKE) gate
 	@$(MAKE) deploy ENV=$(ENV)
 	@$(MAKE) verify URL=$$(cat .sst/outputs.json | python3 -c "import json,sys; print(json.load(sys.stdin)['apiUrl'])")
 	@$(MAKE) tag

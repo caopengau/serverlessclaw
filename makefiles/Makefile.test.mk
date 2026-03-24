@@ -35,6 +35,6 @@ test-watch: ## Run unit tests in watch mode
 test-ui: ## Run unit tests with Vitest UI
 	@$(PNPM) run test:ui
 
-test-coverage: ## Run unit tests with coverage reporting
-	@$(call log_info,Running tests with coverage...)
+test-coverage: ## Run unit tests with coverage reporting (enforces 50% thresholds)
+	@$(call log_info,Running tests with coverage (50% thresholds)...)
 	@$(PNPM) exec vitest run --coverage

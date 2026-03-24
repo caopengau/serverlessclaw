@@ -33,8 +33,8 @@ phases:
             rm staged_changes.zip
           fi
         fi
-      - echo "Running quality checks..."
-      - make check test-silent
+      - echo "Running pre-deploy quality gate (parallel)..."
+      - make gate-deploy
   build:
     commands:
       - echo "Starting autonomous deployment..."

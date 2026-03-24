@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import mqtt from 'mqtt';
-import { ChatMessage, ConversationMeta, HistoryMessage } from './types';
+import { ChatMessage, ConversationMeta } from './types';
 import { shouldProcessChunk, applyChunkToMessages, mergeHistoryWithMessages } from './message-handler';
 
 export function useChatConnection(activeSessionId: string, setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>, setIsLoading: React.Dispatch<React.SetStateAction<boolean>>, isPostInFlight: React.MutableRefObject<boolean>) {

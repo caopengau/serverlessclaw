@@ -3,9 +3,17 @@
 ###############################################################################
 include makefiles/Makefile.shared.mk
 
-.PHONY: check fix lint lint-fix format format-check type-check aiready lint-staged
+.PHONY: check gate gate-deploy fix lint lint-fix format format-check type-check aiready lint-staged
 
-check: ## Run all quality checks (lint, format, type-check)
+gate: ## Run all quality checks in parallel with consolidated summary
+	@$(call log_step,Running quality gate in parallel...)
+	$(call run_parallel_gate,lint~$(MAKE) lint||format~$(MAKE) format-check||typecheck~$(MAKE) type-check||test~$(MAKE) test-coverage||aiready~$(MAKE) aiready)
+
+gate-deploy: ## Pre-deploy gate (parallel, test-silent for speed)
+	@$(call log_step,Running pre-deploy gate in parallel...)
+	$(call run_parallel_gate,lint~$(MAKE) lint||format~$(MAKE) format-check||typecheck~$(MAKE) type-check||test~$(MAKE) test-silent)
+
+check: ## Run all quality checks sequentially (lint, format, type-check)
 	@$(call log_step,Running all quality checks...)
 	@$(MAKE) lint format-check type-check
 	@$(call log_success,Worktree is clean and of high quality)

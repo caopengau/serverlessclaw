@@ -17,5 +17,24 @@ export default defineConfig({
       '@': path.resolve(__dirname, './dashboard/src'),
       '@claw/core': path.resolve(__dirname, './core'),
     },
+    coverage: {
+      provider: 'v8',
+      include: ['core/**/*.ts', 'infra/**/*.ts', 'dashboard/src/**/*.{ts,tsx}'],
+      exclude: [
+        '**/*.test.ts',
+        '**/*.test.tsx',
+        '**/*.d.ts',
+        '**/node_modules/**',
+        '**/.sst/**',
+        '**/.next/**',
+        '**/.open-next/**',
+      ],
+      thresholds: {
+        lines: 50,
+        functions: 40,
+        branches: 40,
+        statements: 48,
+      },
+    },
   },
 });

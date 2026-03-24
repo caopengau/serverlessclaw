@@ -7,16 +7,14 @@ include makefiles/Makefile.release.mk
 
 .DEFAULT_GOAL := help
 
-pre-commit: ## Run pre-commit checks (lint-staged, test-silent)
-	@$(call log_step,Running pre-commit checks...)
-	@$(MAKE) lint-staged
-	@$(MAKE) test-silent
-	@$(call log_success,Pre-commit checks passed)
+pre-commit: ## Run pre-commit checks in parallel (lint-staged, test-silent)
+	@$(call log_step,Running pre-commit checks in parallel...)
+	$(call run_parallel_gate,lint~$(MAKE) lint-staged||test~$(MAKE) test-silent)
 
-pre-push: ## Run pre-push checks (check, test-silent, aiready)
+pre-push: ## Run full quality gate (rebase check + all checks in parallel)
 	@$(call log_step,Running pre-push checks...)
-	@$(MAKE) check test-silent aiready
-	@$(call log_success,Pre-push checks passed)
+	@$(call verify_up_to_date)
+	@$(MAKE) gate
 
 help-agent: help ## Show optimized help for AI agents
 

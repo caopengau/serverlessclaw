@@ -36,8 +36,7 @@ export function shouldProcessChunk(
  */
 export function applyChunkToMessages(
   prev: ChatMessage[],
-  data: IncomingChunk,
-  _seenIds: Set<string>
+  data: IncomingChunk
 ): ChatMessage[] {
   // Find existing message with matching messageId
   const existingIndex = prev.findIndex(

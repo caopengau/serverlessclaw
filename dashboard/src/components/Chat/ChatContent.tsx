@@ -12,7 +12,6 @@ import { ChatSidebar } from './ChatSidebar';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
 import { ChatMessage, AttachmentPreview, HistoryMessage } from './types';
-import { isDuplicate } from './dedup';
 
 export default function ChatContent() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
