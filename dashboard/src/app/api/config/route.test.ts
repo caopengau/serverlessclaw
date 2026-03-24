@@ -1,0 +1,52 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('sst', () => ({
+  Resource: {
+    RealtimeBus: { endpoint: 'wss://example.com/mqtt' },
+  },
+}));
+
+describe('Config API Route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns realtime URL with wss:// prefix', async () => {
+    const { GET } = await import('./route');
+    const res = await GET();
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.realtime.url).toBe('wss://example.com/mqtt');
+  });
+
+  it('converts https:// endpoint to wss://', async () => {
+    vi.resetModules();
+    vi.doMock('sst', () => ({
+      Resource: {
+        RealtimeBus: { endpoint: 'https://example.com/mqtt' },
+      },
+    }));
+
+    const { GET } = await import('./route');
+    const res = await GET();
+    const data = await res.json();
+
+    expect(data.realtime.url).toBe('wss://example.com/mqtt');
+  });
+
+  it('prepends wss:// to bare domain endpoint', async () => {
+    vi.resetModules();
+    vi.doMock('sst', () => ({
+      Resource: {
+        RealtimeBus: { endpoint: 'example.com/mqtt' },
+      },
+    }));
+
+    const { GET } = await import('./route');
+    const res = await GET();
+    const data = await res.json();
+
+    expect(data.realtime.url).toBe('wss://example.com/mqtt');
+  });
+});

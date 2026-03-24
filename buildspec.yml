@@ -3,10 +3,15 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      nodejs: 22
+      nodejs: 24
     commands:
       - npm install -g pnpm
-      - pnpm install
+      - echo "Installing dependencies and Playwright in parallel..."
+      - (pnpm install) &
+      - PNPM_PID=$!
+      - (npx playwright install --with-deps chromium) &
+      - PW_PID=$!
+      - wait $PNPM_PID && wait $PW_PID
   pre_build:
     commands:
       - |
@@ -33,12 +38,20 @@ phases:
             rm staged_changes.zip
           fi
         fi
-      - echo "Running pre-deploy quality gate (parallel)..."
-      - make gate-deploy
   build:
     commands:
-      - echo "Starting autonomous deployment..."
+      - echo "Starting autonomous deployment and quality gate (Tier 1) in parallel..."
+      - make gate-deploy &
+      - GATE_PID=$!
       - make deploy ENV=$SST_STAGE
+      - DEPLOY_EXIT=$?
+      - wait $GATE_PID
+      - GATE_EXIT=$?
+      - |
+        if [ $DEPLOY_EXIT -ne 0 ] || [ $GATE_EXIT -ne 0 ]; then
+          echo "Build failed: Deploy Exit=$DEPLOY_EXIT, Gate Exit=$GATE_EXIT"
+          exit 1
+        fi
   post_build:
     commands:
       - |
@@ -49,10 +62,12 @@ phases:
       - echo build completed on `date`
       - |
         if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ]; then
-          echo "Deployment successful. Verifying health..."
+          echo "Deployment successful. Running post-deploy checks..."
           API_URL=$(python3 -c "import json; print(json.load(open('.sst/outputs.json'))['apiUrl'])")
-          make verify URL=$API_URL
-          
+
+          echo "Running Tier 3 verification (Health + E2E) in parallel..."
+          make test-tier-3 URL=$API_URL
+
           if [ -n "$GITHUB_TOKEN" ]; then
             echo "Pushing changes back to GitHub..."
             git config --global user.email "agent@serverlessclaw.local"

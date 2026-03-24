@@ -67,6 +67,10 @@
   "devDependencies": {
     "@aiready/cli": "0.14.7",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.58.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/archiver": "^7.0.0",
     "@types/aws-lambda": "^8.10.161",
     "@types/node": "^25.3.5",
@@ -80,6 +84,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "husky": "^9.1.7",
+    "jsdom": "^29.0.1",
     "lint-staged": "^16.3.2",
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",

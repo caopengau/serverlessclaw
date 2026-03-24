@@ -86,7 +86,11 @@ define load_env
 	fi
 endef
 
-.PHONY: show-env
+.PHONY: show-env verify-up-to-date
+
+verify-up-to-date: ## Verify local branch is up to date with remote
+	@$(call verify_up_to_date)
+
 show-env: ## Show current environment variables (filtered)
 	@$(call load_env); \
 	$(call log_info,Current Environment Settings (Loaded from files):); \

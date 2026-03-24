@@ -11,8 +11,9 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     testTimeout: 15000,
-    include: ['**/*.test.ts'],
-    exclude: ['**/node_modules/**', '**/.next/**', '**/.open-next/**'],
+    include: ['**/*.test.{ts,tsx}'],
+    exclude: ['**/node_modules/**', '**/.next/**', '**/.open-next/**', 'e2e/**'],
+    setupFiles: ['./dashboard/src/test-setup.ts'],
     alias: {
       '@': path.resolve(__dirname, './dashboard/src'),
       '@claw/core': path.resolve(__dirname, './core'),
@@ -28,6 +29,7 @@ export default defineConfig({
         '**/.sst/**',
         '**/.next/**',
         '**/.open-next/**',
+        'e2e/**',
       ],
       thresholds: {
         lines: 50,

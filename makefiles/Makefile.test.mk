@@ -3,7 +3,16 @@
 ###############################################################################
 include makefiles/Makefile.shared.mk
 
-.PHONY: test test-watch test-ui test-coverage verify
+.PHONY: test test-watch test-ui test-coverage test-component test-e2e test-e2e-deployed verify test-tier-1 test-tier-2 test-tier-3
+
+test-tier-1: test-silent ## Run Tier 1: Unit tests (silent)
+
+test-tier-2: test-coverage ## Run Tier 2: Coverage and Integration tests
+
+test-tier-3: ## Run Tier 3: Deployment health and E2E
+	@$(call log_step,Running Tier 3 (Deployment Verification)...)
+	@if [ -z "$(URL)" ]; then $(call log_error,URL is required for Tier 3); exit 1; fi; \
+	$(call run_parallel_gate,verify~$(MAKE) verify URL=$(URL)||e2e~$(MAKE) test-e2e-deployed URL=$(URL))
 
 verify: ## Verify the deployment health. Usage: make verify URL=https://...
 	@$(call log_info,Verifying deployment health at $(URL)...)
@@ -38,3 +47,16 @@ test-ui: ## Run unit tests with Vitest UI
 test-coverage: ## Run unit tests with coverage reporting (enforces 50% thresholds)
 	@$(call log_info,Running tests with coverage (50% thresholds)...)
 	@$(PNPM) exec vitest run --coverage
+
+test-component: ## Run component tests (jsdom, via inline env directive)
+	@$(call log_step,Running component tests...)
+	@$(PNPM) exec vitest run --reporter=verbose '**/*.test.tsx'
+
+test-e2e: ## Run E2E tests with Playwright (local dev server)
+	@$(call log_step,Running E2E tests...)
+	@$(PNPM) exec playwright test
+
+test-e2e-deployed: ## Run E2E tests against deployed URL. Usage: make test-e2e-deployed URL=https://...
+	@$(call log_step,Running E2E tests against deployed URL...)
+	@if [ -z "$(URL)" ]; then $(call log_error,URL is required); exit 1; fi
+	@BASE_URL=$(URL) $(PNPM) exec playwright test

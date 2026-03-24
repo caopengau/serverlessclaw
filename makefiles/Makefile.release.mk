@@ -5,12 +5,27 @@ include makefiles/Makefile.shared.mk
 
 .PHONY: release tag
 
-release: ## Full release: gate -> deploy -> verify -> tag
-	@$(call log_step,Starting full release...)
+release: ## Full release: Tier 1 -> (Deploy + Tier 2) -> (Verify + E2E) -> Tag
+	@$(call log_step,Starting tiered release...)
 	@$(call verify_clean)
-	@$(MAKE) gate
-	@$(MAKE) deploy ENV=$(ENV)
-	@$(MAKE) verify URL=$$(cat .sst/outputs.json | python3 -c "import json,sys; print(json.load(sys.stdin)['apiUrl'])")
+	@$(MAKE) gate-tier-1
+	@$(call log_info,Tier 1 passed. Running Tier 2 (Coverage/AIReady) and Deployment in parallel...)
+	@($(MAKE) gate-tier-2 > release-tier2.log 2>&1) & \
+	TIER2_PID=$$!; \
+	$(MAKE) deploy ENV=$(ENV); \
+	DEPLOY_EXIT=$$?; \
+	wait $$TIER2_PID; \
+	TIER2_EXIT=$$?; \
+	if [ $$TIER2_EXIT -ne 0 ]; then \
+		$(call log_error,Tier 2 checks failed. Check release-tier2.log); \
+		exit 1; \
+	fi; \
+	if [ $$DEPLOY_EXIT -ne 0 ]; then \
+		$(call log_error,Deployment failed.); \
+		exit 1; \
+	fi
+	$(eval RELEASE_URL := $(shell cat .sst/outputs.json | python3 -c "import json,sys; print(json.load(sys.stdin)['apiUrl'])"))
+	@$(MAKE) test-tier-3 URL=$(RELEASE_URL)
 	@$(MAKE) tag
 	@$(call log_success,Release completed successfully!)
 
