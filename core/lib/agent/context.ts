@@ -39,12 +39,18 @@ export class AgentContext {
    *
    * @param distilled - The distilled facts string.
    * @param lessonsCount - The number of tactical lessons available.
+   * @param preferencesCount - The number of user preferences available.
    * @returns A formatted string containing the memory index.
    */
-  static getMemoryIndexBlock(distilled: string, lessonsCount: number): string {
+  static getMemoryIndexBlock(
+    distilled: string,
+    lessonsCount: number,
+    preferencesCount: number = 0
+  ): string {
+    const hasFacts = distilled || preferencesCount > 0;
     return `
       [MEMORY_INDEX]:
-      - DISTILLED FACTS: ${distilled ? 'Available (load with recallKnowledge)' : 'None'}
+      - DISTILLED FACTS: ${hasFacts ? 'Available (load with recallKnowledge)' : 'None'}
       - TACTICAL LESSONS: ${lessonsCount} recent available.
       
       USE 'recallKnowledge' to retrieve details if they are relevant to the user request.

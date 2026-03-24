@@ -193,14 +193,62 @@ export async function searchInsights(
   limit: number = 50,
   lastEvaluatedKey?: Record<string, unknown>
 ): Promise<{ items: MemoryInsight[]; lastEvaluatedKey?: Record<string, unknown> }> {
-  // If query is empty and no specific scope, we might want to just return recent items of all types
-  // For a dashboard search, we often want to search everything.
-
-  const params: Record<string, unknown> = {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const params: Record<string, any> = {
     Limit: limit,
     ExclusiveStartKey: lastEvaluatedKey,
   };
 
+  // If we have a category, prefer the TypeTimestampIndex GSI as it's highly reliable
+  if (category) {
+    params.IndexName = 'TypeTimestampIndex';
+    params.KeyConditionExpression = '#tp = :type';
+    params.ExpressionAttributeNames = { '#tp': 'type' };
+    params.ExpressionAttributeValues = { ':type': `MEMORY:${category.toUpperCase()}` };
+    params.ScanIndexForward = false;
+
+    const filters: string[] = [];
+    if (userId) {
+      filters.push('#uid = :userId');
+      params.ExpressionAttributeNames['#uid'] = 'userId';
+      params.ExpressionAttributeValues[':userId'] = userId;
+    }
+    if (query && query !== '*' && query !== '') {
+      filters.push('contains(content, :query)');
+      params.ExpressionAttributeValues[':query'] = query;
+    }
+
+    if (filters.length > 0) {
+      params.FilterExpression = filters.join(' AND ');
+    }
+
+    const result = await base.queryItemsPaginated(params);
+    return {
+      items: mapToInsights(result.items as Record<string, unknown>[]),
+      lastEvaluatedKey: result.lastEvaluatedKey,
+    };
+  }
+
+  // Fallback for userId-only search (no category)
+  if (userId) {
+    params.KeyConditionExpression = '#uid = :userId';
+    params.ExpressionAttributeNames = { '#uid': 'userId' };
+    params.ExpressionAttributeValues = { ':userId': userId };
+    params.ScanIndexForward = false;
+
+    if (query && query !== '*' && query !== '') {
+      params.FilterExpression = 'contains(content, :query)';
+      params.ExpressionAttributeValues[':query'] = query;
+    }
+
+    const result = await base.queryItemsPaginated(params);
+    return {
+      items: mapToInsights(result.items as Record<string, unknown>[]),
+      lastEvaluatedKey: result.lastEvaluatedKey,
+    };
+  }
+
+  // Fallback to Scan for cross-user/global keyword search
   const filterExpressions: string[] = [];
   const expressionAttributeValues: Record<string, unknown> = {};
   const expressionAttributeNames: Record<string, string> = {};
@@ -210,16 +258,6 @@ export async function searchInsights(
     expressionAttributeValues[':query'] = query;
   }
 
-  if (category) {
-    filterExpressions.push('metadata.category = :category');
-    expressionAttributeValues[':category'] = category;
-  }
-
-  // If we have a userId, we can scope the search to that user's partition
-  // but memory items are spread across multiple partition keys (USER#, LESSON#, DISTILLED#, GAP# prefix)
-  // Global search usually requires a Scan if we want to search everything across all partition keys
-  // unless we use the TypeTimestampIndex to search by type.
-
   if (filterExpressions.length > 0) {
     params.FilterExpression = filterExpressions.join(' AND ');
     params.ExpressionAttributeValues = expressionAttributeValues;
@@ -228,21 +266,27 @@ export async function searchInsights(
     }
   }
 
-  // For 2026 scale, we'll use a Scan with Filter for general search.
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = await (base as any).docClient.send(
     new ScanCommand({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       TableName: (base as any).tableName,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      ...(params as any),
+      ...params,
     })
   );
 
   const items = (result.Items ?? []) as Record<string, unknown>[];
+  return {
+    items: mapToInsights(items).sort((a, b) => b.timestamp - a.timestamp),
+    lastEvaluatedKey: result.LastEvaluatedKey,
+  };
+}
 
-  const allInsights: MemoryInsight[] = items.map((item) => {
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
+/**
+ * Helper to map DB items to MemoryInsight objects.
+ */
+function mapToInsights(items: Record<string, unknown>[]): MemoryInsight[] {
+  return items.map((item) => {
     const scope = item.userId as string;
     const metadata = (item.metadata as InsightMetadata) ?? {
       category: scope.startsWith('DISTILLED')
@@ -259,17 +303,12 @@ export async function searchInsights(
     };
 
     return {
-      id: item.userId as string,
+      id: scope,
       content: item.content as string,
       metadata,
       timestamp: item.timestamp as number,
     };
   });
-
-  return {
-    items: allInsights.sort((a, b) => b.timestamp - a.timestamp),
-    lastEvaluatedKey: result.LastEvaluatedKey,
-  };
 }
 
 /**

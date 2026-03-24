@@ -61,8 +61,8 @@ describe('DynamoMemory Pagination & Search', () => {
   });
 
   describe('searchInsights', () => {
-    it('should use ScanCommand for global search with filters', async () => {
-      ddbMock.on(ScanCommand).resolves({
+    it('should use QueryCommand on GSI for category-based search', async () => {
+      ddbMock.on(QueryCommand).resolves({
         Items: [
           {
             userId: 'GAP#1',
@@ -90,14 +90,15 @@ describe('DynamoMemory Pagination & Search', () => {
       expect(result.items).toHaveLength(2);
       expect(result.lastEvaluatedKey).toEqual({ userId: 'LESSON#1', timestamp: 150 });
 
-      const calls = ddbMock.commandCalls(ScanCommand);
+      const calls = ddbMock.commandCalls(QueryCommand);
       expect(calls[0].args[0].input).toMatchObject({
-        TableName: 'test-memory-table',
-        FilterExpression: 'contains(content, :query) AND metadata.category = :category',
+        IndexName: 'TypeTimestampIndex',
+        KeyConditionExpression: '#tp = :type',
         ExpressionAttributeValues: {
+          ':type': `MEMORY:${InsightCategory.STRATEGIC_GAP.toUpperCase()}`,
           ':query': 'tool X',
-          ':category': InsightCategory.STRATEGIC_GAP,
         },
+        FilterExpression: 'contains(content, :query)',
         Limit: 10,
       });
     });

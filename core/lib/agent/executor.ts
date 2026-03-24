@@ -602,6 +602,16 @@ export class AgentExecutor {
         logger.warn('Failed to fetch capabilities for stream:', e);
       }
 
+      // 2. LLM Call
+      await _tracer.addStep({
+        type: TRACE_TYPES.LLM_CALL,
+        content: {
+          messageCount: messages.length,
+          model: activeModel,
+          provider: activeProvider,
+        },
+      });
+
       const stream = this.provider.stream(
         messages,
         this.tools,
@@ -638,6 +648,16 @@ export class AgentExecutor {
           finalUsage = chunk.usage;
         }
       }
+
+      await _tracer.addStep({
+        type: TRACE_TYPES.LLM_RESPONSE,
+        content: {
+          content: fullContent,
+          thought: fullThought,
+          tool_calls: toolCalls,
+          usage: finalUsage,
+        },
+      });
 
       // If no tool calls, we're done with the text response
       if (toolCalls.length === 0) {
@@ -726,11 +746,21 @@ export class AgentExecutor {
           args.userId = args.userId ?? userId;
           args.sessionId = args.sessionId ?? sessionId;
 
+          await _tracer.addStep({
+            type: TRACE_TYPES.TOOL_CALL,
+            content: { toolName: tool.name, args },
+          });
+
           const rawResult = await tool.execute(args);
           const resultText =
             typeof rawResult === 'string'
               ? rawResult
               : (rawResult as ToolResult).text || JSON.stringify(rawResult) || '';
+
+          await _tracer.addStep({
+            type: TRACE_TYPES.TOOL_RESULT,
+            content: { toolName: tool.name, result: rawResult },
+          });
 
           messages.push({
             role: MessageRole.TOOL,

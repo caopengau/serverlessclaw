@@ -141,8 +141,21 @@ export class Agent {
     try {
       // 1. Memory Retrieval
       const history = await this.memory.getHistory(storageId);
-      const distilled = await this.memory.getDistilledMemory(baseUserId);
-      const lessons = await this.memory.getLessons(baseUserId);
+      const [distilled, lessons, prefPrefixed, prefRaw] = await Promise.all([
+        this.memory.getDistilledMemory(baseUserId),
+        this.memory.getLessons(baseUserId),
+        this.memory.searchInsights(`USER#${baseUserId}`, '*', InsightCategory.USER_PREFERENCE),
+        this.memory.searchInsights(baseUserId, '*', InsightCategory.USER_PREFERENCE),
+      ]);
+
+      const preferences = {
+        items: [...(prefPrefixed.items || []), ...(prefRaw.items || [])],
+      };
+
+      const facts = [
+        ...distilled.split('\n').filter(Boolean),
+        ...(preferences.items?.map((i) => i.content) ?? []),
+      ].join('\n');
 
       let recoveryContext = '';
       try {
@@ -196,7 +209,8 @@ export class Agent {
       // 3. Prompt Assembly
       let contextPrompt = this.systemPrompt;
       if (recoveryContext) contextPrompt += recoveryContext;
-      contextPrompt += `\n\n${AgentContext.getMemoryIndexBlock(distilled, lessons.length)}`;
+      contextPrompt += `\n\n${AgentContext.getMemoryIndexBlock(distilled, lessons.length, preferences.items.length)}`;
+      contextPrompt += `\n\n[INTELLIGENCE]\n${facts.length > 0 ? facts : 'No persistent knowledge available for this user yet.'}\n\n`;
       contextPrompt += `\n\n${AgentContext.getIdentityBlock(
         this.config,
         activeModel ?? SYSTEM.DEFAULT_MODEL,
@@ -513,16 +527,29 @@ export class Agent {
     });
 
     const history = await this.memory.getHistory(storageId);
-    const distilled = await this.memory.getDistilledMemory(baseUserId);
-    const lessons = await this.memory.getLessons(baseUserId);
+    const [distilled, lessons, prefPrefixed, prefRaw] = await Promise.all([
+      this.memory.getDistilledMemory(baseUserId),
+      this.memory.getLessons(baseUserId),
+      this.memory.searchInsights(`USER#${baseUserId}`, '*', InsightCategory.USER_PREFERENCE),
+      this.memory.searchInsights(baseUserId, '*', InsightCategory.USER_PREFERENCE),
+    ]);
+
+    const preferences = {
+      items: [...(prefPrefixed.items || []), ...(prefRaw.items || [])],
+    };
+
+    const facts = [
+      ...distilled.split('\n').filter(Boolean),
+      ...(preferences.items?.map((i) => i.content) ?? []),
+    ].join('\n');
 
     const activeModel = this.config?.model ?? SYSTEM.DEFAULT_MODEL;
     const activeProvider = this.config?.provider ?? SYSTEM.DEFAULT_PROVIDER;
     const activeProfile = profile;
 
-    // (Simplified model resolution for brevity)
     let contextPrompt = this.systemPrompt;
-    contextPrompt += `\n\n${AgentContext.getMemoryIndexBlock(distilled, lessons.length)}`;
+    contextPrompt += `\n\n${AgentContext.getMemoryIndexBlock(distilled, lessons.length, preferences.items.length)}`;
+    contextPrompt += `\n\n[INTELLIGENCE]\n${facts.length > 0 ? facts : 'No persistent knowledge available for this user yet.'}\n\n`;
     contextPrompt += `\n\n${AgentContext.getIdentityBlock(
       this.config,
       activeModel ?? SYSTEM.DEFAULT_MODEL,
@@ -586,13 +613,28 @@ export class Agent {
     });
     let fullContent = '';
     let fullThought = '';
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+
     for await (const chunk of stream) {
       if (chunk.content) fullContent += chunk.content;
       if (chunk.thought) fullThought += chunk.thought;
+      if (chunk.usage) {
+        totalInputTokens += chunk.usage.prompt_tokens;
+        totalOutputTokens += chunk.usage.completion_tokens;
+      }
       yield chunk;
     }
 
-    // After stream completes, save to memory and end trace
+    // After stream completes, emit metrics, save to memory and end trace
+    if (!process.env.VITEST) {
+      const { emitMetrics, Metrics } = await import('./metrics');
+      emitMetrics([
+        Metrics.tokensInput(totalInputTokens, nodeId, activeProvider),
+        Metrics.tokensOutput(totalOutputTokens, nodeId, activeProvider),
+      ]).catch(() => {});
+    }
+
     await this.memory.addMessage(storageId, {
       role: MessageRole.ASSISTANT,
       content: fullContent,

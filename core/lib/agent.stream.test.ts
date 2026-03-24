@@ -23,6 +23,7 @@ vi.mock('./tracer', () => ({
     getNodeId = mockGetNodeId;
     getParentId = mockGetParentId;
     startTrace = mockStartTrace;
+    addStep = vi.fn().mockResolvedValue(undefined);
     endTrace = mockEndTrace;
   },
 }));
@@ -68,7 +69,7 @@ describe('Agent.stream()', () => {
       getLessons: vi.fn().mockResolvedValue([]),
       addMessage: vi.fn().mockResolvedValue(undefined),
       updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
-      searchInsights: vi.fn().mockResolvedValue([]),
+      searchInsights: vi.fn().mockResolvedValue({ items: [] }),
       updateGapStatus: vi.fn().mockResolvedValue(undefined),
       getSummary: vi.fn().mockResolvedValue(null),
       updateSummary: vi.fn().mockResolvedValue(undefined),

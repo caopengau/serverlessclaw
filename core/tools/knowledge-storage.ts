@@ -134,7 +134,21 @@ export const RECALL_KNOWLEDGE = {
       category?: string;
     };
     const memory = getMemory();
-    const searchResponse = await memory.searchInsights(userId, query, category as InsightCategory);
+    const baseUserId = userId.startsWith('CONV#') ? userId.split('#')[1] : userId;
+
+    let searchResponse;
+    if (category === 'user_preference') {
+      const [prefPrefixed, prefRaw] = await Promise.all([
+        memory.searchInsights(`USER#${baseUserId}`, query, category as InsightCategory),
+        memory.searchInsights(baseUserId, query, category as InsightCategory),
+      ]);
+      searchResponse = {
+        items: [...(prefPrefixed.items || []), ...(prefRaw.items || [])],
+      };
+    } else {
+      searchResponse = await memory.searchInsights(baseUserId, query, category as InsightCategory);
+    }
+
     const results = searchResponse.items;
 
     if (results.length === 0) return 'No relevant knowledge found.';
@@ -238,16 +252,15 @@ export const SAVE_MEMORY = {
 
     // --- Start Semantic Deduplication ---
     try {
-      // 1. Search for existing memories in the same category and scope
-      const searchResponse = await memory.searchInsights(
-        baseUserId,
-        '*',
-        category as InsightCategory
-      );
-      const existing = searchResponse.items;
+      // 1. Search for existing memories in both prefixed and raw scopes
+      const [searchPrefixed, searchRaw] = await Promise.all([
+        memory.searchInsights(`USER#${baseUserId}`, '*', category as InsightCategory),
+        memory.searchInsights(baseUserId, '*', category as InsightCategory),
+      ]);
+      const existing = [...(searchPrefixed.items || []), ...(searchRaw.items || [])];
 
-      // 2. Filter for the exact same scope to avoid pruning global knowledge from a user context
-      const relevantExisting = existing.filter((e) => e.id === scopeId);
+      // 2. Filter for relevant items
+      const relevantExisting = existing.filter((e) => e.id === scopeId || e.id === baseUserId);
 
       if (relevantExisting.length > 0) {
         const newKeywords = content
