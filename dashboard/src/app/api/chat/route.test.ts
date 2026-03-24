@@ -289,8 +289,8 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
         traceId: 'client-trace-42',
       })
     );
-    expect(data.streaming).toBe(true);
-    expect(data.sessionId).toBe('sess-stream-1');
+    expect(data.reply).toBe('chunk1');
+    expect(data.messageId).toBe('client-trace-42');
   });
 
   it('passes undefined traceId when client does not provide one', async () => {

@@ -46,37 +46,37 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // IF the platform supports it. On standard Lambda, we MUST await or the process dies.
       // But we can return the initial "accepted" response and let chunks flow via IoT.
       
-      const streamPromise = (async () => {
-        try {
-          const stream = agent.stream(storageId, text ?? '', {
-            sessionId,
-            source: TraceSource.DASHBOARD,
-            attachments,
-            approvedToolCalls,
-            traceId: clientTraceId || undefined,
-          });
-          let finalResponse = '';
-          for await (const chunk of stream) {
-            if (chunk.content) finalResponse += chunk.content;
-          }
-          
-          if (sessionId) {
-            await memory.saveConversationMeta(userId, sessionId, {
-              lastMessage: finalResponse.length > 60 ? finalResponse.substring(0, 60) + '...' : finalResponse,
-              updatedAt: Date.now()
-            });
-          }
-        } catch (e) {
-          console.error('[Chat API] Stream background error:', e);
+      const streamResult = await (async () => {
+        const stream = agent.stream(storageId, text ?? '', {
+          sessionId,
+          source: TraceSource.DASHBOARD,
+          attachments,
+          approvedToolCalls,
+          traceId: clientTraceId || undefined,
+        });
+        let finalResponse = '';
+        let streamToolCalls: unknown[] | undefined;
+        for await (const chunk of stream) {
+          if (chunk.content) finalResponse += chunk.content;
+          if (chunk.tool_calls) streamToolCalls = chunk.tool_calls;
         }
+
+        if (sessionId) {
+          await memory.saveConversationMeta(userId, sessionId, {
+            lastMessage: finalResponse.length > 60 ? finalResponse.substring(0, 60) + '...' : finalResponse,
+            updatedAt: Date.now()
+          });
+        }
+
+        return {
+          reply: finalResponse,
+          agentName: 'SuperClaw',
+          tool_calls: streamToolCalls,
+          messageId: clientTraceId || undefined,
+        };
       })();
 
-      // If we're on a platform that supports backgrounding, we could return early.
-      // On Lambda, we must await the stream to ensure chunks are sent.
-      // To the user, this still feels "real-time" because chunks appear on the dashboard via IoT.
-      await streamPromise; 
-
-      return NextResponse.json({ streaming: true, sessionId });
+      return NextResponse.json(streamResult);
     }
 
     const { responseText, attachments: resultAttachments, tool_calls: resultToolCalls, traceId } = await agent.process(storageId, text ?? '', { 

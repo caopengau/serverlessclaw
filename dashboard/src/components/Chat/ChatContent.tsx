@@ -251,7 +251,17 @@ export default function ChatContent() {
         return;
       }
 
-      // Streaming chunks will arrive via MQTT and update the placeholder.
+      // Append the assistant response (stream now returns full response like non-streaming)
+      if (data.reply && currentSessionId === activeSessionRef.current) {
+        seenMessageIds.current.add(data.messageId);
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: data.reply,
+          messageId: data.messageId,
+          agentName: data.agentName || 'SuperClaw',
+          tool_calls: data.tool_calls,
+        }]);
+      }
       fetchSessions();
     } catch (error) {
       console.error('Chat error:', error);
