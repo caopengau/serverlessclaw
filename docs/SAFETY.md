@@ -1,6 +1,6 @@
-# Safety Guardrails
+# Safety Guardrails & Recursion Control
 
-> **Agent Context Loading**: Load this file before making any deployment, modifying protected files, or when the circuit breaker is active.
+> g any deployment, modifying protected files, or when the circuit breaker is active.
 
 ## Guardrail Overview
 

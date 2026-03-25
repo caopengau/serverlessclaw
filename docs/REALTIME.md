@@ -1,8 +1,10 @@
-# Real-time Multi-Agent Signaling
-
-> **Last Updated**: 23 March 2026
-
 To ensure the **ClawCenter Dashboard** receives instantaneous updates without polling, Serverless Claw uses a **Real-time Bridge** pattern over AWS IoT Core and MQTT.
+
+### Bridge Implementation
+The system utilizes a specialized EventBridge-to-IoT bridge (`core/handlers/bridge.ts`) that listens for `AgentBus` signals and routes them to session-specific MQTT topics.
+- **Client**: Uses `IoTDataPlaneClient` from the AWS SDK v3.
+- **Routing**: Events are dynamically routed to `users/{userId}/sessions/{sessionId}/signal`.
+- **Latency**: Sub-100ms delivery from agent execution to dashboard UI.
 
 ## Signaling Architecture
 

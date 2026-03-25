@@ -1,7 +1,5 @@
 # Neural Path Tracing Architecture
 
-> **Last Updated**: 23 March 2026
-
 Serverless Claw uses a **Branched Neural Path Tracing** model to visualize complex, parallel multi-agent workflows.
 
 ## Trace Graph Model

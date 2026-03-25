@@ -1,3 +1,7 @@
+/**
+ * @module PrioritizeAPI
+ * API for manually adjusting the impact, urgency, and priority of identified system gaps.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { DynamoMemory } from '@claw/core/lib/memory';

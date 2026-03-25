@@ -1,3 +1,7 @@
+/**
+ * @module AgentsAPI
+ * Express-style dynamic route for managing agent configurations in the dashboard.
+ */
 import { Resource } from 'sst';
 export const dynamic = 'force-dynamic';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';

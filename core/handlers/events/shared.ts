@@ -172,4 +172,18 @@ export async function processEventWithAgent(
   return { responseText, attachments: [] };
 }
 
-export { EventType, CompletionEvent, FailureEvent, sendOutboundMessage, logger };
+/**
+ * Re-exports of core types and utilities for handler convenience.
+ */
+export {
+  /** The type classification for system events. */
+  EventType,
+  /** The structure of a task completion signal. */
+  CompletionEvent,
+  /** The structure of a task failure signal. */
+  FailureEvent,
+  /** Utility function to send messages to external channels. */
+  sendOutboundMessage,
+  /** Centralized logging utility. */
+  logger,
+};

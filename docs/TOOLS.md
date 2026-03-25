@@ -1,6 +1,6 @@
 # Agent Tool Registry
 
-> **Agent Context Loading**: Load this file when you need to add, modify, or understand any tool.
+> **Agent Context Loading**: Load this file when you need to understand the tools available to agents or how to add new ones.
 
 ## 🛠️ Available Tools
 

@@ -1,7 +1,5 @@
 # Memory Management: The Tiered Neural Engine
 
-> **Last Updated**: 23 March 2026
-
 Serverless Claw uses a tiered, evolutionary memory system designed to provide context-rich interactions while minimizing "prompt bloat" and token costs.
 
 ## Architecture Diagram

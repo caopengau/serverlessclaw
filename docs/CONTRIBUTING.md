@@ -1,7 +1,5 @@
 # Contributing Guide
 
-> **Last Updated**: 23 March 2026
-
 > **Agent Context Loading**: Load this file when you are (or are helping) a human contributor make code or documentation changes to Serverless Claw.
 
 ## Golden Rules

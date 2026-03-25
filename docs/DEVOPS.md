@@ -79,6 +79,6 @@ Triggers `make pre-commit`, which runs:
 
 Triggers `make pre-push`, which runs:
 
-1. `make check`: Full quality sweep.
-2. `make test-silent`: Full test suite in silent mode.
-3. `make aiready`: Enforces an AI-readiness score of **80+**.
+1. `make verify-up-to-date`: Ensures you are pushing on top of the latest remote changes.
+2. `make gate`: Full quality sweep (lint, format, type-check, tests, coverage).
+3. `make aiready`: Enforces an AI-readiness score of **80+** via `aiready scan . --threshold 80 --ci`.

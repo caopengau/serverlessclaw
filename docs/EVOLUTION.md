@@ -4,7 +4,6 @@ Serverless Claw is a **self-evolving system** that identifies its own weaknesses
 
 ## The Evolution Loop
 
-The stack evolves by bridging the gap between temporary Lambda execution and persistent storage.
 
 ```text
 +--------------+       +------------------+       +-------------------+

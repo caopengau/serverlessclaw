@@ -1,3 +1,7 @@
+/**
+ * @module MemoryStatusAPI
+ * Handlers for transitioning the status of capability gaps (e.g., OPEN -> PLANNED).
+ */
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { HTTP_STATUS } from '@/lib/constants';

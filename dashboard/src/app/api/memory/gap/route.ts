@@ -1,3 +1,7 @@
+/**
+ * @module GapAPI
+ * Handles the manual creation of capability gaps from the dashboard interface.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { HTTP_STATUS } from '@/lib/constants';

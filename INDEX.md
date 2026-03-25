@@ -46,6 +46,8 @@ make dev
 > 
 > **COMPLEX SYSTEMS**: For any complex system-level changes (e.g., changing EventBridge routing, adding new agent-to-agent communication, or modifying the core backbone), you **MUST** also update the relevant **ASCII diagrams** in [ARCHITECTURE.md](./ARCHITECTURE.md) to ensure the visual representation matches the implementation.
 
+> **COMPLEX SYSTEMS**: For any complex system-level changes (e.g., changing EventBridge routing, adding new agent-to-agent communication, or modifying the core backbone), you **MUST** also update the relevant **ASCII diagrams** in [ARCHITECTURE.md](./ARCHITECTURE.md) to ensure the visual representation matches the implementation.
+
 | Changed File | Update This Spoke |
 |---|---|
 | `core/lib/providers/` | [docs/LLM.md](./docs/LLM.md) |

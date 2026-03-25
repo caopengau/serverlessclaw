@@ -1,7 +1,5 @@
 # Self-Aware Infrastructure & Topology
 
-> **Last Updated**: 23 March 2026
-
 Serverless Claw implements a **Self-Aware Infrastructure** model. Rather than relying on hardcoded diagrams, the system discovers its own topology post-deployment.
 
 ## Discovery Mechanism

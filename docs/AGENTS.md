@@ -1,6 +1,7 @@
-# Agent Architecture & Orchestration
+# Agent Registry & Orchestration
 
-> **Agent Context Loading**: Load this file when you need to modify agent logic, prompts, communication patterns, or add a new sub-agent.
+> **Agent Context Loading**: Load this file when you need to understand the agent roles, their prompts, and how they coordinate via the AgentBus.
+, or add a new sub-agent.
 
 ## 🤖 Agent Roster
 
@@ -192,6 +193,16 @@ The `Agent` core automatically injects the **Standard Signal Schema** when `comm
                     |                       |
              [ User Chat ]           [ System State ]
 ```
+
+### Standardized Coordination (Enums & Type Safety)
+
+To ensure reliable orchestration across a distributed swarm of agents, Serverless Claw enforces a **Standardized Neural Signal Schema**. Instead of relying on brittle string-based tool calls or event names, all agents utilize centralized enums defined in `core/lib/constants.ts`.
+
+- **`TOOLS`**: Defines the exhaustive list of available agent capabilities (e.g., `dispatchTask`, `triggerDeployment`, `seekClarification`).
+- **`TRACE_TYPES`**: Standardizes the phases of agent execution (`LLM_CALL`, `TOOL_RESULT`, `REFLECT`), enabling consistent observability in the dashboard.
+- **`MEMORY_KEYS`**: Enforces a strict partition-key strategy for the tiered memory engine (`CONV#`, `FACT#`, `LESSON#`).
+
+This architectural choice minimizes runtime errors, simplifies agent tool-binding, and provides a clear "contract" for any new agent added to the registry.
 
 ### Routing Metadata
 Every event on the `AgentBus` carries critical routing metadata:

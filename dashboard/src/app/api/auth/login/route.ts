@@ -1,3 +1,7 @@
+/**
+ * @module AuthAPI
+ * Simple password-based authentication for the dashboard using secure HTTP-only cookies.
+ */
 import { NextRequest, NextResponse } from 'next/server';
 import { Resource } from 'sst';
 import { AUTH, HTTP_STATUS } from '@/lib/constants';

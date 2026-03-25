@@ -1,3 +1,7 @@
+/**
+ * @module ToolRegistry
+ * Centralized registry for all agent tools, aggregating specialized capabilities from across the system.
+ */
 import { toolDefinitions } from './definitions/index';
 import { ITool } from '../lib/types/tool';
 import { formatErrorMessage } from '../lib/utils/error';
@@ -99,6 +103,8 @@ export const TOOLS: Record<string, ITool> = {
 
   /**
    * Switches the active LLM provider and model for the system.
+   * This update is persisted to the ConfigTable and takes effect immediately
+   * for all subsequent agent invocations.
    */
   switchModel: {
     ...toolDefinitions.switchModel,
@@ -120,4 +126,7 @@ console.log(
   `[TOOLS] Registry initialized with ${Object.keys(TOOLS).length} tools: ${Object.keys(TOOLS).join(', ')}`
 );
 
+/**
+ * Utility for retrieving tools associated with a specific agent.
+ */
 export { getAgentTools, getToolDefinitions } from './registry-utils';

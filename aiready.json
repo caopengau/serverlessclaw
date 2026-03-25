@@ -1,6 +1,6 @@
 {
   "$schema": "https://getaiready.dev/schema.json",
-  "threshold": 75,
+  "threshold": 80,
   "scan": {
     "include": [
       "core/**/*.ts",
@@ -12,8 +12,12 @@
       "**/node_modules/**",
       "**/.sst/**",
       "**/.next/**",
+      "**/.aiready/**",
+      "**/coverage/**",
       "**/dist/**",
-      "**/build/**"
+      "**/build/**",
+      "**/aiready-report-*.json",
+      "pnpm-lock.yaml"
     ],
     "tools": [
       "pattern-detect",

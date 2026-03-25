@@ -28,11 +28,12 @@ Beyond build failures, Serverless Claw monitors its own operational integrity th
  (Fix Code)       (Cycle Resource)
 ```
 
-## Monitoring & Proactive Heartbeats
+### Self-Scheduling Utility
+The `DynamicScheduler` (`core/lib/scheduler.ts`) provides a type-safe interface for managing EventBridge Scheduler schedules.
+- **`ensureProactiveGoal`**: Atomically creates or updates a schedule for an agent task (e.g., Strategic Review).
+- **Persistence**: Goal metadata is stored in the `ConfigTable` with a `GOAL#` prefix to maintain state across execution cycles.
+- **Flexibility**: Supports both one-off tasks and recurring cron/rate expressions.
 
-1. **Dead Man's Switch**: An hourly schedule that performs high-level health checks (e.g., API responsiveness, database connectivity).
-2. **Proactive Heartbeats**: Agents can self-schedule "wake-up" calls using the `scheduleGoal` tool. This allows the system to proactively achieve goals (e.g., Strategic Reviews, Audit logs) without static infrastructure crons.
-3. **Self-Reporting**: Components are instrumented with `reportHealthIssue` to signal the AgentBus when internal invariants are violated.
 4. **Circuit Breakers**: To prevent runaway costs or unstable loops, the system enforces a deployment limit (Default: 5 per 24h).
 
 ## Proactive Lifecycle

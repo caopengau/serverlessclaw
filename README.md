@@ -9,6 +9,7 @@
   <img src="https://img.shields.io/badge/AWS-Lambda-FF9900?style=flat-square&logo=amazon-aws" alt="AWS Lambda">
   <img src="https://img.shields.io/badge/v2026-Self--Evolution-purple?style=flat-square" alt="Self-Evolution">
   <img src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/pnpm-v10-F69220?style=flat-square&logo=pnpm" alt="pnpm">
   <img src="https://img.shields.io/badge/Tailwind-v4-38B2AC?style=flat-square&logo=tailwind-css" alt="Tailwind CSS">
   <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript" alt="TypeScript">
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License MIT">
@@ -83,6 +84,7 @@ A **Star** or **Fork** genuinely helps this project reach more developers. The a
 ### Layer 5: Core / Advanced
 
 1. **[Self-Aware Topology](./ARCHITECTURE.md#infrastructure-discovery)**: Real-time discovery of agent-tool linkages for 100% accurate system visualization.
+2. **Standardized Neural Signal Schema**: Implements a unified coordination layer using strictly typed enums for Tools, Trace Types, and Response Formats, ensuring consistent behavior across the agent swarm.
 
 ## 🏗️ Technical Blueprint
 
