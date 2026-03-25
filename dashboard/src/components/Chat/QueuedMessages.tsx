@@ -1,3 +1,7 @@
+/**
+ * @module QueuedMessages
+ * @description Components for displaying and managing messages that are waiting to be processed.
+ */
 import React, { useState } from 'react';
 import { Clock, Edit2, X, Check } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
@@ -11,6 +15,11 @@ interface QueuedMessageItemProps {
   onRemove: (messageId: string) => Promise<void>;
 }
 
+/**
+ * Individual item representing a queued message with edit and remove capabilities.
+ *
+ * @param props - Component properties including message and event handlers.
+ */
 export function QueuedMessageItem({ message, onEdit, onRemove }: QueuedMessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(message.content);
@@ -139,6 +148,12 @@ interface QueuedMessagesListProps {
   onRemove: (messageId: string) => Promise<void>;
 }
 
+/**
+ * A list of queued messages displayed at the bottom of the chat.
+ * Represents messages that were sent while an agent task was already in progress.
+ *
+ * @param props - Component properties including the array of pending messages.
+ */
 export function QueuedMessagesList({ messages, onEdit, onRemove }: QueuedMessagesListProps) {
   if (messages.length === 0) return null;
 

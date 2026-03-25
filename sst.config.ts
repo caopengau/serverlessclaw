@@ -1,5 +1,13 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
+const APP_CONFIG = {
+  name: 'serverlessclaw',
+  region: 'ap-southeast-2',
+  architecture: 'arm64' as const,
+  runtime: 'nodejs24.x',
+  retention: '1 month' as const,
+} as const;
+
 /**
  * SST v3 Platform Configuration for ServerlessClaw.
  * Defines the main application entry point, infrastructure providers, and modular resource setup.
@@ -7,18 +15,18 @@
 export default $config({
   app(input) {
     return {
-      name: 'serverlessclaw',
+      name: APP_CONFIG.name,
       removal: input?.stage === 'dev' ? 'retain' : 'remove',
       protect: ['dev'].includes(input?.stage),
       home: 'aws',
       providers: {
         aws: {
-          region: 'ap-southeast-2',
+          region: APP_CONFIG.region,
         },
       },
       defaults: {
         function: {
-          architecture: 'arm64',
+          architecture: APP_CONFIG.architecture,
           environment: {
             AWS_PROFILE: '', // Clear profile to avoid conflict warning as SST injects static credentials
           },

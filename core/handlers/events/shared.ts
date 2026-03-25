@@ -18,6 +18,7 @@ import { isTaskPaused } from '../../lib/utils/agent-helpers';
  * @param traceId - Optional trace ID for tracking.
  * @param sessionId - Optional session identifier.
  * @param depth - Current recursion depth.
+ * @param userNotified - Whether the user has already been notified of this task completion.
  */
 export async function wakeupInitiator(
   userId: string,

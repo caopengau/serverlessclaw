@@ -6,21 +6,21 @@
 
 | Tool | Purpose | Protected? | Writes to Cloud? |
 |------|---------|:---:|:---:|
-| `DISPATCH_TASK` | Sends a task to EventBridge → Specialized Agent | — | ✅ |
-| `SEEK_CLARIFICATION` | Pauses current agent and requests directions from initiator | — | ✅ |
-| `PROVIDE_CLARIFICATION` | Answers a request and resumes the target agent | — | ✅ |
-| `TRIGGER_DEPLOYMENT` | Starts a CodeBuild deploy (circuit-breaker protected) | ✅ | ✅ |
-| `CHECK_HEALTH` | Hits `/health` and rewards successful evolution | — | ✅ |
-| `TRIGGER_ROLLBACK` | Emergency Git revert + redeploy | — | ✅ |
-| `REPORT_GAP` | Records a capability gap or technical failure | — | ✅ |
-| `MANAGE_GAP` | Updates gap status (QA Verification) | — | ✅ |
-| `RECALL_KNOWLEDGE` | JIT retrieval of distilled facts/lessons | — | — |
-| `LIST_AGENTS` | Discovers available specialized agents | — | — |
-| `DISCOVER_SKILLS` | Searches MCP marketplace for new capabilities | — | — |
-| `REGISTER_MCP_SERVER` | Dynamically connects a new MCP bridge | — | ✅ |
-| `UNREGISTER_MCP_SERVER` | Removes an MCP connection | — | ✅ |
-| `INSTALL_SKILL` | Adds a tool to an agent's roster | — | ✅ |
-| `UNINSTALL_SKILL` | Removes a tool from an agent's roster | — | ✅ |
+| `dispatchTask` | Sends a task to EventBridge → Specialized Agent | — | ✅ |
+| `seekClarification` | Pauses current agent and requests directions from initiator | — | ✅ |
+| `provideClarification` | Answers a request and resumes the target agent | — | ✅ |
+| `triggerDeployment` | Starts a CodeBuild deploy (circuit-breaker protected) | ✅ | ✅ |
+| `checkHealth` | Hits `/health` and rewards successful evolution | — | ✅ |
+| `triggerRollback` | Emergency Git revert + redeploy | — | ✅ |
+| `reportGap` | Records a capability gap or technical failure | — | ✅ |
+| `manageGap` | Updates gap status (QA Verification) | — | ✅ |
+| `recallKnowledge` | JIT retrieval of distilled facts/lessons | — | — |
+| `listAgents` | Discovers available specialized agents | — | — |
+| `discoverSkills` | Searches MCP marketplace for new capabilities | — | — |
+| `registerMCPServer` | Dynamically connects a new MCP bridge | — | ✅ |
+| `unregisterMCPServer` | Removes an MCP connection | — | ✅ |
+| `installSkill` | Adds a tool to an agent's roster | — | ✅ |
+| `uninstallSkill` | Removes a tool from an agent's roster | — | ✅ |
 | `mcp-filesystem-*` | MCP-driven file operations (read/write/list/search) | ✅ | — |
 | `git-status` / `git-diff` | Version control awareness (MCP) | — | — |
 | `google-search` | Real-time global intelligence (MCP) | — | — |
@@ -35,9 +35,9 @@
 We have evolved from a static tool registry to a **dynamic Skill-Based Architecture**. This solves the "Context Window Bloat" problem where agents were overwhelmed by too many tool definitions.
 
 ### How it works:
-1. **Minimal Default Toolset**: Agents start with a core set of "Essential Skills" (`RECALL_KNOWLEDGE`, `DISCOVER_SKILLS`, `DISPATCH_TASK`).
-2. **Just-in-Time Discovery**: If an agent needs a capability they don't have, they use `DISCOVER_SKILLS` to search the marketplace.
-3. **Dynamic Installation**: They can then use `INSTALL_SKILL` to temporarily or permanently add that capability to their logic core.
+1. **Minimal Default Toolset**: Agents start with a core set of "Essential Skills" (`recallKnowledge`, `discoverSkills`, `dispatchTask`).
+2. **Just-in-Time Discovery**: If an agent needs a capability they don't have, they use `discoverSkills` to search the marketplace.
+3. **Dynamic Installation**: They can then use `installSkill` to temporarily or permanently add that capability to their logic core.
 
 ### Adding a New Skill
 1. Implement the tool in `core/tools/`.
@@ -51,7 +51,7 @@ We have evolved from a static tool registry to a **dynamic Skill-Based Architect
 1. Open `core/tools/index.ts`.
 2. Add an entry to the `TOOLS` record following the `ITool` interface, using `SCREAMING_SNAKE_CASE` for the key.
 3. If this should be available to a backbone agent by default, add it to their `tools` array in `core/lib/backbone.ts`.
-4. Run `VALIDATE_CODE` to check for regressions.
+4. Run `validateCode` to check for regressions.
 5. Update the table above.
 6. Update `src/lib/tools.test.ts` to include the new tool name.
 
@@ -142,13 +142,13 @@ To prevent "Context Window Bloat" and maintain high reasoning performance, Serve
 
 ### Optimization Tiers
 
-1. **Bootloader Phase**: Agents start with a minimal "Essential" toolset (`DISCOVER_SKILLS`, `RECALL_KNOWLEDGE`, `DISPATCH_TASK`). This keeps initial token costs low and focus high.
-2. **Just-in-Time (JIT) Expansion**: Agents use `DISCOVER_SKILLS` to find specialized local tools or external MCP capabilities only when the task requires them.
+1. **Bootloader Phase**: Agents start with a minimal "Essential" toolset (`discoverSkills`, `recallKnowledge`, `dispatchTask`). This keeps initial token costs low and focus high.
+2. **Just-in-Time (JIT) Expansion**: Agents use `discoverSkills` to find specialized local tools or external MCP capabilities only when the task requires them.
 3. **Usage Tracking**: Every tool execution is recorded atomically in the `MemoryTable` via the `TokenTracker`, capturing the `count`, `successCount`, `totalDurationMs`, and estimated `totalInputTokens` / `totalOutputTokens`.
 4. **Anomalous Tool Detection**: During the 48-hour strategic review, the **Strategic Planner** identifies "Anomalous Tools" (those with <80% success rate or >100k token cost in 7 days). It generates `TOOL_OPTIMIZATION` gaps to `PRUNE` or `REPLACE` inefficient capabilities.
 5. **Selective Discovery Mode**: When enabled, the system automatically prunes an agent's toolset back to its "Core" defaults if it hasn't used a tool recently or if the toolset exceeds a complexity threshold.
 6. **Performance-Based Routing**: When a task is dispatched, the **AgentRouter** computes a composite score for candidate agents: `CapabilityMatch * SuccessRate - (AvgTokens / 10000)`. This ensures tasks are handled by the most reliable and cost-efficient agent.
-7. **MCP Server Pruning**: The **ClawCenter Dashboard** provides usage analytics for MCP servers, allowing humans or the SuperClaw to `UNREGISTER_MCP_SERVER` if it's no longer providing value to the system.
+7. **MCP Server Pruning**: The **ClawCenter Dashboard** provides usage analytics for MCP servers, allowing humans or the SuperClaw to `unregisterMCPServer` if it's no longer providing value to the system.
 
 ### Performance Impact
 - **Context Reduction**: Up to 70% reduction in system prompt size.

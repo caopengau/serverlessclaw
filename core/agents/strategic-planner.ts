@@ -23,6 +23,9 @@ import {
 } from './strategic-planner/prompts';
 import type { PlannerEvent, PlannerResult, PlannerPayload } from './strategic-planner/types';
 
+import { INSIGHT_DEFAULTS } from '../lib/constants';
+import { StrategicPlanSchema } from './strategic-planner/schema';
+
 /**
  * Planner Agent handler. Analyzes capability gaps and generates strategic plans.
  *
@@ -157,29 +160,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
             json_schema: {
               name: 'strategic_plan',
               strict: true,
-              schema: {
-                type: 'object',
-                properties: {
-                  status: { type: 'string', enum: ['SUCCESS', 'FAILED'] },
-                  plan: { type: 'string' },
-                  coveredGapIds: { type: 'array', items: { type: 'string' } },
-                  toolOptimizations: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        action: { type: 'string', enum: ['PRUNE', 'CONSOLIDATE', 'REPLACE'] },
-                        toolName: { type: 'string' },
-                        reason: { type: 'string' },
-                      },
-                      required: ['action', 'toolName', 'reason'],
-                      additionalProperties: false,
-                    },
-                  },
-                },
-                required: ['status', 'plan', 'coveredGapIds'],
-                additionalProperties: false,
-              },
+              schema: StrategicPlanSchema,
             },
           }
         : undefined,
@@ -233,12 +214,12 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       logger.info(`Recording tool optimization gap: ${gapContent}`);
       await memory.setGap(toolGapId, gapContent, {
         category: InsightCategory.SYSTEM_IMPROVEMENT,
-        confidence: 9,
-        impact: 6,
-        complexity: 4,
-        risk: 2,
-        urgency: 5,
-        priority: 5,
+        confidence: INSIGHT_DEFAULTS.CONFIDENCE,
+        impact: INSIGHT_DEFAULTS.IMPACT,
+        complexity: INSIGHT_DEFAULTS.COMPLEXITY,
+        risk: INSIGHT_DEFAULTS.RISK,
+        urgency: INSIGHT_DEFAULTS.URGENCY,
+        priority: INSIGHT_DEFAULTS.PRIORITY,
       });
     }
   }

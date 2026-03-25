@@ -70,6 +70,9 @@ export interface MCPServerResources {
 
 /**
  * Creates all MCP server Lambda functions and warming infrastructure.
+ *
+ * @param ctx - The shared infrastructure context containing tables, buckets, and secrets.
+ * @returns The created MCP server functions and associated warmup resources.
  */
 export function createMCPServers(ctx: SharedContext): MCPServerResources {
   const { memoryTable, configTable, secrets } = ctx;

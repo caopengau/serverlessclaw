@@ -39,6 +39,13 @@ export const SYSTEM = {
   UPTIME_KEY: 'SYSTEM#UPTIME',
   /** The reserved user ID for system-initiated actions. */
   USER_ID: 'SYSTEM',
+  /** Resource names for infrastructure components. */
+  RESOURCES: {
+    API: 'api',
+    DASHBOARD: 'dashboard',
+    ROUTER: 'router',
+    BUS: 'bus',
+  },
 } as const;
 
 /**
@@ -83,6 +90,29 @@ export const DYNAMO_KEYS = {
   CONTEXT_SUMMARY_RATIO: 'context_summary_ratio',
   /** Ratio of recent history kept in the active context window. */
   CONTEXT_ACTIVE_WINDOW_RATIO: 'context_active_window_ratio',
+  /** Storage field names and types for indexing. */
+  FIELDS: {
+    USER_ID: 'userId',
+    TIMESTAMP: 'timestamp',
+    TYPE: 'type',
+    TRACE_ID: 'traceId',
+    NODE_ID: 'nodeId',
+    KEY: 'key',
+    STRING: 'string',
+    NUMBER: 'number',
+  },
+} as const;
+
+/**
+ * Default values for system insights and gap analysis.
+ */
+export const INSIGHT_DEFAULTS = {
+  CONFIDENCE: 9,
+  IMPACT: 6,
+  COMPLEXITY: 4,
+  RISK: 2,
+  URGENCY: 5,
+  PRIORITY: 5,
 } as const;
 
 /**
@@ -236,7 +266,9 @@ export const TIME = {
   SECONDS_IN_MINUTE: 60,
   MS_PER_MINUTE: 60000,
   SECONDS_IN_HOUR: 3600,
+  MS_PER_HOUR: 3600000,
   SECONDS_IN_DAY: 86400,
+  MS_PER_DAY: 86400000,
 } as const;
 
 /**

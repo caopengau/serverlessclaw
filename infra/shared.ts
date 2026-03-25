@@ -27,7 +27,7 @@ export function getValidSecrets(secrets: Record<string, sst.Secret>): sst.Secret
 }
 
 /**
- * Common configuration for agent functions
+ * Common configuration for agent functions including memory tiers and timeouts.
  */
 export const AGENT_CONFIG = {
   memory: {

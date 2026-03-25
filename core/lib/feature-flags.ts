@@ -1,6 +1,7 @@
 import { ConfigManager } from './registry/config';
 import { CONFIG_DEFAULTS } from './config-defaults';
 import { logger } from './logger';
+import { TIME } from './constants';
 
 export interface FeatureFlag {
   name: string;
@@ -16,7 +17,7 @@ interface CachedFlag {
 }
 
 export class FeatureFlags {
-  private static readonly CACHE_TTL_MS = 60000;
+  private static readonly CACHE_TTL_MS = TIME.MS_PER_MINUTE;
   private static readonly FLAG_KEY_PREFIX = 'feature_flag_';
   private static cache = new Map<string, CachedFlag>();
 

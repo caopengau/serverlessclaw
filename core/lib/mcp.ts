@@ -6,14 +6,21 @@ import { MCPClientManager } from './mcp/client-manager';
 import { MCPToolMapper } from './mcp/tool-mapper';
 
 /**
- * MCPBridge coordinates connections to external Model Context Protocol servers.
+ * MCPBridge coordinates connections to external Model Context Protocol (MCP) servers.
  * It provides a unified interface for agents to discover and execute external tools
  * while maintaining a modular architecture for scalability and AI readiness.
+ * Supports hub-priority routing and local command-based execution.
  */
 export class MCPBridge {
   /**
    * Connects to an MCP server and returns its tools.
-   * Handles hub priority and local fallbacks.
+   * Handles hub priority, remote URLs, and local fallbacks.
+   *
+   * @param serverName - Unique identifier for the MCP server.
+   * @param connectionString - Connection URL or local shell command.
+   * @param env - Optional environment variables for the connection.
+   * @param forceLocal - If true, skips hub-priority routing even if configured.
+   * @returns A promise that resolves to an array of discovered tools.
    */
   static async getToolsFromServer(
     serverName: string,

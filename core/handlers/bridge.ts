@@ -7,9 +7,9 @@ const iot = new IoTDataPlaneClient({});
 
 /**
  * Bridges AgentBus (EventBridge) to RealtimeBus (IoT Core).
- * This allows the dashboard to receive background updates in real-time.
+ * Provides a real-time signal link for the dashboard to receive background updates.
  *
- * @param event - The EventBridge event.
+ * @param event - The EventBridge event containing the agent signal detail.
  * @param _context - The AWS Lambda context (unused).
  */
 export async function handler(event: Record<string, unknown>, _context: Context): Promise<void> {

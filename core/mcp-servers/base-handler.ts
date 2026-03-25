@@ -10,9 +10,10 @@ import { logger } from '../lib/logger';
 
 /**
  * Creates a Lambda handler for an MCP server using the AWS Labs MCP Lambda library.
+ * Wraps stdio-based MCP servers to run in a serverless environment.
  *
- * @param serverParams - The stdio server parameters for the MCP server
- * @returns A Lambda handler function
+ * @param serverParams - The stdio server parameters (command, args, env) for the MCP server.
+ * @returns A Lambda handler function that processes JSON-RPC requests via API Gateway.
  */
 export function createMCPServerHandler(serverParams: StdioServerParameters): Handler {
   return async (event: APIGatewayProxyEvent, context: Context): Promise<APIGatewayProxyResult> => {

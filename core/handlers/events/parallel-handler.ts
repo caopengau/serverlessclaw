@@ -5,6 +5,7 @@ import { emitEvent } from '../../lib/utils/bus';
 import { ParallelDispatchParams } from '../../lib/agent/schema';
 import { DynamicScheduler } from '../../lib/scheduler';
 import { ConfigManager } from '../../lib/registry/config';
+import { TIME } from '../../lib/constants';
 
 export interface ParallelTaskEvent {
   userId: string;
@@ -18,7 +19,7 @@ export interface ParallelTaskEvent {
   aggregationPrompt?: ParallelDispatchParams['aggregationPrompt'];
 }
 
-const DEFAULT_BARRIER_TIMEOUT_MS = 300000;
+const DEFAULT_BARRIER_TIMEOUT_MS = TIME.MS_PER_MINUTE * 5;
 
 export async function handleParallelDispatch(
   event: EventBridgeEvent<string, ParallelTaskEvent>

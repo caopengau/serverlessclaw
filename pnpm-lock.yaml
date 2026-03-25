@@ -112,8 +112,8 @@ importers:
         version: 3.25.76
     devDependencies:
       '@aiready/cli':
-        specifier: 0.14.7
-        version: 0.14.7(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
+        specifier: 0.14.26
+        version: 0.14.26(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.0.3(jiti@2.6.1))
@@ -303,54 +303,55 @@ packages:
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
 
-  '@aiready/agent-grounding@0.13.5':
-    resolution: {integrity: sha512-VdybGUpmOq+UADq7BM48N3rOiSxYHZxEj6d/qhJ+CUUq7+ryYk0rii72vsNe555xjHmVgPtSHwAY0RAm+mQABQ==}
+  '@aiready/agent-grounding@0.13.23':
+    resolution: {integrity: sha512-rKT23m5nlO66rBZ1F3Lom0h9dU2QRaTJDPOqmVQsSF+lAB5ZN5r734OF96YMDfXrxfiiNzNPY2OfJ8nVgYGvlw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  '@aiready/ai-signal-clarity@0.13.5':
-    resolution: {integrity: sha512-SrV4mbbr3gv2r2sWhwmoEEqHD7esGHYPjnNxvqzoiQGz9D4G4JISukvMSAU88OKNSyd9VkFWuXnrlJHNejH5HQ==}
+  '@aiready/ai-signal-clarity@0.13.24':
+    resolution: {integrity: sha512-TVVfjewC0JqYqrnOUbzAboDuYDPfgQCA4Sfg7n8P96zJaEzEfu2W5Z5JTDqmh8YlMGTet74w4sj2xH0rjidRoQ==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  '@aiready/change-amplification@0.13.5':
-    resolution: {integrity: sha512-YfL0DTUNWyIJVmdEtIvq8uS0uzaNBFr4TXQ0sRW7JYEUtTzm26xPk7IU8tpbgAcL+PHkcqRoLqR3dQB2CoFw0Q==}
+  '@aiready/change-amplification@0.13.23':
+    resolution: {integrity: sha512-jQ3J2eW2CWTQ0FvRdwgI5H/CcbxKVYTv2WZhUnDfNx1xGA6+MxVZeGLPo8fLYCGcmw7HyxRVq4116suPo2hYJw==}
 
-  '@aiready/cli@0.14.7':
-    resolution: {integrity: sha512-4+D4uVtqiu8TSDd3uTJXE5HTRyMvNNu36HS8TxBWVcnFLD1SRR5TwwPNQz/tk+2RTFZoqq9mCa6MkT7UpULm0w==}
-    hasBin: true
-
-  '@aiready/consistency@0.20.5':
-    resolution: {integrity: sha512-ZM2ribz3Ts7KnUtXm/044lz5dQx7UVfIixFl9Au+g7rRS2yn3ZsM8+pPp4CjENiF506TGFRCQ+OMsBA37irUrw==}
+  '@aiready/cli@0.14.26':
+    resolution: {integrity: sha512-S63MNQWpQ4AOHBZiiJBdhjKBjrw/ksngu0uOGvCk8694Wl0q1S8O3XbUyLQt29J4WDuWIsWjCOOrtWrrpG4uJg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  '@aiready/context-analyzer@0.21.9':
-    resolution: {integrity: sha512-H2Q0lh+Z+Uv/VbCcZiozsPdc/Ol5CQAfu+TCM1sUWVzfZHLQe+VabVKiHl9worhc+aaYnIQpQTV6eEgeoABQ4g==}
+  '@aiready/consistency@0.20.23':
+    resolution: {integrity: sha512-z1ubRzdNiaaQfvTx+lFnDveh0r51LbZ27k9CCHVBiYcMXfqYde9uXKp2J/10BOXtN7yyBmMCipET0adng5+2Hw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  '@aiready/core@0.23.6':
-    resolution: {integrity: sha512-aCCFiu18J5R/0D5jrHW06BjYYiD4Jarb6tqXafprCH8Wt6QjWWCRDpVJm8QeANadALWBg0JQdy3R/0B460GIng==}
-
-  '@aiready/deps@0.13.5':
-    resolution: {integrity: sha512-T7uQBz2XYdIdH4xyDMt3TP/IB/AdIsq8t7Ux5CTkd3Ek+0y4PelYgPTTC/YypaTmj+gK+pxVDi814SW+Coo/mQ==}
-
-  '@aiready/doc-drift@0.13.5':
-    resolution: {integrity: sha512-jYrBAawugjC9HjdzCGVKMvx0GHtTddMlb2tQh/Nrhz5mNTaTzdUnNY+Qz0xejVNMIx9Ts5YMeTVMgzXWHMgFfA==}
-
-  '@aiready/pattern-detect@0.16.5':
-    resolution: {integrity: sha512-0cXH25FuB+g8rORy/xRXqndybrQwS0OErNYdaToM/4n3pr7JeedW+bA6AL/Mn+JVrWSQMs/9lGbkCCi535Fxnw==}
+  '@aiready/context-analyzer@0.21.27':
+    resolution: {integrity: sha512-CHHK0yzgFiN4NN44veaEgTIigesvYTG8R8RA+9jnpyIk+++joxdPqaECcnYOl/O9kQ4gfK87+faRF5LSZMfqjw==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  '@aiready/testability@0.6.5':
-    resolution: {integrity: sha512-2AGSuwtfiml5bscrMRcDS6CRbDjy8Nan+7rhRS9y9UddSodLsUNB1OSjSjn7YWZnYvMTt5aivwYYUHyWhDlehw==}
+  '@aiready/core@0.23.24':
+    resolution: {integrity: sha512-4ViNj/ceYzopbh1zNF6/q7YWceU5r6u47XEUSOKJ4Uwzl+nZ0ygGeLTY6rQgIYTZawir/ifzxcvpS//K/jw4Lg==}
+
+  '@aiready/deps@0.13.24':
+    resolution: {integrity: sha512-ev1/bFcxO6G4RoAoHNrY0Ay3w0ED8rtEeyQC2WKqwPQBXS680KckINe0oqtryrnpspazwO8FKMwyhc87Egk1zw==}
+
+  '@aiready/doc-drift@0.13.23':
+    resolution: {integrity: sha512-JbkB7wKlKp612RDyrygy0IM5xECWMwD5FBhtERTSq8mxJUdPF4BzgGSVo11bnlBg64APspQesUQ4tOf3Upfi7Q==}
+
+  '@aiready/pattern-detect@0.16.23':
+    resolution: {integrity: sha512-eTyr+sLgrBWkip8XKw0b37j5khhcUZ9oUCi8DIoeN6vqCMFoUoDE7OYk5tBoAhguR6sZRPzVzak7DtQQd4MPVA==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  '@aiready/visualizer@0.6.5':
-    resolution: {integrity: sha512-/uncrHn+bDmev7V8aBUtSpc8Bk2cmthxVoTlfnzTTISkJffIeBezQIwKz6SqLeEnNxCspXCBjozqax1quFTW1Q==}
+  '@aiready/testability@0.6.23':
+    resolution: {integrity: sha512-fidHbwL3RnUYhac6Ee5Uyrz8wMRLx7wmgpncPTHoyiEQBXNFRJgEZUOLniFeON44Bhy6JT/vo7xqPOZ09xpY/A==}
+    engines: {node: '>=18.0.0'}
+    hasBin: true
+
+  '@aiready/visualizer@0.6.23':
+    resolution: {integrity: sha512-2HEU51ZUBGn9iS5WUuY7bqm0fK3f9JCWPxcpGC/Aa2DkFebVH7v2tThuG1drH26gZtgWbFsxsr4upvWBNwH4mA==}
     hasBin: true
 
   '@alloc/quick-lru@5.2.0':
@@ -2252,12 +2253,24 @@ packages:
     peerDependencies:
       typescript: '>=4.8.4 <6.0.0'
 
+  '@typescript-eslint/project-service@8.57.2':
+    resolution: {integrity: sha512-FuH0wipFywXRTHf+bTTjNyuNQQsQC3qh/dYzaM4I4W0jrCqjCVuUh99+xd9KamUfmCGPvbO8NDngo/vsnNVqgw==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <6.0.0'
+
   '@typescript-eslint/scope-manager@8.57.1':
     resolution: {integrity: sha512-hs/QcpCwlwT2L5S+3fT6gp0PabyGk4Q0Rv2doJXA0435/OpnSR3VRgvrp8Xdoc3UAYSg9cyUjTeFXZEPg/3OKg==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@typescript-eslint/tsconfig-utils@8.57.1':
     resolution: {integrity: sha512-0lgOZB8cl19fHO4eI46YUx2EceQqhgkPSuCGLlGi79L2jwYY1cxeYc1Nae8Aw1xjgW3PKVDLlr3YJ6Bxx8HkWg==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <6.0.0'
+
+  '@typescript-eslint/tsconfig-utils@8.57.2':
+    resolution: {integrity: sha512-3Lm5DSM+DCowsUOJC+YqHHnKEfFh5CoGkj5Z31NQSNF4l5wdOwqGn99wmwN/LImhfY3KJnmordBq/4+VDe2eKw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       typescript: '>=4.8.4 <6.0.0'
@@ -2273,8 +2286,18 @@ packages:
     resolution: {integrity: sha512-S29BOBPJSFUiblEl6RzPPjJt6w25A6XsBqRVDt53tA/tlL8q7ceQNZHTjPeONt/3S7KRI4quk+yP9jK2WjBiPQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
+  '@typescript-eslint/types@8.57.2':
+    resolution: {integrity: sha512-/iZM6FnM4tnx9csuTxspMW4BOSegshwX5oBDznJ7S4WggL7Vczz5d2W11ecc4vRrQMQHXRSxzrCsyG5EsPPTbA==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
   '@typescript-eslint/typescript-estree@8.57.1':
     resolution: {integrity: sha512-ybe2hS9G6pXpqGtPli9Gx9quNV0TWLOmh58ADlmZe9DguLq0tiAKVjirSbtM1szG6+QH6rVXyU6GTLQbWnMY+g==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    peerDependencies:
+      typescript: '>=4.8.4 <6.0.0'
+
+  '@typescript-eslint/typescript-estree@8.57.2':
+    resolution: {integrity: sha512-2MKM+I6g8tJxfSmFKOnHv2t8Sk3T6rF20A1Puk0svLK+uVapDZB/4pfAeB7nE83uAZrU6OxW+HmOd5wHVdXwXA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
     peerDependencies:
       typescript: '>=4.8.4 <6.0.0'
@@ -2288,6 +2311,10 @@ packages:
 
   '@typescript-eslint/visitor-keys@8.57.1':
     resolution: {integrity: sha512-YWnmJkXbofiz9KbnbbwuA2rpGkFPLbAIetcCNO6mJ8gdhdZ/v7WDXsoGFAJuM6ikUFKTlSQnjWnVO4ux+UzS6A==}
+    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@typescript-eslint/visitor-keys@8.57.2':
+    resolution: {integrity: sha512-zhahknjobV2FiD6Ee9iLbS7OV9zi10rG26odsQdfBO/hjSzUQbkIYgda+iNKK1zNiW2ey+Lf8MU5btN17V3dUw==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
 
   '@ungap/structured-clone@1.3.0':
@@ -3148,8 +3175,8 @@ packages:
     resolution: {integrity: sha512-8QmQKqEASLd5nx0U1B1okLElbUuuttJ/AnYmRXbbbGDWh6uS208EjD4Xqq/I9wK7u0v6O08XhTWnt5XtEbR6Dg==}
     engines: {node: '>= 0.4'}
 
-  delaunator@5.0.1:
-    resolution: {integrity: sha512-8nvh+XBe96aCESrGOqMp/84b13H9cdKbG5P2ejQCh4d4sK9RL4371qou9drQjMhvnPmhWl5hnmqbEE0fXr9Xnw==}
+  delaunator@5.1.0:
+    resolution: {integrity: sha512-AGrQ4QSgssa1NGmWmLPqN5NY2KajF5MqxetNEO+o0n3ZwZZeTmt7bBnvzHWrmkZFxGgr4HdyFgelzgi06otLuQ==}
 
   delayed-stream@1.0.0:
     resolution: {integrity: sha512-ZySD7Nf91aLB0RxL4KGrKHBXl7Eds1DAmEdcoVawXnLD7SDhpNgtuII2aAkg7a7QS41jxPSZ17p4VdGnMHk3MQ==}
@@ -4954,8 +4981,8 @@ packages:
   rfdc@1.4.1:
     resolution: {integrity: sha512-q1b3N5QkRUWUl7iyylaaj3kOpIT0N2i9MqIEQXP73GVsN9cw3fdx8X63cEmWhJGi2PPCF23Ijp7ktmd39rawIA==}
 
-  robust-predicates@3.0.2:
-    resolution: {integrity: sha512-IXgzBWvWQwE6PrDI05OvmXUIruQTcoMDzRsOd5CDvHCVLcLHMTSYvOK5Cm46kWqlV3yAbuSpBZdJ5oP5OUoStg==}
+  robust-predicates@3.0.3:
+    resolution: {integrity: sha512-NS3levdsRIUOmiJ8FZWCP7LG3QpJyrs/TE0Zpf1yvZu8cAJJ6QMW92H1c7kWpdIHo8RvmLxN/o2JXTKHp74lUA==}
 
   rolldown@1.0.0-rc.9:
     resolution: {integrity: sha512-9EbgWge7ZH+yqb4d2EnELAntgPTWbfL8ajiTW+SyhJEC4qhBbkCKbqFV4Ge4zmu5ziQuVbWxb/XwLZ+RIO7E8Q==}
@@ -5478,6 +5505,12 @@ packages:
     peerDependencies:
       typescript: '>=4.8.4'
 
+  ts-api-utils@2.5.0:
+    resolution: {integrity: sha512-OJ/ibxhPlqrMM0UiNHJ/0CKQkoKF243/AEmplt3qpRgkW8VG7IfOS41h7V8TjITqdByHzrjcS/2si+y4lIh8NA==}
+    engines: {node: '>=18.12'}
+    peerDependencies:
+      typescript: '>=4.8.4'
+
   ts-node@10.9.2:
     resolution: {integrity: sha512-f0FFpIdcHgn8zcPSbf1dRevwt047YMnaiJM3u2w2RewrB+fob/zePZcrOyQoLMMO7aBIddLcQIEK5dYjkLnGrQ==}
     hasBin: true
@@ -5904,11 +5937,11 @@ snapshots:
 
   '@adobe/css-tools@4.4.4': {}
 
-  '@aiready/agent-grounding@0.13.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
+  '@aiready/agent-grounding@0.13.23(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
-      '@aiready/core': 0.23.6(eslint@10.0.3(jiti@2.6.1))
-      '@typescript-eslint/types': 8.57.1
-      '@typescript-eslint/typescript-estree': 8.57.1(typescript@5.9.3)
+      '@aiready/core': 0.23.24(eslint@10.0.3(jiti@2.6.1))
+      '@typescript-eslint/types': 8.57.2
+      '@typescript-eslint/typescript-estree': 8.57.2(typescript@5.9.3)
       chalk: 5.6.2
       commander: 14.0.3
       glob: 13.0.6
@@ -5918,11 +5951,11 @@ snapshots:
       - tree-sitter
       - typescript
 
-  '@aiready/ai-signal-clarity@0.13.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
+  '@aiready/ai-signal-clarity@0.13.24(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
-      '@aiready/core': 0.23.6(eslint@10.0.3(jiti@2.6.1))
-      '@typescript-eslint/types': 8.57.1
-      '@typescript-eslint/typescript-estree': 8.57.1(typescript@5.9.3)
+      '@aiready/core': 0.23.24(eslint@10.0.3(jiti@2.6.1))
+      '@typescript-eslint/types': 8.57.2
+      '@typescript-eslint/typescript-estree': 8.57.2(typescript@5.9.3)
       chalk: 5.6.2
       commander: 14.0.3
       glob: 13.0.6
@@ -5932,10 +5965,10 @@ snapshots:
       - tree-sitter
       - typescript
 
-  '@aiready/change-amplification@0.13.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
+  '@aiready/change-amplification@0.13.23(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
-      '@aiready/core': 0.23.6(eslint@10.0.3(jiti@2.6.1))
-      '@typescript-eslint/typescript-estree': 8.57.1(typescript@5.9.3)
+      '@aiready/core': 0.23.24(eslint@10.0.3(jiti@2.6.1))
+      '@typescript-eslint/typescript-estree': 8.57.2(typescript@5.9.3)
       chalk: 5.6.2
       commander: 14.0.3
       glob: 13.0.6
@@ -5945,19 +5978,19 @@ snapshots:
       - tree-sitter
       - typescript
 
-  '@aiready/cli@0.14.7(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
+  '@aiready/cli@0.14.26(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
-      '@aiready/agent-grounding': 0.13.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
-      '@aiready/ai-signal-clarity': 0.13.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
-      '@aiready/change-amplification': 0.13.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
-      '@aiready/consistency': 0.20.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
-      '@aiready/context-analyzer': 0.21.9(eslint@10.0.3(jiti@2.6.1))
-      '@aiready/core': 0.23.6(eslint@10.0.3(jiti@2.6.1))
-      '@aiready/deps': 0.13.5(eslint@10.0.3(jiti@2.6.1))
-      '@aiready/doc-drift': 0.13.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
-      '@aiready/pattern-detect': 0.16.5(eslint@10.0.3(jiti@2.6.1))
-      '@aiready/testability': 0.6.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
-      '@aiready/visualizer': 0.6.5(eslint@10.0.3(jiti@2.6.1))
+      '@aiready/agent-grounding': 0.13.23(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
+      '@aiready/ai-signal-clarity': 0.13.24(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
+      '@aiready/change-amplification': 0.13.23(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
+      '@aiready/consistency': 0.20.23(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
+      '@aiready/context-analyzer': 0.21.27(eslint@10.0.3(jiti@2.6.1))
+      '@aiready/core': 0.23.24(eslint@10.0.3(jiti@2.6.1))
+      '@aiready/deps': 0.13.24(eslint@10.0.3(jiti@2.6.1))
+      '@aiready/doc-drift': 0.13.23(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
+      '@aiready/pattern-detect': 0.16.23(eslint@10.0.3(jiti@2.6.1))
+      '@aiready/testability': 0.6.23(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
+      '@aiready/visualizer': 0.6.23(eslint@10.0.3(jiti@2.6.1))
       chalk: 5.6.2
       commander: 14.0.3
     transitivePeerDependencies:
@@ -5966,11 +5999,11 @@ snapshots:
       - tree-sitter
       - typescript
 
-  '@aiready/consistency@0.20.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
+  '@aiready/consistency@0.20.23(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
-      '@aiready/core': 0.23.6(eslint@10.0.3(jiti@2.6.1))
-      '@typescript-eslint/types': 8.57.1
-      '@typescript-eslint/typescript-estree': 8.57.1(typescript@5.9.3)
+      '@aiready/core': 0.23.24(eslint@10.0.3(jiti@2.6.1))
+      '@typescript-eslint/types': 8.57.2
+      '@typescript-eslint/typescript-estree': 8.57.2(typescript@5.9.3)
       chalk: 5.6.2
       commander: 14.0.3
     transitivePeerDependencies:
@@ -5979,9 +6012,9 @@ snapshots:
       - tree-sitter
       - typescript
 
-  '@aiready/context-analyzer@0.21.9(eslint@10.0.3(jiti@2.6.1))':
+  '@aiready/context-analyzer@0.21.27(eslint@10.0.3(jiti@2.6.1))':
     dependencies:
-      '@aiready/core': 0.23.6(eslint@10.0.3(jiti@2.6.1))
+      '@aiready/core': 0.23.24(eslint@10.0.3(jiti@2.6.1))
       chalk: 5.6.2
       commander: 14.0.3
       prompts: 2.4.2
@@ -5990,10 +6023,10 @@ snapshots:
       - supports-color
       - tree-sitter
 
-  '@aiready/core@0.23.6(eslint@10.0.3(jiti@2.6.1))':
+  '@aiready/core@0.23.24(eslint@10.0.3(jiti@2.6.1))':
     dependencies:
       '@typescript-eslint/parser': 8.57.1(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)
-      '@typescript-eslint/typescript-estree': 8.57.1(typescript@5.9.3)
+      '@typescript-eslint/typescript-estree': 8.57.2(typescript@5.9.3)
       '@unit-mesh/treesitter-artifacts': 1.7.7
       chalk: 5.6.2
       glob: 13.0.6
@@ -6009,9 +6042,9 @@ snapshots:
       - supports-color
       - tree-sitter
 
-  '@aiready/deps@0.13.5(eslint@10.0.3(jiti@2.6.1))':
+  '@aiready/deps@0.13.24(eslint@10.0.3(jiti@2.6.1))':
     dependencies:
-      '@aiready/core': 0.23.6(eslint@10.0.3(jiti@2.6.1))
+      '@aiready/core': 0.23.24(eslint@10.0.3(jiti@2.6.1))
       commander: 14.0.3
       picocolors: 1.1.1
       semver: 7.7.4
@@ -6020,10 +6053,10 @@ snapshots:
       - supports-color
       - tree-sitter
 
-  '@aiready/doc-drift@0.13.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
+  '@aiready/doc-drift@0.13.23(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
-      '@aiready/core': 0.23.6(eslint@10.0.3(jiti@2.6.1))
-      '@typescript-eslint/typescript-estree': 8.57.1(typescript@5.9.3)
+      '@aiready/core': 0.23.24(eslint@10.0.3(jiti@2.6.1))
+      '@typescript-eslint/typescript-estree': 8.57.2(typescript@5.9.3)
       commander: 14.0.3
       glob: 13.0.6
       picocolors: 1.1.1
@@ -6033,9 +6066,9 @@ snapshots:
       - tree-sitter
       - typescript
 
-  '@aiready/pattern-detect@0.16.5(eslint@10.0.3(jiti@2.6.1))':
+  '@aiready/pattern-detect@0.16.23(eslint@10.0.3(jiti@2.6.1))':
     dependencies:
-      '@aiready/core': 0.23.6(eslint@10.0.3(jiti@2.6.1))
+      '@aiready/core': 0.23.24(eslint@10.0.3(jiti@2.6.1))
       chalk: 5.6.2
       commander: 14.0.3
     transitivePeerDependencies:
@@ -6043,11 +6076,11 @@ snapshots:
       - supports-color
       - tree-sitter
 
-  '@aiready/testability@0.6.5(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
+  '@aiready/testability@0.6.23(eslint@10.0.3(jiti@2.6.1))(typescript@5.9.3)':
     dependencies:
-      '@aiready/core': 0.23.6(eslint@10.0.3(jiti@2.6.1))
-      '@typescript-eslint/types': 8.57.1
-      '@typescript-eslint/typescript-estree': 8.57.1(typescript@5.9.3)
+      '@aiready/core': 0.23.24(eslint@10.0.3(jiti@2.6.1))
+      '@typescript-eslint/types': 8.57.2
+      '@typescript-eslint/typescript-estree': 8.57.2(typescript@5.9.3)
       chalk: 5.6.2
       commander: 14.0.3
       glob: 13.0.6
@@ -6057,9 +6090,9 @@ snapshots:
       - tree-sitter
       - typescript
 
-  '@aiready/visualizer@0.6.5(eslint@10.0.3(jiti@2.6.1))':
+  '@aiready/visualizer@0.6.23(eslint@10.0.3(jiti@2.6.1))':
     dependencies:
-      '@aiready/core': 0.23.6(eslint@10.0.3(jiti@2.6.1))
+      '@aiready/core': 0.23.24(eslint@10.0.3(jiti@2.6.1))
       commander: 14.0.3
       d3: 7.9.0
       react: 19.2.4
@@ -9090,12 +9123,25 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  '@typescript-eslint/project-service@8.57.2(typescript@5.9.3)':
+    dependencies:
+      '@typescript-eslint/tsconfig-utils': 8.57.2(typescript@5.9.3)
+      '@typescript-eslint/types': 8.57.2
+      debug: 4.4.3
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - supports-color
+
   '@typescript-eslint/scope-manager@8.57.1':
     dependencies:
       '@typescript-eslint/types': 8.57.1
       '@typescript-eslint/visitor-keys': 8.57.1
 
   '@typescript-eslint/tsconfig-utils@8.57.1(typescript@5.9.3)':
+    dependencies:
+      typescript: 5.9.3
+
+  '@typescript-eslint/tsconfig-utils@8.57.2(typescript@5.9.3)':
     dependencies:
       typescript: 5.9.3
 
@@ -9113,6 +9159,8 @@ snapshots:
 
   '@typescript-eslint/types@8.57.1': {}
 
+  '@typescript-eslint/types@8.57.2': {}
+
   '@typescript-eslint/typescript-estree@8.57.1(typescript@5.9.3)':
     dependencies:
       '@typescript-eslint/project-service': 8.57.1(typescript@5.9.3)
@@ -9124,6 +9172,21 @@ snapshots:
       semver: 7.7.4
       tinyglobby: 0.2.15
       ts-api-utils: 2.4.0(typescript@5.9.3)
+      typescript: 5.9.3
+    transitivePeerDependencies:
+      - supports-color
+
+  '@typescript-eslint/typescript-estree@8.57.2(typescript@5.9.3)':
+    dependencies:
+      '@typescript-eslint/project-service': 8.57.2(typescript@5.9.3)
+      '@typescript-eslint/tsconfig-utils': 8.57.2(typescript@5.9.3)
+      '@typescript-eslint/types': 8.57.2
+      '@typescript-eslint/visitor-keys': 8.57.2
+      debug: 4.4.3
+      minimatch: 10.2.4
+      semver: 7.7.4
+      tinyglobby: 0.2.15
+      ts-api-utils: 2.5.0(typescript@5.9.3)
       typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color
@@ -9142,6 +9205,11 @@ snapshots:
   '@typescript-eslint/visitor-keys@8.57.1':
     dependencies:
       '@typescript-eslint/types': 8.57.1
+      eslint-visitor-keys: 5.0.1
+
+  '@typescript-eslint/visitor-keys@8.57.2':
+    dependencies:
+      '@typescript-eslint/types': 8.57.2
       eslint-visitor-keys: 5.0.1
 
   '@ungap/structured-clone@1.3.0': {}
@@ -9871,7 +9939,7 @@ snapshots:
 
   d3-delaunay@6.0.4:
     dependencies:
-      delaunator: 5.0.1
+      delaunator: 5.1.0
 
   d3-dispatch@3.0.1: {}
 
@@ -10052,9 +10120,9 @@ snapshots:
       has-property-descriptors: 1.0.2
       object-keys: 1.1.1
 
-  delaunator@5.0.1:
+  delaunator@5.1.0:
     dependencies:
-      robust-predicates: 3.0.2
+      robust-predicates: 3.0.3
 
   delayed-stream@1.0.0: {}
 
@@ -12268,7 +12336,7 @@ snapshots:
 
   rfdc@1.4.1: {}
 
-  robust-predicates@3.0.2: {}
+  robust-predicates@3.0.3: {}
 
   rolldown@1.0.0-rc.9:
     dependencies:
@@ -12875,6 +12943,10 @@ snapshots:
   trough@2.2.0: {}
 
   ts-api-utils@2.4.0(typescript@5.9.3):
+    dependencies:
+      typescript: 5.9.3
+
+  ts-api-utils@2.5.0(typescript@5.9.3):
     dependencies:
       typescript: 5.9.3
 

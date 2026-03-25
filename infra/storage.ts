@@ -3,30 +3,34 @@
  *
  * @returns An object containing the created DynamoDB tables, S3 buckets, and secrets.
  */
+import { DYNAMO_KEYS } from '../core/lib/constants';
+
 export function createStorage() {
+  const { FIELDS } = DYNAMO_KEYS;
+
   const memoryTable = new sst.aws.Dynamo('MemoryTable', {
     fields: {
-      userId: 'string',
-      timestamp: 'number',
-      type: 'string',
+      [FIELDS.USER_ID]: FIELDS.STRING,
+      [FIELDS.TIMESTAMP]: FIELDS.NUMBER,
+      [FIELDS.TYPE]: FIELDS.STRING,
     },
-    primaryIndex: { hashKey: 'userId', rangeKey: 'timestamp' },
+    primaryIndex: { hashKey: FIELDS.USER_ID, rangeKey: FIELDS.TIMESTAMP },
     globalIndexes: {
-      TypeTimestampIndex: { hashKey: 'type', rangeKey: 'timestamp' },
+      TypeTimestampIndex: { hashKey: FIELDS.TYPE, rangeKey: FIELDS.TIMESTAMP },
     },
     ttl: 'expiresAt',
   });
 
   const traceTable = new sst.aws.Dynamo('TraceTable', {
     fields: {
-      traceId: 'string',
-      nodeId: 'string',
-      userId: 'string',
-      timestamp: 'number',
+      [FIELDS.TRACE_ID]: FIELDS.STRING,
+      [FIELDS.NODE_ID]: FIELDS.STRING,
+      [FIELDS.USER_ID]: FIELDS.STRING,
+      [FIELDS.TIMESTAMP]: FIELDS.NUMBER,
     },
-    primaryIndex: { hashKey: 'traceId', rangeKey: 'nodeId' },
+    primaryIndex: { hashKey: FIELDS.TRACE_ID, rangeKey: FIELDS.NODE_ID },
     globalIndexes: {
-      UserIndex: { hashKey: 'userId', rangeKey: 'timestamp' },
+      UserIndex: { hashKey: FIELDS.USER_ID, rangeKey: FIELDS.TIMESTAMP },
     },
     ttl: 'expiresAt',
   });
@@ -49,9 +53,9 @@ export function createStorage() {
 
   const configTable = new sst.aws.Dynamo('ConfigTable', {
     fields: {
-      key: 'string',
+      [FIELDS.KEY]: FIELDS.STRING,
     },
-    primaryIndex: { hashKey: 'key' },
+    primaryIndex: { hashKey: FIELDS.KEY },
   });
 
   const knowledgeBucket = new sst.aws.Bucket('KnowledgeBucket');

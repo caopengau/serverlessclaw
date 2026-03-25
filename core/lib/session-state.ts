@@ -9,11 +9,11 @@ import { Resource } from 'sst';
 import { SSTResource } from './types/system';
 import type { PendingMessage } from './types/session';
 import { logger } from './logger';
+import { TIME } from './constants';
 
 const SESSION_PREFIX = 'SESSION_STATE#';
 const LOCK_TTL_SECONDS = 300; // 5 minutes for lock timeout (crash recovery)
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days for DynamoDB TTL
-const TIME = { MS_PER_SECOND: 1000 };
 
 // Default client for backward compatibility - can be overridden via constructor for testing
 const defaultClient = new DynamoDBClient({});
