@@ -76,14 +76,11 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
           reconnectPeriod: 5000,
         });
 
-        console.log('[Realtime] MQTT Client created, waiting for connection...');        
         client.on('connect', () => {
-          console.log('[Realtime] Connected to push bus');
           setIsRealtimeActive(true);
           // Subscribe to ALL signals for this user using a wildcard
           // This covers both generic user signals and session-specific signals
           const userTopicWildcard = `users/${userId}/#`;
-          console.log(`[Realtime] Subscribing to wildcard: ${userTopicWildcard}`);
           client.subscribe(userTopicWildcard);
         });
 
@@ -91,13 +88,10 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
           try {
             const data = JSON.parse(String(payload));
             const currentActiveId = activeSessionRef.current;
-            console.log(`[Realtime] Received signal on topic: ${t} | MsgId: ${data.messageId} | Agent: ${data.agentName}`);
             
             if (shouldProcessChunk(data, currentActiveId, userId)) {
-              console.log(`[Realtime] Applying chunk to UI for session: ${currentActiveId}`);
               setMessages(prev => applyChunkToMessages(prev, data, seenMessageIds.current));
             } else {
-              console.log(`[Realtime] Discarding signal for inactive session or wrong user. ChunkSession: ${data.sessionId} | ActiveSession: ${currentActiveId}`);
               if (currentActiveId && !isPostInFlight.current) {
                 fetchHistorySilently(currentActiveId);
               }
@@ -112,11 +106,7 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
           setIsRealtimeActive(false);
         });
 
-        client.on('offline', () => console.log('[Realtime] MQTT Client offline'));
-        client.on('reconnect', () => console.log('[Realtime] MQTT Client reconnecting...'));
-
         client.on('close', () => {
-          console.log('[Realtime] MQTT Connection closed');
           setIsRealtimeActive(false);
         });
         mqttClientRef.current = client;
@@ -138,8 +128,6 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
   useEffect(() => {
     const client = mqttClientRef.current;
     if (!client || !client.connected || !activeSessionId) return;
-    
-    console.log(`[Realtime] Active session changed to: ${activeSessionId}. (Already covered by wildcard subscription)`);
   }, [activeSessionId, isRealtimeActive]);
 
   useEffect(() => {

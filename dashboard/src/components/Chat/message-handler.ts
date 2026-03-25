@@ -30,27 +30,21 @@ export function shouldProcessChunk(
     : data.userId;
 
   if (incomingUserId !== expectedUserId) {
-    console.log(`[Realtime] User ID mismatch: received ${incomingUserId}, expected ${expectedUserId}`);
     return false;
   }
   
   const type = data['detail-type'];
   if (type !== 'chunk' && type !== 'outbound_message') {
-    console.log(`[Realtime] Type mismatch: received ${type}`);
     return false;
   }
   
   // If no session ID in chunk, it's a global signal for the user
   if (!data.sessionId) {
-    console.log('[Realtime] No session ID in chunk, allowing global signal');
     return true;
   }
   
   // Otherwise it MUST match the current active session
   const match = data.sessionId === currentActiveId;
-  if (!match) {
-    console.log(`[Realtime] Session ID mismatch: received ${data.sessionId}, active ${currentActiveId}`);
-  }
   return match;
 }
 
@@ -72,8 +66,6 @@ export function applyChunkToMessages(
   const existingIndex = prev.findIndex(
     (m) => m.messageId === data.messageId && m.role === 'assistant'
   );
-
-  console.log(`[Realtime] Processing chunk for msgId: ${data.messageId} | existingIndex: ${existingIndex} | isThought: ${data.isThought}`);
 
   if (existingIndex !== -1) {
     const updated = [...prev];

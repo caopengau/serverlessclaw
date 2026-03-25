@@ -1,9 +1,7 @@
 /**
  * Simple authorizer for IoT Realtime bus.
  */
-export const handler = async (event: any) => {
-  console.log('[RealtimeAuth] Authorizing connection:', JSON.stringify(event, null, 2));
-
+export const handler = async (_event: any) => {
   // Use a stable principalId for the dashboard (must be alphanumeric)
   const principalId = 'dashboardUser';
 
@@ -28,14 +26,11 @@ export const handler = async (event: any) => {
     ],
   };
 
-  const response = {
+  return {
     isAuthenticated: true,
     principalId,
     disconnectAfterInSeconds: 3600,
     refreshAfterInSeconds: 300,
     policyDocuments: [JSON.stringify(policy)],
   };
-
-  console.log('[RealtimeAuth] Returning response:', JSON.stringify(response, null, 2));
-  return response;
 };
