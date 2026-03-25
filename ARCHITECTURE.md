@@ -169,28 +169,24 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
        ________V_________           (3) [ BUILD_MONITOR ]          |
       |    EVENT_BUS     | <-------  (Signals Build Status)        |
       |   (AgentBus)     |                                         |
-      |__________________|          (4) [ REFLECTOR_AGENT ]        |
-          |         |                (Signals Evolution Plans)     |
-          |         |                                              |
-     (2) CODER_AGENT|               (5) [ PLANNER_AGENT ]          |
-         (Signals   |                (Signals Coder Tasks)         |
+      |__________________|          (4) [ QA AUDITOR ]             |
+          |         |                (Verifies Live & Syncs)       |
+          |         |                 |                            |
+     (2) CODER_AGENT|                 +-- triggerTrunkSync ------> [ CODEBUILD ]
+         (Signals   |                                              (Sync Only)
           Results)  |                                              |
-          |         |               (6) [ WORKER_AGENT ]           |
-          |         |                (Signals Dynamic Results)     |
+          |         |               (5) [ STRATEGIC PLANNER ]      |
+          |         |                (Consulted via signalOrch)    |
           |         |                                              |
           +---------+-----> [ EVENT_HANDLER_ROUTER ] --------------+
                     (build/continuation/task-result)
-                    (clarification/health routes)
+                    (signalOrchestration routes)
                     (Recursion Guard + Trace Propagation)
-                                        |
-                                        +-----> [ NOTIFIER ]
-                                        |       (Telegram/Slack)
-                                        |
-                                        +-----> [ REALTIME_BRIDGE ]
-                                                (Dashboard IoT)
  ```
 
 - **Pattern**: Standardized events (`CODER_TASK`, `EVOLUTION_PLAN`, `TASK_COMPLETED`, `TASK_FAILED`, `PARALLEL_TASK_DISPATCH`, `TASK_CANCELLED`) flow through the Bus. 
+- **Strategic Coordination**: Initiator agents use the `signalOrchestration` tool to provide deterministic logic when sub-agents report completion or failure. This tool acts as the state-machine for complex, multi-turn goals.
+- **Atomic Trunk Sync**: The system follows a "Verification-First" sync model. Code lands in the trunk (Git) only after the `QA Auditor` has successfully verified the live environment and called `triggerTrunkSync`.
 - **Relay Loop**: When a sub-agent emits `TASK_COMPLETED` or `TASK_FAILED`, the `EventHandler` routes it back to the `initiatorId` as a `CONTINUATION_TASK`.
 - **Metadata**: Every event carries a standardized `traceId` (for visual DAG tracing) and a `depth` counter (for loop protection).
 - **Recursion Control**: The `EventHandler` enforces a **Recursion Limit** (Default: 15), aborting flows that exceed it.
