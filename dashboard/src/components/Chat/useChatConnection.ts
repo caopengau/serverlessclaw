@@ -124,12 +124,6 @@ export function useChatConnection(activeSessionId: string, setMessages: React.Di
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Session-specific subscriptions are now handled by the wildcard subscription in the main connect useEffect
-  useEffect(() => {
-    const client = mqttClientRef.current;
-    if (!client || !client.connected || !activeSessionId) return;
-  }, [activeSessionId, isRealtimeActive]);
-
   useEffect(() => {
     if (!activeSessionId) return;
     const interval = setInterval(() => {
