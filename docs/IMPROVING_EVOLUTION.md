@@ -1,6 +1,6 @@
-# Improving Self-Evolution: Safe Releases & Repository Syncing
+# Improving Self-Evolution: Safe Releases & Hardened Trunk Syncing
 
-This document outlines the proposed improvements to the Serverless Claw self-evolution stack to ensure safer releases and robust synchronization with the code repository.
+This document outlines the improvements to the Serverless Claw self-evolution stack to ensure safer releases and robust synchronization with the trunk (`main` branch) in a trunk-based development environment.
 
 ## Current State Analysis
 
@@ -14,59 +14,43 @@ The current evolution loop is:
 7. **QA Auditor** verifies the live environment.
 
 ### Identified Weaknesses
-* **Direct Push to `main`**: Bypasses code review and standard branch protection.
+* **Direct Push to `main` before QA**: Bypasses the final quality gate.
 * **Non-Atomic Sync**: Changes are pushed to Git before the QA Auditor has verified them.
-* **Potential for Conflicts**: Parallel agent tasks can conflict when pushing to `main`.
-* **Weak Pre-flight Checks**: Verification tools are optional for the Coder Agent.
+* **Weak Pre-flight Checks**: Verification tools were previously optional for the Coder Agent.
+* **Missing Tests/Docs**: Logic changes could land in the trunk without associated tests or documentation.
 
 ---
 
-## Proposed Improvements
+## Hardened Improvements (March 2026)
 
-### 1. Branch-Based Sync Flow (Pull Requests)
-Instead of pushing directly to `main`, the system will transition to a **Pull Request (PR) workflow**.
+### 1. Hardened Pre-Flight Gate (DoD Enforcement)
+The **`STAGE_CHANGES`** tool now enforces a strict **Definition of Done (DoD)**:
+- **Mandatory Validation**: It verifies that `validateCode` and `runTests` have successfully passed in the current session history.
+- **Completeness Check**: It scans for logic changes in `core/` or `infra/` and requires:
+    - At least one new or modified `.test.ts` file.
+    - At least one documentation update (in `docs/`, `README.md`, or `INDEX.md`).
+- **Mechanical Block**: If the DoD is not met, the staging is blocked, preventing any AWS CodeBuild costs.
 
-**New Flow**:
-1. CodeBuild pushes changes to a dedicated branch: `evolution/gap-<id>-build-<number>`.
-2. A new `github` tool (or CLI command in CodeBuild) opens a Pull Request on GitHub.
-3. The PR includes:
-   - Link to the Evolution Gap in the Dashboard.
-   - Summary of changes.
-   - Test results from the build.
+### 2. Post-QA Atomic Sync (`GIT_SYNC` Tool)
+The system now separates the deployment from the repository synchronization.
+- **Step 1: Deployment**: CodeBuild deploys the changes to the live environment but does **not** push to Git.
+- **Step 2: Verification**: The **QA Auditor** verifies the live deployment satisfy the gap.
+- **Step 3: Final Sync**: Only after verification passes, the `QA Auditor` (or the `Initiator`) calls the **`gitSync`** tool.
+- **Step 4: Atomic Commit**: `gitSync` triggers a special CodeBuild job with `SYNC_ONLY=true` that pulls, rebases (if needed), and pushes the verified code back to the remote `main` branch.
 
-### 2. Hardened Quality Gates
-* **Coder Requirement**: The Coder Agent **must** run `VALIDATE_CODE` and `RUN_TESTS` before it is permitted to call `STAGE_CHANGES`.
-* **CodeBuild Failure**: If `make test-tier-3` (E2E tests) fails, the branch push and PR creation are aborted.
-
-### 3. Integrated QA & Merge Logic
-The **QA Auditor** becomes the final gate for both the live environment and the repository:
-* **Manual Mode (HITL)**: QA Auditor verifies the live deployment and then asks the user to review and merge the GitHub PR.
-* **Auto Mode**: Once QA Auditor verifies the deployment satisfies the gap, it calls a `MERGE_PULL_REQUEST` tool to merge the code into `main`.
-
----
-
-## Implementation Roadmap
-
-### Phase 1: GitHub Tooling (Short Term)
-- [ ] Add `core/tools/github.ts` with `CREATE_PULL_REQUEST` and `MERGE_PULL_REQUEST` tools.
-- [ ] Update `infra/deployer.ts` to ensure `GITHUB_TOKEN` has `pull_requests:write` permissions.
-
-### Phase 2: CodeBuild Refactor (Short Term)
-- [ ] Modify `buildspec.yml` to:
-  - Detect the `GAP_ID` (if available).
-  - Push to `evolution/gap-$GAP_ID`.
-  - Open a PR using the new tool or a simple `curl` command to GitHub API.
-
-### Phase 3: Agent Orchestration (Medium Term)
-- [ ] Update **Coder Agent** prompt to enforce pre-deployment validation.
-- [ ] Update **QA Auditor** to handle PR status updates (e.g., adding a comment with the audit report).
-
-### Phase 4: Local Sync (Medium Term)
-- [ ] Add a `PULL_LATEST_REPO` tool to ensure agents always start from the current `main` branch state, even if they are running in a long-lived environment.
+### 3. Initiator-First Failure Loop
+If the QA Auditor identifies a failure:
+- It **notifies the original Initiator** (SuperClaw or Strategic Planner).
+- The Initiator analyzes the Audit Report against the original goal.
+- The Initiator decides whether to:
+    - **Retry**: Re-dispatch the Coder with refined instructions.
+    - **Pivot**: Assign the task to a different agent.
+    - **Escalate**: Ask the human user for guidance if the failure is fundamental.
 
 ---
 
 ## Safety Benefits
-* **Peer Review**: Human developers can see exactly what the agent changed before it hits `main`.
-* **Audit Trail**: Every autonomous evolution step is recorded as a PR with associated comments and test results.
-* **Reversibility**: Standard Git `revert` can be used on the PR merge if issues are discovered later.
+* **Peer Review Readiness**: All changes in the trunk are now guaranteed to be tested and documented.
+* **Audit Trail**: Every autonomous evolution step is recorded with a technical audit report.
+* **Reversibility**: Since the push is delayed until after QA, the trunk remains clean even if a deployment is initially buggy.
+* **Strategic Oversight**: High-level agents (SuperClaw/Planner) manage the failure loop, preventing "infinite loop" failures between Coder and QA.

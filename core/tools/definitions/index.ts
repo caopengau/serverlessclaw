@@ -9,7 +9,6 @@ import { systemTools } from './system';
 import { clarificationTools } from './clarification';
 import { schedulerDefinitions } from './scheduler';
 import { metadataTools } from './metadata';
-import { gitTools } from './git';
 
 /**
  * Combined tool definitions for all system tools.
@@ -27,7 +26,6 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
   ...clarificationTools,
   ...schedulerDefinitions,
   ...metadataTools,
-  ...gitTools,
 };
 
 // Re-export individual tool categories for modular access
@@ -42,5 +40,4 @@ export {
   clarificationTools,
   schedulerDefinitions,
   metadataTools,
-  gitTools,
 };

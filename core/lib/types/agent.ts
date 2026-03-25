@@ -305,6 +305,9 @@ export enum AgentStatus {
   FAILED = 'FAILED',
   CONTINUE = 'CONTINUE',
   REOPEN = 'REOPEN',
+  RETRY = 'RETRY',
+  PIVOT = 'PIVOT',
+  ESCALATE = 'ESCALATE',
 }
 
 /**
