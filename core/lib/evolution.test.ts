@@ -30,70 +30,54 @@ vi.mock('./registry', () => ({
 }));
 
 // Use vi.hoisted to ensure mock is available for dynamic imports
-// Unique implementation for evolution tests to avoid AIReady duplicate detection
-const { MockClawTracer, MockAgentExecutorFactory } = vi.hoisted(() => {
-  const mockRunLoop = vi.fn().mockImplementation(async function (
-    this: any,
-    messages: any,
-    options: any
-  ) {
-    const { activeModel, activeProvider, tracer } = options || {};
+const { MockClawTracer, MockAgentExecutor } = vi.hoisted(() => {
+  const mockRunLoop = vi.fn().mockImplementation(async (messages: any, options: any) => {
+    const { provider, tools, tracer } = options || {};
 
-    const provider = options?.provider ?? this?.provider;
-    const tools = options?.tools ?? this?.tools;
+    const resp = await provider.call(messages, tools);
+    messages.push(resp);
 
-    // Call provider
-    const aiResponse = await provider.call(
-      messages,
-      tools,
-      options?.activeProfile,
-      activeModel,
-      activeProvider
-    );
+    if (tracer?.addStep) {
+      await tracer.addStep({ type: 'llm_call', content: { model: options?.activeModel } });
+    }
 
-    // Add tracer steps
-    await tracer.addStep({
-      type: 'llm_call',
-      content: { model: activeModel, provider: activeProvider },
-    });
-
-    // Execute tools if present
-    if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
-      for (const toolCall of aiResponse.tool_calls) {
-        const tool = tools.find((t: any) => t.name === toolCall.function.name);
+    if (resp.tool_calls && resp.tool_calls.length > 0) {
+      for (const tc of resp.tool_calls) {
+        const tool = (tools || []).find((t: any) => t.name === tc.function.name);
         if (tool) {
-          const args = JSON.parse(toolCall.function.arguments);
+          const args =
+            typeof tc.function.arguments === 'string'
+              ? JSON.parse(tc.function.arguments)
+              : tc.function.arguments;
           await tool.execute(args);
         }
       }
     }
-
-    return {
-      responseText: aiResponse.content ?? 'Tool executed successfully!',
-      paused: false,
-      attachments: [],
-    };
+    return { responseText: resp.content || 'Done', paused: false, attachments: [] };
   });
 
-  function MockAgentExecutorFactory(provider: any, tools: any, agentId: any, agentName: any) {
-    return {
-      provider,
-      tools,
-      agentId,
-      agentName,
-      runLoop: mockRunLoop.bind({ provider, tools, agentId, agentName }),
-    };
+  class MockAgentExecutor {
+    constructor(
+      public provider: any,
+      public tools: any,
+      public agentId: any,
+      public agentName: any
+    ) {}
+    runLoop(msgs: any, opts: any) {
+      return mockRunLoop(msgs, { ...opts, provider: this.provider, tools: this.tools });
+    }
   }
 
   class MockClawTracer {
     getTraceId = () => 't1';
     getNodeId = () => 'n1';
     getParentId = () => undefined;
-    startTrace = vi.fn();
     addStep = vi.fn();
+    startTrace = vi.fn();
     endTrace = vi.fn();
   }
-  return { MockClawTracer, MockAgentExecutorFactory };
+
+  return { MockClawTracer, MockAgentExecutor };
 });
 
 vi.mock('./tracer', () => ({
@@ -112,7 +96,7 @@ vi.mock('./agent/context-manager', () => ({
 }));
 
 vi.mock('./agent/executor', () => ({
-  AgentExecutor: MockAgentExecutorFactory,
+  AgentExecutor: MockAgentExecutor,
   AGENT_DEFAULTS: { MAX_ITERATIONS: 5 },
   AGENT_LOG_MESSAGES: { RECOVERY_LOG_PREFIX: 'RECOVERY: ' },
 }));
