@@ -401,6 +401,7 @@ export class AgentExecutor {
       asyncWait: toolResult.asyncWait,
       pauseMessage: isApproval ? `APPROVAL_REQUIRED:${callId}` : toolResult.responseText,
       attachments,
+      thought: aiResponse.thought,
       tool_calls: aiResponse.tool_calls,
       options: isApproval
         ? [
@@ -463,6 +464,7 @@ export class AgentExecutor {
     return {
       responseText: responseText || 'Task completed.',
       attachments: attachments.length > 0 ? attachments : undefined,
+      thought: lastAiResponse?.thought,
       tool_calls: lastAiResponse?.tool_calls,
       usage,
     };

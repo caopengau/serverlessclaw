@@ -53,10 +53,10 @@ export function ChatMessageList({ messages, isLoading, scrollRef, onOptionClick 
                   <Card 
                     variant="glass" 
                     padding="sm" 
-                    className="rounded-lg bg-black/20 border-dashed border-cyber-green/10 text-cyber-green/60 italic text-xs leading-relaxed max-w-full"
+                    className="rounded-lg bg-cyber-green/[0.03] border-dashed border-cyber-green/20 text-cyber-green/80 italic text-[11px] leading-relaxed max-w-full mb-1 shadow-[0_0_15px_rgba(0,255,145,0.02)]"
                   >
                     <div className="flex items-start gap-2">
-                      <Terminal size={12} className="shrink-0 mt-0.5 opacity-50" />
+                      <Terminal size={11} className="shrink-0 mt-0.5 text-cyber-green/50" />
                       <div className="whitespace-pre-wrap">{m.thought}</div>
                     </div>
                   </Card>

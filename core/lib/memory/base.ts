@@ -178,6 +178,7 @@ export class BaseMemoryProvider {
     return items.map((item) => ({
       role: item.role as MessageRole,
       content: item.content as string | undefined,
+      thought: item.thought as string | undefined,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       tool_calls: item.tool_calls as any,
       tool_call_id: item.tool_call_id as string | undefined,

@@ -73,6 +73,7 @@ export class Agent {
   ): Promise<{
     responseText: string;
     attachments?: Attachment[];
+    thought?: string;
     tool_calls?: ToolCall[];
     traceId?: string;
   }> {
@@ -298,6 +299,7 @@ export class Agent {
         paused,
         asyncWait,
         attachments: resultAttachments,
+        thought: resultThought,
         tool_calls: resultToolCalls,
         usage: loopUsage,
       } = await executor.runLoop(messages, {
@@ -434,6 +436,8 @@ export class Agent {
 
       return {
         responseText: responseText,
+        thought:
+          resultThought || (initialResponseText !== responseText ? initialResponseText : undefined),
         attachments: resultAttachments,
         tool_calls: resultToolCalls,
         traceId,

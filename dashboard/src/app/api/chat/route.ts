@@ -82,7 +82,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json(streamResult);
     }
 
-    const { responseText, attachments: resultAttachments, tool_calls: resultToolCalls, traceId } = await agent.process(storageId, text ?? '', { 
+    const { responseText, thought: resultThought, attachments: resultAttachments, tool_calls: resultToolCalls, traceId } = await agent.process(storageId, text ?? '', { 
       sessionId, 
       source: TraceSource.DASHBOARD, 
       attachments,
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       });
     }
 
-    return NextResponse.json({ reply: responseText, agentName: 'SuperClaw', attachments: resultAttachments, tool_calls: resultToolCalls, messageId: traceId });
+    return NextResponse.json({ reply: responseText, thought: resultThought, agentName: 'SuperClaw', attachments: resultAttachments, tool_calls: resultToolCalls, messageId: traceId });
   } catch (error) {
     console.error(UI_STRINGS.API_CHAT_ERROR, error);
     

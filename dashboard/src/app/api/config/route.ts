@@ -25,6 +25,7 @@ export async function GET() {
     return NextResponse.json({
       realtime: {
         url: realtimeUrl,
+        authorizer: realtime.authorizer,
       },
     });
   } catch (error) {

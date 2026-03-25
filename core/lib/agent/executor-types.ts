@@ -28,6 +28,7 @@ export interface LoopResult {
   asyncWait?: boolean;
   pauseMessage?: string;
   attachments?: NonNullable<Message['attachments']>;
+  thought?: string;
   tool_calls?: ToolCall[];
   options?: Array<{ label: string; value: string; type?: string }>;
   usage?: ExecutorUsage;
