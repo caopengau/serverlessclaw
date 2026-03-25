@@ -110,3 +110,28 @@ export async function getRegisteredMemoryTypes(base: BaseMemoryProvider): Promis
 
   return Array.isArray(activeTypesSet) ? activeTypesSet : Array.from(activeTypesSet);
 }
+
+/**
+ * Query the latest items by userId and return their content strings.
+ *
+ * @param base - The base memory provider instance.
+ * @param userId - The userId value to query.
+ * @param limit - Maximum number of items to return (default 1).
+ * @returns A promise resolving to an array of content strings.
+ */
+export async function queryLatestContentByUserId(
+  base: BaseMemoryProvider,
+  userId: string,
+  limit: number = 1
+): Promise<string[]> {
+  const items = await base.queryItems({
+    KeyConditionExpression: 'userId = :userId',
+    ExpressionAttributeValues: {
+      ':userId': userId,
+    },
+    Limit: limit,
+    ScanIndexForward: false,
+  });
+
+  return items.map((item) => item.content as string);
+}

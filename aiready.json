@@ -13,10 +13,7 @@
       "**/.sst/**",
       "**/.next/**",
       "**/dist/**",
-      "**/build/**",
-      "**/*.test.ts",
-      "**/*.spec.ts",
-      "**/*.test.tsx"
+      "**/build/**"
     ],
     "tools": [
       "pattern-detect",
@@ -48,7 +45,8 @@
       "batchSize": 300,
       "maxCandidatesPerBlock": 500,
       "minClusterFiles": 3,
-      "minClusterTokenCost": 1000
+      "minClusterTokenCost": 1000,
+      "includeTests": true
     },
     "context-analyzer": {
       "maxContextBudget": 128000,

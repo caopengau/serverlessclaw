@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ATTACHMENT_SCHEMA } from './events';
 
 const TELEGRAM_INBOUND_PHOTO_SCHEMA = z
   .object({
@@ -83,13 +84,10 @@ export const TELEGRAM_VOICE_SCHEMA = TELEGRAM_FILE_SCHEMA.extend({
 
 /**
  * Schema for parsed Telegram message data, used for attachments.
+ * Re-exports ATTACHMENT_SCHEMA from events for backward compatibility.
  */
-export const TELEGRAM_MESSAGE_ATTACHMENT_SCHEMA = z.object({
-  type: z.enum(['image', 'file']),
-  name: z.string().optional(),
-  mimeType: z.string().optional(),
-  url: z.string(),
-  base64: z.string().optional(),
+export const TELEGRAM_MESSAGE_ATTACHMENT_SCHEMA = ATTACHMENT_SCHEMA.extend({
+  url: z.string(), // Telegram requires URL to be present
 });
 
 /**
@@ -98,5 +96,5 @@ export const TELEGRAM_MESSAGE_ATTACHMENT_SCHEMA = z.object({
 export const PARSED_TELEGRAM_MESSAGE_SCHEMA = z.object({
   chatId: z.string(),
   userText: z.string(),
-  attachments: z.array(TELEGRAM_MESSAGE_ATTACHMENT_SCHEMA),
+  attachments: z.array(ATTACHMENT_SCHEMA),
 });

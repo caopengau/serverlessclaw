@@ -9,7 +9,7 @@ import { MemoryInsight, InsightMetadata, InsightCategory } from '../types/memory
 import { RetentionManager } from './tiering';
 import type { BaseMemoryProvider } from './base';
 import { filterPII } from '../utils/pii';
-import { createMetadata } from './utils';
+import { createMetadata, queryLatestContentByUserId } from './utils';
 import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 /**
@@ -140,15 +140,7 @@ export async function addLesson(
  */
 export async function getLessons(base: BaseMemoryProvider, userId: string): Promise<string[]> {
   const normalizedUserId = userId.replace(/^(LESSON#)+/, '');
-  const items = await base.queryItems({
-    KeyConditionExpression: 'userId = :userId',
-    ExpressionAttributeValues: {
-      ':userId': `LESSON#${normalizedUserId}`,
-    },
-    Limit: 10,
-    ScanIndexForward: false,
-  });
-  return items.map((item) => item.content as string);
+  return queryLatestContentByUserId(base, `LESSON#${normalizedUserId}`, 10);
 }
 
 /**

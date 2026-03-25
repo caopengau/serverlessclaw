@@ -4,20 +4,8 @@
  */
 import type { ConversationMeta } from '../../../../core/lib/types/memory';
 import type { ToolCall } from '../../../../core/lib/types/llm';
-export type { ConversationMeta, ToolCall };
-
-export interface PendingMessage {
-  id: string;
-  content: string;
-  timestamp: number;
-  attachments?: Array<{
-    type: 'image' | 'file';
-    url?: string;
-    base64?: string;
-    name?: string;
-    mimeType?: string;
-  }>;
-}
+import type { PendingMessage } from '../../../../core/lib/types/session';
+export type { ConversationMeta, ToolCall, PendingMessage };
 
 export interface ChatMessage {
   role: 'user' | 'assistant';

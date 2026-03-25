@@ -7,6 +7,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { SSTResource } from './types/system';
+import type { PendingMessage } from './types/session';
 import { logger } from './logger';
 
 const SESSION_PREFIX = 'SESSION_STATE#';
@@ -22,19 +23,6 @@ const defaultDocClient = DynamoDBDocumentClient.from(defaultClient, {
   },
 });
 const typedResource = Resource as unknown as SSTResource;
-
-export interface PendingMessage {
-  id: string;
-  content: string;
-  attachments?: Array<{
-    type: 'image' | 'file';
-    url?: string;
-    base64?: string;
-    name?: string;
-    mimeType?: string;
-  }>;
-  timestamp: number;
-}
 
 export interface SessionState {
   sessionId: string;

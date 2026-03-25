@@ -10,6 +10,7 @@ import { ConversationMeta } from '../types/memory';
 import { RetentionManager } from './tiering';
 import type { BaseMemoryProvider } from './base';
 import { filterPIIFromObject } from '../utils/pii';
+import { queryLatestContentByUserId } from './utils';
 
 /**
  * Appends a new message with tiered retention.
@@ -167,16 +168,8 @@ export async function saveLKGHash(base: BaseMemoryProvider, hash: string): Promi
  * @since 2026-03-19
  */
 export async function getLatestLKGHash(base: BaseMemoryProvider): Promise<string | null> {
-  const items = await base.queryItems({
-    KeyConditionExpression: 'userId = :userId',
-    ExpressionAttributeValues: {
-      ':userId': 'SYSTEM#LKG',
-    },
-    Limit: 1,
-    ScanIndexForward: false,
-  });
-
-  return (items[0]?.content as string) ?? null;
+  const results = await queryLatestContentByUserId(base, 'SYSTEM#LKG', 1);
+  return results[0] ?? null;
 }
 
 /**
@@ -233,16 +226,8 @@ export async function resetRecoveryAttemptCount(base: BaseMemoryProvider): Promi
  * @returns A promise resolving to the summary string or null if not found.
  */
 export async function getSummary(base: BaseMemoryProvider, userId: string): Promise<string | null> {
-  const items = await base.queryItems({
-    KeyConditionExpression: 'userId = :userId',
-    ExpressionAttributeValues: {
-      ':userId': `SUMMARY#${userId}`,
-    },
-    Limit: 1,
-    ScanIndexForward: false, // Latest first
-  });
-
-  return (items[0]?.content as string) ?? null;
+  const results = await queryLatestContentByUserId(base, `SUMMARY#${userId}`, 1);
+  return results[0] ?? null;
 }
 
 /**

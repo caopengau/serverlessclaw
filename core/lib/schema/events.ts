@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const ATTACHMENT_SCHEMA = z.object({
+export const ATTACHMENT_SCHEMA = z.object({
   type: z.enum(['image', 'file']),
   url: z.string().optional(),
   base64: z.string().optional(),
