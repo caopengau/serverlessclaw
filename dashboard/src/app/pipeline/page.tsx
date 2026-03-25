@@ -1,7 +1,4 @@
-import { Resource } from 'sst';
 export const dynamic = 'force-dynamic';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import {
   AlertCircle,
   Kanban
@@ -12,6 +9,7 @@ import PipelineBoard from './PipelineBoard';
 import { DynamoMemory } from '@claw/core/lib/memory';
 import { GapItem } from '@claw/core/lib/types/memory';
 import Typography from '@/components/ui/Typography';
+import { deleteMemoryItem } from '@/lib/actions/dynamodb-actions';
 
 
 
@@ -43,15 +41,7 @@ async function updateStatus(gapId: string, status: string) {
 async function pruneGap(gapId: string, timestamp: number) {
   'use server';
   try {
-    const client = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(client);
-    
-    await docClient.send(new DeleteCommand({
-      TableName: (Resource as unknown as Record<string, { name: string }>).MemoryTable.name,
-      Key: { userId: gapId, timestamp }
-    }));
-    
-    revalidatePath('/pipeline');
+    await deleteMemoryItem(gapId, timestamp, '/pipeline');
   } catch (e) {
     console.error('Error pruning gap:', e);
   }
@@ -62,13 +52,13 @@ async function triggerBatchEvolution(gapIds: string[]) {
   try {
     const { DynamoMemory } = await import('@claw/core/lib/memory');
     const { emitEvent } = await import('@claw/core/lib/utils/bus');
-    
+
     const memory = new DynamoMemory();
-    
+
     for (const gapId of gapIds) {
       const numericId = gapId.split('#')[1];
       const plan = await memory.getDistilledMemory(`PLAN#${numericId}`);
-      
+
       if (plan) {
         // Dispatch task to Coder
         await emitEvent('pipeline.dashboard', 'coder_task', {
@@ -79,14 +69,14 @@ async function triggerBatchEvolution(gapIds: string[]) {
           },
           source: 'pipeline'
         });
-        
+
         // Update status to PROGRESS
         await memory.updateGapStatus(gapId, GapStatus.PROGRESS);
       } else {
         console.warn(`No plan found for gap ${gapId}, skipping evolution.`);
       }
     }
-    
+
     revalidatePath('/pipeline');
   } catch (e) {
     console.error('Error triggering batch evolution:', e);
@@ -96,7 +86,7 @@ async function triggerBatchEvolution(gapIds: string[]) {
 /** EvolutionPipeline — visual Kanban board for the gap lifecycle. Supports batch advancement and manual pruning. */
 export default async function EvolutionPipeline() {
   const gaps = await getGaps();
-  
+
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-amber-500/5 via-transparent to-transparent min-w-[1240px]">
       <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
@@ -122,11 +112,11 @@ export default async function EvolutionPipeline() {
         </div>
       </header>
 
-      <PipelineBoard 
-        initialGaps={gaps} 
-        updateStatus={updateStatus} 
-        pruneGap={pruneGap} 
-        triggerBatchEvolution={triggerBatchEvolution} 
+      <PipelineBoard
+        initialGaps={gaps}
+        updateStatus={updateStatus}
+        pruneGap={pruneGap}
+        triggerBatchEvolution={triggerBatchEvolution}
       />
 
       <div className="glass-card p-4 border-white/5 bg-black/40 flex items-center gap-4">

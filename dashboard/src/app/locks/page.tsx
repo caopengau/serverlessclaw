@@ -1,12 +1,13 @@
 import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { Lock, Unlock, Clock, ShieldAlert, RefreshCw, Zap } from 'lucide-react';
-import { revalidatePath } from 'next/cache';
+
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import { deleteMemoryItem } from '@/lib/actions/dynamodb-actions';
 
 async function getLocks() {
   try {
@@ -18,7 +19,7 @@ async function getLocks() {
     }
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
-    
+
     const { Items } = await docClient.send(
       new ScanCommand({
         TableName: tableName,
@@ -28,7 +29,7 @@ async function getLocks() {
         },
       })
     );
-    
+
     return (Items ?? []).map(item => ({
       lockId: item.userId.replace('LOCK#', ''),
       rawId: item.userId,
@@ -46,25 +47,7 @@ async function getLocks() {
 async function forceUnlock(rawId: string) {
   'use server';
   try {
-    const typedResource = Resource as unknown as { MemoryTable?: { name: string } };
-    const tableName = typedResource.MemoryTable?.name;
-    if (!tableName) {
-      throw new Error('MemoryTable name is missing from Resources');
-    }
-    const client = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(client);
-    
-    await docClient.send(
-      new DeleteCommand({
-        TableName: tableName,
-        Key: {
-          userId: rawId,
-          timestamp: 0,
-        },
-      })
-    );
-    
-    revalidatePath('/locks');
+    await deleteMemoryItem(rawId, 0, '/locks');
   } catch (e) {
     console.error('Error forcing unlock:', e);
   }
@@ -99,20 +82,20 @@ export default async function LocksPage() {
 
       <section className="space-y-6">
         <div className="flex items-center justify-between">
-            <Typography variant="caption" weight="black" className="tracking-[0.2em] flex items-center gap-2">
-                <Zap size={14} className="text-orange-500" /> Lane Concurrency Monitor
-            </Typography>
-            <div className="flex items-center gap-2">
-                <RefreshCw size={10} className="animate-spin-slow text-white/50" />
-                <Typography variant="mono" color="muted">Auto-Refresh Active</Typography>
-            </div>
+          <Typography variant="caption" weight="black" className="tracking-[0.2em] flex items-center gap-2">
+              <Zap size={14} className="text-orange-500" /> Lane Concurrency Monitor
+          </Typography>
+          <div className="flex items-center gap-2">
+              <RefreshCw size={10} className="animate-spin-slow text-white/50" />
+              <Typography variant="mono" color="muted">Auto-Refresh Active</Typography>
+          </div>
         </div>
 
         <div className="grid gap-4">
           {locks.length > 0 ? (
             locks.map((lock, i) => (
-              <Card 
-                key={i} 
+              <Card
+                key={i}
                 variant="glass"
                 padding="lg"
                 className={`flex justify-between items-center border-l-4 transition-all ${
@@ -144,14 +127,14 @@ export default async function LocksPage() {
                 </div>
 
                 <form action={forceUnlock.bind(null, lock.rawId)}>
-                    <Button 
-                        type="submit"
-                        variant="danger"
-                        size="sm"
-                        icon={<Unlock size={14} className="group-hover:rotate-12 transition-transform" />}
-                    >
-                        Force Release
-                    </Button>
+                  <Button
+                    type="submit"
+                    variant="danger"
+                    size="sm"
+                    icon={<Unlock size={14} className="group-hover:rotate-12 transition-transform" />}
+                  >
+                    Force Release
+                  </Button>
                 </form>
               </Card>
             ))
@@ -167,10 +150,10 @@ export default async function LocksPage() {
 
       <Card variant="outline" padding="lg" className="border-orange-500/10 bg-orange-500/[0.02] max-w-2xl">
         <Typography variant="caption" weight="bold" className="text-orange-500 mb-2 flex items-center gap-2">
-            <ShieldAlert size={12} /> Recovery Protocol
+          <ShieldAlert size={12} /> Recovery Protocol
         </Typography>
         <Typography variant="body" color="white" italic className="leading-relaxed block">
-            &quot;Ghost Locks&quot; occur when an agent crashes before releasing its session. Force releasing a lock allows the user to start a new session immediately. Caution: Releasing an active lock may cause state corruption.
+          &quot;Ghost Locks&quot; occur when an agent crashes before releasing its session. Force releasing a lock allows the user to start a new session immediately. Caution: Releasing an active lock may cause state corruption.
         </Typography>
       </Card>
     </main>
