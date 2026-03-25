@@ -69,6 +69,8 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
 
     STEP 2 — VERDICT: After your tool checks, respond with VERIFICATION_SUCCESSFUL or REOPEN_REQUIRED.
 
+    STEP 3 — SYNC (if successful): If verification passes, you MUST call 'gitSync' to finalize the trunk sync back to the repository.
+
     Background (Coder's self-report — treat as unverified):
     ${implementationResponse}
 
@@ -158,18 +160,32 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
       );
     }
 
-    const { TOOLS } = await import('../tools/index');
-    const dispatcher = TOOLS.dispatchTask;
-    await dispatcher.execute({
-      agentId: AgentType.CODER,
-      userId: baseUserId,
-      task: `QA verification failed for gaps: ${retryGaps.join(', ')}.\n\nAudit Report:\n${auditReport}\n\nPlease fix the issues and redeploy.`,
-      metadata: { gapIds: retryGaps },
-      traceId,
-      sessionId,
-      initiatorId: AgentType.QA,
-      depth: (depth ?? 0) + 1,
-    });
+    // Notify Initiator about the failure so they can decide on the next course of action
+    if (initiatorId) {
+      const { wakeupInitiator } = await import('../handlers/events/shared');
+      await wakeupInitiator(
+        baseUserId,
+        initiatorId,
+        `QA_VERIFICATION_FAILED: The changes for gaps ${retryGaps.join(', ')} failed verification.\n\nAudit Report:\n${auditReport}`,
+        traceId,
+        sessionId,
+        depth
+      );
+    } else {
+      // Fallback: direct dispatch to coder if no initiator
+      const { TOOLS } = await import('../tools/index');
+      const dispatcher = TOOLS.dispatchTask;
+      await dispatcher.execute({
+        agentId: AgentType.CODER,
+        userId: baseUserId,
+        task: `QA verification failed for gaps: ${retryGaps.join(', ')}.\n\nAudit Report:\n${auditReport}\n\nPlease fix the issues and redeploy.`,
+        metadata: { gapIds: retryGaps },
+        traceId,
+        sessionId,
+        initiatorId: AgentType.QA,
+        depth: (depth ?? 0) + 1,
+      });
+    }
   }
 
   // 1. Notify user directly in the chat session

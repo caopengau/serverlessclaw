@@ -223,6 +223,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       TOOL_INSTALL_SKILL,
       TOOL_SAVE_MEMORY,
       TOOL_SEEK_CLARIFICATION,
+      'gitSync',
     ],
     connectionProfile: [
       ConnectionProfile.BUS,

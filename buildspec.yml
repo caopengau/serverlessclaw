@@ -38,19 +38,25 @@ phases:
             rm staged_changes.zip
           fi
         fi
+      - |
+        if [ "$SYNC_ONLY" = "true" ]; then
+          echo "SYNC_ONLY mode: Skipping build and deploy phases."
+        fi
   build:
     commands:
-      - echo "Starting autonomous deployment and quality gate (Tier 1) in parallel..."
-      - make gate-deploy &
-      - GATE_PID=$!
-      - make deploy ENV=$SST_STAGE
-      - DEPLOY_EXIT=$?
-      - wait $GATE_PID
-      - GATE_EXIT=$?
       - |
-        if [ $DEPLOY_EXIT -ne 0 ] || [ $GATE_EXIT -ne 0 ]; then
-          echo "Build failed: Deploy Exit=$DEPLOY_EXIT, Gate Exit=$GATE_EXIT"
-          exit 1
+        if [ "$SYNC_ONLY" != "true" ]; then
+          echo "Starting autonomous deployment and quality gate (Tier 1) in parallel..."
+          make gate-deploy &
+          GATE_PID=$!
+          make deploy ENV=$SST_STAGE
+          DEPLOY_EXIT=$?
+          wait $GATE_PID
+          GATE_EXIT=$?
+          if [ $DEPLOY_EXIT -ne 0 ] || [ $GATE_EXIT -ne 0 ]; then
+            echo "Build failed: Deploy Exit=$DEPLOY_EXIT, Gate Exit=$GATE_EXIT"
+            exit 1
+          fi
         fi
   post_build:
     commands:
@@ -61,23 +67,24 @@ phases:
         fi
       - echo build completed on `date`
       - |
-        if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ]; then
+        if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ "$SYNC_ONLY" != "true" ]; then
           echo "Deployment successful. Running post-deploy checks..."
           API_URL=$(python3 -c "import json; print(json.load(open('.sst/outputs.json'))['apiUrl'])")
 
           echo "Running Tier 3 verification (Health + E2E) in parallel..."
           make test-tier-3 URL=$API_URL
-
-          if [ -n "$GITHUB_TOKEN" ]; then
-            echo "Pushing changes back to GitHub..."
-            git config --global user.email "agent@serverlessclaw.local"
-            git config --global user.name "Claw Coder Agent"
-            git add .
-            if git commit -m "chore: autonomous improvement by Claw Coder Agent [skip ci]"; then
-              git push https://$GITHUB_TOKEN@github.com/caopengau/serverlessclaw.git HEAD:main
-            else
-              echo "No changes to commit."
-            fi
+        fi
+      - |
+        if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ "$SYNC_ONLY" = "true" ] && [ -n "$GITHUB_TOKEN" ]; then
+          echo "Finalizing trunk sync back to GitHub..."
+          git config --global user.email "agent@serverlessclaw.local"
+          git config --global user.name "Claw Coder Agent"
+          git add .
+          MSG="${COMMIT_MESSAGE:-chore: autonomous improvement by Claw Coder Agent [skip ci]}"
+          if git commit -m "$MSG"; then
+            git push https://$GITHUB_TOKEN@github.com/caopengau/serverlessclaw.git HEAD:main
+          else
+            echo "No changes to commit."
           fi
         fi
 artifacts:

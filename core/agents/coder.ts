@@ -77,6 +77,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
               status: { type: 'string', enum: ['SUCCESS', 'FAILED'] },
               response: { type: 'string' },
               buildId: { type: 'string' },
+              sessionId: { type: 'string' },
             },
             required: ['status', 'response'],
             additionalProperties: false,

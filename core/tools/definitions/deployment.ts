@@ -6,7 +6,8 @@ import { IToolDefinition } from '../../lib/types/index';
 export const deploymentTools: Record<string, IToolDefinition> = {
   stageChanges: {
     name: 'stageChanges',
-    description: 'Stages modified files to S3 for persistent deployment.',
+    description:
+      'Compresses modified files into a ZIP and uploads to the S3 staging bucket for CodeBuild. Enforces the "Definition of Done" (DoD): logic changes MUST be accompanied by tests and documentation. Requires recent successful validateCode and runTests in the session.',
     parameters: {
       type: 'object',
       properties: {
@@ -15,8 +16,16 @@ export const deploymentTools: Record<string, IToolDefinition> = {
           items: { type: 'string' },
           description: 'List of relative file paths that were modified.',
         },
+        sessionId: {
+          type: 'string',
+          description: 'Current session ID to verify pre-flight validation history.',
+        },
+        skipValidation: {
+          type: 'boolean',
+          description: 'Internal use only: skip session history verification.',
+        },
       },
-      required: ['modifiedFiles'],
+      required: ['modifiedFiles', 'sessionId', 'skipValidation'],
       additionalProperties: false,
     },
     connectionProfile: ['storage'],
