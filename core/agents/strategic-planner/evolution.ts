@@ -1,10 +1,11 @@
 import { logger } from '../../lib/logger';
 import type { DynamoMemory } from '../../lib/memory';
+import { EvolutionMode } from '../../lib/types/agent';
 
 /**
  * Gets the current evolution mode from configuration.
  */
-export async function getEvolutionMode(): Promise<'auto' | 'hitl'> {
+export async function getEvolutionMode(): Promise<EvolutionMode> {
   try {
     const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
     const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
@@ -19,10 +20,10 @@ export async function getEvolutionMode(): Promise<'auto' | 'hitl'> {
         Key: { key: 'evolution_mode' },
       })
     );
-    return response.Item?.value === 'auto' ? 'auto' : 'hitl';
+    return response.Item?.value === EvolutionMode.AUTO ? EvolutionMode.AUTO : EvolutionMode.HITL;
   } catch (error) {
-    logger.warn('Failed to fetch evolution_mode, defaulting to hitl:', error);
-    return 'hitl';
+    logger.warn('Failed to fetch evolution_mode, defaulting to HITL:', error);
+    return EvolutionMode.HITL;
   }
 }
 

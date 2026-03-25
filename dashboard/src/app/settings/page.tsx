@@ -8,6 +8,7 @@ import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import { SYSTEM } from '@claw/core/lib/constants';
+import { EvolutionMode } from '@claw/core/lib/types/agent';
 
 async function getConfig() {
   try {
@@ -17,7 +18,7 @@ async function getConfig() {
       return {
         provider: SYSTEM.DEFAULT_PROVIDER,
         model: SYSTEM.DEFAULT_MODEL,
-        evolutionMode: 'hitl',
+        evolutionMode: EvolutionMode.HITL,
         optimizationPolicy: 'balanced',
       };
     }
@@ -112,7 +113,7 @@ async function getConfig() {
     return {
       provider: providerRes.Item?.value ?? SYSTEM.DEFAULT_PROVIDER,
       model: modelRes.Item?.value ?? SYSTEM.DEFAULT_MODEL,
-      evolutionMode: modeRes.Item?.value ?? 'hitl',
+      evolutionMode: modeRes.Item?.value ?? EvolutionMode.HITL,
       optimizationPolicy: policyRes.Item?.value ?? 'balanced',
       reflectionFrequency: reflectRes.Item?.value ?? '10',
       strategicReviewFrequency: reviewRes.Item?.value ?? '24',
@@ -131,7 +132,7 @@ async function getConfig() {
     return {
       provider: SYSTEM.DEFAULT_PROVIDER,
       model: SYSTEM.DEFAULT_MODEL,
-      evolutionMode: 'hitl',
+      evolutionMode: EvolutionMode.HITL,
       optimizationPolicy: 'balanced',
       reflectionFrequency: '3',
       strategicReviewFrequency: '12',

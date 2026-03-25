@@ -11,6 +11,7 @@ import { THEME } from '@/lib/theme';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
+import { EvolutionMode } from '@claw/core/lib/types/agent';
 
 const PROVIDERS = {
   openai: {
@@ -71,7 +72,7 @@ function ConfigTooltip({ id }: { id: string }) {
 export default function SettingsForm({ config, updateConfig }: SettingsFormProps) {
   const [activeProvider, setActiveProvider] = useState(config.provider ?? 'openai');
   const [activeModel, setActiveModel] = useState(config.model ?? 'gpt-5.4');
-  const [evolutionMode, setEvolutionMode] = useState(config.evolutionMode ?? 'hitl');
+  const [evolutionMode, setEvolutionMode] = useState(config.evolutionMode ?? EvolutionMode.HITL);
   const [optimizationPolicy, setOptimizationPolicy] = useState(config.optimizationPolicy ?? 'balanced');
   const [maxToolIterations, setMaxToolIterations] = useState(config.maxToolIterations ?? '5');
   const [circuitBreakerThreshold, setCircuitBreakerThreshold] = useState(config.circuitBreakerThreshold ?? '3');
@@ -161,8 +162,8 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   value={evolutionMode}
                   onChange={setEvolutionMode}
                   options={[
-                    { value: 'hitl', label: 'Human-in-the-Loop (Safe)' },
-                    { value: 'auto', label: 'Fully Autonomous (Live)' },
+                    { value: EvolutionMode.HITL, label: 'Human-in-the-Loop (Safe)' },
+                    { value: EvolutionMode.AUTO, label: 'Fully Autonomous (Live)' },
                   ]}
                   className="w-full"
                 />

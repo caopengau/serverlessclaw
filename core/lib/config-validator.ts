@@ -6,6 +6,7 @@
  */
 
 import { CONFIG_DEFAULTS } from './config-defaults';
+import { EvolutionMode } from './types/agent';
 
 const CONFIG_SCHEMAS = {
   recursion_limit: {
@@ -67,7 +68,7 @@ const CONFIG_SCHEMAS = {
   },
   evolution_mode: {
     type: 'string',
-    enum: ['auto', 'hitl'],
+    enum: [EvolutionMode.AUTO, EvolutionMode.HITL] as readonly string[],
     description: 'Evolution mode: auto or human-in-the-loop',
   },
   selective_discovery_mode: {

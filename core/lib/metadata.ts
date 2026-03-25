@@ -4,6 +4,7 @@
  */
 
 import { LLMProvider, OpenAIModel } from './types/llm';
+import { EvolutionMode } from './types/agent';
 export interface ConfigOptionMetadata {
   label: string;
   description: string;
@@ -50,7 +51,7 @@ export const SYSTEM_CONFIG_METADATA: Record<string, ConfigOptionMetadata> = {
       'HITL requires manual approval; AUTO allows the system to deploy code independently.',
     safeguard:
       'System automatically blocks autonomous deploys if the Circuit Breaker is triggered.',
-    default: 'hitl',
+    default: EvolutionMode.HITL,
   },
   circuit_breaker_threshold: {
     label: 'Circuit Breaker Threshold',

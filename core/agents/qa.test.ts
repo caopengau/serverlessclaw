@@ -125,7 +125,7 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
         auditReport: 'implementation is correct.',
       }),
     });
-    registryMocks.getRawConfig.mockResolvedValue('auto');
+    registryMocks.getRawConfig.mockResolvedValue(EvolutionMode.AUTO);
 
     await handler(
       BASE_PAYLOAD as unknown as Parameters<typeof handler>[0],
@@ -154,7 +154,10 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
     expect(memoryMocks.incrementGapAttemptCount).toHaveBeenCalledWith('GAP#1001');
     expect(memoryMocks.updateGapStatus).toHaveBeenCalledWith('GAP#1001', GapStatus.OPEN);
     // No escalation yet
-    expect(registryMocks.saveRawConfig).not.toHaveBeenCalledWith('evolution_mode', 'hitl');
+    expect(registryMocks.saveRawConfig).not.toHaveBeenCalledWith(
+      'evolution_mode',
+      EvolutionMode.HITL
+    );
   });
 
   it('should escalate to FAILED and send alert when reopen cap (3) is reached', async () => {
@@ -174,7 +177,10 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
     // Gap is escalated to FAILED
     expect(memoryMocks.updateGapStatus).toHaveBeenCalledWith('GAP#1001', GapStatus.FAILED);
     // Evolution mode is NOT forced to HITL
-    expect(registryMocks.saveRawConfig).not.toHaveBeenCalledWith('evolution_mode', 'hitl');
+    expect(registryMocks.saveRawConfig).not.toHaveBeenCalledWith(
+      'evolution_mode',
+      EvolutionMode.HITL
+    );
   });
 
   it('audit prompt should mandate independent tool verification, not trust coder testimony', async () => {
@@ -183,7 +189,7 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
       capturedPrompt = prompt;
       return Promise.resolve({ responseText: 'VERIFICATION_SUCCESSFUL' });
     });
-    registryMocks.getRawConfig.mockResolvedValue('auto');
+    registryMocks.getRawConfig.mockResolvedValue(EvolutionMode.AUTO);
 
     await handler(
       BASE_PAYLOAD as unknown as Parameters<typeof handler>[0],

@@ -114,7 +114,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
   try {
     const { AgentRegistry } = await import('../lib/registry');
     const mode = await AgentRegistry.getRawConfig('evolution_mode');
-    if (mode === 'auto') evolutionMode = EvolutionMode.AUTO;
+    if (mode === EvolutionMode.AUTO) evolutionMode = EvolutionMode.AUTO;
   } catch {
     logger.warn('Failed to fetch evolution_mode, defaulting to HITL.');
   }
