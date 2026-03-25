@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OpenAIProvider } from './openai';
-import { MessageRole, Message, ReasoningProfile } from '../types/index';
+import { MessageRole, Message, ReasoningProfile, AttachmentType, ToolType } from '../types/index';
 
 // Mock OpenAI SDK
 const mockCreateResponse = vi.fn();
@@ -78,7 +78,7 @@ describe('OpenAIProvider', () => {
       {
         name: 'code_interpreter',
         description: 'Built-in python',
-        type: 'code_interpreter' as const,
+        type: ToolType.CODE_INTERPRETER,
         parameters: { type: 'object' as const, properties: {} },
         execute: async () => 'done',
       },
@@ -90,7 +90,7 @@ describe('OpenAIProvider', () => {
       expect.objectContaining({
         tools: [
           expect.objectContaining({ type: 'function', name: 'local_tool' }),
-          expect.objectContaining({ type: 'code_interpreter' }),
+          expect.objectContaining({ type: ToolType.CODE_INTERPRETER }),
         ],
       })
     );
@@ -107,7 +107,7 @@ describe('OpenAIProvider', () => {
         name: 'google_drive',
         description: 'Access Google Drive',
         connector_id: 'connector_googledrive',
-        type: 'mcp' as const,
+        type: ToolType.MCP,
         parameters: { type: 'object' as const, properties: {} },
         execute: async () => 'done',
       },
@@ -119,7 +119,7 @@ describe('OpenAIProvider', () => {
       expect.objectContaining({
         tools: [
           expect.objectContaining({
-            type: 'mcp',
+            type: ToolType.MCP,
             server_label: 'google_drive',
             connector_id: 'connector_googledrive',
           }),
@@ -140,7 +140,7 @@ describe('OpenAIProvider', () => {
         content: 'Check this file',
         attachments: [
           {
-            type: 'file',
+            type: AttachmentType.FILE,
             name: 'test.txt',
             base64: 'SGVsbG8gd29ybGQ=', // "Hello world"
             mimeType: 'text/plain',

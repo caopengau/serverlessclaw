@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OpenAIProvider } from './openai';
 import { OpenRouterProvider } from './openrouter';
 import { BedrockProvider } from './bedrock';
-import { MessageRole, OpenAIModel, BedrockModel, OpenRouterModel } from '../types/index';
+import {
+  MessageRole,
+  OpenAIModel,
+  BedrockModel,
+  OpenRouterModel,
+  AttachmentType,
+} from '../types/index';
 import { BedrockRuntimeClient, ConverseCommand } from '@aws-sdk/client-bedrock-runtime';
 import { mockClient } from 'aws-sdk-client-mock';
 
@@ -86,9 +92,9 @@ describe('Provider Attachments Mapping', () => {
           role: MessageRole.USER,
           content: 'Look at this',
           attachments: [
-            { type: 'image' as const, base64: 'imgdata', mimeType: 'image/png' },
+            { type: AttachmentType.IMAGE, base64: 'imgdata', mimeType: 'image/png' },
             {
-              type: 'file' as const,
+              type: AttachmentType.FILE,
               base64: 'filedata',
               mimeType: 'application/pdf',
               name: 'test.pdf',
@@ -135,9 +141,9 @@ describe('Provider Attachments Mapping', () => {
           role: MessageRole.USER,
           content: 'OpenRouter check',
           attachments: [
-            { type: 'image' as const, base64: 'imgdata', mimeType: 'image/png' },
+            { type: AttachmentType.IMAGE, base64: 'imgdata', mimeType: 'image/png' },
             {
-              type: 'file' as const,
+              type: AttachmentType.FILE,
               base64: 'filedata',
               mimeType: 'application/pdf',
               name: 'doc.pdf',
@@ -172,9 +178,9 @@ describe('Provider Attachments Mapping', () => {
           role: MessageRole.USER,
           content: 'Bedrock check',
           attachments: [
-            { type: 'image' as const, base64: 'imgdata', mimeType: 'image/png' },
+            { type: AttachmentType.IMAGE, base64: 'imgdata', mimeType: 'image/png' },
             {
-              type: 'file' as const,
+              type: AttachmentType.FILE,
               base64: 'filedata',
               mimeType: 'application/pdf',
               name: 'test.pdf',

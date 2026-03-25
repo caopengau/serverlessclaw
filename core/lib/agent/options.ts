@@ -1,4 +1,4 @@
-import { ReasoningProfile, TraceSource } from '../types/index';
+import { ReasoningProfile, TraceSource, AttachmentType } from '../types/index';
 import { SessionStateManager } from '../session-state';
 
 /**
@@ -22,7 +22,7 @@ export interface AgentProcessOptions {
   parentId?: string;
   sessionId?: string;
   attachments?: Array<{
-    type: 'image' | 'file';
+    type: AttachmentType;
     url?: string;
     base64?: string;
     name?: string;

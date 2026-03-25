@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { AgentProcessOptions } from './options';
-import { ReasoningProfile, TraceSource } from '../types/index';
+import { ReasoningProfile, TraceSource, AttachmentType } from '../types/index';
 
 describe('AgentProcessOptions', () => {
   it('should allow creating options with default values', () => {
@@ -13,7 +13,7 @@ describe('AgentProcessOptions', () => {
 
   it('should allow specifying all options', () => {
     const mockContext = {} as import('aws-lambda').Context;
-    const attachments = [{ type: 'image' as const, base64: 'abc123' }];
+    const attachments = [{ type: AttachmentType.IMAGE, base64: 'abc123' }];
 
     const options: AgentProcessOptions = {
       profile: ReasoningProfile.DEEP,
@@ -34,7 +34,7 @@ describe('AgentProcessOptions', () => {
     expect(options.isContinuation).toBe(true);
     expect(options.depth).toBe(2);
     expect(options.attachments).toHaveLength(1);
-    expect(options.attachments?.[0].type).toBe('image');
+    expect(options.attachments?.[0].type).toBe(AttachmentType.IMAGE);
   });
 
   it('should allow string source', () => {

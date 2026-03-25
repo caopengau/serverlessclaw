@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { AttachmentType } from '../types/llm';
 import { HealthSeverity, ParallelTaskStatus } from '../types/constants';
 
 export const ATTACHMENT_SCHEMA = z.object({
-  type: z.enum(['image', 'file']),
+  type: z.nativeEnum(AttachmentType),
   url: z.string().optional(),
   base64: z.string().optional(),
   name: z.string().optional(),

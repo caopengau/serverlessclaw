@@ -1,4 +1,4 @@
-import { ITool } from './types/tool';
+import { ITool, ToolType } from './types/tool';
 import { MCPServerConfig } from './types/mcp';
 import { logger } from './logger';
 import { AgentRegistry } from './registry';
@@ -97,7 +97,7 @@ export class MCPBridge {
             description: config.description ?? `Managed tool for ${name}`,
             parameters: config.parameters ?? { type: 'object' as const, properties: {} },
             connector_id: config.connector_id,
-            type: 'mcp' as const,
+            type: ToolType.MCP,
             execute: async () => `Managed tool (${name}) executed autonomously by provider.`,
           },
         ];
@@ -110,7 +110,7 @@ export class MCPBridge {
             name: `${name}_tools`,
             description: `Tools from ${name} MCP server`,
             parameters: { type: 'object' as const, properties: {} },
-            type: 'mcp' as const,
+            type: ToolType.MCP,
             execute: async () => `MCP server ${name} placeholder`,
           },
         ];

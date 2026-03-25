@@ -1,7 +1,14 @@
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { Resource } from 'sst';
 import { logger } from '../logger';
-import { Message, MessageRole, EventType, IAgentConfig } from '../types/index';
+import {
+  Message,
+  MessageRole,
+  EventType,
+  IAgentConfig,
+  AttachmentType,
+  ButtonType,
+} from '../types/index';
 import { AgentRegistry } from '../registry';
 import { SSTResource } from '../types/index';
 import { AGENT_DEFAULTS } from './executor';
@@ -16,7 +23,7 @@ export type ContinuationMetadata = {
   nodeId?: string;
   parentId?: string;
   attachments?: Array<{
-    type: 'image' | 'file';
+    type: AttachmentType;
     url?: string;
     base64?: string;
     name?: string;
@@ -153,7 +160,7 @@ export class AgentEmitter {
     chunk: string,
     agentName?: string,
     isThought?: boolean,
-    options?: Array<{ label: string; value: string; type?: string }>
+    options?: Array<{ label: string; value: string; type?: ButtonType }>
   ): Promise<void> {
     try {
       const agentId = this.config?.id ?? 'unknown';

@@ -1,4 +1,4 @@
-import { ToolCall, ITool, Message, MessageRole, ToolResult } from '../types/index';
+import { ToolCall, ITool, Message, MessageRole, ToolResult, AttachmentType } from '../types/index';
 import { logger } from '../logger';
 import { AgentRegistry } from '../registry';
 import { ClawTracer } from '../tracer';
@@ -118,7 +118,7 @@ export class ToolExecutor {
         const res = rawResult as ToolResult;
         if (res.images && res.images.length > 0) {
           for (const img of res.images) {
-            attachments.push({ type: 'image', base64: img });
+            attachments.push({ type: AttachmentType.IMAGE, base64: img });
           }
         }
         if (res.metadata?.attachments && Array.isArray(res.metadata.attachments)) {

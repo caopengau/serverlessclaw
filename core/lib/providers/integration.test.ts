@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { DynamoMemory } from '../memory';
 import { ProviderManager } from './index';
 import { Agent } from '../agent';
-import { MessageRole, Message, ReasoningProfile } from '../types/index';
+import { MessageRole, Message, ReasoningProfile, AttachmentType } from '../types/index';
 
 // We skip actual LLM calls unless explicitly requested,
 // but this shows how to setup the integration test.
@@ -129,7 +129,7 @@ describe('Backend API Integration', () => {
           content: 'See attached file',
           attachments: [
             {
-              type: 'file',
+              type: AttachmentType.FILE,
               name: 'test.txt',
               base64: Buffer.from('Hello').toString('base64'),
               mimeType: 'text/plain',
@@ -153,7 +153,7 @@ describe('Backend API Integration', () => {
         content: 'See attached file',
         attachments: [
           {
-            type: 'file',
+            type: AttachmentType.FILE,
             name: 'test.txt',
             base64: Buffer.from('Hello').toString('base64'),
             mimeType: 'text/plain',
@@ -192,7 +192,7 @@ describe('Backend API Integration', () => {
     expect(userMessage).toBeDefined();
     expect(userMessage.attachments).toBeDefined();
     expect(userMessage.attachments![0]).toMatchObject({
-      type: 'file',
+      type: AttachmentType.FILE,
       name: 'test.txt',
     });
   });

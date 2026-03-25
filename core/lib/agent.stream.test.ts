@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Agent } from './agent';
-import { IMemory, IProvider, MessageRole, TraceSource, MessageChunk } from './types/index';
+import {
+  IMemory,
+  IProvider,
+  MessageRole,
+  TraceSource,
+  MessageChunk,
+  AttachmentType,
+} from './types/index';
 
 // ── Mocks ───────────────────────────────────────────────────────────────────────
 
@@ -140,7 +147,7 @@ describe('Agent.stream()', () => {
     }
     (mockProvider.stream as ReturnType<typeof vi.fn>).mockReturnValue(mockStream());
 
-    const attachments = [{ type: 'image' as const, base64: 'abc123', name: 'photo.png' }];
+    const attachments = [{ type: AttachmentType.IMAGE, base64: 'abc123', name: 'photo.png' }];
 
     const agent = new Agent(mockMemory, mockProvider, [], 'System', {
       id: 'test',

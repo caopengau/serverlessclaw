@@ -37,7 +37,7 @@ export const OrchestrationSignalSchema = z
     /**
      * Additional data to pass to the next agent or human.
      */
-    metadata: z.record(z.any()).optional(),
+    metadata: z.record(z.string(), z.any()).optional(),
   })
   .strict();
 

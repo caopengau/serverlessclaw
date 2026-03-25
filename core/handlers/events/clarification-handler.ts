@@ -2,6 +2,7 @@ import { getRecursionLimit, handleRecursionLimitExceeded, wakeupInitiator } from
 import { DynamicScheduler } from '../../lib/scheduler';
 import { ConfigManager } from '../../lib/registry/config';
 import { EventType, AgentType } from '../../lib/types/agent';
+import { ClarificationStatus } from '../../lib/types/memory';
 
 /**
  * Handles clarification request events - relays clarification question to initiator.
@@ -75,7 +76,7 @@ export async function handleClarificationRequest(
       traceId: safeTraceId,
       sessionId,
       depth: currentDepth,
-      status: 'pending',
+      status: ClarificationStatus.PENDING,
       createdAt: Date.now(),
       retryCount: currentRetryCount,
     });

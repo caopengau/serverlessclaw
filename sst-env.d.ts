@@ -67,6 +67,45 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Bucket"
     }
+    "MCPAwsS3Server": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
+    "MCPAwsServer": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
+    "MCPFetchServer": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
+    "MCPFilesystemServer": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
+    "MCPGitServer": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
+    "MCPGoogleSearchServer": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
+    "MCPPuppeteerServer": {
+      "name": string
+      "type": "sst.aws.Function"
+      "url": string
+    }
+    "MCPWarmupHandler": {
+      "name": string
+      "type": "sst.aws.Function"
+    }
     "MemoryTable": {
       "name": string
       "type": "sst.aws.Dynamo"

@@ -2,7 +2,7 @@ import { APIGatewayProxyEventV2, APIGatewayProxyResultV2, Context } from 'aws-la
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { TraceSource, AgentType } from '../lib/types/agent';
-import { MessageRole } from '../lib/types/llm';
+import { MessageRole, AttachmentType } from '../lib/types/llm';
 import { SSTResource } from '../lib/types/system';
 import { Resource } from 'sst';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -183,14 +183,14 @@ async function processTelegramMedia(message: Record<string, any>): Promise<any[]
     if (message.photo) {
       // Pick the largest photo size
       const photo = message.photo[message.photo.length - 1];
-      const result = await handleTelegramFile(photo.file_id, 'image', token);
+      const result = await handleTelegramFile(photo.file_id, AttachmentType.IMAGE, token);
       if (result) attachments.push(result);
     }
 
     if (message.document) {
       const result = await handleTelegramFile(
         message.document.file_id,
-        'file',
+        AttachmentType.FILE,
         token,
         message.document.file_name,
         message.document.mime_type
@@ -201,7 +201,7 @@ async function processTelegramMedia(message: Record<string, any>): Promise<any[]
     if (message.voice) {
       const result = await handleTelegramFile(
         message.voice.file_id,
-        'file',
+        AttachmentType.FILE,
         token,
         'voice.ogg',
         'audio/ogg'
@@ -220,7 +220,7 @@ async function processTelegramMedia(message: Record<string, any>): Promise<any[]
  */
 async function handleTelegramFile(
   fileId: string,
-  type: 'image' | 'file',
+  type: AttachmentType,
   token: string,
   fileName?: string,
   mimeType?: string
@@ -270,7 +270,7 @@ async function handleTelegramFile(
     };
 
     // For images, provide base64 for direct vision processing if small enough
-    if (type === 'image' && buffer.length < 5 * 1024 * 1024) {
+    if (type === AttachmentType.IMAGE && buffer.length < 5 * 1024 * 1024) {
       attachment.base64 = buffer.toString('base64');
     }
 

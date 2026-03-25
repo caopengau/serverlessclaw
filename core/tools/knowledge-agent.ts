@@ -2,6 +2,7 @@ import { toolDefinitions } from './definitions/index';
 import { ConfigManager } from '../lib/registry/config';
 import { emitEvent } from '../lib/utils/bus';
 import { EventType } from '../lib/types/agent';
+import { ClarificationStatus } from '../lib/types/memory';
 import { formatErrorMessage } from '../lib/utils/error';
 
 /**
@@ -198,7 +199,7 @@ export const PROVIDE_CLARIFICATION = {
         try {
           const { DynamoMemory } = await import('../lib/memory');
           const memory = new DynamoMemory();
-          await memory.updateClarificationStatus(traceId, agentId, 'answered');
+          await memory.updateClarificationStatus(traceId, agentId, ClarificationStatus.ANSWERED);
         } catch (memError) {
           console.warn('Failed to update clarification status:', memError);
         }

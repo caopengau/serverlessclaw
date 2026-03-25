@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Agent } from './agent';
-import { IMemory, IProvider, MessageRole, TraceSource, Message } from './types/index';
+import {
+  IMemory,
+  IProvider,
+  MessageRole,
+  TraceSource,
+  Message,
+  AttachmentType,
+} from './types/index';
 import { SYSTEM } from './constants';
 
 // Create persistent mock functions
@@ -221,7 +228,7 @@ describe('Agent Trace Propagation', () => {
   });
 
   it('should handle and persist attachments in process', async () => {
-    const attachments = [{ type: 'image' as const, base64: 'data', name: 'test.png' }];
+    const attachments = [{ type: AttachmentType.IMAGE, base64: 'data', name: 'test.png' }];
 
     mockProvider.call = vi
       .fn()

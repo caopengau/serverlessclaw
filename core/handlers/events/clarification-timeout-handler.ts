@@ -1,4 +1,5 @@
 import { EventType, AgentType } from '../../lib/types/agent';
+import { ClarificationStatus } from '../../lib/types/memory';
 import { logger } from '../../lib/logger';
 import { emitEvent, EventPriority } from '../../lib/utils/bus';
 import { DynamoMemory } from '../../lib/memory';
@@ -44,12 +45,15 @@ export async function handleClarificationTimeout(
     return;
   }
 
-  if (currentState.status === 'answered') {
+  if (currentState.status === ClarificationStatus.ANSWERED) {
     logger.info(`Clarification already answered for ${traceId}/${agentId}, ignoring timeout.`);
     return;
   }
 
-  if (currentState.status === 'timed_out' || currentState.status === 'escalated') {
+  if (
+    currentState.status === ClarificationStatus.TIMED_OUT ||
+    currentState.status === ClarificationStatus.ESCALATED
+  ) {
     logger.info(
       `Clarification already timed out/escalated for ${traceId}/${agentId}, ignoring timeout.`
     );
@@ -65,7 +69,7 @@ export async function handleClarificationTimeout(
       `Retrying clarification request for ${traceId}/${agentId}: attempt ${newRetryCount}/${maxRetries}`
     );
 
-    await memory.updateClarificationStatus(traceId, agentId, 'pending');
+    await memory.updateClarificationStatus(traceId, agentId, ClarificationStatus.PENDING);
 
     await emitEvent(
       'events.handler',
@@ -92,7 +96,7 @@ export async function handleClarificationTimeout(
     `Clarification timeout exhausted for ${traceId}/${agentId}. Escalating to SuperClaw.`
   );
 
-  await memory.updateClarificationStatus(traceId, agentId, 'timed_out');
+  await memory.updateClarificationStatus(traceId, agentId, ClarificationStatus.TIMED_OUT);
 
   await emitEvent(
     'events.handler',

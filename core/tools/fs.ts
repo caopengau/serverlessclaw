@@ -61,10 +61,10 @@ export const STAGE_CHANGES = {
       try {
         const { getAgentContext } = await import('../lib/utils/agent-helpers');
         const { memory } = await getAgentContext();
-        const history = await memory.getSessionHistory(sessionId);
+        const history = await memory.getHistory(sessionId);
 
-        const hasValidated = history.some((m) => m.content.includes('Validation Successful'));
-        const hasTestsRun = history.some((m) => m.content.includes('Test Results:'));
+        const hasValidated = history.some((m: any) => m.content.includes('Validation Successful'));
+        const hasTestsRun = history.some((m: any) => m.content.includes('Test Results:'));
 
         if (!hasValidated || !hasTestsRun) {
           return 'DEFINITION_OF_DONE_VIOLATION: You must run "validateCode" and "runTests" successfully before staging changes for deployment. Ensure you have verified your changes in the current session.';

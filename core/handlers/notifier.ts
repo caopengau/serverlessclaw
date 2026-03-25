@@ -1,6 +1,6 @@
 import { Resource } from 'sst';
 import { DynamoMemory } from '../lib/memory';
-import { MessageRole } from '../lib/types/llm';
+import { MessageRole, AttachmentType, ButtonType } from '../lib/types/llm';
 import { Attachment } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { extractBaseUserId } from '../lib/utils/agent-helpers';
@@ -18,7 +18,7 @@ interface NotifierEvent {
     options?: {
       label: string;
       value: string;
-      type?: 'primary' | 'secondary' | 'danger';
+      type?: ButtonType;
     }[];
   };
 }
@@ -153,7 +153,7 @@ async function sendTelegramMedia(
     let method = 'sendDocument';
     let bodyKey = 'document';
 
-    if (attachment.type === 'image') {
+    if (attachment.type === AttachmentType.IMAGE) {
       method = 'sendPhoto';
       bodyKey = 'photo';
     }

@@ -72,6 +72,53 @@ export function createAgents(
       : []),
   ];
 
+  // --- Start of WARMUP & SCHEDULER INFRA ---
+
+  // 4.5 Proactive Heartbeat Handler (Target for Dynamic Scheduler)
+  const heartbeatHandler = new sst.aws.Function('HeartbeatHandler', {
+    handler: 'core/handlers/heartbeat.handler',
+    dev: liveInLocalOnly,
+    link: baseLink,
+    permissions: basePermissions,
+    architecture: 'arm64',
+    nodejs: { loader: { '.md': 'text' } },
+    memory: AGENT_CONFIG.memory.SMALL,
+    timeout: AGENT_CONFIG.timeout.SHORT,
+    logging: {
+      retention: '1 month',
+    },
+  });
+
+  // Role for AWS Scheduler to invoke HeartbeatHandler
+  const schedulerRole = new aws.iam.Role('DynamicSchedulerRole', {
+    assumeRolePolicy: JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Action: 'sts:AssumeRole',
+          Effect: 'Allow',
+          Principal: { Service: 'scheduler.amazonaws.com' },
+        },
+      ],
+    }),
+  });
+
+  new aws.iam.RolePolicy('DynamicSchedulerPolicy', {
+    role: schedulerRole.name,
+    policy: $util.jsonStringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Action: 'lambda:InvokeFunction',
+          Effect: 'Allow',
+          Resource: [heartbeatHandler.arn],
+        },
+      ],
+    }),
+  });
+
+  // --- End of WARMUP & SCHEDULER INFRA ---
+
   const agentEnv = {
     SCHEDULER_ROLE_ARN: schedulerRole.arn,
     HEARTBEAT_HANDLER_ARN: heartbeatHandler.arn,
@@ -145,49 +192,6 @@ export function createAgents(
     logging: {
       retention: '1 month',
     },
-  });
-
-  // 4.5 Proactive Heartbeat Handler (Target for Dynamic Scheduler)
-  const heartbeatHandler = new sst.aws.Function('HeartbeatHandler', {
-    handler: 'core/handlers/heartbeat.handler',
-    dev: liveInLocalOnly,
-    link: baseLink,
-    permissions: basePermissions,
-    architecture: 'arm64',
-    nodejs: { loader: { '.md': 'text' } },
-    memory: AGENT_CONFIG.memory.SMALL,
-    timeout: AGENT_CONFIG.timeout.SHORT,
-    logging: {
-      retention: '1 month',
-    },
-  });
-
-  // Role for AWS Scheduler to invoke HeartbeatHandler
-  const schedulerRole = new aws.iam.Role('DynamicSchedulerRole', {
-    assumeRolePolicy: JSON.stringify({
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Action: 'sts:AssumeRole',
-          Effect: 'Allow',
-          Principal: { Service: 'scheduler.amazonaws.com' },
-        },
-      ],
-    }),
-  });
-
-  new aws.iam.RolePolicy('DynamicSchedulerPolicy', {
-    role: schedulerRole.name,
-    policy: $util.jsonStringify({
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Action: 'lambda:InvokeFunction',
-          Effect: 'Allow',
-          Resource: [heartbeatHandler.arn],
-        },
-      ],
-    }),
   });
 
   // Grant agents permission to manage schedules

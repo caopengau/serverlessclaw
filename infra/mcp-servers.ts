@@ -1,4 +1,4 @@
-import { SharedContext } from './shared';
+import { SharedContext, getValidSecrets } from './shared';
 
 /**
  * Deploys MCP (Model Context Protocol) servers as separate Lambda functions.
@@ -11,50 +11,50 @@ import { SharedContext } from './shared';
 const MCP_SERVER_CONFIGS = {
   git: {
     handler: 'core/mcp-servers/git.handler',
-    memory: 128 as const,
-    timeout: 30,
+    memory: '128 MB' as const,
+    timeout: '30 seconds' as const,
     description: 'Git operations via @cyanheads/git-mcp-server',
     warmSchedule: 'rate(5 minutes)', // Critical - keep warm
   },
   filesystem: {
     handler: 'core/mcp-servers/filesystem.handler',
-    memory: 128 as const,
-    timeout: 30,
+    memory: '128 MB' as const,
+    timeout: '30 seconds' as const,
     description: 'Filesystem operations via @modelcontextprotocol/server-filesystem',
     warmSchedule: 'rate(5 minutes)', // Critical - keep warm
   },
   'google-search': {
     handler: 'core/mcp-servers/google-search.handler',
-    memory: 256 as const,
-    timeout: 60,
+    memory: '256 MB' as const,
+    timeout: '60 seconds' as const,
     description: 'Google search via @mcp-server/google-search-mcp',
     warmSchedule: 'rate(15 minutes)', // Less critical
   },
   puppeteer: {
     handler: 'core/mcp-servers/puppeteer.handler',
-    memory: 512 as const,
-    timeout: 120,
+    memory: '512 MB' as const,
+    timeout: '120 seconds' as const,
     description: 'Browser automation via @kirkdeam/puppeteer-mcp-server',
     warmSchedule: 'rate(30 minutes)', // Rarely used
   },
   fetch: {
     handler: 'core/mcp-servers/fetch.handler',
-    memory: 128 as const,
-    timeout: 60,
+    memory: '128 MB' as const,
+    timeout: '60 seconds' as const,
     description: 'HTTP fetch operations via mcp-fetch-server',
     warmSchedule: 'rate(15 minutes)',
   },
   aws: {
     handler: 'core/mcp-servers/aws.handler',
-    memory: 256 as const,
-    timeout: 60,
+    memory: '256 MB' as const,
+    timeout: '60 seconds' as const,
     description: 'AWS operations via mcp-aws-devops-server',
     warmSchedule: 'rate(15 minutes)',
   },
   'aws-s3': {
     handler: 'core/mcp-servers/aws-s3.handler',
-    memory: 256 as const,
-    timeout: 60,
+    memory: '256 MB' as const,
+    timeout: '60 seconds' as const,
     description: 'S3 operations via @geunoh/s3-mcp-server',
     warmSchedule: 'rate(15 minutes)',
   },
@@ -84,7 +84,7 @@ export function createMCPServers(ctx: SharedContext): MCPServerResources {
   ];
 
   // Base links for MCP servers (minimal - they don't need full agent access)
-  const baseLink = [memoryTable, configTable, ...secrets];
+  const baseLink = [memoryTable, configTable, ...getValidSecrets(secrets)];
 
   // Create each MCP server as a separate Lambda
   const servers = {} as Record<MCPServerName, sst.aws.Function>;
@@ -134,8 +134,8 @@ export function createMCPServers(ctx: SharedContext): MCPServerResources {
       },
     ],
     architecture: 'arm64',
-    memory: 128,
-    timeout: 60,
+    memory: '128 MB',
+    timeout: '60 seconds',
     logging: {
       retention: '1 month',
     },
