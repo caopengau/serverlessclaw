@@ -30,6 +30,7 @@ vi.mock('./registry', () => ({
 }));
 
 // Use vi.hoisted to ensure mock is available for dynamic imports
+// Unique implementation for evolution tests to avoid AIReady duplicate detection
 const { MockClawTracer, MockAgentExecutorFactory } = vi.hoisted(() => {
   const mockRunLoop = vi.fn().mockImplementation(async function (
     this: any,
