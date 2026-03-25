@@ -1,13 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  LIMITS,
-  TIME,
-  DYNAMO_KEYS,
-  SYSTEM,
-  HTTP_STATUS,
-  TRACE_TYPES,
-  GAP_STATUS,
-} from './constants';
+import { LIMITS, TIME, DYNAMO_KEYS, SYSTEM, HTTP_STATUS, TRACE_TYPES } from './constants';
 
 describe('LIMITS', () => {
   it('should have valid numeric limits', () => {
@@ -64,13 +56,5 @@ describe('TRACE_TYPES', () => {
     expect(TRACE_TYPES.TOOL_CALL).toBe('tool_call');
     expect(TRACE_TYPES.TOOL_RESULT).toBe('tool_result');
     expect(TRACE_TYPES.ERROR).toBe('error');
-  });
-});
-
-describe('GAP_STATUS', () => {
-  it('should have valid gap status values', () => {
-    expect(GAP_STATUS.OPEN).toBe('open');
-    expect(GAP_STATUS.ADDRESSED).toBe('addressed');
-    expect(GAP_STATUS.DISMISSED).toBe('dismissed');
   });
 });

@@ -1,6 +1,7 @@
 import { ReasoningProfile } from '../lib/types/llm';
 import {
   GapStatus,
+  AgentStatus,
   AgentType,
   EvolutionMode,
   TraceSource,
@@ -92,20 +93,20 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
 
   logger.info('QA Agent Raw Response:', rawResponse);
 
-  let status = 'REOPEN';
+  let status = AgentStatus.REOPEN;
   let auditReport = rawResponse;
 
   try {
     const jsonContent = rawResponse.replace(/```json\n?|\n?```/g, '').trim();
     const parsed = JSON.parse(jsonContent);
-    status = parsed.status === 'SUCCESS' ? 'SUCCESS' : 'REOPEN';
+    status = parsed.status === AgentStatus.SUCCESS ? AgentStatus.SUCCESS : AgentStatus.REOPEN;
     auditReport = parsed.auditReport || rawResponse;
     logger.info(`Parsed QA Result. Status: ${status}`);
   } catch (e) {
     logger.warn('Failed to parse QA structured response, falling back to raw text.', e);
   }
 
-  const isSatisfied = status === 'SUCCESS';
+  const isSatisfied = status === AgentStatus.SUCCESS;
 
   // Resolve evolution mode
   let evolutionMode = EvolutionMode.HITL;

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { HealthSeverity, ParallelTaskStatus } from '../types/constants';
 
 export const ATTACHMENT_SCHEMA = z.object({
   type: z.enum(['image', 'file']),
@@ -97,7 +98,7 @@ export const HEALTH_REPORT_EVENT_SCHEMA = BASE_EVENT_SCHEMA.extend({
   userId: z.string(),
   component: z.string(),
   issue: z.string(),
-  severity: z.enum(['low', 'medium', 'high', 'critical']),
+  severity: z.nativeEnum(HealthSeverity),
   context: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -137,7 +138,7 @@ export const BRIDGE_EVENT_SCHEMA = z
  */
 export const PARALLEL_TASK_COMPLETED_EVENT_SCHEMA = BASE_EVENT_SCHEMA.extend({
   userId: z.string(),
-  overallStatus: z.enum(['success', 'partial', 'failed']),
+  overallStatus: z.nativeEnum(ParallelTaskStatus),
   results: z.array(
     z.object({
       taskId: z.string(),

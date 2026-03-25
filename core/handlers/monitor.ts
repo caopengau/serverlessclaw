@@ -5,6 +5,7 @@ import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
 import { EventType, GapStatus } from '../lib/types/agent';
+import { BuildStatus } from '../lib/types/constants';
 import { SSTResource, TopologyNode } from '../lib/types/system';
 import { reportHealthIssue } from '../lib/health';
 import { emitEvent, EventPriority } from '../lib/utils/bus';
@@ -77,7 +78,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
       return;
     }
 
-    if (status === 'SUCCEEDED') {
+    if (status === BuildStatus.SUCCEEDED) {
       logger.info(`Build ${buildId} SUCCEEDED. Marking ${gapIds.length} gaps as DEPLOYED.`);
       const { emitMetrics, Metrics } = await import('../lib/metrics');
       emitMetrics([Metrics.deploymentCompleted(true)]).catch(() => {});
@@ -127,7 +128,11 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
         },
         { priority: EventPriority.HIGH }
       );
-    } else if (['FAILED', 'STOPPED', 'TIMED_OUT', 'FAULT'].includes(status)) {
+    } else if (
+      [BuildStatus.FAILED, BuildStatus.STOPPED, BuildStatus.TIMED_OUT, BuildStatus.FAULT].includes(
+        status as BuildStatus
+      )
+    ) {
       logger.info(`Build ${buildId} ${status}. Marking ${gapIds.length} gaps as FAILED.`);
       const { emitMetrics, Metrics } = await import('../lib/metrics');
       emitMetrics([Metrics.deploymentCompleted(false)]).catch(() => {});

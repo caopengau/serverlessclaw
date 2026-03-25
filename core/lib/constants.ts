@@ -9,7 +9,7 @@
 
 import { CONFIG_DEFAULTS } from './config-defaults';
 import { LLMProvider, OpenAIModel, BedrockModel, OpenRouterModel, MiniMaxModel } from './types/llm';
-import { TraceType, TraceStatus, GapStatus, OptimizationPolicy } from './types/constants';
+import { TraceType, TraceStatus, OptimizationPolicy } from './types/constants';
 
 /**
  * System-wide defaults and operational limits.
@@ -121,16 +121,6 @@ export const TRACE_STATUS = {
   COMPLETED: TraceStatus.COMPLETED,
   FAILED: TraceStatus.FAILED,
   PAUSED: TraceStatus.PAUSED,
-} as const;
-
-/**
- * Gap status values.
- */
-export const GAP_STATUS = {
-  OPEN: GapStatus.OPEN,
-  ADDRESSED: GapStatus.ADDRESSED,
-  DISMISSED: GapStatus.DISMISSED,
-  PLANNED: GapStatus.PLANNED,
 } as const;
 
 /**
