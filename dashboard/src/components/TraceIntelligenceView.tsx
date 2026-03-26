@@ -261,7 +261,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
 
           <select 
             value={statusFilter}
-                onChange={(e) => setStatusFilter'all'}
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'completed' | 'started' | 'error')}
             className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase text-white/70 focus:outline-none focus:border-cyber-blue/50"
           >
             <option value="all">ALL_STATUS</option>
