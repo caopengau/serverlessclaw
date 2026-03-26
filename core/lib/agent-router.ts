@@ -48,20 +48,14 @@ const PROFILE_TO_TIER: Record<ReasoningProfile, ModelTier> = {
 
 /**
  * Maps model tiers to preferred models.
+ * All tiers use MiniMax — differentiated by reasoning level, not provider.
  * Order: first is preferred, rest are fallbacks.
  */
 const TIER_MODELS: Record<ModelTier, { provider: string; model: string }[]> = {
-  [ModelTier.ECONOMY]: [
-    { provider: 'minimax', model: 'MiniMax-M2.7' },
-    { provider: 'openai', model: 'gpt-5.4-mini' },
-  ],
-  [ModelTier.BALANCED]: [
-    { provider: 'openai', model: 'gpt-5.4' },
-    { provider: 'openrouter', model: 'glm-5' },
-    { provider: 'minimax', model: 'MiniMax-M2.7' },
-  ],
+  [ModelTier.ECONOMY]: [{ provider: 'minimax', model: 'MiniMax-M2.7' }],
+  [ModelTier.BALANCED]: [{ provider: 'minimax', model: 'MiniMax-M2.7' }],
   [ModelTier.PREMIUM]: [
-    { provider: 'bedrock', model: 'claude-4.6-sonnet' },
+    { provider: 'minimax', model: 'MiniMax-M2.7' },
     { provider: 'openai', model: 'gpt-5.4' },
   ],
 };
