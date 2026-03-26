@@ -7,7 +7,7 @@ import {
   FailureEventPayload,
   OutboundMessageEventPayload,
   HealthReportEventPayload,
-  ProactiveHeartbeatPayload,
+  ProactiveHeartbeatPayloadInferred,
 } from '../schema/events';
 import { emitEvent, EventOptions } from './bus';
 
@@ -38,7 +38,12 @@ export async function emitTypedEvent<T extends SchemaEventType>(
     // Structural Enforcement at the point of origin
     const validatedDetail = schema.parse(detail);
 
-    return await emitEvent(source, type, validatedDetail as Record<string, unknown>, options);
+    return await emitEvent(
+      source,
+      String(type) as EventType,
+      validatedDetail as Record<string, unknown>,
+      options
+    );
   } catch (error) {
     logger.error(`Validation failed for ${type} from ${source}:`, error);
     throw error;
@@ -59,7 +64,12 @@ export async function emitTypedEventSafe<T extends SchemaEventType>(
     return await emitTypedEvent(source, type, detail, options);
   } catch (error) {
     logger.warn(`Safe emit failed validation for ${type}, sending raw anyway:`, error);
-    return await emitEvent(source, type, detail as Record<string, unknown>, options);
+    return await emitEvent(
+      source,
+      String(type) as EventType,
+      detail as Record<string, unknown>,
+      options
+    );
   }
 }
 
@@ -100,7 +110,7 @@ export const emitHealthReport = (
 /** Helper: Emit Proactive Heartbeat event. */
 export const emitProactiveHeartbeat = (
   source: string,
-  detail: Partial<ProactiveHeartbeatPayload>,
+  detail: Partial<ProactiveHeartbeatPayloadInferred>,
   opts?: EventOptions
 ) =>
   emitTypedEvent(source, EventType.HEARTBEAT_PROACTIVE as unknown as SchemaEventType, detail, opts);

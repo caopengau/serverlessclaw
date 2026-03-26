@@ -44,6 +44,7 @@ describe('Schema-Type Drift Detection', () => {
       const inferred: AgentPayloadInferred = {
         source: 'unknown',
         userId: 'user-1',
+        taskId: 'task-1',
         initiatorId: 'orchestrator',
         depth: 0,
         timestamp: Date.now(),
@@ -58,7 +59,7 @@ describe('Schema-Type Drift Detection', () => {
       const written: WrittenAgentPayload = {
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
-        taskId: 'test-task',
+        taskId: inferred.taskId,
         initiatorId: inferred.initiatorId,
         depth: inferred.depth,
         task: inferred.task,
@@ -78,6 +79,7 @@ describe('Schema-Type Drift Detection', () => {
       const inferred: TaskEventPayload = {
         source: 'unknown',
         userId: 'user-1',
+        taskId: 'task-1',
         initiatorId: 'orchestrator',
         depth: 0,
         timestamp: Date.now(),
@@ -87,7 +89,7 @@ describe('Schema-Type Drift Detection', () => {
       const written: WrittenTaskEvent = {
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
-        taskId: 'test-task',
+        taskId: inferred.taskId,
         initiatorId: inferred.initiatorId,
         depth: inferred.depth,
         task: inferred.task,
@@ -100,6 +102,7 @@ describe('Schema-Type Drift Detection', () => {
       const inferred: BuildEventPayload = {
         source: 'unknown',
         userId: 'user-1',
+        taskId: 'task-1',
         initiatorId: 'orchestrator',
         depth: 0,
         timestamp: Date.now(),
@@ -109,7 +112,7 @@ describe('Schema-Type Drift Detection', () => {
       const written: WrittenBuildEvent = {
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
-        taskId: 'test-task',
+        taskId: inferred.taskId,
         initiatorId: inferred.initiatorId,
         depth: inferred.depth,
         buildId: inferred.buildId,
@@ -123,6 +126,7 @@ describe('Schema-Type Drift Detection', () => {
       const inferred: CompletionEventPayload = {
         source: 'unknown',
         userId: 'user-1',
+        taskId: 'task-1',
         initiatorId: 'orchestrator',
         depth: 0,
         timestamp: Date.now(),
@@ -130,13 +134,14 @@ describe('Schema-Type Drift Detection', () => {
         task: 'Fix bug',
         response: 'Done',
         attachments: [],
+        metadata: {},
         userNotified: false,
       };
 
       const written: WrittenCompletionEvent = {
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
-        taskId: 'test-task',
+        taskId: inferred.taskId,
         initiatorId: inferred.initiatorId,
         depth: inferred.depth,
         agentId: inferred.agentId,
@@ -154,19 +159,22 @@ describe('Schema-Type Drift Detection', () => {
       const inferred: FailureEventPayload = {
         source: 'unknown',
         userId: 'user-1',
+        taskId: 'task-1',
         initiatorId: 'orchestrator',
         depth: 0,
         timestamp: Date.now(),
         agentId: 'coder',
         task: 'Refactor',
         error: 'Timeout',
+        attachments: [],
+        metadata: {},
         userNotified: false,
       };
 
       const written: WrittenFailureEvent = {
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
-        taskId: 'test-task',
+        taskId: inferred.taskId,
         initiatorId: inferred.initiatorId,
         depth: inferred.depth,
         agentId: inferred.agentId,
@@ -181,6 +189,7 @@ describe('Schema-Type Drift Detection', () => {
       const inferred: HealthReportEventPayload = {
         source: 'unknown',
         userId: 'user-1',
+        taskId: 'task-1',
         initiatorId: 'orchestrator',
         depth: 0,
         timestamp: Date.now(),
@@ -192,7 +201,7 @@ describe('Schema-Type Drift Detection', () => {
       const written: WrittenHealthReportEvent = {
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
-        taskId: 'test-task',
+        taskId: inferred.taskId,
         initiatorId: inferred.initiatorId,
         depth: inferred.depth,
         component: inferred.component,
@@ -213,6 +222,7 @@ describe('Schema-Type Drift Detection', () => {
       expect(parsed.depth).toBe(0);
       expect(parsed.timestamp).toBeTypeOf('number');
       expect(parsed.userId).toBe('test-user');
+      expect(parsed.taskId).toBeDefined();
     });
 
     it('AGENT_PAYLOAD_SCHEMA should provide defaults for task, metadata, attachments, isContinuation', () => {
