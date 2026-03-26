@@ -3,16 +3,25 @@ import { z } from 'zod';
 
 // Mock the schema imports
 vi.mock('../schema/events', () => {
-  const makeSchema = (defaults: Record<string, unknown>) =>
+  const makeSchema = <T extends Record<string, unknown>>(defaults: T) =>
     z
-      .object(Object.fromEntries(Object.entries(defaults).map(([k, v]) => [k, z.any().default(v)])))
-      .default({});
+      .object(
+        Object.fromEntries(
+          Object.entries(defaults).map(([k, v]) => {
+            if (typeof v === 'string') return [k, z.string().default(v)];
+            if (typeof v === 'number') return [k, z.number().default(v)];
+            if (Array.isArray(v)) return [k, z.array(z.any()).default(v)];
+            return [k, z.any().default(v)];
+          })
+        ) as z.ZodRawShape
+      )
+      .default({} as T);
 
   return {
-    CODER_TASK_METADATA: makeSchema({ branch: '', repo: '', filePatterns: [] }),
-    QA_AUDIT_METADATA: makeSchema({ branch: '', repo: '', auditType: 'full' }),
+    CODER_TASK_METADATA: makeSchema({ gapIds: [] as string[], branch: '' }),
+    QA_AUDIT_METADATA: makeSchema({ gapIds: [] as string[] }),
     PLANNER_TASK_METADATA: makeSchema({ goal: '', priority: 'medium' }),
-    BUILD_TASK_METADATA: makeSchema({ branch: '', repo: '', buildType: 'standard' }),
+    BUILD_TASK_METADATA: makeSchema({ gapIds: [] as string[] }),
     CLARIFICATION_TASK_METADATA: makeSchema({ question: '', context: '' }),
   };
 });
@@ -32,7 +41,7 @@ describe('extractMetadata', () => {
       name: z.string().default('default'),
       count: z.number().default(0),
     })
-    .default({});
+    .default({ name: 'default', count: 0 });
 
   it('should parse valid metadata', () => {
     const result = extractMetadata(testSchema, { name: 'test', count: 5 });
@@ -63,7 +72,7 @@ describe('extractMetadata', () => {
       .object({
         count: z.number().default(0),
       })
-      .default({});
+      .default({ count: 0 });
     const result = extractMetadata(strictSchema, { count: 'not-a-number' });
     expect(result).toBeDefined();
     expect(result.count).toBe(0);
@@ -75,13 +84,13 @@ describe('extractCoderMetadata', () => {
     const result = extractCoderMetadata({});
     expect(result).toBeDefined();
     expect(result).toHaveProperty('branch');
-    expect(result).toHaveProperty('repo');
+    expect(result).toHaveProperty('gapIds');
   });
 
   it('should extract provided values', () => {
-    const result = extractCoderMetadata({ branch: 'feature/test', repo: 'myrepo' });
+    const result = extractCoderMetadata({ branch: 'feature/test', gapIds: ['gap-1'] });
     expect(result.branch).toBe('feature/test');
-    expect(result.repo).toBe('myrepo');
+    expect(result.gapIds).toEqual(['gap-1']);
   });
 });
 
@@ -89,7 +98,7 @@ describe('extractQaMetadata', () => {
   it('should extract QA metadata with defaults', () => {
     const result = extractQaMetadata({});
     expect(result).toBeDefined();
-    expect(result).toHaveProperty('auditType');
+    expect(result).toHaveProperty('gapIds');
   });
 });
 
@@ -106,7 +115,7 @@ describe('extractBuildMetadata', () => {
   it('should extract build metadata with defaults', () => {
     const result = extractBuildMetadata({});
     expect(result).toBeDefined();
-    expect(result).toHaveProperty('buildType');
+    expect(result).toHaveProperty('gapIds');
   });
 });
 
