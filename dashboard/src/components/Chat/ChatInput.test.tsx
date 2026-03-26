@@ -40,13 +40,13 @@ describe('ChatInput Component', () => {
   it('disables send button when input is empty and no attachments', () => {
     render(<ChatInput {...defaultProps} input="" />);
     const button = screen.getByText('SEND').closest('button');
-    expect(button).toBeDisabled();
+    expect(button).toHaveClass('opacity-50', 'cursor-not-allowed');
   });
 
   it('enables send button when input has text', () => {
     render(<ChatInput {...defaultProps} input="hello" />);
     const button = screen.getByText('SEND').closest('button');
-    expect(button).not.toBeDisabled();
+    expect(button).not.toHaveClass('opacity-50', 'cursor-not-allowed');
   });
 
   it('enables send button when there are attachments', () => {
@@ -58,7 +58,7 @@ describe('ChatInput Component', () => {
       />
     );
     const button = screen.getByText('SEND').closest('button');
-    expect(button).not.toBeDisabled();
+    expect(button).not.toHaveClass('opacity-50', 'cursor-not-allowed');
   });
 
   it('renders file attachment previews', () => {
@@ -86,6 +86,6 @@ describe('ChatInput Component', () => {
   it('disables send button when loading', () => {
     render(<ChatInput {...defaultProps} input="hello" isLoading={true} />);
     const button = screen.getByText('EXECUTING...').closest('button');
-    expect(button).toBeDisabled();
+    expect(button).toHaveClass('opacity-50', 'cursor-not-allowed');
   });
 });

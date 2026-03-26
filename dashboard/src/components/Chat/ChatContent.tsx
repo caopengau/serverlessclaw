@@ -352,6 +352,12 @@ export default function ChatContent() {
   };
 
   const createNewChat = () => {
+    // If already in a new chat (no active session), shake the input instead of refreshing
+    if (!activeSessionId) {
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 500);
+      return;
+    }
     seenMessageIds.current.clear();
     setActiveSessionId('');
     setMessages([]);
@@ -502,6 +508,7 @@ export default function ChatContent() {
           onRemoveAttachment={(i) => setAttachments(prev => prev.filter((_, idx) => idx !== i))}
           fileInputRef={fileInputRef}
           onFileSelect={(e) => { if (e.target.files) handleFiles(Array.from(e.target.files)); }}
+          isShaking={isShaking}
         />
       </main>
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Send, Paperclip, X, File } from 'lucide-react';
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
@@ -16,6 +16,7 @@ interface ChatInputProps {
   onRemoveAttachment: (index: number) => void;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  isShaking?: boolean;
 }
 
 export function ChatInput({
@@ -26,11 +27,37 @@ export function ChatInput({
   attachments,
   onRemoveAttachment,
   fileInputRef,
-  onFileSelect
+  onFileSelect,
+  isShaking = false
 }: ChatInputProps) {
+  const [localShake, setLocalShake] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const handleSend = (e: React.FormEvent) => {
+    e.preventDefault();
+    // If no text and no attachments, shake the input
+    if (!input.trim() && attachments.length === 0) {
+      setLocalShake(true);
+      setTimeout(() => setLocalShake(false), 500);
+      // Focus the textarea
+      textareaRef.current?.focus();
+      return;
+    }
+    onSend(e);
+  };
+
+  const shouldShake = isShaking || localShake;
+
+  // Focus textarea when isShaking changes to true (from parent)
+  useEffect(() => {
+    if (isShaking) {
+      textareaRef.current?.focus();
+    }
+  }, [isShaking]);
+
   return (
     <div className="p-4 border-t border-white/5 bg-black/40 shrink-0">
-      <form onSubmit={onSend} className="max-w-4xl mx-auto relative group">
+      <form onSubmit={handleSend} className="max-w-4xl mx-auto relative group">
         {/* Attachment Previews */}
         {attachments.length > 0 && (
           <div className="flex flex-wrap gap-3 mb-4 p-4 bg-white/5 rounded-lg border border-white/10 animate-in fade-in slide-in-from-bottom-2">
@@ -75,18 +102,19 @@ export function ChatInput({
             icon={<Paperclip size={20} className="text-white/40 group-hover:text-cyber-green transition-colors" />}
           />
           
-          <div className="flex-1 relative flex">
+          <div className={`flex-1 relative flex ${shouldShake ? 'animate-shake' : ''}`}>
             <textarea
+              ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  onSend(e);
+                  handleSend(e);
                 }
               }}
               placeholder="Execute command or query system..."
-              className="w-full h-full bg-white/[0.02] border border-white/5 focus:border-cyber-green/40 rounded-lg py-[15px] px-4 pr-12 text-sm text-white outline-none transition-all placeholder:text-white/20 resize-none max-h-[200px] overflow-hidden leading-5 box-border"
+              className={`w-full h-full bg-white/[0.02] border rounded-lg py-[15px] px-4 pr-12 text-sm text-white outline-none transition-all placeholder:text-white/20 resize-none max-h-[200px] overflow-hidden leading-5 box-border ${shouldShake ? 'border-cyber-green shadow-[0_0_15px_rgba(0,255,163,0.5)]' : 'border-white/5 focus:border-cyber-green/40'}`}
               rows={1}
               style={{ height: '52px' }}
               onInput={(e) => {
@@ -104,8 +132,11 @@ export function ChatInput({
 
           <Button
             type="submit"
-            disabled={(!input.trim() && attachments.length === 0) || isLoading}
-            className="h-[52px] px-6 !rounded-lg shadow-[0_0_20px_rgba(0,255,163,0.1)] group-hover:shadow-[0_0_30px_rgba(0,255,163,0.2)] self-center"
+            className={`h-[52px] px-6 !rounded-lg self-center transition-all ${
+              (!input.trim() && attachments.length === 0) || isLoading
+                ? 'opacity-50 cursor-not-allowed'
+                : 'shadow-[0_0_20px_rgba(0,255,163,0.1)] group-hover:shadow-[0_0_30px_rgba(0,255,163,0.2)]'
+            }`}
             variant="primary"
             icon={<Send size={18} className={isLoading ? 'animate-ping' : ''} />}
           >
