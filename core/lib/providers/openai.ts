@@ -35,6 +35,21 @@ const REASONING_MAP: Record<ReasoningProfile, OpenAI.ReasoningEffort> = {
   [ReasoningProfile.DEEP]: 'xhigh',
 };
 
+type ContentItem =
+  | { type: string; text: string }
+  | { type: string; image_url: { url: string } }
+  | { type: string; filename: string; file_data: string };
+
+type ToolConfig = {
+  type: string;
+  server_label?: string;
+  connector_id?: string;
+  name?: string;
+  description?: string;
+  parameters?: Record<string, unknown>;
+  strict?: boolean;
+};
+
 /**
  * Provider for OpenAI's LLM services, supporting GPT-5 and reasoning models.
  * Utilizes the Responses API for 2026-grade reasoning and tool use.
@@ -42,48 +57,11 @@ const REASONING_MAP: Record<ReasoningProfile, OpenAI.ReasoningEffort> = {
 export class OpenAIProvider implements IProvider {
   constructor(private model: string = OpenAIModel.GPT_5_4) {}
 
-  async call(
-    messages: Message[],
-    tools?: ITool[],
-    profile: ReasoningProfile = ReasoningProfile.STANDARD,
-    model?: string,
-    _provider?: string,
-    responseFormat?: import('../types/index').ResponseFormat
-  ): Promise<Message> {
-    const resource = Resource as unknown as Record<string, { value?: string } | undefined>;
-    const apiKey =
-      ('OpenAIApiKey' in resource ? resource.OpenAIApiKey?.value : undefined) ||
-      process.env.OPENAI_API_KEY ||
-      'test-key';
-    const client = new OpenAI({ apiKey });
-
-    // Resolve model if only profile is provided
-    let activeModel = model ?? this.model;
-    if (!model && profile) {
-      const profileToModel: Record<ReasoningProfile, string> = {
-        [ReasoningProfile.FAST]: OpenAIModel.GPT_5_4_NANO,
-        [ReasoningProfile.STANDARD]: OpenAIModel.GPT_5_4_MINI,
-        [ReasoningProfile.THINKING]: OpenAIModel.GPT_5_4_MINI,
-        [ReasoningProfile.DEEP]: OpenAIModel.GPT_5_4,
-      };
-      activeModel = profileToModel[profile] ?? activeModel;
-    }
-
-    // Fallback if profile not supported
-    const capabilities = await this.getCapabilities(activeModel);
-    profile = normalizeProfile(profile, capabilities, activeModel);
-
-    const reasoningEffort = capEffort(
-      REASONING_MAP[profile] as string,
-      capabilities.maxReasoningEffort
-    );
-
-    const hasTools = tools && tools.length > 0;
-
-    logger.info(`Using OpenAI Responses API for model ${activeModel}`);
-
-    // Map to the new flat Responses API input schema
-    const responsesInput = messages.flatMap((m) => {
+  /**
+   * Maps internal Message[] to OpenAI Responses API input format.
+   */
+  private static mapMessagesToResponsesInput(messages: Message[]): Array<Record<string, unknown>> {
+    return messages.flatMap((m) => {
       if (m.role === MessageRole.TOOL) {
         return [
           {
@@ -103,10 +81,6 @@ export class OpenAIProvider implements IProvider {
         else if (m.role === MessageRole.ASSISTANT) role = OPENAI.ROLES.ASSISTANT;
         else if (m.role === MessageRole.DEVELOPER) role = OPENAI.ROLES.DEVELOPER;
 
-        type ContentItem =
-          | { type: string; text: string }
-          | { type: string; image_url: { url: string } }
-          | { type: string; filename: string; file_data: string };
         const content: ContentItem[] = [];
         if (m.content) content.push({ type: OPENAI.CONTENT_TYPES.INPUT_TEXT, text: m.content });
 
@@ -153,6 +127,74 @@ export class OpenAIProvider implements IProvider {
 
       return items;
     });
+  }
+
+  /**
+   * Maps internal ITool[] to OpenAI API tool format.
+   */
+  private static mapToolsToOpenAI(tools: ITool[]): ToolConfig[] {
+    return tools.map((t) => {
+      if (t.connector_id) {
+        return {
+          type: OPENAI.MCP_TYPE,
+          server_label: t.name,
+          connector_id: t.connector_id,
+        };
+      }
+      if (t.type && t.type !== OPENAI.FUNCTION_TYPE) {
+        return { type: t.type };
+      }
+      return {
+        type: OPENAI.FUNCTION_TYPE,
+        name: t.name,
+        description: t.description,
+        parameters: t.parameters as unknown as Record<string, unknown>,
+        strict: false,
+      };
+    });
+  }
+
+  async call(
+    messages: Message[],
+    tools?: ITool[],
+    profile: ReasoningProfile = ReasoningProfile.STANDARD,
+    model?: string,
+    _provider?: string,
+    responseFormat?: import('../types/index').ResponseFormat
+  ): Promise<Message> {
+    const resource = Resource as unknown as Record<string, { value?: string } | undefined>;
+    const apiKey =
+      ('OpenAIApiKey' in resource ? resource.OpenAIApiKey?.value : undefined) ||
+      process.env.OPENAI_API_KEY ||
+      'test-key';
+    const client = new OpenAI({ apiKey });
+
+    // Resolve model if only profile is provided
+    let activeModel = model ?? this.model;
+    if (!model && profile) {
+      const profileToModel: Record<ReasoningProfile, string> = {
+        [ReasoningProfile.FAST]: OpenAIModel.GPT_5_4_NANO,
+        [ReasoningProfile.STANDARD]: OpenAIModel.GPT_5_4_MINI,
+        [ReasoningProfile.THINKING]: OpenAIModel.GPT_5_4_MINI,
+        [ReasoningProfile.DEEP]: OpenAIModel.GPT_5_4,
+      };
+      activeModel = profileToModel[profile] ?? activeModel;
+    }
+
+    // Fallback if profile not supported
+    const capabilities = await this.getCapabilities(activeModel);
+    profile = normalizeProfile(profile, capabilities, activeModel);
+
+    const reasoningEffort = capEffort(
+      REASONING_MAP[profile] as string,
+      capabilities.maxReasoningEffort
+    );
+
+    const hasTools = tools && tools.length > 0;
+
+    logger.info(`Using OpenAI Responses API for model ${activeModel}`);
+
+    const responsesInput = OpenAIProvider.mapMessagesToResponsesInput(messages);
 
     try {
       const response = (await client.responses.create({
@@ -179,35 +221,8 @@ export class OpenAIProvider implements IProvider {
           : {}),
         ...(hasTools
           ? {
-              tools: tools.map((t) => {
-                type ToolConfig = {
-                  type: string;
-                  server_label?: string;
-                  connector_id?: string;
-                  name?: string;
-                  description?: string;
-                  parameters?: Record<string, unknown>;
-                  strict?: boolean;
-                };
-                if (t.connector_id) {
-                  return {
-                    type: OPENAI.MCP_TYPE,
-                    server_label: t.name,
-                    connector_id: t.connector_id,
-                  } as ToolConfig;
-                }
-                if (t.type && t.type !== OPENAI.FUNCTION_TYPE) {
-                  return { type: t.type } as ToolConfig;
-                }
-                return {
-                  type: OPENAI.FUNCTION_TYPE,
-                  name: t.name,
-                  description: t.description,
-                  parameters: t.parameters as unknown as Record<string, unknown>,
-                  strict: false,
-                } as ToolConfig;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              }) as any,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              tools: OpenAIProvider.mapToolsToOpenAI(tools) as any,
             }
           : {}),
       })) as unknown as OpenAIResponse; // Isolate unsafe access
@@ -301,72 +316,7 @@ export class OpenAIProvider implements IProvider {
       capabilities.maxReasoningEffort
     );
 
-    // Reuse the same input mapping logic as call()
-    // In a real refactor we would extract this to a private method
-    const responsesInput = messages.flatMap((m) => {
-      if (m.role === MessageRole.TOOL) {
-        return [
-          {
-            type: OPENAI.ITEM_TYPES.FUNCTION_CALL_OUTPUT,
-            call_id: m.tool_call_id ?? '',
-            output: m.content ?? '',
-          },
-        ];
-      }
-
-      const items: Array<Record<string, unknown>> = [];
-      if (m.content || (m.attachments && m.attachments.length > 0)) {
-        let role: 'user' | 'assistant' | 'system' | 'developer' = OPENAI.ROLES.USER;
-        if (m.role === MessageRole.SYSTEM) role = OPENAI.ROLES.DEVELOPER;
-        else if (m.role === MessageRole.ASSISTANT) role = OPENAI.ROLES.ASSISTANT;
-        else if (m.role === MessageRole.DEVELOPER) role = OPENAI.ROLES.DEVELOPER;
-
-        type ContentItem =
-          | { type: string; text: string }
-          | { type: string; image_url: { url: string } }
-          | { type: string; filename: string; file_data: string };
-        const content: ContentItem[] = [];
-        if (m.content) content.push({ type: OPENAI.CONTENT_TYPES.INPUT_TEXT, text: m.content });
-        if (m.attachments) {
-          m.attachments.forEach((att) => {
-            if (att.type === 'image') {
-              content.push({
-                type: OPENAI.CONTENT_TYPES.IMAGE_URL,
-                image_url: {
-                  url: att.url ?? `data:${att.mimeType ?? 'image/png'};base64,${att.base64}`,
-                },
-              });
-            } else if (att.type === 'file') {
-              content.push({
-                type: OPENAI.CONTENT_TYPES.INPUT_FILE,
-                filename: att.name ?? OPENAI.DEFAULT_FILE_NAME,
-                file_data: `data:${att.mimeType ?? OPENAI.DEFAULT_MIME_TYPE};base64,${att.base64}`,
-              });
-            }
-          });
-        }
-        items.push({
-          type: OPENAI.ITEM_TYPES.MESSAGE,
-          role,
-          content:
-            content.length === 1 && content[0].type === OPENAI.CONTENT_TYPES.INPUT_TEXT
-              ? m.content
-              : content,
-        });
-      }
-
-      if (m.tool_calls && m.tool_calls.length > 0) {
-        for (const tc of m.tool_calls) {
-          items.push({
-            type: OPENAI.ITEM_TYPES.FUNCTION_CALL,
-            call_id: tc.id,
-            name: tc.function.name,
-            arguments: tc.function.arguments,
-          });
-        }
-      }
-      return items;
-    });
+    const responsesInput = OpenAIProvider.mapMessagesToResponsesInput(messages);
 
     try {
       const stream = await client.responses.create({
@@ -393,32 +343,8 @@ export class OpenAIProvider implements IProvider {
           : {}),
         ...(tools && tools.length > 0
           ? {
-              tools: tools.map((t) => {
-                type ToolConfig = {
-                  type: string;
-                  server_label?: string;
-                  connector_id?: string;
-                  name?: string;
-                  description?: string;
-                  parameters?: Record<string, unknown>;
-                  strict?: boolean;
-                };
-                if (t.connector_id) {
-                  return {
-                    type: OPENAI.MCP_TYPE,
-                    server_label: t.name,
-                    connector_id: t.connector_id,
-                  } as ToolConfig;
-                }
-                return {
-                  type: OPENAI.FUNCTION_TYPE,
-                  name: t.name,
-                  description: t.description,
-                  parameters: t.parameters as unknown as Record<string, unknown>,
-                  strict: false,
-                } as ToolConfig;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              }) as any,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              tools: OpenAIProvider.mapToolsToOpenAI(tools) as any,
             }
           : {}),
       });

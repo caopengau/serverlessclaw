@@ -1,11 +1,11 @@
 import { EventBridgeEvent } from 'aws-lambda';
 import { EventType } from '../../lib/types/agent';
 import { logger } from '../../lib/logger';
-import { emitEvent } from '../../lib/utils/bus';
 import { ParallelDispatchParams } from '../../lib/agent/schema';
 import { DynamicScheduler } from '../../lib/scheduler';
 import { ConfigManager } from '../../lib/registry/config';
 import { TIME } from '../../lib/constants';
+import { EVENT_SCHEMA_MAP, SchemaEventType } from '../../lib/schema/events';
 
 export interface ParallelTaskEvent {
   userId: string;
@@ -62,8 +62,18 @@ export async function handleParallelDispatch(
     aggregationPrompt
   );
 
+  const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
+
   for (const task of tasks) {
-    await emitEvent('agent.parallel', `${task.agentId}_task` as EventType, {
+    // Resolve correct EventType for the agent
+    let detailType: string = `${task.agentId}_task`;
+
+    // Generic fallback for unknown agents to use TASK_EVENT_SCHEMA via CODER_TASK key
+    if (!EVENT_SCHEMA_MAP[detailType as SchemaEventType]) {
+      detailType = EventType.CODER_TASK;
+    }
+
+    await emitTypedEvent('agent.parallel', detailType as SchemaEventType, {
       userId,
       taskId: task.taskId,
       task: task.task,

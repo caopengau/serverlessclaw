@@ -13,6 +13,8 @@ import { TraceSource, AgentType, ReasoningProfile } from '../types/index';
 import { AGENT_ERRORS } from '../constants';
 import { AgentProcessOptions } from '../agent/options';
 
+import { normalizeBaseUserId } from './normalize';
+
 /**
  * Extract the base userId by removing CONV# prefix if present.
  * Used by multiple agents to normalize userId handling.
@@ -21,9 +23,7 @@ import { AgentProcessOptions } from '../agent/options';
  * @returns The normalized base user identifier.
  */
 export function extractBaseUserId(userId: string): string {
-  if (userId === '') return '';
-  if (!userId || typeof userId !== 'string') return 'unknown';
-  return userId.startsWith('CONV#') ? userId.split('#')[1] : userId;
+  return normalizeBaseUserId(userId);
 }
 
 /**

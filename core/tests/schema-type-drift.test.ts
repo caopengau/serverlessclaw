@@ -263,11 +263,11 @@ describe('Schema-Type Drift Detection', () => {
     it('should contain schemas for all major event types', () => {
       const keys = Object.keys(EVENT_SCHEMA_MAP);
 
-      expect(keys).toContain('task_event');
-      expect(keys).toContain('completion_event');
-      expect(keys).toContain('failure_event');
-      expect(keys).toContain('build_event');
-      expect(keys).toContain('health_report_event');
+      expect(keys).toContain('coder_task');
+      expect(keys).toContain('task_completed');
+      expect(keys).toContain('task_failed');
+      expect(keys).toContain('system_build_success');
+      expect(keys).toContain('system_health_report');
       expect(keys).toContain('outbound_message');
       expect(keys).toContain('parallel_task_completed');
       expect(keys).toContain('heartbeat_proactive');

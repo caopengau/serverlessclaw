@@ -1,5 +1,6 @@
 import { EventType } from '../lib/types/agent';
 import { logger } from '../lib/logger';
+import { reportHealthIssue } from '../lib/health';
 import { Context } from 'aws-lambda';
 // Sub-handlers are imported lazily per-event to minimise static import depth and context budget.
 
@@ -31,93 +32,110 @@ export async function handler(
     // metrics module may not be available in all environments
   }
 
-  switch (detailType) {
-    case EventType.SYSTEM_BUILD_FAILED: {
-      const { handleBuildFailure } = await import('./events/build-handler');
-      await handleBuildFailure(eventDetail, context);
-      break;
-    }
+  const userId = (eventDetail.userId as string) ?? 'SYSTEM';
+  const traceId = (eventDetail.traceId as string) ?? 'unknown';
 
-    case EventType.SYSTEM_BUILD_SUCCESS: {
-      const { handleBuildSuccess } = await import('./events/build-handler');
-      await handleBuildSuccess(eventDetail);
-      break;
-    }
+  try {
+    switch (detailType) {
+      case EventType.SYSTEM_BUILD_FAILED: {
+        const { handleBuildFailure } = await import('./events/build-handler');
+        await handleBuildFailure(eventDetail, context);
+        break;
+      }
 
-    case EventType.CONTINUATION_TASK: {
-      const { handleContinuationTask } = await import('./events/continuation-handler');
-      await handleContinuationTask(eventDetail, context);
-      break;
-    }
+      case EventType.SYSTEM_BUILD_SUCCESS: {
+        const { handleBuildSuccess } = await import('./events/build-handler');
+        await handleBuildSuccess(eventDetail);
+        break;
+      }
 
-    case EventType.SYSTEM_HEALTH_REPORT: {
-      const { handleHealthReport } = await import('./events/health-handler');
-      await handleHealthReport(eventDetail, context);
-      break;
-    }
+      case EventType.CONTINUATION_TASK: {
+        const { handleContinuationTask } = await import('./events/continuation-handler');
+        await handleContinuationTask(eventDetail, context);
+        break;
+      }
 
-    case EventType.TASK_COMPLETED:
-    case EventType.TASK_FAILED: {
-      const { handleTaskResult } = await import('./events/task-result-handler');
-      await handleTaskResult(eventDetail, detailType);
-      break;
-    }
+      case EventType.SYSTEM_HEALTH_REPORT: {
+        const { handleHealthReport } = await import('./events/health-handler');
+        await handleHealthReport(eventDetail, context);
+        break;
+      }
 
-    case EventType.CLARIFICATION_REQUEST: {
-      const { handleClarificationRequest } = await import('./events/clarification-handler');
-      await handleClarificationRequest(eventDetail);
-      break;
-    }
+      case EventType.TASK_COMPLETED:
+      case EventType.TASK_FAILED: {
+        const { handleTaskResult } = await import('./events/task-result-handler');
+        await handleTaskResult(eventDetail, detailType);
+        break;
+      }
 
-    case EventType.CLARIFICATION_TIMEOUT: {
-      const { handleClarificationTimeout } = await import('./events/clarification-timeout-handler');
-      await handleClarificationTimeout(eventDetail);
-      break;
-    }
+      case EventType.CLARIFICATION_REQUEST: {
+        const { handleClarificationRequest } = await import('./events/clarification-handler');
+        await handleClarificationRequest(eventDetail);
+        break;
+      }
 
-    case EventType.PARALLEL_TASK_DISPATCH: {
-      const { handleParallelDispatch } = await import('./events/parallel-handler');
-      await handleParallelDispatch(
-        event as unknown as import('aws-lambda').EventBridgeEvent<
-          string,
-          import('./events/parallel-handler').ParallelTaskEvent
-        >
-      );
-      break;
-    }
+      case EventType.CLARIFICATION_TIMEOUT: {
+        const { handleClarificationTimeout } =
+          await import('./events/clarification-timeout-handler');
+        await handleClarificationTimeout(eventDetail);
+        break;
+      }
 
-    case EventType.PARALLEL_BARRIER_TIMEOUT: {
-      const { handleParallelBarrierTimeout } =
-        await import('./events/parallel-barrier-timeout-handler');
-      await handleParallelBarrierTimeout(eventDetail);
-      break;
-    }
+      case EventType.PARALLEL_TASK_DISPATCH: {
+        const { handleParallelDispatch } = await import('./events/parallel-handler');
+        await handleParallelDispatch(
+          event as unknown as import('aws-lambda').EventBridgeEvent<
+            string,
+            import('./events/parallel-handler').ParallelTaskEvent
+          >
+        );
+        break;
+      }
 
-    case EventType.PARALLEL_TASK_COMPLETED: {
-      const { handleParallelTaskCompleted } =
-        await import('./events/parallel-task-completed-handler');
-      await handleParallelTaskCompleted(eventDetail);
-      break;
-    }
+      case EventType.PARALLEL_BARRIER_TIMEOUT: {
+        const { handleParallelBarrierTimeout } =
+          await import('./events/parallel-barrier-timeout-handler');
+        await handleParallelBarrierTimeout(eventDetail);
+        break;
+      }
 
-    case EventType.TASK_CANCELLED: {
-      const { handleTaskCancellation } = await import('./events/cancellation-handler');
-      await handleTaskCancellation(
-        event as unknown as import('aws-lambda').EventBridgeEvent<
-          string,
-          import('../lib/agent/schema').TaskCancellation
-        >
-      );
-      break;
-    }
+      case EventType.PARALLEL_TASK_COMPLETED: {
+        const { handleParallelTaskCompleted } =
+          await import('./events/parallel-task-completed-handler');
+        await handleParallelTaskCompleted(eventDetail);
+        break;
+      }
 
-    case EventType.HEARTBEAT_PROACTIVE: {
-      const { handleProactiveHeartbeat } = await import('./events/proactive-handler');
-      await handleProactiveHeartbeat(eventDetail, context);
-      break;
-    }
+      case EventType.TASK_CANCELLED: {
+        const { handleTaskCancellation } = await import('./events/cancellation-handler');
+        await handleTaskCancellation(
+          event as unknown as import('aws-lambda').EventBridgeEvent<
+            string,
+            import('../lib/agent/schema').TaskCancellation
+          >
+        );
+        break;
+      }
 
-    default:
-      logger.warn(`Unhandled event type: ${detailType}`);
+      case EventType.HEARTBEAT_PROACTIVE: {
+        const { handleProactiveHeartbeat } = await import('./events/proactive-handler');
+        await handleProactiveHeartbeat(eventDetail, context);
+        break;
+      }
+
+      default:
+        logger.warn(`Unhandled event type: ${detailType}`);
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`EventHandler failed for ${detailType}: ${errorMessage}`, error);
+    await reportHealthIssue({
+      component: 'EventHandler',
+      issue: `Failed to process event ${detailType}: ${errorMessage}`,
+      severity: 'high',
+      userId,
+      traceId,
+      context: { detailType },
+    });
   }
 }

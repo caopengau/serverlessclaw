@@ -27,11 +27,13 @@ export async function handleClarificationRequest(
     metadata,
   } = parsed;
 
+  const { extractClarificationMetadata } = await import('../../lib/utils/metadata');
+  const typedMetadata = extractClarificationMetadata(metadata);
+
   // Flexibility: Look for question and originalTask in direct detail (legacy/tests) OR metadata
-  const question = (eventDetail.question as string) ?? (metadata?.question as string) ?? task;
-  const originalTask =
-    (eventDetail.originalTask as string) ?? (metadata?.originalTask as string) ?? task;
-  const retryCount = (eventDetail.retryCount as number) ?? (metadata?.retryCount as number) ?? 0;
+  const question = (eventDetail.question as string) ?? typedMetadata.question ?? task;
+  const originalTask = (eventDetail.originalTask as string) ?? typedMetadata.originalTask ?? task;
+  const retryCount = (eventDetail.retryCount as number) ?? typedMetadata.retryCount;
 
   const { logger, DynamoMemory } = await import('../../lib/logger').then(async (m) => {
     const mem = await import('../../lib/memory');

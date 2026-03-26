@@ -109,19 +109,16 @@ function pruneOldFailures(failures: FailureEntry[] | undefined, windowMs: number
 
 export class CircuitBreaker {
   /**
-   * Records a failure and returns the new state.
-   * Includes retry logic for concurrent updates.
+   * Generic retry wrapper for concurrent DynamoDB updates.
+   * Retries up to MAX_RETRIES with randomized backoff on contention.
    */
-  async recordFailure(
-    type: FailureType,
-    context?: { userId?: string; traceId?: string }
-  ): Promise<CircuitBreakerStateData> {
+  private async withRetry<T>(fn: () => Promise<T>): Promise<T> {
     const MAX_RETRIES = 3;
     let lastError: unknown = null;
 
     for (let i = 0; i < MAX_RETRIES; i++) {
       try {
-        return await this._recordFailureInternal(type, context);
+        return await fn();
       } catch (e: unknown) {
         lastError = e;
         if (e instanceof Error && e.message.includes('concurrently')) {
@@ -134,6 +131,16 @@ export class CircuitBreaker {
       }
     }
     throw new Error(String(lastError));
+  }
+
+  /**
+   * Records a failure and returns the new state.
+   */
+  async recordFailure(
+    type: FailureType,
+    context?: { userId?: string; traceId?: string }
+  ): Promise<CircuitBreakerStateData> {
+    return this.withRetry(() => this._recordFailureInternal(type, context));
   }
 
   private async _recordFailureInternal(
@@ -202,27 +209,9 @@ export class CircuitBreaker {
 
   /**
    * Records a success and returns the new state.
-   * Includes retry logic for concurrent updates.
    */
   async recordSuccess(): Promise<CircuitBreakerStateData> {
-    const MAX_RETRIES = 3;
-    let lastError: unknown = null;
-
-    for (let i = 0; i < MAX_RETRIES; i++) {
-      try {
-        return await this._recordSuccessInternal();
-      } catch (e: unknown) {
-        lastError = e;
-        if (e instanceof Error && e.message.includes('concurrently')) {
-          const delay = Math.random() * 50 * (i + 1);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          continue;
-        }
-        if (e instanceof Error) throw e;
-        throw new Error(String(e));
-      }
-    }
-    throw new Error(String(lastError));
+    return this.withRetry(() => this._recordSuccessInternal());
   }
 
   private async _recordSuccessInternal(): Promise<CircuitBreakerStateData> {
@@ -252,25 +241,11 @@ export class CircuitBreaker {
     return state;
   }
 
+  /**
+   * Checks if a deployment can proceed based on circuit breaker state.
+   */
   async canProceed(deployType: 'autonomous' | 'emergency'): Promise<CanProceedResult> {
-    const MAX_RETRIES = 3;
-    let lastError: unknown = null;
-
-    for (let i = 0; i < MAX_RETRIES; i++) {
-      try {
-        return await this._canProceedInternal(deployType);
-      } catch (e: unknown) {
-        lastError = e;
-        if (e instanceof Error && e.message.includes('concurrently')) {
-          const delay = Math.random() * 50 * (i + 1);
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          continue;
-        }
-        if (e instanceof Error) throw e;
-        throw new Error(String(e));
-      }
-    }
-    throw new Error(String(lastError));
+    return this.withRetry(() => this._canProceedInternal(deployType));
   }
 
   private async _canProceedInternal(

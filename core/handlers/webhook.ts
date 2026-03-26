@@ -37,7 +37,7 @@ export const handler = async (
   event: APIGatewayProxyEventV2,
   context: Context
 ): Promise<APIGatewayProxyResultV2> => {
-  console.log('[WEBHOOK] Start | Event:', event.body?.substring(0, 100));
+  logger.info('[WEBHOOK] Start | Event:', event.body?.substring(0, 100));
   logger.info('Received event:', JSON.stringify(event, null, 2));
 
   let parsedUpdate: z.infer<typeof TELEGRAM_UPDATE_SCHEMA>;
@@ -47,14 +47,14 @@ export const handler = async (
     }
     parsedUpdate = TELEGRAM_UPDATE_SCHEMA.parse(JSON.parse(event.body));
   } catch (error) {
-    console.error('[WEBHOOK] Parse Error:', error);
+    logger.error('[WEBHOOK] Parse Error:', error);
     logger.error('Failed to parse or validate Telegram update:', error);
     return { statusCode: 400, body: 'Invalid Telegram update format or missing body' };
   }
 
   const message = parsedUpdate.message;
   if (!message) {
-    console.log('[WEBHOOK] No message in update');
+    logger.info('[WEBHOOK] No message in update');
     // Non-message updates should be acknowledged so Telegram does not retry.
     return { statusCode: 200, body: 'OK' };
   }
@@ -68,16 +68,16 @@ export const handler = async (
     !!message.voice;
 
   if (!hasActionableContent) {
-    console.log('[WEBHOOK] No actionable content');
+    logger.info('[WEBHOOK] No actionable content');
     return { statusCode: 200, body: 'OK' };
   }
 
-  console.log(`[WEBHOOK] User: ${chatId} | Text: ${userText.substring(0, 50)}`);
+  logger.info(`[WEBHOOK] User: ${chatId} | Text: ${userText.substring(0, 50)}`);
 
   const attachments = await processTelegramMedia(message);
 
   // Lazy load dependencies to reduce initial context budget
-  console.log('[WEBHOOK] Lazy loading deps...');
+  logger.info('[WEBHOOK] Lazy loading deps...');
   const [
     { DynamoMemory },
     { ProviderManager },
@@ -100,7 +100,7 @@ export const handler = async (
   const lambdaRequestId = context.awsRequestId;
 
   // 1. Always add message to conversation history first (no message loss)
-  console.log('[WEBHOOK] Recording message to history...');
+  logger.info('[WEBHOOK] Recording message to history...');
   await memory.addMessage(chatId, {
     role: MessageRole.USER,
     content: userText,
@@ -108,30 +108,30 @@ export const handler = async (
   });
 
   // 2. Try to acquire processing flag
-  console.log('[WEBHOOK] Checking processing status...');
+  logger.info('[WEBHOOK] Checking processing status...');
   const canProcess = await sessionStateManager.acquireProcessing(chatId, lambdaRequestId);
 
   if (!canProcess) {
     // Agent is currently processing - add message to pending queue
-    console.log(`[WEBHOOK] Session ${chatId} busy, queuing message...`);
+    logger.info(`[WEBHOOK] Session ${chatId} busy, queuing message...`);
     await sessionStateManager.addPendingMessage(chatId, userText, attachments);
     return { statusCode: 200, body: 'Message queued for processing' };
   }
 
   try {
     // 3. Process message via Agent
-    console.log('[WEBHOOK] Loading config...');
+    logger.info('[WEBHOOK] Loading config...');
     const config = await AgentRegistry.getAgentConfig(AgentType.SUPERCLAW);
     if (!config) throw new Error('Main agent config missing');
 
     const { profile, cleanText } = SuperClaw.parseCommand(userText);
 
-    console.log('[WEBHOOK] Loading tools...');
+    logger.info('[WEBHOOK] Loading tools...');
     const agentTools = await getAgentTools(AgentType.SUPERCLAW);
-    console.log(`[WEBHOOK] Tools loaded: ${agentTools.map((t) => t.name).join(', ')}`);
+    logger.info(`[WEBHOOK] Tools loaded: ${agentTools.map((t) => t.name).join(', ')}`);
 
     const agent = new SuperClaw(memory, provider, agentTools, config);
-    console.log('[WEBHOOK] Starting agent process...');
+    logger.info('[WEBHOOK] Starting agent process...');
     const { responseText, attachments: resultAttachments } = await agent.process(
       chatId,
       cleanText,
@@ -144,10 +144,10 @@ export const handler = async (
         sessionStateManager,
       }
     );
-    console.log('[WEBHOOK] Process complete. Response length:', responseText.length);
+    logger.info('[WEBHOOK] Process complete. Response length:', responseText.length);
 
     // 4. Send response to Notifier via AgentBus
-    console.log('[WEBHOOK] Sending outbound message...');
+    logger.info('[WEBHOOK] Sending outbound message...');
     await sendOutboundMessage(
       'webhook.handler',
       chatId,
@@ -157,9 +157,9 @@ export const handler = async (
       'SuperClaw',
       resultAttachments
     );
-    console.log('[WEBHOOK] All done.');
+    logger.info('[WEBHOOK] All done.');
   } catch (err) {
-    console.error('[WEBHOOK] Execution Error:', err);
+    logger.error('[WEBHOOK] Execution Error:', err);
     throw err;
   } finally {
     // 5. Release processing flag

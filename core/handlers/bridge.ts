@@ -35,7 +35,8 @@ export async function handler(event: Record<string, unknown>, _context: Context)
     isThought,
   } = detail;
 
-  const safeUserId = baseUserId.replace(/[#+]/g, '_');
+  const { sanitizeMqttTopic } = await import('../lib/utils/normalize');
+  const safeUserId = sanitizeMqttTopic(baseUserId);
 
   const contentSnippet =
     rawMessage.length > 50

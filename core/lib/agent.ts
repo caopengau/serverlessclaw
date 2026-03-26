@@ -25,6 +25,7 @@ import { AgentProcessOptions } from './agent/options';
 import { AgentEmitter } from './agent/emitter';
 import { parseConfigInt } from './providers/utils';
 import { DEFAULT_SIGNAL_SCHEMA } from './agent/schema';
+import { normalizeBaseUserId } from './utils/normalize';
 
 // DEFAULT_SIGNAL_SCHEMA moved to ./agent/schema.ts
 
@@ -82,6 +83,10 @@ export class Agent {
     private systemPrompt: string,
     public config?: IAgentConfig
   ) {
+    // Structural Enforcement: fail-fast on misconfiguration
+    if (config) {
+      validateAgentConfig(config, config.id);
+    }
     this.emitter = new AgentEmitter(config);
   }
 
@@ -133,9 +138,7 @@ export class Agent {
         ? initialResponseFormat || DEFAULT_SIGNAL_SCHEMA
         : initialResponseFormat;
 
-    const baseUserId = userId.startsWith(MEMORY_KEYS.CONVERSATION_PREFIX)
-      ? userId.split('#')[1]
-      : userId;
+    const baseUserId = normalizeBaseUserId(userId);
     const { ClawTracer } = await import('./tracer');
     const { ContextManager } = await import('./agent/context-manager');
     const { AgentExecutor, AGENT_DEFAULTS, AGENT_LOG_MESSAGES } = await import('./agent/executor');
@@ -534,9 +537,7 @@ export class Agent {
         ? initialResponseFormat || DEFAULT_SIGNAL_SCHEMA
         : initialResponseFormat;
 
-    const baseUserId = userId.startsWith(MEMORY_KEYS.CONVERSATION_PREFIX)
-      ? userId.split('#')[1]
-      : userId;
+    const baseUserId = normalizeBaseUserId(userId);
     const { ClawTracer } = await import('./tracer');
     const { ContextManager } = await import('./agent/context-manager');
     const { AgentExecutor, AGENT_DEFAULTS } = await import('./agent/executor');

@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { AttachmentType } from '../types/llm';
 import { HealthSeverity, ParallelTaskStatus } from '../types/constants';
+import { EventType } from '../types/index';
+import { normalizeBaseUserId } from '../utils/normalize';
 
 export const ATTACHMENT_SCHEMA = z.object({
   type: z.nativeEnum(AttachmentType),
@@ -17,6 +19,7 @@ export const BASE_EVENT_SCHEMA = z.object({
   source: z.string().default('unknown'),
   userId: z.string().default('SYSTEM'),
   traceId: z.string().optional(),
+  taskId: z.string().default(() => `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`),
   agentId: z.string().optional(),
   initiatorId: z.string().default('orchestrator'),
   depth: z.number().default(0),
@@ -64,6 +67,7 @@ export const COMPLETION_EVENT_SCHEMA = BASE_EVENT_SCHEMA.extend({
   task: z.string().default(''),
   response: z.string(),
   attachments: z.array(ATTACHMENT_SCHEMA).default([]),
+  metadata: z.record(z.string(), z.unknown()).default({}),
   userNotified: z.boolean().default(false),
 });
 
@@ -75,6 +79,7 @@ export const OUTBOUND_MESSAGE_EVENT_SCHEMA = BASE_EVENT_SCHEMA.extend({
   agentName: z.string().default('SuperClaw'),
   memoryContexts: z.array(z.string()).default([]),
   attachments: z.array(ATTACHMENT_SCHEMA).default([]),
+  metadata: z.record(z.string(), z.unknown()).default({}),
 });
 
 /**
@@ -84,6 +89,8 @@ export const FAILURE_EVENT_SCHEMA = BASE_EVENT_SCHEMA.extend({
   agentId: z.string().default('unknown'),
   task: z.string().default(''),
   error: z.string(),
+  attachments: z.array(ATTACHMENT_SCHEMA).default([]),
+  metadata: z.record(z.string(), z.unknown()).default({}),
   userNotified: z.boolean().default(false),
 });
 
@@ -126,8 +133,8 @@ const BRIDGE_DETAIL_PAYLOAD_SCHEMA = z
     ...data,
     // Resolve the authoritative messageId at the source
     messageId: data.messageId ?? data.traceId,
-    // Pre-calculate baseUserId for the handler (in-lined to avoid circularity)
-    baseUserId: data.userId.startsWith('CONV#') ? data.userId.split('#')[1] : data.userId,
+    // Pre-calculate baseUserId for the handler
+    baseUserId: normalizeBaseUserId(data.userId),
   }));
 
 /**
@@ -203,11 +210,21 @@ export const BUILD_TASK_METADATA = z
   })
   .default({ gapIds: [] });
 
+/** Metadata schema for clarification requests. */
+export const CLARIFICATION_TASK_METADATA = z
+  .object({
+    question: z.string().optional(),
+    originalTask: z.string().optional(),
+    retryCount: z.number().default(0),
+  })
+  .default({});
+
 // Zod-inferred types for metadata schemas
 export type CoderTaskMetadata = z.infer<typeof CODER_TASK_METADATA>;
 export type QaAuditMetadata = z.infer<typeof QA_AUDIT_METADATA>;
 export type PlannerTaskMetadata = z.infer<typeof PLANNER_TASK_METADATA>;
 export type BuildTaskMetadata = z.infer<typeof BUILD_TASK_METADATA>;
+export type ClarificationTaskMetadata = z.infer<typeof CLARIFICATION_TASK_METADATA>;
 
 // ============================================================================
 // Structural Enforcement: Zod-Inferred Types (Source of Truth)
@@ -262,14 +279,19 @@ export type ParallelTaskCompletedEventPayload = z.infer<
  * Maps EventType strings to their corresponding Zod schemas.
  */
 export const EVENT_SCHEMA_MAP = {
-  task_event: TASK_EVENT_SCHEMA,
-  completion_event: COMPLETION_EVENT_SCHEMA,
-  failure_event: FAILURE_EVENT_SCHEMA,
-  build_event: BUILD_EVENT_SCHEMA,
-  health_report_event: HEALTH_REPORT_EVENT_SCHEMA,
-  outbound_message: OUTBOUND_MESSAGE_EVENT_SCHEMA,
-  parallel_task_completed: PARALLEL_TASK_COMPLETED_EVENT_SCHEMA,
-  heartbeat_proactive: PROACTIVE_HEARTBEAT_PAYLOAD_SCHEMA,
+  [EventType.CODER_TASK as string]: TASK_EVENT_SCHEMA,
+  [EventType.CONTINUATION_TASK as string]: TASK_EVENT_SCHEMA,
+  [EventType.REFLECT_TASK as string]: TASK_EVENT_SCHEMA,
+  [EventType.EVOLUTION_PLAN as string]: TASK_EVENT_SCHEMA,
+  [EventType.MONITOR_BUILD as string]: TASK_EVENT_SCHEMA,
+  [EventType.TASK_COMPLETED as string]: COMPLETION_EVENT_SCHEMA,
+  [EventType.TASK_FAILED as string]: FAILURE_EVENT_SCHEMA,
+  [EventType.SYSTEM_BUILD_SUCCESS as string]: BUILD_EVENT_SCHEMA,
+  [EventType.SYSTEM_BUILD_FAILED as string]: BUILD_EVENT_SCHEMA,
+  [EventType.SYSTEM_HEALTH_REPORT as string]: HEALTH_REPORT_EVENT_SCHEMA,
+  [EventType.OUTBOUND_MESSAGE as string]: OUTBOUND_MESSAGE_EVENT_SCHEMA,
+  [EventType.PARALLEL_TASK_COMPLETED as string]: PARALLEL_TASK_COMPLETED_EVENT_SCHEMA,
+  [EventType.HEARTBEAT_PROACTIVE as string]: PROACTIVE_HEARTBEAT_PAYLOAD_SCHEMA,
 } as const;
 
 /** Keys of the EVENT_SCHEMA_MAP (for type-safe event type lookups). */

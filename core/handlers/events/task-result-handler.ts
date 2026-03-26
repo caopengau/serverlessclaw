@@ -1,5 +1,9 @@
 import { EventType, AgentType } from '../../lib/types/index';
-import { COMPLETION_EVENT_SCHEMA, FAILURE_EVENT_SCHEMA } from '../../lib/schema/events';
+import {
+  COMPLETION_EVENT_SCHEMA,
+  FAILURE_EVENT_SCHEMA,
+  SchemaEventType,
+} from '../../lib/schema/events';
 import { getRecursionLimit, handleRecursionLimitExceeded, wakeupInitiator } from './shared';
 
 /**
@@ -164,7 +168,6 @@ export async function handleTaskResult(
 
     if (aggregateState?.isComplete) {
       logger.info(`Parallel dispatch ${traceId} complete! Emitting aggregated results.`);
-      const { emitEvent } = await import('../../lib/utils/bus');
 
       const threshold =
         ((await ConfigManager.getRawConfig('parallel_partial_success_threshold')) as number) ?? 0.5;
@@ -178,19 +181,26 @@ export async function handleTaskResult(
       const marked = await aggregator.markAsCompleted(userId, traceId, overallStatus);
 
       if (marked) {
-        await emitEvent('events.handler', EventType.PARALLEL_TASK_COMPLETED, {
-          userId,
-          sessionId: aggregateState.sessionId,
-          traceId,
-          initiatorId: aggregateState.initiatorId,
-          overallStatus,
-          results: aggregateState.results,
-          taskCount: aggregateState.taskCount,
-          completedCount: aggregateState.results.length,
-          elapsedMs: 0,
-          aggregationType: aggregateState.aggregationType,
-          aggregationPrompt: aggregateState.aggregationPrompt,
-        });
+        const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
+        await emitTypedEvent(
+          'events.handler',
+          EventType.PARALLEL_TASK_COMPLETED as unknown as SchemaEventType,
+          {
+            userId,
+            sessionId: aggregateState.sessionId,
+            traceId,
+            taskId: traceId, // Use traceId as taskId for the aggregate event
+            initiatorId: aggregateState.initiatorId,
+            depth: aggregateState.depth ?? 0,
+            overallStatus,
+            results: aggregateState.results,
+            taskCount: aggregateState.taskCount,
+            completedCount: aggregateState.results.length,
+            elapsedMs: 0,
+            aggregationType: aggregateState.aggregationType,
+            aggregationPrompt: aggregateState.aggregationPrompt,
+          }
+        );
       } else {
         logger.info(`Parallel dispatch ${traceId} already marked as completed, skipping event.`);
       }

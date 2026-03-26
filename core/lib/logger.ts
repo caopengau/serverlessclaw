@@ -10,10 +10,21 @@ export enum LogLevel {
 }
 
 /**
+ * Context for structured logging with correlation IDs.
+ */
+export interface LogContext {
+  traceId?: string;
+  sessionId?: string;
+  agentId?: string;
+  [key: string]: unknown;
+}
+
+/**
  * A simple logger class for consistent logging across the application.
  */
 class Logger {
   private level: LogLevel = LogLevel.INFO;
+  private defaultContext: LogContext = {};
 
   /**
    * Initializes the logger by reading from environment variables.
@@ -42,56 +53,178 @@ class Logger {
   }
 
   /**
-   * Logs a debug message.
+   * Sets default context that will be included in all log messages.
+   * @param context - The default context to set.
+   */
+  setDefaultContext(context: LogContext): void {
+    this.defaultContext = { ...this.defaultContext, ...context };
+  }
+
+  /**
+   * Formats a log message with context.
+   * @param level - The log level string.
    * @param message - The message to log.
+   * @param context - Optional context for this specific log entry.
+   * @param args - Additional arguments for formatting or context.
+   * @returns Formatted log parts.
+   */
+  private formatLog(
+    level: string,
+    message: string,
+    context?: LogContext,
+    ...args: unknown[]
+  ): { prefix: string; message: string; context?: LogContext; args: unknown[] } {
+    const mergedContext = { ...this.defaultContext, ...context };
+    const hasContext = Object.keys(mergedContext).length > 0;
+
+    return {
+      prefix: `[${level}]`,
+      message,
+      context: hasContext ? mergedContext : undefined,
+      args,
+    };
+  }
+
+  /**
+   * Outputs a log message to the console.
+   * @param consoleMethod - The console method to use.
+   * @param level - The log level string.
+   * @param message - The message to log.
+   * @param context - Optional context for this specific log entry.
    * @param args - Additional arguments for formatting or context.
    */
-  debug(message: string, ...args: unknown[]): void {
+  private output(
+    consoleMethod: 'debug' | 'info' | 'warn' | 'error',
+    level: string,
+    message: string,
+    context?: LogContext,
+    ...args: unknown[]
+  ): void {
+    const formatted = this.formatLog(level, message, context, ...args);
+
+    if (formatted.context) {
+      console[consoleMethod](
+        `${formatted.prefix} ${formatted.message}`,
+        formatted.context,
+        ...formatted.args
+      );
+    } else {
+      console[consoleMethod](`${formatted.prefix} ${formatted.message}`, ...formatted.args);
+    }
+  }
+
+  /**
+   * Logs a debug message.
+   * @param message - The message to log.
+   * @param contextOrArgs - Either a LogContext object or additional arguments.
+   * @param args - Additional arguments if context was provided.
+   */
+  debug(message: string, contextOrArgs?: LogContext | unknown, ...args: unknown[]): void {
     if (this.level <= LogLevel.DEBUG) {
-      console.debug(`[DEBUG] ${message}`, ...args);
+      if (
+        contextOrArgs &&
+        typeof contextOrArgs === 'object' &&
+        !Array.isArray(contextOrArgs) &&
+        ('traceId' in contextOrArgs ||
+          'sessionId' in contextOrArgs ||
+          'agentId' in contextOrArgs ||
+          Object.keys(contextOrArgs).length > 0)
+      ) {
+        this.output('debug', 'DEBUG', message, contextOrArgs as LogContext, ...args);
+      } else if (contextOrArgs !== undefined) {
+        this.output('debug', 'DEBUG', message, undefined, contextOrArgs, ...args);
+      } else {
+        this.output('debug', 'DEBUG', message, undefined, ...args);
+      }
     }
   }
 
   /**
    * Logs an info message.
    * @param message - The message to log.
-   * @param args - Additional arguments for formatting or context.
+   * @param contextOrArgs - Either a LogContext object or additional arguments.
+   * @param args - Additional arguments if context was provided.
    */
-  info(message: string, ...args: unknown[]): void {
+  info(message: string, contextOrArgs?: LogContext | unknown, ...args: unknown[]): void {
     if (this.level <= LogLevel.INFO) {
-      console.info(`[INFO] ${message}`, ...args);
+      if (
+        contextOrArgs &&
+        typeof contextOrArgs === 'object' &&
+        !Array.isArray(contextOrArgs) &&
+        ('traceId' in contextOrArgs ||
+          'sessionId' in contextOrArgs ||
+          'agentId' in contextOrArgs ||
+          Object.keys(contextOrArgs).length > 0)
+      ) {
+        this.output('info', 'INFO', message, contextOrArgs as LogContext, ...args);
+      } else if (contextOrArgs !== undefined) {
+        this.output('info', 'INFO', message, undefined, contextOrArgs, ...args);
+      } else {
+        this.output('info', 'INFO', message, undefined, ...args);
+      }
     }
   }
 
   /**
    * Logs a warning message.
    * @param message - The message to log.
-   * @param args - Additional arguments for formatting or context.
+   * @param contextOrArgs - Either a LogContext object or additional arguments.
+   * @param args - Additional arguments if context was provided.
    */
-  warn(message: string, ...args: unknown[]): void {
+  warn(message: string, contextOrArgs?: LogContext | unknown, ...args: unknown[]): void {
     if (this.level <= LogLevel.WARN) {
-      console.warn(`[WARN] ${message}`, ...args);
+      if (
+        contextOrArgs &&
+        typeof contextOrArgs === 'object' &&
+        !Array.isArray(contextOrArgs) &&
+        ('traceId' in contextOrArgs ||
+          'sessionId' in contextOrArgs ||
+          'agentId' in contextOrArgs ||
+          Object.keys(contextOrArgs).length > 0)
+      ) {
+        this.output('warn', 'WARN', message, contextOrArgs as LogContext, ...args);
+      } else if (contextOrArgs !== undefined) {
+        this.output('warn', 'WARN', message, undefined, contextOrArgs, ...args);
+      } else {
+        this.output('warn', 'WARN', message, undefined, ...args);
+      }
     }
   }
 
   /**
    * Logs an error message.
    * @param message - The message to log.
-   * @param args - Additional arguments for formatting or context.
+   * @param contextOrArgs - Either a LogContext object or additional arguments.
+   * @param args - Additional arguments if context was provided.
    */
-  error(message: string, ...args: unknown[]): void {
+  error(message: string, contextOrArgs?: LogContext | unknown, ...args: unknown[]): void {
     if (this.level <= LogLevel.ERROR) {
-      console.error(`[ERROR] ${message}`, ...args);
+      if (
+        contextOrArgs &&
+        typeof contextOrArgs === 'object' &&
+        !Array.isArray(contextOrArgs) &&
+        ('traceId' in contextOrArgs ||
+          'sessionId' in contextOrArgs ||
+          'agentId' in contextOrArgs ||
+          Object.keys(contextOrArgs).length > 0)
+      ) {
+        this.output('error', 'ERROR', message, contextOrArgs as LogContext, ...args);
+      } else if (contextOrArgs !== undefined) {
+        this.output('error', 'ERROR', message, undefined, contextOrArgs, ...args);
+      } else {
+        this.output('error', 'ERROR', message, undefined, ...args);
+      }
     }
   }
 
   /**
    * Logs a generic message (defaults to INFO).
    * @param message - The message to log.
-   * @param args - Additional arguments for formatting or context.
+   * @param contextOrArgs - Either a LogContext object or additional arguments.
+   * @param args - Additional arguments if context was provided.
    */
-  log(message: string, ...args: unknown[]): void {
-    this.info(message, ...args);
+  log(message: string, contextOrArgs?: LogContext | unknown, ...args: unknown[]): void {
+    this.info(message, contextOrArgs, ...args);
   }
 }
 
@@ -99,3 +232,28 @@ class Logger {
  * Shared logger instance.
  */
 export const logger = new Logger();
+
+/**
+ * Creates a logger instance with preset context for traceId correlation.
+ * @param traceId - The trace ID for correlating logs.
+ * @param sessionId - Optional session ID.
+ * @param agentId - Optional agent ID.
+ * @returns A logger instance with preset context.
+ */
+export function createLogger(
+  traceId: string,
+  sessionId?: string,
+  agentId?: string
+): Pick<Logger, 'debug' | 'info' | 'warn' | 'error' | 'log'> {
+  const context: LogContext = { traceId };
+  if (sessionId) context.sessionId = sessionId;
+  if (agentId) context.agentId = agentId;
+
+  return {
+    debug: (message: string, ...args: unknown[]) => logger.debug(message, context, ...args),
+    info: (message: string, ...args: unknown[]) => logger.info(message, context, ...args),
+    warn: (message: string, ...args: unknown[]) => logger.warn(message, context, ...args),
+    error: (message: string, ...args: unknown[]) => logger.error(message, context, ...args),
+    log: (message: string, ...args: unknown[]) => logger.log(message, context, ...args),
+  };
+}

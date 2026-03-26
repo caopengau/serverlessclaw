@@ -26,7 +26,9 @@ vi.mock('./outbound', () => ({
 // Mock Registry
 vi.mock('./registry', () => ({
   AgentRegistry: {
-    getAgentConfig: vi.fn().mockResolvedValue({ systemPrompt: 'test', name: 'Test' }),
+    getAgentConfig: vi
+      .fn()
+      .mockResolvedValue({ id: 'test-agent', name: 'Test', systemPrompt: 'test', enabled: true }),
     getRawConfig: vi.fn().mockResolvedValue(undefined),
     getRetentionDays: vi.fn().mockResolvedValue(30),
   },

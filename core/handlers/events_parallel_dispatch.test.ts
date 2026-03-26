@@ -174,7 +174,8 @@ describe('Parallel Dispatch Resilience', () => {
       expect(emitEvent).toHaveBeenCalledWith(
         'agent.parallel',
         'coder_task',
-        expect.objectContaining({ taskId: 'task-1' })
+        expect.objectContaining({ taskId: 'task-1' }),
+        {}
       );
 
       const { DynamicScheduler } = await import('../lib/scheduler');
