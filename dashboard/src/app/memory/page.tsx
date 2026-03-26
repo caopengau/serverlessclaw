@@ -55,7 +55,7 @@ async function getMemoryData(activeTab: string, query: string, nextToken?: strin
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
     const { Items } = await docClient.send(new ScanCommand({
-        TableName: (Resource as any).MemoryTable.name,
+        TableName: (Resource as { MemoryTable: { name: string } }).MemoryTable.name,
         ProjectionExpression: "#tp",
         ExpressionAttributeNames: { "#tp": "type" },
         Limit: 100
@@ -153,7 +153,7 @@ async function pruneMemory(formData: FormData) {
   const docClient = DynamoDBDocumentClient.from(client);
 
   await docClient.send(new DeleteCommand({
-    TableName: (Resource as any).MemoryTable.name,
+    TableName: (Resource as { MemoryTable: { name: string } }).MemoryTable.name,
     Key: { userId, timestamp }
   }));
 

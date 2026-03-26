@@ -28,7 +28,8 @@
       "testability-index",
       "doc-drift",
       "dependency-health",
-      "change-amplification"
+      "change-amplification",
+      "contract-enforcement"
     ]
   },
   "output": {

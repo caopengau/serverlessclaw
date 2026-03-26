@@ -112,7 +112,7 @@ export default function ScheduleList() {
       const response = await fetch('/api/scheduling');
       if (!response.ok) throw new Error('Failed to fetch schedules');
       const data = await response.json();
-      setSchedules(data.sort((a: any, b: any) => 
+      setSchedules(data.sort((a: Schedule, b: Schedule) => 
         new Date(b.CreationDate).getTime() - new Date(a.CreationDate).getTime()
       ));
     } catch (error) {
@@ -558,7 +558,7 @@ export default function ScheduleList() {
   );
 }
 
-const ActivityIcon = ({ size, className }: any) => (
+const ActivityIcon = ({ size, className }: { size?: number; className?: string }) => (
   <svg 
     width={size} 
     height={size} 

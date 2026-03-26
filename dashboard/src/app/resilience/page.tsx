@@ -15,7 +15,7 @@ import { DynamoMemory } from '@claw/core/lib/memory';
 
 
 async function getHealth() {
-  const typedResource = Resource as any;
+  const typedResource = Resource as { WebhookApi?: { url: string } };
   const apiUrl = typedResource.WebhookApi?.url || process.env.API_URL;
 
   
@@ -64,8 +64,7 @@ async function getRecoveryLogs() {
   try {
     const memory = new DynamoMemory();
     const items = await memory.listByPrefix('DISTILLED#RECOVERY');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (items ?? []).sort((a: any, b: any) => b.timestamp - a.timestamp);
+    return (items ?? []).sort((a: { timestamp?: number }, b: { timestamp?: number }) => (b.timestamp ?? 0) - (a.timestamp ?? 0));
 
   } catch (e) {
     console.error('Error fetching recovery logs:', e);
@@ -196,7 +195,7 @@ export default async function ResilienceHub() {
             <div className="space-y-3">
               {logs.length > 0 ? (
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                logs.map((log: any, idx: number) => (
+                logs.map((log: { timestamp?: number; key?: string; value?: string }, idx: number) => (
 
                   <div key={idx} className="glass-card p-4 border-white/5 hover:bg-white/[0.02] transition-all group">
                     <div className="flex justify-between items-start mb-2">

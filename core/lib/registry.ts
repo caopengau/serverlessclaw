@@ -212,8 +212,7 @@ export class AgentRegistry {
    * @param config - The new agent configuration to save.
    */
   static async saveConfig(id: string, config: IAgentConfig): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { ConfigTable } = (await import('sst')).Resource as any;
+    const { ConfigTable } = (await import('sst')).Resource as { ConfigTable?: { name: string } };
     if (!ConfigTable?.name) {
       logger.warn(`ConfigTable not linked. Skipping save for ${id}`);
       return;
@@ -258,8 +257,7 @@ export class AgentRegistry {
    * @returns A promise that resolves when the usage has been recorded.
    */
   static async recordToolUsage(toolName: string, agentId: string = 'unknown'): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { ConfigTable } = (await import('sst')).Resource as any;
+    const { ConfigTable } = (await import('sst')).Resource as { ConfigTable?: { name: string } };
     if (!ConfigTable?.name) return;
 
     const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
@@ -280,9 +278,8 @@ export class AgentRegistry {
             ExpressionAttributeValues: { ':one': 1, ':zero': 0, ':now': Date.now() },
           })
         );
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (e: any) {
-        if (e.name === 'ValidationException') {
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name === 'ValidationException') {
           await this.saveRawConfig(key, { [toolName]: { count: 1, lastUsed: Date.now() } });
         }
       }

@@ -21,7 +21,7 @@ async function getCloudWatchClient(): Promise<CloudWatchClientType | null> {
 
   try {
     const { CloudWatchClient } = await import('@aws-sdk/client-cloudwatch');
-    cloudwatch = new CloudWatchClient({}) as unknown as CloudWatchClientType;
+    cloudwatch = new CloudWatchClient({}) as CloudWatchClientType;
     return cloudwatch;
   } catch {
     return null;

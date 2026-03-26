@@ -58,8 +58,7 @@ export interface ToolTokenRollup {
 }
 
 function getTableName(): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const resource = Resource as any;
+  const resource = Resource as { MemoryTable?: { name: string } };
   return resource?.MemoryTable?.name ?? 'MemoryTable';
 }
 

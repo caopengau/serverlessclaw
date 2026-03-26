@@ -41,10 +41,8 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
             trace.steps
               .filter((s: TraceStep) => s.type === TRACE_TYPES.TOOL_CALL)
               .map((s: TraceStep) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const toolName = (s.content as any).toolName || '';
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const tool = (s.content as any).tool || '';
+                const toolName = s.content.toolName || '';
+                const tool = s.content.tool || '';
                 return toolName || tool;
               })
           ))
@@ -62,8 +60,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
       let totalTokens = 0;
       trace.steps?.forEach((s: TraceStep) => {
         if (s.type === TRACE_TYPES.LLM_RESPONSE && s.content?.usage) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const tokens = (s.content as any).usage?.total_tokens || 0;
+            const tokens = s.content.usage?.total_tokens || 0;
           totalTokens += tokens;
         }
       });
@@ -83,7 +80,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
   const filteredTraces = useMemo(() => {
     return traces.filter(trace => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const text = (trace.initialContext as any).userText || '';
+      const text = trace.initialContext?.userText || '';
       const matchesSearch = 
         trace.traceId.toLowerCase().includes(searchQuery.toLowerCase()) ||
         text.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -150,7 +147,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
   }, [filteredTraces, activeTab, sessionTitles]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const renderTraceCard = (trace: any) => (
+  const renderTraceCard = (trace: Trace) => (
     <div key={trace.traceId} className="relative group">
       <Link 
         href={`/trace/${trace.traceId}?t=${trace.timestamp}`}
@@ -264,8 +261,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
 
           <select 
             value={statusFilter}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            onChange={(e) => setStatusFilter(e.target.value as any)}
+                onChange={(e) => setStatusFilter'all'}
             className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase text-white/70 focus:outline-none focus:border-cyber-blue/50"
           >
             <option value="all">ALL_STATUS</option>
@@ -281,12 +277,12 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
         {activeTab === 'timeline' || activeTab === 'usage' ? (
           <div className="grid gap-3">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {(groupedData as any[]).map(trace => renderTraceCard(trace))}
+            {(groupedData as Trace[]).map(trace => renderTraceCard(trace))}
           </div>
         ) : (
           <div className="space-y-8">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {(groupedData as any[]).map(([groupName, groupTraces]) => (
+            {(groupedData as Array<[string, Trace[]]>).map(([groupName, groupTraces]) => (
               <div key={groupName} className="space-y-4">
                 <div className="flex items-center gap-3">
                   <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
@@ -297,7 +293,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
                 </div>
                 <div className="grid gap-3">
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  {groupTraces.map((trace: any) => renderTraceCard(trace))}
+                  {groupTraces.map((trace: Trace) => renderTraceCard(trace))}
                 </div>
               </div>
             ))}

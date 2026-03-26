@@ -32,18 +32,21 @@ export interface ProviderModel {
 export interface TraceStepContent {
   tool?: string;
   toolName?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  result?: any; // result can be anything (images, objects, strings)
+  result?: unknown; // result can be anything (images, objects, strings)
   content?: string;
   tool_calls?: { function: { name: string; arguments: string } }[];
   response?: string;
   messages?: { role: string; content: string }[];
   agentId?: string;
   userText?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  args?: Record<string, any>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  [key: string]: any;
+  usage?: {
+    total_tokens?: number;
+    prompt_tokens?: number;
+    completion_tokens?: number;
+  };
+  args?: Record<string, unknown>;
+  model?: string;
+  [key: string]: unknown;
 }
 
 export interface TraceStep {

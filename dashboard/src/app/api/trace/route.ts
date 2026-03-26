@@ -83,8 +83,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
                   }
                 } catch (err: unknown) {
                   const errorMsg = err instanceof Error ? err.name : String(err);
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  if (errorMsg === 'ThrottlingException' || (err as any).__type?.includes('ThrottlingException')) {
+                  if (errorMsg === 'ThrottlingException' || (err as { __type?: string }).__type?.includes('ThrottlingException')) {
                     console.warn(`[Trace API] Throttled. Retrying attempt ${retries + 1}...`);
                     retries++;
                     await new Promise(r => setTimeout(r, Math.pow(2, retries) * 200)); // More aggressive backoff

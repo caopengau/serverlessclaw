@@ -39,8 +39,7 @@ export class ConfigManager {
    * @returns A promise resolving to the configuration value or undefined.
    */
   public static async getRawConfig(key: string): Promise<unknown> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resource = Resource as any;
+    const resource = Resource as { ConfigTable?: { name: string } };
     if (!('ConfigTable' in resource)) {
       logger.warn(`ConfigTable not linked. Skipping fetch for ${key}`);
       return undefined;
@@ -49,7 +48,7 @@ export class ConfigManager {
     try {
       const { Item } = await getDocClient().send(
         new GetCommand({
-          TableName: resource.ConfigTable.name,
+          TableName: resource.ConfigTable?.name,
           Key: { key },
         })
       );
@@ -109,8 +108,7 @@ export class ConfigManager {
       skipVersioning?: boolean;
     }
   ): Promise<void> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resource = Resource as any;
+    const resource = Resource as { ConfigTable?: { name: string } };
     if (!('ConfigTable' in resource)) {
       logger.warn(`ConfigTable not linked. Skipping save for ${key}`);
       return;
@@ -137,7 +135,7 @@ export class ConfigManager {
     try {
       await getDocClient().send(
         new PutCommand({
-          TableName: resource.ConfigTable.name,
+          TableName: resource.ConfigTable?.name,
           Item: { key, value },
         })
       );
@@ -153,8 +151,7 @@ export class ConfigManager {
    * @returns A promise resolving to the table name or undefined.
    */
   public static async resolveTableName(): Promise<string | undefined> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resource = Resource as any;
-    return 'ConfigTable' in resource ? resource.ConfigTable.name : undefined;
+    const resource = Resource as { ConfigTable?: { name: string } };
+    return 'ConfigTable' in resource ? resource.ConfigTable!.name : undefined;
   }
 }
