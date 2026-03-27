@@ -202,8 +202,46 @@ export class ParallelAggregator {
           aggregationType?: 'summary' | 'agent_guided';
           aggregationPrompt?: string;
           metadata?: Record<string, unknown>;
+          version?: number;
         }
       | undefined;
+  }
+
+  /**
+   * Atomically updates the DAG execution state using optimistic concurrency control.
+   */
+  async updateDagState(
+    userId: string,
+    traceId: string,
+    dagState: any,
+    expectedVersion: number
+  ): Promise<boolean> {
+    try {
+      await docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: {
+            userId: `${PARALLEL_PREFIX}${userId}#${traceId}`,
+            timestamp: 0,
+          },
+          UpdateExpression: 'SET metadata.dagState = :dagState, version = :nextVersion',
+          ConditionExpression:
+            'attribute_exists(userId) AND (attribute_not_exists(version) OR version = :expectedVersion)',
+          ExpressionAttributeValues: {
+            ':dagState': dagState,
+            ':expectedVersion': expectedVersion,
+            ':nextVersion': expectedVersion + 1,
+          },
+        })
+      );
+      return true;
+    } catch (error: any) {
+      if (error.name === 'ConditionalCheckFailedException') {
+        return false;
+      }
+      logger.error('Error updating parallel dagState:', error);
+      throw error;
+    }
   }
 
   /**

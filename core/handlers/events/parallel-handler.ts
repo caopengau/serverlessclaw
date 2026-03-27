@@ -114,30 +114,53 @@ export async function handleParallelDispatch(
     const isValid = validateDependencyGraph(dagState);
 
     if (!isValid) {
-      logger.error(
-        'Invalid dependency graph (cycle detected). Falling back to parallel execution.'
-      );
-      // Fall through to standard parallel execution
-    } else {
-      // Get initial ready tasks (no dependencies)
-      const readyTasks = getReadyTasks(dagState);
+      logger.error('Invalid dependency graph (cycle detected). Failing dispatch immediately.');
 
-      if (readyTasks.length === 0) {
-        logger.error('No tasks ready to execute (all have unsatisfied dependencies)');
-        return;
-      }
+      // Mark aggregator as failed to prevent hanging barriers
+      await aggregator.markAsCompleted(userId, safeTraceId, 'failed');
 
-      // Dispatch ready tasks
-      for (const task of readyTasks) {
-        await dispatchTask(task, safeTraceId, initiatorId, depth, sessionId, userId);
-      }
-
-      logger.info(
-        `DAG mode: Dispatched ${readyTasks.length} initial tasks. ` +
-          `${tasks.length - readyTasks.length} tasks waiting for dependencies.`
+      // Emit a completion event to notify orchestrator of failure
+      const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
+      await emitTypedEvent(
+        'events.handler',
+        EventType.PARALLEL_TASK_COMPLETED as unknown as SchemaEventType,
+        {
+          userId,
+          sessionId,
+          traceId: safeTraceId,
+          taskId: safeTraceId,
+          initiatorId: initiatorId ?? 'parallel-dispatcher',
+          depth,
+          overallStatus: 'failed',
+          results: [],
+          taskCount: tasks.length,
+          completedCount: 0,
+          elapsedMs: 0,
+          aggregationType,
+          aggregationPrompt,
+        }
       );
       return;
     }
+
+    // Get initial ready tasks (no dependencies)
+    const readyTasks = getReadyTasks(dagState);
+
+    if (readyTasks.length === 0) {
+      logger.error('No tasks ready to execute (all have unsatisfied dependencies)');
+      return;
+    }
+
+    // Dispatch ready tasks
+    for (const task of readyTasks) {
+      await dispatchTask(task, safeTraceId, initiatorId, depth, sessionId, userId);
+    }
+
+    logger.info(
+      `DAG mode: Dispatched ${readyTasks.length} initial tasks. ` +
+        `${tasks.length - readyTasks.length} tasks waiting for dependencies.`
+    );
+    return;
   }
 
   // Standard parallel execution (no dependencies)

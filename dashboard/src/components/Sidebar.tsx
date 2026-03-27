@@ -15,7 +15,8 @@ import {
   Brain,
   Wrench,
   Server,
-  Calendar
+  Calendar,
+  GitBranch
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -54,6 +55,7 @@ export default function Sidebar() {
     
     { label: UI_STRINGS.INFRA_HEADER, type: 'header' },
     { href: ROUTES.SYSTEM_PULSE, label: UI_STRINGS.SYSTEM_PULSE, icon: Share2 },
+    { href: ROUTES.COLLABORATION, label: UI_STRINGS.COLLABORATION, icon: GitBranch },
     { href: ROUTES.LOCKS, label: UI_STRINGS.SESSION_TRAFFIC, icon: Lock },
     { href: ROUTES.RESILIENCE, label: UI_STRINGS.SELF_HEALING, icon: Zap },
     { href: ROUTES.SETTINGS, label: UI_STRINGS.CONFIG, icon: Settings },

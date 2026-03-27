@@ -27,7 +27,7 @@ describe('DAG Executor', () => {
 
       const state = buildDependencyGraph(tasks);
 
-      expect(state.nodes.size).toBe(3);
+      expect(Object.keys(state.nodes).length).toBe(3);
       expect(state.readyQueue).toContain('task1');
       expect(state.readyQueue).not.toContain('task2');
       expect(state.readyQueue).not.toContain('task3');
@@ -58,8 +58,8 @@ describe('DAG Executor', () => {
       const state = buildDependencyGraph(tasks);
 
       expect(state.readyQueue).toEqual(['A']);
-      expect(state.nodes.get('A')?.dependents).toContain('B');
-      expect(state.nodes.get('A')?.dependents).toContain('C');
+      expect(state.nodes['A']?.dependents).toContain('B');
+      expect(state.nodes['A']?.dependents).toContain('C');
     });
   });
 
@@ -140,10 +140,10 @@ describe('DAG Executor', () => {
       const state = buildDependencyGraph(tasks);
       completeTask(state, 'A', 'result from A');
 
-      expect(state.nodes.get('A')?.status).toBe('completed');
-      expect(state.nodes.get('A')?.result).toBe('result from A');
+      expect(state.nodes['A']?.status).toBe('completed');
+      expect(state.nodes['A']?.result).toBe('result from A');
       expect(getTaskOutput(state, 'A')).toBe('result from A');
-      expect(state.completedTasks.has('A')).toBe(true);
+      expect(state.completedTasks.includes('A')).toBe(true);
     });
 
     it('should make dependent tasks ready', () => {
@@ -166,9 +166,9 @@ describe('DAG Executor', () => {
       const state = buildDependencyGraph(tasks);
       failTask(state, 'A', 'Task A failed');
 
-      expect(state.nodes.get('A')?.status).toBe('failed');
-      expect(state.nodes.get('A')?.error).toBe('Task A failed');
-      expect(state.failedTasks.has('A')).toBe(true);
+      expect(state.nodes['A']?.status).toBe('failed');
+      expect(state.nodes['A']?.error).toBe('Task A failed');
+      expect(state.failedTasks.includes('A')).toBe(true);
     });
 
     it('should cascade failure to dependents', () => {
@@ -181,10 +181,10 @@ describe('DAG Executor', () => {
       const state = buildDependencyGraph(tasks);
       failTask(state, 'A', 'Task A failed');
 
-      expect(state.nodes.get('B')?.status).toBe('failed');
-      expect(state.nodes.get('C')?.status).toBe('failed');
-      expect(state.failedTasks.has('B')).toBe(true);
-      expect(state.failedTasks.has('C')).toBe(true);
+      expect(state.nodes['B']?.status).toBe('failed');
+      expect(state.nodes['C']?.status).toBe('failed');
+      expect(state.failedTasks.includes('B')).toBe(true);
+      expect(state.failedTasks.includes('C')).toBe(true);
     });
   });
 
@@ -260,8 +260,7 @@ describe('DAG Executor', () => {
         dependsOn: ['A'],
       };
 
-      const outputs = new Map<string, unknown>();
-      outputs.set('A', { data: 'result from A' });
+      const outputs: Record<string, unknown> = { A: { data: 'result from A' } };
 
       const enrichedTask = createTaskWithDependencyContext(task, outputs);
 
@@ -278,7 +277,7 @@ describe('DAG Executor', () => {
         task: 'Do something',
       };
 
-      const outputs = new Map<string, unknown>();
+      const outputs: Record<string, unknown> = {};
       const enrichedTask = createTaskWithDependencyContext(task, outputs);
 
       expect(enrichedTask).toBe('Do something');

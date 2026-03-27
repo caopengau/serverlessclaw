@@ -11,9 +11,9 @@ export interface TaskNode {
 }
 
 export interface DAGExecutionState {
-  nodes: Map<string, TaskNode>;
+  nodes: Record<string, TaskNode>;
   readyQueue: string[];
-  completedTasks: Set<string>;
-  failedTasks: Set<string>;
-  outputs: Map<string, unknown>;
+  completedTasks: string[];
+  failedTasks: string[];
+  outputs: Record<string, unknown>;
 }

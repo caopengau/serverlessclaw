@@ -11,23 +11,23 @@ import { TaskNode, DAGExecutionState } from '../types/dag';
  * Builds a dependency graph from task definitions
  */
 export function buildDependencyGraph(tasks: ParallelTaskDefinition[]): DAGExecutionState {
-  const nodes = new Map<string, TaskNode>();
+  const nodes: Record<string, TaskNode> = {};
   const readyQueue: string[] = [];
 
   // Create nodes for all tasks
   for (const task of tasks) {
-    nodes.set(task.taskId, {
+    nodes[task.taskId] = {
       task,
       dependencies: task.dependsOn ?? [],
       dependents: [],
       status: 'pending',
-    });
+    };
   }
 
   // Build dependency relationships
-  for (const [taskId, node] of nodes) {
+  for (const [taskId, node] of Object.entries(nodes)) {
     for (const depId of node.dependencies) {
-      const depNode = nodes.get(depId);
+      const depNode = nodes[depId];
       if (depNode) {
         depNode.dependents.push(taskId);
       } else {
@@ -37,7 +37,7 @@ export function buildDependencyGraph(tasks: ParallelTaskDefinition[]): DAGExecut
   }
 
   // Find tasks with no dependencies (ready to run)
-  for (const [taskId, node] of nodes) {
+  for (const [taskId, node] of Object.entries(nodes)) {
     if (node.dependencies.length === 0) {
       node.status = 'ready';
       readyQueue.push(taskId);
@@ -47,9 +47,9 @@ export function buildDependencyGraph(tasks: ParallelTaskDefinition[]): DAGExecut
   return {
     nodes,
     readyQueue,
-    completedTasks: new Set(),
-    failedTasks: new Set(),
-    outputs: new Map(),
+    completedTasks: [],
+    failedTasks: [],
+    outputs: {},
   };
 }
 
@@ -66,7 +66,7 @@ export function validateDependencyGraph(state: DAGExecutionState): boolean {
     if (visited.has(taskId)) return false;
 
     visiting.add(taskId);
-    const node = state.nodes.get(taskId);
+    const node = state.nodes[taskId];
     if (node) {
       for (const depId of node.dependencies) {
         if (hasCycle(depId)) return true;
@@ -77,7 +77,7 @@ export function validateDependencyGraph(state: DAGExecutionState): boolean {
     return false;
   }
 
-  for (const taskId of state.nodes.keys()) {
+  for (const taskId of Object.keys(state.nodes)) {
     if (hasCycle(taskId)) {
       logger.error(`Dependency cycle detected involving task ${taskId}`);
       return false;
@@ -95,10 +95,12 @@ export function getReadyTasks(state: DAGExecutionState): ParallelTaskDefinition[
   const ready: ParallelTaskDefinition[] = [];
 
   // Check all pending tasks to see if their dependencies are satisfied
-  for (const [taskId, node] of state.nodes) {
+  for (const [taskId, node] of Object.entries(state.nodes)) {
     if (node.status !== 'pending') continue;
 
-    const allDepsCompleted = node.dependencies.every((depId) => state.completedTasks.has(depId));
+    const allDepsCompleted = node.dependencies.every((depId) =>
+      state.completedTasks.includes(depId)
+    );
 
     if (allDepsCompleted) {
       node.status = 'ready';
@@ -109,7 +111,7 @@ export function getReadyTasks(state: DAGExecutionState): ParallelTaskDefinition[
   // Get tasks from ready queue
   while (state.readyQueue.length > 0) {
     const taskId = state.readyQueue.shift()!;
-    const node = state.nodes.get(taskId);
+    const node = state.nodes[taskId];
     if (node && node.status === 'ready') {
       ready.push(node.task);
       node.status = 'running';
@@ -123,7 +125,7 @@ export function getReadyTasks(state: DAGExecutionState): ParallelTaskDefinition[
  * Marks a task as completed with its result
  */
 export function completeTask(state: DAGExecutionState, taskId: string, result: unknown): void {
-  const node = state.nodes.get(taskId);
+  const node = state.nodes[taskId];
   if (!node) {
     logger.warn(`Cannot complete non-existent task ${taskId}`);
     return;
@@ -132,15 +134,17 @@ export function completeTask(state: DAGExecutionState, taskId: string, result: u
   node.status = 'completed';
   node.result = result;
   node.completedAt = Date.now();
-  state.completedTasks.add(taskId);
-  state.outputs.set(taskId, result);
+  if (!state.completedTasks.includes(taskId)) {
+    state.completedTasks.push(taskId);
+  }
+  state.outputs[taskId] = result;
 
   // Check if any dependent tasks are now ready
   for (const dependentId of node.dependents) {
-    const dependentNode = state.nodes.get(dependentId);
+    const dependentNode = state.nodes[dependentId];
     if (dependentNode && dependentNode.status === 'pending') {
       const allDepsCompleted = dependentNode.dependencies.every((depId) =>
-        state.completedTasks.has(depId)
+        state.completedTasks.includes(depId)
       );
       if (allDepsCompleted) {
         dependentNode.status = 'ready';
@@ -156,7 +160,7 @@ export function completeTask(state: DAGExecutionState, taskId: string, result: u
  * Marks a task as failed
  */
 export function failTask(state: DAGExecutionState, taskId: string, error: string): void {
-  const node = state.nodes.get(taskId);
+  const node = state.nodes[taskId];
   if (!node) {
     logger.warn(`Cannot fail non-existent task ${taskId}`);
     return;
@@ -164,18 +168,22 @@ export function failTask(state: DAGExecutionState, taskId: string, error: string
 
   node.status = 'failed';
   node.error = error;
-  state.failedTasks.add(taskId);
+  if (!state.failedTasks.includes(taskId)) {
+    state.failedTasks.push(taskId);
+  }
 
   // Fail all dependent tasks recursively
   function failDependents(id: string) {
-    const n = state.nodes.get(id);
+    const n = state.nodes[id];
     if (n) {
       for (const dependentId of n.dependents) {
-        const dependentNode = state.nodes.get(dependentId);
+        const dependentNode = state.nodes[dependentId];
         if (dependentNode && dependentNode.status !== 'completed') {
           dependentNode.status = 'failed';
           dependentNode.error = `Dependency ${id} failed`;
-          state.failedTasks.add(dependentId);
+          if (!state.failedTasks.includes(dependentId)) {
+            state.failedTasks.push(dependentId);
+          }
           failDependents(dependentId);
         }
       }
@@ -190,14 +198,14 @@ export function failTask(state: DAGExecutionState, taskId: string, error: string
  * Gets the output from a completed task
  */
 export function getTaskOutput(state: DAGExecutionState, taskId: string): unknown {
-  return state.outputs.get(taskId);
+  return state.outputs[taskId];
 }
 
 /**
  * Checks if all tasks are complete (either completed or failed)
  */
 export function isExecutionComplete(state: DAGExecutionState): boolean {
-  for (const node of state.nodes.values()) {
+  for (const node of Object.values(state.nodes)) {
     if (node.status === 'pending' || node.status === 'ready' || node.status === 'running') {
       return false;
     }
@@ -220,7 +228,7 @@ export function getExecutionSummary(state: DAGExecutionState): {
   let pending = 0;
   let ready = 0;
 
-  for (const node of state.nodes.values()) {
+  for (const node of Object.values(state.nodes)) {
     switch (node.status) {
       case 'completed':
         completed++;
@@ -239,7 +247,7 @@ export function getExecutionSummary(state: DAGExecutionState): {
   }
 
   return {
-    total: state.nodes.size,
+    total: Object.keys(state.nodes).length,
     completed,
     failed,
     pending,
@@ -252,7 +260,7 @@ export function getExecutionSummary(state: DAGExecutionState): {
  */
 export function createTaskWithDependencyContext(
   task: ParallelTaskDefinition,
-  dependencyOutputs: Map<string, unknown>
+  dependencyOutputs: Record<string, unknown>
 ): string {
   if (!task.dependsOn || task.dependsOn.length === 0) {
     return task.task;
@@ -261,7 +269,7 @@ export function createTaskWithDependencyContext(
   let enrichedTask = task.task + '\n\n[DEPENDENCY CONTEXT]:\n';
 
   for (const depId of task.dependsOn) {
-    const output = dependencyOutputs.get(depId);
+    const output = dependencyOutputs[depId];
     if (output !== undefined) {
       enrichedTask += `\n--- Output from ${depId} ---\n`;
       enrichedTask += typeof output === 'string' ? output : JSON.stringify(output, null, 2);
