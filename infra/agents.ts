@@ -249,7 +249,7 @@ export function createAgents(
   const deadMansSwitch = new sst.aws.Function('DeadMansSwitch', {
     handler: 'core/handlers/recovery.handler',
     dev: liveInLocalOnly,
-    link: [...baseLink, deployer],
+    link: [...baseLink, deployer, ctx.api],
     permissions: basePermissions,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },

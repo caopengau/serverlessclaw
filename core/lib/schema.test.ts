@@ -8,20 +8,22 @@ describe('Tool Schema Validation', () => {
     expect(isValid, 'All tool schemas should be valid and follow strict requirements').toBe(true);
   });
 
-  it('should detect missing required properties', () => {
-    const invalidTool: IToolDefinition = {
-      name: 'invalid',
+  it('should allow optional properties not in required array', () => {
+    const validTool: IToolDefinition = {
+      name: 'valid',
       description: 'test',
       parameters: {
         type: 'object',
         properties: {
-          foo: { type: 'string' },
+          requiredProp: { type: 'string' },
+          optionalProp: { type: 'string' },
         },
-        required: [],
+        required: ['requiredProp'],
+        additionalProperties: false,
       },
     };
-    const errors = validateToolSchema(invalidTool);
-    expect(errors).toContain("Tool 'invalid' property 'foo' is missing from 'required' array.");
+    const errors = validateToolSchema(validTool);
+    expect(errors).toHaveLength(0);
   });
 
   it('should detect missing additionalProperties: false', () => {

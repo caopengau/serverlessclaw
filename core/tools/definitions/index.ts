@@ -7,6 +7,7 @@ import { mcpTools } from './mcp';
 import { skillsTools } from './skills';
 import { systemTools } from './system';
 import { clarificationTools } from './clarification';
+import { collaborationTools } from './collaboration';
 import { schedulerDefinitions } from './scheduler';
 import { metadataTools } from './metadata';
 import { gitTools } from './git';
@@ -26,6 +27,7 @@ export const toolDefinitions: Record<string, IToolDefinition> = {
   ...skillsTools,
   ...systemTools,
   ...clarificationTools,
+  ...collaborationTools,
   ...schedulerDefinitions,
   ...metadataTools,
   ...gitTools,
@@ -42,6 +44,7 @@ export {
   skillsTools,
   systemTools,
   clarificationTools,
+  collaborationTools,
   schedulerDefinitions,
   metadataTools,
   gitTools,

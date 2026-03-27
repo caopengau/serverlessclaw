@@ -17,6 +17,7 @@ import * as InsightOps from './memory/insight-operations';
 import * as SessionOps from './memory/session-operations';
 import * as MemoryUtils from './memory/utils';
 import * as ClarificationOps from './memory/clarification-operations';
+import * as CollaborationOps from './memory/collaboration-operations';
 
 /**
  * Implementation of IMemory using AWS DynamoDB for persistent storage
@@ -376,5 +377,94 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
    */
   async getGlobalLessons(limit?: number): Promise<string[]> {
     return InsightOps.getGlobalLessons(this, limit);
+  }
+
+  // Collaboration Operations
+
+  /**
+   * Creates a new collaboration with a shared session.
+   */
+  async createCollaboration(
+    ownerId: string,
+    ownerType: import('./types/collaboration').ParticipantType,
+    input: import('./types/collaboration').CreateCollaborationInput
+  ): Promise<import('./types/collaboration').Collaboration> {
+    return CollaborationOps.createCollaboration(this, ownerId, ownerType, input);
+  }
+
+  /**
+   * Gets a collaboration by ID.
+   */
+  async getCollaboration(
+    collaborationId: string
+  ): Promise<import('./types/collaboration').Collaboration | null> {
+    return CollaborationOps.getCollaboration(this, collaborationId);
+  }
+
+  /**
+   * Adds a participant to a collaboration.
+   */
+  async addCollaborationParticipant(
+    collaborationId: string,
+    actorId: string,
+    actorType: import('./types/collaboration').ParticipantType,
+    newParticipant: {
+      type: import('./types/collaboration').ParticipantType;
+      id: string;
+      role: import('./types/collaboration').CollaborationRole;
+    }
+  ): Promise<void> {
+    return CollaborationOps.addCollaborationParticipant(
+      this,
+      collaborationId,
+      actorId,
+      actorType,
+      newParticipant
+    );
+  }
+
+  /**
+   * Lists collaborations for a participant.
+   */
+  async listCollaborationsForParticipant(
+    participantId: string,
+    participantType: import('./types/collaboration').ParticipantType
+  ): Promise<
+    Array<{
+      collaborationId: string;
+      role: import('./types/collaboration').CollaborationRole;
+      collaborationName: string;
+    }>
+  > {
+    return CollaborationOps.listCollaborationsForParticipant(this, participantId, participantType);
+  }
+
+  /**
+   * Checks if a participant has access to a collaboration.
+   */
+  async checkCollaborationAccess(
+    collaborationId: string,
+    participantId: string,
+    participantType: import('./types/collaboration').ParticipantType,
+    requiredRole?: import('./types/collaboration').CollaborationRole
+  ): Promise<boolean> {
+    return CollaborationOps.checkCollaborationAccess(
+      this,
+      collaborationId,
+      participantId,
+      participantType,
+      requiredRole
+    );
+  }
+
+  /**
+   * Closes a collaboration.
+   */
+  async closeCollaboration(
+    collaborationId: string,
+    actorId: string,
+    actorType: import('./types/collaboration').ParticipantType
+  ): Promise<void> {
+    return CollaborationOps.closeCollaboration(this, collaborationId, actorId, actorType);
   }
 }

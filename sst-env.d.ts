@@ -43,6 +43,10 @@ declare module "sst" {
       "name": string
       "type": "sst.aws.Dynamo"
     }
+    "CriticAgent": {
+      "name": string
+      "type": "sst.aws.Function"
+    }
     "DashboardPassword": {
       "type": "sst.sst.Secret"
       "value": string

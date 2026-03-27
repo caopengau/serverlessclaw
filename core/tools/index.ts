@@ -18,6 +18,7 @@ import * as debugTools from './debug';
 import * as validationTools from './validation';
 import * as gitTools from './git';
 import * as orchestrationTools from './orchestration';
+import * as collaborationTools from './collaboration';
 
 // Filter knowledgeTools to only include ITool exports (exclude utility functions like formatErrorMessage)
 const knowledgeToolEntries = Object.entries(knowledgeTools).filter(
@@ -58,6 +59,12 @@ export const TOOLS: Record<string, ITool> = {
   ),
   ...Object.fromEntries(
     Object.entries(orchestrationTools).map(([k, v]) => [
+      k.includes('_') ? k.toLowerCase().replace(/_([a-z])/g, (_, p1) => p1.toUpperCase()) : k,
+      v,
+    ])
+  ),
+  ...Object.fromEntries(
+    Object.entries(collaborationTools).map(([k, v]) => [
       k.includes('_') ? k.toLowerCase().replace(/_([a-z])/g, (_, p1) => p1.toUpperCase()) : k,
       v,
     ])

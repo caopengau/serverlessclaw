@@ -31,16 +31,33 @@ export const handler: Handler = async (event: WarmupEvent, _context: Context) =>
       }
 
       try {
-        // Invoke the Lambda with a health check payload
+        // Invoke the Lambda with a JSON-RPC 2.0 initialize request
+        // MCP servers expect proper JSON-RPC format, not plain HTTP
+        const jsonRpcRequest = {
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'initialize',
+          params: {
+            protocolVersion: '2024-11-05',
+            capabilities: {},
+            clientInfo: {
+              name: 'warmup',
+              version: '1.0.0',
+            },
+          },
+        };
+
         await lambdaClient.send(
           new InvokeCommand({
             FunctionName: arn,
             InvocationType: 'RequestResponse',
             Payload: JSON.stringify({
-              httpMethod: 'GET',
-              path: '/health',
-              headers: {},
-              body: null,
+              httpMethod: 'POST',
+              path: '/mcp',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(jsonRpcRequest),
             }),
           })
         );

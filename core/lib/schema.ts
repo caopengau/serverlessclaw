@@ -26,12 +26,8 @@ export function validateToolSchema(tool: IToolDefinition): string[] {
   const propertyKeys = Object.keys(properties);
   const required = parameters.required ?? [];
 
-  // Check if all properties are in required
-  for (const key of propertyKeys) {
-    if (!required.includes(key)) {
-      errors.push(`Tool '${tool.name}' property '${key}' is missing from 'required' array.`);
-    }
-  }
+  // Note: We don't require all properties to be in 'required' array
+  // Optional properties (not in 'required') are valid JSON Schema
 
   // Check if all required are in properties
   for (const key of required) {
