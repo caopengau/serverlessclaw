@@ -10,6 +10,27 @@ export enum TraceType {
   EMIT = 'emit',
   BRIDGE = 'bridge',
   ERROR = 'error',
+  // Agent Communication patterns
+  CLARIFICATION_REQUEST = 'clarification_request',
+  CLARIFICATION_RESPONSE = 'clarification_response',
+  PARALLEL_DISPATCH = 'parallel_dispatch',
+  PARALLEL_BARRIER = 'parallel_barrier',
+  PARALLEL_COMPLETED = 'parallel_completed',
+  COUNCIL_REVIEW = 'council_review',
+  CONTINUATION = 'continuation',
+  // System Events
+  CIRCUIT_BREAKER = 'circuit_breaker',
+  CANCELLATION = 'cancellation',
+  MEMORY_OPERATION = 'memory_operation',
+  // Agent State
+  AGENT_WAITING = 'agent_waiting',
+  AGENT_RESUMED = 'agent_resumed',
+  // Agent Activity
+  PLAN_GENERATED = 'plan_generated',
+  CODE_WRITTEN = 'code_written',
+  REVIEW_COMPLETE = 'review_complete',
+  AUDIT_COMPLETE = 'audit_complete',
+  AGGREGATION_COMPLETE = 'aggregation_complete',
 }
 
 /**

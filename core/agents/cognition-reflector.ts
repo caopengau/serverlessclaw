@@ -106,10 +106,10 @@ export const handler = async (
   const failurePatterns = await memory.getFailurePatterns(baseUserId, '*', 5);
 
   // Get gap context
-  const { deployedGaps, activeGaps } = await getGapContext(memory);
+  const { deployedGaps, activeGaps } = await getGapContext(memory as any);
 
   const reflectionPrompt = await buildReflectionPrompt(
-    memory,
+    memory as any,
     baseUserId,
     conversation,
     traceContext,

@@ -260,6 +260,8 @@ export enum AgentType {
   COGNITION_REFLECTOR = 'cognition-reflector',
   /** Quality assurance and automated testing agent. */
   QA = 'qa',
+  /** Peer review agent for Council of Agents. */
+  CRITIC = 'critic',
 }
 
 /**
@@ -320,6 +322,8 @@ export enum EventType {
   PARALLEL_BARRIER_TIMEOUT = 'parallel_barrier_timeout',
   /** Real-time message chunk for streaming responses. */
   CHUNK = 'chunk',
+  /** Request for peer review by the Critic Agent (Council of Agents). */
+  CRITIC_TASK = 'critic_task',
 }
 
 /**

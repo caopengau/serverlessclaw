@@ -3,6 +3,7 @@ import CODER_SYSTEM_PROMPT from './coder.md';
 import PLANNER_SYSTEM_PROMPT from './planner.md';
 import REFLECTOR_SYSTEM_PROMPT from './reflector.md';
 import QA_SYSTEM_PROMPT from './qa.md';
+import CRITIC_SYSTEM_PROMPT from './critic.md';
 
 export {
   SUPERCLAW_SYSTEM_PROMPT,
@@ -10,4 +11,5 @@ export {
   PLANNER_SYSTEM_PROMPT,
   REFLECTOR_SYSTEM_PROMPT,
   QA_SYSTEM_PROMPT,
+  CRITIC_SYSTEM_PROMPT,
 };

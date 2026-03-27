@@ -14,6 +14,7 @@ import {
   PLANNER_SYSTEM_PROMPT,
   REFLECTOR_SYSTEM_PROMPT,
   QA_SYSTEM_PROMPT,
+  CRITIC_SYSTEM_PROMPT,
 } from '../agents/prompts/index';
 
 const TOOL_DISCOVER_SKILLS = TOOLS.discoverSkills;
@@ -226,6 +227,39 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       TOOL_SAVE_MEMORY,
       TOOL_SEEK_CLARIFICATION,
       'triggerTrunkSync',
+    ],
+    connectionProfile: [
+      ConnectionProfile.BUS,
+      ConnectionProfile.MEMORY,
+      ConnectionProfile.CONFIG,
+      ConnectionProfile.TRACE,
+      ConnectionProfile.KNOWLEDGE,
+    ],
+  },
+  [AgentType.CRITIC]: {
+    id: AgentType.CRITIC,
+    name: 'Critic Agent',
+    systemPrompt: CRITIC_SYSTEM_PROMPT,
+    description:
+      'Peer review node. Performs security, performance, and architectural reviews for the Council of Agents.',
+    category: AgentCategory.SYSTEM,
+    icon: 'Shield',
+    enabled: true,
+    isBackbone: true,
+    provider: LLMProvider.MINIMAX,
+    model: MiniMaxModel.M2_7,
+    reasoningProfile: ReasoningProfile.THINKING,
+    defaultCommunicationMode: 'json',
+    tools: [
+      TOOL_RECALL_KNOWLEDGE,
+      TOOL_SEND_MESSAGE,
+      TOOL_DISCOVER_SKILLS,
+      TOOL_INSTALL_SKILL,
+      TOOL_SAVE_MEMORY,
+      TOOL_SEEK_CLARIFICATION,
+      'filesystem_read_file',
+      'filesystem_list_directory',
+      'grep_search',
     ],
     connectionProfile: [
       ConnectionProfile.BUS,

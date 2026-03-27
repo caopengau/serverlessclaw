@@ -64,6 +64,13 @@ function getEventBridge(): EventBridgeClient {
   return _eventbridge;
 }
 
+/**
+ * Resets the EventBridge client (used for testing).
+ */
+export function resetEventBridge(): void {
+  _eventbridge = null;
+}
+
 function getDb(): DynamoDBDocumentClient {
   if (!_db) {
     const client = new DynamoDBClient({});
@@ -72,6 +79,13 @@ function getDb(): DynamoDBDocumentClient {
     });
   }
   return _db;
+}
+
+/**
+ * Resets the DynamoDB document client (used for testing).
+ */
+export function resetDb(): void {
+  _db = null;
 }
 
 async function getBusName(): Promise<string> {

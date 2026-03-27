@@ -406,6 +406,27 @@ export function createAgents(
     },
   });
 
+  // 7.5 Critic Agent (Council of Agents peer review)
+  const criticAgent = new sst.aws.Function('CriticAgent', {
+    handler: 'core/agents/critic.handler',
+    dev: liveInLocalOnly,
+    link: baseLink,
+    architecture: LAMBDA_ARCHITECTURE,
+    nodejs: { loader: NODEJS_LOADERS },
+    permissions: [...basePermissions],
+    environment: agentEnv,
+    memory: AGENT_CONFIG.memory.MEDIUM,
+    timeout: AGENT_CONFIG.timeout.LONG,
+    logging: {
+      retention: LOG_RETENTION_PERIOD,
+    },
+  });
+  bus.subscribe('CriticTaskSubscriber', criticAgent.arn, {
+    pattern: {
+      detailType: [EventType.CRITIC_TASK, `${AgentType.CRITIC}_task`],
+    },
+  });
+
   // 8. Notifier
   const notifier = new sst.aws.Function('Notifier', {
     handler: 'core/handlers/notifier.handler',
@@ -461,6 +482,7 @@ export function createAgents(
             `${AgentType.STRATEGIC_PLANNER}_task`,
             `${AgentType.COGNITION_REFLECTOR}_task`,
             `${AgentType.QA}_task`,
+            `${AgentType.CRITIC}_task`,
           ],
         },
       ],

@@ -2,8 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { handler as eventHandler } from '../handlers/events';
 import { EventType } from './types/agent';
+import { resetEventBridge, resetDb } from './utils/bus';
 
 const ebMock = mockClient(EventBridgeClient);
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -72,10 +72,15 @@ describe('Autonomous Loop Closure', () => {
   beforeEach(() => {
     ebMock.reset();
     ddbMock.reset();
+    resetEventBridge();
+    resetDb();
     vi.clearAllMocks();
   });
 
   it('should wake up the initiator agent after a successful build', async () => {
+    // Dynamic import to ensure handler uses mocked clients
+    const { handler: eventHandler } = await import('../handlers/events');
+
     const mockEvent = {
       'detail-type': EventType.SYSTEM_BUILD_SUCCESS,
       detail: {
@@ -101,6 +106,9 @@ describe('Autonomous Loop Closure', () => {
   });
 
   it('should wake up the initiator agent after a failed build', async () => {
+    // Dynamic import to ensure handler uses mocked clients
+    const { handler: eventHandler } = await import('../handlers/events');
+
     const mockEvent = {
       'detail-type': EventType.SYSTEM_BUILD_FAILED,
       detail: {

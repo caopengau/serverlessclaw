@@ -4,6 +4,8 @@ import { Resource } from 'sst';
 import { logger } from './logger';
 import { CONFIG_DEFAULTS } from './config-defaults';
 import { reportHealthIssue } from './health';
+import { addTraceStep } from './utils/trace-helper';
+import { TRACE_TYPES } from './constants';
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const STATE_KEY = 'circuit_breaker_state';
@@ -154,6 +156,9 @@ export class CircuitBreaker {
     const threshold = await this.getThreshold();
     const prunedFailures = pruneOldFailures(state.failures, windowMs);
 
+    let stateChanged = false;
+    const previousState = state.state;
+
     if (state.state === 'half_open') {
       logger.warn(`Circuit Breaker: Probe failed in half-open state. Reopening.`);
       state = {
@@ -164,6 +169,7 @@ export class CircuitBreaker {
         lastFailureTime: now,
         failures: [...prunedFailures, { timestamp: now, type }],
       };
+      stateChanged = true;
     } else if (state.state === 'closed') {
       if (prunedFailures.length + 1 >= threshold) {
         logger.warn(
@@ -176,6 +182,7 @@ export class CircuitBreaker {
           lastFailureTime: now,
           failures: [...prunedFailures, { timestamp: now, type }],
         };
+        stateChanged = true;
       } else {
         state = {
           ...state,
@@ -192,6 +199,23 @@ export class CircuitBreaker {
     }
 
     await saveState(state);
+
+    // Trace: Circuit breaker state change
+    if (stateChanged && context?.traceId) {
+      await addTraceStep(context.traceId, 'root', {
+        type: TRACE_TYPES.CIRCUIT_BREAKER,
+        content: {
+          previousState,
+          newState: state.state,
+          failureType: type,
+          failureCount: state.failures.length,
+          threshold,
+          windowMs,
+          reason: `Circuit breaker transitioned from ${previousState} to ${state.state}`,
+        },
+        metadata: { event: 'circuit_breaker_state_change', newState: state.state },
+      });
+    }
 
     if (state.state === 'open' && context?.userId) {
       await reportHealthIssue({

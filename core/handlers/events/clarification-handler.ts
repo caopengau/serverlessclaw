@@ -3,6 +3,8 @@ import { DynamicScheduler } from '../../lib/scheduler';
 import { ConfigManager } from '../../lib/registry/config';
 import { EventType } from '../../lib/types/agent';
 import { ClarificationStatus } from '../../lib/types/memory';
+import { addTraceStep } from '../../lib/utils/trace-helper';
+import { TRACE_TYPES } from '../../lib/constants';
 
 import { AGENT_PAYLOAD_SCHEMA } from '../../lib/schema/events';
 
@@ -59,10 +61,36 @@ export async function handleClarificationRequest(
     return;
   }
 
+  const safeTraceId = traceId ?? `unknown-${Date.now()}`;
+  const safeAgentId = agentId;
+
+  // Trace: Agent is requesting clarification (waiting state)
+  await addTraceStep(safeTraceId, safeAgentId, {
+    type: TRACE_TYPES.CLARIFICATION_REQUEST,
+    content: {
+      agentId: safeAgentId,
+      initiatorId,
+      question,
+      originalTask,
+      retryCount,
+      depth,
+    },
+    metadata: { event: 'clarification_request', agentId: safeAgentId },
+  });
+
+  // Trace: Mark the requesting agent as waiting
+  await addTraceStep(safeTraceId, safeAgentId, {
+    type: TRACE_TYPES.AGENT_WAITING,
+    content: {
+      agentId: safeAgentId,
+      reason: 'Waiting for clarification from initiator',
+      question,
+    },
+    metadata: { event: 'agent_waiting', agentId: safeAgentId },
+  });
+
   try {
     const memory = new DynamoMemory();
-    const safeTraceId = traceId ?? `unknown-${Date.now()}`;
-    const safeAgentId = agentId;
 
     await memory.saveClarificationRequest({
       userId: `CLARIFICATION#${safeTraceId}#${safeAgentId}`,
@@ -105,6 +133,18 @@ export async function handleClarificationRequest(
   } catch (error) {
     logger.warn(`Failed to process clarification request:`, error);
   }
+
+  // Trace: Wakeup initiator with clarification question
+  await addTraceStep(safeTraceId, 'root', {
+    type: TRACE_TYPES.CONTINUATION,
+    content: {
+      direction: 'to_initiator',
+      initiatorId,
+      requestingAgent: safeAgentId,
+      question,
+    },
+    metadata: { event: 'clarification_relay', initiatorId },
+  });
 
   await wakeupInitiator(
     userId,

@@ -7,6 +7,8 @@ import type { SSTResource } from '../../lib/types/system';
 import { TaskCancellation } from '../../lib/agent/schema';
 import { emitEvent, EventPriority } from '../../lib/utils/bus';
 import { EventType } from '../../lib/types/agent';
+import { addTraceStep } from '../../lib/utils/trace-helper';
+import { TRACE_TYPES } from '../../lib/constants';
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const typedResource = Resource as unknown as SSTResource;
@@ -37,6 +39,18 @@ export async function handleTaskCancellation(
     logger.warn('Task cancellation received with missing required fields');
     return;
   }
+
+  // Trace: Task cancellation event
+  await addTraceStep(undefined, undefined, {
+    type: TRACE_TYPES.CANCELLATION,
+    content: {
+      taskId,
+      initiatorId,
+      reason: reason ?? 'No reason provided',
+      cancellationType: 'single_task',
+    },
+    metadata: { event: 'task_cancelled', taskId },
+  });
 
   await setCancellationFlag(taskId, initiatorId, reason);
 }

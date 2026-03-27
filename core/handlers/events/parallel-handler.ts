@@ -4,8 +4,9 @@ import { logger } from '../../lib/logger';
 import { ParallelDispatchParams } from '../../lib/agent/schema';
 import { DynamicScheduler } from '../../lib/scheduler';
 import { ConfigManager } from '../../lib/registry/config';
-import { TIME } from '../../lib/constants';
+import { TIME, TRACE_TYPES } from '../../lib/constants';
 import { EVENT_SCHEMA_MAP, SchemaEventType } from '../../lib/schema/events';
+import { addTraceStep } from '../../lib/utils/trace-helper';
 
 export interface ParallelTaskEvent {
   userId: string;
@@ -49,6 +50,20 @@ export async function handleParallelDispatch(
   }
 
   const safeTraceId = traceId ?? `parallel-${Date.now()}`;
+
+  // Trace: Parallel dispatch initiated
+  await addTraceStep(safeTraceId, 'root', {
+    type: TRACE_TYPES.PARALLEL_DISPATCH,
+    content: {
+      taskCount: tasks.length,
+      tasks: tasks.map((t) => ({ taskId: t.taskId, agentId: t.agentId, task: t.task })),
+      aggregationType: aggregationType ?? 'summary',
+      barrierTimeoutMs: timeoutMs,
+      initiatorId: initiatorId ?? 'parallel-dispatcher',
+      depth,
+    },
+    metadata: { event: 'parallel_dispatch', taskCount: tasks.length },
+  });
 
   const { aggregator } = await import('../../lib/agent/parallel-aggregator');
   await aggregator.init(
@@ -108,6 +123,18 @@ export async function handleParallelDispatch(
   } catch (error) {
     logger.warn(`Failed to schedule parallel barrier timeout, proceeding without it:`, error);
   }
+
+  // Trace: Barrier waiting for sub-agents
+  await addTraceStep(safeTraceId, 'root', {
+    type: TRACE_TYPES.PARALLEL_BARRIER,
+    content: {
+      taskCount: tasks.length,
+      barrierTimeoutMs: timeoutMs,
+      targetTime: new Date(targetTime).toISOString(),
+      status: 'waiting_for_sub_agents',
+    },
+    metadata: { event: 'parallel_barrier', taskCount: tasks.length },
+  });
 
   logger.info(
     `Dispatched ${tasks.length} parallel tasks. Aggregation will happen via task-result-handler.`

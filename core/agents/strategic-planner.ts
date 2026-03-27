@@ -1,4 +1,4 @@
-import { AgentType, EvolutionMode, GapStatus, TraceSource } from '../lib/types/agent';
+import { AgentType, EvolutionMode, GapStatus, TraceSource, EventType } from '../lib/types/agent';
 import { InsightCategory } from '../lib/types/memory';
 import { ReasoningProfile, Message } from '../lib/types/llm';
 import { sendOutboundMessage } from '../lib/outbound';
@@ -70,6 +70,90 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   const config = await loadAgentConfig(AgentType.STRATEGIC_PLANNER);
   const { memory, provider: providerManager } = await getAgentContext();
 
+  // 1.1 Council Review Continuation Logic
+  if (task.includes('[COUNCIL_REVIEW_RESULT]') || task.includes('VERDICT:')) {
+    logger.info(`[PLANNER] Detected Council review result for trace ${traceId}`);
+
+    // The traceId here will be the unique councilTraceId we used during dispatch
+    const councilDataStr = await memory.getDistilledMemory(`COUNCIL_PLAN#${traceId}`);
+    if (councilDataStr) {
+      const {
+        plan: originalPlan,
+        gapIds,
+        sessionId: originalSessionId,
+        planId: originalPlanId,
+      } = JSON.parse(councilDataStr);
+
+      const isApproved = task.includes('VERDICT: APPROVED') || task.includes('APPROVED');
+      const isConditional = task.includes('VERDICT: CONDITIONAL') || task.includes('CONDITIONAL');
+
+      if (isApproved || isConditional) {
+        logger.info(
+          `[PLANNER] Council ${isApproved ? 'APPROVED' : 'CONDITIONALLY APPROVED'} plan for trace ${traceId}. Checking evolution mode.`
+        );
+
+        const evolutionMode = await getEvolutionMode();
+
+        if (evolutionMode === EvolutionMode.AUTO) {
+          logger.info('[PLANNER] Evolution mode is auto, dispatching CODER_TASK.');
+          await sendOutboundMessage(
+            AgentType.STRATEGIC_PLANNER,
+            userId,
+            `✅ **Council Approval Received**\n\nThe Council of Agents has ${isApproved ? 'approved' : 'conditionally approved'} the plan. Dispatching to Coder Agent for execution.\n\nSummary of Review:\n${task}`,
+            [baseUserId],
+            sessionId,
+            config.name
+          );
+
+          const { DISPATCH_TASK: dispatcher } = await import('../tools/knowledge-agent');
+          await dispatcher.execute({
+            agentId: AgentType.CODER,
+            userId: baseUserId,
+            task: originalPlan,
+            metadata: { gapIds },
+            traceId,
+            sessionId: originalSessionId || sessionId,
+          });
+        } else {
+          logger.info('[PLANNER] Evolution mode is hitl, asking for human approval.');
+          await sendOutboundMessage(
+            AgentType.STRATEGIC_PLANNER,
+            userId,
+            `✅ **Council Approval Received**\n\nThe Council of Agents has approved the plan with findings:\n\n${task}\n\nDo you want to execute the original plan?\n\nPlan:\n${originalPlan}`,
+            [baseUserId],
+            sessionId,
+            config.name,
+            undefined,
+            undefined,
+            [
+              { label: '🚀 Approve', value: `APPROVE ${originalPlanId || traceId}` },
+              { label: '🤔 Clarify', value: `CLARIFY ${originalPlanId || traceId}` },
+            ]
+          );
+        }
+      } else {
+        logger.warn(`[PLANNER] Council REJECTED plan for trace ${traceId}. Informing user.`);
+        await sendOutboundMessage(
+          AgentType.STRATEGIC_PLANNER,
+          userId,
+          `❌ **Council Review REJECTED**\n\nThe Council has rejected the strategic plan. Implementation has been blocked for safety. Please review the findings and revise the strategy.\n\nFeedback:\n${task}`,
+          [baseUserId],
+          sessionId,
+          config.name
+        );
+      }
+
+      return {
+        status: isApproved || isConditional ? 'COUNCIL_APPROVED' : 'COUNCIL_REJECTED',
+        plan: originalPlan,
+      };
+    } else {
+      logger.warn(
+        `[PLANNER] Received Council review result but could not find original plan for trace ${traceId}`
+      );
+    }
+  }
+
   const { getAgentTools } = await import('../tools/registry-utils');
   const agentTools = await getAgentTools(AgentType.STRATEGIC_PLANNER);
 
@@ -110,7 +194,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   if (isProactive) {
     const proactiveResult = await buildProactiveReviewPrompt(
-      memory,
+      memory as any,
       baseUserId,
       telemetry,
       isScheduledReview ?? false,
@@ -133,7 +217,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   // 2. Self-Evolution Loop Protection (Cool-down)
   if (gapId) {
-    const inCooldown = await isGapInCooldown(memory, gapId, baseUserId);
+    const inCooldown = await isGapInCooldown(memory as any, gapId, baseUserId);
     if (inCooldown) {
       logger.warn(`Evolution cooldown active for gap ${gapId}. Aborting.`);
       return { status: 'COOLDOWN_ACTIVE' };
@@ -278,7 +362,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   // 4. Record gap in structured cooldown store
   if (gapId && !isFailure) {
-    await recordCooldown(memory, gapId, baseUserId);
+    await recordCooldown(memory as any, gapId, baseUserId);
   }
 
   // 5. Gap Sink: Mark covered gaps as PLANNED
@@ -309,7 +393,83 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   const evolutionMode = await getEvolutionMode();
 
-  if (evolutionMode === EvolutionMode.AUTO && !isFailure && processedGapIds.length > 0) {
+  // Council of Agents: Check if plan requires peer review
+  const COUNCIL_THRESHOLD = 8;
+  const gapImpact = ((metadata as unknown as Record<string, unknown>)?.impact as number) ?? 0;
+  const gapRisk = ((metadata as unknown as Record<string, unknown>)?.risk as number) ?? 0;
+  const gapComplexity =
+    ((metadata as unknown as Record<string, unknown>)?.complexity as number) ?? 0;
+  const requiresCouncil =
+    gapImpact >= COUNCIL_THRESHOLD ||
+    gapRisk >= COUNCIL_THRESHOLD ||
+    gapComplexity >= COUNCIL_THRESHOLD;
+
+  if (requiresCouncil && !isFailure && processedGapIds.length > 0) {
+    // Council Review: Dispatch to Critic Agent for peer review before Coder
+    logger.info(
+      `[PLANNER] Plan requires Council review (impact=${gapImpact}, risk=${gapRisk}, complexity=${gapComplexity}). Dispatching parallel critic tasks.`
+    );
+
+    await sendOutboundMessage(
+      'planner.agent',
+      userId,
+      `🔍 **Council of Agents Review Initiated**\n\nThe plan has high impact/risk (${Math.max(gapImpact, gapRisk, gapComplexity)}/10). Dispatching to Security, Performance, and Architect reviewers before execution.\n\nPlan:\n\n${plan}`,
+      [baseUserId],
+      sessionId,
+      config.name,
+      undefined
+    );
+
+    // Dispatch parallel critic reviews
+    const { emitTypedEvent } = await import('../lib/utils/typed-emit');
+    const councilTraceId = `${traceId || 'council'}-${planId}`;
+
+    const councilTasks = [
+      {
+        taskId: `critic-security-${planId}`,
+        agentId: AgentType.CRITIC,
+        task: `Security review of plan:\n\n${plan}`,
+        metadata: { reviewMode: 'security', planId, gapIds: processedGapIds },
+      },
+      {
+        taskId: `critic-performance-${planId}`,
+        agentId: AgentType.CRITIC,
+        task: `Performance review of plan:\n\n${plan}`,
+        metadata: { reviewMode: 'performance', planId, gapIds: processedGapIds },
+      },
+      {
+        taskId: `critic-architect-${planId}`,
+        agentId: AgentType.CRITIC,
+        task: `Architectural review of plan:\n\n${plan}`,
+        metadata: { reviewMode: 'architect', planId, gapIds: processedGapIds },
+      },
+    ];
+
+    await emitTypedEvent('planner.agent', EventType.PARALLEL_TASK_DISPATCH, {
+      userId: baseUserId,
+      tasks: councilTasks,
+      barrierTimeoutMs: 120000, // 2 minutes
+      aggregationType: 'agent_guided' as const,
+      aggregationPrompt: `Synthesize the following 3 critic reviews for Plan ${planId}. Return your response starting with [COUNCIL_REVIEW_RESULT] followed by VERDICT: <APPROVED|REJECTED|CONDITIONAL> and a summary of findings. If all reviews are APPROVED, return VERDICT: APPROVED. If ANY review has verdict REJECTED, return VERDICT: REJECTED with consolidated feedback. Always include the Plan ID ${planId} in your response.`,
+      traceId: councilTraceId,
+      initiatorId: AgentType.STRATEGIC_PLANNER,
+      depth: (depth ?? 0) + 1,
+      sessionId,
+    });
+
+    // Save plan for Council aggregation callback
+    await memory.updateDistilledMemory(
+      `COUNCIL_PLAN#${councilTraceId}`,
+      JSON.stringify({
+        plan,
+        gapIds: processedGapIds,
+        userId: baseUserId,
+        sessionId,
+        traceId: councilTraceId,
+        planId,
+      })
+    );
+  } else if (evolutionMode === EvolutionMode.AUTO && !isFailure && processedGapIds.length > 0) {
     logger.info('Evolution mode is auto, dispatching CODER_TASK directly.');
     await sendOutboundMessage(
       'planner.agent',

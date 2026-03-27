@@ -17,7 +17,8 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { 
-  MessageSquare, Wrench, CheckCircle, ShieldAlert, Zap, X, Code, Terminal, Brain
+  MessageSquare, Wrench, CheckCircle, ShieldAlert, Zap, X, Code, Terminal, Brain,
+  HelpCircle, Pause, Play, Layers, GitBranch, Shield, Cpu, Zap as ZapIcon
 } from 'lucide-react';
 import { TRACE_TYPES } from '@/lib/constants';
 import Button from './ui/Button';
@@ -125,12 +126,190 @@ const ResultNode = ({ data }: { data: { label: string; onClick?: () => void } })
   </div>
 );
 
+// --- New Agent Communication Node Types ---
+
+const ClarificationNode = ({ data }: { data: { agentId?: string; question?: string; onClick?: () => void } }) => (
+  <div 
+    onClick={() => data.onClick && data.onClick()}
+    className="px-4 py-3 shadow-lg rounded-md bg-[#2d1f3d] border-2 border-purple-500 text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
+  >
+    <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-purple-500 border-none" />
+    <div className="flex items-center mb-1">
+      <HelpCircle size={14} className="text-purple-400 mr-2" />
+      <span className="text-[10px] font-bold tracking-widest text-purple-400/80">Clarification Request</span>
+    </div>
+    {data.agentId && (
+      <div className="text-[9px] font-mono text-purple-400/60 mb-2 font-bold uppercase tracking-tighter">
+        From: {data.agentId}
+      </div>
+    )}
+    <div className="text-[11px] font-mono text-white/90 leading-tight line-clamp-2 italic">
+      "{data.question ?? 'Needs clarification'}"
+    </div>
+    <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-purple-500 border-none" />
+  </div>
+);
+
+const WaitingNode = ({ data }: { data: { agentId?: string; reason?: string; onClick?: () => void } }) => (
+  <div 
+    onClick={() => data.onClick && data.onClick()}
+    className="px-4 py-3 shadow-lg rounded-md bg-[#1a2a1a] border-2 border-yellow-500 text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
+  >
+    <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-yellow-500 border-none" />
+    <div className="flex items-center mb-1">
+      <Pause size={14} className="text-yellow-400 mr-2 animate-pulse" />
+      <span className="text-[10px] font-bold tracking-widest text-yellow-400/80">Waiting</span>
+    </div>
+    {data.agentId && (
+      <div className="text-[9px] font-mono text-yellow-400/60 mb-2 font-bold uppercase tracking-tighter">
+        Agent: {data.agentId}
+      </div>
+    )}
+    <div className="text-[11px] font-mono text-white/70 leading-tight line-clamp-2">
+      {data.reason ?? 'Waiting for input...'}
+    </div>
+    <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-yellow-500 border-none" />
+  </div>
+);
+
+const BarrierNode = ({ data }: { data: { taskCount?: number; status?: string; onClick?: () => void } }) => (
+  <div 
+    onClick={() => data.onClick && data.onClick()}
+    className="px-4 py-3 shadow-lg rounded-md bg-[#1f1a2d] border-2 border-violet-500 text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
+  >
+    <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-violet-500 border-none" />
+    <div className="flex items-center mb-1">
+      <Layers size={14} className="text-violet-400 mr-2" />
+      <span className="text-[10px] font-bold tracking-widest text-violet-400/80">Parallel Barrier</span>
+    </div>
+    <div className="text-[11px] font-mono text-white/90 leading-tight">
+      {data.taskCount ? `Waiting for ${data.taskCount} sub-agents` : 'Aggregating results'}
+    </div>
+    <div className="text-[9px] font-mono text-violet-400/60 mt-1">
+      {data.status ?? 'waiting_for_sub_agents'}
+    </div>
+    <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-violet-500 border-none" />
+  </div>
+);
+
+const CouncilNode = ({ data }: { data: { reviewType?: string; status?: string; onClick?: () => void } }) => (
+  <div 
+    onClick={() => data.onClick && data.onClick()}
+    className="px-4 py-3 shadow-lg rounded-md bg-[#2d1a1a] border-2 border-red-500 text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
+  >
+    <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-red-500 border-none" />
+    <div className="flex items-center mb-1">
+      <Shield size={14} className="text-red-400 mr-2" />
+      <span className="text-[10px] font-bold tracking-widest text-red-400/80">Council Review</span>
+    </div>
+    <div className="text-[11px] font-mono text-white/90 leading-tight">
+      {data.reviewType ?? 'Peer review in progress'}
+    </div>
+    <div className="text-[9px] font-mono text-red-400/60 mt-1">
+      {data.status ?? 'reviewing'}
+    </div>
+    <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-red-500 border-none" />
+  </div>
+);
+
+const ContinuationNode = ({ data }: { data: { direction?: string; initiatorId?: string; onClick?: () => void } }) => (
+  <div 
+    onClick={() => data.onClick && data.onClick()}
+    className="px-4 py-3 shadow-lg rounded-md bg-[#0f2a2a] border-2 border-teal-500 text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
+  >
+    <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-teal-500 border-none" />
+    <div className="flex items-center mb-1">
+      <GitBranch size={14} className="text-teal-400 mr-2" />
+      <span className="text-[10px] font-bold tracking-widest text-teal-400/80">Continuation</span>
+    </div>
+    <div className="text-[11px] font-mono text-white/90 leading-tight">
+      {data.direction === 'to_initiator' ? 'Result routed to initiator' : 'Resuming agent'}
+    </div>
+    {data.initiatorId && (
+      <div className="text-[9px] font-mono text-teal-400/60 mt-1">
+        Initiator: {data.initiatorId}
+      </div>
+    )}
+    <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-teal-500 border-none" />
+  </div>
+);
+
+const CircuitBreakerNode = ({ data }: { data: { previousState?: string; newState?: string; reason?: string; onClick?: () => void } }) => (
+  <div 
+    onClick={() => data.onClick && data.onClick()}
+    className="px-4 py-3 shadow-lg rounded-md bg-[#2a1f0f] border-2 border-orange-500 text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
+  >
+    <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-orange-500 border-none" />
+    <div className="flex items-center mb-1">
+      <Cpu size={14} className="text-orange-400 mr-2" />
+      <span className="text-[10px] font-bold tracking-widest text-orange-400/80">Circuit Breaker</span>
+    </div>
+    <div className="text-[11px] font-mono text-white/90 leading-tight">
+      {data.previousState} → {data.newState}
+    </div>
+    <div className="text-[9px] font-mono text-orange-400/60 mt-1 line-clamp-2">
+      {data.reason ?? 'State change'}
+    </div>
+    <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-orange-500 border-none" />
+  </div>
+);
+
+const CancellationNode = ({ data }: { data: { taskId?: string; reason?: string; onClick?: () => void } }) => (
+  <div 
+    onClick={() => data.onClick && data.onClick()}
+    className="px-4 py-3 shadow-lg rounded-md bg-[#2a0f0f] border-2 border-rose-500 text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
+  >
+    <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-rose-500 border-none" />
+    <div className="flex items-center mb-1">
+      <ShieldAlert size={14} className="text-rose-400 mr-2" />
+      <span className="text-[10px] font-bold tracking-widest text-rose-400/80">Task Cancelled</span>
+    </div>
+    <div className="text-[11px] font-mono text-white/90 leading-tight">
+      {data.taskId ? `Task: ${data.taskId.slice(0, 8)}` : 'Task terminated'}
+    </div>
+    <div className="text-[9px] font-mono text-rose-400/60 mt-1 line-clamp-2">
+      {data.reason ?? 'Cancelled'}
+    </div>
+    <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-rose-500 border-none" />
+  </div>
+);
+
+const ResumedNode = ({ data }: { data: { agentId?: string; reason?: string; onClick?: () => void } }) => (
+  <div 
+    onClick={() => data.onClick && data.onClick()}
+    className="px-4 py-3 shadow-lg rounded-md bg-[#0f2a1a] border-2 border-emerald-500 text-white min-w-[180px] max-w-[350px] cursor-pointer hover:scale-105 transition-transform"
+  >
+    <Handle type="target" position={Position.Top} className="w-2 h-2 !bg-emerald-500 border-none" />
+    <div className="flex items-center mb-1">
+      <Play size={14} className="text-emerald-400 mr-2" />
+      <span className="text-[10px] font-bold tracking-widest text-emerald-400/80">Resumed</span>
+    </div>
+    {data.agentId && (
+      <div className="text-[9px] font-mono text-emerald-400/60 mb-1 font-bold uppercase tracking-tighter">
+        Agent: {data.agentId}
+      </div>
+    )}
+    <div className="text-[11px] font-mono text-white/70 leading-tight line-clamp-2">
+      {data.reason ?? 'Agent resumed execution'}
+    </div>
+    <Handle type="source" position={Position.Bottom} className="w-2 h-2 !bg-emerald-500 border-none" />
+  </div>
+);
+
 const nodeTypes = {
   trigger: TriggerNode,
   llm: LLMNode,
   tool: ToolNode,
   error: ErrorNode,
   result: ResultNode,
+  clarification: ClarificationNode,
+  waiting: WaitingNode,
+  barrier: BarrierNode,
+  council: CouncilNode,
+  continuation: ContinuationNode,
+  circuit_breaker: CircuitBreakerNode,
+  cancellation: CancellationNode,
+  resumed: ResumedNode,
 };
 
 /**
@@ -267,6 +446,167 @@ function processTraceNodes(
           type: 'error',
           data: {
             label: (step.content?.errorMessage as string) ?? 'Unknown Error',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.CLARIFICATION_REQUEST) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'clarification',
+          data: {
+            agentId: step.content.agentId ?? agentId,
+            question: step.content.question ?? 'Needs clarification',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.CLARIFICATION_RESPONSE) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'resumed',
+          data: {
+            agentId: step.content.agentId ?? agentId,
+            reason: `Clarification provided: ${String(step.content.answer ?? '').substring(0, 50)}`,
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.AGENT_WAITING) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'waiting',
+          data: {
+            agentId: step.content.agentId ?? agentId,
+            reason: step.content.reason ?? 'Waiting for input',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.AGENT_RESUMED) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'resumed',
+          data: {
+            agentId: step.content.agentId ?? agentId,
+            reason: step.content.reason ?? 'Agent resumed execution',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.PARALLEL_DISPATCH) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'barrier',
+          data: {
+            taskCount: step.content.taskCount,
+            status: 'dispatched',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.PARALLEL_BARRIER) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'barrier',
+          data: {
+            taskCount: step.content.taskCount,
+            status: step.content.status ?? 'waiting_for_sub_agents',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.PARALLEL_COMPLETED) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'barrier',
+          data: {
+            taskCount: step.content.taskCount,
+            status: 'aggregation_complete',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.COUNCIL_REVIEW) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'council',
+          data: {
+            reviewType: step.content.reviewType ?? 'Peer review',
+            status: step.content.status ?? 'reviewing',
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.CONTINUATION) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'continuation',
+          data: {
+            direction: step.content.direction,
+            initiatorId: step.content.initiatorId,
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.CIRCUIT_BREAKER) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'circuit_breaker',
+          data: {
+            previousState: step.content.previousState,
+            newState: step.content.newState,
+            reason: step.content.reason,
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.CANCELLATION) {
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'cancellation',
+          data: {
+            taskId: step.content.taskId,
+            reason: step.content.reason,
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.MEMORY_OPERATION) {
+        // Memory operations shown as tool nodes with special styling
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'tool',
+          data: {
+            toolName: `Memory: ${step.content.operation ?? 'store'}`,
+            status: step.content.key ? `Key: ${step.content.key}` : 'Memory operation',
+            agentId,
+            onClick: () => setSelectedStep(step)
+          },
+          position: { x: startX, y: currentY },
+        });
+        added = true;
+      } else if (step.type === TRACE_TYPES.REFLECT) {
+        // Reflection shown as LLM node
+        initialNodes.push({
+          id: stepNodeId,
+          type: 'llm',
+          data: {
+            type: TRACE_TYPES.LLM_RESPONSE,
+            label: step.content.reflection ?? 'Agent self-reflection',
+            agentId,
             onClick: () => setSelectedStep(step)
           },
           position: { x: startX, y: currentY },
@@ -503,6 +843,278 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
                 <div className="text-[10px] text-cyber-green font-bold">Transmission complete</div>
                 <div className="p-3 bg-cyber-green/5 border border-cyber-green/20 rounded text-xs text-white/90 whitespace-pre-wrap">
                   {selectedStep.content.response}
+                </div>
+              </div>
+            )}
+
+            {selectedStep.type === TRACE_TYPES.CLARIFICATION_REQUEST && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] text-purple-400 font-bold tracking-tighter flex items-center gap-1">
+                    <HelpCircle size={12} /> Clarification Question
+                  </div>
+                  <div className="p-3 bg-purple-500/5 border border-purple-500/20 rounded text-[11px] font-mono text-white/90 whitespace-pre-wrap leading-relaxed italic">
+                    "{selectedStep.content.question ?? 'No question provided'}"
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-[10px] text-white/60 font-bold">Original Task</div>
+                  <div className="p-2 bg-white/[0.02] border border-white/10 rounded text-[10px] font-mono text-white/70">
+                    {selectedStep.content.originalTask ?? 'N/A'}
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Requesting Agent</div>
+                    <div className="text-[10px] text-purple-400 font-mono">{selectedStep.content.agentId ?? 'unknown'}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Retry Count</div>
+                    <div className="text-[10px] text-purple-400 font-mono">{selectedStep.content.retryCount ?? 0}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Depth</div>
+                    <div className="text-[10px] text-purple-400 font-mono">{selectedStep.content.depth ?? 0}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedStep.type === TRACE_TYPES.AGENT_WAITING && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] text-yellow-400 font-bold tracking-tighter flex items-center gap-1">
+                    <Pause size={12} /> Agent Waiting
+                  </div>
+                  <div className="p-3 bg-yellow-500/5 border border-yellow-500/20 rounded text-[11px] font-mono text-white/90 whitespace-pre-wrap">
+                    {selectedStep.content.reason ?? 'Agent is waiting for external input'}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[9px] text-white/40 font-bold">Agent</div>
+                  <div className="text-[10px] text-yellow-400 font-mono">{selectedStep.content.agentId ?? 'unknown'}</div>
+                </div>
+                {selectedStep.content.question && (
+                  <div className="space-y-2">
+                    <div className="text-[10px] text-white/60 font-bold">Waiting For</div>
+                    <div className="p-2 bg-white/[0.02] border border-white/10 rounded text-[10px] font-mono text-white/70 italic">
+                      "{selectedStep.content.question}"
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {selectedStep.type === TRACE_TYPES.AGENT_RESUMED && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] text-emerald-400 font-bold tracking-tighter flex items-center gap-1">
+                    <Play size={12} /> Agent Resumed
+                  </div>
+                  <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded text-[11px] font-mono text-white/90 whitespace-pre-wrap">
+                    {selectedStep.content.reason ?? 'Agent resumed execution'}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[9px] text-white/40 font-bold">Agent</div>
+                  <div className="text-[10px] text-emerald-400 font-mono">{selectedStep.content.agentId ?? 'unknown'}</div>
+                </div>
+              </div>
+            )}
+
+            {selectedStep.type === TRACE_TYPES.PARALLEL_DISPATCH && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] text-violet-400 font-bold tracking-tighter flex items-center gap-1">
+                    <Layers size={12} /> Parallel Dispatch
+                  </div>
+                  <div className="p-3 bg-violet-500/5 border border-violet-500/20 rounded text-[11px] font-mono text-white/90">
+                    Dispatching {selectedStep.content.taskCount ?? 0} tasks in parallel
+                  </div>
+                </div>
+                {selectedStep.content.tasks && (
+                  <div className="space-y-2">
+                    <div className="text-[10px] text-white/60 font-bold">Tasks</div>
+                    <div className="space-y-1">
+                      {selectedStep.content.tasks.map((t: { taskId: string; agentId: string; task: string }, idx: number) => (
+                        <div key={idx} className="p-2 bg-white/[0.02] border border-white/10 rounded text-[10px] font-mono">
+                          <div className="text-violet-400 font-bold">{t.agentId}</div>
+                          <div className="text-white/60 truncate">{t.task}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="flex gap-4">
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Aggregation</div>
+                    <div className="text-[10px] text-violet-400 font-mono">{selectedStep.content.aggregationType ?? 'summary'}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Timeout</div>
+                    <div className="text-[10px] text-violet-400 font-mono">{selectedStep.content.barrierTimeoutMs ? `${Math.round(selectedStep.content.barrierTimeoutMs / 1000)}s` : 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedStep.type === TRACE_TYPES.PARALLEL_BARRIER && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] text-violet-400 font-bold tracking-tighter flex items-center gap-1">
+                    <Layers size={12} /> Parallel Barrier
+                  </div>
+                  <div className="p-3 bg-violet-500/5 border border-violet-500/20 rounded text-[11px] font-mono text-white/90">
+                    Waiting for {selectedStep.content.taskCount ?? 0} sub-agents to complete
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Status</div>
+                    <div className="text-[10px] text-violet-400 font-mono">{selectedStep.content.status ?? 'waiting'}</div>
+                  </div>
+                  {selectedStep.content.targetTime && (
+                    <div className="space-y-1">
+                      <div className="text-[9px] text-white/40 font-bold">Target Time</div>
+                      <div className="text-[10px] text-violet-400 font-mono">{selectedStep.content.targetTime}</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {selectedStep.type === TRACE_TYPES.COUNCIL_REVIEW && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] text-red-400 font-bold tracking-tighter flex items-center gap-1">
+                    <Shield size={12} /> Council Review
+                  </div>
+                  <div className="p-3 bg-red-500/5 border border-red-500/20 rounded text-[11px] font-mono text-white/90">
+                    {selectedStep.content.reviewType ?? 'Peer review in progress'}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-[9px] text-white/40 font-bold">Status</div>
+                  <div className="text-[10px] text-red-400 font-mono">{selectedStep.content.status ?? 'reviewing'}</div>
+                </div>
+              </div>
+            )}
+
+            {selectedStep.type === TRACE_TYPES.CONTINUATION && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] text-teal-400 font-bold tracking-tighter flex items-center gap-1">
+                    <GitBranch size={12} /> Continuation
+                  </div>
+                  <div className="p-3 bg-teal-500/5 border border-teal-500/20 rounded text-[11px] font-mono text-white/90">
+                    {selectedStep.content.direction === 'to_initiator' 
+                      ? 'Result routed back to initiator' 
+                      : 'Agent resuming with new context'}
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Initiator</div>
+                    <div className="text-[10px] text-teal-400 font-mono">{selectedStep.content.initiatorId ?? 'N/A'}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Requesting Agent</div>
+                    <div className="text-[10px] text-teal-400 font-mono">{selectedStep.content.requestingAgent ?? 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedStep.type === TRACE_TYPES.CIRCUIT_BREAKER && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] text-orange-400 font-bold tracking-tighter flex items-center gap-1">
+                    <Cpu size={12} /> Circuit Breaker State Change
+                  </div>
+                  <div className="p-3 bg-orange-500/5 border border-orange-500/20 rounded text-[11px] font-mono text-white/90">
+                    State transitioned from <span className="text-orange-400 font-bold">{selectedStep.content.previousState}</span> to <span className="text-orange-400 font-bold">{selectedStep.content.newState}</span>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-[10px] text-white/60 font-bold">Reason</div>
+                  <div className="p-2 bg-white/[0.02] border border-white/10 rounded text-[10px] font-mono text-white/70">
+                    {selectedStep.content.reason ?? 'N/A'}
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Failure Type</div>
+                    <div className="text-[10px] text-orange-400 font-mono">{selectedStep.content.failureType ?? 'N/A'}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Failure Count</div>
+                    <div className="text-[10px] text-orange-400 font-mono">{selectedStep.content.failureCount ?? 0}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedStep.type === TRACE_TYPES.CANCELLATION && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] text-rose-400 font-bold tracking-tighter flex items-center gap-1">
+                    <ShieldAlert size={12} /> Task Cancellation
+                  </div>
+                  <div className="p-3 bg-rose-500/5 border border-rose-500/20 rounded text-[11px] font-mono text-white/90">
+                    Task terminated
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Task ID</div>
+                    <div className="text-[10px] text-rose-400 font-mono">{selectedStep.content.taskId ? selectedStep.content.taskId.slice(0, 8) : 'N/A'}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Initiator</div>
+                    <div className="text-[10px] text-rose-400 font-mono">{selectedStep.content.initiatorId ?? 'N/A'}</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="text-[10px] text-white/60 font-bold">Reason</div>
+                  <div className="p-2 bg-white/[0.02] border border-white/10 rounded text-[10px] font-mono text-white/70">
+                    {selectedStep.content.reason ?? 'No reason provided'}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedStep.type === TRACE_TYPES.MEMORY_OPERATION && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] text-cyan-400 font-bold tracking-tighter flex items-center gap-1">
+                    <Brain size={12} /> Memory Operation
+                  </div>
+                  <div className="p-3 bg-cyan-500/5 border border-cyan-500/20 rounded text-[11px] font-mono text-white/90">
+                    {selectedStep.content.operation ?? 'store'}
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Key</div>
+                    <div className="text-[10px] text-cyan-400 font-mono">{selectedStep.content.key ?? 'N/A'}</div>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[9px] text-white/40 font-bold">Scope</div>
+                    <div className="text-[10px] text-cyan-400 font-mono">{selectedStep.content.scope ?? 'N/A'}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedStep.type === TRACE_TYPES.REFLECT && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="text-[10px] text-indigo-400 font-bold tracking-tighter flex items-center gap-1">
+                    <Brain size={12} /> Agent Reflection
+                  </div>
+                  <div className="p-3 bg-indigo-500/5 border border-indigo-500/20 rounded text-[11px] font-mono text-white/90 whitespace-pre-wrap leading-relaxed">
+                    {selectedStep.content.reflection ?? 'Agent performed self-reflection'}
+                  </div>
                 </div>
               </div>
             )}

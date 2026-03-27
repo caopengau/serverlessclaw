@@ -44,13 +44,14 @@ The system's evolution follows a strict, verified hierarchy:
 1. **Observation**: Reflector identifies a `strategic_gap` from conversation logs.
 2. **Audit & Optimization**: Every 48 hours, the **Strategic Planner** reviews all open gaps.
 3. **Planning**: Planner designs a `STRATEGIC_PLAN`.
-4. **Approval**: Depending on `evolution_mode`, the user approves or the system proceeds.
-5. **Implementation (Definition of Done)**: Coder Agent MUST implement changes along with **Tests** and **Documentation**.
-6. **Pre-Flight Validation**: Coder MUST run `validateCode` and `runTests` before `stageChanges`.
-7. **Deployment**: CodeBuild deploys to live environment (No Git push).
-8. **Verification**: QA Auditor verifies live satisfaction.
-9. **Atomic Sync**: ONLY after QA success, `gitSync` pushes verified code back to the trunk.
-10. **Nudging & Completion**: SuperClaw marks gap as `DONE`.
+4. **Council Review** (High-Impact Only): If `impact >= 8`, `risk >= 8`, or `complexity >= 8`, the plan is dispatched to the **Critic Agent** for parallel peer review (Security, Performance, Architect). Plans are only approved if all reviews pass.
+5. **Approval**: Depending on `evolution_mode`, the user approves or the system proceeds.
+6. **Implementation (Definition of Done)**: Coder Agent MUST implement changes along with **Tests** and **Documentation**.
+7. **Pre-Flight Validation**: Coder MUST run `validateCode` and `runTests` before `stageChanges`.
+8. **Deployment**: CodeBuild deploys to live environment (No Git push).
+9. **Verification**: QA Auditor verifies live satisfaction.
+10. **Atomic Sync**: ONLY after QA success, `gitSync` pushes verified code back to the trunk.
+11. **Nudging & Completion**: SuperClaw marks gap as `DONE`.
 
 ## Self-Healing Loop
 

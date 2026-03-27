@@ -17,6 +17,7 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 | **Strategic Planner** | `core/agents/strategic-planner.ts` | `AgentRegistry` (Backbone) | Designs strategic evolution plans |
 | **Cognition Reflector** | `core/agents/cognition-reflector.ts` | `AgentRegistry` (Backbone) | Distills memory and extracts gaps |
 | **QA Auditor** | `core/agents/qa.ts` | `AgentRegistry` (Backbone) | Verifies satisfaction of deployed changes |
+| **Critic Agent** | `core/agents/critic.ts` | `AgentRegistry` (Backbone) | Peer review for Council of Agents (security/performance/architect) |
 
 ### 2. System Handlers (Logic-Powered)
 
@@ -132,6 +133,71 @@ Initiator (Planner)     AgentBus (EB)       Sub-Agents (xN)      Aggregator (DDB
       |<-- CONTINUATION_TASK-+                      |                    |
       | (PARALLEL_COMPLETED) |                      |                    |
 ```
+
+### Council of Agents (Peer Review Gate)
+
+For high-impact strategic plans, the system introduces a **Council of Agents** — a peer review gate that dispatches the plan to three specialized **Critic Agents** for independent review before execution.
+
+#### Trigger Conditions
+
+The Council is activated when any of these metrics exceed the threshold (default: 8/10):
+
+| Metric | Source | Threshold |
+|--------|--------|-----------|
+| **Impact** | Gap metadata | ≥ 8 |
+| **Risk** | Gap metadata | ≥ 8 |
+| **Complexity** | Gap metadata | ≥ 8 |
+
+If all metrics are below the threshold, the Planner dispatches directly to the Coder (bypassing Council).
+
+#### Review Modes
+
+The Critic Agent operates in three modes, each dispatched as a parallel task:
+
+| Mode | Focus | Red Flags |
+|------|-------|-----------|
+| **Security** | Injection, auth bypass, data exposure | Unsanitized inputs, hardcoded secrets, overly permissive IAM |
+| **Performance** | Latency, memory, cold start, cost | Unbounded loops, missing pagination, N+1 queries |
+| **Architect** | Design coherence, dependencies, blast radius | Circular dependencies, tight coupling, missing error handling |
+
+#### Flow
+
+```text
+Planner (impact >= 8)
+    |
+    +--- PARALLEL_TASK_DISPATCH (3 critic tasks)
+    |
+    +--- [Security Review] ----+
+    +--- [Performance Review] -+---> [Aggregation (agent_guided)]
+    +--- [Architect Review] --+
+                                    |
+                                    v
+                            [CONTINUATION_TASK → Planner]
+                                    |
+                        +-----------+-----------+
+                        |                       |
+                  [APPROVED]              [REJECTED/CONDITIONAL]
+                        |                       |
+                        v                       v
+              [dispatch to Coder]      [revise plan or escalate to HITL]
+```
+
+#### Aggregation
+
+The Council uses `agent_guided` aggregation with a prompt that synthesizes all three reviews:
+
+- **APPROVED**: No critical or high severity findings
+- **REJECTED**: Any critical finding exists — the plan MUST NOT proceed
+- **CONDITIONAL**: High severity findings that can be mitigated — proceed with fixes
+
+#### Auto vs HITL Delineation
+
+| Condition | Behavior |
+|-----------|----------|
+| `impact < 8` AND `evolution_mode = AUTO` | Skip Council → dispatch directly to Coder |
+| `impact >= 8` OR `risk >= 8` OR `complexity >= 8` | Council Required → parallel review |
+| `evolution_mode = HITL` | Council + Human Approval |
+| Any Critical finding | Auto-REJECT → back to Planner |
 
 ### Granular HITL Tool Approval (Tool-level Gates)
 

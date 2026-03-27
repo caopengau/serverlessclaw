@@ -14,20 +14,32 @@ import { logger } from './logger';
 import { filterPIIFromObject } from './utils/pii';
 import type { TraceStep, Trace } from './tracer/types';
 
-const defaultClient = new DynamoDBClient({});
-const defaultDocClient = DynamoDBDocumentClient.from(defaultClient, {
-  marshallOptions: {
-    removeUndefinedValues: true,
-  },
-});
-const typedResource = Resource as unknown as SSTResource;
+let _docClient: DynamoDBDocumentClient | undefined;
+
+function getDocClient(): DynamoDBDocumentClient {
+  if (!_docClient) {
+    const client = new DynamoDBClient({});
+    _docClient = DynamoDBDocumentClient.from(client, {
+      marshallOptions: {
+        removeUndefinedValues: true,
+      },
+    });
+  }
+  return _docClient;
+}
+
+/**
+ * Resets the document client (used for testing).
+ */
+export function resetDocClient(): void {
+  _docClient = undefined;
+}
 
 /**
  * ClawTracer provides observability into an agent's internal reasoning process
  * by persisting steps and metadata to DynamoDB.
  */
 export class ClawTracer {
-  private tableName: string = typedResource.TraceTable.name;
   private traceId: string;
   private nodeId: string;
   private parentId?: string;
@@ -64,7 +76,12 @@ export class ClawTracer {
     this.parentId = parentId;
     this.agentId = agentId;
     this.startTime = Date.now();
-    this.docClient = docClient ?? defaultDocClient;
+    this.docClient = docClient ?? getDocClient();
+  }
+
+  private getTableName(): string {
+    const typedResource = Resource as unknown as SSTResource;
+    return typedResource.TraceTable.name;
   }
 
   /**
@@ -81,7 +98,7 @@ export class ClawTracer {
     try {
       await this.docClient.send(
         new PutCommand({
-          TableName: this.tableName,
+          TableName: this.getTableName(),
           Item: {
             traceId: this.traceId,
             nodeId: this.nodeId,
@@ -147,7 +164,7 @@ export class ClawTracer {
 
     await this.docClient.send(
       new UpdateCommand({
-        TableName: this.tableName,
+        TableName: this.getTableName(),
         Key: { traceId: this.traceId, nodeId: this.nodeId },
         UpdateExpression: 'SET #steps = list_append(if_not_exists(#steps, :empty_list), :step)',
         ExpressionAttributeNames: { '#steps': 'steps' },
@@ -169,7 +186,7 @@ export class ClawTracer {
   async endTrace(finalResponse: string, metadata?: Record<string, unknown>): Promise<void> {
     await this.docClient.send(
       new UpdateCommand({
-        TableName: this.tableName,
+        TableName: this.getTableName(),
         Key: { traceId: this.traceId, nodeId: this.nodeId },
         UpdateExpression:
           'SET #status = :status, finalResponse = :resp, endTime = :end, metadata = :meta',
@@ -218,9 +235,9 @@ export class ClawTracer {
    * @returns A promise resolving to an array of trace nodes.
    */
   static async getTrace(traceId: string): Promise<Trace[]> {
-    const response = await defaultDocClient.send(
+    const response = await getDocClient().send(
       new QueryCommand({
-        TableName: typedResource.TraceTable.name,
+        TableName: (Resource as unknown as SSTResource).TraceTable.name,
         KeyConditionExpression: 'traceId = :tid',
         ExpressionAttributeValues: { ':tid': traceId },
       })
