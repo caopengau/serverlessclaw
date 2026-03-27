@@ -113,7 +113,7 @@ export async function loadAgentConfig(
 export async function createAgent(
   agentId: string,
   config: import('../types/index').IAgentConfig,
-  memory: import('../memory').DynamoMemory,
+  memory: import('../types/index').IMemory,
   provider: import('../providers/index').ProviderManager
 ): Promise<import('../agent').Agent> {
   const { getAgentTools } = await import('../../tools/index');
@@ -132,7 +132,7 @@ export async function createAgent(
  */
 export async function initAgent(agentId: string | AgentType): Promise<{
   config: import('../types/index').IAgentConfig;
-  memory: import('../memory').DynamoMemory;
+  memory: import('../types/index').IMemory;
   provider: import('../providers/index').ProviderManager;
   agent: import('../agent').Agent;
 }> {
@@ -215,16 +215,17 @@ export function validatePayload(
  * @returns A promise resolving to the agent context object containing memory and provider instances.
  */
 export async function getAgentContext(): Promise<{
-  memory: import('../memory').DynamoMemory;
+  memory: import('../types/index').IMemory;
   provider: import('../providers/index').ProviderManager;
 }> {
   const { DynamoMemory } = await import('../memory');
+  const { CachedMemory } = await import('../memory/cached-memory');
   const { ProviderManager } = await import('../providers/index');
 
   // Singleton pattern
-  if (!(global as unknown as { _agentMemory?: import('../memory').DynamoMemory })._agentMemory) {
-    (global as unknown as { _agentMemory: import('../memory').DynamoMemory })._agentMemory =
-      new DynamoMemory();
+  if (!(global as unknown as { _agentMemory?: import('../types/index').IMemory })._agentMemory) {
+    (global as unknown as { _agentMemory: import('../types/index').IMemory })._agentMemory =
+      new CachedMemory(new DynamoMemory());
   }
   if (
     !(global as unknown as { _agentProvider?: import('../providers/index').ProviderManager })
@@ -236,7 +237,7 @@ export async function getAgentContext(): Promise<{
   }
 
   return {
-    memory: (global as unknown as { _agentMemory: import('../memory').DynamoMemory })._agentMemory,
+    memory: (global as unknown as { _agentMemory: import('../types/index').IMemory })._agentMemory,
     provider: (
       global as unknown as { _agentProvider: import('../providers/index').ProviderManager }
     )._agentProvider,

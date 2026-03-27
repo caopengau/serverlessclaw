@@ -5,3 +5,5 @@ export * from './session-operations';
 export * from './utils';
 export * from './clarification-operations';
 export * from './base';
+export * from './cache';
+export * from './cached-memory';

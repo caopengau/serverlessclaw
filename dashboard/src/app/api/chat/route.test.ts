@@ -20,6 +20,11 @@ vi.mock('@claw/core/lib/memory', () => ({
     listConversations = mockListConversations;
     deleteConversation = mockDeleteConversation;
   },
+  CachedMemory: class {
+    constructor(memory: unknown) {
+      return memory;
+    }
+  },
 }));
 
 vi.mock('@claw/core/lib/providers/index', () => ({

@@ -97,11 +97,20 @@ const PERMANENT_PATTERNS = [
 /**
  * Classifies an error as transient, permanent, or unknown.
  */
-export function classifyError(error: Error | string): ErrorClass {
-  const message = typeof error === 'string' ? error : error.message;
+export function classifyError(error: Error | string | any): ErrorClass {
+  const message = typeof error === 'string' ? error : error.message || '';
   const name = error instanceof Error ? error.name : '';
+  const status = error?.status || error?.statusCode || 0;
 
-  // Check permanent patterns first (more specific)
+  // Check HTTP status codes first if available
+  if (status >= 500 || status === 429) {
+    return ErrorClass.TRANSIENT;
+  }
+  if (status >= 400 && status < 500) {
+    return ErrorClass.PERMANENT;
+  }
+
+  // Check permanent patterns (more specific)
   for (const pattern of PERMANENT_PATTERNS) {
     if (pattern.test(message) || pattern.test(name)) {
       return ErrorClass.PERMANENT;
@@ -116,8 +125,8 @@ export function classifyError(error: Error | string): ErrorClass {
   }
 
   // Check for specific AWS/DynamoDB errors by name or message
-  if (error instanceof Error) {
-    const errorName = error.name || '';
+  if (error instanceof Error || typeof error === 'object') {
+    const errorName = error?.name || '';
     if (
       errorName === 'ConditionalCheckFailedException' ||
       message.includes('ConditionalCheckFailedException')

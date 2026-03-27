@@ -44,11 +44,14 @@ export class MCPToolMapper {
           }
 
           try {
-            const result = await client.callTool({
-              name: mcpTool.name,
-              arguments: toolArgs,
+            const { withMCPResilience } = await import('../error-recovery');
+            return await withMCPResilience(toolName, async () => {
+              const result = await client.callTool({
+                name: mcpTool.name,
+                arguments: toolArgs,
+              });
+              return JSON.stringify(result.content);
             });
-            return JSON.stringify(result.content);
           } catch (execError: unknown) {
             logger.error(
               `MCP Tool Execution Error (${serverName}:${mcpTool.name}):`,

@@ -117,7 +117,8 @@ export class MemoryCache<T = unknown> {
    * @param userId - User ID to invalidate
    */
   invalidateUser(userId: string): number {
-    return this.invalidatePattern(new RegExp(`^${userId}`));
+    // Matches keys where userId is at the start or follows a colon
+    return this.invalidatePattern(new RegExp(`(^|:)${userId}(:|$)`));
   }
 
   /**

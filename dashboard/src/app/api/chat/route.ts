@@ -21,7 +21,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     console.log(`[Chat API] POST request - text: ${text?.substring(0, 20)}..., sessionId: ${sessionId}, attachments: ${attachments?.length ?? 0}, stream: ${isStream}`);
     
-    const { DynamoMemory } = await import('@claw/core/lib/memory');
+    const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
     const { ProviderManager } = await import('@claw/core/lib/providers/index');
     const { getAgentTools } = await import('@claw/core/tools/index');
     const { Agent } = await import('@claw/core/lib/agent');
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const { TraceSource, AgentType } = await import('@claw/core/lib/types/index');
     const { AgentRegistry } = await import('@claw/core/lib/registry');
 
-    const memory = new DynamoMemory();
+    const memory = new CachedMemory(new DynamoMemory());
     const provider = new ProviderManager();
     const config = await AgentRegistry.getAgentConfig(AgentType.SUPERCLAW);
     const agentTools = await getAgentTools(AgentType.SUPERCLAW);
@@ -105,9 +105,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     try {
       const { sessionId } = await req.clone().json();
       if (sessionId) {
-        const { DynamoMemory } = await import('@claw/core/lib/memory');
+        const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
         const { MessageRole } = await import('@claw/core/lib/types');
-        const memory = new DynamoMemory();
+        const memory = new CachedMemory(new DynamoMemory());
         const userId = 'dashboard-user';
         const storageId = `CONV#${userId}#${sessionId}`;
         await memory.addMessage(storageId, {
@@ -133,8 +133,8 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
     const { sessionId, title, isPinned } = await req.json();
     const userId = 'dashboard-user';
-    const { DynamoMemory } = await import('@claw/core/lib/memory');
-    const memory = new DynamoMemory();
+    const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
+    const memory = new CachedMemory(new DynamoMemory());
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
@@ -156,8 +156,8 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
     const sessionId = req.nextUrl.searchParams.get('sessionId');
     const userId = 'dashboard-user';
-    const { DynamoMemory } = await import('@claw/core/lib/memory');
-    const memory = new DynamoMemory();
+    const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
+    const memory = new CachedMemory(new DynamoMemory());
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
@@ -187,8 +187,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const userId = 'dashboard-user';
     const sessionId = req.nextUrl.searchParams.get('sessionId');
-    const { DynamoMemory } = await import('@claw/core/lib/memory');
-    const memory = new DynamoMemory();
+    const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
+    const memory = new CachedMemory(new DynamoMemory());
 
     if (sessionId) {
       // Return history for a specific session

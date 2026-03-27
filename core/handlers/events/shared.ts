@@ -117,11 +117,8 @@ export async function processEventWithAgent(
 ): Promise<{ responseText: string; attachments: Attachment[] }> {
   // Heavy SDK dependencies loaded lazily to keep this module's static import depth low.
   const { Agent } = await import('../../lib/agent');
-  const { ProviderManager } = await import('../../lib/providers/index');
-  const { getAgentTools: loadAgentTools } = await import('../../tools/index');
-  const { DynamoMemory } = await import('../../lib/memory');
-  const memory = new DynamoMemory();
-  const provider = new ProviderManager();
+  const { getAgentContext } = await import('../../lib/utils/agent-helpers');
+  const { memory, provider } = await getAgentContext();
   const { AgentRegistry } = await import('../../lib/registry');
   const config = await AgentRegistry.getAgentConfig(agentId);
   if (!config) {
@@ -129,6 +126,7 @@ export async function processEventWithAgent(
     throw new Error(`Agent configuration for '${agentId}' not found.`);
   }
 
+  const { getAgentTools: loadAgentTools } = await import('../../tools/index');
   const agentTools = await loadAgentTools(agentId);
   const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
 
