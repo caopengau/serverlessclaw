@@ -14,7 +14,7 @@ import {
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
 import { parseStructuredResponse } from '../lib/utils/agent-helpers/llm-utils';
 import { parseConfigInt } from '../lib/providers/utils';
-import { AGENT_ERRORS } from '../lib/constants';
+import { AGENT_ERRORS, TRACE_TYPES } from '../lib/constants';
 import { getEvolutionMode, recordCooldown, isGapInCooldown } from './strategic-planner/evolution';
 import {
   buildProactiveReviewPrompt,
@@ -73,6 +73,22 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   // 1.1 Council Review Continuation Logic
   if (task.includes('[COUNCIL_REVIEW_RESULT]') || task.includes('VERDICT:')) {
     logger.info(`[PLANNER] Detected Council review result for trace ${traceId}`);
+
+    // Trace: Council review results being processed
+    const { addTraceStep } = await import('../lib/utils/trace-helper');
+    await addTraceStep(traceId, 'root', {
+      type: TRACE_TYPES.COUNCIL_REVIEW,
+      content: {
+        verdict: task.includes('VERDICT: APPROVED')
+          ? 'APPROVED'
+          : task.includes('VERDICT: REJECTED')
+            ? 'REJECTED'
+            : 'CONDITIONAL',
+        summary: task,
+        initiatorId: AgentType.STRATEGIC_PLANNER,
+      },
+      metadata: { event: 'council_review_processed', traceId },
+    });
 
     // The traceId here will be the unique councilTraceId we used during dispatch
     const councilDataStr = await memory.getDistilledMemory(`COUNCIL_PLAN#${traceId}`);
@@ -300,6 +316,25 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
     }
   }
 
+  const isFailure =
+    status === 'FAILED' ||
+    plan.startsWith('I encountered an internal error') ||
+    plan === 'Empty response from OpenAI.';
+
+  if (!isFailure && status === 'SUCCESS') {
+    const { addTraceStep } = await import('../lib/utils/trace-helper');
+    await addTraceStep(traceId, 'root', {
+      type: TRACE_TYPES.PLAN_GENERATED,
+      content: {
+        planId,
+        status,
+        coveredGaps: coveredGapIds,
+        planSnippet: plan.substring(0, 500),
+      },
+      metadata: { event: 'plan_generated', planId },
+    });
+  }
+
   // 1.5 Generate gaps from toolOptimizations
   if (toolOptimizations.length > 0) {
     for (const opt of toolOptimizations) {
@@ -317,11 +352,6 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       });
     }
   }
-
-  const isFailure =
-    status === 'FAILED' ||
-    plan.startsWith('I encountered an internal error') ||
-    plan === 'Empty response from OpenAI.';
 
   // 1. Notify user directly in the chat session ONLY if successful and not empty
   if (!isFailure && plan !== 'Empty response from OpenAI.') {

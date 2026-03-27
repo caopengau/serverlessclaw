@@ -14,6 +14,7 @@ import {
 } from '../lib/utils/agent-helpers';
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
 import { parseStructuredResponse } from '../lib/utils/agent-helpers/llm-utils';
+import { TRACE_TYPES } from '../lib/constants';
 
 /**
  * Coder Agent handler. Processes coding tasks, implements changes,
@@ -121,6 +122,17 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
 
   // 4. Trace gap transitions (Build Monitor handles the rest via atomic mapping in tools)
   if (!isFailure && status === 'SUCCESS') {
+    const { addTraceStep } = await import('../lib/utils/trace-helper');
+    await addTraceStep(traceId, 'root', {
+      type: TRACE_TYPES.CODE_WRITTEN,
+      content: {
+        status,
+        buildId,
+        responseSnippet: responseText.substring(0, 500),
+      },
+      metadata: { event: 'code_written', buildId },
+    });
+
     if (!buildId && gapIds?.length) {
       logger.info(`Task successful without deployment. Marking ${gapIds.length} gaps as DEPLOYED.`);
       for (const gapId of gapIds) {

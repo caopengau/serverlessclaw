@@ -251,6 +251,18 @@ export class CircuitBreaker {
         halfOpenProbes: 0,
         failures: [],
       };
+
+      // Trace: Circuit breaker recovery
+      await addTraceStep(undefined, 'root', {
+        type: TRACE_TYPES.CIRCUIT_BREAKER,
+        content: {
+          previousState: 'half_open',
+          newState: 'closed',
+          reason: 'Probe succeeded, circuit closed.',
+        },
+        metadata: { event: 'circuit_breaker_recovered' },
+      });
+
       await saveState(updated);
       return updated;
     } else if (state.state === 'closed') {
