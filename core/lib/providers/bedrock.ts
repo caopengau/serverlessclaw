@@ -21,6 +21,24 @@ import { Resource } from 'sst';
 import { logger } from '../logger';
 import { normalizeProfile, createEmptyResponse, SUPPORTED_IMAGE_FORMATS } from './utils';
 
+// --- Constants and Configuration ---
+const DEFAULT_REGION = 'ap-southeast-2';
+const DEFAULT_TOP_P = 0.9;
+const DEFAULT_CONTEXT_WINDOW = 200000;
+const CLAUDE_46_MODELS = ['claude-sonnet-4-6', 'claude-4-6', 'claude-v4.6'];
+
+/**
+ * Dimensions and options for the 'computer' tool in computer-use scenarios.
+ */
+const COMPUTER_USE_OPTIONS = {
+  display_height: 768,
+  display_width: 1024,
+  display_number: 0,
+};
+
+/**
+ * Configuration for models that support reasoning/thinking budgets.
+ */
 interface BedrockReasoningConfig {
   thinkingBudget: number;
   thinkingEnabled: boolean;
@@ -62,8 +80,23 @@ const BEDROCK_REASONING_MAP: Record<ReasoningProfile, BedrockReasoningConfig> = 
  * Implements 'thinking' budgets and native multi-modal support via the Converse API.
  */
 export class BedrockProvider implements IProvider {
+  /**
+   * Initializes the Bedrock provider.
+   * @param modelId The model ID to use (defaults to Claude 4.6).
+   */
   constructor(private modelId: string = BedrockModel.CLAUDE_4_6) {}
 
+  /**
+   * Performs a non-streaming chat completion call via Bedrock Converse API.
+   *
+   * @param messages The conversation history.
+   * @param tools Optional list of tools for function calling.
+   * @param profile The preferred reasoning profile.
+   * @param model Override for the model ID.
+   * @param _provider Ignored provider identifier.
+   * @param responseFormat Preferred format for the response.
+   * @returns A promise resolving to the assistant's message.
+   */
   async call(
     messages: Message[],
     tools?: ITool[],
@@ -75,7 +108,7 @@ export class BedrockProvider implements IProvider {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resource = Resource as any;
     const client = new BedrockRuntimeClient({
-      region: ('AwsRegion' in resource ? resource.AwsRegion.value : undefined) ?? 'ap-southeast-2',
+      region: ('AwsRegion' in resource ? resource.AwsRegion.value : undefined) ?? DEFAULT_REGION,
     });
     const activeModelId = model ?? this.modelId;
 
@@ -87,34 +120,40 @@ export class BedrockProvider implements IProvider {
 
     // 2026 Bedrock Optimization: Converse API System/User mapping
     const bedrockMessages: BedrockMessage[] = messages
-      .filter((m) => m.role !== MessageRole.SYSTEM && m.role !== MessageRole.DEVELOPER)
-      .map((m) => {
+      .filter(
+        (message) => message.role !== MessageRole.SYSTEM && message.role !== MessageRole.DEVELOPER
+      )
+      .map((message) => {
         let role: 'user' | 'assistant' = 'user';
-        if (m.role === MessageRole.ASSISTANT) role = 'assistant';
+        if (message.role === MessageRole.ASSISTANT) role = 'assistant';
 
-        const content: ContentBlock[] = [{ text: m.content ?? '' }];
+        const content: ContentBlock[] = [{ text: message.content ?? '' }];
 
-        if (m.attachments && m.role !== MessageRole.TOOL) {
-          m.attachments.forEach((att) => {
-            const format = (att.mimeType?.split('/')[1] ?? 'png').toLowerCase();
-            if (att.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
+        if (message.attachments && message.role !== MessageRole.TOOL) {
+          message.attachments.forEach((attachment) => {
+            const format = (attachment.mimeType?.split('/')[1] ?? 'png').toLowerCase();
+            if (attachment.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
               content.push({
                 image: {
                   format: format as 'png' | 'jpeg' | 'gif' | 'webp',
                   source: {
-                    bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                    bytes: attachment.base64
+                      ? Buffer.from(attachment.base64, 'base64')
+                      : new Uint8Array(),
                   },
                 },
               });
-            } else if (att.type === 'file') {
+            } else if (attachment.type === 'file') {
               // 2026 Bedrock Converse API: Support for document attachments
               content.push({
                 document: {
-                  name: att.name ?? 'document',
+                  name: attachment.name ?? 'document',
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  format: (att.mimeType?.split('/')[1] ?? 'pdf') as any,
+                  format: (attachment.mimeType?.split('/')[1] ?? 'pdf') as any,
                   source: {
-                    bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                    bytes: attachment.base64
+                      ? Buffer.from(attachment.base64, 'base64')
+                      : new Uint8Array(),
                   },
                 },
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -123,51 +162,51 @@ export class BedrockProvider implements IProvider {
           });
         }
 
-        if (m.tool_calls) {
-          m.tool_calls.forEach(
-            (tc: { id: string; function: { name: string; arguments: string } }) => {
+        if (message.tool_calls) {
+          message.tool_calls.forEach(
+            (toolCall: { id: string; function: { name: string; arguments: string } }) => {
               content.push({
                 toolUse: {
-                  toolUseId: tc.id,
-                  name: tc.function.name,
-                  input: JSON.parse(tc.function.arguments),
+                  toolUseId: toolCall.id,
+                  name: toolCall.function.name,
+                  input: JSON.parse(toolCall.function.arguments),
                 },
               });
             }
           );
         }
 
-        if (m.role === MessageRole.TOOL) {
+        if (message.role === MessageRole.TOOL) {
           const toolContent: ToolResultContentBlock[] = [];
+          toolContent.push({ text: message.content ?? '' });
 
-          // If content is a JSON string that might be a ToolResult, try to parse it
-          // Actually, the Agent core already passes the text part if it's a ToolResult
-          // But if we want to pass images back to the model, we need to handle it here.
-          // Wait, the Message interface doesn't store the full ToolResult, only the text content is added to history currently.
-
-          toolContent.push({ text: m.content ?? '' });
-
-          // In 2026, we also support passing attachments from previous turns
-          if (m.attachments) {
-            m.attachments.forEach((att) => {
-              const format = (att.mimeType?.split('/')[1] ?? 'png').toLowerCase();
-              if (att.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
+          if (message.attachments) {
+            message.attachments.forEach((attachment) => {
+              const format = (attachment.mimeType?.split('/')[1] ?? 'png').toLowerCase();
+              if (
+                attachment.type === 'image' &&
+                (imgFormats as readonly string[]).includes(format)
+              ) {
                 toolContent.push({
                   image: {
                     format: format as 'png' | 'jpeg' | 'gif' | 'webp',
                     source: {
-                      bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                      bytes: attachment.base64
+                        ? Buffer.from(attachment.base64, 'base64')
+                        : new Uint8Array(),
                     },
                   },
                 });
-              } else if (att.type === 'file') {
+              } else if (attachment.type === 'file') {
                 toolContent.push({
                   document: {
-                    name: att.name ?? 'document',
+                    name: attachment.name ?? 'document',
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    format: (att.mimeType?.split('/')[1] ?? 'pdf') as any,
+                    format: (attachment.mimeType?.split('/')[1] ?? 'pdf') as any,
                     source: {
-                      bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                      bytes: attachment.base64
+                        ? Buffer.from(attachment.base64, 'base64')
+                        : new Uint8Array(),
                     },
                   },
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -178,7 +217,7 @@ export class BedrockProvider implements IProvider {
 
           content.push({
             toolResult: {
-              toolUseId: m.tool_call_id!,
+              toolUseId: message.tool_call_id!,
               content: toolContent,
               status: 'success',
             },
@@ -193,17 +232,16 @@ export class BedrockProvider implements IProvider {
       .map((m) => ({ text: m.content ?? '' }));
 
     const bedrockTools: BedrockTool[] | undefined = tools
-      ?.filter((t) => !t.type || t.type === 'function' || t.type === 'computer_use')
-      .map((t) => {
-        if (t.type === 'computer_use') {
-          // 2026: Specialized mapping for Anthropic Computer Use on Bedrock
+      ?.filter((tool) => !tool.type || tool.type === 'function' || tool.type === 'computer_use')
+      .map((tool) => {
+        if (tool.type === 'computer_use') {
           return {
-            [t.name]: {
-              display_name: t.name,
-              type: t.type,
-              ...(t.name === 'computer'
+            [tool.name]: {
+              display_name: tool.name,
+              type: tool.type,
+              ...(tool.name === 'computer'
                 ? {
-                    options: { display_height: 768, display_width: 1024, display_number: 0 },
+                    options: COMPUTER_USE_OPTIONS,
                   }
                 : {}),
             },
@@ -212,10 +250,10 @@ export class BedrockProvider implements IProvider {
         }
         return {
           toolSpec: {
-            name: t.name,
-            description: t.description,
+            name: tool.name,
+            description: tool.description,
             inputSchema: {
-              json: t.parameters as unknown as Record<string, unknown>,
+              json: tool.parameters as unknown as Record<string, unknown>,
             },
           },
         };
@@ -229,7 +267,7 @@ export class BedrockProvider implements IProvider {
       inferenceConfig: {
         maxTokens: reasoningConfig.maxTokens,
         temperature: reasoningConfig.temperature,
-        topP: 0.9,
+        topP: DEFAULT_TOP_P,
       },
       additionalModelRequestFields: {
         ...(reasoningConfig.thinkingEnabled
@@ -241,7 +279,6 @@ export class BedrockProvider implements IProvider {
             }
           : {}),
       },
-      // 2026: Native JSON output support for Claude 4.6 on Bedrock
       ...(responseFormat?.type === 'json_schema'
         ? {
             outputConfig: {
@@ -307,18 +344,21 @@ export class BedrockProvider implements IProvider {
     return createEmptyResponse('Bedrock');
   }
 
+  /**
+   * Performs a streaming chat completion call via Bedrock Converse Stream API.
+   */
   async *stream(
     messages: Message[],
     tools?: ITool[],
     profile: ReasoningProfile = ReasoningProfile.STANDARD,
     model?: string,
-    provider?: string,
+    _provider?: string,
     responseFormat?: import('../types/index').ResponseFormat
   ): AsyncIterable<import('../types/index').MessageChunk> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resource = Resource as any;
     const client = new BedrockRuntimeClient({
-      region: ('AwsRegion' in resource ? resource.AwsRegion.value : undefined) ?? 'ap-southeast-2',
+      region: ('AwsRegion' in resource ? resource.AwsRegion.value : undefined) ?? DEFAULT_REGION,
     });
     const activeModelId = model ?? this.modelId;
 
@@ -327,35 +367,41 @@ export class BedrockProvider implements IProvider {
 
     const reasoningConfig = BEDROCK_REASONING_MAP[profile];
 
-    // Reuse message conversion from call()
+    // Reuse message conversion logic (ideally extracted to helper)
     const bedrockMessages: BedrockMessage[] = messages
-      .filter((m) => m.role !== MessageRole.SYSTEM && m.role !== MessageRole.DEVELOPER)
-      .map((m) => {
+      .filter(
+        (message) => message.role !== MessageRole.SYSTEM && message.role !== MessageRole.DEVELOPER
+      )
+      .map((message) => {
         let role: 'user' | 'assistant' = 'user';
-        if (m.role === MessageRole.ASSISTANT) role = 'assistant';
+        if (message.role === MessageRole.ASSISTANT) role = 'assistant';
 
-        const content: ContentBlock[] = [{ text: m.content ?? '' }];
+        const content: ContentBlock[] = [{ text: message.content ?? '' }];
 
-        if (m.attachments && m.role !== MessageRole.TOOL) {
-          m.attachments.forEach((att) => {
-            const format = (att.mimeType?.split('/')[1] ?? 'png').toLowerCase();
-            if (att.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
+        if (message.attachments && message.role !== MessageRole.TOOL) {
+          message.attachments.forEach((attachment) => {
+            const format = (attachment.mimeType?.split('/')[1] ?? 'png').toLowerCase();
+            if (attachment.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
               content.push({
                 image: {
                   format: format as 'png' | 'jpeg' | 'gif' | 'webp',
                   source: {
-                    bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                    bytes: attachment.base64
+                      ? Buffer.from(attachment.base64, 'base64')
+                      : new Uint8Array(),
                   },
                 },
               });
-            } else if (att.type === 'file') {
+            } else if (attachment.type === 'file') {
               content.push({
                 document: {
-                  name: att.name ?? 'document',
+                  name: attachment.name ?? 'document',
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  format: (att.mimeType?.split('/')[1] ?? 'pdf') as any,
+                  format: (attachment.mimeType?.split('/')[1] ?? 'pdf') as any,
                   source: {
-                    bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                    bytes: attachment.base64
+                      ? Buffer.from(attachment.base64, 'base64')
+                      : new Uint8Array(),
                   },
                 },
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -364,44 +410,51 @@ export class BedrockProvider implements IProvider {
           });
         }
 
-        if (m.tool_calls) {
-          m.tool_calls.forEach(
-            (tc: { id: string; function: { name: string; arguments: string } }) => {
+        if (message.tool_calls) {
+          message.tool_calls.forEach(
+            (toolCall: { id: string; function: { name: string; arguments: string } }) => {
               content.push({
                 toolUse: {
-                  toolUseId: tc.id,
-                  name: tc.function.name,
-                  input: JSON.parse(tc.function.arguments),
+                  toolUseId: toolCall.id,
+                  name: toolCall.function.name,
+                  input: JSON.parse(toolCall.function.arguments),
                 },
               });
             }
           );
         }
 
-        if (m.role === MessageRole.TOOL) {
+        if (message.role === MessageRole.TOOL) {
           const toolContent: ToolResultContentBlock[] = [];
-          toolContent.push({ text: m.content ?? '' });
+          toolContent.push({ text: message.content ?? '' });
 
-          if (m.attachments) {
-            m.attachments.forEach((att) => {
-              const format = (att.mimeType?.split('/')[1] ?? 'png').toLowerCase();
-              if (att.type === 'image' && (imgFormats as readonly string[]).includes(format)) {
+          if (message.attachments) {
+            message.attachments.forEach((attachment) => {
+              const format = (attachment.mimeType?.split('/')[1] ?? 'png').toLowerCase();
+              if (
+                attachment.type === 'image' &&
+                (imgFormats as readonly string[]).includes(format)
+              ) {
                 toolContent.push({
                   image: {
                     format: format as 'png' | 'jpeg' | 'gif' | 'webp',
                     source: {
-                      bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                      bytes: attachment.base64
+                        ? Buffer.from(attachment.base64, 'base64')
+                        : new Uint8Array(),
                     },
                   },
                 });
-              } else if (att.type === 'file') {
+              } else if (attachment.type === 'file') {
                 toolContent.push({
                   document: {
-                    name: att.name ?? 'document',
+                    name: attachment.name ?? 'document',
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    format: (att.mimeType?.split('/')[1] ?? 'pdf') as any,
+                    format: (attachment.mimeType?.split('/')[1] ?? 'pdf') as any,
                     source: {
-                      bytes: att.base64 ? Buffer.from(att.base64, 'base64') : new Uint8Array(),
+                      bytes: attachment.base64
+                        ? Buffer.from(attachment.base64, 'base64')
+                        : new Uint8Array(),
                     },
                   },
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -412,7 +465,7 @@ export class BedrockProvider implements IProvider {
 
           content.push({
             toolResult: {
-              toolUseId: m.tool_call_id!,
+              toolUseId: message.tool_call_id!,
               content: toolContent,
               status: 'success',
             },
@@ -427,16 +480,16 @@ export class BedrockProvider implements IProvider {
       .map((m) => ({ text: m.content ?? '' }));
 
     const bedrockTools: BedrockTool[] | undefined = tools
-      ?.filter((t) => !t.type || t.type === 'function' || t.type === 'computer_use')
-      .map((t) => {
-        if (t.type === 'computer_use') {
+      ?.filter((tool) => !tool.type || tool.type === 'function' || tool.type === 'computer_use')
+      .map((tool) => {
+        if (tool.type === 'computer_use') {
           return {
-            [t.name]: {
-              display_name: t.name,
-              type: t.type,
-              ...(t.name === 'computer'
+            [tool.name]: {
+              display_name: tool.name,
+              type: tool.type,
+              ...(tool.name === 'computer'
                 ? {
-                    options: { display_height: 768, display_width: 1024, display_number: 0 },
+                    options: COMPUTER_USE_OPTIONS,
                   }
                 : {}),
             },
@@ -445,10 +498,10 @@ export class BedrockProvider implements IProvider {
         }
         return {
           toolSpec: {
-            name: t.name,
-            description: t.description,
+            name: tool.name,
+            description: tool.description,
             inputSchema: {
-              json: t.parameters as unknown as Record<string, unknown>,
+              json: tool.parameters as unknown as Record<string, unknown>,
             },
           },
         };
@@ -463,7 +516,7 @@ export class BedrockProvider implements IProvider {
         inferenceConfig: {
           maxTokens: reasoningConfig.maxTokens,
           temperature: reasoningConfig.temperature,
-          topP: 0.9,
+          topP: DEFAULT_TOP_P,
         },
         additionalModelRequestFields: {
           ...(reasoningConfig.thinkingEnabled
@@ -562,13 +615,16 @@ export class BedrockProvider implements IProvider {
     }
   }
 
+  /**
+   * Retrieves the capabilities of a specific model on Bedrock.
+   *
+   * @param model The model ID to check.
+   * @returns An object describing reasoning profiles, structured output support, and context window.
+   */
   async getCapabilities(model?: string) {
     const activeModelId = model ?? this.modelId;
     // 2026: Expanded check for all Claude 4.6 variations (Sonnet, Haiku, Opus)
-    const isClaude46 =
-      activeModelId.includes('claude-sonnet-4-6') ||
-      activeModelId.includes('claude-4-6') ||
-      activeModelId.includes('claude-v4.6');
+    const isClaude46 = CLAUDE_46_MODELS.some((m) => activeModelId.includes(m));
 
     return {
       supportedReasoningProfiles: isClaude46
@@ -580,7 +636,7 @@ export class BedrockProvider implements IProvider {
           ]
         : [ReasoningProfile.FAST, ReasoningProfile.STANDARD],
       supportsStructuredOutput: isClaude46,
-      contextWindow: 200000,
+      contextWindow: DEFAULT_CONTEXT_WINDOW,
     };
   }
 }

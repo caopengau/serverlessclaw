@@ -10,6 +10,24 @@ import { Resource } from 'sst';
 import { logger } from '../logger';
 import { normalizeProfile, capEffort, createEmptyResponse } from './utils';
 
+// --- Constants and Configuration ---
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+const PROJECT_REFERER = 'https://github.com/serverlessclaw/serverlessclaw';
+const PROJECT_TITLE = 'Serverless Claw';
+const DEFAULT_DYNAMIC_THRESHOLD = 0.3;
+
+/**
+ * Known context windows for specific models to avoid magic numbers.
+ */
+const CONTEXT_WINDOWS: Record<string, number> = {
+  'gemini-3': 1048576,
+  glm: 200000,
+  default: 128000,
+};
+
+/**
+ * Mapping of reasoning profiles to OpenRouter-specific reasoning parameters.
+ */
 const OPENROUTER_REASONING_MAP: Record<
   ReasoningProfile,
   { effort: 'low' | 'medium' | 'high'; enabled: boolean; route: 'latency' | 'fallback' }
@@ -25,8 +43,23 @@ const OPENROUTER_REASONING_MAP: Record<
  * Implements dynamic capability detection and standardized reasoning parameters.
  */
 export class OpenRouterProvider implements IProvider {
+  /**
+   * Initializes the OpenRouter provider.
+   * @param model The model ID to use (defaults to Gemini 3 Flash).
+   */
   constructor(private model: string = OpenRouterModel.GEMINI_3_FLASH) {}
 
+  /**
+   * Performs a non-streaming chat completion call.
+   *
+   * @param messages The conversation history.
+   * @param tools Optional list of tools for function calling.
+   * @param profile The preferred reasoning profile.
+   * @param model Override for the model ID.
+   * @param _provider Ignored provider identifier.
+   * @param responseFormat Preferred format for the response (e.g., JSON schema).
+   * @returns A promise resolving to the assistant's message.
+   */
   async call(
     messages: Message[],
     tools?: ITool[],
@@ -38,7 +71,7 @@ export class OpenRouterProvider implements IProvider {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resource = Resource as any;
     const apiKey = ('OpenRouterApiKey' in resource ? resource.OpenRouterApiKey.value : '') ?? '';
-    const baseUrl = 'https://openrouter.ai/api/v1';
+    const baseUrl = OPENROUTER_BASE_URL;
     const activeModel = model ?? this.model;
 
     // Fallback if profile not supported
@@ -48,42 +81,44 @@ export class OpenRouterProvider implements IProvider {
     const reasoningConfig = OPENROUTER_REASONING_MAP[profile];
     const reasoningEffort = capEffort(reasoningConfig.effort, capabilities.maxReasoningEffort);
 
-    const processedMessages = messages.map((m) => {
-      if (!m.attachments || m.attachments.length === 0) {
-        return m;
+    const processedMessages = messages.map((message) => {
+      if (!message.attachments || message.attachments.length === 0) {
+        return message;
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const content: any[] = [];
-      if (m.content) {
-        content.push({ type: 'text', text: m.content });
+      if (message.content) {
+        content.push({ type: 'text', text: message.content });
       }
 
-      m.attachments.forEach((att) => {
-        if (att.type === 'image') {
+      message.attachments.forEach((attachment) => {
+        if (attachment.type === 'image') {
           content.push({
             type: 'image_url',
             image_url: {
-              url: att.url ?? `data:${att.mimeType ?? 'image/png'};base64,${att.base64}`,
+              url:
+                attachment.url ??
+                `data:${attachment.mimeType ?? 'image/png'};base64,${attachment.base64}`,
             },
           });
-        } else if (att.type === 'file') {
+        } else if (attachment.type === 'file') {
           // OpenRouter/OpenAI-compatible file input
           content.push({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             type: 'input_file' as any,
             input_file: {
               file_id:
-                att.url ??
-                `data:${att.mimeType ?? 'application/octet-stream'};base64,${att.base64}`,
+                attachment.url ??
+                `data:${attachment.mimeType ?? 'application/octet-stream'};base64,${attachment.base64}`,
             },
           });
         }
       });
 
       return {
-        ...m,
-        content: content.length === 1 && content[0].type === 'text' ? m.content : content,
+        ...message,
+        content: content.length === 1 && content[0].type === 'text' ? message.content : content,
       };
     });
 
@@ -110,16 +145,16 @@ export class OpenRouterProvider implements IProvider {
     };
 
     if (tools && tools.length > 0) {
-      body['tools'] = tools.map((t) => {
-        if (t.type && t.type !== 'function') {
-          return { type: t.type };
+      body['tools'] = tools.map((tool) => {
+        if (tool.type && tool.type !== 'function') {
+          return { type: tool.type };
         }
         return {
           type: 'function',
           function: {
-            name: t.name,
-            description: t.description,
-            parameters: t.parameters,
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters,
           },
         };
       });
@@ -132,7 +167,7 @@ export class OpenRouterProvider implements IProvider {
         body['google_search_retrieval'] = {
           dynamic_retrieval: {
             mode: 'unspecified',
-            dynamic_threshold: 0.3,
+            dynamic_threshold: DEFAULT_DYNAMIC_THRESHOLD,
           },
         };
       }
@@ -148,8 +183,8 @@ export class OpenRouterProvider implements IProvider {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${apiKey}`,
-        'HTTP-Referer': 'https://github.com/serverlessclaw/serverlessclaw',
-        'X-Title': 'Serverless Claw',
+        'HTTP-Referer': PROJECT_REFERER,
+        'X-Title': PROJECT_TITLE,
         'X-OpenRouter-Caching': 'true',
       },
       body: JSON.stringify(body),
@@ -185,8 +220,8 @@ export class OpenRouterProvider implements IProvider {
     let thought: string | undefined;
     if (message.reasoning_details && Array.isArray(message.reasoning_details)) {
       const parts = (message.reasoning_details as Array<{ text?: string }>)
-        .filter((d) => d.text)
-        .map((d) => d.text);
+        .filter((detail) => detail.text)
+        .map((detail) => detail.text);
       if (parts.length > 0) {
         thought = parts.join('\n\n');
       }
@@ -211,6 +246,9 @@ export class OpenRouterProvider implements IProvider {
     } as Message;
   }
 
+  /**
+   * Performs a streaming chat completion call.
+   */
   async *stream(
     messages: Message[],
     tools?: ITool[],
@@ -222,7 +260,7 @@ export class OpenRouterProvider implements IProvider {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resource = Resource as any;
     const apiKey = ('OpenRouterApiKey' in resource ? resource.OpenRouterApiKey.value : '') ?? '';
-    const baseUrl = 'https://openrouter.ai/api/v1';
+    const baseUrl = OPENROUTER_BASE_URL;
     const activeModel = model ?? this.model;
 
     const capabilities = await this.getCapabilities(activeModel);
@@ -231,41 +269,43 @@ export class OpenRouterProvider implements IProvider {
     const reasoningConfig = OPENROUTER_REASONING_MAP[profile];
     const reasoningEffort = capEffort(reasoningConfig.effort, capabilities.maxReasoningEffort);
 
-    const processedMessages = messages.map((m) => {
-      if (!m.attachments || m.attachments.length === 0) {
-        return m;
+    const processedMessages = messages.map((message) => {
+      if (!message.attachments || message.attachments.length === 0) {
+        return message;
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const content: any[] = [];
-      if (m.content) {
-        content.push({ type: 'text', text: m.content });
+      if (message.content) {
+        content.push({ type: 'text', text: message.content });
       }
 
-      m.attachments.forEach((att) => {
-        if (att.type === 'image') {
+      message.attachments.forEach((attachment) => {
+        if (attachment.type === 'image') {
           content.push({
             type: 'image_url',
             image_url: {
-              url: att.url ?? `data:${att.mimeType ?? 'image/png'};base64,${att.base64}`,
+              url:
+                attachment.url ??
+                `data:${attachment.mimeType ?? 'image/png'};base64,${attachment.base64}`,
             },
           });
-        } else if (att.type === 'file') {
+        } else if (attachment.type === 'file') {
           content.push({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             type: 'input_file' as any,
             input_file: {
               file_id:
-                att.url ??
-                `data:${att.mimeType ?? 'application/octet-stream'};base64,${att.base64}`,
+                attachment.url ??
+                `data:${attachment.mimeType ?? 'application/octet-stream'};base64,${attachment.base64}`,
             },
           });
         }
       });
 
       return {
-        ...m,
-        content: content.length === 1 && content[0].type === 'text' ? m.content : content,
+        ...message,
+        content: content.length === 1 && content[0].type === 'text' ? message.content : content,
       };
     });
 
@@ -290,16 +330,16 @@ export class OpenRouterProvider implements IProvider {
     };
 
     if (tools && tools.length > 0) {
-      body['tools'] = tools.map((t) => {
-        if (t.type && t.type !== 'function') {
-          return { type: t.type };
+      body['tools'] = tools.map((tool) => {
+        if (tool.type && tool.type !== 'function') {
+          return { type: tool.type };
         }
         return {
           type: 'function',
           function: {
-            name: t.name,
-            description: t.description,
-            parameters: t.parameters,
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters,
           },
         };
       });
@@ -311,7 +351,7 @@ export class OpenRouterProvider implements IProvider {
         body['google_search_retrieval'] = {
           dynamic_retrieval: {
             mode: 'unspecified',
-            dynamic_threshold: 0.3,
+            dynamic_threshold: DEFAULT_DYNAMIC_THRESHOLD,
           },
         };
       }
@@ -327,8 +367,8 @@ export class OpenRouterProvider implements IProvider {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
-          'HTTP-Referer': 'https://github.com/serverlessclaw/serverlessclaw',
-          'X-Title': 'Serverless Claw',
+          'HTTP-Referer': PROJECT_REFERER,
+          'X-Title': PROJECT_TITLE,
           'X-OpenRouter-Caching': 'true',
         },
         body: JSON.stringify(body),
@@ -400,9 +440,9 @@ export class OpenRouterProvider implements IProvider {
           }
 
           if (delta.reasoning_details && Array.isArray(delta.reasoning_details)) {
-            for (const rd of delta.reasoning_details) {
-              if (rd.text) {
-                yield { thought: rd.text };
+            for (const reasoningDetail of delta.reasoning_details) {
+              if (reasoningDetail.text) {
+                yield { thought: reasoningDetail.text };
               }
             }
           }
@@ -412,15 +452,15 @@ export class OpenRouterProvider implements IProvider {
           }
 
           if (delta.tool_calls && Array.isArray(delta.tool_calls)) {
-            for (const tc of delta.tool_calls) {
+            for (const toolCall of delta.tool_calls) {
               yield {
                 tool_calls: [
                   {
-                    id: tc.id ?? '',
+                    id: toolCall.id ?? '',
                     type: 'function',
                     function: {
-                      name: tc.function?.name ?? '',
-                      arguments: tc.function?.arguments ?? '',
+                      name: toolCall.function?.name ?? '',
+                      arguments: toolCall.function?.arguments ?? '',
                     },
                   },
                 ],
@@ -449,6 +489,12 @@ export class OpenRouterProvider implements IProvider {
     }
   }
 
+  /**
+   * Retrieves the capabilities of a specific model.
+   *
+   * @param model The model ID to check.
+   * @returns An object describing reasoning profiles, structured output support, and context window.
+   */
   async getCapabilities(model?: string) {
     const activeModel = model ?? this.model;
     // 2026: Dynamic capability detection based on model ID patterns.
@@ -458,10 +504,6 @@ export class OpenRouterProvider implements IProvider {
       activeModel.includes('gemini-3') ||
       activeModel.includes('claude-3-7') || // Hypothetical 2026 Claude
       activeModel.includes('gpt-5');
-
-    let contextWindow = 128000;
-    if (activeModel.includes('gemini-3')) contextWindow = 1048576;
-    else if (activeModel.includes('glm')) contextWindow = 200000;
 
     return {
       supportedReasoningProfiles: isHighCapability
@@ -474,7 +516,11 @@ export class OpenRouterProvider implements IProvider {
         : [ReasoningProfile.FAST, ReasoningProfile.STANDARD],
       maxReasoningEffort: 'high', // OpenRouter's reasoning.effort usually caps at high
       supportsStructuredOutput: true,
-      contextWindow,
+      contextWindow: activeModel.includes('gemini-3')
+        ? CONTEXT_WINDOWS['gemini-3']
+        : activeModel.includes('glm')
+          ? CONTEXT_WINDOWS['glm']
+          : CONTEXT_WINDOWS['default'],
     };
   }
 }

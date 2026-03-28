@@ -4,37 +4,15 @@
  * communication patterns.
  */
 
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../logger';
 import type { SSTResource } from '../types/system';
 import { TraceType } from '../types/constants';
+import { getDocClient } from './ddb-client';
 
-let docClient: DynamoDBDocumentClient | undefined;
-
-/**
- * Gets the singleton DynamoDB document client.
- */
-function getDocClient(): DynamoDBDocumentClient {
-  if (!docClient) {
-    const client = new DynamoDBClient({});
-    docClient = DynamoDBDocumentClient.from(client, {
-      marshallOptions: {
-        removeUndefinedValues: true,
-      },
-    });
-  }
-  return docClient;
-}
-
-/**
- * Resets the document client (used for testing).
- */
-export function resetDocClient(): void {
-  docClient = undefined;
-}
+// Removed local doc client management in favor of shared utility
 
 interface TraceStepInput {
   type: TraceType;

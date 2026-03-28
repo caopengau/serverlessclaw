@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ClawTracer, resetDocClient } from './tracer';
+import { ClawTracer } from './tracer';
+import { resetDocClient } from './utils/ddb-client';
 import { TraceType } from './types/constants';
 import { AgentRegistry } from './registry';
 import { TraceSource } from './types/agent';

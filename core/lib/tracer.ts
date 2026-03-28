@@ -1,4 +1,3 @@
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
   PutCommand,
@@ -12,28 +11,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { TRACE_STATUS, TIME } from './constants';
 import { logger } from './logger';
 import { filterPIIFromObject } from './utils/pii';
+import { getDocClient } from './utils/ddb-client';
 import type { TraceStep, Trace } from './tracer/types';
 
-let _docClient: DynamoDBDocumentClient | undefined;
-
-function getDocClient(): DynamoDBDocumentClient {
-  if (!_docClient) {
-    const client = new DynamoDBClient({});
-    _docClient = DynamoDBDocumentClient.from(client, {
-      marshallOptions: {
-        removeUndefinedValues: true,
-      },
-    });
-  }
-  return _docClient;
-}
-
-/**
- * Resets the document client (used for testing).
- */
-export function resetDocClient(): void {
-  _docClient = undefined;
-}
+// Removed local doc client management in favor of shared utility
 
 /**
  * ClawTracer provides observability into an agent's internal reasoning process

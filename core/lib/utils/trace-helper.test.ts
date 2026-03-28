@@ -1,10 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  addTraceStep,
-  updateTraceMetadata,
-  updateTraceStatus,
-  resetDocClient,
-} from './trace-helper';
+import { addTraceStep, updateTraceMetadata, updateTraceStatus } from './trace-helper';
+import { resetDocClient } from './ddb-client';
 import { TraceType } from '../types/constants';
 
 // Mock dependencies

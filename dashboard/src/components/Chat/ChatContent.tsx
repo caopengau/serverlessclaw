@@ -13,31 +13,53 @@ import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
 import { ChatMessage, AttachmentPreview, HistoryMessage } from './types';
 
+/**
+ * ChatContent component - The main interface for the chat dashboard.
+ * Manages chat messages, sessions, file uploads, and session settings.
+ * 
+ * @returns {JSX.Element} The rendered chat content component.
+ */
 export default function ChatContent() {
+  // --- UI and Session State ---
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [isShaking, setIsShaking] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // --- Title Management State ---
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editedTitle, setEditedTitle] = useState('');
+
+  // --- Deletion State ---
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
+
+  // --- Attachments State ---
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+
+  // --- Refs ---
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeSessionRef = useRef<string>('');
   const hasProcessedPrompt = useRef<boolean>(false);
   const isPostInFlight = useRef<boolean>(false);
 
+  // --- Hooks ---
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const { isRealtimeActive, sessions, fetchSessions, skipNextHistoryFetch, seenMessageIds } = useChatConnection(
+  // Custom hook for managing chat connection and session details
+  const { 
+    isRealtimeActive, 
+    sessions, 
+    fetchSessions, 
+    skipNextHistoryFetch, 
+    seenMessageIds 
+  } = useChatConnection(
     activeSessionId,
     setMessages,
     setIsLoading,
@@ -46,12 +68,67 @@ export default function ChatContent() {
 
   const currentSession = sessions.find(s => s.sessionId === activeSessionId);
 
+  // --- effects ---
+
+  // Sync edited title with current session title
   useEffect(() => {
     if (currentSession) {
       setEditedTitle(currentSession.title ?? 'Untitled Trace');
     }
   }, [currentSession]);
 
+  // Track active session ID in ref for concurrent processing
+  useEffect(() => {
+    activeSessionRef.current = activeSessionId;
+  }, [activeSessionId]);
+
+  // Handle URL search parameters for session and prompt initialization
+  useEffect(() => {
+    const sessionFromUrl = searchParams.get('session');
+    if (sessionFromUrl && sessionFromUrl !== activeSessionId) {
+      setActiveSessionId(sessionFromUrl);
+    } else if (!sessionFromUrl && activeSessionId) {
+      setActiveSessionId('');
+    }
+
+    const prompt = searchParams.get('prompt');
+    if (prompt && !hasProcessedPrompt.current) {
+      hasProcessedPrompt.current = true;
+      // Delay to ensure component is ready
+      setTimeout(() => sendMessage(prompt), 500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Update URL when active session changes
+  useEffect(() => {
+    if (activeSessionId) {
+      const currentParams = new URLSearchParams(window.location.search);
+      if (currentParams.get('session') !== activeSessionId) {
+        router.push(`?session=${activeSessionId}`, { scroll: false });
+      }
+    }
+  }, [activeSessionId, router]);
+
+  // Fetch history when active session changes
+  useEffect(() => {
+    if (activeSessionId) {
+      if (skipNextHistoryFetch.current) {
+        skipNextHistoryFetch.current = false;
+        return;
+      }
+      fetchHistory(activeSessionId);
+    } else {
+      setMessages([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSessionId]);
+
+  // --- Session Operations ---
+
+  /**
+   * Saves the edited title of the current chat session.
+   */
   const saveTitle = async () => {
     if (!activeSessionId || !editedTitle.trim()) return;
     try {
@@ -67,6 +144,12 @@ export default function ChatContent() {
     }
   };
 
+  /**
+   * Toggles the pinned status of a chat session.
+   * 
+   * @param {string} sessionId - The ID of the session to toggle.
+   * @param {boolean} isPinned - The new pinned status.
+   */
   const togglePin = async (sessionId: string, isPinned: boolean) => {
     try {
       await fetch('/api/chat', {
@@ -80,35 +163,11 @@ export default function ChatContent() {
     }
   };
 
-  useEffect(() => {
-    activeSessionRef.current = activeSessionId;
-  }, [activeSessionId]);
-
-  useEffect(() => {
-    const sessionFromUrl = searchParams.get('session');
-    if (sessionFromUrl && sessionFromUrl !== activeSessionId) {
-      setActiveSessionId(sessionFromUrl);
-    } else if (!sessionFromUrl && activeSessionId) {
-      setActiveSessionId('');
-    }
-
-    const prompt = searchParams.get('prompt');
-    if (prompt && !hasProcessedPrompt.current) {
-      hasProcessedPrompt.current = true;
-      setTimeout(() => sendMessage(prompt), 500);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (activeSessionId) {
-      const currentParams = new URLSearchParams(window.location.search);
-      if (currentParams.get('session') !== activeSessionId) {
-        router.push(`?session=${activeSessionId}`, { scroll: false });
-      }
-    }
-  }, [activeSessionId, router]);
-
+  /**
+   * Fetches the chat history for a specific session and merges it with local updates.
+   * 
+   * @param {string} sessionId - The ID of the session to fetch history for.
+   */
   const fetchHistory = async (sessionId: string) => {
     setIsLoading(true);
     try {
@@ -129,14 +188,14 @@ export default function ChatContent() {
           }));
 
           // Preserve local-only messages (like SystemGuard errors) that aren't in history yet
-          const historyIds = new Set(history.map((m: ChatMessage) => m.messageId).filter(Boolean));
-          const localOnly = prev.filter((m: ChatMessage) => 
-            m.role === 'assistant' && m.messageId && !historyIds.has(m.messageId)
+          const historyIds = new Set(history.map((msg: ChatMessage) => msg.messageId).filter(Boolean));
+          const localOnly = prev.filter((msg: ChatMessage) => 
+            msg.role === 'assistant' && msg.messageId && !historyIds.has(msg.messageId)
           );
 
-          // Track IDs from history too
-          history.forEach(m => {
-            if (m.messageId) seenMessageIds.current.add(m.messageId);
+          // Track IDs from history for duplicate prevention
+          history.forEach((msg: ChatMessage) => {
+            if (msg.messageId) seenMessageIds.current.add(msg.messageId);
           });
 
           return [...history, ...localOnly];
@@ -149,21 +208,18 @@ export default function ChatContent() {
     }
   };
 
-  useEffect(() => {
-    if (activeSessionId) {
-      if (skipNextHistoryFetch.current) {
-        skipNextHistoryFetch.current = false;
-        return;
-      }
-      fetchHistory(activeSessionId);
-    } else {
-      setMessages([]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSessionId]);
+  // --- Drag and Drop Handlers ---
 
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
@@ -171,22 +227,36 @@ export default function ChatContent() {
     handleFiles(files);
   };
 
+  /**
+   * Processes files for upload, generates previews, and updates attachment state.
+   * 
+   * @param {File[]} files - The files to process.
+   */
   const handleFiles = async (files: File[]) => {
-    const newAttachments = await Promise.all(files.map(async (file) => {
-      const type = (file.type.startsWith('image/') ? 'image' : 'file') as 'image' | 'file';
-      let preview = '';
-      if (type === 'image') {
-        preview = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(file);
-        });
-      }
-      return { file, preview, type };
-    }));
+    const newAttachments = await Promise.all(
+      files.map(async (file) => {
+        const type = (file.type.startsWith('image/') ? 'image' : 'file') as 'image' | 'file';
+        let preview = '';
+        if (type === 'image') {
+          preview = await new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.readAsDataURL(file);
+          });
+        }
+        return { file, preview, type };
+      })
+    );
     setAttachments(prev => [...prev, ...newAttachments]);
   };
 
+  // --- Messaging and Interaction ---
+
+  /**
+   * Sends a message to the chat API and handles the response.
+   * 
+   * @param {string} text - The text of the message to send.
+   */
   const sendMessage = async (text: string) => {
     if (!text.trim() && attachments.length === 0) return;
     if (isLoading || isPostInFlight.current) return;
@@ -195,6 +265,7 @@ export default function ChatContent() {
     const currentAttachments = [...attachments];
     const tempId = crypto.randomUUID();
     
+    // Add user message locally
     setMessages(prev => [...prev, { 
       role: 'user', 
       content: userMsg,
@@ -210,6 +281,7 @@ export default function ChatContent() {
     setAttachments([]);
     isPostInFlight.current = true;
 
+    // Initialize session if needed
     let currentSessionId = activeSessionRef.current;
     if (!currentSessionId) {
        currentSessionId = `session_${Date.now()}`;
@@ -219,6 +291,7 @@ export default function ChatContent() {
     }
 
     try {
+      // Encode attachments as base64
       const apiAttachments = await Promise.all(currentAttachments.map(async (a) => {
         const base64 = await new Promise<string>((resolve) => {
           const reader = new FileReader();
@@ -231,128 +304,171 @@ export default function ChatContent() {
       const response = await fetch('/api/chat?stream=true', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: userMsg, sessionId: currentSessionId, attachments: apiAttachments, traceId: tempId }),
+        body: JSON.stringify({ 
+          text: userMsg, 
+          sessionId: currentSessionId, 
+          attachments: apiAttachments, 
+          traceId: tempId 
+        }),
       });
 
       const data = await response.json();
 
-      // Handle error responses from the API
+      // Handle server-side errors
       if (!response.ok || data.error) {
-        const errorContent = data.details || data.error || AGENT_ERRORS.PROCESS_FAILURE;
-        console.error('Chat API error:', data);
-        if (currentSessionId === activeSessionRef.current) {
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: errorContent,
-            agentName: 'SystemGuard',
-            isError: true
-          }]);
-        }
-        fetchSessions();
+        handleApiError(currentSessionId, data);
         return;
       }
 
-      // Append the assistant response (stream now returns full response like non-streaming)
+      // Merge assistant response into message list
       if (currentSessionId === activeSessionRef.current) {
-        seenMessageIds.current.add(data.messageId || tempId);
-        setMessages(prev => {
-          const targetId = data.messageId || tempId;
-          const exists = prev.some(m => m.messageId === targetId && m.role === 'assistant');
-          if (exists) {
-            return prev.map(m => m.messageId === targetId && m.role === 'assistant' ? {
-              ...m,
-              content: data.reply || m.content,
-              thought: data.thought || m.thought,
-              tool_calls: data.tool_calls || m.tool_calls,
-              agentName: data.agentName || m.agentName
-            } : m);
-          }
-          return [...prev, {
-            role: 'assistant',
-            content: data.reply || (data.tool_calls ? 'Executing tools...' : ''),
-            thought: data.thought,
-            messageId: targetId,
-            agentName: data.agentName || 'SuperClaw',
-            tool_calls: data.tool_calls,
-          }];
-        });
+        updateAssistantResponse(data, tempId);
       }
       fetchSessions();
     } catch (error) {
-      console.error('Chat error:', error);
-      const errorMsg = AGENT_ERRORS.CONNECTION_FAILURE;
-      if (currentSessionId === activeSessionRef.current) {
-        const errorId = `error_${Date.now()}`;
-        seenMessageIds.current.add(errorId);
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: errorMsg, 
-          agentName: 'SystemGuard',
-          messageId: errorId,
-          isError: true
-        }]);
-      }
-      try {
-        await fetch('/api/memory/gap', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            details: `Dashboard session ${currentSessionId} failed during chat processing. Error: ${error instanceof Error ? error.message : String(error)}`,
-            metadata: { category: 'strategic_gap', urgency: 7, impact: 5 }
-          })
-        });
-      } catch (e) {
-        console.error('Failed to report strategic gap:', e);
-      }
+      handleConnectionError(currentSessionId, error);
     } finally {
       isPostInFlight.current = false;
       setIsLoading(false);
     }
   };
 
+  /**
+   * Handles errors from the Chat API.
+   * Internal helper extracted from sendMessage.
+   */
+  const handleApiError = (sessionId: string, data: any) => {
+    const errorContent = data.details || data.error || AGENT_ERRORS.PROCESS_FAILURE;
+    console.error('Chat API error:', data);
+    if (sessionId === activeSessionRef.current) {
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: errorContent,
+        agentName: 'SystemGuard',
+        isError: true
+      }]);
+    }
+    fetchSessions();
+  };
+
+  /**
+   * Updates or appends assistant response message.
+   * Internal helper extracted from sendMessage.
+   */
+  const updateAssistantResponse = (data: any, tempId: string) => {
+    seenMessageIds.current.add(data.messageId || tempId);
+    setMessages(prev => {
+      const targetId = data.messageId || tempId;
+      const exists = prev.some(m => m.messageId === targetId && m.role === 'assistant');
+      if (exists) {
+        return prev.map(m => m.messageId === targetId && m.role === 'assistant' ? {
+          ...m,
+          content: data.reply || m.content,
+          thought: data.thought || m.thought,
+          tool_calls: data.tool_calls || m.tool_calls,
+          agentName: data.agentName || m.agentName
+        } : m);
+      }
+      return [...prev, {
+        role: 'assistant',
+        content: data.reply || (data.tool_calls ? 'Executing tools...' : ''),
+        thought: data.thought,
+        messageId: targetId,
+        agentName: data.agentName || 'SuperClaw',
+        tool_calls: data.tool_calls,
+      }];
+    });
+  };
+
+  /**
+   * Handles network or unexpected processing errors and logs strategic gaps.
+   * Internal helper extracted from sendMessage.
+   */
+  const handleConnectionError = async (sessionId: string, error: unknown) => {
+    console.error('Chat error:', error);
+    const errorMsg = AGENT_ERRORS.CONNECTION_FAILURE;
+    if (sessionId === activeSessionRef.current) {
+      const errorId = `error_${Date.now()}`;
+      seenMessageIds.current.add(errorId);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: errorMsg, 
+        agentName: 'SystemGuard',
+        messageId: errorId,
+        isError: true
+      }]);
+    }
+    try {
+      await fetch('/api/memory/gap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          details: `Dashboard session ${sessionId} failed during processing. Error: ${error instanceof Error ? error.message : String(error)}`,
+          metadata: { category: 'strategic_gap', urgency: 7, impact: 5 }
+        })
+      });
+    } catch (e) {
+      console.error('Failed to report strategic gap:', e);
+    }
+  };
+
+  /**
+   * Handles clicks on suggested options or tool approvals.
+   * 
+   * @param {string} value - The value of the clicked option.
+   */
   const handleOptionClick = async (value: string) => {
     if (value.startsWith('APPROVE_TOOL_CALL:')) {
-      const callId = value.split(':')[1];
-      const currentSessionId = activeSessionRef.current;
-      
-      setIsLoading(true);
-      isPostInFlight.current = true;
-      
-      try {
-        const response = await fetch('/api/chat?stream=true', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            text: 'I approve the tool execution.', 
-            sessionId: currentSessionId, 
-            approvedToolCalls: [callId] 
-          }),
-        });
-        
-        if (!response.ok) {
-          const data = await response.json();
-          setMessages(prev => [...prev, { 
-            role: 'assistant', 
-            content: `Error during approval: ${data.error || 'Unknown error'}`, 
-            agentName: 'SystemGuard',
-            isError: true 
-          }]);
-        }
-        fetchSessions();
-      } catch (error) {
-        console.error('Approval error:', error);
-      } finally {
-        isPostInFlight.current = false;
-        setIsLoading(false);
-      }
+      await handleToolApproval(value.split(':')[1]);
     } else {
-      // Handle other options as standard messages
       sendMessage(value);
     }
   };
 
+  /**
+   * Processes approval for a specific tool call.
+   * Internal helper extracted from handleOptionClick.
+   */
+  const handleToolApproval = async (callId: string) => {
+    const currentSessionId = activeSessionRef.current;
+    setIsLoading(true);
+    isPostInFlight.current = true;
+    
+    try {
+      const response = await fetch('/api/chat?stream=true', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          text: 'I approve the tool execution.', 
+          sessionId: currentSessionId, 
+          approvedToolCalls: [callId] 
+        }),
+      });
+      
+      if (!response.ok) {
+        const data = await response.json();
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: `Error during approval: ${data.error || 'Unknown error'}`, 
+          agentName: 'SystemGuard',
+          isError: true 
+        }]);
+      }
+      fetchSessions();
+    } catch (error) {
+      console.error('Approval error:', error);
+    } finally {
+      isPostInFlight.current = false;
+      setIsLoading(false);
+    }
+  };
+
+  // --- Session Management Handlers ---
+
+  /**
+   * Resets the UI state to allow creating a new chat session.
+   */
   const createNewChat = () => {
-    // If already in a new chat (no active session), shake the input instead of refreshing
     if (!activeSessionId) {
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 500);
@@ -365,12 +481,18 @@ export default function ChatContent() {
     router.push('/', { scroll: false });
   };
 
+  /**
+   * Initiates the deletion flow for a specific session.
+   */
   const deleteSession = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();
     setSessionToDelete(sessionId);
     setShowDeleteConfirm(true);
   };
 
+  /**
+   * Finalizes the deletion of the selected session.
+   */
   const confirmDelete = async () => {
     if (!sessionToDelete) return;
     try {
@@ -383,10 +505,15 @@ export default function ChatContent() {
         }
         fetchSessions();
       }
-    } catch (error) { console.error('Failed to delete session:', error); }
+    } catch (error) { 
+      console.error('Failed to delete session:', error); 
+    }
     setShowDeleteConfirm(false);
   };
 
+  /**
+   * Purges all chat history for the user.
+   */
   const confirmDeleteAll = async () => {
     try {
       const response = await fetch('/api/chat?sessionId=all', { method: 'DELETE' });
@@ -396,7 +523,9 @@ export default function ChatContent() {
         router.push('/', { scroll: false });
         fetchSessions();
       }
-    } catch (error) { console.error('Failed to delete all:', error); }
+    } catch (error) { 
+      console.error('Failed to delete all:', error); 
+    }
     setShowDeleteAllConfirm(false);
   };
 
@@ -443,8 +572,8 @@ export default function ChatContent() {
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') saveTitle();
                         if (e.key === 'Escape') {
-                          setIsEditingTitle(false);
-                          setEditedTitle(currentSession?.title ?? 'Untitled Trace');
+                           setIsEditingTitle(false);
+                           setEditedTitle(currentSession?.title ?? 'Untitled Trace');
                         }
                       }}
                       className="bg-white/5 border border-cyber-green/30 rounded px-2 py-1 text-lg font-bold text-white outline-none w-full"
@@ -467,7 +596,7 @@ export default function ChatContent() {
                 ) : (
                   <div className="flex items-center gap-3">
                     <Typography variant="h2" weight="bold" color="white" glow className="truncate uppercase">
-                      {currentSession?.title || 'Untitled Trace'}
+                       {currentSession?.title || 'Untitled Trace'}
                     </Typography>
                     <Button 
                       variant="ghost"
@@ -492,6 +621,7 @@ export default function ChatContent() {
             </div>
           )}
         </header>
+
         <ChatMessageList 
           messages={messages} 
           isLoading={isLoading} 

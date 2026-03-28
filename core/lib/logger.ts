@@ -1,23 +1,6 @@
-/**
- * Log levels for controlling the verbosity of the logger.
- */
-export enum LogLevel {
-  DEBUG = 0,
-  INFO = 1,
-  WARN = 2,
-  ERROR = 3,
-  NONE = 4,
-}
+import { LogLevel, LogContext } from './types/logger';
 
-/**
- * Context for structured logging with correlation IDs.
- */
-export interface LogContext {
-  traceId?: string;
-  sessionId?: string;
-  agentId?: string;
-  [key: string]: unknown;
-}
+// LogLevel and LogContext moved to types/logger.ts
 
 /**
  * A simple logger class for consistent logging across the application.
