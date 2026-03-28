@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import Image from 'next/image';
 import { User, Bot, Terminal, File, Loader2 } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
@@ -7,6 +7,144 @@ import Button from '@/components/ui/Button';
 import { ChatMessage } from './types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+// Static markdown component map — defined outside render to avoid recreation
+const markdownComponents = (role: string) => ({
+  p: ({ children }: { children: React.ReactNode }) => <Typography variant="body" color={role === 'assistant' ? 'inherit' : 'white'} className="block mb-2 last:mb-0 break-words">{children}</Typography>,
+  h1: ({ children }: { children: React.ReactNode }) => <Typography variant="h3" color={role === 'assistant' ? 'inherit' : 'white'} className="block mt-4 mb-2 text-cyber-green" glow>{children}</Typography>,
+  h2: ({ children }: { children: React.ReactNode }) => <Typography variant="h3" color={role === 'assistant' ? 'inherit' : 'white'} className="block mt-3 mb-1 text-cyber-green/90">{children}</Typography>,
+  h3: ({ children }: { children: React.ReactNode }) => <Typography variant="body" weight="bold" color={role === 'assistant' ? 'inherit' : 'white'} className="block mt-2 mb-1 text-cyber-green/80">{children}</Typography>,
+  ul: ({ children }: { children: React.ReactNode }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
+  ol: ({ children }: { children: React.ReactNode }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
+  li: ({ children }: { children: React.ReactNode }) => <li><Typography variant="body" color={role === 'assistant' ? 'inherit' : 'white'} className="inline">{children}</Typography></li>,
+  code: ({ children, className }: { children: React.ReactNode; className?: string }) => {
+    const inline = !className?.includes('language-');
+    return inline ? (
+      <code className="bg-white/10 px-1 rounded font-mono text-sm text-cyber-green/100">{children}</code>
+    ) : (
+      <pre className="bg-black/40 p-3 rounded-md border border-white/10 my-2 overflow-x-auto custom-scrollbar">
+        <code className="font-mono text-sm text-cyber-green/90">{children}</code>
+      </pre>
+    );
+  },
+  strong: ({ children }: { children: React.ReactNode }) => <Typography variant="body" weight="bold" color={role === 'assistant' ? 'inherit' : 'white'} className="inline text-white">{children}</Typography>,
+  a: ({ children, href }: { children: React.ReactNode; href?: string }) => (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyber-green hover:underline decoration-cyber-green/50 underline-offset-4">
+      {children}
+    </a>
+  ),
+});
+
+interface ChatMessageRowProps {
+  message: ChatMessage;
+  index: number;
+  onOptionClick?: (value: string) => void;
+}
+
+const ChatMessageRow = memo(function ChatMessageRow({ message, index, onOptionClick }: ChatMessageRowProps) {
+  const m = message;
+  const key = m.messageId ? `${m.role}-${m.messageId}` : `local-${index}`;
+  const components = useMemo(() => markdownComponents(m.role), [m.role]);
+
+  return (
+    <div key={key} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+      <div className={`flex gap-3 max-w-[85%] ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+        <div className={`w-8 h-8 rounded shrink-0 flex items-center justify-center border ${
+          m.role === 'user' ? 'bg-white/5 border-white/10 text-white/100' : 'bg-cyber-green/10 border-cyber-green/30 text-cyber-green'
+        }`}>
+          {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
+        </div>
+        <div className="flex flex-col gap-1">
+          {m.role === 'assistant' && m.agentName && (
+            <Typography variant="caption" weight="bold" color="primary" className="flex items-center gap-1 pl-1">
+              <span className="w-1 h-1 rounded-full bg-cyber-green/60 inline-block" />
+              {m.agentName}
+            </Typography>
+          )}
+          <div className="flex flex-col gap-2">
+            {m.role === 'assistant' && m.thought && (
+              <Card 
+                variant="glass" 
+                padding="sm" 
+                className="rounded-lg bg-cyber-green/[0.03] border-dashed border-cyber-green/20 text-cyber-green/80 italic text-[11px] leading-relaxed max-w-full mb-1 shadow-[0_0_15px_rgba(0,255,145,0.02)]"
+              >
+                <div className="flex items-start gap-2">
+                  <Terminal size={11} className="shrink-0 mt-0.5 text-cyber-green/50" />
+                  <div className="whitespace-pre-wrap">{m.thought}</div>
+                </div>
+              </Card>
+            )}
+            
+            {(m.role === 'user' || m.content) && (
+              <Card variant="glass" padding="sm" className={`rounded-lg ${
+                m.role === 'user' ? 'bg-white/5 text-white/90 border border-white/10' : 'text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
+              }`}>
+                {m.content && (
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm]}
+                    components={components}
+                  >
+                    {m.content}
+                  </ReactMarkdown>
+                )}
+              </Card>
+            )}
+            
+            {m.attachments && m.attachments.length > 0 && (
+              <div className={`flex flex-wrap gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                {m.attachments.map((a, ai) => (
+                  <div key={ai} className="relative group/att">
+                    {a.type === 'image' && (a.url || a.base64) ? (
+                      <div className="w-32 h-32 rounded-lg overflow-hidden border border-white/10 hover:border-cyber-green/50 transition-colors shadow-lg relative">
+                        <Image 
+                          src={a.url || `data:${a.mimeType ?? 'image/png'};base64,${a.base64}`} 
+                          alt={a.name ?? 'Attachment'} 
+                          fill
+                          className="object-cover cursor-zoom-in"
+                          onClick={() => a.url && window.open(a.url, '_blank')}
+                        />
+                      </div>
+                    ) : (
+                      <a 
+                        href={a.url} 
+                        download={a.name}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 bg-white/5 border border-white/10 p-2 rounded-lg hover:border-cyber-green/50 transition-colors group/dl"
+                      >
+                        <File size={16} className="text-white/40 group-hover/dl:text-cyber-green transition-colors" />
+                        <div className="flex flex-col">
+                          <Typography variant="caption" className="max-w-[120px] truncate">{a.name}</Typography>
+                          {a.url && <Typography variant="mono" className="text-[8px] text-white/30 uppercase">Download</Typography>}
+                        </div>
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {m.options && m.options.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {m.options.map((opt, oi) => (
+                  <Button
+                    key={oi}
+                    variant={opt.type === 'primary' ? 'primary' : opt.type === 'danger' ? 'danger' : 'outline'}
+                    size="sm"
+                    className="!py-1 !px-3 text-[10px] font-mono tracking-wider uppercase border border-white/10"
+                    onClick={() => onOptionClick?.(opt.value)}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
 
 interface ChatMessageListProps {
   messages: ChatMessage[];
@@ -34,126 +172,7 @@ export function ChatMessageList({ messages, isLoading, scrollRef, onOptionClick 
       )}
 
       {messages.map((m, i) => (
-        <div key={m.messageId ? `${m.role}-${m.messageId}` : `local-${i}`} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-          <div className={`flex gap-3 max-w-[85%] ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-            <div className={`w-8 h-8 rounded shrink-0 flex items-center justify-center border ${
-              m.role === 'user' ? 'bg-white/5 border-white/10 text-white/100' : 'bg-cyber-green/10 border-cyber-green/30 text-cyber-green'
-            }`}>
-              {m.role === 'user' ? <User size={16} /> : <Bot size={16} />}
-            </div>
-            <div className="flex flex-col gap-1">
-              {m.role === 'assistant' && m.agentName && (
-                <Typography variant="caption" weight="bold" color="primary" className="flex items-center gap-1 pl-1">
-                  <span className="w-1 h-1 rounded-full bg-cyber-green/60 inline-block" />
-                  {m.agentName}
-                </Typography>
-              )}
-              <div className="flex flex-col gap-2">
-                {m.role === 'assistant' && m.thought && (
-                  <Card 
-                    variant="glass" 
-                    padding="sm" 
-                    className="rounded-lg bg-cyber-green/[0.03] border-dashed border-cyber-green/20 text-cyber-green/80 italic text-[11px] leading-relaxed max-w-full mb-1 shadow-[0_0_15px_rgba(0,255,145,0.02)]"
-                  >
-                    <div className="flex items-start gap-2">
-                      <Terminal size={11} className="shrink-0 mt-0.5 text-cyber-green/50" />
-                      <div className="whitespace-pre-wrap">{m.thought}</div>
-                    </div>
-                  </Card>
-                )}
-                
-                {(m.role === 'user' || m.content) && (
-                  <Card variant="glass" padding="sm" className={`rounded-lg ${
-                    m.role === 'user' ? 'bg-white/5 text-white/90 border border-white/10' : 'text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
-                  }`}>
-                    {m.content && (
-                      <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          p: ({ children }) => <Typography variant="body" color={m.role === 'assistant' ? 'inherit' : 'white'} className="block mb-2 last:mb-0 break-words">{children}</Typography>,
-                          h1: ({ children }) => <Typography variant="h3" color={m.role === 'assistant' ? 'inherit' : 'white'} className="block mt-4 mb-2 text-cyber-green" glow>{children}</Typography>,
-                          h2: ({ children }) => <Typography variant="h3" color={m.role === 'assistant' ? 'inherit' : 'white'} className="block mt-3 mb-1 text-cyber-green/90">{children}</Typography>,
-                          h3: ({ children }) => <Typography variant="body" weight="bold" color={m.role === 'assistant' ? 'inherit' : 'white'} className="block mt-2 mb-1 text-cyber-green/80">{children}</Typography>,
-                          ul: ({ children }) => <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>,
-                          ol: ({ children }) => <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>,
-                          li: ({ children }) => <li><Typography variant="body" color={m.role === 'assistant' ? 'inherit' : 'white'} className="inline">{children}</Typography></li>,
-                          code: ({ children, className }) => {
-                            const inline = !className?.includes('language-');
-                            return inline ? (
-                              <code className="bg-white/10 px-1 rounded font-mono text-sm text-cyber-green/100">{children}</code>
-                            ) : (
-                              <pre className="bg-black/40 p-3 rounded-md border border-white/10 my-2 overflow-x-auto custom-scrollbar">
-                                <code className="font-mono text-sm text-cyber-green/90">{children}</code>
-                              </pre>
-                            );
-                          },
-                          strong: ({ children }) => <Typography variant="body" weight="bold" color={m.role === 'assistant' ? 'inherit' : 'white'} className="inline text-white">{children}</Typography>,
-                          a: ({ children, href }) => (
-                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyber-green hover:underline decoration-cyber-green/50 underline-offset-4">
-                              {children}
-                            </a>
-                          ),
-                        }}
-                      >
-                        {m.content}
-                      </ReactMarkdown>
-                    )}
-                  </Card>
-                )}
-                
-                {m.attachments && m.attachments.length > 0 && (
-                  <div className={`flex flex-wrap gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    {m.attachments.map((a, ai) => (
-                      <div key={ai} className="relative group/att">
-                        {a.type === 'image' && (a.url || a.base64) ? (
-                          <div className="w-32 h-32 rounded-lg overflow-hidden border border-white/10 hover:border-cyber-green/50 transition-colors shadow-lg relative">
-                            <Image 
-                              src={a.url || `data:${a.mimeType ?? 'image/png'};base64,${a.base64}`} 
-                              alt={a.name ?? 'Attachment'} 
-                              fill
-                              className="object-cover cursor-zoom-in"
-                              onClick={() => a.url && window.open(a.url, '_blank')}
-                            />
-                          </div>
-                        ) : (
-                          <a 
-                            href={a.url} 
-                            download={a.name}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 bg-white/5 border border-white/10 p-2 rounded-lg hover:border-cyber-green/50 transition-colors group/dl"
-                          >
-                            <File size={16} className="text-white/40 group-hover/dl:text-cyber-green transition-colors" />
-                            <div className="flex flex-col">
-                              <Typography variant="caption" className="max-w-[120px] truncate">{a.name}</Typography>
-                              {a.url && <Typography variant="mono" className="text-[8px] text-white/30 uppercase">Download</Typography>}
-                            </div>
-                          </a>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {m.options && m.options.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {m.options.map((opt, oi) => (
-                      <Button
-                        key={oi}
-                        variant={opt.type === 'primary' ? 'primary' : opt.type === 'danger' ? 'danger' : 'outline'}
-                        size="sm"
-                        className="!py-1 !px-3 text-[10px] font-mono tracking-wider uppercase border border-white/10"
-                        onClick={() => onOptionClick?.(opt.value)}
-                      >
-                        {opt.label}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
+        <ChatMessageRow key={m.messageId ? `${m.role}-${m.messageId}` : `local-${i}`} message={m} index={i} onOptionClick={onOptionClick} />
       ))}
       
       {isLoading && (

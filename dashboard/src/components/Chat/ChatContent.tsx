@@ -353,15 +353,21 @@ export default function ChatContent() {
     const targetId = data.messageId || tempId;
     seenMessageIds.current.add(targetId);
     setMessages(prev => {
-      const exists = prev.some(m => m.messageId === targetId && m.role === 'assistant');
-      if (exists) {
-        return prev.map(m => m.messageId === targetId && m.role === 'assistant' ? {
-          ...m,
-          content: data.reply || m.content,
-          thought: data.thought || m.thought,
-          tool_calls: data.tool_calls || m.tool_calls,
-          agentName: data.agentName || m.agentName
-        } : m);
+      const existingIdx = prev.findIndex(m => m.messageId === targetId && m.role === 'assistant');
+      if (existingIdx !== -1) {
+        const existing = prev[existingIdx];
+        // If MQTT already streamed content, don't replace it — only merge in non-streamed data
+        const hasExistingContent = existing.content && existing.content.length > 0;
+        const hasExistingThought = existing.thought && existing.thought.length > 0;
+        const updated = [...prev];
+        updated[existingIdx] = {
+          ...existing,
+          content: hasExistingContent ? existing.content : (data.reply || existing.content),
+          thought: hasExistingThought ? existing.thought : (data.thought || existing.thought),
+          tool_calls: data.tool_calls || existing.tool_calls,
+          agentName: data.agentName || existing.agentName,
+        };
+        return updated;
       }
       return [...prev, {
         role: 'assistant',
