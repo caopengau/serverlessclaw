@@ -9,6 +9,10 @@ LOCAL_STAGE ?= local
 
 dev: ## Start SST in development mode (mono mode)
 	@$(call log_step,Starting SST dev mode on stage $(LOCAL_STAGE) in mono mode...)
+	@$(call load_env); $(SST) dev --stage $(LOCAL_STAGE) 
+
+dev-mono: ## Start SST in development mode (mono mode)
+	@$(call log_step,Starting SST dev mode on stage $(LOCAL_STAGE) in mono mode...)
 	@$(call load_env); $(SST) dev --stage $(LOCAL_STAGE) --mode=mono
 
 deploy: ## Deploy SST to the environment (default: dev)
