@@ -53,8 +53,14 @@ function createSchedulerRole(name: string, targetArn: $util.Input<string>): aws.
  * Create an EventBridge Scheduler schedule that invokes a Lambda function.
  * Combines schedule, role, and permission creation into one call.
  */
-function createScheduledInvocation(name: string, rate: string, targetFn: sst.aws.Function): void {
+function createScheduledInvocation(
+  name: string,
+  rate: string,
+  targetFn: sst.aws.Function,
+  description?: string
+): void {
   new aws.scheduler.Schedule(`${name}Schedule`, {
+    ...(description ? { description } : {}),
     scheduleExpression: rate,
     flexibleTimeWindow: { mode: 'OFF' },
     target: {
@@ -279,7 +285,12 @@ export function createAgents(
   ];
 
   // 15-min Schedule (Dead Man's Switch)
-  createScheduledInvocation('Recovery', RECOVERY_SCHEDULE_RATE, deadMansSwitch);
+  createScheduledInvocation(
+    'Recovery',
+    RECOVERY_SCHEDULE_RATE,
+    deadMansSwitch,
+    "Dead man's switch — deep health checks and emergency rollback"
+  );
 
   // 5. CodeBuild Event Rule (Monitor both success and failure for gap lifecycle)
   const buildRule = new aws.cloudwatch.EventRule('BuildRule', {
@@ -532,7 +543,12 @@ export function createAgents(
   });
 
   // 1-hour Schedule (Concurrency Monitor)
-  createScheduledInvocation('Concurrency', CONCURRENCY_MONITOR_RATE, concurrencyMonitor);
+  createScheduledInvocation(
+    'Concurrency',
+    CONCURRENCY_MONITOR_RATE,
+    concurrencyMonitor,
+    'Monitors Lambda concurrent execution usage — alerts at 80% utilization'
+  );
 
   return {
     coderAgent,

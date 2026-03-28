@@ -38,6 +38,93 @@ interface Schedule {
   };
 }
 
+type ScheduleCategory = 'system-infra' | 'agent-goal' | 'user-created';
+
+interface ScheduleInfo {
+  purpose: string;
+  category: ScheduleCategory;
+}
+
+const getScheduleInfo = (schedule: Schedule): ScheduleInfo => {
+  const name = schedule.Name;
+  const input = schedule.Target?.Input;
+
+  let payload: Record<string, unknown> = {};
+  try {
+    payload = input ? JSON.parse(input) : {};
+  } catch {
+    // ignore parse errors
+  }
+
+  // MCP Warmup schedules — derive purpose from target servers list
+  if (name.startsWith('MCPWarmup')) {
+    const servers = Array.isArray(payload.servers) ? (payload.servers as string[]) : [];
+    const serverList = servers.length > 0 ? servers.join(', ') : 'MCP servers';
+    const priority = name.includes('Critical')
+      ? 'critical'
+      : name.includes('LowPriority')
+        ? 'low priority'
+        : 'standard';
+    return {
+      purpose: `Keeps ${serverList} warm to prevent cold starts (${priority})`,
+      category: 'system-infra',
+    };
+  }
+
+  // Concurrency monitor
+  if (name.startsWith('ConcurrencySchedule') || name.startsWith('Concurrency')) {
+    return {
+      purpose: 'Monitors Lambda concurrent execution usage — alerts at 80% utilization',
+      category: 'system-infra',
+    };
+  }
+
+  // Recovery / Dead Man's Switch
+  if (name.startsWith('RecoverySchedule') || name.startsWith('Recovery')) {
+    return {
+      purpose: "Dead man's switch — deep health checks and emergency rollback",
+      category: 'system-infra',
+    };
+  }
+
+  // Strategic review
+  if (name.startsWith('StrategicReviewSchedule') || name.includes('STRATEGIC_REVIEW')) {
+    return {
+      purpose: 'Strategic planner autonomous review and evolution cycle',
+      category: 'agent-goal',
+    };
+  }
+
+  // Agent-created goals
+  if (payload.agentId && payload.agentId !== 'SYSTEM') {
+    return {
+      purpose: schedule.Description || `Proactive goal for ${payload.agentId}`,
+      category: 'agent-goal',
+    };
+  }
+
+  // Fallback
+  return {
+    purpose: schedule.Description || 'User or agent-created schedule',
+    category: 'user-created',
+  };
+};
+
+const CATEGORY_BADGE: Record<ScheduleCategory, { label: string; className: string }> = {
+  'system-infra': {
+    label: 'SYSTEM INFRA',
+    className: 'bg-white/5 text-white/50 border-white/10',
+  },
+  'agent-goal': {
+    label: 'AGENT GOAL',
+    className: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  },
+  'user-created': {
+    label: 'USER',
+    className: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+  },
+};
+
 const formatFrequency = (expression?: string) => {
   if (!expression) return 'Unknown';
   if (expression.startsWith('rate(')) {
@@ -288,13 +375,18 @@ export default function ScheduleList() {
             <tbody className="divide-y divide-white/5">
               {filteredSchedules.length > 0 ? filteredSchedules.map((s) => {
                 const payload = s.Target?.Input ? JSON.parse(s.Target.Input) : {};
+                const info = getScheduleInfo(s);
+                const catBadge = CATEGORY_BADGE[info.category];
 
                 return (
                   <tr key={s.Name} className="hover:bg-white/[0.01] group transition-colors">
                     <td className="px-6 py-4">
-                      <div className="flex flex-col">
-                        <span className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">{s.Name}</span>
-                        <span className="text-[10px] text-white/50 line-clamp-1 italic">{s.Description ?? 'No description provided.'}</span>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">{s.Name}</span>
+                          <span className={`px-1.5 py-0.5 border rounded text-[8px] font-black tracking-tight ${catBadge.className}`}>{catBadge.label}</span>
+                        </div>
+                        <span className="text-[10px] text-white/50 line-clamp-1">{info.purpose}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
