@@ -7,6 +7,12 @@
 <p align="center">
   <img src="https://img.shields.io/badge/SST-v3-E27152?style=flat-square&logo=sst" alt="SST v3">
   <img src="https://img.shields.io/badge/AWS-Lambda-FF9900?style=flat-square&logo=amazon-aws" alt="AWS Lambda">
+  <img src="https://img.shields.io/badge/AWS-DynamoDB-FF9900?style=flat-square&logo=amazon-aws" alt="DynamoDB">
+  <img src="https://img.shields.io/badge/AWS-EventBridge-FF9900?style=flat-square&logo=amazon-aws" alt="EventBridge">
+  <img src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=next.js" alt="Next.js">
+  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript" alt="TypeScript">
+  <img src="https://img.shields.io/badge/Vitest-blue?style=flat-square" alt="Vitest">
+  <img src="https://img.shields.io/badge/Playwright-green?style=flat-square" alt="Playwright">
   <img src="https://img.shields.io/badge/Self--Evolving-purple?style=flat-square" alt="Self-Evolution">
   <img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License MIT">
 </p>
@@ -125,19 +131,6 @@ Start with **[INDEX.md](./INDEX.md)** — the progressive context loading map fo
 | **Observability**        | Standard Text Logs    | Container Logs        | Binary Logs           | **Trace Graphs (`ClawTracer`)**          |
 | **Resilience**           | Manual Recovery       | Restart Container     | Hardware Watchdog     | **Autonomous Heartbeat + Rollback**      |
 | **Resource Safety**      | App-level Permissions | Sandboxing (Docker)   | Memory Safe (Rust)    | **Cloud IAM + Recursion Guards**         |
-
-## Tech Stack
-
-<p>
-  <img src="https://img.shields.io/badge/SST-v3-E27152?style=flat-square&logo=sst" alt="SST v3">
-  <img src="https://img.shields.io/badge/AWS-Lambda-FF9900?style=flat-square&logo=amazon-aws" alt="AWS Lambda">
-  <img src="https://img.shields.io/badge/AWS-DynamoDB-FF9900?style=flat-square&logo=amazon-aws" alt="DynamoDB">
-  <img src="https://img.shields.io/badge/AWS-EventBridge-FF9900?style=flat-square&logo=amazon-aws" alt="EventBridge">
-  <img src="https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=next.js" alt="Next.js">
-  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Vitest-blue?style=flat-square" alt="Vitest">
-  <img src="https://img.shields.io/badge/Playwright-green?style=flat-square" alt="Playwright">
-</p>
 
 ## Contributing
 
