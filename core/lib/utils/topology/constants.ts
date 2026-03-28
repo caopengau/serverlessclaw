@@ -25,26 +25,26 @@ export const INFRA_NODE_ID = {
   DEPLOYER: 'deployer',
 } as const;
 
-/** Canonical icons from Lucide library. */
-export const RESOURCE_ICON = {
-  APP: 'Globe',
-  BOT: 'Bot',
-  BRAIN: 'Brain',
-  BUS: 'MessageCircle',
-  DATABASE: 'Database',
-  DASHBOARD: 'LayoutDashboard',
-  HAMMER: 'Hammer',
-  RADIO: 'Radio',
-  SEND: 'Send',
-  SIGNAL: 'Zap',
-  STETHOSCOPE: 'Activity',
-  ZAP: 'Zap',
-  CODE: 'Code',
-  SEARCH: 'Search',
-  QA: 'FlaskConical',
-  GEAR: 'Settings2',
-  BELL: 'Bell',
-  CALENDAR: 'Calendar',
+/** Canonical icon keys for the topology graph. Mapped to UI icons in the dashboard. */
+export const NODE_ICON = {
+  APP: 'APP',
+  BOT: 'BOT',
+  BRAIN: 'BRAIN',
+  BUS: 'BUS',
+  DATABASE: 'DATABASE',
+  DASHBOARD: 'DASHBOARD',
+  HAMMER: 'HAMMER',
+  RADIO: 'RADIO',
+  SEND: 'SEND',
+  SIGNAL: 'SIGNAL',
+  STETHOSCOPE: 'STETHOSCOPE',
+  ZAP: 'ZAP',
+  CODE: 'CODE',
+  SEARCH: 'SEARCH',
+  QA: 'QA',
+  GEAR: 'GEAR',
+  BELL: 'BELL',
+  CALENDAR: 'CALENDAR',
 } as const;
 
 /** Node type discriminators for the topology graph renderer. */

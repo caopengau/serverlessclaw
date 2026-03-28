@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { HTTP_STATUS } from '@/lib/constants';
+import { HTTP_STATUS } from '@claw/core/lib/constants';
 import { getToolUsage, getAllTools } from '@/lib/tool-utils';
 
 export const dynamic = 'force-dynamic';

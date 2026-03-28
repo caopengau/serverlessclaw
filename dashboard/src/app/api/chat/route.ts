@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { UI_STRINGS, HTTP_STATUS, AGENT_ERRORS } from '@/lib/constants';
+import { UI_STRINGS } from '@/lib/constants';
+import { HTTP_STATUS, AGENT_ERRORS } from '@claw/core/lib/constants';
 import { revalidatePath } from 'next/cache';
 
 /**

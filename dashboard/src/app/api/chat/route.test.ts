@@ -71,6 +71,11 @@ vi.mock('@claw/core/lib/types', () => ({
 
 vi.mock('next/cache', () => ({ revalidatePath: mockRevalidatePath }));
 
+vi.mock('@claw/core/lib/constants', () => ({
+  HTTP_STATUS: { BAD_REQUEST: 400, INTERNAL_SERVER_ERROR: 500, OK: 200 },
+  AGENT_ERRORS: { PROCESS_FAILURE: 'Process failure' },
+}));
+
 vi.mock('@/lib/constants', () => ({
   UI_STRINGS: { MISSING_MESSAGE: 'Missing message', API_CHAT_ERROR: 'Chat error' },
   HTTP_STATUS: { BAD_REQUEST: 400, INTERNAL_SERVER_ERROR: 500, OK: 200 },

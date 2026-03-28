@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { AttachmentType } from '../types/llm';
 import { HealthSeverity, ParallelTaskStatus } from '../types/constants';
-import { EventType } from '../types/index';
+import { EventType, AgentType } from '../types/index';
 import { normalizeBaseUserId } from '../utils/normalize';
 
 export const ATTACHMENT_SCHEMA = z.object({
@@ -292,6 +292,11 @@ export const EVENT_SCHEMA_MAP = {
   [EventType.OUTBOUND_MESSAGE as string]: OUTBOUND_MESSAGE_EVENT_SCHEMA,
   [EventType.PARALLEL_TASK_COMPLETED as string]: PARALLEL_TASK_COMPLETED_EVENT_SCHEMA,
   [EventType.HEARTBEAT_PROACTIVE as string]: PROACTIVE_HEARTBEAT_PAYLOAD_SCHEMA,
+  [`${AgentType.STRATEGIC_PLANNER}_task`]: TASK_EVENT_SCHEMA,
+  [`${AgentType.COGNITION_REFLECTOR}_task`]: TASK_EVENT_SCHEMA,
+  [`${AgentType.QA}_task`]: TASK_EVENT_SCHEMA,
+  [`${AgentType.CRITIC}_task`]: TASK_EVENT_SCHEMA,
+  [`${AgentType.FACILITATOR}_task`]: TASK_EVENT_SCHEMA,
 } as const;
 
 /** Keys of the EVENT_SCHEMA_MAP (for type-safe event type lookups). */

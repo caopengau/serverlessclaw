@@ -20,8 +20,6 @@ export const CREATE_COLLABORATION: ITool = {
   ...definitions.createCollaboration,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { memory } = await getAgentContext();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mem = memory as any;
     const agentId = (args.agentId as string) ?? 'unknown';
     const traceId = (args.traceId as string) ?? undefined;
     const userId = (args.userId as string) ?? 'unknown';
@@ -44,7 +42,7 @@ export const CREATE_COLLABORATION: ITool = {
       });
     }
 
-    const collaboration = await mem.createCollaboration(agentId, 'agent', {
+    const collaboration = await memory.createCollaboration(agentId, 'agent', {
       name: args.name as string,
       description: args.description as string | undefined,
       sessionId: undefined, // Auto-generated
@@ -66,7 +64,7 @@ export const CREATE_COLLABORATION: ITool = {
 
     // Wake up the Facilitator to start moderating
     try {
-      await emitTypedEvent('collaboration.tool', `${AgentType.FACILITATOR}_task` as any, {
+      await emitTypedEvent('collaboration.tool', `${AgentType.FACILITATOR}_task`, {
         userId,
         task: `A new collaboration session "${collaboration.name}" has been created. Please start moderating. Collaboration ID: ${collaboration.collaborationId}`,
         traceId,
@@ -95,11 +93,9 @@ export const JOIN_COLLABORATION: ITool = {
   ...definitions.joinCollaboration,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { memory } = await getAgentContext();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mem = memory as any;
     const agentId = (args.agentId as string) ?? 'unknown';
     const collaborationId = args.collaborationId as string;
-    const collaboration = await mem.getCollaboration(collaborationId);
+    const collaboration = await memory.getCollaboration(collaborationId);
 
     if (!collaboration) {
       return JSON.stringify({ success: false, error: 'Collaboration not found' });
@@ -131,24 +127,22 @@ export const GET_COLLABORATION_CONTEXT: ITool = {
   ...definitions.getCollaborationContext,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { memory } = await getAgentContext();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mem = memory as any;
     const agentId = (args.agentId as string) ?? 'unknown';
     const collaborationId = args.collaborationId as string;
     const limit = (args.limit as number) ?? 50;
 
-    const collaboration = await mem.getCollaboration(collaborationId);
+    const collaboration = await memory.getCollaboration(collaborationId);
     if (!collaboration) {
       return JSON.stringify({ success: false, error: 'Collaboration not found' });
     }
 
-    const hasAccess = await mem.checkCollaborationAccess(collaborationId, agentId, 'agent');
+    const hasAccess = await memory.checkCollaborationAccess(collaborationId, agentId, 'agent');
 
     if (!hasAccess) {
       return JSON.stringify({ success: false, error: 'Access denied' });
     }
 
-    const history = await mem.getHistory(collaboration.syntheticUserId);
+    const history = await memory.getHistory(collaboration.syntheticUserId);
     const limitedHistory = history.slice(-limit);
 
     return JSON.stringify({
@@ -174,8 +168,6 @@ export const WRITE_TO_COLLABORATION: ITool = {
   ...definitions.writeToCollaboration,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { memory } = await getAgentContext();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mem = memory as any;
     const agentId = (args.agentId as string) ?? 'unknown';
     const collaborationId = args.collaborationId as string;
     const content = args.content as string;
@@ -183,12 +175,12 @@ export const WRITE_TO_COLLABORATION: ITool = {
 
     const traceId = (args.traceId as string) ?? undefined;
 
-    const collaboration = await mem.getCollaboration(collaborationId);
+    const collaboration = await memory.getCollaboration(collaborationId);
     if (!collaboration) {
       return JSON.stringify({ success: false, error: 'Collaboration not found' });
     }
 
-    const hasAccess = await mem.checkCollaborationAccess(
+    const hasAccess = await memory.checkCollaborationAccess(
       collaborationId,
       agentId,
       'agent',
@@ -199,7 +191,7 @@ export const WRITE_TO_COLLABORATION: ITool = {
       return JSON.stringify({ success: false, error: 'Access denied or insufficient permissions' });
     }
 
-    await mem.addMessage(collaboration.syntheticUserId, {
+    await memory.addMessage(collaboration.syntheticUserId, {
       role: role === 'user' ? MessageRole.USER : MessageRole.ASSISTANT,
       content,
       agentName: agentId,
@@ -230,14 +222,12 @@ export const CLOSE_COLLABORATION: ITool = {
   ...definitions.closeCollaboration,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { memory } = await getAgentContext();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mem = memory as any;
     const agentId = (args.agentId as string) ?? 'unknown';
     const collaborationId = args.collaborationId as string;
     const traceId = (args.traceId as string) ?? undefined;
 
     try {
-      await mem.closeCollaboration(collaborationId, agentId, 'agent');
+      await memory.closeCollaboration(collaborationId, agentId, 'agent');
 
       if (traceId) {
         await addTraceStep(traceId, 'root', {
@@ -269,10 +259,8 @@ export const LIST_MY_COLLABORATIONS: ITool = {
   ...definitions.listMyCollaborations,
   execute: async (_args: Record<string, unknown>): Promise<string> => {
     const { memory } = await getAgentContext();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mem = memory as any;
     const agentId = (_args.agentId as string) ?? 'unknown';
-    const collaborations = await mem.listCollaborationsForParticipant(agentId, 'agent');
+    const collaborations = await memory.listCollaborationsForParticipant(agentId, 'agent');
 
     return JSON.stringify({
       success: true,

@@ -1,5 +1,6 @@
 import { Message } from './llm';
 import { GapStatus } from './agent';
+import type { Collaboration, CollaborationRole, ParticipantType } from './collaboration';
 
 /**
  * Categories for memory insights to help the agent organize and prioritize knowledge.
@@ -145,6 +146,8 @@ export interface IKnowledgeStore {
   addGlobalLesson(lesson: string, metadata?: Partial<InsightMetadata>): Promise<number>;
   /** Retrieves system-wide lessons for injection into agent prompts. */
   getGlobalLessons(limit?: number): Promise<string[]>;
+  /** Retrieves low-utilization memory items for pruning or auditing. */
+  getLowUtilizationMemory(limit?: number): Promise<Record<string, unknown>[]>;
 }
 
 /**
@@ -242,6 +245,45 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
 
   /** Increments the retry count for a clarification request. */
   incrementClarificationRetry(traceId: string, agentId: string): Promise<number>;
+
+  // Collaboration Operations
+
+  /** Gets a collaboration by ID. */
+  getCollaboration(collaborationId: string): Promise<Collaboration | null>;
+
+  /** Checks if a participant has access to a collaboration. */
+  checkCollaborationAccess(
+    collaborationId: string,
+    participantId: string,
+    participantType: ParticipantType,
+    requiredRole?: CollaborationRole
+  ): Promise<boolean>;
+
+  /** Closes a collaboration. */
+  closeCollaboration(
+    collaborationId: string,
+    actorId: string,
+    actorType: ParticipantType
+  ): Promise<void>;
+
+  /** Creates a new collaboration with a shared session. */
+  createCollaboration(
+    ownerId: string,
+    ownerType: ParticipantType,
+    input: import('./collaboration').CreateCollaborationInput
+  ): Promise<Collaboration>;
+
+  /** Lists collaborations for a participant. */
+  listCollaborationsForParticipant(
+    participantId: string,
+    participantType: ParticipantType
+  ): Promise<
+    Array<{
+      collaborationId: string;
+      role: CollaborationRole;
+      collaborationName: string;
+    }>
+  >;
 }
 
 /**

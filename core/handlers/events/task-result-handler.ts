@@ -1,5 +1,6 @@
 import { EventType, AgentType } from '../../lib/types/index';
 import { DAGExecutionState } from '../../lib/types/dag';
+import type { ParallelTaskDefinition } from '../../lib/agent/schema';
 import {
   COMPLETION_EVENT_SCHEMA,
   FAILURE_EVENT_SCHEMA,
@@ -196,7 +197,7 @@ export async function handleTaskResult(
 
         if (!dagState) {
           logger.warn(`No DAG state found for traceId ${traceId}, reconstructing from tasks.`);
-          const tasks = (currentMetadata.tasks as any[]) ?? [];
+          const tasks = (currentMetadata.tasks as ParallelTaskDefinition[]) ?? [];
           dagState = dagExecutor.buildDependencyGraph(tasks);
         }
 

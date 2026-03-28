@@ -27,9 +27,6 @@ function getDbClient(): DynamoDBClient {
   return injectedDb ?? defaultDb;
 }
 
-// Re-export for backward compatibility
-export { NODE_TYPE, EDGE_LABEL, NODE_TIER, RESOURCE_ICON } from './topology/constants';
-
 /**
  * Discovers the active system topology by reflecting on SST resources and Agent configs.
  * Designed to be highly resilient and truly self-aware.

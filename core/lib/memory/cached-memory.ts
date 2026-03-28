@@ -13,6 +13,7 @@ import {
   GapStatus,
   ConversationMeta,
 } from '../types/index';
+import type { Collaboration, CollaborationRole, ParticipantType } from '../types/collaboration';
 import { DynamoMemory } from '../memory';
 import { MemoryCaches, CacheKeys, getCacheStatsSummary } from './cache';
 import { logger } from '../logger';
@@ -447,6 +448,55 @@ export class CachedMemory implements IMemory {
 
   async incrementClarificationRetry(traceId: string, agentId: string): Promise<number> {
     return this.underlying.incrementClarificationRetry(traceId, agentId);
+  }
+
+  // Collaboration Operations
+
+  async getCollaboration(collaborationId: string): Promise<Collaboration | null> {
+    return this.underlying.getCollaboration(collaborationId);
+  }
+
+  async checkCollaborationAccess(
+    collaborationId: string,
+    participantId: string,
+    participantType: ParticipantType,
+    requiredRole?: CollaborationRole
+  ): Promise<boolean> {
+    return this.underlying.checkCollaborationAccess(
+      collaborationId,
+      participantId,
+      participantType,
+      requiredRole
+    );
+  }
+
+  async closeCollaboration(
+    collaborationId: string,
+    actorId: string,
+    actorType: ParticipantType
+  ): Promise<void> {
+    return this.underlying.closeCollaboration(collaborationId, actorId, actorType);
+  }
+
+  async createCollaboration(
+    ownerId: string,
+    ownerType: ParticipantType,
+    input: import('../types/collaboration').CreateCollaborationInput
+  ): Promise<Collaboration> {
+    return this.underlying.createCollaboration(ownerId, ownerType, input);
+  }
+
+  async listCollaborationsForParticipant(
+    participantId: string,
+    participantType: ParticipantType
+  ): Promise<
+    Array<{
+      collaborationId: string;
+      role: CollaborationRole;
+      collaborationName: string;
+    }>
+  > {
+    return this.underlying.listCollaborationsForParticipant(participantId, participantType);
   }
 
   async recordFailurePattern(

@@ -17,7 +17,7 @@ import {
 import Link from 'next/link';
 import Typography from '@/components/ui/Typography';
 import DeleteTraceButton from '@/components/DeleteTraceButton';
-import { TRACE_TYPES } from '@/lib/constants';
+import { TRACE_TYPES } from '@claw/core/lib/constants';
 import { Trace, TraceStep } from '@/lib/types/ui';
 
 interface TraceIntelligenceViewProps {
@@ -170,7 +170,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
             </div>
           </div>
           <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6 text-[11px] text-white/90 pr-8">
-            {trace.totalTokens > 0 && (
+            {(trace.totalTokens ?? 0) > 0 && (
               <div className="flex items-center gap-1.5 text-cyber-green/70 font-mono">
                 <Zap size={12} /> {trace.totalTokens} <span className="text-[9px] opacity-50 uppercase">TKN</span>
               </div>
@@ -185,7 +185,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
         </div>
         
         {/* Tools tags */}
-        {trace.toolsUsed.length > 0 && (
+        {trace.toolsUsed && trace.toolsUsed.length > 0 && (
           <div className="mt-4 flex flex-wrap gap-1.5">
             {trace.toolsUsed.map((tool: string, i: number) => (
               <span key={i} className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-white/40 uppercase tracking-tighter">

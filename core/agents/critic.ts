@@ -1,3 +1,4 @@
+import { MessageRole } from '../lib/types/llm';
 import { AgentType, AgentEvent, AgentPayload } from '../lib/types/agent';
 import { ReasoningProfile } from '../lib/types/llm';
 import { sendOutboundMessage } from '../lib/outbound';
@@ -50,9 +51,9 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   // 1.1 Handle Collaboration
   if (collaborationId) {
     try {
-      const collaboration = await (memory as any).getCollaboration(collaborationId);
+      const collaboration = await memory.getCollaboration(collaborationId);
       if (collaboration) {
-        const hasAccess = await (memory as any).checkCollaborationAccess(
+        const hasAccess = await memory.checkCollaborationAccess(
           collaborationId,
           AgentType.CRITIC,
           'agent',
@@ -134,10 +135,10 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   // 4.1 Write to Collaboration if active
   if (collaborationId) {
     try {
-      const collaboration = await (memory as any).getCollaboration(collaborationId);
+      const collaboration = await memory.getCollaboration(collaborationId);
       if (collaboration) {
-        await (memory as any).addMessage(collaboration.syntheticUserId, {
-          role: 'assistant',
+        await memory.addMessage(collaboration.syntheticUserId, {
+          role: MessageRole.ASSISTANT,
           content: `**CRITIC VERDICT: ${verdict.verdict}**\n\nMode: ${verdict.reviewMode}\nConfidence: ${verdict.confidence}\nSummary: ${verdict.summary}\n\nFindings: ${JSON.stringify(verdict.findings, null, 2)}`,
           agentName: AgentType.CRITIC,
         });

@@ -7,6 +7,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { SSTResource } from '../types/system';
+import type { DAGExecutionState } from '../types/dag';
 import { AggregatedResult } from './schema';
 import { logger } from '../logger';
 import { TIME } from '../constants';
@@ -213,7 +214,7 @@ export class ParallelAggregator {
   async updateDagState(
     userId: string,
     traceId: string,
-    dagState: any,
+    dagState: DAGExecutionState,
     expectedVersion: number
   ): Promise<boolean> {
     try {
@@ -235,8 +236,8 @@ export class ParallelAggregator {
         })
       );
       return true;
-    } catch (error: any) {
-      if (error.name === 'ConditionalCheckFailedException') {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
         return false;
       }
       logger.error('Error updating parallel dagState:', error);

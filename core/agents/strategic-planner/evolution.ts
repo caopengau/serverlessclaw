@@ -1,5 +1,5 @@
 import { logger } from '../../lib/logger';
-import type { DynamoMemory } from '../../lib/memory';
+import type { IMemory } from '../../lib/types/index';
 import { EvolutionMode } from '../../lib/types/agent';
 
 /**
@@ -38,7 +38,7 @@ export const COOLDOWN_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
  * @returns A promise resolving to true if the gap is in cooldown.
  */
 export async function isGapInCooldown(
-  memory: DynamoMemory,
+  memory: IMemory,
   gapId: string,
   baseUserId: string
 ): Promise<boolean> {
@@ -59,7 +59,7 @@ export async function isGapInCooldown(
  * Records a gap in cooldown after processing.
  */
 export async function recordCooldown(
-  memory: DynamoMemory,
+  memory: IMemory,
   gapId: string,
   baseUserId: string
 ): Promise<void> {

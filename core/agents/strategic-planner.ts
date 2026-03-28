@@ -113,7 +113,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       // Close the Council collaboration session
       if (councilCollabId) {
         try {
-          await (memory as any).closeCollaboration(councilCollabId, baseUserId, 'agent');
+          await memory.closeCollaboration(councilCollabId, baseUserId, 'agent');
           logger.info(`[PLANNER] Closed Council collaboration ${councilCollabId}`);
         } catch (e) {
           logger.warn(`[PLANNER] Failed to close collaboration ${councilCollabId}:`, e);
@@ -222,7 +222,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   if (isProactive) {
     const proactiveResult = await buildProactiveReviewPrompt(
-      memory as any,
+      memory,
       baseUserId,
       telemetry,
       isScheduledReview ?? false,
@@ -245,7 +245,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   // 2. Self-Evolution Loop Protection (Cool-down)
   if (gapId) {
-    const inCooldown = await isGapInCooldown(memory as any, gapId, baseUserId);
+    const inCooldown = await isGapInCooldown(memory, gapId, baseUserId);
     if (inCooldown) {
       logger.warn(`Evolution cooldown active for gap ${gapId}. Aborting.`);
       return { status: 'COOLDOWN_ACTIVE' };
@@ -404,7 +404,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   // 4. Record gap in structured cooldown store
   if (gapId && !isFailure) {
-    await recordCooldown(memory as any, gapId, baseUserId);
+    await recordCooldown(memory, gapId, baseUserId);
   }
 
   // 5. Gap Sink: Mark covered gaps as PLANNED
@@ -463,7 +463,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
     );
 
     // Create a collaboration session for the Council discussion
-    const collaboration = await (memory as any).createCollaboration(baseUserId, 'agent', {
+    const collaboration = await memory.createCollaboration(baseUserId, 'agent', {
       name: `Council Review: ${planId}`,
       description: `Multi-party peer review for strategic plan ${planId}`,
       initialParticipants: [

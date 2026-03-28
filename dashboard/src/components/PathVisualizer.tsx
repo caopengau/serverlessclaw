@@ -14,7 +14,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { TRACE_TYPES } from '@/lib/constants';
+import { TRACE_TYPES } from '@claw/core/lib/constants';
 import { Trace, TraceStep } from '@/lib/types/ui';
 import { nodeTypes } from '@/components/trace/nodes';
 import StepDetailPanel from '@/components/trace/StepDetailPanel';

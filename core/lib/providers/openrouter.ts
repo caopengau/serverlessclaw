@@ -427,7 +427,7 @@ export class OpenRouterProvider implements IProvider {
             break;
           }
 
-          const choice = (parsed as any).choices?.[0];
+          const choice = parsed.choices?.[0];
 
           if (parsed.usage) {
             yield {

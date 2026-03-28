@@ -45,9 +45,9 @@ function isValidJsonResponse(content: string, expectedSchema?: ResponseFormat): 
     if (typeof parsed !== 'object' || parsed === null) return false;
 
     // If schema is provided, validate required fields
-    const schema = expectedSchema?.json_schema?.schema as any;
-    if (schema?.required) {
-      const requiredFields = schema.required as string[];
+    const schema = expectedSchema?.json_schema?.schema;
+    if (schema?.required && Array.isArray(schema.required)) {
+      const requiredFields = schema.required;
       for (const field of requiredFields) {
         if (!(field in parsed)) {
           logger.warn(`JSON response missing required field: ${field}`);

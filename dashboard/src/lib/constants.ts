@@ -1,7 +1,43 @@
 /**
  * Dashboard-specific constants to improve AI signal clarity and maintainability
  */
-export { AGENT_ERRORS } from '@claw/core/lib/constants';
+import {
+  AGENT_ERRORS,
+  HTTP_STATUS as CORE_HTTP_STATUS,
+  DYNAMO_KEYS as CORE_DYNAMO_KEYS,
+  TRACE_TYPES as CORE_TRACE_TYPES,
+  TRACE_STATUS as CORE_TRACE_STATUS,
+  NODE_ICON as CORE_NODE_ICON
+} from '@claw/core/lib/constants';
+
+export const HTTP_STATUS = CORE_HTTP_STATUS;
+export const DYNAMO_KEYS = CORE_DYNAMO_KEYS;
+export const TRACE_TYPES = CORE_TRACE_TYPES;
+export const TRACE_STATUS = CORE_TRACE_STATUS;
+export const NODE_ICON = CORE_NODE_ICON;
+export { AGENT_ERRORS };
+
+/** Canonical icons from Lucide library. Moved from core to dashboard. */
+export const RESOURCE_ICON = {
+  APP: 'Globe',
+  BOT: 'Bot',
+  BRAIN: 'Brain',
+  BUS: 'MessageCircle',
+  DATABASE: 'Database',
+  DASHBOARD: 'LayoutDashboard',
+  HAMMER: 'Hammer',
+  RADIO: 'Radio',
+  SEND: 'Send',
+  SIGNAL: 'Zap',
+  STETHOSCOPE: 'Activity',
+  ZAP: 'Zap',
+  CODE: 'Code',
+  SEARCH: 'Search',
+  QA: 'FlaskConical',
+  GEAR: 'Settings2',
+  BELL: 'Bell',
+  CALENDAR: 'Calendar',
+} as const;
 
 export const AUTH = {
   COOKIE_NAME: 'claw_auth_session',
@@ -18,20 +54,6 @@ export const API_ROUTES = {
   CHAT: '/api/chat',
   MEMORY_PRIORITIZE: '/api/memory/prioritize',
   MEMORY_STATUS: '/api/memory/status',
-} as const;
-
-export const DYNAMO_KEYS = {
-  DEPLOY_LIMIT: 'deploy_limit',
-  AGENTS_CONFIG: 'agents_config',
-} as const;
-
-export const HTTP_STATUS = {
-  OK: 200,
-  BAD_REQUEST: 400,
-  UNAUTHORIZED: 401,
-  FORBIDDEN: 403,
-  NOT_FOUND: 404,
-  INTERNAL_SERVER_ERROR: 500,
 } as const;
 
 export const UI_STRINGS = {
@@ -80,37 +102,4 @@ export const ROUTES = {
   SECURITY: '/security',
   RESILIENCE: '/resilience',
   SCHEDULING: '/scheduling',
-} as const;
-
-export const TRACE_TYPES = {
-  LLM_CALL: 'llm_call',
-  LLM_RESPONSE: 'llm_response',
-  TOOL_CALL: 'tool_call',
-  TOOL_RESULT: 'tool_result',
-  ERROR: 'error',
-  // Agent Communication patterns
-  CLARIFICATION_REQUEST: 'clarification_request',
-  CLARIFICATION_RESPONSE: 'clarification_response',
-  PARALLEL_DISPATCH: 'parallel_dispatch',
-  PARALLEL_BARRIER: 'parallel_barrier',
-  PARALLEL_COMPLETED: 'parallel_completed',
-  COUNCIL_REVIEW: 'council_review',
-  CONTINUATION: 'continuation',
-  // System Events
-  CIRCUIT_BREAKER: 'circuit_breaker',
-  CANCELLATION: 'cancellation',
-  MEMORY_OPERATION: 'memory_operation',
-  // Agent State
-  AGENT_WAITING: 'agent_waiting',
-  AGENT_RESUMED: 'agent_resumed',
-  // Agent Activity
-  PLAN_GENERATED: 'plan_generated',
-  CODE_WRITTEN: 'code_written',
-  REVIEW_COMPLETE: 'review_complete',
-  AUDIT_COMPLETE: 'audit_complete',
-  AGGREGATION_COMPLETE: 'aggregation_complete',
-} as const;
-
-export const TRACE_STATUS = {
-  COMPLETED: 'completed',
 } as const;

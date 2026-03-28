@@ -1,11 +1,7 @@
 /**
  * Chat-specific types for the dashboard
- * Re-exports shared types from core to avoid duplication
  */
-import type { ConversationMeta } from '../../../../core/lib/types/memory';
-import type { ToolCall } from '../../../../core/lib/types/llm';
-import type { PendingMessage } from '../../../../core/lib/types/session';
-export type { ConversationMeta, ToolCall, PendingMessage };
+import type { ToolCall } from '@claw/core/lib/types/llm';
 
 export interface ChatMessage {
   role: 'user' | 'assistant';

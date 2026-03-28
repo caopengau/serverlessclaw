@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { NextResponse } from 'next/server';
-import { HTTP_STATUS, DYNAMO_KEYS } from '@/lib/constants';
+import { HTTP_STATUS, DYNAMO_KEYS } from '@claw/core/lib/constants';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);

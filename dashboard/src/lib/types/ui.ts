@@ -75,4 +75,10 @@ export interface Trace {
   nodes?: Trace[];
   parentId?: string;
   nodeId: string;
+  // Derived fields used in UI processing
+  agentId?: string;
+  totalTokens?: number;
+  toolsUsed?: string[];
+  model?: string;
+  sessionId?: string;
 }

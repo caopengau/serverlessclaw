@@ -7,7 +7,7 @@ import { Clock, Edit2, X, Check } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { PendingMessage } from './types';
+import type { PendingMessage } from '@claw/core/lib/types/session';
 
 interface QueuedMessageItemProps {
   message: PendingMessage;

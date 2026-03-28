@@ -1,5 +1,5 @@
 import { GapStatus, InsightCategory } from '../../lib/types/index';
-import type { DynamoMemory } from '../../lib/memory';
+import type { IMemory } from '../../lib/types/index';
 import { MEMORY_KEYS, TIME } from '../../lib/constants';
 import { parseConfigInt } from '../../lib/providers/utils';
 import type { PlannerPayload } from './types';
@@ -30,7 +30,7 @@ export function buildTelemetry(toolsList: string): string {
  * @returns A promise resolving to an object indicating if it should run and why.
  */
 export async function shouldRunProactiveReview(
-  memory: DynamoMemory,
+  memory: IMemory,
   isScheduledReview: boolean,
   baseUserId: string,
   frequencyHrs: number,
@@ -128,7 +128,7 @@ export async function fetchToolUsageContext(): Promise<string> {
 /**
  * Fetches low utilization memory items for auditing.
  */
-export async function fetchStaleMemoryContext(memory: DynamoMemory): Promise<string> {
+export async function fetchStaleMemoryContext(memory: IMemory): Promise<string> {
   try {
     const staleItems = await memory.getLowUtilizationMemory(10);
     if (staleItems && staleItems.length > 0) {
@@ -153,7 +153,7 @@ export async function fetchStaleMemoryContext(memory: DynamoMemory): Promise<str
 /**
  * Fetches previously failed plans to warn the planner about anti-patterns.
  */
-async function fetchFailedPlansContext(memory: DynamoMemory): Promise<string> {
+async function fetchFailedPlansContext(memory: IMemory): Promise<string> {
   try {
     const failedPlans = await memory.getFailedPlans(5);
     if (failedPlans.length > 0) {
@@ -184,7 +184,7 @@ async function fetchFailedPlansContext(memory: DynamoMemory): Promise<string> {
  * @returns A promise resolving to the prompt and run status.
  */
 export async function buildProactiveReviewPrompt(
-  memory: DynamoMemory,
+  memory: IMemory,
   baseUserId: string,
   telemetry: string,
   isScheduledReview: boolean,

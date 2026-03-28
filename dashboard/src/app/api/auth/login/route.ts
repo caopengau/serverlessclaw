@@ -4,7 +4,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { Resource } from 'sst';
-import { AUTH, HTTP_STATUS } from '@/lib/constants';
+import { AUTH } from '@/lib/constants';
+import { HTTP_STATUS } from '@claw/core/lib/constants';
 
 /**
  * Handles dashboard login and sets the session cookie

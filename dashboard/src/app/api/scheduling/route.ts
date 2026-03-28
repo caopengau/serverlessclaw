@@ -9,7 +9,7 @@ import {
   ActionAfterCompletion
 } from '@aws-sdk/client-scheduler';
 import { NextResponse } from 'next/server';
-import { HTTP_STATUS } from '@/lib/constants';
+import { HTTP_STATUS } from '@claw/core/lib/constants';
 
 export const dynamic = 'force-dynamic';
 

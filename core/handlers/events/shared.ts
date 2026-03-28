@@ -1,4 +1,4 @@
-import { EventType, CompletionEvent, FailureEvent } from '../../lib/types/index';
+import { EventType } from '../../lib/types/index';
 import { sendOutboundMessage } from '../../lib/outbound';
 import { logger } from '../../lib/logger';
 import { SYSTEM, DYNAMO_KEYS } from '../../lib/constants';
@@ -170,19 +170,3 @@ export async function processEventWithAgent(
 
   return { responseText, attachments: [] };
 }
-
-/**
- * Re-exports of core types and utilities for handler convenience.
- */
-export {
-  /** The type classification for system events. */
-  EventType,
-  /** The structure of a task completion signal. */
-  CompletionEvent,
-  /** The structure of a task failure signal. */
-  FailureEvent,
-  /** Utility function to send messages to external channels. */
-  sendOutboundMessage,
-  /** Centralized logging utility. */
-  logger,
-};

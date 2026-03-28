@@ -1,6 +1,6 @@
 import type { TopologyNode, IAgentConfig } from '../../types/index';
 import { BACKBONE_REGISTRY } from '../../backbone';
-import { NODE_TYPE, NODE_TIER, RESOURCE_ICON, INFRA_NODE_ID } from './constants';
+import { NODE_TYPE, NODE_TIER, NODE_ICON, INFRA_NODE_ID } from './constants';
 import { classifyResource } from './classifiers';
 
 /**
@@ -11,42 +11,42 @@ export const ORPHAN_NODES: TopologyNode[] = [
   {
     id: INFRA_NODE_ID.DASHBOARD,
     label: 'ClawCenter (Next.js)',
-    icon: RESOURCE_ICON.DASHBOARD,
+    icon: NODE_ICON.DASHBOARD,
     type: NODE_TYPE.DASHBOARD,
     tier: NODE_TIER.APP,
   },
   {
     id: INFRA_NODE_ID.SCHEDULER,
     label: 'AWS Scheduler',
-    icon: RESOURCE_ICON.CALENDAR,
+    icon: NODE_ICON.CALENDAR,
     type: NODE_TYPE.INFRA,
     tier: NODE_TIER.APP,
   },
   {
     id: INFRA_NODE_ID.TELEGRAM,
     label: 'Telegram',
-    icon: RESOURCE_ICON.SEND,
+    icon: NODE_ICON.SEND,
     type: NODE_TYPE.INFRA,
     tier: NODE_TIER.APP,
   },
   {
     id: INFRA_NODE_ID.HEARTBEAT,
     label: 'Heartbeat Engine',
-    icon: RESOURCE_ICON.SIGNAL,
+    icon: NODE_ICON.SIGNAL,
     type: NODE_TYPE.INFRA,
     tier: NODE_TIER.COMM,
   },
   {
     id: INFRA_NODE_ID.REALTIME_BRIDGE,
     label: 'Realtime Bridge (Lambda)',
-    icon: RESOURCE_ICON.SIGNAL,
+    icon: NODE_ICON.SIGNAL,
     type: NODE_TYPE.INFRA,
     tier: NODE_TIER.COMM,
   },
   {
     id: INFRA_NODE_ID.REALTIME_BUS,
     label: 'Realtime Bus (IoT Core)',
-    icon: RESOURCE_ICON.RADIO,
+    icon: NODE_ICON.RADIO,
     type: NODE_TYPE.INFRA,
     tier: NODE_TIER.COMM,
   },
@@ -96,7 +96,7 @@ export function discoverSstNodes(resourceMap: Record<string, unknown>): Topology
 
     const resourceClassifier = classifyResource(resourceKey);
     const nodeType = resourceClassifier?.type ?? NODE_TYPE.INFRA;
-    const nodeIcon = resourceClassifier?.icon ?? RESOURCE_ICON.DATABASE;
+    const nodeIcon = resourceClassifier?.icon ?? NODE_ICON.DATABASE;
     const nodeLabel = resourceClassifier?.label ?? resourceKey;
     let nodeTier = resourceClassifier?.tier ?? NODE_TIER.INFRA;
 
@@ -168,7 +168,7 @@ export function mergeBackboneNodes(nodes: TopologyNode[]): TopologyNode[] {
         label: agentConfig.topologyOverride?.label || agentConfig.name || lowerAgentId,
         icon:
           agentConfig.topologyOverride?.icon ??
-          (agentConfig.isBackbone ? RESOURCE_ICON.BRAIN : RESOURCE_ICON.BOT),
+          (agentConfig.isBackbone ? NODE_ICON.BRAIN : NODE_ICON.BOT),
         description: agentConfig.description,
         tier:
           agentConfig.topologyOverride?.tier ??
@@ -203,7 +203,7 @@ export function addDynamicAgents(nodes: TopologyNode[], items: unknown[]): Topol
       id: lowerAgentId,
       type: NODE_TYPE.AGENT,
       label: agentConfig.topologyOverride?.label || agentConfig.name || lowerAgentId,
-      icon: agentConfig.topologyOverride?.icon ?? RESOURCE_ICON.BOT,
+      icon: agentConfig.topologyOverride?.icon ?? NODE_ICON.BOT,
       tier: agentConfig.topologyOverride?.tier ?? NODE_TIER.AGENT,
     });
   }

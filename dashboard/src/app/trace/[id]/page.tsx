@@ -18,7 +18,8 @@ import {
 import Link from 'next/link';
 import PathVisualizer from '@/components/PathVisualizer';
 import Image from 'next/image';
-import { UI_STRINGS, TRACE_TYPES, TRACE_STATUS } from '@/lib/constants';
+import { UI_STRINGS } from '@/lib/constants';
+import { TRACE_TYPES, TRACE_STATUS } from '@claw/core/lib/constants';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import { THEME } from '@/lib/theme';
@@ -191,13 +192,16 @@ export default async function TraceDetailPage({
                   </div>
                   
                   <div className="p-4 bg-black/40 border-t border-white/5">
-                    {step.type === TRACE_TYPES.TOOL_RESULT && step.content?.result && typeof step.content.result === 'object' && step.content.result.images && (
+                    {step.type === TRACE_TYPES.TOOL_RESULT && 
+                     step.content?.result && 
+                     typeof step.content.result === 'object' && 
+                     (step.content.result as { images?: string[] }).images ? (
                       <div className="mb-4 space-y-4">
                         <div className="text-[10px] text-cyber-blue/60 uppercase font-bold tracking-widest flex items-center gap-2">
                            <LayoutGrid size={12} /> Generated_Visuals
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                           {step.content.result.images.map((img: string, imgIdx: number) => (
+                           {(step.content.result as { images: string[] }).images.map((img: string, imgIdx: number) => (
                             <div key={imgIdx} className="border border-white/10 rounded overflow-hidden bg-black/20 group/img relative">
                               <Image 
                                 src={img.startsWith('data:') ? img : `data:image/png;base64,${img}`} 
@@ -210,7 +214,7 @@ export default async function TraceDetailPage({
                           ))}
                         </div>
                       </div>
-                    )}
+                    ) : null}
 
                     {step.type === 'llm_response' ? (
                       <div className="mb-4 p-4 bg-cyber-green/[0.03] border border-cyber-green/10 rounded">

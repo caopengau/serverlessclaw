@@ -1,12 +1,12 @@
 import { GapStatus } from '../../lib/types/index';
-import type { DynamoMemory } from '../../lib/memory';
+import type { IMemory } from '../../lib/types/index';
 import type { Message, MemoryInsight } from '../../lib/types/index';
 
 /**
  * Builds the reflection prompt with all context.
  */
 export async function buildReflectionPrompt(
-  memory: DynamoMemory,
+  memory: IMemory,
   baseUserId: string,
   conversation: Message[],
   traceContext: string,
@@ -37,7 +37,7 @@ export async function buildReflectionPrompt(
 /**
  * Gets gaps for context.
  */
-export async function getGapContext(memory: DynamoMemory): Promise<{
+export async function getGapContext(memory: IMemory): Promise<{
   deployedGaps: Array<{ id: string; content: string }>;
   activeGaps: Array<{ content: string }>;
 }> {

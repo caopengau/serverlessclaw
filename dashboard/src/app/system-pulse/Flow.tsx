@@ -18,12 +18,38 @@ import '@xyflow/react/dist/style.css';
 import {
   Zap, Terminal, Database, Brain, Activity, Search, FlaskConical,
   Settings2, RefreshCw, Radio, Info, Plus, Minus, Maximize, Lock,
-  LayoutDashboard, MessageSquare, Bot, Code
+  LayoutDashboard, MessageSquare, Bot, Code, Globe, MessageCircle, Hammer, Bell, Calendar
 } from 'lucide-react';
 import { THEME } from '@/lib/theme';
+import { RESOURCE_ICON as ICON_MAP } from '@/lib/constants';
+import { NODE_ICON } from '@claw/core/lib/constants';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
+
+/**
+ * Maps agnostic icon keys to Lucide components.
+ */
+const ICON_COMPONENTS: Record<string, typeof Bot> = {
+  APP: Globe,
+  BOT: Bot,
+  BRAIN: Brain,
+  BUS: MessageCircle,
+  DATABASE: Database,
+  DASHBOARD: LayoutDashboard,
+  HAMMER: Hammer,
+  RADIO: Radio,
+  SEND: MessageSquare,
+  SIGNAL: Zap,
+  STETHOSCOPE: Activity,
+  ZAP: Zap,
+  CODE: Code,
+  SEARCH: Search,
+  QA: FlaskConical,
+  GEAR: Settings2,
+  BELL: Bell,
+  CALENDAR: Calendar,
+};
 
 /**
  * Data structure for React Flow nodes in the topology map.
@@ -170,15 +196,19 @@ const nodeTypes = {
  * @param iconName Optional icon name override.
  * @returns A React icon element.
  */
-const getAgentIcon = (id: string, iconName?: string): React.ReactNode => {
-  if (iconName === 'Bot') return <Bot size={16} />;
-  if (iconName === 'Code') return <Code size={16} />;
-  if (iconName === 'Brain') return <Brain size={16} />;
-  if (iconName === 'Search') return <Search size={16} />;
-  if (iconName === 'Activity') return <Activity size={16} />;
-  if (iconName === 'FlaskConical') return <FlaskConical size={16} />;
+const getAgentIcon = (id: string, iconKey?: string): React.ReactNode => {
+  // 1. Try mapping the explicit iconKey (e.g. 'BOT', 'CODE')
+  if (iconKey && ICON_COMPONENTS[iconKey]) {
+    const Icon = ICON_COMPONENTS[iconKey];
+    return <Icon size={16} />;
+  }
 
-  // Mapping based on common agent IDs
+  // 2. Legacy fallback for Lucide names if they leak through
+  if (iconKey === 'Bot') return <Bot size={16} />;
+  if (iconKey === 'Code') return <Code size={16} />;
+  if (iconKey === 'Brain') return <Brain size={16} />;
+
+  // 3. Mapping based on common agent IDs
   const idMap: Record<string, React.ReactNode> = {
     'superclaw': <Bot size={16} />,
     'coder': <Code size={16} />,
@@ -272,8 +302,15 @@ export function FlowContent() {
           const xPos = startX + (nodeIndex * spacing);
           
           let icon: React.ReactNode = <Database size={16} />;
-          if (node.iconType === 'Terminal' || ['codebuild', 'deployer'].includes(node.id)) icon = <Terminal size={16} />;
-          else if (node.iconType === 'Dashboard' || node.id === 'dashboard') icon = <LayoutDashboard size={16} />;
+          
+          // Use the centralized mapping if iconKey is present
+          if (node.icon && ICON_COMPONENTS[node.icon]) {
+            const Icon = ICON_COMPONENTS[node.icon];
+            icon = <Icon size={16} />;
+          } 
+          // Custom overrides for specific node IDs or types
+          else if (['codebuild', 'deployer'].includes(node.id)) icon = <Terminal size={16} />;
+          else if (node.id === 'dashboard') icon = <LayoutDashboard size={16} />;
           else if (['api', 'webhookapi', 'scheduler'].includes(node.id)) icon = <Radio size={16} />;
           else if (node.id === 'monitor') icon = <Activity size={16} />;
           else if (node.id === 'telegram') icon = <MessageSquare size={16} />;

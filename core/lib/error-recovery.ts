@@ -97,10 +97,13 @@ const PERMANENT_PATTERNS = [
 /**
  * Classifies an error as transient, permanent, or unknown.
  */
-export function classifyError(error: Error | string | any): ErrorClass {
-  const message = typeof error === 'string' ? error : error.message || '';
+export function classifyError(error: Error | string | Record<string, unknown>): ErrorClass {
+  const message = typeof error === 'string' ? error : (error as Error).message || '';
   const name = error instanceof Error ? error.name : '';
-  const status = error?.status || error?.statusCode || 0;
+  const status =
+    ((error as Record<string, unknown>)?.status as number) ||
+    ((error as Record<string, unknown>)?.statusCode as number) ||
+    0;
 
   // Check HTTP status codes first if available
   if (status >= 500 || status === 429) {

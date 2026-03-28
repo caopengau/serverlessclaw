@@ -6,7 +6,7 @@ import {
   MessageSquare, Wrench, CheckCircle, ShieldAlert, Zap, HelpCircle, Pause, Play,
   Layers, GitBranch, Shield, Cpu
 } from 'lucide-react';
-import { TRACE_TYPES } from '@/lib/constants';
+import { TRACE_TYPES } from '@claw/core/lib/constants';
 
 // --- Custom Node Components ---
 
