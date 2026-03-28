@@ -4,27 +4,20 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, DeleteCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { 
   Database, 
-  Clock, 
   Brain,
   Search as SearchIcon,
-  Trash2,
-  TrendingUp,
   Lightbulb,
   Target,
-  BarChart2,
-  Zap,
   Filter
 } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
-import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
-import MemoryPrioritySelector from '@/components/MemoryPrioritySelector';
 import MemoryTabs from './MemoryTabs';
 import MemorySearch from './MemorySearch';
 import MemoryPagination from './MemoryPagination';
+import MemoryTable from './MemoryTable';
 
 interface MemoryMetadata {
   priority?: number;
@@ -235,82 +228,7 @@ export default async function MemoryVault({
             {query && <Typography variant="body" color="muted" className="mt-2">Try adjusting your search query or filters.</Typography>}
           </Card>
         ) : (
-          <div className="grid gap-6">
-            {items.map((item, i) => (
-                <Card 
-                  key={`${item.userId}-${item.timestamp}-${i}`} 
-                  variant={activeTab === 'facts' ? 'solid' : 'glass'} 
-                  padding="md" 
-                  className={`group relative overflow-hidden transition-all hover:border-white/20 ${
-                    item.metadata?.priority && item.metadata.priority >= 8 ? 'ring-1 ring-amber-500/30' : ''
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-4 relative z-10">
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-3">
-                            <Badge 
-                                variant={
-                                    (item.userId.startsWith('GAP') || item.type === 'GAP' || item.type === 'MEMORY:STRATEGIC_GAP') ? 'danger' : 
-                                    (item.userId.startsWith('LESSON') || item.type === 'LESSON' || item.type === 'MEMORY:TACTICAL_LESSON') ? 'primary' : 
-                                    (item.userId.startsWith('DISTILLED') || item.type === 'DISTILLED' || item.type === 'MEMORY:SYSTEM_KNOWLEDGE') ? 'intel' : 
-                                    (item.type === 'MEMORY:USER_PREFERENCE' || item.userId.startsWith('USER#')) ? 'warning' : 'audit'
-                                }
-                                className="uppercase tracking-widest px-3"
-                            >
-                                {item.metadata?.category || item.type?.replace('MEMORY:', '').replace(/_/g, ' ') || 'UNKNOWN'}
-                            </Badge>
-                            <Typography variant="mono" color="muted" className="text-[9px] opacity-40 uppercase tracking-tighter">
-                                ID :: {item.userId.split('#')[1] || item.userId}
-                            </Typography>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MemoryPrioritySelector 
-                            userId={item.userId} 
-                            timestamp={item.timestamp} 
-                            currentPriority={item.metadata?.priority ?? 5} 
-                        />
-                        <form action={pruneMemory}>
-                            <input type="hidden" name="userId" value={item.userId} />
-                            <input type="hidden" name="timestamp" value={item.timestamp} />
-                            <Button variant="ghost" size="sm" type="submit" className="text-white/50 hover:text-red-500 p-0 h-auto" icon={<Trash2 size={14} />} />
-                        </form>
-                    </div>
-                  </div>
-
-                  <Typography variant="body" color="white" className="leading-relaxed relative z-10 block whitespace-pre-wrap pr-10">
-                     {activeTab === 'facts' || item.userId.startsWith('DISTILLED') ? <span className="italic opacity-80">&quot;{item.content}&quot;</span> : item.content}
-                  </Typography>
-
-                  <div className="mt-6 pt-4 border-t border-white/5 flex flex-wrap gap-6 relative z-10 opacity-50 group-hover:opacity-100 transition-opacity">
-                      <div className="flex items-center gap-2">
-                         <BarChart2 size={12} className="text-cyber-blue" />
-                         <Typography variant="mono" className="text-[10px] uppercase tracking-widest">Utility: {item.metadata?.hitCount ?? 0}</Typography>
-                      </div>
-                      <div className="flex items-center gap-2">
-                         <Clock size={12} />
-                         <Typography variant="mono" className="text-[10px] uppercase tracking-widest">Last Recalled: {item.metadata?.lastAccessed ? new Date(item.metadata.lastAccessed).toLocaleDateString() : 'Never'}</Typography>
-                      </div>
-                      {item.metadata?.impact && (
-                        <div className="flex items-center gap-2">
-                            <TrendingUp size={12} className="text-cyber-green" />
-                            <Typography variant="mono" className="text-[10px] uppercase tracking-widest">Impact: {item.metadata.impact}/10</Typography>
-                        </div>
-                      )}
-                  </div>
-
-                  {/* High Priority Accent */}
-                  {item.metadata?.priority && item.metadata.priority >= 8 && (
-                      <div className="absolute top-0 right-0 w-16 h-16 pointer-events-none overflow-hidden">
-                          <div className="absolute top-[-25px] right-[-25px] w-[50px] h-[50px] bg-amber-500 rotate-45 flex items-end justify-center pb-1 shadow-[0_0_15px_rgba(245,158,11,0.5)]">
-                              <Zap size={10} className="text-black" />
-                          </div>
-                      </div>
-                  )}
-                </Card>
-            ))}
-          </div>
+          <MemoryTable items={items} activeTab={activeTab} pruneAction={pruneMemory} />
         )}
 
         <MemoryPagination nextToken={next} />
