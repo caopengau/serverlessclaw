@@ -40,22 +40,36 @@ function getCategoryLabel(item: MemoryItem) {
 }
 
 function renderContent(content: string) {
+  let parsed: unknown = null;
   try {
-    const parsed = JSON.parse(content);
-    if (typeof parsed === 'string') {
-      return <p className="text-white/90 leading-relaxed">{parsed}</p>;
-    }
-    if (typeof parsed === 'object' && parsed !== null) {
-      return (
-        <pre className="text-xs text-white/80 font-mono leading-relaxed bg-black/40 border border-white/5 rounded-lg p-4 overflow-x-auto whitespace-pre-wrap custom-scrollbar max-h-[400px]">
-          {JSON.stringify(parsed, null, 2)}
-        </pre>
-      );
-    }
-    return <p className="text-white/90 leading-relaxed">{JSON.stringify(parsed)}</p>;
+    parsed = JSON.parse(content);
   } catch {
-    return <p className="text-white/90 leading-relaxed whitespace-pre-wrap">{content}</p>;
+    // not JSON, treat as plain text
   }
+
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    const obj = parsed as Record<string, unknown>;
+    return (
+      <div className="space-y-3">
+        {Object.entries(obj).map(([key, value]) => (
+          <div key={key} className="bg-white/[0.03] border border-white/5 rounded-lg p-4">
+            <Typography variant="mono" className="text-[10px] uppercase tracking-widest text-white/40 mb-1 block">
+              {key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase())}
+            </Typography>
+            <Typography variant="body" className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">
+              {typeof value === 'string' ? value : JSON.stringify(value, null, 2)}
+            </Typography>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (parsed && typeof parsed === 'string') {
+    return <p className="text-white/90 leading-relaxed text-[15px]">{parsed}</p>;
+  }
+
+  return <p className="text-white/90 leading-relaxed text-[15px] whitespace-pre-wrap">{content}</p>;
 }
 
 export default function MemoryDetailModal({ item, onClose, onDelete }: MemoryDetailModalProps) {
@@ -65,9 +79,9 @@ export default function MemoryDetailModal({ item, onClose, onDelete }: MemoryDet
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-[#0a0a0a] border border-white/10 rounded-lg shadow-xl">
+      <div className="relative w-full max-w-3xl max-h-[85vh] flex flex-col bg-[#0a0a0a] border border-white/10 rounded-lg shadow-xl overflow-hidden">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[#0a0a0a] border-b border-white/10 px-6 py-4 flex items-center justify-between">
+        <div className="shrink-0 bg-[#0a0a0a] border-b border-white/10 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Badge variant={getBadgeVariant(item)} className="uppercase tracking-widest">
               {getCategoryLabel(item)}
@@ -87,69 +101,68 @@ export default function MemoryDetailModal({ item, onClose, onDelete }: MemoryDet
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          <div>
-            <Typography variant="caption" color="muted" className="text-[10px] uppercase tracking-widest mb-3 block">
-              Content
-            </Typography>
-            {renderContent(item.content)}
-          </div>
-
-          {/* Metadata - compact row at bottom */}
-          <div className="pt-4 border-t border-white/5">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded px-3 py-2">
-                <Zap size={12} className="text-amber-400" />
-                <Typography variant="mono" className="text-[10px] uppercase tracking-widest text-white/40">Priority</Typography>
-                <Typography variant="mono" className="text-sm font-black text-amber-400">{item.metadata?.priority ?? 5}</Typography>
-              </div>
-              <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded px-3 py-2">
-                <BarChart2 size={12} className="text-cyber-blue" />
-                <Typography variant="mono" className="text-[10px] uppercase tracking-widest text-white/40">Utility</Typography>
-                <Typography variant="mono" className="text-sm font-black">{item.metadata?.hitCount ?? 0}</Typography>
-              </div>
-              <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded px-3 py-2">
-                <Clock size={12} className="text-white/40" />
-                <Typography variant="mono" className="text-[10px] uppercase tracking-widest text-white/40">Recalled</Typography>
-                <Typography variant="mono" className="text-xs font-bold text-white/70">
-                  {item.metadata?.lastAccessed ? new Date(item.metadata.lastAccessed).toLocaleDateString() : 'Never'}
-                </Typography>
-              </div>
-              {item.metadata?.impact != null && (
-                <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded px-3 py-2">
-                  <TrendingUp size={12} className="text-cyber-green" />
-                  <Typography variant="mono" className="text-[10px] uppercase tracking-widest text-white/40">Impact</Typography>
-                  <Typography variant="mono" className="text-sm font-black text-cyber-green">{item.metadata.impact}/10</Typography>
-                </div>
-              )}
-              <div className="flex items-center gap-2 bg-white/[0.03] border border-white/5 rounded px-3 py-2">
-                <Clock size={12} className="text-white/30" />
-                <Typography variant="mono" className="text-[10px] uppercase tracking-widest text-white/40">Created</Typography>
-                <Typography variant="mono" className="text-xs text-white/50">
-                  {new Date(item.timestamp).toLocaleString()}
-                </Typography>
-              </div>
-            </div>
-          </div>
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+          {renderContent(item.content)}
         </div>
 
-        {/* Footer Actions */}
-        <div className="sticky bottom-0 z-10 bg-[#0a0a0a] border-t border-white/10 px-6 py-4 flex items-center justify-between">
-          <MemoryPrioritySelector
-            userId={item.userId}
-            timestamp={item.timestamp}
-            currentPriority={item.metadata?.priority ?? 5}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(item.userId, item.timestamp)}
-            className="text-white/50 hover:text-red-500"
-            icon={<Trash2 size={14} />}
-          >
-            Delete
-          </Button>
+        {/* Footer - metadata + actions all in one row */}
+        <div className="shrink-0 bg-[#0a0a0a] border-t border-white/10 px-6 py-3">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            {/* Metadata pills */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-1.5 text-[11px] font-mono">
+                <Zap size={11} className="text-amber-400" />
+                <span className="text-white/40">Pri</span>
+                <span className="font-black text-amber-400">{item.metadata?.priority ?? 5}</span>
+              </div>
+              <span className="text-white/10">|</span>
+              <div className="flex items-center gap-1.5 text-[11px] font-mono">
+                <BarChart2 size={11} className="text-cyber-blue" />
+                <span className="text-white/40">Use</span>
+                <span className="font-bold text-white/70">{item.metadata?.hitCount ?? 0}</span>
+              </div>
+              <span className="text-white/10">|</span>
+              <div className="flex items-center gap-1.5 text-[11px] font-mono">
+                <Clock size={11} className="text-white/30" />
+                <span className="text-white/40">Recalled</span>
+                <span className="text-white/50">
+                  {item.metadata?.lastAccessed ? new Date(item.metadata.lastAccessed).toLocaleDateString() : 'Never'}
+                </span>
+              </div>
+              {item.metadata?.impact != null && (
+                <>
+                  <span className="text-white/10">|</span>
+                  <div className="flex items-center gap-1.5 text-[11px] font-mono">
+                    <TrendingUp size={11} className="text-cyber-green" />
+                    <span className="text-white/40">Impact</span>
+                    <span className="font-bold text-cyber-green">{item.metadata.impact}/10</span>
+                  </div>
+                </>
+              )}
+              <span className="text-white/10">|</span>
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-white/30">
+                <Clock size={11} />
+                {new Date(item.timestamp).toLocaleDateString()}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <MemoryPrioritySelector
+                userId={item.userId}
+                timestamp={item.timestamp}
+                currentPriority={item.metadata?.priority ?? 5}
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onDelete(item.userId, item.timestamp)}
+                className="text-white/40 hover:text-red-500 p-1.5"
+                icon={<Trash2 size={13} />}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -43,13 +43,19 @@ function getContentPreview(content: string, maxLen: number = 80): string {
     const parsed = JSON.parse(content);
     if (typeof parsed === 'string') return parsed.length > maxLen ? parsed.slice(0, maxLen) + '...' : parsed;
     if (typeof parsed === 'object' && parsed !== null) {
-      const summaryKey = ['fact', 'content', 'summary', 'text', 'description', 'message'].find(k => parsed[k]);
-      if (summaryKey && typeof parsed[summaryKey] === 'string') {
-        const val = parsed[summaryKey];
+      const summaryKey = [
+        'planSummary', 'failureReason', 'fact', 'content', 'summary',
+        'text', 'description', 'message', 'reason'
+      ].find(k => typeof parsed[k] === 'string' && parsed[k].length > 0);
+      if (summaryKey) {
+        const val = parsed[summaryKey] as string;
         return val.length > maxLen ? val.slice(0, maxLen) + '...' : val;
       }
-      const keys = Object.keys(parsed);
-      return `{ ${keys.join(', ')} }`;
+      const firstString = Object.values(parsed).find(v => typeof v === 'string' && v.length > 0) as string | undefined;
+      if (firstString) {
+        return firstString.length > maxLen ? firstString.slice(0, maxLen) + '...' : firstString;
+      }
+      return Object.keys(parsed).join(', ');
     }
     return JSON.stringify(parsed);
   } catch {
