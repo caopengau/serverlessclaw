@@ -64,26 +64,6 @@ describe('Collaboration API Route', () => {
       expect(data.activeDispatches).toEqual([]);
     });
 
-    it('returns empty array when table name is not available', async () => {
-      vi.resetModules();
-      vi.doMock('sst', () => ({
-        Resource: {},
-      }));
-      vi.doMock('@aws-sdk/client-dynamodb', () => ({
-        DynamoDBClient: class {},
-      }));
-      vi.doMock('@aws-sdk/lib-dynamodb', () => ({
-        DynamoDBDocumentClient: { from: () => ({ send: mockSend }) },
-        ScanCommand: class {},
-      }));
-
-      const { GET } = await import('./route');
-      const res = await GET();
-      const data = await res.json();
-
-      expect(data.activeDispatches).toEqual([]);
-    });
-
     it('returns empty array on DynamoDB error', async () => {
       mockSend.mockRejectedValue(new Error('DynamoDB error'));
 
@@ -95,18 +75,6 @@ describe('Collaboration API Route', () => {
     });
 
     it('maps DAG state to task status', async () => {
-      vi.resetModules();
-      vi.doMock('sst', () => ({
-        Resource: { MemoryTable: { name: 'test-memory-table' } },
-      }));
-      vi.doMock('@aws-sdk/client-dynamodb', () => ({
-        DynamoDBClient: class {},
-      }));
-      vi.doMock('@aws-sdk/lib-dynamodb', () => ({
-        DynamoDBDocumentClient: { from: () => ({ send: mockSend }) },
-        ScanCommand: class {},
-      }));
-
       mockSend.mockResolvedValue({
         Items: [
           {
@@ -122,8 +90,14 @@ describe('Collaboration API Route', () => {
               ],
               dagState: {
                 nodes: {
-                  'task-1': { status: 'completed', task: { taskId: 'task-1', agentId: 'coder', task: 'Build' } },
-                  'task-2': { status: 'ready', task: { taskId: 'task-2', agentId: 'critic', task: 'Review' } },
+                  'task-1': {
+                    status: 'completed',
+                    task: { taskId: 'task-1', agentId: 'coder', task: 'Build' },
+                  },
+                  'task-2': {
+                    status: 'ready',
+                    task: { taskId: 'task-2', agentId: 'critic', task: 'Review' },
+                  },
                 },
                 completedTasks: ['task-1'],
                 failedTasks: [],
@@ -140,6 +114,27 @@ describe('Collaboration API Route', () => {
       expect(data.activeDispatches[0].tasks[0].status).toBe('completed');
       expect(data.activeDispatches[0].tasks[1].status).toBe('ready');
       expect(data.activeDispatches[0].dagState).toBeDefined();
+    });
+
+    it('handles items with no metadata gracefully', async () => {
+      mockSend.mockResolvedValue({
+        Items: [
+          {
+            userId: 'PARALLEL#user-123#trace-xyz',
+            taskCount: 1,
+            completedCount: 0,
+            initiatorId: 'superclaw',
+          },
+        ],
+      });
+
+      const { GET } = await import('./route');
+      const res = await GET();
+      const data = await res.json();
+
+      expect(res.status).toBe(200);
+      expect(data.activeDispatches).toHaveLength(1);
+      expect(data.activeDispatches[0].tasks).toEqual([]);
     });
   });
 });
