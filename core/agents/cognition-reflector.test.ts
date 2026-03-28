@@ -154,6 +154,39 @@ describe('Cognition Reflector Handler', () => {
     expect(mocks.updateGapStatus).toHaveBeenCalledWith('gap-123', GapStatus.DONE);
   });
 
+  it('should generate gap IDs as pure timestamps (no compound IDs)', async () => {
+    const mockReflectionResponse = JSON.stringify({
+      facts: 'facts',
+      lessons: [],
+      gaps: [
+        { content: 'Gap one', impact: 5 },
+        { content: 'Gap two', impact: 3 },
+      ],
+      resolvedGapIds: [],
+    });
+
+    mocks.agentProcess.mockResolvedValue({ responseText: mockReflectionResponse });
+
+    const event = {
+      detail: {
+        userId: 'user-123',
+        conversation: [{ role: MessageRole.USER, content: 'test' }],
+      },
+    };
+
+    await handler(event as any, {} as any);
+
+    // Both gaps should have been created
+    expect(mocks.setGap).toHaveBeenCalledTimes(2);
+
+    // Each gap ID should be a pure numeric timestamp string (no prefix, no random suffix)
+    const gapIds = mocks.setGap.mock.calls.map((call: unknown[]) => call[0]);
+    for (const gapId of gapIds) {
+      expect(gapId).toMatch(/^\d+$/);
+      expect(gapId).not.toContain('-');
+    }
+  });
+
   it('should handle non-JSON responses gracefully', async () => {
     mocks.agentProcess.mockResolvedValue({ responseText: 'I updated the facts for you.' });
 
