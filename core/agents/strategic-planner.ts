@@ -1,6 +1,6 @@
 import { AgentType, EvolutionMode, GapStatus, TraceSource, EventType } from '../lib/types/agent';
 import { InsightCategory } from '../lib/types/memory';
-import { ReasoningProfile, Message } from '../lib/types/llm';
+import { ReasoningProfile, Message, MessageRole } from '../lib/types/llm';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
@@ -477,7 +477,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
     // Post the plan to the shared session
     await memory.addMessage(collaboration.syntheticUserId, {
-      role: 'assistant',
+      role: MessageRole.ASSISTANT,
       content: `### COUNCIL REVIEW REQUEST: ${planId}\n\n**Strategic Plan:**\n${plan}\n\n**Context:**\nImpact: ${gapImpact} | Risk: ${gapRisk} | Complexity: ${gapComplexity}\n\nPlease provide your expert feedback and verdict (APPROVED/REJECTED/CONDITIONAL).`,
       agentName: AgentType.STRATEGIC_PLANNER,
     });
