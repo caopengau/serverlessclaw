@@ -6,9 +6,6 @@
  * - knowledge-mcp.ts: MCP server registration and management
  */
 
-// Re-export centralized error utility for backward compatibility
-export { formatErrorMessage, formatPrefixedError } from '../lib/utils/error';
-
 // Re-export from submodules for backward compatibility
 export * from './knowledge-agent';
 export * from './knowledge-storage';

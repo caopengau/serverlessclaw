@@ -89,8 +89,13 @@ interface OpenRouterContentBlock {
  */
 interface OpenRouterResponse {
   choices?: {
-    message: Message & {
+    message?: Message & {
       reasoning_details?: Array<{ text?: string }>;
+      reasoning?: string;
+    };
+    delta?: Message & {
+      reasoning_details?: Array<{ text?: string }>;
+      reasoning?: string;
     };
   }[];
   usage?: {
