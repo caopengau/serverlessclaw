@@ -118,4 +118,42 @@ describe('RealtimeBridge Handler', () => {
     expect(payload.isThought).toBe(true);
     expect(payload.message).toBe('Let me think...');
   });
+
+  it('routes to collaboration topic when collaborationId is present', async () => {
+    const event = chunkEvent({
+      detail: { ...chunkEvent().detail, collaborationId: 'collab-123' },
+    });
+
+    await handler(event, fakeContext);
+
+    const cmd = mockSend.mock.calls[mockSend.mock.calls.length - 1][0];
+    expect(cmd.topic).toBe('collaborations/collab-123/signal');
+  });
+
+  it('routes to workspace topic when workspaceId is present (and no collaborationId)', async () => {
+    const event = chunkEvent({
+      detail: { ...chunkEvent().detail, workspaceId: 'ws-456' },
+    });
+
+    await handler(event, fakeContext);
+
+    const cmd = mockSend.mock.calls[mockSend.mock.calls.length - 1][0];
+    expect(cmd.topic).toBe('workspaces/ws-456/signal');
+  });
+
+  it('routes to system/metrics topic for health and metric events', async () => {
+    const event = {
+      'detail-type': 'system_health_report',
+      detail: {
+        userId: 'system',
+        message: 'Disk full',
+        traceId: 'trace-999',
+      },
+    };
+
+    await handler(event as any, fakeContext);
+
+    const cmd = mockSend.mock.calls[mockSend.mock.calls.length - 1][0];
+    expect(cmd.topic).toBe('system/metrics');
+  });
 });

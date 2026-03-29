@@ -26,7 +26,7 @@ describe('SafetyEngine', () => {
   });
 
   describe('Tier-based approval', () => {
-    it('should require all approvals in SANDBOX tier', () => {
+    it('should require all approvals in SANDBOX tier', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -35,23 +35,23 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.SANDBOX,
       };
 
-      const codeResult = engine.evaluateAction(config, 'code_change');
+      const codeResult = await engine.evaluateAction(config, 'code_change');
       expect(codeResult.requiresApproval).toBe(true);
 
-      const deployResult = engine.evaluateAction(config, 'deployment');
+      const deployResult = await engine.evaluateAction(config, 'deployment');
       expect(deployResult.requiresApproval).toBe(true);
 
-      const fileResult = engine.evaluateAction(config, 'file_operation');
+      const fileResult = await engine.evaluateAction(config, 'file_operation');
       expect(fileResult.requiresApproval).toBe(true);
 
-      const shellResult = engine.evaluateAction(config, 'shell_command');
+      const shellResult = await engine.evaluateAction(config, 'shell_command');
       expect(shellResult.requiresApproval).toBe(true);
 
-      const mcpResult = engine.evaluateAction(config, 'mcp_tool');
+      const mcpResult = await engine.evaluateAction(config, 'mcp_tool');
       expect(mcpResult.requiresApproval).toBe(true);
     });
 
-    it('should only require deployment approval in STAGED tier', () => {
+    it('should only require deployment approval in STAGED tier', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -60,21 +60,21 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.STAGED,
       };
 
-      const codeResult = engine.evaluateAction(config, 'code_change');
+      const codeResult = await engine.evaluateAction(config, 'code_change');
       expect(codeResult.requiresApproval).toBe(false);
       expect(codeResult.allowed).toBe(true);
 
-      const deployResult = engine.evaluateAction(config, 'deployment');
+      const deployResult = await engine.evaluateAction(config, 'deployment');
       expect(deployResult.requiresApproval).toBe(true);
 
-      const fileResult = engine.evaluateAction(config, 'file_operation');
+      const fileResult = await engine.evaluateAction(config, 'file_operation');
       expect(fileResult.requiresApproval).toBe(false);
 
-      const shellResult = engine.evaluateAction(config, 'shell_command');
+      const shellResult = await engine.evaluateAction(config, 'shell_command');
       expect(shellResult.requiresApproval).toBe(false);
     });
 
-    it('should require no approvals in AUTONOMOUS tier', () => {
+    it('should require no approvals in AUTONOMOUS tier', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -83,21 +83,21 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      const codeResult = engine.evaluateAction(config, 'code_change');
+      const codeResult = await engine.evaluateAction(config, 'code_change');
       expect(codeResult.requiresApproval).toBe(false);
       expect(codeResult.allowed).toBe(true);
 
-      const deployResult = engine.evaluateAction(config, 'deployment');
+      const deployResult = await engine.evaluateAction(config, 'deployment');
       expect(deployResult.requiresApproval).toBe(false);
 
-      const fileResult = engine.evaluateAction(config, 'file_operation');
+      const fileResult = await engine.evaluateAction(config, 'file_operation');
       expect(fileResult.requiresApproval).toBe(false);
 
-      const shellResult = engine.evaluateAction(config, 'shell_command');
+      const shellResult = await engine.evaluateAction(config, 'shell_command');
       expect(shellResult.requiresApproval).toBe(false);
     });
 
-    it('should default to STAGED when no tier is specified', () => {
+    it('should default to STAGED when no tier is specified', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -105,16 +105,16 @@ describe('SafetyEngine', () => {
         enabled: true,
       };
 
-      const deployResult = engine.evaluateAction(config, 'deployment');
+      const deployResult = await engine.evaluateAction(config, 'deployment');
       expect(deployResult.requiresApproval).toBe(true);
 
-      const codeResult = engine.evaluateAction(config, 'code_change');
+      const codeResult = await engine.evaluateAction(config, 'code_change');
       expect(codeResult.requiresApproval).toBe(false);
     });
   });
 
   describe('Resource-level controls', () => {
-    it('should block access to .git files', () => {
+    it('should block access to .git files', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -123,7 +123,7 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      const result = engine.evaluateAction(config, 'file_operation', {
+      const result = await engine.evaluateAction(config, 'file_operation', {
         resource: '.git/config',
       });
 
@@ -131,7 +131,7 @@ describe('SafetyEngine', () => {
       expect(result.reason).toContain('blocked');
     });
 
-    it('should block access to .env files', () => {
+    it('should block access to .env files', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -140,14 +140,14 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      const result = engine.evaluateAction(config, 'file_operation', {
+      const result = await engine.evaluateAction(config, 'file_operation', {
         resource: '.env.local',
       });
 
       expect(result.allowed).toBe(false);
     });
 
-    it('should block access to lock files', () => {
+    it('should block access to lock files', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -156,18 +156,18 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      const lockResult = engine.evaluateAction(config, 'file_operation', {
+      const lockResult = await engine.evaluateAction(config, 'file_operation', {
         resource: 'package-lock.json',
       });
       expect(lockResult.allowed).toBe(false);
 
-      const pnpmResult = engine.evaluateAction(config, 'file_operation', {
+      const pnpmResult = await engine.evaluateAction(config, 'file_operation', {
         resource: 'pnpm-lock.yaml',
       });
       expect(pnpmResult.allowed).toBe(false);
     });
 
-    it('should block access to node_modules', () => {
+    it('should block access to node_modules', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -176,14 +176,14 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      const result = engine.evaluateAction(config, 'file_operation', {
+      const result = await engine.evaluateAction(config, 'file_operation', {
         resource: 'node_modules/some-package/index.js',
       });
 
       expect(result.allowed).toBe(false);
     });
 
-    it('should allow access to regular source files', () => {
+    it('should allow access to regular source files', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -192,7 +192,7 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      const result = engine.evaluateAction(config, 'file_operation', {
+      const result = await engine.evaluateAction(config, 'file_operation', {
         resource: 'src/app.ts',
       });
 
@@ -202,7 +202,7 @@ describe('SafetyEngine', () => {
   });
 
   describe('Tool-specific overrides', () => {
-    it('should enforce tool-level approval requirement', () => {
+    it('should enforce tool-level approval requirement', async () => {
       engine.setToolOverride({
         toolName: 'dangerousTool',
         requireApproval: true,
@@ -216,7 +216,7 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      const result = engine.evaluateAction(config, 'some_action', {
+      const result = await engine.evaluateAction(config, 'some_action', {
         toolName: 'dangerousTool',
       });
 
@@ -224,7 +224,7 @@ describe('SafetyEngine', () => {
       expect(result.reason).toContain('dangerousTool');
     });
 
-    it('should enforce tool-specific hourly rate limits', () => {
+    it('should enforce tool-specific hourly rate limits', async () => {
       engine.setToolOverride({
         toolName: 'limitedTool',
         maxUsesPerHour: 2,
@@ -238,18 +238,18 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      const result1 = engine.evaluateAction(config, 'action', { toolName: 'limitedTool' });
+      const result1 = await engine.evaluateAction(config, 'action', { toolName: 'limitedTool' });
       expect(result1.allowed).toBe(true);
 
-      const result2 = engine.evaluateAction(config, 'action', { toolName: 'limitedTool' });
+      const result2 = await engine.evaluateAction(config, 'action', { toolName: 'limitedTool' });
       expect(result2.allowed).toBe(true);
 
-      const result3 = engine.evaluateAction(config, 'action', { toolName: 'limitedTool' });
+      const result3 = await engine.evaluateAction(config, 'action', { toolName: 'limitedTool' });
       expect(result3.allowed).toBe(false);
       expect(result3.reason).toContain('rate limit');
     });
 
-    it('should remove tool override', () => {
+    it('should remove tool override', async () => {
       engine.setToolOverride({
         toolName: 'tempTool',
         requireApproval: true,
@@ -264,14 +264,14 @@ describe('SafetyEngine', () => {
         enabled: true,
         safetyTier: SafetyTier.AUTONOMOUS,
       };
-      const result = engine.evaluateAction(config, 'code_change', { toolName: 'tempTool' });
+      const result = await engine.evaluateAction(config, 'code_change', { toolName: 'tempTool' });
 
       expect(result.requiresApproval).toBe(false);
     });
   });
 
   describe('Rate limiting', () => {
-    it('should enforce deployment daily limits', () => {
+    it('should enforce deployment daily limits', async () => {
       engine.updatePolicy(SafetyTier.AUTONOMOUS, { maxDeploymentsPerDay: 2 });
       const config = {
         id: 'test',
@@ -281,18 +281,18 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      const result1 = engine.evaluateAction(config, 'deployment');
+      const result1 = await engine.evaluateAction(config, 'deployment');
       expect(result1.allowed).toBe(true);
 
-      const result2 = engine.evaluateAction(config, 'deployment');
+      const result2 = await engine.evaluateAction(config, 'deployment');
       expect(result2.allowed).toBe(true);
 
-      const result3 = engine.evaluateAction(config, 'deployment');
+      const result3 = await engine.evaluateAction(config, 'deployment');
       expect(result3.allowed).toBe(false);
       expect(result3.reason).toContain('rate limit');
     });
 
-    it('should enforce shell command hourly limits', () => {
+    it('should enforce shell command hourly limits', async () => {
       engine.updatePolicy(SafetyTier.AUTONOMOUS, { maxShellCommandsPerHour: 2 });
       const config = {
         id: 'test',
@@ -302,15 +302,15 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      engine.evaluateAction(config, 'shell_command');
-      engine.evaluateAction(config, 'shell_command');
-      const result = engine.evaluateAction(config, 'shell_command');
+      await engine.evaluateAction(config, 'shell_command');
+      await engine.evaluateAction(config, 'shell_command');
+      const result = await engine.evaluateAction(config, 'shell_command');
 
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('Shell command rate limit');
     });
 
-    it('should enforce file write hourly limits', () => {
+    it('should enforce file write hourly limits', async () => {
       engine.updatePolicy(SafetyTier.AUTONOMOUS, { maxFileWritesPerHour: 1 });
       const config = {
         id: 'test',
@@ -320,8 +320,8 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      engine.evaluateAction(config, 'file_operation');
-      const result = engine.evaluateAction(config, 'file_operation');
+      await engine.evaluateAction(config, 'file_operation');
+      const result = await engine.evaluateAction(config, 'file_operation');
 
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('File write rate limit');
@@ -329,7 +329,7 @@ describe('SafetyEngine', () => {
   });
 
   describe('Custom policies', () => {
-    it('should apply custom policy overrides', () => {
+    it('should apply custom policy overrides', async () => {
       const customEngine = new SafetyEngine({
         [SafetyTier.AUTONOMOUS]: {
           requireDeployApproval: true,
@@ -343,14 +343,14 @@ describe('SafetyEngine', () => {
         enabled: true,
         safetyTier: SafetyTier.AUTONOMOUS,
       };
-      const result = customEngine.evaluateAction(config, 'deployment');
+      const result = await customEngine.evaluateAction(config, 'deployment');
 
       expect(result.requiresApproval).toBe(true);
     });
   });
 
   describe('Violation logging', () => {
-    it('should log blocked actions', () => {
+    it('should log blocked actions', async () => {
       const config = {
         id: 'agent1',
         name: 'Test',
@@ -359,7 +359,7 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      engine.evaluateAction(config, 'file_operation', {
+      await engine.evaluateAction(config, 'file_operation', {
         resource: '.env',
         traceId: 'trace123',
         userId: 'user1',
@@ -373,7 +373,7 @@ describe('SafetyEngine', () => {
       expect(violations[0].userId).toBe('user1');
     });
 
-    it('should log approval-required actions', () => {
+    it('should log approval-required actions', async () => {
       const config = {
         id: 'agent1',
         name: 'Test',
@@ -382,14 +382,14 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.SANDBOX,
       };
 
-      engine.evaluateAction(config, 'code_change');
+      await engine.evaluateAction(config, 'code_change');
 
       const violations = engine.getViolations();
       expect(violations.length).toBe(1);
       expect(violations[0].outcome).toBe('approval_required');
     });
 
-    it('should filter violations by agent', () => {
+    it('should filter violations by agent', async () => {
       const config1 = {
         id: 'agent1',
         name: 'Test',
@@ -405,9 +405,9 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.SANDBOX,
       };
 
-      engine.evaluateAction(config1, 'code_change');
-      engine.evaluateAction(config2, 'file_operation', { resource: '.env' });
-      engine.evaluateAction(config1, 'file_operation');
+      await engine.evaluateAction(config1, 'code_change');
+      await engine.evaluateAction(config2, 'file_operation', { resource: '.env' });
+      await engine.evaluateAction(config1, 'file_operation');
 
       const agent1Violations = engine.getViolationsByAgent('agent1');
       expect(agent1Violations.length).toBe(2);
@@ -416,7 +416,7 @@ describe('SafetyEngine', () => {
       expect(agent2Violations.length).toBe(1);
     });
 
-    it('should filter violations by action type', () => {
+    it('should filter violations by action type', async () => {
       const config = {
         id: 'agent1',
         name: 'Test',
@@ -425,9 +425,9 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.SANDBOX,
       };
 
-      engine.evaluateAction(config, 'code_change');
-      engine.evaluateAction(config, 'deployment');
-      engine.evaluateAction(config, 'code_change');
+      await engine.evaluateAction(config, 'code_change');
+      await engine.evaluateAction(config, 'deployment');
+      await engine.evaluateAction(config, 'code_change');
 
       const codeViolations = engine.getViolationsByAction('code_change');
       expect(codeViolations.length).toBe(2);
@@ -436,7 +436,7 @@ describe('SafetyEngine', () => {
       expect(deployViolations.length).toBe(1);
     });
 
-    it('should generate violation statistics', () => {
+    it('should generate violation statistics', async () => {
       const config1 = {
         id: 'agent1',
         name: 'Test',
@@ -452,9 +452,9 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      engine.evaluateAction(config1, 'code_change');
-      engine.evaluateAction(config1, 'deployment');
-      engine.evaluateAction(config2, 'file_operation', { resource: '.env' });
+      await engine.evaluateAction(config1, 'code_change');
+      await engine.evaluateAction(config1, 'deployment');
+      await engine.evaluateAction(config2, 'file_operation', { resource: '.env' });
 
       const stats = engine.getStats();
 
@@ -465,7 +465,7 @@ describe('SafetyEngine', () => {
       expect(stats.byTier[SafetyTier.AUTONOMOUS]).toBe(1);
     });
 
-    it('should clear violations', () => {
+    it('should clear violations', async () => {
       const config = {
         id: 'agent1',
         name: 'Test',
@@ -473,7 +473,7 @@ describe('SafetyEngine', () => {
         enabled: true,
         safetyTier: SafetyTier.SANDBOX,
       };
-      engine.evaluateAction(config, 'code_change');
+      await engine.evaluateAction(config, 'code_change');
 
       expect(engine.getViolations().length).toBe(1);
 
@@ -484,7 +484,7 @@ describe('SafetyEngine', () => {
   });
 
   describe('Glob pattern matching', () => {
-    it('should match ** wildcards', () => {
+    it('should match ** wildcards', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -493,18 +493,18 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      const result1 = engine.evaluateAction(config, 'file_operation', {
+      const result1 = await engine.evaluateAction(config, 'file_operation', {
         resource: 'node_modules/pkg/sub/file.js',
       });
       expect(result1.allowed).toBe(false);
 
-      const result2 = engine.evaluateAction(config, 'file_operation', {
+      const result2 = await engine.evaluateAction(config, 'file_operation', {
         resource: '.git/objects/abc',
       });
       expect(result2.allowed).toBe(false);
     });
 
-    it('should match * wildcards', () => {
+    it('should match * wildcards', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -513,7 +513,7 @@ describe('SafetyEngine', () => {
         safetyTier: SafetyTier.AUTONOMOUS,
       };
 
-      const result = engine.evaluateAction(config, 'file_operation', {
+      const result = await engine.evaluateAction(config, 'file_operation', {
         resource: '.env.production',
       });
       expect(result.allowed).toBe(false);

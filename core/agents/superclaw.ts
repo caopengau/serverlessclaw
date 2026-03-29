@@ -57,7 +57,7 @@ export class SuperClaw extends Agent {
    * @param context - Optional context including tool name, resource path, etc.
    * @returns Whether approval is required.
    */
-  static requiresApproval(
+  static async requiresApproval(
     agentConfig: IAgentConfig | undefined,
     actionType: 'code_change' | 'deployment' | 'file_operation' | 'shell_command' | 'mcp_tool',
     context?: {
@@ -66,8 +66,8 @@ export class SuperClaw extends Agent {
       traceId?: string;
       userId?: string;
     }
-  ): boolean {
-    const result = SuperClaw.safetyEngine.evaluateAction(agentConfig, actionType, context);
+  ): Promise<boolean> {
+    const result = await SuperClaw.safetyEngine.evaluateAction(agentConfig, actionType, context);
     return result.requiresApproval;
   }
 
@@ -79,7 +79,7 @@ export class SuperClaw extends Agent {
    * @param context - Optional context including tool name, resource path, etc.
    * @returns Detailed safety evaluation result.
    */
-  static evaluateAction(
+  static async evaluateAction(
     agentConfig: IAgentConfig | undefined,
     actionType: string,
     context?: {

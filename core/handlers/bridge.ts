@@ -29,10 +29,10 @@ export async function handler(event: Record<string, unknown>, _context: Context)
     userId,
     baseUserId,
     sessionId,
-    messageId,
-    agentName,
     message: rawMessage,
     isThought,
+    workspaceId,
+    collaborationId,
   } = detail;
 
   const { sanitizeMqttTopic } = await import('../lib/utils/normalize');
@@ -44,17 +44,32 @@ export async function handler(event: Record<string, unknown>, _context: Context)
       : rawMessage.replace(/\n/g, ' ');
 
   console.log(
-    `[RealtimeBridge] Routing ${eventType}: User=${userId} | Session=${sessionId} | MsgId=${messageId} | Agent=${agentName}`
+    `[RealtimeBridge] Routing ${eventType}: User=${userId} | Session=${sessionId} | Collab=${collaborationId} | WS=${workspaceId}`
   );
   if (rawMessage) {
     console.log(`[RealtimeBridge] Content: "${contentSnippet}"${isThought ? ' (thought)' : ''}`);
   }
 
-  // If we have a sessionId, we can target the specific chat session
-  // Otherwise fallback to the generic user signal topic
-  const topic = sessionId
-    ? `users/${safeUserId}/sessions/${sessionId}/signal`
-    : `users/${safeUserId}/signal`;
+  // Determine the primary broadcast topic
+  // Priority: Collaboration > Workspace > Session > User
+  let topic = `users/${safeUserId}/signal`;
+
+  if (collaborationId) {
+    topic = `collaborations/${sanitizeMqttTopic(collaborationId)}/signal`;
+  } else if (workspaceId) {
+    topic = `workspaces/${sanitizeMqttTopic(workspaceId)}/signal`;
+  } else if (sessionId) {
+    topic = `users/${safeUserId}/sessions/${sessionId}/signal`;
+  }
+
+  // Handle Global System Metrics (D5)
+  if (
+    eventType === 'system_health_report' ||
+    eventType === 'health_alert' ||
+    eventType === 'metric_update'
+  ) {
+    topic = 'system/metrics';
+  }
 
   try {
     // AWS IoT requires payload to be a Uint8Array or string

@@ -127,6 +127,8 @@ const BRIDGE_DETAIL_PAYLOAD_SCHEMA = z
     agentName: z.string().default('SuperClaw'),
     message: z.string().default(''),
     isThought: z.boolean().default(false),
+    workspaceId: z.string().optional(),
+    collaborationId: z.string().optional(),
   })
   .passthrough()
   .transform((data) => ({

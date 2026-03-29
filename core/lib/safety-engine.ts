@@ -7,6 +7,8 @@
 
 import { SafetyTier, IAgentConfig } from './types/agent';
 import { logger } from './logger';
+import type { BaseMemoryProvider } from './memory/base';
+import { MEMORY_KEYS } from './constants';
 
 /**
  * Granular safety policy defining rules for a specific safety tier.
@@ -210,11 +212,15 @@ export class SafetyEngine {
   private toolOverrides: Map<string, ToolSafetyOverride>;
   private violations: SafetyViolation[] = [];
   private rateLimitCounters: Map<string, { count: number; resetTime: number }> = new Map();
+  private base?: BaseMemoryProvider;
+  private evalCount = 0;
 
   constructor(
     customPolicies?: Partial<Record<SafetyTier, Partial<SafetyPolicy>>>,
-    toolOverrides?: ToolSafetyOverride[]
+    toolOverrides?: ToolSafetyOverride[],
+    base?: BaseMemoryProvider
   ) {
+    this.base = base;
     this.policies = new Map();
     this.toolOverrides = new Map();
 
@@ -249,7 +255,7 @@ export class SafetyEngine {
   /**
    * Evaluate whether an action is allowed based on the agent's safety tier.
    */
-  evaluateAction(
+  async evaluateAction(
     agentConfig: IAgentConfig | undefined,
     action: string,
     context?: {
@@ -258,7 +264,7 @@ export class SafetyEngine {
       traceId?: string;
       userId?: string;
     }
-  ): SafetyEvaluationResult {
+  ): Promise<SafetyEvaluationResult> {
     const tier = agentConfig?.safetyTier ?? SafetyTier.STAGED;
     const policy = this.policies.get(tier);
 
@@ -297,7 +303,7 @@ export class SafetyEngine {
       }
 
       // Check tool rate limits
-      const rateLimitResult = this.checkToolRateLimit(toolOverride, context.toolName);
+      const rateLimitResult = await this.checkToolRateLimit(toolOverride, context.toolName);
       if (!rateLimitResult.allowed) {
         return rateLimitResult;
       }
@@ -333,7 +339,7 @@ export class SafetyEngine {
     }
 
     // Check rate limits
-    const rateLimitResult = this.checkRateLimits(policy, action, context);
+    const rateLimitResult = await this.checkRateLimits(policy, action, context);
     if (!rateLimitResult.allowed) {
       return rateLimitResult;
     }
@@ -636,19 +642,18 @@ export class SafetyEngine {
   /**
    * Check rate limits for actions.
    */
-  private checkRateLimits(
+  private async checkRateLimits(
     policy: SafetyPolicy,
     action: string,
     _context?: { traceId?: string; userId?: string; toolName?: string }
-  ): SafetyEvaluationResult {
+  ): Promise<SafetyEvaluationResult> {
     const now = Date.now();
     const hourKey = `${action}_hour_${Math.floor(now / 3600000)}`;
     const dayKey = `${action}_day_${Math.floor(now / 86400000)}`;
 
     // Check hourly limits
     if (action === 'shell_command' && policy.maxShellCommandsPerHour) {
-      const hourCount = this.getRateLimitCount(hourKey);
-      if (hourCount >= policy.maxShellCommandsPerHour) {
+      if (!(await this.checkRateLimitAtomic(hourKey, policy.maxShellCommandsPerHour, 3600000))) {
         return {
           allowed: false,
           requiresApproval: false,
@@ -656,12 +661,10 @@ export class SafetyEngine {
           appliedPolicy: 'rate_limit_hourly',
         };
       }
-      this.incrementRateLimitCount(hourKey, 3600000);
     }
 
     if (action === 'file_operation' && policy.maxFileWritesPerHour) {
-      const hourCount = this.getRateLimitCount(hourKey);
-      if (hourCount >= policy.maxFileWritesPerHour) {
+      if (!(await this.checkRateLimitAtomic(hourKey, policy.maxFileWritesPerHour, 3600000))) {
         return {
           allowed: false,
           requiresApproval: false,
@@ -669,13 +672,11 @@ export class SafetyEngine {
           appliedPolicy: 'rate_limit_hourly',
         };
       }
-      this.incrementRateLimitCount(hourKey, 3600000);
     }
 
     // Check daily limits
     if (action === 'deployment' && policy.maxDeploymentsPerDay) {
-      const dayCount = this.getRateLimitCount(dayKey);
-      if (dayCount >= policy.maxDeploymentsPerDay) {
+      if (!(await this.checkRateLimitAtomic(dayKey, policy.maxDeploymentsPerDay, 86400000))) {
         return {
           allowed: false,
           requiresApproval: false,
@@ -683,7 +684,6 @@ export class SafetyEngine {
           appliedPolicy: 'rate_limit_daily',
         };
       }
-      this.incrementRateLimitCount(dayKey, 86400000);
     }
 
     return { allowed: true, requiresApproval: false };
@@ -692,10 +692,10 @@ export class SafetyEngine {
   /**
    * Check tool-specific rate limits.
    */
-  private checkToolRateLimit(
+  private async checkToolRateLimit(
     override: ToolSafetyOverride | undefined,
     toolName: string
-  ): SafetyEvaluationResult {
+  ): Promise<SafetyEvaluationResult> {
     if (!override) {
       return { allowed: true, requiresApproval: false };
     }
@@ -705,8 +705,7 @@ export class SafetyEngine {
     const dayKey = `tool_${toolName}_day_${Math.floor(now / 86400000)}`;
 
     if (override.maxUsesPerHour) {
-      const hourCount = this.getRateLimitCount(hourKey);
-      if (hourCount >= override.maxUsesPerHour) {
+      if (!(await this.checkRateLimitAtomic(hourKey, override.maxUsesPerHour, 3600000))) {
         return {
           allowed: false,
           requiresApproval: false,
@@ -714,12 +713,10 @@ export class SafetyEngine {
           appliedPolicy: 'tool_rate_limit_hourly',
         };
       }
-      this.incrementRateLimitCount(hourKey, 3600000);
     }
 
     if (override.maxUsesPerDay) {
-      const dayCount = this.getRateLimitCount(dayKey);
-      if (dayCount >= override.maxUsesPerDay) {
+      if (!(await this.checkRateLimitAtomic(dayKey, override.maxUsesPerDay, 86400000))) {
         return {
           allowed: false,
           requiresApproval: false,
@@ -727,42 +724,78 @@ export class SafetyEngine {
           appliedPolicy: 'tool_rate_limit_daily',
         };
       }
-      this.incrementRateLimitCount(dayKey, 86400000);
     }
 
     return { allowed: true, requiresApproval: false };
   }
 
   /**
-   * Get current rate limit count for a key.
+   * Check rate limit via DynamoDB atomic counter or in-memory fallback.
    */
-  private getRateLimitCount(key: string): number {
-    const counter = this.rateLimitCounters.get(key);
-    if (!counter) {
-      return 0;
+  private async checkRateLimitAtomic(
+    key: string,
+    limit: number,
+    windowMs: number
+  ): Promise<boolean> {
+    // Periodic cleanup of stale in-memory counters
+    this.evalCount++;
+    if (this.evalCount % 100 === 0) {
+      this.pruneStaleCounters();
     }
 
-    // Check if counter has expired
-    if (Date.now() > counter.resetTime) {
-      this.rateLimitCounters.delete(key);
-      return 0;
+    if (!this.base) {
+      return this.checkRateLimitInMemory(key, limit, windowMs);
     }
 
-    return counter.count;
+    const windowId = Math.floor(Date.now() / windowMs);
+    const pk = `${MEMORY_KEYS.HEALTH_PREFIX}RATE#${key}#${windowId}`;
+    try {
+      await this.base.updateItem({
+        Key: { userId: pk, timestamp: 0 },
+        UpdateExpression: 'SET #c = if_not_exists(#c, :z) + :o, expiresAt = :e',
+        ConditionExpression: 'attribute_not_exists(#c) OR #c < :lim',
+        ExpressionAttributeNames: { '#c': 'count' },
+        ExpressionAttributeValues: {
+          ':z': 0,
+          ':o': 1,
+          ':lim': limit,
+          ':e': Math.floor((Date.now() + windowMs) / 1000),
+        },
+        ReturnValues: 'NONE',
+      });
+      return true;
+    } catch (err: unknown) {
+      if ((err as { name?: string }).name === 'ConditionalCheckFailedException') {
+        return false;
+      }
+      logger.error('Rate limit check failed, allowing by default', { key, err });
+      return true; // fail-open
+    }
   }
 
   /**
-   * Increment rate limit count for a key.
+   * In-memory rate limit fallback (used when no DynamoDB provider is set).
    */
-  private incrementRateLimitCount(key: string, ttlMs: number): void {
+  private checkRateLimitInMemory(key: string, limit: number, windowMs: number): boolean {
     const counter = this.rateLimitCounters.get(key);
     if (!counter || Date.now() > counter.resetTime) {
-      this.rateLimitCounters.set(key, {
-        count: 1,
-        resetTime: Date.now() + ttlMs,
-      });
-    } else {
-      counter.count++;
+      this.rateLimitCounters.set(key, { count: 1, resetTime: Date.now() + windowMs });
+      return true;
+    }
+    if (counter.count >= limit) return false;
+    counter.count++;
+    return true;
+  }
+
+  /**
+   * Remove expired in-memory rate limit counters.
+   */
+  private pruneStaleCounters(): void {
+    const now = Date.now();
+    for (const [key, counter] of this.rateLimitCounters) {
+      if (now > counter.resetTime) {
+        this.rateLimitCounters.delete(key);
+      }
     }
   }
 
@@ -770,8 +803,26 @@ export class SafetyEngine {
    * Check if current time falls within a time restriction window.
    */
   private isTimeInWindow(date: Date, restriction: TimeRestriction): boolean {
-    const dayOfWeek = date.getUTCDay();
-    const hour = date.getUTCHours();
+    // Get day/hour in the restriction's timezone using Intl.DateTimeFormat
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: restriction.timezone,
+      hour: 'numeric',
+      weekday: 'short',
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(date);
+    const hour = parseInt(parts.find((p) => p.type === 'hour')?.value ?? '0', 10);
+    const weekdayStr = parts.find((p) => p.type === 'weekday')?.value ?? 'Sun';
+    const dayMap: Record<string, number> = {
+      Sun: 0,
+      Mon: 1,
+      Tue: 2,
+      Wed: 3,
+      Thu: 4,
+      Fri: 5,
+      Sat: 6,
+    };
+    const dayOfWeek = dayMap[weekdayStr] ?? 0;
 
     // Check if today is a restricted day
     if (!restriction.daysOfWeek.includes(dayOfWeek)) {
@@ -780,10 +831,8 @@ export class SafetyEngine {
 
     // Check if current hour is within restriction window
     if (restriction.startHour <= restriction.endHour) {
-      // Normal window (e.g., 9-17)
       return hour >= restriction.startHour && hour < restriction.endHour;
     } else {
-      // Overnight window (e.g., 22-6)
       return hour >= restriction.startHour || hour < restriction.endHour;
     }
   }
@@ -793,9 +842,8 @@ export class SafetyEngine {
    * Handles ** (match any path including /), * (match except /), and ? (single char).
    */
   private matchesGlob(path: string, pattern: string): boolean {
-    // Convert glob pattern to regex
-    // Step 1: Escape dots
-    let regexPattern = pattern.replace(/\./g, '\\.');
+    // Step 1: Escape all regex special chars EXCEPT * and ? (glob wildcards)
+    let regexPattern = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
     // Step 2: Replace ** with a placeholder to avoid conflicts with single *
     regexPattern = regexPattern.replace(/\*\*/g, '__DOUBLESTAR__');
     // Step 3: Replace single * with [^/]* (matches anything except /)
@@ -804,7 +852,6 @@ export class SafetyEngine {
     regexPattern = regexPattern.replace(/__DOUBLESTAR__/g, '.*');
     // Step 5: Replace ? with . (single char wildcard)
     regexPattern = regexPattern.replace(/\?/g, '.');
-
     const regex = new RegExp(`^${regexPattern}$`);
     return regex.test(path);
   }
