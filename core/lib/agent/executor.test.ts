@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AgentExecutor } from './executor';
-import { MessageRole, ReasoningProfile } from '../types/index';
+import { Message, MessageRole, ReasoningProfile } from '../types/index';
 
 vi.mock('../../handlers/events/cancellation-handler', () => ({
   isTaskCancelled: vi.fn().mockResolvedValue(false),
@@ -331,9 +331,81 @@ describe('AgentExecutor', () => {
 
     expect(result.paused).toBe(true);
     expect(result.pauseMessage).toBe('APPROVAL_REQUIRED:call-high-risk');
-    expect(result.options).toBeDefined();
-    expect(result.options?.[0].value).toContain('APPROVE_TOOL_CALL:call-high-risk');
+    expect(result.options).toEqual([
+      { label: 'Approve Tool', value: 'APPROVE_TOOL_CALL:call-high-risk', type: 'primary' },
+      { label: 'Reject Tool', value: 'REJECT_TOOL_CALL:call-high-risk', type: 'danger' },
+      { label: 'Clarify', value: 'CLARIFY_TOOL_CALL:call-high-risk', type: 'secondary' },
+    ]);
     expect(mockHighRiskTool.execute).not.toHaveBeenCalled();
+  });
+
+  describe('Signal Handling', () => {
+    it('should handle TOOL_REJECTION signal', async () => {
+      const executor = new AgentExecutor(mockProvider as any, [], 'test-agent', 'Test Agent');
+
+      const messages: Message[] = [];
+      const options = getDefaultOptions({
+        userText: 'TOOL_REJECTION:call-123 User changed their mind',
+      });
+
+      // Mock callLLM to just return a simple response
+      vi.spyOn(executor as any, 'callLLM').mockResolvedValue({
+        role: MessageRole.ASSISTANT,
+        content: 'I understand you rejected the tool.',
+      });
+
+      await executor.runLoop(messages, options);
+
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toEqual({
+        role: MessageRole.TOOL,
+        tool_call_id: 'call-123',
+        content: 'USER_REJECTED_EXECUTION: User changed their mind',
+      });
+    });
+
+    it('should handle TOOL_CLARIFICATION signal', async () => {
+      const executor = new AgentExecutor(mockProvider as any, [], 'test-agent', 'Test Agent');
+
+      const messages: Message[] = [];
+      const options = getDefaultOptions({
+        userText: 'TOOL_CLARIFICATION:call-456 Please use the staging environment',
+      });
+
+      vi.spyOn(executor as any, 'callLLM').mockResolvedValue({
+        role: MessageRole.ASSISTANT,
+        content: 'I will use staging.',
+      });
+
+      await executor.runLoop(messages, options);
+
+      expect(messages).toHaveLength(1);
+      expect(messages[0]).toEqual({
+        role: MessageRole.TOOL,
+        tool_call_id: 'call-456',
+        content: 'USER_CLARIFICATION: Please use the staging environment',
+      });
+    });
+
+    it('should handle signals without extra text', async () => {
+      const executor = new AgentExecutor(mockProvider as any, [], 'test-agent', 'Test Agent');
+
+      const messages: Message[] = [];
+      const options = getDefaultOptions({
+        userText: 'TOOL_REJECTION:call-789',
+      });
+
+      vi.spyOn(executor as any, 'callLLM').mockResolvedValue({
+        role: MessageRole.ASSISTANT,
+        content: 'Rejected.',
+      });
+
+      await executor.runLoop(messages, options);
+
+      expect(messages[0].content).toBe(
+        'USER_REJECTED_EXECUTION: User rejected this tool execution.'
+      );
+    });
   });
 
   it('should execute high-risk tool if call ID is in approvedToolCalls', async () => {

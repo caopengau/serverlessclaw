@@ -6,6 +6,9 @@ import {
   MANAGE_AGENT_TOOLS,
   SET_SYSTEM_CONFIG,
   PROVIDE_CLARIFICATION,
+  CREATE_AGENT,
+  DELETE_AGENT,
+  SYNC_AGENT_REGISTRY,
 } from './knowledge-agent';
 import { emitEvent } from '../lib/utils/bus';
 import { mockClient } from 'aws-sdk-client-mock';
@@ -22,12 +25,16 @@ vi.mock('../lib/registry', () => ({
   AgentRegistry: {
     getAgentConfig: vi.fn().mockResolvedValue({ enabled: true }),
     getAllConfigs: vi.fn().mockResolvedValue({}),
+    saveConfig: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
 vi.mock('../lib/registry/config', () => ({
   ConfigManager: {
     saveRawConfig: vi.fn().mockResolvedValue(undefined),
+  },
+  defaultDocClient: {
+    send: vi.fn().mockResolvedValue({}),
   },
 }));
 
@@ -42,6 +49,28 @@ vi.mock('../lib/tracer', () => ({
     };
   }),
 }));
+
+vi.mock('../lib/backbone', () => ({
+  BACKBONE_REGISTRY: {
+    superclaw: { id: 'superclaw', name: 'SuperClaw', isBackbone: true },
+    coder: { id: 'coder', name: 'Coder', isBackbone: true },
+  },
+}));
+
+vi.mock('../lib/utils/topology', () => ({
+  discoverSystemTopology: vi.fn().mockResolvedValue({ nodes: [], edges: [] }),
+}));
+
+vi.mock('sst', () => ({
+  Resource: {
+    ConfigTable: { name: 'test-config-table' },
+  },
+}));
+
+vi.mock('../lib/constants', async () => {
+  const actual = await vi.importActual('../lib/constants');
+  return actual;
+});
 
 describe('Knowledge Agent Tools (Delegation Signals)', () => {
   beforeEach(() => {
@@ -137,17 +166,17 @@ describe('Knowledge Agent Tools (Delegation Signals)', () => {
       const args = {
         userId: 'user-1',
         question: 'what model should I use?',
-        initiatorId: 'superclaw.agent',
+        initiatorId: 'superclaw',
         task: 'setup system',
       };
 
       const result = await SEEK_CLARIFICATION.execute(args);
 
       expect(result).toContain('TASK_PAUSED');
-      expect(result).toContain('sent a clarification request to **superclaw.agent**');
+      expect(result).toContain('sent a clarification request to **superclaw**');
 
       expect(emitEvent).toHaveBeenCalledWith(
-        'superclaw.agent',
+        'superclaw',
         'clarification_request',
         expect.objectContaining({
           question: 'what model should I use?',
@@ -202,6 +231,98 @@ describe('Knowledge Agent Tools (Delegation Signals)', () => {
           isContinuation: true,
         })
       );
+    });
+  });
+
+  describe('CREATE_AGENT', () => {
+    it('should create a new non-backbone agent', async () => {
+      const { AgentRegistry } = await import('../lib/registry');
+      vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValueOnce(undefined);
+
+      const result = await CREATE_AGENT.execute({
+        agentId: 'my-agent',
+        name: 'My Agent',
+        systemPrompt: 'You are a helpful assistant.',
+        provider: 'openai',
+        model: 'gpt-5.4-mini',
+        enabled: true,
+      });
+
+      expect(result).toContain("Successfully created agent 'my-agent'");
+      expect(result).toContain('enabled');
+      expect(AgentRegistry.saveConfig).toHaveBeenCalledWith(
+        'my-agent',
+        expect.objectContaining({
+          id: 'my-agent',
+          name: 'My Agent',
+          systemPrompt: 'You are a helpful assistant.',
+          isBackbone: false,
+        })
+      );
+    });
+
+    it('should reject creation of backbone agents', async () => {
+      const result = await CREATE_AGENT.execute({
+        agentId: 'superclaw',
+        name: 'Override',
+        systemPrompt: 'malicious',
+      });
+
+      expect(result).toContain('FAILED: Cannot create agent');
+      expect(result).toContain('Backbone agents are protected');
+    });
+
+    it('should reject creation if agent already exists', async () => {
+      const { AgentRegistry } = await import('../lib/registry');
+      vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValueOnce({
+        id: 'existing',
+        name: 'Existing',
+      } as any);
+
+      const result = await CREATE_AGENT.execute({
+        agentId: 'existing',
+        name: 'Duplicate',
+        systemPrompt: 'duplicate prompt',
+      });
+
+      expect(result).toContain('FAILED');
+      expect(result).toContain('already exists');
+    });
+  });
+
+  describe('DELETE_AGENT', () => {
+    it('should reject deletion of backbone agents', async () => {
+      const result = await DELETE_AGENT.execute({ agentId: 'coder' });
+      expect(result).toContain('FAILED: Cannot delete backbone agent');
+    });
+
+    it('should delete a non-backbone agent', async () => {
+      const { defaultDocClient } = await import('../lib/registry/config');
+      vi.mocked(defaultDocClient.send).mockResolvedValue({} as any);
+
+      const result = await DELETE_AGENT.execute({ agentId: 'my-custom-agent' });
+      expect(result).toContain("Successfully deleted agent 'my-custom-agent'");
+      expect(defaultDocClient.send).toHaveBeenCalled();
+    });
+  });
+
+  describe('SYNC_AGENT_REGISTRY', () => {
+    it('should sync registry and discover topology', async () => {
+      const { AgentRegistry } = await import('../lib/registry');
+      vi.mocked(AgentRegistry.getAllConfigs).mockResolvedValueOnce({
+        coder: { id: 'coder', name: 'Coder', enabled: true } as any,
+        'strategic-planner': {
+          id: 'strategic-planner',
+          name: 'Strategic Planner',
+          enabled: true,
+        } as any,
+      });
+
+      const result = await SYNC_AGENT_REGISTRY.execute();
+
+      expect(result).toContain('Registry synchronized');
+      expect(result).toContain('2 active agents');
+      expect(result).toContain('Topology refreshed');
     });
   });
 });

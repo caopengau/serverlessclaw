@@ -86,7 +86,7 @@ describe('Autonomous Loop Closure', () => {
       detail: {
         userId: 'user-1',
         buildId: 'build-123',
-        initiatorId: 'strategic-planner.agent',
+        initiatorId: 'strategic-planner',
         task: 'Add AWS Security Agent',
         traceId: 'trace-456',
       },
@@ -115,7 +115,7 @@ describe('Autonomous Loop Closure', () => {
         userId: 'user-1',
         buildId: 'build-failed',
         errorLogs: 'TypeScript Error: type mismatch',
-        initiatorId: 'strategic-planner.agent',
+        initiatorId: 'strategic-planner',
         task: 'Add AWS Security Agent',
         traceId: 'trace-456',
       },

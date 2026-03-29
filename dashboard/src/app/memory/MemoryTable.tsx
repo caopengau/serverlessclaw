@@ -126,9 +126,14 @@ export default function MemoryTable({ items, pruneAction }: MemoryTableProps) {
                     </span>
                   </td>
                   <td className="px-5 py-3">
-                    <span className="flex items-center gap-1 text-cyber-blue/60 font-mono text-[11px]">
-                      <Clock size={10} />
-                      {new Date(item.createdAt || item.metadata?.createdAt || item.timestamp).toLocaleDateString()}
+                    <span className="flex flex-col text-cyber-blue/60 font-mono text-[10px] leading-tight">
+                      <span className="flex items-center gap-1">
+                        <Clock size={10} />
+                        {new Date(item.createdAt || item.metadata?.createdAt || item.timestamp).toLocaleDateString()}
+                      </span>
+                      <span className="pl-3.5 opacity-70">
+                        {new Date(item.createdAt || item.metadata?.createdAt || item.timestamp).toLocaleTimeString([], { hour: '2-numeric', minute: '2-numeric' })}
+                      </span>
                     </span>
                   </td>
                   <td className="px-5 py-3">

@@ -27,24 +27,43 @@ export async function wakeupInitiator(
   traceId: string | undefined,
   sessionId: string | undefined,
   depth: number = 0,
-  userNotified: boolean = false
+  userNotified: boolean = false,
+  options?: { label: string; value: string; type?: 'primary' | 'secondary' | 'danger' }[]
 ): Promise<void> {
   if (!initiatorId || !task) return;
 
-  const initiatorAgentId = initiatorId.endsWith('.agent')
-    ? initiatorId.replace('.agent', '')
-    : initiatorId;
-
   const finalTask = userNotified ? `${task}\n(USER_ALREADY_NOTIFIED: true)` : task;
+
+  // Determine if the initiator is a human (user) or another agent.
+  // Agents have specific IDs like 'superclaw', 'coder', or dynamic UUIDs.
+  // Humans are identified by the base userId (numeric string for Telegram, 'dashboard-user' for Dashboard).
+  const isHuman =
+    initiatorId === userId || initiatorId === 'dashboard-user' || /^\d+$/.test(initiatorId);
+
+  if (isHuman) {
+    await sendOutboundMessage(
+      'wakeup-initiator',
+      userId,
+      task,
+      undefined,
+      sessionId,
+      'SuperClaw',
+      undefined,
+      traceId,
+      options
+    );
+    return;
+  }
 
   await emitEvent('events.handler', EventType.CONTINUATION_TASK, {
     userId,
-    agentId: initiatorAgentId,
+    agentId: initiatorId,
     task: finalTask,
     traceId,
     initiatorId,
     sessionId,
     depth: depth + 1,
+    options,
   });
 }
 

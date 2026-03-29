@@ -51,14 +51,14 @@ describe('shared event utilities', () => {
   });
 
   describe('wakeupInitiator', () => {
-    it('should emit CONTINUATION_TASK event', async () => {
-      await wakeupInitiator('user1', 'planner', 'review task', 'trace-1', 'sess-1', 0);
+    it('should emit CONTINUATION_TASK event for agents', async () => {
+      await wakeupInitiator('user1', 'strategic-planner', 'review task', 'trace-1', 'sess-1', 0);
       expect(emitEvent).toHaveBeenCalledWith(
         'events.handler',
         expect.anything(),
         expect.objectContaining({
           userId: 'user1',
-          agentId: 'planner',
+          agentId: 'strategic-planner',
           task: 'review task',
           traceId: 'trace-1',
           sessionId: 'sess-1',
@@ -67,8 +67,24 @@ describe('shared event utilities', () => {
       );
     });
 
+    it('should send OUTBOUND_MESSAGE for human initiators', async () => {
+      await wakeupInitiator('user1', 'user1', 'task done', 'trace-1', 'sess-1', 0);
+      expect(sendOutboundMessage).toHaveBeenCalledWith(
+        'wakeup-initiator',
+        'user1',
+        'task done',
+        undefined,
+        'sess-1',
+        'SuperClaw',
+        undefined,
+        'trace-1',
+        undefined
+      );
+      expect(emitEvent).not.toHaveBeenCalled();
+    });
+
     it('should strip .agent suffix from initiatorId', async () => {
-      await wakeupInitiator('user1', 'coder.agent', 'task', undefined, undefined, 0);
+      await wakeupInitiator('user1', 'coder', 'task', undefined, undefined, 0);
       expect(emitEvent).toHaveBeenCalledWith(
         'events.handler',
         expect.anything(),
@@ -82,12 +98,12 @@ describe('shared event utilities', () => {
     });
 
     it('should not emit if task is empty', async () => {
-      await wakeupInitiator('user1', 'planner', '', undefined, undefined, 0);
+      await wakeupInitiator('user1', 'strategic-planner', '', undefined, undefined, 0);
       expect(emitEvent).not.toHaveBeenCalled();
     });
 
     it('should append USER_ALREADY_NOTIFIED marker when userNotified is true', async () => {
-      await wakeupInitiator('user1', 'planner', 'task', undefined, undefined, 0, true);
+      await wakeupInitiator('user1', 'strategic-planner', 'task', undefined, undefined, 0, true);
       expect(emitEvent).toHaveBeenCalledWith(
         'events.handler',
         expect.anything(),
@@ -98,7 +114,7 @@ describe('shared event utilities', () => {
     });
 
     it('should increment depth', async () => {
-      await wakeupInitiator('user1', 'planner', 'task', undefined, undefined, 5);
+      await wakeupInitiator('user1', 'strategic-planner', 'task', undefined, undefined, 5);
       expect(emitEvent).toHaveBeenCalledWith(
         'events.handler',
         expect.anything(),

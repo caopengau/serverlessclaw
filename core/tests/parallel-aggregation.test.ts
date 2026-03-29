@@ -44,7 +44,7 @@ describe('Parallel Aggregation Integration', () => {
     const eventDetail = {
       userId: 'user-123',
       traceId: 'trace-456',
-      initiatorId: 'planner',
+      initiatorId: 'strategic-planner',
       overallStatus: 'success',
       results: [{ taskId: 't1', agentId: 'a1', status: 'success', result: 'Result 1' }],
       taskCount: 1,
@@ -58,7 +58,7 @@ describe('Parallel Aggregation Integration', () => {
     const { wakeupInitiator } = await import('../handlers/events/shared');
     expect(wakeupInitiator).toHaveBeenCalledWith(
       'user-123',
-      'planner',
+      'strategic-planner',
       'Synthesized Next Action',
       'trace-456',
       undefined,
@@ -74,7 +74,7 @@ describe('Parallel Aggregation Integration', () => {
     const eventDetail = {
       userId: 'user-123',
       traceId: 'trace-456',
-      initiatorId: 'planner',
+      initiatorId: 'strategic-planner',
       overallStatus: 'success',
       results: [{ taskId: 't1', agentId: 'a1', status: 'success', result: 'Result 1' }],
       taskCount: 1,
@@ -87,7 +87,7 @@ describe('Parallel Aggregation Integration', () => {
     const { wakeupInitiator } = await import('../handlers/events/shared');
     expect(wakeupInitiator).toHaveBeenCalledWith(
       'user-123',
-      'planner',
+      'strategic-planner',
       expect.stringContaining('Parallel Dispatch Complete'),
       'trace-456',
       undefined,

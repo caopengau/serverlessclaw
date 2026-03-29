@@ -105,7 +105,7 @@ export const BACKGROUND_TASK_POLICY: EscalationPolicy = {
       level: 2,
       timeoutMs: 3600000, // 1 hour
       channels: [EscalationChannel.DASHBOARD, EscalationChannel.TELEGRAM],
-      messageTemplate: '📌 **Reminder**\n\nBackground task still waiting:\n\n{{question}}',
+      messageTemplate: '**REMINDER**\n\nBackground task still waiting:\n\n{{question}}',
       continueOnFailure: false,
     },
   ],
@@ -143,7 +143,7 @@ export const ADMIN_ESCALATION_POLICY: EscalationPolicy = {
       level: 3,
       timeoutMs: 900000, // 15 minutes
       channels: [EscalationChannel.TELEGRAM, EscalationChannel.DASHBOARD, EscalationChannel.EMAIL],
-      messageTemplate: '🚨 **Final Notice**\n\nLast chance to respond:\n\n{{question}}',
+      messageTemplate: '**FINAL NOTICE**\n\nLast chance to respond:\n\n{{question}}',
       continueOnFailure: false,
     },
   ],

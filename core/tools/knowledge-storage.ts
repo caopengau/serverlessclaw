@@ -329,3 +329,149 @@ export const PRUNE_MEMORY = {
     }
   },
 };
+
+/**
+ * Adjusts priority, urgency, and impact scores of a memory item.
+ */
+export const PRIORITIZE_MEMORY = {
+  ...toolDefinitions.prioritizeMemory,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { userId, timestamp, priority, urgency, impact } = args as {
+      userId: string;
+      timestamp: number;
+      priority?: number;
+      urgency?: number;
+      impact?: number;
+    };
+
+    if (!userId || timestamp === undefined) {
+      return 'FAILED: Both userId and timestamp are required.';
+    }
+
+    try {
+      const memory = getMemory();
+      const metadata: Record<string, number> = {};
+      if (priority !== undefined) metadata.priority = priority;
+      if (urgency !== undefined) metadata.urgency = urgency;
+      if (impact !== undefined) metadata.impact = impact;
+
+      if (Object.keys(metadata).length === 0) {
+        return 'FAILED: At least one of priority, urgency, or impact must be provided.';
+      }
+
+      await memory.updateInsightMetadata(userId, timestamp, metadata);
+      const parts: string[] = [];
+      if (priority !== undefined) parts.push(`priority=${priority}`);
+      if (urgency !== undefined) parts.push(`urgency=${urgency}`);
+      if (impact !== undefined) parts.push(`impact=${impact}`);
+      return `Successfully updated memory ${userId}@${timestamp}: ${parts.join(', ')}`;
+    } catch (error) {
+      return `Failed to prioritize memory: ${formatErrorMessage(error)}`;
+    }
+  },
+};
+
+/**
+ * Deletes execution traces. Pass "all" to purge, or a specific trace ID.
+ */
+export const DELETE_TRACES = {
+  ...toolDefinitions.deleteTraces,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { traceId } = args as { traceId: string };
+
+    if (!traceId) return 'FAILED: traceId is required.';
+
+    try {
+      const { Resource } = await import('sst');
+      const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
+      const { DynamoDBDocumentClient, ScanCommand, BatchWriteCommand, QueryCommand } =
+        await import('@aws-sdk/lib-dynamodb');
+
+      const tableName = (Resource as unknown as Record<string, { name?: string }>).TraceTable?.name;
+      if (!tableName) return 'FAILED: TraceTable not linked.';
+
+      const docClient = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+
+      if (traceId === 'all') {
+        let deletedCount = 0;
+        let lastKey: Record<string, unknown> | undefined;
+
+        do {
+          const scanRes = await docClient.send(
+            new ScanCommand({ TableName: tableName, ExclusiveStartKey: lastKey, Limit: 50 })
+          );
+
+          if (scanRes.Items && scanRes.Items.length > 0) {
+            for (let i = 0; i < scanRes.Items.length; i += 25) {
+              const batch = scanRes.Items.slice(i, i + 25);
+              await docClient.send(
+                new BatchWriteCommand({
+                  RequestItems: {
+                    [tableName]: batch.map((item) => ({
+                      DeleteRequest: { Key: { traceId: item.traceId, nodeId: item.nodeId } },
+                    })),
+                  },
+                })
+              );
+              deletedCount += batch.length;
+            }
+          }
+          lastKey = scanRes.LastEvaluatedKey;
+        } while (lastKey);
+
+        return `Successfully purged all traces. ${deletedCount} trace nodes deleted.`;
+      }
+
+      // Delete single trace
+      const { Items } = await docClient.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: 'traceId = :tid',
+          ExpressionAttributeValues: { ':tid': traceId },
+          ProjectionExpression: 'traceId, nodeId',
+        })
+      );
+
+      if (!Items || Items.length === 0) {
+        return `No trace nodes found for traceId: ${traceId}`;
+      }
+
+      for (let i = 0; i < Items.length; i += 25) {
+        const batch = Items.slice(i, i + 25);
+        await docClient.send(
+          new BatchWriteCommand({
+            RequestItems: {
+              [tableName]: batch.map((item) => ({
+                DeleteRequest: { Key: { traceId: item.traceId, nodeId: item.nodeId } },
+              })),
+            },
+          })
+        );
+      }
+
+      return `Successfully deleted trace ${traceId} (${Items.length} nodes).`;
+    } catch (error) {
+      return `Failed to delete traces: ${formatErrorMessage(error)}`;
+    }
+  },
+};
+
+/**
+ * Forces release of a distributed session lock.
+ */
+export const FORCE_RELEASE_LOCK = {
+  ...toolDefinitions.forceReleaseLock,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { lockId } = args as { lockId: string };
+
+    if (!lockId) return 'FAILED: lockId is required.';
+
+    try {
+      const memory = getMemory();
+      await memory.deleteItem({ userId: lockId, timestamp: 0 });
+      return `Successfully force-released lock: ${lockId}`;
+    } catch (error) {
+      return `Failed to release lock: ${formatErrorMessage(error)}`;
+    }
+  },
+};

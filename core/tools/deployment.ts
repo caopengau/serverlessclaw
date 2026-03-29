@@ -155,3 +155,29 @@ export const TRIGGER_DEPLOYMENT = {
     }
   },
 };
+
+/**
+ * Triggers a full infrastructure rebuild via CodeBuild.
+ */
+export const TRIGGER_INFRA_REBUILD = {
+  ...toolDefinitions.triggerInfraRebuild,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { reason } = args as { reason: string };
+    const typedResource = Resource as unknown as ToolsResource;
+
+    try {
+      logger.info(`Triggering infra rebuild: ${reason}`);
+      const command = new StartBuildCommand({
+        projectName: typedResource.Deployer.name,
+        environmentVariablesOverride: [{ name: 'INFRA_REBUILD', value: 'true' }],
+      });
+
+      const response = await codebuild.send(command);
+      const buildId = response.build?.id;
+
+      return `Infra rebuild started. Build ID: ${buildId}. Reason: ${reason}`;
+    } catch (error) {
+      return `Failed to trigger infra rebuild: ${formatErrorMessage(error)}`;
+    }
+  },
+};

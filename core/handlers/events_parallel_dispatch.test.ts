@@ -199,7 +199,7 @@ describe('Parallel Dispatch Resilience', () => {
           { taskId: 'task-1', agentId: 'coder' },
           { taskId: 'task-2', agentId: 'qa' },
         ],
-        initiatorId: 'planner',
+        initiatorId: 'strategic-planner',
         createdAt: Date.now() - 1000,
       });
 
@@ -210,7 +210,7 @@ describe('Parallel Dispatch Resilience', () => {
           { taskId: 'task-1', status: 'success', agentId: 'coder' },
           { taskId: 'task-2', status: 'timeout', agentId: 'qa' },
         ],
-        initiatorId: 'planner',
+        initiatorId: 'strategic-planner',
       });
 
       const eventDetail = {
@@ -250,7 +250,7 @@ describe('Parallel Dispatch Resilience', () => {
           { taskId: 't2', agentId: 'a2' },
           { taskId: 't3', agentId: 'a3' },
         ],
-        initiatorId: 'planner',
+        initiatorId: 'strategic-planner',
       });
 
       mockAddResult.mockResolvedValue({

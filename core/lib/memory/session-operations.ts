@@ -30,6 +30,7 @@ export async function addMessage(
   await base.putItem({
     userId,
     timestamp: Date.now(),
+    createdAt: Date.now(),
     type,
     expiresAt,
     ...scrubbedMessage,

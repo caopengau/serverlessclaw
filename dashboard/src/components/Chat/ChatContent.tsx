@@ -12,7 +12,9 @@ import { useChatConnection } from './useChatConnection';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
+import { QueuedMessagesList } from './QueuedMessages';
 import { ChatMessage, AttachmentPreview, HistoryMessage } from './types';
+import type { PendingMessage } from '@claw/core/lib/types/session';
 
 /**
  * Visual constants and style configurations for the Chat component.
@@ -69,6 +71,12 @@ export default function ChatContent() {
 
   // --- Attachments State ---
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
+
+  // --- Thinking Toggle ---
+  const [showThinking, setShowThinking] = useState(true);
+
+  // --- Queued Messages State ---
+  const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
 
   // --- Refs ---
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -145,6 +153,28 @@ export default function ChatContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSessionId]);
+
+  // --- Fetch Pending Messages ---
+  useEffect(() => {
+    if (!activeSessionId || isLoading) {
+      setPendingMessages([]);
+      return;
+    }
+    const fetchPending = async () => {
+      try {
+        const res = await fetch(`/api/pending-messages?sessionId=${activeSessionId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setPendingMessages(data.pendingMessages ?? []);
+        }
+      } catch {
+        // Silently ignore fetch errors for pending messages
+      }
+    };
+    fetchPending();
+    const interval = setInterval(fetchPending, 10000);
+    return () => clearInterval(interval);
+  }, [activeSessionId, isLoading]);
 
   // --- Session Operations ---
 
@@ -413,19 +443,27 @@ export default function ChatContent() {
     }
   };
 
-  const handleOptionClick = async (value: string) => {
+  const handleOptionClick = async (value: string, comment?: string) => {
     if (value.startsWith('APPROVE_TOOL_CALL:')) {
-      await handleToolApproval(value.split(':')[1]);
+      await handleToolApproval(value.split(':')[1], comment);
+    } else if (value.startsWith('REJECT_TOOL_CALL:')) {
+      await handleToolRejection(value.split(':')[1], comment);
+    } else if (value.startsWith('CLARIFY_TOOL_CALL:')) {
+      await handleToolClarification(value.split(':')[1], comment);
+    } else if (value.startsWith('CANCEL_TASK:')) {
+      await handleTaskCancellation(value.split(':')[1], comment);
     } else {
-      sendMessage(value);
+      const fullMessage = comment ? `${value}\n\nComment: ${comment}` : value;
+      sendMessage(fullMessage);
     }
   };
 
   /**
    * Processes approval for a specific tool call.
    * @param callId The unique ID of the tool call to approve.
+   * @param comment Optional user comment to send with approval.
    */
-  const handleToolApproval = async (callId: string) => {
+  const handleToolApproval = async (callId: string, comment?: string) => {
     const currentSessionId = activeSessionRef.current;
     setIsLoading(true);
     isPostInFlight.current = true;
@@ -435,7 +473,7 @@ export default function ChatContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          text: 'I approve the tool execution.', 
+          text: comment || 'I approve the tool execution.', 
           sessionId: currentSessionId, 
           approvedToolCalls: [callId] 
         }),
@@ -511,6 +549,30 @@ export default function ChatContent() {
       console.error('Failed to delete all history:', error); 
     }
     setShowDeleteAllConfirm(false);
+  };
+
+  // --- Queued Message Handlers ---
+
+  const handleEditQueuedMessage = async (messageId: string, newContent: string) => {
+    if (!activeSessionId) return;
+    await fetch('/api/pending-messages', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: activeSessionId, messageId, content: newContent }),
+    });
+    setPendingMessages(prev =>
+      prev.map(m => (m.id === messageId ? { ...m, content: newContent } : m))
+    );
+  };
+
+  const handleRemoveQueuedMessage = async (messageId: string) => {
+    if (!activeSessionId) return;
+    await fetch('/api/pending-messages', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: activeSessionId, messageId }),
+    });
+    setPendingMessages(prev => prev.filter(m => m.id !== messageId));
   };
 
   return (
@@ -598,12 +660,25 @@ export default function ChatContent() {
               </Typography>
             )}
           </div>
-          {isRealtimeActive && (
-            <div className="flex items-center gap-2 bg-cyber-green/10 px-3 py-1 rounded border border-cyber-green/30">
-               <div className={`w-1.5 h-1.5 rounded-full bg-cyber-green ${CHAT_STYLES.ANIMATIONS.PULSE}`} />
-               <Typography variant="mono" weight="bold" className="text-cyber-green text-[10px]">LIVE</Typography>
-            </div>
-          )}
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowThinking(!showThinking)}
+              className={`p-1 flex items-center gap-2 transition-colors ${showThinking ? 'text-cyber-green' : 'text-white/40 hover:text-white/70'}`}
+              title={showThinking ? "Hide thinking blocks" : "Show thinking blocks"}
+              icon={<Brain size={18} />}
+            >
+              <span className="text-[10px] font-mono uppercase tracking-wider hidden sm:inline">Thinking</span>
+            </Button>
+
+            {isRealtimeActive && (
+              <div className="flex items-center gap-2 bg-cyber-green/10 px-3 py-1 rounded border border-cyber-green/30">
+                 <div className={`w-1.5 h-1.5 rounded-full bg-cyber-green ${CHAT_STYLES.ANIMATIONS.PULSE}`} />
+                 <Typography variant="mono" weight="bold" className="text-cyber-green text-[10px]">LIVE</Typography>
+              </div>
+            )}
+          </div>
         </header>
 
         <ChatMessageList 
@@ -611,6 +686,7 @@ export default function ChatContent() {
           isLoading={isLoading} 
           scrollRef={scrollRef}
           onOptionClick={handleOptionClick}
+          showThinking={showThinking}
         />
 
         <ChatInput 
@@ -624,6 +700,105 @@ export default function ChatContent() {
           onFileSelect={(e) => { if (e.target.files) handleFiles(Array.from(e.target.files)); }}
           isShaking={isShaking}
         />
+
+        {pendingMessages.length > 0 && (
+          <div className="px-6 pb-4">
+            <QueuedMessagesList
+              messages={pendingMessages}
+              onEdit={handleEditQueuedMessage}
+              onRemove={handleRemoveQueuedMessage}
+            />
+          </div>
+        )}
+      </main>
+
+      <CyberConfirm 
+        isOpen={showDeleteConfirm}
+        title="Delete Conversation"
+        message="Are you sure you want to purge this record from memory?"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+        variant="warning"
+      />
+      <CyberConfirm 
+        isOpen={showDeleteAllConfirm}
+        title="PURGE ALL HISTORY"
+        message="WARNING: This action is irreversible. All active session history will be destroyed. Continue?"
+        onConfirm={confirmDeleteAll}
+        onCancel={() => setShowDeleteAllConfirm(false)}
+        variant="danger"
+      />
+    </div>
+  );
+}
+ntitled Trace'}
+                    </Typography>
+                    <Button 
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsEditingTitle(true)}
+                      className="p-1 opacity-0 group-hover/title:opacity-50 hover:opacity-100 text-white h-auto"
+                      icon={<Edit2 size={14} />}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Typography variant="h2" weight="bold" color="white" glow className="truncate uppercase">
+                Direct Chat
+              </Typography>
+            )}
+          </div>
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowThinking(!showThinking)}
+              className={`p-1 flex items-center gap-2 transition-colors ${showThinking ? 'text-cyber-green' : 'text-white/40 hover:text-white/70'}`}
+              title={showThinking ? "Hide thinking blocks" : "Show thinking blocks"}
+              icon={<Brain size={18} />}
+            >
+              <span className="text-[10px] font-mono uppercase tracking-wider hidden sm:inline">Thinking</span>
+            </Button>
+
+            {isRealtimeActive && (
+              <div className="flex items-center gap-2 bg-cyber-green/10 px-3 py-1 rounded border border-cyber-green/30">
+                 <div className={`w-1.5 h-1.5 rounded-full bg-cyber-green ${CHAT_STYLES.ANIMATIONS.PULSE}`} />
+                 <Typography variant="mono" weight="bold" className="text-cyber-green text-[10px]">LIVE</Typography>
+              </div>
+            )}
+          </div>
+        </header>
+
+        <ChatMessageList 
+          messages={messages} 
+          isLoading={isLoading} 
+          scrollRef={scrollRef}
+          onOptionClick={handleOptionClick}
+          showThinking={showThinking}
+        />
+
+        <ChatInput 
+          input={input}
+          setInput={setInput}
+          isLoading={isLoading}
+          onSend={(e) => { e.preventDefault(); sendMessage(input); setInput(''); }}
+          attachments={attachments}
+          onRemoveAttachment={(i) => setAttachments(prev => prev.filter((_, idx) => idx !== i))}
+          fileInputRef={fileInputRef}
+          onFileSelect={(e) => { if (e.target.files) handleFiles(Array.from(e.target.files)); }}
+          isShaking={isShaking}
+        />
+
+        {pendingMessages.length > 0 && (
+          <div className="px-6 pb-4">
+            <QueuedMessagesList
+              messages={pendingMessages}
+              onEdit={handleEditQueuedMessage}
+              onRemove={handleRemoveQueuedMessage}
+            />
+          </div>
+        )}
       </main>
 
       <CyberConfirm 

@@ -108,7 +108,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   // 3. Notify user directly if not a silent internal task
   if (!isTaskPaused(rawResponse)) {
     await sendOutboundMessage(
-      'coder.agent',
+      AgentType.CODER,
       userId,
       responseText,
       [baseUserId],
@@ -144,7 +144,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   // 5. Notify Resumption Loop (Universal Coordination)
   if (!isTaskPaused(rawResponse)) {
     await emitTaskEvent({
-      source: 'coder.agent',
+      source: AgentType.CODER,
       agentId: AgentType.CODER,
       userId: baseUserId,
       task: task || '',

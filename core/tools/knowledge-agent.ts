@@ -4,6 +4,7 @@ import { emitEvent } from '../lib/utils/bus';
 import { EventType } from '../lib/types/agent';
 import { ClarificationStatus } from '../lib/types/memory';
 import { formatErrorMessage } from '../lib/utils/error';
+import { BACKBONE_REGISTRY } from '../lib/backbone';
 
 /**
  * Lists all registered agents and their current status.
@@ -208,6 +209,135 @@ export const PROVIDE_CLARIFICATION = {
       return `Clarification provided to ${agentId}. Continuation task emitted.`;
     } catch (error) {
       return `Failed to provide clarification: ${formatErrorMessage(error)}`;
+    }
+  },
+};
+
+/**
+ * Creates a new agent in the registry. Cannot override backbone agents.
+ */
+export const CREATE_AGENT = {
+  ...toolDefinitions.createAgent,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { agentId, name, systemPrompt, provider, model, enabled } = args as {
+      agentId: string;
+      name: string;
+      systemPrompt: string;
+      provider?: string;
+      model?: string;
+      enabled?: boolean;
+    };
+
+    if (BACKBONE_REGISTRY[agentId]) {
+      return `FAILED: Cannot create agent '${agentId}'. Backbone agents are protected and cannot be overwritten. Use a different agentId.`;
+    }
+
+    try {
+      const { AgentRegistry } = await import('../lib/registry');
+      const existing = await AgentRegistry.getAgentConfig(agentId);
+      if (existing) {
+        return `FAILED: Agent '${agentId}' already exists. Use manageAgentTools to modify its tools, or deleteAgent first.`;
+      }
+
+      const config = {
+        id: agentId,
+        name,
+        systemPrompt,
+        enabled: enabled ?? true,
+        isBackbone: false,
+        provider: provider ?? 'minimax',
+        model: model ?? 'MiniMax-M2.7',
+        tools: [],
+      };
+
+      await AgentRegistry.saveConfig(agentId, config);
+      return `Successfully created agent '${agentId}' (${name}). Agent is ${config.enabled ? 'enabled' : 'disabled'}. Use manageAgentTools to assign tools.`;
+    } catch (error) {
+      return `Failed to create agent: ${formatErrorMessage(error)}`;
+    }
+  },
+};
+
+/**
+ * Deletes a non-backbone agent from the registry.
+ */
+export const DELETE_AGENT = {
+  ...toolDefinitions.deleteAgent,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { agentId } = args as { agentId: string };
+
+    if (BACKBONE_REGISTRY[agentId]) {
+      return `FAILED: Cannot delete backbone agent '${agentId}'. Backbone agents are protected system components.`;
+    }
+
+    try {
+      const { ConfigTable } = (await import('sst')).Resource as { ConfigTable?: { name: string } };
+      if (!ConfigTable?.name) {
+        return 'FAILED: ConfigTable not linked.';
+      }
+
+      const { defaultDocClient } = await import('../lib/registry/config');
+      const { UpdateCommand, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
+      const { DYNAMO_KEYS } = await import('../lib/constants');
+
+      // Remove agent from agents_config
+      await defaultDocClient.send(
+        new UpdateCommand({
+          TableName: ConfigTable.name,
+          Key: { key: DYNAMO_KEYS.AGENTS_CONFIG },
+          UpdateExpression: 'REMOVE #agents.#id',
+          ExpressionAttributeNames: { '#agents': 'value', '#id': agentId },
+        })
+      );
+
+      // Remove tool overrides
+      await defaultDocClient.send(
+        new DeleteCommand({
+          TableName: ConfigTable.name,
+          Key: { key: `${agentId}_tools` },
+        })
+      );
+
+      return `Successfully deleted agent '${agentId}' and its tool overrides.`;
+    } catch (error) {
+      return `Failed to delete agent: ${formatErrorMessage(error)}`;
+    }
+  },
+};
+
+/**
+ * Synchronizes the agent registry by refreshing configs and discovering topology.
+ */
+export const SYNC_AGENT_REGISTRY = {
+  ...toolDefinitions.syncAgentRegistry,
+  execute: async (): Promise<string> => {
+    try {
+      const { AgentRegistry } = await import('../lib/registry');
+      const configs = await AgentRegistry.getAllConfigs();
+
+      const { discoverSystemTopology } = await import('../lib/utils/topology');
+      const topology = await discoverSystemTopology();
+
+      const { ConfigTable } = (await import('sst')).Resource as { ConfigTable?: { name: string } };
+      if (ConfigTable?.name) {
+        const { PutCommand } = await import('@aws-sdk/lib-dynamodb');
+        const { defaultDocClient } = await import('../lib/registry/config');
+        const { DYNAMO_KEYS } = await import('../lib/constants');
+        await defaultDocClient.send(
+          new PutCommand({
+            TableName: ConfigTable.name,
+            Item: { key: DYNAMO_KEYS.SYSTEM_TOPOLOGY, value: topology },
+          })
+        );
+      }
+
+      const agentNames = Object.values(configs)
+        .filter((a) => a.enabled)
+        .map((a) => `${a.id} (${a.name})`);
+
+      return `Registry synchronized. ${agentNames.length} active agents: ${agentNames.join(', ')}. Topology refreshed.`;
+    } catch (error) {
+      return `Failed to sync registry: ${formatErrorMessage(error)}`;
     }
   },
 };

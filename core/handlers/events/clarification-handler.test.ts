@@ -176,7 +176,9 @@ describe('clarification-handler', () => {
         expect.stringContaining('CLARIFICATION_REQUEST'),
         'trace-abc',
         'session-xyz',
-        1
+        1,
+        false,
+        expect.any(Array)
       );
     });
 
@@ -241,7 +243,9 @@ describe('clarification-handler', () => {
         expect.stringContaining('Implement feature X'),
         'trace-abc',
         'session-xyz',
-        1
+        1,
+        false,
+        expect.any(Array)
       );
     });
 

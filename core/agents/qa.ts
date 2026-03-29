@@ -165,7 +165,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
 
     if (escalatedGaps.length > 0) {
       await sendOutboundMessage(
-        'qa.agent',
+        AgentType.QA,
         userId,
         `⚠️ **Evolution Escalation Required**\n\nGaps ${escalatedGaps.join(', ')} have failed QA verification ${MAX_REOPEN_ATTEMPTS} times and cannot be autonomously resolved.\n\nPlease review the implementation manually and re-approve when ready.`,
         [baseUserId],
@@ -218,7 +218,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
 
   // 1. Notify user directly in the chat session
   await sendOutboundMessage(
-    'qa.agent',
+    AgentType.QA,
     userId,
     `🔍 **QA Audit Complete**\n\n${auditReport}`,
     [baseUserId],
@@ -229,7 +229,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
 
   // 2. Universal Coordination: Notify Initiator (if any)
   await emitTaskEvent({
-    source: 'qa.agent',
+    source: AgentType.QA,
     agentId: AgentType.QA,
     userId: baseUserId,
     task: `Audit gaps: ${gapIds.join(', ')}`,

@@ -105,7 +105,7 @@ describe('task-result-handler (Direct Voice Flow)', () => {
   it('should include USER_ALREADY_NOTIFIED marker in continuation task when userNotified is true', async () => {
     const eventDetail = {
       userId: 'user-123',
-      agentId: 'planner',
+      agentId: 'strategic-planner',
       task: 'Analyze architecture',
       response: 'The architecture is serverless...',
       initiatorId: 'superclaw',
@@ -154,7 +154,7 @@ describe('task-result-handler (Direct Voice Flow)', () => {
   it('should propagate userNotified flag through task failure events', async () => {
     const eventDetail = {
       userId: 'user-123',
-      agentId: 'planner',
+      agentId: 'strategic-planner',
       task: 'Complex audit',
       error: 'Simulated failure',
       initiatorId: 'superclaw',

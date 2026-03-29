@@ -377,6 +377,22 @@ export const TOOLS = {
   fileDelete: 'fileDelete',
   /** Lists all artifacts currently available for multi-modal ingestion. */
   listUploadedFiles: 'listUploadedFiles',
+  /** Creates a new agent persona in the registry. */
+  createAgent: 'createAgent',
+  /** Removes a non-backbone agent from the registry. */
+  deleteAgent: 'deleteAgent',
+  /** Synchronizes the agent registry and discovers topology. */
+  syncAgentRegistry: 'syncAgentRegistry',
+  /** Forces release of a distributed session lock. */
+  forceReleaseLock: 'forceReleaseLock',
+  /** Triggers a full infrastructure rebuild via CodeBuild. */
+  triggerInfraRebuild: 'triggerInfraRebuild',
+  /** Triggers batch evolution for multiple capability gaps. */
+  triggerBatchEvolution: 'triggerBatchEvolution',
+  /** Adjusts priority/urgency/impact of a memory item. */
+  prioritizeMemory: 'prioritizeMemory',
+  /** Deletes execution traces (single or all). */
+  deleteTraces: 'deleteTraces',
 } as const;
 
 /**

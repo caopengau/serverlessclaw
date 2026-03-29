@@ -32,4 +32,20 @@ export const skillsTools: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
+  uninstallSkill: {
+    name: 'uninstallSkill',
+    description: "Removes a skill from an agent's current toolset.",
+    parameters: {
+      type: 'object',
+      properties: {
+        skillName: { type: 'string', description: 'The name of the skill to uninstall.' },
+        agentId: {
+          type: 'string',
+          description: 'The ID of the agent to remove the skill from (defaults to current agent).',
+        },
+      },
+      required: ['skillName'],
+      additionalProperties: false,
+    },
+  },
 };

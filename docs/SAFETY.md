@@ -216,6 +216,27 @@ This prevents catastrophic context overflow during multi-step tool-calling sessi
 | `context_summary_ratio`         | 0.3     | Yes           |
 | `context_active_window_ratio`   | 0.7     | Yes           |
 
+## Human Control & Task Cancellation
+
+Serverless Claw provides a multi-layered interactive control plane that allows human users to intervene in autonomous agent loops without fully disabling them.
+
+### 1. Granular Tool Oversight (HITL)
+
+For security-sensitive operations (e.g., deleting data, triggering deployments), tools can be marked with `requiresApproval: true`. When an agent attempts to use such a tool, the execution pauses and presents the user with three options:
+
+- **Approve Tool**: Continues execution of the specific tool call.
+- **Reject Tool**: Blocks the specific tool execution and informs the agent of the rejection. The agent can then propose an alternative path.
+- **Clarify**: Allows the user to provide Just-in-Time (JIT) guidance for that specific tool call (e.g., "Use the staging database instead of production").
+
+### 2. Strategic Task Cancellation
+
+Users can halt an entire reasoning trace (and all its sub-agent branches) at any time.
+
+- **Signal**: The user clicks "Cancel Task" in the dashboard.
+- **Mechanism**: The system emits a `TASK_CANCELLED` event and sets a distributed cancellation flag in DynamoDB (`CANCEL#<traceId>`).
+- **Effect**: Every agent in the trace checks this flag during each iteration. If detected, the agent immediately terminates its loop, cleans up local state, and notifies the user.
+- **Blast Radius**: Cancellation propagates through the entire Directed Acyclic Graph (DAG), stopping parallel sub-tasks and background monitors associated with that trace.
+
 ---
 
 ## Adding a New Guardrail

@@ -131,7 +131,30 @@ export class AgentExecutor {
     // Structural enforcement: validate required fields at boundary
     validateExecutorOptions(options);
 
-    const { maxIterations, tracer, approvedToolCalls } = options;
+    const { maxIterations, tracer, approvedToolCalls, userText } = options;
+
+    // Handle high-level interactive signals before starting the loop
+    if (userText?.startsWith('TOOL_REJECTION:')) {
+      const match = userText.match(/TOOL_REJECTION:([^\s]+)\s*(.*)/);
+      if (match) {
+        const [, callId, reason] = match;
+        messages.push({
+          role: MessageRole.TOOL,
+          tool_call_id: callId,
+          content: `USER_REJECTED_EXECUTION: ${reason || 'User rejected this tool execution.'}`,
+        });
+      }
+    } else if (userText?.startsWith('TOOL_CLARIFICATION:')) {
+      const match = userText.match(/TOOL_CLARIFICATION:([^\s]+)\s*(.*)/);
+      if (match) {
+        const [, callId, comment] = match;
+        messages.push({
+          role: MessageRole.TOOL,
+          tool_call_id: callId,
+          content: `USER_CLARIFICATION: ${comment}`,
+        });
+      }
+    }
 
     let iterations = 0;
     let responseText = '';
@@ -226,8 +249,40 @@ export class AgentExecutor {
     messages: Message[],
     options: ExecutorOptions
   ): AsyncIterable<import('../types/index').MessageChunk> {
-    const { maxIterations, tracer, emitter, traceId, sessionId, userId, approvedToolCalls } =
-      options;
+    const {
+      maxIterations,
+      tracer,
+      emitter,
+      traceId,
+      sessionId,
+      userId,
+      approvedToolCalls,
+      userText,
+    } = options;
+
+    // Handle high-level interactive signals before starting the loop
+    if (userText?.startsWith('TOOL_REJECTION:')) {
+      const match = userText.match(/TOOL_REJECTION:([^\s]+)\s*(.*)/);
+      if (match) {
+        const [, callId, reason] = match;
+        messages.push({
+          role: MessageRole.TOOL,
+          tool_call_id: callId,
+          content: `USER_REJECTED_EXECUTION: ${reason || 'User rejected this tool execution.'}`,
+        });
+      }
+    } else if (userText?.startsWith('TOOL_CLARIFICATION:')) {
+      const match = userText.match(/TOOL_CLARIFICATION:([^\s]+)\s*(.*)/);
+      if (match) {
+        const [, callId, comment] = match;
+        messages.push({
+          role: MessageRole.TOOL,
+          tool_call_id: callId,
+          content: `USER_CLARIFICATION: ${comment}`,
+        });
+      }
+    }
+
     let iterations = 0;
     const usage: ExecutorUsage = {
       totalInputTokens: 0,
@@ -577,8 +632,9 @@ export class AgentExecutor {
       tool_calls: aiResponse.tool_calls,
       options: isApproval
         ? [
-            { label: 'Approve Execution', value: `APPROVE_TOOL_CALL:${callId}`, type: 'primary' },
-            { label: 'Reject', value: `REJECT_TOOL_CALL:${callId}`, type: 'danger' },
+            { label: 'Approve Tool', value: `APPROVE_TOOL_CALL:${callId}`, type: 'primary' },
+            { label: 'Reject Tool', value: `REJECT_TOOL_CALL:${callId}`, type: 'danger' },
+            { label: 'Clarify', value: `CLARIFY_TOOL_CALL:${callId}`, type: 'secondary' },
           ]
         : undefined,
     };
@@ -595,8 +651,9 @@ export class AgentExecutor {
       if (tool?.requiresApproval && !approvedToolCalls?.includes(tc.id)) {
         const approvalMsg = ExecutorHelper.formatApprovalMessage(tool.name, tc.id);
         const opts = [
-          { label: 'Approve Execution', value: `APPROVE_TOOL_CALL:${tc.id}`, type: 'primary' },
-          { label: 'Reject', value: `REJECT_TOOL_CALL:${tc.id}`, type: 'danger' },
+          { label: 'Approve Tool', value: `APPROVE_TOOL_CALL:${tc.id}`, type: 'primary' },
+          { label: 'Reject Tool', value: `REJECT_TOOL_CALL:${tc.id}`, type: 'danger' },
+          { label: 'Clarify', value: `CLARIFY_TOOL_CALL:${tc.id}`, type: 'secondary' },
         ];
         if (emitter)
           emitter.emitChunk(

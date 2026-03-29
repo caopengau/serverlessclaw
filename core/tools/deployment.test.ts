@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { TRIGGER_DEPLOYMENT } from './deployment';
+import { TRIGGER_DEPLOYMENT, TRIGGER_INFRA_REBUILD } from './deployment';
 
 const codebuildMock = mockClient(CodeBuildClient);
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -113,6 +113,36 @@ describe('Deployment Tools', () => {
       });
 
       expect(result).toContain('Failed to trigger deployment');
+    });
+  });
+
+  describe('TRIGGER_INFRA_REBUILD', () => {
+    it('has correct tool definition', () => {
+      expect(TRIGGER_INFRA_REBUILD.name).toBe('triggerInfraRebuild');
+      expect(TRIGGER_INFRA_REBUILD.description).toBeDefined();
+      expect(TRIGGER_INFRA_REBUILD.requiresApproval).toBe(true);
+    });
+
+    it('triggers infra rebuild successfully', async () => {
+      codebuildMock.on(StartBuildCommand).resolves({ build: { id: 'rebuild-456' } });
+
+      const result = await TRIGGER_INFRA_REBUILD.execute({
+        reason: 'sst.config.ts changed',
+      });
+
+      expect(result).toContain('Infra rebuild started');
+      expect(result).toContain('rebuild-456');
+      expect(result).toContain('sst.config.ts changed');
+    });
+
+    it('handles errors during infra rebuild', async () => {
+      codebuildMock.on(StartBuildCommand).rejects(new Error('CodeBuild error'));
+
+      const result = await TRIGGER_INFRA_REBUILD.execute({
+        reason: 'test rebuild',
+      });
+
+      expect(result).toContain('Failed to trigger infra rebuild');
     });
   });
 });

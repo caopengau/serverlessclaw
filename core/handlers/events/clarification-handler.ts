@@ -157,6 +157,11 @@ export async function handleClarificationRequest(
       Please provide the necessary directions to the agent using the "provideClarification" tool.`,
     traceId,
     sessionId,
-    depth
+    depth,
+    false,
+    [
+      { label: 'Provide Clarification', value: 'I will provide clarification: ', type: 'primary' },
+      { label: 'Cancel Task', value: `CANCEL_TASK:${safeTraceId}`, type: 'danger' },
+    ]
   );
 }

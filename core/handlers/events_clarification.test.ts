@@ -89,7 +89,7 @@ describe('EventHandler - Clarification', () => {
         agentId: 'coder',
         question: 'Should I use Tabs or Spaces?',
         originalTask: 'Implement new feature',
-        initiatorId: 'planner',
+        initiatorId: 'strategic-planner',
         traceId: 'trace-123',
         sessionId: 'session-123',
         depth: 1,
@@ -98,9 +98,8 @@ describe('EventHandler - Clarification', () => {
 
     await handler(event as any, {} as any);
 
-    const { EventBridgeClient } = await import('@aws-sdk/client-eventbridge');
-    const eb = new EventBridgeClient({});
-    expect(eb.send).toHaveBeenCalledWith(
+    // Verify initiator wakeup via mockSend (the EventBridgeClient mock)
+    expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
         input: expect.objectContaining({
           Entries: [
@@ -114,7 +113,7 @@ describe('EventHandler - Clarification', () => {
     );
 
     const detail = JSON.parse(mockSend.mock.calls[0][0].input.Entries[0].Detail);
-    expect(detail.agentId).toBe('planner');
+    expect(detail.agentId).toBe('strategic-planner');
     expect(detail.task).toContain('Should I use Tabs or Spaces?');
     expect(detail.task).toContain('Implement new feature');
     expect(detail.depth).toBe(2);
@@ -128,7 +127,7 @@ describe('EventHandler - Clarification', () => {
         agentId: 'coder',
         question: 'Infinite loop?',
         originalTask: 'Task',
-        initiatorId: 'planner',
+        initiatorId: 'strategic-planner',
         depth: 100,
       },
     };

@@ -94,13 +94,13 @@ vi.mock('../lib/utils/agent-helpers', async (importOriginal) => {
   return {
     ...actual,
     loadAgentConfig: vi.fn().mockResolvedValue({
-      id: 'strategic_planner',
+      id: 'strategic-planner',
       name: 'Strategic Planner',
       enabled: true,
     }),
     initAgent: vi.fn().mockImplementation(async () => {
       return {
-        config: { id: 'strategic_planner', name: 'Strategic Planner', enabled: true },
+        config: { id: 'strategic-planner', name: 'Strategic Planner', enabled: true },
         agent: new mocks.MockAgent() as any,
         memory: new mocks.MockMemory() as any,
       };
@@ -169,7 +169,7 @@ describe('Strategic Planner Council Collaboration', () => {
     // 5. Verify parallel tasks were dispatched with collaborationId
     const { emitTypedEvent } = await import('../lib/utils/typed-emit');
     expect(emitTypedEvent).toHaveBeenCalledWith(
-      'planner.agent',
+      'strategic-planner',
       EventType.PARALLEL_TASK_DISPATCH,
       expect.objectContaining({
         tasks: expect.arrayContaining([

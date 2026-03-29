@@ -75,6 +75,15 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       TOOL_INSPECT_TOPOLOGY,
       'aws-s3_read_file',
       'aws-s3_list_objects',
+
+      TOOLS.createAgent,
+      TOOLS.deleteAgent,
+      TOOLS.syncAgentRegistry,
+      TOOLS.forceReleaseLock,
+      TOOLS.triggerInfraRebuild,
+      TOOLS.triggerBatchEvolution,
+      TOOLS.prioritizeMemory,
+      TOOLS.deleteTraces,
     ],
     connectionProfile: [
       ConnectionProfile.BUS,

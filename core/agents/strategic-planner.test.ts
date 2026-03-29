@@ -146,7 +146,7 @@ describe('Strategic Planner — selective PLANNED marking', () => {
       return Promise.resolve(undefined);
     });
     registryMocks.getAgentConfig.mockResolvedValue({
-      id: 'planner',
+      id: 'strategic-planner',
       name: 'Planner',
       systemPrompt: 'Planner prompt',
       enabled: true,

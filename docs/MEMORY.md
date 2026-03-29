@@ -97,7 +97,8 @@ Value: {
   success: true,
   taskType: "agent_process",
   model: "claude-3-5-sonnet",
-  durationMs: 4200
+  durationMs: 4200,
+  createdAt: 1711000000000
 }
 ```
 
@@ -107,7 +108,7 @@ The `TokenTracker` maintains daily rollups for every agent, enabling the **Agent
 
 - **Partition Key**: `TOKEN_ROLLUP#<agentId>`
 - **Sort Key**: `timestamp` (Day start)
-- **Metrics**: `avgTokensPerInvocation`, `successRate`, `totalInvocations`.
+- **Metrics**: `avgTokensPerInvocation`, `successRate`, `totalInvocations`, `createdAt`.
 
 ### Cost-Aware Routing
 
@@ -122,6 +123,7 @@ The `MemoryTable` utilizes a Global Secondary Index (GSI) named `TypeTimestampIn
 
 - **Partition Key**: `type` (e.g., 'GAP', 'LESSON', 'DISTILLED', 'MESSAGE', 'SESSION')
 - **Sort Key**: `timestamp`
+- **Fields**: `content`, `metadata`, `createdAt`
 - **Result**: Reduced dashboard load times from ~10s to **<100ms**.
 
 ## Neural Pruning & Hit Tracking (The Self-Cleaning Loop)
@@ -132,6 +134,7 @@ Serverless Claw doesn't just remember; it strategically forgets. To prevent "cog
 Every time an agent recalls a memory using the `recallKnowledge` tool, the system performs an atomic "Hit" update in the background:
 - **`hitCount`**: Increments a counter on the memory item.
 - **`lastAccessed`**: Updates the timestamp to the current time.
+- **`createdAt`**: Remains immutable to track the original memory creation time.
 
 This telemetry allows the system to distinguish between **High-Utility Facts** (recalled daily) and **Neural Noise** (never used).
 
@@ -148,7 +151,7 @@ This telemetry allows the system to distinguish between **High-Utility Facts** (
             v                               v
 +-----------+-------------------------------+-----------+
 |                  NEURAL MEMORY TABLE                  |
-|  (Tracks hitCount, lastAccessed, and timestamp)       |
+|  (Tracks hitCount, lastAccessed, and createdAt)       |
 +-----------+-------------------------------+-----------+
             |                               |
             |                         [PRUNE STALE]

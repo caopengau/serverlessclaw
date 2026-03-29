@@ -155,7 +155,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   if (hasCriticalFindings) {
     logger.warn(`[CRITIC] CRITICAL findings detected for plan ${planId}`);
     await sendOutboundMessage(
-      'critic.agent',
+      AgentType.CRITIC,
       userId,
       `🚨 **Critical Review Finding** (${reviewMode}):\n\n${verdict.summary}`,
       [baseUserId],
@@ -167,7 +167,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   // 6. Notify initiator via universal coordination
   if (!isTaskPaused(rawResponse)) {
     await emitTaskEvent({
-      source: 'critic.agent',
+      source: AgentType.CRITIC,
       agentId: AgentType.CRITIC,
       userId: baseUserId,
       task: `Review plan ${planId} (${reviewMode})`,

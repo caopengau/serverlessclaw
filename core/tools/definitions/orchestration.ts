@@ -5,6 +5,24 @@ import { AgentStatus, AgentType } from '../../lib/types/agent';
  * Orchestration tool definitions for high-level agent coordination.
  */
 export const orchestrationTools: Record<string, IToolDefinition> = {
+  triggerBatchEvolution: {
+    name: 'triggerBatchEvolution',
+    description:
+      'Triggers evolution for multiple capability gaps at once by dispatching them to the Coder agent.',
+    parameters: {
+      type: 'object',
+      properties: {
+        gapIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of gap IDs to evolve (e.g., ["1712345678", "1712345679"]).',
+        },
+      },
+      required: ['gapIds'],
+      additionalProperties: false,
+    },
+    connectionProfile: ['bus'],
+  },
   signalOrchestration: {
     name: 'signalOrchestration',
     description:

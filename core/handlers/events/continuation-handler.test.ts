@@ -251,7 +251,7 @@ describe('continuation-handler', () => {
       const eventDetail = {
         userId: 'user-123',
         task: 'Continue task',
-        initiatorId: 'planner',
+        initiatorId: 'strategic-planner',
         sessionId: 'session-789',
       };
 
@@ -264,7 +264,7 @@ describe('continuation-handler', () => {
         'superclaw',
         'Continue task',
         expect.objectContaining({
-          initiatorId: 'planner',
+          initiatorId: 'strategic-planner',
         })
       );
     });

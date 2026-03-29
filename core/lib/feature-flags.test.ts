@@ -97,7 +97,7 @@ describe('FeatureFlags', () => {
         name: 'test_flag',
         enabled: true,
         rolloutPercent: 100,
-        targetAgents: ['coder', 'planner'],
+        targetAgents: ['coder', 'strategic-planner'],
         description: 'Test',
       };
       mockConfigManager.getRawConfig.mockResolvedValue(flag);

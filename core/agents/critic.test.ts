@@ -363,7 +363,7 @@ describe('Critic Agent — Critical Findings Alert', () => {
     );
 
     expect(sendOutboundMessage).toHaveBeenCalledWith(
-      'critic.agent',
+      'critic',
       'user-1',
       expect.stringContaining('Critical Review Finding'),
       ['user-1'],
@@ -411,7 +411,7 @@ describe('Critic Agent — Task Event Emission', () => {
 
     expect(emitTaskEventMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        source: 'critic.agent',
+        source: 'critic',
         agentId: 'critic',
         userId: 'user-1',
         task: 'Review plan PLAN-001 (security)',

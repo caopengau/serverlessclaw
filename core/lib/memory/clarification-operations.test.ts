@@ -57,6 +57,7 @@ describe('clarification-operations', () => {
           agentId: 'coder-agent',
           type: 'CLARIFICATION_PENDING',
           timestamp: 0,
+          createdAt: expect.any(Number),
         })
       );
     });

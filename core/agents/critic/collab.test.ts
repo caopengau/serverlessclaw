@@ -74,7 +74,7 @@ describe('Critic Agent Collaboration', () => {
           collaborationId: 'collab-456',
         },
         traceId: 'trace-789',
-        initiatorId: 'planner',
+        initiatorId: 'strategic-planner',
       },
     };
 

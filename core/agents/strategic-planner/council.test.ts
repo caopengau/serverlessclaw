@@ -254,7 +254,7 @@ describe('Council of Agents — Threshold Logic', () => {
 
     // Verify PARALLEL_TASK_DISPATCH was emitted
     expect(emitTypedEventMock).toHaveBeenCalledWith(
-      'planner.agent',
+      'strategic-planner',
       EventType.PARALLEL_TASK_DISPATCH,
       expect.objectContaining({
         userId: 'user-1',
@@ -301,7 +301,7 @@ describe('Council of Agents — Threshold Logic', () => {
     await handler(event as any, {} as any);
 
     expect(emitTypedEventMock).toHaveBeenCalledWith(
-      'planner.agent',
+      'strategic-planner',
       EventType.PARALLEL_TASK_DISPATCH,
       expect.anything()
     );
@@ -328,7 +328,7 @@ describe('Council of Agents — Threshold Logic', () => {
     await handler(event as any, {} as any);
 
     expect(emitTypedEventMock).toHaveBeenCalledWith(
-      'planner.agent',
+      'strategic-planner',
       EventType.PARALLEL_TASK_DISPATCH,
       expect.anything()
     );
@@ -501,7 +501,7 @@ describe('Council of Agents — User Notification', () => {
     await handler(event as any, {} as any);
 
     expect(sendOutboundMessageMock).toHaveBeenCalledWith(
-      'planner.agent',
+      'strategic-planner',
       'user-1',
       expect.stringContaining('Council of Agents Review Initiated'),
       ['user-1'],

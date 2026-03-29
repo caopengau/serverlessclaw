@@ -272,7 +272,7 @@ Initiator (Planner)     Collaboration Tool      AgentBus (EB)      Facilitator (
 
 ### Granular HITL Tool Approval (Tool-level Gates)
 
-For security-sensitive operations (e.g., deleting data, triggering deployments), tools can be marked with `requiresApproval: true`. The `AgentExecutor` automatically pauses before executing such tools, allowing for granular human oversight without pausing the entire session.
+For security-sensitive operations (e.g., deleting data, triggering deployments), tools can be marked with `requiresApproval: true`. The `AgentExecutor` automatically pauses before executing such tools, allowing for granular human oversight. Users can provide optional comments with their approval to guide the agent.
 
 ```text
 User (Dashboard)       Agent (Lambda)       AgentBus (EB)       High-Risk Tool (DDB)
@@ -288,15 +288,20 @@ User (Dashboard)       Agent (Lambda)       AgentBus (EB)       High-Risk Tool (
       |                      |<-- (3) TASK_PAUSED (APPROVAL_REQUIRED) -|
       |                      |                    |                    |
       |<--- [UI: Approve?] --|--- (4) Emit CHUNK (with Options) ------>|
+      |   (Optional Comment) |                    |                    |
       |                      |                    |                    |
       +---- [APPROVE] ------>|                    |                    |
-      |                      |--- (5) Resume Loop (approvedCalls:[ID])|
-      |                      |                    |                    |
+      |    w/ Comment        |--- (5) Resume Loop (approvedCalls:[ID])|
+      |                      |        (text: comment)                 |
+      |                      |                                        |
       |                      |--- (6) EXECUTE ------------------------>|
       |                      |                    |                    |
       |<--- [UI: Success] ---|--- (7) Emit TASK_COMPLETED ------------>|
       v                      |                    v                    v
 ```
+
+- **Comment Field**: The Dashboard provides a text input for the user to add context to their decision (e.g., "Only delete the staging DB, not production").
+- **Labels**: Button labels are clean and professional (e.g., `Approve`, `Clarify`, `Dismiss`) without emojis.
 
 ### Dual-Mode Communication (Intent-Based Orchestration)
 

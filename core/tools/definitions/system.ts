@@ -68,4 +68,22 @@ export const systemTools: Record<string, IToolDefinition> = {
     },
     connectionProfile: ['config'],
   },
+  forceReleaseLock: {
+    name: 'forceReleaseLock',
+    description:
+      'Forces release of a distributed session lock. Use with caution: releasing an active lock may cause state corruption.',
+    parameters: {
+      type: 'object',
+      properties: {
+        lockId: {
+          type: 'string',
+          description: 'The lock partition key to release (e.g., "LOCK#session-abc").',
+        },
+      },
+      required: ['lockId'],
+      additionalProperties: false,
+    },
+    requiresApproval: true,
+    connectionProfile: ['memory'],
+  },
 };

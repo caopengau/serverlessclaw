@@ -124,4 +124,57 @@ export const knowledgeTools: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
+  prioritizeMemory: {
+    name: 'prioritizeMemory',
+    description:
+      'Adjusts the priority, urgency, and impact scores of a memory insight or capability gap.',
+    parameters: {
+      type: 'object',
+      properties: {
+        timestamp: {
+          type: 'number',
+          description: 'The timestamp (sort key) of the memory item.',
+        },
+        priority: {
+          type: 'number',
+          description: 'New priority score (0-10).',
+        },
+        urgency: {
+          type: 'number',
+          description: 'New urgency score (0-10).',
+        },
+        impact: {
+          type: 'number',
+          description: 'New impact score (0-10).',
+        },
+      },
+      required: ['timestamp'],
+      additionalProperties: false,
+    },
+    argSchema: z.object({
+      userId: z.string(),
+      timestamp: z.number(),
+      priority: z.number().min(0).max(10).optional(),
+      urgency: z.number().min(0).max(10).optional(),
+      impact: z.number().min(0).max(10).optional(),
+    }),
+    connectionProfile: ['memory'],
+  },
+  deleteTraces: {
+    name: 'deleteTraces',
+    description:
+      'Deletes execution traces. Pass "all" to purge all traces, or a specific trace ID to delete one.',
+    parameters: {
+      type: 'object',
+      properties: {
+        traceId: {
+          type: 'string',
+          description: 'The trace ID to delete, or "all" to purge all traces.',
+        },
+      },
+      required: ['traceId'],
+      additionalProperties: false,
+    },
+    connectionProfile: ['trace'],
+  },
 };

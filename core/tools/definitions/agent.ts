@@ -58,4 +58,64 @@ export const agentTools: Record<string, IToolDefinition> = {
     },
     connectionProfile: ['bus'],
   },
+  createAgent: {
+    name: 'createAgent',
+    description: 'Registers a new agent in the system. Cannot override backbone agents.',
+    parameters: {
+      type: 'object',
+      properties: {
+        agentId: {
+          type: 'string',
+          description: 'Unique identifier for the new agent (lowercase, hyphenated).',
+        },
+        name: { type: 'string', description: 'Display name for the agent.' },
+        systemPrompt: {
+          type: 'string',
+          description: 'The system prompt defining the agent persona and behavior.',
+        },
+        provider: {
+          type: 'string',
+          enum: ['openai', 'bedrock', 'openrouter', 'minimax'],
+          description: 'LLM provider for this agent.',
+        },
+        model: { type: 'string', description: 'Model ID to use (e.g., gpt-5.4-mini).' },
+        enabled: {
+          type: 'boolean',
+          description: 'Whether the agent is active immediately.',
+        },
+      },
+      required: ['agentId', 'name', 'systemPrompt'],
+      additionalProperties: false,
+    },
+    connectionProfile: ['config'],
+  },
+  deleteAgent: {
+    name: 'deleteAgent',
+    description:
+      'Removes a non-backbone agent from the registry. Backbone agents cannot be deleted.',
+    parameters: {
+      type: 'object',
+      properties: {
+        agentId: {
+          type: 'string',
+          description: 'The ID of the agent to remove.',
+        },
+      },
+      required: ['agentId'],
+      additionalProperties: false,
+    },
+    connectionProfile: ['config'],
+  },
+  syncAgentRegistry: {
+    name: 'syncAgentRegistry',
+    description:
+      'Synchronizes the agent registry by refreshing backbone configs and discovering topology.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+      additionalProperties: false,
+    },
+    connectionProfile: ['config'],
+  },
 };

@@ -160,7 +160,7 @@ describe('EventHandler', () => {
           buildId: 'build-123',
           errorLogs: 'Syntax error at line 10',
           traceId: 'trace-1',
-          initiatorId: 'planner.agent',
+          initiatorId: 'strategic-planner',
           task: 'Improve system',
         },
       };
@@ -201,7 +201,7 @@ describe('EventHandler', () => {
         detail: {
           userId: 'user-1',
           buildId: 'build-123',
-          initiatorId: 'planner',
+          initiatorId: 'strategic-planner',
           task: 'Improve system',
           traceId: 'trace-1',
         },

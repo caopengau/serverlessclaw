@@ -159,10 +159,10 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
             undefined,
             undefined,
             [
-              { label: '🚀 Approve', value: `APPROVE ${originalPlanId || traceId}` },
-              { label: '🤔 Clarify', value: `CLARIFY ${originalPlanId || traceId}` },
+              { label: 'Approve', value: `APPROVE ${originalPlanId || traceId}` },
+              { label: 'Clarify', value: `CLARIFY ${originalPlanId || traceId}` },
               {
-                label: '✕ Dismiss',
+                label: 'Dismiss',
                 value: `DISMISS ${originalPlanId || traceId}`,
                 type: 'secondary' as const,
               },
@@ -382,9 +382,9 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       resultAttachments,
       traceId ? `${traceId}-${AgentType.STRATEGIC_PLANNER}` : undefined,
       [
-        { label: '🚀 Approve', value: `APPROVE ${planId}` },
-        { label: '🤔 Clarify', value: `CLARIFY ${planId}` },
-        { label: '✕ Dismiss', value: `DISMISS ${planId}`, type: 'secondary' as const },
+        { label: 'Approve', value: `APPROVE ${planId}` },
+        { label: 'Clarify', value: `CLARIFY ${planId}` },
+        { label: 'Dismiss', value: `DISMISS ${planId}`, type: 'secondary' as const },
       ]
     );
   } else {
@@ -394,7 +394,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   // 2. Emit Task Result for Universal Coordination
   if (!isTaskPaused(rawResponse)) {
     await emitTaskEvent({
-      source: 'planner.agent',
+      source: AgentType.STRATEGIC_PLANNER,
       userId: baseUserId,
       agentId: AgentType.STRATEGIC_PLANNER,
       task: isScheduledReview ? 'Scheduled Review' : task,
@@ -459,7 +459,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
     );
 
     await sendOutboundMessage(
-      'planner.agent',
+      AgentType.STRATEGIC_PLANNER,
       userId,
       `🔍 **Council of Agents Review Initiated**\n\nThe plan has high impact/risk (${Math.max(gapImpact, gapRisk, gapComplexity)}/10). Dispatching to Security, Performance, and Architect reviewers before execution.\n\nPlan:\n\n${plan}`,
       [baseUserId],
@@ -513,7 +513,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       },
     ];
 
-    await emitTypedEvent('planner.agent', EventType.PARALLEL_TASK_DISPATCH, {
+    await emitTypedEvent(AgentType.STRATEGIC_PLANNER, EventType.PARALLEL_TASK_DISPATCH, {
       userId: baseUserId,
       tasks: councilTasks,
       barrierTimeoutMs: 120000, // 2 minutes
@@ -541,7 +541,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   } else if (evolutionMode === EvolutionMode.AUTO && !isFailure && processedGapIds.length > 0) {
     logger.info('Evolution mode is auto, dispatching CODER_TASK directly.');
     await sendOutboundMessage(
-      'planner.agent',
+      AgentType.STRATEGIC_PLANNER,
       userId,
       `🚀 **Autonomous Evolution Triggered**\n\nI have identified a capability gap and designed a plan to fix it. The Coder Agent is now executing the following STRATEGIC_PLAN:\n\n${plan}`,
       [baseUserId],
@@ -564,7 +564,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   } else if (!isFailure && processedGapIds.length > 0) {
     logger.info('Evolution mode is hitl, asking for approval.');
     await sendOutboundMessage(
-      'planner.agent',
+      AgentType.STRATEGIC_PLANNER,
       userId,
       `🚀 **NEW STRATEGIC PLAN PROPOSED**\n\n${plan}\n\nReply with 'APPROVE' to execute.`,
       [baseUserId],

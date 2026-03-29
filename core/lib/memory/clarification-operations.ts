@@ -32,6 +32,7 @@ export async function saveClarificationRequest(
   const item: ClarificationState = {
     ...state,
     timestamp: 0, // Force timestamp 0 for easier updates by PK (userId)
+    createdAt: Date.now(),
     type: 'CLARIFICATION_PENDING',
     expiresAt: Math.floor(Date.now() / TIME.MS_PER_SECOND) + ttlBufferSeconds,
   };
@@ -86,6 +87,7 @@ export async function saveEscalationState(
     ...state,
     userId: pk,
     timestamp: 0,
+    createdAt: Date.now(),
     type: 'ESCALATION_STATE',
     expiresAt: Math.floor(Date.now() / TIME.MS_PER_SECOND) + ESCALATION_TTL_BUFFER_SECONDS,
   };

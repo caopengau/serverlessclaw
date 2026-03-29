@@ -74,18 +74,19 @@ describe('handleParallelTaskCompleted', () => {
 
     // Verify the task message contains success indicators
     const callArgs = (emitEvent as ReturnType<typeof vi.fn>).mock.calls[0][2];
-    expect(callArgs.task).toContain('✅');
-    expect(callArgs.task).toContain('SUCCESS');
-    expect(callArgs.task).toContain('coder');
-    expect(callArgs.task).toContain('qa');
-    expect(callArgs.task).toContain('Fixed bug in auth');
+    const taskContent = typeof callArgs.task === 'string' ? callArgs.task : '';
+    expect(taskContent).toContain('✅');
+    expect(taskContent).toContain('SUCCESS');
+    expect(taskContent).toContain('coder');
+    expect(taskContent).toContain('qa');
+    expect(taskContent).toContain('Fixed bug in auth');
   });
 
   it('should wake up initiator with partial summary when some tasks fail', async () => {
     const eventDetail = {
       userId: 'user-1',
       traceId: 'trace-2',
-      initiatorId: 'planner',
+      initiatorId: 'strategic-planner',
       overallStatus: 'partial',
       results: [
         { taskId: 't1', agentId: 'coder', status: 'success', result: 'Done' },
@@ -109,7 +110,7 @@ describe('handleParallelTaskCompleted', () => {
     const eventDetail = {
       userId: 'user-1',
       traceId: 'trace-3',
-      initiatorId: 'planner',
+      initiatorId: 'strategic-planner',
       overallStatus: 'failed',
       results: [
         { taskId: 't1', agentId: 'coder', status: 'failed', error: 'OOM' },
@@ -153,7 +154,7 @@ describe('handleParallelTaskCompleted', () => {
     const eventDetail = {
       userId: 'user-1',
       traceId: 'trace-5',
-      initiatorId: 'planner',
+      initiatorId: 'strategic-planner',
       overallStatus: 'success',
       results: [{ taskId: 't1', agentId: 'coder', status: 'success', result: longResult }],
       taskCount: 1,
@@ -164,16 +165,17 @@ describe('handleParallelTaskCompleted', () => {
 
     const { emitEvent } = await import('../lib/utils/bus');
     const callArgs = (emitEvent as ReturnType<typeof vi.fn>).mock.calls[0][2];
+    const taskContent = typeof callArgs.task === 'string' ? callArgs.task : '';
     // The truncated result should be at most 200 chars in the task summary
-    expect(callArgs.task).toContain('A'.repeat(200));
-    expect(callArgs.task).not.toContain('A'.repeat(201));
+    expect(taskContent).toContain('A'.repeat(200));
+    expect(taskContent).not.toContain('A'.repeat(201));
   });
 
   it('should handle empty results array', async () => {
     const eventDetail = {
       userId: 'user-1',
       traceId: 'trace-6',
-      initiatorId: 'planner',
+      initiatorId: 'strategic-planner',
       overallStatus: 'failed',
       results: [],
       taskCount: 0,
@@ -185,6 +187,7 @@ describe('handleParallelTaskCompleted', () => {
     const { emitEvent } = await import('../lib/utils/bus');
     expect(emitEvent).toHaveBeenCalledTimes(1);
     const callArgs = (emitEvent as ReturnType<typeof vi.fn>).mock.calls[0][2];
-    expect(callArgs.task).toContain('0/0 completed');
+    const taskContent = typeof callArgs.task === 'string' ? callArgs.task : '';
+    expect(taskContent).toContain('0/0 completed');
   });
 });

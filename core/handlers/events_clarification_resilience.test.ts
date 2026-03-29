@@ -93,7 +93,7 @@ describe('Clarification Resilience', () => {
         agentId: 'coder',
         question: 'Tabs or Spaces?',
         traceId: 'trace-1',
-        initiatorId: 'planner',
+        initiatorId: 'strategic-planner',
         originalTask: 'Work',
       };
 

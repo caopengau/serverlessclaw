@@ -67,6 +67,8 @@ describe('session-operations', () => {
       expect(mockBase.putItem).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: 'user123',
+          timestamp: expect.any(Number),
+          createdAt: expect.any(Number),
           type: 'msg',
           role: MessageRole.USER,
           content: 'Hello',

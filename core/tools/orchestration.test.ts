@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SIGNAL_ORCHESTRATION } from './orchestration';
+import { SIGNAL_ORCHESTRATION, TRIGGER_BATCH_EVOLUTION } from './orchestration';
 import { AgentStatus, AgentType } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 
@@ -9,6 +9,28 @@ vi.mock('../lib/logger', () => ({
     error: vi.fn(),
     warn: vi.fn(),
   },
+}));
+
+vi.mock('../lib/utils/error', () => ({
+  formatErrorMessage: (e: unknown) => (e instanceof Error ? e.message : String(e)),
+}));
+
+const mocks = vi.hoisted(() => ({
+  getDistilledMemory: vi.fn().mockResolvedValue('implement feature X'),
+  updateGapStatus: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../lib/memory', () => ({
+  DynamoMemory: vi.fn().mockImplementation(function () {
+    return {
+      getDistilledMemory: mocks.getDistilledMemory,
+      updateGapStatus: mocks.updateGapStatus,
+    };
+  }),
+}));
+
+vi.mock('../lib/utils/bus', () => ({
+  emitEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe('SIGNAL_ORCHESTRATION Tool', () => {
@@ -58,5 +80,52 @@ describe('SIGNAL_ORCHESTRATION Tool', () => {
 
     expect(result).toContain('ORCHESTRATION_SIGNAL_EMITTED: ESCALATE');
     expect(result).toContain('Next Step: Ask the user for manual approval');
+  });
+});
+
+describe('TRIGGER_BATCH_EVOLUTION Tool', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should dispatch gaps with plans to Coder agent', async () => {
+    const { emitEvent } = await import('../lib/utils/bus');
+    mocks.getDistilledMemory.mockResolvedValue('implement feature X');
+
+    const result = await TRIGGER_BATCH_EVOLUTION.execute({
+      gapIds: ['GAP#100', 'GAP#200'],
+    });
+
+    expect(result).toContain('Batch evolution complete for 2 gaps');
+    expect(result).toContain('GAP#100: dispatched to Coder');
+    expect(result).toContain('GAP#200: dispatched to Coder');
+    expect(emitEvent).toHaveBeenCalledTimes(2);
+    expect(mocks.updateGapStatus).toHaveBeenCalledWith('GAP#100', 'PROGRESS');
+    expect(mocks.updateGapStatus).toHaveBeenCalledWith('GAP#200', 'PROGRESS');
+  });
+
+  it('should skip gaps without plans', async () => {
+    mocks.getDistilledMemory.mockResolvedValue(null);
+
+    const result = await TRIGGER_BATCH_EVOLUTION.execute({
+      gapIds: ['GAP#300'],
+    });
+
+    expect(result).toContain('GAP#300: SKIPPED (no plan found)');
+  });
+
+  it('should fail when no gapIds provided', async () => {
+    const result = await TRIGGER_BATCH_EVOLUTION.execute({ gapIds: [] });
+    expect(result).toContain('FAILED: At least one gapId is required');
+  });
+
+  it('should handle numeric gap IDs by normalizing them', async () => {
+    mocks.getDistilledMemory.mockResolvedValue('fix bug');
+
+    const result = await TRIGGER_BATCH_EVOLUTION.execute({
+      gapIds: ['123456789'],
+    });
+
+    expect(result).toContain('GAP#123456789: dispatched to Coder');
   });
 });

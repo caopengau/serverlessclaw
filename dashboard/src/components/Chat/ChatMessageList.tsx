@@ -1,12 +1,89 @@
-import React, { memo, useMemo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { User, Bot, Terminal, File, Loader2 } from 'lucide-react';
+import { User, Bot, Terminal, File, Loader2, MessageCircle, Copy, Check, Wrench, ChevronDown, ChevronRight } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { ChatMessage } from './types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+
+const CodeBlock = ({ children }: { children: string }) => {
+  const [copied, setCopied] = React.useState(false);
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(children);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="relative group/code my-2">
+      <div className="absolute right-2 top-2 z-10 opacity-0 group-hover/code:opacity-100 transition-opacity">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={copyToClipboard}
+          className="!p-1.5 h-auto bg-black/40 border border-white/10 text-white/40 hover:text-cyber-green"
+          icon={copied ? <Check size={12} /> : <Copy size={12} />}
+          title="Copy to clipboard"
+        />
+      </div>
+      <pre className="bg-black/40 p-3 rounded-md border border-white/10 overflow-x-auto custom-scrollbar">
+        <code className="font-mono text-sm text-cyber-green/90">{children}</code>
+      </pre>
+    </div>
+  );
+};
+
+interface ToolCall {
+  id: string;
+  type: string;
+  function: { name: string; arguments: string };
+}
+
+const ToolCallsDisplay = ({ toolCalls }: { toolCalls: ToolCall[] }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  if (!toolCalls || toolCalls.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.03] overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-amber-500/5 transition-colors"
+      >
+        {expanded ? <ChevronDown size={12} className="text-amber-500/70" /> : <ChevronRight size={12} className="text-amber-500/70" />}
+        <Wrench size={12} className="text-amber-500/70" />
+        <Typography variant="mono" className="text-[10px] text-amber-500/80 uppercase tracking-wider">
+          {toolCalls.length} tool call{toolCalls.length !== 1 ? 's' : ''}
+        </Typography>
+        <Typography variant="mono" className="text-[9px] text-white/30 ml-auto">
+          {toolCalls.map(tc => tc.function?.name).filter(Boolean).join(', ')}
+        </Typography>
+      </button>
+      {expanded && (
+        <div className="border-t border-amber-500/10 px-3 py-2 space-y-2">
+          {toolCalls.map((tc, i) => (
+            <div key={tc.id || i} className="bg-black/20 rounded p-2">
+              <Typography variant="mono" className="text-[10px] text-amber-400 font-bold">
+                {tc.function?.name ?? 'unknown'}
+              </Typography>
+              {tc.function?.arguments && (
+                <pre className="mt-1 text-[10px] text-white/50 whitespace-pre-wrap overflow-x-auto custom-scrollbar">
+                  {(() => {
+                    try { return JSON.stringify(JSON.parse(tc.function.arguments), null, 2); }
+                    catch { return tc.function.arguments; }
+                  })()}
+                </pre>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Static markdown component map — defined outside render to avoid recreation
 const markdownComponents = (role: string) => ({
@@ -19,13 +96,12 @@ const markdownComponents = (role: string) => ({
   li: ({ children }: { children: React.ReactNode }) => <li><Typography variant="body" color={role === 'assistant' ? 'inherit' : 'white'} className="inline">{children}</Typography></li>,
   code: ({ children, className }: { children: React.ReactNode; className?: string }) => {
     const inline = !className?.includes('language-');
-    return inline ? (
-      <code className="bg-white/10 px-1 rounded font-mono text-sm text-cyber-green/100">{children}</code>
-    ) : (
-      <pre className="bg-black/40 p-3 rounded-md border border-white/10 my-2 overflow-x-auto custom-scrollbar">
-        <code className="font-mono text-sm text-cyber-green/90">{children}</code>
-      </pre>
-    );
+    if (inline) {
+      return (
+        <code className="bg-white/10 px-1 rounded font-mono text-sm text-cyber-green/100">{children}</code>
+      );
+    }
+    return <CodeBlock>{String(children).replace(/\n$/, '')}</CodeBlock>;
   },
   strong: ({ children }: { children: React.ReactNode }) => <Typography variant="body" weight="bold" color={role === 'assistant' ? 'inherit' : 'white'} className="inline text-white">{children}</Typography>,
   a: ({ children, href }: { children: React.ReactNode; href?: string }) => (
@@ -38,13 +114,26 @@ const markdownComponents = (role: string) => ({
 interface ChatMessageRowProps {
   message: ChatMessage;
   index: number;
-  onOptionClick?: (value: string) => void;
+  onOptionClick?: (value: string, comment?: string) => void;
+  showThinking?: boolean;
+  isLast?: boolean;
+  isLoading?: boolean;
 }
 
-const ChatMessageRow = memo(function ChatMessageRow({ message, index, onOptionClick }: ChatMessageRowProps) {
+const ChatMessageRow = memo(function ChatMessageRow({ 
+  message, 
+  index, 
+  onOptionClick,
+  showThinking,
+  isLast,
+  isLoading 
+}: ChatMessageRowProps) {
   const m = message;
   const key = m.messageId ? `${m.role}-${m.messageId}` : `local-${index}`;
   const components = useMemo(() => markdownComponents(m.role), [m.role]);
+  const [comment, setComment] = React.useState('');
+
+  const shouldShowThought = showThinking || (isLast && isLoading && m.thought);
 
   return (
     <div key={key} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -62,7 +151,7 @@ const ChatMessageRow = memo(function ChatMessageRow({ message, index, onOptionCl
             </Typography>
           )}
           <div className="flex flex-col gap-2">
-            {m.role === 'assistant' && m.thought && (
+            {m.role === 'assistant' && m.thought && shouldShowThought && (
               <Card 
                 variant="glass" 
                 padding="sm" 
@@ -87,10 +176,14 @@ const ChatMessageRow = memo(function ChatMessageRow({ message, index, onOptionCl
                     {m.content}
                   </ReactMarkdown>
                 )}
-              </Card>
-            )}
-            
-            {m.attachments && m.attachments.length > 0 && (
+                </Card>
+              )}
+              
+              {m.role === 'assistant' && m.tool_calls && m.tool_calls.length > 0 && (
+                <ToolCallsDisplay toolCalls={m.tool_calls} />
+              )}
+
+              {m.attachments && m.attachments.length > 0 && (
               <div className={`flex flex-wrap gap-2 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {m.attachments.map((a, ai) => (
                   <div key={ai} className="relative group/att">
@@ -125,18 +218,36 @@ const ChatMessageRow = memo(function ChatMessageRow({ message, index, onOptionCl
             )}
 
             {m.options && m.options.length > 0 && (
-              <div className="flex flex-wrap gap-2 mt-2">
-                {m.options.map((opt, oi) => (
-                  <Button
-                    key={oi}
-                    variant={opt.type === 'primary' ? 'primary' : opt.type === 'danger' ? 'danger' : 'outline'}
-                    size="sm"
-                    className="!py-1 !px-3 text-[10px] font-mono tracking-wider uppercase border border-white/10"
-                    onClick={() => onOptionClick?.(opt.value)}
-                  >
-                    {opt.label}
-                  </Button>
-                ))}
+              <div className="flex flex-col gap-3 mt-2">
+                <div className="flex flex-wrap gap-2">
+                  {m.options.map((opt, oi) => (
+                    <Button
+                      key={oi}
+                      variant={opt.type === 'primary' ? 'primary' : opt.type === 'danger' ? 'danger' : 'outline'}
+                      size="sm"
+                      className="!py-1 !px-3 text-[10px] font-mono tracking-wider uppercase border border-white/10"
+                      onClick={() => {
+                        onOptionClick?.(opt.value, comment);
+                        setComment('');
+                      }}
+                    >
+                      {opt.label}
+                    </Button>
+                  ))}
+                </div>
+                
+                <div className="relative max-w-sm">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-white/20">
+                    <MessageCircle size={14} />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Add an optional comment..."
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-[11px] text-white/80 placeholder:text-white/20 focus:outline-none focus:border-cyber-green/30 transition-colors font-mono"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -150,10 +261,11 @@ interface ChatMessageListProps {
   messages: ChatMessage[];
   isLoading: boolean;
   scrollRef: React.RefObject<HTMLDivElement | null>;
-  onOptionClick?: (value: string) => void;
+  onOptionClick?: (value: string, comment?: string) => void;
+  showThinking?: boolean;
 }
 
-export function ChatMessageList({ messages, isLoading, scrollRef, onOptionClick }: ChatMessageListProps) {
+export function ChatMessageList({ messages, isLoading, scrollRef, onOptionClick, showThinking }: ChatMessageListProps) {
   return (
     <div 
       ref={scrollRef}
@@ -172,7 +284,15 @@ export function ChatMessageList({ messages, isLoading, scrollRef, onOptionClick 
       )}
 
       {messages.map((m, i) => (
-        <ChatMessageRow key={m.messageId ? `${m.role}-${m.messageId}` : `local-${i}`} message={m} index={i} onOptionClick={onOptionClick} />
+        <ChatMessageRow 
+          key={m.messageId ? `${m.role}-${m.messageId}` : `local-${i}`} 
+          message={m} 
+          index={i} 
+          onOptionClick={onOptionClick}
+          showThinking={showThinking}
+          isLast={i === messages.length - 1}
+          isLoading={isLoading}
+        />
       ))}
       
       {isLoading && (

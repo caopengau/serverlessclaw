@@ -183,7 +183,7 @@ export const handler = async (
 
             // Notify Planner Agent via EventBridge
             try {
-              await emitEvent('reflector.agent', EventType.EVOLUTION_PLAN, {
+              await emitEvent(AgentType.COGNITION_REFLECTOR, EventType.EVOLUTION_PLAN, {
                 gapId,
                 details: gap.content,
                 metadata,
@@ -237,7 +237,7 @@ export const handler = async (
   // Universal Coordination: Notify Initiator (if any)
   if (!isTaskPaused(response)) {
     await emitTaskEvent({
-      source: 'reflector.agent',
+      source: AgentType.COGNITION_REFLECTOR,
       agentId: AgentType.COGNITION_REFLECTOR,
       userId,
       task: task || 'Session Reflection',

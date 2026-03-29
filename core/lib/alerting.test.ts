@@ -79,7 +79,7 @@ describe('Alerting', () => {
 
   describe('alertHighErrorRate', () => {
     it('should emit high error rate alert', async () => {
-      await Alerting.alertHighErrorRate('planner', 0.45);
+      await Alerting.alertHighErrorRate('strategic-planner', 0.45);
       expect(emitEvent).toHaveBeenCalledWith(
         'system.alerting',
         EventType.OUTBOUND_MESSAGE,

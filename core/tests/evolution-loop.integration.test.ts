@@ -340,7 +340,7 @@ describe('Full Evolution Loop — Happy Path', () => {
     // Reflector emits evolution plan event after identifying gap
     emitEventMock.mockResolvedValueOnce(undefined);
 
-    await emitEventMock('reflector.agent', EventType.EVOLUTION_PLAN, {
+    await emitEventMock('cognition-reflector', EventType.EVOLUTION_PLAN, {
       gapId,
       details: gapContent,
       metadata: {
@@ -353,7 +353,7 @@ describe('Full Evolution Loop — Happy Path', () => {
     });
 
     expect(emitEventMock).toHaveBeenCalledWith(
-      'reflector.agent',
+      'cognition-reflector',
       EventType.EVOLUTION_PLAN,
       expect.objectContaining({
         gapId,
@@ -495,7 +495,7 @@ describe('Full Evolution Loop — QA Rejection', () => {
     sendOutboundMessageMock.mockResolvedValueOnce(undefined);
 
     await sendOutboundMessageMock(
-      'qa.agent',
+      'qa',
       'user-123',
       '⚠️ **Evolution Escalation Required**\n\nGaps gap-001 have failed QA verification 3 times.',
       ['user-123'],
@@ -504,7 +504,7 @@ describe('Full Evolution Loop — QA Rejection', () => {
     );
 
     expect(sendOutboundMessageMock).toHaveBeenCalledWith(
-      'qa.agent',
+      'qa',
       'user-123',
       expect.stringContaining('Evolution Escalation Required'),
       ['user-123'],

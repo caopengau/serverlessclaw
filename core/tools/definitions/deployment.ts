@@ -96,4 +96,22 @@ export const deploymentTools: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
+  triggerInfraRebuild: {
+    name: 'triggerInfraRebuild',
+    description:
+      'Triggers a full infrastructure rebuild via CodeBuild. Use when sst.config.ts or infra/ files have changed.',
+    parameters: {
+      type: 'object',
+      properties: {
+        reason: {
+          type: 'string',
+          description: 'The reason for triggering the rebuild.',
+        },
+      },
+      required: ['reason'],
+      additionalProperties: false,
+    },
+    requiresApproval: true,
+    connectionProfile: ['codebuild'],
+  },
 };

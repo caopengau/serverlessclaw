@@ -50,9 +50,12 @@ vi.mock('../lib/utils/agent-helpers', async () => {
   const actual = (await vi.importActual('../lib/utils/agent-helpers')) as any;
   return {
     ...actual,
-    loadAgentConfig: vi
-      .fn()
-      .mockResolvedValue({ id: 'planner', name: 'TestAgent', systemPrompt: 'Test', enabled: true }),
+    loadAgentConfig: vi.fn().mockResolvedValue({
+      id: 'strategic-planner',
+      name: 'TestAgent',
+      systemPrompt: 'Test',
+      enabled: true,
+    }),
     getAgentContext: vi.fn().mockResolvedValue({
       memory: {
         getDistilledMemory: vi.fn(),

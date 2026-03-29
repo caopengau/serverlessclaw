@@ -3,6 +3,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { AlertTriangle } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
+import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import SettingsForm from './SettingsForm';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
@@ -312,6 +313,31 @@ async function updateConfig(formData: FormData) {
   }
 }
 
+async function triggerRebuild() {
+  'use server';
+  try {
+    const typedResource = Resource as unknown as { Deployer?: { name: string } };
+    const projectName = typedResource.Deployer?.name;
+    if (!projectName) {
+      throw new Error('Deployer project not found in resources');
+    }
+
+    const client = new CodeBuildClient({});
+    await client.send(
+      new StartBuildCommand({
+        projectName,
+        environmentVariablesOverride: [
+          { name: 'INFRA_REBUILD', value: 'true' },
+        ],
+      })
+    );
+
+    revalidatePath('/settings');
+  } catch (e) {
+    console.error('Error triggering rebuild:', e);
+  }
+}
+
 export default async function SettingsPage() {
   const config = await getConfig();
 
@@ -344,9 +370,11 @@ export default async function SettingsPage() {
                 Triggers a full SST deploy via CodeBuild. Use only if sst.config.ts changed.
               </Typography>
             </div>
-            <Button variant="danger" size="sm" uppercase className="px-5">
-              Trigger Rebuild
-            </Button>
+            <form action={triggerRebuild}>
+              <Button variant="danger" size="sm" type="submit" uppercase className="px-5">
+                Trigger Rebuild
+              </Button>
+            </form>
           </div>
         </Card>
       </div>

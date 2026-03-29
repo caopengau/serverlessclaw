@@ -14,6 +14,9 @@ import {
   INSTALL_SKILL,
   UNINSTALL_SKILL,
   REPORT_GAP,
+  PRIORITIZE_MEMORY,
+  DELETE_TRACES,
+  FORCE_RELEASE_LOCK,
 } from './knowledge-storage';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -28,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   addMemory: vi.fn().mockResolvedValue(123456789),
   recordMemoryHit: vi.fn().mockResolvedValue(undefined),
   deleteItem: vi.fn().mockResolvedValue(undefined),
+  updateInsightMetadata: vi.fn().mockResolvedValue(undefined),
   searchInsights: vi.fn().mockResolvedValue({
     items: [
       {
@@ -52,6 +56,7 @@ vi.mock('../lib/memory', () => ({
       addMemory: mocks.addMemory,
       recordMemoryHit: mocks.recordMemoryHit,
       deleteItem: mocks.deleteItem,
+      updateInsightMetadata: mocks.updateInsightMetadata,
     };
   }),
 }));
@@ -88,6 +93,14 @@ vi.mock('../lib/registry', () => ({
 vi.mock('../lib/registry/config', () => ({
   ConfigManager: {
     saveRawConfig: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock('sst', () => ({
+  Resource: {
+    TraceTable: { name: 'test-trace-table' },
+    MemoryTable: { name: 'test-memory-table' },
+    ConfigTable: { name: 'test-config-table' },
   },
 }));
 
@@ -237,6 +250,78 @@ describe('knowledge-storage tools', () => {
         expect.objectContaining({ impact: 10, urgency: 8 })
       );
       expect(ebMock.calls().length).toBe(1);
+    });
+  });
+
+  describe('PRIORITIZE_MEMORY', () => {
+    it('should update priority, urgency, and impact via updateInsightMetadata', async () => {
+      const result = await PRIORITIZE_MEMORY.execute({
+        userId: 'LESSON#abc',
+        timestamp: 123456,
+        priority: 9,
+        urgency: 7,
+        impact: 8,
+      });
+
+      expect(result).toContain('Successfully updated memory LESSON#abc@123456');
+      expect(result).toContain('priority=9');
+      expect(result).toContain('urgency=7');
+      expect(result).toContain('impact=8');
+      expect(mocks.updateInsightMetadata).toHaveBeenCalledWith(
+        'LESSON#abc',
+        123456,
+        expect.objectContaining({ priority: 9, urgency: 7, impact: 8 })
+      );
+    });
+
+    it('should fail when no scores provided', async () => {
+      const result = await PRIORITIZE_MEMORY.execute({
+        userId: 'LESSON#abc',
+        timestamp: 123456,
+      });
+
+      expect(result).toContain('FAILED: At least one of priority, urgency, or impact');
+    });
+
+    it('should allow partial updates', async () => {
+      const result = await PRIORITIZE_MEMORY.execute({
+        userId: 'GAP#123',
+        timestamp: 999,
+        urgency: 10,
+      });
+
+      expect(result).toContain('urgency=10');
+      expect(mocks.updateInsightMetadata).toHaveBeenCalledWith(
+        'GAP#123',
+        999,
+        expect.objectContaining({ urgency: 10 })
+      );
+    });
+  });
+
+  describe('FORCE_RELEASE_LOCK', () => {
+    it('should delete the lock item from memory', async () => {
+      const result = await FORCE_RELEASE_LOCK.execute({
+        lockId: 'LOCK#session-abc',
+      });
+
+      expect(result).toContain('Successfully force-released lock: LOCK#session-abc');
+      expect(mocks.deleteItem).toHaveBeenCalledWith({
+        userId: 'LOCK#session-abc',
+        timestamp: 0,
+      });
+    });
+
+    it('should fail when lockId is missing', async () => {
+      const result = await FORCE_RELEASE_LOCK.execute({});
+      expect(result).toContain('FAILED: lockId is required');
+    });
+  });
+
+  describe('DELETE_TRACES', () => {
+    it('should fail when traceId is missing', async () => {
+      const result = await DELETE_TRACES.execute({});
+      expect(result).toContain('FAILED: traceId is required');
     });
   });
 });

@@ -183,8 +183,8 @@ describe('Council of Agents — Continuation Logic', () => {
       undefined,
       undefined,
       expect.arrayContaining([
-        expect.objectContaining({ label: '🚀 Approve' }),
-        expect.objectContaining({ label: '🤔 Clarify' }),
+        expect.objectContaining({ label: 'Approve' }),
+        expect.objectContaining({ label: 'Clarify' }),
       ])
     );
 
