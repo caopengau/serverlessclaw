@@ -1,5 +1,7 @@
 # Concurrency & Session Management
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 In a serverless, stateless environment, maintaining session integrity requires a different approach than traditional locking. Serverless Claw uses a **Message Queue with Context Injection** pattern instead of mutex locks.
 
 ## Core Philosophy

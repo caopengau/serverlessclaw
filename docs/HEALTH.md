@@ -1,5 +1,7 @@
 # Autonomous Health & Monitoring
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 Beyond build failures, Serverless Claw monitors its own operational integrity through **Signal-based Triage** and self-reporting.
 
 ## Health Architecture

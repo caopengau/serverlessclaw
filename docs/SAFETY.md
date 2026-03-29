@@ -1,5 +1,7 @@
 # Safety Guardrails & Recursion Control
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 > g any deployment, modifying protected files, or when the circuit breaker is active.
 
 ## Guardrail Overview

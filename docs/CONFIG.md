@@ -1,5 +1,7 @@
 # System Configuration Reference
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 > [!IMPORTANT]
 > **Single Source of Truth**: The technical definitions, implications, and risks outlined here are programmatically managed in [metadata.ts](../core/lib/metadata.ts). Both the ClawCenter UI and SuperClaw's reasoning engine consume this metadata directly to ensure absolute consistency.
 

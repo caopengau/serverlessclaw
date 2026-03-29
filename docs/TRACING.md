@@ -1,5 +1,7 @@
 # Neural Path Tracing Architecture
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 Serverless Claw uses a **Branched Neural Path Tracing** model to visualize complex, parallel multi-agent workflows.
 
 ## Trace Graph Model

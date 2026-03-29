@@ -1,5 +1,7 @@
 # Serverless Claw Roadmap
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 Our goal: the most customizable, cost-effective, and self-evolving personal AI agent host.
 
 ## ✅ Phase 1: MVP

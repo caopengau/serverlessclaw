@@ -1,5 +1,7 @@
 # Agent Tool Registry
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 > **Agent Context Loading**: Load this file when you need to understand the tools available to agents or how to add new ones.
 
 ## 🛠️ Available Tools

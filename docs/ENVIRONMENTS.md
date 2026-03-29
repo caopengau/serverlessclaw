@@ -1,5 +1,7 @@
 # Environment Strategy & Stages
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 Serverless Claw follows a streamlined 2-tier environment strategy, moving from local experimentation to production with minimal complexity.
 
 ## 1. Local Development (`local`)

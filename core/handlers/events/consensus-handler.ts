@@ -72,14 +72,35 @@ export async function handleConsensus(event: { detail: any }, detailType: string
         isReached = true;
         finalResult = yesVotes === requiredParticipants;
       }
-    } else {
-      // default to majority
-      if (
-        totalVotes >= Math.ceil(requiredParticipants / 2) + 1 ||
-        totalVotes === requiredParticipants
-      ) {
+    } else if (state.mode === 'weighted') {
+      // Weighted voting: sum vote weights, approve if weighted yes > 50% of total weight
+      // Only finalize when everyone has voted in weighted mode for clarity
+      if (totalVotes === requiredParticipants) {
         isReached = true;
-        finalResult = yesVotes > totalVotes / 2;
+        let totalWeight = 0;
+        let yesWeight = 0;
+        for (const v of state.votes) {
+          const w = (v as { weight?: number }).weight ?? 1.0;
+          totalWeight += w;
+          if (v.vote) yesWeight += w;
+        }
+        finalResult = totalWeight > 0 && yesWeight / totalWeight > 0.5;
+      }
+    } else {
+      // default to majority: need > 50% of participants to have voted
+      if (totalVotes >= Math.ceil(requiredParticipants / 2)) {
+        // If we have a clear majority (more than half of total participants), we can finalize
+        if (yesVotes > requiredParticipants / 2) {
+          isReached = true;
+          finalResult = true;
+        } else if (totalVotes - yesVotes > requiredParticipants / 2) {
+          isReached = true;
+          finalResult = false;
+        } else if (totalVotes === requiredParticipants) {
+          // If everyone voted and no clear majority was reached before, decide now
+          isReached = true;
+          finalResult = yesVotes > requiredParticipants / 2;
+        }
       }
     }
 

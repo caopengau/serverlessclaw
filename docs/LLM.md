@@ -1,5 +1,7 @@
 # LLM Integration & Reasoning Adapter
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 Serverless Claw implements a provider-agnostic LLM interface that supports advanced 2026-grade reasoning profiles.
 
 ## Core Interface
@@ -192,3 +194,36 @@ First, I'll call the getTransactions tool...
 ```
 
 This ensures that even when the final output is concise, the system's underlying strategy is auditable and traceable via **Langfuse**.
+
+
+### 4. LLM Providers
+
+Provider-agnostic interface supporting:
+
+- OpenAI (gpt-5.4 / gpt-5.4-mini)
+- Anthropic (Claude 4.6 Sonnet)
+- Google (Gemini-3 Flash, GLM-5, MiniMax-m2.7)
+- Local models (via Ollama or AWS Bedrock)
+
+#### Reasoning Engine & Adapters
+
+The system uses a unified **Reasoning Adapter** to map logical "Thinking" states to provider-specific APIs.
+
+```text
+ [ ReasoningProfile ]
+ (FAST, STANDARD, THINKING, DEEP)
+          |
+          v
+ [ Reasoning Mapper ] -----------------+
+ (effort, budget, temp)                |
+          |                            |
+  +-------+-------+           +--------v--------+
+  | OpenAI Adapter|           | Bedrock Adapter |
+  | (Responses API)|           | (Converse API)  |
+  +-------+-------+           +--------+--------+
+          |                            |
+          v                            v
+   /v1/responses              ConverseCommand
+```
+
+For a deep dive into the reasoning profiles and the OpenAI Response API bridge, see [docs/LLM.md](./docs/LLM.md).

@@ -1,5 +1,7 @@
 # Event Bus & Messaging Architecture
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 > **Agent Context Loading**: Load this file when you need to understand event routing, emit events, or troubleshoot messaging issues.
 
 ## Overview

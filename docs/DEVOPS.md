@@ -1,5 +1,7 @@
 # DevOps & Task Automation
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 > **Agent Context Loading**: Load this file when you need to run quality checks, tests, deployments, or releases.
 
 ## The Hub-and-Spoke Philosophy

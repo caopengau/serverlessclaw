@@ -92,60 +92,6 @@ Response
 
 ---
 
-## Multi-Modal Storage Flow
-
-When a user sends media (photos, documents, voice) via Telegram, the system bridges it to internal storage before agent processing.
-
-```text
-User Event      Webhook         Telegram API      Staging Bucket (S3)    SuperClaw (Agent)
-    |              |                |                    |                      |
-    +------------->|                |                    |                      |
-    |  (Media Msg) |                |                    |                      |
-    |              +--------------->|                    |                      |
-    |              | (Get File URL) |                    |                      |
-    |              |<---------------+                    |                      |
-    |              |                |                    |                      |
-    |              +--------------->|                    |                      |
-    |              |  (Download)    |                    |                      |
-    |              |<---------------+                    |                      |
-    |              |                |                    |                      |
-    |              +------------------------------------>|                      |
-    |              |         (S3 Upload / lifecycle)     |                      |
-    |              |                |                    |                      |
-    |              +----------------------------------------------------------->|
-    |              |                |                    |    (Process w/ URL)  |
-````
-
-- **S3 Staging**: Media is stored in the `StagingBucket` with a 30-day TTL lifecycle policy.
-- **Vision Integration**: For small images, the Webhook provides a Base64 string directly to the agent's Vision context for zero-latency analysis.
-
-### Outbound Multi-Modal Flow
-
-When an agent generates a result containing media (e.g., a Python chart or a screenshot), it is relayed via the AgentBus to the Notifier and the Dashboard.
-
-```text
-SuperClaw (Agent)      AgentBus (EB)         Notifier (Lambda)      Telegram API       Dashboard (IoT)
-      |                    |                     |                     |                  |
-      +------------------->|                     |                     |                  |
-      | (OUTBOUND_MESSAGE) |                     |                     |                  |
-      |  w/ Attachments    +-------------------->|                     |                  |
-      |                    |                     |                     |                  |
-      |                    |                     +-------------------->|                  |
-      |                    |                     |   (Store in DDB)    |                  |
-      |                    |                     |                     |                  |
-      |                    |                     +-------------------->|                  |
-      |                    |                     |    (sendMedia)      |                  |
-      |                    |                     |                     +----------------->|
-      |                    |                     |                     |   (MQTT Push)    |
-```
-
-- **Persistence**: Outbound attachments are stored in the `MemoryTable` along with the message text, enabling long-term recall and dashboard rendering.
-- **Rendering**: The Dashboard component automatically detects attachment types and renders previews or download links based on MIME types.
-
-````
-
----
-
 ## Distributed Concurrency
 Serverless Claw uses **Distributed Locking** via DynamoDB to ensure session integrity in a stateless environment.
 - **Deep Dive**: [Concurrency & Locking ↗](./docs/CONCURRENCY.md)
@@ -339,19 +285,6 @@ While the default uses DynamoDB, the system can be adapted to use:
 - **PostgreSQL (Drizzle/Prisma)** for complex relational memory.
 - **S3** for long-term archival.
 
-## 📡 Real-time Communication (IoT Core)
-
-To ensure the **ClawCenter Dashboard** receives instantaneous updates, we use a **Real-time Bridge** pattern over AWS IoT Core and MQTT.
-
-- **Deep Dive**: [Real-time Signaling ↗](./docs/REALTIME.md)
-
-### 5. Channel Adapters (Fan-Out)
-
-Instead of hardcoding API requests to a single platform, agents emit an `OUTBOUND_MESSAGE` event onto the AgentBus.
-
-- **Notifier Handler**: A dedicated lightweight Lambda (`core/handlers/notifier.ts`) listens to these events.
-- **Multi-Channel**: The Notifier reads user preferences from the `ConfigTable` and fans the message out to the appropriate adapters (Telegram, Slack, and the **Real-time Signal Bridge**).
-
 ## 🔄 Self-Evolution & Stability
 
 The system's evolution is a co-managed process between the **Strategic Planner** and the **Human Admin**. Resilience is ensured via **Structured Signaling** (JSON-based status) and **Atomic Deployment Mapping** (direct gap-to-build syncing).
@@ -427,35 +360,3 @@ To ensure the system remains efficient, a continuous optimization loop runs in t
                         +--> CodeBuild StartBuild
                             (EMERGENCY_ROLLBACK=true, LKG_HASH=...)
 ```
-
-### 4. LLM Providers
-
-Provider-agnostic interface supporting:
-
-- OpenAI (gpt-5.4 / gpt-5.4-mini)
-- Anthropic (Claude 4.6 Sonnet)
-- Google (Gemini-3 Flash, GLM-5, MiniMax-m2.7)
-- Local models (via Ollama or AWS Bedrock)
-
-#### Reasoning Engine & Adapters
-
-The system uses a unified **Reasoning Adapter** to map logical "Thinking" states to provider-specific APIs.
-
-```text
- [ ReasoningProfile ]
- (FAST, STANDARD, THINKING, DEEP)
-          |
-          v
- [ Reasoning Mapper ] -----------------+
- (effort, budget, temp)                |
-          |                            |
-  +-------+-------+           +--------v--------+
-  | OpenAI Adapter|           | Bedrock Adapter |
-  | (Responses API)|           | (Converse API)  |
-  +-------+-------+           +--------+--------+
-          |                            |
-          v                            v
-   /v1/responses              ConverseCommand
-```
-
-For a deep dive into the reasoning profiles and the OpenAI Response API bridge, see [docs/LLM.md](./docs/LLM.md).

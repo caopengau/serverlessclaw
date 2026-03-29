@@ -1,5 +1,7 @@
 # Memory Management: The Tiered Neural Engine
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 Serverless Claw uses a tiered, evolutionary memory system designed to provide context-rich interactions while minimizing "prompt bloat" and token costs.
 
 ## Architecture Diagram

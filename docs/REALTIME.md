@@ -46,3 +46,17 @@ To minimize "Time-to-First-Token" (TTFT), agents can emit partial response chunk
 ## Performance
 - **Latency**: Sub-100ms from Lambda execution to Dashboard visualization.
 - **Scale**: Leverages AWS IoT Core's managed scale to support multiple concurrent dashboard operators.
+
+
+## 📡 Real-time Communication (IoT Core)
+
+To ensure the **ClawCenter Dashboard** receives instantaneous updates, we use a **Real-time Bridge** pattern over AWS IoT Core and MQTT.
+
+- **Deep Dive**: [Real-time Signaling ↗](./docs/REALTIME.md)
+
+### 5. Channel Adapters (Fan-Out)
+
+Instead of hardcoding API requests to a single platform, agents emit an `OUTBOUND_MESSAGE` event onto the AgentBus.
+
+- **Notifier Handler**: A dedicated lightweight Lambda (`core/handlers/notifier.ts`) listens to these events.
+- **Multi-Channel**: The Notifier reads user preferences from the `ConfigTable` and fans the message out to the appropriate adapters (Telegram, Slack, and the **Real-time Signal Bridge**).

@@ -1,5 +1,7 @@
 # Self-Aware Infrastructure & Topology
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 Serverless Claw implements a **Self-Aware Infrastructure** model. Rather than relying on hardcoded diagrams, the system discovers its own topology post-deployment.
 
 ## Discovery Mechanism

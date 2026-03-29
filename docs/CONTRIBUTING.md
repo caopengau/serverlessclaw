@@ -1,5 +1,7 @@
 # Contributing Guide
 
+> **Navigation**: [← Index Hub](../INDEX.md)
+
 > **Agent Context Loading**: Load this file when you are (or are helping) a human contributor make code or documentation changes to Serverless Claw.
 
 ## Golden Rules
@@ -131,7 +133,7 @@ Scopes: `swarm`, `collab`, `evolution`, `tools`, `agents`, `memory`, `infra`, `d
 ```
 serverlessclaw/
 ├── INDEX.md          <- Hub (start here)
-├── AGENT_RULES.md    <- Agent entry point + mandatory checklist
+├── AGENTS.md         <- Agent entry point + mandatory checklist
 ├── README.md         <- Public-facing overview
 ├── ARCHITECTURE.md   <- System topology + ASCII diagrams
 ├── docs/
