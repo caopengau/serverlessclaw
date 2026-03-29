@@ -1,7 +1,7 @@
-# Serverless Claw
+# Serverless Claw - Autonomous AI Agent Swarm for AWS
 
 <p align="center">
-  <img src="./dashboard/public/hero-evolution.png" alt="Serverless Claw Evolution" width="800">
+  <img src="./dashboard/public/hero-evolution.png" alt="Serverless Claw - Autonomous AI Agent Swarm for AWS Infrastructure" width="800">
 </p>
 
 <p align="center">
@@ -18,8 +18,16 @@
 </p>
 
 <p align="center">
-  <font size="6"><strong>The Self-Evolving AI Agent Swarm</strong></font><br>
-  <em>$0 when idle. Elastic by design. Secure by default.</em>
+  <font size="6"><strong>The Self-Evolving AI Agent Swarm for AWS</strong></font><br>
+  <em>$0 when idle. Elastic by design. Secure by default.</em><br>
+  <strong>Autonomous infrastructure management • AI-powered code evolution • Serverless-first architecture</strong>
+</p>
+
+<p align="center">
+  <a href="https://clawmore.ai">🌐 Website</a> •
+  <a href="https://clawmore.ai/signup">🚀 Get Started</a> •
+  <a href="https://clawmore.ai/blog">📖 Blog</a> •
+  <a href="https://discord.gg/aiready">💬 Discord</a>
 </p>
 
 ---
@@ -32,13 +40,24 @@
 
 ---
 
-## Why Serverless for AI?
+## Why Serverless for AI Agents?
 
-In 2026, **the 24/7 VPS mascot is dead.** Running agent swarms on persistent pods is an expensive relic of the container era.
+In 2026, **the 24/7 VPS mascot is dead.** Running AI agent swarms on persistent pods is an expensive relic of the container era.
 
-- **Cost Efficient**: You pay exactly for the tokens and compute you use. A complex reasoning task might cost $0.05; staying idle costs **$0**.
-- **Instantly Elastic**: Need 1,000 agents to research a topic in parallel? Serverless Claw fans out across AWS Lambda instantly.
-- **Maintenance Free**: No Docker security patches, no OS updates, no resource exhaustion. Just pure intelligence.
+**Serverless Claw** is an open-source autonomous agent framework that:
+
+- **💰 Cost Efficient**: You pay exactly for the tokens and compute you use. A complex reasoning task might cost $0.05; staying idle costs **$0**.
+- **⚡ Instantly Elastic**: Need 1,000 agents to research a topic in parallel? Serverless Claw fans out across AWS Lambda instantly.
+- **🔧 Maintenance Free**: No Docker security patches, no OS updates, no resource exhaustion. Just pure intelligence.
+- **🔒 Secure by Default**: IAM least-privilege, no SSH keys, no persistent daemons.
+- **📈 Auto-Scaling**: Scales from 0 to thousands of agents based on demand.
+
+**Use Cases:**
+- Autonomous code review and improvement
+- Infrastructure monitoring and auto-remediation
+- Research and data analysis at scale
+- DevOps automation and CI/CD optimization
+- Cost optimization for AWS resources
 
 ---
 
@@ -93,7 +112,7 @@ Deploy your first autonomous swarm in 5 minutes.
 ### 1. Zero-Install Deploy
 
 ```bash
-git clone https://github.com/caopengau/serverlessclaw.git
+git clone https://github.com/serverlessclaw/serverlessclaw.git
 cd serverlessclaw && pnpm install
 ```
 
@@ -116,20 +135,29 @@ make dev # Live lambda reloading, local DynamoDB, and real-time logs
 make deploy ENV=dev # High-availability, production-grade infrastructure
 ```
 
-## Documentation Hub
+## 📚 Documentation
 
-Start with **[INDEX.md](./INDEX.md)** — the progressive context loading map for both humans and agents.
+| Document | Description |
+|----------|-------------|
+| **[INDEX.md](./INDEX.md)** | Start here - Documentation hub and context map |
+| **[ARCHITECTURE.md](./ARCHITECTURE.md)** | System topology and AI-native principles |
+| **[docs/AGENTS.md](./docs/AGENTS.md)** | Agent roster and evolutionary loop |
+| **[docs/MEMORY.md](./docs/MEMORY.md)** | Tiered memory engine |
+| **[docs/TOOLS.md](./docs/TOOLS.md)** | Tool registry and MCP standards |
+| **[docs/SAFETY.md](./docs/SAFETY.md)** | Circuit breakers and rollback safety |
+| **[docs/DEVOPS.md](./docs/DEVOPS.md)** | DevOps and CI/CD |
+| **[docs/ROADMAP.md](./docs/ROADMAP.md)** | Future plans |
 
-| Doc                                  | Purpose                                        |
-| ------------------------------------ | ---------------------------------------------- |
-| [INDEX.md](./INDEX.md)               | **Hub** — Start here for the documentation map |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | System topology & **AI-Native Principles**     |
-| [docs/AGENTS.md](./docs/AGENTS.md)   | Agent roster & Evolutionary loop               |
-| [docs/MEMORY.md](./docs/MEMORY.md)   | Tiered memory engine & co-management           |
-| [docs/TOOLS.md](./docs/TOOLS.md)     | Full tool registry & **MCP Standards**         |
-| [docs/SAFETY.md](./docs/SAFETY.md)   | Circuit breakers & DMS Rollback                |
-| [docs/DEVOPS.md](./docs/DEVOPS.md)   | DevOps Hub, make targets, & CI/CD              |
-| [docs/ROADMAP.md](./docs/ROADMAP.md) | Planned features & Strategic goals             |
+## 🌐 Managed Service (ClawMore)
+
+For a fully managed experience with auto-scaling, monitoring, and support, check out **[ClawMore](https://clawmore.ai)** - the premium managed version of ServerlessClaw.
+
+**ClawMore Features:**
+- One-click deployment
+- Automatic infrastructure management
+- AI-powered code evolution
+- Real-time monitoring dashboard
+- Priority support
 
 ## 🆚 The 2026 "Claw" Comparison
 
@@ -156,10 +184,25 @@ Start with **[INDEX.md](./INDEX.md)** — the progressive context loading map fo
 | **Resilience**           | Manual Recovery       | Restart Container     | Hardware Watchdog     | **Autonomous Heartbeat + Rollback**      |
 | **Resource Safety**      | App-level Permissions | Sandboxing (Docker)   | Memory Safe (Rust)    | **Cloud IAM + Multi-Agent Council**      |
 
-## Contributing
+## 🤝 Contributing
 
-See [CONTRIBUTING.md](./docs/CONTRIBUTING.md). We welcome issues, PRs, and ideas.
+We welcome contributions! See [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for guidelines.
 
-## License
+**Ways to contribute:**
+- ⭐ Star the repository
+- 🐛 Report bugs via GitHub Issues
+- 💡 Suggest new features
+- 🔧 Submit pull requests
+- 📖 Improve documentation
 
-MIT
+## 📄 License
+
+MIT License - see [LICENSE](./LICENSE) for details.
+
+---
+
+<p align="center">
+  <strong>🌐 <a href="https://clawmore.ai">clawmore.ai</a></strong> •
+  <strong>📧 <a href="mailto:support@getaiready.dev">support@getaiready.dev</a></strong> •
+  <strong>💬 <a href="https://discord.gg/aiready">Discord Community</a></strong>
+</p>

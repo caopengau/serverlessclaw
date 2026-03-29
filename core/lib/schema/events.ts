@@ -219,6 +219,48 @@ export const CLARIFICATION_TASK_METADATA = z
   })
   .default({ retryCount: 0 });
 
+// ============================================================================
+// Consensus Protocol Schemas
+// ============================================================================
+
+/** Schema for consensus request events. */
+export const CONSENSUS_REQUEST_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  proposal: z.string(),
+  mode: z.enum(['majority', 'unanimous', 'weighted']).default('majority'),
+  voterIds: z.array(z.string()).min(1),
+  timeoutMs: z.number().default(60000),
+  metadata: z.record(z.string(), z.unknown()).default({}),
+});
+
+/** Schema for individual consensus vote events. */
+export const CONSENSUS_VOTE_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  consensusId: z.string(),
+  voterId: z.string(),
+  vote: z.enum(['approve', 'reject', 'abstain']),
+  reasoning: z.string().optional(),
+  weight: z.number().default(1.0),
+});
+
+/** Schema for consensus result events. */
+export const CONSENSUS_REACHED_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  consensusId: z.string(),
+  proposal: z.string(),
+  result: z.enum(['approved', 'rejected', 'timeout']),
+  mode: z.enum(['majority', 'unanimous', 'weighted']),
+  approveCount: z.number(),
+  rejectCount: z.number(),
+  abstainCount: z.number(),
+  totalVoters: z.number(),
+  votes: z.array(
+    z.object({
+      voterId: z.string(),
+      vote: z.enum(['approve', 'reject', 'abstain']),
+      reasoning: z.string().optional(),
+      weight: z.number(),
+    })
+  ),
+});
+
 // Zod-inferred types for metadata schemas
 export type CoderTaskMetadata = z.infer<typeof CODER_TASK_METADATA>;
 export type QaAuditMetadata = z.infer<typeof QA_AUDIT_METADATA>;
@@ -297,6 +339,9 @@ export const EVENT_SCHEMA_MAP = {
   [`${AgentType.QA}_task`]: TASK_EVENT_SCHEMA,
   [`${AgentType.CRITIC}_task`]: TASK_EVENT_SCHEMA,
   [`${AgentType.FACILITATOR}_task`]: TASK_EVENT_SCHEMA,
+  [EventType.CONSENSUS_REQUEST as string]: CONSENSUS_REQUEST_SCHEMA,
+  [EventType.CONSENSUS_VOTE as string]: CONSENSUS_VOTE_SCHEMA,
+  [EventType.CONSENSUS_REACHED as string]: CONSENSUS_REACHED_SCHEMA,
 } as const;
 
 /** Keys of the EVENT_SCHEMA_MAP (for type-safe event type lookups). */

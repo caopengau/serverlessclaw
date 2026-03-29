@@ -100,6 +100,24 @@ export async function handleTaskResult(
     `Relaying ${isFailure ? 'failure' : 'completion'} from ${agentId} to Initiator: ${initiatorId} (Depth: ${depth}, Session: ${sessionId}, UserNotified: ${userNotified})`
   );
 
+  // Update agent reputation (fire-and-forget, non-blocking)
+  try {
+    const { BaseMemoryProvider } = await import('../../lib/memory/base');
+    const { updateReputation } = await import('../../lib/memory/reputation-operations');
+    const memBase = new BaseMemoryProvider();
+    const latencyMs =
+      typeof parsedEvent.metadata === 'object' &&
+      parsedEvent.metadata !== null &&
+      'durationMs' in parsedEvent.metadata
+        ? ((parsedEvent.metadata.durationMs as number) ?? 0)
+        : 0;
+    updateReputation(memBase, agentId, !isFailure, latencyMs).catch((err: unknown) =>
+      logger.warn(`Reputation update failed for ${agentId}:`, err)
+    );
+  } catch {
+    // reputation module may not be available in all environments
+  }
+
   // 1. Loop Protection - Use shared function
   const RECURSION_LIMIT = await getRecursionLimit();
 

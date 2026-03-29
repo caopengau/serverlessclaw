@@ -1,5 +1,5 @@
 import { logger } from '../logger';
-import { RETENTION, TIME } from '../constants';
+import { RETENTION, TIME, MEMORY_KEYS } from '../constants';
 import { getCircuitBreaker } from '../circuit-breaker';
 
 /**
@@ -8,8 +8,13 @@ import { getCircuitBreaker } from '../circuit-breaker';
 export enum RetentionTiers {
   STANDARD = 'MESSAGES_DAYS',
   CRITICAL = 'LESSONS_DAYS',
-  EPHEMERAL = 'SESSIONS_DAYS',
+  EPHEMERAL = 'EPHEMERAL_DAYS',
   TRAILS = 'TRACES_DAYS',
+  KNOWLEDGE = 'FACTS_DAYS',
+  EVOLUTION = 'GAPS_DAYS',
+  SWARM = 'REPUTATION_DAYS',
+  SESSIONS = 'SESSION_METADATA_DAYS',
+  SUMMARIES = 'SUMMARY_DAYS',
 }
 
 /**
@@ -35,22 +40,55 @@ export class RetentionManager {
 
     const upperCategory = category.toUpperCase();
 
+    // 1. Critical Intelligence (Lessons/Facts)
     if (
       upperCategory === 'LESSONS' ||
       upperCategory === 'LESSON' ||
       upperCategory === 'IMPORTANT' ||
-      upperCategory === 'MEMORY'
+      upperCategory === 'MEMORY' ||
+      userId.startsWith(MEMORY_KEYS.LESSON_PREFIX)
     ) {
       tier = RetentionTiers.CRITICAL;
       type = 'LESSON';
     } else if (
+      upperCategory === 'FACTS' ||
+      upperCategory === 'FACT' ||
+      userId.startsWith(MEMORY_KEYS.FACT_PREFIX)
+    ) {
+      tier = RetentionTiers.KNOWLEDGE;
+      type = 'FACT';
+    }
+    // 2. Observability (Traces/Trails)
+    else if (
       upperCategory === 'TRACE' ||
       upperCategory === 'TRAILS' ||
       upperCategory === 'TRACES'
     ) {
       tier = RetentionTiers.TRAILS;
       type = 'trace';
-    } else if (userId.startsWith('TEMP#') || upperCategory === 'EPHEMERAL') {
+    }
+    // 3. Swarm Evolution (Gaps/Reputation)
+    else if (upperCategory === 'GAPS' || upperCategory === 'GAP') {
+      tier = RetentionTiers.EVOLUTION;
+      type = 'GAP';
+    } else if (upperCategory === 'REPUTATION' || userId.startsWith(MEMORY_KEYS.REPUTATION_PREFIX)) {
+      tier = RetentionTiers.SWARM;
+      type = 'REPUTATION';
+    }
+    // 4. Interaction Lifecycle (Sessions/Summaries)
+    else if (upperCategory === 'SESSIONS' || upperCategory === 'SESSION') {
+      tier = RetentionTiers.SESSIONS;
+      type = 'SESSION';
+    } else if (
+      upperCategory === 'SUMMARIES' ||
+      upperCategory === 'SUMMARY' ||
+      userId.startsWith(MEMORY_KEYS.SUMMARY_PREFIX)
+    ) {
+      tier = RetentionTiers.SUMMARIES;
+      type = 'SUMMARY';
+    }
+    // 5. Ephemeral/Temporary
+    else if (userId.startsWith('TEMP#') || upperCategory === 'EPHEMERAL') {
       tier = RetentionTiers.EPHEMERAL;
       type = 'temp';
     }

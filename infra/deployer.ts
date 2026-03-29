@@ -54,7 +54,7 @@ export function createDeployer(ctx: DeployerContext) {
     },
     source: {
       type: 'GITHUB',
-      location: 'https://github.com/caopengau/serverlessclaw.git',
+      location: 'https://github.com/serverlessclaw/serverlessclaw.git',
       buildspec: 'buildspec.yml',
     },
   });

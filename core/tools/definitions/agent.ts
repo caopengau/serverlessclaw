@@ -118,4 +118,64 @@ export const agentTools: Record<string, IToolDefinition> = {
     },
     connectionProfile: ['config'],
   },
+  discoverPeers: {
+    name: 'discoverPeers',
+    description:
+      'Discovers available peer agents in the swarm for dynamic topology construction. ' +
+      'Returns agents filtered by capability, category, or status.',
+    parameters: {
+      type: 'object',
+      properties: {
+        capability: {
+          type: 'string',
+          description:
+            'Optional filter: capability or tool name to match (e.g., "coder", "deploy").',
+        },
+        category: {
+          type: 'string',
+          enum: ['social', 'system'],
+          description: 'Optional filter: agent category.',
+        },
+        topologyType: {
+          type: 'string',
+          enum: ['mesh', 'hierarchy', 'pipeline'],
+          description: 'The desired topology type for the discovered peers.',
+        },
+      },
+      required: [],
+      additionalProperties: false,
+    },
+    connectionProfile: ['config'],
+  },
+  registerPeer: {
+    name: 'registerPeer',
+    description:
+      'Registers a peer connection in the swarm topology. Creates or updates a bidirectional ' +
+      'link between two agents for dynamic coordination.',
+    parameters: {
+      type: 'object',
+      properties: {
+        sourceAgentId: {
+          type: 'string',
+          description: 'The agent initiating the peer connection.',
+        },
+        targetAgentId: {
+          type: 'string',
+          description: 'The agent to connect to.',
+        },
+        topologyType: {
+          type: 'string',
+          enum: ['mesh', 'hierarchy', 'pipeline'],
+          description: 'The topology relationship type.',
+        },
+        label: {
+          type: 'string',
+          description: 'Optional label for the connection (e.g., "delegates to", "reviews").',
+        },
+      },
+      required: ['sourceAgentId', 'targetAgentId', 'topologyType'],
+      additionalProperties: false,
+    },
+    connectionProfile: ['config'],
+  },
 };

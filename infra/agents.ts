@@ -450,6 +450,9 @@ export function createAgents(
     nodejs: { loader: NODEJS_LOADERS },
     memory: AGENT_CONFIG.memory.SMALL,
     timeout: AGENT_CONFIG.timeout.SHORT,
+    logging: {
+      retention: LOG_RETENTION_PERIOD,
+    },
   });
   bus.subscribe('OutboundMessageSubscriber', notifier.arn, {
     pattern: { detailType: [EventType.OUTBOUND_MESSAGE] },

@@ -154,6 +154,8 @@ export const MEMORY_KEYS = {
   RECOVERY: 'SYSTEM#RECOVERY',
   /** Key for tracking the last strategic review timestamp. */
   STRATEGIC_REVIEW: 'SYSTEM#STRATEGIC_REVIEW',
+  /** Prefix for agent reputation data. */
+  REPUTATION_PREFIX: 'REPUTATION#',
 } as const;
 
 /**
@@ -269,6 +271,11 @@ export const RETENTION = {
   TRACES_DAYS: CONFIG_DEFAULTS.TRACE_RETENTION_DAYS.code,
   FACTS_DAYS: 365,
   LESSONS_DAYS: 90,
+  SUMMARY_DAYS: 30,
+  GAPS_DAYS: 730,
+  REPUTATION_DAYS: 365,
+  SESSION_METADATA_DAYS: 90,
+  EPHEMERAL_DAYS: 1,
 } as const;
 
 /**
@@ -393,6 +400,12 @@ export const TOOLS = {
   prioritizeMemory: 'prioritizeMemory',
   /** Deletes execution traces (single or all). */
   deleteTraces: 'deleteTraces',
+  /** Discovers available peer agents in the swarm. */
+  discoverPeers: 'discoverPeers',
+  /** Registers a peer connection in the swarm topology. */
+  registerPeer: 'registerPeer',
+  /** Requests swarm consensus from multiple agents on a proposal. */
+  requestConsensus: 'requestConsensus',
 } as const;
 
 /**

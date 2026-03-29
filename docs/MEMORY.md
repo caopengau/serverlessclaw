@@ -23,8 +23,9 @@ Serverless Claw uses a tiered, evolutionary memory system designed to provide co
 +---------------------------------------------------------------------+
 |                                                                     |
 |  [ TIER 1: CORE INTELLIGENCE ] --------> Retain: 2 Years (730d)     |
-|  - Key: DISTILLED# / LESSON# / GAP# / MEMORY:                       |
-|  - Purpose: Permanent identity, tactical lessons, strategic roadmaps.|
+|  - Key: DISTILLED# / LESSON# / GAP# / MEMORY: / REPUTATION#:        |
+|  - Purpose: Permanent identity, tactical lessons, strategic roadmaps,|
+|    agent reputation for swarm routing.                               |
 |                                                                     |
 |  [ TIER 2: HUMAN CONVERSATION ] -------> Retain: 30 Days            |
 |  - Key: CONV# / SESSIONS#                                           |
@@ -44,28 +45,38 @@ Serverless Claw uses a tiered, evolutionary memory system designed to provide co
 ## Memory Tiers Explained
 
 ### 1. Long-Term Facts (`DISTILLED#`)
+
 Permanent knowledge about the user. This is the "Base Identity" of the session. It includes name, role, and overarching goals.
+
 - **Update Frequency**: Low (only when significant identity shifts occur).
 - **Injection**: Loaded into the System Prompt for EVERY request.
 
 ### 2. Tactical Lessons (`LESSON#` / `TACTICAL#`)
+
 Short-term heuristics distilled by the **Cognition Reflector**. If the agent makes a mistake or a technical "gotcha" is discovered, it's saved here to prevent repetition.
+
 - **Update Frequency**: Medium.
 - **Injection**: The most relevant lessons are selectively loaded into the prompt.
 
 ### 3. Strategic Gaps (`GAP#`)
+
 A backlog of missing capabilities identified by the Reflector. These gaps are the primary driver for the system's **Self-Evolution**.
+
 - **Tracking**: Includes ROI, Complexity, and Risk signals.
 - **Evolution**: The **Strategic Planner** reviews these during its deterministic **48-hour review** cycle to design the next system upgrade.
 
 ### 4. Agent Operational Traces (`COGNITION-REFLECTOR#`, `CODER#`, etc.)
+
 The raw execution logs of background agent loops. These are trace-specific and isolated to prevent cross-contamination.
+
 - **Update Frequency**: Extremely High.
 - **Retention**: **1 Day**.
 - **Namespace**: Keyed by `AGENT#userId#traceId`.
 
 ### 5. Transient System Logs (`RECOVERY`, `SYSTEM#`)
+
 Volatile signals used for coordination, recovery, and real-time status updates.
+
 - **Retention**: **1 Hour**.
 - **Purpose**: High-velocity coordination.
 
@@ -73,12 +84,12 @@ Volatile signals used for coordination, recovery, and real-time status updates.
 
 Serverless Claw implements an automatic, tiered data lifecycle using DynamoDB TTL. This ensures the system remains "lean" and fast without losing strategic intelligence.
 
-| Tier | Retention | Category | Purpose |
-| :--- | :--- | :--- | :--- |
-| **Intelligence** | **2 Years** | Strategic | Facts, Lessons, Gaps |
-| **Conversation**| **30 Days** | Operational | Human chat history |
+| Tier             | Retention   | Category    | Purpose                |
+| :--------------- | :---------- | :---------- | :--------------------- |
+| **Intelligence** | **2 Years** | Strategic   | Facts, Lessons, Gaps   |
+| **Conversation** | **30 Days** | Operational | Human chat history     |
 | **Agent Traces** | **1 Day**   | Mechanical  | Background agent loops |
-| **System Logs**  | **1 Hour**  | Volatile    | Recovery & signals |
+| **System Logs**  | **1 Hour**  | Volatile    | Recovery & signals     |
 
 ## Operational & Performance Metrics
 
@@ -117,6 +128,29 @@ The `AgentRouter` uses these metrics to compute a **Composite Score**:
 
 This ensures the system naturally prefers faster, cheaper models (like GPT-4o-mini) for simple tasks while reserving powerful models (like Claude 3.5 Sonnet) for high-complexity strategic planning.
 
+### Agent Reputation (Swarm Routing)
+
+The `AgentRouter` now incorporates **reputation data** for swarm-aware routing decisions. On every `TASK_COMPLETED` or `TASK_FAILED` event, the `EventHandler` updates a rolling 7-day reputation record per agent.
+
+- **Partition Key**: `REPUTATION#<agentId>`
+- **Sort Key**: `0` (singleton per agent)
+- **Metrics**: `tasksCompleted`, `tasksFailed`, `successRate`, `avgLatencyMs`, `lastActive`, `windowStart`
+- **TTL**: 7 days (auto-expires stale records)
+
+**Composite Reputation Score** (0-1):
+
+```text
+Score = (successRate * 0.6) + (latencyComponent * 0.25) + (recencyComponent * 0.15)
+```
+
+**Enhanced Routing Formula**:
+
+```text
+FinalScore = (0.6 * performanceScore) + (0.4 * reputationScore)
+```
+
+This ensures agents with proven track records (high success, low latency, recent activity) are preferred over untested or degraded agents.
+
 ## High-Performance Indexing (TypeTimestampIndex)
 
 The `MemoryTable` utilizes a Global Secondary Index (GSI) named `TypeTimestampIndex` to enable instantaneous querying. This allows the system to bypass expensive full-table scans when fetching context.
@@ -131,7 +165,9 @@ The `MemoryTable` utilizes a Global Secondary Index (GSI) named `TypeTimestampIn
 Serverless Claw doesn't just remember; it strategically forgets. To prevent "cognitive bloat" and ensure the most relevant knowledge is always prioritized, the system implements an autonomous **Neural Pruning** loop.
 
 ### Hit Tracking Mechanism
+
 Every time an agent recalls a memory using the `recallKnowledge` tool, the system performs an atomic "Hit" update in the background:
+
 - **`hitCount`**: Increments a counter on the memory item.
 - **`lastAccessed`**: Updates the timestamp to the current time.
 - **`createdAt`**: Remains immutable to track the original memory creation time.
@@ -163,7 +199,9 @@ This telemetry allows the system to distinguish between **High-Utility Facts** (
 ```
 
 ### Pruning Logic
-During its scheduled **48-hour review**, the **Strategic Planner** audits all dynamic memories (`MEMORY:*`). 
+
+During its scheduled **48-hour review**, the **Strategic Planner** audits all dynamic memories (`MEMORY:*`).
+
 1. **Identification**: Any memory with `hitCount == 0` that hasn't been accessed in **14 days** is flagged as "Stale".
 2. **Analysis**: The Planner evaluates if the stale information is redundant or irrelevant to current system goals.
 3. **Action**: The Planner recommends pruning the item (archiving or deleting) as part of its **Strategic Plan**.
@@ -171,12 +209,12 @@ During its scheduled **48-hour review**, the **Strategic Planner** audits all dy
 ## Human-Agent Co-Management (Neural Reserve)
 
 Memory is not a "black box" in Serverless Claw. Through the **Neural Reserve** page (Evolution sector) in ClawCenter, users can:
+
 - **Audit**: View all distilled facts, lessons, and identified gaps, now including **Hit Tracking** metrics (total hits and last recalled time).
 - **Prioritize**: Manually adjust the priority of a `GAP#` to influence the Planner's roadmap.
 - **Prune**: "Weed" the memory garden by deleting stale or incorrect items.
 - **Focus**: Toggle "HOT_PATH" status for tactical lessons to ensure they are always present in the reasoning loop.
 - **Neural Health**: Monitor which memories are currently being ignored by the agents to decide on manual pruning.
-
 
 ## The Smart Recall Mechanism
 

@@ -2,6 +2,14 @@
   "name": "serverlessclaw",
   "version": "1.0.11",
   "description": "A serverless implementation of OpenClaw AI agent using SST, AWS Lambda, and DynamoDB.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serverlessclaw/serverlessclaw.git"
+  },
+  "homepage": "https://github.com/serverlessclaw/serverlessclaw#readme",
+  "bugs": {
+    "url": "https://github.com/serverlessclaw/serverlessclaw/issues"
+  },
   "main": "index.js",
   "scripts": {
     "test": "vitest run",

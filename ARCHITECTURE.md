@@ -368,17 +368,18 @@ To ensure the system remains efficient, a continuous optimization loop runs in t
           |                                                            ^
     (1) recordToolUsage()                                              |
           |                                                   (5) getMetrics()
-    +-----v-----+                                                      |
-    |  Token    | <----------- (4) fetchToolUsage() ----------- [ Strategic ]
-    |  Tracker  |                                               |  Planner  |
-    +-----+-----+                                               +-----+-----+
-          |                                                           |
-    (2) recordFailurePattern()                                 (3) getFailurePatterns()
-          |                                                           |
-    +-----v-----+                                                     |
-    |  Memory   | <---------------------------------------------------+
-    |  (Insights)|
-    +-----------+
+    +-----v-----+          (7) updateReputation()               +-------+-------+
+    |  Token    | <----------- (4) fetchToolUsage() ---+        |  Reputation   |
+    |  Tracker  |                                       |        |  (7-day roll) |
+    +-----+-----+                                       |        +-------+-------+
+          |                                              |                ^
+    (2) recordFailurePattern()                           |      (8) getReputation()
+          |                                              |                |
+    +-----v-----+                                       |        +-------+-------+
+    |  Memory   | <-------------------------------------+        | EventHandler  |
+    |  (Insights)|                                               | (on every     |
+    +-----------+                                               |  task result) |
+                                                                +---------------+
 ```
 
 1. **Telemetry**: The `Executor` captures token usage, duration, and success for every tool call.
@@ -386,7 +387,9 @@ To ensure the system remains efficient, a continuous optimization loop runs in t
 3. **Pattern Retrieval**: The `Strategic Planner` retrieves relevant failures before designing plans.
 4. **Tool Audit**: The `Strategic Planner` identifies anomalous tools (high cost/low success) from `TokenTracker` rollups.
 5. **Analytics**: The `AgentRouter` aggregates historical performance metrics from the `TokenTracker`.
-6. **Routing**: The `SuperClaw` uses these metrics to route tasks to the most efficient agent/model combination.
+6. **Routing**: The `AgentRouter` uses performance rollups AND reputation scores (success rate, latency, recency) to select the best agent. Formula: `(0.6 * performanceScore) + (0.4 * reputationScore)`.
+7. **Reputation Tracking**: The `EventHandler` updates agent reputation on every `TASK_COMPLETED` and `TASK_FAILED` event (fire-and-forget, non-blocking).
+8. **Reputation Retrieval**: The `AgentRouter` fetches reputation data for composite routing decisions.
 
 ### Evolution Safeguards
 

@@ -82,7 +82,7 @@ phases:
           git add .
           MSG="${COMMIT_MESSAGE:-chore: autonomous improvement by Claw Coder Agent [skip ci]}"
           if git commit -m "$MSG"; then
-            git push https://$GITHUB_TOKEN@github.com/caopengau/serverlessclaw.git HEAD:main
+            git push https://$GITHUB_TOKEN@github.com/serverlessclaw/serverlessclaw.git HEAD:main
           else
             echo "No changes to commit."
           fi

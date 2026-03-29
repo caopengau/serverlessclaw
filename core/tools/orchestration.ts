@@ -80,3 +80,54 @@ export const SIGNAL_ORCHESTRATION = {
     return report;
   },
 };
+
+/**
+ * Requests swarm consensus from multiple agents on a proposal.
+ * Dispatches CONSENSUS_REQUEST event to the AgentBus, which triggers
+ * vote collection via the consensus-handler.
+ */
+export const REQUEST_CONSENSUS = {
+  ...orchestrationTools.requestConsensus,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { proposal, voterIds, mode, timeoutMs } = args as {
+      proposal: string;
+      voterIds: string[];
+      mode?: 'majority' | 'unanimous' | 'weighted';
+      timeoutMs?: number;
+    };
+
+    if (!voterIds || voterIds.length === 0) {
+      return 'FAILED: At least one voterId is required for consensus.';
+    }
+
+    try {
+      const { emitTypedEvent } = await import('../lib/utils/typed-emit');
+      const { EventType } = await import('../lib/types/agent');
+
+      await emitTypedEvent(
+        'tool.consensus',
+        EventType.CONSENSUS_REQUEST as never,
+        {
+          userId: 'SYSTEM',
+          traceId: `consensus-${Date.now()}`,
+          taskId: `consensus-req-${Date.now()}`,
+          initiatorId: 'tool-requestConsensus',
+          depth: 0,
+          proposal,
+          voterIds,
+          mode: mode ?? 'majority',
+          timeoutMs: timeoutMs ?? 60000,
+          metadata: {},
+        } as never
+      );
+
+      return (
+        `CONSENSUS_REQUESTED: Proposal "${proposal.slice(0, 100)}..." dispatched to ` +
+        `${voterIds.length} voters using ${mode ?? 'majority'} mode. ` +
+        `Result will be delivered via CONSENSUS_REACHED event.`
+      );
+    } catch (error) {
+      return `Failed to request consensus: ${formatErrorMessage(error)}`;
+    }
+  },
+};

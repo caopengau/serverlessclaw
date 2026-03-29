@@ -58,7 +58,24 @@ export function createStorage() {
     primaryIndex: { hashKey: FIELDS.KEY },
   });
 
-  const knowledgeBucket = new sst.aws.Bucket('KnowledgeBucket');
+  const knowledgeBucket = new sst.aws.Bucket('KnowledgeBucket', {
+    transform: {
+      bucket: {
+        lifecycleRules: [
+          {
+            id: 'expire-knowledge-shards',
+            enabled: true,
+            filter: {
+              prefix: 'user-uploads/',
+            },
+            expiration: {
+              days: 90,
+            },
+          },
+        ],
+      },
+    },
+  });
 
   const secrets = {
     TelegramBotToken: new sst.Secret('TelegramBotToken'),

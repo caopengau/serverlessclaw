@@ -2,14 +2,18 @@
  * AgentRouter — Dynamic Model & Agent Selection
  *
  * Implements cost-aware routing by computing composite scores for agent-model
- * combinations based on historical performance, token cost, and capability match.
+ * combinations based on historical performance, token cost, capability match,
+ * and reputation data.
  *
  * GAP #4 FIX: Per-agent model selection for optimal cost/performance ratio.
+ * Reputation integration: agent success rate, latency, and recency factor into routing.
  */
 
 import { logger } from './logger';
 import type { IAgentConfig } from './types/agent';
 import { ReasoningProfile } from './types/llm';
+import type { AgentReputation } from './memory/reputation-operations';
+import { computeReputationScore } from './memory/reputation-operations';
 
 /**
  * Performance rollup data for an agent-model combination.
@@ -166,6 +170,47 @@ export class AgentRouter {
     }
 
     logger.info(`[AgentRouter] Best agent: ${bestAgent} (score: ${bestScore.toFixed(3)})`);
+    return bestAgent;
+  }
+
+  /**
+   * Selects the best agent from candidates, incorporating reputation data.
+   * Combines the performance rollup score with the reputation composite score.
+   *
+   * Formula: (0.6 * performanceScore) + (0.4 * reputationScore)
+   *
+   * @param candidates - Array of agent rollups to evaluate.
+   * @param reputations - Map of agentId to reputation data.
+   * @param capabilityMatchFn - Function to compute capability match for each candidate.
+   * @returns The best agent ID, or undefined if no candidates are available.
+   */
+  static selectBestAgentWithReputation(
+    candidates: AgentPerformanceRollup[],
+    reputations: Map<string, AgentReputation>,
+    capabilityMatchFn?: (agentId: string) => number
+  ): string | undefined {
+    if (candidates.length === 0) return undefined;
+
+    let bestAgent: string | undefined;
+    let bestScore = -Infinity;
+
+    for (const candidate of candidates) {
+      const match = capabilityMatchFn?.(candidate.agentId) ?? 1.0;
+      const performanceScore = this.computeScore(candidate, match);
+      const reputation = reputations.get(candidate.agentId);
+      const reputationScore = reputation ? computeReputationScore(reputation) : 0.5;
+
+      const compositeScore = 0.6 * performanceScore + 0.4 * reputationScore;
+
+      if (compositeScore > bestScore) {
+        bestScore = compositeScore;
+        bestAgent = candidate.agentId;
+      }
+    }
+
+    logger.info(
+      `[AgentRouter] Best agent (with reputation): ${bestAgent} (score: ${bestScore.toFixed(3)})`
+    );
     return bestAgent;
   }
 }

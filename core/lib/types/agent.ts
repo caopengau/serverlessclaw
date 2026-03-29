@@ -326,10 +326,18 @@ export enum EventType {
   CHUNK = 'chunk',
   /** Request for peer review by the Critic Agent (Council of Agents). */
   CRITIC_TASK = 'critic_task',
+  /** Event emitted when an agent reputation is updated. */
+  REPUTATION_UPDATE = 'reputation_update',
   /** Escalation level timeout event. */
   ESCALATION_LEVEL_TIMEOUT = 'escalation_level_timeout',
   /** Escalation completed event. */
   ESCALATION_COMPLETED = 'escalation_completed',
+  /** Request for swarm consensus vote. */
+  CONSENSUS_REQUEST = 'consensus_request',
+  /** Individual agent consensus vote. */
+  CONSENSUS_VOTE = 'consensus_vote',
+  /** Consensus result reached. */
+  CONSENSUS_REACHED = 'consensus_reached',
 }
 
 /**

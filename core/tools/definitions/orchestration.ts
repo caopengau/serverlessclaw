@@ -59,4 +59,36 @@ export const orchestrationTools: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
+  requestConsensus: {
+    name: 'requestConsensus',
+    description:
+      'Requests swarm consensus from multiple agents on a proposal. Supports three modes: ' +
+      'majority (>50% approval), unanimous (100% approval), and weighted (weighted sum >50%).',
+    parameters: {
+      type: 'object',
+      properties: {
+        proposal: {
+          type: 'string',
+          description: 'The proposal or decision to vote on.',
+        },
+        voterIds: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of agent IDs to participate in the vote.',
+        },
+        mode: {
+          type: 'string',
+          enum: ['majority', 'unanimous', 'weighted'],
+          description: 'Consensus mode. Default: majority.',
+        },
+        timeoutMs: {
+          type: 'number',
+          description: 'Timeout in milliseconds for collecting all votes. Default: 60000.',
+        },
+      },
+      required: ['proposal', 'voterIds'],
+      additionalProperties: false,
+    },
+    connectionProfile: ['bus'],
+  },
 };
