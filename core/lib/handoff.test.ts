@@ -27,9 +27,9 @@ describe('Handoff Protocol', () => {
     await requestHandoff('user-1', 'session-1');
 
     expect(ddbMock.calls()).toHaveLength(1);
-    const putCall = ddbMock.call(0);
-    expect(putCall.args[0].input.Item.userId).toBe('HANDOFF#user-1');
-    expect(putCall.args[0].input.Item.type).toBe('HANDOFF');
+    const input = ddbMock.call(0).args[0].input as any;
+    expect(input.Item.userId).toBe('HANDOFF#user-1');
+    expect(input.Item.type).toBe('HANDOFF');
 
     const { emitEvent } = await import('./utils/bus');
     expect(emitEvent).toHaveBeenCalledWith(

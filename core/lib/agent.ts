@@ -599,7 +599,7 @@ export class Agent {
     if (await isHumanTakingControl(baseUserId)) {
       logger.info(`[Agent.stream] Human control active for ${baseUserId}, entering OBSERVE mode.`);
       const content = 'HUMAN_TAKING_CONTROL: Entering observe mode.';
-      yield { content, messageId: traceId, traceId };
+      yield { content, messageId: traceId };
       await tracer.endTrace(content);
       return;
     }
