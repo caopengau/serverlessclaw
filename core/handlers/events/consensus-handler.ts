@@ -1,231 +1,112 @@
-/**
- * Consensus Handler
- *
- * Handles swarm consensus protocol events: requesting votes, collecting votes,
- * and computing the consensus result. Supports three modes:
- * - majority: >50% approval required
- * - unanimous: 100% approval required
- * - weighted: weighted sum of votes >50% of total weight
- */
-
-import { CONSENSUS_REQUEST_SCHEMA, CONSENSUS_VOTE_SCHEMA } from '../../lib/schema/events';
 import { EventType } from '../../lib/types/agent';
 import { logger } from '../../lib/logger';
+import { emitEvent } from '../../lib/utils/bus';
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { getDocClient } from '../../lib/utils/ddb-client';
+import { Resource } from 'sst';
 
 /**
- * In-memory consensus state for tracking votes within a Lambda invocation.
- * For cross-invocation durability, votes are also persisted to DynamoDB.
+ * Handles consensus requests and votes from the swarm.
+ * Manages the state of active consensus cycles in DynamoDB.
  */
-interface ConsensusState {
-  consensusId: string;
-  proposal: string;
-  mode: 'majority' | 'unanimous' | 'weighted';
-  voterIds: string[];
-  votes: Map<
-    string,
-    { vote: 'approve' | 'reject' | 'abstain'; reasoning?: string; weight: number }
-  >;
-  initiatorId: string;
-  userId: string;
-  traceId: string;
-  depth: number;
-  sessionId?: string;
-  timeoutMs: number;
-  startTime: number;
-}
+export async function handleConsensus(event: { detail: any }, detailType: string): Promise<void> {
+  const docClient = getDocClient();
+  const resource = Resource as unknown as { MemoryTable: { name: string } };
+  const tableName = resource.MemoryTable.name;
 
-const activeConsensus = new Map<string, ConsensusState>();
+  if (detailType === EventType.CONSENSUS_REQUEST) {
+    const { requestId, proposal, initiatorId, participants, mode = 'majority' } = event.detail;
 
-/**
- * Handles a CONSENSUS_REQUEST event by initializing vote tracking
- * and dispatching vote requests to all voters.
- */
-export async function handleConsensusRequest(eventDetail: Record<string, unknown>): Promise<void> {
-  const parsed = CONSENSUS_REQUEST_SCHEMA.parse(eventDetail);
-  const consensusId = `consensus-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    logger.info(`[Consensus] New request ${requestId} from ${initiatorId} (Mode: ${mode})`);
 
-  logger.info(
-    `[Consensus] Request received: ${consensusId} | Mode: ${parsed.mode} | ` +
-      `Voters: ${parsed.voterIds.length} | Proposal: "${parsed.proposal.slice(0, 80)}..."`
-  );
+    // Initialize consensus state
+    await docClient.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: { userId: `CONSENSUS#${requestId}`, timestamp: 0 },
+        UpdateExpression:
+          'SET proposal = :prop, initiatorId = :init, participants = :parts, mode = :mode, votes = :empty_list, status = :status, createdAt = :now',
+        ExpressionAttributeValues: {
+          ':prop': proposal,
+          ':init': initiatorId,
+          ':parts': participants,
+          ':mode': mode,
+          ':empty_list': [],
+          ':status': 'PENDING',
+          ':now': Date.now(),
+        },
+      })
+    );
+  } else if (detailType === EventType.CONSENSUS_VOTE) {
+    const { requestId, voterId, vote, reasoning } = event.detail;
 
-  const state: ConsensusState = {
-    consensusId,
-    proposal: parsed.proposal,
-    mode: parsed.mode,
-    voterIds: parsed.voterIds,
-    votes: new Map(),
-    initiatorId: parsed.initiatorId,
-    userId: parsed.userId,
-    traceId: parsed.traceId ?? consensusId,
-    depth: parsed.depth,
-    sessionId: parsed.sessionId,
-    timeoutMs: parsed.timeoutMs,
-    startTime: Date.now(),
-  };
+    logger.info(`[Consensus] Vote from ${voterId} for ${requestId}: ${vote ? 'YES' : 'NO'}`);
 
-  activeConsensus.set(consensusId, state);
+    // Add vote atomically
+    const response = await docClient.send(
+      new UpdateCommand({
+        TableName: tableName,
+        Key: { userId: `CONSENSUS#${requestId}`, timestamp: 0 },
+        UpdateExpression: 'SET votes = list_append(if_not_exists(votes, :empty_list), :vote)',
+        ExpressionAttributeValues: {
+          ':vote': [{ voterId, vote, reasoning, timestamp: Date.now() }],
+          ':empty_list': [],
+        },
+        ReturnValues: 'ALL_NEW',
+      })
+    );
 
-  // Dispatch vote requests to all voters
-  const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
+    const state = response.Attributes;
+    if (!state) return;
 
-  for (const voterId of parsed.voterIds) {
-    try {
-      await emitTypedEvent(
-        'consensus.handler',
-        EventType.CONSENSUS_VOTE as never,
-        {
-          userId: parsed.userId,
-          traceId: state.traceId,
-          taskId: consensusId,
-          initiatorId: 'consensus-handler',
-          depth: parsed.depth + 1,
-          sessionId: parsed.sessionId,
-          consensusId,
-          voterId,
-          vote: 'abstain', // default — voter will override
-          weight: 1.0,
-        } as never
+    // Check if consensus is reached
+    const totalVotes = state.votes.length;
+    const requiredParticipants = state.participants.length;
+    const yesVotes = state.votes.filter((v: { vote: boolean }) => v.vote).length;
+
+    let isReached = false;
+    let finalResult = false;
+
+    if (state.mode === 'unanimous') {
+      if (totalVotes === requiredParticipants) {
+        isReached = true;
+        finalResult = yesVotes === requiredParticipants;
+      }
+    } else {
+      // default to majority
+      if (
+        totalVotes >= Math.ceil(requiredParticipants / 2) + 1 ||
+        totalVotes === requiredParticipants
+      ) {
+        isReached = true;
+        finalResult = yesVotes > totalVotes / 2;
+      }
+    }
+
+    if (isReached && state.status === 'PENDING') {
+      logger.info(
+        `[Consensus] Request ${requestId} finalized: ${finalResult ? 'APPROVED' : 'REJECTED'}`
       );
 
-      logger.info(`[Consensus] Vote request sent to ${voterId} for ${consensusId}`);
-    } catch (error) {
-      logger.warn(`[Consensus] Failed to dispatch vote request to ${voterId}:`, error);
+      await docClient.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { userId: `CONSENSUS#${requestId}`, timestamp: 0 },
+          UpdateExpression: 'SET status = :status, finalizedAt = :now, result = :result',
+          ExpressionAttributeValues: {
+            ':status': 'COMPLETED',
+            ':now': Date.now(),
+            ':result': finalResult,
+          },
+        })
+      );
+
+      await emitEvent('consensus-handler', EventType.CONSENSUS_REACHED, {
+        requestId,
+        result: finalResult,
+        initiatorId: state.initiatorId,
+        votes: state.votes,
+      });
     }
   }
-}
-
-/**
- * Handles a CONSENSUS_VOTE event by recording the vote and checking
- * if the consensus has been reached.
- */
-export async function handleConsensusVote(eventDetail: Record<string, unknown>): Promise<void> {
-  const parsed = CONSENSUS_VOTE_SCHEMA.parse(eventDetail);
-  const state = activeConsensus.get(parsed.consensusId);
-
-  if (!state) {
-    logger.warn(`[Consensus] Vote received for unknown consensus: ${parsed.consensusId}`);
-    return;
-  }
-
-  // Record vote
-  state.votes.set(parsed.voterId, {
-    vote: parsed.vote,
-    reasoning: parsed.reasoning,
-    weight: parsed.weight,
-  });
-
-  logger.info(
-    `[Consensus] Vote recorded: ${parsed.voterId} -> ${parsed.vote} ` +
-      `(${state.votes.size}/${state.voterIds.length}) for ${parsed.consensusId}`
-  );
-
-  // Check if all votes are in
-  if (state.votes.size >= state.voterIds.length) {
-    await computeAndEmitResult(state);
-  }
-}
-
-/**
- * Handles consensus timeout by emitting the final result with whatever votes are available.
- */
-export async function handleConsensusTimeout(consensusId: string): Promise<void> {
-  const state = activeConsensus.get(consensusId);
-  if (!state) return;
-
-  logger.info(
-    `[Consensus] Timeout for ${consensusId}. Votes: ${state.votes.size}/${state.voterIds.length}`
-  );
-  await computeAndEmitResult(state, true);
-}
-
-/**
- * Computes the consensus result and emits a CONSENSUS_REACHED event.
- */
-async function computeAndEmitResult(state: ConsensusState, timedOut = false): Promise<void> {
-  let approveCount = 0;
-  let rejectCount = 0;
-  let abstainCount = 0;
-  let totalWeight = 0;
-  let approveWeight = 0;
-
-  const votes = Array.from(state.votes.entries()).map(([voterId, v]) => {
-    if (v.vote === 'approve') {
-      approveCount++;
-      approveWeight += v.weight;
-    } else if (v.vote === 'reject') {
-      rejectCount++;
-    } else {
-      abstainCount++;
-    }
-    totalWeight += v.weight;
-    return { voterId, vote: v.vote, reasoning: v.reasoning, weight: v.weight };
-  });
-
-  // Add abstain entries for voters who didn't vote
-  for (const voterId of state.voterIds) {
-    if (!state.votes.has(voterId)) {
-      votes.push({ voterId, vote: 'abstain' as const, reasoning: undefined, weight: 1.0 });
-      abstainCount++;
-      totalWeight += 1.0;
-    }
-  }
-
-  let result: 'approved' | 'rejected' | 'timeout';
-
-  if (timedOut) {
-    result = 'timeout';
-  } else if (state.mode === 'unanimous') {
-    result = rejectCount > 0 ? 'rejected' : 'approved';
-  } else if (state.mode === 'weighted') {
-    result = approveWeight / totalWeight > 0.5 ? 'approved' : 'rejected';
-  } else {
-    // majority
-    const effectiveVoters = approveCount + rejectCount;
-    result = effectiveVoters > 0 && approveCount / effectiveVoters > 0.5 ? 'approved' : 'rejected';
-  }
-
-  logger.info(
-    `[Consensus] Result: ${result} | Mode: ${state.mode} | ` +
-      `Approve: ${approveCount}, Reject: ${rejectCount}, Abstain: ${abstainCount}`
-  );
-
-  // Cleanup
-  activeConsensus.delete(state.consensusId);
-
-  // Emit result event
-  const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
-  await emitTypedEvent(
-    'consensus.handler',
-    EventType.CONSENSUS_REACHED as never,
-    {
-      userId: state.userId,
-      traceId: state.traceId,
-      taskId: state.consensusId,
-      initiatorId: state.initiatorId,
-      depth: state.depth,
-      sessionId: state.sessionId,
-      consensusId: state.consensusId,
-      proposal: state.proposal,
-      result,
-      mode: state.mode,
-      approveCount,
-      rejectCount,
-      abstainCount,
-      totalVoters: state.voterIds.length,
-      votes,
-    } as never
-  );
-
-  // Route result back to initiator via continuation
-  const { wakeupInitiator } = await import('./shared');
-  await wakeupInitiator(
-    state.userId,
-    state.initiatorId,
-    `CONSENSUS_RESULT: Proposal "${state.proposal.slice(0, 100)}" was ${result}. ` +
-      `Mode: ${state.mode}. Votes: ${approveCount} approve, ${rejectCount} reject, ${abstainCount} abstain.`,
-    state.traceId,
-    state.sessionId,
-    state.depth
-  );
 }

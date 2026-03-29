@@ -22,7 +22,7 @@ Serverless Claw uses a tiered, evolutionary memory system designed to provide co
 |                          MEMORY TABLE                               |
 +---------------------------------------------------------------------+
 |                                                                     |
-|  [ TIER 1: CORE INTELLIGENCE ] --------> Retain: 2 Years (730d)     |
+|  [ TIER 1: CORE INTELLIGENCE ] --------> Retain: 730 Days (2 Years)   |
 |  - Key: DISTILLED# / LESSON# / GAP# / MEMORY: / REPUTATION#:        |
 |  - Purpose: Permanent identity, tactical lessons, strategic roadmaps,|
 |    agent reputation for swarm routing.                               |
@@ -84,10 +84,10 @@ Volatile signals used for coordination, recovery, and real-time status updates.
 
 Serverless Claw implements an automatic, tiered data lifecycle using DynamoDB TTL. This ensures the system remains "lean" and fast without losing strategic intelligence.
 
-| Tier             | Retention   | Category    | Purpose                |
-| :--------------- | :---------- | :---------- | :--------------------- |
-| **Intelligence** | **2 Years** | Strategic   | Facts, Lessons, Gaps   |
-| **Conversation** | **30 Days** | Operational | Human chat history     |
+| Tier             | Retention    | Category    | Purpose                |
+| :--------------- | :----------- | :---------- | :--------------------- |
+| **Intelligence** | **730 Days** | Strategic   | Facts, Lessons, Gaps   |
+| **Conversation** | **30 Days**  | Operational | Human chat history     |
 | **Agent Traces** | **1 Day**   | Mechanical  | Background agent loops |
 | **System Logs**  | **1 Hour**  | Volatile    | Recovery & signals     |
 

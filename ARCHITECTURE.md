@@ -376,9 +376,16 @@ To ensure the system remains efficient, a continuous optimization loop runs in t
     (2) recordFailurePattern()                           |      (8) getReputation()
           |                                              |                |
     +-----v-----+                                       |        +-------+-------+
-    |  Memory   | <-------------------------------------+        | EventHandler  |
-    |  (Insights)|                                               | (on every     |
-    +-----------+                                               |  task result) |
+    |  Memory   | <-------------------------------------+        | Reputation    |
+    |  (Insights)|                                               | Handler       |
+    +-----------+                                               +-------+-------+
+                                                                        ^
+                                                                        |
+                                                               (7) REPUTATION_UPDATE
+                                                                        |
+                                                                +-------+-------+
+                                                                | EventHandler  |
+                                                                | (on result)   |
                                                                 +---------------+
 ```
 
@@ -388,7 +395,7 @@ To ensure the system remains efficient, a continuous optimization loop runs in t
 4. **Tool Audit**: The `Strategic Planner` identifies anomalous tools (high cost/low success) from `TokenTracker` rollups.
 5. **Analytics**: The `AgentRouter` aggregates historical performance metrics from the `TokenTracker`.
 6. **Routing**: The `AgentRouter` uses performance rollups AND reputation scores (success rate, latency, recency) to select the best agent. Formula: `(0.6 * performanceScore) + (0.4 * reputationScore)`.
-7. **Reputation Tracking**: The `EventHandler` updates agent reputation on every `TASK_COMPLETED` and `TASK_FAILED` event (fire-and-forget, non-blocking).
+7. **Reputation Tracking**: The `EventHandler` updates agent reputation on every `TASK_COMPLETED` and `TASK_FAILED` event (via `REPUTATION_UPDATE`).
 8. **Reputation Retrieval**: The `AgentRouter` fetches reputation data for composite routing decisions.
 
 ### Evolution Safeguards

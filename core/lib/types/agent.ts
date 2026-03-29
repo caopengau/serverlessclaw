@@ -328,16 +328,16 @@ export enum EventType {
   CRITIC_TASK = 'critic_task',
   /** Event emitted when an agent reputation is updated. */
   REPUTATION_UPDATE = 'reputation_update',
+  /** Request for swarm consensus on a high-impact change. */
+  CONSENSUS_REQUEST = 'consensus_request',
+  /** A vote submitted by a peer for a consensus request. */
+  CONSENSUS_VOTE = 'consensus_vote',
+  /** Event emitted when consensus has been reached. */
+  CONSENSUS_REACHED = 'consensus_reached',
   /** Escalation level timeout event. */
   ESCALATION_LEVEL_TIMEOUT = 'escalation_level_timeout',
   /** Escalation completed event. */
   ESCALATION_COMPLETED = 'escalation_completed',
-  /** Request for swarm consensus vote. */
-  CONSENSUS_REQUEST = 'consensus_request',
-  /** Individual agent consensus vote. */
-  CONSENSUS_VOTE = 'consensus_vote',
-  /** Consensus result reached. */
-  CONSENSUS_REACHED = 'consensus_reached',
 }
 
 /**
