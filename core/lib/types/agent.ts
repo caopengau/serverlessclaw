@@ -278,8 +278,6 @@ export enum AgentType {
   CRITIC = 'critic',
   /** Dedicated moderator for multi-party collaborations. */
   FACILITATOR = 'facilitator',
-  /** Optimization agent for cost and tool usage. */
-  OPTIMIZER = 'optimizer',
 }
 
 /**

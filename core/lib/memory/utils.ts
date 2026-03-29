@@ -213,10 +213,11 @@ export async function queryByTypeAndMap(
     content: item.content as string,
     timestamp: item.timestamp as number,
     createdAt:
-      (item.createdAt as number) ?? (item.metadata as any)?.createdAt ?? (item.timestamp as number),
+      (item.createdAt as number) ??
+      (item.metadata as { createdAt?: number } | undefined)?.createdAt ??
+      (item.timestamp as number),
     metadata: createMetadata(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (item.metadata as any) ?? { category: defaultCategory },
+      (item.metadata as Partial<InsightMetadata>) ?? { category: defaultCategory },
       item.timestamp as number
     ),
   }));

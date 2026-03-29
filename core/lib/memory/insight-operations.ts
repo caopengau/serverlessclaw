@@ -15,7 +15,6 @@ import {
   queryByTypeAndGetContent,
   queryByTypeAndMap,
 } from './utils';
-import { ScanCommand } from '@aws-sdk/lib-dynamodb';
 
 /**
  * Shared implementation for adding granular records (Insights/Memories).
@@ -313,39 +312,9 @@ export async function searchInsights(
     };
   }
 
-  // Fallback to Scan for cross-user/global keyword search
-  const filterExpressions: string[] = [];
-  const expressionAttributeValues: Record<string, unknown> = {};
-  const expressionAttributeNames: Record<string, string> = {};
-
-  if (query && query !== '*' && query !== '') {
-    filterExpressions.push('contains(content, :query)');
-    expressionAttributeValues[':query'] = query;
-  }
-
-  if (filterExpressions.length > 0) {
-    params.FilterExpression = filterExpressions.join(' AND ');
-    params.ExpressionAttributeValues = expressionAttributeValues;
-    if (Object.keys(expressionAttributeNames).length > 0) {
-      params.ExpressionAttributeNames = expressionAttributeNames;
-    }
-  }
-
-  const result = await (base as any).docClient.send(
-    new ScanCommand({
-      TableName: (base as any).tableName,
-      ...params,
-    })
-  );
-
-  const items = (result.Items ?? []) as Record<string, unknown>[];
-  return {
-    items: mapToInsights(items).sort((a, b) => b.timestamp - a.timestamp),
-    lastEvaluatedKey: result.LastEvaluatedKey,
-  };
+  // Require userId or category to avoid expensive full-table scans
+  return { items: [] };
 }
-
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 /**
  * Helper to map DB items to MemoryInsight objects.
@@ -374,7 +343,7 @@ function mapToInsights(items: Record<string, unknown>[]): MemoryInsight[] {
       timestamp: item.timestamp as number,
       createdAt:
         (item.createdAt as number) ??
-        (item.metadata as any)?.createdAt ??
+        (item.metadata as { createdAt?: number } | undefined)?.createdAt ??
         (item.timestamp as number),
     };
   });
@@ -430,28 +399,25 @@ export async function getLowUtilizationMemory(
   limit: number = 20
 ): Promise<Record<string, unknown>[]> {
   const registeredTypes = await getRegisteredMemoryTypes(base);
-  let staleItems: Record<string, unknown>[] = [];
   const STALE_THRESHOLD_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
   const now = Date.now();
 
-  for (const type of registeredTypes) {
-    if (!type.startsWith('MEMORY:') && type !== 'LESSON') continue;
+  const filteredTypes = registeredTypes.filter(
+    (type) => type.startsWith('MEMORY:') || type === 'LESSON'
+  );
 
-    const items = await getMemoryByType(base, type, 50);
+  const results = await Promise.all(filteredTypes.map((type) => getMemoryByType(base, type, 50)));
 
-    const stale = items.filter((item: Record<string, unknown>) => {
-      const meta = item.metadata as InsightMetadata | undefined;
-      if (!meta) return false;
+  const staleItems = results.flat().filter((item: Record<string, unknown>) => {
+    const meta = item.metadata as InsightMetadata | undefined;
+    if (!meta) return false;
 
-      const isHitCountLow = meta.hitCount === undefined || meta.hitCount === 0;
-      const lastAccessed = meta.lastAccessed ?? (item.timestamp as number) ?? now;
-      const timeSinceAccess = now - lastAccessed;
+    const isHitCountLow = meta.hitCount === undefined || meta.hitCount === 0;
+    const lastAccessed = meta.lastAccessed ?? (item.timestamp as number) ?? now;
+    const timeSinceAccess = now - lastAccessed;
 
-      return isHitCountLow && timeSinceAccess > STALE_THRESHOLD_MS;
-    });
-
-    staleItems = [...staleItems, ...stale];
-  }
+    return isHitCountLow && timeSinceAccess > STALE_THRESHOLD_MS;
+  });
 
   // Sort by oldest first and cap
   return staleItems

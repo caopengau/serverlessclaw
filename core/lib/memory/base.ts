@@ -6,6 +6,7 @@ import {
   DeleteCommand,
   UpdateCommand,
   ScanCommand,
+  BatchWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
 
 import { Resource } from 'sst';
@@ -218,11 +219,17 @@ export class BaseMemoryProvider {
       },
     });
 
-    for (const item of items) {
-      await this.deleteItem({
-        userId: item.userId as string,
-        timestamp: item.timestamp as number,
-      });
+    // Batch delete in groups of 25 (DynamoDB limit)
+    for (let i = 0; i < items.length; i += 25) {
+      const batch = items.slice(i, i + 25);
+      const requestItems = {
+        [this.tableName]: batch.map((item) => ({
+          DeleteRequest: {
+            Key: { userId: item.userId as string, timestamp: item.timestamp as number },
+          },
+        })),
+      };
+      await this.docClient.send(new BatchWriteCommand({ RequestItems: requestItems }));
     }
     logger.info(`Cleared history for ${userId} (${items.length} items)`);
   }

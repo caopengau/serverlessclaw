@@ -236,7 +236,7 @@ async function deliverTelegram(
   attachments?: Attachment[],
   options?: { label: string; value: string }[]
 ): Promise<void> {
-  const token = (Resource as any).TelegramBotToken?.value;
+  const token = (Resource as unknown as Record<string, { value?: string }>).TelegramBotToken?.value;
   if (!token) throw new Error('TelegramBotToken not configured');
 
   if (attachments && attachments.length > 0) {
@@ -288,7 +288,7 @@ async function deliverDiscord(
   attachments?: Attachment[],
   options?: { label: string; value: string }[]
 ): Promise<void> {
-  const token = (Resource as any).DiscordBotToken?.value;
+  const token = (Resource as unknown as Record<string, { value?: string }>).DiscordBotToken?.value;
   if (!token) throw new Error('DiscordBotToken not configured');
 
   const embeds = attachments
@@ -305,8 +305,8 @@ async function deliverDiscord(
         {
           type: 1, // Action Row
           components: options.map((o) => ({
-            type: 2, // Button
-            style: 1, // Primary
+            type: 2,
+            style: 1,
             label: o.label,
             custom_id: o.value,
           })),
@@ -337,10 +337,10 @@ async function deliverSlack(
   attachments?: Attachment[],
   options?: { label: string; value: string }[]
 ): Promise<void> {
-  const token = (Resource as any).SlackBotToken?.value;
+  const token = (Resource as unknown as Record<string, { value?: string }>).SlackBotToken?.value;
   if (!token) throw new Error('SlackBotToken not configured');
 
-  const blocks: any[] = [
+  const blocks: Record<string, unknown>[] = [
     {
       type: 'section',
       text: { type: 'mrkdwn', text: message },
@@ -367,12 +367,14 @@ async function deliverSlack(
   if (options?.length) {
     blocks.push({
       type: 'actions',
-      elements: options.map((o) => ({
-        type: 'button',
-        text: { type: 'plain_text', text: o.label },
-        value: o.value,
-        action_id: `act_${Math.random().toString(36).substring(7)}`,
-      })),
+      elements: options.map(
+        (o): Record<string, unknown> => ({
+          type: 'button',
+          text: { type: 'plain_text', text: o.label },
+          value: o.value,
+          action_id: `act_${Math.random().toString(36).substring(7)}`,
+        })
+      ),
     });
   }
 

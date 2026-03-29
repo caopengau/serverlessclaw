@@ -51,7 +51,7 @@ export const listSchedules = {
     const { namePrefix } = args as { namePrefix: string };
     try {
       const { DynamicScheduler } = await import('../../lib/scheduler');
-      const goals = (await DynamicScheduler.listSchedules(namePrefix)) as Record<string, any>[];
+      const goals = (await DynamicScheduler.listSchedules(namePrefix)) as Record<string, unknown>[];
 
       if (goals.length === 0) return 'No active goals found.';
 

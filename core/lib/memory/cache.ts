@@ -26,7 +26,6 @@ interface CacheStats {
  */
 export class MemoryCache<T = unknown> {
   private cache: Map<string, CacheEntry<T>> = new Map();
-  private accessOrder: string[] = [];
   private stats: CacheStats = { hits: 0, misses: 0, evictions: 0, size: 0 };
 
   constructor(
@@ -91,7 +90,6 @@ export class MemoryCache<T = unknown> {
   delete(key: string): boolean {
     const deleted = this.cache.delete(key);
     if (deleted) {
-      this.accessOrder = this.accessOrder.filter((k) => k !== key);
       this.stats.size = this.cache.size;
     }
     return deleted;
@@ -126,7 +124,6 @@ export class MemoryCache<T = unknown> {
    */
   clear(): void {
     this.cache.clear();
-    this.accessOrder = [];
     this.stats = { hits: 0, misses: 0, evictions: 0, size: 0 };
   }
 
@@ -179,17 +176,18 @@ export class MemoryCache<T = unknown> {
   }
 
   private updateAccessOrder(key: string): void {
-    // Remove from current position
-    this.accessOrder = this.accessOrder.filter((k) => k !== key);
-    // Add to front (most recently used)
-    this.accessOrder.unshift(key);
+    // Move to end (most recently used) by re-inserting
+    const entry = this.cache.get(key);
+    if (entry !== undefined) {
+      this.cache.delete(key);
+      this.cache.set(key, entry);
+    }
   }
 
   private evictLRU(): void {
-    if (this.accessOrder.length === 0) return;
-
-    const lruKey = this.accessOrder.pop();
-    if (lruKey) {
+    // First key in Map iteration order is the least recently used
+    const lruKey = this.cache.keys().next().value;
+    if (lruKey !== undefined) {
       this.cache.delete(lruKey);
       this.stats.evictions++;
       logger.debug(`Cache evicted LRU key: ${lruKey}`);

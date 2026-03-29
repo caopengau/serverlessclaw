@@ -47,7 +47,8 @@ export const stageChanges = {
         return 'No files to stage.';
       }
 
-      const stagingBucket = (Resource as any).StagingBucket?.name;
+      const typedResource = Resource as unknown as import('../../lib/types/system').SSTResource;
+      const stagingBucket = typedResource.StagingBucket?.name;
       if (!stagingBucket) return 'FAILED: StagingBucket not linked.';
 
       const zipPath = path.join('/tmp', `stage-${Date.now()}.zip`);
@@ -137,10 +138,10 @@ export const triggerDeployment = {
 
       const count = await getDeployCountToday();
 
-      const configTable = (Resource as any).ConfigTable?.name;
-      const memoryTable = (Resource as any).MemoryTable?.name;
-      const buildProject =
-        (Resource as any).SelfDeployProject?.name || (Resource as any).Deployer?.name;
+      const typedResource = Resource as unknown as import('../../lib/types/system').SSTResource;
+      const configTable = typedResource.ConfigTable?.name;
+      const memoryTable = typedResource.MemoryTable?.name;
+      const buildProject = typedResource.SelfDeployProject?.name || typedResource.Deployer?.name;
 
       if (!configTable || !memoryTable || !buildProject) {
         return 'FAILED: Infrastructure resources not fully linked.';
@@ -257,8 +258,8 @@ export const triggerInfraRebuild = {
       const { StartBuildCommand, CodeBuildClient } = await import('@aws-sdk/client-codebuild');
       const client = new CodeBuildClient({});
 
-      const buildProject =
-        (Resource as any).SelfDeployProject?.name || (Resource as any).Deployer?.name;
+      const typedResource = Resource as unknown as import('../../lib/types/system').SSTResource;
+      const buildProject = typedResource.SelfDeployProject?.name || typedResource.Deployer?.name;
       if (!buildProject) return 'FAILED: SelfDeployProject not linked.';
 
       const build = await client.send(

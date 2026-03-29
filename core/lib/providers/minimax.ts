@@ -47,9 +47,8 @@ export class MiniMaxProvider implements IProvider {
     _provider?: string,
     responseFormat?: import('../types/index').ResponseFormat
   ): Promise<Message> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resource = Resource as any;
-    const apiKey = ('MiniMaxApiKey' in resource ? resource.MiniMaxApiKey.value : '') ?? '';
+    const typedResource = Resource as unknown as import('../types/system').SSTResource;
+    const apiKey = typedResource.MiniMaxApiKey?.value ?? '';
     const activeModel = model ?? this.model;
 
     const reasoningConfig = MINIMAX_REASONING_MAP[profile];
@@ -149,9 +148,8 @@ export class MiniMaxProvider implements IProvider {
     _provider?: string,
     responseFormat?: import('../types/index').ResponseFormat
   ): AsyncIterable<import('../types/index').MessageChunk> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resource = Resource as any;
-    const apiKey = ('MiniMaxApiKey' in resource ? resource.MiniMaxApiKey.value : '') ?? '';
+    const typedResource = Resource as unknown as import('../types/system').SSTResource;
+    const apiKey = typedResource.MiniMaxApiKey?.value ?? '';
     const activeModel = model ?? this.model;
 
     const reasoningConfig = MINIMAX_REASONING_MAP[profile];

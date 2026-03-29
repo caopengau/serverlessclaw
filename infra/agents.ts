@@ -96,7 +96,6 @@ export function createAgents(
   plannerAgent: sst.aws.Function;
   reflectorAgent: sst.aws.Function;
   criticAgent: sst.aws.Function;
-  optimizerAgent: sst.aws.Function;
   notifier: sst.aws.Function;
   agentRunner: sst.aws.Function;
   bridge: sst.aws.Function;
@@ -442,35 +441,6 @@ export function createAgents(
     },
   });
 
-  // 7.6 Optimizer Agent (Efficiency audit)
-  const optimizerAgent = new sst.aws.Function('OptimizerAgent', {
-    handler: 'core/agents/optimizer.handler',
-    dev: liveInLocalOnly,
-    link: baseLink,
-    architecture: LAMBDA_ARCHITECTURE,
-    nodejs: { loader: NODEJS_LOADERS },
-    permissions: [...basePermissions, ...schedulerPermissions],
-    environment: agentEnv,
-    memory: AGENT_CONFIG.memory.MEDIUM,
-    timeout: AGENT_CONFIG.timeout.LONG,
-    logging: {
-      retention: LOG_RETENTION_PERIOD,
-    },
-  });
-  bus.subscribe('OptimizerTaskSubscriber', optimizerAgent.arn, {
-    pattern: {
-      detailType: [`${AgentType.OPTIMIZER}_task`],
-    },
-  });
-
-  // 48-hour Schedule (Optimizer Proactive Review)
-  createScheduledInvocation(
-    'OptimizerProactive',
-    'rate(48 hours)',
-    optimizerAgent,
-    'Performs periodic efficiency and cost audit of the agent swarm'
-  );
-
   // 8. Notifier
   const notifier = new sst.aws.Function('Notifier', {
     handler: 'core/handlers/notifier.handler',
@@ -530,7 +500,6 @@ export function createAgents(
             `${AgentType.COGNITION_REFLECTOR}_task`,
             `${AgentType.QA}_task`,
             `${AgentType.CRITIC}_task`,
-            `${AgentType.OPTIMIZER}_task`,
           ],
         },
       ],
@@ -595,7 +564,6 @@ export function createAgents(
     plannerAgent,
     reflectorAgent,
     criticAgent,
-    optimizerAgent,
     notifier,
     agentRunner,
     bridge,

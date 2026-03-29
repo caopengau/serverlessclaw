@@ -158,20 +158,12 @@ Initiator (Planner)     AgentBus (EB)       Participants (xN)     Consensus Hand
       |                      |                    |<-- isHumanTakingControl?
       |                      |                    |------- ( TRUE ) ------>|
       |                      |                    |                    |
-      |                      |                    |             [ENTER OBSERVE MODE]
-      |                      |                    |             [EXIT / NO TOOLS]
+      |                      |             [ENTER OBSERVE MODE]
+      |                      |             [EXIT / NO TOOLS]
       ```
 
-      ### Evolution Budgeting (Cost Guardrails)
-To ensure the autonomous swarm does not exceed financial limits, the `EvolutionBudgetManager` enforces per-cycle cost caps.
+      ### Granular HITL Tool Approval (Tool-level Gates)
 
-- **Check**: Agents call `canDispatchTask(estimatedCost)` before initiating expensive loops.
-- **Record**: Agents call `recordSpend(amount)` upon task completion to decrement the cycle budget.
-- **Auto-Reset**: Budgets automatically reset when the cycle (default: 7 days) expires.
-
----
-
-### Granular HITL Tool Approval (Tool-level Gates)
 
 For security-sensitive operations (e.g., deleting data, triggering deployments), tools can be marked with `requiresApproval: true`. The `AgentExecutor` automatically pauses before executing such tools, allowing for granular human oversight. Users can provide optional comments with their approval to guide the agent.
 

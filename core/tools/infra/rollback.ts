@@ -14,7 +14,8 @@ export const rollbackDeployment = {
       const { StartBuildCommand, CodeBuildClient } = await import('@aws-sdk/client-codebuild');
       const client = new CodeBuildClient({});
 
-      const buildProject = (Resource as any).RollbackProject?.name;
+      const typedResource = Resource as unknown as import('../../lib/types/system').SSTResource;
+      const buildProject = typedResource.RollbackProject?.name;
       if (!buildProject) return 'FAILED: RollbackProject not linked.';
 
       const build = await client.send(

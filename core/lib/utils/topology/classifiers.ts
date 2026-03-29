@@ -143,7 +143,6 @@ export const CLASSIFIERS: ResourceClassifier[] = [
         'reflector',
         'qa',
         'critic',
-        'optimizer',
         'agentrunner',
       ].includes(k) ||
       k.includes('agent') ||

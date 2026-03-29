@@ -24,22 +24,22 @@ Serverless Claw uses a tiered, evolutionary memory system designed to provide co
 |                          MEMORY TABLE                               |
 +---------------------------------------------------------------------+
 |                                                                     |
-|  [ TIER 1: CORE INTELLIGENCE ] --------> Retain: 730 Days (2 Years)   |
-|  - Key: DISTILLED# / LESSON# / GAP# / MEMORY: / REPUTATION#:        |
-|    / FAILED_PLAN#:                                                  |
+|  [ TIER 1: CORE INTELLIGENCE ] --------> Retain: 90-730 Days        |
+|  - Key: DISTILLED# / LESSON# (90d) / FACT# (365d) / GAP# (730d) /  |
+|    MEMORY: / REPUTATION# (365d) / FAILED_PLAN#:                     |
 |  - Purpose: Permanent identity, tactical lessons, strategic roadmaps,|
 |    agent reputation for swarm routing, and anti-pattern learning.    |
 |                                                                     |
-|  [ TIER 2: HUMAN CONVERSATION ] -------> Retain: 30 Days            |
-|  - Key: CONV# / SESSIONS#                                           |
+|  [ TIER 2: HUMAN CONVERSATION ] -------> Retain: 7 Days             |
+|  - Key: CONV# / SESSIONS# (90d) / SUMMARY# (30d)                    |
 |  - Purpose: Recent user chat history and session metadata.           |
 |                                                                     |
-|  [ TIER 3: AGENT OPERATIONAL TRACES ] -> Retain: 1 Day              |
+|  [ TIER 3: AGENT OPERATIONAL TRACES ] -> Retain: 30 Days            |
 |  - Key: CODER# / PLANNER# / REFLECTOR#                              |
 |  - Purpose: Mechanical execution logs for background agent loops.    |
 |                                                                     |
-|  [ TIER 4: TRANSIENT SYSTEM LOGS ] ----> Retain: 1 Hour (7 Days for Health) |
-|  - Key: RECOVERY / SYSTEM# / HANDOFF# / HEALTH#                      |
+|  [ TIER 4: TRANSIENT SYSTEM LOGS ] ----> Retain: 1 Day (7d for Health) |
+|  - Key: RECOVERY / SYSTEM# / HANDOFF# / HEALTH#                     |
 |  - Purpose: Volatile state signals for recovery, coordination, and  |
 |    human-agent handoff management. HEALTH# tracks cognitive stability.|
 |                                                                     |
@@ -79,8 +79,8 @@ Records of structurally failed strategic plans. This tier prevents the swarm fro
   [ Coder Agent ] --(1) record failure--> [ FAILED_PLAN# ]
                                               |
                                               v
-  [ Strategic Planner ] <--(3) avoid <--- [ Swarm Optimizer ]
-      (Design Phase)      anti-patterns    (Audit Phase)
+  [ Strategic Planner ] <--(3) avoid anti-patterns
+      (Design Phase)
   ```
 
 ### 5. Agent Operational Traces (`COGNITION-REFLECTOR#`, `CODER#`, etc.)
@@ -95,7 +95,7 @@ The raw execution logs of background agent loops. These are trace-specific and i
 
 Volatile signals used for coordination, recovery, real-time status updates, and human-agent handoffs.
 
-- **Retention**: **1 Hour**.
+- **Retention**: **1 Day**.
 - **Handoff TTL**: `HANDOFF#` keys specifically use a **2-minute TTL** to manage active human control periods.
 - **Purpose**: High-velocity coordination.
 
@@ -103,12 +103,12 @@ Volatile signals used for coordination, recovery, real-time status updates, and 
 
 Serverless Claw implements an automatic, tiered data lifecycle using DynamoDB TTL. This ensures the system remains "lean" and fast without losing strategic intelligence.
 
-| Tier             | Retention    | Category    | Purpose                |
-| :--------------- | :----------- | :---------- | :--------------------- |
-| **Intelligence** | **730 Days** | Strategic   | Facts, Lessons, Gaps   |
-| **Conversation** | **30 Days**  | Operational | Human chat history     |
-| **Agent Traces** | **1 Day**   | Mechanical  | Background agent loops |
-| **System Logs**  | **1 Hour**  | Volatile    | Recovery, signals, handoffs |
+| Tier             | Retention       | Category    | Purpose                                                     |
+| :--------------- | :-------------- | :---------- | :---------------------------------------------------------- |
+| **Intelligence** | **90-730 Days** | Strategic   | Lessons (90d), Facts (365d), Gaps (730d), Reputation (365d) |
+| **Conversation** | **7 Days**      | Operational | Human chat history, Sessions (90d), Summaries (30d)         |
+| **Agent Traces** | **30 Days**     | Mechanical  | Background agent loops                                      |
+| **System Logs**  | **1 Day**       | Volatile    | Recovery, signals, handoffs, Health (7d)                    |
 
 ## Operational & Performance Metrics
 

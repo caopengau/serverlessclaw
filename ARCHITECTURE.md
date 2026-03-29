@@ -390,14 +390,13 @@ To ensure the system remains efficient, a continuous optimization loop runs in t
     |  Tracker  | <---+                                 |        |  (7-day roll) |
     +-----+-----+     |                                 |        +-------+-------+
           |           |                                 |                ^
-    (2) recordFailure |         (9) audit               |      (8) getReputation()
-          |           +--- [ Swarm Optimizer ]          |                |
-    +-----v-----+     |         (Economist)             |        +-------+-------+
-    |  Memory   | <---+              |                  +        | Reputation    |
-    |  (Insights)| <-----------------+---------------------------| Handler       |
-    +-----------+         (10) emit improvements                 +-------+-------+
-          ^                          |                                   ^
-          |                          v                                   |
+    (2) recordFailure |                                 |      (8) getReputation()
+          |                                                   |                |
+    +-----v-----+                                             +        | Reputation    |
+    |  Memory   | <----------------------------------------------------| Handler       |
+    |  (Insights)|                                                      +-------+-------+
+          ^                                                                      ^
+          |                                                                      |
           +------------------ [ Strategic Planner ] <----------- (7) REPUTATION_UPDATE
                                 (Design Phase)                           |
                                                                  +-------+-------+
@@ -413,9 +412,8 @@ To ensure the system remains efficient, a continuous optimization loop runs in t
 5. **Analytics**: The `AgentRouter` aggregates historical performance metrics from the `TokenTracker`.
 6. **Routing**: The `AgentRouter` uses performance rollups AND reputation scores (success rate, latency, recency) to select the best agent. Formula: `(0.6 * performanceScore) + (0.4 * reputationScore)`.
 7. **Reputation Tracking**: The `EventHandler` updates agent reputation on every `TASK_COMPLETED` and `TASK_FAILED` event (via `REPUTATION_UPDATE`).
-8. **Reputation Retrieval**: The `AgentRouter` fetches reputation data for composite routing decisions.
-9. **Efficiency Audit**: The **Swarm Optimizer** periodically audits `TokenTracker` rollups and `FAILED_PLAN#` memory to identify cost-saving model swaps or redundant tools.
-10. **Autonomous Improvement**: The Optimizer emits `SYSTEM_IMPROVEMENT` gaps that the **Strategic Planner** consumes to refine the swarm's architecture.
+8. Reputation Retrieval: The AgentRouter fetches reputation data for composite routing decisions.
+
 
 ### Evolution Safeguards
 

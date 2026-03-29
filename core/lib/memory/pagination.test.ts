@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoMemory } from '../memory';
 import { InsightCategory } from '../types/memory';
 
@@ -103,21 +103,21 @@ describe('DynamoMemory Pagination & Search', () => {
       });
     });
 
-    it('should handle empty query by returning all items (Scan without query filter)', async () => {
-      ddbMock.on(ScanCommand).resolves({
+    it('should handle empty query by returning all items for a user', async () => {
+      ddbMock.on(QueryCommand).resolves({
         Items: [{ userId: 'USER#1', timestamp: 100, content: 'some fact' }],
       });
 
-      const result = await memory.searchInsights(undefined, '', undefined, 5);
+      const result = await memory.searchInsights('USER#1', '', undefined, 5);
 
       expect(result.items).toHaveLength(1);
-      const calls = ddbMock.commandCalls(ScanCommand);
+      const calls = ddbMock.commandCalls(QueryCommand);
       expect(calls[0].args[0].input.FilterExpression).toBeUndefined();
       expect(calls[0].args[0].input.Limit).toBe(5);
     });
 
     it('should properly map items to MemoryInsight objects', async () => {
-      ddbMock.on(ScanCommand).resolves({
+      ddbMock.on(QueryCommand).resolves({
         Items: [
           {
             userId: 'DISTILLED#user1',
@@ -128,7 +128,7 @@ describe('DynamoMemory Pagination & Search', () => {
         ],
       });
 
-      const result = await memory.searchInsights(undefined, 'pref');
+      const result = await memory.searchInsights('DISTILLED#user1', 'pref');
 
       expect(result.items[0]).toMatchObject({
         id: 'DISTILLED#user1',

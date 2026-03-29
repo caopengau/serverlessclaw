@@ -40,12 +40,18 @@ export interface SSTResource {
   WebhookApi: { url: string };
   /** CodeBuild project for automated deployments. */
   Deployer: { name: string };
+  /** CodeBuild project for self-evolution deployments. */
+  SelfDeployProject: { name: string };
+  /** CodeBuild project for rolling back deployments. */
+  RollbackProject: { name: string };
   /** Secret: Telegram bot authentication token. */
   TelegramBotToken: { value: string };
   /** Secret: OpenAI API authentication key. */
   OpenAIApiKey: { value: string };
   /** Secret: OpenRouter API authentication key. */
   OpenRouterApiKey: { value: string };
+  /** Secret: MiniMax API authentication key. */
+  MiniMaxApiKey: { value: string };
   /** The AWS region where resources are deployed. */
   AwsRegion: { value: string };
   /** Secret: Active LLM provider configuration. */

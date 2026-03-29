@@ -362,7 +362,7 @@ export class Agent {
       await this.emitter.considerReflection(
         isIsolated,
         userId,
-        messages as any, // history for reflection
+        messages, // history for reflection
         userText,
         tracer.getTraceId(),
         messages,

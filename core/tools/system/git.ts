@@ -15,7 +15,8 @@ export const triggerTrunkSync = {
     try {
       const { commitMessage } = args as { commitMessage: string };
       const buildProject =
-        (Resource as any).DeployProject?.name || (Resource as any).Deployer?.name;
+        (Resource as unknown as Record<string, { name?: string }>).DeployProject?.name ||
+        (Resource as unknown as Record<string, { name?: string }>).Deployer?.name;
 
       if (!buildProject) return 'FAILED: Deploy project not linked.';
 

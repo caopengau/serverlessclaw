@@ -21,7 +21,6 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 | **QA Auditor**          | `core/agents/qa.ts`                  | `AgentRegistry` (Backbone) | Verifies satisfaction of deployed changes                                       |
 | **Critic Agent**        | `core/agents/critic.ts`              | `AgentRegistry` (Backbone) | Peer review for Council of Agents (security/performance/architect)              |
 | **Facilitator**         | `core/agents/prompts/facilitator.md` | `AgentRegistry` (Backbone) | Moderates multi-party collaboration sessions, drives consensus, closes sessions |
-| **Swarm Optimizer**     | `core/agents/optimizer.ts`           | `AgentRegistry` (Backbone) | Swarm economist. Audits telemetry and memory to suggest model swaps and pruning |
 
 ### 2. System Handlers (Logic-Powered)
 

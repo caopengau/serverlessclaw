@@ -106,8 +106,6 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 ## 🏢 Phase 16: Evolution Analytics & Tool ROI
 - [ ] **Quantitative Tool Dashboard**: Frequency, success rates, and token cost per tool.
 - [ ] **Negative Memory Tier**: `FAILED_PLANS#` storage to prevent the Strategic Planner from repeating unsuccessful designs.
-- [ ] **Optimizer Agent**: Specialized auditor that suggests tool pruning or splitting based on usage patterns.
-- [ ] **Automated Cost Guardrails**: Budget-aware planning that prioritizes cheaper models for low-impact gaps.
 
 ## 🏢 Phase 17: Advanced Cognitive Resilience
 - [ ] **Static Analysis Feed**: Inject `package.json` and environmental constraints directly into the Planner's telemetry.

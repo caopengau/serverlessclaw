@@ -90,7 +90,7 @@ export async function handleParallelTaskCompleted(
       // 2026 fix: use the actual initiatorId for aggregation if it's a valid agent
       let config;
       try {
-        config = await loadAgentConfig(initiatorId as any);
+        config = await loadAgentConfig(initiatorId as string);
       } catch {
         config = await loadAgentConfig(AgentType.SUPERCLAW);
       }

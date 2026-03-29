@@ -28,7 +28,7 @@ export class AgentAssembler {
     baseUserId: string,
     storageId: string,
     userText: string,
-    incomingAttachments: any[] | undefined,
+    incomingAttachments: import('../types/index').Attachment[] | undefined,
     options: {
       isIsolated: boolean;
       depth: number;
