@@ -39,6 +39,12 @@ vi.mock('../lib/utils/topology', () => ({
 
 vi.mock('../lib/utils/bus', () => ({
   emitEvent: vi.fn().mockResolvedValue(undefined),
+  EventPriority: {
+    LOW: 0,
+    NORMAL: 1,
+    HIGH: 2,
+    CRITICAL: 3,
+  },
 }));
 
 vi.mock('sst', () => ({
@@ -121,5 +127,112 @@ describe('BuildMonitor — FAILED gap handling', () => {
       (call: unknown[]) => call[1] === GapStatus.ARCHIVED
     );
     expect(archivedCalls).toHaveLength(0);
+  });
+});
+
+describe('BuildMonitor — Atomic Sync (Metadata Resolution)', () => {
+  beforeEach(() => {
+    ddbMock.reset();
+    cbMock.reset();
+    vi.clearAllMocks();
+  });
+
+  it('should resolve metadata from CodeBuild environment variables when DDB records are missing', async () => {
+    // 1. DDB returns nothing
+    ddbMock.on(QueryCommand).resolves({ Items: [] });
+
+    // 2. CodeBuild returns environment variables
+    cbMock.on(BatchGetBuildsCommand).resolves({
+      builds: [
+        {
+          id: 'build-123',
+          environment: {
+            environmentVariables: [
+              { name: 'INITIATOR_USER_ID', value: 'user-env' },
+              { name: 'TRACE_ID', value: 't-env' },
+              { name: 'GAP_IDS', value: JSON.stringify(['GAP#env1']) },
+            ],
+          },
+        },
+      ],
+    });
+
+    const { handler } = await import('./monitor');
+    const event = {
+      detail: {
+        'build-id': 'build-123',
+        'project-name': 'test-project',
+        'build-status': 'SUCCEEDED',
+      },
+    };
+
+    await handler(event as any);
+
+    // Verify gaps from env were updated
+    expect(memoryMocks.updateGapStatus).toHaveBeenCalledWith('GAP#env1', GapStatus.DEPLOYED);
+
+    // Verify success event used env metadata
+    const { emitEvent } = await import('../lib/utils/bus');
+    expect(emitEvent).toHaveBeenCalledWith(
+      'build.monitor',
+      expect.stringMatching(/success/i),
+      expect.objectContaining({
+        userId: 'user-env',
+        traceId: 't-env',
+        gapIds: ['GAP#env1'],
+      }),
+      expect.any(Object)
+    );
+  });
+
+  it('should prioritize DDB metadata over environment variables', async () => {
+    // 1. DDB returns valid metadata
+    ddbMock
+      .on(QueryCommand)
+      .resolvesOnce({ Items: [{ initiatorUserId: 'user-ddb', traceId: 't-ddb' }] })
+      .resolvesOnce({ Items: [{ content: JSON.stringify(['GAP#ddb1']) }] });
+
+    // 2. CodeBuild returns different environment variables
+    cbMock.on(BatchGetBuildsCommand).resolves({
+      builds: [
+        {
+          id: 'build-456',
+          environment: {
+            environmentVariables: [
+              { name: 'INITIATOR_USER_ID', value: 'user-env' },
+              { name: 'TRACE_ID', value: 't-env' },
+              { name: 'GAP_IDS', value: JSON.stringify(['GAP#env1']) },
+            ],
+          },
+        },
+      ],
+    });
+
+    const { handler } = await import('./monitor');
+    const event = {
+      detail: {
+        'build-id': 'build-456',
+        'project-name': 'test-project',
+        'build-status': 'SUCCEEDED',
+      },
+    };
+
+    await handler(event as any);
+
+    // Verify DDB metadata won
+    expect(memoryMocks.updateGapStatus).toHaveBeenCalledWith('GAP#ddb1', GapStatus.DEPLOYED);
+    expect(memoryMocks.updateGapStatus).not.toHaveBeenCalledWith('GAP#env1', GapStatus.DEPLOYED);
+
+    const { emitEvent } = await import('../lib/utils/bus');
+    expect(emitEvent).toHaveBeenCalledWith(
+      'build.monitor',
+      expect.stringMatching(/success/i),
+      expect.objectContaining({
+        userId: 'user-ddb',
+        traceId: 't-ddb',
+        gapIds: ['GAP#ddb1'],
+      }),
+      expect.any(Object)
+    );
   });
 });

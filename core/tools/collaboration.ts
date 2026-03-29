@@ -12,6 +12,7 @@ import { addTraceStep } from '../lib/utils/trace-helper';
 import { TraceType } from '../lib/types/constants';
 import { AgentType } from '../lib/types/agent';
 import { emitTypedEvent } from '../lib/utils/typed-emit';
+import { logger } from '../lib/logger';
 
 /**
  * Creates a new collaboration session.
@@ -23,6 +24,7 @@ export const CREATE_COLLABORATION: ITool = {
     const agentId = (args.agentId as string) ?? 'unknown';
     const traceId = (args.traceId as string) ?? undefined;
     const userId = (args.userId as string) ?? 'unknown';
+    const workspaceId = args.workspaceId as string | undefined;
 
     // Ensure Facilitator is invited as an editor (to summarize and close)
     const initialParticipants =
@@ -40,6 +42,30 @@ export const CREATE_COLLABORATION: ITool = {
         id: AgentType.FACILITATOR,
         role: 'editor',
       });
+    }
+
+    // If workspaceId provided, auto-add all workspace agent members
+    if (workspaceId) {
+      try {
+        const { getWorkspace, getAgentMembers } =
+          await import('../lib/memory/workspace-operations');
+        const workspace = await getWorkspace(workspaceId);
+        if (workspace) {
+          const agents = getAgentMembers(workspace);
+          for (const agent of agents) {
+            if (!initialParticipants.some((p) => p.id === agent.memberId)) {
+              initialParticipants.push({
+                type: 'agent',
+                id: agent.memberId,
+                role: agent.role === 'observer' ? 'viewer' : 'editor',
+              });
+            }
+          }
+          logger.info(`[Collaboration] Added ${agents.length} workspace agents to collaboration`);
+        }
+      } catch (err) {
+        logger.warn('[Collaboration] Failed to load workspace members:', err);
+      }
     }
 
     const collaboration = await memory.createCollaboration(agentId, 'agent', {

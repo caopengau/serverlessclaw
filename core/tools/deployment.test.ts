@@ -114,6 +114,36 @@ describe('Deployment Tools', () => {
 
       expect(result).toContain('Failed to trigger deployment');
     });
+
+    it('passes metadata as environment variables to CodeBuild', async () => {
+      vi.mocked(getCircuitBreaker).mockReturnValue({
+        canProceed: vi.fn().mockResolvedValue({ allowed: true }),
+        recordFailure: vi.fn(),
+      } as any);
+      vi.mocked(getDeployCountToday).mockResolvedValue(0);
+      vi.mocked(incrementDeployCount).mockResolvedValue(true);
+      ddbMock.on(GetCommand).resolves({ Item: { value: '10' } });
+      codebuildMock.on(StartBuildCommand).resolves({ build: { id: 'build-env-123' } });
+      ddbMock.on(PutCommand).resolves({});
+
+      await TRIGGER_DEPLOYMENT.execute({
+        reason: 'test env vars',
+        userId: 'user-456',
+        traceId: 'trace-789',
+        gapIds: ['GAP#1', 'GAP#2'],
+      });
+
+      expect(codebuildMock.calls()).toHaveLength(1);
+      const startCall = codebuildMock.call(0);
+      const envVars = (startCall.args[0] as any).input.environmentVariablesOverride;
+
+      expect(envVars).toContainEqual({
+        name: 'GAP_IDS',
+        value: JSON.stringify(['GAP#1', 'GAP#2']),
+      });
+      expect(envVars).toContainEqual({ name: 'INITIATOR_USER_ID', value: 'user-456' });
+      expect(envVars).toContainEqual({ name: 'TRACE_ID', value: 'trace-789' });
+    });
   });
 
   describe('TRIGGER_INFRA_REBUILD', () => {

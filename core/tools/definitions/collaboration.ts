@@ -41,6 +41,11 @@ export const collaborationTools: Record<string, IToolDefinition> = {
           items: { type: 'string' },
           description: 'Optional tags for categorization',
         },
+        workspaceId: {
+          type: 'string',
+          description:
+            'Optional workspace ID. If provided, all workspace agent members are auto-added as participants and human members receive notifications.',
+        },
       },
       required: ['name'],
       additionalProperties: false,

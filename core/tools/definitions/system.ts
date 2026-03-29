@@ -149,4 +149,44 @@ export const systemTools: Record<string, IToolDefinition> = {
     },
     connectionProfile: ['config'],
   },
+  removeMember: {
+    name: 'removeMember',
+    description:
+      'Removes a member from a workspace. Cannot remove the owner. Requires admin or owner role.',
+    parameters: {
+      type: 'object',
+      properties: {
+        workspaceId: { type: 'string', description: 'The workspace ID.' },
+        removerId: { type: 'string', description: 'The member performing the removal.' },
+        targetMemberId: { type: 'string', description: 'The member to remove.' },
+      },
+      required: ['workspaceId', 'removerId', 'targetMemberId'],
+      additionalProperties: false,
+    },
+    connectionProfile: ['config'],
+  },
+  getWorkspace: {
+    name: 'getWorkspace',
+    description: 'Retrieves workspace details including all members and their roles.',
+    parameters: {
+      type: 'object',
+      properties: {
+        workspaceId: { type: 'string', description: 'The workspace ID to retrieve.' },
+      },
+      required: ['workspaceId'],
+      additionalProperties: false,
+    },
+    connectionProfile: ['config'],
+  },
+  listWorkspaces: {
+    name: 'listWorkspaces',
+    description: 'Lists all workspace IDs in the system.',
+    parameters: {
+      type: 'object',
+      properties: {},
+      required: [],
+      additionalProperties: false,
+    },
+    connectionProfile: ['config'],
+  },
 };

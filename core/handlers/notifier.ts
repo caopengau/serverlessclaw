@@ -20,11 +20,14 @@ interface NotifierEvent {
       value: string;
       type?: ButtonType;
     }[];
+    /** Optional workspace ID for multi-human notification fan-out. */
+    workspaceId?: string;
   };
 }
 
 /**
  * Handles outbound messages by syncing context with memory and sending via Telegram.
+ * If workspaceId is provided, fans out to all human members with enabled channels.
  *
  * @param event - The Notifier event containing userId, message, and memoryContexts.
  * @returns A promise that resolves when the notification has been processed.
@@ -39,12 +42,21 @@ export const handler = async (event: NotifierEvent): Promise<void> => {
     return;
   }
 
-  const { userId, message, memoryContexts, sessionId, agentName, attachments, options } = payload;
+  const {
+    userId,
+    message,
+    memoryContexts,
+    sessionId,
+    agentName,
+    attachments,
+    options,
+    workspaceId,
+  } = payload;
 
   // Defensive Normalization: Ensure we have the base user ID for syncing and Telegram
   const baseUserId = extractBaseUserId(userId);
   logger.info(
-    `[NOTIFIER] Normalized User: ${baseUserId} | Session: ${sessionId} | Contexts: ${memoryContexts?.length ?? 0}`
+    `[NOTIFIER] Normalized User: ${baseUserId} | Session: ${sessionId} | Contexts: ${memoryContexts?.length ?? 0} | Workspace: ${workspaceId ?? 'none'}`
   );
 
   const contextsToSync = new Set<string>(memoryContexts ?? []);
@@ -68,9 +80,76 @@ export const handler = async (event: NotifierEvent): Promise<void> => {
     }
   }
 
-  // 2. Telegram Adapter
-  // Only send via Telegram if the baseUserId is a numeric chat ID.
-  // Dashboard users (e.g., "dashboard-user") don't have Telegram chat IDs.
+  // 2. Workspace fan-out: send to ALL human members with enabled channels
+  if (workspaceId) {
+    await sendToWorkspace(workspaceId, message, attachments, options);
+    return;
+  }
+
+  // 3. Single-user Telegram adapter (legacy path)
+  await sendToSingleUser(baseUserId, message, attachments, options);
+};
+
+/**
+ * Fans out a notification to all human members of a workspace.
+ */
+async function sendToWorkspace(
+  workspaceId: string,
+  message: string,
+  attachments?: Attachment[],
+  options?: { label: string; value: string }[]
+): Promise<void> {
+  try {
+    const { getWorkspace, getHumanMembersWithChannels } =
+      await import('../lib/memory/workspace-operations');
+    const workspace = await getWorkspace(workspaceId);
+    if (!workspace) {
+      logger.warn(`[NOTIFIER] Workspace not found: ${workspaceId}`);
+      return;
+    }
+
+    const humans = getHumanMembersWithChannels(workspace);
+    logger.info(`[NOTIFIER] Fan-out to ${humans.length} human members in workspace ${workspaceId}`);
+
+    for (const human of humans) {
+      for (const channel of human.channels) {
+        if (!channel.enabled) continue;
+
+        try {
+          if (channel.platform === 'telegram') {
+            if (attachments && attachments.length > 0) {
+              for (const attachment of attachments) {
+                if (attachment.url) {
+                  await sendTelegramMedia(channel.identifier, attachment, message, options);
+                }
+              }
+            } else {
+              await sendTelegramMessage(channel.identifier, message, options);
+            }
+          }
+          // Future adapters: discord, slack, email, dashboard
+        } catch (err) {
+          logger.error(
+            `[NOTIFIER] Failed to send to ${human.memberId} via ${channel.platform}:`,
+            err
+          );
+        }
+      }
+    }
+  } catch (err) {
+    logger.error(`[NOTIFIER] Workspace fan-out failed for ${workspaceId}:`, err);
+  }
+}
+
+/**
+ * Sends to a single user via Telegram (legacy non-workspace path).
+ */
+async function sendToSingleUser(
+  baseUserId: string,
+  message: string,
+  attachments?: Attachment[],
+  options?: { label: string; value: string }[]
+): Promise<void> {
   const isTelegramChatId = /^\d+$/.test(baseUserId);
   if (!isTelegramChatId) {
     logger.info(`[NOTIFIER] Skipping Telegram for non-numeric userId: ${baseUserId}`);
@@ -88,10 +167,7 @@ export const handler = async (event: NotifierEvent): Promise<void> => {
   } else {
     await sendTelegramMessage(baseUserId, message, options);
   }
-
-  // Future Adapters (Slack, Discord, Dashboard WebSockets) can be added here
-  // based on ConfigTable preferences
-};
+}
 
 /**
  * Sends a message via the Telegram Bot API.

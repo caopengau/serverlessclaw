@@ -102,8 +102,21 @@ export const TRIGGER_DEPLOYMENT = {
           : '';
 
       logger.info(`Triggering deployment for reason: ${reason}${warning}`);
+
+      const envOverrides = [];
+      if (gapIds && gapIds.length > 0) {
+        envOverrides.push({ name: 'GAP_IDS', value: JSON.stringify(gapIds) });
+      }
+      if (userId) {
+        envOverrides.push({ name: 'INITIATOR_USER_ID', value: userId });
+      }
+      if (traceId) {
+        envOverrides.push({ name: 'TRACE_ID', value: traceId });
+      }
+
       const command = new StartBuildCommand({
         projectName: typedResource.Deployer.name,
+        environmentVariablesOverride: envOverrides.length > 0 ? envOverrides : undefined,
       });
 
       const response = await codebuild.send(command);

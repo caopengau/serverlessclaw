@@ -53,6 +53,38 @@ The system's evolution follows a strict, verified hierarchy:
 10. **Atomic Sync**: ONLY after QA success, `gitSync` pushes verified code back to the trunk.
 11. **Nudging & Completion**: SuperClaw marks gap as `DONE`.
 
+## Atomic Deployment Sync (Metadata Integrity)
+
+To ensure self-evolution robustness, the system implements an **Atomic Sync** mechanism that links infrastructure builds to the strategic gaps they resolve. This prevents metadata loss during the asynchronous deployment process.
+
+### Dual-Path Synchronization
+
+1. **DynamoDB Path**: `triggerDeployment` records build metadata and gap mappings in the `MemoryTable` under `BUILD#` and `BUILD_GAPS#` keys.
+2. **CodeBuild Path**: Metadata (`GAP_IDS`, `INITIATOR_USER_ID`, `TRACE_ID`) is passed as environment variables directly to the CodeBuild project.
+
+The **Build Monitor** resolves metadata by prioritizing DynamoDB but falling back to CodeBuild environment variables if records are delayed or missing.
+
+```text
+    [ triggerDeployment ]
+          |
+          +--(1) Write DDB metadata (BUILD#, BUILD_GAPS#)
+          |
+          +--(2) Start CodeBuild (Env Overrides: GAP_IDS, TRACE_ID)
+                    |
+                    v
+             [ AWS CodeBuild ]
+                    |
+          (3) Emit State Change Event
+                    |
+                    v
+             [ Build Monitor ]
+                    |
+          (4) Resolve Metadata <---+ (Fallback: CodeBuild Env)
+                    |              |
+          (5) Transition Gaps ---->+ (Primary: DynamoDB)
+              (DEPLOYED / OPEN)
+```
+
 ## Self-Healing Loop
 
 If a deployment fails, the **Build Monitor** detects the failure and emits a `SYSTEM_BUILD_FAILED` event.

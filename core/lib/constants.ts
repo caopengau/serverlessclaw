@@ -414,6 +414,12 @@ export const TOOLS = {
   inviteMember: 'inviteMember',
   /** Updates a member's role within a workspace. */
   updateMemberRole: 'updateMemberRole',
+  /** Removes a member from a workspace. */
+  removeMember: 'removeMember',
+  /** Retrieves workspace details including members. */
+  getWorkspace: 'getWorkspace',
+  /** Lists all workspace IDs. */
+  listWorkspaces: 'listWorkspaces',
 } as const;
 
 /**

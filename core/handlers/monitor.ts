@@ -43,7 +43,15 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
   }
 
   try {
-    // 1. Get Build Context
+    // 1. Get Build from CodeBuild (Primary source for atomic sync)
+    const buildResponse = await codebuild.send(
+      new BatchGetBuildsCommand({
+        ids: [buildId],
+      })
+    );
+    const build = buildResponse.builds?.[0];
+
+    // 2. Get Build Context from DynamoDB (Supplementary source)
     const { Items: buildItems } = await db.send(
       new QueryCommand({
         TableName: typedResource.MemoryTable.name,
@@ -66,15 +74,30 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
     );
     const gapsMeta = gapsItems?.[0];
 
-    const userId = buildMeta?.initiatorUserId;
-    const initiatorId = buildMeta?.initiatorId;
+    // 3. Resolve Metadata (DDB prioritized, CodeBuild Env as fallback)
+    const getEnv = (name: string) =>
+      build?.environment?.environmentVariables?.find((ev) => ev.name === name)?.value;
+
+    const userId = buildMeta?.initiatorUserId || getEnv('INITIATOR_USER_ID');
+    const initiatorId = buildMeta?.initiatorId || 'superclaw';
     const sessionId = buildMeta?.sessionId;
     const originalTask = buildMeta?.task;
-    const traceId = buildMeta?.traceId;
-    const gapIds: string[] = gapsMeta?.content ? JSON.parse(gapsMeta.content) : [];
+    const traceId = buildMeta?.traceId || getEnv('TRACE_ID');
+
+    let gapIds: string[] = gapsMeta?.content ? JSON.parse(gapsMeta.content) : [];
+    if (gapIds.length === 0) {
+      const gapIdsEnv = getEnv('GAP_IDS');
+      if (gapIdsEnv) {
+        try {
+          gapIds = JSON.parse(gapIdsEnv);
+        } catch (e) {
+          logger.warn('Failed to parse GAP_IDS from environment variables:', e);
+        }
+      }
+    }
 
     if (!userId) {
-      logger.warn(`No initiator found for build ${buildId}`);
+      logger.warn(`No initiator found for build ${buildId} in DynamoDB or environment variables.`);
       return;
     }
 
@@ -127,6 +150,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
           sessionId,
           task: originalTask,
           traceId,
+          gapIds,
         },
         { priority: EventPriority.HIGH }
       );
@@ -163,7 +187,6 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
       }
 
       // Transition gaps: increment attempt counter, archive if exhausted, else reopen.
-      // This rescues FAILED gaps from being orphaned and prevents an unbounded reopen cycle.
       const MAX_GAP_ATTEMPTS = 3;
       for (const gapId of gapIds) {
         const attempts = await memory.incrementGapAttemptCount(gapId);
@@ -179,13 +202,6 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
       }
 
       // Get logs for failure analysis
-      const buildResponse = await codebuild.send(
-        new BatchGetBuildsCommand({
-          ids: [buildId],
-        })
-      );
-
-      const build = buildResponse.builds?.[0];
       const logGroupName = build?.logs?.groupName;
       const logStreamName = build?.logs?.streamName;
 
