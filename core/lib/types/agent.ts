@@ -340,6 +340,8 @@ export enum EventType {
   ESCALATION_LEVEL_TIMEOUT = 'escalation_level_timeout',
   /** Escalation completed event. */
   ESCALATION_COMPLETED = 'escalation_completed',
+  /** Event emitted when a human participant takes control. */
+  HANDOFF = 'handoff',
 }
 
 /**

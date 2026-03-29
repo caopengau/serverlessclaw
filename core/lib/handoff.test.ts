@@ -1,0 +1,68 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { requestHandoff, isHumanTakingControl } from './handoff';
+import { mockClient } from 'aws-sdk-client-mock';
+import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
+
+const ddbMock = mockClient(DynamoDBDocumentClient);
+
+vi.mock('sst', () => ({
+  Resource: {
+    MemoryTable: { name: 'test-memory-table' },
+  },
+}));
+
+vi.mock('./utils/bus', () => ({
+  emitEvent: vi.fn().mockResolvedValue(undefined),
+}));
+
+describe('Handoff Protocol', () => {
+  beforeEach(() => {
+    ddbMock.reset();
+    vi.clearAllMocks();
+  });
+
+  it('should record handoff in DynamoDB and emit event', async () => {
+    ddbMock.on(PutCommand).resolves({});
+
+    await requestHandoff('user-1', 'session-1');
+
+    expect(ddbMock.calls()).toHaveLength(1);
+    const putCall = ddbMock.call(0);
+    expect(putCall.args[0].input.Item.userId).toBe('HANDOFF#user-1');
+    expect(putCall.args[0].input.Item.type).toBe('HANDOFF');
+
+    const { emitEvent } = await import('./utils/bus');
+    expect(emitEvent).toHaveBeenCalledWith(
+      'handoff-protocol',
+      'handoff',
+      expect.objectContaining({ userId: 'user-1' })
+    );
+  });
+
+  it('should return true if handoff is active', async () => {
+    const future = Math.floor(Date.now() / 1000) + 100;
+    ddbMock.on(GetCommand).resolves({
+      Item: { userId: 'HANDOFF#user-1', expiresAt: future },
+    });
+
+    const result = await isHumanTakingControl('user-1');
+    expect(result).toBe(true);
+  });
+
+  it('should return false if handoff is expired', async () => {
+    const past = Math.floor(Date.now() / 1000) - 100;
+    ddbMock.on(GetCommand).resolves({
+      Item: { userId: 'HANDOFF#user-1', expiresAt: past },
+    });
+
+    const result = await isHumanTakingControl('user-1');
+    expect(result).toBe(false);
+  });
+
+  it('should return false if no handoff record exists', async () => {
+    ddbMock.on(GetCommand).resolves({ Item: undefined });
+
+    const result = await isHumanTakingControl('user-1');
+    expect(result).toBe(false);
+  });
+});

@@ -165,10 +165,38 @@ Initiator (Planner)     AgentBus (EB)       Participants (xN)     Consensus Hand
       |                      |                      |                    |
       |<-- CONTINUATION_TASK-+                      |                    |
       | (CONSENSUS_REACHED)  |                      |                    |
-```
+      |                      |                      |                    |
+      ```
 
-### Evolution Budgeting (Cost Guardrails)
+      ### Human-Agent Handoff Protocol (Phase B3)
 
+      To prevent conflicting writes and ensure human priority during real-time collaboration, the system implements a **Handoff Protocol**. When a human participant sends a message, all autonomous agents in that session automatically enter **OBSERVE** mode for a short duration (default: 2 minutes).
+
+      - **Trigger**: `Webhook` calls `requestHandoff(userId)` on every incoming message.
+      - **Effect**: Agents calling `process()` or `stream()` check `isHumanTakingControl(userId)`. If true, they skip tool execution and return a `HUMAN_TAKING_CONTROL` status.
+      - **Duration**: 120 seconds of silence from the human before autonomous loops resume.
+
+      #### Flow
+
+      ```text
+      Human User (Telegram)     Webhook (Lambda)      Handoff (DDB)       Autonomous Agent
+      |                      |                    |                    |
+      +---- "Wait, stop!" -->|                    |                    |
+      |                      +-- requestHandoff ->|                    |
+      |                      |   (TTL: 120s)      |                    |
+      |                      |                    |                    |
+      |                      |             [ LATER THAT MINUTE ]       |
+      |                      |                    |                    |
+      |                      |                    |           [THINK: Next Step?]
+      |                      |                    |                    |
+      |                      |                    |<-- isHumanTakingControl?
+      |                      |                    |------- ( TRUE ) ------>|
+      |                      |                    |                    |
+      |                      |                    |             [ENTER OBSERVE MODE]
+      |                      |                    |             [EXIT / NO TOOLS]
+      ```
+
+      ### Evolution Budgeting (Cost Guardrails)
 To ensure the autonomous swarm does not exceed financial limits, the `EvolutionBudgetManager` enforces per-cycle cost caps.
 
 - **Check**: Agents call `canDispatchTask(estimatedCost)` before initiating expensive loops.

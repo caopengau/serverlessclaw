@@ -83,6 +83,7 @@ export const handler = async (
     { getAgentTools },
     { SuperClaw },
     { AgentRegistry },
+    { requestHandoff },
   ] = await Promise.all([
     import('../lib/memory'),
     import('../lib/providers/index'),
@@ -90,6 +91,7 @@ export const handler = async (
     import('../tools/index'),
     import('../agents/superclaw'),
     import('../lib/registry'),
+    import('../lib/handoff'),
   ]);
 
   const memory = new DynamoMemory();
@@ -104,6 +106,10 @@ export const handler = async (
     content: userText,
     attachments,
   });
+
+  // Request Handoff (Phase B3: Real-time Shared Awareness)
+  // Ensures agents enter OBSERVE mode if human is actively typing/sending
+  await requestHandoff(chatId);
 
   // 2. Try to acquire processing flag
   logger.info('[WEBHOOK] Checking processing status...');

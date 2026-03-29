@@ -37,8 +37,9 @@ Serverless Claw uses a tiered, evolutionary memory system designed to provide co
 |  - Purpose: Mechanical execution logs for background agent loops.    |
 |                                                                     |
 |  [ TIER 4: TRANSIENT SYSTEM LOGS ] ----> Retain: 1 Hour             |
-|  - Key: RECOVERY / SYSTEM#                                          |
-|  - Purpose: Volatile state signals for recovery and coordination.   |
+|  - Key: RECOVERY / SYSTEM# / HANDOFF#                               |
+|  - Purpose: Volatile state signals for recovery, coordination, and  |
+|    human-agent handoff management.                                  |
 |                                                                     |
 +---------------------------------------------------------------------+
 ```
@@ -88,11 +89,12 @@ The raw execution logs of background agent loops. These are trace-specific and i
 - **Retention**: **1 Day**.
 - **Namespace**: Keyed by `AGENT#userId#traceId`.
 
-### 5. Transient System Logs (`RECOVERY`, `SYSTEM#`)
+### 5. Transient System Logs (`RECOVERY`, `SYSTEM#`, `HANDOFF#`)
 
-Volatile signals used for coordination, recovery, and real-time status updates.
+Volatile signals used for coordination, recovery, real-time status updates, and human-agent handoffs.
 
 - **Retention**: **1 Hour**.
+- **Handoff TTL**: `HANDOFF#` keys specifically use a **2-minute TTL** to manage active human control periods.
 - **Purpose**: High-velocity coordination.
 
 ## Neural Lifecycle (Tiered Retention)
@@ -104,7 +106,7 @@ Serverless Claw implements an automatic, tiered data lifecycle using DynamoDB TT
 | **Intelligence** | **730 Days** | Strategic   | Facts, Lessons, Gaps   |
 | **Conversation** | **30 Days**  | Operational | Human chat history     |
 | **Agent Traces** | **1 Day**   | Mechanical  | Background agent loops |
-| **System Logs**  | **1 Hour**  | Volatile    | Recovery & signals     |
+| **System Logs**  | **1 Hour**  | Volatile    | Recovery, signals, handoffs |
 
 ## Operational & Performance Metrics
 

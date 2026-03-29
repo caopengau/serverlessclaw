@@ -171,6 +171,15 @@ export class Agent {
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
 
+    // Check for Handoff (Phase B3: Real-time Shared Awareness)
+    const { isHumanTakingControl } = await import('./handoff');
+    if (await isHumanTakingControl(baseUserId)) {
+      logger.info(`[Agent] Human control active for ${baseUserId}, entering OBSERVE mode.`);
+      const responseText = 'HUMAN_TAKING_CONTROL: Entering observe mode.';
+      await tracer.endTrace(responseText);
+      return { responseText, traceId };
+    }
+
     try {
       // 1. Memory Retrieval (GAP #5: Include global lessons for cross-session knowledge)
       const history = await this.memory.getHistory(storageId);
@@ -584,6 +593,16 @@ export class Agent {
     const storageId = isIsolated
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
+
+    // Check for Handoff (Phase B3: Real-time Shared Awareness)
+    const { isHumanTakingControl } = await import('./handoff');
+    if (await isHumanTakingControl(baseUserId)) {
+      logger.info(`[Agent.stream] Human control active for ${baseUserId}, entering OBSERVE mode.`);
+      const content = 'HUMAN_TAKING_CONTROL: Entering observe mode.';
+      yield { content, messageId: traceId, traceId };
+      await tracer.endTrace(content);
+      return;
+    }
 
     // 1. Memory Retrieval
     const history = await this.memory.getHistory(storageId);
