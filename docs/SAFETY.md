@@ -222,6 +222,36 @@ This prevents catastrophic context overflow during multi-step tool-calling sessi
 
 Serverless Claw provides a multi-layered interactive control plane that allows human users to intervene in autonomous agent loops without fully disabling them.
 
+### Safety Tiers (Granular Trust Levels)
+
+Agents operate under one of three safety tiers, configured via `safetyTier` in `IAgentConfig`. The tier determines which actions require human approval.
+
+```text
+    [ Agent Action ]
+          |
+    +-----v-----+
+    | SafetyTier|
+    +-----+-----+
+          |
+    +-----+-----+-----+
+    |           |     |
+ [sandbox]  [staged] [autonomous]
+    |           |     |
+ ALL require  Deploy  No approval
+ approval     only    needed
+    |           |     |
+    v           v     v
+ [HITL Gate] [Partial] [Auto]
+```
+
+| Tier         |   Code Changes    |    Deployments    | Default? |
+| ------------ | :---------------: | :---------------: | :------: |
+| `sandbox`    | Requires approval | Requires approval |    —     |
+| `staged`     |   Auto-approved   | Requires approval |    ✅    |
+| `autonomous` |   Auto-approved   |   Auto-approved   |    —     |
+
+**Usage**: Set via `SuperClaw.requiresApproval(config, 'deployment')` to check if a specific action needs HITL approval.
+
 ### 1. Granular Tool Oversight (HITL)
 
 For security-sensitive operations (e.g., deleting data, triggering deployments), tools can be marked with `requiresApproval: true`. When an agent attempts to use such a tool, the execution pauses and presents the user with three options:

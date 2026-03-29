@@ -181,6 +181,18 @@ export enum AgentCategory {
   SYSTEM = 'system',
 }
 
+/**
+ * Safety tiers for agent trust levels.
+ * - sandbox: All actions require HITL approval
+ * - staged: Deployment requires approval, code changes don't
+ * - autonomous: Full self-evolution (current AUTO mode)
+ */
+export enum SafetyTier {
+  SANDBOX = 'sandbox',
+  STAGED = 'staged',
+  AUTONOMOUS = 'autonomous',
+}
+
 /** Common resource connection profiles. */
 export enum ConnectionProfile {
   BUS = 'bus',
@@ -238,6 +250,8 @@ export interface IAgentConfig {
     icon?: string;
     tier?: 'APP' | 'COMM' | 'AGENT' | 'INFRA';
   };
+  /** Safety trust level for this agent. Controls approval gates. */
+  safetyTier?: SafetyTier;
 }
 
 /**
@@ -342,6 +356,8 @@ export enum EventType {
   ESCALATION_COMPLETED = 'escalation_completed',
   /** Event emitted when a human participant takes control. */
   HANDOFF = 'handoff',
+  /** Critical system-wide health alert (e.g., EventBus down). */
+  HEALTH_ALERT = 'health_alert',
 }
 
 /**

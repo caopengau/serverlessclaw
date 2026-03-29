@@ -2,7 +2,7 @@ import { Agent } from '../lib/agent';
 import { IMemory } from '../lib/types/memory';
 import { IProvider, ReasoningProfile } from '../lib/types/llm';
 import { ITool } from '../lib/types/tool';
-import { IAgentConfig } from '../lib/types/agent';
+import { IAgentConfig, SafetyTier } from '../lib/types/agent';
 import { SUPERCLAW_SYSTEM_PROMPT } from './prompts/index';
 
 export { SUPERCLAW_SYSTEM_PROMPT };
@@ -34,5 +34,33 @@ export class SuperClaw extends Agent {
       return { profile: ReasoningProfile.FAST, cleanText: text.replace('/fast ', '') };
     }
     return { cleanText: text };
+  }
+
+  /**
+   * Checks whether an action requires HITL approval based on the agent's safety tier.
+   *
+   * @param agentConfig - The agent configuration.
+   * @param actionType - The type of action: 'code_change' or 'deployment'.
+   * @returns Whether approval is required.
+   */
+  static requiresApproval(
+    agentConfig: IAgentConfig | undefined,
+    actionType: 'code_change' | 'deployment'
+  ): boolean {
+    const tier = agentConfig?.safetyTier ?? SafetyTier.STAGED;
+
+    switch (tier) {
+      case SafetyTier.SANDBOX:
+        // All actions require approval
+        return true;
+      case SafetyTier.STAGED:
+        // Only deployment requires approval
+        return actionType === 'deployment';
+      case SafetyTier.AUTONOMOUS:
+        // No approval needed
+        return false;
+      default:
+        return true; // Fail safe
+    }
   }
 }

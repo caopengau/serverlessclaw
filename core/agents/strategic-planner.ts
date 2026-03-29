@@ -550,17 +550,49 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       undefined
     );
 
-    const { DISPATCH_TASK: dispatcher } = await import('../tools/knowledge-agent');
-    await dispatcher.execute({
-      agentId: AgentType.CODER,
-      userId: baseUserId,
-      task: plan,
-      metadata: {
-        gapIds: processedGapIds,
-      },
-      traceId,
-      sessionId,
-    });
+    // Attempt plan decomposition for complex plans
+    const { decomposePlan } = await import('./strategic-planner/decomposition');
+    const planId = `plan-${Date.now()}`;
+    const decomposed = decomposePlan(plan, planId, processedGapIds);
+
+    if (decomposed.wasDecomposed && decomposed.subTasks.length > 1) {
+      logger.info(
+        `[PLANNER] Plan decomposed into ${decomposed.subTasks.length} sub-tasks. Dispatching via parallel.`
+      );
+
+      // Dispatch sub-tasks via parallel dispatch event
+      const { emitTypedEvent: emitEvent } = await import('../lib/utils/typed-emit');
+      const subTaskEvents = decomposed.subTasks.map((sub) => ({
+        taskId: sub.subTaskId,
+        agentId: AgentType.CODER,
+        task: sub.task,
+        metadata: { gapIds: sub.gapIds, subTaskId: sub.subTaskId, planId: sub.planId },
+      }));
+
+      await emitEvent(AgentType.STRATEGIC_PLANNER, EventType.PARALLEL_TASK_DISPATCH, {
+        userId: baseUserId,
+        tasks: subTaskEvents,
+        barrierTimeoutMs: 30 * 60 * 1000, // 30 minutes
+        aggregationType: 'summary' as const,
+        traceId,
+        initiatorId: AgentType.STRATEGIC_PLANNER,
+        depth: (depth ?? 0) + 1,
+        sessionId,
+      } as never);
+    } else {
+      // Single task dispatch (existing behavior)
+      const { DISPATCH_TASK: dispatcher } = await import('../tools/knowledge-agent');
+      await dispatcher.execute({
+        agentId: AgentType.CODER,
+        userId: baseUserId,
+        task: plan,
+        metadata: {
+          gapIds: processedGapIds,
+        },
+        traceId,
+        sessionId,
+      });
+    }
   } else if (!isFailure && processedGapIds.length > 0) {
     logger.info('Evolution mode is hitl, asking for approval.');
     await sendOutboundMessage(
