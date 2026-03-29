@@ -21,8 +21,10 @@ export const TOOLS: Record<string, ITool> = {
   ...systemTools,
 };
 
+const TOOL_LIST_SEPARATOR = ', ';
+
 console.log(
-  `[TOOLS] Registry initialized with ${Object.keys(TOOLS).length} tools: ${Object.keys(TOOLS).join(', ')}`
+  `[TOOLS] Registry initialized with ${Object.keys(TOOLS).length} tools: ${Object.keys(TOOLS).join(TOOL_LIST_SEPARATOR)}`
 );
 
 /**

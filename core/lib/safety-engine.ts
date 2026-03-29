@@ -5,204 +5,18 @@
  * resource-level controls, time-based windows, and comprehensive violation logging.
  */
 
-import { SafetyTier, IAgentConfig } from './types/agent';
+import {
+  SafetyTier,
+  IAgentConfig,
+  SafetyPolicy,
+  TimeRestriction,
+  SafetyEvaluationResult,
+  SafetyViolation,
+} from './types/agent';
 import { logger } from './logger';
 import type { BaseMemoryProvider } from './memory/base';
-import { MEMORY_KEYS } from './constants';
-
-/**
- * Granular safety policy defining rules for a specific safety tier.
- */
-export interface SafetyPolicy {
-  /** The safety tier this policy applies to. */
-  tier: SafetyTier;
-  /** Whether code changes require approval. */
-  requireCodeApproval: boolean;
-  /** Whether deployments require approval. */
-  requireDeployApproval: boolean;
-  /** Whether file operations require approval. */
-  requireFileApproval: boolean;
-  /** Whether shell commands require approval. */
-  requireShellApproval: boolean;
-  /** Whether MCP tool calls require approval. */
-  requireMcpApproval: boolean;
-  /** List of allowed file paths (glob patterns). */
-  allowedFilePaths?: string[];
-  /** List of blocked file paths (glob patterns). */
-  blockedFilePaths?: string[];
-  /** List of allowed API endpoints/domains. */
-  allowedApiEndpoints?: string[];
-  /** List of blocked API endpoints/domains. */
-  blockedApiEndpoints?: string[];
-  /** Maximum deployments per day. */
-  maxDeploymentsPerDay?: number;
-  /** Maximum shell commands per hour. */
-  maxShellCommandsPerHour?: number;
-  /** Maximum file writes per hour. */
-  maxFileWritesPerHour?: number;
-  /** Time-based restrictions. */
-  timeRestrictions?: TimeRestriction[];
-}
-
-/**
- * Time-based restriction window.
- */
-export interface TimeRestriction {
-  /** Days of week (0 = Sunday, 6 = Saturday). */
-  daysOfWeek: number[];
-  /** Start hour (0-23). */
-  startHour: number;
-  /** End hour (0-23). */
-  endHour: number;
-  /** Timezone (e.g., 'America/New_York'). */
-  timezone: string;
-  /** Actions restricted during this window. */
-  restrictedActions: string[];
-  /** Whether to block or require approval during restriction. */
-  restrictionType: 'block' | 'require_approval';
-}
-
-/**
- * Per-tool safety override configuration.
- */
-export interface ToolSafetyOverride {
-  /** Tool name. */
-  toolName: string;
-  /** Whether this tool requires approval regardless of tier. */
-  requireApproval?: boolean;
-  /** Maximum uses per hour. */
-  maxUsesPerHour?: number;
-  /** Maximum uses per day. */
-  maxUsesPerDay?: number;
-  /** Allowed time windows (if restricted). */
-  allowedTimeWindows?: TimeRestriction[];
-  /** Blocked time windows. */
-  blockedTimeWindows?: TimeRestriction[];
-}
-
-/**
- * Result of a safety evaluation.
- */
-export interface SafetyEvaluationResult {
-  /** Whether the action is allowed. */
-  allowed: boolean;
-  /** Whether human approval is required. */
-  requiresApproval: boolean;
-  /** Reason for denial or approval requirement. */
-  reason?: string;
-  /** Specific policy that was violated or applied. */
-  appliedPolicy?: string;
-  /** Suggested alternative action if denied. */
-  suggestion?: string;
-}
-
-/**
- * Safety violation record for logging and reporting.
- */
-export interface SafetyViolation {
-  /** Unique violation ID. */
-  id: string;
-  /** Timestamp of the violation. */
-  timestamp: Date;
-  /** Agent that triggered the violation. */
-  agentId: string;
-  /** Safety tier of the agent. */
-  safetyTier: SafetyTier;
-  /** Action that was attempted. */
-  action: string;
-  /** Tool involved (if any). */
-  toolName?: string;
-  /** Resource involved (file path, API endpoint, etc.). */
-  resource?: string;
-  /** Reason for the violation. */
-  reason: string;
-  /** Whether the action was blocked or required approval. */
-  outcome: 'blocked' | 'approval_required' | 'allowed';
-  /** Session/trace ID for correlation. */
-  traceId?: string;
-  /** User ID associated with the violation. */
-  userId?: string;
-}
-
-/**
- * Default safety policies for each tier.
- */
-const DEFAULT_POLICIES: Record<SafetyTier, SafetyPolicy> = {
-  [SafetyTier.SANDBOX]: {
-    tier: SafetyTier.SANDBOX,
-    requireCodeApproval: true,
-    requireDeployApproval: true,
-    requireFileApproval: true,
-    requireShellApproval: true,
-    requireMcpApproval: true,
-    blockedFilePaths: [
-      '.git/**',
-      '.env*',
-      'package-lock.json',
-      'pnpm-lock.yaml',
-      'node_modules/**',
-    ],
-    maxDeploymentsPerDay: 2,
-    maxShellCommandsPerHour: 10,
-    maxFileWritesPerHour: 20,
-    timeRestrictions: [
-      {
-        daysOfWeek: [0, 6], // Weekends
-        startHour: 0,
-        endHour: 23,
-        timezone: 'UTC',
-        restrictedActions: ['deployment', 'shell_command'],
-        restrictionType: 'require_approval',
-      },
-    ],
-  },
-  [SafetyTier.STAGED]: {
-    tier: SafetyTier.STAGED,
-    requireCodeApproval: false,
-    requireDeployApproval: true,
-    requireFileApproval: false,
-    requireShellApproval: false,
-    requireMcpApproval: false,
-    blockedFilePaths: [
-      '.git/**',
-      '.env*',
-      'package-lock.json',
-      'pnpm-lock.yaml',
-      'node_modules/**',
-    ],
-    maxDeploymentsPerDay: 5,
-    maxShellCommandsPerHour: 50,
-    maxFileWritesPerHour: 100,
-    timeRestrictions: [
-      {
-        daysOfWeek: [1, 2, 3, 4, 5], // Weekdays
-        startHour: 9,
-        endHour: 17,
-        timezone: 'America/New_York',
-        restrictedActions: ['deployment'],
-        restrictionType: 'require_approval',
-      },
-    ],
-  },
-  [SafetyTier.AUTONOMOUS]: {
-    tier: SafetyTier.AUTONOMOUS,
-    requireCodeApproval: false,
-    requireDeployApproval: false,
-    requireFileApproval: false,
-    requireShellApproval: false,
-    requireMcpApproval: false,
-    blockedFilePaths: [
-      '.git/**',
-      '.env*',
-      'package-lock.json',
-      'pnpm-lock.yaml',
-      'node_modules/**',
-    ],
-    maxDeploymentsPerDay: 10,
-    maxShellCommandsPerHour: 200,
-    maxFileWritesPerHour: 500,
-  },
-};
+import { DEFAULT_POLICIES } from './safety-config';
+import { SafetyRateLimiter, ToolSafetyOverride } from './safety-limiter';
 
 /**
  * Safety Engine for evaluating actions against granular policies.
@@ -211,18 +25,16 @@ export class SafetyEngine {
   private policies: Map<SafetyTier, SafetyPolicy>;
   private toolOverrides: Map<string, ToolSafetyOverride>;
   private violations: SafetyViolation[] = [];
-  private rateLimitCounters: Map<string, { count: number; resetTime: number }> = new Map();
-  private base?: BaseMemoryProvider;
-  private evalCount = 0;
+  private limiter: SafetyRateLimiter;
 
   constructor(
     customPolicies?: Partial<Record<SafetyTier, Partial<SafetyPolicy>>>,
     toolOverrides?: ToolSafetyOverride[],
     base?: BaseMemoryProvider
   ) {
-    this.base = base;
     this.policies = new Map();
     this.toolOverrides = new Map();
+    this.limiter = new SafetyRateLimiter(base);
 
     // Initialize with default policies
     for (const [tier, policy] of Object.entries(DEFAULT_POLICIES)) {
@@ -265,7 +77,7 @@ export class SafetyEngine {
       userId?: string;
     }
   ): Promise<SafetyEvaluationResult> {
-    const tier = agentConfig?.safetyTier ?? SafetyTier.STAGED;
+    const tier = agentConfig?.safetyTier ?? SafetyTier.SANDBOX;
     const policy = this.policies.get(tier);
 
     if (!policy) {
@@ -303,7 +115,7 @@ export class SafetyEngine {
       }
 
       // Check tool rate limits
-      const rateLimitResult = await this.checkToolRateLimit(toolOverride, context.toolName);
+      const rateLimitResult = await this.limiter.checkToolRateLimit(toolOverride, context.toolName);
       if (!rateLimitResult.allowed) {
         return rateLimitResult;
       }
@@ -339,7 +151,7 @@ export class SafetyEngine {
     }
 
     // Check rate limits
-    const rateLimitResult = await this.checkRateLimits(policy, action, context);
+    const rateLimitResult = await this.limiter.checkRateLimits(policy, action);
     if (!rateLimitResult.allowed) {
       return rateLimitResult;
     }
@@ -640,166 +452,6 @@ export class SafetyEngine {
   }
 
   /**
-   * Check rate limits for actions.
-   */
-  private async checkRateLimits(
-    policy: SafetyPolicy,
-    action: string,
-    _context?: { traceId?: string; userId?: string; toolName?: string }
-  ): Promise<SafetyEvaluationResult> {
-    const now = Date.now();
-    const hourKey = `${action}_hour_${Math.floor(now / 3600000)}`;
-    const dayKey = `${action}_day_${Math.floor(now / 86400000)}`;
-
-    // Check hourly limits
-    if (action === 'shell_command' && policy.maxShellCommandsPerHour) {
-      if (!(await this.checkRateLimitAtomic(hourKey, policy.maxShellCommandsPerHour, 3600000))) {
-        return {
-          allowed: false,
-          requiresApproval: false,
-          reason: `Shell command rate limit exceeded (${policy.maxShellCommandsPerHour}/hour)`,
-          appliedPolicy: 'rate_limit_hourly',
-        };
-      }
-    }
-
-    if (action === 'file_operation' && policy.maxFileWritesPerHour) {
-      if (!(await this.checkRateLimitAtomic(hourKey, policy.maxFileWritesPerHour, 3600000))) {
-        return {
-          allowed: false,
-          requiresApproval: false,
-          reason: `File write rate limit exceeded (${policy.maxFileWritesPerHour}/hour)`,
-          appliedPolicy: 'rate_limit_hourly',
-        };
-      }
-    }
-
-    // Check daily limits
-    if (action === 'deployment' && policy.maxDeploymentsPerDay) {
-      if (!(await this.checkRateLimitAtomic(dayKey, policy.maxDeploymentsPerDay, 86400000))) {
-        return {
-          allowed: false,
-          requiresApproval: false,
-          reason: `Deployment rate limit exceeded (${policy.maxDeploymentsPerDay}/day)`,
-          appliedPolicy: 'rate_limit_daily',
-        };
-      }
-    }
-
-    return { allowed: true, requiresApproval: false };
-  }
-
-  /**
-   * Check tool-specific rate limits.
-   */
-  private async checkToolRateLimit(
-    override: ToolSafetyOverride | undefined,
-    toolName: string
-  ): Promise<SafetyEvaluationResult> {
-    if (!override) {
-      return { allowed: true, requiresApproval: false };
-    }
-
-    const now = Date.now();
-    const hourKey = `tool_${toolName}_hour_${Math.floor(now / 3600000)}`;
-    const dayKey = `tool_${toolName}_day_${Math.floor(now / 86400000)}`;
-
-    if (override.maxUsesPerHour) {
-      if (!(await this.checkRateLimitAtomic(hourKey, override.maxUsesPerHour, 3600000))) {
-        return {
-          allowed: false,
-          requiresApproval: false,
-          reason: `Tool '${toolName}' rate limit exceeded (${override.maxUsesPerHour}/hour)`,
-          appliedPolicy: 'tool_rate_limit_hourly',
-        };
-      }
-    }
-
-    if (override.maxUsesPerDay) {
-      if (!(await this.checkRateLimitAtomic(dayKey, override.maxUsesPerDay, 86400000))) {
-        return {
-          allowed: false,
-          requiresApproval: false,
-          reason: `Tool '${toolName}' rate limit exceeded (${override.maxUsesPerDay}/day)`,
-          appliedPolicy: 'tool_rate_limit_daily',
-        };
-      }
-    }
-
-    return { allowed: true, requiresApproval: false };
-  }
-
-  /**
-   * Check rate limit via DynamoDB atomic counter or in-memory fallback.
-   */
-  private async checkRateLimitAtomic(
-    key: string,
-    limit: number,
-    windowMs: number
-  ): Promise<boolean> {
-    // Periodic cleanup of stale in-memory counters
-    this.evalCount++;
-    if (this.evalCount % 100 === 0) {
-      this.pruneStaleCounters();
-    }
-
-    if (!this.base) {
-      return this.checkRateLimitInMemory(key, limit, windowMs);
-    }
-
-    const windowId = Math.floor(Date.now() / windowMs);
-    const pk = `${MEMORY_KEYS.HEALTH_PREFIX}RATE#${key}#${windowId}`;
-    try {
-      await this.base.updateItem({
-        Key: { userId: pk, timestamp: 0 },
-        UpdateExpression: 'SET #c = if_not_exists(#c, :z) + :o, expiresAt = :e',
-        ConditionExpression: 'attribute_not_exists(#c) OR #c < :lim',
-        ExpressionAttributeNames: { '#c': 'count' },
-        ExpressionAttributeValues: {
-          ':z': 0,
-          ':o': 1,
-          ':lim': limit,
-          ':e': Math.floor((Date.now() + windowMs) / 1000),
-        },
-        ReturnValues: 'NONE',
-      });
-      return true;
-    } catch (err: unknown) {
-      if ((err as { name?: string }).name === 'ConditionalCheckFailedException') {
-        return false;
-      }
-      logger.error('Rate limit check failed, allowing by default', { key, err });
-      return true; // fail-open
-    }
-  }
-
-  /**
-   * In-memory rate limit fallback (used when no DynamoDB provider is set).
-   */
-  private checkRateLimitInMemory(key: string, limit: number, windowMs: number): boolean {
-    const counter = this.rateLimitCounters.get(key);
-    if (!counter || Date.now() > counter.resetTime) {
-      this.rateLimitCounters.set(key, { count: 1, resetTime: Date.now() + windowMs });
-      return true;
-    }
-    if (counter.count >= limit) return false;
-    counter.count++;
-    return true;
-  }
-
-  /**
-   * Remove expired in-memory rate limit counters.
-   */
-  private pruneStaleCounters(): void {
-    const now = Date.now();
-    for (const [key, counter] of this.rateLimitCounters) {
-      if (now > counter.resetTime) {
-        this.rateLimitCounters.delete(key);
-      }
-    }
-  }
-
-  /**
    * Check if current time falls within a time restriction window.
    */
   private isTimeInWindow(date: Date, restriction: TimeRestriction): boolean {
@@ -952,7 +604,6 @@ export class SafetyEngine {
       approvalRequired: 0,
       byTier: {
         [SafetyTier.SANDBOX]: 0,
-        [SafetyTier.STAGED]: 0,
         [SafetyTier.AUTONOMOUS]: 0,
       },
       byAction: {} as Record<string, number>,

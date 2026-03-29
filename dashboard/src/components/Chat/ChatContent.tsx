@@ -13,6 +13,7 @@ import { ChatSidebar } from './ChatSidebar';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
 import { QueuedMessagesList } from './QueuedMessages';
+import { useChatMessages } from './useChatMessages';
 import { ChatMessage, AttachmentPreview, HistoryMessage } from './types';
 import type { PendingMessage } from '@claw/core/lib/types/session';
 
@@ -52,7 +53,6 @@ interface ChatApiResponse {
  */
 export default function ChatContent() {
   // --- UI and Session State ---
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
@@ -68,9 +68,6 @@ export default function ChatContent() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
-
-  // --- Attachments State ---
-  const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
 
   // --- Thinking Toggle ---
   const [showThinking, setShowThinking] = useState(true);
@@ -97,9 +94,33 @@ export default function ChatContent() {
     seenMessageIds 
   } = useChatConnection(
     activeSessionId,
-    setMessages,
+    () => {}, // setMessages will be from useChatMessages
     setIsLoading,
     isPostInFlight
+  );
+
+  const {
+    messages,
+    setMessages,
+    attachments,
+    setAttachments,
+    fetchHistory,
+    sendMessage,
+    updateAssistantResponse,
+    handleConnectionError,
+    handleToolApproval,
+    handleToolRejection,
+    handleToolClarification,
+    handleTaskCancellation,
+  } = useChatMessages(
+    activeSessionId,
+    setActiveSessionId,
+    setIsLoading,
+    isPostInFlight,
+    seenMessageIds,
+    fetchSessions,
+    skipNextHistoryFetch,
+    activeSessionRef
   );
 
   const currentSession = sessions.find(s => s.sessionId === activeSessionId);
@@ -206,44 +227,6 @@ export default function ChatContent() {
     }
   };
 
-  const fetchHistory = async (sessionId: string) => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/chat?sessionId=${sessionId}`);
-      const data = await response.json();
-      if (data.history) {
-        seenMessageIds.current.clear();
-        setMessages(prev => {
-          const history = data.history.map((m: HistoryMessage) => ({
-            role: m.role === 'assistant' || m.role === 'system' ? 'assistant' : 'user',
-            content: m.content,
-            thought: m.thought,
-            agentName: m.agentName ?? (m.role === 'assistant' || m.role === 'system' ? 'SuperClaw' : undefined),
-            attachments: m.attachments,
-            options: m.options,
-            tool_calls: m.tool_calls,
-            messageId: m.messageId || m.traceId,
-          }));
-
-          const historyIds = new Set(history.map((msg: ChatMessage) => msg.messageId).filter(Boolean));
-          const localOnly = prev.filter((msg: ChatMessage) => 
-            msg.role === 'assistant' && msg.messageId && !historyIds.has(msg.messageId)
-          );
-
-          history.forEach((msg: ChatMessage) => {
-            if (msg.messageId) seenMessageIds.current.add(msg.messageId);
-          });
-
-          return [...history, ...localOnly];
-        });
-      }
-    } catch (error) {
-      console.error('Failed to fetch history:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // --- Drag and Drop Logic ---
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -263,186 +246,6 @@ export default function ChatContent() {
     handleFiles(files);
   };
 
-  const handleFiles = async (files: File[]) => {
-    const newAttachments = await Promise.all(
-      files.map(async (file) => {
-        const type = (file.type.startsWith('image/') ? 'image' : 'file') as 'image' | 'file';
-        let preview = '';
-        if (type === 'image') {
-          preview = await new Promise<string>((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.readAsDataURL(file);
-          });
-        }
-        return { file, preview, type };
-      })
-    );
-    setAttachments(prev => [...prev, ...newAttachments]);
-  };
-
-  // --- Core Messaging Logic ---
-
-  const sendMessage = async (text: string) => {
-    if (!text.trim() && attachments.length === 0) return;
-    if (isLoading || isPostInFlight.current) return;
-
-    const userMsg = text.trim();
-    const currentAttachments = [...attachments];
-    const tempId = crypto.randomUUID();
-    
-    setMessages(prev => [...prev, { 
-      role: 'user', 
-      content: userMsg,
-      messageId: tempId,
-      attachments: currentAttachments.map(a => ({
-        type: a.type,
-        name: a.file.name,
-        mimeType: a.file.type,
-        url: a.preview
-      }))
-    }]);
-    
-    setIsLoading(true);
-    setAttachments([]);
-    isPostInFlight.current = true;
-
-    let currentSessionId = activeSessionRef.current;
-    if (!currentSessionId) {
-       currentSessionId = `session_${Date.now()}`;
-       skipNextHistoryFetch.current = true;
-       activeSessionRef.current = currentSessionId;
-       setActiveSessionId(currentSessionId);
-    }
-
-    try {
-      const apiAttachments = await Promise.all(currentAttachments.map(async (a) => {
-        const base64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
-          reader.readAsDataURL(a.file);
-        });
-        return { type: a.type, name: a.file.name, mimeType: a.file.type, base64 };
-      }));
-
-      const response = await fetch('/api/chat?stream=true', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          text: userMsg, 
-          sessionId: currentSessionId, 
-          attachments: apiAttachments, 
-          traceId: tempId 
-        }),
-      });
-
-      const data = (await response.json()) as ChatApiResponse;
-
-      if (!response.ok || data.error) {
-        handleApiError(currentSessionId, data);
-        return;
-      }
-
-      if (currentSessionId === activeSessionRef.current) {
-        updateAssistantResponse(data, tempId);
-      }
-      fetchSessions();
-    } catch (error) {
-      handleConnectionError(currentSessionId, error);
-    } finally {
-      isPostInFlight.current = false;
-      setIsLoading(false);
-    }
-  };
-
-  /**
-   * Internal helper to handle server-side errors from the chat API.
-   * @param sessionId The active session ID.
-   * @param data The error response data.
-   */
-  const handleApiError = (sessionId: string, data: ChatApiResponse) => {
-    const errorContent = data.details || data.error || AGENT_ERRORS.PROCESS_FAILURE;
-    console.error('Chat API error:', data);
-    if (sessionId === activeSessionRef.current) {
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: errorContent,
-        agentName: 'SystemGuard',
-        isError: true
-      }]);
-    }
-    fetchSessions();
-  };
-
-  /**
-   * Internal helper to update or append the assistant's message.
-   * @param data The response data from the API.
-   * @param tempId The local temporary ID for tracking.
-   */
-  const updateAssistantResponse = (data: ChatApiResponse, tempId: string) => {
-    const targetId = data.messageId || tempId;
-    seenMessageIds.current.add(targetId);
-    setMessages(prev => {
-      const existingIdx = prev.findIndex(m => m.messageId === targetId && m.role === 'assistant');
-      if (existingIdx !== -1) {
-        const existing = prev[existingIdx];
-        // If MQTT already streamed content, don't replace it — only merge in non-streamed data
-        const hasExistingContent = existing.content && existing.content.length > 0;
-        const hasExistingThought = existing.thought && existing.thought.length > 0;
-        const updated = [...prev];
-        updated[existingIdx] = {
-          ...existing,
-          content: hasExistingContent ? existing.content : (data.reply || existing.content),
-          thought: hasExistingThought ? existing.thought : (data.thought || existing.thought),
-          tool_calls: data.tool_calls || existing.tool_calls,
-          agentName: data.agentName || existing.agentName,
-        };
-        return updated;
-      }
-      return [...prev, {
-        role: 'assistant',
-        content: data.reply || (data.tool_calls ? 'Executing tools...' : ''),
-        thought: data.thought,
-        messageId: targetId,
-        agentName: data.agentName || 'SuperClaw',
-        tool_calls: data.tool_calls,
-      }];
-    });
-  };
-
-  /**
-   * Internal helper to handle connection failures and log gaps.
-   * @param sessionId The active session ID.
-   * @param error The error object.
-   */
-  const handleConnectionError = async (sessionId: string, error: unknown) => {
-    console.error('Chat connection error:', error);
-    const errorMsg = AGENT_ERRORS.CONNECTION_FAILURE;
-    if (sessionId === activeSessionRef.current) {
-      const errorId = `error_${Date.now()}`;
-      seenMessageIds.current.add(errorId);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: errorMsg, 
-        agentName: 'SystemGuard',
-        messageId: errorId,
-        isError: true
-      }]);
-    }
-    try {
-      await fetch('/api/memory/gap', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          details: `Chat failure in session ${sessionId}. Error: ${error instanceof Error ? error.message : String(error)}`,
-          metadata: { category: 'strategic_gap', urgency: 7, impact: 5 }
-        })
-      });
-    } catch (e) {
-      console.error('Failed to report strategic gap:', e);
-    }
-  };
-
   const handleOptionClick = async (value: string, comment?: string) => {
     if (value.startsWith('APPROVE_TOOL_CALL:')) {
       await handleToolApproval(value.split(':')[1], comment);
@@ -455,162 +258,6 @@ export default function ChatContent() {
     } else {
       const fullMessage = comment ? `${value}\n\nComment: ${comment}` : value;
       sendMessage(fullMessage);
-    }
-  };
-
-  /**
-   * Processes approval for a specific tool call.
-   * @param callId The unique ID of the tool call to approve.
-   * @param comment Optional user comment to send with approval.
-   */
-  const handleToolApproval = async (callId: string, comment?: string) => {
-    const currentSessionId = activeSessionRef.current;
-    setIsLoading(true);
-    isPostInFlight.current = true;
-    
-    try {
-      const response = await fetch('/api/chat?stream=true', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          text: comment || 'I approve the tool execution.', 
-          sessionId: currentSessionId, 
-          approvedToolCalls: [callId] 
-        }),
-      });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: `Error during approval: ${data.error || 'Unknown error'}`, 
-          agentName: 'SystemGuard',
-          isError: true 
-        }]);
-      }
-      fetchSessions();
-    } catch (error) {
-      console.error('Approval error:', error);
-    } finally {
-      isPostInFlight.current = false;
-      setIsLoading(false);
-    }
-  };
-
-  /**
-   * Processes rejection for a specific tool call.
-   * @param callId The unique ID of the tool call to reject.
-   * @param comment Optional user comment to send with rejection.
-   */
-  const handleToolRejection = async (callId: string, comment?: string) => {
-    const currentSessionId = activeSessionRef.current;
-    setIsLoading(true);
-    isPostInFlight.current = true;
-    
-    try {
-      const response = await fetch('/api/chat?stream=true', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          text: comment || 'I reject this tool execution.', 
-          sessionId: currentSessionId, 
-          rejectedToolCalls: [callId] 
-        }),
-      });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: `Error during rejection: ${data.error || 'Unknown error'}`, 
-          agentName: 'SystemGuard',
-          isError: true 
-        }]);
-      }
-      fetchSessions();
-    } catch (error) {
-      console.error('Rejection error:', error);
-    } finally {
-      isPostInFlight.current = false;
-      setIsLoading(false);
-    }
-  };
-
-  /**
-   * Processes clarification for a specific tool call.
-   * @param callId The unique ID of the tool call.
-   * @param comment The user's clarification.
-   */
-  const handleToolClarification = async (callId: string, comment?: string) => {
-    const currentSessionId = activeSessionRef.current;
-    setIsLoading(true);
-    isPostInFlight.current = true;
-    
-    try {
-      const response = await fetch('/api/chat?stream=true', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          text: comment || 'Requesting clarification.', 
-          sessionId: currentSessionId, 
-          clarifiedToolCalls: [callId] 
-        }),
-      });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: `Error during clarification: ${data.error || 'Unknown error'}`, 
-          agentName: 'SystemGuard',
-          isError: true 
-        }]);
-      }
-      fetchSessions();
-    } catch (error) {
-      console.error('Clarification error:', error);
-    } finally {
-      isPostInFlight.current = false;
-      setIsLoading(false);
-    }
-  };
-
-  /**
-   * Processes task cancellation.
-   * @param taskId The unique ID of the task to cancel.
-   * @param comment Optional user reason for cancellation.
-   */
-  const handleTaskCancellation = async (taskId: string, comment?: string) => {
-    const currentSessionId = activeSessionRef.current;
-    setIsLoading(true);
-    isPostInFlight.current = true;
-    
-    try {
-      const response = await fetch('/api/chat?stream=true', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          text: comment || 'Stop the current task.', 
-          sessionId: currentSessionId, 
-          cancelledTasks: [taskId] 
-        }),
-      });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        setMessages(prev => [...prev, { 
-          role: 'assistant', 
-          content: `Error during cancellation: ${data.error || 'Unknown error'}`, 
-          agentName: 'SystemGuard',
-          isError: true 
-        }]);
-      }
-      fetchSessions();
-    } catch (error) {
-      console.error('Cancellation error:', error);
-    } finally {
-      isPostInFlight.current = false;
-      setIsLoading(false);
     }
   };
 

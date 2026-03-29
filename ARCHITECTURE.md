@@ -229,6 +229,40 @@ When tasks require negotiation or peer review between multiple agents, the syste
 
 ---
 
+## Workspace Architecture (Multi-Tenant Multi-Human)
+
+The system supports multi-human multi-agent collaboration through **Workspaces** — a shared context primitive with role-based access control.
+
+```text
++-------------------+       +-----------------------+
+|   Human A         +<----->+    Workspace          |
+|   (Telegram)      |       |                       |
++-------------------+       |  Members:             |
+                            |  - Human A (owner)    |
++-------------------+       |  - Human B (collab)   |
+|   Human B         +<----->+  - Agent Coder (edit) |
+|   (Dashboard)     |       |  - Agent QA (observer)|
++-------------------+       |                       |
+                            |  Sessions:            |
++-------------------+       |  - Collab#abc123      |
+|   Agent Swarm     +<----->+  - Collab#def456      |
+|   (AgentBus)      |       |                       |
++-------------------+       +-----------------------+
+```
+
+**Key Components:**
+- **IdentityManager** (`core/lib/identity.ts`): Authentication, RBAC, session management
+- **Workspace Operations** (`core/lib/memory/workspace-operations.ts`): CRUD for workspaces and members
+- **Role Hierarchy**: owner > admin > collaborator > observer
+- **Channel Profiles**: Human members have Telegram, Discord, Slack, Dashboard, or Email channels
+- **Workspace-Aware Collaboration**: Sessions can be scoped to a workspace, auto-adding all members
+
+**Tools**: `createWorkspace`, `inviteMember`, `updateMemberRole`, `removeMember`, `getWorkspace`, `listWorkspaces`
+
+- **Deep Dive**: [Agent Roles & Collaboration ↗](./docs/AGENTS.md)
+
+---
+
 ## 📈 Unified Tracing Architecture
 
 Serverless Claw uses a **Branched Neural Path Tracing** model to visualize complex, parallel multi-agent workflows as a Directed Acyclic Graph (DAG).

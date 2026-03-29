@@ -186,12 +186,10 @@ export enum AgentCategory {
 /**
  * Safety tiers for agent trust levels.
  * - sandbox: All actions require HITL approval
- * - staged: Deployment requires approval, code changes don't
  * - autonomous: Full self-evolution (current AUTO mode)
  */
 export enum SafetyTier {
   SANDBOX = 'sandbox',
-  STAGED = 'staged',
   AUTONOMOUS = 'autonomous',
 }
 

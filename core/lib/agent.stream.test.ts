@@ -43,6 +43,8 @@ vi.mock('./agent/context-manager', () => ({
         { role: MessageRole.USER, content: 'Hello' },
       ],
     })),
+    needsSummarization: vi.fn().mockResolvedValue(false),
+    summarize: vi.fn().mockResolvedValue(undefined),
   },
 }));
 

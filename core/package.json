@@ -32,5 +32,9 @@
     "openai": "^6.31.0",
     "uuid": "^13.0.0",
     "zod": "^4.3.6"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "format-check": "prettier --check . --ignore-path ../../.prettierignore"
   }
 }

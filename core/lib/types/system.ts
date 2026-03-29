@@ -32,6 +32,8 @@ export interface SSTResource {
   ConfigTable: { name: string };
   /** S3 bucket for deployment artifacts. */
   StagingBucket: { name: string };
+  /** S3 bucket for persistent knowledge and documents. */
+  KnowledgeBucket: { name: string };
   /** EventBridge bus for inter-agent communication. */
   AgentBus: { name: string };
   /** API Gateway URL for external webhooks. */

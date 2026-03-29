@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { validateAllTools, validateToolSchema } from './schema';
 import { IToolDefinition } from './types/index';
+import { TOOLS } from '../tools/index';
 
 describe('Tool Schema Validation', () => {
   it('should pass for all registered tool definitions', () => {
-    const isValid = validateAllTools();
+    const isValid = validateAllTools(TOOLS);
     expect(isValid, 'All tool schemas should be valid and follow strict requirements').toBe(true);
   });
 

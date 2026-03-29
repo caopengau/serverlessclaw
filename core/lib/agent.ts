@@ -2,25 +2,16 @@ import {
   IMemory,
   IProvider,
   ITool,
-  Message,
   ReasoningProfile,
   MessageRole,
   IAgentConfig,
   TraceSource,
   Attachment,
-  AttachmentType,
   InsightCategory,
   ToolCall,
 } from './types/index';
 import { logger } from './logger';
-import {
-  SYSTEM,
-  AGENT_ERRORS,
-  MEMORY_KEYS,
-  CONFIG_KEYS,
-  OPTIMIZATION_POLICIES,
-  LIMITS,
-} from './constants';
+import { SYSTEM, AGENT_ERRORS, CONFIG_KEYS, OPTIMIZATION_POLICIES } from './constants';
 import { ConfigManager } from './registry/config';
 import { AgentProcessOptions } from './agent/options';
 import { AgentEmitter } from './agent/emitter';
@@ -28,15 +19,8 @@ import { parseConfigInt } from './providers/utils';
 import { DEFAULT_SIGNAL_SCHEMA } from './agent/schema';
 import { normalizeBaseUserId } from './utils/normalize';
 
-// DEFAULT_SIGNAL_SCHEMA moved to ./agent/schema.ts
-
 /**
  * Validates that an IAgentConfig has all required fields populated.
- * Throws with a clear error message if critical fields are missing.
- * Use this at agent construction time to fail fast on misconfiguration.
- *
- * @param config - The agent config to validate.
- * @param agentType - The agent type name for error messages.
  */
 export function validateAgentConfig(config: IAgentConfig | undefined, agentType: string): void {
   if (!config) {
@@ -61,22 +45,11 @@ export function validateAgentConfig(config: IAgentConfig | undefined, agentType:
 
 /**
  * The core Agent class responsible for orchestrating LLM calls, tool execution,
- * and memory management. It acts as the primary execution engine for both
- * backbone (system) and user-defined agents.
+ * and memory management.
  */
 export class Agent {
-  /** Emitter for agent-related events, including reflections and continuations. */
   private emitter: AgentEmitter;
 
-  /**
-   * Initializes a new Agent instance.
-   *
-   * @param memory - The memory provider for history and distillation.
-   * @param provider - The LLM provider for model interactions.
-   * @param tools - The list of tools available to the agent.
-   * @param systemPrompt - The core identity and instructions for the agent.
-   * @param config - Optional configuration and metadata for the agent.
-   */
   constructor(
     private memory: IMemory,
     private provider: IProvider,
@@ -84,23 +57,12 @@ export class Agent {
     private systemPrompt: string,
     public config?: IAgentConfig
   ) {
-    // Structural Enforcement: fail-fast on misconfiguration
     if (config) {
       validateAgentConfig(config, config.id);
     }
     this.emitter = new AgentEmitter(config);
   }
 
-  /**
-   * Processes a user message, potentially performing multiple tool-calling iterations.
-   * This method handles memory retrieval, model/provider resolution, prompt assembly,
-   * and the core execution loop.
-   *
-   * @param userId - The unique identifier for the user or conversation.
-   * @param userText - The text content of the user's message.
-   * @param options - Optional configuration for this specific processing run.
-   * @returns A promise that resolves to the agent's response, including text, attachments, and trace ID.
-   */
   async process(
     userId: string,
     userText: string,
@@ -141,9 +103,6 @@ export class Agent {
 
     const baseUserId = normalizeBaseUserId(userId);
     const { ClawTracer } = await import('./tracer');
-    const { ContextManager } = await import('./agent/context-manager');
-    const { AgentExecutor, AGENT_DEFAULTS, AGENT_LOG_MESSAGES } = await import('./agent/executor');
-    const { AgentContext } = await import('./agent/context');
 
     const tracer = new ClawTracer(
       baseUserId,
@@ -172,7 +131,6 @@ export class Agent {
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
 
-    // Check for Handoff (Phase B3: Real-time Shared Awareness)
     const { isHumanTakingControl } = await import('./handoff');
     if (await isHumanTakingControl(baseUserId)) {
       logger.info(`[Agent] Human control active for ${baseUserId}, entering OBSERVE mode.`);
@@ -182,52 +140,6 @@ export class Agent {
     }
 
     try {
-      // 1. Memory Retrieval (GAP #5: Include global lessons for cross-session knowledge)
-      const history = await this.memory.getHistory(storageId);
-      const [distilled, lessons, prefPrefixed, prefRaw, globalLessons] = await Promise.all([
-        this.memory.getDistilledMemory(baseUserId),
-        this.memory.getLessons(baseUserId),
-        this.memory.searchInsights(`USER#${baseUserId}`, '*', InsightCategory.USER_PREFERENCE),
-        this.memory.searchInsights(baseUserId, '*', InsightCategory.USER_PREFERENCE),
-        this.memory.getGlobalLessons(5),
-      ]);
-
-      const preferences = {
-        items: [...(prefPrefixed.items ?? []), ...(prefRaw.items ?? [])],
-      };
-
-      const facts = [
-        ...distilled.split('\n').filter(Boolean),
-        ...(preferences.items?.map((i) => i.content) ?? []),
-      ].join('\n');
-
-      let recoveryContext = '';
-      try {
-        const recoveryData = await this.memory.getDistilledMemory(
-          SYSTEM.RECOVERY_KEY ?? MEMORY_KEYS.RECOVERY
-        );
-        if (recoveryData) {
-          recoveryContext = `${AGENT_LOG_MESSAGES.RECOVERY_LOG_PREFIX}${recoveryData}`;
-          await this.memory.updateDistilledMemory(SYSTEM.RECOVERY_KEY ?? MEMORY_KEYS.RECOVERY, '');
-        }
-      } catch (e) {
-        logger.error('Error checking recovery context:', e);
-      }
-
-      await this.memory.addMessage(storageId, {
-        role: MessageRole.USER,
-        content: userText,
-        attachments: incomingAttachments,
-      });
-
-      // Silent completion if user was already notified by sub-agent
-      if (userText.includes('(USER_ALREADY_NOTIFIED: true)')) {
-        logger.info(`Silent completion for agent ${this.config?.id} (Already Notified)`);
-        await tracer.endTrace('User already notified by sub-agent.');
-        return { responseText: '', attachments: [] };
-      }
-
-      // 2. Model/Provider Resolution (GAP #4: Per-agent model selection via AgentRouter)
       let activeModel = this.config?.model ?? SYSTEM.DEFAULT_MODEL;
       let activeProvider = this.config?.provider ?? SYSTEM.DEFAULT_PROVIDER;
       let activeProfile = profile;
@@ -240,7 +152,6 @@ export class Agent {
         if (globalProvider) activeProvider = globalProvider;
         if (globalModel) activeModel = globalModel;
 
-        // GAP #4: If no global override, use AgentRouter for dynamic model selection
         if (!globalProvider && !globalModel && this.config) {
           const { AgentRouter } = await import('./agent-router');
           const routed = AgentRouter.selectModel(this.config, { profile: activeProfile });
@@ -265,79 +176,48 @@ export class Agent {
         logger.warn('Failed to fetch config from DDB, using defaults.');
       }
 
-      // 3. Prompt Assembly (GAP #5: Include global lessons)
-      const globalLessonsBlock =
-        globalLessons.length > 0
-          ? `\n\n[COLLECTIVE_SWARM_INTELLIGENCE]:\nThese are system-wide lessons learned across ALL sessions. Apply them universally:\n${globalLessons.map((l) => `- ${l}`).join('\n')}\n`
-          : '';
-
-      // Fetch capabilities early for conditional prompt injection
-      const capabilities = await this.provider.getCapabilities(activeModel);
-
-      let contextPrompt = this.systemPrompt;
-
-      // Conditionally inject vision block if provider supports image attachments
-      if (capabilities.supportedAttachmentTypes?.includes(AttachmentType.IMAGE)) {
-        const { VISION_PROMPT_BLOCK } = await import('./prompts/vision');
-        contextPrompt += VISION_PROMPT_BLOCK;
+      if (userText.includes('(USER_ALREADY_NOTIFIED: true)')) {
+        logger.info(`Silent completion for agent ${this.config?.id} (Already Notified)`);
+        await tracer.endTrace('User already notified by sub-agent.');
+        return { responseText: '', attachments: [] };
       }
 
-      if (recoveryContext) contextPrompt += recoveryContext;
-      contextPrompt += `\n\n${AgentContext.getMemoryIndexBlock(distilled, lessons.length, preferences.items.length)}`;
-      contextPrompt += `\n\n[INTELLIGENCE]\n${facts.length > 0 ? facts : 'No persistent knowledge available for this user yet.'}\n\n`;
-      contextPrompt += globalLessonsBlock;
-      contextPrompt += `\n\n${AgentContext.getIdentityBlock(
+      const { AgentAssembler } = await import('./agent/assembler');
+      const {
+        contextPrompt,
+        messages,
+        summary,
+        contextLimit,
+        activeModel: finalModel,
+        activeProvider: finalProvider,
+      } = await AgentAssembler.prepareContext(
+        this.memory,
+        this.provider,
         this.config,
-        activeModel ?? SYSTEM.DEFAULT_MODEL,
-        activeProvider ?? SYSTEM.DEFAULT_PROVIDER,
-        activeProfile,
-        depth
-      )}`;
+        baseUserId,
+        storageId,
+        userText,
+        incomingAttachments ?? [],
+        {
+          isIsolated,
+          depth,
+          activeModel,
+          activeProvider,
+          activeProfile,
+          systemPrompt: this.systemPrompt,
+        }
+      );
 
-      contextPrompt += `
-      [RELATIONSHIP_CONTEXT]:
-      - MODE: ${isIsolated ? 'SYSTEM_TASK' : 'USER_CONSULTATION'}
-      - AUDIENCE: ${isIsolated ? 'Orchestrator' : 'Human User'}
-      - BEHAVIOR: ${isIsolated ? 'Be technical, precise, and structured.' : 'Be friendly, direct, and conversational. Skip internal monologue.'}
-      `;
+      activeModel = finalModel;
+      activeProvider = finalProvider;
 
-      const currentMessage: Message = {
+      await this.memory.addMessage(storageId, {
         role: MessageRole.USER,
         content: userText,
         attachments: incomingAttachments,
-      };
+      });
 
-      const fullHistory = [...history, currentMessage];
-      const summary = await this.memory.getSummary(storageId);
-
-      const contextLimit = capabilities.contextWindow ?? LIMITS.MAX_CONTEXT_LENGTH;
-
-      const managed = await ContextManager.getManagedContext(
-        fullHistory,
-        summary,
-        contextPrompt,
-        contextLimit,
-        { model: activeModel, provider: activeProvider }
-      );
-
-      const messages: Message[] = managed.messages;
-
-      // 4. Summarization Trigger (Background)
-      if (
-        await ContextManager.needsSummarization(
-          fullHistory,
-          contextLimit,
-          undefined,
-          activeModel,
-          activeProvider
-        )
-      ) {
-        ContextManager.summarize(this.memory, storageId, this.provider, fullHistory).catch((e) =>
-          logger.error('Background summarization failed:', e)
-        );
-      }
-
-      // 5. Execution Loop
+      const { AgentExecutor, AGENT_DEFAULTS } = await import('./agent/executor');
       const executor = new AgentExecutor(
         this.provider,
         this.tools,
@@ -392,7 +272,6 @@ export class Agent {
         approvedToolCalls,
       });
 
-      // Emit agent-level metrics + persist token usage
       if (!process.env.VITEST && loopUsage) {
         try {
           const { emitMetrics, METRICS } = await import('./metrics');
@@ -440,7 +319,6 @@ export class Agent {
           tool_calls: resultToolCalls,
         });
 
-        // Only emit continuation if NOT waiting for an asynchronous delegation/event
         if (!asyncWait) {
           await this.emitter.emitContinuation(userId, userText, tracer.getTraceId() ?? 'unknown', {
             initiatorId: currentInitiator,
@@ -459,18 +337,13 @@ export class Agent {
         };
       }
 
-      // 5. Finalize and Response
-      // 2026 Strategy: Intelligently extract responseText for humans if in JSON mode.
-      // This allows the agent to maintain structured communication with its peers while
-      // still providing legible status updates to the user.
       if (communicationMode === 'json' && responseText) {
         try {
           const parsed = JSON.parse(responseText);
-          // Standard field names for human messaging
           if (parsed.message) responseText = parsed.message;
-          else if (parsed.plan) responseText = parsed.plan; // Better UX for Planner
+          else if (parsed.plan) responseText = parsed.plan;
         } catch {
-          // Keep raw text if not JSON-parseable (fallback)
+          // Keep raw text
         }
       }
 
@@ -486,11 +359,10 @@ export class Agent {
 
       await tracer.endTrace(responseText);
 
-      // 6. Reflection Trigger
       await this.emitter.considerReflection(
         isIsolated,
         userId,
-        history,
+        messages as any, // history for reflection
         userText,
         tracer.getTraceId(),
         messages,
@@ -512,7 +384,6 @@ export class Agent {
       const errorDetail = error instanceof Error ? error.message : String(error);
       logger.error(`[Agent.process] Critical failure: ${errorDetail}`, error);
 
-      // Log a strategic gap for the system to evolve
       try {
         const gapId = `GAP#PROC#${Date.now()}`;
         await this.memory.setGap(
@@ -536,9 +407,6 @@ export class Agent {
     }
   }
 
-  /**
-   * Performs a streaming completion call to the agent.
-   */
   async *stream(
     userId: string,
     userText: string,
@@ -573,9 +441,6 @@ export class Agent {
 
     const baseUserId = normalizeBaseUserId(userId);
     const { ClawTracer } = await import('./tracer');
-    const { ContextManager } = await import('./agent/context-manager');
-    const { AgentExecutor, AGENT_DEFAULTS } = await import('./agent/executor');
-    const { AgentContext } = await import('./agent/context');
 
     const tracer = new ClawTracer(
       baseUserId,
@@ -604,7 +469,6 @@ export class Agent {
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
 
-    // Check for Handoff (Phase B3: Real-time Shared Awareness)
     const { isHumanTakingControl } = await import('./handoff');
     if (await isHumanTakingControl(baseUserId)) {
       logger.info(`[Agent.stream] Human control active for ${baseUserId}, entering OBSERVE mode.`);
@@ -614,30 +478,41 @@ export class Agent {
       return;
     }
 
-    // 1. Memory Retrieval
-    const history = await this.memory.getHistory(storageId);
-    const [distilled, lessons, prefPrefixed, prefRaw, globalLessons] = await Promise.all([
-      this.memory.getDistilledMemory(baseUserId),
-      this.memory.getLessons(baseUserId),
-      this.memory.searchInsights(`USER#${baseUserId}`, '*', InsightCategory.USER_PREFERENCE),
-      this.memory.searchInsights(baseUserId, '*', InsightCategory.USER_PREFERENCE),
-      this.memory.getGlobalLessons(5),
-    ]);
-
-    let recoveryContext = '';
-    try {
-      const { SYSTEM, MEMORY_KEYS } = await import('./constants');
-      const { AGENT_LOG_MESSAGES } = await import('./agent/executor');
-      const recoveryData = await this.memory.getDistilledMemory(
-        SYSTEM.RECOVERY_KEY ?? MEMORY_KEYS.RECOVERY
-      );
-      if (recoveryData) {
-        recoveryContext = `${AGENT_LOG_MESSAGES.RECOVERY_LOG_PREFIX}${recoveryData}`;
-        await this.memory.updateDistilledMemory(SYSTEM.RECOVERY_KEY ?? MEMORY_KEYS.RECOVERY, '');
-      }
-    } catch (e) {
-      logger.error('Error checking recovery context:', e);
+    if (userText.includes('(USER_ALREADY_NOTIFIED: true)')) {
+      logger.info(`Silent completion for agent ${this.config?.id} (Already Notified)`);
+      await tracer.endTrace('User already notified by sub-agent.');
+      return;
     }
+
+    const activeModel = this.config?.model ?? SYSTEM.DEFAULT_MODEL;
+    const activeProvider = this.config?.provider ?? SYSTEM.DEFAULT_PROVIDER;
+    const activeProfile = profile;
+
+    const { AgentAssembler } = await import('./agent/assembler');
+    const {
+      contextPrompt,
+      messages,
+      summary,
+      contextLimit,
+      activeModel: finalModel,
+      activeProvider: finalProvider,
+    } = await AgentAssembler.prepareContext(
+      this.memory,
+      this.provider,
+      this.config,
+      baseUserId,
+      storageId,
+      userText,
+      incomingAttachments ?? [],
+      {
+        isIsolated,
+        depth,
+        activeModel,
+        activeProvider,
+        activeProfile,
+        systemPrompt: this.systemPrompt,
+      }
+    );
 
     await this.memory.addMessage(storageId, {
       role: MessageRole.USER,
@@ -645,72 +520,7 @@ export class Agent {
       attachments: incomingAttachments,
     });
 
-    // Silent completion if user was already notified by sub-agent
-    if (userText.includes('(USER_ALREADY_NOTIFIED: true)')) {
-      logger.info(`Silent completion for agent ${this.config?.id} (Already Notified)`);
-      await tracer.endTrace('User already notified by sub-agent.');
-      return;
-    }
-
-    const preferences = {
-      items: [...(prefPrefixed.items ?? []), ...(prefRaw.items ?? [])],
-    };
-
-    const facts = [
-      ...distilled.split('\n').filter(Boolean),
-      ...(preferences.items?.map((i) => i.content) ?? []),
-    ].join('\n');
-
-    const activeModel = this.config?.model ?? SYSTEM.DEFAULT_MODEL;
-    const activeProvider = this.config?.provider ?? SYSTEM.DEFAULT_PROVIDER;
-    const activeProfile = profile;
-
-    // 3. Prompt Assembly (GAP #5: Include global lessons)
-    const globalLessonsBlock =
-      globalLessons.length > 0
-        ? `\n\n[COLLECTIVE_SWARM_INTELLIGENCE]:\nThese are system-wide lessons learned across ALL sessions. Apply them universally:\n${globalLessons.map((l) => `- ${l}`).join('\n')}\n`
-        : '';
-
-    let contextPrompt = this.systemPrompt;
-    if (recoveryContext) contextPrompt += recoveryContext;
-    contextPrompt += `\n\n${AgentContext.getMemoryIndexBlock(distilled, lessons.length, preferences.items.length)}`;
-    contextPrompt += `\n\n[INTELLIGENCE]\n${facts.length > 0 ? facts : 'No persistent knowledge available for this user yet.'}\n\n`;
-    contextPrompt += globalLessonsBlock;
-    contextPrompt += `\n\n${AgentContext.getIdentityBlock(
-      this.config,
-      activeModel ?? SYSTEM.DEFAULT_MODEL,
-      activeProvider ?? SYSTEM.DEFAULT_PROVIDER,
-      activeProfile,
-      depth
-    )}`;
-
-    contextPrompt += `
-      [RELATIONSHIP_CONTEXT]:
-      - MODE: ${isIsolated ? 'SYSTEM_TASK' : 'USER_CONSULTATION'}
-      - AUDIENCE: ${isIsolated ? 'Orchestrator' : 'Human User'}
-      - BEHAVIOR: ${isIsolated ? 'Be technical, precise, and structured.' : 'Be friendly, direct, and conversational. Skip internal monologue.'}
-      `;
-
-    const currentMessage: Message = {
-      role: MessageRole.USER,
-      content: userText,
-      attachments: incomingAttachments,
-    };
-    const fullHistory = [...history, currentMessage];
-    const summary = await this.memory.getSummary(storageId);
-
-    const capabilities = await this.provider.getCapabilities(activeModel);
-    const contextLimit = capabilities.contextWindow ?? LIMITS.MAX_CONTEXT_LENGTH;
-
-    const managed = await ContextManager.getManagedContext(
-      fullHistory,
-      summary,
-      contextPrompt,
-      contextLimit,
-      { model: activeModel, provider: activeProvider }
-    );
-
-    const executor = new AgentExecutor(
+    const executor = new (await import('./agent/executor')).AgentExecutor(
       this.provider,
       this.tools,
       this.config?.id ?? 'unknown',
@@ -720,11 +530,13 @@ export class Agent {
       contextLimit
     );
 
-    const stream = executor.streamLoop(managed.messages, {
-      activeModel,
-      activeProvider,
+    const stream = executor.streamLoop(messages, {
+      activeModel: finalModel,
+      activeProvider: finalProvider,
       activeProfile,
-      maxIterations: this.config?.maxIterations ?? AGENT_DEFAULTS.MAX_ITERATIONS,
+      maxIterations:
+        this.config?.maxIterations ??
+        (await import('./agent/executor')).AGENT_DEFAULTS.MAX_ITERATIONS,
       tracer,
       emitter: this.emitter,
       context,
@@ -760,7 +572,6 @@ export class Agent {
       yield chunk;
     }
 
-    // After stream completes, emit metrics, save to memory and end trace
     if (!process.env.VITEST) {
       const { emitMetrics, METRICS } = await import('./metrics');
       emitMetrics([

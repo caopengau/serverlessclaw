@@ -60,6 +60,82 @@ Users can set a global `optimization_policy` to control system-wide reasoning de
 
 ---
 
+## 👥 Workspace & Multi-Human Collaboration
+
+The system supports multi-human multi-agent collaboration through **Workspaces** — a shared context primitive with role-based access control.
+
+### Workspace Architecture
+
+```text
++-------------------+       +-----------------------+
+|   Human A         +<----->+    Workspace          |
+|   (Telegram)      |       |                       |
++-------------------+       |  Members:             |
+                            |  - Human A (owner)    |
++-------------------+       |  - Human B (collab)   |
+|   Human B         +<----->+  - Agent Coder (edit) |
+|   (Dashboard)     |       |  - Agent QA (observer)|
++-------------------+       |                       |
+                            |  Sessions:            |
++-------------------+       |  - Collab#abc123      |
+|   Agent Swarm     +<----->+  - Collab#def456      |
+|   (AgentBus)      |       |                       |
++-------------------+       +-----------------------+
+```
+
+### Member Roles
+
+| Role | Permissions |
+|------|-------------|
+| **Owner** | Full access, can delete workspace, manage all members |
+| **Admin** | Can invite/remove members, manage collaborations |
+| **Collaborator** | Can participate in sessions, write to shared context |
+| **Observer** | Read-only access to sessions and history |
+
+### Identity & Access Layer
+
+The `IdentityManager` (`core/lib/identity.ts`) provides:
+- **Authentication**: Session-based auth via Telegram, Dashboard, or API key
+- **RBAC**: Role-based permission enforcement
+- **Workspace Membership**: Users can belong to multiple workspaces
+- **Resource Access Control**: Fine-grained access to agents, traces, and configs
+
+### Workspace Operations
+
+| Tool | Purpose |
+|------|---------|
+| `createWorkspace` | Creates a new workspace with owner |
+| `inviteMember` | Invites human or agent (admin/owner only) |
+| `updateMemberRole` | Changes a member's role |
+| `removeMember` | Removes member (cannot remove owner) |
+| `getWorkspace` | Retrieves workspace details |
+| `listWorkspaces` | Lists all workspace IDs |
+
+### Multi-Human Collaboration Flow
+
+```text
+Human A (Telegram)    Human B (Dashboard)    Facilitator (Agent)    AgentBus (EB)    Sub-Agents
+      |                      |                      |                    |                |
+      +-- createCollab ----->|                      |                    |                |
+      |   (participants: A,B,|                      |                    |                |
+      |    agents: Coder, QA)|                      |                    |                |
+      |                      |<-- [NOTIFY: invite] -+                    |                |
+      |                      |                      +-- facilitator_task->|                |
+      |                      |                      +-- coder_task ------>|                |
+      |                      |                      +-- qa_task --------->|                |
+      |                      |                      |                    |                |
+      |             [ TURNS: A speaks ]             |                    |                |
+      +-- writeToCollab ---->|                      |                    |                |
+      |                      |             [ TURNS: B responds ]        |                |
+      |                      +-- writeToCollab ---->|                    |                |
+      |                      |             [ CONFLICT DETECTED ]        |                |
+      |                      |                      +-- ESCALATE ------->|                |
+      |<-- [CONFLICT: please resolve] --------------+                    |                |
+      +-- resolveConflict -->|                      |                    |                |
+```
+
+---
+
 ## 🦾 The Backbone Registry
 
 The system identity is defined in `core/lib/backbone.ts`. This centralized registry acts as the "genetic code" of the stack. The **Build Monitor** uses this registry to dynamically generate the neural map visualized in the dashboard.

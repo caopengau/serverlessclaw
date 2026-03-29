@@ -1,3 +1,5 @@
+import { SafetyPolicy } from '../lib/types/agent';
+import { ToolSafetyOverride } from '../lib/safety-limiter';
 import { Agent } from '../lib/agent';
 import { IMemory } from '../lib/types/memory';
 import { IProvider, ReasoningProfile } from '../lib/types/llm';
@@ -98,10 +100,7 @@ export class SuperClaw extends Agent {
    * @param tier - The safety tier to configure.
    * @param policy - Partial policy updates.
    */
-  static configureSafetyPolicy(
-    tier: SafetyTier,
-    policy: Partial<import('../lib/safety-engine').SafetyPolicy>
-  ): void {
+  static configureSafetyPolicy(tier: SafetyTier, policy: Partial<SafetyPolicy>): void {
     SuperClaw.safetyEngine.updatePolicy(tier, policy);
   }
 
@@ -110,7 +109,7 @@ export class SuperClaw extends Agent {
    *
    * @param override - The tool safety override configuration.
    */
-  static setToolSafetyOverride(override: import('../lib/safety-engine').ToolSafetyOverride): void {
+  static setToolSafetyOverride(override: ToolSafetyOverride): void {
     SuperClaw.safetyEngine.setToolOverride(override);
   }
 

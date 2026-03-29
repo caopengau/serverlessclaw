@@ -26,28 +26,6 @@ describe('SuperClaw — Safety Tiers', () => {
       expect(await SuperClaw.requiresApproval(config, 'deployment')).toBe(true);
     });
 
-    it('staged does NOT require approval for code changes', async () => {
-      const config = {
-        id: 'test',
-        name: 'Test',
-        systemPrompt: '',
-        enabled: true,
-        safetyTier: SafetyTier.STAGED,
-      };
-      expect(await SuperClaw.requiresApproval(config, 'code_change')).toBe(false);
-    });
-
-    it('staged requires approval for deployments', async () => {
-      const config = {
-        id: 'test',
-        name: 'Test',
-        systemPrompt: '',
-        enabled: true,
-        safetyTier: SafetyTier.STAGED,
-      };
-      expect(await SuperClaw.requiresApproval(config, 'deployment')).toBe(true);
-    });
-
     it('autonomous does NOT require approval for code changes', async () => {
       const config = {
         id: 'test',
@@ -70,14 +48,14 @@ describe('SuperClaw — Safety Tiers', () => {
       expect(await SuperClaw.requiresApproval(config, 'deployment')).toBe(false);
     });
 
-    it('defaults to staged when safetyTier is undefined', async () => {
+    it('defaults to sandbox when safetyTier is undefined', async () => {
       const config = { id: 'test', name: 'Test', systemPrompt: '', enabled: true };
-      expect(await SuperClaw.requiresApproval(config, 'code_change')).toBe(false);
+      expect(await SuperClaw.requiresApproval(config, 'code_change')).toBe(true);
       expect(await SuperClaw.requiresApproval(config, 'deployment')).toBe(true);
     });
 
-    it('defaults to staged when config is undefined', async () => {
-      expect(await SuperClaw.requiresApproval(undefined, 'code_change')).toBe(false);
+    it('defaults to sandbox when config is undefined', async () => {
+      expect(await SuperClaw.requiresApproval(undefined, 'code_change')).toBe(true);
       expect(await SuperClaw.requiresApproval(undefined, 'deployment')).toBe(true);
     });
   });

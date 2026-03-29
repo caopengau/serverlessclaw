@@ -51,29 +51,6 @@ describe('SafetyEngine', () => {
       expect(mcpResult.requiresApproval).toBe(true);
     });
 
-    it('should only require deployment approval in STAGED tier', async () => {
-      const config = {
-        id: 'test',
-        name: 'Test',
-        systemPrompt: '',
-        enabled: true,
-        safetyTier: SafetyTier.STAGED,
-      };
-
-      const codeResult = await engine.evaluateAction(config, 'code_change');
-      expect(codeResult.requiresApproval).toBe(false);
-      expect(codeResult.allowed).toBe(true);
-
-      const deployResult = await engine.evaluateAction(config, 'deployment');
-      expect(deployResult.requiresApproval).toBe(true);
-
-      const fileResult = await engine.evaluateAction(config, 'file_operation');
-      expect(fileResult.requiresApproval).toBe(false);
-
-      const shellResult = await engine.evaluateAction(config, 'shell_command');
-      expect(shellResult.requiresApproval).toBe(false);
-    });
-
     it('should require no approvals in AUTONOMOUS tier', async () => {
       const config = {
         id: 'test',
@@ -97,7 +74,7 @@ describe('SafetyEngine', () => {
       expect(shellResult.requiresApproval).toBe(false);
     });
 
-    it('should default to STAGED when no tier is specified', async () => {
+    it('should default to SANDBOX when no tier is specified', async () => {
       const config = {
         id: 'test',
         name: 'Test',
@@ -109,7 +86,7 @@ describe('SafetyEngine', () => {
       expect(deployResult.requiresApproval).toBe(true);
 
       const codeResult = await engine.evaluateAction(config, 'code_change');
-      expect(codeResult.requiresApproval).toBe(false);
+      expect(codeResult.requiresApproval).toBe(true);
     });
   });
 
