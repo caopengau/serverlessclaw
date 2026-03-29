@@ -4,6 +4,7 @@ import { IProvider, ReasoningProfile } from '../lib/types/llm';
 import { ITool } from '../lib/types/tool';
 import { IAgentConfig, SafetyTier } from '../lib/types/agent';
 import { SUPERCLAW_SYSTEM_PROMPT } from './prompts/index';
+import { SafetyEngine } from '../lib/safety-engine';
 
 export { SUPERCLAW_SYSTEM_PROMPT };
 
@@ -12,8 +13,20 @@ export { SUPERCLAW_SYSTEM_PROMPT };
  * The main orchestrator that handles user commands and delegates tasks.
  */
 export class SuperClaw extends Agent {
+  /**
+   * Shared SafetyEngine instance for granular safety evaluation.
+   */
+  private static safetyEngine: SafetyEngine = new SafetyEngine();
+
   constructor(memory: IMemory, provider: IProvider, tools: ITool[], config?: IAgentConfig) {
     super(memory, provider, tools, config?.systemPrompt || SUPERCLAW_SYSTEM_PROMPT, config);
+  }
+
+  /**
+   * Get the SafetyEngine instance for external configuration.
+   */
+  static getSafetyEngine(): SafetyEngine {
+    return SuperClaw.safetyEngine;
   }
 
   /**
@@ -37,30 +50,86 @@ export class SuperClaw extends Agent {
   }
 
   /**
-   * Checks whether an action requires HITL approval based on the agent's safety tier.
+   * Checks whether an action requires HITL approval based on granular safety policies.
    *
    * @param agentConfig - The agent configuration.
-   * @param actionType - The type of action: 'code_change' or 'deployment'.
+   * @param actionType - The type of action: 'code_change', 'deployment', 'file_operation', 'shell_command', or 'mcp_tool'.
+   * @param context - Optional context including tool name, resource path, etc.
    * @returns Whether approval is required.
    */
   static requiresApproval(
     agentConfig: IAgentConfig | undefined,
-    actionType: 'code_change' | 'deployment'
-  ): boolean {
-    const tier = agentConfig?.safetyTier ?? SafetyTier.STAGED;
-
-    switch (tier) {
-      case SafetyTier.SANDBOX:
-        // All actions require approval
-        return true;
-      case SafetyTier.STAGED:
-        // Only deployment requires approval
-        return actionType === 'deployment';
-      case SafetyTier.AUTONOMOUS:
-        // No approval needed
-        return false;
-      default:
-        return true; // Fail safe
+    actionType: 'code_change' | 'deployment' | 'file_operation' | 'shell_command' | 'mcp_tool',
+    context?: {
+      toolName?: string;
+      resource?: string;
+      traceId?: string;
+      userId?: string;
     }
+  ): boolean {
+    const result = SuperClaw.safetyEngine.evaluateAction(agentConfig, actionType, context);
+    return result.requiresApproval;
+  }
+
+  /**
+   * Evaluates an action against granular safety policies and returns detailed result.
+   *
+   * @param agentConfig - The agent configuration.
+   * @param actionType - The type of action.
+   * @param context - Optional context including tool name, resource path, etc.
+   * @returns Detailed safety evaluation result.
+   */
+  static evaluateAction(
+    agentConfig: IAgentConfig | undefined,
+    actionType: string,
+    context?: {
+      toolName?: string;
+      resource?: string;
+      traceId?: string;
+      userId?: string;
+    }
+  ) {
+    return SuperClaw.safetyEngine.evaluateAction(agentConfig, actionType, context);
+  }
+
+  /**
+   * Configure a custom safety policy for a specific tier.
+   *
+   * @param tier - The safety tier to configure.
+   * @param policy - Partial policy updates.
+   */
+  static configureSafetyPolicy(
+    tier: SafetyTier,
+    policy: Partial<import('../lib/safety-engine').SafetyPolicy>
+  ): void {
+    SuperClaw.safetyEngine.updatePolicy(tier, policy);
+  }
+
+  /**
+   * Set a tool-specific safety override.
+   *
+   * @param override - The tool safety override configuration.
+   */
+  static setToolSafetyOverride(override: import('../lib/safety-engine').ToolSafetyOverride): void {
+    SuperClaw.safetyEngine.setToolOverride(override);
+  }
+
+  /**
+   * Get recent safety violations.
+   *
+   * @param limit - Maximum number of violations to return.
+   * @returns Array of safety violations.
+   */
+  static getSafetyViolations(limit?: number) {
+    return SuperClaw.safetyEngine.getViolations(limit);
+  }
+
+  /**
+   * Get safety statistics.
+   *
+   * @returns Safety statistics including violation counts by tier and action.
+   */
+  static getSafetyStats() {
+    return SuperClaw.safetyEngine.getStats();
   }
 }

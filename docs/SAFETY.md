@@ -20,6 +20,128 @@
 | **Human-in-the-Loop**     | SuperClaw system prompt                   | `MANUAL_APPROVAL_REQUIRED` returned     |
 | **Dashboard Auth**        | `dashboard/src/proxy.ts`                  | Unauthorized access to ClawCenter       |
 | **Recursion Guard**       | `core/handlers/events.ts`                 | Agent-to-agent hop depth > default (50) |
+| **Granular Safety Engine**| `core/lib/safety-engine.ts`               | Multi-dimensional policy enforcement    |
+
+---
+
+## Granular Safety Tiers
+
+The system implements fine-grained safety controls through the `SafetyEngine` class, which evaluates actions against comprehensive policies.
+
+### Architecture
+
+```
+    [ Agent Action ]
+          |
+    +-----v----------+
+    | SafetyEngine   |
+    +-----+----------+
+          |
+    +-----+-----+-----+-----+-----+
+    |     |     |     |     |     |
+ [Tier] [Tool] [Resource] [Time] [Rate]
+  Check  Check   Check    Check  Limit
+    |     |     |     |     |
+    v     v     v     v     v
+ [Policy Evaluation Chain]
+          |
+    +-----v-----+
+    |  Result   |
+    +-----------+
+    | allowed   |
+    | approval  |
+    | reason    |
+    +-----------+
+```
+
+### Safety Tiers (Enhanced)
+
+| Tier         | Code Changes | Deployments | Files | Shell | MCP Tools | Default Rate Limits           |
+| ------------ | :----------: | :---------: | :---: | :---: | :-------: | ----------------------------- |
+| `sandbox`    |   Approval   |   Approval  | Approval | Approval | Approval | 2 deploys/day, 10 shell/hour  |
+| `staged`     |    Auto      |   Approval  | Auto  | Auto  |    Auto   | 5 deploys/day, 50 shell/hour  |
+| `autonomous` |    Auto      |    Auto     | Auto  | Auto  |    Auto   | 10 deploys/day, 200 shell/hr  |
+
+### Policy Dimensions
+
+The SafetyEngine evaluates multiple dimensions:
+
+1. **Tier-based approval**: Core approval requirements per tier
+2. **Resource-level controls**: File path and API endpoint restrictions
+3. **Tool-specific overrides**: Per-tool approval and rate limits
+4. **Time-based windows**: Business hours or weekend restrictions
+5. **Rate limiting**: Hourly and daily usage caps
+
+### Usage
+
+```typescript
+import { SuperClaw } from './agents/superclaw';
+import { SafetyTier } from './types/agent';
+
+// Check if an action requires approval
+const needsApproval = SuperClaw.requiresApproval(
+  agentConfig,
+  'deployment',
+  { traceId: 'abc123', userId: 'user1' }
+);
+
+// Get detailed evaluation result
+const result = SuperClaw.evaluateAction(agentConfig, 'file_operation', {
+  resource: 'src/app.ts',
+  toolName: 'fileWrite',
+});
+
+// Configure custom policy
+SuperClaw.configureSafetyPolicy(SafetyTier.STAGED, {
+  maxDeploymentsPerDay: 10,
+  requireFileApproval: true,
+});
+
+// Set tool-specific override
+SuperClaw.setToolSafetyOverride({
+  toolName: 'triggerDeployment',
+  requireApproval: true,
+  maxUsesPerDay: 3,
+});
+
+// Get violation history
+const violations = SuperClaw.getSafetyViolations(50);
+
+// Get statistics
+const stats = SuperClaw.getSafetyStats();
+```
+
+### Protected Resources
+
+The following resources are blocked by default across all tiers:
+
+- `.git/**` - Git repository internals
+- `.env*` - Environment files
+- `package-lock.json`, `pnpm-lock.yaml` - Lock files
+- `node_modules/**` - Dependencies
+
+### Time-Based Restrictions
+
+- **SANDBOX**: Weekends require approval for deployments and shell commands
+- **STAGED**: Weekday business hours (9 AM - 5 PM ET) require approval for deployments
+- **AUTONOMOUS**: No time restrictions
+
+### Violation Logging
+
+All safety violations are logged with:
+- Unique violation ID
+- Timestamp
+- Agent ID and safety tier
+- Action attempted
+- Tool and resource involved
+- Outcome (blocked, approval_required)
+- Trace and user ID for correlation
+
+Access violations via:
+```typescript
+const violations = SuperClaw.getSafetyViolations();
+const stats = SuperClaw.getSafetyStats();
+```
 
 ---
 

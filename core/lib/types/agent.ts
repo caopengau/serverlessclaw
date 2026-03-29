@@ -460,3 +460,99 @@ export interface IChannel {
    */
   send(userId: string, text: string): Promise<void>;
 }
+
+/**
+ * Granular safety policy defining rules for a specific safety tier.
+ */
+export interface SafetyPolicy {
+  /** The safety tier this policy applies to. */
+  tier: SafetyTier;
+  /** Whether code changes require approval. */
+  requireCodeApproval: boolean;
+  /** Whether deployments require approval. */
+  requireDeployApproval: boolean;
+  /** Whether file operations require approval. */
+  requireFileApproval: boolean;
+  /** Whether shell commands require approval. */
+  requireShellApproval: boolean;
+  /** Whether MCP tool calls require approval. */
+  requireMcpApproval: boolean;
+  /** List of allowed file paths (glob patterns). */
+  allowedFilePaths?: string[];
+  /** List of blocked file paths (glob patterns). */
+  blockedFilePaths?: string[];
+  /** List of allowed API endpoints/domains. */
+  allowedApiEndpoints?: string[];
+  /** List of blocked API endpoints/domains. */
+  blockedApiEndpoints?: string[];
+  /** Maximum deployments per day. */
+  maxDeploymentsPerDay?: number;
+  /** Maximum shell commands per hour. */
+  maxShellCommandsPerHour?: number;
+  /** Maximum file writes per hour. */
+  maxFileWritesPerHour?: number;
+  /** Time-based restrictions. */
+  timeRestrictions?: TimeRestriction[];
+}
+
+/**
+ * Time-based restriction window.
+ */
+export interface TimeRestriction {
+  /** Days of week (0 = Sunday, 6 = Saturday). */
+  daysOfWeek: number[];
+  /** Start hour (0-23). */
+  startHour: number;
+  /** End hour (0-23). */
+  endHour: number;
+  /** Timezone (e.g., 'America/New_York'). */
+  timezone: string;
+  /** Actions restricted during this window. */
+  restrictedActions: string[];
+  /** Whether to block or require approval during restriction. */
+  restrictionType: 'block' | 'require_approval';
+}
+
+/**
+ * Safety violation record for logging and reporting.
+ */
+export interface SafetyViolation {
+  /** Unique violation ID. */
+  id: string;
+  /** Timestamp of the violation. */
+  timestamp: Date;
+  /** Agent that triggered the violation. */
+  agentId: string;
+  /** Safety tier of the agent. */
+  safetyTier: SafetyTier;
+  /** Action that was attempted. */
+  action: string;
+  /** Tool involved (if any). */
+  toolName?: string;
+  /** Resource involved (file path, API endpoint, etc.). */
+  resource?: string;
+  /** Reason for the violation. */
+  reason: string;
+  /** Whether the action was blocked or required approval. */
+  outcome: 'blocked' | 'approval_required' | 'allowed';
+  /** Session/trace ID for correlation. */
+  traceId?: string;
+  /** User ID associated with the violation. */
+  userId?: string;
+}
+
+/**
+ * Result of a safety evaluation.
+ */
+export interface SafetyEvaluationResult {
+  /** Whether the action is allowed. */
+  allowed: boolean;
+  /** Whether human approval is required. */
+  requiresApproval: boolean;
+  /** Reason for denial or approval requirement. */
+  reason?: string;
+  /** Specific policy that was violated or applied. */
+  appliedPolicy?: string;
+  /** Suggested alternative action if denied. */
+  suggestion?: string;
+}
