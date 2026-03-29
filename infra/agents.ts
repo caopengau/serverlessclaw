@@ -95,6 +95,8 @@ export function createAgents(
   deadMansSwitch: sst.aws.Function;
   plannerAgent: sst.aws.Function;
   reflectorAgent: sst.aws.Function;
+  criticAgent: sst.aws.Function;
+  optimizerAgent: sst.aws.Function;
   notifier: sst.aws.Function;
   agentRunner: sst.aws.Function;
   bridge: sst.aws.Function;
