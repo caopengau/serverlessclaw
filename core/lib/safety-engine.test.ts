@@ -20,7 +20,7 @@ vi.mock('./logger', () => ({
 
 // Mock SafetyConfigManager to return local policies when set
 vi.mock('./safety-config-manager', () => {
-  let mockPolicies = null;
+  let mockPolicies: unknown = null;
 
   return {
     SafetyConfigManager: {
@@ -29,7 +29,7 @@ vi.mock('./safety-config-manager', () => {
         return Promise.resolve(mockPolicies || DEFAULT_POLICIES);
       }),
       // Helper to set mock policies for tests
-      __setMockPolicies: (policies) => {
+      __setMockPolicies: (policies: unknown) => {
         mockPolicies = policies;
       },
       __resetMockPolicies: () => {
