@@ -11,9 +11,9 @@ pre-commit: ## Run pre-commit checks in parallel (lint-staged, test-silent)
 	@$(call log_step,Running pre-commit checks in parallel...)
 	$(call run_parallel_gate,lint~$(MAKE) lint-staged||test~$(MAKE) test-silent)
 
-pre-push: ## Run fast quality gate in parallel (rebase check + fast gate)
+pre-push: ## Run fast quality gate in parallel (rebase check + fast gate + aiready)
 	@$(call log_step,Running pre-push checks in parallel...)
-	$(call run_parallel_gate,rebase~$(MAKE) verify-up-to-date||gate~$(MAKE) gate-fast)
+	$(call run_parallel_gate,rebase~$(MAKE) verify-up-to-date||gate~$(MAKE) gate-fast||aiready~$(MAKE) aiready)
 
 help-agent: help ## Show optimized help for AI agents
 
