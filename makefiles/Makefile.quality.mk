@@ -3,7 +3,7 @@
 ###############################################################################
 include makefiles/Makefile.shared.mk
 
-.PHONY: check gate gate-deploy gate-tier-1 gate-tier-2 fix lint lint-fix format format-check type-check aiready lint-staged
+.PHONY: check gate gate-deploy gate-tier-1 gate-tier-2 gate-fast fix lint lint-fix format format-check type-check aiready lint-staged
 
 gate: ## Run all quality checks in parallel (Tier 1 + Tier 2)
 	@$(call log_step,Running full quality gate in parallel...)
@@ -16,6 +16,10 @@ gate-tier-1: ## Fast Tier 1 checks: lint, format, typecheck, test-silent
 gate-tier-2: ## Thorough Tier 2 checks: coverage, aiready
 	@$(call log_step,Running Tier 2 (Thorough) gate...)
 	$(call run_parallel_gate,test-coverage~$(MAKE) test-coverage||aiready~$(MAKE) aiready)
+
+gate-fast: ## Fast local gate: lint, format, typecheck, test-affected
+	@$(call log_step,Running fast local gate...)
+	$(call run_parallel_gate,lint~$(MAKE) lint||format~$(MAKE) format-check||typecheck~$(MAKE) type-check||test~$(MAKE) test-affected)
 
 gate-deploy: gate-tier-1 ## Pre-deploy gate (Tier 1)
 

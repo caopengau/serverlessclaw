@@ -3,22 +3,24 @@
  * Dependency Security Scanner
  *
  * Scans project dependencies for known vulnerabilities and generates a report.
- * Integrates with CI/CD pipelines to fail on critical vulnerabilities.
+ * Supports SARIF output for GitHub Security tab integration.
  *
  * Usage:
- *   tsx scripts/security-scan.ts [--severity <level>] [--fix]
+ *   tsx scripts/security-scan.ts [--severity <level>] [--fix] [--sarif] [--output <path>]
  *
  * Examples:
- *   tsx scripts/security-scan.ts                     # Scan all vulnerabilities
- *   tsx scripts/security-scan.ts --severity critical # Only fail on critical
- *   tsx scripts/security-scan.ts --fix               # Attempt auto-fix
+ *   tsx scripts/security-scan.ts                          # Scan all vulnerabilities
+ *   tsx scripts/security-scan.ts --severity critical      # Only fail on critical
+ *   tsx scripts/security-scan.ts --fix                    # Attempt auto-fix (max 1 retry)
+ *   tsx scripts/security-scan.ts --sarif                  # Generate SARIF output
+ *   tsx scripts/security-scan.ts --output report.md       # Custom report location
  */
 
 import { execSync } from 'child_process';
-import { writeFileSync } from 'fs';
-import { join } from 'path';
+import { writeFileSync, mkdirSync, existsSync } from 'fs';
+import { join, dirname } from 'path';
 
-interface Vulnerability {
+export interface Vulnerability {
   name: string;
   severity: 'low' | 'moderate' | 'high' | 'critical';
   title: string;
@@ -27,7 +29,7 @@ interface Vulnerability {
   fixAvailable: boolean | { name: string; version: string };
 }
 
-interface AuditResult {
+export interface AuditResult {
   vulnerabilities: Vulnerability[];
   summary: {
     total: number;
@@ -38,19 +40,28 @@ interface AuditResult {
   };
 }
 
-class SecurityScanner {
+export class SecurityScanner {
   private rootDir: string;
   private severityThreshold: 'low' | 'moderate' | 'high' | 'critical';
   private autoFix: boolean;
+  private maxFixAttempts: number;
+  private fixAttempts: number = 0;
+  private sarifOutput: boolean;
+  private outputPath: string;
 
   constructor(
     rootDir: string,
     severityThreshold: 'low' | 'moderate' | 'high' | 'critical' = 'high',
-    autoFix: boolean = false
+    autoFix: boolean = false,
+    sarifOutput: boolean = false,
+    outputPath?: string
   ) {
     this.rootDir = rootDir;
     this.severityThreshold = severityThreshold;
     this.autoFix = autoFix;
+    this.maxFixAttempts = 1;
+    this.sarifOutput = sarifOutput;
+    this.outputPath = outputPath || join(rootDir, 'reports', 'security-audit-report.md');
   }
 
   /**
@@ -60,7 +71,6 @@ class SecurityScanner {
     console.log('Running security audit...\n');
 
     try {
-      // Run pnpm audit in JSON format
       const output = execSync('pnpm audit --json', {
         cwd: this.rootDir,
         encoding: 'utf-8',
@@ -161,6 +171,66 @@ class SecurityScanner {
   }
 
   /**
+   * Generate SARIF format output for GitHub Security tab
+   */
+  generateSarif(result: AuditResult): string {
+    const sarif = {
+      $schema:
+        'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
+      version: '2.1.0',
+      runs: [
+        {
+          tool: {
+            driver: {
+              name: 'pnpm-audit',
+              version: '1.0.0',
+              informationUri: 'https://docs.npmjs.com/cli/v10/commands/npm-audit',
+              rules: result.vulnerabilities.map((vuln, idx) => ({
+                id: `VULN-${idx}`,
+                shortDescription: { text: `${vuln.name}: ${vuln.title}` },
+                fullDescription: { text: `${vuln.name}@${vuln.range} - ${vuln.title}` },
+                helpUri: vuln.url || 'https://github.com/advisories',
+                properties: { severity: vuln.severity },
+                defaultConfiguration: {
+                  level: this.sarifSeverityToLevel(vuln.severity),
+                },
+              })),
+            },
+          },
+          results: result.vulnerabilities.map((vuln, idx) => ({
+            ruleId: `VULN-${idx}`,
+            level: this.sarifSeverityToLevel(vuln.severity),
+            message: { text: `${vuln.name}@${vuln.range}: ${vuln.title}` },
+            locations: [
+              {
+                physicalLocation: {
+                  artifactLocation: { uri: 'package.json' },
+                  region: { startLine: 1, startColumn: 1 },
+                },
+              },
+            ],
+          })),
+        },
+      ],
+    };
+
+    return JSON.stringify(sarif, null, 2);
+  }
+
+  private sarifSeverityToLevel(severity: string): string {
+    switch (severity) {
+      case 'critical':
+        return 'error';
+      case 'high':
+        return 'error';
+      case 'moderate':
+        return 'warning';
+      default:
+        return 'note';
+    }
+  }
+
+  /**
    * Generate markdown report
    */
   generateReport(result: AuditResult): string {
@@ -180,7 +250,7 @@ class SecurityScanner {
     report += `| **Total** | **${summary.total}** |\n\n`;
 
     if (vulnerabilities.length === 0) {
-      report += '✅ No vulnerabilities found!\n';
+      report += 'No vulnerabilities found!\n';
       return report;
     }
 
@@ -195,8 +265,7 @@ class SecurityScanner {
     for (const [severity, vulns] of Object.entries(bySeverity)) {
       if (vulns.length === 0) continue;
 
-      const emoji = severity === 'critical' ? '🚨' : severity === 'high' ? '⚠️' : 'ℹ️';
-      report += `## ${emoji} ${severity.toUpperCase()} (${vulns.length})\n\n`;
+      report += `## ${severity.toUpperCase()} (${vulns.length})\n\n`;
 
       for (const vuln of vulns) {
         report += `### ${vuln.name}\n\n`;
@@ -225,22 +294,34 @@ class SecurityScanner {
       console.log(report);
 
       // Save report to file
-      const reportPath = join(this.rootDir, 'security-audit-report.md');
-      writeFileSync(reportPath, report);
-      console.log(`Report saved to: ${reportPath}\n`);
+      const reportDir = dirname(this.outputPath);
+      if (!existsSync(reportDir)) {
+        mkdirSync(reportDir, { recursive: true });
+      }
+      writeFileSync(this.outputPath, report);
+      console.log(`Report saved to: ${this.outputPath}\n`);
+
+      // Generate SARIF output if requested
+      if (this.sarifOutput) {
+        const sarifPath = join(reportDir, 'security-audit-results.sarif');
+        const sarif = this.generateSarif(result);
+        writeFileSync(sarifPath, sarif);
+        console.log(`SARIF output saved to: ${sarifPath}\n`);
+      }
 
       // Check if any vulnerabilities meet the threshold
       const criticalVulns = result.vulnerabilities.filter((v) => this.meetsThreshold(v.severity));
 
       if (criticalVulns.length > 0) {
         console.error(
-          `❌ Found ${criticalVulns.length} vulnerability(ies) at or above ${this.severityThreshold} severity`
+          `Found ${criticalVulns.length} vulnerability(ies) at or above ${this.severityThreshold} severity`
         );
 
-        if (this.autoFix) {
+        if (this.autoFix && this.fixAttempts < this.maxFixAttempts) {
+          this.fixAttempts++;
           const fixed = await this.attemptFix();
           if (fixed) {
-            console.log('\n✅ Auto-fix applied. Re-running audit...\n');
+            console.log('\nAuto-fix applied. Re-running audit...\n');
             return this.run();
           }
         }
@@ -248,7 +329,7 @@ class SecurityScanner {
         return false;
       }
 
-      console.log('✅ No vulnerabilities at or above threshold');
+      console.log('No vulnerabilities at or above threshold');
       return true;
     } catch (error) {
       console.error('Security scan failed:', error);
@@ -257,32 +338,42 @@ class SecurityScanner {
   }
 }
 
-// CLI interface
-async function main() {
-  const args = process.argv.slice(2);
-  let severity: 'low' | 'moderate' | 'high' | 'critical' = 'high';
-  let autoFix = false;
+// CLI interface — only run when executed directly
+const isMainModule = process.argv[1] && process.argv[1].includes('security-scan');
+if (isMainModule) {
+  async function main() {
+    const args = process.argv.slice(2);
+    let severity: 'low' | 'moderate' | 'high' | 'critical' = 'high';
+    let autoFix = false;
+    let sarifOutput = false;
+    let outputPath: string | undefined;
 
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === '--severity' && args[i + 1]) {
-      const level = args[i + 1] as 'low' | 'moderate' | 'high' | 'critical';
-      if (['low', 'moderate', 'high', 'critical'].includes(level)) {
-        severity = level;
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '--severity' && args[i + 1]) {
+        const level = args[i + 1] as 'low' | 'moderate' | 'high' | 'critical';
+        if (['low', 'moderate', 'high', 'critical'].includes(level)) {
+          severity = level;
+        }
+        i++;
+      } else if (args[i] === '--fix') {
+        autoFix = true;
+      } else if (args[i] === '--sarif') {
+        sarifOutput = true;
+      } else if (args[i] === '--output' && args[i + 1]) {
+        outputPath = args[i + 1];
+        i++;
       }
-      i++;
-    } else if (args[i] === '--fix') {
-      autoFix = true;
     }
+
+    const rootDir = process.cwd();
+    const scanner = new SecurityScanner(rootDir, severity, autoFix, sarifOutput, outputPath);
+
+    const success = await scanner.run();
+    process.exit(success ? 0 : 1);
   }
 
-  const rootDir = process.cwd();
-  const scanner = new SecurityScanner(rootDir, severity, autoFix);
-
-  const success = await scanner.run();
-  process.exit(success ? 0 : 1);
+  main().catch((error) => {
+    console.error('Error:', error);
+    process.exit(1);
+  });
 }
-
-main().catch((error) => {
-  console.error('Error:', error);
-  process.exit(1);
-});

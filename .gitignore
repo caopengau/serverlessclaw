@@ -33,3 +33,4 @@ dashboard/.sst/
 # SST auto-generated type definitions (all locations)
 sst-env.d.ts
 **/sst-env.d.ts
+reports/

@@ -60,3 +60,15 @@ test-e2e-deployed: ## Run E2E tests against deployed URL. Usage: make test-e2e-d
 	@$(call log_step,Running E2E tests against deployed URL...)
 	@if [ -z "$(URL)" ]; then $(call log_error,URL is required); exit 1; fi
 	@BASE_URL=$(URL) $(PNPM) exec playwright test
+
+test-affected: ## Run only tests affected by recent changes (smart test selection)
+	@$(call log_step,Running affected tests...)
+	@$(PNPM) exec tsx scripts/test-affected.ts $(if $(BASE),--base $(BASE),)
+
+security-scan: ## Scan dependencies for security vulnerabilities
+	@$(call log_step,Running security scan...)
+	@$(PNPM) exec tsx scripts/security-scan.ts $(if $(SEVERITY),--severity $(SEVERITY),) $(if $(FIX),--fix,)
+
+docs-check: ## Validate documentation is in sync with code changes
+	@$(call log_step,Checking documentation...)
+	@$(PNPM) exec tsx scripts/docs-check.ts $(if $(BASE),--base $(BASE),) $(if $(STRICT),--strict,)
