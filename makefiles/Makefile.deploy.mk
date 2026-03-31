@@ -25,8 +25,6 @@ deploy: ## Deploy SST to the environment (default: prod)
 	./scripts/ci/check-aws-account.sh "$(ENV)" "$$EXPECTED_ACCOUNT" && \
 	$(call log_info,Starting SST deployment...) && \
 	$(SST) deploy --stage $(ENV) --yes && \
-	$(call log_info,Running post-deploy CloudFront fix...) && \
-	$(PNPM) exec tsx scripts/quality/fix-cloudfront-deploy.ts $(ENV) && \
 	$(MAKE) verify-deploy
 	@$(call log_success,SST deploy to $(ENV) completed successfully)
 
