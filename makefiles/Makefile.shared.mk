@@ -64,11 +64,13 @@ else
 endif
 
 # Environment file resolution
-# Priority: .env.$(ENV).local > .env.$(ENV) > .env.local > .env
-ENV_FILES := .env.$(ENV).local .env.$(ENV) .env.local .env
+# Strictly load only the specified file for 'local' and 'prod' stages.
+ENV_FILES = $(if $(filter local,$(ENV)),.env.local,$(if $(filter prod,$(ENV)),.env,.env.$(ENV).local .env.$(ENV) .env.local .env))
 
 # Usage: $(call load_env)
-# Loads available env files and exports variables. Fails if AWS_PROFILE is not set.
+# Loads available env files and exports variables.
+# In CI (CodeBuild), AWS credentials come from the service role — AWS_PROFILE is unset.
+# In local dev, AWS_PROFILE must be set in .env.
 define load_env
 	for f in $(ENV_FILES); do \
 		if [ -f "$$f" ]; then \
@@ -76,7 +78,10 @@ define load_env
 			set -a; . ./$$f; set +a; \
 		fi; \
 	done; \
-	if [ -z "$$AWS_PROFILE" ]; then \
+	if [ -n "$$CODEBUILD_BUILD_ID" ]; then \
+		unset AWS_PROFILE; \
+		$(call log_info,CI environment detected — using service role credentials); \
+	elif [ -z "$$AWS_PROFILE" ]; then \
 		$(call log_error,AWS_PROFILE is not set. Please ensure it is defined in your .env file.); \
 		exit 1; \
 	fi; \
@@ -113,7 +118,7 @@ endef
 
 .PHONY: telegram-setup telegram-info telegram-delete
 
-telegram-setup: ## Set Telegram webhook to current API_URL (local, dev, or prod)
+telegram-setup: ## Set Telegram webhook to current API_URL (local or prod)
 	@$(call log_step,Setting Telegram webhook for $(ENV)...)
 	@chmod +x ./scripts/telegram-webhook.sh
 	@ENV_UPPER=$$(echo $(ENV) | tr '[:lower:]' '[:upper:]'); \
@@ -146,9 +151,10 @@ define verify_clean
 endef
 
 # kill_port
-# usage: $(call kill_port_without_prompt,8888)
+# usage: $(call kill_port,8888)
 define kill_port
-	@lsof -ti :$(1) >/dev/null 2>&1 && lsof -ti :$(1) | xargs kill || true
+	@lsof -ti :$(1) >/dev/null 2>&1 && lsof -ti :$(1) | xargs kill -9 || true
+	@sleep 1
 	@$(call log_success,Port $(1) is now free)
 endef
 

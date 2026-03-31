@@ -18,10 +18,9 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
     api,
   } = ctx;
 
-  const dashboardDomain = getDomainConfig('dashboard');
   const dashboard = new sst.aws.Nextjs('ClawCenter', {
-    domain: dashboardDomain,
     path: 'dashboard',
+    domain: getDomainConfig('dashboard'),
     link: [
       memoryTable,
       traceTable,
@@ -32,7 +31,6 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
       ...getValidSecrets(ctx.secrets),
     ],
     environment: {
-      AWS_PROFILE: '', // Clear profile to avoid conflict warning as SST injects static credentials
       DEPLOYER_NAME: deployer.name,
       DYNAMIC_SCHEDULER_ROLE_ARN: ctx.schedulerRole!.arn,
       HEARTBEAT_HANDLER_ARN: ctx.heartbeatHandler!.arn,
@@ -40,11 +38,13 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
       STAGING_BUCKET_NAME: stagingBucket.name,
       KNOWLEDGE_BUCKET_NAME: knowledgeBucket.name,
       BUS_NAME: bus.name,
+      FORCE_REBUILD: Date.now().toString(),
     },
     server: {
       memory: AGENT_CONFIG.memory.LARGE,
       timeout: AGENT_CONFIG.timeout.MAX,
     },
+
     permissions: [
       {
         actions: ['s3:GetObject', 's3:PutObject', 's3:ListBucket', 's3:DeleteObject'],

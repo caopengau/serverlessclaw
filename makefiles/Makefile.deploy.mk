@@ -7,20 +7,27 @@ LOCAL_STAGE ?= local
 
 .PHONY: dev deploy diff synth remove remove-local clear-port
 
-dev: ## Start SST in development mode (mono mode)
+dev: ENV := local
+dev: clear-port ## Start SST in development mode (mono mode)
 	@$(call log_step,Starting SST dev mode on stage $(LOCAL_STAGE) in mono mode...)
-	@$(call load_env); $(SST) dev --stage $(LOCAL_STAGE) 
+	@$(call load_env); TERM=xterm $(SST) dev --stage $(LOCAL_STAGE) 
 
-dev-mono: ## Start SST in development mode (mono mode)
+dev-mono: ENV := local
+dev-mono: clear-port ## Start SST in development mode (mono mode)
 	@$(call log_step,Starting SST dev mode on stage $(LOCAL_STAGE) in mono mode...)
-	@$(call load_env); $(SST) dev --stage $(LOCAL_STAGE) --mode=mono
+	@$(call load_env); TERM=xterm $(SST) dev --stage $(LOCAL_STAGE) --mode=mono
 
 deploy: ## Deploy SST to the environment (default: prod)
-	@$(call log_step,Deploying to environment: $(ENV)...)
+	@$(call log_step,Preparing deployment for environment: $(ENV)...)
+	@if [ ! -f "$(SST)" ]; then $(call log_error,SST binary not found. Run pnpm install first.); exit 1; fi
 	@$(call load_env); \
-	./scripts/check-aws-account.sh $(ENV) $$EXPECTED_ACCOUNT && \
-	$(SST) deploy --stage $(ENV) --yes
-	@$(call log_success,SST deploy completed)
+	chmod +x ./scripts/check-aws-account.sh; \
+	./scripts/check-aws-account.sh "$(ENV)" "$$EXPECTED_ACCOUNT" && \
+	$(call log_info,Starting SST deployment...) && \
+	$(SST) deploy --stage $(ENV) --yes && \
+	$(call log_info,Running post-deploy CloudFront fix...) && \
+	$(PNPM) exec tsx scripts/fix-cloudfront-deploy.ts $(ENV)
+	@$(call log_success,SST deploy to $(ENV) completed successfully)
 
 diff: ## Show SST infrastructure changes
 	@$(call log_info,SST diff for $(ENV)...)
