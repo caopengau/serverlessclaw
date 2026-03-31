@@ -27,7 +27,7 @@
   <a href="https://clawmore.ai">🌐 Website</a> •
   <a href="https://clawmore.ai/signup">🚀 Get Started</a> •
   <a href="https://clawmore.ai/blog">📖 Blog</a> •
-  <a href="https://discord.gg/aiready">💬 Discord</a>
+  <a href="https://discord.gg/GdEghUdWHS">💬 Discord</a>
 </p>
 
 ---
@@ -212,5 +212,5 @@ MIT License - see [LICENSE](./LICENSE) for details.
 <p align="center">
   <strong>🌐 <a href="https://clawmore.ai">clawmore.ai</a></strong> •
   <strong>📧 <a href="mailto:support@getaiready.dev">support@getaiready.dev</a></strong> •
-  <strong>💬 <a href="https://discord.gg/aiready">Discord Community</a></strong>
+  <strong>💬 <a href="https://discord.gg/GdEghUdWHS">Discord Community</a></strong>
 </p>

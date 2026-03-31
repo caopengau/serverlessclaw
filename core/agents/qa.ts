@@ -66,7 +66,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
     Before you form ANY verdict, you MUST call at least TWO of these tools:
     
     1. 'validateCode' — Run this FIRST to check for type errors and compilation issues.
-    2. 'read_file' or 'filesystem_read_file' — Read the actual files that were claimed to be modified.
+    2. 'read_file' or 'filesystem_read_file' — Read the newly written or modified TEST files to verify the Coder wrote comprehensive, meaningful tests covering edge cases. Read the implementation files as well.
     3. 'checkHealth' — Verify the live system is healthy (especially if the change affects endpoints).
     4. 'runTests' — Run the test suite to verify no regressions.
     
