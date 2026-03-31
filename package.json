@@ -35,7 +35,7 @@
   "license": "MIT",
   "type": "commonjs",
   "dependencies": {
-    "@opennextjs/aws": "^3.9.16",
+    "@opennextjs/aws": "3.2.0",
     "dotenv": "^17.3.1",
     "sst": "4.5.12",
     "ts-node": "^10.9.2",
@@ -61,7 +61,8 @@
       "react": "18.3.1",
       "react-dom": "18.3.1",
       "@types/react": "18.3.12",
-      "@types/react-dom": "18.3.5"
+      "@types/react-dom": "18.3.5",
+      "next": "14.2.23"
     }
   },
   "devDependencies": {
