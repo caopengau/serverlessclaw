@@ -3,7 +3,7 @@
 ###############################################################################
 include makefiles/Makefile.shared.mk
 
-.PHONY: test test-watch test-ui test-coverage test-component test-e2e test-e2e-deployed verify test-tier-1 test-tier-2 test-tier-3 test-affected security-scan docs-check
+.PHONY: test test-watch test-ui test-coverage test-component test-e2e test-e2e-deployed verify verify-deploy test-tier-1 test-tier-2 test-tier-3 test-affected security-scan docs-check
 
 test-tier-1: test-silent ## Run Tier 1: Unit tests (silent)
 
@@ -28,6 +28,55 @@ verify: ## Verify the deployment health. Usage: make verify URL=https://...
 	fi; \
 	curl -s --fail "$$FINAL_URL/health" > /dev/null || { $(call log_error,Health check failed at $$FINAL_URL); exit 1; }; \
 	$(call log_success,Deployment at $$FINAL_URL is healthy)
+
+verify-deploy: ## Full post-deploy verification: API, dashboard, CSS, JS
+	@$(call log_step,Running post-deploy verification...) ; \
+	OUTPUTS=$$(cat .sst/outputs.json 2>/dev/null) ; \
+	if [ -z "$$OUTPUTS" ]; then $(call log_error,.sst/outputs.json not found); exit 1; fi ; \
+	API_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('apiUrl',''))" 2>/dev/null) ; \
+	DASHBOARD_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboardUrl',''))" 2>/dev/null) ; \
+	FAIL=0 ; \
+	echo "" ; \
+	echo "  =========================================" ; \
+	echo "  DEPLOYMENT VERIFICATION" ; \
+	echo "  =========================================" ; \
+	echo "" ; \
+	\
+	if [ -n "$$API_URL" ]; then \
+		STATUS=$$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$$API_URL/health") ; \
+		if [ "$$STATUS" = "200" ]; then printf "  ✅ API /health:        HTTP %s\n" "$$STATUS"; else printf "  ❌ API /health:        HTTP %s\n" "$$STATUS"; FAIL=1; fi ; \
+	else \
+		printf "  ⚠️  API /health:        no apiUrl in outputs\n" ; \
+	fi ; \
+	\
+	if [ -n "$$DASHBOARD_URL" ]; then \
+		STATUS=$$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$$DASHBOARD_URL") ; \
+		if [ "$$STATUS" = "200" ]; then printf "  ✅ Dashboard HTML:     HTTP %s\n" "$$STATUS"; else printf "  ❌ Dashboard HTML:     HTTP %s\n" "$$STATUS"; FAIL=1; fi ; \
+		\
+		if [ "$$STATUS" = "200" ]; then \
+			HTML=$$(curl -s --max-time 15 "$$DASHBOARD_URL") ; \
+			CSS_PATH=$$(echo "$$HTML" | grep -o 'href="/_next/[^"]*\.css"' | head -1 | sed 's/href="//;s/"//') ; \
+			JS_PATH=$$(echo "$$HTML" | grep -o 'src="/_next/[^"]*\.js"' | head -1 | sed 's/src="//;s/"//') ; \
+			\
+			if [ -n "$$CSS_PATH" ]; then \
+				CSS_STATUS=$$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$$DASHBOARD_URL$$CSS_PATH") ; \
+				CSS_NAME=$$(basename "$$CSS_PATH") ; \
+				if [ "$$CSS_STATUS" = "200" ]; then printf "  ✅ CSS %s: HTTP %s\n" "$$CSS_NAME" "$$CSS_STATUS"; else printf "  ❌ CSS %s: HTTP %s\n" "$$CSS_NAME" "$$CSS_STATUS"; FAIL=1; fi ; \
+			fi ; \
+			\
+			if [ -n "$$JS_PATH" ]; then \
+				JS_STATUS=$$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$$DASHBOARD_URL$$JS_PATH") ; \
+				JS_NAME=$$(basename "$$JS_PATH") ; \
+				if [ "$$JS_STATUS" = "200" ]; then printf "  ✅ JS %s: HTTP %s\n" "$$JS_NAME" "$$JS_STATUS"; else printf "  ❌ JS %s: HTTP %s\n" "$$JS_NAME" "$$JS_STATUS"; FAIL=1; fi ; \
+			fi ; \
+		fi ; \
+	else \
+		printf "  ⚠️  Dashboard HTML:     no dashboardUrl in outputs\n" ; \
+	fi ; \
+	\
+	echo "" ; \
+	if [ "$$FAIL" -ne 0 ]; then $(call log_error,Verification FAILED); exit 1; fi ; \
+	$(call log_success,All checks passed)
 
 
 test: ## Run unit tests with vitest

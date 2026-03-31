@@ -22,7 +22,6 @@ import {
   ListOriginAccessControlsCommand,
 } from '@aws-sdk/client-cloudfront';
 import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
-import { execSync } from 'child_process';
 import { readFileSync } from 'fs';
 
 const STAGE = process.argv[2] || 'prod';
@@ -281,40 +280,12 @@ async function handler(event) {
   }
 }
 
-async function verify() {
-  try {
-    const outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf-8'));
-    const url = outputs.dashboardUrl;
-    if (!url) return;
-
-    const res = execSync(`curl -s -o /dev/null -w "%{http_code}" ${url}`, {
-      encoding: 'utf-8',
-    }).trim();
-
-    if (res === '200') {
-      log(`Dashboard verified: HTTP ${res} ✓`);
-    } else {
-      log(`Warning: Dashboard returned HTTP ${res}`);
-    }
-
-    // Test static asset
-    const cssRes = execSync(
-      `curl -s -o /dev/null -w "%{http_code}" "${url}/_next/static/css/" 2>/dev/null || echo "000"`,
-      { encoding: 'utf-8' }
-    ).trim();
-    log(`Static asset test: HTTP ${cssRes}`);
-  } catch {
-    log('Warning: Could not verify dashboard');
-  }
-}
-
 async function main() {
   log(`Fixing CloudFront for stage: ${STAGE}`);
 
   const distId = await findDistribution();
   await addS3Origin(distId);
   await fixCloudFrontFunction(distId);
-  await verify();
 
   log('CloudFront fix complete ✓');
 }
