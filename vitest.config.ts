@@ -54,6 +54,13 @@ export default defineConfig({
   },
   esbuild: {
     jsx: 'automatic',
+    jsxDev: true,
+    jsxImportSource: 'react',
+    tsconfigRaw: JSON.stringify({
+      compilerOptions: {
+        jsx: 'react-jsx',
+      },
+    }),
   },
   plugins: [
     react({
