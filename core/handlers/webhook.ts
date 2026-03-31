@@ -146,6 +146,7 @@ export const handler = async (
         attachments,
         sessionId: chatId,
         sessionStateManager,
+        ignoreHandoff: true,
       }
     );
     logger.info('[WEBHOOK] Process complete. Response length:', responseText.length);

@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
+import react from '@vitejs/plugin-react';
 
 /**
  * Vitest configuration for the project, providing unified test execution
@@ -9,14 +10,26 @@ export default defineConfig({
   assetsInclude: ['**/*.md'],
   test: {
     globals: true,
-    environment: 'node',
-    testTimeout: 15000,
     include: ['**/*.test.{ts,tsx}'],
     exclude: ['**/node_modules/**', '**/.next/**', '**/.open-next/**', 'e2e/**'],
     setupFiles: ['./dashboard/src/test-setup.ts'],
+    environmentMatchGlobs: [
+      ['dashboard/**', 'jsdom'],
+      ['core/**', 'node'],
+      ['infra/**', 'node'],
+    ],
     alias: {
       '@': path.resolve(__dirname, './dashboard/src'),
       '@claw/core': path.resolve(__dirname, './core'),
+    },
+    // Ensure TSX files are transformed for the web environment (jsdom)
+    browser: {
+      enabled: false, // Don't use real browser, but help with environment detection
+    },
+    server: {
+      deps: {
+        inline: [/dashboard/],
+      },
     },
     coverage: {
       provider: 'v8',
@@ -39,4 +52,12 @@ export default defineConfig({
       },
     },
   },
+  esbuild: {
+    jsx: 'automatic',
+  },
+  plugins: [
+    react({
+      jsxRuntime: 'automatic',
+    }),
+  ],
 });

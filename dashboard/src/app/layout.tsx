@@ -33,7 +33,10 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
-      <body suppressHydrationWarning className="min-h-full flex bg-[#0a0a0a] text-white font-mono text-base">
+      <body suppressHydrationWarning className="min-h-full flex bg-[#0a0a0a] text-white font-mono text-base antialiased">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-cyber-green focus:text-black">
+          Skip to content
+        </a>
         <Toaster 
           position="bottom-right" 
           toastOptions={{
@@ -48,7 +51,7 @@ export default function RootLayout({
         <div className="flex h-screen w-full overflow-hidden">
           <Sidebar />
           <div className="flex-1 flex flex-col min-w-0 relative">
-            <main className="flex-1 flex flex-col min-h-0 pt-16 lg:pt-0">
+            <main id="main-content" className="flex-1 flex flex-col min-h-0 pt-16 lg:pt-0">
               {children}
             </main>
           </div>

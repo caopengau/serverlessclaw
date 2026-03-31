@@ -38,7 +38,6 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
       STAGING_BUCKET_NAME: stagingBucket.name,
       KNOWLEDGE_BUCKET_NAME: knowledgeBucket.name,
       BUS_NAME: bus.name,
-      FORCE_REBUILD: Date.now().toString(),
     },
     server: {
       memory: AGENT_CONFIG.memory.LARGE,

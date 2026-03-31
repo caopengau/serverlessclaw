@@ -94,6 +94,7 @@ export class Agent {
       communicationMode = this.config?.defaultCommunicationMode ?? 'text',
       sessionStateManager,
       approvedToolCalls,
+      ignoreHandoff = false,
     } = options;
 
     const responseFormat =
@@ -132,7 +133,7 @@ export class Agent {
       : userId;
 
     const { isHumanTakingControl } = await import('./handoff');
-    if (await isHumanTakingControl(baseUserId)) {
+    if (!ignoreHandoff && (await isHumanTakingControl(baseUserId))) {
       logger.info(`[Agent] Human control active for ${baseUserId}, entering OBSERVE mode.`);
       const responseText = 'HUMAN_TAKING_CONTROL: Entering observe mode.';
       await tracer.endTrace(responseText);
@@ -432,6 +433,7 @@ export class Agent {
       communicationMode = this.config?.defaultCommunicationMode ?? 'text',
       sessionStateManager,
       approvedToolCalls,
+      ignoreHandoff = false,
     } = options;
 
     const responseFormat =
@@ -470,7 +472,7 @@ export class Agent {
       : userId;
 
     const { isHumanTakingControl } = await import('./handoff');
-    if (await isHumanTakingControl(baseUserId)) {
+    if (!ignoreHandoff && (await isHumanTakingControl(baseUserId))) {
       logger.info(`[Agent.stream] Human control active for ${baseUserId}, entering OBSERVE mode.`);
       const content = 'HUMAN_TAKING_CONTROL: Entering observe mode.';
       yield { content, messageId: traceId };

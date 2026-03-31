@@ -57,4 +57,9 @@ export interface AgentProcessOptions {
   topP?: number;
   /** Sequences where the LLM will stop generating. */
   stopSequences?: string[];
+  /**
+   * If true, ignores the human-in-control handoff status.
+   * Useful for the primary orchestrator that is directly responding to a user command.
+   */
+  ignoreHandoff?: boolean;
 }

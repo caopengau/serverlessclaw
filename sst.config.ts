@@ -42,12 +42,6 @@ export default $config({
               external: [
                 '@aws-sdk/*',
                 // Dashboard-only packages — safety net against accidental bundling
-                'next',
-                'react',
-                'react-dom',
-                'lucide-react',
-                '@xyflow/react',
-                '@opennextjs/aws',
                 'sonner',
                 'react-markdown',
                 'remark-gfm',
@@ -55,6 +49,8 @@ export default $config({
                 '@tailwindcss/postcss',
                 'tailwindcss',
                 'mqtt',
+                'vitest',
+                'playwright',
               ],
             },
           },
