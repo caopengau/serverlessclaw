@@ -85,8 +85,14 @@ export function createStorage() {
     ActiveModel: new sst.Secret('ActiveModel'),
     GitHubToken: new sst.Secret('GitHubToken'),
     DashboardPassword: new sst.Secret('DashboardPassword'),
-    DiscordBotToken: new sst.Secret('DiscordBotToken'),
-    SlackBotToken: new sst.Secret('SlackBotToken'),
+    DiscordBotToken:
+      $app.stage === 'prod' || process.env.SST_SECRET_DiscordBotToken
+        ? new sst.Secret('DiscordBotToken')
+        : (undefined as any),
+    SlackBotToken:
+      $app.stage === 'prod' || process.env.SST_SECRET_SlackBotToken
+        ? new sst.Secret('SlackBotToken')
+        : (undefined as any),
   };
 
   return { memoryTable, traceTable, stagingBucket, knowledgeBucket, secrets, configTable };

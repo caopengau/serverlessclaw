@@ -1,6 +1,6 @@
 {
   "name": "serverlessclaw",
-  "version": "1.0.11",
+  "version": "1.0.13",
   "description": "A serverless implementation of OpenClaw AI agent using SST, AWS Lambda, and DynamoDB.",
   "repository": {
     "type": "git",
@@ -21,7 +21,7 @@
     "format": "prettier --write \"core/**/*.ts\" \"infra/**/*.ts\"",
     "prepare": "husky",
     "type-check": "tsc --noEmit",
-    "format-check": "prettier --check . --ignore-path ../../.prettierignore"
+    "format-check": "prettier --check . --ignore-path .prettierignore"
   },
   "keywords": [
     "openclaw",
@@ -37,7 +37,7 @@
   "dependencies": {
     "@opennextjs/aws": "^3.9.16",
     "dotenv": "^17.3.1",
-    "sst": "^4.5.6",
+    "sst": "4.5.12",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.9.3",
@@ -62,6 +62,9 @@
   },
   "devDependencies": {
     "@aiready/cli": "^0.15.6",
+    "@aws-sdk/client-cloudfront": "^3.1020.0",
+    "@aws-sdk/client-lambda": "^3.1014.0",
+    "@aws-sdk/client-s3": "^3.1010.0",
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",

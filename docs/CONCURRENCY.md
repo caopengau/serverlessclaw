@@ -54,17 +54,17 @@ The `SessionStateManager` class manages session coordination using atomic Dynamo
 export class SessionStateManager {
   // Uses UpdateCommand + ConditionExpression to set flag ONLY if not held OR expired.
   // CRITICAL: preserves existing 'pendingMessages' during acquisition.
-  acquireProcessing(sessionId, agentId); 
-  
+  acquireProcessing(sessionId, agentId);
+
   releaseProcessing(sessionId); // Clears processing flag
   renewProcessing(sessionId, agentId); // Extends lock TTL during long tasks
   addPendingMessage(sessionId, content); // Queue a message
   getPendingMessages(sessionId); // Get all pending messages
-  
-  // Uses a retry loop with ConditionExpression to safely clear messages 
+
+  // Uses a retry loop with ConditionExpression to safely clear messages
   // without losing messages arriving during the clear operation.
-  clearPendingMessages(sessionId, processedIds); 
-  
+  clearPendingMessages(sessionId, processedIds);
+
   removePendingMessage(sessionId, messageId); // Remove specific message (UI)
   updatePendingMessage(sessionId, messageId, newContent); // Edit message (UI)
 }
@@ -78,7 +78,7 @@ At each iteration, the executor checks for pending messages and injects them:
 // At start of each iteration:
 const pending = await sessionStateManager.getPendingMessages(sessionId);
 // Filter out messages already seen or in initial history
-const newMessages = pending.filter(m => m.timestamp > lastInjectedTimestamp);
+const newMessages = pending.filter((m) => m.timestamp > lastInjectedTimestamp);
 
 if (newMessages.length > 0) {
   // Inject as natural user messages
@@ -89,7 +89,10 @@ if (newMessages.length > 0) {
   attachments.push(...newMessages.flatMap((m) => m.attachments || []));
 
   // Clear ONLY the messages we just injected
-  await sessionStateManager.clearPendingMessages(sessionId, newMessages.map(m => m.id));
+  await sessionStateManager.clearPendingMessages(
+    sessionId,
+    newMessages.map((m) => m.id)
+  );
 
   // Renew processing flag
   await sessionStateManager.renewProcessing(sessionId, agentId);
@@ -190,6 +193,7 @@ This ensures that regardless of network latency or Lambda execution timing, exac
 The **Multi-Party Collaboration** system uses a shared conversation key (`shared#collab#<collaborationId>`) to enable multiple agents to participate in a single session.
 
 ### Write Concurrency
+
 Since multiple agents may attempt to write to the same session simultaneously, the system uses **Atomic Records** and **Conditional Writes** in DynamoDB to ensure data integrity:
 
 - **Atomic Records**: Every message is stored as a separate DynamoDB item with a unique timestamp as the sort key. This prevents "clobbering" of messages even if two agents write at the exact same millisecond.
@@ -198,10 +202,10 @@ Since multiple agents may attempt to write to the same session simultaneously, t
 
 ## Comparison: Lock vs Queue vs Parallel
 
-| Parameter                 | Default         | Description                    |
-| ------------------------- | --------------- | ------------------------------ |
-| `LOCK_TTL_SECONDS`        | 300 (5 min)     | Lock timeout for crash recovery|
-| `SESSION_TTL_SECONDS`     | 2,592,000 (30d) | Persistent state TTL           |
+| Parameter                 | Default         | Description                       |
+| ------------------------- | --------------- | --------------------------------- |
+| `LOCK_TTL_SECONDS`        | 300 (5 min)     | Lock timeout for crash recovery   |
+| `SESSION_TTL_SECONDS`     | 2,592,000 (30d) | Persistent state TTL              |
 | Pending message retention | Until processed | Messages don't expire prematurely |
 
 ## Benefits

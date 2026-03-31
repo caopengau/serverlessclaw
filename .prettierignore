@@ -4,3 +4,12 @@ node_modules/
 dist/
 pnpm-lock.yaml
 dashboard/
+.aiready/
+.kilo/
+.open-next/
+*.log
+coverage/
+**/sst-env.d.ts
+**/next-env.d.ts
+test-results/
+reports/

@@ -7,7 +7,6 @@ const __dirname = path.dirname(__filename);
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  outputFileTracingRoot: path.join(__dirname, '../'),
   transpilePackages: ['@claw/core'],
   reactStrictMode: true,
   images: {
@@ -16,14 +15,8 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  turbopack: {
-    root: path.join(__dirname, '../'),
-    rules: {
-      '*.md': {
-        loaders: ['raw-loader'],
-        as: '*.js',
-      },
-    },
+  eslint: {
+    ignoreDuringBuilds: true,
   },
   webpack: (config) => {
     config.module.rules.push({

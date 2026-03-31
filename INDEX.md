@@ -9,21 +9,21 @@
 
 ## Hub-and-Spoke Map
 
-| Spoke                                     | Load When You Need To...                                                  |
-| ----------------------------------------- | ------------------------------------------------------------------------- |
-| [ARCHITECTURE.md](./ARCHITECTURE.md)      | Understand system structure, data flow, or self-aware AWS topology        |
-| [docs/LLM.md](./docs/LLM.md)              | Deep dive into 2026 reasoning profiles and the OpenAI Response API bridge |
-| [docs/DEVOPS.md](./docs/DEVOPS.md)        | Run quality checks, tests, deployments, or releases                       |
-| [docs/AGENTS.md](./docs/AGENTS.md)        | Work on agent logic and backbone registry                                 |
+| Spoke                                            | Load When You Need To...                                                  |
+| ------------------------------------------------ | ------------------------------------------------------------------------- |
+| [ARCHITECTURE.md](./ARCHITECTURE.md)             | Understand system structure, data flow, or self-aware AWS topology        |
+| [docs/LLM.md](./docs/LLM.md)                     | Deep dive into 2026 reasoning profiles and the OpenAI Response API bridge |
+| [docs/DEVOPS.md](./docs/DEVOPS.md)               | Run quality checks, tests, deployments, or releases                       |
+| [docs/AGENTS.md](./docs/AGENTS.md)               | Work on agent logic and backbone registry                                 |
 | [docs/ORCHESTRATION.md](./docs/ORCHESTRATION.md) | Understand agent routing, protocols, and consensus mechanisms             |
 | [docs/COLLABORATION.md](./docs/COLLABORATION.md) | Shared sessions, Council of Agents, and human-in-the-loop chat            |
-| [docs/STORAGE.md](./docs/STORAGE.md)      | Read about the multi-modal storage flow architectures                     |
-| [TOOLS.md](./docs/TOOLS.md)               | Add, modify, or understand any agent tool                                 |
-| [docs/MEMORY.md](./docs/MEMORY.md)        | Understand the tiered memory system and recall mechanism                  |
-| [SAFETY.md](./docs/SAFETY.md)             | Understand guardrails, circuit breakers, rollback, or HITL                |
-| [RESEARCH.md](./docs/RESEARCH.md)         | Review architectural decisions or LLM provider choices                    |
-| [ROADMAP.md](./docs/ROADMAP.md)           | Understand what's planned, pick the next task                             |
-| [CONTRIBUTING.md](./docs/CONTRIBUTING.md) | Understand how to contribute code or update documentation                 |
+| [docs/STORAGE.md](./docs/STORAGE.md)             | Read about the multi-modal storage flow architectures                     |
+| [TOOLS.md](./docs/TOOLS.md)                      | Add, modify, or understand any agent tool                                 |
+| [docs/MEMORY.md](./docs/MEMORY.md)               | Understand the tiered memory system and recall mechanism                  |
+| [SAFETY.md](./docs/SAFETY.md)                    | Understand guardrails, circuit breakers, rollback, or HITL                |
+| [RESEARCH.md](./docs/RESEARCH.md)                | Review architectural decisions or LLM provider choices                    |
+| [ROADMAP.md](./docs/ROADMAP.md)                  | Understand what's planned, pick the next task                             |
+| [CONTRIBUTING.md](./docs/CONTRIBUTING.md)        | Understand how to contribute code or update documentation                 |
 
 ---
 

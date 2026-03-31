@@ -59,7 +59,7 @@ export function createDeployer(ctx: DeployerContext) {
     },
   });
 
-  // Note: SST v3 doesn't support direct link on aws.codebuild.Project yet,
+  // Note: SST v4 support for direct link on aws.codebuild.Project is being tracked,
   // but we return it for consistency in context.
   return { deployer };
 }

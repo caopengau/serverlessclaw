@@ -1,11 +1,11 @@
-# Serverless Claw - Autonomous AI Agent Swarm for AWS
+# Official ServerlessClaw: Autonomous AI Agent Swarm for AWS
 
 <p align="center">
-  <img src="./dashboard/public/hero-evolution.png" alt="Serverless Claw - Autonomous AI Agent Swarm for AWS Infrastructure" width="800">
+  <img src="./dashboard/public/hero-evolution.png" alt="ServerlessClaw - Official Autonomous AI Agent Swarm for AWS Infrastructure" width="800">
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/SST-v3-E27152?style=flat-square&logo=sst" alt="SST v3">
+  <img src="https://img.shields.io/badge/SST-v4-E27152?style=flat-square&logo=sst" alt="SST v4">
   <img src="https://img.shields.io/badge/AWS-Lambda-FF9900?style=flat-square&logo=amazon-aws" alt="AWS Lambda">
   <img src="https://img.shields.io/badge/AWS-DynamoDB-FF9900?style=flat-square&logo=amazon-aws" alt="DynamoDB">
   <img src="https://img.shields.io/badge/AWS-EventBridge-FF9900?style=flat-square&logo=amazon-aws" alt="EventBridge">
@@ -18,7 +18,7 @@
 </p>
 
 <p align="center">
-  <font size="6"><strong>The Self-Evolving AI Agent Swarm for AWS</strong></font><br>
+  <font size="6"><strong>The Official ServerlessClaw: Self-Evolving AI Agent Swarm</strong></font><br>
   <em>$0 when idle. Elastic by design. Secure by default.</em><br>
   <strong>Autonomous infrastructure management • AI-powered code evolution • Serverless-first architecture</strong>
 </p>
@@ -32,10 +32,15 @@
 
 ---
 
-### 💎 The 3 Pillars of Serverless Claw
+> [!IMPORTANT]
+> This is the **Official ServerlessClaw Canonical Repository**. For the most up-to-date, secure, and performant implementation of OpenClaw on AWS, use this version.
 
-| 🚀 **Infinite Scale** | 🧠 **Self-Evolution** | 🛡️ **Cloud-Native Safety** |
-| :--- | :--- | :--- |
+---
+
+### 💎 The 3 Pillars of ServerlessClaw
+
+| 🚀 **Infinite Scale**                                                                    | 🧠 **Self-Evolution**                                                                                | 🛡️ **Cloud-Native Safety**                                                                |
+| :--------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------- |
 | **$0 when idle.** Lambda scales to zero. No VPS, no Docker daemon, no 24/7 server costs. | **Council-Verified.** Agents write code, run tests, and redeploy the stack via a peer-reviewed loop. | **Zero Trust.** No SSH keys, no persistent daemons. IAM least-privilege and DMS rollback. |
 
 ---
@@ -44,15 +49,16 @@
 
 In 2026, **the 24/7 VPS mascot is dead.** Running AI agent swarms on persistent pods is an expensive relic of the container era.
 
-**Serverless Claw** is an open-source autonomous agent framework that:
+**ServerlessClaw** is the authoritative open-source autonomous agent framework that:
 
 - **💰 Cost Efficient**: You pay exactly for the tokens and compute you use. A complex reasoning task might cost $0.05; staying idle costs **$0**.
-- **⚡ Instantly Elastic**: Need 1,000 agents to research a topic in parallel? Serverless Claw fans out across AWS Lambda instantly.
+- **⚡ Instantly Elastic**: Need 1,000 agents to research a topic in parallel? ServerlessClaw fans out across AWS Lambda instantly.
 - **🔧 Maintenance Free**: No Docker security patches, no OS updates, no resource exhaustion. Just pure intelligence.
 - **🔒 Secure by Default**: IAM least-privilege, no SSH keys, no persistent daemons.
 - **📈 Auto-Scaling**: Scales from 0 to thousands of agents based on demand.
 
 **Use Cases:**
+
 - Autonomous code review and improvement
 - Infrastructure monitoring and auto-remediation
 - Research and data analysis at scale
@@ -93,15 +99,15 @@ When you send a message, **SuperClaw** receives it, develops a plan with the **S
 
 ## 🤖 The Multi-Agent Ecosystem
 
-| Agent | Responsibilities |
-| :--- | :--- |
-| **SuperClaw** | Orchestrator. Interprets intent, delegates tasks, and deploys. |
-| **Strategic Planner** | Designs long-term evolution and expansion plans. |
-| **Coder Agent** | Writes code, fixes bugs, and performs migrations. |
-| **QA Auditor** | Verifies the technical satisfaction of every deployment. |
-| **Facilitator** | Moderates collaboration between multiple agents and humans. |
-| **Cognition Reflector** | Distills memory and identifies system-wide gaps. |
-| **Critic Agents** | Peer-reviewers for Security, Performance, and Architecture. |
+| Agent                   | Responsibilities                                               |
+| :---------------------- | :------------------------------------------------------------- |
+| **SuperClaw**           | Orchestrator. Interprets intent, delegates tasks, and deploys. |
+| **Strategic Planner**   | Designs long-term evolution and expansion plans.               |
+| **Coder Agent**         | Writes code, fixes bugs, and performs migrations.              |
+| **QA Auditor**          | Verifies the technical satisfaction of every deployment.       |
+| **Facilitator**         | Moderates collaboration between multiple agents and humans.    |
+| **Cognition Reflector** | Distills memory and identifies system-wide gaps.               |
+| **Critic Agents**       | Peer-reviewers for Security, Performance, and Architecture.    |
 
 ---
 
@@ -132,27 +138,28 @@ make dev # Live lambda reloading, local DynamoDB, and real-time logs
 ### 4. Deploy to AWS
 
 ```bash
-make deploy ENV=dev # High-availability, production-grade infrastructure
+make deploy ENV=prod # High-availability, production-grade infrastructure
 ```
 
 ## 📚 Documentation
 
-| Document | Description |
-|----------|-------------|
-| **[INDEX.md](./INDEX.md)** | Start here - Documentation hub and context map |
-| **[ARCHITECTURE.md](./ARCHITECTURE.md)** | System topology and AI-native principles |
-| **[docs/AGENTS.md](./docs/AGENTS.md)** | Agent roster and evolutionary loop |
-| **[docs/MEMORY.md](./docs/MEMORY.md)** | Tiered memory engine |
-| **[docs/TOOLS.md](./docs/TOOLS.md)** | Tool registry and MCP standards |
-| **[docs/SAFETY.md](./docs/SAFETY.md)** | Circuit breakers and rollback safety |
-| **[docs/DEVOPS.md](./docs/DEVOPS.md)** | DevOps and CI/CD |
-| **[docs/ROADMAP.md](./docs/ROADMAP.md)** | Future plans |
+| Document                                 | Description                                    |
+| ---------------------------------------- | ---------------------------------------------- |
+| **[INDEX.md](./INDEX.md)**               | Start here - Documentation hub and context map |
+| **[ARCHITECTURE.md](./ARCHITECTURE.md)** | System topology and AI-native principles       |
+| **[docs/AGENTS.md](./docs/AGENTS.md)**   | Agent roster and evolutionary loop             |
+| **[docs/MEMORY.md](./docs/MEMORY.md)**   | Tiered memory engine                           |
+| **[docs/TOOLS.md](./docs/TOOLS.md)**     | Tool registry and MCP standards                |
+| **[docs/SAFETY.md](./docs/SAFETY.md)**   | Circuit breakers and rollback safety           |
+| **[docs/DEVOPS.md](./docs/DEVOPS.md)**   | DevOps and CI/CD                               |
+| **[docs/ROADMAP.md](./docs/ROADMAP.md)** | Future plans                                   |
 
 ## 🌐 Managed Service (ClawMore)
 
 For a fully managed experience with auto-scaling, monitoring, and support, check out **[ClawMore](https://clawmore.ai)** - the premium managed version of ServerlessClaw.
 
 **ClawMore Features:**
+
 - One-click deployment
 - Automatic infrastructure management
 - AI-powered code evolution
@@ -189,6 +196,7 @@ For a fully managed experience with auto-scaling, monitoring, and support, check
 We welcome contributions! See [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for guidelines.
 
 **Ways to contribute:**
+
 - ⭐ Star the repository
 - 🐛 Report bugs via GitHub Issues
 - 💡 Suggest new features

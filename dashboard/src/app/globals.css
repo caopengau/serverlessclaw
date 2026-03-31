@@ -3,7 +3,8 @@
 @theme {
   --color-cyber-green: var(--cyber-green);
   --color-cyber-blue: var(--cyber-blue);
-  --font-mono: "Geist Mono", "SF Mono", "Roboto Mono", monospace;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), monospace;
 }
 
 :root {

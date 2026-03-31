@@ -20,8 +20,5 @@
     ".sst/platform/config.d.ts",
     "sst-env.d.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "dashboard/src"
-  ]
+  "exclude": ["node_modules", "dashboard/src"]
 }

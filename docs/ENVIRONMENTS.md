@@ -5,6 +5,7 @@
 Serverless Claw follows a streamlined 2-tier environment strategy, moving from local experimentation to production with minimal complexity.
 
 ## 1. Local Development (`local`)
+
 - **Purpose**: Rapid iteration, debugging, and testing new agent capabilities.
 - **Trigger**: `make dev`
 - **Identity**: Uses the bot token and secrets defined in your `.env` (prefixed with `SST_SECRET_`).
@@ -12,6 +13,7 @@ Serverless Claw follows a streamlined 2-tier environment strategy, moving from l
 - **Cleanup**: `make remove-local`
 
 ## 2. Production (`prod`)
+
 - **Purpose**: Live environment for end-users. Managed manually for maximum control.
 - **Trigger**: `make deploy ENV=prod`
 - **Identity**: Uses production-only SST Secrets stored in AWS.
@@ -22,15 +24,18 @@ Serverless Claw follows a streamlined 2-tier environment strategy, moving from l
 ## Tooling Consistency
 
 ### Telegram Webhook Management
+
 The `make telegram-setup` command resolves the correct API endpoint from your `.env` by looking up `<STAGE>_API_URL`.
 
-| Command | Target URL Source |
-| :--- | :--- |
-| `make telegram-setup ENV=local` | `LOCAL_API_URL` |
-| `make telegram-setup ENV=prod` | `PROD_API_URL` |
+| Command                         | Target URL Source |
+| :------------------------------ | :---------------- |
+| `make telegram-setup ENV=local` | `LOCAL_API_URL`   |
+| `make telegram-setup ENV=prod`  | `PROD_API_URL`    |
 
 ### Environment Files
+
 Makefile targets automatically load environment files in the following order of priority:
+
 1. `.env.$(ENV).local`
 2. `.env.$(ENV)`
 3. `.env.local`
@@ -42,15 +47,17 @@ Makefile targets automatically load environment files in the following order of 
 
 Serverless Claw supports multi-platform notifications. To enable these, you must configure the following SST Secrets:
 
-| Secret Key | Platform | Description |
-| :--- | :--- | :--- |
-| `TelegramBotToken` | Telegram | Bot token from @BotFather |
-| `DiscordBotToken` | Discord | Bot token from Discord Developer Portal |
-| `SlackBotToken` | Slack | Bot User OAuth Token (starts with `xoxb-`) |
+| Secret Key         | Platform | Description                                |
+| :----------------- | :------- | :----------------------------------------- |
+| `TelegramBotToken` | Telegram | Bot token from @BotFather                  |
+| `DiscordBotToken`  | Discord  | Bot token from Discord Developer Portal    |
+| `SlackBotToken`    | Slack    | Bot User OAuth Token (starts with `xoxb-`) |
 
 ### Setting Secrets
+
 **Local Development:**
 Add to your `.env.local`:
+
 ```bash
 SST_SECRET_TelegramBotToken=your_token
 SST_SECRET_DiscordBotToken=your_token
@@ -59,6 +66,7 @@ SST_SECRET_SlackBotToken=your_token
 
 **Production:**
 Use the SST CLI to set secrets in AWS:
+
 ```bash
 npx sst secret set TelegramBotToken your_token
 npx sst secret set DiscordBotToken your_token

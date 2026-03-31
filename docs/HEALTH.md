@@ -31,7 +31,9 @@ Beyond build failures, Serverless Claw monitors its own operational integrity th
 ```
 
 ### Self-Scheduling Utility
+
 The `DynamicScheduler` (`core/lib/scheduler.ts`) provides a type-safe interface for managing EventBridge Scheduler schedules.
+
 - **`ensureProactiveGoal`**: Atomically creates or updates a schedule for an agent task (e.g., Strategic Review).
 - **Persistence**: Goal metadata is stored in the `ConfigTable` with a `GOAL#` prefix to maintain state across execution cycles.
 - **Flexibility**: Supports both one-off tasks and recurring cron/rate expressions.
@@ -56,9 +58,11 @@ The `DynamicScheduler` (`core/lib/scheduler.ts`) provides a type-safe interface 
 ```
 
 ## Triage & Recovery
+
 The **SuperClaw** receives health signals with full error context. It can delegate to a **Coder Agent** for permanent code fixes or a **Recovery Agent** for immediate resource cycling or rollback.
 
 ## Observability & Service Level Objectives (SLOs)
+
 Serverless Claw integrates a robust tracking system, emitting real-time signals to CloudWatch and maintaining persistent historical rollups in DynamoDB.
 
 ### Metric Topology
@@ -80,7 +84,7 @@ Serverless Claw integrates a robust tracking system, emitting real-time signals 
         +---> [ Notifier (Telegram) ]
 ```
 
-1. **Token Tracking**: Per-invocation and rollup storage ensures granular usage visibility (including summarization). 
+1. **Token Tracking**: Per-invocation and rollup storage ensures granular usage visibility (including summarization).
 2. **CloudWatch Metrics**: Core paths (executors, handlers, buses, dead letter queues) continuously emit metric data.
 3. **Alerting**: Automated notifications (via `OUTBOUND_MESSAGE`) push critical warnings like anomalous token usage, open circuit breakers, and DLQ overflow.
 4. **SLO Tracking**: Monitors service availability, task success rate, and P95 latency against predefined budgets.

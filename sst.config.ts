@@ -9,7 +9,7 @@ const APP_CONFIG = {
 } as const;
 
 /**
- * SST v3 Platform Configuration for ServerlessClaw.
+ * SST v4 Platform Configuration for ServerlessClaw.
  * Defines the main application entry point, infrastructure providers, and modular resource setup.
  */
 export default $config({
@@ -22,7 +22,9 @@ export default $config({
       providers: {
         aws: {
           region: APP_CONFIG.region,
+          version: '7.23.0',
         },
+        cloudflare: '6.13.0',
       },
       defaults: {
         function: {
@@ -61,7 +63,7 @@ export default $config({
     };
   },
   async run() {
-    // SST v3 Modular Infrastructure via Dynamic Imports
+    // SST v4 Modular Infrastructure via Dynamic Imports
     const { createStorage } = await import('./infra/storage.js');
     const { createBus } = await import('./infra/bus.js');
     const { createDeployer } = await import('./infra/deployer.js');

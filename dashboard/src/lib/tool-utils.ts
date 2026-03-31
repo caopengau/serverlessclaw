@@ -54,8 +54,8 @@ export async function getAllTools(
       externalToolsDefinitions = await MCPBridge.getExternalTools();
     } else {
       externalToolsDefinitions = await MCPBridge.getCachedTools();
-      // If cache is empty, use skipConnection mode to avoid timeout
-      // This shows server names without actually connecting to them
+      // If cache is empty, use skipConnection mode to avoid timeout and ENOSPC
+      // This shows server names without actually connecting to them (no npx execution)
       if (externalToolsDefinitions.length === 0) {
         externalToolsDefinitions = await MCPBridge.getExternalTools(undefined, true);
       }

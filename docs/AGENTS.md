@@ -84,16 +84,17 @@ The system supports multi-human multi-agent collaboration through **Workspaces**
 
 ### Member Roles
 
-| Role | Permissions |
-|------|-------------|
-| **Owner** | Full access, can delete workspace, manage all members |
-| **Admin** | Can invite/remove members, manage collaborations |
-| **Collaborator** | Can participate in sessions, write to shared context |
-| **Observer** | Read-only access to sessions and history |
+| Role             | Permissions                                           |
+| ---------------- | ----------------------------------------------------- |
+| **Owner**        | Full access, can delete workspace, manage all members |
+| **Admin**        | Can invite/remove members, manage collaborations      |
+| **Collaborator** | Can participate in sessions, write to shared context  |
+| **Observer**     | Read-only access to sessions and history              |
 
 ### Identity & Access Layer
 
 The `IdentityManager` (`core/lib/identity.ts`) provides:
+
 - **Authentication**: Session-based auth via Telegram, Dashboard, or API key
 - **RBAC**: Role-based permission enforcement
 - **Workspace Membership**: Users can belong to multiple workspaces
@@ -101,14 +102,14 @@ The `IdentityManager` (`core/lib/identity.ts`) provides:
 
 ### Workspace Operations
 
-| Tool | Purpose |
-|------|---------|
-| `createWorkspace` | Creates a new workspace with owner |
-| `inviteMember` | Invites human or agent (admin/owner only) |
-| `updateMemberRole` | Changes a member's role |
-| `removeMember` | Removes member (cannot remove owner) |
-| `getWorkspace` | Retrieves workspace details |
-| `listWorkspaces` | Lists all workspace IDs |
+| Tool               | Purpose                                   |
+| ------------------ | ----------------------------------------- |
+| `createWorkspace`  | Creates a new workspace with owner        |
+| `inviteMember`     | Invites human or agent (admin/owner only) |
+| `updateMemberRole` | Changes a member's role                   |
+| `removeMember`     | Removes member (cannot remove owner)      |
+| `getWorkspace`     | Retrieves workspace details               |
+| `listWorkspaces`   | Lists all workspace IDs                   |
 
 ### Multi-Human Collaboration Flow
 
@@ -155,7 +156,7 @@ To evolve the system with a new specialized node:
 2. **Register Identity**: Add the agent to `BACKBONE_REGISTRY` in `core/lib/backbone.ts`.
 3. **Link Infra**: In `infra/agents.ts`, create the Lambda function and link necessary resources.
 4. **Subscribe**: Ensure the agent is subscribed to its task type in the EventBus.
-5. **Deploy**: Run `make deploy ENV=dev` (or `make dev` for local stage work). The **Build Monitor** will automatically discover the new agent.
+5. **Deploy**: Run `make deploy ENV=prod` (or `make dev` for local stage work). The **Build Monitor** will automatically discover the new agent.
 
 ## 🧪 Testing Interfaces (Contract-First)
 
@@ -209,13 +210,13 @@ Sub-tasks can declare dependencies using `dependsOn` edges, enabling sequential 
 
 ```typescript
 interface PlanSubTask {
-  subTaskId: string;      // Unique identifier
-  planId: string;         // Parent plan ID
-  task: string;           // Specific instruction for Coder Agent
-  gapIds: string[];       // Gap IDs addressed
-  order: number;          // Execution order (0-based)
+  subTaskId: string; // Unique identifier
+  planId: string; // Parent plan ID
+  task: string; // Specific instruction for Coder Agent
+  gapIds: string[]; // Gap IDs addressed
+  order: number; // Execution order (0-based)
   dependencies: number[]; // Sub-tasks that must complete first
-  complexity: number;     // Estimated complexity 1-10
+  complexity: number; // Estimated complexity 1-10
 }
 ```
 

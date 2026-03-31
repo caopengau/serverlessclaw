@@ -7,7 +7,7 @@
 ## Golden Rules
 
 1. **Tests first**: Use TDD for any new tool or guardrail logic.
-2. **Iterate on Main**: Adopt Trunk-Based Evolution. Use `dev` stage for iteration and `prod` for stable releases.
+2. **Iterate on Main**: Adopt Trunk-Based Evolution. Use `local` stage for iteration and `prod` for stable releases.
 3. **No broken state**: `validateCode` must pass before any `triggerDeployment`.
 4. **Protected files require human approval**: Do not attempt to bypass `PERMISSION_DENIED`.
 5. **Docs + Diagrams are NOT optional**: Every code change that affects system behavior MUST update the corresponding spoke document and ASCII diagram in the same commit.

@@ -252,3 +252,4 @@ Track assignments are stored as `TRACK#<gapId>` in DynamoDB:
     assignedAt: 1711668000000,
   }
 
+```

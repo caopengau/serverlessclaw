@@ -185,6 +185,7 @@ Strategic Planner          AgentBus (EB)          Coder Agent (xN)         Trace
 ```
 
 **Key Features:**
+
 - **Automatic Decomposition**: Plans >500 chars are split into max 5 sub-tasks
 - **DAG-Based Dependencies**: Sub-tasks can declare `dependsOn` edges for sequential execution
 - **Complexity Estimation**: Each sub-task gets a complexity score (1-10) for resource allocation
@@ -251,6 +252,7 @@ The system supports multi-human multi-agent collaboration through **Workspaces**
 ```
 
 **Key Components:**
+
 - **IdentityManager** (`core/lib/identity.ts`): Authentication, RBAC, session management
 - **Workspace Operations** (`core/lib/memory/workspace-operations.ts`): CRUD for workspaces and members
 - **Role Hierarchy**: owner > admin > collaborator > observer
@@ -370,6 +372,7 @@ While the default uses DynamoDB, the system can be adapted to use:
 - **S3** for long-term archival.
 
 ### 5. Searchable Memory Model (Flattened)
+
 To support sub-50ms context retrieval across millions of records, the system uses a **Flattened DynamoDB Model**. Searchable fields are projected at the root level to maximize GSI efficiency.
 
 ```text
@@ -429,7 +432,6 @@ To ensure the system remains efficient, a continuous optimization loop runs in t
 6. **Routing**: The `AgentRouter` uses performance rollups AND reputation scores (success rate, latency, recency) to select the best agent. Formula: `(0.6 * performanceScore) + (0.4 * reputationScore)`.
 7. **Reputation Tracking**: The `EventHandler` updates agent reputation on every `TASK_COMPLETED` and `TASK_FAILED` event (via `REPUTATION_UPDATE`).
 8. Reputation Retrieval: The AgentRouter fetches reputation data for composite routing decisions.
-
 
 ### Evolution Safeguards
 

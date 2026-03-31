@@ -44,25 +44,27 @@ export default function Sidebar() {
   }, [pathname]);
 
   const navItems = [
-    { label: UI_STRINGS.INTELLIGENCE_HEADER, type: 'header' },
+    { label: 'Operations', type: 'header' },
     { href: ROUTES.CHAT, label: UI_STRINGS.CHAT_DIRECT, icon: MessageSquare },
     { href: ROUTES.TRACE, label: UI_STRINGS.TRACE_INTEL, icon: Activity, activePaths: [ROUTES.TRACE, '/trace'] },
+    { href: ROUTES.SYSTEM_PULSE, label: UI_STRINGS.SYSTEM_PULSE, icon: Share2 },
     
-    { label: UI_STRINGS.EVOLUTION_HEADER, type: 'header' },
+    { label: 'Intelligence', type: 'header' },
     { href: ROUTES.AGENTS, label: UI_STRINGS.AGENTS, icon: Users },
     { href: ROUTES.MEMORY, label: UI_STRINGS.MEMORY_RESERVE, icon: Brain },
-    { href: ROUTES.PIPELINE, label: UI_STRINGS.EVOLUTION_PIPELINE, icon: Server },
     { href: ROUTES.CAPABILITIES, label: UI_STRINGS.CAPABILITIES, icon: Wrench },
+    { href: ROUTES.COGNITIVE_HEALTH, label: UI_STRINGS.COGNITIVE_HEALTH, icon: BrainCircuit },
+    
+    { label: 'Growth', type: 'header' },
+    { href: ROUTES.PIPELINE, label: UI_STRINGS.EVOLUTION_PIPELINE, icon: Server },
     { href: ROUTES.SCHEDULING, label: UI_STRINGS.SCHEDULING, icon: Calendar },
     { href: ROUTES.WORKSPACES, label: UI_STRINGS.WORKSPACES, icon: Building2 },
     { href: ROUTES.COLLABORATION, label: UI_STRINGS.CONSENSUS, icon: Vote },
     
-    { label: UI_STRINGS.INFRA_HEADER, type: 'header' },
-    { href: ROUTES.SYSTEM_PULSE, label: UI_STRINGS.SYSTEM_PULSE, icon: Share2 },
-    { href: ROUTES.LOCKS, label: UI_STRINGS.SESSION_TRAFFIC, icon: Lock },
+    { label: 'Governance', type: 'header' },
+    { href: ROUTES.SECURITY, label: UI_STRINGS.SECURITY_MANIFEST, icon: Lock },
     { href: ROUTES.RESILIENCE, label: UI_STRINGS.SELF_HEALING, icon: Zap },
-    { href: ROUTES.COGNITIVE_HEALTH, label: UI_STRINGS.COGNITIVE_HEALTH, icon: BrainCircuit },
-    { href: ROUTES.SECURITY, label: UI_STRINGS.SECURITY_MANIFEST, icon: Settings },
+    { href: ROUTES.LOCKS, label: UI_STRINGS.SESSION_TRAFFIC, icon: Activity },
     { href: ROUTES.SETTINGS, label: UI_STRINGS.CONFIG, icon: Settings },
   ];
 
@@ -73,7 +75,7 @@ export default function Sidebar() {
         <Link href={ROUTES.HOME} className="flex items-center gap-3 group">
           <div className="relative w-8 h-8 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
             <Image
-              src="/logo.png"
+              src="/icon.png"
               alt="ClawCenter Logo"
               fill
               className="object-contain"
@@ -101,14 +103,14 @@ export default function Sidebar() {
 
       {/* Sidebar Container */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 lg:w-64 border-r border-white/10 flex flex-col p-6 space-y-8 bg-[#0d0d0d] lg:bg-black/20 shrink-0 transition-transform duration-300 lg:relative lg:translate-x-0
+        fixed inset-y-0 left-0 z-50 w-72 lg:w-64 border-r border-white/10 flex flex-col p-6 space-y-6 bg-[#0d0d0d] lg:bg-black/20 shrink-0 transition-transform duration-300 lg:relative lg:translate-x-0
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex items-center justify-between lg:justify-start gap-3">
           <Link href={ROUTES.HOME} className="flex items-center gap-3 group">
             <div className="relative w-8 h-8 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
               <Image
-                src="/logo.png"
+                src="/icon.png"
                 alt="ClawCenter Logo"
                 fill
                 className="object-contain"
@@ -127,11 +129,11 @@ export default function Sidebar() {
           </div>
         </div>
 
-        <nav className="flex-1 space-y-1 text-sm overflow-y-auto pr-2 custom-scrollbar">
+        <nav className="flex-1 space-y-0.5 text-sm overflow-y-auto pr-2 custom-scrollbar">
           {navItems.map((item, idx) => {
             if (item.type === 'header') {
               return (
-                <div key={idx} className={`text-white/100 px-2 text-[10px] tracking-[0.2em] font-black mb-2 ${idx !== 0 ? 'pt-4' : ''}`}>
+                <div key={idx} className={`text-white/40 px-2 text-[9px] tracking-[0.2em] font-black mb-1 ${idx !== 0 ? 'pt-3' : ''} uppercase`}>
                   {item.label}
                 </div>
               );
@@ -147,14 +149,14 @@ export default function Sidebar() {
               <Link 
                 key={idx}
                 href={item.href!} 
-                className={`flex items-center justify-between gap-3 px-3 py-2.5 rounded transition-all group ${
+                className={`flex items-center justify-between gap-3 px-3 py-1.5 rounded transition-all group ${
                   isActive 
                     ? `bg-${THEME.COLORS.PRIMARY}/10 text-${THEME.COLORS.PRIMARY} border-l-2 border-${THEME.COLORS.PRIMARY}` 
-                    : 'text-white/100 hover:bg-white/5 hover:text-white'
+                    : 'text-white/70 hover:bg-white/5 hover:text-white'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  {Icon && <Icon size={16} className={isActive ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/100 group-hover:text-white/100'} />}
+                  {Icon && <Icon size={14} className={isActive ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/40 group-hover:text-white/100'} />}
                   <Typography 
                     variant="caption" 
                     weight={isActive ? "bold" : "medium"}
@@ -163,7 +165,7 @@ export default function Sidebar() {
                     {item.label}
                   </Typography>
                 </div>
-                {isActive && <ChevronRight size={12} className={`text-${THEME.COLORS.PRIMARY}`} />}
+                {isActive && <ChevronRight size={10} className={`text-${THEME.COLORS.PRIMARY}`} />}
               </Link>
             );
           })}

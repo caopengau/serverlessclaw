@@ -34,6 +34,6 @@ Every successful deployment triggers a system-wide scan to map resources and age
 4. **Intelligent Mapping**: Uses a tool-to-resource strategy to draw functional relationships (e.g., mapping `recallKnowledge` to the Memory Table).
 5. **IAM Links**: Validates the hard security layer by checking Lambda function permissions.
 
-
 ## Visualization
+
 The resulting JSON graph is rendered on the **System Pulse** map in ClawCenter, providing a live "circulatory system" view of the stack.

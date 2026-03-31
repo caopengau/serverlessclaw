@@ -114,8 +114,8 @@ export class MCPBridge {
       if (skipConnection) {
         return [
           {
-            name: `${name}_tools`,
-            description: `Tools from ${name} MCP server`,
+            name: `${name}`,
+            description: `MCP server: ${name} (Connect to see tools)`,
             parameters: { type: 'object' as const, properties: {} },
             type: ToolType.MCP,
             execute: async () => `MCP server ${name} placeholder`,

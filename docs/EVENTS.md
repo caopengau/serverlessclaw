@@ -120,23 +120,23 @@ await purgeDlqEntry(entries[0]);
 
 Standard event types are defined in `core/lib/types/agent.ts`:
 
-| Event Type               | Description                     | Priority          |
-| ------------------------ | ------------------------------- | ----------------- |
-| `OUTBOUND_MESSAGE`       | User-facing messages            | HIGH              |
-| `SYSTEM_BUILD_SUCCESS`   | Successful deployment           | HIGH              |
-| `SYSTEM_BUILD_FAILED`    | Failed deployment               | CRITICAL          |
-| `SYSTEM_HEALTH_REPORT`   | Health issues                   | Based on severity |
-| `HEARTBEAT_PROACTIVE`    | Scheduled task wake-up          | HIGH              |
-| `CODER_TASK`             | Code modification request       | NORMAL            |
-| `CLARIFICATION_REQUEST`  | Agent requesting user input     | HIGH              |
-| `CLARIFICATION_TIMEOUT`  | Timeout for clarification       | HIGH              |
-| `CONTINUATION_TASK`      | Task resumption signal          | HIGH              |
-| `TASK_COMPLETED`         | Generic task success            | NORMAL            |
-| `TASK_FAILED`            | Generic task failure            | HIGH              |
-| `PARALLEL_TASK_DISPATCH` | Multi-task coordination         | NORMAL            |
-| `PARALLEL_TASK_COMPLETED`| Aggregated parallel results     | HIGH              |
-| `PARALLEL_BARRIER_TIMEOUT`| Timeout for parallel barrier    | HIGH              |
-| `EVOLUTION_PLAN`         | Capability improvement proposal | NORMAL            |
+| Event Type                 | Description                     | Priority          |
+| -------------------------- | ------------------------------- | ----------------- |
+| `OUTBOUND_MESSAGE`         | User-facing messages            | HIGH              |
+| `SYSTEM_BUILD_SUCCESS`     | Successful deployment           | HIGH              |
+| `SYSTEM_BUILD_FAILED`      | Failed deployment               | CRITICAL          |
+| `SYSTEM_HEALTH_REPORT`     | Health issues                   | Based on severity |
+| `HEARTBEAT_PROACTIVE`      | Scheduled task wake-up          | HIGH              |
+| `CODER_TASK`               | Code modification request       | NORMAL            |
+| `CLARIFICATION_REQUEST`    | Agent requesting user input     | HIGH              |
+| `CLARIFICATION_TIMEOUT`    | Timeout for clarification       | HIGH              |
+| `CONTINUATION_TASK`        | Task resumption signal          | HIGH              |
+| `TASK_COMPLETED`           | Generic task success            | NORMAL            |
+| `TASK_FAILED`              | Generic task failure            | HIGH              |
+| `PARALLEL_TASK_DISPATCH`   | Multi-task coordination         | NORMAL            |
+| `PARALLEL_TASK_COMPLETED`  | Aggregated parallel results     | HIGH              |
+| `PARALLEL_BARRIER_TIMEOUT` | Timeout for parallel barrier    | HIGH              |
+| `EVOLUTION_PLAN`           | Capability improvement proposal | NORMAL            |
 
 ## Event Flow
 

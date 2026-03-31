@@ -5,17 +5,20 @@
 Our goal: the most customizable, cost-effective, and self-evolving personal AI agent host.
 
 ## ✅ Phase 1: MVP
+
 - [x] SST v3 (Ion) setup
 - [x] Telegram Webhook integration
 - [x] DynamoDB history persistence
 - [x] Basic Tool loop (Calculator, Weather)
 
 ## ✅ Phase 2: Developer Foundations
+
 - [x] Standardized `IMemory`, `IChannel`, `ITool` interfaces
 - [x] DynamoDB-based session locking (mutex)
 - [x] Distilled Long-Term Memory (Reflection Loop)
 
 ## ✅ Phase 3: Self-Evolving & Multi-Agent
+
 - [x] 3-Agent Architecture: Main → Coder → Deployer
 - [x] EventBridge `AgentBus` for async inter-agent communication
 - [x] `dispatchTask` and `triggerDeployment` tools
@@ -23,12 +26,14 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [x] `fileWrite` tool for Coder Agent
 
 ## ✅ Phase 4: Safety Guardrails
+
 - [x] Resource Labeling (Protected file list in `fileWrite`)
 - [x] Deployment Circuit Breaker (5/day limit, DynamoDB-backed, TDD-verified)
 - [x] Pre-flight `validateCode` tool
 - [x] Human-in-the-Loop prompt instructions
 
 ## ✅ Phase 5: Self-Healing & Rollback
+
 - [x] `checkHealth` tool — `GET /health` probe, rewards with counter decrement
 - [x] `triggerRollback` tool — `git revert HEAD` + redeploy
 - [x] Build Monitor: Log-based error analysis and auto-fix loop
@@ -38,6 +43,7 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 ---
 
 ## ✅ Phase 6: Visibility & Native Observability
+
 - [x] **Claw-Trace**: Built-in tracing engine logging to DynamoDB.
 - [x] **Claw-Monitor Dashboard**: Next.js 16 (Canary) + Tailwind v4 UI.
 - [x] **Milestone 1: High-Fidelity Tracing**: Trace detail views with raw prompt/response/payload inspection.
@@ -46,6 +52,7 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [x] **Memory Browser**: Inspect distilled facts, session history, and tool registry.
 
 ## ✅ Phase 7: Multi-Model & Hot-Config
+
 - [x] **Provider Hub**: Unified interface for OpenAI, Bedrock (Claude 4.6), and OpenRouter (Gemini/GLM/MiniMax-m2.7).
 - [x] **Dynamic Routing**: `ProviderManager` for runtime model selection without redeploys.
 - [x] **Config Table**: DynamoDB-backed persistent application settings.
@@ -53,20 +60,24 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [x] **Session Traffic Control**: Manual lock management and zombie session cleanup.
 
 ## ✅ Phase 8: Autonomous Self-Improvement Loop
+
 - [x] **Git Push Integration**: CodeBuild pushes approved code changes back to GitHub.
 - [x] **Verification Tooling**: `runTests` tool for agents to verify logic before deployment.
 
 ## ✅ Phase 9: Evolutionary Memory (Tiered)
+
 - [x] **Tiered Memory**: Separate Long-Term **Facts** from dynamic **Tactical Lessons**.
 - [x] **Reflector Agent**: Decoupled asynchronous reflection loop via EventBridge.
 - [x] **Smart Recall**: Agents selectively retrieve knowledge via `recallKnowledge` tool.
 
 ## ✅ Phase 10: Intelligent Prioritization
+
 - [x] **Granular Metrics**: Added Confidence, Impact, Complexity, Risk, and Urgency signals.
 - [x] **ROI-Driven Logic**: Reflector estimates actionable signals for capability gaps.
 - [x] **Strategic Telemetry**: Planner dynamically checks `ACTIVE_AGENTS` and `AVAILABLE_TOOLS` to prevent hallucinations.
 
 ## ✅ Phase 11: Evolution Control & Verified Lifecycle
+
 - [x] **Evolution Mode**: Toggle between Human-in-the-Loop (`hitl`) and self-coding (`auto`) via `ConfigTable`.
 - [x] **Notifier Subsystem**: Centralized EventBridge-driven (`OUTBOUND_MESSAGE`) handler decoupling LLM execution from messaging platforms.
 - [x] **Verified Lifecycle**: Full status state machine (`OPEN` -> `PLANNED` -> `PROGRESS` -> `DEPLOYED` -> `DONE`).
@@ -74,12 +85,14 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [x] **Deterministic Review**: Scheduled strategic reviews based on gap volume and frequency thresholds.
 
 ## ✅ Phase 11.5: Self-Evolution Loop Resilience
+
 - [x] **Standardized Neural Signal Schema**: Enforce JSON-based status reporting and coordination via centralized enums (`TOOLS`, `TRACE_TYPES`).
 - [ ] **Atomic Deployment Sync**: Pass `gapIds` directly to the `triggerDeployment` tool for failure-proof metadata mapping.
 - [ ] **Deep Cognitive Health**: Pulse checks that verify agent-to-agent communication and tool functionality.
 - [ ] **Plan Decomposition**: Hierarchical task breakdown to prevent Coder Agent logic overload.
 
 ## 🏗️ Phase 12: Evolutionary Command Center (ClawCenter v2)
+
 - [x] **Evolution Pipeline Board**: Kanban visualization of the 5-stage gap lifecycle.
 - [x] **Neural Map**: Dependency graph visualization of agent-to-agent delegation paths and dynamic infrastructure state from DynamoDB.
 - [x] **Capabilities Discovery**: Real-time multi-agent tool search and automated roster management.
@@ -88,26 +101,31 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [ ] **Interactive Gap Refinement**: Feedback loop for users to edit and improve strategic plans before implementation.
 
 ## 🏗️ Phase 13: Multi-Modal Chat & File Handling
+
 - [ ] **Rich Media Receiver**: Webhook support for Photos, Documents, and Voice messages via S3 bridging.
 - [ ] **S3 Memory Integration**: Attachments linked to session history with TTL-aware lifecycle.
 - [ ] **Multi-Modal Provider Support**: Full support for image and file analysis in OpenAI/Gemini/Bedrock adapters.
 - [ ] **Rich Media Notifier**: Capability for agents to send files, charts, and generated images back to chat channels.
 
 ## 🏢 Phase 14: Advanced Autonomy
+
 - [ ] **Browser Automation**: Playwright Lambda Layer for autonomous web browsing.
-- [ ] **Promotion Manager**: Agent-driven promotion of validated `dev` builds to `prod`.
+- [ ] **Promotion Manager**: Agent-driven promotion of validated builds to `prod`.
 - [ ] **Skill Marketplace**: CLI-based installation of community tools.
 
 ## 🏢 Phase 15: Enterprise Scale
+
 - [ ] Agent Swarm Isolation by `employerId`.
 - [ ] Per-tenant EventBridge filtering.
 - [ ] Multi-Channel Adapters: Slack and Discord support.
 
 ## 🏢 Phase 16: Evolution Analytics & Tool ROI
+
 - [ ] **Quantitative Tool Dashboard**: Frequency, success rates, and token cost per tool.
 - [ ] **Negative Memory Tier**: `FAILED_PLANS#` storage to prevent the Strategic Planner from repeating unsuccessful designs.
 
 ## 🏢 Phase 17: Advanced Cognitive Resilience
+
 - [ ] **Static Analysis Feed**: Inject `package.json` and environmental constraints directly into the Planner's telemetry.
 - [ ] **Interactive Strategic Planning**: "Reject with Reason" feedback loop in dashboard that converts into immediate `TACTICAL_LESSONS`.
 - [ ] **Multi-Agent Conflict Resolution**: Detection and mediation of overlapping plans between different autonomous nodes.

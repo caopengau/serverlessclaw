@@ -10,7 +10,7 @@ For any agent working in this repo, load context in this order:
 ## Stage Hygiene
 
 - `make dev` -> stage `local` (for local development)
-- `make deploy` -> stage `dev` (single deployment environment)
+- `make deploy` -> stage `prod` (single deployment environment)
 - Never use `sst dev` against the deployment stage.
 
 ## Mandatory Agent Checklist

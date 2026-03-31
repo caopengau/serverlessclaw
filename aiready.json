@@ -2,12 +2,7 @@
   "$schema": "https://getaiready.dev/schema.json",
   "threshold": 80,
   "scan": {
-    "include": [
-      "core/**/*.ts",
-      "dashboard/src/**/*.{ts,tsx}",
-      "infra/**/*.ts",
-      "scripts/**/*.ts"
-    ],
+    "include": ["core/**/*.ts", "dashboard/src/**/*.{ts,tsx}", "infra/**/*.ts", "scripts/**/*.ts"],
     "exclude": [
       "**/node_modules/**",
       "**/.sst/**",
@@ -65,12 +60,7 @@
       "checkNaming": true,
       "checkPatterns": true,
       "checkArchitecture": true,
-      "shortWords": [
-        "id",
-        "db",
-        "ui",
-        "ai"
-      ],
+      "shortWords": ["id", "db", "ui", "ai"],
       "acceptedAbbreviations": [
         "API",
         "JSON",
@@ -113,9 +103,7 @@
         "naming-consistency:const-uppercase-snake-case",
         "naming-consistency:function-camel-case"
       ],
-      "exclude": [
-        "dashboard/src/components/ui/**"
-      ]
+      "exclude": ["dashboard/src/components/ui/**"]
     },
     "ai-signal-clarity": {
       "checkMagicLiterals": true,
@@ -126,28 +114,16 @@
       "checkDeepCallbacks": true,
       "checkOverloadedSymbols": true,
       "checkLargeFiles": true,
-      "exclude": [
-        "dashboard/src/components/ui/**"
-      ]
+      "exclude": ["dashboard/src/components/ui/**"]
     },
     "agent-grounding": {
       "maxRecommendedDepth": 5,
       "readmeStaleDays": 30,
-      "additionalVagueNames": [
-        "stuff",
-        "misc",
-        "temp",
-        "test"
-      ]
+      "additionalVagueNames": ["stuff", "misc", "temp", "test"]
     },
     "testability-index": {
       "minCoverageRatio": 0.7,
-      "testPatterns": [
-        "**/*.test.ts",
-        "**/*.test.tsx",
-        "**/__tests__/**",
-        "**/*.spec.ts"
-      ],
+      "testPatterns": ["**/*.test.ts", "**/*.test.tsx", "**/__tests__/**", "**/*.spec.ts"],
       "maxDepth": 10
     },
     "doc-drift": {
@@ -160,12 +136,7 @@
     "change-amplification": {}
   },
   "visualizer": {
-    "groupingDirs": [
-      "core",
-      "dashboard",
-      "infra",
-      "scripts"
-    ],
+    "groupingDirs": ["core", "dashboard", "infra", "scripts"],
     "graph": {
       "maxNodes": 5000,
       "maxEdges": 10000

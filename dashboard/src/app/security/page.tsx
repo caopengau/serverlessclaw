@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import { Lock, Eye, FileWarning, Globe, Server, Database } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
@@ -55,6 +57,7 @@ const PROTECTED_RESOURCES = [
 ];
 
 export default function SecurityManifestPage() {
+  const [currentTier, setCurrentTier] = useState<'sandbox' | 'autonomous'>('sandbox');
   return (
     <main className={`flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[${THEME.COLORS.PRIMARY}]/5 via-transparent to-transparent`}>
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
@@ -77,7 +80,10 @@ export default function SecurityManifestPage() {
             <Typography variant="caption" weight="bold" className="tracking-[0.2em] flex items-center gap-2 mb-6">
               <Lock size={14} className={`text-[${THEME.COLORS.PRIMARY}]`} /> Safety Tier
             </Typography>
-            <SafetyTierEditor currentTier="sandbox" onTierChange={() => {}} />
+            <SafetyTierEditor 
+              currentTier={currentTier} 
+              onTierChange={(tier) => setCurrentTier(tier as 'sandbox' | 'autonomous')} 
+            />
           </section>
         </div>
 

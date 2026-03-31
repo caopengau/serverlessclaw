@@ -21,24 +21,29 @@ export default function PlanView() {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <section>
+    <section className="bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl overflow-hidden shadow-2xl">
+      {expanded && (
+        <div className="max-h-[65vh] overflow-y-auto border-b border-white/10 custom-scrollbar">
+          <PlanDecompositionTree
+            planId={SAMPLE_PLAN.planId}
+            title={SAMPLE_PLAN.title}
+            subTasks={SAMPLE_PLAN.subTasks}
+          />
+        </div>
+      )}
+      
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between py-4 px-2 hover:bg-white/[0.02] rounded-lg transition-colors"
+        className="w-full flex items-center justify-between py-3 px-6 hover:bg-white/5 transition-colors"
       >
-        <Typography variant="caption" weight="bold" className="tracking-[0.2em] flex items-center gap-2">
-          <GitCommit size={14} className="text-cyber-blue" /> Plan Decomposition
-        </Typography>
-        {expanded ? <ChevronUp size={16} className="text-white/40" /> : <ChevronDown size={16} className="text-white/40" />}
+        <div className="flex items-center gap-3">
+          <GitCommit size={14} className="text-cyber-blue" />
+          <Typography variant="mono" className="text-[11px] font-black tracking-[0.2em] uppercase text-white/80">
+            Plan Decomposition <span className="text-white/20 ml-2">ID: {SAMPLE_PLAN.planId}</span>
+          </Typography>
+        </div>
+        {expanded ? <ChevronDown size={16} className="text-cyber-blue" /> : <ChevronUp size={16} className="text-white/40" />}
       </button>
-
-      {expanded && (
-        <PlanDecompositionTree
-          planId={SAMPLE_PLAN.planId}
-          title={SAMPLE_PLAN.title}
-          subTasks={SAMPLE_PLAN.subTasks}
-        />
-      )}
     </section>
   );
 }

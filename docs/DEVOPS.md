@@ -16,7 +16,7 @@ The main `Makefile` at the root is the "Hub". It includes specialized "Spoke" fi
 
 - **Quality ([Makefile.quality.mk](../makefiles/Makefile.quality.mk))**: Linting, formatting, type-checking, and AI-readiness scans.
 - **Test ([Makefile.test.mk](../makefiles/Makefile.test.mk))**: Unit tests (Vitest) and deployment health verification.
-- **Deploy ([Makefile.deploy.mk](../makefiles/Makefile.deploy.mk))**: SST v3 infrastructure management (`dev`, `deploy`, `remove`).
+- **Deploy ([Makefile.deploy.mk](../makefiles/Makefile.deploy.mk))**: SST v4 infrastructure management (`dev`, `deploy`, `remove`).
 - **Release ([Makefile.release.mk](../makefiles/Makefile.release.mk))**: Production release orchestration (test -> deploy -> verify -> tag).
 - **Shared ([Makefile.shared.mk](../makefiles/Makefile.shared.mk))**: Common macros, colors, and environment loading.
 
@@ -24,24 +24,24 @@ The main `Makefile` at the root is the "Hub". It includes specialized "Spoke" fi
 
 ## Common Commands
 
-| Command | Category | Description |
-|---------|----------|-------------|
-| `make help` | Hub | Show all available targets in a categorized markdown table |
-| `make dev` | Deploy | Start local development mode with SST Ion |
-| `make check`| Quality | Run all quality checks (lint, format, type-check) |
-| `make test` | Test | Run the full unit test suite |
-| `make verify URL=...` | Test | Verify deployed `/health` endpoint returns success |
-| `make release`| Release | Perform a full production release + Git tagging |
-| `make test-affected` | Test | Run only tests affected by recent changes (smart selection) |
-| `make security-scan` | Test | Scan dependencies for security vulnerabilities |
-| `make docs-check` | Test | Validate documentation is in sync with code |
+| Command               | Category | Description                                                 |
+| --------------------- | -------- | ----------------------------------------------------------- |
+| `make help`           | Hub      | Show all available targets in a categorized markdown table  |
+| `make dev`            | Deploy   | Start local development mode with SST Ion                   |
+| `make check`          | Quality  | Run all quality checks (lint, format, type-check)           |
+| `make test`           | Test     | Run the full unit test suite                                |
+| `make verify URL=...` | Test     | Verify deployed `/health` endpoint returns success          |
+| `make release`        | Release  | Perform a full production release + Git tagging             |
+| `make test-affected`  | Test     | Run only tests affected by recent changes (smart selection) |
+| `make security-scan`  | Test     | Scan dependencies for security vulnerabilities              |
+| `make docs-check`     | Test     | Validate documentation is in sync with code                 |
 
 Note: SST-related Make targets invoke the workspace-local SST binary (`./node_modules/.bin/sst`) directly. Run `pnpm install` first so this binary is available.
 
 ### Stage Hygiene (Safety-Critical)
 
 - Local development must use stage `local`: `make dev` (defaults to `LOCAL_STAGE=local`).
-- Deployment uses a single environment (default: `dev`): `make deploy` or `make release`.
+- Deployment uses a single environment (default: `prod`): `make deploy` or `make release`.
 - Do not run `sst dev` against the deployment stage.
 
 ---

@@ -11,9 +11,9 @@ Instead of a linear log, the system records a **Directed Acyclic Graph (DAG)** o
 ### Standard Evolution Path
 
 ```text
- [ User Msg ] 
+ [ User Msg ]
       |
-   (root) 
+   (root)
   SuperClaw
       |
       +---------------------------+
@@ -34,9 +34,9 @@ Instead of a linear log, the system records a **Directed Acyclic Graph (DAG)** o
 When the Strategic Planner detects high impact/risk/complexity (≥ 8), it dispatches three parallel Critic Agent reviews before proceeding to the Coder:
 
 ```text
- [ User Msg ] 
+ [ User Msg ]
       |
-   (root) 
+   (root)
   SuperClaw
       |
   (node_A)
@@ -76,6 +76,7 @@ When the Strategic Planner detects high impact/risk/complexity (≥ 8), it dispa
 ## Storage Optimization
 
 To support efficient retrieval of entire execution graphs, the **TraceTable** (DynamoDB) uses a **Composite Primary Key**:
+
 - **Hash Key (`traceId`)**: Links all nodes in a single user request.
 - **Range Key (`nodeId`)**: Identifies individual agent executions or parallel branches.
 
@@ -87,41 +88,41 @@ The system records various trace types to capture the full lifecycle of agent-to
 
 ### Standard Trace Types
 
-| Trace Type | Description | Content Example |
-|------------|-------------|-----------------|
-| `llm_call` | Agent reasoning request | `{ messages: [...], model: 'gpt-4' }` |
-| `llm_response` | Agent reasoning output | `{ content: '...', tool_calls: [...] }` |
-| `tool_call` | Tool execution request | `{ tool: 'runShellCommand', args: {...} }` |
-| `tool_result` | Tool execution result | `{ result: 'output...' }` |
-| `error` | Execution error | `{ errorMessage: '...' }` |
+| Trace Type     | Description             | Content Example                            |
+| -------------- | ----------------------- | ------------------------------------------ |
+| `llm_call`     | Agent reasoning request | `{ messages: [...], model: 'gpt-4' }`      |
+| `llm_response` | Agent reasoning output  | `{ content: '...', tool_calls: [...] }`    |
+| `tool_call`    | Tool execution request  | `{ tool: 'runShellCommand', args: {...} }` |
+| `tool_result`  | Tool execution result   | `{ result: 'output...' }`                  |
+| `error`        | Execution error         | `{ errorMessage: '...' }`                  |
 
 ### Agent Communication Trace Types
 
-| Trace Type | Description | Content Example |
-|------------|-------------|-----------------|
-| `clarification_request` | Agent pauses for clarification | `{ question: '...', agentId: 'coder' }` |
-| `clarification_response` | Clarification provided | `{ answer: '...', agentId: 'superclaw' }` |
-| `parallel_dispatch` | Fan-out to parallel agents | `{ tasks: [...], aggregationType: 'summary' }` |
-| `parallel_barrier` | Waiting for parallel agents | `{ pendingAgents: [...], completedAgents: [...] }` |
-| `parallel_completed` | Parallel aggregation done | `{ result: '...', completedTasks: 3 }` |
-| `council_review` | Council of Agents review | `{ decision: 'APPROVED', reviews: [...] }` |
-| `continuation` | Task result routing | `{ taskResult: '...', targetAgent: 'superclaw' }` |
-| `plan_generated` | Strategic plan generated | `{ planId: '...', coveredGaps: [...], planSnippet: '...' }` |
+| Trace Type               | Description                    | Content Example                                             |
+| ------------------------ | ------------------------------ | ----------------------------------------------------------- |
+| `clarification_request`  | Agent pauses for clarification | `{ question: '...', agentId: 'coder' }`                     |
+| `clarification_response` | Clarification provided         | `{ answer: '...', agentId: 'superclaw' }`                   |
+| `parallel_dispatch`      | Fan-out to parallel agents     | `{ tasks: [...], aggregationType: 'summary' }`              |
+| `parallel_barrier`       | Waiting for parallel agents    | `{ pendingAgents: [...], completedAgents: [...] }`          |
+| `parallel_completed`     | Parallel aggregation done      | `{ result: '...', completedTasks: 3 }`                      |
+| `council_review`         | Council of Agents review       | `{ decision: 'APPROVED', reviews: [...] }`                  |
+| `continuation`           | Task result routing            | `{ taskResult: '...', targetAgent: 'superclaw' }`           |
+| `plan_generated`         | Strategic plan generated       | `{ planId: '...', coveredGaps: [...], planSnippet: '...' }` |
 
 ### System Event Trace Types
 
-| Trace Type | Description | Content Example |
-|------------|-------------|-----------------|
-| `circuit_breaker` | Circuit breaker state change | `{ previousState: 'closed', newState: 'open' }` |
-| `cancellation` | Task cancellation | `{ reason: 'User requested', cancelledBy: 'user' }` |
-| `memory_operation` | Memory save/load | `{ operation: 'save', memoryType: 'fact', key: '...' }` |
+| Trace Type         | Description                  | Content Example                                         |
+| ------------------ | ---------------------------- | ------------------------------------------------------- |
+| `circuit_breaker`  | Circuit breaker state change | `{ previousState: 'closed', newState: 'open' }`         |
+| `cancellation`     | Task cancellation            | `{ reason: 'User requested', cancelledBy: 'user' }`     |
+| `memory_operation` | Memory save/load             | `{ operation: 'save', memoryType: 'fact', key: '...' }` |
 
 ### Agent State Trace Types
 
-| Trace Type | Description | Content Example |
-|------------|-------------|-----------------|
-| `agent_waiting` | Agent paused waiting | `{ reason: 'Waiting for clarification', agentId: 'coder' }` |
-| `agent_resumed` | Agent resumed execution | `{ resumedFrom: 'clarification', agentId: 'coder' }` |
+| Trace Type      | Description             | Content Example                                             |
+| --------------- | ----------------------- | ----------------------------------------------------------- |
+| `agent_waiting` | Agent paused waiting    | `{ reason: 'Waiting for clarification', agentId: 'coder' }` |
+| `agent_resumed` | Agent resumed execution | `{ resumedFrom: 'clarification', agentId: 'coder' }`        |
 
 ## Clarification Protocol Trace Flow
 
