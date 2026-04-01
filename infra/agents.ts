@@ -354,8 +354,7 @@ export function createAgents(
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
     memory: AGENT_CONFIG.memory.MEDIUM,
-    timeout: AGENT_CONFIG.timeout.LONG,
-    storage: '10 GB', // 10GB /tmp for workspaces (merger logic)
+    timeout: AGENT_CONFIG.timeout.MEDIUM,
     logging: {
       retention: LOG_RETENTION_PERIOD,
     },
@@ -390,7 +389,7 @@ export function createAgents(
     permissions: [...basePermissions, ...schedulerPermissions],
     environment: agentEnv,
     memory: AGENT_CONFIG.memory.MEDIUM,
-    timeout: AGENT_CONFIG.timeout.MAX,
+    timeout: AGENT_CONFIG.timeout.LONG,
     logging: {
       retention: LOG_RETENTION_PERIOD,
     },
@@ -410,7 +409,7 @@ export function createAgents(
     nodejs: { loader: NODEJS_LOADERS },
     permissions: [...basePermissions, ...schedulerPermissions],
     environment: agentEnv,
-    memory: AGENT_CONFIG.memory.LARGE,
+    memory: AGENT_CONFIG.memory.MEDIUM_LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
     logging: {
       retention: LOG_RETENTION_PERIOD,
@@ -520,6 +519,8 @@ export function createAgents(
     permissions: basePermissions,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
+    memory: AGENT_CONFIG.memory.SMALL,
+    timeout: AGENT_CONFIG.timeout.SHORT,
     logging: {
       retention: LOG_RETENTION_PERIOD,
     },
@@ -571,9 +572,8 @@ export function createAgents(
     nodejs: { loader: NODEJS_LOADERS },
     permissions: [...basePermissions, ...schedulerPermissions],
     environment: agentEnv,
-    memory: AGENT_CONFIG.memory.LARGE,
-    timeout: AGENT_CONFIG.timeout.MAX,
-    storage: '10 GB', // 10GB /tmp for workspaces
+    memory: AGENT_CONFIG.memory.MEDIUM,
+    timeout: AGENT_CONFIG.timeout.LONG,
     logging: {
       retention: LOG_RETENTION_PERIOD,
     },

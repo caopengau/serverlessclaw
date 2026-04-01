@@ -322,7 +322,7 @@ Connected via the **Model Context Protocol (MCP)**. This is the primary scaling 
 - **Hub-First Architecture (New in May 2026)**: The system prioritizes high-speed connections to an external MCP Hub via SSE. This minimizes Lambda startup latency (cold starts) and offloads resource-heavy tasks (like browser automation) to external infrastructure.
 - **Graceful Local Fallback**: If the external Hub is unreachable or times out (5s limit), the `MCPBridge` seamlessly falls back to local spawning using `StdioClientTransport`.
 - **Lambda Environment Hardening**:
-  - **Memory/Timeout**: Backbone agents and the Dashboard server are provisioned with **2048MB** (LARGE) and **15m** (MAX) to handle concurrent MCP child processes.
+  - **Memory/Timeout**: High-resource agents (Coder, Planner, QA) and the Dashboard server are provisioned with **2048MB** (LARGE) and up to **15m** (MAX) to handle concurrent MCP child processes, while smaller utility agents use reduced resource profiles to optimize costs.
   - **Writable Cache**: Uses `/tmp/mcp-cache` and `/tmp/npm-cache` to ensure `npx` has a writable scratch space in the read-only Lambda environment.
 - **Lazy Loading**: External servers are only connected to when an agent's specific toolset requires them.
 - **Dynamic Spawning**: Uses `npx` to fetch and run fallback servers on-demand.

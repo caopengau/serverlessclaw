@@ -41,7 +41,7 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
     },
     server: {
       memory: AGENT_CONFIG.memory.LARGE,
-      timeout: AGENT_CONFIG.timeout.MAX,
+      timeout: AGENT_CONFIG.timeout.LONG,
     },
 
     permissions: [
