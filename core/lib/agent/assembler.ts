@@ -41,15 +41,19 @@ export class AgentAssembler {
   ): Promise<ContextResult> {
     const { isIsolated, depth, activeModel, activeProvider, activeProfile, systemPrompt } = options;
 
-    // 1. Memory Retrieval
-    const history = await memory.getHistory(storageId);
-    const [distilled, lessons, prefPrefixed, prefRaw, globalLessons] = await Promise.all([
-      memory.getDistilledMemory(baseUserId),
-      memory.getLessons(baseUserId),
-      memory.searchInsights(`USER#${baseUserId}`, '*', InsightCategory.USER_PREFERENCE),
-      memory.searchInsights(baseUserId, '*', InsightCategory.USER_PREFERENCE),
-      memory.getGlobalLessons(5),
-    ]);
+    // 1. Memory Retrieval (parallelized)
+    const [history, [distilled, lessons, prefPrefixed, prefRaw, globalLessons]] = await Promise.all(
+      [
+        memory.getHistory(storageId),
+        Promise.all([
+          memory.getDistilledMemory(baseUserId),
+          memory.getLessons(baseUserId),
+          memory.searchInsights(`USER#${baseUserId}`, '*', InsightCategory.USER_PREFERENCE),
+          memory.searchInsights(baseUserId, '*', InsightCategory.USER_PREFERENCE),
+          memory.getGlobalLessons(5),
+        ]),
+      ]
+    );
 
     const preferences = {
       items: [...(prefPrefixed.items ?? []), ...(prefRaw.items ?? [])],
@@ -62,10 +66,10 @@ export class AgentAssembler {
 
     let recoveryContext = '';
     try {
-      const { AGENT_LOG_MESSAGES } = await import('./executor');
-      const recoveryData = await memory.getDistilledMemory(
-        SYSTEM.RECOVERY_KEY ?? MEMORY_KEYS.RECOVERY
-      );
+      const [{ AGENT_LOG_MESSAGES }, recoveryData] = await Promise.all([
+        import('./executor'),
+        memory.getDistilledMemory(SYSTEM.RECOVERY_KEY ?? MEMORY_KEYS.RECOVERY),
+      ]);
       if (recoveryData) {
         recoveryContext = `${AGENT_LOG_MESSAGES.RECOVERY_LOG_PREFIX}${recoveryData}`;
         await memory.updateDistilledMemory(SYSTEM.RECOVERY_KEY ?? MEMORY_KEYS.RECOVERY, '');
@@ -80,9 +84,12 @@ export class AgentAssembler {
         ? `\n\n[COLLECTIVE_SWARM_INTELLIGENCE]:\nThese are system-wide lessons learned across ALL sessions. Apply them universally:\n${globalLessons.map((l) => `- ${l}`).join('\n')}\n`
         : '';
 
-    const capabilities = await provider.getCapabilities(activeModel);
+    const [capabilities, resolvedPrompt] = await Promise.all([
+      provider.getCapabilities(activeModel),
+      resolvePromptSnippets(systemPrompt),
+    ]);
 
-    let contextPrompt = await resolvePromptSnippets(systemPrompt);
+    let contextPrompt = resolvedPrompt;
 
     if (capabilities.supportedAttachmentTypes?.includes(AttachmentType.IMAGE)) {
       const { VISION_PROMPT_BLOCK } = await import('../prompts/vision');
@@ -108,7 +115,10 @@ export class AgentAssembler {
       - BEHAVIOR: ${isIsolated ? 'Be technical, precise, and structured.' : 'Be friendly, direct, and conversational. Skip internal monologue.'}
       `;
 
-    const { MessageRole } = await import('../types/index');
+    const [{ MessageRole }, summary] = await Promise.all([
+      import('../types/index'),
+      memory.getSummary(storageId),
+    ]);
     const currentMessage: Message = {
       role: MessageRole.USER,
       content: userText,
@@ -116,7 +126,6 @@ export class AgentAssembler {
     };
 
     const fullHistory = [...history, currentMessage];
-    const summary = await memory.getSummary(storageId);
 
     const contextLimit = capabilities.contextWindow ?? LIMITS.MAX_CONTEXT_LENGTH;
 

@@ -10,12 +10,7 @@ import {
 } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
-import {
-  extractPayload,
-  loadAgentConfig,
-  getAgentContext,
-  extractBaseUserId,
-} from '../lib/utils/agent-helpers';
+import { extractPayload, initAgent, extractBaseUserId } from '../lib/utils/agent-helpers';
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
 import { sendOutboundMessage } from '../lib/outbound';
 
@@ -48,13 +43,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
   const baseUserId = extractBaseUserId(userId);
 
   // 1. Discovery & Initialization
-  const config = await loadAgentConfig(AgentType.QA);
-  const { memory, provider: providerManager } = await getAgentContext();
-
-  const { getAgentTools } = await import('../tools/index');
-  const agentTools = await getAgentTools('qa');
-  const { Agent } = await import('../lib/agent');
-  const qaAgent = new Agent(memory, providerManager, agentTools, config.systemPrompt, config);
+  const { config, memory, agent: qaAgent } = await initAgent(AgentType.QA);
 
   // GAP #3 FIX: Mandatory mechanical verification — tool calls are enforced before verdict
   const auditPrompt = `You are a strict QA auditor. Your job is to INDEPENDENTLY verify that code changes are correct and live. You MUST NOT trust the Coder's self-report.
@@ -137,9 +126,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
   if (isSatisfied) {
     if (evolutionMode === EvolutionMode.AUTO) {
       logger.info('Verification successful. Auto-closing gaps.');
-      for (const gapId of gapIds) {
-        await memory.updateGapStatus(gapId, GapStatus.DONE);
-      }
+      await Promise.all(gapIds.map((gapId) => memory.updateGapStatus(gapId, GapStatus.DONE)));
     } else {
       logger.info('Verification successful. Awaiting human confirmation (HITL).');
     }
@@ -147,21 +134,24 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
     // Reopen failed verification. Track attempt count and escalate to FAILED if cap reached.
     const MAX_REOPEN_ATTEMPTS = 3;
     logger.warn('Verification failed. Checking reopen attempt counts.');
-    const escalatedGaps: string[] = [];
-    const retryGaps: string[] = [];
 
-    for (const gapId of gapIds) {
-      const attempts = await memory.incrementGapAttemptCount(gapId);
-      if (attempts >= MAX_REOPEN_ATTEMPTS) {
-        logger.warn(`Gap ${gapId} has been reopened ${attempts} times. Escalating to FAILED.`);
-        await memory.updateGapStatus(gapId, GapStatus.FAILED);
-        escalatedGaps.push(gapId);
-      } else {
-        logger.info(`Gap ${gapId} reopen attempt ${attempts}/${MAX_REOPEN_ATTEMPTS}.`);
-        await memory.updateGapStatus(gapId, GapStatus.OPEN);
-        retryGaps.push(gapId);
-      }
-    }
+    const results = await Promise.all(
+      gapIds.map(async (gapId) => {
+        const attempts = await memory.incrementGapAttemptCount(gapId);
+        if (attempts >= MAX_REOPEN_ATTEMPTS) {
+          logger.warn(`Gap ${gapId} has been reopened ${attempts} times. Escalating to FAILED.`);
+          await memory.updateGapStatus(gapId, GapStatus.FAILED);
+          return { gapId, status: 'escalated' };
+        } else {
+          logger.info(`Gap ${gapId} reopen attempt ${attempts}/${MAX_REOPEN_ATTEMPTS}.`);
+          await memory.updateGapStatus(gapId, GapStatus.OPEN);
+          return { gapId, status: 'retry' };
+        }
+      })
+    );
+
+    const escalatedGaps = results.filter((r) => r.status === 'escalated').map((r) => r.gapId);
+    const retryGaps = results.filter((r) => r.status === 'retry').map((r) => r.gapId);
 
     if (escalatedGaps.length > 0) {
       await sendOutboundMessage(

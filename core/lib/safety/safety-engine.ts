@@ -37,17 +37,17 @@ export class SafetyEngine {
     this.toolOverrides = new Map();
     this.limiter = new SafetyRateLimiter(base);
 
-    // Initialize with default policies
-    for (const [tier, policy] of Object.entries(DEFAULT_POLICIES)) {
-      this.policies.set(tier as SafetyTier, { ...policy });
-    }
-
-    // Apply custom policy overrides
+    // Apply custom policy overrides if provided at construction
     if (customPolicies) {
       for (const [tier, overrides] of Object.entries(customPolicies)) {
-        const existing = this.policies.get(tier as SafetyTier);
-        if (existing && overrides) {
-          this.policies.set(tier as SafetyTier, { ...existing, ...overrides });
+        if (overrides) {
+          this.policies.set(
+            tier as SafetyTier,
+            {
+              ...DEFAULT_POLICIES[tier as SafetyTier],
+              ...overrides,
+            } as SafetyPolicy
+          );
         }
       }
     }
@@ -82,7 +82,11 @@ export class SafetyEngine {
 
     // 1. Fetch current policies (DDB with fallback)
     const policies = await SafetyConfigManager.getPolicies();
-    const policy = policies[tier];
+    const basePolicy = policies[tier];
+
+    // 2. Merge with local overrides if any
+    const localPolicy = this.policies.get(tier);
+    const policy = localPolicy ? { ...basePolicy, ...localPolicy } : basePolicy;
 
     if (!policy) {
       return {
@@ -631,9 +635,9 @@ export class SafetyEngine {
    * Update policy for a specific tier.
    */
   updatePolicy(tier: SafetyTier, updates: Partial<SafetyPolicy>): void {
-    const existing = this.policies.get(tier);
+    const existing = this.policies.get(tier) || DEFAULT_POLICIES[tier];
     if (existing) {
-      this.policies.set(tier, { ...existing, ...updates });
+      this.policies.set(tier, { ...existing, ...updates } as SafetyPolicy);
       logger.info('Safety policy updated', { tier, updates });
     }
   }

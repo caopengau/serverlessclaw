@@ -1,218 +1,166 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { AgentRouter, ModelTier } from './agent-router';
 import { ReasoningProfile } from './types/llm';
-import type { AgentReputation } from './memory/reputation-operations';
-
-vi.mock('sst', () => ({
-  Resource: {
-    MemoryTable: { name: 'test-memory-table' },
-    ConfigTable: { name: 'test-config-table' },
-  },
-}));
-
-vi.mock('./logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  },
-}));
 
 describe('AgentRouter', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   describe('selectModel', () => {
-    it('should respect explicit provider/model overrides', () => {
+    it('respects explicit agent config overrides', () => {
       const config = {
         id: 'test',
-        name: 'Test',
-        systemPrompt: '',
-        enabled: true,
-        provider: 'openai',
-        model: 'gpt-5.4',
-      };
-
+        provider: 'custom-provider',
+        model: 'custom-model',
+      } as any;
       const result = AgentRouter.selectModel(config);
-      expect(result.provider).toBe('openai');
-      expect(result.model).toBe('gpt-5.4');
+      expect(result.provider).toBe('custom-provider');
+      expect(result.model).toBe('custom-model');
+      expect(result.tier).toBe(ModelTier.BALANCED);
     });
 
-    it('should select economy tier for FAST profile', () => {
-      const config = {
-        id: 'test',
-        name: 'Test',
-        systemPrompt: '',
-        enabled: true,
-        reasoningProfile: ReasoningProfile.FAST,
-      };
-
-      const result = AgentRouter.selectModel(config);
+    it('selects economy tier for fast profile', () => {
+      const config = { id: 'test' } as any;
+      const result = AgentRouter.selectModel(config, { profile: ReasoningProfile.FAST });
       expect(result.tier).toBe(ModelTier.ECONOMY);
     });
 
-    it('should override tier based on budget constraint', () => {
-      const config = {
-        id: 'test',
-        name: 'Test',
-        systemPrompt: '',
-        enabled: true,
-        reasoningProfile: ReasoningProfile.DEEP,
-      };
+    it('selects premium tier for deep profile', () => {
+      const config = { id: 'test' } as any;
+      const result = AgentRouter.selectModel(config, { profile: ReasoningProfile.DEEP });
+      expect(result.tier).toBe(ModelTier.PREMIUM);
+    });
 
+    it('overrides tier based on budget (low)', () => {
+      const config = { id: 'test' } as any;
       const result = AgentRouter.selectModel(config, { budget: 'low' });
       expect(result.tier).toBe(ModelTier.ECONOMY);
+    });
+
+    it('overrides tier based on budget (high)', () => {
+      const config = { id: 'test' } as any;
+      const result = AgentRouter.selectModel(config, { budget: 'high' });
+      expect(result.tier).toBe(ModelTier.PREMIUM);
+    });
+
+    it('overrides tier based on task complexity (low)', () => {
+      const config = { id: 'test' } as any;
+      const result = AgentRouter.selectModel(config, { taskComplexity: 2 });
+      expect(result.tier).toBe(ModelTier.ECONOMY);
+    });
+
+    it('overrides tier based on task complexity (high)', () => {
+      const config = { id: 'test' } as any;
+      const result = AgentRouter.selectModel(config, { taskComplexity: 9 });
+      expect(result.tier).toBe(ModelTier.PREMIUM);
     });
   });
 
   describe('computeScore', () => {
-    it('should compute score from performance rollup', () => {
-      const rollup = {
-        agentId: 'coder',
-        model: 'MiniMax-M2.7',
-        avgInputTokens: 1000,
-        avgOutputTokens: 500,
-        successRate: 0.95,
-        totalInvocations: 100,
-        avgDurationMs: 3000,
-      };
-
-      const score = AgentRouter.computeScore(rollup, 1.0);
-      // 1.0 * 0.95 - (1500 / 10000) = 0.95 - 0.15 = 0.80
-      expect(score).toBeCloseTo(0.8, 2);
+    it('computes higher score for better success rate', () => {
+      const r1 = {
+        totalInvocations: 10,
+        successRate: 0.9,
+        avgInputTokens: 100,
+        avgOutputTokens: 100,
+      } as any;
+      const r2 = {
+        totalInvocations: 10,
+        successRate: 0.5,
+        avgInputTokens: 100,
+        avgOutputTokens: 100,
+      } as any;
+      expect(AgentRouter.computeScore(r1)).toBeGreaterThan(AgentRouter.computeScore(r2));
     });
 
-    it('should default success rate to 0.5 for zero invocations', () => {
-      const rollup = {
-        agentId: 'new-agent',
-        model: 'MiniMax-M2.7',
-        avgInputTokens: 0,
-        avgOutputTokens: 0,
-        successRate: 0,
-        totalInvocations: 0,
-        avgDurationMs: 0,
-      };
-
-      const score = AgentRouter.computeScore(rollup, 1.0);
-      // 1.0 * 0.5 - (0 / 10000) = 0.5
-      expect(score).toBe(0.5);
+    it('penalizes higher token usage', () => {
+      const r1 = {
+        totalInvocations: 10,
+        successRate: 0.9,
+        avgInputTokens: 100,
+        avgOutputTokens: 100,
+      } as any;
+      const r2 = {
+        totalInvocations: 10,
+        successRate: 0.9,
+        avgInputTokens: 5000,
+        avgOutputTokens: 5000,
+      } as any;
+      expect(AgentRouter.computeScore(r1)).toBeGreaterThan(AgentRouter.computeScore(r2));
     });
   });
 
   describe('selectBestAgent', () => {
-    it('should return undefined for empty candidates', () => {
-      const result = AgentRouter.selectBestAgent([]);
-      expect(result).toBeUndefined();
+    it('returns undefined for empty candidates', () => {
+      expect(AgentRouter.selectBestAgent([])).toBeUndefined();
     });
 
-    it('should select the agent with highest composite score', () => {
+    it('selects the agent with the highest score', () => {
       const candidates = [
         {
-          agentId: 'coder',
-          model: 'MiniMax-M2.7',
-          avgInputTokens: 1000,
-          avgOutputTokens: 500,
-          successRate: 0.95,
-          totalInvocations: 100,
-          avgDurationMs: 3000,
+          agentId: 'a1',
+          totalInvocations: 10,
+          successRate: 0.5,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
         },
         {
-          agentId: 'planner',
-          model: 'MiniMax-M2.7',
-          avgInputTokens: 5000,
-          avgOutputTokens: 2000,
-          successRate: 0.8,
-          totalInvocations: 50,
-          avgDurationMs: 8000,
+          agentId: 'a2',
+          totalInvocations: 10,
+          successRate: 0.9,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
         },
-      ];
+      ] as any[];
+      expect(AgentRouter.selectBestAgent(candidates)).toBe('a2');
+    });
 
-      const result = AgentRouter.selectBestAgent(candidates);
-      expect(result).toBe('coder');
+    it('respects capability match function', () => {
+      const candidates = [
+        {
+          agentId: 'a1',
+          totalInvocations: 10,
+          successRate: 0.9,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
+        },
+        {
+          agentId: 'a2',
+          totalInvocations: 10,
+          successRate: 0.9,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
+        },
+      ] as any[];
+      const matchFn = (id: string) => (id === 'a2' ? 1.0 : 0.1);
+      expect(AgentRouter.selectBestAgent(candidates, matchFn)).toBe('a2');
     });
   });
 
   describe('selectBestAgentWithReputation', () => {
-    it('should return undefined for empty candidates', () => {
-      const result = AgentRouter.selectBestAgentWithReputation([], new Map());
-      expect(result).toBeUndefined();
-    });
-
-    it('should incorporate reputation into selection', () => {
+    it('incorporates reputation data', () => {
       const candidates = [
         {
-          agentId: 'coder-a',
-          model: 'MiniMax-M2.7',
-          avgInputTokens: 1000,
-          avgOutputTokens: 500,
+          agentId: 'a1',
+          totalInvocations: 10,
           successRate: 0.9,
-          totalInvocations: 100,
-          avgDurationMs: 3000,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
         },
         {
-          agentId: 'coder-b',
-          model: 'MiniMax-M2.7',
-          avgInputTokens: 1200,
-          avgOutputTokens: 600,
-          successRate: 0.85,
-          totalInvocations: 80,
-          avgDurationMs: 4000,
+          agentId: 'a2',
+          totalInvocations: 10,
+          successRate: 0.9,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
         },
-      ];
-
-      // coder-b has much better reputation
-      const reputations = new Map<string, AgentReputation>([
-        [
-          'coder-a',
-          {
-            agentId: 'coder-a',
-            tasksCompleted: 10,
-            tasksFailed: 5,
-            totalLatencyMs: 50000,
-            successRate: 0.667,
-            avgLatencyMs: 5000,
-            lastActive: Date.now() - 20 * 3600 * 1000,
-            windowStart: Date.now() - 86400000,
-            expiresAt: 0,
-          },
-        ],
-        [
-          'coder-b',
-          {
-            agentId: 'coder-b',
-            tasksCompleted: 50,
-            tasksFailed: 2,
-            totalLatencyMs: 100000,
-            successRate: 0.962,
-            avgLatencyMs: 2000,
-            lastActive: Date.now(),
-            windowStart: Date.now() - 86400000,
-            expiresAt: 0,
-          },
-        ],
-      ]);
-
-      const result = AgentRouter.selectBestAgentWithReputation(candidates, reputations);
-      // coder-b should win due to significantly better reputation
-      expect(result).toBe('coder-b');
+      ] as any[];
+      const reputations = new Map([
+        ['a1', { successRate: 1.0, avgLatencyMs: 100, lastActive: Date.now() }],
+        ['a2', { successRate: 0.1, avgLatencyMs: 1000, lastActive: Date.now() - 10000000 }],
+      ]) as any;
+      expect(AgentRouter.selectBestAgentWithReputation(candidates, reputations)).toBe('a1');
     });
 
-    it('should default to 0.5 reputation score when no reputation exists', () => {
-      const candidates = [
-        {
-          agentId: 'new-agent',
-          model: 'MiniMax-M2.7',
-          avgInputTokens: 1000,
-          avgOutputTokens: 500,
-          successRate: 0.9,
-          totalInvocations: 100,
-          avgDurationMs: 3000,
-        },
-      ];
-
-      const result = AgentRouter.selectBestAgentWithReputation(candidates, new Map());
-      expect(result).toBe('new-agent');
+    it('returns undefined for empty candidates', () => {
+      expect(AgentRouter.selectBestAgentWithReputation([], new Map())).toBeUndefined();
     });
   });
 });

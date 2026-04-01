@@ -18,9 +18,12 @@ const DEDUP_MAX_SIZE = 10_000;
  */
 async function checkAndMarkProcessed(eventId: string): Promise<boolean> {
   try {
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    const { DynamoDBDocumentClient, PutCommand } = await import('@aws-sdk/lib-dynamodb');
-    const { Resource } = await import('sst');
+    const [{ DynamoDBClient }, { DynamoDBDocumentClient, PutCommand }, { Resource }] =
+      await Promise.all([
+        import('@aws-sdk/client-dynamodb'),
+        import('@aws-sdk/lib-dynamodb'),
+        import('sst'),
+      ]);
 
     const tableName = (Resource as unknown as { MemoryTable: { name: string } }).MemoryTable.name;
     const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
@@ -98,8 +101,10 @@ export async function handleTaskResult(
 
   // Update agent reputation (fire-and-forget, non-blocking)
   try {
-    const { BaseMemoryProvider } = await import('../../lib/memory/base');
-    const { updateReputation } = await import('../../lib/memory/reputation-operations');
+    const [{ BaseMemoryProvider }, { updateReputation }] = await Promise.all([
+      import('../../lib/memory/base'),
+      import('../../lib/memory/reputation-operations'),
+    ]);
     const memBase = new BaseMemoryProvider();
     const latencyMs =
       typeof parsedEvent.metadata === 'object' &&
@@ -163,8 +168,10 @@ export async function handleTaskResult(
   // Check if this result is part of a parallel dispatch
   // Only attempt aggregation if the parallel tracking record exists (was initialized via parallel-handler)
   if (traceId) {
-    const { aggregator } = await import('../../lib/agent/parallel-aggregator');
-    const { ConfigManager } = await import('../../lib/registry/config');
+    const [{ aggregator }, { ConfigManager }] = await Promise.all([
+      import('../../lib/agent/parallel-aggregator'),
+      import('../../lib/registry/config'),
+    ]);
 
     // Guard: check if parallel state exists before attempting to add result.
     // Non-parallel tasks have a traceId but no parallel tracking record.
@@ -183,9 +190,11 @@ export async function handleTaskResult(
       const taskId = (eventDetail.taskId as string) ?? agentId;
       logger.info(`DAG task ${taskId} completed. Checking for dependent tasks.`);
 
-      const dagExecutor = await import('../../lib/agent/dag-executor');
-      const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
-      const { EVENT_SCHEMA_MAP } = await import('../../lib/schema/events');
+      const [dagExecutor, { emitTypedEvent }, { EVENT_SCHEMA_MAP }] = await Promise.all([
+        import('../../lib/agent/dag-executor'),
+        import('../../lib/utils/typed-emit'),
+        import('../../lib/schema/events'),
+      ]);
 
       // Add result incrementally
       await aggregator.addResult(userId, traceId, {
@@ -243,28 +252,30 @@ export async function handleTaskResult(
             logger.info(
               `DAG: Dispatching ${readyTasks.length} dependent tasks after ${taskId} completion.`
             );
-            for (const task of readyTasks) {
-              const enrichedTask = dagExecutor.createTaskWithDependencyContext(
-                task,
-                newDagState.outputs as Record<string, unknown>
-              );
+            await Promise.all(
+              readyTasks.map(async (task) => {
+                const enrichedTask = dagExecutor.createTaskWithDependencyContext(
+                  task,
+                  newDagState.outputs as Record<string, unknown>
+                );
 
-              let detailType: string = `${task.agentId}_task`;
-              if (!EVENT_SCHEMA_MAP[detailType as EventType]) {
-                detailType = EventType.CODER_TASK;
-              }
+                let detailType: string = `${task.agentId}_task`;
+                if (!EVENT_SCHEMA_MAP[detailType as EventType]) {
+                  detailType = EventType.CODER_TASK;
+                }
 
-              await emitTypedEvent('agent.dag', detailType as EventType, {
-                userId,
-                taskId: task.taskId,
-                task: enrichedTask,
-                metadata: { ...task.metadata, parallelDispatchId: traceId, dagExecution: true },
-                traceId,
-                initiatorId: currentState.initiatorId ?? 'dag-executor',
-                depth: (depth ?? 0) + 1,
-                sessionId: currentState.sessionId,
-              });
-            }
+                await emitTypedEvent('agent.dag', detailType as EventType, {
+                  userId: userId as string,
+                  taskId: task.taskId,
+                  task: enrichedTask,
+                  metadata: { ...task.metadata, parallelDispatchId: traceId, dagExecution: true },
+                  traceId,
+                  initiatorId: currentState.initiatorId ?? 'dag-executor',
+                  depth: (depth ?? 0) + 1,
+                  sessionId: currentState.sessionId,
+                });
+              })
+            );
           }
 
           // Check if DAG execution is complete

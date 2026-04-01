@@ -125,8 +125,10 @@ export async function createAgent(
   provider: import('../providers/index').ProviderManager,
   locale: string = 'en'
 ): Promise<import('../agent').Agent> {
-  const { getAgentTools } = await import('../../tools/index');
-  const { Agent } = await import('../agent');
+  const [{ getAgentTools }, { Agent }] = await Promise.all([
+    import('../../tools/index'),
+    import('../agent'),
+  ]);
   const agentTools = await getAgentTools(agentId);
 
   // Apply dynamic localization instructions

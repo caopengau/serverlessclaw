@@ -5,19 +5,22 @@ import { GapStatus, EvolutionMode } from '../lib/types/index';
 vi.mock('../lib/utils/agent-helpers', () => ({
   extractPayload: vi.fn((event: any) => event.detail || event),
   extractBaseUserId: vi.fn((userId: string) => userId.replace('CONV#', '').split('#')[0]),
-  loadAgentConfig: vi.fn().mockResolvedValue({
-    id: 'qa',
-    name: 'QA',
-    systemPrompt: 'QA prompt',
-    enabled: true,
-  }),
-  getAgentContext: vi.fn().mockResolvedValue({
+  initAgent: vi.fn().mockResolvedValue({
+    config: {
+      id: 'qa',
+      name: 'QA',
+      systemPrompt: 'QA prompt',
+      enabled: true,
+    },
     memory: {
       updateGapStatus: memoryMocks.updateGapStatus,
       incrementGapAttemptCount: memoryMocks.incrementGapAttemptCount,
     },
     provider: {
       call: vi.fn(),
+    },
+    agent: {
+      process: agentProcess,
     },
   }),
   emitTaskEvent: vi.fn().mockResolvedValue(undefined),

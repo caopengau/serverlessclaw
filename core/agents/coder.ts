@@ -52,9 +52,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   // 3. Transition gaps to PROGRESS
   if (gapIds && gapIds.length > 0) {
     logger.info(`Picking up task. Marking ${gapIds.length} gaps as PROGRESS.`);
-    for (const gapId of gapIds) {
-      await memory.updateGapStatus(gapId, GapStatus.PROGRESS);
-    }
+    await Promise.all(gapIds.map((gapId) => memory.updateGapStatus(gapId, GapStatus.PROGRESS)));
   }
 
   // 4. Process the task
@@ -174,14 +172,16 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     // Reset gaps back to OPEN if the task failed or was not successful (A3 Fix)
     const isFailure = status === 'FAILED' || detectFailure(responseText);
     if (isFailure && gapIds && gapIds.length > 0) {
-      for (const gapId of gapIds) {
-        try {
-          await memory.updateGapStatus(gapId, GapStatus.OPEN);
-          logger.info(`[Gaps] Reset gap ${gapId} to OPEN due to coder failure.`);
-        } catch (e) {
-          logger.warn(`[Gaps] Failed to reset gap ${gapId} to OPEN:`, e);
+      const results = await Promise.allSettled(
+        gapIds.map((gapId) => memory.updateGapStatus(gapId, GapStatus.OPEN))
+      );
+      results.forEach((result, i) => {
+        if (result.status === 'rejected') {
+          logger.warn(`[Gaps] Failed to reset gap ${gapIds[i]} to OPEN:`, result.reason);
+        } else {
+          logger.info(`[Gaps] Reset gap ${gapIds[i]} to OPEN due to coder failure.`);
         }
-      }
+      });
     }
   }
 
@@ -215,9 +215,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
 
     if (!buildId && gapIds?.length) {
       logger.info(`Task successful without deployment. Marking ${gapIds.length} gaps as DEPLOYED.`);
-      for (const gapId of gapIds) {
-        await memory.updateGapStatus(gapId, GapStatus.DEPLOYED);
-      }
+      await Promise.all(gapIds.map((gapId) => memory.updateGapStatus(gapId, GapStatus.DEPLOYED)));
     }
   }
 

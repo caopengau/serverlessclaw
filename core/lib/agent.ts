@@ -58,7 +58,7 @@ export class Agent {
     private memory: IMemory,
     private provider: IProvider,
     private tools: ITool[],
-    private systemPrompt: string,
+    public systemPrompt: string,
     public config?: IAgentConfig
   ) {
     if (config) {
