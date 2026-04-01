@@ -1,11 +1,55 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   extractBaseUserId,
   extractPayload,
   detectFailure,
   isTaskPaused,
   validatePayload,
+  createAgent,
 } from './agent-helpers';
+
+vi.mock('../../tools/index', () => ({
+  getAgentTools: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('../agent', () => ({
+  Agent: vi.fn().mockImplementation(function (this: any, m: any, p: any, t: any, sp: any, c: any) {
+    this.memory = m;
+    this.provider = p;
+    this.tools = t;
+    this.systemPrompt = sp;
+    this.config = c;
+  }),
+}));
+
+describe('createAgent', () => {
+  const mockConfig = { systemPrompt: 'Base Prompt', enabled: true };
+  const mockMemory = {} as any;
+  const mockProvider = {} as any;
+
+  it('should append English instructions for locale=en', async () => {
+    const agent = (await createAgent(
+      'test',
+      mockConfig as any,
+      mockMemory,
+      mockProvider,
+      'en'
+    )) as any;
+    expect(agent.systemPrompt).toBe('Base Prompt'); // EN instruction is empty string in constants
+  });
+
+  it('should append Chinese instructions for locale=cn', async () => {
+    const agent = (await createAgent(
+      'test',
+      mockConfig as any,
+      mockMemory,
+      mockProvider,
+      'cn'
+    )) as any;
+    expect(agent.systemPrompt).toContain('Base Prompt');
+    expect(agent.systemPrompt).toContain('Chinese (中文)');
+  });
+});
 
 describe('extractBaseUserId', () => {
   it('should extract base userId when CONV# prefix is present', () => {
@@ -76,12 +120,21 @@ describe('extractPayload', () => {
 });
 
 describe('detectFailure', () => {
-  it('should return true for internal error response', () => {
+  it('should return true for internal error response (EN)', () => {
     expect(detectFailure('I encountered an internal error')).toBe(true);
+  });
+
+  it('should return true for failure responses (EN)', () => {
+    expect(detectFailure('I encountered an internal error: timeout')).toBe(true);
+  });
+
+  it('should return true for localized failure responses (CN)', () => {
+    expect(detectFailure('在我的认知处理周期中遇到了内部错误，无法继续')).toBe(true);
   });
 
   it('should return false for normal response', () => {
     expect(detectFailure('Task completed successfully')).toBe(false);
+    expect(detectFailure('任务成功完成')).toBe(false);
   });
 
   it('should return false for empty string', () => {

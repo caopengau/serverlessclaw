@@ -110,7 +110,7 @@ export function configureApiRoutes(api: sst.aws.ApiGatewayV2, ctx: SharedContext
       },
     ],
     architecture: LAMBDA_ARCHITECTURE,
-    memory: AGENT_CONFIG.memory.SMALL,
+    memory: '128 MB',
     timeout: AGENT_CONFIG.timeout.SHORT,
     environment: {
       GIT_HASH: process.env.GIT_HASH || 'dev',

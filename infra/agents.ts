@@ -519,7 +519,7 @@ export function createAgents(
     permissions: basePermissions,
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
-    memory: AGENT_CONFIG.memory.SMALL,
+    memory: '128 MB',
     timeout: AGENT_CONFIG.timeout.SHORT,
     logging: {
       retention: LOG_RETENTION_PERIOD,

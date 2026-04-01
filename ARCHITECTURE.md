@@ -14,6 +14,28 @@ This document covers the AWS topology and data flow. For agent logic and orchest
 4.  **Safety-First**: Implements nested guardrails including Circuit Breakers, Recursion Limits, and Protected Scopes.
 5.  **Proactive & Efficient**: Agents can self-schedule future tasks, but the system prioritizes a **Trigger-on-Message** warm-up strategy to achieve near-zero idling costs while maintaining low-latency responsiveness.
 6.  **AI-Native**: Optimized for agent-human pair programming by prioritizing semantic transparency, strict neural typing, and direct schema definitions over traditional boilerplate indirection.
+7.  **Multi-Lingual**: Implements a "Baseline English Prompt" strategy. Agents maintain high reasoning quality via English core prompts while communicating in the user's preferred language (English/Chinese) via dynamic runtime instruction injection.
+
+---
+
+## 🌍 Localization: Baseline English Strategy
+
+To prevent translation drift and maintain peak reasoning performance, Serverless Claw uses a dynamic localization model:
+
+1. **Static English Core**: All agent system prompts are authored and maintained in English.
+2. **Runtime Locale Injection**: The `initAgent` helper fetches the `active_locale` from the `ConfigTable` and appends locale-specific communication instructions (`LOCALE_INSTRUCTIONS`) to the system prompt before invocation.
+3. **Localized Error Sensing**: The `detectFailure` utility is cross-lingual, scanning for both English ("FAILED") and Chinese ("失败") terminators to ensure robust workflow coordination.
+4. **Dashboard Context**: A global `TranslationsProvider` wraps the dashboard, allowing hot-swapping between English and Chinese UI strings without page reloads.
+
+```text
+[ ConfigTable ] ---- (active_locale: cn) ----+
+                                             |
+                                             v
+[ Base Prompt (EN) ] + [ CN Instructions ] ----> [ LLM Agent ] ---- (CN Response) ----> [ User ]
+                                             ^
+                                             |
+[ Error Defs (EN/CN) ] <---------------------+ (Failure Sensing)
+```
 
 ---
 

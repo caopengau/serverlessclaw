@@ -43,6 +43,7 @@ async function getConfig() {
       deployRes,
       escalationRes,
       fallbackRes,
+      localeRes,
     ] = await Promise.all([
       docClient.send(
         new GetCommand({
@@ -124,6 +125,12 @@ async function getConfig() {
           Key: { key: 'protocol_fallback_enabled' },
         })
       ),
+      docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { key: 'active_locale' },
+        })
+      ),
     ]);
 
     return {
@@ -141,6 +148,7 @@ async function getConfig() {
       escalationEnabled: escalationRes.Item?.value ?? 'true',
       protocolFallbackEnabled: fallbackRes.Item?.value ?? 'true',
       consecutiveBuildFailures: cbFailuresRes.Item?.value ?? 0,
+      activeLocale: localeRes.Item?.value ?? 'en',
       protectedResources: Array.isArray(protectedRes.Item?.value)
         ? protectedRes.Item.value.join(', ')
         : 'sst.config.ts, buildspec.yml, infra/',
@@ -181,6 +189,7 @@ async function updateConfig(formData: FormData) {
   const deployLimit = formData.get('deployLimit') as string;
   const escalationEnabled = formData.get('escalationEnabled') as string;
   const protocolFallbackEnabled = formData.get('protocolFallbackEnabled') as string;
+  const activeLocale = formData.get('activeLocale') as string;
   const protectedResources = (formData.get('protectedResources') as string)
     .split(',')
     .map((s) => s.trim())
@@ -303,6 +312,15 @@ async function updateConfig(formData: FormData) {
           Item: {
             key: 'protected_resources',
             value: protectedResources,
+          },
+        })
+      ),
+      docClient.send(
+        new PutCommand({
+          TableName: tableName,
+          Item: {
+            key: 'active_locale',
+            value: activeLocale,
           },
         })
       ),

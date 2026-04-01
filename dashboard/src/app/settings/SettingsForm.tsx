@@ -5,6 +5,7 @@ import {
   Settings, Zap, RefreshCw, Save
 } from 'lucide-react';
 import { SYSTEM_CONFIG_METADATA } from '@claw/core/lib/metadata';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import CyberSelect from '@/components/CyberSelect';
 import CyberTooltip from '@/components/CyberTooltip';
 import { THEME } from '@/lib/theme';
@@ -37,6 +38,7 @@ interface SystemConfig {
   model?: string;
   evolutionMode?: string;
   optimizationPolicy?: string;
+  activeLocale?: string;
   maxToolIterations?: string | number;
   circuitBreakerThreshold?: string | number;
   protectedResources?: string;
@@ -76,6 +78,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
   const [activeModel, setActiveModel] = useState(config.model ?? 'gpt-5.4');
   const [evolutionMode, setEvolutionMode] = useState(config.evolutionMode ?? EvolutionMode.HITL);
   const [optimizationPolicy, setOptimizationPolicy] = useState(config.optimizationPolicy ?? 'balanced');
+  const [activeLocale, setActiveLocale] = useState(config.activeLocale ?? 'en');
   const [maxToolIterations, setMaxToolIterations] = useState(config.maxToolIterations ?? '5');
   const [circuitBreakerThreshold, setCircuitBreakerThreshold] = useState(config.circuitBreakerThreshold ?? '3');
   const [protectedResources, setProtectedResources] = useState(config.protectedResources ?? '');
@@ -87,11 +90,14 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
   const [escalationEnabled, setEscalationEnabled] = useState(config.escalationEnabled ?? 'true');
   const [protocolFallbackEnabled, setProtocolFallbackEnabled] = useState(config.protocolFallbackEnabled ?? 'true');
 
+  const { t, setLocale } = useTranslations();
+
   const hasChanges = 
     activeProvider !== config.provider ||
     activeModel !== config.model ||
     evolutionMode !== config.evolutionMode ||
     optimizationPolicy !== config.optimizationPolicy ||
+    activeLocale !== config.activeLocale ||
     String(maxToolIterations) !== String(config.maxToolIterations) ||
     String(circuitBreakerThreshold) !== String(config.circuitBreakerThreshold) ||
     protectedResources !== config.protectedResources ||
@@ -146,6 +152,33 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     value: m,
                     label: m,
                   }))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-8 border-t border-white/5 space-y-4">
+            <Typography variant="caption" weight="bold" color="intel" uppercase className="flex items-center gap-2">
+              <RefreshCw size={16} /> {t('LANGUAGE')}
+            </Typography>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+                  {t('LANGUAGE')}
+                </Typography>
+                <CyberSelect
+                  name="activeLocale"
+                  value={activeLocale}
+                  onChange={(val) => {
+                    setActiveLocale(val);
+                    setLocale(val as 'en' | 'cn');
+                  }}
+                  options={[
+                    { value: 'en', label: t('ENGLISH') },
+                    { value: 'cn', label: t('CHINESE') },
+                  ]}
                   className="w-full"
                 />
               </div>
@@ -401,7 +434,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
           uppercase
           className="shadow-[0_0_20px_rgba(0,0,0,0.5)] scale-105 active:scale-95"
         >
-          Save System Config
+          {t('SAVE')}
         </Button>
       </div>
     </>

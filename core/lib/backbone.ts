@@ -16,6 +16,7 @@ import {
   QA_SYSTEM_PROMPT,
   CRITIC_SYSTEM_PROMPT,
   FACILITATOR_SYSTEM_PROMPT,
+  MERGER_SYSTEM_PROMPT,
 } from '../agents/prompts/index';
 
 const TOOL_DISCOVER_SKILLS = TOOLS.discoverSkills;
@@ -332,8 +333,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
   [AgentType.MERGER]: {
     id: AgentType.MERGER,
     name: 'Structural Merger',
-    systemPrompt:
-      'You are a Structural Merger specialized in AST-aware code reconciliation. Use tools to verify patch compatibility.',
+    systemPrompt: MERGER_SYSTEM_PROMPT,
     description: 'Reconciliation node. Resolves semantic conflicts between parallel code changes.',
     category: AgentCategory.SYSTEM,
     icon: 'GitMerge',

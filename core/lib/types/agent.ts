@@ -233,6 +233,8 @@ export interface IAgentConfig {
   name: string;
   /** The core system prompt defining personality and rules. */
   systemPrompt: string;
+  /** Localized system prompts */
+  systemPrompts?: { en: string; cn: string };
   /** Detailed description of the agent's purpose. */
   description?: string;
   /** Categorization for orchestration gating. */

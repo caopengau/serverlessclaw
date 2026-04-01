@@ -25,6 +25,7 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { THEME } from '@/lib/theme';
 import { UI_STRINGS, ROUTES } from '@/lib/constants';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 
@@ -36,6 +37,7 @@ import Button from '@/components/ui/Button';
 export default function Sidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const { t } = useTranslations();
 
   // Close sidebar on navigation to improve mobile UX
   useEffect(() => {
@@ -44,28 +46,28 @@ export default function Sidebar() {
   }, [pathname]);
 
   const navItems = [
-    { label: 'Operations', type: 'header' },
-    { href: ROUTES.CHAT, label: UI_STRINGS.CHAT_DIRECT, icon: MessageSquare },
-    { href: ROUTES.TRACE, label: UI_STRINGS.TRACE_INTEL, icon: Activity, activePaths: [ROUTES.TRACE, '/trace'] },
-    { href: ROUTES.SYSTEM_PULSE, label: UI_STRINGS.SYSTEM_PULSE, icon: Share2 },
+    { label: t('OPERATIONS'), type: 'header' },
+    { href: ROUTES.CHAT, label: t('CHAT_DIRECT'), icon: MessageSquare },
+    { href: ROUTES.TRACE, label: t('TRACE_INTEL'), icon: Activity, activePaths: [ROUTES.TRACE, '/trace'] },
+    { href: ROUTES.SYSTEM_PULSE, label: t('SYSTEM_PULSE'), icon: Share2 },
     
-    { label: 'Intelligence', type: 'header' },
-    { href: ROUTES.AGENTS, label: UI_STRINGS.AGENTS, icon: Users },
-    { href: ROUTES.MEMORY, label: UI_STRINGS.MEMORY_RESERVE, icon: Brain },
-    { href: ROUTES.CAPABILITIES, label: UI_STRINGS.CAPABILITIES, icon: Wrench },
-    { href: ROUTES.COGNITIVE_HEALTH, label: UI_STRINGS.COGNITIVE_HEALTH, icon: BrainCircuit },
+    { label: t('INTELLIGENCE'), type: 'header' },
+    { href: ROUTES.AGENTS, label: t('AGENTS'), icon: Users },
+    { href: ROUTES.MEMORY, label: t('MEMORY_RESERVE'), icon: Brain },
+    { href: ROUTES.CAPABILITIES, label: t('CAPABILITIES'), icon: Wrench },
+    { href: ROUTES.COGNITIVE_HEALTH, label: t('COGNITIVE_HEALTH'), icon: BrainCircuit },
     
-    { label: 'Growth', type: 'header' },
-    { href: ROUTES.PIPELINE, label: UI_STRINGS.EVOLUTION_PIPELINE, icon: Server },
-    { href: ROUTES.SCHEDULING, label: UI_STRINGS.SCHEDULING, icon: Calendar },
-    { href: ROUTES.WORKSPACES, label: UI_STRINGS.WORKSPACES, icon: Building2 },
-    { href: ROUTES.COLLABORATION, label: UI_STRINGS.CONSENSUS, icon: Vote },
+    { label: t('GROWTH'), type: 'header' },
+    { href: ROUTES.PIPELINE, label: t('EVOLUTION_PIPELINE'), icon: Server },
+    { href: ROUTES.SCHEDULING, label: t('SCHEDULING'), icon: Calendar },
+    { href: ROUTES.WORKSPACES, label: t('WORKSPACES'), icon: Building2 },
+    { href: ROUTES.COLLABORATION, label: t('CONSENSUS'), icon: Vote },
     
-    { label: 'Governance', type: 'header' },
-    { href: ROUTES.SECURITY, label: UI_STRINGS.SECURITY_MANIFEST, icon: Lock },
-    { href: ROUTES.RESILIENCE, label: UI_STRINGS.SELF_HEALING, icon: Zap },
-    { href: ROUTES.LOCKS, label: UI_STRINGS.SESSION_TRAFFIC, icon: Activity },
-    { href: ROUTES.SETTINGS, label: UI_STRINGS.CONFIG, icon: Settings },
+    { label: t('GOVERNANCE'), type: 'header' },
+    { href: ROUTES.SECURITY, label: t('SECURITY_MANIFEST'), icon: Lock },
+    { href: ROUTES.RESILIENCE, label: t('SELF_HEALING'), icon: Zap },
+    { href: ROUTES.LOCKS, label: t('SESSION_TRAFFIC'), icon: Activity },
+    { href: ROUTES.SETTINGS, label: t('CONFIG'), icon: Settings },
   ];
 
   return (
@@ -175,13 +177,13 @@ export default function Sidebar() {
 
         <Link href={ROUTES.SYSTEM_PULSE} className="block pt-6 border-t border-white/5 space-y-4 group/status">
           <div className="bg-white/5 rounded p-3 group-hover/status:bg-white/10 transition-colors cursor-pointer">
-            <Typography variant="mono" weight="bold" className="text-[10px] text-white/90 tracking-wider uppercase">SYSTEM_STATUS</Typography>
+            <Typography variant="mono" weight="bold" className="text-[10px] text-white/90 tracking-wider uppercase">{t('SYSTEM_STATUS')}</Typography>
             <div className={`text-[10px] text-${THEME.COLORS.PRIMARY} mt-1.5 flex items-center gap-2 font-bold uppercase`}>
               <span className="relative flex h-2 w-2">
                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-${THEME.COLORS.PRIMARY} opacity-75`}></span>
                 <span className={`relative inline-flex rounded-full h-2 w-2 bg-${THEME.COLORS.PRIMARY}`}></span>
               </span>
-              SYSTEM_ONLINE &gt; CONNECTED
+              {t('SYSTEM_ONLINE')} &gt; {t('CONNECTED')}
             </div>
           </div>
         </Link>

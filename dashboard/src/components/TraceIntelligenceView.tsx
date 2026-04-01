@@ -19,6 +19,7 @@ import Typography from '@/components/ui/Typography';
 import DeleteTraceButton from '@/components/DeleteTraceButton';
 import { TRACE_TYPES } from '@claw/core/lib/constants';
 import { Trace, TraceStep } from '@/lib/types/ui';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 const CollaborationCanvas = dynamic(() => import('@/components/CollaborationCanvas'), {
   ssr: false,
@@ -44,6 +45,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'started' | 'error'>('all');
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
+  const { t } = useTranslations();
 
   // Reset expansion when switching tabs
   React.useEffect(() => {
@@ -219,10 +221,10 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
       {/* Stats Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Total Operations', value: traces.length, icon: Activity, color: 'text-cyber-blue' },
-          { label: 'Active Sessions', value: new Set(traces.map(t => t.sessionId)).size, icon: LayoutGrid, color: 'text-purple-400' },
-          { label: 'Tools Invoked', value: new Set(traces.flatMap(t => t.toolsUsed)).size, icon: Wrench, color: 'text-yellow-400' },
-          { label: 'Token Cost', value: `${(traces.reduce((acc, t) => acc + t.totalTokens, 0) / 1000).toFixed(1)}k`, icon: Zap, color: 'text-cyber-green' },
+          { label: t('TOTAL_OPERATIONS'), value: traces.length, icon: Activity, color: 'text-cyber-blue' },
+          { label: t('ACTIVE_SESSIONS'), value: new Set(traces.map(t => t.sessionId)).size, icon: LayoutGrid, color: 'text-purple-400' },
+          { label: t('TOOLS_INVOKED'), value: new Set(traces.flatMap(t => t.toolsUsed)).size, icon: Wrench, color: 'text-yellow-400' },
+          { label: t('TOKEN_COST'), value: `${(traces.reduce((acc, t) => acc + t.totalTokens, 0) / 1000).toFixed(1)}k`, icon: Zap, color: 'text-cyber-green' },
         ].map((stat, i) => (
           <div key={i} className="glass-card p-4 flex flex-col items-center justify-center border-white/5">
             <stat.icon size={20} className={`${stat.color} mb-2 opacity-80`} />
@@ -236,12 +238,12 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-white/5 pb-4">
         <div className="flex p-1 bg-white/5 rounded-lg border border-white/5 overflow-x-auto">
           {[
-            { id: 'live', label: 'Live', icon: Activity },
-            { id: 'timeline', label: 'Timeline', icon: Clock },
-            { id: 'sessions', label: 'Sessions', icon: LayoutGrid },
-            { id: 'agents', label: 'Agents', icon: Cpu },
-            { id: 'models', label: 'Models', icon: Bot },
-            { id: 'tools', label: 'Tools', icon: Wrench },
+            { id: 'live', label: t('LIVE'), icon: Activity },
+            { id: 'timeline', label: t('TIMELINE'), icon: Clock },
+            { id: 'sessions', label: t('SESSIONS'), icon: LayoutGrid },
+            { id: 'agents', label: t('AGENTS'), icon: Cpu },
+            { id: 'models', label: t('MODELS'), icon: Bot },
+            { id: 'tools', label: t('TOOLS'), icon: Wrench },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -267,7 +269,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 group-focus-within:text-cyber-blue transition-colors" />
                 <input 
                   type="text" 
-                  placeholder="Filter neural paths..." 
+                  placeholder={t('FILTER_NEURAL_PATHS')} 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-xs text-white placeholder:text-white/20 focus:outline-none focus:border-cyber-blue/50 w-full md:w-64 transition-all"
@@ -279,10 +281,10 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
                     onChange={(e) => setStatusFilter(e.target.value as 'all' | 'completed' | 'started' | 'error')}
                 className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-[10px] font-bold uppercase text-white/70 focus:outline-none focus:border-cyber-blue/50"
               >
-                <option value="all">ALL_STATUS</option>
-                <option value="completed">COMPLETED</option>
-                <option value="started">RUNNING</option>
-                <option value="error">ERROR</option>
+                <option value="all">{t('STATUS_ALL')}</option>
+                <option value="completed">{t('STATUS_COMPLETED')}</option>
+                <option value="started">{t('STATUS_RUNNING')}</option>
+                <option value="error">{t('STATUS_ERROR')}</option>
               </select>
             </>
           )}
@@ -352,11 +354,11 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-white/5 bg-white/[0.02]">
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/40">Neural Group</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">Traces</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">Resources</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">Status</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 text-right">Action</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/40">{t('NEURAL_GROUP')}</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">{t('TRACES')}</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">{t('RESOURCES')}</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">{t('STATUS')}</th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/40 text-right">{t('ACTION')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
@@ -395,7 +397,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
                             onClick={() => setExpandedGroup(groupName)}
                             className="text-[10px] font-black uppercase tracking-widest text-cyber-blue hover:text-white transition-colors bg-cyber-blue/5 hover:bg-cyber-blue/20 px-3 py-1.5 rounded border border-cyber-blue/20"
                           >
-                            Explore
+                            {t('EXPLORE')}
                           </button>
                         </td>
                       </tr>
@@ -410,7 +412,7 @@ export default function TraceIntelligenceView({ initialTraces, sessionTitles }: 
         {activeTab !== 'live' && groupedData.length === 0 && (
           <div className="h-40 flex flex-col items-center justify-center text-white/50 border border-dashed border-white/10 rounded-lg bg-white/[0.02]">
             <Terminal size={32} className="mb-3 opacity-20 animate-pulse" />
-            <p className="text-[10px] tracking-[0.2em] font-bold">NO_TRACES_FOUND // FILTER_ACTIVE</p>
+            <p className="text-[10px] tracking-[0.2em] font-bold">{t('NO_TRACES_FOUND')}</p>
           </div>
         )}
       </div>

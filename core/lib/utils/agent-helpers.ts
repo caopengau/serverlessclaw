@@ -9,8 +9,14 @@
  */
 
 import { logger } from '../logger';
-import { TraceSource, AgentType, ReasoningProfile } from '../types/index';
-import { AGENT_ERRORS } from '../constants';
+import { AgentType, TraceSource, ReasoningProfile } from '../types/index';
+import {
+  AGENT_ERRORS,
+  AGENT_ERRORS_CN,
+  AGENT_ERROR_PREFIXES,
+  CONFIG_KEYS,
+  LOCALE_INSTRUCTIONS,
+} from '../constants';
 import { AgentProcessOptions } from '../agent/options';
 
 import { normalizeBaseUserId } from './normalize';
@@ -48,7 +54,9 @@ export function extractPayload<T extends object>(event: { detail?: T } | T): T {
 export function detectFailure(response: string): boolean {
   return (
     response === AGENT_ERRORS.PROCESS_FAILURE ||
-    response.startsWith('I encountered an internal error')
+    response === AGENT_ERRORS_CN.PROCESS_FAILURE ||
+    response.startsWith(AGENT_ERROR_PREFIXES.EN) ||
+    response.startsWith(AGENT_ERROR_PREFIXES.CN)
   );
 }
 
@@ -114,12 +122,22 @@ export async function createAgent(
   agentId: string,
   config: import('../types/index').IAgentConfig,
   memory: import('../types/index').IMemory,
-  provider: import('../providers/index').ProviderManager
+  provider: import('../providers/index').ProviderManager,
+  locale: string = 'en'
 ): Promise<import('../agent').Agent> {
   const { getAgentTools } = await import('../../tools/index');
   const { Agent } = await import('../agent');
   const agentTools = await getAgentTools(agentId);
-  return new Agent(memory, provider, agentTools, config.systemPrompt, config);
+
+  // Apply dynamic localization instructions
+  let systemPrompt = config.systemPrompt;
+  const instruction =
+    locale.toLowerCase() === 'cn' ? LOCALE_INSTRUCTIONS.CN : LOCALE_INSTRUCTIONS.EN;
+  if (instruction) {
+    systemPrompt += instruction;
+  }
+
+  return new Agent(memory, provider, agentTools, systemPrompt, config);
 }
 
 /**
@@ -136,11 +154,15 @@ export async function initAgent(agentId: string | AgentType): Promise<{
   provider: import('../providers/index').ProviderManager;
   agent: import('../agent').Agent;
 }> {
-  const [config, { memory, provider }] = await Promise.all([
+  const { ConfigManager } = (await import('../registry/config')) as {
+    ConfigManager: { getTypedConfig: <T>(key: string, defaultValue: T) => Promise<T> };
+  };
+  const [config, { memory, provider }, locale] = await Promise.all([
     loadAgentConfig(agentId),
     getAgentContext(),
+    ConfigManager.getTypedConfig<string>(CONFIG_KEYS.ACTIVE_LOCALE, 'en'),
   ]);
-  const agent = await createAgent(String(agentId), config, memory, provider);
+  const agent = await createAgent(String(agentId), config, memory, provider, locale);
   return { config, memory, provider, agent };
 }
 
@@ -218,9 +240,11 @@ export async function getAgentContext(): Promise<{
   memory: import('../types/index').IMemory;
   provider: import('../providers/index').ProviderManager;
 }> {
-  const { DynamoMemory } = await import('../memory');
-  const { CachedMemory } = await import('../memory/cached-memory');
-  const { ProviderManager } = await import('../providers/index');
+  const [{ DynamoMemory }, { CachedMemory }, { ProviderManager }] = await Promise.all([
+    import('../memory'),
+    import('../memory/cached-memory'),
+    import('../providers/index'),
+  ]);
 
   // Singleton pattern
   if (!(global as unknown as { _agentMemory?: import('../types/index').IMemory })._agentMemory) {
