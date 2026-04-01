@@ -1,0 +1,316 @@
+/**
+ * @module ToolExecutor Tests
+ * @description Tests for tool call execution including approval gates,
+ * argument validation, attachment collection, and pause signaling.
+ */
+
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { ToolExecutor } from './tool-executor';
+import { MessageRole, AttachmentType } from '../types/index';
+
+vi.mock('../logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
+}));
+
+vi.mock('../registry', () => ({
+  AgentRegistry: { recordToolUsage: vi.fn() },
+}));
+
+const mockAddStep = vi.fn();
+vi.mock('../tracer', () => ({
+  ClawTracer: vi.fn().mockImplementation(() => ({ addStep: mockAddStep })),
+}));
+
+vi.mock('../constants', () => ({
+  TRACE_TYPES: { TOOL_CALL: 'tool_call', TOOL_RESULT: 'tool_result' },
+}));
+
+function createTool(overrides: Partial<any> = {}) {
+  return {
+    name: overrides.name ?? 'test-tool',
+    description: overrides.description ?? 'A test tool',
+    parameters: overrides.parameters ?? {},
+    execute: overrides.execute ?? vi.fn().mockResolvedValue('success'),
+    requiresApproval: overrides.requiresApproval ?? false,
+    argSchema: overrides.argSchema,
+  };
+}
+
+function createToolCall(overrides: Partial<any> = {}) {
+  return {
+    id: overrides.id ?? 'call-1',
+    type: 'function' as const,
+    function: {
+      name: overrides.name ?? 'test-tool',
+      arguments: JSON.stringify(overrides.args ?? { query: 'test' }),
+    },
+  };
+}
+
+function createExecContext(overrides: Partial<any> = {}) {
+  return {
+    traceId: 'trace1',
+    nodeId: 'node1',
+    agentId: 'agent1',
+    agentName: 'TestAgent',
+    currentInitiator: 'user1',
+    depth: 0,
+    userId: 'user1',
+    mainConversationId: 'conv1',
+    userText: 'run test',
+    ...overrides,
+  };
+}
+
+describe('ToolExecutor', () => {
+  let tracer: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    tracer = { addStep: mockAddStep };
+  });
+
+  describe('executeToolCalls', () => {
+    it('executes tool successfully and appends result to messages', async () => {
+      const tool = createTool({ execute: vi.fn().mockResolvedValue('done') });
+      const messages: any[] = [];
+      const attachments: any[] = [];
+
+      const result = await ToolExecutor.executeToolCalls(
+        [createToolCall()],
+        [tool],
+        messages,
+        attachments,
+        createExecContext(),
+        tracer
+      );
+
+      expect(result.toolCallCount).toBe(1);
+      expect(messages).toHaveLength(1);
+      expect(messages[0].role).toBe(MessageRole.TOOL);
+      expect(messages[0].content).toBe('done');
+    });
+
+    it('pushes EXECUTED_BY_PROVIDER when tool not found', async () => {
+      const messages: any[] = [];
+      const attachments: any[] = [];
+
+      const result = await ToolExecutor.executeToolCalls(
+        [createToolCall({ name: 'missing-tool' })],
+        [],
+        messages,
+        attachments,
+        createExecContext(),
+        tracer
+      );
+
+      expect(result.toolCallCount).toBe(0);
+      expect(messages[0].content).toBe('EXECUTED_BY_PROVIDER');
+    });
+
+    it('returns paused when tool requires approval but not approved', async () => {
+      const tool = createTool({ requiresApproval: true });
+      const messages: any[] = [];
+      const attachments: any[] = [];
+
+      const result = await ToolExecutor.executeToolCalls(
+        [createToolCall()],
+        [tool],
+        messages,
+        attachments,
+        createExecContext(),
+        tracer
+      );
+
+      expect(result.paused).toBe(true);
+      expect(result.asyncWait).toBe(true);
+      expect(result.toolCallCount).toBe(0);
+    });
+
+    it('executes approved tool that requires approval', async () => {
+      const tool = createTool({
+        requiresApproval: true,
+        execute: vi.fn().mockResolvedValue('approved result'),
+      });
+      const messages: any[] = [];
+      const attachments: any[] = [];
+
+      const result = await ToolExecutor.executeToolCalls(
+        [createToolCall()],
+        [tool],
+        messages,
+        attachments,
+        createExecContext(),
+        tracer,
+        ['call-1']
+      );
+
+      expect(result.toolCallCount).toBe(1);
+      expect(messages[0].content).toBe('approved result');
+    });
+
+    it('handles Zod validation failure', async () => {
+      const tool = createTool({
+        argSchema: {
+          parse: vi.fn().mockImplementation(() => {
+            throw new Error('Invalid arg');
+          }),
+        },
+      });
+      const messages: any[] = [];
+      const attachments: any[] = [];
+
+      const result = await ToolExecutor.executeToolCalls(
+        [createToolCall()],
+        [tool],
+        messages,
+        attachments,
+        createExecContext(),
+        tracer
+      );
+
+      expect(result.toolCallCount).toBe(0);
+      expect(messages[0].content).toContain('FAILED');
+      expect(messages[0].content).toContain('Invalid arg');
+    });
+
+    it('returns paused with responseText when result starts with TASK_PAUSED', async () => {
+      const tool = createTool({
+        execute: vi.fn().mockResolvedValue('TASK_PAUSED: waiting for input'),
+      });
+      const messages: any[] = [];
+      const attachments: any[] = [];
+
+      const result = await ToolExecutor.executeToolCalls(
+        [createToolCall()],
+        [tool],
+        messages,
+        attachments,
+        createExecContext(),
+        tracer
+      );
+
+      expect(result.paused).toBe(true);
+      expect(result.asyncWait).toBe(true);
+      expect(result.responseText).toBe('TASK_PAUSED: waiting for input');
+    });
+
+    it('handles ToolResult with images', async () => {
+      const tool = createTool({
+        execute: vi.fn().mockResolvedValue({
+          text: 'screenshot taken',
+          images: ['base64data1', 'base64data2'],
+        }),
+      });
+      const messages: any[] = [];
+      const attachments: any[] = [];
+
+      await ToolExecutor.executeToolCalls(
+        [createToolCall()],
+        [tool],
+        messages,
+        attachments,
+        createExecContext(),
+        tracer
+      );
+
+      expect(attachments).toHaveLength(2);
+      expect(attachments[0]).toEqual({ type: AttachmentType.IMAGE, base64: 'base64data1' });
+    });
+
+    it('handles ToolResult with metadata attachments', async () => {
+      const tool = createTool({
+        execute: vi.fn().mockResolvedValue({
+          text: 'file generated',
+          metadata: { attachments: [{ type: 'file', url: 'http://example.com/file.txt' }] },
+        }),
+      });
+      const messages: any[] = [];
+      const attachments: any[] = [];
+
+      await ToolExecutor.executeToolCalls(
+        [createToolCall()],
+        [tool],
+        messages,
+        attachments,
+        createExecContext(),
+        tracer
+      );
+
+      expect(attachments).toHaveLength(1);
+    });
+
+    it('does not overwrite args that are already present', async () => {
+      const executeFn = vi.fn().mockResolvedValue('done');
+      const tool = createTool({
+        execute: executeFn,
+      });
+      const messages: any[] = [];
+      const attachments: any[] = [];
+
+      await ToolExecutor.executeToolCalls(
+        [createToolCall({ args: { query: 'test', traceId: 'custom-trace' } })],
+        [tool],
+        messages,
+        attachments,
+        createExecContext(),
+        tracer
+      );
+
+      const calledArgs = executeFn.mock.calls[0][0];
+      expect(calledArgs.traceId).toBe('custom-trace');
+    });
+
+    it('injects context args when not already present', async () => {
+      const executeFn = vi.fn().mockResolvedValue('done');
+      const tool = createTool({ execute: executeFn });
+      const messages: any[] = [];
+      const attachments: any[] = [];
+
+      await ToolExecutor.executeToolCalls(
+        [createToolCall()],
+        [tool],
+        messages,
+        attachments,
+        createExecContext(),
+        tracer
+      );
+
+      const calledArgs = executeFn.mock.calls[0][0];
+      expect(calledArgs.traceId).toBe('trace1');
+      expect(calledArgs.nodeId).toBe('node1');
+      expect(calledArgs.executorAgentId).toBe('agent1');
+      expect(calledArgs.userId).toBe('user1');
+    });
+
+    it('processes multiple tool calls', async () => {
+      const tool = createTool({ execute: vi.fn().mockResolvedValue('ok') });
+      const messages: any[] = [];
+      const attachments: any[] = [];
+
+      const result = await ToolExecutor.executeToolCalls(
+        [createToolCall({ id: 'c1' }), createToolCall({ id: 'c2', name: 'other' })],
+        [tool],
+        messages,
+        attachments,
+        createExecContext(),
+        tracer
+      );
+
+      expect(result.toolCallCount).toBe(1);
+      expect(messages).toHaveLength(2);
+    });
+
+    it('returns 0 toolCallCount when no tool calls', async () => {
+      const result = await ToolExecutor.executeToolCalls(
+        [],
+        [],
+        [],
+        [],
+        createExecContext(),
+        tracer
+      );
+      expect(result.toolCallCount).toBe(0);
+    });
+  });
+});
