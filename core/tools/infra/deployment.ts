@@ -92,6 +92,54 @@ export const stageChanges = {
 };
 
 /**
+ * Generates a git diff patch of all uncommitted changes.
+ * Used by parallel Coder agents to avoid S3 staging conflicts.
+ */
+export const generatePatch = {
+  ...schema.generatePatch,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { sessionId, skipValidation } = args as {
+      sessionId: string;
+      skipValidation?: boolean;
+    };
+
+    try {
+      if (!skipValidation) {
+        const { memory } = await getAgentContext();
+        const history = await memory.getHistory(sessionId);
+
+        const hasValidated = history.some(
+          (m) =>
+            m.content?.includes('TYPE_CHECK_PASSED') || m.content?.includes('Validation Successful')
+        );
+        const hasTested = history.some(
+          (m) => m.content?.includes('UNIT_TESTS_PASSED') || m.content?.includes('Test Results:')
+        );
+
+        if (!hasValidated || !hasTested) {
+          return 'FAILED_DOD: Changes must be validated (validateCode) and tested (runTests) before generating patch.';
+        }
+      }
+
+      const { execSync } = await import('child_process');
+      const patch = execSync('git diff HEAD', {
+        cwd: process.cwd(),
+        encoding: 'utf-8',
+        timeout: 30000,
+      });
+
+      if (!patch || patch.trim().length === 0) {
+        return 'NO_CHANGES: No differences detected against HEAD.';
+      }
+
+      return `PATCH_START\n${patch}\nPATCH_END`;
+    } catch (error) {
+      return `FAILED_TO_GENERATE_PATCH: ${formatErrorMessage(error)}`;
+    }
+  },
+};
+
+/**
  * Triggers a new CodeBuild deployment, with daily limits and circuit breaking.
  */
 export const triggerDeployment = {

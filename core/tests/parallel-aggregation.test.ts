@@ -35,6 +35,11 @@ vi.mock('../lib/logger', () => ({
   },
 }));
 
+const mockHandlePatchMerge = vi.fn().mockResolvedValue(undefined);
+vi.mock('../handlers/events/merger-handler', () => ({
+  handlePatchMerge: mockHandlePatchMerge,
+}));
+
 describe('Parallel Aggregation Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -80,6 +85,64 @@ describe('Parallel Aggregation Integration', () => {
       taskCount: 1,
       completedCount: 1,
       aggregationType: 'agent_guided',
+    };
+
+    await handleParallelTaskCompleted(eventDetail as any);
+
+    const { wakeupInitiator } = await import('../handlers/events/shared');
+    expect(wakeupInitiator).toHaveBeenCalledWith(
+      'user-123',
+      'strategic-planner',
+      expect.stringContaining('Parallel Dispatch Complete'),
+      'trace-456',
+      undefined,
+      1
+    );
+  });
+
+  it('should trigger patch merge when aggregationType is merge_patches', async () => {
+    const eventDetail = {
+      userId: 'user-123',
+      traceId: 'trace-456',
+      initiatorId: 'superclaw',
+      sessionId: 'session-789',
+      overallStatus: 'success',
+      results: [
+        {
+          taskId: 't1',
+          agentId: 'coder-a',
+          status: 'success',
+          result: 'Done',
+          patch: 'diff --git a/file.ts b/file.ts\n+change',
+        },
+      ],
+      taskCount: 1,
+      completedCount: 1,
+      aggregationType: 'merge_patches',
+    };
+
+    await handleParallelTaskCompleted(eventDetail as any);
+
+    expect(mockHandlePatchMerge).toHaveBeenCalledWith(
+      expect.objectContaining({
+        aggregationType: 'merge_patches',
+        traceId: 'trace-456',
+      })
+    );
+  });
+
+  it('should fallback to summary if patch merge fails', async () => {
+    mockHandlePatchMerge.mockRejectedValueOnce(new Error('Merge failed'));
+
+    const eventDetail = {
+      userId: 'user-123',
+      traceId: 'trace-456',
+      initiatorId: 'strategic-planner',
+      overallStatus: 'success',
+      results: [{ taskId: 't1', agentId: 'a1', status: 'success', result: 'Result 1' }],
+      taskCount: 1,
+      completedCount: 1,
+      aggregationType: 'merge_patches',
     };
 
     await handleParallelTaskCompleted(eventDetail as any);

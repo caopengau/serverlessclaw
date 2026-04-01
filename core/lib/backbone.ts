@@ -110,6 +110,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
 
       TOOLS.stageChanges,
 
+      TOOLS.generatePatch,
+
       TOOLS.triggerDeployment,
 
       TOOLS.validateCode,

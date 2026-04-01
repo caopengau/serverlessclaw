@@ -162,6 +162,26 @@ describe('Event Contract Verification', () => {
       expect(() => PARALLEL_TASK_COMPLETED_EVENT_SCHEMA.parse(payload)).not.toThrow();
     });
 
+    it('should validate a correct parallel completion event (merge_patches)', () => {
+      const payload = {
+        ...common,
+        overallStatus: 'success',
+        results: [
+          {
+            taskId: 't1',
+            agentId: 'coder-a',
+            status: 'success',
+            result: 'Done',
+            patch: 'diff --git a/file.ts b/file.ts\n+change',
+          },
+        ],
+        taskCount: 1,
+        completedCount: 1,
+        aggregationType: 'merge_patches',
+      };
+      expect(() => PARALLEL_TASK_COMPLETED_EVENT_SCHEMA.parse(payload)).not.toThrow();
+    });
+
     it('should fail if overallStatus is invalid', () => {
       const payload = {
         ...common,

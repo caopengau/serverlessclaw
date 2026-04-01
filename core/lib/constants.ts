@@ -349,6 +349,8 @@ export const TOOLS = {
   runShellCommand: 'runShellCommand',
   /** Stages pending file changes to the git index or staging area. */
   stageChanges: 'stageChanges',
+  /** Generates a git diff patch of uncommitted changes for parallel-safe staging. */
+  generatePatch: 'generatePatch',
   /** Triggers an autonomous deployment of the latest verified changes. */
   triggerDeployment: 'triggerDeployment',
   /** Validates code quality, types, and logic via static analysis. */

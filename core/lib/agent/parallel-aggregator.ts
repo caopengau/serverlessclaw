@@ -34,7 +34,7 @@ export class ParallelAggregator {
     initiatorId: string,
     sessionId?: string,
     taskMapping?: Array<{ taskId: string; agentId: string }>,
-    aggregationType?: 'summary' | 'agent_guided',
+    aggregationType?: 'summary' | 'agent_guided' | 'merge_patches',
     aggregationPrompt?: string,
     metadata?: Record<string, unknown>
   ): Promise<void> {
@@ -79,7 +79,7 @@ export class ParallelAggregator {
     initiatorId: string;
     sessionId?: string;
     status: string;
-    aggregationType?: 'summary' | 'agent_guided';
+    aggregationType?: 'summary' | 'agent_guided' | 'merge_patches';
     aggregationPrompt?: string;
   } | null> {
     try {
@@ -123,7 +123,11 @@ export class ParallelAggregator {
         initiatorId: updated.initiatorId,
         sessionId: updated.sessionId,
         status: updated.status,
-        aggregationType: updated.aggregationType,
+        aggregationType: updated.aggregationType as
+          | 'summary'
+          | 'agent_guided'
+          | 'merge_patches'
+          | undefined,
         aggregationPrompt: updated.aggregationPrompt,
       };
     } catch (error: unknown) {
@@ -200,7 +204,7 @@ export class ParallelAggregator {
           createdAt: number;
           taskMapping: Array<{ taskId: string; agentId: string }>;
           results_ids: string[];
-          aggregationType?: 'summary' | 'agent_guided';
+          aggregationType?: 'summary' | 'agent_guided' | 'merge_patches';
           aggregationPrompt?: string;
           metadata?: Record<string, unknown>;
           version?: number;

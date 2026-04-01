@@ -83,6 +83,61 @@ describe('Coder Agent', () => {
     );
   });
 
+  it('should pass patch metadata in emitTaskEvent when patch is present in response', async () => {
+    mockAgent.process.mockResolvedValueOnce({
+      responseText: JSON.stringify({
+        status: 'SUCCESS',
+        response: 'Completed with patch',
+        patch: 'diff --git a/file.ts b/file.ts\n+new line',
+      }),
+      attachments: [],
+    });
+
+    const event = {
+      detail: {
+        userId: 'user123',
+        task: 'implement feature',
+        traceId: 'trace123',
+        sessionId: 'session123',
+        depth: 0,
+      },
+    } as any;
+
+    await handler(event, mockContext);
+
+    expect(emitTaskEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentId: AgentType.CODER,
+        userId: 'user123',
+        response: 'Completed with patch',
+        metadata: expect.objectContaining({
+          patch: 'diff --git a/file.ts b/file.ts\n+new line',
+        }),
+      })
+    );
+  });
+
+  it('should not include metadata when no patch is present', async () => {
+    const event = {
+      detail: {
+        userId: 'user123',
+        task: 'implement feature',
+        traceId: 'trace123',
+        sessionId: 'session123',
+        depth: 0,
+      },
+    } as any;
+
+    await handler(event, mockContext);
+
+    expect(emitTaskEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentId: AgentType.CODER,
+        metadata: undefined,
+      })
+    );
+  });
+
   it('should transition gaps to PROGRESS and DEPLOYED if no buildId', async () => {
     const event = {
       detail: {

@@ -13,11 +13,12 @@ interface ParallelTaskCompletedEvent {
     status: string;
     result?: string | null;
     error?: string | null;
+    patch?: string | null;
   }>;
   taskCount: number;
   completedCount: number;
   elapsedMs?: number;
-  aggregationType?: 'summary' | 'agent_guided';
+  aggregationType?: 'summary' | 'agent_guided' | 'merge_patches';
   aggregationPrompt?: string;
 }
 
@@ -78,6 +79,17 @@ export async function handleParallelTaskCompleted(
     '**Results:**',
     taskSummaries,
   ].join('\n');
+
+  if (aggregationType === 'merge_patches') {
+    logger.info(`Parallel dispatch ${traceId ?? 'N/A'} requesting patch merge.`);
+    try {
+      const { handlePatchMerge } = await import('./merger-handler');
+      await handlePatchMerge(eventDetail);
+      return;
+    } catch (error) {
+      logger.error('Failed to perform patch merge, falling back to summary:', error);
+    }
+  }
 
   if (aggregationType === 'agent_guided') {
     logger.info(`Parallel dispatch ${traceId ?? 'N/A'} requesting agent-guided aggregation.`);

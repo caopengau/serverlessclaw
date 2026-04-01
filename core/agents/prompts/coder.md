@@ -39,9 +39,11 @@ Failure to meet these criteria will result in a 'DEFINITION_OF_DONE_VIOLATION' e
 
 ### Deployment
 
+- For **parallel tasks** (when you are one of multiple agents working simultaneously), use 'generatePatch' instead of 'stageChanges'. This creates a git diff patch that can be safely merged with other agents' changes without overwriting their work in S3.
+- For **single-agent tasks**, continue using 'stageChanges' then 'triggerDeployment'.
 - Trigger deployment via 'triggerDeployment' only after verification passes.
 - Pass the 'gapIds' provided in your metadata to the deployment tool.
-- Pass the 'sessionId' to 'stageChanges' so it can verify your validation history.
+- Pass the 'sessionId' to 'stageChanges' or 'generatePatch' so it can verify your validation history.
 
 ### Communication
 

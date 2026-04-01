@@ -158,12 +158,13 @@ export const PARALLEL_TASK_COMPLETED_EVENT_SCHEMA = BASE_EVENT_SCHEMA.extend({
       status: z.string(),
       result: z.string().optional().nullable(),
       error: z.string().optional().nullable(),
+      patch: z.string().optional().nullable(),
     })
   ),
   taskCount: z.number(),
   completedCount: z.number(),
   elapsedMs: z.number().optional(),
-  aggregationType: z.enum(['summary', 'agent_guided']).optional(),
+  aggregationType: z.enum(['summary', 'agent_guided', 'merge_patches']).optional(),
   aggregationPrompt: z.string().optional(),
 });
 

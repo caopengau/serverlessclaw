@@ -194,6 +194,7 @@ export async function handleTaskResult(
         status: isFailure ? 'failed' : 'success',
         result: response,
         durationMs: 0,
+        patch: (eventDetail.metadata as Record<string, unknown>)?.patch as string | undefined,
       });
 
       // OCC loop for DAG state update
@@ -321,6 +322,7 @@ export async function handleTaskResult(
       status: isFailure ? 'failed' : 'success',
       result: response,
       durationMs: 0,
+      patch: (eventDetail.metadata as Record<string, unknown>)?.patch as string | undefined,
     });
 
     if (aggregateState?.isComplete) {

@@ -23,6 +23,21 @@ export const infraSchema: Record<string, IToolDefinition> = {
     },
     connectionProfile: ['storage'],
   },
+  generatePatch: {
+    name: 'generatePatch',
+    description:
+      'Generates a git diff patch of all uncommitted changes. Use this instead of stageChanges when working in parallel with other agents to avoid S3 staging conflicts.',
+    parameters: {
+      type: 'object',
+      properties: {
+        sessionId: { type: 'string' },
+        skipValidation: { type: 'boolean' },
+      },
+      required: ['sessionId'],
+      additionalProperties: false,
+    },
+    connectionProfile: ['storage'],
+  },
   triggerDeployment: {
     name: 'triggerDeployment',
     description: 'Triggers an autonomous self-deployment of the agent infrastructure.',

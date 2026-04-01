@@ -79,6 +79,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
               status: { type: 'string', enum: ['SUCCESS', 'FAILED'] },
               response: { type: 'string' },
               buildId: { type: 'string' },
+              patch: { type: 'string' },
               sessionId: { type: 'string' },
             },
             required: [
@@ -101,12 +102,14 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   let status = 'SUCCESS';
   let responseText = rawResponse;
   let buildId: string | undefined = undefined;
+  let patchContent: string | undefined = undefined;
 
   try {
     const parsed = parseStructuredResponse<{
       status: string;
       response: string;
       buildId?: string;
+      patch?: string;
       failing_test_written?: boolean;
       test_file_path?: string;
       test_execution_result?: string;
@@ -114,6 +117,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     status = parsed.status || 'SUCCESS';
     responseText = parsed.response || rawResponse;
     buildId = parsed.buildId;
+    patchContent = parsed.patch;
 
     // Enrich response with TDD evidence if provided
     if (parsed.failing_test_written && parsed.test_file_path) {
@@ -176,6 +180,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       sessionId,
       initiatorId,
       depth,
+      metadata: patchContent ? { patch: patchContent, gapIds } : undefined,
     });
   }
 

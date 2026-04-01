@@ -33,6 +33,8 @@ export interface AggregatedResult {
   result?: unknown;
   durationMs: number;
   error?: string;
+  /** Git diff patch from the coder agent (for parallel merge flow). */
+  patch?: string;
 }
 
 /**
@@ -62,7 +64,7 @@ export interface ParallelTaskDefinition {
 export interface ParallelDispatchParams {
   tasks: ParallelTaskDefinition[];
   barrierTimeoutMs?: number;
-  aggregationType?: 'summary' | 'agent_guided';
+  aggregationType?: 'summary' | 'agent_guided' | 'merge_patches';
   aggregationPrompt?: string;
   /** Enable dependency-aware execution (DAG mode) */
   enableDependencies?: boolean;
