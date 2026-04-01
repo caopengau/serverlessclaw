@@ -12,7 +12,9 @@
       "**/dist/**",
       "**/build/**",
       "**/aiready-report-*.json",
-      "pnpm-lock.yaml"
+      "pnpm-lock.yaml",
+      "**/__mocks__/**",
+      "**/types/index.ts"
     ],
     "tools": [
       "pattern-detect",
@@ -38,15 +40,20 @@
   },
   "tools": {
     "pattern-detect": {
-      "minSimilarity": 0.6,
+      "minSimilarity": 0.75,
       "minLines": 5,
-      "minSharedTokens": 5,
+      "minSharedTokens": 10,
       "approx": true,
       "batchSize": 300,
       "maxCandidatesPerBlock": 500,
       "minClusterFiles": 3,
       "minClusterTokenCost": 1000,
-      "includeTests": true
+      "includeTests": true,
+      "exclude": [
+        "**/types/**",
+        "**/__mocks__/**",
+        "**/api/*/route.ts"
+      ]
     },
     "context-analyzer": {
       "maxContextBudget": 128000,
@@ -107,8 +114,13 @@
         "dashboard/src/components/ui/**",
         "core/__mocks__/**",
         "**/schema.ts",
+        "core/lib/schema/**",
         "dashboard/src/app/layout.tsx",
-        "dashboard/src/app/memory/types.ts"
+        "dashboard/src/app/memory/types.ts",
+        "core/lib/memory/cache.ts",
+        "dashboard/src/components/Trace/nodes.tsx",
+        "dashboard/src/components/Providers/TranslationsProvider.tsx",
+        "scripts/**"
       ]
     },
     "ai-signal-clarity": {
