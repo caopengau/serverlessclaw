@@ -37,7 +37,9 @@ export async function getAgentTools(agentId: string): Promise<ITool[]> {
 
   // 2. Resolve external MCP tools if any match the requested tool names
   const externalTools = await MCPBridge.getExternalTools(config.tools);
-  const matchedExternal = externalTools.filter((t) => config.tools!.includes(t.name));
+  const matchedExternal = externalTools.filter((t) =>
+    config.tools!.some((req) => t.name === req || t.name.startsWith(`${req}_`))
+  );
 
   if (matchedExternal.length > 0) {
     logger.info(

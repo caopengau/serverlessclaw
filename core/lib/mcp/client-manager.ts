@@ -22,6 +22,10 @@ export class MCPClientManager {
     this.clients.delete(name);
   }
 
+  private static failureCounts: Map<string, { count: number; lastFailure: number }> = new Map();
+  private static readonly FAILURE_RESET_MS = 60000; // 1 minute
+  private static readonly MAX_FAILURES = 3;
+
   /**
    * Connect to an MCP server.
    * Supports multiple transport types:
@@ -37,12 +41,44 @@ export class MCPClientManager {
     let client = this.clients.get(serverName);
     if (client) return client;
 
+    // 1. Check in-memory connecting map IMMEDIATELY (no await before this)
     let connectingPromise = this.connecting.get(serverName);
     if (connectingPromise) {
       return await connectingPromise;
     }
 
+    // 2. Prepare the connection promise
     connectingPromise = (async () => {
+      // Check circuit breaker (Gap 3/4)
+      const failure = this.failureCounts.get(serverName);
+      if (failure && failure.count >= this.MAX_FAILURES) {
+        const timeSinceFailure = Date.now() - failure.lastFailure;
+        if (timeSinceFailure < this.FAILURE_RESET_MS) {
+          logger.warn(`Circuit breaker OPEN for ${serverName}. Skipping connection.`);
+          throw new Error(
+            `Circuit breaker open for ${serverName} after ${failure.count} failures.`
+          );
+        } else {
+          // Reset after timeout
+          this.failureCounts.delete(serverName);
+        }
+      }
+
+      // Check persistent health (Gap 5/Step 6)
+      const { AgentRegistry } = await import('../registry');
+      const persistentHealth = (await AgentRegistry.getRawConfig(`mcp_health_${serverName}`)) as {
+        status: string;
+        timestamp: number;
+      } | null;
+      if (
+        persistentHealth?.status === 'down' &&
+        Date.now() - persistentHealth.timestamp < this.FAILURE_RESET_MS
+      ) {
+        logger.warn(`Server ${serverName} is marked as DOWN in DynamoDB. skipping.`);
+        throw new Error(`Server ${serverName} is currently down.`);
+      }
+
+      logger.info(`Starting new connection for ${serverName}`);
       let transport;
 
       // Check if this is a Lambda ARN
@@ -108,7 +144,6 @@ export class MCPClientManager {
         connectionString.startsWith('http') &&
         connectionString.includes(process.env.MCP_HUB_URL ?? '___none___');
       // Reduce timeout for local MCP servers to prevent dashboard timeouts
-      // Local servers should start quickly or fail fast
       const connectTimeout = isHub ? 5000 : 30000;
       let timeoutId: ReturnType<typeof setTimeout>;
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -121,7 +156,28 @@ export class MCPClientManager {
       try {
         await Promise.race([newClient.connect(transport), timeoutPromise]);
         clearTimeout(timeoutId!);
+        // Success - clear failures and update persistent health
+        this.failureCounts.delete(serverName);
+        await AgentRegistry.saveRawConfig(`mcp_health_${serverName}`, {
+          status: 'up',
+          timestamp: Date.now(),
+        });
       } catch (error) {
+        // Increment failure count and mark as down in DynamoDB
+        const prev = this.failureCounts.get(serverName) ?? { count: 0, lastFailure: 0 };
+        const newCount = prev.count + 1;
+        this.failureCounts.set(serverName, {
+          count: newCount,
+          lastFailure: Date.now(),
+        });
+
+        if (newCount >= this.MAX_FAILURES) {
+          await AgentRegistry.saveRawConfig(`mcp_health_${serverName}`, {
+            status: 'down',
+            timestamp: Date.now(),
+          });
+        }
+
         // 1.5 Ensure transport and client are closed on timeout or failure
         logger.error(`Failed to connect to MCP server ${serverName}:`, error);
         try {
@@ -145,10 +201,14 @@ export class MCPClientManager {
       return newClient;
     })();
 
+    // 3. Register the promise IMMEDIATELY after creation
     this.connecting.set(serverName, connectingPromise);
+
     try {
       client = await connectingPromise;
-      this.clients.set(serverName, client);
+      if (client) {
+        this.clients.set(serverName, client);
+      }
       return client;
     } finally {
       this.connecting.delete(serverName);
@@ -160,12 +220,12 @@ export class MCPClientManager {
       await client.close();
     }
     this.clients.clear();
+    this.connecting.clear();
   }
 }
 
 /**
  * Lambda Invoke Transport for MCP servers running as Lambda functions.
- * Uses the AWS SDK to invoke Lambda functions directly.
  */
 class LambdaInvokeTransport {
   constructor(
@@ -199,13 +259,11 @@ class LambdaInvokeTransport {
         throw new Error(`Lambda function error: ${result.FunctionError}`);
       }
 
-      // Process the response and pass to onmessage callback
       if (result.Payload) {
         const payload = JSON.parse(Buffer.from(result.Payload).toString());
         if (payload.statusCode !== 200) {
           throw new Error(`MCP server returned error: ${payload.body}`);
         }
-        // The response body contains the MCP response (JSON-RPC message)
         if (this.onmessage) {
           this.onmessage(payload.body);
         }

@@ -44,9 +44,34 @@ export class MCPBridge {
       }
     }
 
+    // Check cache first
+    const cacheKey = `mcp_tools_cache_${serverName}`;
+    interface CachedTools {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      tools: any[];
+      timestamp: number;
+    }
+    const cached = (await AgentRegistry.getRawConfig(cacheKey)) as CachedTools | null;
+
+    if (cached && Date.now() - cached.timestamp < 3600000) {
+      logger.info(`Using cached tool definitions for MCP server ${serverName}`);
+      return MCPToolMapper.mapCachedTools(
+        serverName,
+        cached.tools,
+        async () => await MCPClientManager.connect(serverName, connectionString, env)
+      );
+    }
+
     try {
       const client = await MCPClientManager.connect(serverName, connectionString, env);
       const response = await client.listTools();
+
+      // Update cache
+      await AgentRegistry.saveRawConfig(cacheKey, {
+        tools: response.tools,
+        timestamp: Date.now(),
+      });
+
       return MCPToolMapper.mapTools(serverName, client, response.tools);
     } catch (e: unknown) {
       logger.warn(`Failed to fetch tools from ${serverName}:`, e);

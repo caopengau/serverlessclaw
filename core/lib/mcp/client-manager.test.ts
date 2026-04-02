@@ -38,6 +38,13 @@ vi.mock('@modelcontextprotocol/sdk/client/sse.js', () => ({
   },
 }));
 
+vi.mock('../registry', () => ({
+  AgentRegistry: {
+    getRawConfig: vi.fn().mockResolvedValue(null),
+    saveRawConfig: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 vi.mock('../logger', () => ({
   logger: {
     warn: vi.fn(),
@@ -78,12 +85,27 @@ describe('MCPClientManager', () => {
     expect(mockConnect).toHaveBeenCalledTimes(1);
   });
 
-  it('handles concurrent connection requests', async () => {
+  it('handles concurrent connection requests and ensures only one client is created', async () => {
+    // Delay the connection to allow concurrency
+    mockConnect.mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      return undefined;
+    });
+
     const p1 = MCPClientManager.connect('concurrent-server', 'node server.js');
     const p2 = MCPClientManager.connect('concurrent-server', 'node server.js');
     const [client1, client2] = await Promise.all([p1, p2]);
 
+    const { logger } = await import('../logger');
+    expect(logger.info).toHaveBeenCalledWith('Starting new connection for concurrent-server');
+    expect(logger.info).toHaveBeenCalledTimes(1);
+
     expect(client1).toBe(client2);
+    expect(mockConnect).toHaveBeenCalledTimes(1);
+
+    // Call again after first one finished
+    const client3 = await MCPClientManager.connect('concurrent-server', 'node server.js');
+    expect(client3).toBe(client1);
     expect(mockConnect).toHaveBeenCalledTimes(1);
   });
 
@@ -114,5 +136,35 @@ describe('MCPClientManager', () => {
     const client = await MCPClientManager.connect('npx-server', 'npx @mcp/server');
     expect(client).toBeDefined();
     expect(mockExecSync).toHaveBeenCalledWith('which npx', expect.any(Object));
+  });
+
+  it('triggers circuit breaker after repeated failures', async () => {
+    mockConnect.mockRejectedValue(new Error('Connection failed'));
+
+    // Fail 3 times
+    for (let i = 0; i < 3; i++) {
+      await expect(
+        MCPClientManager.connect('failing-server', 'http://localhost')
+      ).rejects.toThrow();
+    }
+
+    // 4th attempt should be blocked by circuit breaker
+    await expect(MCPClientManager.connect('failing-server', 'http://localhost')).rejects.toThrow(
+      'Circuit breaker open for failing-server'
+    );
+    expect(mockConnect).toHaveBeenCalledTimes(3);
+  });
+
+  it('respects persistent health from DynamoDB', async () => {
+    const { AgentRegistry } = await import('../registry');
+    vi.mocked(AgentRegistry.getRawConfig).mockResolvedValue({
+      status: 'down',
+      timestamp: Date.now(),
+    });
+
+    await expect(MCPClientManager.connect('down-server', 'http://localhost')).rejects.toThrow(
+      'Server down-server is currently down'
+    );
+    expect(mockConnect).not.toHaveBeenCalled();
   });
 });

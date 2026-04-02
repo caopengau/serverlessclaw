@@ -167,6 +167,30 @@ describe('registry-utils', () => {
       expect(result[0].name).toBe('localTool');
     });
 
+    it('should match external tools when server name is in config.tools (server-level matching)', async () => {
+      vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValue({
+        id: 'agent-9',
+        name: 'Agent',
+        tools: ['filesystem'],
+        systemPrompt: '',
+        enabled: true,
+      } as any);
+      vi.mocked(MCPBridge.getExternalTools).mockResolvedValue([
+        {
+          name: 'filesystem_read_file',
+          description: 'Read file',
+          parameters: {},
+          type: 'mcp',
+        } as any,
+        { name: 'git_status', description: 'Git status', parameters: {}, type: 'mcp' } as any,
+      ]);
+
+      const tools = await getAgentTools('agent-9');
+      const toolNames = tools.map((t) => t.name);
+      expect(toolNames).toContain('filesystem_read_file');
+      expect(toolNames).not.toContain('git_status');
+    });
+
     it('should only include external tools whose names are in config.tools', async () => {
       vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValue({
         id: 'agent-7',

@@ -38,6 +38,18 @@ vi.mock('./mcp/tool-mapper', () => ({
         execute: vi.fn(),
       }))
     ),
+    mapCachedTools: vi.fn((serverName: string, rawTools: any[], clientProvider: any) =>
+      rawTools.map((t: any) => ({
+        name: `${serverName}_${t.name}`,
+        description: t.description ?? `Tool from ${serverName} server.`,
+        parameters: t.inputSchema,
+        execute: async (args: any) => {
+          const client = await clientProvider();
+          const result = await client.callTool({ name: t.name, arguments: args });
+          return JSON.stringify(result.content);
+        },
+      }))
+    ),
   },
 }));
 
@@ -384,7 +396,10 @@ describe('MCPBridge', () => {
 
       await MCPBridge.getExternalTools();
 
-      expect(AgentRegistry.saveRawConfig).not.toHaveBeenCalled();
+      expect(AgentRegistry.saveRawConfig).not.toHaveBeenCalledWith(
+        'mcp_servers',
+        expect.any(Object)
+      );
     });
 
     it('handles discovery failure gracefully per server', async () => {
@@ -467,6 +482,94 @@ describe('MCPBridge', () => {
 
       const tools = await MCPBridge.getExternalTools(['srv1']);
       expect(tools).toEqual([]);
+    });
+  });
+
+  describe('getToolsFromServer advanced (caching)', () => {
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('should use cached tools if available and not stale', async () => {
+      const mockTools = [
+        {
+          name: 'read_file',
+          description: 'Read file',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ];
+      vi.mocked(AgentRegistry.getRawConfig).mockImplementation(async (key) => {
+        if (key === 'mcp_tools_cache_filesystem') {
+          return { tools: mockTools, timestamp: Date.now() };
+        }
+        return null;
+      });
+
+      const tools = await MCPBridge.getToolsFromServer('filesystem', 'node fs.js');
+
+      expect(tools.length).toBe(1);
+      expect(tools[0].name).toBe('filesystem_read_file');
+      expect(AgentRegistry.getRawConfig).toHaveBeenCalledWith('mcp_tools_cache_filesystem');
+      expect(MCPClientManager.connect).not.toHaveBeenCalled(); // Important: no connection on discovery
+    });
+
+    it('should connect and refresh cache if stale', async () => {
+      vi.mocked(AgentRegistry.getRawConfig).mockImplementation(async (key) => {
+        if (key === 'mcp_tools_cache_filesystem') {
+          return { tools: [], timestamp: Date.now() - 5000000 }; // > 1 hour
+        }
+        return null;
+      });
+
+      const mockClient = {
+        listTools: vi.fn().mockResolvedValue({ tools: [{ name: 'new_tool' }] }),
+      };
+      vi.mocked(MCPClientManager.connect).mockResolvedValue(mockClient as any);
+
+      await MCPBridge.getToolsFromServer('filesystem', 'node fs.js');
+
+      expect(MCPClientManager.connect).toHaveBeenCalled();
+      expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
+        'mcp_tools_cache_filesystem',
+        expect.objectContaining({
+          tools: [{ name: 'new_tool' }],
+          timestamp: expect.any(Number),
+        })
+      );
+    });
+
+    it('should connect when executing a cached tool', async () => {
+      const mockTools = [
+        {
+          name: 'read_file',
+          description: 'Read file',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ];
+      vi.mocked(AgentRegistry.getRawConfig).mockImplementation(async (key) => {
+        if (key === 'mcp_tools_cache_filesystem') {
+          return { tools: mockTools, timestamp: Date.now() };
+        }
+        return null;
+      });
+
+      const tools = await MCPBridge.getToolsFromServer('filesystem', 'node fs.js');
+
+      // Mock the client for execution
+      const mockClient = {
+        callTool: vi.fn().mockResolvedValue({ content: 'file content' }),
+      };
+      vi.mocked(MCPClientManager.connect).mockResolvedValue(mockClient as any);
+
+      // Execute the cached tool
+      const result = await tools[0].execute({ path: 'test.txt' });
+
+      expect(MCPClientManager.connect).toHaveBeenCalled();
+      expect(mockClient.callTool).toHaveBeenCalledWith({
+        name: 'read_file',
+        arguments: { path: 'test.txt' },
+      });
+      expect(result).toBe(JSON.stringify('file content'));
     });
   });
 
