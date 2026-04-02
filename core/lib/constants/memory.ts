@@ -15,6 +15,7 @@ export const MEMORY_KEYS = {
   HEALTH_PREFIX: 'HEALTH#',
   TRACK_PREFIX: 'TRACK#',
   GAP_LOCK_PREFIX: 'GAP_LOCK#',
+  WARM_PREFIX: 'WARM#',
 } as const;
 
 /**

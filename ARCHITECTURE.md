@@ -39,13 +39,50 @@ To prevent translation drift and maintain peak reasoning performance, Serverless
 
 ---
 
-## ⚡ Efficiency: Trigger-on-Message Warm-up
+## ⚡ Efficiency: Smart Warm-up Strategy
 
-To minimize AWS operational costs, Serverless Claw uses a dynamic warm-up strategy instead of persistent heartbeats:
+To minimize AWS operational costs and reduce cold-start latency, Serverless Claw implements a **human-activity-based smart warmup** instead of rigid scheduling or persistent heartbeats:
 
-1. **Passive Idling**: High-memory agents (Coder, Planner) remain idle and cost-free when no user interaction is occurring.
-2. **Webhook Trigger**: Upon receiving a message (e.g., from Telegram), the [Webhook Handler](file:///Users/pengcao/projects/serverlessclaw/core/handlers/webhook.ts) immediately invokes a non-blocking `WARMUP` signal to critical agents.
-3. **Just-in-Time Readiness**: By the time the `SuperClaw` orchestrator has finished parsing the intent and retrieved initial memory, the sub-agents have finished their cold-starts and are ready for high-speed execution.
+### 1. Warm State Tracking
+
+The system tracks warm state in DynamoDB using `WARM#<serverName>` keys with a 15-minute TTL:
+
+```text
+Key: WARM#<serverName>
+Value: {
+  server: string,
+  lastWarmed: string (ISO timestamp),
+  warmedBy: 'webhook' | 'scheduler' | 'recovery',
+  ttl: number (Unix timestamp),
+  latencyMs: number,
+  coldStart: boolean
+}
+```
+
+### 2. Trigger-on-Message (Human Activity)
+
+High-memory agents (Coder, Planner) remain idle and cost-free when no user interaction is occurring. Upon receiving a message:
+
+1. **Webhook Trigger**: The [Webhook Handler](file:///Users/pengcao/projects/serverlessclaw/core/handlers/webhook.ts) immediately checks warm state
+2. **Smart Check**: Only warms servers/agents that are actually cold (expired TTL)
+3. **Fire-and-Forget**: Warmup signals are asynchronous to avoid blocking user requests
+
+### 3. Recovery Warmup
+
+During emergency recovery sequences, the [Recovery Handler](file:///Users/pengcao/projects/serverlessclaw/core/handlers/recovery.ts) automatically warms critical agents and MCP servers to ensure they're ready for recovery operations.
+
+### 4. Health Reporting
+
+The [Health Handler](file:///Users/pengcao/projects/serverlessclaw/core/handlers/health.ts) includes warm state information in health responses, allowing dashboard visualization of which servers are currently warm.
+
+### 5. Cost Impact
+
+| Scenario | Old (Scheduler) | New (Smart) |
+|----------|-----------------|-------------|
+| Idle (no users) | ~50 Lambda invocations/hour | 0 invocations |
+| Active session | 50 + 5 agents/hour | ~5 agents/hour (only on cold) |
+
+**Estimated savings**: 60-80% reduction in warmup Lambda invocations
 
 ---
 

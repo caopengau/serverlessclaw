@@ -39,16 +39,33 @@ export const handler = async (
 ): Promise<APIGatewayProxyResultV2> => {
   logger.info('[WEBHOOK] Start | Event:', event.body?.substring(0, 100));
 
-  // --- WARM-UP (Efficiency) ---
+  // --- SMART WARM-UP (Human-Activity Based) ---
+  // Only warm servers/agents that are cold based on tracked state
   const warmUpFunctions = process.env.WARM_UP_FUNCTIONS;
-  if (warmUpFunctions) {
+  const mcpServerArns = process.env.MCP_SERVER_ARNS;
+  if (warmUpFunctions || mcpServerArns) {
     try {
-      const { warmUpAgents } = await import('../lib/utils/warm-up');
-      const functionArns = JSON.parse(warmUpFunctions);
-      // Fire-and-forget warm-up to avoid blocking the user request
-      warmUpAgents(functionArns).catch((err) => logger.warn('[WEBHOOK] Warm-up error:', err));
+      const { WarmupManager } = await import('../lib/warmup');
+      const agentArns = warmUpFunctions ? JSON.parse(warmUpFunctions) : {};
+      const serverArns = mcpServerArns ? JSON.parse(mcpServerArns) : {};
+
+      const warmupManager = new WarmupManager({
+        servers: serverArns,
+        agents: agentArns,
+        ttlSeconds: 900, // 15 minutes
+      });
+
+      // Smart warmup: only warm servers that are actually cold
+      // Fire-and-forget to avoid blocking the user request
+      warmupManager
+        .smartWarmup({
+          agents: Object.keys(agentArns), // All critical agents
+          intent: 'webhook-received',
+          warmedBy: 'webhook',
+        })
+        .catch((err) => logger.warn('[WEBHOOK] Smart warmup error:', err));
     } catch (err) {
-      logger.warn('[WEBHOOK] Failed to initiate warm-up process:', err);
+      logger.warn('[WEBHOOK] Failed to initiate smart warmup:', err);
     }
   }
 

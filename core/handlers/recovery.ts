@@ -163,6 +163,37 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
       })
     );
 
+    // Warm critical agents/servers after recovery to ensure they're ready
+    const warmUpFunctions = process.env.WARM_UP_FUNCTIONS;
+    const mcpServerArns = process.env.MCP_SERVER_ARNS;
+    if (warmUpFunctions || mcpServerArns) {
+      try {
+        const { WarmupManager } = await import('../lib/warmup');
+        const agentArns = warmUpFunctions ? JSON.parse(warmUpFunctions) : {};
+        const serverArns = mcpServerArns ? JSON.parse(mcpServerArns) : {};
+
+        const warmupManager = new WarmupManager({
+          servers: serverArns,
+          agents: agentArns,
+          ttlSeconds: 900, // 15 minutes
+        });
+
+        // Warm all critical agents and MCP servers during recovery
+        warmupManager
+          .smartWarmup({
+            agents: Object.keys(agentArns),
+            servers: Object.keys(serverArns),
+            intent: 'recovery-initiated',
+            warmedBy: 'recovery',
+          })
+          .catch((err) => logger.warn('[RECOVERY] Post-recovery warmup error:', err));
+
+        logger.info('[RECOVERY] Post-recovery warmup initiated for critical agents/servers');
+      } catch (warmErr) {
+        logger.warn('[RECOVERY] Failed to initiate post-recovery warmup:', warmErr);
+      }
+    }
+
     logger.info('Emergency recovery initiated successfully.');
   } catch (recoveryError) {
     logger.error("FATAL: Dead Man's Switch recovery flow failed!", recoveryError);

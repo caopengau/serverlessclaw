@@ -2,6 +2,7 @@ import { logger } from '../lib/logger';
 import { runDeepHealthCheck } from '../lib/lifecycle/health';
 import { DynamoMemory } from '../lib/memory';
 import { formatErrorMessage } from '../lib/utils/error';
+import { WarmupManager } from '../lib/warmup';
 
 const memory = new DynamoMemory();
 
@@ -35,6 +36,28 @@ export async function handler(): Promise<{
 
     await updateLKGAfterHealthPass(memory);
 
+    // Get warm state information for health reporting
+    let warmServers: string[] = [];
+    const warmUpFunctions = process.env.WARM_UP_FUNCTIONS;
+    const mcpServerArns = process.env.MCP_SERVER_ARNS;
+    if (warmUpFunctions || mcpServerArns) {
+      try {
+        const agentArns = warmUpFunctions ? JSON.parse(warmUpFunctions) : {};
+        const serverArns = mcpServerArns ? JSON.parse(mcpServerArns) : {};
+
+        const warmupManager = new WarmupManager({
+          servers: serverArns,
+          agents: agentArns,
+          ttlSeconds: 900, // 15 minutes
+        });
+
+        const warmStates = await warmupManager.getWarmServers();
+        warmServers = warmStates.map((s) => s.server);
+      } catch (err) {
+        logger.warn('[HEALTH] Failed to get warm state:', err);
+      }
+    }
+
     const currentHash = process.env.GIT_HASH ?? 'unknown';
     return {
       statusCode: 200,
@@ -44,6 +67,7 @@ export async function handler(): Promise<{
         timestamp: new Date().toISOString(),
         gitHash: currentHash,
         message: 'System healthy (Deep Check PASSED). LKG updated.',
+        warmServers,
       }),
     };
   } catch (error) {
