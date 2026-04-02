@@ -86,6 +86,14 @@ export interface AggregatedMetrics {
   totalTasks: number;
   /** Total tokens consumed. */
   totalTokens: number;
+  /** Total reasoning steps across all tasks. */
+  totalReasoningSteps: number;
+  /** Number of pivot events (agent changed approach). */
+  totalPivots: number;
+  /** Number of clarification requests made. */
+  totalClarifications: number;
+  /** Number of self-correction events. */
+  totalSelfCorrections: number;
 }
 
 /**
@@ -184,6 +192,10 @@ export interface CognitiveMetricsConfig {
     minCoherence: number;
     /** Maximum memory fragmentation before alerting. */
     maxFragmentation: number;
+    /** Maximum average task latency (ms) before alerting. */
+    maxAvgLatencyMs: number;
+    /** Maximum pivot rate (pivots/task) before flagging cognitive loop. */
+    maxPivotRate: number;
   };
 }
 
@@ -195,6 +207,8 @@ const DEFAULT_CONFIG: CognitiveMetricsConfig = {
     maxErrorRate: 0.3,
     minCoherence: 5.0,
     maxFragmentation: 0.7,
+    maxAvgLatencyMs: 30000,
+    maxPivotRate: 0.5,
   },
 };
 
@@ -274,6 +288,16 @@ export class MetricsCollector {
       { agentId, name: 'pivot', value: pivoted ? 1 : 0, timestamp },
       { agentId, name: 'clarification_request', value: requestedClarification ? 1 : 0, timestamp }
     );
+  }
+
+  /**
+   * Record a self-correction event (agent detected and fixed its own error).
+   */
+  async recordSelfCorrection(agentId: string): Promise<void> {
+    if (!this.config.enabled) return;
+
+    const timestamp = Date.now();
+    this.buffer.push({ agentId, name: 'self_correction', value: 1, timestamp });
   }
 
   /**
@@ -423,6 +447,48 @@ export class DegradationDetector {
       });
     }
 
+    // Check latency anomaly
+    if (
+      metrics.totalTasks > 5 &&
+      metrics.avgTaskLatencyMs > this.config.thresholds.maxAvgLatencyMs
+    ) {
+      anomalies.push({
+        id: `anomaly_${now}_${Math.random().toString(36).substr(2, 9)}`,
+        type: AnomalyType.LATENCY_ANOMALY,
+        severity:
+          metrics.avgTaskLatencyMs > this.config.thresholds.maxAvgLatencyMs * 2
+            ? AnomalySeverity.HIGH
+            : AnomalySeverity.MEDIUM,
+        agentId,
+        detectedAt: now,
+        description: `Average task latency elevated to ${metrics.avgTaskLatencyMs.toFixed(0)}ms`,
+        triggerMetrics: { avgTaskLatencyMs: metrics.avgTaskLatencyMs },
+        suggestion: 'Check for slow LLM providers or tool execution bottlenecks',
+      });
+    }
+
+    // Check cognitive loop (excessive pivoting without progress)
+    const pivotRate = metrics.totalTasks > 0 ? metrics.totalPivots / metrics.totalTasks : 0;
+    if (metrics.totalTasks > 5 && pivotRate > this.config.thresholds.maxPivotRate) {
+      anomalies.push({
+        id: `anomaly_${now}_${Math.random().toString(36).substr(2, 9)}`,
+        type: AnomalyType.COGNITIVE_LOOP,
+        severity:
+          pivotRate > this.config.thresholds.maxPivotRate * 1.5
+            ? AnomalySeverity.CRITICAL
+            : AnomalySeverity.HIGH,
+        agentId,
+        detectedAt: now,
+        description: `High pivot rate detected: ${(pivotRate * 100).toFixed(1)}% — agent may be stuck in a reasoning loop`,
+        triggerMetrics: {
+          pivotRate,
+          totalPivots: metrics.totalPivots,
+          totalTasks: metrics.totalTasks,
+        },
+        suggestion: 'Review agent prompts for ambiguity or consider task decomposition',
+      });
+    }
+
     return anomalies;
   }
 }
@@ -466,6 +532,10 @@ export class HealthTrendAnalyzer {
     let memoryHits = 0;
     let memoryMisses = 0;
     let errors = 0;
+    let totalReasoningSteps = 0;
+    let totalPivots = 0;
+    let totalClarifications = 0;
+    let totalSelfCorrections = 0;
 
     for (const item of items) {
       const name = item.metricName as string;
@@ -487,6 +557,18 @@ export class HealthTrendAnalyzer {
           coherenceSum += value;
           coherenceCount++;
           break;
+        case 'reasoning_steps':
+          totalReasoningSteps += value;
+          break;
+        case 'pivot':
+          totalPivots += value;
+          break;
+        case 'clarification_request':
+          totalClarifications += value;
+          break;
+        case 'self_correction':
+          totalSelfCorrections += value;
+          break;
         case 'memory_hit':
           memoryHits++;
           break;
@@ -507,11 +589,15 @@ export class HealthTrendAnalyzer {
       avgTaskLatencyMs: totalTasks > 0 ? totalLatency / totalTasks : 0,
       reasoningCoherence: coherenceCount > 0 ? coherenceSum / coherenceCount : 10,
       memoryHitRate: memoryTotal > 0 ? memoryHits / memoryTotal : 1,
-      memoryFragmentation: 0, // Calculated separately
+      memoryFragmentation: memoryTotal > 0 ? memoryMisses / memoryTotal : 0,
       tokenEfficiency: totalTokens > 0 ? (totalTasks / totalTokens) * 1000 : 0,
       errorRate: totalTasks > 0 ? errors / totalTasks : 0,
       totalTasks,
       totalTokens,
+      totalReasoningSteps,
+      totalPivots,
+      totalClarifications,
+      totalSelfCorrections,
     };
   }
 
@@ -643,15 +729,21 @@ export class CognitiveHealthMonitor {
     const overallScore = this.calculateOverallScore(agentMetrics, memoryHealth);
 
     // Aggregate reasoning metrics
+    const totalReasoningSteps = agentMetrics.reduce((sum, m) => sum + m.totalReasoningSteps, 0);
+    const totalPivots = agentMetrics.reduce((sum, m) => sum + m.totalPivots, 0);
+    const totalClarifications = agentMetrics.reduce((sum, m) => sum + m.totalClarifications, 0);
+    const totalSelfCorrections = agentMetrics.reduce((sum, m) => sum + m.totalSelfCorrections, 0);
+    const totalAgentTasks = agentMetrics.reduce((sum, m) => sum + m.totalTasks, 0);
+
     const reasoning: ReasoningQualityMetrics = {
       coherenceScore:
         agentMetrics.reduce((sum, m) => sum + m.reasoningCoherence, 0) / agentMetrics.length,
       completionRate:
         agentMetrics.reduce((sum, m) => sum + m.taskCompletionRate, 0) / agentMetrics.length,
-      avgReasoningSteps: 0, // Would be calculated from raw metrics
-      pivotRate: 0,
-      clarificationRate: 0,
-      selfCorrectionRate: 0,
+      avgReasoningSteps: totalAgentTasks > 0 ? totalReasoningSteps / totalAgentTasks : 0,
+      pivotRate: totalAgentTasks > 0 ? totalPivots / totalAgentTasks : 0,
+      clarificationRate: totalAgentTasks > 0 ? totalClarifications / totalAgentTasks : 0,
+      selfCorrectionRate: totalAgentTasks > 0 ? totalSelfCorrections / totalAgentTasks : 0,
     };
 
     return {

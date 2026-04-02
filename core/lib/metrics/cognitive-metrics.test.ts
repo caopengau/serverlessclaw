@@ -219,6 +219,10 @@ describe('DegradationDetector', () => {
     errorRate: 0.05,
     totalTasks: 100,
     totalTokens: 40000,
+    totalReasoningSteps: 0,
+    totalPivots: 0,
+    totalClarifications: 0,
+    totalSelfCorrections: 0,
     ...overrides,
   });
 
@@ -314,6 +318,58 @@ describe('DegradationDetector', () => {
 
     const tokenAnomaly = anomalies.find((a) => a.type === AnomalyType.TOKEN_OVERUSE);
     expect(tokenAnomaly).toBeUndefined();
+  });
+
+  it('should detect latency anomaly when avgTaskLatencyMs exceeds threshold', () => {
+    const metrics = createMetrics({ avgTaskLatencyMs: 35000, totalTasks: 20 });
+    const anomalies = detector.detectAnomalies('agent-1', metrics);
+
+    const latencyAnomaly = anomalies.find((a) => a.type === AnomalyType.LATENCY_ANOMALY);
+    expect(latencyAnomaly).toBeDefined();
+    expect(latencyAnomaly!.severity).toBe(AnomalySeverity.MEDIUM);
+    expect(latencyAnomaly!.description).toContain('35000ms');
+  });
+
+  it('should escalate latency anomaly to HIGH when above 2x threshold', () => {
+    const metrics = createMetrics({ avgTaskLatencyMs: 70000, totalTasks: 20 });
+    const anomalies = detector.detectAnomalies('agent-1', metrics);
+
+    const latencyAnomaly = anomalies.find((a) => a.type === AnomalyType.LATENCY_ANOMALY);
+    expect(latencyAnomaly?.severity).toBe(AnomalySeverity.HIGH);
+  });
+
+  it('should not detect latency anomaly when totalTasks is 5 or less', () => {
+    const metrics = createMetrics({ avgTaskLatencyMs: 50000, totalTasks: 3 });
+    const anomalies = detector.detectAnomalies('agent-1', metrics);
+
+    const latencyAnomaly = anomalies.find((a) => a.type === AnomalyType.LATENCY_ANOMALY);
+    expect(latencyAnomaly).toBeUndefined();
+  });
+
+  it('should detect cognitive loop when pivot rate exceeds threshold', () => {
+    const metrics = createMetrics({ totalPivots: 6, totalTasks: 10 });
+    const anomalies = detector.detectAnomalies('agent-1', metrics);
+
+    const loopAnomaly = anomalies.find((a) => a.type === AnomalyType.COGNITIVE_LOOP);
+    expect(loopAnomaly).toBeDefined();
+    expect(loopAnomaly!.severity).toBe(AnomalySeverity.HIGH);
+    expect(loopAnomaly!.description).toContain('60.0%');
+  });
+
+  it('should escalate cognitive loop to CRITICAL when pivot rate above 1.5x threshold', () => {
+    const metrics = createMetrics({ totalPivots: 8, totalTasks: 10 });
+    const anomalies = detector.detectAnomalies('agent-1', metrics);
+
+    const loopAnomaly = anomalies.find((a) => a.type === AnomalyType.COGNITIVE_LOOP);
+    expect(loopAnomaly?.severity).toBe(AnomalySeverity.CRITICAL);
+  });
+
+  it('should not detect cognitive loop when totalTasks is 5 or less', () => {
+    const metrics = createMetrics({ totalPivots: 5, totalTasks: 5 });
+    const anomalies = detector.detectAnomalies('agent-1', metrics);
+
+    const loopAnomaly = anomalies.find((a) => a.type === AnomalyType.COGNITIVE_LOOP);
+    expect(loopAnomaly).toBeUndefined();
   });
 
   it('should detect multiple anomalies simultaneously', () => {

@@ -24,8 +24,7 @@ release: ## Full release: Tier 1 -> (Deploy + Tier 2) -> (Verify + E2E) -> Tag
 		$(call log_error,Deployment failed.); \
 		exit 1; \
 	fi
-	$(eval RELEASE_URL := $(shell cat .sst/outputs.json | python3 -c "import json,sys; print(json.load(sys.stdin)['apiUrl'])"))
-	@$(MAKE) test-tier-3 URL=$(RELEASE_URL)
+	@$(MAKE) test-tier-3
 	@$(MAKE) tag
 	@$(call log_success,Release completed successfully!)
 

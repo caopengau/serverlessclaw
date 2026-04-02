@@ -26,6 +26,7 @@
 | `uninstallSkill`          | Removes a tool from an agent's roster                                       |     —      |        ✅        |
 | `discoverPeers`           | Discovers peer agents in the swarm (filter by capability/category)          |     —      |        —         |
 | `registerPeer`            | Registers a bidirectional peer connection in swarm topology                 |     —      |        ✅        |
+| `unregisterPeer`          | Unregisters a peer connection from the swarm topology                       |     —      |        ✅        |
 | `requestConsensus`        | Requests swarm consensus (majority/unanimous/weighted modes)                |     —      |        ✅        |
 | `createWorkspace`         | Creates a new multi-human multi-agent workspace                             |     —      |        ✅        |
 | `inviteMember`            | Invites a human or agent to a workspace (admin/owner only)                  |     —      |        ✅        |

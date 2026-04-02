@@ -694,6 +694,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
           agentId: AgentType.CODER,
           task: sub.task,
           metadata: { gapIds: sub.gapIds, subTaskId: sub.subTaskId, planId: sub.planId },
+          dependsOn: sub.dependencies.map((depIndex) => decomposed.subTasks[depIndex].subTaskId),
         }));
 
         await emitEvent(AgentType.STRATEGIC_PLANNER, EventType.PARALLEL_TASK_DISPATCH, {

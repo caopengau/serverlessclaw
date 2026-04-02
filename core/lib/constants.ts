@@ -389,6 +389,8 @@ export const TOOLS = {
   manageAgentTools: 'manageAgentTools',
   /** Performs a system-wide health and connectivity check. */
   checkHealth: 'checkHealth',
+  /** Runs a deep cognitive health check analyzing reasoning, memory, and anomalies. */
+  runCognitiveHealthCheck: 'runCognitiveHealthCheck',
   /** Returns a graph of the current agent-tool-resource linkages. */
   inspectTopology: 'inspectTopology',
   /** Updates a global or agent-specific configuration parameter. */
@@ -423,6 +425,8 @@ export const TOOLS = {
   discoverPeers: 'discoverPeers',
   /** Registers a peer connection in the swarm topology. */
   registerPeer: 'registerPeer',
+  /** Unregisters a peer connection from the swarm topology. */
+  unregisterPeer: 'unregisterPeer',
   /** Requests swarm consensus from multiple agents on a proposal. */
   requestConsensus: 'requestConsensus',
   /** Creates a new workspace for multi-human multi-agent collaboration. */

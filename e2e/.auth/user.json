@@ -3,11 +3,11 @@
     {
       "name": "claw_auth_session",
       "value": "authenticated",
-      "domain": "localhost",
+      "domain": "superclaw.getaiready.dev",
       "path": "/",
-      "expires": 1775698686.106999,
+      "expires": 1775700267.328683,
       "httpOnly": true,
-      "secure": false,
+      "secure": true,
       "sameSite": "Strict"
     }
   ],

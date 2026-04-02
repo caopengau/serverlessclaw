@@ -9,10 +9,20 @@ test-tier-1: test-silent ## Run Tier 1: Unit tests (silent)
 
 test-tier-2: test-coverage ## Run Tier 2: Coverage and Integration tests
 
-test-tier-3: ## Run Tier 3: Deployment health and E2E
-	@$(call log_step,Running Tier 3 (Deployment Verification)...)
-	@if [ -z "$(URL)" ]; then $(call log_error,URL is required for Tier 3); exit 1; fi; \
-	$(call run_parallel_gate,verify~$(MAKE) verify URL=$(URL)||e2e~$(MAKE) test-e2e-deployed URL=$(URL))
+test-tier-3: ## Run Tier 3: Deployment health and E2E (uses .sst/outputs.json if URL/DASHBOARD_URL not provided)
+	@$(call log_step,Running Tier 3 (Full Deployment Verification)...)
+	@OUTPUTS=$$(cat .sst/outputs.json 2>/dev/null) ; \
+	API_URL=$(URL); \
+	if [ -z "$$API_URL" ] && [ -n "$$OUTPUTS" ]; then \
+		API_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('apiUrl',''))" 2>/dev/null) ; \
+	fi ; \
+	FINAL_DASHBOARD_URL=$(DASHBOARD_URL); \
+	if [ -z "$$FINAL_DASHBOARD_URL" ] && [ -n "$$OUTPUTS" ]; then \
+		FINAL_DASHBOARD_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboardUrl',''))" 2>/dev/null) ; \
+	fi ; \
+	if [ -z "$$API_URL" ]; then $(call log_error,API URL is required for Tier 3); exit 1; fi; \
+	if [ -z "$$FINAL_DASHBOARD_URL" ]; then $(call log_error,DASHBOARD URL is required for Tier 3); exit 1; fi; \
+	$(call run_parallel_gate,verify~$(MAKE) verify URL=$$API_URL||e2e~$(MAKE) test-e2e-deployed URL=$$FINAL_DASHBOARD_URL)
 
 verify: ## Verify the deployment health. Usage: make verify URL=https://...
 	@$(call log_info,Verifying deployment health at $(URL)...)

@@ -27,7 +27,8 @@ deploy: ## Deploy SST to the environment (default: prod)
 	$(SST) deploy --stage $(ENV) --yes && \
 	$(call log_info,Running post-deploy CloudFront fix...) && \
 	$(PNPM) exec tsx scripts/quality/fix-cloudfront-deploy.ts $(ENV) && \
-	$(MAKE) verify-deploy
+	$(MAKE) verify-deploy ; \
+	if [ "$(E2E)" = "true" ]; then $(MAKE) test-tier-3 ; fi
 	@$(call log_success,SST deploy to $(ENV) completed successfully)
 
 diff: ## Show SST infrastructure changes
