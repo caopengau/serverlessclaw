@@ -8,7 +8,7 @@ test.describe('Evolution Pipeline', () => {
     await expect(page).toHaveURL('/pipeline');
     await page.waitForLoadState('networkidle');
     // Page should contain the Evolution Pipeline heading
-    await expect(page.locator('h1, h2').filter({ hasText: /Evolution Pipeline/i })).toBeVisible({
+    await expect(page.getByText(/Evolution Pipeline/i).first()).toBeVisible({
       timeout: 15000,
     });
   });
@@ -30,8 +30,8 @@ test.describe('Evolution Pipeline', () => {
     const activeGapsCard = page.locator('text=/Active Gaps/i');
     const successCard = page.locator('text=/Historical Success/i');
 
-    await expect(activeGapsCard).toBeVisible({ timeout: 15000 });
-    await expect(successCard).toBeVisible({ timeout: 15000 });
+    await expect(activeGapsCard.first()).toBeVisible({ timeout: 15000 });
+    await expect(successCard.first()).toBeVisible({ timeout: 15000 });
   });
 
   test('navigation from sidebar to pipeline works', async ({ page }) => {

@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
@@ -12,8 +12,17 @@ export default defineConfig({
   webServer: process.env.BASE_URL
     ? undefined // skip local server when testing a deployed URL
     : {
-        command: 'pnpm --filter dashboard dev',
+        command: 'make dev-mono',
         port: 7777,
         reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
       },
+  projects: [
+    { name: 'setup', testMatch: /.*\.setup\.ts/ },
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/user.json' },
+      dependencies: ['setup'],
+    },
+  ],
 });

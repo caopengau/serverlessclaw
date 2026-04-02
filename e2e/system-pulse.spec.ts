@@ -12,7 +12,7 @@ test.describe('System Pulse', () => {
     await page.goto('/system-pulse');
     await page.waitForLoadState('networkidle');
     // React Flow renders a container with specific classes
-    const flowContainer = page.locator('.react-flow, [class*="react-flow"]');
+    const flowContainer = page.locator('.react-flow').first();
     await expect(flowContainer).toBeVisible({ timeout: 15000 });
   });
 

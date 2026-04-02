@@ -38,6 +38,7 @@ const Button: React.FC<ButtonProps> = ({
 
   return (
     <button
+      {...props}
       className={`
         flex items-center justify-center gap-2 rounded-sm transition-all group
         ${variantStyles} 
@@ -48,7 +49,6 @@ const Button: React.FC<ButtonProps> = ({
         ${className}
       `}
       disabled={loading || disabled}
-      {...props}
     >
       {loading ? (
         <Loader2 size={16} className="animate-spin" />

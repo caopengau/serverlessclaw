@@ -132,6 +132,7 @@ export function ChatInput({
 
           <Button
             type="submit"
+            disabled={(!input.trim() && attachments.length === 0) || isLoading}
             className={`h-[52px] px-6 !rounded-lg self-center transition-all ${
               (!input.trim() && attachments.length === 0) || isLoading
                 ? 'opacity-50 cursor-not-allowed'

@@ -60,13 +60,13 @@ export default function CyberSelect({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className={`w-full justify-between font-mono bg-black/40
-          ${disabled ? 'opacity-50 cursor-not-allowed border-white/10' : `cursor-pointer hover:bg-[${THEME.COLORS.INTEL}]/5 hover:shadow-[0_0_10px_rgba(0,224,255,0.1)]`}
-          ${isOpen ? `border-[${THEME.COLORS.PRIMARY}] shadow-[0_0_15px_rgba(0,255,163,0.2)]` : `border-[${THEME.COLORS.INTEL}]/30`}
+          ${disabled ? 'opacity-50 cursor-not-allowed border-white/10' : `cursor-pointer hover:bg-${THEME.COLORS.INTEL}/5 hover:shadow-[0_0_10px_rgba(0,224,255,0.1)]`}
+          ${isOpen ? `border-${THEME.COLORS.PRIMARY} shadow-[0_0_15px_rgba(0,255,163,0.2)]` : `border-${THEME.COLORS.INTEL}/30`}
         `}
         icon={
           <ChevronDown
             size={14}
-            className={`text-[${THEME.COLORS.INTEL}] transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+            className={`text-${THEME.COLORS.INTEL} transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
           />
         }
       >
@@ -84,18 +84,19 @@ export default function CyberSelect({
               </div>
             ) : (
               options.map((option) => (
-                <div
+                <button
+                  type="button"
                   key={option.value}
                   onClick={() => {
                     onChange(option.value);
                     setIsOpen(false);
                   }}
-                  className={`px-3 py-2 text-xs cursor-pointer transition-colors font-mono
-                    ${option.value === value ? `bg-[${THEME.COLORS.INTEL}]/20 text-[${THEME.COLORS.INTEL}] border-l-2 border-[${THEME.COLORS.INTEL}]` : 'text-white/70 hover:bg-white/5 hover:text-white'}
+                  className={`w-full text-left px-3 py-2 text-xs cursor-pointer transition-colors font-mono
+                    ${option.value === value ? `bg-${THEME.COLORS.INTEL}/20 text-${THEME.COLORS.INTEL} border-l-2 border-${THEME.COLORS.INTEL}` : 'text-white/70 hover:bg-white/5 hover:text-white'}
                   `}
                 >
                   {option.label}
-                </div>
+                </button>
               ))
             )}
           </div>

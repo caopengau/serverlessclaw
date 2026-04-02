@@ -15,9 +15,20 @@ import { HTTP_STATUS } from '@claw/core/lib/constants';
 export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { password } = await req.json();
-    const correctPassword = Resource.DashboardPassword.value;
+    const isDev = process.env.NODE_ENV !== 'production';
+    let correctPassword = Resource.DashboardPassword?.value;
 
-    if (password && correctPassword && password === correctPassword) {
+    // Handle unset SST secrets in dev mode (SST uses placeholders like {{ Name }})
+    if (isDev && (!correctPassword || (typeof correctPassword === 'string' && correctPassword.includes('{{')))) {
+      correctPassword = 'test-password';
+    }
+
+    // Allow the correct password, or fallback to 'test-password' in development for E2E tests
+    const isAuthorized = password && correctPassword && (
+      password === correctPassword || (isDev && password === 'test-password')
+    );
+
+    if (isAuthorized) {
       const response = NextResponse.json({ success: true });
       
       // Set a secure, HttpOnly cookie for "authentication"

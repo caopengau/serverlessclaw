@@ -1,0 +1,15 @@
+{
+  "cookies": [
+    {
+      "name": "claw_auth_session",
+      "value": "authenticated",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1775698686.106999,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Strict"
+    }
+  ],
+  "origins": []
+}

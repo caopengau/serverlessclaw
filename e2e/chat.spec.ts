@@ -6,19 +6,19 @@ test.describe('Chat Flow', () => {
   test('renders chat page', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('textarea')).toBeVisible();
-    await expect(page.getByText('SEND')).toBeVisible();
+    await expect(page.getByRole('button', { name: /SEND/i })).toBeVisible();
   });
 
   test('send button is disabled when input is empty', async ({ page }) => {
     await page.goto('/');
-    const sendButton = page.getByText('SEND').locator('..');
+    const sendButton = page.getByRole('button', { name: /SEND/i });
     await expect(sendButton).toBeDisabled();
   });
 
   test('send button is enabled when input has text', async ({ page }) => {
     await page.goto('/');
     await page.fill('textarea', 'Hello agent');
-    const sendButton = page.getByText('SEND').locator('..');
+    const sendButton = page.getByRole('button', { name: /SEND/i });
     await expect(sendButton).toBeEnabled();
   });
 
@@ -56,7 +56,7 @@ test.describe('Chat Flow', () => {
 
   test('chat sidebar shows conversations', async ({ page }) => {
     await page.goto('/');
-    // Sidebar should exist with conversation list
-    await expect(page.locator('aside')).toBeVisible();
+    // Sidebar should exist with conversation list. Use .first() if multiple exist.
+    await expect(page.locator('aside').first()).toBeVisible();
   });
 });

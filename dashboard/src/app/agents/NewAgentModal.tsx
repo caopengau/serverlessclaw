@@ -22,7 +22,11 @@ export default function NewAgentModal({ show, onClose, newAgent, setNewAgent, fi
   if (!show) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
+      role="dialog"
+      aria-modal="true"
+    >
       <Card variant="solid" padding="lg" className="max-w-2xl w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] space-y-6 relative">
         <Button 
           variant="ghost"
