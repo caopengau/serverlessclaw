@@ -11,35 +11,12 @@
 import { logger } from '../logger';
 import { TIME, MEMORY_KEYS } from '../constants';
 import type { BaseMemoryProvider } from './base';
+import type { AgentReputation } from '../types/reputation';
 
 /**
  * Rolling window for reputation metrics (7 days in milliseconds).
  */
 const REPUTATION_WINDOW_MS = 7 * TIME.MS_PER_DAY;
-
-/**
- * Reputation data stored per agent.
- */
-export interface AgentReputation {
-  /** The agent identifier. */
-  agentId: string;
-  /** Total tasks completed successfully in the rolling window. */
-  tasksCompleted: number;
-  /** Total tasks failed in the rolling window. */
-  tasksFailed: number;
-  /** Cumulative latency of completed tasks (ms) for average calculation. */
-  totalLatencyMs: number;
-  /** Computed success rate: tasksCompleted / (tasksCompleted + tasksFailed). */
-  successRate: number;
-  /** Computed average latency: totalLatencyMs / tasksCompleted. */
-  avgLatencyMs: number;
-  /** Timestamp of last task completion or failure. */
-  lastActive: number;
-  /** Start of the current rolling window. */
-  windowStart: number;
-  /** Epoch second for DynamoDB TTL. */
-  expiresAt: number;
-}
 
 /**
  * Resolves the DynamoDB partition key for a reputation record.
@@ -72,7 +49,7 @@ export async function getReputation(
     if (items.length === 0) return null;
 
     const item = items[0];
-    return {
+    const rep: AgentReputation = {
       agentId: item.agentId as string,
       tasksCompleted: (item.tasksCompleted as number) ?? 0,
       tasksFailed: (item.tasksFailed as number) ?? 0,
@@ -82,7 +59,13 @@ export async function getReputation(
       lastActive: (item.lastActive as number) ?? 0,
       windowStart: (item.windowStart as number) ?? Date.now(),
       expiresAt: (item.expiresAt as number) ?? 0,
+      createdAt: (item.createdAt as number) ?? Date.now(),
+      totalTasks: ((item.tasksCompleted as number) ?? 0) + ((item.tasksFailed as number) ?? 0),
+      rollingWindow: 7,
+      score: 0,
     };
+    rep.score = computeReputationScore(rep);
+    return rep;
   } catch (error) {
     logger.error(`Failed to get reputation for ${agentId}:`, error);
     return null;

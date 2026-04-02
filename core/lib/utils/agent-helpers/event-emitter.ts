@@ -30,6 +30,7 @@ export async function emitTaskEvent(params: {
   depth?: number;
   metadata?: Record<string, unknown>;
   userNotified?: boolean;
+  idempotencyKey?: string;
 }): Promise<void> {
   const isFailure = !!params.error;
   const eventType = isFailure ? EventType.TASK_FAILED : EventType.TASK_COMPLETED;
@@ -50,5 +51,7 @@ export async function emitTaskEvent(params: {
   };
 
   // Delegate to typed emitter for validation and emission
-  await emitTypedEvent(params.source, eventType, detail);
+  await emitTypedEvent(params.source, eventType, detail, {
+    idempotencyKey: params.idempotencyKey,
+  });
 }

@@ -26,33 +26,11 @@ describe('EventBridge routing contracts', () => {
   });
 
   describe('AgentRunnerSubscriber', () => {
-    it('excludes EventType.CHUNK from the anything-but list', () => {
-      const workerMatch = agentsSource.match(
-        /bus\.subscribe\('AgentRunnerSubscriber'[\s\S]*?'anything-but':\s*\[([\s\S]*?)\]/m
+    it('uses prefix matching for dynamic tasks', () => {
+      const agentRunnerMatch = agentsSource.match(
+        /bus\.subscribe\('AgentRunnerSubscriber'[\s\S]*?prefix:\s*'dynamic_'/m
       );
-      expect(workerMatch).toBeTruthy();
-      const exclusions = workerMatch![1];
-      expect(exclusions).toContain('EventType.CHUNK');
-    });
-
-    it('excludes all known event types from the anything-but list', () => {
-      const workerMatch = agentsSource.match(
-        /bus\.subscribe\('AgentRunnerSubscriber'[\s\S]*?'anything-but':\s*\[([\s\S]*?)\]/m
-      );
-      expect(workerMatch).toBeTruthy();
-      const exclusions = workerMatch![1];
-
-      // These must be excluded so they route to dedicated handlers instead
-      const requiredExclusions = [
-        'EventType.CHUNK',
-        'EventType.OUTBOUND_MESSAGE',
-        'EventType.TASK_COMPLETED',
-        'EventType.TASK_FAILED',
-        'EventType.CODER_TASK',
-      ];
-      for (const evt of requiredExclusions) {
-        expect(exclusions).toContain(evt);
-      }
+      expect(agentRunnerMatch).toBeTruthy();
     });
   });
 });

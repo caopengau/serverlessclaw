@@ -63,6 +63,7 @@ export class BaseMemoryProvider {
       await this.docClient.send(command);
     } catch (error) {
       logger.error('Error putting item into DynamoDB:', error);
+      throw error;
     }
   }
 
@@ -83,12 +84,12 @@ export class BaseMemoryProvider {
     try {
       const response = await this.docClient.send(command);
       return {
-        items: response.Items ?? [],
+        items: (response.Items as Record<string, unknown>[]) ?? [],
         lastEvaluatedKey: response.LastEvaluatedKey,
       };
     } catch (error) {
       logger.error('Error querying DynamoDB:', error);
-      return { items: [] };
+      throw error;
     }
   }
 
@@ -162,19 +163,33 @@ export class BaseMemoryProvider {
    * @returns A promise resolving to an array of items.
    */
   public async scanByPrefix(prefix: string): Promise<Record<string, unknown>[]> {
-    const command = new ScanCommand({
-      TableName: this.tableName,
-      FilterExpression: 'begins_with(userId, :prefix)',
-      ExpressionAttributeValues: {
-        ':prefix': prefix,
-      },
-    });
+    const items: Record<string, unknown>[] = [];
+    let lastEvaluatedKey: Record<string, unknown> | undefined = undefined;
+
     try {
-      const response = await this.docClient.send(command);
-      return response.Items ?? [];
+      do {
+        const scanCommand = new ScanCommand({
+          TableName: this.tableName,
+          FilterExpression: 'begins_with(userId, :prefix)',
+          ExpressionAttributeValues: {
+            ':prefix': prefix,
+          },
+          ExclusiveStartKey: lastEvaluatedKey,
+        } as import('@aws-sdk/lib-dynamodb').ScanCommandInput);
+
+        const scanResponse = (await this.docClient.send(
+          scanCommand
+        )) as import('@aws-sdk/lib-dynamodb').ScanCommandOutput;
+        if (scanResponse.Items && scanResponse.Items.length > 0) {
+          items.push(...(scanResponse.Items as Record<string, unknown>[]));
+        }
+        lastEvaluatedKey = scanResponse.LastEvaluatedKey;
+      } while (lastEvaluatedKey);
+
+      return items;
     } catch (error) {
       logger.error('Error scanning DynamoDB by prefix:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -219,17 +234,41 @@ export class BaseMemoryProvider {
       },
     });
 
+    if (items.length === 0) return;
+
     // Batch delete in groups of 25 (DynamoDB limit)
     for (let i = 0; i < items.length; i += 25) {
       const batch = items.slice(i, i + 25);
-      const requestItems = {
+      let requestItems = {
         [this.tableName]: batch.map((item) => ({
           DeleteRequest: {
             Key: { userId: item.userId as string, timestamp: item.timestamp as number },
           },
         })),
       };
-      await this.docClient.send(new BatchWriteCommand({ RequestItems: requestItems }));
+
+      // Retry loop for unprocessed items (throughput throttling)
+      let attempts = 0;
+      const MAX_ATTEMPTS = 5;
+
+      while (Object.keys(requestItems).length > 0 && attempts < MAX_ATTEMPTS) {
+        if (attempts > 0) {
+          const delay = Math.pow(2, attempts) * 100 + Math.random() * 100;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+
+        const response = await this.docClient.send(
+          new BatchWriteCommand({ RequestItems: requestItems })
+        );
+        requestItems = (response.UnprocessedItems as typeof requestItems) ?? {};
+        attempts++;
+      }
+
+      if (Object.keys(requestItems).length > 0) {
+        logger.error(`Failed to clear all history for ${userId} after ${MAX_ATTEMPTS} attempts.`, {
+          unprocessedCount: Object.keys(requestItems[this.tableName] || {}).length,
+        });
+      }
     }
     logger.info(`Cleared history for ${userId} (${items.length} items)`);
   }

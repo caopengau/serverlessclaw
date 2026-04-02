@@ -61,6 +61,8 @@ export interface IToolDefinition {
   };
   /** Whether this tool requires manual human approval before execution. */
   requiresApproval?: boolean;
+  /** Required RBAC permissions to execute this tool. */
+  requiredPermissions?: string[];
 }
 
 /**

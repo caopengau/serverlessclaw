@@ -1,13 +1,10 @@
-import { SharedContext, getValidSecrets } from './shared';
-
-/** Lambda runtime architecture for all MCP server functions */
-const LAMBDA_ARCHITECTURE = 'arm64';
-
-/** Node.js loader configuration for markdown files */
-const NODEJS_LOADERS = { '.md': 'text' } as const;
-
-/** Default log retention period for Lambda functions */
-const LOG_RETENTION_PERIOD = '1 month';
+import {
+  SharedContext,
+  getValidSecrets,
+  LAMBDA_ARCHITECTURE,
+  NODEJS_LOADERS,
+  LOG_RETENTION_PERIOD,
+} from './shared';
 
 /** Default memory allocation for warmup handler */
 const WARMUP_HANDLER_MEMORY = '128 MB';

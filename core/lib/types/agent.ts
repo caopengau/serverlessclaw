@@ -2,18 +2,29 @@
  * @module AgentTypes
  * Core type definitions for the agent swarm, including events, payloads, and lifecycle states.
  */
-export interface Attachment {
-  /** The type classification of the attachment. */
-  type: import('./llm').AttachmentType;
-  /** Public URL of the attachment if available. */
-  url?: string;
-  /** Base64 encoded content for direct ingestion. */
-  base64?: string;
-  /** Filename for identification. */
-  name?: string;
-  /** MIME type for correct parser selection. */
-  mimeType?: string;
-}
+import type {
+  AttachmentPayload,
+  BaseEventPayload,
+  AgentPayloadInferred,
+  TaskEventPayload,
+  BuildEventPayload,
+  CompletionEventPayload,
+  OutboundMessageEventPayload,
+  FailureEventPayload,
+  HealthReportEventPayload,
+  ProactiveHeartbeatPayloadInferred,
+} from '../schema/events';
+
+export type Attachment = AttachmentPayload;
+export type BaseEvent = BaseEventPayload;
+export type AgentPayload = AgentPayloadInferred;
+export type TaskEvent = TaskEventPayload;
+export type BuildEvent = BuildEventPayload;
+export type CompletionEvent = CompletionEventPayload;
+export type OutboundMessageEvent = OutboundMessageEventPayload;
+export type FailureEvent = FailureEventPayload;
+export type HealthReportEvent = HealthReportEventPayload;
+export type ProactiveHeartbeatPayload = ProactiveHeartbeatPayloadInferred;
 
 /**
  * Event routing configuration for dynamic dispatch.
@@ -33,40 +44,6 @@ export interface EventRoutingEntry {
 export type EventRoutingTable = Record<string, EventRoutingEntry>;
 
 /**
- * Common properties for all events on the AgentBus.
- */
-export interface BaseEvent {
-  /** The ID of the user who initiated the session. */
-  userId: string;
-  /** Global trace ID for correlating all sub-steps. */
-  traceId: string;
-  /** Unique ID for a specific task/execution unit. */
-  taskId: string;
-  /** The agent ID that started this task (for routing results). */
-  initiatorId: string;
-  /** Current recursion depth to prevent infinite delegations. */
-  depth: number;
-  /** The active session identifier. */
-  sessionId?: string;
-}
-
-/**
- * Shared payload for EventBridge-triggered agent handlers.
- */
-export interface AgentPayload extends BaseEvent {
-  /** The actual instruction or query for the agent. */
-  task?: string;
-  /** The text response from the agent. */
-  response?: string;
-  /** Additional structured data associated with the event. */
-  metadata?: Record<string, unknown>;
-  /** Multi-modal artifacts associated with this payload. */
-  attachments?: Attachment[];
-  /** Whether this is a continuation of a previously paused task. */
-  isContinuation?: boolean;
-}
-
-/**
  * Shared EventBridge event structure for agent handlers.
  */
 export interface AgentEvent {
@@ -74,120 +51,6 @@ export interface AgentEvent {
   detail?: AgentPayload;
   /** The source of the event (e.g., 'core.superclaw'). */
   source?: string;
-}
-
-/**
- * Task delegation event emitted when an agent assigns work to another.
- */
-export interface TaskEvent extends BaseEvent {
-  /** The specific instruction or task description. */
-  task: string;
-  /** Whether this is a continuation of a previously paused task. */
-  isContinuation?: boolean;
-  /** Arbitrary metadata associated with the task. */
-  metadata?: Record<string, unknown>;
-  /** Files or images required for the task. */
-  attachments?: Attachment[];
-}
-
-/**
- * System build event emitted by CodeBuild or the Monitor.
- */
-export interface BuildEvent extends BaseEvent {
-  /** AWS CodeBuild ID. */
-  buildId: string;
-  /** The SST/CodeBuild project name. */
-  projectName: string;
-  /** The task description that triggered this build. */
-  task?: string;
-  /** Standard error logs if the build failed. */
-  errorLogs?: string;
-  /** IDs of strategic gaps addressed by this build. */
-  gapIds?: string[];
-}
-
-/**
- * Task completion event emitted when an agent successfully finishes work.
- */
-export interface CompletionEvent extends BaseEvent {
-  /** The ID of the agent completing the task. */
-  agentId: string;
-  /** The original task description. */
-  task: string;
-  /** The final result or response string. */
-  response: string;
-  /** Results returned as attachments (e.g., charts, files). */
-  attachments?: Attachment[];
-  /** Whether the end user has already been notified of this result. */
-  userNotified?: boolean;
-}
-
-/**
- * Outbound message event for external channels (Slack, Telegram, Dashboard).
- */
-export interface OutboundMessageEvent extends BaseEvent {
-  /** The message text to be sent. */
-  message: string;
-  /** Optional override for the sender's display name. */
-  agentName?: string;
-  /** Relevant memory IDs for citation or grounding. */
-  memoryContexts?: string[];
-  /** Any files or images to include in the message. */
-  attachments?: Attachment[];
-  /** Functional buttons or options for user interaction. */
-  options?: {
-    /** The text displayed on the button. */
-    label: string;
-    /** The value payload sent back when clicked. */
-    value: string;
-    /** The visual style or type of the button. */
-    type?: import('./llm').ButtonType;
-  }[];
-  /** Optional collaboration ID for multi-human notification fan-out. */
-  collaborationId?: string;
-}
-
-/**
- * Task failure event emitted when an agent encounters an unrecoverable error.
- */
-export interface FailureEvent extends BaseEvent {
-  /** The ID of the agent reporting the failure. */
-  agentId: string;
-  /** The original task description. */
-  task: string;
-  /** The error message or stack trace. */
-  error: string;
-  /** Whether the end user has already been notified of this failure. */
-  userNotified?: boolean;
-}
-
-/**
- * System health report event for proactive monitoring.
- */
-export interface HealthReportEvent extends BaseEvent {
-  /** The system component being reported (e.g., 'DynamoDB', 'EventBridge'). */
-  component: string;
-  /** Detailed description of the health issue. */
-  issue: string;
-  /** The urgency level of the report. */
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  /** Additional diagnostic context. */
-  context?: Record<string, unknown>;
-}
-
-/**
- * Payload for a proactive heartbeat signal from the dynamic scheduler.
- * Used for periodic strategic reviews and health checks.
- */
-export interface ProactiveHeartbeatPayload extends BaseEvent {
-  /** The ID of the agent that should respond to this heartbeat. */
-  agentId: string;
-  /** The specific task or goal to be performed. */
-  task: string;
-  /** Unique ID for the goal or schedule. */
-  goalId: string;
-  /** Optional additional metadata for execution. */
-  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -203,10 +66,12 @@ export enum AgentCategory {
 /**
  * Safety tiers for agent trust levels.
  * - sandbox: All actions require HITL approval
+ * - staged: Auto code, approval for deploys/shell
  * - autonomous: Full self-evolution (current AUTO mode)
  */
 export enum SafetyTier {
   SANDBOX = 'sandbox',
+  STAGED = 'staged',
   AUTONOMOUS = 'autonomous',
 }
 

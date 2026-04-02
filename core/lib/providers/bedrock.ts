@@ -21,12 +21,10 @@ import {
   MessageChunk,
   ResponseFormat,
 } from '../types/index';
-import { Resource } from 'sst';
 import { logger } from '../logger';
 import { normalizeProfile, SUPPORTED_IMAGE_FORMATS } from './utils';
 
 // --- Constants and Configuration ---
-const DEFAULT_REGION = 'ap-southeast-2';
 const DEFAULT_TOP_P = 0.9;
 const DEFAULT_CONTEXT_WINDOW = 200000;
 const CLAUDE_46_MODELS = ['claude-sonnet-4-6', 'claude-4-6', 'claude-v4.6'];
@@ -89,14 +87,6 @@ interface BedrockReasoningConfig {
   thinkingEnabled: boolean;
   maxTokens: number;
   temperature: number;
-}
-
-/**
- * Interface for SST Resource object to avoid 'as any' assertions.
- */
-interface ClawSstResource {
-  AwsRegion?: { value: string };
-  [key: string]: unknown;
 }
 
 /**
@@ -242,11 +232,23 @@ function createAttachmentBlock(
  * Implements 'thinking' budgets and native multi-modal support via the Converse API.
  */
 export class BedrockProvider implements IProvider {
+  private static _client: BedrockRuntimeClient | null = null;
+  private static _currentRegion: string | null = null;
+
   /**
    * Initializes the Bedrock provider.
    * @param modelId The model ID to use (defaults to Claude 4.6).
    */
   constructor(private modelId: string = BedrockModel.CLAUDE_4_6) {}
+
+  private get client(): BedrockRuntimeClient {
+    const region = process.env.AWS_REGION || 'us-east-1';
+    if (!BedrockProvider._client || BedrockProvider._currentRegion !== region) {
+      BedrockProvider._client = new BedrockRuntimeClient({ region });
+      BedrockProvider._currentRegion = region;
+    }
+    return BedrockProvider._client;
+  }
 
   /**
    * Performs a non-streaming chat completion call via Bedrock Converse API.
@@ -275,10 +277,7 @@ export class BedrockProvider implements IProvider {
     topP?: number,
     stopSequences?: string[]
   ): Promise<Message> {
-    const sstResource = Resource as unknown as ClawSstResource;
-    const client = new BedrockRuntimeClient({
-      region: sstResource.AwsRegion?.value ?? DEFAULT_REGION,
-    });
+    const client = this.client;
     const activeModelId = model ?? this.modelId;
 
     const capabilities = await this.getCapabilities(activeModelId);
@@ -406,10 +405,7 @@ export class BedrockProvider implements IProvider {
     topP?: number,
     stopSequences?: string[]
   ): AsyncIterable<MessageChunk> {
-    const sstResource = Resource as unknown as ClawSstResource;
-    const client = new BedrockRuntimeClient({
-      region: sstResource.AwsRegion?.value ?? DEFAULT_REGION,
-    });
+    const client = this.client;
     const activeModelId = model ?? this.modelId;
 
     const capabilities = await this.getCapabilities(activeModelId);
@@ -478,8 +474,7 @@ export class BedrockProvider implements IProvider {
       const response = await client.send(command);
 
       if (!response.stream) {
-        yield { content: ' (No stream)' };
-        return;
+        throw new Error('Bedrock provider call failed: No stream in response');
       }
 
       const activeToolCalls: Map<number, { id: string; name: string; arguments: string }> =
@@ -539,7 +534,9 @@ export class BedrockProvider implements IProvider {
       }
     } catch (err) {
       logger.error('Bedrock streaming failed:', err);
-      yield { content: ' (Streaming failed)' };
+      throw new Error(
+        `Bedrock streaming failed: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 

@@ -25,6 +25,14 @@ vi.mock('../registry/config', () => ({
 
 vi.mock('../constants', () => ({
   TIME: { MS_PER_MINUTE: 60000 },
+  PROTECTED_FILES: [
+    '.git',
+    '.env',
+    'package-lock.json',
+    'pnpm-lock.yaml',
+    'yarn.lock',
+    'node_modules',
+  ],
 }));
 
 describe('SafetyConfigManager', () => {

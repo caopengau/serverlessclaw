@@ -123,11 +123,15 @@ describe('parallel-barrier-timeout-handler', () => {
       expect(mockMarkAsCompleted).not.toHaveBeenCalled();
     });
 
-    it('returns early when all tasks already completed', async () => {
+    it('performs completion when all tasks already completed but state is still pending', async () => {
       mockGetState.mockResolvedValue({
         completedCount: 3,
         taskCount: 3,
-        results: [],
+        results: [
+          { taskId: 't1', status: 'success' },
+          { taskId: 't2', status: 'success' },
+          { taskId: 't3', status: 'success' },
+        ],
         taskMapping: [],
         createdAt: Date.now() - 10000,
         initiatorId: 'superclaw',
@@ -135,10 +139,10 @@ describe('parallel-barrier-timeout-handler', () => {
 
       await handleParallelBarrierTimeout(baseEventDetail);
 
-      expect(mockMarkAsCompleted).not.toHaveBeenCalled();
+      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'success');
     });
 
-    it('emits PARALLEL_TASK_COMPLETED with partial status when some tasks succeeded', async () => {
+    it('emits PARALLEL_TASK_COMPLETED with timeout status when some tasks are missing', async () => {
       mockGetState.mockResolvedValue({
         completedCount: 2,
         taskCount: 3,
@@ -157,14 +161,14 @@ describe('parallel-barrier-timeout-handler', () => {
 
       await handleParallelBarrierTimeout(baseEventDetail);
 
-      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'partial');
+      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timeout');
       expect(mockEmitEvent).toHaveBeenCalledWith(
         'events.handler',
         'parallel_task_completed',
         expect.objectContaining({
           userId: 'user-123',
           traceId: 'trace-abc',
-          overallStatus: 'partial',
+          overallStatus: 'timeout',
           results: expect.arrayContaining([
             expect.objectContaining({ taskId: 'task-3', status: 'timeout' }),
           ]),
@@ -173,8 +177,7 @@ describe('parallel-barrier-timeout-handler', () => {
       );
     });
 
-    it('emits PARALLEL_TASK_COMPLETED with success status when all results are success', async () => {
-      // completedCount < taskCount so it doesn't early-return, but all existing results are success
+    it('emits timeout even if all existing results are success but some are missing', async () => {
       mockGetState.mockResolvedValue({
         completedCount: 2,
         taskCount: 3,
@@ -193,11 +196,10 @@ describe('parallel-barrier-timeout-handler', () => {
 
       await handleParallelBarrierTimeout(baseEventDetail);
 
-      // 2/3 success rate < 1 => partial, not success
-      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'partial');
+      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timeout');
     });
 
-    it('emits PARALLEL_TASK_COMPLETED with failed status when success rate below threshold', async () => {
+    it('emits timeout status regardless of success rate when tasks are missing', async () => {
       mockGetRawConfig.mockResolvedValue(0.5);
       mockGetState.mockResolvedValue({
         completedCount: 1,
@@ -215,8 +217,7 @@ describe('parallel-barrier-timeout-handler', () => {
 
       await handleParallelBarrierTimeout(baseEventDetail);
 
-      // 1/4 = 0.25 < 0.5 threshold => failed
-      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'failed');
+      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timeout');
     });
 
     it('skips when markAsCompleted returns false (race condition)', async () => {
@@ -235,7 +236,7 @@ describe('parallel-barrier-timeout-handler', () => {
       expect(mockEmitEvent).not.toHaveBeenCalled();
     });
 
-    it('uses default threshold of 0.5 when config is not set', async () => {
+    it('uses timeout status when config is not set and tasks are missing', async () => {
       mockGetRawConfig.mockResolvedValue(undefined);
       mockGetState.mockResolvedValue({
         completedCount: 1,
@@ -251,8 +252,7 @@ describe('parallel-barrier-timeout-handler', () => {
 
       await handleParallelBarrierTimeout(baseEventDetail);
 
-      // 1/2 = 0.5 >= 0.5 => partial
-      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'partial');
+      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timeout');
     });
   });
 });

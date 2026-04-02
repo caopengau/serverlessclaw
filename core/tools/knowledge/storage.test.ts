@@ -323,6 +323,9 @@ describe('knowledge-storage tools', () => {
       expect(mocks.deleteItem).toHaveBeenCalledWith({
         userId: 'LOCK#session-abc',
         timestamp: 0,
+        ConditionExpression: '#type = :lockType',
+        ExpressionAttributeNames: { '#type': 'type' },
+        ExpressionAttributeValues: { ':lockType': 'LOCK' },
       });
     });
 

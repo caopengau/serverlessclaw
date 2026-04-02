@@ -56,8 +56,10 @@ export const dispatchTask = {
     const tracer = new ClawTracer(userId, 'system', traceId, nodeId);
     const childTracer = tracer.getChildTracer(undefined, agentId);
 
+    const eventName = config.isBackbone ? `${agentId}_task` : `dynamic_${agentId}_task`;
+
     try {
-      await emitEvent(initiatorId ?? 'superclaw', `${agentId}_task`, {
+      await emitEvent(initiatorId ?? 'superclaw', eventName, {
         userId,
         task,
         metadata,

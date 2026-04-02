@@ -1,4 +1,5 @@
 import { logger } from '../logger';
+import { LRUCache } from '../utils/lru';
 
 /**
  * Configuration for semantic loop detection.
@@ -10,12 +11,15 @@ interface LoopDetectorConfig {
   similarityThreshold: number;
   /** Number of consecutive similar outputs to trigger a loop detection. */
   consecutiveThreshold: number;
+  /** Maximum number of sessions to track in memory. */
+  maxSessions: number;
 }
 
 const DEFAULT_CONFIG: LoopDetectorConfig = {
   windowSize: 10,
   similarityThreshold: 0.9,
   consecutiveThreshold: 3,
+  maxSessions: 1000,
 };
 
 /**
@@ -54,11 +58,12 @@ export interface LoopDetectionResult {
  * @since Phase C1
  */
 export class SemanticLoopDetector {
-  private sessions: Map<string, OutputEntry[]> = new Map();
+  private sessions: LRUCache<string, OutputEntry[]>;
   private config: LoopDetectorConfig;
 
   constructor(config: Partial<LoopDetectorConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
+    this.sessions = new LRUCache(this.config.maxSessions);
   }
 
   /**

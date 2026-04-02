@@ -5,6 +5,7 @@ import { EventType } from '../../lib/types/agent';
 import { ClarificationStatus } from '../../lib/types/memory';
 import { addTraceStep } from '../../lib/utils/trace-helper';
 import { TRACE_TYPES } from '../../lib/constants';
+import { z } from 'zod';
 
 import { AGENT_PAYLOAD_SCHEMA } from '../../lib/schema/events';
 
@@ -106,8 +107,8 @@ export async function handleClarificationRequest(
       retryCount,
     });
 
-    const timeoutMs =
-      ((await ConfigManager.getRawConfig('clarification_timeout_ms')) as number) ?? 300000;
+    const rawTimeout = await ConfigManager.getRawConfig('clarification_timeout_ms');
+    const timeoutMs = z.coerce.number().safeParse(rawTimeout).data ?? 300000;
     const targetTime = Date.now() + timeoutMs;
     const timeoutId = `clarify-${safeTraceId}-${safeAgentId}-${Date.now()}`;
 

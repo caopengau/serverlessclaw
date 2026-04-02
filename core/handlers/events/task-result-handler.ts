@@ -3,14 +3,15 @@ import { DAGExecutionState } from '../../lib/types/dag';
 import type { ParallelTaskDefinition } from '../../lib/agent/schema';
 import { COMPLETION_EVENT_SCHEMA, FAILURE_EVENT_SCHEMA } from '../../lib/schema/events';
 import { getRecursionLimit, handleRecursionLimitExceeded, wakeupInitiator } from './shared';
+import { LRUSet } from '../../lib/utils/lru';
 
 /**
  * In-memory fast-path dedup set for EventBridge's at-least-once delivery.
  * Serves as a hot cache; DynamoDB idempotency is the durable guard for cold starts.
- * Bounded to 10k entries to avoid memory leaks; resets when exceeded.
+ * Bounded to 10k entries using LRU to avoid memory leaks.
  */
-const processedEvents = new Set<string>();
 const DEDUP_MAX_SIZE = 10_000;
+const processedEvents = new LRUSet<string>(DEDUP_MAX_SIZE);
 
 /**
  * Checks and marks an event as processed using DynamoDB for cross-invocation dedup.
@@ -74,9 +75,6 @@ export async function handleTaskResult(
       return;
     }
     processedEvents.add(eventId);
-    if (processedEvents.size > DEDUP_MAX_SIZE) {
-      processedEvents.clear();
-    }
 
     // DynamoDB durable dedup for cold-start resilience
     const isFirstProcessing = await checkAndMarkProcessed(eventId);

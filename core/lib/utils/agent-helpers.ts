@@ -168,6 +168,20 @@ export async function initAgent(agentId: string | AgentType): Promise<{
   return { config, memory, provider, agent };
 }
 
+/**
+ * High-level agent execution helper.
+ * Combines initialization and processing into a single call.
+ */
+export async function processWithAgent(
+  agentId: string | AgentType,
+  userId: string,
+  task: string,
+  options: ProcessOptionsParams
+) {
+  const { agent } = await initAgent(agentId);
+  return agent.process(userId, task, buildProcessOptions(options));
+}
+
 /** Options for building process options */
 export interface ProcessOptionsParams {
   isContinuation?: boolean;

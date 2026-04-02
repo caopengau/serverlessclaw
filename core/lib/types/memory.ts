@@ -171,9 +171,9 @@ export interface IGapManager {
   /** Records a new identified capability gap in the system. */
   setGap(gapId: string, details: string, metadata?: InsightMetadata): Promise<void>;
   /** Retrieves all capability gaps, optionally filtered by their current status. */
-  getAllGaps(status?: string): Promise<MemoryInsight[]>;
+  getAllGaps(status?: import('./agent').GapStatus): Promise<MemoryInsight[]>;
   /** Updates the lifecycle status of a specific capability gap. */
-  updateGapStatus(gapId: string, status: string): Promise<void>;
+  updateGapStatus(gapId: string, status: import('./agent').GapStatus): Promise<void>;
   /** Archives stale gaps older than specified days. Returns count of archived gaps. */
   archiveStaleGaps(staleDays?: number): Promise<number>;
   /** Atomically increments the attempt counter on a capability gap. */

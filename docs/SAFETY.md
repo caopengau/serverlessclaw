@@ -2,7 +2,8 @@
 
 > **Navigation**: [← Index Hub](../INDEX.md)
 
-> g any deployment, modifying protected files, or when the circuit breaker is active.
+> [!WARNING]
+> Manual approval is required before executing any deployment, modifying protected files, or when the circuit breaker is active.
 
 ## Guardrail Overview
 

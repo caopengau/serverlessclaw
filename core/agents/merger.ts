@@ -1,5 +1,6 @@
 import { AgentType, AgentEvent, AgentPayload } from '../lib/types/agent';
 import { logger } from '../lib/logger';
+import { AGENT_ERRORS } from '../lib/constants';
 import { Context } from 'aws-lambda';
 import { extractPayload, validatePayload, initAgent } from '../lib/utils/agent-helpers';
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
@@ -50,36 +51,54 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   }
 
   // 3. Process the merging task
-  // The prompt should instruct the agent to use 'code-index-mcp' or 'rg_search'
-  // to investigate the trunk and ensure the patches are compatible.
-  const { responseText: rawResponse, attachments: resultAttachments } = await agent.process(
-    userId,
-    `Merge the following patches and check for semantic conflicts:\n${patchJson}\n\nGoal: ${task}`,
-    {
-      context,
+  try {
+    const processResult = await agent.process(
+      userId,
+      `Merge the following patches and check for semantic conflicts:\n${patchJson}\n\nGoal: ${task}`,
+      {
+        context,
+        traceId,
+        sessionId,
+        initiatorId,
+        depth,
+        communicationMode: 'json',
+      }
+    );
+
+    logger.info('Merger Agent Process Complete.');
+
+    // Emit Result
+    await emitTaskEvent({
+      source: AgentType.MERGER,
+      agentId: AgentType.MERGER,
+      userId,
+      task: task || '',
+      response: processResult.responseText,
+      attachments: processResult.attachments,
       traceId,
       sessionId,
       initiatorId,
       depth,
-      communicationMode: 'json',
-    }
-  );
+    });
 
-  logger.info('Merger Agent Process Complete.');
+    return processResult.responseText;
+  } catch (error) {
+    const errorDetail = error instanceof Error ? error.message : String(error);
+    logger.error(`[MergerAgent] Critical failure: ${errorDetail}`, error);
 
-  // 3. Emit Result
-  await emitTaskEvent({
-    source: AgentType.MERGER,
-    agentId: AgentType.MERGER,
-    userId,
-    task: task || '',
-    response: rawResponse,
-    attachments: resultAttachments,
-    traceId,
-    sessionId,
-    initiatorId,
-    depth,
-  });
+    await emitTaskEvent({
+      source: AgentType.MERGER,
+      agentId: AgentType.MERGER,
+      userId,
+      task: task || '',
+      response: AGENT_ERRORS.PROCESS_FAILURE,
+      error: errorDetail,
+      traceId,
+      sessionId,
+      initiatorId,
+      depth,
+    });
 
-  return rawResponse;
+    return AGENT_ERRORS.PROCESS_FAILURE;
+  }
 };

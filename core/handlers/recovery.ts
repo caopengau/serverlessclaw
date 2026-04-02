@@ -22,7 +22,7 @@ const memory = new DynamoMemory();
 const RECOVERY_LOCK_ID = 'dead-mans-switch-recovery';
 // TTL slightly longer than the Dead Man's Switch schedule (15 min) to guarantee one-at-a-time.
 const RECOVERY_LOCK_TTL_SECONDS = 20 * 60;
-const MAX_RECOVERY_ATTEMPTS = 2;
+const MAX_RECOVERY_ATTEMPTS = 4;
 
 /**
  * Performs a health check on the system and triggers an emergency recovery (rollback) if unhealthy.
@@ -98,13 +98,18 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
       logger.error('CRITICAL: Recovery circuit-breaker triggered. Too many consecutive failures.');
 
       const alert: OutboundMessageEvent = {
+        source: 'core.recovery',
         userId: 'ADMIN',
         traceId: `recovery-${Date.now()}`,
         taskId: `recovery-${Date.now()}`,
         initiatorId: 'DeadManSwitch',
         depth: 0,
+        timestamp: Date.now(),
         message: `🚨 *CRITICAL SYSTEM FAILURE*: Automatic recovery has failed after ${attemptCount} attempts. Manual intervention required immediately. Health Check: ${healthUrl}`,
         agentName: 'DeadManSwitch',
+        memoryContexts: [],
+        attachments: [],
+        metadata: {},
       };
 
       await emitEvent(

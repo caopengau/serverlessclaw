@@ -61,7 +61,7 @@ describe('Dead Man Switch Recovery Handler', () => {
 
   it('should circuit-break after MAX_ATTEMPTS and send alert', async () => {
     lockMocks.acquire.mockResolvedValue(true);
-    memoryMocks.incrementRecoveryAttemptCount.mockResolvedValue(3); // 3 > 2
+    memoryMocks.incrementRecoveryAttemptCount.mockResolvedValue(5); // 5 > 4 (MAX_RECOVERY_ATTEMPTS)
     ebMock.on(PutEventsCommand).resolves({});
 
     const { handler } = await import('./recovery');
@@ -112,7 +112,7 @@ describe('Dead Man Switch Recovery Handler', () => {
 
   it('should log error but continue if EventBridge escalation fails', async () => {
     lockMocks.acquire.mockResolvedValue(true);
-    memoryMocks.incrementRecoveryAttemptCount.mockResolvedValue(3);
+    memoryMocks.incrementRecoveryAttemptCount.mockResolvedValue(5);
     ebMock.on(PutEventsCommand).rejects(new Error('EventBridge Down'));
     ddbMock.on(PutCommand).resolves({});
 

@@ -51,12 +51,10 @@ describe('BaseMemoryProvider', () => {
       });
     });
 
-    it('should return empty array on error', async () => {
+    it('should re-throw error on DynamoDB failure', async () => {
       ddbMock.on(ScanCommand).rejects(new Error('DynamoDB Error'));
 
-      const result = await provider.scanByPrefix('GAP#');
-
-      expect(result).toEqual([]);
+      await expect(provider.scanByPrefix('GAP#')).rejects.toThrow('DynamoDB Error');
     });
 
     it('should return empty array if no items found', async () => {

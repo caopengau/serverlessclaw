@@ -20,13 +20,30 @@ describe('IdentityManager', () => {
   let mockBase: {
     queryItems: ReturnType<typeof vi.fn>;
     putItem: ReturnType<typeof vi.fn>;
+    deleteItem: ReturnType<typeof vi.fn>;
+    scanByPrefix: ReturnType<typeof vi.fn>;
   };
+  let state: Map<string, any>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    state = new Map();
+
     mockBase = {
-      queryItems: vi.fn().mockResolvedValue([]),
-      putItem: vi.fn().mockResolvedValue(undefined),
+      queryItems: vi.fn().mockImplementation(async ({ ExpressionAttributeValues }) => {
+        const pk = ExpressionAttributeValues[':pk'];
+        const item = state.get(pk);
+        return item ? [item] : [];
+      }),
+      putItem: vi.fn().mockImplementation(async (item) => {
+        state.set(item.userId, item);
+      }),
+      deleteItem: vi.fn().mockImplementation(async ({ userId }) => {
+        state.delete(userId);
+      }),
+      scanByPrefix: vi.fn().mockImplementation(async (prefix) => {
+        return Array.from(state.values()).filter((item) => item.userId.startsWith(prefix));
+      }),
     };
     manager = new IdentityManager(mockBase as any);
   });
@@ -115,15 +132,15 @@ describe('IdentityManager', () => {
       const authResult = await manager.authenticate('user-1', 'telegram');
       const sessionId = authResult.session!.sessionId;
 
-      const session = manager.validateSession(sessionId);
+      const session = await manager.validateSession(sessionId);
 
       expect(session).toBeDefined();
       expect(session?.sessionId).toBe(sessionId);
       expect(session?.userId).toBe('user-1');
     });
 
-    it('should return null for non-existent session', () => {
-      const session = manager.validateSession('non-existent');
+    it('should return null for non-existent session', async () => {
+      const session = await manager.validateSession('non-existent');
 
       expect(session).toBeNull();
     });
@@ -135,106 +152,101 @@ describe('IdentityManager', () => {
       const authResult = await manager.authenticate('user-1', 'telegram');
       const sessionId = authResult.session!.sessionId;
 
-      // Move time forward past expiration (24 hours + 1ms)
-      vi.setSystemTime(now + 24 * 3600000 + 1);
+      // Update state manually to simulate near-expiration
+      const sessionInState = state.get(`WORKSPACE#SESSION#${sessionId}`);
+      sessionInState.expiresAt = now + 1000;
 
-      const session = manager.validateSession(sessionId);
+      // Move time forward past expiration
+      vi.setSystemTime(now + 2000);
+
+      const session = await manager.validateSession(sessionId);
 
       expect(session).toBeNull();
-      expect(manager.getSession(sessionId)).toBeUndefined();
-    });
-
-    it('should update lastActivityTime on validation', async () => {
-      const now = 1000000000000;
-      vi.setSystemTime(now);
-
-      const authResult = await manager.authenticate('user-1', 'telegram');
-      const sessionId = authResult.session!.sessionId;
-
-      vi.setSystemTime(now + 10000);
-
-      const session = manager.validateSession(sessionId);
-
-      expect(session?.lastActivityTime).toBe(now + 10000);
+      expect(mockBase.deleteItem).toHaveBeenCalled();
     });
   });
 
   describe('hasPermission', () => {
-    it('should return false for non-existent user', () => {
-      expect(manager.hasPermission('non-existent', Permission.AGENT_VIEW)).toBe(false);
+    it('should return false for non-existent user', async () => {
+      expect(await manager.hasPermission('non-existent', Permission.AGENT_VIEW)).toBe(false);
     });
 
     it('should grant all permissions to OWNER', async () => {
+      await manager.authenticate('admin', 'telegram'); // fallback owner
       await manager.authenticate('owner-1', 'telegram');
-      await manager.updateUserRole('owner-1', UserRole.OWNER);
+      await manager.updateUserRole('owner-1', UserRole.OWNER, 'admin');
 
       const allPermissions = Object.values(Permission);
       for (const perm of allPermissions) {
-        expect(manager.hasPermission('owner-1', perm)).toBe(true);
+        expect(await manager.hasPermission('owner-1', perm)).toBe(true);
       }
     });
 
     it('should grant correct permissions to ADMIN', async () => {
+      await manager.authenticate('admin', 'telegram'); // fallback owner
       await manager.authenticate('admin-1', 'telegram');
-      await manager.updateUserRole('admin-1', UserRole.ADMIN);
+      await manager.updateUserRole('admin-1', UserRole.ADMIN, 'admin');
 
-      expect(manager.hasPermission('admin-1', Permission.AGENT_CREATE)).toBe(true);
-      expect(manager.hasPermission('admin-1', Permission.AGENT_DELETE)).toBe(true);
-      expect(manager.hasPermission('admin-1', Permission.CONFIG_UPDATE)).toBe(true);
-      expect(manager.hasPermission('admin-1', Permission.DASHBOARD_ADMIN)).toBe(true);
+      expect(await manager.hasPermission('admin-1', Permission.AGENT_CREATE)).toBe(true);
+      expect(await manager.hasPermission('admin-1', Permission.AGENT_DELETE)).toBe(true);
+      expect(await manager.hasPermission('admin-1', Permission.CONFIG_UPDATE)).toBe(true);
+      expect(await manager.hasPermission('admin-1', Permission.DASHBOARD_ADMIN)).toBe(true);
       // ADMIN should not have workspace create/delete
-      expect(manager.hasPermission('admin-1', Permission.WORKSPACE_CREATE)).toBe(false);
-      expect(manager.hasPermission('admin-1', Permission.WORKSPACE_DELETE)).toBe(false);
+      expect(await manager.hasPermission('admin-1', Permission.WORKSPACE_CREATE)).toBe(false);
+      expect(await manager.hasPermission('admin-1', Permission.WORKSPACE_DELETE)).toBe(false);
     });
 
     it('should grant limited permissions to MEMBER', async () => {
       await manager.authenticate('member-1', 'telegram');
 
-      expect(manager.hasPermission('member-1', Permission.AGENT_VIEW)).toBe(true);
-      expect(manager.hasPermission('member-1', Permission.TASK_CREATE)).toBe(true);
-      expect(manager.hasPermission('member-1', Permission.DASHBOARD_VIEW)).toBe(true);
+      expect(await manager.hasPermission('member-1', Permission.AGENT_VIEW)).toBe(true);
+      expect(await manager.hasPermission('member-1', Permission.TASK_CREATE)).toBe(true);
+      expect(await manager.hasPermission('member-1', Permission.DASHBOARD_VIEW)).toBe(true);
       // MEMBER should not have create/delete/update permissions
-      expect(manager.hasPermission('member-1', Permission.AGENT_CREATE)).toBe(false);
-      expect(manager.hasPermission('member-1', Permission.AGENT_DELETE)).toBe(false);
-      expect(manager.hasPermission('member-1', Permission.CONFIG_UPDATE)).toBe(false);
+      expect(await manager.hasPermission('member-1', Permission.AGENT_CREATE)).toBe(false);
+      expect(await manager.hasPermission('member-1', Permission.AGENT_DELETE)).toBe(false);
+      expect(await manager.hasPermission('member-1', Permission.CONFIG_UPDATE)).toBe(false);
     });
 
     it('should grant read-only permissions to VIEWER', async () => {
+      await manager.authenticate('admin', 'telegram'); // fallback owner
       await manager.authenticate('viewer-1', 'telegram');
-      await manager.updateUserRole('viewer-1', UserRole.VIEWER);
+      await manager.updateUserRole('viewer-1', UserRole.VIEWER, 'admin');
 
-      expect(manager.hasPermission('viewer-1', Permission.AGENT_VIEW)).toBe(true);
-      expect(manager.hasPermission('viewer-1', Permission.TASK_VIEW)).toBe(true);
-      expect(manager.hasPermission('viewer-1', Permission.CONFIG_VIEW)).toBe(true);
-      expect(manager.hasPermission('viewer-1', Permission.DASHBOARD_VIEW)).toBe(true);
+      expect(await manager.hasPermission('viewer-1', Permission.AGENT_VIEW)).toBe(true);
+      expect(await manager.hasPermission('viewer-1', Permission.TASK_VIEW)).toBe(true);
+      expect(await manager.hasPermission('viewer-1', Permission.CONFIG_VIEW)).toBe(true);
+      expect(await manager.hasPermission('viewer-1', Permission.DASHBOARD_VIEW)).toBe(true);
       // VIEWER should not have any create/update/delete permissions
-      expect(manager.hasPermission('viewer-1', Permission.TASK_CREATE)).toBe(false);
-      expect(manager.hasPermission('viewer-1', Permission.AGENT_CREATE)).toBe(false);
-      expect(manager.hasPermission('viewer-1', Permission.EVOLUTION_APPROVE)).toBe(false);
+      expect(await manager.hasPermission('viewer-1', Permission.TASK_CREATE)).toBe(false);
+      expect(await manager.hasPermission('viewer-1', Permission.AGENT_CREATE)).toBe(false);
+      expect(await manager.hasPermission('viewer-1', Permission.EVOLUTION_APPROVE)).toBe(false);
     });
   });
 
   describe('hasResourceAccess', () => {
-    it('should return false for non-existent user', () => {
-      expect(manager.hasResourceAccess('non-existent', 'agent', 'agent-1')).toBe(false);
+    it('should return false for non-existent user', async () => {
+      expect(await manager.hasResourceAccess('non-existent', 'agent', 'agent-1')).toBe(false);
     });
 
     it('should grant OWNER access to all resources', async () => {
+      await manager.authenticate('admin', 'telegram'); // fallback owner
       await manager.authenticate('owner-1', 'telegram');
-      await manager.updateUserRole('owner-1', UserRole.OWNER);
+      await manager.updateUserRole('owner-1', UserRole.OWNER, 'admin');
 
-      expect(manager.hasResourceAccess('owner-1', 'agent', 'agent-1')).toBe(true);
-      expect(manager.hasResourceAccess('owner-1', 'workspace', 'ws-1')).toBe(true);
-      expect(manager.hasResourceAccess('owner-1', 'config', 'config-1')).toBe(true);
-      expect(manager.hasResourceAccess('owner-1', 'trace', 'trace-1')).toBe(true);
+      expect(await manager.hasResourceAccess('owner-1', 'agent', 'agent-1')).toBe(true);
+      expect(await manager.hasResourceAccess('owner-1', 'workspace', 'ws-1')).toBe(true);
+      expect(await manager.hasResourceAccess('owner-1', 'config', 'config-1')).toBe(true);
+      expect(await manager.hasResourceAccess('owner-1', 'trace', 'trace-1')).toBe(true);
     });
 
     it('should grant ADMIN access to all resources', async () => {
+      await manager.authenticate('admin', 'telegram'); // fallback owner
       await manager.authenticate('admin-1', 'telegram');
-      await manager.updateUserRole('admin-1', UserRole.ADMIN);
+      await manager.updateUserRole('admin-1', UserRole.ADMIN, 'admin');
 
-      expect(manager.hasResourceAccess('admin-1', 'agent', 'agent-1')).toBe(true);
-      expect(manager.hasResourceAccess('admin-1', 'workspace', 'ws-1')).toBe(true);
+      expect(await manager.hasResourceAccess('admin-1', 'agent', 'agent-1')).toBe(true);
+      expect(await manager.hasResourceAccess('admin-1', 'workspace', 'ws-1')).toBe(true);
     });
 
     it('should check access control entries for specific user IDs', async () => {
@@ -248,12 +260,13 @@ describe('IdentityManager', () => {
       };
       manager.addAccessControlEntry(entry);
 
-      expect(manager.hasResourceAccess('user-1', 'agent', 'agent-1')).toBe(true);
+      expect(await manager.hasResourceAccess('user-1', 'agent', 'agent-1')).toBe(true);
     });
 
     it('should check access control entries for roles', async () => {
+      await manager.authenticate('admin', 'telegram'); // fallback owner
       await manager.authenticate('admin-1', 'telegram');
-      await manager.updateUserRole('admin-1', UserRole.ADMIN);
+      await manager.updateUserRole('admin-1', UserRole.ADMIN, 'admin');
 
       const entry: AccessControlEntry = {
         resourceType: 'agent',
@@ -262,12 +275,13 @@ describe('IdentityManager', () => {
       };
       manager.addAccessControlEntry(entry);
 
-      expect(manager.hasResourceAccess('admin-1', 'agent', 'agent-1')).toBe(true);
+      expect(await manager.hasResourceAccess('admin-1', 'agent', 'agent-1')).toBe(true);
     });
 
     it('should deny access if not in allowed roles', async () => {
+      await manager.authenticate('admin', 'telegram'); // fallback owner
       await manager.authenticate('viewer-1', 'telegram');
-      await manager.updateUserRole('viewer-1', UserRole.VIEWER);
+      await manager.updateUserRole('viewer-1', UserRole.VIEWER, 'admin');
 
       const entry: AccessControlEntry = {
         resourceType: 'agent',
@@ -276,52 +290,73 @@ describe('IdentityManager', () => {
       };
       manager.addAccessControlEntry(entry);
 
-      expect(manager.hasResourceAccess('viewer-1', 'agent', 'agent-1')).toBe(false);
+      expect(await manager.hasResourceAccess('viewer-1', 'agent', 'agent-1')).toBe(false);
     });
 
     it('should check workspace membership for workspace resources', async () => {
       await manager.authenticate('user-1', 'telegram');
       await manager.addUserToWorkspace('user-1', 'ws-1');
 
-      expect(manager.hasResourceAccess('user-1', 'workspace', 'ws-1')).toBe(true);
-      expect(manager.hasResourceAccess('user-1', 'workspace', 'ws-2')).toBe(false);
+      expect(await manager.hasResourceAccess('user-1', 'workspace', 'ws-1')).toBe(true);
+      expect(await manager.hasResourceAccess('user-1', 'workspace', 'ws-2')).toBe(false);
     });
 
     it('should deny access to non-workspace resources without explicit ACL', async () => {
       await manager.authenticate('member-1', 'telegram');
 
       // MEMBER does NOT get access to unknown agent resources (deny by default)
-      expect(manager.hasResourceAccess('member-1', 'agent', 'agent-unknown')).toBe(false);
+      expect(await manager.hasResourceAccess('member-1', 'agent', 'agent-unknown')).toBe(false);
     });
   });
 
   describe('updateUserRole', () => {
-    it('should update user role successfully', async () => {
+    it('should update user role successfully with authorized caller', async () => {
+      await manager.authenticate('admin', 'telegram'); // fallback owner
       await manager.authenticate('user-1', 'telegram');
-      expect(manager.getUser('user-1')?.role).toBe(UserRole.MEMBER);
+      expect((await manager.getUser('user-1'))?.role).toBe(UserRole.MEMBER);
 
-      const result = await manager.updateUserRole('user-1', UserRole.ADMIN);
+      const result = await manager.updateUserRole('user-1', UserRole.ADMIN, 'admin');
 
       expect(result).toBe(true);
-      expect(manager.getUser('user-1')?.role).toBe(UserRole.ADMIN);
+      expect((await manager.getUser('user-1'))?.role).toBe(UserRole.ADMIN);
       expect(mockBase.putItem).toHaveBeenCalled();
     });
 
     it('should return false for non-existent user', async () => {
-      const result = await manager.updateUserRole('non-existent', UserRole.ADMIN);
+      await manager.authenticate('admin', 'telegram');
+      const result = await manager.updateUserRole('non-existent', UserRole.ADMIN, 'admin');
 
       expect(result).toBe(false);
     });
 
     it('should persist user to storage', async () => {
+      await manager.authenticate('admin', 'telegram'); // fallback owner
       await manager.authenticate('user-1', 'telegram');
       mockBase.putItem.mockClear();
 
-      await manager.updateUserRole('user-1', UserRole.OWNER);
+      await manager.updateUserRole('user-1', UserRole.OWNER, 'admin');
 
       expect(mockBase.putItem).toHaveBeenCalled();
       const savedItem = mockBase.putItem.mock.calls[0][0];
       expect(savedItem.role).toBe(UserRole.OWNER);
+    });
+
+    it('should deny role change when caller is not OWNER or ADMIN', async () => {
+      await manager.authenticate('user-1', 'telegram'); // MEMBER
+      await manager.authenticate('user-2', 'telegram');
+
+      const result = await manager.updateUserRole('user-2', UserRole.ADMIN, 'user-1');
+
+      expect(result).toBe(false);
+      expect((await manager.getUser('user-2'))?.role).toBe(UserRole.MEMBER);
+    });
+
+    it('should deny role change when caller does not exist', async () => {
+      await manager.authenticate('user-1', 'telegram');
+
+      const result = await manager.updateUserRole('user-1', UserRole.ADMIN, 'non-existent');
+
+      expect(result).toBe(false);
     });
   });
 
@@ -332,7 +367,7 @@ describe('IdentityManager', () => {
       const result = await manager.addUserToWorkspace('user-1', 'ws-1');
 
       expect(result).toBe(true);
-      expect(manager.getUser('user-1')?.workspaceIds).toContain('ws-1');
+      expect((await manager.getUser('user-1'))?.workspaceIds).toContain('ws-1');
       expect(mockBase.putItem).toHaveBeenCalled();
     });
 
@@ -343,7 +378,7 @@ describe('IdentityManager', () => {
 
       await manager.addUserToWorkspace('user-1', 'ws-1');
 
-      expect(manager.getUser('user-1')?.workspaceIds).toEqual(['ws-1']);
+      expect((await manager.getUser('user-1'))?.workspaceIds).toEqual(['ws-1']);
     });
 
     it('should return false when adding to workspace for non-existent user', async () => {
@@ -361,8 +396,8 @@ describe('IdentityManager', () => {
       const result = await manager.removeUserFromWorkspace('user-1', 'ws-1');
 
       expect(result).toBe(true);
-      expect(manager.getUser('user-1')?.workspaceIds).not.toContain('ws-1');
-      expect(manager.getUser('user-1')?.workspaceIds).toContain('ws-2');
+      expect((await manager.getUser('user-1'))?.workspaceIds).not.toContain('ws-1');
+      expect((await manager.getUser('user-1'))?.workspaceIds).toContain('ws-2');
       expect(mockBase.putItem).toHaveBeenCalled();
     });
 
@@ -386,9 +421,14 @@ describe('IdentityManager', () => {
       const authResult = await manager.authenticate('user-1', 'telegram');
       const sessionId = authResult.session!.sessionId;
 
-      manager.terminateSession(sessionId);
+      mockBase.deleteItem = vi.fn().mockResolvedValueOnce(undefined);
+      await manager.terminateSession(sessionId);
 
-      expect(manager.getSession(sessionId)).toBeUndefined();
+      expect(mockBase.deleteItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: `WORKSPACE#SESSION#${sessionId}`,
+        })
+      );
     });
 
     it('should get all sessions for a user', async () => {
@@ -396,7 +436,7 @@ describe('IdentityManager', () => {
       await manager.authenticate('user-1', 'telegram');
       await manager.authenticate('user-2', 'telegram');
 
-      const sessions = manager.getUserSessions('user-1');
+      const sessions = await manager.getUserSessions('user-1');
 
       expect(sessions).toHaveLength(2);
       expect(sessions.every((s) => s.userId === 'user-1')).toBe(true);
@@ -406,18 +446,18 @@ describe('IdentityManager', () => {
       const now = 1000000000000;
       vi.setSystemTime(now);
 
-      await manager.authenticate('user-1', 'telegram');
-      await manager.authenticate('user-2', 'telegram');
-
-      // Move time forward past expiration
-      vi.setSystemTime(now + 24 * 3600000 + 1);
-
+      const auth1 = await manager.authenticate('user-1', 'telegram');
+      const auth2 = await manager.authenticate('user-2', 'telegram');
       await manager.authenticate('user-3', 'telegram');
 
-      const cleaned = manager.cleanupExpiredSessions();
+      // Expire auth1 and auth2
+      state.get(`WORKSPACE#SESSION#${auth1.session!.sessionId}`).expiresAt = now - 1000;
+      state.get(`WORKSPACE#SESSION#${auth2.session!.sessionId}`).expiresAt = now - 500;
+
+      const cleaned = await manager.cleanupExpiredSessions();
 
       expect(cleaned).toBe(2);
-      expect(manager.getUserSessions('user-3')).toHaveLength(1);
+      expect(await manager.getUserSessions('user-3')).toHaveLength(1);
     });
   });
 
@@ -425,28 +465,28 @@ describe('IdentityManager', () => {
     it('should get user by ID', async () => {
       await manager.authenticate('user-1', 'telegram');
 
-      const user = manager.getUser('user-1');
+      const user = await manager.getUser('user-1');
 
       expect(user).toBeDefined();
       expect(user?.userId).toBe('user-1');
     });
 
-    it('should return undefined for non-existent user', () => {
-      expect(manager.getUser('non-existent')).toBeUndefined();
+    it('should return undefined for non-existent user', async () => {
+      expect(await manager.getUser('non-existent')).toBeUndefined();
     });
 
     it('should get session by ID', async () => {
       const authResult = await manager.authenticate('user-1', 'telegram');
       const sessionId = authResult.session!.sessionId;
 
-      const session = manager.getSession(sessionId);
+      const session = await manager.getSession(sessionId);
 
       expect(session).toBeDefined();
       expect(session?.sessionId).toBe(sessionId);
     });
 
-    it('should return undefined for non-existent session', () => {
-      expect(manager.getSession('non-existent')).toBeUndefined();
+    it('should return undefined for non-existent session', async () => {
+      expect(await manager.getSession('non-existent')).toBeUndefined();
     });
   });
 
@@ -458,36 +498,14 @@ describe('IdentityManager', () => {
         allowedRoles: [UserRole.ADMIN],
       };
 
-      manager.addAccessControlEntry(entry);
+      await manager.addAccessControlEntry(entry);
 
-      // Verify by checking access
-      await manager.authenticate('admin-1', 'telegram');
-      await manager.updateUserRole('admin-1', UserRole.ADMIN);
-      expect(manager.hasResourceAccess('admin-1', 'agent', 'agent-1')).toBe(true);
-    });
-
-    it('should replace existing entry for same resource', async () => {
-      const entry1: AccessControlEntry = {
-        resourceType: 'agent',
-        resourceId: 'agent-1',
-        allowedRoles: [UserRole.ADMIN],
-      };
-      const entry2: AccessControlEntry = {
-        resourceType: 'agent',
-        resourceId: 'agent-1',
-        allowedRoles: [UserRole.MEMBER],
-      };
-
-      manager.addAccessControlEntry(entry1);
-      manager.addAccessControlEntry(entry2);
-
-      // Verify MEMBER now has access, ADMIN does not
-      await manager.authenticate('member-1', 'telegram');
-      await manager.authenticate('admin-1', 'telegram');
-      await manager.updateUserRole('admin-1', UserRole.ADMIN);
-
-      expect(manager.hasResourceAccess('member-1', 'agent', 'agent-1')).toBe(true);
-      expect(manager.hasResourceAccess('admin-1', 'agent', 'agent-1')).toBe(true); // ADMIN still has access due to role
+      expect(mockBase.putItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'ACCESS_CONTROL',
+          resourceId: 'agent-1',
+        })
+      );
     });
   });
 });

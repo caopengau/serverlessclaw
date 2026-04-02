@@ -153,21 +153,19 @@ describe('BedrockProvider.stream', () => {
     );
   });
 
-  it('should yield fallback text on stream error', async () => {
+  it('should throw on stream error to enable fallback', async () => {
     mockSend.mockRejectedValue(new Error('Network error'));
 
-    const chunks = [];
     const stream = provider.stream(
       [{ role: MessageRole.USER, content: 'test' }],
       [],
       ReasoningProfile.STANDARD
     );
 
-    for await (const chunk of stream) {
-      chunks.push(chunk);
-    }
-
-    expect(chunks).toHaveLength(1);
-    expect(chunks[0].content).toBe(' (Streaming failed)');
+    await expect(async () => {
+      for await (const _chunk of stream) {
+        // consume
+      }
+    }).rejects.toThrow('Bedrock streaming failed: Network error');
   });
 });

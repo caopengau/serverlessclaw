@@ -2,6 +2,7 @@ import { SafetyPolicy, SafetyEvaluationResult } from '../types/agent';
 import { logger } from '../logger';
 import type { BaseMemoryProvider } from '../memory/base';
 import { MEMORY_KEYS } from '../constants';
+import { LRUCache } from '../utils/lru';
 
 export interface ToolSafetyOverride {
   toolName: string;
@@ -11,10 +12,12 @@ export interface ToolSafetyOverride {
 }
 
 export class SafetyRateLimiter {
-  private rateLimitCounters: Map<string, { count: number; resetTime: number }> = new Map();
+  private rateLimitCounters: LRUCache<string, { count: number; resetTime: number }>;
   private evalCount = 0;
 
-  constructor(private base?: BaseMemoryProvider) {}
+  constructor(private base?: BaseMemoryProvider) {
+    this.rateLimitCounters = new LRUCache(5000); // LRU bound to 5000 counters
+  }
 
   async checkRateLimits(policy: SafetyPolicy, action: string): Promise<SafetyEvaluationResult> {
     const now = Date.now();

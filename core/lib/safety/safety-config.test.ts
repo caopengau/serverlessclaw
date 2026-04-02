@@ -4,21 +4,22 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { DEFAULT_POLICIES, COMMON_BLOCKED_PATHS } from './safety-config';
+import { DEFAULT_POLICIES } from './safety-config';
+import { PROTECTED_FILES } from '../constants';
 import { SafetyTier, SafetyPolicy } from '../types/agent';
 
 describe('safety-config', () => {
   describe('COMMON_BLOCKED_PATHS', () => {
     it('contains expected paths', () => {
-      expect(COMMON_BLOCKED_PATHS).toContain('.git/**');
-      expect(COMMON_BLOCKED_PATHS).toContain('.env*');
-      expect(COMMON_BLOCKED_PATHS).toContain('package-lock.json');
-      expect(COMMON_BLOCKED_PATHS).toContain('pnpm-lock.yaml');
-      expect(COMMON_BLOCKED_PATHS).toContain('node_modules/**');
+      expect(PROTECTED_FILES).toContain('.git/**');
+      expect(PROTECTED_FILES).toContain('.env*');
+      expect(PROTECTED_FILES).toContain('package-lock.json');
+      expect(PROTECTED_FILES).toContain('pnpm-lock.yaml');
+      expect(PROTECTED_FILES).toContain('node_modules/**');
     });
 
-    it('has exactly 5 entries', () => {
-      expect(COMMON_BLOCKED_PATHS).toHaveLength(5);
+    it('has all required paths', () => {
+      expect(PROTECTED_FILES.length).toBeGreaterThanOrEqual(5);
     });
   });
 
@@ -74,7 +75,7 @@ describe('safety-config', () => {
     });
 
     it('includes blocked paths from COMMON_BLOCKED_PATHS', () => {
-      expect(policy.blockedFilePaths).toEqual(expect.arrayContaining(COMMON_BLOCKED_PATHS));
+      expect(policy.blockedFilePaths).toEqual(expect.arrayContaining(PROTECTED_FILES));
     });
 
     it('has time restrictions for weekends', () => {
@@ -110,7 +111,7 @@ describe('safety-config', () => {
     });
 
     it('includes blocked paths from COMMON_BLOCKED_PATHS', () => {
-      expect(policy.blockedFilePaths).toEqual(expect.arrayContaining(COMMON_BLOCKED_PATHS));
+      expect(policy.blockedFilePaths).toEqual(expect.arrayContaining(PROTECTED_FILES));
     });
 
     it('does not define time restrictions', () => {

@@ -193,14 +193,23 @@ export class CachedMemory implements IMemory {
     category?: InsightCategory,
     limit: number = 50,
     lastEvaluatedKey?: Record<string, unknown>,
-    tags?: string[]
+    tags?: string[],
+    orgId?: string
   ): Promise<{ items: MemoryInsight[]; lastEvaluatedKey?: Record<string, unknown> }> {
     // Don't cache paginated results
     if (lastEvaluatedKey) {
-      return this.underlying.searchInsights(userId, query, category, limit, lastEvaluatedKey, tags);
+      return this.underlying.searchInsights(
+        userId,
+        query,
+        category,
+        limit,
+        lastEvaluatedKey,
+        tags,
+        orgId
+      );
     }
 
-    const cacheKey = CacheKeys.insightsSearch(userId ?? 'global', query, category, tags);
+    const cacheKey = CacheKeys.insightsSearch(userId ?? 'global', query, category, tags, orgId);
     const cached = MemoryCaches.search.get(cacheKey) as
       | {
           items: MemoryInsight[];
@@ -220,7 +229,8 @@ export class CachedMemory implements IMemory {
       category,
       limit,
       undefined,
-      tags
+      tags,
+      orgId
     );
 
     // Cache search results with 3 minute TTL
@@ -340,7 +350,10 @@ export class CachedMemory implements IMemory {
   }
 
   async incrementGapAttemptCount(gapId: string): Promise<number> {
-    return this.underlying.incrementGapAttemptCount(gapId);
+    const result = await this.underlying.incrementGapAttemptCount(gapId);
+    // 1.9 Invalidate gaps cache since attempt count changed
+    MemoryCaches.global.invalidatePattern(/^gaps:/);
+    return result;
   }
 
   async updateInsightMetadata(

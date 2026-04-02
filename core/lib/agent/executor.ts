@@ -266,7 +266,18 @@ export class AgentExecutor {
       userId,
       approvedToolCalls,
       userText,
+      taskId,
     } = options;
+
+    // A1: Cancellation Pre-check
+    const cancellationMsg = await ExecutorHelper.checkCancellation(taskId);
+    if (cancellationMsg) {
+      if (emitter) {
+        emitter.emitChunk(userId, sessionId, traceId, cancellationMsg, this.agentName);
+      }
+      yield { content: cancellationMsg };
+      return;
+    }
 
     // Handle high-level interactive signals before starting the loop
     if (userText?.startsWith('TOOL_REJECTION:')) {

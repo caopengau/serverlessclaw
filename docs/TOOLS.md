@@ -14,19 +14,18 @@
 | `triggerDeployment`       | Starts a CodeBuild deploy (circuit-breaker protected, supports Atomic Sync) |     ✅     |        ✅        |
 | `checkHealth`             | Deep cognitive probe of AgentBus, Core Tools, and LLM Providers             |     —      |        ✅        |
 | `runCognitiveHealthCheck` | Runs deep cognitive health check on agents (reasoning, memory, anomalies)   |     —      |        ✅        |
-| `triggerRollback`         | Emergency Git revert + redeploy                                             |     —      |        ✅        |
+| `rollbackDeployment`      | Emergency Git revert + redeploy                                             |     —      |        ✅        |
 | `reportGap`               | Records a capability gap or technical failure                               |     —      |        ✅        |
 | `manageGap`               | Updates gap status (QA Verification)                                        |     —      |        ✅        |
 | `recallKnowledge`         | JIT retrieval of distilled facts/lessons                                    |     —      |        —         |
 | `listAgents`              | Discovers available specialized agents                                      |     —      |        —         |
 | `discoverSkills`          | Searches MCP marketplace for new capabilities                               |     —      |        —         |
 | `registerMCPServer`       | Dynamically connects a new MCP bridge                                       |     —      |        ✅        |
-| `unregisterMCPServer`     | Removes an MCP connection                                                   |     —      |        ✅        |
+| `deleteMcpServer`         | Removes an MCP connection                                                   |     —      |        ✅        |
 | `installSkill`            | Adds a tool to an agent's roster                                            |     —      |        ✅        |
 | `uninstallSkill`          | Removes a tool from an agent's roster                                       |     —      |        ✅        |
 | `discoverPeers`           | Discovers peer agents in the swarm (filter by capability/category)          |     —      |        —         |
 | `registerPeer`            | Registers a bidirectional peer connection in swarm topology                 |     —      |        ✅        |
-| `unregisterPeer`          | Unregisters a peer connection from the swarm topology                       |     —      |        ✅        |
 | `requestConsensus`        | Requests swarm consensus (majority/unanimous/weighted modes)                |     —      |        ✅        |
 | `createWorkspace`         | Creates a new multi-human multi-agent workspace                             |     —      |        ✅        |
 | `inviteMember`            | Invites a human or agent to a workspace (admin/owner only)                  |     —      |        ✅        |
@@ -40,6 +39,13 @@
 | `writeToCollaboration`    | Writes a message to the shared collaboration session                        |     —      |        ✅        |
 | `closeCollaboration`      | Closes a collaboration session                                              |     —      |        ✅        |
 | `listMyCollaborations`    | Lists all collaborations for the current agent                              |     —      |        —         |
+| `broadcastMessage`        | Broadcasts a message to all active participants in a session                |     —      |        ✅        |
+| `debugAgent`              | Sets debug level and captures detailed traces for a specific agent          |     —      |        ✅        |
+| `switchModel`             | Hot-swaps the LLM provider or model for the current agent                   |     —      |        ✅        |
+| `cancelGoal`              | Cancels a scheduled proactive goal or task                                  |     —      |        ✅        |
+| `listSchedules`           | Lists all active proactive goals and scheduled tasks                        |     —      |        —         |
+| `signalOrchestration`     | Deterministic signal to move a goal to the next state                       |     —      |        ✅        |
+| `voteOnProposal`          | Submits a vote for an active consensus proposal                             |     —      |        ✅        |
 | `mcp-filesystem-*`        | MCP-driven file operations (read/write/list/search)                         |     ✅     |        —         |
 | `git-status` / `git-diff` | Version control awareness (MCP)                                             |     —      |        —         |
 | `google-search`           | Real-time global intelligence (MCP)                                         |     —      |        —         |
@@ -229,7 +235,7 @@ dispatchTask (coder) → filesystem_write_file → [human approves if protected]
                                                      ↓
                                              checkHealth (Health Probe)
                                           ↓            ↓
-                                      OK (–1 count)  FAILED → triggerRollback
+                                      OK (–1 count)  FAILED → rollbackDeployment
 ```
 
 ---

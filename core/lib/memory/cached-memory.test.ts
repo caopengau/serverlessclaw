@@ -276,6 +276,7 @@ describe('CachedMemory', () => {
         undefined,
         50,
         { lastKey: '123' },
+        undefined,
         undefined
       );
     });

@@ -12,7 +12,7 @@
 import { logger } from './logger';
 import type { IAgentConfig } from './types/agent';
 import { ReasoningProfile } from './types/llm';
-import type { AgentReputation } from './memory/reputation-operations';
+import type { AgentReputation } from './types/reputation';
 import { computeReputationScore } from './memory/reputation-operations';
 
 /**

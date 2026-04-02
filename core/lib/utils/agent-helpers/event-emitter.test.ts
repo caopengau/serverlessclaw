@@ -44,7 +44,8 @@ describe('emitTaskEvent', () => {
           agentId: 'agent-1',
           task: 'Summarize the document',
           response: 'Summary complete',
-        })
+        }),
+        { idempotencyKey: undefined }
       );
     });
 
@@ -61,7 +62,8 @@ describe('emitTaskEvent', () => {
         EventType.TASK_FAILED,
         expect.objectContaining({
           error: 'Something went wrong',
-        })
+        }),
+        { idempotencyKey: undefined }
       );
     });
 
@@ -93,7 +95,8 @@ describe('emitTaskEvent', () => {
           depth: 2,
           metadata: { key: 'value' },
           userNotified: true,
-        })
+        }),
+        { idempotencyKey: undefined }
       );
     });
 
@@ -189,7 +192,8 @@ describe('emitTaskEvent', () => {
       expect(mockEmitTypedEvent).toHaveBeenCalledWith(
         'test-agent',
         EventType.TASK_FAILED,
-        expect.objectContaining({ error: 'timeout' })
+        expect.objectContaining({ error: 'timeout' }),
+        { idempotencyKey: undefined }
       );
     });
   });
@@ -203,7 +207,8 @@ describe('emitTaskEvent', () => {
       expect(mockEmitTypedEvent).toHaveBeenCalledWith(
         expect.anything(),
         EventType.TASK_COMPLETED,
-        expect.anything()
+        expect.anything(),
+        { idempotencyKey: undefined }
       );
     });
 
@@ -215,7 +220,8 @@ describe('emitTaskEvent', () => {
       expect(mockEmitTypedEvent).toHaveBeenCalledWith(
         expect.anything(),
         EventType.TASK_FAILED,
-        expect.anything()
+        expect.anything(),
+        { idempotencyKey: undefined }
       );
     });
 

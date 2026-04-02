@@ -206,9 +206,10 @@ export async function incrementClarificationRetry(
 
   const result = await base.updateItem({
     Key: { userId: pk, timestamp: 0 },
-    UpdateExpression: 'SET retryCount = retryCount + :one',
+    UpdateExpression: 'SET retryCount = if_not_exists(retryCount, :zero) + :one',
     ExpressionAttributeValues: {
       ':one': 1,
+      ':zero': 0,
     },
     ReturnValues: 'ALL_NEW',
   });

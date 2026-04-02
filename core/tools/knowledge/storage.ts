@@ -6,6 +6,7 @@ import { emitEvent } from '../../lib/utils/bus';
 import { formatErrorMessage } from '../../lib/utils/error';
 import { normalizeTags } from '../../lib/memory/utils';
 import { SkillRegistry } from '../../lib/skills';
+import { logger } from '../../lib/logger';
 
 /**
  * Lazy-load memory.
@@ -238,13 +239,31 @@ export const saveMemory = {
  */
 export const pruneMemory = {
   ...schema.pruneMemory,
-  execute: async (args: Record<string, unknown>): Promise<string> => {
+  requiredPermissions: ['config:update'], // Mapping to existing Permission enum
+  execute: async (
+    args: Record<string, unknown>,
+    context?: { userId?: string }
+  ): Promise<string> => {
     const { partitionKey, timestamp } = args as { partitionKey: string; timestamp: number };
     if (!partitionKey || !timestamp) return 'FAILED: Both partitionKey and timestamp are required.';
+
+    // 1.4 RBAC Check
+    if (context?.userId) {
+      const { BaseMemoryProvider } = await import('../../lib/memory/base');
+      const { IdentityManager, UserRole } = await import('../../lib/session/identity');
+      const identity = new IdentityManager(new BaseMemoryProvider());
+      const user = await identity.getUser(context.userId);
+
+      if (!user || (user.role !== UserRole.OWNER && user.role !== UserRole.ADMIN)) {
+        logger.warn(`Unauthorized pruneMemory attempt by ${context.userId} on ${partitionKey}`);
+        return 'FAILED: Unauthorized. Only OWNER or ADMIN can prune memory.';
+      }
+    }
 
     try {
       const memory = getMemory();
       await memory.deleteItem({ userId: partitionKey, timestamp });
+      logger.info(`Memory pruned by ${context?.userId ?? 'system'}: ${partitionKey}@${timestamp}`);
       return `Successfully pruned memory item: ${partitionKey}@${timestamp}`;
     } catch (error) {
       return `Failed to prune memory item: ${formatErrorMessage(error)}`;
@@ -368,14 +387,46 @@ export const deleteTraces = {
  */
 export const forceReleaseLock = {
   ...schema.forceReleaseLock,
-  execute: async (args: Record<string, unknown>): Promise<string> => {
+  requiredPermissions: ['config:update'], // Mapping to existing Permission enum
+  execute: async (
+    args: Record<string, unknown>,
+    context?: { userId?: string }
+  ): Promise<string> => {
     const { lockId } = args as { lockId: string };
     if (!lockId) return 'FAILED: lockId is required.';
 
+    // 1.3 Validate lock type & 1.4 RBAC Check
+    if (!lockId.startsWith('LOCK#')) {
+      return `FAILED: Invalid lockId format. Must start with 'LOCK#'.`;
+    }
+
+    if (context?.userId) {
+      const { BaseMemoryProvider } = await import('../../lib/memory/base');
+      const { IdentityManager, UserRole } = await import('../../lib/session/identity');
+      const identity = new IdentityManager(new BaseMemoryProvider());
+      const user = await identity.getUser(context.userId);
+
+      if (!user || (user.role !== UserRole.OWNER && user.role !== UserRole.ADMIN)) {
+        logger.warn(`Unauthorized forceReleaseLock attempt by ${context.userId} on ${lockId}`);
+        return 'FAILED: Unauthorized. Only OWNER or ADMIN can force release locks.';
+      }
+    }
+
     try {
-      await getMemory().deleteItem({ userId: lockId, timestamp: 0 });
+      // 1.3 Condition check for type safety
+      await getMemory().deleteItem({
+        userId: lockId,
+        timestamp: 0,
+        ConditionExpression: '#type = :lockType',
+        ExpressionAttributeNames: { '#type': 'type' },
+        ExpressionAttributeValues: { ':lockType': 'LOCK' },
+      });
+      logger.info(`Lock force-released by ${context?.userId ?? 'system'}: ${lockId}`);
       return `Successfully force-released lock: ${lockId}`;
     } catch (error) {
+      if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+        return `FAILED: Item ${lockId} is not a valid lock or has already been released.`;
+      }
       return `Failed to release lock: ${formatErrorMessage(error)}`;
     }
   },

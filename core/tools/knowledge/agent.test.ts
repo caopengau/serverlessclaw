@@ -21,7 +21,10 @@ vi.mock('../../lib/utils/bus', () => ({
 
 vi.mock('../../lib/registry', () => ({
   AgentRegistry: {
-    getAgentConfig: vi.fn().mockResolvedValue({ enabled: true }),
+    getAgentConfig: vi.fn().mockImplementation(async (id) => ({
+      enabled: true,
+      isBackbone: id === 'coder' || id === 'superclaw',
+    })),
     getAllConfigs: vi.fn().mockResolvedValue({}),
     saveConfig: vi.fn().mockResolvedValue(undefined),
     saveRawConfig: vi.fn().mockResolvedValue(undefined),

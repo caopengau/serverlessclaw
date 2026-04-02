@@ -73,7 +73,7 @@ describe('AgentRunner Handler', () => {
 
   it('initializes agent and processes task with streaming when shouldSpeakDirectly is true', async () => {
     const event = {
-      'detail-type': 'myagent_task',
+      'detail-type': 'dynamic_myagent_task',
       detail: {
         userId: 'user-1',
         task: 'Hello',
@@ -105,7 +105,7 @@ describe('AgentRunner Handler', () => {
     });
 
     const event = {
-      'detail-type': 'myagent_task',
+      'detail-type': 'dynamic_myagent_task',
       detail: {
         userId: 'user-1',
         task: 'Hello',
@@ -129,7 +129,7 @@ describe('AgentRunner Handler', () => {
     vi.mocked(validatePayload).mockReturnValueOnce(false);
 
     const event = {
-      'detail-type': 'myagent_task',
+      'detail-type': 'dynamic_myagent_task',
       detail: { userId: 'user-1' }, // missing task
     } as any;
 
@@ -143,7 +143,7 @@ describe('AgentRunner Handler', () => {
     vi.mocked(isTaskPaused).mockReturnValueOnce(true);
 
     const event = {
-      'detail-type': 'myagent_task',
+      'detail-type': 'dynamic_myagent_task',
       detail: { userId: 'user-1', task: 'Hello' },
     } as any;
 
@@ -156,7 +156,7 @@ describe('AgentRunner Handler', () => {
     vi.mocked(detectFailure).mockReturnValueOnce(true);
 
     const event = {
-      'detail-type': 'myagent_task',
+      'detail-type': 'dynamic_myagent_task',
       detail: { userId: 'user-1', task: 'Hello' },
     } as any;
 

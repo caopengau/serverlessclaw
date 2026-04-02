@@ -173,7 +173,17 @@ To ensure coordination doesn't break as we add more agents, follow a **Contract-
 npx vitest core/tests/contract.test.ts
 ```
 
-    (aggregated results) |                      |                      |
+```text
+ Initiator (Planner)       decomposePlan()        AgentBus (EB)        Coder Agent (xN)         Trace DAG (DDB)
+        |                      |                      |                      |                      |
+        +-- (1) decompose ---->|                      |                      |                      |
+        |                      +-- (2) CODER_TASK --->|                      |                      |
+        |                      +-- (2) CODER_TASK --->|                      |                      |
+        |                      +-- (2) CODER_TASK --->|                      |                      |
+        |                      |                      |                      |                      |
+        |                      |    [ALL COMPLETE]    |                      |                      |
+        |<-- (3) CONTINUATION--+                      |                      |                      |
+        |    (aggregated results) |                      |                      |                      |
 ```
 
 ### DAG-Based Dependencies

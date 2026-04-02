@@ -65,6 +65,44 @@ export class ToolExecutor {
         };
       }
 
+      // 1.5 RBAC Check
+      if (tool.requiredPermissions && tool.requiredPermissions.length > 0) {
+        let hasPermission;
+        try {
+          const { BaseMemoryProvider } = await import('../memory/base');
+          const { IdentityManager } = await import('../session/identity');
+          const identity = new IdentityManager(new BaseMemoryProvider());
+          // System-initiated calls bypass RBAC
+          if (!execContext.userId || execContext.userId === 'SYSTEM') {
+            hasPermission = true;
+          } else {
+            hasPermission = true;
+            for (const perm of tool.requiredPermissions) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Permission enum vs string[]
+              const hasPerm = await identity.hasPermission(execContext.userId, perm as any);
+              if (!hasPerm) {
+                hasPermission = false;
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          logger.error(`RBAC check failed for tool ${tool.name}:`, error);
+          hasPermission = false;
+        }
+
+        if (!hasPermission) {
+          logger.warn(`RBAC validation failed for user ${execContext.userId} on tool ${tool.name}`);
+          messages.push({
+            role: MessageRole.TOOL,
+            tool_call_id: toolCall.id,
+            name: toolCall.function.name,
+            content: `FAILED: Unauthorized. You do not have the required permissions (${tool.requiredPermissions.join(', ')}) to execute this tool.`,
+          });
+          continue;
+        }
+      }
+
       // 2. Argument Preparation & Context Injection
       let args = JSON.parse(toolCall.function.arguments);
       const contextArgs: Record<string, unknown> = {

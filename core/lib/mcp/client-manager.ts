@@ -110,14 +110,32 @@ export class MCPClientManager {
       // Reduce timeout for local MCP servers to prevent dashboard timeouts
       // Local servers should start quickly or fail fast
       const connectTimeout = isHub ? 5000 : 30000;
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(
+      let timeoutId: ReturnType<typeof setTimeout>;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(
           () => reject(new Error(`MCP Connection timeout after ${connectTimeout}ms`)),
           connectTimeout
-        )
-      );
+        );
+      });
 
-      await Promise.race([newClient.connect(transport), timeoutPromise]);
+      try {
+        await Promise.race([newClient.connect(transport), timeoutPromise]);
+        clearTimeout(timeoutId!);
+      } catch (error) {
+        // 1.5 Ensure transport and client are closed on timeout or failure
+        logger.error(`Failed to connect to MCP server ${serverName}:`, error);
+        try {
+          await transport.close();
+        } catch (closeError) {
+          logger.warn(`Error closing transport after failed connection:`, closeError);
+        }
+        try {
+          await newClient.close();
+        } catch (closeError) {
+          logger.warn(`Error closing client after failed connection:`, closeError);
+        }
+        throw error;
+      }
 
       transport.onclose = () => {
         logger.warn(`MCP Server connection closed: ${serverName}`);

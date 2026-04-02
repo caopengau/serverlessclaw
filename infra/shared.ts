@@ -46,6 +46,15 @@ export const AGENT_CONFIG = {
   },
 } as const;
 
+/** Lambda runtime architecture for all agent functions */
+export const LAMBDA_ARCHITECTURE = 'arm64';
+
+/** Node.js loader configuration for markdown files */
+export const NODEJS_LOADERS = { '.md': 'text' } as const;
+
+/** Default log retention period for Lambda functions */
+export const LOG_RETENTION_PERIOD = '1 month';
+
 /**
  * Returns the optional domain configuration for a component.
  *

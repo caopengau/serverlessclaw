@@ -8,16 +8,114 @@ import { formatErrorMessage } from '../../lib/utils/error';
 const execAsync = promisify(exec);
 
 /**
+ * Commands allowed to be executed via shell.
+ */
+const ALLOWED_COMMANDS = [
+  'ls',
+  'cat',
+  'grep',
+  'find',
+  'npm',
+  'pnpm',
+  'make',
+  'git',
+  'sst',
+  'tsc',
+  'mkdir',
+  'cp',
+  'mv',
+  'rm',
+  'touch',
+  'echo',
+  'pwd',
+  'date',
+  'diff',
+  'patch',
+  'vi', // for basic edits if needed
+  'head',
+  'tail',
+  'sort',
+  'uniq',
+  'wc',
+  'du',
+  'df',
+  'ps',
+  'lsof',
+  'node',
+];
+
+/**
+ * Dangerous patterns that are explicitly blocked even if the command is allowed.
+ */
+const BLOCKED_PATTERNS = [
+  'rm -rf /', // Block root deletion
+  'rm -rf .', // Block current directory deletion
+  'rm -rf *', // Block all files deletion
+  'rm -rf ~', // Block home directory deletion
+  'rm -rf node_modules', // Block dependencies deletion
+  'curl',
+  'wget',
+  '| bash',
+  '| sh',
+  '> /dev/sda', // Block raw disk access
+  'sudo',
+  'chmod 777',
+  'chown',
+];
+
+/**
+ * Validates if a command is safe to execute.
+ */
+function isCommandSafe(command: string): boolean {
+  const trimmed = command.trim();
+  if (!trimmed) return false;
+
+  // 1. Check blocked patterns first
+  for (const pattern of BLOCKED_PATTERNS) {
+    if (trimmed.includes(pattern)) {
+      logger.warn(`Blocked dangerous pattern: "${pattern}" in command: "${trimmed}"`);
+      return false;
+    }
+  }
+
+  // 2. Check if the primary command is in the allowlist
+  const baseCommand = trimmed.split(' ')[0].split('/').pop(); // Get 'ls' from '/bin/ls' or 'ls -la'
+  if (!baseCommand || !ALLOWED_COMMANDS.includes(baseCommand)) {
+    logger.warn(`Command not in allowlist: "${baseCommand}"`);
+    return false;
+  }
+
+  return true;
+}
+
+/**
  * Executes an arbitrary shell command in a given directory.
  */
 export const runShellCommand = {
   ...schema.runShellCommand,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { command, dir_path } = args as { command: string; dir_path?: string };
+
+    if (!isCommandSafe(command)) {
+      return `Execution BLOCKED: Command "${command}" is not allowed or contains dangerous patterns.`;
+    }
+
     try {
-      logger.info(`Executing shell command: ${command} in ${dir_path ?? 'root'}`);
+      const projectRoot = process.cwd();
+      const targetDir = dir_path ? path.resolve(projectRoot, dir_path) : projectRoot;
+
+      // Constrain execution to project directory
+      if (!targetDir.startsWith(projectRoot)) {
+        return `Execution BLOCKED: Directory path "${dir_path}" is outside of the project root.`;
+      }
+
+      logger.info(`Executing shell command: ${command} in ${targetDir}`);
       const { stdout, stderr } = await execAsync(command, {
-        cwd: dir_path ? path.resolve(process.cwd(), dir_path) : process.cwd(),
+        cwd: targetDir,
+        env: {
+          ...process.env,
+          PATH: process.env.PATH, // Ensure PATH is preserved for allowlisted commands
+        },
       });
       return `Output:\n${stdout}\n${stderr}`;
     } catch (error) {

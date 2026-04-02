@@ -169,7 +169,13 @@ describe('Strategic Planner — selective PLANNED marking', () => {
     // Structured response explicitly covering Gap A
     const planResponse = JSON.stringify({
       status: 'SUCCESS',
-      plan: 'Add Slack search integration to enable users to query the knowledge base directly from Slack channels.',
+      plan:
+        'Add Slack search integration to enable users to query the knowledge base directly from Slack channels. ' +
+        'This requires implementing a new connector that interfaces with the Slack API to allow seamless message searching. ' +
+        'The connector should support filtering by channel, date range, and user. It should also support pagination for large result sets. ' +
+        'Additionally, the search results should be ranked by relevance and recency. The implementation should follow the existing ' +
+        'connector patterns and include proper error handling, rate limiting, and caching to ensure optimal performance. We will also ' +
+        'need to update the documentation and add integration tests to verify the connector works end-to-end with the Slack API.',
       coveredGapIds: ['GAP#1001'],
       reasoning: 'Missing tools',
     });

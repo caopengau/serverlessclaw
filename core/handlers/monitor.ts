@@ -235,7 +235,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
           sessionId,
           task: originalTask,
         },
-        { priority: EventPriority.CRITICAL }
+        { priority: EventPriority.CRITICAL, idempotencyKey: traceId }
       );
     }
   } catch (error) {

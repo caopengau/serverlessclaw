@@ -25,6 +25,8 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
       memoryTable,
       traceTable,
       configTable,
+      stagingBucket,
+      knowledgeBucket,
       bus,
       ...(api ? [api] : []),
       ...(ctx.realtime ? [ctx.realtime] : []),

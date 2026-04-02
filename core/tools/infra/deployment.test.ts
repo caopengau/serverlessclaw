@@ -1,7 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
-import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { triggerDeployment, triggerInfraRebuild } from './deployment';
 
 const codebuildMock = mockClient(CodeBuildClient);
@@ -123,6 +128,7 @@ describe('Deployment Tools', () => {
       vi.mocked(getDeployCountToday).mockResolvedValue(0);
       vi.mocked(incrementDeployCount).mockResolvedValue(true);
       ddbMock.on(GetCommand).resolves({ Item: { value: '10' } });
+      ddbMock.on(QueryCommand).resolves({ Items: [] }); // getAllGaps returns empty
       codebuildMock.on(StartBuildCommand).resolves({ build: { id: 'build-env-123' } });
       ddbMock.on(PutCommand).resolves({});
 

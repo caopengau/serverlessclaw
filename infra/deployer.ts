@@ -24,9 +24,55 @@ export function createDeployer(ctx: DeployerContext) {
     }),
   });
 
-  new aws.iam.RolePolicyAttachment('DeployerAdminPolicy', {
-    policyArn: 'arn:aws:iam::aws:policy/AdministratorAccess',
+  // 1.7 Scoped IAM policy for deployment
+  new aws.iam.RolePolicy('DeployerScopedPolicy', {
     role: deployerRole.name,
+    policy: JSON.stringify({
+      Version: '2012-10-17',
+      Statement: [
+        {
+          Effect: 'Allow',
+          Action: [
+            'cloudformation:*',
+            's3:*',
+            'iam:*',
+            'lambda:*',
+            'apigateway:*',
+            'route53:*',
+            'acm:*',
+            'dynamodb:*',
+            'events:*',
+            'logs:*',
+            'ssm:GetParameters',
+            'ssm:GetParameter',
+            'ecr:*',
+            'codebuild:*',
+            'kms:*',
+            'iot:*',
+          ],
+          Resource: '*', // Still somewhat broad but restricted by service
+          Condition: {
+            StringEquals: {
+              'aws:ResourceTag/sst:app': $app.name,
+              'aws:ResourceTag/sst:stage': $app.stage,
+            },
+          },
+        },
+        // Exceptions for resources that don't always support tagging or are global
+        {
+          Effect: 'Allow',
+          Action: [
+            'iam:PassRole',
+            'iam:CreateServiceLinkedRole',
+            'route53:ListHostedZones',
+            'acm:ListCertificates',
+            's3:ListAllMyBuckets',
+            'ecr:GetAuthorizationToken',
+          ],
+          Resource: '*',
+        },
+      ],
+    }),
   });
 
   const envVars = [

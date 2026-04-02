@@ -57,6 +57,8 @@ describe('Schema-Type Drift Detection', () => {
 
       // This assignment tests structural compatibility
       const written: WrittenAgentPayload = {
+        source: inferred.source,
+        timestamp: inferred.timestamp,
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
         taskId: inferred.taskId,
@@ -87,6 +89,8 @@ describe('Schema-Type Drift Detection', () => {
       };
 
       const written: WrittenTaskEvent = {
+        source: inferred.source,
+        timestamp: inferred.timestamp,
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
         taskId: inferred.taskId,
@@ -110,6 +114,8 @@ describe('Schema-Type Drift Detection', () => {
       };
 
       const written: WrittenBuildEvent = {
+        source: inferred.source,
+        timestamp: inferred.timestamp,
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
         taskId: inferred.taskId,
@@ -139,6 +145,8 @@ describe('Schema-Type Drift Detection', () => {
       };
 
       const written: WrittenCompletionEvent = {
+        source: inferred.source,
+        timestamp: inferred.timestamp,
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
         taskId: inferred.taskId,
@@ -147,6 +155,9 @@ describe('Schema-Type Drift Detection', () => {
         agentId: inferred.agentId,
         task: inferred.task,
         response: inferred.response,
+        attachments: inferred.attachments,
+        metadata: inferred.metadata,
+        userNotified: inferred.userNotified,
       };
 
       expect(written.response).toBe('Done');
@@ -172,6 +183,8 @@ describe('Schema-Type Drift Detection', () => {
       };
 
       const written: WrittenFailureEvent = {
+        source: inferred.source,
+        timestamp: inferred.timestamp,
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
         taskId: inferred.taskId,
@@ -180,6 +193,9 @@ describe('Schema-Type Drift Detection', () => {
         agentId: inferred.agentId,
         task: inferred.task,
         error: inferred.error,
+        attachments: inferred.attachments,
+        metadata: inferred.metadata,
+        userNotified: inferred.userNotified,
       };
 
       expect(written.error).toBe('Timeout');
@@ -199,6 +215,8 @@ describe('Schema-Type Drift Detection', () => {
       };
 
       const written: WrittenHealthReportEvent = {
+        source: inferred.source,
+        timestamp: inferred.timestamp,
         userId: inferred.userId,
         traceId: inferred.traceId ?? '',
         taskId: inferred.taskId,

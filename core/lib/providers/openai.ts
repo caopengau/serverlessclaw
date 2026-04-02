@@ -58,7 +58,24 @@ type ToolConfig = {
  * Utilizes the Responses API for 2026-grade reasoning and tool use.
  */
 export class OpenAIProvider implements IProvider {
+  private static _client: OpenAI | null = null;
+  private static _currentKey: string | null = null;
+
   constructor(private model: string = OpenAIModel.GPT_5_4) {}
+
+  private get client(): OpenAI {
+    const resource = Resource as unknown as Record<string, { value?: string } | undefined>;
+    const apiKey =
+      ('OpenAIApiKey' in resource ? resource.OpenAIApiKey?.value : undefined) ||
+      process.env.OPENAI_API_KEY ||
+      'test-key';
+
+    if (!OpenAIProvider._client || OpenAIProvider._currentKey !== apiKey) {
+      OpenAIProvider._client = new OpenAI({ apiKey });
+      OpenAIProvider._currentKey = apiKey;
+    }
+    return OpenAIProvider._client;
+  }
 
   /**
    * Maps internal Message[] to OpenAI Responses API input format.
@@ -169,12 +186,7 @@ export class OpenAIProvider implements IProvider {
     topP?: number,
     stopSequences?: string[]
   ): Promise<Message> {
-    const resource = Resource as unknown as Record<string, { value?: string } | undefined>;
-    const apiKey =
-      ('OpenAIApiKey' in resource ? resource.OpenAIApiKey?.value : undefined) ||
-      process.env.OPENAI_API_KEY ||
-      'test-key';
-    const client = new OpenAI({ apiKey });
+    const client = this.client;
 
     // Resolve model if only profile is provided
     let activeModel = model ?? this.model;
@@ -290,13 +302,8 @@ export class OpenAIProvider implements IProvider {
     maxTokens?: number,
     topP?: number,
     stopSequences?: string[]
-  ): AsyncIterable<MessageChunk> {
-    const resource = Resource as unknown as Record<string, { value?: string } | undefined>;
-    const apiKey =
-      ('OpenAIApiKey' in resource ? resource.OpenAIApiKey?.value : undefined) ||
-      process.env.OPENAI_API_KEY ||
-      'test-key';
-    const client = new OpenAI({ apiKey });
+  ): AsyncGenerator<MessageChunk> {
+    const client = this.client;
 
     let activeModel = model ?? this.model;
     if (!model && profile) {
@@ -382,7 +389,9 @@ export class OpenAIProvider implements IProvider {
       }
     } catch (err) {
       logger.error('OpenAI streaming failed:', err);
-      yield { content: ' (Streaming failed)' };
+      throw new Error(
+        `OpenAI streaming failed: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 

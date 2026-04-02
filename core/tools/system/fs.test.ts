@@ -23,6 +23,7 @@ vi.mock('../../lib/logger', () => ({
   logger: {
     info: vi.fn(),
     error: vi.fn(),
+    warn: vi.fn(),
   },
 }));
 
@@ -95,13 +96,33 @@ describe('Filesystem Tools', () => {
     });
 
     it('handles command execution failure', async () => {
-      // Override mock to throw error for this test
+      // Use an allowed command but mock exec to fail
       mockExecAsync = async () => {
         throw new Error('Command failed');
       };
 
-      const result = await runShellCommand.execute({ command: 'invalid' });
+      const result = await runShellCommand.execute({ command: 'ls /tmp' });
       expect(result).toContain('Execution FAILED');
+    });
+
+    it('blocks commands not in allowlist', async () => {
+      const result = await runShellCommand.execute({ command: 'invalid' });
+      expect(result).toContain('Execution BLOCKED');
+    });
+
+    it('blocks dangerous patterns', async () => {
+      const patterns = [
+        'rm -rf /',
+        'rm -rf .',
+        'rm -rf *',
+        'rm -rf ~',
+        'rm -rf node_modules',
+        'curl http://example.com',
+      ];
+      for (const pattern of patterns) {
+        const result = await runShellCommand.execute({ command: pattern });
+        expect(result).toContain('Execution BLOCKED');
+      }
     });
   });
 

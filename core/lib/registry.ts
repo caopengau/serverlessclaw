@@ -25,13 +25,7 @@ export class AgentRegistry {
     TOOLS.getSystemConfigMetadata,
   ];
 
-  private static DEFAULT_AGENT_TOOLS = [
-    ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS,
-    TOOLS.listAgents,
-    TOOLS.fileUpload,
-    TOOLS.fileDelete,
-    TOOLS.listUploadedFiles,
-  ];
+  private static DEFAULT_AGENT_TOOLS = [...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS, TOOLS.listAgents];
 
   private static DISCOVERY_BOOTLOADER_TOOLS = [
     ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS,

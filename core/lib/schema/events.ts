@@ -244,6 +244,31 @@ export const CONSENSUS_VOTE_SCHEMA = BASE_EVENT_SCHEMA.extend({
   weight: z.number().default(1.0),
 });
 
+/** Schema for reputation update events. */
+export const REPUTATION_UPDATE_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  agentId: z.string(),
+  success: z.boolean(),
+  durationMs: z.number(),
+  error: z.string().optional(),
+  taskComplexity: z.number().optional(),
+});
+
+/** Schema for parallel task dispatch events. */
+export const PARALLEL_TASK_DISPATCH_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  tasks: z.array(
+    z.object({
+      taskId: z.string(),
+      agentId: z.string(),
+      task: z.string(),
+      metadata: z.record(z.string(), z.unknown()).optional(),
+      dependsOn: z.array(z.string()).optional(),
+    })
+  ),
+  barrierTimeoutMs: z.number().optional(),
+  aggregationType: z.enum(['summary', 'agent_guided', 'merge_patches']).optional(),
+  aggregationPrompt: z.string().optional(),
+});
+
 /** Schema for consensus result events. */
 export const CONSENSUS_REACHED_SCHEMA = BASE_EVENT_SCHEMA.extend({
   consensusId: z.string(),
@@ -262,6 +287,27 @@ export const CONSENSUS_REACHED_SCHEMA = BASE_EVENT_SCHEMA.extend({
       weight: z.number(),
     })
   ),
+});
+
+/** Schema for coder task completion events. */
+export const CODER_TASK_COMPLETED_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  task: z.string(),
+  response: z.string().optional(),
+  patchApplied: z.boolean().optional(),
+  gapIds: z.array(z.string()).optional(),
+});
+
+/** Schema for task cancellation events. */
+export const TASK_CANCELLED_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  reason: z.string().optional(),
+  parallelDispatchId: z.string().optional(),
+});
+
+/** Schema for human handoff events. */
+export const HANDOFF_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  handoffType: z.enum(['approval', 'clarification', 'escalation']),
+  message: z.string().optional(),
+  expiresAt: z.number().optional(),
 });
 
 // Zod-inferred types for metadata schemas
@@ -346,6 +392,11 @@ export const EVENT_SCHEMA_MAP = {
   [EventType.CONSENSUS_VOTE as string]: CONSENSUS_VOTE_SCHEMA,
   [EventType.CONSENSUS_REACHED as string]: CONSENSUS_REACHED_SCHEMA,
   [EventType.HEALTH_ALERT as string]: HEALTH_REPORT_EVENT_SCHEMA,
+  [EventType.REPUTATION_UPDATE as string]: REPUTATION_UPDATE_SCHEMA,
+  [EventType.PARALLEL_TASK_DISPATCH as string]: PARALLEL_TASK_DISPATCH_SCHEMA,
+  [EventType.CODER_TASK_COMPLETED as string]: CODER_TASK_COMPLETED_SCHEMA,
+  [EventType.TASK_CANCELLED as string]: TASK_CANCELLED_SCHEMA,
+  [EventType.HANDOFF as string]: HANDOFF_SCHEMA,
 } as const;
 
 /** Keys of the EVENT_SCHEMA_MAP (for type-safe event type lookups). */

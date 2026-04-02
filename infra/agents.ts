@@ -1,18 +1,16 @@
 import { EventType, AgentType } from '../core/lib/types/agent';
-import { SharedContext, getValidSecrets, AGENT_CONFIG } from './shared';
+import {
+  SharedContext,
+  getValidSecrets,
+  AGENT_CONFIG,
+  LAMBDA_ARCHITECTURE,
+  NODEJS_LOADERS,
+  LOG_RETENTION_PERIOD,
+} from './shared';
 import { MCPServerResources } from './mcp-servers';
 
 const RECOVERY_SCHEDULE_RATE = 'rate(15 minutes)';
 const CONCURRENCY_MONITOR_RATE = 'rate(1 hour)';
-
-/** Lambda runtime architecture for all agent functions */
-const LAMBDA_ARCHITECTURE = 'arm64';
-
-/** Node.js loader configuration for markdown files */
-const NODEJS_LOADERS = { '.md': 'text' } as const;
-
-/** Default log retention period for Lambda functions */
-const LOG_RETENTION_PERIOD = '1 month';
 
 /**
  * Create an IAM role for EventBridge Scheduler to invoke a Lambda function.
@@ -230,6 +228,11 @@ export function createAgents(
   });
   bus.subscribe('CoderTaskSubscriber', coderAgent.arn, {
     pattern: { detailType: [EventType.CODER_TASK] },
+    transform: {
+      target: {
+        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
+      },
+    },
   });
 
   // 2. Build Monitor
@@ -264,7 +267,13 @@ export function createAgents(
     handler: 'core/handlers/recovery.handler',
     dev: liveInLocalOnly,
     link: [...baseLink, deployer, ctx.api],
-    permissions: basePermissions,
+    permissions: [
+      ...basePermissions,
+      {
+        actions: ['codebuild:StartBuild'],
+        resources: [deployer.arn],
+      },
+    ],
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
     memory: AGENT_CONFIG.memory.SMALL,
@@ -293,12 +302,23 @@ export function createAgents(
   ];
 
   // 15-min Schedule (Dead Man's Switch)
-  createScheduledInvocation(
-    'Recovery',
-    RECOVERY_SCHEDULE_RATE,
-    deadMansSwitch,
-    "Dead man's switch — deep health checks and emergency rollback"
-  );
+  new aws.scheduler.Schedule('RecoverySchedule', {
+    name: `${$app.name}-${$app.stage}-Recovery`,
+    description: "Dead man's switch — deep health checks and emergency rollback",
+    scheduleExpression: RECOVERY_SCHEDULE_RATE,
+    state: 'ENABLED',
+    flexibleTimeWindow: { mode: 'OFF' },
+    target: {
+      arn: deadMansSwitch.arn,
+      roleArn: createSchedulerRole('Recovery', deadMansSwitch.arn).arn,
+    },
+  });
+
+  new aws.lambda.Permission('RecoveryPermission', {
+    action: 'lambda:InvokeFunction',
+    function: deadMansSwitch.name,
+    principal: 'scheduler.amazonaws.com',
+  });
 
   // 5. CodeBuild Event Rule (Monitor both success and failure for gap lifecycle)
   const buildRule = new aws.cloudwatch.EventRule('BuildRule', {
@@ -306,7 +326,7 @@ export function createAgents(
       source: ['aws.codebuild'],
       'detail-type': ['CodeBuild Build State Change'],
       detail: {
-        'build-status': ['FAILED', 'SUCCEEDED'],
+        'build-status': ['FAILED', 'SUCCEEDED', 'STOPPED', 'TIMED_OUT', 'FAULT'],
         'project-name': [deployer.name],
       },
     }),
@@ -315,6 +335,7 @@ export function createAgents(
   new aws.cloudwatch.EventTarget('BuildTarget', {
     rule: buildRule.name,
     arn: buildMonitor.arn,
+    deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
   });
 
   new aws.lambda.Permission('BuildPermission', {
@@ -342,6 +363,11 @@ export function createAgents(
   bus.subscribe('EvolutionPlanSubscriber', plannerAgent.arn, {
     pattern: {
       detailType: [EventType.EVOLUTION_PLAN, `${AgentType.STRATEGIC_PLANNER}_task`],
+    },
+    transform: {
+      target: {
+        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
+      },
     },
   });
 
@@ -377,6 +403,11 @@ export function createAgents(
         EventType.CLARIFICATION_TIMEOUT,
       ],
     },
+    transform: {
+      target: {
+        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
+      },
+    },
   });
 
   // 6. Reflector Agent
@@ -397,6 +428,11 @@ export function createAgents(
   bus.subscribe('ReflectTaskSubscriber', reflectorAgent.arn, {
     pattern: {
       detailType: [EventType.REFLECT_TASK, `${AgentType.COGNITION_REFLECTOR}_task`],
+    },
+    transform: {
+      target: {
+        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
+      },
     },
   });
 
@@ -423,6 +459,11 @@ export function createAgents(
         `${AgentType.QA}_task`,
       ],
     },
+    transform: {
+      target: {
+        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
+      },
+    },
   });
 
   // 7.5 Critic Agent (Council of Agents peer review)
@@ -444,6 +485,11 @@ export function createAgents(
     pattern: {
       detailType: [EventType.CRITIC_TASK, `${AgentType.CRITIC}_task`],
     },
+    transform: {
+      target: {
+        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
+      },
+    },
   });
 
   // 8. Notifier
@@ -462,6 +508,11 @@ export function createAgents(
   });
   bus.subscribe('OutboundMessageSubscriber', notifier.arn, {
     pattern: { detailType: [EventType.OUTBOUND_MESSAGE] },
+    transform: {
+      target: {
+        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
+      },
+    },
   });
 
   // 8. Generic Agent Runner (Handles dynamic user-defined agents)
@@ -479,35 +530,15 @@ export function createAgents(
       retention: LOG_RETENTION_PERIOD,
     },
   });
-  // Subscribe to all agent tasks that don't have a specific handler
+  // Subscribe to dynamic agent tasks (positive match instead of massive exclusion list)
   bus.subscribe('AgentRunnerSubscriber', agentRunner.arn, {
     pattern: {
-      detailType: [
-        {
-          'anything-but': [
-            EventType.CHUNK,
-            EventType.CODER_TASK,
-            EventType.REFLECT_TASK,
-            EventType.EVOLUTION_PLAN,
-            EventType.SYSTEM_BUILD_FAILED,
-            EventType.SYSTEM_BUILD_SUCCESS,
-            EventType.TASK_COMPLETED,
-            EventType.TASK_FAILED,
-            EventType.SYSTEM_HEALTH_REPORT,
-            EventType.HEARTBEAT_PROACTIVE,
-            EventType.CONTINUATION_TASK,
-            EventType.OUTBOUND_MESSAGE,
-            EventType.CLARIFICATION_REQUEST,
-            EventType.CLARIFICATION_TIMEOUT,
-            EventType.PARALLEL_TASK_DISPATCH,
-            EventType.PARALLEL_TASK_COMPLETED,
-            `${AgentType.STRATEGIC_PLANNER}_task`,
-            `${AgentType.COGNITION_REFLECTOR}_task`,
-            `${AgentType.QA}_task`,
-            `${AgentType.CRITIC}_task`,
-          ],
-        },
-      ],
+      detailType: [{ prefix: 'dynamic_' }],
+    },
+    transform: {
+      target: {
+        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
+      },
     },
   });
 
@@ -537,6 +568,11 @@ export function createAgents(
         EventType.RECOVERY_LOG,
         EventType.SYSTEM_HEALTH_REPORT,
       ],
+    },
+    transform: {
+      target: {
+        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
+      },
     },
   });
 
@@ -580,6 +616,11 @@ export function createAgents(
   });
   bus.subscribe('MergerTaskSubscriber', mergerAgent.arn, {
     pattern: { detailType: [EventType.PARALLEL_TASK_COMPLETED] },
+    transform: {
+      target: {
+        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
+      },
+    },
   });
 
   // B3: DLQ Handler for failed EventBridge events

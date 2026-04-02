@@ -394,7 +394,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
     // B2: Validate plan before coder dispatch
     // Reject plans that are empty, too short, or contain only meta-commentary
-    const MIN_PLAN_LENGTH = 50;
+    const MIN_PLAN_LENGTH = 500;
     const planValidationErrors: string[] = [];
     if (!plan || plan.trim().length === 0) {
       planValidationErrors.push('Plan is empty');

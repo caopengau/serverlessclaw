@@ -1,4 +1,4 @@
-import { TraceSource, TaskEvent, EventType, Attachment } from '../lib/types/agent';
+import { TraceSource, TaskEvent, Attachment } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import {
@@ -28,29 +28,15 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
   logger.info('Agent Runner received event:', JSON.stringify(event, null, 2));
 
   // Extract agentId from the event source or detail-type
-  // Pattern: <agentId>_task
+  // Pattern: dynamic_<agentId>_task
   const detailType = event['detail-type'] || '';
 
-  // Safety list of system events that the Worker should NEVER try to process as an agent
-  const systemEvents = [
-    EventType.CONTINUATION_TASK,
-    EventType.TASK_COMPLETED,
-    EventType.TASK_FAILED,
-    EventType.OUTBOUND_MESSAGE,
-    EventType.SYSTEM_BUILD_FAILED,
-    EventType.SYSTEM_BUILD_SUCCESS,
-    EventType.CODER_TASK_COMPLETED,
-    EventType.MONITOR_BUILD,
-    EventType.RECOVERY_LOG,
-    EventType.SYSTEM_HEALTH_REPORT,
-  ];
-
-  if (!detailType || (systemEvents as string[]).includes(detailType)) {
-    logger.info('Skipping system event in Agent Runner:', detailType);
+  if (!detailType.startsWith('dynamic_')) {
+    logger.info('Skipping non-dynamic event in Agent Runner:', detailType);
     return;
   }
 
-  const agentId = detailType.replace('_task', '');
+  const agentId = detailType.replace('dynamic_', '').replace('_task', '');
   const payload = extractPayload<TaskEvent>(event.detail);
   const { userId, task, isContinuation, traceId, taskId, sessionId } = payload;
 
@@ -130,6 +116,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       initiatorId: payload.initiatorId,
       depth: payload.depth,
       userNotified: shouldSpeakDirectly && !isFailure,
+      idempotencyKey: traceId,
     });
   }
 

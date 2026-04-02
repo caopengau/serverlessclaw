@@ -7,7 +7,7 @@ import {
   AttachmentType,
   Message,
 } from '../types/index';
-import { SYSTEM, MEMORY_KEYS, LIMITS } from '../constants';
+import { SYSTEM, LIMITS } from '../constants';
 import { AgentContext } from './context';
 import { ContextManager } from './context-manager';
 import { resolvePromptSnippets } from '../prompts/snippets';
@@ -48,8 +48,24 @@ export class AgentAssembler {
         Promise.all([
           memory.getDistilledMemory(baseUserId),
           memory.getLessons(baseUserId),
-          memory.searchInsights(`USER#${baseUserId}`, '*', InsightCategory.USER_PREFERENCE),
-          memory.searchInsights(baseUserId, '*', InsightCategory.USER_PREFERENCE),
+          memory.searchInsights(
+            `USER#${baseUserId}`,
+            '*',
+            InsightCategory.USER_PREFERENCE,
+            50,
+            undefined,
+            undefined,
+            undefined
+          ),
+          memory.searchInsights(
+            baseUserId,
+            '*',
+            InsightCategory.USER_PREFERENCE,
+            50,
+            undefined,
+            undefined,
+            undefined
+          ),
           memory.getGlobalLessons(5),
         ]),
       ]
@@ -68,11 +84,11 @@ export class AgentAssembler {
     try {
       const [{ AGENT_LOG_MESSAGES }, recoveryData] = await Promise.all([
         import('./executor'),
-        memory.getDistilledMemory(SYSTEM.RECOVERY_KEY ?? MEMORY_KEYS.RECOVERY),
+        memory.getDistilledMemory(SYSTEM.RECOVERY_KEY),
       ]);
       if (recoveryData) {
         recoveryContext = `${AGENT_LOG_MESSAGES.RECOVERY_LOG_PREFIX}${recoveryData}`;
-        await memory.updateDistilledMemory(SYSTEM.RECOVERY_KEY ?? MEMORY_KEYS.RECOVERY, '');
+        await memory.updateDistilledMemory(SYSTEM.RECOVERY_KEY, '');
       }
     } catch {
       // Silently ignore

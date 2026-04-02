@@ -612,6 +612,7 @@ export class SafetyEngine {
       approvalRequired: 0,
       byTier: {
         [SafetyTier.SANDBOX]: 0,
+        [SafetyTier.STAGED]: 0,
         [SafetyTier.AUTONOMOUS]: 0,
       },
       byAction: {} as Record<string, number>,

@@ -98,12 +98,26 @@ vi.mock('../lib/agent', () => ({
     constructor() {}
     stream() {
       return (async function* () {
-        yield { content: '{"status":"SUCCESS", "plan":"Test plan", "coveredGapIds": ["GAP-1"]}' };
+        yield {
+          content:
+            '{"status":"SUCCESS", "plan":"Implement comprehensive search integration across all Slack channels. ' +
+            'This solution requires a multi-phase approach: Phase 1 establishes the core connector infrastructure with ' +
+            'proper authentication and rate limiting. Phase 2 adds advanced filtering capabilities including date range, ' +
+            'user, and channel-level granularity. Phase 3 implements relevance scoring and caching for optimal performance. ' +
+            'Each phase includes integration tests and documentation updates. The connector follows existing patterns and ' +
+            'handles edge cases gracefully with proper error boundaries.", "coveredGapIds": ["GAP-1"]}',
+        };
       })();
     }
     process() {
       return Promise.resolve({
-        responseText: '{"status":"SUCCESS", "plan":"Test plan", "coveredGapIds": ["GAP-1"]}',
+        responseText:
+          '{"status":"SUCCESS", "plan":"Implement comprehensive search integration across all Slack channels. ' +
+          'This solution requires a multi-phase approach: Phase 1 establishes the core connector infrastructure with ' +
+          'proper authentication and rate limiting. Phase 2 adds advanced filtering capabilities including date range, ' +
+          'user, and channel-level granularity. Phase 3 implements relevance scoring and caching for optimal performance. ' +
+          'Each phase includes integration tests and documentation updates. The connector follows existing patterns and ' +
+          'handles edge cases gracefully with proper error boundaries.", "coveredGapIds": ["GAP-1"]}',
         attachments: [],
       });
     }

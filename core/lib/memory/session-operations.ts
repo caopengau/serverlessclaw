@@ -127,14 +127,19 @@ export async function saveConversationMeta(
   // Actually, listConversations queries by 'SESSIONS#userId'.
   // If we want it to be unique per sessionId, we should use sessionId as the sort key (timestamp).
 
-  // Convert sessionId to a numeric-ish value if it's a timestamp, otherwise use hash
+  // Convert sessionId to a numeric-ish value if it's a timestamp, otherwise use 64-bit FNV-1a hash
   let stableTimestamp = Number.parseInt(sessionId.split('_')[1] || sessionId, 10);
   if (Number.isNaN(stableTimestamp)) {
-    // Fallback to a hash-based numeric value if sessionId is not timestamp-based
-    stableTimestamp = sessionId.split('').reduce((a, b) => {
-      a = (a << 5) - a + b.charCodeAt(0);
-      return a & a;
-    }, 0);
+    // 1.6 Use FNV-1a 64-bit for Session Hash to minimize collisions
+    let h = 0xcbf29ce484222325n;
+    for (let i = 0; i < sessionId.length; i++) {
+      h ^= BigInt(sessionId.charCodeAt(i));
+      h = (h * 0x100000001b3n) & 0xffffffffffffffffn;
+    }
+    // DynamoDB number allows up to 38 digits, but we'll use string-based BigInt for safety
+    // or just convert to number if it fits in 53 bits (BigInt(Number.MAX_SAFE_INTEGER))
+    // For SK (timestamp), we'll use the absolute BigInt value.
+    stableTimestamp = Number(h & 0x1fffffffffffffn); // Use 53 bits for Number safety in JS
   }
 
   await base.updateItem({

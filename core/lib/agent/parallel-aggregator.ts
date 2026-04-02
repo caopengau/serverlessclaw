@@ -149,6 +149,8 @@ export class ParallelAggregator {
     status: 'success' | 'partial' | 'failed' | 'timeout'
   ): Promise<boolean> {
     try {
+      const isTimeout = status === 'timeout';
+
       await docClient.send(
         new UpdateCommand({
           TableName: this.tableName,
@@ -157,7 +159,11 @@ export class ParallelAggregator {
             timestamp: 0,
           },
           UpdateExpression: 'SET #status = :status, completedAt = :now',
-          ConditionExpression: 'attribute_exists(userId) AND #status = :pending',
+          // If marking as completed by a worker, ensure it's actually complete.
+          // If marking as timeout, ensure it's still pending.
+          ConditionExpression: isTimeout
+            ? 'attribute_exists(userId) AND #status = :pending AND completedCount < taskCount'
+            : 'attribute_exists(userId) AND #status = :pending AND completedCount >= taskCount',
           ExpressionAttributeNames: {
             '#status': 'status',
           },
@@ -171,7 +177,7 @@ export class ParallelAggregator {
       return true;
     } catch (error) {
       if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
-        return false; // Already completed or doesn't exist
+        return false; // Already completed, doesn't exist, or condition not met
       }
       throw error;
     }

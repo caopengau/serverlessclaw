@@ -179,9 +179,9 @@ export interface AccessControlEntry {
  */
 export class IdentityManager {
   private base: import('../memory/base').BaseMemoryProvider;
-  private sessions: Map<string, Session> = new Map();
-  private users: Map<string, UserIdentity> = new Map();
-  private accessControl: AccessControlEntry[] = [];
+
+  /** Hardcoded fallback owners to prevent lockouts and handle initial setup. */
+  private readonly FALLBACK_OWNER_IDS = ['owner', 'claw-owner', 'admin', 'claw-admin'];
 
   constructor(base: import('../memory/base').BaseMemoryProvider) {
     this.base = base;
@@ -197,9 +197,9 @@ export class IdentityManager {
   ): Promise<AuthResult> {
     try {
       // Get or create user identity
-      let user = this.users.get(userId);
+      let user = await this.getUser(userId);
       if (!user) {
-        user = await this.loadOrCreateUser(userId, authProvider);
+        user = await this.createUser(userId, authProvider);
       }
 
       // Validate workspace membership if workspaceId provided
@@ -213,10 +213,10 @@ export class IdentityManager {
 
       // Update last active time
       user.lastActiveAt = Date.now();
-      this.users.set(userId, user);
+      await this.saveUser(user);
 
       // Create session
-      const session = this.createSession(userId, metadata);
+      const session = await this.createSession(userId, metadata);
 
       logger.info(`User authenticated: ${userId} via ${authProvider}`, {
         sessionId: session.sessionId,
@@ -240,27 +240,28 @@ export class IdentityManager {
   /**
    * Validate a session.
    */
-  validateSession(sessionId: string): Session | null {
-    const session = this.sessions.get(sessionId);
+  async validateSession(sessionId: string): Promise<Session | null> {
+    const session = await this.getSession(sessionId);
     if (!session) return null;
 
     // Check expiration
     if (Date.now() > session.expiresAt) {
-      this.sessions.delete(sessionId);
+      await this.terminateSession(sessionId);
       logger.info(`Session expired: ${sessionId}`);
       return null;
     }
 
     // Update last activity
     session.lastActivityTime = Date.now();
+    await this.saveSession(session);
     return session;
   }
 
   /**
    * Check if a user has a specific permission.
    */
-  hasPermission(userId: string, permission: Permission): boolean {
-    const user = this.users.get(userId);
+  async hasPermission(userId: string, permission: Permission): Promise<boolean> {
+    const user = await this.getUser(userId);
     if (!user) return false;
 
     const rolePermissions = ROLE_PERMISSIONS[user.role];
@@ -270,12 +271,12 @@ export class IdentityManager {
   /**
    * Check if a user has access to a specific resource.
    */
-  hasResourceAccess(
+  async hasResourceAccess(
     userId: string,
     resourceType: 'agent' | 'workspace' | 'config' | 'trace',
     resourceId: string
-  ): boolean {
-    const user = this.users.get(userId);
+  ): Promise<boolean> {
+    const user = await this.getUser(userId);
     if (!user) return false;
 
     // Owners and admins have access to everything
@@ -284,9 +285,7 @@ export class IdentityManager {
     }
 
     // Check specific access control entries
-    const entry = this.accessControl.find(
-      (e) => e.resourceType === resourceType && e.resourceId === resourceId
-    );
+    const entry = await this.getAccessControlEntry(resourceType, resourceId);
 
     if (entry) {
       // Check if user ID is explicitly allowed
@@ -307,50 +306,111 @@ export class IdentityManager {
   }
 
   /**
-   * Get user identity.
+   * Get user identity. Loads from storage.
    */
-  getUser(userId: string): UserIdentity | undefined {
-    return this.users.get(userId);
+  async getUser(userId: string): Promise<UserIdentity | undefined> {
+    const user = await this.loadUser(userId);
+
+    // Fallback: Check hardcoded IDs for OWNER role
+    if (user && this.FALLBACK_OWNER_IDS.includes(userId) && user.role !== UserRole.OWNER) {
+      user.role = UserRole.OWNER;
+      await this.saveUser(user);
+    }
+
+    return user;
   }
 
   /**
-   * Get session.
+   * Get session from storage.
    */
-  getSession(sessionId: string): Session | undefined {
-    return this.sessions.get(sessionId);
+  async getSession(sessionId: string): Promise<Session | undefined> {
+    try {
+      const items = await this.base.queryItems({
+        KeyConditionExpression: 'userId = :pk AND #ts = :zero',
+        ExpressionAttributeNames: { '#ts': 'timestamp' },
+        ExpressionAttributeValues: {
+          ':pk': `${MEMORY_KEYS.WORKSPACE_PREFIX}SESSION#${sessionId}`,
+          ':zero': 0,
+        },
+      });
+
+      if (items.length > 0) {
+        const item = items[0];
+        return {
+          sessionId,
+          userId: item.sessionUserId as string,
+          workspaceId: item.workspaceId as string | undefined,
+          startTime: item.startTime as number,
+          lastActivityTime: item.lastActivityTime as number,
+          expiresAt: item.expiresAt as number,
+          metadata: item.metadata as Record<string, unknown> | undefined,
+        };
+      }
+    } catch (error) {
+      logger.error(`Failed to load session ${sessionId}:`, error);
+    }
+    return undefined;
   }
 
   /**
    * Terminate a session.
    */
-  terminateSession(sessionId: string): void {
-    this.sessions.delete(sessionId);
-    logger.info(`Session terminated: ${sessionId}`);
+  async terminateSession(sessionId: string): Promise<void> {
+    try {
+      await this.base.deleteItem({
+        userId: `${MEMORY_KEYS.WORKSPACE_PREFIX}SESSION#${sessionId}`,
+        timestamp: 0,
+      });
+      logger.info(`Session terminated: ${sessionId}`);
+    } catch (error) {
+      logger.error(`Failed to terminate session ${sessionId}:`, error);
+    }
   }
 
   /**
    * Get all active sessions for a user.
+   * Note: This uses a scan with filter, which is inefficient but acceptable for infrequent use.
+   * In a high-traffic system, a GSI on sessionUserId would be required.
    */
-  getUserSessions(userId: string): Session[] {
-    return Array.from(this.sessions.values()).filter((s) => s.userId === userId);
+  async getUserSessions(userId: string): Promise<Session[]> {
+    try {
+      const items = await this.base.scanByPrefix(`${MEMORY_KEYS.WORKSPACE_PREFIX}SESSION#`);
+      return items
+        .filter((item) => item.sessionUserId === userId)
+        .map((item) => ({
+          sessionId: (item.userId as string).split('#').pop()!,
+          userId: item.sessionUserId as string,
+          workspaceId: item.workspaceId as string | undefined,
+          startTime: item.startTime as number,
+          lastActivityTime: item.lastActivityTime as number,
+          expiresAt: item.expiresAt as number,
+          metadata: item.metadata as Record<string, unknown> | undefined,
+        }));
+    } catch (error) {
+      logger.error(`Failed to get sessions for user ${userId}:`, error);
+      return [];
+    }
   }
 
   /**
-   * Update user role.
+   * Update user role. Requires OWNER/ADMIN caller.
    */
-  async updateUserRole(userId: string, role: UserRole): Promise<boolean> {
-    const user = this.users.get(userId);
+  async updateUserRole(userId: string, role: UserRole, callerId: string): Promise<boolean> {
+    const caller = await this.getUser(callerId);
+    if (!caller || (caller.role !== UserRole.OWNER && caller.role !== UserRole.ADMIN)) {
+      logger.error(`Unauthorized role update attempt by ${callerId} for ${userId}`);
+      return false;
+    }
+
+    const user = await this.getUser(userId);
     if (!user) {
       logger.error(`User not found: ${userId}`);
       return false;
     }
 
     user.role = role;
-    this.users.set(userId, user);
-
-    // Persist to storage
     await this.saveUser(user);
-    logger.info(`User role updated: ${userId} -> ${role}`);
+    logger.info(`User role updated: ${userId} -> ${role}${callerId ? ` by ${callerId}` : ''}`);
     return true;
   }
 
@@ -358,7 +418,7 @@ export class IdentityManager {
    * Add user to workspace.
    */
   async addUserToWorkspace(userId: string, workspaceId: string): Promise<boolean> {
-    const user = this.users.get(userId);
+    const user = await this.getUser(userId);
     if (!user) {
       logger.error(`User not found: ${userId}`);
       return false;
@@ -366,7 +426,6 @@ export class IdentityManager {
 
     if (!user.workspaceIds.includes(workspaceId)) {
       user.workspaceIds.push(workspaceId);
-      this.users.set(userId, user);
       await this.saveUser(user);
       logger.info(`User ${userId} added to workspace ${workspaceId}`);
     }
@@ -377,13 +436,12 @@ export class IdentityManager {
    * Remove user from workspace.
    */
   async removeUserFromWorkspace(userId: string, workspaceId: string): Promise<boolean> {
-    const user = this.users.get(userId);
+    const user = await this.getUser(userId);
     if (!user) return false;
 
     const index = user.workspaceIds.indexOf(workspaceId);
     if (index > -1) {
       user.workspaceIds.splice(index, 1);
-      this.users.set(userId, user);
       await this.saveUser(user);
       logger.info(`User ${userId} removed from workspace ${workspaceId}`);
     }
@@ -393,23 +451,28 @@ export class IdentityManager {
   /**
    * Add access control entry.
    */
-  addAccessControlEntry(entry: AccessControlEntry): void {
-    // Remove existing entry for same resource
-    this.accessControl = this.accessControl.filter(
-      (e) => !(e.resourceType === entry.resourceType && e.resourceId === entry.resourceId)
-    );
-    this.accessControl.push(entry);
-    logger.info(`Access control entry added: ${entry.resourceType}:${entry.resourceId}`);
+  async addAccessControlEntry(entry: AccessControlEntry): Promise<void> {
+    try {
+      await this.base.putItem({
+        userId: `${MEMORY_KEYS.WORKSPACE_PREFIX}ACL#${entry.resourceType}#${entry.resourceId}`,
+        timestamp: 0,
+        type: 'ACCESS_CONTROL',
+        resourceType: entry.resourceType,
+        resourceId: entry.resourceId,
+        allowedRoles: entry.allowedRoles,
+        allowedUserIds: entry.allowedUserIds,
+        updatedAt: Date.now(),
+      });
+      logger.info(`Access control entry saved: ${entry.resourceType}:${entry.resourceId}`);
+    } catch (error) {
+      logger.error(`Failed to save ACL entry:`, error);
+    }
   }
 
   /**
-   * Load or create user identity.
+   * Load user identity from storage.
    */
-  private async loadOrCreateUser(
-    userId: string,
-    authProvider: 'telegram' | 'dashboard' | 'api_key'
-  ): Promise<UserIdentity> {
-    // Try to load from storage
+  private async loadUser(userId: string): Promise<UserIdentity | undefined> {
     try {
       const items = await this.base.queryItems({
         KeyConditionExpression: 'userId = :pk AND #ts = :zero',
@@ -434,14 +497,22 @@ export class IdentityManager {
         };
       }
     } catch (error) {
-      logger.warn(`Failed to load user ${userId}, creating new:`, error);
+      logger.error(`Failed to load user ${userId}:`, error);
     }
+    return undefined;
+  }
 
-    // Create new user
+  /**
+   * Create new user identity.
+   */
+  private async createUser(
+    userId: string,
+    authProvider: 'telegram' | 'dashboard' | 'api_key'
+  ): Promise<UserIdentity> {
     const newUser: UserIdentity = {
       userId,
       displayName: userId,
-      role: UserRole.MEMBER, // Default role
+      role: this.FALLBACK_OWNER_IDS.includes(userId) ? UserRole.OWNER : UserRole.MEMBER,
       workspaceIds: [],
       authProvider,
       createdAt: Date.now(),
@@ -478,7 +549,10 @@ export class IdentityManager {
   /**
    * Create a new session.
    */
-  private createSession(userId: string, metadata?: Record<string, unknown>): Session {
+  private async createSession(
+    userId: string,
+    metadata?: Record<string, unknown>
+  ): Promise<Session> {
     const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const now = Date.now();
     const session: Session = {
@@ -490,28 +564,89 @@ export class IdentityManager {
       metadata,
     };
 
-    this.sessions.set(sessionId, session);
+    await this.saveSession(session);
     return session;
   }
 
   /**
-   * Cleanup expired sessions.
+   * Save session to storage.
    */
-  cleanupExpiredSessions(): number {
-    const now = Date.now();
-    let cleaned = 0;
+  private async saveSession(session: Session): Promise<void> {
+    try {
+      await this.base.putItem({
+        userId: `${MEMORY_KEYS.WORKSPACE_PREFIX}SESSION#${session.sessionId}`,
+        timestamp: 0,
+        type: 'SESSION',
+        sessionUserId: session.userId, // Avoid collision with PK userId
+        workspaceId: session.workspaceId,
+        startTime: session.startTime,
+        lastActivityTime: session.lastActivityTime,
+        expiresAt: session.expiresAt,
+        metadata: session.metadata,
+        ttl: Math.floor(session.expiresAt / 1000), // DDB TTL
+      });
+    } catch (error) {
+      logger.error(`Failed to save session ${session.sessionId}:`, error);
+    }
+  }
 
-    for (const [sessionId, session] of this.sessions.entries()) {
-      if (now > session.expiresAt) {
-        this.sessions.delete(sessionId);
-        cleaned++;
+  /**
+   * Get ACL entry from storage.
+   */
+  private async getAccessControlEntry(
+    resourceType: string,
+    resourceId: string
+  ): Promise<AccessControlEntry | undefined> {
+    try {
+      const items = await this.base.queryItems({
+        KeyConditionExpression: 'userId = :pk AND #ts = :zero',
+        ExpressionAttributeNames: { '#ts': 'timestamp' },
+        ExpressionAttributeValues: {
+          ':pk': `${MEMORY_KEYS.WORKSPACE_PREFIX}ACL#${resourceType}#${resourceId}`,
+          ':zero': 0,
+        },
+      });
+
+      if (items.length > 0) {
+        const item = items[0];
+        return {
+          resourceType: item.resourceType as 'agent' | 'workspace' | 'config' | 'trace',
+          resourceId: item.resourceId as string,
+          allowedRoles: item.allowedRoles as UserRole[],
+          allowedUserIds: item.allowedUserIds as string[] | undefined,
+        };
       }
+    } catch (error) {
+      logger.error(`Failed to load ACL entry for ${resourceType}:${resourceId}:`, error);
     }
+    return undefined;
+  }
 
-    if (cleaned > 0) {
-      logger.info(`Cleaned up ${cleaned} expired sessions`);
+  /**
+   * Cleanup expired sessions.
+   * Note: DynamoDB TTL handles this automatically, but this provides explicit cleanup.
+   */
+  async cleanupExpiredSessions(): Promise<number> {
+    const now = Date.now();
+    try {
+      const items = await this.base.scanByPrefix(`${MEMORY_KEYS.WORKSPACE_PREFIX}SESSION#`);
+      let cleaned = 0;
+
+      for (const item of items) {
+        if (now > (item.expiresAt as number)) {
+          const sessionId = (item.userId as string).split('#').pop()!;
+          await this.terminateSession(sessionId);
+          cleaned++;
+        }
+      }
+
+      if (cleaned > 0) {
+        logger.info(`Cleaned up ${cleaned} expired sessions`);
+      }
+      return cleaned;
+    } catch (error) {
+      logger.error('Failed to cleanup expired sessions:', error);
+      return 0;
     }
-
-    return cleaned;
   }
 }

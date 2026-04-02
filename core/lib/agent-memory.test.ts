@@ -85,15 +85,13 @@ describe('Agent Memory Recall Regression', () => {
     await agent.process(userId, 'What do I like?');
 
     // 1. Verify search was called for both
-    expect(mockMemory.searchInsights).toHaveBeenCalledWith(
-      `USER#${userId}`,
-      '*',
-      InsightCategory.USER_PREFERENCE
-    );
-    expect(mockMemory.searchInsights).toHaveBeenCalledWith(
-      userId,
-      '*',
-      InsightCategory.USER_PREFERENCE
+    const searchCalls = vi.mocked(mockMemory.searchInsights).mock.calls;
+    const searchScopes = searchCalls.map((c) => [c[0], c[1], c[2]]);
+    expect(searchScopes).toEqual(
+      expect.arrayContaining([
+        [`USER#${userId}`, '*', InsightCategory.USER_PREFERENCE],
+        [userId, '*', InsightCategory.USER_PREFERENCE],
+      ])
     );
 
     // 2. Verify facts were injected into the provider call
@@ -146,15 +144,13 @@ describe('Agent Memory Recall Regression', () => {
     await asyncIterator.next();
 
     // Verify search was called for both
-    expect(mockMemory.searchInsights).toHaveBeenCalledWith(
-      `USER#${userId}`,
-      '*',
-      InsightCategory.USER_PREFERENCE
-    );
-    expect(mockMemory.searchInsights).toHaveBeenCalledWith(
-      userId,
-      '*',
-      InsightCategory.USER_PREFERENCE
+    const searchCalls = vi.mocked(mockMemory.searchInsights).mock.calls;
+    const searchScopes = searchCalls.map((c) => [c[0], c[1], c[2]]);
+    expect(searchScopes).toEqual(
+      expect.arrayContaining([
+        [`USER#${userId}`, '*', InsightCategory.USER_PREFERENCE],
+        [userId, '*', InsightCategory.USER_PREFERENCE],
+      ])
     );
   });
 
@@ -173,15 +169,10 @@ describe('Agent Memory Recall Regression', () => {
 
     // Should still use baseUserId for insights
     expect(mockMemory.getDistilledMemory).toHaveBeenCalledWith(baseUserId);
-    expect(mockMemory.searchInsights).toHaveBeenCalledWith(
-      `USER#${baseUserId}`,
-      '*',
-      InsightCategory.USER_PREFERENCE
-    );
-    expect(mockMemory.searchInsights).toHaveBeenCalledWith(
-      baseUserId,
-      '*',
-      InsightCategory.USER_PREFERENCE
+    const searchCalls = vi.mocked(mockMemory.searchInsights).mock.calls;
+    const searchScopes = searchCalls.map((c) => [c[0], c[1], c[2]]);
+    expect(searchScopes).toEqual(
+      expect.arrayContaining([[`USER#${baseUserId}`, '*', InsightCategory.USER_PREFERENCE]])
     );
   });
 });

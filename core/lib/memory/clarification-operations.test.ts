@@ -172,8 +172,11 @@ describe('clarification-operations', () => {
       expect(mockBase.updateItem).toHaveBeenCalledWith(
         expect.objectContaining({
           Key: { userId: 'CLARIFICATION#trace-123#coder-agent', timestamp: 0 },
-          UpdateExpression: 'SET retryCount = retryCount + :one',
-          ReturnValues: 'ALL_NEW',
+          UpdateExpression: 'SET retryCount = if_not_exists(retryCount, :zero) + :one',
+          ExpressionAttributeValues: expect.objectContaining({
+            ':one': 1,
+            ':zero': 0,
+          }),
         })
       );
     });

@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, UpdateCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  UpdateCommand,
+  PutCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { DynamoMemory } from './dynamo-memory';
 import { GapStatus } from '../types/agent';
 import { MessageRole } from '../types/llm';
@@ -166,6 +171,8 @@ describe('DynamoMemory Retention', () => {
 
     it('should return 1 (not throw) if DDB call errors', async () => {
       ddbMock.on(UpdateCommand).rejects(new Error('DDB timeout'));
+      // Fallback path queries all gap statuses — return empty to let it fall through
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
 
       const count = await memory.incrementGapAttemptCount('GAP#1001');
       expect(count).toBe(1);

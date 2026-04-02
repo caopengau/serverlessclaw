@@ -48,7 +48,18 @@ describe('ReputationOperations', () => {
       };
       mockBase.queryItems.mockResolvedValue([mockItem]);
       const result = await getReputation(mockBase as any, 'agent-1');
-      expect(result).toEqual(mockItem);
+      expect(result).toMatchObject({
+        agentId: 'agent-1',
+        tasksCompleted: 10,
+        tasksFailed: 2,
+        totalLatencyMs: 12000,
+        successRate: 0.833,
+        avgLatencyMs: 1200,
+        totalTasks: 12,
+        rollingWindow: 7,
+      });
+      expect(result!.score).toBeGreaterThan(0);
+      expect(result!.createdAt).toBeDefined();
     });
   });
 
@@ -120,6 +131,10 @@ describe('ReputationOperations', () => {
         lastActive: Date.now(),
         windowStart: Date.now() - 3600000,
         expiresAt: 0,
+        createdAt: Date.now() - 3600000,
+        totalTasks: 10,
+        rollingWindow: 7,
+        score: 0,
       };
       const score = computeReputationScore(reputation);
       expect(score).toBeGreaterThan(0.9);
@@ -136,12 +151,17 @@ describe('ReputationOperations', () => {
         lastActive: Date.now(),
         windowStart: Date.now() - 3600000,
         expiresAt: 0,
+        createdAt: Date.now() - 3600000,
+        totalTasks: 10,
+        rollingWindow: 7,
+        score: 0,
       };
       const score = computeReputationScore(badRep);
       expect(score).toBeLessThanOrEqual(0.4); // Latency and recency might still provide some score
     });
 
     it('should penalize high latency (25% weight)', () => {
+      const now = Date.now();
       const slowRep = {
         agentId: 'agent-slow',
         tasksCompleted: 10,
@@ -149,15 +169,21 @@ describe('ReputationOperations', () => {
         totalLatencyMs: 200000, // 20s avg
         successRate: 1.0,
         avgLatencyMs: 20000,
-        lastActive: Date.now(),
-        windowStart: Date.now() - 3600000,
+        lastActive: now,
+        windowStart: now - 3600000,
         expiresAt: 0,
+        createdAt: now - 3600000,
+        totalTasks: 10,
+        rollingWindow: 7,
+        score: 0,
       };
       const score = computeReputationScore(slowRep);
+
       expect(score).toBeLessThan(0.8); // Perfect success but very slow
     });
 
-    it('should penalize inactivity (15% weight)', () => {
+    it('should penalize perfect but very old performance', () => {
+      const now = Date.now();
       const oldRep = {
         agentId: 'agent-old',
         tasksCompleted: 10,
@@ -165,11 +191,16 @@ describe('ReputationOperations', () => {
         totalLatencyMs: 10000,
         successRate: 1.0,
         avgLatencyMs: 1000,
-        lastActive: Date.now() - 48 * 3600000, // 2 days ago
-        windowStart: Date.now() - 3 * 86400000,
+        lastActive: now - 48 * 3600000, // 2 days ago
+        windowStart: now - 3600000,
         expiresAt: 0,
+        createdAt: now - 48 * 3600000,
+        totalTasks: 10,
+        rollingWindow: 7,
+        score: 0,
       };
       const score = computeReputationScore(oldRep);
+
       expect(score).toBeLessThan(0.9); // Perfect but stale
     });
   });

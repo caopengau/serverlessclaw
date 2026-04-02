@@ -41,7 +41,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
 
   // 1. Prepare writable /tmp workspace
   const { createWorkspace, cleanupWorkspace } = await import('../lib/utils/workspace-manager');
-  const workspacePath = await createWorkspace(traceId);
+  const workspacePath = await createWorkspace(traceId ?? `unknown-${Date.now()}`);
   const originalCwd = process.cwd();
   process.chdir(workspacePath);
   logger.info(`[Coder] Working in workspace: ${workspacePath}`);

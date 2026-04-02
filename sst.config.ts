@@ -73,7 +73,7 @@ export default $config({
       createStorage();
 
     // 2. Multi-Agent Orchestration (EventBridge)
-    const { bus, realtime } = createBus();
+    const { bus, realtime, dlq } = createBus();
 
     // 3. The Deployer (CodeBuild)
     const { deployer } = createDeployer({
@@ -118,6 +118,7 @@ export default $config({
         bus,
         deployer,
         realtime,
+        dlq,
         api, // Linkable API instance
       },
       mcpServers

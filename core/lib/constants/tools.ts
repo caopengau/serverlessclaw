@@ -23,6 +23,7 @@ export const TOOLS = {
   provideClarification: 'provideClarification',
   recallKnowledge: 'recallKnowledge',
   sendMessage: 'sendMessage',
+  broadcastMessage: 'broadcastMessage',
   manageGap: 'manageGap',
   reportGap: 'reportGap',
   manageAgentTools: 'manageAgentTools',
@@ -32,9 +33,6 @@ export const TOOLS = {
   setSystemConfig: 'setSystemConfig',
   listSystemConfigs: 'listSystemConfigs',
   getSystemConfigMetadata: 'getSystemConfigMetadata',
-  fileUpload: 'fileUpload',
-  fileDelete: 'fileDelete',
-  listUploadedFiles: 'listUploadedFiles',
   createAgent: 'createAgent',
   deleteAgent: 'deleteAgent',
   syncAgentRegistry: 'syncAgentRegistry',
@@ -45,7 +43,6 @@ export const TOOLS = {
   deleteTraces: 'deleteTraces',
   discoverPeers: 'discoverPeers',
   registerPeer: 'registerPeer',
-  unregisterPeer: 'unregisterPeer',
   requestConsensus: 'requestConsensus',
   createWorkspace: 'createWorkspace',
   inviteMember: 'inviteMember',
@@ -59,6 +56,13 @@ export const TOOLS = {
   writeToCollaboration: 'writeToCollaboration',
   closeCollaboration: 'closeCollaboration',
   listMyCollaborations: 'listMyCollaborations',
+  debugAgent: 'debugAgent',
+  switchModel: 'switchModel',
+  cancelGoal: 'cancelGoal',
+  listSchedules: 'listSchedules',
+  signalOrchestration: 'signalOrchestration',
+  voteOnProposal: 'voteOnProposal',
+  rollbackDeployment: 'rollbackDeployment',
 } as const;
 
 /**
@@ -90,12 +94,18 @@ export const OPENAI = {
  * Security-protected files that should not be modified by agents.
  */
 export const PROTECTED_FILES = [
-  '.git',
-  '.env',
+  '.git/**',
+  '.env*',
   'package-lock.json',
   'pnpm-lock.yaml',
   'yarn.lock',
-  'node_modules',
+  'node_modules/**',
+  'sst.config.ts',
+  'core/tools/index.ts',
+  'core/agents/superclaw.ts',
+  'core/lib/agent.ts',
+  'buildspec.yml',
+  'infra/**',
 ];
 
 /**
