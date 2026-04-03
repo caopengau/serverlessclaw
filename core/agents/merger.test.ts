@@ -67,7 +67,7 @@ describe('Merger Agent Handler', () => {
     expect(initAgent).toHaveBeenCalledWith(AgentType.MERGER);
     expect(mockAgent.process).toHaveBeenCalledWith(
       'user-1',
-      expect.stringContaining('Merge the following patches'),
+      expect.stringContaining('Reconcile the following code patches'),
       expect.objectContaining({
         traceId: 'trace-1',
         sessionId: 'session-1',
@@ -108,9 +108,9 @@ describe('Merger Agent Handler', () => {
     expect(emitTaskEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         agentId: AgentType.MERGER,
-        response: expect.stringContaining('FAILED: Patch payload too large for inline merge'),
+        response: expect.stringContaining('FAILED: Patch payload too large for LLM reconciliation'),
       })
     );
-    expect(result).toContain('FAILED: Patch payload too large for inline merge');
+    expect(result).toContain('FAILED: Patch payload too large for LLM reconciliation');
   });
 });

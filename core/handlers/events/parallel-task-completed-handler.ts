@@ -84,7 +84,50 @@ export async function handleParallelTaskCompleted(
     logger.info(`Parallel dispatch ${traceId ?? 'N/A'} requesting patch merge.`);
     try {
       const { handlePatchMerge } = await import('./merger-handler');
-      await handlePatchMerge(eventDetail);
+      const mergeResult = await handlePatchMerge(eventDetail);
+
+      if (mergeResult.success) {
+        logger.info(`Procedural merge succeeded for ${traceId}. Waking up initiator.`);
+        await wakeupInitiator(userId, initiatorId, mergeResult.summary, traceId, sessionId, 1);
+        return;
+      }
+
+      // Procedural merge failed with conflicts - Tier 2: LLM Reconciliation
+      logger.info(
+        `Procedural merge failed with ${mergeResult.failedPatches.length} conflicts. Dispatching to MergerAgent for LLM reconciliation.`
+      );
+
+      const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
+      const { AgentType } = await import('../../lib/types/agent');
+
+      // Dispatch to LLM MergerAgent
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await emitTypedEvent(AgentType.EVENT_HANDLER, `${AgentType.MERGER}_task` as any, {
+        userId,
+        task: `Resolve the following semantic conflicts between parallel code changes:\n\n${mergeResult.failedPatches.map((f) => `Task ${f.taskId} (Agent: ${f.agentId}): ${f.error}`).join('\n')}`,
+        metadata: {
+          results: eventDetail.results, // Pass full results including patches
+          failedPatches: mergeResult.failedPatches,
+          appliedPatches: mergeResult.appliedPatches,
+          aggregationPrompt,
+        },
+        traceId,
+        sessionId,
+        initiatorId,
+        depth: 2,
+      });
+
+      // Notify user that intelligent reconciliation is in progress
+      const { sendOutboundMessage } = await import('../../lib/outbound');
+      await sendOutboundMessage(
+        AgentType.EVENT_HANDLER,
+        userId,
+        `⚠️ **Merge Conflict Detected**\n\nA simple git-merge failed for some parallel changes. I am now invoking the **Structural Merger Agent** to perform AST-aware reconciliation.\n\nConflicts in:\n${mergeResult.failedPatches.map((f) => `- ${f.agentId} (${f.taskId})`).join('\n')}`,
+        [userId.replace('CONV#', '')],
+        sessionId,
+        'System'
+      );
+
       return;
     } catch (error) {
       logger.error('Failed to perform patch merge, falling back to summary:', error);

@@ -151,7 +151,7 @@ export function decomposePlan(plan: string, planId: string, gapIds: string[]): D
       `Gap IDs for this sub-task: ${gapIds.join(', ')}`,
     gapIds: index < gapIds.length ? [gapIds[index % gapIds.length]] : gapIds.slice(0, 1),
     order: index,
-    dependencies: index > 0 ? [index - 1] : [], // Sequential by default
+    dependencies: [], // Enable parallel execution
     complexity: estimateComplexity(segment),
   }));
 

@@ -6,12 +6,6 @@ import {
   LOG_RETENTION_PERIOD,
 } from './shared';
 
-/** Default memory allocation for warmup handler */
-const WARMUP_HANDLER_MEMORY = '128 MB';
-
-/** Default timeout for warmup handler */
-const WARMUP_HANDLER_TIMEOUT = '60 seconds';
-
 /**
  * Deploys MCP (Model Context Protocol) servers as separate Lambda functions.
  * Each MCP server runs independently for fault isolation and independent scaling.
@@ -68,7 +62,12 @@ const MCP_SERVER_CONFIGS = {
     memory: '256 MB' as const,
     timeout: '60 seconds' as const,
     description: 'S3 operations via @geunoh/s3-mcp-server',
-    warmSchedule: 'rate(15 minutes)',
+  },
+  ast: {
+    handler: 'core/mcp-servers/ast.handler',
+    memory: '512 MB' as const,
+    timeout: '120 seconds' as const,
+    description: 'AST-aware code analysis via @aiready/ast-mcp-server',
   },
 } as const;
 
@@ -76,15 +75,13 @@ type MCPServerName = keyof typeof MCP_SERVER_CONFIGS;
 
 export interface MCPServerResources {
   servers: Record<MCPServerName, sst.aws.Function>;
-  warmupHandler: sst.aws.Function;
-  schedulerRole: aws.iam.Role;
 }
 
 /**
- * Creates all MCP server Lambda functions and warming infrastructure.
+ * Creates all MCP server Lambda functions.
  *
  * @param ctx - The shared infrastructure context containing tables, buckets, and secrets.
- * @returns The created MCP server functions and associated warmup resources.
+ * @returns The created MCP server functions.
  */
 export function createMCPServers(ctx: SharedContext): MCPServerResources {
   const { memoryTable, configTable, secrets } = ctx;
@@ -138,110 +135,7 @@ export function createMCPServers(ctx: SharedContext): MCPServerResources {
     });
   }
 
-  // Create warmup handler that invokes all MCP servers
-  const warmupHandler = new sst.aws.Function('MCPWarmupHandler', {
-    handler: 'core/handlers/mcp-warmup.handler',
-    dev: liveInLocalOnly,
-    link: [],
-    permissions: [
-      {
-        actions: ['lambda:InvokeFunction'],
-        resources: Object.values(servers).map((s) => s.arn),
-      },
-    ],
-    architecture: LAMBDA_ARCHITECTURE,
-    memory: WARMUP_HANDLER_MEMORY,
-    timeout: WARMUP_HANDLER_TIMEOUT,
-    logging: {
-      retention: LOG_RETENTION_PERIOD,
-    },
-    environment: {
-      MCP_SERVER_ARNS: $util.jsonStringify(
-        Object.fromEntries(Object.entries(servers).map(([name, fn]) => [name, fn.arn]))
-      ),
-    },
-  });
-
-  // Create IAM role for EventBridge Scheduler
-  const schedulerRole = new aws.iam.Role('MCPWarmupSchedulerRole', {
-    assumeRolePolicy: JSON.stringify({
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Action: 'sts:AssumeRole',
-          Effect: 'Allow',
-          Principal: { Service: 'scheduler.amazonaws.com' },
-        },
-      ],
-    }),
-  });
-
-  new aws.iam.RolePolicy('MCPWarmupSchedulerPolicy', {
-    role: schedulerRole.name,
-    policy: $util.jsonStringify({
-      Version: '2012-10-17',
-      Statement: [
-        {
-          Action: 'lambda:InvokeFunction',
-          Effect: 'Allow',
-          Resource: [warmupHandler.arn],
-        },
-      ],
-    }),
-  });
-
-  // Create EventBridge schedules for warming
-  // Critical servers (git, filesystem) - warm every 5 minutes
-  new aws.scheduler.Schedule('MCPWarmupCritical', {
-    name: `${$app.name}-${$app.stage}-MCPWarmupCritical`,
-    description: 'Warm critical MCP servers (git, filesystem) every 5 min to prevent cold starts',
-    scheduleExpression: 'rate(5 minutes)',
-    state: 'DISABLED',
-    flexibleTimeWindow: { mode: 'OFF' },
-    target: {
-      arn: warmupHandler.arn,
-      roleArn: schedulerRole.arn,
-      input: $util.jsonStringify({
-        servers: ['git', 'filesystem'],
-      }),
-    },
-  });
-
-  // Standard servers - warm every 15 minutes
-  new aws.scheduler.Schedule('MCPWarmupStandard', {
-    name: `${$app.name}-${$app.stage}-MCPWarmupStandard`,
-    description: 'Warm standard MCP servers (google-search, fetch, aws, aws-s3) every 15 min',
-    scheduleExpression: 'rate(15 minutes)',
-    state: 'DISABLED',
-    flexibleTimeWindow: { mode: 'OFF' },
-    target: {
-      arn: warmupHandler.arn,
-      roleArn: schedulerRole.arn,
-      input: $util.jsonStringify({
-        servers: ['google-search', 'fetch', 'aws', 'aws-s3'],
-      }),
-    },
-  });
-
-  // Low-priority servers - warm every 30 minutes
-  new aws.scheduler.Schedule('MCPWarmupLowPriority', {
-    name: `${$app.name}-${$app.stage}-MCPWarmupLowPriority`,
-    description: 'Warm low-priority MCP servers (puppeteer) every 30 min',
-    scheduleExpression: 'rate(30 minutes)',
-    state: 'DISABLED',
-    flexibleTimeWindow: { mode: 'OFF' },
-    target: {
-      arn: warmupHandler.arn,
-      roleArn: schedulerRole.arn,
-      input: $util.jsonStringify({
-        servers: ['puppeteer'],
-      }),
-    },
-  });
-
   return {
     servers,
-    warmupHandler,
-    schedulerRole,
   };
 }

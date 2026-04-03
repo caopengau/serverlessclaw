@@ -49,6 +49,19 @@ export default function MemoryTable({ items, pruneAction }: MemoryTableProps) {
     setSelectedItem(null);
   };
 
+  const formatDate = (val: number | string | undefined, type: 'date' | 'time' = 'date') => {
+    if (!val) return type === 'date' ? 'N/A' : '';
+    try {
+      const d = new Date(val);
+      if (isNaN(d.getTime())) return type === 'date' ? 'N/A' : '';
+      return type === 'date' 
+        ? d.toLocaleDateString() 
+        : d.toLocaleTimeString([], { hour: '2-numeric', minute: '2-numeric' });
+    } catch {
+      return type === 'date' ? 'N/A' : '';
+    }
+  };
+
   return (
     <>
       <div className="glass-card overflow-hidden border-white/5">
@@ -66,7 +79,7 @@ export default function MemoryTable({ items, pruneAction }: MemoryTableProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {items.map((item, i) => (
+              {items && items.length > 0 && items.map((item, i) => (
                 <tr
                   key={`${item.userId}-${item.timestamp}-${i}`}
                   onClick={() => setSelectedItem(item)}
@@ -81,7 +94,7 @@ export default function MemoryTable({ items, pruneAction }: MemoryTableProps) {
                   </td>
                   <td className="px-5 py-3">
                     <Typography variant="body" className="text-xs text-white/80 max-w-[400px] truncate block">
-                      {getContentPreview(item.content)}
+                      {getContentPreview(item.content || '')}
                     </Typography>
                   </td>
                   <td className="px-5 py-3 text-center">
@@ -102,10 +115,10 @@ export default function MemoryTable({ items, pruneAction }: MemoryTableProps) {
                     <span className="flex flex-col text-cyber-blue/60 font-mono text-[10px] leading-tight">
                       <span className="flex items-center gap-1">
                         <Clock size={10} />
-                        {new Date(item.createdAt || item.metadata?.createdAt || item.timestamp).toLocaleDateString()}
+                        {formatDate(item.createdAt || item.metadata?.createdAt || item.timestamp, 'date')}
                       </span>
                       <span className="pl-3.5 opacity-70">
-                        {new Date(item.createdAt || item.metadata?.createdAt || item.timestamp).toLocaleTimeString([], { hour: '2-numeric', minute: '2-numeric' })}
+                        {formatDate(item.createdAt || item.metadata?.createdAt || item.timestamp, 'time')}
                       </span>
                     </span>
                   </td>
@@ -113,7 +126,7 @@ export default function MemoryTable({ items, pruneAction }: MemoryTableProps) {
                     <span className="flex items-center gap-1 text-white/40 font-mono text-[11px]">
                       <Clock size={10} />
                       {item.metadata?.lastAccessed
-                        ? new Date(item.metadata.lastAccessed).toLocaleDateString()
+                        ? formatDate(item.metadata.lastAccessed, 'date')
                         : 'Never'}
                     </span>
                   </td>

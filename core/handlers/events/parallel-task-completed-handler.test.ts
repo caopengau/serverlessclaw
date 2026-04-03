@@ -51,7 +51,16 @@ vi.mock('../../lib/agent', () => {
   };
 });
 
-// 5. Import code under test
+// 5. Mock merger-handler
+const { mockHandlePatchMerge } = vi.hoisted(() => ({
+  mockHandlePatchMerge: vi.fn(),
+}));
+
+vi.mock('./merger-handler', () => ({
+  handlePatchMerge: mockHandlePatchMerge,
+}));
+
+// 6. Import code under test
 import { handleParallelTaskCompleted } from './parallel-task-completed-handler';
 
 describe('parallel-task-completed-handler', () => {
@@ -130,6 +139,35 @@ describe('parallel-task-completed-handler', () => {
         'user-123',
         'strategic-planner',
         'Synthesized result',
+        'trace-abc',
+        'session-xyz',
+        1
+      );
+    });
+
+    it('performs procedural patch merge when aggregationType is merge_patches', async () => {
+      mockHandlePatchMerge.mockResolvedValue({
+        success: true,
+        appliedCount: 2,
+        totalCount: 2,
+        appliedPatches: ['task-1', 'task-2'],
+        failedPatches: [],
+        deploymentTriggered: true,
+        summary: 'Merge Complete: 2/2 patches applied',
+      });
+
+      const detail = {
+        ...baseEventDetail,
+        aggregationType: 'merge_patches' as const,
+      };
+
+      await handleParallelTaskCompleted(detail);
+
+      expect(mockHandlePatchMerge).toHaveBeenCalled();
+      expect(mockWakeupInitiator).toHaveBeenCalledWith(
+        'user-123',
+        'superclaw',
+        'Merge Complete: 2/2 patches applied',
         'trace-abc',
         'session-xyz',
         1

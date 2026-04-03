@@ -81,9 +81,10 @@ describe('Merger Handler', () => {
       completedCount: 0,
     };
 
-    await handlePatchMerge(eventDetail as any);
+    const result = await handlePatchMerge(eventDetail as any);
 
-    expect(mockWakeupInitiator).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result.summary).toContain('No patches to merge');
     expect(mockExecSync).not.toHaveBeenCalled();
   });
 
@@ -98,16 +99,10 @@ describe('Merger Handler', () => {
       completedCount: 1,
     };
 
-    await handlePatchMerge(eventDetail as any);
+    const result = await handlePatchMerge(eventDetail as any);
 
-    expect(mockWakeupInitiator).toHaveBeenCalledWith(
-      'user-123',
-      'superclaw',
-      expect.stringContaining('No successful coder results'),
-      'trace-456',
-      undefined,
-      1
-    );
+    expect(result.success).toBe(false);
+    expect(result.summary).toContain('No successful coder results');
   });
 
   it('should skip merge when successful results contain no patches', async () => {
@@ -122,16 +117,10 @@ describe('Merger Handler', () => {
       completedCount: 1,
     };
 
-    await handlePatchMerge(eventDetail as any);
+    const result = await handlePatchMerge(eventDetail as any);
 
-    expect(mockWakeupInitiator).toHaveBeenCalledWith(
-      'user-123',
-      'superclaw',
-      expect.stringContaining('no patches'),
-      'trace-456',
-      'session-789',
-      1
-    );
+    expect(result.success).toBe(false);
+    expect(result.summary).toContain('no patches');
   });
 
   it('should clone repo and apply patches when available', async () => {
@@ -154,7 +143,7 @@ describe('Merger Handler', () => {
       completedCount: 1,
     };
 
-    await handlePatchMerge(eventDetail as any);
+    const result = await handlePatchMerge(eventDetail as any);
 
     // Should write patch file
     expect(mockWriteFile).toHaveBeenCalledWith(
@@ -169,21 +158,14 @@ describe('Merger Handler', () => {
       expect.any(Object)
     );
 
-    // Should wake up initiator with success summary
-    expect(mockWakeupInitiator).toHaveBeenCalledWith(
-      'user-123',
-      'superclaw',
-      expect.stringContaining('1/1 patches applied'),
-      'trace-456',
-      'session-789',
-      1
-    );
+    expect(result.success).toBe(true);
+    expect(result.appliedCount).toBe(1);
+    expect(result.summary).toContain('1/1 patches applied');
   });
 
-  it('should emit CONTINUATION_TASK on patch conflict', async () => {
+  it('should identify failed patches on conflict', async () => {
     // First patch succeeds, second fails on check
     mockExecSync
-      .mockReturnValueOnce('') // clone
       .mockReturnValueOnce('') // patch-1 check
       .mockReturnValueOnce('') // patch-1 apply
       .mockImplementationOnce(() => {
@@ -216,19 +198,13 @@ describe('Merger Handler', () => {
       completedCount: 2,
     };
 
-    await handlePatchMerge(eventDetail as any);
+    const result = await handlePatchMerge(eventDetail as any);
 
-    // Should emit CONTINUATION_TASK to the failed coder
-    expect(mockEmitTypedEvent).toHaveBeenCalledWith(
-      'merger',
-      'continuation_task',
-      expect.objectContaining({
-        agentId: 'coder-b',
-        userId: 'user-123',
-        task: expect.stringContaining('Merge conflict'),
-        isContinuation: true,
-      })
-    );
+    expect(result.success).toBe(false);
+    expect(result.appliedCount).toBe(1);
+    expect(result.failedPatches.length).toBe(1);
+    expect(result.failedPatches[0].taskId).toBe('task-2');
+    expect(result.failedPatches[0].agentId).toBe('coder-b');
   });
 
   it('should extract patches from result string delimiters', async () => {
@@ -250,7 +226,7 @@ describe('Merger Handler', () => {
       completedCount: 1,
     };
 
-    await handlePatchMerge(eventDetail as any);
+    const result = await handlePatchMerge(eventDetail as any);
 
     // Should write the extracted patch
     expect(mockWriteFile).toHaveBeenCalledWith(
@@ -258,6 +234,7 @@ describe('Merger Handler', () => {
       'diff --git a/file.ts b/file.ts\n+change',
       'utf-8'
     );
+    expect(result.success).toBe(true);
   });
 
   it('should handle workspace creation failure gracefully', async () => {
@@ -284,15 +261,9 @@ describe('Merger Handler', () => {
       completedCount: 1,
     };
 
-    await handlePatchMerge(eventDetail as any);
+    const result = await handlePatchMerge(eventDetail as any);
 
-    expect(mockWakeupInitiator).toHaveBeenCalledWith(
-      'user-123',
-      'superclaw',
-      expect.stringContaining('MERGE_FAILED'),
-      'trace-456',
-      'session-789',
-      1
-    );
+    expect(result.success).toBe(false);
+    expect(result.summary).toContain('MERGE_FAILED');
   });
 });

@@ -41,86 +41,113 @@ async function getMemoryData(activeTab: string, query: string, nextToken?: strin
   const memory = new DynamoMemory();
   
   // 1. Fetch the dynamic registry of memory types
-  let registeredTypes = await memory.getRegisteredMemoryTypes();
+  let registeredTypes: string[] = [];
+  try {
+     registeredTypes = await memory.getRegisteredMemoryTypes();
+  } catch (err) {
+     console.error('[MemoryVault] Failed to fetch registered memory types:', err);
+  }
+
   const knownTypes = new Set(['DISTILLED', 'LESSON', 'GAP', 'SESSION']);
   
   // FALLBACK DISCOVERY: If registry is empty, try to find types via a shallow scan
   if (registeredTypes.length === 0) {
-    const client = new DynamoDBClient({});
-    const docClient = DynamoDBDocumentClient.from(client);
-    const { Items } = await docClient.send(new ScanCommand({
-        TableName: (Resource as { MemoryTable: { name: string } }).MemoryTable.name,
-        ProjectionExpression: "#tp",
-        ExpressionAttributeNames: { "#tp": "type" },
-        Limit: 100
-    }));
-    if (Items) {
-        registeredTypes = Array.from(new Set(Items.map(i => i.type).filter(Boolean)));
+    try {
+        const client = new DynamoDBClient({});
+        const docClient = DynamoDBDocumentClient.from(client);
+        const { Items } = await docClient.send(new ScanCommand({
+            TableName: (Resource as { MemoryTable: { name: string } }).MemoryTable.name,
+            ProjectionExpression: "#tp",
+            ExpressionAttributeNames: { "#tp": "type" },
+            Limit: 100
+        }));
+        if (Items) {
+            registeredTypes = Array.from(new Set(Items.map(i => i.type).filter(Boolean)));
+        }
+    } catch (err) {
+        console.error('[MemoryVault] Fallback type discovery failed:', err);
     }
   }
 
   const dynamicTypes = registeredTypes.filter(type => !knownTypes.has(type)).sort();
   console.log('[MemoryVault] Discovered types:', registeredTypes, 'Filtered dynamic types:', dynamicTypes);
 
-  const parsedNext = nextToken ? JSON.parse(Buffer.from(nextToken, 'base64').toString()) : undefined;
+  let parsedNext: Record<string, unknown> | undefined = undefined;
+  if (nextToken) {
+    try {
+        parsedNext = JSON.parse(Buffer.from(nextToken, 'base64').toString());
+    } catch (err) {
+        console.error('[MemoryVault] Failed to parse nextToken:', err);
+    }
+  }
 
   // Handle Search Tab
   if (query) {
-     const result = await memory.searchInsights(undefined, query, undefined, 20, parsedNext);
-     return {
-         items: result.items as unknown as MemoryItem[],
-         nextToken: result.lastEvaluatedKey ? Buffer.from(JSON.stringify(result.lastEvaluatedKey)).toString('base64') : undefined,
-         counts: {
-            facts: 0, lessons: 0, gaps: 0, dynamic: 0
-         },
-         dynamicTypes
-     };
+     try {
+         const result = await memory.searchInsights(undefined, query, undefined, 20, parsedNext);
+         return {
+             items: (result.items || []) as unknown as MemoryItem[],
+             nextToken: result.lastEvaluatedKey ? Buffer.from(JSON.stringify(result.lastEvaluatedKey)).toString('base64') : undefined,
+             counts: {
+                facts: 0, lessons: 0, gaps: 0, dynamic: 0
+             },
+             dynamicTypes
+         };
+     } catch (err) {
+         console.error('[MemoryVault] Search failed:', err);
+         return { items: [], nextToken: undefined, counts: { facts: 0, lessons: 0, gaps: 0, dynamic: 0 }, dynamicTypes };
+     }
   }
 
-  // Define counts fetcher (parallel)
+  // Define counts fetcher (parallel with individual error boundaries)
   const countPromises = [
-    memory.getMemoryByType('DISTILLED', 50),
+    memory.getMemoryByType('DISTILLED', 50).catch(e => { console.error('Count error DISTILLED:', e); return []; }),
     Promise.all([
-      memory.getMemoryByType('LESSON', 50),
-      memory.getMemoryByType('lesson', 50)
+      memory.getMemoryByType('LESSON', 50).catch(e => { console.error('Count error LESSON:', e); return []; }),
+      memory.getMemoryByType('lesson', 50).catch(e => { console.error('Count error lesson:', e); return []; })
     ]).then(([a, b]) => [...a, ...b]),
-    memory.getMemoryByType('GAP', 50),
-    ...dynamicTypes.map(t => memory.getMemoryByType(t, 50))
+    memory.getMemoryByType('GAP', 50).catch(e => { console.error('Count error GAP:', e); return []; }),
+    ...dynamicTypes.map(t => memory.getMemoryByType(t, 50).catch(e => { console.error(`Count error ${t}:`, e); return []; }))
   ];
   
   // For pagination, we only fetch the active tab's data
   let items: MemoryItem[] = [];
   let next: Record<string, unknown> | undefined = undefined;
 
-  if (activeTab === 'facts') {
-      const res = await memory.getMemoryByTypePaginated('DISTILLED', 20, parsedNext);
-      items = res.items as unknown as MemoryItem[];
-      next = res.lastEvaluatedKey;
-  } else if (activeTab === 'lessons') {
-      const [resNew, resLegacy, resStandard] = await Promise.all([
-        memory.getMemoryByTypePaginated('LESSON', 20, parsedNext),
-        memory.getMemoryByTypePaginated('lesson', 20, parsedNext),
-        memory.getMemoryByTypePaginated('MEMORY:TACTICAL_LESSON', 20, parsedNext)
-      ]);
-      items = [...(resNew.items as unknown as MemoryItem[]), ...(resLegacy.items as unknown as MemoryItem[]), ...(resStandard.items as unknown as MemoryItem[])]
-        .sort((a, b) => b.timestamp - a.timestamp)
-        .slice(0, 20);
-      next = resNew.lastEvaluatedKey || resLegacy.lastEvaluatedKey || resStandard.lastEvaluatedKey;
-  } else if (activeTab === 'gaps') {
-      const res = await memory.getMemoryByTypePaginated('GAP', 20, parsedNext);
-      items = res.items as unknown as MemoryItem[];
-      next = res.lastEvaluatedKey;
-  } else if (activeTab === 'dynamic') {
-      const typeToFetch = subType || dynamicTypes[0];
-      if (typeToFetch) {
-        const res = await memory.getMemoryByTypePaginated(typeToFetch, 20, parsedNext);
-        items = res.items as unknown as MemoryItem[];
-        next = res.lastEvaluatedKey;
+  try {
+      if (activeTab === 'facts') {
+          const res = await memory.getMemoryByTypePaginated('DISTILLED', 20, parsedNext);
+          items = (res.items || []) as unknown as MemoryItem[];
+          next = res.lastEvaluatedKey;
+      } else if (activeTab === 'lessons') {
+          const [resNew, resLegacy, resStandard] = await Promise.all([
+            memory.getMemoryByTypePaginated('LESSON', 20, parsedNext).catch(() => ({ items: [] })),
+            memory.getMemoryByTypePaginated('lesson', 20, parsedNext).catch(() => ({ items: [] })),
+            memory.getMemoryByTypePaginated('MEMORY:TACTICAL_LESSON', 20, parsedNext).catch(() => ({ items: [] }))
+          ]);
+          items = [...(resNew.items || []), ...(resLegacy.items || []), ...(resStandard.items || [])]
+            .map(i => i as unknown as MemoryItem)
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+            .slice(0, 20);
+          next = resNew.lastEvaluatedKey || resLegacy.lastEvaluatedKey || resStandard.lastEvaluatedKey;
+      } else if (activeTab === 'gaps') {
+          const res = await memory.getMemoryByTypePaginated('GAP', 20, parsedNext);
+          items = (res.items || []) as unknown as MemoryItem[];
+          next = res.lastEvaluatedKey;
+      } else if (activeTab === 'dynamic') {
+          const typeToFetch = subType || dynamicTypes[0];
+          if (typeToFetch) {
+            const res = await memory.getMemoryByTypePaginated(typeToFetch, 20, parsedNext);
+            items = (res.items || []) as unknown as MemoryItem[];
+            next = res.lastEvaluatedKey;
+          }
       }
+  } catch (err) {
+      console.error(`[MemoryVault] Failed to fetch items for tab ${activeTab}:`, err);
   }
 
   const countResults = await Promise.all(countPromises);
-  const formatCount = (arr: unknown[]) => (Array.isArray(arr) && arr.length === 50) ? '50+' : (Array.isArray(arr) ? arr.length : 0);
+  const formatCount = (arr: unknown) => (Array.isArray(arr) && arr.length >= 50) ? '50+' : (Array.isArray(arr) ? arr.length : 0);
 
   const dynamicCounts = countResults.slice(3);
   const totalDynamic = dynamicCounts.reduce((acc, curr) => acc + (Array.isArray(curr) ? curr.length : 0), 0);

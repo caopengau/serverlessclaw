@@ -19,7 +19,10 @@ interface MemoryTabsProps {
 export default function MemoryTabs({ tabs }: MemoryTabsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const activeTab = searchParams.get('tab') || tabs[0].id;
+  
+  if (!tabs || tabs.length === 0) return null;
+  
+  const activeTab = searchParams.get('tab') || tabs[0]?.id || '';
 
   const handleTabChange = (tabId: string) => {
     const params = new URLSearchParams(searchParams.toString());

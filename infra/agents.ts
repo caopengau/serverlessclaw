@@ -614,14 +614,6 @@ export function createAgents(
       retention: LOG_RETENTION_PERIOD,
     },
   });
-  bus.subscribe('MergerTaskSubscriber', mergerAgent.arn, {
-    pattern: { detailType: [EventType.PARALLEL_TASK_COMPLETED] },
-    transform: {
-      target: {
-        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
-      },
-    },
-  });
 
   // B3: DLQ Handler for failed EventBridge events
   let dlqHandler: sst.aws.Function | undefined;

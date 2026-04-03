@@ -86,9 +86,9 @@ describe('decomposePlan', () => {
       // First sub-task has no dependencies
       expect(result.subTasks[0].dependencies).toEqual([]);
 
-      // Subsequent sub-tasks depend on previous
+      // Subsequent sub-tasks also have no dependencies (parallel by default)
       for (let i = 1; i < result.subTasks.length; i++) {
-        expect(result.subTasks[i].dependencies).toContain(i - 1);
+        expect(result.subTasks[i].dependencies).toEqual([]);
       }
     });
 
@@ -292,12 +292,10 @@ describe('decomposePlan', () => {
       expect(result.wasDecomposed).toBe(true);
       expect(result.subTasks.length).toBeGreaterThanOrEqual(3);
 
-      // sub-0: no deps
+      // All sub-tasks: no deps (parallel)
       expect(result.subTasks[0].dependencies).toEqual([]);
-      // sub-1: depends on 0
-      expect(result.subTasks[1].dependencies).toEqual([0]);
-      // sub-2: depends on 1
-      expect(result.subTasks[2].dependencies).toEqual([1]);
+      expect(result.subTasks[1].dependencies).toEqual([]);
+      expect(result.subTasks[2].dependencies).toEqual([]);
     });
   });
 

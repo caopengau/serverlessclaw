@@ -719,7 +719,9 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
           userId: baseUserId,
           tasks: subTaskEvents,
           barrierTimeoutMs: 30 * 60 * 1000, // 30 minutes
-          aggregationType: 'summary' as const,
+          aggregationType: subTaskEvents.every((t) => t.agentId === AgentType.CODER)
+            ? ('merge_patches' as const)
+            : ('summary' as const),
           traceId,
           initiatorId: AgentType.STRATEGIC_PLANNER,
           depth: (depth ?? 0) + 1,
