@@ -126,7 +126,32 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
   if (isSatisfied) {
     if (evolutionMode === EvolutionMode.AUTO) {
       logger.info('Verification successful. Auto-closing gaps.');
-      await Promise.all(gapIds.map((gapId) => memory.updateGapStatus(gapId, GapStatus.DONE)));
+      const { EVOLUTION_METRICS } = await import('../lib/metrics/evolution-metrics');
+
+      for (const gapId of gapIds) {
+        // DEPLOYED -> DONE: Acquire lock before transition
+        const lockAcquired = await memory.acquireGapLock(gapId, AgentType.QA);
+        if (!lockAcquired) {
+          logger.warn(`[QA] Could not acquire lock for gap ${gapId}, skipping transition to DONE.`);
+          EVOLUTION_METRICS.recordLockContention(gapId, AgentType.QA);
+          continue;
+        }
+
+        try {
+          const result = await memory.updateGapStatus(gapId, GapStatus.DONE);
+          if (!result.success) {
+            logger.warn(`[QA] Failed to transition gap ${gapId} to DONE: ${result.error}`);
+            EVOLUTION_METRICS.recordTransitionRejection(
+              gapId,
+              GapStatus.DEPLOYED,
+              GapStatus.DONE,
+              result.error || 'unknown'
+            );
+          }
+        } finally {
+          await memory.releaseGapLock(gapId, AgentType.QA);
+        }
+      }
     } else {
       logger.info('Verification successful. Awaiting human confirmation (HITL).');
     }
@@ -134,21 +159,54 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
     // Reopen failed verification. Track attempt count and escalate to FAILED if cap reached.
     const MAX_REOPEN_ATTEMPTS = 3;
     logger.warn('Verification failed. Checking reopen attempt counts.');
+    const { EVOLUTION_METRICS } = await import('../lib/metrics/evolution-metrics');
 
-    const results = await Promise.all(
-      gapIds.map(async (gapId) => {
+    const results: Array<{ gapId: string; status: 'escalated' | 'retry' | 'skipped' }> = [];
+
+    for (const gapId of gapIds) {
+      // DEPLOYED -> OPEN/FAILED: Acquire lock before transition
+      const lockAcquired = await memory.acquireGapLock(gapId, AgentType.QA);
+      if (!lockAcquired) {
+        logger.warn(`[QA] Could not acquire lock for gap ${gapId}, skipping failure transition.`);
+        EVOLUTION_METRICS.recordLockContention(gapId, AgentType.QA);
+        results.push({ gapId, status: 'skipped' });
+        continue;
+      }
+
+      try {
         const attempts = await memory.incrementGapAttemptCount(gapId);
         if (attempts >= MAX_REOPEN_ATTEMPTS) {
           logger.warn(`Gap ${gapId} has been reopened ${attempts} times. Escalating to FAILED.`);
-          await memory.updateGapStatus(gapId, GapStatus.FAILED);
-          return { gapId, status: 'escalated' };
+          const result = await memory.updateGapStatus(gapId, GapStatus.FAILED);
+          if (!result.success) {
+            logger.warn(`[QA] Failed to transition gap ${gapId} to FAILED: ${result.error}`);
+            EVOLUTION_METRICS.recordTransitionRejection(
+              gapId,
+              GapStatus.DEPLOYED,
+              GapStatus.FAILED,
+              result.error || 'unknown'
+            );
+          }
+          results.push({ gapId, status: 'escalated' });
         } else {
           logger.info(`Gap ${gapId} reopen attempt ${attempts}/${MAX_REOPEN_ATTEMPTS}.`);
-          await memory.updateGapStatus(gapId, GapStatus.OPEN);
-          return { gapId, status: 'retry' };
+          EVOLUTION_METRICS.recordGapReopen(gapId, attempts);
+          const result = await memory.updateGapStatus(gapId, GapStatus.OPEN);
+          if (!result.success) {
+            logger.warn(`[QA] Failed to transition gap ${gapId} to OPEN: ${result.error}`);
+            EVOLUTION_METRICS.recordTransitionRejection(
+              gapId,
+              GapStatus.DEPLOYED,
+              GapStatus.OPEN,
+              result.error || 'unknown'
+            );
+          }
+          results.push({ gapId, status: 'retry' });
         }
-      })
-    );
+      } finally {
+        await memory.releaseGapLock(gapId, AgentType.QA);
+      }
+    }
 
     const escalatedGaps = results.filter((r) => r.status === 'escalated').map((r) => r.gapId);
     const retryGaps = results.filter((r) => r.status === 'retry').map((r) => r.gapId);

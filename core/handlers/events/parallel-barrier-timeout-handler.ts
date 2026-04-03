@@ -72,6 +72,11 @@ export async function handleParallelBarrierTimeout(
     return;
   }
 
+  // Record barrier timeout metric
+  import('../../lib/metrics/evolution-metrics').then(({ EVOLUTION_METRICS }) => {
+    EVOLUTION_METRICS.recordBarrierTimeout(traceId, totalTasks, completedCount);
+  });
+
   // Now that the dispatch is sealed, synthesize timeout results for the tasks that didn't finish
   const finalResults = [...existingResults];
   const isActuallyTimeout = effectiveStatus === ParallelTaskStatus.TIMED_OUT;

@@ -144,6 +144,59 @@ describe('OpenRouterProvider', () => {
     );
   });
 
+  it('should include google_search_retrieval for Gemini models when Google Search tool is present', async () => {
+    provider = new OpenRouterProvider('google/gemini-2-flash');
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { role: 'assistant', content: 'Search result...' } }],
+        }),
+    });
+
+    const tools = [
+      {
+        name: 'google_search',
+        type: 'google_search_retrieval' as any,
+        description: 'search',
+        parameters: { type: 'object' as const, properties: {} },
+        execute: async () => 'done',
+      },
+    ];
+
+    await provider.call([{ role: MessageRole.USER, content: 'search something' }], tools);
+
+    const fetchArgs = mockFetch.mock.calls[0];
+    const body = JSON.parse(fetchArgs[1].body);
+
+    expect(body.google_search_retrieval).toBeDefined();
+    expect(body.google_search_retrieval.dynamic_retrieval).toEqual(
+      expect.objectContaining({
+        mode: 'unspecified',
+      })
+    );
+  });
+
+  it('should disable safety settings for Gemini-3 models', async () => {
+    provider = new OpenRouterProvider('google/gemini-3-flash');
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          choices: [{ message: { role: 'assistant', content: 'Content' } }],
+        }),
+    });
+
+    await provider.call([{ role: MessageRole.USER, content: 'test' }], []);
+
+    const fetchArgs = mockFetch.mock.calls[0];
+    const body = JSON.parse(fetchArgs[1].body);
+
+    expect(body.safety_settings).toBe('off');
+  });
+
   it('should report specific context window for different models', async () => {
     const geminiCaps = await provider.getCapabilities('google/gemini-3-flash-preview');
     expect(geminiCaps.contextWindow).toBe(1048576);

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, QueryCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { CodeBuildClient, BatchGetBuildsCommand } from '@aws-sdk/client-codebuild';
 import { CloudWatchLogsClient, GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
 import { GapStatus } from '../lib/types/agent';
@@ -12,12 +12,16 @@ const cwMock = mockClient(CloudWatchLogsClient);
 const memoryMocks = vi.hoisted(() => ({
   updateGapStatus: vi.fn().mockResolvedValue({ success: true }),
   incrementGapAttemptCount: vi.fn(),
+  acquireGapLock: vi.fn().mockResolvedValue(true),
+  releaseGapLock: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock('../lib/memory', () => ({
   DynamoMemory: class {
-    updateGapStatus = memoryMocks.updateGapStatus;
-    incrementGapAttemptCount = memoryMocks.incrementGapAttemptCount;
+    updateGapStatus = (...args: any[]) => memoryMocks.updateGapStatus(...args);
+    incrementGapAttemptCount = (...args: any[]) => memoryMocks.incrementGapAttemptCount(...args);
+    acquireGapLock = (...args: any[]) => memoryMocks.acquireGapLock(...args);
+    releaseGapLock = (...args: any[]) => memoryMocks.releaseGapLock(...args);
     updateDistilledMemory = vi.fn().mockResolvedValue(undefined);
   },
 }));
@@ -31,6 +35,13 @@ vi.mock('../lib/registry/config', () => ({
 
 vi.mock('../lib/lifecycle/health', () => ({
   reportHealthIssue: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../lib/safety/circuit-breaker', () => ({
+  getCircuitBreaker: vi.fn().mockReturnValue({
+    recordSuccess: vi.fn().mockResolvedValue({}),
+    recordFailure: vi.fn().mockResolvedValue({ state: 'closed', failures: [] }),
+  }),
 }));
 
 vi.mock('../lib/utils/topology', () => ({
@@ -77,6 +88,9 @@ describe('BuildMonitor — FAILED gap handling', () => {
     ddbMock.on(QueryCommand).resolves({
       Items: [SUCCESS_META],
     });
+    ddbMock.on(GetCommand).resolves({
+      Item: { value: { state: 'closed', failures: [], version: 1 } },
+    });
     cbMock.on(BatchGetBuildsCommand).resolves({
       builds: [{ logs: { groupName: '/aws/test', streamName: 'stream-1' } }],
     });
@@ -93,6 +107,7 @@ describe('BuildMonitor — FAILED gap handling', () => {
     const { handler } = await import('./monitor');
     await handler(makeFailEvent('build-1') as unknown as Parameters<typeof handler>[0]);
 
+    expect(memoryMocks.acquireGapLock).toHaveBeenCalled();
     expect(memoryMocks.incrementGapAttemptCount).toHaveBeenCalledWith('GAP#1001');
     expect(memoryMocks.updateGapStatus).toHaveBeenCalledWith('GAP#1001', GapStatus.OPEN);
     expect(memoryMocks.updateGapStatus).not.toHaveBeenCalledWith('GAP#1001', GapStatus.FAILED);

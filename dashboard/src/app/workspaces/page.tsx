@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, FolderKanban, Plus, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { Loader2, FolderKanban, Plus, ChevronDown, ChevronUp, Users, X } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import Input from '@/components/ui/Input';
 
 interface Member {
   id: string;
@@ -35,16 +36,49 @@ export default function WorkspacesPage() {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [showModal, setShowModal] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
+  const fetchWorkspaces = () => {
     fetch('/api/workspaces')
       .then((res) => res.json())
       .then((data) => setWorkspaces(data.workspaces ?? []))
       .catch(() => setWorkspaces([]))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchWorkspaces();
   }, []);
 
   const toggle = (id: string) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const createWorkspace = async () => {
+    if (!newName.trim()) return;
+    setCreating(true);
+    try {
+      // Get authenticated user from session
+      const sessionRes = await fetch('/api/auth/session');
+      const sessionData = await sessionRes.json();
+      const userId = sessionData?.user?.id ?? 'anonymous';
+      
+      const res = await fetch('/api/workspaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName, ownerId: userId }),
+      });
+      if (res.ok) {
+        setShowModal(false);
+        setNewName('');
+        fetchWorkspaces();
+      }
+    } catch (e) {
+      console.error('Failed to create workspace:', e);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent">
@@ -57,7 +91,7 @@ export default function WorkspacesPage() {
             Team collaboration environments and access control.
           </Typography>
         </div>
-        <Button variant="primary" size="sm" icon={<Plus size={14} />}>
+        <Button variant="primary" size="sm" icon={<Plus size={14} />} onClick={() => setShowModal(true)}>
           Create Workspace
         </Button>
       </header>
@@ -112,6 +146,34 @@ export default function WorkspacesPage() {
           <Typography variant="body" weight="normal">No workspaces found</Typography>
           <Typography variant="caption" color="muted" className="mt-2 block">Create a workspace to start collaborating.</Typography>
         </Card>
+      )}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
+          <div className="bg-[#1a1a2e] border border-white/10 p-6 rounded-lg w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <Typography variant="h3" color="white">Create Workspace</Typography>
+              <button onClick={() => setShowModal(false)}><X size={18} className="text-white/40" /></button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <Typography variant="caption" color="muted" className="mb-1 block">Workspace Name</Typography>
+                <Input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="My Workspace"
+                  className="w-full"
+                />
+              </div>
+              <div className="flex gap-2 justify-end pt-2">
+                <Button variant="outline" size="sm" onClick={() => setShowModal(false)}>Cancel</Button>
+                <Button variant="primary" size="sm" onClick={createWorkspace} disabled={creating || !newName.trim()}>
+                  {creating ? 'Creating...' : 'Create'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </main>
   );

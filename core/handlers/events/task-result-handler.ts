@@ -73,6 +73,9 @@ export async function handleTaskResult(
   if (eventId) {
     if (processedEvents.has(eventId)) {
       logger.info(`Duplicate event ${eventId} detected in-memory, skipping.`);
+      import('../../lib/metrics/evolution-metrics').then(({ EVOLUTION_METRICS }) => {
+        EVOLUTION_METRICS.recordDuplicateSuppression('task-result-in-memory');
+      });
       return;
     }
     processedEvents.add(eventId);
@@ -81,6 +84,9 @@ export async function handleTaskResult(
     const isFirstProcessing = await checkAndMarkProcessed(eventId);
     if (!isFirstProcessing) {
       logger.info(`Duplicate event ${eventId} detected in DynamoDB, skipping.`);
+      import('../../lib/metrics/evolution-metrics').then(({ EVOLUTION_METRICS }) => {
+        EVOLUTION_METRICS.recordDuplicateSuppression('task-result-dynamodb');
+      });
       return;
     }
   }

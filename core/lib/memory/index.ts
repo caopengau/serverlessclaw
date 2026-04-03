@@ -8,3 +8,5 @@ export * from './base';
 export * from './cache';
 export * from './cached-memory';
 export { DynamoMemory } from './dynamo-memory';
+export * from './workspace-operations';
+export * from './collaboration-operations';

@@ -38,6 +38,7 @@ const OPENROUTER_CONSTANTS = {
     GOOGLE_SEARCH: 'google_search_retrieval',
   },
   MODELS: {
+    GEMINI_PREFIX: 'gemini',
     GEMINI_3: 'gemini-3',
     GLM: 'glm',
   },
@@ -51,10 +52,48 @@ const OPENROUTER_CONSTANTS = {
  * Known context windows for specific models to avoid magic numbers.
  */
 const CONTEXT_WINDOWS: Record<string, number> = {
-  'gemini-3': 1048576,
-  glm: 200000,
+  [OPENROUTER_CONSTANTS.MODELS.GEMINI_3]: 1048576,
+  [OPENROUTER_CONSTANTS.MODELS.GLM]: 200000,
   default: 128000,
 };
+
+/**
+ * Helper to apply model-specific configuration to the request body.
+ * Centralizes provider-specific logic to ensure consistency between call() and stream().
+ */
+function applyModelSpecificConfig(
+  body: Record<string, unknown>,
+  activeModel: string,
+  tools?: ITool[],
+  responseFormat?: ResponseFormat
+): void {
+  // GLM Specifics
+  if (activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GLM)) {
+    body['plugin_id'] = 'reasoning';
+    body['include_reasoning'] = true;
+  }
+
+  // Gemini Specifics
+  const isGemini = activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GEMINI_PREFIX);
+  const isGemini3 = activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GEMINI_3);
+
+  if (isGemini3) {
+    // Force JSON_OBJECT if JSON_SCHEMA requested (Gemini 3 specific quirk)
+    if (responseFormat?.type === OPENROUTER_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA) {
+      body['response_format'] = { type: OPENROUTER_CONSTANTS.RESPONSE_FORMATS.JSON_OBJECT };
+    }
+
+    // Safety settings (documented intentional override for evolution autonomy)
+    body['safety_settings'] = 'off';
+  }
+
+  // Google Search Retrieval (Gemini feature)
+  if (isGemini && tools?.some((t) => t.type === OPENROUTER_CONSTANTS.TOOL_TYPES.GOOGLE_SEARCH)) {
+    body['google_search_retrieval'] = {
+      dynamic_retrieval: { mode: 'unspecified', dynamic_threshold: DEFAULT_DYNAMIC_THRESHOLD },
+    };
+  }
+}
 
 /**
  * Mapping of reasoning profiles to OpenRouter-specific reasoning parameters.
@@ -231,17 +270,13 @@ export class OpenRouterProvider implements IProvider {
         prompt_cache: true,
         ...(responseFormat || (tools && tools.length > 0) ? { require_parameters: true } : {}),
       },
-      ...(activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GLM)
-        ? { plugin_id: 'reasoning', include_reasoning: true }
-        : {}),
-      ...(activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GEMINI_3)
-        ? { safety_settings: 'off' }
-        : {}),
       ...(temperature !== undefined ? { temperature } : {}),
       ...(maxTokens !== undefined ? { max_tokens: maxTokens } : {}),
       ...(topP !== undefined ? { top_p: topP } : {}),
       ...(stopSequences && stopSequences.length > 0 ? { stop: stopSequences } : {}),
     };
+
+    applyModelSpecificConfig(body, activeModel, tools, responseFormat);
 
     if (tools && tools.length > 0) {
       body['tools'] = tools.map((tool) => {
@@ -252,22 +287,6 @@ export class OpenRouterProvider implements IProvider {
           function: { name: tool.name, description: tool.description, parameters: tool.parameters },
         };
       });
-
-      if (
-        activeModel.includes('gemini') &&
-        tools.some((t) => t.type === OPENROUTER_CONSTANTS.TOOL_TYPES.GOOGLE_SEARCH)
-      ) {
-        body['google_search_retrieval'] = {
-          dynamic_retrieval: { mode: 'unspecified', dynamic_threshold: DEFAULT_DYNAMIC_THRESHOLD },
-        };
-      }
-    }
-
-    if (
-      responseFormat?.type === OPENROUTER_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA &&
-      activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GEMINI_3)
-    ) {
-      body['response_format'] = { type: OPENROUTER_CONSTANTS.RESPONSE_FORMATS.JSON_OBJECT };
     }
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
@@ -361,17 +380,13 @@ export class OpenRouterProvider implements IProvider {
         prompt_cache: true,
         ...(responseFormat || (tools && tools.length > 0) ? { require_parameters: true } : {}),
       },
-      ...(activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GLM)
-        ? { plugin_id: 'reasoning', include_reasoning: true }
-        : {}),
-      ...(activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GEMINI_3)
-        ? { safety_settings: 'off' }
-        : {}),
       ...(temperature !== undefined ? { temperature } : {}),
       ...(maxTokens !== undefined ? { max_tokens: maxTokens } : {}),
       ...(topP !== undefined ? { top_p: topP } : {}),
       ...(stopSequences && stopSequences.length > 0 ? { stop: stopSequences } : {}),
     };
+
+    applyModelSpecificConfig(body, activeModel, tools, responseFormat);
 
     if (tools && tools.length > 0) {
       body['tools'] = tools.map((tool) => {
@@ -382,22 +397,6 @@ export class OpenRouterProvider implements IProvider {
           function: { name: tool.name, description: tool.description, parameters: tool.parameters },
         };
       });
-
-      if (
-        activeModel.includes('gemini') &&
-        tools.some((t) => t.type === OPENROUTER_CONSTANTS.TOOL_TYPES.GOOGLE_SEARCH)
-      ) {
-        body['google_search_retrieval'] = {
-          dynamic_retrieval: { mode: 'unspecified', dynamic_threshold: DEFAULT_DYNAMIC_THRESHOLD },
-        };
-      }
-    }
-
-    if (
-      responseFormat?.type === OPENROUTER_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA &&
-      activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GEMINI_3)
-    ) {
-      body['response_format'] = { type: OPENROUTER_CONSTANTS.RESPONSE_FORMATS.JSON_OBJECT };
     }
 
     try {
@@ -546,9 +545,9 @@ export class OpenRouterProvider implements IProvider {
       maxReasoningEffort: 'high',
       supportsStructuredOutput: true,
       contextWindow: activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GEMINI_3)
-        ? CONTEXT_WINDOWS['gemini-3']
+        ? CONTEXT_WINDOWS[OPENROUTER_CONSTANTS.MODELS.GEMINI_3]
         : activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GLM)
-          ? CONTEXT_WINDOWS['glm']
+          ? CONTEXT_WINDOWS[OPENROUTER_CONSTANTS.MODELS.GLM]
           : CONTEXT_WINDOWS['default'],
       supportedAttachmentTypes: [AttachmentType.IMAGE, AttachmentType.FILE],
     };

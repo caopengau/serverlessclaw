@@ -3,12 +3,16 @@ name: CI
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 jobs:
   quality-gate:
     name: Quality Gate
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        task: [lint, format-check, type-check, test-silent, test-coverage, aiready]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -34,5 +38,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: mock-secret
           AWS_REGION: ap-southeast-2
 
-      - name: Quality Gate (parallel)
-        run: make gate
+      - name: Quality Check (${{ matrix.task }})
+        run: pnpm exec turbo run ${{ matrix.task }}
+        env:
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}

@@ -32,6 +32,8 @@ describe('event-routing', () => {
       EventType.CONSENSUS_REQUEST,
       EventType.CONSENSUS_VOTE,
       EventType.COGNITIVE_HEALTH_CHECK,
+      'facilitator_task',
+      'critic_task',
     ];
 
     it.each(REQUIRED_EVENT_TYPES)('should have routing entry for %s', (eventType) => {
@@ -79,6 +81,7 @@ describe('event-routing', () => {
         'escalation-handler',
         'consensus-handler',
         'cognitive-health-handler',
+        'facilitator-handler',
       ];
 
       for (const [, routing] of Object.entries(DEFAULT_EVENT_ROUTING)) {
@@ -228,7 +231,6 @@ describe('event-routing', () => {
       EventType.CODER_TASK,
       EventType.EVOLUTION_PLAN,
       EventType.REFLECT_TASK,
-      EventType.CRITIC_TASK,
       EventType.OUTBOUND_MESSAGE,
       EventType.SCHEDULE_TASK,
       EventType.REPUTATION_UPDATE,

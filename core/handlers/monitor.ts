@@ -4,7 +4,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
-import { EventType, GapStatus } from '../lib/types/agent';
+import { EventType, GapStatus, AgentType } from '../lib/types/agent';
 import { BuildStatus } from '../lib/types/constants';
 import { SSTResource, TopologyNode } from '../lib/types/system';
 import { reportHealthIssue } from '../lib/lifecycle/health';
@@ -117,10 +117,31 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
       }
 
       // Transition gaps to DEPLOYED
+      const { EVOLUTION_METRICS } = await import('../lib/metrics/evolution-metrics');
       for (const gapId of gapIds) {
-        const result = await memory.updateGapStatus(gapId, GapStatus.DEPLOYED);
-        if (!result.success) {
-          logger.warn(`Failed to transition gap ${gapId} to DEPLOYED: ${result.error}`);
+        // PROGRESS -> DEPLOYED: Acquire lock before transition
+        const lockAcquired = await memory.acquireGapLock(gapId, AgentType.BUILD_MONITOR);
+        if (!lockAcquired) {
+          logger.warn(
+            `[Monitor] Could not acquire lock for gap ${gapId}, skipping transition to DEPLOYED.`
+          );
+          EVOLUTION_METRICS.recordLockContention(gapId, AgentType.BUILD_MONITOR);
+          continue;
+        }
+
+        try {
+          const result = await memory.updateGapStatus(gapId, GapStatus.DEPLOYED);
+          if (!result.success) {
+            logger.warn(`Failed to transition gap ${gapId} to DEPLOYED: ${result.error}`);
+            EVOLUTION_METRICS.recordTransitionRejection(
+              gapId,
+              GapStatus.PROGRESS,
+              GapStatus.DEPLOYED,
+              result.error || 'unknown'
+            );
+          }
+        } finally {
+          await memory.releaseGapLock(gapId, AgentType.BUILD_MONITOR);
         }
       }
 
@@ -191,22 +212,51 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
 
       // Transition gaps: increment attempt counter, archive if exhausted, else reopen.
       const MAX_GAP_ATTEMPTS = 3;
+      const { EVOLUTION_METRICS: evolMetrics } = await import('../lib/metrics/evolution-metrics');
+
       for (const gapId of gapIds) {
-        const attempts = await memory.incrementGapAttemptCount(gapId);
-        if (attempts >= MAX_GAP_ATTEMPTS) {
+        // PROGRESS -> OPEN/FAILED: Acquire lock before transition
+        const lockAcquired = await memory.acquireGapLock(gapId, AgentType.BUILD_MONITOR);
+        if (!lockAcquired) {
           logger.warn(
-            `Gap ${gapId} has failed ${attempts} times. Escalating to FAILED to prevent runaway loop.`
+            `[Monitor] Could not acquire lock for gap ${gapId}, skipping failure transition.`
           );
-          const result = await memory.updateGapStatus(gapId, GapStatus.FAILED);
-          if (!result.success) {
-            logger.warn(`Failed to transition gap ${gapId} to FAILED: ${result.error}`);
+          evolMetrics.recordLockContention(gapId, AgentType.BUILD_MONITOR);
+          continue;
+        }
+
+        try {
+          const attempts = await memory.incrementGapAttemptCount(gapId);
+          if (attempts >= MAX_GAP_ATTEMPTS) {
+            logger.warn(
+              `Gap ${gapId} has failed ${attempts} times. Escalating to FAILED to prevent runaway loop.`
+            );
+            const result = await memory.updateGapStatus(gapId, GapStatus.FAILED);
+            if (!result.success) {
+              logger.warn(`Failed to transition gap ${gapId} to FAILED: ${result.error}`);
+              evolMetrics.recordTransitionRejection(
+                gapId,
+                GapStatus.PROGRESS,
+                GapStatus.FAILED,
+                result.error || 'unknown'
+              );
+            }
+          } else {
+            logger.info(`Gap ${gapId} attempt ${attempts}/${MAX_GAP_ATTEMPTS}. Reopening.`);
+            evolMetrics.recordGapReopen(gapId, attempts);
+            const result = await memory.updateGapStatus(gapId, GapStatus.OPEN);
+            if (!result.success) {
+              logger.warn(`Failed to transition gap ${gapId} to OPEN: ${result.error}`);
+              evolMetrics.recordTransitionRejection(
+                gapId,
+                GapStatus.PROGRESS,
+                GapStatus.OPEN,
+                result.error || 'unknown'
+              );
+            }
           }
-        } else {
-          logger.info(`Gap ${gapId} attempt ${attempts}/${MAX_GAP_ATTEMPTS}. Reopening.`);
-          const result = await memory.updateGapStatus(gapId, GapStatus.OPEN);
-          if (!result.success) {
-            logger.warn(`Failed to transition gap ${gapId} to OPEN: ${result.error}`);
-          }
+        } finally {
+          await memory.releaseGapLock(gapId, AgentType.BUILD_MONITOR);
         }
       }
 

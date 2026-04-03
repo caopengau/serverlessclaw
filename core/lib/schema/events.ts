@@ -397,6 +397,15 @@ export const EVENT_SCHEMA_MAP = {
   [EventType.CODER_TASK_COMPLETED as string]: CODER_TASK_COMPLETED_SCHEMA,
   [EventType.TASK_CANCELLED as string]: TASK_CANCELLED_SCHEMA,
   [EventType.HANDOFF as string]: HANDOFF_SCHEMA,
+  [EventType.RECOVERY_LOG as string]: TASK_EVENT_SCHEMA,
+  [EventType.CLARIFICATION_REQUEST as string]: TASK_EVENT_SCHEMA,
+  [EventType.CLARIFICATION_TIMEOUT as string]: TASK_EVENT_SCHEMA,
+  [EventType.SCHEDULE_TASK as string]: TASK_EVENT_SCHEMA,
+  [EventType.CHUNK as string]: z.object({ content: z.string() }).passthrough(),
+  [EventType.CRITIC_TASK as string]: TASK_EVENT_SCHEMA,
+  [EventType.ESCALATION_LEVEL_TIMEOUT as string]: TASK_EVENT_SCHEMA,
+  [EventType.ESCALATION_COMPLETED as string]: TASK_EVENT_SCHEMA,
+  [EventType.COGNITIVE_HEALTH_CHECK as string]: HEALTH_REPORT_EVENT_SCHEMA,
 } as const;
 
 /** Keys of the EVENT_SCHEMA_MAP (for type-safe event type lookups). */
