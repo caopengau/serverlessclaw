@@ -1,4 +1,5 @@
 import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
+import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../logger';
 import { BaseMemoryProvider } from '../memory/base';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
@@ -32,8 +33,11 @@ export interface WarmupEvent {
  * Tracks warm state and provides intent-based warmup instead of rigid scheduling.
  */
 export class WarmupManager extends BaseMemoryProvider {
-  private readonly WARM_TTL_SECONDS = 900; // 15 minutes
   private readonly config: WarmupConfig;
+
+  private get ttlSeconds(): number {
+    return this.config.ttlSeconds ?? 900; // Default 15 minutes
+  }
 
   constructor(config: WarmupConfig, docClient?: DynamoDBDocumentClient) {
     super(docClient);
@@ -146,7 +150,7 @@ export class WarmupManager extends BaseMemoryProvider {
         server: serverName,
         lastWarmed: new Date().toISOString(),
         warmedBy,
-        ttl: Math.floor(Date.now() / 1000) + this.WARM_TTL_SECONDS,
+        ttl: Math.floor(Date.now() / 1000) + this.ttlSeconds,
         latencyMs,
         coldStart,
       };
@@ -188,7 +192,7 @@ export class WarmupManager extends BaseMemoryProvider {
         server: agentName,
         lastWarmed: new Date().toISOString(),
         warmedBy,
-        ttl: Math.floor(Date.now() / 1000) + this.WARM_TTL_SECONDS,
+        ttl: Math.floor(Date.now() / 1000) + this.ttlSeconds,
         latencyMs,
         coldStart: false, // Can't detect cold start with async invocation
       };
@@ -295,11 +299,15 @@ export class WarmupManager extends BaseMemoryProvider {
       for (const item of items.items) {
         const state = item as unknown as WarmupState;
         if (state.ttl <= now) {
-          await this.putItem({
-            pk: `WARM#${state.server}`,
-            sk: 'STATE',
-            ...state,
-          });
+          await this.docClient.send(
+            new DeleteCommand({
+              TableName: this.tableName,
+              Key: {
+                pk: `WARM#${state.server}`,
+                sk: 'STATE',
+              },
+            })
+          );
           deleted++;
         }
       }

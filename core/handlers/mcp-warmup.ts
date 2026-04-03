@@ -1,8 +1,6 @@
 import type { Handler, Context } from 'aws-lambda';
-import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 import { logger } from '../lib/logger';
-
-const lambdaClient = new LambdaClient({});
+import { WarmupManager } from '../lib/warmup';
 
 interface WarmupEvent {
   servers?: string[];
@@ -10,8 +8,11 @@ interface WarmupEvent {
 
 /**
  * MCP Warmup Handler
- * Invokes MCP server Lambdas to keep them warm and reduce cold start latency.
+ * Uses WarmupManager to warm MCP servers with state tracking.
  * Called by EventBridge Scheduler on a regular basis.
+ *
+ * Note: The smart warmup strategy now triggers on human activity.
+ * This scheduled handler provides fallback warming if no activity occurs.
  */
 export const handler: Handler = async (event: WarmupEvent, _context: Context) => {
   const serverArns: Record<string, string> = JSON.parse(process.env.MCP_SERVER_ARNS ?? '{}');
@@ -22,65 +23,29 @@ export const handler: Handler = async (event: WarmupEvent, _context: Context) =>
     totalServers: Object.keys(serverArns).length,
   });
 
-  const results = await Promise.allSettled(
-    serversToWarm.map(async (serverName) => {
-      const arn = serverArns[serverName];
-      if (!arn) {
-        logger.warn(`MCP server ${serverName} not found in ARN map`);
-        return { server: serverName, status: 'not_found' };
-      }
+  if (serversToWarm.length === 0) {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ total: 0, success: 0, failed: 0, skipped: 0 }),
+    };
+  }
 
-      try {
-        // Invoke the Lambda with a JSON-RPC 2.0 initialize request
-        // MCP servers expect proper JSON-RPC format, not plain HTTP
-        const jsonRpcRequest = {
-          jsonrpc: '2.0',
-          id: 1,
-          method: 'initialize',
-          params: {
-            protocolVersion: '2024-11-05',
-            capabilities: {},
-            clientInfo: {
-              name: 'warmup',
-              version: '1.0.0',
-            },
-          },
-        };
+  const warmupManager = new WarmupManager({
+    servers: serverArns,
+    agents: {},
+    ttlSeconds: 900,
+  });
 
-        await lambdaClient.send(
-          new InvokeCommand({
-            FunctionName: arn,
-            InvocationType: 'RequestResponse',
-            Payload: JSON.stringify({
-              httpMethod: 'POST',
-              path: '/mcp',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(jsonRpcRequest),
-            }),
-          })
-        );
-
-        logger.info(`MCP server ${serverName} warmed successfully`);
-        return { server: serverName, status: 'success' };
-      } catch (error) {
-        logger.error(`Failed to warm MCP server ${serverName}`, {
-          error: error instanceof Error ? error.message : String(error),
-        });
-        return { server: serverName, status: 'failed', error: String(error) };
-      }
-    })
-  );
+  const result = await warmupManager.smartWarmup({
+    servers: serversToWarm,
+    warmedBy: 'scheduler',
+  });
 
   const summary = {
     total: serversToWarm.length,
-    success: results.filter((r) => r.status === 'fulfilled' && r.value.status === 'success').length,
-    failed: results.filter(
-      (r) => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.status === 'failed')
-    ).length,
-    notFound: results.filter((r) => r.status === 'fulfilled' && r.value.status === 'not_found')
-      .length,
+    success: result.servers.length,
+    failed: serversToWarm.length - result.servers.length,
+    skipped: serversToWarm.length - result.servers.length,
   };
 
   logger.info('MCP Warmup completed', summary);

@@ -124,7 +124,6 @@ describe('WarmupManager', () => {
     });
 
     it('should detect cold start when latency > 2000ms', async () => {
-      // Mock a slow Lambda invocation
       mockLambdaSend.mockImplementation(
         () => new Promise((resolve) => setTimeout(() => resolve({}), 2500))
       );
@@ -133,6 +132,15 @@ describe('WarmupManager', () => {
       const result = await warmupManager.warmMcpServer('mcp-github');
 
       expect(result.coldStart).toBe(true);
+    });
+
+    it('should throw error when state recording fails', async () => {
+      mockLambdaSend.mockResolvedValue({});
+      mockDdbSend.mockRejectedValueOnce(new Error('DynamoDB error'));
+
+      await expect(warmupManager.warmMcpServer('mcp-github', 'webhook')).rejects.toThrow(
+        'DynamoDB error'
+      );
     });
   });
 

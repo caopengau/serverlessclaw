@@ -55,11 +55,12 @@ export const handler = async (
         ttlSeconds: 900, // 15 minutes
       });
 
-      // Smart warmup: only warm servers that are actually cold
+      // Smart warmup: only warm servers/agents that are actually cold
       // Fire-and-forget to avoid blocking the user request
       warmupManager
         .smartWarmup({
-          agents: Object.keys(agentArns), // All critical agents
+          servers: Object.keys(serverArns), // MCP servers
+          agents: Object.keys(agentArns), // Critical agents
           intent: 'webhook-received',
           warmedBy: 'webhook',
         })
