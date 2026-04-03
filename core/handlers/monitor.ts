@@ -118,7 +118,10 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
 
       // Transition gaps to DEPLOYED
       for (const gapId of gapIds) {
-        await memory.updateGapStatus(gapId, GapStatus.DEPLOYED);
+        const result = await memory.updateGapStatus(gapId, GapStatus.DEPLOYED);
+        if (!result.success) {
+          logger.warn(`Failed to transition gap ${gapId} to DEPLOYED: ${result.error}`);
+        }
       }
 
       // Self-Aware Topology Discovery
@@ -194,10 +197,16 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
           logger.warn(
             `Gap ${gapId} has failed ${attempts} times. Escalating to FAILED to prevent runaway loop.`
           );
-          await memory.updateGapStatus(gapId, GapStatus.FAILED);
+          const result = await memory.updateGapStatus(gapId, GapStatus.FAILED);
+          if (!result.success) {
+            logger.warn(`Failed to transition gap ${gapId} to FAILED: ${result.error}`);
+          }
         } else {
           logger.info(`Gap ${gapId} attempt ${attempts}/${MAX_GAP_ATTEMPTS}. Reopening.`);
-          await memory.updateGapStatus(gapId, GapStatus.OPEN);
+          const result = await memory.updateGapStatus(gapId, GapStatus.OPEN);
+          if (!result.success) {
+            logger.warn(`Failed to transition gap ${gapId} to OPEN: ${result.error}`);
+          }
         }
       }
 

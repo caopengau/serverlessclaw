@@ -10,7 +10,7 @@ const cbMock = mockClient(CodeBuildClient);
 const cwMock = mockClient(CloudWatchLogsClient);
 
 const memoryMocks = vi.hoisted(() => ({
-  updateGapStatus: vi.fn().mockResolvedValue(undefined),
+  updateGapStatus: vi.fn().mockResolvedValue({ success: true }),
   incrementGapAttemptCount: vi.fn(),
 }));
 
@@ -135,6 +135,10 @@ describe('BuildMonitor — Atomic Sync (Metadata Resolution)', () => {
     ddbMock.reset();
     cbMock.reset();
     vi.clearAllMocks();
+
+    cbMock.on(BatchGetBuildsCommand).resolves({
+      builds: [{ logs: { groupName: '/aws/test', streamName: 'stream-1' } }],
+    });
   });
 
   it('should resolve metadata from CodeBuild environment variables when DDB records are missing', async () => {
@@ -240,5 +244,88 @@ describe('BuildMonitor — Atomic Sync (Metadata Resolution)', () => {
       }),
       expect.any(Object)
     );
+  });
+
+  describe('Transition Failure Logging', () => {
+    beforeEach(() => {
+      ddbMock.reset();
+      cbMock.reset();
+      vi.clearAllMocks();
+
+      // Build metadata
+      ddbMock.on(QueryCommand).resolves({
+        Items: [SUCCESS_META],
+      });
+      cbMock.on(BatchGetBuildsCommand).resolves({
+        builds: [{ logs: { groupName: '/aws/test', streamName: 'stream-1' } }],
+      });
+    });
+
+    it('should log a warning if gap transition fails during build success', async () => {
+      const { logger } = await import('../lib/logger');
+      const spy = vi.spyOn(logger, 'warn');
+
+      // 1. Mock DDB metadata
+      ddbMock
+        .on(QueryCommand)
+        .resolvesOnce({ Items: [{ initiatorUserId: 'user-1', traceId: 't1' }] })
+        .resolvesOnce({ Items: [{ content: JSON.stringify(['GAP#fail1']) }] });
+
+      // 2. Mock gap transition failure
+      memoryMocks.updateGapStatus.mockResolvedValue({
+        success: false,
+        error: 'Expected PROGRESS state',
+      });
+
+      const { handler } = await import('./monitor');
+      const event = {
+        detail: {
+          'build-id': 'build-fail-1',
+          'project-name': 'test-project',
+          'build-status': 'SUCCEEDED',
+        },
+      };
+
+      await handler(event as any);
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Failed to transition gap GAP#fail1 to DEPLOYED: Expected PROGRESS state'
+        )
+      );
+    });
+
+    it('should log a warning if gap transition fails during build failure', async () => {
+      const { logger } = await import('../lib/logger');
+      const spy = vi.spyOn(logger, 'warn');
+
+      // 1. Mock DDB metadata
+      ddbMock
+        .on(QueryCommand)
+        .resolvesOnce({ Items: [{ initiatorUserId: 'user-1', traceId: 't1' }] })
+        .resolvesOnce({ Items: [{ content: JSON.stringify(['GAP#fail2']) }] });
+
+      // 2. Mock attempt count and transition failure
+      memoryMocks.incrementGapAttemptCount.mockResolvedValue(1); // will try to reopen
+      memoryMocks.updateGapStatus.mockResolvedValue({
+        success: false,
+        error: 'Item not found',
+      });
+
+      const { handler } = await import('./monitor');
+      const event = {
+        detail: {
+          'build-id': 'build-fail-2',
+          'project-name': 'test-project',
+          'build-status': 'FAILED',
+        },
+      };
+
+      await handler(event as any);
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to transition gap GAP#fail2 to OPEN: Item not found')
+      );
+    });
   });
 });

@@ -73,7 +73,7 @@ export async function archiveStaleGaps(
     },
     ExpressionAttributeValues: {
       ':type': 'GAP',
-      ':status': GapStatus.OPEN,
+      ':open': GapStatus.OPEN,
       ':planned': GapStatus.PLANNED,
     },
   });
@@ -323,7 +323,7 @@ export async function updateGapStatus(
           logger.error(`Failed retry update gap ${gapId} status:`, e);
           return {
             success: false,
-            error: `Retry failed: ${error instanceof Error ? error.message : String(error)}`,
+            error: `Retry failed: ${e instanceof Error ? e.message : String(e)}`,
           };
         }
       }
@@ -503,7 +503,12 @@ export async function assignGapToTrack(
   const { expiresAt } = await RetentionManager.getExpiresAt('GAP', '');
   const normalizedId = normalizeGapId(gapId);
 
-  await updateGapStatus(base as never, gapId, GapStatus.PLANNED);
+  const transitionResult = await updateGapStatus(base as never, gapId, GapStatus.PLANNED);
+  if (!transitionResult.success) {
+    throw new Error(
+      `[GapTrack] Failed to transition ${normalizedId} to PLANNED before track assignment: ${transitionResult.error ?? 'unknown error'}`
+    );
+  }
 
   await base.putItem({
     userId: `${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`,
@@ -662,7 +667,6 @@ export function determineTrack(content: string): EvolutionTrack {
   // Performance keywords
   for (const kw of [
     'latency',
-    'cache',
     'memory',
     'cpu',
     'optimize',

@@ -389,7 +389,40 @@ describe('EventHandler', () => {
         // 3. Verify a security warning was logged and the default route was used instead
         const { logger } = await import('../lib/logger');
         expect(logger.warn).toHaveBeenCalledWith(
-          expect.stringContaining('[SECURITY] Blocked unrecognised routing module')
+          expect.stringContaining('[SECURITY] Blocked unrecognised routing combination')
+        );
+      });
+
+      it('should block unrecognised routing functions from DDB (security allowlist)', async () => {
+        const { ConfigManager } = await import('../lib/registry/config');
+
+        // 1. Mock ConfigManager to return routing with an allowed module but a DISALLOWED function
+        (ConfigManager.getTypedConfig as any).mockResolvedValue({
+          [EventType.SYSTEM_HEALTH_REPORT]: {
+            module: './events/health-handler', // Allowed module
+            function: 'unintended_dangerous_function', // DISALLOWED function
+          },
+        });
+
+        const event = {
+          'detail-type': EventType.SYSTEM_HEALTH_REPORT,
+          detail: {
+            component: 'TestComp',
+            issue: 'Function Security Test',
+            severity: 'low',
+            userId: 'user-func-safe',
+          },
+        };
+
+        // 2. The handler should silently reject the unknown combination and use the default
+        await handler(event as any, {} as any);
+
+        // 3. Verify a security warning was logged for the combination
+        const { logger } = await import('../lib/logger');
+        expect(logger.warn).toHaveBeenCalledWith(
+          expect.stringContaining(
+            "[SECURITY] Blocked unrecognised routing combination './events/health-handler:unintended_dangerous_function'"
+          )
         );
       });
     });

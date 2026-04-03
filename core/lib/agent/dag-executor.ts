@@ -165,6 +165,12 @@ export function failTask(state: DAGExecutionState, taskId: string, error: string
     return;
   }
 
+  // Protection: do not downgrade a completed or already failed task
+  if (node.status === 'completed' || node.status === 'failed') {
+    logger.info(`Ignoring fail request for task ${taskId} (status is already ${node.status})`);
+    return;
+  }
+
   node.status = 'failed';
   node.error = error;
   if (!state.failedTasks.includes(taskId)) {

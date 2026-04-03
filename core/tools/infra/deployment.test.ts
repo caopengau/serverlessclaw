@@ -1,12 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
-import {
-  DynamoDBDocumentClient,
-  GetCommand,
-  PutCommand,
-  QueryCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { triggerDeployment, triggerInfraRebuild } from './deployment';
 
 const codebuildMock = mockClient(CodeBuildClient);
@@ -32,14 +27,28 @@ vi.mock('../../lib/safety/circuit-breaker', () => ({
   })),
 }));
 
+const { mockGetAgentContext } = vi.hoisted(() => ({
+  mockGetAgentContext: vi.fn(),
+}));
+
+vi.mock('../../lib/utils/agent-helpers', () => ({
+  getAgentContext: mockGetAgentContext,
+}));
+
 import { getDeployCountToday, incrementDeployCount } from '../../lib/metrics/deploy-stats';
 import { getCircuitBreaker } from '../../lib/safety/circuit-breaker';
+import { getAgentContext } from '../../lib/utils/agent-helpers';
 
 describe('Deployment Tools', () => {
   beforeEach(() => {
     codebuildMock.reset();
     ddbMock.reset();
     vi.clearAllMocks();
+    vi.mocked(getAgentContext).mockResolvedValue({
+      memory: {
+        getAllGaps: vi.fn().mockResolvedValue([]),
+      },
+    } as any);
   });
 
   describe('triggerDeployment', () => {
@@ -128,7 +137,11 @@ describe('Deployment Tools', () => {
       vi.mocked(getDeployCountToday).mockResolvedValue(0);
       vi.mocked(incrementDeployCount).mockResolvedValue(true);
       ddbMock.on(GetCommand).resolves({ Item: { value: '10' } });
-      ddbMock.on(QueryCommand).resolves({ Items: [] }); // getAllGaps returns empty
+      vi.mocked(getAgentContext).mockResolvedValue({
+        memory: {
+          getAllGaps: vi.fn().mockResolvedValue([]),
+        },
+      } as any);
       codebuildMock.on(StartBuildCommand).resolves({ build: { id: 'build-env-123' } });
       ddbMock.on(PutCommand).resolves({});
 
@@ -149,6 +162,46 @@ describe('Deployment Tools', () => {
       });
       expect(envVars).toContainEqual({ name: 'INITIATOR_USER_ID', value: 'user-456' });
       expect(envVars).toContainEqual({ name: 'TRACE_ID', value: 'trace-789' });
+    });
+
+    it('blocks deployment when a target gap is still in exponential backoff', async () => {
+      vi.mocked(getCircuitBreaker).mockReturnValue({
+        canProceed: vi.fn().mockResolvedValue({ allowed: true }),
+        recordFailure: vi.fn(),
+      } as any);
+      vi.mocked(getDeployCountToday).mockResolvedValue(0);
+      ddbMock.on(GetCommand).resolves({ Item: { value: '10' } });
+      vi.mocked(getAgentContext).mockResolvedValue({
+        memory: {
+          getAllGaps: vi.fn().mockResolvedValue([
+            {
+              id: 'GAP#123',
+              timestamp: Date.now() - 1000,
+              content: 'backoff gap',
+              metadata: {
+                category: 'strategic_gap',
+                confidence: 5,
+                impact: 5,
+                complexity: 5,
+                risk: 5,
+                urgency: 5,
+                priority: 5,
+                retryCount: 3,
+                lastAttemptTime: Date.now() - 60_000,
+              },
+            },
+          ]),
+        },
+      } as any);
+
+      const result = await triggerDeployment.execute({
+        reason: 'retry deployment',
+        userId: 'test-user',
+        gapIds: ['GAP#123'],
+      });
+
+      expect(result).toContain('BACKOFF_ACTIVE');
+      expect(codebuildMock.calls()).toHaveLength(0);
     });
   });
 

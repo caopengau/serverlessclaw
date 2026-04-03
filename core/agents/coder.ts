@@ -89,9 +89,16 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       lockedGapIds.push(...acquiredGaps.map((r) => r.gapId));
 
       if (acquiredGaps.length > 0) {
-        await Promise.all(
+        const transitionResults = await Promise.all(
           acquiredGaps.map((r) => memory.updateGapStatus(r.gapId, GapStatus.PROGRESS))
         );
+        transitionResults.forEach((res, i) => {
+          if (!res.success) {
+            logger.warn(
+              `[Coder] Failed to transition gap ${acquiredGaps[i].gapId} to PROGRESS: ${res.error}`
+            );
+          }
+        });
       }
     }
     const { responseText: rawResponse, attachments } = await agent.process(
@@ -203,7 +210,14 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       );
       results.forEach((result, i) => {
         if (result.status === 'rejected') {
-          logger.warn(`[Gaps] Failed to reset gap ${lockedGapIds[i]} to OPEN:`, result.reason);
+          logger.warn(
+            `[Gaps] Failed to reset gap ${lockedGapIds[i]} to OPEN (rejection):`,
+            result.reason
+          );
+        } else if (!result.value.success) {
+          logger.warn(
+            `[Gaps] Failed to reset gap ${lockedGapIds[i]} to OPEN: ${result.value.error}`
+          );
         } else {
           logger.info(`[Gaps] Reset gap ${lockedGapIds[i]} to OPEN due to coder failure.`);
         }
@@ -252,9 +266,14 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       logger.info(
         `Task successful without deployment. Marking ${lockedGapIds.length} gaps as DEPLOYED.`
       );
-      await Promise.all(
+      const results = await Promise.all(
         lockedGapIds.map((gapId) => memory.updateGapStatus(gapId, GapStatus.DEPLOYED))
       );
+      results.forEach((res, i) => {
+        if (!res.success) {
+          logger.warn(`Failed to transition gap ${lockedGapIds[i]} to DEPLOYED: ${res.error}`);
+        }
+      });
     }
   }
 

@@ -5,6 +5,7 @@ import { formatErrorMessage } from '../../lib/utils/error';
 import { getAgentContext } from '../../lib/utils/agent-helpers';
 import { logger } from '../../lib/logger';
 import { STORAGE } from '../../lib/constants';
+import { GapStatus } from '../../lib/types/agent';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 import { createWriteStream } from 'fs';
@@ -219,9 +220,14 @@ export const triggerDeployment = {
       if (gapIds && gapIds.length > 0) {
         const { getAgentContext } = await import('../../lib/utils/agent-helpers');
         const { memory } = await getAgentContext();
+        const gapsByStatus = await Promise.all(
+          Object.values(GapStatus).map((status) => memory.getAllGaps(status))
+        );
+        const allKnownGaps = gapsByStatus.flat();
+
         for (const gapId of gapIds) {
-          const gaps = await memory.getAllGaps();
-          const gap = gaps.find((g) => g.id === `GAP#${gapId}` || g.id === gapId);
+          const normalizedGapId = gapId.startsWith('GAP#') ? gapId : `GAP#${gapId}`;
+          const gap = allKnownGaps.find((g) => g.id === normalizedGapId || g.id === gapId);
           if (gap && gap.metadata.retryCount && gap.metadata.retryCount > 0) {
             const backoffTime = Math.pow(2, gap.metadata.retryCount) * 15 * 60 * 1000;
             const lastAttempt = gap.metadata.lastAttemptTime ?? gap.timestamp;

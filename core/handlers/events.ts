@@ -41,11 +41,13 @@ export async function handler(
     const { ConfigManager } = await import('../lib/registry/config');
     const { DEFAULT_EVENT_ROUTING } = await import('../lib/event-routing');
 
-    // Build an allowlist of permitted module paths from the hardcoded defaults.
-    // DDB-loaded routing entries must resolve to one of these known-good modules
+    // Build an allowlist of permitted module:function pairs from the hardcoded defaults.
+    // DDB-loaded routing entries must resolve to one of these known-good combinations
     // to prevent a misconfigured or tampered ConfigTable entry from redirecting
-    // event handling to an arbitrary Lambda module.
-    const ALLOWED_MODULES = new Set(Object.values(DEFAULT_EVENT_ROUTING).map((r) => r.module));
+    // event handling to an arbitrary Lambda module or unintended function.
+    const ALLOWED_COMBINATIONS = new Set(
+      Object.values(DEFAULT_EVENT_ROUTING).map((r) => `${r.module}:${r.function}`)
+    );
 
     // Fetch routing table from DDB with hardcoded fallback
     const rawRoutingTable = await ConfigManager.getTypedConfig(
@@ -54,15 +56,16 @@ export async function handler(
     );
 
     // Security: validate each DDB-loaded entry against the allowlist.
-    // Any entry with an unrecognised module path is removed and the default is used instead.
+    // Any entry with an unrecognised combination is removed and the default is used instead.
     const routingTable: typeof DEFAULT_EVENT_ROUTING = { ...DEFAULT_EVENT_ROUTING };
     if (rawRoutingTable !== DEFAULT_EVENT_ROUTING) {
       for (const [eventType, entry] of Object.entries(rawRoutingTable)) {
-        if (ALLOWED_MODULES.has(entry.module)) {
+        const combination = `${entry.module}:${entry.function}`;
+        if (ALLOWED_COMBINATIONS.has(combination)) {
           routingTable[eventType] = entry;
         } else {
           logger.warn(
-            `[SECURITY] Blocked unrecognised routing module '${entry.module}' for event type '${eventType}'. Using default.`
+            `[SECURITY] Blocked unrecognised routing combination '${combination}' for event type '${eventType}'. Using default.`
           );
         }
       }

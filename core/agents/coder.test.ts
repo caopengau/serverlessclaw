@@ -24,7 +24,7 @@ vi.mock('../lib/utils/workspace-manager', () => ({
 }));
 
 const mockMemory = vi.hoisted(() => ({
-  updateGapStatus: vi.fn().mockResolvedValue(undefined),
+  updateGapStatus: vi.fn().mockResolvedValue({ success: true }),
   acquireGapLock: vi.fn().mockResolvedValue(true),
   releaseGapLock: vi.fn().mockResolvedValue(undefined),
 }));
@@ -288,5 +288,104 @@ describe('Coder Agent', () => {
     // the transition now happens inside the try block (after initAgent)
     expect(mockMemory.updateGapStatus).not.toHaveBeenCalledWith('gap1', GapStatus.PROGRESS);
     expect(mockMemory.updateGapStatus).not.toHaveBeenCalledWith('gap2', GapStatus.PROGRESS);
+  });
+
+  describe('Transition Failure Logging', () => {
+    it('should log a warning if gap transition to PROGRESS fails', async () => {
+      const { logger } = await import('../lib/logger');
+      const spy = vi.spyOn(logger, 'warn');
+
+      mockMemory.updateGapStatus.mockResolvedValue({
+        success: false,
+        error: 'Locked by another agent',
+      });
+
+      const event = {
+        detail: {
+          userId: 'user123',
+          task: 'implement feature',
+          metadata: { gapIds: ['gap_fail_prog'] },
+        },
+      } as any;
+
+      await handler(event, mockContext);
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[Coder] Failed to transition gap gap_fail_prog to PROGRESS: Locked by another agent'
+        )
+      );
+    });
+
+    it('should log a warning if gap transition to OPEN fails (finally block)', async () => {
+      const { logger } = await import('../lib/logger');
+      const spy = vi.spyOn(logger, 'warn');
+
+      // 1. Mock failure status
+      mockAgent.process.mockResolvedValueOnce({
+        responseText: JSON.stringify({ status: 'FAILED', response: 'Error' }),
+        attachments: [],
+      });
+
+      // 2. Mock transition: success for PROGRESS, but failure for OPEN reset
+      mockMemory.updateGapStatus
+        .mockResolvedValueOnce({ success: true }) // PROGRESS
+        .mockResolvedValueOnce({
+          success: false,
+          error: 'Condition mismatch',
+        }); // OPEN (reset in finally)
+
+      const event = {
+        detail: {
+          userId: 'user123',
+          task: 'implement feature',
+          metadata: { gapIds: ['gap_fail_open'] },
+        },
+      } as any;
+
+      await handler(event, mockContext);
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          '[Gaps] Failed to reset gap gap_fail_open to OPEN: Condition mismatch'
+        )
+      );
+    });
+
+    it('should log a warning if gap transition to DEPLOYED fails', async () => {
+      const { logger } = await import('../lib/logger');
+      const spy = vi.spyOn(logger, 'warn');
+
+      // 1. Mock success but failed transition
+      mockAgent.process.mockResolvedValueOnce({
+        responseText: JSON.stringify({
+          status: 'SUCCESS',
+          response: 'Completed',
+          patch: 'diff-1',
+        }),
+        attachments: [],
+      });
+
+      // 2. Mock PROGRESS success, but DEPLOYED failure
+      mockMemory.updateGapStatus
+        .mockResolvedValueOnce({ success: true }) // PROGRESS
+        .mockResolvedValueOnce({ success: false, error: 'State sync error' }); // DEPLOYED
+
+      const event = {
+        detail: {
+          userId: 'user123',
+          task: 'implement feature',
+          metadata: { gapIds: ['gap_fail_dep'] },
+        },
+      } as any;
+
+      await handler(event, mockContext);
+
+      expect(spy).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'Failed to transition gap gap_fail_dep to DEPLOYED: State sync error'
+        )
+      );
+    });
   });
 });

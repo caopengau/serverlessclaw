@@ -416,6 +416,24 @@ describe('dag-executor', () => {
       const count = state.failedTasks.filter((id) => id === 'a').length;
       expect(count).toBe(1);
     });
+
+    it('should NOT overwrite a completed task as failed (Regression)', () => {
+      const tasks = [makeTask('a')];
+      const state = buildDependencyGraph(tasks);
+
+      // Complete the task first
+      completeTask(state, 'a', 'success result');
+      expect(state.nodes['a'].status).toBe('completed');
+
+      // Now attempt to fail it (e.g. via out-of-order event)
+      failTask(state, 'a', 'Late failure event');
+
+      // It should still be completed, NOT failed
+      expect(state.nodes['a'].status).toBe('completed');
+      expect(state.nodes['a'].result).toBe('success result');
+      expect(state.nodes['a'].error).toBeUndefined();
+      expect(state.failedTasks).not.toContain('a');
+    });
   });
 
   describe('getTaskOutput', () => {

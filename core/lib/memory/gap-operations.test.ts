@@ -9,7 +9,13 @@ import {
 import { DynamoMemory } from '../memory';
 import { GapStatus, EvolutionTrack } from '../types/agent';
 import { InsightCategory } from '../types/memory';
-import { assignGapToTrack, getGapTrack, determineTrack, updateGapMetadata } from './gap-operations';
+import {
+  assignGapToTrack,
+  getGapTrack,
+  determineTrack,
+  updateGapMetadata,
+  archiveStaleGaps,
+} from './gap-operations';
 
 vi.mock('../registry', () => ({
   AgentRegistry: {
@@ -244,6 +250,42 @@ describe('Gap Operations', () => {
       expect(count).toBe(1);
     });
   });
+
+  describe('archiveStaleGaps', () => {
+    it('should query for OPEN and PLANNED gaps using correct expression attributes', async () => {
+      const now = Date.now();
+      const staleTime = now - 40 * 24 * 60 * 60 * 1000; // 40 days ago
+
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          { userId: 'GAP#1', timestamp: staleTime, type: 'GAP', status: GapStatus.OPEN },
+          { userId: 'GAP#2', timestamp: now, type: 'GAP', status: GapStatus.PLANNED },
+        ],
+      });
+      ddbMock.on(UpdateCommand).resolves({});
+
+      const archivedCount = await archiveStaleGaps(memory, 30);
+
+      expect(archivedCount).toBe(1);
+      const queryCalls = ddbMock.commandCalls(QueryCommand);
+      expect(queryCalls.length).toBeGreaterThanOrEqual(1);
+
+      const queryInput = queryCalls[0].args[0].input;
+      expect(queryInput.FilterExpression).toBe('#status IN (:open, :planned)');
+      expect(queryInput.ExpressionAttributeValues).toEqual(
+        expect.objectContaining({
+          ':open': GapStatus.OPEN,
+          ':planned': GapStatus.PLANNED,
+        })
+      );
+      // REGRESSION: Ensure :status is NOT used (it was causing mismatch)
+      expect(queryInput.ExpressionAttributeValues).not.toHaveProperty(':status');
+
+      const updateCalls = ddbMock.commandCalls(UpdateCommand);
+      expect(updateCalls).toHaveLength(1);
+      expect(updateCalls[0].args[0].input.Key).toEqual({ userId: 'GAP#1', timestamp: staleTime });
+    });
+  });
 });
 
 describe('Gap-Track Assignment', () => {
@@ -257,6 +299,7 @@ describe('Gap-Track Assignment', () => {
 
   describe('assignGapToTrack', () => {
     it('should store track assignment in DynamoDB', async () => {
+      ddbMock.on(UpdateCommand).resolves({});
       ddbMock.on(PutCommand).resolves({});
 
       await assignGapToTrack(base, 'gap-42', EvolutionTrack.SECURITY);
@@ -270,12 +313,27 @@ describe('Gap-Track Assignment', () => {
     });
 
     it('should use custom priority when provided', async () => {
+      ddbMock.on(UpdateCommand).resolves({});
       ddbMock.on(PutCommand).resolves({});
 
       await assignGapToTrack(base, 'gap-1', EvolutionTrack.PERFORMANCE, 1);
 
       const item = ddbMock.commandCalls(PutCommand)[0].args[0].input.Item;
       expect(item?.priority).toBe(1);
+    });
+
+    it('should fail fast when PLANNED transition cannot be applied', async () => {
+      ddbMock.on(UpdateCommand).rejects(
+        Object.assign(new Error('ConditionalCheckFailedException'), {
+          name: 'ConditionalCheckFailedException',
+        })
+      );
+
+      await expect(assignGapToTrack(base, 'GAP#42', EvolutionTrack.SECURITY)).rejects.toThrow(
+        'Failed to transition'
+      );
+
+      expect(ddbMock.commandCalls(PutCommand)).toHaveLength(0);
     });
   });
 
