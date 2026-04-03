@@ -1,0 +1,39 @@
+import React from 'react';
+
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+  label?: string;
+  error?: string;
+}
+
+const Input: React.FC<InputProps> = ({
+  label,
+  error,
+  className = '',
+  ...props
+}) => {
+  return (
+    <div className="space-y-1">
+      {label && (
+        <label className="block text-[10px] uppercase tracking-widest font-bold text-white/40">
+          {label}
+        </label>
+      )}
+      <input
+        {...props}
+        className={`
+          w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5
+          text-white text-sm placeholder:text-white/30
+          focus:outline-none focus:border-cyber-blue/50 focus:ring-1 focus:ring-cyber-blue/20
+          transition-all
+          ${error ? 'border-red-500/50' : ''}
+          ${className}
+        `}
+      />
+      {error && (
+        <p className="text-[10px] text-red-400 mt-1">{error}</p>
+      )}
+    </div>
+  );
+};
+
+export default Input;

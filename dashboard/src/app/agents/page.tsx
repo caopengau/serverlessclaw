@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Plus, Shield, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Plus, Shield, RefreshCw, Radio } from 'lucide-react';
 import { THEME } from '@/lib/theme';
 import { toast } from 'sonner';
 import CyberConfirm from '@/components/CyberConfirm';
@@ -13,6 +13,7 @@ import NewAgentModal from './NewAgentModal';
 import AgentToolsModal from './AgentToolsModal';
 import AgentTable from './AgentTable';
 import { Tool, Agent } from '@/lib/types/ui';
+import { useRealtime, RealtimeMessage } from '@/hooks/useRealtime';
 
 // Agent interface moved to ui.ts
 
@@ -271,6 +272,29 @@ export default function AgentsPage() {
     toast.success(`Agent '${confirmModal.agentName}' decommissioned`);
   };
 
+  // Real-time message handler for agent state changes
+  const handleRealtimeMessage = useCallback((_topic: string, message: RealtimeMessage) => {
+    const type = message['detail-type'];
+    
+    // Refresh agents on relevant events
+    if (
+      type === 'agent_config_updated' || 
+      type === 'agent_status_changed' ||
+      type === 'task_completed' ||
+      type === 'task_failed'
+    ) {
+      console.log(`[Realtime] Refreshing agents due to: ${type}`);
+      loadAgents();
+      loadReputation();
+    }
+  }, []);
+
+  // Use Realtime Hook for live updates
+  const { isConnected } = useRealtime({
+    topics: ['agents/+/signal', 'system/+/signal'],
+    onMessage: handleRealtimeMessage
+  });
+
   const hasChanges = JSON.stringify(agents) !== JSON.stringify(initialAgents);
 
   if (loading)
@@ -294,9 +318,15 @@ export default function AgentsPage() {
       />
       <header className="flex justify-between items-end border-b border-white/5 pb-6">
         <div>
-          <Typography variant="h2" color="white" glow uppercase>
-            Agents
-          </Typography>
+          <div className="flex items-center gap-3">
+            <Typography variant="h2" color="white" glow uppercase>
+              Agents
+            </Typography>
+            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest font-bold ${isConnected ? 'bg-cyber-green/10 text-cyber-green border border-cyber-green/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
+              <Radio size={10} className={isConnected ? 'animate-pulse' : ''} />
+              {isConnected ? 'LIVE' : 'OFFLINE'}
+            </div>
+          </div>
           <Typography variant="body" color="muted" className="mt-2 block">
             Manage backbone orchestrators and specialized autonomous agents.
           </Typography>

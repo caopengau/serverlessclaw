@@ -16,7 +16,7 @@ import '@xyflow/react/dist/style.css';
 import {
   Zap, RefreshCw, Plus, Minus, Maximize, Lock,
   Bot, Code, Brain, Search, FlaskConical, Settings2, Clock,
-  CheckCircle, XCircle, AlertCircle, Loader, User
+  CheckCircle, XCircle, AlertCircle, Loader, User, Send, ThumbsUp, ThumbsDown
 } from 'lucide-react';
 import { useReactFlow, ReactFlowProvider } from '@xyflow/react';
 import Button from '@/components/ui/Button';
@@ -175,11 +175,22 @@ const nodeTypes = {
   ),
 };
 
+interface HandoffData {
+  taskId: string;
+  agentId: string;
+  reason: string;
+  context: string;
+  timestamp: number;
+}
+
 export function CollaborationCanvasContent() {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [loading, setLoading] = useState(true);
   const [isHumanActive, setIsHumanActive] = useState(false);
+  const [handoffData, setHandoffData] = useState<HandoffData | null>(null);
+  const [handoffResponse, setHandoffResponse] = useState('');
+  const [submittingResponse, setSubmittingResponse] = useState(false);
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const handoffTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -427,6 +438,145 @@ export function CollaborationCanvasContent() {
           <Typography variant="caption" weight="bold" color="white" uppercase>Refresh</Typography>
         </Button>
       </div>
+
+      {/* Handoff Response Panel */}
+      {isHumanActive && (
+        <div className="absolute bottom-6 right-6 z-30 w-[360px] bg-[#0a0a0a] border border-orange-500/50 rounded-xl shadow-[0_0_30px_rgba(249,115,22,0.2)] overflow-hidden">
+          <div className="px-4 py-3 bg-orange-500/10 border-b border-orange-500/20 flex items-center gap-3">
+            <div className="p-1.5 bg-orange-500/20 rounded">
+              <User size={14} className="text-orange-400" />
+            </div>
+            <div>
+              <Typography variant="caption" weight="bold" className="text-orange-400 uppercase tracking-wider">
+                Human Input Required
+              </Typography>
+              <Typography variant="mono" className="text-[9px] text-white/40 mt-0.5">
+                Agent escalated task for review
+              </Typography>
+            </div>
+          </div>
+          
+          {handoffData && (
+            <div className="p-4 space-y-3">
+              <div className="bg-white/5 rounded-lg p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Typography variant="mono" className="text-[9px] text-white/40 uppercase">Task ID:</Typography>
+                  <Typography variant="mono" className="text-[10px] text-white/80">{handoffData.taskId}</Typography>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Typography variant="mono" className="text-[9px] text-white/40 uppercase">Agent:</Typography>
+                  <Typography variant="mono" className="text-[10px] text-white/80">{handoffData.agentId}</Typography>
+                </div>
+                <div>
+                  <Typography variant="mono" className="text-[9px] text-white/40 uppercase mb-1">Reason:</Typography>
+                  <Typography variant="body" className="text-[11px] text-white/70 italic">
+                    "{handoffData.reason}"
+                  </Typography>
+                </div>
+              </div>
+              
+              <div>
+                <Typography variant="mono" className="text-[9px] text-white/40 uppercase mb-2">Your Response:</Typography>
+                <textarea
+                  value={handoffResponse}
+                  onChange={(e) => setHandoffResponse(e.target.value)}
+                  placeholder="Provide guidance or approve/reject the agent's request..."
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/30 focus:outline-none focus:border-orange-500/50 resize-none h-20"
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setHandoffResponse('APPROVE');
+                    setSubmittingResponse(true);
+                    // Submit approval
+                    fetch('/api/chat', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        message: 'APPROVE',
+                        metadata: { handoffResponse: true, taskId: handoffData?.taskId }
+                      })
+                    }).finally(() => {
+                      setSubmittingResponse(false);
+                      setIsHumanActive(false);
+                      setHandoffData(null);
+                      setHandoffResponse('');
+                    });
+                  }}
+                  disabled={submittingResponse}
+                  className="flex-1 border-cyber-green/30 text-cyber-green hover:bg-cyber-green/10"
+                  icon={<ThumbsUp size={14} />}
+                >
+                  Approve
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (!handoffResponse.trim()) return;
+                    setSubmittingResponse(true);
+                    fetch('/api/chat', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        message: handoffResponse,
+                        metadata: { handoffResponse: true, taskId: handoffData?.taskId }
+                      })
+                    }).finally(() => {
+                      setSubmittingResponse(false);
+                      setIsHumanActive(false);
+                      setHandoffData(null);
+                      setHandoffResponse('');
+                    });
+                  }}
+                  disabled={submittingResponse || !handoffResponse.trim()}
+                  className="flex-1"
+                  icon={<Send size={14} />}
+                >
+                  Send
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => {
+                    setHandoffResponse('REJECT');
+                    setSubmittingResponse(true);
+                    fetch('/api/chat', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        message: 'REJECT',
+                        metadata: { handoffResponse: true, taskId: handoffData?.taskId }
+                      })
+                    }).finally(() => {
+                      setSubmittingResponse(false);
+                      setIsHumanActive(false);
+                      setHandoffData(null);
+                      setHandoffResponse('');
+                    });
+                  }}
+                  disabled={submittingResponse}
+                  icon={<ThumbsDown size={14} />}
+                >
+                  Reject
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {!handoffData && (
+            <div className="p-4 text-center">
+              <Typography variant="body" color="muted" className="text-[11px]">
+                Waiting for handoff details...
+              </Typography>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

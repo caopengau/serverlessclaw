@@ -49,6 +49,29 @@ export async function GET() {
 }
 
 export const POST = withApiHandler(async (body) => {
+  // Handle member management actions
+  if (body.action === 'invite') {
+    requireFields(body, 'workspaceId', 'memberId', 'role');
+    const { inviteMember } = await import('@claw/core/lib/memory/workspace-operations');
+    await inviteMember(body.workspaceId, body.memberId, body.role, body.channel ?? 'dashboard');
+    return { success: true };
+  }
+  
+  if (body.action === 'updateRole') {
+    requireFields(body, 'workspaceId', 'memberId', 'role');
+    const { updateMemberRole } = await import('@claw/core/lib/memory/workspace-operations');
+    await updateMemberRole(body.workspaceId, body.memberId, body.role);
+    return { success: true };
+  }
+  
+  if (body.action === 'remove') {
+    requireFields(body, 'workspaceId', 'memberId');
+    const { removeMember } = await import('@claw/core/lib/memory/workspace-operations');
+    await removeMember(body.workspaceId, body.memberId);
+    return { success: true };
+  }
+  
+  // Default: create workspace
   requireFields(body, 'name', 'ownerId');
   const { createWorkspace } = await import('@claw/core/lib/memory/workspace-operations');
   const workspace = await createWorkspace({

@@ -251,6 +251,87 @@ The **Parallel Handler** now traps dispatch errors (e.g., EventBridge throughput
 
 ---
 
+## 🖥️ Dashboard Co-Management Flows
+
+The ClawCenter dashboard provides real-time co-management interfaces for multi-human multi-agent collaboration.
+
+### Dashboard Collaboration Flow
+
+```text
+ Human (Browser)        Dashboard UI           API Routes          AgentBus (EB)       Agent Swarm
+      |                      |                      |                    |                |
+      +-- Open Collab Tab -->|                      |                    |                |
+      |                      +-- GET /collaboration>|                    |                |
+      |                      |<-- ActiveDispatches -+                    |                |
+      |                      |                      |                    |                |
+      |                      +-- Subscribe MQTT --->|                    |                |
+      |                      |<-- Realtime Updates -+                    |                |
+      |                      |                      |                    |                |
+      |   [View DAG Status]  |                      |                    |                |
+      |<-- Render Flow ------|                      |                    |                |
+      |   (nodes + edges)    |                      |                    |                |
+      |                      |                      |                    |                |
+      |   [Task Completed]   |                      |                    |                |
+      |                      |<-- task_completed ---|<-- Result ---------|<-- Agent Done  |
+      |                      +-- Refresh Canvas --->|                    |                |
+```
+
+### Human-in-the-Loop Handoff Flow
+
+```text
+ Agent (Autonomous)     AgentBus (EB)       Dashboard UI           Human (Browser)
+      |                      |                      |                      |
+      +-- [Escalation] ----->|                      |                      |
+      |   TASK_HANDOFF       |                      |                      |
+      |                      +-- handoff event ---->|                      |
+      |                      |                      +-- Show Panel ------->|
+      |                      |                      |   (orange border)    |
+      |                      |                      |                      |
+      |                      |                      |   [Task Details]     |
+      |                      |                      |<-- Display ---------|
+      |                      |                      |   - taskId           |
+      |                      |                      |   - agentId          |
+      |                      |                      |   - reason           |
+      |                      |                      |                      |
+      |                      |                      |   [Awaiting Input]   |
+      |                      |                      |<-- Show Buttons ----|
+      |                      |                      |   Approve|Send|Reject|
+      |                      |                      |                      |
+      |                      |                      |   [Human Responds]   |
+      |                      |                      +-- POST /chat ------>|
+      |                      |                      |   {handoffResponse}  |
+      |                      |<-- HANDOFF_RESOLVED -+                      |
+      |<-- Resume Task ------|                      |                      |
+      |   (with response)    |                      |                      |
+```
+
+### Workspace Member Management Flow
+
+```text
+ Admin (Dashboard)      Dashboard UI          API Routes          Workspace Store
+      |                      |                      |                      |
+      +-- Expand Workspace ->|                      |                      |
+      |                      +-- GET /workspaces -->|                      |
+      |                      |<-- Workspace List ---+                      |
+      |                      |                      |                      |
+      |   [Invite Member]    |                      |                      |
+      |<-- Click Invite -----|                      |                      |
+      |                      |                      |                      |
+      |   [Fill Form]        |                      |                      |
+      |<-- Modal Opens ------|                      |                      |
+      |   - memberId         |                      |                      |
+      |   - role (dropdown)  |                      |                      |
+      |                      |                      |                      |
+      |   [Submit]           |                      |                      |
+      +-- POST /workspaces ->|                      |                      |
+      |   {action:invite}    +-- inviteMember() --->|                      |
+      |                      |                      +-- Update Members --->|
+      |                      |<-- Success -----------|                      |
+      |<-- Refresh List -----|                      |                      |
+```
+
+---
+
 ## 🛠️ Engineering Standards (Agent & Human)
 
 To maintain the high technical integrity of the swarm, all contributors (both human and autonomous agents) MUST adhere to these standards when adding or modifying features:
