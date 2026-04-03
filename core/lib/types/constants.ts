@@ -73,6 +73,7 @@ export enum ParallelTaskStatus {
   SUCCESS = 'success',
   PARTIAL = 'partial',
   FAILED = 'failed',
+  TIMED_OUT = 'timed_out',
 }
 
 /**

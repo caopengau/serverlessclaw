@@ -6,7 +6,7 @@ interface ParallelTaskCompletedEvent {
   sessionId?: string;
   traceId?: string;
   initiatorId?: string;
-  overallStatus: 'success' | 'partial' | 'failed';
+  overallStatus: 'success' | 'partial' | 'failed' | 'timed_out';
   results: Array<{
     taskId: string;
     agentId: string;
@@ -57,7 +57,7 @@ export async function handleParallelTaskCompleted(
 
   const successCount = results.filter((r) => r.status === 'success').length;
   const failedCount = results.filter((r) => r.status === 'failed').length;
-  const timeoutCount = results.filter((r) => r.status === 'timeout').length;
+  const timeoutCount = results.filter((r) => r.status === 'timed_out').length;
 
   // Build per-task summary
   const taskSummaries = results

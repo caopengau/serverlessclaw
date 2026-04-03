@@ -116,7 +116,10 @@ describe('DynamoMemory Retention', () => {
       // With atomic transitions (A4), ConditionalCheckFailedException means the
       // status transition is invalid (e.g., trying to OPEN→PROGRESS but
       // gap is already in PROGRESS). The function returns early instead of throwing.
-      await expect(memory.updateGapStatus(gapId, GapStatus.PROGRESS)).resolves.toBeUndefined();
+      await expect(memory.updateGapStatus(gapId, GapStatus.PROGRESS)).resolves.toEqual({
+        success: false,
+        error: expect.stringContaining('Cannot transition gap'),
+      });
 
       // Should have only 1 UpdateCommand call (no retry)
       const updateCalls = ddbMock.commandCalls(UpdateCommand);
@@ -147,7 +150,7 @@ describe('DynamoMemory Retention', () => {
   describe('incrementGapAttemptCount', () => {
     it('should send an UpdateCommand with atomic ADD and return the new count', async () => {
       ddbMock.on(UpdateCommand).resolves({
-        Attributes: { attemptCount: 2 },
+        Attributes: { metadata: { retryCount: 2 } },
       });
 
       const count = await memory.incrementGapAttemptCount('GAP#1710240000000');
@@ -157,7 +160,7 @@ describe('DynamoMemory Retention', () => {
       expect(calls).toHaveLength(1);
       expect(calls[0].args[0].input).toMatchObject({
         UpdateExpression:
-          'SET attemptCount = if_not_exists(attemptCount, :zero) + :one, updatedAt = :now, lastAttemptTime = :now',
+          'SET metadata.retryCount = if_not_exists(metadata.retryCount, :zero) + :one, updatedAt = :now, metadata.lastAttemptTime = :now',
         ReturnValues: 'ALL_NEW',
       });
     });

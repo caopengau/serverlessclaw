@@ -194,18 +194,17 @@ describe('Strategic Planner — selective PLANNED marking', () => {
       {} as unknown as Parameters<typeof handler>[1]
     );
 
-    // Gap A content excerpt appears in plan → PLANNED
-    const plannedCalls = memoryMocks.updateGapStatus.mock.calls.filter(
-      (c: unknown[]) => c[1] === GapStatus.PLANNED
+    // Only covered gap should be assigned to track (which internally marks PLANNED)
+    expect(gapOperationsMocks.assignGapToTrack).toHaveBeenCalled();
+    const assignedGapIds = gapOperationsMocks.assignGapToTrack.mock.calls.map(
+      (c: unknown[]) => c[1]
     );
 
-    // Only covered gap should be PLANNED
-    expect(plannedCalls.length).toBeGreaterThan(0);
-    expect(plannedCalls.some((c: unknown[]) => String(c[0]).includes('1001'))).toBe(true);
+    // Gap A should be assigned
+    expect(assignedGapIds.some((id) => String(id).includes('1001'))).toBe(true);
 
-    // Gap B (1002) was not in coveredGapIds and should NOT be PLANNED
-    const gapBPlanned = plannedCalls.some((c: unknown[]) => String(c[0]).includes('1002'));
-    expect(gapBPlanned).toBe(false);
+    // Gap B (1002) was not in coveredGapIds and should NOT be assigned
+    expect(assignedGapIds.some((id) => String(id).includes('1002'))).toBe(false);
   });
 
   it('should return COOLDOWN_ACTIVE if the same gapId was planned recently', async () => {

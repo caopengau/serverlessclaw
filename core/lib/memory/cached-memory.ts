@@ -13,6 +13,7 @@ import {
   GapStatus,
   ConversationMeta,
 } from '../types/index';
+import type { GapTransitionResult } from './gap-operations';
 import type { Collaboration, CollaborationRole, ParticipantType } from '../types/collaboration';
 import { DynamoMemory } from '../memory';
 import { MemoryCaches, CacheKeys, getCacheStatsSummary } from './cache';
@@ -290,11 +291,13 @@ export class CachedMemory implements IMemory {
   /**
    * Updates gap status and invalidates cache.
    */
-  async updateGapStatus(gapId: string, status: GapStatus): Promise<void> {
-    await this.underlying.updateGapStatus(gapId, status);
+  async updateGapStatus(gapId: string, status: GapStatus): Promise<GapTransitionResult> {
+    const result = await this.underlying.updateGapStatus(gapId, status);
 
     // Invalidate gaps cache
     MemoryCaches.global.invalidatePattern(/^gaps:/);
+
+    return result;
   }
 
   /**

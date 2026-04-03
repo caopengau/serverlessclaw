@@ -1,4 +1,5 @@
 import { EventType } from '../../lib/types/agent';
+import { ParallelTaskStatus } from '../../lib/types/constants';
 import { logger } from '../../lib/logger';
 import { emitEvent, EventPriority } from '../../lib/utils/bus';
 import { ParallelAggregator } from '../../lib/agent/parallel-aggregator';
@@ -59,8 +60,9 @@ export async function handleParallelBarrierTimeout(
     finalSuccessRate === 1 ? 'success' : finalSuccessRate >= threshold ? 'partial' : 'failed';
 
   // Atomic completion check: seal the dispatch so no more workers can add results.
-  // Use the calculated status if actually complete, otherwise use 'timeout'.
-  const effectiveStatus = completedCount >= totalTasks ? overallStatus : 'timeout';
+  // Use the calculated status if actually complete, otherwise use 'timed_out'.
+  const effectiveStatus =
+    completedCount >= totalTasks ? overallStatus : ParallelTaskStatus.TIMED_OUT;
   const marked = await aggregator.markAsCompleted(userId, traceId, effectiveStatus);
 
   if (!marked) {
@@ -72,7 +74,7 @@ export async function handleParallelBarrierTimeout(
 
   // Now that the dispatch is sealed, synthesize timeout results for the tasks that didn't finish
   const finalResults = [...existingResults];
-  const isActuallyTimeout = effectiveStatus === 'timeout';
+  const isActuallyTimeout = effectiveStatus === ParallelTaskStatus.TIMED_OUT;
 
   if (isActuallyTimeout) {
     for (const mapping of taskMapping) {
@@ -82,7 +84,7 @@ export async function handleParallelBarrierTimeout(
       finalResults.push({
         taskId: mapping.taskId,
         agentId: mapping.agentId,
-        status: 'timeout',
+        status: ParallelTaskStatus.TIMED_OUT,
         result: null,
         error: 'Task timed out due to parallel barrier timeout',
       });

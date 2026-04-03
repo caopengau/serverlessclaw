@@ -144,6 +144,26 @@ export async function handleParallelDispatch(
 
     if (readyTasks.length === 0) {
       logger.error('No tasks ready to execute (all have unsatisfied dependencies)');
+
+      // Mark aggregator as failed and emit terminal event to prevent stranded dispatch
+      await aggregator.markAsCompleted(userId, safeTraceId, 'failed');
+
+      const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
+      await emitTypedEvent('events.handler', EventType.PARALLEL_TASK_COMPLETED, {
+        userId,
+        sessionId,
+        traceId: safeTraceId,
+        taskId: safeTraceId,
+        initiatorId: initiatorId ?? 'parallel-dispatcher',
+        depth,
+        overallStatus: 'failed',
+        results: [],
+        taskCount: tasks.length,
+        completedCount: 0,
+        elapsedMs: 0,
+        aggregationType,
+        aggregationPrompt,
+      });
       return;
     }
 
@@ -180,6 +200,64 @@ export async function handleParallelDispatch(
       `DAG mode: Dispatched ${readyTasks.length} initial tasks. ` +
         `${tasks.length - readyTasks.length} tasks waiting for dependencies.`
     );
+
+    // Schedule barrier timeout for DAG mode (previously missing — caused stuck workflows)
+    const targetTime = Date.now() + timeoutMs;
+    const timeoutId = `parallel-barrier-${safeTraceId}`;
+
+    try {
+      await DynamicScheduler.scheduleOneShotTimeout(
+        timeoutId,
+        {
+          userId,
+          traceId: safeTraceId,
+          initiatorId: initiatorId ?? 'parallel-dispatcher',
+          sessionId,
+          depth: depth ?? 0,
+          taskCount: tasks.length,
+        },
+        targetTime,
+        EventType.PARALLEL_BARRIER_TIMEOUT
+      );
+      logger.info(
+        `Scheduled DAG barrier timeout for ${timeoutId}: ${new Date(targetTime).toISOString()}`
+      );
+    } catch (error) {
+      logger.error(`Failed to schedule DAG barrier timeout for ${timeoutId}:`, error);
+
+      // Mark aggregator as failed to prevent hanging barriers
+      await aggregator.markAsCompleted(userId, safeTraceId, 'failed');
+
+      const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
+      await emitTypedEvent('events.handler', EventType.PARALLEL_TASK_COMPLETED, {
+        userId,
+        sessionId,
+        traceId: safeTraceId,
+        taskId: safeTraceId,
+        initiatorId: initiatorId ?? 'parallel-dispatcher',
+        depth,
+        overallStatus: 'failed',
+        results: [],
+        taskCount: tasks.length,
+        completedCount: 0,
+        elapsedMs: 0,
+        aggregationType,
+        aggregationPrompt,
+      });
+    }
+
+    // Trace: Barrier waiting for sub-agents
+    await addTraceStep(safeTraceId, 'root', {
+      type: TRACE_TYPES.PARALLEL_BARRIER,
+      content: {
+        taskCount: tasks.length,
+        barrierTimeoutMs: timeoutMs,
+        targetTime: new Date(targetTime).toISOString(),
+        status: 'waiting_for_sub_agents',
+      },
+      metadata: { event: 'parallel_barrier', taskCount: tasks.length },
+    });
+
     return;
   }
 

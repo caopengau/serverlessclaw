@@ -209,7 +209,7 @@ describe('Gap Operations', () => {
       ddbMock
         .on(UpdateCommand)
         .rejectsOnce(new Error('DDB error'))
-        .resolves({ Attributes: { attemptCount: 3 } });
+        .resolves({ Attributes: { metadata: { retryCount: 3 } } });
 
       // Fallback: QueryCommand returns gaps found across statuses
       ddbMock.on(QueryCommand).resolves({

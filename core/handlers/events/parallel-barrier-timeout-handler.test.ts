@@ -161,16 +161,16 @@ describe('parallel-barrier-timeout-handler', () => {
 
       await handleParallelBarrierTimeout(baseEventDetail);
 
-      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timeout');
+      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timed_out');
       expect(mockEmitEvent).toHaveBeenCalledWith(
         'events.handler',
         'parallel_task_completed',
         expect.objectContaining({
           userId: 'user-123',
           traceId: 'trace-abc',
-          overallStatus: 'timeout',
+          overallStatus: 'timed_out',
           results: expect.arrayContaining([
-            expect.objectContaining({ taskId: 'task-3', status: 'timeout' }),
+            expect.objectContaining({ taskId: 'task-3', status: 'timed_out' }),
           ]),
         }),
         expect.anything()
@@ -196,7 +196,7 @@ describe('parallel-barrier-timeout-handler', () => {
 
       await handleParallelBarrierTimeout(baseEventDetail);
 
-      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timeout');
+      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timed_out');
     });
 
     it('emits timeout status regardless of success rate when tasks are missing', async () => {
@@ -217,7 +217,7 @@ describe('parallel-barrier-timeout-handler', () => {
 
       await handleParallelBarrierTimeout(baseEventDetail);
 
-      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timeout');
+      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timed_out');
     });
 
     it('skips when markAsCompleted returns false (race condition)', async () => {
@@ -252,7 +252,7 @@ describe('parallel-barrier-timeout-handler', () => {
 
       await handleParallelBarrierTimeout(baseEventDetail);
 
-      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timeout');
+      expect(mockMarkAsCompleted).toHaveBeenCalledWith('user-123', 'trace-abc', 'timed_out');
     });
   });
 });

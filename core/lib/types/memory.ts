@@ -1,5 +1,6 @@
 import { Message } from './llm';
 import { GapStatus } from './agent';
+import type { GapTransitionResult } from '../memory/gap-operations';
 import type { Collaboration, CollaborationRole, ParticipantType } from './collaboration';
 
 /**
@@ -173,7 +174,7 @@ export interface IGapManager {
   /** Retrieves all capability gaps, optionally filtered by their current status. */
   getAllGaps(status?: import('./agent').GapStatus): Promise<MemoryInsight[]>;
   /** Updates the lifecycle status of a specific capability gap. */
-  updateGapStatus(gapId: string, status: import('./agent').GapStatus): Promise<void>;
+  updateGapStatus(gapId: string, status: import('./agent').GapStatus): Promise<GapTransitionResult>;
   /** Archives stale gaps older than specified days. Returns count of archived gaps. */
   archiveStaleGaps(staleDays?: number): Promise<number>;
   /** Atomically increments the attempt counter on a capability gap. */

@@ -25,6 +25,8 @@ vi.mock('../lib/utils/workspace-manager', () => ({
 
 const mockMemory = vi.hoisted(() => ({
   updateGapStatus: vi.fn().mockResolvedValue(undefined),
+  acquireGapLock: vi.fn().mockResolvedValue(true),
+  releaseGapLock: vi.fn().mockResolvedValue(undefined),
 }));
 
 const mockAgent = vi.hoisted(() => ({

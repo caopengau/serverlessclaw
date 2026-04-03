@@ -218,6 +218,7 @@ describe('parallel-handler', () => {
       await handleParallelDispatch(event as any);
 
       expect(mockAggregatorInit).not.toHaveBeenCalled();
+      // No tasks means no timeout scheduling needed (nothing to wait for)
       expect(mockScheduleOneShotTimeout).not.toHaveBeenCalled();
     });
 
@@ -299,7 +300,8 @@ describe('parallel-handler', () => {
 
       expect(mockValidateDependencyGraph).toHaveBeenCalledWith(mockDagState);
       expect(mockEmitTypedEvent).toHaveBeenCalledTimes(1);
-      expect(mockScheduleOneShotTimeout).not.toHaveBeenCalled();
+      // Fix #3: DAG mode now also schedules barrier timeout
+      expect(mockScheduleOneShotTimeout).toHaveBeenCalled();
     });
 
     it('fails dispatch when dependency graph has cycles', async () => {

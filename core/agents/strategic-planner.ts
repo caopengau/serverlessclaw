@@ -1,4 +1,4 @@
-import { AgentType, EvolutionMode, GapStatus, TraceSource, EventType } from '../lib/types/agent';
+import { AgentType, EvolutionMode, TraceSource, EventType } from '../lib/types/agent';
 import { InsightCategory } from '../lib/types/memory';
 import { ReasoningProfile, Message, MessageRole } from '../lib/types/llm';
 import { sendOutboundMessage } from '../lib/outbound';
@@ -528,14 +528,13 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
           lockResults
             .filter(({ acquired }) => acquired)
             .map(async ({ numericId }) => {
-              await Promise.all([
-                memory.updateGapStatus(numericId, GapStatus.PLANNED),
-                assignGapToTrack(
-                  memory as unknown as Parameters<typeof assignGapToTrack>[0],
-                  numericId,
-                  track
-                ),
-              ]);
+              // assignGapToTrack internally calls updateGapStatus(GapStatus.PLANNED)
+              // so we only need to call assignGapToTrack (avoids duplicate PLANNED transition)
+              await assignGapToTrack(
+                memory as unknown as Parameters<typeof assignGapToTrack>[0],
+                numericId,
+                track
+              );
               return numericId;
             })
         );
@@ -550,10 +549,8 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
         processedGapIds.push(...results);
       } else if (gapId) {
         logger.info(`Marking specific gap ${gapId} as PLANNED after design.`);
-        await Promise.all([
-          memory.updateGapStatus(gapId, GapStatus.PLANNED),
-          assignGapToTrack(memory as never, gapId, track),
-        ]);
+        // assignGapToTrack internally calls updateGapStatus(PLANNED), so only call assignGapToTrack
+        await assignGapToTrack(memory as never, gapId, track);
         processedGapIds.push(gapId);
       }
     }

@@ -390,7 +390,7 @@ describe('ParallelAggregator', () => {
     });
 
     it('should handle all status types', async () => {
-      const statuses = ['success', 'partial', 'failed', 'timeout'] as const;
+      const statuses = ['success', 'partial', 'failed', 'timed_out'] as const;
 
       for (const status of statuses) {
         mockSend.mockResolvedValueOnce({});

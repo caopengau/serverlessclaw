@@ -61,11 +61,38 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   responseText = 'SYSTEM_ERROR: Processing failed before response generation.';
   logger.info(`[Coder] Starting process. Fallback: ${status}, Response: ${responseText}`);
 
+  // Track locked gap IDs for cleanup in finally block
+  const lockedGapIds: string[] = [];
+
   try {
-    // 3b. Transition gaps to PROGRESS (inside try so finally can reset on init failure)
+    // 3b. Acquire locks and transition gaps to PROGRESS (inside try so finally can reset on init failure)
     if (gapIds && gapIds.length > 0) {
-      logger.info(`Picking up task. Marking ${gapIds.length} gaps as PROGRESS.`);
-      await Promise.all(gapIds.map((gapId) => memory.updateGapStatus(gapId, GapStatus.PROGRESS)));
+      logger.info(
+        `Picking up task. Acquiring locks and marking ${gapIds.length} gaps as PROGRESS.`
+      );
+
+      // Acquire locks for all gaps before transitioning (lock parity fix)
+      const lockResults = await Promise.all(
+        gapIds.map(async (gapId) => {
+          const acquired = await memory.acquireGapLock(gapId, AgentType.CODER);
+          return { gapId, acquired };
+        })
+      );
+
+      // Only transition gaps where lock was acquired
+      const acquiredGaps = lockResults.filter((r) => {
+        if (!r.acquired) {
+          logger.warn(`[Coder] Could not acquire lock for gap ${r.gapId}, skipping.`);
+        }
+        return r.acquired;
+      });
+      lockedGapIds.push(...acquiredGaps.map((r) => r.gapId));
+
+      if (acquiredGaps.length > 0) {
+        await Promise.all(
+          acquiredGaps.map((r) => memory.updateGapStatus(r.gapId, GapStatus.PROGRESS))
+        );
+      }
     }
     const { responseText: rawResponse, attachments } = await agent.process(
       userId,
@@ -170,17 +197,26 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
 
     // Reset gaps back to OPEN if the task failed or was not successful (A3 Fix)
     const isFailure = status === 'FAILED' || detectFailure(responseText);
-    if (isFailure && gapIds && gapIds.length > 0) {
+    if (isFailure && lockedGapIds.length > 0) {
       const results = await Promise.allSettled(
-        gapIds.map((gapId) => memory.updateGapStatus(gapId, GapStatus.OPEN))
+        lockedGapIds.map((gapId) => memory.updateGapStatus(gapId, GapStatus.OPEN))
       );
       results.forEach((result, i) => {
         if (result.status === 'rejected') {
-          logger.warn(`[Gaps] Failed to reset gap ${gapIds[i]} to OPEN:`, result.reason);
+          logger.warn(`[Gaps] Failed to reset gap ${lockedGapIds[i]} to OPEN:`, result.reason);
         } else {
-          logger.info(`[Gaps] Reset gap ${gapIds[i]} to OPEN due to coder failure.`);
+          logger.info(`[Gaps] Reset gap ${lockedGapIds[i]} to OPEN due to coder failure.`);
         }
       });
+    }
+
+    // Release all acquired gap locks (lock parity fix)
+    for (const gapId of lockedGapIds) {
+      try {
+        await memory.releaseGapLock(gapId, AgentType.CODER);
+      } catch (e) {
+        logger.warn(`[Coder] Failed to release gap lock for ${gapId}:`, e);
+      }
     }
   }
 
@@ -212,9 +248,13 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       metadata: { event: 'code_written', buildId },
     });
 
-    if (!buildId && gapIds?.length) {
-      logger.info(`Task successful without deployment. Marking ${gapIds.length} gaps as DEPLOYED.`);
-      await Promise.all(gapIds.map((gapId) => memory.updateGapStatus(gapId, GapStatus.DEPLOYED)));
+    if (!buildId && lockedGapIds.length) {
+      logger.info(
+        `Task successful without deployment. Marking ${lockedGapIds.length} gaps as DEPLOYED.`
+      );
+      await Promise.all(
+        lockedGapIds.map((gapId) => memory.updateGapStatus(gapId, GapStatus.DEPLOYED))
+      );
     }
   }
 
@@ -231,7 +271,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       sessionId,
       initiatorId,
       depth,
-      metadata: patchContent ? { patch: patchContent, gapIds } : undefined,
+      metadata: patchContent ? { patch: patchContent, gapIds: lockedGapIds } : undefined,
     });
   }
 

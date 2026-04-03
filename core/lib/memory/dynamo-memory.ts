@@ -13,6 +13,7 @@ export { CachedMemory } from './cached-memory';
 
 // Import operations from submodules
 import * as GapOps from './gap-operations';
+import type { GapTransitionResult } from './gap-operations';
 import * as InsightOps from './insight-operations';
 import * as SessionOps from './session-operations';
 import * as MemoryUtils from './utils';
@@ -81,7 +82,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   /**
    * Transitions a capability gap to a new status
    */
-  async updateGapStatus(gapId: string, status: GapStatus): Promise<void> {
+  async updateGapStatus(gapId: string, status: GapStatus): Promise<GapTransitionResult> {
     return GapOps.updateGapStatus(this, gapId, status);
   }
 

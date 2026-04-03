@@ -468,4 +468,69 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
     // No new EventBridge calls
     expect(mockSend.mock.calls.length).toBe(ebCallsAfterFirst);
   });
+
+  it('should prefer __envelopeId over id for deduplication', async () => {
+    // First call with __envelopeId='envelope-001' and id='detail-001'
+    const eventDetail1 = {
+      __envelopeId: 'envelope-001',
+      id: 'detail-001',
+      userId: 'user-123',
+      agentId: 'coder',
+      task: 'Task A',
+      response: 'Done A',
+      initiatorId: 'superclaw',
+      depth: 1,
+    };
+
+    await handleTaskResult(eventDetail1, EventType.TASK_COMPLETED);
+    const afterFirst = mockSend.mock.calls.length;
+    expect(afterFirst).toBeGreaterThan(0);
+
+    // Second call with same __envelopeId='envelope-001' but different id='detail-002'
+    // Should be skipped because __envelopeId takes precedence
+    const eventDetail2 = {
+      __envelopeId: 'envelope-001',
+      id: 'detail-002',
+      userId: 'user-123',
+      agentId: 'coder',
+      task: 'Task B',
+      response: 'Done B',
+      initiatorId: 'superclaw',
+      depth: 1,
+    };
+
+    await handleTaskResult(eventDetail2, EventType.TASK_COMPLETED);
+    // No new calls — envelope-001 was already processed
+    expect(mockSend.mock.calls.length).toBe(afterFirst);
+  });
+
+  it('should use detail id for dedup when __envelopeId is not present', async () => {
+    const eventDetail1 = {
+      id: 'detail-only-001',
+      userId: 'user-123',
+      agentId: 'coder',
+      task: 'Task A',
+      response: 'Done A',
+      initiatorId: 'superclaw',
+      depth: 1,
+    };
+
+    await handleTaskResult(eventDetail1, EventType.TASK_COMPLETED);
+    const afterFirst = mockSend.mock.calls.length;
+    expect(afterFirst).toBeGreaterThan(0);
+
+    // Same id — should be skipped
+    const eventDetail2 = {
+      id: 'detail-only-001',
+      userId: 'user-123',
+      agentId: 'coder',
+      task: 'Task B',
+      response: 'Done B',
+      initiatorId: 'superclaw',
+      depth: 1,
+    };
+
+    await handleTaskResult(eventDetail2, EventType.TASK_COMPLETED);
+    expect(mockSend.mock.calls.length).toBe(afterFirst);
+  });
 });

@@ -15,11 +15,13 @@ export async function handler(
   event: {
     'detail-type': string;
     detail: Record<string, unknown>;
+    id?: string;
   },
   context: Context
 ): Promise<void> {
   const detailType = event['detail-type'];
   const eventDetail = event.detail;
+  const envelopeId = event.id;
 
   logger.info(`[EVENTS] Received: ${detailType} | Session: ${eventDetail.sessionId ?? 'N/A'}`);
 
@@ -103,6 +105,10 @@ export async function handler(
       }
 
       if (handlerModule && handlerModule[routing.function]) {
+        // Inject EventBridge envelope id for idempotency dedup
+        if (envelopeId) {
+          eventDetail.__envelopeId = envelopeId;
+        }
         if (routing.passContext) {
           await handlerModule[routing.function](eventDetail, context, detailType);
         } else {

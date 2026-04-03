@@ -168,7 +168,7 @@ export async function incrementGapAttemptCount(
         timestamp: gapTimestamp,
       },
       UpdateExpression:
-        'SET attemptCount = if_not_exists(attemptCount, :zero) + :one, updatedAt = :now, lastAttemptTime = :now',
+        'SET metadata.retryCount = if_not_exists(metadata.retryCount, :zero) + :one, updatedAt = :now, metadata.lastAttemptTime = :now',
       ExpressionAttributeValues: {
         ':zero': 0,
         ':one': 1,
@@ -176,7 +176,7 @@ export async function incrementGapAttemptCount(
       },
       ReturnValues: 'ALL_NEW',
     });
-    return (result.Attributes?.attemptCount as number) ?? 1;
+    return (result.Attributes?.metadata?.retryCount as number) ?? 1;
   } catch {
     // Fallback: search across all gap statuses to find the item (same as updateGapStatus)
     logger.warn(`Primary key lookup failed for gap ${gapId}, searching all statuses...`);
@@ -195,7 +195,7 @@ export async function incrementGapAttemptCount(
           const result = await base.updateItem({
             Key: { userId: target.id, timestamp: target.timestamp },
             UpdateExpression:
-              'SET attemptCount = if_not_exists(attemptCount, :zero) + :one, updatedAt = :now, lastAttemptTime = :now',
+              'SET metadata.retryCount = if_not_exists(metadata.retryCount, :zero) + :one, updatedAt = :now, metadata.lastAttemptTime = :now',
             ExpressionAttributeValues: {
               ':zero': 0,
               ':one': 1,
@@ -203,7 +203,7 @@ export async function incrementGapAttemptCount(
             },
             ReturnValues: 'ALL_NEW',
           });
-          return (result.Attributes?.attemptCount as number) ?? 1;
+          return (result.Attributes?.metadata?.retryCount as number) ?? 1;
         } catch (e) {
           logger.error(`Fallback update also failed for gap ${gapId}:`, e);
         }
@@ -215,19 +215,28 @@ export async function incrementGapAttemptCount(
 }
 
 /**
+ * Result of a gap status transition attempt.
+ */
+export interface GapTransitionResult {
+  success: boolean;
+  currentStatus?: GapStatus;
+  error?: string;
+}
+
+/**
  * Transitions a capability gap to a new status.
  *
  * @param base - The base memory provider instance.
  * @param gapId - The unique identifier for the gap.
  * @param status - The new status to transition to.
- * @returns A promise resolving when the status is updated.
+ * @returns A promise resolving to a GapTransitionResult indicating success or failure.
  * @since 2026-03-19
  */
 export async function updateGapStatus(
   base: BaseMemoryProvider,
   gapId: string,
   status: GapStatus
-): Promise<void> {
+): Promise<GapTransitionResult> {
   const normalizedId = normalizeGapId(gapId);
   const gapTimestamp = getGapTimestamp(normalizedId);
 
@@ -283,21 +292,21 @@ export async function updateGapStatus(
     }
     if (!found) {
       logger.error(`Gap update aborted: ID ${gapId} not found in any status.`);
-      return;
+      return { success: false, error: `Gap ${gapId} not found in any status` };
     }
   }
 
   try {
     await base.updateItem(params);
+    return { success: true };
   } catch (error) {
     const err = error as { name?: string };
     if (err.name === 'ConditionalCheckFailedException') {
       // A4: Handle all guarded transitions, not just DONE
       if (guard) {
-        logger.warn(
-          `Gap transition failed: Cannot transition gap ${gapId} to ${status} because it is not in ${guard.expectedStatus} state.`
-        );
-        return;
+        const errorMsg = `Cannot transition gap ${gapId} to ${status}: expected ${guard.expectedStatus} state`;
+        logger.warn(`Gap transition failed: ${errorMsg}`);
+        return { success: false, error: errorMsg };
       }
       logger.warn(
         `Gap update race condition or missing item: ${gapId}. Retrying with fresh lookup.`
@@ -309,12 +318,22 @@ export async function updateGapStatus(
         params.Key = { userId: getGapIdPK(normalizedId), timestamp: retryTarget.timestamp };
         try {
           await base.updateItem(params);
+          return { success: true };
         } catch (e) {
           logger.error(`Failed retry update gap ${gapId} status:`, e);
+          return {
+            success: false,
+            error: `Retry failed: ${error instanceof Error ? error.message : String(error)}`,
+          };
         }
       }
+      return { success: false, error: `Gap ${gapId} not found after retry lookup` };
     } else {
       logger.error(`Error updating gap ${gapId} status:`, error);
+      return {
+        success: false,
+        error: `Update failed: ${error instanceof Error ? error.message : String(error)}`,
+      };
     }
   }
 }

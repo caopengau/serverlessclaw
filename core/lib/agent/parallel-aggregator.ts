@@ -146,10 +146,10 @@ export class ParallelAggregator {
   async markAsCompleted(
     userId: string,
     traceId: string,
-    status: 'success' | 'partial' | 'failed' | 'timeout'
+    status: 'success' | 'partial' | 'failed' | 'timed_out'
   ): Promise<boolean> {
     try {
-      const isTimeout = status === 'timeout';
+      const isTimeout = status === 'timed_out';
 
       await docClient.send(
         new UpdateCommand({
