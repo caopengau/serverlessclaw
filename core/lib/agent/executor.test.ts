@@ -349,7 +349,7 @@ describe('AgentExecutor', () => {
       });
 
       // Mock callLLM to just return a simple response
-      vi.spyOn(executor as any, 'callLLM').mockResolvedValue({
+      vi.spyOn((executor as any).core, 'callLLM').mockResolvedValue({
         role: MessageRole.ASSISTANT,
         content: 'I understand you rejected the tool.',
       });
@@ -372,7 +372,7 @@ describe('AgentExecutor', () => {
         userText: 'TOOL_CLARIFICATION:call-456 Please use the staging environment',
       });
 
-      vi.spyOn(executor as any, 'callLLM').mockResolvedValue({
+      vi.spyOn((executor as any).core, 'callLLM').mockResolvedValue({
         role: MessageRole.ASSISTANT,
         content: 'I will use staging.',
       });
@@ -395,7 +395,7 @@ describe('AgentExecutor', () => {
         userText: 'TOOL_REJECTION:call-789',
       });
 
-      vi.spyOn(executor as any, 'callLLM').mockResolvedValue({
+      vi.spyOn((executor as any).core, 'callLLM').mockResolvedValue({
         role: MessageRole.ASSISTANT,
         content: 'Rejected.',
       });
