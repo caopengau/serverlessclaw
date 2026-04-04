@@ -18,6 +18,7 @@ describe('Insight Operations', () => {
 
   beforeEach(() => {
     ddbMock.reset();
+    ddbMock.on(QueryCommand).resolves({ Items: [] }); // Default for similarity checks
     vi.clearAllMocks();
     memory = new DynamoMemory();
   });

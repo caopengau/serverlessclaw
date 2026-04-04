@@ -6,7 +6,11 @@ import { createWorkspace, createMergeWorkspace, cleanupWorkspace } from './works
 import { execSync } from 'child_process';
 
 vi.mock('child_process', () => ({
-  execSync: vi.fn(),
+  execSync: vi.fn((cmd) => {
+    if (cmd.includes('git init') && (globalThis as any).__FAIL_GIT__) {
+      throw new Error('git fail');
+    }
+  }),
 }));
 
 vi.mock('fs/promises', async (importOriginal) => {
@@ -16,6 +20,30 @@ vi.mock('fs/promises', async (importOriginal) => {
     cp: vi.fn().mockImplementation(async (src, dest) => {
       await actual.mkdir(dest, { recursive: true });
     }),
+  };
+});
+
+// Mock SST Resource
+vi.mock('sst', () => ({
+  Resource: {
+    MemoryTable: { name: 'test-memory-table' },
+    ConfigTable: { name: 'test-config-table' },
+    StagingBucket: { name: 'test-staging-bucket' },
+  },
+}));
+
+const { mockS3Send } = vi.hoisted(() => ({
+  mockS3Send: vi.fn(),
+}));
+
+vi.mock('@aws-sdk/client-s3', () => {
+  return {
+    S3Client: class MockS3Client {
+      send = mockS3Send;
+    },
+    GetObjectCommand: class MockGetObjectCommand {
+      constructor(public input: any) {}
+    },
   };
 });
 
@@ -67,6 +95,33 @@ describe('WorkspaceManager', () => {
     expect(execSync).toHaveBeenCalledWith(
       expect.stringContaining('git commit -q -m "merge base"'),
       expect.any(Object)
+    );
+  });
+
+  it('should throw Error if git init fails', async () => {
+    (global as any).__FAIL_GIT__ = true;
+    try {
+      await expect(createWorkspace(traceId)).rejects.toThrow('WORKSPACE_GIT_INIT_FAILED');
+    } finally {
+      (global as any).__FAIL_GIT__ = false;
+    }
+  });
+
+  it('should apply staged changes from S3 if applyStagedChanges is true', async () => {
+    mockS3Send.mockResolvedValue({
+      Body: {
+        transformToByteArray: () => Promise.resolve(new Uint8Array([1, 2, 3])),
+      },
+    });
+
+    // Ensure the mock is used even with dynamic import
+    const wsPath = await createWorkspace(traceId, true);
+    createdPaths.push(wsPath);
+
+    expect(mockS3Send).toHaveBeenCalled();
+    expect(execSync).toHaveBeenCalledWith(
+      expect.stringContaining('unzip -o staged_changes.zip'),
+      expect.objectContaining({ cwd: wsPath })
     );
   });
 
