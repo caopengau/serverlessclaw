@@ -11,9 +11,9 @@ import {
   MemoryInsight,
   InsightCategory,
   GapStatus,
+  GapTransitionResult,
   ConversationMeta,
 } from '../types/index';
-import type { GapTransitionResult } from './gap-operations';
 import type { Collaboration, CollaborationRole, ParticipantType } from '../types/collaboration';
 import { DynamoMemory } from '../memory';
 import { MemoryCaches, CacheKeys, getCacheStatsSummary } from './cache';

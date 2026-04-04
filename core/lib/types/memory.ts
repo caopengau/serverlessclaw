@@ -1,6 +1,5 @@
 import { Message } from './llm';
-import { GapStatus } from './agent';
-import type { GapTransitionResult } from '../memory/gap-operations';
+import { GapStatus, GapTransitionResult } from './agent';
 import type { Collaboration, CollaborationRole, ParticipantType } from './collaboration';
 
 /**

@@ -1,7 +1,5 @@
-import { AgentType, EvolutionMode, TraceSource, EventType } from '../lib/types/agent';
-import { InsightCategory } from '../lib/types/memory';
-import { ReasoningProfile, Message, MessageRole } from '../lib/types/llm';
-import { sendOutboundMessage } from '../lib/outbound';
+import { AgentType, TraceSource } from '../lib/types/agent';
+import { ReasoningProfile } from '../lib/types/llm';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import { randomUUID } from 'node:crypto';
@@ -10,72 +8,19 @@ import {
   loadAgentConfig,
   extractBaseUserId,
   getAgentContext,
-  isTaskPaused,
 } from '../lib/utils/agent-helpers';
-import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
-import { parseStructuredResponse } from '../lib/utils/agent-helpers/llm-utils';
-import { normalizeGapId } from '../lib/memory/utils';
-import { parseConfigInt } from '../lib/providers/utils';
-import { AGENT_ERRORS, TRACE_TYPES } from '../lib/constants';
-import { getEvolutionMode, recordCooldown, isGapInCooldown } from './strategic-planner/evolution';
-import {
-  buildProactiveReviewPrompt,
-  buildReactivePrompt,
-  buildTelemetry,
-} from './strategic-planner/prompts';
+import { buildTelemetry } from './strategic-planner/prompts';
+import { buildProactiveReviewPrompt, buildReactivePrompt } from './strategic-planner/prompts';
 import type { PlannerEvent, PlannerResult, PlannerPayload } from './strategic-planner/types';
+import { validatePlan } from './strategic-planner/validation';
+import { handleCouncilReviewResult } from './strategic-planner/council';
+import { manageProactiveScheduling } from './strategic-planner/scheduler';
+import { isGapInCooldown } from './strategic-planner/evolution';
 
-import { INSIGHT_DEFAULTS } from '../lib/constants';
+import { AGENT_ERRORS } from '../lib/constants';
+import { parseStructuredResponse } from '../lib/utils/agent-helpers/llm-utils';
 import { StrategicPlanSchema } from './strategic-planner/schema';
 import { Agent } from '../lib/agent';
-
-/**
- * Validates a strategic plan before dispatching to Coder Agent.
- * Rejects plans that are too short, contain only meta-commentary, or are clearly invalid.
- *
- * @param plan - The raw plan text from the LLM.
- * @param gapIds - The gap IDs this plan should address.
- * @returns An object with isValid flag and optional reason for rejection.
- */
-function validatePlan(plan: string, _gapIds: string[]): { isValid: boolean; reason?: string } {
-  // 1. Minimum length check (500 chars) — matches decomposer threshold and documentation
-  if (plan.length < 500) {
-    return { isValid: false, reason: `Plan too short (${plan.length} chars, minimum 500)` };
-  }
-
-  // 2. Check for empty response markers
-  if (plan === 'Empty response from OpenAI.' || plan.startsWith('Empty response from')) {
-    return { isValid: false, reason: 'Plan is an empty response marker' };
-  }
-
-  // 3. Check for system error markers
-  if (plan === AGENT_ERRORS.PROCESS_FAILURE || plan.startsWith('I encountered an internal error')) {
-    return { isValid: false, reason: 'Plan is a system error marker' };
-  }
-
-  // 4. Check for meta-commentary only (no actionable steps)
-  const metaPatterns = [
-    /^I (think|believe|feel|suggest|recommend)/i,
-    /^(Let me|I'll|I will) (think|consider|analyze)/i,
-    /^(Based on|After|Upon) (my|the) (analysis|review|assessment)/i,
-  ];
-
-  const hasMetaOnly = metaPatterns.some((p) => p.test(plan.trim()));
-  const hasActionableSteps =
-    /\d+\.\s/.test(plan) || // Numbered list
-    /[-*]\s/.test(plan) || // Bullet points
-    /```[\s\S]*```/.test(plan) || // Code blocks
-    /\.(ts|js|py|json|yaml|yml|md)/i.test(plan); // File references
-
-  if (hasMetaOnly && !hasActionableSteps) {
-    return {
-      isValid: false,
-      reason: 'Plan contains only meta-commentary without actionable steps',
-    };
-  }
-
-  return { isValid: true };
-}
 
 /**
  * Planner Agent handler. Analyzes capability gaps and generates strategic plans.
@@ -129,143 +74,22 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   const plannerAgent = new Agent(memory, providerManager, agentTools, config.systemPrompt, config);
 
   // 1.1 Council Review Continuation Logic
-  if (task.includes('[COUNCIL_REVIEW_RESULT]') || task.includes('VERDICT:')) {
-    logger.info(`[PLANNER] Detected Council review result for trace ${traceId}`);
-
-    // Trace: Council review results being processed
-    const { addTraceStep } = await import('../lib/utils/trace-helper');
-    await addTraceStep(traceId, 'root', {
-      type: TRACE_TYPES.COUNCIL_REVIEW,
-      content: {
-        verdict: task.includes('VERDICT: APPROVED')
-          ? 'APPROVED'
-          : task.includes('VERDICT: REJECTED')
-            ? 'REJECTED'
-            : 'CONDITIONAL',
-        summary: task,
-        initiatorId: AgentType.STRATEGIC_PLANNER,
-      },
-      metadata: { event: 'council_review_processed', traceId },
-    });
-
-    // The traceId here will be the unique councilTraceId we used during dispatch
-    const councilDataStr = await memory.getDistilledMemory(`TEMP#COUNCIL_PLAN#${traceId}`);
-    if (councilDataStr) {
-      const {
-        plan: originalPlan,
-        gapIds,
-        sessionId: originalSessionId,
-        planId: originalPlanId,
-        collaborationId: councilCollabId,
-      } = JSON.parse(councilDataStr);
-
-      const isApproved = task.includes('VERDICT: APPROVED') || task.includes('APPROVED');
-      const isConditional = task.includes('VERDICT: CONDITIONAL') || task.includes('CONDITIONAL');
-
-      // Close the Council collaboration session
-      if (councilCollabId) {
-        try {
-          await memory.closeCollaboration(councilCollabId, baseUserId, 'agent');
-          logger.info(`[PLANNER] Closed Council collaboration ${councilCollabId}`);
-        } catch (e) {
-          logger.warn(`[PLANNER] Failed to close collaboration ${councilCollabId}:`, e);
-        }
-      }
-
-      if (isApproved || isConditional) {
-        logger.info(
-          `[PLANNER] Council ${isApproved ? 'APPROVED' : 'CONDITIONALLY APPROVED'} plan for trace ${traceId}. Checking evolution mode.`
-        );
-
-        const evolutionMode = await getEvolutionMode();
-
-        if (evolutionMode === EvolutionMode.AUTO) {
-          logger.info('[PLANNER] Evolution mode is auto, dispatching CODER_TASK.');
-          await sendOutboundMessage(
-            AgentType.STRATEGIC_PLANNER,
-            userId,
-            `✅ **Council Approval Received**\n\nThe Council of Agents has ${isApproved ? 'approved' : 'conditionally approved'} the plan. Dispatching to Coder Agent for execution.\n\nSummary of Review:\n${task}`,
-            [baseUserId],
-            sessionId,
-            config.name
-          );
-
-          const { dispatchTask: dispatcher } = await import('../tools/knowledge/agent');
-          await dispatcher.execute({
-            agentId: AgentType.CODER,
-            userId: baseUserId,
-            task: originalPlan,
-            metadata: { gapIds },
-            traceId,
-            sessionId: originalSessionId || sessionId,
-          });
-        } else {
-          logger.info('[PLANNER] Evolution mode is hitl, asking for human approval.');
-          await sendOutboundMessage(
-            AgentType.STRATEGIC_PLANNER,
-            userId,
-            `✅ **Council Approval Received**\n\nThe Council of Agents has approved the plan with findings:\n\n${task}\n\nDo you want to execute the original plan?\n\nPlan:\n${originalPlan}`,
-            [baseUserId],
-            sessionId,
-            config.name,
-            undefined,
-            undefined,
-            [
-              { label: 'Approve', value: `APPROVE ${originalPlanId || traceId}` },
-              { label: 'Clarify', value: `CLARIFY ${originalPlanId || traceId}` },
-              {
-                label: 'Dismiss',
-                value: `DISMISS ${originalPlanId || traceId}`,
-                type: 'secondary' as const,
-              },
-            ]
-          );
-        }
-      } else {
-        logger.warn(`[PLANNER] Council REJECTED plan for trace ${traceId}. Informing user.`);
-        await sendOutboundMessage(
-          AgentType.STRATEGIC_PLANNER,
-          userId,
-          `❌ **Council Review REJECTED**\n\nThe Council has rejected the strategic plan. Implementation has been blocked for safety. Please review the findings and revise the strategy.\n\nFeedback:\n${task}`,
-          [baseUserId],
-          sessionId,
-          config.name
-        );
-      }
-
-      return {
-        status: isApproved || isConditional ? 'COUNCIL_APPROVED' : 'COUNCIL_REJECTED',
-        plan: originalPlan,
-      };
-    } else {
-      logger.warn(
-        `[PLANNER] Received Council review result but could not find original plan for trace ${traceId}`
-      );
-    }
+  const councilResult = await handleCouncilReviewResult(
+    task,
+    traceId || '',
+    memory,
+    baseUserId,
+    userId,
+    config
+  );
+  if (councilResult) {
+    return councilResult;
   }
 
   // Self-Scheduling: If this is a proactive review, or we are running for any reason,
   // ensure the NEXT proactive review is scheduled if not already present.
   if (isProactive) {
-    try {
-      const { DynamicScheduler } = await import('../lib/lifecycle/scheduler');
-      const { AgentRegistry } = await import('../lib/registry');
-
-      const GOAL_ID = `PLANNER#STRATEGIC_REVIEW#${baseUserId}`;
-      const customFreq = await AgentRegistry.getRawConfig('strategic_review_frequency');
-      const frequencyHrs = parseConfigInt(customFreq, 24);
-
-      await DynamicScheduler.ensureProactiveGoal({
-        goalId: GOAL_ID,
-        agentId: AgentType.STRATEGIC_PLANNER,
-        task: 'Proactive Strategic Review',
-        userId: userId,
-        frequencyHrs,
-        metadata: { isProactive: true },
-      });
-    } catch (e) {
-      logger.warn('Failed to manage proactive self-scheduling:', e);
-    }
+    await manageProactiveScheduling(baseUserId, userId);
   }
 
   const toolsList = agentTools
@@ -325,12 +149,8 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
     }
   }
 
-  // Track covered gap locks for cleanup in finally block
-  const lockedCoveredGapIds: string[] = [];
-
   // 3. Process with High Reasoning
   let rawResponse = '';
-  const resultAttachments: NonNullable<Message['attachments']> = [];
   let planId: string;
 
   try {
@@ -401,396 +221,36 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
     }
 
     // B2: Validate plan before coder dispatch
-    // Reject plans that are empty, too short, or contain only meta-commentary
-    const MIN_PLAN_LENGTH = 500;
-    const planValidationErrors: string[] = [];
-    if (!plan || plan.trim().length === 0) {
-      planValidationErrors.push('Plan is empty');
-    } else if (plan.trim().length < MIN_PLAN_LENGTH) {
-      planValidationErrors.push(
-        `Plan is too short (${plan.trim().length} chars, minimum ${MIN_PLAN_LENGTH})`
-      );
-    } else if (
-      plan === 'Empty response from OpenAI.' ||
-      plan.startsWith('I encountered an internal error') ||
-      plan === AGENT_ERRORS.PROCESS_FAILURE
-    ) {
-      planValidationErrors.push('Plan contains only error/empty response text');
-    }
-
-    if (planValidationErrors.length > 0 && status === 'SUCCESS') {
-      logger.warn(`[PLANNER] Plan validation failed: ${planValidationErrors.join(', ')}`);
+    const validation = validatePlan(plan, coveredGapIds);
+    if (!validation.isValid && status === 'SUCCESS') {
+      logger.warn(`[PLANNER] Plan validation failed: ${validation.reason}`);
       status = 'FAILED';
     }
 
-    const isFailure = status === 'FAILED' || planValidationErrors.length > 0;
+    const isFailure = status === 'FAILED' || !validation.isValid;
 
-    if (!isFailure && status === 'SUCCESS') {
-      const { addTraceStep } = await import('../lib/utils/trace-helper');
-      await addTraceStep(traceId, 'root', {
-        type: TRACE_TYPES.PLAN_GENERATED,
-        content: {
-          planId,
-          status,
-          coveredGaps: coveredGapIds,
-          planSnippet: plan.substring(0, 500),
-        },
-        metadata: { event: 'plan_generated', planId },
-      });
-    }
-
-    // 1.5 Generate gaps from toolOptimizations
-    if (toolOptimizations.length > 0) {
-      await Promise.all(
-        toolOptimizations.map(async (opt) => {
-          const toolGapId = randomUUID();
-          const gapContent = `[TOOL_OPTIMIZATION] Action: ${opt.action}, Tool: ${opt.toolName}. Reason: ${opt.reason}`;
-          logger.info(`Recording tool optimization gap: ${gapContent}`);
-          await memory.setGap(toolGapId, gapContent, {
-            category: InsightCategory.SYSTEM_IMPROVEMENT,
-            confidence: INSIGHT_DEFAULTS.CONFIDENCE,
-            impact: INSIGHT_DEFAULTS.IMPACT,
-            complexity: INSIGHT_DEFAULTS.COMPLEXITY,
-            risk: INSIGHT_DEFAULTS.RISK,
-            urgency: INSIGHT_DEFAULTS.URGENCY,
-            priority: INSIGHT_DEFAULTS.PRIORITY,
-          });
-        })
-      );
-    }
-
-    const postProcessingPromises: Promise<unknown>[] = [];
-
-    // 1. Notify user directly in the chat session ONLY if successful and not empty
-    if (!isFailure && plan !== 'Empty response from OpenAI.') {
-      postProcessingPromises.push(
-        sendOutboundMessage(
-          AgentType.STRATEGIC_PLANNER,
-          userId,
-          plan.startsWith('🚀') ? plan : `🚀 **Strategic Plan Generated**\n\n${plan}`,
-          [baseUserId],
-          sessionId,
-          config.name,
-          resultAttachments,
-          traceId ? `${traceId}-${AgentType.STRATEGIC_PLANNER}` : undefined,
-          [
-            { label: 'Approve', value: `APPROVE ${planId}` },
-            { label: 'Clarify', value: `CLARIFY ${planId}` },
-            { label: 'Dismiss', value: `DISMISS ${planId}`, type: 'secondary' as const },
-          ]
-        )
-      );
-    } else {
-      logger.warn(`Skipping user notification for failed or empty strategic plan: ${plan}`);
-    }
-
-    // 2. Emit Task Result for Universal Coordination
-    if (!isTaskPaused(rawResponse)) {
-      postProcessingPromises.push(
-        emitTaskEvent({
-          source: AgentType.STRATEGIC_PLANNER,
-          userId: baseUserId,
-          agentId: AgentType.STRATEGIC_PLANNER,
-          task: isScheduledReview ? 'Scheduled Review' : task,
-          response: plan,
-          error: isFailure ? plan : undefined,
-          traceId,
-          initiatorId: payload.initiatorId,
-          depth: payload.depth,
-          sessionId,
-          userNotified: !isFailure,
-        })
-      );
-    }
-
-    // 4. Record gap in structured cooldown store
-    if (gapId && !isFailure) {
-      postProcessingPromises.push(recordCooldown(memory, gapId, baseUserId));
-    }
-
-    // 5. Gap Sink: Mark covered gaps as PLANNED + assign to tracks
-    const processedGapIds: string[] = [];
-    if (!isFailure) {
-      const { assignGapToTrack, determineTrack } = await import('../lib/memory/gap-operations');
-      const track = determineTrack(plan);
-
-      if (isScheduledReview || coveredGapIds.length > 0) {
-        logger.info(`Marking ${coveredGapIds.length} gaps as PLANNED based on structured output.`);
-
-        // Acquire locks for all covered gaps before updating (race condition fix)
-        const lockResults = await Promise.all(
-          coveredGapIds.map(async (gId) => {
-            const numericId = normalizeGapId(gId);
-            const acquired = await memory.acquireGapLock(numericId, AgentType.STRATEGIC_PLANNER);
-            if (acquired) {
-              lockedCoveredGapIds.push(numericId);
-            }
-            return { numericId, acquired };
-          })
-        );
-
-        const results = await Promise.all(
-          lockResults
-            .filter(({ acquired }) => acquired)
-            .map(async ({ numericId }) => {
-              // assignGapToTrack internally calls updateGapStatus(GapStatus.PLANNED)
-              // so we only need to call assignGapToTrack (avoids duplicate PLANNED transition)
-              await assignGapToTrack(
-                memory as unknown as Parameters<typeof assignGapToTrack>[0],
-                numericId,
-                track
-              );
-              return numericId;
-            })
-        );
-
-        const skipped = lockResults.filter(({ acquired }) => !acquired);
-        if (skipped.length > 0) {
-          logger.warn(
-            `Skipped ${skipped.length} covered gaps (locked by another agent): ${skipped.map((s) => s.numericId).join(', ')}`
-          );
-        }
-
-        processedGapIds.push(...results);
-      } else if (gapId) {
-        logger.info(`Marking specific gap ${gapId} as PLANNED after design.`);
-        // assignGapToTrack internally calls updateGapStatus(PLANNED), so only call assignGapToTrack
-        await assignGapToTrack(memory as never, gapId, track);
-        processedGapIds.push(gapId);
-      }
-    }
-
-    // 6. Save plan for QA auditing and HITL resolution
-    for (const gapIdToSave of processedGapIds) {
-      postProcessingPromises.push(memory.updateDistilledMemory(`PLAN#${gapIdToSave}`, plan));
-    }
-    postProcessingPromises.push(
-      memory.updateDistilledMemory(
-        `PLAN#${planId}`,
-        JSON.stringify({ plan, gapIds: processedGapIds })
-      )
-    );
-
-    // Await all post-processing concurrently
-    await Promise.all(postProcessingPromises);
-
-    const evolutionMode = await getEvolutionMode();
-
-    // Council of Agents: Check if plan requires peer review
-    const COUNCIL_THRESHOLD = 8;
-    const gapImpact = ((metadata as unknown as Record<string, unknown>)?.impact as number) ?? 0;
-    const gapRisk = ((metadata as unknown as Record<string, unknown>)?.risk as number) ?? 0;
-    const gapComplexity =
-      ((metadata as unknown as Record<string, unknown>)?.complexity as number) ?? 0;
-    const requiresCouncil =
-      gapImpact >= COUNCIL_THRESHOLD ||
-      gapRisk >= COUNCIL_THRESHOLD ||
-      gapComplexity >= COUNCIL_THRESHOLD;
-
-    if (requiresCouncil && !isFailure && processedGapIds.length > 0) {
-      // Council Review: Dispatch to Critic Agent for peer review before Coder
-      logger.info(
-        `[PLANNER] Plan requires Council review (impact=${gapImpact}, risk=${gapRisk}, complexity=${gapComplexity}). Dispatching parallel critic tasks.`
-      );
-
-      await sendOutboundMessage(
-        AgentType.STRATEGIC_PLANNER,
-        userId,
-        `🔍 **Council of Agents Review Initiated**\n\nThe plan has high impact/risk (${Math.max(gapImpact, gapRisk, gapComplexity)}/10). Dispatching to Security, Performance, and Architect reviewers before execution.\n\nPlan:\n\n${plan}`,
-        [baseUserId],
-        sessionId,
-        config.name,
-        undefined
-      );
-
-      // Create a collaboration session for the Council discussion
-      const collaboration = await memory.createCollaboration(baseUserId, 'agent', {
-        name: `Council Review: ${planId}`,
-        description: `Multi-party peer review for strategic plan ${planId}`,
-        initialParticipants: [
-          { type: 'agent', id: AgentType.CRITIC, role: 'editor' },
-          { type: 'human', id: baseUserId, role: 'viewer' },
-        ],
-        tags: ['council', 'review', planId],
-      });
-      const collaborationId = collaboration.collaborationId;
-      logger.info(`[PLANNER] Created Council collaboration: ${collaborationId}`);
-
-      // Post the plan to the shared session
-      await memory.addMessage(collaboration.syntheticUserId, {
-        role: MessageRole.ASSISTANT,
-        content: `### COUNCIL REVIEW REQUEST: ${planId}\n\n**Strategic Plan:**\n${plan}\n\n**Context:**\nImpact: ${gapImpact} | Risk: ${gapRisk} | Complexity: ${gapComplexity}\n\nPlease provide your expert feedback and verdict (APPROVED/REJECTED/CONDITIONAL).`,
-        agentName: AgentType.STRATEGIC_PLANNER,
-      });
-
-      // Dispatch parallel critic reviews
-      const { emitTypedEvent } = await import('../lib/utils/typed-emit');
-      const councilTraceId = `${traceId || 'council'}-${planId}`;
-
-      const councilTasks = [
-        {
-          taskId: `critic-security-${planId}`,
-          agentId: AgentType.CRITIC,
-          task: `Security review of plan:\n\n${plan}`,
-          metadata: { reviewMode: 'security', planId, gapIds: processedGapIds, collaborationId },
-        },
-        {
-          taskId: `critic-performance-${planId}`,
-          agentId: AgentType.CRITIC,
-          task: `Performance review of plan:\n\n${plan}`,
-          metadata: { reviewMode: 'performance', planId, gapIds: processedGapIds, collaborationId },
-        },
-        {
-          taskId: `critic-architect-${planId}`,
-          agentId: AgentType.CRITIC,
-          task: `Architectural review of plan:\n\n${plan}`,
-          metadata: { reviewMode: 'architect', planId, gapIds: processedGapIds, collaborationId },
-        },
-      ];
-
-      await emitTypedEvent(AgentType.STRATEGIC_PLANNER, EventType.PARALLEL_TASK_DISPATCH, {
-        userId: baseUserId,
-        tasks: councilTasks,
-        barrierTimeoutMs: 120000, // 2 minutes
-        aggregationType: 'agent_guided' as const,
-        aggregationPrompt: `Synthesize the Council discussion in session ${collaborationId} and the individual reviews for Plan ${planId}. Return your response starting with [COUNCIL_REVIEW_RESULT] followed by VERDICT: <APPROVED|REJECTED|CONDITIONAL> and a summary of findings. If all reviews are APPROVED, return VERDICT: APPROVED. If ANY review has verdict REJECTED, return VERDICT: REJECTED with consolidated feedback. Always include the Plan ID ${planId} and Collaboration ID ${collaborationId} in your response.`,
-        traceId: councilTraceId,
-        initiatorId: AgentType.STRATEGIC_PLANNER,
-        depth: (depth ?? 0) + 1,
-        sessionId,
-      });
-
-      // B6: Save plan for Council aggregation callback with ephemeral TTL
-      // Use TEMP# prefix so RetentionManager applies EPHEMERAL tier (1-day auto-prune)
-      const councilPlanKey = `TEMP#COUNCIL_PLAN#${councilTraceId}`;
-      const councilPlanValue = JSON.stringify({
-        plan,
-        gapIds: processedGapIds,
-        userId: baseUserId,
-        sessionId,
-        traceId: councilTraceId,
-        planId,
-        collaborationId,
-      });
-      await memory.updateDistilledMemory(councilPlanKey, councilPlanValue);
-      logger.info(`[PLANNER] Saved COUNCIL_PLAN with ephemeral TTL: ${councilPlanKey}`);
-    } else if (evolutionMode === EvolutionMode.AUTO && !isFailure && processedGapIds.length > 0) {
-      // B2: Validate plan before dispatching to Coder Agent
-      const validation = validatePlan(plan, processedGapIds);
-      if (!validation.isValid) {
-        logger.warn(`[PLANNER] Plan validation failed: ${validation.reason}. Skipping dispatch.`);
-        await sendOutboundMessage(
-          AgentType.STRATEGIC_PLANNER,
-          userId,
-          `⚠️ **Plan Validation Failed**\n\nThe generated plan did not pass validation: ${validation.reason}\n\nPlease review and try again.`,
-          [baseUserId],
-          sessionId,
-          config.name
-        );
-        return { gapId, plan, planId, status: 'PLAN_VALIDATION_FAILED' };
-      }
-
-      logger.info('Evolution mode is auto, dispatching CODER_TASK directly.');
-      await sendOutboundMessage(
-        AgentType.STRATEGIC_PLANNER,
-        userId,
-        `🚀 **Autonomous Evolution Triggered**\n\nI have identified a capability gap and designed a plan to fix it. The Coder Agent is now executing the following STRATEGIC_PLAN:\n\n${plan}`,
-        [baseUserId],
-        sessionId,
-        config.name,
-        undefined
-      );
-
-      // Prefer structured tasks from LLM if available, fallback to heuristic decomposition
-      let decomposed;
-      if (structuredTasks && structuredTasks.length > 0) {
-        logger.info(
-          `[PLANNER] Using ${structuredTasks.length} structured tasks from JSON response.`
-        );
-        decomposed = {
-          wasDecomposed: true,
-          subTasks: structuredTasks.map((st, i) => ({
-            subTaskId: `${planId}-sub-${i}`,
-            planId,
-            task: st.task,
-            gapIds: st.gapIds,
-            order: i,
-            dependencies: [] as number[],
-            complexity: 5, // Default for structured tasks
-            agentId: st.agentId,
-          })),
-        };
-      } else {
-        const { decomposePlan } = await import('../lib/agent/decomposer');
-        decomposed = decomposePlan(plan, planId, processedGapIds, {
-          maxSubTasks: 3, // Coarser goals for SP
-        });
-      }
-
-      if (decomposed.wasDecomposed && decomposed.subTasks.length > 1) {
-        logger.info(
-          `[PLANNER] Plan decomposed into ${decomposed.subTasks.length} sub-tasks. Dispatching via parallel.`
-        );
-
-        // Dispatch sub-tasks via parallel dispatch event
-        const { emitTypedEvent: emitEvent } = await import('../lib/utils/typed-emit');
-        const subTaskEvents = decomposed.subTasks.map((sub) => ({
-          taskId: sub.subTaskId,
-          agentId: sub.agentId,
-          task: sub.task,
-          metadata: { gapIds: sub.gapIds, subTaskId: sub.subTaskId, planId: sub.planId },
-          dependsOn: sub.dependencies.map((depIndex) => decomposed.subTasks[depIndex].subTaskId),
-        }));
-
-        await emitEvent(AgentType.STRATEGIC_PLANNER, EventType.PARALLEL_TASK_DISPATCH, {
-          userId: baseUserId,
-          tasks: subTaskEvents,
-          barrierTimeoutMs: 30 * 60 * 1000, // 30 minutes
-          aggregationType: subTaskEvents.some((t) => t.agentId === AgentType.RESEARCHER)
-            ? ('agent_guided' as const) // Use research synthesis for any research tasks
-            : subTaskEvents.every((t) => t.agentId === AgentType.CODER)
-              ? ('merge_patches' as const)
-              : ('summary' as const),
-          aggregationPrompt: subTaskEvents.some((t) => t.agentId === AgentType.RESEARCHER)
-            ? `I have received findings from parallel research tasks. Please synthesize these into a comprehensive technical report. 
-               Identify overarching patterns, cross-repo dependencies, and specific implementation gaps. 
-               The goal is to inform the next phase of development for: "${plan.substring(0, 500)}..."`
-            : undefined,
-          traceId,
-          initiatorId: AgentType.STRATEGIC_PLANNER,
-          depth: (depth ?? 0) + 1,
-          sessionId,
-        });
-      } else {
-        // Single task dispatch (existing behavior)
-        const { dispatchTask: dispatcher } = await import('../tools/knowledge/agent');
-        const targetAgent = decomposed.subTasks[0]?.agentId || AgentType.CODER;
-
-        await dispatcher.execute({
-          agentId: targetAgent,
-          userId: baseUserId,
-          task: plan,
-          metadata: {
-            gapIds: processedGapIds,
-          },
-          traceId,
-          sessionId,
-        });
-      }
-    } else if (!isFailure && processedGapIds.length > 0) {
-      logger.info('Evolution mode is hitl, asking for approval.');
-      await sendOutboundMessage(
-        AgentType.STRATEGIC_PLANNER,
-        userId,
-        `🚀 **NEW STRATEGIC PLAN PROPOSED**\n\n${plan}\n\nReply with 'APPROVE' to execute.`,
-        [baseUserId],
-        sessionId,
-        config.name,
-        undefined
-      );
-    }
-
-    return { gapId, plan, planId };
+    // Use post-processing submodule
+    const { postProcessPlan } = await import('./strategic-planner/processing');
+    return await postProcessPlan(memory, {
+      plan,
+      planId,
+      status,
+      coveredGapIds,
+      toolOptimizations,
+      structuredTasks,
+      isFailure,
+      baseUserId,
+      userId,
+      sessionId: sessionId || '',
+      traceId: traceId || '',
+      initiatorId: initiatorId || '',
+      depth: depth || 0,
+      gapId,
+      task: task || 'Strategic Review',
+      isScheduledReview: isScheduledReview || false,
+      config,
+      metadata: (metadata as unknown as Record<string, unknown>) || {},
+    });
   } finally {
     // Release gap lock after all processing is complete
     if (gapId) {
@@ -798,15 +258,6 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
         await memory.releaseGapLock(gapId, AgentType.STRATEGIC_PLANNER);
       } catch (e) {
         logger.warn(`Failed to release gap lock for ${gapId}:`, e);
-      }
-    }
-
-    // Release locks for covered gaps
-    for (const coveredId of lockedCoveredGapIds) {
-      try {
-        await memory.releaseGapLock(coveredId, AgentType.STRATEGIC_PLANNER);
-      } catch (e) {
-        logger.warn(`Failed to release covered gap lock for ${coveredId}:`, e);
       }
     }
   }

@@ -4,11 +4,9 @@ import {
   DegradationDetector,
   HealthTrendAnalyzer,
   CognitiveHealthMonitor,
-  MetricsWindow,
-  AnomalySeverity,
-  AnomalyType,
 } from './cognitive-metrics';
-import type { AggregatedMetrics } from './cognitive-metrics';
+import { MetricsWindow, AnomalySeverity, AnomalyType } from '../types/metrics';
+import type { AggregatedMetrics } from '../types/metrics';
 
 // Mock logger
 vi.mock('../logger', () => ({

@@ -333,7 +333,7 @@ export default function AgentsPage() {
             </Typography>
             <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest font-bold ${isConnected ? 'bg-cyber-green/10 text-cyber-green border border-cyber-green/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}>
               <Radio size={10} className={isConnected ? 'animate-pulse' : ''} />
-              {isConnected ? 'LIVE' : 'OFFLINE'}
+              {isConnected ? 'SIGNAL: ACTIVE' : 'SIGNAL: DISCONNECTED'}
             </div>
           </div>
           <Typography variant="body" color="muted" className="mt-2 block">

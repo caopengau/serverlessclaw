@@ -5,6 +5,7 @@ import {
   MemoryInsight,
   InsightCategory,
   GapStatus,
+  GapTransitionResult,
   ConversationMeta,
 } from '../types/index';
 import { BaseMemoryProvider } from './base';
@@ -13,7 +14,6 @@ export { CachedMemory } from './cached-memory';
 
 // Import operations from submodules
 import * as GapOps from './gap-operations';
-import type { GapTransitionResult } from './gap-operations';
 import * as InsightOps from './insight-operations';
 import * as SessionOps from './session-operations';
 import * as MemoryUtils from './utils';

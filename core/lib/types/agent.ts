@@ -323,6 +323,15 @@ export enum GapStatus {
 }
 
 /**
+ * Result of a gap status transition attempt.
+ */
+export interface GapTransitionResult {
+  success: boolean;
+  currentStatus?: GapStatus;
+  error?: string;
+}
+
+/**
  * Standardized execution status for autonomous agents.
  */
 export enum AgentStatus {

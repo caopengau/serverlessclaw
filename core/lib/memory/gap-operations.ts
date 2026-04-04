@@ -6,7 +6,7 @@
  */
 
 import { MemoryInsight, InsightMetadata, InsightCategory } from '../types/memory';
-import { GapStatus, EvolutionTrack } from '../types/agent';
+import { GapStatus, EvolutionTrack, GapTransitionResult } from '../types/agent';
 import { logger } from '../logger';
 import { RetentionManager } from './tiering';
 import { LIMITS, TIME, MEMORY_KEYS } from '../constants';
@@ -20,7 +20,7 @@ import {
 } from './utils';
 
 /** Minimal interface for track operations — satisfied by BaseMemoryProvider and DynamoMemory. */
-interface TrackStore {
+export interface TrackStore {
   putItem(item: Record<string, unknown>): Promise<void>;
   queryItems(params: Record<string, unknown>): Promise<Record<string, unknown>[]>;
 }
@@ -212,15 +212,6 @@ export async function incrementGapAttemptCount(
     logger.error(`Gap ${gapId} not found in any status for attempt increment`);
     return 1;
   }
-}
-
-/**
- * Result of a gap status transition attempt.
- */
-export interface GapTransitionResult {
-  success: boolean;
-  currentStatus?: GapStatus;
-  error?: string;
 }
 
 /**

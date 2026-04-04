@@ -10,7 +10,7 @@ export type {
   AnomalySeverity,
   AnomalyType,
   AggregatedMetrics,
-} from './cognitive-metrics';
+} from '../types/metrics';
 export { TokenTracker } from './token-usage';
 export { SLOTracker } from './slo';
 export type { SLODefinition } from './slo';

@@ -3,7 +3,8 @@
 import React from 'react';
 import Typography from '@/components/ui/Typography';
 import Badge from '@/components/ui/Badge';
-import { Vote, CheckCircle2, XCircle, Info, UserCheck, ShieldCheck } from 'lucide-react';
+import { Vote, CheckCircle2, XCircle, UserCheck, ShieldCheck, RefreshCw } from 'lucide-react';
+import Button from '@/components/ui/Button';
 
 interface ConsensusVote {
   agentId: string;
@@ -122,9 +123,28 @@ export default function SwarmConsensusView({ requests }: { requests: ConsensusRe
       })}
 
       {requests.length === 0 && (
-        <div className="py-20 text-center bg-white/5 border border-dashed border-white/10 rounded-2xl flex flex-col items-center gap-4">
-          <Info size={32} className="text-white/10" />
-          <Typography variant="body" color="muted">No active consensus requests pending swarm governance.</Typography>
+        <div className="py-32 flex flex-col items-center justify-center text-center space-y-6 bg-white/[0.01] border border-dashed border-white/10 rounded-2xl animate-in fade-in zoom-in duration-700">
+           <div className="relative">
+              <div className="absolute inset-0 bg-cyber-blue/20 blur-2xl rounded-full animate-pulse"></div>
+              <div className="relative bg-black/40 border border-cyber-blue/30 p-6 rounded-full">
+                <Vote size={48} className="text-cyber-blue/60" />
+              </div>
+           </div>
+           <div>
+              <Typography variant="h3" uppercase glow className="tracking-widest">Consensus Archive Clear</Typography>
+              <Typography variant="body" color="muted" className="mt-2 text-xs uppercase tracking-[0.2em] opacity-50">
+                No active voting requests found // system_equilibrium
+              </Typography>
+           </div>
+           <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.reload()}
+              icon={<RefreshCw size={14} />}
+              className="text-[10px] uppercase font-black border-white/10"
+           >
+              Refresh Matrix
+           </Button>
         </div>
       )}
     </div>

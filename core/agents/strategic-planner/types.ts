@@ -71,3 +71,13 @@ export interface PlannerResult {
   /** The agent ID that currently holds the gap lock (returned when gap is locked). */
   lockedBy?: string;
 }
+
+/**
+ * Result of a strategic plan validation check.
+ */
+export interface PlanValidationResult {
+  /** Whether the plan passed validation. */
+  isValid: boolean;
+  /** The reason for rejection (if invalid). */
+  reason?: string;
+}

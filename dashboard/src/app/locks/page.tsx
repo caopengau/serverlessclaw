@@ -1,4 +1,3 @@
-import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { Lock, Unlock, Clock, ShieldAlert, RefreshCw, Zap } from 'lucide-react';
@@ -8,13 +7,13 @@ import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { deleteMemoryItem } from '@/lib/actions/dynamodb-actions';
+import { getResourceName } from '@/lib/sst-utils';
 
 async function getLocks() {
   try {
-    const typedResource = Resource as unknown as { MemoryTable?: { name: string } };
-    const tableName = typedResource.MemoryTable?.name;
+    const tableName = getResourceName('MemoryTable');
     if (!tableName) {
-      console.error('MemoryTable name is missing from Resources');
+      console.error('MemoryTable name is missing from Resources and Environment');
       return [];
     }
     const client = new DynamoDBClient({});

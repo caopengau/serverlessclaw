@@ -1,4 +1,5 @@
-import { Resource } from 'sst';
+import { getResourceUrl } from '@/lib/sst-utils';
+
 import { 
   ShieldCheck, 
   Activity, 
@@ -16,13 +17,15 @@ import ResilienceGauge from './ResilienceGauge';
 
 
 async function getHealth() {
-  const typedResource = Resource as { WebhookApi?: { url: string } };
-  const apiUrl = typedResource.WebhookApi?.url || process.env.API_URL;
+  const apiUrl = getResourceUrl('WebhookApi', 'url');
 
-  
   if (!apiUrl) {
     console.error('API URL is missing from Resources and Environment');
-    return { status: 'error', message: 'API Configuration Missing' };
+    return { 
+      status: 'error', 
+      message: 'Infrastructure Missing',
+      details: 'Neural Webhook API configuration is not active. Check SST links or environment variables (WEBHOOKAPI_URL).'
+    };
   }
 
   try {

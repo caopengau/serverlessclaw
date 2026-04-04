@@ -1,4 +1,5 @@
-import { Resource } from 'sst';
+import { getResourceName } from '@/lib/sst-utils';
+
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import DeleteAllTracesButton from '@/components/DeleteAllTracesButton';
@@ -11,10 +12,9 @@ export const dynamic = 'force-dynamic';
 
 async function getTraces() {
   try {
-    const typedResource = Resource as unknown as { TraceTable?: { name: string } };
-    const tableName = typedResource.TraceTable?.name;
+    const tableName = getResourceName('TraceTable');
     if (!tableName) {
-      console.error('TraceTable name is missing from Resources');
+      console.warn('TraceTable name is missing from Resources and Environment');
       return [];
     }
     const client = new DynamoDBClient({});
@@ -55,11 +55,9 @@ import { LLMProvider, OpenAIModel } from '@claw/core/lib/types/llm';
 
 async function getConfig() {
   try {
-    const typedResource = Resource as unknown as { ConfigTable?: { name: string } };
-    const tableName = typedResource.ConfigTable?.name;
+    const tableName = getResourceName('ConfigTable');
     if (!tableName) {
-      console.error('ConfigTable name is missing from Resources');
-      return { provider: 'unknown', model: 'unknown' };
+      return { provider: 'N/A', model: 'N/A' };
     }
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
@@ -75,14 +73,13 @@ async function getConfig() {
     };
   } catch (e) {
     console.error('Error fetching config:', e);
-    return { provider: 'error', model: 'error' };
+    return { provider: 'OFFLINE', model: 'OFFLINE' };
   }
 }
 
 async function getSessionTitles() {
   try {
-    const typedResource = Resource as unknown as { MemoryTable?: { name: string } };
-    const tableName = typedResource.MemoryTable?.name;
+    const tableName = getResourceName('MemoryTable');
     if (!tableName) return {};
     
     const client = new DynamoDBClient({});
