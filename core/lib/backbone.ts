@@ -173,6 +173,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     defaultCommunicationMode: 'json',
     tools: [
       'signalOrchestration',
+      'technicalResearch',
       TOOL_recallKnowledge,
       TOOLS.dispatchTask,
       TOOL_MANAGE_GAP,
@@ -348,6 +349,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       TOOL_recallKnowledge,
       'filesystem_read_file',
       'filesystem_list_directory',
+      'technicalResearch',
       'git_status',
       'git_diff',
       'grep_search',

@@ -22,10 +22,54 @@ vi.mock('../../lib/types/index', () => ({
   EventType: {
     CONTINUATION_TASK: 'continuation_task',
     OUTBOUND_MESSAGE: 'outbound_message',
+    TASK_COMPLETED: 'task_completed',
   },
   CompletionEvent: {},
   FailureEvent: {},
   TraceSource: { SYSTEM: 'system' },
+}));
+
+const { mockAgentStream } = vi.hoisted(() => ({
+  mockAgentStream: vi.fn(),
+}));
+
+vi.mock('../../lib/agent', () => ({
+  Agent: vi.fn().mockImplementation(function () {
+    return {
+      stream: mockAgentStream,
+    };
+  }),
+}));
+
+vi.mock('../../lib/utils/agent-helpers', () => ({
+  getAgentContext: vi.fn().mockResolvedValue({
+    memory: {},
+    provider: {},
+  }),
+  isTaskPaused: vi.fn().mockReturnValue(false),
+}));
+
+vi.mock('../../lib/registry', () => ({
+  AgentRegistry: {
+    getAgentConfig: vi.fn().mockResolvedValue({
+      id: 'test-agent',
+      name: 'Test Agent',
+      systemPrompt: 'prompt',
+      enabled: true,
+    }),
+  },
+}));
+
+vi.mock('../../tools/index', () => ({
+  getAgentTools: vi.fn().mockResolvedValue([]),
+}));
+
+const { mockEmitTypedEvent } = vi.hoisted(() => ({
+  mockEmitTypedEvent: vi.fn().mockResolvedValue({ success: true }),
+}));
+
+vi.mock('../../lib/utils/typed-emit', () => ({
+  emitTypedEvent: mockEmitTypedEvent,
 }));
 
 vi.mock('../../lib/providers/utils', () => ({
@@ -60,10 +104,17 @@ vi.mock('../../lib/types/tool', () => ({
   ITool: {},
 }));
 
-import { wakeupInitiator, getRecursionLimit, handleRecursionLimitExceeded } from './shared';
+import {
+  wakeupInitiator,
+  getRecursionLimit,
+  handleRecursionLimitExceeded,
+  processEventWithAgent,
+} from './shared';
 import { emitEvent } from '../../lib/utils/bus';
 import { sendOutboundMessage } from '../../lib/outbound';
 import { ConfigManager } from '../../lib/registry/config';
+import { EventType } from '../../lib/types/index';
+import { emitTypedEvent } from '../../lib/utils/typed-emit';
 
 describe('shared event utilities', () => {
   beforeEach(() => {
@@ -75,14 +126,39 @@ describe('shared event utilities', () => {
       await wakeupInitiator('user1', 'strategic-planner', 'review task', 'trace-1', 'sess-1', 0);
       expect(emitEvent).toHaveBeenCalledWith(
         'events.handler',
-        expect.anything(),
+        EventType.CONTINUATION_TASK,
         expect.objectContaining({
           userId: 'user1',
           agentId: 'strategic-planner',
           task: 'review task',
           traceId: 'trace-1',
+          taskId: 'trace-1', // Default taskId is traceId
           sessionId: 'sess-1',
           depth: 1,
+        })
+      );
+    });
+
+    it('should propagate explicit taskId and eventType', async () => {
+      await wakeupInitiator(
+        'user1',
+        'researcher',
+        'summary',
+        'trace-1',
+        'sess-1',
+        0,
+        false,
+        undefined,
+        'explicit-task-id',
+        'research_task'
+      );
+      expect(emitEvent).toHaveBeenCalledWith(
+        'events.handler',
+        'research_task',
+        expect.objectContaining({
+          agentId: 'researcher',
+          traceId: 'trace-1',
+          taskId: 'explicit-task-id',
         })
       );
     });
@@ -203,6 +279,70 @@ describe('shared event utilities', () => {
       await handleRecursionLimitExceeded('user1', undefined, 'handler', 'Max depth 15 reached');
       const call = (sendOutboundMessage as any).mock.calls[0];
       expect(call[2]).toContain('Max depth 15 reached');
+    });
+  });
+
+  describe('processEventWithAgent', () => {
+    it('should emit TASK_COMPLETED when initiator is another agent', async () => {
+      const mockStream = async function* () {
+        yield { content: 'test response' };
+      };
+      (mockAgentStream as any).mockReturnValue(mockStream());
+
+      await processEventWithAgent('user1', 'test-agent', 'test task', {
+        context: {} as any,
+        initiatorId: 'strategic-planner',
+        traceId: 'trace-1',
+        taskId: 'task-1',
+        handlerTitle: 'TEST',
+        outboundHandlerName: 'test-handler',
+      });
+
+      expect(emitTypedEvent).toHaveBeenCalledWith(
+        'test-agent',
+        EventType.TASK_COMPLETED,
+        expect.objectContaining({
+          agentId: 'test-agent',
+          task: 'test task',
+          response: 'test response',
+          initiatorId: 'strategic-planner',
+          taskId: 'task-1',
+        })
+      );
+    });
+
+    it('should NOT emit TASK_COMPLETED when initiator is the user', async () => {
+      const mockStream = async function* () {
+        yield { content: 'test response' };
+      };
+      (mockAgentStream as any).mockReturnValue(mockStream());
+
+      await processEventWithAgent('user1', 'test-agent', 'test task', {
+        context: {} as any,
+        initiatorId: 'user1',
+        traceId: 'trace-1',
+        handlerTitle: 'TEST',
+        outboundHandlerName: 'test-handler',
+      });
+
+      expect(emitTypedEvent).not.toHaveBeenCalled();
+    });
+
+    it('should NOT emit TASK_COMPLETED when initiator is orchestrator', async () => {
+      const mockStream = async function* () {
+        yield { content: 'test response' };
+      };
+      (mockAgentStream as any).mockReturnValue(mockStream());
+
+      await processEventWithAgent('user1', 'test-agent', 'test task', {
+        context: {} as any,
+        initiatorId: 'orchestrator',
+        traceId: 'trace-1',
+        handlerTitle: 'TEST',
+        outboundHandlerName: 'test-handler',
+      });
+
+      expect(emitTypedEvent).not.toHaveBeenCalled();
     });
   });
 });

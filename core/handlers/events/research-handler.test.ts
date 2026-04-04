@@ -80,7 +80,7 @@ vi.mock('../../lib/schema/events', () => ({
   RESEARCH_TASK_METADATA: {
     parse: vi.fn().mockReturnValue({
       tokenBudget: 100000,
-      timeBudgetMs: 300000,
+      timeBudgetMs: 600000,
     }),
   },
 }));
@@ -93,6 +93,7 @@ vi.mock('../../tools/index', () => ({
 // 7. Import code under test
 import { handleResearchTask } from './research-handler';
 import { AgentType, EventType } from '../../lib/types/agent';
+import { Agent } from '../../lib/agent';
 
 describe('research-handler', () => {
   beforeEach(() => {
@@ -155,7 +156,22 @@ describe('research-handler', () => {
 
       await handleResearchTask(eventDetail);
 
-      expect(mockAgentProcess).toHaveBeenCalled();
+      expect(Agent).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          parallelToolCalls: true,
+        })
+      );
+      expect(mockAgentProcess).toHaveBeenCalledWith(
+        'user-1',
+        'Research authentication patterns',
+        expect.objectContaining({
+          taskTimeoutMs: 600000,
+        })
+      );
     });
   });
 

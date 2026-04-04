@@ -13,6 +13,7 @@ export const knowledgeTools = {
   ...mcpTools,
   ...metadataTools,
   ...configTools,
+  technicalResearch: agentTools.technicalResearch,
 };
 
 export { knowledgeSchema } from './schema';

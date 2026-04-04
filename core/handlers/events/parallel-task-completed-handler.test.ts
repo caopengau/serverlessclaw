@@ -114,7 +114,10 @@ describe('parallel-task-completed-handler', () => {
         expect.stringContaining('SUCCESS'),
         'trace-abc',
         'session-xyz',
-        1
+        1,
+        false,
+        undefined,
+        'trace-abc'
       );
     });
 
@@ -155,7 +158,10 @@ describe('parallel-task-completed-handler', () => {
         'Synthesized result',
         'trace-abc',
         'session-xyz',
-        1
+        1,
+        false,
+        undefined,
+        'trace-abc'
       );
     });
 
@@ -184,7 +190,10 @@ describe('parallel-task-completed-handler', () => {
         'Merge Complete: 2/2 patches applied',
         'trace-abc',
         'session-xyz',
-        1
+        1,
+        false,
+        undefined,
+        'trace-abc'
       );
     });
 
@@ -261,6 +270,29 @@ describe('parallel-task-completed-handler', () => {
 
       // Should fall back to waking up initiator with the partial summary
       expect(mockWakeupInitiator).toHaveBeenCalled();
+    });
+
+    it('routes researcher-initiated parallel dispatches back to research_task', async () => {
+      const detail = {
+        ...baseEventDetail,
+        initiatorId: 'researcher',
+        aggregationType: 'agent_guided' as const,
+      };
+
+      await handleParallelTaskCompleted(detail);
+
+      expect(mockWakeupInitiator).toHaveBeenCalledWith(
+        'user-123',
+        'researcher',
+        expect.stringContaining('[AGGREGATED_RESULTS]'),
+        'trace-abc',
+        'session-xyz',
+        1,
+        false,
+        undefined,
+        'trace-abc', // taskId
+        'research_task' // eventType
+      );
     });
   });
 });

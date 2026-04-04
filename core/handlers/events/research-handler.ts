@@ -107,18 +107,15 @@ export async function handleResearchTask(eventDetail: Record<string, unknown>): 
   const tools = await getAgentTools(AgentType.RESEARCHER);
   const researcherTools = tools.filter((t: { name: string }) => config.tools?.includes(t.name));
 
-  const researcher = new Agent(
-    memory,
-    providerManager,
-    researcherTools,
-    config.systemPrompt,
-    config
-  );
+  const researcher = new Agent(memory, providerManager, researcherTools, config.systemPrompt, {
+    ...config,
+    parallelToolCalls: true, // Enable high-signal parallel exploration
+  });
 
   // 4. Budget enforcement
   const parsedMetadata = RESEARCH_TASK_METADATA.parse(metadata);
   const _tokenBudget = parsedMetadata.tokenBudget ?? 100000;
-  const timeBudgetMs = parsedMetadata.timeBudgetMs ?? 300000; // 5 mins
+  const timeBudgetMs = parsedMetadata.timeBudgetMs ?? 600000; // Increased to 10 mins for deep research
 
   logger.info(`[RESEARCHER] Starting research ${isAggregation ? 'synthesis' : 'task'} ${taskId}`);
 
@@ -132,7 +129,7 @@ export async function handleResearchTask(eventDetail: Record<string, unknown>): 
       initiatorId: initiatorId ?? AgentType.STRATEGIC_PLANNER,
       depth,
       traceId,
-      taskId,
+      taskId, // Ensure stable taskId propagation
       sessionId,
       source: TraceSource.SYSTEM,
       taskTimeoutMs: timeBudgetMs,
@@ -175,6 +172,7 @@ export async function handleResearchTask(eventDetail: Record<string, unknown>): 
       task,
       response: result.responseText,
       traceId,
+      taskId, // Ensure stable taskId
       initiatorId: initiatorId ?? AgentType.STRATEGIC_PLANNER,
       depth: (depth ?? 0) + 1,
       sessionId,
@@ -196,6 +194,7 @@ export async function handleResearchTask(eventDetail: Record<string, unknown>): 
       task,
       error: `Research task failed after ${Date.now() - startTime}ms: ${errorMsg}`,
       traceId,
+      taskId, // Ensure stable taskId
       initiatorId: initiatorId ?? AgentType.STRATEGIC_PLANNER,
       depth: (depth ?? 0) + 1,
       sessionId,

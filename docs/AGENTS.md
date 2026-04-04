@@ -36,6 +36,66 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 | **Cancellation Handler** | `core/handlers/events/cancellation-handler.ts` | `TASK_CANCELLED`                          | Manages DynamoDB-backed task cancellation flags               |
 | **Deployer**             | AWS CodeBuild                                  | `buildspec.yml`                           | Runs `make deploy ENV=$SST_STAGE` in isolated environment     |
 
+### 3. Structural Merger Agent (Evolution)
+
+Specialized agent for AST-aware patch reconciliation. Used during parallel evolution tracks to merge code changes that would cause standard git conflicts.
+
+---
+
+## 🔍 Research & Discovery Mode
+
+The system features a specialized **Research Agent** (Researcher) designed for deep technical exploration, library analysis, and pattern discovery. It can be triggered by the **Strategic Planner** or **SuperClaw** using the `technicalResearch` tool.
+
+### Research Workflow
+
+Research operates in two primary modes based on the complexity of the goal:
+
+#### 1. Single Search (Linear)
+For straightforward questions, the Researcher performs a standard iterative reasoning loop, using MCP tools (Search, Fetch, Puppeteer) sequentially to reach a conclusion.
+
+#### 2. Parallel Exploration (Swarm)
+For complex comparisons or broad discovery, the Researcher **self-decomposes** the goal into parallel sub-tasks. These are dispatched to multiple Researcher instances, aggregated via DynamoDB, and synthesized into a final report.
+
+### Research Flow Diagram
+
+```text
+    [ INITIATOR ] (Strategic Planner / SuperClaw)
+          |
+          v 
+   ( RESEARCH_TASK ) ----> [ RESEARCH HANDLER ]
+          |                       |
+          |           /-----------+-----------\
+          |           |                       |
+          |    [ MODE: SINGLE ]       [ MODE: PARALLEL ]
+          |           |               (Goal Decomposition)
+          |           |                       |
+          |    ( Sequential )        ( Parallel Dispatch )
+          |    ( Tool Calls )        /        |        \
+          |           |       [Sub-T1]    [Sub-T2]    [Sub-T3]
+          |           |          |           |           |
+          |           |          \-----------+-----------/
+          |           |                      |
+          |           |             [ DYNAMO AGGREGATOR ]
+          |           |                      |
+          |           |             [ RESEARCH SYNTHESIS ]
+          |           |                      |
+          \-----------+----------------------/
+                      |
+                      v
+             [ WAKEUP INITIATOR ]
+             ( TASK_COMPLETED )
+                      |
+                      v
+    [ INITIATOR ] (Resumes with Research Findings)
+```
+
+### Key Technical Features
+
+- **Polymorphic Return**: The system uses a stable `taskId` and routes completion back to the initiator via `TASK_COMPLETED`, ensuring the orchestration chain is never broken.
+- **Knowledge Persistence**: All synthesized research is automatically stored in the `research_finding` memory category for future reuse.
+- **Parallel Tooling**: The Researcher is configured for `parallelToolCalls: true`, allowing it to fire multiple search or fetch requests in a single turn.
+- **Extended Budget**: Research missions have an increased time budget (default 10 minutes) to accommodate deep exploration.
+
 ---
 
 ## Co-Management & Evolution

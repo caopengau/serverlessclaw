@@ -451,6 +451,37 @@ export const knowledgeSchema: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
+  technicalResearch: {
+    name: 'technicalResearch',
+    description:
+      'Dispatches a technical research task. Supports single-step discovery or parallel multi-agent exploration.',
+    parameters: {
+      type: 'object',
+      properties: {
+        goal: {
+          type: 'string',
+          description:
+            'The technical research goal or question (e.g., "Research Auth0 vs Cognito").',
+        },
+        agentId: {
+          type: 'string',
+          description: 'The research agent to use. Defaults to "researcher".',
+        },
+        parallel: {
+          type: 'boolean',
+          description:
+            'Whether to allow the agent to decompose this into parallel sub-tasks. Recommended for complex comparisons.',
+        },
+        depth: {
+          type: 'number',
+          description: 'Current recursion depth.',
+        },
+      },
+      required: ['goal'],
+      additionalProperties: false,
+    },
+    connectionProfile: ['bus'],
+  },
 
   // MCP (from mcp.ts)
   registerMCPServer: {

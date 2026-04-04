@@ -1,5 +1,6 @@
 import { logger } from '../../lib/logger';
 import { wakeupInitiator } from './shared';
+import { AgentType, EventType } from '../../lib/types/agent';
 
 interface ParallelTaskCompletedEvent {
   userId: string;
@@ -88,7 +89,17 @@ export async function handleParallelTaskCompleted(
 
       if (mergeResult.success) {
         logger.info(`Procedural merge succeeded for ${traceId}. Waking up initiator.`);
-        await wakeupInitiator(userId, initiatorId, mergeResult.summary, traceId, sessionId, 1);
+        await wakeupInitiator(
+          userId,
+          initiatorId,
+          mergeResult.summary,
+          traceId,
+          sessionId,
+          1,
+          false,
+          undefined,
+          traceId
+        );
         return;
       }
 
@@ -149,10 +160,33 @@ export async function handleParallelTaskCompleted(
 
   if (aggregationType === 'agent_guided') {
     logger.info(`Parallel dispatch ${traceId ?? 'N/A'} requesting agent-guided aggregation.`);
+
+    // If the initiator is the Researcher, we route back to the researcher-handler
+    // to allow it to perform its own specialized synthesis and memory storage.
+    if (initiatorId === AgentType.RESEARCHER) {
+      logger.info(
+        `Routing researcher aggregation back to research-handler for specialized synthesis.`
+      );
+      const resultsSummary = `[AGGREGATED_RESULTS]\nI have completed the parallel exploration. Here are the results from the ${taskCount} sub-tasks:\n\n${taskSummaries}`;
+      await wakeupInitiator(
+        userId,
+        initiatorId,
+        resultsSummary,
+        traceId,
+        sessionId,
+        1,
+        false,
+        undefined,
+        traceId, // taskId
+        EventType.RESEARCH_TASK
+      );
+      return;
+    }
+
     try {
       const { Agent } = await import('../../lib/agent');
       const { getAgentContext, loadAgentConfig } = await import('../../lib/utils/agent-helpers');
-      const { AgentType, TraceSource } = await import('../../lib/types/agent');
+      const { TraceSource } = await import('../../lib/types/agent');
       const { ReasoningProfile } = await import('../../lib/types/llm');
 
       // 2026 fix: use the actual initiatorId for aggregation if it's a valid agent
@@ -184,7 +218,17 @@ export async function handleParallelTaskCompleted(
       });
 
       logger.info(`Agent-guided aggregation complete for ${traceId}. Waking up initiator.`);
-      await wakeupInitiator(userId, initiatorId, responseText, traceId, sessionId, 1);
+      await wakeupInitiator(
+        userId,
+        initiatorId,
+        responseText,
+        traceId,
+        sessionId,
+        1,
+        false,
+        undefined,
+        traceId
+      );
       return;
     } catch (error) {
       logger.error('Failed to perform agent-guided aggregation, falling back to summary:', error);
@@ -192,5 +236,15 @@ export async function handleParallelTaskCompleted(
   }
 
   const aggregatedSummary = `[AGGREGATED_RESULTS]\n${summary}`;
-  await wakeupInitiator(userId, initiatorId, aggregatedSummary, traceId, sessionId, 1);
+  await wakeupInitiator(
+    userId,
+    initiatorId,
+    aggregatedSummary,
+    traceId,
+    sessionId,
+    1,
+    false,
+    undefined,
+    traceId
+  );
 }

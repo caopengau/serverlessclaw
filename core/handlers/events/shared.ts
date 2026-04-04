@@ -20,6 +20,8 @@ import { isTaskPaused } from '../../lib/utils/agent-helpers';
  * @param depth - Current recursion depth.
  * @param userNotified - Whether the user has already been notified of this task completion.
  * @param options - Optional array of interactive button options to include in the wakeup message.
+ * @param taskId - Optional stable task ID to maintain identity across continuation.
+ * @param eventType - Optional event type to use (defaults to CONTINUATION_TASK).
  */
 export async function wakeupInitiator(
   userId: string,
@@ -29,15 +31,15 @@ export async function wakeupInitiator(
   sessionId: string | undefined,
   depth: number = 0,
   userNotified: boolean = false,
-  options?: { label: string; value: string; type?: 'primary' | 'secondary' | 'danger' }[]
+  options?: { label: string; value: string; type?: 'primary' | 'secondary' | 'danger' }[],
+  taskId?: string,
+  eventType: EventType | string = EventType.CONTINUATION_TASK
 ): Promise<void> {
   if (!initiatorId || !task) return;
 
   const finalTask = userNotified ? `${task}\n(USER_ALREADY_NOTIFIED: true)` : task;
 
   // Determine if the initiator is a human (user) or another agent.
-  // Agents have specific IDs like 'superclaw', 'coder', or dynamic UUIDs.
-  // Humans are identified by the base userId (numeric string for Telegram, 'dashboard-user' for Dashboard).
   const isHuman =
     initiatorId === userId || initiatorId === 'dashboard-user' || /^\d+$/.test(initiatorId);
 
@@ -56,11 +58,12 @@ export async function wakeupInitiator(
     return;
   }
 
-  await emitEvent('events.handler', EventType.CONTINUATION_TASK, {
+  await emitEvent('events.handler', eventType as EventType, {
     userId,
     agentId: initiatorId,
     task: finalTask,
     traceId,
+    taskId: taskId ?? traceId,
     initiatorId,
     sessionId,
     depth: depth + 1,
@@ -125,6 +128,7 @@ export async function processEventWithAgent(
   options: {
     context: Context;
     traceId?: string;
+    taskId?: string;
     sessionId?: string;
     depth?: number;
     initiatorId?: string;
@@ -150,10 +154,12 @@ export async function processEventWithAgent(
   const agentTools = await loadAgentTools(agentId);
   const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
 
+  const startTime = Date.now();
   const stream = agent.stream(userId, `${options.handlerTitle}: ${taskContent}`, {
     context: options.context,
     isContinuation: options.isContinuation,
     traceId: options.traceId,
+    taskId: options.taskId,
     sessionId: options.sessionId,
     depth: options.depth,
     initiatorId: options.initiatorId,
@@ -169,7 +175,10 @@ export async function processEventWithAgent(
     if (chunk.content) responseText += chunk.content;
   }
 
-  if (!isTaskPaused(responseText) && responseText.trim().length > 0) {
+  const isPaused = isTaskPaused(responseText);
+
+  // 1. Notify user (unless it's a background pause/continuation)
+  if (!isPaused && responseText.trim().length > 0) {
     const finalMessage = options.formatResponse
       ? options.formatResponse(responseText, [])
       : responseText;
@@ -186,6 +195,30 @@ export async function processEventWithAgent(
       [],
       messageId
     );
+  }
+
+  // 2. Notify initiator if it's another agent (Closing the completion gap)
+  if (
+    !isPaused &&
+    options.initiatorId &&
+    options.initiatorId !== 'orchestrator' &&
+    options.initiatorId !== userId
+  ) {
+    const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
+    await emitTypedEvent(agentId, EventType.TASK_COMPLETED, {
+      userId,
+      agentId,
+      task: taskContent,
+      response: responseText,
+      traceId: options.traceId,
+      taskId: options.taskId ?? options.traceId,
+      initiatorId: options.initiatorId,
+      depth: (options.depth ?? 0) + 1,
+      sessionId: options.sessionId,
+      metadata: {
+        durationMs: Date.now() - startTime,
+      },
+    });
   }
 
   return { responseText, attachments: [] };

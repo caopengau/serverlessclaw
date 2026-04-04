@@ -78,6 +78,52 @@ export const dispatchTask = {
 };
 
 /**
+ * Dispatches a technical research task.
+ */
+export const technicalResearch = {
+  ...knowledgeSchema.technicalResearch,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { goal, agentId, parallel, userId, traceId, nodeId, initiatorId, depth, sessionId } =
+      args as {
+        goal: string;
+        agentId?: string;
+        parallel?: boolean;
+        userId: string;
+        traceId?: string;
+        nodeId?: string;
+        initiatorId?: string;
+        depth?: number;
+        sessionId?: string;
+      };
+
+    const targetAgentId = agentId ?? 'researcher';
+
+    const { ClawTracer } = await import('../../lib/tracer');
+    const tracer = new ClawTracer(userId, 'system', traceId, nodeId);
+    const childTracer = tracer.getChildTracer(undefined, targetAgentId);
+
+    try {
+      await emitEvent(initiatorId ?? 'superclaw', 'research_task', {
+        userId,
+        task: goal,
+        metadata: {
+          parallelAllowed: parallel !== false,
+        },
+        traceId: childTracer.getTraceId(),
+        nodeId: childTracer.getNodeId(),
+        parentId: childTracer.getParentId(),
+        initiatorId: initiatorId ?? 'superclaw',
+        depth: (depth ?? 0) + 1,
+        sessionId,
+      });
+      return `RESEARCH_INITIATED: I have successfully dispatched a technical research mission to the **${targetAgentId}** agent. I'll let you know once they have an update.`;
+    } catch (error) {
+      return `Failed to initiate research: ${formatErrorMessage(error)}`;
+    }
+  },
+};
+
+/**
  * Updates the tools assigned to a specific agent.
  */
 export const manageAgentTools = {
