@@ -699,6 +699,110 @@ describe('buildProactiveReviewPrompt', () => {
 
     expect(result.prompt).toContain('No specific improvements logged yet');
   });
+
+  it('should include only top 3 gaps by impact and show backlog summary for remaining gaps', async () => {
+    vi.resetModules();
+    vi.mock('../../lib/registry', () => ({
+      AgentRegistry: {
+        getRawConfig: vi.fn().mockResolvedValue(undefined),
+      },
+    }));
+    vi.mock('../../tools/index', () => ({
+      TOOLS: { toolA: {} },
+    }));
+    vi.mock('../../lib/metrics/token-usage', () => ({
+      TokenTracker: {
+        getToolRollupRange: vi.fn().mockResolvedValue([]),
+      },
+    }));
+
+    const { buildProactiveReviewPrompt } = await import('./prompts');
+    const gaps = [
+      {
+        id: 'gap-1',
+        content: 'gap-impact-1',
+        metadata: { impact: 1 } as any,
+        timestamp: Date.now(),
+      },
+      {
+        id: 'gap-2',
+        content: 'gap-impact-8',
+        metadata: { impact: 8 } as any,
+        timestamp: Date.now(),
+      },
+      {
+        id: 'gap-3',
+        content: 'gap-impact-10',
+        metadata: { impact: 10 } as any,
+        timestamp: Date.now(),
+      },
+      {
+        id: 'gap-4',
+        content: 'gap-impact-5',
+        metadata: { impact: 5 } as any,
+        timestamp: Date.now(),
+      },
+      {
+        id: 'gap-5',
+        content: 'gap-impact-9',
+        metadata: { impact: 9 } as any,
+        timestamp: Date.now(),
+      },
+    ];
+
+    const memory = createMockMemory({
+      getAllGaps: vi.fn().mockResolvedValue(gaps),
+      searchInsights: vi.fn().mockResolvedValue({ items: [] }),
+      getFailedPlans: vi.fn().mockResolvedValue([]),
+      updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const result = await buildProactiveReviewPrompt(memory, 'user-1', 'telemetry', true);
+
+    expect(result.prompt).toContain('gap-impact-10');
+    expect(result.prompt).toContain('gap-impact-9');
+    expect(result.prompt).toContain('gap-impact-8');
+    expect(result.prompt).not.toContain('gap-impact-5');
+    expect(result.prompt).not.toContain('- [Impact: 1/10] gap-impact-1');
+    expect(result.prompt).toContain('[BACKLOG_SUMMARY]');
+    expect(result.prompt).toContain('There are 2 additional open gaps in the backlog');
+  });
+
+  it('should omit backlog summary when there are no remaining gaps beyond top 3', async () => {
+    vi.resetModules();
+    vi.mock('../../lib/registry', () => ({
+      AgentRegistry: {
+        getRawConfig: vi.fn().mockResolvedValue(undefined),
+      },
+    }));
+    vi.mock('../../tools/index', () => ({
+      TOOLS: { toolA: {} },
+    }));
+    vi.mock('../../lib/metrics/token-usage', () => ({
+      TokenTracker: {
+        getToolRollupRange: vi.fn().mockResolvedValue([]),
+      },
+    }));
+
+    const { buildProactiveReviewPrompt } = await import('./prompts');
+    const gaps = [
+      { id: 'gap-1', content: 'one', metadata: { impact: 1 } as any, timestamp: Date.now() },
+      { id: 'gap-2', content: 'two', metadata: { impact: 2 } as any, timestamp: Date.now() },
+      { id: 'gap-3', content: 'three', metadata: { impact: 3 } as any, timestamp: Date.now() },
+    ];
+
+    const memory = createMockMemory({
+      getAllGaps: vi.fn().mockResolvedValue(gaps),
+      searchInsights: vi.fn().mockResolvedValue({ items: [] }),
+      getFailedPlans: vi.fn().mockResolvedValue([]),
+      updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
+    });
+
+    const result = await buildProactiveReviewPrompt(memory, 'user-1', 'telemetry', true);
+
+    expect(result.prompt).not.toContain('[BACKLOG_SUMMARY]');
+    expect(result.prompt).not.toContain('There are 0 additional open gaps in the backlog');
+  });
 });
 
 // ============================================================================

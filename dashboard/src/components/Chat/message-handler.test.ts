@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   applyChunkToMessages,
   shouldProcessChunk,
@@ -90,12 +90,6 @@ describe('shouldProcessChunk', () => {
 });
 
 describe('applyChunkToMessages', () => {
-  let seenIds: Set<string>;
-
-  beforeEach(() => {
-    seenIds = new Set<string>();
-  });
-
   it('appends a new assistant message on first chunk', () => {
     const prev: ChatMessage[] = [{ role: 'user', content: 'Hi' }];
     const chunk: IncomingChunk = {

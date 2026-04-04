@@ -21,8 +21,6 @@ import {
   LayoutDashboard, MessageSquare, Bot, Code, Globe, MessageCircle, Hammer, Bell, Calendar
 } from 'lucide-react';
 import { THEME } from '@/lib/theme';
-import { RESOURCE_ICON as ICON_MAP } from '@/lib/constants';
-import { NODE_ICON } from '@claw/core/lib/constants';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';

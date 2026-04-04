@@ -24,7 +24,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { THEME } from '@/lib/theme';
-import { UI_STRINGS, ROUTES } from '@/lib/constants';
+import { ROUTES } from '@/lib/constants';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';

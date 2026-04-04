@@ -237,7 +237,7 @@ export default function ScheduleList() {
       });
       if (!response.ok) throw new Error('Failed to trigger schedule');
       toast.success(`One-time trigger scheduled for ${name}`);
-    } catch (error) {
+    } catch {
       toast.error('Failed to trigger execution');
     } finally {
       setActionInProgress(null);
@@ -256,7 +256,7 @@ export default function ScheduleList() {
       if (!response.ok) throw new Error('Failed to update schedule');
       toast.success(`${name} ${newState === 'ENABLED' ? 'resumed' : 'paused'}`);
       fetchSchedules(true);
-    } catch (error) {
+    } catch {
       toast.error('Failed to update state');
     } finally {
       setActionInProgress(null);
@@ -275,7 +275,7 @@ export default function ScheduleList() {
       if (!response.ok) throw new Error('Failed to delete schedule');
       toast.success(`Goal ${name} deleted`);
       fetchSchedules(true);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to delete goal');
     } finally {
       setActionInProgress(null);
@@ -571,7 +571,7 @@ export default function ScheduleList() {
                 toast.success(`Goal ${name} established`);
                 setShowNewGoalModal(false);
                 fetchSchedules(true);
-              } catch (error) {
+              } catch (_error) {
                 toast.error('Failed to establish goal');
               } finally {
                 setActionInProgress(null);

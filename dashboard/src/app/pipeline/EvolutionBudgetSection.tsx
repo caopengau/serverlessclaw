@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import Typography from '@/components/ui/Typography';
 import EvolutionBudgetView from '@/components/EvolutionBudgetView';
 import { TrackBudget } from '@/lib/types/dashboard';
 

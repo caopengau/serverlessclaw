@@ -226,7 +226,6 @@ export default async function ResilienceHub() {
             
             <div className="space-y-3">
               {logs.length > 0 ? (
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 logs.map((log: { timestamp?: number; key?: string; value?: string; content?: string }, idx: number) => (
 
                   <div key={idx} className="glass-card p-4 border-white/5 hover:bg-white/[0.02] transition-all group">

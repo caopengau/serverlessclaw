@@ -156,9 +156,13 @@ export const manageGap = {
         const gaps = await memory.getAllGaps(GapStatus.OPEN);
         if (gaps.length === 0) return 'No open capability gaps found.';
 
+        const sortedGaps = [...gaps].sort(
+          (a, b) => (b.metadata.impact || 0) - (a.metadata.impact || 0)
+        );
+
         return (
           `Found ${gaps.length} open capability gaps:\n` +
-          gaps
+          sortedGaps
             .map(
               (g) =>
                 `- [${g.id}] (Impact: ${g.metadata.impact}/10, Urgency: ${g.metadata.urgency}/10) ${g.content}`

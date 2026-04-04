@@ -241,6 +241,14 @@ export async function buildProactiveReviewPrompt(
   );
   const topGaps = sortedGaps.slice(0, 3);
   const remainingCount = sortedGaps.length - topGaps.length;
+  const backlogSummaryContext =
+    remainingCount > 0
+      ? `
+    [BACKLOG_SUMMARY]:
+    - There are ${remainingCount} additional open gaps in the backlog.
+    - ACTION: Use 'manageGap(action: "list")' to retrieve the full backlog for comprehensive analysis if the top priority items are insufficient.
+    `
+      : '';
 
   // Fetch Improvements
   const allImprovements = await memory.searchInsights(
@@ -266,16 +274,13 @@ export async function buildProactiveReviewPrompt(
     
     TOP_PRIORITY_GAPS (Top 3 by Impact):
     ${topGaps.map((g) => `- [Impact: ${g.metadata.impact}/10] ${g.content}`).join('\n')}
-    
-    [BACKLOG_SUMMARY]:
-    - There are ${remainingCount} additional open gaps in the backlog.
-    - ACTION: Use 'manageGap(action: "list")' to retrieve the full backlog for comprehensive analysis if the top priority items are insufficient.
+    ${backlogSummaryContext}
 
     [SYSTEM_IMPROVEMENTS_IDENTIFIED]:
     ${improvementSummary || 'No specific improvements logged yet.'}
     ${telemetry}
-    ${toolUsageContext ? `\n[ANOMALOUS_TOOL_USAGE_TELEMETRY]:\n${toolUsageContext}` : ''}
-    ${staleMemoryContext ? `\n[LOW_UTILIZATION_MEMORY]:\n${staleMemoryContext}` : ''}
+    ${toolUsageContext}
+    ${staleMemoryContext}
     ${failureContext}
     ${failedPlansContext}
 

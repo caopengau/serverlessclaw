@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Typography from '@/components/ui/Typography';
-import { DollarSign, TrendingUp, AlertTriangle, PieChart } from 'lucide-react';
+import { DollarSign, TrendingUp, PieChart } from 'lucide-react';
 import { TrackBudget } from '@/lib/types/dashboard';
 
 export default function EvolutionBudgetView({ budgets }: { budgets: TrackBudget[] }) {

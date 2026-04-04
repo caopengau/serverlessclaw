@@ -1,5 +1,3 @@
-import { withApiHandler } from '@/lib/api-handler';
-
 export const dynamic = 'force-dynamic';
 
 export async function GET() {

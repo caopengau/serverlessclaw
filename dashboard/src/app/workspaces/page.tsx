@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Loader2, FolderKanban, Plus, ChevronDown, ChevronUp, Users, X, UserPlus, Shield, Trash2, Edit2 } from 'lucide-react';
+import { Loader2, FolderKanban, Plus, ChevronDown, ChevronUp, Users, X, UserPlus, Trash2, Edit2 } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';

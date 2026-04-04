@@ -21,7 +21,16 @@ export async function handleResearchTask(eventDetail: Record<string, unknown>): 
     initiatorId,
     depth = 0,
     sessionId,
-  } = eventDetail as any;
+  } = eventDetail as Record<string, unknown> & {
+    userId: string;
+    taskId: string;
+    task: string;
+    metadata?: Record<string, unknown>;
+    traceId?: string;
+    initiatorId?: string;
+    depth?: number;
+    sessionId?: string;
+  };
 
   const isAggregation = task.includes('[AGGREGATED_RESULTS]');
 
@@ -96,7 +105,7 @@ export async function handleResearchTask(eventDetail: Record<string, unknown>): 
   ]);
   const config = (await loadAgentConfig(AgentType.RESEARCHER)) as IAgentConfig;
   const tools = await getAgentTools(AgentType.RESEARCHER);
-  const researcherTools = tools.filter((t: any) => config.tools?.includes(t.name));
+  const researcherTools = tools.filter((t: { name: string }) => config.tools?.includes(t.name));
 
   const researcher = new Agent(
     memory,
@@ -155,7 +164,7 @@ export async function handleResearchTask(eventDetail: Record<string, unknown>): 
         urgency: 1,
         priority: 5,
         tags: [traceId, taskId, 'synthesis'],
-      } as any);
+      } as Record<string, unknown>);
     }
 
     // 7. Emit completion

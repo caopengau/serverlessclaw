@@ -4,7 +4,6 @@ import {
 } from 'lucide-react';
 import { GapStatus } from '@claw/core/lib/types';
 import { revalidatePath } from 'next/cache';
-import { EvolutionTrack } from '@claw/core/lib/types/agent';
 import PipelineBoard from './PipelineBoard';
 import EvolutionBudgetSection from './EvolutionBudgetSection';
 import PlanView from './PlanView';

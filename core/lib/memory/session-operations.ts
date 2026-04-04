@@ -131,10 +131,10 @@ export async function saveConversationMeta(
   let stableTimestamp = Number.parseInt(sessionId.split('_')[1] || sessionId, 10);
   if (Number.isNaN(stableTimestamp)) {
     // 1.6 Use FNV-1a 64-bit for Session Hash to minimize collisions
-    let h: bigint = 0xcbf29ce484222325n;
+    let h: bigint = BigInt('0xcbf29ce484222325');
     for (let i = 0; i < sessionId.length; i++) {
       h ^= BigInt(sessionId.charCodeAt(i));
-      h = (h * 0x100000001b3n) & 0xffffffffffffffffn;
+      h = (h * BigInt('0x100000001b3')) & BigInt('0xffffffffffffffff');
     }
     // DynamoDB number allows up to 38 digits, but we'll use string-based BigInt for safety
     // or just convert to number if it fits in 53 bits (BigInt(Number.MAX_SAFE_INTEGER))

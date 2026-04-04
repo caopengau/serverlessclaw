@@ -25,6 +25,7 @@ const ebMock = mockClient(EventBridgeClient);
 // Hoist mocks to ensure they are available for vi.mock
 const mocks = vi.hoisted(() => ({
   updateGapStatus: vi.fn().mockResolvedValue(undefined),
+  getAllGaps: vi.fn().mockResolvedValue([]),
   getDistilledMemory: vi.fn().mockResolvedValue(''),
   updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
   setGap: vi.fn().mockResolvedValue(undefined),
@@ -61,6 +62,7 @@ vi.mock('../../lib/memory', () => ({
     return {
       searchInsights: mocks.searchInsights,
       updateGapStatus: mocks.updateGapStatus,
+      getAllGaps: mocks.getAllGaps,
       getDistilledMemory: mocks.getDistilledMemory,
       updateDistilledMemory: mocks.updateDistilledMemory,
       setGap: mocks.setGap,
@@ -158,6 +160,35 @@ describe('knowledge-storage tools', () => {
       const result = await manageGap.execute({ gapId: 'gap-1', status: GapStatus.PLANNED });
       expect(result).toContain('Successfully updated gap gap-1 to PLANNED');
       expect(mocks.updateGapStatus).toHaveBeenCalledWith('gap-1', GapStatus.PLANNED);
+    });
+
+    it('should list open gaps sorted by impact desc', async () => {
+      mocks.getAllGaps.mockResolvedValueOnce([
+        {
+          id: 'gap-low',
+          content: 'low impact gap',
+          metadata: { impact: 2, urgency: 4 },
+        },
+        {
+          id: 'gap-high',
+          content: 'high impact gap',
+          metadata: { impact: 9, urgency: 7 },
+        },
+      ]);
+
+      const result = await manageGap.execute({ action: 'list' });
+
+      expect(mocks.getAllGaps).toHaveBeenCalledWith(GapStatus.OPEN);
+      expect(result).toContain('Found 2 open capability gaps');
+      expect(result.indexOf('gap-high')).toBeLessThan(result.indexOf('gap-low'));
+    });
+
+    it('should return friendly message when no open gaps exist for list action', async () => {
+      mocks.getAllGaps.mockResolvedValueOnce([]);
+
+      const result = await manageGap.execute({ action: 'list' });
+
+      expect(result).toBe('No open capability gaps found.');
     });
   });
 

@@ -6,15 +6,13 @@ import { Paperclip, Edit2, Check, X, Brain } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import CyberConfirm from '@/components/CyberConfirm';
 import Button from '@/components/ui/Button';
-import { AGENT_ERRORS } from '@/lib/constants';
-import { THEME } from '@/lib/theme';
 import { useChatConnection } from './useChatConnection';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatMessageList } from './ChatMessageList';
 import { ChatInput } from './ChatInput';
 import { QueuedMessagesList } from './QueuedMessages';
 import { useChatMessages } from './useChatMessages';
-import { ChatMessage, AttachmentPreview, HistoryMessage, ToolCall } from './types';
+import {    ToolCall } from './types';
 import type { PendingMessage } from '@claw/core/lib/types/session';
 
 /**
@@ -33,19 +31,6 @@ const CHAT_STYLES = {
     BOUNCE: 'animate-bounce',
   }
 } as const;
-
-/**
- * Interface for the Chat API response.
- */
-interface ChatApiResponse {
-  reply?: string;
-  thought?: string;
-  messageId?: string;
-  agentName?: string;
-  tool_calls?: ToolCall[];
-  error?: string;
-  details?: string;
-}
 
 /**
  * Main interface for the chat dashboard.
@@ -106,8 +91,6 @@ export default function ChatContent() {
     setAttachments,
     fetchHistory,
     sendMessage,
-    updateAssistantResponse,
-    handleConnectionError,
     handleFiles,
     handleToolApproval,
     handleToolRejection,

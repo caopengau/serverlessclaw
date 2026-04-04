@@ -197,6 +197,30 @@ describe('session-operations', () => {
         })
       );
     });
+
+    it('should generate stable hash for non-numeric session IDs', async () => {
+      const sessionId = 'random-guid-string';
+      await saveConversationMeta(mockBase, 'user123', sessionId, { title: 'Hashed' });
+
+      expect(mockBase.updateItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Key: {
+            userId: 'SESSIONS#user123',
+            timestamp: expect.any(Number),
+          },
+        })
+      );
+
+      const firstCall = (mockBase.updateItem as any).mock.calls[0][0].Key.timestamp;
+
+      // Reset mock and call again with same ID
+      vi.clearAllMocks();
+      await saveConversationMeta(mockBase, 'user123', sessionId, { title: 'Hashed' });
+      const secondCall = (mockBase.updateItem as any).mock.calls[0][0].Key.timestamp;
+
+      expect(firstCall).toBe(secondCall);
+      expect(firstCall).toBeGreaterThan(0);
+    });
   });
 
   describe('saveLKGHash', () => {
