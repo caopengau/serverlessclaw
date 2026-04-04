@@ -9,11 +9,31 @@ import Button from '@/components/ui/Button';
 import CyberSelect from '@/components/CyberSelect';
 import { Agent } from '@/lib/types/ui';
 
+import { 
+  LLMProvider, 
+  OpenAIModel, 
+  BedrockModel, 
+  MiniMaxModel, 
+  OpenRouterModel 
+} from '@claw/core/lib/types/llm';
+
 const PROVIDERS = {
-  openai: { label: 'OpenAI (Native)', models: ['gpt-5.4', 'gpt-5.4-mini'] },
-  bedrock: { label: 'AWS Bedrock (Native)', models: ['global.anthropic.claude-sonnet-4-6'] },
-  minimax: { label: 'MiniMax (Native)', models: ['MiniMax-M2.7', 'MiniMax-M2.7-highspeed'] },
-  openrouter: { label: 'OpenRouter (Aggregator)', models: ['zhipu/glm-5', 'google/gemini-3-flash-preview'] },
+  [LLMProvider.OPENAI]: {
+    label: 'OpenAI (Native)',
+    models: [OpenAIModel.GPT_5_4, OpenAIModel.GPT_5_4_MINI, OpenAIModel.GPT_5_4_NANO, OpenAIModel.GPT_5_MINI],
+  },
+  [LLMProvider.BEDROCK]: {
+    label: 'AWS Bedrock (Native)',
+    models: [BedrockModel.CLAUDE_4_6],
+  },
+  [LLMProvider.MINIMAX]: {
+    label: 'MiniMax (Native)',
+    models: [MiniMaxModel.M2_7, MiniMaxModel.M2_7_HIGHSPEED],
+  },
+  [LLMProvider.OPENROUTER]: {
+    label: 'OpenRouter (Aggregator)',
+    models: [OpenRouterModel.GLM_5, OpenRouterModel.GEMINI_3_FLASH],
+  },
 };
 
 const REASONING_PROFILES = [

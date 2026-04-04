@@ -11,7 +11,7 @@
 
 import { logger } from './logger';
 import type { IAgentConfig } from './types/agent';
-import { ReasoningProfile } from './types/llm';
+import { LLMProvider, OpenAIModel, MiniMaxModel, ReasoningProfile } from './types/llm';
 import type { AgentReputation } from './types/reputation';
 import { computeReputationScore } from './memory/reputation-operations';
 
@@ -32,7 +32,7 @@ interface AgentPerformanceRollup {
  * Model capability tiers for routing decisions.
  */
 export enum ModelTier {
-  /** Fast, cheap models for simple tasks (e.g., gpt-5.4-mini, MiniMax M2.7). */
+  /** Fast, cheap models for simple tasks (e.g., gpt-5-mini, MiniMax M2.7). */
   ECONOMY = 'economy',
   /** Balanced models for standard tasks (e.g., GPT-5.4, GLM-5). */
   BALANCED = 'balanced',
@@ -56,11 +56,17 @@ const PROFILE_TO_TIER: Record<ReasoningProfile, ModelTier> = {
  * Order: first is preferred, rest are fallbacks.
  */
 const TIER_MODELS: Record<ModelTier, { provider: string; model: string }[]> = {
-  [ModelTier.ECONOMY]: [{ provider: 'minimax', model: 'MiniMax-M2.7' }],
-  [ModelTier.BALANCED]: [{ provider: 'minimax', model: 'MiniMax-M2.7' }],
+  [ModelTier.ECONOMY]: [
+    { provider: LLMProvider.MINIMAX, model: MiniMaxModel.M2_7 },
+    { provider: LLMProvider.OPENAI, model: OpenAIModel.GPT_5_MINI },
+  ],
+  [ModelTier.BALANCED]: [
+    { provider: LLMProvider.MINIMAX, model: MiniMaxModel.M2_7 },
+    { provider: LLMProvider.OPENAI, model: OpenAIModel.GPT_5_4_MINI },
+  ],
   [ModelTier.PREMIUM]: [
-    { provider: 'minimax', model: 'MiniMax-M2.7' },
-    { provider: 'openai', model: 'gpt-5.4' },
+    { provider: LLMProvider.MINIMAX, model: MiniMaxModel.M2_7 },
+    { provider: LLMProvider.OPENAI, model: OpenAIModel.GPT_5_4 },
   ],
 };
 

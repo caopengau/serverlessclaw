@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { IToolDefinition } from '../../lib/types/index';
+import { IToolDefinition, LLMProvider } from '../../lib/types/index';
 
 /**
  * Knowledge Domain Tool Definitions
@@ -78,7 +78,12 @@ export const knowledgeSchema: Record<string, IToolDefinition> = {
         },
         provider: {
           type: 'string',
-          enum: ['openai', 'bedrock', 'openrouter', 'minimax'],
+          enum: [
+            LLMProvider.OPENAI,
+            LLMProvider.BEDROCK,
+            LLMProvider.OPENROUTER,
+            LLMProvider.MINIMAX,
+          ],
           description: 'LLM provider for this agent.',
         },
         model: { type: 'string', description: 'Model ID to use (e.g., gpt-5.4-mini).' },

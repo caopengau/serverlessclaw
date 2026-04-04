@@ -143,6 +143,8 @@ export enum OpenAIModel {
   GPT_5_4_MINI = 'gpt-5.4-mini',
   /** Fast, cost-efficient reasoning model (GPT-5.4 family) */
   GPT_5_4_NANO = 'gpt-5.4-nano',
+  /** Mini reasoning model (GPT-5 family) */
+  GPT_5_MINI = 'gpt-5-mini',
 }
 
 /**

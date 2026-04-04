@@ -13,23 +13,30 @@ import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import { EvolutionMode } from '@claw/core/lib/types/agent';
+import { 
+  LLMProvider, 
+  OpenAIModel, 
+  BedrockModel, 
+  MiniMaxModel, 
+  OpenRouterModel 
+} from '@claw/core/lib/types/llm';
 
 const PROVIDERS = {
-  openai: {
+  [LLMProvider.OPENAI]: {
     label: 'OpenAI (Native)',
-    models: ['gpt-5.4', 'gpt-5.4-mini'],
+    models: [OpenAIModel.GPT_5_4, OpenAIModel.GPT_5_4_MINI, OpenAIModel.GPT_5_4_NANO, OpenAIModel.GPT_5_MINI],
   },
-  bedrock: {
+  [LLMProvider.BEDROCK]: {
     label: 'AWS Bedrock (Native)',
-    models: ['global.anthropic.claude-sonnet-4-6'],
+    models: [BedrockModel.CLAUDE_4_6],
   },
-  minimax: {
+  [LLMProvider.MINIMAX]: {
     label: 'MiniMax (Native)',
-    models: ['MiniMax-M2.7', 'MiniMax-M2.7-highspeed'],
+    models: [MiniMaxModel.M2_7, MiniMaxModel.M2_7_HIGHSPEED],
   },
-  openrouter: {
+  [LLMProvider.OPENROUTER]: {
     label: 'OpenRouter (Aggregator)',
-    models: ['zhipu/glm-5', 'google/gemini-3-flash-preview'],
+    models: [OpenRouterModel.GLM_5, OpenRouterModel.GEMINI_3_FLASH],
   },
 };
 
@@ -74,8 +81,8 @@ function ConfigTooltip({ id }: { id: string }) {
 }
 
 export default function SettingsForm({ config, updateConfig }: SettingsFormProps) {
-  const [activeProvider, setActiveProvider] = useState(config.provider ?? 'openai');
-  const [activeModel, setActiveModel] = useState(config.model ?? 'gpt-5.4');
+  const [activeProvider, setActiveProvider] = useState(config.provider ?? LLMProvider.OPENAI);
+  const [activeModel, setActiveModel] = useState(config.model ?? OpenAIModel.GPT_5_4);
   const [evolutionMode, setEvolutionMode] = useState(config.evolutionMode ?? EvolutionMode.HITL);
   const [optimizationPolicy, setOptimizationPolicy] = useState(config.optimizationPolicy ?? 'balanced');
   const [activeLocale, setActiveLocale] = useState(config.activeLocale ?? 'en');

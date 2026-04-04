@@ -51,6 +51,8 @@ async function getTraces() {
   }
 }
 
+import { LLMProvider, OpenAIModel } from '@claw/core/lib/types/llm';
+
 async function getConfig() {
   try {
     const typedResource = Resource as unknown as { ConfigTable?: { name: string } };
@@ -68,8 +70,8 @@ async function getConfig() {
     ]);
 
     return {
-      provider: providerRes.Item?.value ?? 'openai',
-      model: modelRes.Item?.value ?? 'gpt-5.4'
+      provider: providerRes.Item?.value ?? LLMProvider.OPENAI,
+      model: modelRes.Item?.value ?? OpenAIModel.GPT_5_4
     };
   } catch (e) {
     console.error('Error fetching config:', e);

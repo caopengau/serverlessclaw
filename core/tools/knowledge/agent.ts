@@ -3,6 +3,7 @@ import { ConfigManager } from '../../lib/registry/config';
 import { emitEvent } from '../../lib/utils/bus';
 import { formatErrorMessage } from '../../lib/utils/error';
 import { BACKBONE_REGISTRY } from '../../lib/backbone';
+import { LLMProvider, MiniMaxModel } from '../../lib/types/llm';
 
 /**
  * Lists all registered agents and their current status.
@@ -171,8 +172,8 @@ export const createAgent = {
         systemPrompt,
         enabled: enabled ?? true,
         isBackbone: false,
-        provider: provider ?? 'minimax',
-        model: model ?? 'MiniMax-M2.7',
+        provider: provider ?? LLMProvider.MINIMAX,
+        model: model ?? MiniMaxModel.M2_7,
         tools: [],
       };
 
