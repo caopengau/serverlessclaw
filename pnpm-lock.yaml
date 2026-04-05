@@ -195,8 +195,8 @@ importers:
         specifier: ^1.27.1
         version: 1.29.0(zod@4.3.6)
       '@openai/agents-core':
-        specifier: ^0.7.0
-        version: 0.7.2(ws@8.20.0)(zod@4.3.6)
+        specifier: ^0.8.0
+        version: 0.8.2(ws@8.20.0)(zod@4.3.6)
       archiver:
         specifier: ^7.0.1
         version: 7.0.1
@@ -1553,8 +1553,8 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@openai/agents-core@0.7.2':
-    resolution: {integrity: sha512-q+o0JrsaGz1b0GZf3omsq/27VRU2pixzACVtp4jXhzFV2XyXjqbzpT1vmS4H7wJZozSCOfaLTm65CcHCuLafXA==}
+  '@openai/agents-core@0.8.2':
+    resolution: {integrity: sha512-oxp8XmdFcZwturpfWzqpW/2doNJ75FHwYDfZdBxfSK4Q2vmwLsx9wNPmU67i8dubWUXmIzOSXNUCbdL6+iLNlg==}
     peerDependencies:
       zod: ^4.0.0
     peerDependenciesMeta:
@@ -8054,7 +8054,7 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@openai/agents-core@0.7.2(ws@8.20.0)(zod@4.3.6)':
+  '@openai/agents-core@0.8.2(ws@8.20.0)(zod@4.3.6)':
     dependencies:
       debug: 4.4.3
       openai: 6.33.0(ws@8.20.0)(zod@4.3.6)
