@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import PathVisualizer from '@/components/PathVisualizer';
+import TraceContextRegistrar from '@/components/Trace/TraceContextRegistrar';
 import Image from 'next/image';
 import { UI_STRINGS } from '@/lib/constants';
 import { TRACE_TYPES, TRACE_STATUS } from '@claw/core/lib/constants';
@@ -113,6 +114,15 @@ export default async function TraceDetailPage({
 
   return (
     <div className="flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
+      <TraceContextRegistrar
+        traceId={id}
+        url={`/trace/${id}`}
+        data={{
+          status: rootNode.status,
+          userText: rootNode.initialContext?.userText,
+          timestamp: rootNode.timestamp,
+        }}
+      />
       <header className="mb-10">
         <Link href="/trace" className="group">
           <Typography

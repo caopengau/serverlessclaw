@@ -9,6 +9,9 @@ describe('mock-agent-executor helpers', () => {
   it('createMockRunLoop should call provider and handle messages', async () => {
     const mockProvider = {
       call: vi.fn().mockResolvedValue({ content: 'response' }),
+      getCapabilities: vi.fn().mockResolvedValue({
+        supportedReasoningProfiles: ['standard'],
+      }),
     };
     const runLoop = createMockRunLoop(mockProvider as any, {}, 'agent-1', 'Agent 1');
     const response = await runLoop([]);
@@ -25,6 +28,9 @@ describe('mock-agent-executor helpers', () => {
           tool_calls: [{ id: '1', function: { name: 'test_tool' } }],
         })
         .mockResolvedValueOnce({ content: 'final response' }),
+      getCapabilities: vi.fn().mockResolvedValue({
+        supportedReasoningProfiles: ['standard'],
+      }),
     };
     const runLoop = createMockRunLoop(mockProvider as any, {}, 'agent-1', 'Agent 1');
     const response = await runLoop([
@@ -35,7 +41,12 @@ describe('mock-agent-executor helpers', () => {
   });
 
   it('createMockAgentExecutorFactory should create factory object', () => {
-    const mockProvider = { call: vi.fn() };
+    const mockProvider = {
+      call: vi.fn(),
+      getCapabilities: vi.fn().mockResolvedValue({
+        supportedReasoningProfiles: ['standard'],
+      }),
+    };
     const factory = createMockAgentExecutorFactory(mockProvider as any, {}, 'agent-1', 'Agent 1');
     expect(factory.agentId).toBe('agent-1');
     expect(factory.runLoop).toBeDefined();

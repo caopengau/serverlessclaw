@@ -2,6 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ChatInput } from './ChatInput';
+import { TranslationsProvider } from '@/components/Providers/TranslationsProvider';
 
 vi.mock('next/image', () => ({
   default: (props: Record<string, unknown>) => {
@@ -9,6 +10,20 @@ vi.mock('next/image', () => ({
     return <img {...props} />;
   },
 }));
+
+vi.mock('@claw/core/lib/constants', () => ({
+  CONFIG_KEYS: {
+    ACTIVE_LOCALE: 'active_locale',
+  },
+}));
+
+const renderWithTranslations = (component: React.ReactElement) => {
+  return render(
+    <TranslationsProvider>
+      {component}
+    </TranslationsProvider>
+  );
+};
 
 describe('ChatInput Component', () => {
   const defaultProps = {
@@ -23,34 +38,34 @@ describe('ChatInput Component', () => {
   };
 
   it('renders the input textarea', () => {
-    render(<ChatInput {...defaultProps} />);
+    renderWithTranslations(<ChatInput {...defaultProps} />);
     expect(screen.getByPlaceholderText('Execute command or query system...')).toBeInTheDocument();
   });
 
   it('renders SEND button when not loading', () => {
-    render(<ChatInput {...defaultProps} />);
+    renderWithTranslations(<ChatInput {...defaultProps} />);
     expect(screen.getByText('SEND')).toBeInTheDocument();
   });
 
   it('renders EXECUTING button when loading', () => {
-    render(<ChatInput {...defaultProps} isLoading={true} />);
+    renderWithTranslations(<ChatInput {...defaultProps} isLoading={true} />);
     expect(screen.getByText('EXECUTING...')).toBeInTheDocument();
   });
 
   it('disables send button when input is empty and no attachments', () => {
-    render(<ChatInput {...defaultProps} input="" />);
+    renderWithTranslations(<ChatInput {...defaultProps} input="" />);
     const button = screen.getByText('SEND').closest('button');
     expect(button).toHaveClass('opacity-50', 'cursor-not-allowed');
   });
 
   it('enables send button when input has text', () => {
-    render(<ChatInput {...defaultProps} input="hello" />);
+    renderWithTranslations(<ChatInput {...defaultProps} input="hello" />);
     const button = screen.getByText('SEND').closest('button');
     expect(button).not.toHaveClass('opacity-50', 'cursor-not-allowed');
   });
 
   it('enables send button when there are attachments', () => {
-    render(
+    renderWithTranslations(
       <ChatInput
         {...defaultProps}
         input=""
@@ -62,7 +77,7 @@ describe('ChatInput Component', () => {
   });
 
   it('renders file attachment previews', () => {
-    render(
+    renderWithTranslations(
       <ChatInput
         {...defaultProps}
         attachments={[{ type: 'file', file: new File([''], 'document.pdf'), preview: '' }]}
@@ -72,7 +87,7 @@ describe('ChatInput Component', () => {
   });
 
   it('renders image attachment previews', () => {
-    render(
+    renderWithTranslations(
       <ChatInput
         {...defaultProps}
         attachments={[
@@ -88,7 +103,7 @@ describe('ChatInput Component', () => {
   });
 
   it('disables send button when loading', () => {
-    render(<ChatInput {...defaultProps} input="hello" isLoading={true} />);
+    renderWithTranslations(<ChatInput {...defaultProps} input="hello" isLoading={true} />);
     const button = screen.getByText('EXECUTING...').closest('button');
     expect(button).toHaveClass('opacity-50', 'cursor-not-allowed');
   });

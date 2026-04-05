@@ -75,6 +75,20 @@ export interface ToolResult {
   images?: string[];
   /** Optional file references or metadata. */
   metadata?: Record<string, unknown>;
+  /**
+   * Optional dynamic UI blocks returned by the tool.
+   */
+  ui_blocks?: Array<{
+    id: string;
+    componentType: string;
+    props: Record<string, unknown>;
+    actions?: Array<{
+      id: string;
+      label: string;
+      type: 'primary' | 'secondary' | 'danger';
+      payload?: Record<string, unknown>;
+    }>;
+  }>;
 }
 
 /**

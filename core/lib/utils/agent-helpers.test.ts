@@ -1,12 +1,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
+  createAgent,
   extractBaseUserId,
+  validatePayload,
   extractPayload,
   detectFailure,
   isTaskPaused,
-  validatePayload,
-  createAgent,
 } from './agent-helpers';
+import { ReasoningProfile, AttachmentType } from '../types/index';
 
 vi.mock('../../tools/index', () => ({
   getAgentTools: vi.fn().mockResolvedValue([]),
@@ -25,7 +26,12 @@ vi.mock('../agent', () => ({
 describe('createAgent', () => {
   const mockConfig = { systemPrompt: 'Base Prompt', enabled: true };
   const mockMemory = {} as any;
-  const mockProvider = {} as any;
+  const mockProvider = {
+    getCapabilities: vi.fn().mockResolvedValue({
+      supportedReasoningProfiles: [ReasoningProfile.STANDARD],
+      supportedAttachmentTypes: [AttachmentType.IMAGE, AttachmentType.FILE],
+    }),
+  } as any;
 
   it('should append English instructions for locale=en', async () => {
     const agent = (await createAgent(

@@ -12,6 +12,7 @@ import { MessageRole } from '../types/index';
 const mockGetRawConfig = vi.fn();
 const mockGetPendingMessages = vi.fn();
 const mockClearPendingMessages = vi.fn();
+const mockRenewProcessing = vi.fn();
 const mockIsTaskCancelled = vi.fn();
 
 vi.mock('../logger', () => ({
@@ -30,6 +31,7 @@ vi.mock('../session/session-state', () => ({
   SessionStateManager: vi.fn().mockImplementation(() => ({
     getPendingMessages: (...args: unknown[]) => mockGetPendingMessages(...args),
     clearPendingMessages: (...args: unknown[]) => mockClearPendingMessages(...args),
+    renewProcessing: (...args: unknown[]) => mockRenewProcessing(...args),
   })),
 }));
 
@@ -74,6 +76,7 @@ describe('ExecutorHelper', () => {
     const mockStateManager = {
       getPendingMessages: (...args: unknown[]) => mockGetPendingMessages(...args),
       clearPendingMessages: (...args: unknown[]) => mockClearPendingMessages(...args),
+      renewProcessing: (...args: unknown[]) => mockRenewProcessing(...args),
     } as unknown as import('../session/session-state').SessionStateManager;
 
     it('returns original timestamp when no pending messages', async () => {

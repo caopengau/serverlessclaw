@@ -1,16 +1,16 @@
 import { getResourceName } from '@/lib/sst-utils';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { AlertTriangle } from 'lucide-react';
 import { revalidatePath } from 'next/cache';
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import SettingsForm from './SettingsForm';
 import DeploySyncStatus from '@/components/DeploySyncStatus';
 import Typography from '@/components/ui/Typography';
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
 import { SYSTEM } from '@claw/core/lib/constants';
 import { EvolutionMode } from '@claw/core/lib/types/agent';
+import SettingsClient from './SettingsClient';
+import en from '../../../messages/en.json';
+import cn from '../../../messages/cn.json';
 
 async function getConfig() {
   try {
@@ -356,16 +356,18 @@ async function triggerRebuild() {
 
 export default async function SettingsPage() {
   const config = await getConfig();
+  const messages = config.activeLocale === 'cn' ? cn : en;
+  const t = (key: string) => (messages as Record<string, string>)[key] ?? key;
 
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
       <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
         <div>
           <Typography variant="h2" color="white" glow uppercase>
-            Config
+            {t('SETTINGS_CONFIG')}
           </Typography>
           <Typography variant="body" color="muted" className="mt-2 block">
-            Hot-swappable neural architecture and provider routing.
+            {t('SETTINGS_DESCRIPTION')}
           </Typography>
         </div>
       </header>
@@ -373,32 +375,7 @@ export default async function SettingsPage() {
       <div className="max-w-4xl space-y-10">
         <SettingsForm config={config} updateConfig={updateConfig} />
 
-        <Card variant="solid" padding="lg" className="border-red-900/20 bg-red-950/5 space-y-6">
-          <Typography
-            variant="caption"
-            weight="bold"
-            color="danger"
-            uppercase
-            className="flex items-center gap-2"
-          >
-            <AlertTriangle size={16} /> Danger Zone
-          </Typography>
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center bg-red-950/20 p-6 rounded border border-red-900/30 gap-4">
-            <div>
-              <Typography variant="caption" weight="bold" color="white" uppercase>
-                Force Infra Rebuild
-              </Typography>
-              <Typography variant="caption" color="white" className="mt-1 block opacity-70">
-                Triggers a full SST deploy via CodeBuild. Use only if sst.config.ts changed.
-              </Typography>
-            </div>
-            <form action={triggerRebuild}>
-              <Button variant="danger" size="sm" type="submit" uppercase className="px-5">
-                Trigger Rebuild
-              </Button>
-            </form>
-          </div>
-        </Card>
+        <SettingsClient triggerRebuild={triggerRebuild} />
 
         <DeploySyncStatus />
       </div>

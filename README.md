@@ -21,13 +21,15 @@
   <font size="6"><strong>The Official ServerlessClaw: Self-Evolving AI Agent Swarm</strong></font><br>
   <em>$0 when idle. Elastic by design. Secure by default.</em><br>
   <strong>Autonomous infrastructure management • AI-powered code evolution • Serverless-first architecture</strong>
+  
 </p>
 
 <p align="center">
   <a href="https://clawmore.ai">🌐 Website</a> •
   <a href="https://clawmore.ai/signup">🚀 Get Started</a> •
   <a href="https://clawmore.ai/blog">📖 Blog</a> •
-  <a href="https://discord.gg/GdEghUdWHS">💬 Discord</a>
+  <a href="https://discord.gg/GdEghUdWHS">💬 Discord</a> •
+  <a href="https://github.com/serverlessclaw/serverlessclaw/discussions">🗣️ Discussions</a>
 </p>
 
 ---
@@ -186,7 +188,8 @@ We welcome contributions! See [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for guid
 **Ways to contribute:**
 
 - ⭐ Star the repository
-- 🐛 Report bugs via GitHub Issues
+- 🗣️ Participate in **[Discussions](https://github.com/serverlessclaw/serverlessclaw/discussions)**
+- 🐛 Report bugs via **GitHub Issues**
 - 💡 Suggest new features
 - 🔧 Submit pull requests
 - 📖 Improve documentation

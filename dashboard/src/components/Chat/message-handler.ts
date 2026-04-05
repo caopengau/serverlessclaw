@@ -9,11 +9,14 @@ export interface IncomingChunk {
   message?: string;
   userId?: string;
   isThought?: boolean;
+  thought?: string;
   agentName?: string;
   attachments?: ChatMessage['attachments'];
   options?: ChatMessage['options'];
   toolCalls?: ChatMessage['tool_calls'];
   tool_calls?: ChatMessage['tool_calls'];
+  ui_blocks?: ChatMessage['ui_blocks'];
+  pageContext?: ChatMessage['pageContext'];
 }
 
 /**
@@ -79,13 +82,14 @@ export function applyChunkToMessages(
     const isFinal =
       (data as IncomingChunk & { 'detail-type'?: string })['detail-type'] === 'outbound_message';
 
-    if (data.isThought) {
+    if (data.isThought || data.thought) {
       updated[existingIndex] = {
         ...existing,
         thought: isFinal
-          ? (data.message ?? existing.thought)
-          : (existing.thought ?? '') + (data.message ?? ''),
+          ? (data.message || data.thought || existing.thought)
+          : (existing.thought ?? '') + (data.message || data.thought || ''),
         options: data.options ?? existing.options,
+        ui_blocks: data.ui_blocks ?? existing.ui_blocks,
       };
     } else {
       updated[existingIndex] = {
@@ -96,6 +100,7 @@ export function applyChunkToMessages(
         attachments: data.attachments ?? existing.attachments,
         tool_calls: data.toolCalls || data.tool_calls || existing.tool_calls,
         options: data.options ?? existing.options,
+        ui_blocks: data.ui_blocks ?? existing.ui_blocks,
       };
     }
     return updated;
@@ -115,12 +120,14 @@ export function applyChunkToMessages(
     {
       role: 'assistant',
       content: data.isThought ? '' : (data.message ?? ''),
-      thought: data.isThought ? data.message : undefined,
+      thought: data.isThought ? (data.message || data.thought) : data.thought,
       messageId: data.messageId,
       agentName: data.agentName ?? 'SuperClaw',
       attachments: data.attachments,
       options: data.options,
       tool_calls: data.toolCalls || data.tool_calls,
+      ui_blocks: data.ui_blocks,
+      pageContext: data.pageContext,
     },
   ];
 }
@@ -140,6 +147,8 @@ export function mapHistoryMessage(m: HistoryMessage): ChatMessage {
     options: m.options,
     tool_calls: m.tool_calls,
     messageId: m.messageId || m.traceId,
+    ui_blocks: m.ui_blocks,
+    pageContext: m.pageContext,
   };
 }
 

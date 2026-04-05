@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Agent } from './agent';
-import { IMemory, IProvider, MessageRole } from './types/index';
+import { IMemory, IProvider, MessageRole, ReasoningProfile, AttachmentType } from './types/index';
 import * as handoff from './handoff';
 
 vi.mock('./handoff', () => ({
@@ -59,6 +59,10 @@ describe('Agent Handoff Bypass', () => {
         role: MessageRole.ASSISTANT,
         content: 'Agent response',
         usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 },
+      }),
+      getCapabilities: vi.fn().mockResolvedValue({
+        supportedReasoningProfiles: [ReasoningProfile.STANDARD],
+        supportedAttachmentTypes: [AttachmentType.IMAGE, AttachmentType.FILE],
       }),
     } as any;
   });

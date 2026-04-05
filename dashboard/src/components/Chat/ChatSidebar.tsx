@@ -4,6 +4,7 @@ import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import type { ConversationMeta } from '@claw/core/lib/types/memory';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface ChatSidebarProps {
   sessions: ConversationMeta[];
@@ -30,6 +31,7 @@ export function ChatSidebar({
   setSearchQuery,
   searchInputRef,
 }: ChatSidebarProps) {
+  const { t } = useTranslations();
   const filteredSessions = sessions
     .filter(
       (s) =>
@@ -69,7 +71,7 @@ export function ChatSidebar({
           <input
             type="text"
             ref={searchInputRef as React.RefObject<HTMLInputElement>}
-            placeholder="Search sessions..."
+            placeholder={t('CHAT_SIDEBAR_SEARCH')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-white/[0.03] border border-white/5 focus:border-cyber-green/40 rounded-lg py-2.5 pl-9 pr-4 text-xs text-white outline-none transition-all placeholder:text-white/10"
@@ -82,7 +84,7 @@ export function ChatSidebar({
           <div className="flex items-center gap-2">
             <Clock size={10} className="text-white/60" />
             <Typography variant="caption" weight="bold" color="muted">
-              CONVERSATION_LOGS
+              {t('CHAT_SIDEBAR_CONVERSATION_LOGS')}
             </Typography>
           </div>
           {sessions.length > 0 && (
@@ -94,7 +96,7 @@ export function ChatSidebar({
               icon={<Trash2 size={10} />}
             >
               <Typography variant="mono" color="danger" className="text-[8px]">
-                PURGE_ALL
+                {t('CHAT_SIDEBAR_PURGE_ALL')}
               </Typography>
             </Button>
           )}
@@ -103,7 +105,7 @@ export function ChatSidebar({
         {filteredSessions.length === 0 ? (
           <Card variant="solid" padding="sm" className="text-center italic text-white/20">
             <Typography variant="caption">
-              {searchQuery ? 'No matches found.' : 'No active logs found.'}
+              {searchQuery ? t('CHAT_SIDEBAR_NO_MATCHES') : t('CHAT_SIDEBAR_NO_LOGS')}
             </Typography>
           </Card>
         ) : (
@@ -183,7 +185,7 @@ export function ChatSidebar({
                     }}
                     className={`p-1 h-auto transition-colors z-10 ${s.isPinned ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/20'}`}
                     icon={s.isPinned ? <PinOff size={12} /> : <Pin size={12} />}
-                    title={s.isPinned ? 'Unpin Session' : 'Pin Session'}
+                    title={s.isPinned ? t('CHAT_SIDEBAR_UNPIN_SESSION') : t('CHAT_SIDEBAR_PIN_SESSION')}
                   />
                   <Button
                     variant="ghost"
@@ -217,7 +219,7 @@ export function ChatSidebar({
           }
         >
           <span className="group-hover:text-cyber-green transition-colors font-bold uppercase tracking-wider text-xs">
-            Start New Chat
+            {t('CHAT_SIDEBAR_NEW_CHAT')}
           </span>
         </Button>
       </div>

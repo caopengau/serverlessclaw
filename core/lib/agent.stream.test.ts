@@ -7,6 +7,7 @@ import {
   TraceSource,
   MessageChunk,
   AttachmentType,
+  ReasoningProfile,
 } from './types/index';
 
 // ── Mocks ───────────────────────────────────────────────────────────────────────
@@ -45,6 +46,7 @@ vi.mock('./agent/context-manager', () => ({
     })),
     needsSummarization: vi.fn().mockResolvedValue(false),
     summarize: vi.fn().mockResolvedValue(undefined),
+    estimateTokens: vi.fn().mockReturnValue(100),
   },
 }));
 
@@ -86,12 +88,15 @@ describe('Agent.stream()', () => {
     } as unknown as IMemory;
 
     mockProvider = {
-      call: vi.fn(),
-      stream: vi.fn(),
+      stream: vi.fn().mockReturnValue({
+        [Symbol.asyncIterator]: async function* () {
+          yield { content: 'Thinking...' };
+          yield { content: 'Done.' };
+        },
+      }),
       getCapabilities: vi.fn().mockResolvedValue({
-        supportedReasoningProfiles: ['standard'],
-        supportsStructuredOutput: false,
-        contextWindow: 128000,
+        supportedReasoningProfiles: [ReasoningProfile.STANDARD],
+        supportedAttachmentTypes: [AttachmentType.IMAGE, AttachmentType.FILE],
       }),
     } as unknown as IProvider;
 
@@ -138,6 +143,9 @@ describe('Agent.stream()', () => {
       content: 'Hello',
     });
 
+    const firstChunk = chunks[0];
+    expect(firstChunk).toHaveProperty('messageId');
+
     // addMessage(user) must be called AFTER getHistory to prevent duplication in fullHistory
     const addUserMessageOrder = vi.mocked(mockMemory.addMessage).mock.invocationCallOrder[0];
     const getHistoryOrder = vi.mocked(mockMemory.getHistory).mock.invocationCallOrder[0];
@@ -169,7 +177,14 @@ describe('Agent.stream()', () => {
 
     // ContextManager should receive history + current message exactly once
     expect(ContextManager.getManagedContext).toHaveBeenCalledWith(
-      [...existingHistory, expect.objectContaining({ role: MessageRole.USER, content: userText })],
+      [
+        ...existingHistory,
+        expect.objectContaining({
+          role: MessageRole.USER,
+          content: userText,
+          attachments: [],
+        }),
+      ],
       null,
       expect.any(String),
       expect.any(Number),
@@ -178,7 +193,7 @@ describe('Agent.stream()', () => {
 
     const callHistory = vi.mocked(ContextManager.getManagedContext).mock.calls[0][0];
     const currentMessageOccurrences = callHistory.filter(
-      (m: any) => m.role === MessageRole.USER && m.content === userText
+      (m: any) => m.role === MessageRole.USER && (m as any).content === userText
     ).length;
 
     expect(currentMessageOccurrences).toBe(1);
@@ -268,8 +283,9 @@ describe('Agent.stream()', () => {
       chunks.push(chunk);
     }
 
-    expect(chunks).toHaveLength(5);
-    expect(chunks[0].agentName).toBe('Test');
+    expect(chunks).toHaveLength(5); // messageId + Part1 + Part2 + Part3 + usage
+    expect(chunks[0]).toHaveProperty('messageId');
+    expect(chunks[1].agentName).toBe('Test');
     expect(chunks[1].content).toBe('Part1');
     expect(chunks[2].content).toBe('Part2');
     expect(chunks[3].content).toBe('Part3');

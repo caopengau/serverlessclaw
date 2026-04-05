@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { ChatMessage, AttachmentPreview, HistoryMessage, ToolCall } from './types';
+import {
+  ChatMessage,
+  AttachmentPreview,
+  HistoryMessage,
+  ToolCall,
+  DynamicComponent,
+  PageContextData,
+} from './types';
 import { AGENT_ERRORS } from '@/lib/constants';
 
 interface ChatApiResponse {
@@ -44,6 +51,8 @@ export function useChatMessages(
             options: m.options,
             tool_calls: m.tool_calls,
             messageId: m.messageId || m.traceId,
+            pageContext: m.pageContext,
+            ui_blocks: m.ui_blocks,
           }));
 
           const historyIds = new Set(
@@ -68,7 +77,7 @@ export function useChatMessages(
     }
   };
 
-  const updateAssistantResponse = (data: ChatApiResponse, tempId: string) => {
+  const updateAssistantResponse = (data: ChatApiResponse & { ui_blocks?: DynamicComponent[] }, tempId: string) => {
     const targetId = data.messageId || tempId;
     seenMessageIds.current.add(targetId);
     setMessages((prev: ChatMessage[]) => {
@@ -86,6 +95,7 @@ export function useChatMessages(
           thought: hasExistingThought ? existing.thought : data.thought || existing.thought,
           tool_calls: data.tool_calls || existing.tool_calls,
           agentName: data.agentName || existing.agentName,
+          ui_blocks: data.ui_blocks || existing.ui_blocks,
         };
         return updated;
       }
@@ -98,6 +108,7 @@ export function useChatMessages(
           messageId: targetId,
           agentName: data.agentName || 'SuperClaw',
           tool_calls: data.tool_calls,
+          ui_blocks: data.ui_blocks,
         },
       ];
     });
@@ -134,7 +145,7 @@ export function useChatMessages(
     }
   };
 
-  const sendMessage = async (text: string) => {
+  const sendMessage = async (text: string, pageContext?: PageContextData) => {
     if (!text.trim() && attachments.length === 0) return;
     if (isPostInFlight.current) return;
 
@@ -148,6 +159,7 @@ export function useChatMessages(
         role: 'user',
         content: userMsg,
         messageId: tempId,
+        pageContext,
         attachments: currentAttachments.map((a) => ({
           type: a.type,
           name: a.file.name,
@@ -189,10 +201,11 @@ export function useChatMessages(
           sessionId: currentSessionId,
           attachments: apiAttachments,
           traceId: tempId,
+          pageContext,
         }),
       });
 
-      const data = (await response.json()) as ChatApiResponse;
+      const data = (await response.json()) as ChatApiResponse & { ui_blocks?: DynamicComponent[] };
 
       if (!response.ok || data.error) {
         const errorContent = data.details || data.error || AGENT_ERRORS.PROCESS_FAILURE;

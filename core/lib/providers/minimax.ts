@@ -91,7 +91,7 @@ export class MiniMaxProvider implements IProvider {
       requestParams['tools'] = this.transformToolsToAnthropic(tools);
     }
 
-    if (responseFormat?.type === 'json_schema') {
+    if (responseFormat?.type === 'json_schema' && responseFormat.json_schema) {
       requestParams['output_config'] = {
         format: {
           type: 'json_schema',
@@ -200,7 +200,7 @@ export class MiniMaxProvider implements IProvider {
       requestParams['tools'] = this.transformToolsToAnthropic(tools);
     }
 
-    if (responseFormat?.type === 'json_schema') {
+    if (responseFormat?.type === 'json_schema' && responseFormat.json_schema) {
       requestParams['output_config'] = {
         format: {
           type: 'json_schema',

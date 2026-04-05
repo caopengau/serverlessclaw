@@ -17,6 +17,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       attachments,
       approvedToolCalls,
       traceId: clientTraceId,
+      pageContext,
     } = await req.json();
     const isStream = req.nextUrl.searchParams.get('stream') === 'true';
     const userId = 'dashboard-user'; // Fixed ID for dashboard chat
@@ -73,6 +74,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           attachments,
           approvedToolCalls,
           traceId: clientTraceId || undefined,
+          pageContext,
         });
         let finalResponse = '';
         let finalThought = '';
@@ -114,6 +116,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       source: TraceSource.DASHBOARD,
       attachments,
       approvedToolCalls,
+      pageContext,
     });
 
     // Update conversation metadata for the sidebar

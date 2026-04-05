@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Agent } from './agent';
-import { IMemory, IProvider, MessageRole, InsightCategory } from './types/index';
+import {
+  IMemory,
+  IProvider,
+  MessageRole,
+  InsightCategory,
+  ReasoningProfile,
+  AttachmentType,
+} from './types/index';
 
 // Mock ConfigManager
 vi.mock('./registry/config', () => ({
@@ -44,9 +51,10 @@ describe('Agent Memory Recall Regression', () => {
       stream: vi.fn().mockImplementation(async function* () {
         yield { type: 'chunk', content: 'Response' };
       }),
-      getCapabilities: vi
-        .fn()
-        .mockResolvedValue({ supportedReasoningProfiles: ['standard'], contextWindow: 100000 }),
+      getCapabilities: vi.fn().mockResolvedValue({
+        supportedReasoningProfiles: [ReasoningProfile.STANDARD],
+        supportedAttachmentTypes: [AttachmentType.IMAGE, AttachmentType.FILE],
+      }),
     } as unknown as IProvider;
   });
 

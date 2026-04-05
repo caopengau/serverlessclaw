@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Agent } from '../agent';
-import { IMemory, IProvider, MessageRole } from '../types/index';
+import { IMemory, IProvider, MessageRole, ReasoningProfile, AttachmentType } from '../types/index';
 
 // Mock Tracer to avoid SST link errors in tests
 vi.mock('../tracer', () => {
@@ -36,6 +36,10 @@ describe('Agent Memory Scoping', () => {
 
     mockProvider = {
       call: vi.fn().mockResolvedValue({ role: MessageRole.ASSISTANT, content: 'Hello' }),
+      getCapabilities: vi.fn().mockResolvedValue({
+        supportedReasoningProfiles: [ReasoningProfile.STANDARD],
+        supportedAttachmentTypes: [AttachmentType.IMAGE, AttachmentType.FILE],
+      }),
     } as unknown as IProvider;
   });
 

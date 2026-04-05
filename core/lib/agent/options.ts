@@ -62,4 +62,15 @@ export interface AgentProcessOptions {
    * Useful for the primary orchestrator that is directly responding to a user command.
    */
   ignoreHandoff?: boolean;
+  /**
+   * Optional page context attached by the user (URL, title, page data, etc.)
+   */
+  pageContext?: {
+    url: string;
+    title?: string;
+    data?: Record<string, unknown>;
+    traceId?: string;
+    sessionId?: string;
+    agentId?: string;
+  };
 }

@@ -93,7 +93,7 @@ export interface Message {
   usage?: {
     prompt_tokens: number;
     completion_tokens: number;
-    total_tokens: number;
+    total_tokens?: number;
   };
   /**
    * Optional UI options (buttons) associated with the message.
@@ -102,6 +102,31 @@ export interface Message {
     label: string;
     value: string;
     type?: ButtonType;
+  }>;
+  /**
+   * Optional page context attached by the user (URL, title, page data, etc.)
+   */
+  pageContext?: {
+    url: string;
+    title?: string;
+    data?: Record<string, unknown>;
+    traceId?: string;
+    sessionId?: string;
+    agentId?: string;
+  };
+  /**
+   * Optional dynamic UI blocks rendered by the assistant.
+   */
+  ui_blocks?: Array<{
+    id: string;
+    componentType: string;
+    props: Record<string, unknown>;
+    actions?: Array<{
+      id: string;
+      label: string;
+      type: 'primary' | 'secondary' | 'danger';
+      payload?: Record<string, unknown>;
+    }>;
   }>;
 }
 
@@ -131,6 +156,10 @@ export enum LLMProvider {
   OPENROUTER = 'openrouter',
   /** MiniMax (Direct API via Anthropic SDK). */
   MINIMAX = 'minimax',
+  /** Anthropic (Claude models). */
+  ANTHROPIC = 'anthropic',
+  /** Mock provider for testing. */
+  MOCK = 'mock',
 }
 
 /**
@@ -192,10 +221,10 @@ export interface ICapabilities {
  * Format specification for the LLM response, used to enforce structured output.
  */
 export interface ResponseFormat {
-  /** The type of format, currently only 'json_schema' is supported for strict enforcement. */
-  type: 'json_schema';
-  /** The detailed JSON schema definition. */
-  json_schema: {
+  /** The type of format. */
+  type: 'json_schema' | 'json_object' | 'text';
+  /** The detailed JSON schema definition (if type is json_schema). */
+  json_schema?: {
     /** A descriptive name for the schema. */
     name: string;
     /** Optional description of what the response format is for. */
@@ -235,8 +264,12 @@ export interface MessageChunk {
   usage?: {
     prompt_tokens: number;
     completion_tokens: number;
-    total_tokens: number;
+    total_tokens?: number;
   };
+  /**
+   * Optional dynamic UI blocks during streaming.
+   */
+  ui_blocks?: Message['ui_blocks'];
 }
 
 /**

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AgentExecutor } from './executor';
-import { ReasoningProfile, MessageRole } from '../types/index';
+import { ReasoningProfile, MessageRole, AttachmentType } from '../types/index';
 import { SessionStateManager } from '../session/session-state';
 import { ClawTracer } from '../tracer';
 
@@ -22,7 +22,10 @@ vi.mock('../logger', () => ({
 describe('AgentExecutor - Session Injection', () => {
   const mockProvider = {
     call: vi.fn().mockResolvedValue({ content: 'Final response', tool_calls: [] }),
-    getCapabilities: vi.fn().mockResolvedValue({ supportedReasoningProfiles: ['standard'] }),
+    getCapabilities: vi.fn().mockResolvedValue({
+      supportedReasoningProfiles: [ReasoningProfile.STANDARD],
+      supportedAttachmentTypes: [AttachmentType.IMAGE, AttachmentType.FILE],
+    }),
   };
 
   const mockTracer = {

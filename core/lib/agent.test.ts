@@ -7,6 +7,7 @@ import {
   TraceSource,
   Message,
   AttachmentType,
+  ReasoningProfile,
 } from './types/index';
 import { SYSTEM } from './constants';
 
@@ -68,9 +69,10 @@ describe('Agent Trace Propagation', () => {
 
     mockProvider = {
       call: vi.fn().mockResolvedValue({ role: MessageRole.ASSISTANT, content: 'Hello' }),
-      getCapabilities: vi
-        .fn()
-        .mockResolvedValue({ supportedReasoningProfiles: ['standard', 'fast'] }),
+      getCapabilities: vi.fn().mockResolvedValue({
+        supportedReasoningProfiles: [ReasoningProfile.STANDARD],
+        supportedAttachmentTypes: [AttachmentType.IMAGE, AttachmentType.FILE],
+      }),
     } as unknown as IProvider;
 
     // Default mock behaviors

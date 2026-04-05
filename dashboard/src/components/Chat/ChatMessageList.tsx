@@ -21,6 +21,7 @@ import Button from '@/components/ui/Button';
 import { ChatMessage } from './types';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { DynamicComponentRegistry } from '@/components/DynamicComponents/Registry';
 
 type MarkdownComponents = NonNullable<React.ComponentProps<typeof ReactMarkdown>['components']>;
 type MarkdownNodeProps = {
@@ -291,6 +292,20 @@ const ChatMessageRow = memo(function ChatMessageRow({
 
             {m.role === 'assistant' && m.tool_calls && m.tool_calls.length > 0 && (
               <ToolCallsDisplay toolCalls={m.tool_calls} />
+            )}
+
+            {m.role === 'assistant' && m.ui_blocks && m.ui_blocks.length > 0 && (
+              <div className="flex flex-col gap-4 mt-2 max-w-sm">
+                {m.ui_blocks.map((block) => (
+                  <DynamicComponentRegistry
+                    key={block.id}
+                    component={block}
+                    onAction={(actionId, payload) => {
+                      onOptionClick?.(actionId, payload ? (typeof payload === 'string' ? payload : JSON.stringify(payload)) : undefined);
+                    }}
+                  />
+                ))}
+              </div>
             )}
 
             {m.attachments && m.attachments.length > 0 && (

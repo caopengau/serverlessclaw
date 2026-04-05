@@ -359,7 +359,7 @@ export class ContextManager {
       }
 
       // Persist summarization token usage
-      if (response.usage && response.usage.total_tokens > 0) {
+      if (response.usage && (response.usage.total_tokens ?? 0) > 0) {
         try {
           const { TokenTracker } = await import('../metrics/token-usage');
           await TokenTracker.recordInvocation({
@@ -370,7 +370,9 @@ export class ContextManager {
             model: 'unknown',
             inputTokens: response.usage.prompt_tokens,
             outputTokens: response.usage.completion_tokens,
-            totalTokens: response.usage.total_tokens,
+            totalTokens:
+              response.usage.total_tokens ??
+              response.usage.prompt_tokens + response.usage.completion_tokens,
             toolCalls: 0,
             taskType: 'summarization',
             success: true,

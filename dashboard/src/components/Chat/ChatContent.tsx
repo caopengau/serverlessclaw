@@ -14,6 +14,7 @@ import { QueuedMessagesList } from './QueuedMessages';
 import { useChatMessages } from './useChatMessages';
 import { useKeyboardShortcuts, type ShortcutDefinition } from '@/hooks/useKeyboardShortcuts';
 import type { PendingMessage } from '@claw/core/lib/types/session';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 /**
  * Visual constants and style configurations for the Chat component.
@@ -38,6 +39,7 @@ const CHAT_STYLES = {
  * Manages chat messages, sessions, file uploads, and session settings.
  */
 export default function ChatContent() {
+  const { t } = useTranslations();
   // --- UI and Session State ---
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -162,9 +164,9 @@ export default function ChatContent() {
   // --- Title and Session Sync ---
   useEffect(() => {
     if (currentSession) {
-      setEditedTitle(currentSession.title ?? 'Untitled Trace');
+      setEditedTitle(currentSession.title ?? t('CHAT_UNTITLED_TRACE'));
     }
-  }, [currentSession]);
+  }, [currentSession, t]);
 
   useEffect(() => {
     activeSessionRef.current = activeSessionId;
@@ -412,7 +414,7 @@ export default function ChatContent() {
                 className={`text-cyber-green ${CHAT_STYLES.ANIMATIONS.BOUNCE}`}
               />
               <Typography variant="h2" weight="bold" color="primary" glow>
-                DROP FILES TO UPLOAD
+                {t('CHAT_DROP_FILES')}
               </Typography>
             </div>
           </div>
@@ -433,7 +435,7 @@ export default function ChatContent() {
                         if (e.key === 'Enter') saveTitle();
                         if (e.key === 'Escape') {
                           setIsEditingTitle(false);
-                          setEditedTitle(currentSession?.title ?? 'Untitled Trace');
+                          setEditedTitle(currentSession?.title ?? t('CHAT_UNTITLED_TRACE'));
                         }
                       }}
                       className="bg-white/5 border border-cyber-green/30 rounded px-2 py-1 text-lg font-bold text-white outline-none w-full"
@@ -462,7 +464,7 @@ export default function ChatContent() {
                       glow
                       className="truncate uppercase"
                     >
-                      {currentSession?.title || 'Untitled Trace'}
+                      {currentSession?.title || t('CHAT_UNTITLED_TRACE')}
                     </Typography>
                     <Button
                       variant="ghost"
@@ -482,7 +484,7 @@ export default function ChatContent() {
                 glow
                 className="truncate uppercase"
               >
-                Direct Chat
+                {t('CHAT_DIRECT')}
               </Typography>
             )}
           </div>
@@ -492,11 +494,11 @@ export default function ChatContent() {
               size="sm"
               onClick={() => setShowThinking(!showThinking)}
               className={`p-1 flex items-center gap-2 transition-colors ${showThinking ? 'text-cyber-green' : 'text-white/40 hover:text-white/70'}`}
-              title={showThinking ? 'Hide thinking blocks' : 'Show thinking blocks'}
+              title={showThinking ? t('CHAT_HIDE_THINKING') : t('CHAT_SHOW_THINKING')}
               icon={<Brain size={18} />}
             >
               <span className="text-[10px] font-mono uppercase tracking-wider hidden sm:inline">
-                Thinking
+                {t('CHAT_THINKING')}
               </span>
             </Button>
 
@@ -505,7 +507,7 @@ export default function ChatContent() {
               size="sm"
               onClick={() => setShowShortcutsHelp(true)}
               className="p-1 text-white/40 hover:text-cyber-green transition-colors"
-              title="Keyboard shortcuts (?)"
+              title={t('CHAT_KEYBOARD_SHORTCUTS')}
               icon={<Keyboard size={18} />}
             />
 
@@ -515,7 +517,7 @@ export default function ChatContent() {
                   className={`w-1.5 h-1.5 rounded-full bg-cyber-green ${CHAT_STYLES.ANIMATIONS.PULSE}`}
                 />
                 <Typography variant="mono" weight="bold" className="text-cyber-green text-[10px]">
-                  LIVE
+                  {t('CHAT_LIVE')}
                 </Typography>
               </div>
             )}
@@ -562,16 +564,16 @@ export default function ChatContent() {
 
       <CyberConfirm
         isOpen={showDeleteConfirm}
-        title="Delete Conversation"
-        message="Are you sure you want to purge this record from memory?"
+        title={t('CHAT_DELETE_CONVERSATION')}
+        message={t('CHAT_DELETE_CONFIRM')}
         onConfirm={confirmDelete}
         onCancel={() => setShowDeleteConfirm(false)}
         variant="warning"
       />
       <CyberConfirm
         isOpen={showDeleteAllConfirm}
-        title="PURGE ALL HISTORY"
-        message="WARNING: This action is irreversible. All active session history will be destroyed. Continue?"
+        title={t('CHAT_PURGE_ALL_HISTORY')}
+        message={t('CHAT_PURGE_WARNING')}
         onConfirm={confirmDeleteAll}
         onCancel={() => setShowDeleteAllConfirm(false)}
         variant="danger"
@@ -590,7 +592,7 @@ export default function ChatContent() {
               <div className="flex items-center gap-2">
                 <Keyboard size={18} className="text-cyber-green" />
                 <Typography variant="h3" weight="bold" color="white" glow className="uppercase">
-                  Keyboard Shortcuts
+                  {t('CHAT_KEYBOARD_SHORTCUTS_TITLE')}
                 </Typography>
               </div>
               <Button

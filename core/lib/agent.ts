@@ -7,8 +7,8 @@ import {
   IAgentConfig,
   TraceSource,
   Attachment,
-  InsightCategory,
   ToolCall,
+  MessageChunk,
 } from './types/index';
 import { logger } from './logger';
 import { AGENT_ERRORS, CONFIG_KEYS } from './constants';
@@ -100,6 +100,7 @@ export class Agent {
       sessionStateManager,
       approvedToolCalls,
       ignoreHandoff = false,
+      pageContext,
     } = options;
 
     const responseFormat =
@@ -177,6 +178,7 @@ export class Agent {
           activeProvider,
           activeProfile,
           systemPrompt: this.systemPrompt,
+          pageContext,
         }
       );
 
@@ -187,6 +189,7 @@ export class Agent {
         role: MessageRole.USER,
         content: userText,
         attachments: incomingAttachments,
+        pageContext,
       });
 
       const { AgentExecutor, AGENT_DEFAULTS } = await import('./agent/executor');
@@ -280,6 +283,14 @@ export class Agent {
       }
 
       let responseText = initialResponseText;
+      if (communicationMode === 'json' && responseText) {
+        try {
+          const parsed = JSON.parse(responseText);
+          responseText = parsed.message || parsed.plan || responseText;
+        } catch {
+          // Fallback to raw text if not valid JSON
+        }
+      }
 
       if (paused) {
         await this.memory.addMessage(storageId, {
@@ -298,84 +309,31 @@ export class Agent {
             sessionId,
             nodeId: nodeId ?? 'unknown',
             parentId: parentId ?? 'unknown',
-            attachments: incomingAttachments,
           });
         }
-        return {
-          responseText,
-          attachments: resultAttachments,
-          tool_calls: resultToolCalls,
+      } else {
+        await this.memory.addMessage(storageId, {
+          role: MessageRole.ASSISTANT,
+          content: responseText,
+          thought: resultThought,
+          agentName: this.config?.name ?? 'SuperClaw',
           traceId,
-        };
+          messageId: this.config?.id === 'superclaw' ? traceId : `${traceId}-${this.config?.id}`,
+        });
       }
-
-      if (communicationMode === 'json' && responseText) {
-        try {
-          const parsed = JSON.parse(responseText);
-          if (parsed.message) responseText = parsed.message;
-          else if (parsed.plan) responseText = parsed.plan;
-        } catch {
-          // Keep raw text
-        }
-      }
-
-      await this.memory.addMessage(storageId, {
-        role: MessageRole.ASSISTANT,
-        content: responseText,
-        agentName: this.config?.name ?? 'SuperClaw',
-        traceId,
-        messageId: this.config?.id === 'superclaw' ? traceId : `${traceId}-${this.config?.id}`,
-        attachments: resultAttachments,
-        tool_calls: resultToolCalls,
-      });
 
       await tracer.endTrace(responseText);
-
-      await this.emitter.considerReflection(
-        isIsolated,
-        userId,
-        messages, // history for reflection
-        userText,
-        tracer.getTraceId(),
-        messages,
-        responseText,
-        nodeId,
-        parentId,
-        sessionId
-      );
-
       return {
-        responseText: responseText,
-        thought:
-          resultThought || (initialResponseText !== responseText ? initialResponseText : undefined),
+        responseText,
         attachments: resultAttachments,
+        thought: resultThought,
         tool_calls: resultToolCalls,
         traceId,
       };
     } catch (error) {
-      const errorDetail = error instanceof Error ? error.message : String(error);
-      logger.error(`[Agent.process] Critical failure: ${errorDetail}`, error);
-
-      try {
-        const gapId = `GAP#PROC#${Date.now()}`;
-        await this.memory.setGap(
-          gapId,
-          `Execution failure for user ${userId} / session ${sessionId}. Error: ${errorDetail}`,
-          {
-            category: InsightCategory.STRATEGIC_GAP,
-            confidence: 10,
-            impact: 8,
-            complexity: 5,
-            risk: 5,
-            urgency: 7,
-            priority: 7,
-          }
-        );
-      } catch (gapError) {
-        logger.error('Failed to log strategic gap during error recovery:', gapError);
-      }
-
-      return { responseText: AGENT_ERRORS.PROCESS_FAILURE };
+      logger.error(`[Agent] Critical error in process loop:`, error);
+      await tracer.endTrace(AGENT_ERRORS.PROCESS_FAILURE);
+      throw error;
     }
   }
 
@@ -383,7 +341,7 @@ export class Agent {
     userId: string,
     userText: string,
     options: AgentProcessOptions = {}
-  ): AsyncIterable<import('./types/index').MessageChunk> {
+  ): AsyncGenerator<MessageChunk> {
     const {
       profile = this.config?.reasoningProfile ?? ReasoningProfile.STANDARD,
       context,
@@ -399,12 +357,13 @@ export class Agent {
       attachments: incomingAttachments,
       source = TraceSource.UNKNOWN,
       responseFormat: initialResponseFormat,
+      communicationMode = this.config?.defaultCommunicationMode ?? 'text',
       taskTimeoutMs,
       timeoutBehavior = 'pause',
-      communicationMode = this.config?.defaultCommunicationMode ?? 'text',
       sessionStateManager,
       approvedToolCalls,
       ignoreHandoff = false,
+      pageContext,
     } = options;
 
     const responseFormat =
@@ -436,16 +395,9 @@ export class Agent {
 
     const { isHumanTakingControl } = await import('./handoff');
     if (!ignoreHandoff && (await isHumanTakingControl(baseUserId))) {
-      logger.info(`[Agent.stream] Human control active for ${baseUserId}, entering OBSERVE mode.`);
-      const content = 'HUMAN_TAKING_CONTROL: Entering observe mode.';
-      yield { content, messageId: traceId };
-      await tracer.endTrace(content);
-      return;
-    }
-
-    if (userText.includes('(USER_ALREADY_NOTIFIED: true)')) {
-      logger.info(`Silent completion for agent ${this.config?.id} (Already Notified)`);
-      await tracer.endTrace('User already notified by sub-agent.');
+      logger.info(`[Agent] Human control active for ${baseUserId}, entering OBSERVE mode.`);
+      yield { content: 'HUMAN_TAKING_CONTROL: Entering observe mode.' };
+      await tracer.endTrace('HUMAN_TAKING_CONTROL');
       return;
     }
 
@@ -482,6 +434,7 @@ export class Agent {
         activeProvider,
         activeProfile,
         systemPrompt: this.systemPrompt,
+        pageContext,
       }
     );
 
@@ -489,6 +442,7 @@ export class Agent {
       role: MessageRole.USER,
       content: userText,
       attachments: incomingAttachments,
+      pageContext,
     });
 
     const executor = new (await import('./agent/executor')).AgentExecutor(
@@ -540,7 +494,7 @@ export class Agent {
         totalInputTokens += chunk.usage.prompt_tokens;
         totalOutputTokens += chunk.usage.completion_tokens;
       }
-      yield chunk;
+      yield { ...chunk, agentName: this.config?.name };
     }
 
     if (!process.env.VITEST) {
@@ -551,9 +505,19 @@ export class Agent {
       ]).catch(() => {});
     }
 
+    let finalResponseText = fullContent;
+    if (communicationMode === 'json' && finalResponseText) {
+      try {
+        const parsed = JSON.parse(finalResponseText);
+        finalResponseText = parsed.message || parsed.plan || finalResponseText;
+      } catch {
+        // Fallback to raw
+      }
+    }
+
     await this.memory.addMessage(storageId, {
       role: MessageRole.ASSISTANT,
-      content: fullContent,
+      content: finalResponseText,
       thought: fullThought,
       agentName: this.config?.name ?? 'SuperClaw',
       traceId,

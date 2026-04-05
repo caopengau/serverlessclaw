@@ -4,6 +4,33 @@
 import type { ToolCall } from '@claw/core/lib/types/llm';
 export type { ToolCall };
 
+/**
+ * Interface for the context data that can be captured from a page.
+ */
+export interface PageContextData {
+  url: string;
+  title?: string;
+  data?: Record<string, unknown>;
+  traceId?: string;
+  sessionId?: string;
+  agentId?: string;
+}
+
+/**
+ * Schema for dynamic operational components rendered in the chat.
+ */
+export interface DynamicComponent {
+  id: string;
+  componentType: string;
+  props: Record<string, unknown>;
+  actions?: {
+    id: string;
+    label: string;
+    type: 'primary' | 'secondary' | 'danger';
+    payload?: Record<string, unknown>;
+  }[];
+}
+
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
@@ -28,6 +55,10 @@ export interface ChatMessage {
     type?: 'primary' | 'secondary' | 'danger';
   }>;
   tool_calls?: ToolCall[];
+  /** Optional page context attached by the user */
+  pageContext?: PageContextData;
+  /** Optional dynamic UI blocks rendered by the assistant */
+  ui_blocks?: DynamicComponent[];
 }
 
 export interface HistoryMessage {
@@ -40,6 +71,8 @@ export interface HistoryMessage {
   attachments: ChatMessage['attachments'];
   options?: ChatMessage['options'];
   tool_calls?: ToolCall[];
+  pageContext?: PageContextData;
+  ui_blocks?: DynamicComponent[];
 }
 
 export interface AttachmentPreview {

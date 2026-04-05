@@ -34,6 +34,7 @@ export interface LoopResult {
   attachments?: NonNullable<Message['attachments']>;
   thought?: string;
   tool_calls?: ToolCall[];
+  ui_blocks?: Message['ui_blocks'];
   options?: Array<{ label: string; value: string; type?: string }>;
   usage?: ExecutorUsage;
 }

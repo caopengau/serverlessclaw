@@ -185,14 +185,14 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                 uppercase
                 className="flex items-center gap-2"
               >
-                <Settings size={16} /> LLM Provider Routing
+                <Settings size={16} /> {t('SETTINGS_LLM_PROVIDER_ROUTING')}
               </Typography>
               <button
                 type="button"
                 onClick={resetRouting}
                 className="text-[9px] font-bold text-intel/40 hover:text-intel uppercase tracking-widest transition-colors flex items-center gap-1"
               >
-                <RefreshCw size={10} /> Reset Defaults
+                <RefreshCw size={10} /> {t('SETTINGS_RESET_DEFAULTS')}
               </button>
             </div>
 
@@ -205,7 +205,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Active Provider
+                  {t('SETTINGS_ACTIVE_PROVIDER')}
                   <ConfigTooltip id="active_provider" />
                 </Typography>
                 <CyberSelect
@@ -231,7 +231,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Default Model ID
+                  {t('SETTINGS_DEFAULT_MODEL_ID')}
                   <ConfigTooltip id="active_model" />
                 </Typography>
                 <CyberSelect
@@ -264,7 +264,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                 onClick={resetLanguage}
                 className="text-[9px] font-bold text-intel/40 hover:text-intel uppercase tracking-widest transition-colors flex items-center gap-1"
               >
-                <RefreshCw size={10} /> Reset Defaults
+                <RefreshCw size={10} /> {t('SETTINGS_RESET_DEFAULTS')}
               </button>
             </div>
 
@@ -305,14 +305,14 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                 uppercase
                 className="flex items-center gap-2"
               >
-                <Zap size={16} /> Evolution Engine Control
+                <Zap size={16} /> {t('SETTINGS_EVOLUTION_ENGINE_CONTROL')}
               </Typography>
               <button
                 type="button"
                 onClick={resetEvolution}
                 className="text-[9px] font-bold text-primary/40 hover:text-primary uppercase tracking-widest transition-colors flex items-center gap-1"
               >
-                <RefreshCw size={10} /> Reset Defaults
+                <RefreshCw size={10} /> {t('SETTINGS_RESET_DEFAULTS')}
               </button>
             </div>
 
@@ -325,7 +325,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Evolution Mode
+                  {t('SETTINGS_EVOLUTION_MODE')}
                   <ConfigTooltip id="evolution_mode" />
                 </Typography>
                 <CyberSelect
@@ -333,8 +333,8 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   value={evolutionMode}
                   onChange={setEvolutionMode}
                   options={[
-                    { value: EvolutionMode.HITL, label: 'Human-in-the-Loop (Safe)' },
-                    { value: EvolutionMode.AUTO, label: 'Fully Autonomous (Live)' },
+                    { value: EvolutionMode.HITL, label: t('SETTINGS_HUMAN_IN_THE_LOOP') },
+                    { value: EvolutionMode.AUTO, label: t('SETTINGS_FULLY_AUTONOMOUS') },
                   ]}
                   className="w-full"
                 />
@@ -347,7 +347,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Daily Deploy Limit
+                  {t('SETTINGS_DAILY_DEPLOY_LIMIT')}
                   <ConfigTooltip id="deploy_limit" />
                 </Typography>
                 <input
@@ -366,7 +366,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Optimization Policy
+                  {t('SETTINGS_OPTIMIZATION_POLICY')}
                   <CyberTooltip
                     content={
                       <div className="space-y-2">
@@ -396,9 +396,9 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   value={optimizationPolicy}
                   onChange={setOptimizationPolicy}
                   options={[
-                    { value: 'aggressive', label: 'Aggressive (Velocity)' },
-                    { value: 'balanced', label: 'Balanced (Stability)' },
-                    { value: 'conservative', label: 'Conservative (Safety)' },
+                    { value: 'aggressive', label: t('SETTINGS_AGGRESSIVE') },
+                    { value: 'balanced', label: t('SETTINGS_BALANCED') },
+                    { value: 'conservative', label: t('SETTINGS_CONSERVATIVE') },
                   ]}
                   className="w-full"
                 />
@@ -411,7 +411,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Max Tool Iterations
+                  {t('SETTINGS_MAX_TOOL_ITERATIONS')}
                   <CyberTooltip
                     content={
                       <div className="space-y-2">
@@ -435,7 +435,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   className={`w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-${THEME.COLORS.PRIMARY} transition-colors font-mono`}
                 />
                 <Typography variant="caption" color="muted" className="italic block mt-1">
-                  Maximum number of tool-calling loops per request.
+                  {t('SETTINGS_MAX_TOOL_ITERATIONS_DESC')}
                 </Typography>
               </div>
               <div className="space-y-2">
@@ -447,7 +447,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     uppercase
                     className="flex items-center"
                   >
-                    Circuit Breaker Threshold
+                    {t('SETTINGS_CIRCUIT_BREAKER_THRESHOLD')}
                     <ConfigTooltip id="circuit_breaker_threshold" />
                   </Typography>
                   <Typography
@@ -475,7 +475,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Recursion Limit
+                  {t('SETTINGS_RECURSION_LIMIT')}
                   <CyberTooltip
                     content={
                       <div className="space-y-2">
@@ -507,7 +507,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Escalation Engine
+                  {t('SETTINGS_ESCALATION_ENGINE')}
                   <ConfigTooltip id="escalation_enabled" />
                 </Typography>
                 <CyberSelect
@@ -515,8 +515,8 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   value={escalationEnabled}
                   onChange={setEscalationEnabled}
                   options={[
-                    { value: 'true', label: 'Enabled (Multi-Channel)' },
-                    { value: 'false', label: 'Disabled (Legacy Only)' },
+                    { value: 'true', label: t('SETTINGS_ENABLED_MULTI_CHANNEL') },
+                    { value: 'false', label: t('SETTINGS_DISABLED_LEGACY') },
                   ]}
                   className="w-full"
                 />
@@ -529,7 +529,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Protocol Fallback
+                  {t('SETTINGS_PROTOCOL_FALLBACK')}
                   <ConfigTooltip id="protocol_fallback_enabled" />
                 </Typography>
                 <CyberSelect
@@ -537,8 +537,8 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   value={protocolFallbackEnabled}
                   onChange={setProtocolFallbackEnabled}
                   options={[
-                    { value: 'true', label: 'Enabled (JSON → Text)' },
-                    { value: 'false', label: 'Disabled (Fail on JSON Error)' },
+                    { value: 'true', label: t('SETTINGS_ENABLED_JSON_TEXT') },
+                    { value: 'false', label: t('SETTINGS_DISABLED_FAIL_JSON') },
                   ]}
                   className="w-full"
                 />
@@ -552,7 +552,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                 uppercase
                 className="flex items-center"
               >
-                Protected Resource Scopes
+                {t('SETTINGS_PROTECTED_RESOURCE_SCOPES')}
                 <CyberTooltip
                   content={
                     <div className="space-y-2">
@@ -576,7 +576,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                 className={`w-full bg-black/40 border border-white/10 rounded p-2 text-sm text-white/90 outline-none focus:border-${THEME.COLORS.PRIMARY} transition-colors font-mono`}
               />
               <Typography variant="caption" color="muted" className="italic block mt-1">
-                Comma-separated list of protected files or paths.
+                {t('SETTINGS_PROTECTED_RESOURCE_SCOPES_DESC')}
               </Typography>
             </div>
           </div>
@@ -590,14 +590,14 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                 uppercase
                 className="flex items-center gap-2"
               >
-                <RefreshCw size={16} /> Neural Reflection Config
+                <RefreshCw size={16} /> {t('SETTINGS_NEURAL_REFLECTION_CONFIG')}
               </Typography>
               <button
                 type="button"
                 onClick={resetReflection}
                 className="text-[9px] font-bold text-intel/40 hover:text-intel uppercase tracking-widest transition-colors flex items-center gap-1"
               >
-                <RefreshCw size={10} /> Reset Defaults
+                <RefreshCw size={10} /> {t('SETTINGS_RESET_DEFAULTS')}
               </button>
             </div>
 
@@ -610,7 +610,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Reflection Frequency (msgs)
+                  {t('SETTINGS_REFLECTION_FREQUENCY')}
                   <CyberTooltip
                     content={
                       <div className="space-y-2">
@@ -647,7 +647,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Strategic Review Interval (hrs)
+                  {t('SETTINGS_STRATEGIC_REVIEW_INTERVAL')}
                   <CyberTooltip
                     content={
                       <div className="space-y-2">
@@ -679,7 +679,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   uppercase
                   className="flex items-center"
                 >
-                  Min Gaps for Review
+                  {t('SETTINGS_MIN_GAPS_FOR_REVIEW')}
                   <CyberTooltip
                     content={
                       <div className="space-y-2">

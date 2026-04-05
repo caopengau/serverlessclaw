@@ -10,12 +10,18 @@ LOCAL_STAGE ?= local
 dev: ENV := local
 dev: clear-port ## Start SST in development mode (mono mode)
 	@$(call log_step,Starting SST dev mode on stage $(LOCAL_STAGE) in mono mode...)
-	@$(call load_env); unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN; TERM=xterm $(SST) dev --stage $(LOCAL_STAGE) 
+	@$(call load_env); \
+	if [ "$(LOCAL_STAGE)" = "local" ]; then unset AWS_PROFILE; fi; \
+	unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN; \
+	TERM=xterm $(SST) dev --stage $(LOCAL_STAGE) 
 
 dev-mono: ENV := local
 dev-mono: clear-port ## Start SST in development mode (mono mode)
 	@$(call log_step,Starting SST dev mode on stage $(LOCAL_STAGE) in mono mode...)
-	@$(call load_env); unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN; TERM=xterm $(SST) dev --stage $(LOCAL_STAGE) --mode=mono
+	@$(call load_env); \
+	if [ "$(LOCAL_STAGE)" = "local" ]; then unset AWS_PROFILE; fi; \
+	unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN; \
+	TERM=xterm $(SST) dev --stage $(LOCAL_STAGE) --mode=mono
 
 deploy: ## Deploy SST to the environment (default: prod)
 	@$(call log_step,Preparing deployment for environment: $(ENV)...)

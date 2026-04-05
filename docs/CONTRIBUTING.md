@@ -32,6 +32,14 @@ make dev
 
 ---
 
+## Reporting Issues & Getting Help
+
+- **[GitHub Discussions](https://github.com/serverlessclaw/serverlessclaw/discussions)**: The best place for questions, RFCs, and general Q&A. Please check here before opening an issue.
+- **[GitHub Issues](https://github.com/serverlessclaw/serverlessclaw/issues)**: Use only for **Bug Reports** and **Feature Requests**. Use the provided templates to ensure your submission has the necessary context.
+- **[Discord](https://discord.gg/GdEghUdWHS)**: For real-time chat and community interaction.
+
+---
+
 ## Pre-push Hooks
 
 Husky triggers `make pre-push` before every push. This runs full quality checks (`make check`), all unit tests (`make test`), and an AI-readiness scan (`make aiready`) ensuring a score of **80+**.

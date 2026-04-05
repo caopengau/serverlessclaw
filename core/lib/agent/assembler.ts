@@ -11,6 +11,7 @@ import { SYSTEM, LIMITS } from '../constants';
 import { AgentContext } from './context';
 import { ContextManager } from './context-manager';
 import { resolvePromptSnippets } from '../prompts/snippets';
+import { logger } from '../logger';
 
 export interface ContextResult {
   contextPrompt: string;
@@ -37,9 +38,25 @@ export class AgentAssembler {
       activeProvider: string;
       activeProfile: ReasoningProfile;
       systemPrompt: string;
+      pageContext?: {
+        url: string;
+        title?: string;
+        data?: Record<string, unknown>;
+        traceId?: string;
+        sessionId?: string;
+        agentId?: string;
+      };
     }
   ): Promise<ContextResult> {
-    const { isIsolated, depth, activeModel, activeProvider, activeProfile, systemPrompt } = options;
+    const {
+      isIsolated,
+      depth,
+      activeModel,
+      activeProvider,
+      activeProfile,
+      systemPrompt,
+      pageContext,
+    } = options;
 
     // 1. Memory Retrieval (parallelized)
     const [history, [distilled, lessons, prefPrefixed, prefRaw, globalLessons]] = await Promise.all(
@@ -94,6 +111,10 @@ export class AgentAssembler {
       // Silently ignore
     }
 
+    const pageContextBlock = pageContext
+      ? `\n\n[CURRENT_PAGE_CONTEXT]:\nThe user is currently interacting with this dashboard page. Use this to provide context-aware assistance.\nURL: ${pageContext.url}${pageContext.title ? `\nTitle: ${pageContext.title}` : ''}${pageContext.traceId ? `\nActive Trace ID: ${pageContext.traceId}` : ''}${pageContext.sessionId ? `\nActive Session ID: ${pageContext.sessionId}` : ''}${pageContext.agentId ? `\nActive Agent ID: ${pageContext.agentId}` : ''}${pageContext.data ? `\nPage Data: ${JSON.stringify(pageContext.data)}` : ''}\n`
+      : '';
+
     // 3. Prompt Assembly
     const globalLessonsBlock =
       globalLessons.length > 0
@@ -113,6 +134,7 @@ export class AgentAssembler {
     }
 
     if (recoveryContext) contextPrompt += recoveryContext;
+    contextPrompt += pageContextBlock;
     contextPrompt += `\n\n${AgentContext.getMemoryIndexBlock(distilled, lessons.length, preferences.items.length)}`;
     contextPrompt += `\n\n[INTELLIGENCE]\n${facts.length > 0 ? facts : 'No persistent knowledge available for this user yet.'}\n\n`;
     contextPrompt += globalLessonsBlock;
@@ -153,17 +175,9 @@ export class AgentAssembler {
       { model: activeModel, provider: activeProvider }
     );
 
-    // 4. Summarization Trigger (Background)
-    if (
-      await ContextManager.needsSummarization(
-        fullHistory,
-        contextLimit,
-        undefined,
-        activeModel,
-        activeProvider
-      )
-    ) {
-      const { logger } = await import('../logger');
+    // Trigger background summarization if context limits are reached
+    if (await ContextManager.needsSummarization(fullHistory, contextLimit)) {
+      // Fire and forget summarization to not block the current turn
       ContextManager.summarize(memory, storageId, provider, fullHistory).catch((err) =>
         logger.error('Background summarization failed:', err)
       );
@@ -172,7 +186,7 @@ export class AgentAssembler {
     return {
       contextPrompt,
       messages: managed.messages,
-      summary,
+      summary: summary, // Use the original summary since ContextManager doesn't return a new one
       contextLimit,
       activeModel,
       activeProvider,

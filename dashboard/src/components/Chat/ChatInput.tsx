@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import { AttachmentPreview } from './types';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface ChatInputProps {
   input: string;
@@ -32,6 +33,7 @@ export function ChatInput({
   isShaking = false,
   chatInputRef,
 }: ChatInputProps) {
+  const { t } = useTranslations();
   const [localShake, setLocalShake] = useState(false);
   const internalRef = useRef<HTMLTextAreaElement>(null);
   const textareaRef = (chatInputRef as React.RefObject<HTMLTextAreaElement>) || internalRef;
@@ -123,7 +125,7 @@ export function ChatInput({
                   handleSend(e);
                 }
               }}
-              placeholder="Execute command or query system..."
+              placeholder={t('CHAT_PLACEHOLDER')}
               className={`w-full h-full bg-white/[0.02] border rounded-lg py-[15px] px-4 pr-12 text-sm text-white outline-none transition-all placeholder:text-white/20 resize-none max-h-[200px] overflow-hidden leading-5 box-border ${shouldShake ? 'border-cyber-green shadow-[0_0_15px_rgba(0,255,163,0.5)]' : 'border-white/5 focus:border-cyber-green/40'}`}
               rows={1}
               style={{ height: '52px' }}
@@ -136,7 +138,7 @@ export function ChatInput({
               }}
             />
             <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-mono text-white/10 uppercase pointer-events-none group-focus-within:text-cyber-green/40 transition-colors">
-              Cmd + Enter
+              {t('CHAT_CMD_ENTER')}
             </div>
           </div>
 
@@ -151,7 +153,7 @@ export function ChatInput({
             variant="primary"
             icon={<Send size={18} className={isLoading ? 'animate-ping' : ''} />}
           >
-            {isLoading ? 'EXECUTING...' : 'SEND'}
+            {isLoading ? t('CHAT_EXECUTING') : t('CHAT_SEND')}
           </Button>
         </div>
       </form>

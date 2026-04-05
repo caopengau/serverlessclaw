@@ -1,0 +1,188 @@
+'use client';
+
+import React, { useState, useRef } from 'react';
+import { usePathname } from 'next/navigation';
+import { MessageSquare, X, Minimize2, Maximize2, Activity } from 'lucide-react';
+import Button from '@/components/ui/Button';
+import Typography from '@/components/ui/Typography';
+import Card from '@/components/ui/Card';
+import { ChatMessageList } from './ChatMessageList';
+import { ChatInput } from './ChatInput';
+import { useChatConnection } from './useChatConnection';
+import { useChatMessages } from './useChatMessages';
+import { usePageContext } from '@/components/Providers/PageContextProvider';
+
+/**
+ * Global Chat Bubble component that floats on all pages.
+ * Allows quick interaction with SuperClaw from anywhere in the dashboard.
+ */
+export default function ChatBubble() {
+  const pathname = usePathname();
+  const { context: pageContext } = usePageContext();
+  const [isOpen, setIsOpen] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [attachContext, setAttachContext] = useState(true);
+  const [activeSessionId, setActiveSessionId] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const isPostInFlight = useRef<boolean>(false);
+  const activeSessionRef = useRef<string>('');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [input, setInput] = useState('');
+
+  // --- Hooks ---
+  const { seenMessageIds, fetchSessions } = useChatConnection(
+    activeSessionId,
+    () => {}, 
+    setIsLoading,
+    isPostInFlight
+  );
+
+  const {
+    messages,
+    sendMessage,
+    handleFiles,
+    attachments,
+    setAttachments,
+  } = useChatMessages(
+    activeSessionId,
+    setActiveSessionId,
+    setIsLoading,
+    isPostInFlight,
+    seenMessageIds,
+    fetchSessions,
+    { current: false }, // skipNextHistoryFetch
+    activeSessionRef
+  );
+
+  // Hide the bubble on the main chat page to avoid redundancy
+  if (pathname === '/chat' || pathname === '/') {
+    return null;
+  }
+
+  const toggleOpen = () => {
+    setIsOpen(!isOpen);
+    setIsMinimized(false);
+  };
+
+  const toggleMinimized = () => {
+    setIsMinimized(!isMinimized);
+  };
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() && attachments.length === 0) return;
+    sendMessage(input, attachContext && pageContext ? pageContext : undefined);
+    setInput('');
+  };
+
+  const onFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      handleFiles(files);
+    }
+  };
+
+  const onRemoveAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  return (
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">
+      {/* Chat Window */}
+      {isOpen && !isMinimized && (
+        <Card
+          variant="glass"
+          className="w-[400px] h-[600px] flex flex-col shadow-2xl border-cyber-green/30 animate-in fade-in slide-in-from-bottom-4 duration-300 overflow-hidden"
+          padding="none"
+        >
+          {/* Header */}
+          <div className="p-4 border-b border-white/10 bg-black/40 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-cyber-green animate-pulse" />
+              <Typography variant="h3" weight="bold" className="text-sm uppercase tracking-wider">
+                SuperClaw Direct
+              </Typography>
+            </div>
+            <div className="flex items-center gap-1">
+              {pageContext && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAttachContext(!attachContext)}
+                  icon={<Activity size={14} className={attachContext ? 'text-cyber-green' : 'text-white/20'} />}
+                  title={attachContext ? 'Page context attached' : 'Attach page context'}
+                  className="hover:bg-white/5"
+                />
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleMinimized}
+                icon={<Minimize2 size={16} />}
+                className="hover:text-cyber-green"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleOpen}
+                icon={<X size={16} />}
+                className="hover:text-red-500"
+              />
+            </div>
+          </div>
+
+          {/* Messages Area */}
+          <div className="flex-1 overflow-hidden relative bg-[radial-gradient(circle_at_top_right,_rgba(0,255,163,0.05)_0%,_transparent_70%)]">
+            <ChatMessageList
+              messages={messages}
+              isLoading={isLoading}
+              scrollRef={scrollRef}
+              showThinking={true}
+            />
+          </div>
+
+          {/* Input Area */}
+          <div className="p-4 border-t border-white/10 bg-black/40">
+            <ChatInput
+              input={input}
+              setInput={setInput}
+              onSend={handleSendMessage}
+              isLoading={isLoading}
+              attachments={attachments}
+              onRemoveAttachment={onRemoveAttachment}
+              fileInputRef={fileInputRef}
+              onFileSelect={onFileSelect}
+            />
+          </div>
+        </Card>
+      )}
+
+      {/* Minimized Bar */}
+      {isOpen && isMinimized && (
+        <button
+          onClick={toggleMinimized}
+          className="bg-black/80 backdrop-blur-md border border-cyber-green/30 px-4 py-2 rounded-lg flex items-center gap-3 shadow-lg hover:border-cyber-green transition-all group"
+        >
+          <div className="w-2 h-2 rounded-full bg-cyber-green animate-pulse" />
+          <Typography variant="caption" weight="bold" className="uppercase tracking-widest text-[10px]">
+            SuperClaw Active
+          </Typography>
+          <Maximize2 size={14} className="text-white/40 group-hover:text-white" />
+        </button>
+      )}
+
+      {/* Floating Action Button (FAB) */}
+      {!isOpen && (
+        <button
+          onClick={toggleOpen}
+          className="w-14 h-14 rounded-full bg-cyber-green text-black flex items-center justify-center shadow-[0_0_20px_rgba(0,255,163,0.4)] hover:scale-110 transition-transform group relative"
+          aria-label="Open Chat"
+        >
+          <div className="absolute inset-0 rounded-full bg-cyber-green animate-ping opacity-20" />
+          <MessageSquare size={24} className="group-hover:rotate-12 transition-transform" />
+        </button>
+      )}
+    </div>
+  );
+}

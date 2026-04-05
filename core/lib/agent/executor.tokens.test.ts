@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AgentExecutor } from './executor';
-import { MessageRole, ReasoningProfile } from '../types/index';
+import { MessageRole, ReasoningProfile, AttachmentType } from '../types/index';
 
 vi.mock('../../handlers/events/cancellation-handler', () => ({
   isTaskCancelled: vi.fn().mockResolvedValue(false),
@@ -17,6 +17,7 @@ describe('AgentExecutor Token Tracking', () => {
       getCapabilities: vi.fn().mockResolvedValue({
         supportedReasoningProfiles: [ReasoningProfile.STANDARD],
         supportsStructuredOutput: true,
+        supportedAttachmentTypes: [AttachmentType.IMAGE, AttachmentType.FILE],
       }),
     };
 

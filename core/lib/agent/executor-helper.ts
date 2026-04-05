@@ -56,6 +56,7 @@ export class ExecutorHelper {
       }
 
       const processedIds = newMessages.map((m) => m.id);
+      await sessionStateManager.renewProcessing(sessionId, agentId);
       await sessionStateManager.clearPendingMessages(sessionId, processedIds);
       logger.info(`[EXECUTOR] ${processedIds.length} pending messages cleared`);
 

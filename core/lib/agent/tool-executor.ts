@@ -37,8 +37,10 @@ export class ToolExecutor {
     responseText?: string;
     asyncWait?: boolean;
     toolCallCount: number;
+    ui_blocks?: Message['ui_blocks'];
   }> {
     let toolCallCount = 0;
+    const ui_blocks: NonNullable<Message['ui_blocks']> = [];
 
     for (const toolCall of toolCalls) {
       const tool = availableTools.find((t) => t.name === toolCall.function.name);
@@ -166,13 +168,16 @@ export class ToolExecutor {
         `[EXECUTOR] Tool Result: ${tool.name} | Success: ${!resultText.startsWith('FAILED')}`
       );
 
-      // 4. Attachments Collection
+      // 4. Attachments & UI Blocks Collection
       if (typeof rawResult !== 'string') {
         const res = rawResult as ToolResult;
         if (res.images && res.images.length > 0) {
           for (const img of res.images) {
             attachments.push({ type: AttachmentType.IMAGE, base64: img });
           }
+        }
+        if (res.ui_blocks && res.ui_blocks.length > 0) {
+          ui_blocks.push(...res.ui_blocks);
         }
         if (res.metadata?.attachments && Array.isArray(res.metadata.attachments)) {
           attachments.push(...(res.metadata.attachments as NonNullable<Message['attachments']>));
@@ -224,10 +229,11 @@ export class ToolExecutor {
           paused: true,
           asyncWait: true,
           toolCallCount,
+          ui_blocks: ui_blocks.length > 0 ? ui_blocks : undefined,
         };
       }
     }
 
-    return { toolCallCount };
+    return { toolCallCount, ui_blocks: ui_blocks.length > 0 ? ui_blocks : undefined };
   }
 }

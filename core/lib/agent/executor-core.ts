@@ -1,4 +1,12 @@
-import { Message, ITool, IProvider, MessageRole, ToolCall, MessageChunk } from '../types/index';
+import {
+  Message,
+  ITool,
+  IProvider,
+  MessageRole,
+  ToolCall,
+  MessageChunk,
+  ButtonType,
+} from '../types/index';
 import { logger } from '../logger';
 import { normalizeProfile } from '../providers/utils';
 import { LIMITS, TRACE_TYPES } from '../constants';
@@ -12,8 +20,6 @@ import {
 } from './executor-types';
 import { ExecutorHelper } from './executor-helper';
 import { ToolExecutor } from './tool-executor';
-import { callWithFallback, FallbackResult } from './protocol-fallback';
-import { ConfigManager } from '../registry/config';
 
 /**
  * Core implementation of the iterative execution loop.
@@ -62,6 +68,7 @@ export class ExecutorCore {
     let iterations = 0;
     let responseText = '';
     const attachments: NonNullable<Message['attachments']> = [];
+    const ui_blocks: NonNullable<Message['ui_blocks']> = [];
     let lastAiResponse: Message | undefined;
     const usage: ExecutorUsage = {
       totalInputTokens: 0,
@@ -73,7 +80,12 @@ export class ExecutorCore {
     const loopStartTime = Date.now();
 
     while (iterations < maxIterations) {
-      const errorResult = await this.performPreLoopChecks(messages, attachments, options);
+      const errorResult = await this.performPreLoopChecks(
+        messages,
+        attachments,
+        options,
+        loopStartTime
+      );
       if (errorResult) return { ...errorResult, attachments };
 
       const aiResponse = await this.callLLM(messages, options);
@@ -122,12 +134,16 @@ export class ExecutorCore {
         );
 
         usage.toolCallCount += toolResult.toolCallCount;
+        if (toolResult.ui_blocks) {
+          ui_blocks.push(...toolResult.ui_blocks);
+        }
         if (toolResult.paused) {
           return this.handlePausedToolResult(
             aiResponse,
             toolResult,
             attachments,
-            approvedToolCalls
+            approvedToolCalls,
+            ui_blocks
           );
         }
         iterations++;
@@ -144,7 +160,8 @@ export class ExecutorCore {
       maxIterations,
       lastAiResponse,
       attachments,
-      usage
+      usage,
+      ui_blocks
     );
   }
 
@@ -160,6 +177,8 @@ export class ExecutorCore {
       userText,
       taskId,
     } = options;
+
+    yield { messageId: traceId || taskId } as MessageChunk;
 
     const cancellationMsg = await ExecutorHelper.checkCancellation(taskId);
     if (cancellationMsg) {
@@ -210,32 +229,22 @@ export class ExecutorCore {
       toolCallCount: 0,
       durationMs: 0,
     };
-
-    if (emitter) {
-      yield {
-        content: '',
-        'detail-type': 'chunk',
-        thought: '',
-        messageId: traceId,
-        agentName: this.agentName,
-      };
-    }
+    const loopStartTime = Date.now();
 
     while (iterations < maxIterations) {
-      await tracer.addStep({
-        type: TRACE_TYPES.LLM_CALL,
-        content: {
-          messageCount: messages.length,
-          model: options.activeModel,
-          provider: options.activeProvider,
-        },
-      });
+      const errorResult = await this.performPreLoopChecks(messages, [], options, loopStartTime);
+      if (errorResult) {
+        yield { content: errorResult.responseText };
+        break;
+      }
+
+      await this.manageContext(messages, options.activeModel, options.activeProvider);
 
       const capabilities = await this.provider.getCapabilities(options.activeModel);
       const normalizedProfile = normalizeProfile(
         options.activeProfile,
         capabilities,
-        options.activeModel ?? 'default'
+        options.activeModel
       );
 
       const stream = this.provider.stream(
@@ -244,119 +253,50 @@ export class ExecutorCore {
         normalizedProfile,
         options.activeModel,
         options.activeProvider,
-        capabilities.supportsStructuredOutput ? options.responseFormat : undefined,
+        options.responseFormat,
         options.temperature,
         options.maxTokens,
         options.topP,
         options.stopSequences
       );
 
-      logger.info(
-        `[Executor] Starting stream loop for agent ${this.agentId} | traceId: ${traceId}`
-      );
-
       let fullContent = '';
       let fullThought = '';
-
-      const stripMarkdown = (s: string): string => s.replace(/[*_`~]/g, '');
-
-      const appendDedup = (
-        accumulator: string,
-        chunk: string,
-        maxCheck: number = 80
-      ): [string, string] => {
-        if (!accumulator) return [chunk, chunk];
-        if (!chunk) return [accumulator, ''];
-        const accStripped = stripMarkdown(accumulator);
-        const chunkStripped = stripMarkdown(chunk);
-        const overlapLen = Math.min(maxCheck, accStripped.length, chunkStripped.length);
-        for (let len = overlapLen; len > 0; len--) {
-          if (accStripped.endsWith(chunkStripped.slice(0, len))) {
-            let strippedIdx = 0;
-            let origIdx = 0;
-            while (strippedIdx < len && origIdx < chunk.length) {
-              if (!/[*_`~]/.test(chunk[origIdx])) strippedIdx++;
-              origIdx++;
-            }
-            const delta = chunk.slice(origIdx);
-            if (!delta) return [accumulator, ''];
-            return [accumulator + delta, delta];
-          }
-        }
-        return [accumulator + chunk, chunk];
-      };
-
       const toolCalls: ToolCall[] = [];
-      let jsonMessageExtracted = false;
 
       for await (const chunk of stream) {
-        if (chunk.thought) {
-          const [newThought, thoughtDelta] = appendDedup(fullThought, chunk.thought);
-          fullThought = newThought;
-          if (emitter && thoughtDelta) {
+        if (chunk.content) {
+          const contentDelta = chunk.content;
+          fullContent += contentDelta;
+          if (emitter) {
             emitter.emitChunk(
               userId,
               sessionId,
               traceId,
-              thoughtDelta,
+              contentDelta,
               this.agentName,
-              true,
+              false,
               undefined,
               options.currentInitiator
             );
           }
         }
 
-        if (chunk.content) {
-          if (options.communicationMode === 'json') {
-            fullContent += chunk.content;
-            if (!jsonMessageExtracted) {
-              const messageMatch = fullContent.match(
-                /"(?:message|plan|responseText)"\s*:\s*"((?:[^"\\]|\\.)*)$/
-              );
-              if (messageMatch) {
-                jsonMessageExtracted = true;
-                let newText = messageMatch[1];
-                newText = newText.replace(/\\n/g, '\n').replace(/\\"/g, '"');
-                if (newText && emitter)
-                  emitter.emitChunk(
-                    userId,
-                    sessionId,
-                    traceId,
-                    newText,
-                    this.agentName,
-                    false,
-                    undefined,
-                    options.currentInitiator
-                  );
-              }
-            } else if (emitter) {
-              emitter.emitChunk(
-                userId,
-                sessionId,
-                traceId,
-                chunk.content,
-                this.agentName,
-                false,
-                undefined,
-                options.currentInitiator
-              );
-            }
-          } else {
-            const [newContent, contentDelta] = appendDedup(fullContent, chunk.content);
-            fullContent = newContent;
-            if (emitter && contentDelta) {
-              emitter.emitChunk(
-                userId,
-                sessionId,
-                traceId,
-                contentDelta,
-                this.agentName,
-                false,
-                undefined,
-                options.currentInitiator
-              );
-            }
+        if (chunk.thought) {
+          const thoughtDelta = chunk.thought;
+          fullThought += thoughtDelta;
+          if (emitter) {
+            emitter.emitChunk(
+              userId,
+              sessionId,
+              traceId,
+              undefined,
+              this.agentName,
+              false,
+              undefined,
+              options.currentInitiator,
+              thoughtDelta
+            );
           }
         }
 
@@ -435,6 +375,24 @@ export class ExecutorCore {
         approvedToolCalls
       );
 
+      // If we have ui_blocks in stream, we should probably emit them
+      if (toolResult.ui_blocks && toolResult.ui_blocks.length > 0 && emitter) {
+        emitter.emitChunk(
+          userId,
+          sessionId,
+          traceId,
+          undefined,
+          this.agentName,
+          false,
+          undefined,
+          options.currentInitiator,
+          undefined,
+          toolResult.ui_blocks
+        );
+        // Also yield them for the local stream caller
+        yield { ui_blocks: toolResult.ui_blocks } as MessageChunk;
+      }
+
       if (toolResult.paused) {
         if (toolResult.responseText) {
           const pauseMessage = `\n\n${ExecutorHelper.formatUserFriendlyResponse(toolResult.responseText)}`;
@@ -456,21 +414,44 @@ export class ExecutorCore {
       }
       iterations++;
     }
+
+    usage.durationMs = Date.now() - loopStartTime;
     yield {
       usage: {
         prompt_tokens: usage.totalInputTokens,
         completion_tokens: usage.totalOutputTokens,
-        total_tokens: usage.totalInputTokens + usage.totalOutputTokens,
+        total_tokens: usage.total_tokens,
       },
-    };
+    } as any;
   }
 
   private async performPreLoopChecks(
     messages: Message[],
     attachments: NonNullable<Message['attachments']>,
-    options: ExecutorOptions
-  ) {
-    if (options.sessionStateManager && options.sessionId) {
+    options: ExecutorOptions,
+    startTime: number
+  ): Promise<LoopResult | null> {
+    const cancellationMsg = await ExecutorHelper.checkCancellation(options.taskId);
+    if (cancellationMsg) {
+      return { responseText: cancellationMsg, paused: false };
+    }
+
+    const timeoutResult = ExecutorHelper.checkTimeouts(
+      startTime,
+      options.taskTimeoutMs,
+      options.timeoutBehavior,
+      options.context
+    );
+    if (timeoutResult) {
+      return {
+        ...timeoutResult,
+        attachments,
+      };
+    }
+
+    await this.manageContext(messages, options.activeModel, options.activeProvider);
+
+    if (options.sessionId && options.sessionStateManager) {
       this.lastInjectedMessageTimestamp = await ExecutorHelper.injectPendingMessages(
         messages,
         attachments,
@@ -479,72 +460,15 @@ export class ExecutorCore {
         this.lastInjectedMessageTimestamp,
         options.sessionStateManager
       );
-      await options.sessionStateManager.renewProcessing(options.sessionId, this.agentId);
     }
 
-    const timeoutResult = ExecutorHelper.checkTimeouts(
-      Date.now(),
-      options.taskTimeoutMs,
-      options.timeoutBehavior,
-      options.context
-    );
-    if (timeoutResult) return timeoutResult;
-
-    const cancellationMsg = await ExecutorHelper.checkCancellation(options.taskId);
-    if (cancellationMsg) return { responseText: cancellationMsg };
-
-    await this.manageContext(messages, options.activeModel, options.activeProvider);
     return null;
   }
 
   private async callLLM(messages: Message[], options: ExecutorOptions): Promise<Message> {
-    await options.tracer.addStep({
-      type: TRACE_TYPES.LLM_CALL,
-      content: {
-        messageCount: messages.length,
-        model: options.activeModel,
-        provider: options.activeProvider,
-      },
-    });
-
-    const fallbackEnabled = await ConfigManager.getRawConfig('protocol_fallback_enabled');
-
-    if (fallbackEnabled === true && options.communicationMode === 'json') {
-      const result: FallbackResult = await callWithFallback(this.provider, messages, this.tools, {
-        communicationMode: options.communicationMode,
-        responseFormat: options.responseFormat,
-        activeModel: options.activeModel,
-        activeProvider: options.activeProvider,
-        activeProfile: options.activeProfile,
-      });
-
-      if (result.usedFallback) {
-        logger.info(
-          `Protocol fallback triggered: ${result.originalMode} → ${result.fallbackMode}. ` +
-            `Reason: ${result.parseError}`
-        );
-
-        if (!process.env.VITEST) {
-          try {
-            const { emitMetrics, METRICS } = await import('../metrics');
-            emitMetrics([
-              METRICS.protocolFallback(this.agentId, result.originalMode, result.fallbackMode),
-            ]).catch(() => {});
-          } catch {
-            // Metrics module may not be available
-          }
-        }
-      }
-
-      return result.response;
-    }
-
-    const capabilities = await this.provider.getCapabilities(options.activeModel);
-    const normalizedProfile = normalizeProfile(
-      options.activeProfile,
-      capabilities,
-      options.activeModel ?? 'default'
-    );
+    const { activeModel, activeProfile } = options;
+    const capabilities = await this.provider.getCapabilities(activeModel);
+    const normalizedProfile = normalizeProfile(activeProfile, capabilities, activeModel);
 
     return this.provider.call(
       messages,
@@ -578,7 +502,8 @@ export class ExecutorCore {
       toolCallCount: number;
     },
     attachments: NonNullable<Message['attachments']>,
-    approvedToolCalls?: string[]
+    approvedToolCalls?: string[],
+    ui_blocks?: Message['ui_blocks']
   ): LoopResult {
     const isApproval = toolResult.asyncWait && !toolResult.responseText;
     const pendingToolName = this.getPendingToolName(aiResponse, approvedToolCalls);
@@ -596,11 +521,24 @@ export class ExecutorCore {
       attachments,
       thought: aiResponse.thought,
       tool_calls: aiResponse.tool_calls,
+      ui_blocks,
       options: isApproval
         ? [
-            { label: 'Approve Tool', value: `APPROVE_TOOL_CALL:${callId}`, type: 'primary' },
-            { label: 'Reject Tool', value: `REJECT_TOOL_CALL:${callId}`, type: 'danger' },
-            { label: 'Clarify', value: `CLARIFY_TOOL_CALL:${callId}`, type: 'secondary' },
+            {
+              label: 'Approve Tool',
+              value: `APPROVE_TOOL_CALL:${callId}`,
+              type: 'primary' as ButtonType,
+            },
+            {
+              label: 'Reject Tool',
+              value: `REJECT_TOOL_CALL:${callId}`,
+              type: 'danger' as ButtonType,
+            },
+            {
+              label: 'Clarify',
+              value: `CLARIFY_TOOL_CALL:${callId}`,
+              type: 'secondary' as ButtonType,
+            },
           ]
         : undefined,
     };
@@ -617,9 +555,21 @@ export class ExecutorCore {
       if (tool?.requiresApproval && !approvedToolCalls?.includes(tc.id)) {
         const approvalMsg = ExecutorHelper.formatApprovalMessage(tool.name, tc.id);
         const opts = [
-          { label: 'Approve Tool', value: `APPROVE_TOOL_CALL:${tc.id}`, type: 'primary' },
-          { label: 'Reject Tool', value: `REJECT_TOOL_CALL:${tc.id}`, type: 'danger' },
-          { label: 'Clarify', value: `CLARIFY_TOOL_CALL:${tc.id}`, type: 'secondary' },
+          {
+            label: 'Approve Tool',
+            value: `APPROVE_TOOL_CALL:${tc.id}`,
+            type: 'primary' as ButtonType,
+          },
+          {
+            label: 'Reject Tool',
+            value: `REJECT_TOOL_CALL:${tc.id}`,
+            type: 'danger' as ButtonType,
+          },
+          {
+            label: 'Clarify',
+            value: `CLARIFY_TOOL_CALL:${tc.id}`,
+            type: 'secondary' as ButtonType,
+          },
         ];
         if (emitter)
           emitter.emitChunk(
@@ -645,7 +595,8 @@ export class ExecutorCore {
     maxIterations: number,
     lastAiResponse: Message | undefined,
     attachments: NonNullable<Message['attachments']>,
-    usage: ExecutorUsage
+    usage: ExecutorUsage,
+    ui_blocks?: Message['ui_blocks']
   ): LoopResult {
     if (!responseText && iterations >= maxIterations) {
       return {
@@ -655,6 +606,7 @@ export class ExecutorCore {
         attachments,
         tool_calls: lastAiResponse?.tool_calls,
         usage,
+        ui_blocks,
       };
     }
     return {
@@ -663,6 +615,7 @@ export class ExecutorCore {
       thought: lastAiResponse?.thought,
       tool_calls: lastAiResponse?.tool_calls,
       usage,
+      ui_blocks: ui_blocks?.length ? ui_blocks : undefined,
     };
   }
 

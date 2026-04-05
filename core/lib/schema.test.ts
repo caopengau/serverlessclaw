@@ -6,6 +6,16 @@ import { TOOLS } from '../tools/index';
 describe('Tool Schema Validation', () => {
   it('should pass for all registered tool definitions', () => {
     const isValid = validateAllTools(TOOLS);
+    if (!isValid) {
+      const allErrors: Record<string, string[]> = {};
+      for (const [id, tool] of Object.entries(TOOLS)) {
+        const errors = validateToolSchema(tool);
+        if (errors.length > 0) {
+          allErrors[id] = errors;
+        }
+      }
+      console.error('Tool validation failures:', JSON.stringify(allErrors, null, 2));
+    }
     expect(isValid, 'All tool schemas should be valid and follow strict requirements').toBe(true);
   });
 
