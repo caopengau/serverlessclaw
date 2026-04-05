@@ -16,6 +16,22 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
   PutCommand: vi.fn((args: any) => ({ input: args })),
 }));
 
+vi.mock('@aws-sdk/client-lambda', () => ({
+  LambdaClient: vi.fn().mockImplementation(() => ({
+    send: vi.fn().mockResolvedValue({
+      AccountSnapshots: [
+        {
+          UnreservedConcurrentExecutions: {
+            Remaining: 50,
+            Capacity: 100,
+          },
+        },
+      ],
+    }),
+  })),
+  GetAccountSettingsCommand: vi.fn(),
+}));
+
 vi.mock('sst', () => ({
   Resource: { MemoryTable: { name: 'TestMemoryTable' } },
 }));
@@ -91,7 +107,6 @@ describe('Infinite Loop Prevention', () => {
       'Simulated infinite loop limit reached. Halting execution.'
     );
 
-    // It should emit a system event to notify the user and stop the chain
     expect(mockEmitEvent).toHaveBeenCalledWith(
       'concurrency-monitor',
       'outbound_message',

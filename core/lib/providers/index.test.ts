@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProviderManager } from './index';
-import { MessageRole } from '../types/llm';
+import { MessageRole, LLMProvider } from '../types/index';
 
 // Mocking the imported dependencies and Resource
 vi.mock('sst', () => ({
@@ -74,14 +74,8 @@ describe('ProviderManager', () => {
   });
 
   it('should safely fallback when ActiveProvider is not linked in SST Resource', async () => {
-    // SST Resource is mocked as `{}` above, meaning 'ActiveProvider' is not in Resource.
-    // getActiveProvider should not throw a TypeError and should fallback to system default.
     const provider = await ProviderManager.getActiveProvider();
-
-    // Default provider is 'minimax' if no config is found and Resource is empty
     expect(provider).toBeDefined();
-    // The actual default is determined by the constants module which is not mocked
-    // So we just verify that a provider is returned
     expect(provider.constructor.name).toMatch(/Provider$/);
   });
 
@@ -89,8 +83,31 @@ describe('ProviderManager', () => {
     const pm = new ProviderManager();
     const capabilities = await pm.getCapabilities();
     expect(capabilities).toBeDefined();
-    // Default profile support
     expect(capabilities.supportedReasoningProfiles.length).toBeGreaterThan(0);
+  });
+
+  it('should return specific provider when overrideProvider is provided', async () => {
+    const provider = await ProviderManager.getActiveProvider('openai', 'gpt-4');
+    expect(provider).toBeDefined();
+  });
+
+  it('should return fallback provider when no override', async () => {
+    const provider = await ProviderManager.getActiveProvider();
+    expect(provider).toBeDefined();
+  });
+
+  it('should get active provider name', async () => {
+    const { ConfigManager } = await import('../registry/config');
+    (ConfigManager.getTypedConfig as any).mockResolvedValueOnce('openai');
+    const pm = new ProviderManager();
+    const name = await pm.getActiveProviderName();
+    expect(typeof name).toBe('string');
+  });
+
+  it('should get active model name', async () => {
+    const pm = new ProviderManager();
+    const name = await pm.getActiveModelName();
+    expect(typeof name).toBe('string');
   });
 
   describe('Budget Limits and Routing', () => {
@@ -103,10 +120,8 @@ describe('ProviderManager', () => {
         call: mockCall,
       } as any);
 
-      // Simple task (< 500 chars, <= 2 messages)
       await pm.call([{ role: MessageRole.USER, content: 'hello' }]);
 
-      // Should have routed to Bedrock Haiku
       expect(ProviderManager.getActiveProvider).toHaveBeenCalledWith(
         'bedrock',
         'anthropic.claude-3-haiku-20240307-v1:0'
@@ -132,12 +147,107 @@ describe('ProviderManager', () => {
         call: vi.fn(),
       } as any);
 
-      // Create a huge message to exceed 100k tokens
-      const hugeMessage = 'a'.repeat(450000); // ~112.5k tokens
+      const hugeMessage = 'a'.repeat(450000);
 
       await expect(pm.call([{ role: MessageRole.USER, content: hugeMessage }])).rejects.toThrow(
         /TokenBudgetExceeded/
       );
+    });
+
+    it('should not route to Haiku when provider is explicitly set', async () => {
+      const pm = new ProviderManager();
+
+      const mockCall = vi.fn().mockResolvedValue({ role: 'assistant', content: 'ok' });
+
+      vi.spyOn(ProviderManager, 'getActiveProvider').mockResolvedValueOnce({
+        call: mockCall,
+      } as any);
+
+      await pm.call(
+        [{ role: MessageRole.USER, content: 'hello' }],
+        undefined,
+        undefined,
+        undefined,
+        LLMProvider.OPENAI
+      );
+
+      expect(ProviderManager.getActiveProvider).toHaveBeenCalledWith(LLMProvider.OPENAI, undefined);
+    });
+
+    it('should not route to Haiku when model is explicitly set', async () => {
+      const pm = new ProviderManager();
+
+      const mockCall = vi.fn().mockResolvedValue({ role: 'assistant', content: 'ok' });
+
+      vi.spyOn(ProviderManager, 'getActiveProvider').mockResolvedValueOnce({
+        call: mockCall,
+      } as any);
+
+      await pm.call([{ role: MessageRole.USER, content: 'hello' }], undefined, undefined, 'gpt-4');
+
+      expect(ProviderManager.getActiveProvider).toHaveBeenCalledWith(undefined, 'gpt-4');
+    });
+  });
+
+  describe('Streaming', () => {
+    it('should throw TokenBudgetExceeded in stream if estimated tokens exceed limit', async () => {
+      const pm = new ProviderManager();
+
+      vi.spyOn(ProviderManager, 'getActiveProvider').mockResolvedValueOnce({
+        stream: vi.fn().mockReturnValue((async function* () {})()),
+      } as any);
+
+      const hugeMessage = 'a'.repeat(450000);
+
+      const stream = pm.stream([{ role: MessageRole.USER, content: hugeMessage }]);
+      await expect(async () => {
+        for await (const _ of stream) {
+          // no-op
+        }
+      }).rejects.toThrow(/TokenBudgetExceeded/);
+    });
+
+    it('should route to Haiku in stream for simple tasks', async () => {
+      const mockStream = vi.fn().mockReturnValue(
+        (async function* () {
+          yield { role: 'assistant', content: 'hi' };
+        })()
+      );
+
+      vi.spyOn(ProviderManager, 'getActiveProvider').mockResolvedValueOnce({
+        stream: mockStream,
+      } as any);
+
+      const pm = new ProviderManager();
+      const messages = [{ role: MessageRole.USER, content: 'hi' }];
+
+      for await (const _ of pm.stream(messages)) {
+        // consume the async iterable
+      }
+
+      expect(ProviderManager.getActiveProvider).toHaveBeenCalledWith(
+        'bedrock',
+        'anthropic.claude-3-haiku-20240307-v1:0'
+      );
+    });
+  });
+
+  describe('Fallback Provider', () => {
+    it('should create fallback provider with primary and fallbacks', async () => {
+      const fallback = await ProviderManager.createFallbackProvider(LLMProvider.OPENAI, [
+        LLMProvider.BEDROCK,
+      ]);
+      expect(fallback).toBeDefined();
+    });
+
+    it('should create fallback provider with default fallbacks', async () => {
+      const fallback = await ProviderManager.createFallbackProvider(LLMProvider.MINIMAX);
+      expect(fallback).toBeDefined();
+    });
+
+    it('should create fallback provider with no primary', async () => {
+      const fallback = await ProviderManager.createFallbackProvider();
+      expect(fallback).toBeDefined();
     });
   });
 });
