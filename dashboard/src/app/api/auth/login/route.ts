@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resource } from 'sst';
 import { AUTH } from '@/lib/constants';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
+import { SSTResource } from '@claw/core/lib/types/index';
 
 /**
  * Handles dashboard login and sets the session cookie
@@ -18,7 +19,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const isDev = process.env.NODE_ENV !== 'production';
     let correctPassword;
     try {
-      correctPassword = Resource.DashboardPassword?.value;
+      const typedResource = Resource as unknown as SSTResource;
+      correctPassword = typedResource.DashboardPassword?.value;
     } catch (e) {
       // In local dev without `sst dev`, Resource access might throw
       if (!isDev) throw e;

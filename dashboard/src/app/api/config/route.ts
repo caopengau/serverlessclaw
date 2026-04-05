@@ -3,11 +3,13 @@ import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { CONFIG_KEYS } from '@claw/core/lib/constants';
+import { SSTResource } from '@claw/core/lib/types/index';
 
 export const dynamic = 'force-dynamic';
 
 const dbClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(dbClient);
+const typedResource = Resource as unknown as SSTResource;
 
 /**
  * Returns public configuration for the dashboard.
@@ -15,9 +17,9 @@ const docClient = DynamoDBDocumentClient.from(dbClient);
  */
 export async function GET() {
   try {
-    const realtime = Resource.RealtimeBus;
+    const realtime = typedResource.RealtimeBus;
     const realtimeUrl =
-      typeof realtime.endpoint === 'string'
+      realtime && typeof realtime.endpoint === 'string'
         ? realtime.endpoint.startsWith('wss://')
           ? realtime.endpoint
           : realtime.endpoint.startsWith('https://')
@@ -32,7 +34,7 @@ export async function GET() {
     return NextResponse.json({
       realtime: {
         url: realtimeUrl,
-        authorizer: realtime.authorizer,
+        authorizer: realtime?.authorizer,
       },
     });
   } catch (error) {
@@ -56,9 +58,13 @@ export async function POST(req: NextRequest) {
     // Only allow specific safe keys to be updated from the client if needed,
     // or keep it generic if the dashboard is protected.
     if (key === CONFIG_KEYS.ACTIVE_LOCALE) {
+      const tableName = typedResource.ConfigTable?.name;
+      if (!tableName) {
+        return NextResponse.json({ error: 'ConfigTable name is missing' }, { status: 500 });
+      }
       await docClient.send(
         new PutCommand({
-          TableName: Resource.ConfigTable.name,
+          TableName: tableName,
           Item: {
             key: key,
             value: value,

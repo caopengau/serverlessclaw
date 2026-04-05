@@ -58,8 +58,12 @@ export interface SSTResource {
   GitHubWebhookSecret: { value: string };
   /** Secret: Jira webhook signature/secret. */
   JiraWebhookSecret: { value: string };
+  /** Secret: Dashboard authentication password. */
+  DashboardPassword: { value: string };
   /** The AWS region where resources are deployed. */
   AwsRegion: { value: string };
+  /** Realtime communication bus (IoT Core). */
+  RealtimeBus: { endpoint: string; authorizer: string };
   /** Secret: Active LLM provider configuration. */
   ActiveProvider: { value: string };
   /** Secret: Active LLM model configuration. */

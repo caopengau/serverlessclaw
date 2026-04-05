@@ -14,9 +14,11 @@ import {
 import { NextResponse } from 'next/server';
 import { HTTP_STATUS, DYNAMO_KEYS } from '@claw/core/lib/constants';
 import { BACKBONE_REGISTRY } from '@claw/core/lib/backbone';
+import { SSTResource } from '@claw/core/lib/types/index';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
+const typedResource = Resource as unknown as SSTResource;
 
 /**
  * GET handler for agents configuration.
@@ -50,7 +52,7 @@ export async function GET(): Promise<NextResponse> {
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const tableName = Resource.ConfigTable.name;
+    const tableName = typedResource.ConfigTable?.name;
     if (!tableName) {
       return NextResponse.json(
         { error: 'ConfigTable name is missing from resources.' },
@@ -87,7 +89,7 @@ export async function POST(request: Request): Promise<NextResponse> {
  */
 export async function PATCH(request: Request): Promise<NextResponse> {
   try {
-    const tableName = Resource.ConfigTable.name;
+    const tableName = typedResource.ConfigTable?.name;
     if (!tableName) {
       return NextResponse.json(
         { error: 'ConfigTable name is missing from resources.' },
@@ -140,7 +142,7 @@ export async function PATCH(request: Request): Promise<NextResponse> {
  */
 export async function DELETE(request: Request): Promise<NextResponse> {
   try {
-    const tableName = Resource.ConfigTable.name;
+    const tableName = typedResource.ConfigTable?.name;
     if (!tableName) {
       return NextResponse.json(
         { error: 'ConfigTable name is missing from resources.' },

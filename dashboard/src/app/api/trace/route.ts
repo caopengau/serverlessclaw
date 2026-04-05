@@ -9,6 +9,7 @@ import {
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { revalidatePath } from 'next/cache';
+import { SSTResource } from '@claw/core/lib/types/index';
 
 /**
  * Handles trace deletion (single or all) with robust throttling management
@@ -23,7 +24,8 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Missing traceId' }, { status: 400 });
     }
 
-    const tableName = Resource.TraceTable.name;
+    const typedResource = Resource as unknown as SSTResource;
+    const tableName = typedResource.TraceTable?.name;
     if (!tableName) {
       console.error('[Trace API] TraceTable not found in resources');
       return NextResponse.json({ error: 'TraceTable not found' }, { status: 500 });
