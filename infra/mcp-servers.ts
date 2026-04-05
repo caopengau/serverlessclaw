@@ -37,7 +37,7 @@ export function createMCPServers(ctx: SharedContext): MCPServerResources {
     {
       // S3 operations for aws-s3 and general media staging
       actions: ['s3:GetObject', 's3:PutObject', 's3:ListBucket', 's3:DeleteObject'],
-      resources: [stagingBucket.arn, `${stagingBucket.arn}/*`],
+      resources: [stagingBucket.arn, $util.interpolate`${stagingBucket.arn}/*`],
     },
     {
       // AWS DevOps operations
