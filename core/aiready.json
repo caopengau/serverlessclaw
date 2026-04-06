@@ -55,7 +55,7 @@
       "exclude": ["**/types/**", "**/__mocks__/**", "**/api/*/route.ts"]
     },
     "context-analyzer": {
-      "maxContextBudget": 200000,
+      "maxContextBudget": 128000,
       "minCohesion": 0.6,
       "maxDepth": 15,
       "maxFragmentation": 0.4,
