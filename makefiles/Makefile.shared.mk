@@ -84,6 +84,12 @@ define load_env
 			set -a; . ./$$f; set +a; \
 		fi; \
 	done; \
+	if [ -n "$$AWS_PROFILE" ]; then \
+		if [ -n "$$AWS_ACCESS_KEY_ID" ] || [ -n "$$AWS_SECRET_ACCESS_KEY" ]; then \
+			$(call log_warning,Multiple AWS credential sources detected (AWS_PROFILE and static keys). Unsetting static keys to favor PROFILE.); \
+			unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN; \
+		fi; \
+	fi; \
 	if [ -n "$$CODEBUILD_BUILD_ID" ]; then \
 		unset AWS_PROFILE; \
 		$(call log_info,CI environment detected — using service role credentials); \
