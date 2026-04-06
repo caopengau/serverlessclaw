@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { UI_STRINGS } from '@/lib/constants';
+import { UI_STRINGS, AUTH } from '@/lib/constants';
 import { HTTP_STATUS, AGENT_ERRORS } from '@claw/core/lib/constants';
 import { revalidatePath } from 'next/cache';
+
+function getUserId(req: NextRequest): string {
+  if (!req.cookies) {
+    return 'dashboard-user';
+  }
+  const sessionCookie = req.cookies.get(AUTH.SESSION_USER_ID);
+  return sessionCookie?.value || 'dashboard-user';
+}
 
 /**
  * Handles chat messages from the dashboard UI using the Manager agent
@@ -20,7 +28,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       pageContext,
     } = await req.json();
     const isStream = req.nextUrl.searchParams.get('stream') === 'true';
-    const userId = 'dashboard-user'; // Fixed ID for dashboard chat
+    const userId = getUserId(req);
 
     // Use a unique ID for the specific session history
     const storageId = sessionId ? `CONV#${userId}#${sessionId}` : userId;
@@ -146,7 +154,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
         const { MessageRole } = await import('@claw/core/lib/types');
         const memory = new CachedMemory(new DynamoMemory());
-        const userId = 'dashboard-user';
+        const userId = getUserId(req);
         const storageId = `CONV#${userId}#${sessionId}`;
         await memory.addMessage(storageId, {
           role: MessageRole.ASSISTANT,
@@ -173,7 +181,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
     const { sessionId, title, isPinned } = await req.json();
-    const userId = 'dashboard-user';
+    const userId = getUserId(req);
     const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
     const memory = new CachedMemory(new DynamoMemory());
 
@@ -200,7 +208,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
     const sessionId = req.nextUrl.searchParams.get('sessionId');
-    const userId = 'dashboard-user';
+    const userId = getUserId(req);
     const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
     const memory = new CachedMemory(new DynamoMemory());
 
@@ -230,7 +238,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
-    const userId = 'dashboard-user';
+    const userId = getUserId(req);
     const sessionId = req.nextUrl.searchParams.get('sessionId');
     const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
     const memory = new CachedMemory(new DynamoMemory());

@@ -50,6 +50,7 @@ export const DYNAMO_KEYS = {
   GLOBAL_PAUSE: 'global_pause',
   INFRA_CONFIG: 'infra_config',
   SYSTEM_TOPOLOGY: 'system_topology',
+  AGENT_TOOL_OVERRIDES: 'agent_tool_overrides',
   CLARIFICATION_TIMEOUT_MS: 'clarification_timeout_ms',
   CLARIFICATION_MAX_RETRIES: 'clarification_max_retries',
   CONTEXT_SAFETY_MARGIN: 'context_safety_margin',

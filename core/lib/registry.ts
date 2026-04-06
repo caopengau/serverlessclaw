@@ -14,21 +14,21 @@ export class AgentRegistry {
   private static backboneConfigs: Record<string, IAgentConfig> = BACKBONE_REGISTRY;
 
   private static ESSENTIAL_SYSTEM_TOOLS = [
-    TOOLS.dispatchTask,
+    TOOLS.saveMemory,
     TOOLS.recallKnowledge,
+    TOOLS.sendMessage,
     TOOLS.discoverSkills,
     TOOLS.installSkill,
-    TOOLS.saveMemory,
-    TOOLS.checkConfig,
-    TOOLS.setSystemConfig,
-    TOOLS.listSystemConfigs,
-    TOOLS.getSystemConfigMetadata,
+    TOOLS.dispatchTask,
+    TOOLS.seekClarification,
+    TOOLS.provideClarification,
   ];
 
   private static DEFAULT_AGENT_TOOLS = [...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS, TOOLS.listAgents];
 
   private static DISCOVERY_BOOTLOADER_TOOLS = [
     ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS,
+    TOOLS.dispatchTask,
     TOOLS.listAgents,
     TOOLS.sendMessage,
   ];
@@ -91,10 +91,11 @@ export class AgentRegistry {
 
     if (!config) return undefined;
 
-    // 2. Discovery Mode Filter
+    // 2. Discovery Mode Filter - use per-agent config flag (backbone has discoveryMode: true)
     const isDiscoveryMode =
-      preFetchedConfigs?.[CONFIG_KEYS.SELECTIVE_DISCOVERY_MODE] ??
-      (await ConfigManager.getRawConfig(CONFIG_KEYS.SELECTIVE_DISCOVERY_MODE)) === true;
+      config.discoveryMode === true ||
+      (preFetchedConfigs?.[CONFIG_KEYS.SELECTIVE_DISCOVERY_MODE] ??
+        (await ConfigManager.getRawConfig(CONFIG_KEYS.SELECTIVE_DISCOVERY_MODE)) === true);
 
     if (isDiscoveryMode && config.tools) {
       config.tools = config.tools.filter((t: string) =>
@@ -107,15 +108,75 @@ export class AgentRegistry {
       }
     }
 
-    // 3. Tool Overrides
-    const toolOverride =
-      (preFetchedConfigs?.[`${id}_tools`] as string[]) ??
-      ((await ConfigManager.getRawConfig(`${id}_tools`)) as string[]);
+    // 3. Tool Overrides (with TTL Support)
+    // Support both per-agent `${id}_tools` entries and the newer batch
+    // `DYNAMO_KEYS.AGENT_TOOL_OVERRIDES` map. Batch overrides take precedence
+    // and are merged with per-agent overrides when present.
+    const batchOverrides =
+      (preFetchedConfigs?.[DYNAMO_KEYS.AGENT_TOOL_OVERRIDES] as Record<string, unknown[]>) ??
+      ((await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES)) as
+        | Record<string, unknown[]>
+        | undefined);
 
-    if (toolOverride && Array.isArray(toolOverride)) {
+    const perAgentOverrides =
+      (preFetchedConfigs?.[`${id}_tools`] as Array<
+        string | import('./types/agent').InstalledSkill
+      >) ??
+      ((await ConfigManager.getRawConfig(`${id}_tools`)) as Array<
+        string | import('./types/agent').InstalledSkill
+      >);
+
+    const now = Date.now();
+    const activeOverrides = [];
+    let prunedCount = 0;
+
+    const filterActive = (list: (string | import('./types/agent').InstalledSkill)[]) =>
+      list.filter((t) => {
+        if (typeof t === 'string') return true;
+        if (!t.expiresAt || t.expiresAt > now) return true;
+        prunedCount++;
+        return false;
+      });
+
+    const activeBatch =
+      batchOverrides && Array.isArray(batchOverrides[id])
+        ? filterActive(batchOverrides[id] as (string | import('./types/agent').InstalledSkill)[])
+        : [];
+    const activePerAgent = Array.isArray(perAgentOverrides) ? filterActive(perAgentOverrides) : [];
+
+    activeOverrides.push(...activeBatch.map((t) => (typeof t === 'string' ? t : t.name)));
+    activeOverrides.push(...activePerAgent.map((t) => (typeof t === 'string' ? t : t.name)));
+
+    if (prunedCount > 0) {
+      logger.info(`[REGISTRY] Pruned ${prunedCount} expired tools for agent ${id}`);
+
+      // Persist pruned lists back to DDB
+      if (
+        batchOverrides &&
+        Array.isArray(batchOverrides[id]) &&
+        activeBatch.length < batchOverrides[id].length
+      ) {
+        const update = this.saveRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, {
+          ...batchOverrides,
+          [id]: activeBatch,
+        });
+        if (update instanceof Promise) {
+          update.catch((e) => logger.error(`Failed to persist pruned batch tools for ${id}:`, e));
+        }
+      }
+
+      if (Array.isArray(perAgentOverrides) && activePerAgent.length < perAgentOverrides.length) {
+        const update = this.saveRawConfig(`${id}_tools`, activePerAgent);
+        if (update instanceof Promise) {
+          update.catch((e) => logger.error(`Failed to persist pruned tools for ${id}:`, e));
+        }
+      }
+    }
+
+    if (activeOverrides.length > 0) {
       config.tools = Array.from(
         new Set([
-          ...toolOverride,
+          ...activeOverrides,
           ...(this.backboneConfigs[id]?.tools ?? AgentRegistry.ESSENTIAL_SYSTEM_TOOLS),
         ])
       );
@@ -138,33 +199,27 @@ export class AgentRegistry {
    * @returns A promise resolving to a record of all agent configurations.
    */
   static async getAllConfigs(): Promise<Record<string, IAgentConfig>> {
-    // 1. Batch fetch primary configs
-    const [ddbConfig, discoveryMode] = await Promise.all([
+    const [ddbConfig, discoveryMode, batchToolOverrides] = await Promise.all([
       ConfigManager.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG),
       ConfigManager.getRawConfig('selective_discovery_mode'),
+      ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES),
     ]);
 
     const all: Record<string, IAgentConfig> = { ...this.backboneConfigs };
     const dynamicAgents = (ddbConfig as Record<string, unknown>) ?? {};
     const agentIds = Array.from(new Set([...Object.keys(all), ...Object.keys(dynamicAgents)]));
 
-    // 2. Batch fetch tool overrides for all relevant agents
-    const overridePromises = agentIds.map(async (id) => ({
-      id,
-      tools: await ConfigManager.getRawConfig(`${id}_tools`),
-    }));
-    const overrides = await Promise.all(overridePromises);
-
-    // 3. Construct pre-fetched config map
     const preFetchedConfigs: Record<string, unknown> = {
       [DYNAMO_KEYS.AGENTS_CONFIG]: dynamicAgents,
       selective_discovery_mode: discoveryMode,
     };
-    for (const { id, tools } of overrides) {
-      if (tools) preFetchedConfigs[`${id}_tools`] = tools;
+
+    if (batchToolOverrides && typeof batchToolOverrides === 'object') {
+      for (const [id, tools] of Object.entries(batchToolOverrides)) {
+        preFetchedConfigs[`${id}_tools`] = tools;
+      }
     }
 
-    // 4. Resolve all configs using pre-fetched data
     const results = await Promise.all(
       agentIds.map(async (id) => ({
         id,

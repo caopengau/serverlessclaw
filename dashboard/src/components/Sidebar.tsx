@@ -23,7 +23,6 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { THEME } from '@/lib/theme';
 import { ROUTES } from '@/lib/constants';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import Typography from '@/components/ui/Typography';
@@ -171,7 +170,7 @@ export default function Sidebar() {
                 href={item.href!}
                 className={`flex items-center justify-between gap-3 px-3 py-1.5 rounded transition-all group ${
                   isActive
-                    ? `bg-${THEME.COLORS.PRIMARY}/10 text-${THEME.COLORS.PRIMARY} border-l-2 border-${THEME.COLORS.PRIMARY}`
+                    ? 'bg-cyber-green/10 text-cyber-green border-l-2 border-cyber-green'
                     : 'text-white/70 hover:bg-white/5 hover:text-white'
                 }`}
               >
@@ -181,7 +180,7 @@ export default function Sidebar() {
                       size={14}
                       className={
                         isActive
-                          ? `text-${THEME.COLORS.PRIMARY}`
+                          ? 'text-cyber-green'
                           : 'text-white/40 group-hover:text-white/100'
                       }
                     />
@@ -189,12 +188,12 @@ export default function Sidebar() {
                   <Typography
                     variant="caption"
                     weight={isActive ? 'bold' : 'medium'}
-                    className={`${isActive ? `text-${THEME.COLORS.PRIMARY}` : ''} text-xs tracking-tight`}
+                    className={`${isActive ? 'text-cyber-green' : ''} text-xs tracking-tight`}
                   >
                     {item.label}
                   </Typography>
                 </div>
-                {isActive && <ChevronRight size={10} className={`text-${THEME.COLORS.PRIMARY}`} />}
+                {isActive && <ChevronRight size={10} className="text-cyber-green" />}
               </Link>
             );
           })}
@@ -214,14 +213,14 @@ export default function Sidebar() {
                 {t('SYSTEM_STATUS')}
               </Typography>
               <div
-                className={`text-[10px] text-${THEME.COLORS.PRIMARY} mt-1.5 flex items-center gap-2 font-bold uppercase`}
+                className="text-[10px] text-cyber-green mt-1.5 flex items-center gap-2 font-bold uppercase"
               >
                 <span className="relative flex h-2 w-2">
                   <span
-                    className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-${THEME.COLORS.PRIMARY} opacity-75`}
+                    className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-green opacity-75"
                   ></span>
                   <span
-                    className={`relative inline-flex rounded-full h-2 w-2 bg-${THEME.COLORS.PRIMARY}`}
+                    className="relative inline-flex rounded-full h-2 w-2 bg-cyber-green"
                   ></span>
                 </span>
                 {t('SYSTEM_ONLINE')} &gt; {t('CONNECTED')}

@@ -13,14 +13,14 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 
 | Agent                   | Runtime                              | Config Source              | Responsibilities                                                                |
 | ----------------------- | ------------------------------------ | -------------------------- | ------------------------------------------------------------------------------- |
-| **SuperClaw**           | `core/handlers/webhook.ts`           | `core/agents/superclaw.ts` | Interprets user intent, delegates, deploys, self-decomposes missions            |
-| **Coder Agent**         | `core/agents/coder.ts`               | `AgentRegistry` (Backbone) | Writes code, runs pre-flight checks                                             |
+| **SuperClaw**           | `core/handlers/webhook.ts`           | `core/agents/superclaw.ts` | **Nimble Orchestrator**. User Proxy, Delegation, UI Navigation (Skeleton tools) |
+| **Coder Agent**         | `core/agents/coder.ts`               | `AgentRegistry` (Backbone) | Writes code, runs pre-flight checks, validates deployments                      |
 | **Agent Runner**        | `core/handlers/agent-runner.ts`      | `AgentRegistry` (Dynamic)  | Generic runner for any user-defined agent                                       |
-| **Strategic Planner**   | `core/agents/strategic-planner.ts`   | `AgentRegistry` (Backbone) | Designs strategic evolution plans                                               |
-| **Cognition Reflector** | `core/agents/cognition-reflector.ts` | `AgentRegistry` (Backbone) | Distills memory and extracts gaps                                               |
+| **Strategic Planner**   | `core/agents/strategic-planner.ts`   | `AgentRegistry` (Backbone) | **Technical Auditor**. Infra management, Agent Registry CRUD, Evolution plans   |
+| **Cognition Reflector** | `core/agents/cognition-reflector.ts` | `AgentRegistry` (Backbone) | **Knowledge Custodian**. Fact extraction, Memory hygiene, Trace maintenance     |
 | **QA Auditor**          | `core/agents/qa.ts`                  | `AgentRegistry` (Backbone) | Verifies satisfaction of deployed changes                                       |
 | **Critic Agent**        | `core/agents/critic.ts`              | `AgentRegistry` (Backbone) | Peer review for Council of Agents (security/performance/architect)              |
-| **Facilitator**         | `core/agents/prompts/facilitator.md` | `AgentRegistry` (Backbone) | Moderates multi-party collaboration sessions, drives consensus, closes sessions |
+| **Facilitator**         | `core/agents/prompts/facilitator.md` | `AgentRegistry` (Backbone) | **Session Moderator**. Multi-party collaboration, Session lifecycle management  |
 | **Merger Agent**        | `core/agents/merger.ts`              | `AgentRegistry` (Backbone) | Structural code reconciliation for parallel evolution tasks                     |
 
 ### 2. System Handlers (Logic-Powered)

@@ -42,6 +42,7 @@ export const RESOURCE_ICON = {
 export const AUTH = {
   COOKIE_NAME: 'claw_auth_session',
   COOKIE_VALUE: 'authenticated',
+  SESSION_USER_ID: 'claw_session_id',
   COOKIE_MAX_AGE: 60 * 60 * 24 * 7, // 1 week
   ERROR_INVALID_CREDENTIALS: 'INVALID_CREDENTIALS',
   ERROR_SYSTEM_FAILURE: 'SYSTEM_FAILURE',

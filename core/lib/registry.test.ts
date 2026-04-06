@@ -23,7 +23,7 @@ vi.mock('./registry/config', async (importOriginal) => {
     ...actual,
     ConfigManager: {
       getRawConfig: vi.fn(),
-      saveRawConfig: vi.fn(),
+      saveRawConfig: vi.fn().mockResolvedValue(undefined),
       getAgentOverrideConfig: vi.fn(),
     },
     defaultDocClient: mockDocClient,
@@ -122,11 +122,30 @@ describe('AgentRegistry', () => {
       const config = await AgentRegistry.getAgentConfig('custom');
       // Should only have essential tools in discovery mode
       expect(config?.tools).toEqual(expect.arrayContaining(['dispatchTask']));
+      expect(config?.tools).not.toContain('tool1');
     });
 
-    it('should apply tool overrides', async () => {
+    it('should add bootloader tools in discovery mode if tools < 4', async () => {
       vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
-        if (key === 'custom_tools') return ['override_tool'];
+        if (key === 'selective_discovery_mode') return true;
+        if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
+          return { custom: { id: 'custom', name: 'Custom', tools: ['recallKnowledge'] } };
+        }
+        return undefined;
+      });
+
+      const config = await AgentRegistry.getAgentConfig('custom');
+      // Should have bootloader tools because it had only 1 tool (which was essential)
+      if (!config?.tools) throw new Error('Tools should be defined');
+      expect(config.tools.length).toBeGreaterThanOrEqual(4);
+      expect(config.tools).toContain('listAgents');
+    });
+
+    it('should apply tool overrides from batch config', async () => {
+      vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
+        if (key === DYNAMO_KEYS.AGENT_TOOL_OVERRIDES) {
+          return { custom: ['batch_override_tool'] };
+        }
         if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
           return { custom: { id: 'custom', name: 'Custom', tools: ['tool1'] } };
         }
@@ -134,8 +153,29 @@ describe('AgentRegistry', () => {
       });
 
       const config = await AgentRegistry.getAgentConfig('custom');
-      expect(config?.tools).toContain('override_tool');
-      expect(config?.tools).toContain('dispatchTask'); // Essential tool
+      expect(config?.tools).toContain('batch_override_tool');
+    });
+
+    it('should prune expired tools with TTL', async () => {
+      const now = Date.now();
+      vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
+        if (key === 'custom_tools') {
+          return [
+            'permanent_tool',
+            { name: 'expired_tool', expiresAt: now - 1000 },
+            { name: 'active_tool', expiresAt: now + 1000 },
+          ];
+        }
+        if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
+          return { custom: { id: 'custom', name: 'Custom', tools: [] } };
+        }
+        return undefined;
+      });
+
+      const config = await AgentRegistry.getAgentConfig('custom');
+      expect(config?.tools).toContain('permanent_tool');
+      expect(config?.tools).toContain('active_tool');
+      expect(config?.tools).not.toContain('expired_tool');
     });
   });
 

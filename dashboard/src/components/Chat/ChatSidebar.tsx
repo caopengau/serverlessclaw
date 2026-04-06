@@ -1,5 +1,4 @@
 import { Plus, Clock, Trash2, Search, Pin, PinOff } from 'lucide-react';
-import { THEME } from '@/lib/theme';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
@@ -123,13 +122,13 @@ export function ChatSidebar({
               }}
               className={`p-4 flex flex-col items-stretch rounded-lg border transition-all text-left space-y-2 group cursor-pointer bg-transparent relative overflow-hidden ${
                 activeSessionId === s.sessionId
-                  ? `border-${THEME.COLORS.PRIMARY}/40 bg-${THEME.COLORS.PRIMARY}/5 shadow-[0_0_20px_rgba(0,255,163,0.05)]`
+                  ? 'border-cyber-green/40 bg-cyber-green/5 shadow-[0_0_20px_rgba(0,255,163,0.05)]'
                   : 'border-white/5 hover:border-white/10 hover:bg-white/[0.02]'
               }`}
             >
               {s.isPinned && (
                 <div
-                  className={`absolute top-0 right-0 w-8 h-8 flex items-center justify-end pr-2 pt-1 opacity-40 text-${THEME.COLORS.PRIMARY}`}
+                  className="absolute top-0 right-0 w-8 h-8 flex items-center justify-end pr-2 pt-1 opacity-40 text-cyber-green"
                 >
                   <Pin size={10} className="rotate-45" />
                 </div>
@@ -139,7 +138,7 @@ export function ChatSidebar({
                 <Typography
                   variant="caption"
                   weight="bold"
-                  className={`truncate ${activeSessionId === s.sessionId ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/80'}`}
+                  className={`truncate ${activeSessionId === s.sessionId ? 'text-cyber-green' : 'text-white/80'}`}
                 >
                   {s.title ?? 'Untitled Trace'}
                 </Typography>
@@ -183,7 +182,7 @@ export function ChatSidebar({
                       e.stopPropagation();
                       onTogglePin(s.sessionId, !s.isPinned);
                     }}
-                    className={`p-1 h-auto transition-colors z-10 ${s.isPinned ? `text-${THEME.COLORS.PRIMARY}` : 'text-white/20'}`}
+                    className={`p-1 h-auto transition-colors z-10 ${s.isPinned ? 'text-cyber-green' : 'text-white/20'}`}
                     icon={s.isPinned ? <PinOff size={12} /> : <Pin size={12} />}
                     title={s.isPinned ? t('CHAT_SIDEBAR_UNPIN_SESSION') : t('CHAT_SIDEBAR_PIN_SESSION')}
                   />

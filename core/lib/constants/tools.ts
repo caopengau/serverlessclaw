@@ -66,6 +66,9 @@ export const TOOLS = {
   checkReputation: 'checkReputation',
   requestResearch: 'requestResearch',
   technicalResearch: 'technicalResearch',
+  renderComponent: 'renderComponent',
+  navigateTo: 'navigateTo',
+  uiAction: 'uiAction',
 } as const;
 
 /**

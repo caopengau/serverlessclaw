@@ -145,6 +145,18 @@ export interface IAgentConfig {
   };
   /** Safety trust level for this agent. Controls approval gates. */
   safetyTier?: SafetyTier;
+  /** Whether the agent starts in "Nimble" mode (suppresses MCP tools until JIT installation). */
+  discoveryMode?: boolean;
+}
+
+/**
+ * Metadata for a dynamically installed skill with optional TTL.
+ */
+export interface InstalledSkill {
+  /** The name of the tool/skill. */
+  name: string;
+  /** Unix timestamp (ms) when the skill expires. */
+  expiresAt?: number;
 }
 
 /**

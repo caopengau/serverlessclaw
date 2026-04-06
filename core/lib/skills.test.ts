@@ -33,6 +33,17 @@ describe('SkillRegistry', () => {
   });
 
   describe('discoverSkills', () => {
+    it('should find skills based on keyword query including external tools', async () => {
+      const { MCPBridge } = await import('./mcp');
+      vi.mocked(MCPBridge.getExternalTools).mockResolvedValueOnce([
+        { name: 'external_tool', description: 'Query some API', parameters: {} } as any,
+      ]);
+
+      const results = await SkillRegistry.discoverSkills('query');
+      expect(results).toHaveLength(1);
+      expect(results[0].name).toBe('external_tool');
+    });
+
     it('should find skills based on keyword query', async () => {
       const results = await SkillRegistry.discoverSkills('deploy');
       expect(results).toHaveLength(1);
@@ -51,22 +62,47 @@ describe('SkillRegistry', () => {
   });
 
   describe('installSkill', () => {
-    it('should add skill to agent config if not present', async () => {
+    it('should add skill with TTL to batch overrides', async () => {
       vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValue({
         id: 'agent-1',
         name: 'Agent 1',
         tools: ['recallKnowledge'],
         systemPrompt: '...',
         enabled: true,
-        isBackbone: true,
+      } as any);
+
+      const now = Date.now();
+      vi.stubGlobal('Date', { now: () => now });
+
+      await SkillRegistry.installSkill('agent-1', 'tool1', 10);
+
+      expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
+        'agent_tool_overrides',
+        expect.objectContaining({
+          'agent-1': expect.arrayContaining([{ name: 'tool1', expiresAt: now + 10 * 60 * 1000 }]),
+        })
+      );
+
+      vi.unstubAllGlobals();
+    });
+
+    it('should add skill to agent config using batch overrides', async () => {
+      vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValue({
+        id: 'agent-1',
+        name: 'Agent 1',
+        tools: ['recallKnowledge'],
+        systemPrompt: '...',
+        enabled: true,
       } as any);
 
       await SkillRegistry.installSkill('agent-1', 'tool1');
 
-      expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith('agent-1_tools', [
-        'recallKnowledge',
-        'tool1',
-      ]);
+      expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
+        'agent_tool_overrides',
+        expect.objectContaining({
+          'agent-1': expect.arrayContaining(['tool1']),
+        })
+      );
     });
 
     it('should not add duplicate skills', async () => {

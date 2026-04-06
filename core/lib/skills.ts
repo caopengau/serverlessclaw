@@ -1,6 +1,7 @@
 import { IToolDefinition } from './types/tool';
 import { AgentRegistry } from './registry';
 import { logger } from './logger';
+import { DYNAMO_KEYS } from './constants';
 
 /**
  * SkillRegistry handles dynamic discovery and loading of agent capabilities.
@@ -16,10 +17,7 @@ export class SkillRegistry {
     const { TOOLS } = await import('../tools/index');
     const { MCPBridge } = await import('./mcp');
 
-    // 1. Get all local tools
     const allLocalTools = Object.values(TOOLS);
-
-    // 2. Get all external MCP tools
     const allExternalTools = await MCPBridge.getExternalTools();
 
     const allCapabilities = [...allLocalTools, ...allExternalTools];
@@ -40,16 +38,61 @@ export class SkillRegistry {
 
   /**
    * Dynamically "installs" a skill for a specific agent session.
-   * This can be used to temporarily expand an agent's capability without permanent config changes.
+   * Uses batch tool overrides for efficiency.
+   *
+   * @param agentId - The ID of the agent receiving the skill.
+   * @param skillName - The name of the tool/skill to install.
+   * @param ttlMinutes - Optional Time-To-Live in minutes. If not provided, the skill is permanent.
    */
-  static async installSkill(agentId: string, skillName: string): Promise<void> {
+  static async installSkill(
+    agentId: string,
+    skillName: string,
+    ttlMinutes?: number
+  ): Promise<void> {
+    const { ConfigManager } = await import('./registry/config');
     const currentConfig = await AgentRegistry.getAgentConfig(agentId);
     if (!currentConfig) throw new Error(`Agent ${agentId} not found`);
 
-    const tools = currentConfig.tools ?? [];
-    if (!tools.includes(skillName)) {
-      await AgentRegistry.saveRawConfig(`${agentId}_tools`, [...tools, skillName]);
-      logger.info(`Skill '${skillName}' installed for agent ${agentId}`);
-    }
+    const batchOverrides =
+      ((await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES)) as Record<
+        string,
+        (string | import('./types/agent').InstalledSkill)[]
+      >) ?? {};
+    const agentOverrides =
+      (batchOverrides[agentId] as (string | import('./types/agent').InstalledSkill)[]) ?? [];
+    const batchTools = Array.isArray(agentOverrides) ? agentOverrides : [];
+
+    const perAgentTools = Array.isArray(currentConfig.tools) ? currentConfig.tools : [];
+
+    // Check existence across both per-agent and batch overrides
+    const exists =
+      perAgentTools.some((t) =>
+        typeof t === 'string'
+          ? t === skillName
+          : (t as import('./types/agent').InstalledSkill).name === skillName
+      ) ||
+      batchTools.some((t) =>
+        typeof t === 'string'
+          ? t === skillName
+          : (t as import('./types/agent').InstalledSkill).name === skillName
+      );
+    if (exists) return;
+
+    const newTool = ttlMinutes
+      ? { name: skillName, expiresAt: Date.now() + ttlMinutes * 60 * 1000 }
+      : skillName;
+
+    // Persist batch override (backwards-compatible with new batch model)
+    await AgentRegistry.saveRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, {
+      ...batchOverrides,
+      [agentId]: [...batchTools, newTool],
+    });
+
+    // Also persist per-agent tools for compatibility with existing consumers/tests
+    await AgentRegistry.saveRawConfig(`${agentId}_tools`, [...perAgentTools, newTool]);
+
+    logger.info(
+      `Skill '${skillName}' installed for ${agentId}${ttlMinutes ? ` (Expires in ${ttlMinutes}m)` : ''}`
+    );
   }
 }

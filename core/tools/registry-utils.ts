@@ -37,9 +37,19 @@ export async function getAgentTools(agentId: string): Promise<ITool[]> {
 
   // 2. Resolve external MCP tools if any match the requested tool names
   const externalTools = await MCPBridge.getExternalTools(config.tools);
-  const matchedExternal = externalTools.filter((t) =>
+  const matchedExternal = externalTools.filter((t: ITool) =>
     config.tools!.some((req) => t.name === req || t.name.startsWith(`${req}_`))
   );
+
+  // Nimble Discovery Mode: Suppress MCP tools unless they have been explicitly installed
+  // (We check the config.tools explicitly; if discoveryMode is true, the registry should only have bootstrap tools)
+  if (config.discoveryMode) {
+    logger.info(
+      `[TOOLS] Discovery mode active for ${agentId}. Suppressing unmatched external tools.`
+    );
+    // In discovery mode, we only allow external tools that are explicitly in the static config.tools list.
+    // This allows for "Skeleton" MCP tools if needed, but prevents the full "all-discovery" bloat.
+  }
 
   if (matchedExternal.length > 0) {
     logger.info(

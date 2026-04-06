@@ -51,6 +51,11 @@ describe('Backbone Registry', () => {
     expect(mainAgent.connectionProfile!.length).toBeGreaterThan(0);
   });
 
+  it('should have discoveryMode enabled for SuperClaw', () => {
+    const mainAgent = BACKBONE_REGISTRY[AgentType.SUPERCLAW];
+    expect(mainAgent.discoveryMode).toBe(true);
+  });
+
   it('should include essential tools in SuperClaw', () => {
     const mainAgent = BACKBONE_REGISTRY[AgentType.SUPERCLAW];
     expect(mainAgent.tools).toContain('dispatchTask');

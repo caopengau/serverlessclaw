@@ -18,6 +18,7 @@ import MemorySearch from './MemorySearch';
 import MemoryPagination from './MemoryPagination';
 import MemoryTable from './MemoryTable';
 import { headers } from 'next/headers';
+import { AUTH } from '@/lib/constants';
 
 interface MemoryMetadata {
   priority?: number;
@@ -36,6 +37,17 @@ interface MemoryItem {
   type?: string;
 }
 
+
+async function getUserIdFromCookies(): Promise<string> {
+  const headerList = await headers();
+  const cookieHeader = headerList.get('cookie') || '';
+  const cookiesList = cookieHeader.split(';').map((c) => c.trim());
+  const sessionCookie = cookiesList.find((c) => c.startsWith(`${AUTH.SESSION_USER_ID}=`));
+  if (sessionCookie) {
+    return sessionCookie.split('=')[1];
+  }
+  return 'anonymous';
+}
 
 function coerceToMemoryItem(item: unknown): MemoryItem | null {
   if (!item || typeof item !== 'object') return null;
@@ -98,7 +110,8 @@ async function getMemoryData(
   // Handle Search Tab
   if (query) {
     try {
-      const result = await memory.searchInsights(undefined, query, undefined, 20, parsedNext);
+      const searchUserId = await getUserIdFromCookies();
+      const result = await memory.searchInsights(searchUserId, query, undefined, 20, parsedNext);
       return {
         items: (result.items || []).map(coerceToMemoryItem).filter(Boolean) as MemoryItem[],
         nextToken: encodePaginationToken(result.lastEvaluatedKey),

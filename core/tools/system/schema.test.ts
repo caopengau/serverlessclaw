@@ -12,6 +12,9 @@ describe('System Domain Tool Schemas', () => {
     'validateCode',
     'switchModel',
     'checkReputation',
+    'renderComponent',
+    'navigateTo',
+    'uiAction',
   ];
 
   it('should export all expected tool definitions', () => {

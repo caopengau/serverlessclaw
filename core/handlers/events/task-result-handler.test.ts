@@ -358,7 +358,7 @@ describe('task-result-handler (parallel aggregator guard)', () => {
 
     await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
 
-    // No traceId → no aggregator calls at all
+    // No traceId 14 no aggregator calls at all
     expect(mockGetState).not.toHaveBeenCalled();
     expect(mockAddResult).not.toHaveBeenCalled();
   });
@@ -402,7 +402,7 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
   });
 
   it('should skip processing when DynamoDB idempotency check fails (duplicate)', async () => {
-    // Simulate ConditionalCheckFailedException — item already exists
+    // Simulate ConditionalCheckFailedException 14 item already exists
     const conditionalError = new Error('ConditionalCheckFailedException');
     conditionalError.name = 'ConditionalCheckFailedException';
     mockDdbSend.mockRejectedValue(conditionalError);
@@ -440,7 +440,7 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
 
     await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
 
-    // Should still process (fail-open) — wakeupInitiator called
+    // Should still process (fail-open) 14 wakeupInitiator called
     expect(mockSend).toHaveBeenCalled();
   });
 
@@ -455,12 +455,12 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
       depth: 1,
     };
 
-    // First call — both in-memory and DynamoDB should be used
+    // First call 14 both in-memory and DynamoDB should be used
     await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
     const ddbCallsAfterFirst = mockDdbSend.mock.calls.length;
     const ebCallsAfterFirst = mockSend.mock.calls.length;
 
-    // Second call — in-memory set should catch it before DynamoDB
+    // Second call 14 in-memory set should catch it before DynamoDB
     await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
 
     // No new DynamoDB calls (in-memory caught it)
@@ -500,7 +500,7 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
     };
 
     await handleTaskResult(eventDetail2, EventType.TASK_COMPLETED);
-    // No new calls — envelope-001 was already processed
+    // No new calls 14 envelope-001 was already processed
     expect(mockSend.mock.calls.length).toBe(afterFirst);
   });
 
@@ -519,7 +519,7 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
     const afterFirst = mockSend.mock.calls.length;
     expect(afterFirst).toBeGreaterThan(0);
 
-    // Same id — should be skipped
+    // Same id 14 should be skipped
     const eventDetail2 = {
       id: 'detail-only-001',
       userId: 'user-123',

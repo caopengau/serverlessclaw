@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Plus, Shield, RefreshCw, Radio, Search } from 'lucide-react';
-import { THEME } from '@/lib/theme';
 import { toast } from 'sonner';
 import CyberConfirm from '@/components/CyberConfirm';
 import Button from '@/components/ui/Button';
@@ -365,7 +364,7 @@ export default function AgentsPage() {
 
   return (
     <main
-      className={`flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-${THEME.COLORS.INTEL}/5 via-transparent to-transparent`}
+      className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent"
     >
       <CyberConfirm
         isOpen={confirmModal.isOpen}
@@ -415,7 +414,7 @@ export default function AgentsPage() {
             </Typography>
             <Badge
               variant="outline"
-              className={`px-4 py-1 font-bold text-xs border-${THEME.COLORS.INTEL}/20 text-${THEME.COLORS.INTEL}/60 uppercase`}
+              className="px-4 py-1 font-bold text-xs border-cyber-blue/20 text-cyber-blue/60 uppercase"
             >
               {Object.keys(agents).length}
             </Badge>

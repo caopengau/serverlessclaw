@@ -54,6 +54,9 @@
 | `puppeteer-*`             | Browser automation & UI vision (MCP)                                                            |     ✅     |        —         |
 | `fetch`                   | Deep reading of docs/web pages (MCP)                                                            |     —      |        —         |
 | `aws-*`                   | Infrastructure auditing & logs (MCP)                                                            |     ✅     |        —         |
+| `renderComponent`         | Renders a specialized UI component in the dashboard session                                     |     —      |        —         |
+| `navigateTo`              | Navigates the user to a dashboard path (SuperClaw ONLY)                                         |     ✅     |        —         |
+| `uiAction`                | Triggers a specific UI event or state change (modal, sidebar, etc.)                             |     —      |        —         |
 
 ---
 
@@ -101,7 +104,8 @@ Agents no longer receive all tools by default. They call `getAgentTools(agentId)
 
 1. Checks the `AgentRegistry` (Backbone + DynamoDB overrides).
 2. Returns a subset of tools assigned to that specific agent.
-3. Users can grant/revoke tools for any agent in the **ClawCenter** dashboard under the **Evolution** sector (`/capabilities`).
+3. **[NEW] Nimble Skeleton Mode**: If `discoveryMode: true` is set (Default for SuperClaw), the agent starts with only a **Skeleton** toolset (Messaging, Navigation, Discovery). All other capabilities must be added via `discoverSkills` and `installSkill` JIT.
+4. Users can grant/revoke tools for any agent in the **ClawCenter** dashboard under the **Evolution** sector (`/capabilities`).
 
 ### ITool Interface
 

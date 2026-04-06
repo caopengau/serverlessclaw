@@ -43,8 +43,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (isAuthorized) {
       const response = NextResponse.json({ success: true });
 
-      // Set a secure, HttpOnly cookie for "authentication"
+      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
       response.cookies.set(AUTH.COOKIE_NAME, AUTH.COOKIE_VALUE, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: AUTH.COOKIE_MAX_AGE,
+        path: '/',
+      });
+
+      response.cookies.set(AUTH.SESSION_USER_ID, sessionId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
