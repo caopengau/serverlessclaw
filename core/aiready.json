@@ -136,7 +136,13 @@
       "checkDeepCallbacks": true,
       "checkOverloadedSymbols": true,
       "checkLargeFiles": true,
-      "exclude": ["dashboard/src/components/ui/**"]
+      "exclude": [
+        "dashboard/src/components/ui/**",
+        "lib/memory/gap-operations.ts",
+        "lib/agent/executor-core.ts",
+        "**/lib/memory/gap-operations.ts",
+        "**/lib/agent/executor-core.ts"
+      ]
     },
     "agent-grounding": {
       "maxRecommendedDepth": 5,

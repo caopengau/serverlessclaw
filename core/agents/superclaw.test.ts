@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SuperClaw } from './superclaw';
-import { SafetyTier, ReasoningProfile } from '../lib/types/index';
+import { SafetyTier, ReasoningProfile, AgentCategory } from '../lib/types/index';
 
 // Mock the prompts to return actual strings instead of paths
 vi.mock('./prompts/index', () => ({
@@ -52,7 +52,16 @@ describe('SuperClaw', () => {
 
   describe('constructor', () => {
     it('initializes with custom system prompt if provided', () => {
-      const config = { id: 'test', name: 'Test', systemPrompt: 'Custom Prompt', enabled: true };
+      const config = {
+        id: 'test',
+        name: 'Test',
+        systemPrompt: 'Custom Prompt',
+        enabled: true,
+        description: 'test',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
+      };
       const agent = new SuperClaw(memory, provider, tools, config);
       expect(agent.systemPrompt).toBe('Custom Prompt');
     });
@@ -98,6 +107,10 @@ describe('SuperClaw', () => {
           systemPrompt: '',
           enabled: true,
           safetyTier: SafetyTier.SANDBOX,
+          description: 'test',
+          category: AgentCategory.SYSTEM,
+          icon: 'test',
+          tools: [],
         };
         expect(await superclaw.requiresApproval(config, 'code_change')).toBe(true);
       });
@@ -109,6 +122,10 @@ describe('SuperClaw', () => {
           systemPrompt: '',
           enabled: true,
           safetyTier: SafetyTier.AUTONOMOUS,
+          description: 'test',
+          category: AgentCategory.SYSTEM,
+          icon: 'test',
+          tools: [],
         };
         expect(await superclaw.requiresApproval(config, 'code_change')).toBe(false);
       });
@@ -122,6 +139,10 @@ describe('SuperClaw', () => {
           systemPrompt: '',
           enabled: true,
           safetyTier: SafetyTier.SANDBOX,
+          description: 'test',
+          category: AgentCategory.SYSTEM,
+          icon: 'test',
+          tools: [],
         };
         const result = await superclaw.evaluateAction(config, 'code_change');
         expect(result.allowed).toBe(true);
@@ -139,6 +160,10 @@ describe('SuperClaw', () => {
           systemPrompt: '',
           enabled: true,
           safetyTier: SafetyTier.SANDBOX,
+          description: 'test',
+          category: AgentCategory.SYSTEM,
+          icon: 'test',
+          tools: [],
         };
         // We need to wait for the engine to pick up the updated policy
         expect(await superclaw.requiresApproval(config, 'code_change')).toBe(false);
@@ -149,15 +174,17 @@ describe('SuperClaw', () => {
           toolName: 'sensitive_tool',
           requireApproval: true,
         });
-
         const config = {
           id: 'test',
           name: 'Test',
           systemPrompt: '',
           enabled: true,
           safetyTier: SafetyTier.AUTONOMOUS,
+          description: 'test',
+          category: AgentCategory.SYSTEM,
+          icon: 'test',
+          tools: [],
         };
-
         const result = await superclaw.evaluateAction(config, 'mcp_tool', {
           toolName: 'sensitive_tool',
         });
@@ -174,14 +201,15 @@ describe('SuperClaw', () => {
           systemPrompt: '',
           enabled: true,
           safetyTier: SafetyTier.SANDBOX,
+          description: 'test',
+          category: AgentCategory.SYSTEM,
+          icon: 'test',
+          tools: [],
         };
-
         await superclaw.evaluateAction(config, 'unknown_action');
-
         const violations = superclaw.getSafetyViolations();
         expect(violations.length).toBeGreaterThan(0);
         expect(violations[0].action).toBe('unknown_action');
-
         const stats = superclaw.getSafetyStats();
         expect(stats.totalViolations).toBeGreaterThan(0);
         expect(stats.approvalRequired).toBeGreaterThan(0);

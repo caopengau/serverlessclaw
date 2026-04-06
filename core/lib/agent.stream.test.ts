@@ -8,6 +8,7 @@ import {
   MessageChunk,
   AttachmentType,
   ReasoningProfile,
+  AgentCategory,
 } from './types/index';
 
 // ── Mocks ───────────────────────────────────────────────────────────────────────
@@ -123,6 +124,10 @@ describe('Agent.stream()', () => {
       name: 'Test Agent',
       enabled: true,
       systemPrompt: 'System prompt',
+      description: 'test-agent',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     // Consume the stream
@@ -168,6 +173,10 @@ describe('Agent.stream()', () => {
       name: 'Test',
       enabled: true,
       systemPrompt: 'System',
+      description: 'test',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     const userText = 'Current message';
@@ -212,6 +221,10 @@ describe('Agent.stream()', () => {
       name: 'Test',
       enabled: true,
       systemPrompt: 'System',
+      description: 'test',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     const chunks: MessageChunk[] = [];
@@ -243,6 +256,10 @@ describe('Agent.stream()', () => {
       name: 'Test Agent',
       enabled: true,
       systemPrompt: 'System',
+      description: 'test-agent',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     const chunks: MessageChunk[] = [];
@@ -276,6 +293,10 @@ describe('Agent.stream()', () => {
       name: 'Test',
       enabled: true,
       systemPrompt: 'System',
+      description: 'test',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     const chunks: MessageChunk[] = [];
@@ -305,6 +326,10 @@ describe('Agent.stream()', () => {
       name: 'Test Agent',
       enabled: true,
       systemPrompt: 'System',
+      description: 'test-agent',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
     (agent as any).emitter = mockEmitter;
 
@@ -346,6 +371,10 @@ describe('Agent.stream()', () => {
       name: 'Test',
       enabled: true,
       systemPrompt: 'System',
+      description: 'test',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     for await (const _ of agent.stream('CONV#dashboard-user#sess-1', 'Hi', {})) {

@@ -15,7 +15,8 @@ vi.mock('../../lib/utils/error', () => ({
   formatErrorMessage: vi.fn((err: unknown) => (err instanceof Error ? err.message : String(err))),
 }));
 
-vi.mock('../../lib/types/index', () => ({
+vi.mock('../../lib/types/index', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/types/index')>()),
   EventType: { CONTINUATION_TASK: 'continuation_task' },
 }));
 

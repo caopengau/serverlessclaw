@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { transformToolsToOpenAI, normalizeProfile, capEffort, parseConfigInt } from './utils';
-import { ITool, ReasoningProfile } from '../types/index';
+import { ITool, ReasoningProfile, ToolType } from '../types/index';
 import { logger } from '../logger';
 
 vi.mock('../logger', () => ({
@@ -16,6 +16,7 @@ describe('transformToolsToOpenAI', () => {
       {
         name: 'get_weather',
         description: 'Get the weather',
+        type: ToolType.FUNCTION,
         parameters: {
           type: 'object',
           properties: {
@@ -50,6 +51,7 @@ describe('transformToolsToOpenAI', () => {
       {
         name: 'get_weather',
         description: 'Get the weather',
+        type: ToolType.FUNCTION,
         parameters: { type: 'object' as const, properties: {} },
         execute: async () => 'result',
       } as ITool,

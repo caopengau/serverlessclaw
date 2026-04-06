@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ToolExecutor } from './tool-executor';
-import { MessageRole, AttachmentType } from '../types/index';
+import { MessageRole, AttachmentType, ToolType } from '../types/index';
 
 vi.mock('../logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -31,6 +31,7 @@ function createTool(overrides: Partial<any> = {}) {
   return {
     name: overrides.name ?? 'test-tool',
     description: overrides.description ?? 'A test tool',
+    type: ToolType.FUNCTION,
     parameters: overrides.parameters ?? {},
     execute: overrides.execute ?? vi.fn().mockResolvedValue('success'),
     requiresApproval: overrides.requiresApproval ?? false,

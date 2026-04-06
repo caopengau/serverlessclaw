@@ -35,6 +35,7 @@ describe('ContextManager', () => {
       const messages: Message[] = [
         {
           role: MessageRole.ASSISTANT,
+          content: '',
           tool_calls: [{ id: '1', type: 'function', function: { name: 'test', arguments: '{}' } }],
         },
       ];

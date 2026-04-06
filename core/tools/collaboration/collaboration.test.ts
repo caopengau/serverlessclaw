@@ -35,12 +35,17 @@ vi.mock('../../lib/types/llm', async (importOriginal) => {
   };
 });
 
-vi.mock('../../lib/types/agent', () => ({
-  AgentType: { FACILITATOR: 'facilitator' },
-}));
+vi.mock('../../lib/types/agent', async (importOriginal) => {
+  const actual = (await importOriginal()) as Record<string, unknown>;
+  return {
+    ...actual,
+    AgentType: { FACILITATOR: 'facilitator' },
+  };
+});
 
 vi.mock('../../lib/types/tool', () => ({
   ITool: {},
+  ToolType: { FUNCTION: 'function' },
 }));
 
 describe('Collaboration Tools', () => {

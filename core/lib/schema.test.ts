@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { validateAllTools, validateToolSchema } from './schema';
-import { IToolDefinition } from './types/index';
+import { IToolDefinition, ToolType } from './types/index';
 import { TOOLS } from '../tools/index';
 
 describe('Tool Schema Validation', () => {
@@ -23,6 +23,7 @@ describe('Tool Schema Validation', () => {
     const validTool: IToolDefinition = {
       name: 'valid',
       description: 'test',
+      type: ToolType.FUNCTION,
       parameters: {
         type: 'object',
         properties: {
@@ -41,6 +42,7 @@ describe('Tool Schema Validation', () => {
     const invalidTool: IToolDefinition = {
       name: 'invalid',
       description: 'test',
+      type: ToolType.FUNCTION,
       parameters: {
         type: 'object',
         properties: {

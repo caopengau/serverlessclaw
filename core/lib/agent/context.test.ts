@@ -10,6 +10,10 @@ describe('AgentContext', () => {
         name: 'Test Agent',
         systemPrompt: 'You are a test agent.',
         enabled: true,
+        description: 'test-agent',
+        category: ReasoningProfile.STANDARD as any,
+        icon: 'test',
+        tools: [],
       };
       const result = AgentContext.getIdentityBlock(
         config,

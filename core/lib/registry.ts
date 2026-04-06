@@ -260,7 +260,7 @@ export class AgentRegistry {
    * @param id - The unique agent identifier.
    * @param config - The new agent configuration to save.
    */
-  static async saveConfig(id: string, config: IAgentConfig): Promise<void> {
+  static async saveConfig(id: string, config: Partial<IAgentConfig>): Promise<void> {
     const { ConfigTable } = (await import('sst')).Resource as { ConfigTable?: { name: string } };
     if (!ConfigTable?.name) {
       logger.warn(`ConfigTable not linked. Skipping save for ${id}`);

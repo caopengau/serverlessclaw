@@ -53,6 +53,7 @@ vi.mock('../../lib/types/agent', () => ({
 
 vi.mock('../../lib/types/tool', () => ({
   ITool: {},
+  ToolType: { FUNCTION: 'function' },
 }));
 
 const mockGetRawConfig = vi.fn();

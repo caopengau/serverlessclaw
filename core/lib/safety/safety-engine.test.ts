@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SafetyEngine } from './safety-engine';
 import { SafetyTier } from '../types/agent';
+import { AgentCategory, IAgentConfig } from '../types';
 import { DEFAULT_POLICIES } from './safety-config';
 
 // Mock logger
@@ -155,6 +156,10 @@ describe('SafetyEngine', () => {
         systemPrompt: '',
         enabled: true,
         safetyTier: SafetyTier.SANDBOX,
+        description: 'test',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
       };
 
       const codeResult = await engine.evaluateAction(config, 'code_change');
@@ -174,10 +179,14 @@ describe('SafetyEngine', () => {
     });
 
     it('should require no approvals in AUTONOMOUS tier', async () => {
-      const config = {
+      const config: IAgentConfig = {
         id: 'test',
         name: 'Test',
         systemPrompt: '',
+        description: 'Test agent',
+        category: AgentCategory.SYSTEM,
+        icon: 'test-icon',
+        tools: [],
         enabled: true,
         safetyTier: SafetyTier.AUTONOMOUS,
       };
@@ -202,6 +211,10 @@ describe('SafetyEngine', () => {
         name: 'Test',
         systemPrompt: '',
         enabled: true,
+        description: 'test',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
       };
 
       const deployResult = await engine.evaluateAction(config, 'deployment');
@@ -214,10 +227,14 @@ describe('SafetyEngine', () => {
 
   describe('Resource-level controls', () => {
     it('should block access to .git files', async () => {
-      const config = {
+      const config: IAgentConfig = {
         id: 'test',
         name: 'Test',
         systemPrompt: '',
+        description: 'Test agent',
+        category: AgentCategory.SYSTEM,
+        icon: 'test-icon',
+        tools: [],
         enabled: true,
         safetyTier: SafetyTier.AUTONOMOUS,
       };
@@ -237,6 +254,10 @@ describe('SafetyEngine', () => {
         systemPrompt: '',
         enabled: true,
         safetyTier: SafetyTier.AUTONOMOUS,
+        description: 'test',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
       };
 
       const result = await engine.evaluateAction(config, 'file_operation', {
@@ -253,6 +274,10 @@ describe('SafetyEngine', () => {
         systemPrompt: '',
         enabled: true,
         safetyTier: SafetyTier.AUTONOMOUS,
+        description: 'test',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
       };
 
       const lockResult = await engine.evaluateAction(config, 'file_operation', {
@@ -273,6 +298,10 @@ describe('SafetyEngine', () => {
         systemPrompt: '',
         enabled: true,
         safetyTier: SafetyTier.AUTONOMOUS,
+        description: 'test',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
       };
 
       const result = await engine.evaluateAction(config, 'file_operation', {
@@ -289,6 +318,10 @@ describe('SafetyEngine', () => {
         systemPrompt: '',
         enabled: true,
         safetyTier: SafetyTier.AUTONOMOUS,
+        description: 'test',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
       };
 
       const result = await engine.evaluateAction(config, 'file_operation', {

@@ -57,7 +57,11 @@ export class BaseMemoryProvider {
   public async putItem(item: Record<string, unknown>): Promise<void> {
     const command = new PutCommand({
       TableName: this.tableName,
-      Item: item,
+      Item: {
+        ...item,
+        attachments: (item.attachments as any[]) ?? [],
+        tool_calls: (item.tool_calls as any[]) ?? [],
+      },
     });
     try {
       await this.docClient.send(command);
@@ -210,9 +214,10 @@ export class BaseMemoryProvider {
 
     return items.map((item) => ({
       role: item.role as MessageRole,
-      content: item.content as string | undefined,
+      content: (item.content as string) ?? '',
       thought: item.thought as string | undefined,
-      tool_calls: item.tool_calls as import('./../types/llm').ToolCall[] | undefined,
+      tool_calls: (item.tool_calls as import('./../types/llm').ToolCall[] | undefined) ?? [],
+      attachments: (item.attachments as any[] | undefined) ?? [],
       tool_call_id: item.tool_call_id as string | undefined,
       name: item.name as string | undefined,
       agentName: item.agentName as string | undefined,

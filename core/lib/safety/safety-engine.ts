@@ -62,7 +62,7 @@ export class SafetyEngine {
    * Evaluate whether an action is allowed based on the agent's safety tier.
    */
   async evaluateAction(
-    agentConfig: IAgentConfig | undefined,
+    agentConfig: Partial<IAgentConfig> | undefined,
     action: string,
     context?: {
       toolName?: string;

@@ -1,6 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Agent } from '../agent';
-import { IMemory, IProvider, MessageRole, ReasoningProfile, AttachmentType } from '../types/index';
+import {
+  IMemory,
+  IProvider,
+  MessageRole,
+  ReasoningProfile,
+  AttachmentType,
+  AgentCategory,
+} from '../types/index';
 
 // Mock Tracer to avoid SST link errors in tests
 vi.mock('../tracer', () => {
@@ -49,6 +56,10 @@ describe('Agent Memory Scoping', () => {
       name: 'Test Agent',
       enabled: true,
       systemPrompt: 'System prompt',
+      description: 'test-agent',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     const sessionUserId = 'CONV#dashboard-user#session_123';
@@ -72,6 +83,10 @@ describe('Agent Memory Scoping', () => {
       name: 'Test Agent',
       enabled: true,
       systemPrompt: 'System prompt',
+      description: 'test-agent',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     const rawUserId = 'telegram-user-456';

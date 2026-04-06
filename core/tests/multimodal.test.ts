@@ -20,6 +20,7 @@ vi.mock('../lib/tracer', () => ({
 
 import { Agent } from '../lib/agent';
 import { MessageRole, AttachmentType, ReasoningProfile } from '../lib/types/llm';
+import { AgentCategory } from '../lib/types';
 
 describe('Multi-Modal Integration', () => {
   const mockMemory = {
@@ -48,6 +49,10 @@ describe('Multi-Modal Integration', () => {
     name: 'Test Agent',
     systemPrompt: 'You are a vision-capable agent.',
     enabled: true,
+    description: 'test-agent',
+    category: AgentCategory.SYSTEM,
+    icon: 'test',
+    tools: [],
   };
 
   beforeEach(() => {

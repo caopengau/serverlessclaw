@@ -7,6 +7,7 @@ import {
   InsightCategory,
   ReasoningProfile,
   AttachmentType,
+  AgentCategory,
 } from './types/index';
 
 // Mock ConfigManager
@@ -88,6 +89,10 @@ describe('Agent Memory Recall Regression', () => {
       name: 'Test Agent',
       enabled: true,
       systemPrompt: 'Base system prompt',
+      description: 'test-agent',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     await agent.process(userId, 'What do I like?');
@@ -144,6 +149,10 @@ describe('Agent Memory Recall Regression', () => {
       name: 'Test Agent',
       enabled: true,
       systemPrompt: 'Base system prompt',
+      description: 'test-agent',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     const iterator = await agent.stream(userId, 'Who am I?');
@@ -171,6 +180,10 @@ describe('Agent Memory Recall Regression', () => {
       name: 'Test Agent',
       enabled: true,
       systemPrompt: 'Base system prompt',
+      description: 'test-agent',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     await agent.process(prefixedId, 'Hello');

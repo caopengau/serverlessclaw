@@ -6,7 +6,7 @@ import { toast } from 'sonner'; // Assuming sonner is used or can be added
 interface UICommandDetail {
   action: 'open_modal' | 'close_modal' | 'focus_resource' | 'toggle_sidebar';
   target: string;
-  payload?: any;
+  payload?: unknown;
 }
 
 interface UICommandContextType {
@@ -25,8 +25,8 @@ export function UICommandProvider({ children }: { children: React.ReactNode }) {
   const [lastCommand, setLastCommand] = useState<UICommandDetail | null>(null);
 
   useEffect(() => {
-    const handleCommand = (event: any) => {
-      const detail = event.detail as UICommandDetail;
+    const handleCommand = (event: Event) => {
+      const detail = (event as CustomEvent<UICommandDetail>).detail;
       setLastCommand(detail);
       console.log(`[UICommandProvider] Executing command:`, detail);
 
@@ -35,7 +35,7 @@ export function UICommandProvider({ children }: { children: React.ReactNode }) {
           setActiveModal(detail.target);
           break;
         case 'close_modal':
-          if (activeModal === detail.target) setActiveModal(null);
+          setActiveModal((current) => (current === detail.target ? null : current));
           break;
         case 'focus_resource':
           // Can be handled by specific views listening to lastCommand
@@ -49,7 +49,7 @@ export function UICommandProvider({ children }: { children: React.ReactNode }) {
 
     window.addEventListener('claw:ui-command', handleCommand);
     return () => window.removeEventListener('claw:ui-command', handleCommand);
-  }, [activeModal]);
+  }, []);
 
   return (
     <UICommandContext.Provider value={{ activeModal, setActiveModal, lastCommand }}>

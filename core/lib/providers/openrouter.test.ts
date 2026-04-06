@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { OpenRouterProvider } from './openrouter';
-import { MessageRole } from '../types/index';
+import { MessageRole, ToolType } from '../types/index';
 
 // Mock global fetch
 const mockFetch = vi.fn();
@@ -127,6 +127,7 @@ describe('OpenRouterProvider', () => {
       {
         name: 'test_tool',
         description: 'test',
+        type: ToolType.FUNCTION,
         parameters: { type: 'object' as const, properties: {} },
         execute: async () => 'done',
       },

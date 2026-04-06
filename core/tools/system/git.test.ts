@@ -41,7 +41,8 @@ vi.mock('../../lib/constants', () => ({
   CONFIG_KEYS: { ACTIVE_PROVIDER: 'active_provider', ACTIVE_MODEL: 'active_model' },
 }));
 
-vi.mock('../../lib/types/index', () => ({
+vi.mock('../../lib/types/index', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../lib/types/index')>()),
   EventType: { CONTINUATION_TASK: 'continuation_task' },
 }));
 

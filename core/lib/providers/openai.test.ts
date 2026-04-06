@@ -72,6 +72,7 @@ describe('OpenAIProvider', () => {
       {
         name: 'local_tool',
         description: 'A local tool',
+        type: ToolType.FUNCTION,
         parameters: { type: 'object' as const, properties: {} },
         execute: async () => 'done',
       },

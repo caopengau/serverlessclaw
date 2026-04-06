@@ -183,6 +183,7 @@ describe('buildReflectionPrompt', () => {
       const conversation: Message[] = [
         {
           role: MessageRole.ASSISTANT,
+          content: '',
           tool_calls: [
             { id: 'call-1', type: 'function', function: { name: 'search', arguments: '{}' } },
           ],
@@ -442,7 +443,10 @@ describe('buildReflectionPrompt', () => {
     it('should handle conversation with messages that have no content and no tool_calls', async () => {
       const { buildReflectionPrompt } = await import('./prompts');
       const memory = createMockMemory();
-      const conversation: Message[] = [{ role: MessageRole.USER }, { role: MessageRole.ASSISTANT }];
+      const conversation: Message[] = [
+        { role: MessageRole.USER, content: '' },
+        { role: MessageRole.ASSISTANT, content: '' },
+      ];
 
       const result = await buildReflectionPrompt(memory, 'user-1', conversation, '', [], []);
 

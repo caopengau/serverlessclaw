@@ -99,14 +99,18 @@ vi.mock('../lib/agent', () => {
 });
 
 // 6. Mock schema
-vi.mock('../lib/schema/events', () => ({
-  RESEARCH_TASK_METADATA: {
-    parse: vi.fn().mockReturnValue({
-      tokenBudget: 100000,
-      timeBudgetMs: 300000,
-    }),
-  },
-}));
+vi.mock('../lib/schema/events', async (importOriginal) => {
+  const actual = await importOriginal<any>();
+  return {
+    ...actual,
+    RESEARCH_TASK_METADATA: {
+      parse: vi.fn().mockReturnValue({
+        tokenBudget: 100000,
+        timeBudgetMs: 300000,
+      }),
+    },
+  };
+});
 
 // 6b. Mock tools index (heavy module that causes timeouts)
 vi.mock('../tools/index', () => ({

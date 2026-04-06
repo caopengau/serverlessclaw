@@ -8,6 +8,8 @@ import {
   Message,
   AttachmentType,
   ReasoningProfile,
+  AgentCategory,
+  ToolType,
 } from './types/index';
 import { SYSTEM } from './constants';
 
@@ -88,6 +90,7 @@ describe('Agent Trace Propagation', () => {
     const mockTool = {
       name: 'testTool',
       description: 'Test Tool',
+      type: ToolType.FUNCTION,
       parameters: {
         type: 'object' as const,
         properties: {},
@@ -122,6 +125,10 @@ describe('Agent Trace Propagation', () => {
       name: 'Test Agent',
       enabled: true,
       systemPrompt: 'System prompt',
+      description: 'test-agent',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
       model: SYSTEM.DEFAULT_MODEL,
       provider: SYSTEM.DEFAULT_PROVIDER,
     });
@@ -145,6 +152,7 @@ describe('Agent Trace Propagation', () => {
     const mockTool = {
       name: 'multiModalTool',
       description: 'Test Tool',
+      type: ToolType.FUNCTION,
       parameters: {
         type: 'object' as const,
         properties: {},
@@ -178,6 +186,10 @@ describe('Agent Trace Propagation', () => {
       name: 'Test',
       enabled: true,
       systemPrompt: 'System',
+      description: 'test',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
     });
 
     await agent.process('user-1', 'Hello', {});
@@ -212,6 +224,10 @@ describe('Agent Trace Propagation', () => {
       name: 'Test',
       enabled: true,
       systemPrompt: 'System',
+      description: 'test',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
       model: SYSTEM.DEFAULT_MODEL,
       provider: SYSTEM.DEFAULT_PROVIDER,
     });
@@ -250,6 +266,10 @@ describe('Agent Trace Propagation', () => {
       name: 'Test',
       enabled: true,
       systemPrompt: 'System',
+      description: 'test',
+      category: AgentCategory.SYSTEM,
+      icon: 'test',
+      tools: [],
       model: SYSTEM.DEFAULT_MODEL,
       provider: SYSTEM.DEFAULT_PROVIDER,
     });
@@ -296,6 +316,10 @@ describe('Agent Trace Propagation', () => {
         name: 'Test Agent',
         enabled: true,
         systemPrompt: 'System prompt',
+        description: 'test-agent',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
         defaultCommunicationMode: 'text',
         model: SYSTEM.DEFAULT_MODEL,
         provider: SYSTEM.DEFAULT_PROVIDER,
@@ -337,6 +361,10 @@ describe('Agent Trace Propagation', () => {
         name: 'Test Agent',
         enabled: true,
         systemPrompt: 'System prompt',
+        description: 'test-agent',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
         defaultCommunicationMode: 'json',
         model: SYSTEM.DEFAULT_MODEL,
         provider: SYSTEM.DEFAULT_PROVIDER,
@@ -387,6 +415,10 @@ describe('Agent Trace Propagation', () => {
         name: 'Test Agent',
         enabled: true,
         systemPrompt: 'System prompt',
+        description: 'test-agent',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
         defaultCommunicationMode: 'json',
         model: SYSTEM.DEFAULT_MODEL,
         provider: SYSTEM.DEFAULT_PROVIDER,

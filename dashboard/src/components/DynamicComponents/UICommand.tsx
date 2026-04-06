@@ -13,7 +13,7 @@ interface UICommandProps {
  * An invisible component that executes UI commands from the agent.
  * Handles auto-navigation and specific UI events.
  */
-export default function UICommand({ component, onAction }: UICommandProps) {
+export default function UICommand({ component }: UICommandProps) {
   const router = useRouter();
   const executedRef = useRef(false);
   const props = component.props as {

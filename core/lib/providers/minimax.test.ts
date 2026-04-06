@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MiniMaxProvider } from './minimax';
-import { MessageRole, ReasoningProfile, ITool, Message } from '../types/index';
+import { MessageRole, ReasoningProfile, ITool, Message, ToolType } from '../types/index';
 
 // Mock Anthropic SDK
 const mockCreateMessage = vi.fn();
@@ -76,6 +76,7 @@ describe('MiniMaxProvider', () => {
       {
         name: 'get_weather',
         description: 'Get weather',
+        type: ToolType.FUNCTION,
         parameters: { type: 'object', properties: { location: { type: 'string' } } },
         execute: async () => 'sunny',
       },
