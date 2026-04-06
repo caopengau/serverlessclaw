@@ -14,7 +14,8 @@
       "**/aiready-report-*.json",
       "pnpm-lock.yaml",
       "**/__mocks__/**",
-      "**/types/index.ts"
+      "**/types/index.ts",
+      "core/handlers/events/research-handler.test.ts"
     ],
     "tools": [
       "pattern-detect",

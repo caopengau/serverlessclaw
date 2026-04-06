@@ -1,0 +1,96 @@
+🚀 Starting AIReady unified analysis...
+
+
+=== AIReady Run Preview ===
+Tools to run: pattern-detect, context-analyzer, naming-consistency, ai-signal-clarity, agent-grounding, testability-index, doc-drift, dependency-health, change-amplification, contract-enforcement
+📋 Configuration:
+   Repository size: ~1371 code blocks
+   Similarity threshold: 0.75
+   Minimum lines: 5
+   Approximate mode: enabled
+   Max candidates per block: 500
+   Min shared tokens: 10
+   Severity filter: all
+   Include tests: true
+
+[K   [pattern-detect] Starting duplicate detection on 431 blocks...[K   [pattern-detect] Analyzing blocks (50/431)...[K   [pattern-detect] Analyzing blocks (100/431)...[K   [pattern-detect] Analyzing blocks (150/431)...[K   [pattern-detect] Analyzing blocks (200/431)...[K   [pattern-detect] Analyzing blocks (250/431)...[K   [pattern-detect] Analyzing blocks (300/431)...[K   [pattern-detect] Analyzing blocks (350/431)...[K   [pattern-detect] Analyzing blocks (400/431)...[K   [pattern-detect] Duplicate detection complete. Found 8 patterns.[K--- PATTERN-DETECT RESULTS ---
+  Issues found: 16
+  Files analyzed: 457
+[K--- CONTEXT-ANALYZER RESULTS ---
+  Files analyzed: 247
+[K--- NAMING-CONSISTENCY RESULTS ---
+  Issues found: 1
+[K   [ai-signal-clarity] analyzing files (50/247)[K   [ai-signal-clarity] analyzing files (100/247)[K   [ai-signal-clarity] analyzing files (150/247)[K   [ai-signal-clarity] analyzing files (200/247)[K   [ai-signal-clarity] analyzing files (247/247)[K--- AI-SIGNAL-CLARITY RESULTS ---
+[K   [agent-grounding] analyzing files (50/247)[K   [agent-grounding] analyzing files (100/247)[K   [agent-grounding] analyzing files (150/247)[K   [agent-grounding] analyzing files (200/247)[K   [agent-grounding] analyzing files (247/247)[K--- AGENT-GROUNDING RESULTS ---
+  Tool Score: 99/100
+[K   [testability-index] analyzing files (50/209)[K   [testability-index] analyzing files (100/209)[K   [testability-index] analyzing files (150/209)[K   [testability-index] analyzing files (200/209)[K   [testability-index] analyzing files (209/209)[K--- TESTABILITY-INDEX RESULTS ---
+  Tool Score: 98/100
+[K   [doc-drift] analyzing files (50/247)[K   [doc-drift] analyzing files (100/247)[K   [doc-drift] analyzing files (150/247)[K   [doc-drift] analyzing files (200/247)[K   [doc-drift] analyzing files (247/247)[K--- DOC-DRIFT RESULTS ---
+  Tool Score: 89/100
+[K--- DEPENDENCY-HEALTH RESULTS ---
+  Tool Score: 85/100
+[K   [change-amplification] analyzing dependencies (50/247)[K   [change-amplification] analyzing dependencies (100/247)[K   [change-amplification] analyzing dependencies (150/247)[K   [change-amplification] analyzing dependencies (200/247)[K   [change-amplification] analyzing dependencies (247/247)[K--- CHANGE-AMPLIFICATION RESULTS ---
+  Issues found: 1
+  Tool Score: 55/100
+  Files analyzed: 247
+[K   [contract-enforcement] scanning for defensive patterns (50/247)[K   [contract-enforcement] scanning for defensive patterns (100/247)[K   [contract-enforcement] scanning for defensive patterns (150/247)[K   [contract-enforcement] scanning for defensive patterns (200/247)[K   [contract-enforcement] scanning for defensive patterns (247/247)[K--- CONTRACT-ENFORCEMENT RESULTS ---
+  Tool Score: 76/100
+
+=== AIReady Run Summary ===
+  Total issues: 2106
+  Severity breakdown:
+    ● Critical: 1
+    ● Major: 165
+    ● Minor: 1940
+
+  Top files with issues:
+    → /Users/pengcao/projects/serverlessclaw/core/lib/utils/topology/classifiers.ts: 72 issues
+    → /Users/pengcao/projects/serverlessclaw/core/lib/types/agent.ts: 67 issues
+    → /Users/pengcao/projects/serverlessclaw/core/lib/memory/gap-operations.ts: 59 issues
+    → /Users/pengcao/projects/serverlessclaw/core/lib/safety/safety-engine.ts: 54 issues
+    → /Users/pengcao/projects/serverlessclaw/core/lib/utils/topology/edges.ts: 53 issues
+
+  Execution time: 14.82s
+
+📊 AI Readiness Overall Score
+  84/100 (Good) 👍
+  (Scoring Profile: agentic)
+
+Tool breakdown:
+  ███████████████ 100/100 (Excellent) ✅ pattern-detect
+  ██████████░░░░░ 65/100 (Fair) ⚠️ context-analyzer
+  ███████████████ 100/100 (Excellent) ✅ naming-consistency
+  ██████████░░░░░ 67/100 (Fair) ⚠️ ai-signal-clarity
+  ███████████████ 99/100 (Excellent) ✅ agent-grounding
+  ███████████████ 98/100 (Excellent) ✅ testability-index
+  █████████████░░ 89/100 (Good) 👍 doc-drift
+  █████████████░░ 85/100 (Good) 👍 dependency-health
+  ████████░░░░░░░ 55/100 (Needs Work) 🔨 change-amplification
+  ███████████░░░░ 76/100 (Good) 👍 contract-enforcement
+
+🎯 Top Actionable Recommendations:
+  1. 🟡 Reduce fallback cascades (341 found): enforce non-nullable types at the source so consumers don't need `?.`/?? fallbacks.
+     Impact: +10 points to contract-enforcement
+  2. 🔴 Split large file (75474 tokens) into smaller modules
+     Impact: +8 points to context-analyzer
+  3. 🟡 Split 15 large files (> 500 lines) into smaller, single-responsibility modules
+     Impact: +8 points to ai-signal-clarity
+  4. 🟡 Extract 1469 magic literals into named constants
+     Impact: +8 points to ai-signal-clarity
+  5. 🟡 Refactor top hotspot '/Users/pengcao/projects/serverlessclaw/core/lib/types/agent.ts' to reduce coupling.
+     Impact: +5 points to change-amplification
+
+💰 Business Impact Analysis (Monthly)
+  Potential Savings: $31
+  Productivity Gain: 945h (est. dev time)
+  Context Efficiency: 90%
+  Annual Value: $850,870 (ROI Prediction)
+
+──────────────────────────────────────────────────────────────────
+💬 Found a bug or have a metric idea?
+👉 Copy/paste this to your AI agent:
+   "Any feedback for the tools? Please use 'aiready bug' to report ❤️"
+──────────────────────────────────────────────────────────────────
+✅ Report saved to /Users/pengcao/projects/serverlessclaw/core/.aiready/aiready-report-20260406-161114.json
+
+🚫 SCAN FAILED: Found 1 critical issues
