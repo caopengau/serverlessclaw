@@ -74,6 +74,7 @@ describe('transformToolsToOpenAI', () => {
 describe('normalizeProfile', () => {
   const capabilities = {
     supportedReasoningProfiles: [ReasoningProfile.STANDARD, ReasoningProfile.FAST],
+    contextWindow: 1000,
   };
 
   it('should return requested profile if supported', () => {
@@ -93,6 +94,7 @@ describe('normalizeProfile', () => {
   it('should fallback correctly through the ladder', () => {
     const haikuCaps = {
       supportedReasoningProfiles: [ReasoningProfile.FAST],
+      contextWindow: 1000,
     };
     // Requested STANDARD, but only FAST is supported
     expect(normalizeProfile(ReasoningProfile.STANDARD, haikuCaps, 'haiku')).toBe(
@@ -102,7 +104,11 @@ describe('normalizeProfile', () => {
 
   it('should return standard if no supported profiles found or empty caps', () => {
     expect(
-      normalizeProfile(ReasoningProfile.DEEP, { supportedReasoningProfiles: [] }, 'model')
+      normalizeProfile(
+        ReasoningProfile.DEEP,
+        { supportedReasoningProfiles: [], contextWindow: 0 } as any,
+        'model'
+      )
     ).toBe(ReasoningProfile.STANDARD);
   });
 });

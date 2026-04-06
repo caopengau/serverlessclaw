@@ -45,7 +45,8 @@ function isValidJsonResponse(content: string, expectedSchema?: ResponseFormat): 
     if (typeof parsed !== 'object' || parsed === null) return false;
 
     // If schema is provided, validate required fields
-    const schema = expectedSchema?.json_schema?.schema;
+    const schema =
+      expectedSchema?.type === 'json_schema' ? expectedSchema.json_schema?.schema : null;
     if (schema?.required && Array.isArray(schema.required)) {
       const requiredFields = schema.required;
       for (const field of requiredFields) {

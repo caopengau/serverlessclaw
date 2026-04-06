@@ -131,6 +131,19 @@ export interface Message {
 }
 
 /**
+ * A stricter message type intended for gradual tightening/migrations.
+ *
+ * - Requires `messageId` and `traceId` to be present.
+ * - Other fields are inherited from `Message`.
+ */
+export interface StrictMessage extends Message {
+  /** Required unique identifier for streaming/reconciliation. */
+  messageId: string;
+  /** Required trace id linking to mechanical monologue. */
+  traceId: string;
+}
+
+/**
  * Profiles that define the computational intensity and 'thinking' depth of the LLM.
  */
 export enum ReasoningProfile {
@@ -212,7 +225,7 @@ export interface ICapabilities {
   /** Whether the model supports structured JSON output (json_schema). */
   supportsStructuredOutput?: boolean;
   /** The maximum context window size (tokens) for this model. */
-  contextWindow?: number;
+  contextWindow: number;
   /** Which attachment types this provider/model can process. */
   supportedAttachmentTypes?: AttachmentType[];
 }
@@ -220,21 +233,22 @@ export interface ICapabilities {
 /**
  * Format specification for the LLM response, used to enforce structured output.
  */
-export interface ResponseFormat {
-  /** The type of format. */
-  type: 'json_schema' | 'json_object' | 'text';
-  /** The detailed JSON schema definition (if type is json_schema). */
-  json_schema?: {
-    /** A descriptive name for the schema. */
-    name: string;
-    /** Optional description of what the response format is for. */
-    description?: string;
-    /** Whether to strictly enforce the schema (OpenAI specific). */
-    strict: boolean;
-    /** The actual JSON schema object. */
-    schema: Record<string, unknown>;
-  };
-}
+export type ResponseFormat =
+  | { type: 'text' }
+  | { type: 'json_object' }
+  | {
+      type: 'json_schema';
+      json_schema: {
+        /** A descriptive name for the schema. */
+        name: string;
+        /** Optional description of what the response format is for. */
+        description?: string;
+        /** Whether to strictly enforce the schema (OpenAI specific). */
+        strict: boolean;
+        /** The actual JSON schema object. */
+        schema: Record<string, unknown>;
+      };
+    };
 
 /**
  * A partial chunk of a message during streaming.

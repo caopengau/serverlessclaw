@@ -15,7 +15,14 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { TRACE_TYPES } from '@claw/core/lib/constants';
-import { Trace, TraceStep } from '@/lib/types/ui';
+import {
+  Trace,
+  TraceStep,
+  AgentStateContent,
+  ParallelDispatchContent,
+  ParallelBarrierContent,
+  GenericContent,
+} from '@/lib/types/ui';
 import { nodeTypes } from '@/components/Trace/nodes';
 import StepDetailPanel from '@/components/Trace/StepDetailPanel';
 
@@ -56,7 +63,7 @@ function processTraceNodes(
   traceNodes: Trace[],
   initialNodes: Node[],
   initialEdges: Edge[],
-  setSelectedStep: (step: TraceStep | { type: string; content: Record<string, unknown> }) => void
+  setSelectedStep: (step: TraceStep) => void
 ) {
   const processedNodes = new Set<string>();
   const xOffsetMap = new Map<string, number>();
@@ -93,8 +100,11 @@ function processTraceNodes(
             : `Delegated to ${traceNode.initialContext?.agentId ?? 'Agent'}`,
         onClick: () =>
           setSelectedStep({
+            stepId: entryId,
+            timestamp: traceNode.timestamp,
             type: 'trigger',
-            content: traceNode.initialContext as Record<string, unknown>,
+            content: (traceNode.initialContext as GenericContent) ?? {},
+            metadata: {},
           }),
       },
       position: { x: startX, y: currentY },
@@ -228,8 +238,8 @@ function processTraceNodes(
           id: stepNodeId,
           type: step.type === TRACE_TYPES.AGENT_WAITING ? 'waiting' : 'resumed',
           data: {
-            agentId: step.content.agentId ?? agentId,
-            reason: step.content.reason || step.content.answer || 'Status Change',
+            agentId: (step.content as AgentStateContent).agentId ?? agentId,
+            reason: (step.content as AgentStateContent).reason || (step.content as GenericContent).answer || 'Status Change',
             onClick: () => setSelectedStep(step),
           },
           position: { x: startX, y: currentY },
@@ -246,8 +256,8 @@ function processTraceNodes(
           id: stepNodeId,
           type: 'barrier',
           data: {
-            taskCount: step.content.taskCount,
-            status: step.content.status || 'parallel_op',
+            taskCount: (step.content as ParallelDispatchContent).taskCount,
+            status: (step.content as ParallelBarrierContent).status || 'parallel_op',
             onClick: () => setSelectedStep(step),
           },
           position: { x: startX, y: currentY },
@@ -293,7 +303,13 @@ function processTraceNodes(
         data: {
           label: traceNode.finalResponse,
           onClick: () =>
-            setSelectedStep({ type: 'result', content: { response: traceNode.finalResponse } }),
+            setSelectedStep({
+              stepId: resultId,
+              timestamp: Date.now(),
+              type: 'result',
+              content: { response: traceNode.finalResponse! },
+              metadata: {},
+            }),
         },
         position: { x: startX, y: currentY },
       });
@@ -325,9 +341,7 @@ interface PathVisualizerProps {
  * Internal component for rendering the React Flow canvas.
  */
 function PathVisualizerContent({ trace }: PathVisualizerProps) {
-  const [selectedStep, setSelectedStep] = React.useState<
-    TraceStep | { type: string; content: Record<string, unknown> } | null
-  >(null);
+  const [selectedStep, setSelectedStep] = React.useState<TraceStep | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const { fitView } = useReactFlow();

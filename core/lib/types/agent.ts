@@ -54,6 +54,22 @@ export interface AgentEvent {
 }
 
 /**
+ * A stricter version of the base event payload that requires traceId and sessionId.
+ * Used for handlers that must maintain strict context propagation.
+ */
+export interface StrictBaseEvent extends BaseEvent {
+  /** Required unique identifier for the execution trace. */
+  traceId: string;
+  /** Required unique identifier for the user session. */
+  sessionId: string;
+}
+
+/**
+ * Strict version of the AgentPayload that requires traceId and sessionId.
+ */
+export type StrictAgentPayload = Omit<AgentPayload, 'traceId' | 'sessionId'> & StrictBaseEvent;
+
+/**
  * Categorization of agents to guide orchestration.
  */
 export enum AgentCategory {
@@ -369,7 +385,7 @@ export interface AgentSignal {
   /** Optional ID of a build or deployment triggered during execution. */
   buildId?: string;
   /** Inner monologue or reasoning steps explaining the result. */
-  reasoning?: string;
+  reasoning: string;
 }
 
 /**

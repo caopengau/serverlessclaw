@@ -35,9 +35,9 @@ describe('MCPBridge Parallel Discovery', () => {
   it('should fetch tools from multiple servers in parallel and handle partial failures', async () => {
     // Mock 3 servers: srv1 (success), srv2 (failure), srv3 (success)
     (AgentRegistry.getRawConfig as any).mockResolvedValue({
-      srv1: { command: 'npx srv1' },
-      srv2: { command: 'npx srv2' },
-      srv3: { command: 'npx srv3' },
+      srv1: { type: 'local', command: 'npx srv1' },
+      srv2: { type: 'local', command: 'npx srv2' },
+      srv3: { type: 'local', command: 'npx srv3' },
     });
 
     const mockTool1 = { name: 'tool1', description: 'desc1', inputSchema: {} };
@@ -98,7 +98,7 @@ describe('MCPBridge Parallel Discovery', () => {
     process.env.MCP_HUB_URL = hubUrl;
 
     (AgentRegistry.getRawConfig as any).mockResolvedValue({
-      srv1: { command: 'npx srv1' },
+      srv1: { type: 'local', command: 'npx srv1' },
     });
 
     const mockClient = {
@@ -120,9 +120,9 @@ describe('MCPBridge Parallel Discovery', () => {
 
   it('should only request specific servers when requestedTools is provided', async () => {
     (AgentRegistry.getRawConfig as any).mockResolvedValue({
-      srv1: { command: 'npx srv1' },
-      srv2: { command: 'npx srv2' },
-      srv3: { command: 'npx srv3' },
+      srv1: { type: 'local', command: 'npx srv1' },
+      srv2: { type: 'local', command: 'npx srv2' },
+      srv3: { type: 'local', command: 'npx srv3' },
     });
 
     const mockClient = {

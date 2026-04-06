@@ -97,14 +97,14 @@ export class MCPBridge {
 
     const allTools: ITool[] = [];
     const defaultServers: Record<string, MCPServerConfig> = {
-      ast: { command: 'npx -y @aiready/ast-mcp-server@0.1.6' },
-      filesystem: { command: 'npx -y @modelcontextprotocol/server-filesystem .' },
-      git: { command: 'npx -y @cyanheads/git-mcp-server' },
-      'google-search': { command: 'npx -y @mcp-server/google-search-mcp' },
-      puppeteer: { command: 'npx -y @kirkdeam/puppeteer-mcp-server' },
-      fetch: { command: 'npx -y mcp-fetch-server' },
-      aws: { command: 'npx -y mcp-aws-devops-server' },
-      'aws-s3': { command: 'npx -y @geunoh/s3-mcp-server' },
+      ast: { type: 'local', command: 'npx -y @aiready/ast-mcp-server@0.1.6' },
+      filesystem: { type: 'local', command: 'npx -y @modelcontextprotocol/server-filesystem .' },
+      git: { type: 'local', command: 'npx -y @cyanheads/git-mcp-server' },
+      'google-search': { type: 'local', command: 'npx -y @mcp-server/google-search-mcp' },
+      puppeteer: { type: 'local', command: 'npx -y @kirkdeam/puppeteer-mcp-server' },
+      fetch: { type: 'local', command: 'npx -y mcp-fetch-server' },
+      aws: { type: 'local', command: 'npx -y mcp-aws-devops-server' },
+      'aws-s3': { type: 'local', command: 'npx -y @geunoh/s3-mcp-server' },
     };
 
     const finalConfig = serversConfig ?? {};
@@ -156,12 +156,17 @@ export class MCPBridge {
       let connectionString: string;
       let env: Record<string, string> | undefined;
 
-      if (typeof config === 'string') connectionString = config;
-      else if (config.type === 'remote') connectionString = config.url;
-      else if (config.type === 'local' || !config.type) {
+      if (typeof config === 'string') {
+        connectionString = config;
+      } else if (config.type === 'remote') {
+        connectionString = config.url;
+      } else if (config.type === 'local') {
         connectionString = config.command;
         env = config.env;
-      } else return [];
+      } else {
+        // Managed or other types not supported for direct command execution
+        return [];
+      }
 
       try {
         return await this.getToolsFromServer(name, connectionString, env);

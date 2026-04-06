@@ -18,7 +18,13 @@ import Link from 'next/link';
 import Typography from '@/components/ui/Typography';
 import DeleteTraceButton from '@/components/DeleteTraceButton';
 import { TRACE_TYPES } from '@claw/core/lib/constants';
-import { Trace, TraceStep } from '@/lib/types/ui';
+import {
+  Trace,
+  TraceStep,
+  ToolCallContent,
+  LlmCallContent,
+  LlmResponseContent,
+} from '@/lib/types/ui';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 const CollaborationCanvas = dynamic(() => import('@/components/CollaborationCanvas'), {
@@ -77,8 +83,10 @@ export default function TraceIntelligenceView({
               trace.steps
                 .filter((s: TraceStep) => s.type === TRACE_TYPES.TOOL_CALL)
                 .map((s: TraceStep) => {
-                  const toolName = s.content.toolName || '';
-                  const tool = s.content.tool || '';
+                  // Type narrowing for TOOL_CALL content
+                  const content = s.content as ToolCallContent;
+                  const toolName = content.toolName || '';
+                  const tool = content.tool || '';
                   return toolName || tool;
                 })
             )
@@ -89,15 +97,15 @@ export default function TraceIntelligenceView({
       const llmStep = trace.steps?.find((s: TraceStep) => s.type === TRACE_TYPES.LLM_CALL);
       const model =
         trace.initialContext?.model ||
-        llmStep?.content?.model ||
-        llmStep?.metadata?.model ||
+        (llmStep?.content as LlmCallContent)?.model ||
+        (typeof llmStep?.metadata?.model === 'string' ? llmStep.metadata.model : '') ||
         'UNKNOWN_MODEL';
 
       // Calculate total tokens
       let totalTokens = 0;
       trace.steps?.forEach((s: TraceStep) => {
-        if (s.type === TRACE_TYPES.LLM_RESPONSE && s.content?.usage) {
-          const usage = s.content.usage;
+        if (s.type === TRACE_TYPES.LLM_RESPONSE && (s.content as LlmResponseContent).usage) {
+          const usage = (s.content as LlmResponseContent).usage!;
           const tokens =
             usage.total_tokens || (usage.totalInputTokens ?? 0) + (usage.totalOutputTokens ?? 0);
           totalTokens += tokens;

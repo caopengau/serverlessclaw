@@ -2,6 +2,7 @@
  * UI-only shared types for dashboard components
  * Keep lightweight to avoid bundling server-only core code into the client.
  */
+
 export interface Tool {
   name: string;
   description: string;
@@ -11,6 +12,7 @@ export interface Tool {
     lastUsed: number;
   };
 }
+
 export interface Agent {
   id: string;
   name: string;
@@ -29,63 +31,140 @@ export interface ProviderModel {
   models: string[];
 }
 
-export interface TraceStepContent {
+export interface UsageInfo {
+  total_tokens?: number;
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  totalInputTokens?: number;
+  totalOutputTokens?: number;
+}
+
+export interface LlmCallContent {
+  messages: { role: string; content: string }[];
+  model?: string;
+  usage?: UsageInfo;
+}
+
+export interface LlmResponseContent {
+  content?: string;
+  response?: string;
+  tool_calls?: { function: { name: string; arguments: string } }[];
+  usage?: UsageInfo;
+  model?: string;
+}
+
+export interface ToolCallContent {
   tool?: string;
   toolName?: string;
-  result?: unknown; // result can be anything (images, objects, strings)
-  content?: string;
-  tool_calls?: { function: { name: string; arguments: string } }[];
-  response?: string;
-  messages?: { role: string; content: string }[];
+  args: Record<string, unknown>;
   agentId?: string;
-  userText?: string;
-  usage?: {
-    total_tokens?: number;
-    prompt_tokens?: number;
-    completion_tokens?: number;
-    totalInputTokens?: number;
-    totalOutputTokens?: number;
-  };
-  args?: Record<string, unknown>;
-  model?: string;
-  errorMessage?: string;
-  question?: string;
+}
+
+export interface ToolResultContent {
+  result: unknown;
+  tool?: string;
+  toolName?: string;
+}
+
+export interface ErrorContent {
+  errorMessage: string;
+  agentId?: string;
+}
+
+export interface ClarificationContent {
+  question: string;
   originalTask?: string;
+  agentId?: string;
   retryCount?: number;
   depth?: number;
-  taskCount?: number;
-  tasks?: { taskId: string; agentId: string; task: string }[];
+}
+
+export interface ParallelDispatchContent {
+  taskCount: number;
+  tasks: { taskId: string; agentId: string; task: string }[];
   aggregationType?: string;
   barrierTimeoutMs?: number;
-  status?: string;
+}
+
+export interface ParallelBarrierContent {
+  taskCount: number;
+  status: string;
   targetTime?: string;
-  reviewType?: string;
-  direction?: 'to_initiator' | 'to_agent';
+}
+
+export interface CouncilReviewContent {
+  reviewType: string;
+  status: string;
+}
+
+export interface ContinuationContent {
+  direction: 'to_initiator' | 'to_agent';
   initiatorId?: string;
   requestingAgent?: string;
-  previousState?: string;
-  newState?: string;
+}
+
+export interface CircuitBreakerContent {
+  previousState: string;
+  newState: string;
+  reason?: string;
   failureType?: string;
   failureCount?: number;
+}
+
+export interface CancellationContent {
   taskId?: string;
-  operation?: string;
+  initiatorId?: string;
+  reason?: string;
+}
+
+export interface MemoryOperationContent {
+  operation: string;
   key?: string;
   scope?: string;
-  reflection?: string;
+}
+
+export interface ReflectContent {
+  reflection: string;
+  agentId?: string;
+}
+
+export interface AgentStateContent {
   reason?: string;
-  stepId?: string;
-  timestamp?: number;
+  agentId?: string;
+  question?: string;
+}
+
+export interface ResultContent {
+  response: string;
+}
+
+export interface GenericContent {
   [key: string]: unknown;
 }
 
-export interface TraceStep {
-  stepId: string;
-  timestamp: number;
-  type: string;
-  content: TraceStepContent;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata: Record<string, any>;
-}
+export type TraceStep =
+  | { stepId: string; timestamp: number; type: 'llm_call'; content: LlmCallContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'llm_response'; content: LlmResponseContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'tool_call'; content: ToolCallContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'tool_result' | 'tool_response'; content: ToolResultContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'error'; content: ErrorContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'clarification_request'; content: ClarificationContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'clarification_response'; content: GenericContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'parallel_dispatch'; content: ParallelDispatchContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'parallel_barrier'; content: ParallelBarrierContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'parallel_completed'; content: ParallelBarrierContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'council_review'; content: CouncilReviewContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'continuation'; content: ContinuationContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'circuit_breaker'; content: CircuitBreakerContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'cancellation'; content: CancellationContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'memory_operation'; content: MemoryOperationContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'reflect'; content: ReflectContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'agent_waiting' | 'agent_resumed'; content: AgentStateContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'result'; content: ResultContent; metadata: Record<string, unknown> }
+  | { stepId: string; timestamp: number; type: 'trigger'; content: GenericContent; metadata: Record<string, unknown> };
+
+/** Union of all possible trace content types for convenience. */
+export type TraceStepContent = TraceStep['content'];
 
 export interface Trace {
   traceId: string;

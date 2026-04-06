@@ -26,11 +26,12 @@ describe('MCPServerConfig types', () => {
       expect(config.env).toEqual({ API_KEY: 'test-key', DEBUG: 'true' });
     });
 
-    it('should allow type to be omitted (defaults to local)', () => {
+    it('should require type to be local', () => {
       const config: LocalMCPServerConfig = {
+        type: 'local',
         command: 'npx some-mcp-server',
       };
-      expect(config.type).toBeUndefined();
+      expect(config.type).toBe('local');
     });
   });
 

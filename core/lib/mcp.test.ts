@@ -83,8 +83,8 @@ describe('MCPBridge', () => {
 
   it('should lazy load ONLY requested servers', async () => {
     (AgentRegistry.getRawConfig as any).mockResolvedValue({
-      srv1: { command: 'npx srv1' },
-      srv2: { command: 'npx srv2' },
+      srv1: { type: 'local', command: 'npx srv1' },
+      srv2: { type: 'local', command: 'npx srv2' },
     });
 
     const mockClient = {
@@ -106,8 +106,8 @@ describe('MCPBridge', () => {
 
   it('should load all servers if no requestedTools provided', async () => {
     (AgentRegistry.getRawConfig as any).mockResolvedValue({
-      srv1: { command: 'npx srv1' },
-      srv2: { command: 'npx srv2' },
+      srv1: { type: 'local', command: 'npx srv1' },
+      srv2: { type: 'local', command: 'npx srv2' },
     });
 
     const mockClient = {
@@ -458,9 +458,9 @@ describe('MCPBridge', () => {
 
     it('filters servers with prefix matching on requestedTools', async () => {
       (AgentRegistry.getRawConfig as any).mockResolvedValue({
-        srv1: { command: 'npx srv1' },
-        srv2: { command: 'npx srv2' },
-        srv3: { command: 'npx srv3' },
+        srv1: { type: 'local', command: 'npx srv1' },
+        srv2: { type: 'local', command: 'npx srv2' },
+        srv3: { type: 'local', command: 'npx srv3' },
       });
 
       const mockClient = {

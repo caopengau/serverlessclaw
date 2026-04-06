@@ -7,12 +7,16 @@ import { DEFAULT_SIGNAL_SCHEMA } from './schema';
  */
 
 describe('DEFAULT_SIGNAL_SCHEMA', () => {
-  const schema = DEFAULT_SIGNAL_SCHEMA.json_schema!.schema as Record<string, any>;
+  const signalSchema = DEFAULT_SIGNAL_SCHEMA as Extract<
+    typeof DEFAULT_SIGNAL_SCHEMA,
+    { type: 'json_schema' }
+  >;
+  const schema = signalSchema.json_schema.schema as Record<string, any>;
 
   it('defines a valid agent_signal schema', () => {
     expect(DEFAULT_SIGNAL_SCHEMA.type).toBe('json_schema');
-    expect(DEFAULT_SIGNAL_SCHEMA.json_schema!.name).toBe('agent_signal');
-    expect(DEFAULT_SIGNAL_SCHEMA.json_schema!.strict).toBe(true);
+    expect(signalSchema.json_schema.name).toBe('agent_signal');
+    expect(signalSchema.json_schema.strict).toBe(true);
   });
 
   it('is an object schema', () => {

@@ -9,7 +9,7 @@ export type MCPServerConfig = LocalMCPServerConfig | RemoteMCPServerConfig | Man
  * A local MCP server started via a shell command (e.g., npx).
  */
 export interface LocalMCPServerConfig {
-  type?: 'local';
+  type: 'local';
   /** The shell command to start the server. */
   command: string;
   /** Optional environment variables for the server process. */

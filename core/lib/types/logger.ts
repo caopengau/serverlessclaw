@@ -18,3 +18,11 @@ export interface LogContext {
   agentId?: string;
   [key: string]: unknown;
 }
+
+/**
+ * Strict version of LogContext where trace and session context are mandatory.
+ */
+export interface StrictLogContext extends LogContext {
+  traceId: string;
+  sessionId: string;
+}

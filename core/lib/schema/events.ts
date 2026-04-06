@@ -30,6 +30,14 @@ export const BASE_EVENT_SCHEMA = z.object({
 });
 
 /**
+ * Strict version of BASE_EVENT_SCHEMA that requires traceId and sessionId.
+ */
+export const STRICT_BASE_EVENT_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  traceId: z.string(),
+  sessionId: z.string(),
+});
+
+/**
  * Schema for AgentPayload.
  */
 export const AGENT_PAYLOAD_SCHEMA = BASE_EVENT_SCHEMA.extend({
