@@ -28,11 +28,16 @@ export class SuperClaw extends Agent {
   /**
    * Static method to parse reasoning profile from user text.
    * Handles commands like /deep, /thinking, and /fast.
+   * Also handles approval responses like APPROVE and REJECT.
    *
    * @param text - The raw user input text.
    * @returns An object containing the detected profile and the cleaned text.
    */
-  static parseCommand(text: string): { profile?: ReasoningProfile; cleanText: string } {
+  static parseCommand(text: string): {
+    profile?: ReasoningProfile;
+    cleanText: string;
+    command?: string;
+  } {
     if (text.startsWith('/deep ')) {
       return { profile: ReasoningProfile.DEEP, cleanText: text.replace('/deep ', '') };
     }
@@ -41,6 +46,10 @@ export class SuperClaw extends Agent {
     }
     if (text.startsWith('/fast ')) {
       return { profile: ReasoningProfile.FAST, cleanText: text.replace('/fast ', '') };
+    }
+    const upperText = text.trim().toUpperCase();
+    if (upperText === 'APPROVE' || upperText === 'REJECT') {
+      return { cleanText: '', command: upperText };
     }
     return { cleanText: text };
   }

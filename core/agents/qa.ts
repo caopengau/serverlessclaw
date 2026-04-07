@@ -140,7 +140,47 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
         }
       }
     } else {
+      // HITL mode: Transition gaps to PENDING_APPROVAL and notify user
       logger.info('Verification successful. Awaiting human confirmation (HITL).');
+      const { EVOLUTION_METRICS } = await import('../lib/metrics/evolution-metrics');
+
+      for (const gapId of gapIds) {
+        const lockAcquired = await memory.acquireGapLock(gapId, AgentType.QA);
+        if (!lockAcquired) {
+          logger.warn(
+            `[QA] Could not acquire lock for gap ${gapId}, skipping transition to PENDING_APPROVAL.`
+          );
+          EVOLUTION_METRICS.recordLockContention(gapId, AgentType.QA);
+          continue;
+        }
+
+        try {
+          const result = await memory.updateGapStatus(gapId, GapStatus.PENDING_APPROVAL);
+          if (!result.success) {
+            logger.warn(
+              `[QA] Failed to transition gap ${gapId} to PENDING_APPROVAL: ${result.error}`
+            );
+            EVOLUTION_METRICS.recordTransitionRejection(
+              gapId,
+              GapStatus.DEPLOYED,
+              GapStatus.PENDING_APPROVAL,
+              result.error || 'unknown'
+            );
+          }
+        } finally {
+          await memory.releaseGapLock(gapId, AgentType.QA);
+        }
+      }
+
+      // Send confirmation request to user
+      await sendOutboundMessage(
+        AgentType.QA,
+        userId,
+        `✅ **Verification Passed for Gaps: ${gapIds.join(', ')}**\n\nThe implementation has passed QA verification. Please confirm to complete the evolution.\n\n**Action Required:** Reply with "APPROVE" to close these gaps, or "REJECT" to reopen them for revision.`,
+        [baseUserId],
+        sessionId,
+        config.name
+      );
     }
   } else {
     // Reopen failed verification. Track attempt count and escalate to FAILED if cap reached.

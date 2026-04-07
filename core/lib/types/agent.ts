@@ -89,6 +89,55 @@ export enum ConnectionProfile {
 }
 
 /**
+ * Event source identifiers for tracking event origins.
+ * Used in EventBridge source field and agent tracing.
+ */
+export enum EventSource {
+  DASHBOARD = 'dashboard',
+  TELEGRAM = 'telegram',
+  API = 'api',
+  SYSTEM = 'system',
+  CODEBUILD = 'codebuild',
+  SCHEDULER = 'scheduler',
+  ORCHESTRATOR = 'orchestrator',
+  WARMUP_MANAGER = 'warmup-manager',
+  AGENT = 'agent',
+  PARALLEL = 'parallel',
+  SUPERCLAW = 'superclaw',
+  AGENT_CRITIC = 'agent.critic',
+  AGENT_RESEARCHER = 'agent.researcher',
+  AGENT_FACILITATOR = 'agent.facilitator',
+  BATCH_EVOLUTION = 'batch_evolution',
+  HEARTBEAT_SCHEDULER = 'heartbeat.scheduler',
+  CORE_RECOVERY = 'core.recovery',
+  WEBHOOK = 'webhook',
+  UNKNOWN = 'unknown',
+}
+
+/**
+ * Priority levels for tasks, events, and metadata.
+ */
+export enum PriorityLevel {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}
+
+/**
+ * Safety action types for evaluation by the safety engine.
+ */
+export enum SafetyActionType {
+  DEPLOYMENT = 'deployment',
+  CODE_CHANGE = 'code_change',
+  FILE_OPERATION = 'file_operation',
+  SHELL_COMMAND = 'shell_command',
+  MCP_TOOL = 'mcp_tool',
+  IAM_CHANGE = 'iam_change',
+  INFRA_TOPOLOGY = 'infra_topology',
+  ANY = 'any',
+}
+
+/**
  * Configuration interface for an Agent, defining its identity,
  * capabilities, and preferred reasoning behavior.
  */
@@ -254,8 +303,23 @@ export enum EventType {
   DAG_TASK_COMPLETED = 'dag_task_completed',
   /** Signal that a specific task in a DAG execution has failed. */
   DAG_TASK_FAILED = 'dag_task_failed',
-  /** Real-time message chunk for streaming responses. */
+  /** Real-time message chunk for streaming responses (Legacy). */
   CHUNK = 'chunk',
+
+  // --- AG-UI Protocol Standard Events ---
+  RUN_STARTED = 'RUN_STARTED',
+  RUN_FINISHED = 'RUN_FINISHED',
+  RUN_ERROR = 'RUN_ERROR',
+  TEXT_MESSAGE_START = 'TEXT_MESSAGE_START',
+  TEXT_MESSAGE_CONTENT = 'TEXT_MESSAGE_CONTENT',
+  TEXT_MESSAGE_END = 'TEXT_MESSAGE_END',
+  TOOL_CALL_START = 'TOOL_CALL_START',
+  TOOL_CALL_ARGS = 'TOOL_CALL_ARGS',
+  TOOL_CALL_END = 'TOOL_CALL_END',
+  STATE_SNAPSHOT = 'STATE_SNAPSHOT',
+  STATE_DELTA = 'STATE_DELTA',
+  MESSAGES_SNAPSHOT = 'MESSAGES_SNAPSHOT',
+
   /** Request for peer review by the Critic Agent (Council of Agents). */
   CRITIC_TASK = 'critic_task',
   /** Event emitted when an agent reputation is updated. */
@@ -349,6 +413,8 @@ export enum GapStatus {
   FAILED = 'FAILED',
   /** Ignored or superseded. */
   ARCHIVED = 'ARCHIVED',
+  /** Awaiting human approval in HITL mode. */
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
 }
 
 /**

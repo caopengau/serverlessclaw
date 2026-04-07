@@ -301,6 +301,10 @@ export async function updateGapStatus(
     [GapStatus.PLANNED]: { expectedStatus: GapStatus.OPEN, valueKey: ':expectedStatus' },
     [GapStatus.PROGRESS]: { expectedStatus: GapStatus.PLANNED, valueKey: ':expectedStatus' },
     [GapStatus.DEPLOYED]: { expectedStatus: GapStatus.PROGRESS, valueKey: ':expectedStatus' },
+    [GapStatus.PENDING_APPROVAL]: {
+      expectedStatus: GapStatus.DEPLOYED,
+      valueKey: ':expectedStatus',
+    },
     [GapStatus.DONE]: { expectedStatus: GapStatus.DEPLOYED, valueKey: ':expectedStatus' },
   };
 

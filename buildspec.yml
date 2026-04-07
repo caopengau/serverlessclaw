@@ -107,8 +107,8 @@ phases:
           }
         fi
       - |
-        if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ -n "$GITHUB_TOKEN" ]; then
-          echo "Finalizing trunk sync back to GitHub..."
+        if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ -n "$GITHUB_TOKEN" ] && [ "$TRUNK_SYNC_ENABLED" = "true" ]; then
+          echo "Finalizing trunk sync back to GitHub (QA verification passed)..."
           git config --global user.email "agent@serverlessclaw.local"
           git config --global user.name "Claw Coder Agent"
           git add .
@@ -118,6 +118,8 @@ phases:
           else
             echo "No changes to commit."
           fi
+        elif [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ -n "$GITHUB_TOKEN" ]; then
+          echo "Skipping trunk sync - TRUNK_SYNC_ENABLED not set (QA verification pending)"
         fi
 artifacts:
   files:

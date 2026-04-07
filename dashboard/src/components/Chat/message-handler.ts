@@ -27,7 +27,7 @@ export interface IncomingChunk {
  * @param expectedUserId - The expected user ID for this client.
  */
 export function shouldProcessChunk(
-  data: IncomingChunk & { 'detail-type'?: string },
+  data: IncomingChunk & { 'detail-type'?: string; type?: string },
   currentActiveId: string,
   expectedUserId: string
 ): boolean {
@@ -38,8 +38,8 @@ export function shouldProcessChunk(
     return false;
   }
 
-  const type = data['detail-type'];
-  if (type !== 'chunk' && type !== 'outbound_message') {
+  const type = data.type || data['detail-type'];
+  if (type !== 'chunk' && type !== 'TEXT_MESSAGE_CONTENT' && type !== 'outbound_message') {
     return false;
   }
 

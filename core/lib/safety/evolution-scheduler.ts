@@ -84,12 +84,17 @@ export class EvolutionScheduler {
     }
     const now = Date.now();
 
-    // Scan pending evolutions
-    // In a real implementation, this would be a GSI query for 'pending' status + expiresAt range.
+    // Query pending evolutions using the TypeTimestampIndex GSI
     const items = await this.base.queryItems({
+      IndexName: 'TypeTimestampIndex',
+      KeyConditionExpression: '#tp = :type',
       FilterExpression: '#status = :pending AND expiresAt <= :now',
-      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeNames: {
+        '#tp': 'type',
+        '#status': 'status',
+      },
       ExpressionAttributeValues: {
+        ':type': 'PENDING_EVOLUTION',
         ':pending': 'pending',
         ':now': now,
       },

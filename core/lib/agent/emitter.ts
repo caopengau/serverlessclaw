@@ -230,8 +230,11 @@ export class AgentEmitter {
         if (safeAttachments.length === 0) safeAttachments = undefined;
       }
 
+      const detailType = EventType.TEXT_MESSAGE_CONTENT;
+
       await publishToRealtime(topic, {
-        'detail-type': EventType.CHUNK,
+        'detail-type': detailType,
+        type: detailType, // AG-UI Standard
         userId: baseUserId,
         sessionId,
         traceId,

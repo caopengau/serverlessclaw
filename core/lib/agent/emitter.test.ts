@@ -498,7 +498,8 @@ describe('AgentEmitter', () => {
         'orchestrator'
       );
       const payload = mockPublishToRealtime.mock.calls[0][1];
-      expect(payload['detail-type']).toBe('chunk');
+      expect(payload['detail-type']).toBe('TEXT_MESSAGE_CONTENT');
+      expect(payload['type']).toBe('TEXT_MESSAGE_CONTENT');
     });
   });
 });

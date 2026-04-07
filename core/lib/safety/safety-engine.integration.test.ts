@@ -31,6 +31,9 @@ describe('Safety Engine Integration', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Use a fixed time outside of business hours (Sunday)
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-05T12:00:00Z')); // Sunday
     engine = new SafetyEngine();
   });
 

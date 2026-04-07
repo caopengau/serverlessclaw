@@ -11,13 +11,15 @@ const ebMock = mockClient(EventBridgeClient);
 
 const lockMocks = vi.hoisted(() => ({
   acquire: vi.fn(),
-  release: vi.fn().mockResolvedValue(undefined),
+  release: vi.fn().mockResolvedValue(true),
+  renew: vi.fn().mockResolvedValue(true),
 }));
 
-vi.mock('../lib/lock', () => ({
-  DynamoLockManager: class {
+vi.mock('../lib/lock/lock-manager', () => ({
+  LockManager: class {
     acquire = lockMocks.acquire;
     release = lockMocks.release;
+    renew = lockMocks.renew;
   },
 }));
 
@@ -72,11 +74,10 @@ describe('Recovery Switch Integration', () => {
 
     await handler();
 
-    expect(lockMocks.acquire).toHaveBeenCalledWith(
-      'dead-mans-switch-recovery',
-      'recovery-handler',
-      expect.any(Number)
-    );
+    expect(lockMocks.acquire).toHaveBeenCalledWith('dead-mans-switch-recovery', {
+      ownerId: 'recovery-handler',
+      ttlSeconds: expect.any(Number),
+    });
 
     expect(memoryMocks.getLatestLKGHash).toHaveBeenCalled();
 

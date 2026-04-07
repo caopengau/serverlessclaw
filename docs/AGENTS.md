@@ -32,7 +32,7 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 | **Dead Man's Switch**    | `core/handlers/recovery.ts`                    | EventBridge Schedule (`rate(15 minutes)`) | Deep health checks and emergency rollback orchestration           |
 | **Event Handler**        | `core/handlers/events.ts`                      | AgentBus System Events                    | Routes build/health/result/continuation/clarification signals     |
 | **Notifier**             | `core/handlers/notifier.ts`                    | AgentBus Event                            | Formats and sends messages to Telegram/Slack                      |
-| **Real-time Bridge**     | `core/handlers/bridge.ts`                      | AgentBus Event                            | Bridges EventBridge signals to AWS IoT Core (MQTT)                |
+| **Real-time Bridge**     | `core/handlers/bridge.ts`                      | AgentBus Event                            | Bridges non-streaming system signals to AWS IoT Core (MQTT)       |
 | **Parallel Handler**     | `core/handlers/events/parallel-handler.ts`     | `PARALLEL_TASK_DISPATCH`                  | Handles fan-out to multiple agents with barrier timeout           |
 | **Cancellation Handler** | `core/handlers/events/cancellation-handler.ts` | `TASK_CANCELLED`                          | Manages DynamoDB-backed task cancellation flags                   |
 | **Deployer**             | AWS CodeBuild                                  | `buildspec.yml`                           | Runs `make deploy ENV=$SST_STAGE` in isolated environment         |
@@ -40,6 +40,7 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 | **DLQ Handler**          | `core/handlers/dlq-handler.ts`                 | Dead Letter Queue                         | Processes failed events with retry limits (max 3)                 |
 | **Heartbeat**            | `core/handlers/heartbeat.ts`                   | EventBridge Schedule                      | Proactive warmup and scheduled task activation                    |
 | **Maintenance**          | `core/handlers/maintenance.ts`                 | EventBridge Schedule (`rate(5 minutes)`)  | Automated cleanup of stale collaborations and scheduled evolution |
+| **Evolution Scheduler**  | `core/lib/safety/evolution-scheduler.ts`       | Programmatic / Event                      | Logic for Class C "survival" actions and system self-optimization |
 | **Concurrency Monitor**  | `core/handlers/concurrency-monitor.ts`         | AgentBus Event                            | Monitors system concurrency and enforces limits                   |
 | **Webhook Handler**      | `core/handlers/webhook.ts`                     | HTTP API Gateway                          | Entry point for user requests, intent detection                   |
 | **Health Handler**       | `core/handlers/health.ts`                      | EventBridge Schedule                      | System health checks and status reporting                         |
@@ -148,7 +149,7 @@ The `AgentRunner` automatically intercepts this, pauses the initiator, and dispa
 To prevent runaway loops, the system enforces a strict recursive depth limit defined in `SWARM.MAX_RECURSIVE_DEPTH`.
 
 - **Default Limit**: 5 levels (e.g., Strategic Planner -> Coder -> Researcher -> Sub-Researcher -> Specialist).
-- **Enforcement**: If a task is received at the maximum depth, further decomposition is disabled and the agent must complete the task atomically.
+- **Enforcement**: The `EventHandler` routing logic (specifically `wakeupInitiator` in `shared.ts`) proactively enforces this limit. If a task exceeds the limit, it is aborted before dispatching new events, and an error message is sent to the initiator. This prevents redundant Lambda executions for failing recursive flows.
 
 ### 3. Worker Feedback Toggle
 
@@ -367,13 +368,13 @@ When an agent is triggered via the AgentBus, it follows this robust execution li
 
 ```text
 +-----------+       +-----------+       +-----------+       +-----------+
-| AgentBus  |       | shared.ts |       | SessionSM |       |   Agent   |
+| AgentBus  |       | shared.ts |       | LockManager|       |   Agent   |
 | (EvBridge)|       | (Handler) |       | (DynamoDB)|       | (Reason)  |
 +-----------+       +-----------+       +-----------+       +-----------+
       |                   |                   |                   |
       | Dispatch Event    |                   |                   |
       +------------------>|                   |                   |
-      |                   | acquireProcessing |                   |
+      |                   |      acquire      |                   |
       |                   +------------------>|                   |
       |                   |                   |                   |
       |                   | [ Lock Acquired ] |                   |
@@ -386,7 +387,7 @@ When an agent is triggered via the AgentBus, it follows this robust execution li
       |                   |      Result       |                   |
       |                   |<--------------------------------------+
       |                   |                   |                   |
-      |                   | releaseProcessing |                   |
+      |                   |      release      |                   |
       |                   +------------------>|                   |
       |                   |                   |                   |
       |                   |   [ Lock Busy ]   |                   |

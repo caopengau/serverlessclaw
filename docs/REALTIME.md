@@ -1,30 +1,22 @@
-To ensure the **ClawCenter Dashboard** receives instantaneous updates without polling, Serverless Claw uses a **Real-time Bridge** pattern over AWS IoT Core and MQTT.
+To ensure the **ClawCenter Dashboard** receives instantaneous updates without polling, Serverless Claw uses a **Real-time Streaming** pattern over AWS IoT Core and MQTT.
 
-### Bridge Implementation
+We have adopted the [AG-UI (Agent-User Interaction) Protocol](https://docs.ag-ui.com/) to standardize our streaming payload, ensuring interoperability with the wider agentic ecosystem.
 
-The system utilizes a specialized EventBridge-to-IoT bridge (`core/handlers/bridge.ts`) that listens for `AgentBus` signals and routes them to session-specific MQTT topics.
+### Direct Publish Implementation
 
-- **Client**: Uses `IoTDataPlaneClient` from the AWS SDK v3.
+To minimize "Time-to-First-Token" (TTFT), agents emit partial response chunks during the reasoning process directly to IoT Core, skipping EventBridge for streaming tokens.
+
+- **Client**: Uses `IoTDataPlaneClient` from the AWS SDK v3 (`core/lib/utils/realtime.ts`).
 - **Routing**: Events are dynamically routed to `users/{userId}/sessions/{sessionId}/signal`.
 - **Latency**: Sub-100ms delivery from agent execution to dashboard UI.
 
 ## Signaling Architecture
 
 ```text
- [ Agent / Handler ]
+ [ Agent / Executor ]
           |
-   (Publish Event)
-   (CHUNK, TASK_COMPLETED, etc.)
-          |
-          v
- [ AgentBus (EventBridge) ]
-          |
-      (Rule Match)
-          |
-          v
- [ Realtime Bridge (Lambda) ]
-          |
-   (re-wrap & publish)
+   (publishToRealtime)
+   (TEXT_MESSAGE_CONTENT, TOOL_CALL_ARGS, etc.)
           |
           v
  [ AWS IoT Core (MQTT) ] ----> [ Dashboard (React Flow) ]
@@ -34,32 +26,20 @@ The system utilizes a specialized EventBridge-to-IoT bridge (`core/handlers/brid
 ## Key Components
 
 1. **IoT Core (MQTT)**: Acts as the low-latency message broker for telemetry and signal data.
-2. **Real-time Bridge**: A lightweight Lambda that reformats internal EventBridge events into MQTT-compatible payloads.
+2. **Direct Publisher**: The agent execution loop directly uses `@aws-sdk/client-iot-data-plane` to push chunks to MQTT topics.
 3. **MQTT Bridge (ClawCenter)**: The Next.js dashboard uses `mqtt` (v5) to maintain a persistent WebSocket connection to IoT Core.
+4. **EventBridge Relay (Fallback)**: Non-streaming system events (`TASK_COMPLETED`, `SYSTEM_HEALTH_REPORT`) still traverse EventBridge and are bridged to IoT Core via `core/handlers/bridge.ts`.
 
-## Real-time Streaming (CHUNK)
+## Real-time Streaming (AG-UI Protocol)
 
-To minimize "Time-to-First-Token" (TTFT), agents can emit partial response chunks during the reasoning process.
+When the Dashboard sends a message with `stream=true`, the SuperClaw initiates a streaming LLM call.
 
-1. **Streaming Initiation**: When the Dashboard sends a message with `stream=true`, the SuperClaw initiates a streaming LLM call.
-2. **Chunk Emission**: As the LLM yields tokens, the agent emits a `CHUNK` event to the `AgentBus` for every few tokens.
-3. **IoT Relay**: The `RealtimeBridge` forwards these chunks to the dashboard's MQTT topic.
-4. **UI Reconciliation**: The Dashboard appends chunks to the active message based on the `messageId`, providing a smooth "typing" experience.
-
-## Performance
-
-- **Latency**: Sub-100ms from Lambda execution to Dashboard visualization.
-- **Scale**: Leverages AWS IoT Core's managed scale to support multiple concurrent dashboard operators.
-
-## 📡 Real-time Communication (IoT Core)
-
-To ensure the **ClawCenter Dashboard** receives instantaneous updates, we use a **Real-time Bridge** pattern over AWS IoT Core and MQTT.
-
-- **Deep Dive**: [Real-time Signaling ↗](./docs/REALTIME.md)
+1. **Chunk Emission**: As the LLM yields tokens, the agent emits `TEXT_MESSAGE_CONTENT` events directly to IoT Core.
+2. **UI Reconciliation**: The Dashboard appends chunks to the active message based on the `messageId`, providing a smooth "typing" experience.
 
 ### 5. Channel Adapters (Fan-Out)
 
 Instead of hardcoding API requests to a single platform, agents emit an `OUTBOUND_MESSAGE` event onto the AgentBus.
 
 - **Notifier Handler**: A dedicated lightweight Lambda (`core/handlers/notifier.ts`) listens to these events.
-- **Multi-Channel**: The Notifier reads user preferences from the `ConfigTable` and fans the message out to the appropriate adapters (Telegram, Slack, and the **Real-time Signal Bridge**).
+- **Multi-Channel**: The Notifier reads user preferences from the `ConfigTable` and fans the message out to the appropriate adapters (Telegram, Slack).

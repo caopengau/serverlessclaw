@@ -71,23 +71,4 @@ describe('task-result-handler.unit', () => {
       false
     );
   });
-
-  it('calls handleRecursionLimitExceeded when depth exceeds limit', async () => {
-    (shared.getRecursionLimit as any).mockResolvedValueOnce(0);
-
-    const event = {
-      userId: 'user-2',
-      agentId: 'agent-X',
-      task: 'loop',
-      response: 'n/a',
-      initiatorId: 'agent-Y',
-      depth: 0,
-      sessionId: 's2',
-    };
-
-    await handleTaskResult(event as any, EventType.TASK_COMPLETED);
-
-    expect(shared.handleRecursionLimitExceeded as any).toHaveBeenCalledTimes(1);
-    expect(shared.wakeupInitiator as any).not.toHaveBeenCalled();
-  });
 });

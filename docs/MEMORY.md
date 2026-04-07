@@ -39,10 +39,11 @@ Serverless Claw uses a tiered, evolutionary memory system designed to provide co
 |  - Purpose: Mechanical execution logs for background agent loops.    |
 |                                                                     |
 |  [ TIER 4: TRANSIENT SYSTEM LOGS ] ----> Retain: 1 Day (7d for Health) |
-|  - Key: RECOVERY / SYSTEM# / HANDOFF# / HEALTH# / WARM#            |
+|  - Key: RECOVERY / SYSTEM# / HANDOFF# / HEALTH# / WARM# / LOCK#     |
 |  - Purpose: Volatile state signals for recovery, coordination, and  |
 |    human-agent handoff management. HEALTH# tracks cognitive stability.|
 |    WARM# tracks server/agent warm state for smart warmup.            |
+|    LOCK# manages distributed concurrency (5-minute default TTL).     |
 |                                                                     |
 +---------------------------------------------------------------------+
 ```

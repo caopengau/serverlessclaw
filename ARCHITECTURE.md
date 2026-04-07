@@ -10,7 +10,7 @@ This document covers the AWS topology and data flow. For agent logic and orchest
 
 1.  **Stateless**: The core execution is entirely stateless, with persistence offloaded to highly available managed services (DynamoDB). Utilizes a **Tiered Retention Policy** (TTL) and Global Secondary Index (GSI) for high-performance context recall.
 2.  **Extensible**: Every major component (Memory, Messaging, Tools) is designed as a pluggable adapter.
-3.  **Low Latency**: Optimized for fast startup times to minimize "time-to-first-token". Implements **Real-time Streaming** via IoT Core (MQTT) to provide instantaneous feedback to human users during long-running reasoning tasks.
+3.  **Low Latency**: Optimized for fast startup times to minimize "time-to-first-token". Implements **Real-time Streaming (AG-UI Protocol)** via IoT Core (MQTT) to provide instantaneous feedback to human users during long-running reasoning tasks. Tokens are published directly to IoT Core from the execution environment to bypass EventBridge overhead.
 4.  **Safety-First**: Implements nested guardrails including Circuit Breakers, Recursion Limits, and Protected Scopes.
 5.  **Proactive & Efficient**: Agents can self-schedule future tasks, but the system prioritizes a **Trigger-on-Message** warm-up strategy to achieve near-zero idling costs while maintaining low-latency responsiveness.
 6.  **AI-Native**: Optimized for agent-human pair programming by prioritizing semantic transparency, strict neural typing, and direct schema definitions over traditional boilerplate indirection.
@@ -259,12 +259,14 @@ User (Media)      Webhook (Lambda)      S3 Staging       DynamoDB (Mem)      LLM
 ## Distributed Concurrency & LLM Locking
 Serverless Claw uses **Distributed Locking** via DynamoDB to ensure session integrity in a stateless environment.
 
-### 1. LLM Reasoning Lock
-To prevent multiple agents from simultaneously modifying the same session history (which leads to corrupted context), the system implements a **Session-Level Reasoning Lock** in `processEventWithAgent`.
+### 1. Unified Distributed Lock
+To prevent multiple agents from simultaneously modifying the same session history (which leads to corrupted context), the system implements a **Distributed Session Lock** via the `LockManager`.
 
-- **Mechanism**: Before an agent starts its reasoning loop, it attempts to acquire a lock via `SessionStateManager.acquireProcessing(sessionId)`.
-- **Busy State**: If the lock is held by another agent, the incoming task is automatically added to the session's `pendingMessages` queue and marked as `[QUEUED]`.
-- **Automatic Release**: The lock is guaranteed to be released in a `finally` block, even if the agent crashes or exceeds its timeout.
+- **Mechanism**: Before processing a session or sensitive resource, an agent or handler attempts to acquire a lock via `LockManager.acquire(lockId, { ownerId: agentId })`.
+- **Stateless Consistency**: Uses DynamoDB's conditional updates (`attribute_not_exists` or `expiresAt < now`) to ensure mutually exclusive access across multiple Lambda invocations.
+- **Automatic Release**: Locks are explicitly released in a `finally` block or naturally expire via TTL (crash recovery).
+- **Session Queuing**: If a session lock is busy, new incoming messages are durably queued in `pendingMessages` for subsequent processing.
+
 
 ### 2. Deep Dive
 - **Concurrency Implementation**: [Concurrency & Locking ↗](./docs/CONCURRENCY.md)

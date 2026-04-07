@@ -138,7 +138,10 @@ describe('Webhook Handler Integration', () => {
       '789',
       'test-request-id'
     );
-    expect(mockSessionStateManagerInstance.releaseProcessing).toHaveBeenCalledWith('789');
+    expect(mockSessionStateManagerInstance.releaseProcessing).toHaveBeenCalledWith(
+      '789',
+      'test-request-id'
+    );
   });
 
   it('should queue message when session is busy', async () => {

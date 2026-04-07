@@ -41,7 +41,8 @@ export async function handleDagStep(
 
   while (attempt < MAX_RETRIES && !success) {
     attempt++;
-    const currentState = await aggregator.getState(userId as string, traceId as string);
+    // Use getRawState (no shard merge) for intermediate state transitions to save RCU and latency
+    const currentState = await aggregator.getRawState(userId as string, traceId as string);
     if (!currentState) {
       logger.error(`DAG Supervisor: No state found for trace ${traceId}`);
       break;
@@ -55,8 +56,9 @@ export async function handleDagStep(
       const tasks = (currentMetadata.tasks as ParallelTaskDefinition[]) ?? [];
       dagState = buildDependencyGraph(tasks);
 
-      // Re-apply completed tasks from sharded results if necessary
-      for (const res of currentState.results) {
+      // Re-apply completed tasks if necessary
+      const results = (currentState.results as any[]) ?? [];
+      for (const res of results) {
         if (res.status === 'success') {
           completeTask(dagState, res.taskId, res.result);
         } else if (res.status === 'failed') {

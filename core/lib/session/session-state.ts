@@ -6,7 +6,10 @@ import type { PendingMessage } from '../types/session';
 import { logger } from '../logger';
 import { TIME } from '../constants';
 
+import { LockManager } from '../lock/lock-manager';
+
 const SESSION_PREFIX = 'SESSION_STATE#';
+const LOCK_PREFIX = 'LOCK#SESSION#';
 const LOCK_TTL_SECONDS = 300; // 5 minutes for lock timeout (crash recovery)
 const SESSION_TTL_SECONDS = 30 * 24 * 60 * 60; // 30 days for DynamoDB TTL
 
@@ -29,9 +32,11 @@ export interface SessionState {
 
 export class SessionStateManager {
   private docClient: DynamoDBDocumentClient;
+  private lockManager: LockManager;
 
   constructor(docClient?: DynamoDBDocumentClient) {
     this.docClient = docClient ?? defaultDocClient;
+    this.lockManager = new LockManager(this.docClient);
   }
 
   private get tableName(): string {
@@ -42,122 +47,93 @@ export class SessionStateManager {
     return `${SESSION_PREFIX}${sessionId}`;
   }
 
-  private getLockExpiresAt(): number {
-    return Math.floor(Date.now() / TIME.MS_PER_SECOND) + LOCK_TTL_SECONDS;
-  }
-
   private getSessionExpiresAt(): number {
     return Math.floor(Date.now() / TIME.MS_PER_SECOND) + SESSION_TTL_SECONDS;
   }
 
   /**
-   * Attempts to acquire the processing flag for a session.
-   * Uses conditional update to prevent race conditions and preserve existing data.
+   * Attempts to acquire the processing lock for a session.
+   * Uses unified LockManager for consistent distributed coordination.
    */
   async acquireProcessing(sessionId: string, agentId: string): Promise<boolean> {
-    const key = this.getKey(sessionId);
-    const now = Date.now();
-    const lockExpiresAt = this.getLockExpiresAt();
-    const expiresAt = this.getSessionExpiresAt();
+    const lockId = `${LOCK_PREFIX}${sessionId}`;
+    const acquired = await this.lockManager.acquire(lockId, {
+      ownerId: agentId,
+      ttlSeconds: LOCK_TTL_SECONDS,
+      prefix: '', // We already prefixed it
+    });
 
-    try {
-      await this.docClient.send(
-        new UpdateCommand({
-          TableName: this.tableName,
-          Key: {
-            userId: key,
-            timestamp: 0,
-          },
-          UpdateExpression:
-            'SET sessionId = :sessionId, processingAgentId = :agentId, processingStartedAt = :now, lockExpiresAt = :lockExp, expiresAt = :exp, pendingMessages = if_not_exists(pendingMessages, :empty)',
-          ConditionExpression:
-            'attribute_not_exists(processingAgentId) OR processingAgentId = :null OR lockExpiresAt < :nowSec',
-          ExpressionAttributeValues: {
-            ':sessionId': sessionId,
-            ':agentId': agentId,
-            ':now': now,
-            ':lockExp': lockExpiresAt,
-            ':exp': expiresAt,
-            ':null': null,
-            ':nowSec': Math.floor(Date.now() / TIME.MS_PER_SECOND),
-            ':empty': [],
-          },
-        })
-      );
-      logger.info(`Session ${sessionId}: Processing flag acquired by ${agentId}`);
-      return true;
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
-        logger.info(`Session ${sessionId}: Already being processed by another agent`);
-        return false;
+    if (acquired) {
+      // Also update the session record to reflect who is processing (B3 Awareness)
+      const key = this.getKey(sessionId);
+      try {
+        await this.docClient.send(
+          new UpdateCommand({
+            TableName: this.tableName,
+            Key: { userId: key, timestamp: 0 },
+            UpdateExpression:
+              'SET processingAgentId = :agentId, processingStartedAt = :now, expiresAt = :exp, pendingMessages = if_not_exists(pendingMessages, :empty)',
+            ExpressionAttributeValues: {
+              ':agentId': agentId,
+              ':now': Date.now(),
+              ':exp': this.getSessionExpiresAt(),
+              ':empty': [],
+            },
+          })
+        );
+      } catch (error) {
+        logger.warn(`Session ${sessionId}: Lock acquired but state update failed.`, error);
       }
-      logger.error(`Session ${sessionId}: Failed to acquire processing flag:`, error);
-      throw error;
+      logger.info(`Session ${sessionId}: Processing lock acquired by ${agentId}`);
+      return true;
     }
+
+    logger.info(`Session ${sessionId}: Already being processed by another agent (Lock held)`);
+    return false;
   }
 
   /**
-   * Releases the processing flag for a session.
+   * Releases the processing lock for a session.
    */
-  async releaseProcessing(sessionId: string): Promise<void> {
-    const key = this.getKey(sessionId);
+  async releaseProcessing(sessionId: string, agentId: string): Promise<void> {
+    const lockId = `${LOCK_PREFIX}${sessionId}`;
+    const released = await this.lockManager.release(lockId, agentId, '');
 
-    try {
-      await this.docClient.send(
-        new UpdateCommand({
-          TableName: this.tableName,
-          Key: {
-            userId: key,
-            timestamp: 0,
-          },
-          UpdateExpression:
-            'SET processingAgentId = :null, processingStartedAt = :null, lockExpiresAt = :null, expiresAt = :exp',
-          ExpressionAttributeValues: {
-            ':null': null,
-            ':exp': this.getSessionExpiresAt(),
-          },
-        })
-      );
-      logger.info(`Session ${sessionId}: Processing flag released`);
-    } catch (error) {
-      logger.error(`Session ${sessionId}: Failed to release processing flag:`, error);
+    if (released) {
+      const key = this.getKey(sessionId);
+      try {
+        await this.docClient.send(
+          new UpdateCommand({
+            TableName: this.tableName,
+            Key: { userId: key, timestamp: 0 },
+            UpdateExpression:
+              'SET processingAgentId = :null, processingStartedAt = :null, expiresAt = :exp',
+            ExpressionAttributeValues: {
+              ':null': null,
+              ':exp': this.getSessionExpiresAt(),
+            },
+          })
+        );
+        logger.info(`Session ${sessionId}: Processing lock released`);
+      } catch (error) {
+        logger.error(
+          `Session ${sessionId}: Failed to clear session state after lock release:`,
+          error
+        );
+      }
     }
   }
 
   /**
-   * Renews the processing flag TTL. Called periodically during long-running tasks.
+   * Renews the processing lock TTL. Called periodically during long-running tasks.
    */
   async renewProcessing(sessionId: string, agentId: string): Promise<boolean> {
-    const key = this.getKey(sessionId);
-    const lockExpiresAt = this.getLockExpiresAt();
-    const expiresAt = this.getSessionExpiresAt();
-
-    try {
-      await this.docClient.send(
-        new UpdateCommand({
-          TableName: this.tableName,
-          Key: {
-            userId: key,
-            timestamp: 0,
-          },
-          UpdateExpression: 'SET lockExpiresAt = :lockExp, expiresAt = :exp',
-          ConditionExpression: 'processingAgentId = :agentId',
-          ExpressionAttributeValues: {
-            ':lockExp': lockExpiresAt,
-            ':exp': expiresAt,
-            ':agentId': agentId,
-          },
-        })
-      );
-      return true;
-    } catch (error: unknown) {
-      if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
-        logger.warn(`Session ${sessionId}: Lock expired or owned by another agent`);
-        return false;
-      }
-      logger.error(`Session ${sessionId}: Failed to renew processing flag:`, error);
-      return false;
-    }
+    const lockId = `${LOCK_PREFIX}${sessionId}`;
+    return this.lockManager.renew(lockId, {
+      ownerId: agentId,
+      ttlSeconds: LOCK_TTL_SECONDS,
+      prefix: '',
+    });
   }
 
   /**

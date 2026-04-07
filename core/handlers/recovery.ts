@@ -5,7 +5,7 @@ import { Resource } from 'sst';
 import { logger } from '../lib/logger';
 import { SSTResource } from '../lib/types/system';
 import { EventType, OutboundMessageEvent } from '../lib/types/agent';
-import { DynamoLockManager } from '../lib/lock';
+import { LockManager } from '../lib/lock/lock-manager';
 import { DynamoMemory } from '../lib/memory';
 import { checkCognitiveHealth, reportHealthIssue } from '../lib/lifecycle/health';
 import { MEMORY_KEYS, RETENTION } from '../lib/constants';
@@ -17,10 +17,11 @@ import { CONFIG_DEFAULTS } from '../lib/config/config-defaults';
 const codebuild = new CodeBuildClient({});
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const typedResource = Resource as unknown as SSTResource;
-const lockManager = new DynamoLockManager();
+const lockManager = new LockManager();
 const memory = new DynamoMemory();
 
 const RECOVERY_LOCK_ID = 'dead-mans-switch-recovery';
+const RECOVERY_LOCK_OWNER = 'recovery-handler';
 // TTL slightly longer than the Dead Man's Switch schedule (15 min) to guarantee one-at-a-time.
 const RECOVERY_LOCK_TTL_SECONDS = CONFIG_DEFAULTS.RECOVERY_LOCK_TTL_SECONDS.code;
 const MAX_RECOVERY_ATTEMPTS = CONFIG_DEFAULTS.MAX_RECOVERY_ATTEMPTS.code;
@@ -105,11 +106,10 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
   // CRITICAL: Triggering Emergency Recovery
   logger.info("CRITICAL: Initiating Dead Man's Switch Recovery Flow...");
 
-  const lockAcquired = await lockManager.acquire(
-    RECOVERY_LOCK_ID,
-    'recovery-handler',
-    RECOVERY_LOCK_TTL_SECONDS
-  );
+  const lockAcquired = await lockManager.acquire(RECOVERY_LOCK_ID, {
+    ownerId: RECOVERY_LOCK_OWNER,
+    ttlSeconds: RECOVERY_LOCK_TTL_SECONDS,
+  });
   if (!lockAcquired) {
     logger.info(
       "Dead Man's Switch: Recovery already in progress (lock held). Skipping duplicate trigger."
@@ -235,6 +235,6 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
     });
     throw recoveryError;
   } finally {
-    await lockManager.release(RECOVERY_LOCK_ID, 'recovery-handler');
+    await lockManager.release(RECOVERY_LOCK_ID, RECOVERY_LOCK_OWNER);
   }
 };

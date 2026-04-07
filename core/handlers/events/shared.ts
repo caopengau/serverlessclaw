@@ -59,6 +59,21 @@ export async function wakeupInitiator(
     return;
   }
 
+  const RECURSION_LIMIT = await getRecursionLimit();
+
+  if (depth >= RECURSION_LIMIT) {
+    logger.error(
+      `Recursion Limit Exceeded (Depth: ${depth}) for user ${userId}. Aborting continuation.`
+    );
+    await handleRecursionLimitExceeded(
+      userId,
+      sessionId,
+      'wakeup-initiator',
+      `I have detected an infinite loop between agents (Depth: ${depth}). I've intervened to stop the process.`
+    );
+    return;
+  }
+
   await emitEvent('events.handler', eventType as EventType, {
     userId,
     agentId: initiatorId,
@@ -302,7 +317,7 @@ export async function processEventWithAgent(
     return { responseText, attachments };
   } finally {
     if (options.sessionId) {
-      await sessionStateManager.releaseProcessing(options.sessionId);
+      await sessionStateManager.releaseProcessing(options.sessionId, agentId);
     }
   }
 }

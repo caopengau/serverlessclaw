@@ -88,6 +88,24 @@ export class ParallelAggregator {
   }
 
   /**
+   * Retrieves the raw main item of a parallel dispatch without merging shards.
+   * Useful for high-frequency metadata checks (e.g., DAG state transitions).
+   */
+  async getRawState(userId: string, traceId: string) {
+    const response = await docClient.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: {
+          userId: `${PARALLEL_PREFIX}${userId}#${traceId}`,
+          timestamp: 0,
+        },
+        ConsistentRead: true,
+      })
+    );
+    return response.Item;
+  }
+
+  /**
    * Adds a result to an existing parallel dispatch record.
    * Handles automatic sharding if the main item size threshold is reached.
    */
@@ -108,30 +126,35 @@ export class ParallelAggregator {
     const key = `${PARALLEL_PREFIX}${userId}#${traceId}`;
 
     try {
-      // 1. Get current state to check size
-      const current = await this.getState(userId, traceId);
+      // 1. Get raw state (no shard merge) to check size and idempotency
+      const current = await this.getRawState(userId, traceId);
       if (!current || current.status !== 'pending') return null;
 
-      // Check if this task ID was already processed (idempotency)
-      if (current.results_ids.includes(result.taskId)) {
+      const results_ids = (current.results_ids as string[]) || [];
+      if (results_ids.includes(result.taskId)) {
         logger.info(`Result for task ${result.taskId} already recorded in trace ${traceId}`);
+        // For idempotency, we return the full state including shards
+        const state = await this.getState(userId, traceId);
+        if (!state) return null;
+
         return {
-          isComplete: current.completedCount >= current.taskCount,
-          taskCount: current.taskCount,
-          results: current.results,
-          initiatorId: current.initiatorId,
-          sessionId: current.sessionId,
-          status: current.status,
-          aggregationType: current.aggregationType,
-          aggregationPrompt: current.aggregationPrompt,
+          isComplete: state.completedCount >= state.taskCount,
+          taskCount: state.taskCount,
+          results: state.results,
+          initiatorId: state.initiatorId,
+          sessionId: state.sessionId,
+          status: state.status,
+          aggregationType: state.aggregationType,
+          aggregationPrompt: state.aggregationPrompt,
         };
       }
 
-      const currentSize = this.estimateSize(current);
+      const currentItemSize = this.estimateSize(current);
       const resultSize = this.estimateSize(result);
 
       // 2. Decide: Main item or Shard?
-      if (currentSize + resultSize < ITEM_SIZE_THRESHOLD_BYTES) {
+      // Check if adding this result would exceed the 400KB limit for the MAIN item
+      if (currentItemSize + resultSize < ITEM_SIZE_THRESHOLD_BYTES) {
         // Standard atomic update to the main item
         const response = await docClient.send(
           new UpdateCommand({
@@ -172,16 +195,31 @@ export class ParallelAggregator {
           aggregationPrompt: updated.aggregationPrompt,
         };
       } else {
-        // 3. Sharding flow: Create a shard record and update main record metadata
+        // 3. Sharding flow: Create shard first, THEN update main (prevents phantom completions)
         logger.info(
-          `Trace ${traceId} size threshold reached (${currentSize} bytes). Sharding result for ${result.taskId}.`
+          `Trace ${traceId} main item size limit reached. Sharding result for ${result.taskId}.`
         );
 
-        const shardPk = `${SHARD_PREFIX}${userId}#${traceId}#${Date.now()}`;
+        // Use a deterministic shard key based on taskId to ensure idempotency if we retry the shard write
+        const shardPk = `${SHARD_PREFIX}${userId}#${traceId}#${result.taskId}`;
         const expiresAt = Math.floor(Date.now() / TIME.MS_PER_SECOND) + TIME.SECONDS_IN_HOUR;
 
-        // Atomic update to main item to register the shard and increment count
-        // Note: we don't put the result in 'results' list here to save space
+        // Step A: Create the shard item first
+        await docClient.send(
+          new PutCommand({
+            TableName: this.tableName,
+            Item: {
+              userId: shardPk,
+              timestamp: 0,
+              type: 'PARALLEL_SHARD',
+              traceId,
+              result,
+              expiresAt,
+            },
+          })
+        );
+
+        // Step B: Atomic update to main item to register the shard and increment count
         const response = await docClient.send(
           new UpdateCommand({
             TableName: this.tableName,
@@ -202,21 +240,6 @@ export class ParallelAggregator {
               ':taskId': result.taskId,
             },
             ReturnValues: 'ALL_NEW',
-          })
-        );
-
-        // Create the shard item
-        await docClient.send(
-          new PutCommand({
-            TableName: this.tableName,
-            Item: {
-              userId: shardPk,
-              timestamp: 0,
-              type: 'PARALLEL_SHARD',
-              traceId,
-              result,
-              expiresAt,
-            },
           })
         );
 

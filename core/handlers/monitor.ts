@@ -169,7 +169,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
         logger.error('Failed to update system topology in ConfigTable:', e);
       }
 
-      // Notify success
+      // Notify success - wrap gapIds in metadata for QA agent compatibility
       await emitEvent(
         'build.monitor',
         EventType.SYSTEM_BUILD_SUCCESS,
@@ -181,7 +181,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
           sessionId,
           task: originalTask,
           traceId,
-          gapIds,
+          metadata: { gapIds },
         },
         { priority: EventPriority.HIGH }
       );
@@ -316,7 +316,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
         }
       }
 
-      // Notify failure
+      // Notify failure - wrap gapIds in metadata for consistency
       await emitEvent(
         'build.monitor',
         EventType.SYSTEM_BUILD_FAILED,
@@ -326,7 +326,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
           projectName,
           errorLogs: errorLogs.substring(Math.max(0, errorLogs.length - 3000)),
           failureManifest,
-          gapIds,
+          metadata: { gapIds },
           traceId,
           initiatorId,
           sessionId,

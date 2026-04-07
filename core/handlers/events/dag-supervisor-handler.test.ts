@@ -9,6 +9,7 @@ import { EventType } from '../../lib/types/agent';
 vi.mock('../../lib/agent/parallel-aggregator', () => ({
   aggregator: {
     getState: vi.fn(),
+    getRawState: vi.fn(),
     updateDagState: vi.fn().mockResolvedValue(true),
     markAsCompleted: vi.fn().mockResolvedValue(true),
   },
@@ -65,7 +66,7 @@ describe('dag-supervisor-handler', () => {
       userId: 'user-1',
       traceId: 'trace-1',
     };
-    (aggregator.getState as any).mockResolvedValue(mockState);
+    (aggregator.getRawState as any).mockResolvedValue(mockState);
 
     const readyTask = { taskId: 'task-2', agentId: 'critic', task: 'review' };
     (dagExecutor.getReadyTasks as any).mockReturnValue([readyTask]);
@@ -96,7 +97,7 @@ describe('dag-supervisor-handler', () => {
       userId: 'user-1',
       traceId: 'trace-1',
     };
-    (aggregator.getState as any).mockResolvedValue(mockState);
+    (aggregator.getRawState as any).mockResolvedValue(mockState);
 
     await handleDagStep({ ...baseEventDetail, error: 'failed' }, 'DAG_TASK_FAILED');
 
@@ -113,6 +114,7 @@ describe('dag-supervisor-handler', () => {
       results: [{ taskId: 'task-1', status: 'success' }],
       createdAt: Date.now(),
     };
+    (aggregator.getRawState as any).mockResolvedValue(mockState);
     (aggregator.getState as any).mockResolvedValue(mockState);
     (dagExecutor.isExecutionComplete as any).mockReturnValue(true);
 

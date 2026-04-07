@@ -209,7 +209,7 @@ describe('BuildMonitor — Atomic Sync (Metadata Resolution)', () => {
       expect.objectContaining({
         userId: 'user-env',
         traceId: 't-env',
-        gapIds: ['GAP#env1'],
+        metadata: { gapIds: ['GAP#env1'] },
       }),
       expect.any(Object)
     );
@@ -260,7 +260,7 @@ describe('BuildMonitor — Atomic Sync (Metadata Resolution)', () => {
       expect.objectContaining({
         userId: 'user-ddb',
         traceId: 't-ddb',
-        gapIds: ['GAP#ddb1'],
+        metadata: { gapIds: ['GAP#ddb1'] },
       }),
       expect.any(Object)
     );

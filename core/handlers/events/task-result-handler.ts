@@ -1,6 +1,6 @@
 import { EventType, AgentType } from '../../lib/types/index';
 import { COMPLETION_EVENT_SCHEMA, FAILURE_EVENT_SCHEMA } from '../../lib/schema/events';
-import { getRecursionLimit, handleRecursionLimitExceeded, wakeupInitiator } from './shared';
+import { wakeupInitiator } from './shared';
 import { LRUSet } from '../../lib/utils/lru';
 
 /**
@@ -120,20 +120,6 @@ export async function handleTaskResult(
     );
   } catch {
     // reputation module may not be available in all environments
-  }
-
-  // 1. Loop Protection - Use shared function
-  const RECURSION_LIMIT = await getRecursionLimit();
-
-  if (depth >= RECURSION_LIMIT) {
-    logger.error(`Recursion Limit Exceeded (Depth: ${depth}) for user ${userId}. Aborting.`);
-    await handleRecursionLimitExceeded(
-      userId,
-      sessionId,
-      'task-result-handler',
-      `I have detected an infinite loop between agents (Depth: ${depth}). I've intervened to stop the process. Please check the orchestration logic. You can increase this limit in the System Config.`
-    );
-    return;
   }
 
   // 2. Dynamic Routing

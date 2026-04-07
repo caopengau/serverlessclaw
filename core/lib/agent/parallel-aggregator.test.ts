@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ParallelAggregator } from './parallel-aggregator';
-import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 
 const { mockSend } = vi.hoisted(() => ({
   mockSend: vi.fn(),
@@ -56,11 +56,23 @@ describe('ParallelAggregator', () => {
     });
   });
 
+  describe('getRawState', () => {
+    it('should retrieve only the main item', async () => {
+      const mockItem = { userId: 'PARALLEL#u1#t1', status: 'pending' };
+      mockSend.mockResolvedValueOnce({ Item: mockItem });
+
+      const state = await aggregator.getRawState('u1', 't1');
+
+      expect(mockSend).toHaveBeenCalledWith(expect.any(GetCommand));
+      expect(state).toEqual(mockItem);
+    });
+  });
+
   describe('sharding', () => {
-    it('should spill to shard when size threshold is reached', async () => {
-      // 1. Mock getState to return a "large" item (close to 300KB)
-      const largeResult = 'x'.repeat(350 * 1024);
-      const mockState = {
+    it('should spill to shard when main item size threshold is reached', async () => {
+      // 1. Mock getRawState to return a "large" main item (close to 300KB)
+      const largeResult = 'x'.repeat(305 * 1024);
+      const mockMainItem = {
         userId: 'PARALLEL#u1#t1',
         status: 'pending',
         results: [{ taskId: 't1', result: largeResult }],
@@ -70,20 +82,24 @@ describe('ParallelAggregator', () => {
         taskCount: 2,
       };
 
-      // First call is getState, second is UpdateCommand (main), third is PutCommand (shard), fourth is getState (again for merge)
+      // Execution order in addResult (shard flow):
+      // 1. getRawState -> GetCommand
+      // 2. PutCommand (shard)
+      // 3. UpdateCommand (main)
+      // 4. mergeShardedResults -> BatchGet
       mockSend
-        .mockResolvedValueOnce({ Item: mockState }) // 1. getState -> GetCommand
+        .mockResolvedValueOnce({ Item: mockMainItem }) // 1. getRawState
+        .mockResolvedValueOnce({}) // 2. PutCommand (shard)
         .mockResolvedValueOnce({
-          Attributes: { ...mockState, completedCount: 2, results_shards: ['SHARD#1'] },
-        }) // 2. UpdateCommand
-        .mockResolvedValueOnce({}) // 3. PutCommand (shard)
+          Attributes: { ...mockMainItem, completedCount: 2, results_shards: ['SHARD#2'] },
+        }) // 3. UpdateCommand
         .mockResolvedValueOnce({
           Responses: {
-            MemoryTable: [{ userId: 'SHARD#1', result: { taskId: 't2', status: 'success' } }],
+            MemoryTable: [{ userId: 'SHARD#2', result: { taskId: 't2', status: 'success' } }],
           },
-        }); // 4. mergeShardedResults -> BatchGet
+        }); // 4. mergeShardedResults
 
-      const result = await aggregator.addResult('u1', 't1', {
+      await aggregator.addResult('u1', 't1', {
         taskId: 't2',
         agentId: 'a2',
         status: 'success',
@@ -91,20 +107,25 @@ describe('ParallelAggregator', () => {
         result: 'shard me',
       });
 
-      expect(result?.isComplete).toBe(true);
-      // Verify PutCommand was for a shard
-      const putCall = mockSend.mock.calls.find((c) =>
-        c[0]?.input?.Item?.userId?.includes('PARALLEL_SHARD#')
+      // Verify PutCommand (shard) was called BEFORE UpdateCommand (main)
+      const putCallIndex = mockSend.mock.calls.findIndex(
+        (c) =>
+          c[0]?.constructor?.name === 'PutCommand' &&
+          c[0].input.Item.userId.includes('PARALLEL_SHARD#')
       );
-      expect(putCall).toBeDefined();
-      expect(putCall![0].input.Item.userId).toContain('PARALLEL_SHARD#');
+      const updateCallIndex = mockSend.mock.calls.findIndex(
+        (c) =>
+          c[0]?.constructor?.name === 'UpdateCommand' &&
+          c[0].input.UpdateExpression.includes('results_shards')
+      );
 
-      // Verify UpdateCommand added to results_shards
-      const updateCall = mockSend.mock.calls.find((c) =>
-        c[0]?.input?.UpdateExpression?.includes('results_shards')
-      );
-      expect(updateCall).toBeDefined();
-      expect(updateCall![0].input.UpdateExpression).toContain('results_shards = list_append');
+      expect(putCallIndex).toBeGreaterThan(-1);
+      expect(updateCallIndex).toBeGreaterThan(-1);
+      expect(putCallIndex).toBeLessThan(updateCallIndex);
+
+      // Verify deterministic shard key
+      const putCall = mockSend.mock.calls[putCallIndex];
+      expect(putCall[0].input.Item.userId).toBe('PARALLEL_SHARD#u1#t1#t2');
     });
 
     it('should merge sharded results in getState', async () => {

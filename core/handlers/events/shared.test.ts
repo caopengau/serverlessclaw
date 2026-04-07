@@ -241,6 +241,24 @@ describe('shared event utilities', () => {
       );
     });
 
+    it('should handle recursion limit exceeded and not emit event', async () => {
+      // Setup: Mock recursion limit to 5, and current depth is 5
+      (ConfigManager.getRawConfig as any).mockResolvedValueOnce(5);
+
+      await wakeupInitiator('user1', 'strategic-planner', 'task', 'trace-1', 'sess-1', 5);
+
+      expect(emitEvent).not.toHaveBeenCalled();
+      expect(sendOutboundMessage).toHaveBeenCalledWith(
+        'wakeup-initiator',
+        'user1',
+        expect.stringContaining('Recursion Limit Exceeded'),
+        undefined,
+        'sess-1',
+        'SuperClaw',
+        undefined
+      );
+    });
+
     it('should detect dashboard-user as human initiator', async () => {
       await wakeupInitiator('user1', 'dashboard-user', 'task', undefined, undefined, 0);
       expect(sendOutboundMessage).toHaveBeenCalled();

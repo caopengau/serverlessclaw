@@ -209,13 +209,19 @@ describe('clarification-handler', () => {
       expect(targetTime).toBeLessThan(now + 610000);
     });
 
-    it('handles recursion limit exceeded', async () => {
-      mockGetRecursionLimit.mockResolvedValue(5);
-
+    it('delegates to wakeupInitiator for recursion and processing', async () => {
       await handleClarificationRequest({ ...baseEventDetail, depth: 5 });
 
-      expect(mockHandleRecursionLimitExceeded).toHaveBeenCalled();
-      expect(mockWakeupInitiator).not.toHaveBeenCalled();
+      expect(mockWakeupInitiator).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+        5, // Depth passed correctly
+        expect.anything(),
+        expect.anything()
+      );
     });
 
     it('records trace steps for clarification request and agent waiting', async () => {

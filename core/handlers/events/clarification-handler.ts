@@ -1,4 +1,4 @@
-import { getRecursionLimit, handleRecursionLimitExceeded, wakeupInitiator } from './shared';
+import { wakeupInitiator } from './shared';
 import { DynamicScheduler } from '../../lib/lifecycle/scheduler';
 import { ConfigManager } from '../../lib/registry/config';
 import { EventType } from '../../lib/types/agent';
@@ -46,21 +46,6 @@ export async function handleClarificationRequest(
   logger.info(
     `Relaying clarification request from ${agentId} to Initiator: ${initiatorId} (Depth: ${depth}, Session: ${sessionId}, Retry: ${retryCount})`
   );
-
-  const RECURSION_LIMIT = await getRecursionLimit();
-
-  if (depth >= RECURSION_LIMIT) {
-    logger.error(
-      `Recursion Limit Exceeded for CLARIFICATION_REQUEST (Depth: ${depth}) for user ${userId}. Aborting.`
-    );
-    await handleRecursionLimitExceeded(
-      userId,
-      sessionId,
-      'clarification-handler',
-      `I have detected an infinite loop in clarification requests (Depth: ${depth}). I've intervened to stop the process.`
-    );
-    return;
-  }
 
   const safeTraceId = traceId ?? `unknown-${Date.now()}`;
   const safeAgentId = agentId;

@@ -69,7 +69,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       // without keeping the response open or using a separate trigger.
       // However, SST/Next.js on Lambda often supports Response Streaming.
       // For this implementation, we consume the stream and the chunks are emitted
-      // via EventBridge -> IoT Core in the background.
+      // directly to IoT Core in the background via the realtime utility.
 
       // We start the stream but don't await its full completion before returning to the UI
       // IF the platform supports it. On standard Lambda, we MUST await or the process dies.

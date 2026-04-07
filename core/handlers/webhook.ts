@@ -1,7 +1,13 @@
 import { APIGatewayProxyEventV2, APIGatewayProxyResultV2, Context } from 'aws-lambda';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
-import { TraceSource, AgentType, Attachment, isValidAttachment } from '../lib/types/agent';
+import {
+  TraceSource,
+  AgentType,
+  Attachment,
+  isValidAttachment,
+  GapStatus,
+} from '../lib/types/agent';
 import { TelegramAdapter } from '../adapters/input/telegram';
 
 /**
@@ -148,7 +154,86 @@ export const handler = async (
     const config = await AgentRegistry.getAgentConfig(AgentType.SUPERCLAW);
     if (!config) throw new Error('Main agent config missing');
 
-    const { profile, cleanText } = SuperClaw.parseCommand(text);
+    const { profile, cleanText, command } = SuperClaw.parseCommand(text);
+
+    // Handle approval responses for HITL mode
+    if (command === 'APPROVE' || command === 'REJECT') {
+      logger.info(`[WEBHOOK] Processing ${command} command for user ${userId}`);
+      try {
+        const { DynamoMemory } = await import('../lib/memory');
+        const memory = new DynamoMemory();
+
+        // Find gaps in PENDING_APPROVAL status for this user
+        const pendingGaps = await memory.getAllGaps(GapStatus.PENDING_APPROVAL);
+        // Filter by sessionId since gaps are session-scoped
+        const userGaps = pendingGaps.filter((g) => g.userId === sessionId || g.userId === userId);
+
+        if (userGaps.length === 0) {
+          await sendOutboundMessage(
+            'webhook.handler',
+            chatId,
+            'No pending approvals found.',
+            undefined,
+            undefined,
+            'SuperClaw'
+          );
+        } else {
+          const gapIds = userGaps.map((g) => g.id);
+          if (command === 'APPROVE') {
+            // Transition to DONE
+            for (const gapId of gapIds) {
+              const lockAcquired = await memory.acquireGapLock(gapId, 'webhook.handler');
+              if (lockAcquired) {
+                try {
+                  await memory.updateGapStatus(gapId, GapStatus.DONE);
+                } finally {
+                  await memory.releaseGapLock(gapId, 'webhook.handler');
+                }
+              }
+            }
+            await sendOutboundMessage(
+              'webhook.handler',
+              chatId,
+              `✅ **Approved!** Gaps ${gapIds.join(', ')} have been closed.`,
+              undefined,
+              undefined,
+              'SuperClaw'
+            );
+          } else {
+            // REJECT - transition back to OPEN for revision
+            for (const gapId of gapIds) {
+              const lockAcquired = await memory.acquireGapLock(gapId, 'webhook.handler');
+              if (lockAcquired) {
+                try {
+                  await memory.updateGapStatus(gapId, GapStatus.OPEN);
+                } finally {
+                  await memory.releaseGapLock(gapId, 'webhook.handler');
+                }
+              }
+            }
+            await sendOutboundMessage(
+              'webhook.handler',
+              chatId,
+              `❌ **Rejected.** Gaps ${gapIds.join(', ')} have been reopened for revision.`,
+              undefined,
+              undefined,
+              'SuperClaw'
+            );
+          }
+        }
+      } catch (err) {
+        logger.error('[WEBHOOK] Error processing approval:', err);
+        await sendOutboundMessage(
+          'webhook.handler',
+          chatId,
+          'Error processing your response. Please try again.',
+          undefined,
+          undefined,
+          'SuperClaw'
+        );
+      }
+      return { statusCode: 200, body: 'OK' };
+    }
 
     logger.info('[WEBHOOK] Loading tools...');
     const agentTools = await getAgentTools(AgentType.SUPERCLAW);
@@ -185,7 +270,7 @@ export const handler = async (
     throw err;
   } finally {
     // 5. Release processing flag
-    await sessionStateManager.releaseProcessing(chatId);
+    await sessionStateManager.releaseProcessing(chatId, lambdaRequestId);
   }
 
   return { statusCode: 200, body: 'OK' };
