@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 
 vi.mock('../../lib/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
@@ -83,6 +83,15 @@ describe('Consensus Handler', () => {
   describe('CONSENSUS_VOTE — majority mode', () => {
     it('should approve when majority yes votes received', async () => {
       // Simulate 3 participants, 2 yes votes
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          participants: ['a', 'b', 'c'],
+          mode: 'majority',
+          status: 'PENDING',
+          initiatorId: 'planner',
+          votes: [],
+        },
+      });
       ddbMock.on(UpdateCommand).resolves({
         Attributes: {
           participants: ['a', 'b', 'c'],
@@ -117,6 +126,15 @@ describe('Consensus Handler', () => {
     });
 
     it('should reject when majority no votes received', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          participants: ['a', 'b', 'c'],
+          mode: 'majority',
+          status: 'PENDING',
+          initiatorId: 'planner',
+          votes: [],
+        },
+      });
       ddbMock.on(UpdateCommand).resolves({
         Attributes: {
           participants: ['a', 'b', 'c'],
@@ -150,6 +168,15 @@ describe('Consensus Handler', () => {
     });
 
     it('should not finalize when not enough votes yet', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          participants: ['a', 'b', 'c'],
+          mode: 'majority',
+          status: 'PENDING',
+          initiatorId: 'planner',
+          votes: [{ voterId: 'a', vote: true, timestamp: Date.now() }],
+        },
+      });
       ddbMock.on(UpdateCommand).resolves({
         Attributes: {
           participants: ['a', 'b', 'c'],
@@ -174,10 +201,44 @@ describe('Consensus Handler', () => {
       // Should NOT emit CONSENSUS_REACHED
       expect(emitEvent).not.toHaveBeenCalled();
     });
+
+    it('P0 Fix: should reject votes from non-participants', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          participants: ['a', 'b', 'c'],
+          mode: 'majority',
+          status: 'PENDING',
+          votes: [],
+        },
+      });
+
+      await handleConsensus(
+        {
+          detail: {
+            requestId: 'req-5a',
+            voterId: 'attacker', // Not in participants list
+            vote: true,
+          },
+        },
+        EventType.CONSENSUS_VOTE
+      );
+
+      // Should NOT process the vote or emit any event
+      expect(emitEvent).not.toHaveBeenCalled();
+    });
   });
 
   describe('CONSENSUS_VOTE — unanimous mode', () => {
     it('should approve only when all vote yes', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          participants: ['a', 'b'],
+          mode: 'unanimous',
+          status: 'PENDING',
+          initiatorId: 'planner',
+          votes: [],
+        },
+      });
       ddbMock.on(UpdateCommand).resolves({
         Attributes: {
           participants: ['a', 'b'],
@@ -210,6 +271,15 @@ describe('Consensus Handler', () => {
     });
 
     it('should reject if any single vote is no', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          participants: ['a', 'b'],
+          mode: 'unanimous',
+          status: 'PENDING',
+          initiatorId: 'planner',
+          votes: [],
+        },
+      });
       ddbMock.on(UpdateCommand).resolves({
         Attributes: {
           participants: ['a', 'b'],
@@ -242,6 +312,15 @@ describe('Consensus Handler', () => {
     });
 
     it('should wait for all votes before deciding', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          participants: ['a', 'b', 'c'],
+          mode: 'unanimous',
+          status: 'PENDING',
+          initiatorId: 'planner',
+          votes: [],
+        },
+      });
       ddbMock.on(UpdateCommand).resolves({
         Attributes: {
           participants: ['a', 'b', 'c'],
@@ -273,6 +352,15 @@ describe('Consensus Handler', () => {
 
   describe('CONSENSUS_VOTE — weighted mode', () => {
     it('should approve when weighted yes exceeds 50%', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          participants: ['a', 'b', 'c'],
+          mode: 'weighted',
+          status: 'PENDING',
+          initiatorId: 'planner',
+          votes: [],
+        },
+      });
       ddbMock.on(UpdateCommand).resolves({
         Attributes: {
           participants: ['a', 'b', 'c'],
@@ -307,6 +395,15 @@ describe('Consensus Handler', () => {
     });
 
     it('should reject when weighted yes is below 50%', async () => {
+      ddbMock.on(GetCommand).resolves({
+        Item: {
+          participants: ['a', 'b'],
+          mode: 'weighted',
+          status: 'PENDING',
+          initiatorId: 'planner',
+          votes: [],
+        },
+      });
       ddbMock.on(UpdateCommand).resolves({
         Attributes: {
           participants: ['a', 'b'],

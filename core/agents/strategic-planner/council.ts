@@ -25,7 +25,17 @@ export async function handleCouncilReviewResult(
   originalUserId: string,
   config: { name: string }
 ): Promise<PlannerResult | null> {
-  if (!task.includes('[COUNCIL_REVIEW_RESULT]') && !task.includes('VERDICT:')) {
+  // P1 Fix: More robust VERDICT parsing with case-insensitive regex
+  const councilReviewPattern = /\[COUNCIL_REVIEW_RESULT\]/i;
+  const verdictApprovedPattern = /VERDICT:\s*APPROVED/i;
+  const verdictRejectedPattern = /VERDICT:\s*REJECTED/i;
+  const verdictConditionalPattern = /VERDICT:\s*CONDITIONAL/i;
+
+  if (
+    !councilReviewPattern.test(task) &&
+    !verdictApprovedPattern.test(task) &&
+    !verdictRejectedPattern.test(task)
+  ) {
     return null;
   }
 
@@ -33,14 +43,17 @@ export async function handleCouncilReviewResult(
 
   // Trace: Council review results being processed
   const { addTraceStep } = await import('../../lib/utils/trace-helper');
+  const verdict = verdictApprovedPattern.test(task)
+    ? 'APPROVED'
+    : verdictRejectedPattern.test(task)
+      ? 'REJECTED'
+      : verdictConditionalPattern.test(task)
+        ? 'CONDITIONAL'
+        : 'UNKNOWN';
   await addTraceStep(traceId, 'root', {
     type: TRACE_TYPES.COUNCIL_REVIEW,
     content: {
-      verdict: task.includes('VERDICT: APPROVED')
-        ? 'APPROVED'
-        : task.includes('VERDICT: REJECTED')
-          ? 'REJECTED'
-          : 'CONDITIONAL',
+      verdict,
       summary: task,
       initiatorId: AgentType.STRATEGIC_PLANNER,
     },
@@ -64,8 +77,9 @@ export async function handleCouncilReviewResult(
     collaborationId: councilCollabId,
   } = JSON.parse(councilDataStr);
 
-  const isApproved = task.includes('VERDICT: APPROVED') || task.includes('APPROVED');
-  const isConditional = task.includes('VERDICT: CONDITIONAL') || task.includes('CONDITIONAL');
+  // P1 Fix: Use consistent robust pattern for verdict detection
+  const isApproved = verdictApprovedPattern.test(task) || /APPROVED/i.test(task);
+  const isConditional = verdictConditionalPattern.test(task) || /CONDITIONAL/i.test(task);
 
   // Close the Council collaboration session
   if (councilCollabId) {

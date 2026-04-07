@@ -171,6 +171,24 @@ export async function postProcessPlan(
           })
         );
 
+        // P1 Fix: Check if any locks failed - if so, rollback all acquired locks
+        const allAcquired = lockResults.every(({ acquired }) => acquired);
+        if (!allAcquired) {
+          logger.warn(
+            `[PLANNER] Partial lock failure for ${coveredGapIds.length} gaps. Rolling back.`
+          );
+          await Promise.all(
+            lockedCoveredGapIds.map(async (lockedId) => {
+              try {
+                await memory.releaseGapLock(lockedId, AgentType.STRATEGIC_PLANNER);
+              } catch (e) {
+                logger.warn(`[PLANNER] Failed to release lock for gap ${lockedId}:`, e);
+              }
+            })
+          );
+          lockedCoveredGapIds.length = 0;
+        }
+
         const results = await Promise.all(
           lockResults
             .filter(({ acquired }) => acquired)
@@ -214,8 +232,17 @@ export async function postProcessPlan(
       gapRisk >= COUNCIL_THRESHOLD ||
       gapComplexity >= COUNCIL_THRESHOLD;
 
-    if (requiresCouncil && !isFailure && processedGapIds.length > 0) {
-      logger.info(`[PLANNER] Plan requires Council review. Dispatching parallel critic tasks.`);
+    // P1 Fix: In HITL mode, skip Council and ask human directly first
+    // Council can be triggered later after human approval if needed
+    if (
+      requiresCouncil &&
+      !isFailure &&
+      processedGapIds.length > 0 &&
+      evolutionMode === EvolutionMode.AUTO
+    ) {
+      logger.info(
+        `[PLANNER] Plan requires Council review (Auto mode). Dispatching parallel critic tasks.`
+      );
 
       await sendOutboundMessage(
         AgentType.STRATEGIC_PLANNER,

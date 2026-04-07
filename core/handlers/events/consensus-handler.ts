@@ -73,6 +73,38 @@ export async function handleConsensus(
 
       logger.info(`[Consensus] Vote from ${voterId} for ${requestId}: ${vote ? 'YES' : 'NO'}`);
 
+      // P0 Security Fix: Use GetCommand to validate voter is a participant
+      const { GetCommand } = await import('@aws-sdk/lib-dynamodb');
+      const getResponse = await docClient.send(
+        new GetCommand({
+          TableName: tableName,
+          Key: { userId: `CONSENSUS#${requestId}`, timestamp: 0 },
+        })
+      );
+
+      const currentState = getResponse.Item as
+        | {
+            participants: string[];
+            votes: unknown[];
+            mode: string;
+            status: string;
+            initiatorId: string;
+          }
+        | undefined;
+      if (!currentState) {
+        logger.warn(`[Consensus] Request ${requestId} not found`);
+        return;
+      }
+
+      // Security: Check if voter is a valid participant
+      const participants = currentState.participants || [];
+      if (!participants.includes(voterId)) {
+        logger.warn(
+          `[Consensus] Rejected vote from non-participant ${voterId} for request ${requestId}`
+        );
+        return;
+      }
+
       // Lookup reputation for weighted voting
       let weight = 1.0;
       try {
@@ -104,30 +136,32 @@ export async function handleConsensus(
         })
       );
 
-      const state = response.Attributes;
-      if (!state) return;
+      const updatedState = response.Attributes;
+      if (!updatedState) return;
 
-      const totalVotes = state.votes.length;
-      const requiredParticipants = state.participants.length;
-      const yesVotes = state.votes.filter((v: { vote: boolean }) => v.vote).length;
+      const totalVotes = (updatedState.votes as unknown[]).length;
+      const requiredParticipants = participants.length;
+      const yesVotes = (updatedState.votes as unknown[]).filter(
+        (v: unknown) => (v as { vote: boolean }).vote
+      ).length;
 
       let isReached = false;
       let finalResult = false;
 
-      if (state.mode === 'unanimous') {
+      if (updatedState.mode === 'unanimous') {
         if (totalVotes === requiredParticipants) {
           isReached = true;
           finalResult = yesVotes === requiredParticipants;
         }
-      } else if (state.mode === 'weighted') {
+      } else if (updatedState.mode === 'weighted') {
         if (totalVotes === requiredParticipants) {
           isReached = true;
           let totalWeight = 0;
           let yesWeight = 0;
-          for (const v of state.votes) {
+          for (const v of updatedState.votes as unknown[]) {
             const w = (v as { weight?: number }).weight ?? 1.0;
             totalWeight += w;
-            if (v.vote) yesWeight += w;
+            if ((v as { vote: boolean }).vote) yesWeight += w;
           }
           finalResult = totalWeight > 0 && yesWeight / totalWeight > 0.5;
         }
@@ -146,7 +180,7 @@ export async function handleConsensus(
         }
       }
 
-      if (isReached && state.status === 'PENDING') {
+      if (isReached && updatedState.status === 'PENDING') {
         logger.info(
           `[Consensus] Request ${requestId} finalized: ${finalResult ? 'APPROVED' : 'REJECTED'}`
         );
@@ -167,8 +201,8 @@ export async function handleConsensus(
         await emitEvent('consensus-handler', EventType.CONSENSUS_REACHED, {
           requestId,
           result: finalResult,
-          initiatorId: state.initiatorId,
-          votes: state.votes,
+          initiatorId: currentState.initiatorId,
+          votes: updatedState.votes,
         });
       }
     }
