@@ -53,8 +53,8 @@ Each silo represents a core functional domain. Reviews within a silo should adop
 
 **Perspective**: _How does the system ensure the signal never dies?_
 
-- **Angle**: Audit the journey of events through the asynchronous backbone. Look for "dead ends," race conditions in the distributed lock, and the robustness of the "Trigger-on-Message" warmup logic.
-- **Key Concepts**: Event routing, recursion limits, trace propagation, and adapter normalization (Telegram/GitHub/Jira).
+- **Angle**: Audit the journey of events through the asynchronous backbone. Look for "dead ends," race conditions in the distributed lock, and the effectiveness of **Conflict Resolution Timeouts** during agent handoffs.
+- **Key Concepts**: Event routing, recursion limits, strategic tie-break logic, and adapter normalization (Telegram/GitHub/Jira).
 
 ### 2. The Hand (Agency & Skill Mastery)
 
@@ -67,22 +67,22 @@ Each silo represents a core functional domain. Reviews within a silo should adop
 
 **Perspective**: _What happens when things break or the perimeter is breached?_
 
-- **Angle**: Stress-test the "survival instincts" of the platform. Audit IAM least-privilege policies and the effectiveness of the "Dead Man's Switch" recovery loop.
-- **Key Concepts**: Safety guardrails, recovery logic, infrastructure-as-code (SST) integrity, and real-time security signaling.
+- **Angle**: Stress-test the "survival instincts" of the platform. Audit IAM least-privilege policies and the effectiveness of **Proactive Trunk Evolution** for autonomous infrastructure changes.
+- **Key Concepts**: Safety guardrails, recovery logic (Dead Man's Switch), Class C blast-radius limits, and real-time security signaling.
 
 ### 4. The Brain (Memory, Identity & Continuity)
 
 **Perspective**: _How does the system maintain its "sense of self" and history?_
 
-- **Angle**: Investigate the continuity of context across multi-turn sessions. Audit the multi-tenant Workspace isolation and the efficiency of the "Flattened DynamoDB" memory model for high-speed recall.
-- **Key Concepts**: Tiered retention (TTL), RBAC (Owner/Admin/Collab), search performance, and session integrity.
+- **Angle**: Investigate the continuity of context across multi-turn sessions. Audit the multi-tenant Workspace isolation and the efficiency of the **Hybrid Memory Model** (Hot DynamoDB + Semantic Vector Memory) for high-speed recall and strategic reflection.
+- **Key Concepts**: Tiered retention (TTL), Vector RAG efficiency, RBAC (Owner/Admin/Collab), and strategic gap identification.
 
 ### 5. The Eye (Self-Perception & Truth)
 
 **Perspective**: _Is the system’s view of itself accurate?_
 
-- **Angle**: Audit the feedback loops. Review the Playwright E2E suite to ensure UI "truth" matches backend state. Evaluate the CI/CD pipelines as the "ultimate truth" of the deployment lifecycle.
-- **Key Concepts**: Dashboard tracing accuracy, E2E flakiness, build-monitor signaling, and MQTT real-time feedback.
+- **Angle**: Audit the feedback loops. Review the Playwright E2E suite and the **LLM-as-a-Judge** semantic evaluation layer to ensure "truth" matches backend state. Evaluate the CI/CD pipelines as the "ultimate truth" of the deployment lifecycle.
+- **Key Concepts**: Dashboard tracing accuracy, LLM-as-a-Judge consistency, build-monitor signaling, and autonomous test suite evolution.
 
 ---
 

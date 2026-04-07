@@ -92,6 +92,8 @@ export interface TopologyNode {
   isBackbone?: boolean;
   /** Vertical placement tier. */
   tier?: 'APP' | 'COMM' | 'AGENT' | 'INFRA';
+  /** Optional key-value metadata for the node. */
+  metadata?: Record<string, unknown>;
 }
 
 /**

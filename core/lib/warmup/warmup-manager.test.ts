@@ -42,8 +42,17 @@ describe('WarmupManager', () => {
   };
 
   beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-07T10:00:00Z'));
     vi.clearAllMocks();
-    warmupManager = new WarmupManager(config);
+    mockDdbSend.mockReset();
+    mockLambdaSend.mockReset();
+
+    // Default mock behavior
+    mockDdbSend.mockResolvedValue({});
+    mockLambdaSend.mockResolvedValue({});
+
+    warmupManager = new WarmupManager(config, { send: mockDdbSend } as any);
   });
 
   describe('isServerWarm', () => {
@@ -125,9 +134,10 @@ describe('WarmupManager', () => {
     });
 
     it('should detect cold start when latency > 2000ms', async () => {
-      mockLambdaSend.mockImplementation(
-        () => new Promise((resolve) => setTimeout(() => resolve({}), 2500))
-      );
+      mockLambdaSend.mockImplementation(async () => {
+        vi.advanceTimersByTime(2500);
+        return {};
+      });
       mockDdbSend.mockResolvedValue({});
 
       const result = await warmupManager.warmMcpServer('mcp-github');
@@ -146,7 +156,7 @@ describe('WarmupManager', () => {
   });
 
   describe('warmAgent', () => {
-    it('should warm agent and record state', async () => {
+    it('should warm agent but NOT record state by default (feedback loop)', async () => {
       mockLambdaSend.mockResolvedValue({});
       mockDdbSend.mockResolvedValue({});
 
@@ -155,13 +165,51 @@ describe('WarmupManager', () => {
       expect(result.server).toBe('planner');
       expect(result.warmedBy).toBe('webhook');
       expect(mockLambdaSend).toHaveBeenCalled();
+      // Feedback loop means receiver records state, not initiator
+      expect(mockDdbSend).not.toHaveBeenCalled();
+    });
+
+    it('should record state locally when requested', async () => {
+      mockLambdaSend.mockResolvedValue({});
+      mockDdbSend.mockResolvedValue({});
+
+      await warmupManager.warmAgent('planner', 'webhook', true);
+
       expect(mockDdbSend).toHaveBeenCalled();
     });
 
     it('should throw error for unknown agent', async () => {
       await expect(warmupManager.warmAgent('unknown-agent')).rejects.toThrow(
-        'Agent unknown-agent not found in config'
+        'Agent/Multiplexer unknown-agent not found in config'
       );
+    });
+  });
+
+  describe('identifyTargets', () => {
+    it('should identify high-power target for coding keywords', async () => {
+      const targets = await warmupManager.identifyTargets('Please fix this bug');
+      expect(targets).toContain('high');
+    });
+
+    it('should identify standard target for greeting/chat', async () => {
+      const targets = await warmupManager.identifyTargets('Hello there, how are you?');
+      expect(targets).toContain('standard');
+    });
+
+    it('should identify light target for reviews', async () => {
+      const targets = await warmupManager.identifyTargets('Can you review this PR?');
+      expect(targets).toContain('light');
+    });
+
+    it('should use session affinity to maintain warmth', async () => {
+      const state = { processingAgentId: 'CODER_AGENT' } as any;
+      const targets = await warmupManager.identifyTargets('thanks', state);
+      expect(targets).toContain('high');
+    });
+
+    it('should default to high for ambiguous messages', async () => {
+      const targets = await warmupManager.identifyTargets('...');
+      expect(targets).toEqual(['high']);
     });
   });
 

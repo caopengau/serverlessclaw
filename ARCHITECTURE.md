@@ -13,10 +13,9 @@ This document covers the AWS topology and data flow. For agent logic and orchest
 3.  **Low Latency**: Optimized for fast startup times to minimize "time-to-first-token". Implements **Real-time Streaming** via IoT Core (MQTT) to provide instantaneous feedback to human users during long-running reasoning tasks.
 4.  **Safety-First**: Implements nested guardrails including Circuit Breakers, Recursion Limits, and Protected Scopes.
 5.  **Proactive & Efficient**: Agents can self-schedule future tasks, but the system prioritizes a **Trigger-on-Message** warm-up strategy to achieve near-zero idling costs while maintaining low-latency responsiveness.
-7.  **AI-Native**: Optimized for agent-human pair programming by prioritizing semantic transparency, strict neural typing, and direct schema definitions over traditional boilerplate indirection.
-8.  **Adaptive UI**: The dashboard implements a theme-agnostic design system using semantic CSS variables, ensuring full functional and aesthetic parity between Light and Dark modes while maintaining the signature "cyber" identity.
-9.  **Multi-Lingual**: Implements a "Baseline English Prompt" strategy. Agents maintain high reasoning quality via English core prompts while communicating in the user's preferred language (English/Chinese) via dynamic runtime instruction injection.
-
+6.  **AI-Native**: Optimized for agent-human pair programming by prioritizing semantic transparency, strict neural typing, and direct schema definitions over traditional boilerplate indirection.
+7.  **Adaptive UI**: The dashboard implements a theme-agnostic design system using semantic CSS variables, ensuring full functional and aesthetic parity between Light and Dark modes while maintaining the signature "cyber" identity.
+8.  **Multi-Lingual**: Implements a "Baseline English Prompt" strategy. Agents maintain high reasoning quality via English core prompts while communicating in the user's preferred language (English/Chinese) via dynamic runtime instruction injection.
 
 ---
 
@@ -43,14 +42,18 @@ To prevent translation drift and maintain peak reasoning performance, Serverless
 
 ## ⚡ Efficiency: Smart Warm-up Strategy
 
-To minimize AWS operational costs and reduce cold-start latency, Serverless Claw implements a **human-activity-based smart warmup** instead of rigid scheduling or persistent heartbeats:
+To minimize AWS operational costs and reduce cold-start latency, Serverless Claw implements a **Contextual, Activity-Based Smart Warmup** instead of rigid scheduling or persistent heartbeats:
 
-### 1. Warm State Tracking
+### 1. Intent-Based Detection (Human Trigger)
 
-The system tracks warm state in DynamoDB using `WARM#<serverName>` keys with a 15-minute TTL:
+When a message is received at the Webhook, the system uses a lightweight **Intent Analyzer** (keywords + session history) to selectively identify and warm only the required cognitive multiplexer buckets. This ensures that the right environment is hot before the delegator even dispatches the task.
+
+### 2. Self-Aware Feedback Loop
+
+The system tracks warm state in DynamoDB using `WARM#<tierName>` keys with a 15-minute TTL. Once a Multiplexer successfully warms up, it records its own state, allowing subsequent interactions within the TTL window to skip warmup entirely:
 
 ```text
-Key: WARM#<serverName>
+Key: WARM#<high|standard|light>
 Value: {
   server: string,
   lastWarmed: string (ISO timestamp),
@@ -100,8 +103,8 @@ The [Health Handler](./core/handlers/health.ts) includes warm state information 
                                         v                             v
                             +-----------+-----------+       +---------|---------+
                             |                       |       |   AWS Lambda      |
-                            |      ClawCenter       |       | (Agent Brain)     |
-                            | (Intelligence Sector) |       |         +         |
+                            |      ClawCenter       |       | Agent Multiplexer |
+                            | (Intelligence Sector) |       | [ High | Std | Lt]|
                             |                       |       |         +         |
                             +-----------+-----------+       +---------|---------+
                                         |                             |
@@ -306,17 +309,14 @@ Agents communicate asynchronously using **AWS EventBridge (The AgentBus)**. This
        ________V_________           (3) [ BUILD_MONITOR ]          |
       |    EVENT_BUS     | <-------  (Signals Build Status)        |
       |   (AgentBus)     |                                         |
-      |__________________|          (4) [ QA AUDITOR ]             |
-          |         |                (Verifies Live & Syncs)       |
+      |__________________|          (4) [ STANDARD BUCKET ]        |
+          |         |                (QA / Facilitator)            |
           |         |                 |                            |
-     (2) CODER_AGENT|                 +-- triggerTrunkSync ------> [ CODEBUILD ]
-         (Signals   |                                              (Sync Only)
-          Results)  |                                              |
-          |         |               (5) [ STRATEGIC PLANNER ]      |
-          |         |                (Consulted via signalOrch)    |
+     (2) [ HIGH BUCKET ]              +-- triggerTrunkSync ------> [ CODEBUILD ]
+         (Coder/Researcher)                                        (Sync Only)
           |         |                                              |
-          |  (6) [ MERGER_AGENT ]                                  |
-          |      (Semantic Reconcile)                              |
+          |         |               (5) [ LIGHT BUCKET ]           |
+          |         |                (Critic/Merger/Reflector)     |
           |         |                                              |
           +---------+-----> [ EVENT_HANDLER_ROUTER ] --------------+
                     (build/continuation/task-result/parallel)

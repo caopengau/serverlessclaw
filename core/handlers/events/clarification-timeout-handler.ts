@@ -4,7 +4,6 @@ import { logger } from '../../lib/logger';
 import { emitEvent, EventPriority } from '../../lib/utils/bus';
 import { DynamoMemory } from '../../lib/memory';
 import { ConfigManager } from '../../lib/registry/config';
-import { sendOutboundMessage } from '../../lib/outbound';
 import { escalationManager } from '../../lib/lifecycle/escalation-manager';
 
 export async function handleClarificationTimeout(
@@ -126,36 +125,41 @@ export async function handleClarificationTimeout(
   }
 
   logger.warn(
-    `Clarification timeout exhausted for ${traceId}/${agentId}. Escalating to SuperClaw.`
+    `Clarification timeout exhausted for ${traceId}/${agentId}. Performing Strategic Tie-break.`
   );
 
   await memory.updateClarificationStatus(traceId, agentId, ClarificationStatus.TIMED_OUT);
 
+  // Perform Strategic Tie-break: Continue task with best-effort assumptions
+  const tieBreakTask = `STRATEGIC_TIE_BREAK: The human input timed out. Proceeding with the original task: "${originalTask}" by making safe, best-effort assumptions based on the system context. Avoid high-risk operations until explicitly approved.`;
+
   await emitEvent(
     'events.handler',
-    EventType.TASK_FAILED,
+    EventType.STRATEGIC_TIE_BREAK,
     {
       userId,
       agentId,
-      task: originalTask,
-      error: `Clarification request timed out after ${maxRetries} retry attempts. Question: ${question}`,
+      task: tieBreakTask,
+      originalTask,
+      question,
       traceId,
-      initiatorId,
+      initiatorId: initiatorId ?? AgentType.SUPERCLAW,
       sessionId,
       depth: (depth ?? 0) + 1,
     },
-    { priority: EventPriority.CRITICAL }
+    { priority: EventPriority.HIGH }
   );
 
-  await sendOutboundMessage(
-    'clarification-timeout-handler',
+  // Notify the user via the report-back mechanism
+  await emitEvent('events.handler', EventType.REPORT_BACK, {
     userId,
-    `⚠️ **Clarification Timeout**\n\nAgent '${agentId}' requested clarification but received no response after ${maxRetries} attempts.\n\n**Question:**\n${question}\n\n**Task:** ${originalTask}\n\nThe task has been marked as failed. Please review and retry manually if needed.`,
-    undefined,
+    action: `Strategic Tie-break for agent '${agentId}'`,
+    reason: `Clarification request timed out after ${maxRetries} attempts.`,
+    result: `The system is continuing with best-effort assumptions to maintain momentum.`,
+    traceId,
     sessionId,
-    'SuperClaw',
-    undefined
-  );
+    agentId: AgentType.SUPERCLAW,
+  });
 
-  logger.info(`Escalated clarification timeout to SuperClaw for user ${userId}`);
+  logger.info(`Initiated Strategic Tie-break for user ${userId} due to clarification timeout.`);
 }

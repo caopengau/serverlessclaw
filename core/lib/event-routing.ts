@@ -76,17 +76,45 @@ export const DEFAULT_EVENT_ROUTING: EventRoutingTable = {
     module: './events/cognitive-health-handler',
     function: 'handleCognitiveHealthCheck',
   },
+  [EventType.STRATEGIC_TIE_BREAK]: {
+    module: './events/strategic-tie-break-handler',
+    function: 'handleStrategicTieBreak',
+  },
+  [EventType.REPORT_BACK]: {
+    module: './events/report-back-handler',
+    function: 'handleReportBack',
+  },
   [EventType.RESEARCH_TASK]: {
-    module: './events/research-handler',
-    function: 'handleResearchTask',
+    module: 'agent-multiplexer',
+    function: 'handler',
   },
   facilitator_task: {
-    module: './events/facilitator-handler',
-    function: 'handleFacilitatorTask',
+    module: 'agent-multiplexer',
+    function: 'handler',
     passContext: true,
   },
   critic_task: {
-    module: './events/critic-handler',
-    function: 'handleCriticTask',
+    module: 'agent-multiplexer',
+    function: 'handler',
+  },
+  [EventType.CODER_TASK]: {
+    module: 'agent-multiplexer',
+    function: 'handler',
+  },
+  [EventType.EVOLUTION_PLAN]: {
+    module: 'agent-multiplexer',
+    function: 'handler',
+  },
+  [EventType.REFLECT_TASK]: {
+    module: 'agent-multiplexer',
+    function: 'handler',
+  },
+  [EventType.MERGER_TASK]: {
+    module: 'agent-multiplexer',
+    function: 'handler',
+  },
+  qa_task: {
+    module: 'agent-multiplexer',
+    function: 'handler',
   },
 };

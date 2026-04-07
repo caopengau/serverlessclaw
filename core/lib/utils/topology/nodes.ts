@@ -314,12 +314,21 @@ export function addOrphanNodes(existingNodes: TopologyNode[]): TopologyNode[] {
 
 /**
  * Enriches discovered nodes with metadata from the hardcoded backbone registry.
+ * Also handles multiplexer associations for consolidated agents.
  *
  * @param nodes The current list of topology nodes.
  * @returns The enriched list of nodes.
  */
 export function mergeBackboneNodes(nodes: TopologyNode[]): TopologyNode[] {
   const mergedNodes = [...nodes];
+
+  // Consolidation mappings for 3-tier buckets
+  const MULTIPLEXER_MAP: Record<string, string[]> = {
+    highpowermultiplexer: ['coder', 'researcher', 'strategic-planner'],
+    standardmultiplexer: ['qa', 'facilitator'],
+    lightmultiplexer: ['critic', 'cognition-reflector', 'merger'],
+  };
+
   const COMMON_SUFFIXES = [
     'agent',
     'handler',
@@ -353,9 +362,6 @@ export function mergeBackboneNodes(nodes: TopologyNode[]): TopologyNode[] {
       // Update the ID to the canonical backbone ID for consistent linking
       node.id = lowerAgentId;
 
-      // Update all edges that pointed to the original ID (not possible here, needs to return mappings or handle globally)
-      // Actually, discovery happens once, so we can just mutate the node in place and keep its reference.
-
       // Enrichment from backbone config
       node.label = agentConfig.topologyOverride?.label || agentConfig.name || node.label;
       node.description = agentConfig.description;
@@ -367,6 +373,11 @@ export function mergeBackboneNodes(nodes: TopologyNode[]): TopologyNode[] {
         node.tier = agentConfig.topologyOverride?.tier ?? NODE_TIER.APP;
       }
     } else {
+      // Logic for multiplexer-hosted agents that don't have their own Lambda
+      const multiplexerId = Object.keys(MULTIPLEXER_MAP).find((m) =>
+        MULTIPLEXER_MAP[m].includes(lowerAgentId)
+      );
+
       mergedNodes.push({
         id: lowerAgentId,
         type: NODE_TYPE.AGENT,
@@ -378,6 +389,8 @@ export function mergeBackboneNodes(nodes: TopologyNode[]): TopologyNode[] {
         tier:
           agentConfig.topologyOverride?.tier ??
           (lowerAgentId === 'superclaw' ? NODE_TIER.APP : NODE_TIER.AGENT),
+        // If hosted by a multiplexer, we can optionally link it or metadata
+        metadata: multiplexerId ? { host: multiplexerId } : undefined,
       });
     }
   }

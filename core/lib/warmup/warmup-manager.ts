@@ -3,6 +3,7 @@ import { DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../logger';
 import { BaseMemoryProvider } from '../memory/base';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
+import type { SessionState } from '../session/session-state';
 
 const lambdaClient = new LambdaClient({});
 
@@ -164,15 +165,62 @@ export class WarmupManager extends BaseMemoryProvider {
   }
 
   /**
+   * Identify which agent/multiplexer buckets are likely needed based on message intent
+   * and session history (User-Activity Based).
+   */
+  async identifyTargets(text: string, sessionState: SessionState | null = null): Promise<string[]> {
+    const targets = new Set<string>();
+    const lowerText = text.toLowerCase();
+
+    // 1. High-Power Intent (Technical/Strategic)
+    if (
+      /(code|implement|refactor|fix|research|investigate|search|google|aws|infra|sst|lambda|deployment|issue|pr)/i.test(
+        lowerText
+      )
+    ) {
+      targets.add('high');
+    }
+
+    // 2. Standard Intent (QA/Communication)
+    if (/(qa|test|verify|chat|talk|hello|hi|help|explain|summary)/i.test(lowerText)) {
+      targets.add('standard');
+    }
+
+    // 3. Light Intent (Review/Structural)
+    if (/(review|critique|merge|conflict|reconcile|fact-check)/i.test(lowerText)) {
+      targets.add('light');
+    }
+
+    // 4. Session Affinity (Stay warm if we were just working with a specific agent)
+    // Note: If SuperClaw is the entry point, it often indicates the whole suite might be needed.
+    if (sessionState?.processingAgentId) {
+      const last = sessionState.processingAgentId.toLowerCase();
+      if (last.includes('coder') || last.includes('researcher')) targets.add('high');
+      if (last.includes('qa') || last.includes('facilitator')) targets.add('standard');
+      if (last.includes('critic') || last.includes('merger')) targets.add('light');
+    }
+
+    // Default to 'high' for empty or ambiguous messages to be safe
+    if (targets.size === 0) {
+      targets.add('high');
+    }
+
+    return Array.from(targets);
+  }
+
+  /**
    * Warm a specific agent Lambda and record state.
+   * For the 3-tier multiplexer, the recorder state is usually handled by the
+   * destination Lambda itself after successful initialization for maximum accuracy.
    */
   async warmAgent(
     agentName: string,
-    warmedBy: 'webhook' | 'scheduler' | 'recovery' = 'webhook'
+    warmedBy: 'webhook' | 'scheduler' | 'recovery' = 'webhook',
+    shouldRecordLocally: boolean = false
   ): Promise<WarmupState> {
     const arn = this.config.agents[agentName];
     if (!arn) {
-      throw new Error(`Agent ${agentName} not found in config`);
+      throw new Error(`Agent/Multiplexer ${agentName} not found in config`);
     }
 
     const startTime = Date.now();
@@ -182,7 +230,11 @@ export class WarmupManager extends BaseMemoryProvider {
         new InvokeCommand({
           FunctionName: arn,
           InvocationType: 'Event', // Async fire-and-forget
-          Payload: JSON.stringify({ type: 'WARMUP', source: 'warmup-manager' }),
+          Payload: JSON.stringify({
+            type: 'WARMUP',
+            source: 'warmup-manager',
+            intent: 'proactive-smart-warmup',
+          }),
         })
       );
 
@@ -194,10 +246,13 @@ export class WarmupManager extends BaseMemoryProvider {
         warmedBy,
         ttl: Math.floor(Date.now() / 1000) + this.ttlSeconds,
         latencyMs,
-        coldStart: false, // Can't detect cold start with async invocation
+        coldStart: false,
       };
 
-      await this.recordWarmState(state);
+      if (shouldRecordLocally) {
+        await this.recordWarmState(state);
+      }
+
       return state;
     } catch (error) {
       logger.error(`[WARMUP] Failed to warm agent ${agentName}:`, error);

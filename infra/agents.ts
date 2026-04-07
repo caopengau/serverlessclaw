@@ -197,6 +197,24 @@ export function createAgents(
 
   // --- End of WARMUP & SCHEDULER INFRA ---
 
+  // Grant agents permission to manage schedules
+  const schedulerPermissions = [
+    {
+      actions: [
+        'scheduler:CreateSchedule',
+        'scheduler:DeleteSchedule',
+        'scheduler:GetSchedule',
+        'scheduler:ListSchedules',
+        'scheduler:UpdateSchedule',
+      ],
+      resources: ['*'],
+    },
+    {
+      actions: ['iam:PassRole'],
+      resources: [schedulerRole.arn],
+    },
+  ];
+
   const agentEnv = {
     SCHEDULER_ROLE_ARN: schedulerRole.arn,
     HEARTBEAT_HANDLER_ARN: heartbeatHandler.arn,
@@ -220,30 +238,98 @@ export function createAgents(
       : {}),
   };
 
-  // 1. Coder Agent
-  const coderAgent = new sst.aws.Function('CoderAgent', {
-    handler: 'core/agents/coder.handler',
+  // --- AGENT MULTIPLEXER (3-TIER CONSOLIDATION) ---
+
+  // 1. High-Power Multiplexer (Coder, Researcher, Strategic Planner)
+  const highPowerMultiplexer = new sst.aws.Function('HighPowerMultiplexer', {
+    handler: 'core/handlers/agent-multiplexer.handler',
     dev: liveInLocalOnly,
     link: [...baseLink, stagingBucket],
-    permissions: basePermissions,
+    permissions: [...basePermissions, ...schedulerPermissions],
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
-    environment: agentEnv,
+    environment: { ...agentEnv, MULTIPLEXER_TIER: 'high' },
     memory: AGENT_CONFIG.memory.LARGE,
     timeout: AGENT_CONFIG.timeout.MAX,
-    storage: '10 GB', // 10GB /tmp for workspaces
-    logging: {
-      retention: LOG_RETENTION_PERIOD,
-    },
+    storage: '10 GB',
+    logging: { retention: LOG_RETENTION_PERIOD },
   });
-  bus.subscribe('CoderTaskSubscriber', coderAgent.arn, {
-    pattern: { detailType: [EventType.CODER_TASK] },
-    transform: {
-      target: {
-        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
-      },
+
+  bus.subscribe('HighPowerSubscriber', highPowerMultiplexer.arn, {
+    pattern: {
+      detailType: [
+        EventType.CODER_TASK,
+        EventType.RESEARCH_TASK,
+        EventType.EVOLUTION_PLAN,
+        'strategic-planner_task',
+        `${AgentType.RESEARCHER}_task`,
+      ],
     },
+    transform: { target: { deadLetterConfig: dlq ? { arn: dlq.arn } : undefined } },
   });
+
+  // 2. Standard Multiplexer (QA, Facilitator)
+  const standardMultiplexer = new sst.aws.Function('StandardMultiplexer', {
+    handler: 'core/handlers/agent-multiplexer.handler',
+    dev: liveInLocalOnly,
+    link: baseLink,
+    permissions: [...basePermissions, ...schedulerPermissions],
+    architecture: LAMBDA_ARCHITECTURE,
+    nodejs: { loader: NODEJS_LOADERS },
+    environment: { ...agentEnv, MULTIPLEXER_TIER: 'standard' },
+    memory: AGENT_CONFIG.memory.MEDIUM_LARGE,
+    timeout: AGENT_CONFIG.timeout.MAX,
+    logging: { retention: LOG_RETENTION_PERIOD },
+  });
+
+  bus.subscribe('StandardSubscriber', standardMultiplexer.arn, {
+    pattern: {
+      detailType: [
+        EventType.CODER_TASK_COMPLETED, // QA trigger
+        EventType.SYSTEM_BUILD_SUCCESS, // QA trigger
+        'qa_task',
+        'facilitator_task',
+        `${AgentType.QA}_task`,
+      ],
+    },
+    transform: { target: { deadLetterConfig: dlq ? { arn: dlq.arn } : undefined } },
+  });
+
+  // 3. Light Multiplexer (Critic, Reflector, Merger)
+  const lightMultiplexer = new sst.aws.Function('LightMultiplexer', {
+    handler: 'core/handlers/agent-multiplexer.handler',
+    dev: liveInLocalOnly,
+    link: [...baseLink, stagingBucket], // Merger needs staging
+    permissions: [...basePermissions, ...schedulerPermissions],
+    architecture: LAMBDA_ARCHITECTURE,
+    nodejs: { loader: NODEJS_LOADERS },
+    environment: { ...agentEnv, MULTIPLEXER_TIER: 'light' },
+    memory: AGENT_CONFIG.memory.MEDIUM,
+    timeout: AGENT_CONFIG.timeout.LONG,
+    logging: { retention: LOG_RETENTION_PERIOD },
+  });
+
+  bus.subscribe('LightSubscriber', lightMultiplexer.arn, {
+    pattern: {
+      detailType: [
+        EventType.REFLECT_TASK,
+        EventType.CRITIC_TASK,
+        EventType.MERGER_TASK,
+        'critic_task',
+        'cognition-reflector_task',
+      ],
+    },
+    transform: { target: { deadLetterConfig: dlq ? { arn: dlq.arn } : undefined } },
+  });
+
+  // Exported references (aliased to multiplexers for backward compatibility in the return object)
+  const coderAgent = highPowerMultiplexer;
+  const researcherAgent = highPowerMultiplexer;
+  const plannerAgent = highPowerMultiplexer;
+  const qaAgent = standardMultiplexer;
+  const criticAgent = lightMultiplexer;
+  const reflectorAgent = lightMultiplexer;
+  const mergerAgent = lightMultiplexer;
 
   // 2. Build Monitor
   const buildMonitor = new sst.aws.Function('BuildMonitor', {
@@ -293,24 +379,6 @@ export function createAgents(
     },
   });
 
-  // Grant agents permission to manage schedules
-  const schedulerPermissions = [
-    {
-      actions: [
-        'scheduler:CreateSchedule',
-        'scheduler:DeleteSchedule',
-        'scheduler:GetSchedule',
-        'scheduler:ListSchedules',
-        'scheduler:UpdateSchedule',
-      ],
-      resources: ['*'], // Namespaced by agentId usually, but '*' for simplicity in this implementation
-    },
-    {
-      actions: ['iam:PassRole'],
-      resources: [schedulerRole.arn],
-    },
-  ];
-
   // 15-min Schedule (Dead Man's Switch)
   new aws.scheduler.Schedule('RecoverySchedule', {
     name: `${$app.name}-${$app.stage}-Recovery`,
@@ -355,31 +423,7 @@ export function createAgents(
     sourceArn: buildRule.arn,
   });
 
-  // 5. Planner Agent
-  const plannerAgent = new sst.aws.Function('PlannerAgent', {
-    handler: 'core/agents/strategic-planner.handler',
-    dev: liveInLocalOnly,
-    link: baseLink,
-    architecture: LAMBDA_ARCHITECTURE,
-    nodejs: { loader: NODEJS_LOADERS },
-    permissions: [...basePermissions, ...schedulerPermissions],
-    environment: agentEnv,
-    memory: AGENT_CONFIG.memory.LARGE,
-    timeout: AGENT_CONFIG.timeout.MAX,
-    logging: {
-      retention: LOG_RETENTION_PERIOD,
-    },
-  });
-  bus.subscribe('EvolutionPlanSubscriber', plannerAgent.arn, {
-    pattern: {
-      detailType: [EventType.EVOLUTION_PLAN, `${AgentType.STRATEGIC_PLANNER}_task`],
-    },
-    transform: {
-      target: {
-        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
-      },
-    },
-  });
+  // Subscriptions for consolidated agents are handled by AgentMultiplexer above
 
   // 3. Event Handler (System errors)
   const eventHandler = new sst.aws.Function('EventHandler', {
@@ -420,87 +464,11 @@ export function createAgents(
     },
   });
 
-  // 6. Reflector Agent
-  const reflectorAgent = new sst.aws.Function('ReflectorAgent', {
-    handler: 'core/agents/cognition-reflector.handler',
-    dev: liveInLocalOnly,
-    link: baseLink,
-    architecture: LAMBDA_ARCHITECTURE,
-    nodejs: { loader: NODEJS_LOADERS },
-    permissions: [...basePermissions, ...schedulerPermissions],
-    environment: agentEnv,
-    memory: AGENT_CONFIG.memory.MEDIUM,
-    timeout: AGENT_CONFIG.timeout.LONG,
-    logging: {
-      retention: LOG_RETENTION_PERIOD,
-    },
-  });
-  bus.subscribe('ReflectTaskSubscriber', reflectorAgent.arn, {
-    pattern: {
-      detailType: [EventType.REFLECT_TASK, `${AgentType.COGNITION_REFLECTOR}_task`],
-    },
-    transform: {
-      target: {
-        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
-      },
-    },
-  });
+  // Reflector Subscriptions handled by Multiplexer
 
-  // 7. QA Agent (Verifies satisfaction after deploy)
-  const qaAgent = new sst.aws.Function('QaAgent', {
-    handler: 'core/agents/qa.handler',
-    dev: liveInLocalOnly,
-    link: baseLink,
-    architecture: LAMBDA_ARCHITECTURE,
-    nodejs: { loader: NODEJS_LOADERS },
-    permissions: [...basePermissions, ...schedulerPermissions],
-    environment: agentEnv,
-    memory: AGENT_CONFIG.memory.MEDIUM_LARGE,
-    timeout: AGENT_CONFIG.timeout.MAX,
-    logging: {
-      retention: LOG_RETENTION_PERIOD,
-    },
-  });
-  bus.subscribe('QaVerificationSubscriber', qaAgent.arn, {
-    pattern: {
-      detailType: [
-        EventType.SYSTEM_BUILD_SUCCESS,
-        EventType.CODER_TASK_COMPLETED,
-        `${AgentType.QA}_task`,
-      ],
-    },
-    transform: {
-      target: {
-        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
-      },
-    },
-  });
+  // QA Subscriptions handled by Multiplexer
 
-  // 7.5 Critic Agent (Council of Agents peer review)
-  const criticAgent = new sst.aws.Function('CriticAgent', {
-    handler: 'core/agents/critic.handler',
-    dev: liveInLocalOnly,
-    link: baseLink,
-    architecture: LAMBDA_ARCHITECTURE,
-    nodejs: { loader: NODEJS_LOADERS },
-    permissions: [...basePermissions],
-    environment: agentEnv,
-    memory: AGENT_CONFIG.memory.MEDIUM,
-    timeout: AGENT_CONFIG.timeout.LONG,
-    logging: {
-      retention: LOG_RETENTION_PERIOD,
-    },
-  });
-  bus.subscribe('CriticTaskSubscriber', criticAgent.arn, {
-    pattern: {
-      detailType: [EventType.CRITIC_TASK, `${AgentType.CRITIC}_task`],
-    },
-    transform: {
-      target: {
-        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
-      },
-    },
-  });
+  // Critic Subscriptions handled by Multiplexer
 
   // 8. Notifier
   const notifier = new sst.aws.Function('Notifier', {
@@ -609,21 +577,7 @@ export function createAgents(
     'Monitors Lambda concurrent execution usage — alerts at 80% utilization'
   );
 
-  // 11. Merger Agent (AST-aware reconciliation)
-  const mergerAgent = new sst.aws.Function('MergerAgent', {
-    handler: 'core/agents/merger.handler',
-    dev: liveInLocalOnly,
-    link: [...baseLink, stagingBucket],
-    architecture: LAMBDA_ARCHITECTURE,
-    nodejs: { loader: NODEJS_LOADERS },
-    permissions: [...basePermissions, ...schedulerPermissions],
-    environment: agentEnv,
-    memory: AGENT_CONFIG.memory.MEDIUM,
-    timeout: AGENT_CONFIG.timeout.LONG,
-    logging: {
-      retention: LOG_RETENTION_PERIOD,
-    },
-  });
+  // Merger Subscriptions handled by Multiplexer
 
   // B3: DLQ Handler for failed EventBridge events
   let dlqHandler: sst.aws.Function | undefined;
@@ -646,31 +600,7 @@ export function createAgents(
     dlq.subscribe(dlqHandler.arn);
   }
 
-  // 12. Researcher Agent (Technical discovery and codebase research)
-  const researcherAgent = new sst.aws.Function('ResearcherAgent', {
-    handler: 'core/handlers/events/research-handler.handleResearchTask',
-    dev: liveInLocalOnly,
-    link: baseLink,
-    permissions: basePermissions,
-    architecture: LAMBDA_ARCHITECTURE,
-    nodejs: { loader: NODEJS_LOADERS },
-    environment: agentEnv,
-    memory: AGENT_CONFIG.memory.LARGE,
-    timeout: AGENT_CONFIG.timeout.MAX,
-    logging: {
-      retention: LOG_RETENTION_PERIOD,
-    },
-  });
-  bus.subscribe('ResearchTaskSubscriber', researcherAgent.arn, {
-    pattern: {
-      detailType: [EventType.RESEARCH_TASK, `${AgentType.RESEARCHER}_task`],
-    },
-    transform: {
-      target: {
-        deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,
-      },
-    },
-  });
+  // Researcher Subscriptions handled by Multiplexer
 
   return {
     coderAgent,

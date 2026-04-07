@@ -32,9 +32,16 @@ describe('event-routing', () => {
       EventType.CONSENSUS_REQUEST,
       EventType.CONSENSUS_VOTE,
       EventType.COGNITIVE_HEALTH_CHECK,
+      EventType.STRATEGIC_TIE_BREAK,
+      EventType.REPORT_BACK,
+      EventType.RESEARCH_TASK,
+      EventType.CODER_TASK,
+      EventType.EVOLUTION_PLAN,
+      EventType.REFLECT_TASK,
+      EventType.MERGER_TASK,
       'facilitator_task',
       'critic_task',
-      EventType.RESEARCH_TASK,
+      'qa_task',
     ];
 
     it.each(REQUIRED_EVENT_TYPES)('should have routing entry for %s', (eventType) => {
@@ -54,7 +61,7 @@ describe('event-routing', () => {
     it('should have valid module paths for all routes', () => {
       for (const [, routing] of Object.entries(DEFAULT_EVENT_ROUTING)) {
         expect(routing.module).toBeTruthy();
-        expect(routing.module).toMatch(/^\.\/events\//);
+        expect(routing.module).toMatch(/^(\.\/events\/|agent-multiplexer)/);
         expect(routing.module).not.toContain('..');
         expect(routing.module).not.toContain('//');
       }
@@ -82,9 +89,9 @@ describe('event-routing', () => {
         'escalation-handler',
         'consensus-handler',
         'cognitive-health-handler',
-        'facilitator-handler',
-        'critic-handler',
-        'research-handler',
+        'strategic-tie-break-handler',
+        'report-back-handler',
+        'agent-multiplexer',
       ];
 
       for (const [, routing] of Object.entries(DEFAULT_EVENT_ROUTING)) {
@@ -98,7 +105,7 @@ describe('event-routing', () => {
     it('should have valid function names for all routes', () => {
       for (const [, routing] of Object.entries(DEFAULT_EVENT_ROUTING)) {
         expect(routing.function).toBeTruthy();
-        expect(routing.function).toMatch(/^handle[A-Z]/);
+        expect(routing.function).toMatch(/^(handle[A-Z]|handler)/);
       }
     });
 
@@ -142,7 +149,7 @@ describe('event-routing', () => {
         const pair = `${routing.module}::${routing.function}`;
         // Some handlers handle multiple event types (e.g., task-result-handler handles both TASK_COMPLETED and TASK_FAILED)
         // So we don't enforce uniqueness, just that the pair is valid
-        expect(pair).toMatch(/^\.\/events\/[a-z-]+::handle[A-Z]/);
+        expect(pair).toMatch(/^(\.\/events\/[a-z-]+::handle[A-Z]|agent-multiplexer::handler)/);
       }
     });
 
@@ -231,9 +238,6 @@ describe('event-routing', () => {
     // These event types are emitted but not routed to handlers in events.ts
     // They are handled by other components (e.g., SuperClaw webhook handler)
     const UNROUTED_EVENTS = [
-      EventType.CODER_TASK,
-      EventType.EVOLUTION_PLAN,
-      EventType.REFLECT_TASK,
       EventType.OUTBOUND_MESSAGE,
       EventType.SCHEDULE_TASK,
       EventType.REPUTATION_UPDATE,

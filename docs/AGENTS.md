@@ -11,17 +11,18 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 
 ### 1. Autonomous Agents (LLM-Powered)
 
-| Agent                   | Runtime                              | Config Source              | Responsibilities                                                                |
-| ----------------------- | ------------------------------------ | -------------------------- | ------------------------------------------------------------------------------- |
-| **SuperClaw**           | `core/handlers/webhook.ts`           | `core/agents/superclaw.ts` | **Nimble Orchestrator**. User Proxy, Delegation, UI Navigation (Skeleton tools) |
-| **Coder Agent**         | `core/agents/coder.ts`               | `AgentRegistry` (Backbone) | Writes code, runs pre-flight checks, validates deployments                      |
-| **Agent Runner**        | `core/handlers/agent-runner.ts`      | `AgentRegistry` (Dynamic)  | Generic runner for any user-defined agent                                       |
-| **Strategic Planner**   | `core/agents/strategic-planner.ts`   | `AgentRegistry` (Backbone) | **Technical Auditor**. Infra management, Agent Registry CRUD, Evolution plans   |
-| **Cognition Reflector** | `core/agents/cognition-reflector.ts` | `AgentRegistry` (Backbone) | **Knowledge Custodian**. Fact extraction, Memory hygiene, Trace maintenance     |
-| **QA Auditor**          | `core/agents/qa.ts`                  | `AgentRegistry` (Backbone) | Verifies satisfaction of deployed changes                                       |
-| **Critic Agent**        | `core/agents/critic.ts`              | `AgentRegistry` (Backbone) | Peer review for Council of Agents (security/performance/architect)              |
-| **Facilitator**         | `core/agents/prompts/facilitator.md` | `AgentRegistry` (Backbone) | **Session Moderator**. Multi-party collaboration, Session lifecycle management  |
-| **Merger Agent**        | `core/agents/merger.ts`              | `AgentRegistry` (Backbone) | Structural code reconciliation for parallel evolution tasks                     |
+| Agent                   | Host (Multiplexer)       | Responsibilities                                                                |
+| ----------------------- | ------------------------ | ------------------------------------------------------------------------------- |
+| **SuperClaw**           | `Webhook Handler`        | **Nimble Orchestrator**. User Proxy, Delegation, UI Navigation (Skeleton tools) |
+| **Coder Agent**         | `High-Power`             | Writes code, runs pre-flight checks, validates deployments                      |
+| **Researcher**          | `High-Power`             | Deep technical exploration, library analysis, and pattern discovery             |
+| **Strategic Planner**   | `High-Power`             | **Technical Auditor**. Infra management, Agent Registry CRUD, Evolution plans   |
+| **QA Auditor**          | `Standard`               | Verifies satisfaction of deployed changes                                       |
+| **Facilitator**         | `Standard`               | **Session Moderator**. Multi-party collaboration, Session lifecycle management  |
+| **Critic Agent**        | `Light`                  | Peer review for Council of Agents (security/performance/architect)              |
+| **Cognition Reflector** | `Light`                  | **Knowledge Custodian**. Fact extraction, Memory hygiene, Trace maintenance     |
+| **Merger Agent**        | `Light`                  | Structural code reconciliation for parallel evolution tasks                     |
+| **Agent Runner**        | `Agent Runner`           | Generic runner for any user-defined agent                                       |
 
 ### 2. System Handlers (Logic-Powered)
 
@@ -279,28 +280,69 @@ npx vitest core/tests/contract.test.ts
 
 ### 🔄 Coordination & Concurrency Flow
 
+The system uses a **3-Tier Agent Multiplexer** to consolidate agent execution environments. This eliminates cumulative cold-start latency while maintaining resource-aware bucketing.
+
+#### 🏗️ Multiplexer Dispatch Flow
+```text
+  [ Webhook ] --- (1) Detect Intent & Affinity ---> [ Multiplexer ]
+       |                                                 |
+       |             (2) Proactive WARMUP                |
+       |        (Selective: High/Standard/Light)          |
+       V                                                 V
+  [ AgentBus ] ---- (3) Dispatch Task (Event) ----> [ Handler (JS) ]
+                                                         |
+                                             (4) handleWarmup (Brain)
+                                                         |
+                                             (5) Dynamic Import (Agent)
+                                                         |
+                                             (6) Execute logic
+                                                         |
+                                             (7) Emit Result/Signals
+```
+
+#### 🧠 Activity-Aware Bucketing (Smart Warmup)
+To achieve near-zero idling costs whilst maintaining a snappy user experience, the system implements a **Contextual Warmup** strategy:
+- **Intent Detection**: The Webhook performs a lightweight keyword scan of the user message. Messages mentioning "fixing", "implementing", or "refactoring" immediately trigger the **High-Power** bucket.
+- **Session Affinity**: The system looks up the `SessionState` to keep the tier hot that was most recently active in the conversation.
+- **Selective Warming**: This "High Fidelity" approach ensures only the required cognitive infrastructure is woken up, matching the performance model of heavyweight MCP tools.
+
+#### 🛡️ Concurrency Lifecycle
 When an agent is triggered via the AgentBus, it follows this robust execution lifecycle to prevent race conditions during multi-agent reasoning:
 
-```mermaid
-sequenceDiagram
-    participant EB as AgentBus (EventBridge)
-    participant H as shared.ts (processEventWithAgent)
-    participant SM as SessionStateManager (DynamoDB)
-    participant A as Agent (Reasoning Cycle)
-
-    EB->>H: Dispatch Event (e.g., DELEGATION_TASK)
-    H->>SM: acquireProcessing(sessionId)
-    alt Lock Acquired
-        SM-->>H: Success
-        H->>A: Execute Reasoning Loop
-        A->>H: Task Result
-        H->>SM: releaseProcessing(sessionId)
-    else Lock Busy
-        SM-->>H: Failure (Session Locked)
-        H->>SM: addPendingMessage(sessionId, task)
-        Note over H,SM: Task will be picked up in next turn
-    end
-    H-->>EB: Ack
+```text
++-----------+       +-----------+       +-----------+       +-----------+
+| AgentBus  |       | shared.ts |       | SessionSM |       |   Agent   |
+| (EvBridge)|       | (Handler) |       | (DynamoDB)|       | (Reason)  |
++-----------+       +-----------+       +-----------+       +-----------+
+      |                   |                   |                   |
+      | Dispatch Event    |                   |                   |
+      +------------------>|                   |                   |
+      |                   | acquireProcessing |                   |
+      |                   +------------------>|                   |
+      |                   |                   |                   |
+      |                   | [ Lock Acquired ] |                   |
+      |                   |<------------------+                   |
+      |                   |      Success      |                   |
+      |                   |                   |                   |
+      |                   | Execute Loop      |                   |
+      |                   +-------------------------------------->|
+      |                   |                   |                   |
+      |                   |      Result       |                   |
+      |                   |<--------------------------------------+
+      |                   |                   |                   |
+      |                   | releaseProcessing |                   |
+      |                   +------------------>|                   |
+      |                   |                   |                   |
+      |                   |   [ Lock Busy ]   |                   |
+      |                   |<------------------+                   |
+      |                   |      Failure      |                   |
+      |                   |                   |                   |
+      |                   | addPendingMessage |                   |
+      |                   +------------------>|                   |
+      |                   |                   |                   |
+      |        Ack        |                   |                   |
+      |<------------------+                   |                   |
+      |                   |                   |                   |
 ```
 
 ---

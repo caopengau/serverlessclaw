@@ -21,30 +21,30 @@ Autonomy is a capability, not a blanket permission. Every proposed change is ris
 
 - **Class A (Auto-Allowed):** Low-risk prompt/docs refactors and non-sensitive tuning that pass all quality gates.
 - **Class B (Auto with Peer Review):** Code changes that are reversible, have full test coverage, and do not touch protected surfaces.
-- **Class C (Human Approval Required):** Any changes involving IAM, infra topology, memory retention, external tool permissions, deployment controls, or security guardrails.
-- **Class D (Blocked):** Policy-prohibited changes, unresolved conflicting human instructions, or actions that exceed declared blast-radius limits.
+- **Class C (Human Approval Required):** Any changes involving IAM, infra topology, memory retention, external tool permissions, deployment controls, or security guardrails. If no approval is received within a declared **Event-Driven Evolutionary Timeout** (triggered via EventBridge Scheduler or DynamoDB TTL), the system proceeds with a **Proactive Trunk Evolution** and reports findings back for retroactive acknowledgement.
+- **Class D (Blocked):** Policy-prohibited changes, unresolved conflicting human instructions that have exceeded the **Event-Driven Tie-break Timeout**, or actions that exceed declared blast-radius limits.
 
 All autonomous actions must emit immutable decision logs: who/what proposed the change, risk class, approving authority, evidence bundle, and rollback plan.
 
 ## 🧬 The Self-Evolution Mission & Lifecycle
 
-The ultimate mission of Serverless Claw is to act as a **self-evolving system** that identifies its own weaknesses, designs its own upgrades, and verifies its own satisfaction. The swarm executes this through a strict hierarchical loop:
+The ultimate mission of Serverless Claw is to act as a **self-evolving system** that identifies its own weaknesses, designs its own upgrades, and verifies its own satisfaction. The swarm executes this through a strict hierarchical loop of **Event-Based State Transitions**:
 
 1. **Observation & Audit:** The Reflector identifies `strategic_gaps` from conversations, which the Strategic Planner periodically audits.
 2. **Planning & Council Review:** The Planner designs a `STRATEGIC_PLAN`. High-impact/risk changes require parallel peer review by the Critic Agent (Security, Performance, Architect), with risk class attached to each change item.
 3. **Implementation & Pre-Flight:** The Coder Agent implements the change. A strict **Definition of Done** dictates that all code must be accompanied by **Tests** and **Documentation**. Code must be compatible with AI-readiness parsers (e.g., avoiding BigInt literals in favor of `BigInt()` constructors).
-4. **Atomic Deployment & Sync:** Changes are deployed via CodeBuild to a live staging environment (no direct Git pushes). Build metadata, provenance evidence, and decision metadata are atomically synced to the gaps they resolve to prevent state loss.
-5. **Verification & Healing:** The QA Auditor verifies live satisfaction against pre-declared acceptance metrics. If successful, an Atomic Sync (`gitSync`) pushes the verified code back to the trunk. If it fails, a "Dead Man's Switch" can trigger an emergency rollback.
+4. **Atomic Deployment & Sync:** Changes are deployed via CodeBuild to the trunk-aligned environment (no direct Git pushes). Build metadata, provenance evidence, and decision metadata are atomically synced to the gaps they resolve to prevent state loss.
+5. **Verification & Healing:** The QA Auditor verifies live satisfaction against pre-declared acceptance metrics using a combination of deterministic tests and **LLM-as-a-Judge** semantic evaluation. If successful, an Atomic Sync (`gitSync`) pushes the verified code back to the trunk. If it fails, a "Dead Man's Switch" can trigger an emergency rollback. The QA Auditor is authorized to evolve the deterministic test suite to match new system behaviors.
 
 ## 🛡️ Quality Standards & Gates
 
 Quality is non-negotiable and strictly enforced through automated physical gates before any evolutionary code is merged:
 
-- **Mandatory Quality Sweeps:** Every push or merge triggers a full sweep (`make gate` / `make check`) checking linting, formatting, type-checking, and tests.
+- **Mandatory Quality Sweeps:** Every push or merge triggers a full sweep (`make gate` / `make check`) checking linting, formatting, type-checking, and tests, augmented by semantic verification gates.
 - **AI-Readiness:** The system runs an automated AI-readiness scan (`make aiready`) which requires a score of **80+** to proceed.
 - **Cognitive Health Monitoring:** The system constantly analyzes agent reasoning coherence (0-10 scale), memory health, and anomaly detection.
-- **Hard Security Layer:** System resources require hard IAM permission links defined in infrastructure (`infra/agents.ts`). Any unauthorized API calls return `PERMISSION_DENIED` and require a human `MANUAL_APPROVAL_REQUIRED` loop.
-- **Consensus & Conflict Resolution:** During multi-party collaborations, a Facilitator Agent maintains strict neutrality, ensures turn-taking, and drives consensus. If conflicting human instructions arise, the agent halts and requests Owner resolution.
+- **Hard Security Layer:** System resources require hard IAM permission links defined in infrastructure (`infra/agents.ts`). Any unauthorized API calls return `PERMISSION_DENIED` and trigger a **Non-Blocking Approval Loop**, which transitions to a **Proactive Trunk Evolution** via an asynchronous event if timed out.
+- **Consensus & Conflict Resolution:** During multi-party collaborations, a Facilitator Agent maintains strict neutrality, ensures turn-taking, and drives consensus. If conflicting human instructions arise, the agent initiates an **Event-Driven Conflict Resolution Timeout**. If unresolved, the Facilitator performs a **Strategic Tie-break** to continue evolution, followed by a report for retroactive acknowledgement. No compute resources wait for resolution; the system re-hydrates only upon a result or timeout signal.
 
 ## 📏 Reliability and Competitive SLOs
 

@@ -64,6 +64,15 @@ export function configureApiRoutes(api: sst.aws.ApiGatewayV2, ctx: SharedContext
       ].filter(Boolean)
     : [];
 
+  const agentBuckets = agents
+    ? {
+        high: agents.coderAgent.arn,
+        standard: agents.qaAgent.arn,
+        light: agents.criticAgent.arn,
+        runner: agents.agentRunner.arn,
+      }
+    : {};
+
   api.route('ANY /webhook', {
     handler: 'core/handlers/webhook.handler',
     nodejs: { loader: NODEJS_LOADERS },
@@ -79,14 +88,14 @@ export function configureApiRoutes(api: sst.aws.ApiGatewayV2, ctx: SharedContext
       ...criticalAgents,
     ],
     environment: {
-      // Pass the function names for the warm-up utility
-      WARM_UP_FUNCTIONS: JSON.stringify(criticalAgents.map((a) => a.name)),
+      // Pass the ARNs for the smart warm-up utility
+      WARM_UP_FUNCTIONS: $util.jsonStringify(agentBuckets),
     },
     permissions: [
       ...apiPermissions,
       {
         actions: ['lambda:InvokeFunction'],
-        resources: criticalAgents.map((a) => a.arn),
+        resources: Object.values(agentBuckets),
       },
     ],
     architecture: LAMBDA_ARCHITECTURE,

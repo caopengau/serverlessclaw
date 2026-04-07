@@ -45,6 +45,44 @@ export function extractPayload<T extends object>(event: { detail?: T } | T): T {
   return (event as { detail?: T }).detail ?? (event as T);
 }
 
+export function isWarmupEvent(event: unknown): boolean {
+  const payload = extractPayload(event as Record<string, unknown>) as Record<string, unknown>;
+  return payload?.type === 'WARMUP' || payload?.intent === 'warmup';
+}
+
+/**
+ * Handle a warmup event by pre-initializing the agent and returning true.
+ * This is meant to be called at the beginning of an agent handler.
+ *
+ * @param event - The handler event.
+ * @param agentId - The agent ID to warm.
+ * @returns A promise that resolves to true if handled as warmup, false otherwise.
+ */
+export async function handleWarmup(event: unknown, agentId: string | AgentType): Promise<boolean> {
+  if (isWarmupEvent(event)) {
+    const target = agentId === 'brain' ? 'all cognitive agents' : `agent ${agentId}`;
+    logger.info(`[WARMUP] Warming ${target}...`);
+    try {
+      if (agentId === 'brain') {
+        // Warm a representative set of agents
+        await Promise.all([
+          initAgent(AgentType.CODER),
+          initAgent(AgentType.RESEARCHER),
+          initAgent(AgentType.STRATEGIC_PLANNER),
+        ]);
+      } else {
+        await initAgent(agentId as AgentType);
+      }
+      logger.info(`[WARMUP] ${target} is now warm.`);
+      return true;
+    } catch (e) {
+      logger.warn(`[WARMUP] Failed to warm ${target}:`, e);
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Detect if an agent response indicates an internal error.
  * Used consistently across all agents to determine failure state.

@@ -216,7 +216,7 @@ describe('clarification-timeout-handler', () => {
       );
     });
 
-    it('emits TASK_FAILED when retries exhausted', async () => {
+    it('performs strategic tie-break when retries exhausted', async () => {
       mockGetClarificationRequest.mockResolvedValue({ status: 'pending' });
       mockGetRawConfig.mockImplementation((key: string) => {
         if (key === 'escalation_enabled') return Promise.resolve(undefined);
@@ -227,15 +227,27 @@ describe('clarification-timeout-handler', () => {
       await handleClarificationTimeout({ ...baseEventDetail, retryCount: 1 });
 
       expect(mockUpdateClarificationStatus).toHaveBeenCalledWith('trace-abc', 'coder', 'timed_out');
+
+      // Should emit strategic tie-break
       expect(mockEmitEvent).toHaveBeenCalledWith(
         'events.handler',
-        'task_failed',
+        'strategic_tie_break',
         expect.objectContaining({
-          error: expect.stringContaining('timed out'),
+          task: expect.stringContaining('STRATEGIC_TIE_BREAK'),
+          originalTask: 'Implement feature X',
         }),
-        expect.objectContaining({ priority: 'CRITICAL' })
+        expect.objectContaining({ priority: 'HIGH' })
       );
-      expect(mockSendOutboundMessage).toHaveBeenCalled();
+
+      // Should notify user via report-back
+      expect(mockEmitEvent).toHaveBeenCalledWith(
+        'events.handler',
+        'report_back',
+        expect.objectContaining({
+          action: expect.stringContaining('Strategic Tie-break'),
+          agentId: 'superclaw',
+        })
+      );
     });
 
     it('falls back to legacy behavior when escalation fails', async () => {
@@ -266,10 +278,10 @@ describe('clarification-timeout-handler', () => {
 
       await handleClarificationTimeout({ ...baseEventDetail, retryCount: 1 });
 
-      // retryCount 1 + 1 = 2 > default maxRetries 1 => should fail
+      // retryCount 1 + 1 = 2 > default maxRetries 1 => should tie-break
       expect(mockEmitEvent).toHaveBeenCalledWith(
         'events.handler',
-        'task_failed',
+        'strategic_tie_break',
         expect.anything(),
         expect.anything()
       );

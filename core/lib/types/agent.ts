@@ -280,6 +280,10 @@ export enum EventType {
   MERGER_TASK = 'merger_task',
   /** High-level orchestration signal for automated state transitions. */
   ORCHESTRATION_SIGNAL = 'orchestration_signal',
+  /** Event emitted when a strategic tie-break is performed after a timeout. */
+  STRATEGIC_TIE_BREAK = 'strategic_tie_break',
+  /** Event for retroactive report-back after an autonomous action. */
+  REPORT_BACK = 'report_back',
 }
 
 /**

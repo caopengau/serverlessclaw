@@ -16,37 +16,46 @@ export const handler = async (
 
   // --- SMART WARM-UP (Human-Activity Based) ---
   const warmUpFunctions = process.env.WARM_UP_FUNCTIONS;
-  const mcpServerArns = process.env.MCP_SERVER_ARNS;
-  if (warmUpFunctions || mcpServerArns) {
+  if (warmUpFunctions && event.body) {
     try {
       const { WarmupManager } = await import('../lib/warmup');
-      const agentArns = warmUpFunctions ? JSON.parse(warmUpFunctions) : {};
-      const serverArns = mcpServerArns ? JSON.parse(mcpServerArns) : {};
+      const { SessionStateManager } = await import('../lib/session/session-state');
+      const bucketArns = JSON.parse(warmUpFunctions) as Record<string, string>;
 
       const warmupManager = new WarmupManager({
-        servers: serverArns,
-        agents: agentArns,
-        ttlSeconds: 900, // 15 minutes
+        servers: process.env.MCP_SERVER_ARNS ? JSON.parse(process.env.MCP_SERVER_ARNS) : {},
+        agents: bucketArns,
+        ttlSeconds: 900,
       });
 
-      const heavyWeightServers = ['puppeteer', 'ast'];
-      const allServers = Object.keys(serverArns);
-      const priorityServers = heavyWeightServers.filter((s) => allServers.includes(s));
-      const otherServers = allServers.filter((s) => !heavyWeightServers.includes(s));
+      const sessionManager = new SessionStateManager();
+      const body = JSON.parse(event.body);
+      const text = body.message?.text || body.callback_query?.message?.text || '';
+
+      // High-resolution target identification (Intent + Session History)
+      const state = text
+        ? await sessionManager.getState(String(body.message?.chat?.id || ''))
+        : null;
+      const targets = await warmupManager.identifyTargets(text, state);
+
+      logger.info(`[WEBHOOK] Identified warmup targets: ${targets.join(', ')}`);
 
       warmupManager
         .smartWarmup({
-          servers: priorityServers,
-          agents: Object.keys(agentArns),
-          intent: 'webhook-received',
+          agents: targets,
+          intent: 'webhook-arrival',
           warmedBy: 'webhook',
         })
         .then(() => {
-          return warmupManager.smartWarmup({
-            servers: otherServers,
-            intent: 'webhook-background',
-            warmedBy: 'webhook',
-          });
+          // Background warm other buckets if they are likely to be needed soon
+          const background = Object.keys(bucketArns).filter((b) => !targets.includes(b));
+          if (background.length > 0) {
+            return warmupManager.smartWarmup({
+              agents: background,
+              intent: 'webhook-background',
+              warmedBy: 'webhook',
+            });
+          }
         })
         .catch((err) => logger.warn('[WEBHOOK] Smart warmup error:', err));
     } catch (err) {
