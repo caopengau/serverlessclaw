@@ -37,74 +37,58 @@ vi.mock('lucide-react', () => ({
 
 describe('SafetyTierEditor', () => {
   const defaultProps = {
-    currentTier: 'sandbox' as const,
+    currentTier: 'local' as const,
     onTierChange: vi.fn(),
   };
 
   it('should render both tier options', () => {
     render(<SafetyTierEditor {...defaultProps} />);
 
-    expect(screen.getByText('Sandbox')).toBeInTheDocument();
-    expect(screen.getByText('Autonomous')).toBeInTheDocument();
+    expect(screen.getByText('Local')).toBeInTheDocument();
+    expect(screen.getByText('Production')).toBeInTheDocument();
   });
 
   it('should display tier descriptions', () => {
     render(<SafetyTierEditor {...defaultProps} />);
 
     expect(
-      screen.getByText('Isolated execution environment with strict boundaries.')
+      screen.getByText('Local development environment, full access for testing.')
     ).toBeInTheDocument();
     expect(
-      screen.getByText('Full operational authority with guardrails and audit trail.')
+      screen.getByText('Production environment, strict safety and approval gates.')
     ).toBeInTheDocument();
   });
 
   it('should show "Active Tier" badge for current tier', () => {
-    render(<SafetyTierEditor {...defaultProps} currentTier="sandbox" />);
+    render(<SafetyTierEditor {...defaultProps} currentTier="local" />);
 
     const activeTierBadges = screen.getAllByText('Active Tier');
     expect(activeTierBadges).toHaveLength(1);
   });
 
-  it('should display allowed actions for Sandbox tier', () => {
+  it('should display allowed actions for Local tier', () => {
     render(<SafetyTierEditor {...defaultProps} />);
 
-    expect(screen.getByText('Read-only file access')).toBeInTheDocument();
-    expect(screen.getByText('Query database operations')).toBeInTheDocument();
-    expect(screen.getByText('LLM reasoning & planning')).toBeInTheDocument();
-    expect(screen.getByText('MCP tool read operations')).toBeInTheDocument();
-  });
-
-  it('display blocked actions for Sandbox tier', () => {
-    render(<SafetyTierEditor {...defaultProps} />);
-
-    expect(screen.getByText('Code modifications')).toBeInTheDocument();
-    expect(screen.getByText('Production deployments')).toBeInTheDocument();
-    // Shell command execution appears in both tiers, so use getAllByText
-    const shellCommandElements = screen.getAllByText('Shell command execution');
-    expect(shellCommandElements.length).toBeGreaterThan(0);
-    expect(screen.getByText('MCP write operations')).toBeInTheDocument();
-    expect(screen.getByText('Destructive file operations')).toBeInTheDocument();
-  });
-
-  it('should display allowed actions for Autonomous tier', () => {
-    render(<SafetyTierEditor {...defaultProps} />);
-
-    expect(screen.getByText('Code modifications & PRs')).toBeInTheDocument();
-    expect(screen.getByText('Staging deployments')).toBeInTheDocument();
-    // Shell command execution appears in both tiers, so use getAllByText
-    const shellCommandElements = screen.getAllByText('Shell command execution');
-    expect(shellCommandElements.length).toBeGreaterThan(0);
+    expect(screen.getByText('Local deployments')).toBeInTheDocument();
+    expect(screen.getByText('Shell command execution')).toBeInTheDocument();
     expect(screen.getByText('MCP full access')).toBeInTheDocument();
-    expect(screen.getByText('File create/modify/delete')).toBeInTheDocument();
+    expect(screen.getByText('File operations')).toBeInTheDocument();
     expect(screen.getByText('Database read/write')).toBeInTheDocument();
   });
 
-  it('should display blocked actions for Autonomous tier', () => {
+  it('should display allowed actions for Production tier', () => {
     render(<SafetyTierEditor {...defaultProps} />);
 
-    expect(screen.getByText('Production deployments (requires approval)')).toBeInTheDocument();
-    expect(screen.getByText('Cross-account resource access')).toBeInTheDocument();
+    expect(screen.getByText('LLM reasoning & planning')).toBeInTheDocument();
+    expect(screen.getByText('MCP read operations')).toBeInTheDocument();
+    expect(screen.getByText('Database read access')).toBeInTheDocument();
+  });
+
+  it('should display blocked actions for Production tier', () => {
+    render(<SafetyTierEditor {...defaultProps} />);
+
+    expect(screen.getByText('Direct deployments (requires approval)')).toBeInTheDocument();
+    expect(screen.getByText('Destructive database operations')).toBeInTheDocument();
   });
 
   it('should call onTierChange when clicking a tier card', () => {
@@ -112,21 +96,21 @@ describe('SafetyTierEditor', () => {
     render(<SafetyTierEditor {...defaultProps} onTierChange={onTierChange} />);
 
     const cards = screen.getAllByTestId('card');
-    fireEvent.click(cards[1]); // Click Autonomous tier
+    fireEvent.click(cards[1]); // Click Production tier
 
-    expect(onTierChange).toHaveBeenCalledWith('autonomous');
+    expect(onTierChange).toHaveBeenCalledWith('prod');
   });
 
-  it('should call onTierChange when clicking Sandbox tier', () => {
+  it('should call onTierChange when clicking Local tier', () => {
     const onTierChange = vi.fn();
     render(
-      <SafetyTierEditor {...defaultProps} currentTier="autonomous" onTierChange={onTierChange} />
+      <SafetyTierEditor {...defaultProps} currentTier="prod" onTierChange={onTierChange} />
     );
 
     const cards = screen.getAllByTestId('card');
-    fireEvent.click(cards[0]); // Click Sandbox tier
+    fireEvent.click(cards[0]); // Click Local tier
 
-    expect(onTierChange).toHaveBeenCalledWith('sandbox');
+    expect(onTierChange).toHaveBeenCalledWith('local');
   });
 
   it('should render check icons for allowed actions', () => {
@@ -144,37 +128,37 @@ describe('SafetyTierEditor', () => {
   });
 
   it('should render shield-check icon for active tier', () => {
-    render(<SafetyTierEditor {...defaultProps} currentTier="sandbox" />);
+    render(<SafetyTierEditor {...defaultProps} currentTier="local" />);
 
     const shieldCheckIcons = screen.getAllByTestId('shield-check');
     expect(shieldCheckIcons).toHaveLength(1);
   });
 
   it('should render shield-alert icon for inactive tier', () => {
-    render(<SafetyTierEditor {...defaultProps} currentTier="sandbox" />);
+    render(<SafetyTierEditor {...defaultProps} currentTier="local" />);
 
     const shieldAlertIcons = screen.getAllByTestId('shield-alert');
     expect(shieldAlertIcons).toHaveLength(1);
   });
 
   it('should apply correct styling for active tier card', () => {
-    render(<SafetyTierEditor {...defaultProps} currentTier="sandbox" />);
+    render(<SafetyTierEditor {...defaultProps} currentTier="local" />);
 
     const cards = screen.getAllByTestId('card');
-    const sandboxCard = cards[0];
+    const localCard = cards[0];
 
-    expect(sandboxCard).toHaveClass('border-cyber-blue/40');
-    expect(sandboxCard).toHaveClass('shadow-[0_0_20px_color-mix(in_srgb,var(--cyber-blue)_8%,transparent)]');
+    expect(localCard).toHaveClass('border-cyber-blue/40');
+    expect(localCard).toHaveClass('shadow-[0_0_20px_color-mix(in_srgb,var(--cyber-blue)_8%,transparent)]');
   });
 
   it('should apply correct styling for inactive tier card', () => {
-    render(<SafetyTierEditor {...defaultProps} currentTier="sandbox" />);
+    render(<SafetyTierEditor {...defaultProps} currentTier="local" />);
 
     const cards = screen.getAllByTestId('card');
-    const autonomousCard = cards[1];
+    const prodCard = cards[1];
 
-    expect(autonomousCard).toHaveClass('border-border');
-    expect(autonomousCard).toHaveClass('hover:border-foreground/10');
+    expect(prodCard).toHaveClass('border-border');
+    expect(prodCard).toHaveClass('hover:border-foreground/10');
   });
 
   it('should have correct grid layout', () => {

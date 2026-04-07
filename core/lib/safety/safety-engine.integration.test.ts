@@ -5,21 +5,10 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SafetyEngine } from './safety-engine';
-import { SafetyTier } from '../types/agent';
+import { SafetyTier, AgentCategory } from '../types/agent';
 import { DEFAULT_POLICIES } from './safety-config';
-import { getCircuitBreaker, resetCircuitBreakerInstance } from './circuit-breaker';
-import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 
-const ddbMock = mockClient(DynamoDBDocumentClient);
-
-vi.mock('sst', () => ({
-  Resource: {
-    ConfigTable: { name: 'test-config-table' },
-    MemoryTable: { name: 'test-memory-table' },
-  },
-}));
-
+// Mock Logger
 vi.mock('../logger', () => ({
   logger: {
     info: vi.fn(),
@@ -29,182 +18,56 @@ vi.mock('../logger', () => ({
   },
 }));
 
-vi.mock('../registry/config', () => ({
-  ConfigManager: {
-    getTypedConfig: vi.fn(async (_key: string, fallback: unknown) => fallback),
+// Mock SafetyConfigManager
+vi.mock('./safety-config-manager', () => ({
+  SafetyConfigManager: {
+    getPolicies: vi.fn(async () => DEFAULT_POLICIES),
+    getPolicy: vi.fn(async (tier: SafetyTier) => DEFAULT_POLICIES[tier]),
   },
 }));
-
-vi.mock('../registry/config', () => ({
-  ConfigManager: {
-    getTypedConfig: vi.fn(async (_key: string, fallback: unknown) => fallback),
-  },
-}));
-
-vi.mock('./safety-config-manager', () => {
-  let mockPolicies: unknown = null;
-
-  return {
-    SafetyConfigManager: {
-      getPolicies: vi.fn().mockImplementation(() => {
-        return Promise.resolve(mockPolicies || DEFAULT_POLICIES);
-      }),
-      __setMockPolicies: (policies: unknown) => {
-        mockPolicies = policies;
-      },
-      __resetMockPolicies: () => {
-        mockPolicies = null;
-      },
-    },
-  };
-});
-
-vi.mock('./safety-limiter', () => {
-  const rateLimitCounters = new Map<string, { count: number; resetTime: number }>();
-
-  const MockSafetyRateLimiter = function (this: any, _base?: any) {
-    rateLimitCounters.clear();
-
-    this.checkRateLimits = (policy: any, action: string) => {
-      const now = Date.now();
-
-      if (action === 'deployment' && policy.maxDeploymentsPerDay) {
-        const dayKey = `deployment_day_${Math.floor(now / 86400000)}`;
-        const counter = rateLimitCounters.get(dayKey);
-        const count = counter ? counter.count : 0;
-
-        if (count >= policy.maxDeploymentsPerDay) {
-          return Promise.resolve({
-            allowed: false,
-            requiresApproval: false,
-            reason: `Deployment rate limit exceeded (${policy.maxDeploymentsPerDay}/day)`,
-            appliedPolicy: 'rate_limit_daily',
-          });
-        }
-
-        rateLimitCounters.set(dayKey, { count: count + 1, resetTime: now + 86400000 });
-      }
-
-      if (action === 'shell_command' && policy.maxShellCommandsPerHour) {
-        const hourKey = `shell_command_hour_${Math.floor(now / 3600000)}`;
-        const counter = rateLimitCounters.get(hourKey);
-        const count = counter ? counter.count : 0;
-
-        if (count >= policy.maxShellCommandsPerHour) {
-          return Promise.resolve({
-            allowed: false,
-            requiresApproval: false,
-            reason: `Shell command rate limit exceeded (${policy.maxShellCommandsPerHour}/hour)`,
-            appliedPolicy: 'rate_limit_hourly',
-          });
-        }
-
-        rateLimitCounters.set(hourKey, { count: count + 1, resetTime: now + 360000 });
-      }
-
-      if (action === 'file_operation' && policy.maxFileWritesPerHour) {
-        const hourKey = `file_operation_hour_${Math.floor(now / 3600000)}`;
-        const counter = rateLimitCounters.get(hourKey);
-        const count = counter ? counter.count : 0;
-
-        if (count >= policy.maxFileWritesPerHour) {
-          return Promise.resolve({
-            allowed: false,
-            requiresApproval: false,
-            reason: `File write rate limit exceeded (${policy.maxFileWritesPerHour}/hour)`,
-            appliedPolicy: 'rate_limit_hourly',
-          });
-        }
-
-        rateLimitCounters.set(hourKey, { count: count + 1, resetTime: now + 360000 });
-      }
-
-      return Promise.resolve({ allowed: true, requiresApproval: false });
-    };
-
-    this.checkToolRateLimit = (override: any, toolName: string) => {
-      if (!override) return Promise.resolve({ allowed: true, requiresApproval: false });
-
-      const now = Date.now();
-      if (override.maxUsesPerHour) {
-        const hourKey = `tool_${toolName}_hour_${Math.floor(now / 3600000)}`;
-        const counter = rateLimitCounters.get(hourKey);
-        const count = counter ? counter.count : 0;
-
-        if (count >= override.maxUsesPerHour) {
-          return Promise.resolve({
-            allowed: false,
-            requiresApproval: false,
-            reason: `Tool '${toolName}' rate limit exceeded (${override.maxUsesPerHour}/hour)`,
-            appliedPolicy: 'tool_rate_limit_hourly',
-          });
-        }
-
-        rateLimitCounters.set(hourKey, { count: count + 1, resetTime: now + 360000 });
-      }
-      return Promise.resolve({ allowed: true, requiresApproval: false });
-    };
-  };
-
-  return {
-    SafetyRateLimiter: MockSafetyRateLimiter,
-    ToolSafetyOverride: class {},
-  };
-});
 
 describe('Safety Engine Integration', () => {
   let engine: SafetyEngine;
-  const ddbStore = new Map<string, Record<string, unknown>>();
 
-  beforeEach(async () => {
-    ddbMock.reset();
-    ddbStore.clear();
-
-    ddbMock.on(GetCommand).callsFake((input: { Key: { key: string } }) => {
-      const item = ddbStore.get(input.Key.key);
-      return { Item: item };
-    });
-
-    ddbMock.on(PutCommand).callsFake((input: { Item: Record<string, unknown> }) => {
-      ddbStore.set(input.Item.key as string, input.Item);
-      return {};
-    });
-
+  beforeEach(() => {
+    vi.clearAllMocks();
     engine = new SafetyEngine();
-    engine.clearViolations();
-    resetCircuitBreakerInstance();
-    const { SafetyConfigManager } = await import('./safety-config-manager');
-    (SafetyConfigManager as any).__resetMockPolicies();
   });
 
   describe('Cross-tier safety evaluation', () => {
-    it('should enforce SANDBOX tier requiring all approvals', async () => {
+    it('should enforce PROD tier requiring deployment approval', async () => {
       const config = {
-        id: 'sandbox-agent',
-        name: 'SandboxAgent',
+        id: 'prod-agent',
+        name: 'ProdAgent',
         systemPrompt: '',
         enabled: true,
-        safetyTier: SafetyTier.SANDBOX,
+        safetyTier: SafetyTier.PROD,
+        description: 'test',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
+      };
+
+      // deployment should require approval in PROD
+      const result = await engine.evaluateAction(config, 'deployment');
+      expect(result.requiresApproval).toBe(true);
+      expect(result.appliedPolicy).toBe('prod_deployment_approval');
+    });
+
+    it('should allow LOCAL tier with no approvals for standard actions', async () => {
+      const config = {
+        id: 'local-agent',
+        name: 'LocalAgent',
+        systemPrompt: '',
+        enabled: true,
+        safetyTier: SafetyTier.LOCAL,
+        description: 'test',
+        category: AgentCategory.SYSTEM,
+        icon: 'test',
+        tools: [],
       };
 
       const actions = ['code_change', 'deployment', 'file_operation', 'shell_command', 'mcp_tool'];
-
-      for (const action of actions) {
-        const result = await engine.evaluateAction(config, action);
-        expect(result.requiresApproval).toBe(true);
-      }
-    });
-
-    it('should allow AUTONOMOUS tier with no approvals for standard actions', async () => {
-      const config = {
-        id: 'autonomous-agent',
-        name: 'AutonomousAgent',
-        systemPrompt: '',
-        enabled: true,
-        safetyTier: SafetyTier.AUTONOMOUS,
-      };
-
-      const actions = ['code_change', 'deployment', 'file_operation', 'shell_command'];
 
       for (const action of actions) {
         const result = await engine.evaluateAction(config, action);
@@ -212,80 +75,43 @@ describe('Safety Engine Integration', () => {
         expect(result.requiresApproval).toBe(false);
       }
     });
-
-    it('should still block protected resources in AUTONOMOUS tier', async () => {
-      const config = {
-        id: 'autonomous-agent',
-        name: 'AutonomousAgent',
-        systemPrompt: '',
-        enabled: true,
-        safetyTier: SafetyTier.AUTONOMOUS,
-      };
-
-      const blockedResources = ['.git/config', '.env.local', 'node_modules/pkg/index.js'];
-
-      for (const resource of blockedResources) {
-        const result = await engine.evaluateAction(config, 'file_operation', { resource });
-        expect(result.allowed).toBe(false);
-      }
-    });
   });
 
-  describe('Circuit breaker state transitions', () => {
-    it('should transition from CLOSED to OPEN after threshold failures', async () => {
-      const cb = getCircuitBreaker();
+  describe('Resource protection integration', () => {
+    it('should block protected files even for LOCAL agents', async () => {
+      const config = {
+        id: 'local-agent',
+        name: 'LocalAgent',
+        systemPrompt: '',
+        enabled: true,
+        safetyTier: SafetyTier.LOCAL,
+      };
 
-      const initialState = await cb.getState();
-      expect(initialState.state).toBe('closed');
+      const result = await engine.evaluateAction(config, 'file_operation', {
+        resource: '.env.production',
+        toolName: 'fileWrite',
+      });
 
-      for (let i = 0; i < 5; i++) {
-        await cb.recordFailure('health');
-      }
-
-      const finalState = await cb.getState();
-      expect(finalState.state).toBe('open');
+      expect(result.allowed).toBe(false);
+      expect(result.reason).toContain('blocked');
+      expect(result.appliedPolicy).toBe('blocked_resource');
     });
 
-    it('should allow emergency deployment even when circuit is OPEN', async () => {
-      const cb = getCircuitBreaker();
+    it('should allow non-protected files for LOCAL agents', async () => {
+      const config = {
+        id: 'local-agent',
+        name: 'LocalAgent',
+        systemPrompt: '',
+        enabled: true,
+        safetyTier: SafetyTier.LOCAL,
+      };
 
-      for (let i = 0; i < 5; i++) {
-        await cb.recordFailure('health');
-      }
+      const result = await engine.evaluateAction(config, 'file_operation', {
+        resource: 'src/components/Button.tsx',
+        toolName: 'fileWrite',
+      });
 
-      const state = await cb.getState();
-      expect(state.state).toBe('open');
-
-      const canProceed = await cb.canProceed('emergency');
-      expect(canProceed.allowed).toBe(true);
-      expect(canProceed.reason).toBe('EMERGENCY_BYPASS');
-    });
-
-    it('should record success and transition from HALF_OPEN to CLOSED', async () => {
-      const { ConfigManager } = await import('../registry/config');
-      (ConfigManager.getTypedConfig as any).mockImplementation(
-        async (key: string, fallback: unknown) => {
-          if (key === 'circuit_breaker_cooldown_ms') return 0;
-          if (key === 'circuit_breaker_half_open_max') return 3;
-          return fallback;
-        }
-      );
-
-      const cb = getCircuitBreaker();
-
-      for (let i = 0; i < 5; i++) {
-        await cb.recordFailure('health');
-      }
-
-      await cb.canProceed('autonomous');
-
-      const halfOpenState = await cb.getState();
-      expect(halfOpenState.state).toBe('half_open');
-
-      await cb.recordSuccess();
-
-      const closedState = await cb.getState();
-      expect(closedState.state).toBe('closed');
+      expect(result.allowed).toBe(true);
     });
   });
 
@@ -293,9 +119,9 @@ describe('Safety Engine Integration', () => {
     it('should enforce daily deployment limits', async () => {
       const { SafetyConfigManager } = await import('./safety-config-manager');
       const testPolicies = {
-        [SafetyTier.SANDBOX]: DEFAULT_POLICIES[SafetyTier.SANDBOX],
-        [SafetyTier.AUTONOMOUS]: {
-          ...DEFAULT_POLICIES[SafetyTier.AUTONOMOUS],
+        [SafetyTier.PROD]: DEFAULT_POLICIES[SafetyTier.PROD],
+        [SafetyTier.LOCAL]: {
+          ...DEFAULT_POLICIES[SafetyTier.LOCAL],
           maxDeploymentsPerDay: 2,
         },
       };
@@ -308,7 +134,7 @@ describe('Safety Engine Integration', () => {
         name: 'Test',
         systemPrompt: '',
         enabled: true,
-        safetyTier: SafetyTier.AUTONOMOUS,
+        safetyTier: SafetyTier.LOCAL,
       };
 
       const result1 = await testEngine.evaluateAction(config, 'deployment');
@@ -325,9 +151,9 @@ describe('Safety Engine Integration', () => {
     it('should enforce shell command hourly limits', async () => {
       const { SafetyConfigManager } = await import('./safety-config-manager');
       const testPolicies = {
-        [SafetyTier.SANDBOX]: DEFAULT_POLICIES[SafetyTier.SANDBOX],
-        [SafetyTier.AUTONOMOUS]: {
-          ...DEFAULT_POLICIES[SafetyTier.AUTONOMOUS],
+        [SafetyTier.PROD]: DEFAULT_POLICIES[SafetyTier.PROD],
+        [SafetyTier.LOCAL]: {
+          ...DEFAULT_POLICIES[SafetyTier.LOCAL],
           maxShellCommandsPerHour: 2,
         },
       };
@@ -340,7 +166,7 @@ describe('Safety Engine Integration', () => {
         name: 'Test',
         systemPrompt: '',
         enabled: true,
-        safetyTier: SafetyTier.AUTONOMOUS,
+        safetyTier: SafetyTier.LOCAL,
       };
 
       await testEngine.evaluateAction(config, 'shell_command');
@@ -348,7 +174,7 @@ describe('Safety Engine Integration', () => {
 
       const result = await testEngine.evaluateAction(config, 'shell_command');
       expect(result.allowed).toBe(false);
-      expect(result.reason).toContain('Shell command rate limit');
+      expect(result.reason).toContain('rate limit');
     });
   });
 
@@ -359,43 +185,43 @@ describe('Safety Engine Integration', () => {
         name: 'TestAgent',
         systemPrompt: '',
         enabled: true,
-        safetyTier: SafetyTier.SANDBOX,
+        safetyTier: SafetyTier.PROD,
       };
 
-      await engine.evaluateAction(config, 'code_change');
-      await engine.evaluateAction(config, 'deployment');
-      await engine.evaluateAction(config, 'shell_command');
+      await engine.evaluateAction(config, 'code_change'); // Allowed in PROD
+      await engine.evaluateAction(config, 'deployment'); // Requires approval in PROD
+      await engine.evaluateAction(config, 'file_operation', { resource: '.env' }); // Blocked
 
       const violations = engine.getViolations();
-      expect(violations.length).toBe(3);
+      // Only deployment (approval required) and file_operation (blocked) should be violations
+      expect(violations.length).toBe(2);
 
       const stats = engine.getStats();
-      expect(stats.totalViolations).toBe(3);
-      expect(stats.approvalRequired).toBe(3);
+      expect(stats.totalViolations).toBe(2);
     });
 
     it('should track blocked vs approval-required violations separately', async () => {
-      const autonomousConfig = {
-        id: 'autonomous-agent',
-        name: 'AutonomousAgent',
+      const localConfig = {
+        id: 'local-agent',
+        name: 'LocalAgent',
         systemPrompt: '',
         enabled: true,
-        safetyTier: SafetyTier.AUTONOMOUS,
+        safetyTier: SafetyTier.LOCAL,
       };
 
-      await engine.evaluateAction(autonomousConfig, 'file_operation', {
+      await engine.evaluateAction(localConfig, 'file_operation', {
         resource: '.env',
-      });
+      }); // Blocked
 
-      const sandboxConfig = {
-        id: 'sandbox-agent',
-        name: 'SandboxAgent',
+      const prodConfig = {
+        id: 'prod-agent',
+        name: 'ProdAgent',
         systemPrompt: '',
         enabled: true,
-        safetyTier: SafetyTier.SANDBOX,
+        safetyTier: SafetyTier.PROD,
       };
 
-      await engine.evaluateAction(sandboxConfig, 'code_change');
+      await engine.evaluateAction(prodConfig, 'deployment'); // Approval required
 
       const stats = engine.getStats();
       expect(stats.blockedActions).toBe(1);

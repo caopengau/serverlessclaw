@@ -11,18 +11,18 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 
 ### 1. Autonomous Agents (LLM-Powered)
 
-| Agent                   | Host (Multiplexer)       | Responsibilities                                                                |
-| ----------------------- | ------------------------ | ------------------------------------------------------------------------------- |
-| **SuperClaw**           | `Webhook Handler`        | **Nimble Orchestrator**. User Proxy, Delegation, UI Navigation (Skeleton tools) |
-| **Coder Agent**         | `High-Power`             | Writes code, runs pre-flight checks, validates deployments                      |
-| **Researcher**          | `High-Power`             | Deep technical exploration, library analysis, and pattern discovery             |
-| **Strategic Planner**   | `High-Power`             | **Technical Auditor**. Infra management, Agent Registry CRUD, Evolution plans   |
-| **QA Auditor**          | `Standard`               | Verifies satisfaction of deployed changes                                       |
-| **Facilitator**         | `Standard`               | **Session Moderator**. Multi-party collaboration, Session lifecycle management  |
-| **Critic Agent**        | `Light`                  | Peer review for Council of Agents (security/performance/architect)              |
-| **Cognition Reflector** | `Light`                  | **Knowledge Custodian**. Fact extraction, Memory hygiene, Trace maintenance     |
-| **Merger Agent**        | `Light`                  | Structural code reconciliation for parallel evolution tasks                     |
-| **Agent Runner**        | `Agent Runner`           | Generic runner for any user-defined agent                                       |
+| Agent                   | Host (Multiplexer) | Responsibilities                                                                |
+| ----------------------- | ------------------ | ------------------------------------------------------------------------------- |
+| **SuperClaw**           | `Webhook Handler`  | **Nimble Orchestrator**. User Proxy, Delegation, UI Navigation (Skeleton tools) |
+| **Coder Agent**         | `High-Power`       | Writes code, runs pre-flight checks, validates deployments                      |
+| **Researcher**          | `High-Power`       | Deep technical exploration, library analysis, and pattern discovery             |
+| **Strategic Planner**   | `High-Power`       | **Technical Auditor**. Infra management, Agent Registry CRUD, Evolution plans   |
+| **QA Auditor**          | `Standard`         | Verifies satisfaction of deployed changes                                       |
+| **Facilitator**         | `Standard`         | **Session Moderator**. Multi-party collaboration, Session lifecycle management  |
+| **Critic Agent**        | `Light`            | Peer review for Council of Agents (security/performance/architect)              |
+| **Cognition Reflector** | `Light`            | **Knowledge Custodian**. Fact extraction, Memory hygiene, Trace maintenance     |
+| **Merger Agent**        | `Light`            | Structural code reconciliation for parallel evolution tasks                     |
+| **Agent Runner**        | `Agent Runner`     | Generic runner for any user-defined agent                                       |
 
 ### 2. System Handlers (Logic-Powered)
 
@@ -36,6 +36,12 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 | **Parallel Handler**     | `core/handlers/events/parallel-handler.ts`     | `PARALLEL_TASK_DISPATCH`                  | Handles fan-out to multiple agents with barrier timeout       |
 | **Cancellation Handler** | `core/handlers/events/cancellation-handler.ts` | `TASK_CANCELLED`                          | Manages DynamoDB-backed task cancellation flags               |
 | **Deployer**             | AWS CodeBuild                                  | `buildspec.yml`                           | Runs `make deploy ENV=$SST_STAGE` in isolated environment     |
+| **Agent Runner**         | `core/handlers/agent-runner.ts`                | Swarm markers (`### Goal:`, `### Step:`)  | Dispatches parallel tasks from mission decomposition          |
+| **DLQ Handler**          | `core/handlers/dlq-handler.ts`                 | Dead Letter Queue                         | Processes failed events with retry limits (max 3)             |
+| **Heartbeat**            | `core/handlers/heartbeat.ts`                   | EventBridge Schedule                      | Proactive warmup and scheduled task activation                |
+| **Concurrency Monitor**  | `core/handlers/concurrency-monitor.ts`         | AgentBus Event                            | Monitors system concurrency and enforces limits               |
+| **Webhook Handler**      | `core/handlers/webhook.ts`                     | HTTP API Gateway                          | Entry point for user requests, intent detection               |
+| **Health Handler**       | `core/handlers/health.ts`                      | EventBridge Schedule                      | System health checks and status reporting                     |
 
 ### 3. Structural Merger Agent (Evolution)
 
@@ -242,6 +248,26 @@ The system identity is defined in `core/lib/backbone.ts`. This centralized regis
 > [!WARNING]
 > Adding a connection in the Dashboard or `backbone.ts` does **NOT** automatically grant AWS permissions. You must still modify `infra/agents.ts` to link new resources.
 
+### Hard IAM Permission Links
+
+The following resources are linked to agents in `infra/agents.ts`. These are the "hard security links" that grant actual AWS permissions:
+
+| Resource          | Linked To                               | Purpose                      |
+| ----------------- | --------------------------------------- | ---------------------------- |
+| `bus`             | All agents                              | EventBridge EventBus access  |
+| `memoryTable`     | All agents                              | DynamoDB memory operations   |
+| `traceTable`      | All agents                              | DynamoDB trace storage       |
+| `configTable`     | All agents                              | DynamoDB config storage      |
+| `knowledgeBucket` | All agents                              | S3 knowledge storage         |
+| `secrets`         | All agents                              | Secrets Manager access       |
+| `realtime`        | Notifier, Bridge                        | AWS IoT Core MQTT            |
+| `stagingBucket`   | Coder, Merger, BuildMonitor             | S3 staging for code changes  |
+| `deployer`        | BuildMonitor, DeadMansSwitch            | CodeBuild access             |
+| `api`             | DeadMansSwitch                          | API Gateway health checks    |
+| `multiplexer`     | BuildMonitor                            | Lambda invocations           |
+| `dlq`             | DLQHandler                              | Dead Letter Queue processing |
+| `scheduler:*`     | HighPower, Standard, Light, AgentRunner | EventBridge Scheduler        |
+
 ## 🛠️ Adding a New Agent
 
 To evolve the system with a new specialized node:
@@ -270,19 +296,42 @@ npx vitest core/tests/contract.test.ts
 
 ### 🌊 Backbone Event Roster (Signals)
 
-| Event Type             | SourceAgent | Trigger                                         |
-| ---------------------- | ----------- | ----------------------------------------------- |
-| `DELEGATION_TASK`      | SuperClaw   | User request delegated to specialized agent     |
-| `CONTINUATION_TASK`    | Worker      | Sub-task completion reporting back to initiator |
-| `ORCHESTRATION_SIGNAL` | Any         | Active state-machine signal (via `signalOrch`)  |
-| `TASK_COMPLETED`       | Worker      | Atomic task success signal                      |
-| `TASK_FAILED`          | Worker      | Atomic task failure signal                      |
+| Event Type                 | SourceAgent       | Trigger                                         |
+| -------------------------- | ----------------- | ----------------------------------------------- |
+| `DELEGATION_TASK`          | SuperClaw         | User request delegated to specialized agent     |
+| `CODER_TASK`               | SuperClaw/Planner | Request for code modification                   |
+| `RESEARCH_TASK`            | SuperClaw/Planner | Request for technical research                  |
+| `MERGER_TASK`              | Parallel Handler  | Request for AST-aware patch reconciliation      |
+| `CRITIC_TASK`              | Planner           | Request for peer review                         |
+| `CONTINUATION_TASK`        | Worker            | Sub-task completion reporting back to initiator |
+| `PARALLEL_TASK_DISPATCH`   | Orchestrator      | Dispatch multiple tasks in parallel             |
+| `PARALLEL_TASK_COMPLETED`  | Parallel Handler  | Aggregated parallel results                     |
+| `PARALLEL_BARRIER_TIMEOUT` | Parallel Handler  | Timeout waiting for straggler tasks             |
+| `ORCHESTRATION_SIGNAL`     | Any               | Active state-machine signal (via `signalOrch`)  |
+| `TASK_COMPLETED`           | Worker            | Atomic task success signal                      |
+| `TASK_FAILED`              | Worker            | Atomic task failure signal                      |
+| `TASK_CANCELLED`           | Human/Agent       | Request to cancel an in-flight task             |
+| `CLARIFICATION_REQUEST`    | Agent             | Agent requesting user input                     |
+| `CLARIFICATION_TIMEOUT`    | System            | Timeout for clarification request               |
+| `SYSTEM_BUILD_SUCCESS`     | BuildMonitor      | Successful deployment                           |
+| `SYSTEM_BUILD_FAILED`      | BuildMonitor      | Failed deployment                               |
+| `HEARTBEAT_PROACTIVE`      | Scheduler         | Scheduled task wake-up                          |
+| `HEALTH_ALERT`             | System            | Critical system-wide health issue               |
+| `COGNITIVE_HEALTH_CHECK`   | Scheduler         | Periodic cognitive health check                 |
+| `REPUTATION_UPDATE`        | EventHandler      | Agent reputation metrics updated                |
+| `CONSENSUS_REQUEST`        | Agent             | Request for swarm consensus                     |
+| `CONSENSUS_VOTE`           | Peer              | Vote submitted for consensus                    |
+| `CONSENSUS_REACHED`        | Facilitator       | Consensus has been reached                      |
+| `HANDOFF`                  | Agent             | Human participant takes control                 |
+| `STRATEGIC_TIE_BREAK`      | Facilitator       | Tie-break performed after timeout               |
+| `REPORT_BACK`              | Agent             | Retroactive report after autonomous action      |
 
 ### 🔄 Coordination & Concurrency Flow
 
 The system uses a **3-Tier Agent Multiplexer** to consolidate agent execution environments. This eliminates cumulative cold-start latency while maintaining resource-aware bucketing.
 
 #### 🏗️ Multiplexer Dispatch Flow
+
 ```text
   [ Webhook ] --- (1) Detect Intent & Affinity ---> [ Multiplexer ]
        |                                                 |
@@ -301,12 +350,15 @@ The system uses a **3-Tier Agent Multiplexer** to consolidate agent execution en
 ```
 
 #### 🧠 Activity-Aware Bucketing (Smart Warmup)
+
 To achieve near-zero idling costs whilst maintaining a snappy user experience, the system implements a **Contextual Warmup** strategy:
+
 - **Intent Detection**: The Webhook performs a lightweight keyword scan of the user message. Messages mentioning "fixing", "implementing", or "refactoring" immediately trigger the **High-Power** bucket.
 - **Session Affinity**: The system looks up the `SessionState` to keep the tier hot that was most recently active in the conversation.
 - **Selective Warming**: This "High Fidelity" approach ensures only the required cognitive infrastructure is woken up, matching the performance model of heavyweight MCP tools.
 
 #### 🛡️ Concurrency Lifecycle
+
 When an agent is triggered via the AgentBus, it follows this robust execution lifecycle to prevent race conditions during multi-agent reasoning:
 
 ```text

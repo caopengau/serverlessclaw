@@ -24,7 +24,7 @@ describe('safety-config', () => {
   });
 
   describe('DEFAULT_POLICIES', () => {
-    const tiers: SafetyTier[] = [SafetyTier.SANDBOX, SafetyTier.AUTONOMOUS];
+    const tiers: SafetyTier[] = [SafetyTier.LOCAL, SafetyTier.PROD];
 
     it('defines a policy for every tier', () => {
       for (const tier of tiers) {
@@ -57,44 +57,8 @@ describe('safety-config', () => {
     });
   });
 
-  describe('SANDBOX tier', () => {
-    const policy = DEFAULT_POLICIES[SafetyTier.SANDBOX];
-
-    it('requires approval for all actions', () => {
-      expect(policy.requireCodeApproval).toBe(true);
-      expect(policy.requireDeployApproval).toBe(true);
-      expect(policy.requireFileApproval).toBe(true);
-      expect(policy.requireShellApproval).toBe(true);
-      expect(policy.requireMcpApproval).toBe(true);
-    });
-
-    it('has restrictive limits', () => {
-      expect(policy.maxDeploymentsPerDay).toBe(2);
-      expect(policy.maxShellCommandsPerHour).toBe(10);
-      expect(policy.maxFileWritesPerHour).toBe(20);
-    });
-
-    it('includes blocked paths from COMMON_BLOCKED_PATHS', () => {
-      expect(policy.blockedFilePaths).toEqual(expect.arrayContaining(PROTECTED_FILES));
-    });
-
-    it('has time restrictions for weekends', () => {
-      expect(policy.timeRestrictions).toBeDefined();
-      expect(policy.timeRestrictions).toHaveLength(1);
-
-      const restriction = policy.timeRestrictions![0];
-      expect(restriction.daysOfWeek).toEqual([0, 6]);
-      expect(restriction.startHour).toBe(0);
-      expect(restriction.endHour).toBe(23);
-      expect(restriction.timezone).toBe('UTC');
-      expect(restriction.restrictedActions).toContain('deployment');
-      expect(restriction.restrictedActions).toContain('shell_command');
-      expect(restriction.restrictionType).toBe('require_approval');
-    });
-  });
-
-  describe('AUTONOMOUS tier', () => {
-    const policy = DEFAULT_POLICIES[SafetyTier.AUTONOMOUS];
+  describe('LOCAL tier', () => {
+    const policy = DEFAULT_POLICIES[SafetyTier.LOCAL];
 
     it('does not require approval for any actions', () => {
       expect(policy.requireCodeApproval).toBe(false);
@@ -105,7 +69,7 @@ describe('safety-config', () => {
     });
 
     it('has generous limits', () => {
-      expect(policy.maxDeploymentsPerDay).toBe(10);
+      expect(policy.maxDeploymentsPerDay).toBe(50);
       expect(policy.maxShellCommandsPerHour).toBe(200);
       expect(policy.maxFileWritesPerHour).toBe(500);
     });
@@ -119,40 +83,65 @@ describe('safety-config', () => {
     });
   });
 
-  describe('tier escalation: SANDBOX is more restrictive than AUTONOMOUS', () => {
-    const sandbox = DEFAULT_POLICIES[SafetyTier.SANDBOX];
-    const autonomous = DEFAULT_POLICIES[SafetyTier.AUTONOMOUS];
+  describe('PROD tier', () => {
+    const policy = DEFAULT_POLICIES[SafetyTier.PROD];
 
-    it('SANDBOX requires all approvals; AUTONOMOUS requires none', () => {
-      const approvalFields: (keyof SafetyPolicy)[] = [
-        'requireCodeApproval',
-        'requireDeployApproval',
-        'requireFileApproval',
-        'requireShellApproval',
-        'requireMcpApproval',
-      ];
-
-      for (const field of approvalFields) {
-        expect(sandbox[field]).toBe(true);
-        expect(autonomous[field]).toBe(false);
-      }
+    it('requires approval for deployments but not for code changes', () => {
+      expect(policy.requireCodeApproval).toBe(false);
+      expect(policy.requireDeployApproval).toBe(true);
+      expect(policy.requireFileApproval).toBe(false);
+      expect(policy.requireShellApproval).toBe(false);
+      expect(policy.requireMcpApproval).toBe(false);
     });
 
-    it('SANDBOX has lower deployment limit', () => {
-      expect(sandbox.maxDeploymentsPerDay).toBeLessThan(autonomous.maxDeploymentsPerDay!);
+    it('has moderate limits', () => {
+      expect(policy.maxDeploymentsPerDay).toBe(10);
+      expect(policy.maxShellCommandsPerHour).toBe(50);
+      expect(policy.maxFileWritesPerHour).toBe(100);
     });
 
-    it('SANDBOX has lower shell command limit', () => {
-      expect(sandbox.maxShellCommandsPerHour).toBeLessThan(autonomous.maxShellCommandsPerHour!);
+    it('includes blocked paths from COMMON_BLOCKED_PATHS', () => {
+      expect(policy.blockedFilePaths).toEqual(expect.arrayContaining(PROTECTED_FILES));
     });
 
-    it('SANDBOX has lower file write limit', () => {
-      expect(sandbox.maxFileWritesPerHour).toBeLessThan(autonomous.maxFileWritesPerHour!);
+    it('has time restrictions for business hours', () => {
+      expect(policy.timeRestrictions).toBeDefined();
+      expect(policy.timeRestrictions).toHaveLength(1);
+
+      const restriction = policy.timeRestrictions![0];
+      expect(restriction.daysOfWeek).toEqual([1, 2, 3, 4, 5]);
+      expect(restriction.startHour).toBe(9);
+      expect(restriction.endHour).toBe(17);
+      expect(restriction.timezone).toBe('America/New_York');
+      expect(restriction.restrictedActions).toContain('deployment');
+      expect(restriction.restrictionType).toBe('require_approval');
+    });
+  });
+
+  describe('tier escalation: PROD is more restrictive than LOCAL', () => {
+    const prod = DEFAULT_POLICIES[SafetyTier.PROD];
+    const local = DEFAULT_POLICIES[SafetyTier.LOCAL];
+
+    it('PROD requires deploy approval; LOCAL requires none', () => {
+      expect(prod.requireDeployApproval).toBe(true);
+      expect(local.requireDeployApproval).toBe(false);
     });
 
-    it('SANDBOX has time restrictions; AUTONOMOUS does not', () => {
-      expect(sandbox.timeRestrictions).toBeDefined();
-      expect(autonomous.timeRestrictions).toBeUndefined();
+    it('PROD has lower deployment limit', () => {
+      expect(prod.maxDeploymentsPerDay).toBeLessThan(local.maxDeploymentsPerDay!);
+    });
+
+    it('PROD has lower shell command limit', () => {
+      expect(prod.maxShellCommandsPerHour).toBeLessThan(local.maxShellCommandsPerHour!);
+    });
+
+    it('PROD has lower file write limit', () => {
+      expect(prod.maxFileWritesPerHour).toBeLessThan(local.maxFileWritesPerHour!);
+    });
+
+    it('PROD has time restrictions; LOCAL does not', () => {
+      expect(prod.timeRestrictions).toBeDefined();
+      expect(local.timeRestrictions).toBeUndefined();
     });
   });
 });

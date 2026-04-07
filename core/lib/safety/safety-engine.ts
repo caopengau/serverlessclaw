@@ -71,7 +71,7 @@ export class SafetyEngine {
       userId?: string;
     }
   ): Promise<SafetyEvaluationResult> {
-    const tier = agentConfig?.safetyTier ?? SafetyTier.SANDBOX;
+    const tier = agentConfig?.safetyTier ?? SafetyTier.PROD;
 
     // 1. Fetch current policies (DDB with fallback)
     const policies = await SafetyConfigManager.getPolicies();
@@ -495,17 +495,17 @@ export class SafetyEngine {
    * Handles ** (match any path including /), * (match except /), and ? (single char).
    */
   private matchesGlob(path: string, pattern: string): boolean {
-    // Step 1: Escape all regex special chars EXCEPT * and ? (glob wildcards)
-    let regexPattern = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
-    // Step 2: Replace ** with a placeholder to avoid conflicts with single *
-    regexPattern = regexPattern.replace(/\*\*/g, '__DOUBLESTAR__');
-    // Step 3: Replace single * with [^/]* (matches anything except /)
-    regexPattern = regexPattern.replace(/\*/g, '[^/]*');
-    // Step 4: Replace placeholder with .* (matches everything including /)
-    regexPattern = regexPattern.replace(/__DOUBLESTAR__/g, '.*');
-    // Step 5: Replace ? with . (single char wildcard)
-    regexPattern = regexPattern.replace(/\?/g, '.');
-    const regex = new RegExp(`^${regexPattern}$`);
+    const regexSource = pattern
+      .replace(/[.+^${}()|[\]\\]/g, '\\$&') // Escape regex special chars
+      .replace(/\*\*\//g, '___DIR___')
+      .replace(/\*\*/g, '___ANY___')
+      .replace(/\*/g, '___NONSLASH___')
+      .replace(/\?/g, '.')
+      .replace(/___DIR___/g, '(?:.*/)?')
+      .replace(/___ANY___/g, '.*')
+      .replace(/___NONSLASH___/g, '[^/]*');
+
+    const regex = new RegExp(`^${regexSource}$`);
     return regex.test(path);
   }
 
@@ -604,9 +604,8 @@ export class SafetyEngine {
       blockedActions: 0,
       approvalRequired: 0,
       byTier: {
-        [SafetyTier.SANDBOX]: 0,
-        [SafetyTier.STAGED]: 0,
-        [SafetyTier.AUTONOMOUS]: 0,
+        [SafetyTier.LOCAL]: 0,
+        [SafetyTier.PROD]: 0,
       },
       byAction: {} as Record<string, number>,
     };

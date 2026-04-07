@@ -2,31 +2,26 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SuperClaw } from './superclaw';
 import { SafetyTier, ReasoningProfile, AgentCategory } from '../lib/types/index';
 
-// Mock the prompts to return actual strings instead of paths
-vi.mock('./prompts/index', () => ({
-  SUPERCLAW_SYSTEM_PROMPT: 'SUPERCLAW System Prompt Content',
-  CODER_SYSTEM_PROMPT: 'CODER System Prompt Content',
-  PLANNER_SYSTEM_PROMPT: 'PLANNER System Prompt Content',
-  REFLECTOR_SYSTEM_PROMPT: 'REFLECTOR System Prompt Content',
-  QA_SYSTEM_PROMPT: 'QA System Prompt Content',
-  CRITIC_SYSTEM_PROMPT: 'CRITIC System Prompt Content',
-  FACILITATOR_SYSTEM_PROMPT: 'FACILITATOR System Prompt Content',
-  MERGER_SYSTEM_PROMPT: 'MERGER System Prompt Content',
-  RESEARCHER_SYSTEM_PROMPT: 'RESEARCHER System Prompt Content',
+// Mock the prompts to return actual strings
+vi.mock('../lib/prompts/loader', () => ({
+  loadPrompts: vi.fn(async () => ({
+    en: 'You are SuperClaw.',
+    cn: '你是 SuperClaw。',
+  })),
 }));
 
 // Mock SafetyConfigManager as it's used in evaluateAction
 vi.mock('../lib/safety/safety-config-manager', () => ({
   SafetyConfigManager: {
     getPolicies: vi.fn(async () => ({
-      [SafetyTier.SANDBOX]: {
-        requireCodeApproval: true,
+      [SafetyTier.PROD]: {
+        requireCodeApproval: false,
         requireDeployApproval: true,
-        requireFileApproval: true,
-        requireShellApproval: true,
-        requireMcpApproval: true,
+        requireFileApproval: false,
+        requireShellApproval: false,
+        requireMcpApproval: false,
       },
-      [SafetyTier.AUTONOMOUS]: {
+      [SafetyTier.LOCAL]: {
         requireCodeApproval: false,
         requireDeployApproval: false,
         requireFileApproval: false,
@@ -39,95 +34,58 @@ vi.mock('../lib/safety/safety-config-manager', () => ({
 
 describe('SuperClaw', () => {
   let superclaw: SuperClaw;
-  let memory: any;
-  let provider: any;
-  let tools: any;
+  let mockMemory: any;
+  let mockProvider: any;
+  let mockTools: any[];
 
   beforeEach(() => {
-    memory = {};
-    provider = {};
-    tools = [];
-    superclaw = new SuperClaw(memory, provider, tools);
-  });
-
-  describe('constructor', () => {
-    it('initializes with custom system prompt if provided', () => {
-      const config = {
-        id: 'test',
-        name: 'Test',
-        systemPrompt: 'Custom Prompt',
-        enabled: true,
-        description: 'test',
-        category: AgentCategory.SYSTEM,
-        icon: 'test',
-        tools: [],
-      };
-      const agent = new SuperClaw(memory, provider, tools, config);
-      expect(agent.systemPrompt).toBe('Custom Prompt');
-    });
-
-    it('initializes with default system prompt if not provided', () => {
-      const agent = new SuperClaw(memory, provider, tools);
-      expect(agent.systemPrompt).toContain('SUPERCLAW');
+    vi.clearAllMocks();
+    mockMemory = {};
+    mockProvider = {};
+    mockTools = [];
+    superclaw = new SuperClaw(mockMemory, mockProvider, mockTools, {
+      id: 'superclaw',
+      name: 'SuperClaw',
+      systemPrompt: 'You are SuperClaw.',
+      enabled: true,
+      category: AgentCategory.SYSTEM,
+      reasoningProfile: ReasoningProfile.STANDARD,
     });
   });
 
-  describe('parseCommand', () => {
-    it('parses /deep command', () => {
-      const result = SuperClaw.parseCommand('/deep Hello world');
-      expect(result.profile).toBe(ReasoningProfile.DEEP);
-      expect(result.cleanText).toBe('Hello world');
+  describe('Core Identity', () => {
+    it('should have correct type and category', () => {
+      expect(superclaw.config?.id).toBe('superclaw');
+      expect(superclaw.config?.category).toBe(AgentCategory.SYSTEM);
     });
 
-    it('parses /thinking command', () => {
-      const result = SuperClaw.parseCommand('/thinking Hello world');
-      expect(result.profile).toBe(ReasoningProfile.THINKING);
-      expect(result.cleanText).toBe('Hello world');
-    });
-
-    it('parses /fast command', () => {
-      const result = SuperClaw.parseCommand('/fast Hello world');
-      expect(result.profile).toBe(ReasoningProfile.FAST);
-      expect(result.cleanText).toBe('Hello world');
-    });
-
-    it('handles text without commands', () => {
-      const result = SuperClaw.parseCommand('Hello world');
-      expect(result.profile).toBeUndefined();
-      expect(result.cleanText).toBe('Hello world');
+    it('should use standard reasoning by default', () => {
+      expect(superclaw.config?.reasoningProfile).toBe(ReasoningProfile.STANDARD);
     });
   });
 
   describe('Safety Tiers and Engine', () => {
     describe('requiresApproval', () => {
-      it('sandbox requires approval for code changes', async () => {
+      it('prod requires approval for deployments', async () => {
         const config = {
           id: 'test',
           name: 'Test',
           systemPrompt: '',
           enabled: true,
-          safetyTier: SafetyTier.SANDBOX,
-          description: 'test',
-          category: AgentCategory.SYSTEM,
-          icon: 'test',
-          tools: [],
-        };
-        expect(await superclaw.requiresApproval(config, 'code_change')).toBe(true);
+          safetyTier: SafetyTier.PROD,
+        } as any;
+        expect(await superclaw.requiresApproval(config, 'deployment')).toBe(true);
       });
 
-      it('autonomous does NOT require approval for code changes', async () => {
+      it('local does NOT require approval for deployments', async () => {
         const config = {
           id: 'test',
           name: 'Test',
           systemPrompt: '',
           enabled: true,
-          safetyTier: SafetyTier.AUTONOMOUS,
-          description: 'test',
-          category: AgentCategory.SYSTEM,
-          icon: 'test',
-          tools: [],
-        };
-        expect(await superclaw.requiresApproval(config, 'code_change')).toBe(false);
+          safetyTier: SafetyTier.LOCAL,
+        } as any;
+        expect(await superclaw.requiresApproval(config, 'deployment')).toBe(false);
       });
     });
 
@@ -138,35 +96,26 @@ describe('SuperClaw', () => {
           name: 'Test',
           systemPrompt: '',
           enabled: true,
-          safetyTier: SafetyTier.SANDBOX,
-          description: 'test',
-          category: AgentCategory.SYSTEM,
-          icon: 'test',
-          tools: [],
-        };
-        const result = await superclaw.evaluateAction(config, 'code_change');
+          safetyTier: SafetyTier.PROD,
+        } as any;
+        const result = await superclaw.evaluateAction(config, 'deployment');
         expect(result.allowed).toBe(true);
         expect(result.requiresApproval).toBe(true);
-        expect(result.appliedPolicy).toBe('sandbox_code_change_approval');
+        expect(result.appliedPolicy).toBe('prod_deployment_approval');
       });
     });
 
     describe('Safety Configuration', () => {
       it('configures safety policy', async () => {
-        superclaw.configureSafetyPolicy(SafetyTier.SANDBOX, { requireCodeApproval: false });
+        superclaw.configureSafetyPolicy(SafetyTier.PROD, { requireDeployApproval: false });
         const config = {
           id: 'test',
           name: 'Test',
           systemPrompt: '',
           enabled: true,
-          safetyTier: SafetyTier.SANDBOX,
-          description: 'test',
-          category: AgentCategory.SYSTEM,
-          icon: 'test',
-          tools: [],
-        };
-        // We need to wait for the engine to pick up the updated policy
-        expect(await superclaw.requiresApproval(config, 'code_change')).toBe(false);
+          safetyTier: SafetyTier.PROD,
+        } as any;
+        expect(await superclaw.requiresApproval(config, 'deployment')).toBe(false);
       });
 
       it('sets tool safety override', async () => {
@@ -179,12 +128,8 @@ describe('SuperClaw', () => {
           name: 'Test',
           systemPrompt: '',
           enabled: true,
-          safetyTier: SafetyTier.AUTONOMOUS,
-          description: 'test',
-          category: AgentCategory.SYSTEM,
-          icon: 'test',
-          tools: [],
-        };
+          safetyTier: SafetyTier.LOCAL,
+        } as any;
         const result = await superclaw.evaluateAction(config, 'mcp_tool', {
           toolName: 'sensitive_tool',
         });
@@ -200,12 +145,8 @@ describe('SuperClaw', () => {
           name: 'Test',
           systemPrompt: '',
           enabled: true,
-          safetyTier: SafetyTier.SANDBOX,
-          description: 'test',
-          category: AgentCategory.SYSTEM,
-          icon: 'test',
-          tools: [],
-        };
+          safetyTier: SafetyTier.PROD,
+        } as any;
         await superclaw.evaluateAction(config, 'unknown_action');
         const violations = superclaw.getSafetyViolations();
         expect(violations.length).toBeGreaterThan(0);

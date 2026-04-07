@@ -37,7 +37,7 @@ const BACKBONE_COMMON_CONFIG = {
   parallelToolCalls: false,
   discoveryMode: false,
   maxIterations: 10,
-  safetyTier: SafetyTier.STAGED,
+  safetyTier: SafetyTier.PROD,
   connectionProfile: [],
 };
 
@@ -93,7 +93,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.DEEP,
     defaultCommunicationMode: 'json',
-    safetyTier: SafetyTier.AUTONOMOUS,
+    safetyTier: SafetyTier.LOCAL,
     tools: [
       ...UNIVERSAL_SYSTEM_TOOLS,
       TOOLS.runTests,

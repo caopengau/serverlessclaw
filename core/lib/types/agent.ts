@@ -67,14 +67,12 @@ export enum AgentCategory {
 
 /**
  * Safety tiers for agent trust levels.
- * - sandbox: All actions require HITL approval
- * - staged: Auto code, approval for deploys/shell
- * - autonomous: Full self-evolution (current AUTO mode)
+ * - local: Local development environment, full access for testing.
+ * - prod: Production environment, strict safety and approval gates.
  */
 export enum SafetyTier {
-  SANDBOX = 'sandbox',
-  STAGED = 'staged',
-  AUTONOMOUS = 'autonomous',
+  LOCAL = 'local',
+  PROD = 'prod',
 }
 
 /** Common resource connection profiles. */
@@ -284,6 +282,8 @@ export enum EventType {
   STRATEGIC_TIE_BREAK = 'strategic_tie_break',
   /** Event for retroactive report-back after an autonomous action. */
   REPORT_BACK = 'report_back',
+  /** User request delegated to specialized agent (from SuperClaw). */
+  DELEGATION_TASK = 'delegation_task',
 }
 
 /**

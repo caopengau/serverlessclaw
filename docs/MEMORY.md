@@ -113,6 +113,84 @@ Serverless Claw implements an automatic, tiered data lifecycle using DynamoDB TT
 | **Agent Traces** | **30 Days**     | Mechanical  | Background agent loops                                      |
 | **System Logs**  | **1 Day**       | Volatile    | Recovery, signals, handoffs, Health (7d)                    |
 
+## Memory Operations
+
+The memory system exports operations for each tier. These are available via `core/lib/memory/index.ts`:
+
+### Gap Operations (`gap-operations.ts`)
+
+| Function                             | Purpose                                         | Tier         |
+| ------------------------------------ | ----------------------------------------------- | ------------ |
+| `getAllGaps(status)`                 | Retrieve all capability gaps filtered by status | Intelligence |
+| `setGap(gap)`                        | Create or update a strategic gap                | Intelligence |
+| `getGap(gapId)`                      | Retrieve a specific gap by ID                   | Intelligence |
+| `updateGapStatus(gapId, status)`     | Transition gap to new status (atomic)           | Intelligence |
+| `acquireGapLock(gapId)`              | Acquire 30-min lock to prevent race conditions  | Intelligence |
+| `releaseGapLock(gapId)`              | Release gap lock                                | Intelligence |
+| `assignGapToTrack(gapId, track)`     | Assign gap to evolution track                   | Intelligence |
+| `updateGapMetadata(gapId, metadata)` | Update impact/urgency scores                    | Intelligence |
+| `archiveStaleGaps()`                 | Archive gaps not accessed in 14+ days           | Intelligence |
+
+### Insight Operations (`insight-operations.ts`)
+
+| Function                    | Purpose                                   | Tier         |
+| --------------------------- | ----------------------------------------- | ------------ |
+| `addMemory(insight)`        | Store a new memory/lesson                 | Intelligence |
+| `searchInsights(query)`     | Semantic search across memories           | Intelligence |
+| `recordMemoryHit(memoryId)` | Track memory access for pruning           | Intelligence |
+| `addLesson(lesson)`         | Record a tactical lesson                  | Intelligence |
+| `getLessons(userId)`        | Retrieve lessons for a user               | Intelligence |
+| `recordFailedPlan(plan)`    | Record failed plan to prevent retries     | Intelligence |
+| `getFailedPlans()`          | Retrieve all failed plans (anti-patterns) | Intelligence |
+| `getLowUtilizationMemory()` | Find memories with 0 hits in 14+ days     | Intelligence |
+
+### Session Operations (`session-operations.ts`)
+
+| Function                                 | Purpose                       | Tier         |
+| ---------------------------------------- | ----------------------------- | ------------ |
+| `saveMessages(conversationId, messages)` | Store chat messages           | Conversation |
+| `getMessages(conversationId)`            | Retrieve conversation history | Conversation |
+| `createSession(userId, metadata)`        | Create new session            | Conversation |
+| `updateSession(sessionId, updates)`      | Update session state          | Conversation |
+
+### Workspace Operations (`workspace-operations.ts`)
+
+| Function                                        | Purpose                      | Tier         |
+| ----------------------------------------------- | ---------------------------- | ------------ |
+| `createWorkspace(workspace)`                    | Create new workspace         | Intelligence |
+| `getWorkspace(workspaceId)`                     | Retrieve workspace details   | Intelligence |
+| `inviteMember(workspaceId, member)`             | Invite member to workspace   | Intelligence |
+| `updateMemberRole(workspaceId, memberId, role)` | Update member permissions    | Intelligence |
+| `removeMember(workspaceId, memberId)`           | Remove member from workspace | Intelligence |
+
+### Collaboration Operations (`collaboration-operations.ts`)
+
+| Function                                    | Purpose                      | Tier         |
+| ------------------------------------------- | ---------------------------- | ------------ |
+| `createCollaboration(session)`              | Create collaboration session | Conversation |
+| `joinCollaboration(sessionId, participant)` | Join active collaboration    | Conversation |
+| `writeToCollaboration(sessionId, message)`  | Write to shared context      | Conversation |
+| `getCollaborationContext(sessionId)`        | Retrieve shared history      | Conversation |
+| `closeCollaboration(sessionId)`             | End collaboration session    | Conversation |
+
+### Reputation Operations (`reputation-operations.ts`)
+
+| Function                             | Purpose                          | Tier         |
+| ------------------------------------ | -------------------------------- | ------------ |
+| `updateReputation(agentId, metrics)` | Update rolling 7-day reputation  | Intelligence |
+| `getReputation(agentId)`             | Retrieve agent reputation score  | Intelligence |
+| `computeCompositeScore(metrics)`     | Calculate reputation score (0-1) | Intelligence |
+
+### Clarification Operations (`clarification-operations.ts`)
+
+| Function                                 | Purpose                      | Tier   |
+| ---------------------------------------- | ---------------------------- | ------ |
+| `requestClarification(taskId, question)` | Request user input           | System |
+| `provideClarification(taskId, answer)`   | Provide clarification answer | System |
+| `checkClarificationTimeout(taskId)`      | Check for timed-out requests | System |
+
+> **Tip**: Use the `recallKnowledge(query)` tool for JIT retrieval instead of manually calling search functions. This handles hit tracking and caching automatically.
+
 ## Operational & Performance Metrics
 
 Beyond conversation and knowledge, the system tracks its own performance to enable cost-aware routing and self-optimization.
