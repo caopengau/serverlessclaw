@@ -146,6 +146,8 @@ describe('DLQ Handler', () => {
 
     await handler(event, {} as any);
 
-    expect(mockEmitTypedEvent).toHaveBeenCalledWith(AgentType.SUPERCLAW, EventType.CODER_TASK, {});
+    expect(mockEmitTypedEvent).toHaveBeenCalledWith(AgentType.SUPERCLAW, EventType.CODER_TASK, {
+      replayCount: 1,
+    });
   });
 });

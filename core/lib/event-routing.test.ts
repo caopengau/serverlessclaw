@@ -83,6 +83,7 @@ describe('event-routing', () => {
         'consensus-handler',
         'cognitive-health-handler',
         'facilitator-handler',
+        'critic-handler',
         'research-handler',
       ];
 

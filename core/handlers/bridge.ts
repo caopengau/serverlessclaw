@@ -89,5 +89,6 @@ export async function handler(event: Record<string, unknown>, _context: Context)
     logger.info(`[RealtimeBridge] Successfully published to ${topic}`);
   } catch (error) {
     logger.error(`[RealtimeBridge] Failed to publish to ${topic}:`, error);
+    throw error;
   }
 }

@@ -41,11 +41,14 @@ export const handler: Handler = async (event: WarmupEvent, _context: Context) =>
     warmedBy: 'scheduler',
   });
 
+  const alreadyWarmCount = serversToWarm.filter((s) => !result.servers.includes(s)).length;
+  const failedCount = serversToWarm.length - result.servers.length - alreadyWarmCount;
+
   const summary = {
     total: serversToWarm.length,
     success: result.servers.length,
-    failed: serversToWarm.length - result.servers.length,
-    skipped: serversToWarm.length - result.servers.length,
+    failed: Math.max(0, failedCount),
+    skipped: alreadyWarmCount,
   };
 
   logger.info('MCP Warmup completed', summary);

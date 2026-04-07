@@ -47,14 +47,24 @@ describe('HeartbeatHandler', () => {
     expect(detail.goalId).toBe('test-goal');
   });
 
-  it('should log an error and skip if mandatory fields are missing', async () => {
+  it('should throw and report health issue if mandatory fields are missing', async () => {
+    eventBridgeMock.on(PutEventsCommand).resolves({});
+
     // Missing task and goalId
     const event = {
       agentId: 'test-agent',
     };
 
-    await handler(event as unknown as ProactiveHeartbeatPayload, {} as unknown as Context);
+    await expect(
+      handler(event as unknown as ProactiveHeartbeatPayload, {} as unknown as Context)
+    ).rejects.toThrow('Invalid heartbeat payload: missing mandatory fields');
 
-    expect(eventBridgeMock.commandCalls(PutEventsCommand)).toHaveLength(0);
+    // Health report is emitted via EventBridge
+    const calls = eventBridgeMock.commandCalls(PutEventsCommand);
+    expect(calls.length).toBeGreaterThanOrEqual(1);
+    const healthCall = calls.find(
+      (c) => JSON.parse(c.args[0].input.Entries![0].Detail!).component === 'HeartbeatHandler'
+    );
+    expect(healthCall).toBeDefined();
   });
 });

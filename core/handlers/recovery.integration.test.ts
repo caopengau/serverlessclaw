@@ -162,13 +162,13 @@ describe('Recovery Switch Integration', () => {
     );
   });
 
-  it('should release lock even when recovery flow throws error', async () => {
+  it('should release lock and throw when recovery flow throws error', async () => {
     lockMocks.acquire.mockResolvedValue(true);
     memoryMocks.incrementRecoveryAttemptCount.mockRejectedValue(new Error('DynamoDB Error'));
 
     const { handler } = await import('./recovery');
 
-    await expect(handler()).resolves.not.toThrow();
+    await expect(handler()).rejects.toThrow('DynamoDB Error');
 
     expect(lockMocks.release).toHaveBeenCalledWith('dead-mans-switch-recovery', 'recovery-handler');
   });

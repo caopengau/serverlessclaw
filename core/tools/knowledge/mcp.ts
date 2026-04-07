@@ -59,3 +59,20 @@ export const unregisterMCPServer = {
     }
   },
 };
+
+/**
+ * Retrieves the current Model Context Protocol (MCP) servers configuration.
+ */
+export const getMcpConfig = {
+  ...knowledgeSchema.getMcpConfig,
+  execute: async (): Promise<string> => {
+    try {
+      const mcpServers =
+        ((await ConfigManager.getRawConfig('mcp_servers')) as Record<string, unknown>) ?? {};
+
+      return JSON.stringify(mcpServers, null, 2);
+    } catch (error) {
+      return `Failed to get MCP configuration: ${formatErrorMessage(error)}`;
+    }
+  },
+};

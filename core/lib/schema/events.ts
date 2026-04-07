@@ -404,10 +404,18 @@ export type ProactiveHeartbeatPayloadInferred = z.infer<typeof PROACTIVE_HEARTBE
 /** Zod-inferred type for BridgeEvent detail (matches BRIDGE_DETAIL_PAYLOAD_SCHEMA after transform). */
 export type BridgeDetailPayload = z.infer<typeof BRIDGE_DETAIL_PAYLOAD_SCHEMA>;
 
-/** Zod-inferred type for ParallelTaskCompletedEvent (matches PARALLEL_TASK_COMPLETED_EVENT_SCHEMA runtime output). */
-export type ParallelTaskCompletedEventPayload = z.infer<
-  typeof PARALLEL_TASK_COMPLETED_EVENT_SCHEMA
->;
+export const PARALLEL_BARRIER_TIMEOUT_SCHEMA = BASE_EVENT_SCHEMA.extend({
+  barrierId: z.string(),
+  traceId: z.string(),
+  timedOutTasks: z.array(z.string()),
+});
+
+export const ORCHESTRATION_SIGNAL_SCHEMA = z.object({
+  traceId: z.string(),
+  agentId: z.string(),
+  signal: z.string(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
 
 /**
  * Event schema map for typed event emission and validation.
@@ -451,7 +459,8 @@ export const EVENT_SCHEMA_MAP = {
   [EventType.MERGER_TASK as string]: TASK_EVENT_SCHEMA,
   [EventType.COGNITIVE_HEALTH_CHECK as string]: TASK_EVENT_SCHEMA,
   [EventType.ESCALATION_LEVEL_TIMEOUT as string]: ESCALATION_LEVEL_TIMEOUT_SCHEMA,
-  [EventType.ESCALATION_COMPLETED as string]: ESCALATION_COMPLETED_SCHEMA,
+  [EventType.PARALLEL_BARRIER_TIMEOUT as string]: PARALLEL_BARRIER_TIMEOUT_SCHEMA,
+  [EventType.ORCHESTRATION_SIGNAL as string]: ORCHESTRATION_SIGNAL_SCHEMA,
 } as const;
 
 /** Keys of the EVENT_SCHEMA_MAP (for type-safe event type lookups). */

@@ -16,6 +16,10 @@ export const sendMessage = {
       traceId?: string;
     };
 
+    if (!userId) {
+      return 'Failed to send message: userId is required.';
+    }
+
     try {
       await sendOutboundMessage(
         'tool.sendMessage',
@@ -30,6 +34,33 @@ export const sendMessage = {
       return 'Message sent successfully to user.';
     } catch (error) {
       return `Failed to send message: ${formatErrorMessage(error)}`;
+    }
+  },
+};
+
+/**
+ * Retrieves messages from a session or collaboration.
+ */
+export const getMessages = {
+  ...schema.getMessages,
+  execute: async (args: Record<string, unknown>): Promise<string> => {
+    const { sessionId, limit = 50 } = args as {
+      sessionId: string;
+      limit?: number;
+    };
+
+    if (!sessionId) {
+      return 'Failed to get messages: sessionId is required.';
+    }
+
+    try {
+      const { DynamoMemory } = await import('../../lib/memory');
+      const memory = new DynamoMemory();
+      const history = await memory.getHistory(sessionId);
+      const recentMessages = history.slice(-limit);
+      return JSON.stringify(recentMessages, null, 2);
+    } catch (error) {
+      return `Failed to get messages: ${formatErrorMessage(error)}`;
     }
   },
 };

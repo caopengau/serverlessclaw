@@ -15,6 +15,7 @@ yarn-error.log*
 .env
 .env*.local
 .kilo/
+.opencode/
 
 # misc
 .DS_Store

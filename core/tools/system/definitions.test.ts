@@ -12,10 +12,10 @@ const allSchemas = [
 ];
 
 describe('Domain-Driven Tool Definitions Integrity', () => {
-  it('should not expose system-managed "userId" in LLM schemas', () => {
+  it('should not expose system-managed "userId" in LLM schemas (except sendMessage which needs it)', () => {
     for (const tool of allSchemas) {
       const properties = tool.parameters.properties as Record<string, unknown> | undefined;
-      if (properties) {
+      if (properties && tool.name !== 'sendMessage') {
         expect(properties.userId, `Tool "${tool.name}" exposes userId property.`).toBeUndefined();
       }
     }

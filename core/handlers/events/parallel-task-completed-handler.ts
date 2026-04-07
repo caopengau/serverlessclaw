@@ -21,6 +21,7 @@ interface ParallelTaskCompletedEvent {
   elapsedMs?: number;
   aggregationType?: 'summary' | 'agent_guided' | 'merge_patches';
   aggregationPrompt?: string;
+  depth?: number;
 }
 
 /**
@@ -44,6 +45,7 @@ export async function handleParallelTaskCompleted(
     elapsedMs,
     aggregationType,
     aggregationPrompt,
+    depth = 0,
   } = eventDetail as unknown as ParallelTaskCompletedEvent;
 
   if (!initiatorId) {
@@ -95,7 +97,7 @@ export async function handleParallelTaskCompleted(
           mergeResult.summary,
           traceId,
           sessionId,
-          1,
+          depth + 1,
           false,
           undefined,
           traceId
@@ -110,7 +112,6 @@ export async function handleParallelTaskCompleted(
 
       try {
         const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
-        const { AgentType, EventType } = await import('../../lib/types/agent');
 
         // Dispatch to LLM MergerAgent
         await emitTypedEvent(AgentType.EVENT_HANDLER, EventType.MERGER_TASK, {
@@ -174,7 +175,7 @@ export async function handleParallelTaskCompleted(
         resultsSummary,
         traceId,
         sessionId,
-        1,
+        depth + 1,
         false,
         undefined,
         traceId, // taskId
@@ -228,7 +229,7 @@ export async function handleParallelTaskCompleted(
         responseText,
         traceId,
         sessionId,
-        1,
+        depth + 1,
         false,
         undefined,
         traceId
@@ -246,7 +247,7 @@ export async function handleParallelTaskCompleted(
     aggregatedSummary,
     traceId,
     sessionId,
-    1,
+    depth + 1,
     false,
     undefined,
     traceId

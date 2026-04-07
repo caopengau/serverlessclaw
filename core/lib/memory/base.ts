@@ -135,11 +135,11 @@ export class BaseMemoryProvider {
         })
       );
     } catch (error) {
-      // Re-throw conditional check failures so callers can handle them
       if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
         throw error;
       }
       logger.error('Error deleting item from DynamoDB:', error);
+      throw error;
     }
   }
 

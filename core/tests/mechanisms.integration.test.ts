@@ -50,6 +50,9 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
   PutCommand: class {
     constructor(public input: unknown) {}
   },
+  QueryCommand: class {
+    constructor(public input: unknown) {}
+  },
   ScanCommand: class {
     constructor(public input: unknown) {}
   },

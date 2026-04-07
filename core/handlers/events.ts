@@ -126,6 +126,15 @@ export async function handler(
       }
     } else {
       logger.warn(`Unhandled event type: ${detailType}`);
+      await reportHealthIssue({
+        component: 'EventHandler',
+        issue: `No routing configured for event type: ${detailType}`,
+        severity: 'medium',
+        userId,
+        traceId,
+        context: { detailType, eventDetail },
+      });
+      throw new Error(`Unhandled event type: ${detailType}`);
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);

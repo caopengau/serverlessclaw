@@ -209,6 +209,15 @@ export async function handleTaskResult(
             logger.warn(`No DAG state found for traceId ${traceId}, reconstructing from tasks.`);
             const tasks = (currentMetadata.tasks as ParallelTaskDefinition[]) ?? [];
             dagState = dagExecutor.buildDependencyGraph(tasks);
+
+            const completedTaskIds = new Set(
+              ((currentMetadata.taskResults as Array<{ taskId: string; status: string }>) || [])
+                .filter((r) => r.status === 'success')
+                .map((r) => r.taskId)
+            );
+            for (const taskId of completedTaskIds) {
+              dagExecutor.completeTask(dagState, taskId, 'Reconstructed from completed tasks');
+            }
           }
 
           // Deep copy DAG state to prevent reference mutations across retries

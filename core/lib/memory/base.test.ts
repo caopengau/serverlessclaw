@@ -374,10 +374,12 @@ describe('BaseMemoryProvider', () => {
       );
     });
 
-    it('should silently catch other errors', async () => {
+    it('should re-throw other errors', async () => {
       ddbMock.on(DeleteCommand).rejects(new Error('DynamoDB Error'));
 
-      await provider.deleteItem({ userId: 'user123', timestamp: 1000 });
+      await expect(provider.deleteItem({ userId: 'user123', timestamp: 1000 })).rejects.toThrow(
+        'DynamoDB Error'
+      );
     });
   });
 

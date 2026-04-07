@@ -71,7 +71,7 @@ describe('Collaboration Domain Tool Schemas', () => {
       getWorkspace: ['workspaceId'],
       listWorkspaces: [],
       broadcastMessage: ['message'],
-      sendMessage: ['message'],
+      sendMessage: ['message', 'userId'],
       getMessages: ['sessionId'],
     };
 

@@ -122,12 +122,13 @@ describe('Dead Man Switch Recovery Handler', () => {
     expect(ebMock.commandCalls(PutEventsCommand).length).toBeGreaterThanOrEqual(1);
   });
 
-  it('should release lock if any error occurs during recovery flow', async () => {
+  it('should release lock and report health issue if any error occurs during recovery flow', async () => {
     lockMocks.acquire.mockResolvedValue(true);
     memoryMocks.incrementRecoveryAttemptCount.mockRejectedValue(new Error('DynamoDB Error'));
 
     const { handler } = await import('./recovery');
-    await handler();
+
+    await expect(handler()).rejects.toThrow('DynamoDB Error');
 
     expect(lockMocks.release).toHaveBeenCalledWith('dead-mans-switch-recovery', 'recovery-handler');
   });

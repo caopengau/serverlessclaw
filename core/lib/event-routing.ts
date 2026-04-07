@@ -86,7 +86,7 @@ export const DEFAULT_EVENT_ROUTING: EventRoutingTable = {
     passContext: true,
   },
   critic_task: {
-    module: './events/consensus-handler',
-    function: 'handleConsensus',
+    module: './events/critic-handler',
+    function: 'handleCriticTask',
   },
 };

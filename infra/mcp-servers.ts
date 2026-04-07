@@ -79,6 +79,7 @@ export function createMCPServers(ctx: SharedContext): MCPServerResources {
     },
     // Enable function URL for direct IAM-authenticated access
     url: {
+      authorization: 'iam',
       cors: {
         allowOrigins: ['*'],
         allowMethods: ['POST'],

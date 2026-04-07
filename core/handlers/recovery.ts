@@ -7,7 +7,7 @@ import { SSTResource } from '../lib/types/system';
 import { EventType, OutboundMessageEvent } from '../lib/types/agent';
 import { DynamoLockManager } from '../lib/lock';
 import { DynamoMemory } from '../lib/memory';
-import { checkCognitiveHealth } from '../lib/lifecycle/health';
+import { checkCognitiveHealth, reportHealthIssue } from '../lib/lifecycle/health';
 import { MEMORY_KEYS, RETENTION } from '../lib/constants';
 import { emitEvent } from '../lib/utils/bus';
 import { formatErrorMessage } from '../lib/utils/error';
@@ -35,6 +35,7 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
   const baseUrl = typedResource.WebhookApi.url;
   const healthPaths = ['/health', '/', '/healthcheck'];
   let lastHttpError: Error | undefined;
+  let httpHealthy = false;
 
   for (const path of healthPaths) {
     const healthUrl = `${baseUrl}${path}`;
@@ -43,6 +44,7 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
     try {
       const response = await fetch(healthUrl, { method: 'GET', signal: AbortSignal.timeout(5000) });
       if (response.ok) {
+        httpHealthy = true;
         break;
       }
     } catch (error) {
@@ -54,7 +56,6 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
   try {
     const healthResult = await checkCognitiveHealth();
 
-    // Persist health result for historical tracking
     await db.send(
       new PutCommand({
         TableName: typedResource.MemoryTable.name,
@@ -64,17 +65,26 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
           ok: healthResult.ok,
           summary: healthResult.summary,
           details: healthResult.results,
+          httpHealthy,
           expiresAt: Math.floor((Date.now() + RETENTION.HEALTH_DAYS * 86400000) / 1000),
         },
       })
     );
 
+    if (httpHealthy && healthResult.ok) {
+      logger.info('System is healthy (HTTP and Cognitive Checks PASSED). No action needed.');
+      return;
+    }
+
+    if (!httpHealthy) {
+      logger.warn(
+        'HTTP health check failed - system may be unreachable. Proceeding with recovery.'
+      );
+    }
+
     if (!healthResult.ok) {
       throw new Error(healthResult.summary);
     }
-
-    logger.info('System is healthy (Cognitive Check PASSED). No action needed.');
-    return;
   } catch (error) {
     logger.error(`System health check FAILED: ${formatErrorMessage(error)}`);
 
@@ -215,6 +225,15 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
     logger.info('Emergency recovery initiated successfully.');
   } catch (recoveryError) {
     logger.error("FATAL: Dead Man's Switch recovery flow failed!", recoveryError);
+    await reportHealthIssue({
+      component: 'DeadMansSwitch',
+      issue: `Recovery flow failed: ${recoveryError instanceof Error ? recoveryError.message : String(recoveryError)}`,
+      severity: 'critical',
+      userId: 'SYSTEM',
+      traceId: 'recovery',
+      context: { error: recoveryError },
+    });
+    throw recoveryError;
   } finally {
     await lockManager.release(RECOVERY_LOCK_ID, 'recovery-handler');
   }

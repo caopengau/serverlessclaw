@@ -98,6 +98,21 @@ export class FallbackProvider implements IProvider {
         return new OpenRouterProvider(model);
       case LLMProvider.MINIMAX:
         return new MiniMaxProvider(model);
+      case LLMProvider.ANTHROPIC:
+        logger.warn('[FallbackProvider] ANTHROPIC provider not directly supported, using Bedrock');
+        return new BedrockProvider(model);
+      case LLMProvider.MOCK:
+        return {
+          call: async () => ({ role: 'assistant' as const, content: 'Mock response' }),
+          stream: async function* () {
+            yield { role: 'assistant' as const, content: 'Mock' };
+          },
+          getCapabilities: async () => ({
+            maxTokens: 4096,
+            supportsVision: false,
+            supportsTools: false,
+          }),
+        } as unknown as IProvider;
       default:
         throw new Error(`Unknown provider type: ${type}`);
     }

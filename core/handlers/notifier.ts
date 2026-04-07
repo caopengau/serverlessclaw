@@ -144,7 +144,11 @@ async function sendToCollaboration(
     }
   }
 
-  await Promise.all(deliveryPromises);
+  const results = await Promise.allSettled(deliveryPromises);
+  const failed = results.filter((r) => r.status === 'rejected');
+  if (failed.length > 0) {
+    logger.warn(`${failed.length}/${results.length} collaboration deliveries failed`);
+  }
 }
 
 /**

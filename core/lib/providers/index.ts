@@ -8,6 +8,7 @@ import {
   ResponseFormat,
 } from '../types/index';
 import { Resource } from 'sst';
+import { logger } from '../logger';
 
 import { OpenAIProvider } from './openai';
 import { OpenRouterProvider } from './openrouter';
@@ -75,6 +76,21 @@ export class ProviderManager implements IProvider {
         return new OpenRouterProvider(model ?? SYSTEM.DEFAULT_OPENROUTER_MODEL);
       case LLMProvider.MINIMAX:
         return new MiniMaxProvider(model ?? SYSTEM.DEFAULT_MINIMAX_MODEL);
+      case LLMProvider.ANTHROPIC:
+        logger.warn('[ProviderManager] ANTHROPIC not directly supported, using Bedrock');
+        return new BedrockProvider(model ?? SYSTEM.DEFAULT_BEDROCK_MODEL);
+      case LLMProvider.MOCK:
+        return {
+          call: async () => ({ role: 'assistant' as const, content: 'Mock response' }),
+          stream: async function* () {
+            yield { role: 'assistant' as const, content: 'Mock' };
+          },
+          getCapabilities: async () => ({
+            maxTokens: 4096,
+            supportsVision: false,
+            supportsTools: false,
+          }),
+        } as unknown as IProvider;
       case LLMProvider.OPENAI:
       default:
         return new OpenAIProvider(model ?? SYSTEM.DEFAULT_OPENAI_MODEL);

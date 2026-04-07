@@ -322,11 +322,12 @@ export const collaborationSchema: Record<string, IToolDefinition> = {
       type: 'object',
       properties: {
         message: { type: 'string', description: 'Message content' },
+        userId: { type: 'string', description: 'Target user ID' },
         sessionId: { type: 'string', description: 'Target session ID' },
         agentName: { type: 'string', description: 'Name of the sender agent' },
         traceId: { type: 'string', description: 'Optional trace ID' },
       },
-      required: ['message'],
+      required: ['message', 'userId'],
       additionalProperties: false,
     },
     connectionProfile: ['bus'],

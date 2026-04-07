@@ -269,13 +269,13 @@ npx vitest core/tests/contract.test.ts
 
 ### 🌊 Backbone Event Roster (Signals)
 
-| Event Type             | SourceAgent | Trigger                                            |
-| ---------------------- | ----------- | -------------------------------------------------- |
-| `DELEGATION_TASK`      | SuperClaw   | User request delegated to specialized agent        |
-| `CONTINUATION_TASK`    | Worker      | Sub-task completion reporting back to initiator    |
-| `ORCHESTRATION_SIGNAL` | Any         | Active state-machine signal (via `signalOrch`)     |
-| `TASK_COMPLETED`       | Worker      | Atomic task success signal                         |
-| `TASK_FAILED`          | Worker      | Atomic task failure signal                         |
+| Event Type             | SourceAgent | Trigger                                         |
+| ---------------------- | ----------- | ----------------------------------------------- |
+| `DELEGATION_TASK`      | SuperClaw   | User request delegated to specialized agent     |
+| `CONTINUATION_TASK`    | Worker      | Sub-task completion reporting back to initiator |
+| `ORCHESTRATION_SIGNAL` | Any         | Active state-machine signal (via `signalOrch`)  |
+| `TASK_COMPLETED`       | Worker      | Atomic task success signal                      |
+| `TASK_FAILED`          | Worker      | Atomic task failure signal                      |
 
 ### 🔄 Coordination & Concurrency Flow
 
@@ -378,6 +378,22 @@ The **Coder Agent** implements a "Reset-on-Failure" policy. If a coding task fai
 ### 4. Parallel Dispatch Error Boundaries
 
 The **Parallel Handler** now traps dispatch errors (e.g., EventBridge throughput limits or schema mismatches) and immediately notifies the **Aggregator**. This prevents the system from hanging at a barrier while waiting for sub-tasks that were never actually started.
+
+### 7. Dead Man's Switch HTTP + Cognitive Health Fusion
+
+The **Recovery Handler** now combines HTTP endpoint health checks with cognitive health probes. If HTTP checks fail (system unreachable), recovery proceeds even if cognitive checks pass — preventing false-positive "healthy" declarations when the API Gateway is down. Recovery flow errors now emit critical health reports and re-throw for EventBridge retry.
+
+### 8. IoT Realtime Token-Based Authentication
+
+The **Realtime Authorizer** now validates connection tokens from the query string and enforces user-scoped IoT policies. Each connection is restricted to its own `user-<token>` topic namespace, preventing cross-user signal interception.
+
+### 9. DLQ Replay Attempt Limiting
+
+The **DLQ Handler** now tracks replay attempts per event (via `replayCount` in event detail) and caps at 3 attempts. Events exceeding the limit are logged as critical health issues rather than cycling indefinitely.
+
+### 10. Parallel Task Depth Propagation
+
+The **Parallel Task Completed Handler** now propagates the actual recursion `depth` from the incoming event instead of hardcoding `depth: 1`, preventing infinite loop bypass through the parallel completion path.
 
 ---
 

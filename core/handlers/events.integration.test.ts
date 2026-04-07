@@ -136,9 +136,8 @@ describe('Event Router Integration', () => {
     vi.doUnmock('./events/task-result-handler');
   });
 
-  it('should log warning for unknown event type and not throw', async () => {
+  it('should throw for unknown event type', async () => {
     const { handler } = await import('./events');
-    const { logger } = await import('../lib/logger');
 
     await expect(
       handler(
@@ -148,9 +147,7 @@ describe('Event Router Integration', () => {
         },
         {} as any
       )
-    ).resolves.not.toThrow();
-
-    expect(logger.warn).toHaveBeenCalledWith('Unhandled event type: unknown_event_type_xyz');
+    ).rejects.toThrow('Unhandled event type: unknown_event_type_xyz');
   });
 
   it('should inject envelope id into detail for idempotency', async () => {

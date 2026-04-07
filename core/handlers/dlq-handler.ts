@@ -1,6 +1,8 @@
 import { logger } from '../lib/logger';
 import { EventType, AgentType } from '../lib/types/agent';
 
+const MAX_REPLAY_ATTEMPTS = 3;
+
 /**
  * Dead Letter Queue Handler for EventBridge failed events.
  * Processes failed events from the DLQ and provides replay capability.
@@ -27,24 +29,39 @@ export async function handler(
       const messageBody = JSON.parse(record.body);
       const detailType = messageBody['detail-type'] || 'Unknown';
       const detail = messageBody.detail || {};
+      const replayCount = (detail.replayCount as number) ?? 0;
 
-      logger.warn(`[DLQ] Processing failed event: ${detailType}`, {
+      logger.warn(`[DLQ] Processing failed event: ${detailType} (replay #${replayCount + 1})`, {
         messageId: record.messageId,
         detailType,
         detail: JSON.stringify(detail).substring(0, 500),
       });
 
-      // B3: Replay the failed event by re-emitting to the event bus
-      // This allows the system to recover from transient failures
-      const { emitTypedEvent } = await import('../lib/utils/typed-emit');
+      if (replayCount >= MAX_REPLAY_ATTEMPTS) {
+        logger.error(
+          `[DLQ] Event ${detailType} exceeded max replay attempts (${MAX_REPLAY_ATTEMPTS}). Moving to permanent DLQ.`
+        );
+        const { reportHealthIssue } = await import('./events/shared');
+        await reportHealthIssue({
+          component: 'DLQHandler',
+          issue: `Event permanently failed after ${MAX_REPLAY_ATTEMPTS} replay attempts: ${detailType}`,
+          severity: 'critical',
+          userId: (detail.userId as string) ?? 'SYSTEM',
+          traceId: (detail.traceId as string) ?? 'unknown',
+          context: { envelopeId: record.messageId, originalDetailType: detailType },
+        });
+        continue;
+      }
 
-      // Extract the source agent from the detail if available
+      const { emitTypedEvent } = await import('../lib/utils/typed-emit');
       const sourceAgent = (detail.sourceAgent as AgentType) || AgentType.SUPERCLAW;
 
-      // Re-emit the event to retry processing
-      await emitTypedEvent(sourceAgent, detailType as EventType, detail);
+      await emitTypedEvent(sourceAgent, detailType as EventType, {
+        ...detail,
+        replayCount: replayCount + 1,
+      });
 
-      logger.info(`[DLQ] Successfully replayed event: ${detailType}`, {
+      logger.info(`[DLQ] Successfully replayed event: ${detailType} (attempt ${replayCount + 1})`, {
         messageId: record.messageId,
       });
     } catch (error) {
@@ -53,9 +70,6 @@ export async function handler(
         error,
         messageBody: record.body,
       });
-
-      // If replay fails, the message will return to the DLQ for manual inspection
-      // This prevents infinite retry loops
     }
   }
 
