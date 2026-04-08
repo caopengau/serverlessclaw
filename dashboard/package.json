@@ -1,5 +1,5 @@
 {
-  "name": "dashboard",
+  "name": "@serverlessclaw/dashboard",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -20,7 +20,7 @@
     "@aws-sdk/client-dynamodb": "^3.1004.0",
     "@aws-sdk/client-scheduler": "^3.1004.0",
     "@aws-sdk/lib-dynamodb": "^3.1004.0",
-    "@claw/core": "workspace:*",
+    "@serverlessclaw/core": "workspace:*",
     "@opennextjs/aws": "3.9.16",
     "@xyflow/react": "^12.10.1",
     "lucide-react": "^1.0.0",

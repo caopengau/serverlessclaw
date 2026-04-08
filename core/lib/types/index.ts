@@ -8,3 +8,4 @@ export * from './session';
 export * from './reputation';
 export * from './collaboration';
 export * from './workspace';
+export * from './sync';

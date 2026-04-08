@@ -3,7 +3,15 @@
 ###############################################################################
 include makefiles/Makefile.shared.mk
 
-.PHONY: check gate gate-deploy gate-tier-1 gate-tier-2 gate-fast fix lint lint-fix format format-check type-check aiready lint-staged
+.PHONY: check gate gate-deploy gate-tier-1 gate-tier-2 gate-fast fix lint lint-fix format format-check type-check aiready lint-staged build-integrations build-cli
+
+build-integrations: ## Build all integration packages (@serverlessclaw/integration-*)
+	@$(call log_step,Building integrations via Turbo...)
+	@$(PNPM) exec turbo run build --filter="@serverlessclaw/integration-*"
+
+build-cli: ## Build the CLI package (@serverlessclaw/cli)
+	@$(call log_step,Building CLI via Turbo...)
+	@$(PNPM) exec turbo run build --filter="@serverlessclaw/cli"
 
 gate: ## Run all quality checks in parallel (via Turborepo) + E2E
 	@$(call log_step,Running full quality gate in parallel via Turbo...)

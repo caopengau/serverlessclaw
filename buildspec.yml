@@ -109,16 +109,22 @@ phases:
         fi
       - |
         if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ -n "$GITHUB_TOKEN" ] && [ "$TRUNK_SYNC_ENABLED" = "true" ]; then
-          REPO="${GITHUB_REPO:-serverlessclaw/serverlessclaw}"
+          REPO="${HUB_URL:-${GITHUB_REPO:-serverlessclaw/serverlessclaw}}"
           echo "Finalizing trunk sync back to GitHub ($REPO) (QA verification passed)..."
           git config --global user.email "agent@serverlessclaw.local"
           git config --global user.name "Claw Coder Agent"
-          git add .
-          MSG="${COMMIT_MESSAGE:-chore: autonomous improvement by Claw Coder Agent [skip ci]}"
-          if git commit -m "$MSG"; then
-            git push https://$GITHUB_TOKEN@github.com/$REPO.git HEAD:main
+          
+          if [ "$SYNC_MODE" = "push" ] && [ -n "$SUBTREE_PREFIX" ]; then
+            echo "Performing subtree push for prefix: $SUBTREE_PREFIX..."
+            git subtree push --prefix=$SUBTREE_PREFIX https://$GITHUB_TOKEN@github.com/$REPO.git main
           else
-            echo "No changes to commit."
+            git add .
+            MSG="${COMMIT_MESSAGE:-chore: autonomous improvement by Claw Coder Agent [skip ci]}"
+            if git commit -m "$MSG"; then
+              git push https://$GITHUB_TOKEN@github.com/$REPO.git HEAD:main
+            else
+              echo "No changes to commit."
+            fi
           fi
         elif [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ -n "$GITHUB_TOKEN" ]; then
           echo "Skipping trunk sync - TRUNK_SYNC_ENABLED not set (QA verification pending)"

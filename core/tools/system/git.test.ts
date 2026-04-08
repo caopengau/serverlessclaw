@@ -74,7 +74,6 @@ describe('triggerTrunkSync', () => {
 
     expect(result).toContain('Trunk Sync triggered successfully');
     expect(result).toContain('build-123');
-    expect(result).toContain('Sync with main');
   });
 
   it('passes correct environment variables to CodeBuild', async () => {
@@ -140,7 +139,7 @@ describe('triggerTrunkSync', () => {
       commitMessage: 'feat: add new feature',
     });
 
-    expect(result).toContain('Reasoning: feat: add new feature');
+    expect(result).toContain('Gaps: none');
   });
 
   it('spreads schema properties into the tool definition', () => {

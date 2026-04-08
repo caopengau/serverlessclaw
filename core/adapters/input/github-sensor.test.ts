@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GitHubAdapter } from './github';
+import { GitHubAdapter } from './github-sensor';
 import crypto from 'crypto';
 
 vi.mock('../../lib/logger', () => ({

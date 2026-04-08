@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { TelegramAdapter } from '../input/telegram';
 import { GenericHTTPAdapter } from '../input/generic-http';
-import { GitHubAdapter } from '../input/github';
+import { GitHubAdapter } from '../input/github-sensor';
 import { JiraAdapter } from '../input/jira';
 
 vi.mock('sst', () => ({

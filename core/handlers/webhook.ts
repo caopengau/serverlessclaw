@@ -76,7 +76,7 @@ export const handler = async (
   let adapter: InputAdapter;
   switch (source) {
     case 'github': {
-      const { GitHubAdapter } = await import('../adapters/input/github');
+      const { GitHubAdapter } = await import('../adapters/input/github-sensor');
       adapter = new GitHubAdapter();
       break;
     }

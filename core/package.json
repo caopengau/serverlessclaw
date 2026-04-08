@@ -1,5 +1,5 @@
 {
-  "name": "@claw/core",
+  "name": "@serverlessclaw/core",
   "version": "1.0.0",
   "description": "Core engine and agent implementation for Serverless Claw.",
   "private": true,

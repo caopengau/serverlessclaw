@@ -36,6 +36,7 @@ make dev
 
 - **[GitHub Discussions](https://github.com/serverlessclaw/serverlessclaw/discussions)**: The best place for questions, RFCs, and general Q&A. Please check here before opening an issue.
 - **[GitHub Issues](https://github.com/serverlessclaw/serverlessclaw/issues)**: Use only for **Bug Reports** and **Feature Requests**. Use the provided templates to ensure your submission has the necessary context.
+- **[Fork & Sync Strategy](./FORK_STRATEGY.md)**: Guidance on how to maintain a synchronized fork of the Mother Hub.
 - **[Discord](https://discord.gg/GdEghUdWHS)**: For real-time chat and community interaction.
 
 ---

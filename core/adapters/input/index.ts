@@ -7,6 +7,6 @@ export {
 } from './types';
 export { TelegramAdapter } from './telegram';
 export { GenericHTTPAdapter } from './generic-http';
-export { GitHubAdapter } from './github';
+export { GitHubAdapter } from './github-sensor';
 export { JiraAdapter } from './jira';
 export { SlackAdapter } from './slack';

@@ -1,5 +1,5 @@
 {
-  "name": "@claw/infra",
+  "name": "@serverlessclaw/infra",
   "version": "1.0.0",
   "private": true,
   "type": "module",
