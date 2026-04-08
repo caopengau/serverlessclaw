@@ -1,0 +1,82 @@
+# ClawCenter Dashboard: Interface & Real-time Signals
+
+> **Navigation**: [← Index Hub](../../INDEX.md)
+
+This document describes the design system, real-time communication protocols, and visual standards for the ClawCenter dashboard.
+
+## 🚢 Dashboard Architecture
+
+The dashboard is built with **Next.js (App Router)** and **Tailwind CSS**. It serves as the primary visual interface for monitoring agent swarms and performing system audits.
+
+### Real-time Communication (MQTT)
+
+ClawCenter uses **AWS IoT Core** to provide low-latency, bi-directional communication between the serverless backend and the browser.
+
+| Channel Type | Endpoint (MQTT Topic) | Purpose |
+| :--- | :--- | :--- |
+| **Agent Chunks** | `user/{userId}/chunks` | Streaming text fragments from agents |
+| **System Signals** | `user/{userId}/signals` | Deployment status and health alerts |
+| **Trace Updates** | `user/{userId}/traces` | Real-time DAG execution updates |
+
+#### Signal Flow
+
+1. **Backend**: A Lambda agent emits a signal to the `AgentBus`.
+2. **Bridge**: The `Real-time Bridge` handler captures the event.
+3. **IoT**: The Bridge publishes the event to the user's MQTT topic.
+4. **Browser**: The dashboard (via `useMQTT` hook) receives and renders the signal.
+
+---
+
+## 🎨 Design System & Theme
+
+The dashboard follows a "Cyber-Industrial" aesthetic, prioritized for high-density information display and tactical observability.
+
+### Color Palette (The "Stellar" Palette)
+
+The theme is entirely driven by CSS variables defined in [`dashboard/src/globals.css`](../../dashboard/src/globals.css).
+
+| Category | Variable | Purpose |
+| :--- | :--- | :--- |
+| **Background** | `--background` | Main surface color (Pitch black / Off-white) |
+| **Foreground** | `--foreground` | Primary text and high-contrast lines |
+| **Cyber Green** | `--cyber-green` | Success, running, and healthy states |
+| **Cyber Amber** | `--cyber-amber` | Warnings and in-progress tasks |
+| **Cyber Red** | `--cyber-red` | Errors, failures, and circuit breaker active |
+
+### UI Best Practices
+
+1. **Avoid Hardcoded Hex Codes**: Always use Tailwind's semantic utility classes (e.g., `text-foreground` instead of `text-white`).
+2. **Adaptive Transparency**: Use Tailwind's opacity modifier for borders (e.g., `border-foreground/10`) to ensure they scale with the theme.
+3. **Micro-animations**: Use subtle transitions on hover and state changes to make the interface feel alive.
+
+---
+
+## 📈 Visualizing the Swarm
+
+The dashboard uses several specialized components for agent observability:
+
+- **System Pulse**: A real-time topology map showing agent connections and throughput.
+- **Trace Explorer**: A DAG-based view of recursive agent executions.
+- **Neural Reserve**: An interactive list of distilled knowledge and memory health.
+
+---
+
+## 🧪 Development & Testing
+
+To work on the dashboard UI locally:
+
+```bash
+# Start local dev server
+cd dashboard
+npm run dev
+```
+
+The dashboard uses **Vitest** for component testing. Ensure all UI changes pass before deploying:
+
+```bash
+cd dashboard
+npm test
+```
+
+> [!TIP]
+> Use the `THEME_DEBUG` toggle in the settings panel to quickly switch between Dark and Light modes for contrast testing.

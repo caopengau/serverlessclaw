@@ -1,4 +1,103 @@
-> **Navigation**: [← Index Hub](../INDEX.md)
+> **Navigation**: [← Index Hub](../../INDEX.md)
+
+# Multi-Party Collaboration & Workspaces
+
+Serverless Claw supports complex coordination between multiple humans and multiple agents through **Workspaces** and **Moderated Sessions**.
+
+## 👥 Multi-Party Collaboration
+
+When tasks require negotiation or peer review between multiple agents, the system creates a **Shared Collaboration Session** moderated by the **Facilitator Agent**.
+
+### Moderation Flow
+
+The Facilitator is automatically injected as an `editor` participant and woken up via `emitTypedEvent` on every collaboration creation.
+
+```text
+  Initiator (Planner)       createCollab()         AgentBus (EB)        Facilitator           Sub-Agents (xN)       DynamoDB
+         |                      |                      |                    |                      |                    |
+         +-- (1) createCollab ->|                      |                    |                      |                    |
+         |                      +--- [AUTO-INJECT] --->|                    |                      |                    |
+         |                      |   Facilitator as     |                    |                      |                    |
+         |                      |   'editor'           |                    |                      |                    |
+         |                      |                      +-- facilitator_task>|                      |                    |
+         |                      |                      |   (Wake Up)        |                      |                    |
+         |                      +------------------------------------------+--------------------->|                    |
+         |                      |                      |                    |                 [CREATE Session]          |
+         |                      |                      |                    |                      |                    |
+         +-- (2) writeTo ->     |                      |                    +-- getCollabCtx ---->|                    |
+         |    (Plan/Prompt)     |                      |                    |                    +-- join ----------->|
+         |                      |                      |                    |                    |                    |
+         |                      |                      |           [MODERATOR LOOP]              |                    |
+         |                      |                      |                    +-- getCollabCtx --->|                    |
+         |                      |                      |                    +-- writeTo ------->|  [READ Context]    |
+         |                      |                      |                    |  (Summaries,      |                    |
+         |                      |                      |                    |   turn prompts)   |  [WRITE Verdict]   |
+         |                      |                      |                    |                    |                    |
+         |             [ CONSENSUS REACHED ]           |                    |                    |                    |
+         |                      |                      |                    |                    |                    |
+         +-- (3) closeCollab -->|                      |                    +--------------------+--------------------+
+         |    (Owner only)      |                      |                    |                    |              [ARCHIVE]
+         v                      v                      v                    v                      v                    v
+```
+
+---
+
+## 🏢 Workspace Architecture
+
+A **Workspace** is a shared context primitive providing multi-tenant capability with Role-Based Access Control (RBAC).
+
+### Role Hierarchy
+
+- **Owner**: Full control over members, billing, and workspace deletion.
+- **Admin**: Can invite members and manage agent rosters.
+- **Collaborator**: Can initiate sessions and interact with agents.
+- **Observer**: Read-only access to conversation history and traces.
+
+### Member Profiles
+
+Humans can connect to a workspace via multiple channels:
+- Telegram / Discord / Slack
+- ClawCenter Dashboard
+- Email (for digests)
+
+### Key Tools
+
+- `createWorkspace`, `getWorkspace`, `inviteMember`
+- `createCollaboration`, `joinCollaboration`, `writeToCollaboration`
+
+- **Implementation**: See [`core/lib/session/identity.ts`](../../core/lib/session/identity.ts) and [`core/lib/memory/workspace-operations.ts`](../../core/lib/memory/workspace-operations.ts).
+
+---
+
+## 🏢 Workspace & Identity Management
+
+Serverless Claw supports multi-human multi-agent collaboration through **Workspaces** — shared context primitives with role-based access control.
+
+### Identity & Access Layer
+
+The `IdentityManager` (`core/lib/identity.ts`) provides:
+
+- **Authentication**: Session-based auth via Telegram, Dashboard, or API key.
+- **RBAC**: Role-based permission enforcement inside a workspace.
+- **Multi-Tenancy**: Users can belong to multiple workspaces with different roles.
+- **Resource Control**: Fine-grained access to specific agents, traces, and configurations.
+
+### Member Roles
+
+| Role | Permissions |
+| :--- | :--- |
+| **Owner** | Full access, can delete workspace, manage all members. |
+| **Admin** | Can invite/remove members, manage collaborations. |
+| **Collaborator** | Can participate in sessions, write to shared context. |
+| **Observer** | Read-only access to sessions and history. |
+
+### Workspace-Aware Notifications
+
+When a `workspaceId` is associated with a collaboration, the system automatically:
+1. Adds all active workspace members (agents and humans) as participants.
+2. Routes notifications to human members via their configured channels (Telegram, Discord, Dashboard).
+
+---
 
 # Session Storage vs Traces
 

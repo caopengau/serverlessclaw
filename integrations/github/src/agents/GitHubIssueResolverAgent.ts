@@ -1,5 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// GitHubIssueResolverAgent - restored and modernized
+import { SyncOptions, SyncMethod } from '@serverlessclaw/core/lib/types/sync';
+import { syncOrchestrator } from '@serverlessclaw/core/lib/sync/orchestrator';
 
 export interface GitHubIssue {
   number: number;
@@ -14,60 +14,64 @@ export interface ResolutionResult {
   filesChanged?: string[];
 }
 
-/**
- * The GitHubIssueResolverAgent replaces specialized sync agents.
- * It treats every sync task, optimization, or bug fix as an issue.
- */
-export class GitHubIssueResolverAgent {
-  private llm: any;
+interface IssueSyncConfig {
+  hubUrl: string;
+  prefix?: string;
+  method?: SyncMethod;
+}
 
-  constructor(llmProvider: any) {
+export class GitHubIssueResolverAgent {
+  private llm: unknown;
+  private config: IssueSyncConfig;
+
+  constructor(llmProvider: unknown, config: IssueSyncConfig) {
     this.llm = llmProvider;
+    this.config = config;
   }
 
-  /**
-   * Researches and resolves a given GitHub Issue by mapping it
-   * to architectural changes in the repository.
-   */
-  public async resolve(issue: GitHubIssue, _workingDir: string): Promise<ResolutionResult> {
+  async resolve(issue: GitHubIssue, workingDir: string): Promise<ResolutionResult> {
     console.log(`[IssueResolver] Resolving Issue #${issue.number}: ${issue.title}...`);
 
-    // 1. Identify the Strategy
-    const strategy = await this.identifyStrategy(issue);
+    const strategy = this.identifyStrategy(issue);
     console.log(`[IssueResolver] Selected Strategy: ${strategy}`);
 
     try {
       switch (strategy) {
         case 'CORE_EVOLUTION_SYNC':
-          return await this.executeSubtreeSync(issue, _workingDir);
+          return await this.executeSubtreeSync(issue, workingDir);
         case 'EVOLUTION_CONTRIBUTION':
-          return await this.applyContributionPattern(issue, _workingDir);
+          return await this.applyContributionPattern(issue, workingDir);
         case 'BUG_FIX':
-          return await this.applyAgenticPatch(issue, _workingDir);
+          return await this.applyAgenticPatch(issue, workingDir);
         default:
           return { success: false, message: `Unknown strategy: ${strategy}` };
       }
-    } catch (error: any) {
-      console.error(`[IssueResolver] Resolution failed: ${error.message}`);
-      return { success: false, message: error.message };
+    } catch (error) {
+      console.error(`[IssueResolver] Resolution failed: ${(error as Error).message}`);
+      return { success: false, message: (error as Error).message };
     }
   }
 
-  private async identifyStrategy(issue: GitHubIssue): Promise<string> {
+  async verifySync(_workingDir: string): Promise<{ ok: boolean; message: string }> {
+    const options: SyncOptions = {
+      hubUrl: this.config.hubUrl,
+      prefix: this.config.prefix,
+      method: this.config.method || 'subtree',
+      commitMessage: 'verify-sync',
+    };
+
+    const result = await syncOrchestrator.verify(options);
+    return {
+      ok: result.ok,
+      message: result.message || 'Verification complete',
+    };
+  }
+
+  private identifyStrategy(issue: GitHubIssue): string {
     if (issue.labels.includes('evolution-sync')) return 'CORE_EVOLUTION_SYNC';
     if (issue.labels.includes('evolution-contribution')) return 'EVOLUTION_CONTRIBUTION';
     if (issue.labels.includes('bug')) return 'BUG_FIX';
-
-    const prompt = `
-      Analyze the GitHub Issue title and body:
-      Title: ${issue.title}
-      Body: ${issue.body}
-
-      Categorize it into one of: CORE_EVOLUTION_SYNC, EVOLUTION_CONTRIBUTION, BUG_FIX, or UNKNOWN.
-      Only return the category name.
-    `;
-
-    return (await this.llm.generate(prompt)).trim();
+    return 'UNKNOWN';
   }
 
   private async executeSubtreeSync(
@@ -77,29 +81,101 @@ export class GitHubIssueResolverAgent {
     const hubVersion = this.extractVersion(issue.body);
     console.log(`[IssueResolver] Syncing with Hub version: ${hubVersion}...`);
 
-    // Logic similar to SyncOrchestrator but issue-driven
-    // Example: git subtree pull --prefix=core hub main --squash
-    // In a real implementation, this would call the SyncOrchestrator's core logic.
-    return { success: true, message: `Successfully sync'd Hub v${hubVersion}` };
+    const options: SyncOptions = {
+      hubUrl: this.config.hubUrl,
+      prefix: this.config.prefix || 'core/',
+      method: this.config.method || 'subtree',
+      commitMessage: `chore: sync with hub via issue #${issue.number} (${hubVersion})`,
+      gapIds: [`issue-${issue.number}`],
+    };
+
+    const verifyResult = await syncOrchestrator.verify(options);
+    if (!verifyResult.canSyncWithoutConflict) {
+      return {
+        success: false,
+        message: `Cannot sync: conflicts detected - ${verifyResult.message}`,
+      };
+    }
+
+    const pullResult = await syncOrchestrator.pull(options);
+
+    if (pullResult.success) {
+      return {
+        success: true,
+        message: `Successfully synced to Hub v${hubVersion}. Commit: ${pullResult.commitHash}`,
+        filesChanged: pullResult.conflicts?.map((c) => c.file),
+      };
+    }
+
+    return {
+      success: false,
+      message: `Sync failed: ${pullResult.message}`,
+    };
   }
 
   private async applyContributionPattern(
-    _issue: GitHubIssue,
+    issue: GitHubIssue,
     _workingDir: string
   ): Promise<ResolutionResult> {
-    // In the Mother Hub, this creates a PR based on the issue content.
-    // In a Client repo, this applies a local optimization.
     console.log(`[IssueResolver] Applying evolutionary pattern from Spoke...`);
-    return { success: true, message: `Applied evolutionary pattern. Reviewing for Hub promotion.` };
+
+    const options: SyncOptions = {
+      hubUrl: this.config.hubUrl,
+      prefix: this.config.prefix || 'core/',
+      method: this.config.method || 'subtree',
+      commitMessage: `feat: contribute from issue #${issue.number}`,
+      gapIds: [`contrib-${issue.number}`],
+    };
+
+    const pushResult = await syncOrchestrator.push(options);
+
+    if (pushResult.success) {
+      return {
+        success: true,
+        message: `Contribution pushed. Commit: ${pushResult.commitHash}. Creating hub issue for tracking.`,
+        filesChanged: [],
+      };
+    }
+
+    return {
+      success: false,
+      message: `Contribution push requires hub review: ${pushResult.message}`,
+    };
   }
 
   private async applyAgenticPatch(
-    _issue: GitHubIssue,
+    issue: GitHubIssue,
     _workingDir: string
   ): Promise<ResolutionResult> {
     console.log(`[IssueResolver] Generating agentic patch for bug report...`);
-    // Uses LLM to generate and apply a diff based on the issue body.
-    return { success: true, message: `Bug fix applied agentically.` };
+
+    if (!this.llm) {
+      return {
+        success: false,
+        message: 'No LLM provider configured for agentic patch generation',
+      };
+    }
+
+    const prompt = `
+      Analyze this bug report and generate a patch:
+      
+      Issue #${issue.number}: ${issue.title}
+      Description: ${issue.body}
+      
+      Generate a diff/patch to fix this bug. Return the patch in unified diff format.
+    `;
+
+    const response = await (
+      this.llm as { generate: (prompt: string) => Promise<{ text: () => Promise<string> }> }
+    ).generate(prompt);
+    const patchText = await response.text();
+
+    console.log(`[IssueResolver] Generated patch (${patchText.length} chars)`);
+
+    return {
+      success: true,
+      message: `Bug fix patch generated for issue #${issue.number}. Manual review required.`,
+    };
   }
 
   private extractVersion(body: string): string {

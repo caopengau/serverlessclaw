@@ -150,12 +150,12 @@ make deploy ENV=prod # High-availability, production-grade infrastructure
 | ---------------------------------------- | ---------------------------------------------- |
 | **[INDEX.md](./INDEX.md)**               | Start here - Documentation hub and context map |
 | **[ARCHITECTURE.md](./ARCHITECTURE.md)** | System topology and AI-native principles       |
-| **[docs/AGENTS.md](./docs/AGENTS.md)**   | Agent roster and evolutionary loop             |
-| **[docs/MEMORY.md](./docs/MEMORY.md)**   | Tiered memory engine                           |
-| **[docs/TOOLS.md](./docs/TOOLS.md)**     | Tool registry and MCP standards                |
-| **[docs/SAFETY.md](./docs/SAFETY.md)**   | Circuit breakers and rollback safety           |
-| **[docs/DEVOPS.md](./docs/DEVOPS.md)**   | DevOps and CI/CD                               |
-| **[docs/ROADMAP.md](./docs/ROADMAP.md)** | Future plans                                   |
+| **[docs/intelligence/AGENTS.md](./docs/intelligence/AGENTS.md)**   | Agent roster and evolutionary loop             |
+| **[docs/intelligence/MEMORY.md](./docs/intelligence/MEMORY.md)**   | Tiered memory engine                           |
+| **[docs/intelligence/TOOLS.md](./docs/intelligence/TOOLS.md)**     | Tool registry and MCP standards                |
+| **[docs/intelligence/SAFETY.md](./docs/intelligence/SAFETY.md)**   | Circuit breakers and rollback safety           |
+| **[docs/governance/DEVOPS.md](./docs/governance/DEVOPS.md)**   | DevOps and CI/CD                               |
+| **[docs/governance/ROADMAP.md](./docs/governance/ROADMAP.md)** | Future plans                                   |
 
 ## 🌐 Managed Service (ClawMore)
 
@@ -196,7 +196,7 @@ For a fully managed experience with auto-scaling, monitoring, and support, check
 
 ## 🤝 Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](./docs/CONTRIBUTING.md) for guidelines.
+We welcome contributions! See [CONTRIBUTING.md](./docs/governance/CONTRIBUTING.md) for guidelines.
 
 **Ways to contribute:**
 

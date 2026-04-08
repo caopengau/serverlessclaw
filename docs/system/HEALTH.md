@@ -1,6 +1,6 @@
 # Autonomous Health & Monitoring
 
-> **Navigation**: [← Index Hub](../INDEX.md)
+> **Navigation**: [← Index Hub](../../INDEX.md)
 
 Beyond build failures, Serverless Claw monitors its own operational integrity through **Signal-based Triage** and self-reporting.
 
@@ -56,6 +56,39 @@ The `DynamicScheduler` (`core/lib/scheduler.ts`) provides a type-safe interface 
  [ EventHandler ] --(Dispatch)--> [ Target Agent ]
                                      (Do Work)
 ```
+
+## 🛡️ Self-Healing & Dead Man's Switch
+
+To handle severe system-wide failure (e.g., corrupted backbone, backbone outage, or recursive agent failure), Serverless Claw implements a **Dead Man's Switch (DMS)**.
+
+### Recovery Loop
+
+The DMS runs on a disciplined 15-minute cadence via a recurring EventBridge schedule.
+
+```text
+ [ Scheduler ] --rate(15m)--> [ DeadMansSwitch ]
+                     |
+                     +--> checkCognitiveHealth()
+                     |    (Bus + Tools + Providers)
+                     |
+                     +--> FAIL: acquire recovery lock (20m TTL)
+                        |
+                        +--> increment recovery_attempt_count
+                        |        |
+                        |        +--> >2 attempts: emit OUTBOUND_MESSAGE (critical escalation)
+                        |
+                        +--> load LKG hash from MemoryTable
+                        |
+                        +--> CodeBuild StartBuild
+                            (EMERGENCY_ROLLBACK=true, LKG_HASH=...)
+```
+
+### Deep Health Probes
+
+Unlike basic uptime checks, the DMS verifies the entire **Cognitive Stack**:
+- **Bus Health**: Emits a test event and verifies delivery.
+- **Provider Health**: Calls a lightweight agent to verify LLM reachability.
+- **Tool Integrity**: Verifies that the the `AgentRegistry` can be successfully read from DynamoDB.
 
 ## Triage & Recovery
 

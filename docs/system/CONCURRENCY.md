@@ -1,6 +1,6 @@
 # Concurrency & Session Management
 
-> **Navigation**: [← Index Hub](../INDEX.md)
+> **Navigation**: [← Index Hub](../../INDEX.md)
 
 In a serverless, stateless environment, maintaining session integrity requires a different approach than traditional locking. Serverless Claw uses a **Message Queue with Context Injection** pattern instead of mutex locks.
 
@@ -98,6 +98,21 @@ if (newMessages.length > 0) {
   await sessionStateManager.renewProcessing(sessionId, agentId);
 }
 ```
+
+## 🔒 Distributed Locking
+
+To prevent multiple agents from simultaneously modifying the same session history (which leads to corrupted context), the system implements a **Distributed Session Lock** via the `LockManager`.
+
+- **Mechanism**: Before processing a session or sensitive resource, an agent or handler attempts to acquire a lock via `LockManager.acquire(lockId, { ownerId: agentId })`.
+- **Stateless Consistency**: Uses DynamoDB's conditional updates (`attribute_not_exists` or `expiresAt < now`) to ensure mutually exclusive access across multiple Lambda invocations.
+- **Automatic Release**: Locks are explicitly released in a `finally` block or naturally expire via TTL (crash recovery).
+- **Session Queuing**: If a session lock is busy, new incoming messages are durably queued in `pendingMessages` (see [Session State](#1-session-state-dynamodb)) for subsequent processing.
+
+### Lock Heartbeat Mechanism
+
+To prevent session "dead zones" caused by crashed or timed-out Lambda processes, the system uses a **Heartbeat-enabled Leasing** model:
+- **Dynamic Renewal**: While an agent is processing, a background heartbeat periodically (every 60s) renews the session lock in DynamoDB.
+- **Crash Recovery**: If an execution environment fails, the heartbeat stops, and the lock naturally expires within 5 minutes, allowing recovery handlers to take over.
 
 ## Webhook Flow
 

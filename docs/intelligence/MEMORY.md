@@ -1,6 +1,38 @@
 # Memory Management: The Tiered Neural Engine
 
-> **Navigation**: [← Index Hub](../INDEX.md)
+> **Navigation**: [← Index Hub](../../INDEX.md)
+
+# Memory & Persistence Lifecycle
+
+Serverless Claw uses a tiered memory system to balance low-latency recall with long-term strategic context.
+
+## 🧠 Memory Adapters
+
+While the default implementation uses DynamoDB for globally distributed, low-latency persistence, the system follows an adapter pattern to support multiple backends:
+
+- **DynamoDB (Default)**: Optimized for 50-100ms context retrieval.
+- **Redis (Upstash)**: Used for extremely high-frequency turn-taking signals.
+- **PostgreSQL (Drizzle/Prisma)**: Optional for complex relational memory queries.
+- **S3**: Long-term archival of high-volume conversation logs.
+
+## 🗂️ Searchable Memory Model (Flattened)
+
+To support sub-50ms context retrieval across millions of records, the system uses a **Flattened DynamoDB Model**. Searchable fields are projected at the root level to maximize Global Secondary Index (GSI) efficiency.
+
+```text
+[ Record Root ]
+ ├── userId (PK)         <-- Scoped partition
+ ├── timestamp (SK)      <-- Unique ID
+ ├── type (GSI-PK)       <-- Category
+ ├── tags (GSI-Filter)   <-- Consolidated keywords
+ ├── orgId               <-- Multi-tenant isolation
+ ├── createdAt           <-- Immutable source
+ └── [ metadata ]        <-- Strategic scores (confidence, priority)
+```
+
+This architecture ensures that agents can perform complex keyword and category searches without expensive table scans or deep-nested attribute filtering.
+
+---
 
 Serverless Claw uses a tiered, evolutionary memory system designed to provide context-rich interactions while minimizing "prompt bloat" and token costs.
 
@@ -198,23 +230,9 @@ The memory system exports operations for each tier. These are available via `cor
 
 Beyond conversation and knowledge, the system tracks its own performance to enable cost-aware routing and self-optimization.
 
-### Token Usage Tracking
+#Every LLM invocation is recorded with granular metadata including token counts, duration, and success status.
 
-Every LLM invocation is recorded with granular metadata:
-
-```text
-Key: TOKEN#<agentId>#<timestamp>
-Value: {
-  inputTokens: 1200,
-  outputTokens: 450,
-  totalTokens: 1650,
-  success: true,
-  taskType: "agent_process",
-  model: "claude-3-5-sonnet",
-  durationMs: 4200,
-  createdAt: 1711000000000
-}
-```
+- **Schema**: See `TokenUsage` interface in [`core/lib/types/memory.ts`](../../core/lib/types/memory.ts).
 
 ### Agent Performance Rollups
 
@@ -273,33 +291,9 @@ A specialized index optimized for real-time agent context retrieval and multi-te
 - **Scoping**: All `searchInsights` calls with a `userId` automatically leverage this index for O(1) partition targeting.
 - **Flattened Schema**: To maximize retrieval speed, searchable metadata (`tags`, `orgId`, `createdAt`) are stored at the top level of the record, rather than nested in metadata.
 
-### 3. Record Structure (Flattened)
-
 The `MemoryTable` uses a flattened record model to ensure that searchable fields are directly accessible to GSIs and retrieval logic.
 
-```text
-+-----------------------------------------------------------+
-|                   FLATTENED MEMORY RECORD                 |
-+-----------------------------------------------------------+
-| userId: string (PK)    - Owner or Organization Scope      |
-| timestamp: number (SK) - Unique entry ID                  |
-| type: string (GSI-PK)  - MEMORY:CATEGORY                  |
-| content: string        - The actual insight/lesson        |
-| orgId: string?         - Team-wide isolation ID           |
-| tags: string[]         - Consolidated search labels       |
-| createdAt: number      - Immutable creation source        |
-| expiresAt: number      - TTL (Retention Policy)           |
-+-----------------------------------------------------------+
-| metadata: {                                               |
-|   category: string,                                       |
-|   hitCount: number,                                       |
-|   lastAccessed: number,                                   |
-|   confidence: number,                                     |
-|   impact: number,                                         |
-|   priority: number                                        |
-| }                                                         |
-+-----------------------------------------------------------+
-```
+- **Schema**: See `MemoryRecord` interface in [`core/lib/types/memory.ts`](../../core/lib/types/memory.ts).
 
 ## Neural Pruning & Hit Tracking (The Self-Cleaning Loop)
 
@@ -357,13 +351,26 @@ Memory is not a "black box" in Serverless Claw. Through the **Neural Reserve** p
 - **Focus**: Toggle "HOT_PATH" status for tactical lessons to ensure they are always present in the reasoning loop.
 - **Neural Health**: Monitor which memories are currently being ignored by the agents to decide on manual pruning.
 
-## The Smart Recall Mechanism
+## Alternative Memory Storage Options (Evolution)
 
-Instead of shoving all history into every prompt, agents use the `recallKnowledge(query)` tool.
+As Serverless Claw evolves, specialized storage engines may be used for certain memory tiers to balance cost, latency, and semantic capability.
 
-1. **Query**: The agent generates a search query (e.g., "How does the user prefer code documentation?").
-2. **Search**: The system searches `LESSON#`, `GAP#`, and `DISTILLED#` keys in DynamoDB.
-3. **Recovery**: Relevant snippets are returned to the agent's context "Just-In-Time".
+### 1. Vector Storage (Semantic Brain)
 
-> [!TIP]
-> This retrieval strategy reduces input token costs by up to 90% in long-lived sessions while maintaining high context precision and system self-awareness.
+For high-density RAG (Retrieval-Augmented Generation) and semantic lookup:
+
+- **OpenSearch Serverless**: The standard AWS choice for vector embeddings. High performance but carries a higher baseline cost.
+- **Pinecone (Serverless)**: Recommended for budget-conscious stages requiring high-quality semantic search across millions of facts.
+- **Supabase (pgvector)**: Ideal for hybrid relational/semantic memory.
+
+### 2. Graph Storage (The Collective)
+
+- **Amazon Neptune Serverless**: Used for tracking complex relationships between agents, workspaces, and long-term memory threads.
+
+## 🏗️ Proposed Hybrid Architecture
+
+The "Brain" follows a tiered model:
+
+1.  **Tier 1: Hot State (DynamoDB)**: Sub-50ms session state and atomic locks.
+2.  **Tier 2: Semantic Memory (Vector DB)**: RAG and strategic gap identification.
+3.  **Tier 3: Relational Memory (Graph DB)**: Complex agent-to-agent collaboration tracking.

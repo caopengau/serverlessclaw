@@ -47,23 +47,23 @@ export class DocumentationValidator {
   private docMappings: DocMapping[] = [
     {
       codePattern: /^(?!.*\.test\.ts$).*\/core\/agents\/.*\.ts$/,
-      docFile: 'docs/AGENTS.md',
+      docFile: 'docs/intelligence/AGENTS.md',
       description: 'Agent changes require AGENTS.md update',
     },
     {
       codePattern: /^(?!.*\.test\.ts$).*\/core\/tools\/.*\.ts$/,
-      docFile: 'docs/TOOLS.md',
+      docFile: 'docs/intelligence/TOOLS.md',
       description: 'Tool changes require TOOLS.md update',
     },
     {
       codePattern: /core\/handlers\/events\.ts$/,
-      docFile: 'ARCHITECTURE.md',
-      description: 'Event handler changes require ARCHITECTURE.md update',
+      docFile: 'docs/intelligence/SWARM.md',
+      description: 'Event handler changes require SWARM.md update',
     },
     {
       codePattern: /core\/handlers\/monitor\.ts$/,
-      docFile: 'ARCHITECTURE.md',
-      description: 'Monitor changes require ARCHITECTURE.md update',
+      docFile: 'docs/system/RESILIENCE.md',
+      description: 'Monitor changes require RESILIENCE.md update',
     },
     {
       codePattern: /core\/lib\/types\/.*\.ts$/,
@@ -72,22 +72,22 @@ export class DocumentationValidator {
     },
     {
       codePattern: /core\/lib\/memory\/.*\.ts$/,
-      docFile: 'docs/MEMORY.md',
+      docFile: 'docs/intelligence/MEMORY.md',
       description: 'Memory changes require MEMORY.md update',
     },
     {
       codePattern: /core\/lib\/providers\/.*\.ts$/,
-      docFile: 'docs/LLM.md',
+      docFile: 'docs/intelligence/LLM.md',
       description: 'Provider changes require LLM.md update',
     },
     {
       codePattern: /infra\/.*\.ts$/,
-      docFile: 'ARCHITECTURE.md',
-      description: 'Infrastructure changes require ARCHITECTURE.md update',
+      docFile: 'docs/system/PROVISIONING.md',
+      description: 'Infrastructure changes require PROVISIONING.md update',
     },
     {
       codePattern: /makefiles\/.*\.mk$/,
-      docFile: 'docs/DEVOPS.md',
+      docFile: 'docs/governance/DEVOPS.md',
       description: 'Makefile changes require DEVOPS.md update',
     },
   ];
@@ -370,11 +370,11 @@ export class DocumentationValidator {
     const requiredDocs = [
       'README.md',
       'ARCHITECTURE.md',
-      'docs/AGENTS.md',
-      'docs/TOOLS.md',
-      'docs/MEMORY.md',
-      'docs/LLM.md',
-      'docs/DEVOPS.md',
+      'docs/intelligence/AGENTS.md',
+      'docs/intelligence/TOOLS.md',
+      'docs/intelligence/MEMORY.md',
+      'docs/intelligence/LLM.md',
+      'docs/governance/DEVOPS.md',
     ];
 
     for (const doc of requiredDocs) {
@@ -396,7 +396,7 @@ export class DocumentationValidator {
   validateAgentRoster(): void {
     console.log('Validating agent roster...\n');
 
-    const agentsDocPath = join(this.rootDir, 'docs/AGENTS.md');
+    const agentsDocPath = join(this.rootDir, 'docs/intelligence/AGENTS.md');
     const agentsDirPath = join(this.rootDir, 'core/agents');
 
     if (!existsSync(agentsDocPath) || !existsSync(agentsDirPath)) {
@@ -432,7 +432,7 @@ export class DocumentationValidator {
       if (!documentedAgents.has(agent)) {
         this.issues.push({
           type: 'agent_roster_mismatch',
-          file: 'docs/AGENTS.md',
+          file: 'docs/intelligence/AGENTS.md',
           message: `Agent '${agent}' exists in core/agents/ but is not documented in AGENTS.md`,
           severity: 'warning',
         });
@@ -444,7 +444,7 @@ export class DocumentationValidator {
       if (!agentFiles.has(agent)) {
         this.issues.push({
           type: 'agent_roster_mismatch',
-          file: 'docs/AGENTS.md',
+          file: 'docs/intelligence/AGENTS.md',
           message: `Agent '${agent}' is documented in AGENTS.md but has no file in core/agents/`,
           severity: 'warning',
         });
@@ -458,7 +458,7 @@ export class DocumentationValidator {
   validateToolRegistry(): void {
     console.log('Validating tool registry...\n');
 
-    const toolsDocPath = join(this.rootDir, 'docs/TOOLS.md');
+    const toolsDocPath = join(this.rootDir, 'docs/intelligence/TOOLS.md');
     const constantsPath = join(this.rootDir, 'core/lib/constants.ts');
 
     if (!existsSync(toolsDocPath) || !existsSync(constantsPath)) {
@@ -497,7 +497,7 @@ export class DocumentationValidator {
       if (!documentedTools.has(tool)) {
         this.issues.push({
           type: 'tool_registry_mismatch',
-          file: 'docs/TOOLS.md',
+          file: 'docs/intelligence/TOOLS.md',
           message: `Tool '${tool}' exists in TOOLS enum (core/lib/constants.ts) but is not documented in TOOLS.md`,
           severity: 'warning',
         });

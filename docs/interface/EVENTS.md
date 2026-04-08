@@ -1,6 +1,6 @@
 # Event Bus & Messaging Architecture
 
-> **Navigation**: [← Index Hub](../INDEX.md)
+> **Navigation**: [← Index Hub](../../INDEX.md)
 
 > **Agent Context Loading**: Load this file when you need to understand event routing, emit events, or troubleshoot messaging issues.
 
@@ -21,22 +21,10 @@ Events are classified into four priority levels to ensure critical events are pr
 
 ### Usage
 
-```typescript
-import { emitEvent, EventPriority } from '../lib/utils/bus';
+The `emitEvent` utility is the primary interface for sending events. It supports explicit priority levels and provides convenience methods like `emitCriticalEvent`.
 
-// Standard emission (NORMAL priority)
-await emitEvent('source', 'event.type', { data: 'value' });
-
-// With explicit priority
-await emitEvent('source', 'event.type', { data: 'value' }, {
-  priority: EventPriority.HIGH
-});
-
-// Convenience methods for specific priorities
-await emitCriticalEvent('system', 'critical.event', { issue: 'data' });
-await emitHighPriorityEvent('agent', 'task.completed', { taskId: '123' });
-await emitLowPriorityEvent('telemetry', 'metrics.update', { metrics: {...} });
-```
+- **Implementation**: [`core/lib/utils/bus.ts`](../../core/lib/utils/bus.ts)
+- **Available Methods**: `emitEvent`, `emitCriticalEvent`, `emitHighPriorityEvent`, `emitLowPriorityEvent`.
 
 ## Idempotency (Reserve-then-Commit)
 
@@ -48,13 +36,9 @@ To prevent duplicate event processing even under high concurrency, the system us
 
 This ensures that if two agents try to emit the same task simultaneously, one will fail the reservation and the system will correctly return `DUPLICATE`.
 
-```typescript
-// Automatic idempotency based on source, type, sessionId, and traceId
-await emitEventWithIdempotency('source', 'event.type', {
-  sessionId: 'session-123',
-  traceId: 'trace-456',
-});
-```
+The system uses a **Reserve-then-Commit** atomic pattern to ensure that even under high concurrency, an event is only processed once.
+
+- **Helper**: `emitEventWithIdempotency` in [`core/lib/utils/bus.ts`](../../core/lib/utils/bus.ts)
 
 **Note**: Idempotency keys are stored in DynamoDB with a 1-hour TTL.
 
@@ -81,62 +65,18 @@ Errors are classified to optimize retry behavior:
 
 ## Dead Letter Queue (DLQ)
 
-Failed events are automatically stored in the DLQ with metadata:
+Failed events are automatically stored in the DLQ with full metadata including retry counts and error categories.
 
-```typescript
-{
-  userId: "EVENTBUS#DLQ#<timestamp>#<random>",
-  timestamp: 1711000000000,
-  source: "source.name",
-  detailType: "event.type",
-  detail: "{\"key\":\"value\"}",
-  retryCount: 3,
-  maxRetries: 3,
-  lastError: "Service unavailable",
-  errorCategory: "TRANSIENT",
-  priority: "HIGH",
-  correlationId: "optional-correlation-id",
-  createdAt: 1711000000000,
-  expiresAt: 1711086400000
-}
-```
+- **Schema**: See `DlqEntry` interface in [`core/lib/utils/bus.ts`](../../core/lib/utils/bus.ts).
 
-### DLQ Operations
+The bus provides tools to inspect and replay failed events.
 
-```typescript
-import { getDlqEntries, retryDlqEntry, purgeDlqEntry } from '../lib/utils/bus';
+- **Operations**: `getDlqEntries`, `retryDlqEntry`, `purgeDlqEntry` in [`core/lib/utils/bus.ts`](../../core/lib/utils/bus.ts).
 
-// Fetch DLQ entries (uses GSI TypeTimestampIndex for performance)
-const entries = await getDlqEntries(50);
+Standard event types and their default priority levels are centrally defined to maintain system-wide consistency.
 
-// Retry a specific entry (deletes original from DLQ on success)
-const success = await retryDlqEntry(entries[0]);
-
-// Purge an entry manually
-await purgeDlqEntry(entries[0]);
-```
-
-## Event Types
-
-Standard event types are defined in `core/lib/types/agent.ts`:
-
-| Event Type                 | Description                     | Priority          |
-| -------------------------- | ------------------------------- | ----------------- |
-| `OUTBOUND_MESSAGE`         | User-facing messages            | HIGH              |
-| `SYSTEM_BUILD_SUCCESS`     | Successful deployment           | HIGH              |
-| `SYSTEM_BUILD_FAILED`      | Failed deployment               | CRITICAL          |
-| `SYSTEM_HEALTH_REPORT`     | Health issues                   | Based on severity |
-| `HEARTBEAT_PROACTIVE`      | Scheduled task wake-up          | HIGH              |
-| `CODER_TASK`               | Code modification request       | NORMAL            |
-| `CLARIFICATION_REQUEST`    | Agent requesting user input     | HIGH              |
-| `CLARIFICATION_TIMEOUT`    | Timeout for clarification       | HIGH              |
-| `CONTINUATION_TASK`        | Task resumption signal          | HIGH              |
-| `TASK_COMPLETED`           | Generic task success            | NORMAL            |
-| `TASK_FAILED`              | Generic task failure            | HIGH              |
-| `PARALLEL_TASK_DISPATCH`   | Multi-task coordination         | NORMAL            |
-| `PARALLEL_TASK_COMPLETED`  | Aggregated parallel results     | HIGH              |
-| `PARALLEL_BARRIER_TIMEOUT` | Timeout for parallel barrier    | HIGH              |
-| `EVOLUTION_PLAN`           | Capability improvement proposal | NORMAL            |
+- **Enum**: `EventType` in [`core/lib/types/agent.ts`](../../core/lib/types/agent.ts).
+- **Mapping**: `EVENT_PRIORITY_MAP` in [`core/lib/utils/bus.ts`](../../core/lib/utils/bus.ts).
 
 ## Event Flow
 

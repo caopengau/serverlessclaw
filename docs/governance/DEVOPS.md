@@ -1,6 +1,6 @@
 # DevOps & Task Automation
 
-> **Navigation**: [← Index Hub](../INDEX.md)
+> **Navigation**: [← Index Hub](../../INDEX.md)
 
 > **Agent Context Loading**: Load this file when you need to run quality checks, tests, deployments, or releases.
 
@@ -14,11 +14,11 @@ The main `Makefile` at the root is the "Hub". It includes specialized "Spoke" fi
 
 ### The Spokes
 
-- **Quality ([Makefile.quality.mk](../makefiles/Makefile.quality.mk))**: Linting, formatting, type-checking, and AI-readiness scans.
-- **Test ([Makefile.test.mk](../makefiles/Makefile.test.mk))**: Unit tests (Vitest) and deployment health verification.
-- **Deploy ([Makefile.deploy.mk](../makefiles/Makefile.deploy.mk))**: SST v4 infrastructure management (`dev`, `deploy`, `remove`).
-- **Release ([Makefile.release.mk](../makefiles/Makefile.release.mk))**: Production release orchestration (test -> deploy -> verify -> tag).
-- **Shared ([Makefile.shared.mk](../makefiles/Makefile.shared.mk))**: Common macros, colors, and environment loading.
+- **Quality ([Makefile.quality.mk](../../makefiles/Makefile.quality.mk))**: Linting, formatting, type-checking, and AI-readiness scans.
+- **Test ([Makefile.test.mk](../../makefiles/Makefile.test.mk))**: Unit tests (Vitest) and deployment health verification.
+- **Deploy ([Makefile.deploy.mk](../../makefiles/Makefile.deploy.mk))**: SST v4 infrastructure management (`dev`, `deploy`, `remove`).
+- **Release ([Makefile.release.mk](../../makefiles/Makefile.release.mk))**: Production release orchestration (test -> deploy -> verify -> tag).
+- **Shared ([Makefile.shared.mk](../../makefiles/Makefile.shared.mk))**: Common macros, colors, and environment loading.
 
 ---
 
@@ -74,7 +74,7 @@ Before any production release, all items below must be true:
 6. `make verify URL=...` passes after deployment.
 7. Human approval is recorded for any Governance Class C change from [PRINCIPLES.md](./PRINCIPLES.md).
 
-CodeBuild enforcement: the release pipeline in [buildspec.yml](../buildspec.yml) runs these checks as **blocking gates** (not warnings) for non-`SYNC_ONLY` deployments.
+CodeBuild enforcement: the release pipeline in [buildspec.yml](../../buildspec.yml) runs these checks as **blocking gates** (not warnings) for non-`SYNC_ONLY` deployments.
 
 ---
 

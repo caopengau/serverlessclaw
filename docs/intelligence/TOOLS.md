@@ -1,6 +1,6 @@
 # Agent Tool Registry
 
-> **Navigation**: [← Index Hub](../INDEX.md)
+> **Navigation**: [← Index Hub](../../INDEX.md)
 
 > **Agent Context Loading**: Load this file when you need to understand the tools available to agents or how to add new ones.
 
@@ -64,6 +64,51 @@
 
 ---
 
+## 🦾 Hybrid Skill-Based Tooling
+
+Serverless Claw has evolved from static tools to a **Dynamic Skill Architecture**, supporting three tiers of capabilities.
+
+```text
+      [ Agent Brain ]
+             |
+    _________V_________
+   |   Skill Registry  | <--- (Just-in-Time Discovery)
+   |___________________|
+             |
+    +--------+--------+--------+
+    |                 |        |
+ [ Custom ]        [ MCP ]  [ Built-in ]
+ Domains        Multiplexer   Native
+ (Lambda)         (Lambda)    (Provider)
+    |          +------+------+ |
+    |          |             | |
+ - infra/      v             v - python
+ - knowledge/ [ Git ] ----> [ FS ] - search
+ - system/    [ S3  ]       [ AWS] - files
+ - collab/
+```
+
+### 1. Custom Skills (Internal)
+
+Tools written specifically for the ServerlessClaw environment (e.g., `triggerDeployment`). These run within the agent's AWS Lambda execution context and are defined in `core/tools/`.
+
+### 2. MCP Skills (Unified Multiplexer Model)
+
+Connected via the **Model Context Protocol (MCP)**. This is the primary scaling vector for the system.
+
+- **Unified Multiplexer Architecture**: The system consolidates multiple MCP servers (Git, Filesystem, AWS, etc.) into a single **Unified Multiplexer Lambda**. This reduces infrastructure sprawl, minimizes CloudWatch log fragmentation, and improves warming efficiency by keeping a single high-resource execution environment hot.
+- **Path-Based Routing**: The bridge routes requests to specific "virtual" servers using URL paths (e.g., `/mcp/git`) or the `x-mcp-server` header.
+- **Graceful Local Fallback**: If the external Hub or Multiplexer is unreachable, the system falls back to on-demand `npx` execution within the calling agent's context.
+- **Lambda Environment Hardening**:
+  - **Memory/Timeout**: The Multiplexer is provisioned with **1024MB** and **10m** timeout to handle concurrent child processes and resource-heavy tools.
+  - **Writable Cache**: Uses `/tmp/mcp-cache` and `/tmp/npm-cache` to ensure `npx` has a writable scratch space in the read-only Lambda environment.
+
+### 3. Built-in Skills (Model-Native)
+
+Native capabilities provided by the LLM provider (e.g., OpenAI's **Code Interpreter** or Gemini's **Grounded Search**).
+
+---
+
 ## 🦾 Skill-Based Architecture (New in 2026)
 
 We have evolved from a static tool registry to a **dynamic Skill-Based Architecture**. This solves the "Context Window Bloat" problem where agents were overwhelmed by too many tool definitions.
@@ -115,25 +160,7 @@ Agents no longer receive all tools by default. They call `getAgentTools(agentId)
 
 Definitions are now strictly typed using a unified `JsonSchema` interface to ensure compatibility across providers.
 
-```typescript
-export interface JsonSchema {
-  /** The data type (e.g., 'string', 'object', 'array'). */
-  type: 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
-  description?: string;
-  properties?: Record<string, JsonSchema>;
-  required?: string[];
-  items?: JsonSchema;
-  enum?: string[];
-  additionalProperties?: boolean;
-}
-
-export interface IToolDefinition {
-  name: string;
-  description: string;
-  parameters: JsonSchema;
-  // ...
-}
-```
+- **Interface**: `IToolDefinition` and `JsonSchema` in [`core/lib/types/agent.ts`](../../core/lib/types/agent.ts)
 
 ### AI-Native Coding Standards (April 2026 Refresh)
 
@@ -282,32 +309,3 @@ dispatchTask (coder) → filesystem_write_file → [human approves if protected]
 
 ---
 
-## 📊 Agent Reputation System (April 2026)
-
-The `checkReputation` tool provides visibility into agent reliability by surfacing rolling 7-day performance metrics.
-
-### Scoring Weights
-
-The composite score (0-1) is calculated as:
-
-```
-Score = (successRate × 0.6) + (latencyComponent × 0.25) + (recencyComponent × 0.15)
-```
-
-| Component    | Weight | Calculation                                               |
-| ------------ | ------ | --------------------------------------------------------- |
-| Success Rate | 60%    | `tasksCompleted / totalTasks`                             |
-| Latency      | 25%    | `max(0, 1 - avgLatencyMs / 15000)` (5s baseline, 15s cap) |
-| Recency      | 15%    | `max(0, 1 - hoursSinceActive / 24)` (decays over 24h)     |
-
-### Update Trigger
-
-Reputation is automatically updated on every `TASK_COMPLETED` or `TASK_FAILED` event via `core/handlers/events/task-result-handler.ts`. The rolling window resets after 7 days of inactivity.
-
-### Usage
-
-```
-checkReputation({ agentId: "coder" })
-```
-
-Returns: Composite score, success rate, tasks completed/failed, average latency, and last active timestamp.

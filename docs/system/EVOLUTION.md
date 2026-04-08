@@ -1,6 +1,6 @@
 # Self-Evolution & Capability Lifecycle
 
-> **Navigation**: [← Index Hub](../INDEX.md)
+> **Navigation**: [← Index Hub](../../INDEX.md)
 
 Serverless Claw is a **self-evolving system** that identifies its own weaknesses, designs its own upgrades, and verifies its own satisfaction.
 
@@ -90,7 +90,7 @@ The **Build Monitor** resolves metadata by prioritizing DynamoDB but falling bac
 
 If a deployment fails, the **Build Monitor** detects the failure and emits a `SYSTEM_BUILD_FAILED` event.
 
-- **Triage**: SuperClaw analyzes the failure logs using the **Failure Manifest** (see [DEVOPS.md#autonomous-remediation--failure-manifests](./DEVOPS.md#autonomous-remediation--failure-manifests)).
+- **Triage**: SuperClaw analyzes the failure logs using the **Failure Manifest** (see [DEVOPS.md#autonomous-remediation-failure-manifests](../governance/DEVOPS.md#autonomous-remediation-failure-manifests)).
 - **High-Signal Remediation**: The system automatically reconstructs the failing workspace state (including uncommitted patches) to enable precise fixes by the Coder agent.
 - **Rollback**: If consecutive failures occur, the **Dead Man's Switch** triggers an emergency Git rollback to the last known stable commit.
 
@@ -200,6 +200,58 @@ Serverless Claw is a **proactive self-evolving system** that identifies its own 
 5.  **Execution**: Once approved, the **Coder Agent** moves gaps to `PROGRESS`, writes code/config, and triggers a deploy.
 6.  **Technical Success**: The **Build Monitor** detects a successful build and moves gaps to `DEPLOYED`.
 7.  **Verified Satisfaction**: The **QA Auditor** verifies the fix. If successful, the Reflector marks it `DONE`.
+
+---
+
+## 📈 Self-Optimization Feedback Loop
+
+To ensure the system remains efficient, a continuous optimization loop runs in the background, utilizing telemetry and reputation metrics to drive routing and planning decisions.
+
+### Performance Telemetry
+
+The system captures granular metrics for every tool invocation and agent task:
+- **`tool_usage`**: Records input/output tokens, duration, and success status.
+- **`failure_patterns`**: The **Cognition Reflector** identifies persistent technical hurdles (anti-patterns).
+
+### Agent Reputation Strategy
+
+On every `TASK_COMPLETED` or `TASK_FAILED` event, the system updates a rolling 7-day reputation record for the involved agents.
+
+- **Formula**: `Score = (successRate * 0.6) + (latencyComponent * 0.25) + (recencyComponent * 0.15)`
+- **Composite Routing**: The `AgentRouter` selects agents using a blend of historical performance and reputation: `FinalScore = (0.6 * performanceScore) + (0.4 * reputationScore)`.
+
+### Optimization Flow
+
+```text
+    [ Execution ] <----------- (6) selectBestAgent() ----------- [ AgentRouter ]
+          |                                                            ^
+    (1) recordToolUsage()                                              |
+          |                                                   (5) getMetrics()
+    +-----v-----+          (7) updateReputation()               +-------+-------+
+    |  Token    | <----------- (4) fetchToolUsage() ---+        |  Reputation   |
+    |  Tracker  | <---+                                 |        |  (7-day roll) |
+    +-----+-----+     |                                 |        +-------+-------+
+          |           |                                 |                ^
+    (2) recordFailure |                                 |      (8) getReputation()
+          |                                                   |                |
+    +-----v-----+                                             +        | Reputation    |
+    |  Memory   | <----------------------------------------------------| Handler       |
+    |  (Insights)|                                                      +-------+-------+
+          ^                                                                      ^
+          |                                                                      |
+          +------------------ [ Strategic Planner ] <----------- (7) REPUTATION_UPDATE
+                                (Design Phase)                           |
+                                                                 +-------+-------+
+                                                                 | EventHandler  |
+                                                                 | (on result)   |
+                                                                 +---------------+
+```
+
+## 🛡️ Evolution Safeguards
+
+- **Intent-Based Dual Mode**: Agents toggle between **JSON Mode** (for strict handoffs and state sync) and **Text Mode** (for user-facing empathy).
+- **Structured JSON Hub**: When in JSON mode, agents emit deterministic signals (`SUCCESS`, `FAILED`, `REOPEN`) matching a strict native schema.
+- **Atomic Metadata Sync**: The `triggerDeployment` tool handles gap-to-build mapping internally to prevent metadata loss.
 
 ---
 
