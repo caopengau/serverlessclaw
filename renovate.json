@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "schedule": ["at any time"],
+  "extends": ["config:recommended", ":dependencyDashboardApproval"],
+  "schedule": ["before 12am"],
   "timezone": "Australia/Sydney",
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
@@ -13,10 +13,7 @@
   "rebaseConflictedPrs": true,
   "rebaseWhen": "behind-base-branch",
   "requireStatusChecks": true,
-  "requiredStatusChecks": ["quality-gate *"],
-  "major": {
-    "automerge": false
-  },
+  "requiredStatusChecks": ["Quality Gate *"],
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
