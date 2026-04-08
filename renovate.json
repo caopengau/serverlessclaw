@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["config:recommended", ":dependencyDashboardApproval"],
-  "schedule": ["before 12am"],
+  "schedule": ["at any time"],
   "timezone": "Australia/Sydney",
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
