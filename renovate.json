@@ -1,19 +1,16 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":dependencyDashboardApproval"],
+  "extends": ["config:recommended"],
   "schedule": ["at any time"],
   "timezone": "Australia/Sydney",
   "prConcurrentLimit": 0,
   "prHourlyLimit": 0,
   "dependencyDashboard": true,
-  "prNotebookFooter": "",
   "automerge": true,
   "platformAutomerge": true,
   "prCreation": "immediate",
   "rebaseConflictedPrs": true,
   "rebaseWhen": "behind-base-branch",
-  "requireStatusChecks": true,
-  "requiredStatusChecks": ["Quality Gate *"],
   "packageRules": [
     {
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
