@@ -69,26 +69,54 @@ export const handler = async (
     }
   }
 
-  // Determine source and initialize appropriate adapter
-  const telegramAdapter = new TelegramAdapter();
-  let inbound;
+  // 2. Identify Source and Initialize Adapter
+  const source = identifySource(event);
+  logger.info(`[WEBHOOK] Identified source: ${source}`);
 
-  try {
-    if (!event.body) throw new Error('Missing event body');
-    // For now, default to Telegram as it's the primary channel
-    // In the future, this can be routed based on headers or path
-    inbound = telegramAdapter.parse(JSON.parse(event.body));
-  } catch (error) {
-    logger.error('[WEBHOOK] Failed to parse inbound message:', error);
-    return { statusCode: 400, body: 'Invalid message format' };
+  let adapter: any;
+  switch (source) {
+    case 'github':
+      const { GitHubAdapter } = await import('../adapters/input/github');
+      adapter = new GitHubAdapter();
+      break;
+    case 'slack':
+      const { SlackAdapter } = await import('../adapters/input/slack');
+      adapter = new SlackAdapter();
+      break;
+    case 'jira':
+      const { JiraAdapter } = await import('../adapters/input/jira');
+      adapter = new JiraAdapter();
+      break;
+    case 'telegram':
+    default:
+      const { TelegramAdapter } = await import('../adapters/input/telegram');
+      adapter = new TelegramAdapter();
+      break;
   }
 
-  const { chatId, userId, sessionId, text } = {
-    chatId: inbound.userId,
+  let inbound;
+  try {
+    if (!event.body) throw new Error('Missing event body');
+    // Pass the entire event object so adapters can access headers/query params for verification
+    inbound = adapter.parse(event);
+    
+    // Handle Slack URL verification challenge immediately
+    if (source === 'slack' && inbound.metadata.isChallenge) {
+      logger.info('[WEBHOOK] Responding to Slack URL verification challenge');
+      return { statusCode: 200, body: inbound.text };
+    }
+  } catch (error) {
+    logger.error(`[WEBHOOK] Failed to parse ${source} message:`, error);
+    return { statusCode: 400, body: `Invalid ${source} message format` };
+  }
+
+  const { userId, sessionId, text } = {
     userId: inbound.userId,
     sessionId: inbound.sessionId,
     text: inbound.text,
   };
+
+  const chatId = inbound.userId; // Defaulting chatId to userId for now
 
   if (!text && inbound.attachments.length === 0 && !inbound.metadata.rawMessage) {
     logger.info('[WEBHOOK] No actionable content');
@@ -100,13 +128,15 @@ export const handler = async (
   );
 
   // Process Media/Attachments via Adapter
-  const messageWithMedia = await telegramAdapter.processMedia(inbound);
-  const rawAttachments = messageWithMedia.attachments ?? [];
-  const attachments: Attachment[] = [];
-  if (Array.isArray(rawAttachments)) {
-    for (const rawAtt of rawAttachments) {
-      if (isValidAttachment(rawAtt)) attachments.push(rawAtt as Attachment);
-      else logger.warn('[WEBHOOK] Dropping invalid attachment from adapter');
+  let attachments: Attachment[] = [];
+  if (adapter.processMedia) {
+    const messageWithMedia = await adapter.processMedia(inbound);
+    const rawAttachments = messageWithMedia.attachments ?? [];
+    if (Array.isArray(rawAttachments)) {
+      for (const rawAtt of rawAttachments) {
+        if (isValidAttachment(rawAtt)) attachments.push(rawAtt as Attachment);
+        else logger.warn('[WEBHOOK] Dropping invalid attachment from adapter');
+      }
     }
   }
 
@@ -275,3 +305,33 @@ export const handler = async (
 
   return { statusCode: 200, body: 'OK' };
 };
+
+/**
+ * Identifies the source of the webhook based on headers and body content.
+ */
+function identifySource(event: APIGatewayProxyEventV2): string {
+  const headers = event.headers || {};
+  const body = event.body ? JSON.parse(event.body) : {};
+
+  // 1. GitHub: X-GitHub-Event header
+  if (headers['x-github-event'] || headers['X-GitHub-Event']) {
+    return 'github';
+  }
+
+  // 2. Slack: X-Slack-Signature header or challenge in body
+  if (headers['x-slack-signature'] || headers['X-Slack-Signature'] || body.type === 'url_verification') {
+    return 'slack';
+  }
+
+  // 3. Jira: X-Jira-Webhook-Secret or webhookEvent in body
+  if (headers['x-jira-webhook-secret'] || headers['X-Jira-Webhook-Secret'] || body.webhookEvent) {
+    return 'jira';
+  }
+
+  // 4. Telegram: update_id is standard in all Telegram webhooks
+  if (body.update_id) {
+    return 'telegram';
+  }
+
+  return 'unknown';
+}

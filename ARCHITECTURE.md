@@ -172,6 +172,7 @@ core/adapters/
 │   ├── telegram.ts       # Telegram webhook parser + media processing
 │   ├── github.ts         # GitHub webhooks (issues, PRs, comments) + API
 │   ├── jira.ts           # Jira webhooks (issues, comments) + API
+│   ├── slack.ts          # Slack webhooks (messages, mentions) + API
 │   ├── generic-http.ts   # Generic HTTP webhook receiver
 │   └── index.ts          # Barrel exports
 └── output/               # Output adapters (internal -> external)
@@ -205,6 +206,14 @@ Adapters are designed to be extractable into separate npm packages when needed:
 2. Publish as `@claw/integration-github`
 3. Update core to import from package instead of local file
 4. No other code changes needed — interface remains the same
+
+### External Integration Repositories
+
+The following repositories are maintained under the `serverlessclaw` organization for specialized integrations:
+
+- [serverlessclaw-integration-github](https://github.com/serverlessclaw/serverlessclaw-integration-github)
+- [serverlessclaw-integration-slack](https://github.com/serverlessclaw/serverlessclaw-integration-slack)
+- [serverlessclaw-integration-jira](https://github.com/serverlessclaw/serverlessclaw-integration-jira)
 
 ---
 

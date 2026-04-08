@@ -24,6 +24,8 @@
 | [RESEARCH.md](./docs/RESEARCH.md)                | Review architectural decisions or LLM provider choices                    |
 | [ROADMAP.md](./docs/ROADMAP.md)                  | Understand what's planned, pick the next task                             |
 | [CONTRIBUTING.md](./docs/CONTRIBUTING.md)        | Understand how to contribute code or update documentation                 |
+| [Extensibility](./core/lib/registry/)            | Dynamic Skill and Agent registries for spoke extension                    |
+| [Evolution](./core/lib/growth/EvolutionManager.ts) | Evolution Manager for proposing optimizations and bug fixes               |
 
 ---
 

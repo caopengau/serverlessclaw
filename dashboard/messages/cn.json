@@ -100,7 +100,6 @@
   "SETTINGS_DISABLED_FAIL_JSON": "已禁用（JSON 错误时失败）",
   "CHAT_DROP_FILES": "拖放文件上传",
   "CHAT_UNTITLED_TRACE": "未命名追踪",
-  "CHAT_DIRECT": "直接聊天",
   "CHAT_HIDE_THINKING": "隐藏思考块",
   "CHAT_SHOW_THINKING": "显示思考块",
   "CHAT_KEYBOARD_SHORTCUTS": "键盘快捷键 (?)",
@@ -122,5 +121,7 @@
   "CHAT_SIDEBAR_NO_LOGS": "未找到活跃日志。",
   "CHAT_SIDEBAR_PIN_SESSION": "固定会话",
   "CHAT_SIDEBAR_UNPIN_SESSION": "取消固定",
-  "CHAT_SIDEBAR_NEW_CHAT": "开始新聊天"
+  "CHAT_SIDEBAR_NEW_CHAT": "开始新聊天",
+  "FOLD": "收起",
+  "UNFOLD": "展开"
 }

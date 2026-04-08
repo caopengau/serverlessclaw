@@ -11,7 +11,8 @@ import {
   Menu,
   X,
   ChevronRight,
-  ChevronLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
   Users,
   Brain,
   Wrench,
@@ -152,14 +153,6 @@ export default function Sidebar() {
           </Link>
           
           <div className="flex items-center">
-            {/* Collapse Toggle - Desktop Only */}
-            <button 
-              onClick={toggleCollapse}
-              className="hidden lg:flex items-center justify-center w-6 h-6 rounded-full border border-border bg-background hover:bg-foreground/5 text-muted-foreground transition-colors"
-            >
-              {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-            </button>
-            
             {/* Close Toggle - Mobile Only */}
             <Button
               variant="ghost"
@@ -230,6 +223,22 @@ export default function Sidebar() {
               </Link>
             );
           })}
+          
+          {/* Fold/Unfold Toggle - Desktop Only */}
+          <div className={`hidden lg:block pt-4 ${isCollapsed ? 'px-0' : 'px-1'}`}>
+            <button
+              onClick={toggleCollapse}
+              className={`flex items-center gap-3 w-full rounded hover:bg-foreground/5 transition-all text-muted-foreground hover:text-foreground ${isCollapsed ? 'justify-center py-2.5' : 'px-3 py-2'}`}
+              title={isCollapsed ? t('UNFOLD') : t('FOLD')}
+            >
+              {isCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+              {!isCollapsed && (
+                <Typography variant="caption" className="text-xs font-medium">
+                  {t('FOLD')}
+                </Typography>
+              )}
+            </button>
+          </div>
         </nav>
 
         {/* Footer */}

@@ -100,7 +100,6 @@
   "SETTINGS_DISABLED_FAIL_JSON": "Disabled (Fail on JSON Error)",
   "CHAT_DROP_FILES": "DROP FILES TO UPLOAD",
   "CHAT_UNTITLED_TRACE": "Untitled Trace",
-  "CHAT_DIRECT": "Direct Chat",
   "CHAT_HIDE_THINKING": "Hide thinking blocks",
   "CHAT_SHOW_THINKING": "Show thinking blocks",
   "CHAT_KEYBOARD_SHORTCUTS": "Keyboard shortcuts (?)",
@@ -122,5 +121,7 @@
   "CHAT_SIDEBAR_NO_LOGS": "No active logs found.",
   "CHAT_SIDEBAR_PIN_SESSION": "Pin Session",
   "CHAT_SIDEBAR_UNPIN_SESSION": "Unpin Session",
-  "CHAT_SIDEBAR_NEW_CHAT": "Start New Chat"
+  "CHAT_SIDEBAR_NEW_CHAT": "Start New Chat",
+  "FOLD": "Fold",
+  "UNFOLD": "Unfold"
 }
