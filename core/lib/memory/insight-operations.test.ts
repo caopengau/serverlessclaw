@@ -41,8 +41,8 @@ describe('Insight Operations', () => {
 
       const item = putCalls[0].args[0].input.Item;
       expect(item?.userId).toBe('USER#123');
-      expect(item?.timestamp).toBe(now);
-      expect(item?.createdAt).toBe(now);
+      expect(item?.timestamp).toBe(String(now));
+      expect(Number(item?.createdAt)).toBe(now);
 
       vi.useRealTimers();
     });
@@ -58,8 +58,8 @@ describe('Insight Operations', () => {
 
       const calls = ddbMock.commandCalls(PutCommand);
       const item = calls[0].args[0].input.Item;
-      expect(item?.timestamp).toBe(now);
-      expect(item?.createdAt).toBe(now);
+      expect(item?.timestamp).toBe(String(now));
+      expect(Number(item?.createdAt)).toBe(now);
 
       vi.useRealTimers();
     });
@@ -75,8 +75,8 @@ describe('Insight Operations', () => {
 
       const calls = ddbMock.commandCalls(PutCommand);
       const item = calls[0].args[0].input.Item;
-      expect(item?.timestamp).toBe(now);
-      expect(item?.createdAt).toBe(now);
+      expect(item?.timestamp).toBe(String(now));
+      expect(Number(item?.createdAt)).toBe(now);
 
       vi.useRealTimers();
     });
@@ -92,8 +92,8 @@ describe('Insight Operations', () => {
 
       const calls = ddbMock.commandCalls(PutCommand);
       const item = calls[0].args[0].input.Item;
-      expect(item?.timestamp).toBe(now);
-      expect(item?.createdAt).toBe(now);
+      expect(item?.timestamp).toBe(String(now));
+      expect(Number(item?.createdAt)).toBe(now);
 
       vi.useRealTimers();
     });

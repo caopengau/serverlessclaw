@@ -179,7 +179,10 @@ export class CachedMemory implements IMemory {
   /**
    * Adds a global lesson and invalidates cache.
    */
-  async addGlobalLesson(lesson: string, metadata?: Partial<InsightMetadata>): Promise<number> {
+  async addGlobalLesson(
+    lesson: string,
+    metadata?: Partial<InsightMetadata>
+  ): Promise<number | string> {
     const result = await this.underlying.addGlobalLesson(lesson, metadata);
 
     // Invalidate all global lessons caches (different limits)
@@ -248,7 +251,7 @@ export class CachedMemory implements IMemory {
     category: InsightCategory | string,
     content: string,
     metadata?: Partial<InsightMetadata>
-  ): Promise<number> {
+  ): Promise<number | string> {
     const result = await this.underlying.addMemory(scopeId, category, content, metadata);
 
     // Invalidate search caches that might be affected
@@ -361,7 +364,7 @@ export class CachedMemory implements IMemory {
 
   async updateInsightMetadata(
     userId: string,
-    timestamp: number,
+    timestamp: number | string,
     metadata: Partial<InsightMetadata>
   ): Promise<void> {
     await this.underlying.updateInsightMetadata(userId, timestamp, metadata);
@@ -370,7 +373,7 @@ export class CachedMemory implements IMemory {
 
   async refineMemory(
     userId: string,
-    timestamp: number,
+    timestamp: number | string,
     content?: string,
     metadata?: Partial<InsightMetadata>
   ): Promise<void> {
@@ -411,7 +414,7 @@ export class CachedMemory implements IMemory {
     return this.underlying.getRegisteredMemoryTypes();
   }
 
-  async recordMemoryHit(userId: string, timestamp: number): Promise<void> {
+  async recordMemoryHit(userId: string, timestamp: number | string): Promise<void> {
     await this.underlying.recordMemoryHit(userId, timestamp);
   }
 
@@ -539,7 +542,7 @@ export class CachedMemory implements IMemory {
     scopeId: string,
     content: string,
     metadata?: Partial<InsightMetadata>
-  ): Promise<number> {
+  ): Promise<number | string> {
     const result = await this.underlying.recordFailurePattern(scopeId, content, metadata);
     MemoryCaches.search.invalidatePattern(/^insights:/);
     return result;
@@ -581,7 +584,7 @@ export class CachedMemory implements IMemory {
     gapIds: string[],
     failureReason: string,
     metadata?: Partial<InsightMetadata>
-  ): Promise<number> {
+  ): Promise<number | string> {
     const result = await this.underlying.recordFailedPlan(
       planHash,
       planContent,

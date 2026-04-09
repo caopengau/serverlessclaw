@@ -15,7 +15,7 @@ import { revalidatePath } from 'next/cache';
  */
 export async function deleteMemoryItem(
   userId: string,
-  timestamp: number,
+  timestamp: number | string,
   revalidatePathString: string
 ): Promise<void> {
   try {

@@ -14,9 +14,11 @@ async function getGaps(): Promise<GapItem[]> {
   try {
     const memory = new DynamoMemory();
     const items = await memory.listByPrefix('GAP#');
-    return ((items as unknown as GapItem[]) ?? []).sort(
-      (a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0)
-    );
+    return ((items as unknown as GapItem[]) ?? []).sort((a, b) => {
+      const aTs = typeof a.timestamp === 'string' ? parseInt(a.timestamp, 10) : (a.timestamp ?? 0);
+      const bTs = typeof b.timestamp === 'string' ? parseInt(b.timestamp, 10) : (b.timestamp ?? 0);
+      return bTs - aTs;
+    });
   } catch (e) {
     console.error('Error fetching gaps:', e);
     return [];
@@ -35,7 +37,7 @@ async function updateStatus(gapId: string, status: string) {
   }
 }
 
-async function pruneGap(gapId: string, timestamp: number) {
+async function pruneGap(gapId: string, timestamp: number | string) {
   'use server';
   try {
     await deleteMemoryItem(gapId, timestamp, '/pipeline');

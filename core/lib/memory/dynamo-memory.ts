@@ -108,7 +108,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
     category: InsightCategory | string,
     content: string,
     metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] }
-  ): Promise<number> {
+  ): Promise<number | string> {
     return InsightOps.addMemory(this, scopeId, category, content, metadata);
   }
 
@@ -141,7 +141,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
    */
   async updateInsightMetadata(
     userId: string,
-    timestamp: number,
+    timestamp: number | string,
     metadata: Partial<InsightMetadata>
   ): Promise<void> {
     return InsightOps.updateInsightMetadata(this, userId, timestamp, metadata);
@@ -152,7 +152,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
    */
   async refineMemory(
     userId: string,
-    timestamp: number,
+    timestamp: number | string,
     content?: string,
     metadata?: Partial<InsightMetadata> & { tags?: string[] }
   ): Promise<void> {
@@ -205,7 +205,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   /**
    * Atomically increments the hit count and updates the lastAccessed timestamp for a memory item.
    */
-  async recordMemoryHit(userId: string, timestamp: number): Promise<void> {
+  async recordMemoryHit(userId: string, timestamp: number | string): Promise<void> {
     return InsightOps.recordMemoryHit(this, userId, timestamp);
   }
 
@@ -334,7 +334,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
     scopeId: string,
     content: string,
     metadata?: Partial<InsightMetadata>
-  ): Promise<number> {
+  ): Promise<number | string> {
     return InsightOps.recordFailurePattern(this, scopeId, content, metadata);
   }
 
@@ -393,7 +393,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
     gapIds: string[],
     failureReason: string,
     metadata?: Partial<InsightMetadata>
-  ): Promise<number> {
+  ): Promise<number | string> {
     return InsightOps.recordFailedPlan(
       this,
       planHash,
@@ -414,7 +414,10 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   /**
    * Adds a system-wide lesson that benefits ALL users and sessions.
    */
-  async addGlobalLesson(lesson: string, metadata?: Partial<InsightMetadata>): Promise<number> {
+  async addGlobalLesson(
+    lesson: string,
+    metadata?: Partial<InsightMetadata>
+  ): Promise<number | string> {
     return InsightOps.addGlobalLesson(this, lesson, metadata);
   }
 

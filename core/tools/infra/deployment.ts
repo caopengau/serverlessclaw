@@ -267,7 +267,11 @@ export const triggerDeployment = {
           const gap = allKnownGaps.find((g) => g.id === normalizedGapId || g.id === gapId);
           if (gap && gap.metadata.retryCount && gap.metadata.retryCount > 0) {
             const backoffTime = Math.pow(2, gap.metadata.retryCount) * 15 * 60 * 1000;
-            const lastAttempt = gap.metadata.lastAttemptTime ?? gap.timestamp;
+            const rawLastAttempt = gap.metadata.lastAttemptTime ?? gap.timestamp;
+            const lastAttempt =
+              typeof rawLastAttempt === 'string'
+                ? parseInt(rawLastAttempt, 10)
+                : (rawLastAttempt as number);
             if (Date.now() - lastAttempt < backoffTime) {
               return `BACKOFF_ACTIVE: Gap ${gapId} is in exponential backoff. Next attempt allowed in ${Math.round((backoffTime - (Date.now() - lastAttempt)) / 60000)} minutes.`;
             }

@@ -96,7 +96,7 @@ describe('DynamoMemory Retention', () => {
         TableName: 'test-memory-table',
         Key: {
           userId: `GAP#${timestamp}`,
-          timestamp: timestamp,
+          timestamp: String(timestamp),
         },
         UpdateExpression: 'SET #status = :status, updatedAt = :now',
         ConditionExpression: 'attribute_exists(userId) AND #status = :expectedStatus',
@@ -428,7 +428,7 @@ describe('DynamoMemory Delegation Tests', () => {
         'memory content'
       );
 
-      expect(result).toBeGreaterThan(0);
+      expect(typeof result).toBe('string');
     });
 
     it('should delegate searchInsights to InsightOps', async () => {
@@ -511,7 +511,7 @@ describe('DynamoMemory Delegation Tests', () => {
 
       const result = await memory.recordFailurePattern('user-1', 'timeout error');
 
-      expect(result).toBeGreaterThan(0);
+      expect(typeof result).toBe('string');
     });
 
     it('should delegate getFailurePatterns to InsightOps', async () => {
@@ -542,7 +542,7 @@ describe('DynamoMemory Delegation Tests', () => {
         'failed reason'
       );
 
-      expect(result).toBeGreaterThan(0);
+      expect(typeof result).toBe('string');
       const calls = ddbMock.commandCalls(PutCommand);
       expect(calls).toHaveLength(1);
     });
@@ -574,7 +574,7 @@ describe('DynamoMemory Delegation Tests', () => {
 
       const result = await memory.addGlobalLesson('global lesson');
 
-      expect(result).toBeGreaterThan(0);
+      expect(typeof result).toBe('string');
     });
 
     it('should delegate getGlobalLessons to InsightOps', async () => {

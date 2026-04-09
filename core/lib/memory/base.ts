@@ -59,8 +59,8 @@ export class BaseMemoryProvider {
       TableName: this.tableName,
       Item: {
         ...item,
-        attachments: (item.attachments as any[]) ?? [],
-        tool_calls: (item.tool_calls as any[]) ?? [],
+        attachments: (item.attachments as unknown[]) ?? [],
+        tool_calls: (item.tool_calls as unknown[]) ?? [],
       },
     });
     try {
@@ -117,7 +117,7 @@ export class BaseMemoryProvider {
   public async deleteItem(
     params: {
       userId: string;
-      timestamp: number;
+      timestamp: number | string;
     } & Partial<
       Pick<
         import('@aws-sdk/lib-dynamodb').DeleteCommandInput,
@@ -217,7 +217,7 @@ export class BaseMemoryProvider {
       content: (item.content as string) ?? '',
       thought: item.thought as string | undefined,
       tool_calls: (item.tool_calls as import('./../types/llm').ToolCall[] | undefined) ?? [],
-      attachments: (item.attachments as any[] | undefined) ?? [],
+      attachments: (item.attachments as import('./../types/agent').Attachment[] | undefined) ?? [],
       tool_call_id: item.tool_call_id as string | undefined,
       name: item.name as string | undefined,
       agentName: item.agentName as string | undefined,
@@ -317,7 +317,7 @@ export class BaseMemoryProvider {
       sessionId: item.sessionId as string,
       title: item.title as string,
       lastMessage: item.content as string,
-      updatedAt: item.timestamp as number,
+      updatedAt: item.timestamp as number | string,
       isPinned: !!item.isPinned,
       expiresAt: item.expiresAt as number | undefined,
     }));

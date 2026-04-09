@@ -81,7 +81,7 @@ export async function createCollaboration(
   );
   await base.putItem({
     userId: `${COLLAB_PREFIX}${collaborationId}`,
-    timestamp: 0,
+    timestamp: '0',
     type: 'COLLABORATION',
     expiresAt: collaboration.expiresAt ? Math.floor(collaboration.expiresAt / 1000) : ttlExpiresAt,
     ...collaboration,
@@ -91,7 +91,7 @@ export async function createCollaboration(
   for (const participant of participants) {
     await base.putItem({
       userId: `${COLLAB_INDEX_PREFIX}${participant.type}#${participant.id}`,
-      timestamp: now,
+      timestamp: String(now),
       type: 'COLLABORATION_INDEX',
       collaborationId,
       role: participant.role,
@@ -146,7 +146,7 @@ export async function addCollaborationParticipant(
   // Update collaboration
   await base.putItem({
     userId: `${COLLAB_PREFIX}${collaborationId}`,
-    timestamp: 0,
+    timestamp: '0',
     type: 'COLLABORATION',
     ...collaboration,
   });
@@ -154,7 +154,7 @@ export async function addCollaborationParticipant(
   // Add index entry for new participant
   await base.putItem({
     userId: `${COLLAB_INDEX_PREFIX}${newParticipant.type}#${newParticipant.id}`,
-    timestamp: now,
+    timestamp: String(now),
     type: 'COLLABORATION_INDEX',
     collaborationId,
     role: newParticipant.role,
@@ -179,7 +179,7 @@ export async function getCollaboration(
     ExpressionAttributeNames: { '#timestamp': 'timestamp' },
     ExpressionAttributeValues: {
       ':userId': `${COLLAB_PREFIX}${collaborationId}`,
-      ':zero': 0,
+      ':zero': '0',
     },
   });
 
@@ -272,7 +272,7 @@ export async function closeCollaboration(
 
   await base.putItem({
     userId: `${COLLAB_PREFIX}${collaborationId}`,
-    timestamp: 0,
+    timestamp: '0',
     type: 'COLLABORATION',
     ...collaboration,
   });
@@ -295,7 +295,7 @@ export async function updateCollaborationActivity(
 
   await base.putItem({
     userId: `${COLLAB_PREFIX}${collaborationId}`,
-    timestamp: 0,
+    timestamp: '0',
     type: 'COLLABORATION',
     ...collaboration,
   });

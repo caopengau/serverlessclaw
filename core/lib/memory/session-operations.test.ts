@@ -202,7 +202,7 @@ describe('session-operations', () => {
         expect.objectContaining({
           Key: {
             userId: 'SESSIONS#user123',
-            timestamp: 1711000000000,
+            timestamp: '1711000000000',
           },
         })
       );
@@ -216,7 +216,7 @@ describe('session-operations', () => {
         expect.objectContaining({
           Key: {
             userId: 'SESSIONS#user123',
-            timestamp: expect.any(Number),
+            timestamp: '10241265185405767486',
           },
         })
       );
@@ -229,7 +229,7 @@ describe('session-operations', () => {
       const secondCall = (mockBase.updateItem as any).mock.calls[0][0].Key.timestamp;
 
       expect(firstCall).toBe(secondCall);
-      expect(firstCall).toBeGreaterThan(0);
+      expect(typeof firstCall).toBe('string');
     });
   });
 

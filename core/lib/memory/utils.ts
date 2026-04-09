@@ -42,12 +42,14 @@ export function normalizeTags(tags?: string[]): string[] {
  */
 export function createMetadata(
   overrides?: Partial<InsightMetadata>,
-  timestamp: number = Date.now()
+  timestamp: number | string = Date.now()
 ): InsightMetadata {
   return {
     ...DEFAULT_INSIGHT_METADATA,
     hitCount: overrides?.hitCount ?? 0,
-    lastAccessed: overrides?.lastAccessed ?? timestamp,
+    lastAccessed:
+      overrides?.lastAccessed ??
+      (typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp),
     ...(overrides ?? {}),
   } as InsightMetadata;
 }
@@ -118,7 +120,7 @@ export async function getRegisteredMemoryTypes(base: BaseMemoryProvider): Promis
     },
     ExpressionAttributeValues: {
       ':userId': 'SYSTEM#REGISTRY',
-      ':ts': 0,
+      ':ts': '0',
     },
   });
 
@@ -255,14 +257,16 @@ export async function queryByTypeAndMap(
   return items.map((item) => ({
     id: item.userId as string,
     content: item.content as string,
-    timestamp: item.timestamp as number,
+    timestamp: item.timestamp as number | string,
     createdAt:
       (item.createdAt as number) ??
       (item.metadata as { createdAt?: number } | undefined)?.createdAt ??
-      (item.timestamp as number),
+      (typeof item.timestamp === 'string'
+        ? parseInt(item.timestamp, 10)
+        : (item.timestamp as number)),
     metadata: createMetadata(
       (item.metadata as Partial<InsightMetadata>) ?? { category: defaultCategory },
-      item.timestamp as number
+      item.timestamp as number | string
     ),
   }));
 }
@@ -299,10 +303,9 @@ export function getGapIdPK(gapId: string): string {
  * @param gapId - The gap ID.
  * @returns The numeric timestamp or 0.
  */
-export function getGapTimestamp(gapId: string): number {
+export function getGapTimestamp(gapId: string): string {
   const normalized = normalizeGapId(gapId);
   const numericMatch = normalized.match(/(\d+)$/);
-  if (!numericMatch) return 0;
-  const parsed = parseInt(numericMatch[1], 10);
-  return isNaN(parsed) ? 0 : parsed;
+  if (!numericMatch) return '0';
+  return numericMatch[1];
 }

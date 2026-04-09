@@ -63,7 +63,7 @@ export interface MemoryInsight {
   /** Strategic and operational metadata. */
   metadata: InsightMetadata;
   /** Timestamp (Unix epoch) when the insight was first recorded or last updated. */
-  timestamp: number;
+  timestamp: number | string;
   /** Organizational scope for the insight. */
   orgId?: string;
   /** User-specific scope within the organization. */
@@ -79,7 +79,7 @@ export interface MemoryInsight {
  */
 export interface GapItem {
   userId: string;
-  timestamp: number;
+  timestamp: number | string;
   createdAt?: number;
   content: string;
   status: GapStatus;
@@ -100,7 +100,7 @@ export interface ConversationMeta {
   /** Snippet or full text of the last message in the conversation. */
   lastMessage: string;
   /** Timestamp (Unix epoch) of the last message. */
-  updatedAt: number;
+  updatedAt: number | string;
   /** Whether the session is pinned to the top. */
   isPinned?: boolean;
   /** Optional expiration timestamp (Unix epoch). */
@@ -154,11 +154,11 @@ export interface IKnowledgeStore {
     scopeId: string,
     content: string,
     metadata?: Partial<InsightMetadata>
-  ): Promise<number>;
+  ): Promise<number | string>;
   /** Retrieves failure patterns relevant to the given context. */
   getFailurePatterns(scopeId: string, context?: string, limit?: number): Promise<MemoryInsight[]>;
   /** Adds a system-wide lesson that benefits ALL users and sessions. */
-  addGlobalLesson(lesson: string, metadata?: Partial<InsightMetadata>): Promise<number>;
+  addGlobalLesson(lesson: string, metadata?: Partial<InsightMetadata>): Promise<number | string>;
   /** Retrieves system-wide lessons for injection into agent prompts. */
   getGlobalLessons(limit?: number): Promise<string[]>;
   /** Retrieves low-utilization memory items for pruning or auditing. */
@@ -166,7 +166,7 @@ export interface IKnowledgeStore {
   /** Refines an existing memory item by updating its content or metadata. */
   refineMemory(
     userId: string,
-    timestamp: number,
+    timestamp: number | string,
     content?: string,
     metadata?: Partial<InsightMetadata> & { tags?: string[] }
   ): Promise<void>;
@@ -203,7 +203,7 @@ export interface IGapManager {
     gapIds: string[],
     failureReason: string,
     metadata?: Partial<InsightMetadata>
-  ): Promise<number>;
+  ): Promise<number | string>;
   /** Retrieves previously failed plans to inform the planner about what NOT to do. */
   getFailedPlans(limit?: number): Promise<MemoryInsight[]>;
 }
@@ -230,12 +230,12 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
     category: InsightCategory | string,
     content: string,
     metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] }
-  ): Promise<number>;
+  ): Promise<number | string>;
 
   /** Updates the metadata (priority, impact, etc.) for a specific recorded insight. */
   updateInsightMetadata(
     userId: string,
-    timestamp: number,
+    timestamp: number | string,
     metadata: Partial<InsightMetadata>
   ): Promise<void>;
 
@@ -332,7 +332,7 @@ export enum ClarificationStatus {
 
 export interface ClarificationState {
   userId: string;
-  timestamp: number;
+  timestamp: number | string;
   type: 'CLARIFICATION_PENDING';
   agentId: string;
   initiatorId: string;

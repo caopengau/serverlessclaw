@@ -263,7 +263,7 @@ describe('research-handler', () => {
         metadata: {},
         traceId: 'trace-1',
         initiatorId: AgentType.RESEARCHER,
-        depth: 5,
+        depth: 15,
         sessionId: 'session-1',
       };
 

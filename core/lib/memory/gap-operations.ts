@@ -79,7 +79,11 @@ export async function archiveStaleGaps(
   });
 
   const staleGaps = items.filter(
-    (item) => item.timestamp && (item.timestamp as number) < cutoffTime
+    (item) =>
+      item.timestamp &&
+      (typeof item.timestamp === 'string'
+        ? parseInt(item.timestamp, 10)
+        : (item.timestamp as number)) < cutoffTime
   );
 
   let archived = 0;
@@ -160,7 +164,7 @@ export async function getGap(
   const sk = getGapTimestamp(normalizedId);
 
   // 1. Try targeted lookup if we have a valid timestamp
-  if (sk > 0) {
+  if (sk !== '0') {
     try {
       const items = await base.queryItems({
         KeyConditionExpression: 'userId = :pk AND #ts = :ts',
@@ -170,7 +174,7 @@ export async function getGap(
       if (items.length > 0) {
         return {
           id: items[0].userId as string,
-          timestamp: items[0].timestamp as number,
+          timestamp: items[0].timestamp as number | string,
           content: items[0].content as string,
           metadata: (items[0].metadata as InsightMetadata) || {},
         };
@@ -316,7 +320,7 @@ export async function updateGapStatus(
   }
 
   // Strategy 2: If primary key fails, search and retry exactly ONCE with specific timestamp
-  if (gapTimestamp === 0) {
+  if (gapTimestamp === '0') {
     const allStatuses = Object.values(GapStatus);
     let found = false;
     for (const s of allStatuses) {
@@ -411,7 +415,7 @@ export async function acquireGapLock(
     await base.updateItem({
       Key: {
         userId: lockKey,
-        timestamp: 0,
+        timestamp: '0',
       },
       UpdateExpression:
         'SET #tp = :type, #content = :agentId, #status = :locked, expiresAt = :exp, acquiredAt = :now',
@@ -460,7 +464,7 @@ export async function releaseGapLock(
     // Only delete if we are the owner
     await base.deleteItem({
       userId: lockKey,
-      timestamp: 0,
+      timestamp: '0',
       ConditionExpression: '#content = :agentId',
       ExpressionAttributeNames: {
         '#content': 'agentId',
@@ -500,7 +504,7 @@ export async function getGapLock(
       },
       ExpressionAttributeValues: {
         ':lockKey': lockKey,
-        ':zero': 0,
+        ':zero': '0',
       },
     });
     if (items.length === 0) return null;
@@ -554,7 +558,7 @@ export async function assignGapToTrack(
 
   await base.putItem({
     userId: `${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`,
-    timestamp: 0,
+    timestamp: '0',
     type: 'TRACK_ASSIGNMENT',
     gapId: normalizedId,
     track,
@@ -581,7 +585,7 @@ export async function getGapTrack(
       ExpressionAttributeNames: { '#ts': 'timestamp' },
       ExpressionAttributeValues: {
         ':pk': `${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`,
-        ':zero': 0,
+        ':zero': '0',
       },
     });
 

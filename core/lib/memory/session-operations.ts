@@ -128,24 +128,25 @@ export async function saveConversationMeta(
   // If we want it to be unique per sessionId, we should use sessionId as the sort key (timestamp).
 
   // Convert sessionId to a numeric-ish value if it's a timestamp, otherwise use 64-bit FNV-1a hash
-  let stableTimestamp = Number.parseInt(sessionId.split('_')[1] || sessionId, 10);
-  if (Number.isNaN(stableTimestamp)) {
+  let stableSortKey: string;
+  const parsedTimestamp = Number.parseInt(sessionId.split('_')[1] || sessionId, 10);
+  if (!Number.isNaN(parsedTimestamp)) {
+    stableSortKey = String(parsedTimestamp);
+  } else {
     // 1.6 Use FNV-1a 64-bit for Session Hash to minimize collisions
     let h: bigint = BigInt('0xcbf29ce484222325');
     for (let i = 0; i < sessionId.length; i++) {
       h ^= BigInt(sessionId.charCodeAt(i));
       h = (h * BigInt('0x100000001b3')) & BigInt('0xffffffffffffffff');
     }
-    // DynamoDB number allows up to 38 digits, but we'll use string-based BigInt for safety
-    // or just convert to number if it fits in 53 bits (BigInt(Number.MAX_SAFE_INTEGER))
-    // For SK (timestamp), we'll use the absolute BigInt value.
-    stableTimestamp = Number(h & 0x1fffffffffffffn); // Use 53 bits for Number safety in JS
+    // Use full 64-bit hash as string for Sort Key to eliminate collision risk in DynamoDB String Sort Key
+    stableSortKey = h.toString();
   }
 
   await base.updateItem({
     Key: {
       userId: `SESSIONS#${normalizedUserId}`,
-      timestamp: Math.abs(stableTimestamp),
+      timestamp: stableSortKey,
     },
     UpdateExpression:
       'SET sessionId = :sessionId, #tp = :type, expiresAt = :exp, title = :title, content = :content, isPinned = :pinned, updatedAt = :now',

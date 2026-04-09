@@ -40,7 +40,9 @@ export function ChatSidebar({
     .sort((a, b) => {
       if (a.isPinned && !b.isPinned) return -1;
       if (!a.isPinned && b.isPinned) return 1;
-      return b.updatedAt - a.updatedAt;
+      const bTime = typeof b.updatedAt === 'string' ? parseInt(b.updatedAt, 10) : b.updatedAt;
+      const aTime = typeof a.updatedAt === 'string' ? parseInt(a.updatedAt, 10) : a.updatedAt;
+      return bTime - aTime;
     });
 
   const getExpiryText = (expiresAt?: number) => {

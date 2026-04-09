@@ -79,8 +79,10 @@ Once the research is complete, we will implement the new login module using the 
       'superclaw',
       EventType.PARALLEL_TASK_DISPATCH,
       expect.objectContaining({
-        depth: 1,
-        tasks: expect.arrayContaining([expect.objectContaining({ agentId: AgentType.CODER })]),
+        tasks: expect.arrayContaining([
+          expect.objectContaining({ agentId: AgentType.RESEARCHER }),
+          expect.objectContaining({ agentId: AgentType.CODER }),
+        ]),
       })
     );
   });

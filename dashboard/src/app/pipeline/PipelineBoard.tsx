@@ -24,7 +24,7 @@ import GapRefinementPanel from './GapRefinementPanel';
 interface PipelineBoardProps {
   initialGaps: GapItem[];
   updateStatus: (gapId: string, status: string) => Promise<void>;
-  pruneGap: (gapId: string, timestamp: number) => Promise<void>;
+  pruneGap: (gapId: string, timestamp: number | string) => Promise<void>;
   triggerBatchEvolution: (gapIds: string[]) => Promise<void>;
 }
 
@@ -68,7 +68,7 @@ export default function PipelineBoard({
     }
   };
 
-  const handlePrune = async (gapId: string, timestamp: number) => {
+  const handlePrune = async (gapId: string, timestamp: number | string) => {
     // eslint-disable-next-line no-alert
     if (!confirm('Are you sure you want to delete this gap? This action cannot be undone.')) return;
     setProcessing(gapId);

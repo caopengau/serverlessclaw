@@ -79,7 +79,7 @@ async function addRecord(
   category: InsightCategory | string,
   content: string,
   metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] }
-): Promise<number> {
+): Promise<number | string> {
   const { expiresAt } = await RetentionManager.getExpiresAt(baseCategory, scopeId);
   const scrubbedContent = filterPII(content ?? '');
   const fullType = `MEMORY:${category.toString().toUpperCase()}`;
@@ -97,12 +97,12 @@ async function addRecord(
     return existing.timestamp;
   }
 
-  const timestamp = Date.now();
+  const timestamp = String(Date.now());
 
   // 2. Register usage type
   try {
     await base.updateItem({
-      Key: { userId: 'SYSTEM#REGISTRY', timestamp: 0 },
+      Key: { userId: 'SYSTEM#REGISTRY', timestamp: '0' },
       UpdateExpression: 'ADD activeTypes :type',
       ExpressionAttributeValues: { ':type': new Set([fullType]) },
     });
@@ -132,7 +132,7 @@ async function addRecord(
 export async function recordMemoryHit(
   base: BaseMemoryProvider,
   userId: string,
-  timestamp: number
+  timestamp: number | string
 ): Promise<void> {
   try {
     await base.updateItem({
@@ -157,14 +157,14 @@ export async function addLesson(
   metadata?: Partial<InsightMetadata> & { tags?: string[] }
 ): Promise<void> {
   const { expiresAt } = await RetentionManager.getExpiresAt('MEMORY', userId);
-  const timestamp = Date.now();
+  const timestamp = String(Date.now());
   await base.putItem({
     userId,
     timestamp,
     type: 'MEMORY:TACTICAL_LESSON',
     tags: normalizeTags(metadata?.tags),
     content: filterPII(lesson),
-    createdAt: timestamp,
+    createdAt: parseInt(timestamp, 10),
     expiresAt,
     metadata: createMetadata(metadata, timestamp),
   });
@@ -184,15 +184,15 @@ export async function addGlobalLesson(
   base: BaseMemoryProvider,
   lesson: string,
   metadata?: Partial<InsightMetadata> & { tags?: string[] }
-): Promise<number> {
-  const timestamp = Date.now();
+): Promise<number | string> {
+  const timestamp = String(Date.now());
   await base.putItem({
     userId: 'SYSTEM#GLOBAL',
     timestamp,
     type: 'MEMORY:SYSTEM_LESSON',
     tags: normalizeTags(metadata?.tags),
     content: filterPII(lesson),
-    createdAt: timestamp,
+    createdAt: parseInt(timestamp, 10),
     metadata: createMetadata(metadata, timestamp),
   });
   return timestamp;
@@ -217,7 +217,7 @@ export async function addMemory(
   category: InsightCategory | string,
   content: string,
   metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] }
-): Promise<number> {
+): Promise<number | string> {
   return addRecord(base, 'MEMORY', scopeId, category, content, metadata);
 }
 
@@ -343,7 +343,7 @@ export async function searchInsights(
  */
 function mapToInsights(items: Record<string, unknown>[]): MemoryInsight[] {
   return items.map((item) => {
-    const timestamp = (item.timestamp as number) || Date.now();
+    const timestamp = (item.timestamp as number | string) || Date.now();
     const metadataRaw = (item.metadata as Partial<InsightMetadata>) || {};
 
     const tags =
@@ -358,7 +358,7 @@ function mapToInsights(items: Record<string, unknown>[]): MemoryInsight[] {
       | undefined;
     const createdAt = ((item.createdAt as number) ||
       (metadataRaw as Record<string, unknown>).createdAt ||
-      timestamp) as number;
+      (typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp)) as number;
 
     return {
       id: (item.id || item.userId) as string,
@@ -379,7 +379,7 @@ function mapToInsights(items: Record<string, unknown>[]): MemoryInsight[] {
 export async function updateInsightMetadata(
   base: BaseMemoryProvider,
   userId: string,
-  timestamp: number,
+  timestamp: number | string,
   metadata: Partial<InsightMetadata>
 ): Promise<void> {
   const items = await base.queryItems({
@@ -412,15 +412,25 @@ export async function getLowUtilizationMemory(
 
   const staleItems = results.flat().filter((item) => {
     const meta = item.metadata as InsightMetadata;
+    const itemTimestamp =
+      typeof item.timestamp === 'string'
+        ? parseInt(item.timestamp, 10)
+        : (item.timestamp as number);
     return (
       meta &&
       (meta.hitCount || 0) === 0 &&
-      now - (meta.lastAccessed || (item.timestamp as number) || now) > STALE_THRESHOLD
+      now - (meta.lastAccessed || itemTimestamp || now) > STALE_THRESHOLD
     );
   });
 
   return staleItems
-    .sort((a, b) => (a.timestamp as number) - (b.timestamp as number))
+    .sort((a, b) => {
+      const aTs =
+        typeof a.timestamp === 'string' ? parseInt(a.timestamp, 10) : (a.timestamp as number);
+      const bTs =
+        typeof b.timestamp === 'string' ? parseInt(b.timestamp, 10) : (b.timestamp as number);
+      return aTs - bTs;
+    })
     .slice(0, limit);
 }
 
@@ -432,7 +442,7 @@ export async function recordFailurePattern(
   scopeId: string,
   content: string,
   metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] }
-): Promise<number> {
+): Promise<number | string> {
   return addMemory(base, scopeId, InsightCategory.FAILURE_PATTERN, content, metadata);
 }
 
@@ -472,8 +482,8 @@ export async function recordFailedPlan(
   gapIds: string[],
   failureReason: string,
   metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] }
-): Promise<number> {
-  const timestamp = Date.now();
+): Promise<number | string> {
+  const timestamp = String(Date.now());
   const content = JSON.stringify({ planHash, planContent, gapIds, failureReason });
 
   await base.putItem({
@@ -482,7 +492,7 @@ export async function recordFailedPlan(
     type: 'MEMORY:FAILURE_PATTERN',
     tags: normalizeTags(['failed_plan', ...(metadata?.tags ?? [])]),
     content,
-    createdAt: timestamp,
+    createdAt: parseInt(timestamp, 10),
     metadata: createMetadata(metadata, timestamp),
   });
   return timestamp;
@@ -511,7 +521,7 @@ export async function getFailedPlans(
 export async function refineMemory(
   base: BaseMemoryProvider,
   userId: string,
-  timestamp: number,
+  timestamp: number | string,
   content?: string,
   metadata?: Partial<InsightMetadata> & { tags?: string[] }
 ): Promise<void> {
