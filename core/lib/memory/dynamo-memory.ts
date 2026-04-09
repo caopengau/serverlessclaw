@@ -359,14 +359,21 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   /**
    * Releases a gap lock after work is complete.
    */
-  async releaseGapLock(gapId: string, agentId: string): Promise<void> {
-    return GapOps.releaseGapLock(this, gapId, agentId);
+  async releaseGapLock(
+    gapId: string,
+    agentId: string,
+    expectedVersion?: number,
+    force?: boolean
+  ): Promise<void> {
+    return GapOps.releaseGapLock(this, gapId, agentId, expectedVersion, force);
   }
 
   /**
    * Checks if a gap is currently locked and returns the lock holder info.
    */
-  async getGapLock(gapId: string): Promise<{ content: string; expiresAt: number } | null> {
+  async getGapLock(
+    gapId: string
+  ): Promise<{ content: string; expiresAt: number; lockVersion?: number } | null> {
     return GapOps.getGapLock(this, gapId);
   }
 

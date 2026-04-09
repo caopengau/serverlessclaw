@@ -412,13 +412,15 @@ export async function acquireGapLock(
   try {
     // Atomic update to acquire lock if not exists or expired
     // We use timestamp: 0 for all locks to make deletion reliable
+    // Use lockVersion for atomic release verification
+    const lockVersion = Date.now();
     await base.updateItem({
       Key: {
         userId: lockKey,
         timestamp: '0',
       },
       UpdateExpression:
-        'SET #tp = :type, #content = :agentId, #status = :locked, expiresAt = :exp, acquiredAt = :now',
+        'SET #tp = :type, #content = :agentId, #status = :locked, expiresAt = :exp, acquiredAt = :now, lockVersion = :version',
       ConditionExpression: 'attribute_not_exists(userId) OR expiresAt < :nowSec',
       ExpressionAttributeNames: {
         '#tp': 'type',
@@ -432,9 +434,10 @@ export async function acquireGapLock(
         ':exp': expiresAt,
         ':now': now,
         ':nowSec': Math.floor(now / 1000),
+        ':version': lockVersion,
       },
     });
-    logger.info(`Gap lock acquired: ${gapId} by ${agentId}`);
+    logger.info(`Gap lock acquired: ${gapId} by ${agentId} (version: ${lockVersion})`);
     return true;
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
@@ -452,31 +455,50 @@ export async function acquireGapLock(
  * @param base - The base memory provider instance.
  * @param gapId - The gap ID to unlock.
  * @param agentId - The agent releasing the lock (must match the lock holder).
+ * @param expectedVersion - Optional version for atomic release verification (from acquireGapLock return).
+ * @param force - If true, bypasses ownership check (for admin override).
  */
 export async function releaseGapLock(
   base: BaseMemoryProvider,
   gapId: string,
-  agentId: string
+  agentId: string,
+  expectedVersion?: number,
+  force: boolean = false
 ): Promise<void> {
   const normalizedGapId = normalizeGapId(gapId);
   const lockKey = `${MEMORY_KEYS.GAP_LOCK_PREFIX}${normalizedGapId}`;
+
+  // Build condition: must own the lock (and version match if provided)
+  let conditionExpr = force ? 'attribute_exists(userId)' : '#content = :agentId';
+  const exprNames: Record<string, string> = {
+    '#content': 'agentId',
+  };
+  const exprValues: Record<string, unknown> = {
+    ':agentId': agentId,
+  };
+
+  if (expectedVersion !== undefined && !force) {
+    conditionExpr += ' AND lockVersion = :version';
+    exprValues[':version'] = expectedVersion;
+  }
+
   try {
-    // Only delete if we are the owner
+    // Only delete if we are the owner (and version matches if specified)
     await base.deleteItem({
       userId: lockKey,
       timestamp: '0',
-      ConditionExpression: '#content = :agentId',
-      ExpressionAttributeNames: {
-        '#content': 'agentId',
-      },
-      ExpressionAttributeValues: {
-        ':agentId': agentId,
-      },
+      ConditionExpression: conditionExpr,
+      ExpressionAttributeNames: exprNames,
+      ExpressionAttributeValues: exprValues,
     });
-    logger.info(`Gap lock released: ${gapId} by ${agentId}`);
+    logger.info(
+      `Gap lock released: ${gapId} by ${agentId}${expectedVersion ? ` (version: ${expectedVersion})` : ''}`
+    );
   } catch (e: unknown) {
     if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
-      logger.warn(`Failed to release gap lock for ${gapId}: not owned by ${agentId}`);
+      logger.warn(
+        `Failed to release gap lock for ${gapId}: not owned by ${agentId}${expectedVersion ? ` (version mismatch: ${expectedVersion})` : ''}`
+      );
     } else {
       logger.warn(`Failed to release gap lock for ${gapId}:`, e);
     }
@@ -493,7 +515,7 @@ export async function releaseGapLock(
 export async function getGapLock(
   base: BaseMemoryProvider,
   gapId: string
-): Promise<{ content: string; expiresAt: number } | null> {
+): Promise<{ content: string; expiresAt: number; lockVersion?: number } | null> {
   const normalizedGapId = normalizeGapId(gapId);
   const lockKey = `${MEMORY_KEYS.GAP_LOCK_PREFIX}${normalizedGapId}`;
   try {
@@ -515,6 +537,7 @@ export async function getGapLock(
     return {
       content: lock.agentId as string,
       expiresAt: (lock.expiresAt as number) ?? 0,
+      lockVersion: lock.lockVersion as number | undefined,
     };
   } catch (error) {
     logger.error('Failed to check gap lock (fail-closed):', error);

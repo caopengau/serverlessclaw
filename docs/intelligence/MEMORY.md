@@ -62,7 +62,7 @@ Serverless Claw uses a tiered, evolutionary memory system designed to provide co
 |  - Purpose: Permanent identity, tactical lessons, strategic roadmaps,|
 |    concurrency control for evolution, and anti-pattern learning.     |
 |                                                                     |
-|  [ TIER 2: HUMAN CONVERSATION ] -------> Retain: 7 Days             |
+|  [ TIER 2: HUMAN CONVERSATION ] -------> Retain: 30 Days            |
 |  - Key: CONV# / SESSIONS# (90d) / SUMMARY# (30d)                    |
 |  - Purpose: Recent user chat history and session metadata.           |
 |                                                                     |
@@ -142,7 +142,7 @@ Serverless Claw implements an automatic, tiered data lifecycle using DynamoDB TT
 | Tier             | Retention       | Category    | Purpose                                                     |
 | :--------------- | :-------------- | :---------- | :---------------------------------------------------------- |
 | **Intelligence** | **90-730 Days** | Strategic   | Lessons (90d), Facts (365d), Gaps (730d), Reputation (365d) |
-| **Conversation** | **7 Days**      | Operational | Human chat history, Sessions (90d), Summaries (30d)         |
+| **Conversation** | **30 Days**     | Operational | Human chat history, Sessions (90d), Summaries (30d)         |
 | **Agent Traces** | **30 Days**     | Mechanical  | Background agent loops                                      |
 | **System Logs**  | **1 Day**       | Volatile    | Recovery, signals, handoffs, Health (7d)                    |
 

@@ -189,9 +189,16 @@ export interface IGapManager {
   /** Acquires a lock on a gap to prevent concurrent modification by multiple agents. */
   acquireGapLock(gapId: string, agentId: string, ttlMs?: number): Promise<boolean>;
   /** Releases a gap lock after work is complete. */
-  releaseGapLock(gapId: string, agentId: string): Promise<void>;
+  releaseGapLock(
+    gapId: string,
+    agentId: string,
+    expectedVersion?: number,
+    force?: boolean
+  ): Promise<void>;
   /** Checks if a gap is currently locked and returns the lock holder info. */
-  getGapLock(gapId: string): Promise<{ content: string; expiresAt: number } | null>;
+  getGapLock(
+    gapId: string
+  ): Promise<{ content: string; expiresAt: number; lockVersion?: number } | null>;
   /** Retrieves a specific capability gap by its ID. */
   getGap(gapId: string): Promise<MemoryInsight | null>;
   /** Updates metadata fields (impact, priority, etc.) on a specific gap. */

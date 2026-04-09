@@ -8,28 +8,34 @@ This document defines the safety boundaries and policy enforcement mechanisms th
 
 The system employs a multi-layered safety architecture:
 
-| Guardrail | Where Implemented | Trigger |
-| :--- | :--- | :--- |
-| **Resource Labeling** | `core/tools` | Any write to a protected file (e.g., `.git`, `sst.config.ts`). |
-| **Safety Engine** | `core/lib/safety-engine.ts` | Multi-dimensional policy enforcement (Tiers, Rates, Time). |
-| **Recursion Guard** | `core/handlers/events.ts` | Prevents infinite loops (Depth > 15). |
-| **Human-in-the-Loop** | `AgentExecutor` | Pauses execution for sensitive tools (e.g., `deleteDatabase`). |
-| **Context Compaction** | `core/lib/context.ts` | Prevents context overflow during long autonomous missions. |
+| Guardrail              | Where Implemented           | Trigger                                                        |
+| :--------------------- | :-------------------------- | :------------------------------------------------------------- |
+| **Resource Labeling**  | `core/tools`                | Any write to a protected file (e.g., `.git`, `sst.config.ts`). |
+| **Safety Engine**      | `core/lib/safety-engine.ts` | Multi-dimensional policy enforcement (Tiers, Rates, Time).     |
+| **Recursion Guard**    | `core/handlers/events.ts`   | Prevents infinite loops (Depth > 15).                          |
+| **Human-in-the-Loop**  | `AgentExecutor`             | Pauses execution for sensitive tools (e.g., `deleteDatabase`). |
+| **Context Compaction** | `core/lib/context.ts`       | Prevents context overflow during long autonomous missions.     |
 
 ---
 
 ## 🚦 Granular Safety Tiers
 
-Agents operate under different trust levels, defining which actions require explicit human approval.
+Agents operate under different trust levels, defining which actions require explicit human approval. Serverless Claw uses a trunk-based development model with two primary tiers:
 
-| Tier | Deployments | Shell Commands | MCP Tools |
-| :--- | :---: | :---: | :---: |
-| **`sandbox`** | Approval Required | Approval Required | Approval Required |
-| **`staged`** | Approval Required | Auto-Approved | Auto-Approved |
-| **`autonomous`** | Auto-Approved | Auto-Approved | Auto-Approved |
+| Tier        | Description                           |    Deployments    |  Shell Commands   |     MCP Tools     |
+| :---------- | :------------------------------------ | :---------------: | :---------------: | :---------------: |
+| **`local`** | Local development/testing environment |   Auto-Approved   |   Auto-Approved   |   Auto-Approved   |
+| **`prod`**  | Production environment (default)      | Approval Required | Approval Required | Approval Required |
 
 > [!NOTE]
-> The default tier is `staged` to ensure that all deployments undergo human review while allowing autonomous code modification.
+> The default tier is `prod` to ensure all production changes undergo human review. The `local` tier is used for development and testing where autonomous execution is safe.
+
+### Tier Selection
+
+- **LOCAL**: Used for development, testing, and CI/CD pipelines
+- **PROD**: Used for production deployments and user-facing interactions
+
+The safety tier is configured per agent in `core/lib/backbone.ts` via the `safetyTier` property.
 
 ---
 
@@ -46,6 +52,7 @@ The system monitors its own "state of mind" to detect degradation or hallucinati
 ## 🖇️ Resource Protection
 
 Writes to the following resources are blocked by default and require **Manual Approval**:
+
 - `sst.config.ts` (Stack definition)
 - `infra/**` (Infrastructure resources)
 - `core/tools/index.ts` (Safety gate implementation)

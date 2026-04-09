@@ -617,7 +617,12 @@ describe('CachedMemory', () => {
 
     it('should delegate releaseGapLock', async () => {
       await cached.releaseGapLock('gap1', 'agent1');
-      expect(mockDynamo.releaseGapLock).toHaveBeenCalledWith('gap1', 'agent1');
+      expect(mockDynamo.releaseGapLock).toHaveBeenCalledWith(
+        'gap1',
+        'agent1',
+        undefined,
+        undefined
+      );
     });
 
     it('should delegate getGapLock', async () => {
