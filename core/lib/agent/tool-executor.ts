@@ -26,6 +26,7 @@ export interface ToolExecutionContext {
   activeModel?: string;
   activeProvider?: string;
   userText: string;
+  agentConfig?: import('../types/index').IAgentConfig;
 }
 
 export class ToolExecutor {
@@ -70,7 +71,8 @@ export class ToolExecutor {
           attachments,
           execContext,
           tracer,
-          approvedToolCalls
+          approvedToolCalls,
+          execContext.agentConfig
         );
 
         if (result.ui_blocks) ui_blocks.push(...result.ui_blocks);
@@ -104,7 +106,8 @@ export class ToolExecutor {
           localAttachments,
           execContext,
           tracer,
-          approvedToolCalls
+          approvedToolCalls,
+          execContext.agentConfig
         );
 
         return { result, localMessages, localAttachments };
@@ -144,7 +147,8 @@ export class ToolExecutor {
     attachments: NonNullable<Message['attachments']>,
     execContext: ToolExecutionContext,
     tracer: ClawTracer,
-    approvedToolCalls?: string[]
+    approvedToolCalls?: string[],
+    agentConfig?: import('../types/index').IAgentConfig
   ): Promise<{
     paused?: boolean;
     responseText?: string;
@@ -165,9 +169,19 @@ export class ToolExecutor {
       return { toolCallCount: 0 };
     }
 
-    // 1. Approval Check
-    if (tool.requiresApproval && !approvedToolCalls?.includes(toolCall.id)) {
-      logger.info(`Tool ${tool.name} (ID: ${toolCall.id}) requires human approval. Pausing...`);
+    // 1. Approval Check (P1 Fix: Support both ID and Semantic Fingerprint)
+    const { createHash } = await import('crypto');
+    const toolCallFingerprint = createHash('sha256')
+      .update(`${toolCall.function.name}:${toolCall.function.arguments}`)
+      .digest('hex');
+
+    const isApproved =
+      approvedToolCalls?.includes(toolCall.id) || approvedToolCalls?.includes(toolCallFingerprint);
+
+    if (tool.requiresApproval && !isApproved) {
+      logger.info(
+        `Tool ${tool.name} (Fingerprint: ${toolCallFingerprint}) requires human approval. Pausing...`
+      );
       return {
         asyncWait: true,
         toolCallCount: 0,
@@ -214,7 +228,7 @@ export class ToolExecutor {
     }
 
     // 2. Argument Preparation & Context Injection
-    let args: Record<string, any>;
+    let args: Record<string, unknown>;
     try {
       args = JSON.parse(toolCall.function.arguments);
     } catch (e) {
@@ -228,6 +242,24 @@ export class ToolExecutor {
         messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       });
       return { toolCallCount: 0 };
+    }
+
+    // P0 Fix: Toggleable Self-Approval
+    const { EvolutionMode } = await import('../types/agent');
+    const selfApprovalMode = agentConfig?.selfApprovalMode ?? EvolutionMode.HITL;
+
+    if (args.manuallyApproved === true && !isApproved) {
+      if (selfApprovalMode === EvolutionMode.AUTO) {
+        logger.info(
+          `[SECURITY] Agent self-approved protected resource in tool ${tool.name} (AUTO mode enabled).`
+        );
+        // In AUTO mode, we trust the agent's self-approval
+      } else {
+        logger.warn(
+          `[SECURITY] Agent attempted self-approval of protected resource in tool ${tool.name} (HITL mode). Blocked.`
+        );
+        args.manuallyApproved = false; // Block self-approval attempt in HITL/Default
+      }
     }
 
     const contextArgs: Record<string, unknown> = {

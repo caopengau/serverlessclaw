@@ -1,4 +1,4 @@
-import { Message, ITool, IProvider, MessageChunk } from '../types/index';
+import { Message, ITool, IProvider, MessageChunk, IAgentConfig } from '../types/index';
 import { LIMITS } from '../constants';
 import { AGENT_DEFAULTS, AGENT_LOG_MESSAGES, LoopResult, ExecutorOptions } from './executor-types';
 export { AGENT_DEFAULTS, AGENT_LOG_MESSAGES };
@@ -18,7 +18,8 @@ export class AgentExecutor {
     agentName: string,
     systemPrompt: string = '',
     summary: string | null = null,
-    contextLimit: number = LIMITS.MAX_CONTEXT_LENGTH
+    contextLimit: number = LIMITS.MAX_CONTEXT_LENGTH,
+    agentConfig?: IAgentConfig
   ) {
     this.core = new ExecutorCore(
       provider,
@@ -27,7 +28,8 @@ export class AgentExecutor {
       agentName,
       systemPrompt,
       summary,
-      contextLimit
+      contextLimit,
+      agentConfig
     );
   }
 

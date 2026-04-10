@@ -205,7 +205,8 @@ export class Agent {
         this.config?.name ?? 'SuperClaw',
         contextPrompt,
         summary,
-        contextLimit
+        contextLimit,
+        this.config
       );
 
       let maxIterations = this.config?.maxIterations ?? AGENT_DEFAULTS.MAX_ITERATIONS;
@@ -471,7 +472,8 @@ export class Agent {
       this.config?.name ?? 'SuperClaw',
       contextPrompt,
       summary,
-      contextLimit
+      contextLimit,
+      this.config
     );
 
     const stream = executor.streamLoop(messages, {

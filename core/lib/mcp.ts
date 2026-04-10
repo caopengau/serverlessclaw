@@ -44,7 +44,7 @@ export class MCPBridge {
 
     const discoveryPromise = (async () => {
       let acquired = false;
-      let lockManager: any = null;
+      let lockManager: import('./lock/lock-manager').LockManager | null = null;
       let lockId = '';
       let ownerId = '';
 
@@ -137,7 +137,7 @@ export class MCPBridge {
         return [];
       } finally {
         if (acquired) {
-          await lockManager.release(lockId, ownerId).catch((err: any) => {
+          await lockManager!.release(lockId, ownerId).catch((err: unknown) => {
             logger.warn(`Failed to release discovery lock for ${serverName}:`, err);
           });
         }
@@ -188,6 +188,11 @@ export class MCPBridge {
     const finalConfig = serversConfig ?? {};
     let configUpdated = false;
 
+    // Determine base path for filesystem
+    const defaultFsPath = process.env.AWS_LAMBDA_FUNCTION_NAME
+      ? (process.env.MCP_FILESYSTEM_PATH ?? (process.env.LAMBDA_TASK_ROOT || '/var/task'))
+      : '.';
+
     // Use environment variables to override default servers with Lambda multiplexer ARNs
     const serverArns: Record<string, string> = process.env.MCP_SERVER_ARNS
       ? JSON.parse(process.env.MCP_SERVER_ARNS)
@@ -203,6 +208,11 @@ export class MCPBridge {
           finalConfig[name] = {
             type: 'remote',
             url: serverArns[name],
+          };
+        } else if (name === 'filesystem') {
+          finalConfig[name] = {
+            type: 'local',
+            command: `npx -y @modelcontextprotocol/server-filesystem ${defaultFsPath}`,
           };
         } else {
           finalConfig[name] = defaultConfig;
@@ -273,10 +283,11 @@ export class MCPBridge {
 
       // Special handling for filesystem: Always attempt local execution if we're in a Lambda with a workspace
       if (name === 'filesystem' && !!process.env.AWS_LAMBDA_FUNCTION_NAME) {
+        const fsPath = process.env.MCP_FILESYSTEM_PATH ?? '/tmp';
         logger.info(
-          `[MCP] Forcing local execution for 'filesystem' server to preserve workspace access.`
+          `[MCP] Forcing local execution for 'filesystem' server to preserve workspace access (Path: ${fsPath}).`
         );
-        connectionString = 'npx -y @modelcontextprotocol/server-filesystem /tmp';
+        connectionString = `npx -y @modelcontextprotocol/server-filesystem ${fsPath}`;
       }
 
       try {

@@ -6,6 +6,7 @@ import {
   ToolCall,
   MessageChunk,
   ButtonType,
+  IAgentConfig,
 } from '../types/index';
 import { logger } from '../logger';
 import { normalizeProfile } from '../providers/utils';
@@ -34,7 +35,8 @@ export class ExecutorCore {
     private agentName: string,
     private systemPrompt: string = '',
     private summary: string | null = null,
-    private contextLimit: number = LIMITS.MAX_CONTEXT_LENGTH
+    private contextLimit: number = LIMITS.MAX_CONTEXT_LENGTH,
+    private agentConfig?: IAgentConfig
   ) {}
 
   async runLoop(messages: Message[], options: ExecutorOptions): Promise<LoopResult> {
@@ -143,6 +145,7 @@ export class ExecutorCore {
             activeModel: options.activeModel,
             activeProvider: options.activeProvider,
             userText: options.userText,
+            agentConfig: this.agentConfig,
           },
           tracer,
           approvedToolCalls
@@ -413,11 +416,11 @@ export class ExecutorCore {
           activeModel: options.activeModel,
           activeProvider: options.activeProvider,
           userText: options.userText,
+          agentConfig: this.agentConfig,
         },
         tracer,
         approvedToolCalls
       );
-
       // Yield new attachments if any
       if (attachments.length > attachmentsBefore) {
         const newAttachments = attachments.slice(attachmentsBefore);
