@@ -1,5 +1,5 @@
 import { logger } from '../logger';
-import { RETENTION, TIME, MEMORY_KEYS } from '../constants';
+import { RETENTION, TIME } from '../constants';
 import { getCircuitBreaker } from '../safety/circuit-breaker';
 
 /**
@@ -22,13 +22,28 @@ export enum RetentionTiers {
  * @since 2026-03-19
  */
 export class RetentionManager {
-  /**
-   * Resolves the TTL timestamp and type for a specific memory category.
-   *
-   * @param category - The memory category (e.g., 'MESSAGES', 'LESSONS', 'TRACES').
-   * @param userId - Optional user identifier to handle ephemeral/temporary logic.
-   * @returns A promise resolving to an object containing the expiration timestamp and memory type.
-   */
+  private static readonly KNOWN_CATEGORIES = new Set([
+    'LESSONS',
+    'LESSON',
+    'IMPORTANT',
+    'MEMORY',
+    'FACTS',
+    'FACT',
+    'TRACE',
+    'TRAILS',
+    'TRACES',
+    'GAPS',
+    'GAP',
+    'REPUTATION',
+    'SESSIONS',
+    'SESSION',
+    'SUMMARIES',
+    'SUMMARY',
+    'DISTILLED',
+    'MESSAGES',
+    'EPHEMERAL',
+  ]);
+
   static async getExpiresAt(
     category: string,
     userId: string = ''
@@ -39,21 +54,35 @@ export class RetentionManager {
     let type = 'msg';
 
     const upperCategory = category.toUpperCase();
+    const userIdUpper = userId.toUpperCase();
 
-    // 1. Critical Intelligence (Lessons/Facts)
+    const isKnownCategory =
+      this.KNOWN_CATEGORIES.has(upperCategory) ||
+      userIdUpper.startsWith('LESSON#') ||
+      userIdUpper.startsWith('FACT#') ||
+      userIdUpper.startsWith('REPUTATION#') ||
+      userIdUpper.startsWith('SUMMARY#') ||
+      userIdUpper.startsWith('TEMP#');
+
+    if (!isKnownCategory) {
+      logger.warn(
+        `[RetentionManager] Unknown category "${category}" for userId "${userId}". Defaulting to STANDARD tier.`
+      );
+    }
+
     if (
       upperCategory === 'LESSONS' ||
       upperCategory === 'LESSON' ||
       upperCategory === 'IMPORTANT' ||
       upperCategory === 'MEMORY' ||
-      userId.startsWith(MEMORY_KEYS.LESSON_PREFIX)
+      userIdUpper.startsWith('LESSON#')
     ) {
       tier = RetentionTiers.CRITICAL;
       type = 'LESSON';
     } else if (
       upperCategory === 'FACTS' ||
       upperCategory === 'FACT' ||
-      userId.startsWith(MEMORY_KEYS.FACT_PREFIX)
+      userIdUpper.startsWith('FACT#')
     ) {
       tier = RetentionTiers.KNOWLEDGE;
       type = 'FACT';
@@ -71,7 +100,7 @@ export class RetentionManager {
     else if (upperCategory === 'GAPS' || upperCategory === 'GAP') {
       tier = RetentionTiers.EVOLUTION;
       type = 'GAP';
-    } else if (upperCategory === 'REPUTATION' || userId.startsWith(MEMORY_KEYS.REPUTATION_PREFIX)) {
+    } else if (upperCategory === 'REPUTATION' || userIdUpper.startsWith('REPUTATION#')) {
       tier = RetentionTiers.SWARM;
       type = 'REPUTATION';
     }
@@ -82,13 +111,13 @@ export class RetentionManager {
     } else if (
       upperCategory === 'SUMMARIES' ||
       upperCategory === 'SUMMARY' ||
-      userId.startsWith(MEMORY_KEYS.SUMMARY_PREFIX)
+      userIdUpper.startsWith('SUMMARY#')
     ) {
       tier = RetentionTiers.SUMMARIES;
       type = 'SUMMARY';
     }
     // 5. Ephemeral/Temporary
-    else if (userId.startsWith('TEMP#') || upperCategory === 'EPHEMERAL') {
+    else if (userIdUpper.startsWith('TEMP#') || upperCategory === 'EPHEMERAL') {
       tier = RetentionTiers.EPHEMERAL;
       type = 'temp';
     }

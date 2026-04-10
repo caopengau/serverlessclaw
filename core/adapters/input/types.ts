@@ -29,6 +29,7 @@ export type InboundMessage = z.infer<typeof InboundMessageSchema>;
 
 export interface InputAdapter {
   readonly source: string;
+  readonly version: string;
   parse(raw: unknown): InboundMessage;
   processMedia?(message: InboundMessage): Promise<InboundMessage>;
 }

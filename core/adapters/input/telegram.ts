@@ -59,6 +59,7 @@ const FETCH_TIMEOUT_MS = 5000;
 
 export class TelegramAdapter implements InputAdapter {
   readonly source = 'telegram';
+  readonly version = '1.0.0';
 
   private s3: S3Client;
   private token: string;

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { EventType } from '../lib/types/agent';
 
 vi.mock('sst', () => ({
   Resource: new Proxy(
@@ -34,6 +35,7 @@ vi.mock('../lib/outbound', () => ({
 
 const ebMocks = vi.hoisted(() => ({
   mockSend: vi.fn().mockResolvedValue({}),
+  mockEmitEvent: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 vi.mock('@aws-sdk/client-eventbridge', () => ({
@@ -41,6 +43,10 @@ vi.mock('@aws-sdk/client-eventbridge', () => ({
     send = ebMocks.mockSend;
   },
   PutEventsCommand: vi.fn().mockImplementation((args: unknown) => ({ input: args })),
+}));
+
+vi.mock('../lib/utils/bus', () => ({
+  emitEvent: ebMocks.mockEmitEvent,
 }));
 
 describe('Event Router Integration', () => {
@@ -136,18 +142,28 @@ describe('Event Router Integration', () => {
     vi.doUnmock('./events/task-result-handler');
   });
 
-  it('should throw for unknown event type', async () => {
+  it('should route unknown event type to DLQ and resolve', async () => {
     const { handler } = await import('./events');
 
-    await expect(
-      handler(
-        {
-          'detail-type': 'unknown_event_type_xyz',
-          detail: { userId: 'user-1' },
-        },
-        {} as any
-      )
-    ).rejects.toThrow('Unhandled event type: unknown_event_type_xyz');
+    // This should no longer throw, but resolve successfully as it routes to DLQ
+    const result = await handler(
+      {
+        'detail-type': 'unknown_event_type_xyz',
+        detail: { userId: 'user-1' },
+      },
+      {} as any
+    );
+
+    expect(result).toBeUndefined();
+    // Verify it attempted to emit a DLQ event
+    expect(ebMocks.mockEmitEvent).toHaveBeenCalledWith(
+      'events.handler',
+      EventType.SYSTEM_HEALTH_REPORT,
+      expect.objectContaining({
+        eventCategory: 'dlq_routing',
+        detailType: 'unknown_event_type_xyz',
+      })
+    );
   });
 
   it('should inject envelope id into detail for idempotency', async () => {

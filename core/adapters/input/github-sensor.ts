@@ -45,6 +45,7 @@ const GitHubWebhookSchema = z.object({
 
 export class GitHubAdapter implements InputAdapter, IssueTrackerAction {
   readonly source = 'github';
+  readonly version = '1.0.0';
   private readonly webhookSecret: string | undefined;
   private readonly apiToken: string | undefined;
 

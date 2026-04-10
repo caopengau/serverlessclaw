@@ -121,35 +121,51 @@ export async function wakeupInitiator(
 
 /**
  * Get the recursion limit from config or use default.
+ * Validates that mission_recursion_limit <= recursion_limit to prevent limit bypass.
  * @param isMission - Whether this is a mission-critical workflow (uses stricter limit)
  */
 export async function getRecursionLimit(isMission: boolean = false): Promise<number> {
   const { CONFIG_DEFAULTS } = await import('../../lib/config/config-defaults');
 
-  // Use mission-specific limit if this is a mission context
-  if (isMission) {
-    try {
-      const missionLimit = await ConfigManager.getRawConfig('mission_recursion_limit');
-      if (missionLimit !== undefined) {
-        return parseConfigInt(missionLimit, CONFIG_DEFAULTS.MISSION_RECURSION_LIMIT.code);
-      }
-    } catch {
-      logger.warn('Failed to fetch mission_recursion_limit from DDB, using default.');
-    }
-    return CONFIG_DEFAULTS.MISSION_RECURSION_LIMIT.code;
-  }
-
-  // General events use the standard limit
-  let RECURSION_LIMIT: number = SYSTEM.DEFAULT_RECURSION_LIMIT;
+  // Get general recursion limit (upper bound)
+  let generalLimit: number = SYSTEM.DEFAULT_RECURSION_LIMIT;
   try {
     const customLimit = await ConfigManager.getRawConfig(DYNAMO_KEYS.RECURSION_LIMIT);
     if (customLimit !== undefined) {
-      RECURSION_LIMIT = parseConfigInt(customLimit, SYSTEM.DEFAULT_RECURSION_LIMIT);
+      generalLimit = parseConfigInt(customLimit, SYSTEM.DEFAULT_RECURSION_LIMIT);
     }
   } catch {
     logger.warn('Failed to fetch recursion_limit from DDB, using default.');
   }
-  return RECURSION_LIMIT;
+
+  // Use mission-specific limit if this is a mission context
+  if (isMission) {
+    let missionLimit: number = CONFIG_DEFAULTS.MISSION_RECURSION_LIMIT.code;
+    try {
+      const customMissionLimit = await ConfigManager.getRawConfig('mission_recursion_limit');
+      if (customMissionLimit !== undefined) {
+        missionLimit = parseConfigInt(
+          customMissionLimit,
+          CONFIG_DEFAULTS.MISSION_RECURSION_LIMIT.code
+        );
+      }
+    } catch {
+      logger.warn('Failed to fetch mission_recursion_limit from DDB, using default.');
+    }
+
+    // Validate: mission limit cannot exceed general limit (prevents limit bypass)
+    if (missionLimit > generalLimit) {
+      logger.warn(
+        `mission_recursion_limit (${missionLimit}) exceeds recursion_limit (${generalLimit}). ` +
+          `Using general limit for mission context.`
+      );
+      return generalLimit;
+    }
+
+    return missionLimit;
+  }
+
+  return generalLimit;
 }
 
 /**

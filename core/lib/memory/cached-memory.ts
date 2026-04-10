@@ -22,6 +22,19 @@ import { logger } from '../logger';
 /**
  * Cached memory provider that wraps DynamoMemory with LRU caching.
  * Implements cache-aside pattern with proper invalidation on writes.
+ *
+ * ## TTL Strategy
+ *
+ * Cache TTLs are tuned based on data volatility and access patterns:
+ *
+ * | Cache Type       | TTL   | Rationale                                                    |
+ * |------------------|-------|--------------------------------------------------------------|
+ * | Conversation     | 2 min | High volatility - messages added frequently                |
+ * | User Data        | 5 min | Medium volatility - user preferences, distilled memory     |
+ * | System-wide      | 15 min| Low volatility - global lessons, system-wide data          |
+ * | Search Results   | 3 min | Medium volatility - query results may change               |
+ *
+ * The 5-minute default in MemoryCache provides a baseline for user-scoped data.
  */
 export class CachedMemory implements IMemory {
   constructor(private readonly underlying: DynamoMemory) {}

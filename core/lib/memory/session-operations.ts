@@ -110,42 +110,53 @@ export async function saveConversationMeta(
   const { type } = await RetentionManager.getExpiresAt('SESSIONS', normalizedUserId);
 
   const isPinned = meta.isPinned === true;
-  let expiresAt: number;
+  let expiresAt: number | undefined;
 
   if (isPinned) {
-    expiresAt = 0;
+    expiresAt = undefined;
   } else {
     const retention = await RetentionManager.getExpiresAt('SESSIONS', normalizedUserId);
     expiresAt = retention.expiresAt;
   }
 
-  // Use UpdateCommand to atomically set or update session metadata.
-  // We use the sessionId directly as part of the userId/PartitionKey or a unique timestamp
-  // but to keep current listConversations (query by userId) working,
-  // we'll use a deterministic timestamp derived from sessionId if possible,
-  // or just use a stable identifier.
-  // Actually, listConversations queries by 'SESSIONS#userId'.
-  // If we want it to be unique per sessionId, we should use sessionId as the sort key (timestamp).
-
-  // Convert sessionId to a numeric-ish value if it's a timestamp, otherwise use 64-bit FNV-1a hash
   let stableSortKey: string;
   const parsedTimestamp = Number.parseInt(sessionId.split('_')[1] || sessionId, 10);
   if (!Number.isNaN(parsedTimestamp)) {
     stableSortKey = String(parsedTimestamp);
   } else {
-    // 1.6 Use FNV-1a 64-bit for Session Hash to minimize collisions
     let h: bigint = BigInt('0xcbf29ce484222325');
     for (let i = 0; i < sessionId.length; i++) {
       h ^= BigInt(sessionId.charCodeAt(i));
       h = (h * BigInt('0x100000001b3')) & BigInt('0xffffffffffffffff');
     }
-    // Use full 64-bit hash as string for Sort Key to minimize collision risk in DynamoDB String Sort Key
     stableSortKey = h.toString();
+  }
+
+  const partitionKey = `SESSIONS#${normalizedUserId}`;
+
+  const existingItems = await base.queryItems({
+    KeyConditionExpression: 'userId = :pk AND #ts = :ts',
+    ExpressionAttributeNames: {
+      '#ts': 'timestamp',
+    },
+    ExpressionAttributeValues: {
+      ':pk': partitionKey,
+      ':ts': stableSortKey,
+    },
+  });
+
+  if (existingItems.length > 0) {
+    const existing = existingItems[0];
+    const existingSessionId = existing.sessionId as string | undefined;
+    if (existingSessionId && existingSessionId !== sessionId) {
+      const collisionSuffix = `_${Date.now()}`;
+      stableSortKey = stableSortKey + collisionSuffix;
+    }
   }
 
   await base.updateItem({
     Key: {
-      userId: `SESSIONS#${normalizedUserId}`,
+      userId: partitionKey,
       timestamp: stableSortKey,
     },
     UpdateExpression:
@@ -156,7 +167,7 @@ export async function saveConversationMeta(
     ExpressionAttributeValues: {
       ':sessionId': sessionId,
       ':type': type,
-      ':exp': expiresAt,
+      ':exp': expiresAt ?? null,
       ':title': meta.title || 'New Conversation',
       ':content': meta.lastMessage || '',
       ':pinned': isPinned,

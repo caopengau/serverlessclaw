@@ -90,6 +90,17 @@ export const handler = async (
       adapter = new JiraAdapter();
       break;
     }
+    case 'unknown': {
+      logger.warn(`[WEBHOOK] Explicitly unknown source detected. Returning 400.`);
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          error: 'Unknown webhook source',
+          message: 'Could not identify the webhook source from headers or body',
+          availableSources: ['github', 'slack', 'jira', 'telegram'],
+        }),
+      };
+    }
     case 'telegram':
     default: {
       const { TelegramAdapter } = await import('../adapters/input/telegram');
@@ -338,6 +349,11 @@ function identifySource(event: APIGatewayProxyEventV2): string {
 
   // 4. Telegram: update_id is standard in all Telegram webhooks
   if (body.update_id) {
+    return 'telegram';
+  }
+
+  // Check if body is non-empty, default to telegram for compatibility
+  if (Object.keys(body).length > 0) {
     return 'telegram';
   }
 

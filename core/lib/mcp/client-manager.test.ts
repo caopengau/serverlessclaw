@@ -212,8 +212,45 @@ describe('MCPClientManager', () => {
 
     expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
       'mcp_health_fail-mark-down',
-      expect.objectContaining({ status: 'down' })
+      expect.objectContaining({ status: 'down', count: 3 })
     );
+  });
+
+  it('synchronizes failure count from global AgentRegistry', async () => {
+    const { AgentRegistry } = await import('../registry');
+    // Global state says 2 failures already happened elsewhere
+    vi.mocked(AgentRegistry.getRawConfig).mockResolvedValue({
+      status: 'degraded',
+      count: 2,
+      timestamp: Date.now(),
+    });
+
+    // This instance fails once
+    mockConnect.mockRejectedValue(new Error('Connection failed'));
+    await expect(
+      MCPClientManager.connect('sync-fail-server', 'http://localhost')
+    ).rejects.toThrow();
+
+    // Should now be at 3 failures globally (tripped)
+    expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
+      'mcp_health_sync-fail-server',
+      expect.objectContaining({ status: 'down', count: 3 })
+    );
+  });
+
+  it('trips circuit breaker immediately if global count is already high', async () => {
+    const { AgentRegistry } = await import('../registry');
+    // Global state already at MAX_FAILURES
+    vi.mocked(AgentRegistry.getRawConfig).mockResolvedValue({
+      status: 'down',
+      count: 3,
+      timestamp: Date.now(),
+    });
+
+    await expect(
+      MCPClientManager.connect('global-trip-server', 'http://localhost')
+    ).rejects.toThrow('Circuit breaker open for global-trip-server');
+    expect(mockConnect).not.toHaveBeenCalled();
   });
 
   it('uses longer timeout for hub connections', async () => {

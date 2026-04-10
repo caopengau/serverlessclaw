@@ -154,6 +154,7 @@ describe('InputAdapter interface', () => {
 
     const mockAdapter: InputAdapter = {
       source: 'test',
+      version: '1.0.0',
       parse: mockParse,
     };
 
@@ -166,6 +167,7 @@ describe('InputAdapter interface', () => {
   it('processMedia is optional', () => {
     const mockAdapter: InputAdapter = {
       source: 'test',
+      version: '1.0.0',
       parse: () => ({
         source: 'test',
         userId: 'user123',
@@ -187,6 +189,7 @@ describe('InputAdapter interface', () => {
 
     const mockAdapter: InputAdapter = {
       source: 'test',
+      version: '1.0.0',
       parse: () => ({
         source: 'test',
         userId: 'user123',

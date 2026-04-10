@@ -125,6 +125,23 @@ describe('Filesystem Tools', () => {
         expect(result).toContain('Execution BLOCKED');
       }
     });
+
+    it('blocks access to protected system files without approval', async () => {
+      // sst.config.ts is a hardcoded protected file in fs-security.ts
+      const result = await runShellCommand.execute({ command: 'cat sst.config.ts' });
+      expect(result).toContain('Execution BLOCKED');
+      expect(result).toContain('PERMISSION_DENIED');
+      expect(result).toContain('sst.config.ts');
+    });
+
+    it('allows access to protected system files with manual approval', async () => {
+      const result = await runShellCommand.execute({
+        command: 'cat sst.config.ts',
+        manuallyApproved: true,
+      });
+      expect(result).toContain('Output:');
+      expect(result).not.toContain('Execution BLOCKED');
+    });
   });
 
   describe('runTests', () => {

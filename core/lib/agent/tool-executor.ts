@@ -140,6 +140,34 @@ export class ToolExecutor {
       args.userId = args.userId ?? execContext.userId;
       args.sessionId = args.sessionId ?? execContext.sessionId;
 
+      // 2.2 Centralized File Security Check (G2)
+      const { checkFileSecurity } = await import('../utils/fs-security');
+      const pathKeys = ['path', 'file_path', 'filePath', 'dir_path', 'dirPath', 'filename', 'file'];
+      let fileBlocked = false;
+      for (const key of pathKeys) {
+        if (args[key] && typeof args[key] === 'string') {
+          const securityError = checkFileSecurity(
+            args[key] as string,
+            args.manuallyApproved as boolean | undefined,
+            `Tool execution (${tool.name})`
+          );
+          if (securityError) {
+            logger.warn(`File security violation blocked for tool ${tool.name}: ${securityError}`);
+            messages.push({
+              role: MessageRole.TOOL,
+              tool_call_id: toolCall.id,
+              name: toolCall.function.name,
+              content: securityError,
+              traceId: execContext.traceId,
+              messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            });
+            fileBlocked = true;
+            break;
+          }
+        }
+      }
+      if (fileBlocked) continue; // Skip execution for this tool call
+
       // 2.5 Structural Enforcement (Zod Validation)
       if (tool.argSchema) {
         try {

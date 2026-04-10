@@ -4,6 +4,7 @@ import { promisify } from 'util';
 import { systemSchema as schema } from './schema';
 import { logger } from '../../lib/logger';
 import { formatErrorMessage } from '../../lib/utils/error';
+import { isProtectedPath } from '../../lib/utils/fs-security';
 
 const execAsync = promisify(exec);
 
@@ -66,15 +67,18 @@ const BLOCKED_PATTERNS = [
 /**
  * Validates if a command is safe to execute.
  */
-function isCommandSafe(command: string): boolean {
+function isCommandSafe(
+  command: string,
+  manuallyApproved: boolean = false
+): { safe: boolean; reason?: string } {
   const trimmed = command.trim();
-  if (!trimmed) return false;
+  if (!trimmed) return { safe: false, reason: 'Empty command' };
 
   // 1. Check blocked patterns first
   for (const pattern of BLOCKED_PATTERNS) {
     if (trimmed.includes(pattern)) {
       logger.warn(`Blocked dangerous pattern: "${pattern}" in command: "${trimmed}"`);
-      return false;
+      return { safe: false, reason: `Dangerous pattern detected: ${pattern}` };
     }
   }
 
@@ -82,10 +86,26 @@ function isCommandSafe(command: string): boolean {
   const baseCommand = trimmed.split(' ')[0].split('/').pop(); // Get 'ls' from '/bin/ls' or 'ls -la'
   if (!baseCommand || !ALLOWED_COMMANDS.includes(baseCommand)) {
     logger.warn(`Command not in allowlist: "${baseCommand}"`);
-    return false;
+    return { safe: false, reason: `Command "${baseCommand}" is not in the allowlist` };
   }
 
-  return true;
+  // 3. Centralized Protected Path Check (G2)
+  // Check if any word in the command looks like a protected path
+  const parts = trimmed.split(/\s+/);
+  for (const part of parts) {
+    // Simple heuristic for paths: contains dot or slash, doesn't start with dash
+    if ((part.includes('.') || part.includes('/')) && !part.startsWith('-')) {
+      if (isProtectedPath(part) && !manuallyApproved) {
+        logger.warn(`Protected path detected in command: "${part}"`);
+        return {
+          safe: false,
+          reason: `PERMISSION_DENIED: Command targets a protected system file (${part}). This requires 'manuallyApproved: true'.`,
+        };
+      }
+    }
+  }
+
+  return { safe: true };
 }
 
 /**
@@ -94,10 +114,15 @@ function isCommandSafe(command: string): boolean {
 export const runShellCommand = {
   ...schema.runShellCommand,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { command, dir_path } = args as { command: string; dir_path?: string };
+    const { command, dir_path, manuallyApproved } = args as {
+      command: string;
+      dir_path?: string;
+      manuallyApproved?: boolean;
+    };
 
-    if (!isCommandSafe(command)) {
-      return `Execution BLOCKED: Command "${command}" is not allowed or contains dangerous patterns.`;
+    const safety = isCommandSafe(command, manuallyApproved);
+    if (!safety.safe) {
+      return `Execution BLOCKED: ${safety.reason}`;
     }
 
     try {

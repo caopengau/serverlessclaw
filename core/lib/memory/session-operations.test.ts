@@ -56,6 +56,7 @@ describe('session-operations', () => {
       updateItem: vi.fn().mockResolvedValue({ Attributes: { attempts: 5 } }),
       listConversations: vi.fn().mockResolvedValue([]),
       clearHistory: vi.fn().mockResolvedValue(undefined),
+      queryItems: vi.fn().mockResolvedValue([]),
     } as unknown as BaseMemoryProvider;
   });
 
@@ -198,14 +199,14 @@ describe('session-operations', () => {
       expect(mockBase.deleteItem).not.toHaveBeenCalled();
     });
 
-    it('should set expiresAt to 0 for pinned items', async () => {
+    it('should set expiresAt to undefined for pinned items', async () => {
       await saveConversationMeta(mockBase, 'user123', 'sess1', { isPinned: true });
 
       expect(mockBase.updateItem).toHaveBeenCalledWith(
         expect.objectContaining({
           ExpressionAttributeValues: expect.objectContaining({
             ':pinned': true,
-            ':exp': 0,
+            ':exp': null,
           }),
         })
       );

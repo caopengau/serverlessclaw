@@ -222,6 +222,7 @@ describe('DynamoMemory Delegation Tests', () => {
 
     it('should delegate saveConversationMeta to SessionOps', async () => {
       ddbMock.on(UpdateCommand).resolves({});
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
 
       await memory.saveConversationMeta('user-1', 'session-1', {
         title: 'test',

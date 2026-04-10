@@ -37,6 +37,17 @@ export async function handler(
   const userId = (eventDetail.userId as string) ?? 'SYSTEM';
   const traceId = (eventDetail.traceId as string) ?? 'unknown';
 
+  // Idempotency check: verify this event hasn't been processed recently
+  // This prevents duplicate processing during retry storms
+  if (envelopeId) {
+    const { checkIdempotency } = await import('./events/idempotency');
+    const alreadyProcessed = await checkIdempotency(envelopeId, detailType);
+    if (alreadyProcessed) {
+      logger.info(`[EVENTS] Duplicate event detected: ${envelopeId} (${detailType}). Skipping.`);
+      return;
+    }
+  }
+
   try {
     const { ConfigManager } = await import('../lib/registry/config');
     const { DEFAULT_EVENT_ROUTING } = await import('../lib/event-routing');
@@ -119,26 +130,33 @@ export async function handler(
         } else {
           await handlerModule[routing.function](eventDetail, detailType);
         }
+
+        // Mark event as processed for idempotency
+        if (envelopeId) {
+          const { markIdempotent } = await import('./events/idempotency');
+          await markIdempotent(envelopeId, detailType);
+        }
+
+        return; // Success - don't route to DLQ
       } else {
         const errorMsg = `Handler function ${routing.function} missing in module ${routing.module}`;
         logger.error(`[SAFE_MODE] ${errorMsg}`);
         throw new Error(errorMsg);
       }
-    } else {
-      logger.warn(`Unhandled event type: ${detailType}`);
-      await reportHealthIssue({
-        component: 'EventHandler',
-        issue: `No routing configured for event type: ${detailType}`,
-        severity: 'medium',
-        userId,
-        traceId,
-        context: { detailType, eventDetail },
-      });
-      throw new Error(`Unhandled event type: ${detailType}`);
     }
+
+    // Unhandled event type - route to DLQ for retry instead of hard throwing
+    logger.warn(`Unhandled event type: ${detailType}. Routing to DLQ for retry.`);
+    await routeToDlq(event, detailType, userId, traceId);
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(`EventHandler failed for ${detailType}: ${errorMessage}`, error);
+
+    // Route failed events to DLQ for potential retry
+    if (detailType) {
+      await routeToDlq(event, detailType, userId, traceId, errorMessage);
+    }
+
     await reportHealthIssue({
       component: 'EventHandler',
       issue: `Failed to process event ${detailType}: ${errorMessage}`,
@@ -148,5 +166,47 @@ export async function handler(
       context: { detailType },
     });
     throw error instanceof Error ? error : new Error(String(error));
+  }
+}
+
+/**
+ * Route an unhandled or failed event to the Dead Letter Queue for retry.
+ */
+async function routeToDlq(
+  event: { 'detail-type': string; detail: Record<string, unknown>; id?: string },
+  detailType: string,
+  userId: string,
+  traceId: string,
+  errorMessage?: string
+): Promise<void> {
+  try {
+    const { emitEvent } = await import('../lib/utils/bus');
+    const { EventType } = await import('../lib/types/agent');
+
+    // Use SYSTEM_HEALTH_REPORT as the routing event since DLQ_ROUTE doesn't exist
+    await emitEvent('events.handler', EventType.SYSTEM_HEALTH_REPORT, {
+      eventCategory: 'dlq_routing',
+      detailType,
+      originalEvent: event.detail,
+      envelopeId: event.id,
+      userId,
+      traceId,
+      errorMessage,
+      retryCount: (event.detail.retryCount as number) ?? 0,
+      timestamp: Date.now(),
+    });
+    logger.info(`[EVENTS] Event ${detailType} routed to DLQ for retry`);
+  } catch (dlqError) {
+    // DLQ routing failed - report health issue but don't block
+    logger.error(`[EVENTS] Failed to route to DLQ:`, dlqError);
+    await reportHealthIssue({
+      component: 'EventHandler',
+      issue: `Failed to route unhandled event to DLQ: ${detailType}`,
+      severity: 'high',
+      userId,
+      traceId,
+      context: { detailType, dlqError: String(dlqError) },
+    });
+    throw new Error(`Unhandled event type: ${detailType}`);
   }
 }

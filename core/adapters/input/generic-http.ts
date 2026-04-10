@@ -14,6 +14,7 @@ const GenericWebhookSchema = z.object({
 
 export class GenericHTTPAdapter implements InputAdapter {
   readonly source = 'generic-http';
+  readonly version = '1.0.0';
 
   parse(raw: unknown): InboundMessage {
     let body: unknown;

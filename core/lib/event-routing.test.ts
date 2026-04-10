@@ -26,6 +26,8 @@ describe('event-routing', () => {
       EventType.PARALLEL_TASK_DISPATCH,
       EventType.PARALLEL_BARRIER_TIMEOUT,
       EventType.PARALLEL_TASK_COMPLETED,
+      EventType.DAG_TASK_COMPLETED,
+      EventType.DAG_TASK_FAILED,
       EventType.TASK_CANCELLED,
       EventType.HEARTBEAT_PROACTIVE,
       EventType.ESCALATION_LEVEL_TIMEOUT,
@@ -35,8 +37,6 @@ describe('event-routing', () => {
       EventType.STRATEGIC_TIE_BREAK,
       EventType.REPORT_BACK,
       EventType.SYSTEM_AUDIT_TRIGGER,
-      EventType.DAG_TASK_COMPLETED,
-      EventType.DAG_TASK_FAILED,
     ];
 
     it.each(REQUIRED_EVENT_TYPES)('should have routing entry for %s', (eventType) => {
@@ -85,8 +85,8 @@ describe('event-routing', () => {
         'consensus-handler',
         'cognitive-health-handler',
         'strategic-tie-break-handler',
-        'audit-handler',
         'report-back-handler',
+        'audit-handler',
         'dag-supervisor-handler',
         'agent-multiplexer',
       ];

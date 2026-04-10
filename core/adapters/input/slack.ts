@@ -24,6 +24,7 @@ const SlackEventSchema = z.object({
 
 export class SlackAdapter implements InputAdapter {
   readonly source = 'slack';
+  readonly version = '1.0.0';
   private readonly signingSecret: string | undefined;
 
   constructor(options?: { signingSecret?: string }) {

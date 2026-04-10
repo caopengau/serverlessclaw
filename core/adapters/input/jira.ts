@@ -67,6 +67,7 @@ const JiraWebhookSchema = z.object({
 
 export class JiraAdapter implements InputAdapter, IssueTrackerAction {
   readonly source = 'jira';
+  readonly version = '1.0.0';
   private readonly webhookSecret: string | undefined;
   private readonly baseUrl: string | undefined;
   private readonly email: string | undefined;

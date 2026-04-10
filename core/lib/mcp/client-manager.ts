@@ -74,37 +74,50 @@ export class MCPClientManager {
 
     // 2. Prepare the connection promise
     connectingPromise = (async () => {
-      // Check circuit breaker (Gap 3/4)
+      const { AgentRegistry } = await import('../registry');
+
+      // Check persistent health and global failure counts (B1: Global Circuit Breaker)
+      const persistentHealth = (await AgentRegistry.getRawConfig(`mcp_health_${serverName}`)) as {
+        status: string;
+        count?: number;
+        lastFailure?: number;
+        timestamp: number;
+      } | null;
+
+      // Sync local failure count with global state
+      if (persistentHealth?.count !== undefined) {
+        const localFailure = this.failureCounts.get(serverName);
+        if (!localFailure || persistentHealth.count > localFailure.count) {
+          this.failureCounts.set(serverName, {
+            count: persistentHealth.count,
+            lastFailure: persistentHealth.lastFailure ?? persistentHealth.timestamp,
+          });
+        }
+      }
+
       const failure = this.failureCounts.get(serverName);
       if (failure && failure.count >= this.MAX_FAILURES) {
         const backoffFactor = Math.pow(2, Math.min(failure.count - this.MAX_FAILURES, 4));
         const retryDelay = this.FAILURE_RESET_MS * backoffFactor;
-        const timeSinceFailure = Date.now() - failure.lastFailure;
+        const timeSinceFailure = Date.now() - (failure.lastFailure ?? 0);
 
         if (timeSinceFailure < retryDelay) {
           logger.warn(
-            `Circuit breaker OPEN for ${serverName}. Retrying in ${Math.round((retryDelay - timeSinceFailure) / 1000)}s`
+            `Circuit breaker OPEN for ${serverName} (Global count: ${failure.count}). Retrying in ${Math.round((retryDelay - timeSinceFailure) / 1000)}s`
           );
           throw new Error(
             `Circuit breaker open for ${serverName} after ${failure.count} failures. Retrying in ${Math.round((retryDelay - timeSinceFailure) / 1000)}s`
           );
         } else {
-          // Reset after timeout or at least allow one probe
           logger.info(`Circuit breaker HALF-OPEN for ${serverName}, attempting probe connection.`);
         }
       }
 
-      // Check persistent health (Gap 5/Step 6)
-      const { AgentRegistry } = await import('../registry');
-      const persistentHealth = (await AgentRegistry.getRawConfig(`mcp_health_${serverName}`)) as {
-        status: string;
-        timestamp: number;
-      } | null;
       if (
         persistentHealth?.status === 'down' &&
         Date.now() - persistentHealth.timestamp < this.FAILURE_RESET_MS
       ) {
-        logger.warn(`Server ${serverName} is marked as DOWN in DynamoDB. skipping.`);
+        logger.warn(`Server ${serverName} is marked as DOWN globally. skipping.`);
         throw new Error(`Server ${serverName} is currently down.`);
       }
 
@@ -190,23 +203,25 @@ export class MCPClientManager {
         this.failureCounts.delete(serverName);
         await AgentRegistry.saveRawConfig(`mcp_health_${serverName}`, {
           status: 'up',
+          count: 0,
           timestamp: Date.now(),
         });
       } catch (error) {
-        // Increment failure count and mark as down in DynamoDB
+        // Increment failure count and mark as down in DynamoDB (Global state sync)
         const prev = this.failureCounts.get(serverName) ?? { count: 0, lastFailure: 0 };
         const newCount = prev.count + 1;
+        const lastFailure = Date.now();
         this.failureCounts.set(serverName, {
           count: newCount,
-          lastFailure: Date.now(),
+          lastFailure,
         });
 
-        if (newCount >= this.MAX_FAILURES) {
-          await AgentRegistry.saveRawConfig(`mcp_health_${serverName}`, {
-            status: 'down',
-            timestamp: Date.now(),
-          });
-        }
+        await AgentRegistry.saveRawConfig(`mcp_health_${serverName}`, {
+          status: newCount >= this.MAX_FAILURES ? 'down' : 'degraded',
+          count: newCount,
+          lastFailure,
+          timestamp: lastFailure,
+        });
 
         // 1.5 Ensure transport and client are closed on timeout or failure
         logger.error(`Failed to connect to MCP server ${serverName}:`, error);
