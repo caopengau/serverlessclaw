@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { ITool, ToolType, JsonSchema } from '../types/index';
-import { checkFileSecurity } from '../utils/fs-security';
 import { logger } from '../logger';
 import { MCPClientManager } from './client-manager';
 import { jsonSchemaToZod } from '../utils/zod-utils';
@@ -66,58 +65,46 @@ export class MCPToolMapper {
       requiredPermissions: [],
       execute: async (toolArgs: Record<string, unknown>) => {
         if (isFilesystemTool) {
-          const pathArgs = ['path', 'path_to_file', 'file_path', 'source', 'destination', 'dir'];
-          for (const arg of pathArgs) {
-            const filePath = toolArgs[arg] as string;
-            if (filePath) {
-              const securityError = checkFileSecurity(
-                filePath,
-                toolArgs.manuallyApproved as boolean,
-                `MCP operation (${mcpTool.name}) [arg: ${arg}]`
-              );
-              if (securityError) return securityError;
-            }
-          }
+          const { checkArgumentsForSecurity } = await import('../utils/fs-security');
+          const securityError = checkArgumentsForSecurity(
+            toolArgs,
+            `MCP operation (${mcpTool.name})`
+          );
+          if (securityError) return securityError;
         }
 
         try {
           const client = await clientProvider();
-          const { withMCPResilience } = await import('../lifecycle/error-recovery');
-          return await withMCPResilience(toolName, async () => {
-            const result = await client.callTool({
-              name: mcpTool.name,
-              arguments: toolArgs,
-            });
-            return JSON.stringify(result.content);
-          });
+          const { withMCPResilience, isConnectionError } =
+            await import('../lifecycle/error-recovery');
+          return await withMCPResilience(
+            toolName,
+            async () => {
+              const result = await client.callTool({
+                name: mcpTool.name,
+                arguments: toolArgs,
+              });
+              return JSON.stringify(result.content);
+            },
+            {
+              onFailure: (execError: Error) => {
+                if (isConnectionError(execError)) {
+                  logger.info(
+                    `[MCP] Resetting client for ${serverName} due to connection error: ${execError.message}`
+                  );
+                  MCPClientManager.deleteClient(serverName);
+                }
+              },
+            }
+          );
         } catch (execError: unknown) {
           logger.error(
             `MCP Tool Execution Error (${serverName}:${mcpTool.name}):`,
             execError instanceof Error ? execError.message : String(execError)
           );
-          if (this.isConnectionError(execError)) {
-            MCPClientManager.deleteClient(serverName);
-          }
           throw execError;
         }
       },
     };
-  }
-
-  /**
-   * Helper to identify connection-related errors.
-   */
-  private static isConnectionError(error: unknown): boolean {
-    if (error instanceof Error) {
-      const msg = error.message.toLowerCase();
-      return (
-        msg.includes('connection') ||
-        msg.includes('econnrefused') ||
-        msg.includes('socket') ||
-        msg.includes('closed') ||
-        msg.includes('timeout')
-      );
-    }
-    return false;
   }
 }

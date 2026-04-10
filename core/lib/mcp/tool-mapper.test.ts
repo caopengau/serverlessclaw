@@ -11,11 +11,13 @@ vi.mock('../logger', () => ({
 }));
 
 vi.mock('../utils/fs-security', () => ({
+  checkArgumentsForSecurity: vi.fn().mockReturnValue(null),
   checkFileSecurity: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock('../lifecycle/error-recovery', () => ({
   withMCPResilience: vi.fn(async (_name: string, fn: () => Promise<any>) => fn()),
+  isConnectionError: vi.fn((err) => err instanceof Error && err.message.includes('Connection')),
 }));
 
 vi.mock('./client-manager', () => ({
@@ -24,10 +26,21 @@ vi.mock('./client-manager', () => ({
   },
 }));
 
-import { checkFileSecurity } from '../utils/fs-security';
+import { checkArgumentsForSecurity, checkFileSecurity } from '../utils/fs-security';
 import { MCPClientManager } from './client-manager';
-import { withMCPResilience } from '../lifecycle/error-recovery';
+import { withMCPResilience, isConnectionError } from '../lifecycle/error-recovery';
 import { logger } from '../logger';
+
+vi.mocked(isConnectionError).mockImplementation(
+  (err) =>
+    err instanceof Error &&
+    (err.message.includes('Connection') ||
+      err.message.includes('ECONNREFUSED') ||
+      err.message.includes('Socket') ||
+      err.message.includes('timeout'))
+);
+vi.mocked(checkArgumentsForSecurity).mockImplementation((_args, _op) => null);
+vi.mocked(checkFileSecurity).mockImplementation((_path, _approved, _op) => null);
 
 function makeMockClient() {
   return {
@@ -188,10 +201,9 @@ describe('MCPToolMapper', () => {
 
       const tools = MCPToolMapper.mapTools('filesystem', client, rawTools);
       await tools[0].execute({ path: '/etc/passwd' });
-      expect(checkFileSecurity).toHaveBeenCalledWith(
-        '/etc/passwd',
-        undefined,
-        'MCP operation (read_file) [arg: path]'
+      expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/etc/passwd' }),
+        'MCP operation (read_file)'
       );
     });
 
@@ -207,10 +219,9 @@ describe('MCPToolMapper', () => {
 
       const tools = MCPToolMapper.mapTools('filesystem', client, rawTools);
       await tools[0].execute({ path_to_file: '/some/file.txt' });
-      expect(checkFileSecurity).toHaveBeenCalledWith(
-        '/some/file.txt',
-        undefined,
-        'MCP operation (read_file) [arg: path_to_file]'
+      expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
+        expect.objectContaining({ path_to_file: '/some/file.txt' }),
+        'MCP operation (read_file)'
       );
     });
 
@@ -226,15 +237,14 @@ describe('MCPToolMapper', () => {
 
       const tools = MCPToolMapper.mapTools('filesystem', client, rawTools);
       await tools[0].execute({ file_path: '/some/file.txt' });
-      expect(checkFileSecurity).toHaveBeenCalledWith(
-        '/some/file.txt',
-        undefined,
-        'MCP operation (read_file) [arg: file_path]'
+      expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
+        expect.objectContaining({ file_path: '/some/file.txt' }),
+        'MCP operation (read_file)'
       );
     });
 
-    it('returns security error when checkFileSecurity returns error', async () => {
-      vi.mocked(checkFileSecurity).mockReturnValueOnce('PERMISSION_DENIED: blocked');
+    it('returns security error when checkArgumentsForSecurity returns error', async () => {
+      vi.mocked(checkArgumentsForSecurity).mockReturnValueOnce('PERMISSION_DENIED: blocked');
 
       const client = makeMockClient();
       const rawTools = [
@@ -254,7 +264,12 @@ describe('MCPToolMapper', () => {
 
     it('deletes client on Connection closed error', async () => {
       const client = makeMockClient();
-      vi.mocked(withMCPResilience).mockRejectedValueOnce(new Error('Connection closed'));
+      vi.mocked(withMCPResilience).mockImplementationOnce(async (_name, _fn, options) => {
+        if (options?.onFailure) {
+          await options.onFailure(new Error('Connection closed'));
+        }
+        throw new Error('Connection closed');
+      });
 
       const rawTools = [
         { name: 'tool', description: 'desc', inputSchema: { type: 'object', properties: {} } },
@@ -448,10 +463,9 @@ describe('MCPToolMapper', () => {
 
       const tools = MCPToolMapper.mapCachedTools('filesystem', rawTools, clientProvider);
       await tools[0].execute({ path: '/etc/passwd' });
-      expect(checkFileSecurity).toHaveBeenCalledWith(
-        '/etc/passwd',
-        undefined,
-        'MCP operation (read_file) [arg: path]'
+      expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
+        expect.objectContaining({ path: '/etc/passwd' }),
+        'MCP operation (read_file)'
       );
     });
 
@@ -468,10 +482,9 @@ describe('MCPToolMapper', () => {
 
       const tools = MCPToolMapper.mapCachedTools('filesystem', rawTools, clientProvider);
       await tools[0].execute({ path_to_file: '/some/file.txt' });
-      expect(checkFileSecurity).toHaveBeenCalledWith(
-        '/some/file.txt',
-        undefined,
-        'MCP operation (read_file) [arg: path_to_file]'
+      expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
+        expect.objectContaining({ path_to_file: '/some/file.txt' }),
+        'MCP operation (read_file)'
       );
     });
 
@@ -488,15 +501,14 @@ describe('MCPToolMapper', () => {
 
       const tools = MCPToolMapper.mapCachedTools('filesystem', rawTools, clientProvider);
       await tools[0].execute({ file_path: '/some/file.txt' });
-      expect(checkFileSecurity).toHaveBeenCalledWith(
-        '/some/file.txt',
-        undefined,
-        'MCP operation (read_file) [arg: file_path]'
+      expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
+        expect.objectContaining({ file_path: '/some/file.txt' }),
+        'MCP operation (read_file)'
       );
     });
 
-    it('returns security error when checkFileSecurity returns error', async () => {
-      vi.mocked(checkFileSecurity).mockReturnValueOnce('PERMISSION_DENIED: blocked');
+    it('returns security error when checkArgumentsForSecurity returns error', async () => {
+      vi.mocked(checkArgumentsForSecurity).mockReturnValueOnce('PERMISSION_DENIED: blocked');
 
       const mockClient = makeMockClient();
       const clientProvider = vi.fn().mockResolvedValue(mockClient);
@@ -529,7 +541,7 @@ describe('MCPToolMapper', () => {
       const tools = MCPToolMapper.mapCachedTools('filesystem', rawTools, clientProvider);
       await tools[0].execute({});
 
-      expect(checkFileSecurity).not.toHaveBeenCalled();
+      expect(checkArgumentsForSecurity).toHaveBeenCalledWith({}, 'MCP operation (list_dir)');
       expect(clientProvider).toHaveBeenCalled();
       expect(mockClient.callTool).toHaveBeenCalled();
     });
@@ -537,7 +549,12 @@ describe('MCPToolMapper', () => {
     it('deletes client on connection error', async () => {
       const mockClient = makeMockClient();
       const clientProvider = vi.fn().mockResolvedValue(mockClient);
-      vi.mocked(withMCPResilience).mockRejectedValueOnce(new Error('Connection closed'));
+      vi.mocked(withMCPResilience).mockImplementationOnce(async (_name, _fn, options) => {
+        if (options?.onFailure) {
+          await options.onFailure(new Error('Connection closed'));
+        }
+        throw new Error('Connection closed');
+      });
 
       const rawTools = [
         { name: 'tool', description: 'desc', inputSchema: { type: 'object', properties: {} } },
@@ -621,7 +638,12 @@ describe('MCPToolMapper', () => {
         const rawTools = [
           { name: 'tool', description: 'desc', inputSchema: { type: 'object', properties: {} } },
         ];
-        vi.mocked(withMCPResilience).mockRejectedValueOnce(error);
+        vi.mocked(withMCPResilience).mockImplementationOnce(async (_name, _fn, options) => {
+          if (options?.onFailure) {
+            await options.onFailure(error);
+          }
+          throw error;
+        });
 
         const tools = MCPToolMapper.mapTools('srv', makeMockClient(), rawTools);
         await expect(tools[0].execute({})).rejects.toThrow(error.message);

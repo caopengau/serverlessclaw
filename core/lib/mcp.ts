@@ -12,6 +12,8 @@ import { MCPToolMapper } from './mcp/tool-mapper';
  * Supports hub-priority routing and local command-based execution.
  */
 export class MCPBridge {
+  private static discovering: Map<string, Promise<ITool[]>> = new Map();
+
   /**
    * Connects to an MCP server and returns its tools.
    * Handles hub priority, remote URLs, and local fallbacks.
@@ -28,56 +30,73 @@ export class MCPBridge {
     env?: Record<string, string>,
     options?: { skipHubRouting?: boolean }
   ): Promise<ITool[]> {
-    const hubUrl = process.env.MCP_HUB_URL;
-    const isLocalCommand = !connectionString.startsWith('http');
-
-    if (hubUrl && isLocalCommand && !options?.skipHubRouting) {
-      try {
-        const hubServerUrl = `${hubUrl.replace(/\/$/, '')}/${serverName}`;
-        logger.info(`Attempting Hub connection for ${serverName}: ${hubServerUrl}`);
-        const tools = await this.getToolsFromServer(serverName, hubServerUrl, env, {
-          skipHubRouting: true,
-        });
-        if (tools.length > 0) return tools;
-      } catch {
-        logger.warn(`Hub connection failed for ${serverName}, switching to local.`);
-      }
-    }
-
-    // Check cache first
     const cacheKey = `mcp_tools_cache_${serverName}`;
-    interface CachedTools {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      tools: any[];
-      timestamp: number;
-    }
-    const cached = (await AgentRegistry.getRawConfig(cacheKey)) as CachedTools | null;
 
-    const cacheTTL = parseInt(process.env.MCP_CACHE_TTL_MS ?? '900000');
-    if (cached && Date.now() - cached.timestamp < cacheTTL) {
-      logger.info(`Using cached tool definitions for MCP server ${serverName}`);
-      return MCPToolMapper.mapCachedTools(
-        serverName,
-        cached.tools,
-        async () => await MCPClientManager.connect(serverName, connectionString, env)
-      );
+    // 1. Check in-memory discovery map first (Thundering Herd Protection)
+    const existingDiscovery = this.discovering.get(cacheKey);
+    if (existingDiscovery) {
+      logger.info(`[MCP] Discovery already in progress for ${serverName}, awaiting...`);
+      return await existingDiscovery;
     }
 
+    const discoveryPromise = (async () => {
+      const hubUrl = process.env.MCP_HUB_URL;
+      const isLocalCommand = !connectionString.startsWith('http');
+
+      if (hubUrl && isLocalCommand && !options?.skipHubRouting) {
+        try {
+          const hubServerUrl = `${hubUrl.replace(/\/$/, '')}/${serverName}`;
+          logger.info(`Attempting Hub connection for ${serverName}: ${hubServerUrl}`);
+          const tools = await this.getToolsFromServer(serverName, hubServerUrl, env, {
+            skipHubRouting: true,
+          });
+          if (tools.length > 0) return tools;
+        } catch {
+          logger.warn(`Hub connection failed for ${serverName}, switching to local.`);
+        }
+      }
+
+      // Check cache first
+      interface CachedTools {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        tools: any[];
+        timestamp: number;
+      }
+      const cached = (await AgentRegistry.getRawConfig(cacheKey)) as CachedTools | null;
+
+      const cacheTTL = parseInt(process.env.MCP_CACHE_TTL_MS ?? '900000');
+      if (cached && Date.now() - cached.timestamp < cacheTTL) {
+        logger.info(`Using cached tool definitions for MCP server ${serverName}`);
+        return MCPToolMapper.mapCachedTools(
+          serverName,
+          cached.tools,
+          async () => await MCPClientManager.connect(serverName, connectionString, env)
+        );
+      }
+
+      try {
+        const client = await MCPClientManager.connect(serverName, connectionString, env);
+        const response = await client.listTools();
+
+        // Update cache
+        await AgentRegistry.saveRawConfig(cacheKey, {
+          tools: response.tools,
+          timestamp: Date.now(),
+        });
+
+        return MCPToolMapper.mapTools(serverName, client, response.tools);
+      } catch (e: unknown) {
+        logger.warn(`Failed to fetch tools from ${serverName}:`, e);
+        MCPClientManager.deleteClient(serverName);
+        return [];
+      }
+    })();
+
+    this.discovering.set(cacheKey, discoveryPromise);
     try {
-      const client = await MCPClientManager.connect(serverName, connectionString, env);
-      const response = await client.listTools();
-
-      // Update cache
-      await AgentRegistry.saveRawConfig(cacheKey, {
-        tools: response.tools,
-        timestamp: Date.now(),
-      });
-
-      return MCPToolMapper.mapTools(serverName, client, response.tools);
-    } catch (e: unknown) {
-      logger.warn(`Failed to fetch tools from ${serverName}:`, e);
-      MCPClientManager.deleteClient(serverName);
-      return [];
+      return await discoveryPromise;
+    } finally {
+      this.discovering.delete(cacheKey);
     }
   }
 

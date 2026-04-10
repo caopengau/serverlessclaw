@@ -40,20 +40,60 @@ export function isProtectedPath(filePath: string): boolean {
 }
 
 /**
- * Validates a file operation against protection rules.
+ * Scans a set of tool arguments for common path keys and validates them for security.
+ * Returns the first error found, or null if all paths are safe.
  *
- * @param path - The file path to validate.
- * @param manuallyApproved - Whether the operation has been manually approved by the user.
- * @param operation - The type of operation being performed (e.g., 'writes', 'deletes'). Defaults to 'writes'.
- * @returns An error message if protected and not approved, otherwise null.
+ * @param args - The arguments object to scan.
+ * @param operationName - Context for error messages.
+ */
+export function checkArgumentsForSecurity(
+  args: Record<string, unknown>,
+  operationName: string
+): string | null {
+  const pathKeys = [
+    'path',
+    'path_to_file',
+    'file_path',
+    'filePath',
+    'source',
+    'destination',
+    'dir',
+    'dir_path',
+    'dirPath',
+    'filename',
+    'file',
+  ];
+
+  for (const key of pathKeys) {
+    const filePath = args[key];
+    if (filePath && typeof filePath === 'string') {
+      const securityError = checkFileSecurity(
+        filePath,
+        args.manuallyApproved as boolean | undefined,
+        `${operationName} [arg: ${key}]`
+      );
+      if (securityError) return securityError;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validates a file path against protection rules.
+ *
+ * @param filePath - The path to the file to check.
+ * @param manuallyApproved - Whether the user has explicitly approved this operation.
+ * @param operation - The type of operation (e.g., 'writes', 'deletes').
+ * @returns An error message string if blocked, otherwise null.
  */
 export function checkFileSecurity(
-  path: string,
-  manuallyApproved: boolean | undefined,
+  filePath: string,
+  manuallyApproved: boolean = false,
   operation: string = 'writes'
 ): string | null {
-  if (isProtectedPath(path) && !manuallyApproved) {
-    return `PERMISSION_DENIED: ${operation} to '${path}' are strictly prohibited for agent safety. If this change is absolutely necessary for system evolution, you MUST describe the reason to the human user and request approval via 'seekClarification' with the status 'MANUAL_APPROVAL_REQUIRED'. Once approved, you can retry with 'manuallyApproved: true'.`;
+  if (isProtectedPath(filePath) && !manuallyApproved) {
+    return `PERMISSION_DENIED: Direct ${operation} to '${filePath}' is blocked. This is a protected system file. To override, you must obtain explicit human approval and then retry with the 'manuallyApproved: true' parameter.`;
   }
   return null;
 }

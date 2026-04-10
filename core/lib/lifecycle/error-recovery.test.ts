@@ -612,7 +612,7 @@ describe('withMCPResilience', () => {
     const execute = vi.fn().mockRejectedValue(new Error('timeout'));
     const fallback = vi.fn().mockResolvedValue('fallback-result');
 
-    const result = await withMCPResilience('my-tool', execute, fallback);
+    const result = await withMCPResilience('my-tool', execute, { fallback });
 
     expect(result).toBe('fallback-result');
   });

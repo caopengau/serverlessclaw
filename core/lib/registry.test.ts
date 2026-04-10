@@ -125,7 +125,7 @@ describe('AgentRegistry', () => {
       expect(config?.tools).not.toContain('tool1');
     });
 
-    it('should add bootloader tools in discovery mode if tools < 4', async () => {
+    it('should add bootloader tools in discovery mode', async () => {
       vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
         if (key === 'selective_discovery_mode') return true;
         if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
@@ -135,7 +135,7 @@ describe('AgentRegistry', () => {
       });
 
       const config = await AgentRegistry.getAgentConfig('custom');
-      // Should have bootloader tools because it had only 1 tool (which was essential)
+      // Should have bootloader tools
       if (!config?.tools) throw new Error('Tools should be defined');
       expect(config.tools.length).toBeGreaterThanOrEqual(4);
       expect(config.tools).toContain('listAgents');

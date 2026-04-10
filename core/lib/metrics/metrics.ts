@@ -216,4 +216,32 @@ export const METRICS = {
       ],
     };
   },
+
+  // Event handler specific metrics
+  eventHandlerInvoked(eventType: string): MetricDatum {
+    return {
+      MetricName: 'EventHandlerInvoked',
+      Value: 1,
+      Unit: 'Count',
+      Dimensions: [{ Name: 'EventType', Value: eventType }],
+    };
+  },
+
+  eventHandlerDuration(eventType: string, durationMs: number): MetricDatum {
+    return {
+      MetricName: 'EventHandlerDuration',
+      Value: durationMs,
+      Unit: 'Milliseconds',
+      Dimensions: [{ Name: 'EventType', Value: eventType }],
+    };
+  },
+
+  eventHandlerErrorDuration(eventType: string, durationMs: number): MetricDatum {
+    return {
+      MetricName: 'EventHandlerErrorDuration',
+      Value: durationMs,
+      Unit: 'Milliseconds',
+      Dimensions: [{ Name: 'EventType', Value: eventType }],
+    };
+  },
 };

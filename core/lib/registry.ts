@@ -97,17 +97,6 @@ export class AgentRegistry {
       (preFetchedConfigs?.[CONFIG_KEYS.SELECTIVE_DISCOVERY_MODE] ??
         (await ConfigManager.getRawConfig(CONFIG_KEYS.SELECTIVE_DISCOVERY_MODE)) === true);
 
-    if (isDiscoveryMode && config.tools) {
-      config.tools = config.tools.filter((t: string) =>
-        (AgentRegistry.ESSENTIAL_SYSTEM_TOOLS as string[]).includes(t)
-      );
-      if (config.tools.length < 4) {
-        config.tools = Array.from(
-          new Set([...config.tools, ...AgentRegistry.DISCOVERY_BOOTLOADER_TOOLS])
-        );
-      }
-    }
-
     // 3. Tool Overrides (with TTL Support)
     // Support both per-agent `${id}_tools` entries and the newer batch
     // `DYNAMO_KEYS.AGENT_TOOL_OVERRIDES` map. Batch overrides take precedence
@@ -127,7 +116,7 @@ export class AgentRegistry {
       >);
 
     const now = Date.now();
-    const activeOverrides = [];
+    const activeOverrides: string[] = [];
     let prunedCount = 0;
 
     const filterActive = (list: (string | import('./types/agent').InstalledSkill)[]) =>
@@ -154,7 +143,7 @@ export class AgentRegistry {
       if (
         batchOverrides &&
         Array.isArray(batchOverrides[id]) &&
-        activeBatch.length < batchOverrides[id].length
+        activeBatch.length < (batchOverrides[id] as any[]).length
       ) {
         const update = this.saveRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, {
           ...batchOverrides,
@@ -177,12 +166,27 @@ export class AgentRegistry {
       config.tools = Array.from(
         new Set([
           ...activeOverrides,
-          ...(this.backboneConfigs[id]?.tools ?? AgentRegistry.ESSENTIAL_SYSTEM_TOOLS),
+          ...(this.backboneConfigs[id]?.tools ?? (AgentRegistry.ESSENTIAL_SYSTEM_TOOLS as any)),
         ])
       );
     } else {
       config.tools = Array.from(
         new Set([...(config.tools ?? []), ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS])
+      );
+    }
+
+    if (isDiscoveryMode) {
+      // In discovery mode, we restrict tools to the skeleton set + explicitly installed skills.
+      // Installed skills are already in activeOverrides.
+      const bootloader = Array.from(
+        new Set([...AgentRegistry.DISCOVERY_BOOTLOADER_TOOLS])
+      ) as string[];
+
+      // Ensure bootloader tools are available even if not in original config.tools
+      config.tools = Array.from(new Set([...(config.tools ?? []), ...bootloader]));
+
+      config.tools = config.tools.filter(
+        (t: string) => bootloader.includes(t) || activeOverrides.includes(t)
       );
     }
 

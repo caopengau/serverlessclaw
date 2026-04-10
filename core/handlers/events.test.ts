@@ -70,9 +70,17 @@ vi.mock('@aws-sdk/client-eventbridge', () => {
 });
 
 vi.mock('@aws-sdk/client-dynamodb', () => ({
-  DynamoDBClient: vi.fn(),
+  DynamoDBClient: vi.fn(function () {
+    return {
+      config: { protocol: 'https' },
+      send: vi.fn(),
+    };
+  }),
   PutItemCommand: vi.fn(),
   GetItemCommand: vi.fn(),
+  ConditionalCheckFailedException: class extends Error {
+    name = 'ConditionalCheckFailedException';
+  },
 }));
 
 vi.mock('../lib/outbound', () => ({

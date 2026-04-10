@@ -95,6 +95,25 @@ const PERMANENT_PATTERNS = [
 ];
 
 /**
+ * Helper to identify connection-related errors.
+ */
+export function isConnectionError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return (
+      msg.includes('connection') ||
+      msg.includes('econnrefused') ||
+      msg.includes('socket') ||
+      msg.includes('closed') ||
+      msg.includes('timeout') ||
+      msg.includes('econnreset') ||
+      msg.includes('etimedout')
+    );
+  }
+  return false;
+}
+
+/**
  * Classifies an error as transient, permanent, or unknown.
  */
 export function classifyError(error: Error | string | Record<string, unknown>): ErrorClass {
@@ -118,6 +137,11 @@ export function classifyError(error: Error | string | Record<string, unknown>): 
     if (pattern.test(message) || pattern.test(name)) {
       return ErrorClass.PERMANENT;
     }
+  }
+
+  // Check connection errors (always transient)
+  if (isConnectionError(error)) {
+    return ErrorClass.TRANSIENT;
   }
 
   // Check transient patterns
@@ -434,19 +458,27 @@ export async function withProviderFallback<T>(
  *
  * @param toolName The name of the MCP tool being executed.
  * @param execute The function that performs the tool call.
- * @param fallback Optional fallback function if execution fails.
+ * @param options Resilience options including fallback and failure callback.
  */
 export async function withMCPResilience<T>(
   toolName: string,
   execute: () => Promise<T>,
-  fallback?: () => Promise<T>
+  options: {
+    fallback?: () => Promise<T>;
+    onFailure?: (error: Error) => void | Promise<void>;
+  } = {}
 ): Promise<T> {
   return withResilientExecution(execute, {
     operationName: `mcp:${toolName}`,
     circuitBreakerType: 'health',
-    fallback,
+    fallback: options.fallback,
     maxRetries: 2,
     baseDelayMs: 500,
+    onRetry: async (_attempt, error) => {
+      if (options.onFailure) {
+        await options.onFailure(error);
+      }
+    },
   });
 }
 

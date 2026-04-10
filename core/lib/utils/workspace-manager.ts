@@ -41,6 +41,16 @@ async function setupWorkspace(
     // Ignore errors if chmod fails (e.g., on some OSes or already writable)
   }
 
+  // 3. Symlink node_modules for test execution
+  // We symlink instead of copy to save space and time in /tmp.
+  try {
+    const targetNodeModules = path.join(process.cwd(), 'node_modules');
+    const wsNodeModules = path.join(workspacePath, 'node_modules');
+    await fs.symlink(targetNodeModules, wsNodeModules, 'dir');
+  } catch (error) {
+    logger.warn(`Failed to symlink node_modules to workspace: ${error}`);
+  }
+
   // 4. Initialize Git and create the base commit
   // Required because Coder Agent tools like generatePatch need a Git repo.
   // We also configure a local user to avoid "Author identity unknown" errors.
