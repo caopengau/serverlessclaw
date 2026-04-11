@@ -7,6 +7,7 @@ import {
   LLMProvider,
   MiniMaxModel,
   SafetyTier,
+  EvolutionMode,
 } from './types/index';
 import { TOOLS } from './constants';
 import {
@@ -35,7 +36,7 @@ const BACKBONE_LLM_CONFIG = {
 const BACKBONE_COMMON_CONFIG = {
   isBackbone: true,
   parallelToolCalls: false,
-  discoveryMode: false,
+  evolutionMode: EvolutionMode.HITL,
   maxIterations: 10,
   safetyTier: SafetyTier.PROD,
   connectionProfile: [],
@@ -63,7 +64,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.STANDARD,
     defaultCommunicationMode: 'text',
-    discoveryMode: true,
+    evolutionMode: EvolutionMode.AUTO,
     tools: [
       ...UNIVERSAL_SYSTEM_TOOLS,
       TOOLS.dispatchTask,

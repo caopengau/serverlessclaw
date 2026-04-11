@@ -24,7 +24,7 @@ export class LockManager {
     const dbClient = client || new DynamoDBClient({});
     this.docClient = DynamoDBDocumentClient.from(dbClient);
     try {
-      this.tableName = (Resource as any).MemoryTable.name;
+      this.tableName = (Resource as Record<string, any>).MemoryTable.name;
     } catch {
       this.tableName = process.env.MEMORY_TABLE_NAME || 'MemoryTable';
     }
@@ -66,8 +66,8 @@ export class LockManager {
       );
       logger.debug(`Lock [${fullId}] acquired by ${options.ownerId}`);
       return true;
-    } catch (error: any) {
-      if (error.name === 'ConditionalCheckFailedException') {
+    } catch (error: unknown) {
+      if ((error as any).name === 'ConditionalCheckFailedException') {
         logger.debug(`Lock [${fullId}] acquisition failed: already held or not expired.`);
         return false;
       }
@@ -102,8 +102,8 @@ export class LockManager {
         })
       );
       return true;
-    } catch (error: any) {
-      if (error.name === 'ConditionalCheckFailedException') {
+    } catch (error: unknown) {
+      if ((error as any).name === 'ConditionalCheckFailedException') {
         logger.warn(`Lock [${fullId}] renewal failed: owner mismatch or lock lost.`);
         return false;
       }
@@ -136,8 +136,8 @@ export class LockManager {
       );
       logger.debug(`Lock [${fullId}] released by ${ownerId}`);
       return true;
-    } catch (error: any) {
-      if (error.name === 'ConditionalCheckFailedException') {
+    } catch (error: unknown) {
+      if ((error as any).name === 'ConditionalCheckFailedException') {
         logger.debug(`Lock [${fullId}] release rejected: owner mismatch or lock already expired.`);
         return false;
       }

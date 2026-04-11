@@ -10,7 +10,7 @@ export interface SkillDefinition {
   description: string;
   type: 'TOOL' | 'MCP_SERVER';
   manifestUrl?: string; // For remote discovery
-  parameters?: Record<string, any>; // For static tool definitions
+  parameters?: Record<string, unknown>; // For static tool definitions
 }
 
 export class SkillRegistry {

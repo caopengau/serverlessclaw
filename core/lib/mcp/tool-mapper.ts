@@ -61,12 +61,33 @@ export class MCPToolMapper {
     }
 
     if (isFilesystemTool && parameters.type === 'object' && parameters.properties) {
-      parameters.properties.manuallyApproved = {
-        type: 'boolean',
-        description:
-          'Must be true if modifying a protected system file, after explicit human approval.',
-      };
+      // manuallyApproved injection removed: handled by ToolExecutor based on evolutionMode
     }
+
+    // Sensitive keywords that should trigger mandatory approval for MCP tools
+    const sensitiveKeywords = [
+      'aws',
+      'delete',
+      'remove',
+      'terminate',
+      'write',
+      'update',
+      'create',
+      'put',
+      'iam',
+      'policy',
+      'permission',
+      'secret',
+      'password',
+      'token',
+      'key',
+    ];
+    const isSensitive = sensitiveKeywords.some(
+      (kw) =>
+        serverName.toLowerCase().includes(kw) ||
+        mcpTool.name.toLowerCase().includes(kw) ||
+        (mcpTool.description ?? '').toLowerCase().includes(kw)
+    );
 
     return {
       name: toolName,
@@ -77,8 +98,8 @@ export class MCPToolMapper {
       connectionProfile: [],
       connector_id: '',
       auth: { type: 'api_key', resource_id: '' },
-      requiresApproval: false,
-      requiredPermissions: [],
+      requiresApproval: isSensitive,
+      requiredPermissions: isSensitive ? ['admin'] : [],
       sequential: isFilesystemTool, // Filesystem operations usually need to be sequential
       pathKeys: pathKeys.length > 0 ? pathKeys : undefined,
       execute: async (toolArgs: Record<string, unknown>) => {

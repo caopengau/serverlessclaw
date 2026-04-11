@@ -113,7 +113,10 @@ export class ClawTracer {
                 agentId: this.agentId,
                 timestamp: this.startTime,
                 status: TRACE_STATUS.STARTED,
-                title: (initialContext as any)?.title ?? (initialContext as any)?.message ?? null,
+                title:
+                  (initialContext as Record<string, unknown>)?.title ??
+                  (initialContext as Record<string, unknown>)?.message ??
+                  null,
                 expiresAt,
               },
             })

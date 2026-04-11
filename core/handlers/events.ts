@@ -124,7 +124,7 @@ export async function handler(
   // Retrieve configured recursion limit (default is 15 if not set)
   const recursionLimit = await ConfigManager.getTypedConfig('recursion_limit', 15);
   // Determine current depth (default 0 if not provided)
-  let currentDepth = (eventDetail as any).depth ?? 0;
+  let currentDepth = ((eventDetail as Record<string, unknown>).depth as number) ?? 0;
   currentDepth += 1;
   if (typeof recursionLimit === 'number' && currentDepth > recursionLimit) {
     logger.warn(`[RECURSION] Depth ${currentDepth} exceeds limit ${recursionLimit}`);
@@ -139,7 +139,7 @@ export async function handler(
     return;
   }
   // Propagate updated depth to downstream handlers
-  (eventDetail as any).depth = currentDepth;
+  (eventDetail as Record<string, unknown>).depth = currentDepth;
 
   logger.info(`[EVENTS] Received`, {
     detailType,

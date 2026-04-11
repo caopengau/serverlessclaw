@@ -57,12 +57,12 @@ export async function handleDagStep(
       dagState = buildDependencyGraph(tasks);
 
       // Re-apply completed tasks if necessary
-      const results = (currentState.results as any[]) ?? [];
+      const results = (currentState.results as Record<string, unknown>[]) ?? [];
       for (const res of results) {
         if (res.status === 'success') {
-          completeTask(dagState, res.taskId, res.result);
+          completeTask(dagState, res.taskId as string, res.result);
         } else if (res.status === 'failed') {
-          failTask(dagState, res.taskId, res.error || 'Unknown error');
+          failTask(dagState, res.taskId as string, (res.error as string) || 'Unknown error');
         }
       }
     }

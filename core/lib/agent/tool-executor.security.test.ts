@@ -90,7 +90,13 @@ describe('ToolExecutor Security', () => {
     expect(mockTools[0].execute).not.toHaveBeenCalled();
   });
 
-  it('allows execution of protected path when manuallyApproved is true', async () => {
+  it('allows execution of protected path when manuallyApproved is true (AUTO mode)', async () => {
+    const { EvolutionMode } = await import('../types/agent');
+    const autoContext = {
+      ...execContext,
+      agentConfig: { evolutionMode: EvolutionMode.AUTO } as any,
+    };
+
     const toolCalls = [
       {
         id: 'call-1',
@@ -110,7 +116,7 @@ describe('ToolExecutor Security', () => {
       mockTools,
       messages,
       attachments,
-      execContext,
+      autoContext,
       mockTracer
     );
 

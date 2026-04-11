@@ -14,7 +14,7 @@ import { EventType } from '../lib/types/agent';
 /**
  * Main maintenance loop. Designed to be triggered by a CloudWatch Event (cron).
  */
-export const handler = async (_event: any, _context: Context): Promise<void> => {
+export const handler = async (_event: unknown, _context: Context): Promise<void> => {
   logger.info('[MAINTENANCE] starting cycle...');
 
   const memory = new DynamoMemory();

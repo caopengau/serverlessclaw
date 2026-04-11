@@ -194,10 +194,8 @@ export interface IAgentConfig {
   };
   /** Safety trust level for this agent. Controls approval gates. */
   safetyTier?: SafetyTier;
-  /** Whether the agent can self-approve protected resource access (e.g., manuallyApproved: true). */
-  selfApprovalMode?: EvolutionMode;
-  /** Whether the agent starts in "Nimble" mode (suppresses MCP tools until JIT installation). */
-  discoveryMode?: boolean;
+  /** Operational mode for system evolution and resource access approvals. */
+  evolutionMode?: EvolutionMode;
   /** Token budget constraint for this agent. */
   tokenBudget?: number;
   /** Maximum cost allowed for this agent (USD). */

@@ -110,35 +110,17 @@ describe('AgentRegistry', () => {
       expect(config).toEqual(expect.objectContaining(customAgent));
     });
 
-    it('should handle discovery mode', async () => {
+    it('should set default evolutionMode to HITL', async () => {
       vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
-        if (key === 'selective_discovery_mode') return true;
         if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
-          return { custom: { id: 'custom', name: 'Custom', tools: ['tool1', 'tool2'] } };
+          return { custom: { id: 'custom', name: 'Custom', tools: [] } };
         }
         return undefined;
       });
 
       const config = await AgentRegistry.getAgentConfig('custom');
-      // Should only have essential tools in discovery mode
-      expect(config?.tools).toEqual(expect.arrayContaining(['dispatchTask']));
-      expect(config?.tools).not.toContain('tool1');
-    });
-
-    it('should add bootloader tools in discovery mode', async () => {
-      vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
-        if (key === 'selective_discovery_mode') return true;
-        if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
-          return { custom: { id: 'custom', name: 'Custom', tools: ['recallKnowledge'] } };
-        }
-        return undefined;
-      });
-
-      const config = await AgentRegistry.getAgentConfig('custom');
-      // Should have bootloader tools
-      if (!config?.tools) throw new Error('Tools should be defined');
-      expect(config.tools.length).toBeGreaterThanOrEqual(4);
-      expect(config.tools).toContain('listAgents');
+      const { EvolutionMode } = await import('./types/agent');
+      expect(config?.evolutionMode).toBe(EvolutionMode.HITL);
     });
 
     it('should apply tool overrides from batch config', async () => {

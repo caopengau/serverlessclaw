@@ -244,22 +244,22 @@ export class ToolExecutor {
       return { toolCallCount: 0 };
     }
 
-    // P0 Fix: Toggleable Self-Approval
+    // P0 Fix: Toggleable Evolution & Approval Mode
     const { EvolutionMode } = await import('../types/agent');
-    const selfApprovalMode = agentConfig?.selfApprovalMode ?? EvolutionMode.HITL;
+    const evolutionMode = agentConfig?.evolutionMode ?? EvolutionMode.HITL;
 
-    if (args.manuallyApproved === true && !isApproved) {
-      if (selfApprovalMode === EvolutionMode.AUTO) {
+    if (evolutionMode === EvolutionMode.AUTO) {
+      if (args.manuallyApproved !== true) {
         logger.info(
-          `[SECURITY] Agent self-approved protected resource in tool ${tool.name} (AUTO mode enabled).`
+          `[SECURITY] Injecting 'manuallyApproved: true' for tool ${tool.name} (AUTO mode enabled).`
         );
-        // In AUTO mode, we trust the agent's self-approval
-      } else {
-        logger.warn(
-          `[SECURITY] Agent attempted self-approval of protected resource in tool ${tool.name} (HITL mode). Blocked.`
-        );
-        args.manuallyApproved = false; // Block self-approval attempt in HITL/Default
+        args.manuallyApproved = true;
       }
+    } else if (args.manuallyApproved === true && !isApproved) {
+      logger.warn(
+        `[SECURITY] Agent attempted self-approval of protected resource in tool ${tool.name} (HITL mode). Blocked.`
+      );
+      args.manuallyApproved = false; // Block self-approval attempt in HITL/Default
     }
 
     const contextArgs: Record<string, unknown> = {
@@ -308,7 +308,7 @@ export class ToolExecutor {
     // 2.5 Structural Enforcement (Zod Validation)
     if (tool.argSchema) {
       try {
-        args = tool.argSchema.parse(args) as any;
+        args = tool.argSchema.parse(args) as Record<string, unknown>;
       } catch (schemaError) {
         logger.error(`Argument validation failed for tool ${tool.name}:`, schemaError);
         messages.push({

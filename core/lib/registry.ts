@@ -3,7 +3,7 @@ import { IAgentConfig } from './types/agent';
 import { BACKBONE_REGISTRY } from './backbone';
 import { logger } from './logger';
 import type { Topology, TopologyNode } from './types/index';
-import { DYNAMO_KEYS, RETENTION, TOOLS, CONFIG_KEYS } from './constants';
+import { DYNAMO_KEYS, RETENTION, TOOLS } from './constants';
 import { ConfigManager, defaultDocClient } from './registry/config';
 
 /**
@@ -91,11 +91,9 @@ export class AgentRegistry {
 
     if (!config) return undefined;
 
-    // 2. Discovery Mode Filter - use per-agent config flag (backbone has discoveryMode: true)
-    const isDiscoveryMode =
-      config.discoveryMode === true ||
-      (preFetchedConfigs?.[CONFIG_KEYS.SELECTIVE_DISCOVERY_MODE] ??
-        (await ConfigManager.getRawConfig(CONFIG_KEYS.SELECTIVE_DISCOVERY_MODE)) === true);
+    // 2. Resolve evolutionMode (HITL default)
+    const { EvolutionMode } = await import('./types/agent');
+    config.evolutionMode = config.evolutionMode ?? EvolutionMode.HITL;
 
     // 3. Tool Overrides (with TTL Support)
     // Support both per-agent `${id}_tools` entries and the newer batch
@@ -143,7 +141,7 @@ export class AgentRegistry {
       if (
         batchOverrides &&
         Array.isArray(batchOverrides[id]) &&
-        activeBatch.length < (batchOverrides[id] as any[]).length
+        activeBatch.length < (batchOverrides[id] as unknown[]).length
       ) {
         const update = this.saveRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, {
           ...batchOverrides,
@@ -166,27 +164,13 @@ export class AgentRegistry {
       config.tools = Array.from(
         new Set([
           ...activeOverrides,
-          ...(this.backboneConfigs[id]?.tools ?? (AgentRegistry.ESSENTIAL_SYSTEM_TOOLS as any)),
+          ...(this.backboneConfigs[id]?.tools ??
+            (AgentRegistry.ESSENTIAL_SYSTEM_TOOLS as string[])),
         ])
       );
     } else {
       config.tools = Array.from(
         new Set([...(config.tools ?? []), ...AgentRegistry.ESSENTIAL_SYSTEM_TOOLS])
-      );
-    }
-
-    if (isDiscoveryMode) {
-      // In discovery mode, we restrict tools to the skeleton set + explicitly installed skills.
-      // Installed skills are already in activeOverrides.
-      const bootloader = Array.from(
-        new Set([...AgentRegistry.DISCOVERY_BOOTLOADER_TOOLS])
-      ) as string[];
-
-      // Ensure bootloader tools are available even if not in original config.tools
-      config.tools = Array.from(new Set([...(config.tools ?? []), ...bootloader]));
-
-      config.tools = config.tools.filter(
-        (t: string) => bootloader.includes(t) || activeOverrides.includes(t)
       );
     }
 
@@ -203,9 +187,8 @@ export class AgentRegistry {
    * @returns A promise resolving to a record of all agent configurations.
    */
   static async getAllConfigs(): Promise<Record<string, IAgentConfig>> {
-    const [ddbConfig, discoveryMode, batchToolOverrides] = await Promise.all([
+    const [ddbConfig, batchToolOverrides] = await Promise.all([
       ConfigManager.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG),
-      ConfigManager.getRawConfig('selective_discovery_mode'),
       ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES),
     ]);
 
@@ -215,7 +198,6 @@ export class AgentRegistry {
 
     const preFetchedConfigs: Record<string, unknown> = {
       [DYNAMO_KEYS.AGENTS_CONFIG]: dynamicAgents,
-      selective_discovery_mode: discoveryMode,
     };
 
     if (batchToolOverrides && typeof batchToolOverrides === 'object') {

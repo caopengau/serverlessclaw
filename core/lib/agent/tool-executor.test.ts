@@ -496,5 +496,72 @@ describe('ToolExecutor', () => {
       expect(result.toolCallCount).toBe(0);
       expect(messages).toHaveLength(0);
     });
+
+    describe('Evolution Mode Injection', () => {
+      it('injects manuallyApproved: true in AUTO mode', async () => {
+        const executeFn = vi.fn().mockResolvedValue('done');
+        const tool = createTool({ name: 'protected-tool', execute: executeFn });
+        const { EvolutionMode } = await import('../types/agent');
+
+        await ToolExecutor.executeToolCalls(
+          [createToolCall({ name: 'protected-tool', args: {} })],
+          [tool],
+          [],
+          [],
+          createExecContext({
+            agentConfig: { evolutionMode: EvolutionMode.AUTO },
+          }),
+          tracer
+        );
+
+        const calledArgs = executeFn.mock.calls[0][0];
+        expect(calledArgs.manuallyApproved).toBe(true);
+      });
+
+      it('blocks self-approval in HITL mode', async () => {
+        const executeFn = vi.fn().mockResolvedValue('done');
+        const tool = createTool({ name: 'protected-tool', execute: executeFn });
+        const { EvolutionMode } = await import('../types/agent');
+
+        await ToolExecutor.executeToolCalls(
+          [createToolCall({ name: 'protected-tool', args: { manuallyApproved: true } })],
+          [tool],
+          [],
+          [],
+          createExecContext({
+            agentConfig: { evolutionMode: EvolutionMode.HITL },
+          }),
+          tracer
+        );
+
+        const calledArgs = executeFn.mock.calls[0][0];
+        expect(calledArgs.manuallyApproved).toBe(false);
+      });
+
+      it('respects existing manuallyApproved: true if tool is approved (HITL)', async () => {
+        const executeFn = vi.fn().mockResolvedValue('done');
+        const tool = createTool({ name: 'protected-tool', execute: executeFn });
+        const { EvolutionMode } = await import('../types/agent');
+
+        const toolCall = createToolCall({
+          name: 'protected-tool',
+          args: { manuallyApproved: true },
+        });
+        await ToolExecutor.executeToolCalls(
+          [toolCall],
+          [tool],
+          [],
+          [],
+          createExecContext({
+            agentConfig: { evolutionMode: EvolutionMode.HITL },
+          }),
+          tracer,
+          [toolCall.id] // Explicitly approved
+        );
+
+        const calledArgs = executeFn.mock.calls[0][0];
+        expect(calledArgs.manuallyApproved).toBe(true);
+      });
+    });
   });
 });

@@ -69,7 +69,7 @@ export async function handleContinuationTask(
     sessionId,
     depth,
     initiatorId,
-    attachments: attachments as any,
+    attachments: attachments as import('../../lib/types/index').Attachment[],
     tokenBudget,
     costLimit,
     priorTokenUsage,

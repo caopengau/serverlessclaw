@@ -28,7 +28,7 @@ export class GitHubIssueResolverAgent {
   private config: IssueSyncConfig;
   private githubAdapter: GitHubAdapter;
 
-  constructor(llmProvider: any, config: IssueSyncConfig) {
+  constructor(llmProvider: unknown, config: IssueSyncConfig) {
     this.llm = llmProvider as {
       generate: (prompt: string) => Promise<{ text: () => Promise<string> }>;
     };

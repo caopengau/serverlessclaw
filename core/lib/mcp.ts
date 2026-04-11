@@ -4,6 +4,7 @@ import { logger } from './logger';
 import { AgentRegistry } from './registry';
 import { MCPClientManager } from './mcp/client-manager';
 import { MCPToolMapper } from './mcp/tool-mapper';
+import { LockManager } from './lock/lock-manager';
 
 /**
  * MCPBridge coordinates connections to external Model Context Protocol (MCP) servers.
@@ -44,14 +45,13 @@ export class MCPBridge {
 
     const discoveryPromise = (async () => {
       let acquired = false;
-      let lockManager: import('./lock/lock-manager').LockManager | null = null;
+      let lockManager: LockManager | null = null;
       let lockId = '';
       let ownerId = '';
 
       // Skip locking and hub routing if this is a recursive call
       if (!options?.isRecursive) {
         // 1. Check Distributed Lock (Thundering Herd Protection across Fleet)
-        const { LockManager } = await import('./lock/lock-manager');
         lockManager = new LockManager();
         lockId = `mcp_discovery_lock_${serverName}`;
         ownerId = `node_${Math.random().toString(36).substring(7)}`;

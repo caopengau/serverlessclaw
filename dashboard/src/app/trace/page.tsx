@@ -1,11 +1,8 @@
 import { getResourceName } from '@/lib/sst-utils';
-import { decodePaginationToken, encodePaginationToken } from '@/lib/pagination-utils';
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand, GetCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import DeleteAllTracesButton from '@/components/DeleteAllTracesButton';
-import { TraceSource } from '@claw/core/lib/types/index';
-import { Trace } from '@/lib/types/ui';
 import Typography from '@/components/ui/Typography';
 import Badge from '@/components/ui/Badge';
 import TraceIntelligenceView from '@/components/TraceIntelligenceView';

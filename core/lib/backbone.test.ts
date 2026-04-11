@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { BACKBONE_REGISTRY } from './backbone';
-import { AgentType, AgentCategory } from './types/agent';
+import { AgentType, AgentCategory, EvolutionMode } from './types/agent';
 
 describe('Backbone Registry', () => {
   it('should have all backbone agents defined', () => {
@@ -51,9 +51,9 @@ describe('Backbone Registry', () => {
     expect(mainAgent.connectionProfile!.length).toBeGreaterThan(0);
   });
 
-  it('should have discoveryMode enabled for SuperClaw', () => {
+  it('should have evolutionMode set to HITL for SuperClaw', () => {
     const mainAgent = BACKBONE_REGISTRY[AgentType.SUPERCLAW];
-    expect(mainAgent.discoveryMode).toBe(true);
+    expect(mainAgent.evolutionMode).toBe(EvolutionMode.AUTO);
   });
 
   it('should include essential tools in SuperClaw', () => {

@@ -28,6 +28,13 @@ vi.mock('./mcp/client-manager', () => ({
   },
 }));
 
+vi.mock('./lock/lock-manager', () => ({
+  LockManager: class {
+    acquire = vi.fn().mockResolvedValue(true);
+    release = vi.fn().mockResolvedValue(true);
+  },
+}));
+
 vi.mock('./mcp/tool-mapper', () => ({
   MCPToolMapper: {
     mapTools: vi.fn((serverName: string, _client: any, rawTools: any[]) =>

@@ -27,6 +27,13 @@ vi.mock('./mcp/client-manager', () => ({
   },
 }));
 
+vi.mock('./lock/lock-manager', () => ({
+  LockManager: class {
+    acquire = vi.fn().mockResolvedValue(true);
+    release = vi.fn().mockResolvedValue(true);
+  },
+}));
+
 describe('MCPBridge Parallel Discovery', () => {
   beforeEach(() => {
     vi.clearAllMocks();

@@ -115,35 +115,6 @@ describe('MCPToolMapper', () => {
       expect(() => tools[0].argSchema?.parse({})).toThrow();
     });
 
-    it('adds manuallyApproved parameter for filesystem tools', () => {
-      const client = makeMockClient();
-      const rawTools = [
-        {
-          name: 'read_file',
-          description: 'Read',
-          inputSchema: { type: 'object', properties: { path: { type: 'string' } } },
-        },
-      ];
-
-      const tools = MCPToolMapper.mapTools('filesystem', client, rawTools);
-      expect(tools[0].parameters.properties?.manuallyApproved).toBeDefined();
-      expect(tools[0].parameters.properties?.manuallyApproved.type).toBe('boolean');
-    });
-
-    it('adds manuallyApproved parameter for tools starting with filesystem_', () => {
-      const client = makeMockClient();
-      const rawTools = [
-        {
-          name: 'filesystem_write',
-          description: 'Write',
-          inputSchema: { type: 'object', properties: { path: { type: 'string' } } },
-        },
-      ];
-
-      const tools = MCPToolMapper.mapTools('other', client, rawTools);
-      expect(tools[0].parameters.properties?.manuallyApproved).toBeDefined();
-    });
-
     it('does not add manuallyApproved for non-filesystem tools', () => {
       const client = makeMockClient();
       const rawTools = [
@@ -203,7 +174,8 @@ describe('MCPToolMapper', () => {
       await tools[0].execute({ path: '/etc/passwd' });
       expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
         expect.objectContaining({ path: '/etc/passwd' }),
-        'MCP operation (read_file)'
+        'MCP operation (read_file)',
+        []
       );
     });
 
@@ -221,7 +193,8 @@ describe('MCPToolMapper', () => {
       await tools[0].execute({ path_to_file: '/some/file.txt' });
       expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
         expect.objectContaining({ path_to_file: '/some/file.txt' }),
-        'MCP operation (read_file)'
+        'MCP operation (read_file)',
+        []
       );
     });
 
@@ -239,7 +212,8 @@ describe('MCPToolMapper', () => {
       await tools[0].execute({ file_path: '/some/file.txt' });
       expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
         expect.objectContaining({ file_path: '/some/file.txt' }),
-        'MCP operation (read_file)'
+        'MCP operation (read_file)',
+        []
       );
     });
 
@@ -389,37 +363,6 @@ describe('MCPToolMapper', () => {
       });
     });
 
-    it('adds manuallyApproved parameter for filesystem tools', () => {
-      const rawTools = [
-        {
-          name: 'write_file',
-          description: 'Write',
-          inputSchema: { type: 'object', properties: { path: { type: 'string' } } },
-        },
-      ];
-      const clientProvider = vi.fn().mockResolvedValue(makeMockClient());
-
-      const tools = MCPToolMapper.mapCachedTools('filesystem', rawTools, clientProvider);
-
-      expect(tools[0].parameters.properties?.manuallyApproved).toBeDefined();
-      expect(tools[0].parameters.properties?.manuallyApproved.type).toBe('boolean');
-    });
-
-    it('adds manuallyApproved for tools starting with filesystem_', () => {
-      const rawTools = [
-        {
-          name: 'filesystem_delete',
-          description: 'Delete',
-          inputSchema: { type: 'object', properties: {} },
-        },
-      ];
-      const clientProvider = vi.fn().mockResolvedValue(makeMockClient());
-
-      const tools = MCPToolMapper.mapCachedTools('other', rawTools, clientProvider);
-
-      expect(tools[0].parameters.properties?.manuallyApproved).toBeDefined();
-    });
-
     it('does not add manuallyApproved for non-filesystem tools', () => {
       const rawTools = [
         {
@@ -465,7 +408,8 @@ describe('MCPToolMapper', () => {
       await tools[0].execute({ path: '/etc/passwd' });
       expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
         expect.objectContaining({ path: '/etc/passwd' }),
-        'MCP operation (read_file)'
+        'MCP operation (read_file)',
+        []
       );
     });
 
@@ -484,7 +428,8 @@ describe('MCPToolMapper', () => {
       await tools[0].execute({ path_to_file: '/some/file.txt' });
       expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
         expect.objectContaining({ path_to_file: '/some/file.txt' }),
-        'MCP operation (read_file)'
+        'MCP operation (read_file)',
+        []
       );
     });
 
@@ -503,7 +448,8 @@ describe('MCPToolMapper', () => {
       await tools[0].execute({ file_path: '/some/file.txt' });
       expect(checkArgumentsForSecurity).toHaveBeenCalledWith(
         expect.objectContaining({ file_path: '/some/file.txt' }),
-        'MCP operation (read_file)'
+        'MCP operation (read_file)',
+        []
       );
     });
 
@@ -541,7 +487,7 @@ describe('MCPToolMapper', () => {
       const tools = MCPToolMapper.mapCachedTools('filesystem', rawTools, clientProvider);
       await tools[0].execute({});
 
-      expect(checkArgumentsForSecurity).toHaveBeenCalledWith({}, 'MCP operation (list_dir)');
+      expect(checkArgumentsForSecurity).toHaveBeenCalledWith({}, 'MCP operation (list_dir)', []);
       expect(clientProvider).toHaveBeenCalled();
       expect(mockClient.callTool).toHaveBeenCalled();
     });
