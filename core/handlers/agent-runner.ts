@@ -236,7 +236,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
         initiatorId: payload.initiatorId,
         depth: payload.depth,
         userNotified: shouldSpeakDirectly && !isFailure,
-        idempotencyKey: traceId,
+        idempotencyKey: taskId || `${traceId}-${agentId}`,
       });
     }
 

@@ -272,15 +272,16 @@ export async function handler(
         eventDetail.__envelopeId = envelopeId;
       }
 
-      // Mark event as processed for idempotency
-      await markIdempotent(idempotencyKey, detailType);
-
       // Call the handler
       if (routing.passContext) {
         await handlerModule[routing.function](eventDetail, context, detailType);
       } else {
         await handlerModule[routing.function](eventDetail, detailType);
       }
+
+      // Mark event as processed for idempotency ONLY after successful execution (P0 Reliability Fix)
+      // This ensures that if the handler fails (e.g. timeout), EventBridge retries will not be blocked.
+      await markIdempotent(idempotencyKey, detailType);
 
       // Emit success timing metric
       const durationMs = performance.now() - startTime;

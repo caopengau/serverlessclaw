@@ -606,16 +606,31 @@ export const knowledgeSchema: Record<string, IToolDefinition> = {
           type: 'string',
           description: 'A unique name for the server (e.g., git, search).',
         },
+        type: {
+          type: 'string',
+          enum: ['local', 'remote', 'managed'],
+          description:
+            'The connection type: "local" (default), "remote" (SSE), or "managed" (OpenAI Connector).',
+        },
         command: {
           type: 'string',
-          description: 'The command to run the server (e.g., npx @mcp/server-git).',
+          description: 'The command to run the server (required for type: "local").',
+        },
+        url: {
+          type: 'string',
+          description: 'The URL of the remote MCP server (required for type: "remote").',
+        },
+        connector_id: {
+          type: 'string',
+          description: 'The ID of the managed connector (required for type: "managed").',
         },
         env: {
           type: 'string',
-          description: 'Optional environment variables for the server (JSON stringified object).',
+          description:
+            'Optional environment variables for the server (JSON stringified object, local only).',
         },
       },
-      required: ['serverName', 'command', 'env'],
+      required: ['serverName'],
       additionalProperties: false,
     },
     connectionProfile: ['storage'],

@@ -2,34 +2,61 @@ import { knowledgeSchema } from './schema';
 import { ConfigManager } from '../../lib/registry/config';
 import { formatErrorMessage } from '../../lib/utils/error';
 
+import { MCPServerConfig } from '../../lib/types/mcp';
+
 /**
  * Registers a new MCP server in the global configuration.
  */
 export const registerMCPServer = {
   ...knowledgeSchema.registerMCPServer,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { serverName, command, env } = args as {
+    const {
+      serverName,
+      type = 'local',
+      command,
+      url,
+      connector_id,
+      env,
+    } = args as {
       serverName: string;
-      command: string;
-      env: string;
+      type?: 'local' | 'remote' | 'managed';
+      command?: string;
+      url?: string;
+      connector_id?: string;
+      env?: string;
     };
 
     try {
-      let parsedEnv = {};
-      if (env) {
-        try {
-          parsedEnv = typeof env === 'string' ? JSON.parse(env) : env;
-        } catch {
-          return `Failed to parse environment variables. Ensure 'env' is a valid JSON string.`;
-        }
-      }
-
       const mcpServers =
         ((await ConfigManager.getRawConfig('mcp_servers')) as Record<string, unknown>) ?? {};
-      mcpServers[serverName] = { command, env: parsedEnv };
 
+      let config: MCPServerConfig;
+
+      if (type === 'local') {
+        if (!command) return 'FAILED: "command" is required for local MCP servers.';
+        let parsedEnv = {};
+        if (env) {
+          try {
+            parsedEnv = typeof env === 'string' ? JSON.parse(env) : env;
+          } catch {
+            return 'FAILED: Failed to parse environment variables. Ensure "env" is a valid JSON string.';
+          }
+        }
+        config = { type: 'local', command, env: parsedEnv };
+      } else if (type === 'remote') {
+        if (!url) return 'FAILED: "url" is required for remote MCP servers.';
+        config = { type: 'remote', url };
+      } else if (type === 'managed') {
+        if (!connector_id) return 'FAILED: "connector_id" is required for managed MCP servers.';
+        config = { type: 'managed', connector_id };
+      } else {
+        return `FAILED: Unsupported MCP server type "${type}".`;
+      }
+
+      mcpServers[serverName] = config;
       await ConfigManager.saveRawConfig('mcp_servers', mcpServers);
-      return `Successfully registered MCP server '${serverName}'.`;
+
+      return `Successfully registered ${type} MCP server '${serverName}'.`;
     } catch (error) {
       return `Failed to register MCP server: ${formatErrorMessage(error)}`;
     }

@@ -97,18 +97,18 @@ export class SessionStateManager {
   }
 
   /**
-   * Releases the processing lock for a session.
+   * Releases the processing lock for a session and re-emits any pending messages.
    */
   async releaseProcessing(sessionId: string, agentId: string): Promise<void> {
     const lockId = `${LOCK_PREFIX}${sessionId}`;
-    // Release the lock item itself
+    // 1. Release the lock item itself
     await this.lockManager.release(lockId, agentId, '');
 
-    // ALWAYS attempt to clear session metadata to prevent zombie "Processing" states in UI,
+    // 2. ALWAYS attempt to clear session metadata to prevent zombie "Processing" states in UI,
     // regardless of whether the lock release succeeded (it might have already expired).
     const key = this.getKey(sessionId);
     try {
-      await this.docClient.send(
+      const result = await this.docClient.send(
         new UpdateCommand({
           TableName: this.tableName,
           Key: { userId: key, timestamp: 0 },
@@ -120,8 +120,41 @@ export class SessionStateManager {
             ':agentId': agentId,
             ':exp': this.getSessionExpiresAt(),
           },
+          ReturnValues: 'ALL_NEW',
         })
       );
+
+      // 3. P0 Reliability Fix: If there are pending messages, re-emit the first one to continue the chain
+      const attributes = result.Attributes;
+      if (attributes && attributes.pendingMessages?.length > 0) {
+        const nextMsg = attributes.pendingMessages[0];
+        logger.info(
+          `Session ${sessionId}: Lock released, re-emitting next pending message: ${nextMsg.id}`
+        );
+
+        // Parse the content back into agent and task (Format: "agentId: task")
+        const content = nextMsg.content as string;
+        const separatorIndex = content.indexOf(':');
+        if (separatorIndex !== -1) {
+          const targetAgentId = content.substring(0, separatorIndex).trim();
+          const taskContent = content.substring(separatorIndex + 1).trim();
+
+          const { emitEvent } = await import('../utils/bus');
+
+          await emitEvent(`${agentId}.session-release`, `dynamic_${targetAgentId}_task` as any, {
+            userId: attributes.userId?.replace(SESSION_PREFIX, '') || 'unknown',
+            task: taskContent,
+            sessionId,
+            traceId: `resume-${Date.now()}`,
+            isContinuation: true,
+            attachments: nextMsg.attachments,
+          });
+
+          // 4. Remove the processed message from the queue
+          await this.removePendingMessage(sessionId, nextMsg.id);
+        }
+      }
+
       logger.info(`Session ${sessionId}: Processing metadata cleared for ${agentId}`);
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
