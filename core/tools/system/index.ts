@@ -5,6 +5,7 @@ import * as validationTools from './validation';
 import * as hotConfigTools from './hot-config';
 import * as reputationTools from './reputation';
 import * as uiTools from './ui';
+import * as governanceTools from './governance';
 
 /**
  * System Domain Tool Registry
@@ -17,6 +18,7 @@ export const systemTools = {
   ...hotConfigTools,
   ...reputationTools,
   ...uiTools,
+  ...governanceTools,
 };
 
 export { systemSchema } from './schema';

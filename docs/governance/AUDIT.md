@@ -84,6 +84,20 @@ Each silo represents a core functional domain. Reviews within a silo should adop
 - **Angle**: Audit the feedback loops. Review the Playwright E2E suite and the **LLM-as-a-Judge** semantic evaluation layer to ensure "truth" matches backend state. Evaluate the CI/CD pipelines as the "ultimate truth" of the deployment lifecycle.
 - **Key Concepts**: Dashboard tracing accuracy, LLM-as-a-Judge consistency, build-monitor signaling, and autonomous test suite evolution.
 
+### 6. The Scales (Trust & Calibration)
+
+**Perspective**: _Is the system grading its own homework too leniently?_
+
+- **Angle**: Audit the `SafetyEngine` and the LLM-as-a-Judge semantic evaluation layer to ensure `TrustScore` calculations are resistant to artificial inflation (gaming the metrics). Verify that failures accurately and immediately penalize the trust score.
+- **Key Concepts**: Trust decay rates, metric gaming, false-positive evaluations, and mode-shift thrashing.
+
+### 7. The Scythe (Bloat & Debt)
+
+**Perspective**: _What can be removed without losing capability?_
+
+- **Angle**: Audit the workspace for generated sprawl. Identify redundant tools, overlapping logic, and "dark" code that is never executed but adds cognitive load to agents. Evaluate if abstraction layers have become too thick and if pattern consolidation is overdue.
+- **Key Concepts**: Pattern consolidation, tool pruning (linked to `auto_prune_enabled`), cyclomatic complexity reduction, and semantic compression.
+
 ---
 
 ## 🔗 Cross-Silo Perspectives
@@ -124,13 +138,14 @@ The system supports automated audits triggered by code growth thresholds or majo
 | Config Key                     | Default    | Description                                                        |
 | :----------------------------- | :--------- | :----------------------------------------------------------------- |
 | `audit_code_growth_threshold`  | 0.10 (10%) | Code growth percentage that triggers a system audit                |
-| `audit_event_triggers_enabled` | true       | Enable audit triggers after TRUNK_SYNC, DEPLOYMENT_COMPLETE events |
+| `audit_event_triggers_enabled` | true       | Enable audit triggers on PRE_FLIGHT_READY, TRUST_SCORE_DROP, and MAJOR_SWARM_COMPLETE |
 
 ### Trigger Mechanisms
 
 1. **Code Growth Threshold**: When code growth exceeds 10% (configurable), the Strategic Planner triggers an audit
-2. **Event-Based**: After `TRUNK_SYNC`, `DEPLOYMENT_COMPLETE`, or `MAJOR_SWARM_COMPLETE` events
-3. **Manual**: Invoke with task "system audit" to the Cognition Reflector
+2. **Event-Based (Shift-Left)**: On `PRE_FLIGHT_READY` (to catch P0s before trunk sync) or `MAJOR_SWARM_COMPLETE` events
+3. **Trust-Based**: On `TRUST_SCORE_DROP` (if systemic trust drops > 15% in a single cycle, instantly trigger the Cognition Reflector)
+4. **Manual**: Invoke with task "system audit" to the Cognition Reflector
 
 ### Agent Responsibilities
 
@@ -144,13 +159,18 @@ The system supports automated audits triggered by code growth thresholds or majo
 ### Audit Flow
 
 ```
-Code Growth > 10% → Strategic Planner → emit SYSTEM_AUDIT_TRIGGER
-                                              ↓
-                                      Audit Handler
-                                              ↓
-                                    Cognition Reflector
-                                              ↓
-                                    Run audit against 5 silos
-                                              ↓
-                                    Report + P0 alerts
+Trigger (Code Growth, PRE_FLIGHT_READY, TRUST_SCORE_DROP)
+                              ↓
+                      Strategic Planner (Orchestrator)
+                              ↓
+              ┌───────────────┼───────────────┐
+              ↓               ↓               ↓
+           Critic        QA Auditor    Cognition Reflector
+      (Security/Perf)   (Deploy/Gaps)   (Memory/Traces)
+              ↓               ↓               ↓
+              └───────────────┼───────────────┘
+                              ↓
+                    Compile Audit Report
+                              ↓
+                 P0 Alerts / Block PRE_FLIGHT
 ```

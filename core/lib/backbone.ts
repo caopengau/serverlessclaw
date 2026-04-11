@@ -40,6 +40,7 @@ const BACKBONE_COMMON_CONFIG = {
   maxIterations: 10,
   safetyTier: SafetyTier.PROD,
   connectionProfile: [],
+  trustScore: 80,
 };
 
 const UNIVERSAL_SYSTEM_TOOLS = [

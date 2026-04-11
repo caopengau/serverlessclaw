@@ -6,6 +6,7 @@ import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import SafetyTierEditor from '@/components/SafetyTierEditor';
+import CoManagementHub from '@/components/CoManagementHub';
 import { THEME } from '@/lib/theme';
 
 const AGENT_POLICIES = [
@@ -133,6 +134,11 @@ export default function SecurityManifestPage() {
               onTierChange={(tier) => setCurrentTier(tier as 'local' | 'prod')}
             />
           </section>
+        </div>
+
+        {/* Co-Management Hub */}
+        <div className="lg:col-span-12">
+          <CoManagementHub />
         </div>
 
         {/* Left: Agent Capabilities */}

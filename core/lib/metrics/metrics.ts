@@ -111,12 +111,21 @@ export const METRICS = {
     };
   },
 
-  circuitBreakerTriggered(type: 'deploy' | 'recovery' | 'gap'): MetricDatum {
+  circuitBreakerTriggered(type: 'deploy' | 'recovery' | 'gap' | 'event'): MetricDatum {
     return {
       MetricName: 'CircuitBreakerTriggered',
       Value: 1,
       Unit: 'Count',
       Dimensions: [{ Name: 'Type', Value: type }],
+    };
+  },
+
+  rateLimitExceeded(eventType: string): MetricDatum {
+    return {
+      MetricName: 'RateLimitExceeded',
+      Value: 1,
+      Unit: 'Count',
+      Dimensions: [{ Name: 'EventType', Value: eventType }],
     };
   },
 

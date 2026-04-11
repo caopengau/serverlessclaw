@@ -71,6 +71,7 @@ export const TOOLS = {
   renderComponent: 'renderComponent',
   navigateTo: 'navigateTo',
   uiAction: 'uiAction',
+  proposeAutonomyUpdate: 'proposeAutonomyUpdate',
 } as const;
 
 /**

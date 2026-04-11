@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SafetyEngine } from './safety-engine';
 import { SafetyTier, AgentCategory, IAgentConfig } from '../types/agent';
 import { DEFAULT_POLICIES } from './safety-config';
+import { ConfigManager } from '../registry/config';
 
 vi.mock('../logger', () => ({
   logger: {
@@ -37,6 +38,13 @@ vi.mock('./safety-limiter', () => {
   };
 });
 
+vi.mock('../registry/config', () => ({
+  ConfigManager: {
+    getRawConfig: vi.fn(),
+    getTypedConfig: vi.fn().mockResolvedValue(10),
+  },
+}));
+
 describe('SafetyEngine', () => {
   let engine: SafetyEngine;
 
@@ -45,6 +53,10 @@ describe('SafetyEngine', () => {
     // Use a fixed time outside of business hours (Sunday)
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-04-05T12:00:00Z')); // Sunday
+
+    // Default mock for ConfigManager to return empty/default governance
+    vi.mocked(ConfigManager.getRawConfig).mockResolvedValue({});
+
     engine = new SafetyEngine();
     engine.clearViolations();
   });
@@ -313,6 +325,63 @@ describe('SafetyEngine', () => {
       expect(stats.approvalRequired).toBe(1);
       expect(stats.byTier[SafetyTier.PROD]).toBe(1);
       expect(stats.byTier[SafetyTier.LOCAL]).toBe(1);
+    });
+  });
+
+  describe('Advisory Trust Promotion', () => {
+    it('should add advisory tag for high-trust agents on deployment', async () => {
+      const config = {
+        id: 'high-trust-agent',
+        safetyTier: SafetyTier.PROD,
+        trustScore: 95,
+      } as IAgentConfig;
+
+      const result = await engine.evaluateAction(config, 'deployment');
+
+      expect(result.requiresApproval).toBe(true);
+      expect(result.reason).toContain(
+        '[ADVISORY: Candidate for trust-based autonomy promotion (TrustScore >= 90)]'
+      );
+    });
+
+    it('should NOT add advisory tag for high-trust agents on Class C (IAM) actions', async () => {
+      const config = {
+        id: 'high-trust-agent',
+        safetyTier: SafetyTier.PROD,
+        trustScore: 95,
+      } as IAgentConfig;
+
+      const result = await engine.evaluateAction(config, 'iam_change');
+
+      expect(result.requiresApproval).toBe(true);
+      expect(result.reason).not.toContain('[ADVISORY]');
+    });
+
+    it('should NOT add advisory tag for low-trust agents on deployment', async () => {
+      const config = {
+        id: 'low-trust-agent',
+        safetyTier: SafetyTier.PROD,
+        trustScore: 80,
+      } as IAgentConfig;
+
+      const result = await engine.evaluateAction(config, 'deployment');
+
+      expect(result.requiresApproval).toBe(true);
+      expect(result.reason).not.toContain('[ADVISORY]');
+    });
+  });
+
+  describe('Blast Radius Tracking', () => {
+    it('should return empty map initially', async () => {
+      const radius = engine.getClassCBlastRadius();
+      expect(radius).toEqual({});
+    });
+  });
+
+  describe('persistViolations', () => {
+    it('should return early if no violations exist', async () => {
+      engine.clearViolations();
+      await expect(engine.persistViolations()).resolves.toBeUndefined();
     });
   });
 });

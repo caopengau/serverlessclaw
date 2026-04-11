@@ -368,6 +368,54 @@ export const CONFIG_DEFAULTS = {
     configKey: 'session_lock_heartbeat_ms',
     description: 'Interval for renewing session locks to prevent premature expiration.',
   },
+
+  /** Circuit breaker threshold for events. Default: 5 */
+  EVENT_CIRCUIT_THRESHOLD: {
+    code: 5,
+    hotSwappable: true,
+    configKey: 'event_circuit_threshold',
+    description: 'Failures for an event type before opening the circuit.',
+  },
+
+  /** Circuit breaker timeout for events (ms). Default: 60000 (1 min) */
+  EVENT_CIRCUIT_TIMEOUT_MS: {
+    code: 60000,
+    hotSwappable: true,
+    configKey: 'event_circuit_timeout_ms',
+    description: 'Duration an event circuit remains open before reset.',
+  },
+
+  /** Token bucket capacity for event rate limiting. Default: 10 */
+  EVENT_RATE_BUCKET_CAPACITY: {
+    code: 10,
+    hotSwappable: true,
+    configKey: 'event_rate_bucket_capacity',
+    description: 'Maximum burst capacity for a specific event type.',
+  },
+
+  /** Token bucket refill rate for events (ms). Default: 1000 (1 sec) */
+  EVENT_RATE_BUCKET_REFILL_MS: {
+    code: 1000,
+    hotSwappable: true,
+    configKey: 'event_rate_bucket_refill_ms',
+    description: 'Interval at which the event rate bucket refills.',
+  },
+
+  /** Maximum retry count for events before DLQ. Default: 5 */
+  EVENT_MAX_RETRY_COUNT: {
+    code: 5,
+    hotSwappable: true,
+    configKey: 'event_max_retry_count',
+    description: 'Maximum number of retries for an event before it is sent to DLQ.',
+  },
+
+  /** Execution timeout guard for event handlers (ms). Default: 5000 (5 sec) */
+  EVENT_EXECUTION_TIMEOUT_MS: {
+    code: 5000,
+    hotSwappable: true,
+    configKey: 'event_execution_timeout_ms',
+    description: 'Internal timeout for event handler execution.',
+  },
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_DEFAULTS;

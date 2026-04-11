@@ -20,6 +20,7 @@ describe('System Domain Tool Schemas', () => {
     'setSystemConfig',
     'getSystemConfig',
     'listSystemConfigs',
+    'proposeAutonomyUpdate',
   ];
 
   it('should export all expected tool definitions', () => {

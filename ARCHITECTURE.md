@@ -12,7 +12,8 @@ This document covers the AWS topology and data flow. For operational instruction
 2.  **Extensible**: Every major component (Memory, Messaging, Tools) is designed as a pluggable adapter.
 3.  **Low Latency**: Optimized for fast startup times to minimize "time-to-first-token". Implements **Real-time Streaming (AG-UI Protocol)** via IoT Core (MQTT) to provide instantaneous feedback to human users during long-running reasoning tasks. Tokens are published directly to IoT Core from the execution environment to bypass EventBridge overhead.
 4.  **Safety-First**: Implements nested guardrails including Circuit Breakers, Recursion Limits, and Protected Scopes.
-5.  **Proactive & Efficient**: Agents can self-schedule future tasks, but the system prioritizes a **Trigger-on-Message** warm-up strategy to achieve near-zero idling costs while maintaining low-latency responsiveness.
+5.  **Co-managed Autonomy**: Employs a **Dynamic Trust Loop** where agents and humans collaborate on autonomy levels (HITL vs AUTO) based on real-time cognitive health metrics.
+6.  **Proactive & Efficient**: Agents can self-schedule future tasks, but the system prioritizes a **Trigger-on-Message** warm-up strategy.
 6.  **AI-Native**: Optimized for agent-human pair programming by prioritizing semantic transparency, strict neural typing, and direct schema definitions over traditional boilerplate indirection.
 7.  **Adaptive UI**: The dashboard implements a theme-agnostic design system using semantic CSS variables, ensuring full functional and aesthetic parity between Light and Dark modes while maintaining the signature "cyber" identity.
 8.  **Multi-Lingual**: Implements a "Baseline English Prompt" strategy. Agents maintain high reasoning quality via English core prompts while communicating in the user's preferred language (English/Chinese) via dynamic runtime instruction injection.
@@ -224,7 +225,7 @@ For detailed event schemas and routing logic, see [docs/interface/EVENTS.md](./d
 Serverless Claw utilizes a tiered logic system to ensure efficiency and cost-control.
 
 - **LLM Reasoning**: Provider-agnostic adapters for 2026-grade reasoning profiles (Thinking Budgets, Responses API).
-- **Hybrid Tooling**: Just-in-Time skill discovery and MCP Multiplexer architecture.
+- **Hybrid Tooling**: Just-in-Time skill discovery via the **MCPBridge** (Unified MCP Multiplexer architecture).
 - **Memory & Context**: Flattened DynamoDB model for sub-50ms context retrieval.
 
 | Component                 | Deep Dive                                                    |

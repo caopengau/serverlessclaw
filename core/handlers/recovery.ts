@@ -321,8 +321,6 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
         logger.warn('[RECOVERY] Failed to initiate post-recovery warmup:', warmErr);
       }
     }
-
-    logger.info('Emergency recovery initiated successfully.');
   } catch (recoveryError) {
     logger.error("FATAL: Dead Man's Switch recovery flow failed!", recoveryError);
     await reportHealthIssue({

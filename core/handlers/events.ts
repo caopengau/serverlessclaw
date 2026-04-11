@@ -8,44 +8,33 @@ import { ConfigManager } from '../lib/registry/config';
 import { DEFAULT_EVENT_ROUTING } from '../lib/event-routing';
 import { performance } from 'perf_hooks';
 import { getRecursionDepth } from '../lib/recursion-tracker';
+import { CONFIG_DEFAULTS } from '../lib/config/config-defaults';
 
-// Circuit breaker configuration
-const CIRCUIT_THRESHOLD = 5; // failures before opening
-const CIRCUIT_TIMEOUT_MS = 60_000; // 1 minute before reset
-
-// Rate limiting configuration (token bucket)
-const RATE_BUCKET_CAPACITY = 10;
-const RATE_BUCKET_REFILL_MS = 1_000;
-
-// Maximum retry count for events
-const MAX_RETRY_COUNT = 5;
-
-// Execution timeout (per invocation)
-const EXECUTION_TIMEOUT_MS = 5_000;
-
-// In‑memory state
+// In‑memory state (distributed state migration planned for Sprint 2)
 const failureState = new Map<string, { count: number; openedAt?: number }>();
 const rateBuckets = new Map<string, { tokens: number; lastRefill: number }>();
 
-function getRateBucket(key: string) {
+function getRateBucket(key: string, capacity: number, refillMs: number) {
   const now = Date.now();
   let bucket = rateBuckets.get(key);
   if (!bucket) {
-    bucket = { tokens: RATE_BUCKET_CAPACITY, lastRefill: now };
+    bucket = { tokens: capacity, lastRefill: now };
     rateBuckets.set(key, bucket);
     return bucket;
   }
   const elapsed = now - bucket.lastRefill;
-  if (elapsed >= RATE_BUCKET_REFILL_MS) {
-    const refillTokens = Math.min(RATE_BUCKET_CAPACITY, bucket.tokens + RATE_BUCKET_CAPACITY);
-    bucket.tokens = refillTokens;
-    bucket.lastRefill = now;
+  const refillInterval = refillMs / capacity;
+  if (elapsed >= refillInterval) {
+    // Refill proportionally to elapsed time
+    const refillTokens = Math.floor(elapsed / refillInterval);
+    bucket.tokens = Math.min(capacity, bucket.tokens + refillTokens);
+    bucket.lastRefill = now - Math.floor(elapsed % refillInterval); // Preserve precision
   }
   return bucket;
 }
 
-function consumeToken(key: string): boolean {
-  const bucket = getRateBucket(key);
+function consumeToken(key: string, capacity: number, refillMs: number): boolean {
+  const bucket = getRateBucket(key, capacity, refillMs);
   if (bucket.tokens > 0) {
     bucket.tokens--;
     return true;
@@ -53,12 +42,12 @@ function consumeToken(key: string): boolean {
   return false;
 }
 
-function isCircuitOpen(key: string): boolean {
+function isCircuitOpen(key: string, threshold: number, timeoutMs: number): boolean {
   const state = failureState.get(key);
   if (!state) return false;
-  if (state.count >= CIRCUIT_THRESHOLD) {
+  if (state.count >= threshold) {
     const now = Date.now();
-    if (state.openedAt && now - state.openedAt < CIRCUIT_TIMEOUT_MS) {
+    if (state.openedAt && now - state.openedAt < timeoutMs) {
       return true;
     }
     // Timeout elapsed – reset
@@ -68,22 +57,24 @@ function isCircuitOpen(key: string): boolean {
   return false;
 }
 
-function recordFailure(key: string) {
+function recordFailure(key: string, threshold: number) {
   const now = Date.now();
-  const state = failureState.get(key);
+  let state = failureState.get(key);
   if (!state) {
-    failureState.set(key, { count: 1 });
+    state = { count: 1 };
+    failureState.set(key, state);
   } else {
     state.count++;
-    if (state.count >= CIRCUIT_THRESHOLD && !state.openedAt) {
-      state.openedAt = now;
-    }
+  }
+
+  if (state.count >= threshold && !state.openedAt) {
+    state.openedAt = now;
   }
 }
 
-function startExecutionTimeout(): AbortController {
+function startExecutionTimeout(timeoutMs: number): AbortController {
   const controller = new AbortController();
-  setTimeout(() => controller.abort(), EXECUTION_TIMEOUT_MS);
+  setTimeout(() => controller.abort(), timeoutMs);
   return controller;
 }
 
@@ -114,6 +105,41 @@ export async function handler(
   const detailType = event['detail-type'];
   const eventDetail = event.detail;
   const envelopeId = event.id;
+
+  // Load configuration thresholds
+  const [
+    circuitThreshold,
+    circuitTimeout,
+    rateCapacity,
+    rateRefill,
+    maxRetryCount,
+    executionTimeout,
+  ] = await Promise.all([
+    ConfigManager.getTypedConfig(
+      CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.configKey!,
+      CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.code
+    ),
+    ConfigManager.getTypedConfig(
+      CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.configKey!,
+      CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.code
+    ),
+    ConfigManager.getTypedConfig(
+      CONFIG_DEFAULTS.EVENT_RATE_BUCKET_CAPACITY.configKey!,
+      CONFIG_DEFAULTS.EVENT_RATE_BUCKET_CAPACITY.code
+    ),
+    ConfigManager.getTypedConfig(
+      CONFIG_DEFAULTS.EVENT_RATE_BUCKET_REFILL_MS.configKey!,
+      CONFIG_DEFAULTS.EVENT_RATE_BUCKET_REFILL_MS.code
+    ),
+    ConfigManager.getTypedConfig(
+      CONFIG_DEFAULTS.EVENT_MAX_RETRY_COUNT.configKey!,
+      CONFIG_DEFAULTS.EVENT_MAX_RETRY_COUNT.code
+    ),
+    ConfigManager.getTypedConfig(
+      CONFIG_DEFAULTS.EVENT_EXECUTION_TIMEOUT_MS.configKey!,
+      CONFIG_DEFAULTS.EVENT_EXECUTION_TIMEOUT_MS.code
+    ),
+  ]);
 
   // Validate payload
   const validation = validateEvent(eventDetail);
@@ -160,23 +186,23 @@ export async function handler(
   );
 
   // Rate limiting
-  if (!consumeToken(detailType)) {
+  if (!consumeToken(detailType, rateCapacity, rateRefill)) {
     logger.warn(`[RATE_LIMIT] Rate limit exceeded for ${detailType}`);
     await routeToDlq(event, detailType, 'SYSTEM', 'unknown', 'Rate limit exceeded');
-    emitMetrics([METRICS.dlqEvents(1)]).catch(() => {});
+    emitMetrics([METRICS.rateLimitExceeded(detailType), METRICS.dlqEvents(1)]).catch(() => {});
     return;
   }
 
   // Circuit breaker
-  if (isCircuitOpen(detailType)) {
+  if (isCircuitOpen(detailType, circuitThreshold, circuitTimeout)) {
     logger.warn(`[CIRCUIT] Circuit open for ${detailType}`);
     await routeToDlq(event, detailType, 'SYSTEM', 'unknown', 'Circuit breaker open');
-    emitMetrics([METRICS.circuitBreakerTriggered('deploy')]).catch(() => {});
+    emitMetrics([METRICS.circuitBreakerTriggered('event'), METRICS.dlqEvents(1)]).catch(() => {});
     return;
   }
 
   // Execution timeout guard (not currently used by downstream calls)
-  const _abortCtrl = startExecutionTimeout();
+  const _abortCtrl = startExecutionTimeout(executionTimeout);
 
   // Idempotency handling (deterministic key for events without envelopeId)
   let idempotencyKey = envelopeId;
@@ -195,8 +221,8 @@ export async function handler(
 
   // Enforce maximum retry count
   const retryCount = (eventDetail.retryCount as number) ?? 0;
-  if (retryCount > MAX_RETRY_COUNT) {
-    logger.warn(`[RETRY] Exceeded max retries (${MAX_RETRY_COUNT}) for ${detailType}`);
+  if (retryCount > maxRetryCount) {
+    logger.warn(`[RETRY] Exceeded max retries (${maxRetryCount}) for ${detailType}`);
     await routeToDlq(event, detailType, 'SYSTEM', 'unknown', 'Max retry count exceeded');
     emitMetrics([METRICS.dlqEvents(1)]).catch(() => {});
     return;
@@ -306,7 +332,7 @@ export async function handler(
     logger.error(`EventHandler failed for ${detailType}: ${errorMessage}`, error);
 
     // Record failure for circuit breaker
-    recordFailure(detailType);
+    recordFailure(detailType, circuitThreshold);
 
     // Route to DLQ
     await routeToDlq(event, detailType, 'SYSTEM', 'unknown', errorMessage);

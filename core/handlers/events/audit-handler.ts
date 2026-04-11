@@ -37,10 +37,25 @@ export async function handleSystemAuditTrigger(
 
   logger.info('[AuditHandler] Received audit trigger:', event.triggerType);
 
+  const VALID_TRIGGER_TYPES = [
+    'EVENT_TRIGGER',
+    'CODE_GROWTH',
+    'PRE_FLIGHT_READY',
+    'TRUST_SCORE_DROP',
+    'MAJOR_SWARM_COMPLETE',
+    'TRUNK_SYNC',
+    'DEPLOYMENT_COMPLETE',
+  ];
+
   try {
     const { memory } = await getAgentContext();
 
     const triggerType = event.triggerType || 'EVENT_TRIGGER';
+    if (!VALID_TRIGGER_TYPES.includes(triggerType)) {
+      logger.warn(
+        `[AuditHandler] Invalid triggerType: ${triggerType}. Falling back to EVENT_TRIGGER.`
+      );
+    }
 
     const auditReport = await runSystemAudit(
       memory as unknown as {

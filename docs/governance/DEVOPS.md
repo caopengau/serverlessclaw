@@ -55,7 +55,7 @@ Use this checklist to enforce [Principles](./PRINCIPLES.md) as measurable operat
 | ---------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ | ----------------------------------------------------- | --------------------------------------------- |
 | Safety-First + Governance Boundaries     | Protected changes require explicit human approval before release | `make release` (only after approval recorded in PR/change request) | Per high-risk change                                  | Approval record + release logs                |
 | Mandatory Quality Sweeps                 | Lint, format, type-check, and tests must pass                    | `make gate` or `make check && make test`                           | Every push/merge                                      | CI job status + test output                   |
-| AI-Native + AI-Readiness                 | Enforce agent-friendliness score threshold                       | `make aiready`                                                     | Every push/merge                                      | AIReady scan output                           |
+| AI-Native + Lean Evolution               | Enforce agent-friendliness and code leanness score               | `make aiready`                                                     | Every push/merge                                      | AIReady scan output                           |
 | Reliability and Regression Control       | Coverage floor and trend regression detection                    | `make test-coverage-ci` and `make test-coverage-trend`             | On merge + weekly trend check                         | Coverage summary + `coverage-trend-report.md` |
 | Security and Supply-Chain Trust          | Dependency vulnerability scanning at defined severity threshold  | `make security-scan` (optionally `SEVERITY=critical`)              | At least weekly and before release                    | `security-audit-report.md`                    |
 | Documentation and Auditability           | Documentation must stay aligned with system behavior changes     | `make docs-check`                                                  | Every PR touching architecture/agents/tools/makefiles | `docs-validation-report.md`                   |
@@ -209,6 +209,25 @@ To ensure agents always work on high-signal context, the **Agent Workspace Manag
 2.  **Virtual Trunk**: The agent runs `git init` and `git commit` to establish a local baseline.
 3.  **Remediation Layer (The "Staged Changes")**: If remediating a failure (`applyStagedChanges: true`), the agent downloads `staged_changes.zip` from S3 and unzips it over the base layer.
 4.  **Result**: The agent sees the Merger's uncommitted work as "Unstaged Changes," allowing for a non-destructive fix that preserves parallel work.
+
+---
+
+## Maintenance & Simplification (The "Lean" Cycle)
+
+Periodic maintenance is triggered by the system to prevent architectural bloat.
+
+### Code Growth Audits
+
+When code growth exceeds the `audit_code_growth_threshold` (default 10%), the **Strategic Planner** initiates a **Refactor Mission**.
+
+1. **Analysis**: The Strategic Planner identifies the packages or families that contributed most to the growth.
+2. **Review**: The **Cognition Reflector** audits these areas for pattern duplication and redundancy (Silo 7 Audit).
+3. **Execution**: A Coder agent is dispatched with a specific directive to **simplify and consolidate**, rather than add features.
+4. **Success Metric**: A successful maintenance mission results in a net **negative or neutral** code growth while maintaining 100% test coverage and feature parity.
+
+### Tool Pruning
+
+If `auto_prune_enabled` is true, tools that have not been called by any agent for `tool_prune_threshold_days` (default 30) are automatically marked for removal. The system generates a "Prune Proposal" for human review (Class C) before final deletion.
 
 ---
 

@@ -472,4 +472,32 @@ export const systemSchema: Record<string, IToolDefinition> = {
       additionalProperties: false,
     },
   },
+  proposeAutonomyUpdate: {
+    type: ToolType.FUNCTION,
+    argSchema: z.any(),
+    connectionProfile: ['config', 'bus'],
+    requiresApproval: false,
+    requiredPermissions: [],
+    name: 'proposeAutonomyUpdate',
+    description:
+      'Proposes an update to the agents autonomy mode (AUTO vs HITL) based on trust scores and performance metrics.',
+    parameters: {
+      type: 'object',
+      properties: {
+        agentId: { type: 'string', description: 'The ID of the agent to update.' },
+        targetMode: {
+          type: 'string',
+          enum: ['AUTO', 'HITL'],
+          description: 'The target autonomy mode.',
+        },
+        reason: { type: 'string', description: 'Justification for the proposal.' },
+        trustScore: {
+          type: 'number',
+          description: 'Current cognitive health trust score (0-100).',
+        },
+      },
+      required: ['agentId', 'targetMode', 'reason'],
+      additionalProperties: false,
+    },
+  },
 };

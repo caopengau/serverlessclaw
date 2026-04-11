@@ -172,6 +172,10 @@ export class SafetyEngine {
       this.trackClassCBlastRadius(action, context?.resource);
     }
 
+    if (approvalResult.requiresApproval && (agentConfig?.trustScore ?? 0) >= 90) {
+      approvalResult.reason = `${approvalResult.reason} [ADVISORY: Candidate for trust-based autonomy promotion (TrustScore >= 90)]`;
+    }
+
     if (!approvalResult.allowed || approvalResult.requiresApproval) {
       return approvalResult;
     }

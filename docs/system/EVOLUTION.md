@@ -54,6 +54,60 @@ The system's evolution follows a strict, verified hierarchy:
 10. **Atomic Sync**: ONLY after QA success, `gitSync` pushes verified code back to the trunk.
 11. **Nudging & Completion**: SuperClaw marks gap as `DONE`.
 
+Serverless Claw implements a **dynamic trust model** where autonomy is not a static toggle, but a collaborative relationship between the user and SuperClaw.
+
+### The Agent-User Trust Loop
+
+```text
+       [ Cognitive Health Monitor ]
+                 |
+      (1) Continuous Audit <-----------+
+                 |                     |
+      (2) Calculate Trust Score        |
+          (0-100)                      |
+                 |                     |
+      (3) Advisory Promotion candidacy |
+          (if Score >= 90)             |
+                 |                     |
+      +----------v----------+          |
+      |   Security Hub      |          | (5) Recalibrate
+      | (Dashboard UI)      |----------+
+      +----------+----------+
+                 |
+      (4) User Approval (HITL -> AUTO)
+                 |
+      +----------v----------+
+      |  Enhanced Autonomy  |
+      | (Class B Bypass)    |
+      +---------------------+
+```
+
+### Trust-Based Autonomy Scaling
+1. **Cognitive Health Metrics**: The system tracks reasoning quality, memory consistency, and task completion rates to generate a rolling **Trust Score** for each agent.
+2. **Advisory Promotion**: When an agent maintains a `TrustScore >= 90`, the `SafetyEngine` identifies it as an **Advisory Candidate**. This is surfaced in logs and on the Co-Management Dashboard.
+3. **Collaborative Negotiation**: SuperClaw uses the `proposeAutonomyUpdate` tool to request mode shifts (e.g., from HITL to AUTO) when performance is optimal.
+4. **Governance Boundaries**: Even in AUTO mode, **Class C** (Infrastructure/IAM) actions remain protected by the governance framework unless explicitly overridden in the `governance_config`.
+
+## Evolution Modes: HITL vs AUTO
+
+Serverless Claw supports two primary evolution modes that dictate how autonomously the system can execute tasks and use tools.
+
+| Mode | Autonomy Level | Approval Logic | Use Case |
+| :--- | :--- | :--- | :--- |
+| **HITL** (Human-in-the-Loop) | Medium | Requires manual approval for all sensitive tools. | Production, high-stakes environments. |
+| **AUTO** (Autonomous) | High | Bypasses manual approval for sensitive tools (Technical Guardrails still apply). | Rapid experimentation, trusted VPCs, autonomous agents. |
+
+### ⚡ EvolutionMode.AUTO Flow
+
+In `EvolutionMode.AUTO`, the `ToolExecutor` prioritizes speed and autonomy while maintaining safety through **Technical Guardrails**:
+
+1.  **Implicit Approval**: All tool calls are treated as "Effective Approved" by default.
+2.  **Sensitive Tool Awareness**: Even in AUTO mode, the system identifies "Sensitive Tools" (e.g., `delete`, `iam`, `shell`) and applies extra logging and tracing.
+3.  **Technical Guardrails (Zod & Security)**: Bypassing human approval does NOT bypass technical security. The `checkArgumentsForSecurity` pre-flight check still runs to prevent Class D vulnerabilities (e.g., path traversal, command injection).
+4.  **Autonomous Promotion**: Innovations identified by the Harvester in AUTO mode can be promoted to the Mother Hub with minimal human friction, monitored by the `QA Auditor`.
+
+---
+
 ## Atomic Deployment Sync (Metadata Integrity)
 
 To ensure self-evolution robustness, the system implements an **Atomic Sync** mechanism that links infrastructure builds to the strategic gaps they resolve. This prevents metadata loss during the asynchronous deployment process.

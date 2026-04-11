@@ -25,8 +25,8 @@ export interface CircuitBreakerStateData {
   lastStateChange: number;
   lastFailureTime: number;
   version: number;
-  emergencyDeployCount: number; // Track emergency deploys in current window
-  emergencyDeployWindowStart: number; // Start of current rate limit window
+  emergencyDeployCount: number;
+  emergencyDeployWindowStart: number;
 }
 
 export interface CanProceedResult {

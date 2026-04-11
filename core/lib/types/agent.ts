@@ -200,6 +200,8 @@ export interface IAgentConfig {
   tokenBudget?: number;
   /** Maximum cost allowed for this agent (USD). */
   costLimit?: number;
+  /** Current trust score (0-100) based on cognitive health performance. */
+  trustScore?: number;
 }
 
 /**
