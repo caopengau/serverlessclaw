@@ -24,6 +24,12 @@ describe('Audit Protocol - Scythe Silo', () => {
     (vi.mocked(fs.readdirSync) as any).mockReturnValue([]);
     (vi.mocked(fs.readFileSync) as any).mockReturnValue('');
     (vi.mocked(fs.statSync) as any).mockReturnValue({ isDirectory: () => false });
+
+    // Mock new ScytheLogic methods
+    (ScytheLogic.updateToolHistory as any).mockResolvedValue(undefined);
+    (ScytheLogic.analyzeToolGrowth as any).mockResolvedValue(null);
+    (ScytheLogic.detectSemanticOverlap as any).mockResolvedValue([]);
+    (ScytheLogic.identifyDarkTools as any).mockResolvedValue([]);
   });
 
   it('should identify per-agent bloat correctly', async () => {

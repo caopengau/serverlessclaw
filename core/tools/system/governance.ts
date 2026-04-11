@@ -29,7 +29,7 @@ export const scanScythe: ITool = {
     const { memory } = await getAgentContext();
 
     // 1. Update history
-    await ScytheLogic.updateToolHistory(memory);
+    await ScytheLogic.updateToolHistory(memory as any);
 
     // 2. Generate proposal
     const proposal = await ScytheLogic.generatePruneProposal();
