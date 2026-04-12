@@ -73,9 +73,9 @@ export class TrustManager {
     let bump = this.DEFAULT_SUCCESS_BUMP;
 
     if (qualityScore !== undefined) {
-      // Scale bump: 10/10 maps to 1.5x, 5/10 maps to 0.75x, 0/10 maps to 0x
-      // formula: qualityScore * 0.15 gives range [0, 1.5]
-      const multiplier = Math.min(1.5, Math.max(0, qualityScore * 0.15));
+      // Scale bump: 10/10 maps to 2x, 5/10 maps to 1x, 0/10 maps to 0x
+      // formula: qualityScore * 0.2 gives range [0, 2]
+      const multiplier = Math.min(2, Math.max(0, qualityScore * 0.2));
       bump *= multiplier;
     }
 
@@ -101,7 +101,7 @@ export class TrustManager {
   static async recordAnomalies(agentId: string, anomalies: CognitiveAnomaly[]): Promise<number> {
     if (anomalies.length === 0) {
       const config = await AgentRegistry.getAgentConfig(agentId);
-      return config?.trustScore ?? 80;
+      return config?.trustScore ?? 85;
     }
 
     let totalDelta = 0;
@@ -166,7 +166,7 @@ export class TrustManager {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       try {
         const fullConfig = await AgentRegistry.getAgentConfig(agentId);
-        const currentScore = fullConfig?.trustScore ?? 80;
+        const currentScore = fullConfig?.trustScore ?? 85;
         const newScore = Math.min(this.MAX_SCORE, Math.max(this.MIN_SCORE, currentScore + delta));
 
         if (newScore === currentScore) {

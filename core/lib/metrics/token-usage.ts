@@ -81,7 +81,7 @@ export class TokenTracker {
     const now = Date.now();
     const item: TokenUsageRecord = {
       ...record,
-      userId: `TOKEN#${record.agentId}#${record.timestamp}`,
+      userId: `TOKEN#${record.agentId}`,
       expiresAt: Math.floor(now / 1000) + TTL_DAYS_INVOCATION * SECONDS_IN_DAY,
     };
 
@@ -98,7 +98,7 @@ export class TokenTracker {
         new QueryCommand({
           TableName: getTableName(),
           KeyConditionExpression: 'userId = :pk',
-          ExpressionAttributeValues: { ':pk': `TOKEN#${agentId}#` },
+          ExpressionAttributeValues: { ':pk': `TOKEN#${agentId}` },
           ScanIndexForward: false,
           Limit: limit,
         })

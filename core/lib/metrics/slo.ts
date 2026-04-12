@@ -32,11 +32,9 @@ export class SLOTracker {
         break;
       }
       case 'p95_latency': {
-        const totalTokens = rollups.reduce(
-          (s, r) => s + r.totalInputTokens + r.totalOutputTokens,
-          0
-        );
-        current = totalTokens / Math.max(rollups.length, 1);
+        const totalInvocations = rollups.reduce((s, r) => s + r.invocationCount, 0);
+        const totalDuration = rollups.reduce((s, r) => s + (r.totalDurationMs || 0), 0);
+        current = totalInvocations > 0 ? totalDuration / totalInvocations : 0;
         break;
       }
     }
@@ -86,11 +84,9 @@ export class SLOTracker {
         const successes = rollups.reduce((s, r) => s + r.successCount, 0);
         current = total > 0 ? successes / total : 1;
       } else {
-        const totalTokens = rollups.reduce(
-          (s, r) => s + r.totalInputTokens + r.totalOutputTokens,
-          0
-        );
-        current = totalTokens / Math.max(rollups.length, 1);
+        const totalInvocations = rollups.reduce((s, r) => s + r.invocationCount, 0);
+        const totalDuration = rollups.reduce((s, r) => s + (r.totalDurationMs || 0), 0);
+        current = totalInvocations > 0 ? totalDuration / totalInvocations : 0;
       }
 
       result[slo.name] = {

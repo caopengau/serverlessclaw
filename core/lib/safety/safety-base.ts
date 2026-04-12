@@ -153,19 +153,22 @@ export class SafetyBase {
 
     const violationsToPersist = [...this.violations];
     const batchSize = 25;
+    const now = Date.now();
 
     for (let i = 0; i < violationsToPersist.length; i += batchSize) {
       const batch = violationsToPersist.slice(i, i + batchSize);
+      const agentIds = [...new Set(batch.map((v) => v.agentId))];
+      const agentId = agentIds.length === 1 ? agentIds[0] : 'batch';
       try {
         await defaultDocClient.send(
           new PutCommand({
             TableName: resource.ConfigTable?.name,
             Item: {
-              key: `safety:violations:${Date.now()}`,
+              key: `safety:violations:${agentId}:${now}`,
               value: {
                 violations: batch,
                 count: batch.length,
-                timestamp: Date.now(),
+                timestamp: now,
               },
             },
           })
@@ -180,9 +183,10 @@ export class SafetyBase {
 
   /**
    * Track blast radius for Class C actions.
+   * Per AUDIT.md requirement: tracked per-agent per-action.
    */
-  protected trackClassCBlastRadius(action: string, resource?: string): void {
-    const key = action;
+  protected trackClassCBlastRadius(agentId: string, action: string, resource?: string): void {
+    const key = `${agentId}:${action}`;
     const existing = this.classCBlastRadius.get(key) || {
       count: 0,
       affectedResources: 0,
@@ -196,6 +200,7 @@ export class SafetyBase {
     });
 
     logger.info('[SafetyEngine] Class C action tracked for blast radius', {
+      agentId,
       action,
       resource,
       totalCount: existing.count + 1,
@@ -203,20 +208,21 @@ export class SafetyBase {
   }
 
   /**
-   * Enforces blast radius limits for Class C actions.
+   * Enforces blast radius limits for Class C actions per agent.
    * Returns an error message if the limit is exceeded, otherwise null.
    */
-  protected enforceClassCBlastRadius(action: string): string | null {
+  protected enforceClassCBlastRadius(agentId: string, action: string): string | null {
     const LIMIT_PER_HOUR = 5;
     const windowMs = 3600000; // 1 hour
     const now = Date.now();
 
-    const stats = this.classCBlastRadius.get(action);
+    const key = `${agentId}:${action}`;
+    const stats = this.classCBlastRadius.get(key);
     if (!stats) return null;
 
     // Reset if window passed
     if (now - stats.lastAction > windowMs) {
-      this.classCBlastRadius.delete(action);
+      this.classCBlastRadius.delete(key);
       return null;
     }
 

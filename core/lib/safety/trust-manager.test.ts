@@ -132,15 +132,15 @@ describe('TrustManager', () => {
         systemPrompt: '',
       });
 
-      // High quality (10/10) -> capped at 1.5x bump
+      // High quality (10/10) -> scaled at 2x bump
       mockAgentRegistry.getAgentConfig.mockResolvedValueOnce(getConfig());
       const highQualityScore = await TrustManager.recordSuccess('test-agent', 10);
-      expect(highQualityScore).toBeCloseTo(51.5, 1); // 50 + 1.5 = 51.5 (capped multiplier)
+      expect(highQualityScore).toBeCloseTo(52, 1); // 50 + 2 = 52
 
-      // Low quality (5/10) -> 0.75x bump
+      // Low quality (5/10) -> scaled at 1x bump
       mockAgentRegistry.getAgentConfig.mockResolvedValueOnce(getConfig());
       const lowQualityScore = await TrustManager.recordSuccess('test-agent', 5);
-      expect(lowQualityScore).toBeCloseTo(50.75, 1); // 50 + 0.75 = 50.75
+      expect(lowQualityScore).toBeCloseTo(51, 1); // 50 + 1 = 51
     });
 
     it('penalizes based on anomaly severity (batched)', async () => {

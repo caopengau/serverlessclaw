@@ -305,7 +305,6 @@ export class ClawTracer {
         await emitMetrics([
           METRICS.agentInvoked(this.agentId),
           METRICS.agentDuration(this.agentId, durationMs),
-          METRICS.toolExecuted('trace', false),
         ]);
       } catch (e) {
         logger.debug('Failed to emit trace failure metrics:', e);

@@ -252,7 +252,7 @@ describe('Tracing Integration', () => {
       await cb.recordSuccess();
 
       expect(vi_mockAddTraceStep).toHaveBeenCalledWith(
-        undefined,
+        'system',
         'root',
         expect.objectContaining({
           type: TRACE_TYPES.CIRCUIT_BREAKER,

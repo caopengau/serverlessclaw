@@ -62,7 +62,7 @@ describe('TokenTracker', () => {
 
       expect(mockSend).toHaveBeenCalledWith(expect.any(PutCommand));
       const cmd = mockSend.mock.calls[0][0] as PutCommand;
-      expect(cmd.input.Item?.userId).toBe('TOKEN#agent-1#1000');
+      expect(cmd.input.Item?.userId).toBe('TOKEN#agent-1');
       expect(cmd.input.Item?.inputTokens).toBe(100);
       expect(cmd.input.Item?.success).toBe(true);
       expect(cmd.input.TableName).toBe('MemoryTable');

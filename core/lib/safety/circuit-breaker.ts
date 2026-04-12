@@ -130,11 +130,8 @@ export class CircuitBreaker {
         return await fn();
       } catch (e: unknown) {
         lastError = e;
-        // Only retry on concurrent modification errors
-        if (
-          e instanceof Error &&
-          (e.name === 'ConditionalCheckFailedException' || e.message.includes('concurrently'))
-        ) {
+        // Only retry on concurrent modification errors - use type check for reliability
+        if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
           // Exponential backoff with jitter: base * 2^i + random(0, base)
           const delay = BASE_DELAY_MS * Math.pow(2, i) + Math.random() * BASE_DELAY_MS;
           logger.warn(
@@ -267,8 +264,8 @@ export class CircuitBreaker {
         failures: [],
       };
 
-      // Trace: Circuit breaker recovery
-      await addTraceStep(undefined, 'root', {
+      // Trace: Circuit breaker recovery (no traceId needed - this is a system event)
+      await addTraceStep('system', 'root', {
         type: TRACE_TYPES.CIRCUIT_BREAKER,
         content: {
           previousState: 'half_open',

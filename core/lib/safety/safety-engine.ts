@@ -36,7 +36,7 @@ export class SafetyEngine extends SafetyBase {
     this.toolOverrides = new Map();
     this.limiter = new SafetyRateLimiter(base);
     this.validator = new PolicyValidator(this);
-    this.evolutionScheduler = new EvolutionScheduler(base!);
+    this.evolutionScheduler = new EvolutionScheduler(base ?? undefined);
 
     if (customPolicies) {
       for (const [tier, overrides] of Object.entries(customPolicies)) {
@@ -205,7 +205,7 @@ export class SafetyEngine extends SafetyBase {
     });
 
     if (this.isClassCAction(action)) {
-      const blastRadiusError = this.enforceClassCBlastRadius(action);
+      const blastRadiusError = this.enforceClassCBlastRadius(agentConfig?.id ?? 'unknown', action);
       if (blastRadiusError) {
         const violation = this.createViolation(
           agentConfig?.id ?? 'unknown',
@@ -236,7 +236,7 @@ export class SafetyEngine extends SafetyBase {
         traceId: context?.traceId,
         userId: context?.userId,
       });
-      this.trackClassCBlastRadius(action, context?.resource);
+      this.trackClassCBlastRadius(agentConfig?.id ?? 'unknown', action, context?.resource);
     }
 
     const hasPromotionTrust = (agentConfig?.trustScore ?? 0) >= 95;

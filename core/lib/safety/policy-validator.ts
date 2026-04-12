@@ -1,5 +1,6 @@
 import { SafetyTier, SafetyPolicy, TimeRestriction, SafetyEvaluationResult } from '../types/agent';
 import { SafetyBase } from './safety-base';
+import { logger } from '../logger';
 
 /**
  * Validator for safety policies.
@@ -186,6 +187,10 @@ export class PolicyValidator {
         if (tier === SafetyTier.PROD) {
           requiresApproval = true;
           reason = `Unknown action '${action}' requires approval`;
+        } else {
+          logger.warn(
+            `[PolicyValidator] Unknown action '${action}' allowed in ${tier} tier - consider adding explicit policy`
+          );
         }
         break;
     }
@@ -226,7 +231,8 @@ export class PolicyValidator {
       hour12: false,
     });
     const parts = formatter.formatToParts(date);
-    const hour = parseInt(parts.find((p) => p.type === 'hour')?.value ?? '0', 10);
+    const hourStr = parts.find((p) => p.type === 'hour')?.value;
+    const hour = hourStr !== undefined ? parseInt(hourStr, 10) : -1;
     const weekdayStr = parts.find((p) => p.type === 'weekday')?.value ?? 'Sun';
     const dayMap: Record<string, number> = {
       Sun: 0,
@@ -238,6 +244,10 @@ export class PolicyValidator {
       Sat: 6,
     };
     const dayOfWeek = dayMap[weekdayStr] ?? 0;
+
+    if (hour < 0) {
+      return false;
+    }
 
     if (!restriction.daysOfWeek.includes(dayOfWeek)) {
       return false;
