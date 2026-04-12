@@ -1,5 +1,4 @@
-import { AgentType, TraceSource, Attachment, AgentPayload } from '../lib/types/agent';
-import { ReasoningProfile } from '../lib/types/llm';
+import { AgentType, Attachment, AgentPayload } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import { randomUUID } from 'node:crypto';
@@ -24,8 +23,6 @@ import {
 
 import { AGENT_ERRORS } from '../lib/constants';
 import { parseStructuredResponse } from '../lib/utils/agent-helpers/llm-utils';
-import { StrategicPlanSchema } from './strategic-planner/schema';
-import { Agent } from '../lib/agent';
 
 /**
  * Planner Agent handler. Analyzes capability gaps and generates strategic plans.
@@ -68,15 +65,13 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   const baseUserId = extractBaseUserId(userId);
 
   // 1. Fetch System Context
-  const [config, { memory, provider: providerManager }, { getAgentTools }] = await Promise.all([
+  const [config, { memory }, { getAgentTools }] = await Promise.all([
     loadAgentConfig(AgentType.STRATEGIC_PLANNER),
     getAgentContext(),
     import('../tools/registry-utils'),
   ]);
 
   const agentTools = await getAgentTools(AgentType.STRATEGIC_PLANNER);
-
-  const plannerAgent = new Agent(memory, providerManager, agentTools, config.systemPrompt, config);
 
   // 1.1 Council Review Continuation Logic
   const councilResult = await handleCouncilReviewResult(
@@ -175,10 +170,9 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   // 3. Process with High Reasoning via unified lifecycle (Session Locking + Heartbeat)
   const { processEventWithAgent } = await import('../handlers/events/shared');
-  
-  let responseText = '';
-  let attachments: Attachment[] = [];
-  
+
+  let responseText: string;
+
   try {
     const result = await processEventWithAgent(userId, AgentType.STRATEGIC_PLANNER, plannerPrompt, {
       context: _context,
@@ -196,7 +190,6 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       costLimit: config.costLimit,
     });
     responseText = result.responseText;
-    attachments = result.attachments;
   } catch (error) {
     const errorDetail = error instanceof Error ? error.message : String(error);
     logger.error(`[StrategicPlanner] Unified execution failure: ${errorDetail}`, error);

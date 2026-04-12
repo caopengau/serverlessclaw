@@ -172,7 +172,9 @@ export async function handler(
   }
 
   // Authoritative update: Push the entry to DynamoDB for cross-session tracking
-  await (await import('../lib/recursion-tracker')).pushRecursionEntry(
+  await (
+    await import('../lib/recursion-tracker')
+  ).pushRecursionEntry(
     traceId,
     currentDepth,
     (eventDetail.sessionId as string) || 'unknown',

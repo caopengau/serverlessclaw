@@ -120,12 +120,12 @@ export const handler = async (
     const sessionState = await sessionStateManager.getState(sessionId);
     if (sessionState && sessionState.lastMessageAt) {
       const isTimedOut = await checkCollaborationTimeout(
-        { 
-          sessionId, 
+        {
+          sessionId,
           lastActivityAt: sessionState.lastMessageAt,
           userId: _userId,
           task: (detail.task as string) || (event.task as string),
-          agentId: targetAgent
+          agentId: targetAgent,
         },
         _traceId
       );

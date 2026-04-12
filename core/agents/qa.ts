@@ -1,15 +1,12 @@
-import {
-  GapStatus,
-  AgentStatus,
-  AgentType,
-  EvolutionMode,
-  AgentEvent,
-  AgentPayload,
-} from '../lib/types/agent';
+import { GapStatus, AgentType, EvolutionMode, AgentEvent, AgentPayload } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
-import { extractPayload, initAgent, extractBaseUserId, detectFailure } from '../lib/utils/agent-helpers';
-import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
+import {
+  extractPayload,
+  initAgent,
+  extractBaseUserId,
+  detectFailure,
+} from '../lib/utils/agent-helpers';
 import { sendOutboundMessage } from '../lib/outbound';
 
 /**
@@ -45,10 +42,10 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
 
   // 1. Process QA Audit via unified lifecycle (Session Locking + Heartbeat)
   const { processEventWithAgent } = await import('../handlers/events/shared');
-  
+
   const qaPrompt = `Verify and audit the following gaps: ${gapIds.join(', ')}\n\nImplementation Output:\n${implementationResponse || 'No implementation response provided.'}`;
-  
-  let auditReport = '';
+
+  let auditReport: string;
   try {
     const result = await processEventWithAgent(userId, AgentType.QA, qaPrompt, {
       context: _context,
@@ -69,8 +66,8 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
   }
 
   // 2. Evolution Management (Post-Audit Logic)
-  const isSatisfied = !detectFailure(auditReport) && auditReport.toLowerCase().includes('satisfied');
-  const status = isSatisfied ? AgentStatus.SUCCESS : AgentStatus.REOPEN;
+  const isSatisfied =
+    !detectFailure(auditReport) && auditReport.toLowerCase().includes('satisfied');
 
   // Resolve evolution mode
   let evolutionMode = EvolutionMode.HITL;
@@ -118,7 +115,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
           }
         }
       }
-      
+
       await sendOutboundMessage(
         AgentType.QA,
         userId,
@@ -134,13 +131,15 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
       try {
         const { SafetyEngine } = await import('../lib/safety/safety-engine');
         const safety = new SafetyEngine();
-        await safety.recordFailure(initiatorId, `QA Verification Failed: ${auditReport.substring(0, 150)}`);
+        await safety.recordFailure(
+          initiatorId,
+          `QA Verification Failed: ${auditReport.substring(0, 150)}`
+        );
       } catch (e) {
         logger.warn(`Failed to record trust penalty for ${initiatorId}:`, e);
       }
     }
 
-    const { EVOLUTION_METRICS } = await import('../lib/metrics/evolution-metrics');
     const retryGaps: string[] = [];
 
     for (const gapId of gapIds) {

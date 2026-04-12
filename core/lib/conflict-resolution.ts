@@ -95,9 +95,9 @@ export async function emitConflictTimeoutEvent(sessionId: string, traceId: strin
  * @param traceId - Trace ID for the operation
  */
 export async function checkCollaborationTimeout(
-  collaboration: { 
-    sessionId: string; 
-    lastActivityAt: number; 
+  collaboration: {
+    sessionId: string;
+    lastActivityAt: number;
     timeoutMs?: number;
     userId?: string;
     task?: string;
@@ -143,7 +143,10 @@ export async function checkCollaborationTimeout(
       } catch (err) {
         attempt++;
         if (attempt > maxRetries) {
-          logger.error(`[COLLABORATION] Final failure to emit tie-break for ${collaboration.sessionId}:`, err);
+          logger.error(
+            `[COLLABORATION] Final failure to emit tie-break for ${collaboration.sessionId}:`,
+            err
+          );
           break;
         }
         const backoff = initialBackoff * Math.pow(2, attempt - 1);

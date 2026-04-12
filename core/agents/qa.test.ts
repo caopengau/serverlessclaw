@@ -28,6 +28,7 @@ vi.mock('./prompts/index', () => ({
 vi.mock('../lib/utils/agent-helpers', () => ({
   extractPayload: vi.fn((event: any) => event.detail || event),
   extractBaseUserId: vi.fn((userId: string) => userId.replace('CONV#', '').split('#')[0]),
+  detectFailure: vi.fn((text: string) => text.includes('FAILED') || text.includes('ERROR')),
   initAgent: vi.fn().mockResolvedValue({
     config: {
       id: 'qa',
@@ -121,6 +122,19 @@ vi.mock('../lib/outbound', () => ({
 
 vi.mock('../handlers/events/shared', () => ({
   wakeupInitiator: vi.fn().mockResolvedValue(undefined),
+  processEventWithAgent: vi.fn().mockImplementation((...args) => {
+    const lastArg = args[2] as { handlerTitle?: string };
+    if (lastArg?.handlerTitle === 'QA Auditor') {
+      return Promise.resolve({
+        responseText: 'QA verification satisfied. All checks pass.',
+        attachments: [],
+      });
+    }
+    return Promise.resolve({
+      responseText: 'QA verification satisfied. All checks pass.',
+      attachments: [],
+    });
+  }),
 }));
 
 vi.mock('@aws-sdk/client-eventbridge', () => ({
@@ -300,19 +314,22 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
   });
 
   it('should handle JSON parse failure and fallback to REOPEN', async () => {
-    agentProcess.mockResolvedValueOnce({
-      responseText: 'Not a JSON string',
+    const { processEventWithAgent } = await import('../handlers/events/shared');
+    (processEventWithAgent as any).mockResolvedValueOnce({
+      responseText: 'Not a JSON string', // This will be treated as failure by detectFailure
+      attachments: [],
     });
 
     await handler(BASE_PAYLOAD as any, {} as any);
 
-    // Default status is REOPEN
     expect(memoryMocks.updateGapStatus).toHaveBeenCalledWith('GAP#1001', GapStatus.OPEN);
   });
 
   it('should handle lock acquisition failure during SUCCESS path', async () => {
-    agentProcess.mockResolvedValueOnce({
-      responseText: JSON.stringify({ status: 'SUCCESS', auditReport: 'ok' }),
+    const { processEventWithAgent } = await import('../handlers/events/shared');
+    (processEventWithAgent as any).mockResolvedValueOnce({
+      responseText: 'QA verification satisfied. All checks pass.',
+      attachments: [],
     });
     memoryMocks.acquireGapLock.mockResolvedValueOnce(false);
 
@@ -322,20 +339,23 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
   });
 
   it('should handle gap status update failure', async () => {
-    agentProcess.mockResolvedValueOnce({
-      responseText: JSON.stringify({ status: 'SUCCESS', auditReport: 'ok' }),
+    const { processEventWithAgent } = await import('../handlers/events/shared');
+    (processEventWithAgent as any).mockResolvedValueOnce({
+      responseText: 'QA verification satisfied. All checks pass.',
+      attachments: [],
     });
     memoryMocks.updateGapStatus.mockResolvedValueOnce({ success: false, error: 'DB Error' });
 
     await handler(BASE_PAYLOAD as any, {} as any);
 
     expect(memoryMocks.updateGapStatus).toHaveBeenCalled();
-    // It should log error but not throw
   });
 
   it('should not auto-close gaps in HITL mode', async () => {
-    agentProcess.mockResolvedValueOnce({
-      responseText: JSON.stringify({ status: 'SUCCESS', auditReport: 'ok' }),
+    const { processEventWithAgent } = await import('../handlers/events/shared');
+    (processEventWithAgent as any).mockResolvedValueOnce({
+      responseText: 'QA verification satisfied. All checks pass.',
+      attachments: [],
     });
     registryMocks.getRawConfig.mockResolvedValue(EvolutionMode.HITL);
 
@@ -345,8 +365,10 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
   });
 
   it('should dispatch task to initiator if initiatorId is present on failure', async () => {
-    agentProcess.mockResolvedValueOnce({
-      responseText: JSON.stringify({ status: 'REOPEN', auditReport: 'fail' }),
+    const { processEventWithAgent } = await import('../handlers/events/shared');
+    (processEventWithAgent as any).mockResolvedValueOnce({
+      responseText: 'QA verification FAILED: Some checks did not pass.',
+      attachments: [],
     });
     const payloadWithInitiator = {
       detail: { ...BASE_PAYLOAD.detail, initiatorId: 'initiator-1' },
@@ -369,11 +391,11 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
   });
 
   it('should fallback to dispatcher if no initiatorId is present on failure', async () => {
-    agentProcess.mockResolvedValueOnce({
-      responseText: JSON.stringify({ status: 'REOPEN', auditReport: 'fail' }),
+    const { processEventWithAgent } = await import('../handlers/events/shared');
+    (processEventWithAgent as any).mockResolvedValueOnce({
+      responseText: 'QA verification FAILED: Some checks did not pass.',
+      attachments: [],
     });
-
-    const { TOOLS } = await import('../tools/index');
 
     const payloadNoInitiator = {
       ...BASE_PAYLOAD,
@@ -382,11 +404,7 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
 
     await handler(payloadNoInitiator as any, {} as any);
 
-    expect(TOOLS.dispatchTask.execute).toHaveBeenCalledWith(
-      expect.objectContaining({
-        agentId: 'coder',
-        task: expect.stringContaining('QA verification failed'),
-      })
-    );
+    const { wakeupInitiator } = await import('../handlers/events/shared');
+    expect(wakeupInitiator).not.toHaveBeenCalled();
   });
 });

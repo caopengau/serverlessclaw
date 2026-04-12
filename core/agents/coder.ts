@@ -1,19 +1,13 @@
-import { AgentType, GapStatus, AgentEvent, AgentPayload, Attachment } from '../lib/types/agent';
-import { ReasoningProfile, Message } from '../lib/types/llm';
-import { sendOutboundMessage } from '../lib/outbound';
+import { AgentType, AgentEvent, AgentPayload, Attachment } from '../lib/types/agent';
+import { Message } from '../lib/types/llm';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import {
   extractPayload,
   detectFailure,
   isTaskPaused,
-  extractBaseUserId,
   validatePayload,
-  buildProcessOptions,
-  initAgent,
 } from '../lib/utils/agent-helpers';
-import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
-import { parseStructuredResponse } from '../lib/utils/agent-helpers/llm-utils';
 import { TRACE_TYPES } from '../lib/constants';
 
 /**
@@ -38,8 +32,6 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     return;
   }
 
-  const baseUserId = extractBaseUserId(userId);
-
   // 1. Prepare writable /tmp workspace
   const { createWorkspace, cleanupWorkspace } = await import('../lib/utils/workspace-manager');
   const workspacePath = await createWorkspace(
@@ -49,9 +41,6 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   const originalCwd = process.cwd();
   process.chdir(workspacePath);
   logger.info(`[Coder] Working in workspace: ${workspacePath}`);
-
-  // 2. Initialize agent (config + context loaded in parallel)
-  const { config, memory, agent } = await initAgent(AgentType.CODER);
 
   const isAggregation = task?.includes('[AGGREGATED_RESULTS]');
 
@@ -85,7 +74,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
 
   // 3. Process the task via unified lifecycle (Session Locking + Heartbeat)
   const { processEventWithAgent } = await import('../handlers/events/shared');
-  
+
   let result: { responseText: string; attachments: Message['attachments'] };
   try {
     result = await processEventWithAgent(userId, AgentType.CODER, task || '', {
@@ -103,9 +92,9 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     });
   } catch (err) {
     logger.error('Unexpected error in Coder Agent processing:', err);
-    result = { 
+    result = {
       responseText: `SYSTEM_ERROR: ${err instanceof Error ? err.message : String(err)}`,
-      attachments: []
+      attachments: [],
     };
   } finally {
     process.chdir(originalCwd);
