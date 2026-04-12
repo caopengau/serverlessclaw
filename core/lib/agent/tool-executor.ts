@@ -22,6 +22,7 @@ export interface ToolExecutionContext {
   currentInitiator: string;
   depth: number;
   sessionId?: string;
+  workspaceId?: string;
   userId: string;
   mainConversationId: string;
   activeModel?: string;
@@ -342,6 +343,7 @@ export class ToolExecutor {
       initiatorId: execContext.currentInitiator,
       depth: execContext.depth,
       sessionId: execContext.sessionId,
+      workspaceId: execContext.workspaceId,
       mainConversationId: execContext.mainConversationId,
       activeModel: execContext.activeModel,
       activeProvider: execContext.activeProvider,
@@ -355,6 +357,7 @@ export class ToolExecutor {
     });
     args.userId = args.userId ?? execContext.userId;
     args.sessionId = args.sessionId ?? execContext.sessionId;
+    args.workspaceId = args.workspaceId ?? execContext.workspaceId;
 
     // 2.5 Structural Enforcement (Zod Validation)
     if (tool.argSchema) {

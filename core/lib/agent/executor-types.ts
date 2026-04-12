@@ -83,6 +83,8 @@ export interface ExecutorFeatureOptions {
   parentId?: string;
   /** Session ID for pending message injection and IoT streaming. */
   sessionId?: string;
+  /** Workspace ID for supporting multiple workspaces. */
+  workspaceId?: string;
   /** Response format for structured output. */
   responseFormat?: import('../types/index').ResponseFormat;
   /** Task timeout in milliseconds. */

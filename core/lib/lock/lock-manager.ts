@@ -29,7 +29,9 @@ export class LockManager {
     const dbClient = client || new DynamoDBClient({});
     this.docClient = DynamoDBDocumentClient.from(dbClient);
     try {
-      this.tableName = (Resource as Record<string, { name: string }>).MemoryTable?.name || 'MemoryTable';
+      this.tableName =
+        (Resource as unknown as Record<string, { name: string }>).MemoryTable?.name ||
+        'MemoryTable';
     } catch {
       this.tableName = process.env.MEMORY_TABLE_NAME || 'MemoryTable';
     }
@@ -72,7 +74,8 @@ export class LockManager {
 
     const state = await this.getLockState(fullId);
 
-    const conditionExpression = 'attribute_not_exists(ownerId) OR ownerId = :null OR expiresAt < :now';
+    const conditionExpression =
+      'attribute_not_exists(ownerId) OR ownerId = :null OR expiresAt < :now';
 
     try {
       await this.docClient.send(
