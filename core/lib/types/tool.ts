@@ -89,6 +89,8 @@ export interface IToolDefinition {
   sequential?: boolean;
   /** Optional: specific argument keys that contain file paths (for security monitoring). */
   pathKeys?: string[];
+  /** Optional: explicitly mark this tool as sensitive to require mandatory approval/RBAC, overriding heuristics. */
+  sensitive?: boolean;
 }
 
 /**

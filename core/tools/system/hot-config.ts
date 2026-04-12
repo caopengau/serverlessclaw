@@ -7,6 +7,7 @@ import { formatErrorMessage } from '../../lib/utils/error';
  */
 export const switchModel = {
   ...schema.switchModel,
+  sensitive: true,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { provider, model } = args as { provider: string; model: string };
     try {
@@ -25,6 +26,7 @@ export const switchModel = {
  */
 export const setSystemConfig = {
   ...schema.setSystemConfig,
+  sensitive: true,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { key, value, description } = args as {
       key: string;

@@ -475,6 +475,11 @@ export class ToolExecutor {
     toolCall: ToolCall,
     _args?: Record<string, unknown>
   ): Promise<boolean> {
+    // 0. Explicit sensitivity (Authoritative)
+    if (tool.sensitive !== undefined) {
+      return tool.sensitive;
+    }
+
     const sensitiveKeywords = [
       'aws',
       'delete',

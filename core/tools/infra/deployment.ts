@@ -18,6 +18,7 @@ const s3Client = new S3Client({});
  */
 export const stageChanges = {
   ...schema.stageChanges,
+  sensitive: true,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { modifiedFiles, sessionId, skipValidation, traceId } = args as {
       modifiedFiles: string[];
@@ -127,6 +128,7 @@ export const stageChanges = {
  */
 export const generatePatch = {
   ...schema.generatePatch,
+  sensitive: true,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { sessionId, skipValidation } = args as {
       sessionId: string;
@@ -180,6 +182,7 @@ export const generatePatch = {
  */
 export const triggerDeployment = {
   ...schema.triggerDeployment,
+  sensitive: true,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const {
       reason,
@@ -354,6 +357,7 @@ export const triggerDeployment = {
  */
 export const triggerInfraRebuild = {
   ...schema.triggerInfraRebuild,
+  sensitive: true,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { reason } = args as { reason: string };
     try {

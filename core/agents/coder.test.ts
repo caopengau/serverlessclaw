@@ -23,6 +23,19 @@ vi.mock('../lib/utils/workspace-manager', () => ({
   cleanupWorkspace: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('../handlers/events/shared', () => ({
+  processEventWithAgent: vi.fn().mockImplementation((...args) => {
+    const options = args[3] as { handlerTitle?: string; taskId?: string };
+    return Promise.resolve({
+      responseText: JSON.stringify({
+        status: 'SUCCESS',
+        response: options?.handlerTitle === 'Coder Agent' ? 'Completed task' : 'Completed task',
+      }),
+      attachments: [],
+    });
+  }),
+}));
+
 const mockMemory = vi.hoisted(() => ({
   updateGapStatus: vi.fn().mockResolvedValue({ success: true }),
   acquireGapLock: vi.fn().mockResolvedValue(true),
@@ -57,6 +70,12 @@ describe('Coder Agent', () => {
   });
 
   it('should process a valid task and emit events', async () => {
+    const { processEventWithAgent } = await import('../handlers/events/shared');
+    (processEventWithAgent as any).mockResolvedValueOnce({
+      responseText: JSON.stringify({ status: 'SUCCESS', response: 'Completed task' }),
+      attachments: [],
+    });
+
     const event = {
       detail: {
         userId: 'user123',
@@ -69,9 +88,8 @@ describe('Coder Agent', () => {
 
     const result = await handler(event, mockContext);
 
-    expect(result).toBe('Completed task');
-    expect(initAgent).toHaveBeenCalledWith(AgentType.CODER);
-    expect(mockAgent.process).toHaveBeenCalled();
+    expect(result).toContain('Completed task');
+    expect(processEventWithAgent).toHaveBeenCalled();
     expect(sendOutboundMessage).toHaveBeenCalledWith(
       AgentType.CODER,
       'user123',

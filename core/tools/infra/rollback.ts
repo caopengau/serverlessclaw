@@ -7,6 +7,7 @@ import { formatErrorMessage } from '../../lib/utils/error';
  */
 export const rollbackDeployment = {
   ...schema.triggerRollback,
+  sensitive: true,
   name: 'rollbackDeployment',
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { reason } = args as { reason: string };

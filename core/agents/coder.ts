@@ -1,5 +1,6 @@
 import { AgentType, AgentEvent, AgentPayload, Attachment } from '../lib/types/agent';
 import { Message } from '../lib/types/llm';
+import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import {
@@ -7,6 +8,7 @@ import {
   detectFailure,
   isTaskPaused,
   validatePayload,
+  extractBaseUserId,
 } from '../lib/utils/agent-helpers';
 import { TRACE_TYPES } from '../lib/constants';
 
@@ -107,6 +109,19 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
 
   const responseText = result.responseText;
   const isFailure = detectFailure(responseText);
+
+  if (!isTaskPaused(responseText)) {
+    const baseUserId = extractBaseUserId(userId);
+    await sendOutboundMessage(
+      AgentType.CODER,
+      userId,
+      responseText,
+      [baseUserId],
+      sessionId,
+      'Coder Agent',
+      result.attachments
+    );
+  }
 
   // 4. Trace gap transitions if successful
   if (!isFailure && !isTaskPaused(responseText)) {

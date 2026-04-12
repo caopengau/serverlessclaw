@@ -12,29 +12,41 @@ export function isProtectedPath(filePath: string): boolean {
 
   const normalized = filePath.replace(/\\/g, '/');
 
-  // Base list of critical files that are ALWAYS protected, even if constants fail to load
-  const CRITICAL = [
-    'sst.config.ts',
-    'core/lib/constants.ts',
-    '.env',
-    'package.json',
-    'package-lock.json',
-  ];
+  // 1. Authoritative Directory Protection (Secure-by-Default)
+  const PROTECTED_DIRS = ['core/', 'infra/', 'docs/governance/', '.github/', '.antigravity/'];
 
-  if (CRITICAL.includes(normalized) || normalized.startsWith('infra/')) {
+  if (PROTECTED_DIRS.some((dir) => normalized.startsWith(dir))) {
     return true;
   }
 
+  // 2. Critical Files Protection
+  const CRITICAL_FILES = [
+    'sst.config.ts',
+    'package.json',
+    'package-lock.json',
+    'pnpm-lock.yaml',
+    'yarn.lock',
+    '.env',
+  ];
+
+  if (CRITICAL_FILES.some((file) => normalized === file || normalized.endsWith(`/${file}`))) {
+    return true;
+  }
+
+  // 3. Dynamic PROTECTED_FILES from constants as fallback
   try {
     const protectedFiles = PROTECTED_FILES ?? [];
     return protectedFiles.some((p: string) => {
+      if (p.endsWith('/**')) {
+        const prefix = p.slice(0, -3);
+        return normalized.startsWith(prefix);
+      }
       if (p.endsWith('/')) {
         return normalized.startsWith(p);
       }
       return normalized === p;
     });
   } catch {
-    // Fallback already handled by CRITICAL check
     return false;
   }
 }
@@ -42,6 +54,8 @@ export function isProtectedPath(filePath: string): boolean {
 /**
  * Scans a set of tool arguments for common path keys and validates them for security.
  * Returns the first error found, or null if all paths are safe.
+ *
+ * Performance optimized: only scans string values that match path heuristics.
  *
  * @param args - The arguments object to scan.
  * @param operationName - Context for error messages.
@@ -68,6 +82,7 @@ export function checkArgumentsForSecurity(
 
   const allKeys = [...new Set([...pathKeys, ...extraPathKeys])];
 
+  // 1. Scan explicit path keys (Fast Path)
   for (const key of allKeys) {
     const filePath = args[key];
     if (filePath && typeof filePath === 'string') {
@@ -80,7 +95,32 @@ export function checkArgumentsForSecurity(
     }
   }
 
-  return null;
+  // 2. Deep Heuristic Scan of all string values (Catch-all for non-standard keys)
+  const scanRecursive = (obj: any): string | null => {
+    if (!obj || typeof obj !== 'object') return null;
+
+    for (const [key, value] of Object.entries(obj)) {
+      if (typeof value === 'string') {
+        // Heuristic: string looks like a path or contains a slash
+        // and it targets a known protected directory prefix
+        const isPathLike = value.includes('/') || value.includes('\\') || value.includes('.');
+        if (isPathLike && isProtectedPath(value)) {
+          const securityError = checkFileSecurity(
+            value,
+            args.manuallyApproved as boolean | undefined,
+            `${operationName} [discovered path in arg: ${key}]`
+          );
+          if (securityError) return securityError;
+        }
+      } else if (typeof value === 'object') {
+        const error = scanRecursive(value);
+        if (error) return error;
+      }
+    }
+    return null;
+  };
+
+  return scanRecursive(args);
 }
 
 /**
