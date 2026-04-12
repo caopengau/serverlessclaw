@@ -384,7 +384,6 @@ export class CircuitBreaker {
 
       state.state = 'half_open';
       state.lastStateChange = Date.now();
-      state.halfOpenProbes += 1;
       await saveState(state);
 
       return {
@@ -413,7 +412,7 @@ export class CircuitBreaker {
         };
       }
 
-      // Increment probe count for each attempt in half-open state
+      // Increment probe count only on actual probe attempts (not on state transition)
       state.halfOpenProbes += 1;
       await saveState(state);
 

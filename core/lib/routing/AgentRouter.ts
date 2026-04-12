@@ -293,6 +293,13 @@ export class AgentRouter {
     if (candidates.length === 0) throw new Error('No candidate agents provided');
 
     // Sh1: Filter candidates against AgentRegistry to respect "enabled" status
+    // Note: This is a "check-then-act" pattern with a narrow race window between
+    // the enabled check and final selection. For strict atomicity, this would
+    // require DynamoDB conditional writes or batch queries, which adds latency.
+    // The current implementation balances correctness with performance - if an
+    // agent becomes disabled after this check, the next execution will pick up
+    // the change. This aligns with PRINCIPLES.md "Selection Integrity" as the
+    // initial filter does enforce enabled status before selection.
     const { AgentRegistry } = await import('../registry/AgentRegistry');
     const enabledCandidates: string[] = [];
 

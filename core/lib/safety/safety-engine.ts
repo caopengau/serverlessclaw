@@ -173,8 +173,8 @@ export class SafetyEngine extends SafetyBase {
       this.trackClassCBlastRadius(action, context?.resource);
     }
 
-    if (approvalResult.requiresApproval && (agentConfig?.trustScore ?? 0) >= 90) {
-      approvalResult.reason = `${approvalResult.reason} [ADVISORY: Candidate for trust-based autonomy promotion (TrustScore >= 90)]`;
+    if (approvalResult.requiresApproval && (agentConfig?.trustScore ?? 0) >= 95) {
+      approvalResult.reason = `${approvalResult.reason} [ADVISORY: Candidate for trust-based autonomy promotion (TrustScore >= 95)]`;
     }
 
     if (!approvalResult.allowed || approvalResult.requiresApproval) {

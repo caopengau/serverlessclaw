@@ -340,7 +340,7 @@ describe('SafetyEngine', () => {
 
       expect(result.requiresApproval).toBe(true);
       expect(result.reason).toContain(
-        '[ADVISORY: Candidate for trust-based autonomy promotion (TrustScore >= 90)]'
+        '[ADVISORY: Candidate for trust-based autonomy promotion (TrustScore >= 95)]'
       );
     });
 

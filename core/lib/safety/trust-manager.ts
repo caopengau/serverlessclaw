@@ -74,7 +74,8 @@ export class TrustManager {
 
     if (qualityScore !== undefined) {
       // Scale bump: 10/10 maps to 1.5x, 5/10 maps to 0.75x, 0/10 maps to 0x
-      const multiplier = Math.max(0, qualityScore / 7.5); // Simplified linear scale
+      // formula: qualityScore * 0.15 gives range [0, 1.5]
+      const multiplier = Math.min(1.5, Math.max(0, qualityScore * 0.15));
       bump *= multiplier;
     }
 
