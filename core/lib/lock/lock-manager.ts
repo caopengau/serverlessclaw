@@ -5,7 +5,7 @@
  */
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from '../logger';
 
@@ -13,6 +13,11 @@ export interface LockOptions {
   ttlSeconds: number;
   ownerId: string;
   prefix?: string;
+}
+
+interface LockState {
+  ownerId?: string | null;
+  expiresAt?: number;
 }
 
 export class LockManager {
@@ -36,12 +41,47 @@ export class LockManager {
   }
 
   /**
+   * Gets the current state of a lock.
+   */
+  private async getLockState(fullId: string): Promise<LockState> {
+    try {
+      const result = await this.docClient.send(
+        new GetCommand({
+          TableName: this.tableName,
+          Key: { userId: fullId, timestamp: 0 },
+        })
+      );
+      return {
+        ownerId: result.Item?.ownerId,
+        expiresAt: result.Item?.expiresAt,
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  /**
    * Attempts to acquire a distributed lock.
+   * Uses a two-phase check to avoid race conditions where two processes
+   * could both acquire an expired lock simultaneously.
    */
   async acquire(lockId: string, options: LockOptions): Promise<boolean> {
     const fullId = this.getFullId(lockId, options.prefix);
     const now = Math.floor(Date.now() / 1000);
     const expiresAt = now + options.ttlSeconds;
+
+    const state = await this.getLockState(fullId);
+    const isExpired = state.expiresAt !== undefined && state.expiresAt < now;
+    const hasOwner = state.ownerId !== undefined && state.ownerId !== null;
+
+    let conditionExpression: string;
+    if (!hasOwner) {
+      conditionExpression = 'attribute_not_exists(ownerId) OR ownerId = :null';
+    } else if (isExpired) {
+      conditionExpression = 'ownerId = :null OR expiresAt < :now';
+    } else {
+      conditionExpression = 'attribute_not_exists(ownerId)';
+    }
 
     try {
       await this.docClient.send(
@@ -53,8 +93,7 @@ export class LockManager {
           },
           UpdateExpression:
             'SET ownerId = :owner, expiresAt = :exp, acquiredAt = :now, lockType = :type',
-          ConditionExpression:
-            'attribute_not_exists(ownerId) OR ownerId = :null OR ownerId = :owner OR expiresAt < :now',
+          ConditionExpression: conditionExpression,
           ExpressionAttributeValues: {
             ':owner': options.ownerId,
             ':exp': expiresAt,

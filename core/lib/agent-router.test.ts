@@ -14,7 +14,6 @@ vi.mock('./metrics/token-usage', () => ({
   },
 }));
 
-
 describe('AgentRouter', () => {
   describe('selectModel', () => {
     it('respects explicit agent config overrides', async () => {

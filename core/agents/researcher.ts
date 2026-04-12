@@ -2,12 +2,7 @@ import { AgentType, AgentEvent, AgentPayload, TraceSource } from '../lib/types/a
 import { ReasoningProfile } from '../lib/types/llm';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
-import {
-  extractBaseUserId,
-  validateEventPayload,
-  buildProcessOptions,
-  initAgent,
-} from '../lib/utils/agent-helpers';
+import { validateEventPayload, buildProcessOptions, initAgent } from '../lib/utils/agent-helpers';
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
 import { SWARM } from '../lib/constants';
 import { RESEARCH_TASK_METADATA } from '../lib/schema/events';
@@ -40,7 +35,6 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     costLimit,
   } = payload;
 
-  const baseUserId = extractBaseUserId(userId);
   const isAggregation = task?.includes('[AGGREGATED_RESULTS]');
 
   // 1. Discovery & Initialization (config + context loaded in parallel)
@@ -86,7 +80,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
 
       try {
         await emitTypedEvent(AgentType.RESEARCHER, EventType.PARALLEL_TASK_DISPATCH, {
-          userId: baseUserId,
+          userId: userId,
           tasks: subTaskEvents,
           barrierTimeoutMs: 10 * 60 * 1000, // 10 mins
           aggregationType: 'agent_guided',
@@ -164,7 +158,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     await emitTaskEvent({
       source: `${AgentType.RESEARCHER}.agent`,
       agentId: AgentType.RESEARCHER,
-      userId: baseUserId,
+      userId: userId,
       task: task || '',
       response: finalResponseText,
       traceId,
@@ -186,7 +180,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     await emitTaskEvent({
       source: `${AgentType.RESEARCHER}.agent`,
       agentId: AgentType.RESEARCHER,
-      userId: baseUserId,
+      userId: userId,
       task: task || '',
       error: `Research task failed: ${errorMsg}`,
       traceId,

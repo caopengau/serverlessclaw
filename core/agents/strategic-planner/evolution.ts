@@ -40,8 +40,10 @@ export const COOLDOWN_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 export async function isGapInCooldown(
   memory: IMemory,
   gapId: string,
-  baseUserId: string
+  userId: string
 ): Promise<boolean> {
+  const { extractBaseUserId } = await import('../../lib/utils/agent-helpers');
+  const baseUserId = extractBaseUserId(userId);
   const cooldownKey = `COOLDOWN_GAPS#${baseUserId}`;
   try {
     const raw = await memory.getDistilledMemory(cooldownKey);
@@ -61,8 +63,10 @@ export async function isGapInCooldown(
 export async function recordCooldown(
   memory: IMemory,
   gapId: string,
-  baseUserId: string
+  userId: string
 ): Promise<void> {
+  const { extractBaseUserId } = await import('../../lib/utils/agent-helpers');
+  const baseUserId = extractBaseUserId(userId);
   const cooldownKey = `COOLDOWN_GAPS#${baseUserId}`;
   try {
     const raw = await memory.getDistilledMemory(cooldownKey);

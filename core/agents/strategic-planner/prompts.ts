@@ -33,10 +33,12 @@ export function buildTelemetry(toolsList: string): string {
 export async function shouldRunProactiveReview(
   memory: IMemory,
   isScheduledReview: boolean,
-  baseUserId: string,
+  userId: string,
   frequencyHrs: number,
   minGaps: number
 ): Promise<{ shouldRun: boolean; reason?: string }> {
+  const { extractBaseUserId } = await import('../../lib/utils/agent-helpers');
+  const baseUserId = extractBaseUserId(userId);
   try {
     const lastReviewStr = await memory.getDistilledMemory(
       `${MEMORY_KEYS.STRATEGIC_REVIEW}#${baseUserId}`
@@ -195,11 +197,13 @@ async function fetchFailedPlansContext(memory: IMemory): Promise<string> {
  */
 export async function buildProactiveReviewPrompt(
   memory: IMemory,
-  baseUserId: string,
+  userId: string,
   telemetry: string,
   isScheduledReview: boolean,
   failurePatterns: Array<{ content: string }> = []
 ): Promise<{ prompt: string; shouldRun: boolean; status?: string }> {
+  const { extractBaseUserId } = await import('../../lib/utils/agent-helpers');
+  const baseUserId = extractBaseUserId(userId);
   // Check Frequency and Min Gaps
   try {
     const { AgentRegistry } = await import('../../lib/registry');

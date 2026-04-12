@@ -47,12 +47,12 @@ describe('SessionStateManager', () => {
       const result = await sessionStateManager.acquireProcessing('session-123', 'agent-abc');
 
       expect(result).toBe(true);
-      expect(ddbMock.calls()).toHaveLength(2);
+      expect(ddbMock.calls()).toHaveLength(3);
 
-      const lockCall = ddbMock.call(0).args[0].input as UpdateCommandInput;
+      const lockCall = ddbMock.call(1).args[0].input as UpdateCommandInput;
       expect(lockCall.Key?.userId).toBe('LOCK#SESSION#session-123');
 
-      const sessionCall = ddbMock.call(1).args[0].input as UpdateCommandInput;
+      const sessionCall = ddbMock.call(2).args[0].input as UpdateCommandInput;
       expect(sessionCall.Key?.userId).toBe('SESSION_STATE#session-123');
       expect(sessionCall.ExpressionAttributeValues?.[':agentId']).toBe('agent-abc');
     });
@@ -65,8 +65,8 @@ describe('SessionStateManager', () => {
       const result = await sessionStateManager.acquireProcessing('session-123', 'agent-xyz');
 
       expect(result).toBe(false);
-      // Should stop after first failed call
-      expect(ddbMock.calls()).toHaveLength(1);
+      // Should stop after the failed Update call (Get succeeded, but Update rejected)
+      expect(ddbMock.calls()).toHaveLength(2);
     });
 
     it('should handle state update failure gracefully after lock acquisition', async () => {
@@ -78,7 +78,7 @@ describe('SessionStateManager', () => {
       const result = await sessionStateManager.acquireProcessing('session-123', 'agent-abc');
 
       expect(result).toBe(true); // Still returns true because the lock IS held
-      expect(ddbMock.calls()).toHaveLength(2);
+      expect(ddbMock.calls()).toHaveLength(3);
     });
   });
 
@@ -88,7 +88,7 @@ describe('SessionStateManager', () => {
 
       await sessionStateManager.releaseProcessing('session-123', 'agent-abc');
 
-      expect(ddbMock.calls()).toHaveLength(2);
+      expect(ddbMock.calls()).toHaveLength(2); // 1. Lock release, 2. Session state clear
 
       const lockReleaseCall = ddbMock.call(0).args[0].input as UpdateCommandInput;
       expect(lockReleaseCall.Key?.userId).toBe('LOCK#SESSION#session-123');
@@ -119,8 +119,8 @@ describe('SessionStateManager', () => {
 
       await sessionStateManager.releaseProcessing('session-123', 'agent-abc');
 
-      // 1. release, 2. update session, 3. get pending, 4. remove pending
-      expect(ddbMock.calls()).toHaveLength(4);
+      // 1. Lock state check, 2. release, 3. update session, 4. get pending, 5. remove pending
+      expect(ddbMock.calls()).toHaveLength(4); // 1. release, 2. update session, 3. get pending, 4. remove pending
 
       // Verify re-emission
       expect(mockEmit).toHaveBeenCalledWith(
@@ -153,8 +153,8 @@ describe('SessionStateManager', () => {
       const result = await sessionStateManager.renewProcessing('session-123', 'agent-abc');
 
       expect(result).toBe(true);
-      const call = ddbMock.call(0);
-      const input = call.args[0].input as UpdateCommandInput;
+      expect(ddbMock.calls()).toHaveLength(2);
+      const input = ddbMock.call(0).args[0].input as UpdateCommandInput;
       expect(input.Key?.userId).toBe('LOCK#SESSION#session-123');
       expect(input.ConditionExpression).toBe('ownerId = :owner');
     });

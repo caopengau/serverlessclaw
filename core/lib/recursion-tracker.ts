@@ -99,12 +99,21 @@ export async function getRecursionDepth(traceId: string): Promise<number> {
 }
 
 /**
- * Clear recursion entries for a trace after completion
+ * Clear recursion entries for a trace after completion.
+ * Uses conditional delete to prevent clearing while another agent chain is actively using it.
  * @param traceId - The trace ID for the execution chain
  */
 export async function clearRecursionStack(traceId: string): Promise<void> {
   try {
     const key = `${RECURSION_STACK_PREFIX}${traceId}`;
+
+    const currentDepth = await getRecursionDepth(traceId);
+    if (currentDepth > 0) {
+      logger.warn(
+        `[RECURSION] Skipping clear for ${traceId}: recursion still active with depth ${currentDepth}`
+      );
+      return;
+    }
 
     await docClient.send(
       new DeleteCommand({

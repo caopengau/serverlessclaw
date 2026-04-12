@@ -10,10 +10,9 @@ import { CONFIG_DEFAULTS } from '../../lib/config/config-defaults';
  * @param originalUserId - The original user ID (e.g. with prefixes).
  * @returns A promise resolving when scheduling is complete.
  */
-export async function manageProactiveScheduling(
-  baseUserId: string,
-  originalUserId: string
-): Promise<void> {
+export async function manageProactiveScheduling(userId: string): Promise<void> {
+  const { extractBaseUserId } = await import('../../lib/utils/agent-helpers');
+  const baseUserId = extractBaseUserId(userId);
   try {
     const { DynamicScheduler } = await import('../../lib/lifecycle/scheduler');
     const { AgentRegistry } = await import('../../lib/registry');
@@ -29,7 +28,7 @@ export async function manageProactiveScheduling(
       goalId: GOAL_ID,
       agentId: AgentType.STRATEGIC_PLANNER,
       task: 'Proactive Strategic Review',
-      userId: originalUserId,
+      userId: userId,
       frequencyHrs,
       metadata: { isProactive: true },
     });

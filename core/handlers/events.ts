@@ -5,10 +5,13 @@ import { routeToDlq } from './route-to-dlq';
 import { checkAndMarkIdempotent } from './events/idempotency';
 import { emitMetrics, METRICS } from '../lib/metrics';
 import { ConfigManager } from '../lib/registry/config';
-import { DEFAULT_EVENT_ROUTING } from '../lib/event-routing';
+import { DEFAULT_EVENT_ROUTING, verifyEventRoutingConfiguration } from '../lib/event-routing';
 import { performance } from 'perf_hooks';
 import { getRecursionDepth } from '../lib/recursion-tracker';
 import { CONFIG_DEFAULTS } from '../lib/config/config-defaults';
+
+// Verify event routing configuration on module load
+verifyEventRoutingConfiguration();
 
 // In‑memory state (distributed state migration planned for Sprint 2)
 const failureState = new Map<string, { count: number; openedAt?: number }>();

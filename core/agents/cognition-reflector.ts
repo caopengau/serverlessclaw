@@ -50,8 +50,6 @@ export const handler = async (
     return;
   }
 
-  const baseUserId = extractBaseUserId(userId);
-
   // 1. Fetch Execution Trace (Deeper detail than conversation)
   let traceContext = '';
   if (traceId) {
@@ -121,6 +119,7 @@ export const handler = async (
     }
   }
 
+  const baseUserId = extractBaseUserId(userId);
   const existingFacts = await memory.getDistilledMemory(baseUserId);
   const failurePatterns = await memory.getFailurePatterns(baseUserId, '*', 5);
 
@@ -129,7 +128,7 @@ export const handler = async (
 
   const reflectionPrompt = await buildReflectionPrompt(
     memory,
-    baseUserId,
+    userId,
     conversation,
     traceContext,
     deployedGaps,
@@ -140,7 +139,7 @@ export const handler = async (
   // Use 'standard' profile for reflection — FAST was too shallow for reliable gap closure detection
   // and produced false-positive "resolved" signals from vague user messages.
   const { responseText: response, attachments: resultAttachments } = await reflector.process(
-    baseUserId,
+    userId,
     reflectionPrompt,
     {
       profile: ReasoningProfile.STANDARD,
@@ -161,15 +160,15 @@ export const handler = async (
 
       // 1. Handle Facts
       if (parsed.facts && parsed.facts !== existingFacts) {
-        await memory.updateDistilledMemory(baseUserId, parsed.facts);
-        logger.info('Facts updated for user:', baseUserId);
+        await memory.updateDistilledMemory(extractBaseUserId(userId), parsed.facts);
+        logger.info('Facts updated for user:', userId);
       }
 
       // 2. Handle Lessons
       if (Array.isArray(parsed.lessons)) {
         for (const lesson of parsed.lessons) {
           if (lesson.content && lesson.content !== 'NONE') {
-            await memory.addLesson(baseUserId, lesson.content, {
+            await memory.addLesson(extractBaseUserId(userId), lesson.content, {
               category: lesson.category || InsightCategory.TACTICAL_LESSON,
               confidence: lesson.confidence || 5,
               impact: lesson.impact || 5,

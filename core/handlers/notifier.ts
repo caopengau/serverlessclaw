@@ -10,6 +10,7 @@ const memory = new DynamoMemory();
 interface NotifierEvent {
   detail: {
     userId: string;
+    baseUserId?: string;
     message: string;
     memoryContexts?: string[];
     sessionId?: string;
@@ -54,7 +55,7 @@ export const handler = async (event: NotifierEvent): Promise<void> => {
     collaborationId,
   } = payload;
 
-  const baseUserId = extractBaseUserId(userId);
+  const baseUserId = payload.baseUserId || extractBaseUserId(userId);
   logger.info(
     `[NOTIFIER] Normalized User: ${baseUserId} | Session: ${sessionId} | Workspace: ${workspaceId ?? 'none'}`
   );

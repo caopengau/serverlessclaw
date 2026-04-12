@@ -61,10 +61,8 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
     (metadata as unknown as Record<string, unknown>)?.isProactive || isScheduledReview
   );
 
-  // Extract base userId (remove CONV# prefix if present)
-  const baseUserId = extractBaseUserId(userId);
-
   // 1. Fetch System Context
+  const baseUserId = extractBaseUserId(userId);
   const [config, { memory }, { getAgentTools }] = await Promise.all([
     loadAgentConfig(AgentType.STRATEGIC_PLANNER),
     getAgentContext(),
@@ -78,7 +76,6 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
     task,
     traceId || '',
     memory,
-    baseUserId,
     userId,
     config
   );
@@ -89,7 +86,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   // Self-Scheduling: If this is a proactive review, or we are running for any reason,
   // ensure the NEXT proactive review is scheduled if not already present.
   if (isProactive) {
-    await manageProactiveScheduling(baseUserId, userId);
+    await manageProactiveScheduling(userId);
   }
 
   // Code Growth Tracking: Check if audit should be triggered based on code growth
@@ -123,7 +120,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   if (isProactive) {
     const proactiveResult = await buildProactiveReviewPrompt(
       memory,
-      baseUserId,
+      userId,
       telemetry,
       isScheduledReview ?? false,
       failurePatterns
@@ -144,14 +141,13 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   }
 
   // 2. Self-Evolution Loop Protection (Cool-down)
-  if (gapId) {
-    const inCooldown = await isGapInCooldown(memory, gapId, baseUserId);
-    if (inCooldown) {
-      logger.warn(`Evolution cooldown active for gap ${gapId}. Aborting.`);
-      return { status: 'COOLDOWN_ACTIVE' };
-    }
+  if (gapId && (await isGapInCooldown(memory, gapId, userId))) {
+    logger.warn(`Evolution cooldown active for gap ${gapId}. Aborting.`);
+    return { status: 'COOLDOWN_ACTIVE' };
+  }
 
-    // 2b. Conflict Detection: Acquire gap lock to prevent race conditions
+  // 2b. Conflict Detection: Acquire gap lock to prevent race conditions
+  if (gapId) {
     const lockAcquired = await memory.acquireGapLock(gapId, AgentType.STRATEGIC_PLANNER);
     if (!lockAcquired) {
       const lockInfo = await memory.getGapLock(gapId);
@@ -172,7 +168,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   const { processEventWithAgent } = await import('../handlers/events/shared');
 
   let responseText: string;
-  let parsedData: any;
+  let parsedData: unknown;
 
   try {
     const result = await processEventWithAgent(userId, AgentType.STRATEGIC_PLANNER, plannerPrompt, {
@@ -213,15 +209,15 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   if (!isSystemFailure && isProactive) {
     try {
+      type PlannerResult = {
+        status: string;
+        plan: string;
+        coveredGapIds: string[];
+        tasks?: Array<{ agentId: string; task: string; gapIds: string[] }>;
+        toolOptimizations?: Array<{ action: string; toolName: string; reason: string }>;
+      };
       const parsed =
-        parsedData ||
-        parseStructuredResponse<{
-          status: string;
-          plan: string;
-          coveredGapIds: string[];
-          tasks?: Array<{ agentId: string; task: string; gapIds: string[] }>;
-          toolOptimizations?: Array<{ action: string; toolName: string; reason: string }>;
-        }>(responseText);
+        (parsedData as PlannerResult) || parseStructuredResponse<PlannerResult>(responseText);
       status = parsed.status || 'SUCCESS';
       plan = parsed.plan || responseText;
       coveredGapIds = parsed.coveredGapIds ?? [];
@@ -254,7 +250,6 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
     toolOptimizations,
     structuredTasks,
     isFailure,
-    baseUserId,
     userId,
     sessionId: sessionId || '',
     traceId: traceId || '',

@@ -21,10 +21,11 @@ export async function handleCouncilReviewResult(
   task: string,
   traceId: string,
   memory: IMemory,
-  baseUserId: string,
-  originalUserId: string,
+  userId: string,
   config: { name: string }
 ): Promise<PlannerResult | null> {
+  const { extractBaseUserId } = await import('../../lib/utils/agent-helpers');
+  const baseUserId = extractBaseUserId(userId);
   // P1 Fix: More robust VERDICT parsing with case-insensitive regex
   const councilReviewPattern = /\[COUNCIL_REVIEW_RESULT\]/i;
   const verdictApprovedPattern = /VERDICT:\s*APPROVED/i;
@@ -75,6 +76,7 @@ export async function handleCouncilReviewResult(
     sessionId: originalSessionId,
     planId: originalPlanId,
     collaborationId: councilCollabId,
+    userId: originalUserId,
   } = JSON.parse(councilDataStr);
 
   // P1 Fix: Use consistent robust pattern for verdict detection
@@ -104,7 +106,7 @@ export async function handleCouncilReviewResult(
         AgentType.STRATEGIC_PLANNER,
         originalUserId,
         `✅ **Council Approval Received**\n\nThe Council of Agents has ${isApproved ? 'approved' : 'conditionally approved'} the plan. Dispatching to Coder Agent for execution.\n\nSummary of Review:\n${task}`,
-        [baseUserId],
+        undefined,
         originalSessionId,
         config.name
       );
@@ -124,7 +126,7 @@ export async function handleCouncilReviewResult(
         AgentType.STRATEGIC_PLANNER,
         originalUserId,
         `✅ **Council Approval Received**\n\nThe Council of Agents has approved the plan with findings:\n\n${task}\n\nDo you want to execute the original plan?\n\nPlan:\n${originalPlan}`,
-        [baseUserId],
+        undefined,
         originalSessionId,
         config.name,
         undefined,
@@ -144,9 +146,9 @@ export async function handleCouncilReviewResult(
     logger.warn(`[PLANNER] Council REJECTED plan for trace ${traceId}. Informing user.`);
     await sendOutboundMessage(
       AgentType.STRATEGIC_PLANNER,
-      originalUserId,
+      userId,
       `❌ **Council Review REJECTED**\n\nThe Council has rejected the strategic plan. Implementation has been blocked for safety. Please review the findings and revise the strategy.\n\nFeedback:\n${task}`,
-      [baseUserId],
+      undefined,
       originalSessionId,
       config.name
     );

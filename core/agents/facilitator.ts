@@ -1,7 +1,7 @@
 import { AgentType, AgentEvent, AgentPayload, Attachment } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
-import { extractPayload, extractBaseUserId, validatePayload } from '../lib/utils/agent-helpers';
+import { extractPayload, validatePayload } from '../lib/utils/agent-helpers';
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
 import { processEventWithAgent } from '../handlers/events/shared';
 
@@ -23,8 +23,6 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   if (!validatePayload({ userId, task: task || '' }, ['userId', 'task'])) {
     return;
   }
-
-  const baseUserId = extractBaseUserId(userId);
 
   try {
     const { responseText } = await processEventWithAgent(
@@ -54,7 +52,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     await emitTaskEvent({
       source: `${AgentType.FACILITATOR}.agent`,
       agentId: AgentType.FACILITATOR,
-      userId: baseUserId,
+      userId: userId,
       task: task || '',
       error: `Facilitator task failed: ${errorMsg}`,
       traceId,

@@ -128,7 +128,7 @@ describe('Council of Agents — Continuation Logic', () => {
       AgentType.STRATEGIC_PLANNER,
       'user-1',
       expect.stringContaining('Council Approval Received'),
-      ['user-1'],
+      undefined,
       'session-1',
       'Strategic Planner'
     );
@@ -177,7 +177,7 @@ describe('Council of Agents — Continuation Logic', () => {
       AgentType.STRATEGIC_PLANNER,
       'user-1',
       expect.stringContaining('Council Approval Received'),
-      ['user-1'],
+      undefined,
       'session-1',
       'Strategic Planner',
       undefined,
@@ -224,7 +224,7 @@ describe('Council of Agents — Continuation Logic', () => {
       AgentType.STRATEGIC_PLANNER,
       'user-1',
       expect.stringContaining('Council Review REJECTED'),
-      ['user-1'],
+      undefined,
       'session-1',
       'Strategic Planner'
     );

@@ -1,6 +1,7 @@
 import { GapStatus } from '../../lib/types/index';
 import type { IMemory } from '../../lib/types/index';
 import type { Message, MemoryInsight } from '../../lib/types/index';
+import { extractBaseUserId } from '../../lib/utils/agent-helpers';
 
 /**
  * Builds the reflection prompt with all context.
@@ -15,13 +16,14 @@ import type { Message, MemoryInsight } from '../../lib/types/index';
  */
 export async function buildReflectionPrompt(
   memory: IMemory,
-  baseUserId: string,
+  userId: string,
   conversation: Message[],
   traceContext: string,
   deployedGaps: Array<{ id: string; content: string }>,
   activeGaps: Array<{ content: string }>,
   failurePatterns: MemoryInsight[] = []
 ): Promise<string> {
+  const baseUserId = extractBaseUserId(userId);
   const existingFacts = await memory.getDistilledMemory(baseUserId);
 
   const deployedGapsContext =

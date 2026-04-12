@@ -111,7 +111,14 @@ export async function isHumanTakingControl(userId: string, sessionId?: string): 
     if (!hasNotExpired) return false;
 
     // If sessionId was provided, verify it matches the stored session
+    // Only block if stored handoff has a specific sessionId AND it doesn't match
     if (sessionId && response.Item.sessionId && response.Item.sessionId !== sessionId) {
+      return false;
+    }
+
+    // If sessionId was provided but stored handoff has no sessionId (global handoff),
+    // also return false to prevent cross-session leakage
+    if (sessionId && !response.Item.sessionId) {
       return false;
     }
 

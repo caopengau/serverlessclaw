@@ -1,4 +1,53 @@
 import { EventType, EventRoutingTable } from './types/agent';
+import { logger } from './logger';
+
+/**
+ * Event types that are handled via EventBridge subscriptions instead of
+ * the events.ts Lambda fallback handler.
+ * This list must match the infrastructure configuration in infra/agents.ts.
+ */
+export const EVENTBRIDGE_ONLY_EVENTS: EventType[] = [
+  EventType.CODER_TASK,
+  EventType.RESEARCH_TASK,
+  EventType.EVOLUTION_PLAN,
+  EventType.REFLECT_TASK,
+  EventType.MERGER_TASK,
+  EventType.CRITIC_TASK,
+  EventType.FACILITATOR_TASK,
+  EventType.QA_TASK,
+  EventType.STRATEGIC_PLANNER_TASK,
+  EventType.COGNITION_REFLECTOR_TASK,
+];
+
+/**
+ * Verifies that event types expected to be handled by EventBridge are not
+ * present in the DEFAULT_EVENT_ROUTING (to prevent silent event loss).
+ * @returns Array of event types that have unexpected handlers in fallback routing
+ */
+export function verifyEventRoutingConfiguration(): EventType[] {
+  const mismatches: EventType[] = [];
+
+  for (const eventType of EVENTBRIDGE_ONLY_EVENTS) {
+    if (eventType in DEFAULT_EVENT_ROUTING) {
+      logger.error(
+        `[EventRouting] CRITICAL: ${eventType} found in DEFAULT_EVENT_ROUTING but should only be handled via EventBridge. This will cause duplicate processing.`
+      );
+      mismatches.push(eventType);
+    }
+  }
+
+  if (mismatches.length > 0) {
+    logger.error(
+      `[EventRouting] Event routing mismatch detected. ${mismatches.length} event types have incorrect routing. Events may be silently lost or duplicated.`
+    );
+  } else {
+    logger.info(
+      '[EventRouting] Configuration verified - EventBridge-only events correctly excluded from fallback routing.'
+    );
+  }
+
+  return mismatches;
+}
 
 /**
  * Hardcoded fallback for event routing if DynamoDB is unavailable or key is missing.

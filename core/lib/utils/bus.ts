@@ -171,7 +171,7 @@ async function reserveIdempotencyKey(key: string): Promise<boolean> {
       return false;
     }
     logger.error(`Idempotency reservation failed for ${key}:`, error);
-    return true; // Best-effort: proceed if DDB is down - better to have potential duplicate than total failure
+    return false; // Block the event if DDB is down - prevents duplicate emissions
   }
 }
 

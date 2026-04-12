@@ -24,7 +24,6 @@ interface PostProcessingOptions {
   toolOptimizations: Array<{ action: string; toolName: string; reason: string }>;
   structuredTasks?: Array<{ agentId: string; task: string; gapIds: string[] }>;
   isFailure: boolean;
-  baseUserId: string;
   userId: string;
   sessionId: string;
   traceId: string;
@@ -53,7 +52,6 @@ export async function postProcessPlan(
     toolOptimizations,
     structuredTasks,
     isFailure,
-    baseUserId,
     userId,
     sessionId,
     traceId,
@@ -65,6 +63,9 @@ export async function postProcessPlan(
     config,
     metadata,
   } = options;
+
+  const { extractBaseUserId } = await import('../../lib/utils/agent-helpers');
+  const baseUserId = extractBaseUserId(userId);
 
   const lockedCoveredGapIds: string[] = [];
 
@@ -112,7 +113,7 @@ export async function postProcessPlan(
           AgentType.STRATEGIC_PLANNER,
           userId,
           plan.startsWith('🚀') ? plan : `🚀 **Strategic Plan Generated**\n\n${plan}`,
-          [baseUserId],
+          undefined,
           sessionId,
           config.name,
           [], // attachments
@@ -329,7 +330,7 @@ export async function postProcessPlan(
           AgentType.STRATEGIC_PLANNER,
           userId,
           `⚠️ **Plan Validation Failed**\n\nThe generated plan did not pass validation: ${validation.reason}\n\nPlease review and try again.`,
-          [baseUserId],
+          undefined,
           sessionId,
           config.name
         );

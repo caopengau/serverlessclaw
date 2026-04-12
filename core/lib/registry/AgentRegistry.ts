@@ -368,12 +368,18 @@ export class AgentRegistry {
    * @param id - The unique agent identifier.
    * @param field - The field name to update (e.g., 'trustScore').
    * @param value - The new value for the field.
+   * @throws Error if the agent does not exist in the registry
    */
   static async atomicUpdateAgentField(id: string, field: string, value: unknown): Promise<void> {
     const resource = (await import('sst')).Resource as { ConfigTable?: { name: string } };
     if (!resource.ConfigTable?.name) {
       logger.warn(`ConfigTable not linked. Skipping atomic update for ${id}`);
       return;
+    }
+
+    const agentExists = await this.agentExists(id);
+    if (!agentExists) {
+      throw new Error(`Agent '${id}' does not exist in registry. Cannot update field '${field}'.`);
     }
 
     const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
@@ -392,10 +398,24 @@ export class AgentRegistry {
         })
       );
     } catch (e: unknown) {
-      // If the agent doesn't exist in the dynamic registry, we can't update its field atomically
-      // in the AGENTS_CONFIG map easily without first ensuring the agent entry exists.
       logger.error(`Failed to atomically update ${field} for agent ${id}:`, e);
       throw e;
     }
+  }
+
+  /**
+   * Checks if an agent exists in either the backbone registry or dynamic config.
+   * @param id - The agent identifier to check.
+   * @returns true if the agent exists, false otherwise.
+   */
+  static async agentExists(id: string): Promise<boolean> {
+    if (this.backboneConfigs[id]) {
+      return true;
+    }
+    const ddbConfig = (await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<
+      string,
+      unknown
+    > | null;
+    return ddbConfig !== null && id in ddbConfig;
   }
 }

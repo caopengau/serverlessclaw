@@ -161,7 +161,7 @@ describe('Event Bus', () => {
       expect(commitCall.ExpressionAttributeValues?.[':eventId']).toBe('id-1');
     });
 
-    it('should proceed if idempotency reservation fails with non-conditional error', async () => {
+    it('should block event if idempotency reservation fails with non-conditional error', async () => {
       ddbMock.on(PutCommand).rejects(new Error('DDB Down'));
       eventBridgeMock.on(PutEventsCommand).resolves({
         FailedEntryCount: 0,
@@ -170,7 +170,8 @@ describe('Event Bus', () => {
 
       const result = await emitEvent('test', 'event', { data: 'test' }, { idempotencyKey: 'key' });
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe('DUPLICATE');
     });
   });
 

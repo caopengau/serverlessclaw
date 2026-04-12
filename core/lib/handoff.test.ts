@@ -116,4 +116,44 @@ describe('Handoff Protocol', () => {
     const result = await isHumanTakingControl('user-1');
     expect(result).toBe(false);
   });
+
+  it('should return true when sessionId matches stored session', async () => {
+    const future = Math.floor(Date.now() / 1000) + 100;
+    ddbMock.on(GetCommand).resolves({
+      Item: { userId: 'HANDOFF#user-1', expiresAt: future, sessionId: 'session-1' },
+    });
+
+    const result = await isHumanTakingControl('user-1', 'session-1');
+    expect(result).toBe(true);
+  });
+
+  it('should return false when sessionId does not match stored session', async () => {
+    const future = Math.floor(Date.now() / 1000) + 100;
+    ddbMock.on(GetCommand).resolves({
+      Item: { userId: 'HANDOFF#user-1', expiresAt: future, sessionId: 'session-1' },
+    });
+
+    const result = await isHumanTakingControl('user-1', 'session-2');
+    expect(result).toBe(false);
+  });
+
+  it('should return false when stored handoff has no sessionId but check includes sessionId', async () => {
+    const future = Math.floor(Date.now() / 1000) + 100;
+    ddbMock.on(GetCommand).resolves({
+      Item: { userId: 'HANDOFF#user-1', expiresAt: future },
+    });
+
+    const result = await isHumanTakingControl('user-1', 'session-1');
+    expect(result).toBe(false);
+  });
+
+  it('should ignore sessionId parameter for backwards compatibility', async () => {
+    const future = Math.floor(Date.now() / 1000) + 100;
+    ddbMock.on(GetCommand).resolves({
+      Item: { userId: 'HANDOFF#user-1', expiresAt: future, sessionId: 'session-1' },
+    });
+
+    const result = await isHumanTakingControl('user-1');
+    expect(result).toBe(true);
+  });
 });
