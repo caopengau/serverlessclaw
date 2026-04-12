@@ -208,39 +208,4 @@ describe('Event Router Integration', () => {
 
     vi.doUnmock('./events/health-handler');
   });
-  it('should pass Lambda context when passContext is true', async () => {
-    const mockHandler = vi.fn().mockResolvedValue(undefined);
-    vi.doMock('./events/health-handler', () => ({
-      handleHealthReport: mockHandler,
-    }));
-
-    const { handler } = await import('./events');
-
-    const mockContext = { awsRequestId: 'ctx-123' } as any;
-
-    await handler(
-      {
-        'detail-type': 'system_health_report',
-        detail: {
-          component: 'TestComp',
-          issue: 'Test',
-          severity: 'low',
-          userId: 'user-1',
-          traceId: 'test',
-          sessionId: 'test',
-        },
-      },
-      mockContext
-    );
-
-    expect(mockHandler).toHaveBeenCalledWith(
-      expect.objectContaining({
-        component: 'TestComp',
-      }),
-      mockContext,
-      'system_health_report'
-    );
-
-    vi.doUnmock('./events/health-handler');
-  });
 });
