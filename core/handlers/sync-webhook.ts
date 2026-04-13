@@ -34,7 +34,7 @@ export class SyncWebhookHandler {
   private triggerLabels: string[];
 
   constructor(config: SyncConfig) {
-    this.githubAdapter = new GitHubAdapter();
+    this.githubAdapter = new GitHubAdapter() as any;
     this.config = config;
     this.triggerLabels = config.triggerLabels || ['evolution-sync', 'evolution-contribution'];
   }

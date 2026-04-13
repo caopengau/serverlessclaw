@@ -1,2 +1,2 @@
 export { GitHubAdapter } from './adapters/github';
-export { GitHubIssueResolverAgent } from './agents/GitHubIssueResolverAgent';
+export type { InputAdapter, InboundMessage, IssueTrackerAction } from './types';

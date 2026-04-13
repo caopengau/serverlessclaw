@@ -77,7 +77,7 @@ export const handler = async (
   switch (source) {
     case 'github': {
       const { GitHubAdapter } = await import('../adapters/input');
-      adapter = new GitHubAdapter();
+      adapter = new GitHubAdapter() as unknown as InputAdapter;
       break;
     }
     case 'slack': {

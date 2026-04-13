@@ -1,6 +1,6 @@
-import { SyncOptions, SyncMethod } from '@serverlessclaw/core/lib/types/sync';
-import { syncOrchestrator } from '@serverlessclaw/core/lib/sync/orchestrator';
-import { GitHubAdapter } from '../adapters/github';
+import { SyncOptions, SyncMethod } from '../lib/types/sync';
+import { syncOrchestrator } from '../lib/sync/orchestrator';
+import { GitHubAdapter } from '../adapters/input';
 import { execSync } from 'child_process';
 
 export interface GitHubIssue {
@@ -33,7 +33,7 @@ export class GitHubIssueResolverAgent {
       generate: (prompt: string) => Promise<{ text: () => Promise<string> }>;
     };
     this.config = config;
-    this.githubAdapter = new GitHubAdapter();
+    this.githubAdapter = new GitHubAdapter() as any;
   }
 
   async resolve(issue: GitHubIssue, workingDir: string): Promise<ResolutionResult> {

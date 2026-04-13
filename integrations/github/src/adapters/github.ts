@@ -1,8 +1,7 @@
 import { z } from 'zod';
-import { InputAdapter, InboundMessage } from '@serverlessclaw/core/adapters/input/types';
-import { IssueTrackerAction } from '@serverlessclaw/core/adapters/actions';
-import { logger } from '@serverlessclaw/core/lib/logger';
-import { verifyHmacSignature } from '@serverlessclaw/core/lib/utils/webhook';
+import { InputAdapter, InboundMessage, IssueTrackerAction } from '../types';
+import { logger } from '../lib/logger';
+import { verifyHmacSignature } from '../utils/webhook';
 
 const GitHubWebhookSchema = z.object({
   action: z.string().optional(),
