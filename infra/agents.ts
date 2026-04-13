@@ -135,7 +135,7 @@ export function createAgents(
     ...(deployerLink ? [deployerLink] : [deployer]),
     ...validSecrets,
     ...(ctx.realtime ? [ctx.realtime] : []),
-    ];
+  ];
   const basePermissions = [
     {
       actions: ['cloudwatch:PutMetricData'],
