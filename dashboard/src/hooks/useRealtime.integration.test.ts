@@ -23,6 +23,7 @@ vi.mock('mqtt', () => {
 });
 
 import { useRealtime } from './useRealtime';
+import { RealtimeProvider } from '@/components/Providers/RealtimeProvider';
 
 describe('useRealtime end-to-end handshake', () => {
   beforeEach(() => {
@@ -56,7 +57,13 @@ describe('useRealtime end-to-end handshake', () => {
       return null;
     }
 
-    render(React.createElement(TestComp));
+    render(
+      React.createElement(
+        RealtimeProvider,
+        null,
+        React.createElement(TestComp)
+      )
+    );
 
     // Wait for connect to be called
     await waitFor(() => {
