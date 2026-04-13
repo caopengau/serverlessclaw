@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { logger } from '../lib/logger';
-import { GitHubAdapter } from '../adapters/input/github-sensor';
+import { GitHubAdapter } from '../adapters/input';
 import { syncOrchestrator, fileSystemSyncLock } from '../lib/sync/orchestrator';
 import { SyncOptions, SyncResult } from '../lib/types/sync';
 

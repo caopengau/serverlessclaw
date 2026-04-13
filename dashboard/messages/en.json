@@ -104,7 +104,7 @@
   "CHAT_SHOW_THINKING": "Show thinking blocks",
   "CHAT_KEYBOARD_SHORTCUTS": "Keyboard shortcuts (?)",
   "CHAT_LIVE": "LIVE",
-  "CHAT_THINKING": "Thinking",
+  "CHAT_THINKING": "Show Thinking",
   "CHAT_DELETE_CONVERSATION": "Delete Conversation",
   "CHAT_DELETE_CONFIRM": "Are you sure you want to purge this record from memory?",
   "CHAT_PURGE_ALL_HISTORY": "PURGE ALL HISTORY",

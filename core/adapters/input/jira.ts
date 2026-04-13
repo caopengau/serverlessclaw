@@ -1,8 +1,8 @@
-import { timingSafeEqual } from 'crypto';
 import { z } from 'zod';
 import { InputAdapter, InboundMessage } from './types';
 import { IssueTrackerAction } from '../actions';
 import { logger } from '../../lib/logger';
+import { verifySecret } from '../../lib/utils/webhook';
 
 const JiraWebhookSchema = z.object({
   webhookEvent: z.string().optional(),
@@ -103,14 +103,12 @@ export class JiraAdapter implements InputAdapter, IssueTrackerAction {
       return false;
     }
 
-    try {
-      const providedBuf = Buffer.from(secretFromHeader, 'utf8');
-      const expectedBuf = Buffer.from(this.webhookSecret, 'utf8');
-      return providedBuf.length === expectedBuf.length && timingSafeEqual(providedBuf, expectedBuf);
-    } catch (error) {
-      logger.error('Error comparing Jira webhook secrets:', error);
+    if (!verifySecret(secretFromHeader, this.webhookSecret)) {
+      logger.error('Jira webhook secret mismatch');
       return false;
     }
+
+    return true;
   }
 
   parse(raw: unknown): InboundMessage {

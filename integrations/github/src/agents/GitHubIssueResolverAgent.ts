@@ -1,6 +1,6 @@
 import { SyncOptions, SyncMethod } from '@serverlessclaw/core/lib/types/sync';
 import { syncOrchestrator } from '@serverlessclaw/core/lib/sync/orchestrator';
-import { GitHubAdapter } from '../adapters/input/github-sensor';
+import { GitHubAdapter } from '../adapters/github';
 import { execSync } from 'child_process';
 
 export interface GitHubIssue {

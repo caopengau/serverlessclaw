@@ -104,7 +104,7 @@
   "CHAT_SHOW_THINKING": "显示思考块",
   "CHAT_KEYBOARD_SHORTCUTS": "键盘快捷键 (?)",
   "CHAT_LIVE": "实时",
-  "CHAT_THINKING": "思考中",
+  "CHAT_THINKING": "显示思考",
   "CHAT_DELETE_CONVERSATION": "删除会话",
   "CHAT_DELETE_CONFIRM": "确定要从记忆中清除此记录吗？",
   "CHAT_PURGE_ALL_HISTORY": "清除所有历史",

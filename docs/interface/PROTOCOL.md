@@ -34,13 +34,19 @@ Input adapters receive events from external systems (via webhooks or API polling
 
 ---
 
-## 🏗️ Managed Integration Repositories
+## 🏗️ Managed Integration Workspaces
 
-For specialized or heavy integrations, adapters are maintained in separate repositories under the `serverlessclaw` organization:
+For specialized or heavy integrations, adapters are maintained in dedicated workspaces within the monorepo to ensure isolation while sharing core types:
 
-- **GitHub**: [serverlessclaw-integration-github](https://github.com/serverlessclaw/serverlessclaw-integration-github)
-- **Slack**: [serverlessclaw-integration-slack](https://github.com/serverlessclaw/serverlessclaw-integration-slack)
-- **Jira**: [serverlessclaw-integration-jira](https://github.com/serverlessclaw/serverlessclaw-integration-jira)
+- **GitHub**: `@serverlessclaw/integration-github` (lives in `integrations/github`)
+- **Slack**: `@serverlessclaw/integration-slack` (planned consolidation)
+- **Jira**: Logic currently remains in `core` but follows the `IssueTrackerAction` interface.
+
+### Shared Utilities
+
+Common logic for external communication is centralized in `core/lib/utils/webhook.ts`:
+- `verifyHmacSignature()`: Standard HMAC verification for GitHub/Slack style webhooks.
+- `verifySecret()`: Constant-time comparison for sensitive headers (Jira).
 
 ---
 

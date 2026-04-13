@@ -1,8 +1,8 @@
-import { createHmac, timingSafeEqual } from 'crypto';
 import { z } from 'zod';
-import { InputAdapter, InboundMessage } from './types';
-import { IssueTrackerAction } from '../actions';
-import { logger } from '../../lib/logger';
+import { InputAdapter, InboundMessage } from '@serverlessclaw/core/adapters/input/types';
+import { IssueTrackerAction } from '@serverlessclaw/core/adapters/actions';
+import { logger } from '@serverlessclaw/core/lib/logger';
+import { verifyHmacSignature } from '@serverlessclaw/core/lib/utils/webhook';
 
 const GitHubWebhookSchema = z.object({
   action: z.string().optional(),
@@ -45,6 +45,7 @@ const GitHubWebhookSchema = z.object({
 
 export class GitHubAdapter implements InputAdapter, IssueTrackerAction {
   readonly source = 'github';
+  readonly version = '1.0.0';
   private readonly webhookSecret: string | undefined;
   private readonly apiToken: string | undefined;
 
@@ -62,20 +63,12 @@ export class GitHubAdapter implements InputAdapter, IssueTrackerAction {
       return true;
     }
 
-    if (!signature) {
-      logger.error('Missing X-Hub-Signature-256 header');
+    if (!verifyHmacSignature(payload, signature, this.webhookSecret)) {
+      logger.error('Invalid X-Hub-Signature-256 header or signature mismatch');
       return false;
     }
 
-    try {
-      const hmac = createHmac('sha256', this.webhookSecret);
-      const digest = Buffer.from('sha256=' + hmac.update(payload).digest('hex'), 'utf8');
-      const checksum = Buffer.from(signature, 'utf8');
-      return checksum.length === digest.length && timingSafeEqual(digest, checksum);
-    } catch (error) {
-      logger.error('Error verifying GitHub signature:', error);
-      return false;
-    }
+    return true;
   }
 
   parse(raw: unknown): InboundMessage {
