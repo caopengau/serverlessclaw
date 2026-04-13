@@ -140,7 +140,7 @@ export default function Sidebar() {
         ${isCollapsed ? 'lg:w-16 p-2' : 'lg:w-64 p-2'}
       `}
       >
-        <div className={`flex items-center justify-between gap-3 mb-4 ${isCollapsed ? 'flex-col' : 'px-2'}`}>
+        <div className={`flex items-center justify-between gap-3 mb-6 ${isCollapsed ? 'flex-col' : 'px-2'} pt-4`}>
           <Link href={ROUTES.HOME} className="flex items-center gap-3 group shrink-0">
             <div className="relative w-8 h-8 flex-shrink-0 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
               <Image
@@ -183,11 +183,11 @@ export default function Sidebar() {
         <nav className="flex-1 space-y-0 text-sm overflow-y-auto overflow-x-hidden custom-scrollbar">
           {navItems.map((item, idx) => {
             if (item.type === 'header') {
-              if (isCollapsed) return <div key={idx} className="h-px bg-border/40 my-1 mx-2" />;
+              if (isCollapsed) return <div key={idx} className="h-px bg-border/40 my-1.5 mx-2" />;
               return (
                 <div
                   key={idx}
-                  className="text-muted-foreground px-2 text-[9px] tracking-[0.2em] font-black mb-0 pt-1.5 first:pt-0 uppercase"
+                  className="text-muted-foreground px-2 text-[9px] tracking-[0.2em] font-black mb-1 pt-2 first:pt-0 uppercase"
                 >
                   {item.label}
                 </div>
