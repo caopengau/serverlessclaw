@@ -3,12 +3,28 @@ import { AgentRegistry } from './AgentRegistry';
 import { ConfigManager } from './config';
 import { DYNAMO_KEYS } from '../constants';
 
+vi.mock('sst', () => ({
+  Resource: {
+    ConfigTable: { name: 'MockConfigTable' },
+  },
+}));
+
+vi.mock('@aws-sdk/lib-dynamodb', async () => {
+  const actual = await vi.importActual('@aws-sdk/lib-dynamodb');
+  return {
+    ...(actual as any),
+    DeleteCommand: vi.fn(),
+  };
+});
+
 vi.mock('./config', () => ({
   ConfigManager: {
     getRawConfig: vi.fn(),
     saveRawConfig: vi.fn(),
   },
-  defaultDocClient: {},
+  defaultDocClient: {
+    send: vi.fn().mockResolvedValue({}),
+  },
 }));
 
 vi.mock('../logger', () => ({
@@ -57,22 +73,25 @@ describe('AgentRegistry Pruning', () => {
 
     // Should prune from both
     expect(prunedCount).toBeGreaterThan(0);
-    
-    // Check per-agent save
-    const saveCalls = vi.mocked(ConfigManager.saveRawConfig).mock.calls;
-    const perAgentSave = saveCalls.find(call => call[0] === 'agent1_tools');
-    expect(perAgentSave).toBeDefined();
-    expect(perAgentSave![1]).not.toContain('toolA');
-    
+
+    // Check per-agent cleanup (Legacy Deprecation)
+    const { DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
+    expect(vi.mocked(DeleteCommand)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        Key: { key: 'agent1_tools' },
+      })
+    );
+
     // VERIFY FIX: It SHOULD call saveRawConfig for AGENT_TOOL_OVERRIDES
-    const batchSave = saveCalls.find(call => call[0] === DYNAMO_KEYS.AGENT_TOOL_OVERRIDES);
+    const saveCalls = vi.mocked(ConfigManager.saveRawConfig).mock.calls;
+    const batchSave = saveCalls.find((call) => call[0] === DYNAMO_KEYS.AGENT_TOOL_OVERRIDES);
     expect(batchSave).toBeDefined();
     expect(batchSave![1].agent1).not.toContain('toolA');
   });
 
   it('should respect grace periods for newly assigned tools', async () => {
     const now = Date.now();
-    
+
     // toolB was just registered (now)
     vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
       if (key === 'tool_usage_agent1') {

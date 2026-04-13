@@ -42,7 +42,9 @@ export class MetabolismService {
 
     // 3. Fallback to native audit (Audit-only mode if repair was already done)
     const hasMcpFail = mcpFindings.some(
-      (f) => f.recommendation.includes('Ensure AST server') || f.recommendation.includes('Deploy the AIReady')
+      (f) =>
+        f.recommendation.includes('Ensure AST server') ||
+        f.recommendation.includes('Deploy the AIReady')
     );
     if (mcpFindings.length === 0 || hasMcpFail) {
       const nativeFindings = await this.runNativeAudit(memory, { auditOnly: !!options.repair });
@@ -284,7 +286,8 @@ export class MetabolismService {
             expected: 'Active lock hygiene',
             actual: `Found ${expiredLocks.length} expired locks in database.`,
             severity: 'P3',
-            recommendation: 'High count of expired locks suggests unclosed sessions or failed releases.',
+            recommendation:
+              'High count of expired locks suggests unclosed sessions or failed releases.',
           });
         }
       } catch (e) {

@@ -84,7 +84,10 @@ function startExecutionTimeout(timeoutMs: number): AbortController {
 /**
  * Simple schema validation for incoming event details.
  */
-function validateEvent(detailType: string, eventDetail: Record<string, unknown>): {
+function validateEvent(
+  detailType: string,
+  eventDetail: Record<string, unknown>
+): {
   valid: boolean;
   errors?: string[];
 } {
@@ -372,7 +375,9 @@ export async function handler(
 
     // Break recursion loop: Don't report health issues about health reports
     if (detailType === 'system_health_report') {
-      logger.error('[RECURSION_DEBT] Suppressing health report for failed health report processing');
+      logger.error(
+        '[RECURSION_DEBT] Suppressing health report for failed health report processing'
+      );
     } else {
       await reportHealthIssue({
         component: 'EventHandler',

@@ -63,7 +63,9 @@ export async function emitMetrics(metrics: MetricDatum[]): Promise<void> {
     if (err.code === 'ENOTFOUND') {
       // Don't flood logs with DNS errors in local dev/offline environments
       if (!(global as any)._cw_dns_error_logged) {
-        console.warn(`[METRICS] CloudWatch endpoint unreachable (${err.hostname}). Metrics will be dropped silently.`);
+        console.warn(
+          `[METRICS] CloudWatch endpoint unreachable (${err.hostname}). Metrics will be dropped silently.`
+        );
         (global as any)._cw_dns_error_logged = true;
       }
     } else {

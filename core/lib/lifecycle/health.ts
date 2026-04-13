@@ -251,7 +251,7 @@ export async function reportHealthIssue(report: HealthIssue): Promise<void> {
       {
         ...report,
         sessionId: 'N/A', // System events don't have a user session
-        traceId: report.traceId || 'unknown'
+        traceId: report.traceId || 'unknown',
       } as unknown as Record<string, unknown>,
       { priority }
     );

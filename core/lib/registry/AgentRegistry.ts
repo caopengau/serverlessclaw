@@ -649,7 +649,9 @@ export class AgentRegistry {
           const { Resource } = await import('sst');
           const { DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
           const tableName = (Resource as any).ConfigTable.name;
-          await defaultDocClient.send(new DeleteCommand({ TableName: tableName, Key: { key: legacyKey } }));
+          await defaultDocClient.send(
+            new DeleteCommand({ TableName: tableName, Key: { key: legacyKey } })
+          );
           logger.debug(`[REGISTRY] Deleted deprecated legacy tool key: ${legacyKey}`);
         }
       }

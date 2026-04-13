@@ -45,9 +45,7 @@ describe('Realtime Auth Handler', () => {
     if (typeof connectResource === 'string') {
       expect(connectResource).toContain(response.principalId);
     } else {
-      expect(
-        connectResource.some((r: string) => r.includes(response.principalId))
-      ).toBe(true);
+      expect(connectResource.some((r: string) => r.includes(response.principalId))).toBe(true);
       expect(connectResource).toContain('arn:aws:iot:*:*:client/dashboard-*');
     }
 
@@ -80,12 +78,12 @@ describe('Realtime Auth Handler', () => {
           queryString: 'token=enhanced-token-12345&other=param',
           headers: {},
           method: 'GET',
-          path: '/mqtt'
-        }
+          path: '/mqtt',
+        },
       },
       protocols: ['mqtt', 'http'],
       signatureVerified: false,
-      connectionMetadata: {}
+      connectionMetadata: {},
     };
 
     const response = await handler(event);
@@ -101,9 +99,9 @@ describe('Realtime Auth Handler', () => {
         mqtt: {
           clientId: 'test-client',
           username: 'test-user',
-          password: Buffer.from(token).toString('base64')
-        }
-      }
+          password: Buffer.from(token).toString('base64'),
+        },
+      },
     };
 
     const response = await handler(event);
