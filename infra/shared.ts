@@ -10,7 +10,6 @@ export interface SharedContext {
   secrets: Record<string, sst.Secret>;
   bus: sst.aws.Bus;
   deployer: aws.codebuild.Project;
-  deployerLink?: sst.Linkable;
   api?: sst.aws.ApiGatewayV2;
   realtime?: sst.aws.Realtime;
   heartbeatHandler?: sst.aws.Function;

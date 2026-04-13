@@ -128,10 +128,7 @@ export async function checkTraceCoherence(): Promise<CoherenceResult> {
     const scanResult = await getDynamoDbClient().send(
       new ScanCommand({
         TableName: typedResource.TraceTable.name,
-        FilterExpression: '#ts > :recentWindow',
-        ExpressionAttributeNames: {
-          '#ts': 'timestamp',
-        },
+        FilterExpression: 'timestamp > :recentWindow',
         ExpressionAttributeValues: {
           ':recentWindow': Math.floor(recentWindow / 1000),
         } as Record<string, unknown>,
@@ -248,11 +245,7 @@ export async function reportHealthIssue(report: HealthIssue): Promise<void> {
     await emitEvent(
       'system.health',
       EventType.SYSTEM_HEALTH_REPORT,
-      {
-        ...report,
-        sessionId: 'N/A', // System events don't have a user session
-        traceId: report.traceId || 'unknown',
-      } as unknown as Record<string, unknown>,
+      report as unknown as Record<string, unknown>,
       { priority }
     );
     logger.info(`Health issue reported successfully for component: ${report.component}`);

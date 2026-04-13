@@ -33,13 +33,14 @@ export function createApi(_ctx: SharedContext): { api: sst.aws.ApiGatewayV2 } {
  */
 export function configureApiRoutes(api: sst.aws.ApiGatewayV2, ctx: SharedContext): void {
   const {
+    memoryTable,
+    traceTable,
     configTable,
     stagingBucket,
     knowledgeBucket,
     secrets,
     bus,
     deployer,
-    deployerLink: _deployerLink,
   } = ctx;
 
   const validSecrets = getValidSecrets(secrets);
@@ -83,7 +84,7 @@ export function configureApiRoutes(api: sst.aws.ApiGatewayV2, ctx: SharedContext
       stagingBucket,
       knowledgeBucket,
       ...validSecrets,
-      ctx.deployerLink || deployer,
+      deployer,
       bus,
       ...criticalAgents,
     ],

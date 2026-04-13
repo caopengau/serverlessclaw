@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MetabolismService } from './metabolism';
 import { AgentRegistry } from '../registry/AgentRegistry';
-import { cullResolvedGaps, setGap } from '../memory/gap-operations';
+import { setGap } from '../memory/gap-operations';
+import { cullResolvedGaps } from '../memory/gap-operations';
 
 vi.mock('../registry/AgentRegistry', () => ({
   AgentRegistry: {
@@ -57,15 +58,13 @@ describe('MetabolismService', () => {
         toolFailure
       );
 
-      expect(AgentRegistry.pruneLowUtilizationTools).toHaveBeenCalledWith(0, 'test-agent');
+      expect(AgentRegistry.pruneLowUtilizationTools).toHaveBeenCalledWith(0);
       expect(result).toBeDefined();
-      expect(result?.actual).toContain('Pruned 1 stale tool overrides');
+      expect(result?.actual).toContain('Pruned stale tool overrides');
     });
 
     it('should execute gap culling if the error is related to memory or gaps', async () => {
       const memoryFailure = { ...mockFailurePayload, error: 'Memory inconsistency in gap-123' };
-      const { cullResolvedGaps } = await import('../memory/gap-operations');
-      vi.mocked(cullResolvedGaps).mockResolvedValue(1);
 
       const result = await MetabolismService.remediateDashboardFailure(
         mockMemory as any,
@@ -74,7 +73,7 @@ describe('MetabolismService', () => {
 
       expect(cullResolvedGaps).toHaveBeenCalled();
       expect(result).toBeDefined();
-      expect(result?.actual).toContain('Metabolized memory state');
+      expect(result?.actual).toContain('Culled resolved gaps');
     });
 
     it('should schedule an evolution and set a gap for complex errors', async () => {

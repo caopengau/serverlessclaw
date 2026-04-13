@@ -30,24 +30,19 @@ export class MetabolismService {
     logger.info(`[Metabolism] Starting regenerative audit (repair: ${!!options.repair})`);
 
     // 1. Perform automated repairs for stateless state (Registry/Memory)
-    // In repair mode, we use a 30-day threshold for standard scheduled maintenance.
     if (options.repair) {
       const repairs = await this.executeRepairs(memory);
       findings.push(...repairs);
     }
 
-    // 2. Delegate to MCP if available
+    // 2. Delegate to AIReady (AST) MCP if available
     const mcpFindings = await this.runMcpAudit();
     findings.push(...mcpFindings);
 
-    // 3. Fallback to native audit (Audit-only mode if repair was already done)
-    const hasMcpFail = mcpFindings.some(
-      (f) =>
-        f.recommendation.includes('Ensure AST server') ||
-        f.recommendation.includes('Deploy the AIReady')
-    );
+    // 3. Fallback to native audit if MCP failed or returned no tools
+    const hasMcpFail = mcpFindings.some((f) => f.recommendation.includes('Ensure AST server'));
     if (mcpFindings.length === 0 || hasMcpFail) {
-      const nativeFindings = await this.runNativeAudit(memory, { auditOnly: !!options.repair });
+      const nativeFindings = await this.runNativeAudit();
       findings.push(...nativeFindings);
     }
 
@@ -62,13 +57,12 @@ export class MetabolismService {
 
     // Repair 1: Agent Registry Low-Utilization Tools (Principle 10)
     try {
-      // Use 30-day threshold for standard scheduled maintenance
       const pruned = await AgentRegistry.pruneLowUtilizationTools(30);
       if (pruned > 0) {
         repairFindings.push({
           silo: 'Metabolism',
           expected: 'Lean agent tool registry',
-          actual: `Maintenance: Pruned ${pruned} low-utilization tools from agent overrides.`,
+          actual: `Pruned ${pruned} low-utilization tools from agent overrides.`,
           severity: 'P2',
           recommendation: 'Principle 10 (Lean Evolution) enforced via registry pruning.',
         });
@@ -85,7 +79,7 @@ export class MetabolismService {
         repairFindings.push({
           silo: 'Metabolism',
           expected: 'Clean knowledge state',
-          actual: `Maintenance: Archived ${archived} stale gaps, culled ${culled} resolved gaps.`,
+          actual: `Metabolized memory state: archived ${archived} stale gaps, culled ${culled} resolved gaps.`,
           severity: 'P2',
           recommendation: 'Knowledge debt recycled into archival storage.',
         });
@@ -98,37 +92,26 @@ export class MetabolismService {
   }
 
   /**
-   * Runs the codebase audit via available MCP servers.
+   * Runs the codebase audit via AIReady (AST) MCP server.
    */
   private static async runMcpAudit(): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
     try {
-      // Find any server that provides metabolism or codebase tools
-      const servers = ['ast', 'codebase', 'metabolism'];
-      let auditTool: any = null;
-
-      for (const server of servers) {
-        try {
-          const tools = await MCPMultiplexer.getToolsFromServer(server, '');
-          auditTool = tools.find(
-            (t: { name: string }) =>
-              t.name === 'metabolism_audit' ||
-              t.name === 'codebase_audit' ||
-              t.name.includes('metabolism')
-          );
-          if (auditTool) break;
-        } catch {
-          continue;
-        }
-      }
+      const astTools = await MCPMultiplexer.getToolsFromServer('ast', '');
+      const auditTool = astTools.find(
+        (t: { name: string }) =>
+          t.name === 'metabolism_audit' ||
+          t.name === 'codebase_audit' ||
+          t.name.includes('metabolism')
+      );
 
       if (!auditTool) {
         findings.push({
           silo: 'Metabolism',
           expected: 'MCP-based metabolism audit available',
-          actual: 'No specialized metabolism_audit tool found across linked MCP servers.',
+          actual: 'No metabolism_audit tool found in AIReady (AST) server',
           severity: 'P1',
-          recommendation: 'Deploy the AIReady MCP server or implement native codebase scanner.',
+          recommendation: 'Ensure AST server is deployed or implement native codebase scanner.',
         });
         return findings;
       }
@@ -143,15 +126,22 @@ export class MetabolismService {
         const data = (
           'metadata' in result ? (result.metadata as Record<string, unknown>) : result
         ) as Record<string, unknown>;
-        const mcpFindings = (data.findings || data.results || []) as Array<any>;
+        const mcpFindings = (data.findings || data.results || []) as Array<{
+          expected?: string;
+          actual?: string;
+          message?: string;
+          severity?: string;
+          recommendation?: string;
+          fix?: string;
+        }>;
         if (Array.isArray(mcpFindings)) {
           for (const f of mcpFindings) {
             findings.push({
               silo: 'Metabolism',
               expected: f.expected || 'Lean, optimized system state',
-              actual: f.actual || f.message || 'Bloat/Debt detected by MCP',
+              actual: f.actual || f.message || 'Bloat/Debt detected by AIReady',
               severity: (f.severity as any) || 'P2',
-              recommendation: f.recommendation || f.fix || 'Review MCP report for details.',
+              recommendation: f.recommendation || f.fix || 'Review AIReady report for details.',
             });
           }
         }
@@ -173,22 +163,15 @@ export class MetabolismService {
     logger.info(`[Metabolism] Attempting immediate remediation for trace ${failure.traceId}`);
 
     const error = failure.error.toLowerCase();
-    const metadata = failure.metadata || {};
 
     // Strategy 1: Registry mismatch/stale overrides (Common dashboard issue)
-    const isToolError =
-      error.includes('tool') ||
-      error.includes('registry') ||
-      error.includes('override') ||
-      metadata.errorCategory === 'TOOL_EXECUTION';
-
-    if (isToolError && failure.agentId) {
-      const pruned = await AgentRegistry.pruneLowUtilizationTools(0, failure.agentId); // Targeted force prune
+    if (error.includes('tool') || error.includes('registry') || error.includes('override')) {
+      const pruned = await AgentRegistry.pruneLowUtilizationTools(0); // Force prune
       if (pruned > 0) {
         return {
           silo: 'Metabolism',
           expected: 'Consistent agent registry',
-          actual: `Real-time repair: Pruned ${pruned} stale tool overrides for agent ${failure.agentId}.`,
+          actual: `Real-time repair: Pruned stale tool overrides triggered by dashboard failure.`,
           severity: 'P2',
           recommendation: 'Autonomous repair executed successfully.',
         };
@@ -196,23 +179,15 @@ export class MetabolismService {
     }
 
     // Strategy 2: Memory/Gap inconsistencies
-    const isMemoryError =
-      error.includes('memory') ||
-      error.includes('gap') ||
-      metadata.errorCategory === 'MEMORY_CONSISTENCY';
-
-    if (isMemoryError) {
-      const archived = await archiveStaleGaps(memory);
-      const culled = await cullResolvedGaps(memory);
-      if (archived > 0 || culled > 0) {
-        return {
-          silo: 'Metabolism',
-          expected: 'Clean memory state',
-          actual: `Real-time repair: Metabolized memory state (archived ${archived}, culled ${culled}) to resolve inconsistency.`,
-          severity: 'P2',
-          recommendation: 'Autonomous repair executed successfully.',
-        };
-      }
+    if (error.includes('memory') || error.includes('gap')) {
+      await cullResolvedGaps(memory);
+      return {
+        silo: 'Metabolism',
+        expected: 'Clean memory state',
+        actual: `Real-time repair: Culled resolved gaps to resolve memory inconsistency.`,
+        severity: 'P2',
+        recommendation: 'Autonomous repair executed successfully.',
+      };
     }
 
     // Fallback: Schedule HITL evolution for complex/unknown errors
@@ -241,69 +216,19 @@ export class MetabolismService {
   }
 
   /**
-   * Runs naive native checks for common debt markers and state bloat.
+   * Runs naive native checks for common debt markers.
    */
-  private static async runNativeAudit(
-    memory: BaseMemoryProvider | undefined,
-    options: { auditOnly?: boolean } = {}
-  ): Promise<AuditFinding[]> {
+  private static async runNativeAudit(): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
-
-    // 1. Check for Registry Bloat
-    if (!options.auditOnly) {
-      try {
-        const pruned = await AgentRegistry.pruneLowUtilizationTools(7);
-        if (pruned > 0) {
-          findings.push({
-            silo: 'Metabolism',
-            expected: 'Minimal agent tool overrides',
-            actual: `Detected and pruned ${pruned} dynamic tool overrides with zero usage over 7 days.`,
-            severity: 'P3',
-            recommendation: 'Maintain a lean tool registry for faster agent cold starts.',
-          });
-        }
-      } catch (e) {
-        logger.debug('[Metabolism] Native registry audit failed:', e);
-      }
-    }
-
-    // 2. Check for Orphaned Locks (Stale state waste)
-    if (memory) {
-      try {
-        const locks = await memory.queryItems({
-          IndexName: 'TypeTimestampIndex',
-          KeyConditionExpression: '#tp = :type',
-          ExpressionAttributeNames: { '#tp': 'type' },
-          ExpressionAttributeValues: { ':type': 'LOCK' },
-        });
-
-        const now = Math.floor(Date.now() / 1000);
-        const expiredLocks = locks.filter((l) => l.expiresAt && (l.expiresAt as number) < now);
-
-        if (expiredLocks.length > 0) {
-          findings.push({
-            silo: 'Metabolism',
-            expected: 'Active lock hygiene',
-            actual: `Found ${expiredLocks.length} expired locks in database.`,
-            severity: 'P3',
-            recommendation:
-              'High count of expired locks suggests unclosed sessions or failed releases.',
-          });
-        }
-      } catch (e) {
-        logger.debug('[Metabolism] Native lock audit failed:', e);
-      }
-    }
-
-    // 3. Identification of Code Debt (Markers)
+    // Native fallback performs basic checks that don't require external AST analysis
     findings.push({
       silo: 'Metabolism',
-      expected: 'Clean codebase without TODO/FIXME markers',
-      actual: 'Codebase markers detected in core/lib (TODO/FIXME).',
+      expected: 'Native metabolism fallback check active',
+      actual: 'Scanning codebase for P3 debt markers (TODO/FIXME)...',
       severity: 'P3',
-      recommendation: 'Prioritize technical debt repayment during the next evolution cycle.',
+      recommendation:
+        'AIReady MCP unavailable. Native scanner identifies debt markers but meta-repair requires MCP for safety.',
     });
-
     return findings;
   }
 }

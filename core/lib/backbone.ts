@@ -26,33 +26,26 @@ import {
 /**
  * Backbone Registry: The single source of truth for essential system components.
  * Reserved for LLM-based Agents and logic-based Handlers.
+ * All tools assigned to agents follow camelCase naming conventions.
  */
 
-const DEFAULT_LLM = {
+const BACKBONE_LLM_CONFIG = {
   provider: LLMProvider.MINIMAX,
   model: MiniMaxModel.M2_7,
 };
 
-const BASE_CONFIG = {
+const BACKBONE_COMMON_CONFIG = {
   isBackbone: true,
   parallelToolCalls: false,
   evolutionMode: EvolutionMode.HITL,
   maxIterations: 10,
   safetyTier: SafetyTier.PROD,
-  connectionProfile: [
-    ConnectionProfile.BUS,
-    ConnectionProfile.MEMORY,
-    ConnectionProfile.CONFIG,
-    ConnectionProfile.TRACE,
-    ConnectionProfile.KNOWLEDGE,
-  ],
+  connectionProfile: [],
   trustScore: 80,
-  ...DEFAULT_LLM,
 };
 
 export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
   [AgentType.SUPERCLAW]: {
-    ...BASE_CONFIG,
     id: AgentType.SUPERCLAW,
     name: 'SuperClaw',
     systemPrompt: SUPERCLAW_SYSTEM_PROMPT,
@@ -60,6 +53,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'Bot',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.STANDARD,
     defaultCommunicationMode: 'text',
     evolutionMode: EvolutionMode.AUTO,
@@ -72,9 +67,15 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       TOOLS.navigateTo,
       TOOLS.uiAction,
     ],
+    connectionProfile: [
+      ConnectionProfile.BUS,
+      ConnectionProfile.MEMORY,
+      ConnectionProfile.CONFIG,
+      ConnectionProfile.TRACE,
+      ConnectionProfile.KNOWLEDGE,
+    ],
   },
   [AgentType.CODER]: {
-    ...BASE_CONFIG,
     id: AgentType.CODER,
     name: 'Coder Agent',
     systemPrompt: CODER_SYSTEM_PROMPT,
@@ -82,6 +83,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'Code',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.DEEP,
     defaultCommunicationMode: 'json',
     safetyTier: SafetyTier.LOCAL,
@@ -119,13 +122,16 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     ],
     maxIterations: 50,
     connectionProfile: [
-      ...BASE_CONFIG.connectionProfile,
+      ConnectionProfile.BUS,
+      ConnectionProfile.MEMORY,
       ConnectionProfile.STORAGE,
       ConnectionProfile.CODEBUILD,
+      ConnectionProfile.CONFIG,
+      ConnectionProfile.TRACE,
+      ConnectionProfile.KNOWLEDGE,
     ],
   },
   [AgentType.STRATEGIC_PLANNER]: {
-    ...BASE_CONFIG,
     id: AgentType.STRATEGIC_PLANNER,
     name: 'Strategic Planner',
     systemPrompt: PLANNER_SYSTEM_PROMPT,
@@ -133,6 +139,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'Brain',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.DEEP,
     defaultCommunicationMode: 'json',
     tools: [
@@ -162,9 +170,15 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       TOOLS.renderComponent,
       TOOLS.uiAction,
     ],
+    connectionProfile: [
+      ConnectionProfile.BUS,
+      ConnectionProfile.MEMORY,
+      ConnectionProfile.CONFIG,
+      ConnectionProfile.TRACE,
+      ConnectionProfile.KNOWLEDGE,
+    ],
   },
   [AgentType.COGNITION_REFLECTOR]: {
-    ...BASE_CONFIG,
     id: AgentType.COGNITION_REFLECTOR,
     name: 'Cognition Reflector',
     systemPrompt: REFLECTOR_SYSTEM_PROMPT,
@@ -172,6 +186,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'Search',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.STANDARD,
     defaultCommunicationMode: 'json',
     tools: [
@@ -183,9 +199,15 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       TOOLS.inspectTrace,
       TOOLS.scanMetabolism,
     ],
+    connectionProfile: [
+      ConnectionProfile.BUS,
+      ConnectionProfile.MEMORY,
+      ConnectionProfile.CONFIG,
+      ConnectionProfile.TRACE,
+      ConnectionProfile.KNOWLEDGE,
+    ],
   },
   [AgentType.QA]: {
-    ...BASE_CONFIG,
     id: AgentType.QA,
     name: 'QA Auditor',
     systemPrompt: QA_SYSTEM_PROMPT,
@@ -193,12 +215,20 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'FlaskConical',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.STANDARD,
     defaultCommunicationMode: 'json',
     tools: [...UNIVERSAL_SYSTEM_TOOLS, TOOLS.checkHealth, TOOLS.triggerTrunkSync],
+    connectionProfile: [
+      ConnectionProfile.BUS,
+      ConnectionProfile.MEMORY,
+      ConnectionProfile.CONFIG,
+      ConnectionProfile.TRACE,
+      ConnectionProfile.KNOWLEDGE,
+    ],
   },
   [AgentType.CRITIC]: {
-    ...BASE_CONFIG,
     id: AgentType.CRITIC,
     name: 'Critic Agent',
     systemPrompt: CRITIC_SYSTEM_PROMPT,
@@ -207,6 +237,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'Shield',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.THINKING,
     defaultCommunicationMode: 'json',
     tools: [
@@ -221,9 +253,15 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       'filesystem_list_directory',
       'grep_search',
     ],
+    connectionProfile: [
+      ConnectionProfile.BUS,
+      ConnectionProfile.MEMORY,
+      ConnectionProfile.CONFIG,
+      ConnectionProfile.TRACE,
+      ConnectionProfile.KNOWLEDGE,
+    ],
   },
   [AgentType.FACILITATOR]: {
-    ...BASE_CONFIG,
     id: AgentType.FACILITATOR,
     name: 'Facilitator',
     systemPrompt: FACILITATOR_SYSTEM_PROMPT,
@@ -231,6 +269,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'MessageSquareShare',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.STANDARD,
     defaultCommunicationMode: 'text',
     tools: [
@@ -243,9 +283,15 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       TOOLS.listMyCollaborations,
       TOOLS.broadcastMessage,
     ],
+    connectionProfile: [
+      ConnectionProfile.BUS,
+      ConnectionProfile.MEMORY,
+      ConnectionProfile.CONFIG,
+      ConnectionProfile.TRACE,
+      ConnectionProfile.KNOWLEDGE,
+    ],
   },
   [AgentType.MERGER]: {
-    ...BASE_CONFIG,
     id: AgentType.MERGER,
     name: 'Structural Merger',
     systemPrompt: MERGER_SYSTEM_PROMPT,
@@ -253,6 +299,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'GitMerge',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.THINKING,
     defaultCommunicationMode: 'json',
     tools: [
@@ -264,13 +312,19 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       'git_status',
       'git_diff',
       'grep_search',
-      'ast_search_code',
-      'ast_get_file_structure',
+      'ast_search_code', // Structural analysis
+      'ast_get_file_structure', // AST structure
     ],
-    connectionProfile: [...BASE_CONFIG.connectionProfile, ConnectionProfile.STORAGE],
+    connectionProfile: [
+      ConnectionProfile.BUS,
+      ConnectionProfile.MEMORY,
+      ConnectionProfile.CONFIG,
+      ConnectionProfile.TRACE,
+      ConnectionProfile.STORAGE,
+    ],
   },
+  // Handlers (Logic-only, but registered for topology awareness)
   [AgentType.BUILD_MONITOR]: {
-    ...BASE_CONFIG,
     id: AgentType.BUILD_MONITOR,
     name: 'Build Monitor',
     systemPrompt: 'LOGIC_ONLY',
@@ -278,6 +332,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'Activity',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.FAST,
     tools: [],
     connectionProfile: [
@@ -288,7 +344,6 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     ],
   },
   [AgentType.RECOVERY]: {
-    ...BASE_CONFIG,
     id: AgentType.RECOVERY,
     name: "Dead Man's Switch",
     systemPrompt: 'LOGIC_ONLY',
@@ -296,12 +351,13 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'ShieldCheck',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.FAST,
     tools: [],
     connectionProfile: [ConnectionProfile.DEPLOYER, ConnectionProfile.MEMORY_TABLE],
   },
   [AgentType.RESEARCHER]: {
-    ...BASE_CONFIG,
     id: AgentType.RESEARCHER,
     name: 'Researcher',
     systemPrompt: RESEARCHER_SYSTEM_PROMPT,
@@ -309,6 +365,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'Microscope',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.THINKING,
     defaultCommunicationMode: 'text',
     tools: [
@@ -320,9 +378,15 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       'puppeteer_screenshot',
       'puppeteer_click',
     ],
+    connectionProfile: [
+      ConnectionProfile.BUS,
+      ConnectionProfile.MEMORY,
+      ConnectionProfile.CONFIG,
+      ConnectionProfile.TRACE,
+      ConnectionProfile.KNOWLEDGE,
+    ],
   },
   [AgentType.EVENT_HANDLER]: {
-    ...BASE_CONFIG,
     id: AgentType.EVENT_HANDLER,
     name: 'Event Handler',
     systemPrompt: 'LOGIC_ONLY',
@@ -330,12 +394,14 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'Event',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.STANDARD,
     maxIterations: 1,
     tools: [],
+    connectionProfile: [ConnectionProfile.MEMORY],
   },
   [AgentType.JUDGE]: {
-    ...BASE_CONFIG,
     id: AgentType.JUDGE,
     name: 'Judge Agent',
     systemPrompt: JUDGE_SYSTEM_PROMPT,
@@ -344,8 +410,11 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     category: AgentCategory.SYSTEM,
     icon: 'Gavel',
     enabled: true,
+    ...BACKBONE_COMMON_CONFIG,
+    ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.THINKING,
     defaultCommunicationMode: 'json',
     tools: [...UNIVERSAL_SYSTEM_TOOLS],
+    connectionProfile: [ConnectionProfile.MEMORY, ConnectionProfile.TRACE],
   },
 };

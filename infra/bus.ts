@@ -8,7 +8,6 @@ export function createBus() {
   const realtime = new sst.aws.Realtime('RealtimeBus', {
     authorizer: {
       handler: 'core/handlers/realtime-auth.handler',
-      tokenKeyName: 'token',
       logging: {
         retention: '1 month',
       },

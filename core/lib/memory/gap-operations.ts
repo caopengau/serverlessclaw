@@ -59,6 +59,10 @@ export async function getAllGaps(
 /**
  * Archives stale gaps that have been open for longer than the specified days.
  * Returns the number of gaps archived.
+ *
+ * @param base - The base memory provider instance.
+ * @param staleDays - The number of days after which a gap is considered stale.
+ * @returns A promise resolving to the number of archived gaps.
  */
 export async function archiveStaleGaps(
   base: BaseMemoryProvider,
@@ -67,30 +71,34 @@ export async function archiveStaleGaps(
 ): Promise<number> {
   const cutoffTime = Date.now() - staleDays * TIME.SECONDS_IN_DAY * TIME.MS_PER_SECOND;
 
-  // Use the TypeTimestampIndex to find all GAP items before the cutoff
-  // This is much more efficient than scanning or multi-pass filtering
   const items = await base.queryItems({
     IndexName: 'TypeTimestampIndex',
-    KeyConditionExpression: '#tp = :type AND #ts < :cutoff',
+    KeyConditionExpression: '#tp = :type',
     FilterExpression: workspaceId
       ? '#status IN (:open, :planned) AND workspaceId = :wid'
       : '#status IN (:open, :planned)',
     ExpressionAttributeNames: {
       '#tp': 'type',
-      '#ts': 'timestamp',
       '#status': 'status',
     },
     ExpressionAttributeValues: {
       ':type': 'GAP',
-      ':cutoff': cutoffTime,
       ':open': GapStatus.OPEN,
       ':planned': GapStatus.PLANNED,
       ...(workspaceId ? { ':wid': workspaceId } : {}),
     },
   });
 
+  const staleGaps = items.filter((item) => {
+    const ts =
+      (typeof item.timestamp === 'string'
+        ? parseInt(item.timestamp, 10)
+        : (item.timestamp as number)) || (item.createdAt as number);
+    return ts < cutoffTime;
+  });
+
   let archived = 0;
-  for (const gap of items) {
+  for (const gap of staleGaps) {
     try {
       await base.updateItem({
         Key: {
@@ -98,13 +106,16 @@ export async function archiveStaleGaps(
           timestamp: gap.timestamp,
         },
         UpdateExpression: 'SET #status = :archived, updatedAt = :now',
-        ExpressionAttributeNames: { '#status': 'status' },
+        ExpressionAttributeNames: {
+          '#status': 'status',
+        },
         ExpressionAttributeValues: {
           ':archived': GapStatus.ARCHIVED,
           ':now': Date.now(),
         },
       });
       archived++;
+      logger.info(`Archived stale gap: ${gap.userId}`);
     } catch (e: unknown) {
       logger.warn(`Failed to archive gap ${gap.userId}:`, e);
     }
@@ -117,9 +128,6 @@ export async function archiveStaleGaps(
   return archived;
 }
 
-/**
- * Removes resolved gaps that have been in DONE/DEPLOYED state for longer than threshold.
- */
 export async function cullResolvedGaps(
   base: BaseMemoryProvider,
   thresholdDays: number = 90,
@@ -127,41 +135,44 @@ export async function cullResolvedGaps(
 ): Promise<number> {
   const cutoffTime = Date.now() - thresholdDays * TIME.SECONDS_IN_DAY * TIME.MS_PER_SECOND;
 
-  // Optimized query using the TypeTimestampIndex with a timestamp filter
+  // Get all DONE and DEPLOYED gaps
   const items = await base.queryItems({
     IndexName: 'TypeTimestampIndex',
-    KeyConditionExpression: '#tp = :type AND #ts < :cutoff',
-    FilterExpression:
-      '#status IN (:done, :deployed)' + (workspaceId ? ' AND workspaceId = :wid' : ''),
+    KeyConditionExpression: '#tp = :type',
+    FilterExpression: '#status IN (:done, :deployed)',
     ExpressionAttributeNames: {
       '#tp': 'type',
-      '#ts': 'timestamp',
       '#status': 'status',
     },
     ExpressionAttributeValues: {
       ':type': 'GAP',
-      ':cutoff': cutoffTime,
       ':done': GapStatus.DONE,
       ':deployed': GapStatus.DEPLOYED,
-      ...(workspaceId ? { ':wid': workspaceId } : {}),
     },
   });
 
+  const staleGaps = items.filter((item) => {
+    const ts = ((item.updatedAt as number) ||
+      (typeof item.timestamp === 'string'
+        ? parseInt(item.timestamp, 10)
+        : (item.timestamp as number))) as number;
+    return ts < cutoffTime;
+  });
+
   let deleted = 0;
-  for (const gap of items) {
+  for (const gap of staleGaps) {
     try {
+      if (workspaceId && !(gap.userId as string).startsWith(`WS#${workspaceId}#`)) continue;
+
       await base.deleteItem({
         userId: gap.userId as string,
         timestamp: gap.timestamp as number | string,
       });
       deleted++;
+      logger.info(`Culled resolved gap: ${gap.userId}`);
     } catch (e: unknown) {
       logger.warn(`Failed to cull gap ${gap.userId}:`, e);
     }
-  }
-
-  if (deleted > 0) {
-    logger.info(`Culled ${deleted} resolved gaps older than ${thresholdDays} days`);
   }
 
   return deleted;

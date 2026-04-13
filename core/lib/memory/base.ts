@@ -177,6 +177,49 @@ export class BaseMemoryProvider {
   }
 
   /**
+   * Internal helper for Scan commands with a prefix filter on the Hash Key (userId).
+   * Note: This is an expensive Scan operation, used ONLY for system health sampling.
+   * @internal
+   */
+  public async scanByPrefix(
+    prefix: string,
+    options?: { limit?: number }
+  ): Promise<Record<string, unknown>[]> {
+    const items: Record<string, unknown>[] = [];
+    let lastEvaluatedKey: Record<string, unknown> | undefined = undefined;
+    const limit = options?.limit;
+
+    try {
+      do {
+        const scanCommand = new ScanCommand({
+          TableName: this.tableName,
+          FilterExpression: 'begins_with(userId, :prefix)',
+          ExpressionAttributeValues: {
+            ':prefix': prefix,
+          },
+          ExclusiveStartKey: lastEvaluatedKey,
+          Limit: limit,
+        } as import('@aws-sdk/lib-dynamodb').ScanCommandInput);
+
+        const scanResponse = (await this.docClient.send(
+          scanCommand
+        )) as import('@aws-sdk/lib-dynamodb').ScanCommandOutput;
+        if (scanResponse.Items && scanResponse.Items.length > 0) {
+          items.push(...(scanResponse.Items as Record<string, unknown>[]));
+        }
+
+        if (limit && items.length >= limit) break;
+        lastEvaluatedKey = scanResponse.LastEvaluatedKey;
+      } while (lastEvaluatedKey);
+
+      return items;
+    } catch (error) {
+      logger.error('Error scanning DynamoDB by prefix:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Standard implementation for getHistory.
    * Filters out expired items based on TTL.
    *

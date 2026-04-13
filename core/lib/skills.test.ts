@@ -17,7 +17,6 @@ vi.mock('./registry', () => ({
     saveRawConfig: vi.fn(),
     getRawConfig: vi.fn().mockResolvedValue({}),
     recordToolUsage: vi.fn().mockResolvedValue(undefined),
-    initializeToolStats: vi.fn().mockResolvedValue(undefined),
   },
 }));
 

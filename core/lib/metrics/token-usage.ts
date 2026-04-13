@@ -209,8 +209,7 @@ export class TokenTracker {
       const { Items } = await docClient.send(
         new QueryCommand({
           TableName: getTableName(),
-          KeyConditionExpression: 'userId = :pk AND #ts = :sk',
-          ExpressionAttributeNames: { '#ts': 'timestamp' },
+          KeyConditionExpression: 'userId = :pk AND timestamp = :sk',
           ExpressionAttributeValues: { ':pk': userId, ':sk': ts },
           Limit: 1,
         })
@@ -229,8 +228,7 @@ export class TokenTracker {
       const { Items } = await docClient.send(
         new QueryCommand({
           TableName: getTableName(),
-          KeyConditionExpression: 'userId = :pk AND #ts BETWEEN :start AND :end',
-          ExpressionAttributeNames: { '#ts': 'timestamp' },
+          KeyConditionExpression: 'userId = :pk AND timestamp BETWEEN :start AND :end',
           ExpressionAttributeValues: {
             ':pk': `TOKEN_ROLLUP#${agentId}`,
             ':start': startTs,
@@ -292,8 +290,7 @@ export class TokenTracker {
       const { Items } = await docClient.send(
         new QueryCommand({
           TableName: getTableName(),
-          KeyConditionExpression: 'userId = :pk AND #ts BETWEEN :start AND :end',
-          ExpressionAttributeNames: { '#ts': 'timestamp' },
+          KeyConditionExpression: 'userId = :pk AND timestamp BETWEEN :start AND :end',
           ExpressionAttributeValues: {
             ':pk': `TOOL_TOKEN#${toolName}#`,
             ':start': startTs,

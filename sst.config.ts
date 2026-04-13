@@ -76,7 +76,7 @@ export default $config({
     const { bus, realtime, dlq } = createBus();
 
     // 3. The Deployer (CodeBuild)
-    const { deployer, deployerLink } = createDeployer({
+    const { deployer } = createDeployer({
       stagingBucket,
       githubToken: secrets.GitHubToken,
     });
@@ -91,7 +91,6 @@ export default $config({
       secrets,
       bus,
       deployer,
-      deployerLink,
     });
 
     // 5. MCP Servers
@@ -104,7 +103,6 @@ export default $config({
       secrets,
       bus,
       deployer,
-      deployerLink,
       api, // Now available for linking if needed
     });
     const multiplexer = mcpServers.multiplexer;
@@ -120,7 +118,6 @@ export default $config({
         secrets,
         bus,
         deployer,
-        deployerLink,
         realtime,
         dlq,
         api, // Linkable API instance
@@ -139,7 +136,6 @@ export default $config({
       secrets,
       bus,
       deployer,
-      deployerLink,
       agents: agentResources,
     });
 
@@ -153,7 +149,6 @@ export default $config({
       secrets,
       bus,
       deployer,
-      deployerLink,
       api,
       realtime,
       multiplexer,

@@ -7,7 +7,7 @@ export function createStorage() {
   const memoryTable = new sst.aws.Dynamo('MemoryTable', {
     fields: {
       userId: 'string',
-      timestamp: 'number',
+      timestamp: 'string',
       type: 'string',
     },
     primaryIndex: { hashKey: 'userId', rangeKey: 'timestamp' },

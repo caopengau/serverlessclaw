@@ -23,7 +23,6 @@ vi.mock('mqtt', () => {
 });
 
 import { useRealtime } from './useRealtime';
-import { RealtimeProvider } from '@/components/Providers/RealtimeProvider';
 
 describe('useRealtime end-to-end handshake', () => {
   beforeEach(() => {
@@ -40,8 +39,7 @@ describe('useRealtime end-to-end handshake', () => {
     (localStorage.setItem as unknown as any).mockClear();
   });
 
-  // TODO: Rewrite to work with new RealtimeProvider pattern
-  it.skip('subscribes and dispatches incoming messages to onMessage handler', async () => {
+  it('subscribes and dispatches incoming messages to onMessage handler', async () => {
     const onMessage = vi.fn();
 
     (global as any).fetch = vi.fn(() =>
@@ -58,13 +56,7 @@ describe('useRealtime end-to-end handshake', () => {
       return null;
     }
 
-    render(
-      React.createElement(
-        RealtimeProvider,
-        null,
-        React.createElement(TestComp)
-      )
-    );
+    render(React.createElement(TestComp));
 
     // Wait for connect to be called
     await waitFor(() => {
