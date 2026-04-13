@@ -248,9 +248,9 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
     const lkgHash = await memory.getLatestLKGHash();
     if (!lkgHash) {
       logger.warn('No LKG hash found in memory. Falling back to generic HEAD revert.');
-    } else if (!/^[a-f0-9]{7,40}$/i.test(lkgHash)) {
+    } else if (!/^[a-f0-9]{7,40}$/i.test(lkgHash) && lkgHash !== 'dev') {
       logger.error(
-        `Invalid LKG hash detected: ${lkgHash}. Aborting recovery to prevent corruption.`
+        `Invalid LKG hash detected: ${lkgHash}. Aborting recovery to prevent possible corruption.`
       );
       await db.send(
         new PutCommand({
@@ -264,6 +264,12 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
         })
       );
       return;
+    }
+
+    if (lkgHash === 'dev') {
+      logger.info(
+        'LKG hash is "dev" (Development Mode). Proceeding with generic recovery fallback.'
+      );
     }
 
     logger.info(

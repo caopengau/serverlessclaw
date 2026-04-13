@@ -1,3 +1,4 @@
+import { execSync } from 'child_process';
 import {
   SharedContext,
   getValidSecrets,
@@ -121,7 +122,15 @@ export function configureApiRoutes(api: sst.aws.ApiGatewayV2, ctx: SharedContext
     memory: '128 MB',
     timeout: AGENT_CONFIG.timeout.SHORT,
     environment: {
-      GIT_HASH: process.env.GIT_HASH || 'dev',
+      GIT_HASH:
+        process.env.GIT_HASH ||
+        (() => {
+          try {
+            return execSync('git rev-parse HEAD').toString().trim();
+          } catch {
+            return 'dev';
+          }
+        })(),
     },
     logging: {
       retention: LOG_RETENTION_PERIOD,

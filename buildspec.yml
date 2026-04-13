@@ -20,12 +20,12 @@ phases:
           echo "EMERGENCY ROLLBACK INITIATED"
           git config --global user.email "agent@serverlessclaw.local"
           git config --global user.name "Emergency Agent"
-          if [ -n "$LKG_HASH" ]; then
+          if [ -n "$LKG_HASH" ] && [ "$LKG_HASH" != "dev" ]; then
             echo "Reverting to Last Known Good (LKG) state: $LKG_HASH"
             git fetch origin main --depth=50
             git checkout $LKG_HASH
           else
-            echo "No LKG_HASH found. Reverting last commit (HEAD^)..."
+            echo "No LKG_HASH found or hash is 'dev'. Reverting last commit (HEAD^)..."
             git revert HEAD --no-edit
           fi
         fi

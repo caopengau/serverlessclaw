@@ -134,4 +134,21 @@ describe('Dead Man Switch Recovery Handler', () => {
 
     expect(lockMocks.release).toHaveBeenCalledWith('dead-mans-switch-recovery', 'recovery-handler');
   });
+
+  it('should allow "dev" as a valid LKG hash and trigger CodeBuild', async () => {
+    lockMocks.acquire.mockResolvedValue(true);
+    memoryMocks.incrementRecoveryAttemptCount.mockResolvedValue(1);
+    memoryMocks.getLatestLKGHash.mockResolvedValue('dev');
+    ddbMock.on(PutCommand).resolves({});
+    codeBuildMock.on(StartBuildCommand).resolves({ build: { id: 'test-build-dev' } });
+
+    const { handler } = await import('./recovery');
+    await handler();
+
+    expect(codeBuildMock.commandCalls(StartBuildCommand)).toHaveLength(1);
+    const buildInput = codeBuildMock.commandCalls(StartBuildCommand)[0].args[0].input;
+    expect(buildInput.environmentVariablesOverride).toContainEqual(
+      expect.objectContaining({ name: 'LKG_HASH', value: 'dev' })
+    );
+  });
 });
