@@ -30,6 +30,7 @@ export class MetabolismService {
     logger.info(`[Metabolism] Starting regenerative audit (repair: ${!!options.repair})`);
 
     // 1. Perform automated repairs for stateless state (Registry/Memory)
+    // In repair mode, we use a 30-day threshold for standard scheduled maintenance.
     if (options.repair) {
       const repairs = await this.executeRepairs(memory);
       findings.push(...repairs);
@@ -39,10 +40,12 @@ export class MetabolismService {
     const mcpFindings = await this.runMcpAudit();
     findings.push(...mcpFindings);
 
-    // 3. Fallback to native audit if MCP failed or returned no tools
-    const hasMcpFail = mcpFindings.some((f) => f.recommendation.includes('Ensure AST server') || f.recommendation.includes('Deploy the AIReady'));
+    // 3. Fallback to native audit (Audit-only mode if repair was already done)
+    const hasMcpFail = mcpFindings.some(
+      (f) => f.recommendation.includes('Ensure AST server') || f.recommendation.includes('Deploy the AIReady')
+    );
     if (mcpFindings.length === 0 || hasMcpFail) {
-      const nativeFindings = await this.runNativeAudit(memory);
+      const nativeFindings = await this.runNativeAudit(memory, { auditOnly: !!options.repair });
       findings.push(...nativeFindings);
     }
 
@@ -57,12 +60,13 @@ export class MetabolismService {
 
     // Repair 1: Agent Registry Low-Utilization Tools (Principle 10)
     try {
+      // Use 30-day threshold for standard scheduled maintenance
       const pruned = await AgentRegistry.pruneLowUtilizationTools(30);
       if (pruned > 0) {
         repairFindings.push({
           silo: 'Metabolism',
           expected: 'Lean agent tool registry',
-          actual: `Pruned ${pruned} low-utilization tools from agent overrides.`,
+          actual: `Maintenance: Pruned ${pruned} low-utilization tools from agent overrides.`,
           severity: 'P2',
           recommendation: 'Principle 10 (Lean Evolution) enforced via registry pruning.',
         });
@@ -79,7 +83,7 @@ export class MetabolismService {
         repairFindings.push({
           silo: 'Metabolism',
           expected: 'Clean knowledge state',
-          actual: `Metabolized memory state: archived ${archived} stale gaps, culled ${culled} resolved gaps.`,
+          actual: `Maintenance: Archived ${archived} stale gaps, culled ${culled} resolved gaps.`,
           severity: 'P2',
           recommendation: 'Knowledge debt recycled into archival storage.',
         });
@@ -176,13 +180,13 @@ export class MetabolismService {
       error.includes('override') ||
       metadata.errorCategory === 'TOOL_EXECUTION';
 
-    if (isToolError) {
-      const pruned = await AgentRegistry.pruneLowUtilizationTools(0); // Force prune
+    if (isToolError && failure.agentId) {
+      const pruned = await AgentRegistry.pruneLowUtilizationTools(0, failure.agentId); // Targeted force prune
       if (pruned > 0) {
         return {
           silo: 'Metabolism',
           expected: 'Consistent agent registry',
-          actual: `Real-time repair: Pruned ${pruned} stale tool overrides triggered by dashboard failure.`,
+          actual: `Real-time repair: Pruned ${pruned} stale tool overrides for agent ${failure.agentId}.`,
           severity: 'P2',
           recommendation: 'Autonomous repair executed successfully.',
         };
@@ -237,23 +241,28 @@ export class MetabolismService {
   /**
    * Runs naive native checks for common debt markers and state bloat.
    */
-  private static async runNativeAudit(memory?: BaseMemoryProvider): Promise<AuditFinding[]> {
+  private static async runNativeAudit(
+    memory: BaseMemoryProvider | undefined,
+    options: { auditOnly?: boolean } = {}
+  ): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
 
-    // 1. Check for Registry Bloat (Audit mode: 7-day threshold)
-    try {
-      const pruned = await AgentRegistry.pruneLowUtilizationTools(7);
-      if (pruned > 0) {
-        findings.push({
-          silo: 'Metabolism',
-          expected: 'Minimal agent tool overrides',
-          actual: `Detected and pruned ${pruned} dynamic tool overrides with zero usage over 7 days.`,
-          severity: 'P3',
-          recommendation: 'Maintain a lean tool registry for faster agent cold starts.',
-        });
+    // 1. Check for Registry Bloat
+    if (!options.auditOnly) {
+      try {
+        const pruned = await AgentRegistry.pruneLowUtilizationTools(7);
+        if (pruned > 0) {
+          findings.push({
+            silo: 'Metabolism',
+            expected: 'Minimal agent tool overrides',
+            actual: `Detected and pruned ${pruned} dynamic tool overrides with zero usage over 7 days.`,
+            severity: 'P3',
+            recommendation: 'Maintain a lean tool registry for faster agent cold starts.',
+          });
+        }
+      } catch (e) {
+        logger.debug('[Metabolism] Native registry audit failed:', e);
       }
-    } catch (e) {
-      logger.debug('[Metabolism] Native registry audit failed:', e);
     }
 
     // 2. Check for Orphaned Locks (Stale state waste)
@@ -269,14 +278,13 @@ export class MetabolismService {
         const now = Math.floor(Date.now() / 1000);
         const expiredLocks = locks.filter((l) => l.expiresAt && (l.expiresAt as number) < now);
 
-        if (expiredLocks.length > 5) {
+        if (expiredLocks.length > 0) {
           findings.push({
             silo: 'Metabolism',
             expected: 'Active lock hygiene',
-            actual: `Found ${expiredLocks.length} expired session/resource locks in database.`,
+            actual: `Found ${expiredLocks.length} expired locks in database.`,
             severity: 'P3',
-            recommendation:
-              'DynamoDB TTL will eventually remove these, but high count suggests unclosed sessions.',
+            recommendation: 'High count of expired locks suggests unclosed sessions or failed releases.',
           });
         }
       } catch (e) {
@@ -288,7 +296,7 @@ export class MetabolismService {
     findings.push({
       silo: 'Metabolism',
       expected: 'Clean codebase without TODO/FIXME markers',
-      actual: 'Codebase contains 12+ debt markers (TODO/FIXME) in core/lib.',
+      actual: 'Codebase markers detected in core/lib (TODO/FIXME).',
       severity: 'P3',
       recommendation: 'Prioritize technical debt repayment during the next evolution cycle.',
     });

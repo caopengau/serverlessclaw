@@ -57,7 +57,7 @@ describe('MetabolismService', () => {
         toolFailure
       );
 
-      expect(AgentRegistry.pruneLowUtilizationTools).toHaveBeenCalledWith(0);
+      expect(AgentRegistry.pruneLowUtilizationTools).toHaveBeenCalledWith(0, 'test-agent');
       expect(result).toBeDefined();
       expect(result?.actual).toContain('Pruned 1 stale tool overrides');
     });
