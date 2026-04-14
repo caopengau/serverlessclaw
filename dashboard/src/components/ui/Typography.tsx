@@ -2,6 +2,7 @@ import React from 'react';
 
 interface TypographyProps {
   variant?: 'h1' | 'h2' | 'h3' | 'body' | 'caption' | 'mono';
+  as?: React.ElementType;
   color?: 'primary' | 'intel' | 'danger' | 'warning' | 'muted' | 'white' | 'inherit';
   uppercase?: boolean;
   glow?: boolean;
@@ -13,6 +14,7 @@ interface TypographyProps {
 
 const Typography: React.FC<TypographyProps> = ({
   variant = 'body',
+  as,
   color = 'white',
   uppercase = false,
   glow = false,
@@ -22,6 +24,17 @@ const Typography: React.FC<TypographyProps> = ({
   className = '',
   ...props
 }: TypographyProps & React.HTMLAttributes<HTMLElement>) => {
+  const Component =
+    as ||
+    ({
+      h1: 'h1',
+      h2: 'h2',
+      h3: 'h3',
+      body: 'p',
+      caption: 'span',
+      mono: 'span',
+    }[variant] as React.ElementType);
+
   const baseStyles = {
     h1: 'text-4xl font-bold tracking-tighter',
     h2: 'text-2xl font-bold tracking-tight',
@@ -49,7 +62,7 @@ const Typography: React.FC<TypographyProps> = ({
   }[weight];
 
   return (
-    <span
+    <Component
       className={`
         ${baseStyles} 
         ${colorStyles} 
@@ -62,7 +75,7 @@ const Typography: React.FC<TypographyProps> = ({
       {...props}
     >
       {children}
-    </span>
+    </Component>
   );
 };
 

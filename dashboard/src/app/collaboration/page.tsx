@@ -6,6 +6,8 @@ import Typography from '@/components/ui/Typography';
 import SwarmConsensusView from '@/components/SwarmConsensusView';
 import CollaborationCanvas from '@/components/CollaborationCanvas';
 
+import { ReactFlowProvider } from '@xyflow/react';
+
 interface ConsensusRequest {
   id: string;
   title: string;
@@ -119,7 +121,9 @@ export default function CollaborationPage() {
 
       {activeTab === 'live' && (
         <div className="h-[600px] glass-card border-white/5 overflow-hidden">
-          <CollaborationCanvas />
+          <ReactFlowProvider>
+            <CollaborationCanvas />
+          </ReactFlowProvider>
         </div>
       )}
     </main>
