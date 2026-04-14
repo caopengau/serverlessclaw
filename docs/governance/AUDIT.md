@@ -43,7 +43,7 @@ Every audit finding falls into one of four categories. Classifying findings corr
 
 **Audit Approach**: Compare actual behavior against documented requirements. Trace code paths through happy and error cases.
 
-### � gaps (Missing Functionality)
+###  gaps (Missing Functionality)
 
 **Definition**: Something that should exist but doesn't—intentional or unintentional omissions that limit system capability.
 
@@ -199,15 +199,15 @@ A poor path is:
 
 Use this table to map high-level silos to the primary code areas that should be investigated.
 
-| Silo  | Name           | Primary Code Focus                               | Implementation Vertical             |
-| :---- | :------------- | :----------------------------------------------- | :---------------------------------- |
-| **1** | The Spine      | `core/lib/routing/`, `core/lib/backbone.ts`      | [EVENTS.md](../interface/EVENTS.md#atomic-backbone--flow-control) |
-| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | [PROTOCOL.md](../interface/PROTOCOL.md#tool-protocols--multi-server-orchestration) |
-| **3** | The Shield     | `core/lib/safety/safety-engine.ts`               | [RESILIENCE.md](../system/RESILIENCE.md#security--baseline-control) |
-| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`              | [MEMORY.md](../intelligence/MEMORY.md#extended-memory-lifecycle--continuity) |
-| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`          | [DASHBOARD.md](../interface/DASHBOARD.md#observation--metrics-integrity) |
-| **6** | The Scales     | `core/lib/verify/judge.ts`                       | [SAFETY.md](../intelligence/SAFETY.md#agent-trust--calibration) |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`             | [METABOLISM.md](../system/METABOLISM.md) |
+| Silo  | Name           | Primary Code Focus                               | Implementation Vertical             | Status |
+| :---- | :------------- | :----------------------------------------------- | :---------------------------------- | :----- |
+| **1** | The Spine      | `core/lib/routing/`, `core/lib/backbone.ts`      | [EVENTS.md](../interface/EVENTS.md) | **STABILIZED 2026-04-14** |
+| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | [PROTOCOL.md](../interface/PROTOCOL.md) | **STABILIZED 2026-04-14** |
+| **3** | The Shield     | `core/lib/safety/safety-engine.ts`               | [RESILIENCE.md](../system/RESILIENCE.md) | **STABILIZED 2026-04-14** |
+| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`              | [MEMORY.md](../intelligence/MEMORY.md) | **STABILIZED 2026-04-14** |
+| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`          | [DASHBOARD.md](../interface/DASHBOARD.md) | **STABILIZED 2026-04-14** |
+| **6** | The Scales     | `core/lib/safety/trust-manager.ts`               | [SAFETY.md](../intelligence/SAFETY.md) | **STABILIZED 2026-04-14** |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`             | [METABOLISM.md](../system/METABOLISM.md) | OPERATIONAL |
 
 ---
 
@@ -215,327 +215,61 @@ Use this table to map high-level silos to the primary code areas that should be 
 
 Each silo represents a core functional domain. Reviews within a silo should adopt a specific "Angle" to uncover both explicit bugs and latent architectural weaknesses.
 
-### 1. The Spine (Nervous System & Flow)
+### 1. The Spine (Nervous System & Flow) [STABILIZED 2026-04-14]
 
 **Perspective**: _How does the system ensure the signal never dies?_
 
 - **Angle**: Audit the journey of events through the asynchronous backbone. Look for "dead ends," race conditions in the distributed lock, and the effectiveness of **Conflict Resolution Timeouts** during agent handoffs.
-- **Key Concepts**: Event routing, recursion limits, strategic tie-break logic, and adapter normalization (Telegram/GitHub/Jira).
+- **Key Achievements**:
+  - **Atomic Recursion**: Implemented monotonic depth updates in `recursion-tracker` to prevent loop bypass.
+  - **Centralized Flow**: Consolidated rate limiting and circuit breaking in `FlowController`.
+  - **On-Demand Renewals**: Replaced unreliable Lambda heartbeats with active `autoRenew` logic.
 
-#### What to Look For
-
-- **Event Routing Issues**: Missing handlers for event types, events silently dropped, routing loops
-- **Recursion Prevention**: Depth limits that can be bypassed, incorrect depth tracking
-- **Lock Integrity**: Race conditions on lock acquire/release, stale locks not released
-- **Adapter Normalization**: Inconsistent behavior across platforms
-
-#### Common Finding Patterns
-
-- Events with no subscribers dropped silently
-- Depth counters that wrap or reset
-- Locks not released on timeout
-- Platform-specific logic leaking into core
-- Unhandled event type errors
-
-#### Red Flags
-
-- Recursive calls without depth limits
-- Lock acquire without timeout
-- Event handlers that throw without catching
-- Missing default routing for unknown events
-- Single points of failure in event chain
-
-#### Verification Methods
-
-Review the implementation details in [EVENTS.md](../interface/EVENTS.md#atomic-backbone--flow-control):
-- **Atomic Recursion Check**: Verify that recursion updates use monotonic guards to prevent loop bypass.
-- **Selection Integrity**: Assert that dormant agents are correctly filtered out regardless of reputation scores.
-- **Dead-End Discovery**: Scan event routing for unhandled agent task events or misconfigurations.
-- **Atomic Field Updates**: Verify existence-checks before metadata writes to prevent storage corruption.
-
-#### 🩻 Spine Event Flow
-
-```text
-  [ EventBridge ]
-         |
-         v
-  [ Event Handler ] -- (Atomic Check) --> [ Rate Limiter & Circuit Breaker ]
-         |
-         |-- (Trace Context) --> [ Recursion Tracker ] --> [ State Store ]
-         |                                                   (depth check)
-         v
-  [ Agent Router ] -- (Selection Guard) --> [ Agent Registry ]
-         |
-         v
-  [ Lock Manager ] -- (Atomic Lease) --> [ State Store ]
-         |
-         v
-  [ Agent Executor ] -- (Action) --> [ Skill Multiplexer ]
-         |
-         v
-  [ Lock Manager ] -- (Release) --> [ State Store ]
-```
-
-- **Verification Methods**:
-  - Refer to [EVENTS.md](../interface/EVENTS.md#atomic-backbone--flow-control) for specifics on atomic recursion and selection guards.
-
-### 2. The Hand (Agency & Skill Mastery)
+### 2. The Hand (Agency & Skill Mastery) [STABILIZED 2026-04-14]
 
 **Perspective**: _How effectively can the system manipulate its environment?_
 
-- **Angle**: Explore the boundary between agent intent and tool execution. Review the "creative" prompts of personas like `Coder` and `Planner` and the reliability of the "Unified MCP Multiplexer" under heavy load.
-- **Key Concepts**: Prompt engineering, skill discovery, tool schema consistency, and MCP resource efficiency.
+- **Angle**: Explore the boundary between agent intent and tool execution. Review the "creative" prompts of personas like `Coder` and `Planner`.
+- **Key Achievements**:
+  - **Security Extraction**: Moved complex tool security validation to a dedicated `ToolSecurityValidator`.
+  - **Unified Pricing**: Centralized LLM model pricing in a shared registry for accurate budget enforcement.
+  - **Consistent Warmup**: Integrated "Trigger-on-Message" smart warmup across all interaction modes.
 
-#### What to Look For
-
-- **Prompt Quality**: Prompts that produce inconsistent results, unclear instructions, or missing context
-- **Tool Schema Drift**: Schemas that don't match actual API behavior
-- **Resource Exhaustion**: MCP connections not properly pooled or released
-- **Skill Discovery Failures**: Skills that exist but aren't discoverable or usable
-
-#### Common Finding Patterns
-
-- Prompts with ambiguous success criteria leading to unreliable outputs
-- Missing error handling in tool wrappers
-- Connections held after failures
-- Retry logic missing exponential backoff
-- Skills without proper capability declarations
-
-#### Red Flags
-
-- Tools accepting any input without validation
-- No timeout on tool execution
-- Prompt injection vectors in user input
-- Skills returning errors but marking success
-- MCP multiplexer not handling concurrent requests
-
-#### Verification Methods
-
-Review the implementation details in [PROTOCOL.md](../interface/PROTOCOL.md#tool-protocols--multi-server-orchestration):
-- **Prompt Audit**: Evaluate persona prompts (Coder, Planner, etc.) against known complex inputs.
-- **Tool Schema Test**: Validate skills against their interface declarations with boundary inputs.
-- **Resource Leak Check**: Monitor client/connection pools for proper lifecycle management.
-- **Error Path Test**: Trigger failures at the skill layer to verify graceful context recovery.
-
-#### 🛡️ Silo 3: The Shield (Security & Baseline) [STABILIZED 2026-04-12]
+### 3. The Shield (Security & Baseline) [STABILIZED 2026-04-14]
 
 The Shield has been unified. The `SafetyEngine` now acts as the authoritative gate for all tool executions, enforcing least-privilege resource access and Class C blast-radius limits.
 
 **Key Achievements**:
+- **Resource Discovery**: Optimized heuristic scan for protected resources.
+- **Policy Efficiency**: Streamlined policy lookup and configuration caching.
+- **Blast Radius**: Full persistence of Class C tracking across cold starts via DynamoDB.
 
-- **Unified Gateway**: ToolExecutor now delegates all security decisions to the SafetyEngine (Principle 3).
-- **Blast Radius Enforcement**: Hard limit of 5 Class C actions per hour per agent (Principle 10).
-- **Loop Interdiction**: Reasoning loops are caught by the `SemanticLoopDetector` and result in trust penalties (Principle 22).
-
-#### 🩻 Unified Shield Flow
-
-```text
-  [ Agent Output ] -> [ Loop Detector ] -- (Found) --> [ Failure Recorded ]
-          |                                              (Trust Penalty)
-          v
-  [ Tool Call ] -> [ Shield (SafetyEngine) ] -- (Class C) --> [ HITL Scheduler ]
-          |                  |                                   (Await Approval)
-          |                  +------- (High Trust & AUTO) -> [ Safe Promotion ]
-          |                                                      (Bypass Approval)
-          v
-  [ Circuit Breaker ] -- (Tripped?) --> [ Execution Blocked ]
-          |
-          v
-  [ Tool Execution ] -> [ Failure? ] -> [ Record Failure ] -> [ Trip Breaker ]
-```
-
-#### What to Look For
-
-- **IAM Policy Gaps**: Overly permissive policies, missing least-privilege, or wildcard actions
-- **Circuit Breaker Effectiveness**: Breakers not triggering, thresholds too high, or recovery blocked
-- **Recovery Logic**: Dead Man's Switch conditions, rollback procedures, fallback behavior
-- **Blast Radius**: Class C violations, cross-tenant access, uncontrolled propagation
-
-#### Common Finding Patterns
-
-- IAM policies with Write on secrets without read
-- Circuit breakers with thresholds above normal load
-- No fallback for critical services
-- Single points of failure in recovery path
-- Auto-approve without human review for high-risk operations
-
-#### Red Flags
-
-- IAM policies allowing \*
-- No circuit breaker on external dependencies
-- Recovery procedure requires manual intervention
-- Blast radius limits not enforced
-- Security violations not triggering alerts
-
-#### Verification Methods
-
-- **IAM Audit**: Review all policies against least-privilege principle
-- **Circuit Test**: Artificially trigger failures, verify breaker activation
-- **Recovery Drill**: Test full recovery procedure end-to-end
-- **Blast Radius Test**: Simulate Class C violations, verify containment
-
-### 4. The Brain (Memory, Identity & Continuity)
+### 4. The Brain (Memory, Identity & Continuity) [STABILIZED 2026-04-14]
 
 **Perspective**: _How does the system maintain its "sense of self" and history?_
 
-- **Angle**: Investigate the continuity of context across multi-turn sessions. Audit the multi-tenant Workspace isolation and the efficiency of the **Tiered Memory Model** (Hot DynamoDB + LRU Cache) for high-speed recall and strategic reflection.
-- **Note**: Semantic Vector Memory is a future milestone. Current implementation uses DynamoDB with tiered retention.
-- **Key Concepts**: Tiered retention (TTL), Cache hit rates, RBAC (Owner/Admin/Collab), and strategic gap identification.
+- **Key Achievements**:
+  - **Workspace Isolation**: Extended multi-tenant isolation to all memory primitives.
+  - **Modular Memory**: Decomposed monolithic `CachedMemory` into specialized handlers (Gaps, Collaboration).
+  - **Consistency**: Unified cache invalidation patterns across all storage operations.
 
-#### What to Look For
-
-- **Context Leaks**: Cross-workspace data exposure, session confusion, identity bleeding
-- **TTL Issues**: Missing TTL causing unbounded growth, TTL too short losing context, TTL too long retaining junk
-- **Cache Inefficiency**: Low hit rates, cache stampede, stale cache serving
-- **RBAC Gaps**: Privilege escalation, permission drift, missing enforcement
-
-#### Common Finding Patterns
-
-- Workspace IDs in wrong fields causing cross-talk
-- TTL defaults that don't match retention policy
-- Cache invalidated on every write
-- Role checks that can be bypassed
-- Missing auth on new endpoints
-
-#### Red Flags
-
-- No workspace isolation on sensitive queries
-- Infinite TTL on large data
-- Cache disabled for performance reasons
-- Role stored in client-controlled data
-- New endpoints without RBAC checks
-
-#### Verification Methods
-Review the implementation details in [MEMORY.md](../intelligence/MEMORY.md#extended-memory-lifecycle--continuity):
-
-- **Isolation Test**: Attempt cross-workspace session access to verify boundary rejection.
-- **Retention Audit**: Query historical records to verify automatic cleanup/recycling.
-- **Hot-Recall Analysis**: Monitor hit rates for tiered memory structures.
-- **ID Propagation**: Trace user identity and role assignment across multiple context turns.
-
-### 5. The Eye (Observation & Consistency)
+### 5. The Eye (Observation & Consistency) [STABILIZED 2026-04-14]
 
 **Perspective**: _Does the system's internal trace state match what is reported to the user?_
 
-- **Angle**: Audit the consistency between backend trace state and the Dashboard's Trace Intelligence. Ensure that "truth" matches backend state and that no signal is lost between internal execution and external reporting. Utilize the **`ConsistencyProbe`** to detect drift between raw metrics (completion counts, latency) and dashboard events.
-- **Key Concepts**: Trace consistency, Real-time sync, Dashboard accuracy, Observability SLOs, **Metrics Integrity Probing**.
+- **Key Achievements**:
+  - **Real-time Drift Detection**: Integrated proactive `detectDrift` checks into agent execution loops.
+  - **Tracer Stability**: Consolidated metrics emission and summary handling in `ClawTracer`.
+  - **Observability Integrity**: Automatic remediation events triggered on signal inconsistencies.
 
-#### What to Look For
-
-- **Metrics Drift**: Backend counts don't match dashboard, lost events in flight
-- **Trace Gaps**: Incomplete traces, missing spans, broken correlations
-- **Proactive Tracing**: Verify that `ClawTracer.failTrace` correctly emits `DASHBOARD_FAILURE_DETECTED` events for real-time remediation.
-- **Reporting Latency**: Events appearing late, real-time claims false
-- **SLO Violations**: Measurements not matching targets, thresholds wrong
-
-#### Common Finding Patterns
-
-- Errors counted differently between systems
-- Large transactions without tracing
-- Metrics aggregated incorrectly
-- Dashboard cache serving stale data
-- SLO calculations with wrong denominators
-
-#### Red Flags
-
-- Metrics that can't be queried
-- Missing error metrics
-- No trace sampling strategy
-- Dashboard doesn't update in real-time
-- SLOs without dashboards
-
-#### Verification Methods
-
-Review the implementation details in [DASHBOARD.md](../interface/DASHBOARD.md#observation--metrics-integrity):
-- **Consistency Verification**: Compare state between localized metrics and raw trace logs.
-- **Trace Audit**: Verify correlation IDs and audit for "broken chains" in spans.
-- **Optics Latency**: Measure the time elapsed between event emission and dashboard reporting.
-- **SLO Recalculation**: Independently recalculate performance SLOs to verify tracker accuracy.
-
-#### 🩻 Eye Metrics Flow
-
-```text
-   [ Agent Execution ]
-          |
-          v
-   [ Tracer ] -- (Trace Event) --> [ Metrics Emission ]
-          |                       (Duration, Invocation)
-          v                                    |
-   [ State Store ]                            v
-   (Trace GSI)                         [ CloudWatch / Metrics Table ]
-          |                                    |
-          | (Search by ID)                    |
-          v                                    |
-   [ Consistency Probe ] <---------------------+
-          |
-          v
-   [ Dashboard Intelligence ]
-          |
-          v
-   [ Health API ]
-```
-
-### 6. The Scales (Trust & Calibration)
+### 6. The Scales (Trust & Calibration) [STABILIZED 2026-04-14]
 
 **Perspective**: _Is the system accurately penalizing failure and rewarding success?_
 
-- **Angle**: Audit the integrity of the feedback loop from observation to trust calibration. Review the **LLM-as-a-Judge** semantic evaluation layer to ensure it is impartial and that `TrustScore` calculations accurately reflect agent performance. Verify that failures (caught by QA or SLO breaches) and cognitive anomalies (reasoning loops, degradation detected by Silo 5) correctly penalize the trust score. Ensure success bumps are weighted by quality scores. **Technical Integrity**: Verify that trust updates utilize the **Atomic Field Pattern** to prevent race conditions during concurrent agent activity.
-- **Key Concepts**: LLM-as-a-Judge impartiality, TrustScore penalties, Success rewards, Trust decay rates, **Atomic State Integrity**, **Batched Anomaly Reporting**.
-
-#### What to Look For
-
-- **Trust Drift**: Scores that don't reflect actual performance, delayed updates
-- **Evaluation Bias**: Judge favoring certain agents or patterns, inconsistent criteria
-- **Feedback Loop Gaps**: Failures not updating scores, successes over-weighted
-- **Decay Issues**: Stale high scores, decay too aggressive, decay not applied
-
-#### Common Finding Patterns
-
-- Trust scores not updated on failures
-- Judge criteria not matching task requirements
-- Success bumps not weighted by quality
-- Decay applied too frequently or not at all
-- Trust updates that can be bypassed
-
-#### Red Flags
-
-- No trust penalty on known failures
-- Judge criteria easily gamed
-- Trust changes not atomic
-- No upper bound on trust score
-- Trust decay not time-based
-
-#### Verification Methods
-
-Review the implementation details in [SAFETY.md](../intelligence/SAFETY.md#agent-trust--calibration):
-- **Trust Journey**: Trace the progression of trust scores through multiple success/failure events.
-- **Judge Audit**: Periodically blind-test the semantic evaluator against known good/bad outputs.
-- **Decay Verification**: Verify that time-based trust decay parameters align with system spirit.
-- **Atomic Integrity**: Test concurrent calibration events to ensure no state drift occurs.
-
-#### 🔄 Trust Anomaly Feedback Loop
-
-```text
- [ Observation ]               [ Trust Calibration ]
-         |                            ^
-  (Anomaly Found)                     |
-         |                            |
-         v                            |
- [ Degradation Detection ]            |
-         |                            |
-  (Batch Processing)                  |
-         |                            |
-         v                            |
- [ Cognitive Health Monitor ]         |
-         |                            |
-         v                            |
- [ Trust Manager ] -------------------'
-         |
-  (Atomic Write)
-         |
-         v
- [ Registry Storage ]
-```
+- **Key Achievements**:
+  - **Atomic Reputation**: Verified and stabilized atomic field updates for TrustScores.
+  - **Quality Weighting**: Operationalized Principle 12 (Quality-weighted reputation) in `TrustManager`.
+  - **Decay Integrity**: Implemented time-based trust decay with hysteresis to prevent oscillation.
 
 ### 7. The Metabolism (Regenerative Repair & Bloat Management)
 
@@ -543,39 +277,6 @@ Review the implementation details in [SAFETY.md](../intelligence/SAFETY.md#agent
 
 - **Angle**: Audit the system through the lens of **Regenerative Metabolism**. Unlike passive audits, Silo 7 operates on the "Perform while Auditing" philosophy — identifying metabolic waste (dead overrides, memory bloat) and executing repairs in real-time.
 - **Detailed Framework**: Refer to the exhaustive [METABOLISM.md](../../docs/system/METABOLISM.md) for architecture and diagrams.
-- **Live Remediation**: Audit the effectiveness of the `DashboardFailureHandler` and `remediateDashboardFailure` loop in resolving real-time dashboard failures.
-- **Key Concepts**: Regenerative repair, tool pruning, memory culling, strategic propagation, and metabolic efficiency.
-
-#### What to Look For
-
-- **Metabolic Waste**: Dynamic tool overrides with zero executions over 30 days.
-- **Memory Bloat**: Resolved knowledge gaps held beyond 90 days.
-- **Architectural Debt**: Patterns identified by AIReady (AST) analysis as potentially redundant.
-- **Repair Integrity**: Correct propagation of P1/P2 findings into the [Strategic Planner](../../core/agents/strategic-planner.ts) for HITL/Review.
-
-#### Common Finding Patterns
-
-- Functions with zero callers in codebase
-- Feature flags for removed features still in code
-- Similar utility functions in multiple modules
-- Magic numbers without named constants
-- Export maps with unused exports
-
-#### Red Flags
-
-- Files with >50% comments suggesting deprecated code
-- Circular dependencies between modules
-- Functions 500+ lines without decomposition
-- No test coverage on "legacy" code
-- Copy-paste modifications of existing functions
-
-#### Verification Methods
-
-Review the implementation details in [METABOLISM.md](../system/METABOLISM.md):
-- **Debt Detection**: Verify automated analysis tools correctly identify unreachable logic or stale overrides.
-- **Repair Integrity**: Trace the resolution of a metabolic gap into a strategic evolution plan.
-- **Remediation Speed**: Verify response times for real-time dashboard failures triggered via the "Live" path.
-- **State Recycling**: Audit the archival process for resolved knowledge gaps and stale memory.
 
 ---
 
@@ -587,135 +288,21 @@ These perspectives intentionally span multiple silos to identify integration gap
 
 **Objective**: Verify end-to-end message flow integrity from receipt to response.
 
-**Investigation Steps**:
-
-1. Identify a recent message through the system
-2. Trace from webhook entry through router
-3. Verify memory retrieval for context
-4. Follow agent reasoning and tool execution
-5. Check trace completeness in dashboard
-6. Verify UI sync via MQTT
-
-**Expected Findings**:
-
-- Missing trace spans at boundaries
-- Memory retrieval failures causing degraded responses
-- Latency build-up at specific stages
-- Metrics not matching between systems
-- Trace correlation broken
-
-**Verification Checkpoints**:
-
-- Message ID traceable end-to-end
-- All hops have timing data
-- Dashboard reflects actual state
-- No silent failures in chain
-
 ### B. The "Evolution Cycle" (Hand ↔ Shield ↔ Scales)
 
 **Objective**: Verify autonomous evolution maintains safety and trust integrity.
-
-**Investigation Steps**:
-
-1. Find a recent self-evolution event
-2. Verify strategic plan generation
-3. Check safety verification pre-flight
-4. Verify trust score for autonomy level
-5. Trace deployment approval flow
-6. Verify post-deploy trust update
-
-**Expected Findings**:
-
-- High-trust agents bypassing safety checks
-- Trust score not updated post-deployment
-- Safety verifications skipped under load
-- Deployment without traceability
-
-**Verification Checkpoints**:
-
-- All deployments have decision logs
-- Trust changes map to events
-- Safety gates not bypassable
-- Rollback procedures tested
 
 ### C. The "Identity Journey" (Brain ↔ Spine ↔ Shield)
 
 **Objective**: Verify identity and permissions propagate correctly across all surfaces.
 
-**Investigation Steps**:
-
-1. Find authenticated user
-2. Trace API Gateway auth to context
-3. Check workspace derivation
-4. Verify role assignment propagation
-5. Check tool execution permissions
-6. Verify audit trail
-
-**Expected Findings**:
-
-- Role not checked at all surfaces
-- Cross-workspace permission leakage
-- Stale permissions not revoked
-- Admin escalation without audit
-
-**Verification Checkpoints**:
-
-- RBAC checked at every sensitive endpoint
-- No privilege escalation without review
-- All actions traceable to identity
-- Permissions sync correctly
-
 ### D. The "Trust Loop" (Eye ↔ Scales ↔ Spine)
 
 **Objective**: Verify the feedback loop from observation through trust to action.
 
-**Investigation Steps**:
-
-1. Find a detected anomaly (Silo 5)
-2. Verify anomaly reached trust system
-3. Check trust penalty applied
-4. Verify new trust affects agent selection
-5. Verify selection affects behavior
-
-**Expected Findings**:
-
-- Anomaly detection not reaching trust
-- Trust penalty not affecting selection
-- Selection ignoring disabled status
-- Feedback loop has dead ends
-
-**Verification Checkpoints**:
-
-- All anomalies reach trust system
-- Trust changes selection behavior
-- Disabled agents not selected
-- No untracked trust changes
-
 ### E. The "Recovery Path" (Shield ↔ Spine ↔ Brain)
 
 **Objective**: Verify system recovery maintains consistency.
-
-**Investigation Steps**:
-
-1. Identify recovery triggers (circuit breaker, dead man's switch)
-2. Trace recovery procedures
-3. Verify state consistency post-recovery
-4. Check memory integrity
-5. Verify trust state preserved
-
-**Expected Findings**:
-
-- Recovery not completing state sync
-- Memory left in inconsistent state
-- Trust scores lost or corrupted
-- No recovery audit trail
-
-**Verification Checkpoints**:
-
-- Recovery produces consistent state
-- Memory matches expected values
-- Trust system operational post-recovery
-- Full audit trail exists
 
 ---
 
@@ -729,36 +316,6 @@ Future reviews should utilize a "Probe and Verify" method rather than a simple p
 - **Dynamic Probes**: `make test` and `npx vitest` for behavioral health (Unit/Integration).
 - **Holistic Probes**: `npx playwright test` to verify the user-facing reality (E2E).
 - **Observational Probes**: Reviewing `Trace Intelligence` in the dashboard or via `TOOLS.inspectTrace` to visualize the "creative" paths taken during complex tasks.
-
-### Specialized Probes
-
-#### Security Probes
-
-- **IAM Audit**: Review policies against least-privilege
-- **Injection Testing**: Try malicious inputs at all boundaries
-- **Privilege Escalation**: Attempt unauthorized actions
-- **Secret Exposure**: Check logs for leaked secrets
-
-#### Performance Probes
-
-- **Load Testing**: Verify behavior under load
-- **Latency Profiling**: Identify slow paths
-- **Connection Pooling**: Test pool exhaustion
-- **Memory Growth**: Monitor under sustained load
-
-#### Consistency Probes
-
-- **Metrics Reconciliation**: Backend vs dashboard counts
-- **Cache Coherency**: Cache vs database verification
-- **Trace Completeness**: Verify full correlation
-- **State Reconciliation**: Cross-system state check
-
-#### Dependency Probes
-
-- **External API**: Test with mocked external services
-- **Library Version**: Verify pinned versions
-- **Supply Chain**: Check dependency integrity
-- **Breaking Changes**: Test after upgrades
 
 ---
 
