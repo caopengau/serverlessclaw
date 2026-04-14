@@ -43,14 +43,12 @@ export function createDeployer(ctx: DeployerContext) {
             'acm:*',
             'dynamodb:*',
             'events:*',
-            'logs:*',
             'ssm:GetParameters',
             'ssm:GetParameter',
             'ecr:*',
             'codebuild:*',
             'kms:*',
             'iot:*',
-            // Tightened IAM for deployment (must pass roles for agents)
             'iam:PassRole',
             'iam:GetRole',
             'iam:ListRolePolicies',
@@ -63,6 +61,18 @@ export function createDeployer(ctx: DeployerContext) {
               'aws:ResourceTag/sst:stage': $app.stage,
             },
           },
+        },
+        // Dedicated statement for CloudWatch Logs (untagged)
+        {
+          Effect: 'Allow',
+          Action: [
+            'logs:CreateLogGroup',
+            'logs:CreateLogStream',
+            'logs:PutLogEvents',
+            'logs:DescribeLogStreams',
+            'logs:GetLogEvents',
+          ],
+          Resource: '*',
         },
         // Exception: IAM management and global listing
         {
