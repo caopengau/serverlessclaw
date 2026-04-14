@@ -142,33 +142,11 @@ export class Agent {
       return { responseText, traceId };
     }
 
-    // 1.5 Proactive Smart Warmup (Intent-Based)
-    // Only trigger on first hop (depth === 0) and in serverless environments
-    if (depth === 0 && process.env.LAMBDA_TASK_ROOT) {
-      import('./warmup/warmup-manager')
-        .then(({ WarmupManager }) => {
-          const serverArns = process.env.MCP_SERVER_ARNS
-            ? JSON.parse(process.env.MCP_SERVER_ARNS)
-            : {};
-          const agentArns = process.env.AGENT_ARNS ? JSON.parse(process.env.AGENT_ARNS) : {};
-
-          if (Object.keys(serverArns).length > 0 || Object.keys(agentArns).length > 0) {
-            const warmup = new WarmupManager({
-              servers: serverArns,
-              agents: agentArns,
-              ttlSeconds: 900,
-            });
-            warmup
-              .smartWarmup({
-                intent: userText,
-                sessionState: sessionId ? sessionStateManager?.getState(sessionId) : undefined,
-                warmedBy: 'webhook',
-              })
-              .catch((err) => logger.warn('[Warmup] Proactive trigger failed:', err));
-          }
-        })
-        .catch(() => {}); // Silent failure for warmup
-    }
+    import('./agent/warmup')
+      .then(({ triggerSmartWarmup }) => {
+        triggerSmartWarmup(userText, depth, sessionId, sessionStateManager);
+      })
+      .catch(() => {});
 
     try {
       const {
@@ -462,6 +440,12 @@ export class Agent {
       await tracer.endTrace('HUMAN_TAKING_CONTROL');
       return;
     }
+
+    import('./agent/warmup')
+      .then(({ triggerSmartWarmup }) => {
+        triggerSmartWarmup(userText, depth, sessionId, sessionStateManager);
+      })
+      .catch(() => {});
 
     const {
       activeModel: resolvedModel,

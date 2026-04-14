@@ -203,27 +203,32 @@ export const CacheKeys = {
   /**
    * Key for user distilled memory.
    */
-  distilledMemory: (userId: string) => `distilled:${userId}`,
+  distilledMemory: (userId: string, workspaceId?: string) =>
+    `distilled:${userId}${workspaceId ? `:${workspaceId}` : ''}`,
 
   /**
    * Key for user lessons.
    */
-  lessons: (userId: string) => `lessons:${userId}`,
+  lessons: (userId: string, workspaceId?: string) =>
+    `lessons:${userId}${workspaceId ? `:${workspaceId}` : ''}`,
 
   /**
    * Key for user preferences.
    */
-  preferences: (userId: string) => `prefs:${userId}`,
+  preferences: (userId: string, workspaceId?: string) =>
+    `prefs:${userId}${workspaceId ? `:${workspaceId}` : ''}`,
 
   /**
    * Key for conversation history.
    */
-  history: (storageId: string) => `history:${storageId}`,
+  history: (storageId: string, workspaceId?: string) =>
+    `history:${storageId}${workspaceId ? `:${workspaceId}` : ''}`,
 
   /**
    * Key for conversation summary.
    */
-  summary: (storageId: string) => `summary:${storageId}`,
+  summary: (storageId: string, workspaceId?: string) =>
+    `summary:${storageId}${workspaceId ? `:${workspaceId}` : ''}`,
 
   /**
    * Key for global lessons.
@@ -238,19 +243,22 @@ export const CacheKeys = {
     query: string,
     category?: string,
     tags?: string[],
-    orgId?: string
+    orgId?: string,
+    workspaceId?: string
   ) =>
-    `insights:${userId}:${query}:${category ?? 'all'}:${tags?.sort().join(',') ?? 'none'}:${orgId ?? 'global'}`,
+    `insights:${userId}:${query}:${category ?? 'all'}:${tags?.sort().join(',') ?? 'none'}:${orgId ?? 'global'}${workspaceId ? `:${workspaceId}` : ''}`,
 
   /**
    * Key for gap information.
    */
-  gap: (gapId: string) => `gap:${gapId}`,
+  gap: (gapId: string, workspaceId?: string) =>
+    `gap:${gapId}${workspaceId ? `:${workspaceId}` : ''}`,
 
   /**
    * Key for all gaps by status.
    */
-  gapsByStatus: (status: string) => `gaps:${status}`,
+  gapsByStatus: (status: string, workspaceId?: string) =>
+    `gaps:${status}${workspaceId ? `:${workspaceId}` : ''}`,
 } as const;
 
 /**

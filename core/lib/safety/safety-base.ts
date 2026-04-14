@@ -61,22 +61,54 @@ export class SafetyBase {
   }
 
   /**
-   * Determine if an action is Class C (sensitive change).
+   * Class C actions that require blast radius tracking and elevated approval.
+   * Aligned with PRINCIPLES.md Risk Classification Matrix:
+   * - Class C: iam_change, infra_topology, security_guardrail, deployment, memory_retention, tool_permission
+   * - Class D: trust_manipulation, blast_radius_limit (permanently blocked)
+   */
+  private static readonly CLASS_C_ACTIONS = [
+    'iam_change',
+    'infra_topology',
+    'memory_retention',
+    'tool_permission',
+    'deployment',
+    'security_guardrail',
+    'code_change',
+    'audit_override',
+  ] as const;
+
+  private static readonly CLASS_D_ACTIONS = [
+    'trust_manipulation',
+    'mode_shift',
+    'policy_core_override',
+  ] as const;
+
+  /**
+   * Determine if an action is Class C (sensitive change requiring approval).
    */
   public isClassCAction(action: string): boolean {
-    const classCActions = [
-      'iam_change',
-      'infra_topology',
-      'memory_retention',
-      'tool_permission',
-      'deployment',
-      'security_guardrail',
-      'code_change',
-      'audit_override',
-      'trust_manipulation',
-      'mode_shift',
-    ];
-    return classCActions.includes(action.toLowerCase());
+    return (SafetyBase.CLASS_C_ACTIONS as readonly string[]).includes(action.toLowerCase());
+  }
+
+  /**
+   * Determine if an action is Class D (permanently blocked).
+   */
+  public isClassDAction(action: string): boolean {
+    return (SafetyBase.CLASS_D_ACTIONS as readonly string[]).includes(action.toLowerCase());
+  }
+
+  /**
+   * Get all registered Class C actions (for debugging/display).
+   */
+  public static getClassCActions(): readonly string[] {
+    return [...SafetyBase.CLASS_C_ACTIONS];
+  }
+
+  /**
+   * Get all registered Class D actions (for debugging/display).
+   */
+  public static getClassDActions(): readonly string[] {
+    return [...SafetyBase.CLASS_D_ACTIONS];
   }
 
   /**
@@ -136,6 +168,7 @@ export class SafetyBase {
 
   /**
    * Persist violations to DynamoDB for audit trail.
+   * Implements retry logic with exponential backoff to prevent telemetry blindness.
    */
   async persistViolations(): Promise<void> {
     if (this.violations.length === 0) {
@@ -144,11 +177,10 @@ export class SafetyBase {
 
     const resource = Resource as { ConfigTable?: { name: string } };
     if (!('ConfigTable' in resource)) {
-      // Sh2 FIX: Violating Principle 11 (Telemetry Blindness) if we skip silently.
-      // We still skip but ensure it's a visible warning in logs.
       logger.error(
         '[CRITICAL] SafetyEngine telemetry blindness: ConfigTable not linked. Violations will NOT be persisted.'
       );
+      this.queueFailedViolationsForRetry([...this.violations]);
       return;
     }
 
@@ -160,10 +192,38 @@ export class SafetyBase {
       const batch = violationsToPersist.slice(i, i + batchSize);
       const agentIds = [...new Set(batch.map((v) => v.agentId))];
       const agentId = agentIds.length === 1 ? agentIds[0] : 'batch';
+
+      const persisted = await this.persistBatchWithRetry(
+        batch,
+        agentId,
+        now,
+        resource.ConfigTable?.name
+      );
+      if (!persisted) {
+        this.queueFailedViolationsForRetry(batch);
+      }
+    }
+
+    logger.debug(`[SafetyEngine] Persisted ${violationsToPersist.length} violations to DynamoDB`);
+  }
+
+  /**
+   * Retry logic for batch persistence with exponential backoff.
+   */
+  private async persistBatchWithRetry(
+    batch: SafetyViolation[],
+    agentId: string,
+    now: number,
+    tableName: string | undefined
+  ): Promise<boolean> {
+    const maxRetries = 3;
+    const baseDelayMs = 100;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
         await defaultDocClient.send(
           new PutCommand({
-            TableName: resource.ConfigTable?.name,
+            TableName: tableName,
             Item: {
               key: `safety:violations:${agentId}:${now}`,
               value: {
@@ -174,12 +234,77 @@ export class SafetyBase {
             },
           })
         );
+        return true;
       } catch (e) {
-        logger.error(`[SafetyEngine] Failed to persist safety violations batch ${i}:`, e);
+        if (attempt < maxRetries - 1) {
+          const delay = baseDelayMs * Math.pow(2, attempt);
+          logger.warn(
+            `[SafetyEngine] Retry persist batch ${attempt + 1}/${maxRetries} after ${delay}ms: ${e}`
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        } else {
+          logger.error(
+            `[SafetyEngine] Failed to persist safety violations batch after ${maxRetries} retries:`,
+            e
+          );
+        }
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Queue failed violations for later retry to prevent telemetry blindness.
+   */
+  private failedViolationsQueue: SafetyViolation[] = [];
+
+  private queueFailedViolationsForRetry(violations: SafetyViolation[]): void {
+    this.failedViolationsQueue.push(...violations);
+    logger.warn(
+      `[SafetyEngine] Queued ${violations.length} violations for retry. Queue size: ${this.failedViolationsQueue.length}`
+    );
+  }
+
+  /**
+   * Retry persisted queued violations. Should be called periodically or on recovery.
+   */
+  async retryFailedViolations(): Promise<number> {
+    if (this.failedViolationsQueue.length === 0) {
+      return 0;
+    }
+
+    const toRetry = [...this.failedViolationsQueue];
+    this.failedViolationsQueue = [];
+
+    const resource = Resource as { ConfigTable?: { name: string } };
+    const tableName = resource.ConfigTable?.name;
+
+    if (!tableName) {
+      this.failedViolationsQueue.push(...toRetry);
+      logger.error('[SafetyEngine] Cannot retry - ConfigTable not available');
+      return 0;
+    }
+
+    let successCount = 0;
+    const batchSize = 25;
+
+    for (let i = 0; i < toRetry.length; i += batchSize) {
+      const batch = toRetry.slice(i, i + batchSize);
+      const agentIds = [...new Set(batch.map((v) => v.agentId))];
+      const agentId = agentIds.length === 1 ? agentIds[0] : 'batch';
+      const now = Date.now();
+
+      if (await this.persistBatchWithRetry(batch, agentId, now, tableName)) {
+        successCount += batch.length;
+      } else {
+        this.failedViolationsQueue.push(...batch);
       }
     }
 
-    logger.debug(`[SafetyEngine] Persisted ${violationsToPersist.length} violations to DynamoDB`);
+    logger.info(
+      `[SafetyEngine] Retry completed: ${successCount}/${toRetry.length} violations persisted`
+    );
+    return successCount;
   }
 
   /**

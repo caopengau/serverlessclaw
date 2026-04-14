@@ -33,21 +33,46 @@ describe('recursion-tracker', () => {
   });
 
   describe('pushRecursionEntry', () => {
-    it('should use monotonic depth guard in ConditionExpression', async () => {
+    it('should use existence check for first entry', async () => {
       await pushRecursionEntry('trace-1', 5, 'sess-1', 'agent-1');
 
       expect(mockSend).toHaveBeenCalledWith(expect.any(UpdateCommand));
       const cmd = mockSend.mock.calls[0][0];
-      expect(cmd.input.ConditionExpression).toBe('attribute_not_exists(#depth) OR #depth < :depth');
+      expect(cmd.input.ConditionExpression).toBe('attribute_not_exists(#depth)');
       expect(cmd.input.ExpressionAttributeNames).toEqual({ '#depth': 'depth', '#type': 'type' });
       expect(cmd.input.ExpressionAttributeValues[':depth']).toBe(5);
       expect(cmd.input.Key.timestamp).toBe(0);
     });
 
-    it('should handle ConditionalCheckFailedException gracefully', async () => {
-      mockSend.mockRejectedValue({ name: 'ConditionalCheckFailedException' });
+    it('should use shorter TTL for mission-critical contexts', async () => {
+      // Mission context uses 30 min (1800s) TTL vs normal 1 hour (3600s)
+      await pushRecursionEntry('trace-1', 5, 'sess-1', 'agent-1', true);
+
+      const cmd = mockSend.mock.calls[0][0];
+      // The expiresAt should be now + 1800 for isMission=true
+      const expectedExpires = Math.floor(Date.now() / 1000) + 1800;
+      expect(cmd.input.ExpressionAttributeValues[':exp']).toBe(expectedExpires);
+    });
+
+    it('should handle ConditionalCheckFailedException by attempting increment', async () => {
+      // First call fails with conditional check
+      mockSend.mockRejectedValueOnce({ name: 'ConditionalCheckFailedException' });
+      // Second call (getRecursionDepth) returns current depth
+      mockSend.mockResolvedValueOnce({ Item: { depth: 3 } });
+      // Third call (increment update) succeeds
+      mockSend.mockResolvedValueOnce({});
 
       // Should not throw
+      await expect(pushRecursionEntry('trace-1', 3, 'sess-1', 'agent-1')).resolves.not.toThrow();
+
+      // Should have attempted increment (3 calls total)
+      expect(mockSend).toHaveBeenCalledTimes(3);
+    });
+
+    it('should handle other errors and log warning', async () => {
+      mockSend.mockRejectedValue({ name: 'ValidationError', message: 'Invalid input' });
+
+      // Should not throw, should log warning
       await expect(pushRecursionEntry('trace-1', 3, 'sess-1', 'agent-1')).resolves.not.toThrow();
     });
   });
@@ -64,6 +89,12 @@ describe('recursion-tracker', () => {
       mockSend.mockResolvedValue({ Item: { depth: 12 } });
       const depth = await getRecursionDepth('trace-1');
       expect(depth).toBe(12);
+    });
+
+    it('should return -1 on error to distinguish from no-entry', async () => {
+      mockSend.mockRejectedValue({ name: 'ResourceNotFoundException' });
+      const depth = await getRecursionDepth('trace-1');
+      expect(depth).toBe(-1);
     });
   });
 

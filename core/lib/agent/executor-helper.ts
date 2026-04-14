@@ -2,6 +2,7 @@ import { logger } from '../logger';
 import { AgentRegistry } from '../registry';
 import { DYNAMO_KEYS } from '../constants';
 import { Message, MessageRole } from '../types/index';
+import { estimateCostForTotal } from '../providers/pricing';
 import { AGENT_DEFAULTS, AGENT_LOG_MESSAGES } from './executor-types';
 import { Context as LambdaContext } from 'aws-lambda';
 
@@ -194,7 +195,7 @@ export class ExecutorHelper {
     }
 
     if (costLimit && costLimit > 0 && activeProvider && activeModel) {
-      const estimatedCost = ExecutorHelper.estimateCost(totalTokens, activeProvider, activeModel);
+      const estimatedCost = estimateCostForTotal(totalTokens, activeProvider, activeModel);
       if (estimatedCost > costLimit) {
         const costExceededMsg = `[COST_LIMIT_EXCEEDED] Cost limit of $${costLimit.toFixed(2)} exceeded. Estimated cost: $${estimatedCost.toFixed(2)}. Stopping execution.`;
         logger.warn(costExceededMsg);
@@ -217,38 +218,5 @@ export class ExecutorHelper {
     }
 
     return null;
-  }
-
-  /**
-   * Estimates USD cost for token usage based on provider/model pricing.
-   * Uses conservative default rates when exact pricing is unavailable.
-   */
-  private static estimateCost(totalTokens: number, provider: string, model: string): number {
-    const pricing: Record<string, Record<string, { input: number; output: number }>> = {
-      openai: {
-        'gpt-4o': { input: 2.5 / 1_000_000, output: 10 / 1_000_000 },
-        'gpt-4o-mini': { input: 0.15 / 1_000_000, output: 0.6 / 1_000_000 },
-        o3: { input: 10 / 1_000_000, output: 40 / 1_000_000 },
-        'o3-mini': { input: 1.1 / 1_000_000, output: 4.4 / 1_000_000 },
-      },
-      anthropic: {
-        'claude-sonnet-4-20250514': { input: 3 / 1_000_000, output: 15 / 1_000_000 },
-        'claude-opus-4-20250514': { input: 15 / 1_000_000, output: 75 / 1_000_000 },
-        'claude-haiku-3-5-20241022': { input: 0.8 / 1_000_000, output: 4 / 1_000_000 },
-      },
-      google: {
-        'gemini-2.5-pro': { input: 1.25 / 1_000_000, output: 10 / 1_000_000 },
-        'gemini-2.5-flash': { input: 0.15 / 1_000_000, output: 0.6 / 1_000_000 },
-      },
-    };
-
-    const modelPricing = pricing[provider]?.[model];
-    if (modelPricing) {
-      const avgRate = (modelPricing.input + modelPricing.output) / 2;
-      return totalTokens * avgRate;
-    }
-
-    const DEFAULT_RATE_PER_MILLION = 3;
-    return totalTokens * (DEFAULT_RATE_PER_MILLION / 1_000_000);
   }
 }

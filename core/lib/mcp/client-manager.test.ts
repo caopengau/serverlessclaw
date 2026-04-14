@@ -1,6 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MCPClientManager } from './client-manager';
 
+// Mock SST resources for CircuitBreaker
+vi.mock('sst', () => ({
+  Resource: {
+    ConfigTable: {
+      name: 'test-config-table',
+    },
+  },
+}));
+
 // Mock child_process for npx path resolution
 const mockExecSync = vi.fn().mockReturnValue('/usr/bin/npx\n');
 vi.mock('child_process', () => ({
@@ -79,6 +88,18 @@ vi.mock('../registry', () => ({
 }));
 
 let incrementCount = 0;
+
+const mockCB = {
+  canProceed: vi.fn().mockResolvedValue({ allowed: true }),
+  recordSuccess: vi.fn().mockResolvedValue({}),
+  recordFailure: vi.fn().mockResolvedValue({}),
+  reset: vi.fn().mockResolvedValue(undefined),
+};
+
+vi.mock('../safety', () => ({
+  getCircuitBreaker: vi.fn().mockReturnValue(mockCB),
+  resetCircuitBreakerInstance: vi.fn(),
+}));
 
 vi.mock('../logger', () => ({
   logger: {
@@ -177,6 +198,10 @@ describe('MCPClientManager', () => {
 
   it('triggers circuit breaker after repeated failures', async () => {
     mockConnect.mockRejectedValue(new Error('Connection failed'));
+    mockCB.canProceed.mockResolvedValueOnce({ allowed: true });
+    mockCB.canProceed.mockResolvedValueOnce({ allowed: true });
+    mockCB.canProceed.mockResolvedValueOnce({ allowed: true });
+    mockCB.canProceed.mockResolvedValue({ allowed: false, reason: 'Too many failures' });
 
     for (let i = 0; i < 3; i++) {
       await expect(
@@ -185,90 +210,39 @@ describe('MCPClientManager', () => {
     }
 
     await expect(MCPClientManager.connect('failing-server', 'http://localhost')).rejects.toThrow(
-      'Circuit breaker open for failing-server'
+      'Circuit breaker open for failing-server: Too many failures'
     );
-    expect(mockConnect).toHaveBeenCalledTimes(3);
+    expect(mockCB.recordFailure).toHaveBeenCalledTimes(3);
   });
 
-  it('respects persistent health from DynamoDB', async () => {
-    const { AgentRegistry } = await import('../registry');
-    vi.mocked(AgentRegistry.getRawConfig).mockResolvedValue({
-      status: 'down',
-      timestamp: Date.now(),
-    });
+  it('respects circuit breaker state', async () => {
+    mockCB.canProceed.mockResolvedValue({ allowed: false, reason: 'Circuit is open' });
 
     await expect(MCPClientManager.connect('down-server', 'http://localhost')).rejects.toThrow(
-      'Server down-server is currently down'
+      'Circuit breaker open for down-server: Circuit is open'
     );
     expect(mockConnect).not.toHaveBeenCalled();
   });
 
-  it('updates persistent health to up on successful connection', async () => {
-    const { AgentRegistry } = await import('../registry');
-
+  it('records success on successful connection', async () => {
+    mockCB.canProceed.mockResolvedValue({ allowed: true });
     await MCPClientManager.connect('health-server', 'http://localhost:9090');
 
-    expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
-      'mcp_health_health-server',
-      expect.objectContaining({ status: 'up' })
-    );
+    expect(mockCB.recordSuccess).toHaveBeenCalled();
   });
 
-  it('marks server as down after MAX_FAILURES', async () => {
+  it('records failure on connection error', async () => {
     mockConnect.mockRejectedValue(new Error('Connection failed'));
-    const { AgentRegistry } = await import('../registry');
+    mockCB.canProceed.mockResolvedValue({ allowed: true });
 
-    for (let i = 0; i < 3; i++) {
-      await expect(
-        MCPClientManager.connect('fail-mark-down', 'http://localhost')
-      ).rejects.toThrow();
-    }
+    await expect(MCPClientManager.connect('fail-server', 'http://localhost')).rejects.toThrow();
 
-    expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
-      'mcp_health_fail-mark-down',
-      expect.objectContaining({ status: 'down', count: 3 })
-    );
-  });
-
-  it('synchronizes failure count from global AgentRegistry', async () => {
-    const { AgentRegistry } = await import('../registry');
-    // Global state says 2 failures already happened elsewhere
-    vi.mocked(AgentRegistry.getRawConfig).mockResolvedValue({
-      status: 'degraded',
-      count: 2,
-      timestamp: Date.now(),
-    });
-
-    // This instance fails once
-    mockConnect.mockRejectedValue(new Error('Connection failed'));
-    await expect(
-      MCPClientManager.connect('sync-fail-server', 'http://localhost')
-    ).rejects.toThrow();
-
-    // Should now be at 3 failures globally (tripped)
-    expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
-      'mcp_health_sync-fail-server',
-      expect.objectContaining({ status: 'down', count: 3 })
-    );
-  });
-
-  it('trips circuit breaker immediately if global count is already high', async () => {
-    const { AgentRegistry } = await import('../registry');
-    // Global state already at MAX_FAILURES
-    vi.mocked(AgentRegistry.getRawConfig).mockResolvedValue({
-      status: 'down',
-      count: 3,
-      timestamp: Date.now(),
-    });
-
-    await expect(
-      MCPClientManager.connect('global-trip-server', 'http://localhost')
-    ).rejects.toThrow('Circuit breaker open for global-trip-server');
-    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockCB.recordFailure).toHaveBeenCalledWith('connection');
   });
 
   it('uses longer timeout for hub connections', async () => {
     process.env.MCP_HUB_URL = 'http://hub.example.com';
+    mockCB.canProceed.mockResolvedValue({ allowed: true });
 
     await MCPClientManager.connect('hub-server', 'http://hub.example.com/mcp');
 

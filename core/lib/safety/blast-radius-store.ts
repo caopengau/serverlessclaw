@@ -133,17 +133,19 @@ export class BlastRadiusStore {
     }
   }
 
+  /**
+   * Check if agent can execute action within blast radius limits.
+   * Uses canExecute internally for consistency.
+   */
   async checkLimit(agentId: string, action: string): Promise<{ allowed: boolean; count: number }> {
+    const result = await this.canExecute(agentId, action);
     const entry = await this.getBlastRadius(agentId, action);
-    const count = entry?.count ?? 0;
-
-    if (count >= LIMIT_PER_HOUR) {
-      return { allowed: false, count };
-    }
-
-    return { allowed: true, count };
+    return { allowed: result.allowed, count: entry?.count ?? 0 };
   }
 
+  /**
+   * Check if agent can execute action and return detailed result.
+   */
   async canExecute(agentId: string, action: string): Promise<{ allowed: boolean; error?: string }> {
     const entry = await this.getBlastRadius(agentId, action);
     const count = entry?.count ?? 0;

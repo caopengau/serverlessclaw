@@ -281,8 +281,11 @@ In a distributed swarm, preventing infinite loops requires more than a local cou
 
 To maintain environment hygiene without risking race conditions, the system follows a **Relaxed Release** pattern in the `LockManager`:
 
-- **Ownership Over Expiry**: An owner is permitted to release a lock `ConditionExpression: "ownerId = :owner"` regardless of whether the lock has already expired.
-- **Metadata Hygiene**: This allows processes that finish _exactly_ as a wall-clock timeout occurs to still clean up their lock metadata, ensuring that audit logs and telemetry remain clear for the next execution cycle.
+- **Ownership Check**: Before release, the lock state is checked to verify ownership and expiry status.
+- **Expired Lock Cleanup**: An owner can release even if the lock has expired (allows cleanup of stale locks after crashes).
+- **Condition**: Release uses `attribute_exists(ownerId) OR attribute_not_exists(ownerId)` to handle both active and expired states.
+
+> **Note**: The condition was updated from strict `ownerId = :owner` to allow cleanup of naturally expired locks that may have been cleared by DynamoDB TTL.
 
 ## Comparison: Lock vs Queue vs Parallel
 

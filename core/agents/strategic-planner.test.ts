@@ -355,7 +355,8 @@ describe('Strategic Planner — selective PLANNED marking', () => {
     expect(memoryMocks.setGap).toHaveBeenCalledWith(
       expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/),
       expect.stringContaining('[TOOL_OPTIMIZATION] Action: PRUNE, Tool: oldSearchTool'),
-      expect.any(Object)
+      expect.any(Object),
+      undefined
     );
   });
 });

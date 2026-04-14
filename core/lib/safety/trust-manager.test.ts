@@ -217,19 +217,19 @@ describe('TrustManager', () => {
 
       await TrustManager.decayTrustScores();
 
-      // AUTONOMY_THRESHOLD (>=95): 0.5 * 1.5 = 0.75 decay
+      // 96 < 97 (HYSTERESIS_MARGIN): gets 1.1x decay = 0.55 -> 95.45
       expect(mockAgentRegistry.atomicUpdateAgentField).toHaveBeenCalledWith(
         'high-trust',
         'trustScore',
-        95.25
+        95.45
       );
-      // 95 is exactly at AUTONOMY_THRESHOLD, gets 1.5x decay
+      // 95 >= 95 but < 97 (hysteresis zone): 0.5 * 1.1 = 0.55 decay -> 94.45
       expect(mockAgentRegistry.atomicUpdateAgentField).toHaveBeenCalledWith(
         'autonomy-trust',
         'trustScore',
-        94.25
+        94.45
       );
-      // >= 85: 0.5 * 1.2 = 0.6 decay
+      // >= 85: 0.5 * 1.2 = 0.6 decay -> 84.4
       expect(mockAgentRegistry.atomicUpdateAgentField).toHaveBeenCalledWith(
         'mid-trust',
         'trustScore',

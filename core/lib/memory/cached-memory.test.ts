@@ -89,7 +89,7 @@ describe('CachedMemory', () => {
       const result = await cached.getHistory('user1');
 
       expect(result).toEqual(messages);
-      expect(mockDynamo.getHistory).toHaveBeenCalledWith('user1');
+      expect(mockDynamo.getHistory).toHaveBeenCalledWith('user1', undefined);
     });
 
     it('should return cached value on cache hit', async () => {
@@ -124,7 +124,7 @@ describe('CachedMemory', () => {
 
       await cached.addMessage('user1', message as any);
 
-      expect(mockDynamo.addMessage).toHaveBeenCalledWith('user1', message);
+      expect(mockDynamo.addMessage).toHaveBeenCalledWith('user1', message, undefined);
       expect(MemoryCaches.conversation.has(CacheKeys.history('user1'))).toBe(false);
     });
 
@@ -170,7 +170,11 @@ describe('CachedMemory', () => {
 
       await cached.updateDistilledMemory('user1', 'new facts');
 
-      expect(mockDynamo.updateDistilledMemory).toHaveBeenCalledWith('user1', 'new facts');
+      expect(mockDynamo.updateDistilledMemory).toHaveBeenCalledWith(
+        'user1',
+        'new facts',
+        undefined
+      );
       expect(MemoryCaches.userData.has(CacheKeys.distilledMemory('user1'))).toBe(false);
     });
   });
@@ -194,7 +198,7 @@ describe('CachedMemory', () => {
 
       await cached.addLesson('user1', 'l2');
 
-      expect(mockDynamo.addLesson).toHaveBeenCalledWith('user1', 'l2', undefined);
+      expect(mockDynamo.addLesson).toHaveBeenCalledWith('user1', 'l2', undefined, undefined);
       expect(MemoryCaches.userData.has(CacheKeys.lessons('user1'))).toBe(false);
     });
   });
@@ -224,7 +228,7 @@ describe('CachedMemory', () => {
 
       await cached.updateSummary('user1', 'new summary');
 
-      expect(mockDynamo.updateSummary).toHaveBeenCalledWith('user1', 'new summary');
+      expect(mockDynamo.updateSummary).toHaveBeenCalledWith('user1', 'new summary', undefined);
       expect(MemoryCaches.conversation.has(CacheKeys.summary('user1'))).toBe(false);
     });
   });
@@ -277,6 +281,7 @@ describe('CachedMemory', () => {
         50,
         { lastKey: '123' },
         undefined,
+        undefined,
         undefined
       );
     });
@@ -300,7 +305,13 @@ describe('CachedMemory', () => {
       const result = await cached.addMemory('user1', 'category', 'content');
 
       expect(result).toBe(1);
-      expect(mockDynamo.addMemory).toHaveBeenCalledWith('user1', 'category', 'content', undefined);
+      expect(mockDynamo.addMemory).toHaveBeenCalledWith(
+        'user1',
+        'category',
+        'content',
+        undefined,
+        undefined
+      );
     });
   });
 
@@ -309,7 +320,7 @@ describe('CachedMemory', () => {
       mockDynamo.getAllGaps.mockResolvedValue([]);
       await cached.getAllGaps();
 
-      expect(mockDynamo.getAllGaps).toHaveBeenCalledWith('OPEN');
+      expect(mockDynamo.getAllGaps).toHaveBeenCalledWith('OPEN', undefined);
     });
 
     it('should cache gaps by status', async () => {
@@ -328,7 +339,7 @@ describe('CachedMemory', () => {
     it('should delegate and invalidate gaps cache', async () => {
       await cached.setGap('gap1', 'details');
 
-      expect(mockDynamo.setGap).toHaveBeenCalledWith('gap1', 'details', undefined);
+      expect(mockDynamo.setGap).toHaveBeenCalledWith('gap1', 'details', undefined, undefined);
     });
   });
 
@@ -336,7 +347,7 @@ describe('CachedMemory', () => {
     it('should delegate and invalidate gaps cache', async () => {
       await cached.updateGapStatus('gap1', 'RESOLVED' as any);
 
-      expect(mockDynamo.updateGapStatus).toHaveBeenCalledWith('gap1', 'RESOLVED');
+      expect(mockDynamo.updateGapStatus).toHaveBeenCalledWith('gap1', 'RESOLVED', undefined);
     });
   });
 
@@ -369,7 +380,7 @@ describe('CachedMemory', () => {
 
       await cached.clearHistory('user1');
 
-      expect(mockDynamo.clearHistory).toHaveBeenCalledWith('user1');
+      expect(mockDynamo.clearHistory).toHaveBeenCalledWith('user1', undefined);
       expect(MemoryCaches.conversation.has(CacheKeys.history('user1'))).toBe(false);
     });
   });
@@ -378,7 +389,7 @@ describe('CachedMemory', () => {
     it('should delegate and invalidate history cache', async () => {
       await cached.deleteConversation('user1', 'session1');
 
-      expect(mockDynamo.deleteConversation).toHaveBeenCalledWith('user1', 'session1');
+      expect(mockDynamo.deleteConversation).toHaveBeenCalledWith('user1', 'session1', undefined);
     });
   });
 
@@ -388,7 +399,7 @@ describe('CachedMemory', () => {
       const result = await cached.archiveStaleGaps(30);
 
       expect(result).toBe(3);
-      expect(mockDynamo.archiveStaleGaps).toHaveBeenCalledWith(30);
+      expect(mockDynamo.archiveStaleGaps).toHaveBeenCalledWith(30, undefined);
     });
   });
 
@@ -396,9 +407,14 @@ describe('CachedMemory', () => {
     it('should delegate and invalidate search cache', async () => {
       await cached.updateInsightMetadata('user1', 123, { category: 'LESSON' as any });
 
-      expect(mockDynamo.updateInsightMetadata).toHaveBeenCalledWith('user1', 123, {
-        category: 'LESSON',
-      });
+      expect(mockDynamo.updateInsightMetadata).toHaveBeenCalledWith(
+        'user1',
+        123,
+        {
+          category: 'LESSON',
+        },
+        undefined
+      );
     });
   });
 
@@ -406,15 +422,27 @@ describe('CachedMemory', () => {
     it('should invalidate search caches on refine', async () => {
       await cached.refineMemory('user1', 123, 'new content', { category: 'LESSON' as any });
 
-      expect(mockDynamo.refineMemory).toHaveBeenCalledWith('user1', 123, 'new content', {
-        category: 'LESSON',
-      });
+      expect(mockDynamo.refineMemory).toHaveBeenCalledWith(
+        'user1',
+        123,
+        'new content',
+        {
+          category: 'LESSON',
+        },
+        undefined
+      );
     });
 
     it('should not invalidate category pattern if no category in metadata', async () => {
       await cached.refineMemory('user1', 123, 'content');
 
-      expect(mockDynamo.refineMemory).toHaveBeenCalledWith('user1', 123, 'content', undefined);
+      expect(mockDynamo.refineMemory).toHaveBeenCalledWith(
+        'user1',
+        123,
+        'content',
+        undefined,
+        undefined
+      );
     });
   });
 
@@ -454,7 +482,11 @@ describe('CachedMemory', () => {
     it('should delegate and invalidate gaps cache', async () => {
       await cached.updateGapMetadata('gap1', { category: 'GAP' as any });
 
-      expect(mockDynamo.updateGapMetadata).toHaveBeenCalledWith('gap1', { category: 'GAP' });
+      expect(mockDynamo.updateGapMetadata).toHaveBeenCalledWith(
+        'gap1',
+        { category: 'GAP' },
+        undefined
+      );
     });
   });
 
@@ -473,7 +505,7 @@ describe('CachedMemory', () => {
       const result = await cached.listConversations('user1');
 
       expect(result).toEqual([{ id: 'c1' }]);
-      expect(mockDynamo.listConversations).toHaveBeenCalledWith('user1');
+      expect(mockDynamo.listConversations).toHaveBeenCalledWith('user1', undefined);
     });
 
     it('should delegate incrementGapAttemptCount', async () => {
@@ -486,23 +518,33 @@ describe('CachedMemory', () => {
     it('should delegate saveConversationMeta', async () => {
       await cached.saveConversationMeta('user1', 'sess1', { title: 't' });
 
-      expect(mockDynamo.saveConversationMeta).toHaveBeenCalledWith('user1', 'sess1', {
-        title: 't',
-      });
+      expect(mockDynamo.saveConversationMeta).toHaveBeenCalledWith(
+        'user1',
+        'sess1',
+        {
+          title: 't',
+        },
+        undefined
+      );
     });
 
     it('should delegate getMemoryByTypePaginated', async () => {
       mockDynamo.getMemoryByTypePaginated.mockResolvedValue({ items: [] });
       await cached.getMemoryByTypePaginated('type1', 10);
 
-      expect(mockDynamo.getMemoryByTypePaginated).toHaveBeenCalledWith('type1', 10, undefined);
+      expect(mockDynamo.getMemoryByTypePaginated).toHaveBeenCalledWith(
+        'type1',
+        10,
+        undefined,
+        undefined
+      );
     });
 
     it('should delegate getMemoryByType', async () => {
       mockDynamo.getMemoryByType.mockResolvedValue([]);
       await cached.getMemoryByType('type1');
 
-      expect(mockDynamo.getMemoryByType).toHaveBeenCalledWith('type1', undefined);
+      expect(mockDynamo.getMemoryByType).toHaveBeenCalledWith('type1', undefined, undefined);
     });
 
     it('should delegate getLowUtilizationMemory', async () => {
@@ -518,7 +560,7 @@ describe('CachedMemory', () => {
 
     it('should delegate recordMemoryHit', async () => {
       await cached.recordMemoryHit('user1', 123);
-      expect(mockDynamo.recordMemoryHit).toHaveBeenCalledWith('user1', 123);
+      expect(mockDynamo.recordMemoryHit).toHaveBeenCalledWith('user1', 123, undefined);
     });
 
     it('should delegate incrementRecoveryAttemptCount', async () => {
@@ -540,44 +582,50 @@ describe('CachedMemory', () => {
     it('should delegate saveClarificationRequest', async () => {
       const state = { traceId: 't1', agentId: 'a1' } as any;
       await cached.saveClarificationRequest(state);
-      expect(mockDynamo.saveClarificationRequest).toHaveBeenCalledWith(state);
+      expect(mockDynamo.saveClarificationRequest).toHaveBeenCalledWith(state, undefined);
     });
 
     it('should delegate getClarificationRequest', async () => {
       await cached.getClarificationRequest('t1', 'a1');
-      expect(mockDynamo.getClarificationRequest).toHaveBeenCalledWith('t1', 'a1');
+      expect(mockDynamo.getClarificationRequest).toHaveBeenCalledWith('t1', 'a1', undefined);
     });
 
     it('should delegate updateClarificationStatus', async () => {
       await cached.updateClarificationStatus('t1', 'a1', 'PENDING' as any);
-      expect(mockDynamo.updateClarificationStatus).toHaveBeenCalledWith('t1', 'a1', 'PENDING');
+      expect(mockDynamo.updateClarificationStatus).toHaveBeenCalledWith(
+        't1',
+        'a1',
+        'PENDING',
+        undefined
+      );
     });
 
     it('should delegate saveEscalationState', async () => {
       const state = {} as any;
       await cached.saveEscalationState(state);
-      expect(mockDynamo.saveEscalationState).toHaveBeenCalledWith(state);
+      expect(mockDynamo.saveEscalationState).toHaveBeenCalledWith(state, undefined);
     });
 
     it('should delegate getEscalationState', async () => {
       await cached.getEscalationState('t1', 'a1');
-      expect(mockDynamo.getEscalationState).toHaveBeenCalledWith('t1', 'a1');
+      expect(mockDynamo.getEscalationState).toHaveBeenCalledWith('t1', 'a1', undefined);
     });
 
     it('should delegate findExpiredClarifications', async () => {
       await cached.findExpiredClarifications();
-      expect(mockDynamo.findExpiredClarifications).toHaveBeenCalled();
+      expect(mockDynamo.findExpiredClarifications).toHaveBeenCalledWith(undefined);
     });
 
     it('should delegate incrementClarificationRetry', async () => {
       mockDynamo.incrementClarificationRetry.mockResolvedValue(2);
       const result = await cached.incrementClarificationRetry('t1', 'a1');
       expect(result).toBe(2);
+      expect(mockDynamo.incrementClarificationRetry).toHaveBeenCalledWith('t1', 'a1', undefined);
     });
 
     it('should delegate getCollaboration', async () => {
       await cached.getCollaboration('c1');
-      expect(mockDynamo.getCollaboration).toHaveBeenCalledWith('c1');
+      expect(mockDynamo.getCollaboration).toHaveBeenCalledWith('c1', undefined);
     });
 
     it('should delegate checkCollaborationAccess', async () => {
@@ -586,33 +634,38 @@ describe('CachedMemory', () => {
         'c1',
         'p1',
         'agent',
+        undefined,
         undefined
       );
     });
 
     it('should delegate closeCollaboration', async () => {
       await cached.closeCollaboration('c1', 'a1', 'agent' as any);
-      expect(mockDynamo.closeCollaboration).toHaveBeenCalledWith('c1', 'a1', 'agent');
+      expect(mockDynamo.closeCollaboration).toHaveBeenCalledWith('c1', 'a1', 'agent', undefined);
     });
 
     it('should delegate createCollaboration', async () => {
       await cached.createCollaboration('owner', 'agent' as any, {} as any);
-      expect(mockDynamo.createCollaboration).toHaveBeenCalledWith('owner', 'agent', {});
+      expect(mockDynamo.createCollaboration).toHaveBeenCalledWith('owner', 'agent', {}, undefined);
     });
 
     it('should delegate listCollaborationsForParticipant', async () => {
       await cached.listCollaborationsForParticipant('p1', 'agent' as any);
-      expect(mockDynamo.listCollaborationsForParticipant).toHaveBeenCalledWith('p1', 'agent');
+      expect(mockDynamo.listCollaborationsForParticipant).toHaveBeenCalledWith(
+        'p1',
+        'agent',
+        undefined
+      );
     });
 
     it('should delegate getFailurePatterns', async () => {
       await cached.getFailurePatterns('scope1', 'ctx', 10);
-      expect(mockDynamo.getFailurePatterns).toHaveBeenCalledWith('scope1', 'ctx', 10);
+      expect(mockDynamo.getFailurePatterns).toHaveBeenCalledWith('scope1', 'ctx', 10, undefined);
     });
 
     it('should delegate acquireGapLock', async () => {
       await cached.acquireGapLock('gap1', 'agent1', 5000);
-      expect(mockDynamo.acquireGapLock).toHaveBeenCalledWith('gap1', 'agent1', 5000);
+      expect(mockDynamo.acquireGapLock).toHaveBeenCalledWith('gap1', 'agent1', 5000, undefined);
     });
 
     it('should delegate releaseGapLock', async () => {
@@ -621,18 +674,19 @@ describe('CachedMemory', () => {
         'gap1',
         'agent1',
         undefined,
+        undefined,
         undefined
       );
     });
 
     it('should delegate getGapLock', async () => {
       await cached.getGapLock('gap1');
-      expect(mockDynamo.getGapLock).toHaveBeenCalledWith('gap1');
+      expect(mockDynamo.getGapLock).toHaveBeenCalledWith('gap1', undefined);
     });
 
     it('should delegate getFailedPlans', async () => {
       await cached.getFailedPlans(5);
-      expect(mockDynamo.getFailedPlans).toHaveBeenCalledWith(5);
+      expect(mockDynamo.getFailedPlans).toHaveBeenCalledWith(5, undefined);
     });
   });
 

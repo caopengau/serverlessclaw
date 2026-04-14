@@ -644,21 +644,35 @@ export async function assignGapToTrack(
   base: TrackStore,
   gapId: string,
   track: EvolutionTrack,
-  priority?: number
+  priority?: number,
+  workspaceId?: string
 ): Promise<void> {
   const defaults = TRACK_DEFAULTS[track] ?? { maxConcurrentGaps: 3, priority: 5 };
   const { expiresAt } = await RetentionManager.getExpiresAt('GAP', '');
   const normalizedId = normalizeGapId(gapId);
 
-  const transitionResult = await updateGapStatus(base as never, gapId, GapStatus.PLANNED);
+  const transitionResult = await updateGapStatus(
+    base as never,
+    gapId,
+    GapStatus.PLANNED,
+    workspaceId
+  );
   if (!transitionResult.success) {
     throw new Error(
       `[GapTrack] Failed to transition ${normalizedId} to PLANNED before track assignment: ${transitionResult.error ?? 'unknown error'}`
     );
   }
 
+  // Helper function to get scoped userId if base has the method, otherwise use prefix
+  const getScopedUserId = (id: string, wid?: string) => {
+    if ('getScopedUserId' in base && typeof base.getScopedUserId === 'function') {
+      return base.getScopedUserId(id, wid);
+    }
+    return wid ? `WS#${wid}#${id}` : id;
+  };
+
   await base.putItem({
-    userId: `${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`,
+    userId: getScopedUserId(`${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`, workspaceId),
     timestamp: 0,
     type: 'TRACK_ASSIGNMENT',
     gapId: normalizedId,
@@ -667,6 +681,7 @@ export async function assignGapToTrack(
     assignedAt: Date.now(),
     createdAt: Date.now(),
     expiresAt,
+    workspaceId,
   });
 
   logger.info(`[GapTrack] Assigned gap ${normalizedId} to track: ${track}`);
@@ -677,15 +692,25 @@ export async function assignGapToTrack(
  */
 export async function getGapTrack(
   base: TrackStore,
-  gapId: string
+  gapId: string,
+  workspaceId?: string
 ): Promise<{ track: EvolutionTrack; priority: number } | null> {
   const normalizedId = normalizeGapId(gapId);
+
+  // Helper function to get scoped userId if base has the method, otherwise use prefix
+  const getScopedUserId = (id: string, wid?: string) => {
+    if ('getScopedUserId' in base && typeof base.getScopedUserId === 'function') {
+      return base.getScopedUserId(id, wid);
+    }
+    return wid ? `WS#${wid}#${id}` : id;
+  };
+
   try {
     const items = await base.queryItems({
       KeyConditionExpression: 'userId = :pk AND #ts = :zero',
       ExpressionAttributeNames: { '#ts': 'timestamp' },
       ExpressionAttributeValues: {
-        ':pk': `${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`,
+        ':pk': getScopedUserId(`${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`, workspaceId),
         ':zero': 0,
       },
     });

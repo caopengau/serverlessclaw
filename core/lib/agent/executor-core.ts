@@ -21,6 +21,7 @@ import {
 } from './executor-types';
 import { ExecutorHelper } from './executor-helper';
 import { ToolExecutor } from './tool-executor';
+import { estimateCost as calcCost } from '../providers/pricing';
 import { getSemanticLoopDetector, TrustManager } from '../safety';
 
 /**
@@ -650,36 +651,7 @@ export class ExecutorCore {
   }
 
   private estimateCost(usage: ExecutorUsage, provider?: string, model?: string): number {
-    const pricing: Record<string, Record<string, { input: number; output: number }>> = {
-      openai: {
-        'gpt-4o': { input: 2.5 / 1_000_000, output: 10 / 1_000_000 },
-        'gpt-4o-mini': { input: 0.15 / 1_000_000, output: 0.6 / 1_000_000 },
-        o3: { input: 10 / 1_000_000, output: 40 / 1_000_000 },
-        'o3-mini': { input: 1.1 / 1_000_000, output: 4.4 / 1_000_000 },
-      },
-      anthropic: {
-        'claude-sonnet-4-20250514': { input: 3 / 1_000_000, output: 15 / 1_000_000 },
-        'claude-opus-4-20250514': { input: 15 / 1_000_000, output: 75 / 1_000_000 },
-        'claude-haiku-3-5-20241022': { input: 0.8 / 1_000_000, output: 4 / 1_000_000 },
-      },
-      google: {
-        'gemini-2.5-pro': { input: 1.25 / 1_000_000, output: 10 / 1_000_000 },
-        'gemini-2.5-flash': { input: 0.15 / 1_000_000, output: 0.6 / 1_000_000 },
-      },
-    };
-
-    const modelPricing = pricing[provider ?? '']?.[model ?? ''];
-    if (modelPricing) {
-      return (
-        usage.totalInputTokens * modelPricing.input + usage.totalOutputTokens * modelPricing.output
-      );
-    }
-
-    const DEFAULT_INPUT_RATE = 3 / 1_000_000;
-    const DEFAULT_OUTPUT_RATE = 15 / 1_000_000;
-    return (
-      usage.totalInputTokens * DEFAULT_INPUT_RATE + usage.totalOutputTokens * DEFAULT_OUTPUT_RATE
-    );
+    return calcCost(usage.totalInputTokens, usage.totalOutputTokens, provider, model);
   }
 
   private async callLLM(

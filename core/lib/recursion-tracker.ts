@@ -51,7 +51,7 @@ export async function pushRecursionEntry(
         },
         UpdateExpression:
           'SET #depth = :depth, sessionId = :sessionId, agentId = :agentId, createdAt = :now, expiresAt = :exp, #type = :type',
-        ConditionExpression: 'attribute_not_exists(#depth) OR #depth < :depth',
+        ConditionExpression: 'attribute_not_exists(#depth)',
         ExpressionAttributeNames: {
           '#type': 'type',
           '#depth': 'depth',
@@ -112,7 +112,7 @@ export async function pushRecursionEntry(
 /**
  * Get the current recursion depth for a trace
  * @param traceId - The trace ID for the execution chain
- * @returns Current depth or 0 if no entry exists
+ * @returns Current depth, -1 on error (sentinel value to distinguish from no entry)
  */
 export async function getRecursionDepth(traceId: string): Promise<number> {
   try {
@@ -133,7 +133,7 @@ export async function getRecursionDepth(traceId: string): Promise<number> {
     return 0;
   } catch (error) {
     logger.warn(`[RECURSION] Failed to get depth for ${traceId}:`, error);
-    return 0;
+    return -1; // Return -1 to distinguish errors from no-entry (0)
   }
 }
 /**

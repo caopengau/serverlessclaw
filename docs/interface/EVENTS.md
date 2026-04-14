@@ -129,17 +129,25 @@ Standard event types and their default priority levels are centrally defined to 
   [ Agent Router ] -- (Principle 14 Guard) -> [ Selection Integrity ] -- FAIL --> [ Fallback ]
           |                                         (Verify Enabled)
           v
-  [ Recursion Guard ] -- (Principle 15) -> [ Atomic Push ] -- LIMIT HIT --> [ FAIL SAFE ]
-          |                                (Trace Depth)
-          v
+  [ Recursion Guard ] -- (Principle 15) -> [ Atomic Push ] -- FAIL --> [ Increment Retry ]
+          |                                (Existence Check)         (Concurrent Safety)
+          |                                         |
+          v                                         v
   [ Agent Executor ] -- (Lock Acquisition) -> [ Session Lock ]
-          |
-          v
+          |                                          |
+          v                                          v
   [ Tool Executor ] -- (Shield Gate) -> [ Safety Engine ]
           |
           v
   [ Trace Table ] -- (Unified failTrace) -> [ Recovery Event ]
 ```
+
+**Recursion Flow Details:**
+
+- **First Entry**: Uses `attribute_not_exists(#depth)` to atomically set initial depth
+- **Concurrent Pushes**: On `ConditionalCheckFailedException`, attempts atomic increment with `depth = :currentDepth` condition
+- **TTL**: Normal traces use 1-hour TTL; mission-critical contexts use 30-minute TTL
+- **Error Handling**: Database failures return `-1` (sentinel) to distinguish from no-entry (`0`)
 
 ## Bus Lifecycle (Reserve-then-Commit)
 

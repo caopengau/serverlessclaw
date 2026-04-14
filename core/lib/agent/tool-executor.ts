@@ -11,7 +11,6 @@ import { logger } from '../logger';
 import { AgentRegistry } from '../registry';
 import { ClawTracer } from '../tracer';
 import { TRACE_TYPES } from '../constants';
-import { SafetyEngine, getCircuitBreaker } from '../safety';
 
 export interface ToolExecutionContext {
   traceId: string;
@@ -73,8 +72,7 @@ export class ToolExecutor {
           attachments,
           execContext,
           tracer,
-          approvedToolCalls,
-          execContext.agentConfig
+          approvedToolCalls
         );
 
         if (result.ui_blocks) ui_blocks.push(...result.ui_blocks);
@@ -108,8 +106,7 @@ export class ToolExecutor {
           localAttachments,
           execContext,
           tracer,
-          approvedToolCalls,
-          execContext.agentConfig
+          approvedToolCalls
         );
 
         return { result, localMessages, localAttachments };
@@ -149,8 +146,7 @@ export class ToolExecutor {
     attachments: NonNullable<Message['attachments']>,
     execContext: ToolExecutionContext,
     tracer: ClawTracer,
-    approvedToolCalls?: string[],
-    agentConfig?: import('../types/index').IAgentConfig
+    approvedToolCalls?: string[]
   ): Promise<{
     paused?: boolean;
     responseText?: string;
@@ -188,155 +184,39 @@ export class ToolExecutor {
       return { toolCallCount: 0 };
     }
 
-    // 1.5 Approval & Evolution Context
-    const { EvolutionMode } = await import('../types/agent');
-    const evolutionMode = agentConfig?.evolutionMode ?? EvolutionMode.HITL;
+    // 1.5 Security Validation
+    const { ToolSecurityValidator } = await import('./tool-security');
+    const securityResult = await ToolSecurityValidator.validate(
+      tool,
+      toolCall,
+      args,
+      execContext,
+      approvedToolCalls
+    );
 
-    // Support both ID and Semantic Fingerprint for manual approvals
-    const { createHash } = await import('crypto');
-    const toolCallFingerprint = createHash('sha256')
-      .update(`${toolCall.function.name}:${toolCall.function.arguments}`)
-      .digest('hex');
+    if (!securityResult.allowed) {
+      if (securityResult.requiresApproval) {
+        return {
+          asyncWait: true,
+          toolCallCount: 0,
+          paused: true,
+          responseText: securityResult.reason,
+        };
+      }
 
-    // 1.5 Safety Engine Evaluation (The Shield) - Centralized enforcement
-    const safety = new SafetyEngine();
-    const resourcePath = (args.path ||
-      args.filePath ||
-      args.resource ||
-      args.destination ||
-      args.source) as string | undefined;
-
-    const safetyResult = await safety.evaluateAction(execContext.agentConfig, tool.name, {
-      toolName: tool.name,
-      resource: resourcePath,
-      traceId: execContext.traceId,
-      userId: execContext.userId,
-      args, // Full arguments for heuristic scanning
-      pathKeys: tool.pathKeys,
-    });
-
-    // 1.6 Circuit Breaker Check (System-level protection)
-    const cb = getCircuitBreaker();
-    const cbResult = await cb.canProceed('autonomous');
-    if (!cbResult.allowed) {
-      logger.error(`[EXECUTOR] System Circuit Breaker is OPEN: ${cbResult.reason}`);
       messages.push({
         role: MessageRole.TOOL,
         tool_call_id: toolCall.id,
         name: toolCall.function.name,
-        content: `FAILED: System-level safety block active (Circuit Breaker OPEN). ${cbResult.reason}`,
+        content: `FAILED: ${securityResult.reason}`,
         traceId: execContext.traceId,
         messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       });
       return { toolCallCount: 0 };
     }
 
-    const isApproved =
-      approvedToolCalls?.includes(toolCall.id) || approvedToolCalls?.includes(toolCallFingerprint);
-
-    // Hard block check: if not allowed and not explicitly approved by user
-    if (!safetyResult.allowed && !isApproved) {
-      logger.warn(
-        `[SECURITY] Action blocked for agent '${execContext.agentId}': ${safetyResult.reason}`
-      );
-      messages.push({
-        role: MessageRole.TOOL,
-        tool_call_id: toolCall.id,
-        name: toolCall.function.name,
-        content: `FAILED: PERMISSION_DENIED - ${safetyResult.reason}`,
-        traceId: execContext.traceId,
-        messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      });
-      return { toolCallCount: 0 };
-    }
-
-    const requiresApproval = safetyResult.requiresApproval || tool.requiresApproval;
-
-    // If evolutionMode is AUTO, we treat it as approved if the Safety Engine allowed it (bypassing approval requirements)
-    // However, tool-specific requiresApproval (not from safetyResult) should still be respected in AUTO mode
-    const safetyAllowsInAutoMode = evolutionMode === EvolutionMode.AUTO && safetyResult.allowed;
-    const effectiveApproved = isApproved || (safetyAllowsInAutoMode && !tool.requiresApproval);
-
-    // CRITICAL SECURITY: Clear any self-approval attempt by the agent immediately if not in AUTO mode and not already approved.
-    if (args.manuallyApproved === true && !effectiveApproved) {
-      logger.warn(
-        `[SECURITY] Agent '${execContext.agentId}' attempted to self-approve tool '${tool.name}'.`
-      );
-      messages.push({
-        role: MessageRole.TOOL,
-        tool_call_id: toolCall.id,
-        name: toolCall.function.name,
-        content: `FAILED: PERMISSION_DENIED - Self-approval is not allowed for this tool in current mode.`,
-        traceId: execContext.traceId,
-        messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      });
-      return { toolCallCount: 0 };
-    }
-
-    if (requiresApproval && !effectiveApproved) {
-      logger.info(
-        `Tool ${tool.name} (Fingerprint: ${toolCallFingerprint}) requires human approval. Reason: ${safetyResult.reason}. Pausing...`
-      );
-      return {
-        asyncWait: true,
-        toolCallCount: 0,
-        paused: true,
-        responseText: safetyResult.reason,
-      };
-    }
-
-    // 1.7 RBAC Check
-    if (tool.requiredPermissions && tool.requiredPermissions.length > 0) {
-      let hasPermission = false;
-      try {
-        const { BaseMemoryProvider } = await import('../memory/base');
-        const { IdentityManager } = await import('../session/identity');
-        const identity = new IdentityManager(new BaseMemoryProvider());
-
-        // System-initiated calls or AUTO mode (if system-owned) bypass initial RBAC
-        if (!execContext.userId || execContext.userId === 'SYSTEM') {
-          hasPermission = true;
-        } else {
-          for (const perm of tool.requiredPermissions) {
-            hasPermission = await identity.hasPermission(
-              execContext.userId,
-              perm as any,
-              execContext.workspaceId
-            );
-            if (!hasPermission) break;
-          }
-        }
-      } catch (error) {
-        logger.error(`RBAC check failed for tool ${tool.name}:`, error);
-        hasPermission = false;
-      }
-
-      if (!hasPermission) {
-        logger.warn(`RBAC validation failed for user ${execContext.userId} on tool ${tool.name}`);
-        messages.push({
-          role: MessageRole.TOOL,
-          tool_call_id: toolCall.id,
-          name: toolCall.function.name,
-          content: `FAILED: Unauthorized. You do not have the required permissions (${tool.requiredPermissions.join(', ')}) to execute this tool.`,
-          traceId: execContext.traceId,
-          messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-        });
-        return { toolCallCount: 0 };
-      }
-    }
-
-    if (evolutionMode === EvolutionMode.AUTO || effectiveApproved) {
-      if (args.manuallyApproved !== true && safetyResult.allowed) {
-        logger.info(
-          `[SECURITY] Activating 'manuallyApproved: true' for tool ${tool.name} (AUTO/Approved mode and safety cleared).`
-        );
-        args.manuallyApproved = true;
-      }
-    } else if (args.manuallyApproved === true && !isApproved) {
-      logger.warn(
-        `[SECURITY] Agent attempted self-approval of protected resource in tool ${tool.name} (HITL mode). Blocked.`
-      );
-      args.manuallyApproved = false; // Block self-approval attempt in HITL/Default
+    if (securityResult.modifiedArgs) {
+      args = securityResult.modifiedArgs;
     }
 
     const contextArgs: Record<string, unknown> = {

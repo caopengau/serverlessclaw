@@ -241,6 +241,7 @@ export class TrustManager {
   /**
    * Periodically decays trust scores to ensure autonomy is continuously earned.
    * Decay applies to all agents above minimum score - higher scores decay more aggressively.
+   * Uses hysteresis around autonomy threshold to prevent oscillation (Issue 1).
    * This should be called by a scheduled process (e.g. Metabolism).
    */
   static async decayTrustScores(): Promise<void> {
@@ -255,7 +256,12 @@ export class TrustManager {
         let decayAmount = this.DECAY_RATE;
 
         if (config.trustScore >= TRUST.AUTONOMY_THRESHOLD) {
-          decayAmount = this.DECAY_RATE * 1.5;
+          const HYSTERESIS_MARGIN = 2;
+          if (config.trustScore >= TRUST.AUTONOMY_THRESHOLD + HYSTERESIS_MARGIN) {
+            decayAmount = this.DECAY_RATE * 1.5;
+          } else {
+            decayAmount = this.DECAY_RATE * 1.1;
+          }
         } else if (config.trustScore >= 85) {
           decayAmount = this.DECAY_RATE * 1.2;
         }

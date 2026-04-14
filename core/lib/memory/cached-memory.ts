@@ -45,8 +45,8 @@ export class CachedMemory implements IMemory {
    * Gets conversation history with caching.
    * Cache is invalidated when new messages are added.
    */
-  async getHistory(userId: string): Promise<Message[]> {
-    const cacheKey = CacheKeys.history(userId);
+  async getHistory(userId: string, workspaceId?: string): Promise<Message[]> {
+    const cacheKey = CacheKeys.history(userId, workspaceId);
     const cached = MemoryCaches.conversation.get(cacheKey) as Message[] | undefined;
 
     if (cached) {
@@ -62,7 +62,7 @@ export class CachedMemory implements IMemory {
     }
 
     logger.debug(`Cache miss for history: ${userId}`);
-    const promise = this.underlying.getHistory(userId).finally(() => {
+    const promise = this.underlying.getHistory(userId, workspaceId).finally(() => {
       this.historyPromises.delete(cacheKey);
     });
 
@@ -78,20 +78,20 @@ export class CachedMemory implements IMemory {
   /**
    * Adds a message and invalidates relevant caches.
    */
-  async addMessage(userId: string, message: Message): Promise<void> {
-    await this.underlying.addMessage(userId, message);
+  async addMessage(userId: string, message: Message, workspaceId?: string): Promise<void> {
+    await this.underlying.addMessage(userId, message, workspaceId);
 
     // Invalidate conversation cache for this user
-    MemoryCaches.conversation.delete(CacheKeys.history(userId));
-    MemoryCaches.conversation.delete(CacheKeys.summary(userId));
+    MemoryCaches.conversation.delete(CacheKeys.history(userId, workspaceId));
+    MemoryCaches.conversation.delete(CacheKeys.summary(userId, workspaceId));
   }
 
   /**
    * Gets distilled memory with caching.
    * Uses 5 minute TTL for user data.
    */
-  async getDistilledMemory(userId: string): Promise<string> {
-    const cacheKey = CacheKeys.distilledMemory(userId);
+  async getDistilledMemory(userId: string, workspaceId?: string): Promise<string> {
+    const cacheKey = CacheKeys.distilledMemory(userId, workspaceId);
     const cached = MemoryCaches.userData.get(cacheKey) as string | undefined;
 
     if (cached !== undefined) {
@@ -100,7 +100,7 @@ export class CachedMemory implements IMemory {
     }
 
     logger.debug(`Cache miss for distilled memory: ${userId}`);
-    const distilled = await this.underlying.getDistilledMemory(userId);
+    const distilled = await this.underlying.getDistilledMemory(userId, workspaceId);
 
     // Cache distilled memory with 5 minute TTL
     MemoryCaches.userData.set(cacheKey, distilled, 5 * 60 * 1000);
@@ -111,18 +111,18 @@ export class CachedMemory implements IMemory {
   /**
    * Updates distilled memory and invalidates cache.
    */
-  async updateDistilledMemory(userId: string, facts: string): Promise<void> {
-    await this.underlying.updateDistilledMemory(userId, facts);
+  async updateDistilledMemory(userId: string, facts: string, workspaceId?: string): Promise<void> {
+    await this.underlying.updateDistilledMemory(userId, facts, workspaceId);
 
     // Invalidate user data cache
-    MemoryCaches.userData.delete(CacheKeys.distilledMemory(userId));
+    MemoryCaches.userData.delete(CacheKeys.distilledMemory(userId, workspaceId));
   }
 
   /**
    * Gets lessons with caching.
    */
-  async getLessons(userId: string): Promise<string[]> {
-    const cacheKey = CacheKeys.lessons(userId);
+  async getLessons(userId: string, workspaceId?: string): Promise<string[]> {
+    const cacheKey = CacheKeys.lessons(userId, workspaceId);
     const cached = MemoryCaches.userData.get(cacheKey) as string[] | undefined;
 
     if (cached) {
@@ -131,7 +131,7 @@ export class CachedMemory implements IMemory {
     }
 
     logger.debug(`Cache miss for lessons: ${userId}`);
-    const lessons = await this.underlying.getLessons(userId);
+    const lessons = await this.underlying.getLessons(userId, workspaceId);
 
     // Cache lessons with 5 minute TTL
     MemoryCaches.userData.set(cacheKey, lessons, 5 * 60 * 1000);
@@ -142,18 +142,23 @@ export class CachedMemory implements IMemory {
   /**
    * Adds a lesson and invalidates cache.
    */
-  async addLesson(userId: string, lesson: string, metadata?: InsightMetadata): Promise<void> {
-    await this.underlying.addLesson(userId, lesson, metadata);
+  async addLesson(
+    userId: string,
+    lesson: string,
+    metadata?: Partial<InsightMetadata> & { tags?: string[] },
+    workspaceId?: string
+  ): Promise<void> {
+    await this.underlying.addLesson(userId, lesson, metadata as InsightMetadata, workspaceId);
 
     // Invalidate lessons cache
-    MemoryCaches.userData.delete(CacheKeys.lessons(userId));
+    MemoryCaches.userData.delete(CacheKeys.lessons(userId, workspaceId));
   }
 
   /**
    * Gets conversation summary with caching.
    */
-  async getSummary(userId: string): Promise<string | null> {
-    const cacheKey = CacheKeys.summary(userId);
+  async getSummary(userId: string, workspaceId?: string): Promise<string | null> {
+    const cacheKey = CacheKeys.summary(userId, workspaceId);
     const cached = MemoryCaches.conversation.get(cacheKey) as string | null | undefined;
 
     if (cached !== undefined) {
@@ -162,7 +167,7 @@ export class CachedMemory implements IMemory {
     }
 
     logger.debug(`Cache miss for summary: ${userId}`);
-    const summary = await this.underlying.getSummary(userId);
+    const summary = await this.underlying.getSummary(userId, workspaceId);
 
     // Cache summary with 2 minute TTL
     MemoryCaches.conversation.set(cacheKey, summary, 2 * 60 * 1000);
@@ -173,11 +178,11 @@ export class CachedMemory implements IMemory {
   /**
    * Updates summary and invalidates cache.
    */
-  async updateSummary(userId: string, summary: string): Promise<void> {
-    await this.underlying.updateSummary(userId, summary);
+  async updateSummary(userId: string, summary: string, workspaceId?: string): Promise<void> {
+    await this.underlying.updateSummary(userId, summary, workspaceId);
 
     // Invalidate summary cache
-    MemoryCaches.conversation.delete(CacheKeys.summary(userId));
+    MemoryCaches.conversation.delete(CacheKeys.summary(userId, workspaceId));
   }
 
   /**
@@ -225,7 +230,8 @@ export class CachedMemory implements IMemory {
     limit: number = 50,
     lastEvaluatedKey?: Record<string, unknown>,
     tags?: string[],
-    orgId?: string
+    orgId?: string,
+    workspaceId?: string
   ): Promise<{ items: MemoryInsight[]; lastEvaluatedKey?: Record<string, unknown> }> {
     // Don't cache paginated results
     if (lastEvaluatedKey) {
@@ -236,11 +242,19 @@ export class CachedMemory implements IMemory {
         limit,
         lastEvaluatedKey,
         tags,
-        orgId
+        orgId,
+        workspaceId
       );
     }
 
-    const cacheKey = CacheKeys.insightsSearch(userId ?? 'global', query, category, tags, orgId);
+    const cacheKey = CacheKeys.insightsSearch(
+      userId ?? 'global',
+      query,
+      category,
+      tags,
+      orgId,
+      workspaceId
+    );
     const cached = MemoryCaches.search.get(cacheKey) as
       | {
           items: MemoryInsight[];
@@ -261,7 +275,8 @@ export class CachedMemory implements IMemory {
       limit,
       undefined,
       tags,
-      orgId
+      orgId,
+      workspaceId
     );
 
     // Cache search results with 3 minute TTL
@@ -277,9 +292,16 @@ export class CachedMemory implements IMemory {
     scopeId: string,
     category: InsightCategory | string,
     content: string,
-    metadata?: Partial<InsightMetadata>
+    metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] },
+    workspaceId?: string
   ): Promise<number | string> {
-    const result = await this.underlying.addMemory(scopeId, category, content, metadata);
+    const result = await this.underlying.addMemory(
+      scopeId,
+      category,
+      content,
+      metadata,
+      workspaceId
+    );
 
     // Invalidate search caches that might be affected
     MemoryCaches.search.invalidatePattern(new RegExp(`^insights:${scopeId}:`));
@@ -290,8 +312,11 @@ export class CachedMemory implements IMemory {
   /**
    * Gets all gaps with caching by status.
    */
-  async getAllGaps(status: GapStatus = GapStatus.OPEN): Promise<MemoryInsight[]> {
-    const cacheKey = CacheKeys.gapsByStatus(status);
+  async getAllGaps(
+    status: GapStatus = GapStatus.OPEN,
+    workspaceId?: string
+  ): Promise<MemoryInsight[]> {
+    const cacheKey = CacheKeys.gapsByStatus(status, workspaceId);
     const cached = MemoryCaches.global.get(cacheKey) as MemoryInsight[] | undefined;
 
     if (cached) {
@@ -300,7 +325,7 @@ export class CachedMemory implements IMemory {
     }
 
     logger.debug(`Cache miss for gaps by status: ${status}`);
-    const gaps = await this.underlying.getAllGaps(status);
+    const gaps = await this.underlying.getAllGaps(status, workspaceId);
 
     // Cache gaps with 5 minute TTL
     MemoryCaches.global.set(cacheKey, gaps, 5 * 60 * 1000);
@@ -311,8 +336,13 @@ export class CachedMemory implements IMemory {
   /**
    * Sets a gap and invalidates cache.
    */
-  async setGap(gapId: string, details: string, metadata?: InsightMetadata): Promise<void> {
-    await this.underlying.setGap(gapId, details, metadata);
+  async setGap(
+    gapId: string,
+    details: string,
+    metadata?: InsightMetadata,
+    workspaceId?: string
+  ): Promise<void> {
+    await this.underlying.setGap(gapId, details, metadata, workspaceId);
 
     // Invalidate gaps cache
     MemoryCaches.global.invalidatePattern(/^gaps:/);
@@ -321,8 +351,12 @@ export class CachedMemory implements IMemory {
   /**
    * Updates gap status and invalidates cache.
    */
-  async updateGapStatus(gapId: string, status: GapStatus): Promise<GapTransitionResult> {
-    const result = await this.underlying.updateGapStatus(gapId, status);
+  async updateGapStatus(
+    gapId: string,
+    status: GapStatus,
+    workspaceId?: string
+  ): Promise<GapTransitionResult> {
+    const result = await this.underlying.updateGapStatus(gapId, status, workspaceId);
 
     // Invalidate gaps cache
     MemoryCaches.global.invalidatePattern(/^gaps:/);
@@ -334,10 +368,11 @@ export class CachedMemory implements IMemory {
    * Gets user preferences with caching.
    */
   async searchInsightsForPreferences(
-    userId: string
+    userId: string,
+    workspaceId?: string
   ): Promise<{ prefixed: MemoryInsight[]; raw: MemoryInsight[] }> {
-    const prefixedKey = `${userId}-prefixed`;
-    const rawKey = `${userId}-raw`;
+    const prefixedKey = `${userId}-prefixed${workspaceId ? `-${workspaceId}` : ''}`;
+    const rawKey = `${userId}-raw${workspaceId ? `-${workspaceId}` : ''}`;
 
     const cachedPrefixed = MemoryCaches.userData.get(prefixedKey) as MemoryInsight[] | undefined;
     const cachedRaw = MemoryCaches.userData.get(rawKey) as MemoryInsight[] | undefined;
@@ -349,8 +384,26 @@ export class CachedMemory implements IMemory {
 
     logger.debug(`Cache miss for user preferences: ${userId}`);
     const [prefixed, raw] = await Promise.all([
-      this.underlying.searchInsights(`USER#${userId}`, '*', InsightCategory.USER_PREFERENCE),
-      this.underlying.searchInsights(userId, '*', InsightCategory.USER_PREFERENCE),
+      this.underlying.searchInsights(
+        `USER#${userId}`,
+        '*',
+        InsightCategory.USER_PREFERENCE,
+        50,
+        undefined,
+        undefined,
+        undefined,
+        workspaceId
+      ),
+      this.underlying.searchInsights(
+        userId,
+        '*',
+        InsightCategory.USER_PREFERENCE,
+        50,
+        undefined,
+        undefined,
+        undefined,
+        workspaceId
+      ),
     ]);
 
     // Cache preferences with 5 minute TTL
@@ -361,29 +414,29 @@ export class CachedMemory implements IMemory {
   }
 
   // Delegate all other methods directly to underlying memory
-  async clearHistory(userId: string): Promise<void> {
-    await this.underlying.clearHistory(userId);
-    MemoryCaches.conversation.delete(CacheKeys.history(userId));
-    MemoryCaches.conversation.delete(CacheKeys.summary(userId));
+  async clearHistory(userId: string, workspaceId?: string): Promise<void> {
+    await this.underlying.clearHistory(userId, workspaceId);
+    MemoryCaches.conversation.delete(CacheKeys.history(userId, workspaceId));
+    MemoryCaches.conversation.delete(CacheKeys.summary(userId, workspaceId));
   }
 
-  async listConversations(userId: string): Promise<ConversationMeta[]> {
-    return this.underlying.listConversations(userId);
+  async listConversations(userId: string, workspaceId?: string): Promise<ConversationMeta[]> {
+    return this.underlying.listConversations(userId, workspaceId);
   }
 
-  async deleteConversation(userId: string, sessionId: string): Promise<void> {
-    await this.underlying.deleteConversation(userId, sessionId);
-    MemoryCaches.conversation.delete(CacheKeys.history(userId));
+  async deleteConversation(userId: string, sessionId: string, workspaceId?: string): Promise<void> {
+    await this.underlying.deleteConversation(userId, sessionId, workspaceId);
+    MemoryCaches.conversation.delete(CacheKeys.history(userId, workspaceId));
   }
 
-  async archiveStaleGaps(staleDays?: number): Promise<number> {
-    const result = await this.underlying.archiveStaleGaps(staleDays);
+  async archiveStaleGaps(staleDays?: number, workspaceId?: string): Promise<number> {
+    const result = await this.underlying.archiveStaleGaps(staleDays, workspaceId);
     MemoryCaches.global.invalidatePattern(/^gaps:/);
     return result;
   }
 
-  async incrementGapAttemptCount(gapId: string): Promise<number> {
-    const result = await this.underlying.incrementGapAttemptCount(gapId);
+  async incrementGapAttemptCount(gapId: string, workspaceId?: string): Promise<number> {
+    const result = await this.underlying.incrementGapAttemptCount(gapId, workspaceId);
     // 1.9 Invalidate gaps cache since attempt count changed
     MemoryCaches.global.invalidatePattern(/^gaps:/);
     return result;
@@ -392,9 +445,10 @@ export class CachedMemory implements IMemory {
   async updateInsightMetadata(
     userId: string,
     timestamp: number | string,
-    metadata: Partial<InsightMetadata>
+    metadata: Partial<InsightMetadata>,
+    workspaceId?: string
   ): Promise<void> {
-    await this.underlying.updateInsightMetadata(userId, timestamp, metadata);
+    await this.underlying.updateInsightMetadata(userId, timestamp, metadata, workspaceId);
     MemoryCaches.search.invalidatePattern(new RegExp(`^insights:${userId}:`));
   }
 
@@ -402,9 +456,10 @@ export class CachedMemory implements IMemory {
     userId: string,
     timestamp: number | string,
     content?: string,
-    metadata?: Partial<InsightMetadata>
+    metadata?: Partial<InsightMetadata> & { tags?: string[] },
+    workspaceId?: string
   ): Promise<void> {
-    await this.underlying.refineMemory(userId, timestamp, content, metadata);
+    await this.underlying.refineMemory(userId, timestamp, content, metadata, workspaceId);
     // Invalidate search caches for this user
     MemoryCaches.search.invalidatePattern(new RegExp(`^insights:${userId}:`));
     // Also invalidate specific category if known
@@ -416,23 +471,29 @@ export class CachedMemory implements IMemory {
   async saveConversationMeta(
     userId: string,
     sessionId: string,
-    meta: Partial<ConversationMeta>
+    meta: Partial<ConversationMeta>,
+    workspaceId?: string
   ): Promise<void> {
-    await this.underlying.saveConversationMeta(userId, sessionId, meta);
-    MemoryCaches.conversation.delete(CacheKeys.history(userId));
-    MemoryCaches.conversation.delete(CacheKeys.summary(userId));
+    await this.underlying.saveConversationMeta(userId, sessionId, meta, workspaceId);
+    MemoryCaches.conversation.delete(CacheKeys.history(userId, workspaceId));
+    MemoryCaches.conversation.delete(CacheKeys.summary(userId, workspaceId));
   }
 
   async getMemoryByTypePaginated(
     type: string,
     limit?: number,
-    lastEvaluatedKey?: Record<string, unknown>
+    lastEvaluatedKey?: Record<string, unknown>,
+    workspaceId?: string
   ): Promise<{ items: Record<string, unknown>[]; lastEvaluatedKey?: Record<string, unknown> }> {
-    return this.underlying.getMemoryByTypePaginated(type, limit, lastEvaluatedKey);
+    return this.underlying.getMemoryByTypePaginated(type, limit, lastEvaluatedKey, workspaceId);
   }
 
-  async getMemoryByType(type: string, limit?: number): Promise<Record<string, unknown>[]> {
-    return this.underlying.getMemoryByType(type, limit);
+  async getMemoryByType(
+    type: string,
+    limit?: number,
+    workspaceId?: string
+  ): Promise<Record<string, unknown>[]> {
+    return this.underlying.getMemoryByType(type, limit, workspaceId);
   }
 
   async getLowUtilizationMemory(limit?: number): Promise<Record<string, unknown>[]> {
@@ -443,8 +504,12 @@ export class CachedMemory implements IMemory {
     return this.underlying.getRegisteredMemoryTypes();
   }
 
-  async recordMemoryHit(userId: string, timestamp: number | string): Promise<void> {
-    await this.underlying.recordMemoryHit(userId, timestamp);
+  async recordMemoryHit(
+    userId: string,
+    timestamp: number | string,
+    workspaceId?: string
+  ): Promise<void> {
+    await this.underlying.recordMemoryHit(userId, timestamp, workspaceId);
   }
 
   async saveLKGHash(hash: string): Promise<void> {
@@ -479,84 +544,105 @@ export class CachedMemory implements IMemory {
   }
 
   async saveClarificationRequest(
-    state: Omit<import('../types/memory').ClarificationState, 'type' | 'expiresAt' | 'timestamp'>
+    state: Omit<import('../types/memory').ClarificationState, 'type' | 'expiresAt' | 'timestamp'>,
+    workspaceId?: string
   ): Promise<void> {
-    await this.underlying.saveClarificationRequest(state);
+    await this.underlying.saveClarificationRequest(state, workspaceId);
   }
 
   async getClarificationRequest(
     traceId: string,
-    agentId: string
+    agentId: string,
+    workspaceId?: string
   ): Promise<import('../types/memory').ClarificationState | null> {
-    return this.underlying.getClarificationRequest(traceId, agentId);
+    return this.underlying.getClarificationRequest(traceId, agentId, workspaceId);
   }
 
   async updateClarificationStatus(
     traceId: string,
     agentId: string,
-    status: import('../types/memory').ClarificationStatus
+    status: import('../types/memory').ClarificationStatus,
+    workspaceId?: string
   ): Promise<void> {
-    await this.underlying.updateClarificationStatus(traceId, agentId, status);
+    await this.underlying.updateClarificationStatus(traceId, agentId, status, workspaceId);
   }
 
-  async saveEscalationState(state: import('../types/escalation').EscalationState): Promise<void> {
-    await this.underlying.saveEscalationState(state);
+  async saveEscalationState(
+    state: import('../types/escalation').EscalationState,
+    workspaceId?: string
+  ): Promise<void> {
+    await this.underlying.saveEscalationState(state, workspaceId);
   }
 
   async getEscalationState(
     traceId: string,
-    agentId: string
+    agentId: string,
+    workspaceId?: string
   ): Promise<import('../types/escalation').EscalationState | null> {
-    return this.underlying.getEscalationState(traceId, agentId);
+    return this.underlying.getEscalationState(traceId, agentId, workspaceId);
   }
 
-  async findExpiredClarifications(): Promise<import('../types/memory').ClarificationState[]> {
-    return this.underlying.findExpiredClarifications();
+  async findExpiredClarifications(
+    workspaceId?: string
+  ): Promise<import('../types/memory').ClarificationState[]> {
+    return this.underlying.findExpiredClarifications(workspaceId);
   }
 
-  async incrementClarificationRetry(traceId: string, agentId: string): Promise<number> {
-    return this.underlying.incrementClarificationRetry(traceId, agentId);
+  async incrementClarificationRetry(
+    traceId: string,
+    agentId: string,
+    workspaceId?: string
+  ): Promise<number> {
+    return this.underlying.incrementClarificationRetry(traceId, agentId, workspaceId);
   }
 
   // Collaboration Operations
 
-  async getCollaboration(collaborationId: string): Promise<Collaboration | null> {
-    return this.underlying.getCollaboration(collaborationId);
+  async getCollaboration(
+    collaborationId: string,
+    workspaceId?: string
+  ): Promise<Collaboration | null> {
+    return this.underlying.getCollaboration(collaborationId, workspaceId);
   }
 
   async checkCollaborationAccess(
     collaborationId: string,
     participantId: string,
     participantType: ParticipantType,
-    requiredRole?: CollaborationRole
+    requiredRole?: CollaborationRole,
+    workspaceId?: string
   ): Promise<boolean> {
     return this.underlying.checkCollaborationAccess(
       collaborationId,
       participantId,
       participantType,
-      requiredRole
+      requiredRole,
+      workspaceId
     );
   }
 
   async closeCollaboration(
     collaborationId: string,
     actorId: string,
-    actorType: ParticipantType
+    actorType: ParticipantType,
+    workspaceId?: string
   ): Promise<void> {
-    return this.underlying.closeCollaboration(collaborationId, actorId, actorType);
+    return this.underlying.closeCollaboration(collaborationId, actorId, actorType, workspaceId);
   }
 
   async createCollaboration(
     ownerId: string,
     ownerType: ParticipantType,
-    input: import('../types/collaboration').CreateCollaborationInput
+    input: import('../types/collaboration').CreateCollaborationInput,
+    workspaceId?: string
   ): Promise<Collaboration> {
-    return this.underlying.createCollaboration(ownerId, ownerType, input);
+    return this.underlying.createCollaboration(ownerId, ownerType, input, workspaceId);
   }
 
   async listCollaborationsForParticipant(
     participantId: string,
-    participantType: ParticipantType
+    participantType: ParticipantType,
+    workspaceId?: string
   ): Promise<
     Array<{
       collaborationId: string;
@@ -564,15 +650,25 @@ export class CachedMemory implements IMemory {
       collaborationName: string;
     }>
   > {
-    return this.underlying.listCollaborationsForParticipant(participantId, participantType);
+    return this.underlying.listCollaborationsForParticipant(
+      participantId,
+      participantType,
+      workspaceId
+    );
   }
 
   async recordFailurePattern(
     scopeId: string,
     content: string,
-    metadata?: Partial<InsightMetadata>
+    metadata?: Partial<InsightMetadata>,
+    workspaceId?: string
   ): Promise<number | string> {
-    const result = await this.underlying.recordFailurePattern(scopeId, content, metadata);
+    const result = await this.underlying.recordFailurePattern(
+      scopeId,
+      content,
+      metadata,
+      workspaceId
+    );
     MemoryCaches.search.invalidatePattern(/^insights:/);
     return result;
   }
@@ -580,38 +676,60 @@ export class CachedMemory implements IMemory {
   async getFailurePatterns(
     scopeId: string,
     context?: string,
-    limit?: number
+    limit?: number,
+    workspaceId?: string
   ): Promise<MemoryInsight[]> {
-    return this.underlying.getFailurePatterns(scopeId, context, limit);
+    return this.underlying.getFailurePatterns(scopeId, context, limit, workspaceId);
   }
 
-  async acquireGapLock(gapId: string, agentId: string, ttlMs?: number): Promise<boolean> {
-    return this.underlying.acquireGapLock(gapId, agentId, ttlMs);
+  async acquireGapLock(
+    gapId: string,
+    agentId: string,
+    ttlMs?: number,
+    workspaceId?: string
+  ): Promise<boolean> {
+    return this.underlying.acquireGapLock(gapId, agentId, ttlMs, workspaceId);
   }
 
   async releaseGapLock(
     gapId: string,
     agentId: string,
     expectedVersion?: number,
-    force?: boolean
+    force?: boolean,
+    workspaceId?: string
   ): Promise<void> {
-    await this.underlying.releaseGapLock(gapId, agentId, expectedVersion, force);
+    await this.underlying.releaseGapLock(gapId, agentId, expectedVersion, force, workspaceId);
   }
 
   async getGapLock(
-    gapId: string
+    gapId: string,
+    workspaceId?: string
   ): Promise<{ agentId: string; expiresAt: number; lockVersion?: number } | null> {
-    return this.underlying.getGapLock(gapId);
+    return this.underlying.getGapLock(gapId, workspaceId);
   }
 
-  async getGap(gapId: string): Promise<MemoryInsight | null> {
-    return this.underlying.getGap(gapId);
+  async getGap(gapId: string, workspaceId?: string): Promise<MemoryInsight | null> {
+    const cacheKey = CacheKeys.gap(gapId, workspaceId);
+    const cached = MemoryCaches.global.get(cacheKey) as MemoryInsight | null | undefined;
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const gap = await this.underlying.getGap(gapId, workspaceId);
+    MemoryCaches.global.set(cacheKey, gap, 5 * 60 * 1000);
+    return gap;
   }
 
-  async updateGapMetadata(gapId: string, metadata: Partial<InsightMetadata>): Promise<void> {
-    await this.underlying.updateGapMetadata(gapId, metadata);
+  async updateGapMetadata(
+    gapId: string,
+    metadata: Partial<InsightMetadata>,
+    workspaceId?: string
+  ): Promise<void> {
+    await this.underlying.updateGapMetadata(gapId, metadata, workspaceId);
     // Invalidate gaps cache since metadata changed
     MemoryCaches.global.invalidatePattern(/^gaps:/);
+    MemoryCaches.global.delete(CacheKeys.gap(gapId, workspaceId));
   }
 
   async recordFailedPlan(
@@ -619,21 +737,23 @@ export class CachedMemory implements IMemory {
     planContent: string,
     gapIds: string[],
     failureReason: string,
-    metadata?: Partial<InsightMetadata>
+    metadata?: Partial<InsightMetadata>,
+    workspaceId?: string
   ): Promise<number | string> {
     const result = await this.underlying.recordFailedPlan(
       planHash,
       planContent,
       gapIds,
       failureReason,
-      metadata
+      metadata,
+      workspaceId
     );
     MemoryCaches.search.invalidatePattern(/^insights:/);
     return result;
   }
 
-  async getFailedPlans(limit?: number): Promise<MemoryInsight[]> {
-    return this.underlying.getFailedPlans(limit);
+  async getFailedPlans(limit?: number, workspaceId?: string): Promise<MemoryInsight[]> {
+    return this.underlying.getFailedPlans(limit, workspaceId);
   }
 
   /**

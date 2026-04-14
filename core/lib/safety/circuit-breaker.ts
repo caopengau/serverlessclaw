@@ -6,10 +6,8 @@ import { reportHealthIssue } from '../lifecycle/health';
 import { addTraceStep } from '../utils/trace-helper';
 import { TRACE_TYPES } from '../constants';
 
-const STATE_KEY = 'circuit_breaker_state';
-
 export type CircuitBreakerStates = 'closed' | 'open' | 'half_open';
-export type FailureType = 'deploy' | 'health';
+export type FailureType = 'deploy' | 'health' | 'connection';
 
 interface FailureEntry {
   timestamp: number;
@@ -47,63 +45,6 @@ function freshState(): CircuitBreakerStateData {
   };
 }
 
-async function loadState(): Promise<CircuitBreakerStateData> {
-  const db = getDocClient();
-  try {
-    const { Item } = await db.send(
-      new GetCommand({
-        TableName: getConfigTableName(),
-        Key: { key: STATE_KEY },
-      })
-    );
-    if (Item?.value && typeof Item.value === 'object' && 'state' in Item.value) {
-      const loaded = Item.value as Partial<CircuitBreakerStateData>;
-      return {
-        state: (loaded.state as CircuitBreakerStates) ?? 'closed',
-        failures: Array.isArray(loaded.failures) ? loaded.failures : [],
-        halfOpenProbes: loaded.halfOpenProbes ?? 0,
-        lastStateChange: loaded.lastStateChange ?? Date.now(),
-        lastFailureTime: loaded.lastFailureTime ?? 0,
-        version: loaded.version ?? 1,
-        emergencyDeployCount: loaded.emergencyDeployCount ?? 0,
-        emergencyDeployWindowStart: loaded.emergencyDeployWindowStart ?? Date.now(),
-      };
-    }
-  } catch (e) {
-    logger.warn('Failed to load circuit breaker state, starting fresh:', e);
-  }
-  return freshState();
-}
-
-async function saveState(state: CircuitBreakerStateData): Promise<void> {
-  const db = getDocClient();
-  const oldVersion = state.version;
-  state.version += 1;
-
-  try {
-    await db.send(
-      new PutCommand({
-        TableName: getConfigTableName(),
-        Item: { key: STATE_KEY, value: state },
-        ConditionExpression: 'attribute_not_exists(#v) OR #v.version = :oldVersion',
-        ExpressionAttributeNames: {
-          '#v': 'value',
-        },
-        ExpressionAttributeValues: {
-          ':oldVersion': oldVersion,
-        },
-      })
-    );
-  } catch (e) {
-    if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
-      throw e;
-    }
-    logger.error('Failed to save circuit breaker state:', e);
-    if (e instanceof Error) throw e;
-    throw new Error(String(e));
-  }
-}
-
 function pruneOldFailures(failures: FailureEntry[] | undefined, windowMs: number): FailureEntry[] {
   if (!failures) return [];
   const cutoff = Date.now() - windowMs;
@@ -111,6 +52,69 @@ function pruneOldFailures(failures: FailureEntry[] | undefined, windowMs: number
 }
 
 export class CircuitBreaker {
+  private readonly stateKey: string;
+
+  constructor(key: string = 'circuit_breaker_state') {
+    this.stateKey = key;
+  }
+
+  private async loadState(): Promise<CircuitBreakerStateData> {
+    const db = getDocClient();
+    try {
+      const { Item } = await db.send(
+        new GetCommand({
+          TableName: getConfigTableName(),
+          Key: { key: this.stateKey },
+        })
+      );
+      if (Item?.value && typeof Item.value === 'object' && 'state' in Item.value) {
+        const loaded = Item.value as Partial<CircuitBreakerStateData>;
+        return {
+          state: (loaded.state as CircuitBreakerStates) ?? 'closed',
+          failures: Array.isArray(loaded.failures) ? loaded.failures : [],
+          halfOpenProbes: loaded.halfOpenProbes ?? 0,
+          lastStateChange: loaded.lastStateChange ?? Date.now(),
+          lastFailureTime: loaded.lastFailureTime ?? 0,
+          version: loaded.version ?? 1,
+          emergencyDeployCount: loaded.emergencyDeployCount ?? 0,
+          emergencyDeployWindowStart: loaded.emergencyDeployWindowStart ?? Date.now(),
+        };
+      }
+    } catch (e) {
+      logger.warn(`Failed to load circuit breaker state for ${this.stateKey}, starting fresh:`, e);
+    }
+    return freshState();
+  }
+
+  private async saveState(state: CircuitBreakerStateData): Promise<void> {
+    const db = getDocClient();
+    const oldVersion = state.version;
+    state.version += 1;
+
+    try {
+      await db.send(
+        new PutCommand({
+          TableName: getConfigTableName(),
+          Item: { key: this.stateKey, value: state },
+          ConditionExpression: 'attribute_not_exists(#v) OR #v.version = :oldVersion',
+          ExpressionAttributeNames: {
+            '#v': 'value',
+          },
+          ExpressionAttributeValues: {
+            ':oldVersion': oldVersion,
+          },
+        })
+      );
+    } catch (e) {
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+        throw e;
+      }
+      logger.error(`Failed to save circuit breaker state for ${this.stateKey}:`, e);
+      if (e instanceof Error) throw e;
+      throw new Error(String(e));
+    }
+  }
+
   /**
    * Generic retry wrapper for concurrent DynamoDB updates.
    * Retries up to MAX_RETRIES with exponential backoff and jitter on contention.
@@ -125,9 +129,7 @@ export class CircuitBreaker {
         return await fn();
       } catch (e: unknown) {
         lastError = e;
-        // Only retry on concurrent modification errors - use type check for reliability
         if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
-          // Exponential backoff with jitter: base * 2^i + random(0, base)
           const delay = BASE_DELAY_MS * Math.pow(2, i) + Math.random() * BASE_DELAY_MS;
           logger.warn(
             `Circuit breaker retry ${i + 1}/${MAX_RETRIES} after ${Math.round(delay)}ms due to concurrent modification`
@@ -142,9 +144,6 @@ export class CircuitBreaker {
     throw new Error(String(lastError));
   }
 
-  /**
-   * Records a failure and returns the new state.
-   */
   async recordFailure(
     type: FailureType,
     context?: { userId?: string; traceId?: string }
@@ -157,7 +156,7 @@ export class CircuitBreaker {
     context?: { userId?: string; traceId?: string }
   ): Promise<CircuitBreakerStateData> {
     const windowMs = await this.getWindowMs();
-    let state = await loadState();
+    let state = await this.loadState();
     const now = Date.now();
 
     const threshold = await this.getThreshold();
@@ -167,7 +166,9 @@ export class CircuitBreaker {
     const previousState = state.state;
 
     if (state.state === 'half_open') {
-      logger.warn(`Circuit Breaker: Probe failed in half-open state. Reopening.`);
+      logger.warn(
+        `Circuit Breaker (${this.stateKey}): Probe failed in half-open state. Reopening.`
+      );
       state = {
         ...state,
         state: 'open',
@@ -180,7 +181,7 @@ export class CircuitBreaker {
     } else if (state.state === 'closed') {
       if (prunedFailures.length + 1 >= threshold) {
         logger.warn(
-          `Circuit Breaker: ${prunedFailures.length + 1} failures in sliding window (threshold: ${threshold}). Opening circuit.`
+          `Circuit Breaker (${this.stateKey}): ${prunedFailures.length + 1} failures in sliding window (threshold: ${threshold}). Opening circuit.`
         );
         state = {
           ...state,
@@ -205,9 +206,8 @@ export class CircuitBreaker {
       };
     }
 
-    await saveState(state);
+    await this.saveState(state);
 
-    // Trace: Circuit breaker state change
     if (stateChanged && context?.traceId) {
       await addTraceStep(context.traceId, 'root', {
         type: TRACE_TYPES.CIRCUIT_BREAKER,
@@ -219,6 +219,7 @@ export class CircuitBreaker {
           threshold,
           windowMs,
           reason: `Circuit breaker transitioned from ${previousState} to ${state.state}`,
+          key: this.stateKey,
         },
         metadata: { event: 'circuit_breaker_state_change', newState: state.state },
       });
@@ -227,30 +228,27 @@ export class CircuitBreaker {
     if (state.state === 'open' && context?.userId) {
       await reportHealthIssue({
         component: 'CircuitBreaker',
-        issue: `Circuit breaker opened after ${state.failures.length} failures (type: ${type})`,
+        issue: `Circuit breaker ${this.stateKey} opened after ${state.failures.length} failures (type: ${type})`,
         severity: 'high',
         userId: context.userId,
         traceId: context.traceId,
-        context: { failureType: type, threshold, windowMs },
+        context: { failureType: type, threshold, windowMs, key: this.stateKey },
       });
     }
 
     return state;
   }
 
-  /**
-   * Records a success and returns the new state.
-   */
   async recordSuccess(): Promise<CircuitBreakerStateData> {
     return this.withRetry(() => this._recordSuccessInternal());
   }
 
   private async _recordSuccessInternal(): Promise<CircuitBreakerStateData> {
-    const state = await loadState();
+    const state = await this.loadState();
     const now = Date.now();
 
     if (state.state === 'half_open') {
-      logger.info('Circuit Breaker: Probe succeeded. Closing circuit.');
+      logger.info(`Circuit Breaker (${this.stateKey}): Probe succeeded. Closing circuit.`);
       const updated: CircuitBreakerStateData = {
         ...state,
         state: 'closed',
@@ -259,34 +257,31 @@ export class CircuitBreaker {
         failures: [],
       };
 
-      // Trace: Circuit breaker recovery (no traceId needed - this is a system event)
       await addTraceStep('system', 'root', {
         type: TRACE_TYPES.CIRCUIT_BREAKER,
         content: {
           previousState: 'half_open',
           newState: 'closed',
           reason: 'Probe succeeded, circuit closed.',
+          key: this.stateKey,
         },
         metadata: { event: 'circuit_breaker_recovered' },
       });
 
-      await saveState(updated);
+      await this.saveState(updated);
       return updated;
     } else if (state.state === 'closed') {
       const updated: CircuitBreakerStateData = {
         ...state,
         failures: pruneOldFailures(state.failures, await this.getWindowMs()),
       };
-      await saveState(updated);
+      await this.saveState(updated);
       return updated;
     }
 
     return state;
   }
 
-  /**
-   * Checks if a deployment can proceed based on circuit breaker state.
-   */
   async canProceed(deployType: 'autonomous' | 'emergency'): Promise<CanProceedResult> {
     return this.withRetry(() => this._canProceedInternal(deployType));
   }
@@ -294,14 +289,12 @@ export class CircuitBreaker {
   private async _canProceedInternal(
     deployType: 'autonomous' | 'emergency'
   ): Promise<CanProceedResult> {
-    const state = await loadState();
+    const state = await this.loadState();
 
-    // Emergency deployments: apply rate limiting instead of complete bypass
     if (deployType === 'emergency') {
       const now = Date.now();
-      const emergencyWindowMs = 3600000; // 1 hour window
+      const emergencyWindowMs = 3600000;
 
-      // Reset window if expired
       if (now - state.emergencyDeployWindowStart > emergencyWindowMs) {
         state.emergencyDeployCount = 0;
         state.emergencyDeployWindowStart = now;
@@ -314,10 +307,9 @@ export class CircuitBreaker {
         CONFIG_DEFAULTS.CIRCUIT_BREAKER_EMERGENCY_RATE_LIMIT.code
       );
 
-      // Allow max emergency deployments per hour
       if (state.emergencyDeployCount >= emergencyRateLimit) {
         logger.warn(
-          `Circuit Breaker: Emergency deployment rate limit exceeded (${state.emergencyDeployCount}/hr)`
+          `Circuit Breaker (${this.stateKey}): Emergency deployment rate limit exceeded (${state.emergencyDeployCount}/hr)`
         );
         return {
           allowed: false,
@@ -327,11 +319,12 @@ export class CircuitBreaker {
         };
       }
 
-      // Increment counter for this emergency deployment
       state.emergencyDeployCount += 1;
-      await saveState(state);
+      await this.saveState(state);
 
-      logger.warn('Circuit Breaker: Emergency deployment approved with rate limiting.');
+      logger.warn(
+        `Circuit Breaker (${this.stateKey}): Emergency deployment approved with rate limiting.`
+      );
       return {
         allowed: true,
         reason: 'EMERGENCY_BYPASS_WITH_RATE_LIMIT',
@@ -376,7 +369,7 @@ export class CircuitBreaker {
 
       state.state = 'half_open';
       state.lastStateChange = Date.now();
-      await saveState(state);
+      await this.saveState(state);
 
       return {
         allowed: true,
@@ -394,7 +387,6 @@ export class CircuitBreaker {
         CONFIG_DEFAULTS.CIRCUIT_BREAKER_HALF_OPEN_MAX.code
       );
 
-      // If we've exceeded max probes in half-open state, block further attempts
       if (state.halfOpenProbes >= halfOpenMax) {
         return {
           allowed: false,
@@ -404,9 +396,8 @@ export class CircuitBreaker {
         };
       }
 
-      // Increment probe count only on actual probe attempts (not on state transition)
       state.halfOpenProbes += 1;
-      await saveState(state);
+      await this.saveState(state);
 
       return {
         allowed: true,
@@ -424,7 +415,7 @@ export class CircuitBreaker {
   }
 
   async getState(): Promise<CircuitBreakerStateData> {
-    const state = await loadState();
+    const state = await this.loadState();
     const windowMs = await this.getWindowMs();
     return {
       ...state,
@@ -433,8 +424,8 @@ export class CircuitBreaker {
   }
 
   async reset(): Promise<void> {
-    await saveState(freshState());
-    logger.info('Circuit Breaker: Manual reset to closed state.');
+    await this.saveState(freshState());
+    logger.info(`Circuit Breaker (${this.stateKey}): Manual reset to closed state.`);
   }
 
   private async getWindowMs(): Promise<number> {
@@ -456,15 +447,19 @@ export class CircuitBreaker {
   }
 }
 
-let _instance: CircuitBreaker | null = null;
+const _instances: Map<string, CircuitBreaker> = new Map();
 
-export function getCircuitBreaker(): CircuitBreaker {
-  if (!_instance) {
-    _instance = new CircuitBreaker();
+export function getCircuitBreaker(key: string = 'circuit_breaker_state'): CircuitBreaker {
+  if (!_instances.has(key)) {
+    _instances.set(key, new CircuitBreaker(key));
   }
-  return _instance;
+  return _instances.get(key)!;
 }
 
-export function resetCircuitBreakerInstance(): void {
-  _instance = null;
+export function resetCircuitBreakerInstance(key?: string): void {
+  if (key) {
+    _instances.delete(key);
+  } else {
+    _instances.clear();
+  }
 }

@@ -114,7 +114,7 @@ export interface ConversationMeta {
  */
 export interface IHistoryStore {
   /** Retrieves the conversation history for a specific user or session. */
-  getHistory(userId: string): Promise<Message[]>;
+  getHistory(userId: string, workspaceId?: string): Promise<Message[]>;
   /** Appends a new message to the conversation history. */
   addMessage(userId: string, message: Message, workspaceId?: string): Promise<void>;
   /** Clears the conversation history for a specific user or session. */

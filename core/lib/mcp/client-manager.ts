@@ -42,10 +42,6 @@ export class MCPClientManager {
     }
   }
 
-  private static failureCounts: Map<string, { count: number; lastFailure: number }> = new Map();
-  private static readonly FAILURE_RESET_MS = 60000; // 1 minute
-  private static readonly MAX_FAILURES = 3;
-
   /**
    * Connect to an MCP server.
    * Supports multiple transport types:
@@ -74,65 +70,13 @@ export class MCPClientManager {
 
     // 2. Prepare the connection promise
     connectingPromise = (async () => {
-      const { AgentRegistry } = await import('../registry');
+      const { getCircuitBreaker } = await import('../safety');
+      const cb = getCircuitBreaker(`mcp_health_${serverName}`);
+      const cbResult = await cb.canProceed('autonomous');
 
-      // Check persistent health and global failure counts (B1: Global Circuit Breaker)
-      const persistentHealth = (await AgentRegistry.getRawConfig(`mcp_health_${serverName}`)) as {
-        status: string;
-        count?: number;
-        lastFailure?: number;
-        timestamp: number;
-      } | null;
-
-      // Sync local failure count with global state
-      // B1 Fix: Add timestamp check to prevent stale counts from incorrectly tripping circuit
-      if (persistentHealth?.count !== undefined) {
-        const localFailure = this.failureCounts.get(serverName);
-        const lastFailureTime = persistentHealth.lastFailure ?? persistentHealth.timestamp;
-        const globalIsFresh = Date.now() - lastFailureTime < this.FAILURE_RESET_MS;
-        if (globalIsFresh && (!localFailure || persistentHealth.count > localFailure.count)) {
-          this.failureCounts.set(serverName, {
-            count: persistentHealth.count,
-            lastFailure: lastFailureTime,
-          });
-        } else if (!globalIsFresh && persistentHealth?.status !== 'up') {
-          // Clear stale global state in both local memory and DynamoDB
-          this.failureCounts.delete(serverName);
-          AgentRegistry.saveRawConfig(`mcp_health_${serverName}`, {
-            status: 'up',
-            count: 0,
-            timestamp: Date.now(),
-          }).catch((err) =>
-            logger.warn(`Failed to clear stale global health for ${serverName}:`, err)
-          );
-        }
-      }
-
-      const failure = this.failureCounts.get(serverName);
-      if (failure && failure.count >= this.MAX_FAILURES) {
-        const backoffExponent = failure.count - this.MAX_FAILURES + 1;
-        const backoffFactor = Math.pow(2, Math.min(backoffExponent, 4));
-        const retryDelay = this.FAILURE_RESET_MS * backoffFactor;
-        const timeSinceFailure = Date.now() - (failure.lastFailure ?? 0);
-
-        if (timeSinceFailure < retryDelay) {
-          logger.warn(
-            `Circuit breaker OPEN for ${serverName} (Global count: ${failure.count}). Retrying in ${Math.round((retryDelay - timeSinceFailure) / 1000)}s`
-          );
-          throw new Error(
-            `Circuit breaker open for ${serverName} after ${failure.count} failures. Retrying in ${Math.round((retryDelay - timeSinceFailure) / 1000)}s`
-          );
-        } else {
-          logger.info(`Circuit breaker HALF-OPEN for ${serverName}, attempting probe connection.`);
-        }
-      }
-
-      if (
-        persistentHealth?.status === 'down' &&
-        Date.now() - persistentHealth.timestamp < this.FAILURE_RESET_MS
-      ) {
-        logger.warn(`Server ${serverName} is marked as DOWN globally. skipping.`);
-        throw new Error(`Server ${serverName} is currently down.`);
+      if (!cbResult.allowed) {
+        logger.warn(`Circuit breaker OPEN for ${serverName}: ${cbResult.reason}`);
+        throw new Error(`Circuit breaker open for ${serverName}: ${cbResult.reason}`);
       }
 
       logger.info(`Starting new connection for ${serverName}`);
@@ -220,32 +164,9 @@ export class MCPClientManager {
       try {
         await Promise.race([newClient.connect(transport), timeoutPromise]);
         clearTimeout(timeoutId!);
-        // Success - clear failures and update persistent health
-        this.failureCounts.delete(serverName);
-        await AgentRegistry.saveRawConfig(`mcp_health_${serverName}`, {
-          status: 'up',
-          count: 0,
-          timestamp: Date.now(),
-        });
+        await cb.recordSuccess();
       } catch (error) {
-        // Increment failure count atomically to avoid lost update bug
-        const { ConfigManager } = await import('../registry');
-        const newCount = await ConfigManager.incrementConfig(`mcp_health_${serverName}`, 1);
-        const lastFailure = Date.now();
-        this.failureCounts.set(serverName, {
-          count: newCount,
-          lastFailure,
-        });
-
-        // Update status based on new count (don't overwrite count since we used atomic increment)
-        await AgentRegistry.saveRawConfig(`mcp_health_${serverName}`, {
-          status: newCount >= this.MAX_FAILURES ? 'down' : 'degraded',
-          count: newCount,
-          lastFailure,
-          timestamp: lastFailure,
-        });
-
-        // P1 Fix: Explicitly close transport and client on ANY failure to prevent zombie processes
+        await cb.recordFailure('connection');
         logger.error(`Failed to connect to MCP server ${serverName}:`, error);
 
         // Ensure child processes are killed for stdio transport
