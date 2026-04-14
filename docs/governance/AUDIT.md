@@ -256,14 +256,14 @@ Review the implementation details in [EVENTS.md](../interface/EVENTS.md#atomic-b
 #### 🩻 Spine Event Flow
 
 ```text
-  [ EventBridge ]
+  [ Event Handler (Lambda) ] --+
+                               |
+  [ Agent Multiplexer (Core) ] +--> [ Atomic Recursion Guard ] -- (Update) -> [ State Store ]
+                               |    (checkAndPushRecursion)               (Shared Depth)
+                               |
+                               +--> [ Resilience Guard ] -- (Check) -> [ DistributedState ]
+                                    (Circuit Breaker / Rate Limit)     (Shared Resilience)
          |
-         v
-  [ Event Handler ] -- (Atomic Guard) --+--> [ Distributed State Store ]
-         |                              |     (Rate Limit & Circuit State)
-         |                              v
-         |-- (Trace Context) --> [ Recursion Tracker ] --> [ State Store ]
-         |                                                   (depth check)
          v
   [ Agent Router ] -- (Selection Guard) --> [ Agent Registry ]
          |

@@ -25,7 +25,42 @@ Reasoning loops and repetitive "semantic grinding" are caught by the **SemanticL
 
 - **Penalty**: Detected loops result in automatic trust penalties recorded via `SafetyBase.recordFailure`.
 
-## 🔄 Circuit Breaker (Persistent Logic)
+---
+
+## 🌊 Distributed Resilience Primitives
+
+To ensure consistency across concurrent Lambda executions, the system utilizes a generic **DistributedState** utility grounded in the `MemoryTable`.
+
+### 1. Token Bucket Rate Limiter
+
+The `consumeToken` primitive implements a distributed token bucket to prevent downstream system saturation.
+
+```text
+    [ Request ]
+         |
+         v
+    [ DistributedState.consumeToken ]
+         |
+         | (1) GET Key from MemoryTable
+         +--------------------------------+
+         | (2) Calculate Refill Tokens    |
+         |     (now - lastRefill) / rate  |
+         +--------------------------------+
+         | (3) Check Capacity?            |
+         +-------+-------------+----------+
+                 |             |
+         [ YES: tokens > 0 ]   [ NO: tokens == 0 ]
+                 |             |
+         (4) UPDATE Table      (4) Return FALSE
+             (tokens - 1)      [ REJECT ]
+                 |
+         (5) Return TRUE
+             [ ALLOW ]
+```
+
+### 2. Global Circuit Breaker
+
+The `isCircuitOpen` primitive provides a shared failure state across the entire agent swarm. When a specific threshold of failures is reached within a sliding timeout window, the circuit trips globally for all active instances.
 
 Serverless Claw employs a persistent circuit breaker to prevent runaway deployments and cost spikes.
 
