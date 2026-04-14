@@ -110,7 +110,8 @@ export class MCPClientManager {
 
       const failure = this.failureCounts.get(serverName);
       if (failure && failure.count >= this.MAX_FAILURES) {
-        const backoffFactor = Math.pow(2, Math.min(failure.count - this.MAX_FAILURES, 4));
+        const backoffExponent = failure.count - this.MAX_FAILURES + 1;
+        const backoffFactor = Math.pow(2, Math.min(backoffExponent, 4));
         const retryDelay = this.FAILURE_RESET_MS * backoffFactor;
         const timeSinceFailure = Date.now() - (failure.lastFailure ?? 0);
 

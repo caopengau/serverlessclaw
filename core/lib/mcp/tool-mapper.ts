@@ -44,14 +44,17 @@ export class MCPToolMapper {
       properties: {},
     };
 
-    // Filesystem path key discovery
+    // Filesystem path key discovery - handles both string and string[] types
     const pathKeys: string[] = [];
     if (parameters.type === 'object' && parameters.properties) {
       for (const [key, prop] of Object.entries(parameters.properties)) {
         const desc = (prop.description ?? '').toLowerCase();
         const lowKey = key.toLowerCase();
-        if (
-          prop.type === 'string' &&
+        const propType = prop.type as string;
+
+        // Check if this is a path-like property (string or string[] type)
+        const isPathLikeString =
+          propType === 'string' &&
           (desc.includes('path') ||
             desc.includes('file') ||
             desc.includes('directory') ||
@@ -63,8 +66,25 @@ export class MCPToolMapper {
             lowKey === 'src' ||
             lowKey === 'dest' ||
             lowKey === 'source' ||
-            lowKey === 'destination')
-        ) {
+            lowKey === 'destination');
+
+        // Also check for array of strings (e.g., paths: string[], files: string[])
+        const isPathLikeArray =
+          propType === 'array' &&
+          prop.items &&
+          ((prop.items as JsonSchema).type === 'string' ||
+            (Array.isArray(prop.items) &&
+              prop.items.some((item: JsonSchema) => item.type === 'string'))) &&
+          (desc.includes('path') ||
+            desc.includes('file') ||
+            desc.includes('directory') ||
+            desc.includes('files') ||
+            desc.includes('paths') ||
+            lowKey.includes('path') ||
+            lowKey.includes('file') ||
+            lowKey.endsWith('s')); // plural form like "paths", "files"
+
+        if (isPathLikeString || isPathLikeArray) {
           pathKeys.push(key);
         }
       }

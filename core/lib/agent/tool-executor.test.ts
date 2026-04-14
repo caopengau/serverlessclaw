@@ -631,6 +631,38 @@ describe('ToolExecutor', () => {
         expect(messages[0].content).toContain('PERMISSION_DENIED');
         expect(executeFn).not.toHaveBeenCalled();
       });
+
+      it('respects tool.requiresApproval even when safety allows in AUTO mode', async () => {
+        const executeFn = vi.fn().mockResolvedValue('success');
+        const tool = createTool({
+          name: 'deploy_tool',
+          execute: executeFn,
+          requiresApproval: true, // Tool specifically requires approval
+        });
+        const { EvolutionMode } = await import('../types/agent');
+
+        const messages: any[] = [];
+        const toolCall = createToolCall({
+          name: 'deploy_tool',
+          args: { environment: 'prod' },
+        });
+
+        // In AUTO mode, with safety allowing but tool requiring approval - should PAUSE (not execute)
+        const result = await ToolExecutor.executeToolCalls(
+          [toolCall],
+          [tool],
+          messages,
+          [],
+          createExecContext({
+            agentConfig: { evolutionMode: EvolutionMode.AUTO },
+          }),
+          tracer
+        );
+
+        expect(result.paused).toBe(true);
+        expect(result.asyncWait).toBe(true);
+        expect(executeFn).not.toHaveBeenCalled();
+      });
     });
   });
 });

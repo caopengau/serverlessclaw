@@ -111,29 +111,21 @@ Every audit finding falls into one of four categories. Classifying findings corr
 
 ### What This Is
 
-- A set of **provocations** to guide your exploration
-- A way to discover **latent weaknesses** that tests won't catch
-- An invitation to **question assumptions** baked into the architecture
-- A framework for **cross-disciplinary thinking** — the best findings live between silos
-
-### What This Is Not
-
-- A pass/fail checklist
-- A list of files to read
-- Something you "complete" and move on from
-- A substitute for running `make check` and `make test`
+- A set of **provocations** to guide your exploration.
+- A way to discover **latent weaknesses** that tests won't catch.
+- An invitation to **question assumptions** baked into the architecture.
+- A framework for **cross-disciplinary thinking** — the best findings live between silos.
+- A **directional compass**, not a destination.
 
 ### Recommended Approach
 
-1. **Pick one silo** that matches your current context or curiosity
-2. **Adopt the perspective** — literally think from that angle
-3. **Follow the evidence** — if you find something interesting, chase it even if it leads outside the silo
-4. **Document findings** in `reports/audit-<YYYY-MM-DD>-<topic>.md` with:
-   - What you looked at
-   - What you expected to find
-   - What you actually found
-   - Severity assessment (P0/P1/P2/P3)
-   - Recommended action or further investigation
+1. **Pick one silo** that matches your current curiosity or recent system friction.
+2. **Adopt the perspective** — literally think from that angle. If you are The Spine, what makes you feel vulnerable?
+3. **Follow the vibe** — if something feels "off" or "too easy," chase it even if it leads outside the silo. 
+4. **Document the drift** in `reports/audit-<YYYY-MM-DD>-<topic>.md`. Don't just report bugs; report the **architectural soul** as it currently stands.
+
+> [!CAUTION]
+> Avoid checklists. A checklist is a cage for the creative mind. If you find yourself checking boxes, you have already failed the audit. Seek the **unspoken contradictions**.
 
 ---
 
@@ -767,14 +759,20 @@ Future reviews should utilize a "Probe and Verify" method rather than a simple p
 - **Breaking Changes**: Test after upgrades
 
 ---
-
 ## 📝 Documenting Your Findings
 
-Use the following template when creating reporting artifacts in the `reports/` directory.
+Use the following template when creating reporting artifacts in the `reports/` directory. 
+
+> [!IMPORTANT]
+> **Retention Policy**: Audit Reports are transient artifacts. They MUST be cleared 3 days after creation to prevent context bloat and stale guidance. The system's Metabolism (Silo 7) autonomously prunes these reports.
+
+### The Investigative Spirit
+When documenting, do not simply list files. Describe the **vibe** of the failure. Focus on the **directional drift** between the system's intent (Principles) and its current reality. Use this template as a loose guide, not a rigid cage.
 
 ```markdown
 # Audit Report: [Topic/Silo] - [YYYY-MM-DD]
-
+...
+```
 ## 🎯 Objective
 
 Brief description of what you were looking for.

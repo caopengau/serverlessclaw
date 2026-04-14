@@ -1,37 +1,34 @@
 # Audit Report: The Spine (Nervous System & Flow) - 2026-04-14
 
 ## 🎯 Objective
-A deep-dive investigation into the **Spine** vertical (Event Routing, Concurrency, and Recursion) and **Eye** vertical (Observation) to identify functional failures and architectural gaps.
 
-## 🎯 Finding Type
-**Bug / Gap / Inconsistency**
-
----
+Deep-dive audit of the system vertical responsible for event routing, distributed coordination, and session state integrity.
 
 ## 🔍 Investigation Path
-- **Started at**: `core/lib/backbone.ts` to map system agents.
-- **Followed**: Event flow through `core/handlers/agent-multiplexer.ts` and `core/handlers/agent-runner.ts`.
-- **Analyzed**: Concurrency and safety guards in `core/lib/lock/lock-manager.ts`, `core/lib/recursion-tracker.ts`, and `core/lib/session/session-state.ts`.
-- **Observed**: Inconsistencies between the "Mirror" (Silo 6) principles and actual implementation.
 
----
+- Started at: `core/lib/backbone.ts` to identify agent configurations.
+- Followed: `core/lib/event-routing.ts` and `core/handlers/events/strategic-tie-break-handler.ts` to trace event dispatching logic.
+- Observed: Inconsistency in naming between `AgentType` and `EventType`.
+- Followed: `core/lib/lock/lock-manager.ts` and `core/lib/session/session-state.ts` to verify atomic state integrity.
+- Observed: Non-atomic list updates in `SessionStateManager` leading to race conditions.
+- Followed: `infra/agents.ts` to verify EventBridge subscription patterns.
+- Observed: QA coverage limited to `CODER_TASK`.
 
-## 🚨 Findings & Resolutions
+## 🚨 Findings
 
-| ID | Title | Type | Severity | Status | Resolution |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **1** | **`AgentRunner` Resets Recursion Depth** | Bug | P1 | **FIXED** | Removed per-agent recursion stack clearing to preserve monotonic depth across traces (Principle 15). |
-| **2** | **Race Condition on Tie-Break** | Bug | P1 | **FIXED** | `AgentMultiplexer` now halts task processing when a collaboration timeout occurs to avoid race conditions with tie-break logic. |
-| **3** | **Dynamic Agent Dead End** | Gap | P2 | **FIXED** | Added explicit routing for dynamic `dynamic_*` agents in `AgentMultiplexer` to `AgentRunner`. |
-| **4** | **Bypass of Selection Integrity** | Inconsistency | P2 | **FIXED** | `AgentRouter` now strictly enforces `enabled === true` for all selection methods (Principle 14). |
-| **5** | **Ghost Trace Remediation Gap** | Gap | P2 | **FIXED** | `ClawTracer.failTrace` now emits a recovery event for ALL failures, not just dashboard sources. |
-| **6** | **SLO Metric Drift** | Inconsistency | P2 | **FIXED** | `SLOTracker` now uses 1.25x average as a proxy for p95 latency when raw p95 data is missing. |
-
----
+| ID  | Title                               | Type           | Severity | Location                                | Recommended Action                                                                                                 |
+| :-- | :---------------------------------- | :------------- | :------- | :-------------------------------------- | :----------------------------------------------------------------------------------------------------------------- |
+| 1   | Strategic Tie-break Dead End        | Bug            | P0/P1    | `strategic-tie-break-handler.ts:57-58`  | Use `EventType` constants instead of string concatenation to ensure valid event emission.                         |
+| 2   | Session State Data Loss Race        | Bug            | P1       | `session-state.ts:184-190, 222-230`     | Implement `ConditionExpression` (e.g., version check or `pendingMessages = :old`) to prevent data loss.            |
+| 3   | Agent ID vs Event Type Inconsistency | Inconsistency  | P2       | `types/agent.ts`, `backbone.ts`         | Normalize naming conventions (all underscores or consistent mapping) to prevent brittle event generation.          |
+| 4   | QA Verification Coverage Gap        | Gap            | P2       | `infra/agents.ts`, `agent-multiplexer.ts` | Expand `StandardMultiplexer` subscriptions to include research/planning outputs for full semantic audit.            |
 
 ## 💡 Architectural Reflections
 
-1.  **Recursion Safety**: Fixed violation of **Principle 15**. Swarm-based recursion must be tracked at the trace level, not reset by individual runners.
-2.  **Selection Integrity**: Aligned `AgentRouter` with **Principle 14**. Selection status is now verified at the gateway for both async and sync selection paths.
-3.  **Resilience**: `AgentMultiplexer` now correctly yields to the Facilitator during conflict resolution, preventing split-brain execution.
-4.  **Observability**: Unified failure reporting ensures the Metabolism silo can respond to backend failures as effectively as dashboard user interactions.
+The system's reliance on manual string manipulation for event types (`${agentId}_task`) is a recurring source of fragility. A central "Spine Gateway" should handle all event emissions, performing automatic mapping and normalization.
+
+The `SessionStateManager` is correctly utilizing `LockManager` for mutual exclusion, but the subsequent list operations are not utilizing DynamoDB's optimistic locking capabilities, creating a significant risk of losing messages that arrive during a task's finalization.
+
+### Verified Critical Failures:
+1.  **Strategic Planner** tie-breaks emit `strategic-planner_task` (invalid) instead of `strategic_planner_task` (expected). Result: Task hangs forever.
+2.  **Concurrency Race**: If a user sends a message while an agent is finishing its turn and clearing its lock, the new message added to `pendingMessages` may be overwritten and deleted silently.

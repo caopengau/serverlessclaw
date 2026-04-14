@@ -10,10 +10,11 @@ import { DYNAMO_KEYS } from './constants';
  */
 export class SkillRegistry {
   /**
-   * Discovers relevant skills based on a semantic query or category.
+   * Finds relevant skills based on keyword matching in name/description.
+   * Uses simple substring matching - does NOT perform semantic vector search.
    * This allows agents to find tools they need without them being in the initial context.
    */
-  static async discoverSkills(query: string, _category?: string): Promise<IToolDefinition[]> {
+  static async findSkillsByKeyword(query: string): Promise<IToolDefinition[]> {
     const { TOOLS } = await import('../tools/index');
     const { MCPMultiplexer } = await import('./mcp');
 
@@ -41,6 +42,13 @@ export class SkillRegistry {
         requiresApproval: (tool as import('./types/index').ITool).requiresApproval,
         requiredPermissions: (tool as import('./types/index').ITool).requiredPermissions,
       }));
+  }
+
+  /**
+   * @deprecated Use findSkillsByKeyword instead. This alias maintained for backwards compatibility.
+   */
+  static async discoverSkills(query: string): Promise<IToolDefinition[]> {
+    return this.findSkillsByKeyword(query);
   }
 
   /**

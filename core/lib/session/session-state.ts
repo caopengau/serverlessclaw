@@ -290,7 +290,7 @@ export class SessionStateManager {
 
   /**
    * Clears specific pending messages for a session to avoid race conditions.
-   * Uses optimistic locking with version field to handle concurrent modifications.
+   * Uses optimistic locking with pendingMessages field to handle concurrent modifications.
    */
   async clearPendingMessages(sessionId: string, messageIds: string[]): Promise<void> {
     if (messageIds.length === 0) return;
@@ -307,8 +307,7 @@ export class SessionStateManager {
           return;
         }
 
-        // Use atomic list operation: replace with filtered list
-        // This is more robust than condition-based replacement
+        // Use atomic list operation with optimistic condition
         await this.docClient.send(
           new UpdateCommand({
             TableName: this.tableName,
@@ -318,9 +317,11 @@ export class SessionStateManager {
             },
             UpdateExpression:
               'SET pendingMessages = :remaining, expiresAt = :exp, #lastUpdate = :now',
+            ConditionExpression: 'pendingMessages = :old',
             ExpressionAttributeNames: { '#lastUpdate': 'lastPendingMessageClear' },
             ExpressionAttributeValues: {
               ':remaining': remainingMessages,
+              ':old': currentMessages,
               ':exp': this.getSessionExpiresAt(),
               ':now': Date.now(),
             },
@@ -350,41 +351,60 @@ export class SessionStateManager {
 
   /**
    * Removes a specific pending message by ID.
+   * Now uses retry logic and optimistic locking (P1 Race Fix).
    */
   async removePendingMessage(sessionId: string, messageId: string): Promise<boolean> {
     const key = this.getKey(sessionId);
+    const MAX_ATTEMPTS = 3;
 
-    try {
-      const messages = await this.getPendingMessages(sessionId);
-      const filtered = messages.filter((m) => m.id !== messageId);
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const messages = await this.getPendingMessages(sessionId);
+        const filtered = messages.filter((m) => m.id !== messageId);
 
-      if (filtered.length === messages.length) {
-        return false;
+        if (filtered.length === messages.length) {
+          return false;
+        }
+
+        // Use atomic update with condition to prevent overwriting new messages (Race Fix)
+        await this.docClient.send(
+          new UpdateCommand({
+            TableName: this.tableName,
+            Key: { userId: key, timestamp: 0 },
+            UpdateExpression:
+              'SET pendingMessages = :filtered, expiresAt = :exp, #lastUpdate = :now',
+            ConditionExpression: 'pendingMessages = :old',
+            ExpressionAttributeNames: { '#lastUpdate': 'lastPendingMessageClear' },
+            ExpressionAttributeValues: {
+              ':filtered': filtered,
+              ':old': messages,
+              ':exp': this.getSessionExpiresAt(),
+              ':now': Date.now(),
+            },
+          })
+        );
+        return true;
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+          if (attempt === MAX_ATTEMPTS) {
+            logger.error(
+              `Session ${sessionId}: Failed to remove pending message after ${MAX_ATTEMPTS} attempts.`
+            );
+            return false;
+          }
+          await new Promise((resolve) => setTimeout(resolve, Math.random() * 50));
+        } else {
+          logger.error(`Session ${sessionId}: Failed to remove pending message:`, error);
+          return false;
+        }
       }
-
-      // Use atomic update without condition to avoid race condition
-      await this.docClient.send(
-        new UpdateCommand({
-          TableName: this.tableName,
-          Key: { userId: key, timestamp: 0 },
-          UpdateExpression: 'SET pendingMessages = :filtered, expiresAt = :exp, #lastUpdate = :now',
-          ExpressionAttributeNames: { '#lastUpdate': 'lastPendingMessageClear' },
-          ExpressionAttributeValues: {
-            ':filtered': filtered,
-            ':exp': this.getSessionExpiresAt(),
-            ':now': Date.now(),
-          },
-        })
-      );
-      return true;
-    } catch (error) {
-      logger.error(`Session ${sessionId}: Failed to remove pending message:`, error);
-      return false;
     }
+    return false;
   }
 
   /**
    * Updates a specific pending message content.
+   * Now uses retry logic and optimistic locking (P1 Race Fix).
    */
   async updatePendingMessage(
     sessionId: string,
@@ -392,36 +412,53 @@ export class SessionStateManager {
     newContent: string
   ): Promise<boolean> {
     const key = this.getKey(sessionId);
+    const MAX_ATTEMPTS = 3;
 
-    try {
-      const messages = await this.getPendingMessages(sessionId);
-      const updated = messages.map((m) =>
-        m.id === messageId ? { ...m, content: newContent, timestamp: Date.now() } : m
-      );
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      try {
+        const messages = await this.getPendingMessages(sessionId);
+        const updated = messages.map((m) =>
+          m.id === messageId ? { ...m, content: newContent, timestamp: Date.now() } : m
+        );
 
-      if (JSON.stringify(messages) === JSON.stringify(updated)) {
-        return false;
+        if (JSON.stringify(messages) === JSON.stringify(updated)) {
+          return false;
+        }
+
+        // Use atomic update with condition to prevent overwriting new messages (Race Fix)
+        await this.docClient.send(
+          new UpdateCommand({
+            TableName: this.tableName,
+            Key: { userId: key, timestamp: 0 },
+            UpdateExpression:
+              'SET pendingMessages = :updated, expiresAt = :exp, #lastUpdate = :now',
+            ConditionExpression: 'pendingMessages = :old',
+            ExpressionAttributeNames: { '#lastUpdate': 'lastPendingMessageClear' },
+            ExpressionAttributeValues: {
+              ':updated': updated,
+              ':old': messages,
+              ':exp': this.getSessionExpiresAt(),
+              ':now': Date.now(),
+            },
+          })
+        );
+        return true;
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+          if (attempt === MAX_ATTEMPTS) {
+            logger.error(
+              `Session ${sessionId}: Failed to update pending message after ${MAX_ATTEMPTS} attempts.`
+            );
+            return false;
+          }
+          await new Promise((resolve) => setTimeout(resolve, Math.random() * 50));
+        } else {
+          logger.error(`Session ${sessionId}: Failed to update pending message:`, error);
+          return false;
+        }
       }
-
-      // Use atomic update without condition to avoid race condition
-      await this.docClient.send(
-        new UpdateCommand({
-          TableName: this.tableName,
-          Key: { userId: key, timestamp: 0 },
-          UpdateExpression: 'SET pendingMessages = :updated, expiresAt = :exp, #lastUpdate = :now',
-          ExpressionAttributeNames: { '#lastUpdate': 'lastPendingMessageClear' },
-          ExpressionAttributeValues: {
-            ':updated': updated,
-            ':exp': this.getSessionExpiresAt(),
-            ':now': Date.now(),
-          },
-        })
-      );
-      return true;
-    } catch (error) {
-      logger.error(`Session ${sessionId}: Failed to update pending message:`, error);
-      return false;
     }
+    return false;
   }
 
   /**

@@ -28,12 +28,12 @@ export const discoverSkills = {
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { query } = args as { query?: string };
     try {
-      const skills = await SkillRegistry.discoverSkills(query ?? '');
+      const skills = await SkillRegistry.findSkillsByKeyword(query ?? '');
       if (skills.length === 0) return 'No matching skills found.';
 
       return (
         `Found ${skills.length} matching skills:\n` +
-        skills.map((s) => `- ${s.name}: ${s.description}`).join('\n')
+        skills.map((s: any) => `- ${s.name}: ${s.description}`).join('\n')
       );
     } catch (error) {
       return `Failed to discover skills: ${formatErrorMessage(error)}`;

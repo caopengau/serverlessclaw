@@ -172,6 +172,29 @@ describe('MCPToolMapper', () => {
       expect(tools[0].pathKeys).toContain('path');
     });
 
+    it('maps pathKeys for array type properties (string[])', async () => {
+      const client = makeMockClient();
+      const rawTools = [
+        {
+          name: 'read_multiple_files',
+          description: 'Read multiple files',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              paths: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'List of file paths to read',
+              },
+            },
+          },
+        },
+      ];
+
+      const tools = MCPToolMapper.mapTools('filesystem', client, rawTools);
+      expect(tools[0].pathKeys).toContain('paths');
+    });
+
     // Security error handling tests removed as enforcement moved to ToolExecutor
 
     it('deletes client on Connection closed error', async () => {

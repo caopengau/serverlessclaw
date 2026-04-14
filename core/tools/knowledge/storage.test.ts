@@ -85,6 +85,7 @@ vi.mock('../../lib/tracer', () => ({
 
 vi.mock('../../lib/skills', () => ({
   SkillRegistry: {
+    findSkillsByKeyword: mocks.discoverSkills,
     discoverSkills: mocks.discoverSkills,
     installSkill: mocks.installSkill,
   },

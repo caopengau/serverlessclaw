@@ -253,8 +253,9 @@ export class ToolExecutor {
     const requiresApproval = safetyResult.requiresApproval || tool.requiresApproval;
 
     // If evolutionMode is AUTO, we treat it as approved if the Safety Engine allowed it (bypassing approval requirements)
-    const effectiveApproved =
-      isApproved || (evolutionMode === EvolutionMode.AUTO && safetyResult.allowed);
+    // However, tool-specific requiresApproval (not from safetyResult) should still be respected in AUTO mode
+    const safetyAllowsInAutoMode = evolutionMode === EvolutionMode.AUTO && safetyResult.allowed;
+    const effectiveApproved = isApproved || (safetyAllowsInAutoMode && !tool.requiresApproval);
 
     // CRITICAL SECURITY: Clear any self-approval attempt by the agent immediately if not in AUTO mode and not already approved.
     if (args.manuallyApproved === true && !effectiveApproved) {

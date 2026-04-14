@@ -45,6 +45,10 @@ export async function handleStrategicTieBreak(eventDetail: Record<string, unknow
   let finalTask: string;
   let eventType: string;
 
+  // P1 Fix: Map agentId to EventType naming convention (e.g., strategic-planner -> strategic_planner_task)
+  const normalizedAgentId = agentId.replace(/-/g, '_');
+  const taskEventType = `${normalizedAgentId}_task`;
+
   if (isHighRisk) {
     // High-risk operation detected - stop execution and fail the task to break the loop
     logger.warn(
@@ -55,11 +59,11 @@ export async function handleStrategicTieBreak(eventDetail: Record<string, unknow
   } else if (task.includes('SAFE_MODE') || task.includes('avoid.*high.*risk')) {
     // Task already has safety instructions - proceed with conservative constraints
     finalTask = `${task}\n\n---\n**STRATEGIC CONSTRAINTS APPLIED:**\n- No destructive operations\n- Prefer read-only or low-impact alternatives\n- Log all changes for audit\n- Request clarification if uncertain`;
-    eventType = `${agentId}_task`;
+    eventType = taskEventType;
   } else {
     // Default: proceed with safe assumptions
     finalTask = task;
-    eventType = `${agentId}_task`;
+    eventType = taskEventType;
   }
 
   const eventPayload: Record<string, unknown> = {
