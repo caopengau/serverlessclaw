@@ -4,6 +4,7 @@
   "scan": {
     "include": ["core/**/*.ts", "dashboard/src/**/*.{ts,tsx}", "infra/**/*.ts", "scripts/**/*.ts"],
     "exclude": [
+      "integrations/**",
       "**/node_modules/**",
       "**/.sst/**",
       "**/.next/**",
@@ -52,7 +53,7 @@
       "minClusterFiles": 3,
       "minClusterTokenCost": 1000,
       "includeTests": true,
-      "exclude": ["**/types/**", "**/__mocks__/**", "**/api/*/route.ts"]
+      "exclude": ["integrations/**", "**/types/**", "**/__mocks__/**", "**/api/*/route.ts"]
     },
     "context-analyzer": {
       "maxContextBudget": 200000,
