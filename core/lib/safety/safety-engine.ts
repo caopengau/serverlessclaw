@@ -83,15 +83,17 @@ export class SafetyEngine extends SafetyBase {
       }
     }
 
-    const scanRecursive = (obj: any) => {
+    const scanRecursive = (obj: unknown) => {
       if (!obj || typeof obj !== 'object') return;
-      for (const [_key, value] of Object.entries(obj)) {
+
+      const record = obj as Record<string, unknown>;
+      for (const value of Object.values(record)) {
         if (typeof value === 'string') {
           const isPathLike = value.includes('/') || value.includes('\\') || value.includes('.');
           if (isPathLike && this.isSystemProtected(value)) {
             foundPaths.add(value);
           }
-        } else if (typeof value === 'object') {
+        } else if (typeof value === 'object' && value !== null) {
           scanRecursive(value);
         }
       }
@@ -99,6 +101,22 @@ export class SafetyEngine extends SafetyBase {
     scanRecursive(args);
 
     return Array.from(foundPaths);
+  }
+
+  /**
+   * Discovers all resources involved in an action.
+   */
+  private discoverResources(
+    action: string,
+    context?: { resource?: string; args?: Record<string, unknown>; pathKeys?: string[] }
+  ): Set<string> {
+    const resources = new Set<string>();
+    if (context?.resource) resources.add(context.resource);
+    if (context?.args) {
+      const discovered = this.scanArgumentsForPaths(context.args, context.pathKeys);
+      discovered.forEach((p) => resources.add(p));
+    }
+    return resources;
   }
 
   /**
@@ -117,14 +135,12 @@ export class SafetyEngine extends SafetyBase {
     }
   ): Promise<SafetyEvaluationResult> {
     const tier = agentConfig?.safetyTier ?? SafetyTier.PROD;
+    const agentId = agentConfig?.id ?? 'unknown';
 
-    const resourcesToCheck = new Set<string>();
-    if (context?.resource) resourcesToCheck.add(context.resource);
-    if (context?.args) {
-      const discovered = this.scanArgumentsForPaths(context.args, context.pathKeys);
-      discovered.forEach((p) => resourcesToCheck.add(p));
-    }
+    // 1. Discover all resources involved
+    const resourcesToCheck = this.discoverResources(action, context);
 
+    // 2. Load policy for this tier
     const policies = await SafetyConfigManager.getPolicies();
     const basePolicy = policies[tier];
     const localPolicy = this.policies.get(tier);
@@ -139,11 +155,12 @@ export class SafetyEngine extends SafetyBase {
       };
     }
 
+    // 3. Tool-specific overrides and rate limits
     if (context?.toolName) {
       const toolOverride = this.toolOverrides.get(context.toolName);
       if (toolOverride?.requireApproval) {
         const violation = this.createViolation(
-          agentConfig?.id ?? 'unknown',
+          agentId,
           tier,
           action,
           context.toolName,
@@ -165,21 +182,24 @@ export class SafetyEngine extends SafetyBase {
       if (!rateLimitResult.allowed) return rateLimitResult;
     }
 
+    // 4. Resource-level access control
     for (const resource of resourcesToCheck) {
       const resourceResult = await this.validator.checkResourceAccess(
         policy,
         resource,
         action,
         tier,
-        { ...context, agentId: agentConfig?.id }
+        { ...context, agentId }
       );
+
+      // System protection escalation
       if (
         resourceResult.allowed &&
         !agentConfig?.manuallyApproved &&
         this.isSystemProtected(resource)
       ) {
         const violation = this.createViolation(
-          agentConfig?.id ?? 'unknown',
+          agentId,
           tier,
           action,
           context?.toolName,
@@ -200,25 +220,24 @@ export class SafetyEngine extends SafetyBase {
       if (!resourceResult.allowed || resourceResult.requiresApproval) return resourceResult;
     }
 
+    // 5. Time and general approval requirements
     const timeResult = await this.validator.checkTimeRestrictions(policy, action, tier, {
       ...context,
-      agentId: agentConfig?.id,
+      agentId,
     });
     if (!timeResult.allowed || timeResult.requiresApproval) return timeResult;
 
     const approvalResult = await this.validator.checkApprovalRequirements(policy, action, tier, {
       ...context,
-      agentId: agentConfig?.id,
+      agentId,
     });
 
+    // 6. Blast Radius Enforcement (Class C)
     if (this.isClassCAction(action)) {
-      const blastRadiusError = await this.enforceClassCBlastRadius(
-        agentConfig?.id ?? 'unknown',
-        action
-      );
+      const blastRadiusError = await this.enforceClassCBlastRadius(agentId, action);
       if (blastRadiusError) {
         const violation = this.createViolation(
-          agentConfig?.id ?? 'unknown',
+          agentId,
           tier,
           action,
           context?.toolName,
@@ -238,7 +257,7 @@ export class SafetyEngine extends SafetyBase {
       }
 
       await this.evolutionScheduler.scheduleAction({
-        agentId: agentConfig?.id ?? 'unknown',
+        agentId,
         action,
         reason: approvalResult.reason ?? 'Class C action requiring approval',
         timeoutMs: CONFIG_DEFAULTS.EVOLUTIONARY_TIMEOUT_MS.code,
@@ -246,24 +265,25 @@ export class SafetyEngine extends SafetyBase {
         traceId: context?.traceId,
         userId: context?.userId,
       });
-      await this.trackClassCBlastRadius(agentConfig?.id ?? 'unknown', action, context?.resource);
+      await this.trackClassCBlastRadius(agentId, action, context?.resource);
     }
 
-    const hasPromotionTrust =
-      (agentConfig?.trustScore ?? TRUST.DEFAULT_SCORE) >= TRUST.AUTONOMY_THRESHOLD;
+    // 7. Trust-Driven Autonomous Promotion (Principle 9)
+    const trustScore = agentConfig?.trustScore ?? TRUST.DEFAULT_SCORE;
+    const hasPromotionTrust = trustScore >= TRUST.AUTONOMY_THRESHOLD;
     const isAutoMode = agentConfig?.evolutionMode === EvolutionMode.AUTO;
 
     if (approvalResult.requiresApproval && hasPromotionTrust) {
       if (isAutoMode) {
         logger.info(
-          `[SafetyEngine] Principle 9: Self-promoting action '${action}' (TrustScore: ${agentConfig?.trustScore}, Mode: AUTO)`
+          `[SafetyEngine] Principle 9: Self-promoting action '${action}' (TrustScore: ${trustScore}, Mode: AUTO)`
         );
         const { emitEvent } = await import('../utils/bus');
         const { EventType } = await import('../types/agent');
         await emitEvent('safety.principle9', EventType.SYSTEM_AUDIT_TRIGGER, {
-          agentId: agentConfig?.id,
+          agentId,
           action,
-          trustScore: agentConfig?.trustScore,
+          trustScore,
           reason: `Trust-based autonomous promotion: trustScore >= 95`,
           timestamp: Date.now(),
         });
@@ -279,6 +299,8 @@ export class SafetyEngine extends SafetyBase {
     }
 
     if (!approvalResult.allowed || approvalResult.requiresApproval) return approvalResult;
+
+    // 8. General rate limits
     const rateLimitResult = await this.limiter.checkRateLimits(policy, action);
     if (!rateLimitResult.allowed) return rateLimitResult;
 
