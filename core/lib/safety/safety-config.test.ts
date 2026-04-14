@@ -90,8 +90,8 @@ describe('safety-config', () => {
       expect(policy.requireCodeApproval).toBe(false);
       expect(policy.requireDeployApproval).toBe(true);
       expect(policy.requireFileApproval).toBe(false);
-      expect(policy.requireShellApproval).toBe(false);
-      expect(policy.requireMcpApproval).toBe(false);
+      expect(policy.requireShellApproval).toBe(true);
+      expect(policy.requireMcpApproval).toBe(true);
     });
 
     it('has moderate limits', () => {

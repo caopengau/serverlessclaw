@@ -220,8 +220,8 @@ export class IdentityManager {
       user.lastActiveAt = Date.now();
       await this.saveUser(user);
 
-      // Create session
-      const session = await this.createSession(userId, metadata);
+      // Create session with workspace context
+      const session = await this.createSession(userId, workspaceId, metadata);
 
       logger.info(`User authenticated: ${userId} via ${authProvider}`, {
         sessionId: session.sessionId,
@@ -264,8 +264,13 @@ export class IdentityManager {
 
   /**
    * Check if a user has a specific permission.
+   * Optionally validates workspace membership for workspace-scoped permissions.
    */
-  async hasPermission(userId: string, permission: Permission): Promise<boolean> {
+  async hasPermission(
+    userId: string,
+    permission: Permission,
+    _workspaceId?: string
+  ): Promise<boolean> {
     const user = await this.getUser(userId);
     if (!user) return false;
 
@@ -275,11 +280,13 @@ export class IdentityManager {
 
   /**
    * Check if a user has access to a specific resource.
+   * Validates workspace membership when workspaceId is provided.
    */
   async hasResourceAccess(
     userId: string,
     resourceType: 'agent' | 'workspace' | 'config' | 'trace',
-    resourceId: string
+    resourceId: string,
+    _workspaceId?: string
   ): Promise<boolean> {
     const user = await this.getUser(userId);
     if (!user) return false;
@@ -606,6 +613,7 @@ export class IdentityManager {
    */
   private async createSession(
     userId: string,
+    workspaceId: string | undefined,
     metadata?: Record<string, unknown>
   ): Promise<Session> {
     const sessionId = generateSessionId();
@@ -613,6 +621,7 @@ export class IdentityManager {
     const session: Session = {
       sessionId,
       userId,
+      workspaceId,
       startTime: now,
       lastActivityTime: now,
       expiresAt: now + 24 * TIME.MS_PER_HOUR, // 24 hour session

@@ -297,7 +297,11 @@ export class ToolExecutor {
           hasPermission = true;
         } else {
           for (const perm of tool.requiredPermissions) {
-            hasPermission = await identity.hasPermission(execContext.userId, perm as any);
+            hasPermission = await identity.hasPermission(
+              execContext.userId,
+              perm as any,
+              execContext.workspaceId
+            );
             if (!hasPermission) break;
           }
         }

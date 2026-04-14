@@ -106,10 +106,10 @@ describe('SafetyEngine', () => {
       expect(fileResult.requiresApproval).toBe(false);
 
       const shellResult = await engine.evaluateAction(config, 'shell_command');
-      expect(shellResult.requiresApproval).toBe(false);
+      expect(shellResult.requiresApproval).toBe(true);
 
       const mcpResult = await engine.evaluateAction(config, 'mcp_tool');
-      expect(mcpResult.requiresApproval).toBe(false);
+      expect(mcpResult.requiresApproval).toBe(true);
     });
 
     it('should allow all actions in LOCAL tier', async () => {

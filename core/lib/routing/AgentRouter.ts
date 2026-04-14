@@ -49,6 +49,7 @@ export interface AgentPerformanceRollup {
   successRate: number;
   totalInvocations: number;
   avgDurationMs?: number;
+  enabled?: boolean; // Optional: if provided, will be enforced in sync selection methods
 }
 
 /**
@@ -336,7 +337,7 @@ export class AgentRouter {
 
   /**
    * Synchronous version for selecting best agent when rollups are already available.
-   * NOTE: Candidates must be pre-filtered for 'enabled: true' status before calling.
+   * If candidates include 'enabled' field, will filter out disabled agents.
    *
    * @param candidates - Array of performance rollups.
    * @param capabilityMatchFn - Optional function to compute capability match for an agent.
@@ -346,12 +347,18 @@ export class AgentRouter {
     candidates: AgentPerformanceRollup[],
     capabilityMatchFn?: (agentId: string) => number
   ): string | undefined {
-    if (candidates.length === 0) return undefined;
+    // Filter by enabled status if provided in any candidate
+    const hasEnabledField = candidates.some((c) => c.enabled !== undefined);
+    const enabledCandidates = hasEnabledField
+      ? candidates.filter((c) => c.enabled !== false)
+      : candidates;
+
+    if (enabledCandidates.length === 0) return undefined;
 
     let bestAgent: string | undefined;
     let bestScore = -Infinity;
 
-    for (const candidate of candidates) {
+    for (const candidate of enabledCandidates) {
       const match = capabilityMatchFn?.(candidate.agentId) ?? 1.0;
       const score = this.computeScore(candidate, match);
 
@@ -366,7 +373,7 @@ export class AgentRouter {
 
   /**
    * Selects the best agent from candidates, incorporating reputation data.
-   * NOTE: Candidates must be pre-filtered for 'enabled: true' status before calling.
+   * If candidates include 'enabled' field, will filter out disabled agents.
    *
    * Formula: (0.6 * performanceScore) + (0.4 * reputationScore)
    *
@@ -380,12 +387,18 @@ export class AgentRouter {
     reputations: Map<string, AgentReputation>,
     capabilityMatchFn?: (agentId: string) => number
   ): string | undefined {
-    if (candidates.length === 0) return undefined;
+    // Filter by enabled status if provided in any candidate
+    const hasEnabledField = candidates.some((c) => c.enabled !== undefined);
+    const enabledCandidates = hasEnabledField
+      ? candidates.filter((c) => c.enabled !== false)
+      : candidates;
+
+    if (enabledCandidates.length === 0) return undefined;
 
     let bestAgent: string | undefined;
     let bestScore = -Infinity;
 
-    for (const candidate of candidates) {
+    for (const candidate of enabledCandidates) {
       const match = capabilityMatchFn?.(candidate.agentId) ?? 1.0;
       const performanceScore = this.computeScore(candidate, match);
 

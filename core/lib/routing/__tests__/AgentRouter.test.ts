@@ -144,6 +144,50 @@ describe('AgentRouter', () => {
       const matchFn = (id: string) => (id === 'a2' ? 1.0 : 0.1);
       expect(AgentRouter.selectBestAgentSync(candidates, matchFn)).toBe('a2');
     });
+
+    it('filters out disabled agents when enabled field is present', () => {
+      const candidates = [
+        {
+          agentId: 'disabled-agent',
+          totalInvocations: 10,
+          successRate: 0.9,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
+          enabled: false,
+        },
+        {
+          agentId: 'enabled-agent',
+          totalInvocations: 10,
+          successRate: 0.5,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
+          enabled: true,
+        },
+      ] as any[];
+      expect(AgentRouter.selectBestAgentSync(candidates)).toBe('enabled-agent');
+    });
+
+    it('returns undefined when all agents are disabled', () => {
+      const candidates = [
+        {
+          agentId: 'agent1',
+          totalInvocations: 10,
+          successRate: 0.9,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
+          enabled: false,
+        },
+        {
+          agentId: 'agent2',
+          totalInvocations: 10,
+          successRate: 0.8,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
+          enabled: false,
+        },
+      ] as any[];
+      expect(AgentRouter.selectBestAgentSync(candidates)).toBeUndefined();
+    });
   });
 
   describe('selectBestAgentWithReputation', () => {
@@ -173,6 +217,33 @@ describe('AgentRouter', () => {
 
     it('returns undefined for empty candidates', () => {
       expect(AgentRouter.selectBestAgentWithReputation([], new Map())).toBeUndefined();
+    });
+
+    it('filters out disabled agents when enabled field is present', () => {
+      const candidates = [
+        {
+          agentId: 'disabled-agent',
+          totalInvocations: 10,
+          successRate: 0.9,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
+          enabled: false,
+        },
+        {
+          agentId: 'enabled-agent',
+          totalInvocations: 10,
+          successRate: 0.5,
+          avgInputTokens: 100,
+          avgOutputTokens: 100,
+          enabled: true,
+        },
+      ] as any[];
+      const reputations = new Map([
+        ['enabled-agent', { successRate: 0.5, avgLatencyMs: 100, lastActive: Date.now() }],
+      ]) as any;
+      expect(AgentRouter.selectBestAgentWithReputation(candidates, reputations)).toBe(
+        'enabled-agent'
+      );
     });
   });
 

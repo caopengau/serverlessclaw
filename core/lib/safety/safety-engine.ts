@@ -246,7 +246,8 @@ export class SafetyEngine extends SafetyBase {
       this.trackClassCBlastRadius(agentConfig?.id ?? 'unknown', action, context?.resource);
     }
 
-    const hasPromotionTrust = (agentConfig?.trustScore ?? 0) >= TRUST.AUTONOMY_THRESHOLD;
+    const hasPromotionTrust =
+      (agentConfig?.trustScore ?? TRUST.DEFAULT_SCORE) >= TRUST.AUTONOMY_THRESHOLD;
     const isAutoMode = agentConfig?.evolutionMode === EvolutionMode.AUTO;
 
     if (approvalResult.requiresApproval && hasPromotionTrust) {
