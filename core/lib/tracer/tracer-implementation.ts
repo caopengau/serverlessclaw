@@ -12,6 +12,7 @@ import { TRACE_STATUS, TIME } from '../constants';
 import { logger } from '../logger';
 import { filterPIIFromObject } from '../utils/pii';
 import { getDocClient } from '../utils/ddb-client';
+import { FlowController } from '../routing/flow-controller';
 import type { TraceStep, Trace } from './types';
 import { METRICS } from '../metrics/metrics';
 
@@ -98,10 +99,8 @@ export class ClawTracer {
         })
       );
       // Optionally maintain a summary item for this trace to support
-      // one-row-per-trace listings in the dashboard. This is behind an
-      // env flag to avoid changing test expectations by default.
-      const summariesEnabled = process.env.TRACE_SUMMARIES_ENABLED === 'true';
-      if (summariesEnabled && this.nodeId === 'root') {
+      // one-row-per-trace listings in the dashboard.
+      if ((await FlowController.areTraceSummariesEnabled()) && this.nodeId === 'root') {
         try {
           await this.docClient.send(
             new PutCommand({
@@ -188,8 +187,7 @@ export class ClawTracer {
 
     // Update the trace summary's timestamp to reflect recent activity (only
     // update the one summary row maintained for the root node) when enabled.
-    const summariesEnabled = process.env.TRACE_SUMMARIES_ENABLED === 'true';
-    if (summariesEnabled && this.nodeId === 'root') {
+    if ((await FlowController.areTraceSummariesEnabled()) && this.nodeId === 'root') {
       try {
         await this.docClient.send(
           new UpdateCommand({
@@ -216,7 +214,6 @@ export class ClawTracer {
    */
   async endTrace(finalResponse: string, metadata?: Record<string, unknown>): Promise<void> {
     const endTime = Date.now();
-    const durationMs = endTime - this.startTime;
 
     await this.docClient.send(
       new UpdateCommand({
@@ -235,21 +232,10 @@ export class ClawTracer {
     );
 
     // Emit metrics for trace completion
-    if (this.agentId) {
-      try {
-        const { emitMetrics } = await import('../metrics/metrics');
-        await emitMetrics([
-          METRICS.agentInvoked(this.agentId),
-          METRICS.agentDuration(this.agentId, durationMs),
-        ]);
-      } catch (e) {
-        logger.debug('Failed to emit trace completion metrics:', e);
-      }
-    }
+    await this.emitCompletionMetrics(endTime);
 
     // Mark the summary as completed as well (root-only) when enabled.
-    const summariesEnabledEnd = process.env.TRACE_SUMMARIES_ENABLED === 'true';
-    if (summariesEnabledEnd && this.nodeId === 'root') {
+    if ((await FlowController.areTraceSummariesEnabled()) && this.nodeId === 'root') {
       try {
         await this.docClient.send(
           new UpdateCommand({
@@ -271,6 +257,24 @@ export class ClawTracer {
   }
 
   /**
+   * Internal helper to emit agent-level metrics on trace completion/failure.
+   */
+  private async emitCompletionMetrics(endTime: number): Promise<void> {
+    if (!this.agentId) return;
+
+    try {
+      const durationMs = endTime - this.startTime;
+      const { emitMetrics } = await import('../metrics/metrics');
+      await emitMetrics([
+        METRICS.agentInvoked(this.agentId),
+        METRICS.agentDuration(this.agentId, durationMs),
+      ]);
+    } catch (e) {
+      logger.debug('Failed to emit trace completion metrics:', e);
+    }
+  }
+
+  /**
    * Ends the trace node with a failure status.
    * Sh5: Critical for preventing 'Ghost Traces' when an agent crashes.
    *
@@ -280,7 +284,6 @@ export class ClawTracer {
   async failTrace(reason: string, metadata?: Record<string, unknown>): Promise<void> {
     const finalMetadata = { ...metadata, failureReason: reason };
     const endTime = Date.now();
-    const durationMs = endTime - this.startTime;
 
     await this.docClient.send(
       new UpdateCommand({
@@ -299,17 +302,7 @@ export class ClawTracer {
     );
 
     // Emit metrics for trace failure
-    if (this.agentId) {
-      try {
-        const { emitMetrics } = await import('../metrics/metrics');
-        await emitMetrics([
-          METRICS.agentInvoked(this.agentId),
-          METRICS.agentDuration(this.agentId, durationMs),
-        ]);
-      } catch (e) {
-        logger.debug('Failed to emit trace failure metrics:', e);
-      }
-    }
+    await this.emitCompletionMetrics(endTime);
 
     // Emit immediate failure event for monitoring to trigger real-time remediation (Eye Silo Gap 5)
     try {
@@ -329,8 +322,7 @@ export class ClawTracer {
     }
 
     // Mark the summary as failed as well
-    const summariesEnabledFail = process.env.TRACE_SUMMARIES_ENABLED === 'true';
-    if (summariesEnabledFail && this.nodeId === 'root') {
+    if ((await FlowController.areTraceSummariesEnabled()) && this.nodeId === 'root') {
       try {
         await this.docClient.send(
           new UpdateCommand({
@@ -393,5 +385,37 @@ export class ClawTracer {
       })
     );
     return (response.Items as Trace[]) ?? [];
+  }
+
+  /**
+   * Periodically checks for signal drift using the ConsistencyProbe.
+   * Leverages on-demand activity to avoid background timers.
+   */
+  async detectDrift(): Promise<void> {
+    if (!this.agentId) return;
+
+    // Check drift once every 5 minutes per execution node
+    const DRIFT_CHECK_THRESHOLD = 300000;
+    const now = Date.now();
+
+    if (now - this.startTime > DRIFT_CHECK_THRESHOLD) {
+      try {
+        const { ConsistencyProbe } = await import('../metrics/cognitive-metrics');
+        await ConsistencyProbe.detectDrift(this.agentId);
+      } catch (e) {
+        logger.debug('[Tracer] Drift detection failed:', e);
+      }
+    }
+  }
+
+  /**
+   * Generic retry wrapper for best-effort secondary operations.
+   */
+  private async withRetry(fn: () => Promise<void>, label: string): Promise<void> {
+    try {
+      await fn();
+    } catch (e) {
+      logger.warn(`[Tracer] Best-effort ${label} failed for ${this.traceId}:`, e);
+    }
   }
 }

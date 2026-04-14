@@ -893,8 +893,29 @@ export class ConsistencyProbe {
     const now = Date.now();
     const result = await probe.verifyTraceConsistency(agentId, now - 3600000, now);
 
-    if (!result.consistent) {
+    if (!result.consistent && result.drift > 0) {
       logger.warn(`[Silo 5] Signal drift detected for agent ${agentId}: ${result.details}`);
+
+      // Emit immediate failure event for monitoring to trigger real-time remediation
+      try {
+        const { emitEvent } = await import('../utils/bus');
+        const { AgentType, EventType, TraceSource } = await import('../types/agent');
+        await emitEvent(AgentType.RECOVERY, EventType.DASHBOARD_FAILURE_DETECTED, {
+          userId: 'SYSTEM',
+          traceId: `drift-${agentId}-${Date.now()}`,
+          agentId,
+          task: 'Consistency Check',
+          error: `SIGNAL_DRIFT: ${result.details}`,
+          metadata: { drift: result.drift, windowMs: 3600000 },
+          source: TraceSource.SYSTEM,
+        });
+      } catch (e) {
+        logger.warn('[Probe] Failed to emit drift remediation event:', e);
+      }
+    } else {
+      logger.info(
+        `[Silo 5] Trace consistency verified for agent ${agentId}. Drift: ${result.drift}`
+      );
     }
 
     return !result.consistent;

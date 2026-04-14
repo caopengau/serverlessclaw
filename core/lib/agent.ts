@@ -271,6 +271,9 @@ export class Agent {
         await sessionStateManager.autoRenew(sessionId, this.config?.id ?? 'unknown');
       }
 
+      // Check for signal drift (Eye Silo Silo 5)
+      await tracer.detectDrift();
+
       if (!process.env.VITEST && loopUsage) {
         try {
           const { emitMetrics, METRICS } = await import('./metrics');
@@ -551,6 +554,10 @@ export class Agent {
       if (options.sessionId && sessionStateManager) {
         await sessionStateManager.autoRenew(options.sessionId, this.config?.id ?? 'unknown');
       }
+
+      // Periodically check for signal drift (Eye Silo Silo 5)
+      await tracer.detectDrift();
+
       if (chunk.content) fullContent += chunk.content;
       if (chunk.thought) fullThought += chunk.thought;
       if (chunk.usage) {

@@ -1,4 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+vi.mock('sst', () => ({
+  Resource: {
+    MemoryTable: { name: 'test-memory' },
+    ConfigTable: { name: 'test-config' },
+    TraceTable: { name: 'test-trace' },
+  },
+}));
+
 import { getSystemConfigMetadata } from './metadata';
 
 vi.mock('../../lib/metadata', () => ({

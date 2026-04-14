@@ -1,4 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('sst', () => ({
+  Resource: {
+    MemoryTable: { name: 'test-memory' },
+    ConfigTable: { name: 'test-config' },
+    TraceTable: { name: 'test-trace' },
+  },
+}));
+
 import { validateAllTools, validateToolSchema } from './schema';
 import { IToolDefinition, ToolType } from './types/index';
 import { TOOLS } from '../tools/index';

@@ -42,6 +42,8 @@ const mockGetParentId = vi.fn();
 const mockStartTrace = vi.fn();
 const mockAddStep = vi.fn();
 const mockEndTrace = vi.fn();
+const mockFailTrace = vi.fn();
+const mockDetectDrift = vi.fn();
 
 // Mock ConfigManager
 vi.mock('./registry/config', () => ({
@@ -68,6 +70,8 @@ vi.mock('./tracer', () => {
       startTrace = mockStartTrace;
       addStep = mockAddStep;
       endTrace = mockEndTrace;
+      failTrace = mockFailTrace;
+      detectDrift = mockDetectDrift;
     },
   };
 });

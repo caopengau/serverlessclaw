@@ -34,6 +34,8 @@ vi.mock('./tracer', () => ({
     startTrace = mockStartTrace;
     addStep = vi.fn().mockResolvedValue(undefined);
     endTrace = mockEndTrace;
+    failTrace = vi.fn().mockResolvedValue(undefined);
+    detectDrift = vi.fn().mockResolvedValue(undefined);
   },
 }));
 

@@ -11,6 +11,8 @@ vi.mock('../lib/tracer', () => ({
   ClawTracer: class {
     startTrace = vi.fn().mockResolvedValue('test-trace-id');
     endTrace = vi.fn().mockResolvedValue(undefined);
+    failTrace = vi.fn().mockResolvedValue(undefined);
+    detectDrift = vi.fn().mockResolvedValue(undefined);
     addStep = vi.fn().mockResolvedValue(undefined);
     getTraceId = vi.fn().mockReturnValue('test-trace-id');
     getNodeId = vi.fn().mockReturnValue('test-node-id');

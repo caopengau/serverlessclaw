@@ -24,6 +24,8 @@ vi.mock('./tracer', () => ({
     startTrace = vi.fn().mockResolvedValue('mock-trace-id');
     addStep = vi.fn().mockResolvedValue(undefined);
     endTrace = vi.fn().mockResolvedValue(undefined);
+    failTrace = vi.fn().mockResolvedValue(undefined);
+    detectDrift = vi.fn().mockResolvedValue(undefined);
     getTraceId = () => 'mock-trace-id';
     getNodeId = () => 'mock-node-id';
     getParentId = () => undefined;

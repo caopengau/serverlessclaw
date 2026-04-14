@@ -198,8 +198,17 @@ vi.mock('../../lib/scheduler', () => ({
 }));
 
 vi.mock('../../lib/tracer', () => ({
-  ClawTracer: {
-    getTrace: vi.fn().mockResolvedValue([{ source: 'dashboard', steps: [] }]),
+  ClawTracer: class {
+    constructor() {}
+    getTraceId = vi.fn().mockReturnValue('test-trace');
+    getNodeId = vi.fn().mockReturnValue('test-node');
+    getParentId = vi.fn().mockReturnValue('test-parent');
+    startTrace = vi.fn().mockResolvedValue('test-trace');
+    endTrace = vi.fn().mockResolvedValue(undefined);
+    failTrace = vi.fn().mockResolvedValue(undefined);
+    addStep = vi.fn().mockResolvedValue(undefined);
+    detectDrift = vi.fn().mockResolvedValue(undefined);
+    static getTrace = vi.fn().mockResolvedValue([{ source: 'dashboard', steps: [] }]);
   },
 }));
 

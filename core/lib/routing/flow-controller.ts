@@ -68,6 +68,16 @@ export class FlowController {
   }
 
   /**
+   * Checks if trace summaries are enabled (for dashboard performance).
+   */
+  static async areTraceSummariesEnabled(): Promise<boolean> {
+    return (
+      (await this.getCachedConfig('trace_summaries_enabled', false)) ||
+      process.env.TRACE_SUMMARIES_ENABLED === 'true'
+    );
+  }
+
+  /**
    * Gets a cached configuration value.
    */
   static async getCachedConfig<T>(key: string, defaultValue: T): Promise<T> {

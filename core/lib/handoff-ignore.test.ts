@@ -15,6 +15,8 @@ vi.mock('./tracer', () => ({
       getParentId: () => 'test-parent',
       startTrace: vi.fn().mockResolvedValue(undefined),
       endTrace: vi.fn().mockResolvedValue(undefined),
+      failTrace: vi.fn().mockResolvedValue(undefined),
+      detectDrift: vi.fn().mockResolvedValue(undefined),
     };
   }),
 }));

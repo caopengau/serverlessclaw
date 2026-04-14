@@ -20,6 +20,9 @@ const mockAddStep = vi.fn();
 vi.mock('../tracer', () => ({
   ClawTracer: vi.fn().mockImplementation(function (this: any) {
     this.addStep = mockAddStep;
+    this.endTrace = vi.fn().mockResolvedValue(undefined);
+    this.failTrace = vi.fn().mockResolvedValue(undefined);
+    this.detectDrift = vi.fn().mockResolvedValue(undefined);
   }),
 }));
 
@@ -101,7 +104,12 @@ describe('ToolExecutor', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    tracer = { addStep: mockAddStep };
+    tracer = {
+      addStep: mockAddStep,
+      endTrace: vi.fn().mockResolvedValue(undefined),
+      failTrace: vi.fn().mockResolvedValue(undefined),
+      detectDrift: vi.fn().mockResolvedValue(undefined),
+    };
   });
 
   describe('executeToolCalls', () => {

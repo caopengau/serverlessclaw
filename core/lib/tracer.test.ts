@@ -14,7 +14,10 @@ vi.mock('./registry', () => ({
 }));
 
 // Mock AWS SDK
-const mockSend = vi.fn();
+const { mockSend } = vi.hoisted(() => ({
+  mockSend: vi.fn(),
+}));
+
 vi.mock('@aws-sdk/client-dynamodb', () => ({
   DynamoDBClient: class {
     send = mockSend;
@@ -41,6 +44,8 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
 vi.mock('sst', () => ({
   Resource: {
     TraceTable: { name: 'test-trace-table' },
+    ConfigTable: { name: 'test-config-table' },
+    MemoryTable: { name: 'test-memory-table' },
   },
 }));
 
