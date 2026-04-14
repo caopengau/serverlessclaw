@@ -60,6 +60,8 @@ export async function deleteConversation(
   workspaceId?: string
 ): Promise<void> {
   const normalizedUserId = userId.replace(/^(SESSIONS#)+/, '');
+  // We must list conversations to find the exact Sort Key (timestamp) for the session,
+  // as saveConversationMeta may append collision suffixes that cannot be derived.
   const conversations = await base.listConversations(normalizedUserId, workspaceId);
   const existing = conversations.find((c) => c.sessionId === sessionId);
 
@@ -67,10 +69,11 @@ export async function deleteConversation(
     const scopedSessionsId = base.getScopedUserId(`SESSIONS#${normalizedUserId}`, workspaceId);
     await base.deleteItem({
       userId: scopedSessionsId,
-      timestamp: existing.updatedAt,
+      timestamp: existing.updatedAt, // existing.updatedAt maps to the 'timestamp' SK attribute
     });
   }
 
+  // Clear message history (Keyed by CONV#userId#sessionId)
   await base.clearHistory(`CONV#${normalizedUserId}#${sessionId}`, workspaceId);
 }
 

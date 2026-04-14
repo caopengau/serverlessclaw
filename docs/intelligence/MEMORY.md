@@ -28,7 +28,6 @@ In multi-tenant environments, logical isolation is enforced via the `userId` par
 - **Isolation**: Prevents data leakage between different workspaces even if they share the same `userId`.
 - **Consistency**: This scoping is applied transparently across all memory tiers (History, Lessons, Gaps).
 - **Fallback**: If no `workspaceId` is provided, the system defaults to the raw `userId`.
-
 #### Isolated Memory Flow
 
 ```text
@@ -39,6 +38,7 @@ In multi-tenant environments, logical isolation is enforced via the `userId` par
                                           |
                                           v
                                 [ getScopedUserId ]
+                                (Harden & Validate)
                                           |
                                           v
                                 [ DynamoDB PK Scan ]
@@ -49,9 +49,13 @@ In multi-tenant environments, logical isolation is enforced via the `userId` par
                                                      (WS#workspace-abc#user-456)
 ```
 
+- **Hardened Scoping**: The `getScopedUserId` utility explicitly validates base `userId` strings to prevent "prefix spoofing" where a user might attempt to inject their own `WS#` prefix to access unauthorized workspace data.
+- **Thundering Herd Protection**: The `CachedMemory` provider implements concurrent request coalescing (Promise Caching) for high-frequency operations like `getHistory`. This ensures that simultaneous cache misses for the same user only trigger a single DynamoDB read, maximizing metabolic efficiency.
+
 ```text
 [ Record Root ]
  ├── userId (PK)         <-- Scoped partition (WS#ws-abc#user-123)
+...
  ├── timestamp (SK)      <-- Unique ID
  ├── type (GSI-PK)       <-- Category
  ├── tags (GSI-Filter)   <-- Consolidated keywords

@@ -59,10 +59,15 @@ export class BaseMemoryProvider {
    */
   public getScopedUserId(userId: string, workspaceId?: string): string {
     if (!workspaceId) return userId;
-    // Prevent double-prefixing
-    const prefix = `WS#${workspaceId}#`;
-    if (userId.startsWith(prefix)) return userId;
-    return `${prefix}${userId}`;
+
+    // Validation: userId should not contain workspace prefix characters to prevent spoofing
+    if (userId.includes('WS#')) {
+      logger.warn(`[SECURITY] Potential workspace prefix spoofing attempt in userId: ${userId}`);
+      // Strip it or throw? Stripping is safer for "Cleaning"
+      userId = userId.replace(/WS#.*?#/g, '');
+    }
+
+    return `WS#${workspaceId}#${userId}`;
   }
 
   /**

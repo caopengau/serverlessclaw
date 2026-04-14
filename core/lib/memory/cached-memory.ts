@@ -37,6 +37,8 @@ import { logger } from '../logger';
  * The 5-minute default in MemoryCache provides a baseline for user-scoped data.
  */
 export class CachedMemory implements IMemory {
+  private historyPromises: Map<string, Promise<Message[]>> = new Map();
+
   constructor(private readonly underlying: DynamoMemory) {}
 
   /**
@@ -52,8 +54,20 @@ export class CachedMemory implements IMemory {
       return cached;
     }
 
+    // Thundering herd protection: coalesce concurrent requests for the same user
+    const existingPromise = this.historyPromises.get(cacheKey);
+    if (existingPromise) {
+      logger.debug(`Coalescing concurrent history request for: ${userId}`);
+      return existingPromise;
+    }
+
     logger.debug(`Cache miss for history: ${userId}`);
-    const history = await this.underlying.getHistory(userId);
+    const promise = this.underlying.getHistory(userId).finally(() => {
+      this.historyPromises.delete(cacheKey);
+    });
+
+    this.historyPromises.set(cacheKey, promise);
+    const history = await promise;
 
     // Cache history with 2 minute TTL
     MemoryCaches.conversation.set(cacheKey, history, 2 * 60 * 1000);

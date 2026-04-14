@@ -50,6 +50,8 @@ export interface InsightMetadata {
   retryCount?: number;
   /** Timestamp of the last operational attempt. */
   lastAttemptTime?: number;
+  /** Timestamp (Unix epoch) when the insight was first recorded. */
+  createdAt?: number;
 }
 
 /**

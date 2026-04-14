@@ -44,12 +44,15 @@ export function createMetadata(
   overrides?: Partial<InsightMetadata>,
   timestamp: number | string = Date.now()
 ): InsightMetadata {
+  const now = Date.now();
+  const tsValue = typeof timestamp === 'string' ? parseInt(timestamp, 10) : (timestamp as number);
+  const createdAtFallback = isNaN(tsValue) ? now : tsValue;
+
   return {
     ...DEFAULT_INSIGHT_METADATA,
     hitCount: overrides?.hitCount ?? 0,
-    lastAccessed:
-      overrides?.lastAccessed ??
-      (typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp),
+    lastAccessed: overrides?.lastAccessed ?? (isNaN(tsValue) ? now : tsValue),
+    createdAt: overrides?.createdAt ?? createdAtFallback,
     ...(overrides ?? {}),
   } as InsightMetadata;
 }
@@ -276,22 +279,22 @@ export async function queryByTypeAndMap(
 
   const items = await base.queryItems(params);
 
-  return items.map((item) => ({
-    id: item.userId as string,
-    content: item.content as string,
-    timestamp: item.timestamp as number | string,
-    workspaceId: item.workspaceId as string | undefined,
-    createdAt:
-      (item.createdAt as number) ??
-      (item.metadata as { createdAt?: number } | undefined)?.createdAt ??
-      (typeof item.timestamp === 'string'
-        ? parseInt(item.timestamp, 10)
-        : (item.timestamp as number)),
-    metadata: createMetadata(
+  return items.map((item) => {
+    const timestamp = item.timestamp as number | string;
+    const metadata = createMetadata(
       (item.metadata as Partial<InsightMetadata>) ?? { category: defaultCategory },
-      item.timestamp as number | string
-    ),
-  }));
+      timestamp
+    );
+
+    return {
+      id: item.userId as string,
+      content: item.content as string,
+      timestamp,
+      workspaceId: item.workspaceId as string | undefined,
+      createdAt: (item.createdAt as number) ?? metadata.createdAt,
+      metadata,
+    };
+  });
 }
 
 /**

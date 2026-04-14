@@ -55,8 +55,8 @@ export async function createWorkspace(input: CreateWorkspaceInput): Promise<Work
   // Store workspace by ID
   await ConfigManager.saveRawConfig(workspaceKey(workspaceId), workspace);
 
-  // Register in workspace index for listing
-  await ConfigManager.appendToList(WORKSPACE_INDEX, workspaceId);
+  // Register in workspace index for listing (Capped at 1000 to prevent DDB item size limit)
+  await ConfigManager.appendToList(WORKSPACE_INDEX, workspaceId, { limit: 1000 });
 
   logger.info(`[Workspace] Created: ${workspaceId} (${input.name}) by ${input.ownerId}`);
   return workspace;

@@ -22,110 +22,60 @@ export enum RetentionTiers {
  * @since 2026-03-19
  */
 export class RetentionManager {
-  private static readonly KNOWN_CATEGORIES = new Set([
-    'LESSONS',
-    'LESSON',
-    'IMPORTANT',
-    'MEMORY',
-    'FACTS',
-    'FACT',
-    'TRACE',
-    'TRAILS',
-    'TRACES',
-    'GAPS',
-    'GAP',
-    'REPUTATION',
-    'SESSIONS',
-    'SESSION',
-    'SUMMARIES',
-    'SUMMARY',
-    'DISTILLED',
-    'MESSAGES',
-    'EPHEMERAL',
-  ]);
-
   static async getExpiresAt(
     category: string,
     userId: string = ''
   ): Promise<{ expiresAt: number; type: string }> {
     const { AgentRegistry } = await import('../registry');
 
-    let tier = RetentionTiers.STANDARD;
-    let type = 'msg';
-
     const upperCategory = category.toUpperCase();
     const userIdUpper = userId.toUpperCase();
 
-    const isKnownCategory =
-      this.KNOWN_CATEGORIES.has(upperCategory) ||
-      userIdUpper.startsWith('LESSON#') ||
-      userIdUpper.startsWith('FACT#') ||
-      userIdUpper.startsWith('REPUTATION#') ||
-      userIdUpper.startsWith('SUMMARY#') ||
-      userIdUpper.startsWith('TEMP#');
+    // Standard categorical mapping to avoid if/else noise
+    const CATEGORY_MAP: Record<string, { tier: RetentionTiers; type: string }> = {
+      LESSONS: { tier: RetentionTiers.CRITICAL, type: 'LESSON' },
+      LESSON: { tier: RetentionTiers.CRITICAL, type: 'LESSON' },
+      IMPORTANT: { tier: RetentionTiers.CRITICAL, type: 'LESSON' },
+      MEMORY: { tier: RetentionTiers.CRITICAL, type: 'LESSON' },
+      FACTS: { tier: RetentionTiers.KNOWLEDGE, type: 'FACT' },
+      FACT: { tier: RetentionTiers.KNOWLEDGE, type: 'FACT' },
+      TRACE: { tier: RetentionTiers.TRAILS, type: 'trace' },
+      TRAILS: { tier: RetentionTiers.TRAILS, type: 'trace' },
+      TRACES: { tier: RetentionTiers.TRAILS, type: 'trace' },
+      GAPS: { tier: RetentionTiers.EVOLUTION, type: 'GAP' },
+      GAP: { tier: RetentionTiers.EVOLUTION, type: 'GAP' },
+      REPUTATION: { tier: RetentionTiers.SWARM, type: 'REPUTATION' },
+      SESSIONS: { tier: RetentionTiers.SESSIONS, type: 'SESSION' },
+      SESSION: { tier: RetentionTiers.SESSIONS, type: 'SESSION' },
+      SUMMARIES: { tier: RetentionTiers.SUMMARIES, type: 'SUMMARY' },
+      SUMMARY: { tier: RetentionTiers.SUMMARIES, type: 'SUMMARY' },
+      DISTILLED: { tier: RetentionTiers.SUMMARIES, type: 'msg' }, // Distilled shared with summaries, legacy type msg
+      MESSAGES: { tier: RetentionTiers.STANDARD, type: 'msg' },
+      EPHEMERAL: { tier: RetentionTiers.EPHEMERAL, type: 'temp' },
+    };
 
-    if (!isKnownCategory) {
+    let result = CATEGORY_MAP[upperCategory];
+
+    // Prefix-based overrides for specific storage patterns
+    if (!result) {
+      if (userIdUpper.startsWith('LESSON#')) result = CATEGORY_MAP.LESSON;
+      else if (userIdUpper.startsWith('FACT#')) result = CATEGORY_MAP.FACT;
+      else if (userIdUpper.startsWith('REPUTATION#')) result = CATEGORY_MAP.REPUTATION;
+      else if (userIdUpper.startsWith('SUMMARY#')) result = CATEGORY_MAP.SUMMARY;
+      else if (userIdUpper.startsWith('TEMP#')) result = CATEGORY_MAP.EPHEMERAL;
+    }
+
+    if (!result) {
       logger.warn(
         `[RetentionManager] Unknown category "${category}" for userId "${userId}". Defaulting to STANDARD tier.`
       );
+      result = { tier: RetentionTiers.STANDARD, type: 'msg' };
     }
 
-    if (
-      upperCategory === 'LESSONS' ||
-      upperCategory === 'LESSON' ||
-      upperCategory === 'IMPORTANT' ||
-      upperCategory === 'MEMORY' ||
-      userIdUpper.startsWith('LESSON#')
-    ) {
-      tier = RetentionTiers.CRITICAL;
-      type = 'LESSON';
-    } else if (
-      upperCategory === 'FACTS' ||
-      upperCategory === 'FACT' ||
-      userIdUpper.startsWith('FACT#')
-    ) {
-      tier = RetentionTiers.KNOWLEDGE;
-      type = 'FACT';
-    }
-    // 2. Observability (Traces/Trails)
-    else if (
-      upperCategory === 'TRACE' ||
-      upperCategory === 'TRAILS' ||
-      upperCategory === 'TRACES'
-    ) {
-      tier = RetentionTiers.TRAILS;
-      type = 'trace';
-    }
-    // 3. Swarm Evolution (Gaps/Reputation)
-    else if (upperCategory === 'GAPS' || upperCategory === 'GAP') {
-      tier = RetentionTiers.EVOLUTION;
-      type = 'GAP';
-    } else if (upperCategory === 'REPUTATION' || userIdUpper.startsWith('REPUTATION#')) {
-      tier = RetentionTiers.SWARM;
-      type = 'REPUTATION';
-    }
-    // 4. Interaction Lifecycle (Sessions/Summaries)
-    else if (upperCategory === 'SESSIONS' || upperCategory === 'SESSION') {
-      tier = RetentionTiers.SESSIONS;
-      type = 'SESSION';
-    } else if (
-      upperCategory === 'SUMMARIES' ||
-      upperCategory === 'SUMMARY' ||
-      userIdUpper.startsWith('SUMMARY#')
-    ) {
-      tier = RetentionTiers.SUMMARIES;
-      type = 'SUMMARY';
-    }
-    // 5. Ephemeral/Temporary
-    else if (userIdUpper.startsWith('TEMP#') || upperCategory === 'EPHEMERAL') {
-      tier = RetentionTiers.EPHEMERAL;
-      type = 'temp';
-    }
-
-    const days = await AgentRegistry.getRetentionDays(tier as keyof typeof RETENTION);
+    const days = await AgentRegistry.getRetentionDays(result.tier as keyof typeof RETENTION);
     const expiresAt = Math.floor(Date.now() / TIME.MS_PER_SECOND) + days * TIME.SECONDS_IN_DAY;
 
-    return { expiresAt, type };
+    return { expiresAt, type: result.type };
   }
 
   /**

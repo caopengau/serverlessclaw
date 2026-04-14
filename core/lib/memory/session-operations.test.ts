@@ -115,7 +115,7 @@ describe('session-operations', () => {
   });
 
   describe('deleteConversation', () => {
-    it.skip('should delete existing conversation', async () => {
+    it('should delete existing conversation', async () => {
       const now = Date.now();
       mockBase.listConversations = vi
         .fn()
@@ -127,24 +127,24 @@ describe('session-operations', () => {
         userId: 'SESSIONS#user123',
         timestamp: now,
       });
-      expect(mockBase.clearHistory).toHaveBeenCalledWith('CONV#user123#sess1');
+      expect(mockBase.clearHistory).toHaveBeenCalledWith('CONV#user123#sess1', undefined);
     });
 
-    it.skip('should still clear history even if session not found', async () => {
+    it('should still clear history even if session not found', async () => {
       mockBase.listConversations = vi.fn().mockResolvedValue([]);
 
       await deleteConversation(mockBase, 'user123', 'sess-missing');
 
       expect(mockBase.deleteItem).not.toHaveBeenCalled();
-      expect(mockBase.clearHistory).toHaveBeenCalledWith('CONV#user123#sess-missing');
+      expect(mockBase.clearHistory).toHaveBeenCalledWith('CONV#user123#sess-missing', undefined);
     });
 
-    it.skip('should normalize userId by removing SESSIONS# prefix', async () => {
+    it('should normalize userId by removing SESSIONS# prefix', async () => {
       mockBase.listConversations = vi.fn().mockResolvedValue([]);
 
       await deleteConversation(mockBase, 'SESSIONS#user123', 'sess1');
 
-      expect(mockBase.listConversations).toHaveBeenCalledWith('user123');
+      expect(mockBase.listConversations).toHaveBeenCalledWith('user123', undefined);
     });
   });
 
