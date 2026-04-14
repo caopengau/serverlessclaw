@@ -9,7 +9,6 @@ import { Context } from 'aws-lambda';
 import { parseConfigInt } from '../../lib/providers/utils';
 import { isTaskPaused } from '../../lib/utils/agent-helpers';
 import { SessionStateManager } from '../../lib/session/session-state';
-import { CONFIG_DEFAULTS } from '../../lib/config/config-defaults';
 
 /**
  * Event types that indicate mission-critical workflows with stricter recursion limits.
@@ -337,37 +336,6 @@ export async function processEventWithAgent(
   try {
     const startTime = Date.now();
 
-    // Get heartbeat interval from config or use default (60 seconds)
-    let heartbeatMs: number = CONFIG_DEFAULTS.SESSION_LOCK_HEARTBEAT_MS.code;
-    try {
-      const configuredHeartbeat = await ConfigManager.getRawConfig('session_lock_heartbeat_ms');
-      if (typeof configuredHeartbeat === 'number' && configuredHeartbeat > 0) {
-        heartbeatMs = configuredHeartbeat;
-      }
-    } catch {
-      logger.warn('Failed to fetch session_lock_heartbeat_ms from DDB, using default.');
-    }
-
-    // Start heartbeat to renew lock (B3: Real-time Shared Awareness)
-    let heartbeatInterval: ReturnType<typeof setInterval> | undefined;
-    if (options.sessionId) {
-      heartbeatInterval = setInterval(async () => {
-        try {
-          const renewed = await sessionStateManager.renewProcessing(
-            options.sessionId!,
-            `event-handler-${agentId}`
-          );
-          if (!renewed) {
-            logger.warn(
-              `[${options.handlerTitle}] Failed to renew lock for ${options.sessionId}. Lock may have been stolen or expired.`
-            );
-          }
-        } catch (err) {
-          logger.error(`[${options.handlerTitle}] Heartbeat error for ${options.sessionId}:`, err);
-        }
-      }, heartbeatMs);
-    }
-
     const stream = agent.stream(userId, `${options.handlerTitle}: ${taskContent}`, {
       context: options.context,
       isContinuation: options.isContinuation,
@@ -397,18 +365,14 @@ export async function processEventWithAgent(
       return false;
     };
 
-    try {
-      for await (const chunk of stream) {
-        if (chunk.content) responseText += chunk.content;
-        if (chunk.attachments && Array.isArray(chunk.attachments)) {
-          for (const rawAtt of chunk.attachments) {
-            if (isValidAttachment(rawAtt)) attachments.push(rawAtt as Attachment);
-            else logger.warn('[EVENTS.SHARED] Skipping invalid stream attachment');
-          }
+    for await (const chunk of stream) {
+      if (chunk.content) responseText += chunk.content;
+      if (chunk.attachments && Array.isArray(chunk.attachments)) {
+        for (const rawAtt of chunk.attachments) {
+          if (isValidAttachment(rawAtt)) attachments.push(rawAtt as Attachment);
+          else logger.warn('[EVENTS.SHARED] Skipping invalid stream attachment');
         }
       }
-    } finally {
-      if (heartbeatInterval) clearInterval(heartbeatInterval);
     }
 
     const isPaused = isTaskPaused(responseText);

@@ -123,7 +123,11 @@ export class ToolExecutor {
 
       // If any tool paused, we should probably stop and return.
       // Note: in parallel mode, some tools might have already finished.
+      // Collect any pending side effects from completed tools before returning
       if (res.result.paused) {
+        logger.warn(
+          `[EXECUTOR] Parallel execution paused by tool ${res.result.responseText}. ${toolCalls.length - parallelResults.indexOf(res) - 1} tool(s) may still be in-flight.`
+        );
         return {
           ...res.result,
           toolCallCount,
@@ -262,7 +266,7 @@ export class ToolExecutor {
       }
     }
 
-    // 3. Execution
+    // 3. Execution with timeout
     logger.info(
       `[EXECUTOR] Calling tool: ${tool.name} | Args: ${JSON.stringify(args).substring(0, 100)}`
     );
@@ -272,7 +276,25 @@ export class ToolExecutor {
     });
 
     const toolStart = performance.now();
-    const rawResult = await tool.execute(args);
+    const timeoutMs = parseInt(process.env.TOOL_EXECUTION_TIMEOUT_MS ?? '120000');
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error(`Tool execution timeout after ${timeoutMs}ms`)), timeoutMs);
+    });
+    let rawResult: ToolResult | string;
+    try {
+      rawResult = await Promise.race([tool.execute(args), timeoutPromise]);
+    } catch (execError) {
+      logger.error(`[EXECUTOR] Tool ${tool.name} failed:`, execError);
+      messages.push({
+        role: MessageRole.TOOL,
+        tool_call_id: toolCall.id,
+        name: toolCall.function.name,
+        content: `FAILED: Tool execution failed - ${execError instanceof Error ? execError.message : String(execError)}`,
+        traceId: execContext.traceId,
+        messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      });
+      return { toolCallCount: 0 };
+    }
     const toolDurationMs = performance.now() - toolStart;
 
     const resultText =

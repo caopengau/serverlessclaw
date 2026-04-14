@@ -13,6 +13,10 @@ const lambdaClient = new LambdaClient({});
 export class MCPClientManager {
   private static clients: Map<string, Client> = new Map();
   private static connecting: Map<string, Promise<Client>> = new Map();
+  private static connectionTimestamps: Map<string, number> = new Map();
+  private static readonly CONNECTION_TTL_MS = parseInt(
+    process.env.MCP_CONNECTION_TTL_MS ?? '900000'
+  ); // 15 min default
 
   static getClient(name: string): Client | undefined {
     // Check for exact match or cwd-prefixed match
@@ -24,6 +28,24 @@ export class MCPClientManager {
       if (key.startsWith(`${name}:`)) return val;
     }
     return undefined;
+  }
+
+  /**
+   * Evict stale connections that have exceeded TTL.
+   */
+  private static evictStaleConnections(): void {
+    const now = Date.now();
+    for (const [key, timestamp] of this.connectionTimestamps.entries()) {
+      if (now - timestamp > this.CONNECTION_TTL_MS) {
+        const client = this.clients.get(key);
+        if (client) {
+          client.close().catch(() => {});
+          this.clients.delete(key);
+          this.connectionTimestamps.delete(key);
+          logger.info(`[MCP] Evicted stale connection: ${key}`);
+        }
+      }
+    }
   }
 
   static deleteClient(name: string): void {
@@ -188,8 +210,8 @@ export class MCPClientManager {
       }
 
       transport.onclose = () => {
-        logger.warn(`MCP Server connection closed: ${serverName}`);
-        this.clients.delete(serverName);
+        logger.warn(`MCP Server connection closed: ${cacheKey}`);
+        this.clients.delete(cacheKey);
       };
 
       return newClient;
@@ -202,6 +224,7 @@ export class MCPClientManager {
       client = await connectingPromise;
       if (client) {
         this.clients.set(cacheKey, client);
+        this.connectionTimestamps.set(cacheKey, Date.now());
       }
       return client;
     } finally {
@@ -215,6 +238,17 @@ export class MCPClientManager {
     }
     this.clients.clear();
     this.connecting.clear();
+    this.connectionTimestamps.clear();
+  }
+
+  /**
+   * Periodic cleanup for stale connections. Call this during MCP operations.
+   */
+  static maybeEvictStaleConnections(): void {
+    // Evict every ~100 calls to balance performance vs freshness
+    if (Math.random() < 0.01) {
+      this.evictStaleConnections();
+    }
   }
 }
 
