@@ -82,12 +82,15 @@ export class BlastRadiusStore {
     const db = getDocClient();
     try {
       // Use atomic UpdateCommand to increment counts safely
+      // Wrap in 'value' field to match ConfigTable schema
       const response = await db.send(
         new UpdateCommand({
           TableName: getConfigTableName(),
           Key: { key },
-          UpdateExpression: 'ADD #cnt :one, #rcnt :resCnt SET #la = :now, #exp = :expires',
+          UpdateExpression:
+            'SET #val.#la = :now, #val.#exp = :expires ADD #val.#cnt :one, #val.#rcnt :resCnt',
           ExpressionAttributeNames: {
+            '#val': 'value',
             '#cnt': 'count',
             '#rcnt': 'resourceCount',
             '#la': 'lastAction',
@@ -103,7 +106,7 @@ export class BlastRadiusStore {
         })
       );
 
-      const val = response.Attributes?.value || response.Attributes;
+      const val = response.Attributes?.value;
       const entry: BlastRadiusEntry = {
         key,
         count: val.count ?? 1,

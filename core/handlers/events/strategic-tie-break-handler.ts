@@ -26,7 +26,39 @@ export async function handleStrategicTieBreak(eventDetail: Record<string, unknow
   const { userId, agentId, task, originalTask, traceId, initiatorId, sessionId, depth } =
     eventDetail as unknown as StrategicTieBreakPayload;
 
-  logger.warn(`[TIE_BREAK] Performing strategic tie-break for ${agentId} | traceId: ${traceId}`);
+  // Sh1 Fix: Enforce Principle 12 - Facilitator must be highly trusted for autonomous tie-break
+  const { AgentRegistry } = await import('../../lib/registry/AgentRegistry');
+  const { TRUST } = await import('../../lib/constants/system');
+  const facilitatorConfig = await AgentRegistry.getAgentConfig('facilitator');
+  const trustScore = facilitatorConfig?.trustScore ?? TRUST.DEFAULT_SCORE;
+
+  if (trustScore < TRUST.FACILITATOR_THRESHOLD) {
+    logger.warn(
+      `[TIE_BREAK] Aborting tie-break for ${traceId}: Facilitator trust (${trustScore}) below threshold (${TRUST.FACILITATOR_THRESHOLD}).`
+    );
+    // Fail the task as the system cannot safely resolve the conflict
+    await emitEvent(
+      'facilitator.agent',
+      EventType.TASK_FAILED,
+      {
+        userId,
+        agentId,
+        task,
+        originalTask,
+        traceId,
+        initiatorId,
+        sessionId,
+        depth,
+        error: `STRATEGIC_TIE_BREAK (ABORTED): Facilitator trust score (${trustScore}) is too low for autonomous conflict resolution (required >= ${TRUST.FACILITATOR_THRESHOLD}). A human must resolve this conflict manually.`,
+      },
+      { priority: EventPriority.HIGH }
+    );
+    return;
+  }
+
+  logger.warn(
+    `[TIE_BREAK] Performing strategic tie-break for ${agentId} | traceId: ${traceId} (Facilitator Trust: ${trustScore})`
+  );
 
   // P1 Fix: Analyze original task for high-risk operations and apply strategic handling
   const highRiskPatterns = [

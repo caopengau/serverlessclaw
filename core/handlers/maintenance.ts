@@ -33,9 +33,23 @@ export const handler = async (_event: unknown, _context: Context): Promise<void>
       CONFIG_DEFAULTS.TIE_BREAK_TIMEOUT_MS.code
     );
 
+    const { AgentRegistry } = await import('../lib/registry/AgentRegistry');
+    const { TRUST } = await import('../lib/constants/system');
+
     for (const collab of staleCollabs) {
+      // Sh1 Fix: Enforce Principle 12 - Facilitator must be highly trusted for autonomous tie-break
+      const facilitatorConfig = await AgentRegistry.getAgentConfig('facilitator');
+      const trustScore = facilitatorConfig?.trustScore ?? TRUST.DEFAULT_SCORE;
+
+      if (trustScore < TRUST.FACILITATOR_THRESHOLD) {
+        logger.warn(
+          `[MAINTENANCE] Skipping tie-break for ${collab.collaborationId}: Facilitator trust (${trustScore}) below threshold (${TRUST.FACILITATOR_THRESHOLD}).`
+        );
+        continue;
+      }
+
       logger.info(
-        `[MAINTENANCE] Collaboration ${collab.collaborationId} timed out. Initializing strategic tie-break.`
+        `[MAINTENANCE] Collaboration ${collab.collaborationId} timed out. Initializing strategic tie-break (Facilitator Trust: ${trustScore}).`
       );
 
       await emitTypedEvent('maintenance.handler', EventType.STRATEGIC_TIE_BREAK, {

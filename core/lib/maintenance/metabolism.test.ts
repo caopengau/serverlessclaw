@@ -7,6 +7,8 @@ import { cullResolvedGaps } from '../memory/gap-operations';
 vi.mock('../registry/AgentRegistry', () => ({
   AgentRegistry: {
     pruneLowUtilizationTools: vi.fn(),
+    getRawConfig: vi.fn(),
+    saveRawConfig: vi.fn(),
   },
 }));
 
@@ -60,7 +62,7 @@ describe('MetabolismService', () => {
 
       expect(AgentRegistry.pruneLowUtilizationTools).toHaveBeenCalledWith(1);
       expect(result).toBeDefined();
-      expect(result?.actual).toContain('Pruned stale tool overrides');
+      expect(result?.actual).toContain('Pruned stale/failing tool overrides');
     });
 
     it('should execute gap culling if the error is related to memory or gaps', async () => {

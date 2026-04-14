@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleStrategicTieBreak } from './strategic-tie-break-handler';
 import { emitEvent } from '../../lib/utils/bus';
 import { EventType } from '../../lib/types/agent';
+import { AgentRegistry } from '../../lib/registry/AgentRegistry';
 
 vi.mock('../../lib/utils/bus', () => ({
   emitEvent: vi.fn(),
@@ -21,9 +22,23 @@ vi.mock('../../lib/logger', () => ({
   },
 }));
 
+vi.mock('../../lib/registry/AgentRegistry', () => ({
+  AgentRegistry: {
+    getAgentConfig: vi.fn(),
+  },
+}));
+
+vi.mock('../../lib/constants/system', () => ({
+  TRUST: {
+    FACILITATOR_THRESHOLD: 90,
+    DEFAULT_SCORE: 80,
+  },
+}));
+
 describe('handleStrategicTieBreak', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (AgentRegistry.getAgentConfig as any).mockResolvedValue({ trustScore: 95 });
   });
 
   it('repro: generates invalid event type for hyphenated agent IDs', async () => {

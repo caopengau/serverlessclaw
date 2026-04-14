@@ -166,12 +166,40 @@ export class MetabolismService {
 
     // Strategy 1: Registry mismatch/stale overrides (Common dashboard issue)
     if (error.includes('tool') || error.includes('registry') || error.includes('override')) {
-      const pruned = await AgentRegistry.pruneLowUtilizationTools(1); // 1-day min threshold
+      let pruned = 0;
+      // Sh7 Fix: More surgical remediation - if error contains a specific tool name, prune THAT override specifically
+      // e.g. "Tool 'github_createIssue' failed" -> prune 'github_createIssue'
+      const toolMatch =
+        failure.error.match(/tool\s+'([^']+)'/i) || failure.error.match(/'([^']+)'\s+tool/i);
+      if (toolMatch && toolMatch[1]) {
+        const toolName = toolMatch[1];
+        const agentId = failure.agentId || 'unknown';
+        logger.info(
+          `[Metabolism] Surgical remediation: Pruning specific tool '${toolName}' for agent '${agentId}'`
+        );
+
+        const currentTools = (await AgentRegistry.getRawConfig(`${agentId}_tools`)) as string[];
+        if (Array.isArray(currentTools)) {
+          const filtered = currentTools.filter(
+            (t) => (typeof t === 'string' ? t : (t as any).name) !== toolName
+          );
+          if (filtered.length < currentTools.length) {
+            await AgentRegistry.saveRawConfig(`${agentId}_tools`, filtered);
+            pruned = 1;
+          }
+        }
+      }
+
+      if (pruned === 0) {
+        // Fallback to broad pruning
+        pruned = await AgentRegistry.pruneLowUtilizationTools(1); // 1-day min threshold
+      }
+
       if (pruned > 0) {
         return {
           silo: 'Metabolism',
           expected: 'Consistent agent registry',
-          actual: `Real-time repair: Pruned stale tool overrides triggered by dashboard failure.`,
+          actual: `Real-time repair: Pruned stale/failing tool overrides triggered by dashboard failure.`,
           severity: 'P2',
           recommendation: 'Autonomous repair executed successfully.',
         };
