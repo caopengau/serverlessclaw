@@ -174,10 +174,10 @@ export async function createAgent(
   const agentTools = await getAgentTools(agentId);
 
   // Apply dynamic localization instructions
-  let systemPrompt = config.systemPrompt;
+  let systemPrompt = config.systemPrompt ?? '';
   const instruction =
     locale.toLowerCase() === 'cn' ? LOCALE_INSTRUCTIONS.CN : LOCALE_INSTRUCTIONS.EN;
-  if (instruction) {
+  if (instruction && systemPrompt) {
     systemPrompt += instruction;
   }
 

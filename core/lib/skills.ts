@@ -16,10 +16,10 @@ export class SkillRegistry {
    */
   static async findSkillsByKeyword(query: string): Promise<IToolDefinition[]> {
     const { TOOLS } = await import('../tools/index');
-    const { MCPMultiplexer } = await import('./mcp');
+    const { MCPBridge } = await import('./mcp/mcp-bridge');
 
     const allLocalTools = Object.values(TOOLS);
-    const allExternalTools = await MCPMultiplexer.getExternalTools();
+    const allExternalTools = await MCPBridge.getExternalTools();
 
     const allCapabilities = [...allLocalTools, ...allExternalTools];
     const searchTerms = query.toLowerCase().split(' ');

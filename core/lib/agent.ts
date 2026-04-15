@@ -35,7 +35,7 @@ export function validateAgentConfig(config: IAgentConfig | undefined, agentType:
     );
   }
 
-  const required: (keyof IAgentConfig)[] = ['id', 'name', 'systemPrompt', 'enabled'];
+  const required: (keyof IAgentConfig)[] = ['id', 'name', 'enabled'];
   const missing = required.filter(
     (key) => config[key] === undefined || config[key] === null || config[key] === ''
   );
@@ -43,6 +43,14 @@ export function validateAgentConfig(config: IAgentConfig | undefined, agentType:
   if (missing.length > 0) {
     throw new Error(
       `Agent config for '${agentType}' missing required fields: ${missing.join(', ')}. ` +
+        `Ensure the config is fully populated in AgentRegistry or backbone.ts.`
+    );
+  }
+
+  // systemPrompt is mandatory for LLM agents (default type)
+  if (config.agentType !== 'logic' && !config.systemPrompt) {
+    throw new Error(
+      `LLM Agent config for '${agentType}' missing required field: systemPrompt. ` +
         `Ensure the config is fully populated in AgentRegistry or backbone.ts.`
     );
   }
@@ -284,7 +292,7 @@ export class Agent {
 
           const { TokenTracker } = await import('./metrics/token-usage');
           const agentId = this.config?.id ?? 'unknown';
-          await TokenTracker.recordInvocation({
+          TokenTracker.recordInvocation({
             timestamp: Date.now(),
             traceId: traceId ?? '',
             agentId,
@@ -297,14 +305,14 @@ export class Agent {
             taskType: 'agent_process',
             success: !paused,
             durationMs: loopUsage.durationMs,
-          });
-          await TokenTracker.updateRollup(agentId, {
+          }).catch(() => {});
+          TokenTracker.updateRollup(agentId, {
             inputTokens: loopUsage.totalInputTokens,
             outputTokens: loopUsage.totalOutputTokens,
             toolCalls: loopUsage.toolCallCount,
             success: !paused,
             durationMs: loopUsage.durationMs,
-          });
+          }).catch(() => {});
         } catch {
           logger.warn('Failed to emit agent metrics or persist token usage');
         }
@@ -375,7 +383,7 @@ export class Agent {
       };
     } catch (error) {
       logger.error(`[Agent] Critical error in process loop:`, error);
-      await tracer.endTrace(AGENT_ERRORS.PROCESS_FAILURE);
+      await tracer.failTrace(AGENT_ERRORS.PROCESS_FAILURE, { error: String(error) });
       throw error;
     }
   }
@@ -550,21 +558,27 @@ export class Agent {
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
 
-    for await (const chunk of stream) {
-      if (options.sessionId && sessionStateManager) {
-        await sessionStateManager.autoRenew(options.sessionId, this.config?.id ?? 'unknown');
-      }
+    try {
+      for await (const chunk of stream) {
+        if (options.sessionId && sessionStateManager) {
+          await sessionStateManager.autoRenew(options.sessionId, this.config?.id ?? 'unknown');
+        }
 
-      // Periodically check for signal drift (Eye Silo Silo 5)
-      await tracer.detectDrift();
+        // Periodically check for signal drift (Eye Silo Silo 5)
+        await tracer.detectDrift();
 
-      if (chunk.content) fullContent += chunk.content;
-      if (chunk.thought) fullThought += chunk.thought;
-      if (chunk.usage) {
-        totalInputTokens += chunk.usage.prompt_tokens;
-        totalOutputTokens += chunk.usage.completion_tokens;
+        if (chunk.content) fullContent += chunk.content;
+        if (chunk.thought) fullThought += chunk.thought;
+        if (chunk.usage) {
+          totalInputTokens += chunk.usage.prompt_tokens;
+          totalOutputTokens += chunk.usage.completion_tokens;
+        }
+        yield { ...chunk, agentName: this.config?.name };
       }
-      yield { ...chunk, agentName: this.config?.name };
+    } catch (streamError) {
+      logger.error(`[Agent] Stream error:`, streamError);
+      await tracer.failTrace(String(streamError), { error: String(streamError) });
+      throw streamError;
     }
 
     if (!process.env.VITEST) {

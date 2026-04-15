@@ -1,6 +1,6 @@
 import { logger } from '../logger';
 import { AuditFinding } from '../../agents/cognition-reflector/lib/audit-definitions';
-import { MCPMultiplexer } from '../mcp';
+import { MCPBridge } from '../mcp/mcp-bridge';
 import { AgentRegistry } from '../registry/AgentRegistry';
 import { archiveStaleGaps, cullResolvedGaps, setGap } from '../memory/gap-operations';
 import { InsightCategory } from '../types/memory';
@@ -23,26 +23,27 @@ export class MetabolismService {
    */
   static async runMetabolismAudit(
     memory: BaseMemoryProvider,
-    options: { repair?: boolean } = {}
+    options: { repair?: boolean; workspaceId?: string } = {}
   ): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
+    const workspaceId = options.workspaceId;
 
     logger.info(`[Metabolism] Starting regenerative audit (repair: ${!!options.repair})`);
 
     // 1. Perform automated repairs for stateless state (Registry/Memory)
-    if (options.repair) {
-      const repairs = await this.executeRepairs(memory);
+    if (options.repair && workspaceId) {
+      const repairs = await this.executeRepairs(memory, workspaceId);
       findings.push(...repairs);
     }
 
     // 2. Delegate to AIReady (AST) MCP if available
-    const mcpFindings = await this.runMcpAudit();
+    const mcpFindings = await this.runMcpAudit(workspaceId);
     findings.push(...mcpFindings);
 
     // 3. Fallback to native audit if MCP failed or returned no tools
     const hasMcpFail = mcpFindings.some((f) => f.recommendation.includes('Ensure AST server'));
     if (mcpFindings.length === 0 || hasMcpFail) {
-      const nativeFindings = await this.runNativeAudit();
+      const nativeFindings = await this.runNativeAudit(workspaceId);
       findings.push(...nativeFindings);
     }
 
@@ -52,12 +53,15 @@ export class MetabolismService {
   /**
    * Executes autonomous repairs on system state.
    */
-  private static async executeRepairs(memory: BaseMemoryProvider): Promise<AuditFinding[]> {
+  private static async executeRepairs(
+    memory: BaseMemoryProvider,
+    workspaceId: string
+  ): Promise<AuditFinding[]> {
     const repairFindings: AuditFinding[] = [];
 
     // Repair 1: Agent Registry Low-Utilization Tools (Principle 10)
     try {
-      const pruned = await AgentRegistry.pruneLowUtilizationTools(30);
+      const pruned = await AgentRegistry.pruneLowUtilizationTools(workspaceId, 30);
       if (pruned > 0) {
         repairFindings.push({
           silo: 'Metabolism',
@@ -73,8 +77,8 @@ export class MetabolismService {
 
     // Repair 2: Memory Bloat (Stale Gaps)
     try {
-      const archived = await archiveStaleGaps(memory);
-      const culled = await cullResolvedGaps(memory);
+      const archived = await archiveStaleGaps(memory, undefined, workspaceId);
+      const culled = await cullResolvedGaps(memory, undefined, workspaceId);
       if (archived > 0 || culled > 0) {
         repairFindings.push({
           silo: 'Metabolism',
@@ -94,10 +98,10 @@ export class MetabolismService {
   /**
    * Runs the codebase audit via AIReady (AST) MCP server.
    */
-  private static async runMcpAudit(): Promise<AuditFinding[]> {
+  private static async runMcpAudit(_workspaceId?: string): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
     try {
-      const astTools = await MCPMultiplexer.getToolsFromServer('ast', '');
+      const astTools = await MCPBridge.getToolsFromServer('ast', '');
       const auditTool = astTools.find(
         (t: { name: string }) =>
           t.name === 'metabolism_audit' ||
@@ -160,7 +164,10 @@ export class MetabolismService {
     memory: BaseMemoryProvider,
     failure: FailureEventPayload
   ): Promise<AuditFinding | undefined> {
-    logger.info(`[Metabolism] Attempting immediate remediation for trace ${failure.traceId}`);
+    const workspaceId = (failure as Record<string, unknown>).workspaceId as string | undefined;
+    logger.info(
+      `[Metabolism] Attempting immediate remediation for trace ${failure.traceId} in workspace ${workspaceId}`
+    );
 
     const error = failure.error.toLowerCase();
 
@@ -174,25 +181,27 @@ export class MetabolismService {
       if (toolMatch && toolMatch[1]) {
         const toolName = toolMatch[1];
         const agentId = failure.agentId || 'unknown';
+        const configKey = workspaceId ? `WS#${workspaceId}#${agentId}_tools` : `${agentId}_tools`;
+
         logger.info(
-          `[Metabolism] Surgical remediation: Pruning specific tool '${toolName}' for agent '${agentId}'`
+          `[Metabolism] Surgical remediation: Pruning specific tool '${toolName}' for agent '${agentId}' via key ${configKey}`
         );
 
-        const currentTools = (await AgentRegistry.getRawConfig(`${agentId}_tools`)) as string[];
+        const currentTools = (await AgentRegistry.getRawConfig(configKey)) as string[];
         if (Array.isArray(currentTools)) {
           const filtered = currentTools.filter(
             (t) => (typeof t === 'string' ? t : (t as any).name) !== toolName
           );
           if (filtered.length < currentTools.length) {
-            await AgentRegistry.saveRawConfig(`${agentId}_tools`, filtered);
+            await AgentRegistry.saveRawConfig(configKey, filtered);
             pruned = 1;
           }
         }
       }
 
-      if (pruned === 0) {
+      if (pruned === 0 && workspaceId) {
         // Fallback to broad pruning
-        pruned = await AgentRegistry.pruneLowUtilizationTools(1); // 1-day min threshold
+        pruned = await AgentRegistry.pruneLowUtilizationTools(workspaceId, 1); // 1-day min threshold
       }
 
       if (pruned > 0) {
@@ -208,7 +217,7 @@ export class MetabolismService {
 
     // Strategy 2: Memory/Gap inconsistencies
     if (error.includes('memory') || error.includes('gap')) {
-      await cullResolvedGaps(memory);
+      await cullResolvedGaps(memory, undefined, workspaceId);
       return {
         silo: 'Metabolism',
         expected: 'Clean memory state',
@@ -246,17 +255,40 @@ export class MetabolismService {
   /**
    * Runs naive native checks for common debt markers.
    */
-  private static async runNativeAudit(): Promise<AuditFinding[]> {
+  private static async runNativeAudit(_workspaceId?: string): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
-    // Native fallback performs basic checks that don't require external AST analysis
+
+    // Always report that native scan is running
     findings.push({
       silo: 'Metabolism',
-      expected: 'Native metabolism fallback check active',
+      expected: 'Native technical debt scan performed',
       actual: 'Scanning codebase for P3 debt markers (TODO/FIXME)...',
       severity: 'P3',
-      recommendation:
-        'AIReady MCP unavailable. Native scanner identifies debt markers but meta-repair requires MCP for safety.',
+      recommendation: 'AIReady MCP unavailable. Falling back to native debt markers.',
     });
+
+    try {
+      const { runShellCommand } = await import('../../tools/system/fs');
+      const result = await runShellCommand.execute({
+        command: "grep -rE '(TODO|FIXME)' ./core | head -n 20",
+      });
+
+      if (result && typeof result === 'string') {
+        const lines = result.split('\n').filter((l: string) => l.trim());
+        if (lines.length > 0) {
+          findings.push({
+            silo: 'Metabolism',
+            expected: 'Zero technical debt markers in core paths',
+            actual: `Audit result: Found ${lines.length} debt markers (TODO/FIXME) in core files.`,
+            severity: 'P3',
+            recommendation:
+              'Schedule a refactoring sprint to address legacy debt markers. Metabolism service identifies these but requires HITL for safe removal.',
+          });
+        }
+      }
+    } catch (e) {
+      logger.warn('[Metabolism] Native debt scan failed:', e);
+    }
     return findings;
   }
 }

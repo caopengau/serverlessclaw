@@ -1,5 +1,5 @@
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { IAgentConfig } from '../types/agent';
+import { IAgentConfig, AgentType } from '../types/agent';
 import { BACKBONE_REGISTRY } from '../backbone';
 import { logger } from '../logger';
 import type { Topology, TopologyNode } from '../types/index';
@@ -48,6 +48,14 @@ export class AgentRegistry {
       number
     >;
     return config?.[item] ?? RETENTION[item];
+  }
+
+  /**
+   * Returns the list of standard backbone fallback agents.
+   * Used when target agents are disabled or unavailable.
+   */
+  static getFallbackAgents(): string[] {
+    return [AgentType.SUPERCLAW, AgentType.RESEARCHER];
   }
 
   /**
@@ -570,13 +578,18 @@ export class AgentRegistry {
   }
 
   /**
-   * Performs metabolic pruning of low-utilization tools.
+   * Performs metabolic pruning of low-utilization tools for a specific workspace.
    * Tools with 0 usage and registered > 30 days ago are removed from agent configs.
+   * Scoped to Principle 13 (Atomic State Integrity).
    *
+   * @param workspaceId - The workspace identifier to prune tools for.
    * @param daysThreshold - Days of inactivity before a never-used tool is pruned.
    * @returns A promise resolving to the number of tools pruned.
    */
-  static async pruneLowUtilizationTools(daysThreshold: number = 30): Promise<number> {
+  static async pruneLowUtilizationTools(
+    workspaceId: string,
+    daysThreshold: number = 30
+  ): Promise<number> {
     const usage = (await ConfigManager.getRawConfig(DYNAMO_KEYS.TOOL_USAGE)) as Record<
       string,
       { count: number; firstRegistered: number }
@@ -586,12 +599,18 @@ export class AgentRegistry {
     const thresholdMs = daysThreshold * 24 * 60 * 60 * 1000;
     const now = Date.now();
     const lowUtilTools = Object.entries(usage)
-      .filter(([_, stats]) => stats.count === 0 && now - stats.firstRegistered > thresholdMs)
+      .filter(([name, stats]) => {
+        // Only prune tools belonging to THIS workspace
+        if (!name.startsWith(`WS#${workspaceId}#`)) return false;
+        return stats.count === 0 && now - stats.firstRegistered > thresholdMs;
+      })
       .map(([name]) => name);
 
     if (lowUtilTools.length === 0) return 0;
 
-    logger.info(`[REGISTRY] Found ${lowUtilTools.length} low-utilization tools for pruning.`);
+    logger.info(
+      `[REGISTRY] Found ${lowUtilTools.length} low-utilization tools for pruning in workspace ${workspaceId}.`
+    );
 
     const allConfigs = await this.getAllConfigs();
     let totalPruned = 0;
@@ -607,6 +626,8 @@ export class AgentRegistry {
     const resource = (await import('sst')).Resource as { ConfigTable?: { name: string } };
 
     for (const [agentId, config] of Object.entries(allConfigs)) {
+      // Scoping check for agent configurations
+      if (!agentId.startsWith(`WS#${workspaceId}#`)) continue;
       if (!config.tools) continue;
 
       const toolsToPrune = config.tools.filter((t) => lowUtilTools.includes(t));

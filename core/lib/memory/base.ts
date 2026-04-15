@@ -6,14 +6,11 @@ import {
   DeleteCommand,
   UpdateCommand,
   ScanCommand,
-  BatchWriteCommand,
 } from '@aws-sdk/lib-dynamodb';
 
 import { Resource } from 'sst';
 import { logger } from '../logger';
 import { SSTResource } from '../types/system';
-import { Message, MessageRole } from '../types/llm';
-import { ConversationMeta } from '../types/memory';
 
 // Default client for backward compatibility - can be overridden via constructor for testing
 const defaultClient = new DynamoDBClient({});
@@ -26,6 +23,7 @@ const typedResource = Resource as unknown as SSTResource;
 
 /**
  * Base logic for DynamoDB interactions within the memory system.
+ * Focused on low-level CRUD operations and workspace scoping.
  * @since 2026-03-19
  */
 export class BaseMemoryProvider {
@@ -37,6 +35,20 @@ export class BaseMemoryProvider {
    */
   constructor(docClient?: DynamoDBDocumentClient) {
     this.docClient = docClient ?? defaultDocClient;
+  }
+
+  /**
+   * Public getter for the table name.
+   */
+  public getTableName(): string {
+    return this.tableName;
+  }
+
+  /**
+   * Public getter for the doc client.
+   */
+  public getDocClient(): DynamoDBDocumentClient {
+    return this.docClient;
   }
 
   /**
@@ -63,8 +75,9 @@ export class BaseMemoryProvider {
     // Validation: userId should not contain workspace prefix characters to prevent spoofing
     if (userId.includes('WS#')) {
       logger.warn(`[SECURITY] Potential workspace prefix spoofing attempt in userId: ${userId}`);
-      // Strip it or throw? Stripping is safer for "Cleaning"
-      userId = userId.replace(/WS#.*?#/g, '');
+      // Strip any existing WS#...# prefix to ensure target workspace takes precedence
+      // Matches WS# followed by text up to the next #
+      userId = userId.replace(/^WS#.*?#/g, '');
     }
 
     return `WS#${workspaceId}#${userId}`;
@@ -227,143 +240,33 @@ export class BaseMemoryProvider {
   /**
    * Standard implementation for getHistory.
    * Filters out expired items based on TTL.
-   *
-   * @param userId - The user identifier to retrieve history for.
-   * @param workspaceId - Optional workspace identifier for isolation.
-   * @returns A promise resolving to an array of Message objects.
    */
-  async getHistory(userId: string, workspaceId?: string): Promise<Message[]> {
-    const scopedUserId = this.getScopedUserId(userId, workspaceId);
-    const items = await this.queryItems({
-      KeyConditionExpression: 'userId = :userId',
-      ExpressionAttributeValues: {
-        ':userId': scopedUserId,
-      },
-      ScanIndexForward: true, // Oldest first
-    });
-
-    const now = Math.floor(Date.now() / 1000); // Current time in seconds for TTL comparison
-    const validItems = (items || []).filter(
-      (item) => !item.expiresAt || (item.expiresAt as number) > now
-    );
-
-    return validItems.map((item) => ({
-      role: item.role as MessageRole,
-      content: (item.content as string) ?? '',
-      thought: item.thought as string | undefined,
-      tool_calls: (item.tool_calls as import('./../types/llm').ToolCall[] | undefined) ?? [],
-      attachments: (item.attachments as import('./../types/agent').Attachment[] | undefined) ?? [],
-      tool_call_id: item.tool_call_id as string | undefined,
-      name: item.name as string | undefined,
-      agentName: item.agentName as string | undefined,
-      traceId: (item.traceId as string) || `legacy-${item.timestamp || Date.now()}`,
-      messageId: (item.messageId as string) || `msg-legacy-${item.timestamp || Date.now()}`,
-    }));
+  public async getHistory(userId: string, workspaceId?: string) {
+    const { getHistory } = await import('./base-operations');
+    return getHistory(this, userId, workspaceId);
   }
 
   /**
    * Standard implementation for clearHistory.
-   *
-   * @param userId - The user identifier to clear history for.
-   * @param workspaceId - Optional workspace identifier for isolation.
-   * @returns A promise resolving when history is cleared.
    */
-  async clearHistory(userId: string, workspaceId?: string): Promise<void> {
-    const scopedUserId = this.getScopedUserId(userId, workspaceId);
-    const items = await this.queryItems({
-      KeyConditionExpression: 'userId = :userId',
-      ExpressionAttributeValues: {
-        ':userId': scopedUserId,
-      },
-    });
-
-    if (items.length === 0) return;
-
-    // Batch delete in groups of 25 (DynamoDB limit)
-    for (let i = 0; i < items.length; i += 25) {
-      const batch = items.slice(i, i + 25);
-      let requestItems = {
-        [this.tableName]: batch.map((item) => ({
-          DeleteRequest: {
-            Key: { userId: item.userId as string, timestamp: item.timestamp as number },
-          },
-        })),
-      };
-
-      // Retry loop for unprocessed items (throughput throttling)
-      let attempts = 0;
-      const MAX_ATTEMPTS = 5;
-
-      while (Object.keys(requestItems).length > 0 && attempts < MAX_ATTEMPTS) {
-        if (attempts > 0) {
-          const delay = Math.pow(2, attempts) * 100 + Math.random() * 100;
-          await new Promise((resolve) => setTimeout(resolve, delay));
-        }
-
-        const response = await this.docClient.send(
-          new BatchWriteCommand({ RequestItems: requestItems })
-        );
-        requestItems = (response.UnprocessedItems as typeof requestItems) ?? {};
-        attempts++;
-      }
-
-      if (Object.keys(requestItems).length > 0) {
-        logger.error(
-          `Failed to clear all history for ${scopedUserId} after ${MAX_ATTEMPTS} attempts.`,
-          {
-            unprocessedCount: Object.keys(requestItems[this.tableName] || {}).length,
-          }
-        );
-      }
-    }
-    logger.info(`Cleared history for ${scopedUserId} (${items.length} items)`);
+  public async clearHistory(userId: string, workspaceId?: string) {
+    const { clearHistory } = await import('./base-operations');
+    return clearHistory(this, userId, workspaceId);
   }
 
   /**
    * Standard implementation for getDistilledMemory.
-   *
-   * @param userId - The user identifier to retrieve distilled memory for.
-   * @param workspaceId - Optional workspace identifier for isolation.
-   * @returns A promise resolving to the distilled memory string.
    */
-  async getDistilledMemory(userId: string, workspaceId?: string): Promise<string> {
-    const scopedUserId = this.getScopedUserId(userId, workspaceId);
-    const items = await this.queryItems({
-      KeyConditionExpression: 'userId = :userId',
-      ExpressionAttributeValues: {
-        ':userId': `DISTILLED#${scopedUserId}`,
-      },
-      ScanIndexForward: false, // Latest first
-      Limit: 1,
-    });
-
-    return (items?.[0]?.content as string) ?? '';
+  public async getDistilledMemory(userId: string, workspaceId?: string) {
+    const { getDistilledMemory } = await import('./base-operations');
+    return getDistilledMemory(this, userId, workspaceId);
   }
 
   /**
    * Standard implementation for listConversations.
-   *
-   * @param userId - The user identifier to list conversations for.
-   * @param workspaceId - Optional workspace identifier for isolation.
-   * @returns A promise resolving to an array of ConversationMeta objects.
    */
-  async listConversations(userId: string, workspaceId?: string): Promise<ConversationMeta[]> {
-    const scopedUserId = this.getScopedUserId(userId, workspaceId);
-    const items = await this.queryItems({
-      KeyConditionExpression: 'userId = :userId',
-      ExpressionAttributeValues: {
-        ':userId': `SESSIONS#${scopedUserId}`,
-      },
-      ScanIndexForward: false, // Newest first
-    });
-
-    return items.map((item) => ({
-      sessionId: item.sessionId as string,
-      title: item.title as string,
-      lastMessage: item.content as string,
-      updatedAt: item.timestamp as number | string,
-      isPinned: !!item.isPinned,
-      expiresAt: item.expiresAt as number | undefined,
-    }));
+  public async listConversations(userId: string, workspaceId?: string) {
+    const { listConversations } = await import('./base-operations');
+    return listConversations(this, userId, workspaceId);
   }
 }

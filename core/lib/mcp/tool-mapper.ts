@@ -9,9 +9,14 @@ import { jsonSchemaToZod } from '../utils/zod-utils';
  * Maps raw MCP tools to ServerlessClaw ITool interface.
  */
 export class MCPToolMapper {
-  static mapTools(serverName: string, client: Client, rawTools: unknown[]): ITool[] {
+  static mapTools(
+    serverName: string,
+    client: Client,
+    rawTools: unknown[],
+    overrides?: Record<string, Partial<ITool>>
+  ): ITool[] {
     return rawTools.map((mcpTool) =>
-      this.mapMcpTool(serverName, mcpTool as any, async () => client)
+      this.mapMcpTool(serverName, mcpTool as any, async () => client, overrides)
     );
   }
 
@@ -22,9 +27,12 @@ export class MCPToolMapper {
   static mapCachedTools(
     serverName: string,
     rawTools: unknown[],
-    clientProvider: () => Promise<Client>
+    clientProvider: () => Promise<Client>,
+    overrides?: Record<string, Partial<ITool>>
   ): ITool[] {
-    return rawTools.map((mcpTool) => this.mapMcpTool(serverName, mcpTool as any, clientProvider));
+    return rawTools.map((mcpTool) =>
+      this.mapMcpTool(serverName, mcpTool as any, clientProvider, overrides)
+    );
   }
 
   /**
@@ -33,7 +41,8 @@ export class MCPToolMapper {
   private static mapMcpTool(
     serverName: string,
     mcpTool: any,
-    clientProvider: () => Promise<Client>
+    clientProvider: () => Promise<Client>,
+    overrides?: Record<string, Partial<ITool>>
   ): ITool {
     const isSequential =
       ['filesystem', 'git'].includes(serverName) ||
@@ -41,6 +50,8 @@ export class MCPToolMapper {
       mcpTool.name.startsWith('git_');
 
     const toolName = `${serverName}_${mcpTool.name}`;
+    const override = overrides?.[toolName] || overrides?.[mcpTool.name];
+
     const parameters = (mcpTool.inputSchema as JsonSchema) || { type: 'object', properties: {} };
     const pathKeys = PathKeyDiscoverer.discover(parameters);
 
@@ -51,12 +62,12 @@ export class MCPToolMapper {
       argSchema: jsonSchemaToZod(parameters),
       type: ToolType.MCP,
       connectionProfile: [],
-      connector_id: '',
-      auth: { type: 'api_key', resource_id: '' },
-      requiresApproval: mcpTool.requiresApproval ?? false,
-      requiredPermissions: mcpTool.requiredPermissions ?? [],
-      sequential: isSequential,
-      pathKeys: pathKeys.length > 0 ? pathKeys : undefined,
+      connector_id: override?.connector_id ?? '',
+      auth: override?.auth ?? { type: 'api_key', resource_id: '' },
+      requiresApproval: override?.requiresApproval ?? mcpTool.requiresApproval ?? false,
+      requiredPermissions: override?.requiredPermissions ?? mcpTool.requiredPermissions ?? [],
+      sequential: override?.sequential ?? isSequential,
+      pathKeys: pathKeys.length > 0 ? pathKeys : override?.pathKeys,
       execute: async (toolArgs: Record<string, unknown>) => {
         return this.executeMcpTool(serverName, mcpTool.name, toolName, toolArgs, clientProvider);
       },

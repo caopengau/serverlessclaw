@@ -53,6 +53,7 @@ export const DYNAMO_KEYS = {
   INFRA_CONFIG: 'infra_config',
   SYSTEM_TOPOLOGY: 'system_topology',
   AGENT_TOOL_OVERRIDES: 'agent_tool_overrides',
+  TOOL_METADATA_OVERRIDES: 'tool_metadata_overrides',
   GOVERNANCE_CONFIG: 'governance_config',
   GOVERNANCE_STATE: 'governance_state',
   TRUST_SCORE_HISTORY: 'trust:score_history',

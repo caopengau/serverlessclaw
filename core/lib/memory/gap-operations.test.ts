@@ -109,6 +109,10 @@ describe('Gap Operations', () => {
 
   describe('updateGapMetadata', () => {
     it('should update impact and priority metadata on a gap', async () => {
+      // Mock resolveItemById's direct lookup
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{ userId: 'GAP#42', timestamp: 42, content: 'test gap', metadata: {} }],
+      });
       ddbMock.on(UpdateCommand).resolves({});
 
       await updateGapMetadata(memory, 'GAP#42', { impact: 9, priority: 7 });
@@ -125,6 +129,10 @@ describe('Gap Operations', () => {
     });
 
     it('should normalize compound gap IDs using same logic as other gap operations', async () => {
+      // Mock resolveItemById's direct lookup
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{ userId: 'GAP#42', timestamp: 42, content: 'test gap', metadata: {} }],
+      });
       ddbMock.on(UpdateCommand).resolves({});
 
       await updateGapMetadata(memory, 'GAP#TOOLOPT-1710240000000-42', { impact: 5 });
@@ -144,10 +152,23 @@ describe('Gap Operations', () => {
     });
 
     it('should fall back to searching all gap statuses when primary lookup fails', async () => {
-      const conditionalError = Object.assign(new Error('ConditionalCheckFailed'), {
-        name: 'ConditionalCheckFailedException',
-      });
-      ddbMock.on(UpdateCommand).rejectsOnce(conditionalError).resolves({});
+      // resolveItemById direct lookup fails (empty), GSI lookup succeeds
+      ddbMock
+        .on(QueryCommand)
+        .resolvesOnce({ Items: [] }) // Direct lookup PK/SK
+        .resolves({
+          // GSI search for 'GAP'
+          Items: [
+            {
+              userId: 'GAP#42',
+              timestamp: 1710240000000,
+              content: 'test gap',
+              type: 'GAP',
+              status: GapStatus.OPEN,
+            },
+          ],
+        });
+      ddbMock.on(UpdateCommand).resolves({});
 
       ddbMock.on(QueryCommand).resolves({
         Items: [
@@ -164,9 +185,9 @@ describe('Gap Operations', () => {
       await updateGapMetadata(memory, 'GAP#42', { impact: 8 });
 
       const updateCalls = ddbMock.commandCalls(UpdateCommand);
-      expect(updateCalls.length).toBeGreaterThanOrEqual(2);
+      expect(updateCalls.length).toBeGreaterThanOrEqual(1);
       // Second call should use the found item's actual timestamp
-      expect(updateCalls[1].args[0].input.Key).toEqual({
+      expect(updateCalls[0].args[0].input.Key).toEqual({
         userId: 'GAP#42',
         timestamp: 1710240000000,
       });
@@ -212,25 +233,30 @@ describe('Gap Operations', () => {
         .resolves({ Attributes: { metadata: { retryCount: 3 } } });
 
       // Fallback: QueryCommand returns gaps found across statuses
-      ddbMock.on(QueryCommand).resolves({
-        Items: [
-          {
-            userId: 'GAP#42',
-            timestamp: 1710240000000,
-            content: 'test gap',
-            type: 'GAP',
-            status: GapStatus.OPEN,
-          },
-        ],
-      });
+      // Fallback: QueryCommand returns gaps found across statuses
+      // First call (direct lookup) returns empty, second call (GSI search) returns the item
+      ddbMock
+        .on(QueryCommand)
+        .resolvesOnce({ Items: [] })
+        .resolves({
+          Items: [
+            {
+              userId: 'GAP#42',
+              timestamp: 1710240000000,
+              content: 'test gap',
+              type: 'GAP',
+              status: GapStatus.OPEN,
+            },
+          ],
+        });
 
       const count = await memory.incrementGapAttemptCount('GAP#42');
 
-      // Should have attempted QueryCommand for fallback search
+      // Should have attempted QueryCommand for direct lookup then fallback search
       const queryCalls = ddbMock.commandCalls(QueryCommand);
-      expect(queryCalls.length).toBeGreaterThanOrEqual(1);
-      // Verify standardized mapping
-      expect(queryCalls[0].args[0].input.ExpressionAttributeNames).toEqual(
+      expect(queryCalls.length).toBeGreaterThanOrEqual(2);
+      // Verify standardized mapping (first is direct lookup with #ts, second is GSI with #tp)
+      expect(queryCalls[1].args[0].input.ExpressionAttributeNames).toEqual(
         expect.objectContaining({ '#tp': 'type' })
       );
       expect(count).toBe(3);

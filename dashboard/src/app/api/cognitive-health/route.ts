@@ -25,7 +25,7 @@ export async function GET() {
         (item): item is Record<string, unknown> =>
           typeof item === 'object' &&
           item !== null &&
-          typeof (item as Record<string, unknown>).score === 'number'
+          typeof (item as Record<string, unknown>).overallScore === 'number'
       )
       .map((item) => {
         const record = item as Record<string, unknown>;
@@ -35,7 +35,7 @@ export async function GET() {
           : rawUserId.replace('HEALTH#', '');
         return {
           agentId: agentId || 'unknown',
-          score: typeof record.score === 'number' ? record.score : 0,
+          score: typeof record.overallScore === 'number' ? record.overallScore : 0,
           taskCompletionRate:
             typeof record.taskCompletionRate === 'number' ? record.taskCompletionRate : 0,
           reasoningCoherence:

@@ -1,27 +1,264 @@
-import { InsightMetadata, InsightCategory, MemoryInsight } from '../types/index';
+import { BaseMemoryProvider } from './base';
 import { logger } from '../logger';
-import type { BaseMemoryProvider } from './base';
+import { InsightMetadata, MemoryInsight, InsightCategory } from '../types/memory';
 
 /**
- * Shared metadata defaults for all memory items.
+ * Creates a standard MemoryInsight metadata object with defaults.
  */
-export const DEFAULT_INSIGHT_METADATA: InsightMetadata = {
-  category: InsightCategory.STRATEGIC_GAP,
-  confidence: 5,
-  impact: 5,
-  complexity: 5,
-  risk: 5,
-  urgency: 5,
-  priority: 5,
-  hitCount: 0,
-  lastAccessed: Date.now(),
-};
+export function createMetadata(
+  partial: Partial<InsightMetadata> = {},
+  timestamp: string | number = Date.now()
+): InsightMetadata {
+  return {
+    category: InsightCategory.STRATEGIC_GAP,
+    confidence: 5,
+    impact: 5,
+    complexity: 5,
+    hitCount: 0,
+    lastAccessed: typeof timestamp === 'number' ? timestamp : Date.now(),
+    createdAt: typeof timestamp === 'number' ? timestamp : Date.now(),
+    updatedAt: Date.now(),
+    ...partial,
+  } as InsightMetadata;
+}
 
 /**
- * Normalizes an array of tags by trimming, lowercasing, and removing duplicates.
- *
- * @param tags - Array of raw tag strings.
- * @returns Normalized array of tag strings.
+ * Helper to apply workspace isolation (FilterExpression) to DynamoDB parameters.
+ * Note: While KeyConditionExpression is preferred, GSI queries on Type/User often require
+ * FilterExpression for secondary workspace isolation.
+ */
+export function applyWorkspaceIsolation(params: Record<string, any>, workspaceId?: string): void {
+  if (!workspaceId) return;
+
+  const isolationExpr = 'workspaceId = :workspaceId AND begins_with(userId, :pkPrefix)';
+  params.FilterExpression = params.FilterExpression
+    ? `(${params.FilterExpression}) AND (${isolationExpr})`
+    : isolationExpr;
+
+  params.ExpressionAttributeValues = {
+    ...(params.ExpressionAttributeValues || {}),
+    ':workspaceId': workspaceId,
+    ':pkPrefix': `WS#${workspaceId}#`,
+  };
+}
+
+/**
+ * Universal fetcher for memory items by their type using the GSI.
+ * Supports Pagination.
+ */
+export async function getMemoryByTypePaginated(
+  base: BaseMemoryProvider,
+  type: string,
+  limit: number = 100,
+  lastEvaluatedKey?: Record<string, unknown>,
+  workspaceId?: string
+): Promise<{ items: Record<string, unknown>[]; lastEvaluatedKey?: Record<string, unknown> }> {
+  const params: Record<string, any> = {
+    IndexName: 'TypeTimestampIndex',
+    KeyConditionExpression: '#tp = :type',
+    ExpressionAttributeNames: { '#tp': 'type' },
+    ExpressionAttributeValues: { ':type': type },
+    ScanIndexForward: false,
+    Limit: limit,
+    ExclusiveStartKey: lastEvaluatedKey,
+  };
+
+  applyWorkspaceIsolation(params, workspaceId);
+
+  const result = await base.queryItemsPaginated(params);
+
+  return {
+    items: result.items,
+    lastEvaluatedKey: result.lastEvaluatedKey,
+  };
+}
+
+/**
+ * Legacy non-paginated fetcher.
+ */
+export async function getMemoryByType(
+  base: BaseMemoryProvider,
+  type: string,
+  limit: number = 100
+): Promise<Record<string, unknown>[]> {
+  const { items } = await getMemoryByTypePaginated(base, type, limit);
+  return items;
+}
+
+/**
+ * Strips all common prefixes (GAP#, PROC#) from a gap ID.
+ */
+export function normalizeGapId(gapId: string): string {
+  if (!gapId) return '';
+  return gapId.replace(/^(GAP#)+/, '').replace(/^(PROC#)+/, '');
+}
+
+/**
+ * Derives the Partition Key (userId) for a gap item.
+ */
+export function getGapIdPK(gapId: string): string {
+  const normalized = normalizeGapId(gapId);
+  const numericMatch = normalized.match(/(\d+)$/);
+  const finalId = numericMatch ? numericMatch[1] : normalized;
+  return `GAP#${finalId}`;
+}
+
+/**
+ * Derives the Sort Key (timestamp) for a gap item.
+ */
+export function getGapTimestamp(gapId: string): number {
+  const normalized = normalizeGapId(gapId);
+  const numericMatch = normalized.match(/(\d+)$/);
+  if (!numericMatch) return 0;
+  return parseInt(numericMatch[1], 10);
+}
+
+/**
+ * Resolves a memory item by ID, handling scoping and fallback searches.
+ * This is the AUTHORITATIVE resolver for memory items across the system.
+ */
+export async function resolveItemById(
+  base: BaseMemoryProvider,
+  id: string,
+  type: string,
+  workspaceId?: string
+): Promise<MemoryInsight | null> {
+  if (!id) return null;
+
+  const normalizedId = normalizeGapId(id);
+  const numericId = normalizedId.match(/(\d+)$/)?.[1] || normalizedId;
+  const isGap = type === 'GAP';
+
+  // 1. Precise lookup (Deterministic PK/SK)
+  const targetPK = isGap ? getGapIdPK(normalizedId) : normalizedId;
+  const targetSK = isGap ? getGapTimestamp(normalizedId) : numericId;
+  const scopedPK = base.getScopedUserId(targetPK, workspaceId);
+
+  // Use a numeric SK if possible for better DynamoDB matching
+  const finalSK = isNaN(Number(targetSK)) ? targetSK : Number(targetSK);
+
+  try {
+    const items = await base.queryItems({
+      KeyConditionExpression: 'userId = :pk AND #ts = :sk',
+      ExpressionAttributeNames: { '#ts': 'timestamp' },
+      ExpressionAttributeValues: {
+        ':pk': scopedPK,
+        ':sk': finalSK,
+      },
+    });
+
+    if (items.length > 0) {
+      const item = items[0];
+      // Final security boundary check
+      if (workspaceId && item.workspaceId !== workspaceId) {
+        logger.error(`[Security] Cross-workspace access blocked for ${scopedPK}`);
+        return null;
+      }
+      return mapToInsight(item, type);
+    }
+  } catch (err) {
+    logger.debug(`[resolveItemById] Direct lookup failed for ${scopedPK}`, { err });
+  }
+
+  // 2. GSI Fallback (Only if direct lookup failed and we have a hints of a shifted ID)
+  // This is a safety net for legacy items or items that were moved between scopes.
+  try {
+    const { items: candidates } = await getMemoryByTypePaginated(
+      base,
+      type,
+      50,
+      undefined,
+      workspaceId
+    );
+
+    const numericMatchId = normalizedId.match(/(\d+)$/)?.[1] || normalizedId;
+    const target = candidates.find((item) => {
+      const itemPK = normalizeGapId(item.userId as string);
+      return (
+        itemPK.includes(numericMatchId) || (item.timestamp as string).toString() === numericMatchId
+      );
+    });
+
+    if (target) {
+      logger.info(`[resolveItemById] Item ${id} resolved via GSI fallback`);
+      return mapToInsight(target, type);
+    }
+  } catch (error) {
+    logger.error(`[resolveItemById] GSI fallback failed:`, error);
+  }
+
+  return null;
+}
+
+/**
+ * Internal mapper from DynamoDB record to MemoryInsight.
+ */
+function mapToInsight(item: Record<string, unknown>, defaultType: string): MemoryInsight {
+  return {
+    id: item.userId as string,
+    content: item.content as string,
+    timestamp: item.timestamp as number | string,
+    metadata: (item.metadata as InsightMetadata) || { category: defaultType as InsightCategory },
+    workspaceId: item.workspaceId as string | undefined,
+    createdAt: (item.createdAt as number) || (item.timestamp as number) || Date.now(),
+  };
+}
+
+/**
+ * Updates metadata atomically while enforcing workspace boundaries.
+ */
+export async function atomicUpdateMetadata(
+  base: BaseMemoryProvider,
+  userId: string,
+  timestamp: number | string,
+  metadata: Partial<InsightMetadata>,
+  workspaceId?: string
+): Promise<void> {
+  const pk = base.getScopedUserId(userId, workspaceId);
+  const fields: Array<keyof InsightMetadata> = [
+    'category',
+    'confidence',
+    'impact',
+    'complexity',
+    'risk',
+    'urgency',
+    'priority',
+    'hitCount',
+    'lastAccessed',
+    'retryCount',
+    'lastAttemptTime',
+  ];
+
+  const updates: string[] = [];
+  const updateValues: Record<string, any> = { ':now': Date.now() };
+
+  for (const field of fields) {
+    if (metadata[field] !== undefined) {
+      updates.push(`metadata.${field} = :${field}`);
+      updateValues[`:${field}`] = metadata[field];
+    }
+  }
+
+  if (updates.length === 0) {
+    logger.debug(`[atomicUpdateMetadata] No metadata fields to update for ${userId}`);
+    return;
+  }
+
+  try {
+    await base.updateItem({
+      Key: { userId: pk, timestamp: Number(timestamp) },
+      UpdateExpression: `SET updatedAt = :now, ${updates.join(', ')}`,
+      ExpressionAttributeValues: updateValues,
+      ConditionExpression: 'attribute_exists(userId)',
+    });
+  } catch (error) {
+    logger.error(`[atomicUpdateMetadata] Failed update for ${pk}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Normalizes and cleans an array of tags.
  */
 export function normalizeTags(tags?: string[]): string[] {
   if (!tags || !Array.isArray(tags)) return [];
@@ -35,145 +272,44 @@ export function normalizeTags(tags?: string[]): string[] {
 }
 
 /**
- * Creates a complete metadata object with defaults.
- *
- * @param overrides - Partial metadata to override defaults.
- * @param timestamp - The timestamp for the record.
- * @returns A complete InsightMetadata object.
- */
-export function createMetadata(
-  overrides?: Partial<InsightMetadata>,
-  timestamp: number | string = Date.now()
-): InsightMetadata {
-  const now = Date.now();
-  const tsValue = typeof timestamp === 'string' ? parseInt(timestamp, 10) : (timestamp as number);
-  const createdAtFallback = isNaN(tsValue) ? now : tsValue;
-
-  return {
-    ...DEFAULT_INSIGHT_METADATA,
-    hitCount: overrides?.hitCount ?? 0,
-    lastAccessed: overrides?.lastAccessed ?? (isNaN(tsValue) ? now : tsValue),
-    createdAt: overrides?.createdAt ?? createdAtFallback,
-    ...(overrides ?? {}),
-  } as InsightMetadata;
-}
-
-/**
- * Universal fetcher for memory items by their type using the GSI.
- *
- * @param base - The base memory provider instance.
- * @param type - The memory type string (e.g., 'GAP', 'LESSON').
- * @param limit - Maximum items to retrieve.
- * @param lastEvaluatedKey - Pagination token.
- * @returns A promise resolving to an array of memory items and a next token.
- */
-export async function getMemoryByTypePaginated(
-  base: BaseMemoryProvider,
-  type: string,
-  limit: number = 100,
-  lastEvaluatedKey?: Record<string, unknown>,
-  workspaceId?: string
-): Promise<{ items: Record<string, unknown>[]; lastEvaluatedKey?: Record<string, unknown> }> {
-  const result = await base.queryItemsPaginated({
-    IndexName: 'TypeTimestampIndex',
-    KeyConditionExpression: '#tp = :type',
-    FilterExpression: workspaceId ? 'workspaceId = :workspaceId' : undefined,
-    ExpressionAttributeNames: {
-      '#tp': 'type',
-    },
-    ExpressionAttributeValues: {
-      ':type': type,
-      ...(workspaceId ? { ':workspaceId': workspaceId } : {}),
-    },
-    ScanIndexForward: false,
-    Limit: limit,
-    ExclusiveStartKey: lastEvaluatedKey,
-  });
-
-  return {
-    items: result.items as Record<string, unknown>[],
-    lastEvaluatedKey: result.lastEvaluatedKey,
-  };
-}
-
-/**
- * Universal fetcher for memory items by their type using the GSI (legacy non-paginated).
- *
- * @param base - The base memory provider instance.
- * @param type - The memory type string (e.g., 'GAP', 'LESSON').
- * @param limit - Maximum items to retrieve.
- * @returns A promise resolving to an array of memory items.
- */
-export async function getMemoryByType(
-  base: BaseMemoryProvider,
-  type: string,
-  limit: number = 100,
-  workspaceId?: string
-): Promise<Record<string, unknown>[]> {
-  const { items } = await getMemoryByTypePaginated(base, type, limit, undefined, workspaceId);
-  return items;
-}
-
-/**
- * Retrieves the list of active memory types that have been dynamically registered.
- *
- * @param base - The base memory provider instance.
- * @returns A promise resolving to an array of active memory type strings.
+ * Fetches types registered in SYSTEM#REGISTRY.
  */
 export async function getRegisteredMemoryTypes(base: BaseMemoryProvider): Promise<string[]> {
-  const items = await base.queryItems({
-    KeyConditionExpression: 'userId = :userId AND #ts = :ts',
-    ExpressionAttributeNames: {
-      '#ts': 'timestamp',
-    },
-    ExpressionAttributeValues: {
-      ':userId': 'SYSTEM#REGISTRY',
-      ':ts': 0,
-    },
-  });
-
-  const activeTypesSet = items[0]?.activeTypes as Set<string> | string[] | undefined;
-  if (!activeTypesSet) return [];
-
-  return Array.isArray(activeTypesSet) ? activeTypesSet : Array.from(activeTypesSet);
+  try {
+    const items = await base.queryItems({
+      KeyConditionExpression: 'userId = :userId AND #ts = :ts',
+      ExpressionAttributeNames: { '#ts': 'timestamp' },
+      ExpressionAttributeValues: { ':userId': 'SYSTEM#REGISTRY', ':ts': 0 },
+    });
+    const registry = items[0];
+    if (!registry || !registry.activeTypes) return [];
+    // No .sort() to match test expectations (it expects original order)
+    return Array.from(registry.activeTypes as Iterable<string>);
+  } catch (error) {
+    logger.error('[getRegisteredMemoryTypes] Error:', error);
+    return [];
+  }
 }
 
 /**
- * Query the latest items by userId and return their content strings.
- *
- * @param base - The base memory provider instance.
- * @param userId - The userId value to query.
- * @param limit - Maximum number of items to return (default 1).
- * @param workspaceId - Optional workspace identifier for isolation.
- * @returns A promise resolving to an array of content strings.
+ * Fetches latest content strings for a user.
  */
 export async function queryLatestContentByUserId(
   base: BaseMemoryProvider,
   userId: string,
-  limit: number = 1,
-  workspaceId?: string
+  limit: number = 1
 ): Promise<string[]> {
-  const scopedUserId = base.getScopedUserId(userId, workspaceId);
   const items = await base.queryItems({
     KeyConditionExpression: 'userId = :userId',
-    ExpressionAttributeValues: {
-      ':userId': scopedUserId,
-    },
+    ExpressionAttributeValues: { ':userId': userId },
     Limit: limit,
     ScanIndexForward: false,
   });
-
-  return items.map((item) => item.content as string);
+  return items.map((item) => item.content as string).filter(Boolean);
 }
 
 /**
- * Query items by type using the TypeTimestampIndex GSI and return content strings.
- * Consolidates the common pattern used by getGlobalLessons, getFailedPlans, etc.
- *
- * @param base - The base memory provider instance.
- * @param type - The memory type string (e.g., 'SYSTEM_LESSON', 'FAILED_PLAN').
- * @param limit - Maximum number of items to return.
- * @returns A promise resolving to an array of content strings.
+ * Type-based content query utility.
  */
 export async function queryByTypeAndGetContent(
   base: BaseMemoryProvider,
@@ -182,40 +318,21 @@ export async function queryByTypeAndGetContent(
   userId?: string,
   workspaceId?: string
 ): Promise<string[]> {
-  if (!userId && !workspaceId) {
-    logger.warn(
-      '[queryByTypeAndGetContent] Global query without workspaceId may leak cross-workspace data. Add workspaceId for tenant isolation.'
-    );
-  }
-
-  const params: {
-    Limit: number;
-    ScanIndexForward: boolean;
-    IndexName?: string;
-    KeyConditionExpression?: string;
-    FilterExpression?: string;
-    ExpressionAttributeNames?: Record<string, string>;
-    ExpressionAttributeValues?: Record<string, unknown>;
-  } = {
+  const params: any = {
     Limit: limit,
     ScanIndexForward: false,
+    ExpressionAttributeNames: { '#tp': 'type' },
+    ExpressionAttributeValues: { ':type': type },
   };
 
   if (userId) {
-    const scopedUserId = base.getScopedUserId(userId, workspaceId);
     params.IndexName = 'UserInsightIndex';
     params.KeyConditionExpression = 'userId = :userId AND #tp = :type';
-    params.ExpressionAttributeNames = { '#tp': 'type' };
-    params.ExpressionAttributeValues = { ':userId': scopedUserId, ':type': type };
+    params.ExpressionAttributeValues[':userId'] = base.getScopedUserId(userId, workspaceId);
   } else {
     params.IndexName = 'TypeTimestampIndex';
     params.KeyConditionExpression = '#tp = :type';
-    params.ExpressionAttributeNames = { '#tp': 'type' };
-    params.ExpressionAttributeValues = { ':type': type };
-    if (workspaceId) {
-      params.FilterExpression = 'workspaceId = :workspaceId';
-      params.ExpressionAttributeValues[':workspaceId'] = workspaceId;
-    }
+    applyWorkspaceIsolation(params, workspaceId);
   }
 
   const items = await base.queryItems(params);
@@ -223,16 +340,7 @@ export async function queryByTypeAndGetContent(
 }
 
 /**
- * Query items by type using the TypeTimestampIndex GSI and map to MemoryInsight.
- * Consolidates the common pattern used by getAllGaps, getFailedPlans, getGlobalLessons, etc.
- *
- * @param base - The base memory provider instance.
- * @param type - The memory type string (e.g., 'GAP', 'SYSTEM_LESSON', 'FAILED_PLAN').
- * @param defaultCategory - The default InsightCategory for metadata creation.
- * @param limit - Maximum number of items to return.
- * @param filterExpression - Optional additional filter expression.
- * @param expressionAttributeValues - Optional additional expression attribute values for the filter.
- * @returns A promise resolving to an array of MemoryInsight objects.
+ * Map-and-fetch utility for memory list operations.
  */
 export async function queryByTypeAndMap(
   base: BaseMemoryProvider,
@@ -244,101 +352,46 @@ export async function queryByTypeAndMap(
   userId?: string,
   workspaceId?: string
 ): Promise<MemoryInsight[]> {
-  const params: {
-    Limit: number;
-    ScanIndexForward: boolean;
-    IndexName?: string;
-    KeyConditionExpression?: string;
-    ExpressionAttributeNames?: Record<string, string>;
-    ExpressionAttributeValues: Record<string, unknown>;
-    FilterExpression?: string;
-  } = {
+  const params: any = {
     Limit: limit,
     ScanIndexForward: false,
-    ExpressionAttributeValues: {
-      ...expressionAttributeValues,
-    },
+    ExpressionAttributeValues: { ...expressionAttributeValues },
   };
 
   if (userId) {
-    const scopedUserId = base.getScopedUserId(userId, workspaceId);
     params.IndexName = 'UserInsightIndex';
     params.KeyConditionExpression = 'userId = :userId AND #tp = :type';
     params.ExpressionAttributeNames = { '#tp': 'type' };
-    params.ExpressionAttributeValues[':userId'] = scopedUserId;
+    params.ExpressionAttributeValues[':userId'] = base.getScopedUserId(userId, workspaceId);
     params.ExpressionAttributeValues[':type'] = type;
   } else {
     params.IndexName = 'TypeTimestampIndex';
     params.KeyConditionExpression = '#tp = :type';
     params.ExpressionAttributeNames = { '#tp': 'type' };
     params.ExpressionAttributeValues[':type'] = type;
-    if (workspaceId) {
-      params.FilterExpression = workspaceId
-        ? filterExpression
-          ? `${filterExpression} AND workspaceId = :workspaceId`
-          : 'workspaceId = :workspaceId'
+    applyWorkspaceIsolation(params, workspaceId);
+    if (filterExpression) {
+      params.FilterExpression = params.FilterExpression
+        ? `${params.FilterExpression} AND (${filterExpression})`
         : filterExpression;
-      params.ExpressionAttributeValues[':workspaceId'] = workspaceId;
-    } else if (filterExpression) {
-      params.FilterExpression = filterExpression;
     }
   }
 
   const items = await base.queryItems(params);
-
-  return items.map((item) => {
-    const timestamp = item.timestamp as number | string;
-    const metadata = createMetadata(
-      (item.metadata as Partial<InsightMetadata>) ?? { category: defaultCategory },
-      timestamp
-    );
-
-    return {
-      id: item.userId as string,
-      content: item.content as string,
-      timestamp,
-      workspaceId: item.workspaceId as string | undefined,
-      createdAt: (item.createdAt as number) ?? metadata.createdAt,
-      metadata,
-    };
-  });
-}
-
-/**
- * Strips all common prefixes (GAP#, PROC#) from a gap ID to get the raw identifier.
- * Consolidates duplicate logic seen across the codebase.
- *
- * @param gapId - The raw gap ID (e.g., "GAP#123", "PROC#GAP#456").
- * @returns The normalized identifier.
- */
-export function normalizeGapId(gapId: string): string {
-  if (!gapId) return '';
-  return gapId.replace(/^(GAP#)+/, '').replace(/^(PROC#)+/, '');
-}
-
-/**
- * Derives the Partition Key (userId) for a gap item in DynamoDB based on its numeric ID.
- *
- * @param gapId - The gap ID.
- * @returns The normalized PK string (e.g., "GAP#123").
- */
-export function getGapIdPK(gapId: string): string {
-  const normalized = normalizeGapId(gapId);
-  const numericMatch = normalized.match(/(\d+)$/);
-  const finalId = numericMatch ? numericMatch[1] : normalized;
-  return `GAP#${finalId}`;
-}
-
-/**
- * Derives the Sort Key (timestamp) for a gap item in DynamoDB based on its numeric ID.
- * Fallback to 0 if the ID is not numeric.
- *
- * @param gapId - The gap ID.
- * @returns The numeric timestamp or 0.
- */
-export function getGapTimestamp(gapId: string): number {
-  const normalized = normalizeGapId(gapId);
-  const numericMatch = normalized.match(/(\d+)$/);
-  if (!numericMatch) return 0;
-  return parseInt(numericMatch[1], 10);
+  return items.map((item) => ({
+    id: item.userId as string,
+    content: item.content as string,
+    timestamp: item.timestamp as number | string,
+    workspaceId: item.workspaceId as string | undefined,
+    createdAt:
+      (item.createdAt as number) ||
+      (typeof item.timestamp === 'number'
+        ? item.timestamp
+        : parseInt(item.timestamp as string, 10)) ||
+      Date.now(),
+    metadata: createMetadata(
+      (item.metadata as Partial<InsightMetadata>) || { category: defaultCategory },
+      item.timestamp as number
+    ),
+  }));
 }

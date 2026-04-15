@@ -219,7 +219,7 @@ export async function processEventWithAgent(
 
   const { getAgentTools: loadAgentTools } = await import('../../tools/index');
   const agentTools = await loadAgentTools(agentId);
-  const agent = new Agent(memory, provider, agentTools, config.systemPrompt, config);
+  const agent = new Agent(memory, provider, agentTools, config.systemPrompt ?? '', config);
 
   const sessionStateManager = new SessionStateManager();
   if (options.sessionId) {

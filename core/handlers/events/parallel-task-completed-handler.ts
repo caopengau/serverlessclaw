@@ -201,7 +201,13 @@ export async function handleParallelTaskCompleted(
       const { memory, provider: providerManager } = await getAgentContext();
 
       // Simple aggregator doesn't need tools, just reasoning
-      const aggregatorAgent = new Agent(memory, providerManager, [], config.systemPrompt, config);
+      const aggregatorAgent = new Agent(
+        memory,
+        providerManager,
+        [],
+        config.systemPrompt ?? '',
+        config
+      );
 
       const prompt =
         aggregationPrompt ??

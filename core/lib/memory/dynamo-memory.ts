@@ -19,6 +19,7 @@ import * as SessionOps from './session-operations';
 import * as MemoryUtils from './utils';
 import * as ClarificationOps from './clarification-operations';
 import * as CollaborationOps from './collaboration-operations';
+import * as BaseOps from './base-operations';
 
 /**
  * Implementation of IMemory using AWS DynamoDB for persistent storage
@@ -36,6 +37,20 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   }
 
   /**
+   * Retrieves the conversation history for a specific user or session.
+   */
+  async getHistory(userId: string, workspaceId?: string): Promise<Message[]> {
+    return BaseOps.getHistory(this, userId, workspaceId);
+  }
+
+  /**
+   * Clears the conversation history for a specific user or session.
+   */
+  async clearHistory(userId: string, workspaceId?: string): Promise<void> {
+    return BaseOps.clearHistory(this, userId, workspaceId);
+  }
+
+  /**
    * Deletes a conversation session and its history
    */
   async deleteConversation(userId: string, sessionId: string, workspaceId?: string): Promise<void> {
@@ -47,6 +62,13 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
    */
   async updateDistilledMemory(userId: string, facts: string, workspaceId?: string): Promise<void> {
     return SessionOps.updateDistilledMemory(this, userId, facts, workspaceId);
+  }
+
+  /**
+   * Retrieves the distilled "long-term" memory facts for a user.
+   */
+  async getDistilledMemory(userId: string, workspaceId?: string): Promise<string> {
+    return BaseOps.getDistilledMemory(this, userId, workspaceId);
   }
 
   /**
@@ -197,6 +219,13 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
   }
 
   /**
+   * Lists all available conversation sessions for a user.
+   */
+  async listConversations(userId: string, workspaceId?: string): Promise<ConversationMeta[]> {
+    return BaseOps.listConversations(this, userId, workspaceId);
+  }
+
+  /**
    * Universal fetcher for memory items by their type using the GSI.
    */
   async getMemoryByTypePaginated(
@@ -216,7 +245,14 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
     limit: number = 100,
     workspaceId?: string
   ): Promise<Record<string, unknown>[]> {
-    return MemoryUtils.getMemoryByType(this, type, limit, workspaceId);
+    const { items } = await MemoryUtils.getMemoryByTypePaginated(
+      this,
+      type,
+      limit,
+      undefined,
+      workspaceId
+    );
+    return items;
   }
 
   /**

@@ -70,7 +70,7 @@ describe('AgentRegistry Pruning', () => {
       return undefined;
     });
 
-    const prunedCount = await AgentRegistry.pruneLowUtilizationTools(30);
+    const prunedCount = await AgentRegistry.pruneLowUtilizationTools('default', 30);
 
     // Should prune from both
     expect(prunedCount).toBeGreaterThan(0);
@@ -108,7 +108,7 @@ describe('AgentRegistry Pruning', () => {
       return undefined;
     });
 
-    const prunedCount = await AgentRegistry.pruneLowUtilizationTools(30);
+    const prunedCount = await AgentRegistry.pruneLowUtilizationTools('default', 30);
     expect(prunedCount).toBe(0);
     expect(ConfigManager.saveRawConfig).not.toHaveBeenCalled();
   });

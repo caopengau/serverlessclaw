@@ -17,7 +17,7 @@ describe('/api/cognitive-health', () => {
     const mockItems = [
       {
         userId: 'HEALTH#agent1',
-        score: 85,
+        overallScore: 85,
         taskCompletionRate: 0.95,
         reasoningCoherence: 8.5,
         errorRate: 0.02,
@@ -26,7 +26,7 @@ describe('/api/cognitive-health', () => {
       },
       {
         userId: 'HEALTH#agent2',
-        score: 92,
+        overallScore: 92,
         taskCompletionRate: 0.98,
         reasoningCoherence: 9.0,
         errorRate: 0.01,
@@ -67,11 +67,11 @@ describe('/api/cognitive-health', () => {
     const mockItems = [
       {
         userId: 'HEALTH#agent1',
-        // Missing score field -- should be filtered out
+        // Missing overallScore field -- should be filtered out
       },
       {
         userId: 'HEALTH#agent2',
-        score: 70,
+        overallScore: 70,
         taskCompletionRate: 0.8,
         reasoningCoherence: 7.0,
         errorRate: 0.1,
@@ -120,7 +120,7 @@ describe('/api/cognitive-health', () => {
     const mockItems = [
       {
         userId: 'HEALTH#my-custom-agent-id',
-        score: 75,
+        overallScore: 75,
         taskCompletionRate: 0.85,
         reasoningCoherence: 7.5,
         errorRate: 0.1,
@@ -142,7 +142,7 @@ describe('/api/cognitive-health', () => {
     const mockItems = [
       {
         userId: 'HEALTH#agent1',
-        score: 60,
+        overallScore: 60,
         taskCompletionRate: 0.7,
         reasoningCoherence: 6.0,
         errorRate: 0.15,
@@ -177,7 +177,7 @@ describe('/api/cognitive-health', () => {
     const mockItems = [
       {
         userId: 'HEALTH#agent1',
-        score: 95,
+        overallScore: 95,
         taskCompletionRate: 0.99,
         reasoningCoherence: 9.5,
         errorRate: 0.005,

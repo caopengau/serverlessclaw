@@ -70,6 +70,8 @@ export interface MemoryInsight {
   orgId?: string;
   /** User-specific scope within the organization. */
   userId?: string;
+  /** Workspace-specific scope (multi-tenant support). */
+  workspaceId?: string;
   /** Optional tags for flexible categorization and retrieval. */
   tags?: string[];
   /** Timestamp (Unix epoch) when the insight was first recorded. */

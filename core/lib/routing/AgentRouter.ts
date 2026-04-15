@@ -20,8 +20,9 @@ import { ConfigManager } from '../registry/config';
 
 /**
  * Essential backbone agents that can be used as fallback when user-defined agents fail.
+ * Note: Reserved for future use - currently using AgentRegistry.getFallbackAgents() instead.
  */
-const BACKBONE_FALLBACK_AGENTS = [
+const _BACKBONE_FALLBACK_AGENTS = [
   AgentType.SUPERCLAW,
   AgentType.CODER,
   AgentType.STRATEGIC_PLANNER,
@@ -315,11 +316,12 @@ export class AgentRouter {
       logger.warn(
         `[AgentRouter] Target agents disabled: ${candidates.join(', ')}. Using backbone fallback.`
       );
+      const fallbackAgents = AgentRegistry.getFallbackAgents();
       const fallbackConfigs = await Promise.all(
-        BACKBONE_FALLBACK_AGENTS.map((id) => AgentRegistry.getAgentConfig(id))
+        fallbackAgents.map((id) => AgentRegistry.getAgentConfig(id))
       );
       enabledCandidates.push(
-        ...BACKBONE_FALLBACK_AGENTS.filter((id, i) => fallbackConfigs[i]?.enabled === true)
+        ...fallbackAgents.filter((id, i) => fallbackConfigs[i]?.enabled === true)
       );
 
       if (enabledCandidates.length === 0) {
@@ -345,8 +347,8 @@ export class AgentRouter {
    * @param candidates - Array of performance rollups.
    * @param capabilityMatchFn - Optional function to compute capability match for an agent.
    * @returns The best agent ID, or undefined if no candidates.
-   * @note When `enabled` field is undefined (not provided), candidate is INCLUDED in selection.
-   *       Callers must manually verify enabled status via AgentRegistry if strict filtering required.
+   * @note When `enabled` field is undefined (not provided), candidate is EXCLUDED.
+   *       Callers MUST explicitly provide `enabled: true` to ensure Selection Integrity.
    */
   static selectBestAgentSync(
     candidates: AgentPerformanceRollup[],
@@ -390,8 +392,8 @@ export class AgentRouter {
    * @param reputations - Map of agentId to reputation data.
    * @param capabilityMatchFn - Function to compute capability match for each candidate.
    * @returns The best agent ID, or undefined if no candidates are available.
-   * @note When `enabled` field is undefined (not provided), candidate is INCLUDED in selection.
-   *       Callers must manually verify enabled status via AgentRegistry if strict filtering required.
+   * @note When `enabled` field is undefined (not provided), candidate is EXCLUDED.
+   *       Callers MUST explicitly provide `enabled: true` to ensure Selection Integrity.
    */
   static selectBestAgentWithReputation(
     candidates: AgentPerformanceRollup[],

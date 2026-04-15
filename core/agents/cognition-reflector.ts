@@ -102,7 +102,13 @@ export const handler = async (
 
   const agentTools = await (await import('../tools/index')).getAgentTools('cognition-reflector');
   const { Agent } = await import('../lib/agent');
-  const reflector = new Agent(memory, providerManager, agentTools, config.systemPrompt, config);
+  const reflector = new Agent(
+    memory,
+    providerManager,
+    agentTools,
+    config.systemPrompt ?? '',
+    config
+  );
 
   // 2. Handle simple direct tasks (e.g. greetings)
   if (task) {

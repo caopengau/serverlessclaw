@@ -271,11 +271,11 @@ graph TD
     B -->|arn:aws:lambda:*| C[Lambda Invoke Transport]
     B -->|http/https| D[SSE Client Transport]
     B -->|command| E[Stdio Client Transport]
-    
+
     C --> F[Remote Multiplexer]
     D --> G[Remote Server]
     E --> H[Local Process (npx)]
-    
+
     subgraph "Hand Silo (Lean Evolution)"
     A
     B

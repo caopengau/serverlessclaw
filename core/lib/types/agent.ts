@@ -146,8 +146,12 @@ export interface IAgentConfig {
   id: string;
   /** Human-readable name of the agent. */
   name: string;
-  /** The core system prompt defining personality and rules. */
-  systemPrompt: string;
+  /** Whether the agent is currently active. */
+  enabled: boolean;
+  /** Type of agent (default is 'llm') */
+  agentType?: 'llm' | 'logic';
+  /** The core system prompt defining personality and rules. Required for 'llm' agents. */
+  systemPrompt?: string;
   /** Localized system prompts */
   systemPrompts?: { en: string; cn: string };
   /** Detailed description of the agent's purpose. */
@@ -164,8 +168,6 @@ export interface IAgentConfig {
   provider?: string;
   /** List of tool names assigned to this agent. */
   tools?: string[];
-  /** Whether the agent is currently active. */
-  enabled: boolean;
   /** Whether this is a hardcoded system agent (cannot be deleted). */
   isBackbone?: boolean;
   /** Resource connections for the agent (e.g., 'bus', 'memory'). */

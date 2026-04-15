@@ -621,9 +621,29 @@ export class CognitiveHealthMonitor {
 
       // Sh6: Report anomalies to TrustManager for automatic trust calibration
       // Sh6: Batched report to avoid race conditions and reduce writes
+      // Sh6: Retry with backoff on failure to prevent silent trust penalty loss
       if (anomalies.length > 0) {
+        const recordWithRetry = async (): Promise<number> => {
+          const maxRetries = 3;
+          const baseDelay = 100;
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+              return await TrustManager.recordAnomalies(agentId, anomalies);
+            } catch (err) {
+              if (attempt === maxRetries) {
+                logger.error(
+                  `[TrustCalibration] All ${maxRetries} retries failed for agent ${agentId}`,
+                  err
+                );
+                return 0;
+              }
+              await new Promise((resolve) => setTimeout(resolve, baseDelay * Math.pow(2, attempt)));
+            }
+          }
+          return 0;
+        };
         trustManagerPromises.push(
-          TrustManager.recordAnomalies(agentId, anomalies).catch((err) => {
+          recordWithRetry().catch((err) => {
             logger.error(`Failed to record trust penalty batch for agent ${agentId}`, err);
             return 0;
           })

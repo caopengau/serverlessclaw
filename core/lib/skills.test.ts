@@ -20,9 +20,9 @@ vi.mock('./registry', () => ({
   },
 }));
 
-// Mock MCPMultiplexer
-vi.mock('./mcp', () => ({
-  MCPMultiplexer: {
+// Mock MCPBridge
+vi.mock('./mcp/mcp-bridge', () => ({
+  MCPBridge: {
     getExternalTools: vi.fn().mockResolvedValue([]),
   },
 }));
@@ -34,8 +34,8 @@ describe('SkillRegistry', () => {
 
   describe('discoverSkills', () => {
     it('should find skills based on keyword query including external tools', async () => {
-      const { MCPMultiplexer } = await import('./mcp');
-      vi.mocked(MCPMultiplexer.getExternalTools).mockResolvedValueOnce([
+      const { MCPBridge } = await import('./mcp/mcp-bridge');
+      vi.mocked(MCPBridge.getExternalTools).mockResolvedValueOnce([
         { name: 'external_tool', description: 'Query some API', parameters: {} } as any,
       ]);
 

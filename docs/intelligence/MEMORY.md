@@ -42,6 +42,10 @@ In multi-tenant environments, logical isolation is enforced via the `userId` par
                                 (Harden & Validate)
                                           |
                                           v
+                                [ resolveItemById ]
+                             (Direct SK -> GSI Fallback)
+                                          |
+                                          v
                                 [ DynamoDB PK Scan ]
                           (WS#workspace-123#user-456)
                                           |
@@ -167,6 +171,7 @@ To minimize latency while maintaining consistency, Serverless Claw uses a multi-
        +-------------------+
                |
                +---> [ Atomic Updates ] (Partial Fields)
+                     (Principle 13: atomicUpdateMetadata)
 ```
 
 ### Cache Namespace & Scoping
@@ -179,7 +184,6 @@ Cache keys are strictly prefixed to prevent collisions and support strategic pru
 - **`global:lessons`**: Common lessons shared across all users.
 
 ---
-
 
 ## Memory Tiers Explained
 
@@ -253,31 +257,28 @@ The memory system exports operations for each tier. These are available via `cor
 
 ### Gap Operations (`gap-operations.ts`)
 
-| Function                             | Purpose                                         | Tier         |
-| ------------------------------------ | ----------------------------------------------- | ------------ |
-| `getAllGaps(status)`                 | Retrieve all capability gaps filtered by status | Intelligence |
-| `setGap(gap)`                        | Create or update a strategic gap                | Intelligence |
-| `getGap(gapId)`                      | Retrieve a specific gap by ID                   | Intelligence |
-| `updateGapStatus(gapId, status)`     | Transition gap to new status (atomic)           | Intelligence |
-| `acquireGapLock(gapId)`              | Acquire 30-min lock to prevent race conditions  | Intelligence |
-| `releaseGapLock(gapId)`              | Release gap lock                                | Intelligence |
-| `assignGapToTrack(gapId, track)`     | Assign gap to evolution track                   | Intelligence |
-| `updateGapMetadata(gapId, metadata)` | Update impact/urgency scores                    | Intelligence |
-| `updateInsightMetadata(...)`        | Atomic partial update of metadata fields        | Intelligence |
-| `archiveStaleGaps()`                 | Archive gaps not accessed in 14+ days           | Intelligence |
+| Function                         | Purpose                                         | Tier         |
+| -------------------------------- | ----------------------------------------------- | ------------ |
+| `getAllGaps(status)`             | Retrieve all capability gaps filtered by status | Intelligence |
+| `setGap(gap)`                    | Create or update a strategic gap                | Intelligence |
+| `getGap(gapId)`                  | Retrieve a specific gap by ID (via resolution)  | Intelligence |
+| `updateGapStatus(gapId, status)` | Transition gap to new status (atomic)           | Intelligence |
+| `acquireGapLock(gapId)`          | Acquire 30-min lock to prevent race conditions  | Intelligence |
+| `releaseGapLock(gapId)`          | Release gap lock                                | Intelligence |
+| `assignGapToTrack(gapId, track)` | Assign gap to evolution track                   | Intelligence |
+| `recordMemoryHit(...)`           | Track memory access for pruning (Principle 13)  | Intelligence |
+| `archiveStaleGaps()`             | Archive gaps not accessed in 14+ days           | Intelligence |
 
-### Atomic Metadata Updates
+### Atomic Metadata Updates (Principle 13)
 
-To prevent race conditions in highly concurrent swarm operations, `updateInsightMetadata` uses a granular **Partial Update Pattern**. 
-
-Instead of replacing the entire `metadata` object (which risks overwriting updates from parallel agents), the system constructs a dynamic `SET` expression for only the provided fields:
+To prevent race conditions in highly concurrent swarm operations, the system enforces **Atomic State Integrity** (Principle 13). Instead of replacing entire objects, `atomicUpdateMetadata` performs field-level updates:
 
 ```typescript
-// Example: Updating hitCount doesn't overwrite confidence or category
-await updateInsightMetadata(base, userId, timestamp, { hitCount: 5 });
+// Unified update pattern for Gaps and Insights
+await atomicUpdateMetadata(base, id, type, updates);
 ```
 
-**Implementation Detail**: Uses `UpdateExpression: "SET metadata.hitCount = :hitCount, updatedAt = :now"` to ensure atomic field isolation at the database level.
+**Implementation Detail**: Uses granular `UpdateExpression: "SET metadata.hitCount = :hitCount"` to ensure atomic field isolation, preventing agents from overwriting each other's changes.
 
 ### Insight Operations (`insight-operations.ts`)
 
