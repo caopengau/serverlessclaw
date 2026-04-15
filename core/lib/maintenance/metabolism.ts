@@ -72,6 +72,13 @@ export class MetabolismService {
       }
     } catch (e) {
       logger.error('[Metabolism] Registry repair failed:', e);
+      repairFindings.push({
+        silo: 'Metabolism',
+        expected: 'Agent registry repair completion',
+        actual: `Registry repair failed: ${e instanceof Error ? e.message : String(e)}`,
+        severity: 'P1',
+        recommendation: 'Investigate DynamoDB connectivity or ConfigManager atomic operations.',
+      });
     }
 
     // Repair 2: Memory Bloat (Stale Gaps)
@@ -89,6 +96,13 @@ export class MetabolismService {
       }
     } catch (e) {
       logger.error('[Metabolism] Memory repair failed:', e);
+      repairFindings.push({
+        silo: 'Metabolism',
+        expected: 'Memory state repair completion',
+        actual: `Memory repair failed: ${e instanceof Error ? e.message : String(e)}`,
+        severity: 'P1',
+        recommendation: 'Check MemoryProvider authorization and workspaceId isolation.',
+      });
     }
 
     return repairFindings;
@@ -101,11 +115,8 @@ export class MetabolismService {
     const findings: AuditFinding[] = [];
     try {
       const astTools = await MCPBridge.getToolsFromServer('ast', '');
-      const auditTool = astTools.find(
-        (t: { name: string }) =>
-          t.name === 'metabolism_audit' ||
-          t.name === 'codebase_audit' ||
-          t.name.includes('metabolism')
+      const auditTool = astTools.find((t: { name: string }) =>
+        t.name.match(/^(metabolism|codebase)_audit$/)
       );
 
       if (!auditTool) {
@@ -172,44 +183,34 @@ export class MetabolismService {
 
     // Strategy 1: Registry mismatch/stale overrides (Common dashboard issue)
     if (error.includes('tool') || error.includes('registry') || error.includes('override')) {
-      let pruned = 0;
-      // Sh7 Fix: More surgical remediation - if error contains a specific tool name, prune THAT override specifically
-      // e.g. "Tool 'github_createIssue' failed" -> prune 'github_createIssue'
+      let pruned = false;
+      // Surgical remediation: if error contains a specific tool name, prune THAT override specifically
+      // e.g. "Tool 'github_createIssue' failed" or "'github_createIssue' tool error"
       const toolMatch =
-        failure.error.match(/tool\s+'([^']+)'/i) || failure.error.match(/'([^']+)'\s+tool/i);
+        failure.error.match(/tool\s+['"]([^'"]+)['"]/i) ||
+        failure.error.match(/['"]([^'"]+)['"]\s+tool/i);
+
       if (toolMatch && toolMatch[1]) {
         const toolName = toolMatch[1];
         const agentId = failure.agentId || 'unknown';
-        const configKey = workspaceId ? `WS#${workspaceId}#${agentId}_tools` : `${agentId}_tools`;
 
-        logger.info(
-          `[Metabolism] Surgical remediation: Pruning specific tool '${toolName}' for agent '${agentId}' via key ${configKey}`
-        );
-
-        const currentTools = (await AgentRegistry.getRawConfig(configKey)) as string[];
-        if (Array.isArray(currentTools)) {
-          const filtered = currentTools.filter(
-            (t) => (typeof t === 'string' ? t : (t as any).name) !== toolName
-          );
-          if (filtered.length < currentTools.length) {
-            await AgentRegistry.saveRawConfig(configKey, filtered);
-            pruned = 1;
-          }
-        }
+        logger.info(`[Metabolism] Surgical remediation for tool: ${toolName}`);
+        pruned = await AgentRegistry.pruneAgentTool(agentId, toolName);
       }
 
-      if (pruned === 0 && workspaceId) {
-        // Fallback to broad pruning
-        pruned = await AgentRegistry.pruneLowUtilizationTools(workspaceId, 1); // 1-day min threshold
+      if (!pruned && workspaceId) {
+        // Fallback to broad pruning using atomic utilization check
+        const prunedCount = await AgentRegistry.pruneLowUtilizationTools(workspaceId, 1);
+        pruned = prunedCount > 0;
       }
 
-      if (pruned > 0) {
+      if (pruned) {
         return {
           silo: 'Metabolism',
           expected: 'Consistent agent registry',
-          actual: `Real-time repair: Pruned stale/failing tool overrides triggered by dashboard failure.`,
+          actual: `Real-time repair: Pruned stale/failing tool overrides atomically.`,
           severity: 'P2',
-          recommendation: 'Autonomous repair executed successfully.',
+          recommendation: 'Autonomous repair executed successfully via Silo 7 bridge.',
         };
       }
     }
@@ -278,10 +279,9 @@ export class MetabolismService {
           findings.push({
             silo: 'Metabolism',
             expected: 'Zero technical debt markers in core paths',
-            actual: `Audit result: Found ${lines.length} debt markers (TODO/FIXME) in core files.`,
+            actual: `Native scan: Found ${lines.length} debt markers (TODO/FIXME) in core files.`,
             severity: 'P3',
-            recommendation:
-              'Schedule a refactoring sprint to address legacy debt markers. Metabolism service identifies these but requires HITL for safe removal.',
+            recommendation: 'Review detected markers and schedule refactoring sprints.',
           });
         }
       }

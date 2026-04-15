@@ -239,27 +239,68 @@ Serverless Claw enforces atomicity through **Field-Level `UpdateItem` Operations
 
 ### Implementation Pattern
 
-Instead of reading a full `IAgentConfig` object, modifying it locally, and saving it back, the system uses the **`atomicUpdateAgentField`** pattern:
+Instead of reading a full `IAgentConfig` object, modifying it locally, and saving it back, the system uses the **`atomicUpdateAgentField`** pattern, which delegates the heavy lifting to the infrastructure layer:
 
 ```typescript
 // core/lib/registry/AgentRegistry.ts
 static async atomicUpdateAgentField(agentId: string, field: string, value: any) {
-  // Uses DynamoDB UpdateCommand with a SET expression targeting the AGENTS_CONFIG map
-  // Key: agents_config, UpdateExpression: "SET #config.#agent.#field = :val"
+  // Delegates to ConfigManager for shared map updates
+  await ConfigManager.atomicUpdateMapField(DYNAMO_KEYS.AGENTS_CONFIG, agentId, field, value);
 }
 ```
 
-For operations requiring read-modify-write semantics (like TrustScore updates), the system uses **`atomicUpdateAgentFieldWithCondition`** which adds a conditional expression:
+For operations requiring read-modify-write semantics (like TrustScore updates), the system uses **`atomicUpdateAgentFieldWithCondition`** which ensures thread-safety at the database level:
 
 ```typescript
-// Ensures update only succeeds if current value matches expected
-static async atomicUpdateAgentFieldWithCondition(
-  id: string,
-  field: string,
-  value: unknown,
-  expectedCurrentValue: unknown
-): Promise<void> {
-  // ConditionExpression: "attribute_not_exists(#val.#id.#field) OR #val.#id.#field = :expected"
+// core/lib/registry/AgentRegistry.ts
+static async atomicUpdateAgentFieldWithCondition(id: string, field: string, value: unknown, expectedValue: unknown) {
+  // Uses DynamoDB ConditionExpression via ConfigManager
+  await ConfigManager.atomicUpdateMapFieldWithCondition(
+    DYNAMO_KEYS.AGENTS_CONFIG,
+    id,
+    field,
+    value,
+    expectedValue
+  );
+}
+```
+
+## 🧹 Metabolic Safety (Atomic List Removal)
+
+In Silo 7 (Metabolism), the system must prune "Waste" (expired tools, stale memory) without disrupting active operations. When multiple agents or maintenance tasks attempt to prune tools from the same shared map (`AGENT_TOOL_OVERRIDES`), a simple overwrite would cause data loss.
+
+Serverless Claw implements an **Atomic List Removal** pattern that ensures integrity even under high maintenance load.
+
+### The Pruning Loop Diagram
+
+```text
+ [ Metabolism Agent ]         [ ConfigManager ]         [ DynamoDB ]
+          |                         |                       |
+          |-- pruneAgentTools(ID) ->|                       |
+          |                         |-- GetCommand (List) ->|
+          |                         |<--- [A, B, C] --------|
+          |                         |                       |
+          |      (Filter: B)        |                       |
+          |      New List: [A, C]   |                       |
+          |                         |                       |
+          |                         |-- UpdateCommand ----->|
+          |                         |   Condition: list=[A,B,C]
+          |                         |   Action: SET list=[A,C]
+          |                         |                       |
+          |      (IF CONFLICT)      |<--- CheckFailed ------|
+          |          |              |                       |
+          |          '-- Retry ---->|-- (Re-read/Filter) -->|
+```
+
+### Implementation Helper
+
+```typescript
+// core/lib/registry/config.ts
+public static async atomicRemoveFromMapList(key, entityId, field, itemsToRemove) {
+  // 1. Fetch current list
+  // 2. Filter locally
+  // 3. Conditional Update using SET and ConditionExpression targeting the specific field
+  // 4. Retry loop (max 5) for race conditions
 }
 ```
 

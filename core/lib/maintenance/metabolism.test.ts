@@ -7,6 +7,7 @@ import { archiveStaleGaps, cullResolvedGaps, setGap } from '../memory/gap-operat
 vi.mock('../registry/AgentRegistry', () => ({
   AgentRegistry: {
     pruneLowUtilizationTools: vi.fn().mockResolvedValue(0),
+    pruneAgentTool: vi.fn().mockResolvedValue(false),
     getRawConfig: vi.fn(),
     saveRawConfig: vi.fn(),
   },
@@ -92,18 +93,12 @@ describe('MetabolismService', () => {
         workspaceId: 'ws-1',
       };
 
-      vi.mocked(AgentRegistry.getRawConfig).mockResolvedValueOnce([
-        'github_createIssue',
-        'test-tool',
-      ]);
+      vi.mocked(AgentRegistry.pruneAgentTool).mockResolvedValueOnce(true);
 
       const finding = await MetabolismService.remediateDashboardFailure(mockMemory, failure as any);
 
-      expect(AgentRegistry.getRawConfig).toHaveBeenCalledWith('WS#ws-1#coder_tools');
-      expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith('WS#ws-1#coder_tools', [
-        'test-tool',
-      ]);
-      expect(finding?.actual).toContain('Pruned stale/failing tool overrides');
+      expect(AgentRegistry.pruneAgentTool).toHaveBeenCalledWith('coder', 'github_createIssue');
+      expect(finding?.actual).toContain('Pruned stale/failing tool overrides atomically');
     });
 
     it('should fallback to broad pruning if surgical pruning finds no tools', async () => {

@@ -147,6 +147,15 @@ Agent-specific config values can be set via `ConfigManager.getAgentOverrideConfi
 2. `<key>` — global config value
 3. `fallback` — code default (lowest priority)
 
+### Atomic State Operations
+
+To prevent "Last Write Wins" race conditions (Principle 13), `ConfigManager` provides authoritative atomic primitives for map-based configurations:
+
+- **`atomicUpdateMapField(key, entityId, field, value)`**: Performs a multi-level atomic SET with automatic initialization of parent and entity objects.
+- **`atomicUpdateMapFieldWithCondition(key, entityId, field, value, expectedValue)`**: Ensures a field is only updated if its current value matches the expectation. Used for safe TrustScore and Reputation transitions.
+- **`atomicUpdateMapEntity(key, entityId, partialEntity)`**: Authoritatively merges a partial object into a map-based entity. This is the primary mechanism for hardening **Silo 3 (Safety Policies)** against concurrent update conflicts (Principle 13).
+- **`atomicRemoveFromMapList(key, entityId, field, itemsToRemove)`**: Implements a read-modify-write loop with a `ConditionExpression` to safe-prune items from lists nested within maps. Used primarily by the **Metabolism Agent** for tool pruning.
+
 This allows per-agent customization of hot-swappable parameters (e.g., giving the Coder agent a higher `max_tool_iterations` than the Strategic Planner).
 
 ## Feature Flags

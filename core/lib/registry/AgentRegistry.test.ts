@@ -27,6 +27,7 @@ vi.mock('./config', async (importOriginal) => {
       getAgentOverrideConfig: vi.fn(),
       atomicUpdateMapField: vi.fn().mockResolvedValue(undefined),
       atomicUpdateMapEntity: vi.fn().mockResolvedValue(undefined),
+      atomicRemoveFromMap: vi.fn().mockResolvedValue(undefined),
       incrementConfig: vi.fn().mockResolvedValue(0),
     },
     defaultDocClient: mockDocClient,
@@ -236,6 +237,35 @@ describe('AgentRegistry', () => {
     it('should handle recordToolUsage calls', async () => {
       await AgentRegistry.recordToolUsage('test_tool', 'test_agent');
       expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalled();
+    });
+  });
+
+  describe('pruneAgentTool', () => {
+    it('should prune from both legacy and batch configs', async () => {
+      vi.mocked(ConfigManager.getRawConfig).mockResolvedValueOnce(['tool1', 'tool2']); // Legacy
+      vi.mocked(ConfigManager.atomicRemoveFromMap).mockResolvedValueOnce(undefined); // Batch
+
+      const result = await AgentRegistry.pruneAgentTool('agent1', 'tool1');
+
+      expect(result).toBe(true);
+      expect(ConfigManager.getRawConfig).toHaveBeenCalledWith('agent1_tools');
+      expect(ConfigManager.saveRawConfig).toHaveBeenCalledWith('agent1_tools', ['tool2']);
+      expect(ConfigManager.atomicRemoveFromMap).toHaveBeenCalledWith(
+        DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
+        'agent1',
+        ['tool1']
+      );
+    });
+
+    it('should return false if nothing was pruned', async () => {
+      vi.mocked(ConfigManager.getRawConfig).mockResolvedValueOnce(['tool2']); // Legacy doesn't have it
+      vi.mocked(ConfigManager.atomicRemoveFromMap).mockImplementationOnce(() => {
+        throw new Error('Batch fail');
+      });
+
+      const result = await AgentRegistry.pruneAgentTool('agent1', 'tool1');
+
+      expect(result).toBe(false);
     });
   });
 });

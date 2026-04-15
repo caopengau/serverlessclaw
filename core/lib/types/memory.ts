@@ -1,5 +1,6 @@
 import { Message } from './llm';
 import { GapStatus, GapTransitionResult } from './agent';
+export { GapStatus, GapTransitionResult };
 import type { Collaboration, CollaborationRole, ParticipantType } from './collaboration';
 
 /**
@@ -74,6 +75,8 @@ export interface MemoryInsight {
   workspaceId?: string;
   /** Optional tags for flexible categorization and retrieval. */
   tags?: string[];
+  /** Lifecycle status (primarily for gaps). */
+  status?: GapStatus;
   /** Timestamp (Unix epoch) when the insight was first recorded. */
   createdAt?: number;
 }

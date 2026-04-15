@@ -1,6 +1,6 @@
 import { BaseMemoryProvider } from './base';
 import { logger } from '../logger';
-import { InsightMetadata, MemoryInsight, InsightCategory } from '../types/memory';
+import { InsightMetadata, MemoryInsight, InsightCategory, GapStatus } from '../types/memory';
 
 /**
  * Creates a standard MemoryInsight metadata object with defaults.
@@ -126,16 +126,13 @@ export async function resolveItemById(
   if (!id) return null;
 
   const normalizedId = normalizeGapId(id);
-  const numericId = normalizedId.match(/(\d+)$/)?.[1] || normalizedId;
-  const isGap = type === 'GAP';
+  const numericMatch = normalizedId.match(/(\d+)$/);
+  const numericId = numericMatch ? numericMatch[1] : null;
 
   // 1. Precise lookup (Deterministic PK/SK)
-  const targetPK = isGap ? getGapIdPK(normalizedId) : normalizedId;
-  const targetSK = isGap ? getGapTimestamp(normalizedId) : numericId;
+  const targetPK = type === 'GAP' ? getGapIdPK(normalizedId) : normalizedId;
+  const targetSK = type === 'GAP' ? getGapTimestamp(normalizedId) : Number(numericId ?? 0);
   const scopedPK = base.getScopedUserId(targetPK, workspaceId);
-
-  // Use a numeric SK if possible for better DynamoDB matching
-  const finalSK = isNaN(Number(targetSK)) ? targetSK : Number(targetSK);
 
   try {
     const items = await base.queryItems({
@@ -143,7 +140,7 @@ export async function resolveItemById(
       ExpressionAttributeNames: { '#ts': 'timestamp' },
       ExpressionAttributeValues: {
         ':pk': scopedPK,
-        ':sk': finalSK,
+        ':sk': targetSK,
       },
     });
 
@@ -160,22 +157,24 @@ export async function resolveItemById(
     logger.debug(`[resolveItemById] Direct lookup failed for ${scopedPK}`, { err });
   }
 
-  // 2. GSI Fallback (Only if direct lookup failed and we have a hints of a shifted ID)
-  // This is a safety net for legacy items or items that were moved between scopes.
+  // 2. GSI Fallback (Comprehensive scan of type within workspace)
   try {
+    // If it's a gap and we're just given a numeric suffix, search the GSI
     const { items: candidates } = await getMemoryByTypePaginated(
       base,
       type,
-      50,
+      200, // Higher limit for fallback search
       undefined,
       workspaceId
     );
 
-    const numericMatchId = normalizedId.match(/(\d+)$/)?.[1] || normalizedId;
     const target = candidates.find((item) => {
       const itemPK = normalizeGapId(item.userId as string);
+      const itemTS = (item.timestamp as number | string).toString();
       return (
-        itemPK.includes(numericMatchId) || (item.timestamp as string).toString() === numericMatchId
+        itemPK === normalizedId ||
+        itemPK.endsWith(`#${numericId}`) ||
+        (numericId && itemTS === numericId)
       );
     });
 
@@ -200,22 +199,24 @@ function mapToInsight(item: Record<string, unknown>, defaultType: string): Memor
     timestamp: item.timestamp as number | string,
     metadata: (item.metadata as InsightMetadata) || { category: defaultType as InsightCategory },
     workspaceId: item.workspaceId as string | undefined,
+    status: item.status as GapStatus | undefined,
     createdAt: (item.createdAt as number) || (item.timestamp as number) || Date.now(),
   };
 }
 
 /**
- * Updates metadata atomically while enforcing workspace boundaries.
+ * Updates an item's fields and metadata atomically while enforcing workspace boundaries.
+ * Prevents "ghost item" creation by verifying the Partition Key exists.
  */
 export async function atomicUpdateMetadata(
   base: BaseMemoryProvider,
   userId: string,
   timestamp: number | string,
-  metadata: Partial<InsightMetadata>,
+  metadata: Partial<InsightMetadata & { content?: string; tags?: string[] }>,
   workspaceId?: string
 ): Promise<void> {
   const pk = base.getScopedUserId(userId, workspaceId);
-  const fields: Array<keyof InsightMetadata> = [
+  const metadataFields: Array<keyof InsightMetadata> = [
     'category',
     'confidence',
     'impact',
@@ -231,26 +232,47 @@ export async function atomicUpdateMetadata(
 
   const updates: string[] = [];
   const updateValues: Record<string, any> = { ':now': Date.now() };
+  const attributeNames: Record<string, string> = {};
 
-  for (const field of fields) {
-    if (metadata[field] !== undefined) {
-      updates.push(`metadata.${field} = :${field}`);
-      updateValues[`:${field}`] = metadata[field];
+  // Handle core fields (top-level)
+  if (metadata.content !== undefined) {
+    updates.push('#content = :content');
+    updateValues[':content'] = metadata.content;
+    attributeNames['#content'] = 'content';
+  }
+  if (metadata.tags !== undefined) {
+    updates.push('#tags = :tags');
+    updateValues[':tags'] = normalizeTags(metadata.tags);
+    attributeNames['#tags'] = 'tags';
+  }
+
+  // Handle metadata nested fields
+  for (const field of metadataFields) {
+    if ((metadata as any)[field] !== undefined) {
+      updates.push(`metadata.#${field} = :${field}`);
+      updateValues[`:${field}`] = (metadata as any)[field];
+      attributeNames[`#${field}`] = field;
     }
   }
 
   if (updates.length === 0) {
-    logger.debug(`[atomicUpdateMetadata] No metadata fields to update for ${userId}`);
+    logger.debug(`[atomicUpdateMetadata] No fields to update for ${userId}`);
     return;
   }
 
   try {
-    await base.updateItem({
+    const params: any = {
       Key: { userId: pk, timestamp: Number(timestamp) },
       UpdateExpression: `SET updatedAt = :now, ${updates.join(', ')}`,
       ExpressionAttributeValues: updateValues,
       ConditionExpression: 'attribute_exists(userId)',
-    });
+    };
+
+    if (Object.keys(attributeNames).length > 0) {
+      params.ExpressionAttributeNames = attributeNames;
+    }
+
+    await base.updateItem(params);
   } catch (error) {
     logger.error(`[atomicUpdateMetadata] Failed update for ${pk}:`, error);
     throw error;

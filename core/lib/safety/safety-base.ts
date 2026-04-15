@@ -101,8 +101,9 @@ export class SafetyBase {
       this.violations = this.violations.slice(-SAFETY_LIMITS.VIOLATION_MEMORY_LIMIT);
     }
 
-    // Persist to DynamoDB immediately for audit trail
-    await this.persistViolations();
+    // Persist ONLY the new violation to DynamoDB immediately for audit trail
+    // This adheres to Silo 1 (Stateless Core) while being O(1) instead of O(N^2)
+    await this.persistViolation(violation);
 
     logger.warn('Safety violation detected', {
       violationId: violation.id,
@@ -114,52 +115,56 @@ export class SafetyBase {
   }
 
   /**
-   * Persist violations to DynamoDB for audit trail.
+   * Log violation without persistence - for external validators.
+   * Use this for validation-stage violations that shouldn't be double-logged.
    */
-  async persistViolations(): Promise<void> {
-    if (this.violations.length === 0) return;
+  public logViolationExternal(violation: SafetyViolation): void {
+    this.violations.push(violation);
 
+    if (this.violations.length > SAFETY_LIMITS.VIOLATION_MEMORY_LIMIT) {
+      this.violations = this.violations.slice(-SAFETY_LIMITS.VIOLATION_MEMORY_LIMIT);
+    }
+
+    logger.warn('Safety violation detected (external)', {
+      violationId: violation.id,
+      agentId: violation.agentId,
+      action: violation.action,
+      reason: violation.reason,
+      outcome: violation.outcome,
+    });
+  }
+
+  /**
+   * Persist a single violation to DynamoDB for audit trail.
+   */
+  async persistViolation(violation: SafetyViolation): Promise<boolean> {
     const resource = Resource as { ConfigTable?: { name: string } };
     if (!('ConfigTable' in resource)) {
       logger.error('[CRITICAL] SafetyEngine telemetry blindness: ConfigTable not linked.');
-      return;
+      return false;
     }
 
-    const violationsToPersist = [...this.violations];
-    const batchSize = 25;
-    const now = Date.now();
-
-    for (let i = 0; i < violationsToPersist.length; i += batchSize) {
-      const batch = violationsToPersist.slice(i, i + batchSize);
-      const agentIds = [...new Set(batch.map((v) => v.agentId))];
-      const agentId = agentIds.length === 1 ? agentIds[0] : 'batch';
-
-      await this.persistBatchWithRetry(batch, agentId, now, resource.ConfigTable?.name);
-    }
-  }
-
-  private async persistBatchWithRetry(
-    batch: SafetyViolation[],
-    agentId: string,
-    now: number,
-    tableName: string | undefined
-  ): Promise<boolean> {
     const maxRetries = 2;
+    const now = Date.now();
+    // Unique key per violation to ensure audit trail integrity
+    const key = `safety:violations:${violation.agentId}:${violation.id}`;
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         await defaultDocClient.send(
           new PutCommand({
-            TableName: tableName,
+            TableName: resource.ConfigTable?.name,
             Item: {
-              key: `safety:violations:${agentId}:${now}`,
-              value: { violations: batch, count: batch.length, timestamp: now },
+              key,
+              value: violation,
+              timestamp: now,
             },
           })
         );
         return true;
       } catch (e) {
         if (attempt === maxRetries) {
-          logger.error(`[SafetyBase] Failed to persist violations after retries: ${e}`);
+          logger.error(`[SafetyBase] Failed to persist violation ${key} after retries: ${e}`);
         }
       }
     }

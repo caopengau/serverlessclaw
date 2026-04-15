@@ -1,8 +1,66 @@
 import { SafetyTier, SafetyPolicy } from '../types/agent';
 import { ConfigManager } from '../registry/config';
-import { DEFAULT_POLICIES } from './safety-config';
 import { logger } from '../logger';
 import { TIME } from '../constants';
+import { PROTECTED_FILES } from '../constants/tools';
+
+/**
+ * Default safety policies for each tier.
+ */
+export const DEFAULT_POLICIES: Record<SafetyTier, SafetyPolicy> = {
+  [SafetyTier.LOCAL]: {
+    tier: SafetyTier.LOCAL,
+    requireCodeApproval: false,
+    requireDeployApproval: false,
+    requireFileApproval: false,
+    requireShellApproval: false,
+    requireMcpApproval: false,
+    blockedFilePaths: [...PROTECTED_FILES],
+    maxDeploymentsPerDay: 50,
+    maxShellCommandsPerHour: 200,
+    maxFileWritesPerHour: 500,
+    cognitiveThresholds: {
+      minCompletionRate: 0.7,
+      maxErrorRate: 0.3,
+      minCoherence: 5.0,
+      maxMissRate: 0.5,
+      maxAvgLatencyMs: 15000,
+      maxPivotRate: 0.2,
+      minSampleTasks: 5,
+    },
+  },
+  [SafetyTier.PROD]: {
+    tier: SafetyTier.PROD,
+    requireCodeApproval: false,
+    requireDeployApproval: true,
+    requireFileApproval: false,
+    requireShellApproval: true,
+    requireMcpApproval: true,
+    blockedFilePaths: [...PROTECTED_FILES],
+    maxDeploymentsPerDay: 10,
+    maxShellCommandsPerHour: 50,
+    maxFileWritesPerHour: 100,
+    cognitiveThresholds: {
+      minCompletionRate: 0.85,
+      maxErrorRate: 0.15,
+      minCoherence: 7.0,
+      maxMissRate: 0.3,
+      maxAvgLatencyMs: 10000,
+      maxPivotRate: 0.1,
+      minSampleTasks: 10,
+    },
+    timeRestrictions: [
+      {
+        daysOfWeek: [1, 2, 3, 4, 5], // Weekdays
+        startHour: 9,
+        endHour: 17,
+        timezone: 'America/New_York',
+        restrictedActions: ['deployment'],
+        restrictionType: 'require_approval',
+      },
+    ],
+  },
+};
 
 interface CachedPolicies {
   value: Record<SafetyTier, SafetyPolicy>;
@@ -70,27 +128,19 @@ export class SafetyConfigManager {
 
   /**
    * Saves or updates safety policies in the ConfigTable.
+   * Enforces Principle 13 (Atomic State Integrity) by using atomic field updates.
    */
   static async savePolicies(policies: Record<string, Partial<SafetyPolicy>>): Promise<void> {
-    const current = await this.getPolicies();
-    const updated = { ...current };
-
     for (const [tier, policy] of Object.entries(policies)) {
       if (Object.values(SafetyTier).includes(tier as SafetyTier)) {
-        updated[tier as SafetyTier] = {
-          ...updated[tier as SafetyTier],
-          ...policy,
-        } as SafetyPolicy;
+        await ConfigManager.atomicUpdateMapEntity(this.CONFIG_KEY, tier, policy);
+        logger.info(`[SafetyConfigManager] Atomically updated safety policy for tier: ${tier}`);
       }
     }
 
-    await ConfigManager.saveRawConfig(this.CONFIG_KEY, updated, {
-      author: 'system:safety-manager',
-      description: 'Updated safety policies via SafetyConfigManager',
-    });
-
-    // Invalidate cache
+    // Invalidate cache immediately to ensure next read sees the changes
     this.cache = null;
+    logger.info('[SafetyConfigManager] Cache invalidated after atomic policy updates.');
   }
 
   /**

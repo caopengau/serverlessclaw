@@ -75,23 +75,11 @@ export class SafetyEngine extends SafetyBase {
     const agentId = agentConfig?.id ?? 'unknown';
     const ctx = { ...context, agentId };
 
-    // 1. Class D Block (Hard Policy)
-    if (this.isClassDAction(action)) {
-      return this.handleViolation(
-        ctx,
-        tier,
-        action,
-        'class_d_blocked',
-        `Class D action '${action}' permanently blocked by policy.`
-      );
-    }
+    // 1. Hard Logic (Class D Blocks)
+    const staticResult = await this.validateStaticPolicies(action, ctx, tier);
+    if (!staticResult.allowed) return staticResult;
 
-    // 2. Resource Discovery
-    const discovered = scanForResources(context?.args ?? {}, context?.pathKeys);
-    const resources = new Set(discovered.map((d) => d.path));
-    if (context?.resource) resources.add(context.resource);
-
-    // 3. Load Policy
+    // 2. Policy & Configuration
     const policy = await this.getResolvedPolicy(tier);
     if (!policy) {
       return {
@@ -102,11 +90,67 @@ export class SafetyEngine extends SafetyBase {
       };
     }
 
-    // 4. Per-Tool Overrides & Rate Limits
+    // 3. Tool & Resource Access Control
+    const accessResult = await this.validateAccessControl(agentConfig, action, ctx, tier, policy);
+    if (!accessResult.allowed || accessResult.requiresApproval) return accessResult;
+
+    // 4. Time & Dynamic Restrictions
+    const dynamicResult = await this.validateDynamicRestrictions(
+      agentConfig,
+      action,
+      ctx,
+      tier,
+      policy
+    );
+    if (
+      !dynamicResult.allowed ||
+      dynamicResult.requiresApproval ||
+      dynamicResult.appliedPolicy === 'principle_9_promotion'
+    ) {
+      return dynamicResult;
+    }
+
+    // 5. Rate Limits & Final Gates
+    const limitResult = await this.limiter.checkRateLimits(policy, action);
+    if (!limitResult.allowed) return limitResult;
+
+    return { allowed: true, requiresApproval: false, appliedPolicy: `${tier}_default` };
+  }
+
+  private async validateStaticPolicies(
+    action: string,
+    ctx: any,
+    tier: SafetyTier
+  ): Promise<SafetyEvaluationResult> {
+    if (this.isClassDAction(action)) {
+      return this.handleViolation(
+        ctx,
+        tier,
+        action,
+        'class_d_blocked',
+        `Class D action '${action}' permanently blocked by policy.`
+      );
+    }
+    return { allowed: true, requiresApproval: false };
+  }
+
+  private async validateAccessControl(
+    agentConfig: any,
+    action: string,
+    ctx: any,
+    tier: SafetyTier,
+    policy: SafetyPolicy
+  ): Promise<SafetyEvaluationResult> {
+    // Tool Overrides
     const toolResult = await this.checkToolSafety(ctx, tier, action);
     if (!toolResult.allowed || toolResult.requiresApproval) return toolResult;
 
-    // 5. Resource-Level Validation
+    // Resource Discovery
+    const discovered = scanForResources(ctx.args ?? {}, ctx.pathKeys);
+    const resources = new Set(discovered.map((d) => d.path));
+    if (ctx.resource) resources.add(ctx.resource);
+
+    // Resource-Level Validation
     for (const res of resources) {
       const resResult = await this.validator.checkResourceAccess(policy, res, action, tier, ctx);
       // System Protection Escalation
@@ -124,7 +168,16 @@ export class SafetyEngine extends SafetyBase {
       if (!resResult.allowed || resResult.requiresApproval) return resResult;
     }
 
-    // 6. Time & Approval Checks
+    return { allowed: true, requiresApproval: false };
+  }
+
+  private async validateDynamicRestrictions(
+    agentConfig: any,
+    action: string,
+    ctx: any,
+    tier: SafetyTier,
+    policy: SafetyPolicy
+  ): Promise<SafetyEvaluationResult> {
     const timeResult = await this.validator.checkTimeRestrictions(policy, action, tier, ctx);
     if (!timeResult.allowed || timeResult.requiresApproval) return timeResult;
 
@@ -135,13 +188,13 @@ export class SafetyEngine extends SafetyBase {
       ctx
     );
 
-    // 7. Blast Radius Enforcement (Class C)
+    // Blast Radius Enforcement (Class C)
     if (this.isClassCAction(action)) {
-      const blastResult = await this.handleClassCAction(agentId, action, approvalResult, ctx);
+      const blastResult = await this.handleClassCAction(ctx.agentId, action, approvalResult, ctx);
       if (blastResult) return blastResult;
     }
 
-    // 8. Trust-Driven Promotion (Principle 9)
+    // Trust-Driven Promotion (Principle 9)
     const promotionResult = await this.checkAutonomousPromotion(
       agentConfig,
       action,
@@ -150,13 +203,7 @@ export class SafetyEngine extends SafetyBase {
     );
     if (promotionResult) return promotionResult;
 
-    if (!approvalResult.allowed || approvalResult.requiresApproval) return approvalResult;
-
-    // 9. General Rate Limits
-    const limitResult = await this.limiter.checkRateLimits(policy, action);
-    if (!limitResult.allowed) return limitResult;
-
-    return { allowed: true, requiresApproval: false, appliedPolicy: `${tier}_default` };
+    return approvalResult;
   }
 
   private async getResolvedPolicy(tier: SafetyTier): Promise<SafetyPolicy> {

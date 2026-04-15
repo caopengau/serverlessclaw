@@ -6,7 +6,38 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SafetyEngine } from './safety-engine';
 import { SafetyTier, AgentCategory } from '../types/agent';
-import { DEFAULT_POLICIES } from './safety-config';
+
+const { mockDefaults } = vi.hoisted(() => {
+  return {
+    mockDefaults: {
+      local: {
+        tier: 'local',
+        requireCodeApproval: false,
+        requireDeployApproval: false,
+        requireFileApproval: false,
+        requireShellApproval: false,
+        requireMcpApproval: false,
+        blockedFilePaths: ['.git/**', '.env', 'package-lock.json', 'node_modules/**'],
+        maxDeploymentsPerDay: 50,
+        maxShellCommandsPerHour: 200,
+        maxFileWritesPerHour: 500,
+      },
+      prod: {
+        tier: 'prod',
+        requireCodeApproval: false,
+        requireDeployApproval: true,
+        requireFileApproval: false,
+        requireShellApproval: true,
+        requireMcpApproval: true,
+        blockedFilePaths: ['.git/**', '.env', 'package-lock.json', 'node_modules/**'],
+        maxDeploymentsPerDay: 10,
+        maxShellCommandsPerHour: 50,
+        maxFileWritesPerHour: 100,
+      },
+    },
+  };
+});
+import { DEFAULT_POLICIES } from './safety-config-manager';
 
 // Mock Logger
 vi.mock('../logger', () => ({
@@ -19,12 +50,19 @@ vi.mock('../logger', () => ({
 }));
 
 // Mock SafetyConfigManager
-vi.mock('./safety-config-manager', () => ({
-  SafetyConfigManager: {
-    getPolicies: vi.fn(async () => DEFAULT_POLICIES),
-    getPolicy: vi.fn(async (tier: SafetyTier) => DEFAULT_POLICIES[tier]),
-  },
-}));
+vi.mock('./safety-config-manager', () => {
+  const defaults = {
+    local: mockDefaults.local,
+    prod: mockDefaults.prod,
+  };
+  return {
+    DEFAULT_POLICIES: defaults,
+    SafetyConfigManager: {
+      getPolicies: vi.fn(async () => defaults),
+      getPolicy: vi.fn(async (tier: string) => (defaults as any)[tier]),
+    },
+  };
+});
 
 describe('Safety Engine Integration', () => {
   let engine: SafetyEngine;
@@ -97,7 +135,7 @@ describe('Safety Engine Integration', () => {
 
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('blocked');
-      expect(result.appliedPolicy).toBe('blocked_resource');
+      expect(result.appliedPolicy).toBe('system_protection');
     });
 
     it('should allow non-protected files for LOCAL agents', async () => {

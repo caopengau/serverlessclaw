@@ -142,21 +142,25 @@ When a deployment fails, the system automatically attempts a repair before escal
     +-----------+           +-----------+
 ```
 
-## Security Interaction Flow
+## 🛡️ Security Interaction Flow
+
+The `SafetyEngine` decomposes every evaluation into four specific validation stages to ensure deterministic results and maintainable logic.
 
 ```text
   [ Agent Output ] -> [ SemanticLoopDetector ] -- (Loop Found) --> [ SafetyBase.recordFailure ]
           |                                                             (Trust Penalty)
           v
-  [ Tool Call ] -> [ Shield (SafetyEngine) ] -- (Class C) --> [ EvolutionScheduler ]
-          |                  |                                   (Schedule HITL)
-          |                  +------- (Trust >= 95 & AUTO) -> [ Principle 9 Promotion ]
-          |                                                      (Bypass Approval)
-          v
-  [ Circuit Breaker ] -- (Tripped?) --> [ Execution Blocked ]
-          |
-          v
-  [ Tool Execution ] -> [ Failure? ] -> [ SafetyBase.recordFailure ] -> [ Trip Breaker ]
+  [ Tool Call ] -> [ Shield (SafetyEngine) ]
+          |                  |
+          |          (1) Static Check (Class D Block?)
+          |                  |
+          |          (2) Access Control (Blocked Patterns? System Protected?)
+          |                  |
+          |          (3) Dynamic Check (Time Windows? Blast Radius? Principle 9 Promotion?)
+          |                  |
+          |          (4) Rate Limits (Concurrent Throttling)
+          |                  |
+          +------------------+-------------------> [ Result (Allow/Block/Approval) ]
 ```
 
 ### Self-Healing Flow:

@@ -122,8 +122,8 @@ describe('Gap Operations', () => {
 
       const input = calls[0].args[0].input;
       expect(input.Key).toEqual({ userId: 'GAP#42', timestamp: 42 });
-      expect(input.UpdateExpression).toContain('metadata.impact = :impact');
-      expect(input.UpdateExpression).toContain('metadata.priority = :priority');
+      expect(input.UpdateExpression).toContain('metadata.#impact = :impact');
+      expect(input.UpdateExpression).toContain('metadata.#priority = :priority');
       expect(input.ExpressionAttributeValues?.[':impact']).toBe(9);
       expect(input.ExpressionAttributeValues?.[':priority']).toBe(7);
     });
@@ -196,8 +196,12 @@ describe('Gap Operations', () => {
 
   describe('incrementGapAttemptCount', () => {
     it('should normalize compound gap IDs using same logic as setGap', async () => {
+      // Mock resolution
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{ userId: 'GAP#42', timestamp: 42, content: 'test', metadata: {} }],
+      });
       ddbMock.on(UpdateCommand).resolves({
-        Attributes: { attemptCount: 1 },
+        Attributes: { metadata: { retryCount: 1 } },
       });
 
       await memory.incrementGapAttemptCount('GAP#TOOLOPT-1710240000000-42');
@@ -212,8 +216,14 @@ describe('Gap Operations', () => {
     });
 
     it('should use full ID when gapId is purely numeric', async () => {
+      // Mock resolution
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          { userId: 'GAP#1710240000000', timestamp: 1710240000000, content: 'test', metadata: {} },
+        ],
+      });
       ddbMock.on(UpdateCommand).resolves({
-        Attributes: { attemptCount: 1 },
+        Attributes: { metadata: { retryCount: 1 } },
       });
 
       await memory.incrementGapAttemptCount('GAP#1710240000000');
@@ -225,19 +235,11 @@ describe('Gap Operations', () => {
       });
     });
 
-    it('should fall back to searching all gap statuses when primary lookup fails', async () => {
-      // Primary update fails once, then fallback update succeeds
-      ddbMock
-        .on(UpdateCommand)
-        .rejectsOnce(new Error('DDB error'))
-        .resolves({ Attributes: { metadata: { retryCount: 3 } } });
-
-      // Fallback: QueryCommand returns gaps found across statuses
-      // Fallback: QueryCommand returns gaps found across statuses
-      // First call (direct lookup) returns empty, second call (GSI search) returns the item
+    it('should resolve via GSI when direct lookup fails', async () => {
+      // Primary resolution: first call (direct lookup) returns empty, second call (GSI search) returns the item
       ddbMock
         .on(QueryCommand)
-        .resolvesOnce({ Items: [] })
+        .resolvesOnce({ Items: [] }) // Direct lookup PK/SK
         .resolves({
           Items: [
             {
@@ -250,24 +252,26 @@ describe('Gap Operations', () => {
           ],
         });
 
+      ddbMock.on(UpdateCommand).resolves({ Attributes: { metadata: { retryCount: 3 } } });
+
       const count = await memory.incrementGapAttemptCount('GAP#42');
 
       // Should have attempted QueryCommand for direct lookup then fallback search
       const queryCalls = ddbMock.commandCalls(QueryCommand);
       expect(queryCalls.length).toBeGreaterThanOrEqual(2);
+      expect(count).toBe(3);
       // Verify standardized mapping (first is direct lookup with #ts, second is GSI with #tp)
       expect(queryCalls[1].args[0].input.ExpressionAttributeNames).toEqual(
         expect.objectContaining({ '#tp': 'type' })
       );
-      expect(count).toBe(3);
     });
 
-    it('should return 1 when gap is not found in any status', async () => {
+    it('should return 0 when gap is not found in any status', async () => {
       ddbMock.on(UpdateCommand).rejects(new Error('DDB error'));
       ddbMock.on(QueryCommand).resolves({ Items: [] });
 
       const count = await memory.incrementGapAttemptCount('GAP#NONEXISTENT');
-      expect(count).toBe(1);
+      expect(count).toBe(0);
     });
   });
 
@@ -322,6 +326,12 @@ describe('Gap-Track Assignment', () => {
 
   describe('assignGapToTrack', () => {
     it('should store track assignment in DynamoDB', async () => {
+      // Mock resolution for updateGapStatus
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          { userId: 'gap-42', timestamp: 1000, content: 'test', metadata: { status: 'open' } },
+        ],
+      });
       ddbMock.on(UpdateCommand).resolves({});
       ddbMock.on(PutCommand).resolves({});
 
@@ -336,6 +346,12 @@ describe('Gap-Track Assignment', () => {
     });
 
     it('should use custom priority when provided', async () => {
+      // Mock resolution for updateGapStatus
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          { userId: 'gap-1', timestamp: 1000, content: 'test', metadata: { status: 'open' } },
+        ],
+      });
       ddbMock.on(UpdateCommand).resolves({});
       ddbMock.on(PutCommand).resolves({});
 

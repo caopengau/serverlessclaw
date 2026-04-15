@@ -4,9 +4,8 @@
  * caching, cache invalidation, and fallback to defaults.\n */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SafetyConfigManager } from './safety-config-manager';
+import { SafetyConfigManager, DEFAULT_POLICIES } from './safety-config-manager';
 import { SafetyTier } from '../types/agent';
-import { DEFAULT_POLICIES } from './safety-config';
 import { ConfigManager } from '../registry/config';
 
 // Mock ConfigManager
@@ -14,6 +13,7 @@ vi.mock('../registry/config', () => ({
   ConfigManager: {
     getRawConfig: vi.fn(),
     saveRawConfig: vi.fn(),
+    atomicUpdateMapEntity: vi.fn(),
   },
 }));
 
@@ -29,6 +29,7 @@ vi.mock('../logger', () => ({
 describe('SafetyConfigManager', () => {
   const mockGetRawConfig = ConfigManager.getRawConfig as any;
   const mockSaveRawConfig = ConfigManager.saveRawConfig as any;
+  const mockAtomicUpdate = ConfigManager.atomicUpdateMapEntity as any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -98,17 +99,17 @@ describe('SafetyConfigManager', () => {
   });
 
   describe('savePolicies', () => {
-    it('merges partial policies with current and saves', async () => {
-      mockGetRawConfig.mockResolvedValue(DEFAULT_POLICIES);
-      mockSaveRawConfig.mockResolvedValue(undefined);
+    it('calls atomicUpdateMapEntity for each tier and saves', async () => {
+      mockAtomicUpdate.mockResolvedValue(undefined);
 
       await SafetyConfigManager.savePolicies({
         [SafetyTier.PROD]: { maxDeploymentsPerDay: 10 },
       });
 
-      expect(mockSaveRawConfig).toHaveBeenCalledTimes(1);
-      const savedPolicies = mockSaveRawConfig.mock.calls[0][1];
-      expect(savedPolicies[SafetyTier.PROD].maxDeploymentsPerDay).toBe(10);
+      expect(mockAtomicUpdate).toHaveBeenCalledTimes(1);
+      expect(mockAtomicUpdate).toHaveBeenCalledWith('safety_policies', SafetyTier.PROD, {
+        maxDeploymentsPerDay: 10,
+      });
     });
 
     it('invalidates cache after save', async () => {
@@ -122,6 +123,23 @@ describe('SafetyConfigManager', () => {
       await SafetyConfigManager.getPolicies();
 
       expect(mockGetRawConfig).toHaveBeenCalledTimes(2);
+    });
+
+    it('handles high-concurrency contention via atomicUpdateMapEntity', async () => {
+      mockAtomicUpdate.mockResolvedValue(undefined);
+
+      // Simulate 10 concurrent policy updates
+      const updates = Array.from({ length: 10 }).map((_, i) =>
+        SafetyConfigManager.savePolicies({
+          [SafetyTier.PROD]: { maxDeploymentsPerDay: i },
+        })
+      );
+
+      await Promise.all(updates);
+
+      // Verify that atomicUpdateMapEntity was called 10 times
+      // Principle 13 ensures each of these is independent and atomic
+      expect(mockAtomicUpdate).toHaveBeenCalledTimes(10);
     });
   });
 });

@@ -37,7 +37,7 @@ export function matchesGlob(path: string, pattern: string): boolean {
   if (pattern.endsWith('/')) return path.startsWith(pattern);
 
   const regexSource = pattern
-    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/[.+^${}()|[\]\\]/g, (m) => (['*', '?'].includes(m) ? m : `\\${m}`))
     .replace(/\*\*\//g, '___DIR___')
     .replace(/\*\*/g, '___ANY___')
     .replace(/\*/g, '___NONSLASH___')

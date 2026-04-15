@@ -23,7 +23,7 @@ export class PolicyValidator {
     if (policy.blockedFilePaths) {
       for (const pattern of policy.blockedFilePaths) {
         if (this.base.matchesGlob(resource, pattern)) {
-          const violation = (this.base as any).createViolation(
+          const violation = this.base.createViolation(
             context?.agentId ?? 'unknown',
             tier,
             action,
@@ -34,7 +34,7 @@ export class PolicyValidator {
             context?.traceId,
             context?.userId
           );
-          await (this.base as any).logViolation(violation);
+          this.base.logViolationExternal(violation);
 
           return {
             allowed: false,
@@ -54,7 +54,7 @@ export class PolicyValidator {
       );
 
       if (!isAllowed) {
-        const violation = (this.base as any).createViolation(
+        const violation = this.base.createViolation(
           context?.agentId ?? 'unknown',
           tier,
           action,
@@ -65,7 +65,7 @@ export class PolicyValidator {
           context?.traceId,
           context?.userId
         );
-        await (this.base as any).logViolation(violation);
+        this.base.logViolationExternal(violation);
 
         return {
           allowed: false,
@@ -103,7 +103,7 @@ export class PolicyValidator {
 
       if (isRestricted) {
         if (restriction.restrictionType === 'block') {
-          const violation = (this.base as any).createViolation(
+          const violation = this.base.createViolation(
             context?.agentId ?? 'unknown',
             tier,
             action,
@@ -114,7 +114,7 @@ export class PolicyValidator {
             context?.traceId,
             context?.userId
           );
-          await (this.base as any).logViolation(violation);
+          this.base.logViolationExternal(violation);
 
           return {
             allowed: false,
@@ -123,7 +123,7 @@ export class PolicyValidator {
             appliedPolicy: 'time_restriction',
           };
         } else {
-          const violation = (this.base as any).createViolation(
+          const violation = this.base.createViolation(
             context?.agentId ?? 'unknown',
             tier,
             action,
@@ -134,7 +134,7 @@ export class PolicyValidator {
             context?.traceId,
             context?.userId
           );
-          await (this.base as any).logViolation(violation);
+          this.base.logViolationExternal(violation);
 
           return {
             allowed: true,
@@ -196,7 +196,7 @@ export class PolicyValidator {
     }
 
     if (requiresApproval) {
-      const violation = (this.base as any).createViolation(
+      const violation = this.base.createViolation(
         context?.agentId ?? 'unknown',
         tier,
         action,
@@ -207,7 +207,7 @@ export class PolicyValidator {
         context?.traceId,
         context?.userId
       );
-      await (this.base as any).logViolation(violation);
+      this.base.logViolationExternal(violation);
 
       return {
         allowed: true,

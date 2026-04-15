@@ -59,8 +59,8 @@ The metabolism operates on two distinct loops:
  [ DashboardFailureHandler ]
           |
           v
- [ MetabolismService ] -- (Analyze/Auto-Fix) --> [ System State Repair ]
-          |
+ [ MetabolismService ] -- (Surgical ID) --> [ AgentRegistry.pruneAgentTool ]
+          |                                (Atomic Remedy via P13)
           '----------- (Complex/HITL) ---------> [ EvolutionScheduler ]
                                                    (Awaiting Human)
 ```
@@ -87,6 +87,7 @@ The central coordinator that manages the lifecycle of metabolic audits. It prior
 
 ### 2. Autonomous Repair Protocols
 
+- **Surgical Atomic Pruning**: An event-driven bridge for live remediation. If a tool fails in the dashboard, the metabolism service identifies the specific tool and delegates an atomic removal to `AgentRegistry.pruneAgentTool`. (Enforces **Principle 13**).
 - **Tool Pruning**: Automatically removes dynamic tool overrides from the `AgentRegistry` if they have 0 executions over a 30-day window.
 - **Memory Culling**: Purges knowledge gaps in `DONE` or `DEPLOYED` status that are older than 90 days.
 - **Native Fallback**: A resilient scanner that performs basic debt identification (e.g., scanning for orphans or TODOs) even when the AIReady MCP server is offline.
@@ -128,4 +129,4 @@ Silo 7 is the primary enforcement mechanism for Principle 10. By treating techni
 ## Operational Safeguards
 
 - **Multi-Tenant Isolation**: All repairs utilize `workspaceId` to ensure the metabolism of one tenant never leaks into or deletes another's memory.
-- **Atomicity**: Registry pruning and memory culling use conditional DynamoDB updates to prevent race conditions in highly concurrent environments.
+- **Atomic State Integrity**: Registry pruning and memory culling use **Field-Level Atomic Filtering** via `ConfigManager.atomicRemoveFromMapList`. This ensures that maintenance tasks never overwrite active agent configurations, even in highly concurrent swarm environments.

@@ -183,46 +183,37 @@ export async function getGap(
 
 /**
  * Atomically increments the attempt counter on a capability gap.
+ * Prevents "ghost item" creation by verifying the Partition Key exists.
  */
 export async function incrementGapAttemptCount(
   base: BaseMemoryProvider,
   gapId: string,
   workspaceId?: string
 ): Promise<number> {
-  const normalizedId = normalizeGapId(gapId);
-  const gapTimestamp = getGapTimestamp(normalizedId);
-  const scopedUserId = base.getScopedUserId(getGapIdPK(normalizedId), workspaceId);
+  const target = await resolveItemById(base, gapId, 'GAP', workspaceId);
+  if (!target) {
+    logger.warn(`[incrementGapAttemptCount] Abandoning increment: Gap ${gapId} not found.`);
+    return 0;
+  }
 
   try {
     const now = Date.now();
     const result = await base.updateItem({
-      Key: { userId: scopedUserId, timestamp: gapTimestamp },
+      Key: { userId: target.id, timestamp: target.timestamp },
       UpdateExpression:
-        'SET metadata.retryCount = if_not_exists(metadata.retryCount, :zero) + :one, updatedAt = :now, metadata.lastAttemptTime = :now',
+        'SET metadata.#retryCount = if_not_exists(metadata.#retryCount, :zero) + :one, updatedAt = :now, metadata.#lastAttemptTime = :now',
+      ExpressionAttributeNames: {
+        '#retryCount': 'retryCount',
+        '#lastAttemptTime': 'lastAttemptTime',
+      },
       ExpressionAttributeValues: { ':zero': 0, ':one': 1, ':now': now },
       ConditionExpression: 'attribute_exists(userId)',
       ReturnValues: 'ALL_NEW',
     });
-    return (result.Attributes?.metadata?.retryCount as number) ?? 1;
-  } catch {
-    logger.debug(`Optimistic increment failed for gap ${gapId}, falling back...`);
-    const target = await resolveItemById(base, gapId, 'GAP', workspaceId);
-    if (target) {
-      try {
-        const now = Date.now();
-        const result = await base.updateItem({
-          Key: { userId: target.id, timestamp: target.timestamp },
-          UpdateExpression:
-            'SET metadata.retryCount = if_not_exists(metadata.retryCount, :zero) + :one, updatedAt = :now, metadata.lastAttemptTime = :now',
-          ExpressionAttributeValues: { ':zero': 0, ':one': 1, ':now': now },
-          ReturnValues: 'ALL_NEW',
-        });
-        return (result.Attributes?.metadata?.retryCount as number) ?? 1;
-      } catch (e) {
-        logger.error(`Fallback increment failed for gap ${gapId}:`, e);
-      }
-    }
-    return 1;
+    return (result.Attributes?.metadata?.retryCount as number) || 0;
+  } catch (error) {
+    logger.error(`[incrementGapAttemptCount] Atomic increment failed for gap ${gapId}:`, error);
+    throw error;
   }
 }
 
@@ -235,10 +226,10 @@ export async function updateGapStatus(
   status: GapStatus,
   workspaceId?: string
 ): Promise<GapTransitionResult> {
-  const normalizedId = normalizeGapId(gapId);
-  const gapTimestamp = getGapTimestamp(normalizedId);
-  const scopedUserId = base.getScopedUserId(getGapIdPK(normalizedId), workspaceId);
-  const isLikelyTimestamp = gapTimestamp > TIME.EPOCH_2020_MS;
+  const target = await resolveItemById(base, gapId, 'GAP', workspaceId);
+  if (!target) {
+    return { success: false, error: `Gap ${gapId} not found in any status` };
+  }
 
   const TRANSITION_GUARDS: Partial<
     Record<GapStatus, { expectedStatus: GapStatus; valueKey: string }>
@@ -255,33 +246,19 @@ export async function updateGapStatus(
 
   const guard = TRANSITION_GUARDS[status];
   const params: Record<string, any> = {
-    Key: { userId: scopedUserId, timestamp: gapTimestamp },
+    Key: { userId: target.id, timestamp: target.timestamp },
     UpdateExpression: 'SET #status = :status, updatedAt = :now',
     ConditionExpression: guard
-      ? 'attribute_exists(userId) AND #status = :expectedStatus'
-      : 'attribute_exists(userId)',
+      ? 'attribute_exists(userId) AND userId = :targetId AND #status = :expectedStatus'
+      : 'attribute_exists(userId) AND userId = :targetId',
     ExpressionAttributeNames: { '#status': 'status' },
     ExpressionAttributeValues: {
       ':status': status,
+      ':targetId': target.id,
       ':now': Date.now(),
       ...(guard ? { ':expectedStatus': guard.expectedStatus } : {}),
     },
   };
-
-  if (!isLikelyTimestamp) {
-    const target = await resolveItemById(base, gapId, 'GAP', workspaceId);
-    if (!target) {
-      if (gapTimestamp !== 0) {
-        logger.debug(
-          `[updateGapStatus] Resolution failed for ${gapId}, using leap of faith with derived Key`
-        );
-      } else {
-        return { success: false, error: `Gap ${gapId} not found in any status` };
-      }
-    } else {
-      params.Key = { userId: target.id, timestamp: target.timestamp };
-    }
-  }
 
   try {
     await base.updateItem(params);
@@ -289,36 +266,15 @@ export async function updateGapStatus(
   } catch (error) {
     const err = error as { name?: string };
     if (err.name === 'ConditionalCheckFailedException') {
-      logger.debug(`Transition check failed for ${gapId}. Attempting fallback...`);
-      const target = await resolveItemById(base, gapId, 'GAP', workspaceId);
-
-      if (!target) {
-        // If we had a guard and it failed, and we can't find the item via GSI,
-        // it's likely a guard failure for the original numeric ID.
-        if (guard && gapTimestamp !== 0) {
-          return {
-            success: false,
-            error: `Cannot transition gap ${gapId} to ${status}: current state is not ${guard.expectedStatus}`,
-          };
-        }
-        return { success: false, error: `Gap ${gapId} not found in any status` };
+      if (guard) {
+        return {
+          success: false,
+          error: `Cannot transition gap ${gapId} from ${target.status} to ${status}: expected ${guard.expectedStatus}`,
+        };
       }
-
-      params.Key = { userId: target.id, timestamp: target.timestamp };
-      try {
-        await base.updateItem(params);
-        return { success: true };
-      } catch (retryError) {
-        const rErr = retryError as { name?: string };
-        if (rErr.name === 'ConditionalCheckFailedException' && guard) {
-          return {
-            success: false,
-            error: `Cannot transition gap ${gapId} to ${status}: current state is not ${guard.expectedStatus}`,
-          };
-        }
-        return { success: false, error: `Transition failed: ${String(retryError)}` };
-      }
+      return { success: false, error: `Gap ${gapId} status update rejected by guard.` };
     }
+    logger.error(`[updateGapStatus] Failed for gap ${gapId}:`, error);
     return { success: false, error: `Update failed: ${String(error)}` };
   }
 }

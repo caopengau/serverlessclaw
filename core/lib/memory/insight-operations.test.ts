@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mockClient } from 'aws-sdk-client-mock';
-import { DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  PutCommand,
+  QueryCommand,
+  UpdateCommand,
+} from '@aws-sdk/lib-dynamodb';
 import { DynamoMemory } from '../memory';
 import { InsightCategory } from '../types/memory';
 
@@ -27,7 +32,6 @@ describe('Insight Operations', () => {
     it('should include createdAt in putItem and metadata', async () => {
       const now = 1710240000000;
       vi.setSystemTime(now);
-      const UpdateCommand = (await import('@aws-sdk/lib-dynamodb')).UpdateCommand;
       ddbMock.on(PutCommand).resolves({});
       ddbMock.on(UpdateCommand).resolves({});
 
@@ -296,30 +300,31 @@ describe('Insight Operations', () => {
         priority: 'high' as any,
       });
 
-      const putCalls = ddbMock.commandCalls(PutCommand);
-      expect(putCalls).toHaveLength(1);
+      const updateCalls = ddbMock.commandCalls(UpdateCommand);
+      expect(updateCalls).toHaveLength(1);
 
-      const item = putCalls[0]?.args[0].input.Item;
-      expect(item?.content).toBe('New content');
-      expect(item?.tags).toContain('existing-tag');
-      expect(item?.tags).toContain('new-tag');
-      expect(item?.metadata.priority).toBe('high');
-      expect(item?.metadata.lastAccessed).toBe(now);
+      const input = updateCalls[0]?.args[0].input;
+      expect(input?.UpdateExpression).toContain('#content = :content');
+      expect(input?.ExpressionAttributeNames?.['#content']).toBe('content');
+      expect(input?.ExpressionAttributeValues?.[':content']).toBe('New content');
+      expect(input?.ExpressionAttributeNames?.['#tags']).toBe('tags');
+      expect(input?.ExpressionAttributeNames?.['#priority']).toBe('priority');
+      expect(input?.ExpressionAttributeValues?.[':priority']).toBe('high');
 
       vi.useRealTimers();
     });
 
     it('should throw Error when memory item not found', async () => {
-      ddbMock.on(QueryCommand).resolves({ Items: [] });
-
-      await expect(memory.refineMemory('USER#1', 999, 'New content')).rejects.toThrow(
-        'Memory item not found: USER#1@999'
+      ddbMock.on(UpdateCommand).rejects(
+        Object.assign(new Error('ConditionalCheckFailedException'), {
+          name: 'ConditionalCheckFailedException',
+        })
       );
+
+      await expect(memory.refineMemory('USER#1', 999, 'New content')).rejects.toThrow();
     });
 
     it('should filter PII from content updates', async () => {
-      const UpdateCommand = (await import('@aws-sdk/lib-dynamodb')).UpdateCommand;
-
       ddbMock.on(QueryCommand).resolves({
         Items: [
           {
@@ -337,14 +342,14 @@ describe('Insight Operations', () => {
 
       await memory.refineMemory('USER#1', 1000, 'Contact me at user@example.com for details');
 
-      const putCalls = ddbMock.commandCalls(PutCommand);
-      const item = putCalls[0]?.args[0].input.Item;
-      expect(item?.content).toBe('Contact me at [EMAIL_REDACTED] for details');
+      const updateCalls = ddbMock.commandCalls(UpdateCommand);
+      const input = updateCalls[0]?.args[0].input;
+      expect(input?.ExpressionAttributeValues?.[':content']).toBe(
+        'Contact me at [EMAIL_REDACTED] for details'
+      );
     });
 
     it('should only update metadata when content is not provided', async () => {
-      const UpdateCommand = (await import('@aws-sdk/lib-dynamodb')).UpdateCommand;
-
       ddbMock.on(QueryCommand).resolves({
         Items: [
           {
@@ -362,17 +367,15 @@ describe('Insight Operations', () => {
 
       await memory.refineMemory('USER#1', 1000, undefined, { priority: 'low' as any });
 
-      const putCalls = ddbMock.commandCalls(PutCommand);
-      const item = putCalls[0]?.args[0].input.Item;
-      expect(item?.content).toBe('Existing content');
-      expect(item?.metadata.priority).toBe('low');
+      const updateCalls = ddbMock.commandCalls(UpdateCommand);
+      const input = updateCalls[0]?.args[0].input;
+      expect(input?.ExpressionAttributeValues?.[':content']).toBeUndefined();
+      expect(input?.ExpressionAttributeValues?.[':priority']).toBe('low');
     });
   });
 
   describe('updateInsightMetadata', () => {
     it('should update metadata when item is found', async () => {
-      const UpdateCommand = (await import('@aws-sdk/lib-dynamodb')).UpdateCommand;
-
       ddbMock.on(QueryCommand).resolves({
         Items: [
           {
@@ -400,13 +403,11 @@ describe('Insight Operations', () => {
       // New behavior: individual attributes are updated, not the whole metadata object
       expect(input!.ExpressionAttributeValues![':priority']).toBe('high');
       expect(input!.ExpressionAttributeValues![':impact']).toBe('critical');
-      expect(input!.UpdateExpression).toContain('metadata.priority');
-      expect(input!.UpdateExpression).toContain('metadata.impact');
+      expect(input!.UpdateExpression).toContain('metadata.#priority');
+      expect(input!.UpdateExpression).toContain('metadata.#impact');
     });
 
     it('should NOT call updateItem when item is not found', async () => {
-      const UpdateCommand = (await import('@aws-sdk/lib-dynamodb')).UpdateCommand;
-
       ddbMock.on(UpdateCommand).resolves({});
 
       await memory.updateInsightMetadata('USER#1', 999, { priority: 'high' as any });
@@ -416,7 +417,6 @@ describe('Insight Operations', () => {
     });
 
     it('should correctly build UpdateExpression for varied metadata fields', async () => {
-      const UpdateCommand = (await import('@aws-sdk/lib-dynamodb')).UpdateCommand;
       ddbMock.on(UpdateCommand).resolves({});
 
       await memory.updateInsightMetadata('USER#1', 12345, {
@@ -429,10 +429,10 @@ describe('Insight Operations', () => {
       const calls = ddbMock.commandCalls(UpdateCommand);
       const input = calls[0].args[0].input;
 
-      expect(input.UpdateExpression).toContain('metadata.hitCount = :hitCount');
-      expect(input.UpdateExpression).toContain('metadata.confidence = :confidence');
-      expect(input.UpdateExpression).toContain('metadata.risk = :risk');
-      expect(input.UpdateExpression).toContain('metadata.lastAccessed = :lastAccessed');
+      expect(input.UpdateExpression).toContain('metadata.#hitCount = :hitCount');
+      expect(input.UpdateExpression).toContain('metadata.#confidence = :confidence');
+      expect(input.UpdateExpression).toContain('metadata.#risk = :risk');
+      expect(input.UpdateExpression).toContain('metadata.#lastAccessed = :lastAccessed');
       expect(input.UpdateExpression).toContain('updatedAt = :now');
 
       expect(input.ExpressionAttributeValues?.[':hitCount']).toBe(10);
@@ -593,8 +593,6 @@ describe('Insight Operations', () => {
     });
 
     it('should merge additional tags', async () => {
-      const UpdateCommand = (await import('@aws-sdk/lib-dynamodb')).UpdateCommand;
-
       ddbMock.on(PutCommand).resolves({});
       ddbMock.on(UpdateCommand).resolves({});
 

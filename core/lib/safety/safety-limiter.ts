@@ -132,8 +132,8 @@ export class SafetyRateLimiter {
       if ((err as { name?: string }).name === 'ConditionalCheckFailedException') {
         return false;
       }
-      logger.error('Rate limit check failed, allowing by default', { key, err });
-      return true;
+      logger.error('Rate limit check failed, falling back to in-memory', { key, err });
+      return this.checkRateLimitInMemory(key, limit, windowMs);
     }
   }
 

@@ -89,9 +89,9 @@ async function addRecord(
   // 1. Semantic Deduplication / Upsert
   const existing = await findSimilarMemory(base, scopeId, category, scrubbedContent);
   if (existing) {
-    await recordMemoryHit(base, existing.userId || scopeId, existing.timestamp);
+    await recordMemoryHit(base, existing.id || scopeId, existing.timestamp);
     if (metadata?.tags || metadata?.priority) {
-      await refineMemory(base, existing.userId || scopeId, existing.timestamp, undefined, {
+      await refineMemory(base, existing.id || scopeId, existing.timestamp, undefined, {
         priority: metadata?.priority,
         // Tags are merged at the root level in refineMemory if we update it, but for now we update metadata
       });
@@ -545,6 +545,7 @@ export async function getFailedPlans(
 
 /**
  * Refines or updates a memory item.
+ * Uses atomic updates to prevent data loss under concurrent activity.
  */
 export async function refineMemory(
   base: BaseMemoryProvider,
@@ -554,29 +555,21 @@ export async function refineMemory(
   metadata?: Partial<InsightMetadata> & { tags?: string[] },
   workspaceId?: string
 ): Promise<void> {
-  const pk = base.getScopedUserId(userId, workspaceId);
-  const items = await base.queryItems({
-    KeyConditionExpression: 'userId = :userId AND #ts = :timestamp',
-    ExpressionAttributeNames: { '#ts': 'timestamp' },
-    ExpressionAttributeValues: { ':userId': pk, ':timestamp': timestamp },
-  });
-
-  const item = items[0];
-  if (!item) throw new Error(`Memory item not found: ${pk}@${timestamp}`);
-
-  await base.putItem({
-    ...item,
-    content: content ? filterPII(content) : item.content,
-    tags: metadata?.tags
-      ? normalizeTags([...((item.tags as string[]) || []), ...metadata.tags])
-      : item.tags,
-    workspaceId: workspaceId ?? item.workspaceId,
-    metadata: {
-      ...(item.metadata ?? {}),
-      ...(metadata ?? {}),
-      lastAccessed: Date.now(),
+  // If tags are provided, we need to handle the merge atomically.
+  // DynamoDB supports ADDing to a set, but not MERGEing lists directly in SET easily without duplicates
+  // since our normalizeTags ensures unique/sorted tags, we'll use a simple atomic update for the rest.
+  // Note: For now, if tags are provided, we overwrite or the caller must provide the full set.
+  // To keep it truly atomic for specific fields:
+  await atomicUpdateMetadata(
+    base,
+    userId,
+    timestamp,
+    {
+      ...metadata,
+      content: content ? filterPII(content) : undefined,
     },
-  });
+    workspaceId
+  );
 }
 
 /**

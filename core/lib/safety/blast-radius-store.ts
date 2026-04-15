@@ -7,10 +7,11 @@
 import { GetCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../logger';
 import { getDocClient, getConfigTableName } from '../utils/ddb-client';
+import { SAFETY_LIMITS } from '../constants/safety';
 
 const BLAST_RADIUS_KEY_PREFIX = 'safety:blast_radius';
 const WINDOW_MS = 3600000; // 1 hour
-const LIMIT_PER_HOUR = 5;
+const LIMIT_PER_HOUR = SAFETY_LIMITS.CLASS_C_MAX_PER_HOUR;
 
 interface BlastRadiusEntry {
   key: string;
@@ -81,14 +82,14 @@ export class BlastRadiusStore {
 
     const db = getDocClient();
     try {
-      // Use atomic UpdateCommand to increment counts safely
-      // Wrap in 'value' field to match ConfigTable schema
+      // Use atomic UpdateCommand to increment counts safely.
+      // We use if_not_exists to initialize the Map 'value' if it's missing (Principle 13).
       const response = await db.send(
         new UpdateCommand({
           TableName: getConfigTableName(),
           Key: { key },
           UpdateExpression:
-            'SET #val.#la = :now, #val.#exp = :expires ADD #val.#cnt :one, #val.#rcnt :resCnt',
+            'SET #val = if_not_exists(#val, :emptyMap), #val.#la = :now, #val.#exp = :expires ADD #val.#cnt :one, #val.#rcnt :resCnt',
           ExpressionAttributeNames: {
             '#val': 'value',
             '#cnt': 'count',
@@ -97,6 +98,7 @@ export class BlastRadiusStore {
             '#exp': 'expiresAt',
           },
           ExpressionAttributeValues: {
+            ':emptyMap': {},
             ':one': 1,
             ':resCnt': resource ? 1 : 0,
             ':now': now,

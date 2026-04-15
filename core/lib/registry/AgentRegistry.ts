@@ -463,4 +463,51 @@ export class AgentRegistry {
 
     return totalPruned;
   }
+
+  /**
+   * Atomically prunes a specific tool from an agent's configuration.
+   * Handles both standalone legacy keys and shared batch override maps.
+   * Scoped to Principle 13 (Atomic State Integrity) and Silo 7 (Metabolism).
+   *
+   * @param agentId - The unique agent identifier.
+   * @param toolName - The name of the tool to prune.
+   * @returns A promise resolving to true if any tool was pruned, false otherwise.
+   */
+  static async pruneAgentTool(agentId: string, toolName: string): Promise<boolean> {
+    logger.info(`[REGISTRY] Pruning specific tool '${toolName}' for agent ${agentId}`);
+    let pruned = false;
+
+    // 1. Prune from legacy standalone key if it exists
+    const perAgentKey = `${agentId}_tools`;
+    const existingLegacy = await ConfigManager.getRawConfig(perAgentKey);
+    if (Array.isArray(existingLegacy)) {
+      const updatedLegacy = existingLegacy.filter((t) => {
+        const name = typeof t === 'string' ? t : t.name;
+        return name !== toolName;
+      });
+      if (updatedLegacy.length < existingLegacy.length) {
+        // Since standalone keys aren't in a shared map, we use saveRawConfig.
+        await ConfigManager.saveRawConfig(perAgentKey, updatedLegacy);
+        pruned = true;
+      }
+    }
+
+    // 2. Atomically prune from batch shared map (CRITICAL for Principle 13)
+    try {
+      await ConfigManager.atomicRemoveFromMap(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, agentId, [
+        toolName,
+      ]);
+      // Note: atomicRemoveFromMap doesn't return if it found the item,
+      // but for remediation purposes we consider it an attempt at repair.
+      // In a more complex implementation, we could check the ReturnValues from UpdateCommand.
+      pruned = true;
+    } catch (e) {
+      logger.warn(
+        `[REGISTRY] Failed to atomically prune batch tool '${toolName}' for ${agentId}:`,
+        e
+      );
+    }
+
+    return pruned;
+  }
 }

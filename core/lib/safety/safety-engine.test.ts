@@ -7,8 +7,48 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { SafetyEngine } from './safety-engine';
 import { SafetyTier, AgentCategory, IAgentConfig } from '../types/agent';
-import { DEFAULT_POLICIES } from './safety-config';
 import { ConfigManager } from '../registry/config';
+
+const { mockDefaults } = vi.hoisted(() => {
+  return {
+    mockDefaults: {
+      local: {
+        tier: 'local',
+        requireCodeApproval: false,
+        requireDeployApproval: false,
+        requireFileApproval: false,
+        requireShellApproval: false,
+        requireMcpApproval: false,
+        blockedFilePaths: ['.git/**', '.env', 'package-lock.json', 'node_modules/**'],
+        maxDeploymentsPerDay: 50,
+        maxShellCommandsPerHour: 200,
+        maxFileWritesPerHour: 500,
+      },
+      prod: {
+        tier: 'prod',
+        requireCodeApproval: false,
+        requireDeployApproval: true,
+        requireFileApproval: false,
+        requireShellApproval: true,
+        requireMcpApproval: true,
+        blockedFilePaths: ['.git/**', '.env', 'package-lock.json', 'node_modules/**'],
+        maxDeploymentsPerDay: 10,
+        maxShellCommandsPerHour: 50,
+        maxFileWritesPerHour: 100,
+        timeRestrictions: [
+          {
+            daysOfWeek: [1, 2, 3, 4, 5],
+            startHour: 9,
+            endHour: 17,
+            timezone: 'America/New_York',
+            restrictedActions: ['deployment'],
+            restrictionType: 'require_approval',
+          },
+        ],
+      },
+    },
+  };
+});
 
 vi.mock('../logger', () => ({
   logger: {
@@ -20,10 +60,15 @@ vi.mock('../logger', () => ({
 }));
 
 vi.mock('./safety-config-manager', () => {
+  const defaults = {
+    local: mockDefaults.local,
+    prod: mockDefaults.prod,
+  };
   return {
+    DEFAULT_POLICIES: defaults,
     SafetyConfigManager: {
-      getPolicies: vi.fn(async () => DEFAULT_POLICIES),
-      getPolicy: vi.fn(async (tier: SafetyTier) => DEFAULT_POLICIES[tier]),
+      getPolicies: vi.fn(async () => defaults),
+      getPolicy: vi.fn(async (tier: string) => (defaults as any)[tier]),
     },
   };
 });
@@ -468,10 +513,20 @@ describe('SafetyEngine', () => {
     });
   });
 
-  describe('persistViolations', () => {
-    it('should return early if no violations exist', async () => {
+  describe('persistViolation', () => {
+    it('should return false if ConfigTable is not linked', async () => {
       engine.clearViolations();
-      await expect(engine.persistViolations()).resolves.toBeUndefined();
+      const violation = engine.createViolation(
+        'agent',
+        SafetyTier.LOCAL,
+        'action',
+        'tool',
+        'res',
+        'reason',
+        'allowed'
+      );
+      const result = await engine.persistViolation(violation);
+      expect(result).toBe(false);
     });
   });
 

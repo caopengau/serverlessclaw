@@ -88,6 +88,11 @@ describe('DynamoMemory Retention', () => {
       const now = Date.now();
       vi.setSystemTime(now);
 
+      // Mock resolution
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{ userId: gapId, timestamp: timestamp, content: 'test', status: GapStatus.OPEN }],
+      });
+
       await memory.updateGapStatus(gapId, GapStatus.PLANNED);
 
       const calls = ddbMock.commandCalls(UpdateCommand);
@@ -99,7 +104,8 @@ describe('DynamoMemory Retention', () => {
           timestamp: timestamp,
         },
         UpdateExpression: 'SET #status = :status, updatedAt = :now',
-        ConditionExpression: 'attribute_exists(userId) AND #status = :expectedStatus',
+        ConditionExpression:
+          'attribute_exists(userId) AND userId = :targetId AND #status = :expectedStatus',
         ExpressionAttributeNames: {
           '#status': 'status',
         },
@@ -107,6 +113,7 @@ describe('DynamoMemory Retention', () => {
           ':status': GapStatus.PLANNED,
           ':now': now,
           ':expectedStatus': GapStatus.OPEN,
+          ':targetId': `GAP#${timestamp}`,
         },
       });
       vi.useRealTimers();
@@ -115,6 +122,11 @@ describe('DynamoMemory Retention', () => {
     it('should return early on ConditionalCheckFailedException for atomic transitions', async () => {
       const timestamp = 1710240000000;
       const gapId = `GAP#${timestamp}`;
+
+      // Mock resolution
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{ userId: gapId, timestamp: timestamp, content: 'test', status: GapStatus.OPEN }],
+      });
 
       const error = new Error('ConditionalCheckFailedException');
       error.name = 'ConditionalCheckFailedException';
@@ -151,6 +163,12 @@ describe('DynamoMemory Retention', () => {
 
   describe('incrementGapAttemptCount', () => {
     it('should send an UpdateCommand with atomic ADD and return the new count', async () => {
+      // Mock resolution
+      ddbMock.on(QueryCommand).resolves({
+        Items: [
+          { userId: 'GAP#1710240000000', timestamp: 1710240000000, content: 'test', metadata: {} },
+        ],
+      });
       ddbMock.on(UpdateCommand).resolves({
         Attributes: { metadata: { retryCount: 2 } },
       });
@@ -160,26 +178,30 @@ describe('DynamoMemory Retention', () => {
       expect(count).toBe(2);
       const calls = ddbMock.commandCalls(UpdateCommand);
       expect(calls).toHaveLength(1);
-      expect(calls[0].args[0].input).toMatchObject({
-        UpdateExpression:
-          'SET metadata.retryCount = if_not_exists(metadata.retryCount, :zero) + :one, updatedAt = :now, metadata.lastAttemptTime = :now',
-        ReturnValues: 'ALL_NEW',
-      });
+      const input = calls[0].args[0].input;
+      expect(input.UpdateExpression).toContain(
+        'metadata.#retryCount = if_not_exists(metadata.#retryCount, :zero) + :one'
+      );
+      expect(input.ReturnValues).toBe('ALL_NEW');
     });
 
-    it('should return 1 if the DDB response has no Attributes (first attempt)', async () => {
+    it('should return 0 if the DDB response has no Attributes (first attempt)', async () => {
+      // Mock resolution
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{ userId: 'GAP#1001', timestamp: 1001, content: 'test', metadata: {} }],
+      });
       ddbMock.on(UpdateCommand).resolves({ Attributes: undefined });
 
       const count = await memory.incrementGapAttemptCount('GAP#1001');
-      expect(count).toBe(1);
+      expect(count).toBe(0);
     });
 
-    it('should return 1 (not throw) if DDB call errors', async () => {
+    it('should return 0 (not throw) if DDB call errors', async () => {
       ddbMock.on(UpdateCommand).rejects(new Error('DDB timeout'));
       ddbMock.on(QueryCommand).resolves({ Items: [] });
 
       const count = await memory.incrementGapAttemptCount('GAP#1001');
-      expect(count).toBe(1);
+      expect(count).toBe(0);
     });
   });
 });
@@ -459,24 +481,24 @@ describe('DynamoMemory Delegation Tests', () => {
       ddbMock.on(QueryCommand).resolves({
         Items: [{ userId: 'user-1', timestamp: 123456789, content: 'test', metadata: {} }],
       });
-      ddbMock.on(PutCommand).resolves({});
+      ddbMock.on(UpdateCommand).resolves({});
 
       await memory.updateInsightMetadata('user-1', 123456789, { priority: 1 });
 
-      const putCalls = ddbMock.commandCalls(PutCommand);
-      expect(putCalls.length).toBeGreaterThanOrEqual(0);
+      const calls = ddbMock.commandCalls(UpdateCommand);
+      expect(calls.length).toBeGreaterThanOrEqual(1);
     });
 
     it('should delegate refineMemory to InsightOps', async () => {
       ddbMock.on(QueryCommand).resolves({
         Items: [{ userId: 'user-1', timestamp: 123456789, content: 'original' }],
       });
-      ddbMock.on(PutCommand).resolves({});
+      ddbMock.on(UpdateCommand).resolves({});
 
       await memory.refineMemory('user-1', 123456789, 'updated content');
 
-      const putCalls = ddbMock.commandCalls(PutCommand);
-      expect(putCalls).toHaveLength(1);
+      const updateCalls = ddbMock.commandCalls(UpdateCommand);
+      expect(updateCalls).toHaveLength(1);
     });
 
     it('should delegate getLowUtilizationMemory to InsightOps', async () => {

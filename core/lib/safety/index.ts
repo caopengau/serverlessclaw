@@ -2,8 +2,7 @@ export { getCircuitBreaker, resetCircuitBreakerInstance } from './circuit-breake
 export type { CircuitBreakerStates, FailureType } from './circuit-breaker';
 export { SafetyEngine } from './safety-engine';
 export { SafetyBase } from './safety-base';
-export { DEFAULT_POLICIES } from './safety-config';
-export { SafetyConfigManager } from './safety-config-manager';
+export { SafetyConfigManager, DEFAULT_POLICIES } from './safety-config-manager';
 export { SafetyRateLimiter } from './safety-limiter';
 export type { ToolSafetyOverride } from './safety-limiter';
 export {

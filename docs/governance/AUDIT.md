@@ -220,66 +220,43 @@ Each silo represents a core functional domain. Reviews within a silo should adop
 **Perspective**: _How does the system ensure the signal never dies?_
 
 - **Angle**: Audit the journey of events through the asynchronous backbone. Look for "dead ends," race conditions in the distributed lock, and the effectiveness of **Conflict Resolution Timeouts** during agent handoffs.
-- **Key Achievements**:
-  - **Atomic Recursion**: Implemented monotonic depth updates in `recursion-tracker` to prevent loop bypass.
-  - **Centralized Flow**: Consolidated rate limiting and circuit breaking in `FlowController`.
-  - **On-Demand Renewals**: Replaced unreliable Lambda heartbeats with active `autoRenew` logic.
 
 ### 2. The Hand (Agency & Skill Mastery)
 
 **Perspective**: _How effectively can the system manipulate its environment?_
 
 - **Angle**: Explore the boundary between agent intent and tool execution. Review the "creative" prompts of personas like `Coder` and `Planner`.
-- **Key Achievements**:
-  - **Security Extraction**: Moved complex tool security validation to a dedicated `ToolSecurityValidator`.
-  - **Unified Pricing**: Centralized LLM model pricing in a shared registry for accurate budget enforcement.
-  - **Consistent Warmup**: Integrated "Trigger-on-Message" smart warmup across all interaction modes.
 
 ### 3. The Shield (Security & Baseline)
 
 The Shield acts as the authoritative gate for all tool executions, enforcing least-privilege resource access and Class C blast-radius limits.
 
-**Key Achievements**:
-
-- **Centralized Governance**: Consolidated all protected paths and action classifications into `core/lib/constants/safety.ts`.
-- **Modular Evaluation**: Refactored `evaluateAction` into discrete validation stages (Class D, Resource, Time, Trust).
-- **Unified Discovery**: Consolidated heuristic path scanners to eliminate 50% logic duplication.
-- **Blast Radius**: Full persistence of Class C tracking across cold starts via DynamoDB.
+- **Angle**: Audit the safety engine for least-privilege enforcement and blast-radius limits. Look for ways to bypass the "Shield Gate" or gaps in resource-level validation.
 
 ### 4. The Brain (Memory, Identity & Continuity)
 
 **Perspective**: _How does the system maintain its "sense of self" and history?_
 
-- **Key Achievements**:
-  - **Workspace Isolation**: Extended multi-tenant isolation to all memory primitives.
-  - **Memory Refactoring**: Centralized item resolution logic (`resolveItemById`) and unified atomic metadata updates (`atomicUpdateMetadata`) to eliminate technical debt and race conditions.
-  - **Consistency**: Unified cache invalidation patterns across all storage operations.
+- **Angle**: Audit the memory system for tenant isolation and data consistency. Look for race conditions in metadata updates or leaks across workspace boundaries.
 
 ### 5. The Eye (Observation & Consistency)
 
 **Perspective**: _Does the system's internal trace state match what is reported to the user?_
 
-- **Key Achievements**:
-  - **Real-time Drift Detection**: Integrated proactive `detectDrift` checks into agent execution loops.
-  - **Tracer Stability**: Consolidated metrics emission and summary handling in `ClawTracer`.
-  - **Observability Integrity**: Automatic remediation events triggered on signal inconsistencies.
+- **Angle**: Contrast the system's internal telemetry with its outward reporting. Look for "telemetry blindness" or drift between metrics, logs, and user-facing dashboards.
 
 ### 6. The Scales (Trust & Calibration)
 
 **Perspective**: _Is the system accurately penalizing failure and rewarding success?_
 
-- **Key Achievements**:
-  - **Atomic Reputation**: Optimized `TrustManager` with robust retry loops and unified metadata updates.
-  - **Quality Weighting**: Operationalized Principle 12 (Quality-weighted reputation) in `TrustManager`.
-  - **Circuit Breaker Integrity**: Hardened state transitions using an atomic `saveStateWithRetry` loop.
-  - **Decay Integrity**: Implemented time-based trust decay with hysteresis to prevent oscillation.
+- **Angle**: Evaluate the system's ability to accurately reward performance and penalize failure. Look for oscillations in trust scores or bypasses in reputation-weighted logic.
 
 ### 7. The Metabolism (Regenerative Repair & Bloat Management)
 
 **Perspective**: _Is the system capable of autonomously healing its own debt and recycling waste?_
 
 - **Angle**: Audit the system through the lens of **Regenerative Metabolism**. Unlike passive audits, Silo 7 operates on the "Perform while Auditing" philosophy — identifying metabolic waste (dead overrides, memory bloat) and executing repairs in real-time.
-- **Detailed Framework**: Refer to the exhaustive [METABOLISM.md](../../docs/system/METABOLISM.md) for architecture and diagrams.
+- **Angle**: Audit the system through the lens of **Regenerative Metabolism**. Look for metabolic waste (dead overrides, memory bloat) and evaluate the system's ability to autonomously heal its own debt.
 
 ---
 
