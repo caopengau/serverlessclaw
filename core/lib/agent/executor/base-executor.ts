@@ -6,6 +6,7 @@ import { ContextManager } from '../context-manager';
 import { LoopResult, ExecutorUsage, ExecutorOptions } from '../executor-types';
 import { ExecutorHelper } from '../executor-helper';
 import { BudgetEnforcer } from './budget-enforcer';
+import { getSemanticLoopDetector, TrustManager } from '../../safety';
 
 /**
  * Shared logic for all executor implementations.
@@ -142,10 +143,55 @@ export abstract class BaseExecutor {
     }
   }
 
+  protected async checkSemanticLoop(
+    sessionId: string,
+    currentContent: string
+  ): Promise<LoopResult | null> {
+    const loopDetector = getSemanticLoopDetector();
+    const loopResult = loopDetector.check(sessionId, currentContent);
+
+    if (loopResult.isLoop) {
+      logger.warn(
+        `[${this.agentId}] Semantic loop detected (count: ${loopResult.consecutiveCount}). Penalizing trust.`
+      );
+      await TrustManager.recordFailure(
+        this.agentId,
+        `Semantic reasoning loop detected (${loopResult.consecutiveCount} turns).`,
+        3
+      );
+
+      if (loopResult.action === 'escalate' || loopResult.action === 'switch_agent') {
+        return {
+          responseText: `[LOOP_DETECTED] I'm stuck in a reasoning loop. Escalating for intervention.`,
+          paused: true,
+        };
+      }
+    }
+    return null;
+  }
+
+  protected getClampedMaxTokens(
+    options: ExecutorOptions,
+    usage: ExecutorUsage
+  ): number | undefined {
+    let maxTokens = options.maxTokens;
+    if (options.tokenBudget && usage) {
+      const remaining = options.tokenBudget - usage.total_tokens;
+      if (remaining > 0 && remaining < (maxTokens ?? Infinity)) {
+        maxTokens = Math.min(maxTokens ?? remaining, remaining);
+        logger.info(`[${this.agentId}] Clamping maxTokens to remaining budget: ${maxTokens}`);
+      }
+    }
+    return maxTokens;
+  }
+
   protected handleInteractiveSignals(messages: Message[], options: ExecutorOptions) {
     const { userText } = options;
-    if (userText?.startsWith('TOOL_REJECTION:')) {
-      const match = userText.match(/TOOL_REJECTION:([^\s]+)\s*(.*)/);
+    if (!userText) return;
+
+    // 1. Tool Rejection (Legacy and Modern)
+    if (userText.startsWith('TOOL_REJECTION:') || userText.startsWith('REJECT_TOOL_CALL:')) {
+      const match = userText.match(/(?:TOOL_REJECTION|REJECT_TOOL_CALL):([^\s:]+)(?:[\s:]+(.*))?/);
       if (match) {
         const [, callId, reason] = match;
         messages.push({
@@ -153,20 +199,38 @@ export abstract class BaseExecutor {
           tool_call_id: callId,
           content: `USER_REJECTED_EXECUTION: ${reason || 'User rejected this tool execution.'}`,
           traceId: options.traceId,
-          messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          messageId: `msg-rej-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         });
+        return;
       }
-    } else if (userText?.startsWith('TOOL_CLARIFICATION:')) {
-      const match = userText.match(/TOOL_CLARIFICATION:([^\s]+)\s*(.*)/);
+    }
+
+    // 2. Tool Clarification (Legacy and Modern)
+    if (userText.startsWith('TOOL_CLARIFICATION:') || userText.startsWith('CLARIFY_TOOL_CALL:')) {
+      const match = userText.match(
+        /(?:TOOL_CLARIFICATION|CLARIFY_TOOL_CALL):([^\s:]+)(?:[\s:]+(.*))?/
+      );
       if (match) {
         const [, callId, comment] = match;
         messages.push({
           role: MessageRole.TOOL,
           tool_call_id: callId,
-          content: `USER_CLARIFICATION: ${comment}`,
+          content: `USER_CLARIFICATION: ${comment || ''}`,
           traceId: options.traceId,
-          messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          messageId: `msg-clar-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         });
+        return;
+      }
+    }
+
+    // 3. Tool Approval (Modern Only)
+    if (userText.startsWith('APPROVE_TOOL_CALL:')) {
+      const match = userText.match(/APPROVE_TOOL_CALL:([^\s:]+)/);
+      if (match) {
+        const [, callId] = match;
+        // Optimization: In standard executors, this signal is usually absorbed by the approval logic,
+        // but if it reaches here, we treat it as an explicit approval instruction.
+        logger.info(`[${this.agentId}] Received explicit signal for tool approval: ${callId}`);
       }
     }
   }

@@ -233,10 +233,41 @@ To maintain a **Stateless Core** (Principle 1) while ensuring systemic safety, t
 
 1.  **Distributed Flow Control**: The `FlowController` centralizes backbone circuit breakers and rate limiters using DynamoDB atomic counters. This prevents "phantom safety" where different Lambda instances have divergent views of system health.
 2.  **Surgical Security Enforcement**: The `ToolSecurityValidator` decouples security logic from tool execution. It enforces the "Shield" (SafetyEngine) rules, RBAC permissions, and system-level circuit breakers before any tool interaction occurs.
-3.  **Budget Guardrails**: The `BudgetEnforcer` provides real-time monitoring of token consumption and monetary costs during agent loops. It triggers soft warnings at 80% usage and hard stops when limits are exceeded, preventing runaway execution costs.
+3.  **Budget Guardrails**: Operationalized via the centralized `BudgetEnforcer`. It provides real-time monitoring of token consumption and monetary costs during agent loops. It triggers soft warnings at 80% usage and hard stops when limits are exceeded, ensuring identical safety behavior across standard and streaming executors.
 4.  **Selection Integrity**: The `AgentMultiplexer` acts as the authoritative gateway. It performs a mandatory configuration check for every agent before invocation, ensuring that `enabled: false` status is strictly enforced regardless of the event source.
 5.  **Dynamic Routing**: The `AgentRouter` uses historical performance metrics (success rate, latency, cost) to dynamically select the best agent-model combination for a given task.
 6.  **Monotonic Recursion Tracking**: Cross-session recursion depth is managed via atomic increments in the `recursion-tracker`, preventing loop-bypass attacks in concurrent swarm scenarios.
+
+---
+
+---
+
+## 🤝 Human-in-the-Loop: Signal Flow
+
+Interactive signals act as the "Brake & Steering" of the system, allowing humans to intervene in high-risk tool loops.
+
+```text
+[ User (ClawCenter) ] -------- (Click: Reject Tool) --------> [ IoT Bridge ]
+                                                                   |
+                                                                   v
+[ AgentBus ] <----------------- (REJECT_TOOL_CALL:call_1) ---- [ Webhook ]
+      |
+      v
+[ SuperClaw Agent ] ----------- (Context Loading) -----------> [ Workspace ]
+                                                                   |
+                                                                   v
+[ BaseExecutor ] <------------- (Intercept Signal) ----------- [ runLoop ]
+      |
+      v (Inject Message)
+[ Conversation History ] <----- (role: TOOL, content: USER_REJECTED...)
+      |
+      v (Next Iteration)
+[ LLM Provider ] <------------- (Context with Intervention)
+```
+
+1. **Signal Interception**: The `BaseExecutor` intercepts `APPROVE_TOOL_CALL`, `REJECT_TOOL_CALL`, and `CLARIFY_TOOL_CALL` signals before the next LLM turn.
+2. **Context Injection**: Rejections and clarifications are injected as `TOOL` role messages, providing the agent with the semantic reason for the intervention.
+3. **Loop Continuation**: The agent then re-evaluates its strategy based on the human feedback, maintaining the reasoning chain without loss of state.
 
 ---
 

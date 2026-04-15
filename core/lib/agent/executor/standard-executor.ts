@@ -1,5 +1,4 @@
 import { Message, ButtonType } from '../../types/index';
-import { logger } from '../../logger';
 import { TRACE_TYPES } from '../../constants';
 import {
   AGENT_LOG_MESSAGES,
@@ -10,9 +9,8 @@ import {
 } from '../executor-types';
 import { ExecutorHelper } from '../executor-helper';
 import { ToolExecutor } from '../tool-executor';
-import { getSemanticLoopDetector, TrustManager } from '../../safety';
-import { BudgetEnforcer } from './budget-enforcer';
 import { BaseExecutor } from './base-executor';
+import { BudgetEnforcer } from './budget-enforcer';
 
 /**
  * Standard non-streaming executor.
@@ -59,31 +57,13 @@ export class StandardExecutor extends BaseExecutor {
       this.updateUsage(usage, aiResponse, options.activeProvider);
 
       if (aiResponse.content && options.sessionId) {
-        const loopDetector = getSemanticLoopDetector();
-        const loopResult = loopDetector.check(options.sessionId, aiResponse.content);
-        if (loopResult.isLoop) {
-          logger.warn(
-            `[${this.agentId}] Semantic loop detected (count: ${loopResult.consecutiveCount}). Penalizing trust.`
-          );
-          await TrustManager.recordFailure(
-            this.agentId,
-            `Semantic reasoning loop detected (${loopResult.consecutiveCount} turns).`,
-            3
-          );
-
-          if (loopResult.action === 'escalate' || loopResult.action === 'switch_agent') {
-            return {
-              responseText: `[LOOP_DETECTED] I'm stuck in a reasoning loop. Escalating for intervention.`,
-              paused: true,
-              usage,
-            };
-          }
-        }
+        const loopResult = await this.checkSemanticLoop(options.sessionId, aiResponse.content);
+        if (loopResult) return { ...loopResult, usage };
       }
 
-      const postCallBudget = BudgetEnforcer.check(this.agentId, options, usage);
-      if (postCallBudget && !postCallBudget.isWarning) {
-        return { ...postCallBudget, attachments };
+      const postCallLimit = BudgetEnforcer.check(this.agentId, options, usage);
+      if (postCallLimit && !postCallLimit.isWarning) {
+        return { ...postCallLimit, attachments };
       }
 
       await options.tracer.addStep({

@@ -64,7 +64,8 @@ To ensure coordination doesn't break, follow a **Contract-First** pattern:
 
 1.  **Define Schema**: Update `core/lib/schema/events.ts` with any new event types.
 2.  **Standard Defaults**: Leverage `BASE_EVENT_SCHEMA` for shared metadata.
-3.  **Contract Test**: Add a test case to `core/tests/contract.test.ts`.
+3.  **Interactive Signaling**: Ensure the agent supports `APPROVE_TOOL_CALL`, `REJECT_TOOL_CALL`, and `CLARIFY_TOOL_CALL` signals via its executor.
+4.  **Contract Test**: Add a test case to `core/tests/contract.test.ts` and verify signal interception in `core/lib/agent/executor.test.ts`.
 
 ---
 

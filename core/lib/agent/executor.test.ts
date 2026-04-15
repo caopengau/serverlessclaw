@@ -448,6 +448,90 @@ describe('AgentExecutor', () => {
         'USER_REJECTED_EXECUTION: User rejected this tool execution.'
       );
     });
+
+    describe('Modern Signal Handling (Colon-Separated)', () => {
+      it('should handle REJECT_TOOL_CALL with reason', async () => {
+        const executor = new AgentExecutor(mockProvider as any, [], 'test-agent', 'Test Agent');
+        const messages: Message[] = [];
+        const options = getDefaultOptions({
+          userText: 'REJECT_TOOL_CALL:call-abc:User changed their mind',
+        });
+
+        vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+          role: MessageRole.ASSISTANT,
+          content: 'OK.',
+        });
+
+        await executor.runLoop(messages, options);
+
+        expect(messages[0]).toEqual(
+          expect.objectContaining({
+            role: MessageRole.TOOL,
+            tool_call_id: 'call-abc',
+            content: 'USER_REJECTED_EXECUTION: User changed their mind',
+          })
+        );
+      });
+
+      it('should handle CLARIFY_TOOL_CALL with comment', async () => {
+        const executor = new AgentExecutor(mockProvider as any, [], 'test-agent', 'Test Agent');
+        const messages: Message[] = [];
+        const options = getDefaultOptions({
+          userText: 'CLARIFY_TOOL_CALL:call-def:Please be careful',
+        });
+
+        vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+          role: MessageRole.ASSISTANT,
+          content: 'OK.',
+        });
+
+        await executor.runLoop(messages, options);
+
+        expect(messages[0]).toEqual(
+          expect.objectContaining({
+            role: MessageRole.TOOL,
+            tool_call_id: 'call-def',
+            content: 'USER_CLARIFICATION: Please be careful',
+          })
+        );
+      });
+
+      it('should handle signals without optional text', async () => {
+        const executor = new AgentExecutor(mockProvider as any, [], 'test-agent', 'Test Agent');
+        const messages: Message[] = [];
+        const options = getDefaultOptions({
+          userText: 'REJECT_TOOL_CALL:call-ghi',
+        });
+
+        vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+          role: MessageRole.ASSISTANT,
+          content: 'OK.',
+        });
+
+        await executor.runLoop(messages, options);
+
+        expect(messages[0].content).toBe(
+          'USER_REJECTED_EXECUTION: User rejected this tool execution.'
+        );
+      });
+
+      it('should handle signals with double colons', async () => {
+        const executor = new AgentExecutor(mockProvider as any, [], 'test-agent', 'Test Agent');
+        const messages: Message[] = [];
+        const options = getDefaultOptions({
+          userText: 'REJECT_TOOL_CALL:call-jkl:Reason with: more colons',
+        });
+
+        vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+          role: MessageRole.ASSISTANT,
+          content: 'OK.',
+        });
+
+        await executor.runLoop(messages, options);
+
+        expect(messages[0].content).toBe('USER_REJECTED_EXECUTION: Reason with: more colons');
+      });
+    });
   });
 
   it('should execute high-risk tool if call ID is in approvedToolCalls', async () => {

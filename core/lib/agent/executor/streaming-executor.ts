@@ -1,11 +1,9 @@
 import { Message, MessageRole, ToolCall, MessageChunk, ButtonType } from '../../types/index';
-import { logger } from '../../logger';
 import { normalizeProfile } from '../../providers/utils';
 import { TRACE_TYPES } from '../../constants';
 import { ExecutorUsage, ExecutorOptions } from '../executor-types';
 import { ExecutorHelper } from '../executor-helper';
 import { ToolExecutor } from '../tool-executor';
-import { getSemanticLoopDetector, TrustManager } from '../../safety';
 import { BaseExecutor } from './base-executor';
 
 /**
@@ -84,16 +82,7 @@ export class StreamingExecutor extends BaseExecutor {
         options.activeModel
       );
 
-      let effectiveMaxTokens = options.maxTokens;
-      if (options.tokenBudget && usage) {
-        const remaining = options.tokenBudget - usage.total_tokens;
-        if (remaining > 0 && remaining < (effectiveMaxTokens ?? Infinity)) {
-          effectiveMaxTokens = Math.min(effectiveMaxTokens ?? remaining, remaining);
-          logger.info(
-            `[${this.agentId}] Clamping stream maxTokens to remaining budget: ${effectiveMaxTokens}`
-          );
-        }
-      }
+      const effectiveMaxTokens = this.getClampedMaxTokens(options, usage);
 
       const stream = this.provider.stream(
         messages,
@@ -162,22 +151,10 @@ export class StreamingExecutor extends BaseExecutor {
       }
 
       if (fullContent && options.sessionId) {
-        const loopDetector = getSemanticLoopDetector();
-        const loopResult = loopDetector.check(options.sessionId, fullContent);
-        if (loopResult.isLoop) {
-          logger.warn(`[${this.agentId}] Stream semantic loop detected. Penalizing trust.`);
-          await TrustManager.recordFailure(
-            this.agentId,
-            `Semantic reasoning loop detected in stream.`,
-            3
-          );
-          if (loopResult.action === 'escalate' || loopResult.action === 'switch_agent') {
-            yield {
-              content: `[LOOP_DETECTED] I'm stuck in a reasoning loop. Escalating for intervention.`,
-              usage,
-            } as unknown as MessageChunk;
-            break;
-          }
+        const loopResult = await this.checkSemanticLoop(options.sessionId, fullContent);
+        if (loopResult) {
+          yield { content: loopResult.responseText, usage } as unknown as MessageChunk;
+          break;
         }
       }
 

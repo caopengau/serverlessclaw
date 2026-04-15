@@ -2,7 +2,6 @@ import { logger } from '../logger';
 import { AgentRegistry } from '../registry';
 import { DYNAMO_KEYS } from '../constants';
 import { Message, MessageRole } from '../types/index';
-import { estimateCostForTotal } from '../providers/pricing';
 import { AGENT_DEFAULTS, AGENT_LOG_MESSAGES } from './executor-types';
 import { Context as LambdaContext } from 'aws-lambda';
 
@@ -145,78 +144,5 @@ export class ExecutorHelper {
     return `I am requesting approval to execute the high-risk tool **${toolName}**. 
     
     Please review the planned action and reply with "Approve" or use the button below to proceed. (Call ID: ${callId})`;
-  }
-
-  /**
-   * Checks for token or cost budget exhaustion.
-   *
-   * @param totalTokens - Current cumulative token usage.
-   * @param tokenBudget - Maximum tokens allowed for the entire task.
-   * @param costLimit - Maximum cost allowed for the entire task (USD).
-   * @param activeProvider - The LLM provider name for cost estimation.
-   * @param activeModel - The LLM model ID for cost estimation.
-   * @returns A pause/failure result if budget is exceeded, a warning if approaching limit, null otherwise.
-   */
-  static checkBudgets(
-    totalTokens: number,
-    tokenBudget?: number,
-    costLimit?: number,
-    activeProvider?: string,
-    activeModel?: string
-  ): {
-    responseText: string;
-    paused?: boolean;
-    pauseMessage?: string;
-    isWarning?: boolean;
-  } | null {
-    const SOFT_LIMIT_THRESHOLD = 0.8;
-
-    if (tokenBudget && tokenBudget > 0) {
-      const usageRatio = totalTokens / tokenBudget;
-
-      if (totalTokens > tokenBudget) {
-        const budgetExceededMsg = `[BUDGET_EXCEEDED] Token budget of ${tokenBudget} exceeded. Current usage: ${totalTokens}. Stopping execution to prevent runaway costs.`;
-        logger.warn(budgetExceededMsg);
-        return {
-          responseText: budgetExceededMsg,
-          paused: false,
-        };
-      }
-
-      if (usageRatio >= SOFT_LIMIT_THRESHOLD) {
-        const warningMsg = `[BUDGET_WARNING] Token usage at ${Math.round(usageRatio * 100)}% of budget (${totalTokens}/${tokenBudget}). Wrapping up soon.`;
-        logger.warn(warningMsg);
-        return {
-          responseText: warningMsg,
-          paused: false,
-          isWarning: true,
-        };
-      }
-    }
-
-    if (costLimit && costLimit > 0 && activeProvider && activeModel) {
-      const estimatedCost = estimateCostForTotal(totalTokens, activeProvider, activeModel);
-      if (estimatedCost > costLimit) {
-        const costExceededMsg = `[COST_LIMIT_EXCEEDED] Cost limit of $${costLimit.toFixed(2)} exceeded. Estimated cost: $${estimatedCost.toFixed(2)}. Stopping execution.`;
-        logger.warn(costExceededMsg);
-        return {
-          responseText: costExceededMsg,
-          paused: false,
-        };
-      }
-
-      const costRatio = estimatedCost / costLimit;
-      if (costRatio >= SOFT_LIMIT_THRESHOLD) {
-        const costWarningMsg = `[COST_WARNING] Cost at ${Math.round(costRatio * 100)}% of limit ($${estimatedCost.toFixed(2)}/$${costLimit.toFixed(2)}). Wrapping up soon.`;
-        logger.warn(costWarningMsg);
-        return {
-          responseText: costWarningMsg,
-          paused: false,
-          isWarning: true,
-        };
-      }
-    }
-
-    return null;
   }
 }
