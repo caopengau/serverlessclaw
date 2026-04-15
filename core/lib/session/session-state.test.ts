@@ -84,37 +84,28 @@ describe('SessionStateManager', () => {
 
   describe('releaseProcessing', () => {
     it('should release lock and update state', async () => {
-      ddbMock.on(GetCommand).resolves({
-        Item: { ownerId: 'agent-abc', expiresAt: Math.floor(Date.now() / 1000) + 60 },
-      });
       ddbMock.on(UpdateCommand).resolves({});
 
       await sessionStateManager.releaseProcessing('session-123', 'agent-abc');
 
-      // 1. Lock state check (Get), 2. Lock release (Update), 3. Session state clear (Update)
-      expect(ddbMock.calls()).toHaveLength(3);
+      // 1. Lock release (Update), 2. Session state clear (Update)
+      expect(ddbMock.calls()).toHaveLength(2);
 
-      const lockReleaseCall = ddbMock.call(1).args[0].input as UpdateCommandInput;
+      const lockReleaseCall = ddbMock.call(0).args[0].input as UpdateCommandInput;
       expect(lockReleaseCall.Key?.userId).toBe('LOCK#SESSION#session-123');
       expect(lockReleaseCall.UpdateExpression).toContain('REMOVE ownerId');
 
-      const sessionClearCall = ddbMock.call(2).args[0].input as UpdateCommandInput;
+      const sessionClearCall = ddbMock.call(1).args[0].input as UpdateCommandInput;
       expect(sessionClearCall.UpdateExpression).toContain('processingAgentId = :null');
     });
 
     it('should re-emit pending message if found during release', async () => {
-      ddbMock
-        .on(GetCommand)
-        .resolvesOnce({
-          // Lock state check
-          Item: { ownerId: 'agent-abc', expiresAt: Math.floor(Date.now() / 1000) + 60 },
-        })
-        .resolvesOnce({
-          // getPendingMessage check
-          Item: {
-            pendingMessages: [{ id: 'msg-1', content: 'coder: do stuff', attachments: [] }],
-          },
-        });
+      ddbMock.on(GetCommand).resolvesOnce({
+        // getPendingMessage check
+        Item: {
+          pendingMessages: [{ id: 'msg-1', content: 'coder: do stuff', attachments: [] }],
+        },
+      });
 
       ddbMock
         .on(UpdateCommand)
@@ -130,8 +121,8 @@ describe('SessionStateManager', () => {
 
       await sessionStateManager.releaseProcessing('session-123', 'agent-abc');
 
-      // 1. Lock state check (Get), 2. release (Update), 3. update session (Update), 4. get pending (Get), 5. remove pending (Update)
-      expect(ddbMock.calls()).toHaveLength(5);
+      // 1. release lock (Update), 2. update session (Update), 3. get pending (Get), 4. remove pending (Update)
+      expect(ddbMock.calls()).toHaveLength(4);
 
       // Verify re-emission
       expect(mockEmit).toHaveBeenCalledWith(

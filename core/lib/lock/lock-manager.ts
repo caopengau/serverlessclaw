@@ -151,22 +151,9 @@ export class LockManager {
    */
   async release(lockId: string, ownerId: string, prefix?: string): Promise<boolean> {
     const fullId = this.getFullId(lockId, prefix);
+    const now = Math.floor(Date.now() / 1000);
 
     try {
-      // First check current state - allow release if we own it or it's expired
-      const state = await this.getLockState(fullId);
-      const now = Math.floor(Date.now() / 1000);
-      const isExpired = state.expiresAt !== undefined && state.expiresAt < now;
-      const ownedByUs = state.ownerId === ownerId;
-
-      // Allow release if: (1) we own it, OR (2) it's already expired (cleanup)
-      const canRelease = ownedByUs || isExpired;
-
-      if (!canRelease) {
-        logger.debug(`Lock [${fullId}] release rejected: not owned by ${ownerId}`);
-        return false;
-      }
-
       await this.docClient.send(
         new UpdateCommand({
           TableName: this.tableName,
@@ -175,15 +162,19 @@ export class LockManager {
             timestamp: 0,
           },
           UpdateExpression: 'REMOVE ownerId, expiresAt, acquiredAt, lockType, renewedAt',
-          // Allow release if owner matches OR if item exists (expired locks can be cleaned up)
-          ConditionExpression: 'attribute_exists(ownerId) OR attribute_not_exists(ownerId)',
+          // Release if we own it, or if it's already expired (cleanup)
+          ConditionExpression: 'ownerId = :owner OR expiresAt < :now',
+          ExpressionAttributeValues: {
+            ':owner': ownerId,
+            ':now': now,
+          },
         })
       );
       logger.debug(`Lock [${fullId}] released by ${ownerId}`);
       return true;
     } catch (error: unknown) {
       if ((error as Error).name === 'ConditionalCheckFailedException') {
-        logger.debug(`Lock [${fullId}] release rejected: item not found or condition failed.`);
+        logger.debug(`Lock [${fullId}] release rejected: not owned by ${ownerId} and not expired.`);
         return false;
       }
       logger.error(`Error releasing lock [${fullId}]:`, error);
