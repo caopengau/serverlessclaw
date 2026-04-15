@@ -238,7 +238,7 @@ export async function updateGapStatus(
   const normalizedId = normalizeGapId(gapId);
   const gapTimestamp = getGapTimestamp(normalizedId);
   const scopedUserId = base.getScopedUserId(getGapIdPK(normalizedId), workspaceId);
-  const isLikelyTimestamp = gapTimestamp > 1577836800000; // 2020-01-01
+  const isLikelyTimestamp = gapTimestamp > TIME.EPOCH_2020_MS;
 
   const TRANSITION_GUARDS: Partial<
     Record<GapStatus, { expectedStatus: GapStatus; valueKey: string }>
@@ -395,7 +395,9 @@ export async function releaseGapLock(
       ExpressionAttributeNames: { '#content': 'agentId' },
       ExpressionAttributeValues: exprValues,
     });
-  } catch (e) {}
+  } catch (e) {
+    logger.warn(`[releaseGapLock] Failed to release lock for gap ${gapId} by agent ${agentId}:`, e);
+  }
 }
 
 /**
@@ -519,19 +521,23 @@ export async function updateGapMetadata(
   const scopedUserId = base.getScopedUserId(getGapIdPK(normalizedId), workspaceId);
 
   // If timestamp is not a real timestamp, resolve first
-  if (gapTimestamp < 1577836800000) {
+  if (gapTimestamp < TIME.EPOCH_2020_MS) {
     const target = await resolveItemById(base, gapId, 'GAP', workspaceId);
     if (target) {
       try {
         await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, workspaceId);
         return;
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     }
     // Leap of faith for numeric IDs even if resolution (mock) fails
     if (gapTimestamp !== 0) {
       try {
         await atomicUpdateMetadata(base, scopedUserId, gapTimestamp, metadata, workspaceId);
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     }
     return;
   }
@@ -543,7 +549,9 @@ export async function updateGapMetadata(
     if (target) {
       try {
         await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, workspaceId);
-      } catch {}
+      } catch {
+        /* ignore */
+      }
     }
   }
 }

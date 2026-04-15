@@ -12,7 +12,10 @@ const { mockDocClient } = vi.hoisted(() => ({
 vi.mock('./config', () => ({
   ConfigManager: {
     getRawConfig: vi.fn(),
-    saveRawConfig: vi.fn(),
+    saveRawConfig: vi.fn().mockResolvedValue(undefined),
+    atomicUpdateMapField: vi.fn().mockResolvedValue(undefined),
+    atomicUpdateMapEntity: vi.fn().mockResolvedValue(undefined),
+    atomicRemoveFromMap: vi.fn().mockResolvedValue(undefined),
   },
   defaultDocClient: mockDocClient,
 }));
@@ -36,36 +39,36 @@ vi.mock('sst', () => ({
   },
 }));
 
-// TODO: Fix or skip this test - it was added in same commit and is failing
+// Verified fix: It no longer deletes the entire key but updates the list
 describe('AgentRegistry Pruning', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should prune tools from both per-agent config and batch overrides using per-agent stats', async () => {
+  it('should prune tools from both legacy per-agent config and batch overrides', async () => {
     const now = Date.now();
     const thresholdMs = 30 * 24 * 60 * 60 * 1000;
     const oldTimestamp = now - thresholdMs - 1000;
 
-    // 1. Mock per-agent tool usage: toolA is unused and old for agent1
+    // 1. Mock per-agent tool usage: toolA is unused and old
     vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
       if (key === DYNAMO_KEYS.TOOL_USAGE) {
         return {
-          toolA: { count: 0, firstRegistered: oldTimestamp },
+          'WS#default#toolA': { count: 0, firstRegistered: oldTimestamp },
         };
       }
       if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
         return {
-          agent1: { name: 'Agent 1', tools: [] },
+          'WS#default#agent1': { name: 'Agent 1', tools: [] },
         };
       }
       if (key === DYNAMO_KEYS.AGENT_TOOL_OVERRIDES) {
         return {
-          agent1: ['toolA'], // toolA in batch overrides
+          'WS#default#agent1': ['WS#default#toolA', 'toolB'], // toolA in batch overrides
         };
       }
-      if (key === 'agent1_tools') {
-        return ['toolA']; // toolA also in per-agent overrides
+      if (key === 'WS#default#agent1_tools') {
+        return ['WS#default#toolA', 'toolC']; // toolA also in per-agent legacy list
       }
       return undefined;
     });
@@ -75,19 +78,19 @@ describe('AgentRegistry Pruning', () => {
     // Should prune from both
     expect(prunedCount).toBeGreaterThan(0);
 
-    // Check per-agent cleanup (Legacy Deprecation)
-    const { DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
-    expect(vi.mocked(DeleteCommand)).toHaveBeenCalledWith(
-      expect.objectContaining({
-        Key: { key: 'agent1_tools' },
-      })
-    );
-
-    // VERIFY FIX: It SHOULD call saveRawConfig for AGENT_TOOL_OVERRIDES
+    // VERIFY: Legacy list is UPDATED (using saveRawConfig as they are simple keys)
     const saveCalls = vi.mocked(ConfigManager.saveRawConfig).mock.calls;
-    const batchSave = saveCalls.find((call) => call[0] === DYNAMO_KEYS.AGENT_TOOL_OVERRIDES);
-    expect(batchSave).toBeDefined();
-    expect((batchSave![1] as Record<string, string[]>).agent1).not.toContain('toolA');
+    const legacySave = saveCalls.find((call) => call[0] === 'WS#default#agent1_tools');
+    expect(legacySave).toBeDefined();
+    expect(legacySave![1] as string[]).not.toContain('WS#default#toolA');
+    expect(legacySave![1] as string[]).toContain('toolC');
+
+    // VERIFY: Batch overrides are pruned ATOMICALLY via ConfigManager
+    expect(ConfigManager.atomicRemoveFromMap).toHaveBeenCalledWith(
+      DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
+      'WS#default#agent1',
+      ['WS#default#toolA']
+    );
   });
 
   it('should respect grace periods for newly assigned tools', async () => {
@@ -97,12 +100,12 @@ describe('AgentRegistry Pruning', () => {
     vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
       if (key === DYNAMO_KEYS.TOOL_USAGE) {
         return {
-          toolB: { count: 0, firstRegistered: now },
+          'WS#default#toolB': { count: 0, firstRegistered: now },
         };
       }
       if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
         return {
-          agent1: { name: 'Agent 1', tools: ['toolB'] },
+          'WS#default#agent1': { name: 'Agent 1', tools: ['WS#default#toolB'] },
         };
       }
       return undefined;

@@ -262,4 +262,316 @@ export class ConfigManager {
       return 0;
     }
   }
+
+  /**
+   * Atomically updates a specific field for an entity within a map-based configuration.
+   * Handles multi-level initialization of root and entity objects to prevent ValidationExceptions.
+   * Scoped to Principle 13 (Atomic State Integrity).
+   *
+   * @param key - The unique configuration key (e.g., DYNAMO_KEYS.AGENTS_CONFIG).
+   * @param entityId - The ID of the entity within the map (e.g., agentId).
+   * @param field - The field name to update.
+   * @param value - The new value to set.
+   * @param retryCount - Internal retry counter for race conditions during initialization.
+   */
+  public static async atomicUpdateMapField(
+    key: string,
+    entityId: string,
+    field: string,
+    value: unknown,
+    retryCount: number = 0
+  ): Promise<void> {
+    const resource = Resource as { ConfigTable?: { name: string } };
+    if (!resource.ConfigTable?.name) return;
+
+    const maxRetries = 3;
+    const docClient = getDocClient();
+
+    try {
+      // Level 1: Standard update (Assumes root and entity exist)
+      await docClient.send(
+        new UpdateCommand({
+          TableName: resource.ConfigTable.name,
+          Key: { key },
+          UpdateExpression: 'SET #val.#id.#field = :value',
+          ConditionExpression: 'attribute_exists(#val.#id)',
+          ExpressionAttributeNames: { '#val': 'value', '#id': entityId, '#field': field },
+          ExpressionAttributeValues: { ':value': value },
+        })
+      );
+    } catch (e: unknown) {
+      if (!(e instanceof Error)) throw e;
+
+      if (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException') {
+        try {
+          // Level 2: Entity initialization (Assumes root exists)
+          await docClient.send(
+            new UpdateCommand({
+              TableName: resource.ConfigTable.name,
+              Key: { key },
+              UpdateExpression: 'SET #val.#id = :entityObj',
+              ConditionExpression: 'attribute_not_exists(#val.#id)',
+              ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
+              ExpressionAttributeValues: { ':entityObj': { [field]: value } },
+            })
+          );
+        } catch (innerE: unknown) {
+          if (!(innerE instanceof Error)) throw innerE;
+
+          if (innerErrorIsValidation(innerE)) {
+            try {
+              // Level 3: Root initialization
+              await docClient.send(
+                new UpdateCommand({
+                  TableName: resource.ConfigTable.name,
+                  Key: { key },
+                  UpdateExpression: 'SET #val = :rootObj',
+                  ConditionExpression: 'attribute_not_exists(#val)',
+                  ExpressionAttributeNames: { '#val': 'value' },
+                  ExpressionAttributeValues: { ':rootObj': { [entityId]: { [field]: value } } },
+                })
+              );
+            } catch (rootE: unknown) {
+              if (
+                rootE instanceof Error &&
+                rootE.name === 'ConditionalCheckFailedException' &&
+                retryCount < maxRetries
+              ) {
+                return this.atomicUpdateMapField(key, entityId, field, value, retryCount + 1);
+              }
+              throw rootE;
+            }
+          } else if (innerE.name === 'ConditionalCheckFailedException' && retryCount < maxRetries) {
+            return this.atomicUpdateMapField(key, entityId, field, value, retryCount + 1);
+          } else {
+            throw innerE;
+          }
+        }
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * Atomically updates a specific field for an entity with a conditional check on the current value.
+   * This ensures the update only succeeds if the current value matches the expected value.
+   */
+  public static async atomicUpdateMapFieldWithCondition(
+    key: string,
+    entityId: string,
+    field: string,
+    value: unknown,
+    expectedValue: unknown
+  ): Promise<void> {
+    const resource = Resource as { ConfigTable?: { name: string } };
+    if (!resource.ConfigTable?.name) {
+      logger.warn(`ConfigTable not linked. Skipping atomic update for ${key}/${entityId}`);
+      return;
+    }
+
+    try {
+      await getDocClient().send(
+        new UpdateCommand({
+          TableName: resource.ConfigTable.name,
+          Key: { key },
+          UpdateExpression: 'SET #val.#id.#field = :value',
+          ConditionExpression: '#val.#id.#field = :expected',
+          ExpressionAttributeNames: { '#val': 'value', '#id': entityId, '#field': field },
+          ExpressionAttributeValues: { ':value': value, ':expected': expectedValue },
+        })
+      );
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+        throw e;
+      }
+      logger.error(`Failed to atomically update ${key}/${entityId}.${field}:`, e);
+      throw e;
+    }
+  }
+
+  /**
+   * Removes items from a list within a map entity atomically using conditional updates.
+   * Since DynamoDB doesn't have a native "remove from list by value" in SET,
+   * we use a read-modify-write pattern with a ConditionExpression on the specific list field.
+   */
+  public static async atomicRemoveFromMap(
+    key: string,
+    entityId: string,
+    itemsToRemove: unknown[]
+  ): Promise<void> {
+    const resource = Resource as { ConfigTable?: { name: string } };
+    if (!resource.ConfigTable?.name) return;
+
+    let retryCount = 0;
+    const maxRetries = 5;
+
+    while (retryCount < maxRetries) {
+      try {
+        const { Item } = await getDocClient().send(
+          new GetCommand({
+            TableName: resource.ConfigTable.name,
+            Key: { key },
+            ProjectionExpression: '#val.#id',
+            ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
+          })
+        );
+
+        const currentMap = Item?.value as Record<string, unknown[]>;
+        const currentList = currentMap?.[entityId];
+        if (!Array.isArray(currentList)) return;
+
+        const newList = currentList.filter(
+          (item) =>
+            !itemsToRemove.some((toRemove) => JSON.stringify(item) === JSON.stringify(toRemove))
+        );
+        if (newList.length === currentList.length) return;
+
+        await getDocClient().send(
+          new UpdateCommand({
+            TableName: resource.ConfigTable.name,
+            Key: { key },
+            UpdateExpression: 'SET #val.#id = :newList',
+            ConditionExpression: '#val.#id = :oldList',
+            ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
+            ExpressionAttributeValues: { ':newList': newList, ':oldList': currentList },
+          })
+        );
+        return;
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+          retryCount++;
+          continue;
+        }
+        throw e;
+      }
+    }
+  }
+
+  public static async atomicRemoveFromMapList(
+    key: string,
+    entityId: string,
+    field: string,
+    itemsToRemove: unknown[]
+  ): Promise<void> {
+    const resource = Resource as { ConfigTable?: { name: string } };
+    if (!resource.ConfigTable?.name) return;
+
+    let retryCount = 0;
+    const maxRetries = 5;
+
+    while (retryCount < maxRetries) {
+      try {
+        // 1. Fetch current list
+        const { Item } = await getDocClient().send(
+          new GetCommand({
+            TableName: resource.ConfigTable.name,
+            Key: { key },
+            ProjectionExpression: '#val.#id.#field',
+            ExpressionAttributeNames: { '#val': 'value', '#id': entityId, '#field': field },
+          })
+        );
+
+        const currentMap = Item?.value as Record<string, Record<string, unknown[]>>;
+        const currentList = currentMap?.[entityId]?.[field];
+
+        if (!Array.isArray(currentList)) return;
+
+        // 2. Filter list
+        const newList = currentList.filter(
+          (item) =>
+            !itemsToRemove.some((toRemove) => JSON.stringify(item) === JSON.stringify(toRemove))
+        );
+        if (newList.length === currentList.length) return; // Nothing to remove
+
+        // 3. Conditional Update
+        await getDocClient().send(
+          new UpdateCommand({
+            TableName: resource.ConfigTable.name,
+            Key: { key },
+            UpdateExpression: 'SET #val.#id.#field = :newList',
+            ConditionExpression: '#val.#id.#field = :oldList',
+            ExpressionAttributeNames: { '#val': 'value', '#id': entityId, '#field': field },
+            ExpressionAttributeValues: { ':newList': newList, ':oldList': currentList },
+          })
+        );
+        return; // Success
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+          retryCount++;
+          logger.debug(
+            `[CONFIG] Race condition during atomic list removal for ${entityId}.${field}, retrying (${retryCount}/${maxRetries})...`
+          );
+          continue;
+        }
+        throw e;
+      }
+    }
+    throw new Error(
+      `Failed to atomically remove items from ${entityId}.${field} after ${maxRetries} retries.`
+    );
+  }
+
+  /**
+   * Atomically updates multiple fields for an entity using a partial object.
+   *
+   * @param key - The unique configuration key.
+   * @param entityId - The ID of the entity.
+   * @param updates - Object containing fields and their new values.
+   */
+  public static async atomicUpdateMapEntity(
+    key: string,
+    entityId: string,
+    updates: Record<string, unknown>
+  ): Promise<void> {
+    const resource = Resource as { ConfigTable?: { name: string } };
+    if (!resource.ConfigTable?.name) return;
+
+    const docClient = getDocClient();
+    const sets: string[] = [];
+    const names: Record<string, string> = { '#val': 'value', '#id': entityId };
+    const values: Record<string, unknown> = {};
+
+    Object.entries(updates).forEach(([field, value], i) => {
+      sets.push(`#val.#id.#f${i} = :v${i}`);
+      names[`#f${i}`] = field;
+      values[`:v${i}`] = value;
+    });
+
+    try {
+      await docClient.send(
+        new UpdateCommand({
+          TableName: resource.ConfigTable.name,
+          Key: { key },
+          UpdateExpression: `SET ${sets.join(', ')}`,
+          ConditionExpression: 'attribute_exists(#val.#id)',
+          ExpressionAttributeNames: names,
+          ExpressionAttributeValues: values,
+        })
+      );
+    } catch (e: unknown) {
+      const error = e as { name: string };
+      if (
+        error.name === 'ValidationException' ||
+        error.name === 'ConditionalCheckFailedException'
+      ) {
+        // For complexity and safety, if initialization is needed, we do it field by field or full object
+        // Fallback to a simpler set if entity doesn't exist
+        await docClient.send(
+          new UpdateCommand({
+            TableName: resource.ConfigTable.name,
+            Key: { key },
+            UpdateExpression: 'SET #val.#id = :entity',
+            ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
+          })
+        );
+      } else {
+        throw e;
+      }
+    }
+  }
+}
+
+function innerErrorIsValidation(e: Error): boolean {
+  return e.name === 'ValidationException';
 }

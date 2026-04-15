@@ -13,6 +13,7 @@ import { ConfigManager, defaultDocClient } from './config';
 export class AgentRegistry {
   private static _backboneConfigs: Record<string, IAgentConfig> | null = null;
   private static _essentialTools: string[] | null = null;
+  private static readonly MAX_INIT_RETRIES = 3;
 
   private static get backboneConfigs(): Record<string, IAgentConfig> {
     if (!this._backboneConfigs) {
@@ -113,9 +114,11 @@ export class AgentRegistry {
       (preFetchedConfigs?.[`${id}_tools`] as Array<
         string | import('../types/agent').InstalledSkill
       >) ??
-      ((await ConfigManager.getRawConfig(`${id}_tools`)) as Array<
-        string | import('../types/agent').InstalledSkill
-      >);
+      (preFetchedConfigs
+        ? undefined
+        : ((await ConfigManager.getRawConfig(`${id}_tools`)) as Array<
+            string | import('../types/agent').InstalledSkill
+          >));
 
     const now = Date.now();
     const activeOverrides: string[] = [];
@@ -145,9 +148,7 @@ export class AgentRegistry {
     activeOverrides.push(...filteredPerAgent.map((t) => (typeof t === 'string' ? t : t.name)));
 
     if (prunedCount > 0) {
-      logger.info(
-        `[REGISTRY] Found ${prunedCount} expired tools for agent ${id} (filtered from active list)`
-      );
+      logger.info(`[REGISTRY] Filtered ${prunedCount} expired tools for agent ${id}`);
     }
 
     if (activeOverrides.length > 0) {
@@ -163,6 +164,7 @@ export class AgentRegistry {
       );
     }
 
+    // Ensure baseline security tools are always present
     if (!config.tools || config.tools.length === 0)
       config.tools = [...AgentRegistry.essentialTools, TOOLS.listAgents];
 
@@ -171,7 +173,7 @@ export class AgentRegistry {
 
   /**
    * Retrieves configurations for all registered agents, merging backbone and dynamic configs.
-   * This is a heavy operation used primarily for discovery and topology visualization.
+   * Optimized to batch fetch dynamic configs and bypass O(N) database operations.
    *
    * @returns A promise resolving to a record of all agent configurations.
    */
@@ -187,13 +189,11 @@ export class AgentRegistry {
 
     const preFetchedConfigs: Record<string, unknown> = {
       [DYNAMO_KEYS.AGENTS_CONFIG]: dynamicAgents,
+      [DYNAMO_KEYS.AGENT_TOOL_OVERRIDES]: batchToolOverrides,
     };
 
-    if (batchToolOverrides && typeof batchToolOverrides === 'object') {
-      for (const [id, tools] of Object.entries(batchToolOverrides)) {
-        preFetchedConfigs[`${id}_tools`] = tools;
-      }
-    }
+    // Note: We don't batch fetch `${id}_tools` legacy keys here because they are deprecated
+    // and only used as individual agent fallbacks. Most active agents use batch overrides.
 
     const results = await Promise.all(
       agentIds.map(async (id) => ({
@@ -275,86 +275,15 @@ export class AgentRegistry {
   /**
    * Records tool usage atomically in the ConfigTable.
    * Tracks both global tool popularity and per-agent usage stats.
-   *
-   * @param toolName - The name of the tool used.
-   * @param agentId - The ID of the agent that used the tool.
-   * @returns A promise that resolves when the usage has been recorded.
    */
   static async recordToolUsage(toolName: string, agentId: string = 'unknown'): Promise<void> {
-    const { ConfigTable } = (await import('sst')).Resource as { ConfigTable?: { name: string } };
-    if (!ConfigTable?.name) return;
+    const now = Date.now();
+    const stats = { count: 1, lastUsed: now, firstRegistered: now };
 
-    const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-    const updateUsage = async (key: string) => {
-      try {
-        await defaultDocClient.send(
-          new UpdateCommand({
-            TableName: ConfigTable.name,
-            Key: { key },
-            UpdateExpression:
-              'SET #usage.#tool.#count = if_not_exists(#usage.#tool.#count, :zero) + :one, #usage.#tool.#last = :now, #usage.#tool.#first = if_not_exists(#usage.#tool.#first, :now)',
-            ExpressionAttributeNames: {
-              '#usage': 'value',
-              '#tool': toolName,
-              '#count': 'count',
-              '#last': 'lastUsed',
-              '#first': 'firstRegistered',
-            },
-            ExpressionAttributeValues: { ':one': 1, ':zero': 0, ':now': Date.now() },
-          })
-        );
-      } catch (e: unknown) {
-        if (e instanceof Error && e.name === 'ValidationException') {
-          const now = Date.now();
-          const toolObj = { count: 1, lastUsed: now, firstRegistered: now };
-          try {
-            await defaultDocClient.send(
-              new UpdateCommand({
-                TableName: ConfigTable.name,
-                Key: { key },
-                UpdateExpression: 'SET #usage.#tool = :toolObj',
-                ConditionExpression: 'attribute_not_exists(#usage.#tool)',
-                ExpressionAttributeNames: {
-                  '#usage': 'value',
-                  '#tool': toolName,
-                },
-                ExpressionAttributeValues: { ':toolObj': toolObj },
-              })
-            );
-          } catch (innerError: unknown) {
-            if (innerError instanceof Error && innerError.name === 'ValidationException') {
-              try {
-                await defaultDocClient.send(
-                  new UpdateCommand({
-                    TableName: ConfigTable.name,
-                    Key: { key },
-                    UpdateExpression: 'SET #usage = :rootObj',
-                    ConditionExpression: 'attribute_not_exists(#usage)',
-                    ExpressionAttributeNames: { '#usage': 'value' },
-                    ExpressionAttributeValues: { ':rootObj': { [toolName]: toolObj } },
-                  })
-                );
-              } catch (rootError: unknown) {
-                if (
-                  rootError instanceof Error &&
-                  rootError.name === 'ConditionalCheckFailedException'
-                ) {
-                  return updateUsage(key);
-                }
-              }
-            } else if (
-              innerError instanceof Error &&
-              innerError.name === 'ConditionalCheckFailedException'
-            ) {
-              return updateUsage(key);
-            }
-          }
-        }
-      }
-    };
-
-    await updateUsage(DYNAMO_KEYS.TOOL_USAGE);
-    await updateUsage(`tool_usage_${agentId}`);
+    // Update global usage
+    await ConfigManager.atomicUpdateMapEntity(DYNAMO_KEYS.TOOL_USAGE, toolName, stats);
+    // Update per-agent usage
+    await ConfigManager.atomicUpdateMapEntity(`tool_usage_${agentId}`, toolName, stats);
   }
 
   /**
@@ -398,111 +327,9 @@ export class AgentRegistry {
    * @param value - The new value for the field.
    * @throws Error if the agent does not exist in the registry
    */
-  private static readonly MAX_INIT_RETRIES = 3;
-
-  static async atomicUpdateAgentField(
-    id: string,
-    field: string,
-    value: unknown,
-    retryCount: number = 0
-  ): Promise<void> {
-    const resource = (await import('sst')).Resource as { ConfigTable?: { name: string } };
-    if (!resource.ConfigTable?.name) {
-      logger.warn(`ConfigTable not linked. Skipping atomic update for ${id}`);
-      return;
-    }
-
-    const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-    try {
-      await defaultDocClient.send(
-        new UpdateCommand({
-          TableName: resource.ConfigTable.name,
-          Key: { key: DYNAMO_KEYS.AGENTS_CONFIG },
-          UpdateExpression: 'SET #val.#id.#field = :value',
-          ConditionExpression: 'attribute_exists(#val.#id)',
-          ExpressionAttributeNames: {
-            '#val': 'value',
-            '#id': id,
-            '#field': field,
-          },
-          ExpressionAttributeValues: { ':value': value },
-        })
-      );
-    } catch (e: unknown) {
-      if (
-        e instanceof Error &&
-        (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException')
-      ) {
-        if (!this.backboneConfigs[id]) {
-          throw new Error(
-            `Agent '${id}' does not exist in registry. Cannot update field '${field}'.`
-          );
-        }
-        try {
-          await defaultDocClient.send(
-            new UpdateCommand({
-              TableName: resource.ConfigTable.name,
-              Key: { key: DYNAMO_KEYS.AGENTS_CONFIG },
-              UpdateExpression: 'SET #val.#id = :agentObj',
-              ConditionExpression: 'attribute_not_exists(#val.#id)',
-              ExpressionAttributeNames: {
-                '#val': 'value',
-                '#id': id,
-              },
-              ExpressionAttributeValues: { ':agentObj': { [field]: value } },
-            })
-          );
-          return;
-        } catch (innerError: unknown) {
-          if (innerError instanceof Error && innerError.name === 'ValidationException') {
-            try {
-              await defaultDocClient.send(
-                new UpdateCommand({
-                  TableName: resource.ConfigTable.name,
-                  Key: { key: DYNAMO_KEYS.AGENTS_CONFIG },
-                  UpdateExpression: 'SET #val = :rootObj',
-                  ConditionExpression: 'attribute_not_exists(#val)',
-                  ExpressionAttributeNames: {
-                    '#val': 'value',
-                  },
-                  ExpressionAttributeValues: { ':rootObj': { [id]: { [field]: value } } },
-                })
-              );
-              return;
-            } catch (rootError: unknown) {
-              if (
-                rootError instanceof Error &&
-                rootError.name === 'ConditionalCheckFailedException'
-              ) {
-                if (retryCount < this.MAX_INIT_RETRIES) {
-                  return this.atomicUpdateAgentField(id, field, value, retryCount + 1);
-                }
-                throw new Error(
-                  `Failed to initialize agent ${id} after ${this.MAX_INIT_RETRIES} retries`
-                );
-              }
-              logger.error(`Failed to initialize root object for agent ${id}:`, rootError);
-              throw rootError;
-            }
-          }
-          if (
-            innerError instanceof Error &&
-            innerError.name === 'ConditionalCheckFailedException'
-          ) {
-            if (retryCount < this.MAX_INIT_RETRIES) {
-              return this.atomicUpdateAgentField(id, field, value, retryCount + 1);
-            }
-            throw new Error(
-              `Failed to initialize nested object for agent ${id} after ${this.MAX_INIT_RETRIES} retries`
-            );
-          }
-          logger.error(`Failed to initialize nested object for agent ${id}:`, innerError);
-          throw innerError;
-        }
-      }
-      logger.error(`Failed to atomically update ${field} for agent ${id}:`, e);
-      throw e;
-    }
+  static async atomicUpdateAgentField(id: string, field: string, value: unknown): Promise<void> {
+    if (this.backboneConfigs[id]) return; // Cannot update backbone agents via DDB
+    await ConfigManager.atomicUpdateMapField(DYNAMO_KEYS.AGENTS_CONFIG, id, field, value);
   }
 
   /**
@@ -538,43 +365,20 @@ export class AgentRegistry {
     value: unknown,
     expectedCurrentValue: unknown
   ): Promise<void> {
-    const resource = (await import('sst')).Resource as { ConfigTable?: { name: string } };
-    if (!resource.ConfigTable?.name) {
-      logger.warn(`ConfigTable not linked. Skipping atomic update for ${id}`);
-      return;
-    }
+    if (this.backboneConfigs[id]) return;
 
     const agentExists = await this.agentExists(id);
     if (!agentExists) {
       throw new Error(`Agent '${id}' does not exist in registry. Cannot update field '${field}'.`);
     }
 
-    const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
-    try {
-      await defaultDocClient.send(
-        new UpdateCommand({
-          TableName: resource.ConfigTable.name,
-          Key: { key: DYNAMO_KEYS.AGENTS_CONFIG },
-          UpdateExpression: 'SET #val.#id.#field = :value',
-          ConditionExpression: '#val.#id.#field = :expected',
-          ExpressionAttributeNames: {
-            '#val': 'value',
-            '#id': id,
-            '#field': field,
-          },
-          ExpressionAttributeValues: {
-            ':value': value,
-            ':expected': expectedCurrentValue,
-          },
-        })
-      );
-    } catch (e: unknown) {
-      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
-        throw e;
-      }
-      logger.error(`Failed to atomically update ${field} for agent ${id}:`, e);
-      throw e;
-    }
+    await ConfigManager.atomicUpdateMapFieldWithCondition(
+      DYNAMO_KEYS.AGENTS_CONFIG,
+      id,
+      field,
+      value,
+      expectedCurrentValue
+    );
   }
 
   /**
@@ -615,60 +419,46 @@ export class AgentRegistry {
     const allConfigs = await this.getAllConfigs();
     let totalPruned = 0;
 
-    const batchToolOverrides =
-      ((await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES)) as Record<
-        string,
-        string[]
-      >) || {};
-    let batchModified = false;
-
-    const { DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
-    const resource = (await import('sst')).Resource as { ConfigTable?: { name: string } };
-
-    for (const [agentId, config] of Object.entries(allConfigs)) {
-      // Scoping check for agent configurations
+    for (const agentId of Object.keys(allConfigs)) {
       if (!agentId.startsWith(`WS#${workspaceId}#`)) continue;
-      if (!config.tools) continue;
 
-      const toolsToPrune = config.tools.filter((t) => lowUtilTools.includes(t));
-      if (toolsToPrune.length === 0) continue;
-
-      // Only prune dynamic tool overrides, not backbone tools
-      const backboneTools =
-        (this.backboneConfigs as Record<string, IAgentConfig>)[agentId]?.tools ?? [];
-      const dynamicTools = config.tools.filter((t) => !backboneTools.includes(t));
-      const pruneTargets = dynamicTools.filter((t) => toolsToPrune.includes(t));
+      // Filter tools for this agent that are in the lowUtilTools list
+      const config = allConfigs[agentId];
+      const pruneTargets = config.tools?.filter((t) => lowUtilTools.includes(t)) ?? [];
 
       if (pruneTargets.length > 0) {
-        // 1. Delete legacy per-agent overrides if configured
-        if (resource.ConfigTable?.name) {
-          try {
-            await defaultDocClient.send(
-              new DeleteCommand({
-                TableName: resource.ConfigTable.name,
-                Key: { key: `${agentId}_tools` },
-              })
+        // 1. Atomically prune from legacy per-agent overrides if they exist
+        const perAgentKey = `${agentId}_tools`;
+        const existingLegacy = await ConfigManager.getRawConfig(perAgentKey);
+        if (Array.isArray(existingLegacy)) {
+          const legacyNames = existingLegacy.map((t) => (typeof t === 'string' ? t : t.name));
+          const legacyTargets = pruneTargets.filter((t) => legacyNames.includes(t));
+          if (legacyTargets.length > 0) {
+            // Note: Legacy keys are standalone, so we just use saveRawConfig with filtration
+            // as they aren't part of a shared map, but for safety we could implement atomicRemoveFromList
+            // for standalone keys too. For now, since they are deprecated, we'll just filter.
+            const updatedLegacy = existingLegacy.filter(
+              (t) => !legacyTargets.includes(typeof t === 'string' ? t : t.name)
             );
-          } catch (e) {
-            logger.warn(`Failed to delete legacy per-agent tools for ${agentId}:`, e);
+            await ConfigManager.saveRawConfig(perAgentKey, updatedLegacy);
+            logger.info(
+              `[REGISTRY] Pruned ${legacyTargets.length} tools from legacy list for ${agentId}`
+            );
           }
         }
 
-        // 2. Update batch overrides
-        if (batchToolOverrides[agentId]) {
-          batchToolOverrides[agentId] = batchToolOverrides[agentId].filter(
-            (t) => !pruneTargets.includes(t)
-          );
-          batchModified = true;
-        }
+        // 2. Atomically prune from batch overrides (SHARED MAP - CRITICAL)
+        // This solves the race condition of multiple agents being pruned at once.
+        await ConfigManager.atomicRemoveFromMap(
+          DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
+          agentId,
+          pruneTargets
+        ).catch((e) =>
+          logger.warn(`[REGISTRY] Failed to atomically prune batch tools for ${agentId}:`, e)
+        );
 
         totalPruned += pruneTargets.length;
-        logger.info(`[REGISTRY] Pruned ${pruneTargets.length} tools from agent ${agentId}`);
       }
-    }
-
-    if (batchModified) {
-      await ConfigManager.saveRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, batchToolOverrides);
     }
 
     return totalPruned;

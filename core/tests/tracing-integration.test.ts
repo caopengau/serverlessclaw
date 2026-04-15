@@ -253,7 +253,7 @@ describe('Tracing Integration', () => {
       vi_mockSend.mockResolvedValueOnce({});
 
       const cb = getCircuitBreaker();
-      await cb.recordSuccess();
+      await cb.recordSuccess({ traceId: 'system' });
 
       expect(vi_mockAddTraceStep).toHaveBeenCalledWith(
         'system',

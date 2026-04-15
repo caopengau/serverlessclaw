@@ -1,135 +1,95 @@
-import { PROTECTED_FILES } from '../constants';
+import { PROTECTED_PATHS, PATH_KEYS, PROTECTED_FILES } from '../constants';
 
 /**
- * Checks if a file path is protected based on the system's PROTECTED_FILES list.
- *
- * @param filePath - The path to the file to check.
- * @returns True if the file path is protected, otherwise false.
- * @since 2026-03-19
+ * Checks if a resource path matches any system-level protection rules.
  */
 export function isProtectedPath(filePath: string): boolean {
   if (!filePath) return false;
-
   const normalized = filePath.replace(/\\/g, '/');
 
-  // 1. Authoritative Directory Protection (Secure-by-Default)
-  const PROTECTED_DIRS = ['core/', 'infra/', 'docs/governance/', '.github/', '.antigravity/'];
+  // 1. Check primary centralized patterns
+  if (PROTECTED_PATHS.some((pattern) => matchesGlob(normalized, pattern))) return true;
 
-  if (PROTECTED_DIRS.some((dir) => normalized.startsWith(dir))) {
-    return true;
-  }
-
-  // 2. Critical Files Protection
-  const CRITICAL_FILES = [
-    'sst.config.ts',
-    'package.json',
-    'package-lock.json',
-    'pnpm-lock.yaml',
-    'yarn.lock',
-    '.env',
-  ];
-
-  if (CRITICAL_FILES.some((file) => normalized === file || normalized.endsWith(`/${file}`))) {
-    return true;
-  }
-
-  // 3. Dynamic PROTECTED_FILES from constants as fallback
+  // 2. Fallback to legacy PROTECTED_FILES for backward compatibility and test mocks
   try {
-    const protectedFiles = PROTECTED_FILES ?? [];
-    return protectedFiles.some((p: string) => {
-      if (p.endsWith('/**')) {
-        const prefix = p.slice(0, -3);
-        return normalized.startsWith(prefix);
-      }
-      if (p.endsWith('/')) {
-        return normalized.startsWith(p);
-      }
-      return normalized === p;
-    });
+    const legacy = (PROTECTED_FILES as string[]) ?? [];
+    if (
+      legacy.some((pattern: string) => {
+        if (typeof pattern !== 'string') return false;
+        // Handle legacy prefix matching (e.g. "src/secret/" should match "src/secret/file.ts")
+        if (pattern.endsWith('/')) return normalized.startsWith(pattern);
+        return matchesGlob(normalized, pattern);
+      })
+    ) {
+      return true;
+    }
   } catch {
-    return false;
+    /* ignore */
   }
+
+  return false;
 }
 
 /**
- * Scans a set of tool arguments for common path keys and validates them for security.
- * Returns the first error found, or null if all paths are safe.
- *
- * Performance optimized: only scans string values that match path heuristics.
- *
- * @param args - The arguments object to scan.
- * @param operationName - Context for error messages.
- * @param extraPathKeys - Additional keys provided by tool metadata that contain file paths.
+ * Simple glob pattern matching.
  */
-export function checkArgumentsForSecurity(
+export function matchesGlob(path: string, pattern: string): boolean {
+  if (pattern.endsWith('/')) return path.startsWith(pattern);
+
+  const regexSource = pattern
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*\*\//g, '___DIR___')
+    .replace(/\*\*/g, '___ANY___')
+    .replace(/\*/g, '___NONSLASH___')
+    .replace(/\?/g, '.')
+    .replace(/___DIR___/g, '(?:.*/)?')
+    .replace(/___ANY___/g, '.*')
+    .replace(/___NONSLASH___/g, '[^/]*');
+
+  return new RegExp(`^${regexSource}$`).test(path);
+}
+
+/**
+ * Unified resource discovery function.
+ */
+export function scanForResources(
   args: Record<string, unknown>,
-  operationName: string,
   extraPathKeys: string[] = []
-): string | null {
-  const pathKeys = [
-    'path',
-    'path_to_file',
-    'file_path',
-    'filePath',
-    'source',
-    'destination',
-    'dir',
-    'dir_path',
-    'dirPath',
-    'filename',
-    'file',
-  ];
+): { path: string; key: string }[] {
+  const foundResources: { path: string; key: string }[] = [];
+  const seenPaths = new Set<string>();
+  const pathKeys = [...new Set([...PATH_KEYS, ...extraPathKeys])];
 
-  const allKeys = [...new Set([...pathKeys, ...extraPathKeys])];
-
-  // 1. Scan explicit path keys (Fast Path)
-  for (const key of allKeys) {
-    const filePath = args[key];
-    if (filePath && typeof filePath === 'string') {
-      const securityError = checkFileSecurity(
-        filePath,
-        args.manuallyApproved as boolean | undefined,
-        `${operationName} [arg: ${key}]`
-      );
-      if (securityError) return securityError;
+  for (const key of pathKeys) {
+    const val = args[key];
+    if (typeof val === 'string' && (val.includes('/') || val.includes('\\') || val.includes('.'))) {
+      foundResources.push({ path: val, key });
+      seenPaths.add(val);
     }
   }
 
-  // 2. Deep Heuristic Scan of all string values (Catch-all for non-standard keys)
-  const scanRecursive = (obj: any): string | null => {
-    if (!obj || typeof obj !== 'object') return null;
-
-    for (const [key, value] of Object.entries(obj)) {
+  const scanRecursive = (obj: unknown) => {
+    if (!obj || typeof obj !== 'object') return;
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
       if (typeof value === 'string') {
-        // Heuristic: string looks like a path or contains a slash
-        // and it targets a known protected directory prefix
-        const isPathLike = value.includes('/') || value.includes('\\') || value.includes('.');
-        if (isPathLike && isProtectedPath(value)) {
-          const securityError = checkFileSecurity(
-            value,
-            args.manuallyApproved as boolean | undefined,
-            `${operationName} [discovered path in arg: ${key}]`
-          );
-          if (securityError) return securityError;
+        if (
+          !seenPaths.has(value) &&
+          (value.includes('/') || value.includes('\\') || value.includes('.'))
+        ) {
+          foundResources.push({ path: value, key });
+          seenPaths.add(value);
         }
       } else if (typeof value === 'object') {
-        const error = scanRecursive(value);
-        if (error) return error;
+        scanRecursive(value);
       }
     }
-    return null;
   };
-
-  return scanRecursive(args);
+  scanRecursive(args);
+  return foundResources;
 }
 
 /**
  * Validates a file path against protection rules.
- *
- * @param filePath - The path to the file to check.
- * @param manuallyApproved - Whether the user has explicitly approved this operation.
- * @param operation - The type of operation (e.g., 'writes', 'deletes').
- * @returns An error message string if blocked, otherwise null.
  */
 export function checkFileSecurity(
   filePath: string,
@@ -138,6 +98,27 @@ export function checkFileSecurity(
 ): string | null {
   if (isProtectedPath(filePath) && !manuallyApproved) {
     return `PERMISSION_DENIED: Direct ${operation} to '${filePath}' is blocked. This is a protected system file. To override, you must obtain explicit human approval and then retry with the 'manuallyApproved: true' parameter.`;
+  }
+  return null;
+}
+
+/**
+ * Compatibility wrapper for checkArgumentsForSecurity.
+ */
+export function checkArgumentsForSecurity(
+  args: Record<string, unknown>,
+  operationName: string,
+  extraPathKeys: string[] = []
+): string | null {
+  const resources = scanForResources(args, extraPathKeys);
+  const isManuallyApproved = args.manuallyApproved === true;
+  const pathKeys = [...PATH_KEYS, ...extraPathKeys];
+
+  for (const { path, key } of resources) {
+    const isExplicit = pathKeys.includes(key);
+    const op = isExplicit ? operationName : `${operationName} [discovered path in arg: ${key}]`;
+    const error = checkFileSecurity(path, isManuallyApproved, op);
+    if (error) return error;
   }
   return null;
 }

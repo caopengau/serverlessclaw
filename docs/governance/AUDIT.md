@@ -199,15 +199,15 @@ A poor path is:
 
 Use this table to map high-level silos to the primary code areas that should be investigated.
 
-| Silo  | Name           | Primary Code Focus                              | Implementation Vertical                   | Status                    |
-| :---- | :------------- | :---------------------------------------------- | :---------------------------------------- | :------------------------ |
-| **1** | The Spine      | `core/lib/routing/`, `core/lib/backbone.ts`     | [EVENTS.md](../interface/EVENTS.md)       | **STABILIZED 2026-04-14** |
-| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | [PROTOCOL.md](../interface/PROTOCOL.md)   | **STABILIZED 2026-04-14** |
-| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | [RESILIENCE.md](../system/RESILIENCE.md)  | **STABILIZED 2026-04-14** |
-| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | [MEMORY.md](../intelligence/MEMORY.md)    | **STABILIZED 2026-04-14** |
-| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | [DASHBOARD.md](../interface/DASHBOARD.md) | **STABILIZED 2026-04-14** |
-| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | [SAFETY.md](../intelligence/SAFETY.md)    | **STABILIZED 2026-04-14** |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | [METABOLISM.md](../system/METABOLISM.md)  | OPERATIONAL               |
+| Silo  | Name           | Primary Code Focus                              | Implementation Vertical                   |
+| :---- | :------------- | :---------------------------------------------- | :---------------------------------------- |
+| **1** | The Spine      | `core/lib/routing/`, `core/lib/backbone.ts`     | [EVENTS.md](../interface/EVENTS.md)       |
+| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | [PROTOCOL.md](../interface/PROTOCOL.md)   |
+| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | [RESILIENCE.md](../system/RESILIENCE.md)  |
+| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | [MEMORY.md](../intelligence/MEMORY.md)    |
+| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | [DASHBOARD.md](../interface/DASHBOARD.md) |
+| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | [SAFETY.md](../intelligence/SAFETY.md)    |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | [METABOLISM.md](../system/METABOLISM.md)  |
 
 ---
 
@@ -215,7 +215,7 @@ Use this table to map high-level silos to the primary code areas that should be 
 
 Each silo represents a core functional domain. Reviews within a silo should adopt a specific "Angle" to uncover both explicit bugs and latent architectural weaknesses.
 
-### 1. The Spine (Nervous System & Flow) [STABILIZED 2026-04-14]
+### 1. The Spine (Nervous System & Flow)
 
 **Perspective**: _How does the system ensure the signal never dies?_
 
@@ -225,7 +225,7 @@ Each silo represents a core functional domain. Reviews within a silo should adop
   - **Centralized Flow**: Consolidated rate limiting and circuit breaking in `FlowController`.
   - **On-Demand Renewals**: Replaced unreliable Lambda heartbeats with active `autoRenew` logic.
 
-### 2. The Hand (Agency & Skill Mastery) [STABILIZED 2026-04-14]
+### 2. The Hand (Agency & Skill Mastery)
 
 **Perspective**: _How effectively can the system manipulate its environment?_
 
@@ -235,26 +235,27 @@ Each silo represents a core functional domain. Reviews within a silo should adop
   - **Unified Pricing**: Centralized LLM model pricing in a shared registry for accurate budget enforcement.
   - **Consistent Warmup**: Integrated "Trigger-on-Message" smart warmup across all interaction modes.
 
-### 3. The Shield (Security & Baseline) [STABILIZED 2026-04-14]
+### 3. The Shield (Security & Baseline)
 
-The Shield has been unified. The `SafetyEngine` now acts as the authoritative gate for all tool executions, enforcing least-privilege resource access and Class C blast-radius limits.
+The Shield acts as the authoritative gate for all tool executions, enforcing least-privilege resource access and Class C blast-radius limits.
 
 **Key Achievements**:
 
-- **Resource Discovery**: Optimized heuristic scan for protected resources.
-- **Policy Efficiency**: Streamlined policy lookup and configuration caching.
+- **Centralized Governance**: Consolidated all protected paths and action classifications into `core/lib/constants/safety.ts`.
+- **Modular Evaluation**: Refactored `evaluateAction` into discrete validation stages (Class D, Resource, Time, Trust).
+- **Unified Discovery**: Consolidated heuristic path scanners to eliminate 50% logic duplication.
 - **Blast Radius**: Full persistence of Class C tracking across cold starts via DynamoDB.
 
-### 4. The Brain (Memory, Identity & Continuity) [STABILIZED 2026-04-15]
+### 4. The Brain (Memory, Identity & Continuity)
 
 **Perspective**: _How does the system maintain its "sense of self" and history?_
 
 - **Key Achievements**:
   - **Workspace Isolation**: Extended multi-tenant isolation to all memory primitives.
-  - **Memory Refactoring (Cleanup 2026-04-15)**: Centralized item resolution logic (`resolveItemById`) and unified atomic metadata updates (`atomicUpdateMetadata`) to eliminate technical debt and race conditions.
+  - **Memory Refactoring**: Centralized item resolution logic (`resolveItemById`) and unified atomic metadata updates (`atomicUpdateMetadata`) to eliminate technical debt and race conditions.
   - **Consistency**: Unified cache invalidation patterns across all storage operations.
 
-### 5. The Eye (Observation & Consistency) [STABILIZED 2026-04-14]
+### 5. The Eye (Observation & Consistency)
 
 **Perspective**: _Does the system's internal trace state match what is reported to the user?_
 
@@ -263,13 +264,14 @@ The Shield has been unified. The `SafetyEngine` now acts as the authoritative ga
   - **Tracer Stability**: Consolidated metrics emission and summary handling in `ClawTracer`.
   - **Observability Integrity**: Automatic remediation events triggered on signal inconsistencies.
 
-### 6. The Scales (Trust & Calibration) [STABILIZED 2026-04-14]
+### 6. The Scales (Trust & Calibration)
 
 **Perspective**: _Is the system accurately penalizing failure and rewarding success?_
 
 - **Key Achievements**:
-  - **Atomic Reputation**: Verified and stabilized atomic field updates for TrustScores.
+  - **Atomic Reputation**: Optimized `TrustManager` with robust retry loops and unified metadata updates.
   - **Quality Weighting**: Operationalized Principle 12 (Quality-weighted reputation) in `TrustManager`.
+  - **Circuit Breaker Integrity**: Hardened state transitions using an atomic `saveStateWithRetry` loop.
   - **Decay Integrity**: Implemented time-based trust decay with hysteresis to prevent oscillation.
 
 ### 7. The Metabolism (Regenerative Repair & Bloat Management)

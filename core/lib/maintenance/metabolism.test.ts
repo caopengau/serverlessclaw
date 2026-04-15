@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MetabolismService } from './metabolism';
 import { AgentRegistry } from '../registry/AgentRegistry';
 import { archiveStaleGaps, cullResolvedGaps, setGap } from '../memory/gap-operations';
-import { EvolutionScheduler } from '../safety/evolution-scheduler';
 
 // Mock dependencies
 vi.mock('../registry/AgentRegistry', () => ({
@@ -90,6 +89,7 @@ describe('MetabolismService', () => {
         agentId: 'coder',
         error: "Tool 'github_createIssue' failed",
         userId: 'user-1',
+        workspaceId: 'ws-1',
       };
 
       vi.mocked(AgentRegistry.getRawConfig).mockResolvedValueOnce([
@@ -112,6 +112,7 @@ describe('MetabolismService', () => {
         agentId: 'coder',
         error: "Tool 'unknown_tool' failed",
         userId: 'user-1',
+        workspaceId: 'ws-1',
       };
 
       vi.mocked(AgentRegistry.getRawConfig).mockResolvedValueOnce([]); // No tools found

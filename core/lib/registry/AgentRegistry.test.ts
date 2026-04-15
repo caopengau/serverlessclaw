@@ -25,6 +25,9 @@ vi.mock('./config', async (importOriginal) => {
       getRawConfig: vi.fn(),
       saveRawConfig: vi.fn().mockResolvedValue(undefined),
       getAgentOverrideConfig: vi.fn(),
+      atomicUpdateMapField: vi.fn().mockResolvedValue(undefined),
+      atomicUpdateMapEntity: vi.fn().mockResolvedValue(undefined),
+      incrementConfig: vi.fn().mockResolvedValue(0),
     },
     defaultDocClient: mockDocClient,
   };
@@ -214,39 +217,25 @@ describe('AgentRegistry', () => {
   });
 
   describe('recordToolUsage', () => {
-    it('should update tool usage in DynamoDB', async () => {
+    it('should delegate tool usage tracking to ConfigManager', async () => {
       await AgentRegistry.recordToolUsage('test_tool', 'test_agent');
       // Called twice: once for global, once for per-agent
-      expect(mockDocClient.send).toHaveBeenCalledTimes(2);
+      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalledTimes(2);
+      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalledWith(
+        DYNAMO_KEYS.TOOL_USAGE,
+        'test_tool',
+        expect.objectContaining({ count: 1 })
+      );
+      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalledWith(
+        'tool_usage_test_agent',
+        'test_tool',
+        expect.objectContaining({ count: 1 })
+      );
     });
 
-    it('should include firstRegistered in the UpdateExpression', async () => {
+    it('should handle recordToolUsage calls', async () => {
       await AgentRegistry.recordToolUsage('test_tool', 'test_agent');
-      const call = mockDocClient.send.mock.calls[0][0];
-      expect(call.input.UpdateExpression).toContain('#first');
-      expect(call.input.ExpressionAttributeNames['#first']).toBe('firstRegistered');
-      expect(call.input.ExpressionAttributeValues[':now']).toBeTypeOf('number');
-    });
-
-    it('should set firstRegistered on ValidationException fallback', async () => {
-      mockDocClient.send
-        .mockRejectedValueOnce(
-          Object.assign(new Error('ValidationException'), { name: 'ValidationException' })
-        )
-        .mockResolvedValueOnce({})
-        .mockRejectedValueOnce(
-          Object.assign(new Error('ValidationException'), { name: 'ValidationException' })
-        )
-        .mockResolvedValueOnce({});
-
-      await AgentRegistry.recordToolUsage('my_tool', 'test_agent');
-      expect(mockDocClient.send).toHaveBeenCalledTimes(4);
-    });
-
-    it('should handle missing ConfigTable in recordToolUsage', async () => {
-      (Resource as any).ConfigTable = undefined;
-      await AgentRegistry.recordToolUsage('test_tool', 'test_agent');
-      expect(mockDocClient.send).not.toHaveBeenCalled();
+      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalled();
     });
   });
 });

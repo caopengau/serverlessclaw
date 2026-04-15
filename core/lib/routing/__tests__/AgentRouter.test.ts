@@ -5,6 +5,7 @@ import { ReasoningProfile } from '../../types/llm';
 vi.mock('../../registry/AgentRegistry', () => ({
   AgentRegistry: {
     getAgentConfig: vi.fn(),
+    getFallbackAgents: vi.fn().mockReturnValue(['superclaw', 'researcher']),
   },
 }));
 

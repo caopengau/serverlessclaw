@@ -26,12 +26,11 @@ export class MetabolismService {
     options: { repair?: boolean; workspaceId?: string } = {}
   ): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
-    const workspaceId = options.workspaceId;
-
+    const workspaceId = options.workspaceId || 'default';
     logger.info(`[Metabolism] Starting regenerative audit (repair: ${!!options.repair})`);
 
     // 1. Perform automated repairs for stateless state (Registry/Memory)
-    if (options.repair && workspaceId) {
+    if (options.repair) {
       const repairs = await this.executeRepairs(memory, workspaceId);
       findings.push(...repairs);
     }

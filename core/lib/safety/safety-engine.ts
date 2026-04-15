@@ -1,8 +1,6 @@
 /**
  * @module SafetyEngine
  * @description Granular safety tier enforcement engine for Serverless Claw.
- * Evaluates actions against fine-grained policies including per-tool overrides,
- * resource-level controls, time-based windows, and comprehensive violation logging.
  */
 
 import {
@@ -11,6 +9,7 @@ import {
   SafetyPolicy,
   SafetyEvaluationResult,
   EvolutionMode,
+  EventType,
 } from '../types/agent';
 import { logger } from '../logger';
 import type { BaseMemoryProvider } from '../memory/base';
@@ -21,11 +20,9 @@ import { CONFIG_DEFAULTS } from '../config/config-defaults';
 import { SafetyBase } from './safety-base';
 import { PolicyValidator } from './policy-validator';
 import { TRUST } from '../constants';
+import { scanForResources } from '../utils/fs-security';
+import { emitEvent } from '../utils/bus';
 
-/**
- * Safety Engine for evaluating actions against granular policies.
- * Refactored to comply with AIReady file length standards.
- */
 export class SafetyEngine extends SafetyBase {
   private policies: Map<SafetyTier, Partial<SafetyPolicy>>;
   private toolOverrides: Map<string, ToolSafetyOverride>;
@@ -47,9 +44,7 @@ export class SafetyEngine extends SafetyBase {
 
     if (customPolicies) {
       for (const [tier, overrides] of Object.entries(customPolicies)) {
-        if (overrides) {
-          this.policies.set(tier as SafetyTier, overrides);
-        }
+        if (overrides) this.policies.set(tier as SafetyTier, overrides);
       }
     }
 
@@ -58,69 +53,11 @@ export class SafetyEngine extends SafetyBase {
         this.toolOverrides.set(override.toolName, override);
       }
     }
-
-    logger.info('SafetyEngine initialized', {
-      tiers: Array.from(this.policies.keys()),
-      toolOverrides: this.toolOverrides.size,
-    });
-  }
-
-  /**
-   * Heuristic scan of arguments for hidden file paths.
-   */
-  public scanArgumentsForPaths(args: Record<string, unknown>, pathKeys: string[] = []): string[] {
-    const foundPaths = new Set<string>();
-    const defaultPathKeys = ['path', 'filePath', 'source', 'destination', 'dir', 'file'];
-    const allKeys = [...new Set([...defaultPathKeys, ...pathKeys])];
-
-    for (const key of allKeys) {
-      const val = args[key];
-      if (
-        typeof val === 'string' &&
-        (val.includes('/') || val.includes('\\') || val.includes('.'))
-      ) {
-        foundPaths.add(val);
-      }
-    }
-
-    const scanRecursive = (obj: unknown) => {
-      if (!obj || typeof obj !== 'object' || obj === null) return;
-
-      const record = obj as Record<string, unknown>;
-      for (const value of Object.values(record)) {
-        if (typeof value === 'string') {
-          const isPathLike = value.includes('/') || value.includes('\\') || value.includes('.');
-          if (isPathLike) {
-            foundPaths.add(value);
-          }
-        } else if (typeof value === 'object' && value !== null) {
-          scanRecursive(value);
-        }
-      }
-    };
-    scanRecursive(args);
-
-    return Array.from(foundPaths);
-  }
-
-  /**
-   * Discovers all resources involved in an action.
-   */
-  private discoverResources(
-    action: string,
-    context?: { resource?: string; args?: Record<string, unknown>; pathKeys?: string[] }
-  ): Set<string> {
-    const resources = new Set<string>();
-    if (context?.resource) resources.add(context.resource);
-    if (context?.args) {
-      const discovered = this.scanArgumentsForPaths(context.args, context.pathKeys);
-      discovered.forEach((p) => resources.add(p));
-    }
-    return resources;
   }
 
   /**
    * Evaluate whether an action is allowed based on the agent's safety tier.
+   * Modularized to reduce cognitive complexity (Principle 10: Lean Evolution).
    */
   async evaluateAction(
     agentConfig: Partial<IAgentConfig> | undefined,
@@ -136,38 +73,26 @@ export class SafetyEngine extends SafetyBase {
   ): Promise<SafetyEvaluationResult> {
     const tier = agentConfig?.safetyTier ?? SafetyTier.PROD;
     const agentId = agentConfig?.id ?? 'unknown';
+    const ctx = { ...context, agentId };
 
-    // 0. Class D Check (Permanently Blocked per Silo 3 mandate)
+    // 1. Class D Block (Hard Policy)
     if (this.isClassDAction(action)) {
-      const violation = this.createViolation(
-        agentId,
+      return this.handleViolation(
+        ctx,
         tier,
         action,
-        context?.toolName,
-        context?.resource,
-        `Class D action '${action}' is permanently blocked by policy.`,
-        'blocked',
-        context?.traceId,
-        context?.userId
+        'class_d_blocked',
+        `Class D action '${action}' permanently blocked by policy.`
       );
-      await this.logViolation(violation);
-      return {
-        allowed: false,
-        requiresApproval: false,
-        reason: `Action '${action}' is a Class D (Policy Protected) operation and is permanently blocked.`,
-        appliedPolicy: 'class_d_blocked',
-      };
     }
 
-    // 1. Discover all resources involved
-    const resourcesToCheck = this.discoverResources(action, context);
+    // 2. Resource Discovery
+    const discovered = scanForResources(context?.args ?? {}, context?.pathKeys);
+    const resources = new Set(discovered.map((d) => d.path));
+    if (context?.resource) resources.add(context.resource);
 
-    // 2. Load policy for this tier
-    const policies = await SafetyConfigManager.getPolicies();
-    const basePolicy = policies[tier];
-    const localPolicy = this.policies.get(tier);
-    const policy = localPolicy ? { ...basePolicy, ...localPolicy } : basePolicy;
-
+    // 3. Load Policy
+    const policy = await this.getResolvedPolicy(tier);
     if (!policy) {
       return {
         allowed: false,
@@ -177,133 +102,183 @@ export class SafetyEngine extends SafetyBase {
       };
     }
 
-    // 3. Tool-specific overrides and rate limits
-    if (context?.toolName) {
-      const toolOverride = this.toolOverrides.get(context.toolName);
-      if (toolOverride?.requireApproval) {
-        const violation = this.createViolation(
-          agentId,
+    // 4. Per-Tool Overrides & Rate Limits
+    const toolResult = await this.checkToolSafety(ctx, tier, action);
+    if (!toolResult.allowed || toolResult.requiresApproval) return toolResult;
+
+    // 5. Resource-Level Validation
+    for (const res of resources) {
+      const resResult = await this.validator.checkResourceAccess(policy, res, action, tier, ctx);
+      // System Protection Escalation
+      if (resResult.allowed && !agentConfig?.manuallyApproved && this.isSystemProtected(res)) {
+        return this.handleViolation(
+          ctx,
           tier,
           action,
-          context.toolName,
-          context.resource,
-          'Tool requires approval',
-          'approval_required',
-          context.traceId,
-          context.userId
-        );
-        await this.logViolation(violation);
-        return {
-          allowed: true,
-          requiresApproval: true,
-          reason: `Tool '${context.toolName}' requires manual approval`,
-          appliedPolicy: 'tool_override',
-        };
-      }
-      const rateLimitResult = await this.limiter.checkToolRateLimit(toolOverride, context.toolName);
-      if (!rateLimitResult.allowed) return rateLimitResult;
-    }
-
-    // 4. Resource-level access control
-    for (const resource of resourcesToCheck) {
-      const resourceResult = await this.validator.checkResourceAccess(
-        policy,
-        resource,
-        action,
-        tier,
-        { ...context, agentId }
-      );
-
-      // System protection escalation
-      if (
-        resourceResult.allowed &&
-        !agentConfig?.manuallyApproved &&
-        this.isSystemProtected(resource)
-      ) {
-        const violation = this.createViolation(
-          agentId,
-          tier,
-          action,
-          context?.toolName,
-          resource,
-          `System-level protection violation: '${resource}'`,
+          'system_protection',
+          `Access to protected system resource '${res}' is blocked. Direct manipulation requires manual approval via 'manuallyApproved: true'.`,
           'blocked',
-          context?.traceId,
-          context?.userId
+          res
         );
-        await this.logViolation(violation);
-        return {
-          allowed: false,
-          requiresApproval: false,
-          reason: `Access to protected system resource '${resource}' is blocked. Direct manipulation requires manual approval via 'manuallyApproved: true'.`,
-          appliedPolicy: 'system_protection',
-        };
       }
-      if (!resourceResult.allowed || resourceResult.requiresApproval) return resourceResult;
+      if (!resResult.allowed || resResult.requiresApproval) return resResult;
     }
 
-    // 5. Time and general approval requirements
-    const timeResult = await this.validator.checkTimeRestrictions(policy, action, tier, {
-      ...context,
-      agentId,
-    });
+    // 6. Time & Approval Checks
+    const timeResult = await this.validator.checkTimeRestrictions(policy, action, tier, ctx);
     if (!timeResult.allowed || timeResult.requiresApproval) return timeResult;
 
-    const approvalResult = await this.validator.checkApprovalRequirements(policy, action, tier, {
-      ...context,
-      agentId,
-    });
+    const approvalResult = await this.validator.checkApprovalRequirements(
+      policy,
+      action,
+      tier,
+      ctx
+    );
 
-    // 6. Blast Radius Enforcement (Class C)
+    // 7. Blast Radius Enforcement (Class C)
     if (this.isClassCAction(action)) {
-      const blastRadiusError = await this.enforceClassCBlastRadius(agentId, action);
-      if (blastRadiusError) {
-        const violation = this.createViolation(
-          agentId,
-          tier,
-          action,
-          context?.toolName,
-          context?.resource,
-          blastRadiusError,
-          'blocked',
-          context?.traceId,
-          context?.userId
-        );
-        await this.logViolation(violation);
-        return {
-          allowed: false,
-          requiresApproval: false,
-          reason: blastRadiusError,
-          appliedPolicy: 'blast_radius_limit',
-        };
-      }
-
-      await this.evolutionScheduler.scheduleAction({
-        agentId,
-        action,
-        reason: approvalResult.reason ?? 'Class C action requiring approval',
-        timeoutMs: CONFIG_DEFAULTS.EVOLUTIONARY_TIMEOUT_MS.code,
-        resource: context?.resource,
-        traceId: context?.traceId,
-        userId: context?.userId,
-      });
-      await this.trackClassCBlastRadius(agentId, action, context?.resource);
+      const blastResult = await this.handleClassCAction(agentId, action, approvalResult, ctx);
+      if (blastResult) return blastResult;
     }
 
-    // 7. Trust-Driven Autonomous Promotion (Principle 9)
-    const trustScore = agentConfig?.trustScore ?? TRUST.DEFAULT_SCORE;
-    const hasPromotionTrust = trustScore >= TRUST.AUTONOMY_THRESHOLD;
-    const isAutoMode = agentConfig?.evolutionMode === EvolutionMode.AUTO;
+    // 8. Trust-Driven Promotion (Principle 9)
+    const promotionResult = await this.checkAutonomousPromotion(
+      agentConfig,
+      action,
+      approvalResult,
+      ctx
+    );
+    if (promotionResult) return promotionResult;
 
-    if (approvalResult.requiresApproval && hasPromotionTrust) {
+    if (!approvalResult.allowed || approvalResult.requiresApproval) return approvalResult;
+
+    // 9. General Rate Limits
+    const limitResult = await this.limiter.checkRateLimits(policy, action);
+    if (!limitResult.allowed) return limitResult;
+
+    return { allowed: true, requiresApproval: false, appliedPolicy: `${tier}_default` };
+  }
+
+  private async getResolvedPolicy(tier: SafetyTier): Promise<SafetyPolicy> {
+    const globalPolicies = await SafetyConfigManager.getPolicies();
+    const base = globalPolicies[tier];
+    const custom = this.policies.get(tier);
+    return custom ? { ...base, ...custom } : base;
+  }
+
+  private async handleViolation(
+    ctx: {
+      agentId: string;
+      toolName?: string;
+      resource?: string;
+      traceId?: string;
+      userId?: string;
+    },
+    tier: SafetyTier,
+    action: string,
+    appliedPolicy: string,
+    reason: string,
+    outcome: 'blocked' | 'approval_required' = 'blocked',
+    resource?: string
+  ): Promise<SafetyEvaluationResult> {
+    const violation = this.createViolation(
+      ctx.agentId,
+      tier,
+      action,
+      ctx.toolName,
+      resource ?? ctx.resource,
+      reason,
+      outcome,
+      ctx.traceId,
+      ctx.userId
+    );
+    await this.logViolation(violation);
+    return {
+      allowed: outcome === 'approval_required',
+      requiresApproval: outcome === 'approval_required',
+      reason,
+      appliedPolicy,
+    };
+  }
+
+  private async checkToolSafety(
+    ctx: {
+      agentId: string;
+      toolName?: string;
+      resource?: string;
+      traceId?: string;
+      userId?: string;
+    },
+    tier: SafetyTier,
+    action: string
+  ): Promise<SafetyEvaluationResult> {
+    if (!ctx.toolName) return { allowed: true, requiresApproval: false };
+    const override = this.toolOverrides.get(ctx.toolName);
+    if (override?.requireApproval) {
+      return this.handleViolation(
+        ctx,
+        tier,
+        action,
+        'tool_override',
+        `Tool '${ctx.toolName}' requires manual approval`,
+        'approval_required'
+      );
+    }
+    return this.limiter.checkToolRateLimit(override, ctx.toolName);
+  }
+
+  private async handleClassCAction(
+    agentId: string,
+    action: string,
+    approvalResult: SafetyEvaluationResult,
+    ctx: {
+      agentId: string;
+      toolName?: string;
+      resource?: string;
+      traceId?: string;
+      userId?: string;
+    }
+  ): Promise<SafetyEvaluationResult | null> {
+    const error = await this.enforceClassCBlastRadius(agentId, action);
+    if (error) {
+      return this.handleViolation(ctx, SafetyTier.PROD, action, 'blast_radius_limit', error);
+    }
+    await this.evolutionScheduler.scheduleAction({
+      agentId,
+      action,
+      reason: approvalResult.reason ?? 'Class C action requiring approval',
+      timeoutMs: CONFIG_DEFAULTS.EVOLUTIONARY_TIMEOUT_MS.code,
+      resource: ctx.resource,
+      traceId: ctx.traceId,
+      userId: ctx.userId,
+    });
+    await this.trackClassCBlastRadius(agentId, action, ctx.resource);
+    return null;
+  }
+
+  private async checkAutonomousPromotion(
+    config: Partial<IAgentConfig> | undefined,
+    action: string,
+    approval: SafetyEvaluationResult,
+    _ctx: {
+      agentId: string;
+      toolName?: string;
+      resource?: string;
+      traceId?: string;
+      userId?: string;
+    }
+  ): Promise<SafetyEvaluationResult | null> {
+    const trustScore = config?.trustScore ?? TRUST.DEFAULT_SCORE;
+    const isAutoMode = config?.evolutionMode === EvolutionMode.AUTO;
+    const hasTrust = trustScore >= TRUST.AUTONOMY_THRESHOLD;
+
+    if (approval.requiresApproval && hasTrust) {
       if (isAutoMode) {
         logger.info(
           `[SafetyEngine] Principle 9: Self-promoting action '${action}' (TrustScore: ${trustScore}, Mode: AUTO)`
         );
-        const { emitEvent } = await import('../utils/bus');
-        const { EventType } = await import('../types/agent');
         await emitEvent('safety.principle9', EventType.SYSTEM_AUDIT_TRIGGER, {
-          agentId,
+          agentId: config?.id ?? 'unknown',
           action,
           trustScore,
           reason: `Trust-based autonomous promotion: trustScore >= 95`,
@@ -312,39 +287,13 @@ export class SafetyEngine extends SafetyBase {
         return {
           allowed: true,
           requiresApproval: false,
-          reason: `${approvalResult.reason} [AUTONOMOUS PROMOTION: TrustScore >= 95 & AUTO mode]`,
+          reason: `${approval.reason} [AUTONOMOUS PROMOTION: TrustScore >= 95 & AUTO mode]`,
           appliedPolicy: 'principle_9_promotion',
         };
-      } else {
-        approvalResult.reason = `${approvalResult.reason} [ADVISORY: Candidate for trust-based autonomy promotion (TrustScore >= 95). Shift to AUTO mode to enable.]`;
       }
+      approval.reason = `${approval.reason} [ADVISORY: Candidate for trust-based autonomy promotion (TrustScore >= 95). Shift to AUTO mode to enable.]`;
     }
-
-    if (!approvalResult.allowed || approvalResult.requiresApproval) return approvalResult;
-
-    // 8. General rate limits
-    const rateLimitResult = await this.limiter.checkRateLimits(policy, action);
-    if (!rateLimitResult.allowed) return rateLimitResult;
-
-    return { allowed: true, requiresApproval: false, appliedPolicy: `${tier}_default` };
-  }
-
-  getStats() {
-    const stats = {
-      totalViolations: this.violations.length,
-      blockedActions: 0,
-      approvalRequired: 0,
-      byTier: { [SafetyTier.LOCAL]: 0, [SafetyTier.PROD]: 0 },
-      byAction: {} as Record<string, number>,
-    };
-
-    for (const violation of this.violations) {
-      if (violation.outcome === 'blocked') stats.blockedActions++;
-      else if (violation.outcome === 'approval_required') stats.approvalRequired++;
-      stats.byTier[violation.safetyTier]++;
-      stats.byAction[violation.action] = (stats.byAction[violation.action] || 0) + 1;
-    }
-    return stats;
+    return null;
   }
 
   updatePolicy(tier: SafetyTier, updates: Partial<SafetyPolicy>): void {
@@ -361,5 +310,26 @@ export class SafetyEngine extends SafetyBase {
   removeToolOverride(toolName: string): void {
     this.toolOverrides.delete(toolName);
     logger.info('Tool safety override removed', { toolName });
+  }
+
+  getStats() {
+    const stats = {
+      totalViolations: this.violations.length,
+      blockedActions: 0,
+      approvalRequired: 0,
+      byTier: { [SafetyTier.LOCAL]: 0, [SafetyTier.PROD]: 0 } as Record<string, number>,
+      byAction: {} as Record<string, number>,
+    };
+    for (const v of this.violations) {
+      if (v.outcome === 'blocked') stats.blockedActions++;
+      else if (v.outcome === 'approval_required') stats.approvalRequired++;
+      stats.byTier[v.safetyTier] = (stats.byTier[v.safetyTier] || 0) + 1;
+      stats.byAction[v.action] = (stats.byAction[v.action] || 0) + 1;
+    }
+    return stats;
+  }
+
+  clearViolations() {
+    this.violations = [];
   }
 }

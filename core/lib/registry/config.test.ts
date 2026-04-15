@@ -113,3 +113,57 @@ describe('ConfigManager.getAgentOverrideConfig', () => {
     expect(result).toBe(10);
   });
 });
+
+describe('ConfigManager atomic operations', () => {
+  let docClientMock: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (Resource as any).ConfigTable = { name: 'mock-table' };
+    docClientMock = {
+      send: vi.fn().mockResolvedValue({}),
+    };
+    setDocClient(docClientMock as any);
+  });
+
+  afterEach(() => {
+    delete (Resource as any).ConfigTable;
+  });
+
+  it('should call UpdateCommand with condition for atomicUpdateMapFieldWithCondition', async () => {
+    await ConfigManager.atomicUpdateMapFieldWithCondition(
+      'key',
+      'entity',
+      'field',
+      'value',
+      'expected'
+    );
+
+    expect(docClientMock.send).toHaveBeenCalled();
+    const command = docClientMock.send.mock.calls[0][0];
+    expect(command.input.ConditionExpression).toBe('#val.#id.#field = :expected');
+    expect(command.input.ExpressionAttributeValues[':expected']).toBe('expected');
+    expect(command.input.ExpressionAttributeValues[':value']).toBe('value');
+  });
+
+  it('should retry on ConditionalCheckFailedException in atomicRemoveFromMapList', async () => {
+    // 1. First get returns the list
+    docClientMock.send.mockResolvedValueOnce({
+      Item: { value: { entity: { field: ['item1', 'item2'] } } },
+    });
+    // 2. First update fails with race condition
+    const error = new Error('Race');
+    error.name = 'ConditionalCheckFailedException';
+    docClientMock.send.mockRejectedValueOnce(error);
+    // 3. Second get (retry)
+    docClientMock.send.mockResolvedValueOnce({
+      Item: { value: { entity: { field: ['item1', 'item2'] } } },
+    });
+    // 4. Second update succeeds
+    docClientMock.send.mockResolvedValueOnce({});
+
+    await ConfigManager.atomicRemoveFromMapList('key', 'entity', 'field', ['item1']);
+
+    expect(docClientMock.send).toHaveBeenCalledTimes(4);
+  });
+});

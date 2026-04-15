@@ -17,6 +17,8 @@ vi.mock('../../lib/constants', () => ({
     TMP_STAGING_ZIP: '/tmp/staging.zip',
     STAGING_ZIP: 'staging.zip',
   },
+  PROTECTED_PATHS: ['core/**', 'infra/**', '.env*', 'sst.config.ts'],
+  PATH_KEYS: ['path', 'file_path'],
 }));
 
 vi.mock('../../lib/logger', () => ({
