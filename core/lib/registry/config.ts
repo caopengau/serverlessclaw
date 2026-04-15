@@ -352,6 +352,43 @@ export class ConfigManager {
       }
     }
   }
+  /**
+   * Atomically adds/subtracts a value for a specific field for an entity within a map-based configuration.
+   * Scoped to Principle 13 (Atomic State Integrity) and Silo 6 (The Scales).
+   *
+   * @param key - The unique configuration key (e.g., DYNAMO_KEYS.AGENTS_CONFIG).
+   * @param entityId - The ID of the entity within the map (e.g., agentId).
+   * @param field - The field name to update.
+   * @param delta - The amount to add (can be negative).
+   */
+  public static async atomicAddMapField(
+    key: string,
+    entityId: string,
+    field: string,
+    delta: number
+  ): Promise<number> {
+    const resource = Resource as { ConfigTable?: { name: string } };
+    if (!resource.ConfigTable?.name) return 0;
+
+    const docClient = getDocClient();
+
+    try {
+      const result = await docClient.send(
+        new UpdateCommand({
+          TableName: resource.ConfigTable.name,
+          Key: { key },
+          UpdateExpression: 'SET #val.#id.#field = if_not_exists(#val.#id.#field, :zero) + :delta',
+          ExpressionAttributeNames: { '#val': 'value', '#id': entityId, '#field': field },
+          ExpressionAttributeValues: { ':delta': delta, ':zero': 0 },
+          ReturnValues: 'ALL_NEW',
+        })
+      );
+      return result.Attributes?.value?.[entityId]?.[field] ?? 0;
+    } catch (e: unknown) {
+      logger.error(`Failed to atomically add ${delta} to ${key}/${entityId}.${field}:`, e);
+      throw e;
+    }
+  }
 
   /**
    * Atomically updates a specific field for an entity with a conditional check on the current value.

@@ -159,7 +159,6 @@ describe('SafetyEngine', () => {
     vi.mocked(ConfigManager.getRawConfig).mockResolvedValue({});
 
     engine = new SafetyEngine();
-    engine.clearViolations();
   });
 
   describe('evaluateAction', () => {
@@ -370,64 +369,6 @@ describe('SafetyEngine', () => {
     });
   });
 
-  describe('Violation Logging', () => {
-    it('should log a violation record for blocked actions', async () => {
-      const config = {
-        id: 'test-agent',
-        safetyTier: SafetyTier.LOCAL,
-      } as IAgentConfig;
-
-      await engine.evaluateAction(config, 'file_operation', {
-        resource: '.env',
-        traceId: 'trace-123',
-        userId: 'user-456',
-      });
-
-      const violations = engine.getViolations();
-      expect(violations.length).toBe(1);
-      expect(violations[0].agentId).toBe('test-agent');
-      expect(violations[0].action).toBe('file_operation');
-      expect(violations[0].outcome).toBe('blocked');
-      expect(violations[0].traceId).toBe('trace-123');
-      expect(violations[0].userId).toBe('user-456');
-    });
-
-    it('should log a violation record for approval-required actions', async () => {
-      const config = {
-        id: 'test-agent',
-        safetyTier: SafetyTier.PROD,
-      } as IAgentConfig;
-
-      await engine.evaluateAction(config, 'deployment');
-
-      const violations = engine.getViolations();
-      expect(violations.length).toBe(1);
-      expect(violations[0].outcome).toBe('approval_required');
-    });
-  });
-
-  describe('getStats', () => {
-    it('should aggregate statistics correctly', async () => {
-      const prodConfig = { id: 'prod', safetyTier: SafetyTier.PROD } as IAgentConfig;
-      const localConfig = { id: 'local', safetyTier: SafetyTier.LOCAL } as IAgentConfig;
-
-      // 1 approval required (PROD deployment)
-      await engine.evaluateAction(prodConfig, 'deployment');
-
-      // 1 blocked (LOCAL protected file)
-      await engine.evaluateAction(localConfig, 'file_operation', { resource: '.git/config' });
-
-      // 1 allowed (LOCAL deployment)
-      await engine.evaluateAction(localConfig, 'deployment');
-
-      const stats = engine.getStats();
-      expect(stats.totalViolations).toBe(2);
-      expect(stats.blockedActions).toBe(1);
-      expect(stats.approvalRequired).toBe(1);
-      expect(stats.byTier[SafetyTier.PROD]).toBe(1);
-      expect(stats.byTier[SafetyTier.LOCAL]).toBe(1);
-    });
-  });
 
   describe('Advisory Trust Promotion', () => {
     it('should add advisory tag for high-trust agents on deployment', async () => {
@@ -515,8 +456,7 @@ describe('SafetyEngine', () => {
 
   describe('persistViolation', () => {
     it('should return false if ConfigTable is not linked', async () => {
-      engine.clearViolations();
-      const violation = engine.createViolation(
+      const violation = (engine as any).createViolation(
         'agent',
         SafetyTier.LOCAL,
         'action',

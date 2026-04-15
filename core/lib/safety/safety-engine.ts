@@ -18,10 +18,11 @@ import { SafetyConfigManager } from './safety-config-manager';
 import { EvolutionScheduler } from './evolution-scheduler';
 import { CONFIG_DEFAULTS } from '../config/config-defaults';
 import { SafetyBase } from './safety-base';
-import { PolicyValidator } from './policy-validator';
+import { AgentRegistry } from '../registry/AgentRegistry';
 import { TRUST } from '../constants';
-import { scanForResources } from '../utils/fs-security';
 import { emitEvent } from '../utils/bus';
+import { PolicyValidator } from './policy-validator';
+import { scanForResources } from '../utils/fs-security';
 
 export class SafetyEngine extends SafetyBase {
   private policies: Map<SafetyTier, Partial<SafetyPolicy>>;
@@ -288,7 +289,8 @@ export class SafetyEngine extends SafetyBase {
   ): Promise<SafetyEvaluationResult | null> {
     const error = await this.enforceClassCBlastRadius(agentId, action);
     if (error) {
-      return this.handleViolation(ctx, SafetyTier.PROD, action, 'blast_radius_limit', error);
+      const tier = (await AgentRegistry.getAgentConfig(agentId))?.safetyTier ?? SafetyTier.PROD;
+      return this.handleViolation(ctx, tier, action, 'blast_radius_limit', error);
     }
     await this.evolutionScheduler.scheduleAction({
       agentId,
@@ -357,26 +359,5 @@ export class SafetyEngine extends SafetyBase {
   removeToolOverride(toolName: string): void {
     this.toolOverrides.delete(toolName);
     logger.info('Tool safety override removed', { toolName });
-  }
-
-  getStats() {
-    const stats = {
-      totalViolations: this.violations.length,
-      blockedActions: 0,
-      approvalRequired: 0,
-      byTier: { [SafetyTier.LOCAL]: 0, [SafetyTier.PROD]: 0 } as Record<string, number>,
-      byAction: {} as Record<string, number>,
-    };
-    for (const v of this.violations) {
-      if (v.outcome === 'blocked') stats.blockedActions++;
-      else if (v.outcome === 'approval_required') stats.approvalRequired++;
-      stats.byTier[v.safetyTier] = (stats.byTier[v.safetyTier] || 0) + 1;
-      stats.byAction[v.action] = (stats.byAction[v.action] || 0) + 1;
-    }
-    return stats;
-  }
-
-  clearViolations() {
-    this.violations = [];
   }
 }

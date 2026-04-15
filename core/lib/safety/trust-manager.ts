@@ -118,35 +118,35 @@ export class TrustManager {
   }
 
   private static async updateTrustScore(agentId: string, delta: number): Promise<number> {
-    const MAX_RETRIES = 5;
-    for (let i = 0; i < MAX_RETRIES; i++) {
-      try {
-        const config = await AgentRegistry.getAgentConfig(agentId);
-        if (!config) throw new Error(`Agent ${agentId} not found`);
+    const config = await AgentRegistry.getAgentConfig(agentId);
+    if (!config) throw new Error(`Agent ${agentId} not found`);
 
-        if (config.enabled === false) {
-          logger.warn(`[TrustManager] Skipping trust update for disabled agent ${agentId}.`);
-          return config.trustScore ?? TRUST.DEFAULT_SCORE;
-        }
-
-        const current = config.trustScore ?? TRUST.DEFAULT_SCORE;
-        const next = Math.min(TRUST.MAX_SCORE, Math.max(TRUST.MIN_SCORE, current + delta));
-        if (next === current) return next;
-
-        await AgentRegistry.atomicUpdateAgentFieldWithCondition(
-          agentId,
-          'trustScore',
-          next,
-          current
-        );
-        await this.recordHistory(agentId, next);
-        return next;
-      } catch (e) {
-        if (i === MAX_RETRIES - 1 || (e instanceof Error && e.message.includes('not found')))
-          throw e;
-      }
+    if (config.enabled === false) {
+      logger.warn(`[TrustManager] Skipping trust update for disabled agent ${agentId}.`);
+      return config.trustScore ?? TRUST.DEFAULT_SCORE;
     }
-    return TRUST.DEFAULT_SCORE;
+
+    if (delta === 0) return config.trustScore ?? TRUST.DEFAULT_SCORE;
+
+    try {
+      // Use native atomic ADD to ensure 100% integrity without read-modify-write race conditions (Principle 13)
+      const newScore = await AgentRegistry.atomicAddAgentField(agentId, 'trustScore', delta);
+
+      // Handle clamping on best-effort basis (or could use complex SET expressions if needed)
+      if (newScore > TRUST.MAX_SCORE || newScore < TRUST.MIN_SCORE) {
+        const clamped = Math.min(TRUST.MAX_SCORE, Math.max(TRUST.MIN_SCORE, newScore));
+        await AgentRegistry.atomicUpdateAgentField(agentId, 'trustScore', clamped);
+        return clamped;
+      }
+
+      await this.recordHistory(agentId, newScore);
+      return newScore;
+    } catch (e) {
+      logger.error(`[TrustManager] Failed to atomically update trust for ${agentId}:`, e);
+      // Fallback only if agent config exists to determine a sensible fallback
+      const config = await AgentRegistry.getAgentConfig(agentId);
+      return config?.trustScore ?? TRUST.DEFAULT_SCORE;
+    }
   }
 
   private static async logPenalty(penalty: TrustPenalty): Promise<void> {
@@ -183,12 +183,12 @@ export class TrustManager {
     if (score >= TRUST.AUTONOMY_THRESHOLD + 2) multiplier = 1.5;
     else if (score >= TRUST.AUTONOMY_THRESHOLD) multiplier = 1.1;
     else if (score >= 85) multiplier = 1.2;
-
     const next = Math.max(TRUST.DECAY_BASELINE, score - TRUST.DECAY_RATE * multiplier);
-    if (next < score) {
-      await AgentRegistry.atomicUpdateAgentFieldWithCondition(agentId, 'trustScore', next, score)
-        .then(() => this.recordHistory(agentId, next))
-        .catch(() => logger.debug(`Skipped decay for ${agentId} due to contention`));
+    const delta = Math.round((next - score) * 100) / 100;
+    if (delta < 0) {
+      await AgentRegistry.atomicAddAgentField(agentId, 'trustScore', delta)
+        .then((newScore) => this.recordHistory(agentId, newScore))
+        .catch((err) => logger.error(`[TrustManager] Failed to decay score for ${agentId}:`, err));
     }
   }
 }

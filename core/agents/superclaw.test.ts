@@ -10,7 +10,26 @@ vi.mock('../lib/prompts/loader', () => ({
   })),
 }));
 
-// Mock SafetyConfigManager as it's used in evaluateAction
+// Mock AgentRegistry
+vi.mock('../lib/registry/AgentRegistry', () => ({
+  AgentRegistry: {
+    atomicAddAgentField: vi.fn(),
+  },
+}));
+
+// Mock BlastRadiusStore
+vi.mock('../lib/safety/blast-radius-store', () => {
+  const mockStore = {
+    canExecute: vi.fn().mockResolvedValue({ allowed: true }),
+    incrementBlastRadius: vi.fn().mockResolvedValue({ count: 1 }),
+  };
+  return {
+    BlastRadiusStore: vi.fn(() => mockStore),
+    getBlastRadiusStore: vi.fn(() => mockStore),
+  };
+});
+
+// Mock SafetyConfigManager
 vi.mock('../lib/safety/safety-config-manager', () => ({
   SafetyConfigManager: {
     getPolicies: vi.fn(async () => ({
@@ -135,25 +154,6 @@ describe('SuperClaw', () => {
         });
         expect(result.requiresApproval).toBe(true);
         expect(result.appliedPolicy).toBe('tool_override');
-      });
-    });
-
-    describe('Safety Stats and Violations', () => {
-      it('tracks violations and returns stats', async () => {
-        const config = {
-          id: 'test',
-          name: 'Test',
-          systemPrompt: '',
-          enabled: true,
-          safetyTier: SafetyTier.PROD,
-        } as any;
-        await superclaw.evaluateAction(config, 'unknown_action');
-        const violations = superclaw.getSafetyViolations();
-        expect(violations.length).toBeGreaterThan(0);
-        expect(violations[0].action).toBe('unknown_action');
-        const stats = superclaw.getSafetyStats();
-        expect(stats.totalViolations).toBeGreaterThan(0);
-        expect(stats.approvalRequired).toBeGreaterThan(0);
       });
     });
   });

@@ -382,6 +382,20 @@ export class AgentRegistry {
   }
 
   /**
+   * Atomically adds/subtracts a value for a specific field for an agent in the AGENTS_CONFIG map.
+   * Scoped to Principle 13 (Atomic State Integrity).
+   *
+   * @param id - The unique agent identifier.
+   * @param field - The field name to update.
+   * @param delta - The amount to add (can be negative).
+   * @returns A promise resolving to the new field value.
+   */
+  static async atomicAddAgentField(id: string, field: string, delta: number): Promise<number> {
+    if (this.backboneConfigs[id]) return 0;
+    return ConfigManager.atomicAddMapField(DYNAMO_KEYS.AGENTS_CONFIG, id, field, delta);
+  }
+
+  /**
    * Performs metabolic pruning of low-utilization tools for a specific workspace.
    * Tools with 0 usage and registered > 30 days ago are removed from agent configs.
    * Scoped to Principle 13 (Atomic State Integrity).

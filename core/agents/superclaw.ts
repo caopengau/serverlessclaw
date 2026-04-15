@@ -115,23 +115,4 @@ export class SuperClaw extends Agent {
   setToolSafetyOverride(override: ToolSafetyOverride): void {
     this.safetyEngine.setToolOverride(override);
   }
-
-  /**
-   * Get recent safety violations.
-   *
-   * @param limit - Maximum number of violations to return.
-   * @returns Array of safety violations.
-   */
-  getSafetyViolations(limit?: number) {
-    return this.safetyEngine.getViolations(limit);
-  }
-
-  /**
-   * Get safety statistics.
-   *
-   * @returns Safety statistics including violation counts by tier and action.
-   */
-  getSafetyStats() {
-    return this.safetyEngine.getStats();
-  }
 }

@@ -31,44 +31,39 @@ export class BlastRadiusStore {
   async getBlastRadius(agentId: string, action: string): Promise<BlastRadiusEntry | null> {
     const key = makeKey(agentId, action);
     const now = Date.now();
+    const db = getDocClient();
 
     const cached = this.localCache.get(key);
     if (cached && now - cached.lastAction < WINDOW_MS) {
       return cached;
     }
 
-    const db = getDocClient();
-    try {
-      const { Item } = await db.send(
-        new GetCommand({
-          TableName: getConfigTableName(),
-          Key: { key },
-        })
-      );
+    const { Item } = await db.send(
+      new GetCommand({
+        TableName: getConfigTableName(),
+        Key: { key },
+      })
+    );
 
-      if (!Item?.value) {
-        return null;
-      }
+    if (!Item?.value) return null;
 
-      const entry: BlastRadiusEntry = {
-        key,
-        count: Item.value.count ?? 0,
-        lastAction: Item.value.lastAction ?? 0,
-        resourceCount: Item.value.resourceCount ?? 0,
-        expiresAt: Item.value.expiresAt,
-      };
+    const entry: BlastRadiusEntry = {
+      key,
+      count: Item.value.count ?? 0,
+      lastAction: Item.value.lastAction ?? 0,
+      resourceCount: Item.value.resourceCount ?? 0,
+      expiresAt: Item.value.expiresAt,
+    };
 
-      if (now - entry.lastAction > WINDOW_MS) {
-        await this.deleteBlastRadius(agentId, action);
-        return null;
-      }
-
-      this.localCache.set(key, entry);
-      return entry;
-    } catch (e) {
-      logger.warn(`[BlastRadiusStore] Failed to get blast radius for ${key}:`, e);
-      return cached ?? null;
+    // Note: We no longer perform "get-then-delete" here (metabolic waste).
+    // Window resets are now handled atomically during increment (Principle 13).
+    if (now > (entry.expiresAt ?? 0)) {
+      this.localCache.delete(key);
+      return null;
     }
+
+    this.localCache.set(key, entry);
+    return entry;
   }
 
   async incrementBlastRadius(
@@ -78,60 +73,71 @@ export class BlastRadiusStore {
   ): Promise<BlastRadiusEntry> {
     const key = makeKey(agentId, action);
     const now = Date.now();
-    const expiresAt = now + WINDOW_MS;
-
     const db = getDocClient();
+
     try {
-      // Use atomic UpdateCommand to increment counts safely.
-      // We use if_not_exists to initialize the Map 'value' if it's missing (Principle 13).
+      // Phase 1: Try atomic increment ONLY if window is still active
       const response = await db.send(
         new UpdateCommand({
           TableName: getConfigTableName(),
           Key: { key },
-          UpdateExpression:
-            'SET #val = if_not_exists(#val, :emptyMap), #val.#la = :now, #val.#exp = :expires ADD #val.#cnt :one, #val.#rcnt :resCnt',
+          UpdateExpression: 'SET #val.#la = :now ADD #val.#cnt :one, #val.#rcnt :resCnt',
+          ConditionExpression: 'attribute_exists(#val) AND #val.#exp > :now',
           ExpressionAttributeNames: {
             '#val': 'value',
             '#cnt': 'count',
-            '#rcnt': 'resourceCount',
             '#la': 'lastAction',
             '#exp': 'expiresAt',
+            '#rcnt': 'resourceCount',
           },
-          ExpressionAttributeValues: {
-            ':emptyMap': {},
-            ':one': 1,
-            ':resCnt': resource ? 1 : 0,
-            ':now': now,
-            ':expires': expiresAt,
-          },
+          ExpressionAttributeValues: { ':one': 1, ':now': now, ':resCnt': resource ? 1 : 0 },
           ReturnValues: 'ALL_NEW',
         })
       );
 
       const val = response.Attributes?.value;
-      const entry: BlastRadiusEntry = {
-        key,
-        count: val.count ?? 1,
-        lastAction: val.lastAction ?? now,
-        resourceCount: val.resourceCount ?? (resource ? 1 : 0),
-        expiresAt: val.expiresAt ?? expiresAt,
-      };
+      const entry = { key, ...val } as BlastRadiusEntry;
+      this.localCache.set(key, entry);
+      return entry;
+    } catch (e: any) {
+      if (e.name === 'ConditionalCheckFailedException') {
+        // Phase 2: Window expired or record missing - Perform atomic reset
+        const expiresAt = now + WINDOW_MS;
+        const response = await db
+          .send(
+            new UpdateCommand({
+              TableName: getConfigTableName(),
+              Key: { key },
+              UpdateExpression: 'SET #val = :newEntry',
+              // Condition ensure we don't overwrite if another turn just initialized it
+              ConditionExpression: 'attribute_not_exists(#val) OR #val.#exp <= :now',
+              ExpressionAttributeNames: { '#val': 'value', '#exp': 'expiresAt' },
+              ExpressionAttributeValues: {
+                ':newEntry': {
+                  count: 1,
+                  lastAction: now,
+                  resourceCount: resource ? 1 : 0,
+                  expiresAt,
+                },
+                ':now': now,
+              },
+              ReturnValues: 'ALL_NEW',
+            })
+          )
+          .catch((innerE) => {
+            if (innerE.name === 'ConditionalCheckFailedException') {
+              // Recurse once if we hit a race during initialization
+              return this.incrementBlastRadius(agentId, action, resource);
+            }
+            throw innerE;
+          });
 
-      this.localCache.set(key, entry);
-      return entry;
-    } catch (e) {
-      logger.warn(`[BlastRadiusStore] Failed to atomically increment blast radius for ${key}:`, e);
-      // Fallback to local cache if DB fails
-      const existing = this.localCache.get(key);
-      const entry: BlastRadiusEntry = {
-        key,
-        count: (existing?.count ?? 0) + 1,
-        lastAction: now,
-        resourceCount: (existing?.resourceCount ?? 0) + (resource ? 1 : 0),
-        expiresAt,
-      };
-      this.localCache.set(key, entry);
-      return entry;
+        const val = (response as any).Attributes?.value;
+        const entry = { key, ...val } as BlastRadiusEntry;
+        this.localCache.set(key, entry);
+        return entry;
+      }
+      throw e;
     }
   }
 

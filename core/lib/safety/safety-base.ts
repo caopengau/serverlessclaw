@@ -14,7 +14,6 @@ import { isProtectedPath, matchesGlob } from '../utils/fs-security';
 import { CLASS_C_ACTIONS, CLASS_D_ACTIONS, SAFETY_LIMITS } from '../constants/safety';
 
 export class SafetyBase {
-  protected violations: SafetyViolation[] = [];
   protected blastRadiusStore: BlastRadiusStore;
 
   constructor() {
@@ -94,13 +93,6 @@ export class SafetyBase {
    * Log a safety violation.
    */
   public async logViolation(violation: SafetyViolation): Promise<void> {
-    this.violations.push(violation);
-
-    // Enforce strict memory limit for serverless environments (Principle 11 & 10)
-    if (this.violations.length > SAFETY_LIMITS.VIOLATION_MEMORY_LIMIT) {
-      this.violations = this.violations.slice(-SAFETY_LIMITS.VIOLATION_MEMORY_LIMIT);
-    }
-
     // Persist ONLY the new violation to DynamoDB immediately for audit trail
     // This adheres to Silo 1 (Stateless Core) while being O(1) instead of O(N^2)
     await this.persistViolation(violation);
@@ -119,12 +111,6 @@ export class SafetyBase {
    * Use this for validation-stage violations that shouldn't be double-logged.
    */
   public logViolationExternal(violation: SafetyViolation): void {
-    this.violations.push(violation);
-
-    if (this.violations.length > SAFETY_LIMITS.VIOLATION_MEMORY_LIMIT) {
-      this.violations = this.violations.slice(-SAFETY_LIMITS.VIOLATION_MEMORY_LIMIT);
-    }
-
     logger.warn('Safety violation detected (external)', {
       violationId: violation.id,
       agentId: violation.agentId,
@@ -191,15 +177,11 @@ export class SafetyBase {
     action: string
   ): Promise<string | null> {
     const result = await this.blastRadiusStore.canExecute(agentId, action);
-    return result.allowed ? null : (result.error ?? 'Blast radius exceeded');
+    return result.allowed ? null : (result.error ?? 'BLAST_RADIUS_EXCEEDED');
   }
 
   public matchesGlob(path: string, pattern: string): boolean {
     return matchesGlob(path, pattern);
-  }
-
-  getViolations(limit: number = 100): SafetyViolation[] {
-    return this.violations.slice(-limit);
   }
 
   /**

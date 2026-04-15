@@ -121,7 +121,7 @@ describe('BlastRadiusStore', () => {
       expect(result.resourceCount).toBe(1);
     });
 
-    it('REPRO/FIX: should use atomic UpdateCommand with value wrapper for schema compliance', async () => {
+    it('REPRO/FIX: should use atomic UpdateExpression with field-level ADD for sliding windows', async () => {
       mockSend.mockResolvedValueOnce({
         Attributes: {
           value: {
@@ -138,11 +138,39 @@ describe('BlastRadiusStore', () => {
       const lastCall = mockSend.mock.calls[mockSend.mock.calls.length - 1][0];
       const params = lastCall.input;
 
-      // Verify schema compliance
-      expect(params.UpdateExpression).toContain('#val.#cnt');
-      expect(params.UpdateExpression).toContain('#val.#rcnt');
+      // Verify schema compliance (native ADD for count and resourceCount)
+      expect(params.UpdateExpression).toContain('#cnt :one');
       expect(params.ExpressionAttributeNames).toHaveProperty('#val', 'value');
       expect(params.ExpressionAttributeNames).toHaveProperty('#cnt', 'count');
+    });
+
+    it('should transition to Phase 2 (atomic reset) when window is expired', async () => {
+      // 1. First call fails with ConditionalCheckFailedException (window expired)
+      const conditionalError = new Error('ConditionalCheckFailed');
+      conditionalError.name = 'ConditionalCheckFailedException';
+      mockSend.mockRejectedValueOnce(conditionalError);
+
+      // 2. Second call (Phase 2 reset) succeeds
+      const now = Date.now();
+      mockSend.mockResolvedValueOnce({
+        Attributes: {
+          value: {
+            count: 1,
+            lastAction: now,
+            resourceCount: 1,
+            expiresAt: now + 3600000,
+          },
+        },
+      });
+
+      const result = await store.incrementBlastRadius('agent-1', 'deployment', 'res-1');
+      
+      expect(result.count).toBe(1);
+      expect(mockSend).toHaveBeenCalledTimes(2);
+      
+      const resetCall = mockSend.mock.calls[1][0].input;
+      expect(resetCall.UpdateExpression).toContain('SET #val = :newEntry');
+      expect(resetCall.ConditionExpression).toContain('attribute_not_exists(#val) OR #val.#exp <= :now');
     });
   });
 
@@ -153,12 +181,22 @@ describe('BlastRadiusStore', () => {
     });
 
     it('should return not allowed when at limit', async () => {
-      await store.incrementBlastRadius('agent-1', 'deployment');
-      await store.incrementBlastRadius('agent-1', 'deployment');
-      await store.incrementBlastRadius('agent-1', 'deployment');
-      await store.incrementBlastRadius('agent-1', 'deployment');
-      await store.incrementBlastRadius('agent-1', 'deployment');
+      // Mock sequential increments: 1, 2, 3, 4, 5
+      for (let i = 1; i <= 5; i++) {
+        mockSend.mockResolvedValueOnce({
+          Attributes: {
+            value: {
+              count: i,
+              lastAction: Date.now(),
+              resourceCount: 0,
+              expiresAt: Date.now() + 3600000,
+            },
+          },
+        });
+        await store.incrementBlastRadius('agent-1', 'deployment');
+      }
 
+      // getBlastRadius will return the cached count of 5
       const result = await store.checkLimit('agent-1', 'deployment');
       expect(result.allowed).toBe(false);
       expect(result.count).toBe(5);
@@ -173,11 +211,19 @@ describe('BlastRadiusStore', () => {
     });
 
     it('should return error when at limit', async () => {
-      await store.incrementBlastRadius('agent-1', 'deployment');
-      await store.incrementBlastRadius('agent-1', 'deployment');
-      await store.incrementBlastRadius('agent-1', 'deployment');
-      await store.incrementBlastRadius('agent-1', 'deployment');
-      await store.incrementBlastRadius('agent-1', 'deployment');
+      for (let i = 1; i <= 5; i++) {
+        mockSend.mockResolvedValueOnce({
+          Attributes: {
+            value: {
+              count: i,
+              lastAction: Date.now(),
+              resourceCount: 0,
+              expiresAt: Date.now() + 3600000,
+            },
+          },
+        });
+        await store.incrementBlastRadius('agent-1', 'deployment');
+      }
 
       const result = await store.canExecute('agent-1', 'deployment');
       expect(result.allowed).toBe(false);

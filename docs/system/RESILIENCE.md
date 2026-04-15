@@ -18,39 +18,34 @@ The system enforces hard limits on high-impact actions to prevent runaway costs 
 
 - **Class C Limit**: Hard cap of 5 Class C actions per hour per agent (Principle 10).
 - **Promotion**: Class C actions require human approval unless an agent is in `EVOLUTION_MODE="AUTO"` and has a `TrustScore >= 95`.
-- **Persistence**: The `BlastRadiusStore` uses DynamoDB with atomic `ADD` operations to persist counts safely across Lambda cold starts, with a local cache for performance within the same instance.
+- **Persistence**: The `BlastRadiusStore` uses a **Two-Phase Atomic Update** pattern to ensure integrity during window transitions:
+    - **Phase 1 (Active Window)**: Conditional `UpdateCommand` using `ADD` to increment count within current window.
+    - **Phase 2 (Expired Window)**: Conditional `UpdateCommand` using `SET` to atomically reset the window if it has expired.
 
 ```text
    [ Class C Action ]
           |
           v
-   [ BlastRadiusStore.canExecute() ]
+   [ BlastRadiusStore.incrementBlastRadius() ]
           |
-          +--> (Check DynamoDB + Local Cache)
-          |         |
-          |    [ Within 1hr window? ]
-          |         |
-          +----+    +----+
-               |    |
-          [ YES]    [ NO]
-               |    |
-          (Check    (Allow/
-          count)    Reset)
-               |    |
-          +----+    +----+
-               |    |
-        [count>=5]  [count=0]
-               |    |
-          [BLOCKED] [ALLOWED]
-          (Error:   (Atomic
-          EXCEEDED)  Increment)
+          +---- [ Phase 1: Window Active? ] ----+
+          |                                     |
+    [ Yes: Conditional ADD ]             [ No: Conditional SET ]
+          |                                     |
+     <SUCCESS>                            <SUCCESS>
+          |                                     |
+    [ Update Cache ]                     [ Reset Cache ]
+          |                                     |
+          +------------------+------------------+
+                             |
+                      [ Return Result ]
 ```
 
 **Key Features**:
 
 - DynamoDB-backed storage with key pattern `safety:blast_radius:{agentId}:{action}`
-- **Atomic Integrity**: Uses DynamoDB `ADD` to prevent race conditions during concurrent agent activity (Principle 13).
-- Local cache for performance within same Lambda instance
+- **Atomic Integrity**: Handles window resets atomically during the increment phase, eliminating "get-then-delete" race conditions.
+- Local cache for performance within same Lambda instance.
 - 1-hour TTL (WINDOW_MS) with automatic cleanup via `expiresAt` GSI.
 
 ### Layer 3: Loop Interdiction

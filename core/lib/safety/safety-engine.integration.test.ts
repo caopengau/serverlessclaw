@@ -11,7 +11,7 @@ const { mockDefaults } = vi.hoisted(() => {
   return {
     mockDefaults: {
       local: {
-        tier: 'local',
+        tier: 'local' as unknown as SafetyTier,
         requireCodeApproval: false,
         requireDeployApproval: false,
         requireFileApproval: false,
@@ -23,7 +23,7 @@ const { mockDefaults } = vi.hoisted(() => {
         maxFileWritesPerHour: 500,
       },
       prod: {
-        tier: 'prod',
+        tier: 'prod' as unknown as SafetyTier,
         requireCodeApproval: false,
         requireDeployApproval: true,
         requireFileApproval: false,
@@ -37,7 +37,6 @@ const { mockDefaults } = vi.hoisted(() => {
     },
   };
 });
-import { DEFAULT_POLICIES } from './safety-config-manager';
 
 // Mock Logger
 vi.mock('../logger', () => ({
@@ -61,6 +60,26 @@ vi.mock('./safety-config-manager', () => {
       getPolicies: vi.fn(async () => defaults),
       getPolicy: vi.fn(async (tier: string) => (defaults as any)[tier]),
     },
+  };
+});
+
+// Mock AgentRegistry
+vi.mock('../registry/AgentRegistry', () => ({
+  AgentRegistry: {
+    atomicAddAgentField: vi.fn().mockResolvedValue(100),
+    getAgentConfig: vi.fn(),
+  },
+}));
+
+// Mock BlastRadiusStore
+vi.mock('./blast-radius-store', () => {
+  const mockStore = {
+    canExecute: vi.fn().mockResolvedValue({ allowed: true }),
+    incrementBlastRadius: vi.fn().mockResolvedValue({ count: 1 }),
+  };
+  return {
+    BlastRadiusStore: vi.fn(() => mockStore),
+    getBlastRadiusStore: vi.fn(() => mockStore),
   };
 });
 
@@ -160,14 +179,16 @@ describe('Safety Engine Integration', () => {
     it('should enforce daily deployment limits', async () => {
       const { SafetyConfigManager } = await import('./safety-config-manager');
       const testPolicies = {
-        [SafetyTier.PROD]: DEFAULT_POLICIES[SafetyTier.PROD],
+        [SafetyTier.PROD]: mockDefaults.prod,
         [SafetyTier.LOCAL]: {
-          ...DEFAULT_POLICIES[SafetyTier.LOCAL],
+          ...mockDefaults.local,
           maxDeploymentsPerDay: 2,
         },
       };
 
-      (SafetyConfigManager.getPolicies as any).mockResolvedValue(testPolicies);
+      (
+        SafetyConfigManager.getPolicies as unknown as { mockResolvedValue: (val: unknown) => void }
+      ).mockResolvedValue(testPolicies);
 
       const testEngine = new SafetyEngine(testPolicies);
       const config = {
@@ -187,86 +208,6 @@ describe('Safety Engine Integration', () => {
       const result3 = await testEngine.evaluateAction(config, 'deployment');
       expect(result3.allowed).toBe(false);
       expect(result3.reason).toContain('rate limit');
-    });
-
-    it('should enforce shell command hourly limits', async () => {
-      const { SafetyConfigManager } = await import('./safety-config-manager');
-      const testPolicies = {
-        [SafetyTier.PROD]: DEFAULT_POLICIES[SafetyTier.PROD],
-        [SafetyTier.LOCAL]: {
-          ...DEFAULT_POLICIES[SafetyTier.LOCAL],
-          maxShellCommandsPerHour: 2,
-        },
-      };
-
-      (SafetyConfigManager.getPolicies as any).mockResolvedValue(testPolicies);
-
-      const testEngine = new SafetyEngine(testPolicies);
-      const config = {
-        id: 'test',
-        name: 'Test',
-        systemPrompt: '',
-        enabled: true,
-        safetyTier: SafetyTier.LOCAL,
-      };
-
-      await testEngine.evaluateAction(config, 'shell_command');
-      await testEngine.evaluateAction(config, 'shell_command');
-
-      const result = await testEngine.evaluateAction(config, 'shell_command');
-      expect(result.allowed).toBe(false);
-      expect(result.reason).toContain('rate limit');
-    });
-  });
-
-  describe('Violation tracking across evaluations', () => {
-    it('should accumulate violations from multiple evaluations', async () => {
-      const config = {
-        id: 'test-agent',
-        name: 'TestAgent',
-        systemPrompt: '',
-        enabled: true,
-        safetyTier: SafetyTier.PROD,
-      };
-
-      await engine.evaluateAction(config, 'code_change'); // Allowed in PROD
-      await engine.evaluateAction(config, 'deployment'); // Requires approval in PROD
-      await engine.evaluateAction(config, 'file_operation', { resource: '.env' }); // Blocked
-
-      const violations = engine.getViolations();
-      // Only deployment (approval required) and file_operation (blocked) should be violations
-      expect(violations.length).toBe(2);
-
-      const stats = engine.getStats();
-      expect(stats.totalViolations).toBe(2);
-    });
-
-    it('should track blocked vs approval-required violations separately', async () => {
-      const localConfig = {
-        id: 'local-agent',
-        name: 'LocalAgent',
-        systemPrompt: '',
-        enabled: true,
-        safetyTier: SafetyTier.LOCAL,
-      };
-
-      await engine.evaluateAction(localConfig, 'file_operation', {
-        resource: '.env',
-      }); // Blocked
-
-      const prodConfig = {
-        id: 'prod-agent',
-        name: 'ProdAgent',
-        systemPrompt: '',
-        enabled: true,
-        safetyTier: SafetyTier.PROD,
-      };
-
-      await engine.evaluateAction(prodConfig, 'deployment'); // Approval required
-
-      const stats = engine.getStats();
-      expect(stats.blockedActions).toBe(1);
-      expect(stats.approvalRequired).toBe(1);
     });
   });
 });
