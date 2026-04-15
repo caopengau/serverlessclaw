@@ -40,7 +40,9 @@ export class MetabolismService {
     findings.push(...mcpFindings);
 
     // 3. Fallback to native audit if MCP failed or returned no tools
-    const hasMcpFail = mcpFindings.some((f) => f.recommendation.includes('Ensure AST server'));
+    const hasMcpFail = mcpFindings.some(
+      (f) => f.recommendation.includes('Ensure AST server') || f.expected === 'MCP audit success'
+    );
     if (mcpFindings.length === 0 || hasMcpFail) {
       const nativeFindings = await this.runNativeAudit(workspaceId);
       findings.push(...nativeFindings);
@@ -111,13 +113,14 @@ export class MetabolismService {
   /**
    * Runs the codebase audit via AIReady (AST) MCP server.
    */
-  private static async runMcpAudit(_workspaceId?: string): Promise<AuditFinding[]> {
+  private static async runMcpAudit(workspaceId?: string): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
     try {
       const astTools = await MCPBridge.getToolsFromServer('ast', '');
-      const auditTool = astTools.find((t: { name: string }) =>
-        t.name.match(/^(metabolism|codebase)_audit$/)
-      );
+      const auditTool = astTools.find((t: { name: string }) => {
+        const name = t.name.toLowerCase();
+        return name.includes('metabolism') || name.includes('audit');
+      });
 
       if (!auditTool) {
         findings.push({
@@ -130,8 +133,10 @@ export class MetabolismService {
         return findings;
       }
 
+      const auditPath = process.cwd() + '/core';
       const result = await auditTool.execute({
-        path: './core',
+        path: auditPath,
+        workspaceId: workspaceId,
         includeTelemetry: true,
         depth: 'full',
       });
@@ -149,12 +154,16 @@ export class MetabolismService {
           fix?: string;
         }>;
         if (Array.isArray(mcpFindings)) {
+          const validSeverities = ['P0', 'P1', 'P2', 'P3'];
           for (const f of mcpFindings) {
+            const severityValue = f.severity ?? 'P2';
             findings.push({
               silo: 'Metabolism',
               expected: f.expected || 'Lean, optimized system state',
               actual: f.actual || f.message || 'Bloat/Debt detected by AIReady',
-              severity: (f.severity as any) || 'P2',
+              severity: validSeverities.includes(severityValue)
+                ? (severityValue as 'P0' | 'P1' | 'P2' | 'P3')
+                : 'P2',
               recommendation: f.recommendation || f.fix || 'Review AIReady report for details.',
             });
           }
@@ -162,6 +171,13 @@ export class MetabolismService {
       }
     } catch (e) {
       logger.warn('[Metabolism] MCP audit failed, will trigger native fallback:', e);
+      findings.push({
+        silo: 'Metabolism',
+        expected: 'MCP audit success',
+        actual: `MCP audit threw: ${e instanceof Error ? e.message : String(e)}`,
+        severity: 'P2',
+        recommendation: 'Check MCP server availability and connectivity.',
+      });
     }
     return findings;
   }
@@ -254,11 +270,11 @@ export class MetabolismService {
 
   /**
    * Runs naive native checks for common debt markers.
+   * Uses in-memory file scanning instead of shell commands for serverless compatibility.
    */
   private static async runNativeAudit(_workspaceId?: string): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
 
-    // Always report that native scan is running
     findings.push({
       silo: 'Metabolism',
       expected: 'Native technical debt scan performed',
@@ -268,22 +284,46 @@ export class MetabolismService {
     });
 
     try {
-      const { runShellCommand } = await import('../../tools/system/fs');
-      const result = await runShellCommand.execute({
-        command: "grep -rE '(TODO|FIXME)' ./core | head -n 20",
-      });
+      const corePath = process.cwd() + '/core';
+      const { readFileSync, readdirSync, statSync } = await import('fs');
+      const { join } = await import('path');
 
-      if (result && typeof result === 'string') {
-        const lines = result.split('\n').filter((l: string) => l.trim());
-        if (lines.length > 0) {
-          findings.push({
-            silo: 'Metabolism',
-            expected: 'Zero technical debt markers in core paths',
-            actual: `Native scan: Found ${lines.length} debt markers (TODO/FIXME) in core files.`,
-            severity: 'P3',
-            recommendation: 'Review detected markers and schedule refactoring sprints.',
-          });
+      const scanDir = (dir: string, depth: number = 0): string[] => {
+        if (depth > 3) return [];
+        const results: string[] = [];
+        try {
+          const entries = readdirSync(dir);
+          for (const entry of entries) {
+            const fullPath = join(dir, entry);
+            const stat = statSync(fullPath);
+            if (stat.isDirectory() && !entry.startsWith('.') && entry !== 'node_modules') {
+              results.push(...scanDir(fullPath, depth + 1));
+            } else if (stat.isFile() && entry.endsWith('.ts')) {
+              try {
+                const content = readFileSync(fullPath, 'utf-8');
+                if (content.includes('TODO') || content.includes('FIXME')) {
+                  results.push(fullPath);
+                }
+              } catch {
+                // Ignore file read errors during audit scan
+              }
+            }
+          }
+        } catch {
+          // Ignore directory read errors during audit scan
         }
+        return results;
+      };
+
+      const filesWithMarkers = scanDir(corePath);
+      if (filesWithMarkers.length > 0) {
+        findings.push({
+          silo: 'Metabolism',
+          expected: 'Zero technical debt markers in core paths',
+          actual: `Native scan: Found ${filesWithMarkers.length} files with debt markers (TODO/FIXME).`,
+          severity: 'P3',
+          recommendation: 'Review detected markers and schedule refactoring sprints.',
+        });
       }
     } catch (e) {
       logger.warn('[Metabolism] Native debt scan failed:', e);

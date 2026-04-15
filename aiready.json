@@ -2,23 +2,17 @@
   "$schema": "https://getaiready.dev/schema.json",
   "threshold": 80,
   "scan": {
-    "include": ["core/**/*.ts", "dashboard/src/**/*.{ts,tsx}", "infra/**/*.ts", "scripts/**/*.ts"],
+    "include": [
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.js",
+      "**/*.jsx"
+    ],
     "exclude": [
-      "integrations/**",
       "**/node_modules/**",
       "**/.sst/**",
       "**/.next/**",
-      "**/.aiready/**",
-      "**/coverage/**",
-      "**/dist/**",
-      "**/build/**",
-      "**/aiready-report-*.json",
-      "pnpm-lock.yaml",
-      "**/__mocks__/**",
-      "**/types/index.ts",
-      "**/index.ts",
-      "**/*.test.ts",
-      "**/*.test.tsx"
+      "**/.aiready/**"
     ],
     "tools": [
       "pattern-detect",
@@ -45,15 +39,15 @@
   "tools": {
     "pattern-detect": {
       "minSimilarity": 0.5,
-      "minLines": 5,
-      "minSharedTokens": 10,
+      "minLines": 3,
+      "minSharedTokens": 8,
       "approx": true,
-      "batchSize": 300,
-      "maxCandidatesPerBlock": 500,
+      "batchSize": 500,
+      "maxCandidatesPerBlock": 1000,
       "minClusterFiles": 3,
       "minClusterTokenCost": 1000,
       "includeTests": true,
-      "exclude": ["integrations/**", "**/types/**", "**/__mocks__/**", "**/api/*/route.ts"]
+      "exclude": ["**/api/*/route.ts"]
     },
     "context-analyzer": {
       "maxContextBudget": 200000,
@@ -116,16 +110,7 @@
         "naming-consistency:function-camel-case"
       ],
       "exclude": [
-        "dashboard/src/components/ui/**",
-        "core/__mocks__/**",
-        "**/schema.ts",
-        "core/lib/schema/**",
-        "dashboard/src/app/layout.tsx",
-        "dashboard/src/app/memory/types.ts",
-        "core/lib/memory/cache.ts",
-        "dashboard/src/components/Trace/nodes.tsx",
-        "dashboard/src/components/Providers/TranslationsProvider.tsx",
-        "scripts/**"
+        "dashboard/src/components/ui/**"
       ]
     },
     "ai-signal-clarity": {
@@ -138,10 +123,7 @@
       "checkOverloadedSymbols": true,
       "checkLargeFiles": true,
       "exclude": [
-        "dashboard/src/components/ui/**",
-        "**/lib/memory/gap-operations.ts",
-        "**/lib/agent/executor-core.ts",
-        "core/lib/metrics/cognitive-metrics.ts"
+        "dashboard/src/components/ui/**"
       ]
     },
     "agent-grounding": {

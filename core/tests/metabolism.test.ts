@@ -94,6 +94,7 @@ describe('MetabolismService', () => {
 
       expect(findings).toEqual(
         expect.arrayContaining([
+          expect.objectContaining({ expected: 'MCP audit success', severity: 'P2' }),
           expect.objectContaining({ expected: 'Native technical debt scan performed' }),
         ])
       );

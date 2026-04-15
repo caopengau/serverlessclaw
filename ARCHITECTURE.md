@@ -211,15 +211,16 @@ The system architecture follows a **Distributed Spine** model where all critical
           v
   [ Agent Execution (Silo 2: The Hand) ]
           |-- (5) Security Enforcement (ToolSecurityValidator: Safety/RBAC/Breaker)
-          |-- (6) Isolated Workspace (/tmp/claw-workspaces/<traceId>)
-          |-- (7) Unified MCP Tool Discovery (Distributed Backoff)
+          |-- (6) Budget Enforcement (BudgetEnforcer: Tokens/Cost/Thresholds)
+          |-- (7) Isolated Workspace (/tmp/claw-workspaces/<traceId>)
+          |-- (8) Unified MCP Tool Discovery (Distributed Backoff)
           v
   [ Outcome (Success/Failure) ]
           |
           v
   [ Silo 6: The Scales (TrustManager) ]
-          |-- (8) Quality-Weighted Reputation Update
-          |-- (9) Atomic History Recording (list_append)
+          |-- (9) Quality-Weighted Reputation Update
+          |-- (10) Atomic History Recording (list_append)
           v
   [ ConfigTable (DDB) ] <--- (Feedback Loop for Selection Integrity)
 ```
@@ -232,9 +233,10 @@ To maintain a **Stateless Core** (Principle 1) while ensuring systemic safety, t
 
 1.  **Distributed Flow Control**: The `FlowController` centralizes backbone circuit breakers and rate limiters using DynamoDB atomic counters. This prevents "phantom safety" where different Lambda instances have divergent views of system health.
 2.  **Surgical Security Enforcement**: The `ToolSecurityValidator` decouples security logic from tool execution. It enforces the "Shield" (SafetyEngine) rules, RBAC permissions, and system-level circuit breakers before any tool interaction occurs.
-3.  **Selection Integrity**: The `AgentMultiplexer` acts as the authoritative gateway. It performs a mandatory configuration check for every agent before invocation, ensuring that `enabled: false` status is strictly enforced regardless of the event source.
-4.  **Dynamic Routing**: The `AgentRouter` uses historical performance metrics (success rate, latency, cost) to dynamically select the best agent-model combination for a given task.
-5.  **Monotonic Recursion Tracking**: Cross-session recursion depth is managed via atomic increments in the `recursion-tracker`, preventing loop-bypass attacks in concurrent swarm scenarios.
+3.  **Budget Guardrails**: The `BudgetEnforcer` provides real-time monitoring of token consumption and monetary costs during agent loops. It triggers soft warnings at 80% usage and hard stops when limits are exceeded, preventing runaway execution costs.
+4.  **Selection Integrity**: The `AgentMultiplexer` acts as the authoritative gateway. It performs a mandatory configuration check for every agent before invocation, ensuring that `enabled: false` status is strictly enforced regardless of the event source.
+5.  **Dynamic Routing**: The `AgentRouter` uses historical performance metrics (success rate, latency, cost) to dynamically select the best agent-model combination for a given task.
+6.  **Monotonic Recursion Tracking**: Cross-session recursion depth is managed via atomic increments in the `recursion-tracker`, preventing loop-bypass attacks in concurrent swarm scenarios.
 
 ---
 
@@ -244,7 +246,7 @@ The system maintains a continuous feedback loop between execution observability 
 
 ```text
 [ Execution ] ---- (Telemetry) ----> [ Silo 5: The Eye ]
-                                     (Cognitive Metrics)
+                                     (Collector -> Analyzer -> Detector)
                                              |
                                      [ Anomaly Detected? ]
                                              |
@@ -256,8 +258,8 @@ The system maintains a continuous feedback loop between execution observability 
 (AUTO -> HITL)
 ```
 
-1. **Detection**: The `CognitiveHealthMonitor` identifies reasoning loops or degradation.
-2. **Calibration**: `TrustManager` applies severity-based penalties or quality-weighted bumps.
+1. **Detection**: The `CognitiveHealthMonitor` orchestrates the observation pipeline. The **Collector** buffers raw telemetry, the **Analyzer** aggregates trends over time windows, and the **Detector** identifies reasoning loops or degradation.
+2. **Calibration**: `TrustManager` applies severity-based penalties or quality-weighted bumps based on signals from the monitor.
 3. **Enforcement**: If `TrustScore` drops below the autonomous threshold, the system automatically shifts to `HITL`.
 
 ```

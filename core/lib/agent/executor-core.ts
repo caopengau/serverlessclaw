@@ -21,8 +21,8 @@ import {
 } from './executor-types';
 import { ExecutorHelper } from './executor-helper';
 import { ToolExecutor } from './tool-executor';
-import { estimateCost as calcCost } from '../providers/pricing';
 import { getSemanticLoopDetector, TrustManager } from '../safety';
+import { BudgetEnforcer } from './executor/budget-enforcer';
 
 /**
  * Core implementation of the iterative execution loop.
@@ -131,7 +131,7 @@ export class ExecutorCore {
         }
       }
 
-      const postCallBudget = this.checkBudgetEnforcement(options, usage);
+      const postCallBudget = BudgetEnforcer.check(this.agentId, options, usage);
       if (postCallBudget && !postCallBudget.isWarning) {
         return { ...postCallBudget, attachments };
       }
@@ -566,7 +566,7 @@ export class ExecutorCore {
       };
     }
 
-    const budgetResult = this.checkBudgetEnforcement(options, currentUsage);
+    const budgetResult = BudgetEnforcer.check(this.agentId, options, currentUsage);
     if (budgetResult) {
       return budgetResult;
     }
@@ -586,79 +586,6 @@ export class ExecutorCore {
     }
 
     return null;
-  }
-
-  private checkBudgetEnforcement(
-    options: ExecutorOptions,
-    currentUsage?: ExecutorUsage
-  ): LoopResult | null {
-    const { tokenBudget, costLimit, activeProvider, activeModel } = options;
-
-    if (!tokenBudget && !costLimit) {
-      return null;
-    }
-
-    const consumedTokens = currentUsage?.total_tokens ?? 0;
-    const SOFT_LIMIT_THRESHOLD = 0.8;
-
-    if (tokenBudget && tokenBudget > 0) {
-      const usageRatio = consumedTokens / tokenBudget;
-
-      if (consumedTokens > tokenBudget) {
-        logger.warn(`[${this.agentId}] Token budget exceeded: ${consumedTokens}/${tokenBudget}`);
-        return {
-          responseText: `[BUDGET_EXCEEDED] Token budget of ${tokenBudget} exceeded. Current usage: ${consumedTokens}. Stopping execution.`,
-          paused: false,
-          usage: currentUsage,
-        };
-      }
-
-      if (usageRatio >= SOFT_LIMIT_THRESHOLD) {
-        logger.warn(
-          `[${this.agentId}] Token budget at ${Math.round(usageRatio * 100)}%: ${consumedTokens}/${tokenBudget}`
-        );
-        return {
-          responseText: `[BUDGET_WARNING] Token usage at ${Math.round(usageRatio * 100)}% of budget (${consumedTokens}/${tokenBudget}). Wrapping up soon.`,
-          paused: false,
-          isWarning: true,
-          usage: currentUsage,
-        };
-      }
-    }
-
-    if (costLimit && costLimit > 0 && currentUsage) {
-      const estimatedCost = this.estimateCost(currentUsage, activeProvider, activeModel);
-      const costRatio = estimatedCost / costLimit;
-
-      if (estimatedCost > costLimit) {
-        logger.warn(
-          `[${this.agentId}] Cost limit exceeded: $${estimatedCost.toFixed(4)}/$${costLimit}`
-        );
-        return {
-          responseText: `[COST_LIMIT_EXCEEDED] Cost limit of $${costLimit.toFixed(2)} exceeded. Estimated: $${estimatedCost.toFixed(2)}. Stopping execution.`,
-          paused: false,
-          usage: currentUsage,
-        };
-      }
-
-      if (costRatio >= SOFT_LIMIT_THRESHOLD) {
-        logger.warn(
-          `[${this.agentId}] Cost at ${Math.round(costRatio * 100)}%: $${estimatedCost.toFixed(4)}/$${costLimit}`
-        );
-        return {
-          responseText: `[COST_WARNING] Cost at ${Math.round(costRatio * 100)}% of limit ($${estimatedCost.toFixed(2)}/$${costLimit.toFixed(2)}). Wrapping up soon.`,
-          paused: false,
-          isWarning: true,
-          usage: currentUsage,
-        };
-      }
-    }
-
-    return null;
-  }
-
-  private estimateCost(usage: ExecutorUsage, provider?: string, model?: string): number {
-    return calcCost(usage.totalInputTokens, usage.totalOutputTokens, provider, model);
   }
 
   private async callLLM(

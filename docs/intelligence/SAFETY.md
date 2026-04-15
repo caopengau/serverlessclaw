@@ -12,6 +12,7 @@ The system employs a multi-layered safety architecture:
 | :--------------------- | :-------------------------- | :------------------------------------------------------------- |
 | **Resource Labeling**  | `core/tools`                | Any write to a protected file (e.g., `.git`, `sst.config.ts`). |
 | **Safety Engine**      | `core/lib/safety-engine.ts` | Multi-dimensional policy enforcement (Tiers, Rates, Time).     |
+| **Budget Enforcer**    | `core/lib/agent/executor`   | Token and cost limits exceeded (80% warning / 100% stop).      |
 | **Recursion Guard**    | `core/handlers/events.ts`   | Prevents infinite loops (Depth > 15).                          |
 | **Human-in-the-Loop**  | `AgentExecutor`             | Pauses execution for sensitive tools (e.g., `deleteDatabase`). |
 | **Context Compaction** | `core/lib/context.ts`       | Prevents context overflow during long autonomous missions.     |
