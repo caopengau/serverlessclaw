@@ -12,8 +12,14 @@ export interface FlowControlResult {
  * Handles rate limiting, circuit breaking, and configuration caching.
  */
 export class FlowController {
-  private static configCache = new Map<string, { value: any; expiresAt: number }>();
-  private static readonly CACHE_TTL_MS = 60000; // 1 minute
+  /**
+   * In-memory configuration cache to minimize DynamoDB overhead for high-frequency routing checks.
+   * NOTE: This introduces a 1-minute consistency drift across Lambda instances.
+   * This trade-off is intentional to satisfy Low Latency goals (Principle 5)
+   * while maintaining a mostly Stateless Core (Principle 1).
+   */
+  private static configCache = new Map<string, { value: unknown; expiresAt: number }>();
+  private static readonly CACHE_TTL_MS = 60000; // 1 minute (60s)
 
   /**
    * Checks if an event can proceed based on rate limits and circuit breaker state.

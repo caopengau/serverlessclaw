@@ -83,14 +83,22 @@ describe('TrustManager', () => {
       mockAgentRegistry.atomicAddAgentField.mockResolvedValueOnce(42.5);
       const q0 = await TrustManager.recordFailure('test-agent', 'Q0', 1, 0);
       expect(q0).toBe(42.5);
-      expect(mockAgentRegistry.atomicAddAgentField).toHaveBeenCalledWith('test-agent', 'trustScore', -7.5);
+      expect(mockAgentRegistry.atomicAddAgentField).toHaveBeenCalledWith(
+        'test-agent',
+        'trustScore',
+        -7.5
+      );
 
       // Quality 10 -> 0.5x penalty. 50 - (5 * 0.5) = 47.5. delta = -2.5
       mockAgentRegistry.getAgentConfig.mockResolvedValueOnce(getConfig(50));
       mockAgentRegistry.atomicAddAgentField.mockResolvedValueOnce(47.5);
       const q10 = await TrustManager.recordFailure('test-agent', 'Q10', 1, 10);
       expect(q10).toBe(47.5);
-      expect(mockAgentRegistry.atomicAddAgentField).toHaveBeenCalledWith('test-agent', 'trustScore', -2.5);
+      expect(mockAgentRegistry.atomicAddAgentField).toHaveBeenCalledWith(
+        'test-agent',
+        'trustScore',
+        -2.5
+      );
     });
 
     it('penalizes based on anomaly severity (batched)', async () => {
@@ -126,7 +134,11 @@ describe('TrustManager', () => {
 
       // Critical (3x) + Low (0.1x) = 3.1x default penalty (5) = 15.5. delta = -15.5
       expect(newScore).toBe(74.5);
-      expect(mockAgentRegistry.atomicAddAgentField).toHaveBeenCalledWith('anomaly-agent', 'trustScore', -15.5);
+      expect(mockAgentRegistry.atomicAddAgentField).toHaveBeenCalledWith(
+        'anomaly-agent',
+        'trustScore',
+        -15.5
+      );
     });
   });
 

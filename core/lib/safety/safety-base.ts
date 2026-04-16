@@ -11,7 +11,7 @@ import { defaultDocClient } from '../registry/config';
 import { Resource } from 'sst';
 import { getBlastRadiusStore, BlastRadiusStore } from './blast-radius-store';
 import { isProtectedPath, matchesGlob } from '../utils/fs-security';
-import { CLASS_C_ACTIONS, CLASS_D_ACTIONS, SAFETY_LIMITS } from '../constants/safety';
+import { CLASS_C_ACTIONS, CLASS_D_ACTIONS } from '../constants/safety';
 
 export class SafetyBase {
   protected blastRadiusStore: BlastRadiusStore;

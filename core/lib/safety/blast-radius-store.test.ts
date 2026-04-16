@@ -164,13 +164,15 @@ describe('BlastRadiusStore', () => {
       });
 
       const result = await store.incrementBlastRadius('agent-1', 'deployment', 'res-1');
-      
+
       expect(result.count).toBe(1);
       expect(mockSend).toHaveBeenCalledTimes(2);
-      
+
       const resetCall = mockSend.mock.calls[1][0].input;
       expect(resetCall.UpdateExpression).toContain('SET #val = :newEntry');
-      expect(resetCall.ConditionExpression).toContain('attribute_not_exists(#val) OR #val.#exp <= :now');
+      expect(resetCall.ConditionExpression).toContain(
+        'attribute_not_exists(#val) OR #val.#exp <= :now'
+      );
     });
   });
 

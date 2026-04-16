@@ -89,24 +89,24 @@ describe('DistributedState Integration (Command Structure)', () => {
   });
 
   describe('recordFailure logic flow', () => {
-    it('should perform two-step update (increment then conditionally set openedAt)', async () => {
-      // 1. Update (increment)
+    it('should perform single-pass update (increment count and return new state)', async () => {
+      // 1. Update (increment) -> Returns count=5
       mockSend.mockResolvedValueOnce({ Attributes: { count: 5 } });
-      // 2. Get current state
-      mockSend.mockResolvedValueOnce({ Item: { count: 5 } });
-      // 3. Update (set openedAt)
+      // 2. Update (set openedAt if count matched threshold)
       mockSend.mockResolvedValueOnce({});
 
       await DistributedState.recordFailure('test-circuit', 5, 60000);
 
-      expect(mockSend).toHaveBeenCalledTimes(3);
+      // Now only 2 calls: Initial atomic update + conditional openedAt update
+      expect(mockSend).toHaveBeenCalledTimes(2);
 
       const firstUpdate = mockSend.mock.calls[0][0] as UpdateCommand;
       expect(firstUpdate.input.UpdateExpression).toContain(
         '#count = if_not_exists(#count, :zero) + :one'
       );
+      expect(firstUpdate.input.ReturnValues).toBe('ALL_NEW');
 
-      const lastUpdate = mockSend.mock.calls[2][0] as UpdateCommand;
+      const lastUpdate = mockSend.mock.calls[1][0] as UpdateCommand;
       expect(lastUpdate.input.UpdateExpression).toBe('SET openedAt = :now');
       expect(lastUpdate.input.ConditionExpression).toBe('attribute_not_exists(openedAt)');
     });

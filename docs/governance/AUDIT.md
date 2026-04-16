@@ -220,6 +220,7 @@ Each silo represents a core functional domain. Reviews within a silo should adop
 **Perspective**: _How does the system ensure the signal never dies?_
 
 - **Angle**: Audit the journey of events through the asynchronous backbone. Look for "dead ends," race conditions in the distributed lock, and the effectiveness of **Conflict Resolution Timeouts** during agent handoffs.
+- **Baseline**: Hardened April 2026. DistributedState utilizes atomic conditional updates for circuit breakers and fail-closed rate limiting. AgentRouter enforces explicit selection integrity.
 
 ### 2. The Hand (Agency & Skill Mastery)
 

@@ -13,20 +13,12 @@ import { logger } from '../logger';
 import type { IAgentConfig } from '../types/agent';
 import { LLMProvider, OpenAIModel, MiniMaxModel, ReasoningProfile } from '../types/llm';
 import type { AgentReputation } from '../types/reputation';
-import { AgentType } from '../types/agent';
+
 import { computeReputationScore } from '../memory/reputation-operations';
 import { TokenTracker } from '../metrics/token-usage';
 import { ConfigManager } from '../registry/config';
 
-/**
- * Essential backbone agents that can be used as fallback when user-defined agents fail.
- * Note: Reserved for future use - currently using AgentRegistry.getFallbackAgents() instead.
- */
-const _BACKBONE_FALLBACK_AGENTS = [
-  AgentType.SUPERCLAW,
-  AgentType.CODER,
-  AgentType.STRATEGIC_PLANNER,
-];
+// _BACKBONE_FALLBACK_AGENTS removed: now using AgentRegistry.getFallbackAgents() for better dynamic resolution.
 
 /**
  * Performance metrics for an agent.

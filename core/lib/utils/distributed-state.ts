@@ -8,7 +8,8 @@ const docClient = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true },
 });
 
-const TABLE_NAME = (Resource as any).MemoryTable?.name || 'MemoryTable';
+const TABLE_NAME =
+  (Resource as unknown as { MemoryTable: { name: string } }).MemoryTable?.name || 'MemoryTable';
 
 /**
  * Distributed State Utilities for Circuit Breakers and Rate Limiting.
@@ -25,36 +26,61 @@ export class DistributedState {
         new GetCommand({
           TableName: TABLE_NAME,
           Key: { userId: fullKey, timestamp: 0 },
+          ConsistentRead: true,
         })
       );
 
       const state = result.Item;
       if (!state) return false;
 
-      if ((state.count as number) >= threshold) {
+      const count = (state.count as number) || 0;
+      if (count >= threshold) {
         const now = Date.now();
         const openedAt = state.openedAt as number | undefined;
 
-        if (openedAt && now - openedAt < timeoutMs) {
-          return true; // Circuit is open and within timeout
-        }
-
-        // Circuit timeout has expired - explicitly reset count to prevent immediate re-open
-        // This ensures the circuit properly closes before allowing traffic again
-        if (openedAt) {
+        // If count reached threshold but openedAt is missing, set it atomically
+        if (!openedAt) {
           try {
             await docClient.send(
               new UpdateCommand({
                 TableName: TABLE_NAME,
                 Key: { userId: fullKey, timestamp: 0 },
-                UpdateExpression: 'SET #count = :zero, openedAt = :null',
-                ExpressionAttributeNames: { '#count': 'count' },
-                ExpressionAttributeValues: { ':zero': 0, ':null': null },
+                UpdateExpression: 'SET openedAt = :now',
+                ConditionExpression: 'attribute_not_exists(openedAt)',
+                ExpressionAttributeValues: { ':now': now },
               })
             );
-            logger.info(`[DISTRIBUTED_STATE] Circuit ${key} reset after timeout`);
-          } catch (resetErr) {
-            // Race condition - another Lambda may have already handled it
+            return true;
+          } catch (e: unknown) {
+            if ((e as { name?: string }).name === 'ConditionalCheckFailedException') return true; // Someone else set it
+            throw e;
+          }
+        }
+
+        if (now - openedAt < timeoutMs) {
+          return true; // Circuit is open and within timeout
+        }
+
+        // Circuit timeout has expired - atomically reset
+        try {
+          await docClient.send(
+            new UpdateCommand({
+              TableName: TABLE_NAME,
+              Key: { userId: fullKey, timestamp: 0 },
+              UpdateExpression: 'SET #count = :zero, openedAt = :null',
+              ConditionExpression: 'openedAt = :expectedOpenedAt',
+              ExpressionAttributeNames: { '#count': 'count' },
+              ExpressionAttributeValues: {
+                ':zero': 0,
+                ':null': null,
+                ':expectedOpenedAt': openedAt,
+              },
+            })
+          );
+          logger.info(`[DISTRIBUTED_STATE] Circuit ${key} reset after timeout`);
+        } catch (resetErr: unknown) {
+          // Race condition - another Lambda may have already handled it or opened it again
+          if ((resetErr as { name?: string }).name !== 'ConditionalCheckFailedException') {
             logger.debug(`[DISTRIBUTED_STATE] Circuit reset race for ${key}:`, resetErr);
           }
         }
@@ -76,7 +102,7 @@ export class DistributedState {
       const now = Date.now();
       const expiresAt = Math.floor((now + timeoutMs * 2) / 1000); // Buffer for TTL
 
-      await docClient.send(
+      const updateResult = await docClient.send(
         new UpdateCommand({
           TableName: TABLE_NAME,
           Key: { userId: fullKey, timestamp: 0 },
@@ -94,17 +120,13 @@ export class DistributedState {
         })
       );
 
-      // Check if we just crossed the threshold and need to set openedAt
-      const result = await docClient.send(
-        new GetCommand({
-          TableName: TABLE_NAME,
-          Key: { userId: fullKey, timestamp: 0 },
-        })
-      );
+      const attributes = updateResult.Attributes;
+      const count = attributes?.count as number;
 
-      if (result.Item && (result.Item.count as number) >= threshold && !result.Item.openedAt) {
-        await docClient
-          .send(
+      // If we just crossed the threshold, set openedAt atomically
+      if (count >= threshold && !attributes?.openedAt) {
+        try {
+          await docClient.send(
             new UpdateCommand({
               TableName: TABLE_NAME,
               Key: { userId: fullKey, timestamp: 0 },
@@ -112,8 +134,10 @@ export class DistributedState {
               ConditionExpression: 'attribute_not_exists(openedAt)',
               ExpressionAttributeValues: { ':now': now },
             })
-          )
-          .catch(() => {}); // Ignore condition failure if someone else set it
+          );
+        } catch (e: unknown) {
+          if ((e as { name?: string }).name !== 'ConditionalCheckFailedException') throw e;
+        }
       }
     } catch (e) {
       logger.error(`[DISTRIBUTED_STATE] Failed to record failure for ${key}:`, e);
@@ -124,7 +148,13 @@ export class DistributedState {
    * Consumes a token for rate limiting.
    * Implements a distributed token bucket.
    */
-  static async consumeToken(key: string, capacity: number, refillMs: number): Promise<boolean> {
+  static async consumeToken(
+    key: string,
+    capacity: number,
+    refillMs: number,
+    retryCount = 0
+  ): Promise<boolean> {
+    if (retryCount >= 5) return false; // Fail closed after retries to ensure rate limit integrity
     try {
       const fullKey = `RATE#${key}`;
       const now = Date.now();
@@ -159,8 +189,8 @@ export class DistributedState {
             })
           );
           return true;
-        } catch (e: any) {
-          if (e.name !== 'ConditionalCheckFailedException') throw e;
+        } catch (e: unknown) {
+          if ((e as { name?: string }).name !== 'ConditionalCheckFailedException') throw e;
           // Someone else initialized it, fetch again
           const retry = await docClient.send(
             new GetCommand({
@@ -207,10 +237,10 @@ export class DistributedState {
       }
 
       return false;
-    } catch (e: any) {
-      if (e.name === 'ConditionalCheckFailedException') {
+    } catch (e: unknown) {
+      if ((e as { name?: string }).name === 'ConditionalCheckFailedException') {
         // Race condition - retry once
-        return DistributedState.consumeToken(key, capacity, refillMs);
+        return DistributedState.consumeToken(key, capacity, refillMs, retryCount + 1);
       }
       logger.warn(`[DISTRIBUTED_STATE] Rate limit check failed for ${key}:`, e);
       return true; // Fail open

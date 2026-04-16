@@ -369,7 +369,6 @@ describe('SafetyEngine', () => {
     });
   });
 
-
   describe('Advisory Trust Promotion', () => {
     it('should add advisory tag for high-trust agents on deployment', async () => {
       const config = {

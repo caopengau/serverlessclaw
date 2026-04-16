@@ -28,6 +28,7 @@ The Spine maintains system stability through distributed state management and pr
 
 - **Yield to Tie-break**: The `AgentMultiplexer` monitors collaboration timeouts in real-time. If a session exceeds its `TIE_BREAK_TIMEOUT_MS`, the multiplexer **immediately halts processing** and yields to the Facilitator's strategic tie-break to prevent "split-brain" state corruption.
 - **DistributedState**: Circuit breakers and rate limiters are grounded in `MemoryTable` rather than in-memory volatile state. This ensures protection is enforced consistently across all concurrent Lambda execution environments.
+- **Fail-Closed Strategy**: Rate limiting enforces a **fail-closed** policy after 5 retries. If the system cannot atomically verify token availability due to extreme contention, it rejects the event to prevent potential over-consumption and protect downstream capacity.
 - **Config Caching**: To minimize DynamoDB overhead, static configuration thresholds (limits, timeouts) are cached in-memory with a 1-minute TTL (`getCachedConfig`), balancing performance with operational flexibility.
 
 ### 3. Agent Selection & Routing (Selection Integrity)
@@ -125,6 +126,9 @@ Standard event types and their default priority levels are centrally defined to 
   [ Agent Multiplexer ] -- (Check Timeout) -> [ Timed Out? ] -- YES --> [ HALT & Yield ]
           |                                                             (Tie-break)
           | (NO)
+          v
+  [ Flow Control ] -- (Principle 13) -> [ Circuit/Rate Gate ] -- FAIL --> [ Reject & DLQ ]
+          |                                 (Fail-Closed)
           v
   [ Agent Router ] -- (Principle 14 Guard) -> [ Selection Integrity ] -- FAIL --> [ Fallback ]
           |                                         (Verify Enabled)

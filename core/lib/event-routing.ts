@@ -85,7 +85,7 @@ export function verifyEventRoutingConfiguration(): EventType[] {
  * Hardcoded fallback for event routing if DynamoDB is unavailable or key is missing.
  *
  * NOTE: Agent task events (CODER_TASK, RESEARCH_TASK, EVOLUTION_PLAN, REFLECT_TASK,
- * MERGER_TASK, CRITIC_TASK, facilitator_task, qa_task) are intentionally excluded here.
+ * MERGER_TASK, CRITIC_TASK, FACILITATOR_TASK, QA_TASK) are intentionally excluded here.
  * These events are routed directly to their respective multiplexer Lambdas via
  * EventBridge subscriptions (infra/agents.ts), not through the events.ts Lambda.
  * Including them here would create a confusing fallback path with no handler.
