@@ -58,7 +58,7 @@ export class SafetyEngine extends SafetyBase {
 
   /**
    * Evaluate whether an action is allowed based on the agent's safety tier.
-   * Modularized to reduce cognitive complexity (Principle 10: Lean Evolution).
+   * Uses a declarative validation pipeline (Principle 10: Lean Evolution).
    */
   async evaluateAction(
     agentConfig: Partial<IAgentConfig> | undefined,
@@ -76,11 +76,6 @@ export class SafetyEngine extends SafetyBase {
     const agentId = agentConfig?.id ?? 'unknown';
     const ctx = { ...context, agentId };
 
-    // 1. Hard Logic (Class D Blocks)
-    const staticResult = await this.validateStaticPolicies(action, ctx, tier);
-    if (!staticResult.allowed) return staticResult;
-
-    // 2. Policy & Configuration
     const policy = await this.getResolvedPolicy(tier);
     if (!policy) {
       return {
@@ -91,36 +86,37 @@ export class SafetyEngine extends SafetyBase {
       };
     }
 
-    // 3. Tool & Resource Access Control
-    const accessResult = await this.validateAccessControl(agentConfig, action, ctx, tier, policy);
-    if (!accessResult.allowed || accessResult.requiresApproval) return accessResult;
+    // Validation Pipeline
+    const validators = [
+      () => this.validateStaticPolicies(action, ctx, tier),
+      () => this.validateAccessControl(agentConfig, action, ctx, tier, policy),
+      () => this.validateDynamicRestrictions(agentConfig, action, ctx, tier, policy),
+      () => this.limiter.checkRateLimits(policy, action),
+    ];
 
-    // 4. Time & Dynamic Restrictions
-    const dynamicResult = await this.validateDynamicRestrictions(
-      agentConfig,
-      action,
-      ctx,
-      tier,
-      policy
-    );
-    if (
-      !dynamicResult.allowed ||
-      dynamicResult.requiresApproval ||
-      dynamicResult.appliedPolicy === 'principle_9_promotion'
-    ) {
-      return dynamicResult;
+    for (const validator of validators) {
+      const result = await validator();
+      if (
+        !result.allowed ||
+        result.requiresApproval ||
+        result.appliedPolicy === 'principle_9_promotion'
+      ) {
+        return result;
+      }
     }
-
-    // 5. Rate Limits & Final Gates
-    const limitResult = await this.limiter.checkRateLimits(policy, action);
-    if (!limitResult.allowed) return limitResult;
 
     return { allowed: true, requiresApproval: false, appliedPolicy: `${tier}_default` };
   }
 
   private async validateStaticPolicies(
     action: string,
-    ctx: any,
+    ctx: {
+      agentId: string;
+      toolName?: string;
+      resource?: string;
+      traceId?: string;
+      userId?: string;
+    },
     tier: SafetyTier
   ): Promise<SafetyEvaluationResult> {
     if (this.isClassDAction(action)) {
@@ -136,9 +132,17 @@ export class SafetyEngine extends SafetyBase {
   }
 
   private async validateAccessControl(
-    agentConfig: any,
+    agentConfig: Partial<IAgentConfig> | undefined,
     action: string,
-    ctx: any,
+    ctx: {
+      agentId: string;
+      toolName?: string;
+      resource?: string;
+      traceId?: string;
+      userId?: string;
+      args?: Record<string, unknown>;
+      pathKeys?: string[];
+    },
     tier: SafetyTier,
     policy: SafetyPolicy
   ): Promise<SafetyEvaluationResult> {
@@ -173,9 +177,15 @@ export class SafetyEngine extends SafetyBase {
   }
 
   private async validateDynamicRestrictions(
-    agentConfig: any,
+    agentConfig: Partial<IAgentConfig> | undefined,
     action: string,
-    ctx: any,
+    ctx: {
+      agentId: string;
+      toolName?: string;
+      resource?: string;
+      traceId?: string;
+      userId?: string;
+    },
     tier: SafetyTier,
     policy: SafetyPolicy
   ): Promise<SafetyEvaluationResult> {

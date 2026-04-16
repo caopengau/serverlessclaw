@@ -180,8 +180,7 @@ export class AgentRouter {
     }
 
     const successWeight = await ConfigManager.getTypedConfig('router_success_weight', 1.0);
-    const tokenWeight = await ConfigManager.getTypedConfig('router_token_penalty_weight', 0.0001);
-    const compositeScore = capabilityScore * successRate * successWeight - avgTokens * tokenWeight;
+    const compositeScore = capabilityScore * successRate * successWeight;
 
     return {
       agentId,
@@ -211,9 +210,7 @@ export class AgentRouter {
    */
   static computeScore(rollup: AgentPerformanceRollup, capabilityMatch: number = 1.0): number {
     const successRate = rollup.totalInvocations > 0 ? rollup.successRate : 0.5;
-    const avgTokens = rollup.avgInputTokens + rollup.avgOutputTokens;
-    const costPenalty = avgTokens / 10000;
-    return capabilityMatch * successRate - costPenalty;
+    return capabilityMatch * successRate;
   }
 
   /**
@@ -267,9 +264,7 @@ export class AgentRouter {
 
     for (const c of enabled) {
       const match = capabilityMatchFn?.(c.agentId) ?? 1.0;
-      const score =
-        (c.totalInvocations > 0 ? c.successRate : 0.5) * match -
-        (c.avgInputTokens + c.avgOutputTokens) / 10000;
+      const score = (c.totalInvocations > 0 ? c.successRate : 0.5) * match;
       if (score > bestScore) {
         bestScore = score;
         bestAgent = c.agentId;
@@ -292,9 +287,7 @@ export class AgentRouter {
 
     for (const c of enabled) {
       const match = capabilityMatchFn?.(c.agentId) ?? 1.0;
-      const perfScore =
-        (c.totalInvocations > 0 ? c.successRate : 0.5) * match -
-        (c.avgInputTokens + c.avgOutputTokens) / 10000;
+      const perfScore = (c.totalInvocations > 0 ? c.successRate : 0.5) * match;
       const rep = reputations.get(c.agentId);
       const repScore = rep ? computeReputationScore(rep) : 0.5;
       const composite = 0.6 * perfScore + 0.4 * repScore;

@@ -1,3 +1,5 @@
+export { PROTECTED_FILES } from './safety';
+
 /**
  * Registry tool definitions.
  */
@@ -76,6 +78,34 @@ export const TOOLS = {
 } as const;
 
 /**
+ * Standard tool groups for common agent profiles.
+ * Consolidates literal strings into reusable arrays to prevent backbone duplication.
+ */
+export const DEVELOPER_TOOLS = [
+  'filesystem_read_file',
+  'filesystem_write_file',
+  'filesystem_list_directory',
+  'filesystem_search_files',
+  'git_status',
+  'git_diff',
+  'grep_search',
+  'ast_search_code',
+  'ast_get_file_structure',
+  'aws_list_resources',
+  'aws_get_resource',
+];
+
+export const AWS_TOOLS = ['aws-s3_read_file', 'aws-s3_write_file', 'aws-s3_list_objects'];
+
+export const WEB_TOOLS = [
+  'google-search_search',
+  'fetch_get',
+  'puppeteer_navigate',
+  'puppeteer_screenshot',
+  'puppeteer_click',
+];
+
+/**
  * Universal system tools provided to all backbone agents.
  */
 export const UNIVERSAL_SYSTEM_TOOLS = [
@@ -112,33 +142,6 @@ export const OPENAI = {
   FUNCTION_TYPE: 'function',
   MCP_TYPE: 'mcp',
 } as const;
-
-/**
- * Security-protected files that should not be modified by agents.
- */
-export const PROTECTED_FILES = [
-  '.git/**',
-  '.env*',
-  'package-lock.json',
-  'pnpm-lock.yaml',
-  'yarn.lock',
-  'node_modules/**',
-  'sst.config.ts',
-  'core/tools/index.ts',
-  'core/agents/superclaw.ts',
-  'core/lib/agent.ts',
-  'core/lib/registry/AgentRegistry.ts',
-  'core/lib/routing/AgentRouter.ts',
-  'buildspec.yml',
-  'infra/**',
-  // Critical recovery and safety handlers
-  'core/handlers/recovery.ts',
-  'core/lib/safety/circuit-breaker.ts',
-  'core/lib/safety/safety-engine.ts',
-  'core/lib/lock/lock-manager.ts',
-  // Core system handlers
-  'core/handlers/events/index.ts',
-];
 
 /**
  * Storage configuration and limits.

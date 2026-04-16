@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { SafetyBase } from './safety-base';
+import { CLASS_C_ACTIONS, CLASS_D_ACTIONS } from '../constants/safety';
 
 describe('SafetyBase', () => {
   let safetyBase: SafetyBase;
@@ -51,15 +52,12 @@ describe('SafetyBase', () => {
       });
     });
 
-    describe('getClassCActions / getClassDActions', () => {
-      it('should return array of registered actions', () => {
-        const classCActions = SafetyBase.getClassCActions();
-        expect(classCActions).toContain('iam_change');
-        expect(classCActions).toContain('deployment');
-
-        const classDActions = SafetyBase.getClassDActions();
-        expect(classDActions).toContain('trust_manipulation');
-        expect(classDActions).toContain('mode_shift');
+    describe('CLASS_C_ACTIONS / CLASS_D_ACTIONS', () => {
+      it('should contain registered actions', () => {
+        expect(CLASS_C_ACTIONS).toContain('iam_change');
+        expect(CLASS_C_ACTIONS).toContain('deployment');
+        expect(CLASS_D_ACTIONS).toContain('trust_manipulation');
+        expect(CLASS_D_ACTIONS).toContain('mode_shift');
       });
     });
   });

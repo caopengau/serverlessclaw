@@ -9,7 +9,13 @@ import {
   SafetyTier,
   EvolutionMode,
 } from './types/index';
-import { TOOLS, UNIVERSAL_SYSTEM_TOOLS } from './constants/tools';
+import {
+  TOOLS,
+  UNIVERSAL_SYSTEM_TOOLS,
+  DEVELOPER_TOOLS,
+  AWS_TOOLS,
+  WEB_TOOLS,
+} from './constants/tools';
 import {
   SUPERCLAW_SYSTEM_PROMPT,
   CODER_SYSTEM_PROMPT,
@@ -90,6 +96,9 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     safetyTier: SafetyTier.LOCAL,
     tools: [
       ...UNIVERSAL_SYSTEM_TOOLS,
+      ...DEVELOPER_TOOLS,
+      ...AWS_TOOLS,
+      ...WEB_TOOLS,
       TOOLS.runTests,
       TOOLS.runShellCommand,
       TOOLS.stageChanges,
@@ -100,23 +109,6 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       TOOLS.inspectTrace,
       TOOLS.inspectTopology,
       TOOLS.requestResearch,
-      'aws-s3_read_file',
-      'aws-s3_write_file',
-      'aws-s3_list_objects',
-      'filesystem_read_file',
-      'filesystem_write_file',
-      'filesystem_list_directory',
-      'filesystem_search_files',
-      'git_status',
-      'git_diff',
-      'grep_search',
-      'google-search_search',
-      'puppeteer_navigate',
-      'puppeteer_screenshot',
-      'puppeteer_click',
-      'fetch_get',
-      'aws_list_resources',
-      'aws_get_resource',
       TOOLS.renderComponent,
       TOOLS.uiAction,
     ],
@@ -243,15 +235,13 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     defaultCommunicationMode: 'json',
     tools: [
       ...UNIVERSAL_SYSTEM_TOOLS,
+      ...DEVELOPER_TOOLS,
       TOOLS.createCollaboration,
       TOOLS.joinCollaboration,
       TOOLS.getCollaborationContext,
       TOOLS.writeToCollaboration,
       TOOLS.closeCollaboration,
       TOOLS.listMyCollaborations,
-      'filesystem_read_file',
-      'filesystem_list_directory',
-      'grep_search',
     ],
     connectionProfile: [
       ConnectionProfile.BUS,
@@ -305,15 +295,9 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     defaultCommunicationMode: 'json',
     tools: [
       ...UNIVERSAL_SYSTEM_TOOLS,
+      ...DEVELOPER_TOOLS,
       TOOLS.technicalResearch,
       TOOLS.requestResearch,
-      'filesystem_read_file',
-      'filesystem_list_directory',
-      'git_status',
-      'git_diff',
-      'grep_search',
-      'ast_search_code', // Structural analysis
-      'ast_get_file_structure', // AST structure
     ],
     connectionProfile: [
       ConnectionProfile.BUS,
@@ -363,15 +347,7 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     ...BACKBONE_LLM_CONFIG,
     reasoningProfile: ReasoningProfile.THINKING,
     defaultCommunicationMode: 'text',
-    tools: [
-      ...UNIVERSAL_SYSTEM_TOOLS,
-      TOOLS.reportGap,
-      'google-search_search',
-      'fetch_get',
-      'puppeteer_navigate',
-      'puppeteer_screenshot',
-      'puppeteer_click',
-    ],
+    tools: [...UNIVERSAL_SYSTEM_TOOLS, ...WEB_TOOLS, TOOLS.reportGap],
     connectionProfile: [
       ConnectionProfile.BUS,
       ConnectionProfile.MEMORY,

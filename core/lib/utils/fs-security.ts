@@ -12,7 +12,7 @@ export function isProtectedPath(filePath: string): boolean {
 
   // 2. Fallback to legacy PROTECTED_FILES for backward compatibility and test mocks
   try {
-    const legacy = (PROTECTED_FILES as string[]) ?? [];
+    const legacy = (PROTECTED_FILES as readonly string[]) ?? [];
     if (
       legacy.some((pattern: string) => {
         if (typeof pattern !== 'string') return false;
@@ -62,7 +62,10 @@ export function scanForResources(
 
   for (const key of pathKeys) {
     const val = args[key];
-    if (typeof val === 'string' && (val.includes('/') || val.includes('\\') || val.includes('.'))) {
+    if (
+      typeof val === 'string' &&
+      (val.includes('/') || val.includes('\\') || val.includes('.') || val.includes(':'))
+    ) {
       foundResources.push({ path: val, key });
       seenPaths.add(val);
     }
@@ -74,7 +77,10 @@ export function scanForResources(
       if (typeof value === 'string') {
         if (
           !seenPaths.has(value) &&
-          (value.includes('/') || value.includes('\\') || value.includes('.'))
+          (value.includes('/') ||
+            value.includes('\\') ||
+            value.includes('.') ||
+            value.includes(':'))
         ) {
           foundResources.push({ path: value, key });
           seenPaths.add(value);

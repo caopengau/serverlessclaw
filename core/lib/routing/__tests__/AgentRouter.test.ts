@@ -82,22 +82,6 @@ describe('AgentRouter', () => {
       } as any;
       expect(AgentRouter.computeScore(r1)).toBeGreaterThan(AgentRouter.computeScore(r2));
     });
-
-    it('penalizes higher token usage', () => {
-      const r1 = {
-        totalInvocations: 10,
-        successRate: 0.9,
-        avgInputTokens: 100,
-        avgOutputTokens: 100,
-      } as any;
-      const r2 = {
-        totalInvocations: 10,
-        successRate: 0.9,
-        avgInputTokens: 5000,
-        avgOutputTokens: 5000,
-      } as any;
-      expect(AgentRouter.computeScore(r1)).toBeGreaterThan(AgentRouter.computeScore(r2));
-    });
   });
 
   describe('selectBestAgent', () => {

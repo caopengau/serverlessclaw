@@ -4,7 +4,8 @@
  * caching, cache invalidation, and fallback to defaults.\n */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { SafetyConfigManager, DEFAULT_POLICIES } from './safety-config-manager';
+import { SafetyConfigManager } from './safety-config-manager';
+import { DEFAULT_POLICIES } from './policy-defaults';
 import { SafetyTier } from '../types/agent';
 import { ConfigManager } from '../registry/config';
 

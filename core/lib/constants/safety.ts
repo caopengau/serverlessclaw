@@ -45,6 +45,12 @@ export const PROTECTED_PATHS = [
 ] as const;
 
 /**
+ * Legacy alias for PROTECTED_PATHS to maintain backward compatibility with Silo 2 (The Hand).
+ * Consolidated into Silo 3 (The Shield) for Principle 10 compliance.
+ */
+export const PROTECTED_FILES = PROTECTED_PATHS;
+
+/**
  * Common keys in tool arguments that typically contain file or resource paths.
  * Used for heuristic scanning during resource discovery.
  */

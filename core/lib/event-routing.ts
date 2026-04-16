@@ -85,12 +85,11 @@ export function verifyEventRoutingConfiguration(): EventType[] {
  * Hardcoded fallback for event routing if DynamoDB is unavailable or key is missing.
  *
  * NOTE: Agent task events (CODER_TASK, RESEARCH_TASK, EVOLUTION_PLAN, REFLECT_TASK,
- * MERGER_TASK, CRITIC_TASK, FACILITATOR_TASK, QA_TASK) are intentionally excluded here.
+ * MERGER_TASK, CRITIC_TASK, FACILITATOR_TASK, QA_TASK) are strictly excluded.
  * These events are routed directly to their respective multiplexer Lambdas via
- * EventBridge subscriptions (infra/agents.ts), not through the events.ts Lambda.
- * Including them here would create a confusing fallback path with no handler.
+ * EventBridge subscriptions (infra/agents.ts).
  */
-export const DEFAULT_EVENT_ROUTING: EventRoutingTable = {
+const BASE_EVENT_ROUTING: EventRoutingTable = {
   [EventType.SYSTEM_BUILD_FAILED]: {
     module: './events/build-handler',
     function: 'handleBuildFailure',
@@ -211,4 +210,13 @@ export const DEFAULT_EVENT_ROUTING: EventRoutingTable = {
     module: './events/health-handler',
     function: 'handleHealthAlert',
   },
-} as const;
+};
+
+/**
+ * Filtered routing table that structurally prevents overlap with EventBridge-only events.
+ */
+export const DEFAULT_EVENT_ROUTING: EventRoutingTable = Object.fromEntries(
+  Object.entries(BASE_EVENT_ROUTING).filter(
+    ([type]) => !EVENTBRIDGE_ONLY_EVENTS.includes(type as EventType)
+  )
+);

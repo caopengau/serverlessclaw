@@ -197,24 +197,10 @@ export class SafetyBase {
     for (const [key, entry] of Object.entries(stats)) {
       result[key] = {
         count: entry.count,
-        affectedResources: (entry as any).affectedResources ?? 0,
+        affectedResources: entry.resourceCount,
         lastAction: entry.lastAction,
       };
     }
     return result;
-  }
-
-  /**
-   * Legacy static helper for tests.
-   */
-  public static getClassCActions(): string[] {
-    return [...CLASS_C_ACTIONS];
-  }
-
-  /**
-   * Legacy static helper for tests.
-   */
-  public static getClassDActions(): string[] {
-    return [...CLASS_D_ACTIONS];
   }
 }

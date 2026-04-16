@@ -80,13 +80,6 @@ describe('AgentRegistry Pruning', () => {
     // Should prune toolA (unused and old), keep toolB (used)
     expect(prunedCount).toBeGreaterThan(0);
 
-    // VERIFY: Legacy list is UPDATED (using saveRawConfig as they are simple keys)
-    const saveCalls = vi.mocked(ConfigManager.saveRawConfig).mock.calls;
-    const legacySave = saveCalls.find((call) => call[0] === 'WS#default#agent1_tools');
-    expect(legacySave).toBeDefined();
-    expect(legacySave![1] as string[]).not.toContain('toolA');
-    expect(legacySave![1] as string[]).toContain('toolC');
-
     // VERIFY: Batch overrides are pruned ATOMICALLY via ConfigManager
     expect(ConfigManager.atomicRemoveFromMap).toHaveBeenCalledWith(
       DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,

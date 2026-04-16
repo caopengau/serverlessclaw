@@ -245,8 +245,9 @@ To maintain a **Stateless Core** (Principle 1) while ensuring systemic safety, t
 2.  **Surgical Security Enforcement**: The `ToolSecurityValidator` decouples security logic from tool execution. It enforces the "Shield" (SafetyEngine) rules, RBAC permissions, and system-level circuit breakers before any tool interaction occurs.
 3.  **Budget Guardrails**: Operationalized via the centralized `BudgetEnforcer`. It provides real-time monitoring of token consumption and monetary costs during agent loops. It triggers soft warnings at 80% usage and hard stops when limits are exceeded, ensuring identical safety behavior across standard and streaming executors.
 4.  **Selection Integrity**: The `AgentMultiplexer` acts as the authoritative gateway. It performs a mandatory configuration check for every agent before invocation, ensuring that `enabled: false` status is strictly enforced regardless of the event source.
-5.  **Dynamic Routing**: The `AgentRouter` uses historical performance metrics (success rate, latency, cost) to dynamically select the best agent-model combination for a given task.
+5.  **Dynamic Routing**: The `AgentRouter` uses historical success rates and reputation scores to dynamically select the best agent for a given task, prioritizing capability match over marginal token cost differences (Principle 10).
 6.  **Monotonic Recursion Tracking**: Cross-session recursion depth is managed via atomic increments in the `recursion-tracker`, preventing loop-bypass attacks in concurrent swarm scenarios.
+7.  **Unified Security Constants**: Protection patterns are consolidated into a single source of truth (`core/lib/constants/safety.ts`), ensuring consistent enforcement across the filesystem and cloud resources.
 
 ---
 

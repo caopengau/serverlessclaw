@@ -203,12 +203,16 @@ To maximize semantic transparency for both humans and AI agents, follow these ru
 The system enforces protection via a centralized `isProtectedPath` utility. All filesystem-related tools (both local and MCP-driven like `filesystem_write_file`) block writes to these files to prevent accidental system destruction:
 
 ```
-sst.config.ts
-core/tools/index.ts
-core/agents/superclaw.ts
-core/lib/agent.ts
-buildspec.yml
+core/**
 infra/**
+docs/governance/**
+sst.config.ts
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+.env*
+.git/**
+node_modules/**
 ```
 
 Any attempt without explicit approval returns `PERMISSION_DENIED`. The Coder Agent **must** request `MANUAL_APPROVAL_REQUIRED` from the human on Telegram/Slack. Once approved, the agent can retry with the `manuallyApproved: true` parameter.
@@ -250,7 +254,7 @@ To prevent "Context Window Bloat" and maintain high reasoning performance, Serve
 3. **Usage Tracking**: Every tool execution is recorded atomically in the `MemoryTable` via the `TokenTracker`, capturing the `count`, `successCount`, `totalDurationMs`, and estimated `totalInputTokens` / `totalOutputTokens`.
 4. **Anomalous Tool Detection**: During the 48-hour strategic review, the **Strategic Planner** identifies "Anomalous Tools" (those with <80% success rate or >100k token cost in 7 days). It generates `TOOL_OPTIMIZATION` gaps to `PRUNE` or `REPLACE` inefficient capabilities.
 5. **Selective Discovery Mode**: When enabled, the system automatically prunes an agent's toolset back to its "Core" defaults if it hasn't used a tool recently or if the toolset exceeds a complexity threshold.
-6. **Performance-Based Routing**: When a task is dispatched, the **AgentRouter** (`core/lib/routing/AgentRouter.ts`) computes a composite score for candidate agents: `CapabilityMatch * SuccessRate - (AvgTokens / 10000)`. This ensures tasks are handled by the most reliable and cost-efficient agent.
+- **Performance-Based Routing**: When a task is dispatched, the **AgentRouter** (`core/lib/routing/AgentRouter.ts`) computes a composite score for candidate agents: `CapabilityMatch * SuccessRate`. This ensures tasks are handled by the most reliable agents.
 7. **MCP Server Pruning**: The **ClawCenter Dashboard** provides usage analytics for MCP servers, allowing humans or the SuperClaw to `unregisterMCPServer` if it's no longer providing value to the system.
 
 ### Performance Impact
@@ -297,7 +301,7 @@ graph TD
 The system now enforces **Selection Integrity** at the gateway level.
 
 1.  **Mandatory Enabled Check (P0 Fix)**: The `AgentMultiplexer` verifies the `enabled` status of every agent in the `AgentRegistry` before invocation. Any attempt to route a task to a disabled agent is rejected immediately.
-2.  **Reputation-Aware Routing (P1 Fix)**: Dynamic routing is now active in production. When multiple agents are candidates for a task, the system uses the `AgentRouter` to select the best performer based on historical success rates, latency, and cost: `CapabilityMatch * SuccessRate - (AvgTokens / 10000)`.
+2.  **Reputation-Aware Routing (P1 Fix)**: Dynamic routing is now active in production. When multiple agents are candidates for a task, the system uses the `AgentRouter` to select the best performer based on historical success rates and reputation: `CapabilityMatch * SuccessRate`.
 3.  **Atomic Trust Orchestration (P1 Fix)**: Agent reputation and `TrustScore` updates utilize atomic DynamoDB operations (`list_append`). This ensures that the feedback loop from Silo 5 (The Eye) to Silo 6 (The Scales) remains consistent even under extreme concurrency.
 
 ---

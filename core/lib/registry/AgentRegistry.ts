@@ -101,24 +101,12 @@ export class AgentRegistry {
     config.evolutionMode = config.evolutionMode ?? EvolutionMode.HITL;
 
     // 3. Tool Overrides (with TTL Support)
-    // Support both per-agent `${id}_tools` entries and the newer batch
-    // `DYNAMO_KEYS.AGENT_TOOL_OVERRIDES` map. Batch overrides take precedence
-    // and are merged with per-agent overrides when present.
+    // Batch overrides from DYNAMO_KEYS.AGENT_TOOL_OVERRIDES take precedence.
     const batchOverrides =
       (preFetchedConfigs?.[DYNAMO_KEYS.AGENT_TOOL_OVERRIDES] as Record<string, unknown[]>) ??
       ((await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES)) as
         | Record<string, unknown[]>
         | undefined);
-
-    const perAgentOverrides =
-      (preFetchedConfigs?.[`${id}_tools`] as Array<
-        string | import('../types/agent').InstalledSkill
-      >) ??
-      (preFetchedConfigs
-        ? undefined
-        : ((await ConfigManager.getRawConfig(`${id}_tools`)) as Array<
-            string | import('../types/agent').InstalledSkill
-          >));
 
     const now = Date.now();
     const activeOverrides: string[] = [];
@@ -136,16 +124,8 @@ export class AgentRegistry {
       batchOverrides && Array.isArray(batchOverrides[id])
         ? filterActive(batchOverrides[id] as (string | import('../types/agent').InstalledSkill)[])
         : [];
-    const activePerAgent = Array.isArray(perAgentOverrides) ? filterActive(perAgentOverrides) : [];
-
-    // Batch overrides take precedence - exclude per-agent tools that duplicate batch tools
-    const batchToolNames = new Set(activeBatch.map((t) => (typeof t === 'string' ? t : t.name)));
-    const filteredPerAgent = activePerAgent.filter(
-      (t) => !batchToolNames.has(typeof t === 'string' ? t : t.name)
-    );
 
     activeOverrides.push(...activeBatch.map((t) => (typeof t === 'string' ? t : t.name)));
-    activeOverrides.push(...filteredPerAgent.map((t) => (typeof t === 'string' ? t : t.name)));
 
     if (prunedCount > 0) {
       logger.info(`[REGISTRY] Filtered ${prunedCount} expired tools for agent ${id}`);
@@ -459,27 +439,7 @@ export class AgentRegistry {
       const pruneTargets = config.tools?.filter((t) => lowUtilTools.includes(t)) ?? [];
 
       if (pruneTargets.length > 0) {
-        // 1. Atomically prune from legacy per-agent overrides if they exist
-        const perAgentKey = `${agentId}_tools`;
-        const existingLegacy = await ConfigManager.getRawConfig(perAgentKey);
-        if (Array.isArray(existingLegacy)) {
-          const legacyNames = existingLegacy.map((t) => (typeof t === 'string' ? t : t.name));
-          const legacyTargets = pruneTargets.filter((t) => legacyNames.includes(t));
-          if (legacyTargets.length > 0) {
-            // Note: Legacy keys are standalone, so we just use saveRawConfig with filtration
-            // as they aren't part of a shared map, but for safety we could implement atomicRemoveFromList
-            // for standalone keys too. For now, since they are deprecated, we'll just filter.
-            const updatedLegacy = existingLegacy.filter(
-              (t) => !legacyTargets.includes(typeof t === 'string' ? t : t.name)
-            );
-            await ConfigManager.saveRawConfig(perAgentKey, updatedLegacy);
-            logger.info(
-              `[REGISTRY] Pruned ${legacyTargets.length} tools from legacy list for ${agentId}`
-            );
-          }
-        }
-
-        // 2. Atomically prune from batch overrides (SHARED MAP - CRITICAL)
+        // Atomically prune from batch overrides (SHARED MAP - CRITICAL)
         // This solves the race condition of multiple agents being pruned at once.
         await ConfigManager.atomicRemoveFromMap(
           DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
@@ -509,29 +469,11 @@ export class AgentRegistry {
     logger.info(`[REGISTRY] Pruning specific tool '${toolName}' for agent ${agentId}`);
     let pruned = false;
 
-    // 1. Prune from legacy standalone key if it exists
-    const perAgentKey = `${agentId}_tools`;
-    const existingLegacy = await ConfigManager.getRawConfig(perAgentKey);
-    if (Array.isArray(existingLegacy)) {
-      const updatedLegacy = existingLegacy.filter((t) => {
-        const name = typeof t === 'string' ? t : t.name;
-        return name !== toolName;
-      });
-      if (updatedLegacy.length < existingLegacy.length) {
-        // Since standalone keys aren't in a shared map, we use saveRawConfig.
-        await ConfigManager.saveRawConfig(perAgentKey, updatedLegacy);
-        pruned = true;
-      }
-    }
-
-    // 2. Atomically prune from batch shared map (CRITICAL for Principle 13)
+    // Atomically prune from batch shared map (CRITICAL for Principle 13)
     try {
       await ConfigManager.atomicRemoveFromMap(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, agentId, [
         toolName,
       ]);
-      // Note: atomicRemoveFromMap doesn't return if it found the item,
-      // but for remediation purposes we consider it an attempt at repair.
-      // In a more complex implementation, we could check the ReturnValues from UpdateCommand.
       pruned = true;
     } catch (e) {
       logger.warn(

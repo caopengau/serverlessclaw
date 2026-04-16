@@ -145,12 +145,14 @@ describe('AgentRegistry', () => {
     it('should prune expired tools with TTL', async () => {
       const now = Date.now();
       vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
-        if (key === 'custom_tools') {
-          return [
-            'permanent_tool',
-            { name: 'expired_tool', expiresAt: now - 1000 },
-            { name: 'active_tool', expiresAt: now + 1000 },
-          ];
+        if (key === DYNAMO_KEYS.AGENT_TOOL_OVERRIDES) {
+          return {
+            custom: [
+              'permanent_tool',
+              { name: 'expired_tool', expiresAt: now - 1000 },
+              { name: 'active_tool', expiresAt: now + 1000 },
+            ],
+          };
         }
         if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
           return { custom: { id: 'custom', name: 'Custom', tools: [] } };
@@ -241,15 +243,12 @@ describe('AgentRegistry', () => {
   });
 
   describe('pruneAgentTool', () => {
-    it('should prune from both legacy and batch configs', async () => {
-      vi.mocked(ConfigManager.getRawConfig).mockResolvedValueOnce(['tool1', 'tool2']); // Legacy
+    it('should prune from batch overrides', async () => {
       vi.mocked(ConfigManager.atomicRemoveFromMap).mockResolvedValueOnce(undefined); // Batch
 
       const result = await AgentRegistry.pruneAgentTool('agent1', 'tool1');
 
       expect(result).toBe(true);
-      expect(ConfigManager.getRawConfig).toHaveBeenCalledWith('agent1_tools');
-      expect(ConfigManager.saveRawConfig).toHaveBeenCalledWith('agent1_tools', ['tool2']);
       expect(ConfigManager.atomicRemoveFromMap).toHaveBeenCalledWith(
         DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
         'agent1',
@@ -257,8 +256,7 @@ describe('AgentRegistry', () => {
       );
     });
 
-    it('should return false if nothing was pruned', async () => {
-      vi.mocked(ConfigManager.getRawConfig).mockResolvedValueOnce(['tool2']); // Legacy doesn't have it
+    it('should return false if batch pruning fails', async () => {
       vi.mocked(ConfigManager.atomicRemoveFromMap).mockImplementationOnce(() => {
         throw new Error('Batch fail');
       });
