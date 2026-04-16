@@ -1,12 +1,12 @@
 import { PutCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../logger';
 import { getDocClient, getMemoryTableName } from '../utils/ddb-client';
+import { TIME } from '../constants';
 
 const docClient = getDocClient();
 
 const TTL_DAYS_INVOCATION = 7;
 const TTL_DAYS_ROLLUP = 90;
-const SECONDS_IN_DAY = 86400;
 
 export interface TokenUsageRecord {
   userId: string;
@@ -75,7 +75,7 @@ export class TokenTracker {
     const item: TokenUsageRecord = {
       ...record,
       userId: `TOKEN#${record.agentId}`,
-      expiresAt: Math.floor(now / 1000) + TTL_DAYS_INVOCATION * SECONDS_IN_DAY,
+      expiresAt: Math.floor(now / 1000) + TTL_DAYS_INVOCATION * TIME.SECONDS_IN_DAY,
     };
 
     try {
@@ -115,7 +115,7 @@ export class TokenTracker {
   ): Promise<void> {
     const ts = dayStart();
     const userId = `TOKEN_ROLLUP#${agentId}`;
-    const expiresAt = Math.floor(Date.now() / 1000) + TTL_DAYS_ROLLUP * SECONDS_IN_DAY;
+    const expiresAt = Math.floor(Date.now() / 1000) + TTL_DAYS_ROLLUP * TIME.SECONDS_IN_DAY;
 
     try {
       // Store individual duration for percentile calculation (keep last 1000)
@@ -214,7 +214,7 @@ export class TokenTracker {
 
   static async getRollupRange(agentId: string, days: number): Promise<TokenRollup[]> {
     const endTs = dayStart();
-    const startTs = endTs - days * SECONDS_IN_DAY * 1000;
+    const startTs = endTs - days * TIME.SECONDS_IN_DAY * 1000;
     try {
       const { Items } = await docClient.send(
         new QueryCommand({
@@ -245,7 +245,7 @@ export class TokenTracker {
   ): Promise<void> {
     const ts = dayStart();
     const userId = `TOOL_TOKEN#${toolName}#${dateKey(ts)}`;
-    const expiresAt = Math.floor(Date.now() / 1000) + TTL_DAYS_ROLLUP * SECONDS_IN_DAY;
+    const expiresAt = Math.floor(Date.now() / 1000) + TTL_DAYS_ROLLUP * TIME.SECONDS_IN_DAY;
 
     try {
       await docClient.send(
@@ -277,7 +277,7 @@ export class TokenTracker {
 
   static async getToolRollupRange(toolName: string, days: number): Promise<ToolTokenRollup[]> {
     const endTs = dayStart();
-    const startTs = endTs - days * SECONDS_IN_DAY * 1000;
+    const startTs = endTs - days * TIME.SECONDS_IN_DAY * 1000;
     try {
       const { Items } = await docClient.send(
         new QueryCommand({

@@ -370,6 +370,14 @@ export const CONFIG_DEFAULTS = {
       'Enable audit triggers on PRE_FLIGHT_READY, TRUST_SCORE_DROP, MAJOR_SWARM_COMPLETE, TRUNK_SYNC, and DEPLOYMENT_COMPLETE events.',
   },
 
+  /** Maximum directory depth for native audit scan. Default: 3 */
+  AUDIT_SCAN_DEPTH: {
+    code: 3,
+    hotSwappable: true,
+    configKey: 'audit_scan_depth',
+    description: 'Maximum directory depth for native audit file scanning (TODO/FIXME markers).',
+  },
+
   /** Session lock heartbeat interval (ms). Default: 60000 (60 sec) */
   SESSION_LOCK_HEARTBEAT_MS: {
     code: 60000,

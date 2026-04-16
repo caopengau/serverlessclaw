@@ -7,6 +7,8 @@ import { InsightCategory } from '../types/memory';
 import { EvolutionScheduler } from '../safety/evolution-scheduler';
 import { FailureEventPayload } from '../schema/events';
 import { BaseMemoryProvider } from '../memory';
+import { FeatureFlags } from '../feature-flags';
+import { CONFIG_DEFAULTS } from '../config/config-defaults';
 
 /**
  * MetabolismService coordinates the "Regenerative Metabolism" silo.
@@ -104,6 +106,29 @@ export class MetabolismService {
         actual: `Memory repair failed: ${e instanceof Error ? e.message : String(e)}`,
         severity: 'P1',
         recommendation: 'Check MemoryProvider authorization and workspaceId isolation.',
+      });
+    }
+
+    // Repair 3: Stale Feature Flags (Silo 7)
+    try {
+      const prunedFlags = await FeatureFlags.pruneStaleFlags(30);
+      if (prunedFlags > 0) {
+        repairFindings.push({
+          silo: 'Metabolism',
+          expected: 'Clean feature flag state',
+          actual: `Pruned ${prunedFlags} stale feature flags.`,
+          severity: 'P2',
+          recommendation: 'Feature flag bloat reduced via Silo 7 autonomous cleanup.',
+        });
+      }
+    } catch (e) {
+      logger.error('[Metabolism] Feature flag cleanup failed:', e);
+      repairFindings.push({
+        silo: 'Metabolism',
+        expected: 'Feature flag cleanup completion',
+        actual: `Feature flag cleanup failed: ${e instanceof Error ? e.message : String(e)}`,
+        severity: 'P2',
+        recommendation: 'Check FeatureFlags and ConfigManager connectivity.',
       });
     }
 
@@ -289,7 +314,7 @@ export class MetabolismService {
       const { join } = await import('path');
 
       const scanDir = (dir: string, depth: number = 0): string[] => {
-        if (depth > 3) return [];
+        if (depth > CONFIG_DEFAULTS.AUDIT_SCAN_DEPTH.code) return [];
         const results: string[] = [];
         try {
           const entries = readdirSync(dir);

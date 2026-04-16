@@ -2,11 +2,11 @@ import { PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../logger';
 import { getDocClient, getMemoryTableName } from '../utils/ddb-client';
 import type { MetricsCollector } from './cognitive-metrics';
+import { TIME } from '../constants';
 
 const docClient = getDocClient();
 
 const TTL_DAYS_BUDGET = 30;
-const SECONDS_IN_DAY = 86400;
 
 function getBudgetTableName(): string {
   return getMemoryTableName();
@@ -98,7 +98,7 @@ export class TokenBudgetEnforcer {
     try {
       const userId = `BUDGET#${sessionId}`;
       const now = Math.floor(Date.now() / 1000);
-      const expiresAt = now + TTL_DAYS_BUDGET * SECONDS_IN_DAY;
+      const expiresAt = now + TTL_DAYS_BUDGET * TIME.SECONDS_IN_DAY;
       const totalCost = history.reduce((sum, r) => sum + r.estimatedCostUsd, 0);
       const totalTokens = history.reduce((sum, r) => sum + r.promptTokens + r.completionTokens, 0);
 

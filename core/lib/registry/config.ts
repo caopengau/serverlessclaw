@@ -1,6 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
   DynamoDBDocumentClient,
+  DeleteCommand,
   GetCommand,
   PutCommand,
   UpdateCommand,
@@ -142,6 +143,31 @@ export class ConfigManager {
       );
     } catch (e) {
       logger.error(`Failed to save ${key} to DDB:`, e);
+      throw e;
+    }
+  }
+
+  /**
+   * Deletes a configuration value from the ConfigTable.
+   */
+  public static async deleteConfig(key: string): Promise<void> {
+    const resource = Resource as { ConfigTable?: { name: string } };
+    if (!('ConfigTable' in resource)) {
+      logger.warn(`ConfigTable not linked. Skipping delete for ${key}`);
+      return;
+    }
+
+    this.configCache.delete(key);
+
+    try {
+      await getDocClient().send(
+        new DeleteCommand({
+          TableName: resource.ConfigTable?.name,
+          Key: { key },
+        })
+      );
+    } catch (e) {
+      logger.error(`Failed to delete ${key} from DDB:`, e);
       throw e;
     }
   }

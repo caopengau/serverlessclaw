@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MetabolismService } from './metabolism';
 import { AgentRegistry } from '../registry/AgentRegistry';
 import { archiveStaleGaps, cullResolvedGaps, setGap } from '../memory/gap-operations';
+import { FeatureFlags } from '../feature-flags';
 
 // Mock dependencies
 vi.mock('../registry/AgentRegistry', () => ({
@@ -17,6 +18,13 @@ vi.mock('../memory/gap-operations', () => ({
   archiveStaleGaps: vi.fn().mockResolvedValue(0),
   cullResolvedGaps: vi.fn().mockResolvedValue(0),
   setGap: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../feature-flags', () => ({
+  FeatureFlags: {
+    pruneStaleFlags: vi.fn().mockResolvedValue(0),
+    clearCache: vi.fn(),
+  },
 }));
 
 vi.mock('../safety/evolution-scheduler', () => ({
@@ -59,6 +67,7 @@ describe('MetabolismService', () => {
       vi.mocked(AgentRegistry.pruneLowUtilizationTools).mockResolvedValueOnce(5);
       vi.mocked(archiveStaleGaps).mockResolvedValueOnce(2);
       vi.mocked(cullResolvedGaps).mockResolvedValueOnce(3);
+      vi.mocked(FeatureFlags.pruneStaleFlags).mockResolvedValueOnce(2);
 
       const findings = await MetabolismService.runMetabolismAudit(mockMemory, {
         repair: true,
@@ -68,9 +77,11 @@ describe('MetabolismService', () => {
       expect(AgentRegistry.pruneLowUtilizationTools).toHaveBeenCalledWith('ws-1', 30);
       expect(archiveStaleGaps).toHaveBeenCalledWith(mockMemory, undefined, 'ws-1');
       expect(cullResolvedGaps).toHaveBeenCalledWith(mockMemory, undefined, 'ws-1');
+      expect(FeatureFlags.pruneStaleFlags).toHaveBeenCalledWith(30);
 
       expect(findings.some((f) => f.actual.includes('Pruned 5'))).toBe(true);
       expect(findings.some((f) => f.actual.includes('Metabolized memory state'))).toBe(true);
+      expect(findings.some((f) => f.actual.includes('Pruned 2 stale feature flags'))).toBe(true);
     });
 
     it('should fallback to native audit if MCP tools are missing', async () => {

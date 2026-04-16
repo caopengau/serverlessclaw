@@ -9,6 +9,8 @@ export interface FeatureFlag {
   rolloutPercent: number;
   targetAgents?: string[];
   description: string;
+  expiresAt?: number;
+  createdAt?: number;
 }
 
 interface CachedFlag {
@@ -81,6 +83,56 @@ export class FeatureFlags {
 
   static clearCache(): void {
     this.cache.clear();
+  }
+
+  /**
+   * Prunes stale feature flags that have expired based on expiresAt or age threshold.
+   * Supports Silo 7 (Metabolism) autonomous cleanup.
+   *
+   * @param daysThreshold - Days after creation to consider stale if no expiresAt (default: 30)
+   * @returns The number of flags pruned
+   */
+  static async pruneStaleFlags(daysThreshold: number = 30): Promise<number> {
+    const thresholdMs = daysThreshold * TIME.MS_PER_DAY;
+    const now = Date.now();
+
+    try {
+      const flags = await this.listFlags();
+      const staleFlags = flags.filter((flag) => {
+        if (flag.expiresAt && flag.expiresAt * 1000 < now) return true;
+        if (flag.createdAt && now - flag.createdAt > thresholdMs) return true;
+        return false;
+      });
+
+      if (staleFlags.length === 0) return 0;
+
+      logger.info(`[FeatureFlags] Pruning ${staleFlags.length} stale flags`);
+
+      const prunedNames: string[] = [];
+      for (const flag of staleFlags) {
+        try {
+          await ConfigManager.deleteConfig(`${this.FLAG_KEY_PREFIX}${flag.name}`);
+          prunedNames.push(flag.name);
+          this.cache.delete(flag.name);
+        } catch (e) {
+          logger.warn(`Failed to delete stale flag ${flag.name}:`, e);
+        }
+      }
+
+      if (prunedNames.length > 0) {
+        const currentList = await ConfigManager.getTypedConfig<string[]>('feature_flags_list', []);
+        const newList = currentList.filter((name) => !prunedNames.includes(name));
+        await ConfigManager.saveRawConfig('feature_flags_list', newList, {
+          author: 'system:feature-flags',
+          skipVersioning: true,
+        });
+      }
+
+      return prunedNames.length;
+    } catch (e) {
+      logger.error('[FeatureFlags] Failed to prune stale flags:', e);
+      return 0;
+    }
   }
 
   private static async getFlag(flagName: string): Promise<FeatureFlag | null> {

@@ -94,7 +94,8 @@ The central coordinator that manages the lifecycle of metabolic audits. It prior
   - Per-agent: `tool_usage_{agentId}` - agent-specific usage
   - Per-workspace: `WS#{workspaceId}#tool_usage` - workspace-isolated tracking (new)
 - **Memory Culling**: Purges knowledge gaps in `DONE` or `DEPLOYED` status that are older than **60 days** (configurable via `GAPS_RETENTION_DAYS`). Both archival (stale OPEN gaps >30 days) and culling (resolved gaps >60 days) run in the periodic maintenance cycle.
-- **Native Fallback**: A resilient scanner that performs basic debt identification (e.g., scanning for orphans or TODOs) even when the AIReady MCP server is offline.
+- **Feature Flag Pruning**: Automatically removes stale feature flags that have either expired (`expiresAt` timestamp in past) or exceeded the age threshold (default 30 days). Integrates with `FeatureFlags.pruneStaleFlags()` during the periodic maintenance cycle.
+- **Native Fallback**: A resilient scanner that performs basic debt identification (e.g., scanning for orphans or TODOs) even when the AIReady MCP server is offline. Scan depth is configurable via `AUDIT_SCAN_DEPTH` (default: 3 levels).
 
 ## Principle 10: Lean Evolution
 

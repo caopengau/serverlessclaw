@@ -33,6 +33,10 @@ describe('ConfigManager', () => {
   it('should safely return undefined when saveRawConfig is called and ConfigTable is not linked', async () => {
     await expect(ConfigManager.saveRawConfig('any_key', 'value')).resolves.toBeUndefined();
   });
+
+  it('should safely return undefined when deleteConfig is called and ConfigTable is not linked', async () => {
+    await expect(ConfigManager.deleteConfig('any_key')).resolves.toBeUndefined();
+  });
 });
 
 describe('ConfigManager.saveRawConfig versioning', () => {
