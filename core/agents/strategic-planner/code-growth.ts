@@ -5,7 +5,7 @@
  */
 
 import { logger } from '../../lib/logger';
-import { getConfigValue } from '../../lib/config';
+import { getDynamicConfigValue } from '../../lib/config';
 import { emitEvent } from '../../lib/utils/bus';
 import { AgentType, EventType } from '../../lib/types/agent';
 
@@ -48,7 +48,7 @@ export async function calculateCodeGrowth(
   },
   currentLOC: number
 ): Promise<{ shouldTriggerAudit: boolean; metrics: CodeGrowthMetrics }> {
-  const threshold = getConfigValue('AUDIT_CODE_GROWTH_THRESHOLD');
+  const threshold = await getDynamicConfigValue('AUDIT_CODE_GROWTH_THRESHOLD');
   const existingMetrics = await getCodeMetrics(memory);
 
   const metrics: CodeGrowthMetrics = {

@@ -116,7 +116,7 @@ export async function handler(
   }
 
   // Enforce maximum retry count
-  const maxRetryCount = await FlowController.getCachedConfig('event_max_retry_count', 3);
+  const maxRetryCount = await ConfigManager.getTypedConfig('event_max_retry_count', 3);
   const retryCount = (eventDetail.retryCount as number) ?? 0;
   if (retryCount > maxRetryCount) {
     logger.warn(`[RETRY] Exceeded max retries (${maxRetryCount}) for ${detailType}`);
@@ -137,7 +137,7 @@ export async function handler(
 
     const routingTable: typeof DEFAULT_EVENT_ROUTING = { ...DEFAULT_EVENT_ROUTING };
     if (rawRoutingTable !== DEFAULT_EVENT_ROUTING) {
-      for (const [eventType, entry] of Object.entries(rawRoutingTable)) {
+      for (const [eventType, entry] of Object.entries(rawRoutingTable as Record<string, any>)) {
         const combination = `${entry.module}:${entry.function}`;
         if (ALLOWED_COMBINATIONS.has(combination)) {
           routingTable[eventType] = entry;

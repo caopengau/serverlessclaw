@@ -274,16 +274,31 @@ export class AgentRegistry {
 
   /**
    * Records tool usage atomically in the ConfigTable.
-   * Tracks both global tool popularity and per-agent usage stats.
+   * Tracks both global tool popularity and per-workspace/per-agent usage stats.
+   *
+   * @param toolName - The name of the tool being used.
+   * @param agentId - The agent that used the tool (default: 'unknown').
+   * @param workspaceId - Optional workspace ID for workspace-scoped tracking.
    */
-  static async recordToolUsage(toolName: string, agentId: string = 'unknown'): Promise<void> {
+  static async recordToolUsage(
+    toolName: string,
+    agentId: string = 'unknown',
+    workspaceId?: string
+  ): Promise<void> {
     const now = Date.now();
     const stats = { count: 1, lastUsed: now, firstRegistered: now };
 
     // Update global usage
     await ConfigManager.atomicUpdateMapEntity(DYNAMO_KEYS.TOOL_USAGE, toolName, stats);
+
     // Update per-agent usage
     await ConfigManager.atomicUpdateMapEntity(`tool_usage_${agentId}`, toolName, stats);
+
+    // Update per-workspace usage if workspaceId provided
+    if (workspaceId) {
+      const workspaceUsageKey = `WS#${workspaceId}#${DYNAMO_KEYS.TOOL_USAGE_PREFIX}`;
+      await ConfigManager.atomicUpdateMapEntity(workspaceUsageKey, toolName, stats);
+    }
   }
 
   /**
@@ -397,15 +412,17 @@ export class AgentRegistry {
 
   /**
    * Performs metabolic pruning of low-utilization tools for a specific workspace.
-   * Tools with 0 usage and registered > 30 days ago are removed from agent configs.
+   * Tools with 0 usage and registered > threshold days ago are removed from agent configs.
    * Scoped to Principle 13 (Atomic State Integrity).
    *
-   * @param workspaceId - The workspace identifier to prune tools for.
+   * @param workspaceId - The workspace identifier to prune tools for. If provided,
+   *                      only workspace-scoped agents are pruned. If empty, all agents
+   *                      (including backbone) are eligible for pruning.
    * @param daysThreshold - Days of inactivity before a never-used tool is pruned.
    * @returns A promise resolving to the number of tools pruned.
    */
   static async pruneLowUtilizationTools(
-    workspaceId: string,
+    workspaceId?: string,
     daysThreshold: number = 30
   ): Promise<number> {
     const usage = (await ConfigManager.getRawConfig(DYNAMO_KEYS.TOOL_USAGE)) as Record<
@@ -416,25 +433,26 @@ export class AgentRegistry {
 
     const thresholdMs = daysThreshold * 24 * 60 * 60 * 1000;
     const now = Date.now();
+
+    // Filter low-utilization tools globally - tool names don't have workspace prefixes
+    // in the TOOL_USAGE map (they're stored as simple names like 'github_createIssue')
     const lowUtilTools = Object.entries(usage)
-      .filter(([name, stats]) => {
-        // Only prune tools belonging to THIS workspace
-        if (!name.startsWith(`WS#${workspaceId}#`)) return false;
-        return stats.count === 0 && now - stats.firstRegistered > thresholdMs;
-      })
+      .filter(([, stats]) => stats.count === 0 && now - stats.firstRegistered > thresholdMs)
       .map(([name]) => name);
 
     if (lowUtilTools.length === 0) return 0;
 
     logger.info(
-      `[REGISTRY] Found ${lowUtilTools.length} low-utilization tools for pruning in workspace ${workspaceId}.`
+      `[REGISTRY] Found ${lowUtilTools.length} low-utilization tools for pruning in workspace '${workspaceId || 'all'}'.`
     );
 
     const allConfigs = await this.getAllConfigs();
     let totalPruned = 0;
 
     for (const agentId of Object.keys(allConfigs)) {
-      if (!agentId.startsWith(`WS#${workspaceId}#`)) continue;
+      // If workspaceId is provided, only prune workspace-scoped agents
+      // If workspaceId is empty/undefined, prune all agents including backbone
+      if (workspaceId && !agentId.startsWith(`WS#${workspaceId}#`)) continue;
 
       // Filter tools for this agent that are in the lowUtilTools list
       const config = allConfigs[agentId];

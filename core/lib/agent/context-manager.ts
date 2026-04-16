@@ -1,6 +1,6 @@
 import { IMemory, Message, MessageRole, IProvider, ReasoningProfile } from '../types/index';
 import { LIMITS } from '../constants';
-import { CONFIG_DEFAULTS } from '../config/config-defaults';
+import { getDynamicConfigValue } from '../config/config-defaults';
 import { logger } from '../logger';
 import { getContextStrategy, ProviderContextStrategy } from './context-strategies';
 
@@ -53,23 +53,11 @@ export class ContextManager {
     const contextLimit = Math.min(limit, strategy.maxContextTokens);
 
     const safetyMargin =
-      options?.safetyMargin ??
-      (await this.getConfigValue(
-        'CONTEXT_SAFETY_MARGIN',
-        CONFIG_DEFAULTS.CONTEXT_SAFETY_MARGIN.code
-      ));
+      options?.safetyMargin ?? (await getDynamicConfigValue('CONTEXT_SAFETY_MARGIN'));
     const summaryRatio =
-      options?.summaryRatio ??
-      (await this.getConfigValue(
-        'CONTEXT_SUMMARY_RATIO',
-        CONFIG_DEFAULTS.CONTEXT_SUMMARY_RATIO.code
-      ));
+      options?.summaryRatio ?? (await getDynamicConfigValue('CONTEXT_SUMMARY_RATIO'));
     const activeWindowRatio =
-      options?.activeWindowRatio ??
-      (await this.getConfigValue(
-        'CONTEXT_ACTIVE_WINDOW_RATIO',
-        CONFIG_DEFAULTS.CONTEXT_ACTIVE_WINDOW_RATIO.code
-      ));
+      options?.activeWindowRatio ?? (await getDynamicConfigValue('CONTEXT_ACTIVE_WINDOW_RATIO'));
 
     // Filter out existing system messages from history to prevent duplication
     // when getManagedContext is called mid-loop with an already managed array.
@@ -326,12 +314,8 @@ export class ContextManager {
     let ratio: number = triggerRatio ?? strategy.compressionTriggerPercent / 100;
     if (triggerRatio === undefined) {
       try {
-        const { ConfigManager } = await import('../registry/config');
-        const customRatio = await ConfigManager.getTypedConfig<number>(
-          CONFIG_DEFAULTS.CONTEXT_SUMMARY_TRIGGER_RATIO.configKey!,
-          -1
-        );
-        if (customRatio !== -1) ratio = customRatio;
+        const customRatio = await getDynamicConfigValue('CONTEXT_SUMMARY_TRIGGER_RATIO');
+        if (typeof customRatio === 'number' && customRatio > 0) ratio = customRatio;
       } catch {
         // use strategy default
       }
@@ -407,16 +391,6 @@ export class ContextManager {
       }
     } catch (e) {
       logger.error(`Failed to summarize conversation for ${userId}:`, e);
-    }
-  }
-
-  private static async getConfigValue(key: string, fallback: number): Promise<number> {
-    try {
-      const { ConfigManager } = await import('../registry/config');
-      return await ConfigManager.getTypedConfig(key, fallback);
-    } catch {
-      // Config unavailable, use strategy default
-      return fallback;
     }
   }
 }

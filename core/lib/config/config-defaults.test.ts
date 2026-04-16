@@ -139,3 +139,20 @@ describe('getHotSwappableKeys', () => {
     expect(keyNames).toContain('MIN_GAPS_FOR_REVIEW');
   });
 });
+
+describe('getDynamicConfigValue', () => {
+  it('should return code default when ConfigManager fails or key not found', async () => {
+    // Note: ConfigManager is mocked or fails because ConfigTable is not linked in test env by default
+    const value = await import('./config-defaults').then((m) =>
+      m.getDynamicConfigValue('RECURSION_LIMIT')
+    );
+    expect(value).toBe(15);
+  });
+
+  it('should return code default for non-hot-swappable keys', async () => {
+    const value = await import('./config-defaults').then((m) =>
+      m.getDynamicConfigValue('MAX_DEPLOY_LIMIT')
+    );
+    expect(value).toBe(100);
+  });
+});

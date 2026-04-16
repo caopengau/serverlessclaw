@@ -5,7 +5,7 @@
  */
 
 import { logger } from '../../lib/logger';
-import { getConfigValue } from '../../lib/config';
+import { getDynamicConfigValue } from '../../lib/config';
 import { emitEvent } from '../../lib/utils/bus';
 import { AgentType, EventType } from '../../lib/types/agent';
 import { runSystemAudit } from '../../agents/cognition-reflector/audit-protocol';
@@ -29,7 +29,7 @@ export async function handleSystemAuditTrigger(
   event: AuditTriggerEvent,
   _detailType: string
 ): Promise<void> {
-  const auditEnabled = getConfigValue('AUDIT_EVENT_TRIGGERS_ENABLED');
+  const auditEnabled = await getDynamicConfigValue('AUDIT_EVENT_TRIGGERS_ENABLED');
   if (!auditEnabled) {
     logger.info('[AuditHandler] Audit triggers disabled, skipping');
     return;

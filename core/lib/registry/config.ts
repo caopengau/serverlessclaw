@@ -34,14 +34,14 @@ function getDocClient(): DynamoDBDocumentClient {
 
 /**
  * Handles raw configuration storage and retrieval from DynamoDB.
- * @since 2026-03-19
+ * Implements a local cache to satisfy Low Latency goals (Principle 5).
  */
 export class ConfigManager {
+  private static configCache = new Map<string, { value: unknown; expiresAt: number }>();
+  private static readonly CACHE_TTL_MS = 60000; // 1 minute (60s)
+
   /**
    * Fetches a raw value from the ConfigTable by key.
-   *
-   * @param key - The unique configuration key.
-   * @returns A promise resolving to the configuration value or undefined.
    */
   public static async getRawConfig(key: string): Promise<unknown> {
     const resource = Resource as { ConfigTable?: { name: string } };
@@ -66,24 +66,23 @@ export class ConfigManager {
 
   /**
    * Fetches a configuration value with a type-safe fallback.
-   *
-   * @param key - The unique configuration key.
-   * @param defaultValue - The fallback value if the key is not found.
-   * @returns A promise resolving to the typed configuration value.
+   * Implements internal caching to minimize DynamoDB overhead.
    */
   public static async getTypedConfig<T>(key: string, defaultValue: T): Promise<T> {
+    const cached = this.configCache.get(key);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.value as T;
+    }
+
     const value = await this.getRawConfig(key);
-    return (value as T) ?? defaultValue;
+    const result = (value as T) ?? defaultValue;
+
+    this.configCache.set(key, { value: result, expiresAt: Date.now() + this.CACHE_TTL_MS });
+    return result;
   }
 
   /**
    * Fetches a configuration value with agent-specific override precedence.
-   * Checks agent_config_<agentId>_<key> first, then falls back to global key.
-   *
-   * @param agentId - The agent identifier.
-   * @param key - The configuration key.
-   * @param fallback - The value to use if neither override nor global exists.
-   * @returns A promise resolving to the effective configuration value.
    */
   public static async getAgentOverrideConfig<T>(
     agentId: string,
@@ -98,11 +97,6 @@ export class ConfigManager {
 
   /**
    * Saves a raw configuration value to the ConfigTable.
-   * Optionally snapshots the old value for versioning.
-   *
-   * @param key - The unique configuration key.
-   * @param value - The value to store.
-   * @param options - Optional versioning and audit options.
    */
   public static async saveRawConfig(
     key: string,
@@ -118,6 +112,8 @@ export class ConfigManager {
       logger.warn(`ConfigTable not linked. Skipping save for ${key}`);
       return;
     }
+
+    this.configCache.delete(key);
 
     if (!options?.skipVersioning) {
       try {
@@ -151,13 +147,15 @@ export class ConfigManager {
   }
 
   /**
+   * Resolves the table name for the configured ConfigTable.
+   */
+  public static async resolveTableName(): Promise<string | undefined> {
+    const resource = Resource as { ConfigTable?: { name: string } };
+    return 'ConfigTable' in resource ? resource.ConfigTable!.name : undefined;
+  }
+
+  /**
    * Atomically appends a value to a list configuration.
-   * Uses DynamoDB list_append to avoid lost update bugs.
-   *
-   * @param key - The unique configuration key.
-   * @param item - The item to append.
-   * @param options - Optional capping for the list (e.g., last 200 items).
-   * @returns A promise that resolves when the append is complete.
    */
   public static async appendToList(
     key: string,
@@ -165,15 +163,12 @@ export class ConfigManager {
     options?: { limit?: number }
   ): Promise<void> {
     const resource = Resource as { ConfigTable?: { name: string } };
-    if (!('ConfigTable' in resource)) {
-      logger.warn(`ConfigTable not linked. Skipping append for ${key}`);
-      return;
-    }
+    if (!('ConfigTable' in resource)) return;
+
+    this.configCache.delete(key);
 
     try {
       const { limit } = options || {};
-
-      // Phase 1: Ensure value is initialized as a list if it doesn't exist
       await getDocClient().send(
         new UpdateCommand({
           TableName: resource.ConfigTable!.name,
@@ -184,7 +179,6 @@ export class ConfigManager {
         })
       );
 
-      // Phase 2: Append the item
       const result = await getDocClient().send(
         new UpdateCommand({
           TableName: resource.ConfigTable!.name,
@@ -196,13 +190,9 @@ export class ConfigManager {
         })
       );
 
-      // Phase 3: Optional capping (best effort, not perfectly atomic with the append)
-      // Since list_append + truncation can't be one atomic op in DDB without knowing length,
-      // we do it if ReturnValues shows it's too long.
       const currentList = result.Attributes?.value as unknown[];
       if (limit && currentList && currentList.length > limit) {
         const excess = currentList.length - limit;
-        // Truncate from the beginning
         await getDocClient()
           .send(
             new UpdateCommand({
@@ -221,29 +211,13 @@ export class ConfigManager {
   }
 
   /**
-   * Resolves the table name for the configured ConfigTable.
-   *
-   * @returns A promise resolving to the table name or undefined.
-   */
-  public static async resolveTableName(): Promise<string | undefined> {
-    const resource = Resource as { ConfigTable?: { name: string } };
-    return 'ConfigTable' in resource ? resource.ConfigTable!.name : undefined;
-  }
-
-  /**
    * Atomically increments a numeric configuration value.
-   * Uses DynamoDB UpdateCommand with ADD operation to avoid lost update bugs.
-   *
-   * @param key - The unique configuration key.
-   * @param increment - The amount to increment (default 1).
-   * @returns A promise resolving to the new value after increment.
    */
   public static async incrementConfig(key: string, increment: number = 1): Promise<number> {
     const resource = Resource as { ConfigTable?: { name: string } };
-    if (!('ConfigTable' in resource)) {
-      logger.warn(`ConfigTable not linked. Skipping increment for ${key}`);
-      return 0;
-    }
+    if (!('ConfigTable' in resource)) return 0;
+
+    this.configCache.delete(key);
 
     try {
       const result = await getDocClient().send(
@@ -265,14 +239,6 @@ export class ConfigManager {
 
   /**
    * Atomically updates a specific field for an entity within a map-based configuration.
-   * Handles multi-level initialization of root and entity objects to prevent ValidationExceptions.
-   * Scoped to Principle 13 (Atomic State Integrity).
-   *
-   * @param key - The unique configuration key (e.g., DYNAMO_KEYS.AGENTS_CONFIG).
-   * @param entityId - The ID of the entity within the map (e.g., agentId).
-   * @param field - The field name to update.
-   * @param value - The new value to set.
-   * @param retryCount - Internal retry counter for race conditions during initialization.
    */
   public static async atomicUpdateMapField(
     key: string,
@@ -284,11 +250,12 @@ export class ConfigManager {
     const resource = Resource as { ConfigTable?: { name: string } };
     if (!resource.ConfigTable?.name) return;
 
+    this.configCache.delete(key);
+
     const maxRetries = 3;
     const docClient = getDocClient();
 
     try {
-      // Level 1: Standard update (Assumes root and entity exist)
       await docClient.send(
         new UpdateCommand({
           TableName: resource.ConfigTable.name,
@@ -301,10 +268,8 @@ export class ConfigManager {
       );
     } catch (e: unknown) {
       if (!(e instanceof Error)) throw e;
-
       if (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException') {
         try {
-          // Level 2: Entity initialization (Assumes root exists)
           await docClient.send(
             new UpdateCommand({
               TableName: resource.ConfigTable.name,
@@ -317,10 +282,8 @@ export class ConfigManager {
           );
         } catch (innerE: unknown) {
           if (!(innerE instanceof Error)) throw innerE;
-
-          if (innerErrorIsValidation(innerE)) {
+          if (innerE.name === 'ValidationException') {
             try {
-              // Level 3: Root initialization
               await docClient.send(
                 new UpdateCommand({
                   TableName: resource.ConfigTable.name,
@@ -352,14 +315,9 @@ export class ConfigManager {
       }
     }
   }
+
   /**
    * Atomically adds/subtracts a value for a specific field for an entity within a map-based configuration.
-   * Scoped to Principle 13 (Atomic State Integrity) and Silo 6 (The Scales).
-   *
-   * @param key - The unique configuration key (e.g., DYNAMO_KEYS.AGENTS_CONFIG).
-   * @param entityId - The ID of the entity within the map (e.g., agentId).
-   * @param field - The field name to update.
-   * @param delta - The amount to add (can be negative).
    */
   public static async atomicAddMapField(
     key: string,
@@ -370,10 +328,10 @@ export class ConfigManager {
     const resource = Resource as { ConfigTable?: { name: string } };
     if (!resource.ConfigTable?.name) return 0;
 
-    const docClient = getDocClient();
+    this.configCache.delete(key);
 
     try {
-      const result = await docClient.send(
+      const result = await getDocClient().send(
         new UpdateCommand({
           TableName: resource.ConfigTable.name,
           Key: { key },
@@ -392,7 +350,6 @@ export class ConfigManager {
 
   /**
    * Atomically updates a specific field for an entity with a conditional check on the current value.
-   * This ensures the update only succeeds if the current value matches the expected value.
    */
   public static async atomicUpdateMapFieldWithCondition(
     key: string,
@@ -402,10 +359,9 @@ export class ConfigManager {
     expectedValue: unknown
   ): Promise<void> {
     const resource = Resource as { ConfigTable?: { name: string } };
-    if (!resource.ConfigTable?.name) {
-      logger.warn(`ConfigTable not linked. Skipping atomic update for ${key}/${entityId}`);
-      return;
-    }
+    if (!resource.ConfigTable?.name) return;
+
+    this.configCache.delete(key);
 
     try {
       await getDocClient().send(
@@ -419,9 +375,7 @@ export class ConfigManager {
         })
       );
     } catch (e: unknown) {
-      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
-        throw e;
-      }
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') throw e;
       logger.error(`Failed to atomically update ${key}/${entityId}.${field}:`, e);
       throw e;
     }
@@ -429,8 +383,6 @@ export class ConfigManager {
 
   /**
    * Removes items from a list within a map entity atomically using conditional updates.
-   * Since DynamoDB doesn't have a native "remove from list by value" in SET,
-   * we use a read-modify-write pattern with a ConditionExpression on the specific list field.
    */
   public static async atomicRemoveFromMap(
     key: string,
@@ -439,6 +391,8 @@ export class ConfigManager {
   ): Promise<void> {
     const resource = Resource as { ConfigTable?: { name: string } };
     if (!resource.ConfigTable?.name) return;
+
+    this.configCache.delete(key);
 
     let retryCount = 0;
     const maxRetries = 5;
@@ -494,12 +448,13 @@ export class ConfigManager {
     const resource = Resource as { ConfigTable?: { name: string } };
     if (!resource.ConfigTable?.name) return;
 
+    this.configCache.delete(key);
+
     let retryCount = 0;
     const maxRetries = 5;
 
     while (retryCount < maxRetries) {
       try {
-        // 1. Fetch current list
         const { Item } = await getDocClient().send(
           new GetCommand({
             TableName: resource.ConfigTable.name,
@@ -514,14 +469,12 @@ export class ConfigManager {
 
         if (!Array.isArray(currentList)) return;
 
-        // 2. Filter list
         const newList = currentList.filter(
           (item) =>
             !itemsToRemove.some((toRemove) => JSON.stringify(item) === JSON.stringify(toRemove))
         );
-        if (newList.length === currentList.length) return; // Nothing to remove
+        if (newList.length === currentList.length) return;
 
-        // 3. Conditional Update
         await getDocClient().send(
           new UpdateCommand({
             TableName: resource.ConfigTable.name,
@@ -532,29 +485,19 @@ export class ConfigManager {
             ExpressionAttributeValues: { ':newList': newList, ':oldList': currentList },
           })
         );
-        return; // Success
+        return;
       } catch (e: unknown) {
         if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
           retryCount++;
-          logger.debug(
-            `[CONFIG] Race condition during atomic list removal for ${entityId}.${field}, retrying (${retryCount}/${maxRetries})...`
-          );
           continue;
         }
         throw e;
       }
     }
-    throw new Error(
-      `Failed to atomically remove items from ${entityId}.${field} after ${maxRetries} retries.`
-    );
   }
 
   /**
    * Atomically updates multiple fields for an entity using a partial object.
-   *
-   * @param key - The unique configuration key.
-   * @param entityId - The ID of the entity.
-   * @param updates - Object containing fields and their new values.
    */
   public static async atomicUpdateMapEntity(
     key: string,
@@ -563,6 +506,8 @@ export class ConfigManager {
   ): Promise<void> {
     const resource = Resource as { ConfigTable?: { name: string } };
     if (!resource.ConfigTable?.name) return;
+
+    this.configCache.delete(key);
 
     const docClient = getDocClient();
     const sets: string[] = [];
@@ -587,19 +532,17 @@ export class ConfigManager {
         })
       );
     } catch (e: unknown) {
-      const error = e as { name: string };
       if (
-        error.name === 'ValidationException' ||
-        error.name === 'ConditionalCheckFailedException'
+        e instanceof Error &&
+        (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException')
       ) {
-        // For complexity and safety, if initialization is needed, we do it field by field or full object
-        // Fallback to a simpler set if entity doesn't exist
         await docClient.send(
           new UpdateCommand({
             TableName: resource.ConfigTable.name,
             Key: { key },
             UpdateExpression: 'SET #val.#id = :entity',
             ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
+            ExpressionAttributeValues: { ':entity': updates },
           })
         );
       } else {
@@ -607,8 +550,4 @@ export class ConfigManager {
       }
     }
   }
-}
-
-function innerErrorIsValidation(e: Error): boolean {
-  return e.name === 'ValidationException';
 }

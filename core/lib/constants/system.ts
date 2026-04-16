@@ -43,6 +43,8 @@ export const DYNAMO_KEYS = {
   MISSION_RECURSION_LIMIT: 'mission_recursion_limit',
   RETENTION_CONFIG: 'retention_config',
   TOOL_USAGE: 'tool_usage_global',
+  /** Workspace-scoped tool usage: key is WS#{workspaceId}#tool_usage */
+  TOOL_USAGE_PREFIX: 'tool_usage',
   ACTIVE_PROVIDER: 'active_provider',
   ACTIVE_MODEL: 'active_model',
   ACTIVE_LOCALE: 'active_locale',

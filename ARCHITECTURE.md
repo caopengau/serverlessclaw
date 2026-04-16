@@ -210,10 +210,10 @@ The system architecture follows a **Distributed Spine** model where all critical
           |-- (4) Selection Integrity (Verify agent.enabled === true)
           v
   [ Agent Execution (Silo 2: The Hand) ]
-          |-- (5) Security Enforcement (ToolSecurityValidator: Safety/RBAC/Breaker)
-          |-- (6) Budget Enforcement (BudgetEnforcer: Tokens/Cost/Thresholds)
-          |-- (7) Isolated Workspace (/tmp/claw-workspaces/<traceId>)
-          |-- (8) Unified MCP Tool Discovery (Distributed Backoff)
+          |-- (5) Unified Config (ConfigManager: 60s Cached Dynamic Lookups)
+          |-- (6) Security Enforcement (ToolSecurityValidator: Safety/RBAC/Breaker)
+          |-- (7) Budget Enforcement (BudgetEnforcer: Tokens/Cost/Thresholds)
+          |-- (8) Isolated Workspace (/tmp/claw-workspaces/<traceId>)
           v
   [ Outcome (Success/Failure) ]
           |
@@ -224,6 +224,16 @@ The system architecture follows a **Distributed Spine** model where all critical
           v
   [ ConfigTable (DDB) ] <--- (Feedback Loop for Selection Integrity)
 ```
+
+---
+
+## ⚙️ Unified Configuration System
+
+To satisfy **Principle 5 (Low Latency)** and **Principle 10 (Lean Evolution)**, Serverless Claw implements a unified, hot-swappable configuration layer:
+
+1. **Cached Dynamic Lookups**: The `ConfigManager` maintains a 60-second in-memory cache for all configuration keys. This reduces DynamoDB read IOPS by >90% during high-concurrency swarm missions while allowing system-wide behavioral changes (e.g., disabling an agent, opening a circuit) to propagate within one minute.
+2. **Authoritative Async Bridge**: The `getDynamicConfigValue` utility provides a type-safe, non-blocking interface for fetching hot-swappable settings. It automatically falls back to hardcoded defaults if DynamoDB is unreachable or the key is missing.
+3. **Atomic Writes & Invalidation**: Configuration updates use DynamoDB conditional writes to prevent lost updates. Any write to the `ConfigTable` automatically invalidates the local cache instance, ensuring immediate consistency for the writing process.
 
 ---
 

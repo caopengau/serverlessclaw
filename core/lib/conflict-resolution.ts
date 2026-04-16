@@ -4,7 +4,7 @@
  */
 
 import { logger } from './logger';
-import { getConfigValue } from './config';
+import { getDynamicConfigValue } from './config';
 
 export interface ConflictResolutionState {
   sessionId: string;
@@ -20,7 +20,7 @@ export interface ConflictResolutionState {
  * @returns true if timeout exceeded
  */
 export async function isConflictTimedOut(startedAt: number): Promise<boolean> {
-  const timeoutMs = getConfigValue('TIE_BREAK_TIMEOUT_MS');
+  const timeoutMs = await getDynamicConfigValue('TIE_BREAK_TIMEOUT_MS');
   return Date.now() - startedAt > timeoutMs;
 }
 
@@ -30,7 +30,7 @@ export async function isConflictTimedOut(startedAt: number): Promise<boolean> {
  * @returns Remaining milliseconds, or 0 if already timed out
  */
 export async function getConflictRemainingTime(startedAt: number): Promise<number> {
-  const timeoutMs = getConfigValue('TIE_BREAK_TIMEOUT_MS');
+  const timeoutMs = await getDynamicConfigValue('TIE_BREAK_TIMEOUT_MS');
   const remaining = timeoutMs - (Date.now() - startedAt);
   return Math.max(0, remaining);
 }
@@ -40,8 +40,8 @@ export async function getConflictRemainingTime(startedAt: number): Promise<numbe
  */
 async function emitEventWithRetry(
   source: string,
-  eventType: any,
-  payload: any,
+  eventType: import('./types/agent').EventType,
+  payload: Record<string, unknown>,
   traceId: string
 ): Promise<void> {
   const { emitEvent } = await import('./utils/bus');
@@ -94,7 +94,7 @@ export async function emitConflictTimeoutEvent(sessionId: string, traceId: strin
       sessionId,
       initiatorId: 'facilitator',
       metadata: {
-        timeoutMs: getConfigValue('TIE_BREAK_TIMEOUT_MS'),
+        timeoutMs: await getDynamicConfigValue('TIE_BREAK_TIMEOUT_MS'),
         timestamp: Date.now(),
       },
     },
@@ -122,7 +122,8 @@ export async function checkCollaborationTimeout(
   },
   traceId: string
 ): Promise<boolean> {
-  const timeoutMs = collaboration.timeoutMs ?? getConfigValue('TIE_BREAK_TIMEOUT_MS');
+  const timeoutMs =
+    collaboration.timeoutMs ?? (await getDynamicConfigValue('TIE_BREAK_TIMEOUT_MS'));
   const elapsed = Date.now() - collaboration.lastActivityAt;
 
   if (elapsed > timeoutMs) {

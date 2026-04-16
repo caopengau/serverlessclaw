@@ -1,4 +1,11 @@
-import { TraceSource, TaskEvent, Attachment, AgentType, AgentPayload } from '../lib/types/agent';
+import {
+  TraceSource,
+  TaskEvent,
+  Attachment,
+  AgentType,
+  AgentPayload,
+  isValidAttachment,
+} from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import {
@@ -29,8 +36,6 @@ interface WorkerEvent {
 export async function handler(event: WorkerEvent, context: Context): Promise<string | undefined> {
   logger.info('Agent Runner received event:', JSON.stringify(event, null, 2));
 
-  // Extract agentId from the event source or detail-type
-  // Pattern: dynamic_<agentId>_task
   const detailType = event['detail-type'] || '';
 
   if (!detailType.startsWith('dynamic_')) {
@@ -53,10 +58,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
   let heartbeatInterval: ReturnType<typeof setInterval> | undefined;
   let lockAcquired = false;
   const abortController = new AbortController();
-  // Adaptive heartbeat: start aggressive (15s), back off to 60s as execution progresses
-  let heartbeatIntervalMs = 15000; // Start at 15 seconds
-  const HEARTBEAT_BACKOFF_THRESHOLD_MS = 60000; // After 60s of execution, back off to 60s
-  const MAX_HEARTBEAT_INTERVAL_MS = 60000;
+  const HEARTBEAT_INTERVAL_MS = 60000; // Simplified fixed heartbeat (60s)
 
   if (sessionId && agentId) {
     lockAcquired = await sessionStateManager.acquireProcessing(sessionId, agentId);
@@ -67,25 +69,9 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       return 'QUEUED';
     }
 
-    const executionStartTime = Date.now();
-    const lastIntervalMs = heartbeatIntervalMs;
-
     const runHeartbeat = async () => {
       try {
         if (!lockAcquired) return;
-
-        // Adaptive: back off heartbeat interval as execution progresses
-        const elapsedMs = Date.now() - executionStartTime;
-        if (
-          elapsedMs > HEARTBEAT_BACKOFF_THRESHOLD_MS &&
-          heartbeatIntervalMs < MAX_HEARTBEAT_INTERVAL_MS
-        ) {
-          logger.info(
-            `[AgentRunner] Heartbeat backing off for ${sessionId}: ${heartbeatIntervalMs}ms -> ${MAX_HEARTBEAT_INTERVAL_MS}ms`
-          );
-          heartbeatIntervalMs = MAX_HEARTBEAT_INTERVAL_MS;
-        }
-
         const renewed = await sessionStateManager.renewProcessing(sessionId, agentId);
         if (!renewed) {
           logger.warn(`[AgentRunner] Failed to renew lock for ${sessionId}. Lock lost.`);
@@ -97,7 +83,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       }
     };
 
-    heartbeatInterval = setInterval(runHeartbeat, lastIntervalMs);
+    heartbeatInterval = setInterval(runHeartbeat, HEARTBEAT_INTERVAL_MS);
   }
 
   const { isMissionContext } = await import('./events/shared');
@@ -121,14 +107,12 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
   }
 
   try {
-    // 1. Discovery & Initialization (config + context loaded in parallel)
+    // 1. Discovery & Initialization
     const { config, agent } = await initAgent(agentId);
+    const shouldSpeakDirectly =
+      config?.category === 'social' || config?.defaultCommunicationMode === 'text';
 
-    const isSocial = config?.category === 'social';
-    const isTextMode = config?.defaultCommunicationMode === 'text';
-    const shouldSpeakDirectly = isSocial || isTextMode;
-
-    // 2. Build Process Options (context, streaming, communication mode)
+    // 2. Build Process Options
     const processOptions = buildProcessOptions({
       isContinuation,
       isIsolated: true,
@@ -146,12 +130,9 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
     // 3. Execution & Streaming
     let finalResponseText = '';
     let finalAttachments: Attachment[] | undefined = undefined;
-    const isValidAttachment = (rawAtt: unknown): rawAtt is Attachment => {
-      if (!rawAtt || typeof rawAtt !== 'object') return false;
-      const a = rawAtt as Record<string, unknown>;
-      if (typeof a.url === 'string' && a.url.length > 0) return true;
-      if (typeof a.base64 === 'string' && a.base64.length > 0) return true;
-      return false;
+
+    const collectAttachments = (attachments: unknown[]): Attachment[] => {
+      return (attachments as Attachment[]).filter((a) => isValidAttachment(a));
     };
 
     if (shouldSpeakDirectly) {
@@ -159,37 +140,24 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       const stream = agent.stream(userId, task, processOptions);
 
       for await (const chunk of stream) {
-        if (chunk.content) {
-          finalResponseText += chunk.content;
-        }
+        if (chunk.content) finalResponseText += chunk.content;
         if (chunk.attachments && Array.isArray(chunk.attachments)) {
-          finalAttachments = finalAttachments ?? [];
-          for (const rawAtt of chunk.attachments) {
-            if (isValidAttachment(rawAtt)) finalAttachments.push(rawAtt as Attachment);
-            else logger.warn('[AGENT_RUNNER] Skipping invalid chunk attachment');
-          }
+          const valid = collectAttachments(chunk.attachments);
+          finalAttachments = ((finalAttachments || []) as Attachment[]).concat(valid);
         }
       }
     } else {
       const processResult = await agent.process(userId, task, processOptions);
       finalResponseText = processResult.responseText;
       if (processResult.attachments && Array.isArray(processResult.attachments)) {
-        finalAttachments = [];
-        for (const rawAtt of processResult.attachments) {
-          if (isValidAttachment(rawAtt)) finalAttachments.push(rawAtt as Attachment);
-          else logger.warn('[AGENT_RUNNER] Skipping invalid processResult attachment');
-        }
-      } else {
-        finalAttachments = processResult.attachments;
+        finalAttachments = collectAttachments(processResult.attachments);
       }
     }
 
     // 4. Swarm Self-Organization: Decompose high-level plans into parallel sub-tasks
     const { handleSwarmDecomposition } = await import('../lib/agent/swarm-orchestrator');
-
     let wasDecomposed = false;
     let isPaused = false;
-    let swarmResponse: string | undefined;
 
     try {
       const decompositionResult = await handleSwarmDecomposition(
@@ -211,69 +179,53 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       );
       wasDecomposed = decompositionResult.wasDecomposed;
       isPaused = decompositionResult.isPaused;
-      swarmResponse = decompositionResult.response;
+      if (wasDecomposed) finalResponseText = decompositionResult.response;
     } catch (decompositionError) {
-      logger.error(
-        `[AgentRunner] Swarm decomposition failed for ${agentId}, preserving original response:`,
-        decompositionError instanceof Error
-          ? decompositionError.message
-          : String(decompositionError)
+      logger.error(`[AgentRunner] Swarm decomposition failed for ${agentId}:`, decompositionError);
+    }
+
+    if (isPaused || isTaskPaused(finalResponseText)) {
+      logger.info(
+        `[AgentRunner] Task ${taskId} is paused (decomposed: ${wasDecomposed}), stopping chain.`
       );
-    }
-
-    if (wasDecomposed) {
-      logger.info(`[AgentRunner] Plan from ${agentId} successfully decomposed into swarm tasks.`);
-      finalResponseText = swarmResponse || finalResponseText;
-
-      // Emit the notification of decomposition
-      await emitTaskEvent({
-        source: `${agentId}.runner`,
-        agentId: agentId as AgentType,
-        userId: baseUserId,
-        task,
-        response: finalResponseText,
-        traceId,
-        taskId,
-        sessionId,
-        initiatorId: payload.initiatorId,
-        depth: payload.depth,
-        userNotified: true,
-      });
-    }
-
-    if (isPaused) {
-      logger.info(`[AgentRunner] Task ${taskId} is paused, stopping chain.`);
+      // If decomposed, we already emitted parallel events, but we still emit a completion event for the planner
+      if (wasDecomposed) {
+        await emitTaskEvent({
+          source: `${agentId}.runner`,
+          agentId: agentId as AgentType,
+          userId: baseUserId,
+          task,
+          response: finalResponseText,
+          traceId,
+          taskId,
+          sessionId,
+          initiatorId: payload.initiatorId,
+          depth: payload.depth,
+          userNotified: true,
+        });
+      }
       return finalResponseText;
     }
 
     logger.info(`Agent Runner [${agentId}] completed task:`, finalResponseText);
 
-    // 4. Notification
-    if (!isTaskPaused(finalResponseText)) {
-      const isFailure = detectFailure(finalResponseText);
-
-      if (shouldSpeakDirectly && !isFailure) {
-        logger.info(
-          `Agent Runner [${agentId}] streaming completed, skipping duplicate final outbound message.`
-        );
-      }
-
-      await emitTaskEvent({
-        source: `${agentId}.agent`,
-        agentId,
-        userId: baseUserId,
-        task,
-        [isFailure ? 'error' : 'response']: finalResponseText,
-        attachments: finalAttachments,
-        traceId,
-        taskId,
-        sessionId,
-        initiatorId: payload.initiatorId,
-        depth: payload.depth,
-        userNotified: shouldSpeakDirectly && !isFailure,
-        idempotencyKey: taskId || `${traceId}-${agentId}`,
-      });
-    }
+    // 5. Final Notification
+    const isFailure = detectFailure(finalResponseText);
+    await emitTaskEvent({
+      source: `${agentId}.agent`,
+      agentId,
+      userId: baseUserId,
+      task,
+      [isFailure ? 'error' : 'response']: finalResponseText,
+      attachments: finalAttachments,
+      traceId,
+      taskId,
+      sessionId,
+      initiatorId: payload.initiatorId,
+      depth: payload.depth,
+      userNotified: shouldSpeakDirectly && !isFailure,
+      idempotencyKey: taskId || `${traceId}-${agentId}`,
+    });
 
     return finalResponseText;
   } finally {

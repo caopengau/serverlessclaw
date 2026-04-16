@@ -13,32 +13,23 @@ export interface FlowControlResult {
  */
 export class FlowController {
   /**
-   * In-memory configuration cache to minimize DynamoDB overhead for high-frequency routing checks.
-   * NOTE: This introduces a 1-minute consistency drift across Lambda instances.
-   * This trade-off is intentional to satisfy Low Latency goals (Principle 5)
-   * while maintaining a mostly Stateless Core (Principle 1).
-   */
-  private static configCache = new Map<string, { value: unknown; expiresAt: number }>();
-  private static readonly CACHE_TTL_MS = 60000; // 1 minute (60s)
-
-  /**
    * Checks if an event can proceed based on rate limits and circuit breaker state.
    */
   static async canProceed(eventType: string): Promise<FlowControlResult> {
     const [circuitThreshold, circuitTimeout, rateCapacity, rateRefill] = await Promise.all([
-      this.getCachedConfig(
+      ConfigManager.getTypedConfig(
         CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.configKey!,
         CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.code
       ),
-      this.getCachedConfig(
+      ConfigManager.getTypedConfig(
         CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.configKey!,
         CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.code
       ),
-      this.getCachedConfig(
+      ConfigManager.getTypedConfig(
         CONFIG_DEFAULTS.EVENT_RATE_BUCKET_CAPACITY.configKey!,
         CONFIG_DEFAULTS.EVENT_RATE_BUCKET_CAPACITY.code
       ),
-      this.getCachedConfig(
+      ConfigManager.getTypedConfig(
         CONFIG_DEFAULTS.EVENT_RATE_BUCKET_REFILL_MS.configKey!,
         CONFIG_DEFAULTS.EVENT_RATE_BUCKET_REFILL_MS.code
       ),
@@ -61,11 +52,11 @@ export class FlowController {
    * Records a failure for an event type.
    */
   static async recordFailure(eventType: string): Promise<void> {
-    const circuitThreshold = await this.getCachedConfig(
+    const circuitThreshold = await ConfigManager.getTypedConfig(
       CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.configKey!,
       CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.code
     );
-    const circuitTimeout = await this.getCachedConfig(
+    const circuitTimeout = await ConfigManager.getTypedConfig(
       CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.configKey!,
       CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.code
     );
@@ -78,21 +69,8 @@ export class FlowController {
    */
   static async areTraceSummariesEnabled(): Promise<boolean> {
     return (
-      (await this.getCachedConfig('trace_summaries_enabled', false)) ||
+      (await ConfigManager.getTypedConfig('trace_summaries_enabled', false)) ||
       process.env.TRACE_SUMMARIES_ENABLED === 'true'
     );
-  }
-
-  /**
-   * Gets a cached configuration value.
-   */
-  static async getCachedConfig<T>(key: string, defaultValue: T): Promise<T> {
-    const cached = this.configCache.get(key);
-    if (cached && cached.expiresAt > Date.now()) {
-      return cached.value as T;
-    }
-    const value = await ConfigManager.getTypedConfig(key, defaultValue);
-    this.configCache.set(key, { value, expiresAt: Date.now() + this.CACHE_TTL_MS });
-    return value;
   }
 }

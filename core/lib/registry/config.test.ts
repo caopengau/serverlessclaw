@@ -42,9 +42,6 @@ describe('ConfigManager.saveRawConfig versioning', () => {
     vi.clearAllMocks();
     (Resource as any).ConfigTable = { name: 'mock-table' };
 
-    // Mock the inner getRawConfig to return a specific old value
-    vi.spyOn(ConfigManager, 'getRawConfig').mockResolvedValue('old_value');
-
     // Mock DynamoDB put
     docClientMock = {
       send: vi.fn().mockResolvedValue({}),
@@ -57,6 +54,9 @@ describe('ConfigManager.saveRawConfig versioning', () => {
   });
 
   it('should snapshot if the new value is different', async () => {
+    // Mock the inner getRawConfig to return a specific old value
+    const getRawMock = vi.spyOn(ConfigManager, 'getRawConfig').mockResolvedValue('old_value');
+
     await ConfigManager.saveRawConfig('test_key', 'new_value');
     expect(ConfigVersioning.snapshot).toHaveBeenCalledWith(
       'test_key',
@@ -66,26 +66,83 @@ describe('ConfigManager.saveRawConfig versioning', () => {
       undefined
     );
     expect(docClientMock.send).toHaveBeenCalled();
+    getRawMock.mockRestore();
   });
 
   it('should not snapshot if the new value is deeply equal to the old value', async () => {
-    vi.spyOn(ConfigManager, 'getRawConfig').mockResolvedValue({ a: 1, b: 2 });
+    const getRawMock = vi.spyOn(ConfigManager, 'getRawConfig').mockResolvedValue({ a: 1, b: 2 });
     await ConfigManager.saveRawConfig('test_key', { a: 1, b: 2 });
 
     expect(ConfigVersioning.snapshot).not.toHaveBeenCalled();
     expect(docClientMock.send).toHaveBeenCalled();
+    getRawMock.mockRestore();
   });
 
   it('should not snapshot if skipVersioning is true', async () => {
+    const getRawMock = vi.spyOn(ConfigManager, 'getRawConfig').mockResolvedValue('old_value');
     await ConfigManager.saveRawConfig('test_key', 'new_value', { skipVersioning: true });
     expect(ConfigVersioning.snapshot).not.toHaveBeenCalled();
     expect(docClientMock.send).toHaveBeenCalled();
+    getRawMock.mockRestore();
+  });
+});
+
+describe('ConfigManager Caching', () => {
+  let docClientMock: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (Resource as any).ConfigTable = { name: 'mock-table' };
+    docClientMock = {
+      send: vi.fn(),
+    };
+    setDocClient(docClientMock as any);
+    // @ts-expect-error - accessing private field for testing
+    ConfigManager.configCache.clear();
+  });
+
+  afterEach(() => {
+    delete (Resource as any).ConfigTable;
+  });
+
+  it('should cache getTypedConfig results', async () => {
+    docClientMock.send.mockResolvedValueOnce({ Item: { value: 42 } });
+
+    // 1st call - DB hit
+    const val1 = await ConfigManager.getTypedConfig('cached_key', 10);
+    expect(val1).toBe(42);
+    expect(docClientMock.send).toHaveBeenCalledTimes(1);
+
+    // 2nd call - Cache hit
+    const val2 = await ConfigManager.getTypedConfig('cached_key', 10);
+    expect(val2).toBe(42);
+    expect(docClientMock.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('should invalidate cache on saveRawConfig', async () => {
+    docClientMock.send.mockResolvedValueOnce({ Item: { value: 42 } });
+
+    // 1st call - DB hit
+    await ConfigManager.getTypedConfig('cached_key', 10);
+
+    // Save - Invalidates
+    docClientMock.send.mockResolvedValueOnce({ Item: { value: 42 } }); // getRawConfig for snapshot
+    docClientMock.send.mockResolvedValueOnce({}); // putItem
+    await ConfigManager.saveRawConfig('cached_key', 100);
+
+    // 3rd call - DB hit again
+    docClientMock.send.mockResolvedValueOnce({ Item: { value: 100 } });
+    const val3 = await ConfigManager.getTypedConfig('cached_key', 10);
+    expect(val3).toBe(100);
+    expect(docClientMock.send).toHaveBeenCalledTimes(4); // 1 get, 1 get(snap), 1 put, 1 get
   });
 });
 
 describe('ConfigManager.getAgentOverrideConfig', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // @ts-expect-error - accessing private field for testing
+    ConfigManager.configCache.clear();
   });
 
   it('should return agent-specific value when override exists', async () => {
@@ -94,6 +151,7 @@ describe('ConfigManager.getAgentOverrideConfig', () => {
     const result = await ConfigManager.getAgentOverrideConfig('coder', 'max_iterations', 10);
     expect(result).toBe(42);
     expect(getRawMock).toHaveBeenCalledWith('agent_config_coder_max_iterations');
+    getRawMock.mockRestore();
   });
 
   it('should fall back to global config when no agent override exists', async () => {
@@ -104,13 +162,15 @@ describe('ConfigManager.getAgentOverrideConfig', () => {
     const result = await ConfigManager.getAgentOverrideConfig('coder', 'max_iterations', 10);
     expect(result).toBe(25);
     expect(getRawMock).toHaveBeenCalledTimes(2);
+    getRawMock.mockRestore();
   });
 
   it('should fall back to code default when neither agent nor global config exists', async () => {
-    vi.spyOn(ConfigManager, 'getRawConfig').mockResolvedValue(undefined);
+    const getRawMock = vi.spyOn(ConfigManager, 'getRawConfig').mockResolvedValue(undefined);
 
     const result = await ConfigManager.getAgentOverrideConfig('coder', 'max_iterations', 10);
     expect(result).toBe(10);
+    getRawMock.mockRestore();
   });
 });
 
