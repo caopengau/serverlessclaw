@@ -39,22 +39,24 @@ vi.mock('sst', () => ({
   },
 }));
 
-// Verified fix: It no longer deletes the entire key but updates the list
+// Tests fixed: Tool names no longer have workspace prefixes (they're simple names like 'toolA')
+// Workspace scoping is handled by workspaceId parameter, not tool name prefixes
 describe('AgentRegistry Pruning', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should prune tools from both legacy per-agent config and batch overrides', async () => {
+  it('should prune unused tools from workspace-scoped agents', async () => {
     const now = Date.now();
     const thresholdMs = 30 * 24 * 60 * 60 * 1000;
     const oldTimestamp = now - thresholdMs - 1000;
 
-    // 1. Mock per-agent tool usage: toolA is unused and old
+    // 1. Mock tool usage: toolA is unused and old (no workspace prefix on tool names)
     vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
       if (key === DYNAMO_KEYS.TOOL_USAGE) {
         return {
-          'WS#default#toolA': { count: 0, firstRegistered: oldTimestamp },
+          toolA: { count: 0, firstRegistered: oldTimestamp }, // tool names are simple
+          toolB: { count: 5, firstRegistered: oldTimestamp }, // toolB is used
         };
       }
       if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
@@ -64,48 +66,85 @@ describe('AgentRegistry Pruning', () => {
       }
       if (key === DYNAMO_KEYS.AGENT_TOOL_OVERRIDES) {
         return {
-          'WS#default#agent1': ['WS#default#toolA', 'toolB'], // toolA in batch overrides
+          'WS#default#agent1': ['toolA', 'toolB'], // toolA in batch overrides
         };
       }
       if (key === 'WS#default#agent1_tools') {
-        return ['WS#default#toolA', 'toolC']; // toolA also in per-agent legacy list
+        return ['toolA', 'toolC']; // toolA also in per-agent legacy list
       }
       return undefined;
     });
 
     const prunedCount = await AgentRegistry.pruneLowUtilizationTools('default', 30);
 
-    // Should prune from both
+    // Should prune toolA (unused and old), keep toolB (used)
     expect(prunedCount).toBeGreaterThan(0);
 
     // VERIFY: Legacy list is UPDATED (using saveRawConfig as they are simple keys)
     const saveCalls = vi.mocked(ConfigManager.saveRawConfig).mock.calls;
     const legacySave = saveCalls.find((call) => call[0] === 'WS#default#agent1_tools');
     expect(legacySave).toBeDefined();
-    expect(legacySave![1] as string[]).not.toContain('WS#default#toolA');
+    expect(legacySave![1] as string[]).not.toContain('toolA');
     expect(legacySave![1] as string[]).toContain('toolC');
 
     // VERIFY: Batch overrides are pruned ATOMICALLY via ConfigManager
     expect(ConfigManager.atomicRemoveFromMap).toHaveBeenCalledWith(
       DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
       'WS#default#agent1',
-      ['WS#default#toolA']
+      ['toolA']
+    );
+  });
+
+  it('should prune backbone agents when workspaceId is undefined', async () => {
+    const now = Date.now();
+    const thresholdMs = 30 * 24 * 60 * 60 * 1000;
+    const oldTimestamp = now - thresholdMs - 1000;
+
+    // 1. Mock: superclaw agent has unused toolA
+    vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
+      if (key === DYNAMO_KEYS.TOOL_USAGE) {
+        return {
+          toolA: { count: 0, firstRegistered: oldTimestamp },
+        };
+      }
+      if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
+        return {
+          // backbone agent without WS# prefix
+          superclaw: { name: 'SuperClaw', tools: ['toolA', 'toolB'] },
+        };
+      }
+      if (key === DYNAMO_KEYS.AGENT_TOOL_OVERRIDES) {
+        return {
+          superclaw: ['toolA'], // toolA in overrides
+        };
+      }
+      return undefined;
+    });
+
+    // Call without workspaceId - should prune backbone agents too
+    const prunedCount = await AgentRegistry.pruneLowUtilizationTools(undefined, 30);
+
+    expect(prunedCount).toBeGreaterThan(0);
+    expect(ConfigManager.atomicRemoveFromMap).toHaveBeenCalledWith(
+      DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
+      'superclaw',
+      ['toolA']
     );
   });
 
   it('should respect grace periods for newly assigned tools', async () => {
     const now = Date.now();
 
-    // toolB was just registered (now)
+    // toolB was just registered (now) - should NOT be pruned even if unused
     vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
       if (key === DYNAMO_KEYS.TOOL_USAGE) {
         return {
-          'WS#default#toolB': { count: 0, firstRegistered: now },
+          toolB: { count: 0, firstRegistered: now },
         };
       }
       if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
         return {
-          'WS#default#agent1': { name: 'Agent 1', tools: ['WS#default#toolB'] },
+          'WS#default#agent1': { name: 'Agent 1', tools: ['toolB'] },
         };
       }
       return undefined;

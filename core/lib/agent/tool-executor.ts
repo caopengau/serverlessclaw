@@ -342,7 +342,7 @@ export class ToolExecutor {
 
     // 5. Metrics & Registry
     if (!process.env.VITEST) {
-      await AgentRegistry.recordToolUsage(tool.name, execContext.agentId);
+      await AgentRegistry.recordToolUsage(tool.name, execContext.agentId, execContext.workspaceId);
       const toolSuccess = isToolExecutionSuccessful(rawResult, resultText);
       const estimatedInputTokens = Math.ceil(JSON.stringify(args).length / 4);
       const estimatedOutputTokens = Math.ceil(resultText.length / 4);

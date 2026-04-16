@@ -88,7 +88,11 @@ The central coordinator that manages the lifecycle of metabolic audits. It prior
 ### 2. Autonomous Repair Protocols
 
 - **Surgical Atomic Pruning**: An event-driven bridge for live remediation. If a tool fails in the dashboard, the metabolism service identifies the specific tool and delegates an atomic removal to `AgentRegistry.pruneAgentTool`. (Enforces **Principle 13**).
-- **Tool Pruning**: Automatically removes dynamic tool overrides from the `AgentRegistry` if they have 0 executions over a 30-day window.
+- **Tool Pruning**: Automatically removes dynamic tool overrides from the `AgentRegistry` if they have 0 executions over a configurable window (default 30 days). Supports both workspace-scoped agents (when `workspaceId` provided) and backbone agents (when `workspaceId` undefined).
+- **Per-Workspace Tool Usage**: Tool usage is tracked across three dimensions:
+  - Global: `tool_usage_global` - system-wide tool popularity
+  - Per-agent: `tool_usage_{agentId}` - agent-specific usage
+  - Per-workspace: `WS#{workspaceId}#tool_usage` - workspace-isolated tracking (new)
 - **Memory Culling**: Purges knowledge gaps in `DONE` or `DEPLOYED` status that are older than 90 days.
 - **Native Fallback**: A resilient scanner that performs basic debt identification (e.g., scanning for orphans or TODOs) even when the AIReady MCP server is offline.
 
