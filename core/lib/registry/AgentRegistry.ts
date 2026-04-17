@@ -2,7 +2,7 @@ import { PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { IAgentConfig } from '../types/agent';
 import { BACKBONE_REGISTRY } from '../backbone';
 import { logger } from '../logger';
-import type { TopologyNode } from '../types/index';
+import type { Topology } from '../types/index';
 import { DYNAMO_KEYS, RETENTION, TRUST } from '../constants';
 import { ConfigManager, getDocClient } from './config';
 import { Resource } from 'sst';
@@ -121,11 +121,17 @@ export class AgentRegistry {
   }
 
   /**
-   * Retrieves the current system infrastructure topology.
+   * Retrieves the full system infrastructure topology.
    */
-  static async getInfraConfig(): Promise<TopologyNode[]> {
+  static async getFullTopology(): Promise<Topology> {
     const config = await ConfigManager.getRawConfig(DYNAMO_KEYS.SYSTEM_TOPOLOGY);
-    return Array.isArray(config) ? (config as TopologyNode[]) : [];
+    if (config && typeof config === 'object' && 'nodes' in config) {
+      return config as Topology;
+    }
+    if (Array.isArray(config)) {
+      return { nodes: config, edges: [] };
+    }
+    return { nodes: [], edges: [] };
   }
 
   /**
@@ -442,5 +448,17 @@ export class AgentRegistry {
     }
 
     return pruned;
+  }
+
+  /**
+   * Gets infrastructure configuration nodes.
+   * @deprecated Use ConfigManager.getRawConfig directly.
+   */
+  static async getInfraConfig(): Promise<unknown[]> {
+    const config = await ConfigManager.getRawConfig('infra_topology');
+    if (Array.isArray(config)) {
+      return config;
+    }
+    return [];
   }
 }

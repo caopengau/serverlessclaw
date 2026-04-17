@@ -405,6 +405,12 @@ export class SafetyEngine extends SafetyBase {
         traceId: ctx.traceId,
         userId: ctx.userId,
       });
+      return {
+        allowed: false,
+        requiresApproval: true,
+        reason: approvalResult.reason ?? 'Class C action requires approval',
+        appliedPolicy: 'class_c_approval_required',
+      };
     }
 
     await this.trackClassCBlastRadius(agentId, action, ctx.resource);

@@ -177,6 +177,11 @@ export class PolicyValidator {
         requiresApproval = !!policy.requireMcpApproval;
         reason = 'MCP tool calls require approval in this safety tier';
         break;
+      case 'iam_change':
+      case 'infra_topology':
+        requiresApproval = !!policy.requireCodeApproval;
+        reason = 'Infrastructure changes require approval in this safety tier';
+        break;
       default:
         requiresApproval = true;
         reason = `Unknown action '${action}' requires approval`;
