@@ -16,6 +16,11 @@ export function createStorage() {
       UserInsightIndex: { hashKey: 'userId', rangeKey: 'type' },
     },
     ttl: 'expiresAt',
+    transform: {
+      table: {
+        billingMode: 'PAY_PER_REQUEST',
+      },
+    },
   });
 
   const traceTable = new sst.aws.Dynamo('TraceTable', {
@@ -29,17 +34,15 @@ export function createStorage() {
     primaryIndex: { hashKey: 'traceId', rangeKey: 'nodeId' },
     globalIndexes: {
       UserIndex: { hashKey: 'userId', rangeKey: 'timestamp' },
-      // Support efficient one-row-per-trace listing by partitioning on nodeId
-      // for the reserved summary rows (nodeId = '__summary__'). Query this
-      // index with nodeId='__summary__' to retrieve trace summaries ordered
-      // by timestamp.
       SummaryByNode: { hashKey: 'nodeId', rangeKey: 'timestamp' },
-      // AgentIdIndex: Support efficient trace counting by agentId for
-      // Silo 5 consistency probing. Query this index with agentId to get
-      // all trace nodes for a specific agent within a time range.
       AgentIdIndex: { hashKey: 'agentId', rangeKey: 'timestamp' },
     },
     ttl: 'expiresAt',
+    transform: {
+      table: {
+        billingMode: 'PAY_PER_REQUEST',
+      },
+    },
   });
 
   const stagingBucket = new sst.aws.Bucket('StagingBucket', {
@@ -63,6 +66,11 @@ export function createStorage() {
       key: 'string',
     },
     primaryIndex: { hashKey: 'key' },
+    transform: {
+      table: {
+        billingMode: 'PAY_PER_REQUEST',
+      },
+    },
   });
 
   const knowledgeBucket = new sst.aws.Bucket('KnowledgeBucket', {
