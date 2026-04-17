@@ -198,9 +198,14 @@ export class MCPBridge {
       : '.';
 
     // Use environment variables to override default servers with Lambda multiplexer ARNs
-    const serverArns: Record<string, string> = process.env.MCP_SERVER_ARNS
-      ? JSON.parse(process.env.MCP_SERVER_ARNS)
-      : {};
+    let serverArns: Record<string, string> = {};
+    try {
+      if (process.env.MCP_SERVER_ARNS) {
+        serverArns = JSON.parse(process.env.MCP_SERVER_ARNS);
+      }
+    } catch (e) {
+      logger.warn('[MCPBridge] Failed to parse MCP_SERVER_ARNS, using empty config:', e);
+    }
 
     const defaultServers = DEFAULT_MCP_SERVERS;
 

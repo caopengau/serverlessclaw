@@ -366,17 +366,39 @@ For detailed role hierarchies and coordination diagrams, see [docs/interface/COL
 
 ## 🛡️ Stability & Self-Healing
 
-The system is designed for autonomous survival in unstable conditions.
+The system is designed for autonomous survival and continuous optimization through a multi-layered stability framework.
 
-- **Distributed Locking**: DynamoDB-backed session integrity.
-- **Dead Man's Switch**: Automated recovery sequence for severe failure.
-- **Self-Evolution**: Continuous optimization loops based on telemetry and reputation.
+- **Distributed Locking**: DynamoDB-backed session integrity using `LockManager`. Ensures atomic execution across stateless boundaries.
+- **Dead Man's Switch**: Automated recovery sequence (`RECOVERY` agent) for severe failure, including emergency git-reverts and health probes.
+- **Autonomous Metabolism (Silo 7)**: Implements the **Regenerative Metabolism** philosophy. The `MetabolismService` autonomously identifies and repairs system debt:
+  - **Surgical Pruning**: Atomically removes failing or low-utilization tool overrides from agent configurations (Principle 10).
+  - **Memory Recycling**: Autonomously archives stale gaps and culls resolved inconsistencies from the knowledge base.
+  - **Live Remediation**: Intercepts dashboard failure events to perform real-time registry repairs, maintaining system "flow" without human intervention.
+- **Self-Evolution**: Continuous optimization loops based on telemetry and reputation, allowing the system to design its own upgrades.
+
+### Silo 7: Regenerative Metabolism Flow
+
+```text
+[ Dashboard / Eye ] ---- (Failure Event) ----> [ MetabolismService ]
+                                                     |
+                                            [ Strategy Selection ]
+                                                     |
+          +-------------------------+----------------+-------------------------+
+          |                         |                                          |
+[ Tool Pruning ]           [ Memory Recycling ]               [ Evolution Scheduling ]
+(Atomic Registry)          (Gap/Insight Sync)                 (HITL Fallback)
+          |                         |                                          |
+          +-------------------------+----------------+-------------------------+
+                                    |
+                          [ System Flow Restored ]
+```
 
 | Component                 | Deep Dive                                                    |
 | :------------------------ | :----------------------------------------------------------- |
 | **Concurrency**           | [docs/system/CONCURRENCY.md](./docs/system/CONCURRENCY.md)   |
 | **Evolution**             | [docs/system/EVOLUTION.md](./docs/system/EVOLUTION.md)       |
 | **Resilience & Recovery** | [docs/system/RESILIENCE.md](./docs/system/RESILIENCE.md)     |
+| **Metabolism**            | [docs/system/METABOLISM.md](./docs/system/METABOLISM.md)     |
 | **Provisioning**          | [docs/system/PROVISIONING.md](./docs/system/PROVISIONING.md) |
 
 For deep dives into these evolutionary mechanisms, see [docs/system/EVOLUTION.md](./docs/system/EVOLUTION.md) and [docs/system/RESILIENCE.md](./docs/system/RESILIENCE.md).

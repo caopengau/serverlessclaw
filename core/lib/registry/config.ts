@@ -29,7 +29,10 @@ export function setDocClient(docClient: DynamoDBDocumentClient): void {
   injectedDocClient = docClient;
 }
 
-function getDocClient(): DynamoDBDocumentClient {
+/**
+ * Returns the effective docClient (either injected or default).
+ */
+export function getDocClient(): DynamoDBDocumentClient {
   return injectedDocClient ?? defaultDocClient;
 }
 
@@ -528,13 +531,15 @@ export class ConfigManager {
   public static async atomicUpdateMapEntity(
     key: string,
     entityId: string,
-    updates: Record<string, unknown>
+    updates: Record<string, unknown>,
+    retryCount: number = 0
   ): Promise<void> {
     const resource = Resource as { ConfigTable?: { name: string } };
     if (!resource.ConfigTable?.name) return;
 
     this.configCache.delete(key);
 
+    const maxRetries = 3;
     const docClient = getDocClient();
     const sets: string[] = [];
     const names: Record<string, string> = { '#val': 'value', '#id': entityId };
@@ -558,19 +563,51 @@ export class ConfigManager {
         })
       );
     } catch (e: unknown) {
-      if (
-        e instanceof Error &&
-        (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException')
-      ) {
-        await docClient.send(
-          new UpdateCommand({
-            TableName: resource.ConfigTable.name,
-            Key: { key },
-            UpdateExpression: 'SET #val.#id = :entity',
-            ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
-            ExpressionAttributeValues: { ':entity': updates },
-          })
-        );
+      if (!(e instanceof Error)) throw e;
+      if (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException') {
+        try {
+          // Entity doesn't exist - create entity object
+          await docClient.send(
+            new UpdateCommand({
+              TableName: resource.ConfigTable.name,
+              Key: { key },
+              UpdateExpression: 'SET #val.#id = :entity',
+              ConditionExpression: 'attribute_not_exists(#val.#id)',
+              ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
+              ExpressionAttributeValues: { ':entity': updates },
+            })
+          );
+        } catch (innerE: unknown) {
+          if (!(innerE instanceof Error)) throw innerE;
+          if (innerE.name === 'ValidationException') {
+            try {
+              // Root 'value' doesn't exist - create map object
+              await docClient.send(
+                new UpdateCommand({
+                  TableName: resource.ConfigTable.name,
+                  Key: { key },
+                  UpdateExpression: 'SET #val = :rootObj',
+                  ConditionExpression: 'attribute_not_exists(#val)',
+                  ExpressionAttributeNames: { '#val': 'value' },
+                  ExpressionAttributeValues: { ':rootObj': { [entityId]: updates } },
+                })
+              );
+            } catch (rootE: unknown) {
+              if (
+                rootE instanceof Error &&
+                rootE.name === 'ConditionalCheckFailedException' &&
+                retryCount < maxRetries
+              ) {
+                return this.atomicUpdateMapEntity(key, entityId, updates, retryCount + 1);
+              }
+              throw rootE;
+            }
+          } else if (innerE.name === 'ConditionalCheckFailedException' && retryCount < maxRetries) {
+            return this.atomicUpdateMapEntity(key, entityId, updates, retryCount + 1);
+          } else {
+            throw innerE;
+          }
+        }
       } else {
         throw e;
       }

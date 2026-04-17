@@ -265,7 +265,7 @@ export class AgentRouter {
 
     for (const c of enabled) {
       const match = capabilityMatchFn?.(c.agentId) ?? 1.0;
-      const score = (c.totalInvocations > 0 ? c.successRate : 0.5) * match;
+      const score = this.computeScore(c, match);
       if (score > bestScore) {
         bestScore = score;
         bestAgent = c.agentId;
@@ -288,10 +288,10 @@ export class AgentRouter {
 
     for (const c of enabled) {
       const match = capabilityMatchFn?.(c.agentId) ?? 1.0;
-      const perfScore = (c.totalInvocations > 0 ? c.successRate : 0.5) * match;
+      const perfScore = this.computeScore(c, match);
       const rep = reputations.get(c.agentId);
       const repScore = rep ? computeReputationScore(rep) : 0.5;
-      const composite = 0.6 * perfScore + 0.4 * repScore;
+      const composite = this.computeCompositeScore(perfScore, repScore);
 
       if (composite > bestScore) {
         bestScore = composite;

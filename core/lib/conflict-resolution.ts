@@ -36,7 +36,8 @@ export async function getConflictRemainingTime(startedAt: number): Promise<numbe
 }
 
 /**
- * Helper to emit an event with exponential backoff retry for reliability
+ * Helper to emit an event using the unified bus, which handles retries and DLQ.
+ * Implements Principle 10 (Lean Evolution) by delegating to core utilities.
  */
 async function emitEventWithRetry(
   source: string,
@@ -48,31 +49,20 @@ async function emitEventWithRetry(
   const { getConfigValue: getEBConfig } = await import('./config');
 
   const maxRetries = getEBConfig('EB_MAX_RETRIES') ?? 3;
-  const initialBackoff = getEBConfig('EB_INITIAL_BACKOFF_MS') ?? 100;
 
-  let attempt = 0;
-  while (true) {
-    try {
-      await emitEvent(source, eventType, {
-        ...payload,
-        traceId,
-      });
-      return;
-    } catch (err) {
-      attempt++;
-      if (attempt > maxRetries) {
-        logger.error(
-          `[CONFLICT_RESOLUTION] Failed to emit ${eventType} after ${maxRetries} retries:`,
-          err
-        );
-        throw err;
-      }
-      const backoff = initialBackoff * Math.pow(2, attempt - 1);
-      logger.warn(
-        `[CONFLICT_RESOLUTION] Emit ${eventType} failed (attempt ${attempt}/${maxRetries}), retrying in ${backoff}ms`
-      );
-      await new Promise((resolve) => setTimeout(resolve, backoff));
+  const result = await emitEvent(
+    source,
+    eventType,
+    { ...payload, traceId },
+    {
+      maxRetries,
+      correlationId: traceId,
     }
+  );
+
+  if (!result.success && result.reason !== 'DLQ') {
+    logger.error(`[CONFLICT_RESOLUTION] Failed to emit ${eventType}: ${result.reason}`);
+    throw new Error(`Event emission failed: ${result.reason}`);
   }
 }
 

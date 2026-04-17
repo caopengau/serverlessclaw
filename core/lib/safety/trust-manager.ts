@@ -170,27 +170,6 @@ export class TrustManager {
     );
   }
 
-  private static isBackboneAgent(agentId: string): boolean {
-    return (
-      agentId in
-      {
-        superclaw: true,
-        coder: true,
-        strategic_planner: true,
-        cognition_reflector: true,
-        qa: true,
-        critic: true,
-        facilitator: true,
-        merger: true,
-        build_monitor: true,
-        recovery: true,
-        researcher: true,
-        event_handler: true,
-        judge: true,
-      }
-    );
-  }
-
   private static async decayAgentTrust(
     agentId: string,
     config: { trustScore?: number }

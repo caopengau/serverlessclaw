@@ -220,25 +220,21 @@ describe('AgentRegistry', () => {
   });
 
   describe('recordToolUsage', () => {
-    it('should delegate tool usage tracking to ConfigManager', async () => {
+    it('should record tool usage atomically via docClient', async () => {
+      mockDocClient.send.mockResolvedValue({});
       await AgentRegistry.recordToolUsage('test_tool', 'test_agent');
-      // Called 2 times: global + per-agent (ensureToolStatsInitialized uses defaultDocClient directly)
-      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalledTimes(2);
-      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalledWith(
-        DYNAMO_KEYS.TOOL_USAGE,
-        'test_tool',
-        expect.objectContaining({ count: 1 })
-      );
-      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalledWith(
-        'tool_usage_test_agent',
-        'test_tool',
-        expect.objectContaining({ count: 1 })
+
+      // Called 2 times: global + per-agent
+      expect(mockDocClient.send).toHaveBeenCalledTimes(2);
+      const firstCall = mockDocClient.send.mock.calls[0][0];
+      expect(firstCall.input.UpdateExpression).toContain(
+        'SET #val.#tool.#count = if_not_exists(#val.#tool.#count, :zero) + :one'
       );
     });
 
-    it('should handle recordToolUsage calls', async () => {
-      await AgentRegistry.recordToolUsage('test_tool', 'test_agent');
-      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalled();
+    it('should handle recordToolUsage calls even if they fail', async () => {
+      mockDocClient.send.mockRejectedValue(new Error('DynamoDB Error'));
+      await expect(AgentRegistry.recordToolUsage('test_tool', 'test_agent')).resolves.not.toThrow();
     });
   });
 

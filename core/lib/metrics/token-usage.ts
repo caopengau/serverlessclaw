@@ -132,7 +132,7 @@ export class TokenTracker {
             'toolCalls = if_not_exists(toolCalls, :zero) + :tools, ' +
             'successCount = if_not_exists(successCount, :zero) + :success, ' +
             'totalDurationMs = if_not_exists(totalDurationMs, :zero) + :dur, ' +
-            'durationSamples = if_not_exists(durationSamples, :empty) & :sample, ' +
+            'durationSamples = list_append(if_not_exists(durationSamples, :empty), :sample), ' +
             'expiresAt = :expires',
           ExpressionAttributeValues: {
             ':inTok': usage.inputTokens,

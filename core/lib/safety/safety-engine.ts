@@ -337,7 +337,7 @@ export class SafetyEngine extends SafetyBase {
     config: Partial<IAgentConfig> | undefined,
     action: string,
     approval: SafetyEvaluationResult,
-    _ctx: {
+    ctx: {
       agentId: string;
       toolName?: string;
       resource?: string;
@@ -352,7 +352,7 @@ export class SafetyEngine extends SafetyBase {
     if (approval.requiresApproval && hasTrust) {
       if (isAutoMode) {
         logger.info(
-          `[SafetyEngine] Principle 9: Self-promoting action '${action}' (TrustScore: ${trustScore}, Mode: AUTO)`
+          `[SafetyEngine] Principle 9: Self-promoting action '${action}' (Agent: ${ctx.agentId}, TrustScore: ${trustScore}, Mode: AUTO)`
         );
         await emitEvent('safety.principle9', EventType.SYSTEM_AUDIT_TRIGGER, {
           agentId: config?.id ?? 'unknown',

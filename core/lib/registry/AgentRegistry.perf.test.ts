@@ -39,13 +39,11 @@ describe('AgentRegistry Performance', () => {
 
     // Verification:
     // 1 call for AGENTS_CONFIG
-    // 1 call for AGENT_TOOL_OVERRIDES
     // Total should be small and NOT 10+
     const callCount = vi.mocked(ConfigManager.getRawConfig).mock.calls.length;
 
-    // It should be exactly 2 (for agents and overrides)
-    // Plus any essential tools if they trigger fetches (they don't in current impl)
+    // It should be exactly 1 (for agents) - tool overrides are now applied lazily per agent
     expect(callCount).toBeLessThan(5);
-    expect(callCount).toBe(2);
+    expect(callCount).toBe(1);
   });
 });
