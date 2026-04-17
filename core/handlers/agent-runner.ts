@@ -19,7 +19,8 @@ import {
 } from '../lib/utils/agent-helpers';
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
 import { SessionStateManager } from '../lib/session/session-state';
-import { incrementRecursionDepth, getRecursionDepth } from '../lib/recursion-tracker';
+import { getRecursionLimit } from '../lib/recursion-tracker';
+import { isMissionContext } from './events/shared';
 
 interface WorkerEvent {
   'detail-type': string;
@@ -86,24 +87,21 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
     heartbeatInterval = setInterval(runHeartbeat, HEARTBEAT_INTERVAL_MS);
   }
 
-  const { isMissionContext } = await import('./events/shared');
-  const { getRecursionLimit } = await import('../lib/recursion-tracker');
+  // Recursion depth was already atomically incremented by the entry point
+  // (events.ts for fallback events, or agent-multiplexer for agent tasks).
+  // Perform a defense-in-depth validation of the incoming depth.
   const isMission = isMissionContext(detailType, payload.metadata as Record<string, unknown>);
-  const MAX_RECURSION_LIMIT = await getRecursionLimit(isMission);
-
-  if (traceId) {
-    const currentDepth = await getRecursionDepth(traceId);
-    if (currentDepth >= MAX_RECURSION_LIMIT) {
-      logger.error(
-        `[AgentRunner] Recursion limit exceeded for trace ${traceId} at depth ${currentDepth}`
-      );
-      if (lockAcquired && sessionId) {
-        if (heartbeatInterval) clearInterval(heartbeatInterval);
-        await sessionStateManager.releaseProcessing(sessionId, agentId);
-      }
-      return `Error: Recursion limit exceeded for trace ${traceId}`;
+  const RECURSION_LIMIT = await getRecursionLimit(isMission);
+  const incomingDepth = payload.depth ?? 0;
+  if (incomingDepth >= RECURSION_LIMIT) {
+    logger.error(
+      `[AgentRunner] Recursion limit exceeded (incoming depth: ${incomingDepth} >= limit: ${RECURSION_LIMIT}) for trace ${traceId}`
+    );
+    if (lockAcquired && sessionId) {
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+      await sessionStateManager.releaseProcessing(sessionId, agentId);
     }
-    await incrementRecursionDepth(traceId, sessionId || 'unknown', agentId);
+    return `Error: Recursion limit exceeded for trace ${traceId}`;
   }
 
   try {

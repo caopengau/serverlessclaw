@@ -79,7 +79,7 @@ describe('Parallel Failure Robustness', () => {
       'RECOVERY_PLAN: All tasks failed. I suggest retrying with reduced scope.',
       'trace-fail',
       undefined,
-      1,
+      0,
       false,
       undefined,
       'trace-fail'

@@ -6,10 +6,10 @@
 
 import { GetCommand, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../logger';
-import { getDocClient, getConfigTableName } from '../utils/ddb-client';
+import { getDocClient, getMemoryTableName } from '../utils/ddb-client';
 import { SAFETY_LIMITS } from '../constants/safety';
+import { MEMORY_KEYS } from '../constants';
 
-const BLAST_RADIUS_KEY_PREFIX = 'safety:blast_radius';
 const WINDOW_MS = 3600000; // 1 hour
 const LIMIT_PER_HOUR = SAFETY_LIMITS.CLASS_C_MAX_PER_HOUR;
 const MAX_RETRY_COUNT = 3;
@@ -22,48 +22,46 @@ interface BlastRadiusEntry {
   expiresAt?: number;
 }
 
-function makeKey(agentId: string, action: string): string {
-  return `${BLAST_RADIUS_KEY_PREFIX}:${agentId}:${action}`;
+function makePk(agentId: string, action: string): string {
+  return `${MEMORY_KEYS.SAFETY_BLAST_RADIUS_PREFIX}${agentId}:${action}`;
 }
 
 export class BlastRadiusStore {
   private localCache: Map<string, BlastRadiusEntry> = new Map();
 
   async getBlastRadius(agentId: string, action: string): Promise<BlastRadiusEntry | null> {
-    const key = makeKey(agentId, action);
+    const pk = makePk(agentId, action);
     const now = Date.now();
     const db = getDocClient();
 
-    const cached = this.localCache.get(key);
+    const cached = this.localCache.get(pk);
     if (cached && now - cached.lastAction < WINDOW_MS) {
       return cached;
     }
 
     const { Item } = await db.send(
       new GetCommand({
-        TableName: getConfigTableName(),
-        Key: { key },
+        TableName: getMemoryTableName(),
+        Key: { userId: pk, timestamp: 0 },
       })
     );
 
-    if (!Item?.value) return null;
+    if (!Item) return null;
 
     const entry: BlastRadiusEntry = {
-      key,
-      count: Item.value.count ?? 0,
-      lastAction: Item.value.lastAction ?? 0,
-      resourceCount: Item.value.resourceCount ?? 0,
-      expiresAt: Item.value.expiresAt,
+      key: pk,
+      count: Item.count ?? 0,
+      lastAction: Item.lastAction ?? 0,
+      resourceCount: Item.resourceCount ?? 0,
+      expiresAt: Item.expiresAt,
     };
 
-    // Note: We no longer perform "get-then-delete" here (metabolic waste).
-    // Window resets are now handled atomically during increment (Principle 13).
-    if (now > (entry.expiresAt ?? 0)) {
-      this.localCache.delete(key);
+    if (now > (entry.expiresAt ?? 0) * 1000) {
+      this.localCache.delete(pk);
       return null;
     }
 
-    this.localCache.set(key, entry);
+    this.localCache.set(pk, entry);
     return entry;
   }
 
@@ -73,7 +71,7 @@ export class BlastRadiusStore {
     resource?: string,
     retryCount: number = 0
   ): Promise<BlastRadiusEntry> {
-    const key = makeKey(agentId, action);
+    const pk = makePk(agentId, action);
     const now = Date.now();
     const db = getDocClient();
 
@@ -81,47 +79,50 @@ export class BlastRadiusStore {
       // Phase 1: Try atomic increment ONLY if window is still active
       const response = await db.send(
         new UpdateCommand({
-          TableName: getConfigTableName(),
-          Key: { key },
-          UpdateExpression: 'SET #val.#la = :now ADD #val.#cnt :one, #val.#rcnt :resCnt',
-          ConditionExpression: 'attribute_exists(#val) AND #val.#exp > :now',
+          TableName: getMemoryTableName(),
+          Key: { userId: pk, timestamp: 0 },
+          UpdateExpression:
+            'SET lastAction = :now, expiresAt = :exp ADD #cnt :one, resourceCount :resCnt',
+          ConditionExpression: 'attribute_exists(userId) AND expiresAt > :nowSec',
           ExpressionAttributeNames: {
-            '#val': 'value',
             '#cnt': 'count',
-            '#la': 'lastAction',
-            '#exp': 'expiresAt',
-            '#rcnt': 'resourceCount',
           },
-          ExpressionAttributeValues: { ':one': 1, ':now': now, ':resCnt': resource ? 1 : 0 },
+          ExpressionAttributeValues: {
+            ':one': 1,
+            ':now': now,
+            ':resCnt': resource ? 1 : 0,
+            ':nowSec': Math.floor(now / 1000),
+            ':exp': Math.floor((now + WINDOW_MS) / 1000), // Keep window alive
+          },
           ReturnValues: 'ALL_NEW',
         })
       );
 
-      const val = response.Attributes?.value;
-      const entry = { key, ...val } as BlastRadiusEntry;
-      this.localCache.set(key, entry);
+      const val = response.Attributes;
+      const entry = { key: pk, ...val } as unknown as BlastRadiusEntry;
+      this.localCache.set(pk, entry);
       return entry;
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
         // Phase 2: Window expired or record missing - Perform atomic reset
-        const expiresAt = now + WINDOW_MS;
+        const expiresAt = Math.floor((now + WINDOW_MS) / 1000);
         const response = await db
           .send(
             new UpdateCommand({
-              TableName: getConfigTableName(),
-              Key: { key },
-              UpdateExpression: 'SET #val = :newEntry',
+              TableName: getMemoryTableName(),
+              Key: { userId: pk, timestamp: 0 },
+              UpdateExpression:
+                'SET #cnt = :one, lastAction = :now, resourceCount = :resCnt, expiresAt = :exp, #type = :type',
               // Condition ensure we don't overwrite if another turn just initialized it
-              ConditionExpression: 'attribute_not_exists(#val) OR #val.#exp <= :now',
-              ExpressionAttributeNames: { '#val': 'value', '#exp': 'expiresAt' },
+              ConditionExpression: 'attribute_not_exists(userId) OR expiresAt <= :nowSec',
+              ExpressionAttributeNames: { '#cnt': 'count', '#type': 'type' },
               ExpressionAttributeValues: {
-                ':newEntry': {
-                  count: 1,
-                  lastAction: now,
-                  resourceCount: resource ? 1 : 0,
-                  expiresAt,
-                },
+                ':one': 1,
                 ':now': now,
+                ':resCnt': resource ? 1 : 0,
+                ':exp': expiresAt,
+                ':nowSec': Math.floor(now / 1000),
+                ':type': 'SAFETY_BLAST_RADIUS',
               },
               ReturnValues: 'ALL_NEW',
             })
@@ -131,10 +132,10 @@ export class BlastRadiusStore {
               // Guard against infinite recursion - max 3 retries
               if (retryCount >= MAX_RETRY_COUNT) {
                 logger.warn(
-                  `[BlastRadiusStore] Max retry count exceeded for ${key}, allowing operation`
+                  `[BlastRadiusStore] Max retry count exceeded for ${pk}, allowing operation`
                 );
                 const fallbackEntry: BlastRadiusEntry = {
-                  key,
+                  key: pk,
                   count: 1,
                   lastAction: now,
                   resourceCount: resource ? 1 : 0,
@@ -149,14 +150,14 @@ export class BlastRadiusStore {
 
         let entry: BlastRadiusEntry;
         if ('Attributes' in response) {
-          const val = (response as { Attributes?: { value?: BlastRadiusEntry } }).Attributes?.value;
+          const val = response.Attributes;
           entry = val
-            ? { ...val, key }
-            : { count: 1, lastAction: now, resourceCount: resource ? 1 : 0, expiresAt, key };
+            ? ({ ...val, key: pk } as unknown as BlastRadiusEntry)
+            : { count: 1, lastAction: now, resourceCount: resource ? 1 : 0, expiresAt, key: pk };
         } else {
-          entry = { ...(response as BlastRadiusEntry), key };
+          entry = { ...(response as unknown as BlastRadiusEntry), key: pk };
         }
-        this.localCache.set(key, entry);
+        this.localCache.set(pk, entry);
         return entry;
       }
       throw e;
@@ -189,19 +190,19 @@ export class BlastRadiusStore {
   }
 
   private async deleteBlastRadius(agentId: string, action: string): Promise<void> {
-    const key = makeKey(agentId, action);
-    this.localCache.delete(key);
+    const pk = makePk(agentId, action);
+    this.localCache.delete(pk);
 
     const db = getDocClient();
     try {
       await db.send(
         new DeleteCommand({
-          TableName: getConfigTableName(),
-          Key: { key },
+          TableName: getMemoryTableName(),
+          Key: { userId: pk, timestamp: 0 },
         })
       );
     } catch (e) {
-      logger.warn(`[BlastRadiusStore] Failed to delete blast radius for ${key}:`, e);
+      logger.warn(`[BlastRadiusStore] Failed to delete blast radius for ${pk}:`, e);
     }
   }
 

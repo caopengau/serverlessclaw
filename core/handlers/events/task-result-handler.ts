@@ -2,6 +2,9 @@ import { EventType, AgentType } from '../../lib/types/index';
 import { COMPLETION_EVENT_SCHEMA, FAILURE_EVENT_SCHEMA } from '../../lib/schema/events';
 import { wakeupInitiator } from './shared';
 import { LRUSet } from '../../lib/utils/lru';
+import { getRecursionLimit } from '../../lib/recursion-tracker';
+import { routeToDlq } from '../route-to-dlq';
+import { emitMetrics, METRICS } from '../../lib/metrics';
 
 /**
  * In-memory fast-path dedup set for EventBridge's at-least-once delivery.
@@ -51,23 +54,24 @@ async function checkAndMarkProcessed(eventId: string): Promise<boolean> {
     return true;
   }
 }
-
 /**
- * Handles task completion and failure events - relays results to initiator.
+ * Generic handler for task completion and failure events.
+ * Relays results back to the initiator via AGENT_TASK_RESULT event.
  *
- * @param eventDetail - The detail of the EventBridge event.
+ * @param event - The full EventBridge event.
  * @param detailType - The type of the EventBridge event.
  * @since 2026-03-19
  */
 export async function handleTaskResult(
-  eventDetail: Record<string, unknown>,
+  event: { 'detail-type': string; detail: Record<string, unknown>; id?: string },
   detailType: string
 ): Promise<void> {
+  const eventDetail = event.detail;
   const { logger } = await import('../../lib/logger');
 
   // In-memory fast-path dedup — prefer EventBridge envelope id over detail id
   const eventId =
-    (eventDetail.__envelopeId as string | undefined) ?? (eventDetail.id as string | undefined);
+    (eventDetail.__envelopeId as string | undefined) ?? (event.id as string | undefined);
   if (eventId) {
     if (processedEvents.has(eventId)) {
       logger.info(`Duplicate event ${eventId} detected in-memory, skipping.`);
@@ -97,6 +101,26 @@ export async function handleTaskResult(
   const { userId, agentId, task, traceId, initiatorId, depth, sessionId, userNotified } =
     parsedEvent;
   const response = 'error' in parsedEvent ? parsedEvent.error : parsedEvent.response;
+
+  // Defense-in-depth: Validate recursion depth before processing (P1 fix)
+  // The depth should have been checked at the entry point, but verify to prevent bypass.
+  // Use general recursion limit (task results aren't mission-critical themselves).
+  const recursionLimit = await getRecursionLimit(false);
+  const currentDepth = depth ?? 0;
+  if (currentDepth >= recursionLimit) {
+    logger.error(
+      `[RECURSION] Limit exceeded in task-result-handler: depth=${currentDepth}, limit=${recursionLimit}`
+    );
+    await routeToDlq(
+      event,
+      detailType,
+      'SYSTEM',
+      traceId ?? 'unknown',
+      `Recursion limit exceeded (depth:${currentDepth})`
+    );
+    emitMetrics([METRICS.dlqEvents(1)]).catch(() => {});
+    return;
+  }
 
   logger.info(
     `Relaying ${isFailure ? 'failure' : 'completion'} from ${agentId} to Initiator: ${initiatorId} (Depth: ${depth}, Session: ${sessionId}, UserNotified: ${userNotified})`

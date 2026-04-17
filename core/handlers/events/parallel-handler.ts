@@ -404,7 +404,7 @@ async function dispatchTask(
     metadata: { ...task.metadata, parallelDispatchId: traceId },
     traceId,
     initiatorId: initiatorId ?? 'parallel-dispatcher',
-    depth: (depth ?? 0) + 1,
+    depth: depth ?? 0,
     sessionId,
     tokenBudget,
     costLimit,

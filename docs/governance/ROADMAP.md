@@ -6,7 +6,7 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 
 ## ✅ Phase 1: MVP
 
-- [x] SST v3 (Ion) setup
+- [x] SST v4 setup
 - [x] Telegram Webhook integration
 - [x] DynamoDB history persistence
 - [x] Basic Tool loop (Calculator, Weather)

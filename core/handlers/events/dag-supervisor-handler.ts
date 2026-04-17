@@ -114,7 +114,7 @@ export async function handleDagStep(
               metadata: { ...task.metadata, parallelDispatchId: traceId, dagExecution: true },
               traceId,
               initiatorId: currentState.initiatorId ?? 'dag-supervisor',
-              depth: depth + 1,
+              depth: depth,
               sessionId: currentState.sessionId,
             });
           })

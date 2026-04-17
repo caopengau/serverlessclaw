@@ -115,7 +115,7 @@ describe('parallel-task-completed-handler', () => {
         expect.stringContaining('SUCCESS'),
         'trace-abc',
         'session-xyz',
-        1,
+        0,
         false,
         undefined,
         'trace-abc'
@@ -159,7 +159,7 @@ describe('parallel-task-completed-handler', () => {
         'Synthesized result',
         'trace-abc',
         'session-xyz',
-        1,
+        0,
         false,
         undefined,
         'trace-abc'
@@ -191,7 +191,7 @@ describe('parallel-task-completed-handler', () => {
         'Merge Complete: 2/2 patches applied',
         'trace-abc',
         'session-xyz',
-        1,
+        0,
         false,
         undefined,
         'trace-abc'
@@ -288,7 +288,7 @@ describe('parallel-task-completed-handler', () => {
         expect.stringContaining('[AGGREGATED_RESULTS]'),
         'trace-abc',
         'session-xyz',
-        1,
+        0,
         false,
         undefined,
         'trace-abc', // taskId

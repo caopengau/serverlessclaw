@@ -11,8 +11,8 @@ const { mockSend } = vi.hoisted(() => ({
 
 vi.mock('sst', () => ({
   Resource: {
-    ConfigTable: {
-      name: 'TestTable',
+    MemoryTable: {
+      name: 'TestMemoryTable',
     },
   },
 }));
@@ -65,12 +65,10 @@ describe('BlastRadiusStore', () => {
     it('should increment count on first call', async () => {
       mockSend.mockResolvedValueOnce({
         Attributes: {
-          value: {
-            count: 1,
-            lastAction: Date.now(),
-            resourceCount: 0,
-            expiresAt: Date.now() + 3600000,
-          },
+          count: 1,
+          lastAction: Date.now(),
+          resourceCount: 0,
+          expiresAt: Math.floor(Date.now() / 1000) + 3600,
         },
       });
 
@@ -82,24 +80,20 @@ describe('BlastRadiusStore', () => {
     it('should increment existing count', async () => {
       mockSend.mockResolvedValueOnce({
         Attributes: {
-          value: {
-            count: 1,
-            lastAction: Date.now(),
-            resourceCount: 0,
-            expiresAt: Date.now() + 3600000,
-          },
+          count: 1,
+          lastAction: Date.now(),
+          resourceCount: 0,
+          expiresAt: Math.floor(Date.now() / 1000) + 3600,
         },
       });
       await store.incrementBlastRadius('agent-1', 'deployment');
 
       mockSend.mockResolvedValueOnce({
         Attributes: {
-          value: {
-            count: 2,
-            lastAction: Date.now(),
-            resourceCount: 0,
-            expiresAt: Date.now() + 3600000,
-          },
+          count: 2,
+          lastAction: Date.now(),
+          resourceCount: 0,
+          expiresAt: Math.floor(Date.now() / 1000) + 3600,
         },
       });
       const result = await store.incrementBlastRadius('agent-1', 'deployment');
@@ -109,12 +103,10 @@ describe('BlastRadiusStore', () => {
     it('should track resource count when resource provided', async () => {
       mockSend.mockResolvedValueOnce({
         Attributes: {
-          value: {
-            count: 1,
-            lastAction: Date.now(),
-            resourceCount: 1,
-            expiresAt: Date.now() + 3600000,
-          },
+          count: 1,
+          lastAction: Date.now(),
+          resourceCount: 1,
+          expiresAt: Math.floor(Date.now() / 1000) + 3600,
         },
       });
       const result = await store.incrementBlastRadius('agent-1', 'deployment', 'some-resource');
@@ -124,12 +116,10 @@ describe('BlastRadiusStore', () => {
     it('REPRO/FIX: should use atomic UpdateExpression with field-level ADD for sliding windows', async () => {
       mockSend.mockResolvedValueOnce({
         Attributes: {
-          value: {
-            count: 5,
-            lastAction: Date.now(),
-            resourceCount: 1,
-            expiresAt: Date.now() + 3600000,
-          },
+          count: 5,
+          lastAction: Date.now(),
+          resourceCount: 1,
+          expiresAt: Math.floor(Date.now() / 1000) + 3600,
         },
       });
 
@@ -140,7 +130,7 @@ describe('BlastRadiusStore', () => {
 
       // Verify schema compliance (native ADD for count and resourceCount)
       expect(params.UpdateExpression).toContain('#cnt :one');
-      expect(params.ExpressionAttributeNames).toHaveProperty('#val', 'value');
+      expect(params.UpdateExpression).toContain('resourceCount :resCnt');
       expect(params.ExpressionAttributeNames).toHaveProperty('#cnt', 'count');
     });
 
@@ -154,12 +144,10 @@ describe('BlastRadiusStore', () => {
       const now = Date.now();
       mockSend.mockResolvedValueOnce({
         Attributes: {
-          value: {
-            count: 1,
-            lastAction: now,
-            resourceCount: 1,
-            expiresAt: now + 3600000,
-          },
+          count: 1,
+          lastAction: now,
+          resourceCount: 1,
+          expiresAt: Math.floor(now / 1000) + 3600,
         },
       });
 
@@ -169,9 +157,9 @@ describe('BlastRadiusStore', () => {
       expect(mockSend).toHaveBeenCalledTimes(2);
 
       const resetCall = mockSend.mock.calls[1][0].input;
-      expect(resetCall.UpdateExpression).toContain('SET #val = :newEntry');
+      expect(resetCall.UpdateExpression).toContain('SET #cnt = :one');
       expect(resetCall.ConditionExpression).toContain(
-        'attribute_not_exists(#val) OR #val.#exp <= :now'
+        'attribute_not_exists(userId) OR expiresAt <= :nowSec'
       );
     });
   });
@@ -187,12 +175,10 @@ describe('BlastRadiusStore', () => {
       for (let i = 1; i <= 5; i++) {
         mockSend.mockResolvedValueOnce({
           Attributes: {
-            value: {
-              count: i,
-              lastAction: Date.now(),
-              resourceCount: 0,
-              expiresAt: Date.now() + 3600000,
-            },
+            count: i,
+            lastAction: Date.now(),
+            resourceCount: 0,
+            expiresAt: Math.floor(Date.now() / 1000) + 3600,
           },
         });
         await store.incrementBlastRadius('agent-1', 'deployment');
@@ -216,12 +202,10 @@ describe('BlastRadiusStore', () => {
       for (let i = 1; i <= 5; i++) {
         mockSend.mockResolvedValueOnce({
           Attributes: {
-            value: {
-              count: i,
-              lastAction: Date.now(),
-              resourceCount: 0,
-              expiresAt: Date.now() + 3600000,
-            },
+            count: i,
+            lastAction: Date.now(),
+            resourceCount: 0,
+            expiresAt: Math.floor(Date.now() / 1000) + 3600,
           },
         });
         await store.incrementBlastRadius('agent-1', 'deployment');

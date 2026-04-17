@@ -356,7 +356,7 @@ describe('Event Contract Verification', () => {
       it('should validate a correct consensus request', () => {
         const payload = {
           ...common,
-          proposal: 'Upgrade to SST v3',
+          proposal: 'Upgrade to SST v4',
           mode: 'majority',
           voterIds: ['coder', 'qa', 'architect'],
           timeoutMs: 30000,

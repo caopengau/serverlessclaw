@@ -107,7 +107,14 @@ describe('task-result-handler (Direct Voice Flow)', () => {
       userNotified: true,
     };
 
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
 
     // Verify EventBridge emission (wakeupInitiator)
     expect(mockSend).toHaveBeenCalledWith(
@@ -136,7 +143,14 @@ describe('task-result-handler (Direct Voice Flow)', () => {
       // userNotified missing
     };
 
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
 
     // Verify marker is ABSENT
     const callDetail = JSON.parse(mockSend.mock.calls[0][0].input.Entries[0].Detail);
@@ -155,7 +169,14 @@ describe('task-result-handler (Direct Voice Flow)', () => {
       userNotified: true,
     };
 
-    await handleTaskResult(eventDetail, EventType.TASK_FAILED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_FAILED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_FAILED
+    );
 
     expect(mockSend).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -191,12 +212,26 @@ describe('task-result-handler (Bug 4 — duplicate event dedup)', () => {
     };
 
     // First call — should process
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
     const firstCallCount = mockSend.mock.calls.length;
     expect(firstCallCount).toBeGreaterThan(0);
 
     // Second call with same id — should be skipped
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
     expect(mockSend.mock.calls.length).toBe(firstCallCount); // no new calls
   });
 
@@ -220,10 +255,24 @@ describe('task-result-handler (Bug 4 — duplicate event dedup)', () => {
       depth: 1,
     };
 
-    await handleTaskResult(event1, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: event1,
+        id: (event1 as any).__envelopeId || (event1 as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
     const afterFirst = mockSend.mock.calls.length;
 
-    await handleTaskResult(event2, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: event2,
+        id: (event2 as any).__envelopeId || (event2 as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
     expect(mockSend.mock.calls.length).toBeGreaterThan(afterFirst);
   });
 
@@ -238,11 +287,25 @@ describe('task-result-handler (Bug 4 — duplicate event dedup)', () => {
       depth: 1,
     };
 
-    await handleTaskResult(eventDetail, EventType.TASK_FAILED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_FAILED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_FAILED
+    );
     const afterFirst = mockSend.mock.calls.length;
 
     // Duplicate failure
-    await handleTaskResult(eventDetail, EventType.TASK_FAILED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_FAILED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_FAILED
+    );
     expect(mockSend.mock.calls.length).toBe(afterFirst);
   });
 
@@ -257,10 +320,24 @@ describe('task-result-handler (Bug 4 — duplicate event dedup)', () => {
     };
 
     // Both calls should process (no id to dedup on)
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
     const afterFirst = mockSend.mock.calls.length;
 
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
     expect(mockSend.mock.calls.length).toBeGreaterThan(afterFirst);
   });
 });
@@ -288,7 +365,14 @@ describe('task-result-handler (parallel aggregator guard)', () => {
       sessionId: 'session-1',
     };
 
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
 
     // Should have checked state but NOT added result
     expect(mockGetState).toHaveBeenCalledWith('user-123', 'trace-abc');
@@ -324,7 +408,14 @@ describe('task-result-handler (parallel aggregator guard)', () => {
       sessionId: 'session-1',
     };
 
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
 
     expect(mockGetState).toHaveBeenCalledWith('user-123', 'trace-xyz');
     expect(mockAddResult).toHaveBeenCalledWith(
@@ -348,7 +439,14 @@ describe('task-result-handler (parallel aggregator guard)', () => {
       initiatorId: 'superclaw',
     };
 
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
 
     // Now that traceId has a default in the schema (t-...), it's always present.
     // We check that it's called with a generated trace ID.
@@ -376,7 +474,14 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
       depth: 1,
     };
 
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
 
     // Should have called DynamoDB PutCommand with idempotency key
     expect(mockDdbSend).toHaveBeenCalledWith(
@@ -409,7 +514,14 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
       depth: 1,
     };
 
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
 
     // Should NOT have emitted any continuation event since it was a duplicate
     // (wakeupInitiator should not have been called)
@@ -430,7 +542,14 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
       depth: 1,
     };
 
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
 
     // Should still process (fail-open) 14 wakeupInitiator called
     expect(mockSend).toHaveBeenCalled();
@@ -448,12 +567,26 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
     };
 
     // First call 14 both in-memory and DynamoDB should be used
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
     const ddbCallsAfterFirst = mockDdbSend.mock.calls.length;
     const ebCallsAfterFirst = mockSend.mock.calls.length;
 
     // Second call 14 in-memory set should catch it before DynamoDB
-    await handleTaskResult(eventDetail, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail,
+        id: (eventDetail as any).__envelopeId || (eventDetail as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
 
     // No new DynamoDB calls (in-memory caught it)
     expect(mockDdbSend.mock.calls.length).toBe(ddbCallsAfterFirst);
@@ -474,7 +607,14 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
       depth: 1,
     };
 
-    await handleTaskResult(eventDetail1, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail1,
+        id: (eventDetail1 as any).__envelopeId || (eventDetail1 as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
     const afterFirst = mockSend.mock.calls.length;
     expect(afterFirst).toBeGreaterThan(0);
 
@@ -491,7 +631,14 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
       depth: 1,
     };
 
-    await handleTaskResult(eventDetail2, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail2,
+        id: (eventDetail2 as any).__envelopeId || (eventDetail2 as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
     // No new calls 14 envelope-001 was already processed
     expect(mockSend.mock.calls.length).toBe(afterFirst);
   });
@@ -507,7 +654,14 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
       depth: 1,
     };
 
-    await handleTaskResult(eventDetail1, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail1,
+        id: (eventDetail1 as any).__envelopeId || (eventDetail1 as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
     const afterFirst = mockSend.mock.calls.length;
     expect(afterFirst).toBeGreaterThan(0);
 
@@ -522,7 +676,14 @@ describe('task-result-handler (DynamoDB idempotency for cold-start dedup)', () =
       depth: 1,
     };
 
-    await handleTaskResult(eventDetail2, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      {
+        'detail-type': EventType.TASK_COMPLETED,
+        detail: eventDetail2,
+        id: (eventDetail2 as any).__envelopeId || (eventDetail2 as any).id,
+      },
+      EventType.TASK_COMPLETED
+    );
     expect(mockSend.mock.calls.length).toBe(afterFirst);
   });
 });

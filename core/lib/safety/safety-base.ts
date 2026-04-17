@@ -7,11 +7,11 @@ import { TrustManager } from './trust-manager';
 import { SafetyTier, SafetyViolation } from '../types/agent';
 import { logger } from '../logger';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
-import { defaultDocClient } from '../registry/config';
-import { Resource } from 'sst';
+import { getDocClient, getMemoryTableName } from '../utils/ddb-client';
 import { getBlastRadiusStore, BlastRadiusStore } from './blast-radius-store';
 import { isProtectedPath, matchesGlob } from '../utils/fs-security';
 import { CLASS_C_ACTIONS, CLASS_D_ACTIONS } from '../constants/safety';
+import { MEMORY_KEYS, RETENTION, TIME } from '../constants';
 
 export class SafetyBase {
   protected blastRadiusStore: BlastRadiusStore;
@@ -108,35 +108,39 @@ export class SafetyBase {
 
   /**
    * Persist a single violation to DynamoDB for audit trail.
+   * Migrated to MemoryTable with TTL for efficient data aging (Principle 13).
    */
   async persistViolation(violation: SafetyViolation): Promise<boolean> {
-    const resource = Resource as { ConfigTable?: { name: string } };
-    if (!('ConfigTable' in resource)) {
-      logger.error('[CRITICAL] SafetyEngine telemetry blindness: ConfigTable not linked.');
-      return false;
-    }
+    const tableName = getMemoryTableName();
+    const docClient = getDocClient();
 
     const maxRetries = 2;
     const now = Date.now();
-    // Unique key per violation to ensure audit trail integrity
-    const key = `safety:violations:${violation.agentId}:${violation.id}`;
+    // Unique key per violation using MemoryTable schema (userId=PK, timestamp=SK)
+    const pk = `${MEMORY_KEYS.SAFETY_VIOLATION_PREFIX}${violation.agentId}`;
+    const sk = now;
+
+    // Retention follows Traces (30 days by default)
+    const expiresAt = Math.floor(now / TIME.MS_PER_SECOND) + RETENTION.TRACES_DAYS * 24 * 3600;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        await defaultDocClient.send(
+        await docClient.send(
           new PutCommand({
-            TableName: resource.ConfigTable?.name,
+            TableName: tableName,
             Item: {
-              key,
+              userId: pk,
+              timestamp: sk,
+              type: 'SAFETY_VIOLATION',
               value: violation,
-              timestamp: now,
+              expiresAt,
             },
           })
         );
         return true;
       } catch (e) {
         if (attempt === maxRetries) {
-          logger.error(`[SafetyBase] Failed to persist violation ${key} after retries: ${e}`);
+          logger.error(`[SafetyBase] Failed to persist violation ${pk} after retries: ${e}`);
         }
       }
     }

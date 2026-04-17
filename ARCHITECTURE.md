@@ -224,6 +224,16 @@ The system architecture follows a **Distributed Spine** model where all critical
           |-- (11) Atomic History Recording (list_append)
           v
   [ ConfigTable (DDB) ] <--- (Feedback Loop for Selection Integrity)
+
+---
+
+## 🛡️ Safety Telemetry & Blast Radius Tracking
+
+To ensure high-performance auditability and automatic data aging (Principle 1), all transient safety telemetry is persisted in the **MemoryTable**:
+
+1. **Safety Violations**: Every blocked or approval-required action is logged with a `SAFETY#VIOLATION#<agentId>` prefix and a **30-day TTL**.
+2. **Blast Radius Tracking**: Class C action frequency is tracked per agent/action using the `SAFETY#BLAST_RADIUS#` prefix with a **1-hour rolling window (TTL)**.
+3. **Storage Strategy**: This migration from `ConfigTable` to `MemoryTable` ensures that audit logs do not pollute persistent configuration state and are automatically reclaimed by DynamoDB after their operational relevance expires.
 ```
 
 ---

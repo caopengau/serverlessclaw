@@ -255,7 +255,7 @@ describe('Swarm Recursive Flow Integration', () => {
         expect.stringContaining('[AGGREGATED_RESULTS]'),
         'trace-1',
         undefined,
-        1,
+        0,
         false,
         undefined,
         'trace-1',

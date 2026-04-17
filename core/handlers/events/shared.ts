@@ -127,7 +127,7 @@ export async function wakeupInitiator(
     taskId: taskId ?? traceId,
     initiatorId,
     sessionId,
-    depth: depth + 1,
+    depth: depth,
     options,
   });
 }
@@ -336,7 +336,7 @@ export async function processEventWithAgent(
         traceId: options.traceId,
         taskId: options.taskId ?? options.traceId,
         initiatorId: options.initiatorId,
-        depth: (options.depth ?? 0) + 1,
+        depth: options.depth ?? 0,
         sessionId: options.sessionId,
         metadata: { durationMs: Date.now() - startTime },
       });

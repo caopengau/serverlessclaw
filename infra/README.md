@@ -1,6 +1,6 @@
 # @claw/infra
 
-Infrastructure layer for Serverless Claw using SST (Ion) and AWS.
+Infrastructure layer for Serverless Claw using SST and AWS.
 
 ## Architecture
 

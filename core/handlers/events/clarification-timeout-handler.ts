@@ -112,7 +112,7 @@ export async function handleClarificationTimeout(
         question: `[RETRY ${newRetryCount}/${maxRetries}] ${question}`,
         traceId,
         initiatorId: initiatorId ?? AgentType.SUPERCLAW,
-        depth: (depth ?? 0) + 1,
+        depth: depth ?? 0,
         sessionId,
         originalTask,
         retryCount: newRetryCount,
@@ -145,7 +145,7 @@ export async function handleClarificationTimeout(
       traceId,
       initiatorId: initiatorId ?? AgentType.SUPERCLAW,
       sessionId,
-      depth: (depth ?? 0) + 1,
+      depth: depth ?? 0,
     },
     { priority: EventPriority.HIGH }
   );

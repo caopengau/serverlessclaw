@@ -98,7 +98,7 @@ export async function handleParallelTaskCompleted(
           mergeResult.summary,
           traceId,
           sessionId,
-          depth + 1,
+          depth,
           false,
           undefined,
           traceId
@@ -127,7 +127,7 @@ export async function handleParallelTaskCompleted(
           traceId,
           sessionId,
           initiatorId,
-          depth: 2,
+          depth: depth,
         });
 
         // Notify user that intelligent reconciliation is in progress
@@ -176,7 +176,7 @@ export async function handleParallelTaskCompleted(
         resultsSummary,
         traceId,
         sessionId,
-        depth + 1,
+        depth,
         false,
         undefined,
         traceId, // taskId
@@ -236,7 +236,7 @@ export async function handleParallelTaskCompleted(
         responseText,
         traceId,
         sessionId,
-        depth + 1,
+        depth,
         false,
         undefined,
         traceId
@@ -254,7 +254,7 @@ export async function handleParallelTaskCompleted(
     aggregatedSummary,
     traceId,
     sessionId,
-    depth + 1,
+    depth,
     false,
     undefined,
     traceId

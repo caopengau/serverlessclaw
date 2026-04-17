@@ -48,7 +48,7 @@ describe('task-result-handler.unit', () => {
   });
 
   it('wakes the initiator on non-parallel completion', async () => {
-    const event = {
+    const eventDetail = {
       userId: 'user-1',
       agentId: 'agent-A',
       task: 'do work',
@@ -58,7 +58,10 @@ describe('task-result-handler.unit', () => {
       sessionId: 's1',
     };
 
-    await handleTaskResult(event as any, EventType.TASK_COMPLETED);
+    await handleTaskResult(
+      { 'detail-type': EventType.TASK_COMPLETED, detail: eventDetail, id: 'test-id' },
+      EventType.TASK_COMPLETED
+    );
 
     expect(shared.wakeupInitiator as any).toHaveBeenCalledTimes(1);
     expect(shared.wakeupInitiator as any).toHaveBeenCalledWith(
