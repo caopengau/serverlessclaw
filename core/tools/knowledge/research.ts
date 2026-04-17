@@ -39,7 +39,7 @@ export const requestResearch = {
         nodeId: childTracer.getNodeId(),
         parentId: childTracer.getParentId(),
         initiatorId: initiatorId ?? 'superclaw',
-        depth: (depth ?? 0) + 1,
+        depth: depth ?? 0,
         sessionId,
       });
 

@@ -152,7 +152,7 @@ export class AgentEmitter {
                 nodeId: metadata.nodeId,
                 parentId: metadata.parentId,
                 initiatorId: metadata.initiatorId,
-                depth: (metadata.depth ?? 0) + 1,
+                depth: metadata.depth ?? 0,
                 sessionId: metadata.sessionId,
                 attachments: safeAttachments,
               }),

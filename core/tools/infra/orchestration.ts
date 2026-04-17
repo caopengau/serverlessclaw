@@ -90,7 +90,7 @@ export const signalOrchestration = {
           nextStep,
           traceId,
           sessionId,
-          depth: (depth ?? 0) + 1,
+          depth: depth ?? 0,
         });
         report += '\n\n[EVENT_EMITTED]: Signal dispatched to the EventBus.';
       } catch (error) {

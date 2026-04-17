@@ -117,7 +117,7 @@ describe('research-handler', () => {
         metadata: {},
         traceId: 'trace-1',
         initiatorId: AgentType.RESEARCHER,
-        depth: 0,
+        depth: 1,
         sessionId: 'session-1',
       };
 
@@ -148,7 +148,7 @@ describe('research-handler', () => {
         metadata: {},
         traceId: 'trace-1',
         initiatorId: AgentType.RESEARCHER,
-        depth: 0,
+        depth: 1,
         sessionId: 'session-1',
       };
 
@@ -192,7 +192,7 @@ describe('research-handler', () => {
         metadata: {},
         traceId: 'trace-1',
         initiatorId: AgentType.RESEARCHER,
-        depth: 0,
+        depth: 1,
         sessionId: 'session-1',
       };
 
@@ -281,7 +281,7 @@ describe('research-handler', () => {
         metadata: {},
         traceId: 'trace-1',
         initiatorId: AgentType.RESEARCHER,
-        depth: 0,
+        depth: 1,
         sessionId: 'session-1',
       };
 
@@ -318,7 +318,7 @@ describe('research-handler', () => {
         metadata: {},
         traceId: 'trace-1',
         initiatorId: AgentType.RESEARCHER,
-        depth: 0,
+        depth: 1,
         sessionId: 'session-1',
       };
 
@@ -350,6 +350,7 @@ describe('research-handler', () => {
           agentId: AgentType.RESEARCHER,
           task: 'Research authentication',
           traceId: 'trace-1',
+          depth: 1,
           metadata: expect.objectContaining({
             findingsCategory: 'research_finding',
           }),
@@ -366,7 +367,7 @@ describe('research-handler', () => {
         metadata: {},
         traceId: 'trace-1',
         initiatorId: AgentType.RESEARCHER,
-        depth: 0,
+        depth: 1,
         sessionId: 'session-1',
       };
 

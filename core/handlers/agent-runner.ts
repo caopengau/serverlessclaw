@@ -19,7 +19,6 @@ import {
 } from '../lib/utils/agent-helpers';
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
 import { SessionStateManager } from '../lib/session/session-state';
-import { getRecursionLimit } from '../lib/recursion-tracker';
 import { isMissionContext } from './events/shared';
 
 interface WorkerEvent {
@@ -87,16 +86,17 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
     heartbeatInterval = setInterval(runHeartbeat, HEARTBEAT_INTERVAL_MS);
   }
 
-  // Recursion depth was already atomically incremented by the entry point
-  // (events.ts for fallback events, or agent-multiplexer for agent tasks).
-  // Perform a defense-in-depth validation of the incoming depth.
+  // Perform recursion depth check and atomic increment
+  const { checkAndPushRecursion } = await import('./events/shared');
   const isMission = isMissionContext(detailType, payload.metadata as Record<string, unknown>);
-  const RECURSION_LIMIT = await getRecursionLimit(isMission);
-  const incomingDepth = payload.depth ?? 0;
-  if (incomingDepth >= RECURSION_LIMIT) {
-    logger.error(
-      `[AgentRunner] Recursion limit exceeded (incoming depth: ${incomingDepth} >= limit: ${RECURSION_LIMIT}) for trace ${traceId}`
-    );
+  const currentDepth = await checkAndPushRecursion(
+    traceId || 'unknown',
+    sessionId || 'unknown',
+    agentId,
+    isMission
+  );
+
+  if (currentDepth === null) {
     if (lockAcquired && sessionId) {
       if (heartbeatInterval) clearInterval(heartbeatInterval);
       await sessionStateManager.releaseProcessing(sessionId, agentId);
@@ -115,7 +115,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       isContinuation,
       isIsolated: true,
       initiatorId: payload.initiatorId,
-      depth: (payload.depth ?? 0) + 1,
+      depth: currentDepth,
       traceId,
       taskId,
       sessionId,
@@ -164,7 +164,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
         {
           traceId: traceId || `plan-${Date.now()}`,
           sessionId,
-          depth: payload.depth,
+          depth: currentDepth,
           isContinuation,
           sourceAgentId: agentId,
           lockedGapIds: payload.metadata?.gapIds as string[],
@@ -198,7 +198,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
           taskId,
           sessionId,
           initiatorId: payload.initiatorId,
-          depth: payload.depth,
+          depth: currentDepth,
           userNotified: true,
         });
       }
@@ -220,7 +220,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       taskId,
       sessionId,
       initiatorId: payload.initiatorId,
-      depth: payload.depth,
+      depth: currentDepth,
       userNotified: shouldSpeakDirectly && !isFailure,
       idempotencyKey: taskId || `${traceId}-${agentId}`,
     });

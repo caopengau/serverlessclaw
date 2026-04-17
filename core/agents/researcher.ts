@@ -91,7 +91,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
           initialQuery: task,
           traceId,
           initiatorId: AgentType.RESEARCHER,
-          depth: (depth ?? 0) + 1,
+          depth: depth ?? 0,
           sessionId,
           tokenBudget,
           costLimit,

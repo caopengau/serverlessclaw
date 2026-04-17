@@ -272,11 +272,11 @@ importers:
         specifier: ^1.0.3
         version: 1.0.3
       '@modelcontextprotocol/sdk':
-        specifier: ^1.27.1
+        specifier: ^1.29.0
         version: 1.29.0(zod@4.3.6)
       '@modelcontextprotocol/server-filesystem':
-        specifier: ^0.6.2
-        version: 0.6.2(zod@4.3.6)
+        specifier: ^2026.1.14
+        version: 2026.1.14(zod@4.3.6)
       '@openai/agents-core':
         specifier: ^0.8.0
         version: 0.8.3(ws@8.20.0)(zod@4.3.6)
@@ -1802,9 +1802,6 @@ packages:
   '@modelcontextprotocol/sdk@0.5.0':
     resolution: {integrity: sha512-RXgulUX6ewvxjAG0kOpLMEdXXWkzWgaoCGaA2CwNW7cQCIphjpJhjpHSiaPdVCnisjRF/0Cm9KWHUuIoeiAblQ==}
 
-  '@modelcontextprotocol/sdk@1.0.1':
-    resolution: {integrity: sha512-slLdFaxQJ9AlRg+hw28iiTtGvShAOgOKXcD0F91nUcRYiOMuS9ZBYjcdNZRXW9G5JQ511GRTdUy1zQVZDpJ+4w==}
-
   '@modelcontextprotocol/sdk@1.29.0':
     resolution: {integrity: sha512-zo37mZA9hJWpULgkRpowewez1y6ML5GsXJPY8FI0tBBCd77HEvza4jDqRKOXgHNn867PVGCyTdzqpz0izu5ZjQ==}
     engines: {node: '>=18'}
@@ -1815,8 +1812,8 @@ packages:
       '@cfworker/json-schema':
         optional: true
 
-  '@modelcontextprotocol/server-filesystem@0.6.2':
-    resolution: {integrity: sha512-qBrhLY524WEFmIg+s2O6bPIFBK8Dy0l20yjQ0reYN1moWYNy28kNyYgWVgTiSj4QvpMq2LFZs6foDHrG1Kgt2w==}
+  '@modelcontextprotocol/server-filesystem@2026.1.14':
+    resolution: {integrity: sha512-bGAfu3fWRVeF10NxvPhFBDlRen6ExSx6YkKJzoVgQMNrbdVVV4okfGGQ3KBRu9ygXYfw5/N9ermHAJXA0uys+g==}
     hasBin: true
 
   '@mozilla/readability@0.6.0':
@@ -9824,12 +9821,6 @@ snapshots:
       raw-body: 3.0.2
       zod: 3.25.76
 
-  '@modelcontextprotocol/sdk@1.0.1':
-    dependencies:
-      content-type: 1.0.5
-      raw-body: 3.0.2
-      zod: 3.25.76
-
   '@modelcontextprotocol/sdk@1.29.0(zod@3.25.76)':
     dependencies:
       '@hono/node-server': 1.19.12(hono@4.12.10)
@@ -9874,12 +9865,16 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@modelcontextprotocol/server-filesystem@0.6.2(zod@4.3.6)':
+  '@modelcontextprotocol/server-filesystem@2026.1.14(zod@4.3.6)':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.0.1
+      '@modelcontextprotocol/sdk': 1.29.0(zod@4.3.6)
+      diff: 5.2.2
       glob: 13.0.6
+      minimatch: 10.2.5
       zod-to-json-schema: 3.25.2(zod@4.3.6)
     transitivePeerDependencies:
+      - '@cfworker/json-schema'
+      - supports-color
       - zod
 
   '@mozilla/readability@0.6.0': {}

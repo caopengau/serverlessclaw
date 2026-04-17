@@ -57,7 +57,7 @@ describe('Clarification Tools', () => {
       );
     });
 
-    it('should increment depth by 1', async () => {
+    it('should pass through depth correctly', async () => {
       const args = {
         userId: 'user-1',
         question: 'what?',
@@ -69,11 +69,11 @@ describe('Clarification Tools', () => {
       expect(emitEvent).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
-        expect.objectContaining({ depth: 3 })
+        expect.objectContaining({ depth: 2 })
       );
     });
 
-    it('should default depth to 1 when not provided', async () => {
+    it('should default depth to 0 when not provided', async () => {
       const args = {
         userId: 'user-1',
         question: 'what?',
@@ -84,7 +84,7 @@ describe('Clarification Tools', () => {
       expect(emitEvent).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
-        expect.objectContaining({ depth: 1 })
+        expect.objectContaining({ depth: 0 })
       );
     });
 
@@ -142,7 +142,7 @@ describe('Clarification Tools', () => {
           question: 'what language?',
           traceId: 'trace-123',
           initiatorId: 'strategic-planner',
-          depth: 2,
+          depth: 1,
           sessionId: 'sess-1',
           originalTask: 'build app',
         })
@@ -208,11 +208,11 @@ describe('Clarification Tools', () => {
       expect(emitEvent).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
-        expect.objectContaining({ depth: 4 })
+        expect.objectContaining({ depth: 3 })
       );
     });
 
-    it('should default depth to 1 when not provided', async () => {
+    it('should default depth to 0 when not provided', async () => {
       await provideClarification.execute({
         userId: 'u1',
         agentId: 'coder',
@@ -223,7 +223,7 @@ describe('Clarification Tools', () => {
       expect(emitEvent).toHaveBeenCalledWith(
         expect.any(String),
         expect.any(String),
-        expect.objectContaining({ depth: 1 })
+        expect.objectContaining({ depth: 0 })
       );
     });
 

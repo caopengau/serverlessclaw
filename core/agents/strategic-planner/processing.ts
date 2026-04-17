@@ -306,7 +306,7 @@ export async function postProcessPlan(
         aggregationPrompt: `Synthesize the Council discussion in session ${collaborationId} and the individual reviews for Plan ${planId}. Return your response starting with [COUNCIL_REVIEW_RESULT] followed by VERDICT: <APPROVED|REJECTED|CONDITIONAL> and a summary of findings. If all reviews are APPROVED, return VERDICT: APPROVED. If ANY review has verdict REJECTED, return VERDICT: REJECTED with consolidated feedback. Always include the Plan ID ${planId} and Collaboration ID ${collaborationId} in your response.`,
         traceId: councilTraceId,
         initiatorId: AgentType.STRATEGIC_PLANNER,
-        depth: (depth ?? 0) + 1,
+        depth: depth ?? 0,
         sessionId,
       });
 
@@ -396,7 +396,7 @@ export async function postProcessPlan(
             : undefined,
           traceId,
           initiatorId: AgentType.STRATEGIC_PLANNER,
-          depth: (depth ?? 0) + 1,
+          depth: depth ?? 0,
           sessionId,
         });
       } else {

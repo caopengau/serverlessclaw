@@ -69,7 +69,7 @@ export const dispatchTask = {
         nodeId: childTracer.getNodeId(),
         parentId: childTracer.getParentId(),
         initiatorId: initiatorId ?? 'superclaw',
-        depth: (depth ?? 0) + 1,
+        depth: depth ?? 0,
         sessionId,
       });
       return `TASK_PAUSED: I have successfully dispatched this task to the **${agentId}** agent. I'll let you know once they have an update.`;
@@ -115,7 +115,7 @@ export const technicalResearch = {
         nodeId: childTracer.getNodeId(),
         parentId: childTracer.getParentId(),
         initiatorId: initiatorId ?? 'superclaw',
-        depth: (depth ?? 0) + 1,
+        depth: depth ?? 0,
         sessionId,
       });
       return `RESEARCH_INITIATED: I have successfully dispatched a technical research mission to the **${targetAgentId}** agent. I'll let you know once they have an update.`;

@@ -39,7 +39,7 @@ export const seekClarification = {
         question,
         traceId,
         initiatorId: initiatorId ?? 'superclaw',
-        depth: (depth ?? 0) + 1,
+        depth: depth ?? 0,
         sessionId,
         originalTask: originalTask ?? task ?? 'Unknown task',
       });
@@ -79,7 +79,7 @@ export const provideClarification = {
         Please proceed with this information.`,
         traceId,
         sessionId,
-        depth: (depth ?? 0) + 1,
+        depth: depth ?? 0,
         initiatorId,
         isContinuation: true,
       });

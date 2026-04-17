@@ -116,7 +116,7 @@ export async function handleSwarmDecomposition(
         sessionId,
         traceId,
         initiatorId: payload.initiatorId,
-        depth: depth + 1,
+        depth: depth,
         isParallel: true,
         metadata: {
           ...payload.metadata,

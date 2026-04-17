@@ -201,7 +201,7 @@ describe('Swarm Recursive Flow Integration', () => {
           metadata: {},
           traceId: 'trace-1',
           initiatorId: AgentType.STRATEGIC_PLANNER,
-          depth: 0,
+          depth: 1,
           sessionId: 'session-1',
         },
         {} as any
