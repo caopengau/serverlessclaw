@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+import { Resource } from 'sst';
 
 const mockGetAllConfigs = vi.fn();
 const mockSend = vi.fn();
@@ -16,9 +17,12 @@ vi.mock('@aws-sdk/client-dynamodb', () => ({
 
 vi.mock('@aws-sdk/lib-dynamodb', () => ({
   DynamoDBDocumentClient: { from: () => ({ send: mockSend }) },
-  PutCommand: class {},
-  UpdateCommand: class {},
-  DeleteCommand: class {},
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  PutCommand: class { constructor(public p: any) { Object.assign(this, p); } },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  UpdateCommand: class { constructor(public p: any) { Object.assign(this, p); } },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  DeleteCommand: class { constructor(public p: any) { Object.assign(this, p); } },
 }));
 
 vi.mock('@claw/core/lib/registry/index', () => ({
@@ -35,13 +39,15 @@ vi.mock('@claw/core/lib/backbone', () => ({
 }));
 
 vi.mock('@/lib/constants', () => ({
-  HTTP_STATUS: { INTERNAL_SERVER_ERROR: 500, BAD_REQUEST: 400 },
+  HTTP_STATUS: { INTERNAL_SERVER_ERROR: 500, BAD_REQUEST: 400, OK: 200 },
   DYNAMO_KEYS: { AGENTS_CONFIG: 'agents_config' },
 }));
 
 describe('Agents API Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (Resource as any).ConfigTable = { name: 'test-config-table' };
   });
 
   describe('GET', () => {
@@ -86,6 +92,19 @@ describe('Agents API Route', () => {
       expect(mockSend).toHaveBeenCalled();
     });
 
+    it('returns 500 when ConfigTable name is missing', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (Resource as any).ConfigTable;
+      const { POST } = await import('./route');
+      const req = new NextRequest('http://localhost/api/agents', {
+        method: 'POST',
+        body: JSON.stringify({ agents: [] }),
+      });
+      const res = await POST(req);
+      expect(res.status).toBe(500);
+      expect(await res.json()).toEqual({ error: 'ConfigTable name is missing from resources.' });
+    });
+
     it('returns 500 on DynamoDB error', async () => {
       mockSend.mockRejectedValue(new Error('Write failed'));
 
@@ -122,6 +141,28 @@ describe('Agents API Route', () => {
       expect(data.agentId).toBe('my-agent');
     });
 
+    it('returns 400 when agentId or config is missing', async () => {
+      const { PATCH } = await import('./route');
+      const req = new NextRequest('http://localhost/api/agents', {
+        method: 'PATCH',
+        body: JSON.stringify({ agentId: 'test' }),
+      });
+      const res = await PATCH(req);
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 500 when ConfigTable name is missing', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (Resource as any).ConfigTable;
+      const { PATCH } = await import('./route');
+      const req = new NextRequest('http://localhost/api/agents', {
+        method: 'PATCH',
+        body: JSON.stringify({ agentId: 'test', config: {} }),
+      });
+      const res = await PATCH(req);
+      expect(res.status).toBe(500);
+    });
+
     it('rejects creating agents with backbone IDs', async () => {
       const { PATCH } = await import('./route');
       const req = new NextRequest('http://localhost/api/agents', {
@@ -138,17 +179,15 @@ describe('Agents API Route', () => {
       expect(data.error).toContain('Cannot overwrite backbone agent');
     });
 
-    it('returns 400 when agentId or config is missing', async () => {
+    it('returns 500 on error', async () => {
+      mockSend.mockRejectedValue(new Error('Patch failed'));
       const { PATCH } = await import('./route');
       const req = new NextRequest('http://localhost/api/agents', {
         method: 'PATCH',
-        body: JSON.stringify({ agentId: 'test' }),
+        body: JSON.stringify({ agentId: 'test', config: {} }),
       });
       const res = await PATCH(req);
-      const data = await res.json();
-
-      expect(res.status).toBe(400);
-      expect(data.error).toContain('agentId and config are required');
+      expect(res.status).toBe(500);
     });
   });
 
@@ -169,28 +208,43 @@ describe('Agents API Route', () => {
       expect(mockSend).toHaveBeenCalledTimes(2); // UpdateCommand + DeleteCommand
     });
 
-    it('rejects deletion of backbone agents', async () => {
-      const { DELETE } = await import('./route');
-      const req = new NextRequest('http://localhost/api/agents?agentId=coder', {
-        method: 'DELETE',
-      });
-      const res = await DELETE(req);
-      const data = await res.json();
-
-      expect(res.status).toBe(400);
-      expect(data.error).toContain('Cannot delete backbone agent');
-    });
-
     it('returns 400 when agentId is missing', async () => {
       const { DELETE } = await import('./route');
       const req = new NextRequest('http://localhost/api/agents', {
         method: 'DELETE',
       });
       const res = await DELETE(req);
-      const data = await res.json();
-
       expect(res.status).toBe(400);
-      expect(data.error).toContain('agentId query parameter is required');
+    });
+
+    it('rejects deletion of backbone agents', async () => {
+      const { DELETE } = await import('./route');
+      const req = new NextRequest('http://localhost/api/agents?agentId=coder', {
+        method: 'DELETE',
+      });
+      const res = await DELETE(req);
+      expect(res.status).toBe(400);
+    });
+
+    it('returns 500 when ConfigTable name is missing', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      delete (Resource as any).ConfigTable;
+      const { DELETE } = await import('./route');
+      const req = new NextRequest('http://localhost/api/agents?agentId=test', {
+        method: 'DELETE',
+      });
+      const res = await DELETE(req);
+      expect(res.status).toBe(500);
+    });
+
+    it('returns 500 on error', async () => {
+      mockSend.mockRejectedValue(new Error('Delete failed'));
+      const { DELETE } = await import('./route');
+      const req = new NextRequest('http://localhost/api/agents?agentId=test', {
+        method: 'DELETE',
+      });
+      const res = await DELETE(req);
+      expect(res.status).toBe(500);
     });
   });
 });

@@ -82,11 +82,13 @@ export function ChatInput({
                 )}
                 <button
                   type="button"
+                  aria-label="remove-attachment"
                   onClick={() => onRemoveAttachment(i)}
                   className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white scale-0 group-hover/preview:scale-100 transition-transform shadow-lg"
                 >
                   <X size={12} />
                 </button>
+
               </div>
             ))}
           </div>
@@ -104,6 +106,7 @@ export function ChatInput({
             type="button"
             variant="ghost"
             size="sm"
+            aria-label="attach-file"
             onClick={() => fileInputRef.current?.click()}
             className="h-[52px] w-[52px] !rounded-lg border border-white/5 hover:border-cyber-green/30 bg-white/[0.02] flex items-center justify-center p-0 self-center"
             icon={

@@ -165,7 +165,7 @@ describe('RealtimeProvider loop prevention', () => {
     function Consumer() {
       useRealtime({
         userId: 'test-user',
-        topics: ['workspaces/#'],
+        topics: ['workspaces/#', 'users/+/signal'],
         onMessage,
       });
       return <div>Consumer</div>;
@@ -182,11 +182,127 @@ describe('RealtimeProvider loop prevention', () => {
     });
 
     const [{ client }] = mqttState.connections;
-    client._events.message(
-      'workspaces/alpha/signal',
-      Buffer.from(JSON.stringify({ 'detail-type': 'task_completed', detail: {} }))
+    
+    // Test '#' wildcard
+    act(() => {
+      client._events.message(
+        'test-app/test-stage/workspaces/alpha/signal',
+        Buffer.from(JSON.stringify({ 'detail-type': 'task_completed', detail: {} }))
+      );
+    });
+    expect(onMessage).toHaveBeenCalledWith('workspaces/alpha/signal', expect.anything());
+
+    // Test '+' wildcard
+    act(() => {
+      client._events.message(
+        'test-app/test-stage/users/user123/signal',
+        Buffer.from(JSON.stringify({ 'detail-type': 'chunk', detail: {} }))
+      );
+    });
+    expect(onMessage).toHaveBeenCalledWith('users/user123/signal', expect.anything());
+    
+    expect(onMessage).toHaveBeenCalledTimes(2);
+  });
+
+  it('correctly constructs canonical AWS IoT WebSocket URL', async () => {
+    render(
+      <RealtimeProvider>
+        <div>child</div>
+      </RealtimeProvider>
     );
 
-    expect(onMessage).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(mqttState.connect).toHaveBeenCalled();
+    });
+
+    const [{ url }] = mqttState.connections;
+    expect(url).toContain('wss://example.com/mqtt');
+    expect(url).toContain('x-amz-customauthorizer-name=TestAuth');
+    expect(url).toContain('x-amz-customauthorizer-token=dashboard-dev-token-elegant');
+    expect(url).toContain('clientId=dash_');
+  });
+
+  it('handles empty config response gracefully', async () => {
+    (globalThis as any).fetch = vi.fn(async () => ({
+      json: async () => ({}),
+    }));
+
+    render(
+      <RealtimeProvider>
+        <div>child</div>
+      </RealtimeProvider>
+    );
+
+    // Wait a bit to ensure it doesn't crash
+    await act(async () => {
+       await new Promise(r => setTimeout(r, 50));
+    });
+    expect(mqttState.connect).not.toHaveBeenCalled();
+  });
+
+  it('handles message parse errors without crashing', async () => {
+    const onMessage = vi.fn();
+    function Consumer() {
+      useRealtime({ topics: ['#'], onMessage });
+      return null;
+    }
+
+    render(
+      <RealtimeProvider>
+        <Consumer />
+      </RealtimeProvider>
+    );
+
+    await waitFor(() => expect(mqttState.connect).toHaveBeenCalled());
+    const [{ client }] = mqttState.connections;
+
+    act(() => {
+      client._events.message('test', Buffer.from('invalid-json'));
+    });
+
+    expect(onMessage).not.toHaveBeenCalled();
+  });
+
+  it('logs reconnect and offline events', async () => {
+    const consoleSpy = vi.spyOn(console, 'log');
+    const warnSpy = vi.spyOn(console, 'warn');
+    
+    render(
+      <RealtimeProvider>
+        <div>child</div>
+      </RealtimeProvider>
+    );
+
+    await waitFor(() => expect(mqttState.connect).toHaveBeenCalled());
+    const [{ client }] = mqttState.connections;
+
+    act(() => {
+      client._events.reconnect();
+    });
+    expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Reconnecting'));
+
+    act(() => {
+      client._events.offline();
+    });
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('went offline'));
+  });
+
+  it('handles failed config fetch gracefully', async () => {
+    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500
+    });
+
+    render(
+      <RealtimeProvider>
+        <div>child</div>
+      </RealtimeProvider>
+    );
+
+    await act(async () => {
+      await new Promise(r => setTimeout(r, 50));
+    });
+
+    expect(mqttState.connect).not.toHaveBeenCalled();
   });
 });

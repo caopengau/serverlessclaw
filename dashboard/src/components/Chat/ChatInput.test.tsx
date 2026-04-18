@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import React, { useRef, useState, useEffect } from 'react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ChatInput } from './ChatInput';
 import { TranslationsProvider } from '@/components/Providers/TranslationsProvider';
+import userEvent from '@testing-library/user-event';
 
 vi.mock('next/image', () => ({
   default: (props: Record<string, unknown>) => {
@@ -33,9 +36,13 @@ describe('ChatInput Component', () => {
     onSend: vi.fn(),
     attachments: [],
     onRemoveAttachment: vi.fn(),
-    fileInputRef: { current: null },
+    fileInputRef: { current: null } as any,
     onFileSelect: vi.fn(),
   };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('renders the input textarea', () => {
     renderWithTranslations(<ChatInput {...defaultProps} />);
@@ -106,5 +113,65 @@ describe('ChatInput Component', () => {
     renderWithTranslations(<ChatInput {...defaultProps} input="hello" isLoading={true} />);
     const button = screen.getByText('EXECUTING...').closest('button');
     expect(button).toHaveClass('opacity-50', 'cursor-not-allowed');
+  });
+
+  it('calls onSend when clicking the send button', async () => {
+    const onSend = vi.fn();
+    renderWithTranslations(<ChatInput {...defaultProps} input="hello" onSend={onSend} />);
+    const button = screen.getByText('SEND');
+    await userEvent.click(button);
+    expect(onSend).toHaveBeenCalled();
+  });
+
+  it('calls onSend when pressing Enter', async () => {
+    const onSend = vi.fn();
+    renderWithTranslations(<ChatInput {...defaultProps} input="hello" onSend={onSend} />);
+    const textarea = screen.getByPlaceholderText('Ask or command...');
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: false });
+    expect(onSend).toHaveBeenCalled();
+  });
+
+  it('does NOT call onSend when pressing Shift+Enter', async () => {
+    const onSend = vi.fn();
+    renderWithTranslations(<ChatInput {...defaultProps} input="hello" onSend={onSend} />);
+    const textarea = screen.getByPlaceholderText('Ask or command...');
+    fireEvent.keyDown(textarea, { key: 'Enter', shiftKey: true });
+    expect(onSend).not.toHaveBeenCalled();
+  });
+
+  it('calls onRemoveAttachment when clicking X on preview', async () => {
+    const onRemoveAttachment = vi.fn();
+    renderWithTranslations(
+      <ChatInput
+        {...defaultProps}
+        attachments={[{ type: 'file', file: new File([''], 'test.txt'), preview: '' }]}
+        onRemoveAttachment={onRemoveAttachment}
+      />
+    );
+    const xButton = screen.getByRole('button', { name: 'remove-attachment' });
+    await userEvent.click(xButton);
+    expect(onRemoveAttachment).toHaveBeenCalledWith(0);
+  });
+
+  it('triggers file input click when clicking paperclip button', async () => {
+    const TestWrapper = () => {
+      const fileInputRef = useRef<HTMLInputElement>(null);
+      const [clicked, setClicked] = useState(false);
+      useEffect(() => {
+        if (fileInputRef.current) {
+          fileInputRef.current.click = () => setClicked(true);
+        }
+      }, []);
+      return (
+        <>
+          <ChatInput {...defaultProps} fileInputRef={fileInputRef} />
+          {clicked && <div>CLICKED</div>}
+        </>
+      );
+    };
+    renderWithTranslations(<TestWrapper />);
+    const clipButton = screen.getByRole('button', { name: 'attach-file' });
+    fireEvent.click(clipButton);
+    expect(screen.getByText('CLICKED')).toBeInTheDocument();
   });
 });

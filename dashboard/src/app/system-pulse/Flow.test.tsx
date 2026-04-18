@@ -135,6 +135,37 @@ describe('SystemPulseFlow Component', () => {
     expect(edges[0].target).toBe('bus');
   });
 
+  it('handles diverse tiers and types in topology data', async () => {
+    const mockData = {
+      nodes: [
+        { id: 'n1', type: 'agent', tier: 'APP', label: 'AppNode', enabled: true },
+        { id: 'n2', type: 'bus', tier: 'COMM', label: 'CommNode' },
+        { id: 'n3', type: 'infra', tier: 'INFRA', label: 'InfraNode' },
+        { id: 'n4', type: 'agent', tier: 'AGENT', label: 'AgentNode' },
+        { id: 'n5', type: 'unknown', tier: 'INFRA', label: 'OtherNode' },
+        { id: 'n6', type: 'agent', tier: 'APP', label: 'OfflineNode', enabled: false },
+      ],
+      edges: [
+        { id: 'e1', source: 'n1', target: 'n2' },
+      ],
+    };
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => mockData,
+    });
+
+    render(<SystemPulseFlow />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/SYNCHRONIZING_NEURAL_MAP/i)).not.toBeInTheDocument();
+    });
+
+    const flow = screen.getByTestId('react-flow');
+    const nodes = JSON.parse(flow.getAttribute('data-nodes') || '[]');
+    expect(nodes).toHaveLength(6);
+  });
+
   it('handles fetch error gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockFetch.mockRejectedValue(new Error('Fetch failed'));

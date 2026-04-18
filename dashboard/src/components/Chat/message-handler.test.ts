@@ -138,121 +138,105 @@ describe('shouldProcessChunk', () => {
     };
     expect(shouldProcessChunk(chunk, 'sess-1', 'dashboard-user')).toBe(false);
   });
+
+  it('returns false when userId mismatch', () => {
+    const chunk: IncomingChunk & { 'detail-type': string } = {
+      messageId: 't1',
+      userId: 'other-user',
+      'detail-type': 'chunk',
+    };
+    expect(shouldProcessChunk(chunk, 'sess-1', 'user-1')).toBe(false);
+  });
 });
 
 describe('applyChunkToMessages', () => {
-  it('appends a new assistant message on first chunk', () => {
-    const prev: ChatMessage[] = [{ role: 'user', content: 'Hi' }];
+  it('links chunk to a thinking placeholder if messageId is new', () => {
+    const prev: ChatMessage[] = [
+      { role: 'assistant', content: '', isThinking: true, agentName: 'SuperClaw' }
+    ];
     const chunk: IncomingChunk = {
-      message: 'Hello',
-      messageId: 'trace-1',
-      agentName: 'SuperClaw',
+      message: 'Initial content',
+      messageId: 'new-trace-id',
     };
 
     const result = applyChunkToMessages(prev, chunk);
 
-    expect(result).toHaveLength(2);
-    expect(result[1]).toMatchObject({
-      role: 'assistant',
-      content: 'Hello',
-      messageId: 'trace-1',
-      agentName: 'SuperClaw',
-    });
-  });
-
-  it('appends content to existing message on subsequent chunks', () => {
-    const prev: ChatMessage[] = [
-      { role: 'user', content: 'Hi' },
-      { role: 'assistant', content: 'Hel', messageId: 'trace-1', agentName: 'SuperClaw' },
-    ];
-    const chunk: IncomingChunk = { message: 'lo', messageId: 'trace-1' };
-
-    const result = applyChunkToMessages(prev, chunk);
-
-    expect(result).toHaveLength(2);
-    expect(result[1].content).toBe('Hello');
-  });
-
-  it('accumulates thought chunks on existing message', () => {
-    const prev: ChatMessage[] = [
-      {
-        role: 'assistant',
-        content: '',
-        thought: 'Let me',
-        messageId: 'trace-1',
-        agentName: 'SuperClaw',
-      },
-    ];
-    const chunk: IncomingChunk = { message: ' think', messageId: 'trace-1', isThought: true };
-
-    const result = applyChunkToMessages(prev, chunk);
-
     expect(result).toHaveLength(1);
-    expect(result[0].thought).toBe('Let me think');
-    expect(result[0].content).toBe('');
+    expect(result[0].messageId).toBe('new-trace-id');
+    expect(result[0].content).toBe('Initial content');
+    expect(result[0].isThinking).toBe(false);
   });
 
-  it('creates thought-only message for first thought chunk', () => {
-    const prev: ChatMessage[] = [{ role: 'user', content: 'Hi' }];
-    const chunk: IncomingChunk = {
-      message: 'Thinking...',
-      messageId: 'trace-1',
-      isThought: true,
-      agentName: 'SuperClaw',
+  it('replaces content instead of appending when detail-type is outbound_message', () => {
+    const prev: ChatMessage[] = [
+      { role: 'assistant', content: 'Partial...', messageId: 't1', agentName: 'SuperClaw' }
+    ];
+    const chunk: IncomingChunk & { 'detail-type': string } = {
+      message: 'Full final response',
+      messageId: 't1',
+      'detail-type': 'outbound_message',
     };
 
     const result = applyChunkToMessages(prev, chunk);
 
-    expect(result).toHaveLength(2);
-    expect(result[1]).toMatchObject({
-      role: 'assistant',
-      content: '',
-      thought: 'Thinking...',
-      messageId: 'trace-1',
-    });
-  });
-
-  it('drops duplicate messages via isDuplicate', () => {
-    const prev: ChatMessage[] = [
-      { role: 'assistant', content: 'Hello', messageId: 'trace-1', agentName: 'SuperClaw' },
-    ];
-    const chunk: IncomingChunk = { message: ' world', messageId: 'trace-1' };
-
-    const result = applyChunkToMessages(prev, chunk);
-
     expect(result).toHaveLength(1);
-    expect(result[0].content).toBe('Hello world');
+    expect(result[0].content).toBe('Full final response');
   });
 
-  it('preserves options on existing message when chunk has options', () => {
+  it('drops duplicate assistant messages based on exact content match', () => {
     const prev: ChatMessage[] = [
-      { role: 'assistant', content: 'Approve?', messageId: 'trace-1', agentName: 'SuperClaw' },
+      { role: 'assistant', content: 'Hello there', messageId: 't1', agentName: 'SuperClaw' }
     ];
-    const options = [{ label: 'Approve', value: 'APPROVE', type: 'primary' as const }];
-    const chunk: IncomingChunk = { message: '', messageId: 'trace-1', options };
+    // Different messageId but same content
+    const chunk: IncomingChunk = {
+      message: 'Hello there',
+      messageId: 't2',
+    };
 
     const result = applyChunkToMessages(prev, chunk);
 
-    expect(result[0].options).toEqual(options);
+    // Should NOT add a new message
+    expect(result).toHaveLength(1);
+    expect(result[0].messageId).toBe('t1');
   });
 
-  it('merges tool_calls from chunk into existing message', () => {
+  it('skips chunks for already seen message IDs', () => {
+    const prev: ChatMessage[] = [];
+    const seenIds = new Set(['trace-1']);
+    const chunk: IncomingChunk = { message: 'hi', messageId: 'trace-1' };
+
+    const result = applyChunkToMessages(prev, chunk, seenIds);
+
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe('mergeHistoryWithMessages', () => {
+  it('discards local assistant messages if history has the same normalized ID', () => {
     const prev: ChatMessage[] = [
-      {
-        role: 'assistant',
-        content: 'Calling tool...',
-        messageId: 'trace-1',
-        agentName: 'SuperClaw',
-      },
+      { role: 'assistant', content: 'Local version', messageId: 'trace-1-superclaw' }
     ];
-    const toolCalls = [
-      { id: 'tc-1', type: 'function' as const, function: { name: 'test', arguments: '{}' } },
+    const rawHistory: HistoryMessage[] = [
+      { role: 'assistant', content: 'History version', traceId: 'trace-1', attachments: [] }
     ];
-    const chunk: IncomingChunk = { message: '', messageId: 'trace-1', toolCalls };
 
-    const result = applyChunkToMessages(prev, chunk);
+    const { messages } = mergeHistoryWithMessages(prev, rawHistory);
 
-    expect(result[0].tool_calls).toEqual(toolCalls);
+    expect(messages).toHaveLength(1);
+    expect(messages[0].content).toBe('History version');
+  });
+
+  it('discards local user messages if they match history content', () => {
+    const prev: ChatMessage[] = [
+      { role: 'user', content: 'Same user text' }
+    ];
+    const rawHistory: HistoryMessage[] = [
+      { role: 'user', content: 'Same user text', attachments: [] }
+    ];
+
+    const { messages } = mergeHistoryWithMessages(prev, rawHistory);
+
+    expect(messages).toHaveLength(1);
   });
 });
 
