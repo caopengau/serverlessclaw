@@ -13,7 +13,6 @@ import { ChatInput } from './ChatInput';
 import { QueuedMessagesList } from './QueuedMessages';
 import { useChatMessages } from './useChatMessages';
 import { useKeyboardShortcuts, type ShortcutDefinition } from '@/hooks/useKeyboardShortcuts';
-import type { PendingMessage } from '@claw/core/lib/types/session';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import type { ChatMessage } from './types';
 
@@ -140,7 +139,6 @@ export default function ChatContent() {
     sessions,
     pendingMessages,
     setPendingMessages,
-    fetchPendingSilently,
     fetchSessions,
     skipNextHistoryFetch,
     seenMessageIds,
@@ -151,7 +149,6 @@ export default function ChatContent() {
     setMessages,
     attachments,
     setAttachments,
-    fetchHistory,
     sendMessage,
     handleFiles,
     handleToolApproval,

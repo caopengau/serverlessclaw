@@ -20,13 +20,7 @@ import { PageContextData, ChatMessage } from './types';
 export default function ChatBubble() {
   const pathname = usePathname();
   
-  // Hide the bubble on the main chat page to avoid redundancy and prevent 
-  // duplicate data synchronization hooks from running.
-  if (pathname === '/chat' || pathname === '/') {
-    return null;
-  }
-
-  // --- State & Refs needed for chat hooks ---
+  // --- State & Refs (Must be before early returns) ---
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState('');
@@ -76,6 +70,20 @@ export default function ChatBubble() {
     setMessagesRef.current = setMessages;
   }, [setMessages]);
 
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  // --- Early Return (Must be after all hooks) ---
+  // Hide the bubble on the main chat page to avoid redundancy and prevent 
+  // duplicate data synchronization hooks from running.
+  if (pathname === '/chat' || pathname === '/') {
+    return null;
+  }
+
   const toggleOpen = () => {
     setIsOpen(!isOpen);
     setIsMinimized(false);
@@ -98,13 +106,6 @@ export default function ChatBubble() {
       handleFiles(Array.from(e.target.files));
     }
   };
-
-  // Scroll to bottom when messages change
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
 
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4">

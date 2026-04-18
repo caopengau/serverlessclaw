@@ -223,9 +223,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
   index,
   onOptionClick,
   showThinking,
-  isLast,
-  isLoading,
-}: ChatMessageRowProps) {
+}: Omit<ChatMessageRowProps, 'isLast' | 'isLoading'>) {
   const m = message;
   const key = m.messageId ? `${m.role}-${m.messageId}` : `local-${index}`;
   const components = useMemo(() => markdownComponents(m.role), [m.role]);
@@ -493,8 +491,6 @@ export function ChatMessageList({
             index={i}
             onOptionClick={onOptionClick}
             showThinking={showThinking}
-            isLast={i === messages.length - 1}
-            isLoading={isLoading}
           />
         ))}
 
