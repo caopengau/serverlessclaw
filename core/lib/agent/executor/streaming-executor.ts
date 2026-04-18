@@ -146,6 +146,9 @@ export class StreamingExecutor extends BaseExecutor {
         }
 
         if (chunk.content || chunk.thought || chunk.tool_calls || chunk.usage) {
+          console.log(
+            `[StreamingExecutor] Yielding chunk: content=${!!chunk.content}, thought=${!!chunk.thought}, toolCalls=${chunk.tool_calls?.length ?? 0}`
+          );
           yield chunk;
         }
       }

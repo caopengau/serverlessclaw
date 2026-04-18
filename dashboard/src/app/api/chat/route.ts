@@ -65,16 +65,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
 
     if (isStream) {
-      // In a serverless environment like AWS Lambda, we can't easily "background" a task
-      // without keeping the response open or using a separate trigger.
-      // However, SST/Next.js on Lambda often supports Response Streaming.
-      // For this implementation, we consume the stream and the chunks are emitted
-      // directly to IoT Core in the background via the realtime utility.
-
-      // We start the stream but don't await its full completion before returning to the UI
-      // IF the platform supports it. On standard Lambda, we MUST await or the process dies.
-      // But we can return the initial "accepted" response and let chunks flow via IoT.
-
       const streamResult = await (async () => {
         const stream = agent.stream(storageId, text ?? '', {
           sessionId,
@@ -88,41 +78,42 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         let finalThought = '';
         let streamToolCalls: unknown[] | undefined;
         let streamMessageId: string | undefined;
-        let fallbackTraceId: string | undefined;
+        let fallbackResult: { responseText?: string; thought?: string; tool_calls?: unknown[]; traceId?: string } | null = null;
+
+        let chunkCount = 0;
         for await (const chunk of stream) {
+          chunkCount++;
           if (!streamMessageId && chunk.messageId) {
             streamMessageId = chunk.messageId;
           }
           if (chunk.content) finalResponse += chunk.content;
           if (chunk.thought) finalThought += chunk.thought;
           if (chunk.tool_calls) streamToolCalls = chunk.tool_calls;
+          
+          if (chunkCount % 5 === 0 || chunk.tool_calls) {
+            console.log(`[Chat API] Stream progress: ${chunkCount} chunks, content length: ${finalResponse.length}`);
+          }
         }
 
-        // Some providers may complete with no visible content if they only performed tool calls.
-        // If we have content or tool calls, the stream was successful.
         const streamProducedAnything = 
           finalResponse.trim().length > 0 || 
           finalThought.trim().length > 0 || 
           (streamToolCalls && streamToolCalls.length > 0);
 
         if (!streamProducedAnything) {
-          console.warn('[Chat API] Stream produced no content, thought, or tool calls. Triggering fallback.');
-          const fallback = await agent.process(storageId, text ?? '', {
+          console.warn(`[Chat API] Stream produced no content. Triggering fallback.`);
+          fallbackResult = await agent.process(storageId, text ?? '', {
             sessionId,
             source: TraceSource.DASHBOARD,
             attachments,
             approvedToolCalls,
+            traceId: clientTraceId || undefined,
             pageContext,
             skipUserSave: true,
           });
-          finalResponse = fallback.responseText ?? '';
-          if (!finalThought && fallback.thought) {
-            finalThought = fallback.thought;
-          }
-          if ((!streamToolCalls || streamToolCalls.length === 0) && fallback.tool_calls) {
-            streamToolCalls = fallback.tool_calls;
-          }
-          fallbackTraceId = fallback.traceId;
+          finalResponse = fallbackResult.responseText ?? '';
+          finalThought = fallbackResult.thought ?? '';
+          streamToolCalls = fallbackResult.tool_calls;
         }
 
         if (sessionId) {
@@ -133,12 +124,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           });
         }
 
+        const fallbackTraceId = fallbackResult?.traceId;
+        const finalMessageId = streamMessageId || (fallbackTraceId ? `${fallbackTraceId}-superclaw` : (clientTraceId ? `${clientTraceId}-superclaw` : undefined));
+        
+        console.log(`[Chat API] Final response: length=${finalResponse.length}, ID=${finalMessageId}, thought=${!!finalThought}`);
+
         return {
           reply: finalResponse,
           thought: finalThought,
           agentName: 'SuperClaw',
           tool_calls: streamToolCalls,
-          messageId: streamMessageId || (clientTraceId ? `${clientTraceId}-superclaw` : (fallbackTraceId ? `${fallbackTraceId}-superclaw` : undefined)),
+          messageId: finalMessageId,
+          traceId: fallbackTraceId || clientTraceId,
         };
       })();
 

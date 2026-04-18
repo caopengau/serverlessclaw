@@ -124,19 +124,31 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         setIsConnected(true);
         isConnectedRef.current = true;
         setError(null);
-        console.log('[Realtime] Shared connection active');
+        console.log('[Realtime] MQTT Connection Success. Shared connection active.');
         
         // Re-subscribe to all existing topics on reconnect
         batchSubscribe();
+      });
+
+      client.on('error', (err) => {
+        console.error('[Realtime] MQTT Connection Error:', err);
+        setError(err);
+      });
+
+      client.on('close', () => {
+        console.warn('[Realtime] MQTT Connection Closed (Check connection budget or broker logs)');
+        setIsConnected(false);
+        isConnectedRef.current = false;
+      });
+
+      client.on('offline', () => {
+        console.warn('[Realtime] MQTT Client Offline');
       });
 
       client.on('message', (topic: string, payload: Buffer) => {
         try {
           const data = JSON.parse(payload.toString()) as RealtimeMessage;
           subscriptionsRef.current.forEach(sub => {
-            // Check if this subscription is interested in this topic
-            // Note: Simple prefix/exact matching for now. IoT wildcards like # or + 
-            // are handled by the BROKER, but we need to route to the right hook.
             const matches = sub.topics.some(t => {
               if (t === topic) return true;
               if (t.endsWith('/#')) {

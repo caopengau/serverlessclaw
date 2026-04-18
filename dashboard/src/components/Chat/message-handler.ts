@@ -213,7 +213,16 @@ export function mergeHistoryWithMessages(
     if (!m.messageId) return false;
     if (m.role === 'user') return false;
     const normId = normalizeId(m.messageId, m.role);
-    return !historyKeys.has(`${m.role}:${normId}`);
+    const key = `${m.role}:${normId}`;
+    const inHistory = historyKeys.has(key);
+    
+    if (inHistory) {
+      console.log(`[HistoryMerge] Deduplicated local message: ${m.role}:${m.messageId} (matched key ${key})`);
+    } else {
+      console.log(`[HistoryMerge] Preserving local-only message: ${m.role}:${m.messageId} (norm: ${normId})`);
+    }
+    
+    return !inHistory;
   });
 
   return { messages: [...uniqueHistory, ...localOnly], seenIds };

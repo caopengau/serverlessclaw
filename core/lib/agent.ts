@@ -205,6 +205,7 @@ export class Agent {
       activeProvider = finalProvider;
 
       if (!skipUserSave) {
+        console.log(`[Agent] Saving user message with ID/TraceID: ${traceId}`);
         await this.memory.addMessage(
           storageId,
           {
@@ -581,11 +582,39 @@ export class Agent {
 
         if (chunk.content) fullContent += chunk.content;
         if (chunk.thought) fullThought += chunk.thought;
+
+        // Incremental extraction for JSON mode
+        let detectedThought = chunk.thought;
+        if (
+          communicationMode === 'json' &&
+          !detectedThought &&
+          fullContent.trim().startsWith('{')
+        ) {
+          // Heuristic: If we haven't found a separate thought field yet,
+          // look for the start of the "thought" or "reasoning" key in the raw JSON.
+          if (fullContent.includes('"thought":') || fullContent.includes('"reasoning":')) {
+            try {
+              // Try to find the first quote after the key
+              const match = fullContent.match(/"(?:thought|reasoning|thinking)"\s*:\s*"([^"]*)/);
+              if (match && match[1]) {
+                detectedThought = match[1];
+              }
+            } catch {
+              // Ignore partial parse errors
+            }
+          }
+        }
+
         if (chunk.usage) {
           totalInputTokens += chunk.usage.prompt_tokens;
           totalOutputTokens += chunk.usage.completion_tokens;
         }
-        yield { ...chunk, agentName: this.config?.name };
+
+        yield {
+          ...chunk,
+          thought: detectedThought || chunk.thought,
+          agentName: this.config?.name,
+        };
       }
     } catch (streamError) {
       logger.error(`[Agent] Stream error:`, streamError);
@@ -618,6 +647,9 @@ export class Agent {
       finalResponseText.trim().length > 0 || fullThought.trim().length > 0;
 
     if (streamProducedAnything) {
+      console.log(
+        `[Agent] Saving assistant message with traceId: ${traceId}, messageId: ${traceId}-superclaw`
+      );
       await this.memory.addMessage(
         storageId,
         {
