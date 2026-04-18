@@ -142,6 +142,9 @@ export function useChatConnection(
       return;
     }
 
+    // Delay the first background sync on session change to allow the immediate history fetch to complete
+    lastSyncRef.current = Date.now();
+
     // Start interval if not already running
     if (!intervalRef.current) {
       const runSync = () => {
@@ -150,7 +153,6 @@ export function useChatConnection(
         const isLive = isRealtimeActiveRef.current;
         
         if (!sessionId) return;
-        if (now - lastSyncRef.current < 5000) return; // 5s absolute throttle
         
         // Frequency check (10s offline, 60s online)
         const freq = isLive ? 60000 : 10000;

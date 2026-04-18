@@ -163,6 +163,11 @@ export async function saveConversationMeta(
     },
   });
 
+  let existingTitle = 'New Conversation';
+  let existingContent = '';
+  let existingIsPinned = false;
+  let existingWorkspaceId: string | undefined = undefined;
+
   if (existingItems.length > 0) {
     const existing = existingItems[0];
     const existingSessionId = existing.sessionId as string | undefined;
@@ -170,6 +175,11 @@ export async function saveConversationMeta(
       // Collision detected (same timestamp part, different sessionId)
       // Resolve by using the stable hash of the full sessionId
       stableSortKey = Number(fnv1aHash(sessionId));
+    } else {
+      existingTitle = (existing.title as string) ?? existingTitle;
+      existingContent = (existing.content as string) ?? existingContent;
+      existingIsPinned = (existing.isPinned as boolean) ?? existingIsPinned;
+      existingWorkspaceId = existing.workspaceId as string | undefined;
     }
   }
 
@@ -187,11 +197,11 @@ export async function saveConversationMeta(
       ':sessionId': sessionId,
       ':type': type,
       ':exp': expiresAt ?? null,
-      ':title': meta.title || 'New Conversation',
-      ':content': meta.lastMessage || '',
-      ':pinned': isPinned,
-      ':now': Date.now(),
-      ':workspaceId': workspaceId ?? null,
+      ':title': meta.title !== undefined ? meta.title : existingTitle,
+      ':content': meta.lastMessage !== undefined ? meta.lastMessage : existingContent,
+      ':pinned': meta.isPinned !== undefined ? meta.isPinned : existingIsPinned,
+      ':now': meta.updatedAt ?? Date.now(),
+      ':workspaceId': workspaceId ?? existingWorkspaceId ?? null,
     },
   });
 }

@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import { toast } from 'sonner';
 import MemoryPrioritySelector from '@/components/MemoryPrioritySelector';
 import { MemoryItem, getBadgeVariant, getCategoryLabel } from './types';
+import CyberConfirm from '@/components/CyberConfirm';
 
 interface MemoryDetailModalProps {
   item: MemoryItem | null;
@@ -64,6 +65,7 @@ export default function MemoryDetailModal({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (item) {
@@ -112,11 +114,14 @@ export default function MemoryDetailModal({
   };
 
   const handleDelete = () => {
-    // eslint-disable-next-line no-alert
-    if (!confirm('Are you sure you want to delete this memory? This action cannot be undone.'))
-      return;
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDelete = () => {
+    if (!item) return;
     onDelete(item.userId, item.timestamp);
     onClose();
+    setShowDeleteConfirm(false);
   };
 
   return (
@@ -249,6 +254,15 @@ export default function MemoryDetailModal({
           </div>
         </div>
       </div>
+      <CyberConfirm
+        isOpen={showDeleteConfirm}
+        title="Erase Neural Memory"
+        message="Are you sure you want to delete this memory? This action cannot be undone and will permanently remove this record from the long-term archive."
+        variant="danger"
+        confirmText="Confirm Erasure"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   );
 }

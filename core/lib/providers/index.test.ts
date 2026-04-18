@@ -9,9 +9,14 @@ vi.mock('sst', () => ({
 
 vi.mock('../registry/config', () => ({
   ConfigManager: {
-    getTypedConfig: vi.fn(),
+    getTypedConfig: vi.fn().mockImplementation((key, def) => Promise.resolve(def)),
     getRawConfig: vi.fn(),
   },
+}));
+
+vi.mock('../recursion-tracker', () => ({
+  isBudgetExceeded: vi.fn().mockResolvedValue(false),
+  incrementTokenUsage: vi.fn().mockResolvedValue(100),
 }));
 
 // Mock the provider implementations to avoid real API calls
@@ -111,63 +116,45 @@ describe('ProviderManager', () => {
   });
 
   describe('Budget Limits and Routing', () => {
-    it('should route to cheaper model (Haiku) for simple tasks automatically', async () => {
+    it('should route to cheaper model for simple tasks automatically based on active provider', async () => {
       const pm = new ProviderManager();
-
-      const mockCall = vi.fn().mockResolvedValue({ role: 'assistant', content: 'ok' });
+      const mockCall = vi.fn().mockResolvedValue({
+        role: 'assistant',
+        content: 'ok',
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+      });
 
       vi.spyOn(ProviderManager, 'getActiveProvider').mockResolvedValueOnce({
         call: mockCall,
       } as any);
 
+      // Default provider is OpenAI in SYSTEM constants
       await pm.call([
         { role: MessageRole.USER, content: 'hello', traceId: 'test-trace', messageId: 'test-msg' },
       ]);
 
+      const { UTILITY_MODELS } = await import('../constants/system');
       expect(ProviderManager.getActiveProvider).toHaveBeenCalledWith(
-        'bedrock',
-        'anthropic.claude-3-haiku-20240307-v1:0'
+        LLMProvider.OPENAI,
+        UTILITY_MODELS[LLMProvider.OPENAI]
       );
-      expect(mockCall).toHaveBeenCalledWith(
-        [
+    });
+
+    it('should throw [BUDGET_EXCEEDED] if isBudgetExceeded returns true', async () => {
+      const pm = new ProviderManager();
+      const { isBudgetExceeded } = await import('../recursion-tracker');
+      vi.mocked(isBudgetExceeded).mockResolvedValueOnce(true);
+
+      await expect(
+        pm.call([
           {
             role: MessageRole.USER,
             content: 'hello',
             traceId: 'test-trace',
             messageId: 'test-msg',
           },
-        ],
-        undefined,
-        'standard',
-        'anthropic.claude-3-haiku-20240307-v1:0',
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined
-      );
-    });
-
-    it('should throw TokenBudgetExceeded if estimated tokens exceed MAX_TOKEN_BUDGET', async () => {
-      const pm = new ProviderManager();
-
-      vi.spyOn(ProviderManager, 'getActiveProvider').mockResolvedValueOnce({
-        call: vi.fn(),
-      } as any);
-
-      const hugeMessage = 'a'.repeat(450000);
-
-      await expect(
-        pm.call([
-          {
-            role: MessageRole.USER,
-            content: hugeMessage,
-            traceId: 'test-trace',
-            messageId: 'test-msg',
-          },
         ])
-      ).rejects.toThrow(/TokenBudgetExceeded/);
+      ).rejects.toThrow(/\[BUDGET_EXCEEDED\]/);
     });
 
     it('should not route to Haiku when provider is explicitly set', async () => {
@@ -225,19 +212,15 @@ describe('ProviderManager', () => {
   });
 
   describe('Streaming', () => {
-    it('should throw TokenBudgetExceeded in stream if estimated tokens exceed limit', async () => {
+    it('should throw [BUDGET_EXCEEDED] in stream if isBudgetExceeded returns true', async () => {
       const pm = new ProviderManager();
-
-      vi.spyOn(ProviderManager, 'getActiveProvider').mockResolvedValueOnce({
-        stream: vi.fn().mockReturnValue((async function* () {})()),
-      } as any);
-
-      const hugeMessage = 'a'.repeat(450000);
+      const { isBudgetExceeded } = await import('../recursion-tracker');
+      vi.mocked(isBudgetExceeded).mockResolvedValueOnce(true);
 
       const stream = pm.stream([
         {
           role: MessageRole.USER,
-          content: hugeMessage,
+          content: 'hello',
           traceId: 'test-trace',
           messageId: 'test-msg',
         },
@@ -246,13 +229,17 @@ describe('ProviderManager', () => {
         for await (const _ of stream) {
           // no-op
         }
-      }).rejects.toThrow(/TokenBudgetExceeded/);
+      }).rejects.toThrow(/\[BUDGET_EXCEEDED\]/);
     });
 
-    it('should route to Haiku in stream for simple tasks', async () => {
+    it('should route to utility model in stream for simple tasks', async () => {
       const mockStream = vi.fn().mockReturnValue(
         (async function* () {
-          yield { role: 'assistant', content: 'hi' };
+          yield {
+            role: 'assistant',
+            content: 'hi',
+            usage: { prompt_tokens: 5, completion_tokens: 2 },
+          };
         })()
       );
 
@@ -269,9 +256,10 @@ describe('ProviderManager', () => {
         // consume the async iterable
       }
 
+      const { UTILITY_MODELS } = await import('../constants/system');
       expect(ProviderManager.getActiveProvider).toHaveBeenCalledWith(
-        'bedrock',
-        'anthropic.claude-3-haiku-20240307-v1:0'
+        LLMProvider.OPENAI,
+        UTILITY_MODELS[LLMProvider.OPENAI]
       );
     });
   });

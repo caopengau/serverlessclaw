@@ -505,6 +505,22 @@ export const CONFIG_DEFAULTS = {
     configKey: 'cache_ttl_search_ms',
     description: 'Cache TTL for search results.',
   },
+
+  /** Global cumulative token budget per trace before kill-switch. Default: 250000 */
+  GLOBAL_TOKEN_BUDGET: {
+    code: 250000,
+    hotSwappable: true,
+    configKey: 'global_token_budget',
+    description: 'Maximum cumulative tokens (prompt + completion) allowed per execution trace.',
+  },
+
+  /** Maximum character limit for a "simple" task to be auto-routed to cheap model. Default: 500 */
+  SIMPLE_TASK_THRESHOLD: {
+    code: 500,
+    hotSwappable: true,
+    configKey: 'simple_task_threshold',
+    description: 'Maximum character limit for auto-routing simple tasks to cheaper models.',
+  },
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_DEFAULTS;

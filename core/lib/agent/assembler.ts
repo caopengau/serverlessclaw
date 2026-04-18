@@ -176,15 +176,20 @@ export class AgentAssembler {
       summary,
       contextPrompt,
       contextLimit,
-      { model: activeModel, provider: activeProvider }
+      { model: activeModel, provider: activeProvider },
+      currentMessage.traceId
     );
 
     // Trigger background summarization if context limits are reached
     if (await ContextManager.needsSummarization(fullHistory, contextLimit)) {
       // Fire and forget summarization to not block the current turn
-      ContextManager.summarize(memory, storageId, provider, fullHistory).catch((err) =>
-        logger.error('Background summarization failed:', err)
-      );
+      ContextManager.summarize(
+        memory,
+        storageId,
+        provider,
+        fullHistory,
+        currentMessage.traceId
+      ).catch((err) => logger.error('Background summarization failed:', err));
     }
 
     return {

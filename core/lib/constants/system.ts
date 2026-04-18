@@ -24,6 +24,7 @@ export const SYSTEM = {
   DEPLOY_STATS_KEY: 'SYSTEM#DEPLOY_STATS',
   UPTIME_KEY: 'SYSTEM#UPTIME',
   USER_ID: 'SYSTEM',
+  DEFAULT_SIMPLE_TASK_THRESHOLD: 500,
   RESOURCES: {
     API: 'api',
     DASHBOARD: 'dashboard',
@@ -84,6 +85,8 @@ export const CONFIG_KEYS = {
   UI_THEME: 'ui_theme',
   UI_SIDEBAR_STATE: 'ui_sidebar_state',
   UI_LAYOUT: 'ui_layout',
+  GLOBAL_TOKEN_BUDGET: 'global_token_budget',
+  SIMPLE_TASK_THRESHOLD: 'simple_task_threshold',
 } as const;
 
 /**
@@ -122,3 +125,13 @@ export const TRUST = {
   /** Trust score threshold for facilitator tie-breaking. */
   FACILITATOR_THRESHOLD: 90,
 } as const;
+
+/**
+ * Mapping of providers to their cheapest available model for utility/simple tasks.
+ */
+export const UTILITY_MODELS: Record<string, string> = {
+  [LLMProvider.OPENAI]: OpenAIModel.GPT_5_4_NANO,
+  [LLMProvider.BEDROCK]: 'anthropic.claude-3-haiku-20240307-v1:0',
+  [LLMProvider.MINIMAX]: MiniMaxModel.M2_7_HIGHSPEED,
+  [LLMProvider.OPENROUTER]: OpenRouterModel.GEMINI_3_FLASH,
+};

@@ -47,7 +47,8 @@ export class ContextManager {
     summary: string | null,
     systemPrompt: string,
     limit: number = LIMITS.MAX_CONTEXT_LENGTH,
-    options?: GetManagedContextOptions
+    options?: GetManagedContextOptions,
+    traceId?: string
   ): Promise<ManagedContext> {
     const strategy = getContextStrategy(options?.model, options?.provider);
     const contextLimit = Math.min(limit, strategy.maxContextTokens);
@@ -66,7 +67,7 @@ export class ContextManager {
     const systemMessage: Message = {
       role: MessageRole.SYSTEM,
       content: systemPrompt,
-      traceId: 'system-context-trace',
+      traceId: traceId || 'unknown',
       messageId: `msg-system-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
     };
     const systemTokens = this.estimateTokens([systemMessage]);
@@ -82,7 +83,7 @@ export class ContextManager {
       ? {
           role: MessageRole.SYSTEM,
           content: `[PREVIOUS_HISTORY_SUMMARY]: ${summary}\n\nThe above is a summary of earlier parts of this conversation.`,
-          traceId: 'system-context-trace',
+          traceId: traceId || 'unknown',
           messageId: `msg-summary-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         }
       : null;
@@ -99,7 +100,7 @@ export class ContextManager {
           {
             role: MessageRole.SYSTEM,
             content: fact,
-            traceId: 'system-context-trace',
+            traceId: traceId || 'unknown',
             messageId: `msg-fact-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           },
         ]);
@@ -119,7 +120,7 @@ export class ContextManager {
         content: `[KEY_FACTS]:\n${compressedFactLines.map((f) => `• ${f}`).join('\n')}${
           summaryMessage ? `\n\n${summaryMessage.content}` : ''
         }`,
-        traceId: 'system-context-trace',
+        traceId: traceId || 'unknown',
         messageId: `msg-compressed-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       };
     } else if (summaryMessage) {
@@ -327,7 +328,8 @@ export class ContextManager {
     memory: IMemory,
     userId: string,
     provider: IProvider,
-    history: Message[]
+    history: Message[],
+    traceId?: string
   ): Promise<void> {
     const previousSummary = await memory.getSummary(userId);
     const keyFacts = this.extractKeyFacts(history);
@@ -352,7 +354,7 @@ export class ContextManager {
           {
             role: MessageRole.SYSTEM,
             content: summarizationPrompt,
-            traceId: 'system-summarize-trace',
+            traceId: traceId || 'system-summarize-trace',
             messageId: `msg-summarize-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           },
         ],

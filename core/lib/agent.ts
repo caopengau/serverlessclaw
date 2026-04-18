@@ -143,9 +143,16 @@ export class Agent {
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
 
+    // Early exit if global trace budget is already exceeded
+    const { isBudgetExceeded } = await import('./recursion-tracker');
+    if (await isBudgetExceeded(traceId)) {
+      const responseText = `[BUDGET_EXCEEDED] Global execution budget for trace ${traceId} has been reached. Halting further processing.`;
+      await tracer.endTrace(responseText);
+      return { responseText, traceId };
+    }
+
     const { isHumanTakingControl } = await import('./handoff');
     if (!ignoreHandoff && (await isHumanTakingControl(baseUserId, sessionId))) {
-      logger.info(`[Agent] Human control active for ${baseUserId}, entering OBSERVE mode.`);
       const responseText = 'HUMAN_TAKING_CONTROL: Entering observe mode.';
       await tracer.endTrace(responseText);
       return { responseText, traceId };
@@ -459,11 +466,21 @@ export class Agent {
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
 
+    // Early exit if global trace budget is already exceeded
+    const { isBudgetExceeded } = await import('./recursion-tracker');
+    if (await isBudgetExceeded(traceId)) {
+      yield {
+        content: `[BUDGET_EXCEEDED] Global execution budget for trace ${traceId} has been reached. Halting further processing.`,
+      };
+      await tracer.endTrace('BUDGET_EXCEEDED');
+      return;
+    }
+
     const { isHumanTakingControl } = await import('./handoff');
     if (!ignoreHandoff && (await isHumanTakingControl(baseUserId, sessionId))) {
-      logger.info(`[Agent] Human control active for ${baseUserId}, entering OBSERVE mode.`);
-      yield { content: 'HUMAN_TAKING_CONTROL: Entering observe mode.' };
-      await tracer.endTrace('HUMAN_TAKING_CONTROL');
+      const responseText = 'HUMAN_TAKING_CONTROL: Entering observe mode.';
+      yield { content: responseText };
+      await tracer.endTrace(responseText);
       return;
     }
 

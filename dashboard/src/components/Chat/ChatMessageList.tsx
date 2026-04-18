@@ -169,6 +169,7 @@ const markdownComponents = (role: string): MarkdownComponents => ({
     <li>
       <Typography
         variant="body"
+        as="div"
         color={role === 'assistant' ? 'inherit' : 'white'}
         className="inline"
       >
@@ -190,6 +191,7 @@ const markdownComponents = (role: string): MarkdownComponents => ({
   strong: ({ children }: { children?: React.ReactNode }) => (
     <Typography
       variant="body"
+      as="span"
       weight="bold"
       color={role === 'assistant' ? 'inherit' : 'white'}
       className="inline text-white"

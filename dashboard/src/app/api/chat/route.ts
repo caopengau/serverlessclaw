@@ -4,6 +4,19 @@ import { UI_STRINGS, AUTH } from '@/lib/constants';
 import { HTTP_STATUS, AGENT_ERRORS } from '@claw/core/lib/constants';
 import { revalidatePath } from 'next/cache';
 
+// Re-usable instances for optimization
+import { DynamoMemory, CachedMemory } from '@claw/core/lib/memory';
+import { ProviderManager } from '@claw/core/lib/providers/index';
+import { getAgentTools } from '@claw/core/tools/index';
+import { Agent } from '@claw/core/lib/agent';
+import { SUPERCLAW_SYSTEM_PROMPT } from '@claw/core/agents/superclaw';
+import { TraceSource, AgentType, MessageRole } from '@claw/core/lib/types/index';
+import { AgentRegistry } from '@claw/core/lib/registry';
+
+// Singleton memory and provider to leverage in-memory LRU cache
+const memory = new CachedMemory(new DynamoMemory());
+const provider = new ProviderManager();
+
 function getUserId(req: NextRequest): string {
   if (!req.cookies) {
     return 'dashboard-user';
@@ -30,7 +43,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const isStream = req.nextUrl.searchParams.get('stream') === 'true';
     const userId = getUserId(req);
 
-    // Use a unique ID for the specific session history
     const storageId = sessionId ? `CONV#${userId}#${sessionId}` : userId;
 
     if (!text && (!attachments || attachments.length === 0)) {
@@ -44,16 +56,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       `[Chat API] POST request - text: ${text?.substring(0, 20)}..., sessionId: ${sessionId}, attachments: ${attachments?.length ?? 0}, stream: ${isStream}`
     );
 
-    const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
-    const { ProviderManager } = await import('@claw/core/lib/providers/index');
-    const { getAgentTools } = await import('@claw/core/tools/index');
-    const { Agent } = await import('@claw/core/lib/agent');
-    const { SUPERCLAW_SYSTEM_PROMPT } = await import('@claw/core/agents/superclaw');
-    const { TraceSource, AgentType } = await import('@claw/core/lib/types/index');
-    const { AgentRegistry } = await import('@claw/core/lib/registry');
-
-    const memory = new CachedMemory(new DynamoMemory());
-    const provider = new ProviderManager();
     const config = await AgentRegistry.getAgentConfig(AgentType.SUPERCLAW);
     const agentTools = await getAgentTools(AgentType.SUPERCLAW);
     const agent = new Agent(
@@ -65,81 +67,123 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
 
     if (isStream) {
-      const streamResult = await (async () => {
-        const stream = agent.stream(storageId, text ?? '', {
-          sessionId,
-          source: TraceSource.DASHBOARD,
-          attachments,
-          approvedToolCalls,
-          traceId: clientTraceId || undefined,
-          pageContext,
-        });
-        let finalResponse = '';
-        let finalThought = '';
-        let streamToolCalls: unknown[] | undefined;
-        let streamMessageId: string | undefined;
-        let fallbackResult: { responseText?: string; thought?: string; tool_calls?: unknown[]; traceId?: string } | null = null;
-
-        let chunkCount = 0;
-        for await (const chunk of stream) {
-          chunkCount++;
-          if (!streamMessageId && chunk.messageId) {
-            streamMessageId = chunk.messageId;
-          }
-          if (chunk.content) finalResponse += chunk.content;
-          if (chunk.thought) finalThought += chunk.thought;
-          if (chunk.tool_calls) streamToolCalls = chunk.tool_calls;
-          
-          if (chunkCount % 5 === 0 || chunk.tool_calls) {
-            console.log(`[Chat API] Stream progress: ${chunkCount} chunks, content length: ${finalResponse.length}`);
-          }
-        }
-
-        const streamProducedAnything = 
-          finalResponse.trim().length > 0 || 
-          finalThought.trim().length > 0 || 
-          (streamToolCalls && streamToolCalls.length > 0);
-
-        if (!streamProducedAnything) {
-          console.warn(`[Chat API] Stream produced no content. Triggering fallback.`);
-          fallbackResult = await agent.process(storageId, text ?? '', {
+      const encoder = new TextEncoder();
+      const customStream = new ReadableStream({
+        async start(controller) {
+          const stream = agent.stream(storageId, text ?? '', {
             sessionId,
             source: TraceSource.DASHBOARD,
             attachments,
             approvedToolCalls,
             traceId: clientTraceId || undefined,
             pageContext,
-            skipUserSave: true,
           });
-          finalResponse = fallbackResult.responseText ?? '';
-          finalThought = fallbackResult.thought ?? '';
-          streamToolCalls = fallbackResult.tool_calls;
+          let finalResponse = '';
+          let finalThought = '';
+          let streamToolCalls: unknown[] | undefined;
+          let streamMessageId: string | undefined;
+          let fallbackResult: { responseText?: string; thought?: string; tool_calls?: unknown[]; traceId?: string } | null = null;
+
+          let chunkCount = 0;
+          try {
+            for await (const chunk of stream) {
+              chunkCount++;
+              if (!streamMessageId && chunk.messageId) {
+                streamMessageId = chunk.messageId;
+              }
+              if (chunk.content) finalResponse += chunk.content;
+              if (chunk.thought) finalThought += chunk.thought;
+              if (chunk.tool_calls) streamToolCalls = chunk.tool_calls;
+              
+              // Skip chunks that don't contain any useful payloads for the frontend
+              if (!chunk.content && !chunk.thought && !chunk.tool_calls) {
+                continue;
+              }
+
+              if (chunkCount % 5 === 0 || chunk.tool_calls) {
+                console.log(`[Chat API] Stream chunk ${chunkCount}: content length=${chunk.content?.length || 0}, thought length=${chunk.thought?.length || 0}, tool_calls=${chunk.tool_calls?.length || 0}`);
+              }
+
+              const payloadStr = JSON.stringify({
+                type: 'chunk',
+                messageId: streamMessageId || (clientTraceId ? `${clientTraceId}-superclaw` : undefined),
+                message: chunk.content,
+                thought: chunk.thought,
+                isThought: !!chunk.thought && !chunk.content,
+                toolCalls: chunk.tool_calls,
+                agentName: chunk.agentName || 'SuperClaw',
+              }) + '\n';
+              
+              if (chunkCount === 1) {
+                console.log(`[Chat API] Sending first chunk payload: ${payloadStr.substring(0, 150)}...`);
+              }
+              
+              controller.enqueue(encoder.encode(payloadStr));
+            }
+
+            const streamProducedAnything = 
+              finalResponse.trim().length > 0 || 
+              finalThought.trim().length > 0 || 
+              (streamToolCalls && streamToolCalls.length > 0);
+
+            if (!streamProducedAnything) {
+              console.warn(`[Chat API] Stream produced no content. Triggering fallback. Text length: ${text?.length || 0}`);
+              fallbackResult = await agent.process(storageId, text ?? '', {
+                sessionId,
+                source: TraceSource.DASHBOARD,
+                attachments,
+                approvedToolCalls,
+                traceId: clientTraceId || undefined,
+                pageContext,
+                skipUserSave: true,
+              });
+              finalResponse = fallbackResult.responseText ?? '';
+              finalThought = fallbackResult.thought ?? '';
+              streamToolCalls = fallbackResult.tool_calls;
+            }
+
+            if (sessionId) {
+              await memory.saveConversationMeta(userId, sessionId, {
+                lastMessage:
+                  finalResponse.length > 60 ? finalResponse.substring(0, 60) + '...' : finalResponse,
+                updatedAt: Date.now(),
+              });
+            }
+
+            const fallbackTraceId = fallbackResult?.traceId;
+            const finalMessageId = streamMessageId || (fallbackTraceId ? `${fallbackTraceId}-superclaw` : (clientTraceId ? `${clientTraceId}-superclaw` : undefined));
+            
+            console.log(`[Chat API] Final response: length=${finalResponse.length}, ID=${finalMessageId}, thought=${!!finalThought}`);
+
+            controller.enqueue(encoder.encode(JSON.stringify({
+              type: 'final',
+              data: {
+                reply: finalResponse,
+                thought: finalThought,
+                agentName: 'SuperClaw',
+                tool_calls: streamToolCalls,
+                messageId: finalMessageId,
+                traceId: fallbackTraceId || clientTraceId,
+              }
+            }) + '\n'));
+          } catch (e) {
+            console.error('[Chat API] Stream loop error:', e);
+            controller.enqueue(encoder.encode(JSON.stringify({
+              type: 'error',
+              error: e instanceof Error ? e.message : String(e),
+            }) + '\n'));
+          } finally {
+            controller.close();
+          }
         }
+      });
 
-        if (sessionId) {
-          await memory.saveConversationMeta(userId, sessionId, {
-            lastMessage:
-              finalResponse.length > 60 ? finalResponse.substring(0, 60) + '...' : finalResponse,
-            updatedAt: Date.now(),
-          });
-        }
-
-        const fallbackTraceId = fallbackResult?.traceId;
-        const finalMessageId = streamMessageId || (fallbackTraceId ? `${fallbackTraceId}-superclaw` : (clientTraceId ? `${clientTraceId}-superclaw` : undefined));
-        
-        console.log(`[Chat API] Final response: length=${finalResponse.length}, ID=${finalMessageId}, thought=${!!finalThought}`);
-
-        return {
-          reply: finalResponse,
-          thought: finalThought,
-          agentName: 'SuperClaw',
-          tool_calls: streamToolCalls,
-          messageId: finalMessageId,
-          traceId: fallbackTraceId || clientTraceId,
-        };
-      })();
-
-      return NextResponse.json(streamResult);
+      return new NextResponse(customStream, {
+        headers: {
+          'Content-Type': 'application/x-ndjson',
+          'Transfer-Encoding': 'chunked',
+        },
+      });
     }
 
     const {
@@ -180,9 +224,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     try {
         const { sessionId, traceId: clientTraceId } = await req.clone().json();
         if (sessionId) {
-          const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
-          const { MessageRole } = await import('@claw/core/lib/types');
-          const memory = new CachedMemory(new DynamoMemory());
           const userId = getUserId(req);
           const storageId = `CONV#${userId}#${sessionId}`;
           await memory.addMessage(storageId, {
@@ -213,8 +254,6 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
     const { sessionId, title, isPinned } = await req.json();
     const userId = getUserId(req);
-    const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
-    const memory = new CachedMemory(new DynamoMemory());
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
@@ -240,8 +279,6 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
     const sessionId = req.nextUrl.searchParams.get('sessionId');
     const userId = getUserId(req);
-    const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
-    const memory = new CachedMemory(new DynamoMemory());
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
@@ -271,8 +308,6 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   try {
     const userId = getUserId(req);
     const sessionId = req.nextUrl.searchParams.get('sessionId');
-    const { DynamoMemory, CachedMemory } = await import('@claw/core/lib/memory');
-    const memory = new CachedMemory(new DynamoMemory());
 
     if (sessionId) {
       // Return history for a specific session

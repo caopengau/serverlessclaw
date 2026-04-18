@@ -41,7 +41,9 @@ describe('Realtime Auth Handler', () => {
 
     const connectStatement = policy.Statement.find((s: any) => s.Action === 'iot:Connect');
     expect(connectStatement.Effect).toBe('Allow');
-    expect(connectStatement.Resource).toContain(response.principalId);
+    // The resource should contain the safe token part of the principalId (the user part)
+    const safeToken = response.principalId.replace(/^user-/, '');
+    expect(connectStatement.Resource).toContain(safeToken);
 
     const pubRecvStatement = policy.Statement.find(
       (s: any) =>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   ChatMessage,
   AttachmentPreview,
@@ -9,7 +9,10 @@ import {
 import { AGENT_ERRORS } from '@/lib/constants';
 import {
   mergeHistoryWithMessages,
+  applyChunkToMessages,
+  type IncomingChunk,
 } from './message-handler';
+import { processNdjsonStream } from './stream-reader';
 
 interface ChatApiResponse {
   reply?: string;
@@ -34,7 +37,8 @@ export function useChatMessages(
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
 
-  const fetchHistory = async (sessionId: string) => {
+  const fetchHistory = useCallback(async (sessionId: string) => {
+    if (!sessionId) return;
     setIsLoading(true);
     try {
       const response = await fetch(`/api/chat?sessionId=${sessionId}`);
@@ -54,7 +58,20 @@ export function useChatMessages(
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setIsLoading, seenMessageIds]);
+
+  // Handle immediate history fetch on session change
+  useEffect(() => {
+    if (activeSessionId) {
+      // Clear current messages to prevent ghosting from previous session
+      setMessages([]);
+      seenMessageIds.current.clear();
+      fetchHistory(activeSessionId);
+    } else {
+      setMessages([]);
+      seenMessageIds.current.clear();
+    }
+  }, [activeSessionId, fetchHistory, seenMessageIds]);
 
   const updateAssistantResponse = (data: ChatApiResponse & { ui_blocks?: DynamicComponent[] }, tempId: string) => {
     const targetId = data.messageId || tempId;
@@ -186,11 +203,11 @@ export function useChatMessages(
         }),
       });
 
-      const data = (await response.json()) as ChatApiResponse & { ui_blocks?: DynamicComponent[] };
-
-      if (!response.ok || data.error) {
-        const errorContent = data.details || data.error || AGENT_ERRORS.PROCESS_FAILURE;
-        console.error('Chat API error:', data);
+      if (!response.ok) {
+        let errorData;
+        try { errorData = await response.json(); } catch { errorData = { error: 'Unknown error' }; }
+        const errorContent = errorData.details || errorData.error || AGENT_ERRORS.PROCESS_FAILURE;
+        console.error('Chat API error:', errorData);
         if (currentSessionId === activeSessionRef.current) {
           setMessages((prev: ChatMessage[]) => [
             ...prev,
@@ -206,8 +223,28 @@ export function useChatMessages(
         return;
       }
 
-      if (currentSessionId === activeSessionRef.current) {
-        updateAssistantResponse(data, tempId);
+      if (!response.body) throw new Error('No response body');
+
+      let finalData: (ChatApiResponse & { ui_blocks?: DynamicComponent[] }) | null = null;
+      
+      await processNdjsonStream<ChatApiResponse & { ui_blocks?: DynamicComponent[] }>(response.body, {
+        onChunk: (chunk) => {
+          if (currentSessionId === activeSessionRef.current) {
+            setMessages((prev) => 
+              applyChunkToMessages(prev, chunk as IncomingChunk, seenMessageIds.current)
+            );
+          }
+        },
+        onFinal: (data) => {
+          finalData = data;
+        },
+        onError: (err) => {
+          console.error('[Chat] Stream error:', err);
+        }
+      });
+
+      if (finalData && currentSessionId === activeSessionRef.current) {
+        updateAssistantResponse(finalData, tempId);
       }
       
       // Only refresh sidebar if this was a new session creation
@@ -242,17 +279,53 @@ export function useChatMessages(
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        let errorData;
+        try { errorData = await response.json(); } catch { errorData = {}; }
         setMessages((prev: ChatMessage[]) => [
           ...prev,
           {
             role: 'assistant',
-            content: `Error during approval: ${data.error || 'Unknown error'}`,
+            content: `Error during approval: ${errorData.error || 'Unknown error'}`,
             agentName: 'SystemGuard',
             isError: true,
           },
         ]);
+        fetchSessions();
+        return;
       }
+
+      if (!response.body) throw new Error('No response body');
+
+      let finalData: (ChatApiResponse & { ui_blocks?: DynamicComponent[] }) | null = null;
+      
+      await processNdjsonStream<ChatApiResponse & { ui_blocks?: DynamicComponent[] }>(response.body, {
+        onChunk: (chunk) => {
+          if (currentSessionId === activeSessionRef.current) {
+            setMessages((prev) => 
+              applyChunkToMessages(prev, chunk as IncomingChunk, seenMessageIds.current)
+            );
+          }
+        },
+        onFinal: (data) => {
+          finalData = data;
+        },
+        onError: (err) => {
+          console.error('[Chat] Approval stream error:', err);
+        }
+      });
+
+      if (finalData) {
+        if (currentSessionId === activeSessionRef.current) {
+          updateAssistantResponse(finalData, `approval-${callId}`);
+        }
+      }
+
+      if (finalData) {
+        if (currentSessionId === activeSessionRef.current) {
+          updateAssistantResponse(finalData, `approval-${callId}`);
+        }
+      }
+
       fetchSessions();
     } catch (error) {
       console.error('Approval error:', error);
@@ -282,16 +355,20 @@ export function useChatMessages(
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        let errorData;
+        try { errorData = await response.json(); } catch { errorData = { error: 'Unknown error' }; }
         setMessages((prev: ChatMessage[]) => [
           ...prev,
           {
             role: 'assistant',
-            content: `Error during rejection: ${data.error || 'Unknown error'}`,
+            content: `Error during rejection: ${errorData.error || 'Unknown error'}`,
             agentName: 'SystemGuard',
             isError: true,
           },
         ]);
+      } else if (response.body) {
+        // Consume the stream even if we don't expect updates
+        await processNdjsonStream<ChatApiResponse & { ui_blocks?: DynamicComponent[] }>(response.body, {});
       }
       fetchSessions();
     } catch (error) {
@@ -322,16 +399,20 @@ export function useChatMessages(
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        let errorData;
+        try { errorData = await response.json(); } catch { errorData = { error: 'Unknown error' }; }
         setMessages((prev: ChatMessage[]) => [
           ...prev,
           {
             role: 'assistant',
-            content: `Error during clarification: ${data.error || 'Unknown error'}`,
+            content: `Error during clarification: ${errorData.error || 'Unknown error'}`,
             agentName: 'SystemGuard',
             isError: true,
           },
         ]);
+      } else if (response.body) {
+        // Consume the stream
+        await processNdjsonStream<ChatApiResponse & { ui_blocks?: DynamicComponent[] }>(response.body, {});
       }
       fetchSessions();
     } catch (error) {
@@ -362,17 +443,47 @@ export function useChatMessages(
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        let errorData;
+        try { errorData = await response.json(); } catch { errorData = {}; }
         setMessages((prev: ChatMessage[]) => [
           ...prev,
           {
             role: 'assistant',
-            content: `Error during cancellation: ${data.error || 'Unknown error'}`,
+            content: `Error during cancellation: ${errorData.error || 'Unknown error'}`,
             agentName: 'SystemGuard',
             isError: true,
           },
         ]);
+        fetchSessions();
+        return;
       }
+
+      if (!response.body) throw new Error('No response body');
+
+      let finalData: (ChatApiResponse & { ui_blocks?: DynamicComponent[] }) | null = null;
+      
+      await processNdjsonStream<ChatApiResponse & { ui_blocks?: DynamicComponent[] }>(response.body, {
+        onChunk: (chunk) => {
+          if (currentSessionId === activeSessionRef.current) {
+            setMessages((prev) => 
+              applyChunkToMessages(prev, chunk as IncomingChunk, seenMessageIds.current)
+            );
+          }
+        },
+        onFinal: (data) => {
+          finalData = data;
+        },
+        onError: (err) => {
+          console.error('[Chat] Cancellation stream error:', err);
+        }
+      });
+
+      if (finalData) {
+        if (currentSessionId === activeSessionRef.current) {
+          updateAssistantResponse(finalData, `cancel-${taskId}`);
+        }
+      }
+
       fetchSessions();
     } catch (error) {
       console.error('Cancellation error:', error);

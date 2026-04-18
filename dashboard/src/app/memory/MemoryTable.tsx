@@ -8,6 +8,7 @@ import Button from '@/components/ui/Button';
 import { toast } from 'sonner';
 import MemoryDetailModal from './MemoryDetailModal';
 import { MemoryItem, getBadgeVariant, getCategoryLabel } from './types';
+import CyberConfirm from '@/components/CyberConfirm';
 
 interface MemoryTableProps {
   items: MemoryItem[];
@@ -60,6 +61,7 @@ export default function MemoryTable({
   const [selectedItem, setSelectedItem] = useState<MemoryItem | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [isBulkPruning, setIsBulkPruning] = useState(false);
+  const [showBulkPruneConfirm, setShowBulkPruneConfirm] = useState(false);
 
   const toggleSelect = (userId: string, timestamp: number) => {
     const key = `${userId}|${timestamp}`;
@@ -79,9 +81,11 @@ export default function MemoryTable({
 
   const handleBulkPrune = async () => {
     if (selectedKeys.size === 0) return;
-    // eslint-disable-next-line no-alert
-    if (!confirm(`Permanently prune ${selectedKeys.size} memory records?`)) return;
+    setShowBulkPruneConfirm(true);
+  };
 
+  const confirmBulkPrune = async () => {
+    setShowBulkPruneConfirm(false);
     setIsBulkPruning(true);
     try {
       const keys = Array.from(selectedKeys).map((k) => {
@@ -321,6 +325,16 @@ export default function MemoryTable({
         onClose={() => setSelectedItem(null)}
         onDelete={handleDelete}
         onUpdate={updateAction}
+      />
+
+      <CyberConfirm
+        isOpen={showBulkPruneConfirm}
+        title="Bulk Archive Purge"
+        message={`You are about to permanently erase ${selectedKeys.size} memory records from the neural database. This operation is irreversible.`}
+        variant="danger"
+        confirmText="Confirm Bulk Prune"
+        onConfirm={confirmBulkPrune}
+        onCancel={() => setShowBulkPruneConfirm(false)}
       />
     </>
   );

@@ -99,6 +99,40 @@ function makeRequest(
   } as unknown as NextRequest;
 }
 
+interface StreamEvent {
+  type: string;
+  data?: any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  message?: string;
+  thought?: string;
+  tool_calls?: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+}
+
+/**
+ * Helper to consume an NDJSON stream from a NextResponse.
+ * Returns an array of parsed JSON objects and ensures the stream is fully read.
+ */
+async function consumeNDJSON(res: { body: ReadableStream<Uint8Array> | null }): Promise<StreamEvent[]> {
+  if (!res.body) return [];
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  const results: StreamEvent[] = [];
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+    for (const line of lines) {
+      if (line.trim()) {
+        results.push(JSON.parse(line));
+      }
+    }
+  }
+  return results;
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('Dashboard API: POST /api/chat', () => {
@@ -290,7 +324,9 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
         { searchParams: { stream: 'true' } }
       )
     );
-    const data = await res.json();
+    const results = await consumeNDJSON(res);
+    const chunk = results.find(r => r.type === 'chunk');
+    const final = results.find(r => r.type === 'final');
 
     expect(mockStream).toHaveBeenCalledWith(
       'CONV#dashboard-user#sess-stream-1',
@@ -300,8 +336,8 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
         traceId: 'client-trace-42',
       })
     );
-    expect(data.reply).toBe('chunk1');
-    expect(data.messageId).toBe('stream-trace-1');
+    expect(chunk!.message).toBe('chunk1');
+    expect(final!.data.messageId).toBe('stream-trace-1');
   });
 
   it('falls back to client traceId when stream emits no messageId', async () => {
@@ -317,10 +353,11 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
         { searchParams: { stream: 'true' } }
       )
     );
-    const data = await res.json();
+    const results = await consumeNDJSON(res);
+    const final = results.find(r => r.type === 'final');
 
-    expect(data.reply).toBe('chunk1');
-    expect(data.messageId).toBe('client-trace-fallback-superclaw');
+    expect(final!.data.reply).toBe('chunk1');
+    expect(final!.data.messageId).toBe('client-trace-fallback-superclaw');
   });
 
   it('passes undefined traceId when client does not provide one', async () => {
@@ -363,7 +400,9 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
       )
     );
 
-    // Stream must be fully consumed before the response is sent
+    // Consume the stream to ensure it's fully processed
+    await consumeNDJSON(res);
+
     expect(streamDone).toBe(true);
     expect(res.status).toBe(200);
   });
@@ -376,12 +415,14 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
     mockStream.mockReturnValue(fakeStream());
 
     const { POST } = await import('./route');
-    await POST(
+    const res = await POST(
       makeRequest(
         { text: 'Long response', sessionId: 'sess-stream-trunc' },
         { searchParams: { stream: 'true' } }
       )
     );
+    
+    await consumeNDJSON(res);
 
     expect(mockSaveConversationMeta).toHaveBeenCalledWith(
       'dashboard-user',
@@ -421,11 +462,12 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
         { searchParams: { stream: 'true' } }
       )
     );
-    const data = await res.json();
+    const results = await consumeNDJSON(res);
+    const final = results.find(r => r.type === 'final');
 
-    expect(data.reply).toBe('Let me check.');
-    expect(data.tool_calls).toHaveLength(1);
-    expect(data.tool_calls[0].function.name).toBe('recallKnowledge');
+    expect(final!.data.reply).toBe('Let me check.');
+    expect(final!.data.tool_calls).toHaveLength(1);
+    expect(final!.data.tool_calls[0].function.name).toBe('recallKnowledge');
   });
 
   it('returns empty reply with tool_calls when provider emits only tool_calls (no text)', async () => {
@@ -451,11 +493,12 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
         { searchParams: { stream: 'true' } }
       )
     );
-    const data = await res.json();
+    const results = await consumeNDJSON(res);
+    const final = results.find(r => r.type === 'final');
 
-    expect(data.reply).toBe('');
-    expect(data.tool_calls).toHaveLength(1);
-    expect(data.tool_calls[0].function.name).toBe('search');
+    expect(final!.data.reply).toBe('');
+    expect(final!.data.tool_calls).toHaveLength(1);
+    expect(final!.data.tool_calls[0].function.name).toBe('search');
   });
 
   it('captures thought content as reply when provider emits only thoughts', async () => {
@@ -480,12 +523,13 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
         { searchParams: { stream: 'true' } }
       )
     );
-    const data = await res.json();
+    const results = await consumeNDJSON(res);
+    const final = results.find(r => r.type === 'final');
 
     // Thought should be captured separately
-    expect(data.reply).toBe('');
-    expect(data.thought).toBe('Let me think about this...');
-    expect(data.tool_calls).toHaveLength(1);
+    expect(final!.data.reply).toBe('');
+    expect(final!.data.thought).toBe('Let me think about this...');
+    expect(final!.data.tool_calls).toHaveLength(1);
   });
 
   it('falls back to process when stream returns no content and no tool calls', async () => {
@@ -506,16 +550,17 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
         { searchParams: { stream: 'true' } }
       )
     );
-    const data = await res.json();
+    const results = await consumeNDJSON(res);
+    const final = results.find(r => r.type === 'final');
 
     expect(mockProcess).toHaveBeenCalledWith(
       'CONV#dashboard-user#sess-fallback-1',
       'hi',
       expect.objectContaining({ sessionId: 'sess-fallback-1' })
     );
-    expect(data.reply).toBe('Fallback response');
-    expect(data.thought).toBe('Recovered after empty stream');
-    expect(data.messageId).toBe('trace-fallback-1-superclaw');
+    expect(final!.data.reply).toBe('Fallback response');
+    expect(final!.data.thought).toBe('Recovered after empty stream');
+    expect(final!.data.messageId).toBe('trace-fallback-1-superclaw');
   });
 
   it('does not fall back to process when stream includes tool calls only', async () => {
@@ -540,11 +585,12 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
         { searchParams: { stream: 'true' } }
       )
     );
-    const data = await res.json();
+    const results = await consumeNDJSON(res);
+    const final = results.find(r => r.type === 'final');
 
     expect(mockProcess).not.toHaveBeenCalled();
-    expect(data.reply).toBe('');
-    expect(data.tool_calls).toHaveLength(1);
+    expect(final!.data.reply).toBe('');
+    expect(final!.data.tool_calls).toHaveLength(1);
   });
 });
 

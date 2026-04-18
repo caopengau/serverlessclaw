@@ -55,7 +55,12 @@ export abstract class BaseExecutor {
       return budgetResult;
     }
 
-    await this.manageContext(messages, options.activeModel, options.activeProvider);
+    await this.manageContext(
+      messages,
+      options.activeModel,
+      options.activeProvider,
+      options.traceId
+    );
 
     if (options.sessionId && options.sessionStateManager) {
       this.lastInjectedMessageTimestamp = await ExecutorHelper.injectPendingMessages(
@@ -113,7 +118,12 @@ export abstract class BaseExecutor {
     }
   }
 
-  protected async manageContext(messages: Message[], model?: string, provider?: string) {
+  protected async manageContext(
+    messages: Message[],
+    model?: string,
+    provider?: string,
+    traceId?: string
+  ) {
     const currentTokens = ContextManager.estimateTokens(messages);
     if (currentTokens > this.contextLimit * 0.9 && this.systemPrompt) {
       const rebuilt = await ContextManager.getManagedContext(
@@ -121,7 +131,8 @@ export abstract class BaseExecutor {
         this.summary,
         this.systemPrompt,
         this.contextLimit,
-        { model, provider }
+        { model, provider },
+        traceId
       );
       messages.length = 0;
       messages.push(...rebuilt.messages);

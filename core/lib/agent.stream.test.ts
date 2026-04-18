@@ -211,7 +211,8 @@ describe('Agent.stream()', () => {
       null,
       expect.any(String),
       expect.any(Number),
-      expect.any(Object)
+      expect.any(Object),
+      expect.any(String)
     );
 
     const callHistory = vi.mocked(ContextManager.getManagedContext).mock.calls[0][0];

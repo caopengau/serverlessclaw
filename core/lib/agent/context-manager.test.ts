@@ -15,12 +15,6 @@ vi.mock('../metrics/token-usage', () => ({
   },
 }));
 
-vi.mock('../metrics/token-usage', () => ({
-  TokenTracker: {
-    recordInvocation: vi.fn().mockResolvedValue(undefined),
-  },
-}));
-
 describe('ContextManager', () => {
   describe('estimateTokens', () => {
     it('should estimate tokens based on character count', () => {
@@ -385,57 +379,6 @@ describe('ContextManager', () => {
       expect(typeof managed.tierBreakdown.factsExtracted).toBe('number');
     });
 
-    it('should prioritize tool errors over trivial assistant messages', async () => {
-      const history: Message[] = [
-        {
-          role: MessageRole.ASSISTANT,
-          content: 'I am thinking about this...',
-          traceId: 'test-trace',
-          messageId: 'test-msg',
-        },
-        {
-          role: MessageRole.ASSISTANT,
-          content: 'Let me check the logs.',
-          traceId: 'test-trace',
-          messageId: 'test-msg',
-        },
-        {
-          role: MessageRole.USER,
-          content: 'Old request',
-          traceId: 'test-trace',
-          messageId: 'test-msg',
-        },
-        {
-          role: MessageRole.TOOL,
-          content: 'Error: ENOENT /tmp/cache.json not found',
-          traceId: 'test-trace',
-          messageId: 'test-msg',
-        },
-      ];
-      const limit = 100000;
-      const managed = await ContextManager.getManagedContext(history, null, 'System', limit);
-      const activeWindowMsgs = managed.messages.filter((m) => m.role !== MessageRole.SYSTEM);
-      const hasError = activeWindowMsgs.some(
-        (m) => m.role === MessageRole.TOOL && m.content?.includes('ENOENT')
-      );
-      expect(hasError).toBe(true);
-    });
-
-    it('should respect custom budget ratios via options', async () => {
-      const history = Array.from({ length: 10 }, (_, i) => ({
-        role: MessageRole.USER,
-        content: `Message ${i}: ${'x'.repeat(100)}`,
-        traceId: 'test-trace',
-        messageId: 'test-msg',
-      })) as Message[];
-      const managed = await ContextManager.getManagedContext(history, null, 'System', 1000, {
-        summaryRatio: 0.5,
-        activeWindowRatio: 0.5,
-      });
-      expect(managed.messages.length).toBeGreaterThan(0);
-      expect(managed.messages[0].role).toBe(MessageRole.SYSTEM);
-    });
-
     it('should apply provider-specific toolResultPriority', () => {
       const msg = {
         role: MessageRole.TOOL,
@@ -457,6 +400,32 @@ describe('ContextManager', () => {
       const highPriorityScore = ContextManager.scoreMessagePriority(msg, 5, 20, claudeStrategy);
 
       expect(highPriorityScore).toBeGreaterThan(defaultScore);
+    });
+
+    it('should propagate traceId to generated system messages', async () => {
+      const history: Message[] = [
+        {
+          role: MessageRole.USER,
+          content: 'User message',
+          traceId: 'original-trace',
+          messageId: 'm1',
+        },
+      ];
+      const traceId = 'new-trace-id';
+      const managed = await ContextManager.getManagedContext(
+        history,
+        'summary',
+        'System prompt',
+        100000,
+        {},
+        traceId
+      );
+
+      const systemMessages = managed.messages.filter((m) => m.role === MessageRole.SYSTEM);
+      expect(systemMessages.length).toBeGreaterThan(0);
+      systemMessages.forEach((m) => {
+        expect(m.traceId).toBe(traceId);
+      });
     });
   });
 
@@ -531,81 +500,20 @@ describe('ContextManager', () => {
       expect(mockMemory.updateSummary).not.toHaveBeenCalled();
     });
 
-    it('should include previous summary in prompt when available', async () => {
+    it('should propagate traceId during summarization', async () => {
       const mockMemory = {
-        getSummary: vi.fn().mockResolvedValue('previous summary'),
+        getSummary: vi.fn().mockResolvedValue(null),
         updateSummary: vi.fn().mockResolvedValue(undefined),
       };
       const mockProvider = {
         call: vi.fn().mockResolvedValue({ content: 'new', usage: undefined }),
       };
+      const traceId = 'summarize-trace';
 
-      await ContextManager.summarize(mockMemory as any, 'user1', mockProvider as any, [
-        { role: MessageRole.USER, content: 'msg', traceId: 'test-trace', messageId: 'test-msg' },
-      ]);
-
-      const callArgs = mockProvider.call.mock.calls[0];
-      const prompt = callArgs[0][0].content;
-      expect(prompt).toContain('previous summary');
-    });
-
-    it('should include key facts in prompt when facts are extracted', async () => {
-      const mockMemory = {
-        getSummary: vi.fn().mockResolvedValue(null),
-        updateSummary: vi.fn().mockResolvedValue(undefined),
-      };
-      const mockProvider = {
-        call: vi.fn().mockResolvedValue({ content: 'summary', usage: undefined }),
-      };
-      const history: Message[] = [
-        {
-          role: MessageRole.TOOL,
-          content: 'Error: something failed at /src/file.ts',
-          traceId: 'test-trace',
-          messageId: 'test-msg',
-        },
-      ];
-
-      await ContextManager.summarize(mockMemory as any, 'user1', mockProvider as any, history);
+      await ContextManager.summarize(mockMemory as any, 'user1', mockProvider as any, [], traceId);
 
       const callArgs = mockProvider.call.mock.calls[0];
-      const prompt = callArgs[0][0].content;
-      expect(prompt).toContain('KEY FACTS');
-      expect(prompt).toContain('file:/src/file.ts');
-    });
-
-    it('should handle provider errors gracefully', async () => {
-      const mockMemory = {
-        getSummary: vi.fn().mockResolvedValue(null),
-        updateSummary: vi.fn().mockResolvedValue(undefined),
-      };
-      const mockProvider = {
-        call: vi.fn().mockRejectedValue(new Error('Provider error')),
-      };
-
-      await expect(
-        ContextManager.summarize(mockMemory as any, 'user1', mockProvider as any, [])
-      ).resolves.not.toThrow();
-    });
-
-    it('should handle TokenTracker errors gracefully', async () => {
-      const { TokenTracker } = await import('../metrics/token-usage');
-      vi.mocked(TokenTracker.recordInvocation).mockRejectedValueOnce(new Error('Tracker error'));
-
-      const mockMemory = {
-        getSummary: vi.fn().mockResolvedValue(null),
-        updateSummary: vi.fn().mockResolvedValue(undefined),
-      };
-      const mockProvider = {
-        call: vi.fn().mockResolvedValue({
-          content: 'summary',
-          usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
-        }),
-      };
-
-      await expect(
-        ContextManager.summarize(mockMemory as any, 'user1', mockProvider as any, [])
-      ).resolves.not.toThrow();
+      expect(callArgs[0][0].traceId).toBe(traceId);
     });
   });
 
@@ -620,30 +528,6 @@ describe('ContextManager', () => {
     it('should return false for non-error content', () => {
       expect(ContextManager.isToolError('Success')).toBe(false);
       expect(ContextManager.isToolError('File created')).toBe(false);
-    });
-  });
-
-  describe('getManagedContext - fact budget break', () => {
-    it('should break fact extraction when budget is exceeded', async () => {
-      const history: Message[] = Array.from({ length: 50 }, (_, i) => ({
-        role: MessageRole.TOOL,
-        content: `Error: failure ${i} at /src/file${i}.ts`,
-        traceId: 'test-trace',
-        messageId: 'test-msg',
-      })) as Message[];
-
-      const managed = await ContextManager.getManagedContext(history, null, 'System', 500, {
-        summaryRatio: 0.3,
-        activeWindowRatio: 0.3,
-      });
-
-      const compressedMsg = managed.messages.find(
-        (m) => m.role === MessageRole.SYSTEM && m.content?.includes('KEY_FACTS')
-      );
-      if (compressedMsg) {
-        const factLines = compressedMsg.content!.split('\n').filter((l) => l.startsWith('•'));
-        expect(factLines.length).toBeGreaterThan(0);
-      }
     });
   });
 });

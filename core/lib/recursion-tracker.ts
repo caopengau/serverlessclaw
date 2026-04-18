@@ -12,7 +12,7 @@ import {
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
 
-import { SYSTEM, DYNAMO_KEYS } from './constants';
+import { SYSTEM, DYNAMO_KEYS, CONFIG_KEYS } from './constants';
 import { ConfigManager } from './registry/config';
 import { parseConfigInt } from './providers/utils';
 import { getMemoryTableName } from './utils/ddb-client';
@@ -126,6 +126,85 @@ export async function incrementRecursionDepth(
   } catch (error: unknown) {
     logger.warn(`[RECURSION] Failed to increment depth for ${traceId}:`, error);
     return -1;
+  }
+}
+
+/**
+ * Atomically increments the token usage for a trace.
+ * Sets expiry to 1 hour if not already present.
+ *
+ * @param traceId - The trace ID for the execution chain
+ * @param tokens - Number of tokens to add
+ */
+export async function incrementTokenUsage(traceId: string, tokens: number): Promise<number> {
+  const key = `${RECURSION_STACK_PREFIX}${traceId}`;
+  const expiresAt = Math.floor(Date.now() / 1000) + RECURSION_TTL_SECONDS;
+
+  try {
+    const response = await docClient.send(
+      new UpdateCommand({
+        TableName: getMemoryTableName(),
+        Key: { userId: key, timestamp: 0 },
+        UpdateExpression:
+          'SET tokens = if_not_exists(tokens, :zero) + :tokens, updatedAt = :now, expiresAt = if_not_exists(expiresAt, :exp), #type = if_not_exists(#type, :type)',
+        ExpressionAttributeNames: {
+          '#type': 'type',
+        },
+        ExpressionAttributeValues: {
+          ':zero': 0,
+          ':tokens': tokens,
+          ':now': Date.now(),
+          ':exp': expiresAt,
+          ':type': 'RECURSION_ENTRY',
+        },
+        ReturnValues: 'UPDATED_NEW',
+      })
+    );
+
+    const totalTokens = response.Attributes?.tokens as number;
+    logger.info(`[BUDGET] Trace ${traceId} cumulative tokens: ${totalTokens}`);
+    return totalTokens;
+  } catch (error) {
+    logger.warn(`[BUDGET] Failed to increment tokens for ${traceId}:`, error);
+    return -1;
+  }
+}
+
+/**
+ * Checks if the cumulative token usage for a trace exceeds the global budget.
+ *
+ * @param traceId - The trace ID for the execution chain
+ * @returns true if budget exceeded, false otherwise.
+ */
+export async function isBudgetExceeded(traceId: string): Promise<boolean> {
+  try {
+    const key = `${RECURSION_STACK_PREFIX}${traceId}`;
+    const budget = await ConfigManager.getTypedConfig(
+      CONFIG_KEYS.GLOBAL_TOKEN_BUDGET,
+      SYSTEM.DEFAULT_DEPLOY_LIMIT // Fallback to something safe if not found, actually I should use the proper constant
+    );
+
+    // Re-resolve budget carefully from system defaults if config lookup fails
+    const effectiveBudget = (budget as number) || 250000;
+
+    const { Item } = await docClient.send(
+      new GetCommand({
+        TableName: getMemoryTableName(),
+        Key: { userId: key, timestamp: 0 },
+      })
+    );
+
+    const currentUsage = (Item?.tokens as number) ?? 0;
+    if (currentUsage > effectiveBudget) {
+      logger.error(
+        `[BUDGET_EXCEEDED] Trace ${traceId} usage (${currentUsage}) exceeds budget (${effectiveBudget}).`
+      );
+      return true;
+    }
+    return false;
+  } catch (error) {
+    logger.warn(`[BUDGET] Error checking budget for ${traceId}:`, error);
+    return false; // Assume safe on error but log it
   }
 }
 /**

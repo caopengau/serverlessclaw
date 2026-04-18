@@ -17,8 +17,10 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { GapStatus } from '@claw/core/lib/types';
 import { GapItem } from '@claw/core/lib/types/memory';
+import CyberConfirm from '@/components/CyberConfirm';
 import GapRefinementPanel from './GapRefinementPanel';
 
 interface PipelineBoardProps {
@@ -38,6 +40,10 @@ export default function PipelineBoard({
   const [expandedGaps, setExpandedGaps] = useState<Set<string>>(new Set());
   const [processing, setProcessing] = useState<string | null>(null);
   const [refiningGapId, setRefiningGapId] = useState<string | null>(null);
+  const [pruneTarget, setPruneTarget] = useState<{ gapId: string; timestamp: number | string } | null>(
+    null
+  );
+  const [showBatchConfirm, setShowBatchConfirm] = useState(false);
 
   const toggleSelection = (gapId: string) => {
     const newSelection = new Set(selectedGaps);
@@ -69,11 +75,20 @@ export default function PipelineBoard({
   };
 
   const handlePrune = async (gapId: string, timestamp: number | string) => {
-    // eslint-disable-next-line no-alert
-    if (!confirm('Are you sure you want to delete this gap? This action cannot be undone.')) return;
+    setPruneTarget({ gapId, timestamp });
+  };
+
+  const confirmPrune = async () => {
+    if (!pruneTarget) return;
+    const { gapId, timestamp } = pruneTarget;
+    setPruneTarget(null);
+
     setProcessing(gapId);
     try {
       await pruneGap(gapId, timestamp);
+      toast.success('Gap pruned from neural record');
+    } catch {
+      toast.error('Failed to prune gap');
     } finally {
       setProcessing(null);
     }
@@ -84,18 +99,26 @@ export default function PipelineBoard({
       (g) => g.status === GapStatus.PLANNED && selectedGaps.has(g.userId)
     );
     if (readyGaps.length === 0) {
-      // eslint-disable-next-line no-alert
-      alert('Please select at least one READY gap to evolve.');
+      toast.warning('Please select at least one READY gap to evolve.');
       return;
     }
 
-    // eslint-disable-next-line no-alert
-    if (!confirm(`Trigger evolution for ${readyGaps.length} gaps?`)) return;
+    setShowBatchConfirm(true);
+  };
+
+  const confirmBatchEvolution = async () => {
+    const readyGaps = initialGaps.filter(
+      (g) => g.status === GapStatus.PLANNED && selectedGaps.has(g.userId)
+    );
+    setShowBatchConfirm(false);
 
     setProcessing('batch');
     try {
       await triggerBatchEvolution(readyGaps.map((g) => g.userId));
       setSelectedGaps(new Set());
+      toast.success(`Triggered evolution for ${readyGaps.length} gaps`);
+    } catch {
+      toast.error('Failed to trigger batch evolution');
     } finally {
       setProcessing(null);
     }
@@ -378,6 +401,27 @@ export default function PipelineBoard({
           }}
         />
       )}
+      <CyberConfirm
+        isOpen={!!pruneTarget}
+        title="Prune Neural Gap"
+        message="Are you sure you want to delete this gap? This action cannot be undone and will erase the identified logic discrepancy."
+        variant="danger"
+        confirmText="Confirm Prune"
+        onConfirm={confirmPrune}
+        onCancel={() => setPruneTarget(null)}
+      />
+      <CyberConfirm
+        isOpen={showBatchConfirm}
+        title="Trigger Batch Evolution"
+        message={`You are about to trigger evolution for ${
+          initialGaps.filter((g) => g.status === GapStatus.PLANNED && selectedGaps.has(g.userId))
+            .length
+        } gaps. This will initiate multiple parallel refinement processes.`}
+        variant="warning"
+        confirmText="Initiate Evolution"
+        onConfirm={confirmBatchEvolution}
+        onCancel={() => setShowBatchConfirm(false)}
+      />
     </>
   );
 }

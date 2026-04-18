@@ -21,9 +21,10 @@ export const handler = async (event: { queryString?: Record<string, string> }) =
 
   const principalId = `user-${token.substring(0, 16).replace(/[^a-zA-Z0-9]/g, '')}`;
 
-  // Sh5 Fix: Use exact client ID match instead of wildcard prefix for better security
-  // The principal ID is derived from the token, so we allow exactly that client to connect
-  const clientResource = `arn:aws:iot:*:*:client/${principalId}`;
+  // Sh5 Fix: Match the dashboard's ClientID convention: dashboard-${safeToken}-${tabId}
+  // The principal ID derived from token is used to constrain the wildcard.
+  const safeToken = token.substring(0, 16).replace(/[^a-zA-Z0-9]/g, '');
+  const clientResource = `arn:aws:iot:*:*:client/dashboard-${safeToken}-*`;
   const appTopicResources = [
     'arn:aws:iot:*:*:topic/users/*',
     'arn:aws:iot:*:*:topic/workspaces/*',

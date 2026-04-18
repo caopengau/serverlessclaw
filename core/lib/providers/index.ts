@@ -124,18 +124,29 @@ export class ProviderManager implements IProvider {
     topP?: number,
     stopSequences?: string[]
   ): Promise<Message> {
+    const threshold = await ConfigManager.getTypedConfig(
+      CONFIG_KEYS.SIMPLE_TASK_THRESHOLD,
+      SYSTEM.DEFAULT_SIMPLE_TASK_THRESHOLD
+    );
+
     const isSimpleTask =
       messages.length <= 2 &&
       messages.reduce((acc, m) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0) <
-        500;
+        (threshold as number);
 
-    // Auto-route to cheaper model (Haiku) for simple tasks if no specific model was requested
+    // Auto-route to cheaper model for simple tasks if no specific model was requested
     let effectiveProvider = provider;
     let effectiveModel = model;
 
     if (!provider && !model && isSimpleTask && profile === ReasoningProfile.STANDARD) {
-      effectiveProvider = 'bedrock';
-      effectiveModel = 'anthropic.claude-3-haiku-20240307-v1:0';
+      const activeProviderName = await this.getActiveProviderName();
+      const { UTILITY_MODELS } = await import('../constants/system');
+      effectiveProvider = activeProviderName;
+      effectiveModel = UTILITY_MODELS[activeProviderName] ?? model;
+
+      logger.info(
+        `[COST_OPTIMIZATION] Routing simple task to ${effectiveProvider}/${effectiveModel} (Threshold: ${threshold} chars)`
+      );
     }
 
     const activeProvider = await ProviderManager.getActiveProvider(
@@ -143,19 +154,23 @@ export class ProviderManager implements IProvider {
       effectiveModel
     );
 
-    // Mock Budget Check for plan adherence
-    const MAX_TOKEN_BUDGET = 100000;
-    const estimatedTokens = messages.reduce(
-      (acc, m) => acc + (typeof m.content === 'string' ? m.content.length / 4 : 0),
-      0
-    );
-    if (estimatedTokens > MAX_TOKEN_BUDGET) {
+    // Budget check before call
+    const { isBudgetExceeded, incrementTokenUsage } = await import('../recursion-tracker');
+    let traceId = messages.find((m) => m.traceId && m.traceId !== 'unknown')?.traceId ?? 'unknown';
+
+    // If still unknown, and it's a context-managed call, it might be the only message or all are unknown.
+    // We should fallback to a session-specific trace if possible.
+    if (traceId === 'unknown' && messages[0]?.messageId) {
+      traceId = `legacy-${messages[0].messageId}`;
+    }
+
+    if (await isBudgetExceeded(traceId)) {
       throw new Error(
-        `TokenBudgetExceeded: Task requires ~${estimatedTokens} tokens, which exceeds the budget of ${MAX_TOKEN_BUDGET}. Agent execution halted.`
+        `[BUDGET_EXCEEDED] Execution halted for trace ${traceId} to prevent runaway costs.`
       );
     }
 
-    return activeProvider.call(
+    const response = await activeProvider.call(
       messages,
       tools,
       profile,
@@ -167,6 +182,19 @@ export class ProviderManager implements IProvider {
       topP,
       stopSequences
     );
+
+    // Track usage and log for billing transparency
+    if (response.usage) {
+      const total =
+        response.usage.total_tokens ??
+        response.usage.prompt_tokens + response.usage.completion_tokens;
+      await incrementTokenUsage(traceId, total);
+      logger.info(
+        `[BILLING] Trace: ${traceId} | Model: ${effectiveModel} | Tokens: ${total} (P: ${response.usage.prompt_tokens}, C: ${response.usage.completion_tokens})`
+      );
+    }
+
+    return response;
   }
 
   /**
@@ -196,17 +224,28 @@ export class ProviderManager implements IProvider {
     topP?: number,
     stopSequences?: string[]
   ): AsyncIterable<MessageChunk> {
+    const threshold = await ConfigManager.getTypedConfig(
+      CONFIG_KEYS.SIMPLE_TASK_THRESHOLD,
+      SYSTEM.DEFAULT_SIMPLE_TASK_THRESHOLD
+    );
+
     const isSimpleTask =
       messages.length <= 2 &&
       messages.reduce((acc, m) => acc + (typeof m.content === 'string' ? m.content.length : 0), 0) <
-        500;
+        (threshold as number);
 
     let effectiveProvider = provider;
     let effectiveModel = model;
 
     if (!provider && !model && isSimpleTask && profile === ReasoningProfile.STANDARD) {
-      effectiveProvider = 'bedrock';
-      effectiveModel = 'anthropic.claude-3-haiku-20240307-v1:0';
+      const activeProviderName = await this.getActiveProviderName();
+      const { UTILITY_MODELS } = await import('../constants/system');
+      effectiveProvider = activeProviderName;
+      effectiveModel = UTILITY_MODELS[activeProviderName] ?? model;
+
+      logger.info(
+        `[COST_OPTIMIZATION] Routing simple task to ${effectiveProvider}/${effectiveModel} (Threshold: ${threshold} chars)`
+      );
     }
 
     const activeProvider = await ProviderManager.getActiveProvider(
@@ -214,18 +253,22 @@ export class ProviderManager implements IProvider {
       effectiveModel
     );
 
-    const MAX_TOKEN_BUDGET = 100000;
-    const estimatedTokens = messages.reduce(
-      (acc, m) => acc + (typeof m.content === 'string' ? m.content.length / 4 : 0),
-      0
-    );
-    if (estimatedTokens > MAX_TOKEN_BUDGET) {
+    // Budget check before stream
+    const { isBudgetExceeded, incrementTokenUsage } = await import('../recursion-tracker');
+    let traceId = messages.find((m) => m.traceId && m.traceId !== 'unknown')?.traceId ?? 'unknown';
+
+    if (traceId === 'unknown' && messages[0]?.messageId) {
+      traceId = `legacy-${messages[0].messageId}`;
+    }
+
+    if (await isBudgetExceeded(traceId)) {
       throw new Error(
-        `TokenBudgetExceeded: Task requires ~${estimatedTokens} tokens, which exceeds the budget of ${MAX_TOKEN_BUDGET}. Agent execution halted.`
+        `[BUDGET_EXCEEDED] Execution halted for trace ${traceId} to prevent runaway costs.`
       );
     }
 
-    yield* activeProvider.stream(
+    let totalTokens = 0;
+    const stream = activeProvider.stream(
       messages,
       tools,
       profile,
@@ -237,6 +280,22 @@ export class ProviderManager implements IProvider {
       topP,
       stopSequences
     );
+
+    for await (const chunk of stream) {
+      if (chunk.usage) {
+        totalTokens =
+          chunk.usage.total_tokens ?? chunk.usage.prompt_tokens + chunk.usage.completion_tokens;
+      }
+      yield chunk;
+    }
+
+    // Track usage and log for billing transparency
+    if (totalTokens > 0) {
+      await incrementTokenUsage(traceId, totalTokens);
+      logger.info(
+        `[BILLING] Trace: ${traceId} | Model: ${effectiveModel} | Stream Tokens: ${totalTokens}`
+      );
+    }
   }
 
   /**

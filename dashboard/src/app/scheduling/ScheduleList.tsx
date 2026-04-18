@@ -31,6 +31,7 @@ import {
 } from '@/lib/scheduling-utils';
 import { NewGoalModal } from './NewGoalModal';
 import { GovernanceProtocol } from './GovernanceProtocol';
+import CyberConfirm from '@/components/CyberConfirm';
 
 export default function ScheduleList() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -39,6 +40,7 @@ export default function ScheduleList() {
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState(false);
   const [showNewGoalModal, setShowNewGoalModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const fetchSchedules = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -117,7 +119,13 @@ export default function ScheduleList() {
   };
 
   const handleDelete = async (name: string) => {
-    if (!confirm(`Are you sure you want to delete goal "${name}"?`)) return; // eslint-disable-line no-alert
+    setDeleteTarget(name);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const name = deleteTarget;
+    setDeleteTarget(null);
 
     setActionInProgress(name + '-delete');
     try {
@@ -273,6 +281,15 @@ export default function ScheduleList() {
       {showNewGoalModal && (
         <NewGoalModal onClose={() => setShowNewGoalModal(false)} onSuccess={() => fetchSchedules(true)} />
       )}
+      <CyberConfirm
+        isOpen={!!deleteTarget}
+        title="Terminate Goal Schedule"
+        message={`Are you sure you want to delete the proactive goal "${deleteTarget}"? This will stop all future automated executions for this objective.`}
+        variant="danger"
+        confirmText="Confirm Termination"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

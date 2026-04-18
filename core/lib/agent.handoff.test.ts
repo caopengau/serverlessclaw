@@ -13,6 +13,7 @@ vi.mock('./agent/tracer-init', () => {
     getTraceId: () => 'trace-xyz',
     startTrace,
     endTrace,
+    failTrace: vi.fn().mockResolvedValue(undefined),
   } as any;
 
   return {
@@ -38,6 +39,13 @@ describe('Agent handoff (human control) branches', () => {
   it('process returns human-control response and ends trace', async () => {
     const mockMemory: any = {
       addMessage: vi.fn().mockResolvedValue(undefined),
+      getHistory: vi.fn().mockResolvedValue([]),
+      getDistilledMemory: vi.fn().mockResolvedValue(''),
+      getLessons: vi.fn().mockResolvedValue([]),
+      searchInsights: vi.fn().mockResolvedValue({ items: [] }),
+      getGlobalLessons: vi.fn().mockResolvedValue([]),
+      getSummary: vi.fn().mockResolvedValue(null),
+      updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
     };
 
     const mockProvider: any = {};
@@ -65,6 +73,13 @@ describe('Agent handoff (human control) branches', () => {
   it('stream yields human-control chunk then ends trace', async () => {
     const mockMemory: any = {
       addMessage: vi.fn().mockResolvedValue(undefined),
+      getHistory: vi.fn().mockResolvedValue([]),
+      getDistilledMemory: vi.fn().mockResolvedValue(''),
+      getLessons: vi.fn().mockResolvedValue([]),
+      searchInsights: vi.fn().mockResolvedValue({ items: [] }),
+      getGlobalLessons: vi.fn().mockResolvedValue([]),
+      getSummary: vi.fn().mockResolvedValue(null),
+      updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
     };
 
     const mockProvider: any = {};
