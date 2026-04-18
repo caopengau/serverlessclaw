@@ -30,6 +30,10 @@ export function useChatConnection(
   const fetchSessions = async () => {
     try {
       const response = await fetch('/api/chat');
+      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
+        console.warn('[Chat] API returned non-JSON response (likely 401/404). Check auth.');
+        return;
+      }
       const data = await response.json();
       if (data.sessions) {
         setSessions(data.sessions);
@@ -44,11 +48,13 @@ export function useChatConnection(
       if (isPostInFlight.current) return;
       try {
         const response = await fetch(`/api/chat?sessionId=${sessionId}`);
+        if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
+          return;
+        }
         const data = await response.json();
-          if (data.history) {
-             
-            setMessagesRef.current((prev) => {
-              const { messages, seenIds } = mergeHistoryWithMessages(prev, data.history);
+        if (data.history) {
+          setMessagesRef.current((prev) => {
+            const { messages, seenIds } = mergeHistoryWithMessages(prev, data.history);
             seenMessageIds.current = seenIds;
             return messages;
           });

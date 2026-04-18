@@ -42,6 +42,9 @@ export function useChatMessages(
     setIsLoading(true);
     try {
       const response = await fetch(`/api/chat?sessionId=${sessionId}`);
+      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
+        return;
+      }
       const data = await response.json();
       if (data.history) {
         setMessages((prev: ChatMessage[]) => {
