@@ -248,9 +248,9 @@ const ChatMessageRow = memo(function ChatMessageRow({
   }
 
   return (
-    <div key={key} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+    <div key={key} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div
-        className={`flex gap-3 max-w-[90%] ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+        className={`flex gap-4 max-w-[90%] ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
       >
         <div
           className={`w-8 h-8 rounded shrink-0 flex items-center justify-center border ${
@@ -267,7 +267,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
               variant="caption"
               weight="bold"
               color="primary"
-              className="flex items-center gap-1 pl-1"
+              className="flex items-center gap-1 pl-2"
             >
               <span className="w-1 h-1 rounded-full bg-cyber-green/60 inline-block" />
               {m.agentName}
@@ -290,7 +290,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
             {(m.role === 'user' || (m.content && m.content.trim().length > 0) || m.isThinking) && (
               <Card
                 variant="glass"
-                padding="sm"
+                padding="md"
                 className={`rounded-lg ${
                   m.role === 'user'
                     ? 'bg-white/5 text-white/90 border border-white/10'
@@ -496,7 +496,7 @@ export function ChatMessageList({
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto p-4 pt-12 space-y-3 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/[0.02] via-transparent to-transparent custom-scrollbar"
+        className="flex-1 overflow-y-auto px-6 py-4 pt-12 space-y-4 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/[0.02] via-transparent to-transparent custom-scrollbar"
       >
         {filteredMessages.length === 0 && !isLoading && (
           <div className="flex-1 flex flex-col items-center justify-center text-white/80 px-8 min-h-0">

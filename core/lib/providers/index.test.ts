@@ -209,6 +209,29 @@ describe('ProviderManager', () => {
 
       expect(ProviderManager.getActiveProvider).toHaveBeenCalledWith(undefined, 'gpt-4');
     });
+
+    it('should fall back to session-aware traceId if no traceId is found in messages', async () => {
+      const pm = new ProviderManager();
+      const { incrementTokenUsage } = await import('../recursion-tracker');
+
+      const mockCall = vi.fn().mockResolvedValue({
+        role: 'assistant',
+        content: 'ok',
+        usage: { prompt_tokens: 10, completion_tokens: 5 },
+      });
+
+      vi.spyOn(ProviderManager, 'getActiveProvider').mockResolvedValueOnce({
+        call: mockCall,
+      } as any);
+
+      // Messages with sessionId but NO traceId
+      await pm.call([
+        { role: MessageRole.USER, content: 'hello', sessionId: 'session-123' },
+      ]);
+
+      // Should use 'session-session-123' as traceId
+      expect(incrementTokenUsage).toHaveBeenCalledWith('session-session-123', expect.any(Number));
+    });
   });
 
   describe('Streaming', () => {

@@ -10,7 +10,7 @@ import { ProviderManager } from '@claw/core/lib/providers/index';
 import { getAgentTools } from '@claw/core/tools/index';
 import { Agent } from '@claw/core/lib/agent';
 import { SUPERCLAW_SYSTEM_PROMPT } from '@claw/core/agents/superclaw';
-import { TraceSource, AgentType, MessageRole } from '@claw/core/lib/types/index';
+import { TraceSource, AgentType, MessageRole, ToolCall } from '@claw/core/lib/types/index';
 import { AgentRegistry } from '@claw/core/lib/registry';
 
 // Singleton memory and provider to leverage in-memory LRU cache

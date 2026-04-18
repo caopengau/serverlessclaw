@@ -31,35 +31,39 @@ export function shouldProcessChunk(
   currentActiveId: string,
   expectedUserId: string
 ): boolean {
+  const type = data.type || data['detail-type'];
+  
+  // LOG EVERYTHING to see why chunks are ignored
+  console.log(`[shouldProcessChunk] id=${data.messageId}, type=${type}, session=${data.sessionId}, active=${currentActiveId}, expectedUser=${expectedUserId}`);
+
   // Normalize incoming userId (remove CONV# prefix if present)
   const incomingUserId = data.userId?.startsWith('CONV#') ? data.userId.split('#')[1] : data.userId;
-
-  // The dashboard client cannot read the HTTP-only session cookie user ID, so
-  // treat the default sentinel as wildcard and rely on session/type matching.
   const useStrictUserFilter = expectedUserId !== 'dashboard-user';
 
   if (useStrictUserFilter && incomingUserId !== expectedUserId) {
+    console.warn(`[shouldProcessChunk] ❌ User mismatch: ${incomingUserId} !== ${expectedUserId}`);
     return false;
   }
 
-  const type = data.type || data['detail-type'];
-  if (type !== 'chunk' && type !== 'TEXT_MESSAGE_CONTENT') {
+  // ALLOW ALL VALID SIGNAL TYPES
+  const validTypes = ['chunk', 'TEXT_MESSAGE_CONTENT', 'outbound_message', 'TEXT_MESSAGE_START', 'TEXT_MESSAGE_END'];
+  if (type && !validTypes.includes(type)) {
+    console.warn(`[shouldProcessChunk] ❌ Type mismatch: ${type}`);
     return false;
   }
 
-  // Stable message IDs are required to merge chunk updates into one bubble
-  // and avoid echo/duplicate rendering from unrelated realtime events.
   if (!data.messageId) {
     return false;
   }
 
-  // If no session ID in chunk, it's a global signal for the user
   if (!data.sessionId) {
     return true;
   }
 
-  // Otherwise it MUST match the current active session
   const match = data.sessionId === currentActiveId;
+  if (!match) {
+    console.warn(`[shouldProcessChunk] ❌ Session mismatch: ${data.sessionId} !== ${currentActiveId}`);
+  }
   return match;
 }
 
@@ -95,6 +99,9 @@ export function applyChunkToMessages(
       (data as IncomingChunk & { 'detail-type'?: string })['detail-type'] === 'outbound_message';
 
     const isThought = !!(data.isThought || data.thought);
+    if (isThought) {
+      console.log(`[message-handler] Processing thought delta for ${data.messageId}: ${data.thought?.length ?? 0} chars`);
+    }
     const hasVisibleContent = !!(data.message || data.thought || data.toolCalls || data.tool_calls || data.ui_blocks);
     const stopThinking = hasVisibleContent || isFinal;
 
@@ -170,7 +177,7 @@ export function applyChunkToMessages(
   }
 
   // Add new message
-  console.log(`[message-handler] Adding new assistant message from chunk: ${data.messageId}`);
+  console.log(`[message-handler] Adding new assistant message from chunk: ${data.messageId} (isThought: ${data.isThought || !!data.thought})`);
   const isFinal = (data as IncomingChunk & { 'detail-type'?: string })['detail-type'] === 'outbound_message';
   const hasVisibleContent = !!((data.message && data.message.trim().length > 0) || data.thought || data.toolCalls || data.tool_calls || data.ui_blocks);
   const stopThinking = hasVisibleContent || isFinal;

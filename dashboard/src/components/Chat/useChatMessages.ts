@@ -97,13 +97,14 @@ export function useChatMessages(
 
       if (existingIdx !== -1) {
         const existing = prev[existingIdx];
-        const hasExistingContent = existing.content && existing.content.trim().length > 0;
-        const hasExistingThought = existing.thought && existing.thought.length > 0;
         const updated = [...prev];
+        
+        // ALWAYS take the clean API response if provided, as it's the "truth"
+        // This prevents blinking caused by minor stream-vs-API text differences.
         updated[existingIdx] = {
           ...existing,
-          content: hasExistingContent ? existing.content : (data.reply || existing.content),
-          thought: hasExistingThought ? existing.thought : (data.thought || existing.thought),
+          content: data.reply || existing.content,
+          thought: data.thought || existing.thought,
           tool_calls: data.tool_calls || existing.tool_calls,
           agentName: data.agentName || existing.agentName,
           ui_blocks: data.ui_blocks || existing.ui_blocks,

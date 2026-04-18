@@ -117,7 +117,7 @@ export default function ChatBubble() {
           padding="none"
         >
           {/* Header */}
-          <div className="p-4 border-b border-border bg-card flex items-center justify-between">
+          <div className="px-6 py-4 border-b border-border bg-card flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-cyber-green animate-pulse" />
               <Typography variant="h3" weight="bold" className="text-sm uppercase tracking-wider">
@@ -163,7 +163,7 @@ export default function ChatBubble() {
           </div>
 
           {/* Input Area */}
-          <div className="p-4 border-t border-border bg-card">
+          <div className="px-6 py-4 border-t border-border bg-card">
             <ChatInput
               input={input}
               setInput={setInput}

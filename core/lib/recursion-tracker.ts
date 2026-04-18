@@ -140,6 +140,12 @@ export async function incrementTokenUsage(traceId: string, tokens: number): Prom
   const key = `${RECURSION_STACK_PREFIX}${traceId}`;
   const expiresAt = Math.floor(Date.now() / 1000) + RECURSION_TTL_SECONDS;
 
+  // Protect against global budget poisoning via generic IDs
+  if (!traceId || traceId === 'unknown') {
+    logger.warn(`[BUDGET] Attempted to increment tokens for generic traceId: ${traceId}. Skipping.`);
+    return -1;
+  }
+
   try {
     const response = await docClient.send(
       new UpdateCommand({
@@ -201,6 +207,14 @@ export async function isBudgetExceeded(traceId: string): Promise<boolean> {
       );
       return true;
     }
+
+    // Proactive warning at 80% capacity
+    if (currentUsage > effectiveBudget * 0.8) {
+      logger.warn(
+        `[BUDGET_WARNING] Trace ${traceId} usage (${currentUsage}) at 80% of budget (${effectiveBudget}).`
+      );
+    }
+
     return false;
   } catch (error) {
     logger.warn(`[BUDGET] Error checking budget for ${traceId}:`, error);

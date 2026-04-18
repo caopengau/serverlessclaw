@@ -61,7 +61,7 @@ export function ChatInput({
   }, [isShaking, textareaRef]);
 
   return (
-    <div className="p-4 border-t border-white/5 bg-black/40 shrink-0">
+    <div className="px-6 py-4 border-t border-white/5 bg-black/40 shrink-0">
       <form onSubmit={handleSend} className="max-w-4xl mx-auto relative group">
         {/* Attachment Previews */}
         {attachments.length > 0 && (

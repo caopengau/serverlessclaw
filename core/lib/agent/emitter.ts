@@ -181,7 +181,8 @@ export class AgentEmitter {
     initiatorId: string = 'orchestrator',
     thoughtDelta?: string,
     ui_blocks?: Message['ui_blocks'],
-    attachments?: Message['attachments']
+    attachments?: Message['attachments'],
+    detailType: EventType = EventType.TEXT_MESSAGE_CONTENT
   ): Promise<void> {
     try {
       const agentId = this.config?.id ?? 'unknown';
@@ -200,7 +201,7 @@ export class AgentEmitter {
             if (customEnabled !== undefined)
               feedbackEnabled = customEnabled === 'true' || customEnabled === true;
           }
-        } catch {
+        } catch (e) {
           // Fallback to default
         }
         if (!feedbackEnabled) return;
@@ -230,7 +231,6 @@ export class AgentEmitter {
         if (safeAttachments.length === 0) safeAttachments = undefined;
       }
 
-      const detailType = EventType.TEXT_MESSAGE_CONTENT;
       const payload = {
         'detail-type': detailType,
         type: detailType, // AG-UI Standard
@@ -247,7 +247,7 @@ export class AgentEmitter {
         attachments: safeAttachments,
       };
 
-      console.log(`[AgentEmitter] Emitting chunk to ${topic} (messageId: ${messageId}, size: ${chunk?.length ?? 0} chars)`);
+      console.log(`[AgentEmitter] Emitting chunk to ${topic} (messageId: ${messageId}, type: ${detailType}, size: ${chunk?.length ?? 0} chars)`);
       await publishToRealtime(topic, payload);
     } catch (e) {
       // Don't let chunk emission failures block the main loop

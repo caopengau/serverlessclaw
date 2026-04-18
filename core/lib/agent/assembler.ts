@@ -168,14 +168,14 @@ export class AgentAssembler {
     });
 
     // Ensure we have a valid ID even if pageContext is missing
-    const effectiveTraceId = pageContext?.traceId || `msg-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const effectiveTraceId = pageContext?.traceId || `trace-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
     const currentMessage: Message = {
       role: MessageRole.USER,
       content: userText,
       attachments: incomingAttachments ?? [],
       traceId: effectiveTraceId,
-      messageId: effectiveTraceId,
+      messageId: `msg-user-${Date.now()}-${Math.random().toString(36).substring(7)}`,
       thought: '',
       tool_calls: [],
     };

@@ -158,10 +158,14 @@ export class ProviderManager implements IProvider {
     const { isBudgetExceeded, incrementTokenUsage } = await import('../recursion-tracker');
     let traceId = messages.find((m) => m.traceId && m.traceId !== 'unknown')?.traceId ?? 'unknown';
 
-    // If still unknown, and it's a context-managed call, it might be the only message or all are unknown.
-    // We should fallback to a session-specific trace if possible.
-    if (traceId === 'unknown' && messages[0]?.messageId) {
-      traceId = `legacy-${messages[0].messageId}`;
+    // If traceId is unknown, attempt to resolve from sessionId to provide session-level isolation
+    if (traceId === 'unknown') {
+      const sessionIdInMessages = messages.find((m) => m.sessionId)?.sessionId;
+      if (sessionIdInMessages) {
+        traceId = `session-${sessionIdInMessages}`;
+      } else if (messages[0]?.messageId) {
+        traceId = `legacy-${messages[0].messageId}`;
+      }
     }
 
     if (await isBudgetExceeded(traceId)) {
@@ -257,8 +261,13 @@ export class ProviderManager implements IProvider {
     const { isBudgetExceeded, incrementTokenUsage } = await import('../recursion-tracker');
     let traceId = messages.find((m) => m.traceId && m.traceId !== 'unknown')?.traceId ?? 'unknown';
 
-    if (traceId === 'unknown' && messages[0]?.messageId) {
-      traceId = `legacy-${messages[0].messageId}`;
+    if (traceId === 'unknown') {
+      const sessionIdInMessages = messages.find((m) => m.sessionId)?.sessionId;
+      if (sessionIdInMessages) {
+        traceId = `session-${sessionIdInMessages}`;
+      } else if (messages[0]?.messageId) {
+        traceId = `legacy-${messages[0].messageId}`;
+      }
     }
 
     if (await isBudgetExceeded(traceId)) {

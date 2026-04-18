@@ -221,7 +221,7 @@ export class Agent {
             attachments: incomingAttachments as Attachment[],
             pageContext,
             traceId,
-            messageId: traceId,
+            messageId: `msg-user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           },
           workspaceId
         );
@@ -352,7 +352,7 @@ export class Agent {
             thought: finalThought,
             agentName: this.config?.name ?? 'SuperClaw',
             traceId,
-            messageId: `${traceId}-superclaw`,
+            messageId: `msg-assistant-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             tool_calls: resultToolCalls,
           },
           workspaceId
@@ -384,7 +384,7 @@ export class Agent {
             thought: resultThought,
             agentName: this.config?.name ?? 'SuperClaw',
             traceId,
-            messageId: assistantMessageId,
+            messageId: `msg-assistant-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           },
           workspaceId
         );
@@ -538,7 +538,7 @@ export class Agent {
           attachments: incomingAttachments as Attachment[],
           pageContext,
           traceId,
-          messageId: traceId,
+          messageId: `msg-user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         },
         workspaceId
       );

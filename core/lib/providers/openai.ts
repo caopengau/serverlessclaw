@@ -400,15 +400,29 @@ export class OpenAIProvider implements IProvider {
         // Support both direct deltas and nested item deltas (2026 Responses API)
         // Some events are prefixed with "response."
         const delta = rawChunk.delta ?? rawChunk.item?.delta;
+        
+        const isContentEvent = (type === 'text.delta' || type === 'output_text.delta' || type === 'response.text.delta' || type === 'response.output_text.delta');
+        const isThoughtEvent = (
+          type === 'reasoning.delta' || 
+          type === 'output_thought.delta' || 
+          type === 'thought.delta' ||
+          type === 'response.reasoning.delta' || 
+          type === 'response.output_thought.delta' ||
+          type === 'response.thought.delta' ||
+          !!rawChunk.delta?.reasoning_content ||
+          !!rawChunk.item?.delta?.reasoning_content
+        );
 
-        if ((type === 'text.delta' || type === 'output_text.delta' || type === 'response.text.delta' || type === 'response.output_text.delta') && delta) {
+        if (isContentEvent && delta) {
           const content = typeof delta === 'string' ? delta : delta.value ?? delta.text ?? '';
           if (content) {
             console.log(`[OpenAI:Stream] Yielding content chunk: ${content.length} chars`);
             yield { content };
           }
-        } else if ((type === 'reasoning.delta' || type === 'output_thought.delta' || type === 'response.reasoning.delta' || type === 'response.output_thought.delta') && delta) {
-          const thought = typeof delta === 'string' ? delta : delta.value ?? delta.text ?? '';
+        } else if (isThoughtEvent && (delta || rawChunk.delta?.reasoning_content || rawChunk.item?.delta?.reasoning_content)) {
+          const thought = typeof delta === 'string' 
+            ? delta 
+            : (delta?.value ?? delta?.text ?? rawChunk.delta?.reasoning_content ?? rawChunk.item?.delta?.reasoning_content ?? '');
           if (thought) {
             console.log(`[OpenAI:Stream] Yielding thought chunk: ${thought.length} chars`);
             yield { thought };

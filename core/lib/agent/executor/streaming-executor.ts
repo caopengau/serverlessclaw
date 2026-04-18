@@ -1,4 +1,4 @@
-import { Message, MessageRole, ToolCall, MessageChunk, ButtonType } from '../../types/index';
+import { Message, MessageRole, ToolCall, MessageChunk, ButtonType, EventType } from '../../types/index';
 import { normalizeProfile } from '../../providers/utils';
 import { TRACE_TYPES } from '../../constants';
 import { ExecutorUsage, ExecutorOptions } from '../executor-types';
@@ -116,11 +116,15 @@ export class StreamingExecutor extends BaseExecutor {
               userId,
               sessionId,
               traceId,
-              contentDelta,
+              fullContent,
               this.agentName,
               false,
               undefined,
-              options.currentInitiator
+              options.currentInitiator,
+              fullThought,
+              undefined,
+              undefined,
+              EventType.OUTBOUND_MESSAGE
             );
           }
         }
@@ -188,6 +192,24 @@ export class StreamingExecutor extends BaseExecutor {
       const isPauseTool = toolCalls.some((tc) =>
         ['dispatchTask', 'seekClarification'].includes(tc.function.name)
       );
+
+      // Emit progress signal if executing tools
+      if (!isPauseTool && emitter) {
+        const toolNames = toolCalls.map((tc) => tc.function.name).join(', ');
+        console.log(`[StreamingExecutor] Emitting progress chunk for: ${toolNames}`);
+        emitter.emitChunk(
+          userId,
+          sessionId,
+          traceId,
+          undefined,
+          this.agentName,
+          true,
+          undefined,
+          options.currentInitiator,
+          `I am executing: ${toolNames}...`
+        );
+      }
+
       if (isPauseTool && !fullContent) {
         const ackMsg = `I'm on it. I'll engage the appropriate agent for you.`;
         if (emitter) {
