@@ -88,6 +88,7 @@ export const UI_STRINGS = {
   CONSENSUS: 'Consensus',
   NODE_STATUS: 'CORE_SYNC',
   SYSTEM_ONLINE: 'LINK_ESTABLISHED',
+  SYSTEM_OFFLINE: 'LINK_INTERRUPTED',
 } as const;
 
 export const ROUTES = {

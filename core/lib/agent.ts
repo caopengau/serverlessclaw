@@ -390,15 +390,17 @@ export class Agent {
         );
       }
 
-      await tracer.endTrace(responseText);
+      const finalResponseText = responseText.trim();
+      await tracer.endTrace(finalResponseText);
       return {
-        responseText,
+        responseText: finalResponseText,
         thought: finalThought,
         attachments: resultAttachments,
         tool_calls: resultToolCalls,
         traceId,
       };
-    } catch (error) {
+      } catch (error) {
+
       logger.error(`[Agent] Critical error in process loop:`, error);
       await tracer.failTrace(AGENT_ERRORS.PROCESS_FAILURE, { error: String(error) });
       throw error;
@@ -542,7 +544,8 @@ export class Agent {
       );
     }
 
-    const executor = new (await import('./agent/executor')).AgentExecutor(
+    const { AgentExecutor } = await import('./agent/executor');
+    const executor = new AgentExecutor(
       this.provider,
       this.tools,
       this.config?.id ?? 'unknown',
@@ -553,13 +556,17 @@ export class Agent {
       this.config
     );
 
+    const assistantMessageId =
+      currentInitiator === 'orchestrator' || this.config?.id === 'superclaw'
+        ? `${traceId}-superclaw`
+        : `${traceId}-${this.config?.id || 'agent'}`;
+
+    const { AGENT_DEFAULTS } = await import('./agent/executor');
     const stream = executor.streamLoop(messages, {
       activeModel: finalModel,
       activeProvider: finalProvider,
       activeProfile,
-      maxIterations:
-        this.config?.maxIterations ??
-        (await import('./agent/executor')).AGENT_DEFAULTS.MAX_ITERATIONS,
+      maxIterations: this.config?.maxIterations ?? AGENT_DEFAULTS.MAX_ITERATIONS,
       tracer,
       emitter: this.emitter,
       context,
@@ -583,22 +590,34 @@ export class Agent {
       costLimit,
       priorTokenUsage,
     });
+
     let fullContent = '';
     let fullThought = '';
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
+    let chunkCount = 0;
 
     try {
       for await (const chunk of stream) {
+        chunkCount++;
         if (options.sessionId && sessionStateManager) {
           await sessionStateManager.autoRenew(options.sessionId, this.config?.id ?? 'unknown');
         }
 
-        // Periodically check for signal drift (Eye Silo Silo 5)
+        // Periodically check for signal drift
         await tracer.detectDrift();
 
-        if (chunk.content) fullContent += chunk.content;
-        if (chunk.thought) fullThought += chunk.thought;
+        if (chunk.content) {
+          fullContent += chunk.content;
+          console.log(`[Agent:Stream] Chunk ${chunkCount} content: ${chunk.content.length} chars`);
+        }
+        if (chunk.thought) {
+          fullThought += chunk.thought;
+          console.log(`[Agent:Stream] Chunk ${chunkCount} thought: ${chunk.thought.length} chars`);
+        }
+        if (chunk.tool_calls) {
+          console.log(`[Agent:Stream] Chunk ${chunkCount} tool_calls: ${chunk.tool_calls.length}`);
+        }
 
         // Incremental extraction for JSON mode
         let detectedThought = chunk.thought;
@@ -607,18 +626,11 @@ export class Agent {
           !detectedThought &&
           fullContent.trim().startsWith('{')
         ) {
-          // Heuristic: If we haven't found a separate thought field yet,
-          // look for the start of the "thought" or "reasoning" key in the raw JSON.
           if (fullContent.includes('"thought":') || fullContent.includes('"reasoning":')) {
             try {
-              // Try to find the first quote after the key
               const match = fullContent.match(/"(?:thought|reasoning|thinking)"\s*:\s*"([^"]*)/);
-              if (match && match[1]) {
-                detectedThought = match[1];
-              }
-            } catch {
-              // Ignore partial parse errors
-            }
+              if (match && match[1]) detectedThought = match[1];
+            } catch {}
           }
         }
 
@@ -629,7 +641,28 @@ export class Agent {
 
         yield {
           ...chunk,
+          messageId: chunk.messageId || assistantMessageId,
           thought: detectedThought || chunk.thought,
+          agentName: this.config?.name,
+        };
+      }
+      console.log(`[Agent:Stream] Stream completed. Total chunks: ${chunkCount}, content length: ${fullContent.length}`);
+
+      // Fallback: If stream produced no content, perform a non-streaming call
+      if (fullContent.trim().length === 0 && fullThought.trim().length === 0) {
+        console.warn(`[Agent:Stream] Stream produced no content. Triggering non-streaming fallback.`);
+        const fallback = await this.process(userId, userText, {
+          ...options,
+          skipUserSave: true, // Already saved
+        });
+        
+        fullContent = fallback.responseText;
+        fullThought = fallback.thought ?? '';
+        
+        yield {
+          content: fullContent,
+          thought: fullThought,
+          messageId: assistantMessageId,
           agentName: this.config?.name,
         };
       }
@@ -655,8 +688,8 @@ export class Agent {
         const parsed = JSON.parse(finalResponseText);
         finalThought = parsed.thought || parsed.reasoning || parsed.thinking || finalThought;
         finalResponseText = parsed.message || parsed.plan || finalResponseText;
-      } catch {
-        // Fallback to raw
+      } catch (e) {
+        // Fallback to raw text if JSON parsing fails
       }
     }
 
@@ -665,7 +698,7 @@ export class Agent {
 
     if (streamProducedAnything) {
       console.log(
-        `[Agent] Saving assistant message with traceId: ${traceId}, messageId: ${traceId}-superclaw`
+        `[Agent] Saving assistant message with traceId: ${traceId}, messageId: ${assistantMessageId}`
       );
       await this.memory.addMessage(
         storageId,
@@ -675,10 +708,15 @@ export class Agent {
           thought: finalThought,
           agentName: this.config?.name ?? 'SuperClaw',
           traceId,
-          messageId: `${traceId}-superclaw`,
+          messageId: assistantMessageId,
         },
         workspaceId
       );
+    }
+    await tracer.endTrace(fullContent);
+  }
+}
+
     }
     await tracer.endTrace(fullContent);
   }

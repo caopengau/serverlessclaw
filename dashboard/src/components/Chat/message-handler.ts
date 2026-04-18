@@ -78,6 +78,7 @@ export function applyChunkToMessages(
 ): ChatMessage[] {
   // Prevent processing chunks for messages we've already finalized via API
   if (data.messageId && seenIds?.has(data.messageId)) {
+    console.log(`[message-handler] Skipping chunk for already-seen ID: ${data.messageId}`);
     return prev;
   }
 
@@ -87,15 +88,19 @@ export function applyChunkToMessages(
     : -1;
 
   if (existingIndex !== -1) {
+    console.log(`[message-handler] Merging chunk into existing message: ${data.messageId}`);
     const updated = [...prev];
     const existing = updated[existingIndex];
     const isFinal =
       (data as IncomingChunk & { 'detail-type'?: string })['detail-type'] === 'outbound_message';
 
     const isThought = !!(data.isThought || data.thought);
+    const hasVisibleContent = !!(data.message || data.thought || data.toolCalls || data.tool_calls || data.ui_blocks);
+    const stopThinking = hasVisibleContent || isFinal;
 
     updated[existingIndex] = {
       ...existing,
+      isThinking: existing.isThinking ? !stopThinking : false,
       content:
         !isThought || isFinal
           ? isFinal
@@ -116,15 +121,60 @@ export function applyChunkToMessages(
     return updated;
   }
 
-  // No existing message found — check for exact content duplicate
-  if (data.messageId && data.message) {
-    const isExactDup = prev.some(
-      (m) => m.messageId === data.messageId && m.content === data.message
+  // No existing message found — check if we have a thinking placeholder
+  const thinkingIndex = prev.findIndex((m) => m.role === 'assistant' && m.isThinking);
+  if (thinkingIndex !== -1) {
+    const updated = [...prev];
+    const existing = updated[thinkingIndex];
+    const isFinal =
+      (data as IncomingChunk & { 'detail-type'?: string })['detail-type'] === 'outbound_message';
+    const isThought = !!(data.isThought || data.thought);
+
+    // Only stop thinking if we have something visible or it's final
+    const hasVisibleContent = !!(data.message || data.thought || data.toolCalls || data.tool_calls || data.ui_blocks);
+    const stopThinking = hasVisibleContent || isFinal;
+
+    updated[thinkingIndex] = {
+      ...existing,
+      messageId: data.messageId, // Inherit the real message ID
+      isThinking: !stopThinking, // No longer just thinking only if we have content
+      content:
+        !isThought || isFinal
+          ? isFinal
+            ? data.message ?? ''
+            : data.message ?? ''
+          : '',
+      thought:
+        isThought || isFinal
+          ? isFinal
+            ? data.message || data.thought || ''
+            : data.message || data.thought || ''
+          : '',
+      attachments: data.attachments ?? existing.attachments,
+      tool_calls: data.toolCalls || data.tool_calls || existing.tool_calls,
+      options: data.options ?? existing.options,
+      ui_blocks: data.ui_blocks ?? existing.ui_blocks,
+    };
+    return updated;
+  }
+
+  // No placeholder found — check for exact content duplicate to prevent double-bubbles
+  if (data.message && data.message.trim().length > 0) {
+    const isContentDup = prev.some(
+      (m) => m.role === 'assistant' && m.content === data.message
     );
-    if (isExactDup) return prev;
+    if (isContentDup) {
+      console.log(`[Realtime] Dropping duplicate content chunk for ${data.messageId}`);
+      return prev;
+    }
   }
 
   // Add new message
+  console.log(`[message-handler] Adding new assistant message from chunk: ${data.messageId}`);
+  const isFinal = (data as IncomingChunk & { 'detail-type'?: string })['detail-type'] === 'outbound_message';
+  const hasVisibleContent = !!((data.message && data.message.trim().length > 0) || data.thought || data.toolCalls || data.tool_calls || data.ui_blocks);
+  const stopThinking = hasVisibleContent || isFinal;
+
   return [
     ...prev,
     {
@@ -133,6 +183,7 @@ export function applyChunkToMessages(
       thought: data.isThought ? (data.message || data.thought) : data.thought,
       messageId: data.messageId,
       agentName: data.agentName ?? 'SuperClaw',
+      isThinking: !stopThinking,
       attachments: data.attachments,
       options: data.options,
       tool_calls: data.toolCalls || data.tool_calls,
@@ -181,6 +232,8 @@ export function mergeHistoryWithMessages(
   const normalizeId = (id: string, role: string) => {
     if (role !== 'assistant') return id;
     if (!id.includes('-')) return id;
+    
+    // UUID-aware suffix removal: only strip if the suffix is a known agent ID
     const parts = id.split('-');
     const suffix = parts[parts.length - 1];
     if (['superclaw', 'assistant', 'system'].includes(suffix)) {
@@ -209,18 +262,23 @@ export function mergeHistoryWithMessages(
   // Preserve local-only messages:
   // 1. Assistant messages that are still streaming
   // 2. Error messages that are not in history
+  const hasAssistantInHistory = uniqueHistory.some((m) => m.role === 'assistant');
+
   const localOnly = prev.filter((m) => {
     if (!m.messageId) return false;
-    if (m.role === 'user') return false;
+
+    // Discard thinking placeholders if history already has assistant responses
+    if (m.isThinking && hasAssistantInHistory) return false;
+    
+    // Exact content match check against history to prevent double-bubbles
+    const isContentMatch = uniqueHistory.some(
+      (hm) => hm.role === m.role && hm.content === m.content && m.content.trim().length > 0
+    );
+    if (isContentMatch) return false;
+
     const normId = normalizeId(m.messageId, m.role);
     const key = `${m.role}:${normId}`;
     const inHistory = historyKeys.has(key);
-    
-    if (inHistory) {
-      console.log(`[HistoryMerge] Deduplicated local message: ${m.role}:${m.messageId} (matched key ${key})`);
-    } else {
-      console.log(`[HistoryMerge] Preserving local-only message: ${m.role}:${m.messageId} (norm: ${normId})`);
-    }
     
     return !inHistory;
   });

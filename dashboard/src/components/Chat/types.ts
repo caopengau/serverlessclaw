@@ -48,6 +48,8 @@ export interface ChatMessage {
   pageContext?: PageContextData;
   /** Optional dynamic UI blocks rendered by the assistant */
   ui_blocks?: DynamicComponent[];
+  /** Whether the assistant is currently thinking/processing a response for this message ID */
+  isThinking?: boolean;
 }
 
 export interface HistoryMessage {

@@ -231,8 +231,7 @@ export class AgentEmitter {
       }
 
       const detailType = EventType.TEXT_MESSAGE_CONTENT;
-
-      await publishToRealtime(topic, {
+      const payload = {
         'detail-type': detailType,
         type: detailType, // AG-UI Standard
         userId: baseUserId,
@@ -246,7 +245,10 @@ export class AgentEmitter {
         thought: thoughtDelta,
         ui_blocks,
         attachments: safeAttachments,
-      });
+      };
+
+      console.log(`[AgentEmitter] Emitting chunk to ${topic} (messageId: ${messageId}, size: ${chunk?.length ?? 0} chars)`);
+      await publishToRealtime(topic, payload);
     } catch (e) {
       // Don't let chunk emission failures block the main loop
       logger.warn('Failed to emit chunk via realtime bus:', e);

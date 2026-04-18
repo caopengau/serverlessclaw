@@ -9,10 +9,7 @@ import {
 import { AGENT_ERRORS } from '@/lib/constants';
 import {
   mergeHistoryWithMessages,
-  applyChunkToMessages,
-  type IncomingChunk,
 } from './message-handler';
-import { processNdjsonStream } from './stream-reader';
 
 interface ChatApiResponse {
   reply?: string;
@@ -66,6 +63,15 @@ export function useChatMessages(
   // Handle immediate history fetch on session change
   useEffect(() => {
     if (activeSessionId) {
+      if (skipNextHistoryFetch.current) {
+        // If this was a new session creation from sendMessage,
+        // we already have the user message and thinking placeholder in state.
+        // We just need to clear the skip flag and fetch history (which will merge).
+        skipNextHistoryFetch.current = false;
+        fetchHistory(activeSessionId);
+        return;
+      }
+
       // Clear current messages to prevent ghosting from previous session
       setMessages([]);
       seenMessageIds.current.clear();
@@ -74,27 +80,34 @@ export function useChatMessages(
       setMessages([]);
       seenMessageIds.current.clear();
     }
-  }, [activeSessionId, fetchHistory, seenMessageIds]);
+  }, [activeSessionId, fetchHistory, seenMessageIds, skipNextHistoryFetch]);
 
   const updateAssistantResponse = (data: ChatApiResponse & { ui_blocks?: DynamicComponent[] }, tempId: string) => {
     const targetId = data.messageId || tempId;
     seenMessageIds.current.add(targetId);
     setMessages((prev: ChatMessage[]) => {
-      const existingIdx = prev.findIndex(
+      let existingIdx = prev.findIndex(
         (m: ChatMessage) => m.messageId === targetId && m.role === 'assistant'
       );
+
+      // If no exact ID match, check for a thinking placeholder
+      if (existingIdx === -1) {
+        existingIdx = prev.findIndex((m: ChatMessage) => m.role === 'assistant' && m.isThinking);
+      }
+
       if (existingIdx !== -1) {
         const existing = prev[existingIdx];
-        const hasExistingContent = existing.content && existing.content.length > 0;
+        const hasExistingContent = existing.content && existing.content.trim().length > 0;
         const hasExistingThought = existing.thought && existing.thought.length > 0;
         const updated = [...prev];
         updated[existingIdx] = {
           ...existing,
-          content: hasExistingContent ? existing.content : data.reply || existing.content,
-          thought: hasExistingThought ? existing.thought : data.thought || existing.thought,
+          content: hasExistingContent ? existing.content : (data.reply || existing.content),
+          thought: hasExistingThought ? existing.thought : (data.thought || existing.thought),
           tool_calls: data.tool_calls || existing.tool_calls,
           agentName: data.agentName || existing.agentName,
           ui_blocks: data.ui_blocks || existing.ui_blocks,
+          isThinking: false,
         };
         return updated;
       }
@@ -166,6 +179,13 @@ export function useChatMessages(
           url: a.preview,
         })),
       },
+      {
+        role: 'assistant',
+        content: '',
+        messageId: `thinking-${tempId}`,
+        agentName: 'SuperClaw',
+        isThinking: true,
+      },
     ]);
 
     setIsLoading(true);
@@ -194,7 +214,7 @@ export function useChatMessages(
         })
       );
 
-      const response = await fetch('/api/chat?stream=true', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -226,28 +246,9 @@ export function useChatMessages(
         return;
       }
 
-      if (!response.body) throw new Error('No response body');
-
-      let finalData: (ChatApiResponse & { ui_blocks?: DynamicComponent[] }) | null = null;
-      
-      await processNdjsonStream<ChatApiResponse & { ui_blocks?: DynamicComponent[] }>(response.body, {
-        onChunk: (chunk) => {
-          if (currentSessionId === activeSessionRef.current) {
-            setMessages((prev) => 
-              applyChunkToMessages(prev, chunk as IncomingChunk, seenMessageIds.current)
-            );
-          }
-        },
-        onFinal: (data) => {
-          finalData = data;
-        },
-        onError: (err) => {
-          console.error('[Chat] Stream error:', err);
-        }
-      });
-
-      if (finalData && currentSessionId === activeSessionRef.current) {
-        updateAssistantResponse(finalData, tempId);
+      const data = await response.json();
+      if (currentSessionId === activeSessionRef.current) {
+        updateAssistantResponse(data, tempId);
       }
       
       // Only refresh sidebar if this was a new session creation
@@ -271,7 +272,7 @@ export function useChatMessages(
     isPostInFlight.current = true;
 
     try {
-      const response = await fetch('/api/chat?stream=true', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -297,38 +298,10 @@ export function useChatMessages(
         return;
       }
 
-      if (!response.body) throw new Error('No response body');
-
-      let finalData: (ChatApiResponse & { ui_blocks?: DynamicComponent[] }) | null = null;
-      
-      await processNdjsonStream<ChatApiResponse & { ui_blocks?: DynamicComponent[] }>(response.body, {
-        onChunk: (chunk) => {
-          if (currentSessionId === activeSessionRef.current) {
-            setMessages((prev) => 
-              applyChunkToMessages(prev, chunk as IncomingChunk, seenMessageIds.current)
-            );
-          }
-        },
-        onFinal: (data) => {
-          finalData = data;
-        },
-        onError: (err) => {
-          console.error('[Chat] Approval stream error:', err);
-        }
-      });
-
-      if (finalData) {
-        if (currentSessionId === activeSessionRef.current) {
-          updateAssistantResponse(finalData, `approval-${callId}`);
-        }
+      const data = await response.json();
+      if (currentSessionId === activeSessionRef.current) {
+        updateAssistantResponse(data, `approval-${callId}`);
       }
-
-      if (finalData) {
-        if (currentSessionId === activeSessionRef.current) {
-          updateAssistantResponse(finalData, `approval-${callId}`);
-        }
-      }
-
       fetchSessions();
     } catch (error) {
       console.error('Approval error:', error);
@@ -347,7 +320,7 @@ export function useChatMessages(
     isPostInFlight.current = true;
 
     try {
-      const response = await fetch('/api/chat?stream=true', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -369,9 +342,6 @@ export function useChatMessages(
             isError: true,
           },
         ]);
-      } else if (response.body) {
-        // Consume the stream even if we don't expect updates
-        await processNdjsonStream<ChatApiResponse & { ui_blocks?: DynamicComponent[] }>(response.body, {});
       }
       fetchSessions();
     } catch (error) {
@@ -391,7 +361,7 @@ export function useChatMessages(
     isPostInFlight.current = true;
 
     try {
-      const response = await fetch('/api/chat?stream=true', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -413,9 +383,6 @@ export function useChatMessages(
             isError: true,
           },
         ]);
-      } else if (response.body) {
-        // Consume the stream
-        await processNdjsonStream<ChatApiResponse & { ui_blocks?: DynamicComponent[] }>(response.body, {});
       }
       fetchSessions();
     } catch (error) {
@@ -435,7 +402,7 @@ export function useChatMessages(
     isPostInFlight.current = true;
 
     try {
-      const response = await fetch('/api/chat?stream=true', {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -461,30 +428,9 @@ export function useChatMessages(
         return;
       }
 
-      if (!response.body) throw new Error('No response body');
-
-      let finalData: (ChatApiResponse & { ui_blocks?: DynamicComponent[] }) | null = null;
-      
-      await processNdjsonStream<ChatApiResponse & { ui_blocks?: DynamicComponent[] }>(response.body, {
-        onChunk: (chunk) => {
-          if (currentSessionId === activeSessionRef.current) {
-            setMessages((prev) => 
-              applyChunkToMessages(prev, chunk as IncomingChunk, seenMessageIds.current)
-            );
-          }
-        },
-        onFinal: (data) => {
-          finalData = data;
-        },
-        onError: (err) => {
-          console.error('[Chat] Cancellation stream error:', err);
-        }
-      });
-
-      if (finalData) {
-        if (currentSessionId === activeSessionRef.current) {
-          updateAssistantResponse(finalData, `cancel-${taskId}`);
-        }
+      const data = await response.json();
+      if (currentSessionId === activeSessionRef.current) {
+        updateAssistantResponse(data, `cancel-${taskId}`);
       }
 
       fetchSessions();

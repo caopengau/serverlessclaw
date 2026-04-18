@@ -1,4 +1,5 @@
 import { IoTDataPlaneClient, PublishCommand } from '@aws-sdk/client-iot-data-plane';
+import { Resource } from 'sst';
 import { Context } from 'aws-lambda';
 import { BRIDGE_EVENT_SCHEMA } from '../lib/schema/events';
 import { logger } from '../lib/logger';
@@ -53,14 +54,15 @@ export async function handler(event: Record<string, unknown>, _context: Context)
 
   // Determine the primary broadcast topic
   // Priority: Collaboration > Workspace > Session > User
-  let topic = `users/${safeUserId}/signal`;
+  const prefix = `${Resource.App.name}/${Resource.App.stage}/`;
+  let subTopic = `users/${safeUserId}/signal`;
 
   if (collaborationId) {
-    topic = `collaborations/${sanitizeMqttTopic(collaborationId)}/signal`;
+    subTopic = `collaborations/${sanitizeMqttTopic(collaborationId)}/signal`;
   } else if (workspaceId) {
-    topic = `workspaces/${sanitizeMqttTopic(workspaceId)}/signal`;
+    subTopic = `workspaces/${sanitizeMqttTopic(workspaceId)}/signal`;
   } else if (sessionId) {
-    topic = `users/${safeUserId}/sessions/${sessionId}/signal`;
+    subTopic = `users/${safeUserId}/sessions/${sessionId}/signal`;
   }
 
   // Handle Global System Metrics (D5)
@@ -69,8 +71,10 @@ export async function handler(event: Record<string, unknown>, _context: Context)
     eventType === 'health_alert' ||
     eventType === 'metric_update'
   ) {
-    topic = 'system/metrics';
+    subTopic = 'system/metrics';
   }
+
+  const topic = `${prefix}${subTopic}`;
 
   try {
     // AWS IoT requires payload to be a Uint8Array or string

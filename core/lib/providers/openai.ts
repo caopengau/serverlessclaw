@@ -389,28 +389,40 @@ export class OpenAIProvider implements IProvider {
       });
 
       for await (const chunk of stream) {
-        // Handle 2026 Responses API stream events
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const rawChunk = chunk as any;
+        const type = rawChunk.type || '';
+        
+        if (type !== 'usage' && !type.endsWith('.delta')) {
+           console.log(`[OpenAI:Stream] Raw event: type=${type}`);
+        }
 
-        if (rawChunk.type === 'text.delta' && rawChunk.delta) {
-          yield { content: rawChunk.delta };
-        } else if (rawChunk.type === 'output_text.delta' && rawChunk.delta) {
-          yield { content: rawChunk.delta };
-        } else if (rawChunk.type === 'reasoning.delta' && rawChunk.delta) {
-          yield { thought: rawChunk.delta };
-        } else if (rawChunk.type === 'output_thought.delta' && rawChunk.delta) {
-          yield { thought: rawChunk.delta };
-        } else if (rawChunk.type === 'message.delta' && rawChunk.delta?.content) {
-          yield { content: rawChunk.delta.content };
-        } else if (rawChunk.type === 'message.delta' && rawChunk.delta?.reasoning) {
-          yield { thought: rawChunk.delta.reasoning };
-        } else if (rawChunk.type === 'usage' && rawChunk.usage) {
+        // Support both direct deltas and nested item deltas (2026 Responses API)
+        // Some events are prefixed with "response."
+        const delta = rawChunk.delta ?? rawChunk.item?.delta;
+
+        if ((type === 'text.delta' || type === 'output_text.delta' || type === 'response.text.delta' || type === 'response.output_text.delta') && delta) {
+          const content = typeof delta === 'string' ? delta : delta.value ?? delta.text ?? '';
+          if (content) {
+            console.log(`[OpenAI:Stream] Yielding content chunk: ${content.length} chars`);
+            yield { content };
+          }
+        } else if ((type === 'reasoning.delta' || type === 'output_thought.delta' || type === 'response.reasoning.delta' || type === 'response.output_thought.delta') && delta) {
+          const thought = typeof delta === 'string' ? delta : delta.value ?? delta.text ?? '';
+          if (thought) {
+            console.log(`[OpenAI:Stream] Yielding thought chunk: ${thought.length} chars`);
+            yield { thought };
+          }
+        } else if ((type === 'message.delta' || type === 'response.message.delta') && rawChunk.delta) {
+          if (rawChunk.delta.content) yield { content: rawChunk.delta.content };
+          if (rawChunk.delta.reasoning) yield { thought: rawChunk.delta.reasoning };
+        } else if ((type === 'usage' || type === 'response.usage') && (rawChunk.usage || rawChunk.response?.usage)) {
+          const usage = rawChunk.usage || rawChunk.response?.usage;
           yield {
             usage: {
-              prompt_tokens: rawChunk.usage.prompt_tokens ?? 0,
-              completion_tokens: rawChunk.usage.completion_tokens ?? 0,
-              total_tokens: rawChunk.usage.total_tokens ?? 0,
+              prompt_tokens: usage.prompt_tokens ?? 0,
+              completion_tokens: usage.completion_tokens ?? 0,
+              total_tokens: usage.total_tokens ?? 0,
             },
           };
         }

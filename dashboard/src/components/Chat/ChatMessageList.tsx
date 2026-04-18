@@ -233,6 +233,20 @@ const ChatMessageRow = memo(function ChatMessageRow({
 
   const shouldShowThought = showThinking ?? true;
 
+  // Visibility Guard: Hide the entire row if there's no visible content and it's not thinking
+  const hasVisibleContent = !!(
+    (m.content && m.content.trim().length > 0) ||
+    (m.thought && m.thought.trim().length > 0 && shouldShowThought) ||
+    (m.tool_calls && m.tool_calls.length > 0) ||
+    (m.ui_blocks && m.ui_blocks.length > 0) ||
+    (m.attachments && m.attachments.length > 0) ||
+    (m.options && m.options.length > 0)
+  );
+
+  if (m.role === 'assistant' && !hasVisibleContent && !m.isThinking) {
+    return null;
+  }
+
   return (
     <div key={key} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
       <div
@@ -273,7 +287,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
               </Card>
             )}
 
-            {(m.role === 'user' || m.content) && (
+            {(m.role === 'user' || (m.content && m.content.trim().length > 0) || m.isThinking) && (
               <Card
                 variant="glass"
                 padding="sm"
@@ -283,10 +297,24 @@ const ChatMessageRow = memo(function ChatMessageRow({
                     : 'text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
                 }`}
               >
-                {m.content && (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-                    {m.content}
-                  </ReactMarkdown>
+                {m.isThinking ? (
+                  <div className="flex items-center gap-2 py-1">
+                    <Loader2 size={14} className="animate-spin text-cyber-green" />
+                    <Typography
+                      variant="caption"
+                      weight="bold"
+                      color="primary"
+                      className="animate-pulse uppercase tracking-wider text-[10px]"
+                    >
+                      Analysing Signal...
+                    </Typography>
+                  </div>
+                ) : (
+                  m.content && (
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+                      {m.content}
+                    </ReactMarkdown>
+                  )
                 )}
               </Card>
             )}
@@ -496,7 +524,7 @@ export function ChatMessageList({
           />
         ))}
 
-        {isLoading && !msgSearchQuery && (
+        {isLoading && !msgSearchQuery && !messages.some(m => m.role === 'assistant' && m.isThinking) && (
           <div className="flex gap-3 justify-start">
             <div className="w-8 h-8 rounded shrink-0 flex items-center justify-center border bg-cyber-green/10 border-cyber-green/30 text-cyber-green animate-pulse">
               <Bot size={16} />

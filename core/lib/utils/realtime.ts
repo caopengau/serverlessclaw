@@ -1,4 +1,5 @@
 import { IoTDataPlaneClient, PublishCommand } from '@aws-sdk/client-iot-data-plane';
+import { Resource } from 'sst';
 import { logger } from '../logger';
 
 // Lazy initialization so it doesn't fail in environments without AWS credentials unless used
@@ -10,12 +11,19 @@ export async function publishToRealtime(topic: string, payload: unknown): Promis
   }
 
   try {
+    // SST v3 Realtime isolation requires prefixing topics with app/stage
+    const prefix = `${Resource.App.name}/${Resource.App.stage}/`;
+    const fullTopic = topic.startsWith(prefix) ? topic : `${prefix}${topic}`;
+
+    console.log(`[Realtime:Publish] Publishing to: ${fullTopic}`);
+
     const command = new PublishCommand({
-      topic,
+      topic: fullTopic,
       payload: Buffer.from(JSON.stringify(payload)),
       qos: 1,
     });
     await iot.send(command);
+    console.log(`[Realtime:Publish] ✅ Published successfully to ${fullTopic}`);
   } catch (error) {
     logger.error(`[Realtime] Failed to publish to ${topic}:`, error);
   }

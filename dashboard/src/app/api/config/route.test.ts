@@ -13,8 +13,10 @@ describe('Config API Route', () => {
 
   it('returns realtime URL with wss:// prefix', async () => {
     const { GET } = await import('./route');
-    const res = await GET();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await GET({} as any);
     const data = await res.json();
+
 
     expect(res.status).toBe(200);
     expect(data.realtime.url).toBe('wss://example.com/mqtt');
@@ -29,8 +31,10 @@ describe('Config API Route', () => {
     }));
 
     const { GET } = await import('./route');
-    const res = await GET();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await GET({} as any);
     const data = await res.json();
+
 
     expect(data.realtime.url).toBe('wss://example.com/mqtt');
   });
@@ -44,8 +48,10 @@ describe('Config API Route', () => {
     }));
 
     const { GET } = await import('./route');
-    const res = await GET();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res = await GET({} as any);
     const data = await res.json();
+
 
     expect(data.realtime.url).toBe('wss://example.com/mqtt');
   });

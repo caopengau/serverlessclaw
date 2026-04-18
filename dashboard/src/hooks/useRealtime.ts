@@ -10,18 +10,26 @@ export interface UseRealtimeOptions {
 }
 
 /**
- * Shared hook for AWS IoT Core MQTT connectivity.
- * Used by Chat, Collaboration Canvas, and Resilience Gauge.
+ * Clean & Simple hook for AWS IoT Core MQTT connectivity.
  */
 export function useRealtime({
   topics = [],
   onMessage,
-  userId = 'dashboard-user',
+  userId: userIdOption,
 }: UseRealtimeOptions = {}) {
-  const { isConnected, error, subscribe } = useRealtimeContext();
+  const { 
+    isConnected, 
+    error, 
+    userId: contextUserId, 
+    subscribe,
+    sessions,
+    pendingMessages,
+    fetchSessions 
+  } = useRealtimeContext();
+
+  const userId = userIdOption || contextUserId || 'dashboard-user';
   const onMessageRef = useRef(onMessage);
 
-  // Keep callback ref updated to avoid closure traps
   useEffect(() => {
     onMessageRef.current = onMessage;
   }, [onMessage]);
@@ -33,17 +41,13 @@ export function useRealtime({
 
   useEffect(() => {
     if (!onMessageRef.current) return;
-
-    const callbackWrapper = (topic: string, payload: RealtimeMessage) => {
-      onMessageRef.current?.(topic, payload);
-    };
-
-    const unsubscribe = subscribe(allTopics, callbackWrapper);
-
+    console.log(`[useRealtime] Subscribing to: ${allTopics.join(', ')}`);
+    const unsubscribe = subscribe(allTopics, (topic, data) => onMessageRef.current?.(topic, data));
     return () => {
+      console.log(`[useRealtime] Unsubscribing from topics...`);
       unsubscribe();
     };
   }, [allTopics, subscribe]);
 
-  return { isConnected, error };
+  return { isConnected, error, sessions, pendingMessages, fetchSessions, isLive: isConnected };
 }

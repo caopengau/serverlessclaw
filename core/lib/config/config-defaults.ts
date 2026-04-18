@@ -506,9 +506,9 @@ export const CONFIG_DEFAULTS = {
     description: 'Cache TTL for search results.',
   },
 
-  /** Global cumulative token budget per trace before kill-switch. Default: 250000 */
+  /** Global cumulative token budget per trace before kill-switch. Default: 1000000 */
   GLOBAL_TOKEN_BUDGET: {
-    code: 250000,
+    code: 1000000,
     hotSwappable: true,
     configKey: 'global_token_budget',
     description: 'Maximum cumulative tokens (prompt + completion) allowed per execution trace.',

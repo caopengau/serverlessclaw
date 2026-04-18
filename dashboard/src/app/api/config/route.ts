@@ -15,8 +15,14 @@ const typedResource = Resource as unknown as SSTResource;
  * Returns public configuration for the dashboard.
  * Safe to call from client components.
  */
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    // Debug diagnostic: log the MQTT URL being used by the client
+    const debugUrl = req.nextUrl?.searchParams?.get('__debug_url');
+    if (debugUrl) {
+      console.log('[Config API] [DEBUG] Client MQTT URL:', decodeURIComponent(debugUrl));
+      return NextResponse.json({ ok: true });
+    }
     const realtime = typedResource.RealtimeBus;
     const realtimeUrl =
       realtime && typeof realtime.endpoint === 'string'
@@ -32,6 +38,8 @@ export async function GET() {
     }
 
     return NextResponse.json({
+      app: Resource.App.name,
+      stage: Resource.App.stage,
       realtime: {
         url: realtimeUrl,
         authorizer: realtime?.authorizer,

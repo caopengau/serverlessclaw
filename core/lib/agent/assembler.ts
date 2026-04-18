@@ -157,17 +157,30 @@ export class AgentAssembler {
       import('../types/index'),
       memory.getSummary(storageId),
     ]);
+
+    // B1: Deduplicate history by messageId to prevent context inflation from retries/multiple saves
+    const seenIds = new Set<string>();
+    const uniqueHistory = history.filter((m) => {
+      if (!m.messageId) return true; // Keep messages without IDs
+      if (seenIds.has(m.messageId)) return false;
+      seenIds.add(m.messageId);
+      return true;
+    });
+
+    // Ensure we have a valid ID even if pageContext is missing
+    const effectiveTraceId = pageContext?.traceId || `msg-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
     const currentMessage: Message = {
       role: MessageRole.USER,
       content: userText,
       attachments: incomingAttachments ?? [],
-      traceId: pageContext?.traceId ?? 'unknown',
-      messageId: pageContext?.agentId ?? `msg-${Date.now()}`, // Fallback if no pageContext
+      traceId: effectiveTraceId,
+      messageId: effectiveTraceId,
       thought: '',
       tool_calls: [],
     };
 
-    const fullHistory = [...history, currentMessage];
+    const fullHistory = [...uniqueHistory, currentMessage];
 
     const contextLimit = capabilities.contextWindow ?? LIMITS.MAX_CONTEXT_LENGTH;
 

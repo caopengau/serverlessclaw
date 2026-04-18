@@ -22,7 +22,13 @@ export class StreamingExecutor extends BaseExecutor {
       taskId,
     } = options;
 
-    yield { messageId: traceId || taskId } as MessageChunk;
+    const agentSuffix =
+      options.currentInitiator === 'orchestrator' || this.agentId === 'superclaw'
+        ? 'superclaw'
+        : this.agentId;
+    const assistantMessageId = `${traceId}-${agentSuffix}`;
+
+    yield { messageId: assistantMessageId } as MessageChunk;
 
     const cancellationMsg = await ExecutorHelper.checkCancellation(taskId);
     if (cancellationMsg) {

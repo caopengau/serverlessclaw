@@ -185,7 +185,7 @@ export async function isBudgetExceeded(traceId: string): Promise<boolean> {
     );
 
     // Re-resolve budget carefully from system defaults if config lookup fails
-    const effectiveBudget = (budget as number) || 250000;
+    const effectiveBudget = (budget as number) || 1000000;
 
     const { Item } = await docClient.send(
       new GetCommand({

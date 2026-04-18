@@ -19,7 +19,13 @@ interface Subscription {
 interface RealtimeContextType {
   isConnected: boolean;
   error: Error | null;
+  userId: string | null;
   subscribe: (topics: string[], callback: MessageCallback) => () => void;
+  sessions: any[];
+  pendingMessages: any[];
+  setPendingMessages: React.Dispatch<React.SetStateAction<any[]>>;
+  fetchSessions: () => Promise<void>;
+  isLive: boolean;
 }
 
 const RealtimeContext = createContext<RealtimeContextType | null>(null);
@@ -32,195 +38,165 @@ export function useRealtimeContext() {
   return context;
 }
 
+const STABLE_USER_ID = 'dashboard-user';
+
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
-  const isConnectedRef = useRef(false);
-  const mountedRef = useRef(true);
   const [error, setError] = useState<Error | null>(null);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [pendingMessages, setPendingMessages] = useState<any[]>([]);
+
   const mqttClientRef = useRef<mqtt.MqttClient | null>(null);
-  const connectingRef = useRef(false);
-  const lastAttemptRef = useRef(0);
   const subscriptionsRef = useRef<Set<Subscription>>(new Set());
-  const pendingSubscriptionsTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const configCacheRef = useRef<any>(null);
+  const prefixRef = useRef<string>('');
 
-  const batchSubscribe = useCallback(() => {
-    const client = mqttClientRef.current;
-    if (!client || !isConnectedRef.current) return;
-
-    const allTopics = new Set<string>();
-    subscriptionsRef.current.forEach(sub => {
-      sub.topics.forEach(t => allTopics.add(t));
-    });
-
-    if (allTopics.size > 0) {
-      const topicList = Array.from(allTopics).sort();
-      console.log(`[Realtime] Batch subscribing to ${topicList.length} topics`);
-      client.subscribe(topicList);
+  const fetchSessions = useCallback(async () => {
+    try {
+      const res = await fetch('/api/chat');
+      if (res.ok) {
+        const data = await res.json();
+        setSessions(data.sessions || []);
+      }
+    } catch (err) {
+      console.warn('[Realtime] Failed to fetch sessions', err);
     }
   }, []);
 
   const connect = useCallback(async () => {
-    if (!mountedRef.current || mqttClientRef.current || connectingRef.current) return;
-
-    // Minimum 1 second between connection attempts to break fast loops
-    const now = Date.now();
-    if (now - lastAttemptRef.current < 1000) {
-      console.warn('[Realtime] Throttling connection attempt');
-      return;
-    }
-
-    connectingRef.current = true;
-    lastAttemptRef.current = now;
+    if (mqttClientRef.current) return;
 
     try {
-      const res = await fetch('/api/config');
-      const config = await res.json();
-      if (!mountedRef.current) {
-        return;
+      if (!configCacheRef.current) {
+        const res = await fetch('/api/config');
+        configCacheRef.current = await res.json();
       }
-      if (!config.realtime?.url) {
-        console.warn('[Realtime] IoT URL missing in config. This usually happens if the RealtimeBus is not linked or deployed. Streaming and LIVE updates will not work.');
-        return;
-      }
-
-      const baseUrl = config.realtime.url.endsWith('/mqtt')
-        ? config.realtime.url
-        : `${config.realtime.url}/mqtt`;
-
-      let token: string | null = null;
-      try {
-        const tokenKey = 'sc_realtime_token';
-        token = localStorage.getItem(tokenKey);
-        if (!token) {
-          token = `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-          localStorage.setItem(tokenKey, token);
-        }
-      } catch {
-        token = `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-      }
-
-      console.log('[Realtime] Generating connection URL with token:', token.substring(0, 8) + '...');
-      const mqttUrl = config.realtime.authorizer
-        ? `${baseUrl}?x-amz-customauthorizer-name=${config.realtime.authorizer}&token=${encodeURIComponent(token)}`
-        : `${baseUrl}?token=${encodeURIComponent(token)}`;
-
-      // Derive a base clientId from token to associate with user, but add a random suffix
-      // to avoid conflicts between multiple tabs (which would cause connection flapping).
-      // We use the 'dashboard-' prefix as it is explicitly allowed in the IoT policy.
-      const safeToken = token.substring(0, 16).replace(/[^a-zA-Z0-9]/g, '');
-      const tabId = Math.random().toString(36).slice(2, 6);
-      const clientId = `dashboard-${safeToken}-${tabId}`;
       
-      console.log('[Realtime] Establishing shared connection:', clientId);
-      const client = mqtt.connect(mqttUrl, {
-        clientId,
-        clean: true,
-        connectTimeout: 30000,
-        reconnectPeriod: 5000, // Try to reconnect every 5 seconds
-        manualConnect: false,
+      const config = configCacheRef.current;
+      prefixRef.current = `${config.app}/${config.stage}/`;
+
+      if (!config.realtime?.url) return;
+const clientId = `dash_${Math.random().toString(36).substring(2, 10)}`;
+const token = 'dashboard-dev-token-elegant'; 
+
+// AWS IoT Core standard WebSocket URL with custom authorizer
+const host = config.realtime.url.replace(/^wss?:\/\//, '').replace(/\/mqtt$/, '');
+const mqttUrl = `wss://${host}/mqtt?x-amz-customauthorizer-name=${config.realtime.authorizer}&x-amz-customauthorizer-token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`;
+
+console.log(`[Realtime] ⚡ Connecting to: wss://${host}/mqtt`);
+
+const client = mqtt.connect(mqttUrl, {
+  clientId,
+  protocol: 'wss',
+  protocolVersion: 4, 
+  clean: true,
+  reconnectPeriod: 5000,
+  connectTimeout: 30000,
+});
+      client.on('connect', () => {
+        console.log('[Realtime] ✅ Connected');
+        setIsConnected(true);
+        setError(null);
+        
+        // Restore existing subscriptions
+        subscriptionsRef.current.forEach(sub => {
+          const prefixed = sub.topics.map(t => `${prefixRef.current}${t}`);
+          client.subscribe(prefixed);
+        });
       });
 
-      client.on('connect', () => {
-        setIsConnected(true);
-        isConnectedRef.current = true;
-        setError(null);
-        console.log('[Realtime] MQTT Connection Success. Shared connection active.');
-        
-        // Re-subscribe to all existing topics on reconnect
-        batchSubscribe();
+      client.on('message', (topic, payload) => {
+        try {
+          const payloadStr = payload.toString();
+          console.log(`[Realtime:MQTT] Received on ${topic}: ${payloadStr.substring(0, 100)}${payloadStr.length > 100 ? '...' : ''}`);
+          
+          const data = JSON.parse(payloadStr) as RealtimeMessage;
+          const displayTopic = topic.startsWith(prefixRef.current)
+            ? topic.slice(prefixRef.current.length)
+            : topic;
+
+          let matchCount = 0;
+          subscriptionsRef.current.forEach(sub => {
+            const matches = sub.topics.some(t => {
+              // 1. Exact match
+              if (t === displayTopic) return true;
+              
+              // 2. MQTT Wildcard matching
+              const pattern = t
+                .replace(/\//g, '\\/') // Escape slashes
+                .replace(/\+/g, '[^\\/]+') // '+' matches one level
+                .replace(/#/g, '.*'); // '#' matches everything after
+              
+              const regex = new RegExp(`^${pattern}$`);
+              return regex.test(displayTopic);
+            });
+            if (matches) {
+              matchCount++;
+              sub.callback(displayTopic, data);
+            }
+          });
+          
+          if (matchCount === 0) {
+            console.warn(`[Realtime:MQTT] No subscription matched for topic: ${displayTopic}`);
+          } else {
+            console.log(`[Realtime:MQTT] Dispatched to ${matchCount} subscribers`);
+          }
+        } catch (e) {
+          console.error('[Realtime:MQTT] Failed to parse message', e);
+        }
       });
 
       client.on('error', (err) => {
-        console.error('[Realtime] MQTT Connection Error:', err);
+        console.error('[Realtime] 🚫 Error:', err.message);
         setError(err);
-        // If it's an auth error, we might want to stop, but mqtt.js doesn't always 
-        // give us clear auth error codes in the browser.
       });
 
-      client.on('close', () => {
-        console.warn('[Realtime] MQTT Connection Closed (Check connection budget or broker logs)');
-        setIsConnected(false);
-        isConnectedRef.current = false;
-      });
-
-      client.on('offline', () => {
-        console.warn('[Realtime] MQTT Client Offline');
-      });
-
-      client.on('message', (topic: string, payload: Buffer) => {
-        try {
-          const data = JSON.parse(payload.toString()) as RealtimeMessage;
-          subscriptionsRef.current.forEach(sub => {
-            const matches = sub.topics.some(t => {
-              if (t === topic) return true;
-              if (t.endsWith('/#')) {
-                const prefix = t.slice(0, -2);
-                return topic.startsWith(prefix);
-              }
-              if (t.includes('+')) {
-                const parts = t.split('/');
-                const topicParts = topic.split('/');
-                if (parts.length !== topicParts.length) return false;
-                return parts.every((p, i) => p === '+' || p === topicParts[i]);
-              }
-              return false;
-            });
-
-            if (matches) {
-              sub.callback(topic, data);
-            }
-          });
-        } catch (e) {
-          console.error('[Realtime] Dispatch error:', e);
-        }
-      });
+      client.on('close', () => setIsConnected(false));
 
       mqttClientRef.current = client;
     } catch (e) {
-      console.error('[Realtime] Initialization failed critical error:', e);
-      setError(e instanceof Error ? e : new Error(String(e)));
-    } finally {
-      connectingRef.current = false;
+      console.error('[Realtime] Setup failed', e);
     }
-  }, [batchSubscribe]);
+  }, []);
 
   useEffect(() => {
-    mountedRef.current = true;
-    console.log('[Realtime] Provider mounted');
     connect();
+    fetchSessions();
+    const interval = setInterval(fetchSessions, 30000);
     return () => {
-      mountedRef.current = false;
-      console.log('[Realtime] Provider unmounting');
-      if (mqttClientRef.current) {
-        console.log('[Realtime] Closing shared connection');
-        mqttClientRef.current.end(true);
-        mqttClientRef.current = null;
-      }
+      clearInterval(interval);
+      mqttClientRef.current?.end();
     };
-  }, [connect]);
+  }, [connect, fetchSessions]);
 
   const subscribe = useCallback((topics: string[], callback: MessageCallback) => {
-    const sub: Subscription = { topics, callback };
+    const sub = { topics, callback };
     subscriptionsRef.current.add(sub);
-
-    // Batch new subscriptions using a short delay to group multiple useRealtime() calls
-    if (mqttClientRef.current && isConnectedRef.current) {
-      if (pendingSubscriptionsTimeoutRef.current) {
-        clearTimeout(pendingSubscriptionsTimeoutRef.current);
-      }
-      pendingSubscriptionsTimeoutRef.current = setTimeout(() => {
-        batchSubscribe();
-        pendingSubscriptionsTimeoutRef.current = null;
-      }, 50);
+    
+    if (mqttClientRef.current?.connected) {
+      const prefixed = topics.map(t => `${prefixRef.current}${t}`);
+      console.log(`[Realtime] Subscribing to NEW topics: ${prefixed.join(', ')}`);
+      mqttClientRef.current.subscribe(prefixed);
     }
 
     return () => {
+      console.log(`[Realtime] Removing subscription for topics: ${topics.join(', ')}`);
       subscriptionsRef.current.delete(sub);
     };
-  }, [batchSubscribe]);
+  }, []);
 
   return (
-    <RealtimeContext.Provider value={{ isConnected, error, subscribe }}>
+    <RealtimeContext.Provider value={{ 
+      isConnected, 
+      error, 
+      userId: STABLE_USER_ID, 
+      subscribe,
+      sessions,
+      pendingMessages,
+      setPendingMessages,
+      fetchSessions,
+      isLive: isConnected
+    }}>
       {children}
     </RealtimeContext.Provider>
   );

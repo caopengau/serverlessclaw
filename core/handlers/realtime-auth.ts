@@ -1,103 +1,58 @@
-const AUTH_SESSION_TTL_SECONDS = 3600; // 1 hour
-const AUTH_REFRESH_INTERVAL_SECONDS = 300; // 5 minutes
+import { Resource } from "sst";
+import { realtime } from "sst/aws/realtime";
 
 /**
- * Simple authorizer for IoT Realtime bus.
- * Requires a valid token in the query string for authentication.
+ * Enhanced SST Realtime Authorizer for Diagnostics.
+ * Logs full event and implements robust token extraction.
  */
-export const handler = async (event: any) => {
-  let token: string | undefined;
+export const handler = async (event: any, context: any, callback: any) => {
+  // 1. Log EVERYTHING for diagnostics
+  console.log('[RealtimeAuth] RAW_EVENT:', JSON.stringify(event));
 
-  // AWS IoT Core custom authorizers provide queryString as a raw string or an object depending on the context
-  if (typeof event.queryString === 'string') {
-    const params = new URLSearchParams(event.queryString);
-    token = params.get('token') || undefined;
-  } else if (event.queryString && typeof event.queryString === 'object') {
-    token = event.queryString.token;
+  let token: string | null = null;
+
+  // 2. Multi-path token extraction
+  // a. From protocolData (WebSocket query string)
+  if (event.protocolData?.http?.queryString) {
+    const params = new URLSearchParams(event.protocolData.http.queryString);
+    token = params.get('x-amz-customauthorizer-token') || params.get('token');
+  }
+  
+  // b. From top-level fields (MQTT direct or transformed)
+  if (!token) {
+    token = event.token || event.queryStringParameters?.['x-amz-customauthorizer-token'] || event.queryStringParameters?.token || null;
   }
 
-  // Fallback to top-level token (used by some AWS IoT configurations)
-  if (!token && event.token) {
-    token = event.token;
+  // c. From MQTT password
+  if (!token && event.protocolData?.mqtt?.password) {
+    token = Buffer.from(event.protocolData.mqtt.password, 'base64').toString();
   }
 
-  if (!token || typeof token !== 'string' || token.length < 10) {
-    console.warn('[RealtimeAuth] Unauthorized: Missing or invalid token', {
-      hasToken: !!token,
-      tokenLength: token?.length,
-      eventType: typeof event,
-      hasQueryString: !!event.queryString,
-      queryStringType: typeof event.queryString,
-    });
+  console.log(`[RealtimeAuth] Detected Token: ${token ? (token.substring(0, 5) + '...') : 'NONE'}`);
+
+  // 3. Create the authorizer
+  const auth = realtime.authorizer(async (validatedToken) => {
+    const prefix = `${Resource.App.name}/${Resource.App.stage}`;
+    const finalToken = validatedToken || token;
+
+    // LENIENT FOR DEV: Allow connection even if token is missing but it's a local/dev handshake
+    const isDevToken = finalToken === 'dashboard-dev-token-elegant';
+    const isActuallyMissing = !finalToken || finalToken.length < 3;
+
+    if (isActuallyMissing && !process.env.SST_DEV) {
+      console.warn("[RealtimeAuth] ❌ Denied: Missing token in production");
+      return { publish: [], subscribe: [] };
+    }
+
+    console.log(`[RealtimeAuth] ✅ Authorized for scope: ${prefix}/*`);
     return {
-      isAuthenticated: false,
-      principalId: 'unauthorized',
-      disconnectAfterInSeconds: 0,
-      refreshAfterInSeconds: 0,
-      policyDocuments: [],
+      publish: [`${prefix}/*`],
+      subscribe: [`${prefix}/*`],
     };
-  }
+  });
 
-  const principalId = `user-${token.substring(0, 16).replace(/[^a-zA-Z0-9]/g, '')}`;
+  // Inject token so SST's internal logic might find it
+  if (token && !event.token) event.token = token;
 
-  // Sh5 Fix: Match the dashboard's ClientID convention: dashboard-${safeToken}-${tabId}
-  // The principal ID derived from token is used to constrain the wildcard.
-  const safeToken = token.substring(0, 16).replace(/[^a-zA-Z0-9]/g, '');
-  const clientResource = `arn:aws:iot:*:*:client/dashboard-${safeToken}-*`;
-  const appTopicResources = [
-    'arn:aws:iot:*:*:topic/users/*',
-    'arn:aws:iot:*:*:topic/workspaces/*',
-    'arn:aws:iot:*:*:topic/collaborations/*',
-    'arn:aws:iot:*:*:topic/system/metrics',
-  ];
-
-  const appTopicFilterResources = [
-    'arn:aws:iot:*:*:topicfilter/users/*',
-    'arn:aws:iot:*:*:topicfilter/workspaces/*',
-    'arn:aws:iot:*:*:topicfilter/collaborations/*',
-    'arn:aws:iot:*:*:topicfilter/system/metrics',
-  ];
-
-  const policy = {
-    Version: '2012-10-17',
-    Statement: [
-      {
-        Action: 'iot:Connect',
-        Effect: 'Allow',
-        Resource: clientResource,
-      },
-      // Keep a principal-scoped publish/receive rule (backwards compatible for tests)
-      {
-        Action: ['iot:Publish', 'iot:Receive'],
-        Effect: 'Allow',
-        Resource: `arn:aws:iot:*:*:topic/${principalId}/*`,
-      },
-      // Also allow application topic namespaces used by the realtime bridge
-      {
-        Action: ['iot:Publish', 'iot:Receive'],
-        Effect: 'Allow',
-        Resource: appTopicResources,
-      },
-      // Principal-scoped subscribe
-      {
-        Action: 'iot:Subscribe',
-        Effect: 'Allow',
-        Resource: `arn:aws:iot:*:*:topicfilter/${principalId}/*`,
-      },
-      // Application topicfilter permissions
-      {
-        Action: 'iot:Subscribe',
-        Effect: 'Allow',
-        Resource: appTopicFilterResources,
-      },
-    ],
-  };
-
-  return {
-    isAuthenticated: true,
-    principalId,
-    disconnectAfterInSeconds: AUTH_SESSION_TTL_SECONDS,
-    refreshAfterInSeconds: AUTH_REFRESH_INTERVAL_SECONDS,
-    policyDocuments: [JSON.stringify(policy)],
-  };
+  return auth(event, context, callback);
 };

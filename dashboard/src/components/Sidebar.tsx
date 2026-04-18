@@ -35,6 +35,7 @@ import { useUICommand } from '@/components/Providers/UICommandProvider';
 import { useTheme } from 'next-themes';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
+import { useRealtimeContext } from '@/components/Providers/RealtimeProvider';
 
 /**
  * Main application sidebar component.
@@ -48,6 +49,7 @@ export default function Sidebar() {
   const { isSidebarCollapsed: isCollapsed, setSidebarCollapsed } = useUICommand();
   const { t, locale, setLocale } = useTranslations();
   const { theme, setTheme } = useTheme();
+  const { isConnected } = useRealtimeContext();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -286,11 +288,11 @@ export default function Sidebar() {
                   <div className="text-[10px] text-cyber-green mt-0 flex items-center gap-3 font-bold uppercase">
                     <div className="w-8 h-6 flex items-center justify-center shrink-0">
                       <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-green opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-cyber-green"></span>
+                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'} opacity-75`}></span>
+                        <span className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'}`}></span>
                       </span>
                     </div>
-                    {t('SYSTEM_ONLINE')}
+                    {isConnected ? t('CONNECTED') : t('SYSTEM_STATUS')}
                   </div>
                 </>
               )}
