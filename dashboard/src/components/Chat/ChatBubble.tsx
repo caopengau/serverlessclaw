@@ -11,7 +11,7 @@ import { ChatInput } from './ChatInput';
 import { useChatConnection } from './useChatConnection';
 import { useChatMessages } from './useChatMessages';
 import { usePageContext } from '@/components/Providers/PageContextProvider';
-import { PageContextData } from './types';
+import { PageContextData, ChatMessage } from './types';
 
 /**
  * Global Chat Bubble component that floats on all pages.
@@ -27,7 +27,9 @@ export default function ChatBubble() {
   const [isLoading, setIsLoading] = useState(false);
   const isPostInFlight = useRef<boolean>(false);
   const activeSessionRef = useRef<string>('');
+  // --- Refs ---
   const scrollRef = useRef<HTMLDivElement>(null);
+  const setMessagesRef = useRef<React.Dispatch<React.SetStateAction<ChatMessage[]>>>(() => undefined);
 
   // Input state management (mimicking ChatContent)
   const [input, setInput] = useState('');
@@ -36,13 +38,14 @@ export default function ChatBubble() {
   // --- Hooks ---
   const { seenMessageIds, fetchSessions } = useChatConnection(
     activeSessionId,
-    () => {}, 
+    setMessagesRef,
     setIsLoading,
     isPostInFlight
   );
 
   const {
     messages,
+    setMessages,
     sendMessage,
     handleFiles,
     attachments,
@@ -57,6 +60,8 @@ export default function ChatBubble() {
     { current: false }, // skipNextHistoryFetch
     activeSessionRef
   );
+
+  setMessagesRef.current = setMessages;
 
   // Hide the bubble on the main chat page to avoid redundancy
   if (pathname === '/chat' || pathname === '/') {

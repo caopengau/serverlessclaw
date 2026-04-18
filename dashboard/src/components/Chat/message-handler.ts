@@ -34,12 +34,22 @@ export function shouldProcessChunk(
   // Normalize incoming userId (remove CONV# prefix if present)
   const incomingUserId = data.userId?.startsWith('CONV#') ? data.userId.split('#')[1] : data.userId;
 
-  if (incomingUserId !== expectedUserId) {
+  // The dashboard client cannot read the HTTP-only session cookie user ID, so
+  // treat the default sentinel as wildcard and rely on session/type matching.
+  const useStrictUserFilter = expectedUserId !== 'dashboard-user';
+
+  if (useStrictUserFilter && incomingUserId !== expectedUserId) {
     return false;
   }
 
   const type = data.type || data['detail-type'];
-  if (type !== 'chunk' && type !== 'TEXT_MESSAGE_CONTENT' && type !== 'outbound_message') {
+  if (type !== 'chunk' && type !== 'TEXT_MESSAGE_CONTENT') {
+    return false;
+  }
+
+  // Stable message IDs are required to merge chunk updates into one bubble
+  // and avoid echo/duplicate rendering from unrelated realtime events.
+  if (!data.messageId) {
     return false;
   }
 

@@ -230,7 +230,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
   const components = useMemo(() => markdownComponents(m.role), [m.role]);
   const [comment, setComment] = React.useState('');
 
-  const shouldShowThought = showThinking || (isLast && isLoading && m.thought);
+  const shouldShowThought = showThinking ?? true;
 
   return (
     <div key={key} className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>

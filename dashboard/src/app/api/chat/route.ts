@@ -87,8 +87,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         let finalResponse = '';
         let finalThought = '';
         let streamToolCalls: unknown[] | undefined;
+        let streamMessageId: string | undefined;
         let fallbackTraceId: string | undefined;
         for await (const chunk of stream) {
+          if (!streamMessageId && chunk.messageId) {
+            streamMessageId = chunk.messageId;
+          }
           if (chunk.content) finalResponse += chunk.content;
           if (chunk.thought) finalThought += chunk.thought;
           if (chunk.tool_calls) streamToolCalls = chunk.tool_calls;
@@ -127,7 +131,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           thought: finalThought,
           agentName: 'SuperClaw',
           tool_calls: streamToolCalls,
-          messageId: clientTraceId || fallbackTraceId,
+          messageId: streamMessageId || clientTraceId || fallbackTraceId,
         };
       })();
 

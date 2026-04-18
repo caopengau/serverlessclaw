@@ -11,7 +11,7 @@ import { useRealtime, RealtimeMessage } from '@/hooks/useRealtime';
 
 export function useChatConnection(
   activeSessionId: string,
-  setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>,
+  setMessagesRef: React.MutableRefObject<React.Dispatch<React.SetStateAction<ChatMessage[]>>>,
   setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
   isPostInFlight: React.MutableRefObject<boolean>
 ) {
@@ -44,7 +44,7 @@ export function useChatConnection(
         const response = await fetch(`/api/chat?sessionId=${sessionId}`);
         const data = await response.json();
         if (data.history) {
-          setMessages((prev) => {
+          setMessagesRef.current((prev) => {
             const { messages, seenIds } = mergeHistoryWithMessages(prev, data.history);
             seenMessageIds.current = seenIds;
             return messages;
@@ -54,7 +54,7 @@ export function useChatConnection(
         console.warn('Silent History fetch failed:', e);
       }
     },
-    [isPostInFlight, setMessages]
+    [isPostInFlight, setMessagesRef]
   );
 
   const handleMessage = useCallback(
@@ -66,7 +66,7 @@ export function useChatConnection(
       };
 
       if (shouldProcessChunk(normalized, currentActiveId, userId)) {
-        setMessages((prev) => applyChunkToMessages(prev, normalized, seenMessageIds.current));
+        setMessagesRef.current((prev) => applyChunkToMessages(prev, normalized, seenMessageIds.current));
       } else {
         // If we got a signal for the active session but it's not a chunk (e.g., status update),
         // refresh history to get the latest state.
@@ -75,11 +75,16 @@ export function useChatConnection(
         }
       }
     },
-    [fetchHistorySilently, isPostInFlight, setMessages]
+    [fetchHistorySilently, isPostInFlight, setMessagesRef]
   );
 
   const { isConnected: isRealtimeActive } = useRealtime({
-    topics: ['collaborations/+/signal', 'workspaces/+/signal'],
+    topics: [
+      'users/+/signal',
+      'users/+/sessions/+/signal',
+      'collaborations/+/signal',
+      'workspaces/+/signal',
+    ],
     onMessage: handleMessage,
     userId,
   });

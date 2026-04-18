@@ -12,6 +12,7 @@ describe('shouldProcessChunk', () => {
   it('returns true when chunk has no sessionId (general topic)', () => {
     const chunk: IncomingChunk & { 'detail-type': string } = {
       message: 'Hello',
+      messageId: 'trace-1',
       userId: 'user-1',
       'detail-type': 'chunk',
     };
@@ -21,6 +22,7 @@ describe('shouldProcessChunk', () => {
   it('normalizes incoming userId by stripping CONV# prefix', () => {
     const chunk: IncomingChunk & { 'detail-type': string } = {
       message: 'Hello',
+      messageId: 'trace-1',
       userId: 'CONV#user-1#sess-1',
       sessionId: 'sess-1',
       'detail-type': 'chunk',
@@ -31,6 +33,7 @@ describe('shouldProcessChunk', () => {
   it('handles incoming userId with CONV# prefix but no additional # segments', () => {
     const chunk: IncomingChunk & { 'detail-type': string } = {
       message: 'Hello',
+      messageId: 'trace-1',
       userId: 'CONV#user-1',
       sessionId: 'sess-1',
       'detail-type': 'chunk',
@@ -41,6 +44,7 @@ describe('shouldProcessChunk', () => {
   it('returns true when chunk sessionId matches active session', () => {
     const chunk: IncomingChunk & { 'detail-type': string } = {
       message: 'Hello',
+      messageId: 'trace-1',
       userId: 'user-1',
       sessionId: 'sess-1',
       'detail-type': 'chunk',
@@ -51,6 +55,7 @@ describe('shouldProcessChunk', () => {
   it('returns false when chunk sessionId does not match active session', () => {
     const chunk: IncomingChunk & { 'detail-type': string } = {
       message: 'Hello',
+      messageId: 'trace-1',
       userId: 'user-1',
       sessionId: 'sess-2',
       'detail-type': 'chunk',
@@ -60,6 +65,7 @@ describe('shouldProcessChunk', () => {
 
   it('returns true even when chunk has no message and no thought (may have options/tools)', () => {
     const chunk: IncomingChunk & { 'detail-type': string } = {
+      messageId: 'trace-1',
       userId: 'user-1',
       sessionId: 'sess-1',
       'detail-type': 'chunk',
@@ -70,6 +76,7 @@ describe('shouldProcessChunk', () => {
   it('returns true when chunk has empty message but isThought is set', () => {
     const chunk: IncomingChunk & { 'detail-type': string } = {
       userId: 'user-1',
+      messageId: 'trace-1',
       sessionId: 'sess-1',
       message: '',
       isThought: true,
@@ -81,11 +88,55 @@ describe('shouldProcessChunk', () => {
   it('returns false when chunk userId does not match', () => {
     const chunk: IncomingChunk & { 'detail-type': string } = {
       message: 'Hello',
+      messageId: 'trace-1',
       userId: 'other-user',
       sessionId: 'sess-1',
       'detail-type': 'chunk',
     };
     expect(shouldProcessChunk(chunk, 'sess-1', 'user-1')).toBe(false);
+  });
+
+  it('returns false for outbound_message event type to avoid duplicate assistant echoes', () => {
+    const chunk: IncomingChunk & { 'detail-type': string } = {
+      message: 'Hello',
+      messageId: 'trace-1',
+      userId: 'user-1',
+      sessionId: 'sess-1',
+      'detail-type': 'outbound_message',
+    };
+    expect(shouldProcessChunk(chunk, 'sess-1', 'user-1')).toBe(false);
+  });
+
+  it('returns false when chunk is missing messageId', () => {
+    const chunk: IncomingChunk & { 'detail-type': string } = {
+      message: 'Hello',
+      userId: 'user-1',
+      sessionId: 'sess-1',
+      'detail-type': 'TEXT_MESSAGE_CONTENT',
+    };
+    expect(shouldProcessChunk(chunk, 'sess-1', 'user-1')).toBe(false);
+  });
+
+  it('treats dashboard-user as wildcard and allows session-matched chunks', () => {
+    const chunk: IncomingChunk & { 'detail-type': string } = {
+      message: 'streaming chunk',
+      messageId: 'trace-2',
+      userId: 'session_abc123',
+      sessionId: 'sess-1',
+      'detail-type': 'TEXT_MESSAGE_CONTENT',
+    };
+    expect(shouldProcessChunk(chunk, 'sess-1', 'dashboard-user')).toBe(true);
+  });
+
+  it('still rejects session-mismatched chunks for dashboard-user wildcard', () => {
+    const chunk: IncomingChunk & { 'detail-type': string } = {
+      message: 'streaming chunk',
+      messageId: 'trace-3',
+      userId: 'session_abc123',
+      sessionId: 'sess-2',
+      'detail-type': 'TEXT_MESSAGE_CONTENT',
+    };
+    expect(shouldProcessChunk(chunk, 'sess-1', 'dashboard-user')).toBe(false);
   });
 });
 

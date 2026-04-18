@@ -15,6 +15,7 @@ import { useChatMessages } from './useChatMessages';
 import { useKeyboardShortcuts, type ShortcutDefinition } from '@/hooks/useKeyboardShortcuts';
 import type { PendingMessage } from '@claw/core/lib/types/session';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
+import type { ChatMessage } from './types';
 
 /**
  * Visual constants and style configurations for the Chat component.
@@ -68,6 +69,7 @@ export default function ChatContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
+  const setMessagesRef = useRef<React.Dispatch<React.SetStateAction<ChatMessage[]>>>(() => undefined);
   const activeSessionRef = useRef<string>('');
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const createNewChatRef = useRef<() => void>(() => {});
@@ -131,7 +133,7 @@ export default function ChatContent() {
   const { isRealtimeActive, sessions, fetchSessions, skipNextHistoryFetch, seenMessageIds } =
     useChatConnection(
       activeSessionId,
-      () => {}, // setMessages will be from useChatMessages
+      setMessagesRef,
       setIsLoading,
       isPostInFlight
     );
@@ -158,6 +160,8 @@ export default function ChatContent() {
     skipNextHistoryFetch,
     activeSessionRef
   );
+
+  setMessagesRef.current = setMessages;
 
   const currentSession = sessions.find((s) => s.sessionId === activeSessionId);
 

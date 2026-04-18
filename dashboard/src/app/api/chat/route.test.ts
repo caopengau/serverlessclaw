@@ -278,6 +278,7 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
 
   it('passes client traceId to agent.stream when stream=true', async () => {
     async function* fakeStream() {
+      yield { messageId: 'stream-trace-1' };
       yield { content: 'chunk1' };
     }
     mockStream.mockReturnValue(fakeStream());
@@ -300,7 +301,26 @@ describe('Dashboard API: POST /api/chat (streaming)', () => {
       })
     );
     expect(data.reply).toBe('chunk1');
-    expect(data.messageId).toBe('client-trace-42');
+    expect(data.messageId).toBe('stream-trace-1');
+  });
+
+  it('falls back to client traceId when stream emits no messageId', async () => {
+    async function* fakeStream() {
+      yield { content: 'chunk1' };
+    }
+    mockStream.mockReturnValue(fakeStream());
+
+    const { POST } = await import('./route');
+    const res = await POST(
+      makeRequest(
+        { text: 'Hello', sessionId: 'sess-stream-no-id', traceId: 'client-trace-fallback' },
+        { searchParams: { stream: 'true' } }
+      )
+    );
+    const data = await res.json();
+
+    expect(data.reply).toBe('chunk1');
+    expect(data.messageId).toBe('client-trace-fallback');
   });
 
   it('passes undefined traceId when client does not provide one', async () => {
