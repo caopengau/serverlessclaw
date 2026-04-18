@@ -716,8 +716,3 @@ export class Agent {
     await tracer.endTrace(fullContent);
   }
 }
-
-    }
-    await tracer.endTrace(fullContent);
-  }
-}
