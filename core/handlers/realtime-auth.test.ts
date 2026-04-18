@@ -21,7 +21,16 @@ describe('Realtime Auth Handler', () => {
     expect(response.principalId).toBe('unauthorized');
   });
 
-  it('returns authenticated with scoped policy when valid token provided', async () => {
+  it('returns authenticated when raw queryString string provided', async () => {
+    const event = { queryString: 'token=valid-token-raw-12345' };
+
+    const response = await handler(event);
+
+    expect(response.isAuthenticated).toBe(true);
+    expect(response.principalId).toBe('user-validtokenraw');
+  });
+
+  it('returns authenticated when valid token provided in object', async () => {
     const event = { queryString: { token: 'valid-token-12345' } };
 
     const response = await handler(event);

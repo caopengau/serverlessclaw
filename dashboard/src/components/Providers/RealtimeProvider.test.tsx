@@ -73,7 +73,7 @@ describe('RealtimeProvider loop prevention', () => {
     });
   });
 
-  it('disables mqtt auto-reconnect to avoid repeated authorizer invokes', async () => {
+  it('enables mqtt auto-reconnect for resilient connection', async () => {
     render(
       <RealtimeProvider>
         <div>child</div>
@@ -85,7 +85,7 @@ describe('RealtimeProvider loop prevention', () => {
     });
 
     const [{ options }] = mqttState.connections;
-    expect(options.reconnectPeriod).toBe(0);
+    expect(options.reconnectPeriod).toBeGreaterThan(0);
   });
 
   it('force-ends mqtt client during unmount cleanup', async () => {
@@ -138,7 +138,7 @@ describe('RealtimeProvider loop prevention', () => {
     });
   });
 
-  it('force-ends client on error to stop reconnect churn', async () => {
+  it('does not force-end client on error to allow auto-reconnect', async () => {
     render(
       <RealtimeProvider>
         <div>child</div>
@@ -154,7 +154,7 @@ describe('RealtimeProvider loop prevention', () => {
       client._events.error(new Error('mqtt failed'));
     });
 
-    expect(client.end).toHaveBeenCalledWith(true);
+    expect(client.end).not.toHaveBeenCalled();
   });
 
   it('routes wildcard topic messages to subscribed hook callbacks', async () => {

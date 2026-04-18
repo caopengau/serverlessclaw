@@ -113,11 +113,11 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       
       console.log('[Realtime] Establishing shared connection:', clientId);
       const client = mqtt.connect(mqttUrl, {
-        protocol: 'wss',
         clientId,
         clean: true,
         connectTimeout: 30000,
-        reconnectPeriod: 0,
+        reconnectPeriod: 5000, // Try to reconnect every 5 seconds
+        manualConnect: false,
       });
 
       client.on('connect', () => {
@@ -133,6 +133,8 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       client.on('error', (err) => {
         console.error('[Realtime] MQTT Connection Error:', err);
         setError(err);
+        // If it's an auth error, we might want to stop, but mqtt.js doesn't always 
+        // give us clear auth error codes in the browser.
       });
 
       client.on('close', () => {
@@ -171,19 +173,6 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         } catch (e) {
           console.error('[Realtime] Dispatch error:', e);
         }
-      });
-
-      client.on('error', (err: Error) => {
-        console.error('[Realtime] MQTT connection error. This could be due to invalid credentials, incorrect authorizer setup, or network issues:', err);
-        setError(err);
-        setIsConnected(false);
-        isConnectedRef.current = false;
-        client.end(true);
-      });
-
-      client.on('close', () => {
-        setIsConnected(false);
-        isConnectedRef.current = false;
       });
 
       mqttClientRef.current = client;

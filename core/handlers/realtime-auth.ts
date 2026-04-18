@@ -5,11 +5,30 @@ const AUTH_REFRESH_INTERVAL_SECONDS = 300; // 5 minutes
  * Simple authorizer for IoT Realtime bus.
  * Requires a valid token in the query string for authentication.
  */
-export const handler = async (event: { queryString?: Record<string, string> }) => {
-  const queryString = event.queryString || {};
-  const token = queryString.token;
+export const handler = async (event: any) => {
+  let token: string | undefined;
+
+  // AWS IoT Core custom authorizers provide queryString as a raw string or an object depending on the context
+  if (typeof event.queryString === 'string') {
+    const params = new URLSearchParams(event.queryString);
+    token = params.get('token') || undefined;
+  } else if (event.queryString && typeof event.queryString === 'object') {
+    token = event.queryString.token;
+  }
+
+  // Fallback to top-level token (used by some AWS IoT configurations)
+  if (!token && event.token) {
+    token = event.token;
+  }
 
   if (!token || typeof token !== 'string' || token.length < 10) {
+    console.warn('[RealtimeAuth] Unauthorized: Missing or invalid token', {
+      hasToken: !!token,
+      tokenLength: token?.length,
+      eventType: typeof event,
+      hasQueryString: !!event.queryString,
+      queryStringType: typeof event.queryString,
+    });
     return {
       isAuthenticated: false,
       principalId: 'unauthorized',
