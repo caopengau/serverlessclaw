@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import mqtt from 'mqtt';
+import type { ConversationMeta } from '@claw/core/lib/types/memory';
+import type { PendingMessage } from '@claw/core/lib/types/session';
 
 export interface RealtimeMessage {
   'detail-type': string;
@@ -21,9 +23,9 @@ interface RealtimeContextType {
   error: Error | null;
   userId: string | null;
   subscribe: (topics: string[], callback: MessageCallback) => () => void;
-  sessions: any[];
-  pendingMessages: any[];
-  setPendingMessages: React.Dispatch<React.SetStateAction<any[]>>;
+  sessions: ConversationMeta[];
+  pendingMessages: PendingMessage[];
+  setPendingMessages: React.Dispatch<React.SetStateAction<PendingMessage[]>>;
   fetchSessions: () => Promise<void>;
   isLive: boolean;
 }
@@ -43,15 +45,17 @@ const STABLE_USER_ID = 'dashboard-user';
 export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [pendingMessages, setPendingMessages] = useState<any[]>([]);
+  const [sessions, setSessions] = useState<ConversationMeta[]>([]);
+  const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
 
   const mqttClientRef = useRef<mqtt.MqttClient | null>(null);
+  const isUnmountedRef = useRef<boolean>(false);
   const subscriptionsRef = useRef<Set<Subscription>>(new Set());
   const configCacheRef = useRef<any>(null);
   const prefixRef = useRef<string>('');
 
   const fetchSessions = useCallback(async () => {
+    if (isUnmountedRef.current) return;
     try {
       const res = await fetch('/api/chat');
       if (res.ok) {
@@ -64,35 +68,38 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const connect = useCallback(async () => {
-    if (mqttClientRef.current) return;
+    if (mqttClientRef.current || isUnmountedRef.current) return;
 
     try {
       if (!configCacheRef.current) {
         const res = await fetch('/api/config');
+        if (isUnmountedRef.current) return;
         configCacheRef.current = await res.json();
       }
       
       const config = configCacheRef.current;
       prefixRef.current = `${config.app}/${config.stage}/`;
 
-      if (!config.realtime?.url) return;
-const clientId = `dash_${Math.random().toString(36).substring(2, 10)}`;
-const token = 'dashboard-dev-token-elegant'; 
+      if (!config.realtime?.url || isUnmountedRef.current || mqttClientRef.current) return;
 
-// AWS IoT Core standard WebSocket URL with custom authorizer
-const host = config.realtime.url.replace(/^wss?:\/\//, '').replace(/\/mqtt$/, '');
-const mqttUrl = `wss://${host}/mqtt?x-amz-customauthorizer-name=${config.realtime.authorizer}&x-amz-customauthorizer-token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`;
+      const clientId = `dash_${Math.random().toString(36).substring(2, 10)}`;
+      const token = 'dashboard-dev-token-elegant'; 
+      
+      // AWS IoT Core standard WebSocket URL with custom authorizer
+      const host = config.realtime.url.replace(/^wss?:\/\//, '').replace(/\/mqtt$/, '');
+      const mqttUrl = `wss://${host}/mqtt?x-amz-customauthorizer-name=${config.realtime.authorizer}&x-amz-customauthorizer-token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`;
 
-console.log(`[Realtime] ⚡ Connecting to: wss://${host}/mqtt`);
+      console.log(`[Realtime] ⚡ Connecting to: wss://${host}/mqtt`);
+      
+      const client = mqtt.connect(mqttUrl, {
+        clientId,
+        protocol: 'wss',
+        protocolVersion: 4, 
+        clean: true,
+        reconnectPeriod: 5000,
+        connectTimeout: 30000,
+      });
 
-const client = mqtt.connect(mqttUrl, {
-  clientId,
-  protocol: 'wss',
-  protocolVersion: 4, 
-  clean: true,
-  reconnectPeriod: 5000,
-  connectTimeout: 30000,
-});
       client.on('connect', () => {
         console.log('[Realtime] ✅ Connected');
         setIsConnected(true);
@@ -101,10 +108,13 @@ const client = mqtt.connect(mqttUrl, {
         // Restore existing subscriptions
         subscriptionsRef.current.forEach(sub => {
           const prefixed = sub.topics.map(t => `${prefixRef.current}${t}`);
+          console.log(`[Realtime] Restoring subscription to: ${prefixed.join(', ')}`);
           client.subscribe(prefixed);
         });
       });
 
+      client.on('reconnect', () => console.log('[Realtime] 🔄 Reconnecting...'));
+      client.on('offline', () => console.warn('[Realtime] 🔌 Client went offline'));
       client.on('message', (topic, payload) => {
         try {
           const payloadStr = payload.toString();
@@ -160,12 +170,17 @@ const client = mqtt.connect(mqttUrl, {
   }, []);
 
   useEffect(() => {
+    isUnmountedRef.current = false;
     connect();
     fetchSessions();
     const interval = setInterval(fetchSessions, 30000);
     return () => {
+      isUnmountedRef.current = true;
       clearInterval(interval);
-      mqttClientRef.current?.end();
+      if (mqttClientRef.current) {
+        mqttClientRef.current.end(true);
+        mqttClientRef.current = null;
+      }
     };
   }, [connect, fetchSessions]);
 

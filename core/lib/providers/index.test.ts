@@ -226,7 +226,13 @@ describe('ProviderManager', () => {
 
       // Messages with sessionId but NO traceId
       await pm.call([
-        { role: MessageRole.USER, content: 'hello', sessionId: 'session-123' },
+        {
+          role: MessageRole.USER,
+          content: 'hello',
+          sessionId: 'session-123',
+          traceId: 'unknown',
+          messageId: 'test-msg',
+        } as any,
       ]);
 
       // Should use 'session-session-123' as traceId

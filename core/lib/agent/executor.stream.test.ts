@@ -91,13 +91,13 @@ describe('AgentExecutor.streamLoop', () => {
     }
 
     expect(chunks).toHaveLength(5);
-    expect(chunks[0].messageId).toBe('trace-123');
+    expect(chunks[0].messageId).toBe('trace-123-test-agent');
     expect(chunks[1].content).toBe('Hello');
     expect(chunks[2].content).toBe(' world');
     expect(chunks[3].usage).toBeDefined();
     expect(chunks[4].usage).toBeDefined();
 
-    expect(mockEmitter.emitChunk).toHaveBeenCalledTimes(2);
+    expect(mockEmitter.emitChunk).toHaveBeenCalledTimes(3);
     expect(mockEmitter.emitChunk).toHaveBeenCalledWith(
       'user-1',
       'sess-1',
@@ -106,18 +106,27 @@ describe('AgentExecutor.streamLoop', () => {
       'Test Agent',
       false,
       undefined,
-      'superclaw'
+      'superclaw',
+      undefined,
+      undefined,
+      undefined,
+      'TEXT_MESSAGE_CONTENT'
     );
     expect(mockEmitter.emitChunk).toHaveBeenCalledWith(
       'user-1',
       'sess-1',
       'trace-123',
-      ' world',
+      'Hello world',
       'Test Agent',
       false,
       undefined,
-      'superclaw'
+      'superclaw',
+      '',
+      undefined,
+      undefined,
+      'outbound_message'
     );
+
   });
 
   it('should execute tool calls and continue the loop to get final response', async () => {
@@ -172,7 +181,7 @@ describe('AgentExecutor.streamLoop', () => {
     }
 
     // Initial metadata chunk
-    expect(chunks[0].messageId).toBe('trace-123');
+    expect(chunks[0].messageId).toBe('trace-123-test-agent');
 
     // First iteration: content + tool_calls
     expect(chunks[1].content).toBe('I will call a tool.');
@@ -303,7 +312,11 @@ describe('AgentExecutor.streamLoop', () => {
       'Test Agent',
       false,
       undefined,
-      'superclaw'
+      'superclaw',
+      '',
+      undefined,
+      undefined,
+      'outbound_message'
     );
     expect(chunks[1].tool_calls).toBeUndefined();
   });

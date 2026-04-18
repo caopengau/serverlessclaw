@@ -96,7 +96,7 @@ describe('shouldProcessChunk', () => {
     expect(shouldProcessChunk(chunk, 'sess-1', 'user-1')).toBe(false);
   });
 
-  it('returns false for outbound_message event type to avoid duplicate assistant echoes', () => {
+  it('returns true for outbound_message event type for final synchronization', () => {
     const chunk: IncomingChunk & { 'detail-type': string } = {
       message: 'Hello',
       messageId: 'trace-1',
@@ -104,7 +104,7 @@ describe('shouldProcessChunk', () => {
       sessionId: 'sess-1',
       'detail-type': 'outbound_message',
     };
-    expect(shouldProcessChunk(chunk, 'sess-1', 'user-1')).toBe(false);
+    expect(shouldProcessChunk(chunk, 'sess-1', 'user-1')).toBe(true);
   });
 
   it('returns false when chunk is missing messageId', () => {

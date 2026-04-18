@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('sst', () => ({
   Resource: {
+    App: { name: 'test-app', stage: 'test-stage' },
     RealtimeBus: { endpoint: 'wss://example.com/mqtt' },
   },
 }));
@@ -26,6 +27,7 @@ describe('Config API Route', () => {
     vi.resetModules();
     vi.doMock('sst', () => ({
       Resource: {
+        App: { name: 'test-app', stage: 'test-stage' },
         RealtimeBus: { endpoint: 'https://example.com/mqtt' },
       },
     }));
@@ -43,6 +45,7 @@ describe('Config API Route', () => {
     vi.resetModules();
     vi.doMock('sst', () => ({
       Resource: {
+        App: { name: 'test-app', stage: 'test-stage' },
         RealtimeBus: { endpoint: 'example.com/mqtt' },
       },
     }));

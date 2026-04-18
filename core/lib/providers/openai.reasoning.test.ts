@@ -139,11 +139,11 @@ describe('OpenAIProvider.stream reasoning and prefixed events', () => {
 
   it('should handle usage events with response. prefix', async () => {
     async function* mockAsyncStream() {
-      yield { 
-        type: 'response.usage', 
-        response: { 
-          usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 } 
-        } 
+      yield {
+        type: 'response.usage',
+        response: {
+          usage: { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 },
+        },
       };
     }
 

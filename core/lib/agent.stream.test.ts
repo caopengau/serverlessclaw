@@ -367,7 +367,11 @@ describe('Agent.stream()', () => {
       'Test Agent',
       false,
       undefined,
-      'test-agent'
+      'test-agent',
+      '',
+      undefined,
+      undefined,
+      'outbound_message'
     );
 
     // Assistant message should use the same traceId

@@ -6,6 +6,7 @@ import {
   LLMProvider,
   MessageChunk,
   ResponseFormat,
+  MessageRole,
 } from '../types/index';
 import { Resource } from 'sst';
 import { logger } from '../logger';
@@ -18,11 +19,46 @@ import { FallbackProvider } from './fallback';
 import { SYSTEM, CONFIG_KEYS } from '../constants';
 import { ConfigManager } from '../registry/config';
 
-/**
- * ProviderManager handles the resolution and execution of LLM provider calls.
- * It acts as a central hub for switching between OpenAI, Bedrock, and OpenRouter.
- */
+function resolveTraceId(messages: Message[]): string {
+  const initial = messages.find((m) => m.traceId && m.traceId !== 'unknown')?.traceId ?? 'unknown';
+  if (initial !== 'unknown') return initial;
+
+  const msgWithSession = messages.find(
+    (m) => m.pageContext?.sessionId || (m as Message & { sessionId?: string }).sessionId
+  );
+  if (msgWithSession) {
+    const sessionId =
+      msgWithSession.pageContext?.sessionId ||
+      (msgWithSession as Message & { sessionId?: string }).sessionId;
+    return `session-${sessionId}`;
+  }
+
+  if (messages[0]?.messageId) {
+    return `legacy-${messages[0].messageId}`;
+  }
+
+  return 'unknown';
+}
+
 export class ProviderManager implements IProvider {
+  /**
+   * Internal helper to resolve trace ID and enforce token budget.
+   * @param messages - The conversation history.
+   * @throws Error if budget is exceeded.
+   */
+  private async enforceBudget(messages: Message[]): Promise<string> {
+    const tid = resolveTraceId(messages);
+    const { isBudgetExceeded } = await import('../recursion-tracker');
+
+    if (await isBudgetExceeded(tid)) {
+      throw new Error(
+        `[BUDGET_EXCEEDED] Execution halted for trace ${tid} to prevent runaway costs.`
+      );
+    }
+
+    return tid;
+  }
+
   /**
    * Resolves the active provider and model using a hierarchy:
    * 1. Direct overrides (parameters)
@@ -38,8 +74,7 @@ export class ProviderManager implements IProvider {
     overrideProvider?: string,
     overrideModel?: string
   ): Promise<IProvider> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const resource = Resource as any;
+    const resource = Resource as unknown as Record<string, { value: string }>;
 
     // Resolve Provider
     const providerType = (overrideProvider ??
@@ -81,9 +116,18 @@ export class ProviderManager implements IProvider {
         return new BedrockProvider(model ?? SYSTEM.DEFAULT_BEDROCK_MODEL);
       case LLMProvider.MOCK:
         return {
-          call: async () => ({ role: 'assistant' as const, content: 'Mock response' }),
+          call: async () => ({
+            role: MessageRole.ASSISTANT,
+            content: 'Mock response',
+            traceId: 'mock-trace',
+            messageId: 'mock-msg',
+          }),
           stream: async function* () {
-            yield { role: 'assistant' as const, content: 'Mock' };
+            yield {
+              role: MessageRole.ASSISTANT,
+              content: 'Mock',
+              messageId: 'mock-msg',
+            };
           },
           getCapabilities: async () => ({
             maxTokens: 4096,
@@ -154,25 +198,8 @@ export class ProviderManager implements IProvider {
       effectiveModel
     );
 
-    // Budget check before call
-    const { isBudgetExceeded, incrementTokenUsage } = await import('../recursion-tracker');
-    let traceId = messages.find((m) => m.traceId && m.traceId !== 'unknown')?.traceId ?? 'unknown';
-
-    // If traceId is unknown, attempt to resolve from sessionId to provide session-level isolation
-    if (traceId === 'unknown') {
-      const sessionIdInMessages = messages.find((m) => m.sessionId)?.sessionId;
-      if (sessionIdInMessages) {
-        traceId = `session-${sessionIdInMessages}`;
-      } else if (messages[0]?.messageId) {
-        traceId = `legacy-${messages[0].messageId}`;
-      }
-    }
-
-    if (await isBudgetExceeded(traceId)) {
-      throw new Error(
-        `[BUDGET_EXCEEDED] Execution halted for trace ${traceId} to prevent runaway costs.`
-      );
-    }
+    // Budget check
+    const tid = await this.enforceBudget(messages);
 
     const response = await activeProvider.call(
       messages,
@@ -189,12 +216,13 @@ export class ProviderManager implements IProvider {
 
     // Track usage and log for billing transparency
     if (response.usage) {
+      const { incrementTokenUsage } = await import('../recursion-tracker');
       const total =
         response.usage.total_tokens ??
         response.usage.prompt_tokens + response.usage.completion_tokens;
-      await incrementTokenUsage(traceId, total);
+      await incrementTokenUsage(tid, total);
       logger.info(
-        `[BILLING] Trace: ${traceId} | Model: ${effectiveModel} | Tokens: ${total} (P: ${response.usage.prompt_tokens}, C: ${response.usage.completion_tokens})`
+        `[BILLING] Trace: ${tid} | Model: ${effectiveModel} | Tokens: ${total} (P: ${response.usage.prompt_tokens}, C: ${response.usage.completion_tokens})`
       );
     }
 
@@ -257,24 +285,8 @@ export class ProviderManager implements IProvider {
       effectiveModel
     );
 
-    // Budget check before stream
-    const { isBudgetExceeded, incrementTokenUsage } = await import('../recursion-tracker');
-    let traceId = messages.find((m) => m.traceId && m.traceId !== 'unknown')?.traceId ?? 'unknown';
-
-    if (traceId === 'unknown') {
-      const sessionIdInMessages = messages.find((m) => m.sessionId)?.sessionId;
-      if (sessionIdInMessages) {
-        traceId = `session-${sessionIdInMessages}`;
-      } else if (messages[0]?.messageId) {
-        traceId = `legacy-${messages[0].messageId}`;
-      }
-    }
-
-    if (await isBudgetExceeded(traceId)) {
-      throw new Error(
-        `[BUDGET_EXCEEDED] Execution halted for trace ${traceId} to prevent runaway costs.`
-      );
-    }
+    // Budget check
+    const stid = await this.enforceBudget(messages);
 
     let totalTokens = 0;
     const stream = activeProvider.stream(
@@ -300,9 +312,10 @@ export class ProviderManager implements IProvider {
 
     // Track usage and log for billing transparency
     if (totalTokens > 0) {
-      await incrementTokenUsage(traceId, totalTokens);
+      const { incrementTokenUsage } = await import('../recursion-tracker');
+      await incrementTokenUsage(stid, totalTokens);
       logger.info(
-        `[BILLING] Trace: ${traceId} | Model: ${effectiveModel} | Stream Tokens: ${totalTokens}`
+        `[BILLING] Trace: ${stid} | Model: ${effectiveModel} | Stream Tokens: ${totalTokens}`
       );
     }
   }

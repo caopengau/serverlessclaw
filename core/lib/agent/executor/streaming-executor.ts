@@ -1,4 +1,11 @@
-import { Message, MessageRole, ToolCall, MessageChunk, ButtonType, EventType } from '../../types/index';
+import {
+  Message,
+  MessageRole,
+  ToolCall,
+  MessageChunk,
+  ButtonType,
+  EventType,
+} from '../../types/index';
 import { normalizeProfile } from '../../providers/utils';
 import { TRACE_TYPES } from '../../constants';
 import { ExecutorUsage, ExecutorOptions } from '../executor-types';
@@ -65,6 +72,8 @@ export class StreamingExecutor extends BaseExecutor {
       durationMs: 0,
     };
     const loopStartTime = Date.now();
+    let fullContent = '';
+    let fullThought = '';
 
     while (iterations < maxIterations) {
       const errorResult = await this.performPreLoopChecks(
@@ -89,23 +98,20 @@ export class StreamingExecutor extends BaseExecutor {
       );
 
       const effectiveMaxTokens = this.getClampedMaxTokens(options, usage);
+const stream = this.provider.stream(
+  messages,
+  this.tools,
+  normalizedProfile,
+  options.activeModel,
+  options.activeProvider,
+  options.responseFormat,
+  options.temperature,
+  effectiveMaxTokens,
+  options.topP,
+  options.stopSequences
+);
 
-      const stream = this.provider.stream(
-        messages,
-        this.tools,
-        normalizedProfile,
-        options.activeModel,
-        options.activeProvider,
-        options.responseFormat,
-        options.temperature,
-        effectiveMaxTokens,
-        options.topP,
-        options.stopSequences
-      );
-
-      let fullContent = '';
-      let fullThought = '';
-      const toolCalls: ToolCall[] = [];
+const toolCalls: ToolCall[] = [];
 
       for await (const chunk of stream) {
         if (chunk.content) {
@@ -116,15 +122,15 @@ export class StreamingExecutor extends BaseExecutor {
               userId,
               sessionId,
               traceId,
-              fullContent,
+              contentDelta, // Emit DELTA for streaming
               this.agentName,
               false,
               undefined,
               options.currentInitiator,
-              fullThought,
               undefined,
               undefined,
-              EventType.OUTBOUND_MESSAGE
+              undefined,
+              EventType.TEXT_MESSAGE_CONTENT
             );
           }
         }
@@ -142,7 +148,10 @@ export class StreamingExecutor extends BaseExecutor {
               true,
               undefined,
               options.currentInitiator,
-              thoughtDelta
+              thoughtDelta,
+              undefined,
+              undefined,
+              EventType.TEXT_MESSAGE_CONTENT
             );
           }
         }
@@ -312,6 +321,25 @@ export class StreamingExecutor extends BaseExecutor {
     }
 
     usage.durationMs = Date.now() - loopStartTime;
+
+    if (emitter) {
+      console.log(`[StreamingExecutor] Emitting final OUTBOUND_MESSAGE signal for: ${traceId}`);
+      emitter.emitChunk(
+        userId,
+        sessionId,
+        traceId,
+        fullContent,
+        this.agentName,
+        false,
+        undefined,
+        options.currentInitiator,
+        fullThought,
+        undefined,
+        undefined,
+        EventType.OUTBOUND_MESSAGE
+      );
+    }
+
     yield {
       usage: {
         prompt_tokens: usage.totalInputTokens,

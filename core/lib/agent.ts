@@ -375,7 +375,7 @@ export class Agent {
           });
         }
       } else {
-        const assistantMessageId = `${traceId}-superclaw`;
+        const _assistantMessageId = `${traceId}-superclaw`;
         await this.memory.addMessage(
           storageId,
           {
@@ -399,8 +399,7 @@ export class Agent {
         tool_calls: resultToolCalls,
         traceId,
       };
-      } catch (error) {
-
+    } catch (error) {
       logger.error(`[Agent] Critical error in process loop:`, error);
       await tracer.failTrace(AGENT_ERRORS.PROCESS_FAILURE, { error: String(error) });
       throw error;
@@ -630,7 +629,9 @@ export class Agent {
             try {
               const match = fullContent.match(/"(?:thought|reasoning|thinking)"\s*:\s*"([^"]*)/);
               if (match && match[1]) detectedThought = match[1];
-            } catch {}
+            } catch {
+              // Ignore partial JSON parsing errors during streaming
+            }
           }
         }
 
@@ -646,19 +647,23 @@ export class Agent {
           agentName: this.config?.name,
         };
       }
-      console.log(`[Agent:Stream] Stream completed. Total chunks: ${chunkCount}, content length: ${fullContent.length}`);
+      console.log(
+        `[Agent:Stream] Stream completed. Total chunks: ${chunkCount}, content length: ${fullContent.length}`
+      );
 
       // Fallback: If stream produced no content, perform a non-streaming call
       if (fullContent.trim().length === 0 && fullThought.trim().length === 0) {
-        console.warn(`[Agent:Stream] Stream produced no content. Triggering non-streaming fallback.`);
+        console.warn(
+          `[Agent:Stream] Stream produced no content. Triggering non-streaming fallback.`
+        );
         const fallback = await this.process(userId, userText, {
           ...options,
           skipUserSave: true, // Already saved
         });
-        
+
         fullContent = fallback.responseText;
         fullThought = fallback.thought ?? '';
-        
+
         yield {
           content: fullContent,
           thought: fullThought,
@@ -688,7 +693,7 @@ export class Agent {
         const parsed = JSON.parse(finalResponseText);
         finalThought = parsed.thought || parsed.reasoning || parsed.thinking || finalThought;
         finalResponseText = parsed.message || parsed.plan || finalResponseText;
-      } catch (e) {
+      } catch {
         // Fallback to raw text if JSON parsing fails
       }
     }

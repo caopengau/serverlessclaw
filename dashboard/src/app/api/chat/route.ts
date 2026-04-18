@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { UI_STRINGS, AUTH } from '@/lib/constants';
-import { HTTP_STATUS, AGENT_ERRORS } from '@claw/core/lib/constants';
+import { HTTP_STATUS } from '@claw/core/lib/constants';
 import { revalidatePath } from 'next/cache';
 
 // Re-usable instances for optimization
@@ -10,7 +10,7 @@ import { ProviderManager } from '@claw/core/lib/providers/index';
 import { getAgentTools } from '@claw/core/tools/index';
 import { Agent } from '@claw/core/lib/agent';
 import { SUPERCLAW_SYSTEM_PROMPT } from '@claw/core/agents/superclaw';
-import { TraceSource, AgentType, MessageRole, ToolCall } from '@claw/core/lib/types/index';
+import { TraceSource, AgentType, ToolCall } from '@claw/core/lib/types/index';
 import { AgentRegistry } from '@claw/core/lib/registry';
 
 // Singleton memory and provider to leverage in-memory LRU cache
@@ -64,7 +64,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // We use the streaming generator to trigger real-time MQTT emissions via AgentEmitter
     // while the request remains open. Chunks are automatically sent to the dashboard via IoT Core.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stream = agent.stream(storageId, text ?? '', {
       sessionId,
       source: TraceSource.DASHBOARD,

@@ -70,7 +70,8 @@ export function ChatInput({
               <div key={i} className="relative group/preview">
                 {a.type === 'image' ? (
                   <div className="w-16 h-16 rounded border border-white/10 overflow-hidden relative">
-                    <Image src={a.preview} alt="preview" fill className="object-cover" />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={a.preview} alt="preview" className="w-full h-full object-cover" />
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 bg-white/5 p-2 rounded border border-white/10">

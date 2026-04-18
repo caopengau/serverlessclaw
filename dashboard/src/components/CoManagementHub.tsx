@@ -4,7 +4,6 @@ import Typography from './ui/Typography';
 import Button from './ui/Button';
 import Badge from './ui/Badge';
 import { Shield, Zap, TrendingUp, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
-import { THEME } from '@/lib/theme';
 import TrustGauge from './TrustGauge';
 
 interface Proposal {

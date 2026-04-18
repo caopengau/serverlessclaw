@@ -256,11 +256,45 @@ To maintain a **Stateless Core** (Principle 1) while ensuring systemic safety, t
 1.  **Distributed Flow Control**: The `FlowController` centralizes backbone circuit breakers and rate limiters using DynamoDB atomic counters. It enforces a **Fail-Closed** strategy (Principle 13): if the system cannot verify safety state due to database failure, the operation is rejected to preserve system integrity.
 2.  **Surgical Security Enforcement**: The `ToolSecurityValidator` decouples security logic from tool execution. It enforces the "Shield" (SafetyEngine) rules, RBAC permissions, and system-level circuit breakers before any tool interaction occurs.
 3.  **Strict Payload Validation**: The `EventHandler` enforces mandatory presence of `traceId` and `sessionId` at the entry point, preventing malformed signals from polluting the backbone.
-4.  **Budget Guardrails**: Operationalized via the centralized `BudgetEnforcer`. It provides real-time monitoring of token consumption and monetary costs during agent loops. It triggers soft warnings at 80% usage and hard stops when limits are exceeded, ensuring identical safety behavior across standard and streaming executors.
+4.  **Budget Guardrails**: Operationalized via the centralized `BudgetEnforcer`. It provides real-time monitoring of token consumption and monetary costs during agent loops. It triggers soft warnings at 80% usage and hard stops when limits are exceeded. The system implements **Trace Isolation** (session-aware fallbacks) to prevent global budget poisoning.
 5.  **Selection Integrity**: The `AgentMultiplexer` acts as the authoritative gateway. It performs a mandatory configuration check for every agent before invocation, ensuring that `enabled: false` status is strictly enforced regardless of the event source.
 6.  **Dynamic Routing**: The `AgentRouter` uses historical success rates and reputation scores to dynamically select the best agent for a given task, prioritizing capability match over marginal token cost differences (Principle 10).
 7.  **Monotonic Recursion Tracking**: Cross-session recursion depth is managed via atomic increments in the `recursion-tracker`, preventing loop-bypass attacks in concurrent swarm scenarios.
 8.  **Unified Security Constants**: Protection patterns are consolidated into a single source of truth (`core/lib/constants/safety.ts`), ensuring consistent enforcement across the filesystem and cloud resources.
+
+---
+
+## 📈 Budget & Trace Isolation Flow
+
+To ensure "small" sessions are never blocked by unrelated runaway background tasks, the system decouples message identity from budget context.
+
+```text
+[ Inbound Message ]
+        |
+        +----(1) traceId provided? --- [YES] ---> [ Use traceId ]
+        |                              [NO ] ---> [ check sessionId ] --+
+        |                                                                |
+        v                                                                |
+[ traceId Resolution ] <-------------------------------------------------+
+(ProviderManager)
+        |
+        +---- Falls back to 'session-<id>' if missing (Session Isolation)
+        |
+        v
+[ SystemGuard ]
+        |
+        +----(2) Fetch Buckets from MemoryTable (RECURSION_STACK#<traceId>)
+        |
+        +----(3) [ consumed >= 1.0M ? ] --- [YES] ---> [ HALT: BUDGET_EXCEEDED ]
+        |                                   [NO ] ---> [ CONTINUE ]
+        v
+[ Provider Execution ]
+        |
+        +----(4) Update Buckets Atomically (+ prompt_tokens + completion_tokens)
+        |
+        v
+[ Dashboard ] (Refresh and continue turn)
+```
 
 ---
 
@@ -317,7 +351,7 @@ The system maintains a continuous feedback loop between execution observability 
 2. **Calibration**: `TrustManager` applies severity-based penalties or quality-weighted bumps based on signals from the monitor.
 3. **Enforcement**: If `TrustScore` drops below the autonomous threshold, the system automatically shifts to `HITL`.
 
-```
+````
 
 ---
 
@@ -401,7 +435,7 @@ The system is designed for autonomous survival and continuous optimization throu
           +-------------------------+----------------+-------------------------+
                                     |
                           [ System Flow Restored ]
-```
+````
 
 | Component                 | Deep Dive                                                    |
 | :------------------------ | :----------------------------------------------------------- |
@@ -412,4 +446,7 @@ The system is designed for autonomous survival and continuous optimization throu
 | **Provisioning**          | [docs/system/PROVISIONING.md](./docs/system/PROVISIONING.md) |
 
 For deep dives into these evolutionary mechanisms, see [docs/system/EVOLUTION.md](./docs/system/EVOLUTION.md) and [docs/system/RESILIENCE.md](./docs/system/RESILIENCE.md).
+
+```
+
 ```

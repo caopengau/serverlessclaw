@@ -201,7 +201,7 @@ export class AgentEmitter {
             if (customEnabled !== undefined)
               feedbackEnabled = customEnabled === 'true' || customEnabled === true;
           }
-        } catch (e) {
+        } catch {
           // Fallback to default
         }
         if (!feedbackEnabled) return;
@@ -247,7 +247,9 @@ export class AgentEmitter {
         attachments: safeAttachments,
       };
 
-      console.log(`[AgentEmitter] Emitting chunk to ${topic} (messageId: ${messageId}, type: ${detailType}, size: ${chunk?.length ?? 0} chars)`);
+      console.log(
+        `[AgentEmitter] Emitting chunk to ${topic} (messageId: ${messageId}, type: ${detailType}, size: ${chunk?.length ?? 0} chars)`
+      );
       await publishToRealtime(topic, payload);
     } catch (e) {
       // Don't let chunk emission failures block the main loop

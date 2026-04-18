@@ -114,10 +114,10 @@ Highly sensitive changes, such as IAM modifications or memory retention policy s
 
 To ensure high-performance auditability without polluting persistent configuration state, all safety telemetry is persisted in the **MemoryTable** with Time-to-Live (TTL) policies:
 
-| Data Type                  | Prefix                               | TTL             | Purpose                                            |
-| :------------------------- | :----------------------------------- | :-------------- | :------------------------------------------------- |
-| **Safety Violations**      | `SAFETY#VIOLATION#<agentId>`         | **30 Days**     | Audit trail for blocked or approval-gated actions. |
-| **Blast Radius (Class C)** | `SAFETY#BLAST_RADIUS#<agentId>:<action>` | **1 Hour**      | Enforces frequency limits for sensitive changes.   |
+| Data Type                  | Prefix                                   | TTL         | Purpose                                            |
+| :------------------------- | :--------------------------------------- | :---------- | :------------------------------------------------- |
+| **Safety Violations**      | `SAFETY#VIOLATION#<agentId>`             | **30 Days** | Audit trail for blocked or approval-gated actions. |
+| **Blast Radius (Class C)** | `SAFETY#BLAST_RADIUS#<agentId>:<action>` | **1 Hour**  | Enforces frequency limits for sensitive changes.   |
 
 This storage strategy adheres to **Principle 1 (Stateless Core)** by externalizing all transient operational state to a TTL-aware storage layer, ensuring the system remains lean and automatically self-cleanses.
 

@@ -142,7 +142,9 @@ export async function incrementTokenUsage(traceId: string, tokens: number): Prom
 
   // Protect against global budget poisoning via generic IDs
   if (!traceId || traceId === 'unknown') {
-    logger.warn(`[BUDGET] Attempted to increment tokens for generic traceId: ${traceId}. Skipping.`);
+    logger.warn(
+      `[BUDGET] Attempted to increment tokens for generic traceId: ${traceId}. Skipping.`
+    );
     return -1;
   }
 

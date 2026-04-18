@@ -15,6 +15,12 @@ vi.mock('../logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
+vi.mock('sst', () => ({
+  Resource: {
+    App: { name: 'serverlessclaw', stage: 'local' },
+  },
+}));
+
 describe('publishToRealtime', () => {
   beforeEach(() => {
     vi.clearAllMocks();

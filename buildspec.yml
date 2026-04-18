@@ -73,7 +73,6 @@ phases:
           fi
         fi
       - echo build completed on `date`
-
       - |
         if [ "$CODEBUILD_BUILD_SUCCEEDING" = "1" ] && [ -n "$GITHUB_TOKEN" ] && [ "$TRUNK_SYNC_ENABLED" = "true" ]; then
           REPO="${HUB_URL:-${GITHUB_REPO:-serverlessclaw/serverlessclaw}}"
