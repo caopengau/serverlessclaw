@@ -193,11 +193,18 @@ export default function PipelineBoard({
       color: 'text-cyber-green',
       glow: 'shadow-[0_0_15px_rgba(34,197,94,0.2)]',
     },
+    {
+      status: GapStatus.FAILED,
+      label: 'Failed',
+      icon: Trash2,
+      color: 'text-red-500',
+      glow: 'shadow-[0_0_15px_rgba(239,68,68,0.2)]',
+    },
   ];
 
   return (
     <>
-      <div className="grid grid-cols-5 gap-6 h-[calc(100vh-250px)]">
+      <div className="grid grid-cols-6 gap-6 h-[calc(100vh-250px)]">
         {columns.map((col) => {
           const colGaps = initialGaps.filter((g) => g.status === col.status);
           const Icon = col.icon;
@@ -254,9 +261,10 @@ export default function PipelineBoard({
                   return (
                     <div
                       key={gap.userId}
+                      data-testid="gap-card"
                       draggable={!processing}
                       onDragStart={(e) => handleDragStart(e, gap.userId)}
-                      className={`glass-card pt-3 pl-3 pr-3 pb-2 border-white/5 hover:border-white/20 transition-all group relative overflow-hidden bg-black/40 ${selectedGaps.has(gap.userId) ? 'ring-1 ring-indigo-500/50 bg-indigo-500/5' : ''} ${processing === gap.userId ? 'opacity-50 cursor-wait' : 'cursor-grab active:cursor-grabbing'}`}
+                      className={`glass-card gap-card pt-3 pl-3 pr-3 pb-2 border-white/5 hover:border-white/20 transition-all group relative overflow-hidden bg-black/40 ${selectedGaps.has(gap.userId) ? 'ring-1 ring-indigo-500/50 bg-indigo-500/5' : ''} ${processing === gap.userId ? 'opacity-50 cursor-wait' : 'cursor-grab active:cursor-grabbing'}`}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">

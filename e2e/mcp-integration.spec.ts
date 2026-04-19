@@ -44,9 +44,9 @@ test.describe('MCP Integration (Capabilities)', () => {
     await page.goto('/trace');
     await page.waitForLoadState('networkidle');
 
-    const traceDetail = page.locator('a[href*="/trace/"]').first();
-    await expect(traceDetail).toBeVisible({ timeout: 15000 });
-    await traceDetail.click();
+    const traceLink = page.locator('text=/Tool Source Test Trace/i').first();
+    await expect(traceLink).toBeVisible({ timeout: 15000 });
+    await traceLink.click();
     await page.waitForLoadState('networkidle');
 
     // Look for tool execution badges or indicators

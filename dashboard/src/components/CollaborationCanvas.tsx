@@ -339,7 +339,10 @@ function CollaborationCanvasContent() {
   };
 
   return (
-    <div className="h-full w-full bg-background rounded-lg border border-border relative overflow-hidden">
+    <div 
+      data-testid="collaboration-canvas"
+      className="h-full w-full bg-background rounded-lg border border-border relative overflow-hidden"
+    >
       {loading ? (
         <div className="absolute inset-0 flex items-center justify-center bg-background/50 z-20 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4">

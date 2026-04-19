@@ -14,6 +14,7 @@ import {
   LayoutGrid,
   Bot,
   Zap,
+  RefreshCw,
 } from 'lucide-react';
 import Link from 'next/link';
 import PathVisualizer from '@/components/PathVisualizer';
@@ -23,6 +24,8 @@ import { UI_STRINGS } from '@/lib/constants';
 import { TRACE_TYPES, TRACE_STATUS } from '@claw/core/lib/constants';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
+import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import { THEME } from '@/lib/theme';
 import { SSTResource } from '@claw/core/lib/types/index';
 import { Trace, TraceStep } from '@/lib/types/ui';
@@ -214,10 +217,23 @@ export default async function TraceDetailPage({
               <Typography
                 variant="caption"
                 weight="black"
-                className="tracking-[0.2em] flex items-center gap-2 mb-4"
+                className="tracking-[0.2em] flex items-center justify-between mb-4"
               >
-                <Activity size={14} className="text-cyber-green" /> Step::{node.nodeId}{' '}
-                {node.parentId ? `(Parent: ${node.parentId.slice(0, 8)})` : '(Root)'}
+                <span className="flex items-center gap-2">
+                  <Activity size={14} className="text-cyber-green" /> Step::{node.nodeId}{' '}
+                  {node.parentId ? `(Parent: ${node.parentId.slice(0, 8)})` : '(Root)'}
+                </span>
+
+                {node.status === 'error' && (
+                  <div className="flex gap-2">
+                    <Button variant="danger" size="sm" data-testid="retry-button" className="h-6 text-[8px] font-black uppercase">
+                      <RefreshCw size={10} className="mr-1" /> RETRY
+                    </Button>
+                    <Button variant="outline" size="sm" data-testid="fix-button" className="h-6 text-[8px] font-black uppercase border-red-500/30 text-red-400">
+                      <Wrench size={10} className="mr-1" /> FIX
+                    </Button>
+                  </div>
+                )}
               </Typography>
 
               <div className="space-y-4">

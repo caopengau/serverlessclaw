@@ -9,23 +9,22 @@ test.describe('Agent Collaboration & Swarm Intelligence', () => {
     await page.goto('/trace');
     await page.waitForLoadState('networkidle');
 
-    const firstTrace = page.locator('a[href*="/trace/"]').first();
-    await expect(firstTrace).toBeVisible({ timeout: 15000 });
-    await firstTrace.click();
+    const traceLink = page.locator('text=/Collaboration Test Trace/i').first();
+    await expect(traceLink).toBeVisible({ timeout: 15000 });
+    await traceLink.click();
     await page.waitForLoadState('networkidle');
 
     // CollaborationCanvas should exist in the DOM
-    // Identification by class or text if no ID
-    const canvas = page.locator('[class*="Canvas"], canvas, [data-testid="collaboration-canvas"]');
-    await expect(canvas.first()).toBeVisible({ timeout: 15000 });
+    const canvas = page.getByTestId('collaboration-canvas');
+    await expect(canvas.first()).toBeVisible({ timeout: 20000 });
   });
 
   test('displays swarm consensus view when available', async ({ page }) => {
     await page.goto('/pipeline');
     await page.waitForLoadState('networkidle');
 
-    // Click on a gap to see decomposition and consensus
-    const gapItem = page.locator('[class*="GapCard"], [class*="gap-card"]').first();
+    // Click on the specific seeded gap
+    const gapItem = page.locator('text=/Simulated capability failure/i').first();
     await expect(gapItem).toBeVisible({ timeout: 15000 });
     await gapItem.click();
     await page.waitForLoadState('networkidle');
@@ -40,8 +39,8 @@ test.describe('Agent Collaboration & Swarm Intelligence', () => {
     await page.waitForLoadState('networkidle');
 
     // Check if PathVisualizer component is present
-    const visualizer = page.locator('[class*="PathVisualizer"], [class*="flow-graph"]');
+    const visualizer = page.getByTestId('collaboration-canvas');
     // Verify visualizer renders
-    await expect(visualizer).toBeVisible({ timeout: 10000 });
+    await expect(visualizer.first()).toBeVisible({ timeout: 15000 });
   });
 });

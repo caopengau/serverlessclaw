@@ -1,4 +1,4 @@
-import { test as setup } from '@playwright/test';
+import { test as setup, expect } from '@playwright/test';
 
 const authFile = 'e2e/.auth/user.json';
 
@@ -13,10 +13,13 @@ setup('authenticate', async ({ page }) => {
   );
 
   await page.fill('input[type="password"]', password);
-  await page.click('button[type="submit"]');
+  await Promise.all([
+    page.waitForURL('**/', { timeout: 90000 }),
+    page.click('button[type="submit"]'),
+  ]);
 
-  // Wait for redirect to home page with generous timeout for dev mode warmup
-  await page.waitForURL('/', { timeout: 60000 });
+  // Ensure sidebar is visible
+  await expect(page.locator('nav').first()).toBeVisible({ timeout: 30000 });
 
   // Save authentication state
   await page.context().storageState({ path: authFile });

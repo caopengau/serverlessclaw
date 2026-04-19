@@ -138,7 +138,8 @@ test-e2e: ## Run E2E tests with Playwright (local dev server)
 test-e2e-deployed: ## Run E2E tests against deployed URL. Usage: make test-e2e-deployed URL=https://...
 	@$(call log_step,Running E2E tests against deployed URL...)
 	@if [ -z "$(URL)" ]; then $(call log_error,URL is required); exit 1; fi
-	@BASE_URL=$(URL) $(PNPM) exec playwright test
+	@$(call load_env); \
+	BASE_URL=$(URL) $(PNPM) exec playwright test
 
 test-affected: ## Run only tests in affected packages (via Turbo)
 	@$(call log_step,Running affected tests via Turbo...)

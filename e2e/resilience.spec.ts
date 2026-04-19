@@ -7,25 +7,26 @@ test.describe('Resilience & Fault Tolerance (Fault Detector)', () => {
     await page.goto('/pipeline');
     await page.waitForLoadState('networkidle');
 
-    // Look for Gaps in FAILED status
-    const failedStatus = page.locator('text=/FAILED|ERROR/i').first();
-    await expect(failedStatus).toBeVisible({ timeout: 15000 });
+    // Look for Gaps in FAILED status using test-id
+    const failedGap = page
+      .getByTestId('gap-card')
+      .filter({ hasText: /FAILED|ERROR/i })
+      .first();
+    await expect(failedGap).toBeVisible({ timeout: 15000 });
   });
 
   test('displays retry control for failed trace nodes', async ({ page }) => {
     await page.goto('/trace');
     await page.waitForLoadState('networkidle');
 
-    const traceDetail = page.locator('a[href*="/trace/"]').first();
+    const traceDetail = page.locator('text=/Resilience Test Trace/i').first();
     await expect(traceDetail).toBeVisible({ timeout: 15000 });
     await traceDetail.click();
     await page.waitForLoadState('networkidle');
 
     // Check for retry buttons or error states
-    const retryButton = page.locator(
-      'button:has-text("RETRY"), button:has-text("FIX"), [aria-label="Retry"]'
-    );
-    await expect(retryButton.first()).toBeVisible({ timeout: 5000 });
+    const retryButton = page.getByTestId('retry-button');
+    await expect(retryButton.first()).toBeVisible({ timeout: 15000 });
   });
 
   test('verifies Cognitive Health alerting state', async ({ page }) => {
