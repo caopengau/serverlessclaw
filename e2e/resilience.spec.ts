@@ -23,6 +23,7 @@ test.describe('Resilience & Fault Tolerance (Fault Detector)', () => {
     await expect(traceDetail).toBeVisible({ timeout: 15000 });
     await traceDetail.click();
     await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('trace-detail-container')).toBeVisible({ timeout: 20000 });
 
     // Check for retry buttons or error states
     const retryButton = page.getByTestId('retry-button');

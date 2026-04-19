@@ -13,6 +13,7 @@ test.describe('Agent Collaboration & Swarm Intelligence', () => {
     await expect(traceLink).toBeVisible({ timeout: 15000 });
     await traceLink.click();
     await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('trace-detail-container')).toBeVisible({ timeout: 20000 });
 
     // CollaborationCanvas should exist in the DOM
     const canvas = page.getByTestId('collaboration-canvas');
@@ -37,6 +38,12 @@ test.describe('Agent Collaboration & Swarm Intelligence', () => {
   test('verifies path visualization for complex tasks', async ({ page }) => {
     await page.goto('/trace');
     await page.waitForLoadState('networkidle');
+
+    const traceLink = page.locator('text=/Collaboration Test Trace/i').first();
+    await expect(traceLink).toBeVisible({ timeout: 15000 });
+    await traceLink.click();
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByTestId('trace-detail-container')).toBeVisible({ timeout: 20000 });
 
     // Check if PathVisualizer component is present
     const visualizer = page.getByTestId('collaboration-canvas');

@@ -116,7 +116,10 @@ export default async function TraceDetailPage({
   const rootNode = nodes.find((n) => n.nodeId === 'root') ?? nodes[0];
 
   return (
-    <div className="flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
+    <div 
+      data-testid="trace-detail-container"
+      className="flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent"
+    >
       <TraceContextRegistrar
         traceId={id}
         url={`/trace/${id}`}
