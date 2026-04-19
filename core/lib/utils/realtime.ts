@@ -15,15 +15,12 @@ export async function publishToRealtime(topic: string, payload: unknown): Promis
     const prefix = `${Resource.App.name}/${Resource.App.stage}/`;
     const fullTopic = topic.startsWith(prefix) ? topic : `${prefix}${topic}`;
 
-    console.log(`[Realtime:Publish] Publishing to: ${fullTopic}`);
-
     const command = new PublishCommand({
       topic: fullTopic,
       payload: Buffer.from(JSON.stringify(payload)),
       qos: 1,
     });
     await iot.send(command);
-    console.log(`[Realtime:Publish] ✅ Published successfully to ${fullTopic}`);
   } catch (error) {
     logger.error(`[Realtime] Failed to publish to ${topic}:`, error);
   }

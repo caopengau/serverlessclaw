@@ -38,6 +38,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       approvedToolCalls,
       traceId: clientTraceId,
       pageContext,
+      profile,
     } = await req.json();
     
     const userId = getUserId(req);
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log(`[Chat API] POST - userId: ${userId}, sessionId: ${sessionId}, traceId: ${clientTraceId}`);
+    console.log(`[Chat API] POST - userId: ${userId}, sessionId: ${sessionId}, traceId: ${clientTraceId}, profile: ${profile}`);
 
     const config = await AgentRegistry.getAgentConfig(AgentType.SUPERCLAW);
     const agentTools = await getAgentTools(AgentType.SUPERCLAW);
@@ -71,6 +72,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       approvedToolCalls,
       traceId: clientTraceId || undefined,
       pageContext,
+      profile,
     });
 
     let finalResponse = '';
@@ -96,12 +98,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       });
     }
 
+    // Filter out synthetic thought markers ('…') that were only used to trigger the thinking indicator
+    const meaningfulThought = (finalThought || '').trim();
+    const thoughtToReturn = meaningfulThought.length > 1 ? meaningfulThought : '';
+
     return NextResponse.json({
-      reply: finalResponse.trim(),
-      thought: finalThought.trim(),
+      reply: (finalResponse || '').trim(),
+      thought: thoughtToReturn,
       agentName: 'SuperClaw',
       messageId: finalMessageId,
       tool_calls: finalToolCalls,
+      sessionId: sessionId || undefined,
     });
   } catch (error) {
     console.error(UI_STRINGS.API_CHAT_ERROR, error);

@@ -29,7 +29,8 @@ export function useChatMessages(
   seenMessageIds: React.MutableRefObject<Set<string>>,
   fetchSessions: () => void,
   skipNextHistoryFetch: React.MutableRefObject<boolean>,
-  activeSessionRef: React.MutableRefObject<string>
+  activeSessionRef: React.MutableRefObject<string>,
+  disabled = false
 ) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
@@ -62,6 +63,7 @@ export function useChatMessages(
 
   // Handle immediate history fetch on session change
   useEffect(() => {
+    if (disabled) return;
     if (activeSessionId) {
       if (skipNextHistoryFetch.current) {
         // If this was a new session creation from sendMessage,
@@ -98,13 +100,23 @@ export function useChatMessages(
       if (existingIdx !== -1) {
         const existing = prev[existingIdx];
         const updated = [...prev];
-        
-        // ALWAYS take the clean API response if provided, as it's the "truth"
-        // This prevents blinking caused by minor stream-vs-API text differences.
+
+        const isMeaningfulThought = data.thought && data.thought.trim().length > 1;
+        const willPreserveContent = !!(existing.content && existing.content.trim().length > 0);
+
+        console.log(
+          `[updateAssistantResponse] id=${targetId.substring(0, 12)}, ` +
+          `existingLen=${existing.content?.length ?? 0}, replyLen=${data.reply?.length ?? 0}, ` +
+          `preserve=${willPreserveContent}, hasMeaningfulThought=${isMeaningfulThought}`
+        );
+
         updated[existingIdx] = {
           ...existing,
-          content: data.reply || existing.content,
-          thought: data.thought || existing.thought,
+          content:
+            existing.content && existing.content.trim().length > 0
+              ? existing.content
+              : (data.reply !== undefined ? data.reply : existing.content),
+          thought: isMeaningfulThought ? data.thought : existing.thought,
           tool_calls: data.tool_calls || existing.tool_calls,
           agentName: data.agentName || existing.agentName,
           ui_blocks: data.ui_blocks || existing.ui_blocks,
@@ -158,7 +170,11 @@ export function useChatMessages(
     }
   };
 
-  const sendMessage = async (text: string, pageContext?: PageContextData) => {
+  const sendMessage = async (
+    text: string,
+    pageContext?: PageContextData,
+    profile?: string
+  ) => {
     if (!text.trim() && attachments.length === 0) return;
     if (isPostInFlight.current) return;
 
@@ -183,15 +199,13 @@ export function useChatMessages(
       {
         role: 'assistant',
         content: '',
-        messageId: `thinking-${tempId}`,
+        // Use the same messageId the server will assign (traceId-superclaw) so React never
+        // needs to change the key on this element, avoiding a component remount flash.
+        messageId: `${tempId}-superclaw`,
         agentName: 'SuperClaw',
         isThinking: true,
       },
     ]);
-
-    setIsLoading(true);
-    setAttachments([]);
-    isPostInFlight.current = true;
 
     let currentSessionId = activeSessionRef.current;
     let isNewSession = false;
@@ -224,6 +238,7 @@ export function useChatMessages(
           attachments: apiAttachments,
           traceId: tempId,
           pageContext,
+          profile,
         }),
       });
 

@@ -33,8 +33,8 @@ export function shouldProcessChunk(
 ): boolean {
   const type = data.type || data['detail-type'];
   
-  // LOG EVERYTHING to see why chunks are ignored
-  console.log(`[shouldProcessChunk] id=${data.messageId}, type=${type}, session=${data.sessionId}, active=${currentActiveId}, expectedUser=${expectedUserId}`);
+  // DEBUG: Log session processing
+  console.log(`[shouldProcessChunk] msg=${data.messageId?.substring(0, 8)}, type=${type}, incoming_session=${data.sessionId}, active_session=${currentActiveId}`);
 
   // Normalize incoming userId (remove CONV# prefix if present)
   const incomingUserId = data.userId?.startsWith('CONV#') ? data.userId.split('#')[1] : data.userId;
@@ -53,16 +53,26 @@ export function shouldProcessChunk(
   }
 
   if (!data.messageId) {
+    console.log(`[shouldProcessChunk] ⏭️  Skipping: no messageId`);
     return false;
   }
 
+  // If no activeSessionId yet, accept the chunk (session will be set soon)
+  if (!currentActiveId) {
+    console.log(`[shouldProcessChunk] ⏩ No active session yet, accepting chunk`);
+    return true;
+  }
+
   if (!data.sessionId) {
+    console.log(`[shouldProcessChunk] ⏩ No session in data, accepting chunk`);
     return true;
   }
 
   const match = data.sessionId === currentActiveId;
   if (!match) {
     console.warn(`[shouldProcessChunk] ❌ Session mismatch: ${data.sessionId} !== ${currentActiveId}`);
+  } else {
+    console.log(`[shouldProcessChunk] ✅ Session match: ${data.sessionId}`);
   }
   return match;
 }
@@ -82,9 +92,20 @@ export function applyChunkToMessages(
 ): ChatMessage[] {
   // Prevent processing chunks for messages we've already finalized via API
   if (data.messageId && seenIds?.has(data.messageId)) {
-    console.log(`[message-handler] Skipping chunk for already-seen ID: ${data.messageId}`);
+    console.log(`[message-handler] ⏭️  Skipping already-seen ID: ${data.messageId?.substring(0, 12)}`);
     return prev;
   }
+
+  // Check both 'detail-type' and 'type' for outbound_message
+  const chunkType = (data as IncomingChunk & { type?: string; 'detail-type'?: string }).type
+    || (data as IncomingChunk & { 'detail-type'?: string })['detail-type'];
+  const isFinal = chunkType === 'outbound_message';
+
+  // Use only data.isThought — data.thought can exist on non-thought chunks (e.g. OUTBOUND_MESSAGE)
+  const isThought = !!data.isThought;
+  const isSyntheticThought = isThought && data.thought === '\u2026';
+  const hasVisibleMessageContent = !!(data.message || data.ui_blocks);
+  const thoughtDelta = isSyntheticThought ? '' : (data.thought || '');
 
   // Find existing message with matching messageId
   const existingIndex = data.messageId
@@ -92,18 +113,16 @@ export function applyChunkToMessages(
     : -1;
 
   if (existingIndex !== -1) {
-    console.log(`[message-handler] Merging chunk into existing message: ${data.messageId}`);
     const updated = [...prev];
     const existing = updated[existingIndex];
-    const isFinal =
-      (data as IncomingChunk & { 'detail-type'?: string })['detail-type'] === 'outbound_message';
+    const stopThinking = (hasVisibleMessageContent && !isThought) || isFinal;
 
-    const isThought = !!(data.isThought || data.thought);
-    if (isThought) {
-      console.log(`[message-handler] Processing thought delta for ${data.messageId}: ${data.thought?.length ?? 0} chars`);
-    }
-    const hasVisibleContent = !!(data.message || data.thought || data.toolCalls || data.tool_calls || data.ui_blocks);
-    const stopThinking = hasVisibleContent || isFinal;
+    console.log(
+      `[message-handler] merge: id=${data.messageId?.substring(0, 12)}, ` +
+      `type=${chunkType ?? 'chunk'}, isFinal=${isFinal}, isThought=${isThought}, ` +
+      `synthetic=${isSyntheticThought}, msgLen=${data.message?.length ?? 0}, ` +
+      `existingLen=${existing.content?.length ?? 0}, wasThinking=${existing.isThinking}`
+    );
 
     updated[existingIndex] = {
       ...existing,
@@ -111,15 +130,22 @@ export function applyChunkToMessages(
       content:
         !isThought || isFinal
           ? isFinal
-            ? data.message ?? existing.content
+            ? // For final message, preserve accumulated streaming content if non-empty
+              (existing.content && existing.content.trim().length > 0)
+                ? existing.content
+                : (data.message ?? existing.content)
             : (existing.content ?? '') + (data.message ?? '')
           : existing.content,
       thought:
-        isThought || isFinal
-          ? isFinal
-            ? data.message || data.thought || existing.thought
-            : (existing.thought ?? '') + (data.message || data.thought || '')
-          : existing.thought,
+        isThought
+          ? thoughtDelta
+            ? (existing.thought ?? '') + thoughtDelta
+            : existing.thought
+          : isFinal
+            ? (existing.thought && existing.thought.trim().length > 0)
+              ? existing.thought
+              : (data.thought || existing.thought) || undefined
+            : existing.thought,
       attachments: data.attachments ?? existing.attachments,
       tool_calls: data.toolCalls || data.tool_calls || existing.tool_calls,
       options: data.options ?? existing.options,
@@ -128,35 +154,41 @@ export function applyChunkToMessages(
     return updated;
   }
 
-  // No existing message found — check if we have a thinking placeholder
+  // No exact ID match — check if we have a thinking placeholder
   const thinkingIndex = prev.findIndex((m) => m.role === 'assistant' && m.isThinking);
   if (thinkingIndex !== -1) {
     const updated = [...prev];
     const existing = updated[thinkingIndex];
-    const isFinal =
-      (data as IncomingChunk & { 'detail-type'?: string })['detail-type'] === 'outbound_message';
-    const isThought = !!(data.isThought || data.thought);
+    const stopThinking = (hasVisibleMessageContent && !isThought) || isFinal;
 
-    // Only stop thinking if we have something visible or it's final
-    const hasVisibleContent = !!(data.message || data.thought || data.toolCalls || data.tool_calls || data.ui_blocks);
-    const stopThinking = hasVisibleContent || isFinal;
+    console.log(
+      `[message-handler] thinkingPlaceholder: id=${data.messageId?.substring(0, 12)}, ` +
+      `type=${chunkType ?? 'chunk'}, isFinal=${isFinal}, isThought=${isThought}, ` +
+      `synthetic=${isSyntheticThought}, msgLen=${data.message?.length ?? 0}`
+    );
 
     updated[thinkingIndex] = {
       ...existing,
       messageId: data.messageId, // Inherit the real message ID
-      isThinking: !stopThinking, // No longer just thinking only if we have content
+      isThinking: !stopThinking,
       content:
         !isThought || isFinal
           ? isFinal
-            ? data.message ?? ''
-            : data.message ?? ''
+            ? (existing.content && existing.content.trim().length > 0)
+              ? existing.content
+              : (data.message ?? '')
+            : (data.message ?? '')
           : '',
       thought:
-        isThought || isFinal
-          ? isFinal
-            ? data.message || data.thought || ''
-            : data.message || data.thought || ''
-          : '',
+        isThought
+          ? thoughtDelta
+            ? (existing.thought ?? '') + thoughtDelta
+            : existing.thought
+          : isFinal
+            ? (existing.thought && existing.thought.trim().length > 0)
+              ? existing.thought
+              : (data.thought || existing.thought || '') || undefined
+            : existing.thought || undefined,
       attachments: data.attachments ?? existing.attachments,
       tool_calls: data.toolCalls || data.tool_calls || existing.tool_calls,
       options: data.options ?? existing.options,
@@ -171,26 +203,36 @@ export function applyChunkToMessages(
       (m) => m.role === 'assistant' && m.content === data.message
     );
     if (isContentDup) {
-      console.log(`[Realtime] Dropping duplicate content chunk for ${data.messageId}`);
+      console.log(`[message-handler] Dropping duplicate content chunk for ${data.messageId}`);
       return prev;
     }
   }
 
   // Add new message
-  console.log(`[message-handler] Adding new assistant message from chunk: ${data.messageId} (isThought: ${data.isThought || !!data.thought})`);
-  const isFinal = (data as IncomingChunk & { 'detail-type'?: string })['detail-type'] === 'outbound_message';
-  const hasVisibleContent = !!((data.message && data.message.trim().length > 0) || data.thought || data.toolCalls || data.tool_calls || data.ui_blocks);
-  const stopThinking = hasVisibleContent || isFinal;
+  const hasVisibleContent = !!(
+    (data.message && data.message.trim().length > 0) ||
+    thoughtDelta ||
+    data.toolCalls ||
+    data.tool_calls ||
+    data.ui_blocks
+  );
+  const stopThinkingNew = hasVisibleContent || isFinal;
+
+  console.log(
+    `[message-handler] addNew: id=${data.messageId?.substring(0, 12)}, ` +
+    `type=${chunkType ?? 'chunk'}, isThought=${isThought}, ` +
+    `msgLen=${data.message?.length ?? 0}, isThinking=${!stopThinkingNew}`
+  );
 
   return [
     ...prev,
     {
       role: 'assistant',
-      content: data.isThought ? '' : (data.message ?? ''),
-      thought: data.isThought ? (data.message || data.thought) : data.thought,
+      content: isThought ? '' : (data.message ?? ''),
+      thought: thoughtDelta || undefined,
       messageId: data.messageId,
       agentName: data.agentName ?? 'SuperClaw',
-      isThinking: !stopThinking,
+      isThinking: !stopThinkingNew,
       attachments: data.attachments,
       options: data.options,
       tool_calls: data.toolCalls || data.tool_calls,

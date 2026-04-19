@@ -448,8 +448,52 @@ describe('OpenAIProvider', () => {
 
     expect(mockCreateResponse).toHaveBeenCalledWith(
       expect.objectContaining({
-        reasoning: { effort: 'high' },
+        reasoning: { effort: 'high', summary: 'auto' },
       })
     );
+  });
+
+  it('should request reasoning.summary for GPT-5 thinking profile and surface summary as thought', async () => {
+    mockCreateResponse.mockResolvedValue({
+      output_text: 'Final answer',
+      output: [
+        {
+          type: 'reasoning',
+          summary: [{ type: 'summary_text', text: 'Reasoning summary from model' }],
+        },
+      ],
+    });
+
+    const result = await provider.call(
+      [{ role: MessageRole.USER, content: 'test', traceId: 'test-trace', messageId: 'test-msg' }],
+      [],
+      ReasoningProfile.THINKING,
+      'gpt-5.4'
+    );
+
+    expect(mockCreateResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reasoning: expect.objectContaining({ effort: expect.any(String), summary: 'auto' }),
+      })
+    );
+    expect(result.thought).toBe('Reasoning summary from model');
+  });
+
+  it('should retry call without reasoning.summary when unsupported', async () => {
+    mockCreateResponse
+      .mockRejectedValueOnce(new Error('Unknown parameter: reasoning.summary'))
+      .mockResolvedValueOnce({ output_text: 'Fallback ok', output: [] });
+
+    const result = await provider.call(
+      [{ role: MessageRole.USER, content: 'test', traceId: 'test-trace', messageId: 'test-msg' }],
+      [],
+      ReasoningProfile.THINKING,
+      'gpt-5.4'
+    );
+
+    expect(mockCreateResponse).toHaveBeenCalledTimes(2);
+    expect(mockCreateResponse.mock.calls[0][0].reasoning.summary).toBe('auto');
+    expect(mockCreateResponse.mock.calls[1][0].reasoning.summary).toBeUndefined();
+    expect(result.content).toBe('Fallback ok');
   });
 });

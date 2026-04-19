@@ -13,7 +13,8 @@ export function useChatConnection(
   activeSessionId: string,
   setMessagesRef: React.MutableRefObject<React.Dispatch<React.SetStateAction<ChatMessage[]>>>,
   _setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
-  isPostInFlight: React.MutableRefObject<boolean>
+  isPostInFlight: React.MutableRefObject<boolean>,
+  disabled = false
 ) {
   const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
   const activeSessionRef = useRef<string>(activeSessionId);
@@ -104,7 +105,7 @@ export function useChatConnection(
   const lastSyncRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!activeSessionId) {
+    if (!activeSessionId || disabled) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -113,13 +114,14 @@ export function useChatConnection(
     }
 
     if (!intervalRef.current) {
-      lastSyncRef.current = Date.now() - 30000;
+      // Initialize with a past timestamp so first check fires after a 2s delay
+      lastSyncRef.current = Date.now() - 60000;
       const runSync = () => {
         const now = Date.now();
         const sessionId = activeSessionRef.current;
         if (!sessionId) return;
 
-        const freq = 30000;
+        const freq = 60000; // Increased to 60s
         if (now - lastSyncRef.current < freq) return;
 
         if (!document.hidden && !isPostInFlight.current) {

@@ -247,9 +247,6 @@ export class AgentEmitter {
         attachments: safeAttachments,
       };
 
-      console.log(
-        `[AgentEmitter] Emitting chunk to ${topic} (messageId: ${messageId}, type: ${detailType}, size: ${chunk?.length ?? 0} chars)`
-      );
       await publishToRealtime(topic, payload);
     } catch (e) {
       // Don't let chunk emission failures block the main loop

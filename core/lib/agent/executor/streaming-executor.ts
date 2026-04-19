@@ -6,6 +6,7 @@ import {
   ButtonType,
   EventType,
 } from '../../types/index';
+import { ReasoningProfile } from '../../types/index';
 import { normalizeProfile } from '../../providers/utils';
 import { TRACE_TYPES } from '../../constants';
 import { ExecutorUsage, ExecutorOptions } from '../executor-types';
@@ -40,7 +41,7 @@ export class StreamingExecutor extends BaseExecutor {
     const cancellationMsg = await ExecutorHelper.checkCancellation(taskId);
     if (cancellationMsg) {
       if (emitter) {
-        emitter.emitChunk(
+        await emitter.emitChunk(
           userId,
           sessionId,
           traceId,
@@ -111,6 +112,34 @@ export class StreamingExecutor extends BaseExecutor {
         options.stopSequences
       );
 
+      // Emit a synthetic thinking marker before content streaming starts so the UI always
+      // shows thinking first for thinking/deep profiles.
+      // Use the REQUESTED profile (pre-normalization) so non-reasoning models (e.g. gpt-4o-mini)
+      // still show the thinking indicator when the user has toggled thinking on.
+      const shouldPrefaceThinking =
+        options.activeProfile === ReasoningProfile.THINKING ||
+        options.activeProfile === ReasoningProfile.DEEP ||
+        normalizedProfile === 'thinking' ||
+        normalizedProfile === 'deep';
+
+
+      if (shouldPrefaceThinking && emitter) {
+        await emitter.emitChunk(
+          userId,
+          sessionId,
+          traceId,
+          undefined,
+          this.agentName,
+          true,
+          undefined,
+          options.currentInitiator,
+          '\u2026',
+          undefined,
+          undefined,
+          EventType.TEXT_MESSAGE_CONTENT
+        );
+      }
+
       const toolCalls: ToolCall[] = [];
 
       for await (const chunk of stream) {
@@ -118,7 +147,7 @@ export class StreamingExecutor extends BaseExecutor {
           const contentDelta = chunk.content;
           fullContent += contentDelta;
           if (emitter) {
-            emitter.emitChunk(
+            await emitter.emitChunk(
               userId,
               sessionId,
               traceId,
@@ -137,9 +166,12 @@ export class StreamingExecutor extends BaseExecutor {
 
         if (chunk.thought) {
           const thoughtDelta = chunk.thought;
-          fullThought += thoughtDelta;
+          // Don't accumulate synthetic thinking markers — they only trigger the UI indicator
+          if (thoughtDelta !== '\u2026') {
+            fullThought += thoughtDelta;
+          }
           if (emitter) {
-            emitter.emitChunk(
+            await emitter.emitChunk(
               userId,
               sessionId,
               traceId,
@@ -165,9 +197,6 @@ export class StreamingExecutor extends BaseExecutor {
         }
 
         if (chunk.content || chunk.thought || chunk.tool_calls || chunk.usage) {
-          console.log(
-            `[StreamingExecutor] Yielding chunk: content=${!!chunk.content}, thought=${!!chunk.thought}, toolCalls=${chunk.tool_calls?.length ?? 0}`
-          );
           yield chunk;
         }
       }
@@ -205,8 +234,7 @@ export class StreamingExecutor extends BaseExecutor {
       // Emit progress signal if executing tools
       if (!isPauseTool && emitter) {
         const toolNames = toolCalls.map((tc) => tc.function.name).join(', ');
-        console.log(`[StreamingExecutor] Emitting progress chunk for: ${toolNames}`);
-        emitter.emitChunk(
+        await emitter.emitChunk(
           userId,
           sessionId,
           traceId,
@@ -222,7 +250,7 @@ export class StreamingExecutor extends BaseExecutor {
       if (isPauseTool && !fullContent) {
         const ackMsg = `I'm on it. I'll engage the appropriate agent for you.`;
         if (emitter) {
-          emitter.emitChunk(
+          await emitter.emitChunk(
             userId,
             sessionId,
             traceId,
@@ -265,7 +293,7 @@ export class StreamingExecutor extends BaseExecutor {
       if (attachments.length > attachmentsBefore) {
         const newAttachments = attachments.slice(attachmentsBefore);
         if (emitter) {
-          emitter.emitChunk(
+          await emitter.emitChunk(
             userId,
             sessionId,
             traceId,
@@ -283,7 +311,7 @@ export class StreamingExecutor extends BaseExecutor {
       }
 
       if (toolResult.ui_blocks && toolResult.ui_blocks.length > 0 && emitter) {
-        emitter.emitChunk(
+        await emitter.emitChunk(
           userId,
           sessionId,
           traceId,
@@ -302,7 +330,7 @@ export class StreamingExecutor extends BaseExecutor {
         if (toolResult.responseText) {
           const pauseMessage = `\n\n${ExecutorHelper.formatUserFriendlyResponse(toolResult.responseText)}`;
           if (emitter) {
-            emitter.emitChunk(
+            await emitter.emitChunk(
               userId,
               sessionId,
               traceId,
@@ -323,8 +351,7 @@ export class StreamingExecutor extends BaseExecutor {
     usage.durationMs = Date.now() - loopStartTime;
 
     if (emitter) {
-      console.log(`[StreamingExecutor] Emitting final OUTBOUND_MESSAGE signal for: ${traceId}`);
-      emitter.emitChunk(
+      await emitter.emitChunk(
         userId,
         sessionId,
         traceId,
@@ -377,7 +404,7 @@ export class StreamingExecutor extends BaseExecutor {
           },
         ];
         if (emitter)
-          emitter.emitChunk(
+          await emitter.emitChunk(
             userId,
             sessionId,
             traceId,

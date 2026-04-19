@@ -164,4 +164,120 @@ describe('OpenAIProvider.stream reasoning and prefixed events', () => {
     expect(chunks[0].usage?.prompt_tokens).toBe(10);
     expect(chunks[0].usage?.completion_tokens).toBe(20);
   });
+
+  it('should request reasoning.summary=auto for GPT-5 thinking profile', async () => {
+    async function* mockAsyncStream() {
+      yield { type: 'response.output_text.delta', delta: 'ok' };
+    }
+
+    mockCreate.mockResolvedValue(mockAsyncStream());
+
+    const stream = provider.stream(
+      [{ role: 'user' as any, content: 'hi', traceId: 't1', messageId: 'm1' }],
+      [],
+      ReasoningProfile.THINKING,
+      'gpt-5.4'
+    );
+
+    for await (const _chunk of stream) {
+      // consume
+    }
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reasoning: expect.objectContaining({ effort: expect.any(String), summary: 'auto' }),
+      })
+    );
+  });
+
+  it('should yield thought from reasoning summary output_item.done', async () => {
+    async function* mockAsyncStream() {
+      yield {
+        type: 'response.output_item.done',
+        item: {
+          type: 'reasoning',
+          summary: [{ type: 'summary_text', text: 'Reasoning summary text' }],
+        },
+      };
+      yield { type: 'response.output_text.delta', delta: 'Final answer' };
+    }
+
+    mockCreate.mockResolvedValue(mockAsyncStream());
+
+    const chunks = [];
+    const stream = provider.stream(
+      [{ role: 'user' as any, content: 'hi', traceId: 't1', messageId: 'm1' }],
+      [],
+      ReasoningProfile.THINKING,
+      'gpt-5.4'
+    );
+
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks.find((c: any) => c.thought === 'Reasoning summary text')).toBeTruthy();
+    expect(chunks.find((c: any) => c.content === 'Final answer')).toBeTruthy();
+  });
+
+  it('should retry streaming without reasoning.summary when unsupported', async () => {
+    const unsupportedSummaryError = new Error('Unknown parameter: reasoning.summary');
+
+    async function* fallbackStream() {
+      yield { type: 'response.output_text.delta', delta: 'fallback ok' };
+    }
+
+    mockCreate
+      .mockRejectedValueOnce(unsupportedSummaryError)
+      .mockResolvedValueOnce(fallbackStream());
+
+    const chunks = [];
+    const stream = provider.stream(
+      [{ role: 'user' as any, content: 'hi', traceId: 't1', messageId: 'm1' }],
+      [],
+      ReasoningProfile.THINKING,
+      'gpt-5.4'
+    );
+
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+
+    expect(mockCreate).toHaveBeenCalledTimes(2);
+    expect(mockCreate.mock.calls[0][0].reasoning.summary).toBe('auto');
+    expect(mockCreate.mock.calls[1][0].reasoning.summary).toBeUndefined();
+    expect(chunks[0].content).toBe('fallback ok');
+  });
+
+  it('should split long reasoning summaries into multiple thought chunks', async () => {
+    const longSummary =
+      'This is a long reasoning summary designed to be streamed in multiple chunks so the thinking panel updates progressively rather than appearing all at once in a single block.';
+
+    async function* mockAsyncStream() {
+      yield {
+        type: 'response.output_item.done',
+        item: {
+          type: 'reasoning',
+          summary: [{ type: 'summary_text', text: longSummary }],
+        },
+      };
+    }
+
+    mockCreate.mockResolvedValue(mockAsyncStream());
+
+    const thoughts: string[] = [];
+    const stream = provider.stream(
+      [{ role: 'user' as any, content: 'hi', traceId: 't1', messageId: 'm1' }],
+      [],
+      ReasoningProfile.THINKING,
+      'gpt-5.4'
+    );
+
+    for await (const chunk of stream) {
+      if (chunk.thought) thoughts.push(chunk.thought);
+    }
+
+    expect(thoughts.length).toBeGreaterThan(1);
+    expect(thoughts.join('')).toBe(longSummary);
+  });
 });

@@ -67,10 +67,20 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     if (isUnmountedRef.current) return;
     try {
       const res = await fetch('/api/chat');
-      if (res.ok) {
-        const data = await res.json();
-        setSessions(data.sessions || []);
+      if (!res.ok) {
+        console.warn(`[Realtime] Failed to fetch sessions: HTTP ${res.status}`);
+        return;
       }
+
+      const contentType = res.headers.get('content-type') ?? '';
+      if (!contentType.includes('application/json')) {
+        const preview = (await res.text()).slice(0, 120);
+        console.warn(`[Realtime] /api/chat returned non-JSON payload: ${preview}`);
+        return;
+      }
+
+      const data = (await res.json()) as { sessions?: ConversationMeta[] };
+      setSessions(data.sessions || []);
     } catch (err) {
       console.warn('[Realtime] Failed to fetch sessions', err);
     }
@@ -83,6 +93,19 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       if (!configCacheRef.current) {
         const res = await fetch('/api/config');
         if (isUnmountedRef.current) return;
+
+        if (!res.ok) {
+          console.warn(`[Realtime] /api/config failed: HTTP ${res.status}`);
+          return;
+        }
+
+        const contentType = res.headers.get('content-type') ?? '';
+        if (!contentType.includes('application/json')) {
+          const preview = (await res.text()).slice(0, 120);
+          console.warn(`[Realtime] /api/config returned non-JSON payload: ${preview}`);
+          return;
+        }
+
         configCacheRef.current = (await res.json()) as DashboardConfig;
       }
       
@@ -183,8 +206,15 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     isUnmountedRef.current = false;
     connect();
-    fetchSessions();
-    const interval = setInterval(fetchSessions, 30000);
+    fetchSessions(); // Immediate fetch on mount
+    
+    const interval = setInterval(() => {
+      // Periodic fetch as fallback
+      if (!isUnmountedRef.current && !document.hidden) {
+        fetchSessions();
+      }
+    }, 60000); // Increased to 60s
+    
     return () => {
       isUnmountedRef.current = true;
       clearInterval(interval);

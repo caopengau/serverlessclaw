@@ -212,7 +212,6 @@ export class Agent {
       activeProvider = finalProvider;
 
       if (!skipUserSave) {
-        console.log(`[Agent] Saving user message with ID/TraceID: ${traceId}`);
         await this.memory.addMessage(
           storageId,
           {
@@ -594,11 +593,9 @@ export class Agent {
     let fullThought = '';
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
-    let chunkCount = 0;
 
     try {
       for await (const chunk of stream) {
-        chunkCount++;
         if (options.sessionId && sessionStateManager) {
           await sessionStateManager.autoRenew(options.sessionId, this.config?.id ?? 'unknown');
         }
@@ -608,14 +605,11 @@ export class Agent {
 
         if (chunk.content) {
           fullContent += chunk.content;
-          console.log(`[Agent:Stream] Chunk ${chunkCount} content: ${chunk.content.length} chars`);
         }
         if (chunk.thought) {
           fullThought += chunk.thought;
-          console.log(`[Agent:Stream] Chunk ${chunkCount} thought: ${chunk.thought.length} chars`);
         }
         if (chunk.tool_calls) {
-          console.log(`[Agent:Stream] Chunk ${chunkCount} tool_calls: ${chunk.tool_calls.length}`);
         }
 
         // Incremental extraction for JSON mode
@@ -647,13 +641,10 @@ export class Agent {
           agentName: this.config?.name,
         };
       }
-      console.log(
-        `[Agent:Stream] Stream completed. Total chunks: ${chunkCount}, content length: ${fullContent.length}`
-      );
 
       // Fallback: If stream produced no content, perform a non-streaming call
       if (fullContent.trim().length === 0 && fullThought.trim().length === 0) {
-        console.warn(
+        logger.warn(
           `[Agent:Stream] Stream produced no content. Triggering non-streaming fallback.`
         );
         const fallback = await this.process(userId, userText, {
@@ -702,9 +693,6 @@ export class Agent {
       finalResponseText.trim().length > 0 || fullThought.trim().length > 0;
 
     if (streamProducedAnything) {
-      console.log(
-        `[Agent] Saving assistant message with traceId: ${traceId}, messageId: ${assistantMessageId}`
-      );
       await this.memory.addMessage(
         storageId,
         {

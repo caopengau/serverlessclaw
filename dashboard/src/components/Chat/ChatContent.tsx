@@ -187,16 +187,17 @@ export default function ChatContent() {
   // URL State Management
   useEffect(() => {
     const sessionFromUrl = searchParams.get('session');
+    // Only update activeSessionId if URL has a different session parameter
+    // Don't clear activeSessionId just because URL doesn't have it
+    // (user-created sessions won't be in URL until manually navigated)
     if (sessionFromUrl && sessionFromUrl !== activeSessionId) {
       setActiveSessionId(sessionFromUrl);
-    } else if (!sessionFromUrl && activeSessionId) {
-      setActiveSessionId('');
     }
 
     const prompt = searchParams.get('prompt');
     if (prompt && !hasProcessedPrompt.current) {
       hasProcessedPrompt.current = true;
-      setTimeout(() => sendMessage(prompt), 500);
+      setTimeout(() => sendMessage(prompt, undefined, showThinking ? 'thinking' : 'fast'), 500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -277,7 +278,7 @@ export default function ChatContent() {
       await handleTaskCancellation(value.split(':')[1], comment);
     } else {
       const fullMessage = comment ? `${value}\n\nComment: ${comment}` : value;
-      sendMessage(fullMessage);
+      sendMessage(fullMessage, undefined, showThinking ? 'thinking' : 'fast');
     }
   };
 
@@ -521,7 +522,7 @@ export default function ChatContent() {
           isLoading={isLoading}
           onSend={(e) => {
             e.preventDefault();
-            sendMessage(input);
+            sendMessage(input, undefined, showThinking ? 'thinking' : 'fast');
             setInput('');
           }}
           attachments={attachments}

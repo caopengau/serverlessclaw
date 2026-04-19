@@ -43,7 +43,8 @@ export default function ChatBubble() {
     activeSessionId,
     setMessagesRef, 
     setIsLoading,
-    isPostInFlight
+    isPostInFlight,
+    pathname === '/chat' || pathname === '/'
   );
 
   // Initialize Messages Hook
@@ -62,7 +63,8 @@ export default function ChatBubble() {
     seenMessageIds,
     chatConnection.fetchSessions,
     skipNextHistoryFetch,
-    activeSessionRef
+    activeSessionRef,
+    pathname === '/chat' || pathname === '/'
   );
 
   // Sync the ref for the connection hook

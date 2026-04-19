@@ -24,8 +24,14 @@ function isPublicPath(pathname: string): boolean {
   return PUBLIC_PATH_PREFIXES.some(prefix => pathname.startsWith(prefix));
 }
 
-export function proxy(request: NextRequest): NextResponse {
+export default function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
+  const timestamp = new Date().toISOString();
+  
+  // Basic request logging with timestamp
+  if (!pathname.startsWith('/_next') && !pathname.startsWith('/static')) {
+    console.log(`[${timestamp}] ${request.method} ${pathname}`);
+  }
 
   if (isPublicPath(pathname)) {
     return NextResponse.next();
