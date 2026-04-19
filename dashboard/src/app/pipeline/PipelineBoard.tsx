@@ -18,6 +18,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import Badge from '@/components/ui/Badge';
 import { GapStatus } from '@claw/core/lib/types';
 import { GapItem } from '@claw/core/lib/types/memory';
 import CyberConfirm from '@/components/CyberConfirm';
@@ -296,12 +297,19 @@ export default function PipelineBoard({
                           {processing === gap.userId ? (
                             <div className="w-1.5 h-1.5 rounded-full bg-cyber-blue animate-spin"></div>
                           ) : (
-                            <button
-                              onClick={() => handlePrune(gap.userId, gap.timestamp)}
-                              className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-500 transition-all"
-                            >
-                              <Trash2 size={12} />
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              {gap.status === 'FAILED' && (
+                                <Badge variant="danger" className="text-[7px] px-1 py-0 uppercase">
+                                  {gap.status}
+                                </Badge>
+                              )}
+                              <button
+                                onClick={() => handlePrune(gap.userId, gap.timestamp)}
+                                className="opacity-0 group-hover:opacity-100 text-white/20 hover:text-red-500 transition-all"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>

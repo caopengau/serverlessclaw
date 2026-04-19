@@ -28,7 +28,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { THEME } from '@/lib/theme';
 import { SSTResource } from '@claw/core/lib/types/index';
-import { Trace, TraceStep } from '@/lib/types/ui';
+import { Trace, TraceStep, ToolCallContent, ToolResultContent } from '@/lib/types/ui';
 
 export const dynamic = 'force-dynamic';
 
@@ -257,17 +257,27 @@ export default async function TraceDetailPage({
                             variant="caption"
                             weight="medium"
                             color="white"
-                            className="block"
+                            className="flex items-center gap-2"
                           >
                             {step.type === TRACE_TYPES.TOOL_CALL
-                              ? `Executing ${(step.content?.tool as string) || (step.content?.toolName as string) || ''}`
+                              ? `Executing ${(step.content as ToolCallContent)?.toolName || (step.content as ToolCallContent)?.tool || ''}`
                               : step.type === TRACE_TYPES.TOOL_RESULT
-                                ? `Observation from ${(step.content?.tool as string) || (step.content?.toolName as string) || 'tool'}`
+                                ? `Observation from ${(step.content as ToolResultContent)?.toolName || (step.content as ToolResultContent)?.tool || 'tool'}`
                                 : step.type === TRACE_TYPES.LLM_CALL
                                   ? 'Agent Request (Input)'
                                   : step.type === TRACE_TYPES.LLM_RESPONSE
                                     ? 'Agent Response (Output)'
                                     : 'Error detected'}
+
+                            {step.type === TRACE_TYPES.TOOL_CALL && (
+                              <Badge 
+                                variant={(step.content as any)?.connectorId ? "primary" : "outline"}
+                                data-testid={(step.content as any)?.connectorId ? "mcp-badge" : "local-badge"}
+                                className="text-[8px] px-1.5 py-0"
+                              >
+                                {(step.content as any)?.connectorId ? 'MCP' : 'LOCAL'}
+                              </Badge>
+                            )}
                           </Typography>
                         </div>
                       </div>

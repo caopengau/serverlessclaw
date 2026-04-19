@@ -25,7 +25,7 @@ const Badge: React.FC<BadgeProps> = ({
   return (
     <span
       className={`
-        px-2 py-1 border rounded text-[10px] font-black tracking-tighter
+        Badge px-2 py-1 border rounded text-[10px] font-black tracking-tighter
         ${variantStyles} 
         ${glow ? 'animate-pulse shadow-[0_0_10px_rgba(0,255,163,0.1)]' : ''} 
         ${className}
