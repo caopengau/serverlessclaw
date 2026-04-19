@@ -58,12 +58,14 @@ export interface ToolCallContent {
   toolName?: string;
   args: Record<string, unknown>;
   agentId?: string;
+  connectorId?: string;
 }
 
 export interface ToolResultContent {
   result: unknown;
   tool?: string;
   toolName?: string;
+  connectorId?: string;
 }
 
 export interface ErrorContent {
