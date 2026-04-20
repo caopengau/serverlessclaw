@@ -1,4 +1,5 @@
 import { Message, ITool, IProvider, MessageRole, IAgentConfig } from '../../types/index';
+import { TRACE_TYPES } from '../../constants';
 import { logger } from '../../logger';
 import { normalizeProfile } from '../../providers/utils';
 import { LIMITS } from '../../constants';
@@ -94,6 +95,16 @@ export abstract class BaseExecutor {
         logger.info(`[${this.agentId}] Clamping maxTokens to remaining budget: ${maxTokens}`);
       }
     }
+
+    await options.tracer.addStep({
+      type: TRACE_TYPES.LLM_CALL,
+      content: {
+        model: options.activeModel,
+        provider: options.activeProvider,
+        profile: normalizedProfile,
+        maxTokens,
+      },
+    });
 
     return this.provider.call(
       messages,

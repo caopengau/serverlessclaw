@@ -69,6 +69,7 @@ export class StandardExecutor extends BaseExecutor {
       await options.tracer.addStep({
         type: TRACE_TYPES.LLM_RESPONSE,
         content: {
+          model: options.activeModel,
           content: aiResponse.content,
           thought: aiResponse.thought,
           tool_calls: aiResponse.tool_calls,

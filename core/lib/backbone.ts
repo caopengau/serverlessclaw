@@ -4,8 +4,6 @@ import {
   AgentCategory,
   ConnectionProfile,
   ReasoningProfile,
-  LLMProvider,
-  MiniMaxModel,
   SafetyTier,
   EvolutionMode,
 } from './types/index';
@@ -36,10 +34,7 @@ import {
  * All tools assigned to agents follow camelCase naming conventions.
  */
 
-const BACKBONE_LLM_CONFIG = {
-  provider: LLMProvider.MINIMAX,
-  model: MiniMaxModel.M2_7,
-};
+const BACKBONE_LLM_CONFIG = {};
 
 const BACKBONE_LLM_DEFAULTS = {
   isBackbone: true,

@@ -112,8 +112,8 @@ The system records various trace types to capture the full lifecycle of agent-to
 
 | Trace Type     | Description             | Content Example                            |
 | -------------- | ----------------------- | ------------------------------------------ |
-| `llm_call`     | Agent reasoning request | `{ messages: [...], model: 'gpt-4' }`      |
-| `llm_response` | Agent reasoning output  | `{ content: '...', tool_calls: [...] }`    |
+| `llm_call`     | Agent reasoning request | `{ model: 'gpt-5-mini', provider: 'openai', ... }` |
+| `llm_response` | Agent reasoning output  | `{ model: 'gpt-5-mini', content: '...', ... }`      |
 | `tool_call`    | Tool execution request  | `{ tool: 'runShellCommand', args: {...} }` |
 | `tool_result`  | Tool execution result   | `{ result: 'output...' }`                  |
 | `error`        | Execution error         | `{ errorMessage: '...' }`                  |

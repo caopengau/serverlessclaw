@@ -83,12 +83,13 @@ This document outlines the system-wide configuration keys available in the `Conf
 
 ### `active_provider` / `active_model`
 
-- **Default**: `minimax` / `MiniMax-M2.7`
+- **Default**: `openai` / `gpt-5-mini`
 - **Purpose**: Hot-swapping the primary LLM backend for all system nodes.
 - **Implications**:
+  - **OpenAI**: Fast, cost-efficient (GPT-5 Mini), and generally reliable. Default for most tasks.
   - **Bedrock (Claude)**: Better for complex coding tasks; higher latency in some regions.
-  - **OpenRouter**: Access to a wide range of models; dependency on a third-party gateway.
-  - **GPT-4o**: Highly reliable and fast; default for most tasks.
+  - **MiniMax**: Native reasoning support; interleaved thinking blocks.
+  - **OpenRouter**: Access to a wide range of models via a single API gateway.
 
 ### `retention_config`
 

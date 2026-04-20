@@ -94,11 +94,15 @@ export default function TraceIntelligenceView({
         : [];
 
       // Extract LLM used
-      const llmStep = trace.steps?.find((s: TraceStep) => s.type === TRACE_TYPES.LLM_CALL);
+      const llmCallStep = trace.steps?.find((s: TraceStep) => s.type === TRACE_TYPES.LLM_CALL);
+      const llmResponseStep = trace.steps?.find((s: TraceStep) => s.type === TRACE_TYPES.LLM_RESPONSE);
+
       const model =
         trace.initialContext?.model ||
-        (llmStep?.content as LlmCallContent)?.model ||
-        (typeof llmStep?.metadata?.model === 'string' ? llmStep.metadata.model : '') ||
+        (llmCallStep?.content as LlmCallContent)?.model ||
+        (llmResponseStep?.content as LlmResponseContent)?.model ||
+        (typeof llmCallStep?.metadata?.model === 'string' ? llmCallStep.metadata.model : '') ||
+        (typeof llmResponseStep?.metadata?.model === 'string' ? llmResponseStep.metadata.model : '') ||
         'UNKNOWN_MODEL';
 
       // Calculate total tokens

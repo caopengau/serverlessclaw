@@ -99,6 +99,17 @@ export class StreamingExecutor extends BaseExecutor {
       );
 
       const effectiveMaxTokens = this.getClampedMaxTokens(options, usage);
+
+      await tracer.addStep({
+        type: TRACE_TYPES.LLM_CALL,
+        content: {
+          model: options.activeModel,
+          provider: options.activeProvider,
+          profile: normalizedProfile,
+          maxTokens: effectiveMaxTokens,
+        },
+      });
+
       const stream = this.provider.stream(
         messages,
         this.tools,
@@ -211,6 +222,7 @@ export class StreamingExecutor extends BaseExecutor {
       await tracer.addStep({
         type: TRACE_TYPES.LLM_RESPONSE,
         content: {
+          model: options.activeModel,
           content: fullContent,
           thought: fullThought,
           tool_calls: toolCalls,

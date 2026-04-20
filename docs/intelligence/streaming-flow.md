@@ -18,7 +18,8 @@ This document details the architectural flow for real-time message streaming and
       |
       |--- 1. Initialise Tracer & Emitter
       |--- 2. Manage Model Context
-      |--- 3. Iterate over LLM Chunks
+      |--- 3. Emit LLM_CALL Trace Step
+      |--- 4. Iterate over LLM Chunks
       v
 [ core/LLM Provider.stream() ] ---- (chunks: content | thought | tool_calls) ----+
       ^                                                                         |
@@ -53,7 +54,9 @@ This document details the architectural flow for real-time message streaming and
 ### 1. StreamingExecutor (`core/lib/agent/executor/streaming-executor.ts`)
 The `StreamingExecutor` is the heart of the streaming logic. It:
 - Prefaces reasoning with a synthetic thinking marker (`\u2026`) to trigger UI indicators immediately.
+- Records an explicit `LLM_CALL` trace step with model and provider metadata before streaming begins.
 - Forwards `content` and `thought` deltas to the `AgentEmitter` as they arrive from the LLM.
+- Records the final `LLM_RESPONSE` trace step once the stream is complete.
 - Accumulates the full response for tracing and semantic loop detection.
 - Handles tool call execution and emits progress signals (e.g., "I am executing: list_files...").
 

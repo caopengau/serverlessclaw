@@ -353,7 +353,7 @@ export class ProviderManager implements IProvider {
     return (
       ((await ConfigManager.getRawConfig(CONFIG_KEYS.ACTIVE_MODEL)) as string) ??
       ('ActiveModel' in resource ? resource.ActiveModel.value : undefined) ??
-      SYSTEM.DEFAULT_MINIMAX_MODEL
+      SYSTEM.DEFAULT_MODEL
     );
   }
 
@@ -372,18 +372,18 @@ export class ProviderManager implements IProvider {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const resource = Resource as any;
 
-    // Resolve primary provider, defaulting to MINIMAX if not configured
+    // Resolve primary provider, defaulting to configured system default if not found
     let primaryProvider = primary;
     if (!primaryProvider) {
       const configValue = await ConfigManager.getTypedConfig(
         CONFIG_KEYS.ACTIVE_PROVIDER,
         undefined
       );
-      // Use SST Resource value if available, otherwise default to MINIMAX
+      // Use SST Resource value if available, otherwise fallback to system default
       const sstProvider =
         'ActiveProvider' in resource ? (resource.ActiveProvider.value as LLMProvider) : undefined;
       primaryProvider =
-        (configValue as unknown as LLMProvider) ?? sstProvider ?? LLMProvider.MINIMAX;
+        (configValue as unknown as LLMProvider) ?? sstProvider ?? SYSTEM.DEFAULT_PROVIDER;
     }
 
     // Default fallback chain: OpenAI → Bedrock → OpenRouter → MiniMax
