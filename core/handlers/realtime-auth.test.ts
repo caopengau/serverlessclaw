@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { handler } from './realtime-auth';
+import { logger } from '../lib/logger';
 
 vi.mock('sst', () => ({
   Resource: {
@@ -55,7 +56,7 @@ describe('Realtime Auth Handler', () => {
         ? JSON.parse(response.policyDocuments[0])
         : response.policyDocuments[0];
 
-    console.log(
+    logger.info(
       '[RealtimeAuthTest] Generated Policy for short token:',
       JSON.stringify(policy, null, 2)
     );

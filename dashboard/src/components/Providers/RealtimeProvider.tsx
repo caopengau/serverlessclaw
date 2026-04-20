@@ -153,7 +153,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       client.on('message', (topic, payload) => {
         try {
           const payloadStr = payload.toString();
-          console.log(`[Realtime:MQTT] Received on ${topic}: ${payloadStr.substring(0, 200)}${payloadStr.length > 200 ? '...' : ''}`);
+          logger.info(`[Realtime:MQTT] Received on ${topic}: ${payloadStr.substring(0, 200)}${payloadStr.length > 200 ? '...' : ''}`);
           
           const data = JSON.parse(payloadStr) as RealtimeMessage;
           const displayTopic = topic.startsWith(prefixRef.current)
