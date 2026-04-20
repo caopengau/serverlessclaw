@@ -19,6 +19,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import CyberSelect from '@/components/CyberSelect';
 import { Agent } from '@/lib/types/ui';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 import {
   LLMProvider,
@@ -86,9 +87,10 @@ export default function AgentDetailModal({
   saving,
   hasChanges,
 }: AgentDetailModalProps) {
+  const { t } = useTranslations();
   if (!agent) return null;
 
-  const isLogicOnly = agent.id === 'monitor' || agent.id === 'recovery' || agent.id === 'events';
+  const isLogicOnly = agent.agentType === 'logic';
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -122,12 +124,12 @@ export default function AgentDetailModal({
               </Typography>
               {agent.isBackbone && (
                 <Badge variant="primary" className="py-0">
-                  Backbone
+                  {t('AGENTS_BACKBONE')}
                 </Badge>
               )}
               {isLogicOnly && (
                 <Badge variant="audit" className="py-0">
-                  System Logic
+                  {t('AGENTS_SYSTEM_LOGIC')}
                 </Badge>
               )}
             </div>
@@ -153,7 +155,7 @@ export default function AgentDetailModal({
                 className="flex items-center gap-2"
               >
                 <Settings2 size={12} className="text-cyan-400" />
-                {isLogicOnly ? 'Execution Parameters' : 'System Instructions'}
+                {isLogicOnly ? t('AGENTS_EXECUTION_PARAMETERS') : t('AGENTS_SYSTEM_INSTRUCTIONS')}
               </Typography>
               {isLogicOnly ? (
                 <Card
@@ -161,9 +163,7 @@ export default function AgentDetailModal({
                   padding="md"
                   className="w-full text-[10px] text-white/40 font-mono italic leading-relaxed min-h-[200px]"
                 >
-                  This agent operates on deterministic system logic rather than autonomous
-                  reasoning. Instructions are hardcoded in the codebase for maximum reliability and
-                  safety.
+                  {t('AGENTS_LOGIC_ONLY_DESC')}
                   <br />
                   <br />
                   <Typography
@@ -181,7 +181,7 @@ export default function AgentDetailModal({
                   value={agent.systemPrompt}
                   onChange={(e) => updateAgent(agent.id, { systemPrompt: e.target.value })}
                   className="w-full bg-black/40 border border-white/10 rounded p-4 text-xs text-white/90 font-mono min-h-[280px] outline-none focus:border-cyan-400/40 transition-all leading-relaxed custom-scrollbar"
-                  placeholder="Enter the system instructions for this agent..."
+                  placeholder={t('AGENTS_SYSTEM_INSTRUCTIONS_PLACEHOLDER')}
                 />
               )}
             </div>
@@ -197,7 +197,7 @@ export default function AgentDetailModal({
                     uppercase
                     className="flex items-center gap-2"
                   >
-                    <Cpu size={12} className="text-green-400" /> Hardware Alignment
+                    <Cpu size={12} className="text-green-400" /> {t('AGENTS_HARDWARE_ALIGNMENT')}
                   </Typography>
                   <div className="space-y-4">
                     <div className="space-y-2">
@@ -208,7 +208,7 @@ export default function AgentDetailModal({
                         uppercase
                         className="text-[9px] opacity-60"
                       >
-                        LLM Provider
+                        {t('AGENTS_LLM_PROVIDER')}
                       </Typography>
                       <CyberSelect
                         value={agent.provider || ''}
@@ -231,7 +231,7 @@ export default function AgentDetailModal({
                         uppercase
                         className="text-[9px] opacity-60"
                       >
-                        Model ID
+                        {t('AGENTS_MODEL_ID')}
                       </Typography>
                       <CyberSelect
                         value={agent.model || ''}
@@ -244,7 +244,7 @@ export default function AgentDetailModal({
                             : []
                         }
                         disabled={!agent.provider}
-                        placeholder={agent.provider ? 'SELECT_MODEL' : 'SELECT_PROVIDER_FIRST'}
+                        placeholder={agent.provider ? t('AGENTS_SELECT_MODEL') : t('AGENTS_SELECT_PROVIDER_FIRST')}
                         className="w-full"
                       />
                     </div>
@@ -256,7 +256,7 @@ export default function AgentDetailModal({
                         uppercase
                         className="text-[9px] opacity-60"
                       >
-                        Reasoning Profile
+                        {t('AGENTS_REASONING_PROFILE')}
                       </Typography>
                       <CyberSelect
                         value={agent.reasoningProfile || ''}
@@ -277,13 +277,13 @@ export default function AgentDetailModal({
                   uppercase
                   className="flex items-center gap-2 mb-2"
                 >
-                  <ChevronRight size={12} /> Execution Context
+                  <ChevronRight size={12} /> {t('AGENTS_EXECUTION_CONTEXT')}
                 </Typography>
                 <Typography variant="caption" color="white" className="italic block opacity-70">
-                  Agent Type: {agent.isBackbone ? 'PERSISTENT_BACKBONE' : 'DYNAMIC_SPOKE'}.
+                  Agent Type: {agent.isBackbone ? t('AGENTS_PERSISTENT_BACKBONE') : t('AGENTS_DYNAMIC_SPOKE')}.
                   {isLogicOnly
-                    ? ' Core resilience logic.'
-                    : ' Authorized to interact with global bus and session memory.'}
+                    ? t('AGENTS_CORE_RESILIENCE_LOGIC')
+                    : t('AGENTS_AUTHORIZED_INTERACT')}
                 </Typography>
               </Card>
 
@@ -296,19 +296,19 @@ export default function AgentDetailModal({
                     uppercase
                     className="flex items-center gap-2 mb-3"
                   >
-                    <ChevronRight size={12} className="text-green-400" /> Reputation
+                    <ChevronRight size={12} className="text-green-400" /> {t('AGENTS_REPUTATION')}
                   </Typography>
                   <div className="space-y-2 font-mono text-[10px]">
                     <div className="flex justify-between">
-                      <span className="text-white/40 uppercase">Tasks Completed</span>
+                      <span className="text-white/40 uppercase">{t('AGENTS_TASKS_COMPLETED')}</span>
                       <span className="text-white/80">{reputation[agent.id].tasksCompleted}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-white/40 uppercase">Tasks Failed</span>
+                      <span className="text-white/40 uppercase">{t('AGENTS_TASKS_FAILED')}</span>
                       <span className="text-white/80">{reputation[agent.id].tasksFailed}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-white/40 uppercase">Success Rate</span>
+                      <span className="text-white/40 uppercase">{t('AGENTS_SUCCESS_RATE')}</span>
                       <span
                         className={`font-bold ${
                           reputation[agent.id].successRate >= 0.8
@@ -322,7 +322,7 @@ export default function AgentDetailModal({
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-white/40 uppercase">Avg Latency</span>
+                      <span className="text-white/40 uppercase">{t('AGENTS_AVG_LATENCY')}</span>
                       <span className="text-white/80">
                         {reputation[agent.id].avgLatencyMs.toFixed(0)}ms
                       </span>
@@ -346,7 +346,7 @@ export default function AgentDetailModal({
               uppercase
               className="font-black tracking-widest"
             >
-              Save Config
+              {t('AGENTS_SAVE_CONFIG')}
             </Button>
             <Button
               variant="outline"
@@ -356,7 +356,7 @@ export default function AgentDetailModal({
             >
               <Wrench size={14} />
               <span className="text-[10px] font-bold uppercase tracking-widest">
-                Tools ({agent.tools?.length ?? 0})
+                {t('AGENTS_TOOLS')} ({agent.tools?.length ?? 0})
               </span>
             </Button>
             <label
@@ -369,7 +369,7 @@ export default function AgentDetailModal({
                 uppercase
                 className="text-xs group-hover:text-green-400 transition-colors"
               >
-                Active
+                {t('AGENTS_STATUS_ACTIVE')}
               </Typography>
               <div className="relative">
                 <input
@@ -391,7 +391,7 @@ export default function AgentDetailModal({
               className="text-white/50 hover:text-red-500"
               icon={<Trash2 size={14} />}
             >
-              Delete
+              {t('COMMON_DELETE')}
             </Button>
           )}
         </div>

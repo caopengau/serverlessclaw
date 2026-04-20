@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Typography from '@/components/ui/Typography';
 import CyberSelect from '@/components/CyberSelect';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 import { Agent, ProviderModel } from '@/lib/types/ui';
 
@@ -26,6 +27,7 @@ export default function NewAgentModal({
   finalizeNewAgent,
   PROVIDERS,
 }: Props) {
+  const { t } = useTranslations();
   if (!show) return null;
 
   return (
@@ -50,7 +52,7 @@ export default function NewAgentModal({
         <div className="flex items-center gap-4 text-cyber-green">
           <Plus size={32} />
           <Typography variant="h2" color="primary" weight="black" uppercase className="italic">
-            Config New Agent
+            {t('AGENTS_NEW_AGENT_CONFIG')}
           </Typography>
         </div>
 
@@ -64,7 +66,7 @@ export default function NewAgentModal({
                 uppercase
                 className="text-[10px] opacity-50"
               >
-                Agent Name
+                {t('AGENTS_NAME')}
               </Typography>
               <input
                 value={newAgent.name}
@@ -81,7 +83,7 @@ export default function NewAgentModal({
                 uppercase
                 className="text-[10px] opacity-50"
               >
-                System ID (Immutable)
+                {t('AGENTS_SYSTEM_ID_IMMUTABLE')}
               </Typography>
               <input
                 value={newAgent.id}
@@ -105,13 +107,13 @@ export default function NewAgentModal({
               uppercase
               className="text-[10px] opacity-50"
             >
-              System Instructions (System Prompt)
+              {t('AGENTS_SYSTEM_INSTRUCTIONS_FULL')}
             </Typography>
             <textarea
               value={newAgent.systemPrompt}
               onChange={(e) => setNewAgent((prev) => ({ ...prev, systemPrompt: e.target.value }))}
               className="w-full bg-black/40 border border-white/10 rounded p-4 text-xs text-white/90 font-mono min-h-[220px] outline-none focus:border-cyber-green/50 transition-all leading-relaxed custom-scrollbar"
-              placeholder="Define the agent's behavior, personality, and constraints..."
+              placeholder={t('AGENTS_SYSTEM_INSTRUCTIONS_PLACEHOLDER')}
             />
           </div>
 
@@ -124,7 +126,7 @@ export default function NewAgentModal({
                 uppercase
                 className="text-[10px] opacity-50"
               >
-                Initial Provider
+                {t('AGENTS_INITIAL_PROVIDER')}
               </Typography>
               <CyberSelect
                 value={newAgent.provider ?? ''}
@@ -144,7 +146,7 @@ export default function NewAgentModal({
                 uppercase
                 className="text-[10px] opacity-50"
               >
-                Initial Model
+                {t('AGENTS_INITIAL_MODEL')}
               </Typography>
               <CyberSelect
                 value={newAgent.model ?? ''}
@@ -173,7 +175,7 @@ export default function NewAgentModal({
             fullWidth
             className="shadow-[0_0_20px_rgba(0,255,163,0.2)] hover:scale-[1.02]"
           >
-            Authorize Agent Initialization
+            {t('AGENTS_AUTHORIZE_INITIALIZATION')}
           </Button>
           <Button
             onClick={onClose}
@@ -182,7 +184,7 @@ export default function NewAgentModal({
             uppercase
             className="px-8 text-white/60"
           >
-            Cancel
+            {t('COMMON_CANCEL')}
           </Button>
         </div>
       </Card>

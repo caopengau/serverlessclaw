@@ -554,6 +554,19 @@ export class OpenAIProvider implements IProvider {
               yield { thought: thoughtChunk };
             }
           }
+        } else if (isReasoningSummaryItemDone && rawChunk.item?.type === 'function_call') {
+          yield {
+            tool_calls: [
+              {
+                id: rawChunk.item.call_id ?? '',
+                type: OPENAI.FUNCTION_TYPE,
+                function: {
+                  name: rawChunk.item.name ?? '',
+                  arguments: rawChunk.item.arguments ?? '',
+                },
+              },
+            ],
+          };
         } else if (
           (type === 'usage' || type === 'response.usage') &&
           (rawChunk.usage || rawChunk.response?.usage)

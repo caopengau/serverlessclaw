@@ -4,24 +4,22 @@ import React from 'react';
 import { Activity } from 'lucide-react';
 import Typography from '../ui/Typography';
 import Card from '../ui/Card';
+import Badge from '../ui/Badge';
 import type { Tool } from '@/lib/types/ui';
 import { AgentConfig } from './types';
 
 interface LeaderboardTabProps {
   allTools: Tool[];
-  optimisticAgents: AgentConfig[];
   searchQuery?: string;
 }
 
 export default function LeaderboardTab({
   allTools,
-  optimisticAgents,
   searchQuery = '',
 }: LeaderboardTabProps) {
   const sortedByUsage = [...allTools].sort((a, b) => (b.usage?.count ?? 0) - (a.usage?.count ?? 0));
 
   const filteredTools = sortedByUsage
-    .filter((t) => (t.usage?.count || 0) > 0)
     .filter(
       (t) =>
         t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -53,14 +51,13 @@ export default function LeaderboardTab({
                 <th className="p-4 text-[10px] font-black tracking-widest text-white/40">
                   Last active
                 </th>
-                <th className="p-4 text-[10px] font-black tracking-widest text-white/40">
-                  Attached nodes
+                <th className="p-4 text-[10px] font-black tracking-widest text-white/40 text-right">
+                  Status
                 </th>
               </tr>
             </thead>
             <tbody>
               {filteredTools.map((tool) => {
-                const attachedAgents = optimisticAgents.filter((a) => a.tools.includes(tool.name));
                 return (
                   <tr
                     key={tool.name}
@@ -100,21 +97,22 @@ export default function LeaderboardTab({
                           : 'NEVER'}
                       </span>
                     </td>
-                    <td className="p-4">
-                      <div className="flex -space-x-2">
-                        {attachedAgents.map((a) => (
-                          <div
-                            key={a.id}
-                            title={a.name}
-                            className="w-6 h-6 rounded-full bg-cyber-blue/20 border border-cyber-blue/40 flex items-center justify-center text-[8px] font-black text-cyber-blue ring-2 ring-black"
-                          >
-                            {a.name.substring(0, 1)}
-                          </div>
-                        ))}
-                        {attachedAgents.length === 0 && (
-                          <span className="text-[10px] text-white/10 italic">Unassigned</span>
-                        )}
-                      </div>
+                    <td className="p-4 text-right">
+                      {(tool.usage?.count ?? 0) > 0 ? (
+                        <Badge
+                          variant="primary"
+                          className="bg-cyber-blue/10 text-cyber-blue border-cyber-blue/20 text-[8px] font-black uppercase tracking-widest"
+                        >
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge
+                          variant="outline"
+                          className="bg-white/5 text-white/20 border-white/5 text-[8px] font-black uppercase tracking-widest"
+                        >
+                          Standby
+                        </Badge>
+                      )}
                     </td>
                   </tr>
                 );

@@ -68,7 +68,7 @@ interface SettingsFormProps {
   updateConfig: (formData: FormData) => Promise<void>;
 }
 
-function ConfigTooltip({ id }: { id: string }) {
+function ConfigTooltip({ id, t }: { id: string; t: ReturnType<typeof useTranslations>['t'] }) {
   const meta = SYSTEM_CONFIG_METADATA[id];
   if (!meta) return null;
 
@@ -77,17 +77,17 @@ function ConfigTooltip({ id }: { id: string }) {
       content={
         <div className="space-y-2">
           <p className="text-cyber-blue font-bold uppercase text-[9px] mb-1">
-            Neural Integration: {meta.label}
+            {t('SETTINGS_TOOLTIP_INTEGRATION').replace('{label}', meta.label)}
           </p>
           <p>{meta.implication}</p>
           {meta.risk && (
             <p>
-              <span className="text-red-400 font-bold">RISK:</span> {meta.risk}
+              <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_RISK')}</span> {meta.risk}
             </p>
           )}
           {meta.safeguard && (
             <p>
-              <span className="text-green-400 font-bold">SAFEGUARD:</span> {meta.safeguard}
+              <span className="text-green-400 font-bold">{t('SETTINGS_TOOLTIP_SAFEGUARD')}</span> {meta.safeguard}
             </p>
           )}
         </div>
@@ -206,7 +206,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   className="flex items-center"
                 >
                   {t('SETTINGS_ACTIVE_PROVIDER')}
-                  <ConfigTooltip id="active_provider" />
+                  <ConfigTooltip id="active_provider" t={t} />
                 </Typography>
                 <CyberSelect
                   name="provider"
@@ -232,7 +232,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   className="flex items-center"
                 >
                   {t('SETTINGS_DEFAULT_MODEL_ID')}
-                  <ConfigTooltip id="active_model" />
+                  <ConfigTooltip id="active_model" t={t} />
                 </Typography>
                 <CyberSelect
                   name="model"
@@ -326,7 +326,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   className="flex items-center"
                 >
                   {t('SETTINGS_EVOLUTION_MODE')}
-                  <ConfigTooltip id="evolution_mode" />
+                  <ConfigTooltip id="evolution_mode" t={t} />
                 </Typography>
                 <CyberSelect
                   name="evolutionMode"
@@ -348,7 +348,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   className="flex items-center"
                 >
                   {t('SETTINGS_DAILY_DEPLOY_LIMIT')}
-                  <ConfigTooltip id="deploy_limit" />
+                  <ConfigTooltip id="deploy_limit" t={t} />
                 </Typography>
                 <input
                   name="deployLimit"
@@ -371,21 +371,16 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     content={
                       <div className="space-y-2">
                         <p>
-                          <span className="text-cyber-blue font-bold">PRECEDENCE:</span> Priority 2.
-                          Overrides the &quot;intended&quot; profile of a task unless the Agent has
-                          a hardcoded Model.
+                          {t('SETTINGS_TOOLTIP_PRECEDENCE')}
                         </p>
                         <p>
-                          <span className="text-cyber-blue font-bold">BALANCED:</span> Respects task
-                          requirements.
+                          {t('SETTINGS_TOOLTIP_BALANCED')}
                         </p>
                         <p>
-                          <span className="text-red-400 font-bold">AGGRESSIVE:</span> Forces DEEP
-                          reasoning for all nodes (High Quality/Cost).
+                          {t('SETTINGS_TOOLTIP_AGGRESSIVE')}
                         </p>
                         <p>
-                          <span className="text-green-400 font-bold">CONSERVATIVE:</span> Forces
-                          FAST reasoning (Low Cost/Complexity).
+                          {t('SETTINGS_TOOLTIP_CONSERVATIVE')}
                         </p>
                       </div>
                     }
@@ -416,12 +411,10 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     content={
                       <div className="space-y-2">
                         <p>
-                          <span className="text-cyber-blue font-bold">BENEFIT:</span> Allows agents
-                          to solve complex problems by looping through multiple tools.
+                          <span className="text-cyber-blue font-bold">{t('SETTINGS_TOOLTIP_BENEFIT')}</span> {t('SETTINGS_TOOLTIP_ITERATIONS_DESC')}
                         </p>
                         <p>
-                          <span className="text-red-400 font-bold">COST:</span> Each iteration is a
-                          separate LLM call. High values ( &gt; 20) can drain credits quickly.
+                          <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_COST')}</span> {t('SETTINGS_TOOLTIP_ITERATIONS_COST')}
                         </p>
                       </div>
                     }
@@ -448,7 +441,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     className="flex items-center"
                   >
                     {t('SETTINGS_CIRCUIT_BREAKER_THRESHOLD')}
-                    <ConfigTooltip id="circuit_breaker_threshold" />
+                    <ConfigTooltip id="circuit_breaker_threshold" t={t} />
                   </Typography>
                   <Typography
                     variant="mono"
@@ -456,7 +449,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     color={Number(config.consecutiveBuildFailures) > 0 ? 'danger' : 'primary'}
                     className="text-[10px]"
                   >
-                    Failures: {config.consecutiveBuildFailures}
+                    {t('SETTINGS_FAILURES').replace('{count}', String(config.consecutiveBuildFailures))}
                   </Typography>
                 </div>
                 <input
@@ -480,12 +473,10 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     content={
                       <div className="space-y-2">
                         <p>
-                          <span className="text-cyber-blue font-bold">IMPLICATION:</span> Controls
-                          agent delegation depth. Higher values enable more complex orchestrations.
+                          {t('SETTINGS_TOOLTIP_RECURSION_IMPLICATION')}
                         </p>
                         <p>
-                          <span className="text-red-400 font-bold">RISK:</span> High values can
-                          obfuscate infinite logical loops between agents.
+                          <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_RISK')}</span> {t('SETTINGS_TOOLTIP_RECURSION_RISK')}
                         </p>
                       </div>
                     }
@@ -508,7 +499,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   className="flex items-center"
                 >
                   {t('SETTINGS_ESCALATION_ENGINE')}
-                  <ConfigTooltip id="escalation_enabled" />
+                  <ConfigTooltip id="escalation_enabled" t={t} />
                 </Typography>
                 <CyberSelect
                   name="escalationEnabled"
@@ -530,7 +521,7 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   className="flex items-center"
                 >
                   {t('SETTINGS_PROTOCOL_FALLBACK')}
-                  <ConfigTooltip id="protocol_fallback_enabled" />
+                  <ConfigTooltip id="protocol_fallback_enabled" t={t} />
                 </Typography>
                 <CyberSelect
                   name="protocolFallbackEnabled"
@@ -557,12 +548,10 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   content={
                     <div className="space-y-2">
                       <p>
-                        <span className="text-cyber-blue font-bold">BENEFIT:</span> Critical files
-                        that Coder Agent is forbidden from modifying.
+                        <span className="text-cyber-blue font-bold">{t('SETTINGS_TOOLTIP_BENEFIT')}</span> {t('SETTINGS_TOOLTIP_PROTECTED_BENEFIT')}
                       </p>
                       <p>
-                        <span className="text-red-400 font-bold">SAFEGUARD:</span> Protects
-                        infrastructure and core orchestrator logic from accidental deletion.
+                        <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_SAFEGUARD')}</span> {t('SETTINGS_TOOLTIP_PROTECTED_SAFEGUARD')}
                       </p>
                     </div>
                   }
@@ -615,17 +604,13 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     content={
                       <div className="space-y-2">
                         <p>
-                          <span className="text-cyber-blue font-bold">BENEFIT:</span> How often the
-                          system &quot;thinks&quot; about the conversation to extract new facts and
-                          lessons.
+                          <span className="text-cyber-blue font-bold">{t('SETTINGS_TOOLTIP_BENEFIT')}</span> {t('SETTINGS_TOOLTIP_REFLECTION_BENEFIT')}
                         </p>
                         <p>
-                          <span className="text-red-400 font-bold">CONS:</span> Low values ( &lt; 5)
-                          increase token cost and can cause &quot;Cognitive Overload&quot; (too many
-                          minor facts).
+                          <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_RISK')}</span> {t('SETTINGS_TOOLTIP_REFLECTION_CONS')}
                         </p>
                         <p>
-                          <span className="text-green-400 font-bold">RECOMMENDED:</span> 10-15.
+                          <span className="text-green-400 font-bold">{t('SETTINGS_TOOLTIP_SAFEGUARD')}</span> {t('SETTINGS_TOOLTIP_REFLECTION_RECOMMENDED')}
                         </p>
                       </div>
                     }
@@ -652,12 +637,10 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     content={
                       <div className="space-y-2">
                         <p>
-                          <span className="text-cyber-blue font-bold">BENEFIT:</span> The cooldown
-                          between large-scale architectural reviews.
+                          <span className="text-cyber-blue font-bold">{t('SETTINGS_TOOLTIP_BENEFIT')}</span> {t('SETTINGS_TOOLTIP_REVIEW_BENEFIT')}
                         </p>
                         <p>
-                          <span className="text-red-400 font-bold">CONS:</span> Too frequent reviews
-                          can lead to redundant micro-optimizations.
+                          <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_RISK')}</span> {t('SETTINGS_TOOLTIP_REVIEW_CONS')}
                         </p>
                       </div>
                     }
@@ -684,13 +667,10 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     content={
                       <div className="space-y-2">
                         <p>
-                          <span className="text-cyber-blue font-bold">BENEFIT:</span> Minimum number
-                          of identified capability gaps required to trigger a Strategic Review.
+                          <span className="text-cyber-blue font-bold">{t('SETTINGS_TOOLTIP_BENEFIT')}</span> {t('SETTINGS_TOOLTIP_GAPS_BENEFIT')}
                         </p>
                         <p>
-                          <span className="text-green-400 font-bold">BENEFIT:</span> Ensures reviews
-                          only happen when there is enough &quot;evidence&quot; to justify a system
-                          change.
+                          <span className="text-green-400 font-bold">{t('SETTINGS_TOOLTIP_SAFEGUARD')}</span> {t('SETTINGS_TOOLTIP_GAPS_EVIDENCE')}
                         </p>
                       </div>
                     }

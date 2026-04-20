@@ -11,9 +11,11 @@ import LeaderboardTab from './LeaderboardTab';
 import { useAgentTools } from './useAgentTools';
 import { useMCPTools } from './useMCPTools';
 
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { CapabilitiesViewProps } from './types';
 
 export default function CapabilitiesView({ allTools, mcpServers, agents }: CapabilitiesViewProps) {
+  const { t } = useTranslations();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'agents' | 'library' | 'analytics' | 'mcp' | 'usage'>(
     'analytics'
@@ -49,11 +51,11 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
       <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center sticky top-0 z-20 bg-black/90 backdrop-blur-xl p-6 border-b border-white/5 -mx-6 lg:-mx-10 -mt-10 mb-10">
         <nav className="flex gap-1 bg-white/5 p-1 rounded-sm border border-white/5 overflow-x-auto no-scrollbar">
           {[
-            { id: 'analytics', label: 'Dashboard', icon: Activity },
-            { id: 'usage', label: 'Leaderboard', icon: Sparkles },
-            { id: 'agents', label: 'Assignments', icon: Cpu },
-            { id: 'library', label: 'Capability Library', icon: BookOpen },
-            { id: 'mcp', label: 'Skill Bridges', icon: ExternalLink },
+            { id: 'analytics', label: t('CAPABILITIES_TAB_DASHBOARD'), icon: Activity },
+            { id: 'usage', label: t('CAPABILITIES_TAB_LEADERBOARD'), icon: Sparkles },
+            { id: 'agents', label: t('CAPABILITIES_TAB_ASSIGNMENTS'), icon: Cpu },
+            { id: 'library', label: t('CAPABILITIES_TAB_LIBRARY'), icon: BookOpen },
+            { id: 'mcp', label: t('CAPABILITIES_TAB_SKILL_BRIDGES'), icon: ExternalLink },
           ].map((tab) => (
             <Button
               key={tab.id}
@@ -80,7 +82,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
           </div>
           <input
             type="text"
-            placeholder="Search current capabilities..."
+            placeholder={t('CAPABILITIES_SEARCH_PLACEHOLDER')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-black/60 border border-white/10 focus:border-cyber-blue/40 rounded-sm py-3 pl-12 pr-4 text-[10px] outline-none transition-all placeholder:text-white/20 font-mono tracking-widest"
@@ -102,7 +104,6 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
       {activeTab === 'usage' && (
         <LeaderboardTab
           allTools={mcpTools}
-          optimisticAgents={optimisticAgents}
           searchQuery={searchQuery}
         />
       )}

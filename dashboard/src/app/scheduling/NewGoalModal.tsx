@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface NewGoalModalProps {
   onClose: () => void;
@@ -13,6 +14,7 @@ interface NewGoalModalProps {
 }
 
 export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose, onSuccess }) => {
+  const { t } = useTranslations();
   const [submitting, setSubmitting] = React.useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -25,7 +27,7 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose, onSuccess }
     const freqUnit = formData.get('unit') as string;
 
     if (!name || !task || !agentId || !freqValue) {
-      toast.error('All fields are required');
+      toast.error(t('SCHEDULING_FIELDS_REQUIRED'));
       return;
     }
 
@@ -43,13 +45,13 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose, onSuccess }
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to create goal');
-      toast.success(`Goal ${name} established`);
+      if (!response.ok) throw new Error(t('SCHEDULING_ESTABLISH_ERROR'));
+      toast.success(t('SCHEDULING_ESTABLISH_SUCCESS').replace('{name}', name));
       onSuccess();
       onClose();
     } catch (err) {
       console.error(err);
-      toast.error('Failed to establish goal');
+      toast.error(t('SCHEDULING_ESTABLISH_ERROR'));
     } finally {
       setSubmitting(false);
     }
@@ -64,7 +66,7 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose, onSuccess }
       >
         <div className="p-6 border-b border-white/5 flex justify-between items-center">
           <Typography variant="h3" weight="bold">
-            NEW_PROACTIVE_GOAL
+            {t('SCHEDULING_NEW_GOAL_TITLE')}
           </Typography>
           <Button variant="ghost" size="sm" onClick={onClose} className="h-8 w-8 !p-0">
             <X size={18} />
@@ -74,7 +76,7 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose, onSuccess }
         <form className="p-6 space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">
-              Goal Identifier (Unique)
+              {t('SCHEDULING_GOAL_IDENTIFIER')}
             </label>
             <input
               name="name"
@@ -86,11 +88,11 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose, onSuccess }
 
           <div className="space-y-1">
             <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">
-              Task Specification
+              {t('SCHEDULING_TASK_SPECIFICATION')}
             </label>
             <textarea
               name="task"
-              placeholder="What should the agent perform?"
+              placeholder={t('SCHEDULING_NEW_GOAL_PLACEHOLDER')}
               required
               rows={3}
               className="w-full bg-white/[0.03] border border-white/10 focus:border-blue-500/40 rounded-lg py-2.5 px-4 text-xs text-white outline-none transition-all resize-none"
@@ -100,7 +102,7 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose, onSuccess }
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">
-                Target Agent
+                {t('SCHEDULING_TARGET_AGENT')}
               </label>
               <select
                 name="agentId"
@@ -116,7 +118,7 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose, onSuccess }
 
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-widest text-white/40 ml-1">
-                Frequency
+                {t('SCHEDULING_FREQUENCY')}
               </label>
               <div className="flex gap-2">
                 <input
@@ -148,7 +150,7 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose, onSuccess }
               {submitting ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
-                'ESTABLISH_GOAL'
+                t('SCHEDULING_ESTABLISH_GOAL')
               )}
             </Button>
           </div>

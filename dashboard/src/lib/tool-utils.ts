@@ -18,8 +18,9 @@ interface GetAllToolsOptions {
 export async function getToolUsage(): Promise<Record<string, { count: number; lastUsed: number }>> {
   try {
     const { AgentRegistry } = await import('@claw/core/lib/registry');
+    const { DYNAMO_KEYS } = await import('@claw/core/lib/constants');
     return (
-      ((await AgentRegistry.getRawConfig('tool_usage')) as Record<
+      ((await AgentRegistry.getRawConfig(DYNAMO_KEYS.TOOL_USAGE)) as Record<
         string,
         { count: number; lastUsed: number }
       >) ?? {}

@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import MemoryPrioritySelector from '@/components/MemoryPrioritySelector';
 import { MemoryItem, getBadgeVariant, getCategoryLabel } from './types';
 import CyberConfirm from '@/components/CyberConfirm';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface MemoryDetailModalProps {
   item: MemoryItem | null;
@@ -55,13 +56,13 @@ function renderContent(content: string) {
 
   return <p className="text-white/90 leading-relaxed text-[15px] whitespace-pre-wrap">{content}</p>;
 }
-
 export default function MemoryDetailModal({
   item,
   onClose,
   onDelete,
   onUpdate,
 }: MemoryDetailModalProps) {
+  const { t } = useTranslations();
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -91,7 +92,7 @@ export default function MemoryDetailModal({
         try {
           JSON.parse(editContent);
         } catch {
-          toast.error('Invalid JSON content. Please check your syntax.');
+          toast.error(t('MEMORY_INVALID_JSON'));
           setIsSaving(false);
           return;
         }
@@ -104,10 +105,10 @@ export default function MemoryDetailModal({
       formData.set('isJson', isJson ? 'true' : 'false');
       await onUpdate(formData);
       setIsEditing(false);
-      toast.success('Memory updated successfully');
+      toast.success(t('MEMORY_UPDATE_SUCCESS'));
     } catch (err) {
       console.error('Failed to update memory:', err);
-      toast.error('Failed to update memory');
+      toast.error(t('MEMORY_UPDATE_ERROR'));
     } finally {
       setIsSaving(false);
     }
@@ -141,7 +142,7 @@ export default function MemoryDetailModal({
             {item.metadata?.priority && item.metadata.priority >= 8 && (
               <div className="flex items-center gap-1 text-amber-400">
                 <Zap size={12} />
-                <span className="text-[9px] font-bold">HIGH</span>
+                <span className="text-[9px] font-bold">{t('MEMORY_PRIORITY_HIGH')}</span>
               </div>
             )}
           </div>
@@ -182,7 +183,7 @@ export default function MemoryDetailModal({
               value={editContent}
               onChange={(e) => setEditContent(e.target.value)}
               className="w-full h-full min-h-[300px] bg-black/40 border border-white/5 rounded p-4 font-mono text-sm text-white/90 focus:outline-none focus:border-cyber-blue/30 transition-all resize-none"
-              placeholder="Edit memory content..."
+              placeholder={t('MEMORY_EDIT_CONTENT_PLACEHOLDER')}
             />
           ) : (
             renderContent(item.content)
@@ -196,23 +197,23 @@ export default function MemoryDetailModal({
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-1.5 text-[11px] font-mono">
                 <Zap size={11} className="text-amber-400" />
-                <span className="text-white/40">Pri</span>
+                <span className="text-white/40">{t('MEMORY_PRIORITY')}</span>
                 <span className="font-black text-amber-400">{item.metadata?.priority ?? 5}</span>
               </div>
               <span className="text-white/10">|</span>
               <div className="flex items-center gap-1.5 text-[11px] font-mono">
                 <BarChart2 size={11} className="text-cyber-blue" />
-                <span className="text-white/40">Use</span>
+                <span className="text-white/40">{t('MEMORY_USE_COUNT')}</span>
                 <span className="font-bold text-white/70">{item.metadata?.hitCount ?? 0}</span>
               </div>
               <span className="text-white/10">|</span>
               <div className="flex items-center gap-1.5 text-[11px] font-mono">
                 <Clock size={11} className="text-white/30" />
-                <span className="text-white/40">Recalled</span>
+                <span className="text-white/40">{t('MEMORY_RECALLED')}</span>
                 <span className="text-white/50">
                   {item.metadata?.lastAccessed
                     ? new Date(item.metadata.lastAccessed).toLocaleDateString()
-                    : 'Never'}
+                    : t('MEMORY_RECALLED_NEVER')}
                 </span>
               </div>
               {item.metadata?.impact != null && (
@@ -220,7 +221,7 @@ export default function MemoryDetailModal({
                   <span className="text-white/10">|</span>
                   <div className="flex items-center gap-1.5 text-[11px] font-mono">
                     <TrendingUp size={11} className="text-cyber-green" />
-                    <span className="text-white/40">Impact</span>
+                    <span className="text-white/40">{t('MEMORY_IMPACT')}</span>
                     <span className="font-bold text-cyber-green">{item.metadata.impact}/10</span>
                   </div>
                 </>
@@ -256,10 +257,10 @@ export default function MemoryDetailModal({
       </div>
       <CyberConfirm
         isOpen={showDeleteConfirm}
-        title="Erase Neural Memory"
-        message="Are you sure you want to delete this memory? This action cannot be undone and will permanently remove this record from the long-term archive."
+        title={t('MEMORY_ERASE_TITLE')}
+        message={t('MEMORY_ERASE_MESSAGE')}
         variant="danger"
-        confirmText="Confirm Erasure"
+        confirmText={t('MEMORY_CONFIRM_ERASURE')}
         onConfirm={confirmDelete}
         onCancel={() => setShowDeleteConfirm(false)}
       />

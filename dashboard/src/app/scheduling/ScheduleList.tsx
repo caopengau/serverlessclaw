@@ -32,6 +32,7 @@ import {
 import { NewGoalModal } from './NewGoalModal';
 import { GovernanceProtocol } from './GovernanceProtocol';
 import CyberConfirm from '@/components/CyberConfirm';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 export default function ScheduleList() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -41,6 +42,7 @@ export default function ScheduleList() {
   const [fetchError, setFetchError] = useState(false);
   const [showNewGoalModal, setShowNewGoalModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const { t } = useTranslations();
 
   const fetchSchedules = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -49,7 +51,7 @@ export default function ScheduleList() {
 
     try {
       const response = await fetch('/api/scheduling');
-      if (!response.ok) throw new Error('Failed to fetch schedules');
+      if (!response.ok) throw new Error(t('SCHEDULING_LOAD_ERROR'));
       const data = await response.json();
       setSchedules(
         data.sort((a: Schedule, b: Schedule) => {
@@ -61,7 +63,7 @@ export default function ScheduleList() {
     } catch (error) {
       console.error(error);
       setFetchError(true);
-      toast.error('Failed to load schedules');
+      toast.error(t('SCHEDULING_LOAD_ERROR'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -90,10 +92,10 @@ export default function ScheduleList() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, action: 'trigger' }),
       });
-      if (!response.ok) throw new Error('Failed to trigger schedule');
-      toast.success(`One-time trigger scheduled for ${name}`);
+      if (!response.ok) throw new Error(t('SCHEDULING_TRIGGER_ERROR'));
+      toast.success(t('SCHEDULING_TRIGGER_SUCCESS').replace('{name}', name));
     } catch {
-      toast.error('Failed to trigger execution');
+      toast.error(t('SCHEDULING_TRIGGER_ERROR'));
     } finally {
       setActionInProgress(null);
     }
@@ -108,11 +110,11 @@ export default function ScheduleList() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, state: newState }),
       });
-      if (!response.ok) throw new Error('Failed to update schedule');
-      toast.success(`${name} ${newState === 'ENABLED' ? 'resumed' : 'paused'}`);
+      if (!response.ok) throw new Error(t('SCHEDULING_STATE_ERROR'));
+      toast.success(`${name} ${newState === 'ENABLED' ? t('SCHEDULING_STATE_RESUMED') : t('SCHEDULING_STATE_PAUSED')}`);
       fetchSchedules(true);
     } catch {
-      toast.error('Failed to update state');
+      toast.error(t('SCHEDULING_STATE_ERROR'));
     } finally {
       setActionInProgress(null);
     }
@@ -132,11 +134,11 @@ export default function ScheduleList() {
       const response = await fetch(`/api/scheduling?name=${encodeURIComponent(name)}`, {
         method: 'DELETE',
       });
-      if (!response.ok) throw new Error('Failed to delete schedule');
-      toast.success(`Goal ${name} deleted`);
+      if (!response.ok) throw new Error(t('SCHEDULING_DELETE_SUCCESS').replace('{name}', name));
+      toast.success(t('SCHEDULING_DELETE_SUCCESS').replace('{name}', name));
       fetchSchedules(true);
     } catch {
-      toast.error('Failed to delete goal');
+      toast.error(t('SCHEDULING_STATE_ERROR'));
     } finally {
       setActionInProgress(null);
     }
@@ -146,7 +148,7 @@ export default function ScheduleList() {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
         <Loader2 size={32} className="animate-spin text-blue-500" />
-        <Typography variant="caption" color="muted">INITIALIZING_SCHEDULER_REGISTRY...</Typography>
+        <Typography variant="caption" color="muted">{t('SCHEDULING_INITIALIZING')}</Typography>
       </div>
     );
   }
@@ -155,16 +157,16 @@ export default function ScheduleList() {
     <div className="space-y-10">
       <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
         <div>
-          <Typography variant="h2" color="white" glow uppercase>Goal Scheduling</Typography>
-          <Typography variant="body" color="muted" className="mt-2 block">Co-manage proactive agent goals and system-wide heartbeats.</Typography>
+          <Typography variant="h2" color="white" glow uppercase>{t('SCHEDULING_GOAL_SCHEDULING')}</Typography>
+          <Typography variant="body" color="muted" className="mt-2 block">{t('SCHEDULING_DESCRIPTION')}</Typography>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" size="sm" onClick={() => fetchSchedules(true)} disabled={refreshing}>
             {refreshing ? <Loader2 size={14} className="mr-2 animate-spin" /> : <RefreshCw size={14} className="mr-2" />}
-            Refresh
+            {t('COMMON_REFRESH')}
           </Button>
           <Button variant="primary" size="sm" className="bg-blue-600 hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.2)]" onClick={() => setShowNewGoalModal(true)}>
-            <Plus size={14} className="mr-2" /> New Goal
+            <Plus size={14} className="mr-2" /> {t('SCHEDULING_NEW_GOAL')}
           </Button>
         </div>
       </header>
@@ -172,7 +174,7 @@ export default function ScheduleList() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card variant="glass" padding="md" className="border-white/5">
           <div className="flex justify-between items-start mb-2">
-            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">Active Goals</Typography>
+            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">{t('SCHEDULING_ACTIVE_GOALS')}</Typography>
             <Target size={16} className="text-blue-500" />
           </div>
           <Typography variant="h3" weight="bold">{filteredSchedules.length}</Typography>
@@ -180,7 +182,7 @@ export default function ScheduleList() {
 
         <Card variant="glass" padding="md" className="border-white/5">
           <div className="flex justify-between items-start mb-2">
-            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">Next Evolution</Typography>
+            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">{t('SCHEDULING_NEXT_EVOLUTION')}</Typography>
             <Zap size={16} className="text-yellow-500" />
           </div>
           <Typography variant="h3" weight="bold">{nextEvolution}</Typography>
@@ -188,29 +190,29 @@ export default function ScheduleList() {
 
         <Card variant="glass" padding="md" className="border-white/5">
           <div className="flex justify-between items-start mb-2">
-            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">Scheduler Health</Typography>
+            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">{t('SCHEDULING_HEALTH')}</Typography>
             <Activity size={16} className={fetchError ? 'text-red-500' : 'text-green-500'} />
           </div>
           <Badge variant="outline" className={fetchError ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20'}>
-            {fetchError ? 'DISCONNECTED' : 'OPERATIONAL'}
+            {fetchError ? t('SCHEDULING_DISCONNECTED') : t('SCHEDULING_OPERATIONAL')}
           </Badge>
         </Card>
       </div>
 
       <div className="space-y-4">
         <Typography variant="h3" weight="bold" className="flex items-center gap-2">
-          <Calendar size={18} className="text-blue-500" /> Active Schedule Registry
+          <Calendar size={18} className="text-blue-500" /> {t('SCHEDULING_REGISTRY_TITLE')}
         </Typography>
 
         <div className="overflow-hidden border border-white/5 rounded-xl bg-black/20">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-white/5 bg-white/[0.02]">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Goal ID / Name</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Expression</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">Agent</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">State</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50 text-right">Actions</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">{t('SCHEDULING_GOAL_ID_NAME')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">{t('SCHEDULING_EXPRESSION')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">{t('SCHEDULING_AGENT')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">{t('SCHEDULING_STATE')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50 text-right">{t('SCHEDULING_ACTIONS')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -237,7 +239,7 @@ export default function ScheduleList() {
                             <RefreshCw size={10} /> {formatFrequency(s.ScheduleExpression)}
                           </div>
                           <div className="flex items-center gap-2 text-[10px] font-mono text-white/40">
-                            <Clock size={10} /> Next: {getNextRun(s)}
+                            <Clock size={10} /> {t('SCHEDULING_NEXT_RUN').replace('{time}', getNextRun(s))}
                           </div>
                         </div>
                       </td>
@@ -268,7 +270,7 @@ export default function ScheduleList() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-white/40 italic text-xs">No active schedules found. Agents will create goals automatically as needed.</td>
+                  <td colSpan={5} className="px-6 py-12 text-center text-white/40 italic text-xs">{t('SCHEDULING_NO_SCHEDULES')}</td>
                 </tr>
               )}
             </tbody>
@@ -283,10 +285,10 @@ export default function ScheduleList() {
       )}
       <CyberConfirm
         isOpen={!!deleteTarget}
-        title="Terminate Goal Schedule"
-        message={`Are you sure you want to delete the proactive goal "${deleteTarget}"? This will stop all future automated executions for this objective.`}
+        title={t('SCHEDULING_TERMINATE_TITLE')}
+        message={t('SCHEDULING_TERMINATE_MESSAGE').replace('{name}', deleteTarget || '')}
         variant="danger"
-        confirmText="Confirm Termination"
+        confirmText={t('SCHEDULING_CONFIRM_TERMINATION')}
         onConfirm={confirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />

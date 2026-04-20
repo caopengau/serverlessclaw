@@ -13,6 +13,7 @@ import AgentToolsModal from './AgentToolsModal';
 import AgentTable from './AgentTable';
 import { Tool, Agent } from '@/lib/types/ui';
 import { useRealtime, RealtimeMessage } from '@/hooks/useRealtime';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 import {
   LLMProvider,
@@ -50,6 +51,7 @@ const PROVIDERS = {
 
 /** AgentsPage — manages the Neural Agent Registry: configure agent personas, toggle tool scopes, and register new dynamic agents without redeploying. */
 export default function AgentsPage() {
+  const { t } = useTranslations();
   const [agents, setAgents] = useState<Record<string, Agent>>({});
   const [initialAgents, setInitialAgents] = useState<Record<string, Agent>>({});
   const [loading, setLoading] = useState(true);
@@ -98,7 +100,7 @@ export default function AgentsPage() {
       setInitialAgents(structuredClone(agentsData));
     } catch (err) {
       console.error('Failed to load agents:', err);
-      toast.error('Failed to synchronize with agent registry');
+      toast.error(t('AGENTS_SYNC_REGISTRY_ERROR'));
     } finally {
       setLoading(false);
     }
@@ -112,10 +114,10 @@ export default function AgentsPage() {
       const toolsRes = await fetch(`/api/tools${forceRefresh ? '?refresh=true' : ''}`);
       const toolsData = await toolsRes.json();
       setAllTools(toolsData.tools || []);
-      if (forceRefresh) toast.success('Tool cache synchronized');
+      if (forceRefresh) toast.success(t('AGENTS_TOOL_CACHE_SYNCED'));
     } catch (err) {
       console.error('Failed to load tools:', err);
-      toast.error('Failed to synchronize tool registry');
+      toast.error(t('AGENTS_TOOL_REGISTRY_ERROR'));
     } finally {
       setLoadingTools(false);
       setRefreshingTools(false);
@@ -126,10 +128,10 @@ export default function AgentsPage() {
     setRefreshingTools(true);
     try {
       await Promise.all([loadAgents(), loadTools(true)]);
-      toast.success('Agent registry and tool cache synchronized');
+      toast.success(t('AGENTS_REGISTRY_SYNCED'));
     } catch (err) {
       console.error('Sync failed:', err);
-      toast.error('Failed to synchronize registry');
+      toast.error(t('AGENTS_SYNC_ERROR'));
     } finally {
       setRefreshingTools(false);
     }
@@ -194,11 +196,11 @@ export default function AgentsPage() {
       });
       if (!response.ok) throw new Error('Failed to save');
       setInitialAgents(structuredClone(agents));
-      toast.success('Agent configurations synchronized successfully');
+      toast.success(t('AGENTS_CONFIG_SYNCED'));
       setShowBackboneWarning(false);
     } catch (err) {
       console.error('Failed to save agent configuration:', err);
-      toast.error('Failed to save agent configuration');
+      toast.error(t('AGENTS_SAVE_ERROR'));
     } finally {
       setSaving(false);
     }
@@ -219,13 +221,14 @@ export default function AgentsPage() {
       systemPrompt: 'You are a specialized agent that...',
       enabled: true,
       isBackbone: false,
+      agentType: 'llm',
       tools: [],
     });
   };
 
   const finalizeNewAgent = () => {
     if (!newAgent.id || !newAgent.name) {
-      toast.error('Agent ID and Name are required.');
+      toast.error(t('AGENTS_ID_NAME_REQUIRED'));
       return;
     }
 
@@ -264,7 +267,7 @@ export default function AgentsPage() {
       const result = await updateAgentTools(formData);
       if (result?.error) throw new Error(result.error);
 
-      toast.success(`Agent tools updated`);
+      toast.success(t('AGENTS_TOOLS_UPDATED'));
     } catch (err) {
       console.error('Failed to update tools:', err);
       toast.error('Failed to update tools');
@@ -293,7 +296,7 @@ export default function AgentsPage() {
     delete next[id];
     setAgents(next);
     setConfirmModal({ isOpen: false, agentId: '', agentName: '' });
-    toast.success(`Agent '${confirmModal.agentName}' decommissioned`);
+    toast.success(t('AGENTS_DECOMMISSIONED_SUCCESS').replace('{name}', confirmModal.agentName));
   };
 
   const cloneAgent = (id: string) => {
@@ -313,7 +316,7 @@ export default function AgentsPage() {
       ...prev,
       [newId]: clonedAgent,
     }));
-    toast.success(`Agent '${original.name}' cloned successfully`);
+    toast.success(t('AGENTS_CLONED_SUCCESS').replace('{name}', original.name));
   };
 
   // Real-time message handler for agent state changes
@@ -341,8 +344,15 @@ export default function AgentsPage() {
 
   const hasChanges = JSON.stringify(agents) !== JSON.stringify(initialAgents);
 
+  const totalLlmAgents = Object.values(agents).filter(
+    (agent) => agent.agentType !== 'logic'
+  ).length;
+
   const filteredAgents = Object.fromEntries(
     Object.entries(agents).filter(([id, agent]) => {
+      // Only list LLM based agents
+      if (agent.agentType === 'logic') return false;
+
       const searchStr = agentSearchQuery.toLowerCase();
       return agent.name.toLowerCase().includes(searchStr) || id.toLowerCase().includes(searchStr);
     })
@@ -357,7 +367,7 @@ export default function AgentsPage() {
           uppercase
           className="flex items-center gap-3 animate-pulse"
         >
-          <RefreshCw className="animate-spin" size={20} /> Initializing Agent Manager...
+          <RefreshCw className="animate-spin" size={20} /> {t('AGENTS_INITIALIZING')}
         </Typography>
       </main>
     );
@@ -368,8 +378,8 @@ export default function AgentsPage() {
     >
       <CyberConfirm
         isOpen={confirmModal.isOpen}
-        title="Agent Decommissioning"
-        message={`Are you sure you want to decommission specialized agent '${confirmModal.agentName}'? This will remove it from the system.`}
+        title={t('AGENTS_DECOMMISSION_TITLE')}
+        message={t('AGENTS_DECOMMISSION_MESSAGE').replace('{name}', confirmModal.agentName)}
         variant="danger"
         onConfirm={executeDeleteAgent}
         onCancel={() => setConfirmModal({ isOpen: false, agentId: '', agentName: '' })}
@@ -384,11 +394,11 @@ export default function AgentsPage() {
               className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest font-bold ${isConnected ? 'bg-cyber-green/10 text-cyber-green border border-cyber-green/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}
             >
               <Radio size={10} className={isConnected ? 'animate-pulse' : ''} />
-              {isConnected ? 'SIGNAL: ACTIVE' : 'SIGNAL: DISCONNECTED'}
+              {isConnected ? t('AGENTS_SIGNAL_ACTIVE') : t('AGENTS_SIGNAL_DISCONNECTED')}
             </div>
           </div>
           <Typography variant="body" color="muted" className="mt-2 block">
-            Manage backbone orchestrators and specialized autonomous agents.
+            {t('AGENTS_DESCRIPTION')}
           </Typography>
         </div>
         <div className="flex gap-4 items-end">
@@ -416,7 +426,7 @@ export default function AgentsPage() {
               variant="outline"
               className="px-4 py-1 font-bold text-xs border-cyber-blue/20 text-cyber-blue/60 uppercase"
             >
-              {Object.keys(agents).length}
+              {totalLlmAgents}
             </Badge>
           </div>
           <Button
@@ -427,7 +437,7 @@ export default function AgentsPage() {
             icon={<RefreshCw size={14} className={refreshingTools ? 'animate-spin' : ''} />}
             className="h-[34px] uppercase font-black tracking-widest border-white/5 hover:bg-white/5"
           >
-            {refreshingTools ? 'Syncing...' : 'Sync Registry'}
+            {refreshingTools ? t('AGENTS_SYNCING') : t('AGENTS_SYNC_REGISTRY')}
           </Button>
           <Button
             onClick={addAgent}
@@ -436,7 +446,7 @@ export default function AgentsPage() {
             icon={<Plus size={14} />}
             className="h-[34px] uppercase font-black tracking-widest"
           >
-            New Agent
+            {t('AGENTS_NEW_AGENT')}
           </Button>
         </div>
       </header>
@@ -466,30 +476,26 @@ export default function AgentsPage() {
             <div className="flex items-center gap-4 text-red-500">
               <Shield size={32} className="animate-pulse" />
               <Typography variant="h3" color="danger" weight="black" uppercase className="italic">
-                Critical Backbone Modification
+                {t('AGENTS_CRITICAL_MODIFICATION')}
               </Typography>
             </div>
 
             <div className="space-y-4 font-mono text-[11px] leading-relaxed">
               <p className="text-white/80">
-                <span className="text-red-500 font-bold">WARNING:</span> You are attempting to
-                modify core backbone orchestrators:
+                <span className="text-red-500 font-bold">{t('AGENTS_BACKBONE_MODIFY_WARNING')}</span>
               </p>
               <div className="bg-red-500/5 border border-red-500/20 p-3 rounded">
                 {backboneChanges.map((name) => (
                   <div key={name} className="text-red-400 font-bold">
-                    {`> DETECTED_CHANGE: ${name}`}
+                    {t('AGENTS_DETECTED_CHANGE').replace('{name}', name)}
                   </div>
                 ))}
               </div>
               <p className="text-white/60">
-                Backbone agents are critical to the system&apos;s connectivity and core logic.
-                Unauthorized or incorrect modifications can lead to cascading failures, deadlocked
-                tasks, or loss of system autonomy.
+                {t('AGENTS_BACKBONE_WARNING_TEXT')}
               </p>
               <p className="text-white font-bold italic border-l-2 border-red-500 pl-3">
-                &quot;I understand that these changes affect the system&apos;s fundamental
-                architecture and I take full responsibility for this modification.&quot;
+                {t('AGENTS_BACKBONE_RESPONSIBILITY')}
               </p>
             </div>
 
@@ -502,7 +508,7 @@ export default function AgentsPage() {
                 fullWidth
                 className="shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-[1.02]"
               >
-                I Understand Proceed with Save
+                {t('AGENTS_I_UNDERSTAND_PROCEED')}
               </Button>
               <Button
                 onClick={() => setShowBackboneWarning(false)}
@@ -512,7 +518,7 @@ export default function AgentsPage() {
                 fullWidth
                 className="text-white/60"
               >
-                Abort Modification
+                {t('AGENTS_ABORT_MODIFICATION')}
               </Button>
             </div>
           </Card>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import Typography from '@/components/ui/Typography';
 import Badge from '@/components/ui/Badge';
 
@@ -19,6 +20,7 @@ interface MemoryTabsProps {
 export default function MemoryTabs({ tabs }: MemoryTabsProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useTranslations();
 
   if (!tabs || tabs.length === 0) return null;
 
@@ -51,7 +53,7 @@ export default function MemoryTabs({ tabs }: MemoryTabsProps) {
             uppercase
             className="text-[11px] tracking-widest"
           >
-            {tab.label}
+            {t(tab.label as Parameters<typeof t>[0])}
           </Typography>
           <Badge
             variant={activeTab === tab.id ? 'intel' : 'outline'}

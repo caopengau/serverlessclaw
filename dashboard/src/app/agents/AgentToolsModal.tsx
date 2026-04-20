@@ -5,6 +5,7 @@ import { Search, Plus, Wrench, X, RefreshCw } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Typography from '@/components/ui/Typography';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { Tool, Agent } from '@/lib/types/ui';
 
 interface Props {
@@ -30,6 +31,7 @@ export default function AgentToolsModal({
   handleToggleTool,
   isUpdatingTools,
 }: Props) {
+  const { t } = useTranslations();
   if (!selectedAgentIdForTools || !agents[selectedAgentIdForTools]) return null;
 
   return (
@@ -51,11 +53,11 @@ export default function AgentToolsModal({
           <div className="flex items-center gap-4 text-cyber-green mb-2">
             <Wrench size={24} />
             <Typography variant="h2" color="primary" weight="black" uppercase className="italic">
-              Manage Agent Tools
+              {t('AGENTS_MANAGE_TOOLS')}
             </Typography>
           </div>
           <Typography variant="body" color="white" className="opacity-80 block">
-            Assign functional capabilities to{' '}
+            {t('AGENTS_ASSIGN_CAPABILITIES')}{' '}
             <span className="text-white font-black underline decoration-cyber-green/30 underline-offset-4">
               {agents[selectedAgentIdForTools].name}
             </span>
@@ -68,7 +70,7 @@ export default function AgentToolsModal({
           </div>
           <input
             type="text"
-            placeholder="Search tools & skills..."
+            placeholder={t('AGENTS_SEARCH_TOOLS_PLACEHOLDER')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full bg-black/40 border border-white/10 rounded-sm py-2 pl-10 pr-4 text-xs text-white outline-none focus:border-cyber-green/50 transition-all font-mono"
@@ -85,7 +87,7 @@ export default function AgentToolsModal({
               className="tracking-[0.2em] mb-4 flex items-center gap-2"
             >
               <Plus size={12} className="text-white/40" />
-              Active Skills
+              {t('AGENTS_ACTIVE_SKILLS')}
             </Typography>
             <div className="flex flex-wrap gap-2">
               {(agents[selectedAgentIdForTools].tools ?? []).map((toolName: string) => {
@@ -121,7 +123,7 @@ export default function AgentToolsModal({
               })}
               {(agents[selectedAgentIdForTools].tools || []).length === 0 && (
                 <Typography variant="mono" color="muted" className="text-[10px] italic">
-                  No active tools assigned.
+                  {t('AGENTS_NO_TOOLS_ASSIGNED')}
                 </Typography>
               )}
             </div>
@@ -136,14 +138,14 @@ export default function AgentToolsModal({
               className="tracking-[0.2em] mb-4 flex items-center gap-2"
             >
               <Plus size={12} className="text-white/40" />
-              Available Insertions
+              {t('AGENTS_AVAILABLE_INSERTIONS')}
             </Typography>
 
             {loadingTools ? (
               <div className="flex flex-col items-center justify-center py-12 text-white/30 gap-4">
                 <RefreshCw size={24} className="animate-spin text-cyber-green" />
                 <Typography variant="mono" className="text-[10px] uppercase tracking-widest">
-                  Synchronizing Tool Registry...
+                  {t('AGENTS_SYNC_TOOL_REGISTRY')}
                 </Typography>
               </div>
             ) : (
@@ -189,10 +191,10 @@ export default function AgentToolsModal({
         <footer className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center bg-black/20 shrink-0">
           <Typography variant="mono" color="muted" className="text-[10px] italic">
             {isUpdatingTools
-              ? 'Synchronizing neural pathways...'
+              ? t('AGENTS_SYNC_NEURAL_PATHWAYS')
               : loadingTools
-                ? 'Downloading tool definitions...'
-                : 'System stable. All changes persisted immediately.'}
+                ? t('AGENTS_DOWNLOADING_TOOLS')
+                : t('AGENTS_SYSTEM_STABLE')}
           </Typography>
           <Button
             variant="primary"
@@ -200,7 +202,7 @@ export default function AgentToolsModal({
             onClick={() => setSelectedAgentIdForTools(null)}
             className="px-8 shadow-[0_0_15px_rgba(0,255,163,0.2)]"
           >
-            Close
+            {t('COMMON_CLOSE')}
           </Button>
         </footer>
       </Card>

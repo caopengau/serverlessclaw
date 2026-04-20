@@ -23,6 +23,7 @@ export interface Agent {
   enabled: boolean;
   tools: string[];
   isBackbone?: boolean;
+  agentType?: 'llm' | 'logic';
   usage?: Record<string, { count: number; lastUsed: number }>;
 }
 

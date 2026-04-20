@@ -17,6 +17,8 @@ import MemoryTabs from './MemoryTabs';
 import MemorySearch from './MemorySearch';
 import MemoryPagination from './MemoryPagination';
 import MemoryTable from './MemoryTable';
+import MemoryHeader from './MemoryHeader';
+import MemoryEmptyState from './MemoryEmptyState';
 import { headers } from 'next/headers';
 import { AUTH } from '@/lib/constants';
 
@@ -365,20 +367,20 @@ export default async function MemoryVault({
   } = await getMemoryData(activeTab, query, nextToken, subType);
 
   const tabs = [
-    { id: 'facts', label: 'Distilled Facts', count: counts.facts, icon: <Brain size={14} /> },
+    { id: 'facts', label: 'MEMORY_TAB_FACTS', count: counts.facts, icon: <Brain size={14} /> },
     {
       id: 'lessons',
-      label: 'Tactical Lessons',
+      label: 'MEMORY_TAB_LESSONS',
       count: counts.lessons,
       icon: <Lightbulb size={14} />,
     },
-    { id: 'gaps', label: 'Strategic Gaps', count: counts.gaps, icon: <Target size={14} /> },
+    { id: 'gaps', label: 'MEMORY_TAB_GAPS', count: counts.gaps, icon: <Target size={14} /> },
   ];
 
   if (dynamicTypes.length > 0) {
     tabs.push({
       id: 'dynamic',
-      label: 'Dynamic Memory',
+      label: 'MEMORY_TAB_DYNAMIC',
       count: counts.dynamic,
       icon: <Database size={14} />,
     });
@@ -387,7 +389,7 @@ export default async function MemoryVault({
   if (query) {
     tabs.unshift({
       id: 'search',
-      label: 'Search Results',
+      label: 'MEMORY_TAB_SEARCH',
       count: items.length,
       icon: <SearchIcon size={14} />,
     });
@@ -395,17 +397,7 @@ export default async function MemoryVault({
 
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
-      <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
-        <div className="flex-1 min-w-0">
-          <Typography variant="h2" color="white" glow uppercase>
-            Neural Reserve
-          </Typography>
-          <Typography variant="body" color="muted" className="mt-2 block lg:whitespace-nowrap">
-            Human-Agent Collaborative Memory Tiering & Prioritization Hub.
-          </Typography>
-        </div>
-        <MemorySearch />
-      </header>
+      <MemoryHeader />
 
       <MemoryTabs tabs={tabs} />
 
@@ -439,21 +431,7 @@ export default async function MemoryVault({
         )}
 
         {items.length === 0 ? (
-          <Card
-            variant="solid"
-            padding="lg"
-            className="h-64 flex flex-col items-center justify-center opacity-20 border-dashed"
-          >
-            <SearchIcon size={48} className="mb-4 text-muted" />
-            <Typography variant="caption" uppercase className="tracking-[0.3em]">
-              No memory records found in this sector
-            </Typography>
-            {query && (
-              <Typography variant="body" color="muted" className="mt-2">
-                Try adjusting your search query or filters.
-              </Typography>
-            )}
-          </Card>
+          <MemoryEmptyState query={query} />
         ) : (
           <MemoryTable
             items={items}

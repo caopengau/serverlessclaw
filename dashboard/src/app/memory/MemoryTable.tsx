@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import MemoryDetailModal from './MemoryDetailModal';
 import { MemoryItem, getBadgeVariant, getCategoryLabel } from './types';
 import CyberConfirm from '@/components/CyberConfirm';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface MemoryTableProps {
   items: MemoryItem[];
@@ -58,6 +59,7 @@ export default function MemoryTable({
   updateAction,
   bulkPruneAction,
 }: MemoryTableProps) {
+  const { t } = useTranslations();
   const [selectedItem, setSelectedItem] = useState<MemoryItem | null>(null);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [isBulkPruning, setIsBulkPruning] = useState(false);
@@ -94,9 +96,9 @@ export default function MemoryTable({
       });
       await bulkPruneAction(keys);
       setSelectedKeys(new Set());
-      toast.success(`${keys.length} records pruned`);
+      toast.success(`${keys.length} ${t('MEMORY_PRUNED_SUCCESS')}`);
     } catch {
-      toast.error('Failed to prune selected records');
+      toast.error(t('MEMORY_PRUNE_ERROR'));
     } finally {
       setIsBulkPruning(false);
     }
@@ -132,8 +134,8 @@ export default function MemoryTable({
           className="text-[10px] uppercase tracking-widest opacity-40"
         >
           {selectedKeys.size > 0
-            ? `${selectedKeys.size} Records Selected`
-            : 'Select records for bulk operations'}
+            ? `${selectedKeys.size} ${t('MEMORY_RECORDS_SELECTED')}`
+            : t('MEMORY_SELECT_RECORDS_BULK')}
         </Typography>
         {selectedKeys.size > 0 && (
           <Button
@@ -146,7 +148,7 @@ export default function MemoryTable({
             }
             className="h-7 text-red-400 border-red-500/20 hover:bg-red-500/10 text-[10px] uppercase font-black"
           >
-            Prune Selected
+            {t('MEMORY_PRUNE_SELECTED')}
           </Button>
         )}
       </div>
@@ -169,26 +171,26 @@ export default function MemoryTable({
                   </button>
                 </th>
                 <th className="px-4 py-4 text-[10px] font-black uppercase tracking-widest text-white/40">
-                  Category
+                  {t('MEMORY_CATEGORY')}
                 </th>
 
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40">
-                  Content
+                  {t('MEMORY_CONTENT')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">
-                  Pri
+                  {t('MEMORY_PRIORITY')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">
-                  Use
+                  {t('MEMORY_USE_COUNT')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40">
-                  Created
+                  {t('MEMORY_CREATED')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40">
-                  Last Recalled
+                  {t('MEMORY_LAST_RECALLED')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-right">
-                  Action
+                  {t('COMMON_ACTIONS')}
                 </th>
               </tr>
             </thead>
@@ -282,7 +284,7 @@ export default function MemoryTable({
                           <Clock size={10} />
                           {item.metadata?.lastAccessed
                             ? formatDate(item.metadata.lastAccessed, 'date')
-                            : 'Never'}
+                            : t('MEMORY_RECALLED_NEVER')}
                         </span>
                       </td>
                       <td className="px-5 py-3 text-right">
@@ -296,7 +298,7 @@ export default function MemoryTable({
                             }}
                             className="text-white/50 hover:text-cyber-blue p-1"
                             icon={<Eye size={14} />}
-                            title="View Details"
+                            title={t('COMMON_VIEW_DETAILS')}
                           />
                           <form action={pruneAction} onClick={(e) => e.stopPropagation()}>
                             <input type="hidden" name="userId" value={item.userId} />
@@ -329,10 +331,10 @@ export default function MemoryTable({
 
       <CyberConfirm
         isOpen={showBulkPruneConfirm}
-        title="Bulk Archive Purge"
-        message={`You are about to permanently erase ${selectedKeys.size} memory records from the neural database. This operation is irreversible.`}
+        title={t('MEMORY_BULK_PURGE_TITLE')}
+        message={t('MEMORY_BULK_PURGE_MESSAGE').replace('{count}', String(selectedKeys.size))}
         variant="danger"
-        confirmText="Confirm Bulk Prune"
+        confirmText={t('MEMORY_CONFIRM_BULK_PRUNE')}
         onConfirm={confirmBulkPrune}
         onCancel={() => setShowBulkPruneConfirm(false)}
       />

@@ -3,8 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, X } from 'lucide-react';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 export default function MemorySearch() {
+  const { t } = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') || '');
@@ -39,7 +41,7 @@ export default function MemorySearch() {
       <input
         type="text"
         className="block w-full pl-10 pr-10 py-2 border border-white/10 rounded-lg bg-black/40 text-white placeholder-muted focus:ring-1 focus:ring-cyber-blue focus:border-cyber-blue transition-all"
-        placeholder="Search Neural Reserve (Facts, Lessons, Gaps...)"
+        placeholder={t('MEMORY_SEARCH_PLACEHOLDER')}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />

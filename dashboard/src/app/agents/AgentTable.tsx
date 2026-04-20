@@ -6,6 +6,7 @@ import Typography from '@/components/ui/Typography';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { Agent } from '@/lib/types/ui';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import AgentDetailModal from './AgentDetailModal';
 
 interface AgentTableProps {
@@ -34,6 +35,7 @@ export default function AgentTable({
   saving,
   hasChanges,
 }: AgentTableProps) {
+  const { t } = useTranslations();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 
   const agentList = Object.values(agents);
@@ -47,35 +49,34 @@ export default function AgentTable({
             <thead>
               <tr className="border-b border-white/5 bg-white/[0.02]">
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40">
-                  Agent
+                  {t('AGENTS_HEADER')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40">
-                  Type
+                  {t('AGENTS_TYPE')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">
-                  Status
+                  {t('AGENTS_STATUS')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40">
-                  Provider
+                  {t('AGENTS_PROVIDER')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40">
-                  Model
+                  {t('AGENTS_MODEL')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">
-                  Tools
+                  {t('AGENTS_TOOLS')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-center">
-                  Reputation
+                  {t('AGENTS_REPUTATION')}
                 </th>
                 <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-white/40 text-right">
-                  Action
+                  {t('COMMON_ACTIONS')}
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {agentList.map((agent) => {
-                const isLogicOnly =
-                  agent.id === 'monitor' || agent.id === 'recovery' || agent.id === 'events';
+                const isLogicOnly = agent.agentType === 'logic';
 
                 return (
                   <tr
@@ -119,15 +120,15 @@ export default function AgentTable({
                     <td className="px-5 py-3">
                       {agent.isBackbone ? (
                         <Badge variant="intel" className="py-0 whitespace-nowrap">
-                          Backbone
+                          {t('AGENTS_BACKBONE')}
                         </Badge>
                       ) : isLogicOnly ? (
                         <Badge variant="audit" className="py-0 whitespace-nowrap">
-                          System Logic
+                          {t('AGENTS_SYSTEM_LOGIC')}
                         </Badge>
                       ) : (
                         <Badge variant="outline" className="py-0 whitespace-nowrap">
-                          Dynamic
+                          {t('AGENTS_DYNAMIC')}
                         </Badge>
                       )}
                     </td>
@@ -146,7 +147,7 @@ export default function AgentTable({
                         <div
                           className={`w-1.5 h-1.5 rounded-full ${agent.enabled ? 'bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.6)]' : 'bg-white/20'}`}
                         />
-                        {agent.enabled ? 'Active' : 'Off'}
+                        {agent.enabled ? t('AGENTS_STATUS_ACTIVE') : t('AGENTS_STATUS_OFF')}
                       </button>
                     </td>
                     <td className="px-5 py-3">
@@ -207,7 +208,7 @@ export default function AgentTable({
                           }}
                           className="text-white/50 hover:text-cyan-400 p-1"
                           icon={<Eye size={14} />}
-                          title="View Details"
+                          title={t('COMMON_VIEW_DETAILS')}
                         />
                         <Button
                           variant="ghost"
@@ -218,7 +219,7 @@ export default function AgentTable({
                           }}
                           className="text-white/50 hover:text-blue-400 p-1"
                           icon={<Copy size={14} />}
-                          title="Clone Agent"
+                          title={t('AGENTS_CLONE')}
                         />
                         {!agent.isBackbone && (
                           <Button
@@ -230,7 +231,7 @@ export default function AgentTable({
                             }}
                             className="text-white/50 hover:text-red-500 p-1"
                             icon={<Trash2 size={14} />}
-                            title="Delete"
+                            title={t('COMMON_DELETE')}
                           />
                         )}
                       </div>

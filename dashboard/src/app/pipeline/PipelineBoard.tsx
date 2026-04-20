@@ -23,6 +23,7 @@ import { GapStatus } from '@claw/core/lib/types';
 import { GapItem } from '@claw/core/lib/types/memory';
 import CyberConfirm from '@/components/CyberConfirm';
 import GapRefinementPanel from './GapRefinementPanel';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface PipelineBoardProps {
   initialGaps: GapItem[];
@@ -37,6 +38,7 @@ export default function PipelineBoard({
   pruneGap,
   triggerBatchEvolution,
 }: PipelineBoardProps) {
+  const { t } = useTranslations();
   const [selectedGaps, setSelectedGaps] = useState<Set<string>>(new Set());
   const [expandedGaps, setExpandedGaps] = useState<Set<string>>(new Set());
   const [processing, setProcessing] = useState<string | null>(null);
@@ -87,9 +89,9 @@ export default function PipelineBoard({
     setProcessing(gapId);
     try {
       await pruneGap(gapId, timestamp);
-      toast.success('Gap pruned from neural record');
+      toast.success(t('PIPELINE_PRUNED_SUCCESS'));
     } catch {
-      toast.error('Failed to prune gap');
+      toast.error(t('PIPELINE_PRUNE_ERROR'));
     } finally {
       setProcessing(null);
     }
@@ -100,7 +102,7 @@ export default function PipelineBoard({
       (g) => g.status === GapStatus.PLANNED && selectedGaps.has(g.userId)
     );
     if (readyGaps.length === 0) {
-      toast.warning('Please select at least one READY gap to evolve.');
+      toast.warning(t('PIPELINE_BATCH_EVOLVE_WARNING'));
       return;
     }
 
@@ -117,9 +119,9 @@ export default function PipelineBoard({
     try {
       await triggerBatchEvolution(readyGaps.map((g) => g.userId));
       setSelectedGaps(new Set());
-      toast.success(`Triggered evolution for ${readyGaps.length} gaps`);
+      toast.success(t('PIPELINE_BATCH_EVOLVE_SUCCESS').replace('{count}', String(readyGaps.length)));
     } catch {
-      toast.error('Failed to trigger batch evolution');
+      toast.error(t('PIPELINE_BATCH_EVOLVE_ERROR'));
     } finally {
       setProcessing(null);
     }
@@ -158,45 +160,45 @@ export default function PipelineBoard({
     setSelectedGaps(newSelection);
   };
 
-  const columns = [
+   const columns = [
     {
       status: GapStatus.OPEN,
-      label: 'Identified',
+      label: t('PIPELINE_COL_IDENTIFIED'),
       icon: Target,
       color: 'text-amber-500',
       glow: 'shadow-[0_0_15px_rgba(245,158,11,0.2)]',
     },
     {
       status: GapStatus.PLANNED,
-      label: 'Ready',
+      label: t('PIPELINE_COL_READY'),
       icon: Brain,
       color: 'text-indigo-500',
       glow: 'shadow-[0_0_15px_rgba(99,102,241,0.2)]',
     },
     {
       status: GapStatus.PROGRESS,
-      label: 'Evolution',
+      label: t('PIPELINE_COL_EVOLUTION'),
       icon: GitBranch,
       color: 'text-cyber-blue',
       glow: 'shadow-[0_0_15px_rgba(59,130,246,0.2)]',
     },
     {
       status: GapStatus.DEPLOYED,
-      label: 'Verified',
+      label: t('PIPELINE_COL_VERIFIED'),
       icon: Rocket,
       color: 'text-purple-500',
       glow: 'shadow-[0_0_15px_rgba(168,85,247,0.2)]',
     },
     {
       status: GapStatus.DONE,
-      label: 'Closed',
+      label: t('PIPELINE_COL_CLOSED'),
       icon: CheckCircle2,
       color: 'text-cyber-green',
       glow: 'shadow-[0_0_15px_rgba(34,197,94,0.2)]',
     },
     {
       status: GapStatus.FAILED,
-      label: 'Failed',
+      label: t('PIPELINE_COL_FAILED'),
       icon: Trash2,
       color: 'text-red-500',
       glow: 'shadow-[0_0_15px_rgba(239,68,68,0.2)]',
@@ -240,7 +242,7 @@ export default function PipelineBoard({
                       ) : (
                         <Square size={10} />
                       )}
-                      {selectedCount > 0 ? `Selected ${selectedCount}` : 'Select All'}
+                      {selectedCount > 0 ? t('PIPELINE_SELECTED_COUNT').replace('{count}', String(selectedCount)) : t('PIPELINE_SELECT_ALL')}
                     </button>
 
                     {col.status === GapStatus.PLANNED && selectedCount > 0 && (
@@ -249,7 +251,7 @@ export default function PipelineBoard({
                         disabled={processing === 'batch'}
                         className="flex items-center gap-1 text-[8px] uppercase font-black text-indigo-400 hover:text-indigo-300 animate-pulse disabled:opacity-50"
                       >
-                        <Play size={10} fill="currentColor" /> Trigger Batch
+                        <Play size={10} fill="currentColor" /> {t('PIPELINE_TRIGGER_BATCH')}
                       </button>
                     )}
                   </div>
@@ -326,11 +328,11 @@ export default function PipelineBoard({
                         >
                           {isExpanded ? (
                             <>
-                              <ChevronUp size={10} /> Show Less
+                              <ChevronUp size={10} /> {t('PIPELINE_SHOW_LESS')}
                             </>
                           ) : (
                             <>
-                              <ChevronDown size={10} /> Show Full Detail
+                              <ChevronDown size={10} /> {t('PIPELINE_SHOW_MORE')}
                             </>
                           )}
                         </button>
@@ -360,7 +362,7 @@ export default function PipelineBoard({
                               disabled={!!processing}
                               className="cursor-pointer text-[8px] font-bold bg-white/10 hover:bg-white/20 px-2 py-1 rounded flex items-center gap-1 transition-colors uppercase tracking-tight"
                             >
-                              Advance <ArrowRight size={8} />
+                              {t('PIPELINE_ADVANCE')} <ArrowRight size={8} />
                             </button>
                           )}
                           {gap.status !== columns[0].status && (
@@ -375,14 +377,14 @@ export default function PipelineBoard({
                               disabled={!!processing}
                               className="cursor-pointer text-[8px] font-bold text-white/40 hover:text-white/80 px-2 py-1 transition-colors uppercase tracking-tight"
                             >
-                              Revert
+                              {t('PIPELINE_REVERT')}
                             </button>
                           )}
                           <button
                             onClick={() => setRefiningGapId(gap.userId)}
                             className="cursor-pointer text-[8px] font-bold text-cyber-blue/60 hover:text-cyber-blue px-2 py-1 transition-colors uppercase tracking-tight"
                           >
-                            Refine
+                            {t('PIPELINE_REFINE')}
                           </button>
                         </div>
                       </div>
@@ -393,7 +395,7 @@ export default function PipelineBoard({
                 {colGaps.length === 0 && (
                   <div className="h-32 flex items-center justify-center text-white/5 border border-dashed border-white/5 rounded-lg">
                     <span className="text-[9px] uppercase tracking-widest font-bold">
-                      Terminal Empty
+                      {t('PIPELINE_TERMINAL_EMPTY')}
                     </span>
                   </div>
                 )}
@@ -419,22 +421,19 @@ export default function PipelineBoard({
       )}
       <CyberConfirm
         isOpen={!!pruneTarget}
-        title="Prune Neural Gap"
-        message="Are you sure you want to delete this gap? This action cannot be undone and will erase the identified logic discrepancy."
+        title={t('PIPELINE_PRUNE_GAP_TITLE')}
+        message={t('PIPELINE_PRUNE_GAP_MESSAGE')}
         variant="danger"
-        confirmText="Confirm Prune"
+        confirmText={t('PIPELINE_CONFIRM_PRUNE')}
         onConfirm={confirmPrune}
         onCancel={() => setPruneTarget(null)}
       />
       <CyberConfirm
         isOpen={showBatchConfirm}
-        title="Trigger Batch Evolution"
-        message={`You are about to trigger evolution for ${
-          initialGaps.filter((g) => g.status === GapStatus.PLANNED && selectedGaps.has(g.userId))
-            .length
-        } gaps. This will initiate multiple parallel refinement processes.`}
+        title={t('PIPELINE_INITIATE_EVOLUTION')}
+        message={t('PIPELINE_BATCH_EVOLVE_MESSAGE').replace('{count}', String(initialGaps.filter((g) => g.status === GapStatus.PLANNED && selectedGaps.has(g.userId)).length))}
         variant="warning"
-        confirmText="Initiate Evolution"
+        confirmText={t('PIPELINE_INITIATE_EVOLUTION')}
         onConfirm={confirmBatchEvolution}
         onCancel={() => setShowBatchConfirm(false)}
       />

@@ -3,8 +3,10 @@ import { ShieldCheck, Brain, Users, ChevronRight } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 export const GovernanceProtocol: React.FC = () => {
+  const { t } = useTranslations();
   return (
     <section className="mt-16 relative">
       <div className="absolute -top-px left-10 right-10 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
@@ -15,13 +17,13 @@ export const GovernanceProtocol: React.FC = () => {
         </div>
         <div>
           <Typography variant="h3" weight="bold" className="tracking-tight">
-            Co-management Protocol (HITL)
+            {t('SCHEDULING_GOVERNANCE_TITLE')}
           </Typography>
           <Typography
             variant="mono"
             className="text-[10px] text-blue-500/60 uppercase tracking-[0.2em]"
           >
-            Human-In-The-Loop Governance
+            {t('SCHEDULING_GOVERNANCE_SUBTITLE')}
           </Typography>
         </div>
       </div>
@@ -41,28 +43,25 @@ export const GovernanceProtocol: React.FC = () => {
                 variant="outline"
                 className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[9px] font-black uppercase tracking-widest"
               >
-                Autonomous Role
+                {t('SCHEDULING_AUTONOMOUS_ROLE')}
               </Badge>
             </div>
             <Typography variant="body" weight="bold" className="mb-3 text-white/90 block">
-              Strategic Planner Agent
+              {t('SCHEDULING_STRATEGIC_PLANNER')}
             </Typography>
             <Typography variant="body" className="text-xs text-white/60 leading-relaxed block">
-              The core intelligence autonomously creates, adjusts, and retires schedules based on
-              identified <span className="text-blue-400 font-mono">evolution_gaps</span> and
-              system health telemetry. It operates on a 24h recursive audit cycle to ensure
-              proactive system growth.
+              {t('SCHEDULING_STRATEGIC_PLANNER_DESC').replace('{gaps}', 'evolution_gaps')}
             </Typography>
             <div className="mt-6 flex items-center gap-4 border-t border-white/5 pt-4">
               <div className="flex flex-col">
                 <span className="text-[9px] text-white/40 uppercase font-black tracking-widest">
-                  Sync Priority
+                  {t('SCHEDULING_SYNC_PRIORITY')}
                 </span>
                 <span className="text-xs font-mono text-blue-400">P0_CRITICAL</span>
               </div>
               <div className="flex flex-col">
                 <span className="text-[9px] text-white/40 uppercase font-black tracking-widest">
-                  Audit Mode
+                  {t('SCHEDULING_AUDIT_MODE')}
                 </span>
                 <span className="text-xs font-mono text-blue-400">CONTINUOUS</span>
               </div>
@@ -84,18 +83,18 @@ export const GovernanceProtocol: React.FC = () => {
                 variant="outline"
                 className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[9px] font-black uppercase tracking-widest"
               >
-                Human Co-Manager
+                {t('SCHEDULING_HUMAN_CO_MANAGER')}
               </Badge>
             </div>
             <Typography variant="body" weight="bold" className="mb-3 text-white/90 block">
-              Intervention Privileges
+              {t('SCHEDULING_INTERVENTION_PRIVILEGES')}
             </Typography>
             <ul className="space-y-2">
               {[
-                'Bypass time windows with "Trigger Now" execution',
-                'Pause background autonomy during critical updates',
-                'Override agent-defined frequencies for stability',
-                'Manual "Purge All" for emergency state reset',
+                t('SCHEDULING_PRIVILEGE_TRIGGER'),
+                t('SCHEDULING_PRIVILEGE_PAUSE'),
+                t('SCHEDULING_PRIVILEGE_OVERRIDE'),
+                t('SCHEDULING_PRIVILEGE_PURGE'),
               ].map((item, idx) => (
                 <li key={idx} className="flex items-start gap-2 text-xs text-white/60">
                   <ChevronRight size={12} className="mt-0.5 text-amber-500/50" />

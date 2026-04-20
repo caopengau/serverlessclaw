@@ -5,10 +5,10 @@ import { revalidatePath } from 'next/cache';
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import SettingsForm from './SettingsForm';
 import DeploySyncStatus from '@/components/DeploySyncStatus';
-import Typography from '@/components/ui/Typography';
 import { SYSTEM } from '@claw/core/lib/constants';
 import { EvolutionMode } from '@claw/core/lib/types/agent';
 import SettingsClient from './SettingsClient';
+import SettingsHeader from './SettingsHeader';
 
 async function getConfig() {
   try {
@@ -357,16 +357,7 @@ export default async function SettingsPage() {
 
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
-      <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
-        <div>
-          <Typography variant="h2" color="white" glow uppercase>
-            System Configuration
-          </Typography>
-          <Typography variant="body" color="muted" className="mt-2 block">
-            Manage your global agent settings, API keys, and system preferences.
-          </Typography>
-        </div>
-      </header>
+      <SettingsHeader />
 
       <div className="max-w-4xl space-y-10">
         <SettingsForm config={config} updateConfig={updateConfig} />

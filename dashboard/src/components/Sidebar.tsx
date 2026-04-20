@@ -346,7 +346,7 @@ export default function Sidebar() {
                 className="justify-start px-2 py-2 text-xs text-muted-foreground hover:text-cyber-green"
                 icon={<LogOut size={12} />}
               >
-                Logout
+                {t('LOGOUT')}
               </Button>
             </div>
           ) : (
@@ -371,7 +371,7 @@ export default function Sidebar() {
                  <button
                   onClick={handleLogout}
                   className="p-1 rounded-full bg-foreground/5 transition-colors text-muted-foreground hover:text-cyber-green"
-                  title="Logout"
+                  title={t('LOGOUT')}
                  >
                   <LogOut size={12} />
                  </button>

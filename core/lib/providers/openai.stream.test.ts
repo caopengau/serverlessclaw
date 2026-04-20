@@ -111,4 +111,42 @@ describe('OpenAIProvider.stream', () => {
     expect(chunks[0].content).toBe('Foo');
     expect(chunks[1].content).toBe('Bar');
   });
+
+  it('should yield tool call chunks when output_item.done for function_call is emitted', async () => {
+    async function* mockAsyncStream() {
+      yield {
+        type: 'output_item.done',
+        item: {
+          type: 'function_call',
+          call_id: 'call_123',
+          name: 'listAgents',
+          arguments: '{}',
+        },
+      };
+    }
+
+    mockCreate.mockResolvedValue(mockAsyncStream());
+
+    const chunks = [];
+    const stream = provider.stream(
+      [{ role: 'user' as any, content: 'hi', traceId: 't1', messageId: 'm1' }],
+      [
+        {
+          name: 'listAgents',
+          description: 'Lists all agents',
+          parameters: { type: 'object' },
+        } as any,
+      ],
+      ReasoningProfile.STANDARD
+    );
+
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0].tool_calls).toBeDefined();
+    expect(chunks[0].tool_calls![0].function.name).toBe('listAgents');
+    expect(chunks[0].tool_calls![0].id).toBe('call_123');
+  });
 });

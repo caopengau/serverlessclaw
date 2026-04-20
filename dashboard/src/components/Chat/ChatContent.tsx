@@ -73,48 +73,48 @@ export default function ChatContent() {
   const currentSessionRef = useRef<typeof currentSession>(null);
 
   const shortcuts: ShortcutDefinition[] = [
-    { keys: 'meta+k', handler: () => searchInputRef.current?.focus(), description: 'Focus search' },
-    { keys: 'ctrl+k', handler: () => searchInputRef.current?.focus(), description: 'Focus search' },
-    { keys: 'meta+alt+n', handler: () => createNewChatRef.current(), description: 'New chat' },
-    { keys: 'ctrl+alt+n', handler: () => createNewChatRef.current(), description: 'New chat' },
+    { keys: 'meta+k', handler: () => searchInputRef.current?.focus(), description: t('SHORTCUTS_FOCUS_SEARCH') },
+    { keys: 'ctrl+k', handler: () => searchInputRef.current?.focus(), description: t('SHORTCUTS_FOCUS_SEARCH') },
+    { keys: 'meta+alt+n', handler: () => createNewChatRef.current(), description: t('SHORTCUTS_NEW_CHAT') },
+    { keys: 'ctrl+alt+n', handler: () => createNewChatRef.current(), description: t('SHORTCUTS_NEW_CHAT') },
     {
       keys: 'meta+/',
       handler: () => chatInputRef.current?.focus(),
-      description: 'Focus chat input',
+      description: t('SHORTCUTS_FOCUS_CHAT_INPUT'),
     },
     {
       keys: 'ctrl+/',
       handler: () => chatInputRef.current?.focus(),
-      description: 'Focus chat input',
+      description: t('SHORTCUTS_FOCUS_CHAT_INPUT'),
     },
     {
       keys: 'meta+e',
       handler: () => {
         if (activeSessionId && currentSessionRef.current) setIsEditingTitle(true);
       },
-      description: 'Edit session title',
+      description: t('SHORTCUTS_EDIT_SESSION_TITLE'),
     },
     {
       keys: 'ctrl+e',
       handler: () => {
         if (activeSessionId && currentSessionRef.current) setIsEditingTitle(true);
       },
-      description: 'Edit session title',
+      description: t('SHORTCUTS_EDIT_SESSION_TITLE'),
     },
     {
       keys: 'meta+t',
       handler: () => setShowThinking((prev) => !prev),
-      description: 'Toggle thinking visibility',
+      description: t('SHORTCUTS_TOGGLE_THINKING_VISIBILITY'),
     },
     {
       keys: 'ctrl+t',
       handler: () => setShowThinking((prev) => !prev),
-      description: 'Toggle thinking visibility',
+      description: t('SHORTCUTS_TOGGLE_THINKING_VISIBILITY'),
     },
     {
       keys: '?',
       handler: () => setShowShortcutsHelp((prev) => !prev),
-      description: 'Show keyboard shortcuts help',
+      description: t('SHORTCUTS_SHOW_KEYBOARD_HELP'),
       preventDefault: false,
     },
   ];
@@ -589,15 +589,15 @@ export default function ChatContent() {
             </div>
             <div className="space-y-2 text-[11px] font-mono">
               {[
-                { keys: 'Cmd/Ctrl + K', desc: 'Focus search' },
-                { keys: 'Cmd/Ctrl + Alt + N', desc: 'New chat' },
-                { keys: 'Cmd/Ctrl + /', desc: 'Focus chat input' },
-                { keys: 'Cmd/Ctrl + E', desc: 'Edit session title' },
-                { keys: 'Cmd/Ctrl + T', desc: 'Toggle thinking' },
-                { keys: 'Cmd/Ctrl + Enter', desc: 'Send message' },
-                { keys: 'Shift + Enter', desc: 'New line' },
-                { keys: 'Escape', desc: 'Close modals' },
-                { keys: '?', desc: 'Show this help' },
+                { keys: 'Cmd/Ctrl + K', desc: t('SHORTCUTS_FOCUS_SEARCH') },
+                { keys: 'Cmd/Ctrl + Alt + N', desc: t('SHORTCUTS_NEW_CHAT') },
+                { keys: 'Cmd/Ctrl + /', desc: t('SHORTCUTS_FOCUS_CHAT_INPUT') },
+                { keys: 'Cmd/Ctrl + E', desc: t('SHORTCUTS_EDIT_SESSION_TITLE') },
+                { keys: 'Cmd/Ctrl + T', desc: t('SHORTCUTS_TOGGLE_THINKING') },
+                { keys: 'Cmd/Ctrl + Enter', desc: t('SHORTCUTS_SEND_MESSAGE') },
+                { keys: 'Shift + Enter', desc: t('SHORTCUTS_NEW_LINE') },
+                { keys: 'Escape', desc: t('SHORTCUTS_CLOSE_MODALS') },
+                { keys: '?', desc: t('SHORTCUTS_SHOW_HELP') },
               ].map(({ keys, desc }) => (
                 <div
                   key={keys}
