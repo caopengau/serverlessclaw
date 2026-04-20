@@ -119,6 +119,8 @@ export interface ConversationMeta {
   isPinned?: boolean;
   /** Optional expiration timestamp (Unix epoch). */
   expiresAt?: number;
+  /** Additional dynamic metadata */
+  metadata?: Record<string, unknown>;
 }
 
 /**

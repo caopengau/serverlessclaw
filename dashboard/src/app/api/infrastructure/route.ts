@@ -1,6 +1,7 @@
 import { Resource } from 'sst';
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
+import { logger } from '@claw/core/lib/logger';
 
 /**
  * GET handler for infrastructure topology.
@@ -15,9 +16,9 @@ export async function GET(): Promise<NextResponse> {
 
     // 1. Diagnostic Logging for Environment
     const resourceKeys = Object.keys(Resource);
-    console.info(`[InfrastructureAPI] SST Resource keys found: ${resourceKeys.length}`, resourceKeys);
+    logger.info(`[InfrastructureAPI] SST Resource keys found: ${resourceKeys.length}`, resourceKeys);
     if (resourceKeys.length === 0) {
-      console.warn('[InfrastructureAPI] Resource Proxy is empty. This usually means the dashboard was started without "sst dev". Falling back to reflective SDK scan...');
+      logger.warn('[InfrastructureAPI] Resource Proxy is empty. This usually means the dashboard was started without "sst dev". Falling back to reflective SDK scan...');
     }
 
     // 2. Try to load full system topology from DynamoDB (persisted by Build Monitor)
@@ -26,7 +27,7 @@ export async function GET(): Promise<NextResponse> {
     try {
       storedTopology = await AgentRegistry.getFullTopology();
     } catch (e) {
-      console.warn('[InfrastructureAPI] Failed to fetch stored topology:', e);
+      logger.warn('[InfrastructureAPI] Failed to fetch stored topology:', e);
     }
 
     // 3. Perform Live Discovery (Reflective)
@@ -40,7 +41,7 @@ export async function GET(): Promise<NextResponse> {
 
     return NextResponse.json(storedTopology);
   } catch (error) {
-    console.error('[InfrastructureAPI] Critical failure:', error);
+    logger.error('[InfrastructureAPI] Critical failure:', error);
     return NextResponse.json({ error: 'Failed to fetch infrastructure' }, { status: 500 });
   }
 }

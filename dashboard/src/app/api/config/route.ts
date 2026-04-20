@@ -4,6 +4,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { CONFIG_KEYS } from '@claw/core/lib/constants';
 import { SSTResource } from '@claw/core/lib/types/index';
+import { logger } from '@claw/core/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     // Debug diagnostic: log the MQTT URL being used by the client
     const debugUrl = req.nextUrl?.searchParams?.get('__debug_url');
     if (debugUrl) {
-      console.log('[Config API] [DEBUG] Client MQTT URL:', decodeURIComponent(debugUrl));
+      logger.debug('[Config API] [DEBUG] Client MQTT URL:', decodeURIComponent(debugUrl));
       return NextResponse.json({ ok: true });
     }
     const realtime = typedResource.RealtimeBus;
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
         : null;
 
     if (!realtimeUrl) {
-      console.warn('[Config API] RealtimeBus is not linked; realtime URL is unavailable');
+      logger.warn('[Config API] RealtimeBus is not linked; realtime URL is unavailable');
     }
 
     return NextResponse.json({
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('[Config API] Error:', error);
+    logger.error('[Config API] Error:', error);
     return NextResponse.json({ error: 'Failed to fetch config' }, { status: 500 });
   }
 }
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: 'Unauthorized configuration key' }, { status: 403 });
   } catch (error) {
-    console.error('[Config API] POST Error:', error);
+    logger.error('[Config API] POST Error:', error);
     return NextResponse.json({ error: 'Failed to update config' }, { status: 500 });
   }
 }

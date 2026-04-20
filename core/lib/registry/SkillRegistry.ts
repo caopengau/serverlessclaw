@@ -3,6 +3,7 @@
  * available to the ServerlessClaw agents. It allows for dynamic discovery
  * and just-in-time (JIT) skill acquisition.
  */
+import { logger } from '../logger';
 
 export interface SkillDefinition {
   id: string;
@@ -38,7 +39,7 @@ export class SkillRegistry {
 
   public registerSkill(skill: SkillDefinition) {
     this.skills.set(skill.id, skill);
-    console.log(`[SkillRegistry] Registered skill: ${skill.id}`);
+    logger.info(`[SkillRegistry] Registered skill: ${skill.id}`);
   }
 
   public getSkill(id: string): SkillDefinition | undefined {
@@ -58,7 +59,7 @@ export class SkillRegistry {
       const manifest = (await response.json()) as { skills: SkillDefinition[] };
       manifest.skills.forEach((skill) => this.registerSkill(skill));
     } catch (err) {
-      console.error(`[SkillRegistry] Failed to discover remote skills:`, err);
+      logger.error(`[SkillRegistry] Failed to discover remote skills:`, err);
     }
   }
 }

@@ -36,12 +36,12 @@ Last Updated: 2026-04-17
 
 ## Audit Reports History
 
-| Date       | Report                              | Silos Covered           | Cross-Silo      | Key Findings                                      |
-| :--------- | :---------------------------------- | :---------------------- | :-------------- | :------------------------------------------------ |
-| 2026-04-20 | `audit-2026-04-20-system-integrity.md` | Spine, Shield, Scales | C, D, E         | Broken multi-tenancy, Dead trust loop, Ghost fix  |
-| 2026-04-16 | `audit-2026-04-16-shield-scales.md` | Shield, Scales          | Evolution Cycle | Double-execution of Class C actions               |
-| 2026-04-16 | `audit-2026-04-16-the-spine.md`     | The Spine               | -               | Fail-open rate limiting, missing handlers         |
-| 2026-04-17 | `security-audit-report.md`          | Dependencies            | N/A             | 8 dependency vulnerabilities                      |
+| Date       | Report                                 | Silos Covered         | Cross-Silo      | Key Findings                                     |
+| :--------- | :------------------------------------- | :-------------------- | :-------------- | :----------------------------------------------- |
+| 2026-04-20 | `audit-2026-04-20-system-integrity.md` | Spine, Shield, Scales | C, D, E         | Broken multi-tenancy, Dead trust loop, Ghost fix |
+| 2026-04-16 | `audit-2026-04-16-shield-scales.md`    | Shield, Scales        | Evolution Cycle | Double-execution of Class C actions              |
+| 2026-04-16 | `audit-2026-04-16-the-spine.md`        | The Spine             | -               | Fail-open rate limiting, missing handlers        |
+| 2026-04-17 | `security-audit-report.md`             | Dependencies          | N/A             | 8 dependency vulnerabilities                     |
 
 ---
 

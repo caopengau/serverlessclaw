@@ -14,8 +14,7 @@ const memory = new DynamoMemory();
  * @param eventDetail - The event detail containing recovery log information
  */
 export async function handleRecoveryLog(eventDetail: Record<string, unknown>): Promise<void> {
-  const { _userId, task, traceId, sessionId } = eventDetail as {
-    _userId: string;
+  const { task, traceId, sessionId } = eventDetail as {
     task: string;
     traceId: string;
     sessionId: string;

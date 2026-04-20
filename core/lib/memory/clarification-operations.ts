@@ -196,7 +196,7 @@ export async function findExpiredClarifications(
 ): Promise<ClarificationState[]> {
   const now = Math.floor(Date.now() / TIME.MS_PER_SECOND);
 
-  const params: any = {
+  const params: Record<string, unknown> = {
     IndexName: 'TypeTimestampIndex',
     KeyConditionExpression: '#tp = :type',
     FilterExpression: workspaceId

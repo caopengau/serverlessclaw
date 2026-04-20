@@ -109,7 +109,7 @@ export const createCollaboration: ITool = {
         metadata: { collaborationId: collaboration.collaborationId },
       });
     } catch (e) {
-      console.warn('Failed to wake up Facilitator Agent:', e);
+      logger.warn('Failed to wake up Facilitator Agent:', e);
     }
 
     const humanCount = collaboration.participants.filter((p) => p.type === 'human').length;

@@ -9,12 +9,13 @@ import Badge from '@/components/ui/Badge';
 import { deleteMemoryItem } from '@/lib/actions/dynamodb-actions';
 import { getResourceName } from '@/lib/sst-utils';
 import PageHeader from '@/components/PageHeader';
+import { logger } from '@claw/core/lib/logger';
 
 async function getLocks() {
   try {
     const tableName = getResourceName('MemoryTable');
     if (!tableName) {
-      console.error('MemoryTable name is missing from Resources and Environment');
+      logger.error('MemoryTable name is missing from Resources and Environment');
       return [];
     }
     const client = new DynamoDBClient({});
@@ -41,7 +42,7 @@ async function getLocks() {
       }))
       .sort((a, b) => b.acquiredAt - a.acquiredAt);
   } catch (e) {
-    console.error('Error fetching locks:', e);
+    logger.error('Error fetching locks:', e);
     return [];
   }
 }
@@ -51,7 +52,7 @@ async function forceUnlock(rawId: string) {
   try {
     await deleteMemoryItem(rawId, 0, '/locks');
   } catch (e) {
-    console.error('Error forcing unlock:', e);
+    logger.error('Error forcing unlock:', e);
   }
 }
 

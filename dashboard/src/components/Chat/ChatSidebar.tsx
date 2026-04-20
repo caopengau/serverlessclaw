@@ -9,7 +9,7 @@ interface ChatSidebarProps {
   sessions: ConversationMeta[];
   activeSessionId: string;
   onSessionSelect: (sessionId: string) => void;
-  onNewChat: () => void;
+  onNewChat: (agentId?: string) => void;
   onDeleteSession: (e: React.MouseEvent, sessionId: string) => void;
   onDeleteAll: () => void;
   onTogglePin: (sessionId: string, isPinned: boolean) => void;
@@ -208,7 +208,7 @@ export function ChatSidebar({
 
       <div className="p-4 border-t border-white/5 bg-black/40">
         <Button
-          onClick={onNewChat}
+          onClick={() => onNewChat()}
           fullWidth
           variant="outline"
           className="h-11 border-dashed border-white/10 hover:border-cyber-green/40 hover:bg-cyber-green/5 group"

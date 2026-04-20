@@ -14,7 +14,10 @@ class Logger {
    * Defaults to INFO level unless in a test environment.
    */
   constructor() {
-    const logEnv = process.env.LOG_LEVEL;
+    // Check if process and process.env exist for browser compatibility
+    const env = (typeof process !== 'undefined' ? process.env : {}) as any;
+
+    const logEnv = env.LOG_LEVEL;
     if (logEnv) {
       const levelStr = logEnv.toUpperCase();
       if (levelStr in LogLevel) {
@@ -22,8 +25,8 @@ class Logger {
       }
     }
 
-    if (process.env.NODE_ENV === 'test' || process.env.VITEST) {
-      this.level = process.env.DEBUG_TESTS ? LogLevel.DEBUG : LogLevel.NONE;
+    if (env.NODE_ENV === 'test' || env.VITEST) {
+      this.level = env.DEBUG_TESTS ? LogLevel.DEBUG : LogLevel.NONE;
     }
   }
 

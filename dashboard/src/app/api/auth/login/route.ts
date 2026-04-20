@@ -7,6 +7,7 @@ import { Resource } from 'sst';
 import { AUTH } from '@/lib/constants';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
 import { SSTResource } from '@claw/core/lib/types/index';
+import { logger } from '@claw/core/lib/logger';
 
 /**
  * Handles dashboard login and sets the session cookie
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       (password === correctPassword || (isDev && password === 'test-password'));
 
     if (isAuthorized) {
-      console.log(`[Auth:Login] ✅ Authorized successful (isDev=${isDev})`);
+      logger.info(`[Auth:Login] ✅ Authorized successful (isDev=${isDev})`);
       const response = NextResponse.json({ success: true });
 
       const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -65,13 +66,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return response;
     }
 
-    console.warn(`[Auth:Login] ❌ Unauthorized attempt. Correct password found: ${!!correctPassword}, isDev: ${isDev}`);
+    logger.warn(`[Auth:Login] ❌ Unauthorized attempt. Correct password found: ${!!correctPassword}, isDev: ${isDev}`);
     return NextResponse.json(
       { error: AUTH.ERROR_INVALID_CREDENTIALS },
       { status: HTTP_STATUS.UNAUTHORIZED }
     );
   } catch (error) {
-    console.error('Auth Error:', error);
+    logger.error('Auth Error:', error);
     return NextResponse.json(
       { error: AUTH.ERROR_SYSTEM_FAILURE },
       { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }

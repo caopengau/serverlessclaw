@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Paperclip, Edit2, Check, X, Brain, Keyboard } from 'lucide-react';
+import { Paperclip, Edit2, Check, X, Brain, Keyboard, Plus, Bot } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import CyberConfirm from '@/components/CyberConfirm';
 import Button from '@/components/ui/Button';
@@ -14,6 +14,8 @@ import { QueuedMessagesList } from './QueuedMessages';
 import { useChatMessages } from './useChatMessages';
 import { useKeyboardShortcuts, type ShortcutDefinition } from '@/hooks/useKeyboardShortcuts';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
+import { AgentSelector } from './AgentSelector';
+import { AgentType } from '@claw/core/lib/types/index';
 import type { ChatMessage } from './types';
 
 /**
@@ -60,8 +62,13 @@ export default function ChatContent() {
   // --- Thinking Toggle ---
   const [showThinking, setShowThinking] = useState(true);
 
-
-  // --- Refs ---
+  // --- Multi-Agent / Collaboration State ---
+  const [currentAgentId, setCurrentAgentId] = useState<string>(AgentType.SUPERCLAW);
+  const [isAgentSelectorOpen, setIsAgentSelectorOpen] = useState(false);
+  const [isInviteSelectorOpen, setIsInviteSelectorOpen] = useState(false);
+  const [activeCollaborators, setActiveCollaborators] = useState<string[]>([AgentType.SUPERCLAW]);
+  const [collaborationId, setCollaborationId] = useState<string | null>(null);
+  const [isTransiting, setIsTransiting] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -197,7 +204,7 @@ export default function ChatContent() {
     const prompt = searchParams.get('prompt');
     if (prompt && !hasProcessedPrompt.current) {
       hasProcessedPrompt.current = true;
-      setTimeout(() => sendMessage(prompt, undefined, showThinking ? 'thinking' : 'fast'), 500);
+      setTimeout(() => sendMessage(prompt, currentAgentId, collaborationId || undefined, undefined, showThinking ? 'thinking' : 'fast'), 500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -278,23 +285,76 @@ export default function ChatContent() {
       await handleTaskCancellation(value.split(':')[1], comment);
     } else {
       const fullMessage = comment ? `${value}\n\nComment: ${comment}` : value;
-      sendMessage(fullMessage, undefined, showThinking ? 'thinking' : 'fast');
+      sendMessage(fullMessage, currentAgentId, collaborationId || undefined, undefined, showThinking ? 'thinking' : 'fast');
     }
   };
 
   // --- Session Management Handlers ---
 
-  const createNewChat = () => {
-    if (!activeSessionId) {
+  const createNewChat = (agentId?: string) => {
+    if (agentId) {
+      setCurrentAgentId(agentId);
+      setActiveCollaborators([agentId]);
+      setCollaborationId(null);
+      setIsAgentSelectorOpen(false);
+    } else {
+      setIsAgentSelectorOpen(true);
+      return;
+    }
+
+    if (!activeSessionId && agentId === currentAgentId) {
       setIsShaking(true);
       setTimeout(() => setIsShaking(false), 500);
       return;
     }
+
     seenMessageIds.current.clear();
     setActiveSessionId('');
     setMessages([]);
     setAttachments([]);
     router.push('/', { scroll: false });
+  };
+
+  const handleInviteAgent = async (agentId: string) => {
+    setIsInviteSelectorOpen(false);
+    
+    if (activeCollaborators.includes(agentId)) return;
+
+    // Transition to collaboration if this is the second agent
+    if (!collaborationId) {
+      setIsTransiting(true);
+      try {
+        const res = await fetch('/api/collaboration/transit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: activeSessionId,
+            invitedAgentIds: [agentId],
+            name: editedTitle
+          })
+        });
+        const data = await res.json();
+        if (data.collaborationId) {
+          setCollaborationId(data.collaborationId);
+          setActiveCollaborators(prev => [...prev, agentId, AgentType.FACILITATOR]);
+          
+          // Send a system-like message to notify about the transition
+          setMessages(prev => [...prev, {
+            role: 'assistant',
+            content: `Collaboration mode activated. **${agentId}** and **Facilitator** have joined the session.`,
+            agentName: 'System',
+            messageId: `transit-${Date.now()}`
+          }]);
+        }
+      } catch (e) {
+        console.error('Transit failed:', e);
+      } finally {
+        setIsTransiting(false);
+      }
+    } else {
+      // Logic for adding agent to existing collaboration could go here
+      setActiveCollaborators(prev => [...prev, agentId]);
+    }
   };
 
   createNewChatRef.current = createNewChat;
@@ -471,6 +531,37 @@ export default function ChatContent() {
                 {t('CHAT_DIRECT')}
               </Typography>
             )}
+            
+            {/* Collaborators Row */}
+            <div className="flex items-center gap-2 mt-2">
+              <div className="flex -space-x-2 overflow-hidden">
+                {activeCollaborators.map((id) => (
+                  <div 
+                    key={id} 
+                    className="inline-block h-6 w-6 rounded-full ring-2 ring-[#0a0a0a] bg-black/40 border border-white/10 flex items-center justify-center overflow-hidden"
+                    title={id}
+                  >
+                    <Bot size={12} className={id === currentAgentId ? "text-cyber-green" : "text-cyber-blue"} />
+                  </div>
+                ))}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsInviteSelectorOpen(true)}
+                className="p-1 h-6 w-6 rounded-full border border-dashed border-white/20 text-white/40 hover:text-cyber-green hover:border-cyber-green/40 transition-all ml-2"
+                icon={<Plus size={12} />}
+                title={t('INVITE_AGENT')}
+              />
+              {collaborationId && (
+                <div className="flex items-center gap-2 ml-4 bg-cyber-blue/10 px-2 py-0.5 rounded border border-cyber-blue/30">
+                   <div className="w-1 h-1 rounded-full bg-cyber-blue animate-pulse" />
+                   <Typography variant="mono" className="text-[8px] text-cyber-blue font-bold uppercase">
+                     {t('COLLABORATION_MODE')}
+                   </Typography>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <Button
@@ -522,7 +613,7 @@ export default function ChatContent() {
           isLoading={isLoading}
           onSend={(e) => {
             e.preventDefault();
-            sendMessage(input, undefined, showThinking ? 'thinking' : 'fast');
+            sendMessage(input, currentAgentId, collaborationId || undefined, undefined, showThinking ? 'thinking' : 'fast');
             setInput('');
           }}
           attachments={attachments}
@@ -533,7 +624,36 @@ export default function ChatContent() {
           }}
           isShaking={isShaking}
           chatInputRef={chatInputRef}
+          // Pass current agent info to input if needed
         />
+
+        {isAgentSelectorOpen && (
+          <AgentSelector 
+            onSelect={createNewChat}
+            onClose={() => setIsAgentSelectorOpen(false)}
+            title={t('CHAT_SIDEBAR_NEW_CHAT')}
+          />
+        )}
+
+        {isInviteSelectorOpen && (
+          <AgentSelector 
+            onSelect={handleInviteAgent}
+            onClose={() => setIsInviteSelectorOpen(false)}
+            title={t('INVITE_AGENT')}
+            excludeIds={activeCollaborators}
+          />
+        )}
+
+        {isTransiting && (
+           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+             <div className="flex flex-col items-center gap-4">
+                <div className="w-12 h-12 border-2 border-cyber-blue/20 border-t-cyber-blue rounded-full animate-spin" />
+                <Typography variant="mono" color="white" className="text-xs uppercase tracking-[0.2em] animate-pulse text-cyber-blue">
+                  Initiating_Collaboration_Protocol...
+                </Typography>
+             </div>
+           </div>
+        )}
 
         {pendingMessages.length > 0 && (
           <div className="px-6 pb-4">

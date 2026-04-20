@@ -3,6 +3,7 @@ import { emitEvent } from '../../lib/utils/bus';
 import { EventType } from '../../lib/types/agent';
 import { ClarificationStatus } from '../../lib/types/memory';
 import { formatErrorMessage } from '../../lib/utils/error';
+import { logger } from '../../lib/logger';
 
 /**
  * Pauses the current agent and requests clarification from the initiator.
@@ -90,7 +91,7 @@ export const provideClarification = {
           const memory = new DynamoMemory();
           await memory.updateClarificationStatus(traceId, agentId, ClarificationStatus.ANSWERED);
         } catch (memError) {
-          console.warn('Failed to update clarification status:', memError);
+          logger.warn('Failed to update clarification status:', memError);
         }
       }
 

@@ -269,7 +269,7 @@ export class WarmupManager extends BaseMemoryProvider {
     servers?: string[];
     agents?: string[];
     intent?: string;
-    sessionState?: any;
+    sessionState?: SessionState | null;
     warmedBy?: 'webhook' | 'scheduler' | 'recovery';
   }): Promise<{ servers: string[]; agents: string[] }> {
     const warmedServers: string[] = [];

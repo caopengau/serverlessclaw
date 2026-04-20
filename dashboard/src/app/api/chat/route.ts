@@ -10,8 +10,9 @@ import { ProviderManager } from '@claw/core/lib/providers/index';
 import { getAgentTools } from '@claw/core/tools/index';
 import { Agent } from '@claw/core/lib/agent';
 import { SUPERCLAW_SYSTEM_PROMPT } from '@claw/core/agents/superclaw';
-import { TraceSource, AgentType, ToolCall } from '@claw/core/lib/types/index';
+import { TraceSource, AgentType } from '@claw/core/lib/types/index';
 import { AgentRegistry } from '@claw/core/lib/registry';
+import { logger } from '@claw/core/lib/logger';
 
 // Singleton memory and provider to leverage in-memory LRU cache
 const memory = new CachedMemory(new DynamoMemory());
@@ -39,6 +40,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       traceId: clientTraceId,
       pageContext,
       profile,
+      agentId = AgentType.SUPERCLAW,
+      collaborationId,
     } = await req.json();
     
     const userId = getUserId(req);
@@ -51,10 +54,43 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    console.log(`[Chat API] POST - userId: ${userId}, sessionId: ${sessionId}, traceId: ${clientTraceId}, profile: ${profile}`);
+    logger.info(`[Chat API] POST - userId: ${userId}, sessionId: ${sessionId}, traceId: ${clientTraceId}, agentId: ${agentId}, collabId: ${collaborationId}`);
 
-    const config = await AgentRegistry.getAgentConfig(AgentType.SUPERCLAW);
-    const agentTools = await getAgentTools(AgentType.SUPERCLAW);
+    // If we're in a collaboration session, we might need special logic in the future.
+    // For now, we route to the specific agent requested.
+    
+    const config = await AgentRegistry.getAgentConfig(agentId);
+    const agentTools = await getAgentTools(agentId);
+    
+    if (!config) {
+      return NextResponse.json(
+        { error: `Agent ${agentId} not found in registry.` },
+        { status: HTTP_STATUS.NOT_FOUND }
+      );
+    }
+
+    // Principle 14 Check
+    if (config.enabled !== true) {
+      return NextResponse.json(
+        { error: `Agent ${agentId} is currently disabled and cannot process requests.` },
+        { status: HTTP_STATUS.FORBIDDEN }
+      );
+    }
+
+    // Determine communication mode based on collaboration participants
+    let communicationMode: 'text' | 'json' = 'text';
+    if (collaborationId) {
+      const collab = collaborationId ? await memory.getCollaboration(collaborationId as string) : null;
+      if (collab) {
+        const hasHuman = 
+          collab.owner.type === 'human' || 
+          collab.participants.some(p => p.type === 'human');
+        
+        communicationMode = hasHuman ? 'text' : 'json';
+        logger.info(`[Chat API] Collaboration detected. hasHuman: ${hasHuman} -> mode: ${communicationMode}`);
+      }
+    }
+
     const agent = new Agent(
       memory,
       provider,
@@ -73,11 +109,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       traceId: clientTraceId || undefined,
       pageContext,
       profile,
+      communicationMode,
     });
 
     let finalResponse = '';
     let finalThought = '';
-    let finalToolCalls: ToolCall[] | undefined;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let finalToolCalls: any[] = [];
     let finalMessageId = '';
 
     for await (const chunk of stream) {
@@ -87,7 +125,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       if (chunk.messageId) finalMessageId = chunk.messageId;
     }
 
-    console.log(`[Chat API] Stream finished - sessionId: ${sessionId}, response length: ${finalResponse.length}, thought length: ${finalThought.length}`);
+    logger.info(`[Chat API] Stream finished - sessionId: ${sessionId}, agent: ${agentId}, response length: ${finalResponse.length}`);
 
     // Update conversation metadata for the sidebar
     if (sessionId) {
@@ -95,6 +133,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         lastMessage:
           finalResponse.length > 60 ? finalResponse.substring(0, 60) + '...' : finalResponse,
         updatedAt: Date.now(),
+        // Store the last agent used in this session if it's not superclaw
+        metadata: agentId !== AgentType.SUPERCLAW ? { lastAgentId: agentId } : undefined,
       });
     }
 
@@ -105,13 +145,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       reply: (finalResponse || '').trim(),
       thought: thoughtToReturn,
-      agentName: 'SuperClaw',
+      agentName: config.name || agentId,
       messageId: finalMessageId,
       tool_calls: finalToolCalls,
       sessionId: sessionId || undefined,
     });
   } catch (error) {
-    console.error(UI_STRINGS.API_CHAT_ERROR, error);
+    logger.error(UI_STRINGS.API_CHAT_ERROR, error);
     return NextResponse.json(
       {
         error: 'Internal Server Error',
@@ -142,7 +182,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Failed to update session:', error);
+    logger.error('Failed to update session:', error);
     return NextResponse.json({ error: 'Failed to update session' }, { status: 500 });
   }
 }
@@ -171,7 +211,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Failed to delete session:', error);
+    logger.error('Failed to delete session:', error);
     return NextResponse.json({ error: 'Failed to delete session' }, { status: 500 });
   }
 }

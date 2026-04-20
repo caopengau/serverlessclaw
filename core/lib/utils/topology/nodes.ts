@@ -7,6 +7,7 @@ import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { LambdaClient, ListFunctionsCommand } from '@aws-sdk/client-lambda';
 import { readFileSync, existsSync } from 'fs';
 import { join } from 'path';
+import { logger } from '../../logger';
 
 /**
  * Orphan nodes that should be added to the topology even if they are not
@@ -173,13 +174,13 @@ function resolveSstStage(): string {
         }
       }
     } catch (error) {
-      console.debug('[TopologyDiscovery] Failed to resolve stage from file:', error);
+      logger.debug('[TopologyDiscovery] Failed to resolve stage from file:', error);
     }
   }
 
   // 3. Enforce allowed stages (local or prod only)
   if (stage !== 'prod' && stage !== 'local') {
-    console.warn(`[TopologyDiscovery] Unrecognized stage "${stage}", defaulting to "local"`);
+    logger.warn(`[TopologyDiscovery] Unrecognized stage "${stage}", defaulting to "local"`);
     stage = 'local';
   }
 
@@ -199,7 +200,7 @@ export async function discoverAwsNodes(): Promise<TopologyNode[]> {
   const stage = resolveSstStage();
   const prefix = `${app}-${stage}-`.toLowerCase();
 
-  console.info(
+  logger.info(
     `[TopologyDiscovery] Performing reflective scan for app: ${app}, stage: ${stage}, region: ${region}`
   );
 
@@ -288,7 +289,7 @@ export async function discoverAwsNodes(): Promise<TopologyNode[]> {
       });
     }
   } catch (error) {
-    console.error('[TopologyDiscovery] AWS Reflective Scan failed:', error);
+    logger.error('[TopologyDiscovery] AWS Reflective Scan failed:', error);
   }
 
   return discoveredNodes;

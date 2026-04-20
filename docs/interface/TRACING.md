@@ -89,7 +89,7 @@ The dashboard primarily queries for `__summary__` rows. These rows contain pre-c
 
 ### 2. Fallback Path (Fail-Safe)
 
-If no `__summary__` rows are found (e.g., in development or if `trace_summaries` is disabled), the system falls back to a **Scan** for root nodes (`nodeId = 'root'`). 
+If no `__summary__` rows are found (e.g., in development or if `trace_summaries` is disabled), the system falls back to a **Scan** for root nodes (`nodeId = 'root'`).
 
 ```text
 [ getTraces Request ]
@@ -105,18 +105,17 @@ If no `__summary__` rows are found (e.g., in development or if `trace_summaries`
 > [!NOTE]
 > The fallback scan is limited to 200 items to prevent performance degradation on large tables. It is designed to ensure the `/trace` dashboard remains functional across all environment configurations.
 
-
 The system records various trace types to capture the full lifecycle of agent-to-agent communication:
 
 ### Standard Trace Types
 
-| Trace Type     | Description             | Content Example                            |
-| -------------- | ----------------------- | ------------------------------------------ |
+| Trace Type     | Description             | Content Example                                    |
+| -------------- | ----------------------- | -------------------------------------------------- |
 | `llm_call`     | Agent reasoning request | `{ model: 'gpt-5-mini', provider: 'openai', ... }` |
-| `llm_response` | Agent reasoning output  | `{ model: 'gpt-5-mini', content: '...', ... }`      |
-| `tool_call`    | Tool execution request  | `{ tool: 'runShellCommand', args: {...} }` |
-| `tool_result`  | Tool execution result   | `{ result: 'output...' }`                  |
-| `error`        | Execution error         | `{ errorMessage: '...' }`                  |
+| `llm_response` | Agent reasoning output  | `{ model: 'gpt-5-mini', content: '...', ... }`     |
+| `tool_call`    | Tool execution request  | `{ tool: 'runShellCommand', args: {...} }`         |
+| `tool_result`  | Tool execution result   | `{ result: 'output...' }`                          |
+| `error`        | Execution error         | `{ errorMessage: '...' }`                          |
 
 ### Agent Communication Trace Types
 

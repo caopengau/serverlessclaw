@@ -1,5 +1,6 @@
 import { DynamoDBClient, ScanCommand } from '@aws-sdk/client-dynamodb';
 import type { Topology, TopologyNode, TopologyEdge } from '../types/system';
+import { logger } from '../logger';
 import { ConfigManager } from '../registry/config';
 import {
   discoverSstNodes,
@@ -43,7 +44,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
 
   // 1.1 Fallback to manual AWS SDK scan if Resource proxy is empty (e.g. non-SST dev mode)
   if (sstNodes.length === 0) {
-    console.info(
+    logger.info(
       '[TopologyDiscovery] SST Resource proxy empty. Falling back to AWS reflective scan...'
     );
     sstNodes = await discoverAwsNodes();
@@ -72,7 +73,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
       finalNodes = addDynamicAgents(mergedNodes, Items);
     }
   } catch (innerErr) {
-    console.warn('Failed to scan dynamic agents, proceeding with backbone only:', innerErr);
+    logger.warn('Failed to scan dynamic agents, proceeding with backbone only:', innerErr);
   }
 
   let edgeDiscoveryFailed = false;
@@ -85,7 +86,7 @@ export async function discoverSystemTopology(): Promise<Topology> {
     // 5. Backbone Profile and Tool based edges
     edges.push(...(await inferBackboneEdges(finalNodes)));
   } catch (err: unknown) {
-    console.error('Critical failure in topology discovery:', err);
+    logger.error('Critical failure in topology discovery:', err);
     edgeDiscoveryFailed = true;
   }
 

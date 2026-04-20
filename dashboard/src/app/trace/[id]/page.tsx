@@ -22,6 +22,7 @@ import TraceContextRegistrar from '@/components/Trace/TraceContextRegistrar';
 import Image from 'next/image';
 import { UI_STRINGS } from '@/lib/constants';
 import { TRACE_TYPES, TRACE_STATUS } from '@claw/core/lib/constants';
+import { logger } from '@claw/core/lib/logger';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
@@ -40,7 +41,7 @@ async function getTraceNodes(traceId: string): Promise<Trace[]> {
     const typedResource = Resource as unknown as SSTResource;
     const tableName = typedResource.TraceTable?.name;
     if (!tableName) {
-      console.error('TraceTable name is missing from Resources');
+      logger.error('TraceTable name is missing from Resources');
       return [];
     }
     const client = new DynamoDBClient({});
@@ -60,7 +61,7 @@ async function getTraceNodes(traceId: string): Promise<Trace[]> {
 
     return (Items as Trace[]) ?? [];
   } catch (e) {
-    console.error('Error fetching trace nodes:', e);
+    logger.error('Error fetching trace nodes:', e);
     return [];
   }
 }

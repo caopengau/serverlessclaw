@@ -264,7 +264,7 @@ export async function atomicUpdateMetadata(
   }
 
   try {
-    const params: any = {
+    const params: Record<string, any> = {
       Key: { userId: pk, timestamp: Number(timestamp) },
       UpdateExpression: `SET updatedAt = :now, ${updates.join(', ')}`,
       ExpressionAttributeValues: updateValues,
@@ -343,7 +343,7 @@ export async function queryByTypeAndGetContent(
   userId?: string,
   workspaceId?: string
 ): Promise<string[]> {
-  const params: any = {
+  const params: Record<string, any> = {
     Limit: limit,
     ScanIndexForward: false,
     ExpressionAttributeNames: { '#tp': 'type' },
@@ -377,7 +377,7 @@ export async function queryByTypeAndMap(
   userId?: string,
   workspaceId?: string
 ): Promise<MemoryInsight[]> {
-  const params: any = {
+  const params: Record<string, any> = {
     Limit: limit,
     ScanIndexForward: false,
     ExpressionAttributeValues: { ...expressionAttributeValues },

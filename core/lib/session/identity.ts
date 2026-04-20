@@ -297,8 +297,7 @@ export class IdentityManager {
   async hasResourceAccess(
     userId: string,
     resourceType: 'agent' | 'workspace' | 'config' | 'trace',
-    resourceId: string,
-    _workspaceId?: string
+    resourceId: string
   ): Promise<boolean> {
     const user = await this.getUser(userId);
     if (!user) return false;

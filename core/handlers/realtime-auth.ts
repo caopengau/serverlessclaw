@@ -5,31 +5,40 @@ import { realtime } from 'sst/aws/realtime';
  * Enhanced SST Realtime Authorizer for Diagnostics.
  * Logs full event and implements robust token extraction.
  */
-export const handler = async (event: any, context: any, callback: any) => {
+export const handler = async (event: unknown, context: unknown, callback: unknown) => {
   // 1. Log EVERYTHING for diagnostics
   console.log('[RealtimeAuth] RAW_EVENT:', JSON.stringify(event));
+
+  const typedEvent = event as {
+    protocolData?: {
+      http?: { queryString?: string };
+      mqtt?: { password?: string };
+    };
+    token?: string;
+    queryStringParameters?: Record<string, string>;
+  };
 
   let token: string | null = null;
 
   // 2. Multi-path token extraction
   // a. From protocolData (WebSocket query string)
-  if (event.protocolData?.http?.queryString) {
-    const params = new URLSearchParams(event.protocolData.http.queryString);
+  if (typedEvent.protocolData?.http?.queryString) {
+    const params = new URLSearchParams(typedEvent.protocolData.http.queryString);
     token = params.get('x-amz-customauthorizer-token') || params.get('token');
   }
 
   // b. From top-level fields (MQTT direct or transformed)
   if (!token) {
     token =
-      event.token ||
-      event.queryStringParameters?.['x-amz-customauthorizer-token'] ||
-      event.queryStringParameters?.token ||
+      typedEvent.token ||
+      typedEvent.queryStringParameters?.['x-amz-customauthorizer-token'] ||
+      typedEvent.queryStringParameters?.token ||
       null;
   }
 
   // c. From MQTT password
-  if (!token && event.protocolData?.mqtt?.password) {
-    token = Buffer.from(event.protocolData.mqtt.password, 'base64').toString();
+  if (!token && typedEvent.protocolData?.mqtt?.password) {
+    token = Buffer.from(typedEvent.protocolData.mqtt.password, 'base64').toString();
   }
 
   console.log(`[RealtimeAuth] Detected Token: ${token ? token.substring(0, 5) + '...' : 'NONE'}`);
@@ -37,7 +46,7 @@ export const handler = async (event: any, context: any, callback: any) => {
   // 3. Create the authorizer
   const auth = realtime.authorizer(async (validatedToken) => {
     const prefix = `${Resource.App.name}/${Resource.App.stage}`;
-    const finalToken = validatedToken || token;
+    const finalToken = (validatedToken as string | undefined) || token;
 
     // LENIENT FOR DEV: Allow connection even if token is missing but it's a local/dev handshake
     const isDevToken = finalToken === 'dashboard-dev-token-elegant';
@@ -62,7 +71,7 @@ export const handler = async (event: any, context: any, callback: any) => {
   });
 
   // Inject token so SST's internal logic might find it
-  if (token && !event.token) event.token = token;
+  if (token && !typedEvent.token) typedEvent.token = token;
 
-  return auth(event, context, callback);
+  return (auth as any)(event, context, callback);
 };

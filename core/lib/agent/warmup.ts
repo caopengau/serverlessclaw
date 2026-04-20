@@ -1,4 +1,5 @@
 import { logger } from '../logger';
+import type { SessionState } from '../session/session-state';
 
 /**
  * Proactive Smart Warmup (Intent-Based)
@@ -9,11 +10,11 @@ export function triggerSmartWarmup(
   userText: string,
   depth: number,
   sessionId?: string,
-  sessionStateManager?: { getState: (id: string) => unknown }
+  sessionStateManager?: { getState: (id: string) => Promise<SessionState | null> }
 ): void {
   if (depth === 0 && process.env.LAMBDA_TASK_ROOT) {
     import('../warmup/warmup-manager')
-      .then(({ WarmupManager }) => {
+      .then(async ({ WarmupManager }) => {
         const serverArns = process.env.MCP_SERVER_ARNS
           ? JSON.parse(process.env.MCP_SERVER_ARNS)
           : {};
@@ -25,10 +26,16 @@ export function triggerSmartWarmup(
             agents: agentArns,
             ttlSeconds: 900,
           });
+
+          const sessionState =
+            sessionId && sessionStateManager
+              ? await sessionStateManager.getState(sessionId)
+              : undefined;
+
           warmup
             .smartWarmup({
               intent: userText,
-              sessionState: sessionId ? sessionStateManager?.getState(sessionId) : undefined,
+              sessionState,
               warmedBy: 'webhook',
             })
             .catch((err) => logger.warn('[Warmup] Proactive trigger failed:', err));

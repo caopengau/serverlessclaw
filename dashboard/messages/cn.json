@@ -209,7 +209,12 @@
   "CHAT_SIDEBAR_PIN_SESSION": "固定会话",
   "CHAT_SIDEBAR_UNPIN_SESSION": "取消固定",
   "CHAT_SIDEBAR_NEW_CHAT": "开始新聊天",
-  "FOLD": "收起",
+  "AGENT_SELECTOR_TITLE": "选择智能节点",
+  "INITIALIZING_REGISTRY": "正在同步代理注册表...",
+  "INVITE_AGENT": "邀请代理",
+  "START_COLLABORATION": "开始协作",
+  "COLLABORATION_MODE": "协作模式",
+  "COLLABORATORS": "协作者",
   "UNFOLD": "展开",
 
   "COMMON_ACTIONS": "操作",

@@ -11,7 +11,9 @@ import {
   InsightCategory,
   GapStatus,
   ConversationMeta,
+  ClarificationState,
 } from '../types/index';
+import type { EscalationState } from '../types/escalation';
 import type { CollaborationRole, ParticipantType } from '../types/collaboration';
 import { DynamoMemory } from '../memory';
 import { MemoryCaches, CacheKeys, getCacheStatsSummary } from './cache';
@@ -453,16 +455,21 @@ export class CachedMemory implements IMemory {
   async listByPrefix(p: string) {
     return this.delegator.listByPrefix(p);
   }
-  async saveClarificationRequest(s: any, wid?: string) {
+  async saveClarificationRequest(s: ClarificationState, wid?: string) {
     return this.delegator.saveClarificationRequest(s, wid);
   }
   async getClarificationRequest(t: string, a: string, wid?: string) {
     return this.delegator.getClarificationRequest(t, a, wid);
   }
-  async updateClarificationStatus(t: string, a: string, s: any, wid?: string) {
+  async updateClarificationStatus(
+    t: string,
+    a: string,
+    s: ClarificationState['status'],
+    wid?: string
+  ) {
     return this.delegator.updateClarificationStatus(t, a, s, wid);
   }
-  async saveEscalationState(s: any, wid?: string) {
+  async saveEscalationState(s: EscalationState, wid?: string) {
     return this.delegator.saveEscalationState(s, wid);
   }
   async getEscalationState(t: string, a: string, wid?: string) {

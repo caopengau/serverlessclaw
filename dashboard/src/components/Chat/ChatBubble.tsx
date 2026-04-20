@@ -11,7 +11,7 @@ import { ChatInput } from './ChatInput';
 import { useChatConnection } from './useChatConnection';
 import { useChatMessages } from './useChatMessages';
 import { usePageContext } from '@/components/Providers/PageContextProvider';
-import { PageContextData, ChatMessage } from './types';
+import { ChatMessage } from './types';
 
 /**
  * Global Chat Bubble component that floats on all pages.
@@ -99,7 +99,7 @@ export default function ChatBubble() {
     e.preventDefault();
     if (!input.trim() && attachments.length === 0) return;
     
-    sendMessage(input, attachContext ? (pageContext || undefined) as PageContextData : undefined);
+    sendMessage(input, undefined, undefined, attachContext ? (pageContext || undefined) : undefined);
     setInput('');
   };
 

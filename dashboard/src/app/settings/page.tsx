@@ -9,12 +9,13 @@ import { SYSTEM } from '@claw/core/lib/constants';
 import { EvolutionMode } from '@claw/core/lib/types/agent';
 import SettingsClient from './SettingsClient';
 import SettingsHeader from './SettingsHeader';
+import { logger } from '@claw/core/lib/logger';
 
 async function getConfig() {
   try {
     const tableName = getResourceName('ConfigTable');
     if (!tableName) {
-      console.error('ConfigTable name is missing from Resources');
+      logger.error('ConfigTable name is missing from Resources');
       return {
         provider: SYSTEM.DEFAULT_PROVIDER,
         model: SYSTEM.DEFAULT_MODEL,
@@ -152,7 +153,7 @@ async function getConfig() {
         : 'sst.config.ts, buildspec.yml, infra/',
     };
   } catch (e) {
-    console.error('Error fetching settings config:', e);
+    logger.error('Error fetching settings config:', e);
     return {
       provider: SYSTEM.DEFAULT_PROVIDER,
       model: SYSTEM.DEFAULT_MODEL,
@@ -326,7 +327,7 @@ async function updateConfig(formData: FormData) {
 
     revalidatePath('/settings');
   } catch (e) {
-    console.error('Error updating settings config:', e);
+    logger.error('Error updating settings config:', e);
   }
 }
 
@@ -348,7 +349,7 @@ async function triggerRebuild() {
 
     revalidatePath('/settings');
   } catch (e) {
-    console.error('Error triggering rebuild:', e);
+    logger.error('Error triggering rebuild:', e);
   }
 }
 

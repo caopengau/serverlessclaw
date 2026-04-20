@@ -210,6 +210,12 @@
   "CHAT_SIDEBAR_PIN_SESSION": "Pin Session",
   "CHAT_SIDEBAR_UNPIN_SESSION": "Unpin Session",
   "CHAT_SIDEBAR_NEW_CHAT": "Start New Chat",
+  "AGENT_SELECTOR_TITLE": "Select Intelligence Node",
+  "INITIALIZING_REGISTRY": "Synchronizing Agent Registry...",
+  "INVITE_AGENT": "Invite Agent",
+  "START_COLLABORATION": "Start Collaboration",
+  "COLLABORATION_MODE": "Collaboration Mode",
+  "COLLABORATORS": "Collaborators",
   "UNFOLD": "Unfold",
 
   "COMMON_ACTIONS": "Actions",

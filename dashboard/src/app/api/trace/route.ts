@@ -10,6 +10,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { revalidatePath } from 'next/cache';
 import { SSTResource } from '@claw/core/lib/types/index';
+import { logger } from '@claw/core/lib/logger';
 
 /**
  * Handles trace deletion (single or all) with robust throttling management
@@ -27,7 +28,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     const typedResource = Resource as unknown as SSTResource;
     const tableName = typedResource.TraceTable?.name;
     if (!tableName) {
-      console.error('[Trace API] TraceTable not found in resources');
+      logger.error('[Trace API] TraceTable not found in resources');
       return NextResponse.json({ error: 'TraceTable not found' }, { status: 500 });
     }
 
@@ -39,7 +40,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     });
 
     if (traceId === 'all') {
-      console.log('[Trace API] Purging all traces from table:', tableName);
+      logger.info('[Trace API] Purging all traces from table:', tableName);
       let deletedCount = 0;
       let lastKey: Record<string, unknown> | undefined;
 
@@ -54,7 +55,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
           );
 
           if (scanRes.Items && scanRes.Items.length > 0) {
-            console.log(`[Trace API] Processing ${scanRes.Items.length} trace nodes for deletion`);
+            logger.info(`[Trace API] Processing ${scanRes.Items.length} trace nodes for deletion`);
 
             // Group into batches of 25 (DynamoDB limit for BatchWrite)
             for (let i = 0; i < scanRes.Items.length; i += 25) {
@@ -86,7 +87,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
 
                   // Set unprocessed items for the next retry attempt
                   if (unprocessedCount > 0) {
-                    console.warn(`[Trace API] Retrying ${unprocessedCount} unprocessed items...`);
+                    logger.warn(`[Trace API] Retrying ${unprocessedCount} unprocessed items...`);
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     requestItems = result.UnprocessedItems as Record<string, any>;
                     retries++;
@@ -100,7 +101,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
                     errorMsg === 'ThrottlingException' ||
                     (err as { __type?: string }).__type?.includes('ThrottlingException')
                   ) {
-                    console.warn(`[Trace API] Throttled. Retrying attempt ${retries + 1}...`);
+                    logger.warn(`[Trace API] Throttled. Retrying attempt ${retries + 1}...`);
                     retries++;
                     await new Promise((r) => setTimeout(r, Math.pow(2, retries) * 200)); // More aggressive backoff
                   } else {
@@ -110,7 +111,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
               }
 
               if (retries >= maxRetries && requestItems[tableName].length > 0) {
-                console.error(
+                logger.error(
                   '[Trace API] Max retries reached for batch. Skipping remaining items in this chunk.'
                 );
               }
@@ -126,12 +127,12 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
         revalidatePath('/trace');
         return NextResponse.json({ success: true, count: deletedCount });
       } catch (scanError: unknown) {
-        console.error('[Trace API] Error during scan/delete loop:', scanError);
+        logger.error('[Trace API] Error during scan/delete loop:', scanError);
         throw scanError;
       }
     }
 
-    console.log('[Trace API] Deleting all nodes for trace:', traceId);
+    logger.info('[Trace API] Deleting all nodes for trace:', traceId);
 
     // 1. Query all nodes for this traceId
     const { Items } = await docClient.send(
@@ -159,15 +160,15 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
           })
         );
       }
-      console.log(`[Trace API] Successfully deleted ${Items.length} nodes for trace ${traceId}`);
+      logger.info(`[Trace API] Successfully deleted ${Items.length} nodes for trace ${traceId}`);
     } else {
-      console.warn(`[Trace API] No nodes found for traceId ${traceId}`);
+      logger.warn(`[Trace API] No nodes found for traceId ${traceId}`);
     }
 
     revalidatePath('/trace');
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
-    console.error('[Trace API] Critical failure:', error);
+    logger.error('[Trace API] Critical failure:', error);
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
       {

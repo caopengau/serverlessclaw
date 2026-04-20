@@ -2,6 +2,7 @@ import { SyncOptions, SyncMethod } from '../lib/types/sync';
 import { syncOrchestrator } from '../lib/sync/orchestrator';
 import { GitHubAdapter } from '../adapters/input';
 import { execSync } from 'child_process';
+import { logger } from '../lib/logger';
 
 export interface GitHubIssue {
   number: number;
@@ -37,10 +38,10 @@ export class GitHubIssueResolverAgent {
   }
 
   async resolve(issue: GitHubIssue, workingDir: string): Promise<ResolutionResult> {
-    console.log(`[IssueResolver] Resolving Issue #${issue.number}: ${issue.title}...`);
+    logger.info(`[IssueResolver] Resolving Issue #${issue.number}: ${issue.title}...`);
 
     const strategy = this.identifyStrategy(issue);
-    console.log(`[IssueResolver] Selected Strategy: ${strategy}`);
+    logger.info(`[IssueResolver] Selected Strategy: ${strategy}`);
 
     try {
       switch (strategy) {
@@ -54,7 +55,7 @@ export class GitHubIssueResolverAgent {
           return { success: false, message: `Unknown strategy: ${strategy}` };
       }
     } catch (error) {
-      console.error(`[IssueResolver] Resolution failed: ${(error as Error).message}`);
+      logger.error(`[IssueResolver] Resolution failed: ${(error as Error).message}`);
       return { success: false, message: (error as Error).message };
     }
   }
@@ -86,7 +87,7 @@ export class GitHubIssueResolverAgent {
     _workingDir: string
   ): Promise<ResolutionResult> {
     const hubVersion = this.extractVersion(issue.body);
-    console.log(`[IssueResolver] Syncing with Hub version: ${hubVersion}...`);
+    logger.info(`[IssueResolver] Syncing with Hub version: ${hubVersion}...`);
 
     const options: SyncOptions = {
       hubUrl: this.config.hubUrl,
@@ -124,7 +125,7 @@ export class GitHubIssueResolverAgent {
     issue: GitHubIssue,
     _workingDir: string
   ): Promise<ResolutionResult> {
-    console.log(`[IssueResolver] Generating lightweight evolutionary proposal for Mother Hub...`);
+    logger.info(`[IssueResolver] Generating lightweight evolutionary proposal for Mother Hub...`);
 
     if (!this.config.hubRepo) {
       return {
@@ -150,7 +151,7 @@ export class GitHubIssueResolverAgent {
         maxBuffer: 10 * 1024 * 1024, // 10MB limit
       });
     } catch {
-      console.warn('[IssueResolver] Could not get git diff, falling back to issue context only.');
+      logger.warn('[IssueResolver] Could not get git diff, falling back to issue context only.');
     }
 
     // 2. Generate an abstract, non-proprietary proposal using LLM
@@ -213,7 +214,7 @@ export class GitHubIssueResolverAgent {
     issue: GitHubIssue,
     _workingDir: string
   ): Promise<ResolutionResult> {
-    console.log(`[IssueResolver] Generating agentic patch for bug report...`);
+    logger.info(`[IssueResolver] Generating agentic patch for bug report...`);
 
     if (!this.llm) {
       return {
@@ -234,7 +235,7 @@ export class GitHubIssueResolverAgent {
     const response = await this.llm.generate(prompt);
     const patchText = await response.text();
 
-    console.log(`[IssueResolver] Generated patch (${patchText.length} chars)`);
+    logger.info(`[IssueResolver] Generated patch (${patchText.length} chars)`);
 
     return {
       success: true,

@@ -12,6 +12,7 @@ import PageHeader from '@/components/PageHeader';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 import { ReactFlowProvider } from '@xyflow/react';
+import { logger } from '@claw/core/lib/logger';
 
 interface ConsensusRequest {
   id: string;
@@ -38,7 +39,7 @@ export default function CollaborationPage() {
         const data = await res.json();
         setRequests(data.requests || []);
       } catch (e) {
-        console.error('Failed to fetch consensus requests:', e);
+        logger.error('Failed to fetch consensus requests:', e);
       } finally {
         setIsLoading(false);
       }

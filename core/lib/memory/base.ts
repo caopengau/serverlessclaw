@@ -89,7 +89,15 @@ export class BaseMemoryProvider {
    * @param item - The item object to store.
    * @returns A promise resolving when the operation is complete.
    */
-  public async putItem(item: Record<string, unknown>): Promise<void> {
+  public async putItem(
+    item: Record<string, unknown>,
+    params?: Partial<
+      Pick<
+        import('@aws-sdk/lib-dynamodb').PutCommandInput,
+        'ConditionExpression' | 'ExpressionAttributeNames' | 'ExpressionAttributeValues'
+      >
+    >
+  ): Promise<void> {
     const command = new PutCommand({
       TableName: this.tableName,
       Item: {
@@ -97,6 +105,7 @@ export class BaseMemoryProvider {
         attachments: (item.attachments as unknown[]) ?? [],
         tool_calls: (item.tool_calls as unknown[]) ?? [],
       },
+      ...params,
     });
     try {
       await this.docClient.send(command);

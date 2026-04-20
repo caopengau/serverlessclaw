@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { logger } from '../logger';
 import {
   CODER_TASK_METADATA,
   QA_AUDIT_METADATA,
@@ -19,7 +20,7 @@ export function extractMetadata<T>(schema: z.ZodSchema<T>, metadata: unknown): T
   try {
     return schema.parse(metadata ?? {});
   } catch (error) {
-    console.warn('Metadata validation failed, returning defaults:', error);
+    logger.warn('Metadata validation failed, returning defaults:', error);
     // Return defaults by parsing an empty object
     return schema.parse({});
   }

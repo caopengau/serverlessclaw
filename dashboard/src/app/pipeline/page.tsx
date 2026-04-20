@@ -8,6 +8,7 @@ import { DynamoMemory } from '@claw/core/lib/memory';
 import { GapItem } from '@claw/core/lib/types/memory';
 import { deleteMemoryItem } from '@/lib/actions/dynamodb-actions';
 import PageHeader from '@/components/PageHeader';
+import { logger } from '@claw/core/lib/logger';
 
 async function getGaps(): Promise<GapItem[]> {
   try {
@@ -19,7 +20,7 @@ async function getGaps(): Promise<GapItem[]> {
       return bTs - aTs;
     });
   } catch (e) {
-    console.error('Error fetching gaps:', e);
+    logger.error('Error fetching gaps:', e);
     return [];
   }
 }
@@ -32,7 +33,7 @@ async function updateStatus(gapId: string, status: string) {
     await memory.updateGapStatus(gapId, status as GapStatus);
     revalidatePath('/pipeline');
   } catch (e) {
-    console.error('Error updating gap status:', e);
+    logger.error('Error updating gap status:', e);
   }
 }
 
@@ -41,7 +42,7 @@ async function pruneGap(gapId: string, timestamp: number | string) {
   try {
     await deleteMemoryItem(gapId, timestamp, '/pipeline');
   } catch (e) {
-    console.error('Error pruning gap:', e);
+    logger.error('Error pruning gap:', e);
   }
 }
 
@@ -56,7 +57,7 @@ async function triggerBatchEvolution(gapIds: string[]) {
     for (const gapId of gapIds) {
       const parts = gapId.split('#');
       if (parts.length < 2 || !parts[1]) {
-        console.warn(`Malformed gap ID: ${gapId}, skipping evolution.`);
+        logger.warn(`Malformed gap ID: ${gapId}, skipping evolution.`);
         continue;
       }
       const numericId = parts[1];
@@ -76,13 +77,13 @@ async function triggerBatchEvolution(gapIds: string[]) {
         // Update status to PROGRESS
         await memory.updateGapStatus(gapId, GapStatus.PROGRESS);
       } else {
-        console.warn(`No plan found for gap ${gapId}, skipping evolution.`);
+        logger.warn(`No plan found for gap ${gapId}, skipping evolution.`);
       }
     }
 
     revalidatePath('/pipeline');
   } catch (e) {
-    console.error('Error triggering batch evolution:', e);
+    logger.error('Error triggering batch evolution:', e);
   }
 }
 

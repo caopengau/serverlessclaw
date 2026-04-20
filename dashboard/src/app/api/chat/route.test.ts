@@ -49,6 +49,7 @@ vi.mock('@claw/core/lib/registry/index', () => ({
     getAgentConfig: vi.fn().mockResolvedValue({
       id: 'superclaw',
       name: 'SuperClaw',
+      enabled: true,
       systemPrompt: 'test-prompt',
     }),
   },

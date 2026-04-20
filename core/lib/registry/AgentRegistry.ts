@@ -371,7 +371,11 @@ export class AgentRegistry {
    * Legacy wrapper for raw configuration storage.
    * @deprecated Use ConfigManager directly for new code.
    */
-  static async saveRawConfig(key: string, value: unknown, options?: any): Promise<void> {
+  static async saveRawConfig(
+    key: string,
+    value: unknown,
+    options?: { author?: string; description?: string }
+  ): Promise<void> {
     return ConfigManager.saveRawConfig(key, value, options);
   }
 

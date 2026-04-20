@@ -47,6 +47,14 @@ export function validateAgentConfig(config: IAgentConfig | undefined, agentType:
     );
   }
 
+  // Principle 14: Selection Integrity - Must check enabled === true
+  if (config.enabled !== true) {
+    throw new Error(
+      `Agent '${agentType}' is currently DISABLED. ` +
+        `Operation rejected to satisfy Principle 14 (Selection Integrity).`
+    );
+  }
+
   // systemPrompt is mandatory for LLM agents (default type)
   if (config.agentType !== 'logic' && !config.systemPrompt) {
     throw new Error(

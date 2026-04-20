@@ -172,6 +172,8 @@ export function useChatMessages(
 
   const sendMessage = async (
     text: string,
+    agentId?: string,
+    collaborationId?: string,
     pageContext?: PageContextData,
     profile?: string
   ) => {
@@ -199,10 +201,9 @@ export function useChatMessages(
       {
         role: 'assistant',
         content: '',
-        // Use the same messageId the server will assign (traceId-superclaw) so React never
-        // needs to change the key on this element, avoiding a component remount flash.
-        messageId: `${tempId}-superclaw`,
-        agentName: 'SuperClaw',
+        // Use the same messageId the server will assign (traceId-agentId)
+        messageId: `${tempId}-${agentId || 'superclaw'}`,
+        agentName: agentId || 'SuperClaw',
         isThinking: true,
       },
     ]);
@@ -239,6 +240,8 @@ export function useChatMessages(
           traceId: tempId,
           pageContext,
           profile,
+          agentId,
+          collaborationId,
         }),
       });
 

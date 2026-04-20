@@ -37,7 +37,7 @@ export interface JsonSchema {
   /** Valid if matches all of the sub-schemas. */
   allOf?: JsonSchema[];
   /** Default value for the property. */
-  default?: any;
+  default?: unknown;
 }
 
 /**

@@ -85,12 +85,17 @@ export async function createCollaboration(
   };
 
   const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, workspaceId);
-  await base.putItem({
-    userId: pk,
-    timestamp: 0,
-    type: 'COLLABORATION',
-    ...collaboration,
-  });
+  await base.putItem(
+    {
+      userId: pk,
+      timestamp: 0,
+      type: 'COLLABORATION',
+      ...collaboration,
+    },
+    {
+      ConditionExpression: 'attribute_not_exists(userId)',
+    }
+  );
 
   // Index for each participant
   for (const participant of participants) {
