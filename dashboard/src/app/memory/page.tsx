@@ -12,9 +12,7 @@ import { Database, Brain, Search as SearchIcon, Lightbulb, Target, Filter } from
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
 import Typography from '@/components/ui/Typography';
-import Card from '@/components/ui/Card';
 import MemoryTabs from './MemoryTabs';
-import MemorySearch from './MemorySearch';
 import MemoryPagination from './MemoryPagination';
 import MemoryTable from './MemoryTable';
 import MemoryHeader from './MemoryHeader';

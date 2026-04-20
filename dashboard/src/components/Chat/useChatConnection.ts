@@ -132,7 +132,7 @@ export function useChatConnection(
       };
       intervalRef.current = setInterval(runSync, 2000);
     }
-  }, [activeSessionId, fetchHistorySilently, fetchPendingSilently, isPostInFlight]);
+  }, [activeSessionId, disabled, fetchHistorySilently, fetchPendingSilently, isPostInFlight]);
 
   useEffect(() => {
     return () => {

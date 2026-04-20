@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Calendar,
   Clock,
@@ -33,6 +33,7 @@ import { NewGoalModal } from './NewGoalModal';
 import { GovernanceProtocol } from './GovernanceProtocol';
 import CyberConfirm from '@/components/CyberConfirm';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
+import PageHeader from '@/components/PageHeader';
 
 export default function ScheduleList() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -44,7 +45,7 @@ export default function ScheduleList() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const { t } = useTranslations();
 
-  const fetchSchedules = async (isRefresh = false) => {
+  const fetchSchedules = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setFetchError(false);
@@ -68,11 +69,11 @@ export default function ScheduleList() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     fetchSchedules();
-  }, []);
+  }, [fetchSchedules]);
 
   const filteredSchedules = schedules.filter(
     (s) =>
@@ -155,21 +156,31 @@ export default function ScheduleList() {
 
   return (
     <div className="space-y-10">
-      <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
-        <div>
-          <Typography variant="h2" color="white" glow uppercase>{t('SCHEDULING_GOAL_SCHEDULING')}</Typography>
-          <Typography variant="body" color="muted" className="mt-2 block">{t('SCHEDULING_DESCRIPTION')}</Typography>
-        </div>
+      <PageHeader titleKey="SCHEDULING_TITLE" subtitleKey="SCHEDULING_SUBTITLE">
         <div className="flex gap-3">
-          <Button variant="outline" size="sm" onClick={() => fetchSchedules(true)} disabled={refreshing}>
-            {refreshing ? <Loader2 size={14} className="mr-2 animate-spin" /> : <RefreshCw size={14} className="mr-2" />}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchSchedules(true)}
+            disabled={refreshing}
+          >
+            {refreshing ? (
+              <Loader2 size={14} className="mr-2 animate-spin" />
+            ) : (
+              <RefreshCw size={14} className="mr-2" />
+            )}
             {t('COMMON_REFRESH')}
           </Button>
-          <Button variant="primary" size="sm" className="bg-blue-600 hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.2)]" onClick={() => setShowNewGoalModal(true)}>
+          <Button
+            variant="primary"
+            size="sm"
+            className="bg-blue-600 hover:bg-blue-500 shadow-[0_0_15px_rgba(37,99,235,0.2)]"
+            onClick={() => setShowNewGoalModal(true)}
+          >
             <Plus size={14} className="mr-2" /> {t('SCHEDULING_NEW_GOAL')}
           </Button>
         </div>
-      </header>
+      </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card variant="glass" padding="md" className="border-white/5">

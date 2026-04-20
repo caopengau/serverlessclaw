@@ -1,7 +1,5 @@
 import { getResourceUrl } from '@/lib/sst-utils';
 
-import { ShieldCheck } from 'lucide-react';
-
 import { DynamoMemory } from '@claw/core/lib/memory';
 import ResilienceHeader from './ResilienceHeader';
 import ResilienceGaugesSection from './ResilienceGaugesSection';

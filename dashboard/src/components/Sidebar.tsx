@@ -36,6 +36,7 @@ import { useTheme } from 'next-themes';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 import { useRealtimeContext } from '@/components/Providers/RealtimeProvider';
+import CyberTooltip from '@/components/CyberTooltip';
 
 /**
  * Main application sidebar component.
@@ -82,32 +83,33 @@ export default function Sidebar() {
 
   const navItems = [
     { label: t('OPERATIONS'), type: 'header' },
-    { href: ROUTES.CHAT, label: t('CHAT_DIRECT'), icon: MessageSquare },
+    { href: ROUTES.CHAT, label: t('CHAT_DIRECT'), subtitle: t('CHAT_SUBTITLE'), icon: MessageSquare },
     {
       href: ROUTES.TRACE,
       label: t('TRACE_INTEL'),
+      subtitle: t('TRACE_SUBTITLE'),
       icon: Activity,
       activePaths: [ROUTES.TRACE, '/trace'],
     },
-    { href: ROUTES.SYSTEM_PULSE, label: t('SYSTEM_PULSE'), icon: Share2 },
+    { href: ROUTES.SYSTEM_PULSE, label: t('SYSTEM_PULSE'), subtitle: t('SYSPULSE_SUBTITLE'), icon: Share2 },
 
     { label: t('INTELLIGENCE'), type: 'header' },
-    { href: ROUTES.AGENTS, label: t('AGENTS'), icon: Users },
-    { href: ROUTES.MEMORY, label: t('MEMORY_RESERVE'), icon: Brain },
-    { href: ROUTES.CAPABILITIES, label: t('CAPABILITIES'), icon: Wrench },
-    { href: ROUTES.COGNITIVE_HEALTH, label: t('COGNITIVE_HEALTH'), icon: BrainCircuit },
+    { href: ROUTES.AGENTS, label: t('AGENTS'), subtitle: t('AGENTS_SUBTITLE'), icon: Users },
+    { href: ROUTES.MEMORY, label: t('MEMORY_RESERVE'), subtitle: t('MEMORY_SUBTITLE'), icon: Brain },
+    { href: ROUTES.CAPABILITIES, label: t('CAPABILITIES'), subtitle: t('CAPABILITIES_SUBTITLE'), icon: Wrench },
+    { href: ROUTES.COGNITIVE_HEALTH, label: t('COGNITIVE_HEALTH'), subtitle: t('COGHEALTH_SUBTITLE'), icon: BrainCircuit },
 
     { label: t('GROWTH'), type: 'header' },
-    { href: ROUTES.PIPELINE, label: t('EVOLUTION_PIPELINE'), icon: Server },
-    { href: ROUTES.SCHEDULING, label: t('SCHEDULING'), icon: Calendar },
-    { href: ROUTES.WORKSPACES, label: t('WORKSPACES'), icon: Building2 },
-    { href: ROUTES.COLLABORATION, label: t('CONSENSUS'), icon: Vote },
+    { href: ROUTES.PIPELINE, label: t('EVOLUTION_PIPELINE'), subtitle: t('PIPELINE_SUBTITLE'), icon: Server },
+    { href: ROUTES.SCHEDULING, label: t('SCHEDULING'), subtitle: t('SCHEDULING_SUBTITLE'), icon: Calendar },
+    { href: ROUTES.WORKSPACES, label: t('WORKSPACES'), subtitle: t('WORKSPACES_SUBTITLE'), icon: Building2 },
+    { href: ROUTES.COLLABORATION, label: t('CONSENSUS'), subtitle: t('COLLABORATION_SUBTITLE'), icon: Vote },
 
     { label: t('GOVERNANCE'), type: 'header' },
-    { href: ROUTES.SECURITY, label: t('SECURITY_MANIFEST'), icon: Lock },
-    { href: ROUTES.RESILIENCE, label: t('SELF_HEALING'), icon: Zap },
-    { href: ROUTES.LOCKS, label: t('SESSION_TRAFFIC'), icon: Activity },
-    { href: ROUTES.SETTINGS, label: t('CONFIG'), icon: Settings },
+    { href: ROUTES.SECURITY, label: t('SECURITY_MANIFEST'), subtitle: t('SECURITY_SUBTITLE'), icon: Lock },
+    { href: ROUTES.RESILIENCE, label: t('SELF_HEALING'), subtitle: t('RESILIENCE_SUBTITLE'), icon: Zap },
+    { href: ROUTES.LOCKS, label: t('SESSION_TRAFFIC'), subtitle: t('LOCKS_SUBTITLE'), icon: Activity },
+    { href: ROUTES.SETTINGS, label: t('CONFIG'), subtitle: t('SETTINGS_SUBTITLE'), icon: Settings },
   ];
 
   return (
@@ -216,11 +218,9 @@ export default function Sidebar() {
 
             const Icon = item.icon;
 
-            return (
+            const navLink = (
               <Link
-                key={idx}
                 href={item.href!}
-                title={isCollapsed ? item.label : undefined}
                 className={`flex items-center gap-3 rounded transition-all group relative ${
                   isActive
                     ? 'bg-cyber-green/10 text-cyber-green'
@@ -256,6 +256,31 @@ export default function Sidebar() {
                 {!isCollapsed && isActive && <ChevronRight size={10} className="text-cyber-green" />}
               </Link>
             );
+
+            if (isCollapsed) {
+              return (
+                <CyberTooltip
+                  key={idx}
+                  position="right"
+                  showIcon={false}
+                  className="w-full"
+                  content={
+                    <div className="flex flex-col gap-1">
+                      <Typography variant="caption" weight="bold" className="text-cyber-green text-[10px] uppercase tracking-wider">
+                        {item.label}
+                      </Typography>
+                      <Typography className="text-[9px] leading-tight text-foreground/70">
+                        {item.subtitle}
+                      </Typography>
+                    </div>
+                  }
+                >
+                  {navLink}
+                </CyberTooltip>
+              );
+            }
+
+            return <React.Fragment key={idx}>{navLink}</React.Fragment>;
           })}
           
 
@@ -263,41 +288,61 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div className={`block pt-2 border-t border-border space-y-2 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
-          <Link
-            href={ROUTES.SYSTEM_PULSE}
-            className="block group/status w-full"
-            title={isCollapsed ? t('SYSTEM_STATUS') : undefined}
-          >
-            <div className={`bg-foreground/5 rounded transition-colors cursor-pointer ${isCollapsed ? 'py-0 flex justify-center' : 'px-2 py-2'} group-hover/status:bg-foreground/10`}>
-              {isCollapsed ? (
-                <div className="w-8 h-6 flex items-center justify-center shrink-0">
-                   <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-green opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-cyber-green"></span>
-                   </span>
-                </div>
-              ) : (
-                <>
-                  <Typography
-                    variant="mono"
-                    weight="bold"
-                    className="text-[10px] text-foreground/90 tracking-wider uppercase"
-                  >
+          {isCollapsed ? (
+            <CyberTooltip
+              position="right"
+              showIcon={false}
+              className="w-full"
+              content={
+                <div className="flex flex-col gap-1">
+                  <Typography variant="caption" weight="bold" className="text-cyber-green text-[10px] uppercase tracking-wider">
                     {t('SYSTEM_STATUS')}
                   </Typography>
-                  <div className="text-[10px] text-cyber-green mt-0 flex items-center gap-3 font-bold uppercase">
-                    <div className="w-8 h-6 flex items-center justify-center shrink-0">
-                      <span className="relative flex h-2 w-2">
-                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'} opacity-75`}></span>
-                        <span className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'}`}></span>
-                      </span>
-                    </div>
+                  <Typography className="text-[9px] leading-tight text-foreground/70">
                     {isConnected ? t('CONNECTED') : t('SYSTEM_STATUS')}
+                  </Typography>
+                </div>
+              }
+            >
+              <Link
+                href={ROUTES.SYSTEM_PULSE}
+                className="block group/status w-full"
+              >
+                <div className="bg-foreground/5 rounded transition-colors cursor-pointer py-0 flex justify-center group-hover/status:bg-foreground/10">
+                  <div className="w-8 h-6 flex items-center justify-center shrink-0">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-green opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-cyber-green"></span>
+                    </span>
                   </div>
-                </>
-              )}
-            </div>
-          </Link>
+                </div>
+              </Link>
+            </CyberTooltip>
+          ) : (
+            <Link
+              href={ROUTES.SYSTEM_PULSE}
+              className="block group/status w-full"
+            >
+              <div className="bg-foreground/5 rounded transition-colors cursor-pointer px-2 py-2 group-hover/status:bg-foreground/10">
+                <Typography
+                  variant="mono"
+                  weight="bold"
+                  className="text-[10px] text-foreground/90 tracking-wider uppercase"
+                >
+                  {t('SYSTEM_STATUS')}
+                </Typography>
+                <div className="text-[10px] text-cyber-green mt-0 flex items-center gap-3 font-bold uppercase">
+                  <div className="w-8 h-6 flex items-center justify-center shrink-0">
+                    <span className="relative flex h-2 w-2">
+                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'} opacity-75`}></span>
+                      <span className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'}`}></span>
+                    </span>
+                  </div>
+                  {isConnected ? t('CONNECTED') : t('SYSTEM_STATUS')}
+                </div>
+              </div>
+            </Link>
+          )}
 
           {!isCollapsed ? (
             <div className="flex flex-col gap-1 px-2 pb-1">
@@ -368,13 +413,14 @@ export default function Sidebar() {
                  </button>
                </div>
                <div className="w-8 h-6 flex items-center justify-center">
-                 <button
-                  onClick={handleLogout}
-                  className="p-1 rounded-full bg-foreground/5 transition-colors text-muted-foreground hover:text-cyber-green"
-                  title={t('LOGOUT')}
-                 >
-                  <LogOut size={12} />
-                 </button>
+                 <CyberTooltip position="right" showIcon={false} content={t('LOGOUT')}>
+                   <button
+                    onClick={handleLogout}
+                    className="p-1 rounded-full bg-foreground/5 transition-colors text-muted-foreground hover:text-cyber-green"
+                   >
+                    <LogOut size={12} />
+                   </button>
+                 </CyberTooltip>
                </div>
             </div>
           )}

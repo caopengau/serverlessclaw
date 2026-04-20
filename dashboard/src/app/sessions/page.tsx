@@ -8,6 +8,7 @@ import { Users, MessageSquare, Clock, Shield, Search as SearchIcon } from 'lucid
 import Link from 'next/link';
 import ExportButton from './ExportButton';
 import SessionPagination from './SessionPagination';
+import PageHeader from '@/components/PageHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,30 +76,10 @@ export default async function SessionsPage({
 
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10">
-      <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
-        <div className="flex-1 min-w-0">
-          <Typography variant="h2" color="white" glow uppercase>
-            Multi-Human Sessions
-          </Typography>
-          <Typography variant="body" color="muted" className="mt-2 block">
-            Monitor and manage active collaboration sessions across all human participants.
-          </Typography>
-        </div>
-        <div className="flex gap-4 items-end">
-          <div className="relative w-64 group">
-            <form action="/sessions" method="GET">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-cyber-blue transition-colors">
-                <SearchIcon size={14} />
-              </div>
-              <input
-                name="q"
-                type="text"
-                placeholder="Search sessions..."
-                defaultValue={params.q}
-                className="w-full bg-white/5 border border-white/5 rounded h-[34px] pl-9 pr-3 text-xs font-mono text-white placeholder:text-white/20 focus:outline-none focus:border-cyber-blue/30 focus:bg-white/[0.08] transition-all"
-              />
-            </form>
-          </div>
+      <PageHeader
+        titleKey="SESSIONS_TITLE"
+        subtitleKey="SESSIONS_SUBTITLE"
+        stats={
           <div className="flex flex-col items-center text-center">
             <Typography
               variant="mono"
@@ -111,8 +92,23 @@ export default async function SessionsPage({
               {sessions.length}
             </Badge>
           </div>
+        }
+      >
+        <div className="relative w-64 group">
+          <form action="/sessions" method="GET">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-cyber-blue transition-colors">
+              <SearchIcon size={14} />
+            </div>
+            <input
+              name="q"
+              type="text"
+              placeholder="Search sessions..."
+              defaultValue={params.q}
+              className="w-full bg-white/5 border border-white/5 rounded h-[34px] pl-9 pr-3 text-xs font-mono text-white placeholder:text-white/20 focus:outline-none focus:border-cyber-blue/30 focus:bg-white/[0.08] transition-all"
+            />
+          </form>
         </div>
-      </header>
+      </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {sessions.map((session) => (

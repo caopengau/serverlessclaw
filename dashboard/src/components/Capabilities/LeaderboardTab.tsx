@@ -6,7 +6,6 @@ import Typography from '../ui/Typography';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import type { Tool } from '@/lib/types/ui';
-import { AgentConfig } from './types';
 
 interface LeaderboardTabProps {
   allTools: Tool[];

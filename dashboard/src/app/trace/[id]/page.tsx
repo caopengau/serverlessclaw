@@ -118,7 +118,7 @@ export default async function TraceDetailPage({
   return (
     <div 
       data-testid="trace-detail-container"
-      className="flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent"
+      className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent"
     >
       <TraceContextRegistrar
         traceId={id}

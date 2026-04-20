@@ -1,8 +1,5 @@
 export const dynamic = 'force-dynamic';
-import { AlertCircle } from 'lucide-react';
 import CapabilitiesView from '@/components/Capabilities/CapabilitiesView';
-import Typography from '@/components/ui/Typography';
-import Badge from '@/components/ui/Badge';
 import CapabilitiesHeader from './CapabilitiesHeader';
 import CapabilitiesAdvisory from './CapabilitiesAdvisory';
 import { getToolUsage, getAllTools } from '@/lib/tool-utils';

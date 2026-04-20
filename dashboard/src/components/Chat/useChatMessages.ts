@@ -82,7 +82,7 @@ export function useChatMessages(
       setMessages([]);
       seenMessageIds.current.clear();
     }
-  }, [activeSessionId, fetchHistory, seenMessageIds, skipNextHistoryFetch]);
+  }, [activeSessionId, disabled, fetchHistory, seenMessageIds, skipNextHistoryFetch]);
 
   const updateAssistantResponse = (data: ChatApiResponse & { ui_blocks?: DynamicComponent[] }, tempId: string) => {
     const targetId = data.messageId || tempId;

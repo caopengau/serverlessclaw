@@ -18,6 +18,8 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import PageHeader from '@/components/PageHeader';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface Member {
   id: string;
@@ -51,6 +53,7 @@ function roleBadge(role: string) {
 }
 
 export default function WorkspacesPage() {
+  const { t } = useTranslations();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
@@ -175,24 +178,16 @@ export default function WorkspacesPage() {
 
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent">
-      <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
-        <div>
-          <Typography variant="h2" color="white" glow uppercase>
-            Workspaces
-          </Typography>
-          <Typography variant="body" color="muted" className="mt-2 block">
-            Team collaboration environments and access control.
-          </Typography>
-        </div>
+      <PageHeader titleKey="WORKSPACES_TITLE" subtitleKey="WORKSPACES_SUBTITLE">
         <Button
           variant="primary"
           size="sm"
           icon={<Plus size={14} />}
           onClick={() => setShowModal(true)}
         >
-          Create Workspace
+          {t('WORKSPACES_CREATE_WORKSPACE')}
         </Button>
-      </header>
+      </PageHeader>
 
       {loading ? (
         <div className="flex items-center justify-center h-64">

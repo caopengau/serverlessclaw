@@ -13,6 +13,20 @@ vi.mock('next/dynamic', () => ({
   },
 }));
 
+// Mock useTranslations hook
+vi.mock('@/components/Providers/TranslationsProvider', () => ({
+  useTranslations: () => ({
+    t: (key: string) => {
+      const messages: Record<string, string> = {
+        SYSPULSE_TITLE: 'System Pulse',
+        SYSPULSE_SUBTITLE: 'Real-time infrastructure topology',
+        SYSPULSE_ARCH_MAP: 'Architecture Map',
+      };
+      return messages[key] || key;
+    },
+  }),
+}));
+
 // Mock UI components
 vi.mock('@/components/ui/Typography', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div data-testid="typography">{children}</div>,

@@ -8,6 +8,8 @@ import Badge from '@/components/ui/Badge';
 import SafetyTierEditor from '@/components/SafetyTierEditor';
 import CoManagementHub from '@/components/CoManagementHub';
 import { THEME } from '@/lib/theme';
+import PageHeader from '@/components/PageHeader';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 const AGENT_POLICIES = [
   {
@@ -92,31 +94,28 @@ const PROTECTED_RESOURCES = [
 ];
 
 export default function SecurityManifestPage() {
+  const { t } = useTranslations();
   const [currentTier, setCurrentTier] = useState<'local' | 'prod'>('prod');
   return (
     <main
-      className={`flex-1 overflow-y-auto p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[${THEME.COLORS.PRIMARY}]/5 via-transparent to-transparent`}
+      className={`flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[${THEME.COLORS.PRIMARY}]/5 via-transparent to-transparent`}
     >
-      <header className="flex justify-between items-end border-b border-white/5 pb-6">
-        <div>
-          <Typography variant="h2" weight="bold" color="white" glow>
-            Security Manifest
-          </Typography>
-          <Typography variant="body" color="white" className="mt-2 block opacity-80">
-            Governance boundaries and autonomous permission boundaries.
-          </Typography>
-        </div>
-        <div className="flex gap-4">
-          <Card variant="glass" padding="sm" className={`border-[${THEME.COLORS.PRIMARY}]/30`}>
-            <Typography variant="mono" color="muted" className="mb-1 block">
-              Compliance Mode
-            </Typography>
-            <Typography variant="mono" weight="bold" color="primary">
-              Strict Enforcement
-            </Typography>
-          </Card>
-        </div>
-      </header>
+      <PageHeader
+        titleKey="SECURITY_TITLE"
+        subtitleKey="SECURITY_SUBTITLE"
+        stats={
+          <div className="flex gap-4">
+            <Card variant="glass" padding="sm" className={`border-[${THEME.COLORS.PRIMARY}]/30`}>
+              <Typography variant="mono" color="muted" className="mb-1 block">
+                {t('COMPLIANCE_MODE')}
+              </Typography>
+              <Typography variant="mono" weight="bold" color="primary">
+                {t('STRICT_ENFORCEMENT')}
+              </Typography>
+            </Card>
+          </div>
+        }
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Safety Tier */}

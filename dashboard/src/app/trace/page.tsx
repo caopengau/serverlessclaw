@@ -8,6 +8,7 @@ import Badge from '@/components/ui/Badge';
 import TraceIntelligenceView from '@/components/TraceIntelligenceView';
 import ExportTracesButton from '@/components/ExportTracesButton';
 import { getTraces } from '@/lib/traces';
+import PageHeader from '@/components/PageHeader';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,15 +93,7 @@ export default async function AnalyticsTab({
 
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-green/5 via-transparent to-transparent">
-      <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
-        <div>
-          <Typography variant="h2" color="white" glow uppercase>
-            Trace Intelligence
-          </Typography>
-          <Typography variant="body" color="muted" className="mt-2 block">
-            Neural observation of autonomous agent logic paths and decision matrices.
-          </Typography>
-        </div>
+      <PageHeader titleKey="TRACE_TITLE" subtitleKey="TRACE_SUBTITLE">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:flex gap-3 lg:gap-4">
           <DeleteAllTracesButton />
           <ExportTracesButton traces={traces} />
@@ -147,7 +140,7 @@ export default async function AnalyticsTab({
             </Badge>
           </div>
         </div>
-      </header>
+      </PageHeader>
 
       {/* Traces Observatory */}
       <TraceIntelligenceView

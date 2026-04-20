@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 
-import { Vote, Activity, Users, ShieldAlert, Cpu } from 'lucide-react';
+import { Vote, Activity, ShieldAlert, Cpu } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import SwarmConsensusView from '@/components/SwarmConsensusView';
 import CollaborationCanvas from '@/components/CollaborationCanvas';
 import CognitiveHealthCard from '@/components/CognitiveHealthCard';
 import TrustGauge from '@/components/TrustGauge';
+import PageHeader from '@/components/PageHeader';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 import { ReactFlowProvider } from '@xyflow/react';
 
@@ -24,6 +26,7 @@ interface ConsensusRequest {
 type Tab = 'consensus' | 'live';
 
 export default function CollaborationPage() {
+  const { t } = useTranslations();
   const [requests, setRequests] = useState<ConsensusRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('live'); // Default to live canvas
@@ -47,53 +50,47 @@ export default function CollaborationPage() {
   const tabs = [
     {
       id: 'consensus' as Tab,
-      label: 'Swarm Consensus',
+      label: t('SWARM_CONSENSUS'),
       icon: Vote,
       count: requests.filter((r) => r.status === 'PENDING').length,
     },
-    { id: 'live' as Tab, label: 'Live Tasks', icon: Activity },
+    { id: 'live' as Tab, label: t('LIVE_TASKS'), icon: Activity },
   ];
 
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
-      <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <Typography
-              variant="h2"
-              color="white"
-              glow
-              uppercase
-              className="flex items-center gap-3"
-            >
-              <Users size={28} className="text-cyber-blue" /> Swarm Mission Control
-            </Typography>
-          </div>
-          <Typography variant="body" color="muted" className="mt-2 block">
-            Real-time multi-agent governance and orchestration dashboard.
-          </Typography>
-        </div>
-        
-        {/* Quick Stats */}
-        <div className="flex gap-4">
-          <div className="glass-card px-4 py-2 border-white/5 flex items-center gap-3">
-            <TrustGauge score={94} label="SWARM" size={40} />
-            <div>
-              <Typography variant="mono" className="text-[10px] uppercase opacity-40">Swarm Trust</Typography>
-              <Typography variant="mono" weight="black" className="text-xs text-cyber-blue">94.2%</Typography>
+      <PageHeader
+        titleKey="COLLABORATION_TITLE"
+        subtitleKey="COLLABORATION_SUBTITLE"
+        stats={
+          <div className="flex gap-4">
+            <div className="glass-card px-4 py-2 border-white/5 flex items-center gap-3">
+              <TrustGauge score={94} label="SWARM" size={40} />
+              <div>
+                <Typography variant="mono" className="text-[10px] uppercase opacity-40">
+                  {t('SWARM_TRUST')}
+                </Typography>
+                <Typography variant="mono" weight="black" className="text-xs text-cyber-blue">
+                  94.2%
+                </Typography>
+              </div>
+            </div>
+            <div className="glass-card px-4 py-2 border-white/5 flex items-center gap-3">
+              <div className="p-2 bg-cyber-green/10 rounded-full">
+                <ShieldAlert size={16} className="text-cyber-green" />
+              </div>
+              <div>
+                <Typography variant="mono" className="text-[10px] uppercase opacity-40">
+                  {t('AUTONOMY')}
+                </Typography>
+                <Typography variant="mono" weight="black" className="text-xs text-cyber-green">
+                  LEVEL_3 (AUTO)
+                </Typography>
+              </div>
             </div>
           </div>
-          <div className="glass-card px-4 py-2 border-white/5 flex items-center gap-3">
-            <div className="p-2 bg-cyber-green/10 rounded-full">
-              <ShieldAlert size={16} className="text-cyber-green" />
-            </div>
-            <div>
-              <Typography variant="mono" className="text-[10px] uppercase opacity-40">Autonomy</Typography>
-              <Typography variant="mono" weight="black" className="text-xs text-cyber-green">LEVEL_3 (AUTO)</Typography>
-            </div>
-          </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* Trust & Health Overview */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -128,19 +125,25 @@ export default function CollaborationPage() {
         <div className="lg:col-span-2 space-y-4">
            {/* Summary Text / Global Feed */}
            <div className="glass-card p-6 border-white/5 h-full flex flex-col justify-center">
-             <Typography variant="h3" glow color="white" uppercase className="mb-2">Operational Summary</Typography>
+             <Typography variant="h3" glow color="white" uppercase className="mb-2">
+               {t('OPERATIONAL_SUMMARY')}
+             </Typography>
              <Typography variant="body" color="muted" className="text-sm italic">
-               The swarm is currently operating at optimal capacity. Trust score remains high despite a minor bottleneck in the Planner agent&apos;s reasoning depth. Security and Architect critics are active in the consensus pool.
+               {t('OPERATIONAL_SUMMARY_DESC')}
              </Typography>
              <div className="mt-6 flex gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-cyber-green animate-pulse" />
-                  <Typography variant="mono" className="text-[10px] uppercase font-bold text-cyber-green">All Systems Nominal</Typography>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-cyber-blue" />
-                  <Typography variant="mono" className="text-[10px] uppercase font-bold text-cyber-blue">8 Active Parallel Traces</Typography>
-                </div>
+               <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-cyber-green animate-pulse" />
+                 <Typography variant="mono" className="text-[10px] uppercase font-bold text-cyber-green">
+                   {t('ALL_SYSTEMS_NOMINAL')}
+                 </Typography>
+               </div>
+               <div className="flex items-center gap-2">
+                 <div className="w-2 h-2 rounded-full bg-cyber-blue" />
+                 <Typography variant="mono" className="text-[10px] uppercase font-bold text-cyber-blue">
+                   {t('ACTIVE_PARALLEL_TRACES').replace('{count}', '8')}
+                 </Typography>
+               </div>
              </div>
            </div>
         </div>
@@ -195,7 +198,7 @@ export default function CollaborationPage() {
             (isLoading ? (
               <div className="py-20 text-center animate-pulse">
                 <Typography variant="mono" color="muted" className="text-xs uppercase tracking-widest">
-                  Decrypting Swarm State...
+                  {t('DECRYPTING_SWARM_STATE')}
                 </Typography>
               </div>
             ) : (

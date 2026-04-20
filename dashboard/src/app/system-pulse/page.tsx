@@ -3,8 +3,8 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { Zap } from 'lucide-react';
-import Typography from '@/components/ui/Typography';
 import { THEME } from '@/lib/theme';
+import PageHeader from '@/components/PageHeader';
 
 // Dynamic import for React Flow component to avoid SSR issues
 const Flow = dynamic(() => import('./Flow'), {
@@ -25,16 +25,10 @@ export default function SystemPulsePage() {
     <main
       className={`flex-1 h-screen overflow-hidden flex flex-col p-6 lg:p-10 space-y-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-${THEME.COLORS.INTEL}/5 via-transparent to-transparent`}
     >
-      <header className="flex justify-between items-end border-b border-white/5 pb-6">
-        <div>
-          <Typography variant="h2" color="white" glow uppercase>
-            System Pulse
-          </Typography>
-          <Typography variant="body" color="muted" className="mt-2 block">
-            Real-time infrastructure topology and neural routing visualization.
-          </Typography>
-        </div>
-      </header>
+      <PageHeader 
+        titleKey="SYSPULSE_TITLE" 
+        subtitleKey="SYSPULSE_SUBTITLE" 
+      />
 
       <div className="flex-1 min-h-0 glass-card border-white/5 overflow-hidden flex flex-col">
         <div className="px-6 py-3 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">

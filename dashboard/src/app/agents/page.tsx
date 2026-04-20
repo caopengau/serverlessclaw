@@ -12,6 +12,7 @@ import NewAgentModal from './NewAgentModal';
 import AgentToolsModal from './AgentToolsModal';
 import AgentTable from './AgentTable';
 import { Tool, Agent } from '@/lib/types/ui';
+import PageHeader from '@/components/PageHeader';
 import { useRealtime, RealtimeMessage } from '@/hooks/useRealtime';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
@@ -91,22 +92,26 @@ export default function AgentsPage() {
     agentName: '',
   });
 
-  const loadAgents = async () => {
+  const loadAgents = useCallback(async () => {
     setLoading(true);
     try {
-      const agentsRes = await fetch('/api/agents');
-      const agentsData = await agentsRes.json();
-      setAgents(agentsData);
-      setInitialAgents(structuredClone(agentsData));
+      const res = await fetch('/api/agents');
+      const data: Agent[] = await res.json();
+      const agentsMap = data.reduce((acc: Record<string, Agent>, agent: Agent) => {
+        acc[agent.id] = agent;
+        return acc;
+      }, {} as Record<string, Agent>);
+      setAgents(agentsMap);
+      setInitialAgents(structuredClone(agentsMap));
     } catch (err) {
       console.error('Failed to load agents:', err);
       toast.error(t('AGENTS_SYNC_REGISTRY_ERROR'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  const loadTools = async (forceRefresh = false) => {
+  const loadTools = useCallback(async (forceRefresh = false) => {
     if (forceRefresh) setRefreshingTools(true);
     else setLoadingTools(true);
 
@@ -122,7 +127,7 @@ export default function AgentsPage() {
       setLoadingTools(false);
       setRefreshingTools(false);
     }
-  };
+  }, [t]);
 
   const syncRegistry = async () => {
     setRefreshingTools(true);
@@ -139,15 +144,15 @@ export default function AgentsPage() {
 
   useEffect(() => {
     loadAgents();
-  }, []);
+  }, [loadAgents]);
 
   useEffect(() => {
     if (selectedAgentIdForTools && allTools.length === 0 && !loadingTools) {
       loadTools();
     }
-  }, [selectedAgentIdForTools, allTools.length, loadingTools]);
+  }, [selectedAgentIdForTools, allTools.length, loadingTools, loadTools]);
 
-  const loadReputation = async () => {
+  const loadReputation = useCallback(async () => {
     try {
       const res = await fetch('/api/reputation');
       const data = await res.json();
@@ -155,11 +160,11 @@ export default function AgentsPage() {
     } catch (err) {
       console.error('Failed to load reputation:', err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadReputation();
-  }, []);
+  }, [loadReputation]);
 
   const handleSave = async (force: boolean = false) => {
     // Detect backbone changes
@@ -334,7 +339,7 @@ export default function AgentsPage() {
       loadAgents();
       loadReputation();
     }
-  }, []);
+  }, [loadAgents, loadReputation]);
 
   // Use Realtime Hook for live updates
   const { isConnected } = useRealtime({
@@ -360,15 +365,17 @@ export default function AgentsPage() {
 
   if (loading)
     return (
-      <main className="flex-1 p-10 flex items-center justify-center text-white/40">
-        <Typography
-          variant="mono"
-          color="intel"
-          uppercase
-          className="flex items-center gap-3 animate-pulse"
-        >
-          <RefreshCw className="animate-spin" size={20} /> {t('AGENTS_INITIALIZING')}
-        </Typography>
+      <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
+        <div className="flex items-center justify-center min-h-[400px] text-white/40">
+          <Typography
+            variant="mono"
+            color="intel"
+            uppercase
+            className="flex items-center gap-3 animate-pulse"
+          >
+            <RefreshCw className="animate-spin" size={20} /> {t('AGENTS_INITIALIZING')}
+          </Typography>
+        </div>
       </main>
     );
 
@@ -384,36 +391,10 @@ export default function AgentsPage() {
         onConfirm={executeDeleteAgent}
         onCancel={() => setConfirmModal({ isOpen: false, agentId: '', agentName: '' })}
       />
-      <header className="flex justify-between items-end border-b border-white/5 pb-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <Typography variant="h2" color="white" glow uppercase>
-              Agents
-            </Typography>
-            <div
-              className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest font-bold ${isConnected ? 'bg-cyber-green/10 text-cyber-green border border-cyber-green/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}
-            >
-              <Radio size={10} className={isConnected ? 'animate-pulse' : ''} />
-              {isConnected ? t('AGENTS_SIGNAL_ACTIVE') : t('AGENTS_SIGNAL_DISCONNECTED')}
-            </div>
-          </div>
-          <Typography variant="body" color="muted" className="mt-2 block">
-            {t('AGENTS_DESCRIPTION')}
-          </Typography>
-        </div>
-        <div className="flex gap-4 items-end">
-          <div className="relative w-64 group">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-cyan-400 transition-colors">
-              <Search size={14} />
-            </div>
-            <input
-              type="text"
-              placeholder="Search nodes..."
-              value={agentSearchQuery}
-              onChange={(e) => setAgentSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border border-white/5 rounded h-[34px] pl-9 pr-3 text-xs font-mono text-white placeholder:text-white/20 focus:outline-none focus:border-cyan-400/30 focus:bg-white/[0.08] transition-all"
-            />
-          </div>
+      <PageHeader
+        titleKey="AGENTS_TITLE"
+        subtitleKey="AGENTS_SUBTITLE"
+        stats={
           <div className="flex flex-col items-center">
             <Typography
               variant="mono"
@@ -428,6 +409,27 @@ export default function AgentsPage() {
             >
               {totalLlmAgents}
             </Badge>
+          </div>
+        }
+      >
+        <div className="flex flex-wrap gap-4 items-end">
+          <div
+            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest font-bold ${isConnected ? 'bg-cyber-green/10 text-cyber-green border border-cyber-green/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}
+          >
+            <Radio size={10} className={isConnected ? 'animate-pulse' : ''} />
+            {isConnected ? t('AGENTS_SIGNAL_ACTIVE') : t('AGENTS_SIGNAL_DISCONNECTED')}
+          </div>
+          <div className="relative w-64 group">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-cyan-400 transition-colors">
+              <Search size={14} />
+            </div>
+            <input
+              type="text"
+              placeholder="Search nodes..."
+              value={agentSearchQuery}
+              onChange={(e) => setAgentSearchQuery(e.target.value)}
+              className="w-full bg-white/5 border border-white/5 rounded h-[34px] pl-9 pr-3 text-xs font-mono text-white placeholder:text-white/20 focus:outline-none focus:border-cyan-400/30 focus:bg-white/[0.08] transition-all"
+            />
           </div>
           <Button
             onClick={syncRegistry}
@@ -449,7 +451,7 @@ export default function AgentsPage() {
             {t('AGENTS_NEW_AGENT')}
           </Button>
         </div>
-      </header>
+      </PageHeader>
 
       <div className="max-w-6xl space-y-8 pb-20">
         <AgentTable

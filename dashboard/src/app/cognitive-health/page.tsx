@@ -7,6 +7,8 @@ import Card from '@/components/ui/Card';
 import CognitiveHealthCard from '@/components/CognitiveHealthCard';
 import HealthTrendChart from '@/components/HealthTrendChart';
 import { Anomaly } from '@/lib/types/dashboard';
+import PageHeader from '@/components/PageHeader';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface AgentHealth {
   agentId: string;
@@ -19,6 +21,7 @@ interface AgentHealth {
 }
 
 export default function CognitiveHealthPage() {
+  const { t } = useTranslations();
   const [agents, setAgents] = useState<AgentHealth[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,44 +38,40 @@ export default function CognitiveHealthPage() {
 
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyan-500/5 via-transparent to-transparent">
-      <header className="flex flex-col lg:flex-row lg:justify-between lg:items-end border-b border-white/5 pb-6 gap-6">
-        <div>
-          <Typography variant="h2" color="white" glow uppercase>
-            Deep Cognitive Health
-          </Typography>
-          <Typography variant="body" color="muted" className="mt-2 block">
-            Real-time neural coherence and reasoning integrity monitor.
-          </Typography>
-        </div>
-        <div className="flex gap-4">
-          <Card variant="glass" padding="sm" className="px-4 py-2 min-w-[120px]">
-            <Typography variant="mono" color="white" className="mb-1 block opacity-90">
-              Agents
-            </Typography>
-            <Typography variant="h3" weight="bold" className="text-cyan-400">
-              {agents.length}
-            </Typography>
-          </Card>
-          <Card variant="glass" padding="sm" className="px-4 py-2 min-w-[120px]">
-            <Typography variant="mono" color="white" className="mb-1 block opacity-90">
-              Avg Score
-            </Typography>
-            <Typography
-              variant="h3"
-              weight="bold"
-              className={
-                avgScore >= 80
-                  ? 'text-[var(--cyber-green)]'
-                  : avgScore >= 60
-                    ? 'text-amber-400'
-                    : 'text-red-500'
-              }
-            >
-              {avgScore}
-            </Typography>
-          </Card>
-        </div>
-      </header>
+      <PageHeader
+        titleKey="COGHEALTH_TITLE"
+        subtitleKey="COGHEALTH_SUBTITLE"
+        stats={
+          <div className="flex gap-4">
+            <Card variant="glass" padding="sm" className="px-4 py-2 min-w-[120px]">
+              <Typography variant="mono" color="white" className="mb-1 block opacity-90">
+                {t('NODES')}
+              </Typography>
+              <Typography variant="h3" weight="bold" className="text-cyan-400">
+                {agents.length}
+              </Typography>
+            </Card>
+            <Card variant="glass" padding="sm" className="px-4 py-2 min-w-[120px]">
+              <Typography variant="mono" color="white" className="mb-1 block opacity-90">
+                {t('AVG_SCORE')}
+              </Typography>
+              <Typography
+                variant="h3"
+                weight="bold"
+                className={
+                  avgScore >= 80
+                    ? 'text-[var(--cyber-green)]'
+                    : avgScore >= 60
+                      ? 'text-amber-400'
+                      : 'text-red-500'
+                }
+              >
+                {avgScore}
+              </Typography>
+            </Card>
+          </div>
+        }
+      />
 
       {!loading && agents.length > 0 && (
         <div className="max-w-4xl">
