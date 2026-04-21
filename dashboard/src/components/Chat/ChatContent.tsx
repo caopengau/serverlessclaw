@@ -49,6 +49,7 @@ export default function ChatContent() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState<string>('');
+  const [mounted, setMounted] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -195,6 +196,10 @@ export default function ChatContent() {
   );
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     setMessagesRef.current = setMessages;
   }, [setMessages]);
 
@@ -236,13 +241,13 @@ export default function ChatContent() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (activeSessionId) {
+    if (mounted && activeSessionId) {
       const currentParams = new URLSearchParams(window.location.search);
       if (currentParams.get('session') !== activeSessionId) {
         router.push(`?session=${activeSessionId}`, { scroll: false });
       }
     }
-  }, [activeSessionId, router]);
+  }, [activeSessionId, router, mounted]);
 
   useEffect(() => {
     if (!activeSessionId) {
@@ -341,7 +346,9 @@ export default function ChatContent() {
     setActiveSessionId('');
     setMessages([]);
     setAttachments([]);
-    router.push('/', { scroll: false });
+    if (mounted) {
+      router.push('/', { scroll: false });
+    }
   };
 
   const handleInviteAgent = async (agentId: string) => {
@@ -402,7 +409,9 @@ export default function ChatContent() {
         if (activeSessionId === sessionToDelete) {
           setActiveSessionId('');
           setMessages([]);
-          router.push('/', { scroll: false });
+          if (mounted) {
+            router.push('/', { scroll: false });
+          }
         }
         fetchSessions();
       }
@@ -418,7 +427,9 @@ export default function ChatContent() {
       if (response.ok) {
         setActiveSessionId('');
         setMessages([]);
-        router.push('/', { scroll: false });
+        if (mounted) {
+          router.push('/', { scroll: false });
+        }
         fetchSessions();
       }
     } catch (error) {

@@ -34,20 +34,20 @@ export default function NewAgentModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300"
       role="dialog"
       aria-modal="true"
     >
       <Card
         variant="solid"
         padding="lg"
-        className="max-w-2xl w-full shadow-[0_0_50px_rgba(0,0,0,0.5)] space-y-6 relative"
+        className="max-w-2xl w-full shadow-premium space-y-6 relative border-border"
       >
         <Button
           variant="ghost"
           size="sm"
           onClick={onClose}
-          className="absolute top-4 right-4 text-white/40 hover:text-white p-0 h-auto"
+          className="absolute top-4 right-4 text-muted-more hover:text-foreground p-0 h-auto"
           icon={<X size={20} />}
         />
 
@@ -68,12 +68,12 @@ export default function NewAgentModal({
         <div className="grid grid-cols-2 gap-4">
           <div
             onClick={() => setCreationMode('standard')}
-            className={`p-4 rounded-lg border cursor-pointer transition-all ${creationMode === 'standard' ? 'bg-cyber-blue/10 border-cyber-blue' : 'bg-black/20 border-white/5 opacity-50 hover:opacity-80'}`}
+            className={`p-4 rounded-lg border cursor-pointer transition-all ${creationMode === 'standard' ? 'bg-cyber-blue/10 border-cyber-blue' : 'bg-background/40 border-border opacity-50 hover:opacity-80'}`}
           >
             <div className="flex items-center gap-2 mb-2">
               <Zap
                 size={16}
-                className={creationMode === 'standard' ? 'text-cyber-blue' : 'text-white/40'}
+                className={creationMode === 'standard' ? 'text-cyber-blue' : 'text-muted-more'}
               />
               <Typography variant="mono" weight="bold" className="text-xs uppercase">
                 Quick Register
@@ -86,22 +86,18 @@ export default function NewAgentModal({
 
           <div
             onClick={() => setCreationMode('sandbox')}
-            className={`p-4 rounded-lg border cursor-pointer transition-all ${creationMode === 'sandbox' ? 'bg-cyber-green/10 border-cyber-green/50' : 'bg-black/20 border-white/5 opacity-50 hover:opacity-80'}`}
+            className={`p-4 rounded-lg border cursor-pointer transition-all ${creationMode === 'sandbox' ? 'bg-cyber-green/10 border-cyber-green/50' : 'bg-background/40 border-border opacity-50 hover:opacity-80'}`}
           >
             <div className="flex items-center gap-2 mb-2">
               <ShieldCheck
                 size={16}
-                className={creationMode === 'sandbox' ? 'text-cyber-green' : 'text-white/40'}
+                className={creationMode === 'sandbox' ? 'text-cyber-green' : 'text-muted-more'}
               />
               <Typography variant="mono" weight="bold" className="text-xs uppercase">
                 Evolution Sandbox
               </Typography>
             </div>
-            <Typography
-              variant="caption"
-              color="muted"
-              className="text-[10px] leading-relaxed text-cyber-green/60"
-            >
+            <Typography variant="caption" color="muted" className="text-[10px] leading-relaxed">
               Sandboxed verification. Recommended for complex agents to avoid budget burn.
             </Typography>
           </div>
@@ -113,16 +109,15 @@ export default function NewAgentModal({
               <Typography
                 variant="mono"
                 weight="bold"
-                color="white"
                 uppercase
-                className="text-[10px] opacity-50"
+                className="text-[10px] text-muted-more"
               >
                 {t('AGENTS_NAME')}
               </Typography>
               <input
                 value={newAgent.name}
                 onChange={(e) => setNewAgent((prev) => ({ ...prev, name: e.target.value }))}
-                className="w-full bg-black/40 border border-white/10 rounded p-3 text-sm text-white outline-none focus:border-cyber-green/50 transition-all font-mono"
+                className="w-full bg-background/40 border border-border rounded p-3 text-sm text-foreground outline-none focus:border-cyber-green/50 transition-all font-mono"
                 placeholder="e.g. Security Auditor"
               />
             </div>
@@ -130,9 +125,8 @@ export default function NewAgentModal({
               <Typography
                 variant="mono"
                 weight="bold"
-                color="white"
                 uppercase
-                className="text-[10px] opacity-50"
+                className="text-[10px] text-muted-more"
               >
                 {t('AGENTS_SYSTEM_ID_IMMUTABLE')}
               </Typography>
@@ -144,7 +138,7 @@ export default function NewAgentModal({
                     id: e.target.value.toLowerCase().replace(/\s+/g, '_'),
                   }))
                 }
-                className="w-full bg-black/40 border border-white/10 rounded p-3 text-sm text-white outline-none focus:border-cyber-green/50 transition-all font-mono"
+                className="w-full bg-background/40 border border-border rounded p-3 text-sm text-foreground outline-none focus:border-cyber-green/50 transition-all font-mono"
                 placeholder="e.g. auditor_01"
               />
             </div>
@@ -154,16 +148,15 @@ export default function NewAgentModal({
             <Typography
               variant="mono"
               weight="bold"
-              color="white"
               uppercase
-              className="text-[10px] opacity-50"
+              className="text-[10px] text-muted-more"
             >
               {t('AGENTS_SYSTEM_INSTRUCTIONS_FULL')}
             </Typography>
             <textarea
               value={newAgent.systemPrompt}
               onChange={(e) => setNewAgent((prev) => ({ ...prev, systemPrompt: e.target.value }))}
-              className="w-full bg-black/40 border border-white/10 rounded p-4 text-xs text-white/90 font-mono min-h-[220px] outline-none focus:border-cyber-green/50 transition-all leading-relaxed custom-scrollbar"
+              className="w-full bg-background/40 border border-border rounded p-4 text-xs text-foreground/90 font-mono min-h-[220px] outline-none focus:border-cyber-green/50 transition-all leading-relaxed custom-scrollbar"
               placeholder={t('AGENTS_SYSTEM_INSTRUCTIONS_PLACEHOLDER')}
             />
           </div>
@@ -173,9 +166,8 @@ export default function NewAgentModal({
               <Typography
                 variant="mono"
                 weight="bold"
-                color="white"
                 uppercase
-                className="text-[10px] opacity-50"
+                className="text-[10px] text-muted-more"
               >
                 {t('AGENTS_INITIAL_PROVIDER')}
               </Typography>
@@ -193,9 +185,8 @@ export default function NewAgentModal({
               <Typography
                 variant="mono"
                 weight="bold"
-                color="white"
                 uppercase
-                className="text-[10px] opacity-50"
+                className="text-[10px] text-muted-more"
               >
                 {t('AGENTS_INITIAL_MODEL')}
               </Typography>
@@ -240,7 +231,7 @@ export default function NewAgentModal({
             variant="outline"
             size="lg"
             uppercase
-            className="px-8 text-white/60"
+            className="px-8 text-muted"
           >
             {t('COMMON_CANCEL')}
           </Button>

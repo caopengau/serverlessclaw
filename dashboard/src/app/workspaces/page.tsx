@@ -178,7 +178,7 @@ export default function WorkspacesPage() {
   };
 
   return (
-    <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-violet-500/5 via-transparent to-transparent">
+    <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10">
       <PageHeader titleKey="WORKSPACES_TITLE" subtitleKey="WORKSPACES_SUBTITLE">
         <Button
           variant="primary"
@@ -197,7 +197,7 @@ export default function WorkspacesPage() {
       ) : workspaces.length > 0 ? (
         <div className="space-y-4">
           {workspaces.map((ws) => (
-            <Card key={ws.id} variant="glass" padding="lg" className="border-white/10 bg-black/40">
+            <Card key={ws.id} variant="glass" padding="lg" className="border-border bg-card">
               <button
                 onClick={() => toggle(ws.id)}
                 className="w-full flex items-center justify-between text-left cursor-pointer"
@@ -223,14 +223,14 @@ export default function WorkspacesPage() {
                   </div>
                 </div>
                 {expanded[ws.id] ? (
-                  <ChevronUp size={16} className="text-white/40" />
+                  <ChevronUp size={16} className="text-muted-more" />
                 ) : (
-                  <ChevronDown size={16} className="text-white/40" />
+                  <ChevronDown size={16} className="text-muted-more" />
                 )}
               </button>
 
               {expanded[ws.id] && (
-                <div className="mt-4 pt-4 border-t border-white/5 space-y-3">
+                <div className="mt-4 pt-4 border-t border-border space-y-3">
                   {/* Invite Member Button */}
                   <div className="flex justify-end">
                     <Button
@@ -251,10 +251,10 @@ export default function WorkspacesPage() {
                   {ws.members.map((m, i) => (
                     <div
                       key={i}
-                      className="flex items-center justify-between py-2 px-3 rounded bg-white/[0.02] group"
+                      className="flex items-center justify-between py-2 px-3 rounded bg-background/40 group"
                     >
                       <div className="flex items-center gap-3">
-                        <Typography variant="mono" color="white" className="text-[11px]">
+                        <Typography variant="mono" className="text-[11px]">
                           {m.id}
                         </Typography>
                         <Typography variant="mono" color="muted" className="text-[9px]">
@@ -279,7 +279,7 @@ export default function WorkspacesPage() {
                                   currentRole: m.role,
                                 })
                               }
-                              className="p-1 rounded hover:bg-white/10 text-white/40 hover:text-cyber-blue transition-colors"
+                              className="p-1 rounded hover:bg-background/80 text-muted hover:text-cyber-blue transition-colors"
                               title="Change role"
                             >
                               <Edit2 size={12} />
@@ -288,7 +288,7 @@ export default function WorkspacesPage() {
                               onClick={() =>
                                 setRemovingMember({ workspaceId: ws.id, memberId: m.id })
                               }
-                              className="p-1 rounded hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-colors"
+                              className="p-1 rounded hover:bg-red-500/10 text-muted hover:text-red-400 transition-colors"
                               title="Remove member"
                             >
                               <Trash2 size={12} />
@@ -322,19 +322,17 @@ export default function WorkspacesPage() {
       {/* Create Workspace Modal */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-50"
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-[#1a1a2e] border border-white/10 p-6 rounded-lg w-full max-w-md"
+            className="bg-background border border-border p-6 rounded-lg w-full max-w-md shadow-premium"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <Typography variant="h3" color="white">
-                Create Workspace
-              </Typography>
+              <Typography variant="h3">Create Workspace</Typography>
               <button onClick={() => setShowModal(false)}>
-                <X size={18} className="text-white/40" />
+                <X size={18} className="text-muted-more" />
               </button>
             </div>
             <div className="space-y-4">
@@ -368,19 +366,17 @@ export default function WorkspacesPage() {
       {/* Invite Member Modal */}
       {showInviteModal && (
         <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-50"
           onClick={() => setShowInviteModal(null)}
         >
           <div
-            className="bg-[#1a1a2e] border border-white/10 p-6 rounded-lg w-full max-w-md"
+            className="bg-background border border-border p-6 rounded-lg w-full max-w-md shadow-premium"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <Typography variant="h3" color="white">
-                Invite Member
-              </Typography>
+              <Typography variant="h3">Invite Member</Typography>
               <button onClick={() => setShowInviteModal(null)}>
-                <X size={18} className="text-white/40" />
+                <X size={18} className="text-muted-more" />
               </button>
             </div>
             <div className="space-y-4">
@@ -392,7 +388,7 @@ export default function WorkspacesPage() {
                 className="w-full"
               />
               <div>
-                <label className="block text-[10px] uppercase tracking-widest font-bold text-white/40 mb-2">
+                <label className="block text-[10px] uppercase tracking-widest font-bold text-muted mb-2">
                   Role
                 </label>
                 <div className="flex gap-2 flex-wrap">
@@ -404,8 +400,8 @@ export default function WorkspacesPage() {
                         px-3 py-1.5 rounded text-[10px] uppercase tracking-widest font-bold transition-all
                         ${
                           inviteRole === role
-                            ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
-                            : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'
+                            ? 'bg-cyber-blue/10 text-cyber-blue border border-cyber-blue/30'
+                            : 'bg-background/40 text-muted border border-border hover:bg-background/80'
                         }
                       `}
                     >
@@ -435,28 +431,25 @@ export default function WorkspacesPage() {
       {/* Edit Role Modal */}
       {editingMember && (
         <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-50"
           onClick={() => setEditingMember(null)}
         >
           <div
-            className="bg-[#1a1a2e] border border-white/10 p-6 rounded-lg w-full max-w-md"
+            className="bg-background border border-border p-6 rounded-lg w-full max-w-md shadow-premium"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
-              <Typography variant="h3" color="white">
-                Change Role
-              </Typography>
+              <Typography variant="h3">Change Role</Typography>
               <button onClick={() => setEditingMember(null)}>
-                <X size={18} className="text-white/40" />
+                <X size={18} className="text-muted-more" />
               </button>
             </div>
             <div className="space-y-4">
               <Typography variant="body" color="muted">
-                Change role for{' '}
-                <span className="text-white font-bold">{editingMember.memberId}</span>
+                Change role for <span className="font-bold">{editingMember.memberId}</span>
               </Typography>
               <div>
-                <label className="block text-[10px] uppercase tracking-widest font-bold text-white/40 mb-2">
+                <label className="block text-[10px] uppercase tracking-widest font-bold text-muted mb-2">
                   New Role
                 </label>
                 <div className="flex gap-2 flex-wrap">
@@ -470,8 +463,8 @@ export default function WorkspacesPage() {
                         px-3 py-1.5 rounded text-[10px] uppercase tracking-widest font-bold transition-all
                         ${
                           editingMember.currentRole === role
-                            ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
-                            : 'bg-white/5 text-white/40 border border-white/10 hover:bg-white/10'
+                            ? 'bg-cyber-blue/10 text-cyber-blue border border-cyber-blue/30'
+                            : 'bg-background/40 text-muted border border-border hover:bg-background/80'
                         }
                       `}
                     >
@@ -493,11 +486,11 @@ export default function WorkspacesPage() {
       {/* Remove Member Confirmation */}
       {removingMember && (
         <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+          className="fixed inset-0 bg-background/60 backdrop-blur-sm flex items-center justify-center z-50"
           onClick={() => setRemovingMember(null)}
         >
           <div
-            className="bg-[#1a1a2e] border border-red-500/30 p-6 rounded-lg w-full max-w-md"
+            className="bg-background border border-red-500/30 p-6 rounded-lg w-full max-w-md shadow-premium"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
@@ -505,14 +498,13 @@ export default function WorkspacesPage() {
                 Remove Member
               </Typography>
               <button onClick={() => setRemovingMember(null)}>
-                <X size={18} className="text-white/40" />
+                <X size={18} className="text-muted-more" />
               </button>
             </div>
             <div className="space-y-4">
               <Typography variant="body" color="muted">
                 Are you sure you want to remove{' '}
-                <span className="text-white font-bold">{removingMember.memberId}</span> from this
-                workspace?
+                <span className="font-bold">{removingMember.memberId}</span> from this workspace?
               </Typography>
               <div className="flex gap-2 justify-end pt-2">
                 <Button variant="outline" size="sm" onClick={() => setRemovingMember(null)}>

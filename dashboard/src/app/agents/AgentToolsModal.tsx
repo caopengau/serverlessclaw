@@ -35,17 +35,17 @@ export default function AgentToolsModal({
   if (!selectedAgentIdForTools || !agents[selectedAgentIdForTools]) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
       <Card
         variant="solid"
         padding="lg"
-        className="max-w-4xl w-full max-h-[90vh] flex flex-col shadow-[0_0_50px_rgba(0,0,0,0.5)] relative overflow-hidden border-cyber-green/20"
+        className="max-w-4xl w-full max-h-[90vh] flex flex-col shadow-premium relative overflow-hidden border-border"
       >
         <Button
           variant="ghost"
           size="sm"
           onClick={() => setSelectedAgentIdForTools(null)}
-          className="absolute top-4 right-4 text-white/40 hover:text-white p-0 h-auto z-10"
+          className="absolute top-4 right-4 text-muted-more hover:text-foreground p-0 h-auto z-10"
           icon={<X size={20} />}
         />
 
@@ -56,16 +56,16 @@ export default function AgentToolsModal({
               {t('AGENTS_MANAGE_TOOLS')}
             </Typography>
           </div>
-          <Typography variant="body" color="white" className="opacity-80 block">
+          <Typography variant="body" className="opacity-80 block">
             {t('AGENTS_ASSIGN_CAPABILITIES')}{' '}
-            <span className="text-white font-black underline decoration-cyber-green/30 underline-offset-4">
+            <span className="font-black underline decoration-cyber-green/30 underline-offset-4">
               {agents[selectedAgentIdForTools].name}
             </span>
           </Typography>
         </header>
 
         <div className="mb-6 relative">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-white/20">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-muted-more">
             <Search size={14} />
           </div>
           <input
@@ -73,7 +73,7 @@ export default function AgentToolsModal({
             placeholder={t('AGENTS_SEARCH_TOOLS_PLACEHOLDER')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-black/40 border border-white/10 rounded-sm py-2 pl-10 pr-4 text-xs text-white outline-none focus:border-cyber-green/50 transition-all font-mono"
+            className="w-full bg-background/40 border border-border rounded-sm py-2 pl-10 pr-4 text-xs text-foreground outline-none focus:border-cyber-green/50 transition-all font-mono"
           />
         </div>
 
@@ -86,7 +86,7 @@ export default function AgentToolsModal({
               color="muted"
               className="tracking-[0.2em] mb-4 flex items-center gap-2"
             >
-              <Plus size={12} className="text-white/40" />
+              <Plus size={12} className="text-muted" />
               {t('AGENTS_ACTIVE_SKILLS')}
             </Typography>
             <div className="flex flex-wrap gap-2">
@@ -137,12 +137,12 @@ export default function AgentToolsModal({
               color="muted"
               className="tracking-[0.2em] mb-4 flex items-center gap-2"
             >
-              <Plus size={12} className="text-white/40" />
+              <Plus size={12} className="text-muted" />
               {t('AGENTS_AVAILABLE_INSERTIONS')}
             </Typography>
 
             {loadingTools ? (
-              <div className="flex flex-col items-center justify-center py-12 text-white/30 gap-4">
+              <div className="flex flex-col items-center justify-center py-12 text-muted gap-4">
                 <RefreshCw size={24} className="animate-spin text-cyber-green" />
                 <Typography variant="mono" className="text-[10px] uppercase tracking-widest">
                   {t('AGENTS_SYNC_TOOL_REGISTRY')}
@@ -164,20 +164,20 @@ export default function AgentToolsModal({
                       variant="ghost"
                       onClick={() => handleToggleTool(selectedAgentIdForTools, tool.name)}
                       disabled={isUpdatingTools}
-                      className={`flex flex-col items-start p-3 rounded-sm border border-white/5 bg-white/[0.02] hover:bg-cyber-green/10 hover:border-cyber-green/30 transition-all h-auto text-left group`}
+                      className={`flex flex-col items-start p-3 rounded-sm border border-border bg-card hover:bg-cyber-green/10 hover:border-cyber-green/30 transition-all h-auto text-left group`}
                     >
                       <div className="flex justify-between items-center w-full mb-1">
                         <Typography
                           variant="mono"
-                          className="text-[10px] font-bold text-white/90 group-hover:text-cyber-green transition-colors uppercase"
+                          className="text-[10px] font-bold text-foreground/90 group-hover:text-cyber-green transition-colors uppercase"
                         >
                           {tool.name}
                         </Typography>
-                        <Plus size={10} className="text-white/40 group-hover:text-cyber-green" />
+                        <Plus size={10} className="text-muted group-hover:text-cyber-green" />
                       </div>
                       <Typography
                         variant="mono"
-                        className="text-[9px] line-clamp-2 leading-relaxed h-8 text-white/50 group-hover:text-white/70 transition-colors"
+                        className="text-[9px] line-clamp-2 leading-relaxed h-8 text-muted group-hover:text-foreground/70 transition-colors"
                       >
                         {tool.description}
                       </Typography>
@@ -188,7 +188,7 @@ export default function AgentToolsModal({
           </div>
         </div>
 
-        <footer className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center bg-black/20 shrink-0">
+        <footer className="mt-8 pt-6 border-t border-border flex justify-between items-center bg-background/20 shrink-0">
           <Typography variant="mono" color="muted" className="text-[10px] italic">
             {isUpdatingTools
               ? t('AGENTS_SYNC_NEURAL_PATHWAYS')

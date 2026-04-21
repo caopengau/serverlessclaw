@@ -45,13 +45,23 @@ export class ConfigManager {
   private static configCache = new Map<string, { value: unknown; expiresAt: number }>();
   private static readonly CACHE_TTL_MS = 60000; // 1 minute (60s)
 
+  private static _warnedMissingConfigTable = false;
+
   /**
    * Internal helper to safely get the ConfigTable name.
    */
   private static _getTableName(): string | undefined {
     try {
       const resource = Resource as unknown as SSTResource;
-      return resource.ConfigTable?.name;
+      const name = resource.ConfigTable?.name;
+      if (!name && !this._warnedMissingConfigTable) {
+        logger.warn(
+          '[ConfigManager] ConfigTable resource is not linked. ' +
+            'Ensure you are running with "sst dev" or have configured SST links correctly.'
+        );
+        this._warnedMissingConfigTable = true;
+      }
+      return name;
     } catch {
       return undefined;
     }

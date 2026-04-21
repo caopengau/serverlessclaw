@@ -48,14 +48,20 @@ export async function GET(req: NextRequest) {
         appInfo.stage = resource.App.stage || appInfo.stage;
       }
     } catch (e) {
-      logger.warn(
-        '[Config API] SST resources are not active or linked currently:',
-        (e as Error).message
-      );
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn(
+          '[Config API] SST resources are not active or linked currently. ' +
+            'This is common in local dev if not using "sst dev".'
+        );
+      } else {
+        logger.error('[Config API] SST resource link error:', e);
+      }
     }
 
     if (!realtimeUrl) {
-      logger.warn('[Config API] RealtimeBus is not linked or unavailable; using defaults');
+      logger.info(
+        '[Config API] RealtimeBus is not linked; realtime functionality will be unavailable.'
+      );
     }
 
     return NextResponse.json({

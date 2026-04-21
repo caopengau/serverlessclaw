@@ -51,13 +51,26 @@ export class BaseMemoryProvider {
     return this.docClient;
   }
 
+  private static _warnedMissingTable = false;
+
   /**
    * Resolves table name lazily.
    *
    * @returns The resolved table name string.
    */
   protected get tableName(): string {
-    return typedResource?.MemoryTable?.name ?? 'MemoryTable';
+    const name = typedResource?.MemoryTable?.name;
+    if (!name) {
+      if (!BaseMemoryProvider._warnedMissingTable) {
+        logger.warn(
+          '[BaseMemoryProvider] MemoryTable resource is not linked. Using default "MemoryTable". ' +
+            'Ensure you are running with "sst dev" or have configured SST links correctly.'
+        );
+        BaseMemoryProvider._warnedMissingTable = true;
+      }
+      return 'MemoryTable';
+    }
+    return name;
   }
 
   /**

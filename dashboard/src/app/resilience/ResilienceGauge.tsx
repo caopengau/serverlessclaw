@@ -41,46 +41,62 @@ export default function ResilienceGauge({
 
   return (
     <div className="flex flex-col items-center">
-      <svg width={size} height={size} className="transform -rotate-90">
-        {/* Background track */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke="rgba(255,255,255,0.05)"
-          strokeWidth={strokeWidth}
-        />
-        {/* Value arc */}
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          style={{
-            transition: 'stroke-dashoffset 1s ease-in-out, stroke 0.5s ease',
-            filter: `drop-shadow(0 0 6px ${glowColor})`,
-          }}
-        />
-      </svg>
-      {/* Center text */}
+      {/* Container for SVG and centered overlay text */}
       <div
-        className="absolute flex flex-col items-center justify-center"
+        className="relative flex items-center justify-center"
         style={{ width: size, height: size }}
       >
-        <span className="text-xl font-bold font-mono" style={{ color }}>
-          {Math.round(value)}%
-        </span>
+        <svg width={size} height={size} className="transform -rotate-90 block">
+          {/* Background track */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke="rgba(255,255,255,0.05)"
+            strokeWidth={strokeWidth}
+          />
+          {/* Value arc */}
+          <circle
+            cx={size / 2}
+            cy={size / 2}
+            r={radius}
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+            style={{
+              transition: 'stroke-dashoffset 1s ease-in-out, stroke 0.5s ease',
+              filter: `drop-shadow(0 0 6px ${glowColor})`,
+            }}
+          />
+        </svg>
+
+        {/* Center text overlay */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <div className="flex items-baseline">
+            <span className="text-2xl font-bold font-mono tracking-tighter" style={{ color }}>
+              {Math.round(value)}
+            </span>
+            <span className="text-[10px] font-bold ml-0.5 opacity-50 font-mono" style={{ color }}>
+              %
+            </span>
+          </div>
+        </div>
       </div>
-      {/* Label */}
-      <div className="mt-2 text-center">
-        <div className="text-[10px] font-bold text-white/70 uppercase tracking-wider">{label}</div>
-        {subtitle && <div className="text-[8px] text-white/30 mt-0.5">{subtitle}</div>}
+
+      {/* Label and Subtitle */}
+      <div className="mt-4 text-center">
+        <div className="text-[10px] font-bold text-white/70 uppercase tracking-[0.2em]">
+          {label}
+        </div>
+        {subtitle && (
+          <div className="text-[8px] text-white/30 mt-1 uppercase font-mono tracking-wider">
+            {subtitle}
+          </div>
+        )}
       </div>
     </div>
   );

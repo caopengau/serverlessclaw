@@ -369,8 +369,8 @@ export default function AgentsPage() {
 
   if (loading)
     return (
-      <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
-        <div className="flex items-center justify-center min-h-[400px] text-white/40">
+      <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-4">
+        <div className="flex items-center justify-center min-h-[400px] text-muted">
           <Typography
             variant="mono"
             color="intel"
@@ -384,7 +384,7 @@ export default function AgentsPage() {
     );
 
   return (
-    <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
+    <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-4">
       <CyberConfirm
         isOpen={confirmModal.isOpen}
         title={t('AGENTS_DECOMMISSION_TITLE')}
@@ -397,65 +397,83 @@ export default function AgentsPage() {
         titleKey="AGENTS_TITLE"
         subtitleKey="AGENTS_SUBTITLE"
         stats={
-          <div className="flex flex-col items-center">
-            <Typography
-              variant="mono"
-              color="muted"
-              className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
-            >
-              NODES
-            </Typography>
-            <Badge
-              variant="outline"
-              className="px-4 py-1 font-bold text-xs border-cyber-blue/20 text-cyber-blue/60 uppercase"
-            >
-              {totalLlmAgents}
-            </Badge>
+          <div className="flex items-center gap-6">
+            <div className="flex flex-col items-center">
+              <Typography
+                variant="mono"
+                color="muted"
+                className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
+              >
+                {t('AGENTS_SIGNAL')}
+              </Typography>
+              <div
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] uppercase tracking-widest font-bold border transition-all duration-500 ${
+                  isConnected
+                    ? 'bg-cyber-green/10 text-cyber-green border-cyber-green/20'
+                    : 'bg-red-500/10 text-red-500 border-red-500/20'
+                }`}
+              >
+                <Radio size={10} className={isConnected ? 'animate-pulse' : ''} />
+                {isConnected ? t('AGENTS_SIGNAL_ACTIVE') : t('AGENTS_SIGNAL_DISCONNECTED')}
+              </div>
+            </div>
+            <div className="flex flex-col items-center min-w-[60px]">
+              <Typography
+                variant="mono"
+                color="muted"
+                className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
+              >
+                {t('AGENTS_NODES')}
+              </Typography>
+              <Badge
+                variant="outline"
+                className="px-4 py-1 font-bold text-xs border-cyber-blue/20 text-cyber-blue/60 uppercase"
+              >
+                {totalLlmAgents}
+              </Badge>
+            </div>
           </div>
         }
-      >
-        <div className="flex flex-wrap gap-4 items-end">
-          <div
-            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] uppercase tracking-widest font-bold ${isConnected ? 'bg-cyber-green/10 text-cyber-green border border-cyber-green/20' : 'bg-red-500/10 text-red-500 border border-red-500/20'}`}
-          >
-            <Radio size={10} className={isConnected ? 'animate-pulse' : ''} />
-            {isConnected ? t('AGENTS_SIGNAL_ACTIVE') : t('AGENTS_SIGNAL_DISCONNECTED')}
+      />
+
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border rounded-lg p-3 backdrop-blur-sm">
+        <div className="relative w-full md:w-96 group">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-cyber-blue transition-colors">
+            <Search size={14} />
           </div>
-          <div className="relative w-64 group">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-cyan-400 transition-colors">
-              <Search size={14} />
-            </div>
-            <input
-              type="text"
-              placeholder="Search nodes..."
-              value={agentSearchQuery}
-              onChange={(e) => setAgentSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border border-white/5 rounded h-[34px] pl-9 pr-3 text-xs font-mono text-white placeholder:text-white/20 focus:outline-none focus:border-cyan-400/30 focus:bg-white/[0.08] transition-all"
-            />
-          </div>
+          <input
+            type="text"
+            placeholder={t('AGENTS_SEARCH_PLACEHOLDER') || 'Search nodes...'}
+            value={agentSearchQuery}
+            onChange={(e) => setAgentSearchQuery(e.target.value)}
+            className="w-full bg-background/40 border border-border rounded h-[36px] pl-9 pr-3 text-xs font-mono text-foreground placeholder:text-muted focus:outline-none focus:border-cyber-blue/30 focus:bg-background/80 transition-all"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
           <Button
             onClick={syncRegistry}
             variant="outline"
             size="sm"
             disabled={refreshingTools}
             icon={<RefreshCw size={14} className={refreshingTools ? 'animate-spin' : ''} />}
-            className="h-[34px] uppercase font-black tracking-widest border-white/5 hover:bg-white/5"
+            className="h-[36px] uppercase font-black tracking-widest border-border hover:bg-card text-[10px]"
           >
             {refreshingTools ? t('AGENTS_SYNCING') : t('AGENTS_SYNC_REGISTRY')}
           </Button>
           <Button
             onClick={addAgent}
-            variant="outline"
+            variant="primary"
             size="sm"
             icon={<Plus size={14} />}
-            className="h-[34px] uppercase font-black tracking-widest"
+            className="h-[36px] uppercase font-black tracking-widest text-[10px]"
           >
             {t('AGENTS_NEW_AGENT')}
           </Button>
         </div>
-      </PageHeader>
+      </div>
 
-      <div className="max-w-6xl space-y-8 pb-20">
+      <div className="max-w-6xl pb-20">
         <AgentTable
           agents={filteredAgents}
           reputation={reputation}
@@ -471,13 +489,13 @@ export default function AgentsPage() {
 
       {/* Backbone Warning Modal */}
       {showBackboneWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm animate-in fade-in duration-300">
           <Card
             variant="solid"
             padding="lg"
-            className="border-2 border-red-500/50 max-w-lg w-full shadow-[0_0_50px_rgba(239,68,68,0.2)] space-y-6"
+            className="border-2 border-danger max-w-lg w-full shadow-premium space-y-6"
           >
-            <div className="flex items-center gap-4 text-red-500">
+            <div className="flex items-center gap-4 text-danger">
               <Shield size={32} className="animate-pulse" />
               <Typography variant="h3" color="danger" weight="black" uppercase className="italic">
                 {t('AGENTS_CRITICAL_MODIFICATION')}
@@ -485,20 +503,18 @@ export default function AgentsPage() {
             </div>
 
             <div className="space-y-4 font-mono text-[11px] leading-relaxed">
-              <p className="text-white/80">
-                <span className="text-red-500 font-bold">
-                  {t('AGENTS_BACKBONE_MODIFY_WARNING')}
-                </span>
+              <p className="text-muted-more">
+                <span className="text-danger font-bold">{t('AGENTS_BACKBONE_MODIFY_WARNING')}</span>
               </p>
-              <div className="bg-red-500/5 border border-red-500/20 p-3 rounded">
+              <div className="bg-danger/5 border border-danger/20 p-3 rounded">
                 {backboneChanges.map((name) => (
-                  <div key={name} className="text-red-400 font-bold">
+                  <div key={name} className="text-danger font-bold">
                     {t('AGENTS_DETECTED_CHANGE').replace('{name}', name)}
                   </div>
                 ))}
               </div>
-              <p className="text-white/60">{t('AGENTS_BACKBONE_WARNING_TEXT')}</p>
-              <p className="text-white font-bold italic border-l-2 border-red-500 pl-3">
+              <p className="text-muted">{t('AGENTS_BACKBONE_WARNING_TEXT')}</p>
+              <p className="font-bold italic border-l-2 border-danger pl-3">
                 {t('AGENTS_BACKBONE_RESPONSIBILITY')}
               </p>
             </div>
@@ -510,7 +526,7 @@ export default function AgentsPage() {
                 size="lg"
                 uppercase
                 fullWidth
-                className="shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:scale-[1.02]"
+                className="shadow-premium hover:scale-[1.02]"
               >
                 {t('AGENTS_I_UNDERSTAND_PROCEED')}
               </Button>
@@ -520,7 +536,7 @@ export default function AgentsPage() {
                 size="md"
                 uppercase
                 fullWidth
-                className="text-white/60"
+                className="text-muted"
               >
                 {t('AGENTS_ABORT_MODIFICATION')}
               </Button>

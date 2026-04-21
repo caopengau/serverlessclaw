@@ -230,10 +230,9 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
  * Retrieves chat sessions or history
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
+  const userId = getUserId(req);
+  const sessionId = req.nextUrl.searchParams.get('sessionId');
   try {
-    const userId = getUserId(req);
-    const sessionId = req.nextUrl.searchParams.get('sessionId');
-
     if (sessionId) {
       const history = await memory.getHistory(`CONV#${userId}#${sessionId}`);
       return NextResponse.json({ history });
@@ -241,7 +240,15 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       const sessions = await memory.listConversations(userId);
       return NextResponse.json({ sessions });
     }
-  } catch {
-    return NextResponse.json({ error: 'Failed to fetch sessions' }, { status: 500 });
+  } catch (error) {
+    logger.error(
+      `[Chat API] GET Fatal Error: ${error instanceof Error ? error.message : String(error)}`,
+      {
+        stack: error instanceof Error ? error.stack : undefined,
+        userId,
+        sessionId,
+      }
+    );
+    return NextResponse.json({ error: 'Failed to fetch sessions or history' }, { status: 500 });
   }
 }

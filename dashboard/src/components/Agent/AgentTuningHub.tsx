@@ -80,8 +80,8 @@ export default function AgentTuningHub({
   return (
     <div className="space-y-8">
       {/* Error Distribution */}
-      <Card variant="glass" className="overflow-hidden border-white/5">
-        <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+      <Card variant="glass" className="overflow-hidden border-border">
+        <div className="p-4 border-b border-border bg-card flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertTriangle size={18} className="text-red-500" />
             <Typography variant="mono" weight="bold" uppercase className="text-xs tracking-widest">
@@ -89,7 +89,7 @@ export default function AgentTuningHub({
             </Typography>
           </div>
         </div>
-        <div className="p-4 bg-black/40">
+        <div className="p-4 bg-background/40">
           {errorData.length > 0 ? (
             <div className="h-[150px]">
               <ResponsiveContainer width="100%" height="100%">
@@ -98,18 +98,20 @@ export default function AgentTuningHub({
                   <YAxis
                     dataKey="name"
                     type="category"
-                    stroke="#ffffff40"
+                    stroke="currentColor"
+                    className="text-muted"
                     fontSize={9}
                     width={80}
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#111',
-                      border: '1px solid #ffffff10',
+                      backgroundColor: 'var(--card-bg-elevated)',
+                      border: '1px solid var(--card-border)',
                       borderRadius: '4px',
                       fontSize: '11px',
+                      color: 'var(--foreground)',
                     }}
-                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                    cursor={{ fill: 'var(--card-bg)' }}
                   />
                   <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                     {errorData.map((entry, index) => (
@@ -120,7 +122,7 @@ export default function AgentTuningHub({
               </ResponsiveContainer>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-6 text-white/20">
+            <div className="flex flex-col items-center justify-center py-6 text-muted-more">
               <CheckCircle size={32} className="mb-2 opacity-10" />
               <Typography variant="caption" color="muted">
                 No failure telemetry recorded.
@@ -131,7 +133,7 @@ export default function AgentTuningHub({
         {lastTraceId && (
           <Link
             href={`/trace/${lastTraceId}`}
-            className="block p-3 border-t border-white/5 bg-red-500/[0.03] hover:bg-red-500/10 transition-colors"
+            className="block p-3 border-t border-border bg-red-500/[0.03] hover:bg-red-500/10 transition-colors"
           >
             <div className="flex items-center justify-between">
               <Typography
@@ -153,7 +155,7 @@ export default function AgentTuningHub({
             <Target size={20} className="text-cyber-blue" />
           </div>
           <div>
-            <Typography variant="h3" weight="bold" color="white" className="mb-1">
+            <Typography variant="h3" weight="bold" className="mb-1">
               Evolution sandbox
             </Typography>
             <Typography variant="caption" color="muted" className="leading-relaxed block">
@@ -175,7 +177,7 @@ export default function AgentTuningHub({
           </Button>
         ) : (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="p-4 bg-black/60 rounded border border-white/10 space-y-3">
+            <div className="p-4 bg-background/60 rounded border border-border space-y-3">
               <div className="flex items-center justify-between">
                 <Badge
                   variant="outline"
@@ -193,29 +195,23 @@ export default function AgentTuningHub({
 
               <div className="space-y-4">
                 <div>
-                  <Typography
-                    variant="mono"
-                    className="text-[9px] text-white/40 uppercase block mb-1"
-                  >
+                  <Typography variant="mono" className="text-[9px] text-muted uppercase block mb-1">
                     Root Cause
                   </Typography>
-                  <Typography variant="caption" color="white" className="italic leading-relaxed">
+                  <Typography variant="caption" className="italic leading-relaxed">
                     &ldquo;{suggestions.rootCause}&rdquo;
                   </Typography>
                 </div>
 
                 <div>
-                  <Typography
-                    variant="mono"
-                    className="text-[9px] text-white/40 uppercase block mb-2"
-                  >
+                  <Typography variant="mono" className="text-[9px] text-muted uppercase block mb-2">
                     Remediation Steps
                   </Typography>
                   <ul className="space-y-2">
                     {suggestions.suggestions.map((s, i) => (
                       <li
                         key={i}
-                        className="flex items-start gap-2 text-[11px] text-white/70 leading-relaxed font-mono"
+                        className="flex items-start gap-2 text-[11px] text-foreground/70 leading-relaxed font-mono"
                       >
                         <Zap size={10} className="text-yellow-400 mt-1 flex-shrink-0" />
                         {s}
@@ -229,7 +225,7 @@ export default function AgentTuningHub({
             {suggestions.improvedPromptSnippet && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between px-1">
-                  <Typography variant="mono" className="text-[9px] text-white/40 uppercase">
+                  <Typography variant="mono" className="text-[9px] text-muted uppercase">
                     Optimized Directive
                   </Typography>
                   <button
@@ -239,7 +235,7 @@ export default function AgentTuningHub({
                     <Copy size={12} />
                   </button>
                 </div>
-                <div className="p-3 bg-black/80 rounded border border-white/5 font-mono text-[10px] text-cyber-blue/80 max-h-[150px] overflow-y-auto">
+                <div className="p-3 bg-background/80 rounded border border-border font-mono text-[10px] text-cyber-blue/80 max-h-[150px] overflow-y-auto">
                   {suggestions.improvedPromptSnippet}
                 </div>
               </div>

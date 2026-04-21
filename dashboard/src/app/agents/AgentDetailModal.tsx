@@ -94,15 +94,17 @@ export default function AgentDetailModal({
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-4xl max-h-[85vh] overflow-y-auto bg-[#0a0a0a] border border-white/10 rounded-lg shadow-xl">
+      <div className="relative w-full max-w-4xl max-h-[85vh] overflow-y-auto bg-background border border-border rounded-lg shadow-xl">
         {/* Header */}
-        <div className="sticky top-0 z-10 bg-[#0a0a0a] border-b border-white/10 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 z-10 bg-background border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div
               className={`p-2 rounded ${
-                agent.isBackbone ? 'bg-cyan-500/20 text-cyan-400' : 'bg-white/5 text-white'
+                agent.isBackbone
+                  ? 'bg-cyber-blue/10 text-cyber-blue'
+                  : 'bg-background/40 text-foreground'
               }`}
             >
               {isLogicOnly ? (
@@ -117,7 +119,7 @@ export default function AgentDetailModal({
               <input
                 value={agent.name}
                 onChange={(e) => updateAgent(agent.id, { name: e.target.value })}
-                className="bg-transparent border-none text-white font-bold outline-none focus:ring-1 focus:ring-white/20 rounded px-1 text-base uppercase tracking-tight"
+                className="bg-transparent border-none text-foreground font-bold outline-none focus:ring-1 focus:ring-border rounded px-1 text-base uppercase tracking-tight"
               />
               <Typography variant="mono" color="muted" className="text-[10px] opacity-50">
                 {agent.id}
@@ -136,7 +138,7 @@ export default function AgentDetailModal({
           </div>
           <button
             onClick={onClose}
-            className="text-white/40 hover:text-white transition-colors p-1"
+            className="text-muted-more hover:text-foreground transition-colors p-1"
           >
             <X size={18} />
           </button>
@@ -161,7 +163,7 @@ export default function AgentDetailModal({
                 <Card
                   variant="solid"
                   padding="md"
-                  className="w-full text-[10px] text-white/40 font-mono italic leading-relaxed min-h-[200px]"
+                  className="w-full text-[10px] text-muted font-mono italic leading-relaxed min-h-[200px]"
                 >
                   {t('AGENTS_LOGIC_ONLY_DESC')}
                   <br />
@@ -169,7 +171,6 @@ export default function AgentDetailModal({
                   <Typography
                     variant="mono"
                     weight="bold"
-                    color="white"
                     uppercase
                     className="flex items-center gap-2 mt-4 opacity-60"
                   >
@@ -180,7 +181,7 @@ export default function AgentDetailModal({
                 <textarea
                   value={agent.systemPrompt}
                   onChange={(e) => updateAgent(agent.id, { systemPrompt: e.target.value })}
-                  className="w-full bg-black/40 border border-white/10 rounded p-4 text-xs text-white/90 font-mono min-h-[280px] outline-none focus:border-cyan-400/40 transition-all leading-relaxed custom-scrollbar"
+                  className="w-full bg-background/40 border border-border rounded p-4 text-xs text-foreground/90 font-mono min-h-[280px] outline-none focus:border-cyber-blue transition-all leading-relaxed custom-scrollbar"
                   placeholder={t('AGENTS_SYSTEM_INSTRUCTIONS_PLACEHOLDER')}
                 />
               )}
@@ -204,7 +205,6 @@ export default function AgentDetailModal({
                       <Typography
                         variant="mono"
                         weight="bold"
-                        color="white"
                         uppercase
                         className="text-[9px] opacity-60"
                       >
@@ -227,7 +227,6 @@ export default function AgentDetailModal({
                       <Typography
                         variant="mono"
                         weight="bold"
-                        color="white"
                         uppercase
                         className="text-[9px] opacity-60"
                       >
@@ -256,7 +255,6 @@ export default function AgentDetailModal({
                       <Typography
                         variant="mono"
                         weight="bold"
-                        color="white"
                         uppercase
                         className="text-[9px] opacity-60"
                       >
@@ -273,7 +271,11 @@ export default function AgentDetailModal({
                 </Card>
               )}
 
-              <Card variant="solid" padding="sm" className="border-cyan-400/10 bg-cyan-400/[0.02]">
+              <Card
+                variant="solid"
+                padding="sm"
+                className="border-cyber-blue/10 bg-cyber-blue/[0.02]"
+              >
                 <Typography
                   variant="caption"
                   weight="bold"
@@ -283,7 +285,7 @@ export default function AgentDetailModal({
                 >
                   <ChevronRight size={12} /> {t('AGENTS_EXECUTION_CONTEXT')}
                 </Typography>
-                <Typography variant="caption" color="white" className="italic block opacity-70">
+                <Typography variant="caption" className="italic block opacity-70">
                   Agent Type:{' '}
                   {agent.isBackbone ? t('AGENTS_PERSISTENT_BACKBONE') : t('AGENTS_DYNAMIC_SPOKE')}.
                   {isLogicOnly
@@ -293,11 +295,10 @@ export default function AgentDetailModal({
               </Card>
 
               {reputation && reputation[agent.id] && (
-                <Card variant="solid" padding="sm" className="border-white/10">
+                <Card variant="solid" padding="sm" className="border-border">
                   <Typography
                     variant="caption"
                     weight="bold"
-                    color="white"
                     uppercase
                     className="flex items-center gap-2 mb-3"
                   >
@@ -305,12 +306,14 @@ export default function AgentDetailModal({
                   </Typography>
                   <div className="space-y-2 font-mono text-[10px]">
                     <div className="flex justify-between">
-                      <span className="text-white/40 uppercase">{t('AGENTS_TASKS_COMPLETED')}</span>
-                      <span className="text-white/80">{reputation[agent.id].tasksCompleted}</span>
+                      <span className="text-muted uppercase">{t('AGENTS_TASKS_COMPLETED')}</span>
+                      <span className="text-foreground/80">
+                        {reputation[agent.id].tasksCompleted}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-white/40 uppercase">{t('AGENTS_TASKS_FAILED')}</span>
-                      <span className="text-white/80">{reputation[agent.id].tasksFailed}</span>
+                      <span className="text-muted uppercase">{t('AGENTS_TASKS_FAILED')}</span>
+                      <span className="text-foreground/80">{reputation[agent.id].tasksFailed}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-white/40 uppercase">{t('AGENTS_SUCCESS_RATE')}</span>
@@ -327,8 +330,8 @@ export default function AgentDetailModal({
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-white/40 uppercase">{t('AGENTS_AVG_LATENCY')}</span>
-                      <span className="text-white/80">
+                      <span className="text-muted uppercase">{t('AGENTS_AVG_LATENCY')}</span>
+                      <span className="text-foreground/80">
                         {reputation[agent.id].avgLatencyMs.toFixed(0)}ms
                       </span>
                     </div>
@@ -340,7 +343,7 @@ export default function AgentDetailModal({
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 z-10 bg-[#0a0a0a] border-t border-white/10 px-6 py-4 flex items-center justify-between">
+        <div className="sticky bottom-0 z-10 bg-background border-t border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Button
               onClick={onSave}
@@ -357,7 +360,7 @@ export default function AgentDetailModal({
               variant="outline"
               size="sm"
               onClick={() => onOpenTools(agent.id)}
-              className="text-white/50 hover:text-green-400 p-2 flex items-center gap-2"
+              className="text-muted hover:text-cyber-green p-2 flex items-center gap-2"
             >
               <Wrench size={14} />
               <span className="text-[10px] font-bold uppercase tracking-widest">
@@ -370,9 +373,8 @@ export default function AgentDetailModal({
               <Typography
                 variant="caption"
                 weight="bold"
-                color="white"
                 uppercase
-                className="text-xs group-hover:text-green-400 transition-colors"
+                className="text-xs group-hover:text-cyber-green transition-colors"
               >
                 {t('AGENTS_STATUS_ACTIVE')}
               </Typography>
@@ -384,7 +386,7 @@ export default function AgentDetailModal({
                   onChange={(e) => updateAgent(agent.id, { enabled: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-10 h-5 bg-white/5 rounded-full peer peer-checked:bg-green-500/30 relative transition-all border border-white/5 overflow-hidden after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white/40 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:toggle-move peer-checked:after:bg-green-400 peer-checked:after:shadow-[0_0_8px_rgba(0,255,163,0.8)] shadow-inner" />
+                <div className="w-10 h-5 bg-background/40 rounded-full peer peer-checked:bg-cyber-green/30 relative transition-all border border-border overflow-hidden after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-muted-more after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:toggle-move peer-checked:after:bg-cyber-green peer-checked:after:shadow-[0_0_8px_rgba(0,255,163,0.8)] shadow-inner" />
               </div>
             </label>
           </div>
@@ -393,7 +395,7 @@ export default function AgentDetailModal({
               variant="ghost"
               size="sm"
               onClick={() => onDelete(agent.id)}
-              className="text-white/50 hover:text-red-500"
+              className="text-muted-more hover:text-red-500"
               icon={<Trash2 size={14} />}
             >
               {t('COMMON_DELETE')}

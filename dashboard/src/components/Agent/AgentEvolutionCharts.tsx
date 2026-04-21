@@ -57,13 +57,13 @@ export default function AgentEvolutionCharts({
       <div className="space-y-6">
         <Card
           variant="glass"
-          className="h-[300px] flex items-center justify-center border-white/5 animate-pulse"
+          className="h-[300px] flex items-center justify-center border-border animate-pulse"
         >
           <RefreshCw className="animate-spin text-cyber-blue opacity-20" size={24} />
         </Card>
         <Card
           variant="glass"
-          className="h-[200px] flex items-center justify-center border-white/5 animate-pulse"
+          className="h-[200px] flex items-center justify-center border-border animate-pulse"
         >
           <RefreshCw className="animate-spin text-cyber-blue opacity-20" size={24} />
         </Card>
@@ -81,24 +81,24 @@ export default function AgentEvolutionCharts({
   return (
     <div className="space-y-8">
       {/* Success Rate Chart */}
-      <Card variant="glass" className="overflow-hidden border-white/5">
-        <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+      <Card variant="glass" className="overflow-hidden border-border">
+        <div className="p-4 border-b border-border bg-card flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp size={18} className="text-cyber-green" />
             <Typography variant="mono" weight="bold" uppercase className="text-xs tracking-widest">
               Success Evolution
             </Typography>
           </div>
-          <div className="flex bg-black/40 rounded p-0.5 border border-white/5">
+          <div className="flex bg-background/40 rounded p-0.5 border border-border">
             <button
               onClick={() => setGrain('hourly')}
-              className={`px-3 py-1 text-[9px] uppercase font-bold rounded transition-all ${grain === 'hourly' ? 'bg-cyber-blue text-black' : 'text-white/40 hover:text-white'}`}
+              className={`px-3 py-1 text-[9px] uppercase font-bold rounded transition-all ${grain === 'hourly' ? 'bg-cyber-blue text-white' : 'text-muted-more hover:text-foreground'}`}
             >
               Hourly
             </button>
             <button
               onClick={() => setGrain('daily')}
-              className={`px-3 py-1 text-[9px] uppercase font-bold rounded transition-all ${grain === 'daily' ? 'bg-cyber-blue text-black' : 'text-white/40 hover:text-white'}`}
+              className={`px-3 py-1 text-[9px] uppercase font-bold rounded transition-all ${grain === 'daily' ? 'bg-cyber-blue text-white' : 'text-muted-more hover:text-foreground'}`}
             >
               Daily
             </button>
@@ -113,16 +113,23 @@ export default function AgentEvolutionCharts({
                   <stop offset="95%" stopColor="#00FFB2" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="currentColor"
+                className="text-border"
+                vertical={false}
+              />
               <XAxis
                 dataKey={grain === 'hourly' ? 'timeLabel' : 'dateLabel'}
-                stroke="#ffffff20"
+                stroke="currentColor"
+                className="text-muted"
                 fontSize={10}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                stroke="#ffffff20"
+                stroke="currentColor"
+                className="text-muted"
                 fontSize={10}
                 tickLine={false}
                 axisLine={false}
@@ -131,10 +138,11 @@ export default function AgentEvolutionCharts({
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#111',
-                  border: '1px solid #ffffff10',
+                  backgroundColor: 'var(--card-bg-elevated)',
+                  border: '1px solid var(--card-border)',
                   borderRadius: '4px',
                   fontSize: '11px',
+                  color: 'var(--foreground)',
                 }}
                 itemStyle={{ color: '#00FFB2' }}
               />
@@ -154,8 +162,8 @@ export default function AgentEvolutionCharts({
       </Card>
 
       {/* Latency Chart */}
-      <Card variant="glass" className="overflow-hidden border-white/5">
-        <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+      <Card variant="glass" className="overflow-hidden border-border">
+        <div className="p-4 border-b border-border bg-card flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Clock size={18} className="text-cyber-blue" />
             <Typography variant="mono" weight="bold" uppercase className="text-xs tracking-widest">
@@ -166,16 +174,23 @@ export default function AgentEvolutionCharts({
         <div className="p-6 h-[200px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="currentColor"
+                className="text-border"
+                vertical={false}
+              />
               <XAxis
                 dataKey={grain === 'hourly' ? 'timeLabel' : 'dateLabel'}
-                stroke="#ffffff20"
+                stroke="currentColor"
+                className="text-muted"
                 fontSize={10}
                 tickLine={false}
                 axisLine={false}
               />
               <YAxis
-                stroke="#ffffff20"
+                stroke="currentColor"
+                className="text-muted"
                 fontSize={10}
                 tickLine={false}
                 axisLine={false}
@@ -183,10 +198,11 @@ export default function AgentEvolutionCharts({
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#111',
-                  border: '1px solid #ffffff10',
+                  backgroundColor: 'var(--card-bg-elevated)',
+                  border: '1px solid var(--card-border)',
                   borderRadius: '4px',
                   fontSize: '11px',
+                  color: 'var(--foreground)',
                 }}
                 itemStyle={{ color: '#00F3FF' }}
               />

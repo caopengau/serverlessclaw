@@ -34,9 +34,9 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
 
   if (!config) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-white/40">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-muted-more">
         <AlertTriangle size={48} className="mb-4 text-red-500" />
-        <Typography variant="h2" weight="bold" color="white">
+        <Typography variant="h2" weight="bold">
           Agent Not Found
         </Typography>
         <Link href="/agents" className="mt-4 text-cyber-blue hover:underline">
@@ -56,7 +56,6 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
         <Link href="/agents" className="group">
           <Typography
             variant="caption"
-            color="white"
             weight="bold"
             className="flex items-center gap-2 mb-6 hover:text-cyber-green transition-colors"
           >
@@ -65,7 +64,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
           </Typography>
         </Link>
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-border pb-8">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-cyber-blue/10 border border-cyber-blue/20 flex items-center justify-center shadow-[0_0_30px_rgba(0,243,255,0.1)]">
               <Bot size={32} className="text-cyber-blue" />
@@ -99,7 +98,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
           <div className="flex gap-4">
             <Card
               variant="glass"
-              className="px-4 py-2 border-white/5 bg-white/[0.02] flex items-center gap-3"
+              className="px-4 py-2 border-border bg-card flex items-center gap-3"
             >
               <TrendingUp size={16} className="text-cyber-green" />
               <div>
@@ -110,14 +109,14 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
                 >
                   Success Rate
                 </Typography>
-                <Typography variant="mono" weight="bold" color="white" className="text-sm">
+                <Typography variant="mono" weight="bold" className="text-sm">
                   {(successRate * 100).toFixed(1)}%
                 </Typography>
               </div>
             </Card>
             <Card
               variant="glass"
-              className="px-4 py-2 border-white/5 bg-white/[0.02] flex items-center gap-3"
+              className="px-4 py-2 border-border bg-card flex items-center gap-3"
             >
               <Zap size={16} className="text-yellow-400" />
               <div>
@@ -128,14 +127,14 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
                 >
                   Avg Latency
                 </Typography>
-                <Typography variant="mono" weight="bold" color="white" className="text-sm">
+                <Typography variant="mono" weight="bold" className="text-sm">
                   {avgLatency.toFixed(0)}ms
                 </Typography>
               </div>
             </Card>
             <Card
               variant="glass"
-              className="px-4 py-2 border-white/5 bg-white/[0.02] flex items-center gap-3"
+              className="px-4 py-2 border-border bg-card flex items-center gap-3"
             >
               <History size={16} className="text-cyber-blue" />
               <div>
@@ -146,7 +145,7 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
                 >
                   Total Tasks
                 </Typography>
-                <Typography variant="mono" weight="bold" color="white" className="text-sm">
+                <Typography variant="mono" weight="bold" className="text-sm">
                   {totalTasks}
                 </Typography>
               </div>
@@ -160,8 +159,8 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
         <div className="lg:col-span-2 space-y-8">
           <AgentEvolutionCharts agentId={id} currentVersion={config.version || 1} />
 
-          <Card variant="glass" className="overflow-hidden border-white/5">
-            <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
+          <Card variant="glass" className="overflow-hidden border-border">
+            <div className="p-4 border-b border-border bg-card flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Settings size={18} className="text-cyber-blue" />
                 <Typography
@@ -174,8 +173,8 @@ export default async function AgentDetailPage({ params }: { params: Promise<{ id
                 </Typography>
               </div>
             </div>
-            <div className="p-6 bg-black/40">
-              <pre className="text-xs font-mono text-white/80 whitespace-pre-wrap leading-relaxed">
+            <div className="p-6 bg-background/40">
+              <pre className="text-xs font-mono text-foreground/80 whitespace-pre-wrap leading-relaxed">
                 {config.systemPrompt}
               </pre>
             </div>
