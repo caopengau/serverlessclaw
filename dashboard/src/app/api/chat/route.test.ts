@@ -124,7 +124,9 @@ describe('Dashboard API: POST /api/chat', () => {
   });
 
   it('passes sessionId and traceId to agent.stream', async () => {
-    async function* fakeStream() { yield { content: 'done' }; }
+    async function* fakeStream() {
+      yield { content: 'done' };
+    }
     mockStream.mockReturnValue(fakeStream());
 
     const { POST } = await import('./route');
@@ -139,7 +141,9 @@ describe('Dashboard API: POST /api/chat', () => {
 
   it('saves conversation meta with truncated final response', async () => {
     const longContent = 'A'.repeat(100);
-    async function* fakeStream() { yield { content: longContent }; }
+    async function* fakeStream() {
+      yield { content: longContent };
+    }
     mockStream.mockReturnValue(fakeStream());
 
     const { POST } = await import('./route');

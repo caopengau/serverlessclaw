@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual, createHash } from 'crypto';
 
 /**
  * Verifies an HMAC signature for a webhook payload in a timing-safe manner.
@@ -54,6 +54,5 @@ export function verifySecret(provided: string, expected: string): boolean {
  * @returns The hex representation of the hash.
  */
 export function hashString(input: string): string {
-  const { createHash } = require('crypto');
   return createHash('sha256').update(input).digest('hex');
 }

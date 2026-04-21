@@ -81,9 +81,7 @@ export default function StepDetailPanel({ selectedStep, onClose }: StepDetailPan
                     key={idx}
                     className="p-2 bg-white/[0.02] border border-white/5 rounded text-[11px] font-mono"
                   >
-                    <div className="text-cyber-blue/60 mb-1 text-[9px] font-bold">
-                      [{msg.role}]
-                    </div>
+                    <div className="text-cyber-blue/60 mb-1 text-[9px] font-bold">[{msg.role}]</div>
                     <div className="text-white/80 whitespace-pre-wrap leading-relaxed">
                       {msg.content}
                     </div>
@@ -521,9 +519,7 @@ export default function StepDetailPanel({ selectedStep, onClose }: StepDetailPan
           color="muted"
           className="text-[7px] tracking-widest italic opacity-40"
         >
-          {selectedStep.timestamp
-            ? new Date(selectedStep.timestamp).toLocaleTimeString()
-            : ''}
+          {selectedStep.timestamp ? new Date(selectedStep.timestamp).toLocaleTimeString() : ''}
         </Typography>
       </footer>
     </div>

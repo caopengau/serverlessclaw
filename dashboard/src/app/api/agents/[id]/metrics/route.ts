@@ -12,10 +12,7 @@ export const dynamic = 'force-dynamic';
  *  - grain: 'hourly' | 'daily' (default: 'hourly')
  *  - days: number (default: 7)
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { searchParams } = new URL(request.url);
   const grain = searchParams.get('grain') === 'daily' ? 'DAY' : 'HOUR';
@@ -27,7 +24,7 @@ export async function GET(
     const startTime = now - days * TIME.MS_PER_DAY;
 
     const pk = `METRIC#${grain}#${id}`;
-    
+
     // Query metrics within the requested window
     const items = await memory.queryItems({
       KeyConditionExpression: 'userId = :pk AND #ts BETWEEN :start AND :end',
@@ -40,7 +37,7 @@ export async function GET(
       ScanIndexForward: true,
     });
 
-    const metrics = (items as any[]).map((item) => {
+    const metrics = ((items || []) as Array<Record<string, unknown>>).map((item) => {
       const successCount = (item.successCount as number) ?? 0;
       const failureCount = (item.failureCount as number) ?? 0;
       const totalDurationMs = (item.totalDurationMs as number) ?? 0;

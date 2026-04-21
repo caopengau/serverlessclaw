@@ -241,7 +241,6 @@ export default function AgentTable({
           </table>
         </div>
       </div>
-
     </>
   );
 }

@@ -31,7 +31,7 @@ export default function PlanView() {
         // In a real scenario, we might fetch the specific plan for an active gap.
         // For the summary view, we fetch the most recent one.
         const res = await fetch('/api/memory/gap/metrics'); // Hypothetical or reuse existing
-        // For now, we'll keep it simple: if no plan is explicitly passed, 
+        // For now, we'll keep it simple: if no plan is explicitly passed,
         // this view remains a placeholder or shows "Select a gap to view plan"
       } catch (err) {
         console.error('Failed to load summary plan:', err);
@@ -47,8 +47,8 @@ export default function PlanView() {
       <section className="bg-card/80 backdrop-blur-xl border border-border rounded-xl overflow-hidden glass-card opacity-50 transition-opacity hover:opacity-100">
         <div className="py-3 px-6 flex items-center justify-between text-[10px] text-muted-more uppercase font-bold tracking-widest">
           <div className="flex items-center gap-3">
-             <GitCommit size={14} className="text-muted-more/40" />
-             <span>Authorize a plan to see decomposition</span>
+            <GitCommit size={14} className="text-muted-more/40" />
+            <span>Authorize a plan to see decomposition</span>
           </div>
         </div>
       </section>
@@ -59,11 +59,7 @@ export default function PlanView() {
     <section className="bg-card/90 backdrop-blur-xl border border-border rounded-xl overflow-hidden shadow-premium">
       {expanded && (
         <div className="max-h-[65vh] overflow-y-auto border-b border-border custom-scrollbar">
-          <PlanDecompositionTree
-            planId={plan.planId}
-            title={plan.title}
-            subTasks={plan.subTasks}
-          />
+          <PlanDecompositionTree planId={plan.planId} title={plan.title} subTasks={plan.subTasks} />
         </div>
       )}
 

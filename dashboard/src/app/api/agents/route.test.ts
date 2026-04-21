@@ -17,12 +17,22 @@ vi.mock('@aws-sdk/client-dynamodb', () => ({
 
 vi.mock('@aws-sdk/lib-dynamodb', () => ({
   DynamoDBDocumentClient: { from: () => ({ send: mockSend }) },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  PutCommand: class { constructor(public p: any) { Object.assign(this, p); } },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  UpdateCommand: class { constructor(public p: any) { Object.assign(this, p); } },
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  DeleteCommand: class { constructor(public p: any) { Object.assign(this, p); } },
+
+  PutCommand: class {
+    constructor(public p: Record<string, unknown>) {
+      Object.assign(this, p);
+    }
+  },
+  UpdateCommand: class {
+    constructor(public p: Record<string, unknown>) {
+      Object.assign(this, p);
+    }
+  },
+  DeleteCommand: class {
+    constructor(public p: Record<string, unknown>) {
+      Object.assign(this, p);
+    }
+  },
 }));
 
 vi.mock('@claw/core/lib/registry/index', () => ({
@@ -82,8 +92,8 @@ describe('Agents API Route', () => {
       const { POST } = await import('./route');
       const req = new NextRequest('http://localhost/api/agents', {
         method: 'POST',
-        body: JSON.stringify({ 
-          agents: [{ id: 'test', name: 'Test Agent', systemPrompt: 'You are a test.' }] 
+        body: JSON.stringify({
+          agents: [{ id: 'test', name: 'Test Agent', systemPrompt: 'You are a test.' }],
         }),
       });
       const res = await POST(req);
@@ -113,7 +123,9 @@ describe('Agents API Route', () => {
       const { POST } = await import('./route');
       const req = new NextRequest('http://localhost/api/agents', {
         method: 'POST',
-        body: JSON.stringify({ agents: [{ id: 'error-trigger', name: 'Trigger', systemPrompt: 'X' }] }),
+        body: JSON.stringify({
+          agents: [{ id: 'error-trigger', name: 'Trigger', systemPrompt: 'X' }],
+        }),
       });
       const res = await POST(req);
       const data = await res.json();

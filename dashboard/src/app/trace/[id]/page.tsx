@@ -117,7 +117,7 @@ export default async function TraceDetailPage({
   const rootNode = nodes.find((n) => n.nodeId === 'root') ?? nodes[0];
 
   return (
-    <div 
+    <div
       data-testid="trace-detail-container"
       className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent"
     >
@@ -230,10 +230,20 @@ export default async function TraceDetailPage({
 
                 {(node.status === 'error' || node.status === 'failed') && (
                   <div className="flex gap-2">
-                    <Button variant="danger" size="sm" data-testid="retry-button" className="h-6 text-[8px] font-black uppercase">
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      data-testid="retry-button"
+                      className="h-6 text-[8px] font-black uppercase"
+                    >
                       <RefreshCw size={10} className="mr-1" /> RETRY
                     </Button>
-                    <Button variant="outline" size="sm" data-testid="fix-button" className="h-6 text-[8px] font-black uppercase border-red-500/30 text-red-400">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      data-testid="fix-button"
+                      className="h-6 text-[8px] font-black uppercase border-red-500/30 text-red-400"
+                    >
                       <Wrench size={10} className="mr-1" /> FIX
                     </Button>
                   </div>
@@ -274,9 +284,17 @@ export default async function TraceDetailPage({
                                     : 'Error detected'}
 
                             {step.type === TRACE_TYPES.TOOL_CALL && (
-                              <Badge 
-                                variant={(step.content as ToolCallContent)?.connectorId ? "primary" : "outline"}
-                                data-testid={(step.content as ToolCallContent)?.connectorId ? "mcp-badge" : "local-badge"}
+                              <Badge
+                                variant={
+                                  (step.content as ToolCallContent)?.connectorId
+                                    ? 'primary'
+                                    : 'outline'
+                                }
+                                data-testid={
+                                  (step.content as ToolCallContent)?.connectorId
+                                    ? 'mcp-badge'
+                                    : 'local-badge'
+                                }
                                 className="text-[8px] px-1.5 py-0"
                               >
                                 {(step.content as ToolCallContent)?.connectorId ? 'MCP' : 'LOCAL'}

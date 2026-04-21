@@ -12,7 +12,7 @@ export interface StreamCallbacks<TFinal> {
 
 /**
  * Processes a ReadableStream containing NDJSON lines.
- * 
+ *
  * @param stream - The stream to read from.
  * @param callbacks - Callbacks for different event types.
  */
@@ -41,7 +41,7 @@ export async function processNdjsonStream<TFinal = unknown>(
 
           try {
             const payload = JSON.parse(trimmedLine);
-            
+
             if (payload.type === 'chunk' && callbacks.onChunk) {
               callbacks.onChunk(payload);
             } else if (payload.type === 'final' && callbacks.onFinal) {

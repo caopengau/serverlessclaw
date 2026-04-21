@@ -48,7 +48,10 @@ export async function GET(req: NextRequest) {
         appInfo.stage = resource.App.stage || appInfo.stage;
       }
     } catch (e) {
-      logger.warn('[Config API] SST resources are not active or linked currently:', (e as Error).message);
+      logger.warn(
+        '[Config API] SST resources are not active or linked currently:',
+        (e as Error).message
+      );
     }
 
     if (!realtimeUrl) {

@@ -82,12 +82,14 @@ function ConfigTooltip({ id, t }: { id: string; t: ReturnType<typeof useTranslat
           <p>{meta.implication}</p>
           {meta.risk && (
             <p>
-              <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_RISK')}</span> {meta.risk}
+              <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_RISK')}</span>{' '}
+              {meta.risk}
             </p>
           )}
           {meta.safeguard && (
             <p>
-              <span className="text-green-400 font-bold">{t('SETTINGS_TOOLTIP_SAFEGUARD')}</span> {meta.safeguard}
+              <span className="text-green-400 font-bold">{t('SETTINGS_TOOLTIP_SAFEGUARD')}</span>{' '}
+              {meta.safeguard}
             </p>
           )}
         </div>
@@ -370,18 +372,10 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   <CyberTooltip
                     content={
                       <div className="space-y-2">
-                        <p>
-                          {t('SETTINGS_TOOLTIP_PRECEDENCE')}
-                        </p>
-                        <p>
-                          {t('SETTINGS_TOOLTIP_BALANCED')}
-                        </p>
-                        <p>
-                          {t('SETTINGS_TOOLTIP_AGGRESSIVE')}
-                        </p>
-                        <p>
-                          {t('SETTINGS_TOOLTIP_CONSERVATIVE')}
-                        </p>
+                        <p>{t('SETTINGS_TOOLTIP_PRECEDENCE')}</p>
+                        <p>{t('SETTINGS_TOOLTIP_BALANCED')}</p>
+                        <p>{t('SETTINGS_TOOLTIP_AGGRESSIVE')}</p>
+                        <p>{t('SETTINGS_TOOLTIP_CONSERVATIVE')}</p>
                       </div>
                     }
                   />
@@ -411,10 +405,16 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     content={
                       <div className="space-y-2">
                         <p>
-                          <span className="text-cyber-blue font-bold">{t('SETTINGS_TOOLTIP_BENEFIT')}</span> {t('SETTINGS_TOOLTIP_ITERATIONS_DESC')}
+                          <span className="text-cyber-blue font-bold">
+                            {t('SETTINGS_TOOLTIP_BENEFIT')}
+                          </span>{' '}
+                          {t('SETTINGS_TOOLTIP_ITERATIONS_DESC')}
                         </p>
                         <p>
-                          <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_COST')}</span> {t('SETTINGS_TOOLTIP_ITERATIONS_COST')}
+                          <span className="text-red-400 font-bold">
+                            {t('SETTINGS_TOOLTIP_COST')}
+                          </span>{' '}
+                          {t('SETTINGS_TOOLTIP_ITERATIONS_COST')}
                         </p>
                       </div>
                     }
@@ -449,7 +449,10 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     color={Number(config.consecutiveBuildFailures) > 0 ? 'danger' : 'primary'}
                     className="text-[10px]"
                   >
-                    {t('SETTINGS_FAILURES').replace('{count}', String(config.consecutiveBuildFailures))}
+                    {t('SETTINGS_FAILURES').replace(
+                      '{count}',
+                      String(config.consecutiveBuildFailures)
+                    )}
                   </Typography>
                 </div>
                 <input
@@ -472,11 +475,12 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   <CyberTooltip
                     content={
                       <div className="space-y-2">
+                        <p>{t('SETTINGS_TOOLTIP_RECURSION_IMPLICATION')}</p>
                         <p>
-                          {t('SETTINGS_TOOLTIP_RECURSION_IMPLICATION')}
-                        </p>
-                        <p>
-                          <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_RISK')}</span> {t('SETTINGS_TOOLTIP_RECURSION_RISK')}
+                          <span className="text-red-400 font-bold">
+                            {t('SETTINGS_TOOLTIP_RISK')}
+                          </span>{' '}
+                          {t('SETTINGS_TOOLTIP_RECURSION_RISK')}
                         </p>
                       </div>
                     }
@@ -548,10 +552,16 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                   content={
                     <div className="space-y-2">
                       <p>
-                        <span className="text-cyber-blue font-bold">{t('SETTINGS_TOOLTIP_BENEFIT')}</span> {t('SETTINGS_TOOLTIP_PROTECTED_BENEFIT')}
+                        <span className="text-cyber-blue font-bold">
+                          {t('SETTINGS_TOOLTIP_BENEFIT')}
+                        </span>{' '}
+                        {t('SETTINGS_TOOLTIP_PROTECTED_BENEFIT')}
                       </p>
                       <p>
-                        <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_SAFEGUARD')}</span> {t('SETTINGS_TOOLTIP_PROTECTED_SAFEGUARD')}
+                        <span className="text-red-400 font-bold">
+                          {t('SETTINGS_TOOLTIP_SAFEGUARD')}
+                        </span>{' '}
+                        {t('SETTINGS_TOOLTIP_PROTECTED_SAFEGUARD')}
                       </p>
                     </div>
                   }
@@ -604,13 +614,22 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     content={
                       <div className="space-y-2">
                         <p>
-                          <span className="text-cyber-blue font-bold">{t('SETTINGS_TOOLTIP_BENEFIT')}</span> {t('SETTINGS_TOOLTIP_REFLECTION_BENEFIT')}
+                          <span className="text-cyber-blue font-bold">
+                            {t('SETTINGS_TOOLTIP_BENEFIT')}
+                          </span>{' '}
+                          {t('SETTINGS_TOOLTIP_REFLECTION_BENEFIT')}
                         </p>
                         <p>
-                          <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_RISK')}</span> {t('SETTINGS_TOOLTIP_REFLECTION_CONS')}
+                          <span className="text-red-400 font-bold">
+                            {t('SETTINGS_TOOLTIP_RISK')}
+                          </span>{' '}
+                          {t('SETTINGS_TOOLTIP_REFLECTION_CONS')}
                         </p>
                         <p>
-                          <span className="text-green-400 font-bold">{t('SETTINGS_TOOLTIP_SAFEGUARD')}</span> {t('SETTINGS_TOOLTIP_REFLECTION_RECOMMENDED')}
+                          <span className="text-green-400 font-bold">
+                            {t('SETTINGS_TOOLTIP_SAFEGUARD')}
+                          </span>{' '}
+                          {t('SETTINGS_TOOLTIP_REFLECTION_RECOMMENDED')}
                         </p>
                       </div>
                     }
@@ -637,10 +656,16 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     content={
                       <div className="space-y-2">
                         <p>
-                          <span className="text-cyber-blue font-bold">{t('SETTINGS_TOOLTIP_BENEFIT')}</span> {t('SETTINGS_TOOLTIP_REVIEW_BENEFIT')}
+                          <span className="text-cyber-blue font-bold">
+                            {t('SETTINGS_TOOLTIP_BENEFIT')}
+                          </span>{' '}
+                          {t('SETTINGS_TOOLTIP_REVIEW_BENEFIT')}
                         </p>
                         <p>
-                          <span className="text-red-400 font-bold">{t('SETTINGS_TOOLTIP_RISK')}</span> {t('SETTINGS_TOOLTIP_REVIEW_CONS')}
+                          <span className="text-red-400 font-bold">
+                            {t('SETTINGS_TOOLTIP_RISK')}
+                          </span>{' '}
+                          {t('SETTINGS_TOOLTIP_REVIEW_CONS')}
                         </p>
                       </div>
                     }
@@ -667,10 +692,16 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
                     content={
                       <div className="space-y-2">
                         <p>
-                          <span className="text-cyber-blue font-bold">{t('SETTINGS_TOOLTIP_BENEFIT')}</span> {t('SETTINGS_TOOLTIP_GAPS_BENEFIT')}
+                          <span className="text-cyber-blue font-bold">
+                            {t('SETTINGS_TOOLTIP_BENEFIT')}
+                          </span>{' '}
+                          {t('SETTINGS_TOOLTIP_GAPS_BENEFIT')}
                         </p>
                         <p>
-                          <span className="text-green-400 font-bold">{t('SETTINGS_TOOLTIP_SAFEGUARD')}</span> {t('SETTINGS_TOOLTIP_GAPS_EVIDENCE')}
+                          <span className="text-green-400 font-bold">
+                            {t('SETTINGS_TOOLTIP_SAFEGUARD')}
+                          </span>{' '}
+                          {t('SETTINGS_TOOLTIP_GAPS_EVIDENCE')}
                         </p>
                       </div>
                     }

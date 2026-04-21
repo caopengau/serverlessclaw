@@ -62,13 +62,13 @@ export function ChatSidebar({
   };
 
   return (
-    <aside className="w-80 border-r border-white/5 flex flex-col bg-black/20 shrink-0 overflow-hidden">
+    <aside className="w-80 border-r border-border flex flex-col bg-card shrink-0 overflow-hidden">
       {/* Search Header */}
-      <div className="p-6 shrink-0 border-b border-white/5">
+      <div className="p-6 shrink-0 border-b border-border">
         <div className="relative group/search">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within/search:text-cyber-green transition-colors"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within/search:text-cyber-green transition-colors"
           />
           <input
             type="text"
@@ -76,7 +76,7 @@ export function ChatSidebar({
             placeholder={t('CHAT_SIDEBAR_SEARCH')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/[0.03] border border-white/5 focus:border-cyber-green/40 rounded-lg py-2.5 pl-9 pr-4 text-xs text-white outline-none transition-all placeholder:text-white/10"
+            className="w-full bg-input border border-input focus:border-cyber-green/40 rounded-lg py-2.5 pl-9 pr-4 text-xs text-foreground outline-none transition-all placeholder:text-muted-foreground/40"
           />
         </div>
       </div>
@@ -84,7 +84,7 @@ export function ChatSidebar({
       <div className="flex-1 overflow-y-auto custom-scrollbar px-4 pt-6 pb-2 space-y-2">
         <div className="mb-4 px-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Clock size={10} className="text-white/60" />
+            <Clock size={10} className="text-muted-foreground" />
             <Typography variant="caption" weight="bold" color="muted">
               {t('CHAT_SIDEBAR_CONVERSATION_LOGS')}
             </Typography>
@@ -105,7 +105,11 @@ export function ChatSidebar({
         </div>
 
         {filteredSessions.length === 0 ? (
-          <Card variant="solid" padding="sm" className="text-center italic text-white/20">
+          <Card
+            variant="solid"
+            padding="sm"
+            className="text-center italic text-muted-foreground/40"
+          >
             <Typography variant="caption">
               {searchQuery ? t('CHAT_SIDEBAR_NO_MATCHES') : t('CHAT_SIDEBAR_NO_LOGS')}
             </Typography>
@@ -126,13 +130,11 @@ export function ChatSidebar({
               className={`p-4 flex flex-col items-stretch rounded-lg border transition-all text-left space-y-2 group cursor-pointer bg-transparent relative overflow-hidden ${
                 activeSessionId === s.sessionId
                   ? 'border-cyber-green/40 bg-cyber-green/5 shadow-[0_0_20px_rgba(0,255,163,0.05)]'
-                  : 'border-white/5 hover:border-white/10 hover:bg-white/[0.02]'
+                  : 'border-border hover:border-cyber-green/20 hover:bg-cyber-green/[0.02]'
               }`}
             >
               {s.isPinned && (
-                <div
-                  className="absolute top-0 right-0 w-8 h-8 flex items-center justify-end pr-2 pt-1 opacity-40 text-cyber-green"
-                >
+                <div className="absolute top-0 right-0 w-8 h-8 flex items-center justify-end pr-2 pt-1 opacity-40 text-cyber-green">
                   <Pin size={10} className="rotate-45" />
                 </div>
               )}
@@ -141,7 +143,7 @@ export function ChatSidebar({
                 <Typography
                   variant="caption"
                   weight="bold"
-                  className={`truncate ${activeSessionId === s.sessionId ? 'text-cyber-green' : 'text-white/80'}`}
+                  className={`truncate ${activeSessionId === s.sessionId ? 'text-cyber-green' : 'text-foreground'}`}
                 >
                   {s.title ?? 'Untitled Trace'}
                 </Typography>
@@ -178,7 +180,14 @@ export function ChatSidebar({
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <CyberTooltip content={s.isPinned ? t('CHAT_SIDEBAR_UNPIN_SESSION') : t('CHAT_SIDEBAR_PIN_SESSION')} position="top" showIcon={false} width="w-auto">
+                  <CyberTooltip
+                    content={
+                      s.isPinned ? t('CHAT_SIDEBAR_UNPIN_SESSION') : t('CHAT_SIDEBAR_PIN_SESSION')
+                    }
+                    position="top"
+                    showIcon={false}
+                    width="w-auto"
+                  >
                     <Button
                       variant="ghost"
                       size="sm"
@@ -186,11 +195,16 @@ export function ChatSidebar({
                         e.stopPropagation();
                         onTogglePin(s.sessionId, !s.isPinned);
                       }}
-                      className={`p-1 h-auto transition-colors z-10 ${s.isPinned ? 'text-cyber-green' : 'text-white/20'}`}
+                      className={`p-1 h-auto transition-colors z-10 ${s.isPinned ? 'text-cyber-green' : 'text-muted-foreground/40 hover:text-cyber-green'}`}
                       icon={s.isPinned ? <PinOff size={12} /> : <Pin size={12} />}
                     />
                   </CyberTooltip>
-                  <CyberTooltip content={t('CHAT_DELETE_CONVERSATION')} position="top" showIcon={false} width="w-auto">
+                  <CyberTooltip
+                    content={t('CHAT_DELETE_CONVERSATION')}
+                    position="top"
+                    showIcon={false}
+                    width="w-auto"
+                  >
                     <Button
                       variant="ghost"
                       size="sm"
@@ -209,12 +223,12 @@ export function ChatSidebar({
         )}
       </div>
 
-      <div className="p-4 border-t border-white/5 bg-black/40">
+      <div className="p-4 border-t border-border bg-card-elevated">
         <Button
           onClick={() => onNewChat()}
           fullWidth
           variant="outline"
-          className="h-11 border-dashed border-white/10 hover:border-cyber-green/40 hover:bg-cyber-green/5 group"
+          className="h-11 border-dashed border-border hover:border-cyber-green/40 hover:bg-cyber-green/5 group"
           icon={
             <Plus
               size={16}

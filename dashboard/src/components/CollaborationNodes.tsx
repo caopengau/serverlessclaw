@@ -86,7 +86,13 @@ const NodeContainer: React.FC<{
 );
 
 type TaskNode = Node<TaskNodeData>;
-type DagStatusNode = Node<{ completed: number; total: number; failed: number; ready: number; pending: number }>;
+type DagStatusNode = Node<{
+  completed: number;
+  total: number;
+  failed: number;
+  ready: number;
+  pending: number;
+}>;
 type InitiatorNode = Node<{ initiatorId: string; initialQuery: string; attachments?: unknown[] }>;
 type AggregatorNode = Node<{ type: string }>;
 type AgentActivityNode = Node<{ agentId: string; activeTasks: unknown[] }>;
@@ -99,7 +105,9 @@ export const nodeTypes = {
     return (
       <NodeContainer
         className={`${config.bg} ${config.border} min-w-[200px] group hover:scale-105 transition-transform`}
-        glowColor={data.status === 'running' ? 'color-mix(in srgb, #a855f7 10%, transparent)' : undefined}
+        glowColor={
+          data.status === 'running' ? 'color-mix(in srgb, #a855f7 10%, transparent)' : undefined
+        }
       >
         <Handle
           type="target"
@@ -120,7 +128,10 @@ export const nodeTypes = {
               {config.label}
             </span>
           </div>
-          <Typography variant="body" className="text-[11px] leading-snug line-clamp-2 text-foreground/80">
+          <Typography
+            variant="body"
+            className="text-[11px] leading-snug line-clamp-2 text-foreground/80"
+          >
             {data.task}
           </Typography>
           <div className="mt-1 pt-2 border-t border-border flex items-center justify-between">
@@ -196,18 +207,27 @@ export const nodeTypes = {
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">
           <User size={14} className="text-cyber-blue" />
-          <Typography variant="mono" weight="black" className="text-[10px] text-cyber-blue tracking-widest uppercase">
+          <Typography
+            variant="mono"
+            weight="black"
+            className="text-[10px] text-cyber-blue tracking-widest uppercase"
+          >
             Initiator: {data.initiatorId}
           </Typography>
         </div>
         <div className="p-2 bg-background/40 rounded border border-cyber-blue/10 space-y-2">
-          <Typography variant="body" className="text-[10px] italic text-cyber-blue/80 line-clamp-2 leading-tight">
+          <Typography
+            variant="body"
+            className="text-[10px] italic text-cyber-blue/80 line-clamp-2 leading-tight"
+          >
             &ldquo;{data.initialQuery}&rdquo;
           </Typography>
           {data.attachments && data.attachments.length > 0 && (
             <div className="flex items-center gap-1.5 border-t border-cyber-blue/10 pt-1.5">
-                <Paperclip size={10} className="text-cyber-blue/50" />
-                <span className="text-[9px] font-black text-cyber-blue/50">{data.attachments.length} ATTACHED_FILES</span>
+              <Paperclip size={10} className="text-cyber-blue/50" />
+              <span className="text-[9px] font-black text-cyber-blue/50">
+                {data.attachments.length} ATTACHED_FILES
+              </span>
             </div>
           )}
         </div>
@@ -231,7 +251,11 @@ export const nodeTypes = {
         <div className="w-8 h-8 rounded-full bg-foreground/5 flex items-center justify-center border border-border">
           <Terminal size={14} className="text-muted-foreground" />
         </div>
-        <Typography variant="mono" weight="black" className="text-[9px] tracking-[0.2em] text-muted-foreground">
+        <Typography
+          variant="mono"
+          weight="black"
+          className="text-[9px] tracking-[0.2em] text-muted-foreground"
+        >
           RESULT_AGGREGATOR ({data.type})
         </Typography>
       </div>
@@ -247,7 +271,12 @@ export const nodeTypes = {
             : 'border-border bg-foreground/5'
         }`}
       >
-        <Bot size={20} className={(data.activeTasks as unknown[]).length > 0 ? 'text-purple-400' : 'text-muted-foreground'} />
+        <Bot
+          size={20}
+          className={
+            (data.activeTasks as unknown[]).length > 0 ? 'text-purple-400' : 'text-muted-foreground'
+          }
+        />
       </div>
       <div className="px-2 py-0.5 bg-background border border-border rounded text-[8px] font-black uppercase tracking-widest text-foreground/70">
         {data.agentId}

@@ -188,7 +188,7 @@ export const handler = async (
         for (const gap of parsed.gaps) {
           if (gap.content && gap.content !== 'NONE') {
             const gapId = randomUUID();
-            const { items: preferences } = await memory.searchInsights({
+            await memory.searchInsights({
               tags: ['preference', 'user_preference'],
               category: InsightCategory.USER_PREFERENCE,
               scope,

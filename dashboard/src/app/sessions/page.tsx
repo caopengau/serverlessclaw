@@ -13,7 +13,6 @@ import { logger } from '@claw/core/lib/logger';
 
 export const dynamic = 'force-dynamic';
 
-
 async function getSessions(nextToken?: string, query?: string) {
   try {
     const tableName = getResourceName('MemoryTable');

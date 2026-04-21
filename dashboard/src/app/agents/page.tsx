@@ -98,10 +98,13 @@ export default function AgentsPage() {
     try {
       const res = await fetch('/api/agents');
       const data: Agent[] = await res.json();
-      const agentsMap = data.reduce((acc: Record<string, Agent>, agent: Agent) => {
-        acc[agent.id] = agent;
-        return acc;
-      }, {} as Record<string, Agent>);
+      const agentsMap = data.reduce(
+        (acc: Record<string, Agent>, agent: Agent) => {
+          acc[agent.id] = agent;
+          return acc;
+        },
+        {} as Record<string, Agent>
+      );
       setAgents(agentsMap);
       setInitialAgents(structuredClone(agentsMap));
     } catch (err) {
@@ -112,23 +115,26 @@ export default function AgentsPage() {
     }
   }, [t]);
 
-  const loadTools = useCallback(async (forceRefresh = false) => {
-    if (forceRefresh) setRefreshingTools(true);
-    else setLoadingTools(true);
+  const loadTools = useCallback(
+    async (forceRefresh = false) => {
+      if (forceRefresh) setRefreshingTools(true);
+      else setLoadingTools(true);
 
-    try {
-      const toolsRes = await fetch(`/api/tools${forceRefresh ? '?refresh=true' : ''}`);
-      const toolsData = await toolsRes.json();
-      setAllTools(toolsData.tools || []);
-      if (forceRefresh) toast.success(t('AGENTS_TOOL_CACHE_SYNCED'));
-    } catch (err) {
-      logger.error('Failed to load tools:', err);
-      toast.error(t('AGENTS_TOOL_REGISTRY_ERROR'));
-    } finally {
-      setLoadingTools(false);
-      setRefreshingTools(false);
-    }
-  }, [t]);
+      try {
+        const toolsRes = await fetch(`/api/tools${forceRefresh ? '?refresh=true' : ''}`);
+        const toolsData = await toolsRes.json();
+        setAllTools(toolsData.tools || []);
+        if (forceRefresh) toast.success(t('AGENTS_TOOL_CACHE_SYNCED'));
+      } catch (err) {
+        logger.error('Failed to load tools:', err);
+        toast.error(t('AGENTS_TOOL_REGISTRY_ERROR'));
+      } finally {
+        setLoadingTools(false);
+        setRefreshingTools(false);
+      }
+    },
+    [t]
+  );
 
   const syncRegistry = async () => {
     setRefreshingTools(true);
@@ -326,21 +332,24 @@ export default function AgentsPage() {
   };
 
   // Real-time message handler for agent state changes
-  const handleRealtimeMessage = useCallback((_topic: string, message: RealtimeMessage) => {
-    const type = message['detail-type'];
+  const handleRealtimeMessage = useCallback(
+    (_topic: string, message: RealtimeMessage) => {
+      const type = message['detail-type'];
 
-    // Refresh agents on relevant events
-    if (
-      type === 'agent_config_updated' ||
-      type === 'agent_status_changed' ||
-      type === 'task_completed' ||
-      type === 'task_failed'
-    ) {
-      logger.info(`[Realtime] Refreshing agents due to: ${type}`);
-      loadAgents();
-      loadReputation();
-    }
-  }, [loadAgents, loadReputation]);
+      // Refresh agents on relevant events
+      if (
+        type === 'agent_config_updated' ||
+        type === 'agent_status_changed' ||
+        type === 'task_completed' ||
+        type === 'task_failed'
+      ) {
+        logger.info(`[Realtime] Refreshing agents due to: ${type}`);
+        loadAgents();
+        loadReputation();
+      }
+    },
+    [loadAgents, loadReputation]
+  );
 
   // Use Realtime Hook for live updates
   const { isConnected } = useRealtime({
@@ -381,9 +390,7 @@ export default function AgentsPage() {
     );
 
   return (
-    <main
-      className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent"
-    >
+    <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
       <CyberConfirm
         isOpen={confirmModal.isOpen}
         title={t('AGENTS_DECOMMISSION_TITLE')}
@@ -485,7 +492,9 @@ export default function AgentsPage() {
 
             <div className="space-y-4 font-mono text-[11px] leading-relaxed">
               <p className="text-white/80">
-                <span className="text-red-500 font-bold">{t('AGENTS_BACKBONE_MODIFY_WARNING')}</span>
+                <span className="text-red-500 font-bold">
+                  {t('AGENTS_BACKBONE_MODIFY_WARNING')}
+                </span>
               </p>
               <div className="bg-red-500/5 border border-red-500/20 p-3 rounded">
                 {backboneChanges.map((name) => (
@@ -494,9 +503,7 @@ export default function AgentsPage() {
                   </div>
                 ))}
               </div>
-              <p className="text-white/60">
-                {t('AGENTS_BACKBONE_WARNING_TEXT')}
-              </p>
+              <p className="text-white/60">{t('AGENTS_BACKBONE_WARNING_TEXT')}</p>
               <p className="text-white font-bold italic border-l-2 border-red-500 pl-3">
                 {t('AGENTS_BACKBONE_RESPONSIBILITY')}
               </p>

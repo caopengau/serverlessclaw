@@ -31,8 +31,13 @@ function severityVariant(severity: string) {
 }
 
 function gaugeColor(score: number) {
-  if (score >= 80) return { stroke: 'var(--cyber-green)', glow: 'color-mix(in srgb, var(--cyber-green) 30%, transparent)' };
-  if (score >= 60) return { stroke: '#f59e0b', glow: 'color-mix(in srgb, #f59e0b 30%, transparent)' };
+  if (score >= 80)
+    return {
+      stroke: 'var(--cyber-green)',
+      glow: 'color-mix(in srgb, var(--cyber-green) 30%, transparent)',
+    };
+  if (score >= 60)
+    return { stroke: '#f59e0b', glow: 'color-mix(in srgb, #f59e0b 30%, transparent)' };
   return { stroke: '#ef4444', glow: 'color-mix(in srgb, #ef4444 30%, transparent)' };
 }
 
@@ -102,10 +107,14 @@ export default function CognitiveHealthCard({
       <div className="space-y-2">
         <div className="flex justify-between text-[10px]">
           <span className="text-muted-foreground uppercase tracking-wider">Task Completion</span>
-          <span className="font-mono text-foreground/90">{(taskCompletionRate * 100).toFixed(1)}%</span>
+          <span className="font-mono text-foreground/90">
+            {(taskCompletionRate * 100).toFixed(1)}%
+          </span>
         </div>
         <div className="flex justify-between text-[10px]">
-          <span className="text-muted-foreground uppercase tracking-wider">Reasoning Coherence</span>
+          <span className="text-muted-foreground uppercase tracking-wider">
+            Reasoning Coherence
+          </span>
           <span className="font-mono text-foreground/90">{reasoningCoherence.toFixed(1)}/10</span>
         </div>
         <div className="flex justify-between text-[10px]">
@@ -113,8 +122,12 @@ export default function CognitiveHealthCard({
           <span className="font-mono text-foreground/90">{(errorRate * 100).toFixed(1)}%</span>
         </div>
         <div className="flex justify-between text-[10px]">
-          <span className="text-muted-foreground uppercase tracking-wider">Memory Fragmentation</span>
-          <span className="font-mono text-foreground/90">{(memoryFragmentation * 100).toFixed(1)}%</span>
+          <span className="text-muted-foreground uppercase tracking-wider">
+            Memory Fragmentation
+          </span>
+          <span className="font-mono text-foreground/90">
+            {(memoryFragmentation * 100).toFixed(1)}%
+          </span>
         </div>
       </div>
 

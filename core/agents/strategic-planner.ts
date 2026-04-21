@@ -2,12 +2,7 @@ import { AgentType, Attachment, AgentPayload } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import { randomUUID } from 'node:crypto';
-import {
-  extractPayload,
-  loadAgentConfig,
-  extractBaseUserId,
-  getAgentContext,
-} from '../lib/utils/agent-helpers';
+import { extractPayload, loadAgentConfig, getAgentContext } from '../lib/utils/agent-helpers';
 import { buildTelemetry } from './strategic-planner/prompts';
 import { buildProactiveReviewPrompt, buildReactivePrompt } from './strategic-planner/prompts';
 import type { PlannerEvent, PlannerResult, PlannerPayload } from './strategic-planner/types';
@@ -62,7 +57,6 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   );
 
   // 1. Fetch System Context
-  const baseUserId = extractBaseUserId(userId);
   const [config, { memory }, { getAgentTools }] = await Promise.all([
     loadAgentConfig(AgentType.STRATEGIC_PLANNER),
     getAgentContext(),

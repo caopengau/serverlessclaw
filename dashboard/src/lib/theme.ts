@@ -16,8 +16,10 @@ export const THEME = {
   // Tailwind class mappings for common UI elements
   CLASSES: {
     // Buttons
-    BUTTON_PRIMARY: 'bg-[var(--cyber-green)] text-black hover:shadow-[0_0_20px_color-mix(in_srgb,var(--cyber-green)_40%,transparent)]',
-    BUTTON_DANGER: 'bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 dark:bg-red-500/20 dark:hover:bg-red-500/30',
+    BUTTON_PRIMARY:
+      'bg-[var(--cyber-green)] text-black hover:shadow-[0_0_20px_color-mix(in_srgb,var(--cyber-green)_40%,transparent)]',
+    BUTTON_DANGER:
+      'bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 dark:bg-red-500/20 dark:hover:bg-red-500/30',
 
     // Status
     STATUS_ACTIVE: 'text-[var(--cyber-green)]',

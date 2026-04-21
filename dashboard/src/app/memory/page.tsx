@@ -38,7 +38,6 @@ interface MemoryItem {
   type?: string;
 }
 
-
 async function getUserIdFromCookies(): Promise<string> {
   const headerList = await headers();
   const cookieHeader = headerList.get('cookie') || '';

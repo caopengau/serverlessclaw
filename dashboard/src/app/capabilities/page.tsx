@@ -62,7 +62,7 @@ export default async function CapabilitiesPage() {
   const localCount = allTools.filter((t) => !t.isExternal).length;
   const bridgeCount = Object.keys(mcpServers).length;
 
-   return (
+  return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-blue/5 via-transparent to-transparent">
       <CapabilitiesHeader localCount={localCount} bridgeCount={bridgeCount} />
 

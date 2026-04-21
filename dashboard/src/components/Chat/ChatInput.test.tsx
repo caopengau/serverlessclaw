@@ -21,11 +21,7 @@ vi.mock('@claw/core/lib/constants', () => ({
 }));
 
 const renderWithTranslations = (component: React.ReactElement) => {
-  return render(
-    <TranslationsProvider>
-      {component}
-    </TranslationsProvider>
-  );
+  return render(<TranslationsProvider>{component}</TranslationsProvider>);
 };
 
 describe('ChatInput Component', () => {

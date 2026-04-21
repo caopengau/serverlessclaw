@@ -1,19 +1,19 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { 
-  Bot, 
-  Code, 
-  Brain, 
-  Search, 
-  FlaskConical, 
-  Shield, 
-  MessageSquareShare, 
-  GitMerge, 
+import {
+  Bot,
+  Code,
+  Brain,
+  Search,
+  FlaskConical,
+  Shield,
+  MessageSquareShare,
+  GitMerge,
   Microscope,
   Gavel,
   Zap,
-  X
+  X,
 } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
@@ -32,7 +32,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   GitMerge,
   Microscope,
   Gavel,
-  Zap
+  Zap,
 };
 
 interface AgentConfig {
@@ -51,12 +51,7 @@ interface AgentSelectorProps {
   excludeIds?: string[];
 }
 
-export function AgentSelector({ 
-  onSelect, 
-  onClose, 
-  title, 
-  excludeIds = [] 
-}: AgentSelectorProps) {
+export function AgentSelector({ onSelect, onClose, title, excludeIds = [] }: AgentSelectorProps) {
   const { t } = useTranslations();
   const [agents, setAgents] = useState<AgentConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -66,12 +61,12 @@ export function AgentSelector({
       try {
         const res = await fetch('/api/agents');
         const data = await res.json();
-        
+
         // Filter for LLM-based agents only
         const llmAgents = Object.values(data as Record<string, AgentConfig>)
-          .filter(a => a.agentType !== 'logic' && !excludeIds.includes(a.id))
+          .filter((a) => a.agentType !== 'logic' && !excludeIds.includes(a.id))
           .sort((a, b) => a.name.localeCompare(b.name));
-          
+
         setAgents(llmAgents);
       } catch (e) {
         logger.error('Failed to fetch agents:', e);
@@ -83,25 +78,32 @@ export function AgentSelector({
   }, [excludeIds]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-      <div 
-        className="glass-card w-full max-w-2xl border border-cyber-green/20 bg-black/90 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,255,163,0.1)] flex flex-col max-h-[80vh]"
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/60 backdrop-blur-md animate-in fade-in duration-300">
+      <div
+        className="glass-card-elevated w-full max-w-2xl border border-border rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(0,255,163,0.1)] flex flex-col max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="px-6 py-4 border-b border-white/5 flex items-center justify-between shrink-0">
+        <header className="px-6 py-4 border-b border-border flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-cyber-green/10 rounded-lg">
               <Bot size={20} className="text-cyber-green" />
             </div>
-            <Typography variant="h3" weight="bold" color="white" glow uppercase className="tracking-widest">
+            <Typography
+              variant="h3"
+              weight="bold"
+              color="primary"
+              glow
+              uppercase
+              className="tracking-widest"
+            >
               {title || t('AGENT_SELECTOR_TITLE')}
             </Typography>
           </div>
-          <Button 
-            variant="ghost" 
-            size="sm" 
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="p-1 text-white/40 hover:text-white"
+            className="p-1 text-muted-foreground/40 hover:text-foreground"
             icon={<X size={20} />}
           />
         </header>
@@ -110,7 +112,11 @@ export function AgentSelector({
           {isLoading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <div className="w-12 h-12 border-2 border-cyber-green/20 border-t-cyber-green rounded-full animate-spin" />
-              <Typography variant="mono" color="muted" className="text-xs uppercase tracking-[0.2em]">
+              <Typography
+                variant="mono"
+                color="muted"
+                className="text-xs uppercase tracking-[0.2em]"
+              >
                 {t('INITIALIZING_REGISTRY')}
               </Typography>
             </div>
@@ -122,23 +128,32 @@ export function AgentSelector({
                   <button
                     key={agent.id}
                     onClick={() => onSelect(agent.id)}
-                    className="group flex items-start gap-4 p-4 rounded-xl border border-white/5 bg-white/[0.02] hover:bg-cyber-green/5 hover:border-cyber-green/30 transition-all text-left"
+                    className="group flex items-start gap-4 p-4 rounded-xl border border-border bg-input hover:bg-cyber-green/5 hover:border-cyber-green/30 transition-all text-left"
                   >
-                    <div className="p-3 rounded-lg bg-black/40 border border-white/5 group-hover:border-cyber-green/30 group-hover:text-cyber-green transition-colors shrink-0">
+                    <div className="p-3 rounded-lg bg-card-elevated border border-border group-hover:border-cyber-green/30 group-hover:text-cyber-green transition-colors shrink-0">
                       <Icon size={24} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <Typography variant="body" weight="bold" color="white" className="group-hover:text-cyber-green transition-colors">
+                        <Typography
+                          variant="body"
+                          weight="bold"
+                          color="primary"
+                          className="group-hover:text-cyber-green transition-colors"
+                        >
                           {agent.name}
                         </Typography>
                         {agent.category && (
-                          <span className="text-[8px] font-mono font-black border border-white/10 px-1.5 py-0.5 rounded opacity-40 uppercase">
+                          <span className="text-[8px] font-mono font-black border border-border px-1.5 py-0.5 rounded opacity-40 uppercase">
                             {agent.category}
                           </span>
                         )}
                       </div>
-                      <Typography variant="caption" color="muted" className="line-clamp-2 text-xs leading-relaxed opacity-70">
+                      <Typography
+                        variant="caption"
+                        color="muted"
+                        className="line-clamp-2 text-xs leading-relaxed opacity-70"
+                      >
                         {agent.description}
                       </Typography>
                     </div>
@@ -149,10 +164,13 @@ export function AgentSelector({
           )}
         </div>
 
-        <footer className="px-6 py-4 border-t border-white/5 bg-white/[0.01] overflow-hidden">
-           <Typography variant="mono" className="text-[10px] text-white/20 uppercase tracking-[0.3em] font-black text-center">
-             Node_Discovery_Active // Protocol_V4
-           </Typography>
+        <footer className="px-6 py-4 border-t border-border bg-input/50 overflow-hidden">
+          <Typography
+            variant="mono"
+            className="text-[10px] text-muted-foreground/20 uppercase tracking-[0.3em] font-black text-center"
+          >
+            Node_Discovery_Active // Protocol_V4
+          </Typography>
         </footer>
       </div>
     </div>

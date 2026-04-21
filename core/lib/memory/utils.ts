@@ -9,6 +9,13 @@ import {
 } from '../types/index';
 
 /**
+ * Resolves the hierarchical scope identifier for query or storage.
+ */
+export function resolveScopeId(scope?: string | ContextualScope): string | undefined {
+  return typeof scope === 'string' ? scope : scope?.workspaceId;
+}
+
+/**
  * Creates a standard MemoryInsight metadata object with defaults.
  */
 export function createMetadata(
@@ -34,7 +41,7 @@ export function createMetadata(
  * FilterExpression for secondary workspace isolation.
  */
 export function applyWorkspaceIsolation(
-  params: Record<string, any>,
+  params: Record<string, unknown>,
   scope?: string | import('../types/memory').ContextualScope
 ): void {
   const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
@@ -42,11 +49,11 @@ export function applyWorkspaceIsolation(
 
   const isolationExpr = 'workspaceId = :workspaceId AND begins_with(userId, :pkPrefix)';
   params.FilterExpression = params.FilterExpression
-    ? `(${params.FilterExpression}) AND (${isolationExpr})`
+    ? `(${params.FilterExpression as string}) AND (${isolationExpr})`
     : isolationExpr;
 
   params.ExpressionAttributeValues = {
-    ...(params.ExpressionAttributeValues || {}),
+    ...((params.ExpressionAttributeValues as Record<string, unknown>) || {}),
     ':workspaceId': workspaceId,
     ':pkPrefix': `WS#${workspaceId}#`,
   };
@@ -63,7 +70,7 @@ export async function getMemoryByTypePaginated(
   lastEvaluatedKey?: Record<string, unknown>,
   scope?: string | import('../types/memory').ContextualScope
 ): Promise<{ items: Record<string, unknown>[]; lastEvaluatedKey?: Record<string, unknown> }> {
-  const params: Record<string, any> = {
+  const params: Record<string, unknown> = {
     IndexName: 'TypeTimestampIndex',
     KeyConditionExpression: '#tp = :type',
     ExpressionAttributeNames: { '#tp': 'type' },

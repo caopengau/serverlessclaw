@@ -31,8 +31,8 @@ export default function CoManagementHub() {
           reason: 'Consistently passing all pre-flight security checks for 50+ iterations.',
           trustScore: 92,
           createdAt: Date.now() - 3600000,
-          status: 'pending'
-        }
+          status: 'pending',
+        },
       ]);
       setLoading(false);
     }, 1000);
@@ -40,31 +40,50 @@ export default function CoManagementHub() {
   }, []);
 
   const handleAction = (id: string, action: 'approve' | 'reject') => {
-    setProposals(prev => prev.map(p => p.id === id ? { ...p, status: action === 'approve' ? 'approved' : 'rejected' } : p));
+    setProposals((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, status: action === 'approve' ? 'approved' : 'rejected' } : p
+      )
+    );
   };
 
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
-        <Typography variant="caption" weight="bold" className="tracking-[0.2em] flex items-center gap-2">
+        <Typography
+          variant="caption"
+          weight="bold"
+          className="tracking-[0.2em] flex items-center gap-2"
+        >
           <Shield size={14} className="text-[var(--cyber-green)]" /> Co-Management Hub
         </Typography>
-        <Badge variant="primary" className="animate-pulse">Active Trust Negotiation</Badge>
+        <Badge variant="primary" className="animate-pulse">
+          Active Trust Negotiation
+        </Badge>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card variant="glass" className="flex flex-col items-center justify-center p-8 bg-white/[0.02]">
+        <Card
+          variant="glass"
+          className="flex flex-col items-center justify-center p-8 bg-white/[0.02]"
+        >
           <TrustGauge score={94} label="System Trust" size={140} />
           <div className="mt-4 text-center">
-            <Typography variant="caption" color="muted">COGNITIVE HEALTH: </Typography>
-            <Typography variant="mono" color="primary" weight="bold" className="text-[10px]">OPTIMAL</Typography>
+            <Typography variant="caption" color="muted">
+              COGNITIVE HEALTH:{' '}
+            </Typography>
+            <Typography variant="mono" color="primary" weight="bold" className="text-[10px]">
+              OPTIMAL
+            </Typography>
           </div>
         </Card>
 
         <Card variant="glass" className="md:col-span-2 p-6 bg-white/[0.01]">
           <div className="flex items-center gap-2 mb-6">
             <Zap size={16} className="text-yellow-400" />
-            <Typography variant="body" weight="bold">Active Autonomy Proposals</Typography>
+            <Typography variant="body" weight="bold">
+              Active Autonomy Proposals
+            </Typography>
           </div>
 
           <div className="space-y-4">
@@ -74,15 +93,20 @@ export default function CoManagementHub() {
               </div>
             ) : proposals.length === 0 ? (
               <div className="text-center py-10 border border-dashed border-white/10 rounded-lg">
-                <Typography variant="caption" color="muted">No pending proposals</Typography>
+                <Typography variant="caption" color="muted">
+                  No pending proposals
+                </Typography>
               </div>
             ) : (
-              proposals.map(proposal => (
-                <div key={proposal.id} className="relative group overflow-hidden rounded-xl border border-white/5 bg-black/20 p-5 hover:border-white/20 transition-all">
+              proposals.map((proposal) => (
+                <div
+                  key={proposal.id}
+                  className="relative group overflow-hidden rounded-xl border border-white/5 bg-black/20 p-5 hover:border-white/20 transition-all"
+                >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center border border-primary/20">
-                         <TrendingUp size={20} className="text-primary" />
+                        <TrendingUp size={20} className="text-primary" />
                       </div>
                       <div>
                         <Typography variant="body" weight="bold" className="text-white">
@@ -94,33 +118,43 @@ export default function CoManagementHub() {
                       </div>
                     </div>
                     {proposal.status !== 'pending' ? (
-                       <Badge variant={proposal.status === 'approved' ? 'primary' : 'danger'}>
-                         {proposal.status.toUpperCase()}
-                       </Badge>
+                      <Badge variant={proposal.status === 'approved' ? 'primary' : 'danger'}>
+                        {proposal.status.toUpperCase()}
+                      </Badge>
                     ) : (
                       <div className="flex items-center gap-2">
                         <div className="h-1.5 w-1.5 rounded-full bg-cyber-green animate-ping" />
-                        <Typography variant="mono" color="primary" weight="bold" className="text-[10px]">HIGH TRUST</Typography>
+                        <Typography
+                          variant="mono"
+                          color="primary"
+                          weight="bold"
+                          className="text-[10px]"
+                        >
+                          HIGH TRUST
+                        </Typography>
                       </div>
                     )}
                   </div>
 
-                  <Typography variant="caption" className="text-white/70 italic mb-4 border-l-2 border-[var(--cyber-green)]/30 pl-3">
+                  <Typography
+                    variant="caption"
+                    className="text-white/70 italic mb-4 border-l-2 border-[var(--cyber-green)]/30 pl-3"
+                  >
                     &quot;{proposal.reason}&quot;
                   </Typography>
 
                   {proposal.status === 'pending' && (
                     <div className="flex gap-3 justify-end mt-4">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20"
                         onClick={() => handleAction(proposal.id, 'reject')}
                       >
                         <XCircle size={14} className="mr-2" /> Reject
                       </Button>
-                      <Button 
-                        variant="primary" 
+                      <Button
+                        variant="primary"
                         size="sm"
                         onClick={() => handleAction(proposal.id, 'approve')}
                       >
@@ -128,9 +162,9 @@ export default function CoManagementHub() {
                       </Button>
                     </div>
                   )}
-                  
+
                   <div className="absolute top-0 right-0 p-2 opacity-5 translate-x-2 -translate-y-2">
-                     <AlertCircle size={80} />
+                    <AlertCircle size={80} />
                   </div>
                 </div>
               ))
@@ -140,18 +174,21 @@ export default function CoManagementHub() {
       </div>
 
       <Card variant="glass" className="p-6 border-blue-500/10 bg-blue-500/[0.02]">
-         <div className="flex gap-4">
-            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-               <AlertCircle size={20} className="text-blue-400" />
-            </div>
-            <div>
-                <Typography variant="body" weight="bold" className="text-blue-200">Governance Policy Notice</Typography>
-                <Typography variant="caption" className="text-blue-200/60 mt-1 leading-relaxed">
-                  Moving an agent to <strong>AUTO</strong> mode allows it to execute Class A and B actions without human intervention. 
-                  Class C (Critical Infrastructure) actions still require explicit governance class overrides even in AUTO mode.
-               </Typography>
-            </div>
-         </div>
+        <div className="flex gap-4">
+          <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
+            <AlertCircle size={20} className="text-blue-400" />
+          </div>
+          <div>
+            <Typography variant="body" weight="bold" className="text-blue-200">
+              Governance Policy Notice
+            </Typography>
+            <Typography variant="caption" className="text-blue-200/60 mt-1 leading-relaxed">
+              Moving an agent to <strong>AUTO</strong> mode allows it to execute Class A and B
+              actions without human intervention. Class C (Critical Infrastructure) actions still
+              require explicit governance class overrides even in AUTO mode.
+            </Typography>
+          </div>
+        </div>
       </Card>
     </div>
   );

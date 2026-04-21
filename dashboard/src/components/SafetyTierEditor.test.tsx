@@ -103,9 +103,7 @@ describe('SafetyTierEditor', () => {
 
   it('should call onTierChange when clicking Local tier', () => {
     const onTierChange = vi.fn();
-    render(
-      <SafetyTierEditor {...defaultProps} currentTier="prod" onTierChange={onTierChange} />
-    );
+    render(<SafetyTierEditor {...defaultProps} currentTier="prod" onTierChange={onTierChange} />);
 
     const cards = screen.getAllByTestId('card');
     fireEvent.click(cards[0]); // Click Local tier
@@ -148,7 +146,9 @@ describe('SafetyTierEditor', () => {
     const localCard = cards[0];
 
     expect(localCard).toHaveClass('border-cyber-blue/40');
-    expect(localCard).toHaveClass('shadow-[0_0_20px_color-mix(in_srgb,var(--cyber-blue)_8%,transparent)]');
+    expect(localCard).toHaveClass(
+      'shadow-[0_0_20px_color-mix(in_srgb,var(--cyber-blue)_8%,transparent)]'
+    );
   });
 
   it('should apply correct styling for inactive tier card', () => {

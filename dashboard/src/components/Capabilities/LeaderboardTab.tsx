@@ -12,18 +12,14 @@ interface LeaderboardTabProps {
   searchQuery?: string;
 }
 
-export default function LeaderboardTab({
-  allTools,
-  searchQuery = '',
-}: LeaderboardTabProps) {
+export default function LeaderboardTab({ allTools, searchQuery = '' }: LeaderboardTabProps) {
   const sortedByUsage = [...allTools].sort((a, b) => (b.usage?.count ?? 0) - (a.usage?.count ?? 0));
 
-  const filteredTools = sortedByUsage
-    .filter(
-      (t) =>
-        t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.description.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  const filteredTools = sortedByUsage.filter(
+    (t) =>
+      t.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <section className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

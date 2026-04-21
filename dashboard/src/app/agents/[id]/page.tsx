@@ -1,14 +1,14 @@
 import React from 'react';
 import Link from 'next/link';
-import { 
-  ArrowLeft, 
-  Shield, 
-  Zap, 
-  History, 
-  TrendingUp, 
+import {
+  ArrowLeft,
+  Shield,
+  Zap,
+  History,
+  TrendingUp,
   AlertTriangle,
   Settings,
-  Bot
+  Bot,
 } from 'lucide-react';
 import { AgentRegistry } from '@claw/core/lib/registry/AgentRegistry';
 import { DynamoMemory, getReputation } from '@claw/core/lib/memory';
@@ -25,15 +25,11 @@ async function getAgentData(id: string) {
   const config = await AgentRegistry.getAgentConfig(id);
   const memory = new DynamoMemory();
   const reputation = await getReputation(memory, id);
-  
+
   return { config, reputation };
 }
 
-export default async function AgentDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function AgentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const { config, reputation } = await getAgentData(id);
 
@@ -41,8 +37,12 @@ export default async function AgentDetailPage({
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-white/40">
         <AlertTriangle size={48} className="mb-4 text-red-500" />
-        <Typography variant="h2" weight="bold" color="white">Agent Not Found</Typography>
-        <Link href="/agents" className="mt-4 text-cyber-blue hover:underline">Return to Registry</Link>
+        <Typography variant="h2" weight="bold" color="white">
+          Agent Not Found
+        </Typography>
+        <Link href="/agents" className="mt-4 text-cyber-blue hover:underline">
+          Return to Registry
+        </Link>
       </div>
     );
   }
@@ -61,7 +61,7 @@ export default async function AgentDetailPage({
             weight="bold"
             className="flex items-center gap-2 mb-6 hover:text-cyber-green transition-colors"
           >
-            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> 
+            <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
             Back to Registry
           </Typography>
         </Link>
@@ -76,11 +76,17 @@ export default async function AgentDetailPage({
                 <Typography variant="h1" weight="bold" className="tracking-tighter">
                   {config.name}
                 </Typography>
-                <Badge variant={config.enabled ? "primary" : "outline"} className="uppercase text-[9px] px-2">
-                  {config.enabled ? "Active" : "Disabled"}
+                <Badge
+                  variant={config.enabled ? 'primary' : 'outline'}
+                  className="uppercase text-[9px] px-2"
+                >
+                  {config.enabled ? 'Active' : 'Disabled'}
                 </Badge>
                 {config.isBackbone && (
-                  <Badge variant="outline" className="border-red-500/20 text-red-400 uppercase text-[9px] px-2 flex items-center gap-1">
+                  <Badge
+                    variant="outline"
+                    className="border-red-500/20 text-red-400 uppercase text-[9px] px-2 flex items-center gap-1"
+                  >
                     <Shield size={10} /> Backbone
                   </Badge>
                 )}
@@ -92,25 +98,58 @@ export default async function AgentDetailPage({
           </div>
 
           <div className="flex gap-4">
-            <Card variant="glass" className="px-4 py-2 border-white/5 bg-white/[0.02] flex items-center gap-3">
+            <Card
+              variant="glass"
+              className="px-4 py-2 border-white/5 bg-white/[0.02] flex items-center gap-3"
+            >
               <TrendingUp size={16} className="text-cyber-green" />
               <div>
-                <Typography variant="mono" color="muted" className="text-[9px] uppercase tracking-widest block opacity-50">Success Rate</Typography>
-                <Typography variant="mono" weight="bold" color="white" className="text-sm">{(successRate * 100).toFixed(1)}%</Typography>
+                <Typography
+                  variant="mono"
+                  color="muted"
+                  className="text-[9px] uppercase tracking-widest block opacity-50"
+                >
+                  Success Rate
+                </Typography>
+                <Typography variant="mono" weight="bold" color="white" className="text-sm">
+                  {(successRate * 100).toFixed(1)}%
+                </Typography>
               </div>
             </Card>
-            <Card variant="glass" className="px-4 py-2 border-white/5 bg-white/[0.02] flex items-center gap-3">
+            <Card
+              variant="glass"
+              className="px-4 py-2 border-white/5 bg-white/[0.02] flex items-center gap-3"
+            >
               <Zap size={16} className="text-yellow-400" />
               <div>
-                <Typography variant="mono" color="muted" className="text-[9px] uppercase tracking-widest block opacity-50">Avg Latency</Typography>
-                <Typography variant="mono" weight="bold" color="white" className="text-sm">{avgLatency.toFixed(0)}ms</Typography>
+                <Typography
+                  variant="mono"
+                  color="muted"
+                  className="text-[9px] uppercase tracking-widest block opacity-50"
+                >
+                  Avg Latency
+                </Typography>
+                <Typography variant="mono" weight="bold" color="white" className="text-sm">
+                  {avgLatency.toFixed(0)}ms
+                </Typography>
               </div>
             </Card>
-            <Card variant="glass" className="px-4 py-2 border-white/5 bg-white/[0.02] flex items-center gap-3">
+            <Card
+              variant="glass"
+              className="px-4 py-2 border-white/5 bg-white/[0.02] flex items-center gap-3"
+            >
               <History size={16} className="text-cyber-blue" />
               <div>
-                <Typography variant="mono" color="muted" className="text-[9px] uppercase tracking-widest block opacity-50">Total Tasks</Typography>
-                <Typography variant="mono" weight="bold" color="white" className="text-sm">{totalTasks}</Typography>
+                <Typography
+                  variant="mono"
+                  color="muted"
+                  className="text-[9px] uppercase tracking-widest block opacity-50"
+                >
+                  Total Tasks
+                </Typography>
+                <Typography variant="mono" weight="bold" color="white" className="text-sm">
+                  {totalTasks}
+                </Typography>
               </div>
             </Card>
           </div>
@@ -121,12 +160,19 @@ export default async function AgentDetailPage({
         {/* Left Column: Performance & Evolution Charts */}
         <div className="lg:col-span-2 space-y-8">
           <AgentEvolutionCharts agentId={id} currentVersion={config.version || 1} />
-          
+
           <Card variant="glass" className="overflow-hidden border-white/5">
             <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Settings size={18} className="text-cyber-blue" />
-                <Typography variant="mono" weight="bold" uppercase className="text-xs tracking-widest">Core Directive</Typography>
+                <Typography
+                  variant="mono"
+                  weight="bold"
+                  uppercase
+                  className="text-xs tracking-widest"
+                >
+                  Core Directive
+                </Typography>
               </div>
             </div>
             <div className="p-6 bg-black/40">
@@ -139,9 +185,9 @@ export default async function AgentDetailPage({
 
         {/* Right Column: Tuning Hub & Error Dist */}
         <div className="space-y-8">
-          <AgentTuningHub 
-            agentId={id} 
-            lastTraceId={reputation?.lastTraceId} 
+          <AgentTuningHub
+            agentId={id}
+            lastTraceId={reputation?.lastTraceId}
             errorDistribution={reputation?.errorDistribution}
           />
         </div>

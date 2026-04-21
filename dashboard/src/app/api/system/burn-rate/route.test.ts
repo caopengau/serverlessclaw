@@ -8,19 +8,19 @@ vi.mock('@claw/core/lib/memory', () => ({
     listByPrefix = vi.fn().mockImplementation(() => {
       const now = Date.now();
       return Promise.resolve([
-        { 
-          userId: 'TOKEN_ROLLUP#agent1', 
-          totalInputTokens: 1000, 
-          totalOutputTokens: 500, 
+        {
+          userId: 'TOKEN_ROLLUP#agent1',
+          totalInputTokens: 1000,
+          totalOutputTokens: 500,
           invocationCount: 10,
-          timestamp: now
+          timestamp: now,
         },
-        { 
-          userId: 'TOKEN_ROLLUP#agent2', 
-          totalInputTokens: 2000, 
-          totalOutputTokens: 1000, 
+        {
+          userId: 'TOKEN_ROLLUP#agent2',
+          totalInputTokens: 2000,
+          totalOutputTokens: 1000,
           invocationCount: 20,
-          timestamp: now
+          timestamp: now,
         },
       ]);
     });
@@ -40,7 +40,7 @@ vi.mock('@claw/core/lib/config/config-defaults', async (importActual) => {
     ...actual,
     CONFIG_DEFAULTS: {
       ...actual.CONFIG_DEFAULTS,
-      GLOBAL_TOKEN_BUDGET: { code: 'global_token_budget' }
+      GLOBAL_TOKEN_BUDGET: { code: 'global_token_budget' },
     },
   };
 });
@@ -48,7 +48,9 @@ vi.mock('@claw/core/lib/config/config-defaults', async (importActual) => {
 describe('Burn-Rate API', () => {
   it('should calculate daily burn rate against budget', async () => {
     // Note: GET signature is (body, req) in withApiHandler
-    const response = await GET(new Request('http://localhost/api/system/burn-rate') as unknown as NextRequest);
+    const response = await GET(
+      new Request('http://localhost/api/system/burn-rate') as unknown as NextRequest
+    );
     const data = await response.json();
 
     expect(data).toHaveProperty('totalTokens');

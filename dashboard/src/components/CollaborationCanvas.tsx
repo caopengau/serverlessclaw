@@ -13,15 +13,7 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import {
-  Zap,
-  RefreshCw,
-  Plus,
-  Minus,
-  Maximize,
-  Lock,
-  User,
-} from 'lucide-react';
+import { Zap, RefreshCw, Plus, Minus, Maximize, Lock, User } from 'lucide-react';
 
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
@@ -30,10 +22,7 @@ import Badge from '@/components/ui/Badge';
 import { useRealtime, RealtimeMessage } from '@/hooks/useRealtime';
 import { logger } from '@claw/core/lib/logger';
 
-import { 
-  TaskNodeData,
-  HandoffData
-} from '@/lib/collaboration-utils';
+import { TaskNodeData, HandoffData } from '@/lib/collaboration-utils';
 import { nodeTypes } from '@/components/CollaborationNodes';
 import { HandoffPanel } from '@/components/HandoffPanel';
 import TraceDetailSidebar from '@/components/TraceDetailSidebar';
@@ -55,7 +44,7 @@ function CollaborationCanvasContent() {
   const [handoffResponse, setHandoffResponse] = useState('');
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
-  
+
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const handoffTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -106,7 +95,7 @@ function CollaborationCanvasContent() {
         ) => {
           const offsetX = dispatchIndex * 600;
           const initiatorId = `initiator-${dispatch.traceId}`;
-          
+
           newNodes.push({
             id: initiatorId,
             type: 'initiatorNode',
@@ -122,8 +111,12 @@ function CollaborationCanvasContent() {
           const completedCount = dispatch.dagState?.completedTasks?.length ?? 0;
           const failedCount = dispatch.dagState?.failedTasks?.length ?? 0;
           const totalTasks = dispatch.tasks.length;
-          const pendingCount = dispatch.tasks.filter((t: TaskNodeData) => t.status === 'pending').length;
-          const readyCount = dispatch.tasks.filter((t: TaskNodeData) => t.status === 'ready' || t.status === 'running').length;
+          const pendingCount = dispatch.tasks.filter(
+            (t: TaskNodeData) => t.status === 'pending'
+          ).length;
+          const readyCount = dispatch.tasks.filter(
+            (t: TaskNodeData) => t.status === 'ready' || t.status === 'running'
+          ).length;
 
           const dagNodeId = `dag-${dispatch.traceId}`;
           newNodes.push({
@@ -158,11 +151,11 @@ function CollaborationCanvasContent() {
 
           const agents = Array.from(agentTasks.entries());
           const agentCount = agents.length;
-          
+
           agents.forEach(([agentId, tasks], agentIndex) => {
             const agentNodeId = `agent-${dispatch.traceId}-${agentId}`;
-            const agentX = offsetX + (agentIndex - (agentCount - 1) / 2) * 260 + 150; 
-            
+            const agentX = offsetX + (agentIndex - (agentCount - 1) / 2) * 260 + 150;
+
             newNodes.push({
               id: agentNodeId,
               type: 'agentActivity',
@@ -170,10 +163,12 @@ function CollaborationCanvasContent() {
               data: {
                 agentId,
                 agentName: agentId,
-                activeTasks: tasks.filter(t => t.status === 'running' || t.status === 'pending' || t.status === 'ready'),
-                completedCount: tasks.filter(t => t.status === 'completed').length,
-                failedCount: tasks.filter(t => t.status === 'failed').length,
-              }
+                activeTasks: tasks.filter(
+                  (t) => t.status === 'running' || t.status === 'pending' || t.status === 'ready'
+                ),
+                completedCount: tasks.filter((t) => t.status === 'completed').length,
+                failedCount: tasks.filter((t) => t.status === 'failed').length,
+              },
             });
 
             newEdges.push({
@@ -216,13 +211,24 @@ function CollaborationCanvasContent() {
                     target: taskNodeId,
                     animated: task.status === 'running',
                     style: {
-                      stroke: task.status === 'completed' ? '#00d4ff' : task.status === 'failed' ? '#ef4444' : '#ffffff30',
+                      stroke:
+                        task.status === 'completed'
+                          ? '#00d4ff'
+                          : task.status === 'failed'
+                            ? '#ef4444'
+                            : '#ffffff30',
                       strokeWidth: 1.5,
                     },
                     markerEnd: {
                       type: MarkerType.ArrowClosed,
-                      color: task.status === 'completed' ? '#00d4ff' : task.status === 'failed' ? '#ef4444' : '#ffffff30',
-                      width: 15, height: 15,
+                      color:
+                        task.status === 'completed'
+                          ? '#00d4ff'
+                          : task.status === 'failed'
+                            ? '#ef4444'
+                            : '#ffffff30',
+                      width: 15,
+                      height: 15,
                     },
                   });
                 }
@@ -234,7 +240,12 @@ function CollaborationCanvasContent() {
                 source: agentNodeId,
                 target: taskNodeId,
                 animated: task.status === 'running' || task.status === 'ready',
-                style: { stroke: '#a855f7', strokeWidth: 1.5, opacity: 0.3, strokeDasharray: '5,5' },
+                style: {
+                  stroke: '#a855f7',
+                  strokeWidth: 1.5,
+                  opacity: 0.3,
+                  strokeDasharray: '5,5',
+                },
               });
             }
           });
@@ -258,12 +269,17 @@ function CollaborationCanvasContent() {
               source: taskNodeId,
               target: aggregatorNodeId,
               animated: task.status === 'completed',
-              style: { 
-                stroke: task.status === 'completed' ? '#d946ef' : '#ffffff30', 
+              style: {
+                stroke: task.status === 'completed' ? '#d946ef' : '#ffffff30',
                 strokeWidth: 1.5,
-                strokeDasharray: task.status === 'completed' ? undefined : '5,5'
+                strokeDasharray: task.status === 'completed' ? undefined : '5,5',
               },
-              markerEnd: { type: MarkerType.ArrowClosed, color: task.status === 'completed' ? '#d946ef' : '#ffffff30', width: 15, height: 15 },
+              markerEnd: {
+                type: MarkerType.ArrowClosed,
+                color: task.status === 'completed' ? '#d946ef' : '#ffffff30',
+                width: 15,
+                height: 15,
+              },
             });
           });
         }
@@ -326,7 +342,7 @@ function CollaborationCanvasContent() {
         body: JSON.stringify({
           taskId: handoffData.taskId,
           response: handoffResponse,
-          approved
+          approved,
         }),
       });
       setIsHumanActive(false);
@@ -340,7 +356,7 @@ function CollaborationCanvasContent() {
   };
 
   return (
-    <div 
+    <div
       data-testid="collaboration-canvas"
       className="h-full w-full bg-background rounded-lg border border-border relative overflow-hidden"
     >
@@ -372,17 +388,36 @@ function CollaborationCanvasContent() {
       )}
 
       {/* Trace Intelligence Sidebar */}
-      <TraceDetailSidebar 
-        traceId={selectedTraceId} 
-        onClose={() => setSelectedTraceId(null)} 
-      />
+      <TraceDetailSidebar traceId={selectedTraceId} onClose={() => setSelectedTraceId(null)} />
 
       {/* Control Panels */}
       <div className="absolute bottom-6 left-6 z-20 flex flex-col gap-2">
-        <Card variant="solid" padding="none" className="flex flex-col overflow-hidden backdrop-blur-md shadow-2xl">
-          <Button variant="ghost" size="sm" onClick={() => zoomIn()} className="border-b border-white/5 p-3 rounded-none text-white/60 hover:text-purple-400" icon={<Plus size={18} />} />
-          <Button variant="ghost" size="sm" onClick={() => zoomOut()} className="border-b border-white/5 p-3 rounded-none text-white/60 hover:text-purple-400" icon={<Minus size={18} />} />
-          <Button variant="ghost" size="sm" onClick={handleReset} className="p-3 rounded-none text-white/60 hover:text-purple-400" icon={<Maximize size={18} />} />
+        <Card
+          variant="solid"
+          padding="none"
+          className="flex flex-col overflow-hidden backdrop-blur-md shadow-2xl"
+        >
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => zoomIn()}
+            className="border-b border-white/5 p-3 rounded-none text-white/60 hover:text-purple-400"
+            icon={<Plus size={18} />}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => zoomOut()}
+            className="border-b border-white/5 p-3 rounded-none text-white/60 hover:text-purple-400"
+            icon={<Minus size={18} />}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReset}
+            className="p-3 rounded-none text-white/60 hover:text-purple-400"
+            icon={<Maximize size={18} />}
+          />
         </Card>
         <div className="bg-black/80 border border-white/10 rounded-lg p-3 backdrop-blur-md shadow-2xl flex items-center justify-center">
           <Lock size={14} className="text-white/30" />
@@ -391,9 +426,17 @@ function CollaborationCanvasContent() {
 
       {/* Headers and Status */}
       <div className="absolute top-4 left-4 z-10 flex gap-2">
-        <div className={`flex items-center gap-2 px-3 py-1 bg-black/80 border ${isConnected ? 'border-cyber-green/30' : 'border-red-500/30'} rounded-full backdrop-blur-md`}>
-          <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-cyber-green animate-pulse' : 'bg-red-500'}`} />
-          <Typography variant="caption" weight="bold" className={`${isConnected ? 'text-cyber-green' : 'text-red-500'} uppercase text-[9px]`}>
+        <div
+          className={`flex items-center gap-2 px-3 py-1 bg-black/80 border ${isConnected ? 'border-cyber-green/30' : 'border-red-500/30'} rounded-full backdrop-blur-md`}
+        >
+          <div
+            className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-cyber-green animate-pulse' : 'bg-red-500'}`}
+          />
+          <Typography
+            variant="caption"
+            weight="bold"
+            className={`${isConnected ? 'text-cyber-green' : 'text-red-500'} uppercase text-[9px]`}
+          >
             {isConnected ? 'Realtime Link Active' : 'Realtime Offline'}
           </Typography>
         </div>
@@ -407,10 +450,23 @@ function CollaborationCanvasContent() {
       <div className="absolute top-4 right-4 z-10 space-y-2 pointer-events-none">
         <div className="flex items-center gap-2 px-3 py-1 bg-black/80 border border-purple-500/30 rounded-full">
           <Zap size={12} className="text-purple-400 animate-pulse" />
-          <Typography variant="caption" weight="bold" className="text-purple-400 uppercase">Live Collaboration Feed</Typography>
+          <Typography variant="caption" weight="bold" className="text-purple-400 uppercase">
+            Live Collaboration Feed
+          </Typography>
         </div>
-        <Button variant="outline" size="sm" onClick={() => { setLoading(true); fetchActiveTasks(); }} className="bg-black/80 rounded-full hover:bg-white/5 pointer-events-auto" icon={<RefreshCw size={10} />}>
-          <Typography variant="caption" weight="bold" color="white" uppercase>Refresh</Typography>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setLoading(true);
+            fetchActiveTasks();
+          }}
+          className="bg-black/80 rounded-full hover:bg-white/5 pointer-events-auto"
+          icon={<RefreshCw size={10} />}
+        >
+          <Typography variant="caption" weight="bold" color="white" uppercase>
+            Refresh
+          </Typography>
         </Button>
       </div>
 

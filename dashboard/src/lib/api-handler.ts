@@ -34,7 +34,7 @@ export function withApiHandler<T = unknown>(
   return async (req: NextRequest): Promise<NextResponse> => {
     try {
       let body: Record<string, unknown> = {};
-      
+
       // Only attempt to parse body for non-GET methods
       if (req.method !== 'GET' && req.method !== 'HEAD') {
         try {
@@ -44,11 +44,14 @@ export function withApiHandler<T = unknown>(
           body = {};
         }
       }
-      
+
       const result = await handler(body, req);
       return NextResponse.json(result);
     } catch (error) {
-      if (error instanceof ApiError || (error && typeof error === 'object' && 'statusCode' in error)) {
+      if (
+        error instanceof ApiError ||
+        (error && typeof error === 'object' && 'statusCode' in error)
+      ) {
         const apiError = error as { message?: string; details?: unknown; statusCode?: number };
         return NextResponse.json(
           { error: apiError.message, details: apiError.details },

@@ -59,7 +59,10 @@ export const HandoffPanel: React.FC<HandoffPanelProps> = ({
               </Typography>
             </div>
             <div>
-              <Typography variant="mono" className="text-[9px] text-muted-foreground uppercase mb-1">
+              <Typography
+                variant="mono"
+                className="text-[9px] text-muted-foreground uppercase mb-1"
+              >
                 Reason:
               </Typography>
               <Typography variant="body" className="text-[11px] text-foreground/70 italic">

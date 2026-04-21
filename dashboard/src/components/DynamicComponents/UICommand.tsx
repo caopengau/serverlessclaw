@@ -31,17 +31,16 @@ export default function UICommand({ component }: UICommandProps) {
   useEffect(() => {
     // Ensure command only runs once per component instance/timestamp
     if (executedRef.current) return;
-    
+
     const runCommand = async () => {
       if (props.command === 'navigation' && props.mode === 'auto' && props.path) {
         logger.info(`[UICommand] Auto-navigating to ${props.path}`);
         const query = props.params ? '?' + new URLSearchParams(props.params).toString() : '';
         router.push(`${props.path}${query}`);
         executedRef.current = true;
-      } 
-      else if (props.command === 'action' && props.action && props.target) {
+      } else if (props.command === 'action' && props.action && props.target) {
         logger.info(`[UICommand] Triggering UI Action: ${props.action} on ${props.target}`);
-        
+
         // Custom event for the dashboard to listen to
         const event = new CustomEvent('claw:ui-command', {
           detail: {
@@ -56,7 +55,16 @@ export default function UICommand({ component }: UICommandProps) {
     };
 
     runCommand();
-  }, [props.command, props.mode, props.path, props.params, props.action, props.target, props.payload, router]);
+  }, [
+    props.command,
+    props.mode,
+    props.path,
+    props.params,
+    props.action,
+    props.target,
+    props.payload,
+    router,
+  ]);
 
   // If it's HITL mode, we might render a small "Command Pending" indicator or nothing
   // since the ChatBubble/ChatMessageList will render the actions (buttons) anyway.
@@ -67,9 +75,9 @@ export default function UICommand({ component }: UICommandProps) {
           suggested view: {props.path}
         </span>
         <div className="flex gap-1">
-           <div className="w-1 h-1 rounded-full bg-cyber-green/40" />
-           <div className="w-1 h-1 rounded-full bg-cyber-green/20" />
-           <div className="w-1 h-1 rounded-full bg-cyber-green/10" />
+          <div className="w-1 h-1 rounded-full bg-cyber-green/40" />
+          <div className="w-1 h-1 rounded-full bg-cyber-green/20" />
+          <div className="w-1 h-1 rounded-full bg-cyber-green/10" />
         </div>
       </div>
     );

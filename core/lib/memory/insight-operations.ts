@@ -6,19 +6,13 @@
  */
 
 import { logger } from '../logger';
-import { MEMORY_KEYS, TIME } from '../constants';
+import { TIME } from '../constants';
 import type { BaseMemoryProvider } from './base';
 import { InsightCategory, MemoryInsight, InsightMetadata, ContextualScope } from '../types/memory';
 import { filterPII } from '../utils/pii';
+import { resolveScopeId } from './utils';
 
 const INSIGHT_TTL_DAYS = 30;
-
-/**
- * Resolves the hierarchical scope identifier for query or storage.
- */
-function resolveScopeId(scope?: string | ContextualScope): string | undefined {
-  return typeof scope === 'string' ? scope : scope?.workspaceId;
-}
 
 /**
  * Normalizes tags to ensure consistent searching.
@@ -201,8 +195,8 @@ export async function searchInsights(
   scope?: string | ContextualScope
 ): Promise<{ items: MemoryInsight[]; lastEvaluatedKey?: Record<string, unknown> }> {
   // 1. Detect if using modern options-based signature
-  let resolvedUserId = '';
-  let resolvedQuery = '';
+  let resolvedUserId: string;
+  let resolvedQuery: string;
   let resolvedTags = tags;
   let resolvedCategory = category;
   let resolvedLimit = limit || 50;
@@ -255,8 +249,7 @@ export async function searchInsights(
   if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
 
   // 3. Execute Query (Hierarchical fallback if needed)
-  let items: MemoryInsight[] = [];
-  let nextKey: Record<string, unknown> | undefined;
+  let items: MemoryInsight[];
 
   // If orgId or userId provided, we might search multiple scopes
   const searchScopes = [pk];
@@ -308,7 +301,6 @@ export async function searchInsights(
 
   return {
     items: workspaceId ? filtered.filter((f) => f.workspaceId === workspaceId) : filtered,
-    lastEvaluatedKey: nextKey,
   };
 }
 

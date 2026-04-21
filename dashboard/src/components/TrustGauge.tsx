@@ -59,7 +59,11 @@ export default function TrustGauge({ score, label, size = 120 }: TrustGaugeProps
           </Typography>
         </div>
       </div>
-      <Typography variant="caption" weight="bold" className="uppercase tracking-widest text-white/60">
+      <Typography
+        variant="caption"
+        weight="bold"
+        className="uppercase tracking-widest text-white/60"
+      >
         {label}
       </Typography>
     </div>

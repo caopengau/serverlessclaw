@@ -16,9 +16,14 @@ export async function GET(): Promise<NextResponse> {
 
     // 1. Diagnostic Logging for Environment
     const resourceKeys = Object.keys(Resource);
-    logger.info(`[InfrastructureAPI] SST Resource keys found: ${resourceKeys.length}`, resourceKeys);
+    logger.info(
+      `[InfrastructureAPI] SST Resource keys found: ${resourceKeys.length}`,
+      resourceKeys
+    );
     if (resourceKeys.length === 0) {
-      logger.warn('[InfrastructureAPI] Resource Proxy is empty. This usually means the dashboard was started without "sst dev". Falling back to reflective SDK scan...');
+      logger.warn(
+        '[InfrastructureAPI] Resource Proxy is empty. This usually means the dashboard was started without "sst dev". Falling back to reflective SDK scan...'
+      );
     }
 
     // 2. Try to load full system topology from DynamoDB (persisted by Build Monitor)

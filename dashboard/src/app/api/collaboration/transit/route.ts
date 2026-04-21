@@ -17,7 +17,7 @@ function getUserId(req: NextRequest): string {
 
 /**
  * POST /api/collaboration/transit
- * 
+ *
  * Transits a 1:1 trace session into a formal Multi-Agent Collaboration session.
  */
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -29,7 +29,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Missing sessionId' }, { status: HTTP_STATUS.BAD_REQUEST });
     }
 
-    logger.info(`[Collab Transit] Initiating transit for session: ${sessionId}, inviting: ${invitedAgentIds}`);
+    logger.info(
+      `[Collab Transit] Initiating transit for session: ${sessionId}, inviting: ${invitedAgentIds}`
+    );
 
     // Principle 14: Verify all invited agents are enabled
     const allInvited = [...(invitedAgentIds || []), AgentType.FACILITATOR];
@@ -52,16 +54,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       name
     );
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       collaborationId: collaboration.collaborationId,
-      name: collaboration.name
+      name: collaboration.name,
     });
-
   } catch (error) {
     logger.error('[Collab Transit] Error:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error', details: error instanceof Error ? error.message : String(error) },
+      {
+        error: 'Internal Server Error',
+        details: error instanceof Error ? error.message : String(error),
+      },
       { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }

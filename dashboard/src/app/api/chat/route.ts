@@ -48,7 +48,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     } = await req.json();
 
     const source = incomingSource || TraceSource.DASHBOARD;
-    
+
     const userId = getUserId(req);
     const storageId = sessionId ? `CONV#${userId}#${sessionId}` : userId;
 
@@ -59,14 +59,16 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    logger.info(`[Chat API] POST - userId: ${userId}, sessionId: ${sessionId}, traceId: ${clientTraceId}, agentId: ${agentId}, collabId: ${collaborationId}`);
+    logger.info(
+      `[Chat API] POST - userId: ${userId}, sessionId: ${sessionId}, traceId: ${clientTraceId}, agentId: ${agentId}, collabId: ${collaborationId}`
+    );
 
     // If we're in a collaboration session, we might need special logic in the future.
     // For now, we route to the specific agent requested.
-    
+
     const config = await AgentRegistry.getAgentConfig(agentId);
     const agentTools = await getAgentTools(agentId);
-    
+
     if (!config) {
       return NextResponse.json(
         { error: `Agent ${agentId} not found in registry.` },
@@ -85,27 +87,25 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Determine communication mode based on collaboration participants
     let communicationMode: 'text' | 'json' = 'text';
     if (collaborationId) {
-      const collab = collaborationId ? await memory.getCollaboration(collaborationId as string) : null;
+      const collab = collaborationId
+        ? await memory.getCollaboration(collaborationId as string)
+        : null;
       if (collab) {
-        const hasHuman = 
-          collab.owner.type === 'human' || 
-          collab.participants.some(p => p.type === 'human');
-        
+        const hasHuman =
+          collab.owner.type === 'human' || collab.participants.some((p) => p.type === 'human');
+
         communicationMode = hasHuman ? 'text' : 'json';
-        logger.info(`[Chat API] Collaboration detected. hasHuman: ${hasHuman} -> mode: ${communicationMode}`);
+        logger.info(
+          `[Chat API] Collaboration detected. hasHuman: ${hasHuman} -> mode: ${communicationMode}`
+        );
       }
     }
 
-    const agent = new Agent(
-      memory,
-      provider,
-      agentTools,
-      { 
-        ...config, 
-        ...(overrideConfig || {}),
-        systemPrompt: overrideConfig?.systemPrompt ?? config?.systemPrompt ?? SUPERCLAW_SYSTEM_PROMPT
-      } as IAgentConfig
-    );
+    const agent = new Agent(memory, provider, agentTools, {
+      ...config,
+      ...(overrideConfig || {}),
+      systemPrompt: overrideConfig?.systemPrompt ?? config?.systemPrompt ?? SUPERCLAW_SYSTEM_PROMPT,
+    } as IAgentConfig);
 
     // We use the streaming generator to trigger real-time MQTT emissions via AgentEmitter
     // while the request remains open. Chunks are automatically sent to the dashboard via IoT Core.
@@ -134,7 +134,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       if (chunk.messageId) finalMessageId = chunk.messageId;
     }
 
-    logger.info(`[Chat API] Stream finished - sessionId: ${sessionId}, agent: ${agentId}, response length: ${finalResponse.length}`);
+    logger.info(
+      `[Chat API] Stream finished - sessionId: ${sessionId}, agent: ${agentId}, response length: ${finalResponse.length}`
+    );
 
     // Update conversation metadata for the sidebar
     if (sessionId) {

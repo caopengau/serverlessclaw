@@ -10,12 +10,12 @@ import { useChatConnection } from '../Chat/useChatConnection';
 import { TraceSource } from '@claw/core/lib/types/agent';
 import Button from '@/components/ui/Button';
 
-export default function PlaygroundChat({ 
-  agentId, 
+export default function PlaygroundChat({
+  agentId,
   overrideConfig,
   onTraceUpdate,
-  replayTraceId
-}: { 
+  replayTraceId,
+}: {
   agentId: string;
   overrideConfig: { systemPrompt: string };
   onTraceUpdate?: (traceId: string) => void;
@@ -36,7 +36,7 @@ export default function PlaygroundChat({
     setAttachments,
     sendMessage,
     handleFiles,
-    removeAttachment
+    removeAttachment,
   } = useChatMessages(
     activeSessionId,
     setActiveSessionId,
@@ -76,21 +76,23 @@ export default function PlaygroundChat({
           const data = await res.json();
           if (data.trace?.initialContext?.userText) {
             const query = data.trace.initialContext.userText;
-            setMessages([{
-              role: 'assistant',
-              content: `Replay Protocol Initialized for Trace: **${replayTraceId}**. \n\nTarget Query: "${query}"`,
-              agentName: 'System',
-              messageId: `replay-intro-${replayTraceId}`
-            }]);
-            
+            setMessages([
+              {
+                role: 'assistant',
+                content: `Replay Protocol Initialized for Trace: **${replayTraceId}**. \n\nTarget Query: "${query}"`,
+                agentName: 'System',
+                messageId: `replay-intro-${replayTraceId}`,
+              },
+            ]);
+
             // Wait for messages to settle then trigger replay
             setTimeout(() => {
-                sendMessage(query, {
-                  agentId,
-                  isIsolated: true,
-                  source: TraceSource.PLAYGROUND,
-                  overrideConfig
-                });
+              sendMessage(query, {
+                agentId,
+                isIsolated: true,
+                source: TraceSource.PLAYGROUND,
+                overrideConfig,
+              });
             }, 1000);
           }
         } catch (err) {
@@ -106,15 +108,15 @@ export default function PlaygroundChat({
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!agentId) return;
-    
+
     const textToSend = input;
     setInput('');
-    
+
     await sendMessage(textToSend, {
       agentId,
       isIsolated: true,
       source: TraceSource.PLAYGROUND,
-      overrideConfig
+      overrideConfig,
     });
 
     // Extract traceId from the last message added by sendMessage
@@ -123,12 +125,13 @@ export default function PlaygroundChat({
 
   // Sync latest traceId to parent for the visualizer
   useEffect(() => {
-    const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant');
+    const lastAssistantMessage = [...messages].reverse().find((m) => m.role === 'assistant');
     if (lastAssistantMessage?.messageId && onTraceUpdate) {
-        const traceId = lastAssistantMessage.messageId.split('-')[0];
-        if (traceId && traceId.length > 20) { // Simple UUID check
-            onTraceUpdate(traceId);
-        }
+      const traceId = lastAssistantMessage.messageId.split('-')[0];
+      if (traceId && traceId.length > 20) {
+        // Simple UUID check
+        onTraceUpdate(traceId);
+      }
     }
   }, [messages, onTraceUpdate]);
 
@@ -136,8 +139,12 @@ export default function PlaygroundChat({
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-muted-more/40">
         <Bot size={64} className="mb-4 opacity-10" />
-        <Typography variant="h3" weight="bold">Select a Persona to Begin</Typography>
-        <Typography variant="caption" color="muted-more" className="mt-2 uppercase tracking-widest">Cognitive sandbox initialized</Typography>
+        <Typography variant="h3" weight="bold">
+          Select a Persona to Begin
+        </Typography>
+        <Typography variant="caption" color="muted-more" className="mt-2 uppercase tracking-widest">
+          Cognitive sandbox initialized
+        </Typography>
       </div>
     );
   }
@@ -145,43 +152,51 @@ export default function PlaygroundChat({
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-background">
       <header className="p-4 border-b border-border flex items-center justify-between bg-card/40 backdrop-blur-md">
-         <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-cyber-green/10 border border-cyber-green/20 flex items-center justify-center">
-              <Bot size={16} className="text-cyber-green" />
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-cyber-green/10 border border-cyber-green/20 flex items-center justify-center">
+            <Bot size={16} className="text-cyber-green" />
+          </div>
+          <div>
+            <Typography
+              variant="mono"
+              weight="bold"
+              className="text-xs text-foreground uppercase tracking-tighter"
+            >
+              Testing::{agentId}
+            </Typography>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1 h-1 rounded-full bg-cyber-green animate-pulse" />
+              <Typography variant="mono" className="text-[8px] text-cyber-green/60 uppercase">
+                Sandbox_Active
+              </Typography>
             </div>
-            <div>
-              <Typography variant="mono" weight="bold" className="text-xs text-foreground uppercase tracking-tighter">Testing::{agentId}</Typography>
-              <div className="flex items-center gap-1.5">
-                 <div className="w-1 h-1 rounded-full bg-cyber-green animate-pulse" />
-                 <Typography variant="mono" className="text-[8px] text-cyber-green/60 uppercase">Sandbox_Active</Typography>
-              </div>
-            </div>
-         </div>
-         <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => {
-              setMessages([]);
-              setActiveSessionId(`playground_${Date.now()}`);
-            }}
-            className="text-muted-more hover:text-foreground"
-            icon={<RefreshCw size={14} />}
-         >
-           Reset
-         </Button>
+          </div>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setMessages([]);
+            setActiveSessionId(`playground_${Date.now()}`);
+          }}
+          className="text-muted-more hover:text-foreground"
+          icon={<RefreshCw size={14} />}
+        >
+          Reset
+        </Button>
       </header>
 
       <div className="flex-1 overflow-hidden">
-        <ChatMessageList 
-          messages={messages} 
-          isLoading={isLoading} 
+        <ChatMessageList
+          messages={messages}
+          isLoading={isLoading}
           showThinking={true}
           scrollRef={scrollRef}
         />
       </div>
 
       <div className="p-4 bg-gradient-to-t from-background to-transparent">
-        <ChatInput 
+        <ChatInput
           input={input}
           setInput={setInput}
           isLoading={isLoading}
@@ -194,10 +209,13 @@ export default function PlaygroundChat({
           fileInputRef={fileInputRef}
         />
         <div className="mt-2 flex items-center gap-2 px-1">
-           <AlertCircle size={10} className="text-muted-more/40" />
-           <Typography variant="mono" className="text-[8px] text-muted-more/40 uppercase tracking-widest">
-             Interactions in this environment do not affect agent reputation or collective memory.
-           </Typography>
+          <AlertCircle size={10} className="text-muted-more/40" />
+          <Typography
+            variant="mono"
+            className="text-[8px] text-muted-more/40 uppercase tracking-widest"
+          >
+            Interactions in this environment do not affect agent reputation or collective memory.
+          </Typography>
         </div>
       </div>
     </div>

@@ -42,7 +42,7 @@ export default function GapRefinementPanel({
   const [saving, setSaving] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [error, setError] = useState('');
-  
+
   const [plan, setPlan] = useState<EvolutionPlan | null>(null);
 
   // Fetch real plan from DynamoDB
@@ -108,12 +108,12 @@ export default function GapRefinementPanel({
   const addSubTask = () => {
     const newId = `new-${Date.now()}`;
     const newSubTask: SubTask = { id: newId, description: '', status: 'PENDING' };
-    
+
     if (!plan) {
       setPlan({
         gapId: gapId.replace(/^GAP#/, ''),
         strategy: 'User defined strategy',
-        subTasks: [newSubTask]
+        subTasks: [newSubTask],
       });
     } else {
       setPlan({
@@ -151,7 +151,10 @@ export default function GapRefinementPanel({
   const shortId = gapId.split('#').slice(-1)[0];
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-background/60 backdrop-blur-sm" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex justify-end bg-background/60 backdrop-blur-sm"
+      onClick={onClose}
+    >
       <div
         className="w-full max-w-md h-full bg-background border-l border-border overflow-y-auto shadow-premium"
         onClick={(e) => e.stopPropagation()}
@@ -159,10 +162,15 @@ export default function GapRefinementPanel({
         {/* Header */}
         <div className="sticky top-0 bg-background/80 backdrop-blur-md border-b border-border px-6 py-4 flex items-center justify-between z-10">
           <div>
-            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">{t('PIPELINE_REFINE_GAP')}</h2>
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">
+              {t('PIPELINE_REFINE_GAP')}
+            </h2>
             <p className="text-[10px] font-mono text-muted-more mt-0.5">ID: {shortId}</p>
           </div>
-          <button onClick={onClose} className="text-muted-more hover:text-foreground transition-colors">
+          <button
+            onClick={onClose}
+            className="text-muted-more hover:text-foreground transition-colors"
+          >
             <X size={18} />
           </button>
         </div>
@@ -187,14 +195,14 @@ export default function GapRefinementPanel({
               <label className="flex items-center gap-2 text-[10px] font-bold text-cyber-green/70 uppercase tracking-wider">
                 <ListFilter size={12} /> {t('PIPELINE_PLAN_DECOMPOSITION')}
               </label>
-              <button 
+              <button
                 onClick={addSubTask}
                 className="text-[9px] font-bold text-muted-more hover:text-cyber-green transition-colors flex items-center gap-1 uppercase tracking-widest"
               >
                 <Plus size={10} /> {t('PIPELINE_ADD_SUBTASK')}
               </button>
             </div>
-            
+
             <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
               {loadingPlan ? (
                 <div className="py-8 text-center animate-pulse text-[10px] text-muted-more uppercase font-mono tracking-widest">
@@ -209,7 +217,7 @@ export default function GapRefinementPanel({
                       rows={2}
                       className="w-full bg-foreground/[0.02] border border-border rounded px-3 py-2 text-[11px] text-foreground/70 focus:outline-none focus:border-cyber-green/30 resize-none group-hover:bg-foreground/[0.04] transition-colors"
                     />
-                    <button 
+                    <button
                       onClick={() => removeSubTask(st.id)}
                       className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-red-500/50 hover:text-red-500 transition-all font-bold"
                     >
@@ -271,7 +279,9 @@ export default function GapRefinementPanel({
             </div>
             <div className="p-3 bg-indigo-500/5 border border-indigo-500/10 rounded">
               <div className="flex justify-between items-center mb-1">
-                <span className="text-[9px] text-muted uppercase">{t('PIPELINE_AGENT_AGREEMENT')}</span>
+                <span className="text-[9px] text-muted uppercase">
+                  {t('PIPELINE_AGENT_AGREEMENT')}
+                </span>
                 <span className="text-[9px] text-cyber-green font-black">94%</span>
               </div>
               <div className="w-full h-1 bg-foreground/5 rounded-full overflow-hidden">

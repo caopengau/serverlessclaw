@@ -44,12 +44,12 @@ const CodeBlock = ({ children }: { children: string }) => {
           variant="ghost"
           size="sm"
           onClick={copyToClipboard}
-          className="!p-1.5 h-auto bg-black/40 border border-white/10 text-white/40 hover:text-cyber-green"
+          className="!p-1.5 h-auto bg-card-elevated border border-border text-muted-foreground hover:text-cyber-green"
           icon={copied ? <Check size={12} /> : <Copy size={12} />}
           title="Copy to clipboard"
         />
       </div>
-      <pre className="bg-black/40 p-3 rounded-md border border-white/10 overflow-x-auto custom-scrollbar">
+      <pre className="bg-input p-3 rounded-md border border-border overflow-x-auto custom-scrollbar">
         <code className="font-mono text-sm text-cyber-green/90">{children}</code>
       </pre>
     </div>
@@ -85,7 +85,7 @@ const ToolCallsDisplay = ({ toolCalls }: { toolCalls: ToolCall[] }) => {
         >
           {toolCalls.length} tool call{toolCalls.length !== 1 ? 's' : ''}
         </Typography>
-        <Typography variant="mono" className="text-[9px] text-white/30 ml-auto">
+        <Typography variant="mono" className="text-[9px] text-muted-foreground/40 ml-auto">
           {toolCalls
             .map((tc) => tc.function?.name)
             .filter(Boolean)
@@ -95,12 +95,12 @@ const ToolCallsDisplay = ({ toolCalls }: { toolCalls: ToolCall[] }) => {
       {expanded && (
         <div className="border-t border-amber-500/10 px-3 py-2 space-y-2">
           {toolCalls.map((tc, i) => (
-            <div key={tc.id || i} className="bg-black/20 rounded p-2">
+            <div key={tc.id || i} className="bg-input rounded p-2">
               <Typography variant="mono" className="text-[10px] text-amber-400 font-bold">
                 {tc.function?.name ?? 'unknown'}
               </Typography>
               {tc.function?.arguments && (
-                <pre className="mt-1 text-[10px] text-white/50 whitespace-pre-wrap overflow-x-auto custom-scrollbar">
+                <pre className="mt-1 text-[10px] text-muted-foreground whitespace-pre-wrap overflow-x-auto custom-scrollbar">
                   {(() => {
                     try {
                       return JSON.stringify(JSON.parse(tc.function.arguments), null, 2);
@@ -124,7 +124,7 @@ const markdownComponents = (role: string): MarkdownComponents => ({
     <Typography
       variant="body"
       as="div"
-      color={role === 'assistant' ? 'inherit' : 'white'}
+      color={role === 'assistant' ? 'inherit' : 'primary'}
       className="block mb-2 last:mb-0 break-words"
     >
       {children}
@@ -133,7 +133,7 @@ const markdownComponents = (role: string): MarkdownComponents => ({
   h1: ({ children }: MarkdownNodeProps) => (
     <Typography
       variant="h3"
-      color={role === 'assistant' ? 'inherit' : 'white'}
+      color={role === 'assistant' ? 'inherit' : 'primary'}
       className="block mt-4 mb-2 text-cyber-green"
       glow
     >
@@ -143,7 +143,7 @@ const markdownComponents = (role: string): MarkdownComponents => ({
   h2: ({ children }: MarkdownNodeProps) => (
     <Typography
       variant="h3"
-      color={role === 'assistant' ? 'inherit' : 'white'}
+      color={role === 'assistant' ? 'inherit' : 'primary'}
       className="block mt-3 mb-1 text-cyber-green/90"
     >
       {children}
@@ -153,7 +153,7 @@ const markdownComponents = (role: string): MarkdownComponents => ({
     <Typography
       variant="body"
       weight="bold"
-      color={role === 'assistant' ? 'inherit' : 'white'}
+      color={role === 'assistant' ? 'inherit' : 'primary'}
       className="block mt-2 mb-1 text-cyber-green/80"
     >
       {children}
@@ -170,7 +170,7 @@ const markdownComponents = (role: string): MarkdownComponents => ({
       <Typography
         variant="body"
         as="div"
-        color={role === 'assistant' ? 'inherit' : 'white'}
+        color={role === 'assistant' ? 'inherit' : 'primary'}
         className="inline"
       >
         {children}
@@ -181,7 +181,7 @@ const markdownComponents = (role: string): MarkdownComponents => ({
     const inline = !className?.includes('language-');
     if (inline) {
       return (
-        <code className="bg-white/10 px-1 rounded font-mono text-sm text-cyber-green/100">
+        <code className="bg-foreground/5 px-1 rounded font-mono text-sm text-cyber-green/100">
           {children}
         </code>
       );
@@ -193,8 +193,8 @@ const markdownComponents = (role: string): MarkdownComponents => ({
       variant="body"
       as="span"
       weight="bold"
-      color={role === 'assistant' ? 'inherit' : 'white'}
-      className="inline text-white"
+      color={role === 'assistant' ? 'inherit' : 'primary'}
+      className="inline font-bold"
     >
       {children}
     </Typography>
@@ -255,7 +255,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
         <div
           className={`w-8 h-8 rounded shrink-0 flex items-center justify-center border ${
             m.role === 'user'
-              ? 'bg-white/5 border-white/10 text-white/100'
+              ? 'bg-foreground/5 border-border text-foreground'
               : 'bg-cyber-green/10 border-cyber-green/30 text-cyber-green'
           }`}
         >
@@ -293,7 +293,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
                 padding="md"
                 className={`rounded-lg ${
                   m.role === 'user'
-                    ? 'bg-white/5 text-white/90 border border-white/10'
+                    ? 'bg-input text-foreground border border-border shadow-[0_4px_12px_rgba(0,0,0,0.02)]'
                     : 'text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
                 }`}
               >
@@ -330,7 +330,14 @@ const ChatMessageRow = memo(function ChatMessageRow({
                     key={block.id}
                     component={block}
                     onAction={(actionId, payload) => {
-                      onOptionClick?.(actionId, payload ? (typeof payload === 'string' ? payload : JSON.stringify(payload)) : undefined);
+                      onOptionClick?.(
+                        actionId,
+                        payload
+                          ? typeof payload === 'string'
+                            ? payload
+                            : JSON.stringify(payload)
+                          : undefined
+                      );
                     }}
                   />
                 ))}
@@ -344,7 +351,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
                 {m.attachments.map((a, ai) => (
                   <div key={ai} className="relative group/att">
                     {a.type === 'image' && (a.url || a.base64) ? (
-                      <div className="w-32 h-32 rounded-lg overflow-hidden border border-white/10 hover:border-cyber-green/50 transition-colors shadow-lg relative">
+                      <div className="w-32 h-32 rounded-lg overflow-hidden border border-border hover:border-cyber-green/50 transition-colors shadow-lg relative">
                         <Image
                           src={a.url || `data:${a.mimeType ?? 'image/png'};base64,${a.base64}`}
                           alt={a.name ?? 'Attachment'}
@@ -359,11 +366,11 @@ const ChatMessageRow = memo(function ChatMessageRow({
                         download={a.name}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-2 bg-white/5 border border-white/10 p-2 rounded-lg hover:border-cyber-green/50 transition-colors group/dl"
+                        className="flex items-center gap-2 bg-input border border-border p-2 rounded-lg hover:border-cyber-green/50 transition-colors group/dl"
                       >
                         <File
                           size={16}
-                          className="text-white/40 group-hover/dl:text-cyber-green transition-colors"
+                          className="text-muted-foreground/40 group-hover/dl:text-cyber-green transition-colors"
                         />
                         <div className="flex flex-col">
                           <Typography variant="caption" className="max-w-[120px] truncate">
@@ -399,7 +406,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
                             : 'outline'
                       }
                       size="sm"
-                      className="!py-1 !px-3 text-[10px] font-mono tracking-wider uppercase border border-white/10"
+                      className="!py-1 !px-3 text-[10px] font-mono tracking-wider uppercase border border-border"
                       onClick={() => {
                         onOptionClick?.(opt.value, comment);
                         setComment('');
@@ -411,7 +418,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
                 </div>
 
                 <div className="relative max-w-sm">
-                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-white/20">
+                  <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted-foreground/20">
                     <MessageCircle size={14} />
                   </div>
                   <input
@@ -419,7 +426,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
                     placeholder="Add an optional comment..."
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-lg py-1.5 pl-9 pr-3 text-[11px] text-white/80 placeholder:text-white/20 focus:outline-none focus:border-cyber-green/30 transition-colors font-mono"
+                    className="w-full bg-input border border-border rounded-lg py-1.5 pl-9 pr-3 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-cyber-green/30 transition-colors font-mono"
                   />
                 </div>
               </div>
@@ -462,23 +469,23 @@ export function ChatMessageList({
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-transparent relative">
       {/* Local Message Search Overlay */}
-      <div className="absolute top-0 left-0 right-0 z-10 px-6 py-2 border-b border-white/5 bg-black/40 backdrop-blur-md flex items-center gap-3">
+      <div className="absolute top-0 left-0 right-0 z-10 px-6 py-2 border-b border-border bg-background/40 backdrop-blur-md flex items-center gap-3">
         <div className="relative flex-1 group/msgsearch">
           <Search
             size={12}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-white/20 group-focus-within/msgsearch:text-cyber-green transition-colors"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/20 group-focus-within/msgsearch:text-cyber-green transition-colors"
           />
           <input
             type="text"
             placeholder="Search messages..."
             value={msgSearchQuery}
             onChange={(e) => setMsgSearchQuery(e.target.value)}
-            className="w-full bg-white/[0.03] border border-white/5 focus:border-cyber-green/40 rounded py-1 pl-8 pr-4 text-[10px] text-white outline-none transition-all placeholder:text-white/10"
+            className="w-full bg-input border border-border focus:border-cyber-green/40 rounded py-1 pl-8 pr-4 text-[10px] text-foreground outline-none transition-all placeholder:text-muted-foreground/40"
           />
           {msgSearchQuery && (
             <button
               onClick={() => setMsgSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-white/20 hover:text-white/60 transition-colors"
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/20 hover:text-foreground transition-colors"
             >
               <CloseIcon size={10} />
             </button>
@@ -496,12 +503,12 @@ export function ChatMessageList({
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-6 py-4 pt-12 space-y-4 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-white/[0.02] via-transparent to-transparent custom-scrollbar"
+        className="flex-1 overflow-y-auto px-6 py-4 pt-12 space-y-4 bg-[radial-gradient(circle_at_center,color-mix(in_srgb,var(--cyber-green)_2%,transparent)_0%,_transparent_70%)] custom-scrollbar"
       >
         {filteredMessages.length === 0 && !isLoading && (
-          <div className="flex-1 flex flex-col items-center justify-center text-white/80 px-8 min-h-0">
+          <div className="flex-1 flex flex-col items-center justify-center text-foreground/40 px-8 min-h-0">
             <Terminal size={48} className="mb-4 opacity-10" />
-            <Typography variant="h3" weight="normal" color="white" className="opacity-80">
+            <Typography variant="h3" weight="normal" color="primary" className="opacity-80">
               {msgSearchQuery
                 ? 'No matching signals found'
                 : 'System Ready // Waiting for Input Command/File'}
@@ -524,19 +531,26 @@ export function ChatMessageList({
           />
         ))}
 
-        {isLoading && !msgSearchQuery && !messages.some(m => m.role === 'assistant' && m.isThinking) && (
-          <div className="flex gap-3 justify-start">
-            <div className="w-8 h-8 rounded shrink-0 flex items-center justify-center border bg-cyber-green/10 border-cyber-green/30 text-cyber-green animate-pulse">
-              <Bot size={16} />
+        {isLoading &&
+          !msgSearchQuery &&
+          !messages.some((m) => m.role === 'assistant' && m.isThinking) && (
+            <div className="flex gap-3 justify-start">
+              <div className="w-8 h-8 rounded shrink-0 flex items-center justify-center border bg-cyber-green/10 border-cyber-green/30 text-cyber-green animate-pulse">
+                <Bot size={16} />
+              </div>
+              <Card variant="glass" padding="sm" className="flex items-center gap-2">
+                <Loader2 size={14} className="animate-spin text-cyber-green" />
+                <Typography
+                  variant="caption"
+                  weight="bold"
+                  color="primary"
+                  className="animate-pulse"
+                >
+                  Processing...
+                </Typography>
+              </Card>
             </div>
-            <Card variant="glass" padding="sm" className="flex items-center gap-2">
-              <Loader2 size={14} className="animate-spin text-cyber-green" />
-              <Typography variant="caption" weight="bold" color="primary" className="animate-pulse">
-                Processing...
-              </Typography>
-            </Card>
-          </div>
-        )}
+          )}
       </div>
     </div>
   );

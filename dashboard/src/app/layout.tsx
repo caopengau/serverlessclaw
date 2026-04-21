@@ -52,12 +52,7 @@ export default async function RootLayout({
         suppressHydrationWarning
         className="min-h-full flex bg-background text-foreground font-mono text-base antialiased"
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="dark"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <TranslationsProvider initialLocale={initialLocale}>
             <RealtimeProvider>
               <UICommandProvider>
@@ -82,7 +77,10 @@ export default async function RootLayout({
                   <div className="flex h-screen w-full overflow-hidden">
                     <Sidebar />
                     <div className="flex-1 flex flex-col min-w-0 relative">
-                      <main id="main-content" className="flex-1 flex flex-col min-h-0 pt-16 lg:pt-0">
+                      <main
+                        id="main-content"
+                        className="flex-1 flex flex-col min-h-0 pt-16 lg:pt-0"
+                      >
                         {children}
                       </main>
                       <ChatBubble />
@@ -97,4 +95,3 @@ export default async function RootLayout({
     </html>
   );
 }
-

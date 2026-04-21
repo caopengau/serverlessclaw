@@ -2,13 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InsightCategory } from '../../lib/types/index';
 import type { IMemory } from '../../lib/types/index';
 import { MEMORY_KEYS, TIME } from '../../lib/constants';
-import {
-  buildTelemetry,
-  shouldRunProactiveReview,
-  buildReactivePrompt,
-  buildProactiveReviewPrompt,
-  fetchStaleMemoryContext,
-} from './prompts';
+import { buildTelemetry, shouldRunProactiveReview, buildProactiveReviewPrompt } from './prompts';
 
 /**
  * Prompts Module Tests

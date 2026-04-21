@@ -152,7 +152,7 @@ describe('shouldProcessChunk', () => {
 describe('applyChunkToMessages', () => {
   it('links chunk to a thinking placeholder if messageId is new', () => {
     const prev: ChatMessage[] = [
-      { role: 'assistant', content: '', isThinking: true, agentName: 'SuperClaw' }
+      { role: 'assistant', content: '', isThinking: true, agentName: 'SuperClaw' },
     ];
     const chunk: IncomingChunk = {
       message: 'Initial content',
@@ -169,7 +169,7 @@ describe('applyChunkToMessages', () => {
 
   it('replaces content instead of appending when detail-type is outbound_message', () => {
     const prev: ChatMessage[] = [
-      { role: 'assistant', content: 'Partial...', messageId: 't1', agentName: 'SuperClaw' }
+      { role: 'assistant', content: 'Partial...', messageId: 't1', agentName: 'SuperClaw' },
     ];
     const chunk: IncomingChunk & { 'detail-type': string } = {
       message: 'Full final response',
@@ -185,7 +185,7 @@ describe('applyChunkToMessages', () => {
 
   it('drops duplicate assistant messages based on exact content match', () => {
     const prev: ChatMessage[] = [
-      { role: 'assistant', content: 'Hello there', messageId: 't1', agentName: 'SuperClaw' }
+      { role: 'assistant', content: 'Hello there', messageId: 't1', agentName: 'SuperClaw' },
     ];
     // Different messageId but same content
     const chunk: IncomingChunk = {
@@ -281,10 +281,10 @@ describe('applyChunkToMessages', () => {
 describe('mergeHistoryWithMessages', () => {
   it('discards local assistant messages if history has the same normalized ID', () => {
     const prev: ChatMessage[] = [
-      { role: 'assistant', content: 'Local version', messageId: 'trace-1-superclaw' }
+      { role: 'assistant', content: 'Local version', messageId: 'trace-1-superclaw' },
     ];
     const rawHistory: HistoryMessage[] = [
-      { role: 'assistant', content: 'History version', traceId: 'trace-1', attachments: [] }
+      { role: 'assistant', content: 'History version', traceId: 'trace-1', attachments: [] },
     ];
 
     const { messages } = mergeHistoryWithMessages(prev, rawHistory);
@@ -294,11 +294,9 @@ describe('mergeHistoryWithMessages', () => {
   });
 
   it('discards local user messages if they match history content', () => {
-    const prev: ChatMessage[] = [
-      { role: 'user', content: 'Same user text' }
-    ];
+    const prev: ChatMessage[] = [{ role: 'user', content: 'Same user text' }];
     const rawHistory: HistoryMessage[] = [
-      { role: 'user', content: 'Same user text', attachments: [] }
+      { role: 'user', content: 'Same user text', attachments: [] },
     ];
 
     const { messages } = mergeHistoryWithMessages(prev, rawHistory);

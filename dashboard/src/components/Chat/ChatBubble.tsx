@@ -19,7 +19,7 @@ import { ChatMessage } from './types';
  */
 export default function ChatBubble() {
   const pathname = usePathname();
-  
+
   // --- State & Refs (Must be before early returns) ---
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -41,31 +41,25 @@ export default function ChatBubble() {
   // Initialize Connection Hook (Sync Loop)
   const chatConnection = useChatConnection(
     activeSessionId,
-    setMessagesRef, 
+    setMessagesRef,
     setIsLoading,
     isPostInFlight,
     pathname === '/chat' || pathname === '/'
   );
 
   // Initialize Messages Hook
-  const {
-    messages,
-    setMessages,
-    sendMessage,
-    attachments,
-    handleFiles,
-    removeAttachment,
-  } = useChatMessages(
-    activeSessionId,
-    setActiveSessionId,
-    setIsLoading,
-    isPostInFlight,
-    seenMessageIds,
-    chatConnection.fetchSessions,
-    skipNextHistoryFetch,
-    activeSessionRef,
-    pathname === '/chat' || pathname === '/'
-  );
+  const { messages, setMessages, sendMessage, attachments, handleFiles, removeAttachment } =
+    useChatMessages(
+      activeSessionId,
+      setActiveSessionId,
+      setIsLoading,
+      isPostInFlight,
+      seenMessageIds,
+      chatConnection.fetchSessions,
+      skipNextHistoryFetch,
+      activeSessionRef,
+      pathname === '/chat' || pathname === '/'
+    );
 
   // Sync the ref for the connection hook
   useEffect(() => {
@@ -80,7 +74,7 @@ export default function ChatBubble() {
   }, [messages]);
 
   // --- Early Return (Must be after all hooks) ---
-  // Hide the bubble on the main chat page to avoid redundancy and prevent 
+  // Hide the bubble on the main chat page to avoid redundancy and prevent
   // duplicate data synchronization hooks from running.
   if (pathname === '/chat' || pathname === '/') {
     return null;
@@ -98,9 +92,9 @@ export default function ChatBubble() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() && attachments.length === 0) return;
-    
+
     sendMessage(input, {
-      pageContext: attachContext ? (pageContext || undefined) : undefined
+      pageContext: attachContext ? pageContext || undefined : undefined,
     });
     setInput('');
   };
@@ -134,7 +128,12 @@ export default function ChatBubble() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setAttachContext(!attachContext)}
-                  icon={<Activity size={14} className={attachContext ? 'text-cyber-green' : 'text-foreground/20'} />}
+                  icon={
+                    <Activity
+                      size={14}
+                      className={attachContext ? 'text-cyber-green' : 'text-foreground/20'}
+                    />
+                  }
                   title={attachContext ? 'Page context attached' : 'Attach page context'}
                   className="hover:bg-foreground/5"
                 />
@@ -189,7 +188,11 @@ export default function ChatBubble() {
           className="bg-background/80 backdrop-blur-md border border-cyber-green/30 px-4 py-2 rounded-lg flex items-center gap-3 shadow-lg hover:border-cyber-green transition-all group"
         >
           <div className="w-2 h-2 rounded-full bg-cyber-green animate-pulse" />
-          <Typography variant="caption" weight="bold" className="uppercase tracking-widest text-[10px]">
+          <Typography
+            variant="caption"
+            weight="bold"
+            className="uppercase tracking-widest text-[10px]"
+          >
             SuperClaw Active
           </Typography>
           <Maximize2 size={14} className="text-foreground/40 group-hover:text-foreground" />

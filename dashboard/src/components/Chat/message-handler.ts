@@ -33,9 +33,11 @@ export function shouldProcessChunk(
   expectedUserId: string
 ): boolean {
   const type = data.type || data['detail-type'];
-  
+
   // DEBUG: Log session processing
-  logger.info(`[shouldProcessChunk] msg=${data.messageId?.substring(0, 8)}, type=${type}, incoming_session=${data.sessionId}, active_session=${currentActiveId}`);
+  logger.info(
+    `[shouldProcessChunk] msg=${data.messageId?.substring(0, 8)}, type=${type}, incoming_session=${data.sessionId}, active_session=${currentActiveId}`
+  );
 
   // Normalize incoming userId (remove CONV# prefix if present)
   const incomingUserId = data.userId?.startsWith('CONV#') ? data.userId.split('#')[1] : data.userId;
@@ -47,7 +49,13 @@ export function shouldProcessChunk(
   }
 
   // ALLOW ALL VALID SIGNAL TYPES
-  const validTypes = ['chunk', 'TEXT_MESSAGE_CONTENT', 'outbound_message', 'TEXT_MESSAGE_START', 'TEXT_MESSAGE_END'];
+  const validTypes = [
+    'chunk',
+    'TEXT_MESSAGE_CONTENT',
+    'outbound_message',
+    'TEXT_MESSAGE_START',
+    'TEXT_MESSAGE_END',
+  ];
   if (type && !validTypes.includes(type)) {
     logger.warn(`[shouldProcessChunk] ❌ Type mismatch: ${type}`);
     return false;
@@ -71,7 +79,9 @@ export function shouldProcessChunk(
 
   const match = data.sessionId === currentActiveId;
   if (!match) {
-    logger.warn(`[shouldProcessChunk] ❌ Session mismatch: ${data.sessionId} !== ${currentActiveId}`);
+    logger.warn(
+      `[shouldProcessChunk] ❌ Session mismatch: ${data.sessionId} !== ${currentActiveId}`
+    );
   } else {
     logger.info(`[shouldProcessChunk] ✅ Session match: ${data.sessionId}`);
   }
@@ -93,20 +103,23 @@ export function applyChunkToMessages(
 ): ChatMessage[] {
   // Prevent processing chunks for messages we've already finalized via API
   if (data.messageId && seenIds?.has(data.messageId)) {
-    logger.info(`[message-handler] ⏭️  Skipping already-seen ID: ${data.messageId?.substring(0, 12)}`);
+    logger.info(
+      `[message-handler] ⏭️  Skipping already-seen ID: ${data.messageId?.substring(0, 12)}`
+    );
     return prev;
   }
 
   // Check both 'detail-type' and 'type' for outbound_message
-  const chunkType = (data as IncomingChunk & { type?: string; 'detail-type'?: string }).type
-    || (data as IncomingChunk & { 'detail-type'?: string })['detail-type'];
+  const chunkType =
+    (data as IncomingChunk & { type?: string; 'detail-type'?: string }).type ||
+    (data as IncomingChunk & { 'detail-type'?: string })['detail-type'];
   const isFinal = chunkType === 'outbound_message';
 
   // Use only data.isThought — data.thought can exist on non-thought chunks (e.g. OUTBOUND_MESSAGE)
   const isThought = !!data.isThought;
   const isSyntheticThought = isThought && data.thought === '\u2026';
   const hasVisibleMessageContent = !!(data.message || data.ui_blocks);
-  const thoughtDelta = isSyntheticThought ? '' : (data.thought || '');
+  const thoughtDelta = isSyntheticThought ? '' : data.thought || '';
 
   // Find existing message with matching messageId
   const existingIndex = data.messageId
@@ -120,9 +133,9 @@ export function applyChunkToMessages(
 
     logger.info(
       `[message-handler] merge: id=${data.messageId?.substring(0, 12)}, ` +
-      `type=${chunkType ?? 'chunk'}, isFinal=${isFinal}, isThought=${isThought}, ` +
-      `synthetic=${isSyntheticThought}, msgLen=${data.message?.length ?? 0}, ` +
-      `existingLen=${existing.content?.length ?? 0}, wasThinking=${existing.isThinking}`
+        `type=${chunkType ?? 'chunk'}, isFinal=${isFinal}, isThought=${isThought}, ` +
+        `synthetic=${isSyntheticThought}, msgLen=${data.message?.length ?? 0}, ` +
+        `existingLen=${existing.content?.length ?? 0}, wasThinking=${existing.isThinking}`
     );
 
     updated[existingIndex] = {
@@ -135,16 +148,15 @@ export function applyChunkToMessages(
               (data.message ?? existing.content)
             : (existing.content ?? '') + (data.message ?? '')
           : existing.content,
-      thought:
-        isThought
-          ? thoughtDelta
-            ? (existing.thought ?? '') + thoughtDelta
-            : existing.thought
-          : isFinal
-            ? (existing.thought && existing.thought.trim().length > 0)
-              ? existing.thought
-              : (data.thought || existing.thought) || undefined
-            : existing.thought,
+      thought: isThought
+        ? thoughtDelta
+          ? (existing.thought ?? '') + thoughtDelta
+          : existing.thought
+        : isFinal
+          ? existing.thought && existing.thought.trim().length > 0
+            ? existing.thought
+            : data.thought || existing.thought || undefined
+          : existing.thought,
       attachments: data.attachments ?? existing.attachments,
       tool_calls: data.toolCalls || data.tool_calls || existing.tool_calls,
       options: data.options ?? existing.options,
@@ -162,8 +174,8 @@ export function applyChunkToMessages(
 
     logger.info(
       `[message-handler] thinkingPlaceholder: id=${data.messageId?.substring(0, 12)}, ` +
-      `type=${chunkType ?? 'chunk'}, isFinal=${isFinal}, isThought=${isThought}, ` +
-      `synthetic=${isSyntheticThought}, msgLen=${data.message?.length ?? 0}`
+        `type=${chunkType ?? 'chunk'}, isFinal=${isFinal}, isThought=${isThought}, ` +
+        `synthetic=${isSyntheticThought}, msgLen=${data.message?.length ?? 0}`
     );
 
     updated[thinkingIndex] = {
@@ -173,21 +185,20 @@ export function applyChunkToMessages(
       content:
         !isThought || isFinal
           ? isFinal
-            ? (existing.content && existing.content.trim().length > 0)
+            ? existing.content && existing.content.trim().length > 0
               ? existing.content
               : (data.message ?? '')
             : (data.message ?? '')
           : '',
-      thought:
-        isThought
-          ? thoughtDelta
-            ? (existing.thought ?? '') + thoughtDelta
-            : existing.thought
-          : isFinal
-            ? (existing.thought && existing.thought.trim().length > 0)
-              ? existing.thought
-              : (data.thought || existing.thought || '') || undefined
-            : existing.thought || undefined,
+      thought: isThought
+        ? thoughtDelta
+          ? (existing.thought ?? '') + thoughtDelta
+          : existing.thought
+        : isFinal
+          ? existing.thought && existing.thought.trim().length > 0
+            ? existing.thought
+            : data.thought || existing.thought || '' || undefined
+          : existing.thought || undefined,
       attachments: data.attachments ?? existing.attachments,
       tool_calls: data.toolCalls || data.tool_calls || existing.tool_calls,
       options: data.options ?? existing.options,
@@ -198,9 +209,7 @@ export function applyChunkToMessages(
 
   // No placeholder found — check for exact content duplicate to prevent double-bubbles
   if (data.message && data.message.trim().length > 0) {
-    const isContentDup = prev.some(
-      (m) => m.role === 'assistant' && m.content === data.message
-    );
+    const isContentDup = prev.some((m) => m.role === 'assistant' && m.content === data.message);
     if (isContentDup) {
       logger.info(`[message-handler] Dropping duplicate content chunk for ${data.messageId}`);
       return prev;
@@ -219,8 +228,8 @@ export function applyChunkToMessages(
 
   logger.info(
     `[message-handler] addNew: id=${data.messageId?.substring(0, 12)}, ` +
-    `type=${chunkType ?? 'chunk'}, isThought=${isThought}, ` +
-    `msgLen=${data.message?.length ?? 0}, isThinking=${!stopThinkingNew}`
+      `type=${chunkType ?? 'chunk'}, isThought=${isThought}, ` +
+      `msgLen=${data.message?.length ?? 0}, isThinking=${!stopThinkingNew}`
   );
 
   return [
@@ -280,7 +289,7 @@ export function mergeHistoryWithMessages(
   const normalizeId = (id: string, role: string) => {
     if (role !== 'assistant') return id;
     if (!id.includes('-')) return id;
-    
+
     // UUID-aware suffix removal: only strip if the suffix is a known agent ID
     const parts = id.split('-');
     const suffix = parts[parts.length - 1];
@@ -317,7 +326,7 @@ export function mergeHistoryWithMessages(
 
     // Discard thinking placeholders if history already has assistant responses
     if (m.isThinking && hasAssistantInHistory) return false;
-    
+
     // Exact content match check against history to prevent double-bubbles
     const isContentMatch = uniqueHistory.some(
       (hm) => hm.role === m.role && hm.content === m.content && m.content.trim().length > 0
@@ -327,7 +336,7 @@ export function mergeHistoryWithMessages(
     const normId = normalizeId(m.messageId, m.role);
     const key = `${m.role}:${normId}`;
     const inHistory = historyKeys.has(key);
-    
+
     return !inHistory;
   });
 

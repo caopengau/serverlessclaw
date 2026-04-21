@@ -29,7 +29,9 @@ vi.mock('@claw/core/lib/safety/circuit-breaker', () => {
 
 describe('Resilience Metrics API', () => {
   it('should return aggregated resilience metrics', async () => {
-    const response = await GET(new Request('http://localhost/api/resilience/metrics') as unknown as NextRequest);
+    const response = await GET(
+      new Request('http://localhost/api/resilience/metrics') as unknown as NextRequest
+    );
     const data = await response.json();
 
     if (data.error) {

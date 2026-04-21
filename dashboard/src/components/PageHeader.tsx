@@ -15,12 +15,7 @@ interface PageHeaderProps {
  * Standardized Page Header component based on /trace design.
  * Provides consistent typography, spacing, and responsive behavior.
  */
-export default function PageHeader({
-  titleKey,
-  subtitleKey,
-  children,
-  stats,
-}: PageHeaderProps) {
+export default function PageHeader({ titleKey, subtitleKey, children, stats }: PageHeaderProps) {
   const { t } = useTranslations();
 
   return (

@@ -22,7 +22,9 @@ export function decodePaginationToken(token: string): Record<string, unknown> | 
  * @param key - The DynamoDB LastEvaluatedKey object.
  * @returns The base64 encoded string or undefined if key is missing.
  */
-export function encodePaginationToken(key: Record<string, unknown> | undefined): string | undefined {
+export function encodePaginationToken(
+  key: Record<string, unknown> | undefined
+): string | undefined {
   if (!key) return undefined;
   try {
     return Buffer.from(JSON.stringify(key)).toString('base64');

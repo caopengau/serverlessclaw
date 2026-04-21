@@ -52,9 +52,11 @@ export default function SafetyTierEditor({ currentTier, onTierChange }: SafetyTi
             data-testid="card"
             className={`
               relative cursor-pointer transition-all duration-200
-              ${isActive
-                ? 'border-cyber-blue/40 shadow-[0_0_20px_color-mix(in_srgb,var(--cyber-blue)_8%,transparent)]'
-                : 'border-border hover:border-foreground/10'}
+              ${
+                isActive
+                  ? 'border-cyber-blue/40 shadow-[0_0_20px_color-mix(in_srgb,var(--cyber-blue)_8%,transparent)]'
+                  : 'border-border hover:border-foreground/10'
+              }
             `}
             onClick={() => onTierChange(tier.id)}
           >
@@ -89,7 +91,10 @@ export default function SafetyTierEditor({ currentTier, onTierChange }: SafetyTi
               <ul className="space-y-1">
                 {tier.allows.map((item) => (
                   <li key={item} className="flex items-start gap-2 text-xs">
-                    <Check className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" data-testid="check-icon" />
+                    <Check
+                      className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0"
+                      data-testid="check-icon"
+                    />
                     <span className="text-muted-foreground">{item}</span>
                   </li>
                 ))}
@@ -103,7 +108,10 @@ export default function SafetyTierEditor({ currentTier, onTierChange }: SafetyTi
                   <ul className="space-y-1">
                     {tier.blocks.map((item) => (
                       <li key={item} className="flex items-start gap-2 text-xs">
-                        <X className="w-3 h-3 text-red-500 mt-0.5 flex-shrink-0" data-testid="x-icon" />
+                        <X
+                          className="w-3 h-3 text-red-500 mt-0.5 flex-shrink-0"
+                          data-testid="x-icon"
+                        />
                         <span className="text-muted-foreground">{item}</span>
                       </li>
                     ))}

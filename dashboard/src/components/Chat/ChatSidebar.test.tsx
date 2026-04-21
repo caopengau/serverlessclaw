@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ChatSidebar } from './ChatSidebar';
-import { TranslationsProvider } from '@/components/Providers/TranslationsProvider';
+import type { ConversationMeta } from '@claw/core/lib/types/memory';
 
 // Mock translations
 const mockT = vi.fn((key) => key);
@@ -34,7 +34,7 @@ describe('ChatSidebar Component', () => {
   ];
 
   const defaultProps = {
-    sessions: mockSessions as any,
+    sessions: mockSessions as ConversationMeta[],
     activeSessionId: '1',
     onSessionSelect: vi.fn(),
     onNewChat: vi.fn(),
@@ -66,23 +66,23 @@ describe('ChatSidebar Component', () => {
 
   it('renders tooltips for action buttons on hover', async () => {
     render(<ChatSidebar {...defaultProps} />);
-    
+
     // Hover over the first session to reveal buttons
     const sessionItem = screen.getByText('Session 1').closest('div[role="button"]');
     if (!sessionItem) throw new Error('Session item not found');
-    
+
     fireEvent.mouseEnter(sessionItem);
 
     // The buttons have CyberTooltip wrappers
     // We can't easily "hover" to trigger the portal in this test environment without more setup,
     // but we can check if the tooltip components are present in the DOM structure if they were children.
     // However, since they use Portals, they'll only appear on mouseEnter of the BUTTON, not the session.
-    
+
     const pinButton = sessionItem.querySelector('button'); // First button is Pin
     if (!pinButton) throw new Error('Pin button not found');
-    
+
     fireEvent.mouseEnter(pinButton);
-    
+
     // Check if tooltip content appears in portal (document.body)
     expect(screen.getByText('CHAT_SIDEBAR_PIN_SESSION')).toBeInTheDocument();
   });

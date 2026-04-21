@@ -109,7 +109,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
         configCacheRef.current = (await res.json()) as DashboardConfig;
       }
-      
+
       const config = configCacheRef.current;
       if (!config) return;
 
@@ -118,18 +118,18 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       if (!config.realtime?.url || isUnmountedRef.current || mqttClientRef.current) return;
 
       const clientId = `dash_${Math.random().toString(36).substring(2, 10)}`;
-      const token = 'dashboard-dev-token-elegant'; 
-      
+      const token = 'dashboard-dev-token-elegant';
+
       // AWS IoT Core standard WebSocket URL with custom authorizer
       const host = config.realtime.url.replace(/^wss?:\/\//, '').replace(/\/mqtt$/, '');
       const mqttUrl = `wss://${host}/mqtt?x-amz-customauthorizer-name=${config.realtime.authorizer}&x-amz-customauthorizer-token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`;
 
       logger.info(`[Realtime] ⚡ Connecting to: wss://${host}/mqtt`);
-      
+
       const client = mqtt.connect(mqttUrl, {
         clientId,
         protocol: 'wss',
-        protocolVersion: 4, 
+        protocolVersion: 4,
         clean: true,
         reconnectPeriod: 5000,
         connectTimeout: 30000,
@@ -139,10 +139,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
         logger.info('[Realtime] ✅ Connected');
         setIsConnected(true);
         setError(null);
-        
+
         // Restore existing subscriptions
-        subscriptionsRef.current.forEach(sub => {
-          const prefixed = sub.topics.map(t => `${prefixRef.current}${t}`);
+        subscriptionsRef.current.forEach((sub) => {
+          const prefixed = sub.topics.map((t) => `${prefixRef.current}${t}`);
           logger.info(`[Realtime] Restoring subscription to: ${prefixed.join(', ')}`);
           client.subscribe(prefixed);
         });
@@ -153,25 +153,27 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       client.on('message', (topic, payload) => {
         try {
           const payloadStr = payload.toString();
-          logger.info(`[Realtime:MQTT] Received on ${topic}: ${payloadStr.substring(0, 200)}${payloadStr.length > 200 ? '...' : ''}`);
-          
+          logger.info(
+            `[Realtime:MQTT] Received on ${topic}: ${payloadStr.substring(0, 200)}${payloadStr.length > 200 ? '...' : ''}`
+          );
+
           const data = JSON.parse(payloadStr) as RealtimeMessage;
           const displayTopic = topic.startsWith(prefixRef.current)
             ? topic.slice(prefixRef.current.length)
             : topic;
 
           let matchCount = 0;
-          subscriptionsRef.current.forEach(sub => {
-            const matches = sub.topics.some(t => {
+          subscriptionsRef.current.forEach((sub) => {
+            const matches = sub.topics.some((t) => {
               // 1. Exact match
               if (t === displayTopic) return true;
-              
+
               // 2. MQTT Wildcard matching
               const pattern = t
                 .replace(/\//g, '\\/') // Escape slashes
                 .replace(/\+/g, '[^\\/]+') // '+' matches one level
                 .replace(/#/g, '.*'); // '#' matches everything after
-              
+
               const regex = new RegExp(`^${pattern}$`);
               return regex.test(displayTopic);
             });
@@ -180,7 +182,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
               sub.callback(displayTopic, data);
             }
           });
-          
+
           if (matchCount === 0) {
             logger.warn(`[Realtime:MQTT] No subscription matched for topic: ${displayTopic}`);
           } else {
@@ -208,14 +210,14 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
     isUnmountedRef.current = false;
     connect();
     fetchSessions(); // Immediate fetch on mount
-    
+
     const interval = setInterval(() => {
       // Periodic fetch as fallback
       if (!isUnmountedRef.current && !document.hidden) {
         fetchSessions();
       }
     }, 60000); // Increased to 60s
-    
+
     return () => {
       isUnmountedRef.current = true;
       clearInterval(interval);
@@ -229,9 +231,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   const subscribe = useCallback((topics: string[], callback: MessageCallback) => {
     const sub = { topics, callback };
     subscriptionsRef.current.add(sub);
-    
+
     if (mqttClientRef.current?.connected) {
-      const prefixed = topics.map(t => `${prefixRef.current}${t}`);
+      const prefixed = topics.map((t) => `${prefixRef.current}${t}`);
       logger.info(`[Realtime] Subscribing to NEW topics: ${prefixed.join(', ')}`);
       mqttClientRef.current.subscribe(prefixed);
     }
@@ -243,17 +245,19 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <RealtimeContext.Provider value={{ 
-      isConnected, 
-      error, 
-      userId: STABLE_USER_ID, 
-      subscribe,
-      sessions,
-      pendingMessages,
-      setPendingMessages,
-      fetchSessions,
-      isLive: isConnected
-    }}>
+    <RealtimeContext.Provider
+      value={{
+        isConnected,
+        error,
+        userId: STABLE_USER_ID,
+        subscribe,
+        sessions,
+        pendingMessages,
+        setPendingMessages,
+        fetchSessions,
+        isLive: isConnected,
+      }}
+    >
       {children}
     </RealtimeContext.Provider>
   );

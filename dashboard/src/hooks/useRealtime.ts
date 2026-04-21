@@ -18,14 +18,14 @@ export function useRealtime({
   onMessage,
   userId: userIdOption,
 }: UseRealtimeOptions = {}) {
-  const { 
-    isConnected, 
-    error, 
-    userId: contextUserId, 
+  const {
+    isConnected,
+    error,
+    userId: contextUserId,
     subscribe,
     sessions,
     pendingMessages,
-    fetchSessions 
+    fetchSessions,
   } = useRealtimeContext();
 
   const userId = userIdOption || contextUserId || 'dashboard-user';

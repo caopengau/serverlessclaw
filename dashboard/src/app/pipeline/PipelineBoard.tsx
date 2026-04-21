@@ -43,9 +43,10 @@ export default function PipelineBoard({
   const [expandedGaps, setExpandedGaps] = useState<Set<string>>(new Set());
   const [processing, setProcessing] = useState<string | null>(null);
   const [refiningGapId, setRefiningGapId] = useState<string | null>(null);
-  const [pruneTarget, setPruneTarget] = useState<{ gapId: string; timestamp: number | string } | null>(
-    null
-  );
+  const [pruneTarget, setPruneTarget] = useState<{
+    gapId: string;
+    timestamp: number | string;
+  } | null>(null);
   const [showBatchConfirm, setShowBatchConfirm] = useState(false);
 
   const toggleSelection = (gapId: string) => {
@@ -119,7 +120,9 @@ export default function PipelineBoard({
     try {
       await triggerBatchEvolution(readyGaps.map((g) => g.userId));
       setSelectedGaps(new Set());
-      toast.success(t('PIPELINE_BATCH_EVOLVE_SUCCESS').replace('{count}', String(readyGaps.length)));
+      toast.success(
+        t('PIPELINE_BATCH_EVOLVE_SUCCESS').replace('{count}', String(readyGaps.length))
+      );
     } catch {
       toast.error(t('PIPELINE_BATCH_EVOLVE_ERROR'));
     } finally {
@@ -160,7 +163,7 @@ export default function PipelineBoard({
     setSelectedGaps(newSelection);
   };
 
-   const columns = [
+  const columns = [
     {
       status: GapStatus.OPEN,
       label: t('PIPELINE_COL_IDENTIFIED'),
@@ -242,7 +245,9 @@ export default function PipelineBoard({
                       ) : (
                         <Square size={10} />
                       )}
-                      {selectedCount > 0 ? t('PIPELINE_SELECTED_COUNT').replace('{count}', String(selectedCount)) : t('PIPELINE_SELECT_ALL')}
+                      {selectedCount > 0
+                        ? t('PIPELINE_SELECTED_COUNT').replace('{count}', String(selectedCount))
+                        : t('PIPELINE_SELECT_ALL')}
                     </button>
 
                     {col.status === GapStatus.PLANNED && selectedCount > 0 && (
@@ -431,7 +436,13 @@ export default function PipelineBoard({
       <CyberConfirm
         isOpen={showBatchConfirm}
         title={t('PIPELINE_INITIATE_EVOLUTION')}
-        message={t('PIPELINE_BATCH_EVOLVE_MESSAGE').replace('{count}', String(initialGaps.filter((g) => g.status === GapStatus.PLANNED && selectedGaps.has(g.userId)).length))}
+        message={t('PIPELINE_BATCH_EVOLVE_MESSAGE').replace(
+          '{count}',
+          String(
+            initialGaps.filter((g) => g.status === GapStatus.PLANNED && selectedGaps.has(g.userId))
+              .length
+          )
+        )}
         variant="warning"
         confirmText={t('PIPELINE_INITIATE_EVOLUTION')}
         onConfirm={confirmBatchEvolution}

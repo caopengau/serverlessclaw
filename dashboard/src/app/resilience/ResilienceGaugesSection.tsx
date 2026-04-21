@@ -34,7 +34,7 @@ export default function ResilienceGaugesSection() {
     errorRate: 0,
     recoverySuccess: 100,
     circuitBreaker: { state: 'closed', failureCount: 0 },
-    burnRate: { usageRatio: 0, burnRatePerHour: 0 }
+    burnRate: { usageRatio: 0, burnRatePerHour: 0 },
   };
 
   // Map circuit breaker state to "value" for gauge
@@ -53,7 +53,7 @@ export default function ResilienceGaugesSection() {
           {t('RESILIENCE_CONNECTION_ERROR')} - {error}
         </div>
       )}
-      
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 max-w-5xl mx-auto">
         {/* 1. System Health */}
         <div className="flex justify-center">

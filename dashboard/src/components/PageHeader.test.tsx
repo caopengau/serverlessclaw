@@ -13,7 +13,7 @@ vi.mock('@/components/Providers/TranslationsProvider', () => ({
 describe('PageHeader Component', () => {
   it('renders title and subtitle using translation keys', () => {
     render(<PageHeader titleKey="TEST_TITLE" subtitleKey="TEST_SUBTITLE" />);
-    
+
     expect(screen.getByText('TEST_TITLE')).toBeInTheDocument();
     expect(screen.getByText('TEST_SUBTITLE')).toBeInTheDocument();
   });
@@ -45,7 +45,7 @@ describe('PageHeader Component', () => {
   it('applies correct responsive layout classes', () => {
     const { container } = render(<PageHeader titleKey="TITLE" subtitleKey="SUBTITLE" />);
     const header = container.querySelector('header');
-    
+
     expect(header?.className).toContain('flex flex-col lg:flex-row');
     expect(header?.className).toContain('lg:justify-between');
   });

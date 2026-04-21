@@ -96,57 +96,75 @@ export default function CollaborationPage() {
       {/* Trust & Health Overview */}
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1">
-          <Typography variant="mono" className="text-[10px] uppercase tracking-[0.3em] font-black mb-4 flex items-center gap-2 opacity-50">
+          <Typography
+            variant="mono"
+            className="text-[10px] uppercase tracking-[0.3em] font-black mb-4 flex items-center gap-2 opacity-50"
+          >
             <Cpu size={12} /> Core_Pulse
           </Typography>
-          <CognitiveHealthCard 
-            agentId="SuperClaw" 
-            score={98} 
-            taskCompletionRate={0.99} 
-            reasoningCoherence={9.8} 
-            errorRate={0.01} 
-            memoryFragmentation={0.05} 
-            anomalies={[]} 
+          <CognitiveHealthCard
+            agentId="SuperClaw"
+            score={98}
+            taskCompletionRate={0.99}
+            reasoningCoherence={9.8}
+            errorRate={0.01}
+            memoryFragmentation={0.05}
+            anomalies={[]}
           />
         </div>
         <div className="lg:col-span-1">
-          <Typography variant="mono" className="text-[10px] uppercase tracking-[0.3em] font-black mb-4 flex items-center gap-2 opacity-50 invisible">
+          <Typography
+            variant="mono"
+            className="text-[10px] uppercase tracking-[0.3em] font-black mb-4 flex items-center gap-2 opacity-50 invisible"
+          >
             _
           </Typography>
-          <CognitiveHealthCard 
-            agentId="Planner" 
-            score={82} 
-            taskCompletionRate={0.88} 
-            reasoningCoherence={8.2} 
-            errorRate={0.04} 
-            memoryFragmentation={0.12} 
-            anomalies={[{ type: 'BEHAVIORAL', severity: 'MEDIUM', message: 'Logic depth bottleneck detected' }]} 
+          <CognitiveHealthCard
+            agentId="Planner"
+            score={82}
+            taskCompletionRate={0.88}
+            reasoningCoherence={8.2}
+            errorRate={0.04}
+            memoryFragmentation={0.12}
+            anomalies={[
+              {
+                type: 'BEHAVIORAL',
+                severity: 'MEDIUM',
+                message: 'Logic depth bottleneck detected',
+              },
+            ]}
           />
         </div>
         <div className="lg:col-span-2 space-y-4">
-           {/* Summary Text / Global Feed */}
-           <div className="glass-card p-6 border-border h-full flex flex-col justify-center bg-card/40">
-             <Typography variant="h3" glow uppercase className="mb-2">
-               {t('OPERATIONAL_SUMMARY')}
-             </Typography>
-             <Typography variant="body" color="muted" className="text-sm italic">
-               {t('OPERATIONAL_SUMMARY_DESC')}
-             </Typography>
-             <div className="mt-6 flex gap-4">
-               <div className="flex items-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-cyber-green animate-pulse" />
-                 <Typography variant="mono" className="text-[10px] uppercase font-bold text-cyber-green">
-                   {t('ALL_SYSTEMS_NOMINAL')}
-                 </Typography>
-               </div>
-               <div className="flex items-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-cyber-blue" />
-                 <Typography variant="mono" className="text-[10px] uppercase font-bold text-cyber-blue">
-                   {t('ACTIVE_PARALLEL_TRACES').replace('{count}', '8')}
-                 </Typography>
-               </div>
-             </div>
-           </div>
+          {/* Summary Text / Global Feed */}
+          <div className="glass-card p-6 border-border h-full flex flex-col justify-center bg-card/40">
+            <Typography variant="h3" glow uppercase className="mb-2">
+              {t('OPERATIONAL_SUMMARY')}
+            </Typography>
+            <Typography variant="body" color="muted" className="text-sm italic">
+              {t('OPERATIONAL_SUMMARY_DESC')}
+            </Typography>
+            <div className="mt-6 flex gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-cyber-green animate-pulse" />
+                <Typography
+                  variant="mono"
+                  className="text-[10px] uppercase font-bold text-cyber-green"
+                >
+                  {t('ALL_SYSTEMS_NOMINAL')}
+                </Typography>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-cyber-blue" />
+                <Typography
+                  variant="mono"
+                  className="text-[10px] uppercase font-bold text-cyber-blue"
+                >
+                  {t('ACTIVE_PARALLEL_TRACES').replace('{count}', '8')}
+                </Typography>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -187,8 +205,11 @@ export default function CollaborationPage() {
               );
             })}
           </div>
-          
-          <Typography variant="mono" className="text-[10px] uppercase font-black opacity-20 tracking-[0.2em]">
+
+          <Typography
+            variant="mono"
+            className="text-[10px] uppercase font-black opacity-20 tracking-[0.2em]"
+          >
             Collaboration_Matrix_v3.2.0
           </Typography>
         </div>
@@ -198,7 +219,11 @@ export default function CollaborationPage() {
           {activeTab === 'consensus' &&
             (isLoading ? (
               <div className="py-20 text-center animate-pulse">
-                <Typography variant="mono" color="muted" className="text-xs uppercase tracking-widest">
+                <Typography
+                  variant="mono"
+                  color="muted"
+                  className="text-xs uppercase tracking-widest"
+                >
                   {t('DECRYPTING_SWARM_STATE')}
                 </Typography>
               </div>

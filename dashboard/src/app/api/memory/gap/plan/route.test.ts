@@ -11,14 +11,12 @@ vi.mock('@claw/core/lib/memory', () => {
           return JSON.stringify({
             planId: '123',
             title: 'Evolution Test Plan',
-            subTasks: [
-              { subTaskId: 'st-1', task: 'Task 1', status: 'PENDING' }
-            ]
+            subTasks: [{ subTaskId: 'st-1', task: 'Task 1', status: 'PENDING' }],
           });
         }
         return null;
       });
-    }
+    },
   };
 });
 
@@ -38,7 +36,7 @@ describe('Gap Plan API', () => {
       url: 'http://localhost/api/memory/gap/plan?gapId=GAP%23123',
       method: 'GET',
     };
-    
+
     const response = await GET(req as unknown as NextRequest);
     const data = await response.json();
 
@@ -52,7 +50,7 @@ describe('Gap Plan API', () => {
       url: 'http://localhost/api/memory/gap/plan',
       method: 'GET',
     };
-    
+
     const response = await GET(req as unknown as NextRequest);
     const data = await response.json();
 

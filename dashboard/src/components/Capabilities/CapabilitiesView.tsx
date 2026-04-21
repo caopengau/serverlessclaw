@@ -101,12 +101,7 @@ export default function CapabilitiesView({ allTools, mcpServers, agents }: Capab
         />
       )}
 
-      {activeTab === 'usage' && (
-        <LeaderboardTab
-          allTools={mcpTools}
-          searchQuery={searchQuery}
-        />
-      )}
+      {activeTab === 'usage' && <LeaderboardTab allTools={mcpTools} searchQuery={searchQuery} />}
 
       {activeTab === 'agents' && (
         <AgentsTab

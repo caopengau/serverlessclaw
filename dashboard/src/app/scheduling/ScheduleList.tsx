@@ -46,31 +46,34 @@ export default function ScheduleList() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const { t } = useTranslations();
 
-  const fetchSchedules = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    setFetchError(false);
+  const fetchSchedules = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) setRefreshing(true);
+      else setLoading(true);
+      setFetchError(false);
 
-    try {
-      const response = await fetch('/api/scheduling');
-      if (!response.ok) throw new Error(t('SCHEDULING_LOAD_ERROR'));
-      const data = await response.json();
-      setSchedules(
-        data.sort((a: Schedule, b: Schedule) => {
-          const timeA = a.CreationDate ? new Date(a.CreationDate).getTime() : 0;
-          const timeB = b.CreationDate ? new Date(b.CreationDate).getTime() : 0;
-          return timeB - timeA;
-        })
-      );
-    } catch (error) {
-      logger.error(error);
-      setFetchError(true);
-      toast.error(t('SCHEDULING_LOAD_ERROR'));
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [t]);
+      try {
+        const response = await fetch('/api/scheduling');
+        if (!response.ok) throw new Error(t('SCHEDULING_LOAD_ERROR'));
+        const data = await response.json();
+        setSchedules(
+          data.sort((a: Schedule, b: Schedule) => {
+            const timeA = a.CreationDate ? new Date(a.CreationDate).getTime() : 0;
+            const timeB = b.CreationDate ? new Date(b.CreationDate).getTime() : 0;
+            return timeB - timeA;
+          })
+        );
+      } catch (error) {
+        logger.error(error);
+        setFetchError(true);
+        toast.error(t('SCHEDULING_LOAD_ERROR'));
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [t]
+  );
 
   useEffect(() => {
     fetchSchedules();
@@ -113,7 +116,9 @@ export default function ScheduleList() {
         body: JSON.stringify({ name, state: newState }),
       });
       if (!response.ok) throw new Error(t('SCHEDULING_STATE_ERROR'));
-      toast.success(`${name} ${newState === 'ENABLED' ? t('SCHEDULING_STATE_RESUMED') : t('SCHEDULING_STATE_PAUSED')}`);
+      toast.success(
+        `${name} ${newState === 'ENABLED' ? t('SCHEDULING_STATE_RESUMED') : t('SCHEDULING_STATE_PAUSED')}`
+      );
       fetchSchedules(true);
     } catch {
       toast.error(t('SCHEDULING_STATE_ERROR'));
@@ -150,7 +155,9 @@ export default function ScheduleList() {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
         <Loader2 size={32} className="animate-spin text-blue-500" />
-        <Typography variant="caption" color="muted">{t('SCHEDULING_INITIALIZING')}</Typography>
+        <Typography variant="caption" color="muted">
+          {t('SCHEDULING_INITIALIZING')}
+        </Typography>
       </div>
     );
   }
@@ -186,26 +193,43 @@ export default function ScheduleList() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card variant="glass" padding="md" className="border-white/5">
           <div className="flex justify-between items-start mb-2">
-            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">{t('SCHEDULING_ACTIVE_GOALS')}</Typography>
+            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">
+              {t('SCHEDULING_ACTIVE_GOALS')}
+            </Typography>
             <Target size={16} className="text-blue-500" />
           </div>
-          <Typography variant="h3" weight="bold">{filteredSchedules.length}</Typography>
+          <Typography variant="h3" weight="bold">
+            {filteredSchedules.length}
+          </Typography>
         </Card>
 
         <Card variant="glass" padding="md" className="border-white/5">
           <div className="flex justify-between items-start mb-2">
-            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">{t('SCHEDULING_NEXT_EVOLUTION')}</Typography>
+            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">
+              {t('SCHEDULING_NEXT_EVOLUTION')}
+            </Typography>
             <Zap size={16} className="text-yellow-500" />
           </div>
-          <Typography variant="h3" weight="bold">{nextEvolution}</Typography>
+          <Typography variant="h3" weight="bold">
+            {nextEvolution}
+          </Typography>
         </Card>
 
         <Card variant="glass" padding="md" className="border-white/5">
           <div className="flex justify-between items-start mb-2">
-            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">{t('SCHEDULING_HEALTH')}</Typography>
+            <Typography variant="caption" className="text-white/60 uppercase tracking-widest">
+              {t('SCHEDULING_HEALTH')}
+            </Typography>
             <Activity size={16} className={fetchError ? 'text-red-500' : 'text-green-500'} />
           </div>
-          <Badge variant="outline" className={fetchError ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20'}>
+          <Badge
+            variant="outline"
+            className={
+              fetchError
+                ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                : 'bg-green-500/10 text-green-500 border-green-500/20'
+            }
+          >
             {fetchError ? t('SCHEDULING_DISCONNECTED') : t('SCHEDULING_OPERATIONAL')}
           </Badge>
         </Card>
@@ -220,11 +244,21 @@ export default function ScheduleList() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-white/5 bg-white/[0.02]">
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">{t('SCHEDULING_GOAL_ID_NAME')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">{t('SCHEDULING_EXPRESSION')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">{t('SCHEDULING_AGENT')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">{t('SCHEDULING_STATE')}</th>
-                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50 text-right">{t('SCHEDULING_ACTIONS')}</th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">
+                  {t('SCHEDULING_GOAL_ID_NAME')}
+                </th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">
+                  {t('SCHEDULING_EXPRESSION')}
+                </th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">
+                  {t('SCHEDULING_AGENT')}
+                </th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50">
+                  {t('SCHEDULING_STATE')}
+                </th>
+                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-white/50 text-right">
+                  {t('SCHEDULING_ACTIONS')}
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
@@ -239,41 +273,98 @@ export default function ScheduleList() {
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">{s.Name}</span>
-                            <span className={`px-1.5 py-0.5 border rounded text-[8px] font-black tracking-tight ${catBadge.className}`}>{catBadge.label}</span>
+                            <span className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors uppercase tracking-tight">
+                              {s.Name}
+                            </span>
+                            <span
+                              className={`px-1.5 py-0.5 border rounded text-[8px] font-black tracking-tight ${catBadge.className}`}
+                            >
+                              {catBadge.label}
+                            </span>
                           </div>
-                          <span className="text-[10px] text-white/50 line-clamp-1">{info.purpose}</span>
+                          <span className="text-[10px] text-white/50 line-clamp-1">
+                            {info.purpose}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col gap-1">
-                          <div className={`text-[10px] font-mono text-${THEME.COLORS.PRIMARY} font-bold flex items-center gap-1`}>
+                          <div
+                            className={`text-[10px] font-mono text-${THEME.COLORS.PRIMARY} font-bold flex items-center gap-1`}
+                          >
                             <RefreshCw size={10} /> {formatFrequency(s.ScheduleExpression)}
                           </div>
                           <div className="flex items-center gap-2 text-[10px] font-mono text-white/40">
-                            <Clock size={10} /> {t('SCHEDULING_NEXT_RUN').replace('{time}', getNextRun(s))}
+                            <Clock size={10} />{' '}
+                            {t('SCHEDULING_NEXT_RUN').replace('{time}', getNextRun(s))}
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge variant="outline" className="text-[10px] font-bold border-white/10 text-white/70">{payload.agentId ?? 'SYSTEM'}</Badge>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-bold border-white/10 text-white/70"
+                        >
+                          {payload.agentId ?? 'SYSTEM'}
+                        </Badge>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-1.5">
-                          <div className={`w-1.5 h-1.5 rounded-full ${s.State === 'ENABLED' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-white/20'}`}></div>
-                          <span className={`text-[10px] font-bold ${s.State === 'ENABLED' ? 'text-green-500' : 'text-white/40'}`}>{s.State}</span>
+                          <div
+                            className={`w-1.5 h-1.5 rounded-full ${s.State === 'ENABLED' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-white/20'}`}
+                          ></div>
+                          <span
+                            className={`text-[10px] font-bold ${s.State === 'ENABLED' ? 'text-green-500' : 'text-white/40'}`}
+                          >
+                            {s.State}
+                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 !p-0 text-blue-400 hover:bg-blue-400/10" title="Trigger Now" onClick={() => handleTrigger(s.Name)} disabled={!!actionInProgress}>
-                            {actionInProgress === s.Name + '-trigger' ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 !p-0 text-blue-400 hover:bg-blue-400/10"
+                            title="Trigger Now"
+                            onClick={() => handleTrigger(s.Name)}
+                            disabled={!!actionInProgress}
+                          >
+                            {actionInProgress === s.Name + '-trigger' ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Play size={14} />
+                            )}
                           </Button>
-                          <Button variant="ghost" size="sm" className={`h-8 w-8 !p-0 ${s.State === 'ENABLED' ? 'text-yellow-400 hover:bg-yellow-400/10' : 'text-green-400 hover:bg-green-400/10'}`} title={s.State === 'ENABLED' ? 'Pause' : 'Resume'} onClick={() => handleToggleState(s.Name, s.State)} disabled={!!actionInProgress}>
-                            {actionInProgress === s.Name + '-toggle' ? <Loader2 size={14} className="animate-spin" /> : s.State === 'ENABLED' ? <Pause size={14} /> : <Play size={14} />}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`h-8 w-8 !p-0 ${s.State === 'ENABLED' ? 'text-yellow-400 hover:bg-yellow-400/10' : 'text-green-400 hover:bg-green-400/10'}`}
+                            title={s.State === 'ENABLED' ? 'Pause' : 'Resume'}
+                            onClick={() => handleToggleState(s.Name, s.State)}
+                            disabled={!!actionInProgress}
+                          >
+                            {actionInProgress === s.Name + '-toggle' ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : s.State === 'ENABLED' ? (
+                              <Pause size={14} />
+                            ) : (
+                              <Play size={14} />
+                            )}
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 !p-0 text-red-500 hover:bg-red-500/10" title="Delete" onClick={() => handleDelete(s.Name)} disabled={!!actionInProgress}>
-                            {actionInProgress === s.Name + '-delete' ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 !p-0 text-red-500 hover:bg-red-500/10"
+                            title="Delete"
+                            onClick={() => handleDelete(s.Name)}
+                            disabled={!!actionInProgress}
+                          >
+                            {actionInProgress === s.Name + '-delete' ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
                           </Button>
                         </div>
                       </td>
@@ -282,7 +373,9 @@ export default function ScheduleList() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-white/40 italic text-xs">{t('SCHEDULING_NO_SCHEDULES')}</td>
+                  <td colSpan={5} className="px-6 py-12 text-center text-white/40 italic text-xs">
+                    {t('SCHEDULING_NO_SCHEDULES')}
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -293,7 +386,10 @@ export default function ScheduleList() {
       <GovernanceProtocol />
 
       {showNewGoalModal && (
-        <NewGoalModal onClose={() => setShowNewGoalModal(false)} onSuccess={() => fetchSchedules(true)} />
+        <NewGoalModal
+          onClose={() => setShowNewGoalModal(false)}
+          onSuccess={() => fetchSchedules(true)}
+        />
       )}
       <CyberConfirm
         isOpen={!!deleteTarget}

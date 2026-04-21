@@ -109,11 +109,21 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose, onSuccess }
                 name="agentId"
                 className="w-full bg-white/[0.03] border border-white/10 focus:border-blue-500/40 rounded-lg py-2.5 px-3 text-xs text-white outline-none transition-all appearance-none"
               >
-                <option value="strategic-planner" className="bg-slate-900">PLANNER</option>
-                <option value="coder" className="bg-slate-900">CODER</option>
-                <option value="cognition-reflector" className="bg-slate-900">REFLECTOR</option>
-                <option value="qa" className="bg-slate-900">QA_ENGINEER</option>
-                <option value="worker" className="bg-slate-900">GENERIC_WORKER</option>
+                <option value="strategic-planner" className="bg-slate-900">
+                  PLANNER
+                </option>
+                <option value="coder" className="bg-slate-900">
+                  CODER
+                </option>
+                <option value="cognition-reflector" className="bg-slate-900">
+                  REFLECTOR
+                </option>
+                <option value="qa" className="bg-slate-900">
+                  QA_ENGINEER
+                </option>
+                <option value="worker" className="bg-slate-900">
+                  GENERIC_WORKER
+                </option>
               </select>
             </div>
 
@@ -132,9 +142,15 @@ export const NewGoalModal: React.FC<NewGoalModalProps> = ({ onClose, onSuccess }
                   name="unit"
                   className="flex-1 bg-white/[0.03] border border-white/10 focus:border-blue-500/40 rounded-lg py-2.5 px-2 text-xs text-white outline-none transition-all appearance-none"
                 >
-                  <option value="hours" className="bg-slate-900">HOURS</option>
-                  <option value="minutes" className="bg-slate-900">MINUTES</option>
-                  <option value="days" className="bg-slate-900">DAYS</option>
+                  <option value="hours" className="bg-slate-900">
+                    HOURS
+                  </option>
+                  <option value="minutes" className="bg-slate-900">
+                    MINUTES
+                  </option>
+                  <option value="days" className="bg-slate-900">
+                    DAYS
+                  </option>
                 </select>
               </div>
             </div>

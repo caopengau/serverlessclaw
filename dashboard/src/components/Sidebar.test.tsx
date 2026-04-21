@@ -4,22 +4,24 @@ import { render, screen } from '@testing-library/react';
 import Sidebar from './Sidebar';
 
 // Define the mock before hoisting it
-const { mockUseUICommand, mockUseRealtimeContext, mockUseTheme, mockUseTranslations } = vi.hoisted(() => ({
-  mockUseUICommand: vi.fn().mockReturnValue({
-    isSidebarCollapsed: false,
-    setSidebarCollapsed: vi.fn(),
-  }),
-  mockUseRealtimeContext: vi.fn().mockReturnValue({
-    isConnected: true,
-  }),
-  mockUseTheme: vi.fn().mockReturnValue({
-    theme: 'dark',
-    setTheme: vi.fn(),
-  }),
-  mockUseTranslations: vi.fn().mockReturnValue({
-    t: (key: string) => key,
-  }),
-}));
+const { mockUseUICommand, mockUseRealtimeContext, mockUseTheme, mockUseTranslations } = vi.hoisted(
+  () => ({
+    mockUseUICommand: vi.fn().mockReturnValue({
+      isSidebarCollapsed: false,
+      setSidebarCollapsed: vi.fn(),
+    }),
+    mockUseRealtimeContext: vi.fn().mockReturnValue({
+      isConnected: true,
+    }),
+    mockUseTheme: vi.fn().mockReturnValue({
+      theme: 'dark',
+      setTheme: vi.fn(),
+    }),
+    mockUseTranslations: vi.fn().mockReturnValue({
+      t: (key: string) => key,
+    }),
+  })
+);
 
 // Mock dependencies using the hoisted mocks
 vi.mock('@/components/Providers/TranslationsProvider', () => ({
@@ -78,7 +80,10 @@ vi.mock('lucide-react', () => ({
 // Mock CyberTooltip
 vi.mock('@/components/CyberTooltip', () => ({
   default: ({ children, content }: { children: React.ReactNode; content: React.ReactNode }) => (
-    <div data-testid="cyber-tooltip" data-content={typeof content === 'string' ? content : 'complex-content'}>
+    <div
+      data-testid="cyber-tooltip"
+      data-content={typeof content === 'string' ? content : 'complex-content'}
+    >
       {children}
     </div>
   ),
@@ -92,12 +97,12 @@ describe('Sidebar Component', () => {
     });
 
     render(<Sidebar />);
-    
+
     // Check for some labels that should be visible when expanded
     // Note: The labels are translated, so they'll be the keys because of our mock
     expect(screen.getByText('OPERATIONS')).toBeInTheDocument();
     expect(screen.getByText('AGENTS')).toBeInTheDocument();
-    
+
     // Tooltips should NOT be present for main nav links when expanded
     expect(screen.queryByTestId('cyber-tooltip')).not.toBeInTheDocument();
   });
@@ -109,11 +114,11 @@ describe('Sidebar Component', () => {
     });
 
     render(<Sidebar />);
-    
+
     // Labels should NOT be visible directly (they are inside tooltips or hidden)
-    // Wait, the labels might still be in the DOM but hidden. 
+    // Wait, the labels might still be in the DOM but hidden.
     // In our mock, CyberTooltip renders children, so the Link with labels might still be there.
-    
+
     // Verification: CyberTooltip should be present for nav links when collapsed
     const tooltips = screen.getAllByTestId('cyber-tooltip');
     expect(tooltips.length).toBeGreaterThan(0);

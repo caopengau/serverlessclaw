@@ -95,14 +95,18 @@ export default function TraceIntelligenceView({
 
       // Extract LLM used
       const llmCallStep = trace.steps?.find((s: TraceStep) => s.type === TRACE_TYPES.LLM_CALL);
-      const llmResponseStep = trace.steps?.find((s: TraceStep) => s.type === TRACE_TYPES.LLM_RESPONSE);
+      const llmResponseStep = trace.steps?.find(
+        (s: TraceStep) => s.type === TRACE_TYPES.LLM_RESPONSE
+      );
 
       const model =
         trace.initialContext?.model ||
         (llmCallStep?.content as LlmCallContent)?.model ||
         (llmResponseStep?.content as LlmResponseContent)?.model ||
         (typeof llmCallStep?.metadata?.model === 'string' ? llmCallStep.metadata.model : '') ||
-        (typeof llmResponseStep?.metadata?.model === 'string' ? llmResponseStep.metadata.model : '') ||
+        (typeof llmResponseStep?.metadata?.model === 'string'
+          ? llmResponseStep.metadata.model
+          : '') ||
         'UNKNOWN_MODEL';
 
       // Calculate total tokens
@@ -342,7 +346,7 @@ export default function TraceIntelligenceView({
           ))}
         </div>
 
-        <div 
+        <div
           className={`flex flex-wrap items-center gap-3 w-full 2xl:w-auto 2xl:justify-end overflow-hidden transition-all duration-300 min-h-[40px] ${
             activeTab === 'live' ? 'opacity-0 pointer-events-none invisible' : 'opacity-100 visible'
           }`}
@@ -494,7 +498,10 @@ export default function TraceIntelligenceView({
                     const errorCount = groupTraces.filter((t) => t.status === 'error').length;
 
                     return (
-                      <tr key={groupName} className="hover:bg-foreground/[0.02] transition-colors group">
+                      <tr
+                        key={groupName}
+                        className="hover:bg-foreground/[0.02] transition-colors group"
+                      >
                         <td className="px-6 py-4">
                           <Typography
                             variant="mono"

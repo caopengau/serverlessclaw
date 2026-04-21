@@ -73,7 +73,9 @@ export default function CyberSelect({
           />
         }
       >
-        <span className={`${!selectedOption ? 'text-muted-foreground/50' : 'text-foreground'} truncate`}>
+        <span
+          className={`${!selectedOption ? 'text-muted-foreground/50' : 'text-foreground'} truncate`}
+        >
           {selectedOption ? selectedOption.label : placeholder}
         </span>
       </Button>

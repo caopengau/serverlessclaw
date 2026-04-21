@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export const GET = withApiHandler(async (_, req) => {
   const { DynamoMemory } = await import('@claw/core/lib/memory');
   const { logger } = await import('@claw/core/lib/logger');
-  
+
   let gapId: string | null = null;
   try {
     const url = new URL(req.url, 'http://localhost');
@@ -17,7 +17,7 @@ export const GET = withApiHandler(async (_, req) => {
   } catch {
     logger.warn('URL parsing failed in GapPlanAPI, attempting fallback', { url: req.url });
   }
-  
+
   if (!gapId) {
     throw new ApiError('gapId is required', 400);
   }
@@ -30,7 +30,7 @@ export const GET = withApiHandler(async (_, req) => {
     if (!planStr) {
       return { plan: null };
     }
-    
+
     return { plan: JSON.parse(planStr) };
   } catch (error) {
     logger.error(`Failed to fetch plan for gap ${normalizedId}:`, error);

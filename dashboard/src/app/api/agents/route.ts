@@ -5,11 +5,7 @@
 import { Resource } from 'sst';
 export const dynamic = 'force-dynamic';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DynamoDBDocumentClient,
-  UpdateCommand,
-  DeleteCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { NextResponse } from 'next/server';
 import { HTTP_STATUS, DYNAMO_KEYS } from '@claw/core/lib/constants';
 import { BACKBONE_REGISTRY } from '@claw/core/lib/backbone';
@@ -121,7 +117,10 @@ export async function PATCH(request: Request): Promise<NextResponse> {
       );
     }
 
-    if (BACKBONE_REGISTRY[agentId as keyof typeof BACKBONE_REGISTRY] && config.isBackbone !== true) {
+    if (
+      BACKBONE_REGISTRY[agentId as keyof typeof BACKBONE_REGISTRY] &&
+      config.isBackbone !== true
+    ) {
       return NextResponse.json(
         { error: `Cannot overwrite backbone agent '${agentId}' with non-backbone configuration.` },
         { status: HTTP_STATUS.BAD_REQUEST }

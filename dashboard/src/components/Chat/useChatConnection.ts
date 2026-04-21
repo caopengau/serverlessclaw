@@ -71,17 +71,23 @@ export function useChatConnection(
     (topic: string, data: RealtimeMessage) => {
       const currentActiveId = activeSessionRef.current;
       logger.info(`[useChatConnection] Raw signal on ${topic}:`, data);
-      
+
       const normalized: IncomingChunk & { 'detail-type'?: string } = {
         ...(typeof data.detail === 'object' && data.detail !== null ? data.detail : {}),
         ...(data as Record<string, unknown>),
       };
 
       if (shouldProcessChunk(normalized, currentActiveId, 'dashboard-user')) {
-        logger.info(`[useChatConnection] ✅ Processing chunk: ${normalized.messageId} (msg: ${normalized.message?.length ?? 0} chars)`);
-        setMessagesRef.current((prev) => applyChunkToMessages(prev, normalized, seenMessageIds.current));
+        logger.info(
+          `[useChatConnection] ✅ Processing chunk: ${normalized.messageId} (msg: ${normalized.message?.length ?? 0} chars)`
+        );
+        setMessagesRef.current((prev) =>
+          applyChunkToMessages(prev, normalized, seenMessageIds.current)
+        );
       } else {
-        logger.warn(`[useChatConnection] ⚠️ Chunk ignored (filter): ${normalized.messageId} on topic ${topic}`);
+        logger.warn(
+          `[useChatConnection] ⚠️ Chunk ignored (filter): ${normalized.messageId} on topic ${topic}`
+        );
         if (currentActiveId && !isPostInFlight.current) {
           fetchHistorySilently(currentActiveId);
         }
@@ -90,15 +96,12 @@ export function useChatConnection(
     [fetchHistorySilently, isPostInFlight, setMessagesRef]
   );
 
-  const { 
-    sessions, 
-    fetchSessions, 
-    isLive: isRealtimeActive 
+  const {
+    sessions,
+    fetchSessions,
+    isLive: isRealtimeActive,
   } = useRealtime({
-    topics: useMemo(() => [
-      'users/+/signal',
-      'users/+/sessions/+/signal',
-    ], []),
+    topics: useMemo(() => ['users/+/signal', 'users/+/sessions/+/signal'], []),
     onMessage: handleMessage,
   });
 

@@ -22,7 +22,7 @@ export function DynamicComponentRegistry({ component, onAction }: RegistryProps)
     case 'operation-card':
     case 'action-card':
       return <OperationCard component={component} onAction={onAction} />;
-    
+
     case 'ui-command':
       return <UICommand component={component} onAction={onAction} />;
 
@@ -40,12 +40,14 @@ export function DynamicComponentRegistry({ component, onAction }: RegistryProps)
     case 'plan-editor':
     case 'strategy-editor':
       return <PlanEditor component={component} onAction={onAction} />;
-    
+
     default:
       return (
         <div className="p-4 border border-dashed border-red-500/20 rounded text-[10px] text-red-500/60 italic font-mono uppercase bg-red-500/5">
           UNSUPPORTED DYNAMIC COMPONENT: {component.componentType}
-          <div className="mt-1 text-[8px] opacity-40">Ensure the component is registered in Registry.tsx</div>
+          <div className="mt-1 text-[8px] opacity-40">
+            Ensure the component is registered in Registry.tsx
+          </div>
         </div>
       );
   }

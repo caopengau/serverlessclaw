@@ -21,7 +21,10 @@ const RefineGapSchema = z.object({
 export const POST = withApiHandler(async (body) => {
   const { DynamoMemory } = await import('@claw/core/lib/memory');
   const { InsightCategory } = await import('@claw/core/lib/types/memory');
-  const { gapId, content, impact, priority, rejectionReason, plan } = validateBody(body, RefineGapSchema);
+  const { gapId, content, impact, priority, rejectionReason, plan } = validateBody(
+    body,
+    RefineGapSchema
+  );
 
   const memory = new DynamoMemory();
   const normalizedId = gapId.replace(/^GAP#/, '');
@@ -52,10 +55,7 @@ export const POST = withApiHandler(async (body) => {
     // Update associated plan if provided
     if (plan !== undefined) {
       // Plans are stored with PLAN#<numericId>
-      await memory.updateDistilledMemory(
-        `PLAN#${normalizedId}`,
-        JSON.stringify(plan)
-      );
+      await memory.updateDistilledMemory(`PLAN#${normalizedId}`, JSON.stringify(plan));
       logger.info(`Updated plan for gap ${normalizedId}`);
     }
 

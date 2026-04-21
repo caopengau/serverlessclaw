@@ -11,8 +11,8 @@ describe('Collaboration Attachments Logic', () => {
       task: 'Fix the bug',
       attachments: [
         { type: 'image', name: 'screenshot.png', url: 'https://s3.amazonaws.com/bucket/1.png' },
-        { type: 'file', name: 'logs.txt', url: 'https://s3.amazonaws.com/bucket/logs.txt' }
-      ]
+        { type: 'file', name: 'logs.txt', url: 'https://s3.amazonaws.com/bucket/logs.txt' },
+      ],
     };
 
     expect(task.attachments).toBeDefined();

@@ -2,14 +2,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
- 
 const mockResource = vi.hoisted(() => ({
-   
-  DashboardPassword: { value: 'test-password-123' } as any
+  DashboardPassword: { value: 'test-password-123' } as any,
 }));
 
 vi.mock('sst', () => ({
-  Resource: mockResource
+  Resource: mockResource,
 }));
 
 vi.mock('@/lib/constants', () => ({
@@ -62,9 +60,9 @@ describe('Auth Login API Route', () => {
 
   it('fails in production if Resource is missing', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-     
+
     mockResource.DashboardPassword = undefined as any;
-    
+
     const { POST } = await import('./route');
     const req = new NextRequest('http://localhost/api/auth/login', {
       method: 'POST',
@@ -76,9 +74,11 @@ describe('Auth Login API Route', () => {
 
   it('returns 500 on general handler failure', async () => {
     const { POST } = await import('./route');
-     
+
     const req = {
-      json: async () => { throw new Error('JSON parse failed'); }
+      json: async () => {
+        throw new Error('JSON parse failed');
+      },
     } as any;
     const res = await POST(req);
     expect(res.status).toBe(500);

@@ -196,7 +196,7 @@ describe('RealtimeProvider loop prevention', () => {
     });
 
     const [{ client }] = mqttState.connections;
-    
+
     // Test '#' wildcard
     act(() => {
       client._events.message(
@@ -214,7 +214,7 @@ describe('RealtimeProvider loop prevention', () => {
       );
     });
     expect(onMessage).toHaveBeenCalledWith('users/user123/signal', expect.anything());
-    
+
     expect(onMessage).toHaveBeenCalledTimes(2);
   });
 
@@ -249,7 +249,7 @@ describe('RealtimeProvider loop prevention', () => {
 
     // Wait a bit to ensure it doesn't crash
     await act(async () => {
-       await new Promise(r => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 50));
     });
     expect(mqttState.connect).not.toHaveBeenCalled();
   });
@@ -280,7 +280,7 @@ describe('RealtimeProvider loop prevention', () => {
   it('logs reconnect and offline events', async () => {
     const infoSpy = vi.spyOn(logger, 'info').mockImplementation(() => {});
     const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => {});
-    
+
     render(
       <RealtimeProvider>
         <div>child</div>
@@ -304,7 +304,7 @@ describe('RealtimeProvider loop prevention', () => {
   it('handles failed config fetch gracefully', async () => {
     (globalThis as any).fetch = vi.fn().mockResolvedValue({
       ok: false,
-      status: 500
+      status: 500,
     });
 
     render(
@@ -314,7 +314,7 @@ describe('RealtimeProvider loop prevention', () => {
     );
 
     await act(async () => {
-      await new Promise(r => setTimeout(r, 50));
+      await new Promise((r) => setTimeout(r, 50));
     });
 
     expect(mqttState.connect).not.toHaveBeenCalled();

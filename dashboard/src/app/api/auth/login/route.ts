@@ -66,7 +66,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       return response;
     }
 
-    logger.warn(`[Auth:Login] ❌ Unauthorized attempt. Correct password found: ${!!correctPassword}, isDev: ${isDev}`);
+    logger.warn(
+      `[Auth:Login] ❌ Unauthorized attempt. Correct password found: ${!!correctPassword}, isDev: ${isDev}`
+    );
     return NextResponse.json(
       { error: AUTH.ERROR_INVALID_CREDENTIALS },
       { status: HTTP_STATUS.UNAUTHORIZED }

@@ -17,15 +17,9 @@ import {
 } from '../types/collaboration';
 import { MessageRole } from '../types/llm';
 import { ContextualScope } from '../types/memory';
+import { resolveScopeId } from './utils';
 const COLLAB_PREFIX = 'COLLAB#';
 const COLLAB_INDEX_PREFIX = 'COLLAB_INDEX#';
-
-/**
- * Resolves the hierarchical scope identifier for query or storage.
- */
-function resolveScopeId(scope?: string | ContextualScope): string | undefined {
-  return typeof scope === 'string' ? scope : scope?.workspaceId;
-}
 
 /**
  * Creates a new collaboration with a shared session

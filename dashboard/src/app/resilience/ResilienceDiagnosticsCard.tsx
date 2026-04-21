@@ -32,7 +32,8 @@ export default function ResilienceDiagnosticsCard({
           weight="bold"
           className="tracking-[0.2em] flex items-center gap-2 mb-6"
         >
-          <Activity size={14} className="text-[var(--cyber-green)]" /> {t('RESILIENCE_REALTIME_DIAGNOSTICS')}
+          <Activity size={14} className="text-[var(--cyber-green)]" />{' '}
+          {t('RESILIENCE_REALTIME_DIAGNOSTICS')}
         </Typography>
 
         <div className="space-y-6">
@@ -95,10 +96,12 @@ export default function ResilienceDiagnosticsCard({
 
         <div className="flex items-center gap-4 mb-6">
           <div className="w-12 h-12 rounded-full border border-yellow-500/20 flex items-center justify-center bg-yellow-500/5">
-            < Zap size={20} className="text-yellow-500" />
+            <Zap size={20} className="text-yellow-500" />
           </div>
           <div>
-            <div className="text-xs font-bold text-white/90">{t('RESILIENCE_AUTONOMOUS_PULSE')}</div>
+            <div className="text-xs font-bold text-white/90">
+              {t('RESILIENCE_AUTONOMOUS_PULSE')}
+            </div>
             <div className="text-[10px] text-white/100">{t('RESILIENCE_SCHEDULES_FREQ')}</div>
           </div>
         </div>

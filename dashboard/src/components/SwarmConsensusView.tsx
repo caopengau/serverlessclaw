@@ -63,7 +63,11 @@ export default function SwarmConsensusView({ requests }: { requests: ConsensusRe
                 <Typography variant="h3" uppercase glow>
                   {req.title}
                 </Typography>
-                <Typography variant="body" color="muted" className="text-muted-foreground leading-relaxed">
+                <Typography
+                  variant="body"
+                  color="muted"
+                  className="text-muted-foreground leading-relaxed"
+                >
                   {req.description}
                 </Typography>
               </div>
@@ -185,14 +189,14 @@ export default function SwarmConsensusView({ requests }: { requests: ConsensusRe
 
             {/* Council Judge Panel - Active for Pending Requests */}
             {req.status === 'PENDING' && (
-              <CouncilJudgePanel 
-                requestId={req.id} 
+              <CouncilJudgePanel
+                requestId={req.id}
                 onJudgement={(decision, directive) => {
                   logger.info(`Human Judgement for ${req.id}: ${decision}`, directive);
                   // In a real implementation, this would call the API:
                   // fetch(`/api/consensus/${req.id}/judge`, { method: 'POST', body: JSON.stringify({ decision, directive }) });
                   logger.info(`JUDGEMENT_RECORDED: ${decision}. Directive: "${directive}"`);
-                }} 
+                }}
               />
             )}
           </div>

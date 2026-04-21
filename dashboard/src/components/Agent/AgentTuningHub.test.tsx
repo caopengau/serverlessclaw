@@ -5,16 +5,45 @@ import AgentTuningHub from './AgentTuningHub';
 
 // Mock UI components
 vi.mock('@/components/ui/Card', () => ({
-  default: ({ children, className }: { children?: React.ReactNode; className?: string }) => <div data-testid="card" className={className}>{children}</div>,
+  default: ({ children, className }: { children?: React.ReactNode; className?: string }) => (
+    <div data-testid="card" className={className}>
+      {children}
+    </div>
+  ),
 }));
 
 vi.mock('@/components/ui/Typography', () => ({
-  default: ({ children, className, variant }: { children?: React.ReactNode; className?: string; variant?: string }) => <div data-testid="typography" data-variant={variant} className={className}>{children}</div>,
+  default: ({
+    children,
+    className,
+    variant,
+  }: {
+    children?: React.ReactNode;
+    className?: string;
+    variant?: string;
+  }) => (
+    <div data-testid="typography" data-variant={variant} className={className}>
+      {children}
+    </div>
+  ),
 }));
 
 vi.mock('@/components/ui/Button', () => ({
-  default: ({ children, onClick, variant, icon }: { children?: React.ReactNode; onClick?: () => void; variant?: string; icon?: React.ReactNode }) => (
-    <button data-testid="button" onClick={onClick} data-variant={variant}>{icon}{children}</button>
+  default: ({
+    children,
+    onClick,
+    variant,
+    icon,
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+    variant?: string;
+    icon?: React.ReactNode;
+  }) => (
+    <button data-testid="button" onClick={onClick} data-variant={variant}>
+      {icon}
+      {children}
+    </button>
   ),
 }));
 
@@ -53,7 +82,7 @@ describe('AgentTuningHub', () => {
     lastTraceId: 'trace-123',
     errorDistribution: {
       'Logic Error': 5,
-      'Timeout': 2,
+      Timeout: 2,
     },
   };
 
@@ -104,4 +133,3 @@ describe('AgentTuningHub', () => {
     expect(screen.getByText('No failure telemetry recorded.')).toBeInTheDocument();
   });
 });
-

@@ -14,7 +14,7 @@ describe('CyberTooltip Component', () => {
         <button>Hover Me</button>
       </CyberTooltip>
     );
-    
+
     expect(screen.getByText('Hover Me')).toBeInTheDocument();
   });
 
@@ -49,7 +49,7 @@ describe('CyberTooltip Component', () => {
 
   it('renders info icon when no children are provided and showIcon is true', () => {
     const { container } = render(<CyberTooltip content="Tooltip Content" showIcon={true} />);
-    
+
     // Lucide-react Info icon should be present
     const svg = container.querySelector('svg');
     expect(svg).toBeInTheDocument();
@@ -57,7 +57,7 @@ describe('CyberTooltip Component', () => {
 
   it('does not render info icon when showIcon is false', () => {
     const { container } = render(<CyberTooltip content="Tooltip Content" showIcon={false} />);
-    
+
     const svg = container.querySelector('svg');
     expect(svg).not.toBeInTheDocument();
   });
@@ -70,7 +70,7 @@ describe('CyberTooltip Component', () => {
     );
 
     fireEvent.mouseEnter(screen.getByText('Hover Me'));
-    
+
     await waitFor(() => {
       const tooltip = screen.getByTestId('cyber-tooltip-content');
       expect(tooltip).toHaveClass('w-96');
@@ -94,7 +94,7 @@ describe('CyberTooltip Component', () => {
     });
 
     it('flips from top to bottom when near the top edge', async () => {
-      HTMLElement.prototype.getBoundingClientRect = vi.fn(() => ({
+      HTMLElement.prototype.getBoundingClientRect = vi.fn().mockReturnValue({
         top: 20,
         bottom: 50,
         left: 500,
@@ -104,7 +104,7 @@ describe('CyberTooltip Component', () => {
         x: 500,
         y: 20,
         toJSON: () => {},
-      })) as any;
+      });
 
       render(
         <CyberTooltip content="Tooltip Content" position="top">
@@ -113,7 +113,7 @@ describe('CyberTooltip Component', () => {
       );
 
       fireEvent.mouseEnter(screen.getByText('Hover Me'));
-      
+
       await waitFor(() => {
         const tooltip = screen.getByTestId('cyber-tooltip-content');
         expect(tooltip).toHaveClass('translate-y-0');
@@ -122,7 +122,7 @@ describe('CyberTooltip Component', () => {
     });
 
     it('flips from bottom to top when near the bottom edge', async () => {
-      HTMLElement.prototype.getBoundingClientRect = vi.fn(() => ({
+      HTMLElement.prototype.getBoundingClientRect = vi.fn().mockReturnValue({
         top: 950,
         bottom: 980,
         left: 500,
@@ -132,7 +132,7 @@ describe('CyberTooltip Component', () => {
         x: 500,
         y: 950,
         toJSON: () => {},
-      })) as any;
+      });
 
       render(
         <CyberTooltip content="Tooltip Content" position="bottom">
@@ -141,7 +141,7 @@ describe('CyberTooltip Component', () => {
       );
 
       fireEvent.mouseEnter(screen.getByText('Hover Me'));
-      
+
       await waitFor(() => {
         const tooltip = screen.getByTestId('cyber-tooltip-content');
         expect(tooltip).toHaveClass('-translate-y-full');
@@ -149,7 +149,7 @@ describe('CyberTooltip Component', () => {
     });
 
     it('flips from left to right when near the left edge', async () => {
-      HTMLElement.prototype.getBoundingClientRect = vi.fn(() => ({
+      HTMLElement.prototype.getBoundingClientRect = vi.fn().mockReturnValue({
         top: 500,
         bottom: 530,
         left: 20,
@@ -159,7 +159,7 @@ describe('CyberTooltip Component', () => {
         x: 20,
         y: 500,
         toJSON: () => {},
-      })) as any;
+      });
 
       render(
         <CyberTooltip content="Tooltip Content" position="left">
@@ -168,7 +168,7 @@ describe('CyberTooltip Component', () => {
       );
 
       fireEvent.mouseEnter(screen.getByText('Hover Me'));
-      
+
       await waitFor(() => {
         const tooltip = screen.getByTestId('cyber-tooltip-content');
         expect(tooltip).toHaveClass('translate-x-0');

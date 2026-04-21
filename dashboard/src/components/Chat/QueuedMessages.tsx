@@ -76,21 +76,21 @@ export function QueuedMessageItem({ message, onEdit, onRemove }: QueuedMessageIt
               <Clock size={10} className="animate-pulse" />
               Queued
             </Typography>
-            <Typography variant="mono" className="text-[10px] text-white/30">
+            <Typography variant="mono" className="text-[10px] text-muted-foreground/40">
               {formatTimestamp(message.timestamp)}
             </Typography>
           </div>
           <Card
             variant="glass"
             padding="sm"
-            className="rounded-lg bg-amber-500/5 text-white/80 border border-amber-500/20"
+            className="rounded-lg bg-amber-500/5 text-foreground/80 border border-amber-500/20"
           >
             {isEditing ? (
               <div className="flex flex-col gap-2">
                 <textarea
                   value={editedContent}
                   onChange={(e) => setEditedContent(e.target.value)}
-                  className="w-full bg-black/20 border border-amber-500/30 rounded p-2 text-sm text-white/90 resize-none focus:outline-none focus:border-amber-500/50"
+                  className="w-full bg-input border border-amber-500/30 rounded p-2 text-sm text-foreground resize-none focus:outline-none focus:border-amber-500/50"
                   rows={Math.max(2, editedContent.split('\n').length)}
                   autoFocus
                 />
@@ -125,18 +125,18 @@ export function QueuedMessageItem({ message, onEdit, onRemove }: QueuedMessageIt
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="p-1 hover:bg-white/10 rounded transition-colors"
+                    className="p-1 hover:bg-foreground/5 rounded transition-colors"
                     title="Edit message"
                   >
-                    <Edit2 size={12} className="text-white/50 hover:text-amber-400" />
+                    <Edit2 size={12} className="text-muted-foreground/50 hover:text-amber-400" />
                   </button>
                   <button
                     onClick={handleRemove}
                     disabled={isLoading}
-                    className="p-1 hover:bg-white/10 rounded transition-colors"
+                    className="p-1 hover:bg-foreground/5 rounded transition-colors"
                     title="Remove message"
                   >
-                    <X size={12} className="text-white/50 hover:text-red-400" />
+                    <X size={12} className="text-muted-foreground/50 hover:text-red-400" />
                   </button>
                 </div>
               </div>

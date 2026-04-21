@@ -25,10 +25,7 @@ export default function SystemPulsePage() {
     <main
       className={`flex-1 h-screen overflow-hidden flex flex-col p-6 lg:p-10 space-y-6 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-${THEME.COLORS.INTEL}/5 via-transparent to-transparent`}
     >
-      <PageHeader 
-        titleKey="SYSPULSE_TITLE" 
-        subtitleKey="SYSPULSE_SUBTITLE" 
-      />
+      <PageHeader titleKey="SYSPULSE_TITLE" subtitleKey="SYSPULSE_SUBTITLE" />
 
       <div className="flex-1 min-h-0 glass-card border-white/5 overflow-hidden flex flex-col">
         <div className="px-6 py-3 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">

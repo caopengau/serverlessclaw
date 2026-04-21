@@ -1,29 +1,28 @@
-'use client';
-
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { Info } from 'lucide-react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { HelpCircle } from 'lucide-react';
+import Typography from '@/components/ui/Typography';
 
 interface CyberTooltipProps {
-  content: string | React.ReactNode;
   children?: React.ReactNode;
+  content: string | React.ReactNode;
   position?: 'top' | 'bottom' | 'left' | 'right';
+  width?: string;
   showIcon?: boolean;
   className?: string;
-  width?: string;
 }
 
 /**
- * A premium tooltip component that uses React Portals for perfect stacking
- * and includes smart positioning to stay within the viewport.
+ * Enhanced CyberTooltip with smart collision detection and portal rendering.
+ * Ensures the tooltip is always visible and doesn't get clipped by containers.
  */
 export default function CyberTooltip({
-  content,
   children,
+  content,
   position = 'top',
+  width = 'w-48',
   showIcon = true,
   className = '',
-  width = 'w-64',
 }: CyberTooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
@@ -33,17 +32,17 @@ export default function CyberTooltip({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
 
+  // Mounting flag for portal safety
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
-  // Reset positioning state when tooltip is hidden
-  useEffect(() => {
-    if (!isVisible) {
-      setIsPositioned(false);
-      setCoords({ top: 0, left: 0 });
-    }
-  }, [isVisible]);
+  const hideTooltip = () => {
+    setIsVisible(false);
+    setIsPositioned(false);
+    setCoords({ top: 0, left: 0 });
+  };
 
   useLayoutEffect(() => {
     if (isVisible && triggerRef.current) {
@@ -69,6 +68,7 @@ export default function CyberTooltip({
         finalPos = 'left';
       }
 
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActivePosition(finalPos);
 
       let top = 0;
@@ -107,84 +107,96 @@ export default function CyberTooltip({
 
   const getArrowStyles = (pos: string) => {
     const common = {
+      content: '""',
+      position: 'absolute',
       width: '8px',
       height: '8px',
-      backgroundColor: 'var(--card-bg-elevated)', 
-      borderStyle: 'solid',
-      borderColor: 'var(--cyber-green-opacity-20, rgba(0, 255, 163, 0.2))', 
+      background: 'rgba(0,0,0,0.85)',
+      backdropFilter: 'blur(12px)',
+      border: '1px solid rgba(255,255,255,0.1)',
+      transform: 'rotate(45deg)',
     };
 
     switch (pos) {
       case 'top':
-        return {
-          ...common,
-          bottom: '-4px',
-          left: 'calc(50% - 4px)',
-          borderWidth: '0 1px 1px 0',
-        };
+        return { ...common, bottom: '-5px', left: 'calc(50% - 4px)', borderTop: 0, borderLeft: 0 };
       case 'bottom':
-        return {
-          ...common,
-          top: '-4px',
-          left: 'calc(50% - 4px)',
-          borderWidth: '1px 0 0 1px',
-        };
+        return { ...common, top: '-5px', left: 'calc(50% - 4px)', borderBottom: 0, borderRight: 0 };
       case 'left':
         return {
           ...common,
-          right: '-4px',
+          right: '-5px',
           top: 'calc(50% - 4px)',
-          borderWidth: '1px 1px 0 0',
+          borderBottom: 0,
+          borderLeft: 0,
         };
       case 'right':
-        return {
-          ...common,
-          left: '-4px',
-          top: 'calc(50% - 4px)',
-          borderWidth: '0 0 1px 1px',
-        };
+        return { ...common, left: '-5px', top: 'calc(50% - 4px)', borderTop: 0, borderRight: 0 };
       default:
-        return {};
+        return common;
     }
   };
 
-  const tooltipContent = (
+  const tooltipElement = isVisible && (
     <div
       ref={tooltipRef}
-      data-testid="cyber-tooltip-content"
-      className={`fixed z-[9999] ${width} p-3 bg-card-elevated border border-border rounded shadow-premium text-[10px] leading-relaxed text-foreground backdrop-blur-xl animate-in fade-in zoom-in duration-200 pointer-events-none ring-1 ring-cyber-green/5 ${positionClasses[activePosition]} ${isPositioned ? 'opacity-100' : 'opacity-0'}`}
       style={{
+        position: 'fixed',
         top: coords.top,
         left: coords.left,
+        zIndex: 9999,
+        pointerEvents: 'none',
+        opacity: isPositioned ? 1 : 0,
+        transform: isPositioned ? 'scale(1)' : 'scale(0.95)',
+        transition: 'opacity 150ms ease-out, transform 150ms ease-out',
       }}
+      className="hidden md:block"
     >
-      <div className="relative z-10">
-        {content}
-      </div>
       <div
-        className="absolute rotate-45"
-        style={getArrowStyles(activePosition)}
-      />
-      <div className="absolute top-0 right-0 w-1 h-1 bg-cyber-green/40 rounded-bl-sm" />
+        data-testid="cyber-tooltip-content"
+        className={`relative ${positionClasses[activePosition]} ${width}`}
+      >
+        <div
+          className="bg-black/85 backdrop-blur-xl border border-white/10 rounded px-3 py-2 shadow-2xl overflow-hidden"
+          style={{
+            boxShadow: '0 10px 30px -10px rgba(0,0,0,0.5), 0 0 20px rgba(0,255,163,0.05)',
+          }}
+        >
+          {/* Subtle accent line */}
+          <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-cyber-green/30 to-transparent" />
+
+          <div className="flex items-start gap-2">
+            {showIcon && children && (
+              <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-cyber-green/50 animate-pulse" />
+            )}
+            <Typography variant="body" className="text-[10px] leading-tight text-white/90">
+              {content}
+            </Typography>
+          </div>
+        </div>
+
+        {/* CSS-based arrow */}
+        <div style={getArrowStyles(activePosition) as React.CSSProperties} />
+      </div>
     </div>
   );
 
   return (
-    <div
-      ref={triggerRef}
-      className={`relative inline-block group ${className}`}
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseLeave={() => setIsVisible(false)}
-      onFocus={() => setIsVisible(true)}
-      onBlur={() => setIsVisible(false)}
-    >
-      {children ? (
-        children
-      ) : showIcon ? (
-        <Info size={12} className="text-muted-more hover:text-cyber-green transition-colors cursor-help ml-1" />
-      ) : null}
-
-      {isVisible && mounted && content && isPositioned && createPortal(tooltipContent, document.body)}
-    </div>
+    <>
+      <div
+        ref={triggerRef}
+        onMouseEnter={() => setIsVisible(true)}
+        onMouseLeave={hideTooltip}
+        className={`inline-block ${className}`}
+      >
+        {children || (showIcon && (
+          <HelpCircle
+            size={14}
+            className="text-muted-foreground/50 hover:text-cyber-blue transition-colors cursor-help"
+          />
+        )) || null}
+      </div>
+      {mounted && createPortal(tooltipElement, document.body)}
+    </>
   );
 }

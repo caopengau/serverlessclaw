@@ -28,12 +28,12 @@ export async function POST(request: NextRequest) {
     // Combine steps from all nodes for full context
     const fullTrace = traceNodes
       .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
-      .map(node => ({
+      .map((node) => ({
         nodeId: node.nodeId,
         status: node.status,
         failureReason: node.failureReason,
         steps: node.steps,
-        finalResponse: node.finalResponse
+        finalResponse: node.finalResponse,
       }));
 
     // 2. Fetch current agent config
@@ -74,23 +74,23 @@ Respond in JSON format:
     `;
 
     const response = await provider.call([
-      { 
-        role: MessageRole.USER, 
+      {
+        role: MessageRole.USER,
         content: analysisPrompt,
         traceId: `tuning-${traceId}-${Date.now()}`,
-        messageId: `msg-tuning-${Date.now()}`
-      }
+        messageId: `msg-tuning-${Date.now()}`,
+      },
     ]);
 
     let suggestions;
     try {
       suggestions = JSON.parse(response.content as string);
     } catch {
-      suggestions = { 
-        rootCause: "Analysis failed to parse JSON", 
+      suggestions = {
+        rootCause: 'Analysis failed to parse JSON',
         suggestions: [response.content as string],
-        improvedPromptSnippet: "",
-        confidence: 0
+        improvedPromptSnippet: '',
+        confidence: 0,
       };
     }
 

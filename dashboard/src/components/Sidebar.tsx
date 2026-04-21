@@ -76,7 +76,6 @@ export default function Sidebar() {
   // Close mobile sidebar on navigation
   useEffect(() => {
     if (isOpen) {
-       
       const timer = setTimeout(() => setIsOpen(false), 0);
       return () => clearTimeout(timer);
     }
@@ -84,7 +83,12 @@ export default function Sidebar() {
 
   const navItems = [
     { label: t('OPERATIONS'), type: 'header' },
-    { href: ROUTES.CHAT, label: t('CHAT_DIRECT'), subtitle: t('CHAT_SUBTITLE'), icon: MessageSquare },
+    {
+      href: ROUTES.CHAT,
+      label: t('CHAT_DIRECT'),
+      subtitle: t('CHAT_SUBTITLE'),
+      icon: MessageSquare,
+    },
     {
       href: ROUTES.TRACE,
       label: t('TRACE_INTEL'),
@@ -92,24 +96,79 @@ export default function Sidebar() {
       icon: Activity,
       activePaths: [ROUTES.TRACE, '/trace'],
     },
-    { href: ROUTES.SYSTEM_PULSE, label: t('SYSTEM_PULSE'), subtitle: t('SYSPULSE_SUBTITLE'), icon: Share2 },
+    {
+      href: ROUTES.SYSTEM_PULSE,
+      label: t('SYSTEM_PULSE'),
+      subtitle: t('SYSPULSE_SUBTITLE'),
+      icon: Share2,
+    },
 
     { label: t('INTELLIGENCE'), type: 'header' },
     { href: ROUTES.AGENTS, label: t('AGENTS'), subtitle: t('AGENTS_SUBTITLE'), icon: Users },
-    { href: ROUTES.MEMORY, label: t('MEMORY_RESERVE'), subtitle: t('MEMORY_SUBTITLE'), icon: Brain },
-    { href: ROUTES.CAPABILITIES, label: t('CAPABILITIES'), subtitle: t('CAPABILITIES_SUBTITLE'), icon: Wrench },
-    { href: ROUTES.COGNITIVE_HEALTH, label: t('COGNITIVE_HEALTH'), subtitle: t('COGHEALTH_SUBTITLE'), icon: BrainCircuit },
+    {
+      href: ROUTES.MEMORY,
+      label: t('MEMORY_RESERVE'),
+      subtitle: t('MEMORY_SUBTITLE'),
+      icon: Brain,
+    },
+    {
+      href: ROUTES.CAPABILITIES,
+      label: t('CAPABILITIES'),
+      subtitle: t('CAPABILITIES_SUBTITLE'),
+      icon: Wrench,
+    },
+    {
+      href: ROUTES.COGNITIVE_HEALTH,
+      label: t('COGNITIVE_HEALTH'),
+      subtitle: t('COGHEALTH_SUBTITLE'),
+      icon: BrainCircuit,
+    },
 
     { label: t('GROWTH'), type: 'header' },
-    { href: ROUTES.PIPELINE, label: t('EVOLUTION_PIPELINE'), subtitle: t('PIPELINE_SUBTITLE'), icon: Server },
-    { href: ROUTES.SCHEDULING, label: t('SCHEDULING'), subtitle: t('SCHEDULING_SUBTITLE'), icon: Calendar },
-    { href: ROUTES.WORKSPACES, label: t('WORKSPACES'), subtitle: t('WORKSPACES_SUBTITLE'), icon: Building2 },
-    { href: ROUTES.COLLABORATION, label: t('CONSENSUS'), subtitle: t('COLLABORATION_SUBTITLE'), icon: Vote },
+    {
+      href: ROUTES.PIPELINE,
+      label: t('EVOLUTION_PIPELINE'),
+      subtitle: t('PIPELINE_SUBTITLE'),
+      icon: Server,
+    },
+    {
+      href: ROUTES.SCHEDULING,
+      label: t('SCHEDULING'),
+      subtitle: t('SCHEDULING_SUBTITLE'),
+      icon: Calendar,
+    },
+    {
+      href: ROUTES.WORKSPACES,
+      label: t('WORKSPACES'),
+      subtitle: t('WORKSPACES_SUBTITLE'),
+      icon: Building2,
+    },
+    {
+      href: ROUTES.COLLABORATION,
+      label: t('CONSENSUS'),
+      subtitle: t('COLLABORATION_SUBTITLE'),
+      icon: Vote,
+    },
 
     { label: t('GOVERNANCE'), type: 'header' },
-    { href: ROUTES.SECURITY, label: t('SECURITY_MANIFEST'), subtitle: t('SECURITY_SUBTITLE'), icon: Lock },
-    { href: ROUTES.RESILIENCE, label: t('SELF_HEALING'), subtitle: t('RESILIENCE_SUBTITLE'), icon: Zap },
-    { href: ROUTES.LOCKS, label: t('SESSION_TRAFFIC'), subtitle: t('LOCKS_SUBTITLE'), icon: Activity },
+    {
+      href: ROUTES.SECURITY,
+      label: t('SECURITY_MANIFEST'),
+      subtitle: t('SECURITY_SUBTITLE'),
+      icon: Lock,
+    },
+    {
+      href: ROUTES.RESILIENCE,
+      label: t('SELF_HEALING'),
+      subtitle: t('RESILIENCE_SUBTITLE'),
+      icon: Zap,
+    },
+    {
+      href: ROUTES.LOCKS,
+      label: t('SESSION_TRAFFIC'),
+      subtitle: t('LOCKS_SUBTITLE'),
+      icon: Activity,
+    },
     { href: ROUTES.SETTINGS, label: t('CONFIG'), subtitle: t('SETTINGS_SUBTITLE'), icon: Settings },
   ];
 
@@ -157,7 +216,9 @@ export default function Sidebar() {
         ${isCollapsed ? 'lg:w-16 p-2' : 'lg:w-64 p-2'}
       `}
       >
-        <div className={`flex items-center justify-between gap-3 mb-6 ${isCollapsed ? 'flex-col' : 'px-2'} pt-4`}>
+        <div
+          className={`flex items-center justify-between gap-3 mb-6 ${isCollapsed ? 'flex-col' : 'px-2'} pt-4`}
+        >
           <Link href={ROUTES.HOME} className="flex items-center gap-3 group shrink-0">
             <div className="relative w-8 h-8 shrink-0 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
               <Image
@@ -169,12 +230,16 @@ export default function Sidebar() {
               />
             </div>
             {!isCollapsed && (
-              <Typography variant="h2" weight="black" className="text-xl tracking-tighter shrink-0 transition-opacity">
+              <Typography
+                variant="h2"
+                weight="black"
+                className="text-xl tracking-tighter shrink-0 transition-opacity"
+              >
                 ClawCenter
               </Typography>
             )}
           </Link>
-          
+
           <div className="flex items-center gap-2">
             {/* Close Toggle - Mobile Only */}
             <Button
@@ -254,7 +319,9 @@ export default function Sidebar() {
                     </Typography>
                   )}
                 </div>
-                {!isCollapsed && isActive && <ChevronRight size={10} className="text-cyber-green" />}
+                {!isCollapsed && isActive && (
+                  <ChevronRight size={10} className="text-cyber-green" />
+                )}
               </Link>
             );
 
@@ -267,7 +334,11 @@ export default function Sidebar() {
                   className="w-full"
                   content={
                     <div className="flex flex-col gap-1">
-                      <Typography variant="caption" weight="bold" className="text-cyber-green text-[10px] uppercase tracking-wider">
+                      <Typography
+                        variant="caption"
+                        weight="bold"
+                        className="text-cyber-green text-[10px] uppercase tracking-wider"
+                      >
                         {item.label}
                       </Typography>
                       <Typography className="text-[9px] leading-tight text-foreground/70">
@@ -283,12 +354,12 @@ export default function Sidebar() {
 
             return <React.Fragment key={idx}>{navLink}</React.Fragment>;
           })}
-          
-
         </nav>
 
         {/* Footer */}
-        <div className={`block pt-2 border-t border-border space-y-2 ${isCollapsed ? 'flex flex-col items-center' : ''}`}>
+        <div
+          className={`block pt-2 border-t border-border space-y-2 ${isCollapsed ? 'flex flex-col items-center' : ''}`}
+        >
           {isCollapsed ? (
             <CyberTooltip
               position="right"
@@ -296,7 +367,11 @@ export default function Sidebar() {
               className="w-full"
               content={
                 <div className="flex flex-col gap-1">
-                  <Typography variant="caption" weight="bold" className="text-cyber-green text-[10px] uppercase tracking-wider">
+                  <Typography
+                    variant="caption"
+                    weight="bold"
+                    className="text-cyber-green text-[10px] uppercase tracking-wider"
+                  >
                     {t('SYSTEM_STATUS')}
                   </Typography>
                   <Typography className="text-[9px] leading-tight text-foreground/70">
@@ -305,10 +380,7 @@ export default function Sidebar() {
                 </div>
               }
             >
-              <Link
-                href={ROUTES.SYSTEM_PULSE}
-                className="block group/status w-full"
-              >
+              <Link href={ROUTES.SYSTEM_PULSE} className="block group/status w-full">
                 <div className="bg-foreground/5 rounded transition-colors cursor-pointer py-0 flex justify-center group-hover/status:bg-foreground/10">
                   <div className="w-8 h-6 flex items-center justify-center shrink-0">
                     <span className="relative flex h-2 w-2">
@@ -320,10 +392,7 @@ export default function Sidebar() {
               </Link>
             </CyberTooltip>
           ) : (
-            <Link
-              href={ROUTES.SYSTEM_PULSE}
-              className="block group/status w-full"
-            >
+            <Link href={ROUTES.SYSTEM_PULSE} className="block group/status w-full">
               <div className="bg-foreground/5 rounded transition-colors cursor-pointer px-2 py-2 group-hover/status:bg-foreground/10">
                 <Typography
                   variant="mono"
@@ -335,8 +404,12 @@ export default function Sidebar() {
                 <div className="text-[10px] text-cyber-green mt-0 flex items-center gap-3 font-bold uppercase">
                   <div className="w-8 h-6 flex items-center justify-center shrink-0">
                     <span className="relative flex h-2 w-2">
-                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'} opacity-75`}></span>
-                      <span className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'}`}></span>
+                      <span
+                        className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'} opacity-75`}
+                      ></span>
+                      <span
+                        className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'}`}
+                      ></span>
                     </span>
                   </div>
                   {isConnected ? t('CONNECTED') : t('SYSTEM_STATUS')}
@@ -348,19 +421,28 @@ export default function Sidebar() {
           {!isCollapsed ? (
             <div className="flex flex-col gap-1 px-2 pb-1">
               <div className="flex items-center justify-between">
-                <Typography variant="caption" className="text-muted-foreground text-[10px] uppercase tracking-wider font-mono">
+                <Typography
+                  variant="caption"
+                  className="text-muted-foreground text-[10px] uppercase tracking-wider font-mono"
+                >
                   {t('LANGUAGE')}
                 </Typography>
                 <div className="flex gap-2 text-[10px] font-mono">
                   <button
-                    onClick={(e) => { e.preventDefault(); setLocale('en'); }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setLocale('en');
+                    }}
                     className={`transition-colors ${mounted && locale === 'en' ? 'text-foreground font-bold' : 'text-muted-foreground hover:text-foreground/70'}`}
                   >
                     EN
                   </button>
                   <span className="text-foreground/20">|</span>
                   <button
-                    onClick={(e) => { e.preventDefault(); setLocale('cn'); }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setLocale('cn');
+                    }}
                     className={`transition-colors ${mounted && locale === 'cn' ? 'text-foreground font-bold' : 'text-muted-foreground hover:text-foreground/70'}`}
                   >
                     中文
@@ -369,17 +451,29 @@ export default function Sidebar() {
               </div>
 
               <div className="flex items-center justify-between">
-                <Typography variant="caption" className="text-muted-foreground text-[10px] uppercase tracking-wider font-mono">
+                <Typography
+                  variant="caption"
+                  className="text-muted-foreground text-[10px] uppercase tracking-wider font-mono"
+                >
                   {t('THEME')}
                 </Typography>
                 <div className="flex gap-3 text-muted-foreground">
-                  <button onClick={() => setTheme('light')} className={`p-1 rounded hover:bg-foreground/5 transition-colors ${mounted && theme === 'light' ? 'text-cyber-green' : ''}`}>
+                  <button
+                    onClick={() => setTheme('light')}
+                    className={`p-1 rounded hover:bg-foreground/5 transition-colors ${mounted && theme === 'light' ? 'text-cyber-green' : ''}`}
+                  >
                     <Sun size={12} />
                   </button>
-                  <button onClick={() => setTheme('dark')} className={`p-1 rounded hover:bg-foreground/5 transition-colors ${mounted && theme === 'dark' ? 'text-cyber-green' : ''}`}>
+                  <button
+                    onClick={() => setTheme('dark')}
+                    className={`p-1 rounded hover:bg-foreground/5 transition-colors ${mounted && theme === 'dark' ? 'text-cyber-green' : ''}`}
+                  >
                     <Moon size={12} />
                   </button>
-                  <button onClick={() => setTheme('system')} className={`p-1 rounded hover:bg-foreground/5 transition-colors ${mounted && theme === 'system' ? 'text-cyber-green' : ''}`}>
+                  <button
+                    onClick={() => setTheme('system')}
+                    className={`p-1 rounded hover:bg-foreground/5 transition-colors ${mounted && theme === 'system' ? 'text-cyber-green' : ''}`}
+                  >
                     <Monitor size={12} />
                   </button>
                 </div>
@@ -397,32 +491,40 @@ export default function Sidebar() {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-1 pb-0">
-               <div className="w-8 h-6 flex items-center justify-center">
-                 <button 
+              <div className="w-8 h-6 flex items-center justify-center">
+                <button
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                   className={`p-1 rounded-full bg-foreground/5 transition-colors ${mounted ? 'text-muted-foreground hover:text-cyber-green' : 'text-transparent'}`}
-                 >
-                  {mounted ? (theme === 'dark' ? <Sun size={12} /> : <Moon size={12} />) : <div className="w-3 h-3" />}
-                 </button>
-               </div>
-               <div className="w-8 h-6 flex items-center justify-center">
-                 <button 
+                >
+                  {mounted ? (
+                    theme === 'dark' ? (
+                      <Sun size={12} />
+                    ) : (
+                      <Moon size={12} />
+                    )
+                  ) : (
+                    <div className="w-3 h-3" />
+                  )}
+                </button>
+              </div>
+              <div className="w-8 h-6 flex items-center justify-center">
+                <button
                   onClick={() => setLocale(locale === 'en' ? 'cn' : 'en')}
                   className={`text-[10px] font-mono font-bold transition-colors uppercase ${mounted ? 'text-muted-foreground hover:text-cyber-green' : 'text-transparent'}`}
-                 >
+                >
                   {mounted ? (locale === 'en' ? 'CN' : 'EN') : '..'}
-                 </button>
-               </div>
-               <div className="w-8 h-6 flex items-center justify-center">
-                 <CyberTooltip position="right" showIcon={false} content={t('LOGOUT')}>
-                   <button
+                </button>
+              </div>
+              <div className="w-8 h-6 flex items-center justify-center">
+                <CyberTooltip position="right" showIcon={false} content={t('LOGOUT')}>
+                  <button
                     onClick={handleLogout}
                     className="p-1 rounded-full bg-foreground/5 transition-colors text-muted-foreground hover:text-cyber-green"
-                   >
+                  >
                     <LogOut size={12} />
-                   </button>
-                 </CyberTooltip>
-               </div>
+                  </button>
+                </CyberTooltip>
+              </div>
             </div>
           )}
         </div>

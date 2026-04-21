@@ -239,7 +239,10 @@ function processTraceNodes(
           type: step.type === TRACE_TYPES.AGENT_WAITING ? 'waiting' : 'resumed',
           data: {
             agentId: (step.content as AgentStateContent).agentId ?? agentId,
-            reason: (step.content as AgentStateContent).reason || (step.content as GenericContent).answer || 'Status Change',
+            reason:
+              (step.content as AgentStateContent).reason ||
+              (step.content as GenericContent).answer ||
+              'Status Change',
             onClick: () => setSelectedStep(step),
           },
           position: { x: startX, y: currentY },
@@ -362,7 +365,7 @@ function PathVisualizerContent({ trace }: PathVisualizerProps) {
   }, [trace, setNodes, setEdges, fitView]);
 
   return (
-    <div 
+    <div
       data-testid="collaboration-canvas"
       className="PathVisualizer h-[600px] w-full bg-background/40 rounded-lg border border-border relative group overflow-hidden cyber-border"
     >

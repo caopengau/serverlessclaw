@@ -148,25 +148,139 @@ export interface GenericContent {
 }
 
 export type TraceStep =
-  | { stepId: string; timestamp: number; type: 'llm_call'; content: LlmCallContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'llm_response'; content: LlmResponseContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'tool_call'; content: ToolCallContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'tool_result' | 'tool_response'; content: ToolResultContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'error'; content: ErrorContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'clarification_request'; content: ClarificationContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'clarification_response'; content: GenericContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'parallel_dispatch'; content: ParallelDispatchContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'parallel_barrier'; content: ParallelBarrierContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'parallel_completed'; content: ParallelBarrierContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'council_review'; content: CouncilReviewContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'continuation'; content: ContinuationContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'circuit_breaker'; content: CircuitBreakerContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'cancellation'; content: CancellationContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'memory_operation'; content: MemoryOperationContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'reflect'; content: ReflectContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'agent_waiting' | 'agent_resumed'; content: AgentStateContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'result'; content: ResultContent; metadata: Record<string, unknown> }
-  | { stepId: string; timestamp: number; type: 'trigger'; content: GenericContent; metadata: Record<string, unknown> };
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'llm_call';
+      content: LlmCallContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'llm_response';
+      content: LlmResponseContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'tool_call';
+      content: ToolCallContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'tool_result' | 'tool_response';
+      content: ToolResultContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'error';
+      content: ErrorContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'clarification_request';
+      content: ClarificationContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'clarification_response';
+      content: GenericContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'parallel_dispatch';
+      content: ParallelDispatchContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'parallel_barrier';
+      content: ParallelBarrierContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'parallel_completed';
+      content: ParallelBarrierContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'council_review';
+      content: CouncilReviewContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'continuation';
+      content: ContinuationContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'circuit_breaker';
+      content: CircuitBreakerContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'cancellation';
+      content: CancellationContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'memory_operation';
+      content: MemoryOperationContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'reflect';
+      content: ReflectContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'agent_waiting' | 'agent_resumed';
+      content: AgentStateContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'result';
+      content: ResultContent;
+      metadata: Record<string, unknown>;
+    }
+  | {
+      stepId: string;
+      timestamp: number;
+      type: 'trigger';
+      content: GenericContent;
+      metadata: Record<string, unknown>;
+    };
 
 /** Union of all possible trace content types for convenience. */
 export type TraceStepContent = TraceStep['content'];

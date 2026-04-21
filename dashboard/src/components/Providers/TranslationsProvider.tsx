@@ -6,11 +6,12 @@ import cn from '../../../messages/cn.json';
 import { CONFIG_KEYS } from '@claw/core/lib/constants';
 import { logger } from '@claw/core/lib/logger';
 
-type Messages = typeof en;
-type Locale = 'en' | 'cn';
+export type Messages = typeof en;
+export type Locale = 'en' | 'cn';
+export type TranslationKey = keyof Messages;
 
 interface TranslationsContextType {
-  t: (key: keyof Messages) => string;
+  t: (key: TranslationKey) => string;
   locale: Locale;
   setLocale: (locale: Locale) => void;
 }
@@ -34,7 +35,11 @@ export const TranslationsProvider: React.FC<{
   // Sync with localStorage on mount (Client-side only)
   useEffect(() => {
     const savedLocale = localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (savedLocale && savedLocale !== initialLocale && (savedLocale === 'en' || savedLocale === 'cn')) {
+    if (
+      savedLocale &&
+      savedLocale !== initialLocale &&
+      (savedLocale === 'en' || savedLocale === 'cn')
+    ) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocaleState(savedLocale);
     }

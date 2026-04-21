@@ -18,8 +18,20 @@ const mockFitView = vi.fn();
 // Mock @xyflow/react
 vi.mock('@xyflow/react', () => {
   return {
-    ReactFlow: ({ nodes, edges, children }: { nodes: unknown[]; edges: unknown[]; children: React.ReactNode }) => (
-      <div data-testid="react-flow" data-nodes={JSON.stringify(nodes)} data-edges={JSON.stringify(edges)}>
+    ReactFlow: ({
+      nodes,
+      edges,
+      children,
+    }: {
+      nodes: unknown[];
+      edges: unknown[];
+      children: React.ReactNode;
+    }) => (
+      <div
+        data-testid="react-flow"
+        data-nodes={JSON.stringify(nodes)}
+        data-edges={JSON.stringify(edges)}
+      >
         {children}
       </div>
     ),
@@ -42,13 +54,25 @@ vi.mock('@xyflow/react', () => {
       zoomOut: vi.fn(),
       fitView: mockFitView,
     }),
-    ReactFlowProvider: ({ children }: { children: React.ReactNode }) => <div data-testid="react-flow-provider">{children}</div>,
+    ReactFlowProvider: ({ children }: { children: React.ReactNode }) => (
+      <div data-testid="react-flow-provider">{children}</div>
+    ),
   };
 });
 
 // Mock UI components
 vi.mock('@/components/ui/Button', () => ({
-  default: ({ children, onClick, icon, title }: { children: React.ReactNode; onClick: () => void; icon: React.ReactNode; title: string }) => (
+  default: ({
+    children,
+    onClick,
+    icon,
+    title,
+  }: {
+    children: React.ReactNode;
+    onClick: () => void;
+    icon: React.ReactNode;
+    title: string;
+  }) => (
     <button onClick={onClick} data-testid="button" title={title}>
       {icon}
       {children}
@@ -57,11 +81,15 @@ vi.mock('@/components/ui/Button', () => ({
 }));
 
 vi.mock('@/components/ui/Typography', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div data-testid="typography">{children}</div>,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="typography">{children}</div>
+  ),
 }));
 
 vi.mock('@/components/ui/Card', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <div data-testid="card">{children}</div>,
+  default: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="card">{children}</div>
+  ),
 }));
 
 // Mock fetch
@@ -115,9 +143,7 @@ describe('SystemPulseFlow Component', () => {
         { id: 'superclaw', type: 'agent', tier: 'APP', label: 'SuperClaw' },
         { id: 'bus', type: 'bus', tier: 'COMM', label: 'Message Bus' },
       ],
-      edges: [
-        { id: 'e1', source: 'superclaw', target: 'bus', label: 'ORCHESTRATE' },
-      ],
+      edges: [{ id: 'e1', source: 'superclaw', target: 'bus', label: 'ORCHESTRATE' }],
     };
 
     mockFetch.mockResolvedValue({
@@ -138,7 +164,7 @@ describe('SystemPulseFlow Component', () => {
     expect(nodes).toHaveLength(2);
     expect(nodes[0].id).toBe('superclaw');
     expect(nodes[1].id).toBe('bus');
-    
+
     expect(edges).toHaveLength(1);
     expect(edges[0].source).toBe('superclaw');
     expect(edges[0].target).toBe('bus');
@@ -154,9 +180,7 @@ describe('SystemPulseFlow Component', () => {
         { id: 'n5', type: 'unknown', tier: 'INFRA', label: 'OtherNode' },
         { id: 'n6', type: 'agent', tier: 'APP', label: 'OfflineNode', enabled: false },
       ],
-      edges: [
-        { id: 'e1', source: 'n1', target: 'n2' },
-      ],
+      edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
     };
 
     mockFetch.mockResolvedValue({
@@ -203,7 +227,7 @@ describe('SystemPulseFlow Component', () => {
 
     // Reset fetch mock to track new calls
     mockFetch.mockClear();
-    
+
     const resetButton = screen.getByTitle('Reset View & Layout');
     fireEvent.click(resetButton);
 

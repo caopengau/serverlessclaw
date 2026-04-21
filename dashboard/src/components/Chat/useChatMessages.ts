@@ -8,9 +8,7 @@ import {
   PageContextData,
 } from './types';
 import { AGENT_ERRORS } from '@/lib/constants';
-import {
-  mergeHistoryWithMessages,
-} from './message-handler';
+import { mergeHistoryWithMessages } from './message-handler';
 
 interface ChatApiResponse {
   reply?: string;
@@ -36,31 +34,37 @@ export function useChatMessages(
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [attachments, setAttachments] = useState<AttachmentPreview[]>([]);
 
-  const fetchHistory = useCallback(async (sessionId: string) => {
-    if (!sessionId) return;
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/chat?sessionId=${sessionId}`);
-      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
-        return;
+  const fetchHistory = useCallback(
+    async (sessionId: string) => {
+      if (!sessionId) return;
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/chat?sessionId=${sessionId}`);
+        if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) {
+          return;
+        }
+        const data = await response.json();
+        if (data.history) {
+          setMessages((prev: ChatMessage[]) => {
+            const { messages: mergedMessages, seenIds } = mergeHistoryWithMessages(
+              prev,
+              data.history
+            );
+
+            // Sync the shared ref
+            seenIds.forEach((id) => seenMessageIds.current.add(id));
+
+            return mergedMessages;
+          });
+        }
+      } catch (error) {
+        logger.error('Failed to fetch history:', error);
+      } finally {
+        setIsLoading(false);
       }
-      const data = await response.json();
-      if (data.history) {
-        setMessages((prev: ChatMessage[]) => {
-          const { messages: mergedMessages, seenIds } = mergeHistoryWithMessages(prev, data.history);
-          
-          // Sync the shared ref
-          seenIds.forEach(id => seenMessageIds.current.add(id));
-          
-          return mergedMessages;
-        });
-      }
-    } catch (error) {
-      logger.error('Failed to fetch history:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [setIsLoading, seenMessageIds]);
+    },
+    [setIsLoading, seenMessageIds]
+  );
 
   // Handle immediate history fetch on session change
   useEffect(() => {
@@ -85,7 +89,10 @@ export function useChatMessages(
     }
   }, [activeSessionId, disabled, fetchHistory, seenMessageIds, skipNextHistoryFetch]);
 
-  const updateAssistantResponse = (data: ChatApiResponse & { ui_blocks?: DynamicComponent[] }, tempId: string) => {
+  const updateAssistantResponse = (
+    data: ChatApiResponse & { ui_blocks?: DynamicComponent[] },
+    tempId: string
+  ) => {
     const targetId = data.messageId || tempId;
     seenMessageIds.current.add(targetId);
     setMessages((prev: ChatMessage[]) => {
@@ -107,8 +114,8 @@ export function useChatMessages(
 
         logger.info(
           `[updateAssistantResponse] id=${targetId.substring(0, 12)}, ` +
-          `existingLen=${existing.content?.length ?? 0}, replyLen=${data.reply?.length ?? 0}, ` +
-          `preserve=${willPreserveContent}, hasMeaningfulThought=${isMeaningfulThought}`
+            `existingLen=${existing.content?.length ?? 0}, replyLen=${data.reply?.length ?? 0}, ` +
+            `preserve=${willPreserveContent}, hasMeaningfulThought=${isMeaningfulThought}`
         );
 
         updated[existingIdx] = {
@@ -116,7 +123,9 @@ export function useChatMessages(
           content:
             existing.content && existing.content.trim().length > 0
               ? existing.content
-              : (data.reply !== undefined ? data.reply : existing.content),
+              : data.reply !== undefined
+                ? data.reply
+                : existing.content,
           thought: isMeaningfulThought ? data.thought : existing.thought,
           tool_calls: data.tool_calls || existing.tool_calls,
           agentName: data.agentName || existing.agentName,
@@ -183,14 +192,14 @@ export function useChatMessages(
       overrideConfig?: Record<string, unknown>;
     } = {}
   ) => {
-    const { 
-      agentId, 
-      collaborationId, 
-      pageContext, 
-      profile, 
-      isIsolated = false, 
+    const {
+      agentId,
+      collaborationId,
+      pageContext,
+      profile,
+      isIsolated = false,
       source,
-      overrideConfig 
+      overrideConfig,
     } = options;
 
     if (!text.trim() && attachments.length === 0) return;
@@ -266,7 +275,11 @@ export function useChatMessages(
 
       if (!response.ok) {
         let errorData;
-        try { errorData = await response.json(); } catch { errorData = { error: 'Unknown error' }; }
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: 'Unknown error' };
+        }
         const errorContent = errorData.details || errorData.error || AGENT_ERRORS.PROCESS_FAILURE;
         logger.error('Chat API error:', errorData);
         if (currentSessionId === activeSessionRef.current) {
@@ -288,7 +301,7 @@ export function useChatMessages(
       if (currentSessionId === activeSessionRef.current) {
         updateAssistantResponse(data, tempId);
       }
-      
+
       // Only refresh sidebar if this was a new session creation
       if (isNewSession) {
         fetchSessions();
@@ -322,7 +335,11 @@ export function useChatMessages(
 
       if (!response.ok) {
         let errorData;
-        try { errorData = await response.json(); } catch { errorData = {}; }
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = {};
+        }
         setMessages((prev: ChatMessage[]) => [
           ...prev,
           {
@@ -370,7 +387,11 @@ export function useChatMessages(
 
       if (!response.ok) {
         let errorData;
-        try { errorData = await response.json(); } catch { errorData = { error: 'Unknown error' }; }
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: 'Unknown error' };
+        }
         setMessages((prev: ChatMessage[]) => [
           ...prev,
           {
@@ -411,7 +432,11 @@ export function useChatMessages(
 
       if (!response.ok) {
         let errorData;
-        try { errorData = await response.json(); } catch { errorData = { error: 'Unknown error' }; }
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = { error: 'Unknown error' };
+        }
         setMessages((prev: ChatMessage[]) => [
           ...prev,
           {
@@ -452,7 +477,11 @@ export function useChatMessages(
 
       if (!response.ok) {
         let errorData;
-        try { errorData = await response.json(); } catch { errorData = {}; }
+        try {
+          errorData = await response.json();
+        } catch {
+          errorData = {};
+        }
         setMessages((prev: ChatMessage[]) => [
           ...prev,
           {

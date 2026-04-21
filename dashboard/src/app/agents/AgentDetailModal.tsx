@@ -244,7 +244,11 @@ export default function AgentDetailModal({
                             : []
                         }
                         disabled={!agent.provider}
-                        placeholder={agent.provider ? t('AGENTS_SELECT_MODEL') : t('AGENTS_SELECT_PROVIDER_FIRST')}
+                        placeholder={
+                          agent.provider
+                            ? t('AGENTS_SELECT_MODEL')
+                            : t('AGENTS_SELECT_PROVIDER_FIRST')
+                        }
                         className="w-full"
                       />
                     </div>
@@ -280,7 +284,8 @@ export default function AgentDetailModal({
                   <ChevronRight size={12} /> {t('AGENTS_EXECUTION_CONTEXT')}
                 </Typography>
                 <Typography variant="caption" color="white" className="italic block opacity-70">
-                  Agent Type: {agent.isBackbone ? t('AGENTS_PERSISTENT_BACKBONE') : t('AGENTS_DYNAMIC_SPOKE')}.
+                  Agent Type:{' '}
+                  {agent.isBackbone ? t('AGENTS_PERSISTENT_BACKBONE') : t('AGENTS_DYNAMIC_SPOKE')}.
                   {isLogicOnly
                     ? t('AGENTS_CORE_RESILIENCE_LOGIC')
                     : t('AGENTS_AUTHORIZED_INTERACT')}

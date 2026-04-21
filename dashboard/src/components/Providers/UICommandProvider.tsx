@@ -50,9 +50,9 @@ export function UICommandProvider({ children }: { children: React.ReactNode }) {
     const handleCommand = (event: Event) => {
       const customEvent = event as CustomEvent<UICommandDetail>;
       const detail = customEvent.detail;
-      
+
       if (!detail || !detail.action) return;
-      
+
       setLastCommand(detail);
       logger.info(`[UICommandProvider] Executing agent command:`, detail);
 
@@ -81,13 +81,13 @@ export function UICommandProvider({ children }: { children: React.ReactNode }) {
   }, [isSidebarCollapsed]);
 
   return (
-    <UICommandContext.Provider 
-      value={{ 
-        activeModal, 
-        setActiveModal, 
-        isSidebarCollapsed, 
-        setSidebarCollapsed, 
-        lastCommand 
+    <UICommandContext.Provider
+      value={{
+        activeModal,
+        setActiveModal,
+        isSidebarCollapsed,
+        setSidebarCollapsed,
+        lastCommand,
       }}
     >
       {children}

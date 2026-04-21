@@ -60,21 +60,21 @@ export function ChatInput({
   }, [isShaking, textareaRef]);
 
   return (
-    <div className="px-6 py-4 border-t border-white/5 bg-black/40 shrink-0">
+    <div className="px-6 py-4 border-t border-border bg-card shrink-0">
       <form onSubmit={handleSend} className="max-w-4xl mx-auto relative group">
         {/* Attachment Previews */}
         {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-3 mb-4 p-4 bg-white/5 rounded-lg border border-white/10 animate-in fade-in slide-in-from-bottom-2">
+          <div className="flex flex-wrap gap-3 mb-4 p-4 bg-input rounded-lg border border-border animate-in fade-in slide-in-from-bottom-2">
             {attachments.map((a, i) => (
               <div key={i} className="relative group/preview">
                 {a.type === 'image' ? (
-                  <div className="w-16 h-16 rounded border border-white/10 overflow-hidden relative">
+                  <div className="w-16 h-16 rounded border border-border overflow-hidden relative">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={a.preview} alt="preview" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 bg-white/5 p-2 rounded border border-white/10">
-                    <File size={16} className="text-white/40" />
+                  <div className="flex items-center gap-2 bg-input p-2 rounded border border-border">
+                    <File size={16} className="text-muted-foreground/40" />
                     <Typography variant="mono" className="text-[8px] max-w-[80px] truncate">
                       {a.file.name}
                     </Typography>
@@ -88,7 +88,6 @@ export function ChatInput({
                 >
                   <X size={12} />
                 </button>
-
               </div>
             ))}
           </div>
@@ -108,11 +107,11 @@ export function ChatInput({
             size="sm"
             aria-label="attach-file"
             onClick={() => fileInputRef.current?.click()}
-            className="h-[52px] w-[52px] !rounded-lg border border-white/5 hover:border-cyber-green/30 bg-white/[0.02] flex items-center justify-center p-0 self-center"
+            className="h-[52px] w-[52px] !rounded-lg border border-border hover:border-cyber-green/30 bg-input flex items-center justify-center p-0 self-center"
             icon={
               <Paperclip
                 size={20}
-                className="text-white/40 group-hover:text-cyber-green transition-colors"
+                className="text-muted-foreground/40 group-hover:text-cyber-green transition-colors"
               />
             }
           />
@@ -129,7 +128,7 @@ export function ChatInput({
                 }
               }}
               placeholder={t('CHAT_PLACEHOLDER')}
-              className={`w-full h-full bg-white/[0.02] border rounded-lg py-[15px] px-4 pr-12 text-sm text-white outline-none transition-all placeholder:text-white/20 resize-none max-h-[200px] overflow-hidden leading-5 box-border ${shouldShake ? 'border-cyber-green shadow-[0_0_15px_rgba(0,255,163,0.5)]' : 'border-white/5 focus:border-cyber-green/40'}`}
+              className={`w-full h-full bg-input border rounded-lg py-[15px] px-4 pr-12 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/60 resize-none max-h-[200px] overflow-hidden leading-5 box-border ${shouldShake ? 'border-cyber-green shadow-[0_0_15px_rgba(0,255,163,0.5)]' : 'border-border focus:border-cyber-green/40'}`}
               rows={1}
               style={{ height: '52px' }}
               onInput={(e) => {
@@ -140,7 +139,7 @@ export function ChatInput({
                 }
               }}
             />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-mono text-white/10 uppercase pointer-events-none group-focus-within:text-cyber-green/40 transition-colors">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[8px] font-mono text-muted-foreground/20 uppercase pointer-events-none group-focus-within:text-cyber-green/40 transition-colors">
               {t('CHAT_CMD_ENTER')}
             </div>
           </div>

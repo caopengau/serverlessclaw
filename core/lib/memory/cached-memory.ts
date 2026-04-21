@@ -221,10 +221,9 @@ export class CachedMemory implements IMemory {
     scope?: string | ContextualScope
   ): Promise<{ items: MemoryInsight[]; lastEvaluatedKey?: Record<string, unknown> }> {
     // Reconstruct arguments if object is passed
-    let effectiveUserId: string = '';
-    let effectiveQuery: string = '';
+    let effectiveUserId: string;
+    let effectiveQuery: string;
     let effectiveCategory: InsightCategory | undefined;
-    let effectiveLimit: number | undefined;
     let effectiveTags: string[] | undefined;
     let effectiveScope: string | ContextualScope | undefined;
 
@@ -232,14 +231,12 @@ export class CachedMemory implements IMemory {
       effectiveUserId = (queryOrUserId as any).userId || '';
       effectiveQuery = (queryOrUserId as any).query || '';
       effectiveCategory = queryOrUserId.category;
-      effectiveLimit = queryOrUserId.limit;
       effectiveTags = queryOrUserId.tags;
       effectiveScope = queryOrUserId.scope;
     } else {
       effectiveUserId = (queryOrUserId as string) || '';
       effectiveQuery = queryText || '';
       effectiveCategory = category;
-      effectiveLimit = limit;
       effectiveTags = tags;
       effectiveScope = scope;
     }

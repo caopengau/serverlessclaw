@@ -338,7 +338,7 @@ export function FlowContent() {
       const TIER_Y: Record<string, number> = {
         APP: -100,
         COMM: 150,
-        AGENT: 330, 
+        AGENT: 330,
         INFRA: 620, // Increased to provide breathing room from layer 3
       };
 
@@ -360,8 +360,8 @@ export function FlowContent() {
         const yPos = TIER_Y[tier] ?? 700;
 
         let spacing = 260;
-        if (tier === 'AGENT') spacing = 230; 
-        if (tier === 'COMM') spacing = 320; 
+        if (tier === 'AGENT') spacing = 230;
+        if (tier === 'COMM') spacing = 320;
         if (tier === 'INFRA') spacing = 280; // Increased from 220 so they aren't squished
 
         const totalWidth = (totalInTier - 1) * spacing;

@@ -2,10 +2,9 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Paperclip, Edit2, Check, X, Brain, Keyboard, Plus, Bot } from 'lucide-react';
+import { Paperclip } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import CyberConfirm from '@/components/CyberConfirm';
-import Button from '@/components/ui/Button';
 import { useChatConnection } from './useChatConnection';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatMessageList } from './ChatMessageList';
@@ -17,8 +16,10 @@ import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { AgentSelector } from './AgentSelector';
 import { AgentType } from '@claw/core/lib/types/index';
 import { logger } from '@claw/core/lib/logger';
-import CyberTooltip from '@/components/CyberTooltip';
 import type { ChatMessage } from './types';
+import { ChatHeader } from './ChatHeader';
+import { ShortcutsHelp } from './ShortcutsHelp';
+import type { ConversationMeta } from '@claw/core/lib/types/memory';
 
 /**
  * Visual constants and style configurations for the Chat component.
@@ -26,7 +27,7 @@ import type { ChatMessage } from './types';
 const CHAT_STYLES = {
   GRADIENTS: {
     MAIN_BG:
-      'bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-green/5 via-[#0a0a0a] to-[#0a0a0a]',
+      'bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-green/5 via-background to-background',
     DRAG_OVER: 'bg-cyber-green/10',
   },
   SHADOWS: {
@@ -75,17 +76,35 @@ export default function ChatContent() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
-  const setMessagesRef = useRef<React.Dispatch<React.SetStateAction<ChatMessage[]>>>(() => undefined);
+  const setMessagesRef = useRef<React.Dispatch<React.SetStateAction<ChatMessage[]>>>(
+    () => undefined
+  );
   const activeSessionRef = useRef<string>('');
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const createNewChatRef = useRef<() => void>(() => {});
-  const currentSessionRef = useRef<typeof currentSession>(null);
+  const currentSessionRef = useRef<ConversationMeta | null | undefined>(null);
 
   const shortcuts: ShortcutDefinition[] = [
-    { keys: 'meta+k', handler: () => searchInputRef.current?.focus(), description: t('SHORTCUTS_FOCUS_SEARCH') },
-    { keys: 'ctrl+k', handler: () => searchInputRef.current?.focus(), description: t('SHORTCUTS_FOCUS_SEARCH') },
-    { keys: 'meta+alt+n', handler: () => createNewChatRef.current(), description: t('SHORTCUTS_NEW_CHAT') },
-    { keys: 'ctrl+alt+n', handler: () => createNewChatRef.current(), description: t('SHORTCUTS_NEW_CHAT') },
+    {
+      keys: 'meta+k',
+      handler: () => searchInputRef.current?.focus(),
+      description: t('SHORTCUTS_FOCUS_SEARCH'),
+    },
+    {
+      keys: 'ctrl+k',
+      handler: () => searchInputRef.current?.focus(),
+      description: t('SHORTCUTS_FOCUS_SEARCH'),
+    },
+    {
+      keys: 'meta+alt+n',
+      handler: () => createNewChatRef.current(),
+      description: t('SHORTCUTS_NEW_CHAT'),
+    },
+    {
+      keys: 'ctrl+alt+n',
+      handler: () => createNewChatRef.current(),
+      description: t('SHORTCUTS_NEW_CHAT'),
+    },
     {
       keys: 'meta+/',
       handler: () => chatInputRef.current?.focus(),
@@ -196,9 +215,6 @@ export default function ChatContent() {
   // URL State Management
   useEffect(() => {
     const sessionFromUrl = searchParams.get('session');
-    // Only update activeSessionId if URL has a different session parameter
-    // Don't clear activeSessionId just because URL doesn't have it
-    // (user-created sessions won't be in URL until manually navigated)
     if (sessionFromUrl && sessionFromUrl !== activeSessionId) {
       setActiveSessionId(sessionFromUrl);
     }
@@ -206,11 +222,15 @@ export default function ChatContent() {
     const prompt = searchParams.get('prompt');
     if (prompt && !hasProcessedPrompt.current) {
       hasProcessedPrompt.current = true;
-      setTimeout(() => sendMessage(prompt, { 
-        agentId: currentAgentId, 
-        collaborationId: collaborationId || undefined, 
-        profile: showThinking ? 'thinking' : 'fast' 
-      }), 500);
+      setTimeout(
+        () =>
+          sendMessage(prompt, {
+            agentId: currentAgentId,
+            collaborationId: collaborationId || undefined,
+            profile: showThinking ? 'thinking' : 'fast',
+          }),
+        500
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -229,7 +249,6 @@ export default function ChatContent() {
       setMessages([]);
     }
   }, [activeSessionId, setMessages]);
-
 
   // --- Session Operations ---
 
@@ -291,10 +310,10 @@ export default function ChatContent() {
       await handleTaskCancellation(value.split(':')[1], comment);
     } else {
       const fullMessage = comment ? `${value}\n\nComment: ${comment}` : value;
-      sendMessage(fullMessage, { 
-        agentId: currentAgentId, 
-        collaborationId: collaborationId || undefined, 
-        profile: showThinking ? 'thinking' : 'fast' 
+      sendMessage(fullMessage, {
+        agentId: currentAgentId,
+        collaborationId: collaborationId || undefined,
+        profile: showThinking ? 'thinking' : 'fast',
       });
     }
   };
@@ -327,10 +346,9 @@ export default function ChatContent() {
 
   const handleInviteAgent = async (agentId: string) => {
     setIsInviteSelectorOpen(false);
-    
+
     if (activeCollaborators.includes(agentId)) return;
 
-    // Transition to collaboration if this is the second agent
     if (!collaborationId) {
       setIsTransiting(true);
       try {
@@ -340,21 +358,23 @@ export default function ChatContent() {
           body: JSON.stringify({
             sessionId: activeSessionId,
             invitedAgentIds: [agentId],
-            name: editedTitle
-          })
+            name: editedTitle,
+          }),
         });
         const data = await res.json();
         if (data.collaborationId) {
           setCollaborationId(data.collaborationId);
-          setActiveCollaborators(prev => [...prev, agentId, AgentType.FACILITATOR]);
-          
-          // Send a system-like message to notify about the transition
-          setMessages(prev => [...prev, {
-            role: 'assistant',
-            content: `Collaboration mode activated. **${agentId}** and **Facilitator** have joined the session.`,
-            agentName: 'System',
-            messageId: `transit-${Date.now()}`
-          }]);
+          setActiveCollaborators((prev) => [...prev, agentId, AgentType.FACILITATOR]);
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              role: 'assistant',
+              content: `Collaboration mode activated. **${agentId}** and **Facilitator** have joined the session.`,
+              agentName: 'System',
+              messageId: `transit-${Date.now()}`,
+            },
+          ]);
         }
       } catch (e) {
         logger.error('Transit failed:', e);
@@ -362,8 +382,7 @@ export default function ChatContent() {
         setIsTransiting(false);
       }
     } else {
-      // Logic for adding agent to existing collaboration could go here
-      setActiveCollaborators(prev => [...prev, agentId]);
+      setActiveCollaborators((prev) => [...prev, agentId]);
     }
   };
 
@@ -461,7 +480,7 @@ export default function ChatContent() {
         {isDragging && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-cyber-green/10 border-2 border-dashed border-cyber-green pointer-events-none">
             <div
-              className={`flex flex-col items-center gap-4 bg-black/80 p-12 rounded-2xl border border-cyber-green/30 ${CHAT_STYLES.SHADOWS.DROP_ZONE}`}
+              className={`flex flex-col items-center gap-4 bg-background/80 p-12 rounded-2xl border border-cyber-green/30 ${CHAT_STYLES.SHADOWS.DROP_ZONE}`}
             >
               <Paperclip
                 size={64}
@@ -474,163 +493,24 @@ export default function ChatContent() {
           </div>
         )}
 
-        <header className="px-6 py-4 border-b border-white/5 flex flex-row items-center justify-between shrink-0 min-h-[70px] gap-6">
-          <div className="flex-1 min-w-0">
-            {activeSessionId && currentSession ? (
-              <div className="flex items-center gap-3 group/title">
-                {isEditingTitle ? (
-                  <div className="flex items-center gap-2 flex-1 max-w-xl">
-                    <input
-                      autoFocus
-                      type="text"
-                      value={editedTitle}
-                      onChange={(e) => setEditedTitle(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') saveTitle();
-                        if (e.key === 'Escape') {
-                          setIsEditingTitle(false);
-                          setEditedTitle(currentSession?.title ?? t('CHAT_UNTITLED_TRACE'));
-                        }
-                      }}
-                      className="bg-white/5 border border-cyber-green/30 rounded px-2 py-1 text-lg font-bold text-white outline-none w-full"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={saveTitle}
-                      className="p-1 hover:text-cyber-green h-auto"
-                      icon={<Check size={18} />}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsEditingTitle(false)}
-                      className="p-1 hover:text-red-500 h-auto"
-                      icon={<X size={18} />}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <Typography
-                      variant="h2"
-                      weight="bold"
-                      color="white"
-                      glow
-                      className="truncate uppercase text-xl"
-                    >
-                      {currentSession?.title || t('CHAT_UNTITLED_TRACE')}
-                    </Typography>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsEditingTitle(true)}
-                      className="p-1 opacity-0 group-hover/title:opacity-50 hover:opacity-100 text-white h-auto"
-                      icon={<Edit2 size={14} />}
-                    />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Typography
-                variant="h2"
-                weight="bold"
-                color="white"
-                glow
-                className="truncate uppercase text-xl"
-              >
-                {t('CHAT_DIRECT')}
-              </Typography>
-            )}
-          </div>
-
-          <div className="flex items-center gap-5">
-            {/* Collaborators Section */}
-            <div className="flex items-center gap-4">
-              <div className="flex -space-x-3">
-                {activeCollaborators.map((id) => (
-                  <CyberTooltip key={id} content={id} position="bottom" showIcon={false} width="w-auto">
-                    <div 
-                      className={`relative flex items-center justify-center h-8 w-8 rounded-full ring-2 ring-[#0a0a0a] bg-black/40 border transition-all hover:scale-110 hover:z-10 group/avatar ${id === currentAgentId ? 'border-cyber-green/30 shadow-[0_0_15px_rgba(0,255,163,0.1)]' : 'border-white/10'}`}
-                    >
-                      <div className="flex items-center justify-center w-full h-full">
-                        <Bot 
-                          size={16} 
-                          className={id === currentAgentId ? "text-cyber-green drop-shadow-[0_0_8px_rgba(0,255,163,0.5)]" : "text-cyber-blue"} 
-                        />
-                      </div>
-                    </div>
-                  </CyberTooltip>
-                ))}
-              </div>
-
-              <CyberTooltip content={t('INVITE_AGENT')} position="bottom" showIcon={false} width="w-auto">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsInviteSelectorOpen(true)}
-                  className="px-3 h-8 rounded-full border border-dashed border-white/20 text-white/40 hover:text-cyber-green hover:border-cyber-green/40 hover:bg-cyber-green/5 transition-all flex items-center gap-2 group/invite"
-                >
-                  <Plus size={12} className="group-hover/invite:rotate-90 transition-transform" />
-                  <span className="text-[10px] font-mono uppercase tracking-wider">
-                    {t('INVITE')}
-                  </span>
-                </Button>
-              </CyberTooltip>
-
-              {collaborationId && (
-                <CyberTooltip content={t('COLLABORATION_MODE_DESC')} position="bottom" showIcon={false}>
-                  <div className="flex items-center gap-2 bg-cyber-blue/10 px-2 py-1 rounded border border-cyber-blue/30 ml-1 cursor-help">
-                    <div className="w-1 h-1 rounded-full bg-cyber-blue animate-pulse" />
-                    <Typography variant="mono" className="text-[8px] text-cyber-blue font-bold uppercase tracking-wider">
-                      {t('COLLABORATION_MODE')}
-                    </Typography>
-                  </div>
-                </CyberTooltip>
-              )}
-            </div>
-
-            <div className="h-6 w-px bg-white/10 mx-1" />
-
-            <div className="flex items-center gap-3">
-              <CyberTooltip content={showThinking ? t('CHAT_HIDE_THINKING') : t('CHAT_SHOW_THINKING')} position="bottom" showIcon={false} width="w-auto">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowThinking(!showThinking)}
-                  className={`px-2 py-1 h-8 flex items-center gap-2 rounded-md transition-all ${showThinking ? 'bg-cyber-green/5 text-cyber-green border border-cyber-green/20' : 'text-white/40 hover:text-white/70'}`}
-                  icon={<Brain size={18} />}
-                >
-                  <span className="text-[10px] font-mono uppercase tracking-wider hidden xl:inline">
-                    {t('CHAT_THINKING')}
-                  </span>
-                </Button>
-              </CyberTooltip>
-
-              <CyberTooltip content={t('CHAT_KEYBOARD_SHORTCUTS')} position="bottom" showIcon={false} width="w-auto">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowShortcutsHelp(true)}
-                  className="p-1.5 h-8 w-8 rounded-md text-white/40 hover:text-cyber-green hover:bg-white/5 transition-all flex items-center justify-center"
-                  icon={<Keyboard size={18} />}
-                />
-              </CyberTooltip>
-
-              {isRealtimeActive && (
-                <CyberTooltip content={t('CHAT_LIVE_STATUS')} position="bottom" showIcon={false} width="w-auto">
-                  <div className="flex items-center gap-2 bg-cyber-green/10 px-3 py-1 rounded border border-cyber-green/30 h-8">
-                    <div
-                      className={`w-1.5 h-1.5 rounded-full bg-cyber-green ${CHAT_STYLES.ANIMATIONS.PULSE}`}
-                    />
-                    <Typography variant="mono" weight="bold" className="text-cyber-green text-[10px] uppercase">
-                      {t('CHAT_LIVE')}
-                    </Typography>
-                  </div>
-                </CyberTooltip>
-              )}
-            </div>
-          </div>
-        </header>
+        <ChatHeader
+          activeSessionId={activeSessionId}
+          currentSession={currentSession}
+          isEditingTitle={isEditingTitle}
+          setIsEditingTitle={setIsEditingTitle}
+          editedTitle={editedTitle}
+          setEditedTitle={setEditedTitle}
+          saveTitle={saveTitle}
+          activeCollaborators={activeCollaborators}
+          currentAgentId={currentAgentId}
+          collaborationId={collaborationId}
+          setIsInviteSelectorOpen={setIsInviteSelectorOpen}
+          showThinking={showThinking}
+          setShowThinking={setShowThinking}
+          setShowShortcutsHelp={setShowShortcutsHelp}
+          isRealtimeActive={isRealtimeActive}
+          t={t}
+        />
 
         <ChatMessageList
           messages={messages}
@@ -646,10 +526,10 @@ export default function ChatContent() {
           isLoading={isLoading}
           onSend={(e) => {
             e.preventDefault();
-            sendMessage(input, { 
-              agentId: currentAgentId, 
-              collaborationId: collaborationId || undefined, 
-              profile: showThinking ? 'thinking' : 'fast' 
+            sendMessage(input, {
+              agentId: currentAgentId,
+              collaborationId: collaborationId || undefined,
+              profile: showThinking ? 'thinking' : 'fast',
             });
             setInput('');
           }}
@@ -661,11 +541,10 @@ export default function ChatContent() {
           }}
           isShaking={isShaking}
           chatInputRef={chatInputRef}
-          // Pass current agent info to input if needed
         />
 
         {isAgentSelectorOpen && (
-          <AgentSelector 
+          <AgentSelector
             onSelect={createNewChat}
             onClose={() => setIsAgentSelectorOpen(false)}
             title={t('CHAT_SIDEBAR_NEW_CHAT')}
@@ -673,7 +552,7 @@ export default function ChatContent() {
         )}
 
         {isInviteSelectorOpen && (
-          <AgentSelector 
+          <AgentSelector
             onSelect={handleInviteAgent}
             onClose={() => setIsInviteSelectorOpen(false)}
             title={t('INVITE_AGENT')}
@@ -682,14 +561,18 @@ export default function ChatContent() {
         )}
 
         {isTransiting && (
-           <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-             <div className="flex flex-col items-center gap-4">
-                <div className="w-12 h-12 border-2 border-cyber-blue/20 border-t-cyber-blue rounded-full animate-spin" />
-                <Typography variant="mono" color="white" className="text-xs uppercase tracking-[0.2em] animate-pulse text-cyber-blue">
-                  Initiating_Collaboration_Protocol...
-                </Typography>
-             </div>
-           </div>
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-12 h-12 border-2 border-cyber-blue/20 border-t-cyber-blue rounded-full animate-spin" />
+              <Typography
+                variant="mono"
+                color="primary"
+                className="text-xs uppercase tracking-[0.2em] animate-pulse text-cyber-blue"
+              >
+                Initiating_Collaboration_Protocol...
+              </Typography>
+            </div>
+          </div>
         )}
 
         {pendingMessages.length > 0 && (
@@ -720,56 +603,7 @@ export default function ChatContent() {
         variant="danger"
       />
 
-      {showShortcutsHelp && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setShowShortcutsHelp(false)}
-        >
-          <div
-            className="glass-card border border-white/10 bg-black/90 rounded-2xl p-6 max-w-md w-full mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <Keyboard size={18} className="text-cyber-green" />
-                <Typography variant="h3" weight="bold" color="white" glow className="uppercase">
-                  {t('CHAT_KEYBOARD_SHORTCUTS_TITLE')}
-                </Typography>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowShortcutsHelp(false)}
-                className="p-1 text-white/40 hover:text-white"
-                icon={<X size={16} />}
-              />
-            </div>
-            <div className="space-y-2 text-[11px] font-mono">
-              {[
-                { keys: 'Cmd/Ctrl + K', desc: t('SHORTCUTS_FOCUS_SEARCH') },
-                { keys: 'Cmd/Ctrl + Alt + N', desc: t('SHORTCUTS_NEW_CHAT') },
-                { keys: 'Cmd/Ctrl + /', desc: t('SHORTCUTS_FOCUS_CHAT_INPUT') },
-                { keys: 'Cmd/Ctrl + E', desc: t('SHORTCUTS_EDIT_SESSION_TITLE') },
-                { keys: 'Cmd/Ctrl + T', desc: t('SHORTCUTS_TOGGLE_THINKING') },
-                { keys: 'Cmd/Ctrl + Enter', desc: t('SHORTCUTS_SEND_MESSAGE') },
-                { keys: 'Shift + Enter', desc: t('SHORTCUTS_NEW_LINE') },
-                { keys: 'Escape', desc: t('SHORTCUTS_CLOSE_MODALS') },
-                { keys: '?', desc: t('SHORTCUTS_SHOW_HELP') },
-              ].map(({ keys, desc }) => (
-                <div
-                  key={keys}
-                  className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0"
-                >
-                  <span className="text-white/60">{desc}</span>
-                  <kbd className="bg-white/10 border border-white/10 rounded px-2 py-0.5 text-[10px] text-cyber-green">
-                    {keys}
-                  </kbd>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <ShortcutsHelp isOpen={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} t={t} />
     </div>
   );
 }
