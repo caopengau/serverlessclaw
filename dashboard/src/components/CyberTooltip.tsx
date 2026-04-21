@@ -189,12 +189,14 @@ export default function CyberTooltip({
         onMouseLeave={hideTooltip}
         className={`inline-block ${className}`}
       >
-        {children || (showIcon && (
-          <HelpCircle
-            size={14}
-            className="text-muted-foreground/50 hover:text-cyber-blue transition-colors cursor-help"
-          />
-        )) || null}
+        {children ||
+          (showIcon && (
+            <HelpCircle
+              size={14}
+              className="text-muted-foreground/50 hover:text-cyber-blue transition-colors cursor-help"
+            />
+          )) ||
+          null}
       </div>
       {mounted && createPortal(tooltipElement, document.body)}
     </>
