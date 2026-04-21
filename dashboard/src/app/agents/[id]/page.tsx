@@ -15,7 +15,6 @@ import { DynamoMemory, getReputation } from '@claw/core/lib/memory';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import PageHeader from '@/components/PageHeader';
 import AgentEvolutionCharts from '@/components/Agent/AgentEvolutionCharts';
 import AgentTuningHub from '@/components/Agent/AgentTuningHub';
 

@@ -15,7 +15,10 @@ class Logger {
    */
   constructor() {
     // Check if process and process.env exist for browser compatibility
-    const env = (typeof process !== 'undefined' ? process.env : {}) as any;
+    const env = (typeof process !== 'undefined' ? process.env : {}) as unknown as Record<
+      string,
+      string | undefined
+    >;
 
     const logEnv = env.LOG_LEVEL;
     if (logEnv) {

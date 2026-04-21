@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus, X, Zap, ShieldCheck } from 'lucide-react';
+import { X, Zap, ShieldCheck } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Typography from '@/components/ui/Typography';

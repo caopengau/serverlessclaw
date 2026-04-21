@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Typography from '@/components/ui/Typography';
 import { ChevronDown, ChevronUp, GitCommit } from 'lucide-react';
 import PlanDecompositionTree from '@/components/PlanDecompositionTree';
@@ -20,27 +20,7 @@ interface PlanData {
 
 export default function PlanView() {
   const [expanded, setExpanded] = useState(false);
-  const [plan, setPlan] = useState<PlanData | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  // Fetch the most recent authorized plan for summary
-  useEffect(() => {
-    const fetchLatestPlan = async () => {
-      setLoading(true);
-      try {
-        // In a real scenario, we might fetch the specific plan for an active gap.
-        // For the summary view, we fetch the most recent one.
-        const res = await fetch('/api/memory/gap/metrics'); // Hypothetical or reuse existing
-        // For now, we'll keep it simple: if no plan is explicitly passed,
-        // this view remains a placeholder or shows "Select a gap to view plan"
-      } catch (err) {
-        console.error('Failed to load summary plan:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    // fetchLatestPlan(); // Disable for now to avoid noise, wait for user selection
-  }, []);
+  const [plan] = useState<PlanData | null>(null);
 
   if (!plan) {
     return (

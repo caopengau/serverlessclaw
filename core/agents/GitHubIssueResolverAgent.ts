@@ -34,7 +34,7 @@ export class GitHubIssueResolverAgent {
       generate: (prompt: string) => Promise<{ text: () => Promise<string> }>;
     };
     this.config = config;
-    this.githubAdapter = new GitHubAdapter() as any;
+    this.githubAdapter = new GitHubAdapter();
   }
 
   async resolve(issue: GitHubIssue, workingDir: string): Promise<ResolutionResult> {

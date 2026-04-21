@@ -36,7 +36,7 @@ import * as dashboardFailureHandler from './events/dashboard-failure-handler';
 import * as dlqHandler from './events/dlq-handler';
 import * as reputationHandler from './events/reputation-handler';
 
-const STATIC_HANDLERS: Record<string, any> = {
+const STATIC_HANDLERS: Record<string, unknown> = {
   'build-handler': buildHandler,
   'continuation-handler': continuationHandler,
   'health-handler': healthHandler,
@@ -202,12 +202,13 @@ export async function handler(
       Object.values(DEFAULT_EVENT_ROUTING).map((r) => `${r.module}:${r.function}`)
     );
 
-    const routingTable: typeof DEFAULT_EVENT_ROUTING = { ...DEFAULT_EVENT_ROUTING };
+    const routingTable: Record<string, any> = { ...DEFAULT_EVENT_ROUTING };
     if (rawRoutingTable !== DEFAULT_EVENT_ROUTING) {
       for (const [eventType, entry] of Object.entries(rawRoutingTable as Record<string, any>)) {
-        const combination = `${entry.module}:${entry.function}`;
+        const routeEntry = entry as { module: string; function: string };
+        const combination = `${routeEntry.module}:${routeEntry.function}`;
         if (ALLOWED_COMBINATIONS.has(combination)) {
-          routingTable[eventType] = entry;
+          routingTable[eventType] = routeEntry;
         } else {
           logger.warn(
             `[SECURITY] Blocked unrecognised routing combination '${combination}' for event type '${eventType}'. Using default.`
@@ -268,7 +269,8 @@ export async function handler(
       }
     }
 
-    if (handlerModule && handlerModule[routing.function]) {
+    const handlerModuleAny = handlerModule as any;
+    if (handlerModuleAny && handlerModuleAny[routing.function]) {
       // Inject EventBridge envelope id for idempotency dedup (used by downstream handlers)
       if (envelopeId) {
         eventDetail.__envelopeId = envelopeId;
@@ -276,9 +278,9 @@ export async function handler(
 
       // Call the handler
       if (routing.passContext) {
-        await handlerModule[routing.function](eventDetail, context, detailType);
+        await handlerModuleAny[routing.function](eventDetail, context, detailType);
       } else {
-        await handlerModule[routing.function](eventDetail, detailType);
+        await handlerModuleAny[routing.function](eventDetail, detailType);
       }
 
       // Idempotency already marked atomically via checkAndMarkIdempotent before this point

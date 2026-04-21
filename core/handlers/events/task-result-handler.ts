@@ -275,7 +275,7 @@ export async function handleTaskResult(
     userNotified,
     undefined,
     traceId,
-    EventType.CONTINUATION_TASK as any,
+    EventType.CONTINUATION_TASK as unknown as string | undefined,
     workspaceId,
     teamId,
     staffId

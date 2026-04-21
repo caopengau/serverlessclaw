@@ -33,7 +33,8 @@ export const discoverSkills = {
 
       return (
         `Found ${skills.length} matching skills:\n` +
-        skills.map((s: any) => `- ${s.name}: ${s.description}`).join('\n')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        skills.map((s: any) => `- ${s['name']}: ${s['description']}`).join('\n')
       );
     } catch (error) {
       return `Failed to discover skills: ${formatErrorMessage(error)}`;

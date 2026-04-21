@@ -2,25 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
-import {
-  Bot,
-  Settings,
-  History,
-  Play,
-  Save,
-  Zap,
-  ShieldCheck,
-  Search,
-  Wrench,
-  Activity,
-} from 'lucide-react';
+import { Save, Zap, ShieldCheck, Wrench } from 'lucide-react';
 import { toast } from 'sonner';
 import Typography from '@/components/ui/Typography';
-import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { Agent } from '@/lib/types/ui';
-import { TraceSource } from '@claw/core/lib/types/index';
 import PlaygroundChat from '@/components/Agent/PlaygroundChat';
 import TraceDetailSidebar from '@/components/TraceDetailSidebar';
 
@@ -33,7 +20,7 @@ export default function PlaygroundPage() {
   const [agents, setAgents] = useState<Record<string, Agent>>({});
   const [selectedAgentId, setSelectedAgentId] = useState<string>(agentIdFromUrl || '');
   const [systemPrompt, setSystemPrompt] = useState(suggestedPrompt || '');
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [activeTraceId, setActiveTraceId] = useState<string | null>(null);
 
@@ -55,7 +42,7 @@ export default function PlaygroundPage() {
       }
     }
     fetchAgents();
-  }, [agentIdFromUrl]);
+  }, [agentIdFromUrl, suggestedPrompt]);
 
   const handleAgentChange = (id: string) => {
     setSelectedAgentId(id);
@@ -82,10 +69,10 @@ export default function PlaygroundPage() {
       if (res.ok) {
         toast.success('Intelligence Hub: Persona evolution committed to registry.');
       } else {
-        const err = await res.json();
-        toast.error(`Evolution failed: ${err.error}`);
+        const _err = await res.json();
+        toast.error(`Evolution failed: ${_err.error}`);
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Failed to connect to Cognitive Registry.');
     }
   };

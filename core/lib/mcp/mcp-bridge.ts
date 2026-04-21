@@ -88,7 +88,7 @@ export class MCPBridge {
 
       const checkCache = async () => {
         const cached = (await AgentRegistry.getRawConfig(cacheKey)) as {
-          tools: any[];
+          tools: Record<string, unknown>[];
           timestamp: number;
         } | null;
         if (cached && Date.now() - cached.timestamp < cacheTTL) {

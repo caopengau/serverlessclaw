@@ -63,7 +63,7 @@ export async function recordAgentMetric(params: {
         'updatedAt = :now',
       ];
 
-      const attrValues: Record<string, any> = {
+      const attrValues: Record<string, unknown> = {
         ':s': success ? 1 : 0,
         ':f': success ? 0 : 1,
         ':d': durationMs,

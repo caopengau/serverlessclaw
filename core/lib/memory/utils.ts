@@ -253,7 +253,7 @@ export async function atomicUpdateMetadata(
   ];
 
   const updates: string[] = [];
-  const updateValues: Record<string, any> = { ':now': Date.now() };
+  const updateValues: Record<string, unknown> = { ':now': Date.now() };
   const attributeNames: Record<string, string> = {};
 
   // Handle core fields (top-level)
@@ -270,9 +270,9 @@ export async function atomicUpdateMetadata(
 
   // Handle metadata nested fields
   for (const field of metadataFields) {
-    if ((metadata as any)[field] !== undefined) {
+    if ((metadata as Record<string, unknown>)[field] !== undefined) {
       updates.push(`metadata.#${field} = :${field}`);
-      updateValues[`:${field}`] = (metadata as any)[field];
+      updateValues[`:${field}`] = (metadata as Record<string, unknown>)[field];
       attributeNames[`#${field}`] = field;
     }
   }
@@ -283,7 +283,7 @@ export async function atomicUpdateMetadata(
   }
 
   try {
-    const params: Record<string, any> = {
+    const params: Record<string, unknown> = {
       Key: { userId: pk, timestamp: Number(timestamp) },
       UpdateExpression: `SET updatedAt = :now, ${updates.join(', ')}`,
       ExpressionAttributeValues: updateValues,
@@ -362,7 +362,7 @@ export async function queryByTypeAndGetContent(
   userId?: string,
   scope?: string | import('../types/memory').ContextualScope
 ): Promise<string[]> {
-  const params: Record<string, any> = {
+  const params: Record<string, unknown> = {
     Limit: limit,
     ScanIndexForward: false,
     ExpressionAttributeNames: { '#tp': 'type' },
@@ -372,7 +372,10 @@ export async function queryByTypeAndGetContent(
   if (userId) {
     params.IndexName = 'UserInsightIndex';
     params.KeyConditionExpression = 'userId = :userId AND #tp = :type';
-    params.ExpressionAttributeValues[':userId'] = base.getScopedUserId(userId, scope);
+    (params.ExpressionAttributeValues as Record<string, unknown>)[':userId'] = base.getScopedUserId(
+      userId,
+      scope
+    );
   } else {
     params.IndexName = 'TypeTimestampIndex';
     params.KeyConditionExpression = '#tp = :type';
@@ -396,7 +399,7 @@ export async function queryByTypeAndMap(
   userId?: string,
   scope?: string | import('../types/memory').ContextualScope
 ): Promise<MemoryInsight[]> {
-  const params: Record<string, any> = {
+  const params: Record<string, unknown> = {
     Limit: limit,
     ScanIndexForward: false,
     ExpressionAttributeValues: { ...expressionAttributeValues },
@@ -406,17 +409,20 @@ export async function queryByTypeAndMap(
     params.IndexName = 'UserInsightIndex';
     params.KeyConditionExpression = 'userId = :userId AND #tp = :type';
     params.ExpressionAttributeNames = { '#tp': 'type' };
-    params.ExpressionAttributeValues[':userId'] = base.getScopedUserId(userId, scope);
-    params.ExpressionAttributeValues[':type'] = type;
+    (params.ExpressionAttributeValues as Record<string, unknown>)[':userId'] = base.getScopedUserId(
+      userId,
+      scope
+    );
+    (params.ExpressionAttributeValues as Record<string, unknown>)[':type'] = type;
   } else {
     params.IndexName = 'TypeTimestampIndex';
     params.KeyConditionExpression = '#tp = :type';
     params.ExpressionAttributeNames = { '#tp': 'type' };
-    params.ExpressionAttributeValues[':type'] = type;
+    (params.ExpressionAttributeValues as Record<string, unknown>)[':type'] = type;
     applyWorkspaceIsolation(params, scope);
     if (filterExpression) {
       params.FilterExpression = params.FilterExpression
-        ? `${params.FilterExpression} AND (${filterExpression})`
+        ? `${params.FilterExpression as string} AND (${filterExpression})`
         : filterExpression;
     }
   }

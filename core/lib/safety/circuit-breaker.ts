@@ -158,19 +158,20 @@ export class CircuitBreaker {
     return finalState;
   }
 
-  private async logStateChange(state: CircuitBreakerStateData, type: string, ctx?: any) {
-    if (ctx?.traceId) {
-      await addTraceStep(ctx.traceId, 'root', {
+  private async logStateChange(state: CircuitBreakerStateData, type: string, ctx?: unknown) {
+    const context = ctx as Record<string, unknown> | undefined;
+    if (context?.traceId && typeof context.traceId === 'string') {
+      await addTraceStep(context.traceId, 'root', {
         type: TRACE_TYPES.CIRCUIT_BREAKER,
         content: { newState: state.state, failureType: type, key: this.stateKey },
       });
     }
-    if (state.state === 'open' && ctx?.userId) {
+    if (state.state === 'open' && context?.userId && typeof context.userId === 'string') {
       await reportHealthIssue({
         component: 'CircuitBreaker',
         issue: `Circuit breaker ${this.stateKey} opened.`,
         severity: 'high',
-        userId: ctx.userId,
+        userId: context.userId,
       });
     }
   }

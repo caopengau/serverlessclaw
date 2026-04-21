@@ -265,7 +265,7 @@ export async function updateGapStatus(
     updateExpr += ', ' + metaEntries.join(', ');
   }
 
-  const params: Record<string, any> = {
+  const params: Record<string, unknown> = {
     Key: { userId: target.id, timestamp: target.timestamp },
     UpdateExpression: updateExpr,
     ConditionExpression: guard
@@ -349,7 +349,7 @@ export async function releaseGapLock(
   const conditionExpr = force
     ? 'attribute_exists(userId)'
     : '#content = :agentId' + (expectedVersion ? ' AND lockVersion = :version' : '');
-  const exprValues: Record<string, any> = { ':agentId': agentId };
+  const exprValues: Record<string, unknown> = { ':agentId': agentId };
   if (expectedVersion) exprValues[':version'] = expectedVersion;
 
   try {
@@ -413,8 +413,10 @@ export async function assignGapToTrack(
 
   const normalizedId = normalizeGapId(gapId);
   const getScopedUserId = (id: string, s?: string | import('../types/memory').ContextualScope) => {
-    if ('getScopedUserId' in base && typeof (base as any).getScopedUserId === 'function') {
-      return (base as any).getScopedUserId(id, s);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = base as any;
+    if (typeof provider.getScopedUserId === 'function') {
+      return (provider.getScopedUserId as (id: string, s?: unknown) => string)(id, s);
     }
     const wid = typeof s === 'string' ? s : s?.workspaceId;
     return wid ? `WS#${wid}#${id}` : id;
@@ -443,8 +445,10 @@ export async function getGapTrack(
 ): Promise<{ track: EvolutionTrack; priority: number } | null> {
   const normalizedId = normalizeGapId(gapId);
   const getScopedUserId = (id: string, s?: string | import('../types/memory').ContextualScope) => {
-    if ('getScopedUserId' in base && typeof (base as any).getScopedUserId === 'function') {
-      return (base as any).getScopedUserId(id, s);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = base as any;
+    if (typeof provider.getScopedUserId === 'function') {
+      return (provider.getScopedUserId as (id: string, s?: unknown) => string)(id, s);
     }
     const wid = typeof s === 'string' ? s : s?.workspaceId;
     return wid ? `WS#${wid}#${id}` : id;

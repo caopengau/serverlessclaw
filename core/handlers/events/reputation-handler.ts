@@ -13,7 +13,7 @@ import { ReputationUpdatePayload } from '../../lib/types/reputation';
 export async function handleReputationUpdate(eventDetail: Record<string, unknown>): Promise<void> {
   const payload = eventDetail as unknown as ReputationUpdatePayload & {
     trustScore?: number;
-    metadata?: any;
+    metadata?: unknown;
   };
   const { agentId, success, durationMs, traceId, error, promptHash } = payload;
 

@@ -6,7 +6,7 @@ import { PARALLEL_TASK_COMPLETED_EVENT_SCHEMA } from '../../lib/schema/events';
 import { SuperClaw } from '../../agents/superclaw';
 import { BaseMemoryProvider } from '../../lib/memory/base';
 import { ProviderManager } from '../../lib/providers';
-import { ReasoningProfile, TraceSource } from '../../lib/types';
+import { IMemory, ReasoningProfile, TraceSource } from '../../lib/types';
 import { AgentRegistry } from '../../lib/registry/AgentRegistry';
 import { getAgentTools } from '../../tools/index';
 
@@ -38,7 +38,7 @@ export async function handleParallelTaskCompleted(
   if (aggregationType === 'merge_patches') {
     try {
       const { handlePatchMerge } = await import('./merger-handler');
-      const mergeResult = await handlePatchMerge(payload as any);
+      const mergeResult = await handlePatchMerge(payload as unknown as Record<string, unknown>);
 
       if (mergeResult.success || !mergeResult.failedPatches?.length) {
         logger.info(`[PARALLEL] Patch merge complete for ${traceId}.`);
@@ -70,7 +70,7 @@ export async function handleParallelTaskCompleted(
         const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
         const { sendOutboundMessage } = await import('../../lib/outbound');
 
-        await emitTypedEvent('events', EventType.MERGER_TASK as any, {
+        await emitTypedEvent('events', EventType.MERGER_TASK as unknown as EventType, {
           userId,
           traceId,
           sessionId,
@@ -134,7 +134,12 @@ export async function handleParallelTaskCompleted(
       const config = await AgentRegistry.getAgentConfig(AgentType.SUPERCLAW);
       const agentTools = await getAgentTools(AgentType.SUPERCLAW);
 
-      const aggregatorAgent = new SuperClaw(memory as any, provider, agentTools, config);
+      const aggregatorAgent = new SuperClaw(
+        memory as unknown as IMemory,
+        provider,
+        agentTools,
+        config
+      );
       const prompt = `${aggregationPrompt || 'Synthesize the following task results into a coherent final response.'}\n\nHere are the individual task results:\n${JSON.stringify(results, null, 2)}`;
 
       const { responseText } = await aggregatorAgent.process(userId, prompt, {
@@ -193,7 +198,7 @@ export async function handleParallelTaskCompleted(
       false,
       undefined,
       traceId,
-      targetEventType as any,
+      targetEventType as unknown as EventType,
       workspaceId,
       teamId,
       staffId

@@ -53,7 +53,7 @@ export function createMetadata(
  */
 export async function queryByTypeAndMap(
   base: BaseMemoryProvider,
-  params: Record<string, any>
+  params: Record<string, unknown>
 ): Promise<MemoryInsight[]> {
   const items = await base.queryItems(params);
   return items.map((item) => ({
@@ -132,7 +132,7 @@ export async function addMemory(
   const similar = existing.find(
     (item) =>
       item.type === 'MEMORY:INSIGHT' &&
-      (item.metadata as any)?.category === categoryToUse &&
+      (item.metadata as Record<string, unknown>)?.category === categoryToUse &&
       item.content === sanitizedContent
   );
 
@@ -203,8 +203,8 @@ export async function searchInsights(
   let resolvedScope = scope;
 
   if (queryOrUserId && typeof queryOrUserId === 'object' && !Array.isArray(queryOrUserId)) {
-    resolvedUserId = (queryOrUserId as any).userId || '';
-    resolvedQuery = (queryOrUserId as any).query || '';
+    resolvedUserId = ((queryOrUserId as Record<string, unknown>).userId as string) || '';
+    resolvedQuery = ((queryOrUserId as Record<string, unknown>).query as string) || '';
     resolvedTags = queryOrUserId.tags || tags;
     resolvedCategory = queryOrUserId.category || category;
     resolvedLimit = queryOrUserId.limit || limit || 50;
@@ -217,7 +217,7 @@ export async function searchInsights(
   const workspaceId = resolveScopeId(resolvedScope);
 
   // 2. Build DynamoDB Query Parameters
-  const params: Record<string, any> = {
+  const params: Record<string, unknown> = {
     ExpressionAttributeNames: { '#tp': 'type' },
     ExpressionAttributeValues: { ':type': 'MEMORY:INSIGHT' },
   };
@@ -227,8 +227,8 @@ export async function searchInsights(
   if (resolvedUserId) {
     params.IndexName = 'UserInsightIndex';
     params.KeyConditionExpression = '#uid = :userId AND #tp = :type';
-    params.ExpressionAttributeNames['#uid'] = 'userId';
-    params.ExpressionAttributeValues[':userId'] = pk;
+    (params.ExpressionAttributeNames as Record<string, string>)['#uid'] = 'userId';
+    (params.ExpressionAttributeValues as Record<string, unknown>)[':userId'] = pk;
   } else if (resolvedCategory) {
     params.IndexName = 'TypeTimestampIndex';
     params.KeyConditionExpression = '#tp = :type';
@@ -237,12 +237,12 @@ export async function searchInsights(
     // Global fallback
     const pk = base.getScopedUserId('SYSTEM#GLOBAL', resolvedScope);
     params.KeyConditionExpression = 'userId = :pk AND #tp = :type';
-    params.ExpressionAttributeValues[':pk'] = pk;
+    (params.ExpressionAttributeValues as Record<string, unknown>)[':pk'] = pk;
   }
 
   if (resolvedQuery && resolvedQuery !== '*') {
     params.FilterExpression = 'contains(content, :query)';
-    params.ExpressionAttributeValues[':query'] = resolvedQuery;
+    (params.ExpressionAttributeValues as Record<string, unknown>)[':query'] = resolvedQuery;
   }
 
   if (resolvedLimit) params.Limit = resolvedLimit;
@@ -264,21 +264,21 @@ export async function searchInsights(
       queryByTypeAndMap(base, {
         ...params,
         ExpressionAttributeValues: {
-          ...params.ExpressionAttributeValues,
+          ...(params.ExpressionAttributeValues as Record<string, unknown>),
           ':userId': base.getScopedUserId(resolvedUserId, resolvedScope),
         },
       }),
       queryByTypeAndMap(base, {
         ...params,
         ExpressionAttributeValues: {
-          ...params.ExpressionAttributeValues,
+          ...(params.ExpressionAttributeValues as Record<string, unknown>),
           ':userId': base.getScopedUserId(`ORG#${orgId}`, resolvedScope),
         },
       }),
       queryByTypeAndMap(base, {
         ...params,
         ExpressionAttributeValues: {
-          ...params.ExpressionAttributeValues,
+          ...(params.ExpressionAttributeValues as Record<string, unknown>),
           ':userId': base.getScopedUserId('SYSTEM#GLOBAL', resolvedScope),
         },
       }),
@@ -485,7 +485,7 @@ export async function refineMemory(
 
   const updateExpr: string[] = ['SET updatedAt = :now'];
   const attrNames: Record<string, string> = { '#content': 'content' };
-  const attrValues: Record<string, any> = { ':now': now };
+  const attrValues: Record<string, unknown> = { ':now': now };
 
   if (metadata) {
     Object.entries(metadata).forEach(([key, val]) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Eye, Trash2, Shield, ShieldAlert, Bot, Wrench, Copy } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Badge from '@/components/ui/Badge';
@@ -31,9 +31,9 @@ export default function AgentTable({
   deleteAgent,
   cloneAgent,
   setSelectedAgentIdForTools,
-  onSave,
-  saving,
-  hasChanges,
+  onSave: _onSave,
+  saving: _saving,
+  hasChanges: _hasChanges,
 }: AgentTableProps) {
   const { t } = useTranslations();
   const router = useRouter();

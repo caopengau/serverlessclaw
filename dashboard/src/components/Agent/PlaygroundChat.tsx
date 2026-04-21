@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, RefreshCw, Send, AlertCircle } from 'lucide-react';
+import { Bot, RefreshCw, AlertCircle } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import { ChatMessageList } from '../Chat/ChatMessageList';
 import { ChatInput } from '../Chat/ChatInput';
@@ -29,25 +29,18 @@ export default function PlaygroundChat({
   const activeSessionRef = useRef(activeSessionId);
   const skipNextHistoryFetch = useRef(false);
 
-  const {
-    messages,
-    setMessages,
-    attachments,
-    setAttachments,
-    sendMessage,
-    handleFiles,
-    removeAttachment,
-  } = useChatMessages(
-    activeSessionId,
-    setActiveSessionId,
-    setIsLoading,
-    isPostInFlight,
-    seenMessageIds,
-    () => {}, // fetchSessions dummy
-    skipNextHistoryFetch,
-    activeSessionRef,
-    false // disabled
-  );
+  const { messages, setMessages, attachments, sendMessage, handleFiles, removeAttachment } =
+    useChatMessages(
+      activeSessionId,
+      setActiveSessionId,
+      setIsLoading,
+      isPostInFlight,
+      seenMessageIds,
+      () => {}, // fetchSessions dummy
+      skipNextHistoryFetch,
+      activeSessionRef,
+      false // disabled
+    );
 
   useEffect(() => {
     activeSessionRef.current = activeSessionId;
@@ -58,12 +51,7 @@ export default function PlaygroundChat({
     setMessagesRef.current = setMessages;
   }, [setMessages]);
 
-  const { isRealtimeActive: isConnected } = useChatConnection(
-    activeSessionId,
-    setMessagesRef,
-    setIsLoading,
-    isPostInFlight
-  );
+  useChatConnection(activeSessionId, setMessagesRef, setIsLoading, isPostInFlight);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

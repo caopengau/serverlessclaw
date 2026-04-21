@@ -88,7 +88,6 @@ export default async function ResilienceHub() {
   const recoveryState = await getRecoveryState();
 
   const isHealthy = health.status === 'ok';
-  const recoveryValue = recoveryState?.status === 'unhealthy' ? 30 : isHealthy ? 100 : 60;
 
   return (
     <main className="flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-yellow-500/5 via-transparent to-transparent">

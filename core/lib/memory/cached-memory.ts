@@ -228,8 +228,8 @@ export class CachedMemory implements IMemory {
     let effectiveScope: string | ContextualScope | undefined;
 
     if (typeof queryOrUserId === 'object' && queryOrUserId !== null) {
-      effectiveUserId = (queryOrUserId as any).userId || '';
-      effectiveQuery = (queryOrUserId as any).query || '';
+      effectiveUserId = ((queryOrUserId as Record<string, unknown>).userId as string) || '';
+      effectiveQuery = ((queryOrUserId as Record<string, unknown>).query as string) || '';
       effectiveCategory = queryOrUserId.category;
       effectiveTags = queryOrUserId.tags;
       effectiveScope = queryOrUserId.scope;
@@ -497,7 +497,8 @@ export class CachedMemory implements IMemory {
    * LEGACY: Retrieves a raw configuration JSON.
    * Delegates to the underlying persistent memory.
    */
-  async getConfig(key: string): Promise<any> {
+  async getConfig(key: string): Promise<unknown> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (this.underlying as any).getConfig?.(key);
   }
 

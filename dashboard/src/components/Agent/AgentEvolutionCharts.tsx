@@ -11,13 +11,10 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
 } from 'recharts';
-import { TrendingUp, Clock, AlertTriangle, RefreshCw } from 'lucide-react';
+import { TrendingUp, Clock, RefreshCw } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
 
 interface Metric {
   timestamp: number;
@@ -30,7 +27,7 @@ interface Metric {
 
 export default function AgentEvolutionCharts({
   agentId,
-  currentVersion,
+  currentVersion: _currentVersion,
 }: {
   agentId: string;
   currentVersion: number;

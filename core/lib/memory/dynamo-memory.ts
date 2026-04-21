@@ -673,7 +673,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
    * This is used by the dashboard for global stats and budgets.
    * TODO: Migrate to ConfigManager.
    */
-  async getConfig(key: string): Promise<any> {
+  async getConfig(key: string): Promise<Record<string, unknown> | undefined> {
     logger.debug(`[DynamoMemory] LEGACY getConfig: ${key}`);
     const { GetCommand } = await import('@aws-sdk/lib-dynamodb');
     const response = await this.docClient.send(
@@ -682,7 +682,7 @@ export class DynamoMemory extends BaseMemoryProvider implements IMemory {
         Key: { userId: key, nodeId: 'ROOT' },
       })
     );
-    return response.Item;
+    return response.Item as Record<string, unknown> | undefined;
   }
 
   /**

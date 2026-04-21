@@ -1,6 +1,7 @@
 import { ReasoningProfile, ResponseFormat } from '../lib/types/llm';
 import { EventType, GapStatus, AgentType, TraceSource } from '../lib/types/agent';
 import { InsightCategory, MemoryInsight } from '../lib/types/memory';
+import { BaseMemoryProvider } from '../lib/memory/base';
 import { LIMITS } from '../lib/constants';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
@@ -115,7 +116,13 @@ export const handler = async (
         source: TraceSource.SYSTEM,
       });
       const { updateReputation } = await import('../lib/memory/reputation-operations');
-      await updateReputation(memory as any, config.id, true, Date.now() - startTime, { scope });
+      await updateReputation(
+        memory as unknown as BaseMemoryProvider,
+        config.id,
+        true,
+        Date.now() - startTime,
+        { scope }
+      );
       return responseText;
     }
   }
