@@ -461,11 +461,13 @@ describe('Agent Trace Propagation', () => {
       );
 
       // Verify intelligent extraction of the "message" field for the chat history
-      expect(mockMemory.addMessage).toHaveBeenCalledWith(
-        'user-1',
-        expect.objectContaining({ content: 'Task completed successfully' }),
-        undefined
-      );
+      // There are 2 calls: user message and assistant message. The assistant call should have extracted content.
+      const addMessageCalls = vi.mocked(mockMemory.addMessage).mock.calls;
+      const assistantCall = addMessageCalls.find((call) => call[1]?.role === MessageRole.ASSISTANT);
+      expect(assistantCall).toBeDefined();
+      expect(assistantCall?.[1]).toMatchObject({
+        content: 'Task completed successfully',
+      });
     });
 
     it('should extract "plan" field from structured output when applicable', async () => {
@@ -501,11 +503,12 @@ describe('Agent Trace Propagation', () => {
 
       await agent.process('user-1', 'plan', { source: TraceSource.SYSTEM });
 
-      expect(mockMemory.addMessage).toHaveBeenCalledWith(
-        'user-1',
-        expect.objectContaining({ content: 'New strategy designed.' }),
-        undefined
-      );
+      const addMessageCalls = vi.mocked(mockMemory.addMessage).mock.calls;
+      const assistantCall = addMessageCalls.find((call) => call[1]?.role === MessageRole.ASSISTANT);
+      expect(assistantCall).toBeDefined();
+      expect(assistantCall?.[1]).toMatchObject({
+        content: 'New strategy designed.',
+      });
     });
   });
 

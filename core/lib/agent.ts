@@ -2,20 +2,15 @@ import {
   IMemory,
   IProvider,
   ITool,
-  ReasoningProfile,
   MessageRole,
   IAgentConfig,
   TraceSource,
   Attachment,
-  ToolCall,
   MessageChunk,
 } from './types/index';
 import { logger } from './logger';
-import { AGENT_ERRORS, CONFIG_KEYS } from './constants';
-import { ConfigManager } from './registry/config';
 import { AgentProcessOptions } from './agent/options';
 import { AgentEmitter } from './agent/emitter';
-import { parseConfigInt } from './providers/utils';
 import { DEFAULT_SIGNAL_SCHEMA } from './agent/schema';
 import { initializeTracer } from './agent/tracer-init';
 import { resolveAgentConfig } from './agent/config-resolver';
@@ -240,6 +235,7 @@ export class Agent {
 
       let finalThought: string | undefined;
       let responseText = rawResponseText;
+      let extractedContent = responseText;
       if (communicationMode === 'json' && rawResponseText) {
         try {
           const parsed = JSON.parse(responseText);
@@ -247,6 +243,7 @@ export class Agent {
           const extractedText = parsed.message || parsed.plan;
           if (extractedText) {
             responseText = extractedText;
+            extractedContent = extractedText;
           }
         } catch {
           // Fallback to raw text if not valid JSON
@@ -255,7 +252,11 @@ export class Agent {
 
       if (!isIsolated) {
         if (result.lastAiResponse) {
-          await this.memory.addMessage(storageId, result.lastAiResponse, scope);
+          const messageToSave =
+            extractedContent !== rawResponseText
+              ? { ...result.lastAiResponse, content: extractedContent, thought: finalThought }
+              : result.lastAiResponse;
+          await this.memory.addMessage(storageId, messageToSave, scope);
         } else if (paused) {
           await this.memory.addMessage(
             storageId,
@@ -344,6 +345,18 @@ export class Agent {
     const storageId = isIsolated
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
+
+    const { isHumanTakingControl } = await import('./handoff');
+    const ignoreHandoff = options.ignoreHandoff ?? false;
+    if (!ignoreHandoff && (await isHumanTakingControl(baseUserId, sessionId))) {
+      yield {
+        content: 'HUMAN_TAKING_CONTROL: Entering observe mode.',
+        thought: undefined,
+        messageId: `msg-handoff-${Date.now()}`,
+      };
+      await tracer.endTrace('HUMAN_TAKING_CONTROL: Entering observe mode.');
+      return;
+    }
 
     if (!options.skipUserSave) {
       await this.memory.addMessage(
