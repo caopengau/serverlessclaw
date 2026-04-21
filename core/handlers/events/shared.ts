@@ -77,7 +77,10 @@ export async function wakeupInitiator(
   userNotified: boolean = false,
   options?: { label: string; value: string; type?: 'primary' | 'secondary' | 'danger' }[],
   taskId?: string,
-  eventType: EventType | string = EventType.CONTINUATION_TASK
+  eventType: EventType | string = EventType.CONTINUATION_TASK,
+  workspaceId?: string,
+  teamId?: string,
+  staffId?: string
 ): Promise<void> {
   if (!initiatorId || !task) return;
 
@@ -96,7 +99,10 @@ export async function wakeupInitiator(
       'SuperClaw',
       undefined,
       traceId,
-      options
+      options,
+      workspaceId,
+      teamId,
+      staffId
     );
     return;
   }
@@ -141,7 +147,10 @@ export async function handleRecursionLimitExceeded(
   handlerName: string,
   reason: string,
   traceId?: string,
-  initiatorId?: string
+  initiatorId?: string,
+  workspaceId?: string,
+  teamId?: string,
+  staffId?: string
 ): Promise<void> {
   const finalMessage = `⚠️ **Recursion Limit Exceeded**\n\n${reason}`;
 
@@ -153,7 +162,11 @@ export async function handleRecursionLimitExceeded(
     sessionId,
     'SuperClaw',
     undefined,
-    traceId
+    traceId,
+    undefined,
+    workspaceId,
+    teamId,
+    staffId
   );
 
   try {
@@ -200,6 +213,9 @@ export async function processEventWithAgent(
       outputTokens: number;
       totalTokens: number;
     };
+    workspaceId?: string;
+    teamId?: string;
+    staffId?: string;
   }
 ): Promise<{
   responseText: string;
@@ -219,7 +235,7 @@ export async function processEventWithAgent(
 
   const { getAgentTools: loadAgentTools } = await import('../../tools/index');
   const agentTools = await loadAgentTools(agentId);
-  const agent = new Agent(memory, provider, agentTools, config.systemPrompt ?? '', config);
+  const agent = new Agent(memory, provider, agentTools, { ...config });
 
   const sessionStateManager = new SessionStateManager();
   if (options.sessionId) {
@@ -253,6 +269,9 @@ export async function processEventWithAgent(
       traceId: options.traceId,
       taskId: options.taskId,
       sessionId: options.sessionId,
+      workspaceId: options.workspaceId,
+      teamId: options.teamId,
+      staffId: options.staffId,
       depth: options.depth,
       initiatorId: options.initiatorId,
       attachments: options.attachments,
@@ -316,7 +335,11 @@ export async function processEventWithAgent(
         options.sessionId,
         options.handlerTitle === 'SuperClaw' ? 'SuperClaw' : options.handlerTitle,
         attachments,
-        messageId
+        messageId,
+        undefined,
+        options.workspaceId,
+        options.teamId,
+        options.staffId
       );
     }
 

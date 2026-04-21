@@ -44,7 +44,7 @@ vi.mock('../lib/utils/agent-helpers', () => ({
       incrementGapAttemptCount: memoryMocks.incrementGapAttemptCount,
       acquireGapLock: memoryMocks.acquireGapLock,
       releaseGapLock: memoryMocks.releaseGapLock,
-      recordFailedPlan: memoryMocks.recordFailedPlan,
+      recordFailurePattern: memoryMocks.recordFailurePattern,
     },
     provider: {
       call: vi.fn(),
@@ -61,7 +61,7 @@ const memoryMocks = vi.hoisted(() => ({
   incrementGapAttemptCount: vi.fn().mockResolvedValue(1),
   acquireGapLock: vi.fn().mockResolvedValue(true),
   releaseGapLock: vi.fn().mockResolvedValue(true),
-  recordFailedPlan: vi.fn().mockResolvedValue(undefined),
+  recordFailurePattern: vi.fn().mockResolvedValue(undefined),
 }));
 
 const registryMocks = vi.hoisted(() => ({

@@ -19,107 +19,66 @@ import { parseConfigInt } from './providers/utils';
 import { DEFAULT_SIGNAL_SCHEMA } from './agent/schema';
 import { initializeTracer } from './agent/tracer-init';
 import { resolveAgentConfig } from './agent/config-resolver';
+import { validateAgentConfig } from './agent/validator';
+import { reportAgentMetrics } from './agent/metrics-helper';
+
+// Re-export validation for backward compatibility and tests
+export { validateAgentConfig };
 
 /**
- * Validates that an IAgentConfig has all required fields populated.
- *
- * @param config - The agent configuration to validate.
- * @param agentType - The type identifier of the agent, used for error messages.
- * @throws Error if config is undefined or missing required fields.
- */
-export function validateAgentConfig(config: IAgentConfig | undefined, agentType: string): void {
-  if (!config) {
-    throw new Error(
-      `Agent config is required for '${agentType}'. ` +
-        `Ensure AgentRegistry.getAgentConfig() returns a valid config.`
-    );
-  }
-
-  const required: (keyof IAgentConfig)[] = ['id', 'name', 'enabled'];
-  const missing = required.filter(
-    (key) => config[key] === undefined || config[key] === null || config[key] === ''
-  );
-
-  if (missing.length > 0) {
-    throw new Error(
-      `Agent config for '${agentType}' missing required fields: ${missing.join(', ')}. ` +
-        `Ensure the config is fully populated in AgentRegistry or backbone.ts.`
-    );
-  }
-
-  // Principle 14: Selection Integrity - Must check enabled === true
-  if (config.enabled !== true) {
-    throw new Error(
-      `Agent '${agentType}' is currently DISABLED. ` +
-        `Operation rejected to satisfy Principle 14 (Selection Integrity).`
-    );
-  }
-
-  // systemPrompt is mandatory for LLM agents (default type)
-  if (config.agentType !== 'logic' && !config.systemPrompt) {
-    throw new Error(
-      `LLM Agent config for '${agentType}' missing required field: systemPrompt. ` +
-        `Ensure the config is fully populated in AgentRegistry or backbone.ts.`
-    );
-  }
-}
-
-/**
- * The core Agent class responsible for orchestrating LLM calls, tool execution,
- * and memory management.
+ * Main Agent Class
  */
 export class Agent {
-  private emitter: AgentEmitter;
+  protected memory: IMemory;
+  protected provider: IProvider;
+  protected tools: ITool[];
+  protected config?: IAgentConfig;
+  protected emitter: AgentEmitter;
 
-  constructor(
-    private memory: IMemory,
-    private provider: IProvider,
-    private tools: ITool[],
-    public systemPrompt: string,
-    public config?: IAgentConfig
-  ) {
-    if (config) {
-      validateAgentConfig(config, config.id);
-    }
+  constructor(memory: IMemory, provider: IProvider, tools: ITool[], config?: IAgentConfig) {
+    this.memory = memory;
+    this.provider = provider;
+    this.tools = tools;
+    this.config = config;
     this.emitter = new AgentEmitter(config);
   }
 
+  /**
+   * Returns the agent's configuration.
+   */
+  public getConfig(): IAgentConfig | undefined {
+    return this.config;
+  }
+
+  /**
+   * Processes a user message and returns the final response.
+   */
   async process(
     userId: string,
     userText: string,
     options: AgentProcessOptions = {}
   ): Promise<{
     responseText: string;
+    traceId: string;
     attachments?: Attachment[];
     thought?: string;
-    tool_calls?: ToolCall[];
-    traceId?: string;
   }> {
     const {
-      profile = this.config?.reasoningProfile ?? ReasoningProfile.STANDARD,
-      context,
-      isContinuation = false,
       isIsolated = false,
-      initiatorId,
-      depth = 0,
+      profile,
       traceId: incomingTraceId,
-      taskId,
       nodeId: incomingNodeId,
       parentId: incomingParentId,
+      taskId,
       sessionId,
       workspaceId,
+      teamId,
+      staffId,
       attachments: incomingAttachments,
       source = TraceSource.UNKNOWN,
       responseFormat: initialResponseFormat,
-      taskTimeoutMs,
-      timeoutBehavior = 'pause',
       communicationMode = this.config?.defaultCommunicationMode ?? 'text',
-      sessionStateManager,
-      approvedToolCalls,
-      ignoreHandoff = false,
-      pageContext,
-      tokenBudget = this.config?.tokenBudget,
-      costLimit = this.config?.costLimit,
+      taskTimeoutMs,
       priorTokenUsage,
       skipUserSave = false,
     } = options;
@@ -129,6 +88,8 @@ export class Agent {
         ? initialResponseFormat || DEFAULT_SIGNAL_SCHEMA
         : initialResponseFormat;
 
+    const scope = { workspaceId, teamId, staffId };
+
     const { tracer, traceId, baseUserId } = await initializeTracer(
       userId,
       source,
@@ -136,16 +97,17 @@ export class Agent {
       incomingNodeId,
       incomingParentId,
       this.config?.id,
-      isContinuation,
+      options.isContinuation,
       userText,
       sessionId,
-      !!incomingAttachments
+      !!incomingAttachments,
+      scope
     );
 
     const effectiveTaskId = taskId ?? traceId;
     const nodeId = tracer.getNodeId();
     const parentId = tracer.getParentId();
-    const currentInitiator = initiatorId ?? this.config?.id ?? 'orchestrator';
+    const currentInitiator = options.initiatorId ?? this.config?.id ?? 'orchestrator';
 
     const storageId = isIsolated
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
@@ -160,6 +122,7 @@ export class Agent {
     }
 
     const { isHumanTakingControl } = await import('./handoff');
+    const ignoreHandoff = options.ignoreHandoff ?? false;
     if (!ignoreHandoff && (await isHumanTakingControl(baseUserId, sessionId))) {
       const responseText = 'HUMAN_TAKING_CONTROL: Entering observe mode.';
       await tracer.endTrace(responseText);
@@ -168,26 +131,31 @@ export class Agent {
 
     import('./agent/warmup')
       .then(({ triggerSmartWarmup }) => {
-        triggerSmartWarmup(userText, depth, sessionId, sessionStateManager);
+        triggerSmartWarmup(userText, options.depth ?? 0, sessionId, options.sessionStateManager);
       })
       .catch(() => {});
 
+    if (!skipUserSave) {
+      await this.memory.addMessage(
+        storageId,
+        {
+          role: MessageRole.USER,
+          content: userText,
+          attachments: incomingAttachments as Attachment[],
+          traceId,
+          messageId: `msg-user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        },
+        scope
+      );
+    }
+
     try {
+      const startTime = Date.now();
       const {
         activeModel: resolvedModel,
         activeProvider: resolvedProvider,
         activeProfile: resolvedProfile,
       } = await resolveAgentConfig(this.config, profile);
-
-      let activeModel = resolvedModel;
-      let activeProvider = resolvedProvider;
-      const activeProfile = resolvedProfile;
-
-      if (userText.includes('(USER_ALREADY_NOTIFIED: true)')) {
-        logger.info(`Silent completion for agent ${this.config?.id} (Already Notified)`);
-        await tracer.endTrace('User already notified by sub-agent.');
-        return { responseText: '', attachments: [] };
-      }
 
       const { AgentAssembler } = await import('./agent/assembler');
       const {
@@ -204,35 +172,17 @@ export class Agent {
         baseUserId,
         storageId,
         userText,
-        (incomingAttachments as Attachment[]) ?? [],
+        incomingAttachments as Attachment[],
         {
           isIsolated,
-          depth,
-          activeModel,
-          activeProvider,
-          activeProfile,
-          systemPrompt: this.systemPrompt,
-          pageContext,
+          depth: options.depth ?? 0,
+          activeModel: resolvedModel,
+          activeProvider: resolvedProvider,
+          activeProfile: resolvedProfile,
+          systemPrompt: this.config?.systemPrompt ?? '',
+          pageContext: options.pageContext,
         }
       );
-
-      activeModel = finalModel;
-      activeProvider = finalProvider;
-
-      if (!skipUserSave) {
-        await this.memory.addMessage(
-          storageId,
-          {
-            role: MessageRole.USER,
-            content: userText,
-            attachments: incomingAttachments as Attachment[],
-            pageContext,
-            traceId,
-            messageId: `msg-user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          },
-          workspaceId
-        );
-      }
 
       const { AgentExecutor, AGENT_DEFAULTS } = await import('./agent/executor');
       const executor = new AgentExecutor(
@@ -246,211 +196,131 @@ export class Agent {
         this.config
       );
 
-      let maxIterations = this.config?.maxIterations ?? AGENT_DEFAULTS.MAX_ITERATIONS;
-      try {
-        if (!process.env.VITEST) {
-          const customMax = await ConfigManager.getRawConfig(CONFIG_KEYS.MAX_TOOL_ITERATIONS);
-          if (customMax !== undefined) maxIterations = parseConfigInt(customMax, maxIterations);
-        }
-      } catch {
-        logger.warn(
-          `Failed to fetch max_tool_iterations from DDB, using default ${maxIterations}.`
-        );
-      }
+      const loopUsage = {
+        totalInputTokens: priorTokenUsage?.inputTokens ?? 0,
+        totalOutputTokens: priorTokenUsage?.outputTokens ?? 0,
+        total_tokens: priorTokenUsage?.totalTokens ?? 0,
+        toolCallCount: 0,
+        durationMs: 0,
+      };
 
-      const {
-        responseText: initialResponseText,
-        paused,
-        asyncWait,
-        attachments: resultAttachments,
-        thought: resultThought,
-        tool_calls: resultToolCalls,
-        usage: loopUsage,
-      } = await executor.runLoop(messages, {
-        activeModel,
-        activeProvider,
-        activeProfile,
-        maxIterations,
+      const result = await executor.runLoop(messages, {
+        maxIterations: this.config?.maxIterations ?? AGENT_DEFAULTS.MAX_ITERATIONS,
         tracer,
-        context,
+        emitter: this.emitter,
+        context: options.context,
         traceId,
         taskId: effectiveTaskId,
         nodeId,
         parentId,
-        currentInitiator,
-        depth,
         sessionId,
+        workspaceId,
+        teamId,
+        staffId,
         userId: baseUserId,
+        mainConversationId: storageId,
+        activeModel: finalModel,
+        activeProvider: finalProvider,
+        activeProfile: resolvedProfile,
         userText,
-        mainConversationId: userId,
         responseFormat,
         taskTimeoutMs,
-        timeoutBehavior,
-        sessionStateManager,
-        approvedToolCalls,
-        tokenBudget,
-        costLimit,
-        priorTokenUsage,
+        approvedToolCalls: options.approvedToolCalls,
+        currentInitiator,
+        depth: options.depth ?? 0,
       });
 
-      if (sessionId && sessionStateManager) {
-        await sessionStateManager.autoRenew(sessionId, this.config?.id ?? 'unknown');
-      }
+      loopUsage.totalInputTokens += result.usage?.totalInputTokens ?? 0;
+      loopUsage.totalOutputTokens += result.usage?.totalOutputTokens ?? 0;
+      loopUsage.total_tokens = loopUsage.totalInputTokens + loopUsage.totalOutputTokens;
+      loopUsage.toolCallCount = result.usage?.toolCallCount ?? 0;
+      loopUsage.durationMs = Date.now() - startTime;
 
-      // Check for signal drift (Eye Silo Silo 5)
-      await tracer.detectDrift();
+      const { responseText: rawResponseText, attachments = [], paused } = result;
 
-      if (!process.env.VITEST && loopUsage) {
-        try {
-          const { emitMetrics, METRICS } = await import('./metrics');
-          const agentId = this.config?.id ?? 'unknown';
-          const success = !paused;
-          emitMetrics([
-            METRICS.agentDuration(agentId, loopUsage.durationMs),
-            METRICS.agentInvoked(agentId, success),
-          ]).catch(() => {});
-
-          const { TokenTracker } = await import('./metrics/token-usage');
-          TokenTracker.recordInvocation({
-            timestamp: Date.now(),
-            traceId: traceId ?? '',
-            agentId,
-            provider: activeProvider ?? 'unknown',
-            model: activeModel ?? 'unknown',
-            inputTokens: loopUsage.totalInputTokens,
-            outputTokens: loopUsage.totalOutputTokens,
-            totalTokens: loopUsage.totalInputTokens + loopUsage.totalOutputTokens,
-            toolCalls: loopUsage.toolCallCount,
-            taskType: 'agent_process',
-            success: !paused,
-            durationMs: loopUsage.durationMs,
-          }).catch(() => {});
-          TokenTracker.updateRollup(agentId, {
-            inputTokens: loopUsage.totalInputTokens,
-            outputTokens: loopUsage.totalOutputTokens,
-            toolCalls: loopUsage.toolCallCount,
-            success: !paused,
-            durationMs: loopUsage.durationMs,
-          }).catch(() => {});
-        } catch {
-          logger.warn('Failed to emit agent metrics or persist token usage');
-        }
-      }
-
-      let responseText = initialResponseText;
-      let finalThought = resultThought;
-
-      if (communicationMode === 'json' && responseText) {
+      let finalThought: string | undefined;
+      let responseText = rawResponseText;
+      if (communicationMode === 'json' && rawResponseText) {
         try {
           const parsed = JSON.parse(responseText);
-          finalThought = parsed.thought || parsed.reasoning || parsed.thinking || finalThought;
-          responseText = parsed.message || parsed.plan || responseText;
+          finalThought = parsed.thought || parsed.reasoning || parsed.thinking;
+          const extractedText = parsed.message || parsed.plan;
+          if (extractedText) {
+            responseText = extractedText;
+          }
         } catch {
           // Fallback to raw text if not valid JSON
         }
       }
 
-      if (paused) {
-        await this.memory.addMessage(
-          storageId,
-          {
-            role: MessageRole.ASSISTANT,
-            content: responseText,
-            thought: finalThought,
-            agentName: this.config?.name ?? 'SuperClaw',
-            traceId,
-            messageId: `msg-assistant-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-            tool_calls: resultToolCalls,
-          },
-          workspaceId
-        );
-
-        if (!asyncWait) {
-          await this.emitter.emitContinuation(userId, userText, tracer.getTraceId() ?? 'unknown', {
-            initiatorId: currentInitiator,
-            depth,
-            sessionId,
-            workspaceId,
-            nodeId: nodeId ?? 'unknown',
-            parentId: parentId ?? 'unknown',
-            priorInputTokens: loopUsage?.totalInputTokens ?? 0,
-            priorOutputTokens: loopUsage?.totalOutputTokens ?? 0,
-            priorTotalTokens:
-              (loopUsage?.totalInputTokens ?? 0) + (loopUsage?.totalOutputTokens ?? 0),
-            tokenBudget,
-            costLimit,
-          });
+      if (!isIsolated) {
+        if (result.lastAiResponse) {
+          await this.memory.addMessage(storageId, result.lastAiResponse, scope);
+        } else if (paused) {
+          await this.memory.addMessage(
+            storageId,
+            {
+              role: MessageRole.ASSISTANT,
+              content: responseText,
+              thought: finalThought,
+              agentName: this.config?.name ?? 'Agent',
+              traceId,
+              messageId: `msg-assistant-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            },
+            scope
+          );
+        } else {
+          await this.memory.addMessage(
+            storageId,
+            {
+              role: MessageRole.ASSISTANT,
+              content: responseText,
+              thought: finalThought,
+              agentName: this.config?.name ?? 'Agent',
+              traceId,
+              messageId: `msg-assistant-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            },
+            scope
+          );
         }
-      } else {
-        const _assistantMessageId = `${traceId}-superclaw`;
-        await this.memory.addMessage(
-          storageId,
-          {
-            role: MessageRole.ASSISTANT,
-            content: responseText,
-            thought: resultThought,
-            agentName: this.config?.name ?? 'SuperClaw',
-            traceId,
-            messageId: `msg-assistant-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          },
-          workspaceId
-        );
       }
 
-      const finalResponseText = responseText.trim();
-      await tracer.endTrace(finalResponseText);
-      return {
-        responseText: finalResponseText,
-        thought: finalThought,
-        attachments: resultAttachments,
-        tool_calls: resultToolCalls,
-        traceId,
-      };
+      return { responseText, traceId, attachments, thought: finalThought };
     } catch (error) {
-      logger.error(`[Agent] Critical error in process loop:`, error);
-      await tracer.failTrace(AGENT_ERRORS.PROCESS_FAILURE, { error: String(error) });
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error(`[AGENT] Process Error: ${errorMessage}`, { agentId: this.config?.id, traceId });
+      await tracer.failTrace(errorMessage, { error: errorMessage });
       throw error;
     }
   }
 
+  /**
+   * Streaming version of process().
+   */
   async *stream(
     userId: string,
     userText: string,
     options: AgentProcessOptions = {}
   ): AsyncGenerator<MessageChunk> {
     const {
-      profile = this.config?.reasoningProfile ?? ReasoningProfile.STANDARD,
-      context,
-      isContinuation = false,
       isIsolated = false,
-      initiatorId,
-      depth = 0,
+      profile,
       traceId: incomingTraceId,
-      taskId,
       nodeId: incomingNodeId,
       parentId: incomingParentId,
+      taskId,
       sessionId,
       workspaceId,
+      teamId,
+      staffId,
       attachments: incomingAttachments,
       source = TraceSource.UNKNOWN,
       responseFormat: initialResponseFormat,
       communicationMode = this.config?.defaultCommunicationMode ?? 'text',
-      taskTimeoutMs,
-      timeoutBehavior = 'pause',
-      sessionStateManager,
-      approvedToolCalls,
-      ignoreHandoff = false,
-      pageContext,
-      tokenBudget = this.config?.tokenBudget,
-      costLimit = this.config?.costLimit,
-      priorTokenUsage,
-      skipUserSave = false,
     } = options;
 
-    const responseFormat =
-      communicationMode === 'json'
-        ? initialResponseFormat || DEFAULT_SIGNAL_SCHEMA
-        : initialResponseFormat;
+    const scope = { workspaceId, teamId, staffId };
+    const startTime = Date.now();
 
     const { tracer, traceId, baseUserId } = await initializeTracer(
       userId,
@@ -459,259 +329,160 @@ export class Agent {
       incomingNodeId,
       incomingParentId,
       this.config?.id,
-      isContinuation,
+      options.isContinuation,
       userText,
       sessionId,
-      !!incomingAttachments
+      !!incomingAttachments,
+      scope
     );
 
     const effectiveTaskId = taskId ?? traceId;
     const nodeId = tracer.getNodeId();
     const parentId = tracer.getParentId();
-    const currentInitiator = initiatorId ?? this.config?.id ?? 'orchestrator';
+    const currentInitiator = options.initiatorId ?? this.config?.id ?? 'orchestrator';
 
     const storageId = isIsolated
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
 
-    // Early exit if global trace budget is already exceeded
-    const { isBudgetExceeded } = await import('./recursion-tracker');
-    if (await isBudgetExceeded(traceId)) {
-      yield {
-        content: `[BUDGET_EXCEEDED] Global execution budget for trace ${traceId} has been reached. Halting further processing.`,
-      };
-      await tracer.endTrace('BUDGET_EXCEEDED');
-      return;
-    }
-
-    const { isHumanTakingControl } = await import('./handoff');
-    if (!ignoreHandoff && (await isHumanTakingControl(baseUserId, sessionId))) {
-      const responseText = 'HUMAN_TAKING_CONTROL: Entering observe mode.';
-      yield { content: responseText };
-      await tracer.endTrace(responseText);
-      return;
-    }
-
-    import('./agent/warmup')
-      .then(({ triggerSmartWarmup }) => {
-        triggerSmartWarmup(userText, depth, sessionId, sessionStateManager);
-      })
-      .catch(() => {});
-
-    const {
-      activeModel: resolvedModel,
-      activeProvider: resolvedProvider,
-      activeProfile: resolvedProfile,
-    } = await resolveAgentConfig(this.config, profile);
-
-    const activeModel = resolvedModel;
-    const activeProvider = resolvedProvider;
-    const activeProfile = resolvedProfile;
-
-    const { AgentAssembler } = await import('./agent/assembler');
-    const {
-      contextPrompt,
-      messages,
-      summary,
-      contextLimit,
-      activeModel: finalModel,
-      activeProvider: finalProvider,
-    } = await AgentAssembler.prepareContext(
-      this.memory,
-      this.provider,
-      this.config,
-      baseUserId,
-      storageId,
-      userText,
-      (incomingAttachments as Attachment[]) ?? [],
-      {
-        isIsolated,
-        depth,
-        activeModel,
-        activeProvider,
-        activeProfile,
-        systemPrompt: this.systemPrompt,
-        pageContext,
-      }
-    );
-
-    if (!skipUserSave) {
+    if (!options.skipUserSave) {
       await this.memory.addMessage(
         storageId,
         {
           role: MessageRole.USER,
           content: userText,
           attachments: incomingAttachments as Attachment[],
-          pageContext,
           traceId,
           messageId: `msg-user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
         },
-        workspaceId
+        scope
       );
     }
 
-    const { AgentExecutor } = await import('./agent/executor');
-    const executor = new AgentExecutor(
-      this.provider,
-      this.tools,
-      this.config?.id ?? 'unknown',
-      this.config?.name ?? 'SuperClaw',
-      contextPrompt,
-      summary,
-      contextLimit,
-      this.config
-    );
-
-    const assistantMessageId =
-      currentInitiator === 'orchestrator' || this.config?.id === 'superclaw'
-        ? `${traceId}-superclaw`
-        : `${traceId}-${this.config?.id || 'agent'}`;
-
-    const { AGENT_DEFAULTS } = await import('./agent/executor');
-    const stream = executor.streamLoop(messages, {
-      activeModel: finalModel,
-      activeProvider: finalProvider,
-      activeProfile,
-      maxIterations: this.config?.maxIterations ?? AGENT_DEFAULTS.MAX_ITERATIONS,
-      tracer,
-      emitter: this.emitter,
-      context,
-      traceId,
-      taskId: effectiveTaskId,
-      nodeId,
-      parentId,
-      currentInitiator,
-      depth,
-      sessionId,
-      userId: baseUserId,
-      userText,
-      mainConversationId: userId,
-      responseFormat,
-      communicationMode,
-      taskTimeoutMs,
-      timeoutBehavior,
-      sessionStateManager,
-      approvedToolCalls,
-      tokenBudget,
-      costLimit,
-      priorTokenUsage,
-    });
-
-    let fullContent = '';
-    let fullThought = '';
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
+    let fullContent = '';
+    let fullThought = '';
 
     try {
+      const {
+        activeModel: resolvedModel,
+        activeProvider: resolvedProvider,
+        activeProfile: resolvedProfile,
+      } = await resolveAgentConfig(this.config, profile);
+
+      const { AgentAssembler } = await import('./agent/assembler');
+      const {
+        contextPrompt,
+        messages,
+        summary,
+        contextLimit,
+        activeModel: finalModel,
+        activeProvider: finalProvider,
+      } = await AgentAssembler.prepareContext(
+        this.memory,
+        this.provider,
+        this.config,
+        baseUserId,
+        storageId,
+        userText,
+        incomingAttachments as Attachment[],
+        {
+          isIsolated,
+          depth: options.depth ?? 0,
+          activeModel: resolvedModel,
+          activeProvider: resolvedProvider,
+          activeProfile: resolvedProfile,
+          systemPrompt: this.config?.systemPrompt ?? '',
+          pageContext: options.pageContext,
+        }
+      );
+
+      const { AgentExecutor, AGENT_DEFAULTS } = await import('./agent/executor');
+      const executor = new AgentExecutor(
+        this.provider,
+        this.tools,
+        this.config?.id ?? 'unknown',
+        this.config?.name ?? 'SuperClaw',
+        contextPrompt,
+        summary,
+        contextLimit,
+        this.config
+      );
+
+      const stream = executor.streamLoop(messages, {
+        maxIterations: this.config?.maxIterations ?? AGENT_DEFAULTS.MAX_ITERATIONS,
+        tracer,
+        emitter: this.emitter,
+        context: options.context,
+        traceId,
+        taskId: effectiveTaskId,
+        nodeId,
+        parentId,
+        sessionId,
+        workspaceId,
+        teamId,
+        staffId,
+        userId: baseUserId,
+        mainConversationId: storageId,
+        activeModel: finalModel,
+        activeProvider: finalProvider,
+        activeProfile: resolvedProfile,
+        userText,
+        responseFormat:
+          communicationMode === 'json'
+            ? initialResponseFormat || DEFAULT_SIGNAL_SCHEMA
+            : initialResponseFormat,
+        currentInitiator,
+        depth: options.depth ?? 0,
+      });
+
       for await (const chunk of stream) {
-        if (options.sessionId && sessionStateManager) {
-          await sessionStateManager.autoRenew(options.sessionId, this.config?.id ?? 'unknown');
-        }
-
-        // Periodically check for signal drift
-        await tracer.detectDrift();
-
-        if (chunk.content) {
-          fullContent += chunk.content;
-        }
-        if (chunk.thought) {
-          fullThought += chunk.thought;
-        }
-
-        // Incremental extraction for JSON mode
-        let detectedThought = chunk.thought;
-        if (
-          communicationMode === 'json' &&
-          !detectedThought &&
-          fullContent.trim().startsWith('{')
-        ) {
-          if (fullContent.includes('"thought":') || fullContent.includes('"reasoning":')) {
-            try {
-              const match = fullContent.match(/"(?:thought|reasoning|thinking)"\s*:\s*"([^"]*)/);
-              if (match && match[1]) detectedThought = match[1];
-            } catch {
-              // Ignore partial JSON parsing errors during streaming
-            }
-          }
-        }
-
+        if (chunk.content) fullContent += chunk.content;
+        if (chunk.thought) fullThought += chunk.thought;
         if (chunk.usage) {
           totalInputTokens += chunk.usage.prompt_tokens;
           totalOutputTokens += chunk.usage.completion_tokens;
         }
-
-        yield {
-          ...chunk,
-          messageId: chunk.messageId || assistantMessageId,
-          thought: detectedThought || chunk.thought,
-          agentName: this.config?.name,
-        };
+        yield chunk;
       }
 
-      // Fallback: If stream produced no content, perform a non-streaming call
-      if (fullContent.trim().length === 0 && fullThought.trim().length === 0) {
-        logger.warn(
-          `[Agent:Stream] Stream produced no content. Triggering non-streaming fallback.`
-        );
-        const fallback = await this.process(userId, userText, {
-          ...options,
-          skipUserSave: true, // Already saved
-        });
-
-        fullContent = fallback.responseText;
-        fullThought = fallback.thought ?? '';
-
-        yield {
-          content: fullContent,
-          thought: fullThought,
-          messageId: assistantMessageId,
-          agentName: this.config?.name,
-        };
-      }
-    } catch (streamError) {
-      logger.error(`[Agent] Stream error:`, streamError);
-      await tracer.failTrace(String(streamError), { error: String(streamError) });
-      throw streamError;
-    }
-
-    if (!process.env.VITEST) {
-      const { emitMetrics, METRICS } = await import('./metrics');
-      emitMetrics([
-        METRICS.tokensInput(totalInputTokens, nodeId, activeProvider),
-        METRICS.tokensOutput(totalOutputTokens, nodeId, activeProvider),
-      ]).catch(() => {});
-    }
-
-    let finalResponseText = fullContent;
-    let finalThought = fullThought;
-
-    if (communicationMode === 'json' && finalResponseText) {
-      try {
-        const parsed = JSON.parse(finalResponseText);
-        finalThought = parsed.thought || parsed.reasoning || parsed.thinking || finalThought;
-        finalResponseText = parsed.message || parsed.plan || finalResponseText;
-      } catch {
-        // Fallback to raw text if JSON parsing fails
-      }
-    }
-
-    const streamProducedAnything =
-      finalResponseText.trim().length > 0 || fullThought.trim().length > 0;
-
-    if (streamProducedAnything) {
-      await this.memory.addMessage(
-        storageId,
-        {
-          role: MessageRole.ASSISTANT,
-          content: finalResponseText,
-          thought: finalThought,
-          agentName: this.config?.name ?? 'SuperClaw',
+      if (!process.env.VITEST) {
+        await reportAgentMetrics({
+          agentId: this.config?.id ?? 'unknown',
           traceId,
-          messageId: assistantMessageId,
-        },
-        workspaceId
-      );
+          activeProvider: finalProvider ?? 'unknown',
+          activeModel: finalModel ?? 'unknown',
+          inputTokens: totalInputTokens,
+          outputTokens: totalOutputTokens,
+          toolCalls: 0,
+          durationMs: Date.now() - startTime,
+          success: true,
+          paused: false,
+          scope,
+        });
+      }
+
+      if (!isIsolated) {
+        const assistantMessageId = `${traceId}-${this.config?.id ?? 'assistant'}`;
+        await this.memory.addMessage(
+          storageId,
+          {
+            role: MessageRole.ASSISTANT,
+            content: fullContent,
+            thought: fullThought,
+            agentName: this.config?.name ?? 'SuperClaw',
+            traceId,
+            messageId: assistantMessageId,
+          },
+          scope
+        );
+      }
+      await tracer.endTrace(fullContent);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await tracer.failTrace(errorMessage, { error: errorMessage });
+      throw error;
     }
-    await tracer.endTrace(fullContent);
   }
 }

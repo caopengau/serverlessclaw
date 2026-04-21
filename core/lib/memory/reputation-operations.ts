@@ -21,9 +21,13 @@ const REPUTATION_WINDOW_MS = 7 * TIME.MS_PER_DAY;
 /**
  * Resolves the DynamoDB partition key for a reputation record.
  */
-function reputationKey(base: BaseMemoryProvider, agentId: string, workspaceId?: string): string {
+function reputationKey(
+  base: BaseMemoryProvider,
+  agentId: string,
+  scope?: string | import('../types/memory').ContextualScope
+): string {
   const pk = `${MEMORY_KEYS.REPUTATION_PREFIX}${agentId}`;
-  return base.getScopedUserId(pk, workspaceId);
+  return base.getScopedUserId(pk, scope);
 }
 
 /**
@@ -31,19 +35,20 @@ function reputationKey(base: BaseMemoryProvider, agentId: string, workspaceId?: 
  *
  * @param base - The base memory provider instance.
  * @param agentId - The agent to look up.
+ * @param scope - Optional hierarchical scope for isolation.
  * @returns The agent's reputation, or null if no record exists.
  */
 export async function getReputation(
   base: BaseMemoryProvider,
   agentId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<AgentReputation | null> {
   try {
     const items = await base.queryItems({
       KeyConditionExpression: 'userId = :pk AND #ts = :zero',
       ExpressionAttributeNames: { '#ts': 'timestamp' },
       ExpressionAttributeValues: {
-        ':pk': reputationKey(base, agentId, workspaceId),
+        ':pk': reputationKey(base, agentId, scope),
         ':zero': 0,
       },
     });
@@ -53,11 +58,6 @@ export async function getReputation(
     const item = items[0];
     const rep: AgentReputation = {
       agentId: item.agentId as string,
-      tasksCompleted: (item.tasksCompleted as number) ?? 0,
-      tasksFailed: (item.tasksFailed as number) ?? 0,
-      totalLatencyMs: (item.totalLatencyMs as number) ?? 0,
-      successRate: (item.successRate as number) ?? 0,
-      avgLatencyMs: (item.avgLatencyMs as number) ?? 0,
       lastActive: (item.lastActive as number) ?? 0,
       windowStart: (item.windowStart as number) ?? Date.now(),
       expiresAt: (item.expiresAt as number) ?? 0,
@@ -65,7 +65,25 @@ export async function getReputation(
       totalTasks: ((item.tasksCompleted as number) ?? 0) + ((item.tasksFailed as number) ?? 0),
       rollingWindow: 7,
       score: 0,
+      errorDistribution: (item.errorDistribution as Record<string, number>) ?? {},
+      lastTraceId: item.lastTraceId as string,
+      promptHash: item.promptHash as string,
+      successRate: 0,
+      avgLatencyMs: 0,
+      totalLatencyMs: (item.totalLatencyMs as number) ?? 0,
+      tasksCompleted: (item.tasksCompleted as number) ?? 0,
+      tasksFailed: (item.tasksFailed as number) ?? 0,
     };
+
+    // Compute derived metrics
+    const total = rep.tasksCompleted + rep.tasksFailed;
+    if (total > 0) {
+      rep.successRate = Math.round((rep.tasksCompleted / total) * 1000) / 1000;
+    }
+    if (rep.tasksCompleted > 0) {
+      rep.avgLatencyMs = rep.totalLatencyMs / rep.tasksCompleted;
+    }
+
     rep.score = computeReputationScore(rep);
     return rep;
   } catch (error) {
@@ -87,16 +105,23 @@ export type UpdateReputationResult = { success: true } | { success: false; error
  * @param agentId - The agent whose reputation to update.
  * @param success - Whether the task succeeded.
  * @param latencyMs - Duration of the task in milliseconds.
+ * @param scope - Optional hierarchical scope for isolation.
  */
 export async function updateReputation(
   base: BaseMemoryProvider,
   agentId: string,
   success: boolean,
   latencyMs: number = 0,
-  workspaceId?: string
+  options?: {
+    error?: string;
+    traceId?: string;
+    promptHash?: string;
+    scope?: string | import('../types/memory').ContextualScope;
+  }
 ): Promise<UpdateReputationResult> {
   const now = Date.now();
-  const pk = reputationKey(base, agentId, workspaceId);
+  const pk = reputationKey(base, agentId, options?.scope);
+  const errorType = options?.error ? options.error.slice(0, 50).replace(/[.#]/g, '_') : undefined;
 
   try {
     await base.updateItem({
@@ -110,7 +135,11 @@ export async function updateReputation(
         'tasksFailed = if_not_exists(tasksFailed, :zero) + :failed, ' +
         'totalLatencyMs = if_not_exists(totalLatencyMs, :zero) + :latency, ' +
         'windowStart = if_not_exists(windowStart, :now), ' +
-        'createdAt = if_not_exists(createdAt, :now)',
+        'createdAt = if_not_exists(createdAt, :now), ' +
+        'lastTraceId = :tid, ' +
+        'promptHash = :ph' +
+        (errorType ? ', errorDistribution.#err = if_not_exists(errorDistribution.#err, :zero) + :one' : ''),
+      ExpressionAttributeNames: errorType ? { '#err': errorType } : undefined,
       ExpressionAttributeValues: {
         ':type': 'REPUTATION',
         ':agentId': agentId,
@@ -120,6 +149,9 @@ export async function updateReputation(
         ':completed': success ? 1 : 0,
         ':failed': success ? 0 : 1,
         ':latency': success ? latencyMs : 0,
+        ':tid': options?.traceId || '',
+        ':ph': options?.promptHash || '',
+        ...(errorType ? { ':one': 1 } : {}),
       },
     });
 
@@ -137,16 +169,17 @@ export async function updateReputation(
  *
  * @param base - The base memory provider instance.
  * @param agentIds - The agent IDs to look up.
- * @returns A map of agentId to AgentReputation (missing entries are excluded).
+ * @param scope - Optional hierarchical scope for isolation.
+ * @returns A promise resolving to a map of agentId to AgentReputation.
  */
 export async function getReputations(
   base: BaseMemoryProvider,
   agentIds: string[],
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<Map<string, AgentReputation>> {
   const results = new Map<string, AgentReputation>();
   const promises = agentIds.map(async (id) => {
-    const rep = await getReputation(base, id, workspaceId);
+    const rep = await getReputation(base, id, scope);
     if (rep) results.set(id, rep);
   });
   await Promise.all(promises);

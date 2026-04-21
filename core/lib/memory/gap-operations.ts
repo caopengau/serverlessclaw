@@ -39,7 +39,7 @@ const GAP_LOCK_TTL_MS = 30 * 60 * 1000;
 export async function getAllGaps(
   base: BaseMemoryProvider,
   status: GapStatus = GapStatus.OPEN,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<MemoryInsight[]> {
   return queryByTypeAndMap(
     base,
@@ -49,7 +49,7 @@ export async function getAllGaps(
     '#status = :status',
     { ':status': status },
     undefined,
-    workspaceId
+    scope
   );
 }
 
@@ -59,7 +59,7 @@ export async function getAllGaps(
 export async function archiveStaleGaps(
   base: BaseMemoryProvider,
   staleDays: number = LIMITS.STALE_GAP_DAYS,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<number> {
   const cutoffTime = Date.now() - staleDays * TIME.SECONDS_IN_DAY * TIME.MS_PER_SECOND;
 
@@ -74,7 +74,7 @@ export async function archiveStaleGaps(
       ':planned': GapStatus.PLANNED,
     },
     undefined,
-    workspaceId
+    scope
   );
 
   const staleGaps = gaps.filter((gap) => gap.createdAt && gap.createdAt < cutoffTime);
@@ -107,7 +107,7 @@ export async function archiveStaleGaps(
 export async function cullResolvedGaps(
   base: BaseMemoryProvider,
   thresholdDays: number = RETENTION.GAPS_DAYS,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<number> {
   const cutoffTime = Date.now() - thresholdDays * TIME.SECONDS_IN_DAY * TIME.MS_PER_SECOND;
 
@@ -122,7 +122,7 @@ export async function cullResolvedGaps(
       ':deployed': GapStatus.DEPLOYED,
     },
     undefined,
-    workspaceId
+    scope
   );
 
   const staleGaps = gaps.filter((gap) => gap.createdAt && gap.createdAt < cutoffTime);
@@ -152,14 +152,14 @@ export async function setGap(
   gapId: string,
   details: string,
   metadata?: Partial<InsightMetadata>,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
   const { expiresAt, type } = await RetentionManager.getExpiresAt('GAP', '');
   const normalizedGapId = normalizeGapId(gapId);
   const timestamp = getGapTimestamp(normalizedGapId);
 
   await base.putItem({
-    userId: base.getScopedUserId(getGapIdPK(normalizedGapId), workspaceId),
+    userId: base.getScopedUserId(getGapIdPK(normalizedGapId), scope),
     timestamp: timestamp,
     createdAt: timestamp || Date.now(),
     type,
@@ -176,9 +176,9 @@ export async function setGap(
 export async function getGap(
   base: BaseMemoryProvider,
   gapId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<MemoryInsight | null> {
-  return resolveItemById(base, gapId, 'GAP', workspaceId);
+  return resolveItemById(base, gapId, 'GAP', scope);
 }
 
 /**
@@ -188,9 +188,9 @@ export async function getGap(
 export async function incrementGapAttemptCount(
   base: BaseMemoryProvider,
   gapId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<number> {
-  const target = await resolveItemById(base, gapId, 'GAP', workspaceId);
+  const target = await resolveItemById(base, gapId, 'GAP', scope);
   if (!target) {
     logger.warn(`[incrementGapAttemptCount] Abandoning increment: Gap ${gapId} not found.`);
     return 0;
@@ -224,10 +224,10 @@ export async function updateGapStatus(
   base: BaseMemoryProvider,
   gapId: string,
   status: GapStatus,
-  workspaceId?: string,
+  scope?: string | import('../types/memory').ContextualScope,
   metadata?: Record<string, unknown>
 ): Promise<GapTransitionResult> {
-  const target = await resolveItemById(base, gapId, 'GAP', workspaceId);
+  const target = await resolveItemById(base, gapId, 'GAP', scope);
   if (!target) {
     return { success: false, error: `Gap ${gapId} not found in any status` };
   }
@@ -302,12 +302,12 @@ export async function acquireGapLock(
   gapId: string,
   agentId: string,
   ttlMs: number = GAP_LOCK_TTL_MS,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<boolean> {
   const normalizedGapId = normalizeGapId(gapId);
   const lockKey = base.getScopedUserId(
     `${MEMORY_KEYS.GAP_LOCK_PREFIX}${normalizedGapId}`,
-    workspaceId
+    scope
   );
   const now = Date.now();
   const expiresAt = Math.floor((now + ttlMs) / 1000);
@@ -344,12 +344,12 @@ export async function releaseGapLock(
   agentId: string,
   expectedVersion?: number,
   force: boolean = false,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
   const normalizedGapId = normalizeGapId(gapId);
   const lockKey = base.getScopedUserId(
     `${MEMORY_KEYS.GAP_LOCK_PREFIX}${normalizedGapId}`,
-    workspaceId
+    scope
   );
 
   const conditionExpr = force
@@ -377,12 +377,12 @@ export async function releaseGapLock(
 export async function getGapLock(
   base: BaseMemoryProvider,
   gapId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<{ agentId: string; expiresAt: number; lockVersion?: number } | null> {
   const normalizedGapId = normalizeGapId(gapId);
   const lockKey = base.getScopedUserId(
     `${MEMORY_KEYS.GAP_LOCK_PREFIX}${normalizedGapId}`,
-    workspaceId
+    scope
   );
   try {
     const items = await base.queryItems({
@@ -411,13 +411,13 @@ export async function assignGapToTrack(
   gapId: string,
   track: EvolutionTrack,
   priority?: number,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
   const transitionResult = await updateGapStatus(
     base as never,
     gapId,
     GapStatus.PLANNED,
-    workspaceId
+    scope
   );
   if (!transitionResult.success) {
     throw new Error(
@@ -426,15 +426,16 @@ export async function assignGapToTrack(
   }
 
   const normalizedId = normalizeGapId(gapId);
-  const getScopedUserId = (id: string, wid?: string) => {
+  const getScopedUserId = (id: string, s?: string | import('../types/memory').ContextualScope) => {
     if ('getScopedUserId' in base && typeof (base as any).getScopedUserId === 'function') {
-      return (base as any).getScopedUserId(id, wid);
+      return (base as any).getScopedUserId(id, s);
     }
+    const wid = typeof s === 'string' ? s : s?.workspaceId;
     return wid ? `WS#${wid}#${id}` : id;
   };
 
   await base.putItem({
-    userId: getScopedUserId(`${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`, workspaceId),
+    userId: getScopedUserId(`${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`, scope),
     timestamp: 0,
     type: 'TRACK_ASSIGNMENT',
     gapId: normalizedId,
@@ -452,13 +453,14 @@ export async function assignGapToTrack(
 export async function getGapTrack(
   base: TrackStore,
   gapId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<{ track: EvolutionTrack; priority: number } | null> {
   const normalizedId = normalizeGapId(gapId);
-  const getScopedUserId = (id: string, wid?: string) => {
+  const getScopedUserId = (id: string, s?: string | import('../types/memory').ContextualScope) => {
     if ('getScopedUserId' in base && typeof (base as any).getScopedUserId === 'function') {
-      return (base as any).getScopedUserId(id, wid);
+      return (base as any).getScopedUserId(id, s);
     }
+    const wid = typeof s === 'string' ? s : s?.workspaceId;
     return wid ? `WS#${wid}#${id}` : id;
   };
 
@@ -467,7 +469,7 @@ export async function getGapTrack(
       KeyConditionExpression: 'userId = :pk AND #ts = :zero',
       ExpressionAttributeNames: { '#ts': 'timestamp' },
       ExpressionAttributeValues: {
-        ':pk': getScopedUserId(`${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`, workspaceId),
+        ':pk': getScopedUserId(`${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`, scope),
         ':zero': 0,
       },
     });
@@ -485,18 +487,18 @@ export async function updateGapMetadata(
   base: BaseMemoryProvider,
   gapId: string,
   metadata: Record<string, unknown>,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
   const normalizedId = normalizeGapId(gapId);
   const gapTimestamp = getGapTimestamp(normalizedId);
-  const scopedUserId = base.getScopedUserId(getGapIdPK(normalizedId), workspaceId);
+  const scopedUserId = base.getScopedUserId(getGapIdPK(normalizedId), scope);
 
   // If timestamp is not a real timestamp, resolve first
   if (gapTimestamp < TIME.EPOCH_2020_MS) {
-    const target = await resolveItemById(base, gapId, 'GAP', workspaceId);
+    const target = await resolveItemById(base, gapId, 'GAP', scope);
     if (target) {
       try {
-        await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, workspaceId);
+        await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, scope);
         return;
       } catch {
         /* ignore */
@@ -505,7 +507,7 @@ export async function updateGapMetadata(
     // Leap of faith for numeric IDs even if resolution (mock) fails
     if (gapTimestamp !== 0) {
       try {
-        await atomicUpdateMetadata(base, scopedUserId, gapTimestamp, metadata, workspaceId);
+        await atomicUpdateMetadata(base, scopedUserId, gapTimestamp, metadata, scope);
       } catch {
         /* ignore */
       }
@@ -514,12 +516,12 @@ export async function updateGapMetadata(
   }
 
   try {
-    await atomicUpdateMetadata(base, scopedUserId, gapTimestamp, metadata, workspaceId);
+    await atomicUpdateMetadata(base, scopedUserId, gapTimestamp, metadata, scope);
   } catch {
-    const target = await resolveItemById(base, gapId, 'GAP', workspaceId);
+    const target = await resolveItemById(base, gapId, 'GAP', scope);
     if (target) {
       try {
-        await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, workspaceId);
+        await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, scope);
       } catch {
         /* ignore */
       }

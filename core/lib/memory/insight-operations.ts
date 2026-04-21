@@ -1,238 +1,114 @@
 /**
  * Insight Operations Module
- *
- * Contains insight and lesson management methods for the DynamoMemory class.
- * These functions operate on a BaseMemoryProvider instance.
+ * 
+ * Handles discovery, storage, and retrieval of agent insights, preferences, and system patterns.
+ * Supports hierarchical scoping for multi-tenant isolation.
  */
 
-import { MemoryInsight, InsightMetadata, InsightCategory } from '../types/memory';
-import { RetentionManager } from './tiering';
-import type { BaseMemoryProvider } from './base';
-import { filterPII } from '../utils/pii';
 import { logger } from '../logger';
+import { MEMORY_KEYS, TIME } from '../constants';
+import type { BaseMemoryProvider } from './base';
 import {
-  createMetadata,
-  normalizeTags,
-  queryLatestContentByUserId,
-  queryByTypeAndGetContent,
-  queryByTypeAndMap,
-  getMemoryByType,
-  getRegisteredMemoryTypes,
-  atomicUpdateMetadata,
-} from './utils';
+  InsightCategory,
+  MemoryInsight,
+  InsightMetadata,
+  ContextualScope,
+} from '../types/memory';
+import { filterPII } from '../utils/pii';
+
+const INSIGHT_TTL_DAYS = 30;
 
 /**
- * Finds a similar memory item to prevent duplication.
- * Uses a simple Jaccard similarity based on keywords.
+ * Resolves the hierarchical scope identifier for query or storage.
  */
-async function findSimilarMemory(
-  base: BaseMemoryProvider,
-  scopeId: string,
-  category: InsightCategory | string,
-  content: string
-): Promise<MemoryInsight | null> {
-  try {
-    if (!content || typeof content !== 'string') return null;
-    const fullType = `MEMORY:${category.toString().toUpperCase()}`;
-    const items = await queryByTypeAndMap(
-      base,
-      fullType,
-      category as InsightCategory,
-      50,
-      undefined,
-      undefined,
-      scopeId
-    );
-
-    if (items.length === 0) return null;
-
-    const newKeywords = (content ?? '')
-      .toString()
-      .toLowerCase()
-      .split(/\W+/)
-      .filter((w) => w.length > 3);
-    for (const item of items) {
-      const oldKeywords = (item.content ?? '')
-        .toString()
-        .toLowerCase()
-        .split(/\W+/)
-        .filter((w) => w.length > 3);
-
-      if (newKeywords.length === 0 || oldKeywords.length === 0) continue;
-
-      const intersection = newKeywords.filter((w) => oldKeywords.includes(w));
-      const similarity = intersection.length / Math.max(newKeywords.length, oldKeywords.length);
-      if (similarity > 0.6) return item;
-    }
-  } catch (error: unknown) {
-    logger.warn('Similarity check failed', { error });
-  }
-  return null;
+function resolveScopeId(scope?: string | ContextualScope): string | undefined {
+  return typeof scope === 'string' ? scope : scope?.workspaceId;
 }
 
 /**
- * Shared implementation for adding granular records (Insights/Memories).
+ * Normalizes tags to ensure consistent searching.
  */
-async function addRecord(
+function normalizeTags(tags: string[] = []): string[] {
+  return Array.from(new Set(tags.map(t => t.toLowerCase().trim())));
+}
+
+/**
+ * Creates standardized metadata for a new insight.
+ */
+export function createMetadata(
+  partial: Partial<InsightMetadata> = {},
+  timestamp: string | number
+): InsightMetadata {
+  return {
+    category: (partial.category ?? InsightCategory.STRATEGIC_GAP) as InsightCategory | string,
+    confidence: partial.confidence || 5,
+    impact: partial.impact || 5,
+    complexity: partial.complexity || 5,
+    risk: partial.risk || 5,
+    urgency: partial.urgency || 5,
+    priority: partial.priority || 5,
+    sourceTraceId: partial.sourceTraceId || 'manual',
+    sourceSessionId: partial.sourceSessionId || 'manual',
+    expiresAt: partial.expiresAt || Math.floor((Date.now() + (INSIGHT_TTL_DAYS || 30) * TIME.MS_PER_DAY) / 1000),
+    hitCount: partial.hitCount || 0,
+    lastAccessed: partial.lastAccessed || (typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp),
+    lastValidatedAt: typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp,
+  };
+}
+
+/**
+ * Helper to query by type and map results to MemoryInsight[].
+ */
+export async function queryByTypeAndMap(
   base: BaseMemoryProvider,
-  baseCategory: 'MEMORY',
-  scopeId: string,
-  category: InsightCategory | string,
+  params: Record<string, any>
+): Promise<MemoryInsight[]> {
+  const items = await base.queryItems(params);
+  return items.map(item => ({
+    id: (item['userId'] as string) || 'unknown',
+    userId: item['userId'] as string,
+    timestamp: item['timestamp'] as string | number,
+    createdAt: item['createdAt'] as number | undefined,
+    type: (item['type'] as string) || 'MEMORY:INSIGHT',
+    content: (item['content'] as string) || '',
+    tags: (item['tags'] as string[]) || [],
+    metadata: (item['metadata'] as InsightMetadata) || { category: InsightCategory.SYSTEM_KNOWLEDGE },
+    workspaceId: item['workspaceId'] as string,
+  }));
+}
+
+/**
+ * Records a localized preference for a specific entity.
+ */
+export async function setPreference(
+  base: BaseMemoryProvider,
+  entityId: string, // e.g. USER#123
   content: string,
-  metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] },
-  workspaceId?: string
-): Promise<number | string> {
-  const { expiresAt } = await RetentionManager.getExpiresAt(baseCategory, scopeId);
-  const scrubbedContent = filterPII(content ?? '');
-  const fullType = `MEMORY:${category.toString().toUpperCase()}`;
-
-  // 1. Semantic Deduplication / Upsert
-  const existing = await findSimilarMemory(base, scopeId, category, scrubbedContent);
-  if (existing) {
-    await recordMemoryHit(base, existing.id || scopeId, existing.timestamp);
-    if (metadata?.tags || metadata?.priority) {
-      await refineMemory(base, existing.id || scopeId, existing.timestamp, undefined, {
-        priority: metadata?.priority,
-        // Tags are merged at the root level in refineMemory if we update it, but for now we update metadata
-      });
-    }
-    return existing.timestamp;
-  }
-
-  const timestamp = String(Date.now());
-
-  // 2. Register usage type
-  try {
-    await base.updateItem({
-      Key: { userId: 'SYSTEM#REGISTRY', timestamp: 0 },
-      UpdateExpression: 'ADD activeTypes :type',
-      ExpressionAttributeValues: { ':type': new Set([fullType]) },
-    });
-  } catch (error) {
-    // Registry update failure is non-fatal for memory persistence
-    logger.warn('Memory registry update failed', { error });
-  }
-
-  // 3. Insert flattened record
-  await base.putItem({
-    userId: scopeId,
-    timestamp,
-    createdAt: timestamp,
-    type: fullType,
-    orgId: metadata?.orgId,
-    tags: normalizeTags(metadata?.tags),
-    expiresAt,
-    content: scrubbedContent,
-    workspaceId,
-    metadata: createMetadata(metadata, timestamp),
-  });
-  return timestamp;
-}
-
-/**
- * Atomically increments the hit count and updates the lastAccessed timestamp.
- */
-export async function recordMemoryHit(
-  base: BaseMemoryProvider,
-  userId: string,
-  timestamp: number | string,
-  workspaceId?: string
-): Promise<void> {
-  const pk = base.getScopedUserId(userId, workspaceId);
-  try {
-    await base.updateItem({
-      Key: { userId: pk, timestamp },
-      UpdateExpression:
-        'SET metadata.hitCount = if_not_exists(metadata.hitCount, :zero) + :inc, metadata.lastAccessed = :now',
-      ExpressionAttributeValues: { ':zero': 0, ':inc': 1, ':now': Date.now() },
-      ConditionExpression: 'attribute_exists(userId)',
-    });
-  } catch (e) {
-    logger.warn(`Failed to record memory hit for ${pk}@${timestamp}`, e);
-  }
-}
-
-/**
- * Adds a tactical lesson.
- */
-export async function addLesson(
-  base: BaseMemoryProvider,
-  userId: string,
-  lesson: string,
   metadata?: Partial<InsightMetadata> & { tags?: string[] },
-  workspaceId?: string
-): Promise<void> {
-  const pk = base.getScopedUserId(userId, workspaceId);
-  const { expiresAt } = await RetentionManager.getExpiresAt('MEMORY', pk);
+  scope?: string | ContextualScope
+): Promise<string> {
   const timestamp = String(Date.now());
+  const pk = base.getScopedUserId(entityId, scope);
+  const workspaceId = resolveScopeId(scope);
+
+  const metadataObj = createMetadata({ ...metadata, category: InsightCategory.USER_PREFERENCE }, timestamp);
   await base.putItem({
     userId: pk,
     timestamp,
-    type: 'MEMORY:TACTICAL_LESSON',
-    tags: normalizeTags(metadata?.tags),
-    content: filterPII(lesson),
+    type: 'MEMORY:PREFERENCE',
+    tags: normalizeTags(['preference', ...(metadata?.tags ?? [])]),
+    content,
+    expiresAt: metadataObj.expiresAt,
     createdAt: parseInt(timestamp, 10),
-    expiresAt,
-    metadata: createMetadata(metadata, timestamp),
+    metadata: metadataObj,
     workspaceId,
   });
-}
 
-/**
- * Retrieves recent tactical lessons.
- */
-export async function getLessons(
-  base: BaseMemoryProvider,
-  userId: string,
-  workspaceId?: string
-): Promise<string[]> {
-  const pk = base.getScopedUserId(userId, workspaceId);
-  return queryLatestContentByUserId(base, pk, 10);
-}
-
-/**
- * Adds a system-wide lesson.
- */
-export async function addGlobalLesson(
-  base: BaseMemoryProvider,
-  lesson: string,
-  metadata?: Partial<InsightMetadata> & { tags?: string[] }
-): Promise<number | string> {
-  const timestamp = String(Date.now());
-  const { expiresAt } = await RetentionManager.getExpiresAt('LESSONS', 'SYSTEM#GLOBAL');
-  await base.putItem({
-    userId: 'SYSTEM#GLOBAL',
-    timestamp,
-    type: 'MEMORY:SYSTEM_LESSON',
-    tags: normalizeTags(metadata?.tags),
-    content: filterPII(lesson),
-    createdAt: parseInt(timestamp, 10),
-    expiresAt,
-    metadata: createMetadata(metadata, timestamp),
-  });
   return timestamp;
 }
 
 /**
- * Retrieves system-wide lessons.
- */
-export async function getGlobalLessons(
-  base: BaseMemoryProvider,
-  limit: number = 10
-): Promise<string[]> {
-  return queryByTypeAndGetContent(base, 'MEMORY:SYSTEM_LESSON', limit);
-}
-
-/**
- * Adds a new granular memory item.
- *
- * @param base - The base memory provider instance.
- * @param scopeId - The scope (e.g., userId or 'SYSTEM#GLOBAL').
- * @param category - The insight category.
- * @param content - The textual content.
- * @param metadata - Optional metadata.
- * @param workspaceId - Optional workspace identifier for isolation.
- * @returns A promise resolving to the record's timestamp.
+ * Adds a new granular memory item into the user or global scope.
  */
 export async function addMemory(
   base: BaseMemoryProvider,
@@ -240,276 +116,307 @@ export async function addMemory(
   category: InsightCategory | string,
   content: string,
   metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] },
-  workspaceId?: string
+  scope?: string | ContextualScope
 ): Promise<number | string> {
-  return addRecord(base, 'MEMORY', scopeId, category, content, metadata, workspaceId);
+  const timestamp = String(Date.now());
+  const pk = base.getScopedUserId(scopeId, scope);
+  const workspaceId = resolveScopeId(scope);
+
+  const categoryToUse = typeof category === 'string' ? category : (category ?? InsightCategory.SYSTEM_KNOWLEDGE);
+  const sanitizedContent = filterPII(content || '');
+
+  // 1. Check for similar memory to deduplicate (Atomic Similarity Boundary)
+  const existing = await base.queryItems({
+    KeyConditionExpression: 'userId = :pk',
+    ExpressionAttributeValues: { ':pk': pk }
+  });
+
+  const similar = existing.find(item => 
+    item.type === 'MEMORY:INSIGHT' && 
+    (item.metadata as any)?.category === categoryToUse &&
+    item.content === sanitizedContent
+  );
+
+  if (similar) {
+    logger.info(`[Memory] Deduplicated similar content for ${pk}`);
+    await recordMemoryHit(base, pk, String(similar.timestamp), scope);
+    return similar.timestamp as string;
+  }
+
+  // 2. Add new memory if no match found
+  const metadataObj = createMetadata({ 
+    ...metadata, 
+    category: categoryToUse 
+  }, timestamp);
+
+  await base.putItem({
+    userId: pk,
+    timestamp,
+    type: 'MEMORY:INSIGHT',
+    tags: normalizeTags(metadata?.tags),
+    content: sanitizedContent,
+    expiresAt: metadataObj.expiresAt,
+    createdAt: parseInt(timestamp, 10),
+    metadata: metadataObj,
+    workspaceId,
+  });
+
+  // 3. Register memory type in registry (Principle 13)
+  try {
+    await base.updateItem({
+      Key: { userId: 'SYSTEM#REGISTRY', timestamp: 0 },
+      UpdateExpression: 'ADD activeTypes :type',
+      ExpressionAttributeValues: { ':type': new Set([categoryToUse]) },
+    });
+  } catch (e) {
+    logger.warn(`Failed to update memory registry for ${pk}: ${e}`);
+  }
+
+  return timestamp;
 }
 
 /**
- * Searches for insights across personal, organizational, and global scopes.
- *
- * @param base - The base memory provider.
- * @param userId - Optional user ID to scope the search.
- * @param query - Search query string.
- * @param category - Optional category filter.
- * @param limit - Maximum number of results to return.
- * @param lastEvaluatedKey - Optional pagination key from a previous search.
- * @param tags - Optional tags to filter by.
- * @param orgId - Optional organization ID to include org-scoped insights.
- * @param workspaceId - Optional workspace identifier for isolation.
+ * Omni-Signature search implementation.
+ * Supports legacy positional and modern options-based queries.
  */
 export async function searchInsights(
   base: BaseMemoryProvider,
-  userId?: string,
-  query: string = '',
+  queryOrUserId?: string | { tags?: string[]; category?: InsightCategory; limit?: number; scope?: ContextualScope },
+  queryText?: string,
   category?: InsightCategory,
-  limit: number = 50,
+  limit?: number,
   lastEvaluatedKey?: Record<string, unknown>,
   tags?: string[],
   orgId?: string,
-  workspaceId?: string
+  scope?: string | ContextualScope
 ): Promise<{ items: MemoryInsight[]; lastEvaluatedKey?: Record<string, unknown> }> {
-  const items: MemoryInsight[] = [];
-  const normalizedTags = normalizeTags(tags ?? []);
-  const scopes: string[] = [];
+  // 1. Detect if using modern options-based signature
+  let resolvedUserId = '';
+  let resolvedQuery = '';
+  let resolvedTags = tags;
+  let resolvedCategory = category;
+  let resolvedLimit = limit || 50;
+  let resolvedScope = scope;
 
-  if (userId) {
-    scopes.push(base.getScopedUserId(userId, workspaceId));
-  }
-  if (orgId) {
-    scopes.push(base.getScopedUserId(`ORG#${orgId}`, workspaceId));
-  }
-  if (userId && !userId.startsWith('SYSTEM#')) {
-    scopes.push('SYSTEM#GLOBAL');
-  }
-
-  const fullType = `MEMORY:${category?.toUpperCase()}`;
-
-  if (!category) {
-    if (scopes.length === 0) return { items: [] };
-    for (const scope of scopes) {
-      const { items: scopeItems } = await base.queryItemsPaginated({
-        KeyConditionExpression: 'userId = :scope',
-        ExpressionAttributeValues: { ':scope': scope },
-        Limit: limit,
-        ScanIndexForward: false,
-      });
-      items.push(...mapToInsights(scopeItems as Record<string, unknown>[]));
-    }
-    return { items: items.slice(0, limit) };
+  if (queryOrUserId && typeof queryOrUserId === 'object' && !Array.isArray(queryOrUserId)) {
+    resolvedUserId = (queryOrUserId as any).userId || '';
+    resolvedQuery = (queryOrUserId as any).query || '';
+    resolvedTags = queryOrUserId.tags || tags;
+    resolvedCategory = queryOrUserId.category || category;
+    resolvedLimit = queryOrUserId.limit || limit || 50;
+    resolvedScope = queryOrUserId.scope || scope;
+  } else {
+    resolvedUserId = (queryOrUserId as string) || '';
+    resolvedQuery = queryText || '';
   }
 
-  // If no userId but category is provided, use TypeTimestampIndex to search all items
-  if (scopes.length === 0) {
-    const params: {
-      IndexName: string;
-      KeyConditionExpression: string;
-      ExpressionAttributeNames: Record<string, string>;
-      ExpressionAttributeValues: Record<string, unknown>;
-      Limit: number;
-      ScanIndexForward: boolean;
-      FilterExpression?: string;
-    } = {
-      IndexName: 'TypeTimestampIndex',
-      KeyConditionExpression: '#tp = :type',
-      ExpressionAttributeNames: { '#tp': 'type' },
-      ExpressionAttributeValues: { ':type': fullType },
-      Limit: limit,
-      ScanIndexForward: false,
-    };
+  const workspaceId = resolveScopeId(resolvedScope);
 
-    if (workspaceId) {
-      params.FilterExpression = 'workspaceId = :workspaceId';
-      params.ExpressionAttributeValues[':workspaceId'] = workspaceId;
-    }
+  // 2. Build DynamoDB Query Parameters
+  const params: Record<string, any> = {
+    ExpressionAttributeNames: { '#tp': 'type' },
+    ExpressionAttributeValues: { ':type': 'MEMORY:INSIGHT' },
+  };
 
-    if (query && query !== '*' && query !== '') {
-      params.FilterExpression = params.FilterExpression
-        ? `${params.FilterExpression} AND contains(content, :query)`
-        : 'contains(content, :query)';
-      params.ExpressionAttributeValues[':query'] = query;
-    }
+  const pk = base.getScopedUserId(resolvedUserId || 'SYSTEM#GLOBAL', resolvedScope);
 
-    const { items: allItems } = await base.queryItemsPaginated(params);
-    let mapped = mapToInsights(allItems as Record<string, unknown>[]);
-
-    if (normalizedTags.length > 0) {
-      mapped = mapped.filter((item) => normalizedTags.some((tag) => item.tags?.includes(tag)));
-    }
-
-    return { items: mapped.slice(0, limit) };
+  if (resolvedUserId) {
+    params.IndexName = 'UserInsightIndex';
+    params.KeyConditionExpression = '#uid = :userId AND #tp = :type';
+    params.ExpressionAttributeNames['#uid'] = 'userId';
+    params.ExpressionAttributeValues[':userId'] = pk;
+  } else if (resolvedCategory) {
+    params.IndexName = 'TypeTimestampIndex';
+    params.KeyConditionExpression = '#tp = :type';
+    // When no userId, we rely on category filter later or GSI if we had TypeCategoryIndex
+  } else {
+    // Global fallback
+    const pk = base.getScopedUserId('SYSTEM#GLOBAL', resolvedScope);
+    params.KeyConditionExpression = 'userId = :pk AND #tp = :type';
+    params.ExpressionAttributeValues[':pk'] = pk;
   }
 
-  for (const scope of scopes) {
-    const params: {
-      IndexName: string;
-      KeyConditionExpression: string;
-      ExpressionAttributeNames: Record<string, string>;
-      ExpressionAttributeValues: Record<string, unknown>;
-      Limit: number;
-      ScanIndexForward: boolean;
-      FilterExpression?: string;
-    } = {
-      IndexName: 'UserInsightIndex',
-      KeyConditionExpression: '#uid = :userId AND #tp = :type',
-      ExpressionAttributeNames: { '#uid': 'userId', '#tp': 'type' },
-      ExpressionAttributeValues: { ':userId': scope, ':type': fullType },
-      Limit: limit,
-      ScanIndexForward: false,
-    };
-
-    if (query && query !== '*' && query !== '') {
-      params.FilterExpression = 'contains(content, :query)';
-      params.ExpressionAttributeValues[':query'] = query;
-    }
-
-    const { items: scopeItems } = await base.queryItemsPaginated(params);
-    let mapped = mapToInsights(scopeItems as Record<string, unknown>[]);
-
-    if (normalizedTags.length > 0) {
-      mapped = mapped.filter((item) => normalizedTags.some((tag) => item.tags?.includes(tag)));
-    }
-
-    items.push(...mapped);
-    if (items.length >= limit) break;
+  if (resolvedQuery && resolvedQuery !== '*') {
+    params.FilterExpression = 'contains(content, :query)';
+    params.ExpressionAttributeValues[':query'] = resolvedQuery;
   }
 
-  return { items: items.slice(0, limit) };
-}
+  if (resolvedLimit) params.Limit = resolvedLimit;
+  if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
 
-/**
- * Helper to map DB items to MemoryInsight objects with backward compatibility.
- */
-function mapToInsights(items: Record<string, unknown>[]): MemoryInsight[] {
-  return items.map((item) => {
-    const timestamp = (item.timestamp as number | string) || Date.now();
-    const metadataRaw = (item.metadata as Partial<InsightMetadata>) || {};
+  // 3. Execute Query (Hierarchical fallback if needed)
+  let items: MemoryInsight[] = [];
+  let nextKey: Record<string, unknown> | undefined;
 
-    const tags =
-      (item.tags as string[]) ||
-      (metadataRaw as Record<string, unknown>).tags ||
-      (metadataRaw as Record<string, unknown>).contextualKeywords;
-    const orgId = ((item.orgId as string) || (metadataRaw as Record<string, unknown>).orgId) as
-      | string
-      | undefined;
-    const userId = ((item.userId as string) || (metadataRaw as Record<string, unknown>).userId) as
-      | string
-      | undefined;
-    const createdAt = ((item.createdAt as number) ||
-      (metadataRaw as Record<string, unknown>).createdAt ||
-      (typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp)) as number;
+  // If orgId or userId provided, we might search multiple scopes
+  const searchScopes = [pk];
+  if (orgId && !resolvedUserId) searchScopes.push(base.getScopedUserId(`ORG#${orgId}`, resolvedScope));
+  if (!resolvedUserId && pk !== base.getScopedUserId('SYSTEM#GLOBAL')) searchScopes.push(base.getScopedUserId('SYSTEM#GLOBAL', resolvedScope));
 
-    return {
-      id: (item.id || item.userId) as string,
-      content: item.content as string,
-      timestamp,
-      orgId,
-      userId,
-      tags: normalizeTags(tags),
-      createdAt,
-      metadata: createMetadata(metadataRaw, timestamp),
-    };
-  });
-}
+  if (resolvedUserId && orgId) {
+     // Specific hierarchical search: User -> Org -> Global
+     const results = await Promise.all([
+       queryByTypeAndMap(base, { ...params, ExpressionAttributeValues: { ...params.ExpressionAttributeValues, ':userId': base.getScopedUserId(resolvedUserId, resolvedScope) } }),
+       queryByTypeAndMap(base, { ...params, ExpressionAttributeValues: { ...params.ExpressionAttributeValues, ':userId': base.getScopedUserId(`ORG#${orgId}`, resolvedScope) } }),
+       queryByTypeAndMap(base, { ...params, ExpressionAttributeValues: { ...params.ExpressionAttributeValues, ':userId': base.getScopedUserId('SYSTEM#GLOBAL', resolvedScope) } }),
+     ]);
+     items = results.flatMap(r => r);
+  } else {
+     items = await queryByTypeAndMap(base, params);
+  }
 
-/**
- * Retrieves memory items with low utilization.
- */
-export async function getLowUtilizationMemory(
-  base: BaseMemoryProvider,
-  limit: number = 20
-): Promise<Record<string, unknown>[]> {
-  const registeredTypes = await getRegisteredMemoryTypes(base);
-  const now = Date.now();
-  const STALE_THRESHOLD = 14 * 24 * 60 * 60 * 1000;
-
-  const filteredTypes = registeredTypes.filter((type) => type.startsWith('MEMORY:'));
-  const results = await Promise.all(filteredTypes.map((type) => getMemoryByType(base, type, 50)));
-
-  const staleItems = results.flat().filter((item) => {
-    const meta = item.metadata as InsightMetadata;
-    const itemTimestamp =
-      typeof item.timestamp === 'string'
-        ? parseInt(item.timestamp, 10)
-        : (item.timestamp as number);
-    return (
-      meta &&
-      (meta.hitCount || 0) === 0 &&
-      now - (meta.lastAccessed || itemTimestamp || now) > STALE_THRESHOLD
+  // 4. Application-level filtering
+  let filtered = items;
+  if (resolvedTags && resolvedTags.length > 0) {
+    const searchTags = normalizeTags(resolvedTags);
+    filtered = items.filter(item => 
+      searchTags.some(t => (item.tags || []).includes(t))
     );
+  }
+
+  if (resolvedCategory) {
+    filtered = filtered.filter(item => item.metadata?.category === resolvedCategory);
+  }
+
+  return { 
+    items: workspaceId ? filtered.filter(f => f.workspaceId === workspaceId) : filtered, 
+    lastEvaluatedKey: nextKey 
+  };
+}
+
+/**
+ * Adds a tactical lesson
+ */
+export async function addLesson(
+  base: BaseMemoryProvider,
+  userId: string,
+  content: string,
+  metadata?: Partial<InsightMetadata>,
+  scope?: string | ContextualScope
+): Promise<void> {
+  const timestamp = String(Date.now());
+  const pk = base.getScopedUserId(`USER#${userId}`, scope);
+  const workspaceId = resolveScopeId(scope);
+
+  const metadataObj = createMetadata({ ...metadata, category: InsightCategory.TACTICAL_LESSON }, timestamp);
+
+  await base.putItem({
+    userId: pk,
+    timestamp,
+    type: 'MEMORY:INSIGHT',
+    tags: normalizeTags(['lesson']),
+    content,
+    expiresAt: metadataObj.expiresAt,
+    createdAt: parseInt(timestamp, 10),
+    metadata: metadataObj,
+    workspaceId,
+  });
+}
+
+/**
+ * Adds a system-wide lesson that benefits ALL users and sessions.
+ */
+export async function addGlobalLesson(
+  base: BaseMemoryProvider,
+  lesson: string,
+  metadata?: Partial<InsightMetadata>
+): Promise<number | string> {
+  const timestamp = String(Date.now());
+  const pk = base.getScopedUserId('SYSTEM#GLOBAL');
+
+  const metadataObj = createMetadata({ ...metadata, category: InsightCategory.SYSTEM_KNOWLEDGE }, timestamp);
+
+  await base.putItem({
+    userId: pk,
+    timestamp,
+    type: 'MEMORY:INSIGHT',
+    tags: normalizeTags(['global', 'lesson']),
+    content: lesson,
+    expiresAt: metadataObj.expiresAt,
+    createdAt: parseInt(timestamp, 10),
+    metadata: metadataObj,
   });
 
-  return staleItems
-    .sort((a, b) => {
-      const aTs =
-        typeof a.timestamp === 'string' ? parseInt(a.timestamp, 10) : (a.timestamp as number);
-      const bTs =
-        typeof b.timestamp === 'string' ? parseInt(b.timestamp, 10) : (b.timestamp as number);
-      return aTs - bTs;
-    })
-    .slice(0, limit);
+  return timestamp;
 }
 
 /**
- * Records a failure pattern.
+ * Retrieves recent tactical lessons
  */
-export async function recordFailurePattern(
+export async function getLessons(
   base: BaseMemoryProvider,
-  scopeId: string,
-  content: string,
-  metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] },
-  workspaceId?: string
-): Promise<number | string> {
-  return addMemory(base, scopeId, InsightCategory.FAILURE_PATTERN, content, metadata, workspaceId);
+  userId: string,
+  scope?: string | ContextualScope
+): Promise<string[]> {
+  const pk = base.getScopedUserId(`USER#${userId}`, scope);
+
+  const items = await queryByTypeAndMap(base, {
+    KeyConditionExpression: 'userId = :pk AND #type = :type',
+    ExpressionAttributeNames: { '#type': 'type' },
+    ExpressionAttributeValues: {
+      ':pk': pk,
+      ':type': 'MEMORY:INSIGHT'
+    }
+  });
+
+  return items
+    .filter(i => i.metadata?.category === InsightCategory.TACTICAL_LESSON)
+    .map(i => i.content);
 }
 
 /**
- * Retrieves failure patterns.
+ * Retrieves all lessons from the system.
+ */
+export async function getGlobalLessons(
+  base: BaseMemoryProvider,
+  limit: number = 20,
+  scope?: string | ContextualScope
+): Promise<string[]> {
+  const pk = base.getScopedUserId('SYSTEM#GLOBAL', scope);
+
+  const items = await queryByTypeAndMap(base, {
+    KeyConditionExpression: 'userId = :pk AND #type = :type',
+    ExpressionAttributeNames: { '#type': 'type' },
+    ExpressionAttributeValues: {
+      ':pk': pk,
+      ':type': 'MEMORY:INSIGHT'
+    }, Limit: limit
+  });
+
+  return items
+    .filter(i => i.metadata?.category === InsightCategory.SYSTEM_KNOWLEDGE)
+    .slice(0, limit)
+    .map(i => i.content);
+}
+
+/**
+ * Retrieves failure patterns to identify recurring systemic issues.
  */
 export async function getFailurePatterns(
   base: BaseMemoryProvider,
-  scopeId: string,
-  context: string = '*',
-  limit: number = 5,
-  workspaceId?: string
+  limit: number = 10,
+  scope?: string | ContextualScope
 ): Promise<MemoryInsight[]> {
-  const { items } = await searchInsights(
-    base,
-    scopeId,
-    context,
-    InsightCategory.FAILURE_PATTERN,
-    limit,
-    undefined,
-    undefined,
-    undefined,
-    workspaceId
-  );
+  const { items } = await searchInsights(base, { category: InsightCategory.FAILURE_PATTERN, limit }, undefined, undefined, limit, undefined, undefined, undefined, scope);
   return items;
 }
 
 /**
- * Records a failed strategic plan.
- *
- * @param base - The base memory provider.
- * @param planHash - Unique hash identifying the plan.
- * @param planContent - The content of the failed plan.
- * @param gapIds - IDs of gaps associated with the plan.
- * @param failureReason - Description of why the plan failed.
- * @param metadata - Optional metadata including org scope and tags.
- * @param workspaceId - Optional workspace identifier for isolation.
+ * Records a recurring failure pattern for metabolic analysis.
  */
-export async function recordFailedPlan(
+export async function recordFailurePattern(
   base: BaseMemoryProvider,
   planHash: string,
   planContent: string,
   gapIds: string[],
   failureReason: string,
   metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] },
-  workspaceId?: string
-): Promise<number | string> {
+  scope?: string | ContextualScope
+): Promise<string | number> {
   const timestamp = String(Date.now());
   const content = JSON.stringify({ planHash, planContent, gapIds, failureReason });
-  const pk = base.getScopedUserId('SYSTEM#GLOBAL', workspaceId);
+  const pk = base.getScopedUserId('SYSTEM#GLOBAL', scope);
+  const workspaceId = resolveScopeId(scope);
 
   await base.putItem({
     userId: pk,
@@ -525,27 +432,8 @@ export async function recordFailedPlan(
 }
 
 /**
- * Retrieves previously failed plans.
- */
-export async function getFailedPlans(
-  base: BaseMemoryProvider,
-  limit: number = 10,
-  workspaceId?: string
-): Promise<MemoryInsight[]> {
-  return queryByTypeAndMap(
-    base,
-    'MEMORY:FAILURE_PATTERN',
-    InsightCategory.FAILURE_PATTERN,
-    limit,
-    'contains(tags, :failed)',
-    { ':failed': 'failed_plan' },
-    workspaceId
-  );
-}
-
-/**
- * Refines or updates a memory item.
- * Uses atomic updates to prevent data loss under concurrent activity.
+ * Refines an existing memory item atomically using UpdateCommand.
+ * Scoped to Principle 13 (Atomic State Integrity).
  */
 export async function refineMemory(
   base: BaseMemoryProvider,
@@ -553,36 +441,114 @@ export async function refineMemory(
   timestamp: number | string,
   content?: string,
   metadata?: Partial<InsightMetadata> & { tags?: string[] },
-  workspaceId?: string
+  scope?: string | ContextualScope
 ): Promise<void> {
-  // If tags are provided, we need to handle the merge atomically.
-  // DynamoDB supports ADDing to a set, but not MERGEing lists directly in SET easily without duplicates
-  // since our normalizeTags ensures unique/sorted tags, we'll use a simple atomic update for the rest.
-  // Note: For now, if tags are provided, we overwrite or the caller must provide the full set.
-  // To keep it truly atomic for specific fields:
-  await atomicUpdateMetadata(
-    base,
-    userId,
-    timestamp,
-    {
-      ...metadata,
-      content: content ? filterPII(content) : undefined,
-    },
-    workspaceId
-  );
+  const pk = base.getScopedUserId(userId, scope);
+  const now = Date.now();
+
+  const updateExpr: string[] = ['SET updatedAt = :now'];
+  const attrNames: Record<string, string> = { '#content': 'content' };
+  const attrValues: Record<string, any> = { ':now': now };
+
+  if (metadata) {
+    Object.entries(metadata).forEach(([key, val]) => {
+      if (key === 'tags' && Array.isArray(val)) {
+        updateExpr.push('#tags = :tags');
+        attrNames['#tags'] = 'tags';
+        attrValues[':tags'] = normalizeTags(val);
+      } else if (key !== 'tags') {
+        const metaKey = `#${key}`;
+        const valKey = `:${key}`;
+        updateExpr.push(`metadata.${metaKey} = ${valKey}`);
+        attrNames[metaKey] = key;
+        attrValues[valKey] = val;
+      }
+    });
+  }
+
+  if (content !== undefined) {
+    updateExpr.push('#content = :content');
+    attrNames['#content'] = 'content';
+    attrValues[':content'] = filterPII(content);
+  }
+
+  await base.updateItem({
+    Key: { userId: pk, timestamp },
+    UpdateExpression: updateExpr.join(', '),
+    ExpressionAttributeNames: attrNames,
+    ExpressionAttributeValues: attrValues,
+    ConditionExpression: 'attribute_exists(userId)',
+  });
+}
+/**
+ * Atomically increments hit count and updates lastAccessed timestamp.
+ */
+export async function recordMemoryHit(
+  base: BaseMemoryProvider,
+  userId: string,
+  timestamp: string | number,
+  scope?: string | ContextualScope
+): Promise<void> {
+  const pk = base.getScopedUserId(userId, scope);
+  const now = Date.now();
+
+  try {
+    await base.updateItem({
+      Key: { userId: pk, timestamp },
+      UpdateExpression:
+        'SET metadata.hitCount = if_not_exists(metadata.hitCount, :zero) + :inc, metadata.lastAccessed = :now',
+      ExpressionAttributeValues: {
+        ':zero': 0,
+        ':inc': 1,
+        ':now': now,
+      },
+      ConditionExpression: 'attribute_exists(userId)',
+    });
+  } catch (error) {
+    logger.warn(`Failed to record memory hit for ${pk}: ${error}`);
+  }
 }
 
 /**
- * Updates metadata for a specific insight, merging with existing metadata.
- * Uses atomic DynamoDB update to prevent race conditions.
+ * Retrieves memory items with low utilization for metabolic analysis.
+ * Queries the SYSTEM#REGISTRY for all registered memory types, then fetches
+ * items by type and filters by stale access patterns.
  */
-export async function updateInsightMetadata(
+export async function getLowUtilizationMemory(
   base: BaseMemoryProvider,
-  userId: string,
-  timestamp: number | string,
-  metadata: Partial<InsightMetadata>,
-  workspaceId?: string
-): Promise<void> {
-  const pk = base.getScopedUserId(userId, workspaceId);
-  await atomicUpdateMetadata(base, pk, timestamp, metadata, workspaceId);
+  limit: number = 20
+): Promise<Record<string, unknown>[]> {
+  const staleThresholdMs = 14 * 24 * 60 * 60 * 1000; // 14 days
+  const now = Date.now();
+
+  // 1. Fetch registered memory types from the registry
+  const registryItems = await base.queryItems({
+    KeyConditionExpression: 'userId = :pk AND #ts = :zero',
+    ExpressionAttributeNames: { '#ts': 'timestamp' },
+    ExpressionAttributeValues: { ':pk': 'SYSTEM#REGISTRY', ':zero': 0 },
+  });
+  const types: string[] = registryItems[0]?.activeTypes as string[] ?? [];
+
+  if (types.length === 0) return [];
+
+  // 2. For each type, query items and collect stale ones
+  const allItems: Record<string, unknown>[] = [];
+  for (const type of types) {
+    const typeItems = await base.queryItems({
+      IndexName: 'TypeTimestampIndex',
+      KeyConditionExpression: '#tp = :type',
+      ExpressionAttributeNames: { '#tp': 'type' },
+      ExpressionAttributeValues: { ':type': type },
+      Limit: limit,
+    });
+    allItems.push(...(typeItems as Record<string, unknown>[]));
+  }
+
+  // 3. Filter: hitCount === 0 and lastAccessed older than stale threshold
+  return allItems.filter((item) => {
+    const meta = item['metadata'] as Record<string, unknown> | undefined;
+    const hitCount = (meta?.['hitCount'] as number) ?? 0;
+    const lastAccessed = (meta?.['lastAccessed'] as number) ?? 0;
+    return hitCount === 0 && now - lastAccessed > staleThresholdMs;
+  });
 }

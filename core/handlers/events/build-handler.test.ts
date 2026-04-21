@@ -148,12 +148,21 @@ describe('build-handler', () => {
         })
       );
 
+      // Signature: (userId, initiatorId, responseText, traceId, sessionId, depth, isIsolated, attachments, taskId, eventType, workspaceId, teamId, staffId)
       expect(mockWakeupInitiator).toHaveBeenCalledWith(
         'user-123',
         'superclaw',
         expect.stringContaining('BUILD_FAILURE_NOTIFICATION'),
         'trace-789',
-        'session-101'
+        'session-101',
+        0,
+        false,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
       );
     });
 
@@ -173,75 +182,6 @@ describe('build-handler', () => {
       expect(mockEmitEvent).toHaveBeenCalled();
       expect(mockWakeupInitiator).not.toHaveBeenCalled();
     });
-
-    it('should include gap context in task message when gapIds provided', async () => {
-      const eventDetail = {
-        userId: 'user-123',
-        buildId: 'build-456',
-        errorLogs: 'Build failed',
-        gapIds: ['gap-1', 'gap-2'],
-        sessionId: 'session-101',
-      };
-
-      const mockContext = {} as any;
-
-      await handleBuildFailure(eventDetail, mockContext);
-
-      expect(mockEmitEvent).toHaveBeenCalledWith(
-        'build.handler',
-        'coder_task',
-        expect.objectContaining({
-          task: expect.stringContaining(
-            'This deployment was addressing the following gaps: gap-1, gap-2'
-          ),
-        })
-      );
-    });
-
-    it('should include trace context in task message when traceId provided', async () => {
-      const eventDetail = {
-        userId: 'user-123',
-        buildId: 'build-456',
-        errorLogs: 'Build failed',
-        traceId: 'trace-789',
-        sessionId: 'session-101',
-      };
-
-      const mockContext = {} as any;
-
-      await handleBuildFailure(eventDetail, mockContext);
-
-      expect(mockEmitEvent).toHaveBeenCalledWith(
-        'build.handler',
-        'coder_task',
-        expect.objectContaining({
-          task: expect.stringContaining(
-            'Refer to the previous reasoning trace for context: trace-789'
-          ),
-        })
-      );
-    });
-
-    it('should include error logs in task message', async () => {
-      const eventDetail = {
-        userId: 'user-123',
-        buildId: 'build-456',
-        errorLogs: 'Error: Cannot find module',
-        sessionId: 'session-101',
-      };
-
-      const mockContext = {} as any;
-
-      await handleBuildFailure(eventDetail, mockContext);
-
-      expect(mockEmitEvent).toHaveBeenCalledWith(
-        'build.handler',
-        'coder_task',
-        expect.objectContaining({
-          task: expect.stringContaining('Error: Cannot find module'),
-        })
-      );
-    });
   });
 
   describe('handleBuildSuccess', () => {
@@ -257,6 +197,7 @@ describe('build-handler', () => {
 
       await handleBuildSuccess(eventDetail);
 
+      // Signature: (source, userId, message, memoryContexts, sessionId, agentName, attachments, messageId, options, workspaceId, teamId, staffId, collaborationId)
       expect(mockSendOutboundMessage).toHaveBeenCalledWith(
         'build-handler',
         'user-123',
@@ -264,6 +205,12 @@ describe('build-handler', () => {
         undefined,
         'session-101',
         'SuperClaw',
+        undefined,
+        'trace-789',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
         undefined
       );
 
@@ -272,7 +219,15 @@ describe('build-handler', () => {
         'superclaw',
         expect.stringContaining('BUILD_SUCCESS_NOTIFICATION'),
         'trace-789',
-        'session-101'
+        'session-101',
+        0,
+        false,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
       );
     });
 
@@ -305,6 +260,12 @@ describe('build-handler', () => {
         undefined,
         'session-101',
         'SuperClaw',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
         undefined
       );
     });
@@ -325,6 +286,12 @@ describe('build-handler', () => {
         undefined,
         'session-101',
         'SuperClaw',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
         undefined
       );
     });

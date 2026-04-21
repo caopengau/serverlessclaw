@@ -34,6 +34,8 @@ export async function sendOutboundMessage(
     type?: 'primary' | 'secondary' | 'danger';
   }[],
   workspaceId?: string,
+  teamId?: string,
+  staffId?: string,
   collaborationId?: string
 ): Promise<void> {
   // Normalize userId to base form for memory syncing and event routing
@@ -48,6 +50,8 @@ export async function sendOutboundMessage(
       memoryContexts: memoryContexts ?? [baseUserId],
       sessionId,
       workspaceId,
+      teamId,
+      staffId,
       agentName,
       attachments,
       messageId,

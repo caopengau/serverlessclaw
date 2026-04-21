@@ -33,6 +33,12 @@ export interface AgentReputation {
   rollingWindow: number;
   /** Composite reputation score (0.0 to 1.0). */
   score: number;
+  /** Detailed breakdown of failure types by count. */
+  errorDistribution: Record<string, number>;
+  /** ID of the most recent trace processed by this agent. */
+  lastTraceId?: string;
+  /** Current system prompt hash for version tracking. */
+  promptHash?: string;
 }
 
 /**
@@ -45,8 +51,12 @@ export interface ReputationUpdatePayload {
   success: boolean;
   /** Duration of the task in milliseconds. */
   durationMs: number;
+  /** Optional trace ID associated with this update. */
+  traceId?: string;
   /** Optional error message if the task failed. */
   error?: string;
   /** Optional context about the task complexity. */
   taskComplexity?: number;
+  /** Optional system prompt hash for version tracking. */
+  promptHash?: string;
 }

@@ -173,11 +173,26 @@ export function useChatMessages(
 
   const sendMessage = async (
     text: string,
-    agentId?: string,
-    collaborationId?: string,
-    pageContext?: PageContextData,
-    profile?: string
+    options: {
+      agentId?: string;
+      collaborationId?: string;
+      pageContext?: PageContextData;
+      profile?: string;
+      isIsolated?: boolean;
+      source?: string;
+      overrideConfig?: any;
+    } = {}
   ) => {
+    const { 
+      agentId, 
+      collaborationId, 
+      pageContext, 
+      profile, 
+      isIsolated = false, 
+      source,
+      overrideConfig 
+    } = options;
+
     if (!text.trim() && attachments.length === 0) return;
     if (isPostInFlight.current) return;
 
@@ -243,6 +258,9 @@ export function useChatMessages(
           profile,
           agentId,
           collaborationId,
+          isIsolated,
+          source,
+          overrideConfig,
         }),
       });
 

@@ -36,19 +36,25 @@ describe('Agent handoff (human control) branches', () => {
     vi.clearAllMocks();
   });
 
-  it('process returns human-control response and ends trace', async () => {
-    const mockMemory: any = {
-      addMessage: vi.fn().mockResolvedValue(undefined),
-      getHistory: vi.fn().mockResolvedValue([]),
-      getDistilledMemory: vi.fn().mockResolvedValue(''),
-      getLessons: vi.fn().mockResolvedValue([]),
-      searchInsights: vi.fn().mockResolvedValue({ items: [] }),
-      getGlobalLessons: vi.fn().mockResolvedValue([]),
-      getSummary: vi.fn().mockResolvedValue(null),
-      updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
-    };
+  const createMockMemory = () => ({
+    addMessage: vi.fn().mockResolvedValue(undefined),
+    getHistory: vi.fn().mockResolvedValue([]),
+    getDistilledMemory: vi.fn().mockResolvedValue(''),
+    getLessons: vi.fn().mockResolvedValue([]),
+    getGlobalLessons: vi.fn().mockResolvedValue([]),
+    searchInsights: vi.fn().mockResolvedValue({ items: [] }),
+    getSummary: vi.fn().mockResolvedValue(null),
+    updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
+    getScopedUserId: vi.fn().mockImplementation((uid: string) => uid),
+  } as any);
 
-    const mockProvider: any = {};
+  const createMockProvider = () => ({
+    getCapabilities: vi.fn().mockResolvedValue({}),
+  } as any);
+
+  it('process returns human-control response and ends trace', async () => {
+    const mockMemory = createMockMemory();
+    const mockProvider = createMockProvider();
 
     const cfg = {
       id: 'test-agent',
@@ -57,7 +63,7 @@ describe('Agent handoff (human control) branches', () => {
       enabled: true,
     } as any;
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'sys-prompt', cfg);
+    const agent = new Agent(mockMemory, mockProvider, [], cfg);
 
     const result = await agent.process('user-1', 'Hello', {});
 
@@ -71,18 +77,8 @@ describe('Agent handoff (human control) branches', () => {
   });
 
   it('stream yields human-control chunk then ends trace', async () => {
-    const mockMemory: any = {
-      addMessage: vi.fn().mockResolvedValue(undefined),
-      getHistory: vi.fn().mockResolvedValue([]),
-      getDistilledMemory: vi.fn().mockResolvedValue(''),
-      getLessons: vi.fn().mockResolvedValue([]),
-      searchInsights: vi.fn().mockResolvedValue({ items: [] }),
-      getGlobalLessons: vi.fn().mockResolvedValue([]),
-      getSummary: vi.fn().mockResolvedValue(null),
-      updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
-    };
-
-    const mockProvider: any = {};
+    const mockMemory = createMockMemory();
+    const mockProvider = createMockProvider();
 
     const cfg = {
       id: 'test-agent',
@@ -91,7 +87,7 @@ describe('Agent handoff (human control) branches', () => {
       enabled: true,
     } as any;
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'sys-prompt', cfg);
+    const agent = new Agent(mockMemory, mockProvider, [], cfg);
 
     const gen = agent.stream('user-1', 'Hello', {});
     const first = await gen.next();

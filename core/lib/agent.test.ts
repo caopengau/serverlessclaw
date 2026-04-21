@@ -97,7 +97,10 @@ describe('Agent Trace Propagation', () => {
       updateGapStatus: vi.fn().mockResolvedValue(undefined),
       getSummary: vi.fn().mockResolvedValue(null),
       updateSummary: vi.fn().mockResolvedValue(undefined),
-      getScopedUserId: vi.fn().mockImplementation((uid, wid) => (wid ? `${uid}#${wid}` : uid)),
+      getScopedUserId: vi.fn().mockImplementation((uid, scope) => {
+        const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
+        return workspaceId ? `${uid}#${workspaceId}` : uid;
+      }),
     } as unknown as IMemory;
 
     mockProvider = {
@@ -164,7 +167,7 @@ describe('Agent Trace Propagation', () => {
     mockGetNodeId.mockReturnValue('node-456');
     mockGetParentId.mockReturnValue('parent-789');
 
-    const agent = new Agent(mockMemory, mockProvider, [mockTool], 'System prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [mockTool], {
       id: 'test-agent',
       name: 'Test Agent',
       enabled: true,
@@ -234,7 +237,7 @@ describe('Agent Trace Propagation', () => {
         messageId: 'test-msg',
       });
 
-    const agent = new Agent(mockMemory, mockProvider, [mockTool], 'System', {
+    const agent = new Agent(mockMemory, mockProvider, [mockTool], {
       id: 'test',
       name: 'Test',
       enabled: true,
@@ -277,7 +280,7 @@ describe('Agent Trace Propagation', () => {
       });
 
     // No tools provided to agent, but provider requests code_interpreter
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test',
       name: 'Test',
       enabled: true,
@@ -322,7 +325,7 @@ describe('Agent Trace Propagation', () => {
       messageId: 'test-msg',
     });
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test',
       name: 'Test',
       enabled: true,
@@ -344,7 +347,7 @@ describe('Agent Trace Propagation', () => {
         role: MessageRole.USER,
         attachments,
       }),
-      undefined
+      expect.any(Object)
     );
 
     // Check provider call
@@ -376,7 +379,7 @@ describe('Agent Trace Propagation', () => {
         messageId: 'test-msg',
       });
 
-      const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+      const agent = new Agent(mockMemory, mockProvider, [], {
         id: 'test-agent',
         name: 'Test Agent',
         enabled: true,
@@ -424,7 +427,7 @@ describe('Agent Trace Propagation', () => {
         supportsStructuredOutput: true,
       });
 
-      const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+      const agent = new Agent(mockMemory, mockProvider, [], {
         id: 'test-agent',
         name: 'Test Agent',
         enabled: true,
@@ -482,7 +485,7 @@ describe('Agent Trace Propagation', () => {
         supportsStructuredOutput: true,
       });
 
-      const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+      const agent = new Agent(mockMemory, mockProvider, [], {
         id: 'test-agent',
         name: 'Test Agent',
         enabled: true,
@@ -518,7 +521,10 @@ describe('Agent Trace Propagation', () => {
       mockMemory = {
         getHistory: vi.fn().mockResolvedValue([]),
         addMessage: vi.fn(),
-        getScopedUserId: vi.fn().mockImplementation((uid, wid) => (wid ? `${uid}#${wid}` : uid)),
+        getScopedUserId: vi.fn().mockImplementation((uid, scope) => {
+          const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
+          return workspaceId ? `${uid}#${workspaceId}` : uid;
+        }),
         getDistilledMemory: vi.fn().mockResolvedValue(''),
         getLessons: vi.fn().mockResolvedValue([]),
         getGlobalLessons: vi.fn().mockResolvedValue([]),
@@ -536,7 +542,7 @@ describe('Agent Trace Propagation', () => {
     });
 
     it('should trigger proactive smart warmup at depth 0 in Lambda environment', async () => {
-      const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+      const agent = new Agent(mockMemory, mockProvider, [], {
         id: 'test',
         name: 'Test',
         enabled: true,
@@ -561,7 +567,7 @@ describe('Agent Trace Propagation', () => {
     });
 
     it('should NOT trigger proactive smart warmup when depth > 0', async () => {
-      const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+      const agent = new Agent(mockMemory, mockProvider, [], {
         id: 'test',
         name: 'Test',
         enabled: true,

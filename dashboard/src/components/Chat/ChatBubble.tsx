@@ -99,7 +99,9 @@ export default function ChatBubble() {
     e.preventDefault();
     if (!input.trim() && attachments.length === 0) return;
     
-    sendMessage(input, undefined, undefined, attachContext ? (pageContext || undefined) : undefined);
+    sendMessage(input, {
+      pageContext: attachContext ? (pageContext || undefined) : undefined
+    });
     setInput('');
   };
 

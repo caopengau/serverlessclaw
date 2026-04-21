@@ -16,7 +16,15 @@ export class PolicyValidator {
     resource: string,
     action: string,
     tier: SafetyTier,
-    context?: { traceId?: string; userId?: string; toolName?: string; agentId?: string }
+    context?: {
+      traceId?: string;
+      userId?: string;
+      toolName?: string;
+      agentId?: string;
+      workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
+    }
   ): Promise<SafetyEvaluationResult> {
     // Check blocked paths first
     if (policy.blockedFilePaths) {
@@ -31,7 +39,10 @@ export class PolicyValidator {
             `Resource '${resource}' matches blocked pattern '${pattern}'`,
             'blocked',
             context?.traceId,
-            context?.userId
+            context?.userId,
+            context?.workspaceId,
+            context?.teamId,
+            context?.staffId
           );
           return {
             allowed: false,
@@ -61,7 +72,10 @@ export class PolicyValidator {
           `Resource '${resource}' not in allowed paths`,
           'blocked',
           context?.traceId,
-          context?.userId
+          context?.userId,
+          context?.workspaceId,
+          context?.teamId,
+          context?.staffId
         );
         return {
           allowed: false,
@@ -83,7 +97,15 @@ export class PolicyValidator {
     policy: SafetyPolicy,
     action: string,
     tier: SafetyTier,
-    context?: { traceId?: string; userId?: string; toolName?: string; agentId?: string }
+    context?: {
+      traceId?: string;
+      userId?: string;
+      toolName?: string;
+      agentId?: string;
+      workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
+    }
   ): Promise<SafetyEvaluationResult> {
     if (!policy.timeRestrictions || policy.timeRestrictions.length === 0) {
       return { allowed: true, requiresApproval: false };
@@ -109,7 +131,10 @@ export class PolicyValidator {
             `Action '${action}' blocked during restricted time window`,
             'blocked',
             context?.traceId,
-            context?.userId
+            context?.userId,
+            context?.workspaceId,
+            context?.teamId,
+            context?.staffId
           );
           return {
             allowed: false,
@@ -128,7 +153,10 @@ export class PolicyValidator {
             `Action '${action}' requires approval during restricted time window`,
             'approval_required',
             context?.traceId,
-            context?.userId
+            context?.userId,
+            context?.workspaceId,
+            context?.teamId,
+            context?.staffId
           );
           return {
             allowed: true,
@@ -151,7 +179,15 @@ export class PolicyValidator {
     policy: SafetyPolicy,
     action: string,
     tier: SafetyTier,
-    context?: { traceId?: string; userId?: string; toolName?: string; agentId?: string }
+    context?: {
+      traceId?: string;
+      userId?: string;
+      toolName?: string;
+      agentId?: string;
+      workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
+    }
   ): Promise<SafetyEvaluationResult> {
     let requiresApproval: boolean;
     let reason: string;
@@ -198,7 +234,10 @@ export class PolicyValidator {
         reason,
         'approval_required',
         context?.traceId,
-        context?.userId
+        context?.userId,
+        context?.workspaceId,
+        context?.teamId,
+        context?.staffId
       );
       return {
         allowed: true,

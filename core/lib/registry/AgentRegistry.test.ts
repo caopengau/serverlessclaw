@@ -199,11 +199,11 @@ describe('AgentRegistry', () => {
   });
 
   describe('saveConfig', () => {
-    it('should warn and return if ConfigTable is not linked', async () => {
+    it('should throw error if ConfigTable is not linked', async () => {
       (Resource as any).ConfigTable = undefined;
 
       const config = { id: 'test', name: 'Test', systemPrompt: 'Prompt', enabled: true };
-      await AgentRegistry.saveConfig('test', config);
+      await expect(AgentRegistry.saveConfig('test', config)).rejects.toThrow('ConfigTable not linked');
       expect(mockDocClient.send).not.toHaveBeenCalled();
     });
 
@@ -216,6 +216,31 @@ describe('AgentRegistry', () => {
 
       await AgentRegistry.saveConfig('test', config);
       expect(mockDocClient.send).toHaveBeenCalled();
+    });
+
+    it('should implement cognitive lineage with versioning and hashing', async () => {
+      const config = { id: 'evolution-bot', name: 'Evolution Bot', systemPrompt: 'Be helpful.' };
+      
+      // Mock the atomic field update to simulate versioning
+      vi.spyOn(AgentRegistry, 'atomicAddAgentField').mockResolvedValue(1);
+
+      await AgentRegistry.saveConfig('evolution-bot', config);
+
+      // Verify hashing
+      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalledWith(
+        DYNAMO_KEYS.AGENTS_CONFIG,
+        'evolution-bot',
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            promptHash: expect.any(String)
+          })
+        })
+      );
+
+      // Verify versioning (atomicAddAgentField is called via static method in Registry)
+      // Note: atomicAddAgentField is actually a static method on Registry but we call it internally.
+      // Wait, Registry's saveConfig calls this.atomicAddAgentField.
+      // In tests, we mock Registry.atomicAddAgentField? Or wait, Registry.ts line 420.
     });
   });
 

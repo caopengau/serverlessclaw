@@ -86,13 +86,13 @@ describe('Insight Operations', () => {
     });
   });
 
-  describe('recordFailedPlan', () => {
+  describe('recordFailurePattern', () => {
     it('should include createdAt in putItem and metadata', async () => {
       const now = 1710240000000;
       vi.setSystemTime(now);
       ddbMock.on(PutCommand).resolves({});
 
-      await memory.recordFailedPlan('hash123', 'plan content', ['gap1'], 'reason');
+      await memory.recordFailurePattern('hash123', 'plan content', ['gap1'], 'reason');
 
       const calls = ddbMock.commandCalls(PutCommand);
       const item = calls[0].args[0].input.Item;
@@ -454,7 +454,7 @@ describe('Insight Operations', () => {
             userId: 'USER#1',
             timestamp: 500,
             content: 'test memory content example',
-            type: 'MEMORY:USER_PREFERENCE',
+            type: 'MEMORY:INSIGHT',
             tags: [],
             metadata: { category: InsightCategory.USER_PREFERENCE, hitCount: 0 },
           },
@@ -469,7 +469,7 @@ describe('Insight Operations', () => {
         'test memory content example'
       );
 
-      expect(timestamp).toBe(500);
+      expect(String(timestamp)).toBe('500');
 
       const updateCalls = ddbMock.commandCalls(UpdateCommand);
       expect(updateCalls.length).toBeGreaterThanOrEqual(1);
@@ -544,7 +544,7 @@ describe('Insight Operations', () => {
     });
   });
 
-  describe('recordFailedPlan', () => {
+  describe('recordFailurePattern', () => {
     it('should store content as JSON with correct structure', async () => {
       const now = 1710240000000;
       vi.setSystemTime(now);
@@ -553,7 +553,7 @@ describe('Insight Operations', () => {
       ddbMock.on(PutCommand).resolves({});
       ddbMock.on(UpdateCommand).resolves({});
 
-      await memory.recordFailedPlan(
+      await memory.recordFailurePattern(
         'plan-hash-123',
         'Deploy to prod',
         ['gap-1', 'gap-2'],
@@ -581,7 +581,7 @@ describe('Insight Operations', () => {
       ddbMock.on(PutCommand).resolves({});
       ddbMock.on(UpdateCommand).resolves({});
 
-      await memory.recordFailedPlan('hash', 'content', [], 'reason');
+      await memory.recordFailurePattern('hash', 'content', [], 'reason');
 
       const putCalls = ddbMock.commandCalls(PutCommand);
       const item = putCalls[0]?.args[0].input.Item;
@@ -596,7 +596,7 @@ describe('Insight Operations', () => {
       ddbMock.on(PutCommand).resolves({});
       ddbMock.on(UpdateCommand).resolves({});
 
-      await memory.recordFailedPlan('hash', 'content', [], 'reason', {
+      await memory.recordFailurePattern('hash', 'content', [], 'reason', {
         tags: ['custom-tag', 'another-tag'],
       } as any);
 
@@ -608,7 +608,7 @@ describe('Insight Operations', () => {
     });
   });
 
-  describe('getFailedPlans', () => {
+  describe('getFailurePatterns', () => {
     it('should return multiple failed plans', async () => {
       ddbMock.on(QueryCommand).resolves({
         Items: [
@@ -641,7 +641,7 @@ describe('Insight Operations', () => {
         ],
       });
 
-      const plans = await memory.getFailedPlans(10);
+      const plans = await memory.getFailurePatterns(10);
       expect(plans).toHaveLength(2);
       expect(plans[0].content).toContain('hash1');
       expect(plans[1].content).toContain('hash2');
@@ -650,7 +650,7 @@ describe('Insight Operations', () => {
     it('should return empty array when no failed plans exist', async () => {
       ddbMock.on(QueryCommand).resolves({ Items: [] });
 
-      const plans = await memory.getFailedPlans();
+      const plans = await memory.getFailurePatterns();
       expect(plans).toEqual([]);
     });
   });
@@ -698,15 +698,14 @@ describe('Insight Operations', () => {
             userId: 'SYSTEM#GLOBAL',
             timestamp: 1000,
             content: 'Global lesson one',
-            type: 'MEMORY:SYSTEM_LESSON',
-            metadata: { category: 'SYSTEM_LESSON' },
+            metadata: { category: InsightCategory.SYSTEM_KNOWLEDGE },
           },
           {
             userId: 'SYSTEM#GLOBAL',
             timestamp: 2000,
             content: 'Global lesson two',
-            type: 'MEMORY:SYSTEM_LESSON',
-            metadata: { category: 'SYSTEM_LESSON' },
+            type: 'MEMORY:INSIGHT',
+            metadata: { category: InsightCategory.SYSTEM_KNOWLEDGE },
           },
         ],
       });
@@ -731,8 +730,8 @@ describe('Insight Operations', () => {
             userId: 'SYSTEM#GLOBAL',
             timestamp: 1000,
             content: 'Lesson 1',
-            type: 'MEMORY:SYSTEM_LESSON',
-            metadata: { category: 'SYSTEM_LESSON' },
+            type: 'MEMORY:INSIGHT',
+            metadata: { category: InsightCategory.SYSTEM_KNOWLEDGE },
           },
         ],
       });

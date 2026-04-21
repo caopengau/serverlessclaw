@@ -12,13 +12,10 @@ vi.mock('../../lib/tracer', () => {
     getNodeId: () => 'child-node-id',
     getParentId: () => 'parent-id',
   };
-  const mockTracer = {
-    getChildTracer: vi.fn().mockReturnValue(mockChildTracer),
-  };
   return {
-    ClawTracer: vi.fn().mockImplementation(function () {
-      return mockTracer;
-    }),
+    ClawTracer: class {
+      getChildTracer = vi.fn().mockReturnValue(mockChildTracer);
+    },
   };
 });
 

@@ -25,10 +25,15 @@ export class StreamingExecutor extends BaseExecutor {
       emitter,
       traceId,
       sessionId,
+      workspaceId,
+      teamId,
+      staffId,
       userId,
       approvedToolCalls,
       taskId,
     } = options;
+
+    const scope = { workspaceId, teamId, staffId };
 
     const agentSuffix =
       options.currentInitiator === 'orchestrator' || this.agentId === 'superclaw'
@@ -41,16 +46,13 @@ export class StreamingExecutor extends BaseExecutor {
     const cancellationMsg = await ExecutorHelper.checkCancellation(taskId);
     if (cancellationMsg) {
       if (emitter) {
-        await emitter.emitChunk(
-          userId,
-          sessionId,
-          traceId,
-          cancellationMsg,
-          this.agentName,
-          false,
-          undefined,
-          options.currentInitiator
-        );
+        await emitter.emitChunk(userId, sessionId, traceId, {
+          chunk: cancellationMsg,
+          agentName: this.agentName,
+          isThought: false,
+          initiatorId: options.currentInitiator,
+          scope,
+        });
       }
       yield { content: cancellationMsg };
       return;
@@ -134,20 +136,14 @@ export class StreamingExecutor extends BaseExecutor {
         normalizedProfile === 'deep';
 
       if (shouldPrefaceThinking && emitter) {
-        await emitter.emitChunk(
-          userId,
-          sessionId,
-          traceId,
-          undefined,
-          this.agentName,
-          true,
-          undefined,
-          options.currentInitiator,
-          '\u2026',
-          undefined,
-          undefined,
-          EventType.TEXT_MESSAGE_CONTENT
-        );
+        await emitter.emitChunk(userId, sessionId, traceId, {
+          agentName: this.agentName,
+          isThought: true,
+          initiatorId: options.currentInitiator,
+          thoughtDelta: '\u2026',
+          detailType: EventType.TEXT_MESSAGE_CONTENT,
+          scope,
+        });
       }
 
       const toolCalls: ToolCall[] = [];
@@ -157,20 +153,14 @@ export class StreamingExecutor extends BaseExecutor {
           const contentDelta = chunk.content;
           fullContent += contentDelta;
           if (emitter) {
-            await emitter.emitChunk(
-              userId,
-              sessionId,
-              traceId,
-              contentDelta, // Emit DELTA for streaming
-              this.agentName,
-              false,
-              undefined,
-              options.currentInitiator,
-              undefined,
-              undefined,
-              undefined,
-              EventType.TEXT_MESSAGE_CONTENT
-            );
+            await emitter.emitChunk(userId, sessionId, traceId, {
+              chunk: contentDelta, // Emit DELTA for streaming
+              agentName: this.agentName,
+              isThought: false,
+              initiatorId: options.currentInitiator,
+              detailType: EventType.TEXT_MESSAGE_CONTENT,
+              scope,
+            });
           }
         }
 
@@ -181,20 +171,14 @@ export class StreamingExecutor extends BaseExecutor {
             fullThought += thoughtDelta;
           }
           if (emitter) {
-            await emitter.emitChunk(
-              userId,
-              sessionId,
-              traceId,
-              undefined,
-              this.agentName,
-              true,
-              undefined,
-              options.currentInitiator,
+            await emitter.emitChunk(userId, sessionId, traceId, {
+              agentName: this.agentName,
+              isThought: true,
+              initiatorId: options.currentInitiator,
               thoughtDelta,
-              undefined,
-              undefined,
-              EventType.TEXT_MESSAGE_CONTENT
-            );
+              detailType: EventType.TEXT_MESSAGE_CONTENT,
+              scope,
+            });
           }
         }
 
@@ -203,7 +187,7 @@ export class StreamingExecutor extends BaseExecutor {
         }
 
         if (chunk.usage) {
-          this.updateUsage(usage, { usage: chunk.usage }, options.activeProvider);
+          this.updateUsage(usage, { usage: chunk.usage }, options.activeProvider, options);
         }
 
         if (chunk.content || chunk.thought || chunk.tool_calls || chunk.usage) {
@@ -245,32 +229,25 @@ export class StreamingExecutor extends BaseExecutor {
       // Emit progress signal if executing tools
       if (!isPauseTool && emitter) {
         const toolNames = toolCalls.map((tc) => tc.function.name).join(', ');
-        await emitter.emitChunk(
-          userId,
-          sessionId,
-          traceId,
-          undefined,
-          this.agentName,
-          true,
-          undefined,
-          options.currentInitiator,
-          `I am executing: ${toolNames}...`
-        );
+        await emitter.emitChunk(userId, sessionId, traceId, {
+          agentName: this.agentName,
+          isThought: true,
+          initiatorId: options.currentInitiator,
+          thoughtDelta: `I am executing: ${toolNames}...`,
+          scope,
+        });
       }
 
       if (isPauseTool && !fullContent) {
         const ackMsg = `I'm on it. I'll engage the appropriate agent for you.`;
         if (emitter) {
-          await emitter.emitChunk(
-            userId,
-            sessionId,
-            traceId,
-            ackMsg,
-            this.agentName,
-            false,
-            undefined,
-            options.currentInitiator
-          );
+          await emitter.emitChunk(userId, sessionId, traceId, {
+            chunk: ackMsg,
+            agentName: this.agentName,
+            isThought: false,
+            initiatorId: options.currentInitiator,
+            scope,
+          });
         }
         yield { content: ackMsg };
       }
@@ -291,6 +268,8 @@ export class StreamingExecutor extends BaseExecutor {
           depth: options.depth,
           sessionId: options.sessionId,
           workspaceId: options.workspaceId,
+          teamId: options.teamId,
+          staffId: options.staffId,
           userId: options.userId,
           mainConversationId: options.mainConversationId,
           activeModel: options.activeModel,
@@ -305,36 +284,25 @@ export class StreamingExecutor extends BaseExecutor {
       if (attachments.length > attachmentsBefore) {
         const newAttachments = attachments.slice(attachmentsBefore);
         if (emitter) {
-          await emitter.emitChunk(
-            userId,
-            sessionId,
-            traceId,
-            undefined,
-            this.agentName,
-            false,
-            undefined,
-            options.currentInitiator,
-            undefined,
-            undefined,
-            newAttachments
-          );
+          await emitter.emitChunk(userId, sessionId, traceId, {
+            agentName: this.agentName,
+            isThought: false,
+            initiatorId: options.currentInitiator,
+            attachments: newAttachments,
+            scope,
+          });
         }
         yield { attachments: newAttachments } as MessageChunk;
       }
 
       if (toolResult.ui_blocks && toolResult.ui_blocks.length > 0 && emitter) {
-        await emitter.emitChunk(
-          userId,
-          sessionId,
-          traceId,
-          undefined,
-          this.agentName,
-          false,
-          undefined,
-          options.currentInitiator,
-          undefined,
-          toolResult.ui_blocks
-        );
+        await emitter.emitChunk(userId, sessionId, traceId, {
+          agentName: this.agentName,
+          isThought: false,
+          initiatorId: options.currentInitiator,
+          ui_blocks: toolResult.ui_blocks,
+          scope,
+        });
         yield { ui_blocks: toolResult.ui_blocks } as MessageChunk;
       }
 
@@ -342,16 +310,13 @@ export class StreamingExecutor extends BaseExecutor {
         if (toolResult.responseText) {
           const pauseMessage = `\n\n${ExecutorHelper.formatUserFriendlyResponse(toolResult.responseText)}`;
           if (emitter) {
-            await emitter.emitChunk(
-              userId,
-              sessionId,
-              traceId,
-              pauseMessage,
-              this.agentName,
-              false,
-              undefined,
-              options.currentInitiator
-            );
+            await emitter.emitChunk(userId, sessionId, traceId, {
+              chunk: pauseMessage,
+              agentName: this.agentName,
+              isThought: false,
+              initiatorId: options.currentInitiator,
+              scope,
+            });
           }
           yield { content: pauseMessage };
         }
@@ -363,20 +328,15 @@ export class StreamingExecutor extends BaseExecutor {
     usage.durationMs = Date.now() - loopStartTime;
 
     if (emitter) {
-      await emitter.emitChunk(
-        userId,
-        sessionId,
-        traceId,
-        fullContent,
-        this.agentName,
-        false,
-        undefined,
-        options.currentInitiator,
-        fullThought,
-        undefined,
-        undefined,
-        EventType.OUTBOUND_MESSAGE
-      );
+      await emitter.emitChunk(userId, sessionId, traceId, {
+        chunk: fullContent,
+        agentName: this.agentName,
+        isThought: false,
+        initiatorId: options.currentInitiator,
+        thoughtDelta: fullThought,
+        detailType: EventType.OUTBOUND_MESSAGE,
+        scope,
+      });
     }
 
     yield {
@@ -393,7 +353,10 @@ export class StreamingExecutor extends BaseExecutor {
     messages: Message[],
     options: ExecutorOptions
   ) {
-    const { emitter, userId, sessionId, traceId, approvedToolCalls } = options;
+    const { emitter, userId, sessionId, traceId, approvedToolCalls, workspaceId, teamId, staffId } =
+      options;
+    const scope = { workspaceId, teamId, staffId };
+
     for (const tc of toolCalls) {
       const tool = this.tools.find((t) => t.name === tc.function.name);
       if (tool?.requiresApproval && !approvedToolCalls?.includes(tc.id)) {
@@ -416,16 +379,14 @@ export class StreamingExecutor extends BaseExecutor {
           },
         ];
         if (emitter)
-          await emitter.emitChunk(
-            userId,
-            sessionId,
-            traceId,
-            `\n\n${approvalMsg}`,
-            this.agentName,
-            false,
-            opts as NonNullable<Message['options']>,
-            options.currentInitiator
-          );
+          await emitter.emitChunk(userId, sessionId, traceId, {
+            chunk: `\n\n${approvalMsg}`,
+            agentName: this.agentName,
+            isThought: false,
+            buttonOptions: opts as NonNullable<Message['options']>,
+            initiatorId: options.currentInitiator,
+            scope,
+          });
         return { content: `\n\n${approvalMsg}`, options: opts as NonNullable<Message['options']> };
       }
     }

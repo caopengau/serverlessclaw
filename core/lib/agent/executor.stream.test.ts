@@ -98,34 +98,30 @@ describe('AgentExecutor.streamLoop', () => {
     expect(chunks[4].usage).toBeDefined();
 
     expect(mockEmitter.emitChunk).toHaveBeenCalledTimes(3);
-    expect(mockEmitter.emitChunk).toHaveBeenCalledWith(
-      'user-1',
-      'sess-1',
-      'trace-123',
-      'Hello',
-      'Test Agent',
-      false,
-      undefined,
-      'superclaw',
-      undefined,
-      undefined,
-      undefined,
-      'TEXT_MESSAGE_CONTENT'
-    );
-    expect(mockEmitter.emitChunk).toHaveBeenCalledWith(
-      'user-1',
-      'sess-1',
-      'trace-123',
-      'Hello world',
-      'Test Agent',
-      false,
-      undefined,
-      'superclaw',
-      '',
-      undefined,
-      undefined,
-      'outbound_message'
-    );
+    expect(mockEmitter.emitChunk).toHaveBeenCalledWith('user-1', 'sess-1', 'trace-123', {
+      chunk: 'Hello',
+      agentName: 'Test Agent',
+      isThought: false,
+      buttonOptions: undefined,
+      initiatorId: 'superclaw',
+      thoughtDelta: undefined,
+      ui_blocks: undefined,
+      attachments: undefined,
+      detailType: 'TEXT_MESSAGE_CONTENT',
+      scope: { staffId: undefined, teamId: undefined, workspaceId: undefined },
+    });
+    expect(mockEmitter.emitChunk).toHaveBeenCalledWith('user-1', 'sess-1', 'trace-123', {
+      chunk: 'Hello world',
+      agentName: 'Test Agent',
+      isThought: false,
+      buttonOptions: undefined,
+      initiatorId: 'superclaw',
+      thoughtDelta: '',
+      ui_blocks: undefined,
+      attachments: undefined,
+      detailType: 'outbound_message',
+      scope: { staffId: undefined, teamId: undefined, workspaceId: undefined },
+    });
   });
 
   it('should execute tool calls and continue the loop to get final response', async () => {
@@ -303,20 +299,18 @@ describe('AgentExecutor.streamLoop', () => {
 
     // Metadata + Content + Final Usage
     expect(chunks).toHaveLength(3);
-    expect(mockEmitter.emitChunk).toHaveBeenCalledWith(
-      'user-1',
-      'sess-txt',
-      'trace-txt',
-      'Hello there!',
-      'Test Agent',
-      false,
-      undefined,
-      'superclaw',
-      '',
-      undefined,
-      undefined,
-      'outbound_message'
-    );
+    expect(mockEmitter.emitChunk).toHaveBeenCalledWith('user-1', 'sess-txt', 'trace-txt', {
+      chunk: 'Hello there!',
+      agentName: 'Test Agent',
+      isThought: false,
+      buttonOptions: undefined,
+      initiatorId: 'superclaw',
+      thoughtDelta: '',
+      ui_blocks: undefined,
+      attachments: undefined,
+      detailType: 'outbound_message',
+      scope: { staffId: undefined, teamId: undefined, workspaceId: undefined },
+    });
     expect(chunks[1].tool_calls).toBeUndefined();
   });
 });

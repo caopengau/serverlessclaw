@@ -142,11 +142,13 @@ describe('SafetyRateLimiter', () => {
       const policy = createPolicy({ maxDeploymentsPerDay: 5 });
 
       mockMemoryProvider.updateItem.mockResolvedValue({});
-      (mockMemoryProvider.getScopedUserId as any).mockImplementation(
-        (userId: any, workspaceId: any) => (workspaceId ? `WS#${workspaceId}#${userId}` : userId)
+      (mockMemoryProvider.getScopedUserId as any).mockImplementation((userId: any, scope: any) =>
+        scope?.workspaceId ? `WS#${scope.workspaceId}#${userId}` : userId
       );
 
-      await distributedLimiter.checkRateLimits(policy, 'deployment', 'workspace-A');
+      await distributedLimiter.checkRateLimits(policy, 'deployment', {
+        workspaceId: 'workspace-A',
+      });
 
       expect(mockMemoryProvider.updateItem).toHaveBeenCalledWith(
         expect.objectContaining({

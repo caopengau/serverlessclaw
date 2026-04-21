@@ -34,8 +34,15 @@ const TELEGRAM_MESSAGE_SCHEMA = z
     chat: z
       .object({
         id: z.union([z.number(), z.string()]),
+        type: z.string().optional(),
       })
       .passthrough(),
+    from: z
+      .object({
+        id: z.union([z.number(), z.string()]),
+      })
+      .passthrough()
+      .optional(),
     text: z.string().optional(),
     caption: z.string().optional(),
     photo: z.array(TELEGRAM_INBOUND_PHOTO_SCHEMA).optional(),
@@ -47,6 +54,8 @@ const TELEGRAM_MESSAGE_SCHEMA = z
     ...data,
     userText: data.text ?? data.caption ?? '',
     chatId: data.chat.id.toString(),
+    fromId: data.from?.id?.toString(),
+    isGroup: data.chat.type === 'group' || data.chat.type === 'supergroup',
   }));
 
 export const TELEGRAM_UPDATE_SCHEMA = z
@@ -117,7 +126,7 @@ export class TelegramAdapter implements InputAdapter {
       };
     }
 
-    const { chatId, userText } = parsed.message;
+    const { chatId, userText, fromId, isGroup } = parsed.message;
 
     // Use the unified normalization utility before returning
     const rawMessage: InboundMessage = {
@@ -125,6 +134,8 @@ export class TelegramAdapter implements InputAdapter {
       userId: chatId,
       sessionId: chatId,
       workspaceId: undefined, // Telegram currently doesn't provide workspaceId
+      teamId: isGroup ? chatId : undefined, // Group as Team
+      staffId: fromId, // Actual sender
       text: userText,
       attachments: [],
       metadata: {

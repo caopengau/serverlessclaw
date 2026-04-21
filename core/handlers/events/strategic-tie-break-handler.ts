@@ -13,6 +13,10 @@ interface StrategicTieBreakPayload {
   initiatorId: string;
   sessionId?: string;
   depth?: number;
+  workspaceId?: string;
+  orgId?: string;
+  teamId?: string;
+  staffId?: string;
 }
 
 /**
@@ -23,8 +27,19 @@ interface StrategicTieBreakPayload {
  * - Otherwise, proceed with conservative assumptions
  */
 export async function handleStrategicTieBreak(eventDetail: Record<string, unknown>): Promise<void> {
-  const { userId, agentId, task, originalTask, traceId, initiatorId, sessionId, depth } =
-    eventDetail as unknown as StrategicTieBreakPayload;
+  const {
+    userId,
+    agentId,
+    task,
+    originalTask,
+    traceId,
+    initiatorId,
+    sessionId,
+    depth,
+    workspaceId,
+    teamId,
+    staffId,
+  } = eventDetail as unknown as StrategicTieBreakPayload;
 
   // Sh1 Fix: Enforce Principle 12 - Facilitator must be highly trusted for autonomous tie-break
   const { AgentRegistry } = await import('../../lib/registry/AgentRegistry');
@@ -107,6 +122,9 @@ export async function handleStrategicTieBreak(eventDetail: Record<string, unknow
     initiatorId,
     sessionId,
     depth,
+    workspaceId,
+    teamId,
+    staffId,
     isContinuation: true,
     strategicDecision: isHighRisk ? 'DEFERRED' : 'PROCEED_SAFE',
   };
@@ -134,7 +152,11 @@ export async function handleStrategicTieBreak(eventDetail: Record<string, unknow
       sessionId,
       'SuperClaw',
       undefined,
-      traceId
+      traceId,
+      undefined,
+      workspaceId,
+      teamId,
+      staffId
     );
     logger.info(`[TIE_BREAK] User notified of strategic decision for trace ${traceId}`);
   } catch (err) {

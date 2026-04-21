@@ -22,6 +22,8 @@ export interface AgentProcessOptions {
   parentId?: string;
   sessionId?: string;
   workspaceId?: string;
+  teamId?: string;
+  staffId?: string;
   attachments?: Array<{
     type: AttachmentType;
     url?: string;

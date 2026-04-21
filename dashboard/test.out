@@ -1,0 +1,99 @@
+[vite:react-swc] We recommend switching to `@vitejs/plugin-react` for improved performance as no swc plugins are used. More information at https://vite.dev/rolldown
+
+ RUN  v4.1.4 /Users/pengcao/projects/serverlessclaw/dashboard
+
+ ✓ src/app/api/memory/gap/route.test.ts (3 tests) 56ms
+ ✓ src/app/api/tools/route.test.ts (4 tests) 181ms
+ ✓ src/components/DynamicComponents/PlanEditor.test.tsx (5 tests) 128ms
+ ❯ src/components/Agent/AgentTuningHub.test.tsx (4 tests | 4 failed) 27ms
+     × renders title and agent ID 23ms
+     × displays error distribution metrics 1ms
+     × triggers AI tuning on button click 1ms
+     × shows empty state when no errors are present 1ms
+ ✓ src/components/ui/Button.test.tsx (10 tests) 130ms
+ ✓ src/components/CyberSelect.test.tsx (9 tests) 178ms
+ ✓ src/components/Chat/ChatInput.test.tsx (14 tests) 157ms
+ ✓ src/app/system-pulse/Flow.test.tsx (10 tests) 250ms
+ ✓ src/app/api/agents/route.test.ts (15 tests) 470ms
+ ✓ src/components/Providers/RealtimeProvider.test.tsx (11 tests) 573ms
+ ✓ src/app/api/trace/route.test.ts (6 tests) 801ms
+     ✓ handles pagination in delete-all  505ms
+ ✓ src/components/ui/Input.test.tsx (11 tests) 146ms
+ ✓ src/app/api/chat/route.test.ts (10 tests) 54ms
+ ✓ src/app/api/scheduling/route.test.ts (14 tests) 60ms
+ ✓ src/app/api/auth/logout/route.test.ts (1 test) 48ms
+ ✓ src/components/CyberConfirm.test.tsx (7 tests) 184ms
+ ✓ src/components/SafetyTierEditor.test.tsx (15 tests) 98ms
+ ✓ src/components/CognitiveHealthCard.test.tsx (15 tests) 128ms
+ ✓ src/app/api/memory/prioritize/route.test.ts (5 tests) 100ms
+ ✓ src/components/Sidebar.test.tsx (2 tests) 92ms
+ ✓ src/app/api/collaboration/route.test.ts (5 tests) 45ms
+ ✓ src/app/api/cognitive-health/route.test.ts (8 tests) 21ms
+ ✓ src/components/DynamicComponents/CodeDiff.test.tsx (4 tests) 42ms
+ ✓ src/app/api/infrastructure/route.test.ts (4 tests) 43ms
+ ✓ src/app/api/reputation/route.test.ts (6 tests) 43ms
+ ✓ src/app/api/auth/login/route.test.ts (4 tests) 69ms
+ ✓ src/app/system-pulse/page.test.tsx (4 tests) 27ms
+ ✓ src/app/api/locks/route.test.ts (6 tests) 31ms
+ ✓ src/components/CyberTooltip.test.tsx (5 tests) 50ms
+ ✓ src/components/PageHeader.test.tsx (4 tests) 25ms
+ ✓ src/components/ui/Card.test.tsx (10 tests) 31ms
+ ✓ src/components/ui/Badge.test.tsx (9 tests) 38ms
+ ✓ src/lib/tool-utils.test.ts (8 tests) 26ms
+ ✓ src/components/Providers/TranslationsProvider.test.tsx (2 tests) 17ms
+ ✓ src/hooks/useRealtime.integration.test.ts (1 test) 13ms
+ ✓ src/lib/api-handler.test.ts (17 tests) 9ms
+ ✓ src/app/api/pending-messages/route.test.ts (7 tests) 12ms
+ ✓ src/lib/pagination-utils.test.ts (6 tests) 9ms
+ ✓ src/hooks/useRealtime.test.ts (2 tests) 25ms
+ ✓ src/app/api/memory/gap/plan/route.test.ts (2 tests) 5ms
+ ✓ src/components/Chat/message-handler.test.ts (27 tests) 5ms
+ ✓ src/lib/getTraces.test.ts (4 tests) 6ms
+ ✓ src/app/api/config/route.test.ts (6 tests) 5ms
+ ✓ src/app/api/memory/status/route.test.ts (3 tests) 8ms
+ ✓ src/app/api/resilience/metrics/route.test.ts (1 test) 4ms
+ ✓ src/lib/constants.test.ts (11 tests) 3ms
+ ✓ src/lib/collaboration-attachments.test.ts (2 tests) 2ms
+ ✓ src/components/Chat/dedup.test.ts (12 tests) 3ms
+ ✓ src/app/api/system/burn-rate/route.test.ts (1 test) 4ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 4 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/components/Agent/AgentTuningHub.test.tsx > AgentTuningHub > renders title and agent ID
+ FAIL  src/components/Agent/AgentTuningHub.test.tsx > AgentTuningHub > displays error distribution metrics
+ FAIL  src/components/Agent/AgentTuningHub.test.tsx > AgentTuningHub > triggers AI tuning on button click
+ FAIL  src/components/Agent/AgentTuningHub.test.tsx > AgentTuningHub > shows empty state when no errors are present
+Error: [vitest] No "AlertTriangle" export is defined on the "lucide-react" mock. Did you forget to return it from "vi.mock"?
+If you need to partially mock a module, you can use "importOriginal" helper inside:
+
+vi.mock(import("lucide-react"), async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    // your mocked methods
+  }
+})
+
+ ❯ AgentTuningHub src/components/Agent/AgentTuningHub.tsx:92:14
+     90|         <div className="p-4 border-b border-white/5 bg-white/[0.02] fl…
+     91|           <div className="flex items-center gap-2">
+     92|             <AlertTriangle size={18} className="text-red-500" />
+       |              ^
+     93|             <Typography variant="mono" weight="bold" uppercase classNa…
+     94|           </div>
+ ❯ Object.react_stack_bottom_frame ../node_modules/.pnpm/react-dom@19.2.5_react@19.2.5/node_modules/react-dom/cjs/react-dom-client.development.js:25904:20
+ ❯ renderWithHooks ../node_modules/.pnpm/react-dom@19.2.5_react@19.2.5/node_modules/react-dom/cjs/react-dom-client.development.js:7662:22
+ ❯ updateFunctionComponent ../node_modules/.pnpm/react-dom@19.2.5_react@19.2.5/node_modules/react-dom/cjs/react-dom-client.development.js:10166:19
+ ❯ beginWork ../node_modules/.pnpm/react-dom@19.2.5_react@19.2.5/node_modules/react-dom/cjs/react-dom-client.development.js:11778:18
+ ❯ runWithFiberInDEV ../node_modules/.pnpm/react-dom@19.2.5_react@19.2.5/node_modules/react-dom/cjs/react-dom-client.development.js:874:13
+ ❯ performUnitOfWork ../node_modules/.pnpm/react-dom@19.2.5_react@19.2.5/node_modules/react-dom/cjs/react-dom-client.development.js:17641:22
+ ❯ workLoopSync ../node_modules/.pnpm/react-dom@19.2.5_react@19.2.5/node_modules/react-dom/cjs/react-dom-client.development.js:17469:41
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/4]⎯
+
+
+ Test Files  1 failed | 48 passed (49)
+      Tests  4 failed | 348 passed (352)
+   Start at  20:34:55
+   Duration  4.56s (transform 2.57s, setup 3.70s, import 5.25s, tests 4.48s, environment 25.19s)
+

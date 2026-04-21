@@ -2,13 +2,20 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { handleParallelTaskCompleted } from '../handlers/events/parallel-task-completed-handler';
 
 // Mocking needed for Agent invocation
-const mockAgentProcess = vi.fn().mockResolvedValue({ responseText: 'Synthesized Next Action' });
-const AgentMock = vi.fn().mockImplementation(function (this: any) {
-  this.process = mockAgentProcess;
-});
+const { AgentMock, mockWakeupInitiator, mockHandlePatchMerge } = vi.hoisted(() => ({
+  AgentMock: vi.fn().mockImplementation(function (this: any) {
+    this.process = vi.fn().mockResolvedValue({ responseText: 'Synthesized Next Action' });
+  }),
+  mockWakeupInitiator: vi.fn().mockResolvedValue({}),
+  mockHandlePatchMerge: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('../lib/agent', () => ({
   Agent: AgentMock,
+}));
+
+vi.mock('../agents/superclaw', () => ({
+  SuperClaw: AgentMock,
 }));
 
 vi.mock('../lib/utils/agent-helpers', () => ({
@@ -24,7 +31,7 @@ vi.mock('../lib/utils/agent-helpers', () => ({
 }));
 
 vi.mock('../handlers/events/shared', () => ({
-  wakeupInitiator: vi.fn().mockResolvedValue({}),
+  wakeupInitiator: mockWakeupInitiator,
 }));
 
 vi.mock('../lib/logger', () => ({
@@ -36,7 +43,6 @@ vi.mock('../lib/logger', () => ({
   },
 }));
 
-const mockHandlePatchMerge = vi.fn().mockResolvedValue(undefined);
 vi.mock('../handlers/events/merger-handler', () => ({
   handlePatchMerge: mockHandlePatchMerge,
 }));
@@ -44,6 +50,9 @@ vi.mock('../handlers/events/merger-handler', () => ({
 describe('Parallel Aggregation Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    AgentMock.mockImplementation(function (this: any) {
+      this.process = vi.fn().mockResolvedValue({ responseText: 'Synthesized Next Action' });
+    });
   });
 
   it('should trigger agent-guided aggregation when requested', async () => {
@@ -61,24 +70,27 @@ describe('Parallel Aggregation Integration', () => {
 
     await handleParallelTaskCompleted(eventDetail as any);
 
-    const { wakeupInitiator } = await import('../handlers/events/shared');
-    expect(wakeupInitiator).toHaveBeenCalledWith(
+    expect(mockWakeupInitiator).toHaveBeenCalledWith(
       'user-123',
       'strategic-planner',
       'Synthesized Next Action',
       'trace-456',
-      undefined,
+      'default-session',
       0,
       false,
       undefined,
-      'trace-456'
+      'trace-456',
+      'continuation_task',
+      undefined,
+      undefined,
+      undefined
     );
   });
 
   it('should fallback to summary if agent-guided fails', async () => {
-    AgentMock.mockImplementationOnce(() => ({
-      process: vi.fn().mockRejectedValue(new Error('LLM Error')),
-    }));
+    AgentMock.mockImplementationOnce(function (this: any) {
+      this.process = vi.fn().mockRejectedValue(new Error('LLM Error'));
+    });
 
     const eventDetail = {
       userId: 'user-123',
@@ -93,17 +105,20 @@ describe('Parallel Aggregation Integration', () => {
 
     await handleParallelTaskCompleted(eventDetail as any);
 
-    const { wakeupInitiator } = await import('../handlers/events/shared');
-    expect(wakeupInitiator).toHaveBeenCalledWith(
+    expect(mockWakeupInitiator).toHaveBeenCalledWith(
       'user-123',
       'strategic-planner',
-      expect.stringContaining('Parallel Dispatch Complete'),
+      expect.stringContaining('[AGGREGATED_RESULTS]'),
       'trace-456',
-      undefined,
+      'default-session',
       0,
       false,
       undefined,
-      'trace-456'
+      'trace-456',
+      'continuation_task',
+      undefined,
+      undefined,
+      undefined
     );
   });
 
@@ -154,17 +169,20 @@ describe('Parallel Aggregation Integration', () => {
 
     await handleParallelTaskCompleted(eventDetail as any);
 
-    const { wakeupInitiator } = await import('../handlers/events/shared');
-    expect(wakeupInitiator).toHaveBeenCalledWith(
+    expect(mockWakeupInitiator).toHaveBeenCalledWith(
       'user-123',
       'strategic-planner',
-      expect.stringContaining('Parallel Dispatch Complete'),
+      expect.stringContaining('[AGGREGATED_RESULTS]'),
       'trace-456',
-      undefined,
+      'default-session',
       0,
       false,
       undefined,
-      'trace-456'
+      'trace-456',
+      'continuation_task',
+      undefined,
+      undefined,
+      undefined
     );
   });
 });

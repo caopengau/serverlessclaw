@@ -201,34 +201,49 @@ export class MemoryCache<T = unknown> {
  */
 export const CacheKeys = {
   /**
+   * Helper to normalize scope for cache keys.
+   */
+  normalizeScope: (scope?: string | import('../types/memory').ContextualScope): string => {
+    if (!scope) return '';
+    if (typeof scope === 'string') return `:${scope}`;
+
+    const parts: string[] = [];
+    if (scope.workspaceId) parts.push(`WS:${scope.workspaceId}`);
+    if (scope.teamId) parts.push(`TEAM:${scope.teamId}`);
+    if (scope.staffId) parts.push(`STAFF:${scope.staffId}`);
+
+    return parts.length > 0 ? `:${parts.join(':')}` : '';
+  },
+
+  /**
    * Key for user distilled memory.
    */
-  distilledMemory: (userId: string, workspaceId?: string) =>
-    `distilled:${userId}${workspaceId ? `:${workspaceId}` : ''}`,
+  distilledMemory: (userId: string, scope?: string | import('../types/memory').ContextualScope) =>
+    `distilled:${userId}${CacheKeys.normalizeScope(scope)}`,
 
   /**
    * Key for user lessons.
    */
-  lessons: (userId: string, workspaceId?: string) =>
-    `lessons:${userId}${workspaceId ? `:${workspaceId}` : ''}`,
+  lessons: (userId: string, scope?: string | import('../types/memory').ContextualScope) =>
+    `lessons:${userId}${CacheKeys.normalizeScope(scope)}`,
 
   /**
    * Key for user preferences.
    */
-  preferences: (userId: string, workspaceId?: string) =>
-    `prefs:${userId}${workspaceId ? `:${workspaceId}` : ''}`,
+  preferences: (userId: string, scope?: string | import('../types/memory').ContextualScope) =>
+    `prefs:${userId}${CacheKeys.normalizeScope(scope)}`,
 
   /**
    * Key for conversation history.
    */
-  history: (storageId: string, workspaceId?: string) =>
-    `history:${storageId}${workspaceId ? `:${workspaceId}` : ''}`,
+  history: (storageId: string, scope?: string | import('../types/memory').ContextualScope) =>
+    `history:${storageId}${CacheKeys.normalizeScope(scope)}`,
 
   /**
    * Key for conversation summary.
    */
-  summary: (storageId: string, workspaceId?: string) =>
-    `summary:${storageId}${workspaceId ? `:${workspaceId}` : ''}`,
+  summary: (storageId: string, scope?: string | import('../types/memory').ContextualScope) =>
+    `summary:${storageId}${CacheKeys.normalizeScope(scope)}`,
 
   /**
    * Key for global lessons.
@@ -244,21 +259,21 @@ export const CacheKeys = {
     category?: string,
     tags?: string[],
     orgId?: string,
-    workspaceId?: string
+    scope?: string | import('../types/memory').ContextualScope
   ) =>
-    `insights:${userId}:${query}:${category ?? 'all'}:${tags?.sort().join(',') ?? 'none'}:${orgId ?? 'global'}${workspaceId ? `:${workspaceId}` : ''}`,
+    `insights:${userId}:${query}:${category ?? 'all'}:${tags?.sort().join(',') ?? 'none'}:${orgId ?? 'global'}${CacheKeys.normalizeScope(scope)}`,
 
   /**
    * Key for gap information.
    */
-  gap: (gapId: string, workspaceId?: string) =>
-    `gap:${gapId}${workspaceId ? `:${workspaceId}` : ''}`,
+  gap: (gapId: string, scope?: string | import('../types/memory').ContextualScope) =>
+    `gap:${gapId}${CacheKeys.normalizeScope(scope)}`,
 
   /**
    * Key for all gaps by status.
    */
-  gapsByStatus: (status: string, workspaceId?: string) =>
-    `gaps:${status}${workspaceId ? `:${workspaceId}` : ''}`,
+  gapsByStatus: (status: string, scope?: string | import('../types/memory').ContextualScope) =>
+    `gaps:${status}${CacheKeys.normalizeScope(scope)}`,
 } as const;
 
 /**

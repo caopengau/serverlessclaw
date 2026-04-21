@@ -113,7 +113,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
     .join('\n    ');
   const telemetry = buildTelemetry(toolsList);
 
-  const failurePatterns = await memory.getFailurePatterns(baseUserId, '*', 5);
+  const failurePatterns = await memory.getFailurePatterns(5);
 
   let plannerPrompt: string;
 

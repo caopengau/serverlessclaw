@@ -34,7 +34,7 @@ describe('Multi-Modal Integration', () => {
     addMessage: vi.fn().mockResolvedValue(undefined),
     getSummary: vi.fn().mockResolvedValue(null),
     setGap: vi.fn().mockResolvedValue(undefined),
-    getFailedPlans: vi.fn().mockResolvedValue([]),
+    getFailurePatterns: vi.fn().mockResolvedValue([]),
     updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
     getScopedUserId: vi.fn().mockImplementation((uid, wid) => (wid ? `${uid}#${wid}` : uid)),
   };
@@ -67,7 +67,6 @@ describe('Multi-Modal Integration', () => {
       mockMemory as any,
       mockProvider as any,
       [],
-      mockConfig.systemPrompt,
       mockConfig
     );
 

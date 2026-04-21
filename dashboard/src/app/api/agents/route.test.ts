@@ -82,7 +82,9 @@ describe('Agents API Route', () => {
       const { POST } = await import('./route');
       const req = new NextRequest('http://localhost/api/agents', {
         method: 'POST',
-        body: JSON.stringify({ agents: [{ id: 'test' }] }),
+        body: JSON.stringify({ 
+          agents: [{ id: 'test', name: 'Test Agent', systemPrompt: 'You are a test.' }] 
+        }),
       });
       const res = await POST(req);
       const data = await res.json();
@@ -111,7 +113,7 @@ describe('Agents API Route', () => {
       const { POST } = await import('./route');
       const req = new NextRequest('http://localhost/api/agents', {
         method: 'POST',
-        body: JSON.stringify({ agents: [] }),
+        body: JSON.stringify({ agents: [{ id: 'error-trigger', name: 'Trigger', systemPrompt: 'X' }] }),
       });
       const res = await POST(req);
       const data = await res.json();

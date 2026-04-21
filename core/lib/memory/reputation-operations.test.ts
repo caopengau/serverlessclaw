@@ -11,7 +11,10 @@ const mockBase = {
   queryItems: vi.fn(),
   putItem: vi.fn(),
   updateItem: vi.fn(),
-  getScopedUserId: vi.fn((userId) => userId),
+  getScopedUserId: vi.fn((userId, scope) => {
+    const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
+    return workspaceId ? `${userId}#${workspaceId}` : userId;
+  }),
 };
 
 vi.mock('../logger', () => ({
@@ -141,6 +144,9 @@ describe('ReputationOperations', () => {
         totalTasks: 10,
         rollingWindow: 7,
         score: 0,
+        lastTraceId: '',
+        promptHash: '',
+        errorDistribution: {},
       };
       const score = computeReputationScore(reputation);
       expect(score).toBeGreaterThan(0.9);
@@ -161,6 +167,9 @@ describe('ReputationOperations', () => {
         totalTasks: 10,
         rollingWindow: 7,
         score: 0,
+        lastTraceId: '',
+        promptHash: '',
+        errorDistribution: {},
       };
       const score = computeReputationScore(badRep);
       expect(score).toBeLessThanOrEqual(0.4); // Latency and recency might still provide some score
@@ -182,6 +191,9 @@ describe('ReputationOperations', () => {
         totalTasks: 10,
         rollingWindow: 7,
         score: 0,
+        lastTraceId: '',
+        promptHash: '',
+        errorDistribution: {},
       };
       const score = computeReputationScore(slowRep);
 
@@ -204,6 +216,9 @@ describe('ReputationOperations', () => {
         totalTasks: 10,
         rollingWindow: 7,
         score: 0,
+        lastTraceId: '',
+        promptHash: '',
+        errorDistribution: {},
       };
       const score = computeReputationScore(oldRep);
 
@@ -226,6 +241,9 @@ describe('ReputationOperations', () => {
         totalTasks: 0,
         rollingWindow: 7,
         score: 0,
+        lastTraceId: '',
+        promptHash: '',
+        errorDistribution: {},
       };
       const score = computeReputationScore(zeroRep);
 
@@ -251,6 +269,9 @@ describe('ReputationOperations', () => {
         totalTasks: 5,
         rollingWindow: 7,
         score: 0,
+        lastTraceId: '',
+        promptHash: '',
+        errorDistribution: {},
       };
       const score = computeReputationScore(futureRep);
 
@@ -275,6 +296,9 @@ describe('ReputationOperations', () => {
         totalTasks: 5,
         rollingWindow: 7,
         score: 0,
+        lastTraceId: '',
+        promptHash: '',
+        errorDistribution: {},
       };
       const score = computeReputationScore(rep);
 

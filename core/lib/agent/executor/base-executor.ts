@@ -120,12 +120,17 @@ export abstract class BaseExecutor {
     );
   }
 
-  protected updateUsage(usage: ExecutorUsage, response: Partial<Message>, provider?: string) {
+  protected updateUsage(
+    usage: ExecutorUsage,
+    response: Partial<Message>,
+    provider?: string,
+    options?: ExecutorOptions
+  ) {
     if (response.usage) {
       usage.totalInputTokens += response.usage.prompt_tokens;
       usage.totalOutputTokens += response.usage.completion_tokens;
       usage.total_tokens = usage.totalInputTokens + usage.totalOutputTokens;
-      this.emitTokenMetrics(response.usage, provider);
+      this.emitTokenMetrics(response.usage, provider, options);
     }
   }
 
@@ -151,13 +156,35 @@ export abstract class BaseExecutor {
     }
   }
 
-  protected async emitTokenMetrics(usage: NonNullable<Message['usage']>, provider?: string) {
+  protected async emitTokenMetrics(
+    usage: NonNullable<Message['usage']>,
+    provider?: string,
+    options?: ExecutorOptions
+  ) {
     if (!process.env.VITEST) {
       try {
         const { emitMetrics, METRICS } = await import('../../metrics');
+        const metricScope = options
+          ? {
+              workspaceId: options.workspaceId,
+              teamId: options.teamId,
+              staffId: options.staffId,
+            }
+          : undefined;
+
         emitMetrics([
-          METRICS.tokensInput(usage.prompt_tokens, this.agentId, provider ?? 'unknown'),
-          METRICS.tokensOutput(usage.completion_tokens, this.agentId, provider ?? 'unknown'),
+          METRICS.tokensInput(
+            usage.prompt_tokens,
+            this.agentId,
+            provider ?? 'unknown',
+            metricScope
+          ),
+          METRICS.tokensOutput(
+            usage.completion_tokens,
+            this.agentId,
+            provider ?? 'unknown',
+            metricScope
+          ),
         ]).catch(() => undefined);
       } catch {
         return;

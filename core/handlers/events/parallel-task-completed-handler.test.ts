@@ -19,20 +19,26 @@ vi.mock('./shared', () => ({
   wakeupInitiator: mockWakeupInitiator,
 }));
 
-// 3. Mock agent-helpers
-const { mockLoadAgentConfig, mockGetAgentContext } = vi.hoisted(() => ({
-  mockLoadAgentConfig: vi.fn(),
-  mockGetAgentContext: vi.fn(),
+// 3. Mock agent-helpers and registry
+const { mockGetAgentConfig, mockGetAgentTools } = vi.hoisted(() => ({
+  mockGetAgentConfig: vi.fn().mockResolvedValue({
+    id: 'superclaw',
+    name: 'SuperClaw',
+    systemPrompt: 'You are an aggregator',
+  }),
+  mockGetAgentTools: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock('../../lib/utils/agent-helpers', async (importOriginal) => {
-  const actual = await importOriginal<any>();
-  return {
-    ...actual,
-    loadAgentConfig: mockLoadAgentConfig,
-    getAgentContext: mockGetAgentContext,
-  };
-});
+vi.mock('../../lib/registry/AgentRegistry', () => ({
+  AgentRegistry: {
+    getAgentConfig: mockGetAgentConfig,
+    getToolsForAgent: mockGetAgentTools,
+  },
+}));
+
+vi.mock('../../tools/index', () => ({
+  getAgentTools: mockGetAgentTools,
+}));
 
 // 4. Mock Agent
 const { mockAgentProcess } = vi.hoisted(() => ({
@@ -42,9 +48,9 @@ const { mockAgentProcess } = vi.hoisted(() => ({
   }),
 }));
 
-vi.mock('../../lib/agent', () => {
+vi.mock('../../agents/superclaw', () => {
   return {
-    Agent: vi.fn().mockImplementation(function () {
+    SuperClaw: vi.fn().mockImplementation(function () {
       return {
         process: mockAgentProcess,
       };
@@ -99,11 +105,25 @@ describe('parallel-task-completed-handler', () => {
   };
 
   describe('handleParallelTaskCompleted', () => {
-    it('returns early when initiatorId is not provided', async () => {
+    it('calls wakeupInitiator with default initiator when initiatorId is not provided', async () => {
       const detail = { ...baseEventDetail, initiatorId: undefined };
-      await handleParallelTaskCompleted(detail);
+      await handleParallelTaskCompleted(detail as any);
 
-      expect(mockWakeupInitiator).not.toHaveBeenCalled();
+      expect(mockWakeupInitiator).toHaveBeenCalledWith(
+        'user-123',
+        'orchestrator',
+        expect.stringContaining('[AGGREGATED_RESULTS]'),
+        'trace-abc',
+        'session-xyz',
+        0,
+        false,
+        undefined,
+        'trace-abc',
+        'continuation_task',
+        undefined,
+        undefined,
+        undefined
+      );
     });
 
     it('wakes up initiator with success summary', async () => {
@@ -112,33 +132,45 @@ describe('parallel-task-completed-handler', () => {
       expect(mockWakeupInitiator).toHaveBeenCalledWith(
         'user-123',
         'superclaw',
-        expect.stringContaining('SUCCESS'),
+        expect.stringContaining('[AGGREGATED_RESULTS]'),
         'trace-abc',
         'session-xyz',
         0,
         false,
         undefined,
-        'trace-abc'
+        'trace-abc',
+        'continuation_task',
+        undefined,
+        undefined,
+        undefined
       );
     });
 
-    it('includes success emoji for success status', async () => {
+    it('includes agent statuses in the summary', async () => {
       await handleParallelTaskCompleted(baseEventDetail);
 
+      expect(mockWakeupInitiator).toHaveBeenCalledWith(
+        'user-123',
+        'superclaw',
+        expect.stringContaining('[AGGREGATED_RESULTS]'),
+        'trace-abc',
+        'session-xyz',
+        0,
+        false,
+        undefined,
+        'trace-abc',
+        'continuation_task',
+        undefined,
+        undefined,
+        undefined
+      );
+
       const summaryArg = mockWakeupInitiator.mock.calls[0][2];
-      expect(summaryArg).toContain('✅');
+      expect(summaryArg).toContain('Agent coder (success): Feature implemented');
+      expect(summaryArg).toContain('Agent critic (success): Code reviewed');
     });
 
-    it('performs agent-guided aggregation using the initiatorId for config', async () => {
-      mockLoadAgentConfig.mockResolvedValue({
-        id: 'strategic-planner',
-        name: 'Strategic Planner',
-        systemPrompt: 'You are a planner',
-      });
-      mockGetAgentContext.mockResolvedValue({
-        memory: {},
-        provider: {},
-      });
+    it('performs agent-guided aggregation using the aggregator agent', async () => {
       mockAgentProcess.mockResolvedValue({
         responseText: 'Synthesized result',
         attachments: [],
@@ -148,11 +180,12 @@ describe('parallel-task-completed-handler', () => {
         ...baseEventDetail,
         initiatorId: 'strategic-planner',
         aggregationType: 'agent_guided' as const,
+        aggregationPrompt: 'Synthesize findings',
       };
 
-      await handleParallelTaskCompleted(detail);
+      await handleParallelTaskCompleted(detail as any);
 
-      expect(mockLoadAgentConfig).toHaveBeenCalledWith('strategic-planner');
+      expect(mockGetAgentConfig).toHaveBeenCalled();
       expect(mockWakeupInitiator).toHaveBeenCalledWith(
         'user-123',
         'strategic-planner',
@@ -162,7 +195,11 @@ describe('parallel-task-completed-handler', () => {
         0,
         false,
         undefined,
-        'trace-abc'
+        'trace-abc',
+        'continuation_task',
+        undefined,
+        undefined,
+        undefined
       );
     });
 
@@ -194,7 +231,11 @@ describe('parallel-task-completed-handler', () => {
         0,
         false,
         undefined,
-        'trace-abc'
+        'trace-abc',
+        'continuation_task',
+        undefined,
+        undefined,
+        undefined
       );
     });
 
@@ -232,7 +273,14 @@ describe('parallel-task-completed-handler', () => {
         expect.stringContaining('Merge Conflict Detected'),
         ['user-123'],
         'session-xyz',
-        'System'
+        'System',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
       );
 
       // Should NOT wake up initiator yet (waiting for MergerAgent)
@@ -266,18 +314,38 @@ describe('parallel-task-completed-handler', () => {
         expect.stringContaining('Reconciliation Failed'),
         ['user-123'],
         'session-xyz',
-        'System'
+        'System',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
       );
 
       // Should fall back to waking up initiator with the partial summary
-      expect(mockWakeupInitiator).toHaveBeenCalled();
+      expect(mockWakeupInitiator).toHaveBeenCalledWith(
+        'user-123',
+        'superclaw',
+        expect.stringContaining('[AGGREGATED_RESULTS]'),
+        'trace-abc',
+        'session-xyz',
+        0,
+        false,
+        undefined,
+        'trace-abc',
+        'continuation_task',
+        undefined,
+        undefined,
+        undefined
+      );
     });
 
     it('routes researcher-initiated parallel dispatches back to research_task', async () => {
       const detail = {
         ...baseEventDetail,
         initiatorId: 'researcher',
-        aggregationType: 'agent_guided' as const,
       };
 
       await handleParallelTaskCompleted(detail);
@@ -292,7 +360,10 @@ describe('parallel-task-completed-handler', () => {
         false,
         undefined,
         'trace-abc', // taskId
-        'research_task' // eventType
+        'research_task', // eventType
+        undefined,
+        undefined,
+        undefined
       );
     });
   });

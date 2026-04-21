@@ -42,7 +42,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       profile,
       agentId = AgentType.SUPERCLAW,
       collaborationId,
+      isIsolated = false,
+      source: incomingSource,
+      overrideConfig,
     } = await req.json();
+
+    const source = incomingSource || TraceSource.DASHBOARD;
     
     const userId = getUserId(req);
     const storageId = sessionId ? `CONV#${userId}#${sessionId}` : userId;
@@ -95,15 +100,19 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       memory,
       provider,
       agentTools,
-      config?.systemPrompt ?? SUPERCLAW_SYSTEM_PROMPT,
-      config ?? undefined
+      { 
+        ...config, 
+        ...(overrideConfig || {}),
+        systemPrompt: overrideConfig?.systemPrompt ?? config?.systemPrompt ?? SUPERCLAW_SYSTEM_PROMPT
+      } as any
     );
 
     // We use the streaming generator to trigger real-time MQTT emissions via AgentEmitter
     // while the request remains open. Chunks are automatically sent to the dashboard via IoT Core.
     const stream = agent.stream(storageId, text ?? '', {
       sessionId,
-      source: TraceSource.DASHBOARD,
+      source,
+      isIsolated,
       attachments,
       approvedToolCalls,
       traceId: clientTraceId || undefined,

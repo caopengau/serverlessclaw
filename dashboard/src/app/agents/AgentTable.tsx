@@ -7,7 +7,7 @@ import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { Agent } from '@/lib/types/ui';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
-import AgentDetailModal from './AgentDetailModal';
+import { useRouter } from 'next/navigation';
 
 interface AgentTableProps {
   agents: Record<string, Agent>;
@@ -36,10 +36,8 @@ export default function AgentTable({
   hasChanges,
 }: AgentTableProps) {
   const { t } = useTranslations();
-  const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
-
+  const router = useRouter();
   const agentList = Object.values(agents);
-  const selectedAgent = selectedAgentId ? agents[selectedAgentId] : null;
 
   return (
     <>
@@ -81,7 +79,7 @@ export default function AgentTable({
                 return (
                   <tr
                     key={agent.id}
-                    onClick={() => setSelectedAgentId(agent.id)}
+                    onClick={() => router.push(`/agents/${agent.id}`)}
                     className={`hover:bg-white/[0.03] transition-colors cursor-pointer group ${
                       agent.isBackbone ? 'bg-cyan-500/[0.02]' : ''
                     }`}
@@ -204,7 +202,7 @@ export default function AgentTable({
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedAgentId(agent.id);
+                            router.push(`/agents/${agent.id}`);
                           }}
                           className="text-white/50 hover:text-cyan-400 p-1"
                           icon={<Eye size={14} />}
@@ -244,23 +242,6 @@ export default function AgentTable({
         </div>
       </div>
 
-      <AgentDetailModal
-        agent={selectedAgent}
-        reputation={reputation}
-        onClose={() => setSelectedAgentId(null)}
-        updateAgent={updateAgent}
-        onDelete={(id) => {
-          setSelectedAgentId(null);
-          deleteAgent(id);
-        }}
-        onOpenTools={(id) => {
-          setSelectedAgentId(null);
-          setSelectedAgentIdForTools(id);
-        }}
-        onSave={onSave}
-        saving={saving}
-        hasChanges={hasChanges}
-      />
     </>
   );
 }

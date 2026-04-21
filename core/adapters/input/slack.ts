@@ -130,6 +130,8 @@ export class SlackAdapter implements InputAdapter {
       source: this.source,
       userId,
       sessionId,
+      teamId: parsed.team_id,
+      staffId: userId,
       text: event.text || '',
       attachments: [],
       metadata: {

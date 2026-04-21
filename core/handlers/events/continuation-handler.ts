@@ -20,6 +20,7 @@ export async function handleContinuationTask(
     agentId,
     task,
     traceId,
+    taskId,
     sessionId,
     depth,
     initiatorId,
@@ -27,6 +28,9 @@ export async function handleContinuationTask(
     tokenBudget,
     costLimit,
     metadata,
+    workspaceId,
+    teamId,
+    staffId,
   } = TASK_EVENT_SCHEMA.parse(eventDetail);
 
   const currentDepth = depth ?? 1;
@@ -46,7 +50,10 @@ export async function handleContinuationTask(
       'continuation-handler',
       `I have detected an infinite loop in task continuation (Depth: ${currentDepth}). I've intervened to stop the process. Please check the orchestration logic.`,
       traceId,
-      agentId ?? 'superclaw'
+      agentId ?? 'superclaw',
+      workspaceId,
+      teamId,
+      staffId
     );
     return;
   }
@@ -70,6 +77,7 @@ export async function handleContinuationTask(
     context,
     isContinuation: true,
     traceId,
+    taskId,
     sessionId,
     depth,
     initiatorId,
@@ -79,5 +87,8 @@ export async function handleContinuationTask(
     priorTokenUsage,
     handlerTitle: 'CONTINUATION_NOTIFICATION',
     outboundHandlerName: 'continuation-handler',
+    workspaceId,
+    teamId,
+    staffId,
   });
 }

@@ -20,8 +20,8 @@ function createMockMemory(overrides: Partial<IMemory> = {}): IMemory {
     getAllGaps: vi.fn().mockResolvedValue([]),
     searchInsights: vi.fn().mockResolvedValue({ items: [] }),
     archiveStaleGaps: vi.fn().mockResolvedValue(0),
+    cullResolvedGaps: vi.fn().mockResolvedValue(0),
     getLowUtilizationMemory: vi.fn().mockResolvedValue([]),
-    getFailedPlans: vi.fn().mockResolvedValue([]),
     getFailurePatterns: vi.fn().mockResolvedValue([]),
     getGlobalLessons: vi.fn().mockResolvedValue([]),
     addLesson: vi.fn().mockResolvedValue(undefined),
@@ -36,7 +36,6 @@ function createMockMemory(overrides: Partial<IMemory> = {}): IMemory {
     releaseGapLock: vi.fn().mockResolvedValue(undefined),
     getGapLock: vi.fn().mockResolvedValue(null),
     updateGapMetadata: vi.fn().mockResolvedValue(undefined),
-    recordFailedPlan: vi.fn().mockResolvedValue(0),
     addMemory: vi.fn().mockResolvedValue(0),
     updateInsightMetadata: vi.fn().mockResolvedValue(undefined),
     listByPrefix: vi.fn().mockResolvedValue([]),
@@ -55,11 +54,15 @@ function createMockMemory(overrides: Partial<IMemory> = {}): IMemory {
     getEscalationState: vi.fn().mockResolvedValue(null),
     findExpiredClarifications: vi.fn().mockResolvedValue([]),
     incrementClarificationRetry: vi.fn().mockResolvedValue(0),
+    saveDistilledRecoveryLog: vi.fn().mockResolvedValue(undefined),
     getCollaboration: vi.fn().mockResolvedValue(null),
     checkCollaborationAccess: vi.fn().mockResolvedValue(true),
     closeCollaboration: vi.fn().mockResolvedValue(undefined),
     createCollaboration: vi.fn().mockResolvedValue({} as any),
     listCollaborationsForParticipant: vi.fn().mockResolvedValue([]),
+    findStaleCollaborations: vi.fn().mockResolvedValue([]),
+    transitToCollaboration: vi.fn().mockResolvedValue({} as any),
+    getGap: vi.fn().mockResolvedValue(null),
     ...overrides,
   } as unknown as IMemory;
 }
@@ -342,12 +345,14 @@ describe('buildReflectionPrompt', () => {
       const failurePatterns: MemoryInsight[] = [
         {
           id: 'fp-1',
+          type: 'MEMORY:FAILURE_PATTERN',
           content: 'Timeout on large payloads',
           metadata: {} as any,
           timestamp: Date.now(),
         },
         {
           id: 'fp-2',
+          type: 'MEMORY:FAILURE_PATTERN',
           content: 'Memory leak in stream handler',
           metadata: {} as any,
           timestamp: Date.now(),

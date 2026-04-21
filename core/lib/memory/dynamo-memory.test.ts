@@ -429,8 +429,18 @@ describe('DynamoMemory Delegation Tests', () => {
     it('should delegate getLessons to InsightOps', async () => {
       ddbMock.on(QueryCommand).resolves({
         Items: [
-          { userId: 'user-1', type: 'LESSON', content: 'lesson 1' },
-          { userId: 'user-1', type: 'LESSON', content: 'lesson 2' },
+          { 
+            userId: 'user-1', 
+            type: 'MEMORY:INSIGHT', 
+            content: 'lesson 1',
+            metadata: { category: InsightCategory.TACTICAL_LESSON }
+          },
+          { 
+            userId: 'user-1', 
+            type: 'MEMORY:INSIGHT', 
+            content: 'lesson 2',
+            metadata: { category: InsightCategory.TACTICAL_LESSON }
+          },
         ],
       });
 
@@ -532,7 +542,7 @@ describe('DynamoMemory Delegation Tests', () => {
       });
       ddbMock.on(PutCommand).resolves({});
 
-      const result = await memory.recordFailurePattern('user-1', 'timeout error');
+      const result = await memory.recordFailurePattern('hash123', 'content123', ['gap1'], 'timeout error');
 
       expect(typeof result).toBe('string');
     });
@@ -550,15 +560,15 @@ describe('DynamoMemory Delegation Tests', () => {
         ],
       });
 
-      const result = await memory.getFailurePatterns('user-1', 'timeout');
+      const result = await memory.getFailurePatterns(10);
 
       expect(result.length).toBeGreaterThanOrEqual(0);
     });
 
-    it('should delegate recordFailedPlan to InsightOps', async () => {
+    it('should delegate recordFailurePattern to InsightOps', async () => {
       ddbMock.on(PutCommand).resolves({});
 
-      const result = await memory.recordFailedPlan(
+      const result = await memory.recordFailurePattern(
         'hash123',
         'plan content',
         ['GAP#1', 'GAP#2'],
@@ -570,7 +580,7 @@ describe('DynamoMemory Delegation Tests', () => {
       expect(calls).toHaveLength(1);
     });
 
-    it('should delegate getFailedPlans to InsightOps', async () => {
+    it('should delegate getFailurePatterns to InsightOps', async () => {
       ddbMock.on(QueryCommand).resolves({
         Items: [
           {
@@ -584,7 +594,7 @@ describe('DynamoMemory Delegation Tests', () => {
         ],
       });
 
-      const result = await memory.getFailedPlans(10);
+      const result = await memory.getFailurePatterns(10);
 
       expect(result.length).toBeGreaterThanOrEqual(0);
     });
@@ -905,14 +915,5 @@ describe('DynamoMemory Delegation Tests', () => {
     });
   });
 
-  describe('Config Operations', () => {
-    it('should delegate getConfig to AgentRegistry.getRawConfig', async () => {
-      vi.mocked(AgentRegistry.getRawConfig).mockReturnValue(Promise.resolve('test-value') as any);
 
-      const result = await memory.getConfig('test-key');
-
-      expect(result).toBe('test-value');
-      expect(AgentRegistry.getRawConfig).toHaveBeenCalledWith('test-key');
-    });
-  });
 });

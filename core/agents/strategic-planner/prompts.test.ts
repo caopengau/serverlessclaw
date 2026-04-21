@@ -2,6 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { InsightCategory } from '../../lib/types/index';
 import type { IMemory } from '../../lib/types/index';
 import { MEMORY_KEYS, TIME } from '../../lib/constants';
+import { 
+  buildTelemetry, 
+  shouldRunProactiveReview, 
+  buildReactivePrompt, 
+  buildProactiveReviewPrompt, 
+  fetchStaleMemoryContext 
+} from './prompts';
 
 /**
  * Prompts Module Tests
@@ -22,8 +29,8 @@ function createMockMemory(overrides: Partial<IMemory> = {}): IMemory {
     getAllGaps: vi.fn().mockResolvedValue([]),
     searchInsights: vi.fn().mockResolvedValue({ items: [] }),
     archiveStaleGaps: vi.fn().mockResolvedValue(0),
+    cullResolvedGaps: vi.fn().mockResolvedValue(0),
     getLowUtilizationMemory: vi.fn().mockResolvedValue([]),
-    getFailedPlans: vi.fn().mockResolvedValue([]),
     getFailurePatterns: vi.fn().mockResolvedValue([]),
     getGlobalLessons: vi.fn().mockResolvedValue([]),
     addLesson: vi.fn().mockResolvedValue(undefined),
@@ -38,7 +45,6 @@ function createMockMemory(overrides: Partial<IMemory> = {}): IMemory {
     releaseGapLock: vi.fn().mockResolvedValue(undefined),
     getGapLock: vi.fn().mockResolvedValue(null),
     updateGapMetadata: vi.fn().mockResolvedValue(undefined),
-    recordFailedPlan: vi.fn().mockResolvedValue(0),
     addMemory: vi.fn().mockResolvedValue(0),
     updateInsightMetadata: vi.fn().mockResolvedValue(undefined),
     listByPrefix: vi.fn().mockResolvedValue([]),
@@ -63,13 +69,22 @@ function createMockMemory(overrides: Partial<IMemory> = {}): IMemory {
     closeCollaboration: vi.fn().mockResolvedValue(undefined),
     createCollaboration: vi.fn().mockResolvedValue({} as any),
     listCollaborationsForParticipant: vi.fn().mockResolvedValue([]),
+    findStaleCollaborations: vi.fn().mockResolvedValue([]),
+    transitToCollaboration: vi.fn().mockResolvedValue({} as any),
+    getGap: vi.fn().mockResolvedValue(null),
     ...overrides,
   } as unknown as IMemory;
 }
 
+// Hoisted mocks to avoid warnings and ensure consistent behavior
+const mocks = vi.hoisted(() => ({
+  getRawConfig: vi.fn(),
+  getToolRollupRange: vi.fn(),
+}));
+
 vi.mock('../../lib/registry/index', () => ({
   AgentRegistry: {
-    getRawConfig: vi.fn().mockResolvedValue(undefined),
+    getRawConfig: mocks.getRawConfig,
   },
 }));
 
@@ -79,7 +94,7 @@ vi.mock('../../tools/index', () => ({
 
 vi.mock('../../lib/metrics/token-usage', () => ({
   TokenTracker: {
-    getToolRollupRange: vi.fn().mockResolvedValue([]),
+    getToolRollupRange: mocks.getToolRollupRange,
   },
 }));
 
@@ -89,7 +104,6 @@ vi.mock('../../lib/metrics/token-usage', () => ({
 
 describe('buildTelemetry', () => {
   it('should return formatted telemetry string with tools list', async () => {
-    const { buildTelemetry } = await import('./prompts');
     const result = buildTelemetry('tool1, tool2, tool3');
 
     expect(result).toContain('[SYSTEM_TELEMETRY]');
@@ -100,7 +114,6 @@ describe('buildTelemetry', () => {
   });
 
   it('should handle empty tools list', async () => {
-    const { buildTelemetry } = await import('./prompts');
     const result = buildTelemetry('');
 
     expect(result).toContain('[SYSTEM_TELEMETRY]');
@@ -118,7 +131,6 @@ describe('shouldRunProactiveReview', () => {
   });
 
   it('should always run for scheduled reviews even when recent', async () => {
-    const { shouldRunProactiveReview } = await import('./prompts');
     const memory = createMockMemory({
       getDistilledMemory: vi.fn().mockResolvedValue(Date.now().toString()),
       getAllGaps: vi.fn().mockResolvedValue([
@@ -424,22 +436,8 @@ describe('buildProactiveReviewPrompt', () => {
   });
 
   it('should return shouldRun: false when proactive review is too recent', async () => {
-    vi.resetModules();
-    vi.mock('../../lib/registry/index', () => ({
-      AgentRegistry: {
-        getRawConfig: vi.fn().mockResolvedValue(undefined),
-      },
-    }));
-    vi.mock('../../tools/index', () => ({
-      TOOLS: { toolA: {} },
-    }));
-    vi.mock('../../lib/metrics/token-usage', () => ({
-      TokenTracker: {
-        getToolRollupRange: vi.fn().mockResolvedValue([]),
-      },
-    }));
-
-    const { buildProactiveReviewPrompt } = await import('./prompts');
+    mocks.getRawConfig.mockResolvedValue(undefined);
+    mocks.getToolRollupRange.mockResolvedValue([]);
     const memory = createMockMemory({
       getDistilledMemory: vi.fn().mockResolvedValue(Date.now().toString()),
     });
@@ -451,22 +449,8 @@ describe('buildProactiveReviewPrompt', () => {
   });
 
   it('should return shouldRun: false when no gaps exist after review check passes', async () => {
-    vi.resetModules();
-    vi.mock('../../lib/registry/index', () => ({
-      AgentRegistry: {
-        getRawConfig: vi.fn().mockResolvedValue(undefined),
-      },
-    }));
-    vi.mock('../../tools/index', () => ({
-      TOOLS: { toolA: {} },
-    }));
-    vi.mock('../../lib/metrics/token-usage', () => ({
-      TokenTracker: {
-        getToolRollupRange: vi.fn().mockResolvedValue([]),
-      },
-    }));
-
-    const { buildProactiveReviewPrompt } = await import('./prompts');
+    mocks.getRawConfig.mockResolvedValue(undefined);
+    mocks.getToolRollupRange.mockResolvedValue([]);
     const oldTimestamp = (Date.now() - 48 * TIME.SECONDS_IN_HOUR * TIME.MS_PER_SECOND).toString();
     const gapsForReview = Array.from({ length: 25 }, (_, i) => ({
       id: `gap-${i}`,
@@ -489,20 +473,6 @@ describe('buildProactiveReviewPrompt', () => {
   });
 
   it('should build full prompt with gaps and improvements for scheduled review', async () => {
-    vi.resetModules();
-    vi.mock('../../lib/registry/index', () => ({
-      AgentRegistry: {
-        getRawConfig: vi.fn().mockResolvedValue(undefined),
-      },
-    }));
-    vi.mock('../../tools/index', () => ({
-      TOOLS: { toolA: {} },
-    }));
-    vi.mock('../../lib/metrics/token-usage', () => ({
-      TokenTracker: {
-        getToolRollupRange: vi.fn().mockResolvedValue([]),
-      },
-    }));
 
     const { buildProactiveReviewPrompt } = await import('./prompts');
     const gaps = [
@@ -531,7 +501,7 @@ describe('buildProactiveReviewPrompt', () => {
     const memory = createMockMemory({
       getAllGaps: vi.fn().mockResolvedValue(gaps),
       searchInsights: vi.fn().mockResolvedValue({ items: improvements }),
-      getFailedPlans: vi.fn().mockResolvedValue([]),
+      getFailurePatterns: vi.fn().mockResolvedValue([]),
       updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
     });
 
@@ -552,20 +522,6 @@ describe('buildProactiveReviewPrompt', () => {
   });
 
   it('should include failed plans anti-patterns in prompt', async () => {
-    vi.resetModules();
-    vi.mock('../../lib/registry/index', () => ({
-      AgentRegistry: {
-        getRawConfig: vi.fn().mockResolvedValue(undefined),
-      },
-    }));
-    vi.mock('../../tools/index', () => ({
-      TOOLS: { toolA: {} },
-    }));
-    vi.mock('../../lib/metrics/token-usage', () => ({
-      TokenTracker: {
-        getToolRollupRange: vi.fn().mockResolvedValue([]),
-      },
-    }));
 
     const { buildProactiveReviewPrompt } = await import('./prompts');
     const gapsForReview = Array.from({ length: 25 }, (_, i) => ({
@@ -598,7 +554,7 @@ describe('buildProactiveReviewPrompt', () => {
     const memory = createMockMemory({
       getAllGaps: vi.fn().mockResolvedValueOnce(gapsForReview).mockResolvedValueOnce(gaps),
       searchInsights: vi.fn().mockResolvedValue({ items: [] }),
-      getFailedPlans: vi.fn().mockResolvedValue(failedPlans),
+      getFailurePatterns: vi.fn().mockResolvedValue(failedPlans),
       updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
     });
 
@@ -611,20 +567,6 @@ describe('buildProactiveReviewPrompt', () => {
   });
 
   it('should call updateDistilledMemory with current timestamp on success', async () => {
-    vi.resetModules();
-    vi.mock('../../lib/registry/index', () => ({
-      AgentRegistry: {
-        getRawConfig: vi.fn().mockResolvedValue(undefined),
-      },
-    }));
-    vi.mock('../../tools/index', () => ({
-      TOOLS: { toolA: {} },
-    }));
-    vi.mock('../../lib/metrics/token-usage', () => ({
-      TokenTracker: {
-        getToolRollupRange: vi.fn().mockResolvedValue([]),
-      },
-    }));
 
     const { buildProactiveReviewPrompt } = await import('./prompts');
     const gapsForReview = Array.from({ length: 25 }, (_, i) => ({
@@ -645,7 +587,7 @@ describe('buildProactiveReviewPrompt', () => {
     const memory = createMockMemory({
       getAllGaps: vi.fn().mockResolvedValueOnce(gapsForReview).mockResolvedValueOnce(gaps),
       searchInsights: vi.fn().mockResolvedValue({ items: [] }),
-      getFailedPlans: vi.fn().mockResolvedValue([]),
+      getFailurePatterns: vi.fn().mockResolvedValue([]),
       updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
     });
 
@@ -658,20 +600,6 @@ describe('buildProactiveReviewPrompt', () => {
   });
 
   it('should include no improvements message when none exist', async () => {
-    vi.resetModules();
-    vi.mock('../../lib/registry/index', () => ({
-      AgentRegistry: {
-        getRawConfig: vi.fn().mockResolvedValue(undefined),
-      },
-    }));
-    vi.mock('../../tools/index', () => ({
-      TOOLS: { toolA: {} },
-    }));
-    vi.mock('../../lib/metrics/token-usage', () => ({
-      TokenTracker: {
-        getToolRollupRange: vi.fn().mockResolvedValue([]),
-      },
-    }));
 
     const { buildProactiveReviewPrompt } = await import('./prompts');
     const gapsForReview = Array.from({ length: 25 }, (_, i) => ({
@@ -692,7 +620,7 @@ describe('buildProactiveReviewPrompt', () => {
     const memory = createMockMemory({
       getAllGaps: vi.fn().mockResolvedValueOnce(gapsForReview).mockResolvedValueOnce(gaps),
       searchInsights: vi.fn().mockResolvedValue({ items: [] }),
-      getFailedPlans: vi.fn().mockResolvedValue([]),
+      getFailurePatterns: vi.fn().mockResolvedValue([]),
       updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
     });
 
@@ -702,20 +630,6 @@ describe('buildProactiveReviewPrompt', () => {
   });
 
   it('should include only top 3 gaps by impact and show backlog summary for remaining gaps', async () => {
-    vi.resetModules();
-    vi.mock('../../lib/registry/index', () => ({
-      AgentRegistry: {
-        getRawConfig: vi.fn().mockResolvedValue(undefined),
-      },
-    }));
-    vi.mock('../../tools/index', () => ({
-      TOOLS: { toolA: {} },
-    }));
-    vi.mock('../../lib/metrics/token-usage', () => ({
-      TokenTracker: {
-        getToolRollupRange: vi.fn().mockResolvedValue([]),
-      },
-    }));
 
     const { buildProactiveReviewPrompt } = await import('./prompts');
     const gaps = [
@@ -761,7 +675,7 @@ describe('buildProactiveReviewPrompt', () => {
     const memory = createMockMemory({
       getAllGaps: vi.fn().mockResolvedValueOnce(gapsForReview).mockResolvedValueOnce(gaps),
       searchInsights: vi.fn().mockResolvedValue({ items: [] }),
-      getFailedPlans: vi.fn().mockResolvedValue([]),
+      getFailurePatterns: vi.fn().mockResolvedValue([]),
       updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
     });
 
@@ -777,20 +691,6 @@ describe('buildProactiveReviewPrompt', () => {
   });
 
   it('should omit backlog summary when there are no remaining gaps beyond top 3', async () => {
-    vi.resetModules();
-    vi.mock('../../lib/registry/index', () => ({
-      AgentRegistry: {
-        getRawConfig: vi.fn().mockResolvedValue(undefined),
-      },
-    }));
-    vi.mock('../../tools/index', () => ({
-      TOOLS: { toolA: {} },
-    }));
-    vi.mock('../../lib/metrics/token-usage', () => ({
-      TokenTracker: {
-        getToolRollupRange: vi.fn().mockResolvedValue([]),
-      },
-    }));
 
     const { buildProactiveReviewPrompt } = await import('./prompts');
     const gaps = [
@@ -809,7 +709,7 @@ describe('buildProactiveReviewPrompt', () => {
     const memory = createMockMemory({
       getAllGaps: vi.fn().mockResolvedValueOnce(gapsForReview).mockResolvedValueOnce(gaps),
       searchInsights: vi.fn().mockResolvedValue({ items: [] }),
-      getFailedPlans: vi.fn().mockResolvedValue([]),
+      getFailurePatterns: vi.fn().mockResolvedValue([]),
       updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
     });
 
@@ -830,15 +730,6 @@ describe('fetchToolUsageContext', () => {
   });
 
   it('should return empty string when no tools have usage data', async () => {
-    vi.resetModules();
-    vi.mock('../../tools/index', () => ({
-      TOOLS: { toolA: {}, toolB: {} },
-    }));
-    vi.mock('../../lib/metrics/token-usage', () => ({
-      TokenTracker: {
-        getToolRollupRange: vi.fn().mockResolvedValue([]),
-      },
-    }));
 
     const { fetchToolUsageContext } = await import('./prompts');
     const result = await fetchToolUsageContext();
@@ -847,10 +738,6 @@ describe('fetchToolUsageContext', () => {
   });
 
   it('should return empty string on import error', async () => {
-    vi.resetModules();
-    vi.mock('../../tools/index', () => {
-      throw new Error('Import failed');
-    });
 
     const { fetchToolUsageContext } = await import('./prompts');
     const result = await fetchToolUsageContext();

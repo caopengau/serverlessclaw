@@ -41,6 +41,7 @@ describe('Agent Memory Scoping', () => {
       updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
       searchInsights: vi.fn().mockResolvedValue({ items: [] }),
       getSummary: vi.fn().mockResolvedValue(null),
+      getScopedUserId: vi.fn().mockImplementation((uid: string) => uid),
     } as unknown as IMemory;
 
     mockProvider = {
@@ -58,7 +59,7 @@ describe('Agent Memory Scoping', () => {
   });
 
   it('should use base user ID for distilled memory and lessons even if userId is session-prefixed', async () => {
-    const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       enabled: true,
@@ -85,7 +86,7 @@ describe('Agent Memory Scoping', () => {
   });
 
   it('should use raw userId if no CONV# prefix is present', async () => {
-    const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       enabled: true,

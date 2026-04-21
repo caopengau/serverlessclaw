@@ -21,18 +21,26 @@ import { sessionIdToSortKey, fnv1aHash } from '../utils/id-generator';
  * @param base - The base memory provider instance.
  * @param userId - The user identifier.
  * @param message - The message object to add.
- * @param workspaceId - Optional workspace identifier for isolation.
+ * @param scope - Optional scope identifier or ContextualScope object for isolation.
  * @returns A promise resolving when the message is added.
  */
 export async function addMessage(
   base: BaseMemoryProvider,
   userId: string,
   message: Message,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
-  const scopedUserId = base.getScopedUserId(userId, workspaceId);
+  const scopedUserId = base.getScopedUserId(userId, scope);
   const { expiresAt, type } = await RetentionManager.getExpiresAt('MESSAGES', scopedUserId);
   const scrubbedMessage = filterPIIFromObject(message);
+
+  let workspaceId: string | undefined;
+  if (typeof scope === 'string') {
+    workspaceId = scope;
+  } else if (scope) {
+    workspaceId = scope.workspaceId;
+  }
+
   await base.putItem({
     userId: scopedUserId,
     timestamp: Date.now(),
@@ -50,23 +58,23 @@ export async function addMessage(
  * @param base - The base memory provider instance.
  * @param userId - The user identifier.
  * @param sessionId - The session identifier to delete.
- * @param workspaceId - Optional workspace identifier for isolation.
+ * @param scope - Optional scope identifier or ContextualScope object for isolation.
  * @returns A promise resolving when the conversation is deleted.
  */
 export async function deleteConversation(
   base: BaseMemoryProvider,
   userId: string,
   sessionId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
   const normalizedUserId = userId.replace(/^(SESSIONS#)+/, '');
   // We must list conversations to find the exact Sort Key (timestamp) for the session,
   // as saveConversationMeta may append collision suffixes that cannot be derived.
-  const conversations = await base.listConversations(normalizedUserId, workspaceId);
+  const conversations = await base.listConversations(normalizedUserId, scope);
   const existing = conversations.find((c) => c.sessionId === sessionId);
 
   if (existing) {
-    const scopedSessionsId = base.getScopedUserId(`SESSIONS#${normalizedUserId}`, workspaceId);
+    const scopedSessionsId = base.getScopedUserId(`SESSIONS#${normalizedUserId}`, scope);
     await base.deleteItem({
       userId: scopedSessionsId,
       timestamp: existing.updatedAt, // existing.updatedAt maps to the 'timestamp' SK attribute
@@ -74,7 +82,7 @@ export async function deleteConversation(
   }
 
   // Clear message history (Keyed by CONV#userId#sessionId)
-  await base.clearHistory(`CONV#${normalizedUserId}#${sessionId}`, workspaceId);
+  await base.clearHistory(`CONV#${normalizedUserId}#${sessionId}`, scope);
 }
 
 /**
@@ -84,18 +92,26 @@ export async function deleteConversation(
  * @param base - The base memory provider instance.
  * @param userId - The user identifier.
  * @param facts - The distilled facts string to store.
- * @param workspaceId - Optional workspace identifier for isolation.
+ * @param scope - Optional scope identifier or ContextualScope object for isolation.
  * @returns A promise resolving when memory is updated.
  */
 export async function updateDistilledMemory(
   base: BaseMemoryProvider,
   userId: string,
   facts: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
   const normalizedUserId = userId.replace(/^(DISTILLED#)+/, '');
-  const scopedUserId = base.getScopedUserId(`DISTILLED#${normalizedUserId}`, workspaceId);
+  const scopedUserId = base.getScopedUserId(`DISTILLED#${normalizedUserId}`, scope);
   const { expiresAt } = await RetentionManager.getExpiresAt('DISTILLED', normalizedUserId);
+
+  let workspaceId: string | undefined;
+  if (typeof scope === 'string') {
+    workspaceId = scope;
+  } else if (scope) {
+    workspaceId = scope.workspaceId;
+  }
+
   await base.putItem({
     userId: scopedUserId,
     timestamp: 0,
@@ -114,7 +130,7 @@ export async function updateDistilledMemory(
  * @param userId - The user identifier.
  * @param sessionId - The session identifier.
  * @param meta - Partial conversation metadata to update.
- * @param workspaceId - Optional workspace identifier for isolation.
+ * @param scope - Optional scope identifier or ContextualScope object for isolation.
  * @returns A promise resolving when metadata is saved.
  * @since 2026-03-19
  */
@@ -123,7 +139,7 @@ export async function saveConversationMeta(
   userId: string,
   sessionId: string,
   meta: Partial<ConversationMeta>,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
   const normalizedUserId = userId.replace(/^(SESSIONS#)+/, '');
   const { type } = await RetentionManager.getExpiresAt('SESSIONS', normalizedUserId);
@@ -150,7 +166,7 @@ export async function saveConversationMeta(
 
   let stableSortKey = sessionIdToSortKey(sessionId);
 
-  const partitionKey = base.getScopedUserId(`SESSIONS#${normalizedUserId}`, workspaceId);
+  const partitionKey = base.getScopedUserId(`SESSIONS#${normalizedUserId}`, scope);
 
   const existingItems = await base.queryItems({
     KeyConditionExpression: 'userId = :pk AND #ts = :ts',
@@ -181,6 +197,13 @@ export async function saveConversationMeta(
       existingIsPinned = (existing.isPinned as boolean) ?? existingIsPinned;
       existingWorkspaceId = existing.workspaceId as string | undefined;
     }
+  }
+
+  let workspaceId: string | undefined;
+  if (typeof scope === 'string') {
+    workspaceId = scope;
+  } else if (scope) {
+    workspaceId = scope.workspaceId;
   }
 
   await base.updateItem({
@@ -295,9 +318,9 @@ export async function resetRecoveryAttemptCount(base: BaseMemoryProvider): Promi
 export async function getSummary(
   base: BaseMemoryProvider,
   userId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<string | null> {
-  const scopedUserId = base.getScopedUserId(`SUMMARY#${userId}`, workspaceId);
+  const scopedUserId = base.getScopedUserId(`SUMMARY#${userId}`, scope);
   const results = await queryLatestContentByUserId(base, scopedUserId, 1);
   return results[0] ?? null;
 }
@@ -339,10 +362,18 @@ export async function updateSummary(
   base: BaseMemoryProvider,
   userId: string,
   summary: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
   const { expiresAt } = await RetentionManager.getExpiresAt('SESSIONS', userId);
-  const scopedUserId = base.getScopedUserId(`SUMMARY#${userId}`, workspaceId);
+  const scopedUserId = base.getScopedUserId(`SUMMARY#${userId}`, scope);
+
+  let workspaceId: string | undefined;
+  if (typeof scope === 'string') {
+    workspaceId = scope;
+  } else if (scope) {
+    workspaceId = scope.workspaceId;
+  }
+
   await base.putItem({
     userId: scopedUserId,
     timestamp: Date.now(),

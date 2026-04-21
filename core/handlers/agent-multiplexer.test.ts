@@ -4,6 +4,11 @@ import { EventType } from '../lib/types/agent';
 import { Context } from 'aws-lambda';
 import * as agentHelpers from '../lib/utils/agent-helpers';
 
+const mocks = vi.hoisted(() => ({
+  mergerHandler: vi.fn().mockResolvedValue('MERGER_DONE'),
+  failHandler: false,
+}));
+
 // Mock WarmupManager
 vi.mock('../lib/warmup', () => ({
   WarmupManager: vi.fn().mockImplementation(() => ({
@@ -33,11 +38,31 @@ vi.mock('../lib/recursion-tracker', () => ({
   getRecursionLimit: vi.fn(async () => 15),
 }));
 
-// Mocking agent-helpers
 vi.mock('../lib/utils/agent-helpers', () => ({
   handleWarmup: vi.fn(),
   initAgent: vi.fn(),
 }));
+
+// Agent Mocks (Moved to top level to avoid hoisting warnings)
+vi.mock('../agents/coder', () => ({
+  handler: vi.fn().mockResolvedValue('CODER_DONE'),
+}));
+
+vi.mock('../agents/qa', () => ({
+  handler: vi.fn().mockResolvedValue('QA_DONE'),
+}));
+
+vi.mock('../agents/critic', () => ({
+  handler: vi.fn().mockResolvedValue('CRITIC_DONE'),
+}));
+
+vi.mock('../agents/merger', () => {
+  return {
+    get handler() {
+      return mocks.failHandler ? 'not-a-function' : mocks.mergerHandler;
+    }
+  };
+});
 
 // Mock logger to avoid console spam during tests
 vi.mock('../lib/logger', () => ({
@@ -77,10 +102,7 @@ describe('AgentMultiplexer', () => {
   it('should route CODER_TASK to coder agent', async () => {
     vi.mocked(agentHelpers.handleWarmup).mockResolvedValue(false);
 
-    // Mock dynamic import for coder
-    vi.mock('../agents/coder', () => ({
-      handler: vi.fn().mockResolvedValue('CODER_DONE'),
-    }));
+
 
     const event = { 'detail-type': EventType.CODER_TASK, detail: baseEventDetail };
     const result = await handler(event, mockContext);
@@ -91,10 +113,7 @@ describe('AgentMultiplexer', () => {
   it('should route QA_TASK to qa agent', async () => {
     vi.mocked(agentHelpers.handleWarmup).mockResolvedValue(false);
 
-    // Mock dynamic import for QA
-    vi.mock('../agents/qa', () => ({
-      handler: vi.fn().mockResolvedValue('QA_DONE'),
-    }));
+
 
     const event = { 'detail-type': 'qa_task', detail: baseEventDetail };
     const result = await handler(event, mockContext);
@@ -105,10 +124,7 @@ describe('AgentMultiplexer', () => {
   it('should route CRITIC_TASK to critic agent', async () => {
     vi.mocked(agentHelpers.handleWarmup).mockResolvedValue(false);
 
-    // Mock dynamic import for critic
-    vi.mock('../agents/critic', () => ({
-      handler: vi.fn().mockResolvedValue('CRITIC_DONE'),
-    }));
+
 
     const event = { 'detail-type': 'critic_task', detail: baseEventDetail };
     const result = await handler(event, mockContext);
@@ -128,10 +144,7 @@ describe('AgentMultiplexer', () => {
   it('should throw error if agent module does not export a handler', async () => {
     vi.mocked(agentHelpers.handleWarmup).mockResolvedValue(false);
 
-    // Mock dynamic import returning invalid module
-    vi.mock('../agents/merger', () => ({
-      handler: 'not-a-function',
-    }));
+    mocks.failHandler = true;
 
     const event = { 'detail-type': EventType.MERGER_TASK, detail: baseEventDetail };
     await expect(handler(event, mockContext)).rejects.toThrow(

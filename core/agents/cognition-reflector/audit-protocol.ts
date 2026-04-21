@@ -7,7 +7,7 @@
 
 import { logger } from '../../lib/logger';
 import { emitEvent } from '../../lib/utils/bus';
-import { AgentType, EventType } from '../../lib/types/agent';
+import { AgentType, EventType, GapStatus } from '../../lib/types/agent';
 import { AuditSilo, AuditFinding, AuditReport, AUDIT_SILOS } from './lib/audit-definitions';
 import { MetabolismService } from '../../lib/maintenance/metabolism';
 import { setGap } from '../../lib/memory/gap-operations';
@@ -16,10 +16,25 @@ import { InsightCategory } from '../../lib/types/memory';
 /**
  * Interface representing the subset of the memory provider used for audits.
  */
-interface MemoryForAudit {
-  getAllGaps(status: string): Promise<unknown[]>;
-  getFailurePatterns(userId: string, pattern: string, limit: number): Promise<unknown[]>;
-  set(key: string, value: unknown): Promise<void>;
+export interface MemoryForAudit {
+  getAllGaps(
+    status?: import('../../lib/types/agent').GapStatus,
+    scope?: string | import('../../lib/types/memory').ContextualScope
+  ): Promise<import('../../lib/types/memory').MemoryInsight[]>;
+  getFailurePatterns(
+    limit?: number,
+    scope?: string | import('../../lib/types/memory').ContextualScope
+  ): Promise<import('../../lib/types/memory').MemoryInsight[]>;
+  recordFailurePattern(
+    planHash: string,
+    planContent: string,
+    gapIds: string[],
+    failureReason: string,
+    metadata?: Partial<import('../../lib/types/memory').InsightMetadata>,
+    scope?: string | import('../../lib/types/memory').ContextualScope
+  ): Promise<number | string>;
+  getScopedUserId(userId: string, scope?: string | import('../../lib/types/memory').ContextualScope): string;
+  set?(key: string, value: unknown): Promise<void>;
   get?(key: string): Promise<unknown>;
 }
 
@@ -108,7 +123,7 @@ async function auditSilo(
 
 async function auditSpine(memory: MemoryForAudit): Promise<AuditFinding[]> {
   const findings: AuditFinding[] = [];
-  const openGaps = (await memory.getAllGaps('OPEN')) as unknown[];
+  const openGaps = (await memory.getAllGaps(GapStatus.OPEN)) as import('../../lib/types/memory').MemoryInsight[];
 
   if (openGaps.length > 50) {
     findings.push({
@@ -125,9 +140,9 @@ async function auditSpine(memory: MemoryForAudit): Promise<AuditFinding[]> {
 
 async function auditHand(memory: MemoryForAudit): Promise<AuditFinding[]> {
   const findings: AuditFinding[] = [];
-  const failures = (await memory.getFailurePatterns('*', '*', 10)) as Array<{ category: string }>;
+  const failures = (await memory.getFailurePatterns(10)) as import('../../lib/types/memory').MemoryInsight[];
 
-  const toolFailurePatterns = failures.filter((f) => f.category === 'TOOL_EXECUTION');
+  const toolFailurePatterns = failures.filter((f) => f.metadata?.category === 'TOOL_EXECUTION');
 
   if (toolFailurePatterns.length > 3) {
     findings.push({
@@ -177,7 +192,7 @@ async function auditShield(memory: MemoryForAudit): Promise<AuditFinding[]> {
 
 async function auditBrain(memory: MemoryForAudit): Promise<AuditFinding[]> {
   const findings: AuditFinding[] = [];
-  const doneGaps = (await memory.getAllGaps('DONE')) as Array<{
+  const doneGaps = (await memory.getAllGaps(GapStatus.DONE)) as Array<{
     metadata?: { updatedAt?: number };
   }>;
   const staleLimit = 90 * 24 * 60 * 60 * 1000;
@@ -282,7 +297,9 @@ async function auditMetabolism(memory: MemoryForAudit): Promise<AuditFinding[]> 
 
 async function saveAuditReport(memory: MemoryForAudit, report: AuditReport): Promise<void> {
   try {
-    await memory.set(`audit:${report.auditId}`, report);
+    if (memory.set) {
+      await memory.set(`audit:${report.auditId}`, report);
+    }
   } catch (e) {
     logger.warn('[Audit] Failed to save report:', e);
   }

@@ -14,9 +14,9 @@ export class MemoryGaps {
    */
   async getAllGaps(
     status: GapStatus = GapStatus.OPEN,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<MemoryInsight[]> {
-    const cacheKey = CacheKeys.gapsByStatus(status, workspaceId);
+    const cacheKey = CacheKeys.gapsByStatus(status, scope);
     const cached = MemoryCaches.global.get(cacheKey) as MemoryInsight[] | undefined;
 
     if (cached) {
@@ -25,7 +25,7 @@ export class MemoryGaps {
     }
 
     logger.debug(`Cache miss for gaps by status: ${status}`);
-    const gaps = await this.underlying.getAllGaps(status, workspaceId);
+    const gaps = await this.underlying.getAllGaps(status, scope);
 
     // Cache gaps with 5 minute TTL
     MemoryCaches.global.set(cacheKey, gaps, 5 * 60 * 1000);
@@ -40,9 +40,9 @@ export class MemoryGaps {
     gapId: string,
     details: string,
     metadata?: InsightMetadata,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<void> {
-    await this.underlying.setGap(gapId, details, metadata, workspaceId);
+    await this.underlying.setGap(gapId, details, metadata, scope);
 
     // Invalidate gaps cache
     MemoryCaches.global.invalidatePattern(/^gaps:/);
@@ -54,10 +54,10 @@ export class MemoryGaps {
   async updateGapStatus(
     gapId: string,
     status: GapStatus,
-    workspaceId?: string,
+    scope?: string | import('../../types/memory').ContextualScope,
     metadata?: Record<string, unknown>
   ): Promise<GapTransitionResult> {
-    const result = await this.underlying.updateGapStatus(gapId, status, workspaceId, metadata);
+    const result = await this.underlying.updateGapStatus(gapId, status, scope, metadata);
 
     // Invalidate gaps cache
     MemoryCaches.global.invalidatePattern(/^gaps:/);
@@ -65,14 +65,20 @@ export class MemoryGaps {
     return result;
   }
 
-  async archiveStaleGaps(staleDays?: number, workspaceId?: string): Promise<number> {
-    const result = await this.underlying.archiveStaleGaps(staleDays, workspaceId);
+  async archiveStaleGaps(
+    staleDays?: number,
+    scope?: string | import('../../types/memory').ContextualScope
+  ): Promise<number> {
+    const result = await this.underlying.archiveStaleGaps(staleDays, scope);
     MemoryCaches.global.invalidatePattern(/^gaps:/);
     return result;
   }
 
-  async incrementGapAttemptCount(gapId: string, workspaceId?: string): Promise<number> {
-    const result = await this.underlying.incrementGapAttemptCount(gapId, workspaceId);
+  async incrementGapAttemptCount(
+    gapId: string,
+    scope?: string | import('../../types/memory').ContextualScope
+  ): Promise<number> {
+    const result = await this.underlying.incrementGapAttemptCount(gapId, scope);
     // 1.9 Invalidate gaps cache since attempt count changed
     MemoryCaches.global.invalidatePattern(/^gaps:/);
     return result;
@@ -81,23 +87,26 @@ export class MemoryGaps {
   async updateGapMetadata(
     gapId: string,
     metadata: Partial<InsightMetadata>,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<void> {
-    await this.underlying.updateGapMetadata(gapId, metadata, workspaceId);
+    await this.underlying.updateGapMetadata(gapId, metadata, scope);
     // Invalidate gaps cache since metadata changed
     MemoryCaches.global.invalidatePattern(/^gaps:/);
-    MemoryCaches.global.delete(CacheKeys.gap(gapId, workspaceId));
+    MemoryCaches.global.delete(CacheKeys.gap(gapId, scope));
   }
 
-  async getGap(gapId: string, workspaceId?: string): Promise<MemoryInsight | null> {
-    const cacheKey = CacheKeys.gap(gapId, workspaceId);
+  async getGap(
+    gapId: string,
+    scope?: string | import('../../types/memory').ContextualScope
+  ): Promise<MemoryInsight | null> {
+    const cacheKey = CacheKeys.gap(gapId, scope);
     const cached = MemoryCaches.global.get(cacheKey) as MemoryInsight | null | undefined;
 
     if (cached !== undefined) {
       return cached;
     }
 
-    const gap = await this.underlying.getGap(gapId, workspaceId);
+    const gap = await this.underlying.getGap(gapId, scope);
     MemoryCaches.global.set(cacheKey, gap, 5 * 60 * 1000);
     return gap;
   }
@@ -106,9 +115,9 @@ export class MemoryGaps {
     gapId: string,
     agentId: string,
     ttlMs?: number,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<boolean> {
-    return this.underlying.acquireGapLock(gapId, agentId, ttlMs, workspaceId);
+    return this.underlying.acquireGapLock(gapId, agentId, ttlMs, scope);
   }
 
   async releaseGapLock(
@@ -116,39 +125,47 @@ export class MemoryGaps {
     agentId: string,
     expectedVersion?: number,
     force?: boolean,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<void> {
-    await this.underlying.releaseGapLock(gapId, agentId, expectedVersion, force, workspaceId);
+    await this.underlying.releaseGapLock(gapId, agentId, expectedVersion, force, scope);
   }
 
   async getGapLock(
     gapId: string,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<{ agentId: string; expiresAt: number; lockVersion?: number } | null> {
-    return this.underlying.getGapLock(gapId, workspaceId);
+    return this.underlying.getGapLock(gapId, scope);
   }
 
-  async recordFailedPlan(
+  /**
+   * Records a failed strategic plan so the swarm learns anti-patterns.
+   */
+  async recordFailurePattern(
     planHash: string,
     planContent: string,
     gapIds: string[],
     failureReason: string,
     metadata?: Partial<InsightMetadata>,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<number | string> {
-    const result = await this.underlying.recordFailedPlan(
+    const result = await this.underlying.recordFailurePattern(
       planHash,
       planContent,
       gapIds,
       failureReason,
       metadata,
-      workspaceId
+      scope
     );
-    MemoryCaches.search.invalidatePattern(/^insights:/);
     return result;
   }
 
-  async getFailedPlans(limit?: number, workspaceId?: string): Promise<MemoryInsight[]> {
-    return this.underlying.getFailedPlans(limit, workspaceId);
+  /**
+   * Retrieves previously failed plans to inform the planner about what NOT to do.
+   */
+  async getFailurePatterns(
+    limit?: number,
+    scope?: string | import('../../types/memory').ContextualScope
+  ) {
+    return this.underlying.getFailurePatterns(limit, scope);
   }
 }

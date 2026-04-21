@@ -125,45 +125,81 @@ export async function emitMetrics(metrics: MetricDatum[]): Promise<void> {
 }
 
 export const METRICS = {
-  agentInvoked(agentId: string, success: boolean = true): MetricDatum {
+  agentInvoked(
+    agentId: string,
+    success: boolean = true,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [
+      { Name: 'AgentId', Value: agentId },
+      { Name: 'Success', Value: success ? 'true' : 'false' },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'AgentInvocations',
       Value: 1,
       Unit: 'Count',
-      Dimensions: [
-        { Name: 'AgentId', Value: agentId },
-        { Name: 'Success', Value: success ? 'true' : 'false' },
-      ],
+      Dimensions: dimensions,
     };
   },
 
-  agentDuration(agentId: string, durationMs: number): MetricDatum {
+  agentDuration(
+    agentId: string,
+    durationMs: number,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [{ Name: 'AgentId', Value: agentId }];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'AgentDuration',
       Value: durationMs,
       Unit: 'Milliseconds',
-      Dimensions: [{ Name: 'AgentId', Value: agentId }],
+      Dimensions: dimensions,
     };
   },
 
-  toolExecuted(toolName: string, success: boolean): MetricDatum {
+  toolExecuted(
+    toolName: string,
+    success: boolean,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [
+      { Name: 'ToolName', Value: toolName },
+      { Name: 'Success', Value: String(success) },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'ToolExecutions',
       Value: 1,
       Unit: 'Count',
-      Dimensions: [
-        { Name: 'ToolName', Value: toolName },
-        { Name: 'Success', Value: String(success) },
-      ],
+      Dimensions: dimensions,
     };
   },
 
-  toolDuration(toolName: string, durationMs: number): MetricDatum {
+  toolDuration(
+    toolName: string,
+    durationMs: number,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [{ Name: 'ToolName', Value: toolName }];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'ToolDuration',
       Value: durationMs,
       Unit: 'Milliseconds',
-      Dimensions: [{ Name: 'ToolName', Value: toolName }],
+      Dimensions: dimensions,
     };
   },
 
@@ -253,27 +289,47 @@ export const METRICS = {
     };
   },
 
-  tokensInput(inputTokens: number, agentId: string, provider: string): MetricDatum {
+  tokensInput(
+    inputTokens: number,
+    agentId: string,
+    provider: string,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [
+      { Name: 'AgentId', Value: agentId },
+      { Name: 'Provider', Value: provider },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'TokensInput',
       Value: inputTokens,
       Unit: 'Count',
-      Dimensions: [
-        { Name: 'AgentId', Value: agentId },
-        { Name: 'Provider', Value: provider },
-      ],
+      Dimensions: dimensions,
     };
   },
 
-  tokensOutput(outputTokens: number, agentId: string, provider: string): MetricDatum {
+  tokensOutput(
+    outputTokens: number,
+    agentId: string,
+    provider: string,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [
+      { Name: 'AgentId', Value: agentId },
+      { Name: 'Provider', Value: provider },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'TokensOutput',
       Value: outputTokens,
       Unit: 'Count',
-      Dimensions: [
-        { Name: 'AgentId', Value: agentId },
-        { Name: 'Provider', Value: provider },
-      ],
+      Dimensions: dimensions,
     };
   },
 

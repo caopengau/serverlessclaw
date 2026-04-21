@@ -9,6 +9,10 @@ interface ReportBackPayload {
   traceId?: string;
   sessionId?: string;
   agentId?: string;
+  workspaceId?: string;
+  orgId?: string;
+  teamId?: string;
+  staffId?: string;
 }
 
 /**
@@ -16,8 +20,19 @@ interface ReportBackPayload {
  * Notifies the human user of an autonomous action taken due to a timeout or strategic tie-break.
  */
 export async function handleReportBack(eventDetail: Record<string, unknown>): Promise<void> {
-  const { userId, action, reason, result, traceId, sessionId, agentId } =
-    eventDetail as unknown as ReportBackPayload;
+  const {
+    userId,
+    action,
+    reason,
+    result,
+    traceId,
+    sessionId,
+    agentId,
+    workspaceId,
+    orgId,
+    teamId,
+    staffId,
+  } = eventDetail as unknown as ReportBackPayload;
 
   logger.info(`[REPORT_BACK] Action: ${action} | Reason: ${reason} | User: ${userId}`);
 
@@ -37,6 +52,11 @@ export async function handleReportBack(eventDetail: Record<string, unknown>): Pr
     sessionId,
     agentId || 'SuperClaw',
     undefined,
-    traceId
+    traceId,
+    undefined,
+    workspaceId,
+    orgId,
+    teamId,
+    staffId
   );
 }

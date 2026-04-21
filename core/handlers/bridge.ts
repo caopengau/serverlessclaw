@@ -34,6 +34,8 @@ export async function handler(event: Record<string, unknown>, _context: Context)
     message: rawMessage,
     isThought,
     workspaceId,
+    teamId,
+    staffId,
     collaborationId,
   } = detail;
 
@@ -46,7 +48,7 @@ export async function handler(event: Record<string, unknown>, _context: Context)
       : rawMessage.replace(/\n/g, ' ');
 
   logger.info(
-    `[RealtimeBridge] Routing ${eventType}: User=${userId} | Session=${sessionId} | Collab=${collaborationId} | WS=${workspaceId}`
+    `[RealtimeBridge] Routing ${eventType}: User=${userId} | Session=${sessionId} | Collab=${collaborationId} | WS=${workspaceId} | TEAM=${teamId} | STAFF=${staffId}`
   );
   if (rawMessage) {
     logger.debug(`[RealtimeBridge] Content: "${contentSnippet}"${isThought ? ' (thought)' : ''}`);
@@ -59,6 +61,8 @@ export async function handler(event: Record<string, unknown>, _context: Context)
 
   if (collaborationId) {
     subTopic = `collaborations/${sanitizeMqttTopic(collaborationId)}/signal`;
+  } else if (teamId) {
+    subTopic = `teams/${sanitizeMqttTopic(teamId)}/signal`;
   } else if (workspaceId) {
     subTopic = `workspaces/${sanitizeMqttTopic(workspaceId)}/signal`;
   } else if (sessionId) {

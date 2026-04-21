@@ -22,7 +22,12 @@ export class SafetyRateLimiter {
   async checkRateLimits(
     policy: SafetyPolicy,
     action: string,
-    workspaceId?: string
+    scope?: {
+      workspaceId?: string;
+      orgId?: string;
+      teamId?: string;
+      staffId?: string;
+    }
   ): Promise<SafetyEvaluationResult> {
     const now = Date.now();
     const hourKey = `${action}_hour_${Math.floor(now / 3600000)}`;
@@ -30,12 +35,7 @@ export class SafetyRateLimiter {
 
     if (action === 'shell_command' && policy.maxShellCommandsPerHour) {
       if (
-        !(await this.checkRateLimitAtomic(
-          hourKey,
-          policy.maxShellCommandsPerHour,
-          3600000,
-          workspaceId
-        ))
+        !(await this.checkRateLimitAtomic(hourKey, policy.maxShellCommandsPerHour, 3600000, scope))
       ) {
         return {
           allowed: false,
@@ -48,12 +48,7 @@ export class SafetyRateLimiter {
 
     if (action === 'file_operation' && policy.maxFileWritesPerHour) {
       if (
-        !(await this.checkRateLimitAtomic(
-          hourKey,
-          policy.maxFileWritesPerHour,
-          3600000,
-          workspaceId
-        ))
+        !(await this.checkRateLimitAtomic(hourKey, policy.maxFileWritesPerHour, 3600000, scope))
       ) {
         return {
           allowed: false,
@@ -66,12 +61,7 @@ export class SafetyRateLimiter {
 
     if (action === 'deployment' && policy.maxDeploymentsPerDay) {
       if (
-        !(await this.checkRateLimitAtomic(
-          dayKey,
-          policy.maxDeploymentsPerDay,
-          86400000,
-          workspaceId
-        ))
+        !(await this.checkRateLimitAtomic(dayKey, policy.maxDeploymentsPerDay, 86400000, scope))
       ) {
         return {
           allowed: false,
@@ -88,7 +78,12 @@ export class SafetyRateLimiter {
   async checkToolRateLimit(
     override: ToolSafetyOverride | undefined,
     toolName: string,
-    workspaceId?: string
+    scope?: {
+      workspaceId?: string;
+      orgId?: string;
+      teamId?: string;
+      staffId?: string;
+    }
   ): Promise<SafetyEvaluationResult> {
     if (!override) {
       return { allowed: true, requiresApproval: false };
@@ -99,9 +94,7 @@ export class SafetyRateLimiter {
     const dayKey = `tool_${toolName}_day_${Math.floor(now / 86400000)}`;
 
     if (override.maxUsesPerHour) {
-      if (
-        !(await this.checkRateLimitAtomic(hourKey, override.maxUsesPerHour, 3600000, workspaceId))
-      ) {
+      if (!(await this.checkRateLimitAtomic(hourKey, override.maxUsesPerHour, 3600000, scope))) {
         return {
           allowed: false,
           requiresApproval: false,
@@ -112,9 +105,7 @@ export class SafetyRateLimiter {
     }
 
     if (override.maxUsesPerDay) {
-      if (
-        !(await this.checkRateLimitAtomic(dayKey, override.maxUsesPerDay, 86400000, workspaceId))
-      ) {
+      if (!(await this.checkRateLimitAtomic(dayKey, override.maxUsesPerDay, 86400000, scope))) {
         return {
           allowed: false,
           requiresApproval: false,
@@ -131,7 +122,12 @@ export class SafetyRateLimiter {
     key: string,
     limit: number,
     windowMs: number,
-    workspaceId?: string
+    scope?: {
+      workspaceId?: string;
+      orgId?: string;
+      teamId?: string;
+      staffId?: string;
+    }
   ): Promise<boolean> {
     this.evalCount++;
     if (this.evalCount % 100 === 0) {
@@ -139,12 +135,12 @@ export class SafetyRateLimiter {
     }
 
     if (!this.base) {
-      return this.checkRateLimitInMemory(key, limit, windowMs, workspaceId);
+      return this.checkRateLimitInMemory(key, limit, windowMs, scope);
     }
 
     const windowId = Math.floor(Date.now() / windowMs);
     const pk = `${MEMORY_KEYS.HEALTH_PREFIX}RATE#${key}#${windowId}`;
-    const scopedUserId = this.base.getScopedUserId(pk, workspaceId);
+    const scopedUserId = this.base.getScopedUserId(pk, scope);
 
     try {
       await this.base.updateItem({
@@ -167,7 +163,7 @@ export class SafetyRateLimiter {
       }
       // Fail-closed for safety: if DDB fails, reject the request to prevent rate limit bypass
       // Only fall back to in-memory for non-critical operations
-      logger.error('Rate limit check failed (fail-closed)', { key, workspaceId, err });
+      logger.error('Rate limit check failed (fail-closed)', { key, scope, err });
       return false;
     }
   }
@@ -176,9 +172,25 @@ export class SafetyRateLimiter {
     key: string,
     limit: number,
     windowMs: number,
-    workspaceId?: string
+    scope?: {
+      workspaceId?: string;
+      orgId?: string;
+      teamId?: string;
+      staffId?: string;
+    }
   ): boolean {
-    const memoryKey = workspaceId ? `WS#${workspaceId}#${key}` : key;
+    let memoryKey = key;
+    if (scope) {
+      const parts = [];
+      if (scope.orgId) parts.push(`ORG:${scope.orgId}`);
+      if (scope.teamId) parts.push(`TEAM:${scope.teamId}`);
+      if (scope.staffId) parts.push(`STAFF:${scope.staffId}`);
+      if (scope.workspaceId) parts.push(`WSID:${scope.workspaceId}`);
+      if (parts.length > 0) {
+        memoryKey = `WS#${parts.join('#')}#${key}`;
+      }
+    }
+
     const counter = this.rateLimitCounters.get(memoryKey);
     if (!counter || Date.now() > counter.resetTime) {
       this.rateLimitCounters.set(memoryKey, { count: 1, resetTime: Date.now() + windowMs });

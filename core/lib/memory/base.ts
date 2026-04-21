@@ -62,25 +62,53 @@ export class BaseMemoryProvider {
 
   /**
    * Helper to derive a workspace-scoped userId for DynamoDB partition keys.
-   * Format: WS#workspaceId#userId
-   * If workspaceId is provided, prefixes the userId to ensure logical isolation.
+   * Format: WS#[orgId]#[teamId]#[staffId]#[workspaceId]#userId
+   * If any scope identifiers are provided, prefixes the userId to ensure logical isolation.
    *
    * @param userId - The base user identifier.
-   * @param workspaceId - Optional workspace identifier identifier.
+   * @param scope - Optional scope identifier or ContextualScope object.
    * @returns The scoped partition key string.
    */
-  public getScopedUserId(userId: string, workspaceId?: string): string {
-    if (!workspaceId) return userId;
+  public getScopedUserId(
+    userId: string,
+    scope?: string | import('../types/memory').ContextualScope
+  ): string {
+    if (!scope) return userId;
+
+    let workspaceId: string | undefined;
+    let teamId: string | undefined;
+    let staffId: string | undefined;
+
+    if (typeof scope === 'string') {
+      workspaceId = scope;
+    } else {
+      workspaceId = scope.workspaceId;
+      teamId = scope.teamId;
+      staffId = scope.staffId;
+    }
+
+    if (!workspaceId && !teamId && !staffId) return userId;
 
     // Validation: userId should not contain workspace prefix characters to prevent spoofing
     if (userId.includes('WS#')) {
       logger.warn(`[SECURITY] Potential workspace prefix spoofing attempt in userId: ${userId}`);
-      // Strip any existing WS#...# prefix to ensure target workspace takes precedence
-      // Matches WS# followed by text up to the next #
+      // Strip any existing WS#...# prefix to ensure target scope takes precedence
       userId = userId.replace(/^WS#.*?#/g, '');
     }
 
-    return `WS#${workspaceId}#${userId}`;
+    const segments = ['WS'];
+    if (teamId) segments.push(`TEAM:${teamId}`);
+    if (staffId) segments.push(`STAFF:${staffId}`);
+
+    if (workspaceId) {
+      if (segments.length === 1) {
+        // Backward compatibility for plain workspaceId
+        return `WS#${workspaceId}#${userId}`;
+      }
+      segments.push(`WSID:${workspaceId}`);
+    }
+
+    return `${segments.join('#')}#${userId}`;
   }
 
   /**
@@ -250,32 +278,44 @@ export class BaseMemoryProvider {
    * Standard implementation for getHistory.
    * Filters out expired items based on TTL.
    */
-  public async getHistory(userId: string, workspaceId?: string) {
+  public async getHistory(
+    userId: string,
+    scope?: string | import('../types/memory').ContextualScope
+  ) {
     const { getHistory } = await import('./base-operations');
-    return getHistory(this, userId, workspaceId);
+    return getHistory(this, userId, scope);
   }
 
   /**
    * Standard implementation for clearHistory.
    */
-  public async clearHistory(userId: string, workspaceId?: string) {
+  public async clearHistory(
+    userId: string,
+    scope?: string | import('../types/memory').ContextualScope
+  ) {
     const { clearHistory } = await import('./base-operations');
-    return clearHistory(this, userId, workspaceId);
+    return clearHistory(this, userId, scope);
   }
 
   /**
    * Standard implementation for getDistilledMemory.
    */
-  public async getDistilledMemory(userId: string, workspaceId?: string) {
+  public async getDistilledMemory(
+    userId: string,
+    scope?: string | import('../types/memory').ContextualScope
+  ) {
     const { getDistilledMemory } = await import('./base-operations');
-    return getDistilledMemory(this, userId, workspaceId);
+    return getDistilledMemory(this, userId, scope);
   }
 
   /**
    * Standard implementation for listConversations.
    */
-  public async listConversations(userId: string, workspaceId?: string) {
+  public async listConversations(
+    userId: string,
+    scope?: string | import('../types/memory').ContextualScope
+  ) {
     const { listConversations } = await import('./base-operations');
-    return listConversations(this, userId, workspaceId);
+    return listConversations(this, userId, scope);
   }
 }

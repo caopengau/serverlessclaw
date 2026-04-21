@@ -181,7 +181,7 @@ export async function createAgent(
     systemPrompt += instruction;
   }
 
-  return new Agent(memory, provider, agentTools, systemPrompt, config);
+  return new Agent(memory, provider, agentTools, { ...config, systemPrompt });
 }
 
 /**
@@ -234,6 +234,8 @@ export interface ProcessOptionsParams {
   taskId?: string;
   sessionId?: string;
   workspaceId?: string;
+  teamId?: string;
+  staffId?: string;
   source?: TraceSource;
   profile?: ReasoningProfile;
   context?: import('aws-lambda').Context;
@@ -267,6 +269,8 @@ export function buildProcessOptions(params: ProcessOptionsParams): AgentProcessO
     taskId: params.taskId,
     sessionId: params.sessionId,
     workspaceId: params.workspaceId,
+    teamId: params.teamId,
+    staffId: params.staffId,
     source: params.source ?? TraceSource.SYSTEM,
     profile: params.profile,
     context: params.context,

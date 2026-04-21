@@ -205,7 +205,11 @@ export default function ChatContent() {
     const prompt = searchParams.get('prompt');
     if (prompt && !hasProcessedPrompt.current) {
       hasProcessedPrompt.current = true;
-      setTimeout(() => sendMessage(prompt, currentAgentId, collaborationId || undefined, undefined, showThinking ? 'thinking' : 'fast'), 500);
+      setTimeout(() => sendMessage(prompt, { 
+        agentId: currentAgentId, 
+        collaborationId: collaborationId || undefined, 
+        profile: showThinking ? 'thinking' : 'fast' 
+      }), 500);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
@@ -286,7 +290,11 @@ export default function ChatContent() {
       await handleTaskCancellation(value.split(':')[1], comment);
     } else {
       const fullMessage = comment ? `${value}\n\nComment: ${comment}` : value;
-      sendMessage(fullMessage, currentAgentId, collaborationId || undefined, undefined, showThinking ? 'thinking' : 'fast');
+      sendMessage(fullMessage, { 
+        agentId: currentAgentId, 
+        collaborationId: collaborationId || undefined, 
+        profile: showThinking ? 'thinking' : 'fast' 
+      });
     }
   };
 
@@ -614,7 +622,11 @@ export default function ChatContent() {
           isLoading={isLoading}
           onSend={(e) => {
             e.preventDefault();
-            sendMessage(input, currentAgentId, collaborationId || undefined, undefined, showThinking ? 'thinking' : 'fast');
+            sendMessage(input, { 
+              agentId: currentAgentId, 
+              collaborationId: collaborationId || undefined, 
+              profile: showThinking ? 'thinking' : 'fast' 
+            });
             setInput('');
           }}
           attachments={attachments}

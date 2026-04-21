@@ -98,7 +98,7 @@ export async function handleTaskResult(
     ? FAILURE_EVENT_SCHEMA.parse(eventDetail)
     : COMPLETION_EVENT_SCHEMA.parse(eventDetail);
 
-  const { userId, agentId, task, traceId, initiatorId, depth, sessionId, userNotified } =
+  const { userId, agentId, task, traceId, initiatorId, depth, sessionId, userNotified, workspaceId, teamId, staffId } =
     parsedEvent;
   const response = 'error' in parsedEvent ? parsedEvent.error : parsedEvent.response;
 
@@ -139,7 +139,10 @@ export async function handleTaskResult(
       'durationMs' in parsedEvent.metadata
         ? ((parsedEvent.metadata.durationMs as number) ?? 0)
         : 0;
-    updateReputation(memBase, agentId, !isFailure, latencyMs, parsedEvent.workspaceId).catch(
+    updateReputation(memBase, agentId, !isFailure, latencyMs, {
+        scope: { workspaceId, teamId, staffId },
+        traceId: traceId || ''
+    }).catch(
       (err: unknown) => logger.warn(`Reputation update failed for ${agentId}:`, err)
     );
   } catch {
@@ -236,6 +239,9 @@ export async function handleTaskResult(
             elapsedMs: Date.now() - (existingState.createdAt || Date.now()),
             aggregationType: aggregateState.aggregationType,
             aggregationPrompt: aggregateState.aggregationPrompt,
+            workspaceId,
+            teamId,
+            staffId
           });
         }
       }
@@ -257,6 +263,12 @@ export async function handleTaskResult(
     traceId,
     sessionId,
     depth,
-    userNotified
+    userNotified,
+    undefined,
+    traceId,
+    EventType.CONTINUATION_TASK as any,
+    workspaceId,
+    teamId,
+    staffId
   );
 }

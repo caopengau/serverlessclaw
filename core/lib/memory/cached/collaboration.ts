@@ -14,9 +14,9 @@ export class MemoryCollaboration {
 
   async getCollaboration(
     collaborationId: string,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<Collaboration | null> {
-    return this.underlying.getCollaboration(collaborationId, workspaceId);
+    return this.underlying.getCollaboration(collaborationId, scope);
   }
 
   async checkCollaborationAccess(
@@ -24,14 +24,14 @@ export class MemoryCollaboration {
     participantId: string,
     participantType: ParticipantType,
     requiredRole?: CollaborationRole,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<boolean> {
     return this.underlying.checkCollaborationAccess(
       collaborationId,
       participantId,
       participantType,
       requiredRole,
-      workspaceId
+      scope
     );
   }
 
@@ -39,24 +39,24 @@ export class MemoryCollaboration {
     collaborationId: string,
     actorId: string,
     actorType: ParticipantType,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<void> {
-    return this.underlying.closeCollaboration(collaborationId, actorId, actorType, workspaceId);
+    return this.underlying.closeCollaboration(collaborationId, actorId, actorType, scope);
   }
 
   async createCollaboration(
     ownerId: string,
     ownerType: ParticipantType,
     input: CreateCollaborationInput,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<Collaboration> {
-    return this.underlying.createCollaboration(ownerId, ownerType, input, workspaceId);
+    return this.underlying.createCollaboration(ownerId, ownerType, input, scope);
   }
 
   async listCollaborationsForParticipant(
     participantId: string,
     participantType: ParticipantType,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<
     Array<{
       collaborationId: string;
@@ -67,20 +67,20 @@ export class MemoryCollaboration {
     return this.underlying.listCollaborationsForParticipant(
       participantId,
       participantType,
-      workspaceId
+      scope
     );
   }
 
   async transitToCollaboration(
     userId: string,
-    workspaceId: string,
+    scope: string | import('../../types/memory').ContextualScope,
     sourceSessionId: string,
     invitedAgentIds: string[],
     name?: string
   ): Promise<Collaboration> {
     return this.underlying.transitToCollaboration(
       userId,
-      workspaceId,
+      scope,
       sourceSessionId,
       invitedAgentIds,
       name

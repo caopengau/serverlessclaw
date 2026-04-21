@@ -29,9 +29,9 @@ vi.mock('../lib/memory', () => ({
 }));
 
 vi.mock('../lib/registry/config', () => ({
-  ConfigManager: {
-    getRawConfig: vi.fn().mockResolvedValue(0),
-    saveRawConfig: vi.fn().mockResolvedValue(undefined),
+  ConfigManager: class {
+    static getRawConfig = vi.fn().mockResolvedValue(0);
+    static saveRawConfig = vi.fn().mockResolvedValue(undefined);
   },
 }));
 

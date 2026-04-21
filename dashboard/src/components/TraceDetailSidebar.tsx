@@ -13,9 +13,10 @@ import { logger } from '@claw/core/lib/logger';
 interface TraceDetailSidebarProps {
   traceId: string | null;
   onClose: () => void;
+  isOpen?: boolean;
 }
 
-export default function TraceDetailSidebar({ traceId, onClose }: TraceDetailSidebarProps) {
+export default function TraceDetailSidebar({ traceId, onClose, isOpen }: TraceDetailSidebarProps) {
   const [trace, setTrace] = useState<Trace | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +60,7 @@ export default function TraceDetailSidebar({ traceId, onClose }: TraceDetailSide
   return (
     <div className={`
       fixed top-0 right-0 h-full w-[450px] bg-background border-l border-white/10 z-[100] shadow-2xl transition-transform duration-300 transform
-      ${traceId ? 'translate-x-0' : 'translate-x-full'}
+      ${(traceId || isOpen) ? 'translate-x-0' : 'translate-x-full'}
     `}>
       <header className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-foreground/[0.02]">
         <div className="flex items-center gap-3">
@@ -135,6 +136,18 @@ export default function TraceDetailSidebar({ traceId, onClose }: TraceDetailSide
                     {trace.model || 'Unknown Model'}
                  </Badge>
               </div>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full text-[10px] uppercase font-bold tracking-widest border-cyber-green/20 text-cyber-green/80 hover:bg-cyber-green/5 mt-2"
+                onClick={() => {
+                  window.location.href = `/playground?agentId=${trace.agentId}&replayTraceId=${trace.traceId}`;
+                }}
+                icon={<Zap size={14} />}
+              >
+                 Replay in Sandbox
+              </Button>
             </section>
 
             {/* Neural Execution Steps */}

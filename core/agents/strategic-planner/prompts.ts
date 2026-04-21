@@ -167,7 +167,7 @@ export async function fetchStaleMemoryContext(memory: IMemory): Promise<string> 
  */
 async function fetchFailedPlansContext(memory: IMemory): Promise<string> {
   try {
-    const failedPlans = await memory.getFailedPlans(5);
+    const failedPlans = await memory.getFailurePatterns(5);
     if (failedPlans.length > 0) {
       return `\n[FAILED_PLANS_ANTI_PATTERNS]:\nThese strategic plans have previously FAILED. Do NOT repeat these approaches:\n${failedPlans
         .map((fp) => {

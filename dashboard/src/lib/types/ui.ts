@@ -25,6 +25,8 @@ export interface Agent {
   isBackbone?: boolean;
   agentType?: 'llm' | 'logic';
   usage?: Record<string, { count: number; lastUsed: number }>;
+  metadata?: Record<string, unknown>;
+  version?: number;
 }
 
 export interface ProviderModel {

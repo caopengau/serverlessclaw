@@ -9,7 +9,6 @@ import {
   ReasoningProfile,
   AgentCategory,
   MessageChunk,
-  EventType,
 } from './types/index';
 
 // ── Mocks ───────────────────────────────────────────────────────────────────────
@@ -104,6 +103,10 @@ describe('Agent Reasoning & Streaming Coverage', () => {
       updateGapStatus: vi.fn().mockResolvedValue(undefined),
       getSummary: vi.fn().mockResolvedValue(null),
       updateSummary: vi.fn().mockResolvedValue(undefined),
+      getScopedUserId: vi.fn().mockImplementation((uid, scope) => {
+        const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
+        return workspaceId ? `${uid}#${workspaceId}` : uid;
+      }),
     } as unknown as IMemory;
 
     mockProvider = {
@@ -127,7 +130,7 @@ describe('Agent Reasoning & Streaming Coverage', () => {
   });
 
   const createTestAgent = () => {
-    const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       enabled: true,
@@ -161,15 +164,18 @@ describe('Agent Reasoning & Streaming Coverage', () => {
       expect.any(String), // userId
       undefined, // sessionId
       expect.any(String), // traceId
-      undefined, // content
-      'Test Agent', // agentName
-      true, // thinking
-      undefined, // options
-      'test-agent', // initiator
-      '\u2026', // thought (ellipsis)
-      undefined,
-      undefined,
-      EventType.TEXT_MESSAGE_CONTENT
+      expect.objectContaining({
+        agentName: 'Test Agent',
+        isThought: true,
+        initiatorId: 'test-agent',
+        thoughtDelta: '\u2026',
+        detailType: expect.any(String),
+        scope: {
+          staffId: undefined,
+          teamId: undefined,
+          workspaceId: undefined,
+        },
+      })
     );
   });
 
@@ -201,7 +207,7 @@ describe('Agent Reasoning & Streaming Coverage', () => {
 
   it('TC3: should extract thought from JSON content in communicationMode: json', async () => {
     const agent = createTestAgent();
-    agent.config!.defaultCommunicationMode = 'json' as any;
+    agent.getConfig()!.defaultCommunicationMode = 'json' as any;
 
     async function* mockStream() {
       yield { content: '{"thought":' };

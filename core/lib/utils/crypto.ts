@@ -45,3 +45,15 @@ export function verifySecret(provided: string, expected: string): boolean {
     return false;
   }
 }
+
+/**
+ * Computes a SHA-256 hash for a given string.
+ * Useful for versioning prompts or generating deterministic IDs.
+ *
+ * @param input - The string to hash.
+ * @returns The hex representation of the hash.
+ */
+export function hashString(input: string): string {
+  const { createHash } = require('crypto');
+  return createHash('sha256').update(input).digest('hex');
+}

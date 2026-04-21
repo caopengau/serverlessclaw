@@ -136,19 +136,42 @@ export class AgentRegistry {
 
   /**
    * Saves or updates an agent configuration in DynamoDB.
+   * 
+   * Implementing Principle 12 (Cognitive Lineage & Versioning):
+   * This method automatically handles:
+   * 1. Hashing the systemPrompt to detect behavioral changes.
+   * 2. Incrementing the version number atomically.
+   * 3. Triggering a topology refresh to update agent roles in the swarm navigation.
+   * 
+   * @param agentId - The unique identifier for the agent.
+   * @param config - The partial configuration updates to apply.
+   * @throws Error if mandatory fields (name, systemPrompt) are missing during initialization.
    */
   static async saveConfig(agentId: string, config: Partial<IAgentConfig>): Promise<void> {
     const resource = Resource as unknown as { ConfigTable?: { name: string } };
     if (!resource.ConfigTable?.name) {
-      logger.warn('[REGISTRY] ConfigTable not linked. Skipping save.');
-      return;
+      throw new Error('ConfigTable not linked. Cannot save agent configuration.');
     }
 
     if (!config.name || !config.systemPrompt) {
       throw new Error('Agent configuration must include name and systemPrompt.');
     }
 
-    await ConfigManager.atomicUpdateMapEntity(DYNAMO_KEYS.AGENTS_CONFIG, agentId, config);
+    const { hashString } = await import('../utils/crypto');
+    const enrichedConfig: Partial<IAgentConfig> = {
+      ...config,
+      lastUpdated: new Date().toISOString(),
+      metadata: {
+        ...config.metadata,
+        promptHash: hashString(config.systemPrompt),
+      },
+    };
+
+    await ConfigManager.atomicUpdateMapEntity(DYNAMO_KEYS.AGENTS_CONFIG, agentId, enrichedConfig);
+    
+    // Increment version atomically to track cognitive evolution
+    await this.atomicAddAgentField(agentId, 'version', 1).catch(() => {});
+
     logger.info(`[REGISTRY] Configuration saved for agent: ${agentId}`);
 
     // Auto-refresh topology to reflect potential role changes
@@ -178,7 +201,11 @@ export class AgentRegistry {
   static async recordToolUsage(
     toolName: string,
     agentId: string = 'unknown',
-    workspaceId?: string
+    scope?: {
+      workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
+    }
   ): Promise<void> {
     const now = Date.now();
 
@@ -191,10 +218,20 @@ export class AgentRegistry {
       // 2. Per-agent usage increment
       await this.atomicRecordToolUsage(`tool_usage_${agentId}`, toolName, now);
 
-      // 3. Per-workspace usage increment if workspaceId provided
-      if (workspaceId) {
-        const workspaceUsageKey = `WS#${workspaceId}#${DYNAMO_KEYS.TOOL_USAGE_PREFIX}`;
-        await this.atomicRecordToolUsage(workspaceUsageKey, toolName, now);
+      // 3. Per-workspace/org/team/staff usage increment
+      if (scope) {
+        if (scope.workspaceId) {
+          const workspaceUsageKey = `WS#${scope.workspaceId}#${DYNAMO_KEYS.TOOL_USAGE_PREFIX}`;
+          await this.atomicRecordToolUsage(workspaceUsageKey, toolName, now);
+        }
+        if (scope.teamId) {
+          const teamUsageKey = `TEAM#${scope.teamId}#${DYNAMO_KEYS.TOOL_USAGE_PREFIX}`;
+          await this.atomicRecordToolUsage(teamUsageKey, toolName, now);
+        }
+        if (scope.staffId) {
+          const staffUsageKey = `STAFF#${scope.staffId}#${DYNAMO_KEYS.TOOL_USAGE_PREFIX}`;
+          await this.atomicRecordToolUsage(staffUsageKey, toolName, now);
+        }
       }
     } catch (e) {
       logger.warn(`[REGISTRY] Failed to record tool usage for ${toolName}:`, e);
@@ -417,8 +454,8 @@ export class AgentRegistry {
         })
       );
 
-      const updatedAgents = response.Attributes?.value as Record<string, IAgentConfig>;
-      return updatedAgents?.[agentId]?.[field as keyof IAgentConfig] as number;
+      const updatedAgents = response.Attributes?.value as Record<string, any>;
+      return updatedAgents?.[agentId]?.[field] as number;
     } catch (e) {
       logger.error(
         `[REGISTRY] Failed to atomically update agent field '${field}' for ${agentId}:`,

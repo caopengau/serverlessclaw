@@ -92,7 +92,7 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [x] **Atomic Deployment Sync**: Ensure `gapIds` are always mapped to `BUILD#` records even if missing from initial tool call.
 - [x] **Plan Decomposition**: Hierarchical task breakdown to prevent Coder Agent logic overload.
 
-## 🏗️ Phase 12: Evolutionary Command Center (ClawCenter v2)
+## ✅ Phase 12: Evolutionary Command Center (ClawCenter v2)
 
 - [x] **Evolution Pipeline Board**: Kanban visualization of the 5-stage gap lifecycle.
 - [x] **Hardened Binary Safety Tiers**: Reinforced safety levels (LOCAL, PROD) with strict approval gates.
@@ -101,24 +101,25 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [x] **Real-time Resilience Gauge**: Dashboard HUD for Circuit Breaker status and token burn-rate monitoring.
 - [x] **Interactive Gap Refinement**: Feedback loop for users to edit and improve strategic plans before implementation.
 
-## 🏗️ Phase 13: Multi-Modal Chat & File Handling
+## ✅ Phase 13: Multi-Modal Chat & File Handling
 
-- [ ] **Rich Media Receiver**: Webhook support for Photos, Documents, and Voice messages via S3 bridging.
-- [ ] **S3 Memory Integration**: Attachments linked to session history with TTL-aware lifecycle.
-- [ ] **Multi-Modal Provider Support**: Full support for image and file analysis in OpenAI/Minimax adapters first, others deferred.
-- [ ] **Rich Media Notifier**: Capability for agents to send files, charts, and generated images back to chat channels.
+- [x] **Rich Media Receiver**: Webhook support for Photos, Documents, and Voice messages via S3 bridging.
+- [x] **S3 Memory Integration**: Attachments linked to session history with TTL-aware lifecycle.
+- [x] **Multi-Modal Provider Support**: Full support for image and file analysis in OpenAI/Minimax adapters first, others deferred.
+- [x] **Rich Media Notifier**: Capability for agents to send files, charts, and generated images back to chat channels.
 
-## 🏢 Phase 14: Advanced Autonomy
+## 🏗️ Phase 14: Advanced Autonomy
 
 - [ ] **Browser Automation**: Playwright Lambda Layer for autonomous web browsing.
 - [ ] **Promotion Manager**: Agent-driven promotion of validated builds to `prod`.
 - [ ] **Skill Marketplace**: CLI-based installation of community tools.
 
-## 🏢 Phase 15: Enterprise Scale
+## 🏗️ Phase 15: Enterprise Scale (Next Priority)
 
-- [ ] Agent Swarm Isolation by `employerId`.
-- [ ] Per-tenant EventBridge filtering.
-- [ ] Multi-Channel Adapters: Slack and Discord support.
+- [x] **Agent Swarm Isolation**: Multi-tenant partitioning by `orgId`, `teamId`, and `staffId`.
+- [ ] **Per-tenant EventBridge filtering**: Secure signal routing between organizational boundaries.
+- [x] **Multi-Channel Adapters**: Native Slack support implemented; Discord support planned.
+- [ ] **RBAC Policy Sync**: Synchronize organization roles with AWS IAM and SafetyEngine guardrails.
 
 ## 🏢 Phase 16: Evolution Analytics & Tool ROI
 
@@ -140,7 +141,7 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [ ] **Local Embedding Cache**: Local SSD/S3-backed cache for frequently used vector embeddings to reduce API dependency.
 - [ ] **Pre-flight Static Analysis**: Inject `eslint` and `tsc` results directly into the agent context for faster error correction.
 
-## 🏗️ Phase 19: Advanced Multi-Agent Orchestration (Inspired by Mastra & Ruflo)
+## 🏗️ Phase 19: Advanced Multi-Agent Orchestration (Next Priority)
 
 - [ ] **Dynamic Workflow Engine (ClawFlow)**: Transition from fixed agent roles to a graph-based orchestration engine with parallel execution.
 - [ ] **Consensus Protocols**: Implement "Council of Agents" (Raft-lite) for 3-agent agreement on critical production merges.

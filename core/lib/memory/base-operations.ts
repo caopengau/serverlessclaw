@@ -10,15 +10,15 @@ import { BaseMemoryProvider } from './base';
  *
  * @param base - The base memory provider instance.
  * @param userId - The user identifier to retrieve history for.
- * @param workspaceId - Optional workspace identifier for isolation.
+ * @param scope - Optional scope identifier or ContextualScope for isolation.
  * @returns A promise resolving to an array of Message objects.
  */
 export async function getHistory(
   base: BaseMemoryProvider,
   userId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<Message[]> {
-  const scopedUserId = base.getScopedUserId(userId, workspaceId);
+  const scopedUserId = base.getScopedUserId(userId, scope);
   const items = await base.queryItems({
     KeyConditionExpression: 'userId = :userId',
     ExpressionAttributeValues: {
@@ -51,15 +51,15 @@ export async function getHistory(
  *
  * @param base - The base memory provider instance.
  * @param userId - The user identifier to clear history for.
- * @param workspaceId - Optional workspace identifier for isolation.
+ * @param scope - Optional scope identifier or ContextualScope for isolation.
  * @returns A promise resolving when history is cleared.
  */
 export async function clearHistory(
   base: BaseMemoryProvider,
   userId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
-  const scopedUserId = base.getScopedUserId(userId, workspaceId);
+  const scopedUserId = base.getScopedUserId(userId, scope);
   const items = await base.queryItems({
     KeyConditionExpression: 'userId = :userId',
     ExpressionAttributeValues: {
@@ -114,15 +114,15 @@ export async function clearHistory(
  *
  * @param base - The base memory provider instance.
  * @param userId - The user identifier to retrieve distilled memory for.
- * @param workspaceId - Optional workspace identifier for isolation.
+ * @param scope - Optional scope identifier or ContextualScope for isolation.
  * @returns A promise resolving to the distilled memory string.
  */
 export async function getDistilledMemory(
   base: BaseMemoryProvider,
   userId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<string> {
-  const scopedUserId = base.getScopedUserId(userId, workspaceId);
+  const scopedUserId = base.getScopedUserId(userId, scope);
   const items = await base.queryItems({
     KeyConditionExpression: 'userId = :userId',
     ExpressionAttributeValues: {
@@ -140,15 +140,15 @@ export async function getDistilledMemory(
  *
  * @param base - The base memory provider instance.
  * @param userId - The user identifier to list conversations for.
- * @param workspaceId - Optional workspace identifier for isolation.
+ * @param scope - Optional scope identifier or ContextualScope for isolation.
  * @returns A promise resolving to an array of ConversationMeta objects.
  */
 export async function listConversations(
   base: BaseMemoryProvider,
   userId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<ConversationMeta[]> {
-  const scopedUserId = base.getScopedUserId(userId, workspaceId);
+  const scopedUserId = base.getScopedUserId(userId, scope);
   const items = await base.queryItems({
     KeyConditionExpression: 'userId = :userId',
     ExpressionAttributeValues: {
@@ -166,3 +166,7 @@ export async function listConversations(
     expiresAt: item.expiresAt as number | undefined,
   }));
 }
+/**
+ * Utility to derive a workspace-scoped userId for DynamoDB partition keys.
+ */
+

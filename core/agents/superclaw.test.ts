@@ -59,8 +59,14 @@ describe('SuperClaw', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockMemory = {};
-    mockProvider = {};
+    mockMemory = {
+      getScopedUserId: vi.fn((uid) => uid),
+      addMessage: vi.fn(),
+      getHistory: vi.fn().mockResolvedValue([]),
+    } as any;
+    mockProvider = {
+      getCapabilities: vi.fn().mockResolvedValue({}),
+    } as any;
     mockTools = [];
     superclaw = new SuperClaw(mockMemory, mockProvider, mockTools, {
       id: 'superclaw',
@@ -74,12 +80,12 @@ describe('SuperClaw', () => {
 
   describe('Core Identity', () => {
     it('should have correct type and category', () => {
-      expect(superclaw.config?.id).toBe('superclaw');
-      expect(superclaw.config?.category).toBe(AgentCategory.SYSTEM);
+      expect(superclaw.getConfig()?.id).toBe('superclaw');
+      expect(superclaw.getConfig()?.category).toBe(AgentCategory.SYSTEM);
     });
 
     it('should use standard reasoning by default', () => {
-      expect(superclaw.config?.reasoningProfile).toBe(ReasoningProfile.STANDARD);
+      expect(superclaw.getConfig()?.reasoningProfile).toBe(ReasoningProfile.STANDARD);
     });
   });
 

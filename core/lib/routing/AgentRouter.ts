@@ -231,7 +231,7 @@ export class AgentRouter {
   static async selectBestAgent(
     candidates: string[],
     capabilityScores?: Record<string, number>,
-    workspaceId?: string
+    scope?: string | import('../types/memory').ContextualScope
   ): Promise<string> {
     if (candidates.length === 0) throw new Error('No candidate agents provided');
 
@@ -252,7 +252,7 @@ export class AgentRouter {
     // Fetch performance metrics and reputations in parallel
     const [metrics, reputations] = await Promise.all([
       Promise.all(enabledIds.map((id) => this.getMetrics(id, capabilityScores?.[id] ?? 1.0))),
-      getReputations(sharedMemoryProvider, enabledIds, workspaceId),
+      getReputations(sharedMemoryProvider, enabledIds, scope),
     ]);
 
     // Compute composite scores incorporating reputation
@@ -266,8 +266,10 @@ export class AgentRouter {
     weightedMetrics.sort((a, b) => b.compositeScore - a.compositeScore);
     const best = weightedMetrics[0].agentId;
 
+    const workspaceLabel = typeof scope === 'string' ? scope : (scope?.workspaceId ?? 'global');
+
     logger.info(
-      `[AgentRouter] Selected best agent for task: ${best} (Score: ${weightedMetrics[0].compositeScore.toFixed(3)}, Workspace: ${workspaceId ?? 'global'})`
+      `[AgentRouter] Selected best agent for task: ${best} (Score: ${weightedMetrics[0].compositeScore.toFixed(3)}, Workspace: ${workspaceLabel})`
     );
 
     return best;

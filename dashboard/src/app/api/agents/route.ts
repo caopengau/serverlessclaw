@@ -16,6 +16,8 @@ import { HTTP_STATUS, DYNAMO_KEYS } from '@claw/core/lib/constants';
 import { BACKBONE_REGISTRY } from '@claw/core/lib/backbone';
 import { SSTResource } from '@claw/core/lib/types/index';
 import { logger } from '@claw/core/lib/logger';
+import { AgentRegistry } from '@claw/core/lib/registry/AgentRegistry';
+import { IAgentConfig } from '@claw/core/lib/types/agent';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
@@ -53,24 +55,37 @@ export async function GET(): Promise<NextResponse> {
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const tableName = typedResource.ConfigTable?.name;
-    if (!tableName) {
+    const body = await request.json();
+    let agentsToSave: Record<string, Partial<IAgentConfig>> = {};
+
+    if (body && body.agents && Array.isArray(body.agents)) {
+      if (body.agents.length === 0) {
+        // Handle empty array as a skip but ensure we still check resource status
+        if (!typedResource.ConfigTable?.name) {
+          return NextResponse.json(
+            { error: 'ConfigTable name is missing from resources.' },
+            { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+          );
+        }
+        return NextResponse.json({ success: true });
+      }
+      body.agents.forEach((a: any) => {
+        if (a.id) agentsToSave[a.id] = a;
+      });
+    } else {
+      agentsToSave = body as Record<string, Partial<IAgentConfig>>;
+    }
+
+    if (!typedResource.ConfigTable?.name) {
       return NextResponse.json(
         { error: 'ConfigTable name is missing from resources.' },
         { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
       );
     }
-    const body = await request.json();
 
-    await docClient.send(
-      new PutCommand({
-        TableName: tableName,
-        Item: {
-          key: DYNAMO_KEYS.AGENTS_CONFIG ?? 'agents_config',
-          value: body,
-        },
-      })
-    );
+    for (const [agentId, config] of Object.entries(agentsToSave)) {
+      await AgentRegistry.saveConfig(agentId, config);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -90,16 +105,8 @@ export async function POST(request: Request): Promise<NextResponse> {
  */
 export async function PATCH(request: Request): Promise<NextResponse> {
   try {
-    const tableName = typedResource.ConfigTable?.name;
-    if (!tableName) {
-      return NextResponse.json(
-        { error: 'ConfigTable name is missing from resources.' },
-        { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
-      );
-    }
-
     const body = await request.json();
-    const { agentId, config } = body as { agentId: string; config: Record<string, unknown> };
+    const { agentId, config } = body as { agentId: string; config: Partial<IAgentConfig> };
 
     if (!agentId || !config) {
       return NextResponse.json(
@@ -108,22 +115,21 @@ export async function PATCH(request: Request): Promise<NextResponse> {
       );
     }
 
-    if (BACKBONE_REGISTRY[agentId] && config.isBackbone === false) {
+    if (!typedResource.ConfigTable?.name) {
       return NextResponse.json(
-        { error: `Cannot overwrite backbone agent '${agentId}'.` },
+        { error: 'ConfigTable name is missing from resources.' },
+        { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
+      );
+    }
+
+    if (BACKBONE_REGISTRY[agentId as keyof typeof BACKBONE_REGISTRY] && config.isBackbone !== true) {
+      return NextResponse.json(
+        { error: `Cannot overwrite backbone agent '${agentId}' with non-backbone configuration.` },
         { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
 
-    await docClient.send(
-      new UpdateCommand({
-        TableName: tableName,
-        Key: { key: DYNAMO_KEYS.AGENTS_CONFIG ?? 'agents_config' },
-        UpdateExpression: 'SET #agents.#id = :config',
-        ExpressionAttributeNames: { '#agents': 'value', '#id': agentId },
-        ExpressionAttributeValues: { ':config': config },
-      })
-    );
+    await AgentRegistry.saveConfig(agentId, config);
 
     return NextResponse.json({ success: true, agentId });
   } catch (error) {

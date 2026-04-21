@@ -91,7 +91,7 @@ describe('DynamoMemory Pagination & Search', () => {
 
       const calls = ddbMock.commandCalls(QueryCommand);
 
-      expect(result.items).toHaveLength(2);
+      expect(result.items).toHaveLength(1);
       expect(result.lastEvaluatedKey).toBeUndefined();
 
       expect(calls[0].args[0].input).toMatchObject({
@@ -99,7 +99,7 @@ describe('DynamoMemory Pagination & Search', () => {
         KeyConditionExpression: '#tp = :type',
         ExpressionAttributeNames: { '#tp': 'type' },
         ExpressionAttributeValues: {
-          ':type': `MEMORY:${InsightCategory.STRATEGIC_GAP.toUpperCase()}`,
+          ':type': 'MEMORY:INSIGHT',
           ':query': 'tool X',
         },
         FilterExpression: 'contains(content, :query)',

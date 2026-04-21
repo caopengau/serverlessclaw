@@ -111,7 +111,12 @@ describe('Backend API Integration', () => {
   it('should format a message with a file attachment for the provider', async () => {
     const memory = new DynamoMemory();
     const provider = new ProviderManager();
-    new Agent(memory, provider, [], 'Test Prompt');
+    new Agent(memory, provider, [], {
+      id: 'test-agent',
+      name: 'Test Agent',
+      systemPrompt: 'Test Prompt',
+      enabled: true,
+    } as any);
 
     vi.spyOn(provider, 'getCapabilities').mockResolvedValue({
       supportedReasoningProfiles: [ReasoningProfile.STANDARD],

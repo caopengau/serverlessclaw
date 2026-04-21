@@ -124,6 +124,10 @@ export interface UserIdentity {
   role: UserRole;
   /** Workspace IDs the user belongs to. */
   workspaceIds: string[];
+  /** Team ID. */
+  teamId?: string;
+  /** Staff ID within organization. */
+  staffId?: string;
   /** Authentication provider. */
   authProvider: 'telegram' | 'dashboard' | 'api_key';
   /** When the user was created. */
@@ -142,6 +146,10 @@ export interface Session {
   userId: string;
   /** Workspace ID for this session. */
   workspaceId?: string;
+  /** Team ID for this session. */
+  teamId?: string;
+  /** Staff ID for this session. */
+  staffId?: string;
   /** Session start time. */
   startTime: number;
   /** Last activity time. */

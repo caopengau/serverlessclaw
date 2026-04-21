@@ -27,10 +27,12 @@ const createMockDynamoMemory = () => ({
   listConversations: vi.fn().mockResolvedValue([]),
   deleteConversation: vi.fn().mockResolvedValue(undefined),
   archiveStaleGaps: vi.fn().mockResolvedValue(0),
+  cullResolvedGaps: vi.fn().mockResolvedValue(0),
   incrementGapAttemptCount: vi.fn().mockResolvedValue(1),
   updateInsightMetadata: vi.fn().mockResolvedValue(undefined),
   refineMemory: vi.fn().mockResolvedValue(undefined),
   saveConversationMeta: vi.fn().mockResolvedValue(undefined),
+  saveDistilledRecoveryLog: vi.fn().mockResolvedValue(undefined),
   getMemoryByTypePaginated: vi.fn().mockResolvedValue({ items: [] }),
   getMemoryByType: vi.fn().mockResolvedValue([]),
   getLowUtilizationMemory: vi.fn().mockResolvedValue([]),
@@ -53,14 +55,14 @@ const createMockDynamoMemory = () => ({
   closeCollaboration: vi.fn().mockResolvedValue(undefined),
   createCollaboration: vi.fn().mockResolvedValue({}),
   listCollaborationsForParticipant: vi.fn().mockResolvedValue([]),
+  findStaleCollaborations: vi.fn().mockResolvedValue([]),
+  transitToCollaboration: vi.fn().mockResolvedValue({}),
   recordFailurePattern: vi.fn().mockResolvedValue(1),
   getFailurePatterns: vi.fn().mockResolvedValue([]),
   acquireGapLock: vi.fn().mockResolvedValue(true),
   releaseGapLock: vi.fn().mockResolvedValue(undefined),
   getGapLock: vi.fn().mockResolvedValue(null),
   updateGapMetadata: vi.fn().mockResolvedValue(undefined),
-  recordFailedPlan: vi.fn().mockResolvedValue(1),
-  getFailedPlans: vi.fn().mockResolvedValue([]),
 });
 
 describe('CachedMemory', () => {
@@ -477,9 +479,17 @@ describe('CachedMemory', () => {
   describe('recordFailurePattern', () => {
     it('should delegate and invalidate insights cache', async () => {
       mockDynamo.recordFailurePattern.mockResolvedValue(1);
-      const result = await cached.recordFailurePattern('scope1', 'content');
+      const result = await cached.recordFailurePattern('hash', 'plan', ['gap1'], 'reason');
 
       expect(result).toBe(1);
+      expect(mockDynamo.recordFailurePattern).toHaveBeenCalledWith(
+        'hash',
+        'plan',
+        ['gap1'],
+        'reason',
+        undefined,
+        undefined
+      );
     });
   });
 
@@ -492,15 +502,6 @@ describe('CachedMemory', () => {
         { category: 'GAP' },
         undefined
       );
-    });
-  });
-
-  describe('recordFailedPlan', () => {
-    it('should delegate and invalidate search caches', async () => {
-      mockDynamo.recordFailedPlan.mockResolvedValue(1);
-      const result = await cached.recordFailedPlan('hash', 'plan', ['g1'], 'reason');
-
-      expect(result).toBe(1);
     });
   });
 
@@ -664,8 +665,8 @@ describe('CachedMemory', () => {
     });
 
     it('should delegate getFailurePatterns', async () => {
-      await cached.getFailurePatterns('scope1', 'ctx', 10);
-      expect(mockDynamo.getFailurePatterns).toHaveBeenCalledWith('scope1', 'ctx', 10, undefined);
+      await cached.getFailurePatterns(10);
+      expect(mockDynamo.getFailurePatterns).toHaveBeenCalledWith(10, undefined);
     });
 
     it('should delegate acquireGapLock', async () => {
@@ -687,11 +688,6 @@ describe('CachedMemory', () => {
     it('should delegate getGapLock', async () => {
       await cached.getGapLock('gap1');
       expect(mockDynamo.getGapLock).toHaveBeenCalledWith('gap1', undefined);
-    });
-
-    it('should delegate getFailedPlans', async () => {
-      await cached.getFailedPlans(5);
-      expect(mockDynamo.getFailedPlans).toHaveBeenCalledWith(5, undefined);
     });
   });
 

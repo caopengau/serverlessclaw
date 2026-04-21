@@ -65,24 +65,8 @@ export class AgentAssembler {
         Promise.all([
           memory.getDistilledMemory(baseUserId),
           memory.getLessons(baseUserId),
-          memory.searchInsights(
-            `USER#${baseUserId}`,
-            '*',
-            InsightCategory.USER_PREFERENCE,
-            50,
-            undefined,
-            undefined,
-            undefined
-          ),
-          memory.searchInsights(
-            baseUserId,
-            '*',
-            InsightCategory.USER_PREFERENCE,
-            50,
-            undefined,
-            undefined,
-            undefined
-          ),
+          memory.searchInsights(`USER#${baseUserId}`, '*', InsightCategory.USER_PREFERENCE, 50),
+          memory.searchInsights(baseUserId, '*', InsightCategory.USER_PREFERENCE, 50),
           memory.getGlobalLessons(5),
         ]),
       ]

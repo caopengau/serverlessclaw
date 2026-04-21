@@ -27,6 +27,9 @@ export class ClawTracer {
   private nodeId: string;
   private parentId?: string;
   private userId: string;
+  private workspaceId?: string;
+  private teamId?: string;
+  private staffId?: string;
   private source: TraceSource | string;
   private agentId?: string;
   private startTime: number;
@@ -42,7 +45,8 @@ export class ClawTracer {
    * @param nodeId - Unique ID for this specific agent execution or branch.
    * @param parentId - Optional ID of the node that spawned this one.
    * @param agentId - Optional ID of the agent executing this trace.
-   * @param docClient - Optional DynamoDB Document Client for dependency injection (useful for testing)
+   * @param scope - Optional hierarchical scope for isolation.
+   * @param docClient - Optional DynamoDB Document Client for dependency injection.
    */
   constructor(
     userId: string,
@@ -51,6 +55,11 @@ export class ClawTracer {
     nodeId?: string,
     parentId?: string,
     agentId?: string,
+    scope?: {
+      workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
+    },
     docClient?: DynamoDBDocumentClient
   ) {
     this.userId = userId;
@@ -59,6 +68,9 @@ export class ClawTracer {
     this.nodeId = nodeId ?? 'root';
     this.parentId = parentId;
     this.agentId = agentId;
+    this.workspaceId = scope?.workspaceId;
+    this.teamId = scope?.teamId;
+    this.staffId = scope?.staffId;
     this.startTime = Date.now();
     this.docClient = docClient ?? getDocClient();
   }
@@ -102,6 +114,9 @@ export class ClawTracer {
               agentId: this.agentId,
               timestamp: this.startTime,
               status,
+              workspaceId: this.workspaceId,
+              teamId: this.teamId,
+              staffId: this.staffId,
               ...extra,
             },
           })
@@ -154,6 +169,9 @@ export class ClawTracer {
             userId: this.userId,
             source: this.source,
             agentId: this.agentId,
+            workspaceId: this.workspaceId,
+            teamId: this.teamId,
+            staffId: this.staffId,
             timestamp: now,
             status: TRACE_STATUS.STARTED,
             initialContext,
@@ -202,6 +220,11 @@ export class ClawTracer {
       newNodeId ?? uuidv4(),
       this.nodeId,
       childAgentId ?? this.agentId,
+      {
+        workspaceId: this.workspaceId,
+        teamId: this.teamId,
+        staffId: this.staffId,
+      },
       this.docClient
     );
   }
@@ -274,9 +297,14 @@ export class ClawTracer {
     try {
       const durationMs = endTime - this.startTime;
       const { emitMetrics } = await import('../metrics/metrics');
+      const scope = {
+        workspaceId: this.workspaceId,
+        teamId: this.teamId,
+        staffId: this.staffId,
+      };
       await emitMetrics([
-        METRICS.agentInvoked(this.agentId, success),
-        METRICS.agentDuration(this.agentId, durationMs),
+        METRICS.agentInvoked(this.agentId, success, scope),
+        METRICS.agentDuration(this.agentId, durationMs, scope),
       ]);
     } catch (e) {
       logger.debug('Failed to emit trace completion metrics:', e);

@@ -93,6 +93,10 @@ describe('Agent.stream()', () => {
       updateGapStatus: vi.fn().mockResolvedValue(undefined),
       getSummary: vi.fn().mockResolvedValue(null),
       updateSummary: vi.fn().mockResolvedValue(undefined),
+      getScopedUserId: vi.fn().mockImplementation((uid, scope) => {
+        const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
+        return workspaceId ? `${uid}#${workspaceId}` : uid;
+      }),
     } as unknown as IMemory;
 
     mockProvider = {
@@ -126,7 +130,7 @@ describe('Agent.stream()', () => {
     }
     (mockProvider.stream as ReturnType<typeof vi.fn>).mockReturnValue(mockStream());
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       enabled: true,
@@ -182,7 +186,7 @@ describe('Agent.stream()', () => {
     ];
     vi.mocked(mockMemory.getHistory).mockResolvedValue(existingHistory);
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test',
       name: 'Test',
       enabled: true,
@@ -231,7 +235,7 @@ describe('Agent.stream()', () => {
 
     const attachments = [{ type: AttachmentType.IMAGE, base64: 'abc123', name: 'photo.png' }];
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test',
       name: 'Test',
       enabled: true,
@@ -256,7 +260,7 @@ describe('Agent.stream()', () => {
         content: 'What is this?',
         attachments,
       }),
-      undefined
+      expect.anything()
     );
   });
 
@@ -267,7 +271,7 @@ describe('Agent.stream()', () => {
     }
     (mockProvider.stream as ReturnType<typeof vi.fn>).mockReturnValue(mockStream());
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       enabled: true,
@@ -304,7 +308,7 @@ describe('Agent.stream()', () => {
     }
     (mockProvider.stream as ReturnType<typeof vi.fn>).mockReturnValue(mockStream());
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test',
       name: 'Test',
       enabled: true,
@@ -337,7 +341,7 @@ describe('Agent.stream()', () => {
 
     mockGetTraceId.mockReturnValue('client-trace-123');
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       enabled: true,
@@ -363,15 +367,18 @@ describe('Agent.stream()', () => {
       'user-1',
       'sess-1',
       'client-trace-123',
-      'Streamed response',
-      'Test Agent',
-      false,
-      undefined,
-      'test-agent',
-      '',
-      undefined,
-      undefined,
-      'outbound_message'
+      expect.objectContaining({
+        chunk: 'Streamed response',
+        agentName: 'Test Agent',
+        isThought: false,
+        initiatorId: 'test-agent',
+        detailType: expect.any(String),
+        scope: {
+          staffId: undefined,
+          teamId: undefined,
+          workspaceId: undefined,
+        },
+      })
     );
 
     // Assistant message should use the same traceId
@@ -386,7 +393,7 @@ describe('Agent.stream()', () => {
     }
     (mockProvider.stream as ReturnType<typeof vi.fn>).mockReturnValue(mockStream());
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test',
       name: 'Test',
       enabled: true,
@@ -405,8 +412,8 @@ describe('Agent.stream()', () => {
     expect(mockMemory.addMessage).toHaveBeenCalledWith(
       'CONV#dashboard-user#sess-1',
       expect.objectContaining({ role: MessageRole.USER }),
-      undefined
+      expect.anything()
     );
-    expect(mockMemory.getHistory).toHaveBeenCalledWith('CONV#dashboard-user#sess-1');
+    expect(mockMemory.getHistory).toHaveBeenCalledWith('CONV#dashboard-user#sess-1', expect.anything());
   });
 });

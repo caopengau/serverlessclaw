@@ -14,7 +14,12 @@ export async function initializeTracer(
   isContinuation: boolean = false,
   userText?: string,
   sessionId?: string,
-  hasAttachments: boolean = false
+  hasAttachments: boolean = false,
+  scope?: {
+    workspaceId?: string;
+    teamId?: string;
+    staffId?: string;
+  }
 ) {
   const { ClawTracer } = await import('../tracer');
   const baseUserId = normalizeBaseUserId(userId);
@@ -25,7 +30,8 @@ export async function initializeTracer(
     incomingTraceId,
     incomingNodeId,
     incomingParentId,
-    agentId
+    agentId,
+    scope
   );
 
   const traceId = tracer.getTraceId();

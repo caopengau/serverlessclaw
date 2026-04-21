@@ -192,7 +192,10 @@ describe('continuation-handler', () => {
         'continuation-handler',
         expect.stringContaining('infinite loop in task continuation'),
         'trace-456',
-        'superclaw'
+        'superclaw',
+        undefined,
+        undefined,
+        undefined
       );
       expect(mockProcessEventWithAgent).not.toHaveBeenCalled();
     });

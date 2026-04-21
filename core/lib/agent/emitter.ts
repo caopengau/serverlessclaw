@@ -21,6 +21,8 @@ export type ContinuationMetadata = {
   depth?: number;
   sessionId?: string;
   workspaceId?: string;
+  teamId?: string;
+  staffId?: string;
   nodeId?: string;
   parentId?: string;
   attachments?: Array<{
@@ -59,7 +61,8 @@ export class AgentEmitter {
     responseText: string,
     nodeId: string,
     parentId: string | undefined,
-    sessionId: string | undefined
+    sessionId: string | undefined,
+    scope?: string | import('../types/memory').ContextualScope
   ): Promise<void> {
     let reflectionFrequency: number = AGENT_DEFAULTS.REFLECTION_FREQUENCY;
     try {
@@ -81,6 +84,10 @@ export class AgentEmitter {
         userText.toLowerCase().includes('learn'));
 
     if (shouldReflect) {
+      const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
+      const teamId = typeof scope === 'string' ? undefined : scope?.teamId;
+      const staffId = typeof scope === 'string' ? undefined : scope?.staffId;
+
       try {
         await this.eventbridge.send(
           new PutEventsCommand({
@@ -94,6 +101,9 @@ export class AgentEmitter {
                   nodeId,
                   parentId,
                   sessionId,
+                  workspaceId,
+                  teamId,
+                  staffId,
                   conversation: [
                     ...messages,
                     {
@@ -154,6 +164,9 @@ export class AgentEmitter {
                 initiatorId: metadata.initiatorId,
                 depth: metadata.depth ?? 0,
                 sessionId: metadata.sessionId,
+                workspaceId: metadata.workspaceId,
+                teamId: metadata.teamId,
+                staffId: metadata.staffId,
                 attachments: safeAttachments,
               }),
               EventBusName: typedResource.AgentBus.name,
@@ -174,17 +187,37 @@ export class AgentEmitter {
     userId: string,
     sessionId: string | undefined,
     traceId: string,
-    chunk?: string,
-    agentName?: string,
-    isThought?: boolean,
-    options?: Array<{ label: string; value: string; type?: ButtonType }>,
-    initiatorId: string = 'orchestrator',
-    thoughtDelta?: string,
-    ui_blocks?: Message['ui_blocks'],
-    attachments?: Message['attachments'],
-    detailType: EventType = EventType.TEXT_MESSAGE_CONTENT
+    options: {
+      chunk?: string;
+      agentName?: string;
+      isThought?: boolean;
+      buttonOptions?: Array<{ label: string; value: string; type?: ButtonType }>;
+      initiatorId?: string;
+      thoughtDelta?: string;
+      ui_blocks?: Message['ui_blocks'];
+      attachments?: Message['attachments'];
+      detailType?: EventType;
+      scope?: string | import('../types/memory').ContextualScope;
+    } = {}
   ): Promise<void> {
+    const {
+      chunk,
+      agentName,
+      isThought = false,
+      buttonOptions,
+      initiatorId = 'orchestrator',
+      thoughtDelta,
+      ui_blocks,
+      attachments,
+      detailType = EventType.TEXT_MESSAGE_CONTENT,
+      scope,
+    } = options;
+
     try {
+      const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
+      const teamId = typeof scope === 'string' ? undefined : scope?.teamId;
+      const staffId = typeof scope === 'string' ? undefined : scope?.staffId;
+
       const agentId = this.config?.id ?? 'unknown';
 
       // Feature: Worker Feedback Toggle
@@ -240,17 +273,43 @@ export class AgentEmitter {
         messageId,
         message: chunk,
         isThought,
-        options,
+        options: buttonOptions,
         agentName: agentName ?? this.config?.name ?? 'SuperClaw',
         thought: thoughtDelta,
         ui_blocks,
         attachments: safeAttachments,
+        workspaceId,
+        teamId,
+        staffId,
       };
 
       await publishToRealtime(topic, payload);
     } catch (e) {
       // Don't let chunk emission failures block the main loop
       logger.warn('Failed to emit chunk via realtime bus:', e);
+    }
+  }
+
+  /**
+   * Emits a reputation update event with execution results (success, latency, etc).
+   */
+  async emitReputationUpdate(payload: import('../types/reputation').ReputationUpdatePayload): Promise<void> {
+    try {
+      await this.eventbridge.send(
+        new PutEventsCommand({
+          Entries: [
+            {
+              Source: this.config?.id ?? 'superclaw.agent',
+              DetailType: EventType.REPUTATION_UPDATE,
+              Detail: JSON.stringify(payload),
+              EventBusName: typedResource.AgentBus.name,
+            },
+          ],
+        })
+      );
+      logger.debug(`[EMITTER] Reputation update emitted for ${payload.agentId}`);
+    } catch (e) {
+      logger.error('Failed to emit reputation update:', e);
     }
   }
 }

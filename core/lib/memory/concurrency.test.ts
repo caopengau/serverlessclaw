@@ -46,7 +46,7 @@ describe('Silo 4 Concurrency Hardening', () => {
         TableName: 'TestMemoryTable',
         Key: { userId: 'user123', timestamp: 1000 },
         UpdateExpression: expect.stringContaining(
-          'SET updatedAt = :now, #content = :content, metadata.#priority = :priority'
+          'SET updatedAt = :now, metadata.#priority = :priority, #content = :content'
         ),
         ConditionExpression: 'attribute_exists(userId)', // Critical for Principle 13
       });

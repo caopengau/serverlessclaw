@@ -22,6 +22,9 @@ export async function handleBuildFailure(
     sessionId,
     initiatorId,
     task: originalTask,
+    workspaceId,
+    teamId,
+    staffId,
   } = BUILD_EVENT_SCHEMA.parse(eventDetail);
 
   const gapsContext =
@@ -57,6 +60,9 @@ export async function handleBuildFailure(
     traceId,
     sessionId,
     initiatorId: 'build-handler',
+    workspaceId,
+    teamId,
+    staffId,
     metadata: {
       failureManifest,
       buildId,
@@ -77,7 +83,15 @@ export async function handleBuildFailure(
         ---
         Please decide on the next course of action.`,
       traceId,
-      sessionId
+      sessionId,
+      0,
+      false,
+      undefined,
+      undefined,
+      undefined,
+      workspaceId,
+      teamId,
+      staffId
     );
   }
 }
@@ -89,7 +103,7 @@ export async function handleBuildFailure(
  * @returns A promise resolving when the success event is processed.
  */
 export async function handleBuildSuccess(eventDetail: Record<string, unknown>): Promise<void> {
-  const { userId, buildId, sessionId, initiatorId, task, traceId } =
+  const { userId, buildId, sessionId, initiatorId, task, traceId, workspaceId, teamId, staffId } =
     BUILD_EVENT_SCHEMA.parse(eventDetail);
 
   const message = `✅ **DEPLOYMENT SUCCESSFUL**
@@ -106,6 +120,12 @@ The QA Auditor will verify the changes shortly. Gaps are only marked **DONE** af
     undefined,
     sessionId,
     'SuperClaw',
+    undefined,
+    traceId,
+    undefined,
+    workspaceId,
+    teamId,
+    staffId,
     undefined
   );
 
@@ -116,7 +136,15 @@ The QA Auditor will verify the changes shortly. Gaps are only marked **DONE** af
       initiatorId,
       `BUILD_SUCCESS_NOTIFICATION: The deployment for your task "${task}" was successful (Build: ${buildId}). Please perform any post-deployment configuration or verification steps.`,
       traceId,
-      sessionId
+      sessionId,
+      0,
+      false,
+      undefined,
+      undefined,
+      undefined,
+      workspaceId,
+      teamId,
+      staffId
     );
   }
 }

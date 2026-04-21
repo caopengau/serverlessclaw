@@ -57,7 +57,7 @@ function createMockBase(): BaseMemoryProvider & {
     clearHistory: vi.fn(),
     getDistilledMemory: vi.fn(),
     listConversations: vi.fn(),
-    getScopedUserId: vi.fn().mockImplementation((uid, wid) => (wid ? `${uid}#${wid}` : uid)),
+    getScopedUserId: vi.fn().mockImplementation((uid, wid) => (wid ? `WS#${wid}#${uid}` : uid)),
   } as unknown as BaseMemoryProvider & {
     queryItems: ReturnType<typeof vi.fn>;
     putItem: ReturnType<typeof vi.fn>;
@@ -112,12 +112,12 @@ describe('createCollaboration', () => {
 
     // First call stores the collaboration
     const collabItem = base.putItem.mock.calls[0][0];
-    expect(collabItem.userId).toBe('COLLAB#collab-uuid#ws-1');
+    expect(collabItem.userId).toBe('WS#ws-1#COLLAB#collab-uuid');
     expect(collabItem.type).toBe('COLLABORATION');
 
     // Second call indexes the owner
     const indexItem = base.putItem.mock.calls[1][0];
-    expect(indexItem.userId).toBe('COLLAB_INDEX#agent#owner-1#ws-1');
+    expect(indexItem.userId).toBe('WS#ws-1#COLLAB_INDEX#agent#owner-1');
     expect(indexItem.type).toBe('COLLABORATION_INDEX');
     expect(indexItem.role).toBe('owner');
 

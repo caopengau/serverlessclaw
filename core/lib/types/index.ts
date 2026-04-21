@@ -1,3 +1,6 @@
+// Central Type Registry for Serverless Claw
+// This file orchestrates all types used across the core library.
+
 export * from './llm';
 export * from './agent';
 export * from './memory';

@@ -25,20 +25,29 @@ export class MetabolismService {
    */
   static async runMetabolismAudit(
     memory: BaseMemoryProvider,
-    options: { repair?: boolean; workspaceId?: string } = {}
+    options: {
+      repair?: boolean;
+      workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
+    } = {}
   ): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
-    const workspaceId = options.workspaceId || 'default';
+    const scope = {
+      workspaceId: options.workspaceId,
+      teamId: options.teamId,
+      staffId: options.staffId,
+    };
     logger.info(`[Metabolism] Starting regenerative audit (repair: ${!!options.repair})`);
 
     // 1. Perform automated repairs for stateless state (Registry/Memory)
     if (options.repair) {
-      const repairs = await this.executeRepairs(memory, workspaceId);
+      const repairs = await this.executeRepairs(memory, scope);
       findings.push(...repairs);
     }
 
     // 2. Delegate to AIReady (AST) MCP if available
-    const mcpFindings = await this.runMcpAudit(workspaceId);
+    const mcpFindings = await this.runMcpAudit(scope);
     findings.push(...mcpFindings);
 
     // 3. Fallback to native audit if MCP failed or returned no tools
@@ -46,7 +55,7 @@ export class MetabolismService {
       (f) => f.recommendation.includes('Ensure AST server') || f.expected === 'MCP audit success'
     );
     if (mcpFindings.length === 0 || hasMcpFail) {
-      const nativeFindings = await this.runNativeAudit(workspaceId);
+      const nativeFindings = await this.runNativeAudit(scope);
       findings.push(...nativeFindings);
     }
 
@@ -58,9 +67,10 @@ export class MetabolismService {
    */
   private static async executeRepairs(
     memory: BaseMemoryProvider,
-    workspaceId: string
+    scope: { workspaceId?: string; teamId?: string; staffId?: string }
   ): Promise<AuditFinding[]> {
     const repairFindings: AuditFinding[] = [];
+    const workspaceId = scope.workspaceId || 'default';
 
     // Repair 1: Agent Registry Low-Utilization Tools (Principle 10)
     try {
@@ -138,7 +148,11 @@ export class MetabolismService {
   /**
    * Runs the codebase audit via AIReady (AST) MCP server.
    */
-  private static async runMcpAudit(workspaceId?: string): Promise<AuditFinding[]> {
+  private static async runMcpAudit(scope: {
+    workspaceId?: string;
+    teamId?: string;
+    staffId?: string;
+  }): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
     try {
       const astTools = await MCPBridge.getToolsFromServer('ast', '');
@@ -161,7 +175,9 @@ export class MetabolismService {
       const auditPath = process.cwd() + '/core';
       const result = await auditTool.execute({
         path: auditPath,
-        workspaceId: workspaceId,
+        workspaceId: scope.workspaceId,
+        teamId: scope.teamId,
+        staffId: scope.staffId,
         includeTelemetry: true,
         depth: 'full',
       });
@@ -297,7 +313,11 @@ export class MetabolismService {
    * Runs naive native checks for common debt markers.
    * Uses in-memory file scanning instead of shell commands for serverless compatibility.
    */
-  private static async runNativeAudit(_workspaceId?: string): Promise<AuditFinding[]> {
+  private static async runNativeAudit(_scope?: {
+    workspaceId?: string;
+    teamId?: string;
+    staffId?: string;
+  }): Promise<AuditFinding[]> {
     const findings: AuditFinding[] = [];
 
     findings.push({

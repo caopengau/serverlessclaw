@@ -59,7 +59,7 @@ describe('Tracing Metadata Verification', () => {
   });
 
   it('should record model in both LLM_CALL and LLM_RESPONSE in standard loop', async () => {
-    const agent = new Agent(mockMemory, mockProvider, [], 'prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test',
       name: 'Test',
       enabled: true,
@@ -94,7 +94,7 @@ describe('Tracing Metadata Verification', () => {
   });
 
   it('should record model in both LLM_CALL and LLM_RESPONSE in streaming loop', async () => {
-    const agent = new Agent(mockMemory, mockProvider, [], 'prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test',
       name: 'Test',
       enabled: true,

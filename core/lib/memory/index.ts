@@ -1,7 +1,6 @@
 export * from './gap-operations';
 export * from './insight-operations';
 export * from './session-operations';
-export * from './utils';
 export * from './clarification-operations';
 export * from './reputation-operations';
 export * from './base';

@@ -31,6 +31,8 @@ export const BASE_EVENT_SCHEMA = z.object({
   depth: z.number().default(0),
   sessionId: z.string().default('default-session'),
   workspaceId: z.string().optional(),
+  teamId: z.string().optional(),
+  staffId: z.string().optional(),
   timestamp: z.number().default(() => Date.now()),
   tokenBudget: z.number().min(0).optional(),
   costLimit: z.number().min(0).optional(),
@@ -145,6 +147,8 @@ const BRIDGE_DETAIL_PAYLOAD_SCHEMA = z
     message: z.string().default(''),
     isThought: z.boolean().default(false),
     workspaceId: z.string().optional(),
+    teamId: z.string().optional(),
+    staffId: z.string().optional(),
     collaborationId: z.string().optional(),
   })
   .passthrough()

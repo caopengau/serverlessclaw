@@ -66,11 +66,7 @@ export async function handleSystemAuditTrigger(
     }
 
     const auditReport = await runSystemAudit(
-      memory as unknown as {
-        getAllGaps(status: unknown): Promise<unknown[]>;
-        getFailurePatterns(userId: string, pattern: string, limit: number): Promise<unknown[]>;
-        set(key: string, value: unknown): Promise<void>;
-      },
+      memory as unknown as import('../../agents/cognition-reflector/audit-protocol').MemoryForAudit,
       triggerType,
       {
         codeMetrics: event.metrics,

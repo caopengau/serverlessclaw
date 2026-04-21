@@ -1,8 +1,9 @@
 import { Message } from './llm';
 import { GapStatus, GapTransitionResult } from './agent';
-export { GapStatus };
-export type { GapTransitionResult };
 import type { Collaboration, CollaborationRole, ParticipantType } from './collaboration';
+
+// DO NOT RE-EXPORT GapStatus or Message from here. 
+// They are exported by index.ts via agent.ts and llm.ts.
 
 /**
  * Categories for memory insights to help the agent organize and prioritize knowledge.
@@ -68,14 +69,18 @@ export interface InsightMetadata {
 export interface MemoryInsight {
   /** Unique identifier for the insight. */
   id: string;
+  /** The DynamoDB record type (e.g. MEMORY:LESSON). */
+  type: string;
   /** The textual content or description of the insight. */
   content: string;
   /** Strategic and operational metadata. */
   metadata: InsightMetadata;
   /** Timestamp (Unix epoch) when the insight was first recorded or last updated. */
   timestamp: number | string;
-  /** Organizational scope for the insight. */
-  orgId?: string;
+  /** Team scope within organization. */
+  teamId?: string;
+  /** Staff scope. */
+  staffId?: string;
   /** User-specific scope within the organization. */
   userId?: string;
   /** Workspace-specific scope (multi-tenant support). */
@@ -86,6 +91,15 @@ export interface MemoryInsight {
   status?: GapStatus;
   /** Timestamp (Unix epoch) when the insight was first recorded. */
   createdAt?: number;
+}
+
+/**
+ * Scoping identifiers for multi-tenant and organizational isolation.
+ */
+export interface ContextualScope {
+  workspaceId?: string;
+  teamId?: string;
+  staffId?: string;
 }
 
 /**
@@ -128,26 +142,30 @@ export interface ConversationMeta {
  */
 export interface IHistoryStore {
   /** Retrieves the conversation history for a specific user or session. */
-  getHistory(userId: string, workspaceId?: string): Promise<Message[]>;
+  getHistory(userId: string, scope?: string | ContextualScope): Promise<Message[]>;
   /** Appends a new message to the conversation history. */
-  addMessage(userId: string, message: Message, workspaceId?: string): Promise<void>;
+  addMessage(userId: string, message: Message, scope?: string | ContextualScope): Promise<void>;
   /** Clears the conversation history for a specific user or session. */
-  clearHistory(userId: string, workspaceId?: string): Promise<void>;
+  clearHistory(userId: string, scope?: string | ContextualScope): Promise<void>;
   /** Lists all available conversation sessions for a user. */
-  listConversations(userId: string, workspaceId?: string): Promise<ConversationMeta[]>;
+  listConversations(userId: string, scope?: string | ContextualScope): Promise<ConversationMeta[]>;
   /** Saves or updates metadata for a specific conversation session. */
   saveConversationMeta(
     userId: string,
     sessionId: string,
     meta: Partial<ConversationMeta>,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<void>;
   /** Deletes a conversation session and its history. */
-  deleteConversation(userId: string, sessionId: string, workspaceId?: string): Promise<void>;
+  deleteConversation(
+    userId: string,
+    sessionId: string,
+    scope?: string | ContextualScope
+  ): Promise<void>;
   /** Retrieves the latest summary for a conversation session. */
-  getSummary(userId: string, workspaceId?: string): Promise<string | null>;
+  getSummary(userId: string, scope?: string | ContextualScope): Promise<string | null>;
   /** Updates the latest summary for a conversation session. */
-  updateSummary(userId: string, summary: string, workspaceId?: string): Promise<void>;
+  updateSummary(userId: string, summary: string, scope?: string | ContextualScope): Promise<void>;
 }
 
 /**
@@ -155,26 +173,36 @@ export interface IHistoryStore {
  */
 export interface IKnowledgeStore {
   /** Retrieves the distilled "long-term" memory facts for a user. */
-  getDistilledMemory(userId: string, workspaceId?: string): Promise<string>;
+  getDistilledMemory(userId: string, scope?: string | ContextualScope): Promise<string>;
   /** Updates the distilled long-term memory facts for a user. */
-  updateDistilledMemory(userId: string, facts: string, workspaceId?: string): Promise<void>;
+  updateDistilledMemory(
+    userId: string,
+    facts: string,
+    scope?: string | ContextualScope
+  ): Promise<void>;
   /** Adds a tactical lesson learned during an agent's task execution. */
   addLesson(
     userId: string,
     lesson: string,
     metadata?: Partial<InsightMetadata> & { tags?: string[] },
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<void>;
   /** Retrieves a set of recent tactical lessons for a user. */
-  getLessons(userId: string, workspaceId?: string): Promise<string[]>;
+  getLessons(userId: string, scope?: string | ContextualScope): Promise<string[]>;
   /** Records a failure pattern for future cross-referencing. */
   recordFailurePattern(
-    scopeId: string,
-    content: string,
-    metadata?: Partial<InsightMetadata>
+    planHash: string,
+    planContent: string,
+    gapIds: string[],
+    failureReason: string,
+    metadata?: Partial<InsightMetadata>,
+    scope?: string | ContextualScope
   ): Promise<number | string>;
   /** Retrieves failure patterns relevant to the given context. */
-  getFailurePatterns(scopeId: string, context?: string, limit?: number): Promise<MemoryInsight[]>;
+  getFailurePatterns(
+    limit?: number,
+    scope?: string | ContextualScope
+  ): Promise<MemoryInsight[]>;
   /** Adds a system-wide lesson that benefits ALL users and sessions. */
   addGlobalLesson(lesson: string, metadata?: Partial<InsightMetadata>): Promise<number | string>;
   /** Retrieves system-wide lessons for injection into agent prompts. */
@@ -187,8 +215,10 @@ export interface IKnowledgeStore {
     timestamp: number | string,
     content?: string,
     metadata?: Partial<InsightMetadata> & { tags?: string[] },
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<void>;
+  /** Saves a distilled recovery log for emergency rollback context. */
+  saveDistilledRecoveryLog(traceId: string, task: string): Promise<void>;
 }
 
 /**
@@ -200,21 +230,26 @@ export interface IGapManager {
     gapId: string,
     details: string,
     metadata?: InsightMetadata,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<void>;
   /** Retrieves all capability gaps, optionally filtered by their current status. */
-  getAllGaps(status?: import('./agent').GapStatus, workspaceId?: string): Promise<MemoryInsight[]>;
+  getAllGaps(
+    status?: GapStatus,
+    scope?: string | ContextualScope
+  ): Promise<MemoryInsight[]>;
   /** Updates the lifecycle status of a specific capability gap. */
   updateGapStatus(
     gapId: string,
-    status: import('./agent').GapStatus,
-    workspaceId?: string,
+    status: GapStatus,
+    scope?: string | ContextualScope,
     metadata?: Record<string, unknown>
   ): Promise<GapTransitionResult>;
   /** Archives stale gaps older than specified days. Returns count of archived gaps. */
-  archiveStaleGaps(staleDays?: number, workspaceId?: string): Promise<number>;
+  archiveStaleGaps(staleDays?: number, scope?: string | ContextualScope): Promise<number>;
+  /** Culls resolved gaps older than retention threshold. Returns count of culled gaps. */
+  cullResolvedGaps(thresholdDays?: number, scope?: string | ContextualScope): Promise<number>;
   /** Atomically increments the attempt counter on a capability gap. */
-  incrementGapAttemptCount(gapId: string, workspaceId?: string): Promise<number>;
+  incrementGapAttemptCount(gapId: string, scope?: string | ContextualScope): Promise<number>;
   /** Acquires a lock on a gap to prevent concurrent modification by multiple agents. */
   acquireGapLock(gapId: string, agentId: string, ttlMs?: number): Promise<boolean>;
   /** Releases a gap lock after work is complete. */
@@ -229,23 +264,13 @@ export interface IGapManager {
     gapId: string
   ): Promise<{ agentId: string; expiresAt: number; lockVersion?: number } | null>;
   /** Retrieves a specific capability gap by its ID. */
-  getGap(gapId: string, workspaceId?: string): Promise<MemoryInsight | null>;
+  getGap(gapId: string, scope?: string | ContextualScope): Promise<MemoryInsight | null>;
   /** Updates metadata fields (impact, priority, etc.) on a specific gap. */
   updateGapMetadata(
     gapId: string,
     metadata: Partial<InsightMetadata>,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<void>;
-  /** Records a failed strategic plan so the swarm learns anti-patterns. */
-  recordFailedPlan(
-    planHash: string,
-    planContent: string,
-    gapIds: string[],
-    failureReason: string,
-    metadata?: Partial<InsightMetadata>
-  ): Promise<number | string>;
-  /** Retrieves previously failed plans to inform the planner about what NOT to do. */
-  getFailedPlans(limit?: number): Promise<MemoryInsight[]>;
 }
 
 /**
@@ -253,15 +278,18 @@ export interface IGapManager {
  * tactical, and strategic knowledge.
  */
 export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
-  /** Searches across all memory types (lessons, gaps, distilled) using keyword search. */
+  /**
+   * Searches for insights across all categories.
+   */
   searchInsights(
-    userId?: string,
-    query?: string,
+    queryOrUserId?: string | { tags?: string[]; category?: InsightCategory; limit?: number; scope?: ContextualScope },
+    queryText?: string,
     category?: InsightCategory,
     limit?: number,
     lastEvaluatedKey?: Record<string, unknown>,
     tags?: string[],
-    orgId?: string
+    orgId?: string,
+    scope?: string | ContextualScope
   ): Promise<{ items: MemoryInsight[]; lastEvaluatedKey?: Record<string, unknown> }>;
 
   /** Adds a new granular memory item into the user or global scope. */
@@ -269,16 +297,15 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
     scopeId: string,
     category: InsightCategory | string,
     content: string,
-    metadata?: Partial<InsightMetadata> & { orgId?: string; tags?: string[] },
-    workspaceId?: string
+    metadata?: Partial<InsightMetadata> & { tags?: string[] },
+    scope?: string | ContextualScope
   ): Promise<number | string>;
 
-  /** Updates the metadata (priority, impact, etc.) for a specific recorded insight. */
   updateInsightMetadata(
     userId: string,
     timestamp: number | string,
     metadata: Partial<InsightMetadata>,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<void>;
 
   /**
@@ -289,14 +316,14 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
   /** Saves a clarification request to DynamoDB for state persistence. */
   saveClarificationRequest(
     state: Omit<ClarificationState, 'type' | 'expiresAt' | 'timestamp'>,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<void>;
 
   /** Retrieves a clarification request by traceId and agentId. */
   getClarificationRequest(
     traceId: string,
     agentId: string,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<ClarificationState | null>;
 
   /** Updates the status of a clarification request. */
@@ -304,36 +331,36 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
     traceId: string,
     agentId: string,
     status: ClarificationStatus,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<void>;
 
   /** Saves escalation state for a clarification. */
   saveEscalationState(
     state: import('./escalation').EscalationState,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<void>;
 
   /** Retrieves escalation state for a clarification. */
   getEscalationState(
     traceId: string,
     agentId: string,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<import('./escalation').EscalationState | null>;
 
   /** Finds all expired clarification requests (for orphan detection). */
-  findExpiredClarifications(workspaceId?: string): Promise<ClarificationState[]>;
+  findExpiredClarifications(scope?: string | ContextualScope): Promise<ClarificationState[]>;
 
   /** Increments the retry count for a clarification request. */
   incrementClarificationRetry(
     traceId: string,
     agentId: string,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<number>;
 
   // Collaboration Operations
 
   /** Gets a collaboration by ID. */
-  getCollaboration(collaborationId: string, workspaceId?: string): Promise<Collaboration | null>;
+  getCollaboration(collaborationId: string, scope?: string | ContextualScope): Promise<Collaboration | null>;
 
   /** Checks if a participant has access to a collaboration. */
   checkCollaborationAccess(
@@ -341,7 +368,7 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
     participantId: string,
     participantType: ParticipantType,
     requiredRole?: CollaborationRole,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<boolean>;
 
   /** Closes a collaboration. */
@@ -349,7 +376,7 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
     collaborationId: string,
     actorId: string,
     actorType: ParticipantType,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<void>;
 
   /** Creates a new collaboration with a shared session. */
@@ -357,14 +384,14 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
     ownerId: string,
     ownerType: ParticipantType,
     input: import('./collaboration').CreateCollaborationInput,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<Collaboration>;
 
   /** Lists collaborations for a participant. */
   listCollaborationsForParticipant(
     participantId: string,
     participantType: ParticipantType,
-    workspaceId?: string
+    scope?: string | ContextualScope
   ): Promise<
     Array<{
       collaborationId: string;
@@ -373,14 +400,25 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
     }>
   >;
 
+  /** Finds collaborations that have timed out based on their custom timeoutMs. */
+  findStaleCollaborations(
+    defaultTimeoutMs: number,
+    scope?: string | ContextualScope
+  ): Promise<Collaboration[]>;
+
   /** Transits a 1:1 session into a collaboration session. */
   transitToCollaboration(
     userId: string,
-    workspaceId: string,
+    scope: string | ContextualScope,
     sourceSessionId: string,
     invitedAgentIds: string[],
     name?: string
   ): Promise<Collaboration>;
+
+  /**
+   * Helper to derive a workspace-scoped userId for DynamoDB partition keys.
+   */
+  getScopedUserId(userId: string, scope?: string | ContextualScope): string;
 
   /** Gets cache statistics for monitoring. Returns hit rates and sizes for all caches. */
   getCacheStats(): {

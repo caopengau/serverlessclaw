@@ -206,6 +206,14 @@ export interface IAgentConfig {
   trustScore?: number;
   /** Whether this agent has been manually approved for protected resource access. */
   manuallyApproved?: boolean;
+  /** Version number of the agent configuration (auto-incremented). */
+  version?: number;
+  /** ID of the last trace processed by this agent (for evolution/tuning context). */
+  lastTraceId?: string;
+  /** ISO timestamp of the last configuration update. */
+  lastUpdated?: string;
+  /** Additional metadata for the agent (e.g., tags, author). */
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -259,6 +267,7 @@ export enum TraceSource {
   API = 'api',
   SYSTEM = 'system',
   UNKNOWN = 'unknown',
+  PLAYGROUND = 'playground',
 }
 
 /**
@@ -609,6 +618,10 @@ export interface SafetyViolation {
   userId?: string;
   /** Workspace ID associated with the violation. */
   workspaceId?: string;
+  /** Team ID. */
+  teamId?: string;
+  /** Staff ID. */
+  staffId?: string;
 }
 
 /**

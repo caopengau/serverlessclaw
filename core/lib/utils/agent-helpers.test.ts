@@ -14,12 +14,13 @@ vi.mock('../../tools/index', () => ({
 }));
 
 vi.mock('../agent', () => ({
-  Agent: vi.fn().mockImplementation(function (this: any, m: any, p: any, t: any, sp: any, c: any) {
+  Agent: vi.fn().mockImplementation(function (this: any, m: any, p: any, t: any, sp: any) {
     this.memory = m;
     this.provider = p;
     this.tools = t;
-    this.systemPrompt = sp;
-    this.config = c;
+    this.config = sp; // In createAgent, the 4th arg is the config object
+    this.systemPrompt = sp?.systemPrompt;
+    this.getConfig = () => this.config;
   }),
 }));
 
@@ -52,8 +53,8 @@ describe('createAgent', () => {
       mockProvider,
       'cn'
     )) as any;
-    expect(agent.systemPrompt).toContain('Base Prompt');
-    expect(agent.systemPrompt).toContain('Chinese (中文)');
+    expect(agent.getConfig()?.systemPrompt).toContain('Base Prompt');
+    expect(agent.getConfig()?.systemPrompt).toContain('Chinese (中文)');
   });
 });
 

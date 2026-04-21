@@ -119,15 +119,11 @@ export const recallKnowledge = {
     const memory = getMemory();
     const baseUserId = userId.startsWith('CONV#') ? userId.split('#')[1] : userId;
 
-    const searchResponse = await memory.searchInsights(
-      baseUserId,
-      query,
-      category,
-      50,
-      undefined,
+    const searchResponse = await memory.searchInsights({
       tags,
-      orgId
-    );
+      category,
+      limit: 50
+    });
 
     let results = searchResponse.items;
 

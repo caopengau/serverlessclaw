@@ -54,7 +54,7 @@ export class StandardExecutor extends BaseExecutor {
 
       const aiResponse = await this.callLLM(messages, options, usage);
       lastAiResponse = aiResponse;
-      this.updateUsage(usage, aiResponse, options.activeProvider);
+      this.updateUsage(usage, aiResponse, options.activeProvider, options);
 
       if (aiResponse.content && options.sessionId) {
         const loopResult = await this.checkSemanticLoop(options.sessionId, aiResponse.content);
@@ -99,6 +99,8 @@ export class StandardExecutor extends BaseExecutor {
             depth: options.depth,
             sessionId: options.sessionId,
             workspaceId: options.workspaceId,
+            teamId: options.teamId,
+            staffId: options.staffId,
             userId: options.userId,
             mainConversationId: options.mainConversationId,
             activeModel: options.activeModel,

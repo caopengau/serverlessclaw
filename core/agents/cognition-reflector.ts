@@ -37,9 +37,11 @@ export const handler = async (
 
   // EventBridge wraps the payload in 'detail'
   const payload = extractPayload<ReflectorEvent>(event);
-  const { userId, conversation, traceId, sessionId, task, initiatorId, depth } =
+  const { userId, conversation, traceId, sessionId, task, initiatorId, depth, workspaceId } =
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     payload.detail || (payload as any); // Double safety for direct or wrapped event
+
+  const scope = workspaceId ? { workspaceId } : undefined;
 
   if (!userId || !conversation) {
     logger.warn('Reflector received incomplete payload, skipping audit.', {
@@ -89,11 +91,7 @@ export const handler = async (
   if (isAuditTrigger) {
     logger.info('[Reflector] Running system audit per trigger');
     const auditReport = await runSystemAudit(
-      memory as unknown as {
-        getAllGaps(status: unknown): Promise<unknown[]>;
-        getFailurePatterns(userId: string, pattern: string, limit: number): Promise<unknown[]>;
-        set(key: string, value: unknown): Promise<void>;
-      },
+      memory as unknown as import('./cognition-reflector/audit-protocol').MemoryForAudit,
       'MANUAL_TRIGGER',
       { userId, traceId, sessionId }
     );
@@ -106,7 +104,6 @@ export const handler = async (
     memory,
     providerManager,
     agentTools,
-    config.systemPrompt ?? '',
     config
   );
 
@@ -114,6 +111,7 @@ export const handler = async (
   if (task) {
     const taskLower = task.toLowerCase();
     if (taskLower.includes('greet') || taskLower.includes('hi') || taskLower.includes('hello')) {
+      const startTime = Date.now();
       const { responseText } = await reflector.process(userId, task, {
         profile: ReasoningProfile.FAST,
         isIsolated: true,
@@ -121,13 +119,21 @@ export const handler = async (
         sessionId,
         source: TraceSource.SYSTEM,
       });
+      const { updateReputation } = await import('../lib/memory/reputation-operations');
+      await updateReputation(
+        (memory as any),
+        config.id,
+        true,
+        Date.now() - startTime,
+        { scope }
+      );
       return responseText;
     }
   }
 
   const baseUserId = extractBaseUserId(userId);
   const existingFacts = await memory.getDistilledMemory(baseUserId);
-  const failurePatterns = await memory.getFailurePatterns(baseUserId, '*', 5);
+  const failurePatterns = await memory.getFailurePatterns(5, scope);
 
   // Get gap context
   const { deployedGaps, activeGaps } = await getGapContext(memory);
@@ -193,6 +199,11 @@ export const handler = async (
         for (const gap of parsed.gaps) {
           if (gap.content && gap.content !== 'NONE') {
             const gapId = randomUUID();
+            const { items: preferences } = await memory.searchInsights({
+              tags: ['preference', 'user_preference'],
+              category: InsightCategory.USER_PREFERENCE,
+              scope
+            });
             const metadata = {
               category: InsightCategory.STRATEGIC_GAP,
               confidence: gap.confidence || 5,
@@ -242,9 +253,10 @@ export const handler = async (
                 if (items.length > 0) {
                   existing = {
                     id: items[0].userId,
-                    timestamp: items[0].timestamp,
+                    type: items[0].type || 'STRATEGIC_GAP',
                     content: items[0].content,
                     metadata: items[0].metadata || {},
+                    timestamp: items[0].timestamp,
                   };
                 }
               } catch (e) {

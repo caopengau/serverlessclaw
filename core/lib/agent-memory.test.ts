@@ -48,7 +48,10 @@ describe('Agent Memory Recall Regression', () => {
       searchInsights: vi.fn().mockResolvedValue({ items: [] }),
       getSummary: vi.fn().mockResolvedValue(null),
       updateSummary: vi.fn().mockResolvedValue(undefined),
-      getScopedUserId: vi.fn().mockImplementation((uid, wid) => (wid ? `${uid}#${wid}` : uid)),
+      getScopedUserId: vi.fn().mockImplementation((uid, scope) => {
+        const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
+        return workspaceId ? `${uid}#${workspaceId}` : uid;
+      }),
     } as unknown as IMemory;
 
     mockProvider = {
@@ -72,8 +75,9 @@ describe('Agent Memory Recall Regression', () => {
     const userId = 'dashboard-user';
     const preferenceItem = {
       id: 'pref-0',
-      timestamp: Date.now(),
-      content: 'User prefers dark mode',
+      timestamp: 123,
+      type: 'MEMORY:USER_PREFERENCE',
+      content: 'User likes dark mode',
       metadata: {
         category: InsightCategory.USER_PREFERENCE,
         confidence: 10,
@@ -86,14 +90,14 @@ describe('Agent Memory Recall Regression', () => {
     };
 
     // Mock searchInsights to return a preference for the prefixed search
-    vi.mocked(mockMemory.searchInsights).mockImplementation(async (scopeId) => {
-      if (scopeId === `USER#${userId}`) {
+    vi.mocked(mockMemory.searchInsights).mockImplementation(async (queryOrUserId) => {
+      if (queryOrUserId === `USER#${userId}`) {
         return { items: [preferenceItem] };
       }
       return { items: [] };
     });
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       enabled: true,
@@ -133,7 +137,8 @@ describe('Agent Memory Recall Regression', () => {
     const userId = 'dashboard-user';
     const preferenceItem = {
       id: 'pref-1',
-      timestamp: Date.now(),
+      timestamp: 123,
+      type: 'MEMORY:USER_PREFERENCE',
       content: 'User name is SuperPeng',
       metadata: {
         category: InsightCategory.USER_PREFERENCE,
@@ -146,14 +151,14 @@ describe('Agent Memory Recall Regression', () => {
       },
     };
 
-    vi.mocked(mockMemory.searchInsights).mockImplementation(async (scopeId) => {
-      if (scopeId === userId) {
+    vi.mocked(mockMemory.searchInsights).mockImplementation(async (queryOrUserId) => {
+      if (queryOrUserId === userId) {
         return { items: [preferenceItem] };
       }
       return { items: [] };
     });
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       enabled: true,
@@ -184,7 +189,7 @@ describe('Agent Memory Recall Regression', () => {
     const prefixedId = 'CONV#dashboard-user#session-123';
     const baseUserId = 'dashboard-user';
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'System prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       enabled: true,
@@ -198,7 +203,7 @@ describe('Agent Memory Recall Regression', () => {
     await agent.process(prefixedId, 'Hello');
 
     // Should still use baseUserId for insights
-    expect(mockMemory.getDistilledMemory).toHaveBeenCalledWith(baseUserId);
+    expect(mockMemory.getDistilledMemory).toHaveBeenCalledWith(baseUserId, expect.anything());
     const searchCalls = vi.mocked(mockMemory.searchInsights).mock.calls;
     const searchScopes = searchCalls.map((c) => [c[0], c[1], c[2]]);
     expect(searchScopes).toEqual(

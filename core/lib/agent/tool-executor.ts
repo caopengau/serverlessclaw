@@ -30,6 +30,8 @@ export interface ToolExecutionContext {
   depth: number;
   sessionId?: string;
   workspaceId?: string;
+  teamId?: string;
+  staffId?: string;
   userId: string;
   mainConversationId: string;
   activeModel?: string;
@@ -243,6 +245,8 @@ export class ToolExecutor {
       depth: execContext.depth,
       sessionId: execContext.sessionId,
       workspaceId: execContext.workspaceId,
+      teamId: execContext.teamId,
+      staffId: execContext.staffId,
       mainConversationId: execContext.mainConversationId,
       activeModel: execContext.activeModel,
       activeProvider: execContext.activeProvider,
@@ -257,6 +261,8 @@ export class ToolExecutor {
     args.userId = args.userId ?? execContext.userId;
     args.sessionId = args.sessionId ?? execContext.sessionId;
     args.workspaceId = args.workspaceId ?? execContext.workspaceId;
+    args.teamId = args.teamId ?? execContext.teamId;
+    args.staffId = args.staffId ?? execContext.staffId;
 
     // 2.5 Structural Enforcement (Zod Validation)
     if (tool.argSchema) {
@@ -344,15 +350,26 @@ export class ToolExecutor {
 
     // 5. Metrics & Registry
     if (!process.env.VITEST) {
-      await AgentRegistry.recordToolUsage(tool.name, execContext.agentId, execContext.workspaceId);
+      await AgentRegistry.recordToolUsage(tool.name, execContext.agentId, {
+        workspaceId: execContext.workspaceId,
+        teamId: execContext.teamId,
+        staffId: execContext.staffId,
+      });
       const toolSuccess = isToolExecutionSuccessful(rawResult, resultText);
       const estimatedInputTokens = Math.ceil(JSON.stringify(args).length / 4);
       const estimatedOutputTokens = Math.ceil(resultText.length / 4);
 
       try {
         const { emitMetrics, METRICS } = await import('../metrics');
-        emitMetrics([METRICS.toolExecuted(tool.name, toolSuccess)]).catch(() => {});
-        emitMetrics([METRICS.toolDuration(tool.name, Math.round(toolDurationMs))]).catch(() => {});
+        const scope = {
+          workspaceId: execContext.workspaceId,
+          teamId: execContext.teamId,
+          staffId: execContext.staffId,
+        };
+        emitMetrics([METRICS.toolExecuted(tool.name, toolSuccess, scope)]).catch(() => {});
+        emitMetrics([METRICS.toolDuration(tool.name, Math.round(toolDurationMs), scope)]).catch(
+          () => {}
+        );
 
         const { TokenTracker } = await import('../metrics/token-usage');
         TokenTracker.updateToolRollup(

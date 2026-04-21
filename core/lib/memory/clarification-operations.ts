@@ -28,11 +28,12 @@ const ESCALATION_TTL_BUFFER_SECONDS = 86400; // 24 hours for escalation state
 export async function saveClarificationRequest(
   base: BaseMemoryProvider,
   state: Omit<ClarificationState, 'type' | 'expiresAt' | 'timestamp'>,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
   const ttlBufferSeconds = TTL_BUFFER_SECONDS;
   const basePk = `${CLARIFICATION_PREFIX}${state.traceId}#${state.agentId}`;
-  const pk = base.getScopedUserId(basePk, workspaceId);
+  const pk = base.getScopedUserId(basePk, scope);
+  const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
   const item: ClarificationState = {
     ...state,
     userId: pk,
@@ -62,10 +63,10 @@ export async function getClarificationRequest(
   base: BaseMemoryProvider,
   traceId: string,
   agentId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<ClarificationState | null> {
   const basePk = `${CLARIFICATION_PREFIX}${traceId}#${agentId}`;
-  const pk = base.getScopedUserId(basePk, workspaceId);
+  const pk = base.getScopedUserId(basePk, scope);
 
   const items = await base.queryItems({
     KeyConditionExpression: 'userId = :pk',
@@ -93,10 +94,11 @@ export async function getClarificationRequest(
 export async function saveEscalationState(
   base: BaseMemoryProvider,
   state: EscalationState,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
   const basePk = `${ESCALATION_PREFIX}${state.traceId}#${state.agentId}`;
-  const pk = base.getScopedUserId(basePk, workspaceId);
+  const pk = base.getScopedUserId(basePk, scope);
+  const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
   const item = {
     ...state,
     userId: pk,
@@ -126,10 +128,10 @@ export async function getEscalationState(
   base: BaseMemoryProvider,
   traceId: string,
   agentId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<EscalationState | null> {
   const basePk = `${ESCALATION_PREFIX}${traceId}#${agentId}`;
-  const pk = base.getScopedUserId(basePk, workspaceId);
+  const pk = base.getScopedUserId(basePk, scope);
 
   const items = await base.queryItems({
     KeyConditionExpression: 'userId = :pk',
@@ -161,10 +163,11 @@ export async function updateClarificationStatus(
   traceId: string,
   agentId: string,
   status: ClarificationStatus,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
   const basePk = `${CLARIFICATION_PREFIX}${traceId}#${agentId}`;
-  const pk = base.getScopedUserId(basePk, workspaceId);
+  const pk = base.getScopedUserId(basePk, scope);
+  const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
 
   await base.updateItem({
     Key: { userId: pk, timestamp: 0 },
@@ -192,8 +195,9 @@ export async function updateClarificationStatus(
  */
 export async function findExpiredClarifications(
   base: BaseMemoryProvider,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<ClarificationState[]> {
+  const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
   const now = Math.floor(Date.now() / TIME.MS_PER_SECOND);
 
   const params: Record<string, unknown> = {
@@ -232,10 +236,10 @@ export async function incrementClarificationRetry(
   base: BaseMemoryProvider,
   traceId: string,
   agentId: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<number> {
   const basePk = `${CLARIFICATION_PREFIX}${traceId}#${agentId}`;
-  const pk = base.getScopedUserId(basePk, workspaceId);
+  const pk = base.getScopedUserId(basePk, scope);
 
   const result = await base.updateItem({
     Key: { userId: pk, timestamp: 0 },

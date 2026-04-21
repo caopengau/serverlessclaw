@@ -16,28 +16,31 @@ import {
   getSyntheticUserId,
 } from '../types/collaboration';
 import { MessageRole } from '../types/llm';
-
+import { ContextualScope } from '../types/memory';
 const COLLAB_PREFIX = 'COLLAB#';
 const COLLAB_INDEX_PREFIX = 'COLLAB_INDEX#';
 
 /**
+ * Resolves the hierarchical scope identifier for query or storage.
+ */
+function resolveScopeId(scope?: string | ContextualScope): string | undefined {
+  return typeof scope === 'string' ? scope : scope?.workspaceId;
+}
+
+/**
  * Creates a new collaboration with a shared session
- *
- * @param base - The base memory provider.
- * @param ownerId - The ID of the collaboration owner.
- * @param ownerType - The type of the owner (human or agent).
- * @param input - The collaboration creation parameters.
  */
 export async function createCollaboration(
   base: BaseMemoryProvider,
   ownerId: string,
   ownerType: ParticipantType,
-  input: CreateCollaborationInput
+  input: CreateCollaborationInput,
+  scope?: string | ContextualScope
 ): Promise<Collaboration> {
   const collaborationId = uuidv4();
   const sessionId = input.sessionId ?? uuidv4();
   const now = Date.now();
-  const workspaceId = input.workspaceId;
+  const workspaceId = (typeof scope === 'string' ? scope : scope?.workspaceId) ?? input.workspaceId;
 
   const participants: CollaborationParticipant[] = [
     { type: ownerType, id: ownerId, role: 'owner', joinedAt: now },
@@ -85,7 +88,7 @@ export async function createCollaboration(
     workspaceId,
   };
 
-  const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, workspaceId);
+  const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, scope || workspaceId);
   await base.putItem(
     {
       userId: pk,
@@ -102,7 +105,7 @@ export async function createCollaboration(
   for (const participant of participants) {
     const indexPk = base.getScopedUserId(
       `${COLLAB_INDEX_PREFIX}${participant.type}#${participant.id}`,
-      workspaceId
+      scope || workspaceId
     );
     await base.putItem({
       userId: indexPk,
@@ -124,13 +127,6 @@ export async function createCollaboration(
 
 /**
  * Adds a participant to a collaboration
- *
- * @param base - The base memory provider.
- * @param collaborationId - The ID of the collaboration.
- * @param actorId - The ID of the member adding the participant (must be owner).
- * @param actorType - The type of the actor.
- * @param newParticipant - The new participant details including type, id, and role.
- * @param workspaceId - Optional workspace identifier for isolation.
  */
 export async function addCollaborationParticipant(
   base: BaseMemoryProvider,
@@ -138,12 +134,14 @@ export async function addCollaborationParticipant(
   actorId: string,
   actorType: ParticipantType,
   newParticipant: { type: ParticipantType; id: string; role: CollaborationRole },
-  workspaceId?: string
+  scope?: string | ContextualScope
 ): Promise<void> {
-  const collaboration = await getCollaboration(base, collaborationId, workspaceId);
+  const collaboration = await getCollaboration(base, collaborationId, scope);
   if (!collaboration) {
     throw new Error(`Collaboration ${collaborationId} not found`);
   }
+
+  const workspaceId = (typeof scope === 'string' ? scope : scope?.workspaceId) ?? collaboration.workspaceId;
 
   // Check if actor is owner
   const actor = collaboration.participants.find((p) => p.id === actorId && p.type === actorType);
@@ -160,7 +158,7 @@ export async function addCollaborationParticipant(
     joinedAt: now,
   };
 
-  const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, workspaceId);
+  const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, scope || workspaceId);
 
   // Update collaboration metadata atomically (Principle 13)
   await base.updateItem({
@@ -180,7 +178,7 @@ export async function addCollaborationParticipant(
   // Add index entry for new participant
   const indexPk = base.getScopedUserId(
     `${COLLAB_INDEX_PREFIX}${newParticipant.type}#${newParticipant.id}`,
-    workspaceId
+    scope
   );
   await base.putItem({
     userId: indexPk,
@@ -204,9 +202,10 @@ export async function addCollaborationParticipant(
 export async function getCollaboration(
   base: BaseMemoryProvider,
   collaborationId: string,
-  workspaceId?: string
+  scope?: string | ContextualScope
 ): Promise<Collaboration | null> {
-  const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, workspaceId);
+  const workspaceId = resolveScopeId(scope);
+  const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, scope || workspaceId);
   const result = await base.queryItems({
     KeyConditionExpression: 'userId = :userId AND #timestamp = :zero',
     ExpressionAttributeNames: { '#timestamp': 'timestamp' },
@@ -222,21 +221,16 @@ export async function getCollaboration(
 
 /**
  * Lists collaborations for a participant
- *
- * @param base - The base memory provider.
- * @param participantId - The ID of the participant to list collaborations for.
- * @param participantType - The type of the participant (human or agent).
- * @param workspaceId - Optional workspace identifier for isolation.
  */
 export async function listCollaborationsForParticipant(
   base: BaseMemoryProvider,
   participantId: string,
   participantType: ParticipantType,
-  workspaceId?: string
+  scope?: string | ContextualScope
 ): Promise<Array<{ collaborationId: string; role: CollaborationRole; collaborationName: string }>> {
   const pk = base.getScopedUserId(
     `${COLLAB_INDEX_PREFIX}${participantType}#${participantId}`,
-    workspaceId
+    scope
   );
   const result = await base.queryItems({
     KeyConditionExpression: 'userId = :userId',
@@ -254,13 +248,6 @@ export async function listCollaborationsForParticipant(
 
 /**
  * Checks if a participant has access to a collaboration
- *
- * @param base - The base memory provider.
- * @param collaborationId - The ID of the collaboration.
- * @param participantId - The ID of the participant.
- * @param participantType - The type of the participant.
- * @param requiredRole - Optional minimum role required for access.
- * @param workspaceId - Optional workspace identifier for isolation.
  */
 export async function checkCollaborationAccess(
   base: BaseMemoryProvider,
@@ -268,9 +255,9 @@ export async function checkCollaborationAccess(
   participantId: string,
   participantType: ParticipantType,
   requiredRole?: CollaborationRole,
-  workspaceId?: string
+  scope?: string | ContextualScope
 ): Promise<boolean> {
-  const collaboration = await getCollaboration(base, collaborationId, workspaceId);
+  const collaboration = await getCollaboration(base, collaborationId, scope);
   if (!collaboration) return false;
 
   const participant = collaboration.participants.find(
@@ -296,12 +283,14 @@ export async function closeCollaboration(
   collaborationId: string,
   actorId: string,
   actorType: ParticipantType,
-  workspaceId?: string
+  scope?: string | ContextualScope
 ): Promise<void> {
-  const collaboration = await getCollaboration(base, collaborationId, workspaceId);
+  const collaboration = await getCollaboration(base, collaborationId, scope);
   if (!collaboration) {
     throw new Error(`Collaboration ${collaborationId} not found`);
   }
+
+  const workspaceId = (typeof scope === 'string' ? scope : scope?.workspaceId) ?? collaboration.workspaceId;
 
   const actor = collaboration.participants.find((p) => p.id === actorId && p.type === actorType);
   if (!actor || actor.role !== 'owner') {
@@ -309,7 +298,7 @@ export async function closeCollaboration(
   }
 
   const now = Date.now();
-  const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, workspaceId);
+  const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, scope || workspaceId);
 
   // Atomic update status (Principle 13)
   await base.updateItem({
@@ -331,7 +320,7 @@ export async function closeCollaboration(
     try {
       const indexPk = base.getScopedUserId(
         `${COLLAB_INDEX_PREFIX}${participant.type}#${participant.id}`,
-        workspaceId
+        scope
       );
       // Use the participant's joinedAt timestamp as the sort key
       await base.deleteItem({
@@ -354,15 +343,16 @@ export async function closeCollaboration(
 export async function updateCollaborationActivity(
   base: BaseMemoryProvider,
   collaborationId: string,
-  workspaceId?: string
+  scope?: string | ContextualScope
 ): Promise<void> {
-  const collaboration = await getCollaboration(base, collaborationId, workspaceId);
+  const collaboration = await getCollaboration(base, collaborationId, scope);
   if (!collaboration) return;
 
   collaboration.lastActivityAt = Date.now();
   collaboration.updatedAt = Date.now();
 
-  const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, workspaceId);
+  const workspaceId = collaboration.workspaceId;
+  const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, scope || workspaceId);
   await base.putItem({
     userId: pk,
     timestamp: 0,
@@ -373,13 +363,13 @@ export async function updateCollaborationActivity(
 
 /**
  * Finds collaborations that have timed out based on their custom timeoutMs.
- * If no custom timeout is set, it uses the system default TIE_BREAK_TIMEOUT_MS.
  */
 export async function findStaleCollaborations(
   base: BaseMemoryProvider,
   defaultTimeoutMs: number,
-  workspaceId?: string
+  scope?: string | ContextualScope
 ): Promise<Collaboration[]> {
+  const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
   const now = Date.now();
 
   const params: Record<string, unknown> = {
@@ -407,11 +397,12 @@ export async function findStaleCollaborations(
 export async function transitToCollaboration(
   base: BaseMemoryProvider,
   userId: string,
-  workspaceId: string,
+  scope: string | ContextualScope,
   sourceSessionId: string,
   invitedAgentIds: string[],
   name?: string
 ): Promise<Collaboration> {
+  const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
   const collaboration = await createCollaboration(base, userId, 'human', {
     name: name || `Collaboration: ${sourceSessionId.substring(0, 8)}`,
     description: `Transited from session ${sourceSessionId}`,
@@ -423,18 +414,18 @@ export async function transitToCollaboration(
         role: 'editor' as CollaborationRole,
       })),
       {
-        id: 'facilitator', // Constant or AgentType.FACILITATOR
+        id: 'facilitator',
         type: 'agent' as ParticipantType,
         role: 'editor' as CollaborationRole,
       },
     ],
     tags: [`source_session:${sourceSessionId}`],
-  });
+  }, scope);
 
   // Seed history
   try {
     const history = await base.getHistory(
-      base.getScopedUserId(`CONV#${userId}#${sourceSessionId}`, workspaceId)
+      base.getScopedUserId(`CONV#${userId}#${sourceSessionId}`, scope)
     );
     if (history && history.length > 0) {
       const recent = history.slice(-5);
@@ -442,7 +433,7 @@ export async function transitToCollaboration(
       const syntheticId = getSyntheticUserId(collaboration.collaborationId);
 
       await base.putItem({
-        userId: syntheticId,
+        userId: base.getScopedUserId(syntheticId, scope),
         timestamp: Date.now(),
         type: 'MESSAGE',
         role: MessageRole.SYSTEM,

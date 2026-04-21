@@ -76,12 +76,7 @@ export const handler = async (
     return { statusCode: 400, body: `Invalid ${source} message format` };
   }
 
-  const { userId, sessionId, workspaceId, text } = {
-    userId: inbound.userId,
-    sessionId: inbound.sessionId,
-    workspaceId: inbound.workspaceId,
-    text: inbound.text,
-  };
+  const { userId, sessionId, workspaceId, teamId, staffId, text } = inbound;
 
   const chatId = sessionId; // P1 Fix: Use sessionId for session-level locking and context
 
@@ -198,11 +193,17 @@ export const handler = async (
         if (userGaps.length === 0) {
           await sendOutboundMessage(
             'webhook.handler',
-            chatId,
+            userId,
             'No pending approvals found.',
             undefined,
+            sessionId,
+            'SuperClaw',
             undefined,
-            'SuperClaw'
+            undefined,
+            undefined,
+            workspaceId,
+            teamId,
+            staffId
           );
         } else {
           const gapIds = userGaps.map((g) => g.id);
@@ -220,11 +221,17 @@ export const handler = async (
             }
             await sendOutboundMessage(
               'webhook.handler',
-              chatId,
+              userId,
               `✅ **Approved!** Gaps ${gapIds.join(', ')} have been closed.`,
               undefined,
+              sessionId,
+              'SuperClaw',
               undefined,
-              'SuperClaw'
+              undefined,
+              undefined,
+              workspaceId,
+              teamId,
+              staffId
             );
           } else {
             // REJECT - transition back to OPEN for revision
@@ -240,11 +247,17 @@ export const handler = async (
             }
             await sendOutboundMessage(
               'webhook.handler',
-              chatId,
+              userId,
               `❌ **Rejected.** Gaps ${gapIds.join(', ')} have been reopened for revision.`,
               undefined,
+              sessionId,
+              'SuperClaw',
               undefined,
-              'SuperClaw'
+              undefined,
+              undefined,
+              workspaceId,
+              teamId,
+              staffId
             );
           }
         }
@@ -252,11 +265,17 @@ export const handler = async (
         logger.error('[WEBHOOK] Error processing approval:', err);
         await sendOutboundMessage(
           'webhook.handler',
-          chatId,
+          userId,
           'Error processing your response. Please try again.',
           undefined,
+          sessionId,
+          'SuperClaw',
           undefined,
-          'SuperClaw'
+          undefined,
+          undefined,
+          workspaceId,
+          teamId,
+          staffId
         );
       }
       return { statusCode: 200, body: 'OK' };
@@ -277,6 +296,8 @@ export const handler = async (
         attachments,
         sessionId,
         workspaceId,
+        teamId,
+        staffId,
         sessionStateManager,
         ignoreHandoff: true,
       }
@@ -286,15 +307,17 @@ export const handler = async (
     // 4. Send response back
     await sendOutboundMessage(
       'webhook.handler',
-      chatId,
+      userId,
       responseText,
       undefined,
-      undefined,
+      sessionId,
       'SuperClaw',
       resultAttachments,
       undefined,
       undefined,
-      workspaceId
+      workspaceId,
+      teamId,
+      staffId
     );
   } catch (err) {
     logger.error('[WEBHOOK] Execution Error:', err);

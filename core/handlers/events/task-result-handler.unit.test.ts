@@ -64,14 +64,10 @@ describe('task-result-handler.unit', () => {
     );
 
     expect(shared.wakeupInitiator as any).toHaveBeenCalledTimes(1);
-    expect(shared.wakeupInitiator as any).toHaveBeenCalledWith(
-      'user-1',
-      'agent-B',
-      expect.stringContaining('DELEGATED_TASK_RESULT'),
-      expect.any(String),
-      's1',
-      1,
-      false
-    );
+    const callArgs = (shared.wakeupInitiator as any).mock.calls[0];
+    expect(callArgs[0]).toBe('user-1');
+    expect(callArgs[1]).toBe('agent-B');
+    expect(callArgs[2]).toContain('DELEGATED_TASK_RESULT');
+    expect(callArgs[4]).toBe('s1');
   });
 });

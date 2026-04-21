@@ -37,15 +37,13 @@ vi.mock('../lib/utils/agent-helpers/event-emitter', () => ({
 }));
 
 vi.mock('../lib/session/session-state', () => ({
-  SessionStateManager: vi.fn().mockImplementation(function () {
-    return {
-      acquireProcessing: vi.fn().mockResolvedValue(true),
-      renewProcessing: vi.fn().mockResolvedValue(true),
-      releaseProcessing: vi.fn().mockResolvedValue(true),
-      addPendingMessage: vi.fn().mockResolvedValue(true),
-      getState: vi.fn().mockResolvedValue(null),
-    };
-  }),
+  SessionStateManager: class {
+    acquireProcessing = vi.fn().mockResolvedValue(true);
+    renewProcessing = vi.fn().mockResolvedValue(true);
+    releaseProcessing = vi.fn().mockResolvedValue(true);
+    addPendingMessage = vi.fn().mockResolvedValue(true);
+    getState = vi.fn().mockResolvedValue(null);
+  }
 }));
 
 vi.mock('../lib/recursion-tracker', () => ({

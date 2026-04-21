@@ -8,13 +8,13 @@ const memoryMocks = vi.hoisted(() => ({
   getAllGaps: vi.fn(),
   getDistilledMemory: vi.fn(),
   updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
-  getFailurePatterns: vi.fn().mockResolvedValue([]),
   setGap: vi.fn().mockResolvedValue(undefined),
   searchInsights: vi.fn().mockResolvedValue({ items: [], lastEvaluatedKey: null }),
   acquireGapLock: vi.fn().mockResolvedValue(true),
   getGapLock: vi.fn().mockResolvedValue(null),
   getGlobalLessons: vi.fn().mockResolvedValue([]),
-  getFailedPlans: vi.fn().mockResolvedValue([]),
+  getFailurePatterns: vi.fn().mockResolvedValue([]),
+  recordFailurePattern: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { processEventWithAgent } from '../handlers/events/shared';
@@ -39,7 +39,6 @@ vi.mock('../lib/memory', () => ({
     getAllGaps = memoryMocks.getAllGaps;
     getDistilledMemory = memoryMocks.getDistilledMemory;
     updateDistilledMemory = memoryMocks.updateDistilledMemory;
-    getFailurePatterns = memoryMocks.getFailurePatterns;
     setGap = memoryMocks.setGap;
     searchInsights = memoryMocks.searchInsights;
     archiveStaleGaps = vi.fn().mockResolvedValue(0);
@@ -49,7 +48,8 @@ vi.mock('../lib/memory', () => ({
     acquireGapLock = memoryMocks.acquireGapLock;
     getGapLock = memoryMocks.getGapLock;
     getGlobalLessons = memoryMocks.getGlobalLessons;
-    getFailedPlans = memoryMocks.getFailedPlans;
+    getFailurePatterns = memoryMocks.getFailurePatterns;
+    recordFailurePattern = memoryMocks.recordFailurePattern;
   },
 }));
 

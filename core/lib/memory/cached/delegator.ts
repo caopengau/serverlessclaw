@@ -12,17 +12,17 @@ export class MemoryDelegator {
     type: string,
     limit?: number,
     lastEvaluatedKey?: Record<string, unknown>,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<{ items: Record<string, unknown>[]; lastEvaluatedKey?: Record<string, unknown> }> {
-    return this.underlying.getMemoryByTypePaginated(type, limit, lastEvaluatedKey, workspaceId);
+    return this.underlying.getMemoryByTypePaginated(type, limit, lastEvaluatedKey, scope);
   }
 
   async getMemoryByType(
     type: string,
     limit?: number,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<Record<string, unknown>[]> {
-    return this.underlying.getMemoryByType(type, limit, workspaceId);
+    return this.underlying.getMemoryByType(type, limit, scope);
   }
 
   async getLowUtilizationMemory(limit?: number): Promise<Record<string, unknown>[]> {
@@ -36,9 +36,9 @@ export class MemoryDelegator {
   async recordMemoryHit(
     userId: string,
     timestamp: number | string,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<void> {
-    await this.underlying.recordMemoryHit(userId, timestamp, workspaceId);
+    await this.underlying.recordMemoryHit(userId, timestamp, scope);
   }
 
   async saveLKGHash(hash: string): Promise<void> {
@@ -77,54 +77,54 @@ export class MemoryDelegator {
       import('../../types/memory').ClarificationState,
       'type' | 'expiresAt' | 'timestamp'
     >,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<void> {
-    await this.underlying.saveClarificationRequest(state, workspaceId);
+    await this.underlying.saveClarificationRequest(state, scope);
   }
 
   async getClarificationRequest(
     traceId: string,
     agentId: string,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<import('../../types/memory').ClarificationState | null> {
-    return this.underlying.getClarificationRequest(traceId, agentId, workspaceId);
+    return this.underlying.getClarificationRequest(traceId, agentId, scope);
   }
 
   async updateClarificationStatus(
     traceId: string,
     agentId: string,
     status: import('../../types/memory').ClarificationStatus,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<void> {
-    await this.underlying.updateClarificationStatus(traceId, agentId, status, workspaceId);
+    await this.underlying.updateClarificationStatus(traceId, agentId, status, scope);
   }
 
   async saveEscalationState(
     state: import('../../types/escalation').EscalationState,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<void> {
-    await this.underlying.saveEscalationState(state, workspaceId);
+    await this.underlying.saveEscalationState(state, scope);
   }
 
   async getEscalationState(
     traceId: string,
     agentId: string,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<import('../../types/escalation').EscalationState | null> {
-    return this.underlying.getEscalationState(traceId, agentId, workspaceId);
+    return this.underlying.getEscalationState(traceId, agentId, scope);
   }
 
   async findExpiredClarifications(
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<import('../../types/memory').ClarificationState[]> {
-    return this.underlying.findExpiredClarifications(workspaceId);
+    return this.underlying.findExpiredClarifications(scope);
   }
 
   async incrementClarificationRetry(
     traceId: string,
     agentId: string,
-    workspaceId?: string
+    scope?: string | import('../../types/memory').ContextualScope
   ): Promise<number> {
-    return this.underlying.incrementClarificationRetry(traceId, agentId, workspaceId);
+    return this.underlying.incrementClarificationRetry(traceId, agentId, scope);
   }
 }

@@ -73,7 +73,7 @@ describe('Agent Handoff Bypass', () => {
   it('should enter OBSERVE mode if handoff is active and ignoreHandoff is false', async () => {
     vi.mocked(handoff.isHumanTakingControl).mockResolvedValue(true);
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'system prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       systemPrompt: 'system prompt',
@@ -89,7 +89,7 @@ describe('Agent Handoff Bypass', () => {
   it('should NOT enter OBSERVE mode if handoff is active but ignoreHandoff is true', async () => {
     vi.mocked(handoff.isHumanTakingControl).mockResolvedValue(true);
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'system prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       systemPrompt: 'system prompt',
@@ -104,7 +104,7 @@ describe('Agent Handoff Bypass', () => {
   it('should NOT enter OBSERVE mode if handoff is NOT active', async () => {
     vi.mocked(handoff.isHumanTakingControl).mockResolvedValue(false);
 
-    const agent = new Agent(mockMemory, mockProvider, [], 'system prompt', {
+    const agent = new Agent(mockMemory, mockProvider, [], {
       id: 'test-agent',
       name: 'Test Agent',
       systemPrompt: 'system prompt',

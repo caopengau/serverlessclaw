@@ -31,8 +31,7 @@ const memoryMocks = vi.hoisted(() => ({
   getGapLock: vi.fn().mockResolvedValue(null),
   getFailurePatterns: vi.fn().mockResolvedValue([]),
   getGlobalLessons: vi.fn().mockResolvedValue([]),
-  getFailedPlans: vi.fn().mockResolvedValue([]),
-  recordFailedPlan: vi.fn().mockResolvedValue(undefined),
+  recordFailurePattern: vi.fn().mockResolvedValue(undefined),
   getSummary: vi.fn().mockResolvedValue(null),
   updateSummary: vi.fn().mockResolvedValue(undefined),
   searchInsights: vi.fn().mockResolvedValue({ items: [], lastEvaluatedKey: null }),
@@ -94,8 +93,7 @@ vi.mock('../lib/memory', () => ({
     getGapLock = memoryMocks.getGapLock;
     getFailurePatterns = memoryMocks.getFailurePatterns;
     getGlobalLessons = memoryMocks.getGlobalLessons;
-    getFailedPlans = memoryMocks.getFailedPlans;
-    recordFailedPlan = memoryMocks.recordFailedPlan;
+    recordFailurePattern = memoryMocks.recordFailurePattern;
     getSummary = memoryMocks.getSummary;
     updateSummary = memoryMocks.updateSummary;
     searchInsights = memoryMocks.searchInsights;
@@ -467,7 +465,7 @@ describe('Full Evolution Loop — QA Rejection', () => {
     // QA returns REOPEN status
     memoryMocks.incrementGapAttemptCount.mockResolvedValueOnce(1);
     memoryMocks.updateGapStatus.mockResolvedValueOnce(undefined);
-    memoryMocks.recordFailedPlan.mockResolvedValueOnce(undefined);
+    memoryMocks.recordFailurePattern.mockResolvedValueOnce(undefined);
 
     const attempts = await memoryMocks.incrementGapAttemptCount(gapId);
     if (attempts < 3) {
@@ -475,7 +473,7 @@ describe('Full Evolution Loop — QA Rejection', () => {
     }
 
     // Record failed plan for anti-pattern learning
-    await memoryMocks.recordFailedPlan(
+    await memoryMocks.recordFailurePattern(
       `qa-reject-${gapId}-${Date.now()}`,
       'Implementation response',
       [gapId],
@@ -483,7 +481,7 @@ describe('Full Evolution Loop — QA Rejection', () => {
     );
 
     expect(memoryMocks.updateGapStatus).toHaveBeenCalledWith(gapId, GapStatus.OPEN);
-    expect(memoryMocks.recordFailedPlan).toHaveBeenCalled();
+    expect(memoryMocks.recordFailurePattern).toHaveBeenCalled();
   });
 
   it('should escalate gap to FAILED after 3 QA rejections', async () => {

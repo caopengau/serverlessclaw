@@ -1,6 +1,6 @@
 import { BaseMemoryProvider } from './base';
 import { logger } from '../logger';
-import { InsightMetadata, MemoryInsight, InsightCategory, GapStatus } from '../types/memory';
+import { InsightMetadata, MemoryInsight, InsightCategory, GapStatus, ContextualScope } from '../types/index';
 
 /**
  * Creates a standard MemoryInsight metadata object with defaults.
@@ -10,10 +10,10 @@ export function createMetadata(
   timestamp: string | number = Date.now()
 ): InsightMetadata {
   return {
-    category: InsightCategory.STRATEGIC_GAP,
-    confidence: 5,
-    impact: 5,
-    complexity: 5,
+    category: (partial.category ?? InsightCategory.STRATEGIC_GAP) as InsightCategory | string,
+    confidence: partial.confidence || 5,
+    impact: partial.impact || 5,
+    complexity: partial.complexity || 5,
     hitCount: 0,
     lastAccessed: typeof timestamp === 'number' ? timestamp : Date.now(),
     createdAt: typeof timestamp === 'number' ? timestamp : Date.now(),
@@ -27,7 +27,11 @@ export function createMetadata(
  * Note: While KeyConditionExpression is preferred, GSI queries on Type/User often require
  * FilterExpression for secondary workspace isolation.
  */
-export function applyWorkspaceIsolation(params: Record<string, any>, workspaceId?: string): void {
+export function applyWorkspaceIsolation(
+  params: Record<string, any>,
+  scope?: string | import('../types/memory').ContextualScope
+): void {
+  const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
   if (!workspaceId) return;
 
   const isolationExpr = 'workspaceId = :workspaceId AND begins_with(userId, :pkPrefix)';
@@ -51,7 +55,7 @@ export async function getMemoryByTypePaginated(
   type: string,
   limit: number = 100,
   lastEvaluatedKey?: Record<string, unknown>,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<{ items: Record<string, unknown>[]; lastEvaluatedKey?: Record<string, unknown> }> {
   const params: Record<string, any> = {
     IndexName: 'TypeTimestampIndex',
@@ -63,6 +67,7 @@ export async function getMemoryByTypePaginated(
     ExclusiveStartKey: lastEvaluatedKey,
   };
 
+  const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
   applyWorkspaceIsolation(params, workspaceId);
 
   const result = await base.queryItemsPaginated(params);
@@ -121,7 +126,7 @@ export async function resolveItemById(
   base: BaseMemoryProvider,
   id: string,
   type: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<MemoryInsight | null> {
   if (!id) return null;
 
@@ -132,7 +137,7 @@ export async function resolveItemById(
   // 1. Precise lookup (Deterministic PK/SK)
   const targetPK = type === 'GAP' ? getGapIdPK(normalizedId) : normalizedId;
   const targetSK = type === 'GAP' ? getGapTimestamp(normalizedId) : Number(numericId ?? 0);
-  const scopedPK = base.getScopedUserId(targetPK, workspaceId);
+  const scopedPK = base.getScopedUserId(targetPK, scope);
 
   try {
     const items = await base.queryItems({
@@ -147,7 +152,7 @@ export async function resolveItemById(
     if (items.length > 0) {
       const item = items[0];
       // Final security boundary check
-      if (workspaceId && item.workspaceId !== workspaceId) {
+      if (scope && item.workspaceId !== (typeof scope === 'string' ? scope : scope.workspaceId)) {
         logger.error(`[Security] Cross-workspace access blocked for ${scopedPK}`);
         return null;
       }
@@ -165,7 +170,7 @@ export async function resolveItemById(
       type,
       200, // Higher limit for fallback search
       undefined,
-      workspaceId
+      scope
     );
 
     const target = candidates.find((item) => {
@@ -194,13 +199,14 @@ export async function resolveItemById(
  */
 function mapToInsight(item: Record<string, unknown>, defaultType: string): MemoryInsight {
   return {
-    id: item.userId as string,
-    content: item.content as string,
-    timestamp: item.timestamp as number | string,
-    metadata: (item.metadata as InsightMetadata) || { category: defaultType as InsightCategory },
-    workspaceId: item.workspaceId as string | undefined,
-    status: item.status as GapStatus | undefined,
-    createdAt: (item.createdAt as number) || (item.timestamp as number) || Date.now(),
+    id: item['userId'] as string,
+    type: (item['type'] as string) || defaultType,
+    content: item['content'] as string,
+    timestamp: item['timestamp'] as number | string,
+    metadata: (item['metadata'] as InsightMetadata) || { category: defaultType },
+    workspaceId: item['workspaceId'] as string | undefined,
+    status: item['status'] as GapStatus | undefined,
+    createdAt: (item['createdAt'] as number) || (item['timestamp'] as number) || Date.now(),
   };
 }
 
@@ -213,9 +219,9 @@ export async function atomicUpdateMetadata(
   userId: string,
   timestamp: number | string,
   metadata: Partial<InsightMetadata & { content?: string; tags?: string[] }>,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
-  const pk = base.getScopedUserId(userId, workspaceId);
+  const pk = base.getScopedUserId(userId, scope);
   const metadataFields: string[] = [
     'category',
     'confidence',
@@ -341,7 +347,7 @@ export async function queryByTypeAndGetContent(
   type: string,
   limit: number = 10,
   userId?: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<string[]> {
   const params: Record<string, any> = {
     Limit: limit,
@@ -353,11 +359,11 @@ export async function queryByTypeAndGetContent(
   if (userId) {
     params.IndexName = 'UserInsightIndex';
     params.KeyConditionExpression = 'userId = :userId AND #tp = :type';
-    params.ExpressionAttributeValues[':userId'] = base.getScopedUserId(userId, workspaceId);
+    params.ExpressionAttributeValues[':userId'] = base.getScopedUserId(userId, scope);
   } else {
     params.IndexName = 'TypeTimestampIndex';
     params.KeyConditionExpression = '#tp = :type';
-    applyWorkspaceIsolation(params, workspaceId);
+    applyWorkspaceIsolation(params, scope);
   }
 
   const items = await base.queryItems(params);
@@ -375,7 +381,7 @@ export async function queryByTypeAndMap(
   filterExpression?: string,
   expressionAttributeValues?: Record<string, unknown>,
   userId?: string,
-  workspaceId?: string
+  scope?: string | import('../types/memory').ContextualScope
 ): Promise<MemoryInsight[]> {
   const params: Record<string, any> = {
     Limit: limit,
@@ -387,14 +393,14 @@ export async function queryByTypeAndMap(
     params.IndexName = 'UserInsightIndex';
     params.KeyConditionExpression = 'userId = :userId AND #tp = :type';
     params.ExpressionAttributeNames = { '#tp': 'type' };
-    params.ExpressionAttributeValues[':userId'] = base.getScopedUserId(userId, workspaceId);
+    params.ExpressionAttributeValues[':userId'] = base.getScopedUserId(userId, scope);
     params.ExpressionAttributeValues[':type'] = type;
   } else {
     params.IndexName = 'TypeTimestampIndex';
     params.KeyConditionExpression = '#tp = :type';
     params.ExpressionAttributeNames = { '#tp': 'type' };
     params.ExpressionAttributeValues[':type'] = type;
-    applyWorkspaceIsolation(params, workspaceId);
+    applyWorkspaceIsolation(params, scope);
     if (filterExpression) {
       params.FilterExpression = params.FilterExpression
         ? `${params.FilterExpression} AND (${filterExpression})`
@@ -404,19 +410,20 @@ export async function queryByTypeAndMap(
 
   const items = await base.queryItems(params);
   return items.map((item) => ({
-    id: item.userId as string,
-    content: item.content as string,
-    timestamp: item.timestamp as number | string,
-    workspaceId: item.workspaceId as string | undefined,
+    id: item['userId'] as string,
+    type: (item['type'] as string) || (defaultCategory as string),
+    content: item['content'] as string,
+    timestamp: item['timestamp'] as number | string,
+    workspaceId: item['workspaceId'] as string | undefined,
     createdAt:
-      (item.createdAt as number) ||
-      (typeof item.timestamp === 'number'
-        ? item.timestamp
-        : parseInt(item.timestamp as string, 10)) ||
+      (item['createdAt'] as number) ||
+      (typeof item['timestamp'] === 'number'
+        ? (item['timestamp'] as number)
+        : parseInt(item['timestamp'] as string, 10)) ||
       Date.now(),
     metadata: createMetadata(
-      (item.metadata as Partial<InsightMetadata>) || { category: defaultCategory },
-      item.timestamp as number
+      (item['metadata'] as Partial<InsightMetadata>) || { category: defaultCategory },
+      String(item['timestamp'])
     ),
   }));
 }

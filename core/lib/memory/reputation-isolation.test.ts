@@ -26,7 +26,7 @@ describe('Reputation Isolation', () => {
   });
 
   it('should use workspace-scoped keys for reputation updates', async () => {
-    await updateReputation(mockBase as any, 'agent-1', true, 100, 'workspace-A');
+    await updateReputation(mockBase as any, 'agent-1', true, 100, { scope: 'workspace-A' });
 
     expect(mockBase.updateItem).toHaveBeenCalledWith(
       expect.objectContaining({

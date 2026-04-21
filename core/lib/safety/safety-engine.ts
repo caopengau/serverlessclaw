@@ -11,22 +11,26 @@ import {
   EvolutionMode,
   EventType,
 } from '../types/agent';
-import { logger } from '../logger';
-import type { BaseMemoryProvider } from '../memory/base';
-import { SafetyRateLimiter, ToolSafetyOverride } from './safety-limiter';
-import { SafetyConfigManager } from './safety-config-manager';
-import { EvolutionScheduler } from './evolution-scheduler';
-import { CONFIG_DEFAULTS } from '../config/config-defaults';
-import { SafetyBase } from './safety-base';
-import { AgentRegistry } from '../registry/AgentRegistry';
 import { TRUST } from '../constants';
-import { CLASS_C_ACTIONS } from '../constants/safety';
-import { emitEvent } from '../utils/bus';
+import { logger } from '../logger';
+import { SafetyConfigManager } from './safety-config-manager';
+import { SafetyRateLimiter, ToolSafetyOverride } from './safety-limiter';
 import { PolicyValidator } from './policy-validator';
+import { EvolutionScheduler } from './evolution-scheduler';
+import { SafetyBase } from './safety-base';
 import { scanForResources } from '../utils/fs-security';
+import { BaseMemoryProvider } from '../memory/base';
+import { emitEvent } from '../utils/bus';
+import { AgentRegistry } from '../registry';
+import { CONFIG_DEFAULTS } from '../config/config-defaults';
+
+const CLASS_C_ACTIONS = ['deployment', 'shell_command', 'code_change', 'iam_change'];
 
 let sharedEngine: SafetyEngine | null = null;
 
+/**
+ * Singleton access to the SafetyEngine.
+ */
 export function getSafetyEngine(
   customPolicies?: Partial<Record<SafetyTier, Partial<SafetyPolicy>>>,
   toolOverrides?: ToolSafetyOverride[],
@@ -34,10 +38,6 @@ export function getSafetyEngine(
 ): SafetyEngine {
   if (!sharedEngine) {
     sharedEngine = new SafetyEngine(customPolicies, toolOverrides, base);
-  } else if (customPolicies || toolOverrides) {
-    logger.warn(
-      '[SafetyEngine] getSafetyEngine called with new config after engine already initialized. Ignoring new config. Use resetSafetyEngine() first if reconfiguration is needed.'
-    );
   }
   return sharedEngine;
 }
@@ -136,6 +136,8 @@ export class SafetyEngine extends SafetyBase {
       traceId?: string;
       userId?: string;
       workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
       args?: Record<string, unknown>;
       pathKeys?: string[];
     }
@@ -143,7 +145,9 @@ export class SafetyEngine extends SafetyBase {
     const tier = agentConfig?.safetyTier ?? SafetyTier.PROD;
     const agentId = agentConfig?.id ?? 'unknown';
     const workspaceId = context?.workspaceId;
-    const ctx = { ...context, agentId, workspaceId };
+    const teamId = context?.teamId;
+    const staffId = context?.staffId;
+    const ctx = { ...context, agentId, workspaceId, teamId, staffId };
 
     const normalizedAction = normalizeSafetyAction(action, context?.toolName);
 
@@ -161,7 +165,12 @@ export class SafetyEngine extends SafetyBase {
     const validators = [
       () => this.validateStaticPolicies(normalizedAction, ctx, tier),
       () => this.validateAccessControl(agentConfig, normalizedAction, ctx, tier, policy),
-      () => this.limiter.checkRateLimits(policy, normalizedAction, ctx.workspaceId),
+      () =>
+        this.limiter.checkRateLimits(policy, normalizedAction, {
+          workspaceId: ctx.workspaceId,
+          teamId: ctx.teamId,
+          staffId: ctx.staffId,
+        }),
       () => this.validateDynamicRestrictions(agentConfig, normalizedAction, ctx, tier, policy),
     ];
 
@@ -191,6 +200,8 @@ export class SafetyEngine extends SafetyBase {
       traceId?: string;
       userId?: string;
       workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
     },
     tier: SafetyTier
   ): Promise<SafetyEvaluationResult> {
@@ -215,6 +226,9 @@ export class SafetyEngine extends SafetyBase {
       resource?: string;
       traceId?: string;
       userId?: string;
+      workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
       args?: Record<string, unknown>;
       pathKeys?: string[];
     },
@@ -265,6 +279,8 @@ export class SafetyEngine extends SafetyBase {
       traceId?: string;
       userId?: string;
       workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
     },
     tier: SafetyTier,
     policy: SafetyPolicy
@@ -319,6 +335,8 @@ export class SafetyEngine extends SafetyBase {
       traceId?: string;
       userId?: string;
       workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
     },
     tier: SafetyTier,
     action: string,
@@ -337,7 +355,9 @@ export class SafetyEngine extends SafetyBase {
       outcome,
       ctx.traceId,
       ctx.userId,
-      ctx.workspaceId
+      ctx.workspaceId,
+      ctx.teamId,
+      ctx.staffId
     );
     return {
       allowed: outcome === 'approval_required',
@@ -356,6 +376,8 @@ export class SafetyEngine extends SafetyBase {
       traceId?: string;
       userId?: string;
       workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
     },
     tier: SafetyTier,
     action: string
@@ -364,11 +386,11 @@ export class SafetyEngine extends SafetyBase {
     const override = this.toolOverrides.get(ctx.toolName);
 
     // Check rate limit first (blocks execution entirely) - more severe
-    const rateLimitResult = await this.limiter.checkToolRateLimit(
-      override,
-      ctx.toolName,
-      ctx.workspaceId
-    );
+    const rateLimitResult = await this.limiter.checkToolRateLimit(override, ctx.toolName, {
+      workspaceId: ctx.workspaceId,
+      teamId: ctx.teamId,
+      staffId: ctx.staffId,
+    });
     if (!rateLimitResult.allowed) {
       return rateLimitResult;
     }
@@ -399,6 +421,8 @@ export class SafetyEngine extends SafetyBase {
       traceId?: string;
       userId?: string;
       workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
     }
   ): Promise<SafetyEvaluationResult | null> {
     const error = await this.enforceClassCBlastRadius(agentId, action);
@@ -417,6 +441,8 @@ export class SafetyEngine extends SafetyBase {
         traceId: ctx.traceId,
         userId: ctx.userId,
         workspaceId: ctx.workspaceId,
+        teamId: ctx.teamId,
+        staffId: ctx.staffId,
       });
       return {
         allowed: false,
@@ -441,6 +467,8 @@ export class SafetyEngine extends SafetyBase {
       traceId?: string;
       userId?: string;
       workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
     }
   ): Promise<SafetyEvaluationResult | null> {
     const trustScore = config?.trustScore ?? TRUST.DEFAULT_SCORE;
@@ -455,6 +483,8 @@ export class SafetyEngine extends SafetyBase {
         await emitEvent('safety.principle9', EventType.SYSTEM_AUDIT_TRIGGER, {
           agentId: config?.id ?? 'unknown',
           workspaceId: ctx.workspaceId,
+          teamId: ctx.teamId,
+          staffId: ctx.staffId,
           action,
           trustScore,
           reason: `Trust-based autonomous promotion: trustScore >= 95`,

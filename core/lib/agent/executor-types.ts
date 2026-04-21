@@ -7,6 +7,7 @@ export const AGENT_DEFAULTS = {
   REFLECTION_FREQUENCY: 25,
   TIMEOUT_BUFFER_MS: 5000,
   WORKER_FEEDBACK_ENABLED: true,
+  CONTEXT_WINDOW_LIMIT: 200000,
 } as const;
 
 export const AGENT_LOG_MESSAGES = {
@@ -37,6 +38,7 @@ export interface LoopResult {
   ui_blocks?: Message['ui_blocks'];
   options?: Array<{ label: string; value: string; type?: ButtonType }>;
   usage?: ExecutorUsage;
+  lastAiResponse?: Message;
 }
 
 /**
@@ -85,6 +87,10 @@ export interface ExecutorFeatureOptions {
   sessionId?: string;
   /** Workspace ID for supporting multiple workspaces. */
   workspaceId?: string;
+  /** Team ID. */
+  teamId?: string;
+  /** Staff ID. */
+  staffId?: string;
   /** Response format for structured output. */
   responseFormat?: import('../types/index').ResponseFormat;
   /** Task timeout in milliseconds. */

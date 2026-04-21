@@ -48,6 +48,16 @@ export const handler = async (
   const _traceId = (detail.traceId as string) || (event.traceId as string);
   const _userId = (detail.userId as string) || (event.userId as string);
   const _workspaceId = (detail.workspaceId as string) || (event.workspaceId as string);
+  const _orgId = (detail.orgId as string) || (event.orgId as string);
+  const _teamId = (detail.teamId as string) || (event.teamId as string);
+  const _staffId = (detail.staffId as string) || (event.staffId as string);
+
+  const scope = {
+    workspaceId: _workspaceId,
+    orgId: _orgId,
+    teamId: _teamId,
+    staffId: _staffId,
+  };
 
   // Session lock management
   const sessionStateManager = new SessionStateManager();
@@ -102,7 +112,7 @@ export const handler = async (
         const selectedId = await AgentRouter.selectBestAgent(
           candidates,
           detail.capabilityScores as Record<string, number>,
-          _workspaceId
+          scope
         );
         targetAgent = selectedId as AgentType;
         handlerPath = './agent-runner';
