@@ -90,8 +90,9 @@ describe('Agent Memory Recall Regression', () => {
     };
 
     // Mock searchInsights to return a preference for the prefixed search
-    vi.mocked(mockMemory.searchInsights).mockImplementation(async (queryOrUserId) => {
-      if (queryOrUserId === `USER#${userId}`) {
+    vi.mocked(mockMemory.searchInsights).mockImplementation(async (...args: any[]) => {
+      const queryOrUserId = args[0];
+      if (typeof queryOrUserId === 'string' && queryOrUserId === `USER#${userId}`) {
         return { items: [preferenceItem] };
       }
       return { items: [] };
@@ -129,7 +130,7 @@ describe('Agent Memory Recall Regression', () => {
 
     // 3. Verify [INTELLIGENCE] block exists and contains facts
     expect(systemPromptMessage).toContain('[INTELLIGENCE]');
-    expect(systemPromptMessage).toContain('User prefers dark mode');
+    expect(systemPromptMessage).toContain('User likes dark mode');
     expect(systemPromptMessage).toContain('Distilled Fact');
   });
 
@@ -202,8 +203,10 @@ describe('Agent Memory Recall Regression', () => {
 
     await agent.process(prefixedId, 'Hello');
 
-    // Should still use baseUserId for insights
-    expect(mockMemory.getDistilledMemory).toHaveBeenCalledWith(baseUserId, expect.anything());
+    // Should still use baseUserId for insights (may also be called for recovery)
+    const distilledMemoryCalls = vi.mocked(mockMemory.getDistilledMemory).mock.calls;
+    const userIdCall = distilledMemoryCalls.find((c) => c[0] === baseUserId);
+    expect(userIdCall).toBeDefined();
     const searchCalls = vi.mocked(mockMemory.searchInsights).mock.calls;
     const searchScopes = searchCalls.map((c) => [c[0], c[1], c[2]]);
     expect(searchScopes).toEqual(

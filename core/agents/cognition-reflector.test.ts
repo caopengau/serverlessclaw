@@ -17,10 +17,12 @@ vi.mock('../lib/memory', () => ({
     getAllGaps = vi.fn().mockResolvedValue([]);
     updateDistilledMemory = mocks.updateDistilledMemory;
     addLesson = mocks.addLesson;
+    setGap = mocks.setGap;
     updateGapStatus = mocks.updateGapStatus;
     getFailurePatterns = vi.fn().mockResolvedValue([]);
     getSummary = vi.fn().mockResolvedValue(null);
     updateSummary = vi.fn().mockResolvedValue(undefined);
+    searchInsights = vi.fn().mockResolvedValue({ items: [] });
   },
 }));
 
@@ -119,6 +121,7 @@ vi.mock('../lib/utils/agent-helpers', () => ({
       getFailurePatterns: vi.fn().mockResolvedValue([]),
       getSummary: vi.fn().mockResolvedValue(null),
       updateSummary: vi.fn().mockResolvedValue(undefined),
+      searchInsights: vi.fn().mockResolvedValue({ items: [] }),
     },
     provider: {
       call: vi.fn(),
