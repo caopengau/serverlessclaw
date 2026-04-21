@@ -97,14 +97,8 @@ export default function AgentsPage() {
     setLoading(true);
     try {
       const res = await fetch('/api/agents');
-      const data: Agent[] = await res.json();
-      const agentsMap = data.reduce(
-        (acc: Record<string, Agent>, agent: Agent) => {
-          acc[agent.id] = agent;
-          return acc;
-        },
-        {} as Record<string, Agent>
-      );
+      const data = await res.json();
+      const agentsMap: Record<string, Agent> = data.agents || {};
       setAgents(agentsMap);
       setInitialAgents(structuredClone(agentsMap));
     } catch (err) {

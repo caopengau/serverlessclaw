@@ -498,8 +498,10 @@ export class CachedMemory implements IMemory {
    * Delegates to the underlying persistent memory.
    */
   async getConfig(key: string): Promise<unknown> {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (this.underlying as any).getConfig?.(key);
+    const provider = this.underlying as unknown as {
+      getConfig?: (key: string) => Promise<unknown>;
+    };
+    return provider.getConfig?.(key);
   }
 
   async findStaleCollaborations(

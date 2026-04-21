@@ -28,7 +28,7 @@ export async function GET(): Promise<NextResponse> {
   try {
     const { AgentRegistry } = await import('@claw/core/lib/registry');
     const configs = await AgentRegistry.getAllConfigs();
-    return NextResponse.json(configs);
+    return NextResponse.json({ agents: configs });
   } catch (error) {
     logger.error('Failed to fetch agents:', error);
     return NextResponse.json(

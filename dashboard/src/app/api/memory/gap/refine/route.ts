@@ -15,7 +15,7 @@ const RefineGapSchema = z.object({
   impact: z.number().min(1).max(10).optional(),
   priority: z.number().min(1).max(10).optional(),
   rejectionReason: z.string().optional(),
-  plan: z.any().optional(), // New: allow updating the plan object
+  plan: z.record(z.string(), z.unknown()).optional(), // Use record instead of any
 });
 
 export const POST = withApiHandler(async (body) => {

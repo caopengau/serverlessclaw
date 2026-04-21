@@ -404,7 +404,12 @@ export async function assignGapToTrack(
   priority?: number,
   scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
-  const transitionResult = await updateGapStatus(base as never, gapId, GapStatus.PLANNED, scope);
+  const transitionResult = await updateGapStatus(
+    base as unknown as BaseMemoryProvider,
+    gapId,
+    GapStatus.PLANNED,
+    scope
+  );
   if (!transitionResult.success) {
     throw new Error(
       `[GapTrack] Failed to transition ${gapId} to PLANNED: ${transitionResult.error}`
@@ -413,10 +418,9 @@ export async function assignGapToTrack(
 
   const normalizedId = normalizeGapId(gapId);
   const getScopedUserId = (id: string, s?: string | import('../types/memory').ContextualScope) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const provider = base as any;
+    const provider = base as unknown as { getScopedUserId?: (id: string, s?: unknown) => string };
     if (typeof provider.getScopedUserId === 'function') {
-      return (provider.getScopedUserId as (id: string, s?: unknown) => string)(id, s);
+      return provider.getScopedUserId(id, s);
     }
     const wid = typeof s === 'string' ? s : s?.workspaceId;
     return wid ? `WS#${wid}#${id}` : id;
@@ -445,10 +449,9 @@ export async function getGapTrack(
 ): Promise<{ track: EvolutionTrack; priority: number } | null> {
   const normalizedId = normalizeGapId(gapId);
   const getScopedUserId = (id: string, s?: string | import('../types/memory').ContextualScope) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const provider = base as any;
+    const provider = base as unknown as { getScopedUserId?: (id: string, s?: unknown) => string };
     if (typeof provider.getScopedUserId === 'function') {
-      return (provider.getScopedUserId as (id: string, s?: unknown) => string)(id, s);
+      return provider.getScopedUserId(id, s);
     }
     const wid = typeof s === 'string' ? s : s?.workspaceId;
     return wid ? `WS#${wid}#${id}` : id;

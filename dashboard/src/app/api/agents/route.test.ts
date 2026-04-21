@@ -62,7 +62,7 @@ describe('Agents API Route', () => {
 
   describe('GET', () => {
     it('returns agent configs on success', async () => {
-      const configs = [{ id: 'superclaw', name: 'SuperClaw' }];
+      const configs = { superclaw: { id: 'superclaw', name: 'SuperClaw' } };
       mockGetAllConfigs.mockResolvedValue(configs);
 
       const { GET } = await import('./route');
@@ -70,7 +70,7 @@ describe('Agents API Route', () => {
       const data = await res.json();
 
       expect(res.status).toBe(200);
-      expect(data).toEqual(configs);
+      expect(data).toEqual({ agents: configs });
     });
 
     it('returns 500 on error', async () => {

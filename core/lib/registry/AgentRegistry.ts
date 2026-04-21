@@ -148,7 +148,7 @@ export class AgentRegistry {
    * @throws Error if mandatory fields (name, systemPrompt) are missing during initialization.
    */
   static async saveConfig(agentId: string, config: Partial<IAgentConfig>): Promise<void> {
-    const resource = Resource as unknown as { ConfigTable?: { name: string } };
+    const resource = Resource as unknown as import('../types/common').SSTConfigResource;
     if (!resource.ConfigTable?.name) {
       throw new Error('ConfigTable not linked. Cannot save agent configuration.');
     }
@@ -247,7 +247,7 @@ export class AgentRegistry {
     toolName: string,
     timestamp: number
   ): Promise<void> {
-    const resource = Resource as unknown as { ConfigTable?: { name: string } };
+    const resource = Resource as unknown as import('../types/common').SSTConfigResource;
     if (!resource.ConfigTable?.name) return;
 
     try {
@@ -300,7 +300,7 @@ export class AgentRegistry {
    * Uses if_not_exists to avoid overwriting existing firstRegistered timestamps.
    */
   private static async ensureToolStatsInitialized(toolName: string): Promise<void> {
-    const resource = Resource as unknown as { ConfigTable?: { name: string } };
+    const resource = Resource as unknown as import('../types/common').SSTConfigResource;
     if (!resource.ConfigTable?.name) return;
 
     const now = Date.now();
@@ -427,7 +427,7 @@ export class AgentRegistry {
    * @returns The updated value of the field.
    */
   static async atomicAddAgentField(agentId: string, field: string, value: number): Promise<number> {
-    const resource = Resource as unknown as { ConfigTable?: { name: string } };
+    const resource = Resource as unknown as import('../types/common').SSTConfigResource;
     if (!resource.ConfigTable?.name) {
       throw new Error('ConfigTable not linked. Cannot update agent field.');
     }
@@ -454,8 +454,8 @@ export class AgentRegistry {
         })
       );
 
-      const updatedAgents = response.Attributes?.value as Record<string, any>;
-      return updatedAgents?.[agentId]?.[field] as number;
+      const updatedAgents = response.Attributes?.value as Record<string, Record<string, unknown>>;
+      return (updatedAgents?.[agentId]?.[field] as number) ?? 0;
     } catch (e) {
       logger.error(
         `[REGISTRY] Failed to atomically update agent field '${field}' for ${agentId}:`,

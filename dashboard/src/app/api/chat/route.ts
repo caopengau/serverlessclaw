@@ -123,8 +123,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     let finalResponse = '';
     let finalThought = '';
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let finalToolCalls: any[] = [];
+    let finalToolCalls: import('@claw/core/lib/types/index').ToolCall[] = [];
     let finalMessageId = '';
 
     for await (const chunk of stream) {

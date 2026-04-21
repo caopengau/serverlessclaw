@@ -60,7 +60,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
             // Group into batches of 25 (DynamoDB limit for BatchWrite)
             for (let i = 0; i < scanRes.Items.length; i += 25) {
               const batch = scanRes.Items.slice(i, i + 25);
-              let requestItems = {
+              let requestItems: import('@claw/core/lib/types/common').DynamoDBBatchWriteRequest = {
                 [tableName]: batch.map((item) => ({
                   DeleteRequest: {
                     Key: { traceId: item.traceId, nodeId: item.nodeId },
@@ -88,8 +88,9 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
                   // Set unprocessed items for the next retry attempt
                   if (unprocessedCount > 0) {
                     logger.warn(`[Trace API] Retrying ${unprocessedCount} unprocessed items...`);
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    requestItems = result.UnprocessedItems as Record<string, any>;
+                    requestItems =
+                      (result.UnprocessedItems as import('@claw/core/lib/types/common').DynamoDBBatchWriteRequest) ??
+                      {};
                     retries++;
                     await new Promise((r) => setTimeout(r, Math.pow(2, retries) * 100)); // Exponential backoff
                   } else {

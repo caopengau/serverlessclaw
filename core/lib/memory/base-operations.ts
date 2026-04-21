@@ -72,8 +72,7 @@ export async function clearHistory(
   // Batch delete in groups of 25 (DynamoDB limit)
   for (let i = 0; i < items.length; i += 25) {
     const batch = items.slice(i, i + 25);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let requestItems: Record<string, any> = {
+    let requestItems: import('../types/common').DynamoDBBatchWriteRequest = {
       [base.getTableName()]: batch.map((item) => ({
         DeleteRequest: {
           Key: { userId: item.userId as string, timestamp: item.timestamp as number },

@@ -282,8 +282,7 @@ export async function incrementRecoveryAttemptCount(base: BaseMemoryProvider): P
     ReturnValues: 'ALL_NEW',
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const attributes = (result as Record<string, any>).Attributes;
+  const attributes = (result as { Attributes?: Record<string, unknown> }).Attributes;
   return (attributes?.attempts as number) ?? 1;
 }
 
