@@ -46,6 +46,19 @@ vi.mock('../../lib/logger', () => ({
   },
 }));
 
+vi.mock('../../lib/registry/AgentRegistry', () => ({
+  AgentRegistry: {
+    getAgentConfig: vi.fn().mockResolvedValue({
+      name: 'SuperClaw',
+      systemPrompt: 'Aggregator prompt',
+    }),
+  },
+}));
+
+vi.mock('../../tools/index', () => ({
+  getAgentTools: vi.fn().mockResolvedValue([]),
+}));
+
 describe('Parallel Failure Robustness', () => {
   beforeEach(() => {
     vi.clearAllMocks();

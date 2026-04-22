@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Edit2, Check, X, Brain, Keyboard, Plus, Bot } from 'lucide-react';
+import { Edit2, Check, X, Brain, Keyboard, Plus, Bot, Database } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 import CyberTooltip from '@/components/CyberTooltip';
@@ -23,8 +23,9 @@ interface ChatHeaderProps {
   setIsInviteSelectorOpen: (val: boolean) => void;
   showThinking: boolean;
   setShowThinking: (val: boolean) => void;
-  setShowShortcutsHelp: (val: boolean) => void;
   isRealtimeActive: boolean;
+  isContextPanelOpen: boolean;
+  setIsContextPanelOpen: (val: boolean) => void;
   t: (key: TranslationKey) => string;
 }
 
@@ -42,8 +43,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   setIsInviteSelectorOpen,
   showThinking,
   setShowThinking,
-  setShowShortcutsHelp,
   isRealtimeActive,
+  isContextPanelOpen,
+  setIsContextPanelOpen,
   t,
 }) => {
   return (
@@ -193,8 +195,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             </Button>
           </CyberTooltip>
 
+
           <CyberTooltip
-            content={t('CHAT_KEYBOARD_SHORTCUTS')}
+            content="Toggle Session Intelligence"
             position="bottom"
             showIcon={false}
             width="w-auto"
@@ -202,9 +205,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setShowShortcutsHelp(true)}
-              className="p-1.5 h-8 w-8 rounded-md text-muted-foreground/50 hover:text-cyber-green hover:bg-foreground/5 transition-all flex items-center justify-center"
-              icon={<Keyboard size={18} />}
+              aria-label="Toggle Session Intelligence"
+              onClick={() => setIsContextPanelOpen(!isContextPanelOpen)}
+              className={`p-1.5 h-8 w-8 rounded-md transition-all ${isContextPanelOpen ? 'bg-cyber-blue/10 text-cyber-blue border border-cyber-blue/20 shadow-[0_0_10px_rgba(0,255,255,0.1)]' : 'text-muted-foreground/50 hover:text-cyber-green hover:bg-foreground/5'}`}
+              icon={<Database size={18} />}
             />
           </CyberTooltip>
 

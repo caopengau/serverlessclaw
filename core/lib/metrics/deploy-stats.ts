@@ -1,12 +1,9 @@
 import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { Resource } from 'sst';
-import { SSTResource } from '../types/system';
 import { SYSTEM } from '../constants';
 import { logger } from '../logger';
-import { getDocClient } from '../utils/ddb-client';
+import { getDocClient, getMemoryTableName } from '../utils/ddb-client';
 
 const db = getDocClient();
-const typedResource = Resource as unknown as SSTResource;
 
 /**
  * Retrieves the current deployment count for today.
@@ -18,7 +15,7 @@ export async function getDeployCountToday(): Promise<number> {
   const today = new Date().toISOString().split('T')[0];
   const { Item } = await db.send(
     new GetCommand({
-      TableName: typedResource.MemoryTable.name,
+      TableName: getMemoryTableName(),
       Key: {
         userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
         timestamp: 0,
@@ -45,7 +42,7 @@ export async function incrementDeployCount(today: string, limit: number): Promis
   try {
     await db.send(
       new UpdateCommand({
-        TableName: typedResource.MemoryTable.name,
+        TableName: getMemoryTableName(),
         Key: {
           userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
           timestamp: 0,
@@ -68,7 +65,7 @@ export async function incrementDeployCount(today: string, limit: number): Promis
   try {
     await db.send(
       new UpdateCommand({
-        TableName: typedResource.MemoryTable.name,
+        TableName: getMemoryTableName(),
         Key: {
           userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
           timestamp: 0,
@@ -87,7 +84,7 @@ export async function incrementDeployCount(today: string, limit: number): Promis
       try {
         await db.send(
           new UpdateCommand({
-            TableName: typedResource.MemoryTable.name,
+            TableName: getMemoryTableName(),
             Key: {
               userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
               timestamp: 0,
@@ -123,7 +120,7 @@ export async function rewardDeployLimit(): Promise<void> {
   try {
     await db.send(
       new UpdateCommand({
-        TableName: typedResource.MemoryTable.name,
+        TableName: getMemoryTableName(),
         Key: {
           userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
           timestamp: 0,
@@ -140,7 +137,7 @@ export async function rewardDeployLimit(): Promise<void> {
       try {
         await db.send(
           new UpdateCommand({
-            TableName: typedResource.MemoryTable.name,
+            TableName: getMemoryTableName(),
             Key: {
               userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
               timestamp: 0,

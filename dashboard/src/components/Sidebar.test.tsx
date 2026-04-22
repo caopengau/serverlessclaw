@@ -75,6 +75,8 @@ vi.mock('lucide-react', () => ({
   Monitor: () => <div data-testid="icon-monitor" />,
   LogOut: () => <div data-testid="icon-logout" />,
   Radio: () => <div data-testid="icon-radio" />,
+  Keyboard: () => <div data-testid="icon-keyboard" />,
+  Fingerprint: () => <div data-testid="icon-fingerprint" />,
 }));
 
 // Mock CyberTooltip

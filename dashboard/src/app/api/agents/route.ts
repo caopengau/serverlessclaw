@@ -2,21 +2,19 @@
  * @module AgentsAPI
  * Express-style dynamic route for managing agent configurations in the dashboard.
  */
-import { Resource } from 'sst';
 export const dynamic = 'force-dynamic';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, UpdateCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { NextResponse } from 'next/server';
 import { HTTP_STATUS, DYNAMO_KEYS } from '@claw/core/lib/constants';
 import { BACKBONE_REGISTRY } from '@claw/core/lib/backbone';
-import { SSTResource } from '@claw/core/lib/types/index';
 import { logger } from '@claw/core/lib/logger';
 import { AgentRegistry } from '@claw/core/lib/registry/AgentRegistry';
 import { IAgentConfig } from '@claw/core/lib/types/agent';
+import { getConfigTableName } from '@claw/core/lib/utils/ddb-client';
 
 const client = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(client);
-const typedResource = Resource as unknown as SSTResource;
 
 /**
  * GET handler for agents configuration.
@@ -56,7 +54,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     if (body && body.agents && Array.isArray(body.agents)) {
       if (body.agents.length === 0) {
         // Handle empty array as a skip but ensure we still check resource status
-        if (!typedResource.ConfigTable?.name) {
+        if (!getConfigTableName()) {
           return NextResponse.json(
             { error: 'ConfigTable name is missing from resources.' },
             { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
@@ -71,7 +69,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       agentsToSave = body as Record<string, Partial<IAgentConfig>>;
     }
 
-    if (!typedResource.ConfigTable?.name) {
+    if (!getConfigTableName()) {
       return NextResponse.json(
         { error: 'ConfigTable name is missing from resources.' },
         { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
@@ -110,7 +108,7 @@ export async function PATCH(request: Request): Promise<NextResponse> {
       );
     }
 
-    if (!typedResource.ConfigTable?.name) {
+    if (!getConfigTableName()) {
       return NextResponse.json(
         { error: 'ConfigTable name is missing from resources.' },
         { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
@@ -147,7 +145,7 @@ export async function PATCH(request: Request): Promise<NextResponse> {
  */
 export async function DELETE(request: Request): Promise<NextResponse> {
   try {
-    const tableName = typedResource.ConfigTable?.name;
+    const tableName = getConfigTableName();
     if (!tableName) {
       return NextResponse.json(
         { error: 'ConfigTable name is missing from resources.' },

@@ -69,7 +69,6 @@ describe('Parallel Aggregation Integration', () => {
     };
 
     await handleParallelTaskCompleted(eventDetail as any);
-
     expect(mockWakeupInitiator).toHaveBeenCalledWith(
       'user-123',
       'strategic-planner',

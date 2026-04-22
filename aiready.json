@@ -30,7 +30,7 @@
     "pattern-detect": {
       "minSimilarity": 0.5,
       "minLines": 3,
-      "minSharedTokens": 8,
+      "minSharedTokens": 5,
       "approx": true,
       "batchSize": 500,
       "maxCandidatesPerBlock": 1000,

@@ -3,13 +3,17 @@ import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { IoTClient, DescribeEndpointCommand } from '@aws-sdk/client-iot';
-import { Resource } from 'sst';
 import { EventType } from '../types/agent';
-import { SSTResource } from '../types/system';
 import { logger } from '../logger';
 import { emitEvent, EventPriority } from '../utils/bus';
 import { formatErrorMessage } from '../utils/error';
 import { ProviderManager } from '../providers';
+import {
+  getAgentBusName,
+  getStagingBucketName,
+  getKnowledgeBucketName,
+} from '../utils/resource-helpers';
+import { getMemoryTableName, getTraceTableName, getConfigTableName } from '../utils/ddb-client';
 
 // Default clients for backward compatibility - lazy initialized to avoid issues in tests
 let defaultEventBridge: EventBridgeClient | undefined;
@@ -122,13 +126,7 @@ export interface CoherenceResult {
  * Checks reasoning coherence from recent traces by analyzing step patterns.
  */
 export async function checkTraceCoherence(): Promise<CoherenceResult> {
-  let tableName: string | undefined;
-  try {
-    const typedResource = Resource as unknown as SSTResource;
-    tableName = typedResource.TraceTable?.name;
-  } catch {
-    // SST links not active
-  }
+  const tableName = getTraceTableName();
 
   if (!tableName) {
     return {
@@ -284,13 +282,7 @@ export async function reportHealthIssue(report: HealthIssue): Promise<void> {
  */
 export async function checkAgentBus(): Promise<ProbeResult> {
   const start = Date.now();
-  let busName: string | undefined;
-  try {
-    const typedResource = Resource as unknown as SSTResource;
-    busName = typedResource.AgentBus?.name;
-  } catch {
-    // SST links not active
-  }
+  const busName = getAgentBusName();
 
   if (!busName) {
     return { ok: false, latencyMs: Date.now() - start, error: 'AgentBus not linked' };
@@ -312,16 +304,15 @@ export async function checkAgentBus(): Promise<ProbeResult> {
  * Verifies connectivity to critical storage and messaging tools.
  */
 export async function checkToolHealth(): Promise<ProbeResult> {
-  const typedResource = Resource as unknown as SSTResource;
   const start = Date.now();
   const details: Record<string, unknown> = {};
   let overallOk = true;
 
   // 1. DynamoDB Checks
   const ddbTables = [
-    { name: 'MemoryTable', resource: typedResource.MemoryTable },
-    { name: 'TraceTable', resource: typedResource.TraceTable },
-    { name: 'ConfigTable', resource: typedResource.ConfigTable },
+    { name: 'MemoryTable', tableName: getMemoryTableName() },
+    { name: 'TraceTable', tableName: getTraceTableName() },
+    { name: 'ConfigTable', tableName: getConfigTableName() },
   ];
 
   for (const table of ddbTables) {
@@ -344,7 +335,7 @@ export async function checkToolHealth(): Promise<ProbeResult> {
         };
       }
 
-      if (!table.resource?.name) {
+      if (!table.tableName) {
         details[table.name.toLowerCase()] = { ok: false, error: 'Resource not linked' };
         if (table.name === 'MemoryTable') overallOk = false;
         continue;
@@ -352,7 +343,7 @@ export async function checkToolHealth(): Promise<ProbeResult> {
 
       await getDynamoDbClient().send(
         new GetItemCommand({
-          TableName: table.resource.name,
+          TableName: table.tableName,
           Key: key,
         })
       );
@@ -371,8 +362,8 @@ export async function checkToolHealth(): Promise<ProbeResult> {
     details.s3 = { ok: true, latencyMs: Date.now() - s3Start };
 
     // Check specific buckets if possible
-    details.stagingBucket = { ok: true, name: typedResource.StagingBucket.name };
-    details.knowledgeBucket = { ok: true, name: typedResource.KnowledgeBucket.name };
+    details.stagingBucket = { ok: true, name: getStagingBucketName() };
+    details.knowledgeBucket = { ok: true, name: getKnowledgeBucketName() };
   } catch (error) {
     details.s3 = { ok: false, error: formatErrorMessage(error) };
   }

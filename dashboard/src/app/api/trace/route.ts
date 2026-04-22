@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resource } from 'sst';
 export const dynamic = 'force-dynamic';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {
@@ -9,8 +8,8 @@ import {
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { revalidatePath } from 'next/cache';
-import { SSTResource } from '@claw/core/lib/types/index';
 import { logger } from '@claw/core/lib/logger';
+import { getTraceTableName } from '@claw/core/lib/utils/ddb-client';
 
 /**
  * Handles trace deletion (single or all) with robust throttling management
@@ -25,8 +24,7 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Missing traceId' }, { status: 400 });
     }
 
-    const typedResource = Resource as unknown as SSTResource;
-    const tableName = typedResource.TraceTable?.name;
+    const tableName = getTraceTableName();
     if (!tableName) {
       logger.error('[Trace API] TraceTable not found in resources');
       return NextResponse.json({ error: 'TraceTable not found' }, { status: 500 });

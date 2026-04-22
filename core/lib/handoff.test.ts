@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { requestHandoff, isHumanTakingControl } from './handoff';
 import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
+import { Resource } from 'sst';
 
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
@@ -25,6 +26,7 @@ describe('Handoff Protocol', () => {
   beforeEach(() => {
     ddbMock.reset();
     vi.clearAllMocks();
+    vi.restoreAllMocks();
   });
 
   it('should record handoff in DynamoDB and emit event', async () => {
@@ -86,22 +88,14 @@ describe('Handoff Protocol', () => {
   });
 
   it('should handle missing MemoryTable in requestHandoff', async () => {
-    vi.resetModules();
-    vi.doMock('sst', () => ({
-      Resource: {},
-    }));
-    const { requestHandoff: requestWithMock } = await import('./handoff');
-    await requestWithMock('user-1');
+    vi.spyOn(Resource as any, 'MemoryTable', 'get').mockReturnValue(undefined);
+    await requestHandoff('user-1');
     expect(ddbMock.calls()).toHaveLength(0);
   });
 
   it('should handle missing MemoryTable in isHumanTakingControl', async () => {
-    vi.resetModules();
-    vi.doMock('sst', () => ({
-      Resource: {},
-    }));
-    const { isHumanTakingControl: checkWithMock } = await import('./handoff');
-    const result = await checkWithMock('user-1');
+    vi.spyOn(Resource as any, 'MemoryTable', 'get').mockReturnValue(undefined);
+    const result = await isHumanTakingControl('user-1');
     expect(result).toBe(false);
   });
 

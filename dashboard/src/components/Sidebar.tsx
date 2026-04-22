@@ -24,6 +24,7 @@ import {
   Sun,
   Moon,
   Monitor,
+  Keyboard,
   LogOut,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -48,7 +49,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
-  const { isSidebarCollapsed: isCollapsed, setSidebarCollapsed } = useUICommand();
+  const { isSidebarCollapsed: isCollapsed, setSidebarCollapsed, setActiveModal } = useUICommand();
   const { t, locale, setLocale } = useTranslations();
   const { theme, setTheme } = useTheme();
   const { isConnected } = useRealtimeContext();
@@ -97,10 +98,22 @@ export default function Sidebar() {
       activePaths: [ROUTES.TRACE, '/trace'],
     },
     {
-      href: ROUTES.SYSTEM_PULSE,
-      label: t('SYSTEM_PULSE'),
-      subtitle: t('SYSPULSE_SUBTITLE'),
-      icon: Share2,
+      href: ROUTES.PIPELINE,
+      label: t('EVOLUTION_PIPELINE'),
+      subtitle: t('PIPELINE_SUBTITLE'),
+      icon: Server,
+    },
+    {
+      href: ROUTES.SCHEDULING,
+      label: t('SCHEDULING'),
+      subtitle: t('SCHEDULING_SUBTITLE'),
+      icon: Calendar,
+    },
+    {
+      href: ROUTES.COLLABORATION,
+      label: t('CONSENSUS'),
+      subtitle: t('COLLABORATION_SUBTITLE'),
+      icon: Vote,
     },
 
     { label: t('INTELLIGENCE'), type: 'header' },
@@ -117,37 +130,20 @@ export default function Sidebar() {
       subtitle: t('CAPABILITIES_SUBTITLE'),
       icon: Wrench,
     },
-    {
-      href: ROUTES.COGNITIVE_HEALTH,
-      label: t('COGNITIVE_HEALTH'),
-      subtitle: t('COGHEALTH_SUBTITLE'),
-      icon: BrainCircuit,
-    },
 
-    { label: t('GROWTH'), type: 'header' },
+    { label: t('OBSERVABILITY'), type: 'header' },
     {
-      href: ROUTES.PIPELINE,
-      label: t('EVOLUTION_PIPELINE'),
-      subtitle: t('PIPELINE_SUBTITLE'),
-      icon: Server,
-    },
-    {
-      href: ROUTES.SCHEDULING,
-      label: t('SCHEDULING'),
-      subtitle: t('SCHEDULING_SUBTITLE'),
-      icon: Calendar,
-    },
-    {
-      href: ROUTES.WORKSPACES,
-      label: t('WORKSPACES'),
-      subtitle: t('WORKSPACES_SUBTITLE'),
-      icon: Building2,
-    },
-    {
-      href: ROUTES.COLLABORATION,
-      label: t('CONSENSUS'),
-      subtitle: t('COLLABORATION_SUBTITLE'),
-      icon: Vote,
+      href: ROUTES.OBSERVABILITY,
+      label: t('OBSERVABILITY'),
+      subtitle: t('SYSPULSE_SUBTITLE'),
+      icon: BrainCircuit,
+      activePaths: [
+        ROUTES.OBSERVABILITY,
+        ROUTES.SYSTEM_PULSE,
+        ROUTES.RESILIENCE,
+        ROUTES.COGNITIVE_HEALTH,
+        ROUTES.LOCKS,
+      ],
     },
 
     { label: t('GOVERNANCE'), type: 'header' },
@@ -158,16 +154,10 @@ export default function Sidebar() {
       icon: Lock,
     },
     {
-      href: ROUTES.RESILIENCE,
-      label: t('SELF_HEALING'),
-      subtitle: t('RESILIENCE_SUBTITLE'),
-      icon: Zap,
-    },
-    {
-      href: ROUTES.LOCKS,
-      label: t('SESSION_TRAFFIC'),
-      subtitle: t('LOCKS_SUBTITLE'),
-      icon: Activity,
+      href: ROUTES.WORKSPACES,
+      label: t('WORKSPACES'),
+      subtitle: t('WORKSPACES_SUBTITLE'),
+      icon: Building2,
     },
     { href: ROUTES.SETTINGS, label: t('CONFIG'), subtitle: t('SETTINGS_SUBTITLE'), icon: Settings },
   ];
@@ -358,8 +348,9 @@ export default function Sidebar() {
 
         {/* Footer */}
         <div
-          className={`block pt-2 border-t border-border space-y-2 ${isCollapsed ? 'flex flex-col items-center' : ''}`}
+          className={`block pt-2 border-t border-border space-y-1.5 pb-2 ${isCollapsed ? 'flex flex-col items-center' : ''}`}
         >
+          {/* System Status Row */}
           {isCollapsed ? (
             <CyberTooltip
               position="right"
@@ -375,51 +366,94 @@ export default function Sidebar() {
                     {t('SYSTEM_STATUS')}
                   </Typography>
                   <Typography className="text-[9px] leading-tight text-foreground/70">
-                    {isConnected ? t('CONNECTED') : t('SYSTEM_STATUS')}
+                    {isConnected ? t('CONNECTED') : t('SYSTEM_OFFLINE')}
                   </Typography>
                 </div>
               }
             >
               <Link href={ROUTES.SYSTEM_PULSE} className="block group/status w-full">
-                <div className="bg-foreground/5 rounded transition-colors cursor-pointer py-0 flex justify-center group-hover/status:bg-foreground/10">
-                  <div className="w-8 h-6 flex items-center justify-center shrink-0">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber-green opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-cyber-green"></span>
-                    </span>
+                <div className="bg-foreground/5 rounded transition-colors cursor-pointer py-1.5 flex justify-center group-hover/status:bg-foreground/10 border border-transparent hover:border-cyber-green/20 mx-1">
+                  <div className="relative flex h-2 w-2">
+                    <span
+                      className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'} opacity-75`}
+                    ></span>
+                    <span
+                      className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'}`}
+                    ></span>
                   </div>
                 </div>
               </Link>
             </CyberTooltip>
           ) : (
-            <Link href={ROUTES.SYSTEM_PULSE} className="block group/status w-full">
-              <div className="bg-foreground/5 rounded transition-colors cursor-pointer px-2 py-2 group-hover/status:bg-foreground/10">
+            <Link href={ROUTES.SYSTEM_PULSE} className="block group/status w-full px-2">
+              <div className="bg-foreground/5 rounded transition-colors cursor-pointer px-2 py-1.5 group-hover/status:bg-foreground/10 flex items-center justify-between border border-transparent hover:border-cyber-green/20">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex h-1.5 w-1.5">
+                    <span
+                      className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'} opacity-75`}
+                    ></span>
+                    <span
+                      className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'}`}
+                    ></span>
+                  </div>
+                  <Typography
+                    variant="mono"
+                    weight="bold"
+                    className="text-[10px] text-foreground/80 tracking-wider uppercase"
+                  >
+                    {t('SYSTEM_STATUS')}
+                  </Typography>
+                </div>
                 <Typography
                   variant="mono"
-                  weight="bold"
-                  className="text-[10px] text-foreground/90 tracking-wider uppercase"
+                  className={`text-[9px] font-bold uppercase ${isConnected ? 'text-cyber-green' : 'text-amber-500'}`}
                 >
-                  {t('SYSTEM_STATUS')}
+                  {isConnected ? t('CONNECTED') : t('SYSTEM_OFFLINE')}
                 </Typography>
-                <div className="text-[10px] text-cyber-green mt-0 flex items-center gap-3 font-bold uppercase">
-                  <div className="w-8 h-6 flex items-center justify-center shrink-0">
-                    <span className="relative flex h-2 w-2">
-                      <span
-                        className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'} opacity-75`}
-                      ></span>
-                      <span
-                        className={`relative inline-flex rounded-full h-2 w-2 ${isConnected ? 'bg-cyber-green' : 'bg-amber-500'}`}
-                      ></span>
-                    </span>
-                  </div>
-                  {isConnected ? t('CONNECTED') : t('SYSTEM_STATUS')}
-                </div>
               </div>
             </Link>
           )}
 
+          {/* Keyboard Shortcuts Row */}
+          {isCollapsed ? (
+            <CyberTooltip position="right" showIcon={false} content={t('CHAT_KEYBOARD_SHORTCUTS_TITLE')}>
+              <button
+                onClick={() => setActiveModal('shortcuts')}
+                className="w-full flex justify-center py-1.5 text-muted-foreground hover:text-cyber-green transition-colors bg-foreground/5 rounded border border-transparent hover:border-cyber-green/20 mx-1"
+              >
+                <Keyboard size={14} />
+              </button>
+            </CyberTooltip>
+          ) : (
+            <div className="px-2">
+              <button
+                onClick={() => setActiveModal('shortcuts')}
+                className="w-full bg-foreground/5 rounded transition-colors cursor-pointer px-2 py-1.5 group hover:bg-foreground/10 flex items-center justify-between border border-transparent hover:border-cyber-green/20"
+              >
+                <div className="flex items-center gap-2 text-muted-foreground group-hover:text-foreground">
+                  <Keyboard size={14} className="group-hover:text-cyber-green transition-colors" />
+                  <Typography
+                    variant="mono"
+                    weight="bold"
+                    className="text-[10px] tracking-wider uppercase"
+                  >
+                    {t('CHAT_KEYBOARD_SHORTCUTS_TITLE')}
+                  </Typography>
+                </div>
+                <div className="bg-foreground/10 rounded px-1 py-0.5 border border-border/50 group-hover:border-cyber-green/30">
+                  <Typography
+                    variant="mono"
+                    className="text-[9px] font-bold text-cyber-green"
+                  >
+                    ?
+                  </Typography>
+                </div>
+              </button>
+            </div>
+          )}
+
           {!isCollapsed ? (
-            <div className="flex flex-col gap-1 px-2 pb-1">
+            <div className="flex flex-col gap-1 px-2 pb-1 pt-1">
               <div className="flex items-center justify-between">
                 <Typography
                   variant="caption"
@@ -483,7 +517,7 @@ export default function Sidebar() {
                 variant="ghost"
                 size="sm"
                 onClick={handleLogout}
-                className="justify-start px-2 py-2 text-xs text-muted-foreground hover:text-cyber-green"
+                className="justify-start px-2 py-1.5 text-xs text-muted-foreground hover:text-cyber-green"
                 icon={<LogOut size={12} />}
               >
                 {t('LOGOUT')}

@@ -500,8 +500,20 @@ describe('BaseMemoryProvider', () => {
 
       await localProvider.getHistory('user123');
 
-      const call = ddbMock.call(0);
-      expect((call.args[0].input as any).TableName).toBe('MemoryTable');
+      expect(ddbMock.calls()).toHaveLength(0);
+
+      await localProvider.deleteItem({ userId: 'user123', timestamp: 1000 });
+      expect(ddbMock.calls()).toHaveLength(0);
+
+      const updateResult = await localProvider.updateItem({
+        Key: { userId: 'user123', timestamp: 1000 },
+      });
+      expect(updateResult).toBeUndefined();
+      expect(ddbMock.calls()).toHaveLength(0);
+
+      const scanResult = await localProvider.scanByPrefix('GAP#');
+      expect(scanResult).toEqual([]);
+      expect(ddbMock.calls()).toHaveLength(0);
 
       vi.doUnmock('sst');
     });

@@ -65,7 +65,7 @@ export default function CoManagementHub() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card
           variant="glass"
-          className="flex flex-col items-center justify-center p-8 bg-white/[0.02]"
+          className="flex flex-col items-center justify-center p-8 bg-card/10"
         >
           <TrustGauge score={94} label="System Trust" size={140} />
           <div className="mt-4 text-center">
@@ -78,7 +78,7 @@ export default function CoManagementHub() {
           </div>
         </Card>
 
-        <Card variant="glass" className="md:col-span-2 p-6 bg-white/[0.01]">
+        <Card variant="glass" className="md:col-span-2 p-6 bg-card/5">
           <div className="flex items-center gap-2 mb-6">
             <Zap size={16} className="text-yellow-400" />
             <Typography variant="body" weight="bold">
@@ -89,10 +89,10 @@ export default function CoManagementHub() {
           <div className="space-y-4">
             {loading ? (
               <div className="animate-pulse space-y-3">
-                <div className="h-20 bg-white/5 rounded-lg" />
+                <div className="h-20 bg-muted-more/10 rounded-lg" />
               </div>
             ) : proposals.length === 0 ? (
-              <div className="text-center py-10 border border-dashed border-white/10 rounded-lg">
+              <div className="text-center py-10 border border-dashed border-border rounded-lg">
                 <Typography variant="caption" color="muted">
                   No pending proposals
                 </Typography>
@@ -101,7 +101,7 @@ export default function CoManagementHub() {
               proposals.map((proposal) => (
                 <div
                   key={proposal.id}
-                  className="relative group overflow-hidden rounded-xl border border-white/5 bg-black/20 p-5 hover:border-white/20 transition-all"
+                  className="relative group overflow-hidden rounded-xl border border-border bg-card p-5 hover:border-cyber-green/30 transition-all"
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex items-center gap-3">
@@ -109,7 +109,7 @@ export default function CoManagementHub() {
                         <TrendingUp size={20} className="text-primary" />
                       </div>
                       <div>
-                        <Typography variant="body" weight="bold" className="text-white">
+                        <Typography variant="body" weight="bold" color="white">
                           Shift {proposal.agentId.toUpperCase()} to {proposal.targetMode}
                         </Typography>
                         <Typography variant="mono" color="muted" className="opacity-60 text-[10px]">
@@ -138,7 +138,7 @@ export default function CoManagementHub() {
 
                   <Typography
                     variant="caption"
-                    className="text-white/70 italic mb-4 border-l-2 border-[var(--cyber-green)]/30 pl-3"
+                    className="text-muted-foreground italic mb-4 border-l-2 border-[var(--cyber-green)]/30 pl-3"
                   >
                     &quot;{proposal.reason}&quot;
                   </Typography>
@@ -173,16 +173,16 @@ export default function CoManagementHub() {
         </Card>
       </div>
 
-      <Card variant="glass" className="p-6 border-blue-500/10 bg-blue-500/[0.02]">
+      <Card variant="glass" className="p-6 border-cyber-blue/10 bg-cyber-blue/[0.02]">
         <div className="flex gap-4">
-          <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-            <AlertCircle size={20} className="text-blue-400" />
+          <div className="w-10 h-10 rounded-full bg-cyber-blue/20 flex items-center justify-center shrink-0">
+            <AlertCircle size={20} className="text-cyber-blue" />
           </div>
           <div>
-            <Typography variant="body" weight="bold" className="text-blue-200">
+            <Typography variant="body" weight="bold" color="intel">
               Governance Policy Notice
             </Typography>
-            <Typography variant="caption" className="text-blue-200/60 mt-1 leading-relaxed">
+            <Typography variant="caption" color="muted" className="mt-1 leading-relaxed">
               Moving an agent to <strong>AUTO</strong> mode allows it to execute Class A and B
               actions without human intervention. Class C (Critical Infrastructure) actions still
               require explicit governance class overrides even in AUTO mode.

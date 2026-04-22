@@ -59,7 +59,7 @@ export interface ToolTokenRollup {
 }
 
 function getTableName(): string {
-  return getMemoryTableName();
+  return getMemoryTableName() ?? 'MemoryTable';
 }
 
 function dayStart(ts: number = Date.now()): number {

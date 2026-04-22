@@ -26,7 +26,7 @@ export default function PageHeader({
 
   return (
     <header
-      className={`flex flex-col lg:flex-row lg:justify-between lg:items-start border-b border-white/5 pb-4 gap-6 ${className}`}
+      className={`flex flex-col lg:flex-row lg:justify-between lg:items-start border-b border-border pb-4 gap-6 ${className}`}
     >
       <div>
         <Typography variant="h2" color="white" glow uppercase>

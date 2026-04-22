@@ -1,5 +1,4 @@
 import { EventBridgeClient, PutEventsCommand } from '@aws-sdk/client-eventbridge';
-import { Resource } from 'sst';
 import { logger } from '../logger';
 import {
   Message,
@@ -10,11 +9,10 @@ import {
   ButtonType,
 } from '../types/index';
 import { AgentRegistry } from '../registry';
-import { SSTResource, isValidAttachment } from '../types/index';
+import { isValidAttachment } from '../types/index';
 import { AGENT_DEFAULTS } from './executor';
 import { parseConfigInt } from '../providers/utils';
-
-const typedResource = Resource as unknown as SSTResource;
+import { getAgentBusName } from '../utils/resource-helpers';
 
 export type ContinuationMetadata = {
   initiatorId?: string;
@@ -114,7 +112,7 @@ export class AgentEmitter {
                     },
                   ],
                 }),
-                EventBusName: typedResource.AgentBus.name,
+                EventBusName: getAgentBusName(),
               },
             ],
           })
@@ -169,7 +167,7 @@ export class AgentEmitter {
                 staffId: metadata.staffId,
                 attachments: safeAttachments,
               }),
-              EventBusName: typedResource.AgentBus.name,
+              EventBusName: getAgentBusName(),
             },
           ],
         })
@@ -304,7 +302,7 @@ export class AgentEmitter {
               Source: this.config?.id ?? 'superclaw.agent',
               DetailType: EventType.REPUTATION_UPDATE,
               Detail: JSON.stringify(payload),
-              EventBusName: typedResource.AgentBus.name,
+              EventBusName: getAgentBusName(),
             },
           ],
         })

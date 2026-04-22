@@ -15,7 +15,7 @@ const TIERS = [
     id: 'local',
     label: 'Local',
     description: 'Local development environment, full access for testing.',
-    color: 'cyan',
+    color: 'intel',
     allows: [
       'Code modifications & PRs',
       'Local deployments',
@@ -30,7 +30,7 @@ const TIERS = [
     id: 'prod',
     label: 'Production',
     description: 'Production environment, strict safety and approval gates.',
-    color: 'green',
+    color: 'primary',
     allows: [
       'Code modifications & PRs',
       'LLM reasoning & planning',
@@ -72,7 +72,7 @@ export default function SafetyTierEditor({ currentTier, onTierChange }: SafetyTi
             )}
 
             <div className="mb-4">
-              <Typography variant="h3" className={`text-${tier.color}-400 font-semibold mb-2`}>
+              <Typography variant="h3" color={tier.id === 'local' ? 'intel' : 'primary'} className="font-semibold mb-2">
                 {tier.label}
               </Typography>
               <Typography variant="caption" className="text-muted-foreground">

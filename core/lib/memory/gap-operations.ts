@@ -210,7 +210,7 @@ export async function incrementGapAttemptCount(
       ConditionExpression: 'attribute_exists(userId)',
       ReturnValues: 'ALL_NEW',
     });
-    return (result.Attributes?.metadata?.retryCount as number) || 0;
+    return (result?.Attributes?.metadata?.retryCount as number) || 0;
   } catch (error) {
     logger.error(`[incrementGapAttemptCount] Atomic increment failed for gap ${gapId}:`, error);
     throw error;

@@ -3,6 +3,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { execSync } from 'child_process';
 import { logger } from '../logger';
+import { getStagingBucketName } from './resource-helpers';
 
 /**
  * Common workspace setup logic.
@@ -72,9 +73,7 @@ async function setupWorkspace(
   if (applyStagedChanges) {
     try {
       const { S3Client, GetObjectCommand } = await import('@aws-sdk/client-s3');
-      const { Resource } = await import('sst');
-      const typedResource = Resource as unknown as import('../types/system').SSTResource;
-      const stagingBucket = typedResource.StagingBucket?.name;
+      const stagingBucket = getStagingBucketName();
 
       if (stagingBucket) {
         const s3Client = new S3Client({});

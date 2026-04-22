@@ -98,14 +98,14 @@ export default function SecurityManifestPage() {
   const [currentTier, setCurrentTier] = useState<'local' | 'prod'>('prod');
   return (
     <main
-      className={`flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-[${THEME.COLORS.PRIMARY}]/5 via-transparent to-transparent`}
+      className={`flex-1 overflow-y-auto p-6 lg:p-10 space-y-10 bg-[radial-gradient(circle_at_top_right,color-mix(in_srgb,var(--cyber-green)_5%,transparent),transparent,transparent)]`}
     >
       <PageHeader
         titleKey="SECURITY_TITLE"
         subtitleKey="SECURITY_SUBTITLE"
         stats={
           <div className="flex gap-4">
-            <Card variant="glass" padding="sm" className={`border-[${THEME.COLORS.PRIMARY}]/30`}>
+            <Card variant="glass" padding="sm" className="border-cyber-green/30">
               <Typography variant="mono" color="muted" className="mb-1 block">
                 {t('COMPLIANCE_MODE')}
               </Typography>
@@ -126,7 +126,7 @@ export default function SecurityManifestPage() {
               weight="bold"
               className="tracking-[0.2em] flex items-center gap-2 mb-6"
             >
-              <Lock size={14} className={`text-[${THEME.COLORS.PRIMARY}]`} /> Safety Tier
+              <Lock size={14} className="text-cyber-green" /> Safety Tier
             </Typography>
             <SafetyTierEditor
               currentTier={currentTier}
@@ -148,19 +148,19 @@ export default function SecurityManifestPage() {
               weight="bold"
               className={`tracking-[0.2em] flex items-center gap-2 mb-6`}
             >
-              <Globe size={14} className={`text-[${THEME.COLORS.PRIMARY}]`} /> Agent Capability
+              <Globe size={14} className="text-cyber-green" /> Agent Capability
               Matrix
             </Typography>
             <div className="space-y-4">
               {AGENT_POLICIES.map((policy, i) => (
                 <div
                   key={i}
-                  className="glass-card p-6 border-white/5 bg-white/[0.01] hover:bg-white/[0.03] transition-all"
+                  className="glass-card p-6 border-border bg-card/10 hover:bg-card-elevated transition-all"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
                       <div
-                        className={`w-8 h-8 rounded bg-[${THEME.COLORS.PRIMARY}]/10 flex items-center justify-center text-[${THEME.COLORS.PRIMARY}]`}
+                        className="w-8 h-8 rounded bg-cyber-green/10 flex items-center justify-center text-cyber-green"
                       >
                         <Server size={16} />
                       </div>
@@ -182,26 +182,26 @@ export default function SecurityManifestPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-6">
                     <div>
-                      <div className="text-[10px] text-white/50 uppercase font-bold mb-2">
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold mb-2">
                         Capabilities
                       </div>
                       <ul className="space-y-1">
                         {policy.capabilities.map((cap, j) => (
-                          <li key={j} className="text-xs text-white/100 flex items-center gap-2">
-                            <Eye size={10} className={`text-${THEME.COLORS.PRIMARY}/40`} /> {cap}
+                          <li key={j} className="text-xs text-foreground flex items-center gap-2">
+                            <Eye size={10} className="text-primary/40" /> {cap}
                           </li>
                         ))}
                       </ul>
                     </div>
                     <div>
-                      <div className="text-[10px] text-white/50 uppercase font-bold mb-2">
+                      <div className="text-[10px] text-muted-foreground uppercase font-bold mb-2">
                         Linked Resources
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {policy.resources.map((res, j) => (
                           <span
                             key={j}
-                            className="text-[9px] px-2 py-0.5 rounded bg-black/40 border border-white/10 text-white/100"
+                            className="text-[9px] px-2 py-0.5 rounded bg-card border border-border text-foreground"
                           >
                             {res}
                           </span>
@@ -217,38 +217,38 @@ export default function SecurityManifestPage() {
 
         {/* Right: Protected Resources */}
         <div className="lg:col-span-5 space-y-8">
-          <section className="glass-card p-6 border-white/10 bg-black/40">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/100 flex items-center gap-2 mb-6">
-              <Lock size={14} className={`text-${THEME.COLORS.DANGER}`} /> Protected Resource
+          <section className="glass-card p-6 border-border bg-card">
+            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-foreground flex items-center gap-2 mb-6">
+              <Lock size={14} className="text-red-500" /> Protected Resource
               Labeling
             </h3>
             <div className="space-y-3">
               {PROTECTED_RESOURCES.map((res, i) => (
                 <div
                   key={i}
-                  className={`flex flex-col p-3 rounded bg-${THEME.COLORS.DANGER}/[0.02] border border-${THEME.COLORS.DANGER}/10 group hover:border-${THEME.COLORS.DANGER}/30 transition-all`}
+                  className="flex flex-col p-3 rounded bg-red-500/5 border border-red-500/10 group hover:border-red-500/30 transition-all"
                 >
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-[11px] font-mono text-white/100">{res.path}</span>
-                    <span className={`text-[9px] font-bold text-${THEME.COLORS.DANGER}`}>
+                    <span className="text-[11px] font-mono text-foreground">{res.path}</span>
+                    <span className="text-[9px] font-bold text-red-500">
                       {res.protection}
                     </span>
                   </div>
                   <div className="flex justify-between items-center text-[9px]">
-                    <span className="text-white/90 italic">{res.reason}</span>
-                    <span className="text-white/50 uppercase tracking-tighter px-1 rounded border border-white/5">
+                    <span className="text-muted-foreground italic">{res.reason}</span>
+                    <span className="text-muted-more uppercase tracking-tighter px-1 rounded border border-border">
                       {res.type}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-6 pt-6 border-t border-white/5">
+            <div className="mt-6 pt-6 border-t border-border">
               <div
-                className={`p-4 rounded bg-${THEME.COLORS.DANGER}/10 border border-${THEME.COLORS.DANGER}/20 flex gap-3`}
+                className="p-4 rounded bg-red-500/10 border border-red-500/20 flex gap-3"
               >
-                <FileWarning size={16} className={`text-${THEME.COLORS.DANGER} shrink-0`} />
-                <p className={`text-[10px] text-${THEME.COLORS.DANGER}/70 leading-relaxed italic`}>
+                <FileWarning size={16} className="text-red-500 shrink-0" />
+                <p className="text-[10px] text-red-500/70 leading-relaxed italic">
                   Writing to these paths requires Human-in-the-Loop (HITL) approval via Telegram.
                   The Coder Agent cannot bypass this block.
                 </p>
@@ -256,24 +256,24 @@ export default function SecurityManifestPage() {
             </div>
           </section>
 
-          <section className="glass-card p-6 border-white/10 bg-black/40">
-            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-white/100 flex items-center gap-2 mb-4">
-              <Database size={14} className={`text-${THEME.COLORS.INTEL}`} /> Infrastructure
+          <section className="glass-card p-6 border-border bg-card">
+            <h3 className="text-[10px] uppercase tracking-[0.2em] font-bold text-foreground flex items-center gap-2 mb-4">
+              <Lock size={14} className="text-cyber-blue" /> Infrastructure
               Boundaries (IAM)
             </h3>
-            <p className="text-xs text-white/100 leading-relaxed mb-4 font-light">
+            <p className="text-xs text-foreground leading-relaxed mb-4 font-light">
               Permissions are hardware-enforced at the AWS IAM level. Agents only have access to the
               specific resources linked in{' '}
-              <code className={`text-${THEME.COLORS.INTEL} font-bold`}>sst.config.ts</code>.
+              <code className="text-cyber-blue font-bold">sst.config.ts</code>.
             </p>
             <div className="flex flex-wrap gap-2">
               <span
-                className={`text-[9px] px-2 py-1 rounded bg-${THEME.COLORS.INTEL}/10 border border-${THEME.COLORS.INTEL}/30 text-${THEME.COLORS.INTEL} font-bold`}
+                className="text-[9px] px-2 py-1 rounded bg-cyber-blue/10 border border-cyber-blue/30 text-cyber-blue font-bold"
               >
                 Principle of Least Privilege
               </span>
               <span
-                className={`text-[9px] px-2 py-1 rounded bg-${THEME.COLORS.INTEL}/10 border border-${THEME.COLORS.INTEL}/30 text-${THEME.COLORS.INTEL} font-bold`}
+                className="text-[9px] px-2 py-1 rounded bg-cyber-blue/10 border border-cyber-blue/30 text-cyber-blue font-bold"
               >
                 Scoped Tokens
               </span>

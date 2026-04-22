@@ -2,18 +2,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AgentRegistry } from './AgentRegistry';
 import { RETENTION, DYNAMO_KEYS } from '../constants';
 import { ConfigManager, setDocClient } from './config';
-import { Resource } from 'sst';
-
-// Mock dependencies
-vi.mock('sst', () => ({
-  Resource: {
-    ConfigTable: { name: 'test-config-table' },
-  },
-}));
 
 const { mockDocClient } = vi.hoisted(() => ({
   mockDocClient: {
     send: vi.fn(),
+  },
+}));
+
+vi.mock('sst', () => ({
+  Resource: {
+    ConfigTable: { name: 'test-config-table' },
   },
 }));
 
@@ -56,12 +54,13 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
   },
 }));
 
+import { Resource } from 'sst';
+
 describe('AgentRegistry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.restoreAllMocks();
     setDocClient(mockDocClient as any);
-    // Reset Resource mock to default
-    (Resource as any).ConfigTable = { name: 'test-config-table' };
   });
 
   describe('getRetentionDays', () => {
@@ -200,7 +199,7 @@ describe('AgentRegistry', () => {
 
   describe('saveConfig', () => {
     it('should throw error if ConfigTable is not linked', async () => {
-      (Resource as any).ConfigTable = undefined;
+      vi.spyOn(Resource as any, 'ConfigTable', 'get').mockReturnValue(undefined);
 
       const config = { id: 'test', name: 'Test', systemPrompt: 'Prompt', enabled: true };
       await expect(AgentRegistry.saveConfig('test', config)).rejects.toThrow(
@@ -238,11 +237,6 @@ describe('AgentRegistry', () => {
           }),
         })
       );
-
-      // Verify versioning (atomicAddAgentField is called via static method in Registry)
-      // Note: atomicAddAgentField is actually a static method on Registry but we call it internally.
-      // Wait, Registry's saveConfig calls this.atomicAddAgentField.
-      // In tests, we mock Registry.atomicAddAgentField? Or wait, Registry.ts line 420.
     });
   });
 

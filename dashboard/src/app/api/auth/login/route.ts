@@ -3,11 +3,10 @@
  * Simple password-based authentication for the dashboard using secure HTTP-only cookies.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { Resource } from 'sst';
 import { AUTH } from '@/lib/constants';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
-import { SSTResource } from '@claw/core/lib/types/index';
 import { logger } from '@claw/core/lib/logger';
+import { resolveSSTResourceValue } from '@claw/core/lib/utils/resource-helpers';
 
 /**
  * Handles dashboard login and sets the session cookie
@@ -18,14 +17,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const { password } = await req.json();
     const isDev = process.env.NODE_ENV !== 'production';
-    let correctPassword;
-    try {
-      const typedResource = Resource as unknown as SSTResource;
-      correctPassword = typedResource.DashboardPassword?.value;
-    } catch (e) {
-      // In local dev without `sst dev`, Resource access might throw
-      if (!isDev) throw e;
-    }
+    let correctPassword = resolveSSTResourceValue(
+      'DashboardPassword',
+      'value',
+      'DASHBOARD_PASSWORD'
+    );
 
     // Handle unset SST secrets in dev mode (SST uses placeholders like {{ Name }})
     if (

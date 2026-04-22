@@ -4,14 +4,12 @@ import {
   UpdateCommand,
   QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { Resource } from 'sst';
-import { SSTResource } from '../types/system';
 import { TraceSource } from '../types/agent';
 import { v4 as uuidv4 } from 'uuid';
 import { TRACE_STATUS, TIME } from '../constants';
 import { logger } from '../logger';
 import { filterPIIFromObject } from '../utils/pii';
-import { getDocClient } from '../utils/ddb-client';
+import { getDocClient, getTraceTableName } from '../utils/ddb-client';
 import { FlowController } from '../routing/flow-controller';
 import type { TraceStep, Trace } from './types';
 import { METRICS } from '../metrics/metrics';
@@ -76,8 +74,7 @@ export class ClawTracer {
   }
 
   private getTableName(): string {
-    const typedResource = Resource as unknown as SSTResource;
-    return typedResource.TraceTable.name;
+    return getTraceTableName() ?? 'TraceTable';
   }
 
   /**
@@ -396,7 +393,7 @@ export class ClawTracer {
   static async getTrace(traceId: string): Promise<Trace[]> {
     const response = await getDocClient().send(
       new QueryCommand({
-        TableName: (Resource as unknown as SSTResource).TraceTable.name,
+        TableName: getTraceTableName(),
         KeyConditionExpression: 'traceId = :tid',
         ExpressionAttributeValues: { ':tid': traceId },
       })

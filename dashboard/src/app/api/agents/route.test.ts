@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import { Resource } from 'sst';
 
 const mockGetAllConfigs = vi.fn();
 const mockSend = vi.fn();
@@ -38,7 +37,13 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
 vi.mock('@claw/core/lib/registry/index', () => ({
   AgentRegistry: {
     getAllConfigs: mockGetAllConfigs,
+    saveConfig: vi.fn().mockResolvedValue({}),
   },
+}));
+
+const mockGetConfigTableName = vi.fn().mockReturnValue('test-config-table');
+vi.mock('@claw/core/lib/utils/ddb-client', () => ({
+  getConfigTableName: () => mockGetConfigTableName(),
 }));
 
 vi.mock('@claw/core/lib/backbone', () => ({
@@ -56,8 +61,7 @@ vi.mock('@/lib/constants', () => ({
 describe('Agents API Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (Resource as any).ConfigTable = { name: 'test-config-table' };
+    mockGetConfigTableName.mockReturnValue('test-config-table');
   });
 
   describe('GET', () => {
@@ -105,8 +109,7 @@ describe('Agents API Route', () => {
     });
 
     it('returns 500 when ConfigTable name is missing', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (Resource as any).ConfigTable;
+      mockGetConfigTableName.mockReturnValue('');
       const { POST } = await import('./route');
       const req = new NextRequest('http://localhost/api/agents', {
         method: 'POST',
@@ -166,8 +169,7 @@ describe('Agents API Route', () => {
     });
 
     it('returns 500 when ConfigTable name is missing', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (Resource as any).ConfigTable;
+      mockGetConfigTableName.mockReturnValue('');
       const { PATCH } = await import('./route');
       const req = new NextRequest('http://localhost/api/agents', {
         method: 'PATCH',
@@ -241,8 +243,7 @@ describe('Agents API Route', () => {
     });
 
     it('returns 500 when ConfigTable name is missing', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      delete (Resource as any).ConfigTable;
+      mockGetConfigTableName.mockReturnValue('');
       const { DELETE } = await import('./route');
       const req = new NextRequest('http://localhost/api/agents?agentId=test', {
         method: 'DELETE',

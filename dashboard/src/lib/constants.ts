@@ -71,6 +71,8 @@ export const UI_STRINGS = {
   INTELLIGENCE_HEADER: 'Intelligence',
   EVOLUTION_HEADER: 'Evolution',
   INFRA_HEADER: 'Infrastructure',
+  OBSERVABILITY_HEADER: 'Observability',
+  GOVERNANCE_HEADER: 'Governance',
   CHAT_DIRECT: 'Direct Chat',
   TRACE_INTEL: 'Traces',
   EVOLUTION_PIPELINE: 'Pipeline',
@@ -84,6 +86,7 @@ export const UI_STRINGS = {
   SELF_HEALING: 'Self Healing',
   SCHEDULING: 'Goal Scheduling',
   COGNITIVE_HEALTH: 'Cognitive Health',
+  OBSERVABILITY: 'Nerve Center',
   WORKSPACES: 'Workspaces',
   CONSENSUS: 'Consensus',
   NODE_STATUS: 'CORE_SYNC',
@@ -93,7 +96,7 @@ export const UI_STRINGS = {
 
 export const ROUTES = {
   HOME: '/',
-  CHAT: '/',
+  CHAT: '/chat',
   TRACE: '/trace',
   AGENTS: '/agents',
   MEMORY: '/memory',
@@ -106,6 +109,7 @@ export const ROUTES = {
   RESILIENCE: '/resilience',
   SCHEDULING: '/scheduling',
   COGNITIVE_HEALTH: '/cognitive-health',
+  OBSERVABILITY: '/observability',
   WORKSPACES: '/workspaces',
   COLLABORATION: '/collaboration',
 } as const;

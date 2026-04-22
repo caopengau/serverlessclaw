@@ -1,10 +1,10 @@
 'use server';
 
-import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 import { revalidatePath } from 'next/cache';
 import { logger } from '@claw/core/lib/logger';
+import { getMemoryTableName } from '@claw/core/lib/utils/ddb-client';
 
 /**
  * Deletes a memory item from DynamoDB by userId and timestamp.
@@ -20,17 +20,7 @@ export async function deleteMemoryItem(
   revalidatePathString: string
 ): Promise<void> {
   try {
-    const typedResource = Resource as unknown as { MemoryTable?: { name: string } };
-    let tableName = typedResource.MemoryTable?.name;
-
-    // Fallback to environment variable
-    if (!tableName) {
-      tableName = process.env.SST_RESOURCE_MemoryTable;
-    }
-
-    if (!tableName) {
-      throw new Error('MemoryTable name is missing from Resources and environment');
-    }
+    const tableName = getMemoryTableName();
 
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);

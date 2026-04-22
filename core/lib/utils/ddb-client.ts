@@ -1,7 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { Resource } from 'sst';
-import { SSTResource } from '../types/system';
+import { resolveSSTResourceValue } from './resource-helpers';
 
 /**
  * Shared DynamoDB document client instance for tracing and other utilities.
@@ -39,43 +38,28 @@ export function resetDocClient(): void {
  * Returns the name of the ConfigTable resource.
  * Respects CONFIG_TABLE_NAME environment variable.
  *
- * @returns The table name string.
+ * @returns The table name string or undefined if not resolved.
  */
-export function getConfigTableName(): string {
-  try {
-    const resource = Resource as unknown as SSTResource;
-    return process.env.CONFIG_TABLE_NAME || resource.ConfigTable?.name || 'ConfigTable';
-  } catch {
-    return process.env.CONFIG_TABLE_NAME || 'ConfigTable';
-  }
+export function getConfigTableName(): string | undefined {
+  return resolveSSTResourceValue('ConfigTable', 'name', 'CONFIG_TABLE_NAME');
 }
 
 /**
  * Returns the name of the MemoryTable resource.
  * Respects MEMORY_TABLE_NAME environment variable.
  *
- * @returns The table name string.
+ * @returns The table name string or undefined if not resolved.
  */
-export function getMemoryTableName(): string {
-  try {
-    const resource = Resource as unknown as SSTResource;
-    return process.env.MEMORY_TABLE_NAME || resource.MemoryTable?.name || 'MemoryTable';
-  } catch {
-    return process.env.MEMORY_TABLE_NAME || 'MemoryTable';
-  }
+export function getMemoryTableName(): string | undefined {
+  return resolveSSTResourceValue('MemoryTable', 'name', 'MEMORY_TABLE_NAME');
 }
 
 /**
  * Returns the name of the TraceTable resource.
  * Respects TRACE_TABLE_NAME environment variable.
  *
- * @returns The table name string.
+ * @returns The table name string or undefined if not resolved.
  */
-export function getTraceTableName(): string {
-  try {
-    const resource = Resource as unknown as SSTResource;
-    return process.env.TRACE_TABLE_NAME || resource.TraceTable?.name || 'TraceTable';
-  } catch {
-    return process.env.TRACE_TABLE_NAME || 'TraceTable';
-  }
+export function getTraceTableName(): string | undefined {
+  return resolveSSTResourceValue('TraceTable', 'name', 'TRACE_TABLE_NAME');
 }

@@ -31,12 +31,17 @@ function parseShortcut(shortcut: string): {
 
 function matchesShortcut(e: KeyboardEvent, shortcut: string): boolean {
   const parsed = parseShortcut(shortcut);
+  const keyMatch = e.key.toLowerCase() === parsed.key;
+
+  // For the '?' key, we are more flexible with the shift modifier since it varies by keyboard
+  const isSpecialKey = parsed.key === '?';
+
   return (
-    e.key.toLowerCase() === parsed.key &&
+    keyMatch &&
     e.metaKey === parsed.metaKey &&
     e.ctrlKey === parsed.ctrlKey &&
     e.altKey === parsed.altKey &&
-    e.shiftKey === parsed.shiftKey
+    (isSpecialKey ? true : e.shiftKey === parsed.shiftKey)
   );
 }
 

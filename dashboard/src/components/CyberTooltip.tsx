@@ -169,7 +169,7 @@ export default function CyberTooltip({
             {showIcon && children && (
               <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-cyber-green/50 animate-pulse" />
             )}
-            <Typography variant="body" className="text-[10px] leading-tight text-white/90">
+            <Typography as="div" variant="body" className="text-[10px] leading-tight text-white/90">
               {content}
             </Typography>
           </div>

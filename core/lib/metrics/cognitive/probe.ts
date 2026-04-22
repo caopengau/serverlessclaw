@@ -1,11 +1,9 @@
-import { Resource } from 'sst';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+import { QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../../logger';
 import { MEMORY_KEYS } from '../../constants';
 import { BaseMemoryProvider } from '../../memory/base';
 import { DynamoMemory } from '../../memory/dynamo-memory';
-import { SSTResource } from '../../types/system';
+import { getDocClient, getTraceTableName } from '../../utils/ddb-client';
 
 /**
  * Silo 5: The Eye - Observation & Consistency Probe
@@ -84,14 +82,10 @@ export class ConsistencyProbe {
     windowEnd: number
   ): Promise<number> {
     try {
-      const typedResource = Resource as unknown as SSTResource;
-      const tableName = typedResource.TraceTable?.name;
+      const tableName = getTraceTableName();
       if (!tableName) return 0;
 
-      const client = new DynamoDBClient({});
-      const docClient = DynamoDBDocumentClient.from(client, {
-        marshallOptions: { removeUndefinedValues: true },
-      });
+      const docClient = getDocClient();
 
       const response = await docClient.send(
         new QueryCommand({

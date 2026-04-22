@@ -44,11 +44,10 @@ async function persistToDynamoDB(metrics: MetricDatum[]): Promise<void> {
 
   try {
     const { PutCommand } = await import('@aws-sdk/lib-dynamodb');
-    const { Resource } = await import('sst');
-    const { getDocClient } = await import('../utils/ddb-client');
+    const { getDocClient, getConfigTableName } = await import('../utils/ddb-client');
     const docClient = getDocClient();
 
-    const tableName = (Resource as { ConfigTable?: { name: string } }).ConfigTable?.name;
+    const tableName = getConfigTableName();
     if (!tableName) return;
 
     const now = Date.now();

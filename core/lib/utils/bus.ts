@@ -7,6 +7,7 @@ import {
   DeleteCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
+import { getAgentBusName } from './resource-helpers';
 import { EventType } from '../types/index';
 import { logger } from '../logger';
 
@@ -91,28 +92,15 @@ export function resetDb(): void {
 
 async function getBusName(): Promise<string> {
   if (_busName === null) {
-    try {
-      const { Resource } = await import('sst');
-      const resource = Resource as { AgentBus?: { name?: string } };
-      _busName = resource.AgentBus?.name ?? 'AgentBus';
-    } catch {
-      // SST resources unavailable (test/local), use fallback name
-      _busName = 'AgentBus';
-    }
+    _busName = getAgentBusName() ?? 'AgentBus';
   }
   return _busName;
 }
 
 async function getMemoryTableName(): Promise<string> {
   if (_memoryTableName === null) {
-    try {
-      const { Resource } = await import('sst');
-      const resource = Resource as { MemoryTable?: { name?: string } };
-      _memoryTableName = resource.MemoryTable?.name ?? 'MemoryTable';
-    } catch {
-      // SST resources unavailable (test/local), use fallback name
-      _memoryTableName = 'MemoryTable';
-    }
+    const { getMemoryTableName: getTableName } = await import('./ddb-client');
+    _memoryTableName = getTableName() ?? 'MemoryTable';
   }
   return _memoryTableName;
 }

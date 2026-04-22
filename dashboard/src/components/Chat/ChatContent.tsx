@@ -13,12 +13,14 @@ import { QueuedMessagesList } from './QueuedMessages';
 import { useChatMessages } from './useChatMessages';
 import { useKeyboardShortcuts, type ShortcutDefinition } from '@/hooks/useKeyboardShortcuts';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
+import { useUICommand } from '@/components/Providers/UICommandProvider';
 import { AgentSelector } from './AgentSelector';
 import { AgentType } from '@claw/core/lib/types/index';
 import { logger } from '@claw/core/lib/logger';
 import type { ChatMessage } from './types';
 import { ChatHeader } from './ChatHeader';
 import { ShortcutsHelp } from './ShortcutsHelp';
+import { ContextPanel } from './ContextPanel';
 import type { ConversationMeta } from '@claw/core/lib/types/memory';
 
 /**
@@ -45,6 +47,7 @@ const CHAT_STYLES = {
  */
 export default function ChatContent() {
   const { t } = useTranslations();
+  const { setActiveModal, activeModal } = useUICommand();
   // --- UI and Session State ---
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -66,6 +69,9 @@ export default function ChatContent() {
   // --- Thinking Toggle ---
   const [showThinking, setShowThinking] = useState(true);
 
+  // --- Context Panel (Intelligence) ---
+  const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
+
   // --- Multi-Agent / Collaboration State ---
   const [currentAgentId, setCurrentAgentId] = useState<string>(AgentType.SUPERCLAW);
   const [isAgentSelectorOpen, setIsAgentSelectorOpen] = useState(false);
@@ -81,7 +87,6 @@ export default function ChatContent() {
     () => undefined
   );
   const activeSessionRef = useRef<string>('');
-  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const createNewChatRef = useRef<() => void>(() => {});
   const currentSessionRef = useRef<ConversationMeta | null | undefined>(null);
 
@@ -142,7 +147,7 @@ export default function ChatContent() {
     },
     {
       keys: '?',
-      handler: () => setShowShortcutsHelp((prev) => !prev),
+      handler: () => setActiveModal(activeModal === 'shortcuts' ? null : 'shortcuts'),
       description: t('SHORTCUTS_SHOW_KEYBOARD_HELP'),
       preventDefault: false,
     },
@@ -518,8 +523,9 @@ export default function ChatContent() {
           setIsInviteSelectorOpen={setIsInviteSelectorOpen}
           showThinking={showThinking}
           setShowThinking={setShowThinking}
-          setShowShortcutsHelp={setShowShortcutsHelp}
           isRealtimeActive={isRealtimeActive}
+          isContextPanelOpen={isContextPanelOpen}
+          setIsContextPanelOpen={setIsContextPanelOpen}
           t={t}
         />
 
@@ -597,6 +603,12 @@ export default function ChatContent() {
         )}
       </main>
 
+      <ContextPanel
+        isOpen={isContextPanelOpen}
+        onClose={() => setIsContextPanelOpen(false)}
+        sessionId={activeSessionId}
+      />
+
       <CyberConfirm
         isOpen={showDeleteConfirm}
         title={t('CHAT_DELETE_CONVERSATION')}
@@ -614,7 +626,6 @@ export default function ChatContent() {
         variant="danger"
       />
 
-      <ShortcutsHelp isOpen={showShortcutsHelp} onClose={() => setShowShortcutsHelp(false)} t={t} />
     </div>
   );
 }

@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
-import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '@claw/core/lib/logger';
+import { getMemoryTableName } from '@claw/core/lib/utils/ddb-client';
 
 export async function GET() {
   try {
-    const typedResource = Resource as unknown as { MemoryTable?: { name: string } };
-    const tableName = typedResource.MemoryTable?.name;
+    const tableName = getMemoryTableName();
 
     if (!tableName) {
       return NextResponse.json({ activeDispatches: [] });

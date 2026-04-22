@@ -251,6 +251,8 @@ export async function incrementClarificationRetry(
     ReturnValues: 'ALL_NEW',
   });
 
+  if (!result) return 0;
+
   const attributes = result.Attributes as Record<string, unknown>;
   return (attributes?.retryCount as number) ?? 0;
 }

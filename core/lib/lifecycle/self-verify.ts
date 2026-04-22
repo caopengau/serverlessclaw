@@ -1,18 +1,15 @@
-import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { SSTResource, SelfVerificationStatus } from '../types/system';
+import { SelfVerificationStatus } from '../types/system';
 import { GapStatus } from '../types/index';
 import { runDeepHealthCheck } from './health';
+import { getMemoryTableName, getConfigTableName } from '../utils/ddb-client';
 
 // Default client for backward compatibility - can be overridden via constructor for testing
 const defaultDdbClient = new DynamoDBClient({});
 const defaultDocClient = DynamoDBDocumentClient.from(defaultDdbClient, {
   marshallOptions: { removeUndefinedValues: true },
 });
-
-// Cast Resource to SSTResource type to access infrastructure resources
-const typedResource = Resource as unknown as SSTResource;
 
 /**
  * Self-Verification Engine
@@ -48,12 +45,7 @@ export class SelfVerifier {
    * Verifies the evolution mechanism by checking gap statistics.
    */
   async verifyEvolution() {
-    let memoryTable: string | undefined;
-    try {
-      memoryTable = typedResource.MemoryTable?.name;
-    } catch {
-      // SST links not active
-    }
+    const memoryTable = getMemoryTableName();
 
     if (!memoryTable) {
       return { totalGaps: 0, activeGaps: 0, fixSuccessRate: 100 };
@@ -89,14 +81,8 @@ export class SelfVerifier {
    * Verifies the resilience mechanism by checking circuit breakers and health probes.
    */
   async verifyResilience() {
-    let memoryTable: string | undefined;
-    let configTable: string | undefined;
-    try {
-      memoryTable = typedResource.MemoryTable?.name;
-      configTable = typedResource.ConfigTable?.name;
-    } catch {
-      // SST links not active
-    }
+    const memoryTable = getMemoryTableName();
+    const configTable = getConfigTableName();
 
     if (!memoryTable || !configTable) {
       return {
@@ -141,12 +127,7 @@ export class SelfVerifier {
    * Verifies the awareness mechanism by checking topology discovery.
    */
   async verifyAwareness() {
-    let configTable: string | undefined;
-    try {
-      configTable = typedResource.ConfigTable?.name;
-    } catch {
-      // SST links not active
-    }
+    const configTable = getConfigTableName();
 
     if (!configTable) {
       return {

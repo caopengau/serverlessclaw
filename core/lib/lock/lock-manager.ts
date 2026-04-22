@@ -27,7 +27,7 @@ export class LockManager {
 
   constructor(_client?: DynamoDBClient) {
     this.docClient = getDocClient();
-    this.tableName = getMemoryTableName();
+    this.tableName = getMemoryTableName() ?? 'MemoryTable';
   }
 
   private getFullId(lockId: string, prefix?: string): string {

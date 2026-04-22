@@ -1,10 +1,10 @@
 import { NextResponse, NextRequest } from 'next/server';
-import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { CONFIG_KEYS } from '@claw/core/lib/constants';
 import { logger } from '@claw/core/lib/logger';
-import { SSTResource } from '@claw/core/lib/types/index';
+import { getConfigTableName } from '@claw/core/lib/utils/ddb-client';
+import { getAppInfo, getRealtimeInfo } from '@claw/core/lib/utils/resource-helpers';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,39 +31,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Defensive check for SST Resource linking.
-    // The sst library throws if accessing properties on Resource when links aren't active.
-    let realtime: SSTResource['RealtimeBus'] | null = null;
-    let realtimeUrl: string | null = null;
-    const appInfo = { name: 'serverlessclaw', stage: 'local' };
-
-    try {
-      const resource = Resource as unknown as SSTResource;
-      if (resource.RealtimeBus) {
-        realtime = resource.RealtimeBus;
-        realtimeUrl =
-          realtime && typeof realtime.endpoint === 'string'
-            ? realtime.endpoint.startsWith('wss://')
-              ? realtime.endpoint
-              : realtime.endpoint.startsWith('https://')
-                ? realtime.endpoint.replace('https://', 'wss://')
-                : `wss://${realtime.endpoint}`
-            : null;
-      }
-      if (resource.App) {
-        appInfo.name = resource.App.name || appInfo.name;
-        appInfo.stage = resource.App.stage || appInfo.stage;
-      }
-    } catch (e) {
-      if (process.env.NODE_ENV === 'development') {
-        logger.warn(
-          '[Config API] SST resources are not active or linked currently. ' +
-            'This is common in local dev if not using "sst dev".'
-        );
-      } else {
-        logger.error('[Config API] SST resource link error:', e);
-      }
-    }
+    const { url: realtimeUrl, authorizer } = getRealtimeInfo();
+    const appInfo = getAppInfo();
 
     if (!realtimeUrl) {
       logger.info(
@@ -76,7 +45,7 @@ export async function GET(req: NextRequest) {
       stage: appInfo.stage,
       realtime: {
         url: realtimeUrl,
-        authorizer: realtime?.authorizer,
+        authorizer: authorizer,
       },
     });
   } catch (error) {
@@ -100,8 +69,7 @@ export async function POST(req: NextRequest) {
     // Only allow specific safe keys to be updated from the client if needed,
     // or keep it generic if the dashboard is protected.
     if (key === CONFIG_KEYS.ACTIVE_LOCALE) {
-      const resource = Resource as unknown as SSTResource;
-      const tableName = resource.ConfigTable?.name;
+      const tableName = getConfigTableName();
       if (!tableName) {
         return NextResponse.json({ error: 'ConfigTable name is missing' }, { status: 500 });
       }

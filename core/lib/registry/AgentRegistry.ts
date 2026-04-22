@@ -5,7 +5,7 @@ import { logger } from '../logger';
 import type { Topology } from '../types/index';
 import { DYNAMO_KEYS, RETENTION, TRUST } from '../constants';
 import { ConfigManager, getDocClient } from './config';
-import { Resource } from 'sst';
+import { getConfigTableName } from '../utils/ddb-client';
 
 /**
  * AgentRegistry handles discovery and configuration of agents.
@@ -148,13 +148,7 @@ export class AgentRegistry {
    * @throws Error if mandatory fields (name, systemPrompt) are missing during initialization.
    */
   static async saveConfig(agentId: string, config: Partial<IAgentConfig>): Promise<void> {
-    let tableName: string | undefined;
-    try {
-      const resource = Resource as unknown as import('../types/common').SSTConfigResource;
-      tableName = resource.ConfigTable?.name;
-    } catch {
-      // SST links not active
-    }
+    const tableName = getConfigTableName();
 
     if (!tableName) {
       throw new Error('ConfigTable not linked. Cannot save agent configuration.');
@@ -254,13 +248,7 @@ export class AgentRegistry {
     toolName: string,
     timestamp: number
   ): Promise<void> {
-    let tableName: string | undefined;
-    try {
-      const resource = Resource as unknown as import('../types/common').SSTConfigResource;
-      tableName = resource.ConfigTable?.name;
-    } catch {
-      // SST links not active
-    }
+    const tableName = getConfigTableName();
 
     if (!tableName) return;
 
@@ -314,13 +302,7 @@ export class AgentRegistry {
    * Uses if_not_exists to avoid overwriting existing firstRegistered timestamps.
    */
   private static async ensureToolStatsInitialized(toolName: string): Promise<void> {
-    let tableName: string | undefined;
-    try {
-      const resource = Resource as unknown as import('../types/common').SSTConfigResource;
-      tableName = resource.ConfigTable?.name;
-    } catch {
-      // SST links not active
-    }
+    const tableName = getConfigTableName();
 
     if (!tableName) return;
 
@@ -353,13 +335,7 @@ export class AgentRegistry {
    * This is used by the pruner to ensure grace periods are respected for never-used tools.
    */
   static async initializeToolStats(toolNames: string[]): Promise<void> {
-    let tableName: string | undefined;
-    try {
-      const resource = Resource as unknown as { ConfigTable?: { name: string } };
-      tableName = resource.ConfigTable?.name;
-    } catch {
-      // SST links not active
-    }
+    const tableName = getConfigTableName();
 
     if (!tableName || toolNames.length === 0) return;
 
@@ -455,13 +431,7 @@ export class AgentRegistry {
    * @returns The updated value of the field.
    */
   static async atomicAddAgentField(agentId: string, field: string, value: number): Promise<number> {
-    let tableName: string | undefined;
-    try {
-      const resource = Resource as unknown as import('../types/common').SSTConfigResource;
-      tableName = resource.ConfigTable?.name;
-    } catch {
-      // SST links not active
-    }
+    const tableName = getConfigTableName();
 
     if (!tableName) {
       throw new Error('ConfigTable not linked. Cannot update agent field.');

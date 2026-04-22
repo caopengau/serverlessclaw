@@ -9,7 +9,7 @@ const docClient = getDocClient();
 const TTL_DAYS_BUDGET = 30;
 
 function getBudgetTableName(): string {
-  return getMemoryTableName();
+  return getMemoryTableName() ?? 'MemoryTable';
 }
 
 /**

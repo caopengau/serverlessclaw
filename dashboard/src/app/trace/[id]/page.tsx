@@ -1,5 +1,4 @@
 import React from 'react';
-import { Resource } from 'sst';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import {
@@ -28,7 +27,7 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
 import { THEME } from '@/lib/theme';
-import { SSTResource } from '@claw/core/lib/types/index';
+import { getTraceTableName } from '@claw/core/lib/utils/ddb-client';
 import { Trace, TraceStep, ToolCallContent, ToolResultContent } from '@/lib/types/ui';
 
 export const dynamic = 'force-dynamic';
@@ -38,8 +37,7 @@ export const dynamic = 'force-dynamic';
  */
 async function getTraceNodes(traceId: string): Promise<Trace[]> {
   try {
-    const typedResource = Resource as unknown as SSTResource;
-    const tableName = typedResource.TraceTable?.name;
+    const tableName = getTraceTableName();
     if (!tableName) {
       logger.error('TraceTable name is missing from Resources');
       return [];

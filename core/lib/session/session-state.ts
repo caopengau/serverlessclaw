@@ -1,7 +1,5 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { Resource } from 'sst';
-import { SSTResource } from '../types/system';
 import type { PendingMessage } from '../types/session';
 import { logger } from '../logger';
 import { TIME, RETENTION } from '../constants';
@@ -13,6 +11,8 @@ const LOCK_PREFIX = 'LOCK#SESSION#';
 const LOCK_TTL_SECONDS = 300; // 5 minutes for lock timeout (crash recovery)
 const SESSION_TTL_SECONDS = RETENTION.SESSION_METADATA_DAYS * 24 * 60 * 60; // Uses centralized RETENTION config
 
+import { getMemoryTableName } from '../utils/ddb-client';
+
 // Default client for backward compatibility - can be overridden via constructor for testing
 const defaultClient = new DynamoDBClient({});
 const defaultDocClient = DynamoDBDocumentClient.from(defaultClient, {
@@ -20,7 +20,6 @@ const defaultDocClient = DynamoDBDocumentClient.from(defaultClient, {
     removeUndefinedValues: true,
   },
 });
-const typedResource = Resource as unknown as SSTResource;
 
 export interface SessionState {
   sessionId: string;
@@ -41,7 +40,7 @@ export class SessionStateManager {
   }
 
   private get tableName(): string {
-    return typedResource?.MemoryTable?.name ?? 'MemoryTable';
+    return getMemoryTableName() ?? 'MemoryTable';
   }
 
   private getKey(sessionId: string): string {

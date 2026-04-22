@@ -59,6 +59,9 @@ export async function clearHistory(
   userId: string,
   scope?: string | import('../types/memory').ContextualScope
 ): Promise<void> {
+  const tableName = base.getTableName();
+  if (!tableName) return;
+
   const scopedUserId = base.getScopedUserId(userId, scope);
   const items = await base.queryItems({
     KeyConditionExpression: 'userId = :userId',
@@ -73,7 +76,7 @@ export async function clearHistory(
   for (let i = 0; i < items.length; i += 25) {
     const batch = items.slice(i, i + 25);
     let requestItems: import('../types/common').DynamoDBBatchWriteRequest = {
-      [base.getTableName()]: batch.map((item) => ({
+      [tableName]: batch.map((item) => ({
         DeleteRequest: {
           Key: { userId: item.userId as string, timestamp: item.timestamp as number },
         },
@@ -101,7 +104,7 @@ export async function clearHistory(
       logger.error(
         `Failed to clear all history for ${scopedUserId} after ${MAX_ATTEMPTS} attempts.`,
         {
-          unprocessedCount: Object.keys(requestItems[base.getTableName()] || {}).length,
+          unprocessedCount: Object.keys(requestItems[tableName] || {}).length,
         }
       );
     }

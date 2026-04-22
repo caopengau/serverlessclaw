@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConfigManager, setDocClient } from './config';
 
 vi.mock('sst', () => ({
   Resource: {
-    ConfigTable: undefined,
+    ConfigTable: { name: 'mock-table' },
   },
 }));
 
@@ -17,27 +17,41 @@ import { Resource } from 'sst';
 import { ConfigVersioning } from '../config/config-versioning';
 
 describe('ConfigManager', () => {
+  let docClientMock: any;
+
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.restoreAllMocks();
+    docClientMock = {
+      send: vi.fn().mockResolvedValue({}),
+    };
+    setDocClient(docClientMock as any);
   });
 
   it('should safely return undefined when ConfigTable is not linked', async () => {
-    // Should not throw TypeError when checking 'ConfigTable' in Resource
+    vi.spyOn(Resource as any, 'ConfigTable', 'get').mockReturnValue(undefined);
     const value = await ConfigManager.getRawConfig('any_key');
     expect(value).toBeUndefined();
+    expect(docClientMock.send).not.toHaveBeenCalled();
   });
 
   it('should safely return undefined when getTypedConfig is called and ConfigTable is not linked', async () => {
+    vi.spyOn(Resource as any, 'ConfigTable', 'get').mockReturnValue(undefined);
     const value = await ConfigManager.getTypedConfig('any_key', 'fallback_value');
     expect(value).toBe('fallback_value');
+    expect(docClientMock.send).not.toHaveBeenCalled();
   });
 
   it('should safely return undefined when saveRawConfig is called and ConfigTable is not linked', async () => {
+    vi.spyOn(Resource as any, 'ConfigTable', 'get').mockReturnValue(undefined);
     await expect(ConfigManager.saveRawConfig('any_key', 'value')).resolves.toBeUndefined();
+    expect(docClientMock.send).not.toHaveBeenCalled();
   });
 
   it('should safely return undefined when deleteConfig is called and ConfigTable is not linked', async () => {
+    vi.spyOn(Resource as any, 'ConfigTable', 'get').mockReturnValue(undefined);
     await expect(ConfigManager.deleteConfig('any_key')).resolves.toBeUndefined();
+    expect(docClientMock.send).not.toHaveBeenCalled();
   });
 
   it('should handle Resource throwing error during table name resolution', async () => {
@@ -48,9 +62,6 @@ describe('ConfigManager', () => {
 
     const value = await ConfigManager.resolveTableName();
     expect(value).toBeUndefined();
-
-    // Cleanup
-    vi.restoreAllMocks();
   });
 });
 
@@ -59,17 +70,14 @@ describe('ConfigManager.saveRawConfig versioning', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (Resource as any).ConfigTable = { name: 'mock-table' };
+    vi.restoreAllMocks();
+    vi.spyOn(Resource as any, 'ConfigTable', 'get').mockReturnValue({ name: 'mock-table' });
 
     // Mock DynamoDB put
     docClientMock = {
       send: vi.fn().mockResolvedValue({}),
     };
     setDocClient(docClientMock as any);
-  });
-
-  afterEach(() => {
-    delete (Resource as any).ConfigTable;
   });
 
   it('should snapshot if the new value is different', async () => {
@@ -111,17 +119,14 @@ describe('ConfigManager Caching', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (Resource as any).ConfigTable = { name: 'mock-table' };
+    vi.restoreAllMocks();
+    vi.spyOn(Resource as any, 'ConfigTable', 'get').mockReturnValue({ name: 'mock-table' });
     docClientMock = {
       send: vi.fn(),
     };
     setDocClient(docClientMock as any);
     // @ts-expect-error - accessing private field for testing
     ConfigManager.configCache.clear();
-  });
-
-  afterEach(() => {
-    delete (Resource as any).ConfigTable;
   });
 
   it('should cache getTypedConfig results', async () => {
@@ -160,6 +165,7 @@ describe('ConfigManager Caching', () => {
 describe('ConfigManager.getAgentOverrideConfig', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.restoreAllMocks();
     // @ts-expect-error - accessing private field for testing
     ConfigManager.configCache.clear();
   });
@@ -198,15 +204,12 @@ describe('ConfigManager atomic operations', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (Resource as any).ConfigTable = { name: 'mock-table' };
+    vi.restoreAllMocks();
+    vi.spyOn(Resource as any, 'ConfigTable', 'get').mockReturnValue({ name: 'mock-table' });
     docClientMock = {
       send: vi.fn().mockResolvedValue({}),
     };
     setDocClient(docClientMock as any);
-  });
-
-  afterEach(() => {
-    delete (Resource as any).ConfigTable;
   });
 
   it('should call UpdateCommand with condition for atomicUpdateMapFieldWithCondition', async () => {

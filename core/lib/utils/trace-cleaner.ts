@@ -1,7 +1,5 @@
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { Resource } from 'sst';
-import { SSTResource } from '../types/system';
-import { getDocClient } from './ddb-client';
+import { getDocClient, getTraceTableName } from './ddb-client';
 import { TRACE_STATUS, TIME } from '../constants';
 import { logger } from '../logger';
 
@@ -20,8 +18,7 @@ export class TraceCleaner {
   }
 
   private getTableName(): string {
-    const typedResource = Resource as unknown as SSTResource;
-    return typedResource.TraceTable.name;
+    return getTraceTableName() ?? 'TraceTable';
   }
 
   /**

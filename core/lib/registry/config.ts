@@ -6,9 +6,8 @@ import {
   PutCommand,
   UpdateCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { Resource } from 'sst';
-import type { SSTResource } from '../types';
 import { logger } from '../logger';
+import { getConfigTableName } from '../utils/ddb-client';
 
 // Default client for backward compatibility - can be overridden for testing
 const defaultClient = new DynamoDBClient({});
@@ -51,26 +50,7 @@ export class ConfigManager {
    * Internal helper to safely get the ConfigTable name.
    */
   private static _getTableName(): string | undefined {
-    try {
-      const resource = Resource as unknown as SSTResource;
-      const name = resource.ConfigTable?.name;
-      if (name) return name;
-    } catch {
-      // Resource access might throw
-    }
-
-    // Fallback to environment variable (SST v4 naming convention)
-    const envName = process.env.SST_RESOURCE_ConfigTable;
-    if (envName) return envName;
-
-    if (!this._warnedMissingConfigTable) {
-      logger.warn(
-        '[ConfigManager] ConfigTable resource is not linked. ' +
-          'Ensure you are running with "sst dev" or have configured SST links correctly.'
-      );
-      this._warnedMissingConfigTable = true;
-    }
-    return undefined;
+    return getConfigTableName();
   }
 
   /**

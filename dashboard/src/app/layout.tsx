@@ -31,6 +31,8 @@ export const dynamic = 'force-dynamic';
 
 import { ThemeProvider } from '@/components/Providers/ThemeProvider';
 
+import { GlobalModals } from '@/components/GlobalModals';
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -57,6 +59,7 @@ export default async function RootLayout({
             <RealtimeProvider>
               <UICommandProvider>
                 <PageContextProvider>
+                  <GlobalModals />
                   <a
                     href="#main-content"
                     className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-cyber-green focus:text-black"

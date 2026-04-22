@@ -50,6 +50,13 @@ vi.mock('../logger', () => ({
   },
 }));
 
+// Mock ConfigManager
+vi.mock('../registry/config', () => ({
+  ConfigManager: {
+    appendToList: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 describe('TrustManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();

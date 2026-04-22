@@ -8,9 +8,8 @@ import {
   ScanCommand,
 } from '@aws-sdk/lib-dynamodb';
 
-import { Resource } from 'sst';
 import { logger } from '../logger';
-import { SSTResource } from '../types/system';
+import { getMemoryTableName } from '../utils/ddb-client';
 
 // Default client for backward compatibility - can be overridden via constructor for testing
 const defaultClient = new DynamoDBClient({});
@@ -19,7 +18,6 @@ const defaultDocClient = DynamoDBDocumentClient.from(defaultClient, {
     removeUndefinedValues: true,
   },
 });
-const typedResource = Resource as unknown as SSTResource;
 
 /**
  * Base logic for DynamoDB interactions within the memory system.
@@ -40,7 +38,7 @@ export class BaseMemoryProvider {
   /**
    * Public getter for the table name.
    */
-  public getTableName(): string {
+  public getTableName(): string | undefined {
     return this.tableName;
   }
 
@@ -51,33 +49,13 @@ export class BaseMemoryProvider {
     return this.docClient;
   }
 
-  private static _warnedMissingTable = false;
-
   /**
    * Resolves table name lazily.
    *
    * @returns The resolved table name string.
    */
-  protected get tableName(): string {
-    try {
-      const name = typedResource?.MemoryTable?.name;
-      if (name) return name;
-    } catch {
-      // Resource access might throw if SST links are not active
-    }
-
-    // Fallback to environment variable (SST v4 naming convention)
-    const envName = process.env.SST_RESOURCE_MemoryTable;
-    if (envName) return envName;
-
-    if (!BaseMemoryProvider._warnedMissingTable) {
-      logger.warn(
-        '[BaseMemoryProvider] MemoryTable resource is not linked or SST links are inactive. Using default "MemoryTable". ' +
-          'Ensure you are running with "sst dev" or have configured SST links correctly.'
-      );
-      BaseMemoryProvider._warnedMissingTable = true;
-    }
-    return 'MemoryTable';
+  protected get tableName(): string | undefined {
+    return getMemoryTableName();
   }
 
   /**
@@ -146,8 +124,11 @@ export class BaseMemoryProvider {
       >
     >
   ): Promise<void> {
+    const tableName = this.tableName;
+    if (!tableName) return;
+
     const command = new PutCommand({
-      TableName: this.tableName,
+      TableName: tableName,
       Item: {
         ...item,
         attachments: (item.attachments as unknown[]) ?? [],
@@ -173,8 +154,11 @@ export class BaseMemoryProvider {
     items: Record<string, unknown>[];
     lastEvaluatedKey?: Record<string, unknown>;
   }> {
+    const tableName = this.tableName;
+    if (!tableName) return { items: [] };
+
     const command = new QueryCommand({
-      TableName: this.tableName,
+      TableName: tableName,
       ...params,
     });
     try {
@@ -217,11 +201,14 @@ export class BaseMemoryProvider {
       >
     >
   ): Promise<void> {
+    const tableName = this.tableName;
+    if (!tableName) return;
+
     const { userId, timestamp, ...conditions } = params;
     try {
       await this.docClient.send(
         new DeleteCommand({
-          TableName: this.tableName,
+          TableName: tableName,
           Key: { userId, timestamp },
           ...conditions,
         })
@@ -243,9 +230,12 @@ export class BaseMemoryProvider {
    */
   public async updateItem(
     params: Record<string, unknown>
-  ): Promise<import('@aws-sdk/lib-dynamodb').UpdateCommandOutput> {
+  ): Promise<import('@aws-sdk/lib-dynamodb').UpdateCommandOutput | undefined> {
+    const tableName = this.tableName;
+    if (!tableName) return undefined;
+
     const command = new UpdateCommand({
-      TableName: this.tableName,
+      TableName: tableName,
       ...params,
     } as import('@aws-sdk/lib-dynamodb').UpdateCommandInput);
     return this.docClient.send(command);
@@ -260,6 +250,9 @@ export class BaseMemoryProvider {
     prefix: string,
     options?: { limit?: number }
   ): Promise<Record<string, unknown>[]> {
+    const tableName = this.tableName;
+    if (!tableName) return [];
+
     const items: Record<string, unknown>[] = [];
     let lastEvaluatedKey: Record<string, unknown> | undefined = undefined;
     const limit = options?.limit;
@@ -267,7 +260,7 @@ export class BaseMemoryProvider {
     try {
       do {
         const scanCommand = new ScanCommand({
-          TableName: this.tableName,
+          TableName: tableName,
           FilterExpression: 'begins_with(userId, :prefix)',
           ExpressionAttributeValues: {
             ':prefix': prefix,

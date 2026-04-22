@@ -6,12 +6,12 @@ import {
   GetCommand,
   BatchGetCommand,
 } from '@aws-sdk/lib-dynamodb';
-import { Resource } from 'sst';
-import { SSTResource } from '../types/system';
 import type { DAGExecutionState } from '../types/dag';
 import { AggregatedResult } from './schema';
 import { logger } from '../logger';
 import { TIME } from '../constants';
+
+import { getMemoryTableName } from '../utils/ddb-client';
 
 const defaultClient = new DynamoDBClient({});
 const docClient = DynamoDBDocumentClient.from(defaultClient, {
@@ -19,7 +19,6 @@ const docClient = DynamoDBDocumentClient.from(defaultClient, {
     removeUndefinedValues: true,
   },
 });
-const typedResource = Resource as unknown as SSTResource;
 
 const PARALLEL_PREFIX = 'PARALLEL#';
 const SHARD_PREFIX = 'PARALLEL_SHARD#';
@@ -35,7 +34,7 @@ const ITEM_SIZE_THRESHOLD_BYTES = 300 * 1024;
  * Supports sharding for large parallel dispatches exceeding 400KB.
  */
 export class ParallelAggregator {
-  private tableName: string = typedResource?.MemoryTable?.name ?? 'MemoryTable';
+  private tableName: string = getMemoryTableName() ?? 'MemoryTable';
 
   /**
    * Estimates the byte size of a result object when serialized to JSON.

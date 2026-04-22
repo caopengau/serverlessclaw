@@ -5,12 +5,10 @@
  */
 
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { Resource } from 'sst';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../logger';
-import type { SSTResource } from '../types/system';
 import { TraceType } from '../types/constants';
-import { getDocClient } from './ddb-client';
+import { getDocClient, getTraceTableName } from './ddb-client';
 
 // Removed local doc client management in favor of shared utility
 
@@ -38,18 +36,7 @@ export async function addTraceStep(
     return;
   }
 
-  let tableName: string | undefined;
-  try {
-    const typedResource = Resource as unknown as SSTResource;
-    tableName = typedResource.TraceTable?.name;
-  } catch {
-    // SST links not active
-  }
-
-  // Fallback to environment variable
-  if (!tableName) {
-    tableName = process.env.SST_RESOURCE_TraceTable;
-  }
+  const tableName = getTraceTableName();
 
   if (!tableName) {
     logger.info('[trace-helper] TraceId provided but TraceTable not linked. Skipping trace step.');
@@ -113,18 +100,7 @@ export async function updateTraceMetadata(
 ): Promise<void> {
   if (!traceId) return;
 
-  let tableName: string | undefined;
-  try {
-    const typedResource = Resource as unknown as SSTResource;
-    tableName = typedResource.TraceTable?.name;
-  } catch {
-    // SST links not active
-  }
-
-  // Fallback to environment variable
-  if (!tableName) {
-    tableName = process.env.SST_RESOURCE_TraceTable;
-  }
+  const tableName = getTraceTableName();
 
   if (!tableName) return;
 
@@ -177,18 +153,7 @@ export async function updateTraceStatus(
 ): Promise<void> {
   if (!traceId) return;
 
-  let tableName: string | undefined;
-  try {
-    const typedResource = Resource as unknown as SSTResource;
-    tableName = typedResource.TraceTable?.name;
-  } catch {
-    // SST links not active
-  }
-
-  // Fallback to environment variable
-  if (!tableName) {
-    tableName = process.env.SST_RESOURCE_TraceTable;
-  }
+  const tableName = getTraceTableName();
 
   if (!tableName) return;
 

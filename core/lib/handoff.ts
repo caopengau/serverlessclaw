@@ -1,10 +1,10 @@
-import { Resource } from 'sst';
 import { PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
 import { getDocClient } from './utils/ddb-client';
 import { emitEvent } from './utils/bus';
 import { EventType } from './types/agent';
 import { logger } from './logger';
 import { ConfigManager } from './registry/config';
+import { resolveSSTResourceValue } from './utils/resource-helpers';
 
 /**
  * Handoff Protocol Module
@@ -35,14 +35,8 @@ async function getHandoffTtlSeconds(): Promise<number> {
 export async function requestHandoff(userId: string, sessionId?: string): Promise<void> {
   const docClient = getDocClient();
 
-  // Safe resource check for test environments
-  let tableName: string | undefined;
-  try {
-    const resource = Resource as unknown as { MemoryTable?: { name: string } };
-    tableName = resource.MemoryTable?.name;
-  } catch {
-    // SST links not active
-  }
+  // Safe resource check for test environments - skip if not linked
+  const tableName = resolveSSTResourceValue('MemoryTable', 'name', 'MEMORY_TABLE_NAME');
 
   if (!tableName) {
     return;
@@ -89,14 +83,8 @@ export async function requestHandoff(userId: string, sessionId?: string): Promis
 export async function isHumanTakingControl(userId: string, sessionId?: string): Promise<boolean> {
   const docClient = getDocClient();
 
-  // Safe resource check for test environments
-  let tableName: string | undefined;
-  try {
-    const resource = Resource as unknown as { MemoryTable?: { name: string } };
-    tableName = resource.MemoryTable?.name;
-  } catch {
-    // SST links not active
-  }
+  // Safe resource check for test environments - skip if not linked
+  const tableName = resolveSSTResourceValue('MemoryTable', 'name', 'MEMORY_TABLE_NAME');
 
   if (!tableName) {
     return false;
