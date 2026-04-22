@@ -224,7 +224,7 @@ endef
 # Usage: $(call verify_env,VAR1 VAR2)
 # Fails if any of the provided variables are empty.
 define verify_env
-	@for var in $(1); do \
+	for var in $(1); do \
 		eval value=\$$$$var; \
 		if [ -z "$$value" ]; then \
 			$(call log_error,Required environment variable $$var is missing.); \
