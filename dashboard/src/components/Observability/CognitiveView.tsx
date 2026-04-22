@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Brain, Activity, Target, ShieldAlert, Cpu } from 'lucide-react';
+import { Brain, Target, Cpu } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import CognitiveHealthCard from '@/components/CognitiveHealthCard';

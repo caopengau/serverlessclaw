@@ -20,7 +20,7 @@ export default function PlaygroundPage() {
   const [agents, setAgents] = useState<Record<string, Agent>>({});
   const [selectedAgentId, setSelectedAgentId] = useState<string>(agentIdFromUrl || '');
   const [systemPrompt, setSystemPrompt] = useState(suggestedPrompt || '');
-  const [_loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [isTraceOpen, setIsTraceOpen] = useState(false);
   const [activeTraceId, setActiveTraceId] = useState<string | null>(null);
 
@@ -72,7 +72,7 @@ export default function PlaygroundPage() {
         const _err = await res.json();
         toast.error(`Evolution failed: ${_err.error}`);
       }
-    } catch (_err) {
+    } catch {
       toast.error('Failed to connect to Cognitive Registry.');
     }
   };

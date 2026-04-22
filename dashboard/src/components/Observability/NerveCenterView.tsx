@@ -3,10 +3,7 @@
 import React, { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { Activity, ShieldAlert, Brain, Lock, Loader2, Zap } from 'lucide-react';
-import Typography from '@/components/ui/Typography';
-import Card from '@/components/ui/Card';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
-import { THEME } from '@/lib/theme';
 
 // Dynamic imports for the heavy sub-views
 const PulseFlow = dynamic(() => import('../../app/system-pulse/Flow'), {

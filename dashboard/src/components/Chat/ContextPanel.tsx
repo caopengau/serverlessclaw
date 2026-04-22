@@ -13,6 +13,12 @@ interface ContextPanelProps {
   sessionId: string;
 }
 
+interface MemoryFragment {
+  type?: string;
+  timestamp: number;
+  content: string;
+}
+
 /**
  * ContextPanel - Provides real-time intelligence about the current session.
  * Displays "Live Trace" (reasoning/tools) and "Active Memory" (vault context).
@@ -21,7 +27,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({ isOpen, onClose, ses
   const { t } = useTranslations();
   const [activeTab, setActiveTab] = useState<'trace' | 'memory'>('trace');
   const [traces, setTraces] = useState<Trace[]>([]);
-  const [memoryFragments, setMemoryFragments] = useState<any[]>([]);
+  const [memoryFragments, setMemoryFragments] = useState<MemoryFragment[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -110,9 +116,9 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({ isOpen, onClose, ses
             </Typography>
           </div>
         ) : activeTab === 'trace' ? (
-          <TraceList traces={traces} t={t} />
+          <TraceList traces={traces} />
         ) : (
-          <MemoryList fragments={memoryFragments} t={t} />
+          <MemoryList fragments={memoryFragments} />
         )}
       </div>
 
@@ -135,7 +141,9 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({ isOpen, onClose, ses
   );
 };
 
-const TraceList = ({ traces, t }: { traces: Trace[]; t: any }) => {
+type TranslationFn = (key: string) => string;
+
+const TraceList = ({ traces }: { traces: Trace[] }) => {
   if (traces.length === 0) {
     return (
       <div className="py-12 text-center space-y-3 opacity-50">
@@ -190,7 +198,7 @@ const TraceList = ({ traces, t }: { traces: Trace[]; t: any }) => {
   );
 };
 
-const MemoryList = ({ fragments, t }: { fragments: any[]; t: any }) => {
+const MemoryList = ({ fragments }: { fragments: MemoryFragment[] }) => {
   if (fragments.length === 0) {
     return (
       <div className="py-12 text-center space-y-3 opacity-50">

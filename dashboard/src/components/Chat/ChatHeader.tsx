@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Edit2, Check, X, Brain, Keyboard, Plus, Bot, Database } from 'lucide-react';
+import { Edit2, Check, X, Brain, Plus, Bot, Database } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 import CyberTooltip from '@/components/CyberTooltip';

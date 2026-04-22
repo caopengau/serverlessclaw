@@ -6,8 +6,6 @@ import {
   MessageSquare,
   Settings,
   Lock,
-  Share2,
-  Zap,
   Menu,
   X,
   ChevronRight,

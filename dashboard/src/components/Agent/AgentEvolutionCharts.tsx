@@ -27,7 +27,6 @@ interface Metric {
 
 export default function AgentEvolutionCharts({
   agentId,
-  currentVersion: _currentVersion,
 }: {
   agentId: string;
   currentVersion: number;

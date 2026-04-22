@@ -7,7 +7,6 @@ import {
   Activity,
   Settings,
   Plus,
-  Zap,
   Brain,
   ShieldCheck,
   ArrowRight,
@@ -33,7 +32,6 @@ interface SessionMetadata {
  * Provides a high-level overview of active missions, system health, and quick actions.
  */
 export default function MissionDashboard() {
-  const { t } = useTranslations();
   const [recentSessions, setRecentSessions] = useState<SessionMetadata[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,7 +40,7 @@ export default function MissionDashboard() {
       .then((res) => res.json())
       .then((data) => {
         const sorted = (data.sessions || [])
-          .sort((a: any, b: any) => b.updatedAt - a.updatedAt)
+          .sort((a: SessionMetadata, b: SessionMetadata) => b.updatedAt - a.updatedAt)
           .slice(0, 3);
         setRecentSessions(sorted);
       })

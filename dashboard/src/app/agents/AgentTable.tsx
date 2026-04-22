@@ -31,9 +31,6 @@ export default function AgentTable({
   deleteAgent,
   cloneAgent,
   setSelectedAgentIdForTools,
-  onSave: _onSave,
-  saving: _saving,
-  hasChanges: _hasChanges,
 }: AgentTableProps) {
   const { t } = useTranslations();
   const router = useRouter();

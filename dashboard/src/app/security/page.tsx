@@ -1,13 +1,12 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Lock, Eye, FileWarning, Globe, Server, Database } from 'lucide-react';
+import { Lock, Eye, FileWarning, Globe, Server } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import SafetyTierEditor from '@/components/SafetyTierEditor';
 import CoManagementHub from '@/components/CoManagementHub';
-import { THEME } from '@/lib/theme';
 import PageHeader from '@/components/PageHeader';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 

@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ShieldAlert, RefreshCw, Activity, Zap, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, RefreshCw, Activity, Zap } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
-import { THEME } from '@/lib/theme';
 
 interface ResilienceMetrics {
   healthScore: number;

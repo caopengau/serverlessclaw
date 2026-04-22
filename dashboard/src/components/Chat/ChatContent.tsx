@@ -19,7 +19,6 @@ import { AgentType } from '@claw/core/lib/types/index';
 import { logger } from '@claw/core/lib/logger';
 import type { ChatMessage } from './types';
 import { ChatHeader } from './ChatHeader';
-import { ShortcutsHelp } from './ShortcutsHelp';
 import { ContextPanel } from './ContextPanel';
 import type { ConversationMeta } from '@claw/core/lib/types/memory';
 
