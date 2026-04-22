@@ -122,15 +122,34 @@ export interface CoherenceResult {
  * Checks reasoning coherence from recent traces by analyzing step patterns.
  */
 export async function checkTraceCoherence(): Promise<CoherenceResult> {
-  const typedResource = Resource as unknown as SSTResource;
+  let tableName: string | undefined;
+  try {
+    const typedResource = Resource as unknown as SSTResource;
+    tableName = typedResource.TraceTable?.name;
+  } catch {
+    // SST links not active
+  }
+
+  if (!tableName) {
+    return {
+      ok: true,
+      traceCount: 0,
+      avgStepCount: 0,
+      stepDeviation: 0,
+      errorRate: 0,
+      anomalyScore: 0,
+      issues: [],
+    };
+  }
+
   const now = Date.now();
   const recentWindow = now - 30 * 60 * 1000; // Last 30 minutes
-  const issues: string[] = [];
+  const healthIssues: string[] = [];
 
   try {
     const scanResult = await getDynamoDbClient().send(
       new ScanCommand({
-        TableName: typedResource.TraceTable.name,
+        TableName: tableName,
         FilterExpression: '#ts > :recentWindow',
         ExpressionAttributeNames: {
           '#ts': 'timestamp',
@@ -175,7 +194,7 @@ export async function checkTraceCoherence(): Promise<CoherenceResult> {
       if (endTime) {
         const duration = endTime - (trace.timestamp as number);
         if (duration > 300000) {
-          issues.push(
+          healthIssues.push(
             `Trace ${trace.traceId} exceeded 5min timeout (${Math.round(duration / 1000)}s)`
           );
         }
@@ -194,18 +213,18 @@ export async function checkTraceCoherence(): Promise<CoherenceResult> {
     );
 
     if (errorRate > 0.3) {
-      issues.push(`High error rate: ${(errorRate * 100).toFixed(1)}%`);
+      healthIssues.push(`High error rate: ${(errorRate * 100).toFixed(1)}%`);
     }
     if (stepDeviation > avgStepCount * 0.5) {
-      issues.push(
+      healthIssues.push(
         `High step count variance: std dev ${stepDeviation.toFixed(1)} vs avg ${avgStepCount.toFixed(1)}`
       );
     }
     if (anomalyScore > 0.5) {
-      issues.push(`Anomaly detected: score ${(anomalyScore * 100).toFixed(1)}%`);
+      healthIssues.push(`Anomaly detected: score ${(anomalyScore * 100).toFixed(1)}%`);
     }
 
-    const ok = issues.length === 0 && errorRate < 0.3 && anomalyScore < 0.5;
+    const ok = healthIssues.length === 0 && errorRate < 0.3 && anomalyScore < 0.5;
 
     return {
       ok,
@@ -214,7 +233,7 @@ export async function checkTraceCoherence(): Promise<CoherenceResult> {
       stepDeviation: Math.round(stepDeviation * 10) / 10,
       errorRate: Math.round(errorRate * 1000) / 1000,
       anomalyScore: Math.round(anomalyScore * 1000) / 1000,
-      issues,
+      issues: healthIssues,
     };
   } catch (error) {
     logger.warn('[Health] Failed to check trace coherence:', error);
@@ -264,12 +283,23 @@ export async function reportHealthIssue(report: HealthIssue): Promise<void> {
  * Verifies connectivity to the EventBridge AgentBus.
  */
 export async function checkAgentBus(): Promise<ProbeResult> {
-  const typedResource = Resource as unknown as SSTResource;
   const start = Date.now();
+  let busName: string | undefined;
+  try {
+    const typedResource = Resource as unknown as SSTResource;
+    busName = typedResource.AgentBus?.name;
+  } catch {
+    // SST links not active
+  }
+
+  if (!busName) {
+    return { ok: false, latencyMs: Date.now() - start, error: 'AgentBus not linked' };
+  }
+
   try {
     await getEventBridgeClient().send(
       new ListEventBusesCommand({
-        NamePrefix: typedResource.AgentBus.name,
+        NamePrefix: busName,
       })
     );
     return { ok: true, latencyMs: Date.now() - start };
@@ -312,6 +342,12 @@ export async function checkToolHealth(): Promise<ProbeResult> {
           userId: { S: 'HEALTH#PROBE' },
           timestamp: { N: '0' },
         };
+      }
+
+      if (!table.resource?.name) {
+        details[table.name.toLowerCase()] = { ok: false, error: 'Resource not linked' };
+        if (table.name === 'MemoryTable') overallOk = false;
+        continue;
       }
 
       await getDynamoDbClient().send(

@@ -8,8 +8,15 @@ import { SSTResource } from '@claw/core/lib/types/index';
 
 export const dynamic = 'force-dynamic';
 
-const dbClient = new DynamoDBClient({});
-const docClient = DynamoDBDocumentClient.from(dbClient);
+let docClientInstance: DynamoDBDocumentClient | null = null;
+
+function getDocClient() {
+  if (!docClientInstance) {
+    const dbClient = new DynamoDBClient({});
+    docClientInstance = DynamoDBDocumentClient.from(dbClient);
+  }
+  return docClientInstance;
+}
 
 /**
  * Returns public configuration for the dashboard.
@@ -98,7 +105,7 @@ export async function POST(req: NextRequest) {
       if (!tableName) {
         return NextResponse.json({ error: 'ConfigTable name is missing' }, { status: 500 });
       }
-      await docClient.send(
+      await getDocClient().send(
         new PutCommand({
           TableName: tableName,
           Item: {

@@ -36,12 +36,17 @@ export async function requestHandoff(userId: string, sessionId?: string): Promis
   const docClient = getDocClient();
 
   // Safe resource check for test environments
-  if (typeof Resource === 'undefined' || !('MemoryTable' in Resource)) {
-    return;
+  let tableName: string | undefined;
+  try {
+    const resource = Resource as unknown as { MemoryTable?: { name: string } };
+    tableName = resource.MemoryTable?.name;
+  } catch {
+    // SST links not active
   }
 
-  const resource = Resource as unknown as { MemoryTable: { name: string } };
-  const tableName = resource.MemoryTable.name;
+  if (!tableName) {
+    return;
+  }
 
   const now = Math.floor(Date.now() / 1000);
   const expiresAt = now + (await getHandoffTtlSeconds());
@@ -85,12 +90,17 @@ export async function isHumanTakingControl(userId: string, sessionId?: string): 
   const docClient = getDocClient();
 
   // Safe resource check for test environments
-  if (typeof Resource === 'undefined' || !('MemoryTable' in Resource)) {
-    return false;
+  let tableName: string | undefined;
+  try {
+    const resource = Resource as unknown as { MemoryTable?: { name: string } };
+    tableName = resource.MemoryTable?.name;
+  } catch {
+    // SST links not active
   }
 
-  const resource = Resource as unknown as { MemoryTable: { name: string } };
-  const tableName = resource.MemoryTable.name;
+  if (!tableName) {
+    return false;
+  }
 
   try {
     const response = await docClient.send(

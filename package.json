@@ -42,7 +42,7 @@
   "license": "MIT",
   "type": "commonjs",
   "engines": {
-    "node": ">=25"
+    "node": ">=24"
   },
   "dependencies": {
     "@aiready/ast-mcp-server": "0.8.2",
@@ -108,7 +108,7 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/archiver": "^7.0.0",
     "@types/aws-lambda": "^8.10.161",
-    "@types/node": "^25.5.2",
+    "@types/node": "24.12.2",
     "@typescript-eslint/eslint-plugin": "^8.58.0",
     "@typescript-eslint/parser": "^8.58.0",
     "@vitejs/plugin-react": "^6.0.1",

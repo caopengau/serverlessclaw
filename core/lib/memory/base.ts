@@ -59,18 +59,25 @@ export class BaseMemoryProvider {
    * @returns The resolved table name string.
    */
   protected get tableName(): string {
-    const name = typedResource?.MemoryTable?.name;
-    if (!name) {
-      if (!BaseMemoryProvider._warnedMissingTable) {
-        logger.warn(
-          '[BaseMemoryProvider] MemoryTable resource is not linked. Using default "MemoryTable". ' +
-            'Ensure you are running with "sst dev" or have configured SST links correctly.'
-        );
-        BaseMemoryProvider._warnedMissingTable = true;
-      }
-      return 'MemoryTable';
+    try {
+      const name = typedResource?.MemoryTable?.name;
+      if (name) return name;
+    } catch {
+      // Resource access might throw if SST links are not active
     }
-    return name;
+
+    // Fallback to environment variable (SST v4 naming convention)
+    const envName = process.env.SST_RESOURCE_MemoryTable;
+    if (envName) return envName;
+
+    if (!BaseMemoryProvider._warnedMissingTable) {
+      logger.warn(
+        '[BaseMemoryProvider] MemoryTable resource is not linked or SST links are inactive. Using default "MemoryTable". ' +
+          'Ensure you are running with "sst dev" or have configured SST links correctly.'
+      );
+      BaseMemoryProvider._warnedMissingTable = true;
+    }
+    return 'MemoryTable';
   }
 
   /**

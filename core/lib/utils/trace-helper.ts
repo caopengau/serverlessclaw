@@ -38,10 +38,21 @@ export async function addTraceStep(
     return;
   }
 
-  const typedResource = Resource as unknown as SSTResource;
-  const tableName = typedResource.TraceTable?.name;
+  let tableName: string | undefined;
+  try {
+    const typedResource = Resource as unknown as SSTResource;
+    tableName = typedResource.TraceTable?.name;
+  } catch {
+    // SST links not active
+  }
+
+  // Fallback to environment variable
   if (!tableName) {
-    logger.warn('TraceTable name is missing, cannot add trace step');
+    tableName = process.env.SST_RESOURCE_TraceTable;
+  }
+
+  if (!tableName) {
+    logger.info('[trace-helper] TraceId provided but TraceTable not linked. Skipping trace step.');
     return;
   }
 
@@ -102,8 +113,19 @@ export async function updateTraceMetadata(
 ): Promise<void> {
   if (!traceId) return;
 
-  const typedResource = Resource as unknown as SSTResource;
-  const tableName = typedResource.TraceTable?.name;
+  let tableName: string | undefined;
+  try {
+    const typedResource = Resource as unknown as SSTResource;
+    tableName = typedResource.TraceTable?.name;
+  } catch {
+    // SST links not active
+  }
+
+  // Fallback to environment variable
+  if (!tableName) {
+    tableName = process.env.SST_RESOURCE_TraceTable;
+  }
+
   if (!tableName) return;
 
   try {
@@ -155,8 +177,19 @@ export async function updateTraceStatus(
 ): Promise<void> {
   if (!traceId) return;
 
-  const typedResource = Resource as unknown as SSTResource;
-  const tableName = typedResource.TraceTable?.name;
+  let tableName: string | undefined;
+  try {
+    const typedResource = Resource as unknown as SSTResource;
+    tableName = typedResource.TraceTable?.name;
+  } catch {
+    // SST links not active
+  }
+
+  // Fallback to environment variable
+  if (!tableName) {
+    tableName = process.env.SST_RESOURCE_TraceTable;
+  }
+
   if (!tableName) return;
 
   try {

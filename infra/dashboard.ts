@@ -81,6 +81,17 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
         resources: [schedulerRole!.arn],
       },
       {
+        actions: ['dynamodb:*'],
+        resources: [
+          memoryTable.nodes.table.arn,
+          $util.interpolate`${memoryTable.nodes.table.arn}/index/*`,
+          traceTable.nodes.table.arn,
+          $util.interpolate`${traceTable.nodes.table.arn}/index/*`,
+          configTable.nodes.table.arn,
+          $util.interpolate`${configTable.nodes.table.arn}/index/*`,
+        ],
+      },
+      {
         actions: ['cloudwatch:PutMetricData'],
         resources: ['*'],
       },

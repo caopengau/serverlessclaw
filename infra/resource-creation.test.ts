@@ -219,9 +219,9 @@ describe('Infrastructure Resource Creation', () => {
   describe('createDashboard', () => {
     it('should create Nextjs app with links', () => {
       const mockCtx = {
-        memoryTable: { name: 'memory' },
-        traceTable: { name: 'trace' },
-        configTable: { name: 'config' },
+        memoryTable: new MockDynamo('memory'),
+        traceTable: new MockDynamo('trace'),
+        configTable: new MockDynamo('config'),
         stagingBucket: { name: 'staging', arn: 'arn:s3:staging' },
         knowledgeBucket: { name: 'knowledge', arn: 'arn:s3:knowledge' },
         bus: { name: 'bus', arn: 'arn:bus' },

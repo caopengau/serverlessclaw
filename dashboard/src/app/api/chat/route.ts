@@ -14,9 +14,18 @@ import { TraceSource, AgentType, IAgentConfig } from '@claw/core/lib/types/index
 import { AgentRegistry } from '@claw/core/lib/registry';
 import { logger } from '@claw/core/lib/logger';
 
-// Singleton memory and provider to leverage in-memory LRU cache
-const memory = new CachedMemory(new DynamoMemory());
-const provider = new ProviderManager();
+let memoryInstance: CachedMemory | null = null;
+let providerInstance: ProviderManager | null = null;
+
+function getMemory() {
+  if (!memoryInstance) memoryInstance = new CachedMemory(new DynamoMemory());
+  return memoryInstance;
+}
+
+function getProvider() {
+  if (!providerInstance) providerInstance = new ProviderManager();
+  return providerInstance;
+}
 
 function getUserId(req: NextRequest): string {
   if (!req.cookies) {
@@ -88,7 +97,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     let communicationMode: 'text' | 'json' = 'text';
     if (collaborationId) {
       const collab = collaborationId
-        ? await memory.getCollaboration(collaborationId as string)
+        ? await getMemory().getCollaboration(collaborationId as string)
         : null;
       if (collab) {
         const hasHuman =
@@ -101,7 +110,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    const agent = new Agent(memory, provider, agentTools, {
+    const agent = new Agent(getMemory(), getProvider(), agentTools, {
       ...config,
       ...(overrideConfig || {}),
       systemPrompt: overrideConfig?.systemPrompt ?? config?.systemPrompt ?? SUPERCLAW_SYSTEM_PROMPT,
@@ -139,7 +148,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Update conversation metadata for the sidebar
     if (sessionId) {
-      await memory.saveConversationMeta(userId, sessionId, {
+      await getMemory().saveConversationMeta(userId, sessionId, {
         lastMessage:
           finalResponse.length > 60 ? finalResponse.substring(0, 60) + '...' : finalResponse,
         updatedAt: Date.now(),
@@ -184,7 +193,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
     }
 
-    await memory.saveConversationMeta(userId, sessionId, {
+    await getMemory().saveConversationMeta(userId, sessionId, {
       title,
       isPinned,
       updatedAt: Date.now(),
@@ -210,13 +219,13 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     }
 
     if (sessionId === 'all') {
-      const sessions = await memory.listConversations(userId);
-      await Promise.all(sessions.map((s) => memory.deleteConversation(userId, s.sessionId)));
+      const sessions = await getMemory().listConversations(userId);
+      await Promise.all(sessions.map((s) => getMemory().deleteConversation(userId, s.sessionId)));
       revalidatePath('/');
       return NextResponse.json({ success: true, count: sessions.length });
     }
 
-    await memory.deleteConversation(userId, sessionId);
+    await getMemory().deleteConversation(userId, sessionId);
     revalidatePath('/');
 
     return NextResponse.json({ success: true });
@@ -234,11 +243,25 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const sessionId = req.nextUrl.searchParams.get('sessionId');
   try {
     if (sessionId) {
-      const history = await memory.getHistory(`CONV#${userId}#${sessionId}`);
-      return NextResponse.json({ history });
+      try {
+        const history = await getMemory().getHistory(`CONV#${userId}#${sessionId}`);
+        return NextResponse.json({ history });
+      } catch (error) {
+        logger.warn(
+          `[Chat API] Failed to fetch history for ${sessionId}, likely table not linked:`,
+          error
+        );
+        return NextResponse.json({ history: [] });
+      }
     } else {
-      const sessions = await memory.listConversations(userId);
-      return NextResponse.json({ sessions });
+      // List conversations - handle missing table gracefully
+      try {
+        const sessions = await getMemory().listConversations(userId);
+        return NextResponse.json({ sessions });
+      } catch (error) {
+        logger.warn('[Chat API] Failed to list conversations, likely table not linked:', error);
+        return NextResponse.json({ sessions: [] });
+      }
     }
   } catch (error) {
     logger.error(

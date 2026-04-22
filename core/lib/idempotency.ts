@@ -12,7 +12,7 @@ import {
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from './logger';
-import { SSTResource } from './types/system';
+import type { SSTResource } from './types/system';
 
 const typedResource = Resource as unknown as SSTResource;
 
@@ -40,7 +40,17 @@ interface IdempotencyRecord {
  */
 export async function getIdempotentResult(idempotencyKey: string): Promise<unknown | null> {
   try {
-    const tableName = typedResource.MemoryTable.name;
+    let tableName: string | undefined;
+    try {
+      tableName = typedResource.MemoryTable?.name;
+    } catch {
+      // SST links not active
+    }
+
+    if (!tableName) {
+      logger.info('[IDEMPOTENCY] MemoryTable not linked. Skipping idempotent check.');
+      return null;
+    }
 
     const response = await docClient.send(
       new GetCommand({
@@ -81,7 +91,18 @@ export async function getIdempotentResult(idempotencyKey: string): Promise<unkno
  */
 export async function setIdempotentResult(idempotencyKey: string, result: unknown): Promise<void> {
   try {
-    const tableName = typedResource.MemoryTable.name;
+    let tableName: string | undefined;
+    try {
+      tableName = typedResource.MemoryTable?.name;
+    } catch {
+      // SST links not active
+    }
+
+    if (!tableName) {
+      logger.info('[IDEMPOTENCY] MemoryTable not linked. Skipping idempotent save.');
+      return;
+    }
+
     const now = Math.floor(Date.now() / 1000);
 
     const record: IdempotencyRecord = {
@@ -125,7 +146,14 @@ export async function setIdempotentResult(idempotencyKey: string, result: unknow
  */
 export async function deleteIdempotentKey(idempotencyKey: string): Promise<void> {
   try {
-    const tableName = typedResource.MemoryTable.name;
+    let tableName: string | undefined;
+    try {
+      tableName = typedResource.MemoryTable?.name;
+    } catch {
+      // SST links not active
+    }
+
+    if (!tableName) return;
 
     await docClient.send(
       new DeleteCommand({

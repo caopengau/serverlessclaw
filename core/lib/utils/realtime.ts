@@ -12,7 +12,14 @@ export async function publishToRealtime(topic: string, payload: unknown): Promis
 
   try {
     // SST v3 Realtime isolation requires prefixing topics with app/stage
-    const prefix = `${Resource.App.name}/${Resource.App.stage}/`;
+    let prefix = '';
+    try {
+      prefix = `${Resource.App.name}/${Resource.App.stage}/`;
+    } catch {
+      // SST links not active, use default prefix or skip
+      prefix = 'serverlessclaw/local/';
+    }
+
     const fullTopic = topic.startsWith(prefix) ? topic : `${prefix}${topic}`;
 
     const command = new PublishCommand({

@@ -54,17 +54,23 @@ export class ConfigManager {
     try {
       const resource = Resource as unknown as SSTResource;
       const name = resource.ConfigTable?.name;
-      if (!name && !this._warnedMissingConfigTable) {
-        logger.warn(
-          '[ConfigManager] ConfigTable resource is not linked. ' +
-            'Ensure you are running with "sst dev" or have configured SST links correctly.'
-        );
-        this._warnedMissingConfigTable = true;
-      }
-      return name;
+      if (name) return name;
     } catch {
-      return undefined;
+      // Resource access might throw
     }
+
+    // Fallback to environment variable (SST v4 naming convention)
+    const envName = process.env.SST_RESOURCE_ConfigTable;
+    if (envName) return envName;
+
+    if (!this._warnedMissingConfigTable) {
+      logger.warn(
+        '[ConfigManager] ConfigTable resource is not linked. ' +
+          'Ensure you are running with "sst dev" or have configured SST links correctly.'
+      );
+      this._warnedMissingConfigTable = true;
+    }
+    return undefined;
   }
 
   /**

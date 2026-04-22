@@ -148,8 +148,15 @@ export class AgentRegistry {
    * @throws Error if mandatory fields (name, systemPrompt) are missing during initialization.
    */
   static async saveConfig(agentId: string, config: Partial<IAgentConfig>): Promise<void> {
-    const resource = Resource as unknown as import('../types/common').SSTConfigResource;
-    if (!resource.ConfigTable?.name) {
+    let tableName: string | undefined;
+    try {
+      const resource = Resource as unknown as import('../types/common').SSTConfigResource;
+      tableName = resource.ConfigTable?.name;
+    } catch {
+      // SST links not active
+    }
+
+    if (!tableName) {
       throw new Error('ConfigTable not linked. Cannot save agent configuration.');
     }
 
@@ -180,7 +187,7 @@ export class AgentRegistry {
       const topology = await discoverSystemTopology();
       await getDocClient().send(
         new PutCommand({
-          TableName: resource.ConfigTable.name,
+          TableName: tableName,
           Item: { key: DYNAMO_KEYS.SYSTEM_TOPOLOGY, value: topology },
         })
       );
@@ -247,14 +254,21 @@ export class AgentRegistry {
     toolName: string,
     timestamp: number
   ): Promise<void> {
-    const resource = Resource as unknown as import('../types/common').SSTConfigResource;
-    if (!resource.ConfigTable?.name) return;
+    let tableName: string | undefined;
+    try {
+      const resource = Resource as unknown as import('../types/common').SSTConfigResource;
+      tableName = resource.ConfigTable?.name;
+    } catch {
+      // SST links not active
+    }
+
+    if (!tableName) return;
 
     try {
       // Try to increment existing stats
       await getDocClient().send(
         new UpdateCommand({
-          TableName: resource.ConfigTable.name,
+          TableName: tableName,
           Key: { key },
           UpdateExpression:
             'SET #val.#tool.#count = if_not_exists(#val.#tool.#count, :zero) + :one, #val.#tool.#last = :now',
@@ -277,7 +291,7 @@ export class AgentRegistry {
         try {
           await getDocClient().send(
             new UpdateCommand({
-              TableName: resource.ConfigTable.name,
+              TableName: tableName,
               Key: { key },
               UpdateExpression: 'SET #val.#tool = :newStats',
               ConditionExpression: 'attribute_not_exists(#val.#tool)',
@@ -300,14 +314,21 @@ export class AgentRegistry {
    * Uses if_not_exists to avoid overwriting existing firstRegistered timestamps.
    */
   private static async ensureToolStatsInitialized(toolName: string): Promise<void> {
-    const resource = Resource as unknown as import('../types/common').SSTConfigResource;
-    if (!resource.ConfigTable?.name) return;
+    let tableName: string | undefined;
+    try {
+      const resource = Resource as unknown as import('../types/common').SSTConfigResource;
+      tableName = resource.ConfigTable?.name;
+    } catch {
+      // SST links not active
+    }
+
+    if (!tableName) return;
 
     const now = Date.now();
     try {
       await getDocClient().send(
         new UpdateCommand({
-          TableName: resource.ConfigTable.name,
+          TableName: tableName,
           Key: { key: DYNAMO_KEYS.TOOL_USAGE },
           UpdateExpression:
             'SET #val.#tool = if_not_exists(#val.#tool, :newStats), #val.#tool.#first = if_not_exists(#val.#tool.#first, :now)',
@@ -332,8 +353,15 @@ export class AgentRegistry {
    * This is used by the pruner to ensure grace periods are respected for never-used tools.
    */
   static async initializeToolStats(toolNames: string[]): Promise<void> {
-    const resource = Resource as unknown as { ConfigTable?: { name: string } };
-    if (!resource.ConfigTable?.name || toolNames.length === 0) return;
+    let tableName: string | undefined;
+    try {
+      const resource = Resource as unknown as { ConfigTable?: { name: string } };
+      tableName = resource.ConfigTable?.name;
+    } catch {
+      // SST links not active
+    }
+
+    if (!tableName || toolNames.length === 0) return;
 
     for (const toolName of toolNames) {
       await this.ensureToolStatsInitialized(toolName);
@@ -427,8 +455,15 @@ export class AgentRegistry {
    * @returns The updated value of the field.
    */
   static async atomicAddAgentField(agentId: string, field: string, value: number): Promise<number> {
-    const resource = Resource as unknown as import('../types/common').SSTConfigResource;
-    if (!resource.ConfigTable?.name) {
+    let tableName: string | undefined;
+    try {
+      const resource = Resource as unknown as import('../types/common').SSTConfigResource;
+      tableName = resource.ConfigTable?.name;
+    } catch {
+      // SST links not active
+    }
+
+    if (!tableName) {
       throw new Error('ConfigTable not linked. Cannot update agent field.');
     }
 
@@ -437,7 +472,7 @@ export class AgentRegistry {
     try {
       const response = await getDocClient().send(
         new UpdateCommand({
-          TableName: resource.ConfigTable.name,
+          TableName: tableName,
           Key: { key: DYNAMO_KEYS.AGENTS_CONFIG },
           UpdateExpression:
             'SET #agents.#id.#field = if_not_exists(#agents.#id.#field, :zero) + :val',

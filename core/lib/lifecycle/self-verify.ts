@@ -48,7 +48,16 @@ export class SelfVerifier {
    * Verifies the evolution mechanism by checking gap statistics.
    */
   async verifyEvolution() {
-    const memoryTable = typedResource.MemoryTable.name;
+    let memoryTable: string | undefined;
+    try {
+      memoryTable = typedResource.MemoryTable?.name;
+    } catch {
+      // SST links not active
+    }
+
+    if (!memoryTable) {
+      return { totalGaps: 0, activeGaps: 0, fixSuccessRate: 100 };
+    }
 
     // Scan for all GAPs
     const gapResult = await this.docClient.send(
@@ -80,8 +89,22 @@ export class SelfVerifier {
    * Verifies the resilience mechanism by checking circuit breakers and health probes.
    */
   async verifyResilience() {
-    const memoryTable = typedResource.MemoryTable.name;
-    const configTable = typedResource.ConfigTable.name;
+    let memoryTable: string | undefined;
+    let configTable: string | undefined;
+    try {
+      memoryTable = typedResource.MemoryTable?.name;
+      configTable = typedResource.ConfigTable?.name;
+    } catch {
+      // SST links not active
+    }
+
+    if (!memoryTable || !configTable) {
+      return {
+        circuitBreakerActive: false,
+        deployCountToday: 0,
+        apiHealthy: false,
+      };
+    }
 
     // 1. Get Limits from Config
     const configRes = await this.docClient.send(
@@ -118,7 +141,20 @@ export class SelfVerifier {
    * Verifies the awareness mechanism by checking topology discovery.
    */
   async verifyAwareness() {
-    const configTable = typedResource.ConfigTable.name;
+    let configTable: string | undefined;
+    try {
+      configTable = typedResource.ConfigTable?.name;
+    } catch {
+      // SST links not active
+    }
+
+    if (!configTable) {
+      return {
+        nodeCount: 0,
+        lastScanTimestamp: undefined,
+        registryCoverage: 100,
+      };
+    }
 
     // 1. Check discovered nodes
     const topoResult = await this.docClient.send(

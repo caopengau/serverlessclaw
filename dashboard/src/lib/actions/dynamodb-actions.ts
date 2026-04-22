@@ -21,10 +21,15 @@ export async function deleteMemoryItem(
 ): Promise<void> {
   try {
     const typedResource = Resource as unknown as { MemoryTable?: { name: string } };
-    const tableName = typedResource.MemoryTable?.name;
+    let tableName = typedResource.MemoryTable?.name;
+
+    // Fallback to environment variable
+    if (!tableName) {
+      tableName = process.env.SST_RESOURCE_MemoryTable;
+    }
 
     if (!tableName) {
-      throw new Error('MemoryTable name is missing from Resources');
+      throw new Error('MemoryTable name is missing from Resources and environment');
     }
 
     const client = new DynamoDBClient({});
