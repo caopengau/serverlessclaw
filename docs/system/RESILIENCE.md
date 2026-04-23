@@ -119,10 +119,10 @@ The system tracks `deploy` and `health` failures in a 1-hour sliding window.
 
 The **Dead Man's Switch** is an external heartbeat monitor that triggers an automated rollback if the system becomes "braindead" (unresponsive).
 
-1. **Schedule**: Triggered every 15 minutes by EventBridge.
+1. **Schedule**: Triggered every 2 hours by EventBridge (Production only).
 2. **Probes**: Combined HTTP (`GET /health`) and Cognitive Health check.
 3. **Emergency Action**: If probes fail, CodeBuild triggers an emergency rollback.
-4. **Git Revert**: The system performs a `git revert HEAD` and redeploys the last known good state.
+4. **Git Revert**: The system performs a `git revert HEAD` (or to a Last Known Good hash) and redeploys the stack.
 
 ---
 

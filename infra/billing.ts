@@ -24,6 +24,33 @@ export function createBilling() {
     },
   });
 
+  // Grant AWS Budgets permission to publish to the SNS topic.
+  // Without this policy, budget notifications silently fail.
+  new aws.sns.TopicPolicy('BillingAlertsPolicy', {
+    arn: billingTopic.arn,
+    policy: billingTopic.arn.apply((arn) =>
+      JSON.stringify({
+        Version: '2012-10-17',
+        Statement: [
+          {
+            Sid: 'AllowBudgetsPublish',
+            Effect: 'Allow',
+            Principal: {
+              Service: 'budgets.amazonaws.com',
+            },
+            Action: 'SNS:Publish',
+            Resource: arn,
+            Condition: {
+              StringEquals: {
+                'aws:SourceAccount': '316759592139',
+              },
+            },
+          },
+        ],
+      })
+    ),
+  });
+
   const emailSubscribers = alertEmail ? [alertEmail] : [];
   const thresholds = [1, 4, 16, 64, 256];
 

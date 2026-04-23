@@ -216,6 +216,7 @@ export async function processEventWithAgent(
     workspaceId?: string;
     teamId?: string;
     staffId?: string;
+    metadata?: Record<string, unknown>;
   }
 ): Promise<{
   responseText: string;
@@ -272,6 +273,7 @@ export async function processEventWithAgent(
       workspaceId: options.workspaceId,
       teamId: options.teamId,
       staffId: options.staffId,
+      metadata: options.metadata,
       depth: options.depth,
       initiatorId: options.initiatorId,
       attachments: options.attachments,

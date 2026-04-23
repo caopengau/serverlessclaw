@@ -33,6 +33,7 @@ export interface ToolExecutionContext {
   teamId?: string;
   staffId?: string;
   userId: string;
+  metadata?: Record<string, unknown>;
   mainConversationId: string;
   activeModel?: string;
   activeProvider?: string;

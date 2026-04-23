@@ -13,7 +13,7 @@ Last Updated: 2026-04-23
 | Silo  | Name           | Primary Focus                                   | Audit Count | Last Audited | Risk Level |
 | :---- | :------------- | :---------------------------------------------- | :---------: | :----------- | :--------- |
 | **1** | The Spine      | `core/lib/routing/`, `core/lib/backbone.ts`     |     6+      | 2026-04-16   | Medium     |
-| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` |      2      | 2026-04-06   | Medium     |
+| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` |      3      | 2026-04-23   | Medium     |
 | **3** | The Shield     | `core/lib/safety/safety-engine.ts`              |     5+      | 2026-04-22   | High       |
 | **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             |      3      | 2026-04-23   | Medium     |
 | **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         |      3      | 2026-04-15   | Medium     |
@@ -27,8 +27,8 @@ Last Updated: 2026-04-23
 | Perspective | Name              | Description            | Usage Count | Last Tested |
 | :---------- | :---------------- | :--------------------- | :---------- | :---------- |
 | **A**       | Life of a Message | Spine → Brain → Eye    | 2           | 2026-04-23  |
-| **B**       | Evolution Cycle   | Hand → Shield → Scales | 1           | 2026-04-16  |
-| **C**       | Identity Journey  | Brain → Spine → Shield | 1           | 2026-04-20  |
+| **B**       | Evolution Cycle   | Hand → Shield → Scales | 2           | 2026-04-23  |
+| **C**       | Identity Journey  | Brain → Spine → Shield | 2           | 2026-04-23  |
 | **D**       | Trust Loop        | Eye → Scales → Spine   | 2           | 2026-04-23  |
 | **E**       | Recovery Path     | Shield → Spine → Brain | 2           | 2026-04-22  |
 
@@ -38,6 +38,7 @@ Last Updated: 2026-04-23
 
 | Date       | Report                                     | Silos Covered          | Cross-Silo      | Key Findings                                     |
 | :--------- | :----------------------------------------- | :--------------------- | :-------------- | :----------------------------------------------- |
+| 2026-04-23 | `AUDIT-2026-04-23-HAND-EVOLUTION-IDENTITY.md`| Hand                 | B, C            | FIXED: Truncated Class C list, Broken evolution loop|
 | 2026-04-23 | `audit-2026-04-23-multi-tenant-integrity.md`| Brain, Scales          | A, D            | P0 Knowledge leakage, Broken trust loop isolation|
 | 2026-04-22 | `audit-2026-04-22-evolution-recovery.md`   | Shield                 | E               | Dropped tool context, IDOR on approval           |
 | 2026-04-20 | `audit-2026-04-20-system-integrity.md`     | Spine, Shield, Scales  | C, D, E         | Broken multi-tenancy, Dead trust loop, Ghost fix |

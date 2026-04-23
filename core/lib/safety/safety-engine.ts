@@ -12,6 +12,7 @@ import {
   EventType,
 } from '../types/agent';
 import { TRUST } from '../constants';
+import { CLASS_C_ACTIONS } from '../constants/safety';
 import { logger } from '../logger';
 import { SafetyConfigManager } from './safety-config-manager';
 import { SafetyRateLimiter, ToolSafetyOverride } from './safety-limiter';
@@ -23,8 +24,6 @@ import { BaseMemoryProvider } from '../memory/base';
 import { emitEvent } from '../utils/bus';
 import { AgentRegistry } from '../registry';
 import { CONFIG_DEFAULTS } from '../config/config-defaults';
-
-const CLASS_C_ACTIONS = ['deployment', 'shell_command', 'code_change', 'iam_change'];
 
 let sharedEngine: SafetyEngine | null = null;
 
@@ -59,7 +58,9 @@ function normalizeSafetyAction(action: string, toolName?: string): string {
   if (!toolName) return action;
   const lowerAction = action.toLowerCase();
   const lowerToolName = toolName.toLowerCase();
-  if (CLASS_C_ACTIONS.map((a) => a.toLowerCase()).includes(lowerAction)) {
+
+  // Use official constants for normalization check
+  if ((CLASS_C_ACTIONS as readonly string[]).map((a) => a.toLowerCase()).includes(lowerAction)) {
     return lowerAction;
   }
   if (lowerToolName.includes('deployment') || lowerToolName.includes('deploy')) {
@@ -140,6 +141,7 @@ export class SafetyEngine extends SafetyBase {
       staffId?: string;
       args?: Record<string, unknown>;
       pathKeys?: string[];
+      isProactive?: boolean;
     }
   ): Promise<SafetyEvaluationResult> {
     const tier = agentConfig?.safetyTier ?? SafetyTier.PROD;
@@ -173,6 +175,18 @@ export class SafetyEngine extends SafetyBase {
         }),
       () => this.validateDynamicRestrictions(agentConfig, normalizedAction, ctx, tier, policy),
     ];
+
+    // P9 Fix: Proactive Evolution bypass for highly trusted agents in AUTO mode
+    if (
+      context?.isProactive &&
+      (agentConfig?.trustScore ?? 0) >= TRUST.AUTONOMY_THRESHOLD &&
+      agentConfig?.evolutionMode === EvolutionMode.AUTO
+    ) {
+      logger.info(
+        `[SafetyEngine] Principle 9: Proactive bypass for trusted agent ${agentId} (${normalizedAction})`
+      );
+      return { allowed: true, requiresApproval: false, appliedPolicy: 'principle_9_proactive' };
+    }
 
     for (const validator of validators) {
       const result = await validator();

@@ -220,6 +220,14 @@ export const triggerDeployment = {
     const cb = getCircuitBreaker();
     const today = new Date().toISOString().split('T')[0];
 
+    // Added safeguard: prevent local stage from triggering remote builds
+    if (process.env.STAGE === 'local' && !process.env.RECOVERY_OVERRIDE) {
+      const msg =
+        '[Local Mode] triggerDeployment blocked to prevent consuming CodeBuild minutes from a local development environment. Set RECOVERY_OVERRIDE=true to bypass.';
+      logger.info(msg);
+      return msg;
+    }
+
     try {
       const proceed = await cb.canProceed(deployType);
       if (!proceed.allowed) {

@@ -26,8 +26,20 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
 
   // EventBridge wraps the payload in 'detail'
   const payload = extractPayload<AgentPayload>(event);
-  const { userId, task, metadata, traceId, sessionId, isContinuation, initiatorId, depth, taskId } =
-    payload;
+  const {
+    userId,
+    task,
+    metadata,
+    traceId,
+    sessionId,
+    isContinuation,
+    initiatorId,
+    depth,
+    taskId,
+    workspaceId,
+    teamId,
+    staffId,
+  } = payload;
   const gapIds = metadata?.gapIds as string[] | undefined;
   const applyStagedChanges = metadata?.applyStagedChanges as boolean | undefined;
 
@@ -117,6 +129,10 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       depth,
       initiatorId,
       isContinuation,
+      workspaceId,
+      teamId,
+      staffId,
+      metadata,
       attachments: metadata?.attachments as Attachment[],
       handlerTitle: 'Coder Agent',
       outboundHandlerName: AgentType.CODER,

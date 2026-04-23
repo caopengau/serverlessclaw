@@ -24,6 +24,8 @@ export interface AgentProcessOptions {
   workspaceId?: string;
   teamId?: string;
   staffId?: string;
+  /** Arbitrary metadata passed from the event payload. */
+  metadata?: Record<string, unknown>;
   attachments?: Array<{
     type: AttachmentType;
     url?: string;

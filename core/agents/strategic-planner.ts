@@ -41,6 +41,9 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
     initiatorId,
     depth,
     sessionId,
+    workspaceId,
+    teamId,
+    staffId,
   } = payload;
 
   logger.info(
@@ -173,6 +176,10 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
       depth,
       initiatorId,
       isContinuation: isProactive,
+      workspaceId,
+      teamId,
+      staffId,
+      metadata: metadata as Record<string, unknown>,
       attachments: (metadata as unknown as AgentPayload | undefined)?.attachments as Attachment[],
       handlerTitle: 'Strategic Planner',
       outboundHandlerName: AgentType.STRATEGIC_PLANNER,

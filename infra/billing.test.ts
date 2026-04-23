@@ -2,8 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // --- Mocks ---
 
+const mockArn = 'arn:aws:sns:region:123456789012:topic';
+
 class MockSnsTopic {
-  arn = 'arn:aws:sns:region:123456789012:topic';
+  arn = { apply: (fn: (v: string) => any) => fn(mockArn) };
   constructor(
     public name: string,
     public args: any
@@ -23,6 +25,9 @@ const mockSnsTopic = vi.fn(function (name, args) {
 const mockBudget = vi.fn(function (name, args) {
   return new MockBudget(name, args);
 });
+const mockTopicPolicy = vi.fn(function (name, args) {
+  return { name, args };
+});
 
 vi.stubGlobal('sst', {
   aws: {
@@ -33,6 +38,9 @@ vi.stubGlobal('sst', {
 vi.stubGlobal('aws', {
   budgets: {
     Budget: mockBudget,
+  },
+  sns: {
+    TopicPolicy: mockTopicPolicy,
   },
 });
 

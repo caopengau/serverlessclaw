@@ -40,8 +40,12 @@ export class ToolSecurityValidator {
       resource: resourcePath,
       traceId: execContext.traceId,
       userId: execContext.userId,
+      workspaceId: execContext.workspaceId,
+      teamId: execContext.teamId,
+      staffId: execContext.staffId,
       args,
       pathKeys: tool.pathKeys,
+      isProactive: !!execContext.metadata?.isProactive,
     });
 
     // 3. Circuit Breaker Check

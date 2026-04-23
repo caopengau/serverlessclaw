@@ -128,6 +128,9 @@ export async function handleStrategicTieBreak(eventDetail: Record<string, unknow
     staffId,
     isContinuation: true,
     strategicDecision: isHighRisk ? 'DEFERRED' : 'PROCEED_SAFE',
+    metadata: {
+      isProactive: !isHighRisk, // Mark as proactive for SafetyEngine bypass/promotion
+    },
   };
 
   if (isHighRisk) {

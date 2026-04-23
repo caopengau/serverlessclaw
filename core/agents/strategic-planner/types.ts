@@ -16,6 +16,8 @@ export interface PlannerMetadata {
   priority: number;
   /** Agent's confidence in the analysis (1-10). */
   confidence: number;
+  /** Support for arbitrary metadata. */
+  [key: string]: unknown;
 }
 
 /**
@@ -46,6 +48,12 @@ export interface PlannerPayload {
   sessionId?: string;
   /** ID of an existing plan to refine. */
   planId?: string;
+  /** Workspace ID for multi-tenant support. */
+  workspaceId?: string;
+  /** Team ID. */
+  teamId?: string;
+  /** Staff ID. */
+  staffId?: string;
 }
 
 /**
