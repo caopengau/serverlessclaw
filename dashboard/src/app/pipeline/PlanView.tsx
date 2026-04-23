@@ -5,7 +5,6 @@ import Typography from '@/components/ui/Typography';
 import { ChevronDown, ChevronUp, GitCommit } from 'lucide-react';
 import PlanDecompositionTree, { SubTask } from '@/components/PlanDecompositionTree';
 
-
 interface PlanData {
   planId: string;
   title: string;
