@@ -59,4 +59,10 @@ export interface ReputationUpdatePayload {
   taskComplexity?: number;
   /** Optional system prompt hash for version tracking. */
   promptHash?: string;
+  /** Optional workspace ID for multi-tenant isolation. */
+  workspaceId?: string;
+  /** Optional team ID for multi-tenant isolation. */
+  teamId?: string;
+  /** Optional staff ID for multi-tenant isolation. */
+  staffId?: string;
 }

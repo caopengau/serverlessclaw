@@ -203,7 +203,7 @@ export class StreamingExecutor extends BaseExecutor {
       }
 
       if (fullContent && options.sessionId) {
-        const loopResult = await this.checkSemanticLoop(options.sessionId, fullContent);
+        const loopResult = await this.checkSemanticLoop(options.sessionId, fullContent, options);
         if (loopResult) {
           yield { content: loopResult.responseText, usage } as unknown as MessageChunk;
           break;

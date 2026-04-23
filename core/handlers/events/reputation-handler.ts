@@ -15,7 +15,8 @@ export async function handleReputationUpdate(eventDetail: Record<string, unknown
     trustScore?: number;
     metadata?: unknown;
   };
-  const { agentId, success, durationMs, traceId, error, promptHash } = payload;
+  const { agentId, success, durationMs, traceId, error, promptHash, workspaceId, teamId, staffId } =
+    payload;
 
   if (agentId) {
     logger.info(
@@ -32,6 +33,7 @@ export async function handleReputationUpdate(eventDetail: Record<string, unknown
         error,
         traceId,
         promptHash,
+        scope: { workspaceId, teamId, staffId },
       });
 
       // 2. Record temporal metric snapshot for charts
@@ -41,6 +43,7 @@ export async function handleReputationUpdate(eventDetail: Record<string, unknown
         durationMs: durationMs ?? 0,
         errorType: error,
         promptHash,
+        workspaceId,
       });
     }
   }

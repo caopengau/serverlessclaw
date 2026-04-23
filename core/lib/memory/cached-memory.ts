@@ -211,7 +211,13 @@ export class CachedMemory implements IMemory {
   async searchInsights(
     queryOrUserId?:
       | string
-      | { tags?: string[]; category?: InsightCategory; limit?: number; scope?: ContextualScope },
+      | {
+          query?: string;
+          tags?: string[];
+          category?: InsightCategory;
+          limit?: number;
+          scope?: ContextualScope;
+        },
     queryText?: string,
     category?: InsightCategory,
     limit?: number,

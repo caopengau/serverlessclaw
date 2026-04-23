@@ -38,8 +38,9 @@ export async function recordAgentMetric(params: {
   errorType?: string;
   promptHash?: string;
   version?: number;
+  workspaceId?: string;
 }): Promise<void> {
-  const { agentId, success, durationMs, errorType, promptHash, version } = params;
+  const { agentId, success, durationMs, errorType, promptHash, version, workspaceId } = params;
   const now = Date.now();
   const tableName = getMemoryTableName();
 
@@ -47,9 +48,10 @@ export async function recordAgentMetric(params: {
   const hourStart = new Date(now).setUTCMinutes(0, 0, 0);
   const dayStart = new Date(now).setUTCHours(0, 0, 0, 0);
 
+  const prefix = workspaceId ? `WS#${workspaceId}#` : '';
   const snapshots = [
-    { grain: MetricGrain.HOURLY, ts: hourStart, pk: `METRIC#HOUR#${agentId}` },
-    { grain: MetricGrain.DAILY, ts: dayStart, pk: `METRIC#DAY#${agentId}` },
+    { grain: MetricGrain.HOURLY, ts: hourStart, pk: `${prefix}METRIC#HOUR#${agentId}` },
+    { grain: MetricGrain.DAILY, ts: dayStart, pk: `${prefix}METRIC#DAY#${agentId}` },
   ];
 
   try {

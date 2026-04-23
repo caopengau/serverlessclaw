@@ -25,6 +25,12 @@ export interface TrustSnapshot {
   timestamp: number;
 }
 
+export interface TrustContext {
+  workspaceId?: string;
+  teamId?: string;
+  staffId?: string;
+}
+
 export class TrustManager {
   /**
    * Records a failure for an agent and penalizes its trust score.
@@ -33,7 +39,8 @@ export class TrustManager {
     agentId: string,
     reason: string,
     severity: number = 1,
-    qualityScore?: number
+    qualityScore?: number,
+    context?: TrustContext
   ): Promise<number> {
     let penaltyMultiplier = 1;
     if (qualityScore !== undefined) {
@@ -49,12 +56,19 @@ export class TrustManager {
       agentId,
       trustScore: newScore,
       metadata: { reason, delta: penalty, type: 'penalty' },
+      workspaceId: context?.workspaceId,
+      teamId: context?.teamId,
+      staffId: context?.staffId,
     });
 
     return newScore;
   }
 
-  static async recordSuccess(agentId: string, qualityScore?: number): Promise<number> {
+  static async recordSuccess(
+    agentId: string,
+    qualityScore?: number,
+    context?: TrustContext
+  ): Promise<number> {
     let multiplier = 1;
     if (qualityScore !== undefined) {
       // Range [0, 2]: quality 0 = 0x, quality 5 = 1x, quality 10 = 2x
@@ -71,12 +85,19 @@ export class TrustManager {
       agentId,
       trustScore: newScore,
       metadata: { type: 'success_bump', qualityScore, bump },
+      workspaceId: context?.workspaceId,
+      teamId: context?.teamId,
+      staffId: context?.staffId,
     });
 
     return newScore;
   }
 
-  static async recordAnomalies(agentId: string, anomalies: CognitiveAnomaly[]): Promise<number> {
+  static async recordAnomalies(
+    agentId: string,
+    anomalies: CognitiveAnomaly[],
+    context?: TrustContext
+  ): Promise<number> {
     if (anomalies.length === 0) {
       const config = await AgentRegistry.getAgentConfig(agentId);
       if (!config) throw new Error(`Agent ${agentId} not found`);
@@ -109,6 +130,9 @@ export class TrustManager {
       agentId,
       trustScore: newScore,
       metadata: { type: 'anomaly_penalty_batch', count: anomalies.length, delta: totalDelta },
+      workspaceId: context?.workspaceId,
+      teamId: context?.teamId,
+      staffId: context?.staffId,
     });
 
     return newScore;

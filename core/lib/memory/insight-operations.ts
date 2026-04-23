@@ -10,7 +10,7 @@ import { TIME } from '../constants';
 import type { BaseMemoryProvider } from './base';
 import { InsightCategory, MemoryInsight, InsightMetadata, ContextualScope } from '../types/memory';
 import { filterPII } from '../utils/pii';
-import { resolveScopeId } from './utils';
+import { resolveScopeId, applyWorkspaceIsolation } from './utils';
 
 const INSIGHT_TTL_DAYS = 30;
 
@@ -185,7 +185,13 @@ export async function searchInsights(
   base: BaseMemoryProvider,
   queryOrUserId?:
     | string
-    | { tags?: string[]; category?: InsightCategory; limit?: number; scope?: ContextualScope },
+    | {
+        query?: string;
+        tags?: string[];
+        category?: InsightCategory;
+        limit?: number;
+        scope?: ContextualScope;
+      },
   queryText?: string,
   category?: InsightCategory,
   limit?: number,
@@ -233,16 +239,23 @@ export async function searchInsights(
     params.IndexName = 'TypeTimestampIndex';
     params.KeyConditionExpression = '#tp = :type';
     // When no userId, we rely on category filter later or GSI if we had TypeCategoryIndex
+    applyWorkspaceIsolation(params, resolvedScope);
   } else {
     // Global fallback
-    const pk = base.getScopedUserId('SYSTEM#GLOBAL', resolvedScope);
     params.IndexName = 'UserInsightIndex';
     params.KeyConditionExpression = 'userId = :pk AND #tp = :type';
     (params.ExpressionAttributeValues as Record<string, unknown>)[':pk'] = pk;
+    // For global fallback, if it's scoped it should use PK, but if we're not sure, adding FilterExpression doesn't hurt
+    if (resolvedScope) {
+      applyWorkspaceIsolation(params, resolvedScope);
+    }
   }
 
   if (resolvedQuery && resolvedQuery !== '*') {
-    params.FilterExpression = 'contains(content, :query)';
+    const containsExpr = 'contains(content, :query)';
+    params.FilterExpression = params.FilterExpression
+      ? `(${params.FilterExpression as string}) AND (${containsExpr})`
+      : containsExpr;
     (params.ExpressionAttributeValues as Record<string, unknown>)[':query'] = resolvedQuery;
   }
 

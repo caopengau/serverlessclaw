@@ -131,9 +131,11 @@ describe('knowledge-storage tools', () => {
       });
       expect(result).toContain('insight 1');
       expect(mocks.searchInsights).toHaveBeenCalledWith({
+        query: 'test',
         tags: undefined,
         category: 'tactical_lesson',
         limit: 50,
+        scope: { workspaceId: undefined },
       });
     });
     it('should search both prefixed and raw for user_preference', async () => {
@@ -143,9 +145,11 @@ describe('knowledge-storage tools', () => {
         category: 'user_preference',
       });
       expect(mocks.searchInsights).toHaveBeenCalledWith({
+        query: 'coffee',
         tags: undefined,
         category: 'user_preference',
         limit: 50,
+        scope: { workspaceId: undefined },
       });
       expect(mocks.searchInsights).toHaveBeenCalledTimes(1);
     });
@@ -155,7 +159,9 @@ describe('knowledge-storage tools', () => {
     it('should update gap status in memory', async () => {
       const result = await manageGap.execute({ gapId: 'gap-1', status: GapStatus.PLANNED });
       expect(result).toContain('Successfully updated gap gap-1 to PLANNED');
-      expect(mocks.updateGapStatus).toHaveBeenCalledWith('gap-1', GapStatus.PLANNED);
+      expect(mocks.updateGapStatus).toHaveBeenCalledWith('gap-1', GapStatus.PLANNED, {
+        workspaceId: undefined,
+      });
     });
 
     it('should list open gaps sorted by impact desc', async () => {
@@ -174,7 +180,7 @@ describe('knowledge-storage tools', () => {
 
       const result = await manageGap.execute({ action: 'list' });
 
-      expect(mocks.getAllGaps).toHaveBeenCalledWith(GapStatus.OPEN);
+      expect(mocks.getAllGaps).toHaveBeenCalledWith(GapStatus.OPEN, { workspaceId: undefined });
       expect(result).toContain('Found 2 open capability gaps');
       expect(result.indexOf('gap-high')).toBeLessThan(result.indexOf('gap-low'));
     });
@@ -204,7 +210,8 @@ describe('knowledge-storage tools', () => {
         'USER#user-1',
         InsightCategory.USER_PREFERENCE,
         'likes coffee',
-        expect.any(Object)
+        expect.any(Object),
+        { workspaceId: undefined }
       );
     });
 
@@ -219,7 +226,8 @@ describe('knowledge-storage tools', () => {
         'SYSTEM#GLOBAL',
         InsightCategory.SYSTEM_KNOWLEDGE,
         'new fact',
-        expect.any(Object)
+        expect.any(Object),
+        { workspaceId: undefined }
       );
     });
   });
@@ -291,7 +299,8 @@ describe('knowledge-storage tools', () => {
           'SYSTEM#GLOBAL',
           InsightCategory.STRATEGIC_GAP,
           'missing feature X',
-          expect.objectContaining({ impact: 10, urgency: 8 })
+          expect.objectContaining({ impact: 10, urgency: 8 }),
+          { workspaceId: undefined }
         );
       });
     });
@@ -310,7 +319,8 @@ describe('knowledge-storage tools', () => {
         expect(mocks.updateInsightMetadata).toHaveBeenCalledWith(
           'LESSON#abc',
           123456,
-          expect.objectContaining({ priority: 9, urgency: 7, impact: 8 })
+          expect.objectContaining({ priority: 9, urgency: 7, impact: 8 }),
+          { workspaceId: undefined }
         );
       });
 
@@ -334,7 +344,8 @@ describe('knowledge-storage tools', () => {
         expect(mocks.updateInsightMetadata).toHaveBeenCalledWith(
           'GAP#123',
           999111,
-          expect.objectContaining({ urgency: 10 })
+          expect.objectContaining({ urgency: 10 }),
+          { workspaceId: undefined }
         );
       });
     });
@@ -410,7 +421,8 @@ describe('knowledge-storage tools', () => {
           {
             tags: ['important', 'reviewed'],
             priority: 8,
-          }
+          },
+          { workspaceId: undefined }
         );
       });
 
@@ -422,10 +434,16 @@ describe('knowledge-storage tools', () => {
         });
 
         expect(result).toContain('Successfully refined memory item: GAP#abc@987654');
-        expect(mocks.refineMemory).toHaveBeenCalledWith('GAP#abc', 987654, 'new content', {
-          tags: undefined,
-          priority: undefined,
-        });
+        expect(mocks.refineMemory).toHaveBeenCalledWith(
+          'GAP#abc',
+          987654,
+          'new content',
+          {
+            tags: undefined,
+            priority: undefined,
+          },
+          { workspaceId: undefined }
+        );
       });
 
       it('should refine memory with only tags', async () => {
@@ -436,10 +454,16 @@ describe('knowledge-storage tools', () => {
         });
 
         expect(result).toContain('Successfully refined memory item: USER#test@111222');
-        expect(mocks.refineMemory).toHaveBeenCalledWith('USER#test', 111222, undefined, {
-          tags: ['archived'],
-          priority: undefined,
-        });
+        expect(mocks.refineMemory).toHaveBeenCalledWith(
+          'USER#test',
+          111222,
+          undefined,
+          {
+            tags: ['archived'],
+            priority: undefined,
+          },
+          { workspaceId: undefined }
+        );
       });
 
       it('should refine memory with only priority', async () => {
@@ -450,10 +474,16 @@ describe('knowledge-storage tools', () => {
         });
 
         expect(result).toContain('Successfully refined memory item: LESSON#xyz@333444');
-        expect(mocks.refineMemory).toHaveBeenCalledWith('LESSON#xyz', 333444, undefined, {
-          tags: undefined,
-          priority: 10,
-        });
+        expect(mocks.refineMemory).toHaveBeenCalledWith(
+          'LESSON#xyz',
+          333444,
+          undefined,
+          {
+            tags: undefined,
+            priority: 10,
+          },
+          { workspaceId: undefined }
+        );
       });
 
       it('should fail when userId is missing', async () => {

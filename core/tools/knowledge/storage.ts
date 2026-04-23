@@ -108,22 +108,34 @@ export const uninstallSkill = {
 export const recallKnowledge = {
   ...schema.recallKnowledge,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { userId, _query, category, tags, _orgId, minImpact, minConfidence } = args as {
+    const {
+      userId,
+      query,
+      category,
+      tags,
+      orgId: _orgId,
+      minImpact,
+      minConfidence,
+      workspaceId,
+    } = args as {
       userId: string;
-      _query: string;
+      query: string;
       category: InsightCategory;
       tags?: string[];
-      _orgId?: string;
+      orgId?: string;
       minImpact?: number;
       minConfidence?: number;
+      workspaceId?: string;
     };
     const memory = getMemory();
     const _baseUserId = userId.startsWith('CONV#') ? userId.split('#')[1] : userId;
 
     const searchResponse = await memory.searchInsights({
+      query,
       tags,
       category,
       limit: 50,
+      scope: { workspaceId },
     });
 
     let results = searchResponse.items;
@@ -163,17 +175,19 @@ export const manageGap = {
       gapId,
       status,
       action = 'update',
+      workspaceId,
     } = args as {
       gapId?: string;
       status?: GapStatus;
       action?: 'update' | 'list';
+      workspaceId?: string;
     };
 
     try {
       const memory = getMemory();
 
       if (action === 'list') {
-        const gaps = await memory.getAllGaps(GapStatus.OPEN);
+        const gaps = await memory.getAllGaps(GapStatus.OPEN, { workspaceId });
         if (gaps.length === 0) return 'No open capability gaps found.';
 
         const sortedGaps = [...gaps].sort(
@@ -195,7 +209,7 @@ export const manageGap = {
         return 'FAILED: gapId and status are required for "update" action.';
       }
 
-      await memory.updateGapStatus(gapId, status);
+      await memory.updateGapStatus(gapId, status, { workspaceId });
       return `Successfully updated gap ${gapId} to ${status}`;
     } catch (error) {
       return `Failed to ${action} gap: ${formatErrorMessage(error)}`;
@@ -209,13 +223,14 @@ export const manageGap = {
 export const reportGap = {
   ...schema.reportGap,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { content, impact, urgency, category, sessionId, userId } = args as {
+    const { content, impact, urgency, category, sessionId, userId, workspaceId } = args as {
       content: string;
       impact?: number;
       urgency?: number;
       category?: InsightCategory;
       sessionId?: string;
       userId: string;
+      workspaceId?: string;
     };
 
     try {
@@ -233,7 +248,8 @@ export const reportGap = {
         'SYSTEM#GLOBAL',
         category ?? InsightCategory.STRATEGIC_GAP,
         content,
-        metadata
+        metadata,
+        { workspaceId }
       );
       const gapId = gapIdTimestamp.toString();
 
@@ -259,12 +275,13 @@ export const reportGap = {
 export const saveMemory = {
   ...schema.saveMemory,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { content, category, userId, tags, orgId } = args as {
+    const { content, category, userId, tags, orgId, workspaceId } = args as {
       content: string;
       category: InsightCategory;
       userId: string;
       tags?: string[];
       orgId?: string;
+      workspaceId?: string;
     };
 
     const memory = getMemory();
@@ -290,11 +307,17 @@ export const saveMemory = {
 
     const finalTags = normalizeTags([...(tags ?? []), ...perspectiveKeywords]);
 
-    await memory.addMemory(scopeId, category, content, {
-      ...metadata,
-      orgId,
-      tags: finalTags,
-    });
+    await memory.addMemory(
+      scopeId,
+      category,
+      content,
+      {
+        ...metadata,
+        orgId,
+        tags: finalTags,
+      },
+      { workspaceId }
+    );
     return `Successfully saved knowledge as MEMORY:${category.toUpperCase()}${finalTags.length > 0 ? ` (Tags: ${finalTags.join(', ')})` : ''}: ${content}`;
   },
 };
@@ -342,12 +365,13 @@ export const pruneMemory = {
 export const prioritizeMemory = {
   ...schema.prioritizeMemory,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { userId, timestamp, priority, urgency, impact } = args as {
+    const { userId, timestamp, priority, urgency, impact, workspaceId } = args as {
       userId: string;
       timestamp: number;
       priority?: number;
       urgency?: number;
       impact?: number;
+      workspaceId?: string;
     };
 
     if (!userId || timestamp === undefined)
@@ -362,7 +386,7 @@ export const prioritizeMemory = {
 
       if (Object.keys(metadata).length === 0) return 'FAILED: No update parameters provided.';
 
-      await memory.updateInsightMetadata(userId, timestamp, metadata);
+      await memory.updateInsightMetadata(userId, timestamp, metadata, { workspaceId });
       return `Successfully updated memory ${userId}@${timestamp}`;
     } catch (error) {
       return `Failed to prioritize memory: ${formatErrorMessage(error)}`;
@@ -509,22 +533,29 @@ export const forceReleaseLock = {
 export const refineMemory = {
   ...schema.refineMemory,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { userId, timestamp, content, tags, priority } = args as {
+    const { userId, timestamp, content, tags, priority, workspaceId } = args as {
       userId: string;
       timestamp: number;
       content?: string;
       tags?: string[];
       priority?: number;
+      workspaceId?: string;
     };
 
     if (!userId || !timestamp) return 'FAILED: userId and timestamp are required.';
 
     try {
       const memory = getMemory();
-      await memory.refineMemory(userId, timestamp, content, {
-        tags,
-        priority,
-      });
+      await memory.refineMemory(
+        userId,
+        timestamp,
+        content,
+        {
+          tags,
+          priority,
+        },
+        { workspaceId }
+      );
       return `Successfully refined memory item: ${userId}@${timestamp}`;
     } catch (error) {
       return `Failed to refine memory: ${formatErrorMessage(error)}`;

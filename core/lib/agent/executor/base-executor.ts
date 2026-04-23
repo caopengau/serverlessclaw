@@ -194,7 +194,8 @@ export abstract class BaseExecutor {
 
   protected async checkSemanticLoop(
     sessionId: string,
-    currentContent: string
+    currentContent: string,
+    options: ExecutorOptions
   ): Promise<LoopResult | null> {
     const loopDetector = getSemanticLoopDetector();
     const loopResult = loopDetector.check(sessionId, currentContent);
@@ -206,7 +207,13 @@ export abstract class BaseExecutor {
       await TrustManager.recordFailure(
         this.agentId,
         `Semantic reasoning loop detected (${loopResult.consecutiveCount} turns).`,
-        3
+        3,
+        undefined,
+        {
+          workspaceId: options.workspaceId,
+          teamId: options.teamId,
+          staffId: options.staffId,
+        }
       );
 
       if (loopResult.action === 'escalate' || loopResult.action === 'switch_agent') {

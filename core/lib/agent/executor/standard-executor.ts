@@ -57,7 +57,11 @@ export class StandardExecutor extends BaseExecutor {
       this.updateUsage(usage, aiResponse, options.activeProvider, options);
 
       if (aiResponse.content && options.sessionId) {
-        const loopResult = await this.checkSemanticLoop(options.sessionId, aiResponse.content);
+        const loopResult = await this.checkSemanticLoop(
+          options.sessionId,
+          aiResponse.content,
+          options
+        );
         if (loopResult) return { ...loopResult, usage };
       }
 

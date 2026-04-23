@@ -4,7 +4,7 @@
 
 This document tracks which system silos and cross-silo perspectives have been audited across all rounds. It helps identify under-audited areas and guide future audit efforts.
 
-Last Updated: 2026-04-17
+Last Updated: 2026-04-23
 
 ---
 
@@ -14,10 +14,10 @@ Last Updated: 2026-04-17
 | :---- | :------------- | :---------------------------------------------- | :---------: | :----------- | :--------- |
 | **1** | The Spine      | `core/lib/routing/`, `core/lib/backbone.ts`     |     6+      | 2026-04-16   | Medium     |
 | **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` |      2      | 2026-04-06   | Medium     |
-| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              |     4+      | 2026-04-16   | High       |
-| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             |      2      | 2026-04-06   | Medium     |
+| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              |     5+      | 2026-04-22   | High       |
+| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             |      3      | 2026-04-23   | Medium     |
 | **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         |      3      | 2026-04-15   | Medium     |
-| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              |      2      | 2026-04-16   | High       |
+| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              |      3      | 2026-04-23   | High       |
 | **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            |      2      | 2026-04-15   | Low        |
 
 ---
@@ -26,22 +26,25 @@ Last Updated: 2026-04-17
 
 | Perspective | Name              | Description            | Usage Count | Last Tested |
 | :---------- | :---------------- | :--------------------- | :---------- | :---------- |
-| **A**       | Life of a Message | Spine → Brain → Eye    | 1           | 2026-04-16  |
+| **A**       | Life of a Message | Spine → Brain → Eye    | 2           | 2026-04-23  |
 | **B**       | Evolution Cycle   | Hand → Shield → Scales | 1           | 2026-04-16  |
 | **C**       | Identity Journey  | Brain → Spine → Shield | 1           | 2026-04-20  |
-| **D**       | Trust Loop        | Eye → Scales → Spine   | 1           | 2026-04-20  |
-| **E**       | Recovery Path     | Shield → Spine → Brain | 1           | 2026-04-20  |
+| **D**       | Trust Loop        | Eye → Scales → Spine   | 2           | 2026-04-23  |
+| **E**       | Recovery Path     | Shield → Spine → Brain | 2           | 2026-04-22  |
 
 ---
 
 ## Audit Reports History
 
-| Date       | Report                                 | Silos Covered         | Cross-Silo      | Key Findings                                     |
-| :--------- | :------------------------------------- | :-------------------- | :-------------- | :----------------------------------------------- |
-| 2026-04-20 | `audit-2026-04-20-system-integrity.md` | Spine, Shield, Scales | C, D, E         | Broken multi-tenancy, Dead trust loop, Ghost fix |
-| 2026-04-16 | `audit-2026-04-16-shield-scales.md`    | Shield, Scales        | Evolution Cycle | Double-execution of Class C actions              |
-| 2026-04-16 | `audit-2026-04-16-the-spine.md`        | The Spine             | -               | Fail-open rate limiting, missing handlers        |
-| 2026-04-17 | `security-audit-report.md`             | Dependencies          | N/A             | 8 dependency vulnerabilities                     |
+| Date       | Report                                     | Silos Covered          | Cross-Silo      | Key Findings                                     |
+| :--------- | :----------------------------------------- | :--------------------- | :-------------- | :----------------------------------------------- |
+| 2026-04-23 | `audit-2026-04-23-multi-tenant-integrity.md`| Brain, Scales          | A, D            | P0 Knowledge leakage, Broken trust loop isolation|
+| 2026-04-22 | `audit-2026-04-22-evolution-recovery.md`   | Shield                 | E               | Dropped tool context, IDOR on approval           |
+| 2026-04-20 | `audit-2026-04-20-system-integrity.md`     | Spine, Shield, Scales  | C, D, E         | Broken multi-tenancy, Dead trust loop, Ghost fix |
+| 2026-04-16 | `audit-2026-04-16-shield-scales.md`        | Shield, Scales         | Evolution Cycle | Double-execution of Class C actions              |
+| 2026-04-16 | `audit-2026-04-16-the-spine.md`            | The Spine              | -               | Fail-open rate limiting, missing handlers        |
+| 2026-04-17 | `security-audit-report.md`                 | Dependencies           | N/A             | 8 dependency vulnerabilities                     |
+
 
 ---
 
@@ -62,19 +65,19 @@ Last Updated: 2026-04-17
 ### High Priority (Needs Re-Audit)
 
 1. **The Hand** (Silo 2) - Only 2 audits, needs Hand -> Brain validation.
-2. **The Brain** (Silo 4) - Only 2 audits, needs RAG integrity check.
-3. **The Scales** (Silo 6) - Significant findings in recent audits (Dead Loop, Contamination).
+2. **Perspective B: Evolution Cycle** - Only 1 audit, needs verification of Hand -> Shield -> Scales loop.
 
 ### Medium Priority (Rarely Audited)
 
-1. **Perspective A: Life of a Message** - Only 1 audit.
-2. **Perspective B: Evolution Cycle** - Only 1 audit.
+1. **The Eye** (Silo 5) - Last audited 8 days ago, needs validation of metric aggregation integrity.
+2. **Perspective C: Identity Journey** - Only 1 audit, needs deeper trace analysis.
 
 ### High Risk (Most Violations)
 
-1. **The Shield** (Silo 3) - Safety violations, identity leakage, global rate limits.
-2. **The Spine** (Silo 1) - Identity context dropping in delegation.
-3. **The Scales** (Silo 6) - Race conditions, trust drift, disconnected routing.
+1. **The Brain** (Silo 4) - Fixed P0 isolation leaks in this round. Needs monitoring to ensure no regression.
+2. **The Scales** (Silo 6) - Reputation and metrics were found to be global. Fixed in this round but needs scale testing.
+3. **The Shield** (Silo 3) - Recurring issues with dropped context and IDOR (Fixed 2026-04-22).
+
 
 ---
 

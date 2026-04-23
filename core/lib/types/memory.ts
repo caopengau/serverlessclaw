@@ -278,7 +278,13 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
   searchInsights(
     queryOrUserId?:
       | string
-      | { tags?: string[]; category?: InsightCategory; limit?: number; scope?: ContextualScope },
+      | {
+          query?: string;
+          tags?: string[];
+          category?: InsightCategory;
+          limit?: number;
+          scope?: ContextualScope;
+        },
     queryText?: string,
     category?: InsightCategory,
     limit?: number,
