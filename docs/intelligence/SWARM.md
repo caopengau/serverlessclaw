@@ -80,8 +80,6 @@ For high-impact strategic decisions, agents use a voting mechanism:
 - **Unanimous**: 100% YES.
 - **Weighted**: Votes are weighted by the agent's **Reputation Score**.
 
-- **Weighted**: Votes are weighted by the agent's **Reputation Score**.
-
 ---
 
 ## 📡 Adaptive Communication Hub
@@ -146,3 +144,36 @@ When an agent is triggered, it follows a strict lock lifecycle:
 2. **Execute**: Run reasoning loop if lock is acquired.
 3. **Release**: Release lock and emit results.
 4. **Retry**: If lock is busy, the task is paused and queued for backoff.
+
+---
+
+## 🧪 Simulation Sandbox (Multi-Agent Playground)
+
+The **Simulation Sandbox** (`/playground`) provides a high-fidelity isolated environment for testing complex swarm interactions without production side effects.
+
+### 1. Swarm Simulation Mode
+
+In the playground, you can select multiple agents to form a **Swarm Team**. This mode enables:
+- **Multi-Agent Isolation**: All participating agents run with `isIsolated: true`, preventing them from writing to persistent memory or affecting reputation scores.
+- **Dynamic Persona Tuning**: You can override the `systemPrompt` for each agent individually within the session.
+- **Trace Visualization**: Real-time inspection of the coordination chain, showing how agents hand off tasks or share context.
+
+### 2. Sandbox Interaction Topology
+
+```text
+ [ Developer ] ---- (Select Team: [Coder, QA, Researcher]) ----> [ Playground UI ]
+                                                                       |
+          +------------------------------------------------------------+
+          |
+          v
+ [ Swarm Chat ] ---- (Query) ----> [ multi-agent POST /api/chat ]
+                                              |
+          +-----------------------------------+-----------------------------------+
+          |                                   |                                   |
+ [ Coder (Sandbox) ]                 [ QA (Sandbox) ]                 [ Researcher (Sandbox) ]
+ (Prompt Override A)                 (Prompt Override B)                 (Prompt Override C)
+          |                                   |                                   |
+          +-----------------------------------+-----------------------------------+
+                                              |
+                                     [ Unified Trace Log ]
+```
