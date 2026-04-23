@@ -34,22 +34,36 @@ Serverless Claw operates on a self-correcting feedback loop that bridges real-ti
           +--> [ Resilience HUD ] ------+---> [ CIRCUIT BREAKER ]
           |    (CB State / Burn-Rate)   |     (Block / Allow Deploys)
           |                             |
+          +--> [ Cognitive HUD ] -------+---> [ METABOLISM SERVICE ]
+          |    (Audit / Prune / Cull)   |     (Recycle Debt / Bloat)
+          |                             |
           v                             v
   [ STRATEGIC PLANNING ] <------- [ ANOMALY DETECTED ]
           |
           v
   [ EVOLUTION PIPELINE ] <------- [ CAPABILITY GAPS ]
-          |
-          +--> [ PIPELINE BOARD ] (Kanban)
-          |           |
-          |           v
-          |    [ HITL REFINEMENT ] (Human Edit / Approve)
-          |           |
-          v           v
-  [ CODER AGENT ] -> [ DEPLOYER ] -> [ VERIFIED BUILD ]
-          ^                                 |
-          |                                 v
-          +-------- [ SELF-HEALING ] <--- [ FAILURE ]
+```
+
+---
+
+## 🧪 Simulation & Health Hub
+
+To support autonomous swarm growth, the system provides a dual-purpose environment for experimentation and maintenance:
+
+```text
+       [ COGNITIVE HUB ]
+               |
+      +--------+--------+
+      |                 |
+[ PLAYGROUND ]   [ NERVE CENTER ]
+      |                 |
+(Simulation)       (Metabolism)
+      |                 |
++-----+-----+     +-----+-----+
+| Swarm Team |    | Audit     |
+| Tuning     |    | Repair    |
+| Isolated   |    | Prune     |
++-----------+     +-----------+
 ```
 
 ---

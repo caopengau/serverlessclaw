@@ -106,17 +106,21 @@ Silo 7 is the primary enforcement mechanism for Principle 10. By treating techni
 ## Interaction Topology
 
 ```text
-[ Governance Tool ] <--- Trigger --- [ Human/Operator ]  (Manual/Scheduled)
+[ Nerve Center UI ] <--- Trigger --- [ Human/Operator ]  (Manual "Repair")
+        |
+        v
+[ /api/system/metabolism ]
         |
         v
 [ Metabolism Service ]
     |
-    |-- [ AgentRegistry ] : prune()
-    |-- [ MemoryProvider ] : cull()
-    |-- [ MCPMultiplexer ] : check(AIReady)
+    |-- [ AgentRegistry ] : pruneLowUtilizationTools()
+    |-- [ MemoryProvider ] : cullResolvedGaps()
+    |-- [ FeatureFlags ] : pruneStaleFlags()
     |
     v
-[ Audit Findings ] ---> [ Strategic Planner ] (if P1/P2)
+[ UI Blocks / Toast ] <--- (Findings: Pruned 5 tools, Culled 2 gaps)
+```
 
 ----------------------------------------------------------------------
 [ Real-time Failure ] --- Trigger --- [ Dashboard/Agent ] (Immediate)
