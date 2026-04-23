@@ -29,7 +29,8 @@ export class ConfigVersioning {
     oldValue: unknown,
     newValue: unknown,
     author: string,
-    description?: string
+    description?: string,
+    options?: { workspaceId?: string }
   ): Promise<void> {
     const version: ConfigVersion = {
       versionId: generateVersionId(key),
@@ -43,43 +44,55 @@ export class ConfigVersioning {
 
     try {
       const existing =
-        ((await ConfigManager.getRawConfig(versionsKey(key))) as ConfigVersion[]) ?? [];
+        ((await ConfigManager.getRawConfig(versionsKey(key), options)) as ConfigVersion[]) ?? [];
       const updated = [...existing, version].slice(-MAX_VERSIONS_PER_KEY);
       await ConfigManager.saveRawConfig(versionsKey(key), updated, {
         author: 'system:versioning',
         skipVersioning: true,
+        workspaceId: options?.workspaceId,
       });
     } catch (e) {
       logger.warn(`Failed to snapshot config version for ${key}:`, e);
     }
   }
 
-  static async getVersionHistory(key: string, limit?: number): Promise<ConfigVersion[]> {
+  static async getVersionHistory(
+    key: string,
+    options?: { limit?: number; workspaceId?: string }
+  ): Promise<ConfigVersion[]> {
     const versions =
-      ((await ConfigManager.getRawConfig(versionsKey(key))) as ConfigVersion[]) ?? [];
-    if (limit) return versions.slice(-limit);
+      ((await ConfigManager.getRawConfig(versionsKey(key), {
+        workspaceId: options?.workspaceId,
+      })) as ConfigVersion[]) ?? [];
+    if (options?.limit) return versions.slice(-options.limit);
     return versions;
   }
 
-  static async rollback(key: string, versionId: string): Promise<void> {
-    const versions = await this.getVersionHistory(key);
+  static async rollback(
+    key: string,
+    versionId: string,
+    options?: { workspaceId?: string }
+  ): Promise<void> {
+    const versions = await this.getVersionHistory(key, options);
     const target = versions.find((v) => v.versionId === versionId);
     if (!target) {
       throw new Error(`Config version ${versionId} not found for key ${key}`);
     }
 
-    const currentValue = await ConfigManager.getRawConfig(key);
+    const currentValue = await ConfigManager.getRawConfig(key, options);
 
     await this.snapshot(
       key,
       currentValue,
       target.oldValue,
       'system:rollback',
-      `Rollback to ${versionId}`
+      `Rollback to ${versionId}`,
+      options
     );
     await ConfigManager.saveRawConfig(key, target.oldValue, {
       author: 'system:rollback',
       skipVersioning: true,
+      workspaceId: options?.workspaceId,
     });
 
     logger.info(`Config ${key} rolled back to version ${versionId}`);

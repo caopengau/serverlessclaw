@@ -26,9 +26,9 @@ function getMemory(): DynamoMemory {
 export const discoverSkills = {
   ...schema.discoverSkills,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { query } = args as { query?: string };
+    const { query, workspaceId } = args as { query?: string; workspaceId?: string };
     try {
-      const skills = await SkillRegistry.findSkillsByKeyword(query ?? '');
+      const skills = await SkillRegistry.findSkillsByKeyword(query ?? '', { workspaceId });
       if (skills.length === 0) return 'No matching skills found.';
 
       return (
@@ -48,9 +48,13 @@ export const discoverSkills = {
 export const installSkill = {
   ...schema.installSkill,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { skillName, agentId } = args as { skillName: string; agentId: string };
+    const { skillName, agentId, workspaceId } = args as {
+      skillName: string;
+      agentId: string;
+      workspaceId?: string;
+    };
     try {
-      await SkillRegistry.installSkill(skillName, agentId);
+      await SkillRegistry.installSkill(skillName, agentId, { workspaceId });
       return `Skill '${skillName}' successfully installed for agent ${agentId}`;
     } catch (error) {
       return `Failed to install skill: ${formatErrorMessage(error)}`;
@@ -68,13 +72,16 @@ export const uninstallSkill = {
     args: Record<string, unknown>,
     context?: { userId?: string }
   ): Promise<string> => {
-    const { skillName, agentId } = args as { skillName: string; agentId: string };
+    const { skillName, agentId, workspaceId } = args as {
+      skillName: string;
+      agentId: string;
+      workspaceId?: string;
+    };
 
     // RBAC Check
     if (context?.userId) {
-      const { BaseMemoryProvider } = await import('../../lib/memory/base');
-      const { IdentityManager, UserRole } = await import('../../lib/session/identity');
-      const identity = new IdentityManager(new BaseMemoryProvider());
+      const { getIdentityManager, UserRole } = await import('../../lib/session/identity');
+      const identity = await getIdentityManager();
       const user = await identity.getUser(context.userId);
 
       if (!user || (user.role !== UserRole.OWNER && user.role !== UserRole.ADMIN)) {
@@ -86,14 +93,16 @@ export const uninstallSkill = {
     try {
       const { ConfigManager } = await import('../../lib/registry/config');
       const toolsKey = `${agentId}_tools`;
-      const currentTools = (await ConfigManager.getRawConfig(toolsKey)) as string[];
+      const currentTools = (await ConfigManager.getRawConfig(toolsKey, {
+        workspaceId,
+      })) as string[];
 
       if (!currentTools || !currentTools.includes(skillName)) {
         return `FAILED: Skill '${skillName}' is not installed for agent ${agentId}`;
       }
 
       const updatedTools = currentTools.filter((t) => t !== skillName);
-      await ConfigManager.saveRawConfig(toolsKey, updatedTools);
+      await ConfigManager.saveRawConfig(toolsKey, updatedTools, { workspaceId });
 
       return `Successfully uninstalled skill '${skillName}' from agent ${agentId}`;
     } catch (error) {
@@ -337,9 +346,8 @@ export const pruneMemory = {
 
     // 1.4 RBAC Check
     if (context?.userId) {
-      const { BaseMemoryProvider } = await import('../../lib/memory/base');
-      const { IdentityManager, UserRole } = await import('../../lib/session/identity');
-      const identity = new IdentityManager(new BaseMemoryProvider());
+      const { getIdentityManager, UserRole } = await import('../../lib/session/identity');
+      const identity = await getIdentityManager();
       const user = await identity.getUser(context.userId);
 
       if (!user || (user.role !== UserRole.OWNER && user.role !== UserRole.ADMIN)) {
@@ -496,9 +504,8 @@ export const forceReleaseLock = {
     }
 
     if (context?.userId) {
-      const { BaseMemoryProvider } = await import('../../lib/memory/base');
-      const { IdentityManager, UserRole } = await import('../../lib/session/identity');
-      const identity = new IdentityManager(new BaseMemoryProvider());
+      const { getIdentityManager, UserRole } = await import('../../lib/session/identity');
+      const identity = await getIdentityManager();
       const user = await identity.getUser(context.userId);
 
       if (!user || (user.role !== UserRole.OWNER && user.role !== UserRole.ADMIN)) {

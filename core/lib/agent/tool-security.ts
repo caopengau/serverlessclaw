@@ -96,9 +96,8 @@ export class ToolSecurityValidator {
     if (tool.requiredPermissions && tool.requiredPermissions.length > 0) {
       let hasPermission = false;
       try {
-        const { BaseMemoryProvider } = await import('../memory/base');
-        const { IdentityManager } = await import('../session/identity');
-        const identity = new IdentityManager(new BaseMemoryProvider());
+        const { getIdentityManager } = await import('../session/identity');
+        const identity = await getIdentityManager();
 
         if (!execContext.userId || execContext.userId === 'SYSTEM') {
           hasPermission = true;

@@ -56,23 +56,28 @@ export class ConfigManager {
   /**
    * Fetches a raw value from the ConfigTable by key.
    */
-  public static async getRawConfig(key: string): Promise<unknown> {
+  public static async getRawConfig(
+    key: string,
+    options?: { workspaceId?: string }
+  ): Promise<unknown> {
     const tableName = this._getTableName();
     if (!tableName) {
       logger.warn(`ConfigTable not linked. Skipping fetch for ${key}`);
       return undefined;
     }
 
+    const effectiveKey = options?.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+
     try {
       const { Item } = await getDocClient().send(
         new GetCommand({
           TableName: tableName,
-          Key: { key },
+          Key: { key: effectiveKey },
         })
       );
       return Item?.value;
     } catch (e) {
-      logger.warn(`Failed to fetch ${key} from DDB:`, e);
+      logger.warn(`Failed to fetch ${effectiveKey} from DDB:`, e);
       return undefined;
     }
   }
@@ -81,16 +86,21 @@ export class ConfigManager {
    * Fetches a configuration value with a type-safe fallback.
    * Implements internal caching to minimize DynamoDB overhead.
    */
-  public static async getTypedConfig<T>(key: string, defaultValue: T): Promise<T> {
-    const cached = this.configCache.get(key);
+  public static async getTypedConfig<T>(
+    key: string,
+    defaultValue: T,
+    options?: { workspaceId?: string }
+  ): Promise<T> {
+    const cacheKey = options?.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    const cached = this.configCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return cached.value as T;
     }
 
-    const value = await this.getRawConfig(key);
+    const value = await this.getRawConfig(key, options);
     const result = (value as T) ?? defaultValue;
 
-    this.configCache.set(key, { value: result, expiresAt: Date.now() + this.CACHE_TTL_MS });
+    this.configCache.set(cacheKey, { value: result, expiresAt: Date.now() + this.CACHE_TTL_MS });
     return result;
   }
 
@@ -100,12 +110,13 @@ export class ConfigManager {
   public static async getAgentOverrideConfig<T>(
     agentId: string,
     key: string,
-    fallback: T
+    fallback: T,
+    options?: { workspaceId?: string }
   ): Promise<T> {
     const agentKey = `agent_config_${agentId}_${key}`;
-    const agentValue = await this.getRawConfig(agentKey);
+    const agentValue = await this.getRawConfig(agentKey, options);
     if (agentValue !== undefined) return agentValue as T;
-    return this.getTypedConfig<T>(key, fallback);
+    return this.getTypedConfig<T>(key, fallback, options);
   }
 
   /**
@@ -118,6 +129,7 @@ export class ConfigManager {
       author?: string;
       description?: string;
       skipVersioning?: boolean;
+      workspaceId?: string;
     }
   ): Promise<void> {
     const tableName = this._getTableName();
@@ -126,11 +138,12 @@ export class ConfigManager {
       return;
     }
 
-    this.configCache.delete(key);
+    const cacheKey = options?.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    this.configCache.delete(cacheKey);
 
     if (!options?.skipVersioning) {
       try {
-        const oldValue = await this.getRawConfig(key);
+        const oldValue = await this.getRawConfig(key, { workspaceId: options?.workspaceId });
         if (JSON.stringify(oldValue) !== JSON.stringify(value)) {
           const { ConfigVersioning } = await import('../config/config-versioning');
           await ConfigVersioning.snapshot(
@@ -138,7 +151,8 @@ export class ConfigManager {
             oldValue,
             value,
             options?.author ?? 'system',
-            options?.description
+            options?.description,
+            { workspaceId: options?.workspaceId }
           );
         }
       } catch (e) {
@@ -150,11 +164,11 @@ export class ConfigManager {
       await getDocClient().send(
         new PutCommand({
           TableName: tableName,
-          Item: { key, value },
+          Item: { key: cacheKey, value },
         })
       );
     } catch (e) {
-      logger.error(`Failed to save ${key} to DDB:`, e);
+      logger.error(`Failed to save ${cacheKey} to DDB:`, e);
       throw e;
     }
   }

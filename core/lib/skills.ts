@@ -14,7 +14,10 @@ export class SkillRegistry {
    * Uses simple substring matching - does NOT perform semantic vector search.
    * This allows agents to find tools they need without them being in the initial context.
    */
-  static async findSkillsByKeyword(query: string): Promise<IToolDefinition[]> {
+  static async findSkillsByKeyword(
+    query: string,
+    _options?: { workspaceId?: string }
+  ): Promise<IToolDefinition[]> {
     const { TOOLS } = await import('../tools/index');
     const { MCPBridge } = await import('./mcp/mcp-bridge');
 
@@ -47,8 +50,11 @@ export class SkillRegistry {
   /**
    * @deprecated Use findSkillsByKeyword instead. This alias maintained for backwards compatibility.
    */
-  static async discoverSkills(query: string): Promise<IToolDefinition[]> {
-    return this.findSkillsByKeyword(query);
+  static async discoverSkills(
+    query: string,
+    options?: { workspaceId?: string }
+  ): Promise<IToolDefinition[]> {
+    return this.findSkillsByKeyword(query, options);
   }
 
   /**
@@ -57,22 +63,23 @@ export class SkillRegistry {
    *
    * @param agentId - The ID of the agent receiving the skill.
    * @param skillName - The name of the tool/skill to install.
-   * @param ttlMinutes - Optional Time-To-Live in minutes. If not provided, the skill is permanent.
+   * @param options - Optional configuration (ttlMinutes, workspaceId).
    */
   static async installSkill(
     agentId: string,
     skillName: string,
-    ttlMinutes?: number
+    options?: { ttlMinutes?: number; workspaceId?: string }
   ): Promise<void> {
     const { ConfigManager } = await import('./registry/config');
-    const currentConfig = await AgentRegistry.getAgentConfig(agentId);
+    const { ttlMinutes, workspaceId } = options || {};
+
+    const currentConfig = await AgentRegistry.getAgentConfig(agentId, { workspaceId });
     if (!currentConfig) throw new Error(`Agent ${agentId} not found`);
 
     const batchOverrides =
-      ((await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES)) as Record<
-        string,
-        (string | import('./types/agent').InstalledSkill)[]
-      >) ?? {};
+      ((await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, {
+        workspaceId,
+      })) as Record<string, (string | import('./types/agent').InstalledSkill)[]>) ?? {};
     const agentOverrides =
       (batchOverrides[agentId] as (string | import('./types/agent').InstalledSkill)[]) ?? [];
     const batchTools = Array.isArray(agentOverrides) ? agentOverrides : [];
@@ -98,13 +105,19 @@ export class SkillRegistry {
       : skillName;
 
     // Persist batch override (backwards-compatible with new batch model)
-    await AgentRegistry.saveRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, {
-      ...batchOverrides,
-      [agentId]: [...batchTools, newTool],
-    });
+    await AgentRegistry.saveRawConfig(
+      DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
+      {
+        ...batchOverrides,
+        [agentId]: [...batchTools, newTool],
+      },
+      { workspaceId }
+    );
 
     // Also persist per-agent tools for compatibility with existing consumers/tests
-    await AgentRegistry.saveRawConfig(`${agentId}_tools`, [...perAgentTools, newTool]);
+    await AgentRegistry.saveRawConfig(`${agentId}_tools`, [...perAgentTools, newTool], {
+      workspaceId,
+    });
 
     logger.info(
       `Skill '${skillName}' installed for ${agentId}${ttlMinutes ? ` (Expires in ${ttlMinutes}m)` : ''}`

@@ -74,13 +74,14 @@ describe('SkillRegistry', () => {
       const now = Date.now();
       vi.stubGlobal('Date', { now: () => now });
 
-      await SkillRegistry.installSkill('agent-1', 'tool1', 10);
+      await SkillRegistry.installSkill('agent-1', 'tool1', { ttlMinutes: 10 });
 
       expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
         'agent_tool_overrides',
         expect.objectContaining({
           'agent-1': expect.arrayContaining([{ name: 'tool1', expiresAt: now + 10 * 60 * 1000 }]),
-        })
+        }),
+        { workspaceId: undefined }
       );
 
       vi.unstubAllGlobals();
@@ -101,7 +102,8 @@ describe('SkillRegistry', () => {
         'agent_tool_overrides',
         expect.objectContaining({
           'agent-1': expect.arrayContaining(['tool1']),
-        })
+        }),
+        { workspaceId: undefined }
       );
     });
 

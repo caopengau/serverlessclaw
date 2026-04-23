@@ -9,11 +9,13 @@ export function createStorage() {
       userId: 'string',
       timestamp: 'number',
       type: 'string',
+      workspaceId: 'string',
     },
     primaryIndex: { hashKey: 'userId', rangeKey: 'timestamp' },
     globalIndexes: {
       TypeTimestampIndex: { hashKey: 'type', rangeKey: 'timestamp' },
       UserInsightIndex: { hashKey: 'userId', rangeKey: 'type' },
+      WorkspaceTypeIndex: { hashKey: 'workspaceId', rangeKey: 'type' },
     },
     ttl: 'expiresAt',
     transform: {

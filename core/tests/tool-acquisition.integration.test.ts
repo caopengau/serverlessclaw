@@ -261,7 +261,8 @@ describe('Tool Acquisition Integration', () => {
       'agent_tool_overrides',
       expect.objectContaining({
         'skeleton-agent': expect.arrayContaining(['target_tool']),
-      })
+      }),
+      { workspaceId: undefined }
     );
 
     expect(result.responseText).toContain('ready to use it');

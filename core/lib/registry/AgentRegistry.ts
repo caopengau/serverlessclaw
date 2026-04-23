@@ -50,8 +50,11 @@ export class AgentRegistry {
   /**
    * Retrieves an agent configuration by ID, merging backbone defaults with DynamoDB overrides.
    */
-  static async getAgentConfig(agentId: string): Promise<IAgentConfig | undefined> {
-    const agents = (await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<
+  static async getAgentConfig(
+    agentId: string,
+    options?: { workspaceId?: string }
+  ): Promise<IAgentConfig | undefined> {
+    const agents = (await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG, options)) as Record<
       string,
       IAgentConfig
     >;
@@ -74,9 +77,9 @@ export class AgentRegistry {
     };
 
     // Apply tool overrides (e.g., from metabolic pruning or batch updates)
-    const toolOverrides = (await ConfigManager.getRawConfig(
-      DYNAMO_KEYS.AGENT_TOOL_OVERRIDES
-    )) as Record<string, (string | { name: string; expiresAt: number })[]>;
+    const toolOverrides = (await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, {
+      workspaceId: options?.workspaceId,
+    })) as Record<string, (string | { name: string; expiresAt: number })[]>;
 
     if (toolOverrides?.[agentId]) {
       const now = Date.now();
@@ -97,11 +100,13 @@ export class AgentRegistry {
   /**
    * Fetches all registered agent configurations.
    */
-  static async getAllConfigs(): Promise<Record<string, IAgentConfig>> {
-    const dynamicAgents = (await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG)) as Record<
-      string,
-      IAgentConfig
-    >;
+  static async getAllConfigs(options?: {
+    workspaceId?: string;
+  }): Promise<Record<string, IAgentConfig>> {
+    const dynamicAgents = (await ConfigManager.getRawConfig(
+      DYNAMO_KEYS.AGENTS_CONFIG,
+      options
+    )) as Record<string, IAgentConfig>;
     const all: Record<string, IAgentConfig> = { ...BACKBONE_REGISTRY };
 
     if (dynamicAgents) {
@@ -357,7 +362,13 @@ export class AgentRegistry {
     workspaceId: string = 'default',
     daysThreshold: number = 30
   ): Promise<number> {
-    const usage = (await ConfigManager.getRawConfig(DYNAMO_KEYS.TOOL_USAGE)) as Record<
+    const usageOptions = workspaceId !== 'default' ? { workspaceId } : {};
+    const usageKey =
+      workspaceId !== 'default'
+        ? `WS#${workspaceId}#${DYNAMO_KEYS.TOOL_USAGE_PREFIX}`
+        : DYNAMO_KEYS.TOOL_USAGE;
+
+    const usage = (await ConfigManager.getRawConfig(usageKey)) as Record<
       string,
       { count: number; firstRegistered: number }
     >;
@@ -372,24 +383,23 @@ export class AgentRegistry {
 
     if (lowUtilTools.length === 0) return 0;
 
-    const allConfigs = await this.getAllConfigs();
+    const allConfigs = await this.getAllConfigs(usageOptions);
     let totalPruned = 0;
 
     for (const agentId of Object.keys(allConfigs)) {
-      if (workspaceId !== 'default' && !agentId.startsWith(`WS#${workspaceId}#`)) continue;
-
       // Fetch the full config which includes applied overrides
-      const config = await this.getAgentConfig(agentId);
+      const config = await this.getAgentConfig(agentId, usageOptions);
       if (!config) continue;
 
       const pruneTargets = config.tools?.filter((t) => lowUtilTools.includes(t)) ?? [];
 
       if (pruneTargets.length > 0) {
-        await ConfigManager.atomicRemoveFromMap(
-          DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
-          agentId,
-          pruneTargets
-        ).catch((e) =>
+        const overridesKey =
+          workspaceId !== 'default'
+            ? `WS#${workspaceId}#${DYNAMO_KEYS.AGENT_TOOL_OVERRIDES}`
+            : DYNAMO_KEYS.AGENT_TOOL_OVERRIDES;
+
+        await ConfigManager.atomicRemoveFromMap(overridesKey, agentId, pruneTargets).catch((e) =>
           logger.warn(`[REGISTRY] Failed to atomically prune batch tools for ${agentId}:`, e)
         );
 
@@ -404,8 +414,8 @@ export class AgentRegistry {
    * Legacy wrapper for raw configuration fetching.
    * @deprecated Use ConfigManager directly for new code.
    */
-  static async getRawConfig(key: string): Promise<unknown> {
-    return ConfigManager.getRawConfig(key);
+  static async getRawConfig(key: string, options?: { workspaceId?: string }): Promise<unknown> {
+    return ConfigManager.getRawConfig(key, options);
   }
 
   /**
@@ -415,7 +425,7 @@ export class AgentRegistry {
   static async saveRawConfig(
     key: string,
     value: unknown,
-    options?: { author?: string; description?: string }
+    options?: { author?: string; description?: string; workspaceId?: string }
   ): Promise<void> {
     return ConfigManager.saveRawConfig(key, value, options);
   }
@@ -428,9 +438,15 @@ export class AgentRegistry {
    * @param agentId - The ID of the agent to update.
    * @param field - The field name within the agent's configuration object.
    * @param value - The value to add (positive or negative).
+   * @param options - Optional configuration (workspaceId).
    * @returns The updated value of the field.
    */
-  static async atomicAddAgentField(agentId: string, field: string, value: number): Promise<number> {
+  static async atomicAddAgentField(
+    agentId: string,
+    field: string,
+    value: number,
+    options?: { workspaceId?: string }
+  ): Promise<number> {
     const tableName = getConfigTableName();
 
     if (!tableName) {
@@ -439,11 +455,15 @@ export class AgentRegistry {
 
     const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
 
+    const effectiveKey = options?.workspaceId
+      ? `WS#${options.workspaceId}#${DYNAMO_KEYS.AGENTS_CONFIG}`
+      : DYNAMO_KEYS.AGENTS_CONFIG;
+
     try {
       const response = await getDocClient().send(
         new UpdateCommand({
           TableName: tableName,
-          Key: { key: DYNAMO_KEYS.AGENTS_CONFIG },
+          Key: { key: effectiveKey },
           UpdateExpression:
             'SET #agents.#id.#field = if_not_exists(#agents.#id.#field, :zero) + :val',
           ExpressionAttributeNames: {
@@ -475,16 +495,23 @@ export class AgentRegistry {
    *
    * @param agentId - The ID of the agent.
    * @param toolName - The tool to remove.
+   * @param options - Optional configuration (workspaceId).
    * @returns boolean indicating success.
    */
-  static async pruneAgentTool(agentId: string, toolName: string): Promise<boolean> {
+  static async pruneAgentTool(
+    agentId: string,
+    toolName: string,
+    options?: { workspaceId?: string }
+  ): Promise<boolean> {
     let pruned = false;
+
+    const overridesKey = options?.workspaceId
+      ? `WS#${options.workspaceId}#${DYNAMO_KEYS.AGENT_TOOL_OVERRIDES}`
+      : DYNAMO_KEYS.AGENT_TOOL_OVERRIDES;
 
     // Prune from batch overrides
     try {
-      await ConfigManager.atomicRemoveFromMap(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, agentId, [
-        toolName,
-      ]);
+      await ConfigManager.atomicRemoveFromMap(overridesKey, agentId, [toolName]);
       pruned = true;
     } catch (e) {
       logger.warn(
@@ -500,8 +527,8 @@ export class AgentRegistry {
    * Gets infrastructure configuration nodes.
    * @deprecated Use ConfigManager.getRawConfig directly.
    */
-  static async getInfraConfig(): Promise<unknown[]> {
-    const config = await ConfigManager.getRawConfig('infra_topology');
+  static async getInfraConfig(options?: { workspaceId?: string }): Promise<unknown[]> {
+    const config = await ConfigManager.getRawConfig('infra_topology', options);
     if (Array.isArray(config)) {
       return config;
     }

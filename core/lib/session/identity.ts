@@ -736,3 +736,19 @@ export class IdentityManager {
     }
   }
 }
+
+/**
+ * Singleton instance of IdentityManager.
+ */
+let identityManager: IdentityManager | undefined;
+
+/**
+ * Get or create the singleton IdentityManager instance.
+ */
+export async function getIdentityManager(): Promise<IdentityManager> {
+  if (!identityManager) {
+    const { BaseMemoryProvider } = await import('../memory/base');
+    identityManager = new IdentityManager(new BaseMemoryProvider());
+  }
+  return identityManager;
+}

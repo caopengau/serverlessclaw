@@ -90,7 +90,8 @@ describe('ConfigManager.saveRawConfig versioning', () => {
       'old_value',
       'new_value',
       'system',
-      undefined
+      undefined,
+      { workspaceId: undefined }
     );
     expect(docClientMock.send).toHaveBeenCalled();
     getRawMock.mockRestore();
@@ -175,7 +176,7 @@ describe('ConfigManager.getAgentOverrideConfig', () => {
 
     const result = await ConfigManager.getAgentOverrideConfig('coder', 'max_iterations', 10);
     expect(result).toBe(42);
-    expect(getRawMock).toHaveBeenCalledWith('agent_config_coder_max_iterations');
+    expect(getRawMock).toHaveBeenCalledWith('agent_config_coder_max_iterations', undefined);
     getRawMock.mockRestore();
   });
 
@@ -186,7 +187,7 @@ describe('ConfigManager.getAgentOverrideConfig', () => {
 
     const result = await ConfigManager.getAgentOverrideConfig('coder', 'max_iterations', 10);
     expect(result).toBe(25);
-    expect(getRawMock).toHaveBeenCalledTimes(2);
+    expect(getRawMock).toHaveBeenCalledWith('agent_config_coder_max_iterations', undefined);
     getRawMock.mockRestore();
   });
 

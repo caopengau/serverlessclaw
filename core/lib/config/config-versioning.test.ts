@@ -116,7 +116,7 @@ describe('ConfigVersioning', () => {
       }));
       mockConfigManager.getRawConfig.mockResolvedValueOnce(versions);
 
-      const result = await ConfigVersioning.getVersionHistory('test', 3);
+      const result = await ConfigVersioning.getVersionHistory('test', { limit: 3 });
       expect(result).toHaveLength(3);
       expect(result[0].versionId).toBe('v_7');
     });
