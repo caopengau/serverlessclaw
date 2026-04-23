@@ -184,22 +184,26 @@ export function useChatMessages(
     text: string,
     options: {
       agentId?: string;
+      agentIds?: string[];
       collaborationId?: string;
       pageContext?: PageContextData;
       profile?: string;
       isIsolated?: boolean;
       source?: string;
       overrideConfig?: Record<string, unknown>;
+      promptOverrides?: Record<string, string>;
     } = {}
   ) => {
     const {
       agentId,
+      agentIds,
       collaborationId,
       pageContext,
       profile,
       isIsolated = false,
       source,
       overrideConfig,
+      promptOverrides,
     } = options;
 
     if (!text.trim() && attachments.length === 0) return;
@@ -208,6 +212,9 @@ export function useChatMessages(
     const userMsg = text.trim();
     const currentAttachments = [...attachments];
     const tempId = crypto.randomUUID();
+
+    // In multi-agent mode, we use the first agent as the primary responder identifier in the UI
+    const primaryAgentId = agentIds && agentIds.length > 0 ? agentIds[0] : agentId || 'superclaw';
 
     setMessages((prev: ChatMessage[]) => [
       ...prev,
@@ -227,8 +234,8 @@ export function useChatMessages(
         role: 'assistant',
         content: '',
         // Use the same messageId the server will assign (traceId-agentId)
-        messageId: `${tempId}-${agentId || 'superclaw'}`,
-        agentName: agentId || 'SuperClaw',
+        messageId: `${tempId}-${primaryAgentId}`,
+        agentName: primaryAgentId,
         isThinking: true,
       },
     ]);
@@ -265,11 +272,13 @@ export function useChatMessages(
           traceId: tempId,
           pageContext,
           profile,
-          agentId,
+          agentId: agentId || primaryAgentId,
+          agentIds,
           collaborationId,
           isIsolated,
           source,
           overrideConfig,
+          promptOverrides,
         }),
       });
 

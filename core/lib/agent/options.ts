@@ -99,6 +99,10 @@ export interface AgentProcessOptions {
     totalTokens: number;
   };
   /**
+   * Optional swarm context: IDs of all agents participating in this session.
+   */
+  agentIds?: string[];
+  /**
    * If true, the agent will skip saving the User message to history.
    * Useful when retrying or falling back from a stream where the message
    * was already persisted.

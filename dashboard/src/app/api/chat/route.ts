@@ -50,10 +50,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       pageContext,
       profile,
       agentId = AgentType.SUPERCLAW,
+      agentIds,
       collaborationId,
       isIsolated = false,
       source: incomingSource,
       overrideConfig,
+      promptOverrides,
     } = await req.json();
 
     const source = incomingSource || TraceSource.DASHBOARD;
@@ -68,19 +70,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // In multi-agent mode, use the primary agentId (usually the first in the list)
+    const primaryAgentId = agentIds && agentIds.length > 0 ? agentIds[0] : agentId;
+
     logger.info(
-      `[Chat API] POST - userId: ${userId}, sessionId: ${sessionId}, traceId: ${clientTraceId}, agentId: ${agentId}, collabId: ${collaborationId}`
+      `[Chat API] POST - userId: ${userId}, sessionId: ${sessionId}, traceId: ${clientTraceId}, agentId: ${primaryAgentId}, agentIds: ${agentIds?.join(',')}, collabId: ${collaborationId}`
     );
 
     // If we're in a collaboration session, we might need special logic in the future.
     // For now, we route to the specific agent requested.
 
-    const config = await AgentRegistry.getAgentConfig(agentId);
-    const agentTools = await getAgentTools(agentId);
+    const config = await AgentRegistry.getAgentConfig(primaryAgentId);
+    const agentTools = await getAgentTools(primaryAgentId);
 
     if (!config) {
       return NextResponse.json(
-        { error: `Agent ${agentId} not found in registry.` },
+        { error: `Agent ${primaryAgentId} not found in registry.` },
         { status: HTTP_STATUS.NOT_FOUND }
       );
     }
@@ -88,7 +93,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Principle 14 Check
     if (config.enabled !== true) {
       return NextResponse.json(
-        { error: `Agent ${agentId} is currently disabled and cannot process requests.` },
+        { error: `Agent ${primaryAgentId} is currently disabled and cannot process requests.` },
         { status: HTTP_STATUS.FORBIDDEN }
       );
     }
@@ -113,7 +118,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const agent = new Agent(getMemory(), getProvider(), agentTools, {
       ...config,
       ...(overrideConfig || {}),
-      systemPrompt: overrideConfig?.systemPrompt ?? config?.systemPrompt ?? SUPERCLAW_SYSTEM_PROMPT,
+      systemPrompt:
+        promptOverrides?.[primaryAgentId] ??
+        overrideConfig?.systemPrompt ??
+        config?.systemPrompt ??
+        SUPERCLAW_SYSTEM_PROMPT,
     } as IAgentConfig);
 
     // We use the streaming generator to trigger real-time MQTT emissions via AgentEmitter
@@ -128,6 +137,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       pageContext,
       profile,
       communicationMode,
+      agentIds, // Pass the swarm context to the agent
     });
 
     let finalResponse = '';
@@ -143,7 +153,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     logger.info(
-      `[Chat API] Stream finished - sessionId: ${sessionId}, agent: ${agentId}, response length: ${finalResponse.length}`
+      `[Chat API] Stream finished - sessionId: ${sessionId}, agent: ${primaryAgentId}, response length: ${finalResponse.length}`
     );
 
     // Update conversation metadata for the sidebar
@@ -153,7 +163,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           finalResponse.length > 60 ? finalResponse.substring(0, 60) + '...' : finalResponse,
         updatedAt: Date.now(),
         // Store the last agent used in this session if it's not superclaw
-        metadata: agentId !== AgentType.SUPERCLAW ? { lastAgentId: agentId } : undefined,
+        metadata:
+          primaryAgentId !== AgentType.SUPERCLAW ? { lastAgentId: primaryAgentId } : undefined,
       });
     }
 
@@ -164,7 +175,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       reply: (finalResponse || '').trim(),
       thought: thoughtToReturn,
-      agentName: config.name || agentId,
+      agentName: config.name || primaryAgentId,
       messageId: finalMessageId,
       tool_calls: finalToolCalls,
       sessionId: sessionId || undefined,

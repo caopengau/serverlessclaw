@@ -11,13 +11,13 @@ import { TraceSource } from '@claw/core/lib/types/agent';
 import Button from '@/components/ui/Button';
 
 export default function PlaygroundChat({
-  agentId,
-  overrideConfig,
+  agentIds,
+  promptOverrides,
   onTraceUpdate,
   replayTraceId,
 }: {
-  agentId: string;
-  overrideConfig: { systemPrompt: string };
+  agentIds: string[];
+  promptOverrides: Record<string, string>;
   onTraceUpdate?: (traceId: string) => void;
   replayTraceId?: string;
 }) {
@@ -57,7 +57,7 @@ export default function PlaygroundChat({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (replayTraceId && agentId) {
+    if (replayTraceId && agentIds.length > 0) {
       async function fetchReplayData() {
         try {
           const res = await fetch(`/api/trace/${replayTraceId}`);
@@ -76,10 +76,10 @@ export default function PlaygroundChat({
             // Wait for messages to settle then trigger replay
             setTimeout(() => {
               sendMessage(query, {
-                agentId,
+                agentIds,
                 isIsolated: true,
                 source: TraceSource.PLAYGROUND,
-                overrideConfig,
+                promptOverrides,
               });
             }, 1000);
           }
@@ -91,20 +91,20 @@ export default function PlaygroundChat({
     }
     // Only run once on mount when replayTraceId is present
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [replayTraceId, agentId]);
+  }, [replayTraceId, agentIds]);
 
   const handleSend = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!agentId) return;
+    if (agentIds.length === 0) return;
 
     const textToSend = input;
     setInput('');
 
     await sendMessage(textToSend, {
-      agentId,
+      agentIds,
       isIsolated: true,
       source: TraceSource.PLAYGROUND,
-      overrideConfig,
+      promptOverrides,
     });
 
     // Extract traceId from the last message added by sendMessage
@@ -123,7 +123,7 @@ export default function PlaygroundChat({
     }
   }, [messages, onTraceUpdate]);
 
-  if (!agentId) {
+  if (agentIds.length === 0) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-muted-more/40">
         <Bot size={64} className="mb-4 opacity-10" />
@@ -131,7 +131,7 @@ export default function PlaygroundChat({
           Select a Persona to Begin
         </Typography>
         <Typography variant="caption" color="muted-more" className="mt-2 uppercase tracking-widest">
-          Cognitive sandbox initialized
+          Cognitive swarm simulation initialized
         </Typography>
       </div>
     );
@@ -150,7 +150,7 @@ export default function PlaygroundChat({
               weight="bold"
               className="text-xs text-foreground uppercase tracking-tighter"
             >
-              Testing::{agentId}
+              Swarm::{agentIds.join(', ')}
             </Typography>
             <div className="flex items-center gap-1.5">
               <div className="w-1 h-1 rounded-full bg-cyber-green animate-pulse" />
