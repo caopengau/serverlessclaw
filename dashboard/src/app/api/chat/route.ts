@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getUserId } from '@/lib/auth-utils';
+
 export const dynamic = 'force-dynamic';
-import { UI_STRINGS, AUTH } from '@/lib/constants';
+import { UI_STRINGS } from '@/lib/constants';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
 import { revalidatePath } from 'next/cache';
 
@@ -25,14 +27,6 @@ function getMemory() {
 function getProvider() {
   if (!providerInstance) providerInstance = new ProviderManager();
   return providerInstance;
-}
-
-function getUserId(req: NextRequest): string {
-  if (!req.cookies) {
-    return 'dashboard-user';
-  }
-  const sessionCookie = req.cookies.get(AUTH.SESSION_USER_ID);
-  return sessionCookie?.value || 'dashboard-user';
 }
 
 /**

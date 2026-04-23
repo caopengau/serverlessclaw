@@ -5,12 +5,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { getResourceName } from '@/lib/sst-utils';
 import { logger } from '@claw/core/lib/logger';
-import { AUTH } from '@/lib/constants';
-
-function getUserId(req: NextRequest): string {
-  const sessionCookie = req.cookies.get(AUTH.SESSION_USER_ID);
-  return sessionCookie?.value || 'dashboard-user';
-}
+import { getUserId } from '@/lib/auth-utils';
 
 /**
  * GET /api/chat/context?sessionId=...

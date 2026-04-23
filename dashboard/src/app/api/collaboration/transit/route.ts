@@ -5,15 +5,9 @@ import { AgentType } from '@claw/core/lib/types/index';
 import { DynamoMemory, CachedMemory } from '@claw/core/lib/memory';
 import { AgentRegistry } from '@claw/core/lib/registry';
 import { logger } from '@claw/core/lib/logger';
-import { AUTH } from '@/lib/constants';
+import { getUserId } from '@/lib/auth-utils';
 
 const memory = new CachedMemory(new DynamoMemory());
-
-function getUserId(req: NextRequest): string {
-  if (!req.cookies) return 'dashboard-user';
-  const sessionCookie = req.cookies.get(AUTH.SESSION_USER_ID);
-  return sessionCookie?.value || 'dashboard-user';
-}
 
 /**
  * POST /api/collaboration/transit

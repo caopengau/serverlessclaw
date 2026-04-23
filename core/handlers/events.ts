@@ -13,79 +13,11 @@ import { incrementRecursionDepth, getRecursionLimit } from '../lib/recursion-tra
 import { EventType } from '../lib/types/agent';
 import * as crypto from 'crypto';
 
-import * as buildHandler from './events/build-handler';
-import * as continuationHandler from './events/continuation-handler';
-import * as healthHandler from './events/health-handler';
-import * as taskResultHandler from './events/task-result-handler';
-import * as clarificationHandler from './events/clarification-handler';
-import * as clarificationTimeoutHandler from './events/clarification-timeout-handler';
-import * as parallelHandler from './events/parallel-handler';
-import * as parallelBarrierTimeoutHandler from './events/parallel-barrier-timeout-handler';
-import * as parallelTaskCompletedHandler from './events/parallel-task-completed-handler';
-import * as dagSupervisorHandler from './events/dag-supervisor-handler';
-import * as cancellationHandler from './events/cancellation-handler';
-import * as proactiveHandler from './events/proactive-handler';
-import * as escalationHandler from './events/escalation-handler';
-import * as consensusHandler from './events/consensus-handler';
-import * as cognitiveHealthHandler from './events/cognitive-health-handler';
-import * as strategicTieBreakHandler from './events/strategic-tie-break-handler';
-import * as reportBackHandler from './events/report-back-handler';
-import * as auditHandler from './events/audit-handler';
-import * as recoveryHandler from './events/recovery-handler';
-import * as dashboardFailureHandler from './events/dashboard-failure-handler';
-import * as dlqHandler from './events/dlq-handler';
-import * as reputationHandler from './events/reputation-handler';
-
-const STATIC_HANDLERS: Record<string, unknown> = {
-  'build-handler': buildHandler,
-  'continuation-handler': continuationHandler,
-  'health-handler': healthHandler,
-  'task-result-handler': taskResultHandler,
-  'clarification-handler': clarificationHandler,
-  'clarification-timeout-handler': clarificationTimeoutHandler,
-  'parallel-handler': parallelHandler,
-  'parallel-barrier-timeout-handler': parallelBarrierTimeoutHandler,
-  'parallel-task-completed-handler': parallelTaskCompletedHandler,
-  'dag-supervisor-handler': dagSupervisorHandler,
-  'cancellation-handler': cancellationHandler,
-  'proactive-handler': proactiveHandler,
-  'escalation-handler': escalationHandler,
-  'consensus-handler': consensusHandler,
-  'cognitive-health-handler': cognitiveHealthHandler,
-  'strategic-tie-break-handler': strategicTieBreakHandler,
-  'report-back-handler': reportBackHandler,
-  'audit-handler': auditHandler,
-  'recovery-handler': recoveryHandler,
-  'dashboard-failure-handler': dashboardFailureHandler,
-  'dlq-handler': dlqHandler,
-  'reputation-handler': reputationHandler,
-};
+import { STATIC_HANDLERS } from './events/handlers-map';
+import { validateEvent } from './events/validation';
 
 // Verify event routing configuration on module load
 verifyEventRoutingConfiguration();
-
-/**
- * Simple schema validation for incoming event details.
- */
-function validateEvent(eventDetail: Record<string, unknown>): {
-  valid: boolean;
-  errors?: string[];
-} {
-  const requiredFields = ['sessionId', 'traceId'];
-  const missing = requiredFields.filter((field) => !(field in eventDetail));
-
-  if (missing.includes('sessionId')) {
-    eventDetail.sessionId = 'system-spine';
-    logger.warn('[VALIDATION] Missing sessionId, using default: system-spine');
-  }
-
-  if (missing.includes('traceId')) {
-    eventDetail.traceId = `t-sys-${Date.now()}`;
-    logger.warn(`[VALIDATION] Missing traceId, using default: ${eventDetail.traceId}`);
-  }
-
-  return { valid: true };
-}
 
 export async function handler(
   event: {

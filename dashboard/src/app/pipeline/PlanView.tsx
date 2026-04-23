@@ -3,14 +3,8 @@
 import React, { useState } from 'react';
 import Typography from '@/components/ui/Typography';
 import { ChevronDown, ChevronUp, GitCommit } from 'lucide-react';
-import PlanDecompositionTree from '@/components/PlanDecompositionTree';
+import PlanDecompositionTree, { SubTask } from '@/components/PlanDecompositionTree';
 
-interface SubTask {
-  subTaskId: string;
-  task: string;
-  status: 'PENDING' | 'PROGRESS' | 'DONE' | 'FAILED';
-  order: number;
-}
 
 interface PlanData {
   planId: string;

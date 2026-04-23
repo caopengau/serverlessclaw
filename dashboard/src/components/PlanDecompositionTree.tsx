@@ -4,7 +4,7 @@ import React from 'react';
 import Typography from '@/components/ui/Typography';
 import { GitCommit, ArrowDown, CheckCircle2, Circle, Clock } from 'lucide-react';
 
-interface SubTask {
+export interface SubTask {
   subTaskId: string;
   task: string;
   status: 'PENDING' | 'PROGRESS' | 'DONE' | 'FAILED';

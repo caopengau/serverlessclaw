@@ -387,7 +387,7 @@ describe('AgentExecutor', () => {
       });
 
       // Mock callLLM to just return a simple response
-      vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+      vi.spyOn((executor as any).standardExecutor, 'callLLM').mockResolvedValue({
         role: MessageRole.ASSISTANT,
         content: 'I understand you rejected the tool.',
       });
@@ -414,7 +414,7 @@ describe('AgentExecutor', () => {
         userText: 'TOOL_CLARIFICATION:call-456 Please use the staging environment',
       });
 
-      vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+      vi.spyOn((executor as any).standardExecutor, 'callLLM').mockResolvedValue({
         role: MessageRole.ASSISTANT,
         content: 'I will use staging.',
       });
@@ -441,7 +441,7 @@ describe('AgentExecutor', () => {
         userText: 'TOOL_REJECTION:call-789',
       });
 
-      vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+      vi.spyOn((executor as any).standardExecutor, 'callLLM').mockResolvedValue({
         role: MessageRole.ASSISTANT,
         content: 'Rejected.',
       });
@@ -461,7 +461,7 @@ describe('AgentExecutor', () => {
           userText: 'REJECT_TOOL_CALL:call-abc:User changed their mind',
         });
 
-        vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+        vi.spyOn((executor as any).standardExecutor, 'callLLM').mockResolvedValue({
           role: MessageRole.ASSISTANT,
           content: 'OK.',
         });
@@ -484,7 +484,7 @@ describe('AgentExecutor', () => {
           userText: 'CLARIFY_TOOL_CALL:call-def:Please be careful',
         });
 
-        vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+        vi.spyOn((executor as any).standardExecutor, 'callLLM').mockResolvedValue({
           role: MessageRole.ASSISTANT,
           content: 'OK.',
         });
@@ -507,7 +507,7 @@ describe('AgentExecutor', () => {
           userText: 'REJECT_TOOL_CALL:call-ghi',
         });
 
-        vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+        vi.spyOn((executor as any).standardExecutor, 'callLLM').mockResolvedValue({
           role: MessageRole.ASSISTANT,
           content: 'OK.',
         });
@@ -526,7 +526,7 @@ describe('AgentExecutor', () => {
           userText: 'REJECT_TOOL_CALL:call-jkl:Reason with: more colons',
         });
 
-        vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+        vi.spyOn((executor as any).standardExecutor, 'callLLM').mockResolvedValue({
           role: MessageRole.ASSISTANT,
           content: 'OK.',
         });
@@ -635,7 +635,7 @@ describe('AgentExecutor', () => {
       userText: 'TOOL_REJECTION:call-999',
     });
 
-    vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+    vi.spyOn((executor as any).standardExecutor, 'callLLM').mockResolvedValue({
       role: MessageRole.ASSISTANT,
       content: 'Rejected.',
     });
@@ -654,7 +654,7 @@ describe('AgentExecutor', () => {
       userText: 'TOOL_CLARIFICATION:call-888',
     });
 
-    vi.spyOn((executor as any).core.standardExecutor, 'callLLM').mockResolvedValue({
+    vi.spyOn((executor as any).standardExecutor, 'callLLM').mockResolvedValue({
       role: MessageRole.ASSISTANT,
       content: 'Clarified.',
     });

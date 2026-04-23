@@ -2,21 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // --- Mocks ---
 
-class MockDynamo {
-  nodes: any;
-  constructor(
-    public name: string,
-    public args: any
-  ) {
-    this.nodes = {
-      table: {
-        arn: {
-          apply: (fn: any) => fn(`arn:aws:dynamodb:region:123456789012:table/${name}`),
-        },
-      },
-    };
-  }
-}
+import { MockDynamo } from './__mocks__/MockDynamo';
 
 class MockFunction {
   arn = 'mock-arn';
@@ -47,7 +33,7 @@ class MockGeneric {
   ) {}
 }
 
-const mockDynamo = vi.fn(function (name, args) {
+const mockDynamo = vi.fn(function (name: string, args?: any) {
   return new MockDynamo(name, args);
 });
 const mockFunction = vi.fn(function (name, args) {

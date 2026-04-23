@@ -58,20 +58,7 @@ class MockApi {
   }
 }
 
-class MockDynamo {
-  arn: string;
-  nodes: any;
-  constructor(public name: string) {
-    this.arn = `arn:aws:dynamodb:us-east-1:123456789012:table/${name}`;
-    this.nodes = {
-      table: {
-        arn: {
-          apply: (fn: any) => fn(this.arn),
-        },
-      },
-    };
-  }
-}
+import { MockDynamo } from './__mocks__/MockDynamo';
 
 class MockBucket {
   arn: string;
@@ -106,7 +93,9 @@ const mockBus = vi.fn(MockBus as any);
 const mockRealtime = vi.fn(MockRealtime as any);
 const mockQueue = vi.fn(MockQueue as any);
 const mockApi = vi.fn(MockApi as any);
-const mockDynamo = vi.fn(MockDynamo as any);
+const mockDynamo = vi.fn(function (name: string, args?: any) {
+  return new MockDynamo(name, args);
+});
 const mockBucket = vi.fn(MockBucket as any);
 const mockSecret = vi.fn(MockSecret as any);
 const mockLinkable = vi.fn(MockLinkable as any);
