@@ -45,7 +45,13 @@ export function createDashboard(ctx: SharedContext): { dashboard: sst.aws.Nextjs
       API_URL: api?.url || '',
       STAGING_BUCKET_NAME: stagingBucket.name,
       KNOWLEDGE_BUCKET_NAME: knowledgeBucket.name,
-      BUS_NAME: bus.name,
+      AGENT_BUS_NAME: bus.name,
+      TRACE_TABLE_NAME: traceTable.name,
+      MEMORY_TABLE_NAME: memoryTable.name,
+      CONFIG_TABLE_NAME: configTable.name,
+      WEBHOOK_API_URL: api?.url || '',
+      IOT_ENDPOINT: ctx.realtime?.endpoint || '',
+      IOT_AUTHORIZER: ctx.realtime?.authorizer || '',
       AWS_PROFILE: '', // Clear profile to avoid conflict warning as SST injects static credentials
     },
     server: {
