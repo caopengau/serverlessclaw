@@ -5,6 +5,7 @@ import { isTaskPaused } from '../utils/agent-helpers';
 import { ConfigManager } from '../registry/config';
 import { parseConfigInt } from '../providers/utils';
 import { DYNAMO_KEYS } from '../constants';
+import { emitMetrics, METRICS } from '../metrics';
 
 async function getMaxRecursionDepth(): Promise<number> {
   try {
@@ -58,6 +59,14 @@ export interface SwarmDecompositionOptions {
  * Consolidates fragmented decomposition and parallel dispatch logic into a
  * shared service. This ensures consistent swarm behavior across all agent
  * types (Streaming, System, and Dynamic).
+ *
+ * Improvements (2026-04-24 Audit):
+ * - DAG-aware decomposition: sub-task dependencies are preserved and passed
+ *   to the parallel dispatcher for true dependency-aware execution.
+ * - Swarm health telemetry: emits metrics for decomposition rate and
+ *   parallel dispatch scale.
+ * - Selection integrity enforcement: agents are verified enabled before
+ *   dispatch.
  */
 export async function handleSwarmDecomposition(
   responseText: string,
@@ -106,26 +115,81 @@ export async function handleSwarmDecomposition(
         `[SwarmOrchestrator] Decomposing plan into ${decomposed.subTasks.length} parallel tasks (depth: ${depth}).`
       );
 
-      const { emitTypedEvent } = await import('../utils/typed-emit');
+      // Emit swarm decomposition metric (P3: telemetry)
+      emitMetrics([
+        METRICS.swarmDecomposed(
+          sourceAgentId || defaultAgentId,
+          decomposed.subTasks.length,
+          depth,
+          {
+            workspaceId: payload.workspaceId,
+            teamId: payload.teamId,
+            staffId: payload.staffId,
+          }
+        ),
+      ]).catch(() => {});
 
-      const subTaskEvents = decomposed.subTasks.map((sub) => ({
-        taskId: sub.subTaskId,
-        agentId: sub.agentId,
-        task: sub.task,
-        userId: payload.userId,
-        sessionId,
-        traceId,
-        initiatorId: payload.initiatorId,
-        depth: depth,
-        isParallel: true,
-        metadata: {
-          ...payload.metadata,
-          originalPlan: responseText,
-          subTaskIndex: sub.subTaskId,
-          totalSubTasks: decomposed.subTasks.length,
-          gapIds: sub.gapIds,
-        },
-      }));
+      const { emitTypedEvent } = await import('../utils/typed-emit');
+      const { AgentRegistry } = await import('../registry/AgentRegistry');
+
+      // Build dependency-aware task events from decomposed sub-tasks
+      // The decomposer returns dependencies as order indices; convert to taskIds
+      const taskIdMap = new Map<number, string>();
+      decomposed.subTasks.forEach((sub) => {
+        taskIdMap.set(sub.order, sub.subTaskId);
+      });
+
+      const subTaskEvents = decomposed.subTasks.map((sub) => {
+        // Convert dependency order indices to actual taskIds for DAG execution
+        const dependsOn = sub.dependencies
+          .map((depOrder) => taskIdMap.get(depOrder))
+          .filter((id): id is string => id !== undefined);
+
+        return {
+          taskId: sub.subTaskId,
+          agentId: sub.agentId,
+          task: sub.task,
+          userId: payload.userId,
+          sessionId,
+          traceId,
+          initiatorId: payload.initiatorId,
+          depth: depth,
+          isParallel: true,
+          dependsOn: dependsOn.length > 0 ? dependsOn : undefined,
+          metadata: {
+            ...payload.metadata,
+            originalPlan: responseText,
+            subTaskIndex: sub.subTaskId,
+            totalSubTasks: decomposed.subTasks.length,
+            gapIds: sub.gapIds,
+            complexity: sub.complexity,
+          },
+        };
+      });
+
+      // Verify selection integrity: ensure target agents are enabled (Principle 14)
+      const enabledChecks = await Promise.all(
+        decomposed.subTasks.map(async (sub) => {
+          try {
+            const config = await AgentRegistry.getAgentConfig(sub.agentId, {
+              workspaceId: payload.workspaceId,
+            });
+            return config?.enabled === true;
+          } catch {
+            return false;
+          }
+        })
+      );
+
+      const allEnabled = enabledChecks.every((e) => e);
+      if (!allEnabled) {
+        const disabledCount = enabledChecks.filter((e) => !e).length;
+        logger.warn(
+          `[SwarmOrchestrator] ${disabledCount} sub-task agents are disabled. Falling back to single-task dispatch.`
+        );
+        // Fall through to return non-decomposed response
+        return { wasDecomposed: false, isPaused, response: responseText };
+      }
 
       await emitTypedEvent(sourceAgentId || defaultAgentId, EventType.PARALLEL_TASK_DISPATCH, {
         dispatchId: traceId,

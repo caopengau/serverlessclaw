@@ -129,6 +129,22 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
 
   try {
     // 1. Discovery & Initialization
+    // Selection Integrity (Principle 14): Verify agent is enabled before initialization
+    const { AgentRegistry } = await import('../lib/registry/AgentRegistry');
+    const agentConfig = await AgentRegistry.getAgentConfig(agentId, {
+      workspaceId,
+    });
+    if (!agentConfig) {
+      logger.warn(`[AgentRunner] Agent ${agentId} not found in registry.`);
+      return `Error: Agent ${agentId} not found`;
+    }
+    if (agentConfig.enabled !== true) {
+      logger.warn(
+        `[AgentRunner] Selection Integrity check failed: Agent ${agentId} is disabled (enabled=${agentConfig.enabled}).`
+      );
+      return `Error: Agent ${agentId} is disabled`;
+    }
+
     const { config, agent } = await initAgent(agentId);
     const shouldSpeakDirectly =
       config?.category === 'social' || config?.defaultCommunicationMode === 'text';

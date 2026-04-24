@@ -63,6 +63,13 @@ vi.mock('../lib/logger', () => ({
   },
 }));
 
+vi.mock('../lib/registry/AgentRegistry', () => ({
+  AgentRegistry: {
+    getAgentConfig: vi.fn(async () => ({ enabled: true })),
+    getFallbackAgents: vi.fn(() => ['superclaw', 'facilitator']),
+  },
+}));
+
 describe('AgentRunner Handler', () => {
   const fakeContext = { awsRequestId: 'request-123' } as any;
 

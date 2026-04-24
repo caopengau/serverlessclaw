@@ -230,6 +230,17 @@ export async function handleTaskResult(
         const overallStatus =
           successRate === 1 ? 'success' : successRate >= threshold ? 'partial' : 'failed';
 
+        // Emit parallel dispatch completion metric (P3: telemetry)
+        emitMetrics([
+          METRICS.parallelDispatchCompleted(
+            traceId,
+            aggregateState.taskCount,
+            successCount,
+            overallStatus,
+            { workspaceId, teamId, staffId }
+          ),
+        ]).catch(() => {});
+
         // Atomic completion check to prevent double-firing
         const marked = await aggregator.markAsCompleted(userId, traceId, overallStatus);
 

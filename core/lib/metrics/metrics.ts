@@ -376,4 +376,50 @@ export const METRICS = {
       Dimensions: [{ Name: 'EventType', Value: eventType }],
     };
   },
+
+  // Swarm / Parallel execution metrics
+  swarmDecomposed(
+    agentId: string,
+    subTaskCount: number,
+    depth: number,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [
+      { Name: 'AgentId', Value: agentId },
+      { Name: 'Depth', Value: String(depth) },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
+    return {
+      MetricName: 'SwarmDecomposed',
+      Value: subTaskCount,
+      Unit: 'Count',
+      Dimensions: dimensions,
+    };
+  },
+
+  parallelDispatchCompleted(
+    traceId: string,
+    taskCount: number,
+    successCount: number,
+    overallStatus: string,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [
+      { Name: 'TraceId', Value: traceId },
+      { Name: 'OverallStatus', Value: overallStatus },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
+    return {
+      MetricName: 'ParallelDispatchCompleted',
+      Value: successCount,
+      Unit: 'Count',
+      Dimensions: dimensions,
+    };
+  },
 };

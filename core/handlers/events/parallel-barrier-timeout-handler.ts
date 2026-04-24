@@ -77,6 +77,15 @@ export async function handleParallelBarrierTimeout(
     EVOLUTION_METRICS.recordBarrierTimeout(traceId, totalTasks, completedCount);
   });
 
+  // Emit parallel dispatch completion metric for timed-out dispatches
+  import('../../lib/metrics/metrics').then(({ emitMetrics, METRICS }) => {
+    emitMetrics([
+      METRICS.parallelDispatchCompleted(traceId, totalTasks, finalSuccessCount, effectiveStatus, {
+        workspaceId: eventDetail.workspaceId as string | undefined,
+      }),
+    ]).catch(() => {});
+  });
+
   // Now that the dispatch is sealed, synthesize timeout results for the tasks that didn't finish
   const finalResults = [...existingResults];
   const isActuallyTimeout = effectiveStatus === ParallelTaskStatus.TIMED_OUT;

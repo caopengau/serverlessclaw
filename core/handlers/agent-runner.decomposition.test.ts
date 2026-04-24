@@ -46,9 +46,17 @@ vi.mock('../lib/utils/distributed-state', () => ({
 // Mock ddb-client
 vi.mock('../lib/utils/ddb-client', () => ({
   getMemoryTableName: vi.fn(() => 'test-memory-table'),
+  getConfigTableName: vi.fn(() => 'test-config-table'),
   getDocClient: vi.fn(() => ({
     send: vi.fn().mockResolvedValue({}),
   })),
+}));
+
+vi.mock('../lib/registry/AgentRegistry', () => ({
+  AgentRegistry: {
+    getAgentConfig: vi.fn(async () => ({ enabled: true })),
+    getFallbackAgents: vi.fn(() => ['superclaw', 'facilitator']),
+  },
 }));
 
 vi.mock('../lib/logger', () => ({
