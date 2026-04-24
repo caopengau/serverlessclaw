@@ -34,8 +34,8 @@ async function seed() {
     // 0. Seed User Identities
     console.log('👤 Seeding E2E Users...');
     const users = [
-      { id: 'dashboard-user', role: 'ADMIN' },
-      { id: 'superadmin', role: 'OWNER' },
+      { id: 'dashboard-user', role: 'admin' },
+      { id: 'superadmin', role: 'owner' },
     ];
 
     for (const u of users) {
@@ -73,6 +73,7 @@ async function seed() {
           source: 'user',
           status: 'completed',
           task: 'Collaboration Test Trace',
+          initialContext: { userText: 'Collaboration Test Trace' },
           workspaceId: 'default',
           metadata: { category: 'test' },
         },
@@ -123,6 +124,61 @@ async function seed() {
               edges: [{ id: 'e1-2', source: 'n1', target: 'n2' }],
             },
           },
+        },
+      })
+    );
+
+    // Seed Tool Source Test Trace
+    console.log('📝 Seeding Tool Source Trace...');
+    const toolTraceId = 'trace_tool_source_test';
+
+    await docClient.send(
+      new PutCommand({
+        TableName: traceTable,
+        Item: {
+          traceId: toolTraceId,
+          nodeId: '__summary__',
+          timestamp: now,
+          userId: 'dashboard-user',
+          agentId: 'superclaw',
+          source: 'user',
+          status: 'completed',
+          task: 'Tool Source Test Trace',
+          initialContext: { userText: 'Tool Source Test Trace' },
+          workspaceId: 'default',
+          metadata: { category: 'test' },
+        },
+      })
+    );
+
+    await docClient.send(
+      new PutCommand({
+        TableName: traceTable,
+        Item: {
+          traceId: toolTraceId,
+          nodeId: 'step_1',
+          timestamp: now,
+          type: 'tool_call',
+          source: 'user',
+          agentId: 'superclaw',
+          workspaceId: 'default',
+          content: { toolName: 'mcp-github_get_issue', tool: 'mcp-github_get_issue', args: {} },
+        },
+      })
+    );
+
+    await docClient.send(
+      new PutCommand({
+        TableName: traceTable,
+        Item: {
+          traceId: toolTraceId,
+          nodeId: 'step_2',
+          timestamp: now + 1000,
+          type: 'tool_call',
+          source: 'user',
+          agentId: 'superclaw',
+          workspaceId: 'default',
+          content: { toolName: 'local_tool', tool: 'local_tool', args: {} },
         },
       })
     );

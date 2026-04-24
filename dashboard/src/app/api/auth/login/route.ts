@@ -41,13 +41,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       logger.info(`[Auth:Login] ✅ Authorized successful (isDev=${isDev})`);
       const response = NextResponse.json({ success: true });
 
-      const sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+      const dashboardUserId = 'dashboard-user';
+      let sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
       // Register session with IdentityManager
       try {
         const { getIdentityManager, UserRole } = await import('@claw/core/lib/session/identity');
         const identityManager = await getIdentityManager();
-        const authResult = await identityManager.authenticate(sessionId, 'dashboard');
+        const authResult = await identityManager.authenticate(dashboardUserId, 'dashboard');
+
+        if (authResult.session?.sessionId) {
+          sessionId = authResult.session.sessionId;
+        }
 
         // Grant admin privileges to the dashboard user
         if (
@@ -55,7 +60,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
           authResult.user?.role !== UserRole.ADMIN &&
           authResult.user?.role !== UserRole.OWNER
         ) {
-          await identityManager.updateUserRole(sessionId, UserRole.ADMIN, 'superadmin');
+          await identityManager.updateUserRole(dashboardUserId, UserRole.ADMIN, 'superadmin');
         }
       } catch (err) {
         logger.error(
@@ -72,7 +77,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         path: '/',
       });
 
-      response.cookies.set(AUTH.SESSION_USER_ID, sessionId, {
+      response.cookies.set(AUTH.SESSION_USER_ID, dashboardUserId, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',

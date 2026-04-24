@@ -4,8 +4,8 @@
  * Provides standardized ID generation for different entity types in the system.
  */
 
-const FNV_1A_PRIME = BigInt('0x100000001b3');
-const FNV_1A_OFFSET = BigInt('0xcbf29ce484222325');
+const FNV_1A_PRIME_32 = 0x01000193;
+const FNV_1A_OFFSET_32 = 0x811c9dc5;
 
 /**
  * Generates a session ID with timestamp + entropy.
@@ -54,31 +54,35 @@ export function generateId(prefix?: string): string {
 }
 
 /**
- * Generates FNV-1a hash for stable sort key generation.
+ * Generates 32-bit FNV-1a hash for stable sort key generation.
+ * Safely fits in JavaScript Number.MAX_SAFE_INTEGER to prevent DynamoDB errors.
  * Used when deterministic ordering is required (e.g., DynamoDB sort keys).
  * @param input - String to hash
  * @returns Numeric string for use as sort key
  */
 export function fnv1aHash(input: string): string {
-  let h = FNV_1A_OFFSET;
+  let h = FNV_1A_OFFSET_32;
   for (let i = 0; i < input.length; i++) {
-    h ^= BigInt(input.charCodeAt(i));
-    h = (h * FNV_1A_PRIME) & BigInt('0xffffffffffffffff');
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, FNV_1A_PRIME_32);
   }
-  return h.toString();
+  return (h >>> 0).toString();
 }
 
 /**
  * Converts a session ID to a stable sort key for DynamoDB.
  * If session ID contains a parseable timestamp, uses that directly.
- * Otherwise, falls back to FNV-1a hash for stability.
+ * Otherwise, falls back to 32-bit FNV-1a hash for stability.
  * @param sessionId - Session ID to convert
  * @returns Stable sort key (numeric string)
  */
 export function sessionIdToSortKey(sessionId: string): number {
-  const parsedTimestamp = Number.parseInt(sessionId.split('_')[1] || sessionId, 10);
-  if (!Number.isNaN(parsedTimestamp)) {
-    return parsedTimestamp;
+  const match = sessionId.match(/\d{13}/);
+  if (match) {
+    const parsedTimestamp = Number.parseInt(match[0], 10);
+    if (!Number.isNaN(parsedTimestamp)) {
+      return parsedTimestamp;
+    }
   }
   return Number(fnv1aHash(sessionId));
 }
