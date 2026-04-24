@@ -227,7 +227,7 @@ export async function processEventWithAgent(
   const { getAgentContext } = await import('../../lib/utils/agent-helpers');
   const { memory, provider } = await getAgentContext();
   const { AgentRegistry } = await import('../../lib/registry');
-  const config = await AgentRegistry.getAgentConfig(agentId);
+  const config = await AgentRegistry.getAgentConfig(agentId, { workspaceId: options.workspaceId });
 
   if (!config) {
     logger.error(`Agent configuration for '${agentId}' not found during event processing.`);

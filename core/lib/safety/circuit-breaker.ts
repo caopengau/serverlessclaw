@@ -29,9 +29,12 @@ export interface CanProceedResult {
 
 export class CircuitBreaker {
   private stateKey: string;
+  private workspaceId?: string;
 
-  constructor(key: string = 'circuit_breaker_state') {
-    this.stateKey = key;
+  constructor(key: string = 'circuit_breaker_state', workspaceId?: string) {
+    const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
+    this.stateKey = `${scopePrefix}${key}`;
+    this.workspaceId = workspaceId;
   }
 
   private freshState(): CircuitBreakerStateData {
@@ -53,7 +56,9 @@ export class CircuitBreaker {
       );
       if (Item?.value) return { ...this.freshState(), ...Item.value };
     } catch {
-      logger.warn(`Failed to load circuit breaker state for ${this.stateKey}, using fresh state.`);
+      logger.warn(
+        `Failed to load circuit breaker state for ${this.stateKey} (WS: ${this.workspaceId}), using fresh state.`
+      );
     }
     return this.freshState();
   }
@@ -288,7 +293,7 @@ export class CircuitBreaker {
 
   private async getConfig(key: string, defaultValue: number): Promise<number> {
     const { ConfigManager } = await import('../registry/config');
-    return await ConfigManager.getTypedConfig(key, defaultValue);
+    return await ConfigManager.getTypedConfig(key, defaultValue, { workspaceId: this.workspaceId });
   }
 
   async reset(): Promise<void> {
@@ -298,9 +303,13 @@ export class CircuitBreaker {
 
 const _instances = new Map<string, CircuitBreaker>();
 
-export function getCircuitBreaker(key: string = 'circuit_breaker_state'): CircuitBreaker {
-  if (!_instances.has(key)) _instances.set(key, new CircuitBreaker(key));
-  return _instances.get(key)!;
+export function getCircuitBreaker(
+  key: string = 'circuit_breaker_state',
+  workspaceId?: string
+): CircuitBreaker {
+  const fullKey = workspaceId ? `WS#${workspaceId}#${key}` : key;
+  if (!_instances.has(fullKey)) _instances.set(fullKey, new CircuitBreaker(key, workspaceId));
+  return _instances.get(fullKey)!;
 }
 
 export function resetCircuitBreakerInstance(key?: string): void {

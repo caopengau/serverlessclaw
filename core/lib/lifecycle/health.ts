@@ -125,7 +125,7 @@ export interface CoherenceResult {
 /**
  * Checks reasoning coherence from recent traces by analyzing step patterns.
  */
-export async function checkTraceCoherence(): Promise<CoherenceResult> {
+export async function checkTraceCoherence(workspaceId?: string): Promise<CoherenceResult> {
   const tableName = getTraceTableName();
 
   if (!tableName) {
@@ -145,16 +145,24 @@ export async function checkTraceCoherence(): Promise<CoherenceResult> {
   const healthIssues: string[] = [];
 
   try {
+    let filterExpr = '#ts > :recentWindow';
+    const exprValues: Record<string, unknown> = {
+      ':recentWindow': Math.floor(recentWindow / 1000),
+    };
+
+    if (workspaceId) {
+      filterExpr += ' AND workspaceId = :ws';
+      exprValues[':ws'] = workspaceId;
+    }
+
     const scanResult = await getDynamoDbClient().send(
       new ScanCommand({
         TableName: tableName,
-        FilterExpression: '#ts > :recentWindow',
+        FilterExpression: filterExpr,
         ExpressionAttributeNames: {
           '#ts': 'timestamp',
         },
-        ExpressionAttributeValues: {
-          ':recentWindow': Math.floor(recentWindow / 1000),
-        } as Record<string, unknown>,
+        ExpressionAttributeValues: exprValues,
         Limit: 100,
       })
     );
@@ -410,14 +418,14 @@ export async function checkProviderHealth(): Promise<ProbeResult> {
 /**
  * Performs a comprehensive cognitive health check across the swarm.
  */
-export async function checkCognitiveHealth(): Promise<CognitiveHealthResult> {
-  logger.info('[Health] Starting deep cognitive health check...');
+export async function checkCognitiveHealth(workspaceId?: string): Promise<CognitiveHealthResult> {
+  logger.info(`[Health] Starting deep cognitive health check (WS: ${workspaceId})...`);
 
   const [bus, tools, providers, coherence] = await Promise.all([
     checkAgentBus(),
     checkToolHealth(),
     checkProviderHealth(),
-    checkTraceCoherence(),
+    checkTraceCoherence(workspaceId),
   ]);
 
   const ok = bus.ok && tools.ok && providers.ok;
@@ -451,8 +459,10 @@ export async function checkCognitiveHealth(): Promise<CognitiveHealthResult> {
 /**
  * Standard deep health check interface for backward compatibility.
  */
-export async function runDeepHealthCheck(): Promise<{ ok: boolean; details?: string }> {
-  const result = await checkCognitiveHealth();
+export async function runDeepHealthCheck(
+  workspaceId?: string
+): Promise<{ ok: boolean; details?: string }> {
+  const result = await checkCognitiveHealth(workspaceId);
   return {
     ok: result.ok,
     details: result.ok
