@@ -3,9 +3,13 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
+  expect: {
+    timeout: 3000,
+  },
   retries: 0,
   workers: process.env.CI ? 4 : undefined,
   use: {
+    actionTimeout: 3000,
     baseURL: process.env.BASE_URL || 'http://localhost:7777',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
