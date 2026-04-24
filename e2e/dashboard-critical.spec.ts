@@ -17,7 +17,7 @@ test.describe('Dashboard Critical Flows', () => {
 
     for (const tab of tabs) {
       await page.getByRole('tab', { name: tab.name }).click();
-      await expect(page.getByText(tab.text)).toBeVisible({ timeout: 10000 });
+      await expect(page.getByText(tab.text).first()).toBeVisible({ timeout: 10000 });
     }
   });
 

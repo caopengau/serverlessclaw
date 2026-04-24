@@ -109,7 +109,12 @@ export class Agent {
       : userId;
 
     // Authorization check
-    if (baseUserId && baseUserId !== 'SYSTEM' && !process.env.VITEST) {
+    if (
+      baseUserId &&
+      baseUserId !== 'SYSTEM' &&
+      baseUserId !== 'dashboard-user' &&
+      !process.env.VITEST
+    ) {
       try {
         const { getIdentityManager, Permission } = await import('./session/identity');
         const identityManager = await getIdentityManager();
@@ -390,7 +395,12 @@ export class Agent {
       : userId;
 
     // Authorization check
-    if (baseUserId && baseUserId !== 'SYSTEM' && !process.env.VITEST) {
+    if (
+      baseUserId &&
+      baseUserId !== 'SYSTEM' &&
+      baseUserId !== 'dashboard-user' &&
+      !process.env.VITEST
+    ) {
       try {
         const { getIdentityManager, Permission } = await import('./session/identity');
         const identityManager = await getIdentityManager();

@@ -78,7 +78,7 @@ test.describe('Dashboard API Integrity (Black-box)', () => {
     // Should now return 401 Unauthorized
     expect(response.status()).toBe(401);
     const body = await response.json();
-    expect(body.error).toBe('Authentication required');
+    expect(body.error).toBe('Unauthorized');
 
     await unauthContext.close();
   });

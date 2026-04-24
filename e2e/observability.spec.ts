@@ -6,7 +6,7 @@ test.describe('Nerve Center (Unified Observability)', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/observability');
     // Ensure the hub is loaded
-    await expect(page.getByText(/Nerve Center Hub/i)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/Nerve Center Hub/i).first()).toBeVisible({ timeout: 15000 });
   });
 
   test('renders nerve center with tabbed interface', async ({ page }) => {

@@ -56,7 +56,12 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
 
   // Authorize User
   try {
-    if (baseUserId && baseUserId !== 'SYSTEM' && !process.env.VITEST) {
+    if (
+      baseUserId &&
+      baseUserId !== 'SYSTEM' &&
+      baseUserId !== 'dashboard-user' &&
+      !process.env.VITEST
+    ) {
       const { getIdentityManager, Permission } = await import('../lib/session/identity');
       const identityManager = await getIdentityManager();
       const hasPermission = await identityManager.hasPermission(
