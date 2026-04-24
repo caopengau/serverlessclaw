@@ -53,6 +53,7 @@ async function seed() {
     // 1. Seed Traces for 'Collaboration Test Trace'
     console.log('📝 Seeding Traces...');
     const traceId = 'trace_collaboration_test';
+
     // Trace Summary
     await docClient.send(
       new PutCommand({
@@ -82,6 +83,7 @@ async function seed() {
           timestamp: now,
           type: 'thought',
           source: 'user',
+          agentId: 'superclaw',
           workspaceId: 'default',
           content: { text: 'Starting collaboration test' },
         },
@@ -98,6 +100,7 @@ async function seed() {
           timestamp: now,
           type: 'COLLABORATION',
           source: 'user',
+          agentId: 'superclaw',
           workspaceId: 'default',
           collaborationId: 'collab_test_1',
           participants: [
