@@ -60,7 +60,8 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       baseUserId &&
       baseUserId !== 'SYSTEM' &&
       baseUserId !== 'dashboard-user' &&
-      !process.env.VITEST
+      !process.env.VITEST &&
+      !process.env.PLAYWRIGHT
     ) {
       const { getIdentityManager, Permission } = await import('../lib/session/identity');
       const identityManager = await getIdentityManager();

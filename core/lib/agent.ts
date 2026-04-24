@@ -113,7 +113,8 @@ export class Agent {
       baseUserId &&
       baseUserId !== 'SYSTEM' &&
       baseUserId !== 'dashboard-user' &&
-      !process.env.VITEST
+      !process.env.VITEST &&
+      !process.env.PLAYWRIGHT
     ) {
       try {
         const { getIdentityManager, Permission } = await import('./session/identity');
@@ -399,7 +400,8 @@ export class Agent {
       baseUserId &&
       baseUserId !== 'SYSTEM' &&
       baseUserId !== 'dashboard-user' &&
-      !process.env.VITEST
+      !process.env.VITEST &&
+      !process.env.PLAYWRIGHT
     ) {
       try {
         const { getIdentityManager, Permission } = await import('./session/identity');
