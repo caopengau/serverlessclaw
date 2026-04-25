@@ -33,6 +33,7 @@ export const BASE_EVENT_SCHEMA = z.object({
   workspaceId: z.string().optional(),
   teamId: z.string().optional(),
   staffId: z.string().optional(),
+  userRole: z.string().optional(),
   timestamp: z.number().default(() => Date.now()),
   tokenBudget: z.number().min(0).optional(),
   costLimit: z.number().min(0).optional(),

@@ -317,10 +317,10 @@ To maintain a **Stateless Core** (Principle 1) while ensuring systemic safety, t
 3.  **Strict Payload Validation**: The `EventHandler` enforces mandatory presence of `traceId` and `sessionId` at the entry point, preventing malformed signals from polluting the backbone.
 4.  **Stable Idempotency**: Implements content-aware deduplication in the Spine. Uses a stable hash of the event payload to catch application-level double-emissions, preventing redundant processing of destructive actions.
 5.  **Budget Guardrails**: Operationalized via the centralized `BudgetEnforcer` together with `TokenBudgetEnforcer`. Provides two-tier enforcement: (1) **Session-level** budgets tracked across multi-turn conversations via DynamoDB-persisted counters (prevents budget poisoning), and (2) **Task-level** token/cost thresholds checked each loop iteration. Soft warnings at 80% usage, hard stops when limits are exceeded. Configured via `CONFIG_KEYS` (`SESSION_TOKEN_BUDGET`, `SESSION_COST_LIMIT`, `GLOBAL_TOKEN_BUDGET`, `GLOBAL_COST_LIMIT`).
-5.  **Selection Integrity**: The `AgentMultiplexer` acts as the authoritative gateway. It performs a mandatory configuration check for every agent before invocation, ensuring that `enabled: false` status is strictly enforced regardless of the event source.
-6.  **Dynamic Routing**: The `AgentRouter` uses historical success rates and reputation scores to dynamically select the best agent for a given task, prioritizing capability match over marginal token cost differences (Principle 10).
-7.  **Monotonic Recursion Tracking**: Cross-session recursion depth is managed via atomic increments in the `recursion-tracker`, preventing loop-bypass attacks in concurrent swarm scenarios.
-8.  **Unified Security Constants**: Protection patterns are consolidated into a single source of truth (`core/lib/constants/safety.ts`), ensuring consistent enforcement across the filesystem and cloud resources.
+6.  **Selection Integrity**: The `AgentMultiplexer` acts as the authoritative gateway. It performs a mandatory configuration check for every agent before invocation, ensuring that `enabled: false` status is strictly enforced regardless of the event source.
+7.  **Dynamic Routing**: The `AgentRouter` uses historical success rates and reputation scores to dynamically select the best agent for a given task, prioritizing capability match over marginal token cost differences (Principle 10).
+8.  **Monotonic Recursion Tracking**: Cross-session recursion depth is managed via atomic increments in the `recursion-tracker`, preventing loop-bypass attacks in concurrent swarm scenarios.
+9.  **Unified Security Constants**: Protection patterns are consolidated into a single source of truth (`core/lib/constants/safety.ts`), ensuring consistent enforcement across the filesystem and cloud resources.
 
 ---
 

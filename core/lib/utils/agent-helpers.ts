@@ -255,6 +255,7 @@ export interface ProcessOptionsParams {
   workspaceId?: string;
   teamId?: string;
   staffId?: string;
+  userRole?: import('../types/agent').UserRole;
   source?: TraceSource;
   profile?: ReasoningProfile;
   context?: import('aws-lambda').Context;
@@ -290,6 +291,7 @@ export function buildProcessOptions(params: ProcessOptionsParams): AgentProcessO
     workspaceId: params.workspaceId,
     teamId: params.teamId,
     staffId: params.staffId,
+    userRole: params.userRole,
     source: params.source ?? TraceSource.SYSTEM,
     profile: params.profile,
     context: params.context,

@@ -3,6 +3,20 @@
  */
 
 /**
+ * User roles for RBAC.
+ */
+export enum UserRole {
+  /** Full system access. */
+  OWNER = 'owner',
+  /** Can manage agents, settings, and members. */
+  ADMIN = 'admin',
+  /** Can interact with agents and view traces. */
+  MEMBER = 'member',
+  /** Read-only access to dashboard. */
+  VIEWER = 'viewer',
+}
+
+/**
  * A generic map for dynamic metadata, ensuring all values are reachable via indexed access.
  * Use this over Record<string, any> for metadata structures.
  */

@@ -33,6 +33,8 @@ export interface ToolExecutionContext {
   teamId?: string;
   staffId?: string;
   userId: string;
+  /** User role for RBAC enforcement. */
+  userRole?: import('../types/agent').UserRole;
   metadata?: Record<string, unknown>;
   mainConversationId: string;
   activeModel?: string;

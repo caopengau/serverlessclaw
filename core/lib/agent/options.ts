@@ -24,6 +24,8 @@ export interface AgentProcessOptions {
   workspaceId?: string;
   teamId?: string;
   staffId?: string;
+  /** User role for RBAC enforcement. */
+  userRole?: import('../types/agent').UserRole;
   /** Arbitrary metadata passed from the event payload. */
   metadata?: Record<string, unknown>;
   attachments?: Array<{

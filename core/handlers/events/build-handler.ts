@@ -25,6 +25,7 @@ export async function handleBuildFailure(
     workspaceId,
     teamId,
     staffId,
+    userRole,
   } = BUILD_EVENT_SCHEMA.parse(eventDetail);
 
   const gapsContext =
@@ -91,7 +92,8 @@ export async function handleBuildFailure(
       undefined,
       workspaceId,
       teamId,
-      staffId
+      staffId,
+      userRole
     );
   }
 }
@@ -103,8 +105,18 @@ export async function handleBuildFailure(
  * @returns A promise resolving when the success event is processed.
  */
 export async function handleBuildSuccess(eventDetail: Record<string, unknown>): Promise<void> {
-  const { userId, buildId, sessionId, initiatorId, task, traceId, workspaceId, teamId, staffId } =
-    BUILD_EVENT_SCHEMA.parse(eventDetail);
+  const {
+    userId,
+    buildId,
+    sessionId,
+    initiatorId,
+    task,
+    traceId,
+    workspaceId,
+    teamId,
+    staffId,
+    userRole,
+  } = BUILD_EVENT_SCHEMA.parse(eventDetail);
 
   const message = `✅ **DEPLOYMENT SUCCESSFUL**
 Build ID: ${buildId}
@@ -144,7 +156,8 @@ The QA Auditor will verify the changes shortly. Gaps are only marked **DONE** af
       undefined,
       workspaceId,
       teamId,
-      staffId
+      staffId,
+      userRole
     );
   }
 }

@@ -139,6 +139,7 @@ export class SafetyEngine extends SafetyBase {
       workspaceId?: string;
       teamId?: string;
       staffId?: string;
+      userRole?: import('../types/agent').UserRole;
       args?: Record<string, unknown>;
       pathKeys?: string[];
       isProactive?: boolean;
@@ -149,7 +150,8 @@ export class SafetyEngine extends SafetyBase {
     const workspaceId = context?.workspaceId;
     const teamId = context?.teamId;
     const staffId = context?.staffId;
-    const ctx = { ...context, agentId, workspaceId, teamId, staffId };
+    const userRole = context?.userRole;
+    const ctx = { ...context, agentId, workspaceId, teamId, staffId, userRole };
 
     const normalizedAction = normalizeSafetyAction(action, context?.toolName);
 
@@ -166,6 +168,7 @@ export class SafetyEngine extends SafetyBase {
     // 1. Hard Security Blocks (Non-Bypassable)
     const hardValidators = [
       () => this.validateStaticPolicies(normalizedAction, ctx, tier),
+      () => this.validateRBAC(normalizedAction, ctx, tier),
       () => this.validateAccessControl(agentConfig, normalizedAction, ctx, tier, policy),
     ];
 
@@ -238,9 +241,58 @@ export class SafetyEngine extends SafetyBase {
         tier,
         action,
         'class_d_blocked',
-        `Class D action '${action}' permanently blocked by policy.`
+        `Class D action '${action}' permanently blocked for all roles by system policy.`
       );
     }
+    return { allowed: true, requiresApproval: false };
+  }
+
+  private async validateRBAC(
+    action: string,
+    ctx: {
+      agentId: string;
+      userId?: string;
+      userRole?: import('../types/agent').UserRole;
+      workspaceId?: string;
+    },
+    tier: SafetyTier
+  ): Promise<SafetyEvaluationResult> {
+    const { UserRole } = await import('../types/agent');
+    const role = ctx.userRole;
+
+    // SYSTEM and autonomous background tasks skip RBAC as they represent the hive itself
+    if (ctx.userId === 'SYSTEM' || !role) {
+      return { allowed: true, requiresApproval: false };
+    }
+
+    // 1. Class C - Restricted to OWNER and ADMIN
+    if (this.isClassCAction(action)) {
+      if (role !== UserRole.OWNER && role !== UserRole.ADMIN) {
+        return this.handleViolation(
+          ctx,
+          tier,
+          action,
+          'rbac_class_c_denied',
+          `Class C action '${action}' requires OWNER or ADMIN role. Current role: ${role}.`
+        );
+      }
+    }
+
+    // 2. Class B - Restricted to non-VIEWER
+    if (role === UserRole.VIEWER) {
+      // For Viewers, we block any action that isn't purely observational (Class A).
+      // Since Class categorization is additive, any action that isn't Class A is blocked.
+      // For now, we block everything that isn't explicitly Class A.
+      // (Implementation note: most tools are Class B by default).
+      return this.handleViolation(
+        ctx,
+        tier,
+        action,
+        'rbac_viewer_denied',
+        `Action '${action}' denied for VIEWER role. Viewers have read-only access.`
+      );
+    }
+
     return { allowed: true, requiresApproval: false };
   }
 

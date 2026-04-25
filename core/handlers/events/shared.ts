@@ -80,7 +80,8 @@ export async function wakeupInitiator(
   eventType: EventType | string = EventType.CONTINUATION_TASK,
   workspaceId?: string,
   teamId?: string,
-  staffId?: string
+  staffId?: string,
+  userRole?: string
 ): Promise<void> {
   if (!initiatorId || !task) return;
 
@@ -138,6 +139,7 @@ export async function wakeupInitiator(
     workspaceId,
     teamId,
     staffId,
+    userRole,
   });
 }
 
@@ -219,6 +221,7 @@ export async function processEventWithAgent(
     workspaceId?: string;
     teamId?: string;
     staffId?: string;
+    userRole?: import('../../lib/types/agent').UserRole;
     metadata?: Record<string, unknown>;
   }
 ): Promise<{
@@ -281,6 +284,7 @@ export async function processEventWithAgent(
       workspaceId: options.workspaceId,
       teamId: options.teamId,
       staffId: options.staffId,
+      userRole: options.userRole,
       metadata: options.metadata,
       depth: options.depth,
       initiatorId: options.initiatorId,
@@ -374,6 +378,7 @@ export async function processEventWithAgent(
         workspaceId: options.workspaceId,
         teamId: options.teamId,
         staffId: options.staffId,
+        userRole: options.userRole as any,
         metadata: { durationMs: Date.now() - startTime },
       });
     }

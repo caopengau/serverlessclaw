@@ -22,6 +22,10 @@ export async function handleHealthReport(
     userId,
     traceId,
     sessionId,
+    workspaceId,
+    teamId,
+    staffId,
+    userRole,
   } = HEALTH_REPORT_EVENT_SCHEMA.parse(eventDetail);
 
   const triageTask = `SYSTEM HEALTH ALERT: A component has reported an internal issue.
@@ -48,5 +52,9 @@ Component: ${component}
 Issue: ${issue}
 
 SuperClaw response: ${responseText}`,
+    workspaceId,
+    teamId,
+    staffId,
+    userRole: userRole as any,
   });
 }

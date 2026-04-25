@@ -51,12 +51,14 @@ export const handler = async (
   const _orgId = (detail.orgId as string) || (event.orgId as string);
   const _teamId = (detail.teamId as string) || (event.teamId as string);
   const _staffId = (detail.staffId as string) || (event.staffId as string);
+  const _userRole = (detail.userRole as string) || (event.userRole as string);
 
   const scope = {
     workspaceId: _workspaceId,
     orgId: _orgId,
     teamId: _teamId,
     staffId: _staffId,
+    userRole: _userRole as any,
   };
 
   // Session lock management

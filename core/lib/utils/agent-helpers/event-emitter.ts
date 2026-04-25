@@ -28,6 +28,10 @@ export async function emitTaskEvent(params: {
   sessionId?: string;
   initiatorId?: string;
   depth?: number;
+  workspaceId?: string;
+  teamId?: string;
+  staffId?: string;
+  userRole?: string;
   metadata?: Record<string, unknown>;
   userNotified?: boolean;
   idempotencyKey?: string;
@@ -46,6 +50,10 @@ export async function emitTaskEvent(params: {
     initiatorId: params.initiatorId,
     depth: params.depth,
     sessionId: params.sessionId,
+    workspaceId: params.workspaceId,
+    teamId: params.teamId,
+    staffId: params.staffId,
+    userRole: params.userRole,
     metadata: params.metadata,
     userNotified: params.userNotified,
   };

@@ -179,7 +179,13 @@ describe('clarification-handler', () => {
         'session-xyz',
         1,
         false,
-        expect.any(Array)
+        expect.any(Array),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
       );
     });
 
@@ -218,9 +224,15 @@ describe('clarification-handler', () => {
         expect.anything(),
         expect.anything(),
         expect.anything(),
-        5, // Depth passed correctly
+        5,
         expect.anything(),
-        expect.anything()
+        expect.anything(),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
       );
     });
 
@@ -252,7 +264,13 @@ describe('clarification-handler', () => {
         'session-xyz',
         1,
         false,
-        expect.any(Array)
+        expect.any(Array),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
       );
     });
 

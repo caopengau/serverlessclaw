@@ -91,6 +91,8 @@ export interface ExecutorFeatureOptions {
   teamId?: string;
   /** Staff ID. */
   staffId?: string;
+  /** User role for RBAC enforcement. */
+  userRole?: import('../types/agent').UserRole;
   /** Arbitrary metadata passed from the event payload. */
   metadata?: Record<string, unknown>;
   /** Response format for structured output. */

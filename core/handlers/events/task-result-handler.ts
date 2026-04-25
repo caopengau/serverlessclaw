@@ -129,6 +129,7 @@ export async function handleTaskResult(
     workspaceId,
     teamId,
     staffId,
+    userRole,
   } = parsedEvent;
   const response = 'error' in parsedEvent ? parsedEvent.error : parsedEvent.response;
 
@@ -259,6 +260,7 @@ export async function handleTaskResult(
             workspaceId,
             teamId,
             staffId,
+            userRole,
           }
         );
         return;
@@ -462,6 +464,7 @@ export async function handleTaskResult(
     EventType.CONTINUATION_TASK as unknown as string | undefined,
     workspaceId,
     teamId,
-    staffId
+    staffId,
+    userRole
   );
 }

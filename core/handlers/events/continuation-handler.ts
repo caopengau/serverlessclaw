@@ -31,6 +31,7 @@ export async function handleContinuationTask(
     workspaceId,
     teamId,
     staffId,
+    userRole,
   } = TASK_EVENT_SCHEMA.parse(eventDetail);
 
   const currentDepth = depth ?? 1;
@@ -90,5 +91,6 @@ export async function handleContinuationTask(
     workspaceId,
     teamId,
     staffId,
+    userRole: userRole as any,
   });
 }

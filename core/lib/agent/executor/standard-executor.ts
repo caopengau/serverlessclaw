@@ -106,6 +106,7 @@ export class StandardExecutor extends BaseExecutor {
             teamId: options.teamId,
             staffId: options.staffId,
             userId: options.userId,
+            userRole: options.userRole,
             metadata: options.metadata,
             mainConversationId: options.mainConversationId,
             activeModel: options.activeModel,

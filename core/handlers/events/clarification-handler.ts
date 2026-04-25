@@ -28,6 +28,10 @@ export async function handleClarificationRequest(
     depth,
     sessionId,
     metadata,
+    workspaceId,
+    teamId,
+    staffId,
+    userRole,
   } = parsed;
 
   const { extractClarificationMetadata } = await import('../../lib/utils/metadata');
@@ -109,6 +113,10 @@ export async function handleClarificationRequest(
         sessionId,
         depth,
         retryCount,
+        workspaceId,
+        teamId,
+        staffId,
+        userRole,
       },
       targetTime,
       EventType.CLARIFICATION_TIMEOUT
@@ -148,6 +156,12 @@ export async function handleClarificationRequest(
     [
       { label: 'Provide Clarification', value: 'I will provide clarification: ', type: 'primary' },
       { label: 'Cancel Task', value: `CANCEL_TASK:${safeTraceId}`, type: 'danger' },
-    ]
+    ],
+    undefined,
+    undefined,
+    workspaceId,
+    teamId,
+    staffId,
+    userRole
   );
 }

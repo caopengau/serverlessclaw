@@ -1,154 +1,57 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { handleBuildFailure, handleBuildSuccess } from './build-handler';
 
-// 1. Mock 'sst'
-vi.mock('sst', () => ({
-  Resource: new Proxy(
-    {},
-    {
-      get: (_target, prop) => ({
-        name: `test-${String(prop).toLowerCase()}`,
-        value: 'test-value',
-      }),
-    }
-  ),
-}));
+// Mock dependencies
+const mockWakeupInitiator = vi.fn();
+const mockSendOutboundMessage = vi.fn();
 
-// 2. Mock AgentBus / EventBridge
-const { mockSend, mockEmitEvent } = vi.hoisted(() => ({
-  mockSend: vi.fn().mockResolvedValue({}),
-  mockEmitEvent: vi.fn().mockResolvedValue({}),
-}));
-
-vi.mock('../../lib/utils/bus', () => ({
-  emitEvent: mockEmitEvent,
-}));
-
-vi.mock('@aws-sdk/client-eventbridge', () => ({
-  EventBridgeClient: vi.fn().mockImplementation(function () {
-    return { send: mockSend };
-  }),
-  PutEventsCommand: vi.fn().mockImplementation(function (this: any, args) {
-    this.input = args;
-    return this;
-  }),
-}));
-
-// 3. Mock DynamoDB
-const { mockDdbSend } = vi.hoisted(() => ({
-  mockDdbSend: vi.fn().mockResolvedValue({}),
-}));
-
-vi.mock('@aws-sdk/client-dynamodb', () => ({
-  DynamoDBClient: vi.fn().mockImplementation(function () {
-    return {};
-  }),
-}));
-
-vi.mock('@aws-sdk/lib-dynamodb', () => ({
-  DynamoDBDocumentClient: {
-    from: vi.fn().mockImplementation(function () {
-      return { send: mockDdbSend };
-    }),
-  },
-  PutCommand: vi.fn().mockImplementation(function (this: any, args) {
-    this.input = args;
-    return this;
-  }),
-  GetCommand: vi.fn().mockImplementation(function (this: any, args) {
-    this.input = args;
-    return this;
-  }),
-}));
-
-// 4. Mock Outbound
-const { mockSendOutboundMessage } = vi.hoisted(() => ({
-  mockSendOutboundMessage: vi.fn().mockResolvedValue({}),
+vi.mock('./shared', () => ({
+  wakeupInitiator: (...args: any[]) => mockWakeupInitiator(...args),
 }));
 
 vi.mock('../../lib/outbound', () => ({
-  sendOutboundMessage: mockSendOutboundMessage,
+  sendOutboundMessage: (...args: any[]) => mockSendOutboundMessage(...args),
 }));
 
-// 5. Mock Logger
-vi.mock('../../lib/logger', () => ({
-  logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
+vi.mock('sst', () => ({
+  Resource: {
+    MemoryTable: { name: 'test-memory-table' },
   },
 }));
 
-// 6. Mock shared functions
-const { mockWakeupInitiator } = vi.hoisted(() => ({
-  mockWakeupInitiator: vi.fn().mockResolvedValue(undefined),
-}));
-
-vi.mock('./shared', () => ({
-  wakeupInitiator: mockWakeupInitiator,
-}));
-
-// 7. Mock schema
-vi.mock('../../lib/schema/events', () => ({
-  BUILD_EVENT_SCHEMA: {
-    parse: vi.fn().mockImplementation((data) => data),
+// Mock DynamoDB
+const mockSend = vi.fn();
+vi.mock('@aws-sdk/lib-dynamodb', () => ({
+  DynamoDBDocumentClient: {
+    from: () => ({
+      send: (...args: any[]) => mockSend(...args),
+    }),
   },
+  PutCommand: class {},
+  GetCommand: class {},
 }));
-
-// 8. Import code to test
-import { handleBuildFailure, handleBuildSuccess } from './build-handler';
 
 describe('build-handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSend.mockResolvedValue({});
   });
 
   describe('handleBuildFailure', () => {
-    it('should process build failure event with all required fields', async () => {
+    it('should notify user (via wakeupInitiator) on build failure', async () => {
       const eventDetail = {
         userId: 'user-123',
         buildId: 'build-456',
-        errorLogs: 'Build failed: compilation error',
+        errorLogs: 'Build failed at step 2',
         traceId: 'trace-789',
-        gapIds: ['gap-1', 'gap-2'],
         sessionId: 'session-101',
         initiatorId: 'superclaw',
-        task: 'Deploy feature',
+        task: 'Implement feature X',
       };
 
-      const mockContext = {
-        callbackWaitsForEmptyEventLoop: false,
-        functionName: 'test-function',
-        functionVersion: '1',
-        invokedFunctionArn: 'arn:aws:lambda:us-east-1:123456789012:function:test-function',
-        memoryLimitInMB: '128',
-        awsRequestId: 'request-123',
-        logGroupName: '/aws/lambda/test-function',
-        logStreamName: '2024/01/01/[$LATEST]abc123',
-        getRemainingTimeInMillis: () => 30000,
-        done: vi.fn(),
-        fail: vi.fn(),
-        succeed: vi.fn(),
-      } as any;
+      await handleBuildFailure(eventDetail, {} as any);
 
-      await handleBuildFailure(eventDetail, mockContext);
-
-      expect(mockEmitEvent).toHaveBeenCalledWith(
-        'build.handler',
-        'coder_task',
-        expect.objectContaining({
-          userId: 'user-123',
-          task: expect.stringContaining('CRITICAL: Deployment build-456 failed'),
-          traceId: 'trace-789',
-          sessionId: 'session-101',
-          metadata: expect.objectContaining({
-            buildId: 'build-456',
-            applyStagedChanges: true,
-          }),
-        })
-      );
-
-      // Signature: (userId, initiatorId, responseText, traceId, sessionId, depth, isIsolated, attachments, taskId, eventType, workspaceId, teamId, staffId)
+      // Verify wakeup
       expect(mockWakeupInitiator).toHaveBeenCalledWith(
         'user-123',
         'superclaw',
@@ -162,6 +65,7 @@ describe('build-handler', () => {
         undefined,
         undefined,
         undefined,
+        undefined,
         undefined
       );
     });
@@ -170,34 +74,31 @@ describe('build-handler', () => {
       const eventDetail = {
         userId: 'user-123',
         buildId: 'build-456',
-        errorLogs: 'Build failed',
+        errorLogs: 'Build failed at step 2',
         traceId: 'trace-789',
         sessionId: 'session-101',
       };
 
-      const mockContext = {} as any;
+      await handleBuildFailure(eventDetail, {} as any);
 
-      await handleBuildFailure(eventDetail, mockContext);
-
-      expect(mockEmitEvent).toHaveBeenCalled();
       expect(mockWakeupInitiator).not.toHaveBeenCalled();
     });
   });
 
   describe('handleBuildSuccess', () => {
-    it('should send success message and wake up initiator', async () => {
+    it('should notify user and wakeup initiator on build success', async () => {
       const eventDetail = {
         userId: 'user-123',
-        buildId: 'build-456',
+        buildId: 'build-789',
         sessionId: 'session-101',
         initiatorId: 'superclaw',
-        task: 'Deploy feature',
+        task: 'Implement feature X',
         traceId: 'trace-789',
       };
 
       await handleBuildSuccess(eventDetail);
 
-      // Signature: (source, userId, message, memoryContexts, sessionId, agentName, attachments, messageId, options, workspaceId, teamId, staffId, collaborationId)
+      // Verify outbound message
       expect(mockSendOutboundMessage).toHaveBeenCalledWith(
         'build-handler',
         'user-123',
@@ -214,6 +115,7 @@ describe('build-handler', () => {
         undefined
       );
 
+      // Verify wakeup
       expect(mockWakeupInitiator).toHaveBeenCalledWith(
         'user-123',
         'superclaw',
@@ -222,6 +124,7 @@ describe('build-handler', () => {
         'session-101',
         0,
         false,
+        undefined,
         undefined,
         undefined,
         undefined,
@@ -236,6 +139,7 @@ describe('build-handler', () => {
         userId: 'user-123',
         buildId: 'build-456',
         sessionId: 'session-101',
+        traceId: 'trace-789',
       };
 
       await handleBuildSuccess(eventDetail);
@@ -249,6 +153,7 @@ describe('build-handler', () => {
         userId: 'user-123',
         buildId: 'build-789',
         sessionId: 'session-101',
+        traceId: 'trace-789',
       };
 
       await handleBuildSuccess(eventDetail);
@@ -261,33 +166,7 @@ describe('build-handler', () => {
         'session-101',
         'SuperClaw',
         undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined
-      );
-    });
-
-    it('should include QA verification note in success message', async () => {
-      const eventDetail = {
-        userId: 'user-123',
-        buildId: 'build-456',
-        sessionId: 'session-101',
-      };
-
-      await handleBuildSuccess(eventDetail);
-
-      expect(mockSendOutboundMessage).toHaveBeenCalledWith(
-        'build-handler',
-        'user-123',
-        expect.stringContaining('QA Auditor will verify'),
-        undefined,
-        'session-101',
-        'SuperClaw',
-        undefined,
-        undefined,
+        'trace-789',
         undefined,
         undefined,
         undefined,

@@ -36,25 +36,25 @@ Last Updated: 2026-04-25
 
 ## Audit Reports History
 
-| Date       | Report                                        | Silos Covered         | Cross-Silo      | Key Findings                                           |
-| :--------- | :-------------------------------------------- | :-------------------- | :-------------- | :----------------------------------------------------- |
+| Date       | Report                                        | Silos Covered         | Cross-Silo      | Key Findings                                                  |
+| :--------- | :-------------------------------------------- | :-------------------- | :-------------- | :------------------------------------------------------------ |
 | 2026-04-25 | `audit-2026-04-25-perspective-a.md`           | Spine, Brain, Eye     | A               | FIXED: Systematic tenant context threading, Stable hash dedup |
-| 2026-04-25 | `audit-2026-04-25-evolution-cycle.md`         | Hand, Shield, Scales  | B               | FIXED: Proactive "God Mode" bypass (P0 Security)       |
+| 2026-04-25 | `audit-2026-04-25-evolution-cycle.md`         | Hand, Shield, Scales  | B               | FIXED: Proactive "God Mode" bypass (P0 Security)              |
 | 2026-04-25 | `audit-2026-04-25-recovery-path.md`           | Shield, Spine, Brain  | E               | P1 Double trigger prevention, Multiplexer selection integrity |
-| 2026-04-25 | `audit-2026-04-25-trust-loop-scales.md`       | Eye, Scales, Spine    | D               | P1 Cognitive metrics isolation, TrustScore fail-closed |
-| 2026-04-24 | `audit-2026-04-24-mcp-isolation.md`           | Hand, Shield          | B, C            | P0 Global tool cache leak, Global client map leak      |
-| 2026-04-24 | `audit-2026-04-24-recovery-path.md`           | Shield, Spine, Brain  | E               | P0 Global trace coherence scan, Global circuit breaker |
-| 2026-04-24 | `audit-2026-04-24-trust-loop.md`              | Eye, Scales, Spine    | D               | P1 Global agent metrics leak, Non-scoped persistence   |
-| 2026-04-24 | `audit-2026-04-24-evolution-cycle.md`         | Hand, Shield, Scales  | B               | P0 Global safety policies, Broken trust feedback       |
-| 2026-04-24 | `audit-2026-04-24-identity-journey.md`        | Brain, Spine, Shield  | C               | P0 Unauthenticated webhooks, Missing agent perms       |
-| 2026-04-23 | `audit-2026-04-23-trust-loop.md`              | Scales, Spine         | D               | FIXED: Multi-tenant leaks in TrustManager, AgentRouter |
-| 2026-04-23 | `AUDIT-2026-04-23-HAND-EVOLUTION-IDENTITY.md` | Hand                  | B, C            | FIXED: Truncated Class C list, Broken evolution loop   |
-| 2026-04-23 | `audit-2026-04-23-multi-tenant-integrity.md`  | Brain, Scales         | A, D            | P0 Knowledge leakage, Broken trust loop isolation      |
-| 2026-04-22 | `audit-2026-04-22-evolution-recovery.md`      | Shield                | E               | Dropped tool context, IDOR on approval                 |
-| 2026-04-20 | `audit-2026-04-20-system-integrity.md`        | Spine, Shield, Scales | C, D, E         | Broken multi-tenancy, Dead trust loop, Ghost fix       |
-| 2026-04-16 | `audit-2026-04-16-shield-scales.md`           | Shield, Scales        | Evolution Cycle | Double-execution of Class C actions                    |
-| 2026-04-16 | `audit-2026-04-16-the-spine.md`               | The Spine             | -               | Fail-open rate limiting, missing handlers              |
-| 2026-04-17 | `security-audit-report.md`                    | Dependencies          | N/A             | 8 dependency vulnerabilities                           |
+| 2026-04-25 | `audit-2026-04-25-trust-loop-scales.md`       | Eye, Scales, Spine    | D               | P1 Cognitive metrics isolation, TrustScore fail-closed        |
+| 2026-04-24 | `audit-2026-04-24-mcp-isolation.md`           | Hand, Shield          | B, C            | P0 Global tool cache leak, Global client map leak             |
+| 2026-04-24 | `audit-2026-04-24-recovery-path.md`           | Shield, Spine, Brain  | E               | P0 Global trace coherence scan, Global circuit breaker        |
+| 2026-04-24 | `audit-2026-04-24-trust-loop.md`              | Eye, Scales, Spine    | D               | P1 Global agent metrics leak, Non-scoped persistence          |
+| 2026-04-24 | `audit-2026-04-24-evolution-cycle.md`         | Hand, Shield, Scales  | B               | P0 Global safety policies, Broken trust feedback              |
+| 2026-04-24 | `audit-2026-04-24-identity-journey.md`        | Brain, Spine, Shield  | C               | P0 Unauthenticated webhooks, Missing agent perms              |
+| 2026-04-23 | `audit-2026-04-23-trust-loop.md`              | Scales, Spine         | D               | FIXED: Multi-tenant leaks in TrustManager, AgentRouter        |
+| 2026-04-23 | `AUDIT-2026-04-23-HAND-EVOLUTION-IDENTITY.md` | Hand                  | B, C            | FIXED: Truncated Class C list, Broken evolution loop          |
+| 2026-04-23 | `audit-2026-04-23-multi-tenant-integrity.md`  | Brain, Scales         | A, D            | P0 Knowledge leakage, Broken trust loop isolation             |
+| 2026-04-22 | `audit-2026-04-22-evolution-recovery.md`      | Shield                | E               | Dropped tool context, IDOR on approval                        |
+| 2026-04-20 | `audit-2026-04-20-system-integrity.md`        | Spine, Shield, Scales | C, D, E         | Broken multi-tenancy, Dead trust loop, Ghost fix              |
+| 2026-04-16 | `audit-2026-04-16-shield-scales.md`           | Shield, Scales        | Evolution Cycle | Double-execution of Class C actions                           |
+| 2026-04-16 | `audit-2026-04-16-the-spine.md`               | The Spine             | -               | Fail-open rate limiting, missing handlers                     |
+| 2026-04-17 | `security-audit-report.md`                    | Dependencies          | N/A             | 8 dependency vulnerabilities                                  |
 
 ---
 

@@ -70,6 +70,7 @@ export class Agent {
       workspaceId,
       teamId,
       staffId,
+      userRole: initialUserRole,
       attachments: incomingAttachments,
       source = TraceSource.UNKNOWN,
       responseFormat: initialResponseFormat,
@@ -109,11 +110,19 @@ export class Agent {
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
 
+    let userRole: import('./types/agent').UserRole | undefined = initialUserRole;
+
     // Authorization check
     if (baseUserId && baseUserId !== 'SYSTEM' && baseUserId !== 'dashboard-user' && !isE2ETest()) {
       try {
         const { getIdentityManager, Permission } = await import('./session/identity');
         const identityManager = await getIdentityManager();
+
+        const identity = await identityManager.getUser(baseUserId);
+        if (identity) {
+          userRole = identity.role;
+        }
+
         const hasPermission = await identityManager.hasPermission(
           baseUserId,
           Permission.TASK_CREATE,
@@ -254,6 +263,7 @@ export class Agent {
         teamId,
         staffId,
         userId: baseUserId,
+        userRole,
         metadata: options.metadata,
         mainConversationId: storageId,
         activeModel: finalModel,
@@ -358,6 +368,7 @@ export class Agent {
       workspaceId,
       teamId,
       staffId,
+      userRole: initialUserRole,
       attachments: incomingAttachments,
       source = TraceSource.UNKNOWN,
       responseFormat: initialResponseFormat,
@@ -390,11 +401,19 @@ export class Agent {
       ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
       : userId;
 
+    let userRole: import('./types/agent').UserRole | undefined = initialUserRole;
+
     // Authorization check
     if (baseUserId && baseUserId !== 'SYSTEM' && baseUserId !== 'dashboard-user' && !isE2ETest()) {
       try {
         const { getIdentityManager, Permission } = await import('./session/identity');
         const identityManager = await getIdentityManager();
+
+        const identity = await identityManager.getUser(baseUserId);
+        if (identity) {
+          userRole = identity.role;
+        }
+
         const hasPermission = await identityManager.hasPermission(
           baseUserId,
           Permission.TASK_CREATE,
@@ -525,6 +544,7 @@ export class Agent {
         teamId,
         staffId,
         userId: baseUserId,
+        userRole,
         metadata: options.metadata,
         mainConversationId: storageId,
         activeModel: finalModel,

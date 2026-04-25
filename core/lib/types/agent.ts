@@ -55,6 +55,9 @@ export interface AgentEvent {
   source: string; // tightened: source should always be known
 }
 
+import { UserRole } from './common';
+export { UserRole };
+
 /**
  * Categorization of agents to guide orchestration.
  */

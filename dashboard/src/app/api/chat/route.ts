@@ -61,6 +61,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const userId = getUserId(req);
     const storageId = sessionId ? `CONV#${userId}#${sessionId}` : userId;
 
+    // Phase 15: RBAC Role Fetching
+    const { getIdentityManager } = await import('@claw/core/lib/session/identity');
+    const identityManager = await getIdentityManager();
+    const identity = await identityManager.getUser(userId);
+    const userRole = identity?.role;
+
     if (!text && (!attachments || attachments.length === 0)) {
       return NextResponse.json(
         { error: UI_STRINGS.MISSING_MESSAGE },
@@ -142,6 +148,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       workspaceId,
       teamId,
       staffId,
+      userRole,
     });
 
     let finalResponse = '';
