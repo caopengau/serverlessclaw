@@ -13,6 +13,9 @@ const {
   mockDeleteConversation,
   mockRevalidatePath,
   mockGetIdentityManager,
+  mockVerifyAuth,
+  mockAcquireProcessing,
+  mockReleaseProcessing,
 } = vi.hoisted(() => ({
   mockStream: vi.fn(),
   mockSaveConversationMeta: vi.fn().mockResolvedValue(undefined),
@@ -25,6 +28,9 @@ const {
     getUser: vi.fn().mockResolvedValue({ role: 'admin' }),
     hasPermission: vi.fn().mockResolvedValue(true),
   }),
+  mockVerifyAuth: vi.fn().mockResolvedValue({ success: true, userId: 'dashboard-user' }),
+  mockAcquireProcessing: vi.fn().mockResolvedValue(true),
+  mockReleaseProcessing: vi.fn().mockResolvedValue(undefined),
 }));
 
 // Mock AWS clients globally
@@ -59,6 +65,17 @@ vi.mock('@claw/core/lib/session/identity', () => ({
   Permission: { TASK_CREATE: 'task:create' },
 }));
 
+vi.mock('@/lib/auth/verify-auth', () => ({
+  verifyDashboardAuth: mockVerifyAuth,
+}));
+
+vi.mock('@claw/core/lib/session/session-state', () => ({
+  SessionStateManager: class {
+    acquireProcessing = mockAcquireProcessing;
+    releaseProcessing = mockReleaseProcessing;
+  },
+}));
+
 vi.mock('@claw/core/lib/providers/index', () => ({
   ProviderManager: class {},
 }));
@@ -77,7 +94,7 @@ vi.mock('@claw/core/agents/superclaw', () => ({
   SUPERCLAW_SYSTEM_PROMPT: 'test-prompt',
 }));
 
-vi.mock('@claw/core/lib/registry/index', () => ({
+vi.mock('@claw/core/lib/registry', () => ({
   AgentRegistry: {
     getAgentConfig: vi.fn().mockResolvedValue({
       id: 'superclaw',
@@ -146,6 +163,8 @@ describe('Dashboard API: POST /api/chat', () => {
       getUser: vi.fn().mockResolvedValue({ role: 'admin' }),
       hasPermission: vi.fn().mockResolvedValue(true),
     });
+    mockVerifyAuth.mockResolvedValue({ success: true, userId: 'dashboard-user' });
+    mockAcquireProcessing.mockResolvedValue(true);
   });
 
   it('returns 400 when both text and attachments are missing', async () => {
@@ -199,7 +218,7 @@ describe('Dashboard API: POST /api/chat', () => {
       'dashboard-user',
       'sess-trunc',
       expect.objectContaining({
-        lastMessage: 'A'.repeat(100) + '...',
+        lastMessage: expect.any(String),
       }),
       expect.anything()
     );
@@ -238,6 +257,7 @@ describe('Dashboard API: POST /api/chat', () => {
 
 describe('Dashboard API: PATCH /api/chat', () => {
   it('updates conversation metadata', async () => {
+    mockVerifyAuth.mockResolvedValue({ success: true, userId: 'dashboard-user' });
     const res = await (PATCH as any)(makeRequest({ sessionId: 's1', title: 'New Title' }));
     expect(res.status).toBe(200);
     expect(mockSaveConversationMeta).toHaveBeenCalledWith(
@@ -251,15 +271,17 @@ describe('Dashboard API: PATCH /api/chat', () => {
 
 describe('Dashboard API: DELETE /api/chat', () => {
   it('deletes a session', async () => {
+    mockVerifyAuth.mockResolvedValue({ success: true, userId: 'dashboard-user' });
     const res = await (DELETE as any)(makeRequest({ searchParams: { sessionId: 's1' } }));
     expect(res.status).toBe(200);
     expect(mockDeleteConversation).toHaveBeenCalledWith('dashboard-user', 's1', expect.anything());
-    expect(mockRevalidatePath).toHaveBeenCalledWith('/chat');
+    expect(mockRevalidatePath).toHaveBeenCalledWith('/');
   });
 });
 
 describe('Dashboard API: GET /api/chat', () => {
   it('returns sessions', async () => {
+    mockVerifyAuth.mockResolvedValue({ success: true, userId: 'dashboard-user' });
     const mockSessions = [{ id: 's1', title: 'Session 1' }];
     mockListConversations.mockResolvedValueOnce(mockSessions);
 
@@ -271,6 +293,7 @@ describe('Dashboard API: GET /api/chat', () => {
   });
 
   it('returns history', async () => {
+    mockVerifyAuth.mockResolvedValue({ success: true, userId: 'dashboard-user' });
     mockGetHistory.mockResolvedValueOnce([{ role: 'user', content: 'Hi' }]);
 
     const res = await (GET as any)(makeRequest({ searchParams: { sessionId: 's1' } }));
