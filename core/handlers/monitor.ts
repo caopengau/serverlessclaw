@@ -85,6 +85,9 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
     const sessionId = buildMeta?.sessionId;
     const originalTask = buildMeta?.task;
     const traceId = buildMeta?.traceId || getEnv('TRACE_ID');
+    const workspaceId = buildMeta?.workspaceId;
+    const teamId = buildMeta?.teamId;
+    const staffId = buildMeta?.staffId;
 
     let gapIds: string[] = [];
     if (gapsMeta?.content) {
@@ -181,6 +184,9 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
           sessionId,
           task: originalTask,
           traceId,
+          workspaceId,
+          teamId,
+          staffId,
           metadata: { gapIds },
         },
         { priority: EventPriority.HIGH }
@@ -331,6 +337,9 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
           initiatorId,
           sessionId,
           task: originalTask,
+          workspaceId,
+          teamId,
+          staffId,
         },
         { priority: EventPriority.CRITICAL, idempotencyKey: traceId }
       );

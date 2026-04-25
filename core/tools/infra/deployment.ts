@@ -182,6 +182,9 @@ export const triggerDeployment = {
       gapIds,
       deployType = 'autonomous',
       stagingKey,
+      workspaceId,
+      teamId,
+      staffId,
     } = args as {
       reason: string;
       userId: string;
@@ -192,6 +195,9 @@ export const triggerDeployment = {
       gapIds?: string[];
       deployType?: 'autonomous' | 'emergency';
       stagingKey?: string;
+      workspaceId?: string;
+      teamId?: string;
+      staffId?: string;
     };
 
     const { getCircuitBreaker } = await import('../../lib/safety/circuit-breaker');
@@ -343,6 +349,9 @@ export const triggerDeployment = {
               initiatorId: initiatorId,
               sessionId: sessionId,
               task: task,
+              workspaceId,
+              teamId,
+              staffId,
             },
           })
         );

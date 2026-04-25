@@ -7,11 +7,19 @@ import {
   NODEJS_LOADERS,
   LOG_RETENTION_PERIOD,
   AgentFunctionResources,
+  getTenantEventFilter,
 } from './shared';
 import { MCPServerResources } from './mcp-servers';
 
 const RECOVERY_SCHEDULE_RATE = 'rate(2 hours)';
 const CONCURRENCY_MONITOR_RATE = 'rate(12 hours)';
+
+/**
+ * Enterprise Scale Filtering:
+ * We enforce that multiplexers only trigger if a workspaceId is present.
+ * This prevents cross-tenant noise and global-scope compute leakage.
+ */
+const tenantFilter = getTenantEventFilter({ requireWorkspace: true });
 
 /**
  * Create an IAM role for EventBridge Scheduler to invoke a Lambda function.
@@ -242,6 +250,7 @@ export function createAgents(
 
   bus.subscribe('HighPowerSubscriber', highPowerMultiplexer.arn, {
     pattern: {
+      ...tenantFilter,
       detailType: [
         EventType.CODER_TASK,
         EventType.RESEARCH_TASK,
@@ -268,6 +277,7 @@ export function createAgents(
 
   bus.subscribe('StandardSubscriber', standardMultiplexer.arn, {
     pattern: {
+      ...tenantFilter,
       detailType: [
         EventType.CODER_TASK_COMPLETED, // QA trigger
         EventType.SYSTEM_BUILD_SUCCESS, // QA trigger
@@ -294,6 +304,7 @@ export function createAgents(
 
   bus.subscribe('LightSubscriber', lightMultiplexer.arn, {
     pattern: {
+      ...tenantFilter,
       detailType: [
         EventType.REFLECT_TASK,
         EventType.CRITIC_TASK,
@@ -440,6 +451,7 @@ export function createAgents(
   });
   bus.subscribe('EventHandlerSubscriber', eventHandler.arn, {
     pattern: {
+      ...tenantFilter,
       detailType: [
         EventType.SYSTEM_BUILD_FAILED,
         EventType.SYSTEM_BUILD_SUCCESS,

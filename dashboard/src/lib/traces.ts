@@ -12,7 +12,7 @@ import { logger } from '@claw/core/lib/logger';
  */
 export async function getTraces(
   nextToken?: string,
-  options?: { startTime?: number; endTime?: number },
+  options?: { startTime?: number; endTime?: number; workspaceId?: string },
   injectedDocClient?: any
 ): Promise<{ items: Trace[]; nextToken: string | undefined }> {
   try {
@@ -24,28 +24,59 @@ export async function getTraces(
     const client = new DynamoDBClient({});
     const docClient = injectedDocClient ?? DynamoDBDocumentClient.from(client);
 
-    const { startTime, endTime } = options ?? {};
+    const { startTime, endTime, workspaceId } = options ?? {};
+
+    // Use WorkspaceSummaryIndex if workspaceId is provided (Enterprise Scale)
+    let indexName = 'SummaryByNode';
     let keyCondition = 'nodeId = :summary';
     const expressionAttributeValues: Record<string, any> = { ':summary': '__summary__' };
+    let filterExpression: string | undefined = undefined;
+    const expressionAttributeNames: Record<string, string> = {};
 
-    if (startTime && endTime) {
-      keyCondition += ' AND #ts BETWEEN :start AND :end';
-      expressionAttributeValues[':start'] = startTime;
-      expressionAttributeValues[':end'] = endTime;
-    } else if (startTime) {
-      keyCondition += ' AND #ts >= :start';
-      expressionAttributeValues[':start'] = startTime;
-    } else if (endTime) {
-      keyCondition += ' AND #ts <= :end';
-      expressionAttributeValues[':end'] = endTime;
+    if (workspaceId) {
+      indexName = 'WorkspaceSummaryIndex';
+      keyCondition = 'workspaceId = :ws';
+      expressionAttributeValues[':ws'] = workspaceId;
+      filterExpression = 'nodeId = :summary';
+
+      if (startTime || endTime) {
+        if (startTime && endTime) {
+          keyCondition += ' AND #ts BETWEEN :start AND :end';
+          expressionAttributeValues[':start'] = startTime;
+          expressionAttributeValues[':end'] = endTime;
+        } else if (startTime) {
+          keyCondition += ' AND #ts >= :start';
+          expressionAttributeValues[':start'] = startTime;
+        } else if (endTime) {
+          keyCondition += ' AND #ts <= :end';
+          expressionAttributeValues[':end'] = endTime;
+        }
+        expressionAttributeNames['#ts'] = 'timestamp';
+      }
+    } else {
+      // Legacy / Global behavior
+      if (startTime && endTime) {
+        keyCondition += ' AND #ts BETWEEN :start AND :end';
+        expressionAttributeValues[':start'] = startTime;
+        expressionAttributeValues[':end'] = endTime;
+      } else if (startTime) {
+        keyCondition += ' AND #ts >= :start';
+        expressionAttributeValues[':start'] = startTime;
+      } else if (endTime) {
+        keyCondition += ' AND #ts <= :end';
+        expressionAttributeValues[':end'] = endTime;
+      }
+      if (startTime || endTime) expressionAttributeNames['#ts'] = 'timestamp';
     }
 
     const queryRes = await docClient.send(
       new QueryCommand({
         TableName: tableName,
-        IndexName: 'SummaryByNode',
+        IndexName: indexName,
         KeyConditionExpression: keyCondition,
-        ExpressionAttributeNames: startTime || endTime ? { '#ts': 'timestamp' } : undefined,
+        FilterExpression: filterExpression,
+        ExpressionAttributeNames:
+          Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
         ExpressionAttributeValues: expressionAttributeValues,
         Limit: 100,
         ExclusiveStartKey: decodePaginationToken(nextToken ?? ''),

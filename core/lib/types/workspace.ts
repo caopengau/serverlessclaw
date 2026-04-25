@@ -43,6 +43,10 @@ export interface WorkspaceMember {
 export interface Workspace {
   /** Unique workspace identifier. */
   workspaceId: string;
+  /** Organizational identifier for enterprise isolation. */
+  orgId?: string;
+  /** Team identifier for enterprise isolation. */
+  teamId?: string;
   /** Human-readable workspace name. */
   name: string;
   /** Optional description of the workspace purpose. */
@@ -67,6 +71,10 @@ export interface Workspace {
 export interface CreateWorkspaceInput {
   /** Human-readable name. */
   name: string;
+  /** Organizational identifier. */
+  orgId?: string;
+  /** Team identifier. */
+  teamId?: string;
   /** Optional description. */
   description?: string;
   /** The owner's member ID (must be human). */

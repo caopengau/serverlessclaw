@@ -36,6 +36,7 @@ import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 import { useRealtimeContext } from '@/components/Providers/RealtimeProvider';
 import CyberTooltip from '@/components/CyberTooltip';
+import TenantSwitcher from '@/components/TenantSwitcher';
 import { logger } from '@claw/core/lib/logger';
 
 /**
@@ -244,6 +245,8 @@ export default function Sidebar() {
             />
           </div>
         </div>
+
+        <TenantSwitcher isCollapsed={isCollapsed} />
 
         {/* Desktop Fold Toggle - Floating on right edge */}
         <button

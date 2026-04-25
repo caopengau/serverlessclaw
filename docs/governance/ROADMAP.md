@@ -111,10 +111,10 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 ## ✅ Phase 14: Advanced Autonomy
 
 - [x] **Browser Automation**: Playwright Lambda Layer for autonomous web browsing.
-- [ ] **Promotion Manager**: Agent-driven promotion of validated builds to `prod`.
-- [ ] **Skill Marketplace**: CLI-based installation of community tools.
+- [x] **Promotion Manager**: Agent-driven promotion of validated builds to `prod`.
+- [ ] **Skill Marketplace**: CLI-based installation of community tools (Deferred).
 
-## 🏗️ Phase 15: Enterprise Scale (Next Priority)
+## 🏗️ Phase 15: Enterprise Scale (Active Priority)
 
 - [x] **Agent Swarm Isolation**: Multi-tenant partitioning by `orgId`, `teamId`, and `staffId`.
 - [ ] **Per-tenant EventBridge filtering**: Secure signal routing between organizational boundaries.

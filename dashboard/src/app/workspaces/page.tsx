@@ -60,6 +60,8 @@ export default function WorkspacesPage() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [showModal, setShowModal] = useState(false);
   const [newName, setNewName] = useState('');
+  const [newOrgId, setNewOrgId] = useState('');
+  const [newTeamId, setNewTeamId] = useState('');
   const [creating, setCreating] = useState(false);
 
   // Member management state
@@ -103,11 +105,18 @@ export default function WorkspacesPage() {
       const res = await fetch('/api/workspaces', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName, ownerId: userId }),
+        body: JSON.stringify({
+          name: newName,
+          ownerId: userId,
+          orgId: newOrgId.trim() || undefined,
+          teamId: newTeamId.trim() || undefined,
+        }),
       });
       if (res.ok) {
         setShowModal(false);
         setNewName('');
+        setNewOrgId('');
+        setNewTeamId('');
         fetchWorkspaces();
       }
     } catch (e) {
@@ -373,6 +382,22 @@ export default function WorkspacesPage() {
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="My Workspace"
+                  className="w-full"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  label="Org ID (Enterprise)"
+                  value={newOrgId}
+                  onChange={(e) => setNewOrgId(e.target.value)}
+                  placeholder="e.g. acme-inc"
+                  className="w-full"
+                />
+                <Input
+                  label="Team ID (Enterprise)"
+                  value={newTeamId}
+                  onChange={(e) => setNewTeamId(e.target.value)}
+                  placeholder="e.g. engineering"
                   className="w-full"
                 />
               </div>

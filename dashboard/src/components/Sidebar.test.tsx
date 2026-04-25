@@ -4,24 +4,35 @@ import { render, screen } from '@testing-library/react';
 import Sidebar from './Sidebar';
 
 // Define the mock before hoisting it
-const { mockUseUICommand, mockUseRealtimeContext, mockUseTheme, mockUseTranslations } = vi.hoisted(
-  () => ({
-    mockUseUICommand: vi.fn().mockReturnValue({
-      isSidebarCollapsed: false,
-      setSidebarCollapsed: vi.fn(),
-    }),
-    mockUseRealtimeContext: vi.fn().mockReturnValue({
-      isConnected: true,
-    }),
-    mockUseTheme: vi.fn().mockReturnValue({
-      theme: 'dark',
-      setTheme: vi.fn(),
-    }),
-    mockUseTranslations: vi.fn().mockReturnValue({
-      t: (key: string) => key,
-    }),
-  })
-);
+const {
+  mockUseUICommand,
+  mockUseRealtimeContext,
+  mockUseTheme,
+  mockUseTranslations,
+  mockUseTenant,
+} = vi.hoisted(() => ({
+  mockUseUICommand: vi.fn().mockReturnValue({
+    isSidebarCollapsed: false,
+    setSidebarCollapsed: vi.fn(),
+  }),
+  mockUseRealtimeContext: vi.fn().mockReturnValue({
+    isConnected: true,
+  }),
+  mockUseTheme: vi.fn().mockReturnValue({
+    theme: 'dark',
+    setTheme: vi.fn(),
+  }),
+  mockUseTranslations: vi.fn().mockReturnValue({
+    t: (key: string) => key,
+  }),
+  mockUseTenant: vi.fn().mockReturnValue({
+    activeWorkspaceId: null,
+    workspaces: [],
+    tenantInfo: null,
+    isLoading: false,
+    setActiveWorkspace: vi.fn(),
+  }),
+}));
 
 // Mock dependencies using the hoisted mocks
 vi.mock('@/components/Providers/TranslationsProvider', () => ({
@@ -36,6 +47,10 @@ vi.mock('@/components/Providers/UICommandProvider', () => ({
   useUICommand: mockUseUICommand,
 }));
 
+vi.mock('@/components/Providers/TenantProvider', () => ({
+  useTenant: mockUseTenant,
+}));
+
 vi.mock('next-themes', () => ({
   useTheme: mockUseTheme,
 }));
@@ -46,6 +61,9 @@ vi.mock('next/navigation', () => ({
     push: vi.fn(),
     replace: vi.fn(),
     prefetch: vi.fn(),
+  }),
+  useSearchParams: () => ({
+    get: vi.fn(),
   }),
 }));
 
@@ -59,7 +77,10 @@ vi.mock('lucide-react', () => ({
   Zap: () => <div data-testid="icon-zap" />,
   Menu: () => <div data-testid="icon-menu" />,
   X: () => <div data-testid="icon-x" />,
+  Check: () => <div data-testid="icon-check" />,
+  Plus: () => <div data-testid="icon-plus" />,
   ChevronRight: () => <div data-testid="icon-chevron-right" />,
+  ChevronDown: () => <div data-testid="icon-chevron-down" />,
   PanelLeftClose: () => <div data-testid="icon-panel-close" />,
   PanelLeftOpen: () => <div data-testid="icon-panel-open" />,
   Users: () => <div data-testid="icon-users" />,
@@ -69,6 +90,7 @@ vi.mock('lucide-react', () => ({
   Calendar: () => <div data-testid="icon-calendar" />,
   BrainCircuit: () => <div data-testid="icon-brain-circuit" />,
   Building2: () => <div data-testid="icon-building" />,
+  Globe: () => <div data-testid="icon-globe" />,
   Vote: () => <div data-testid="icon-vote" />,
   Sun: () => <div data-testid="icon-sun" />,
   Moon: () => <div data-testid="icon-moon" />,

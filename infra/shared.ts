@@ -83,6 +83,33 @@ export const NODEJS_LOADERS = { '.md': 'text' } as const;
 export const LOG_RETENTION_PERIOD = '1 week';
 
 /**
+ * Generates a tenant-aware EventBridge filter pattern.
+ * Enforces organizational and team-level boundaries at the infrastructure layer (Silo 1).
+ */
+export function getTenantEventFilter(options: {
+  orgId?: string[];
+  teamId?: string[];
+  requireWorkspace?: boolean;
+}) {
+  const pattern: any = {
+    detail: {},
+  };
+
+  if (options.orgId) {
+    pattern.detail.orgId = options.orgId;
+  }
+  if (options.teamId) {
+    pattern.detail.teamId = options.teamId;
+  }
+  if (options.requireWorkspace) {
+    // Optimization: Ensure workspaceId exists to filter out malformed global events
+    pattern.detail.workspaceId = [{ exists: true }];
+  }
+
+  return pattern;
+}
+
+/**
  * Returns the optional domain configuration for a component.
  *
  * @param component - The component to get the domain for ('api' | 'dashboard' | 'router').

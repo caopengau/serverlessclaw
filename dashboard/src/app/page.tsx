@@ -19,6 +19,7 @@ import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import PageHeader from '@/components/PageHeader';
 import { ROUTES } from '@/lib/constants';
+import { useTenant } from '@/components/Providers/TenantProvider';
 
 interface SessionMetadata {
   sessionId: string;
@@ -31,11 +32,15 @@ interface SessionMetadata {
  * Provides a high-level overview of active missions, system health, and quick actions.
  */
 export default function MissionDashboard() {
+  const { activeWorkspaceId } = useTenant();
   const [recentSessions, setRecentSessions] = useState<SessionMetadata[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/chat')
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
+    const url = activeWorkspaceId ? `/api/chat?workspaceId=${activeWorkspaceId}` : '/api/chat';
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
         const sorted = (data.sessions || [])
@@ -45,7 +50,7 @@ export default function MissionDashboard() {
       })
       .catch(() => setRecentSessions([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [activeWorkspaceId]);
 
   return (
     <div className="flex-1 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-green/5 via-transparent to-transparent">

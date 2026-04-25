@@ -9,4 +9,7 @@ export interface PageContextData {
   traceId?: string;
   sessionId?: string;
   agentId?: string;
+  workspaceId?: string;
+  orgId?: string;
+  teamId?: string;
 }

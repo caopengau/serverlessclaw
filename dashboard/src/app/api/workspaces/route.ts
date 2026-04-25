@@ -10,6 +10,8 @@ interface WorkspaceData {
   ownerId?: string;
   members?: Array<{ id: string; role: string; channel: string }>;
   createdAt?: number;
+  orgId?: string;
+  teamId?: string;
 }
 
 const WORKSPACE_ROLES: WorkspaceRole[] = ['owner', 'admin', 'collaborator', 'observer'];
@@ -22,8 +24,14 @@ function asNonEmptyString(value: unknown, fieldName: string): string {
   return value;
 }
 
-async function fetchWorkspacesFromConfig(): Promise<WorkspaceData[]> {
+async function fetchWorkspacesFromConfig(id?: string): Promise<WorkspaceData[]> {
   const { ConfigManager } = await import('@claw/core/lib/registry/config');
+
+  if (id) {
+    const data = (await ConfigManager.getRawConfig(`workspace:${id}`)) as WorkspaceData | null;
+    return data ? [data] : [];
+  }
+
   const WORKSPACE_INDEX = 'workspace_index';
   const index = ((await ConfigManager.getRawConfig(WORKSPACE_INDEX)) as string[]) ?? [];
   const workspaces: WorkspaceData[] = [];
@@ -32,21 +40,35 @@ async function fetchWorkspacesFromConfig(): Promise<WorkspaceData[]> {
       `workspace:${workspaceId}`
     )) as WorkspaceData | null;
     if (data) {
-      workspaces.push({
-        workspaceId: data.workspaceId,
-        name: data.name ?? 'Unnamed',
-        ownerId: data.ownerId ?? '',
-        members: data.members ?? [],
-        createdAt: data.createdAt ?? 0,
-      });
+      workspaces.push(data);
     }
   }
   return workspaces;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const workspaces = await fetchWorkspacesFromConfig();
+    const url = new URL(req.url);
+    const id = url.searchParams.get('id');
+
+    const workspaces = await fetchWorkspacesFromConfig(id || undefined);
+
+    if (id) {
+      if (workspaces.length === 0) return Response.json({ workspace: null });
+      const w = workspaces[0];
+      return Response.json({
+        workspace: {
+          id: w.workspaceId,
+          name: w.name,
+          ownerId: w.ownerId,
+          members: w.members,
+          createdAt: w.createdAt,
+          orgId: w.orgId,
+          teamId: w.teamId,
+        },
+      });
+    }
+
     // Map to the format expected by the frontend
     const formatted = workspaces.map((w) => ({
       id: w.workspaceId,
@@ -54,6 +76,8 @@ export async function GET() {
       ownerId: w.ownerId,
       members: w.members,
       createdAt: w.createdAt,
+      orgId: w.orgId,
+      teamId: w.teamId,
     }));
     return Response.json({ workspaces: formatted });
   } catch (e) {
@@ -120,6 +144,8 @@ export const POST = withApiHandler(async (body: Record<string, unknown>) => {
     name,
     ownerId,
     ownerDisplayName: (body.ownerDisplayName as string) ?? 'Unknown',
+    orgId: body.orgId as string,
+    teamId: body.teamId as string,
   });
   return { success: true, id: workspace.workspaceId };
 });
