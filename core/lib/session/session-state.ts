@@ -35,6 +35,10 @@ export interface SessionState {
     state: any;
     metadata?: any;
   } | null;
+  workspaceId?: string;
+  teamId?: string;
+  staffId?: string;
+  userRole?: string;
 }
 
 export class SessionStateManager {
@@ -590,6 +594,10 @@ export class SessionStateManager {
         pendingMessages: (result.Item.pendingMessages as PendingMessage[]) ?? [],
         lastMessageAt: result.Item.lastMessageAt,
         workflowSnapshot: result.Item.workflowSnapshot,
+        workspaceId: result.Item.workspaceId,
+        teamId: result.Item.teamId,
+        staffId: result.Item.staffId,
+        userRole: result.Item.userRole,
       };
     } catch (error) {
       logger.error(`Session ${sessionId}: Failed to get session state:`, error);

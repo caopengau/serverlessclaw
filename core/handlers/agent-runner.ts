@@ -276,6 +276,10 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       depth: currentDepth,
       userNotified: shouldSpeakDirectly && !isFailure,
       idempotencyKey: taskId || `${traceId}-${agentId}`,
+      workspaceId,
+      teamId,
+      staffId,
+      userRole,
     });
 
     return finalResponseText;
