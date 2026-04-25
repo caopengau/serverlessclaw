@@ -86,11 +86,19 @@ async function cleanupStaleGapLocks(): Promise<number> {
                 userId: (item.userId as string) || '',
                 timestamp: String((item.timestamp as string) || '0'),
               },
+              ConditionExpression: 'expiresAt < :staleThreshold',
+              ExpressionAttributeValues: {
+                ':staleThreshold': staleThreshold,
+              },
             })
           );
           deletedCount++;
-        } catch (deleteError) {
-          logger.warn(`Failed to delete stale gap lock:`, deleteError);
+        } catch (deleteError: any) {
+          if (deleteError.name === 'ConditionalCheckFailedException') {
+            logger.debug(`Skipping stale lock deletion: Lock was re-acquired`);
+          } else {
+            logger.warn(`Failed to delete stale gap lock:`, deleteError);
+          }
         }
       }
     }

@@ -168,6 +168,19 @@ export const handler = async (
   // Acquire session lock if sessionId is available (B3: Prevent Mutual Exclusion Violation)
   let lockAcquired = false;
 
+  // Sh6 Fix: Enforce Principle 14 (Selection Integrity)
+  // Verify that the target agent is enabled before processing
+  const { AgentRegistry } = await import('../lib/registry/AgentRegistry');
+  const agentConfig = await AgentRegistry.getAgentConfig(targetAgent, scope);
+
+  if (!agentConfig?.enabled) {
+    logger.warn(`[MULTIPLEXER] Blocked invocation of disabled agent: ${targetAgent}`);
+    return {
+      status: 'BLOCKED',
+      message: `Agent ${targetAgent} is currently disabled. Execution halted for safety.`,
+    };
+  }
+
   if (sessionId && targetAgent) {
     lockAcquired = await sessionStateManager.acquireProcessing(sessionId, targetAgent);
 

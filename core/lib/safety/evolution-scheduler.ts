@@ -6,8 +6,8 @@ import { logger } from '../logger';
 import { BaseMemoryProvider } from '../memory/base';
 import { EventType } from '../types/agent';
 import { emitTypedEvent } from '../utils/typed-emit';
-
-const EVOLUTION_PREFIX = 'EVOLUTION#PENDING#';
+import { MEMORY_KEYS } from '../constants';
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
 export interface PendingEvolution {
   actionId: string;
@@ -59,7 +59,7 @@ export class EvolutionScheduler {
     }
     const actionId = `eve_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const now = Date.now();
-    const pk = `${EVOLUTION_PREFIX}${actionId}`;
+    const pk = `${MEMORY_KEYS.EVOLUTION_PREFIX}${actionId}`;
     const scopedUserId = this.base.getScopedUserId(pk, { workspaceId: params.workspaceId });
 
     const pending: PendingEvolution = {
@@ -133,8 +133,13 @@ export class EvolutionScheduler {
 
     for (const action of toTrigger) {
       try {
-        await this.triggerProactiveEvolution(action);
-        count++;
+        // Sh6 Fix: Enforce Principle 13 (Atomic State Integrity)
+        // Atomically claim the action before triggering to prevent double execution
+        const claimed = await this.claimActionForTrigger(action);
+        if (claimed) {
+          await this.triggerProactiveEvolution(action);
+          count++;
+        }
       } catch (error) {
         logger.error(`[EVOLUTION] Failed to trigger action ${action.actionId}:`, error);
       }
@@ -144,7 +149,45 @@ export class EvolutionScheduler {
   }
 
   /**
-   * Emit the proactive evolution event and mark as triggered.
+   * Atomically claims an action for triggering by updating its status to 'triggered'.
+   * Prevents race conditions where multiple processes could trigger the same action.
+   */
+  private async claimActionForTrigger(action: PendingEvolution): Promise<boolean> {
+    if (!this.base) return false;
+    const pk = `${MEMORY_KEYS.EVOLUTION_PREFIX}${action.actionId}`;
+    const scopedUserId = this.base.getScopedUserId(pk, { workspaceId: action.workspaceId });
+    const tableName = this.base.getTableName();
+
+    if (!tableName) return false;
+
+    try {
+      await this.base.getDocClient().send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { userId: scopedUserId, timestamp: 0 },
+          UpdateExpression: 'SET #status = :triggered, triggeredAt = :now',
+          ConditionExpression: '#status = :pending',
+          ExpressionAttributeNames: { '#status': 'status' },
+          ExpressionAttributeValues: {
+            ':triggered': 'triggered',
+            ':pending': 'pending',
+            ':now': Date.now(),
+          },
+        })
+      );
+      return true;
+    } catch (e: any) {
+      if (e.name === 'ConditionalCheckFailedException') {
+        logger.debug(`[EVOLUTION] Action ${action.actionId} already claimed or status changed.`);
+        return false;
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Emit the proactive evolution event.
+   * Note: Status is now updated BEFORE calling this method via claimActionForTrigger.
    */
   private async triggerProactiveEvolution(action: PendingEvolution): Promise<void> {
     logger.info(
@@ -173,23 +216,11 @@ export class EvolutionScheduler {
         resource: action.resource,
       },
     });
-
-    // Update status to triggered
-    action.status = 'triggered';
-    if (this.base) {
-      const pk = `${EVOLUTION_PREFIX}${action.actionId}`;
-      const scopedUserId = this.base.getScopedUserId(pk, { workspaceId: action.workspaceId });
-      await this.base.putItem({
-        ...action,
-        userId: scopedUserId,
-        timestamp: 0,
-        type: 'PENDING_EVOLUTION',
-      });
-    }
   }
 
   /**
    * Handle human approval/rejection.
+   * Sh6 Fix: Use atomic UpdateCommand to prevent direct object overwrite.
    */
   async updateStatus(
     actionId: string,
@@ -197,34 +228,35 @@ export class EvolutionScheduler {
     workspaceId?: string
   ): Promise<void> {
     if (!this.base) return;
-    const pk = `${EVOLUTION_PREFIX}${actionId}`;
+    const pk = `${MEMORY_KEYS.EVOLUTION_PREFIX}${actionId}`;
     const scopedUserId = this.base.getScopedUserId(pk, { workspaceId });
+    const tableName = this.base.getTableName();
 
-    const items = await this.base.queryItems({
-      KeyConditionExpression: 'userId = :userId AND #timestamp = :zero',
-      ExpressionAttributeNames: { '#timestamp': 'timestamp' },
-      ExpressionAttributeValues: {
-        ':userId': scopedUserId,
-        ':zero': 0,
-      },
-    });
+    if (!tableName) return;
 
-    if (items.length === 0) return;
-
-    const action = items[0] as unknown as PendingEvolution;
-
-    if (workspaceId && action.workspaceId && action.workspaceId !== workspaceId) {
-      logger.warn(`[EVOLUTION] Unauthorized updateStatus attempt for ${actionId}`);
-      throw new Error('Unauthorized access to pending evolution');
+    try {
+      await this.base.getDocClient().send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { userId: scopedUserId, timestamp: 0 },
+          UpdateExpression: 'SET #status = :status, updatedAt = :now',
+          // Optional: only allow updates if currently pending or triggered
+          ConditionExpression: '#status IN (:pending, :triggered)',
+          ExpressionAttributeNames: { '#status': 'status' },
+          ExpressionAttributeValues: {
+            ':status': status,
+            ':pending': 'pending',
+            ':triggered': 'triggered',
+            ':now': Date.now(),
+          },
+        })
+      );
+    } catch (e: any) {
+      if (e.name === 'ConditionalCheckFailedException') {
+        logger.warn(`[EVOLUTION] Failed to update status for ${actionId}: already processed.`);
+        return;
+      }
+      throw e;
     }
-
-    action.status = status;
-
-    await this.base.putItem({
-      ...action,
-      userId: scopedUserId,
-      timestamp: 0,
-      type: 'PENDING_EVOLUTION',
-    });
   }
 }

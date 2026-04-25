@@ -208,13 +208,20 @@ export class TrustManager {
 
   static async decayTrustScores(workspaceId?: string): Promise<void> {
     const configs = await AgentRegistry.getAllConfigs({ workspaceId });
-    await Promise.all(
-      Object.entries(configs)
-        .filter(([id]) => !AgentRegistry.isBackboneAgent(id))
-        .map(([id, cfg]) =>
+    const agentEntries = Object.entries(configs).filter(
+      ([id]) => !AgentRegistry.isBackboneAgent(id)
+    );
+
+    // Sh6 Fix: implement chunked batching to prevent DDB throttling
+    const CHUNK_SIZE = 10;
+    for (let i = 0; i < agentEntries.length; i += CHUNK_SIZE) {
+      const chunk = agentEntries.slice(i, i + CHUNK_SIZE);
+      await Promise.all(
+        chunk.map(([id, cfg]) =>
           this.decayAgentTrust(id, cfg as { trustScore?: number }, { workspaceId })
         )
-    );
+      );
+    }
   }
 
   private static async decayAgentTrust(

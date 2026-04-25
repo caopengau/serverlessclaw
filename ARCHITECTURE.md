@@ -252,11 +252,12 @@ The system architecture follows a **Distributed Spine** model where all critical
   [ Silo 1: The Spine (EventHandler) ]
           |-- (1) Strict Payload Validation (Required: traceId, sessionId)
           |-- (2) FlowControl (FlowController: Fail-Closed Rate Limit / Circuit Breaker)
-          |-- (3) Trace-Aware Recursion Guard (Atomic monotonic increment)
+          |-- (3) Stable Idempotency Guard (Content-aware deduplication)
+          |-- (4) Trace-Aware Recursion Guard (Atomic monotonic increment)
           v
   [ Agent Multiplexer (Gateway) ]
-          |-- (4) Dynamic Selection (AgentRouter.selectBestAgent)
-          |-- (5) Selection Integrity (Verify agent.enabled === true)
+          |-- (5) Dynamic Selection (AgentRouter.selectBestAgent)
+          |-- (6) Selection Integrity (Verify agent.enabled === true)
           v
    [ Agent Execution (Silo 2: The Hand) ]
            |-- (6) Unified Config (ConfigManager: 60s Cached Dynamic Lookups)
@@ -305,7 +306,8 @@ To maintain a **Stateless Core** (Principle 1) while ensuring systemic safety, t
 1.  **Distributed Flow Control**: The `FlowController` centralizes backbone circuit breakers and rate limiters using DynamoDB atomic counters. It enforces a **Fail-Closed** strategy (Principle 13): if the system cannot verify safety state due to database failure, the operation is rejected to preserve system integrity.
 2.  **Surgical Security Enforcement**: The `ToolSecurityValidator` decouples security logic from tool execution. It enforces the "Shield" (SafetyEngine) rules, RBAC permissions, and system-level circuit breakers before any tool interaction occurs.
 3.  **Strict Payload Validation**: The `EventHandler` enforces mandatory presence of `traceId` and `sessionId` at the entry point, preventing malformed signals from polluting the backbone.
-4.  **Budget Guardrails**: Operationalized via the centralized `BudgetEnforcer` together with `TokenBudgetEnforcer`. Provides two-tier enforcement: (1) **Session-level** budgets tracked across multi-turn conversations via DynamoDB-persisted counters (prevents budget poisoning), and (2) **Task-level** token/cost thresholds checked each loop iteration. Soft warnings at 80% usage, hard stops when limits are exceeded. Configured via `CONFIG_KEYS` (`SESSION_TOKEN_BUDGET`, `SESSION_COST_LIMIT`, `GLOBAL_TOKEN_BUDGET`, `GLOBAL_COST_LIMIT`).
+4.  **Stable Idempotency**: Implements content-aware deduplication in the Spine. Uses a stable hash of the event payload to catch application-level double-emissions, preventing redundant processing of destructive actions.
+5.  **Budget Guardrails**: Operationalized via the centralized `BudgetEnforcer` together with `TokenBudgetEnforcer`. Provides two-tier enforcement: (1) **Session-level** budgets tracked across multi-turn conversations via DynamoDB-persisted counters (prevents budget poisoning), and (2) **Task-level** token/cost thresholds checked each loop iteration. Soft warnings at 80% usage, hard stops when limits are exceeded. Configured via `CONFIG_KEYS` (`SESSION_TOKEN_BUDGET`, `SESSION_COST_LIMIT`, `GLOBAL_TOKEN_BUDGET`, `GLOBAL_COST_LIMIT`).
 5.  **Selection Integrity**: The `AgentMultiplexer` acts as the authoritative gateway. It performs a mandatory configuration check for every agent before invocation, ensuring that `enabled: false` status is strictly enforced regardless of the event source.
 6.  **Dynamic Routing**: The `AgentRouter` uses historical success rates and reputation scores to dynamically select the best agent for a given task, prioritizing capability match over marginal token cost differences (Principle 10).
 7.  **Monotonic Recursion Tracking**: Cross-session recursion depth is managed via atomic increments in the `recursion-tracker`, preventing loop-bypass attacks in concurrent swarm scenarios.

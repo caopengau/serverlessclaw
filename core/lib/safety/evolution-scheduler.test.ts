@@ -25,6 +25,33 @@ describe('EvolutionScheduler', () => {
     vi.clearAllMocks();
 
     const items = new Map<string, any>();
+    const mockSend = vi.fn(async (command: any) => {
+      if (command.constructor.name === 'UpdateCommand') {
+        const { Key, UpdateExpression, ExpressionAttributeValues, ConditionExpression } =
+          command.input;
+        const item = items.get(Key.userId);
+
+        if (ConditionExpression === '#status = :pending' && item?.status !== 'pending') {
+          const error = new Error('ConditionalCheckFailedException');
+          (error as any).name = 'ConditionalCheckFailedException';
+          throw error;
+        }
+
+        if (item) {
+          if (UpdateExpression.includes(':triggered')) {
+            item.status = 'triggered';
+            item.triggeredAt = ExpressionAttributeValues[':now'];
+          } else if (UpdateExpression.includes(':status')) {
+            item.status = ExpressionAttributeValues[':status'];
+            item.updatedAt = ExpressionAttributeValues[':now'];
+          }
+          items.set(Key.userId, item);
+        }
+        return { Attributes: item };
+      }
+      return {};
+    });
+
     mockMemory = {
       items,
       putItem: vi.fn(async (item: any) => {
@@ -35,6 +62,10 @@ describe('EvolutionScheduler', () => {
         if (scope?.workspaceId) return `WS#${scope.workspaceId}#${pk}`;
         return pk;
       }),
+      getTableName: vi.fn(() => 'test-table'),
+      getDocClient: vi.fn(() => ({
+        send: mockSend,
+      })),
       queryItems: vi.fn(async (params: any) => {
         const allItems = Array.from(items.values());
         logger.info('STORAGE: querying with params', JSON.stringify(params));

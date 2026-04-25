@@ -4,7 +4,7 @@
 
 This document tracks which system silos and cross-silo perspectives have been audited across all rounds. It helps identify under-audited areas and guide future audit efforts.
 
-Last Updated: 2026-04-24
+Last Updated: 2026-04-25
 
 ---
 
@@ -12,12 +12,12 @@ Last Updated: 2026-04-24
 
 | Silo  | Name           | Primary Focus                                   | Audit Count | Last Audited | Risk Level |
 | :---- | :------------- | :---------------------------------------------- | :---------: | :----------- | :--------- |
-| **1** | The Spine      | `core/lib/routing/`, `core/lib/backbone.ts`     |     9+      | 2026-04-24   | Medium     |
+| **1** | The Spine      | `core/lib/routing/`, `core/lib/backbone.ts`     |     11+     | 2026-04-25   | Medium     |
 | **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` |      5      | 2026-04-24   | Medium     |
-| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              |     9+      | 2026-04-24   | High       |
-| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             |      5      | 2026-04-24   | Medium     |
-| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         |      5      | 2026-04-24   | Medium     |
-| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              |      5      | 2026-04-24   | High       |
+| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              |     10+     | 2026-04-25   | High       |
+| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             |      6      | 2026-04-25   | Medium     |
+| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         |      6      | 2026-04-25   | Medium     |
+| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              |      7      | 2026-04-25   | High       |
 | **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            |      2      | 2026-04-15   | Low        |
 
 ---
@@ -29,8 +29,8 @@ Last Updated: 2026-04-24
 | **A**       | Life of a Message | Spine → Brain → Eye    | 2           | 2026-04-23  |
 | **B**       | Evolution Cycle   | Hand → Shield → Scales | 3           | 2026-04-24  |
 | **C**       | Identity Journey  | Brain → Spine → Shield | 3           | 2026-04-24  |
-| **D**       | Trust Loop        | Eye → Scales → Spine   | 3           | 2026-04-24  |
-| **E**       | Recovery Path     | Shield → Spine → Brain | 3           | 2026-04-24  |
+| **D**       | Trust Loop        | Eye → Scales → Spine   | 4           | 2026-04-25  |
+| **E**       | Recovery Path     | Shield → Spine → Brain | 4           | 2026-04-25  |
 
 ---
 
@@ -38,6 +38,8 @@ Last Updated: 2026-04-24
 
 | Date       | Report                                        | Silos Covered         | Cross-Silo      | Key Findings                                           |
 | :--------- | :-------------------------------------------- | :-------------------- | :-------------- | :----------------------------------------------------- |
+| 2026-04-25 | `audit-2026-04-25-recovery-path.md`           | Shield, Spine, Brain  | E               | P1 Double trigger prevention, Multiplexer selection integrity |
+| 2026-04-25 | `audit-2026-04-25-trust-loop-scales.md`       | Eye, Scales, Spine    | D               | P1 Cognitive metrics isolation, TrustScore fail-closed |
 | 2026-04-24 | `audit-2026-04-24-mcp-isolation.md`           | Hand, Shield          | B, C            | P0 Global tool cache leak, Global client map leak      |
 | 2026-04-24 | `audit-2026-04-24-recovery-path.md`           | Shield, Spine, Brain  | E               | P0 Global trace coherence scan, Global circuit breaker |
 | 2026-04-24 | `audit-2026-04-24-trust-loop.md`              | Eye, Scales, Spine    | D               | P1 Global agent metrics leak, Non-scoped persistence   |
@@ -58,8 +60,8 @@ Last Updated: 2026-04-24
 
 | Principle | Name                   | Automated Check | Manual Only | Violation Count (30d) |
 | :-------- | :--------------------- | :-------------: | :---------- | :-------------------- |
-| **13**    | Atomic State Integrity |       ❌        | ✅          | 4                     |
-| **14**    | Selection Integrity    |       ✅        | ✅          | 2                     |
+| **13**    | Atomic State Integrity |       ✅        | ✅          | 6                     |
+| **14**    | Selection Integrity    |       ✅        | ✅          | 3                     |
 | **15**    | Monotonic Progress     |       ❌        | ✅          | 2                     |
 | **9**     | Trust-Driven Mode      |       ❌        | ✅          | 1                     |
 | **10**    | Lean Evolution         |       ❌        | ✅          | 1                     |
@@ -70,28 +72,28 @@ Last Updated: 2026-04-24
 
 ### High Priority (Needs Re-Audit)
 
-1. **The Hand** (Silo 2) - Only 2 audits, needs Hand -> Brain validation.
-2. **Perspective B: Evolution Cycle** - Only 1 audit, needs verification of Hand -> Shield -> Scales loop.
+1. **The Hand** (Silo 2) - Needs Hand -> Brain validation for context isolation.
+2. **Perspective B: Evolution Cycle** - Needs verification of Hand -> Shield -> Scales loop integrity.
 
 ### Medium Priority (Rarely Audited)
 
-1. **The Eye** (Silo 5) - Last audited 8 days ago, needs validation of metric aggregation integrity.
-2. **Perspective C: Identity Journey** - Only 1 audit, needs deeper trace analysis.
+1. **The Metabolism** (Silo 7) - Only 2 audits, needs verification of pruning logic.
+2. **Perspective A: Life of a Message** - Only 2 audits, needs deeper trace analysis.
 
 ### High Risk (Most Violations)
 
-1. **The Brain** (Silo 4) - Fixed P0 isolation leaks in this round. Needs monitoring to ensure no regression.
-2. **The Scales** (Silo 6) - Reputation and metrics were found to be global. Fixed in this round but needs scale testing.
-3. **The Shield** (Silo 3) - Recurring issues with dropped context and IDOR (Fixed 2026-04-22).
+1. **The Spine** (Silo 1) - Multiple idempotency and recursion issues identified and fixed on 2026-04-25.
+2. **The Scales** (Silo 6) - Reputation and metrics were found to be global. Fixed on 2026-04-25.
+3. **The Shield** (Silo 3) - Atomic update issues in evolution scheduling fixed on 2026-04-25.
 
 ---
 
 ## Recommendations
 
 1. **Mandatory Cross-Silo**: Every audit MUST verify at least ONE cross-silo perspective
-2. **Focus on C, D, E**: These have never been tested - prioritize in next round
-3. **Add Automated Checks**: Principles 13, 14, 15 should be verified automatically
-4. **Track Recurrence**: Add "related issues" field to find patterns
+2. **Focus on A, B**: These are now the least-tested perspectives.
+3. **Add Automated Checks**: Continue expanding automated principle verification.
+4. **Track Recurrence**: Use `ANTI-PATTERNS.md` to prevent regression of fixed P1 issues.
 
 ---
 

@@ -100,17 +100,23 @@ export async function handler(
     return;
   }
 
-  // Idempotency handling (deterministic key for events without envelopeId)
-  let idempotencyKey = envelopeId;
-  if (!idempotencyKey) {
-    const hash = crypto.createHash('sha256');
-    hash.update(JSON.stringify(eventDetail) + detailType);
-    idempotencyKey = hash.digest('hex').substring(0, 16);
-  }
+  // Idempotency handling (Sh6 Fix: Use stable content hash to catch application-level double-emissions)
+  // We prioritize a hash of the content over the envelopeId because envelopeId is unique per emission.
+  const hash = crypto.createHash('sha256');
+  const stablePayload = { ...eventDetail };
+  delete (stablePayload as any).__envelopeId; // Exclude metadata
+  hash.update(JSON.stringify(stablePayload) + detailType);
+  const contentHash = hash.digest('hex').substring(0, 16);
+
+  // If the event was emitted via emitEvent with a specific idempotencyKey,
+  // it should be in the detail or we can use the contentHash.
+  const idempotencyKey = (eventDetail.idempotencyKey as string) || contentHash;
 
   const alreadyProcessed = await checkAndMarkIdempotent(idempotencyKey, detailType);
   if (alreadyProcessed) {
-    logger.info(`[EVENTS] Duplicate event detected: ${idempotencyKey} (${detailType})`);
+    logger.info(
+      `[EVENTS] Duplicate event detected (logical): ${idempotencyKey} (${detailType} | envelope: ${envelopeId})`
+    );
     return;
   }
 
