@@ -8,32 +8,19 @@ Serverless Claw is a **self-evolving system** that identifies its own weaknesses
 
 ```text
 +--------------+       +------------------+       +-------------------+
-|  Coder Agent |------>|  Staging Bucket  |<------|   AWS CodeBuild   |
-| (Writes Code)| upload|    (S3)          | pull  |     (Deployer)    |
-+--------------+       +------------------+       +---------+---------+
-                                                            |
-                                                            v
-                                                  +-------------------+
-                                                  | Pre-Deployment QA |
-                                                  | (validateCode,    |
-                                                  |  runTests)         |
-                                                  +---------+---------+
-                                                            |
-                                                            v
+|  Coder Agent |------>|  Local Context   |<------|   verifyChanges   |
+| (Writes Code)| exec  |  (make test)     |       | (Sacred Trunk Gate)|
++--------------+       +---------+--------+       +---------+---------+
+                                 |                          |
+                                 v                          v
+                       +-------------------+      +-------------------+
+                       |    Trunk (main)   |----->|  PromotionManager |
+                       | (Live Deployment) |      | (Graduation Gate) |
+                       +---------+---------+      +---------+---------+
+                                 |                          |
+                                 v                          v
 +--------------+       +------------------+       +-------------------+
-|  SuperClaw  +------>|  AWS CodeBuild   +------>|   Agent Stack     |
-| (Orchestrator)| trigger| (Deployer)       |  sst  | (Self-Update)     |
-+--------------+       +---------|--------+       +---------+---------+
-                                  |
-                                  v
-                         +-------------------+
-                         | Build Monitor     |
-                         | (Gap Aging: 30d)  |
-                         +---------+---------+
-                                  |
-                                  v
-+--------------+       +------------------+       +-------------------+
-|  QA Auditor  +------>|  Mechanical Gate |<------+   User Feedback   |
+|  QA Auditor  +------>|  Live Monitoring |<------+   User Feedback   |
 | (Verifies)   | tool  | (Status: DONE)   | chat  |  (Closes Loop)    |
 +--------------+       +------------------+       +-------------------+
 ```
@@ -42,17 +29,17 @@ Serverless Claw is a **self-evolving system** that identifies its own weaknesses
 
 The system's evolution follows a strict, verified hierarchy:
 
-1. **Observation**: Reflector identifies a `strategic_gap` from conversation logs.
-2. **Audit & Optimization**: Every 48 hours, the **Strategic Planner** reviews all open gaps.
-3. **Planning**: Planner designs a `STRATEGIC_PLAN`.
-4. **Council Review** (High-Impact Only): If `impact >= 8`, `risk >= 8`, or `complexity >= 8`, the plan is dispatched to the **Critic Agent** for parallel peer review (Security, Performance, Architect). Plans are only approved if all reviews pass.
-5. **Approval**: Depending on `evolution_mode`, the user approves or the system proceeds.
-6. **Implementation (Definition of Done)**: Coder Agent MUST implement changes along with **Tests** and **Documentation**.
-7. **Pre-Flight Validation**: Coder MUST run `validateCode` and `runTests` before `stageChanges`.
-8. **Deployment**: CodeBuild deploys to live environment (No Git push).
-9. **Verification**: QA Auditor verifies live satisfaction.
-10. **Atomic Sync**: ONLY after QA success, `gitSync` pushes verified code back to the trunk.
-11. **Nudging & Completion**: SuperClaw marks gap as `DONE`.
+1.  **Observation**: Reflector identifies a `strategic_gap` from conversation logs.
+2.  **Audit & Optimization**: Every 48 hours, the **Strategic Planner** reviews all open gaps.
+3.  **Planning**: Planner designs a `STRATEGIC_PLAN`.
+4.  **Council Review** (High-Impact Only): If `impact >= 8`, `risk >= 8`, or `complexity >= 8`, the plan is dispatched to the **Critic Agent** for parallel peer review (Security, Performance, Architect). Plans are only approved if all reviews pass.
+5.  **Approval**: Depending on `evolution_mode`, the user approves or the system proceeds.
+6.  **Implementation (Definition of Done)**: Coder Agent MUST implement changes along with **Tests** and **Documentation**.
+7.  **Pre-Flight Verification**: Coder MUST run **`verifyChanges`** (full quality suite) in its local worker context. This is the **Sacred Trunk Gate**.
+8.  **Trunk Integration**: ONLY if verification passes, the Coder commits to `main`. CI/CD deploys to the live environment.
+9.  **Verification**: QA Auditor verifies live satisfaction and SLO stability.
+10. **Capability Graduation**: The **Promotion Manager** graduates the new capability from `SafetyTier.LOCAL` (Shadow/HITL) to `SafetyTier.PROD` (Autonomous) based on high `TrustScore` (>= 90).
+11. **Completion**: SuperClaw marks gap as `DONE`.
 
 Serverless Claw implements a **dynamic trust model** where autonomy is not a static toggle, but a collaborative relationship between the user and SuperClaw.
 

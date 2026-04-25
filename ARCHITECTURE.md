@@ -272,12 +272,21 @@ The system architecture follows a **Distributed Spine** model where all critical
           |-- (10) Quality-Weighted Reputation Update
           |-- (11) Atomic History Recording (list_append)
           |-- (12) Fail-Closed Integrity (Throw on update failure)
+          |-- (13) Capability Graduation (PromotionManager: PENDING -> PROMOTED)
           v
   [ ConfigTable (DDB) ] <--- (Feedback Loop for Selection Integrity)
 
 ---
 
-## 🛡️ Safety Telemetry & Blast Radius Tracking
+## 🧠 Brain & Evolution Lifecycle
+
+To support autonomous swarm growth while maintaining the "Trunk is Sacred" rule, the system implements a multi-stage evolution pipeline:
+
+1. **Strategic Planning**: The Reflector and Planner identify and plan fixes for `strategic_gap` records.
+2. **Pre-flight Verification**: The **`verifyChanges`** tool executes the full project quality suite (`make check && make test`) locally in the agent's worker context. Passing this suite is a mandatory **Definition of Done (DoD)** requirement for staging or pushing code.
+3. **Trunk Integration**: Verified changes are pushed to `main` and deployed to `prod`.
+4. **Promotion Manager**: Post-deployment, the `PromotionManager` graduates capabilities from shadow mode (`SafetyTier.LOCAL`) to full autonomy (`SafetyTier.PROD`) based on sustained trust and verified live metrics.
+
 
 To ensure high-performance auditability and automatic data aging (Principle 1), all transient safety telemetry is persisted in the **MemoryTable**:
 
