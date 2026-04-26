@@ -491,6 +491,62 @@ export class AgentRegistry {
   }
 
   /**
+   * Atomically sets the trust score for an agent in the AGENTS_CONFIG map, conditional on the current score.
+   * This prevents race conditions where bounded clamps overlap.
+   */
+  static async atomicSetAgentTrustScore(
+    agentId: string,
+    expectedOldScore: number,
+    newScore: number,
+    options?: { workspaceId?: string }
+  ): Promise<boolean> {
+    const tableName = getConfigTableName();
+
+    if (!tableName) {
+      throw new Error('ConfigTable not linked. Cannot update agent field.');
+    }
+
+    const { UpdateCommand } = await import('@aws-sdk/lib-dynamodb');
+
+    const effectiveKey = options?.workspaceId
+      ? `WS#${options.workspaceId}#${DYNAMO_KEYS.AGENTS_CONFIG}`
+      : DYNAMO_KEYS.AGENTS_CONFIG;
+
+    // We only try to conditionally update if the field exists and matches, OR if the expected old score is 100 (default) and it does not exist.
+    let conditionExpression = '#agents.#id.trustScore = :expectedOldScore';
+    if (expectedOldScore === 100) {
+      conditionExpression =
+        '(attribute_not_exists(#agents.#id.trustScore) OR #agents.#id.trustScore = :expectedOldScore)';
+    }
+
+    try {
+      await getDocClient().send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { key: effectiveKey },
+          UpdateExpression: 'SET #agents.#id.trustScore = :newScore',
+          ConditionExpression: conditionExpression,
+          ExpressionAttributeNames: {
+            '#agents': 'value',
+            '#id': agentId,
+          },
+          ExpressionAttributeValues: {
+            ':newScore': newScore,
+            ':expectedOldScore': expectedOldScore,
+          },
+        })
+      );
+      return true;
+    } catch (e: any) {
+      if (e.name === 'ConditionalCheckFailedException' || e.name === 'ValidationException') {
+        throw e;
+      }
+      logger.error(`[REGISTRY] Failed to conditionally set trustScore for ${agentId}:`, e);
+      throw e;
+    }
+  }
+
+  /**
    * Atomically removes a tool from an agent's overrides.
    *
    * @param agentId - The ID of the agent.
