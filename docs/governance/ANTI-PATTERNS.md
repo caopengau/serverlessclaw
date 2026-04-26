@@ -163,13 +163,70 @@ await Table.update({
 
 ### 9. Telemetry Blindness
 
-**What**: Emitting events/metrics without verifying downstream processing.
+**What**: Emitting events/metrics without verifying downstream processing or tenant isolation.
 
 **Prevention**:
 
 - Verify events reach intended handlers
 - Check dashboard matches backend state
 - Review TRACE entries after processing
+- **Ensure all metrics carry `WorkspaceId` dimensions for multi-tenant observability.**
+
+---
+
+### 10. Adaptive Mode Failure
+
+**What**: Autonomous agents using natural language (`text` mode) for peer communication.
+
+**Pattern**:
+
+```typescript
+// ❌ WRONG
+const stream = agent.stream(userId, task, { initiatorId: 'other-agent' }); // Defaults to 'text' mode
+
+// ✅ CORRECT
+const mode = options.initiatorId ? 'json' : 'text'; // Force JSON for agent-to-agent
+const stream = agent.stream(userId, task, { communicationMode: mode });
+```
+
+---
+
+### 11. Unauthorized Agent Invitation
+
+**What**: drafting agents into collaborations without verifying `enabled === true`.
+
+**Pattern**:
+
+```typescript
+// ❌ WRONG
+participants.push({ id: agentId, type: 'agent' });
+
+// ✅ CORRECT
+const config = await registry.getAgentConfig(agentId);
+if (config && config.enabled === false) throw new Error('Agent disabled');
+participants.push({ id: agentId, type: 'agent' });
+```
+
+---
+
+### 12. Millisecond Collision Overwrites
+
+**What**: Missing `ConditionExpression` in log persistence (PutCommand) causing loss of concurrent audit records.
+
+**Pattern**:
+
+```typescript
+// ❌ WRONG
+await db.put({ userId, timestamp: now, ...entry }); // Second write at same MS overwrites first!
+
+// ✅ CORRECT
+await db.put({ 
+  userId, 
+  timestamp: now + attempt, // Use attempt as micro-jitter
+  ...entry, 
+  conditionExpression: 'attribute_not_exists(userId)' 
+});
+```
 
 ---
 

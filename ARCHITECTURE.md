@@ -271,9 +271,10 @@ The system architecture follows a **Distributed Spine** model where all critical
           v
   [ Silo 6: The Scales (TrustManager) ]
           |-- (11) Quality-Weighted Reputation Update
-          |-- (12) Atomic History Recording (list_append)
-          |-- (13) Fail-Closed Integrity (Throw on update failure)
-          |-- (14) Capability Graduation (PromotionManager: PENDING -> PROMOTED)
+          |-- (12) Atomic History Recording (list_append with WorkspaceId)
+          |-- (13) Atomic Trust Score (Conditional atomicIncrementMapField)
+          |-- (14) Fail-Closed Integrity (Throw on update failure)
+          |-- (15) Capability Graduation (PromotionManager: PENDING -> PROMOTED)
           v
   [ ConfigTable (DDB) ] <--- (Feedback Loop for Selection Integrity)
 
@@ -291,9 +292,10 @@ To support autonomous swarm growth while maintaining the "Trunk is Sacred" rule,
 
 To ensure high-performance auditability and automatic data aging (Principle 1), all transient safety telemetry is persisted in the **MemoryTable**:
 
-1. **Safety Violations**: Every blocked or approval-required action is logged with a `SAFETY#VIOLATION#<agentId>` prefix and a **30-day TTL**.
-2. **Blast Radius Tracking**: Class C action frequency is tracked per agent/action using the `SAFETY#BLAST_RADIUS#` prefix with a **1-hour rolling window (TTL)**.
-3. **Storage Strategy**: This migration from `ConfigTable` to `MemoryTable` ensures that audit logs do not pollute persistent configuration state and are automatically reclaimed by DynamoDB after their operational relevance expires.
+1. **Safety Violations**: Every blocked or approval-required action is logged with a `SAFETY#VIOLATION#<agentId>` prefix and a **30-day TTL**. **Multi-tenant isolated via `WS#<workspaceId>` Partition Key.**
+2. **Collision Guard**: Log persistence uses conditional writes with millisecond jitter to prevent overwrites under high concurrency.
+3. **Blast Radius Tracking**: Class C action frequency is tracked per agent/action using the `SAFETY#BLAST_RADIUS#` prefix with a **1-hour rolling window (TTL)**.
+4. **Storage Strategy**: This migration from `ConfigTable` to `MemoryTable` ensures that audit logs do not pollute persistent configuration state and are automatically reclaimed by DynamoDB after their operational relevance expires.
 ```
 
 ---
@@ -304,7 +306,7 @@ To satisfy **Principle 5 (Low Latency)** and **Principle 10 (Lean Evolution)**, 
 
 1. **Cached Dynamic Lookups**: The `ConfigManager` maintains a 60-second in-memory cache for all configuration keys. This reduces DynamoDB read IOPS by >90% during high-concurrency swarm missions while allowing system-wide behavioral changes (e.g., disabling an agent, opening a circuit) to propagate within one minute.
 2. **Authoritative Async Bridge**: The `getDynamicConfigValue` utility provides a type-safe, non-blocking interface for fetching hot-swappable settings. It automatically falls back to hardcoded defaults if DynamoDB is unreachable or the key is missing.
-3. **Atomic Writes & Invalidation**: Configuration updates use DynamoDB conditional writes to prevent lost updates. Any write to the `ConfigTable` automatically invalidates the local cache instance, ensuring immediate consistency for the writing process.
+3. **Atomic Writes & Invalidation**: Configuration updates use DynamoDB conditional writes to prevent lost updates. Any write to the `ConfigTable` automatically invalidates the local cache instance, ensuring immediate consistency for the writing process. **Supports Principle 15 (Monotonic Progress) via `atomicIncrementMapField` for numeric counters.**
 4. **Centralized Table Resolution**: Table names are resolved via `ddb-client.ts`, supporting environment variable overrides (`MEMORY_TABLE_NAME`, `CONFIG_TABLE_NAME`) for robust local development and multi-stage deployment alignment.
 
 ---
@@ -313,7 +315,7 @@ To satisfy **Principle 5 (Low Latency)** and **Principle 10 (Lean Evolution)**, 
 
 To maintain a **Stateless Core** (Principle 1) while ensuring systemic safety, the system externalizes all operational state:
 
-1.  **Distributed Flow Control**: The `FlowController` centralizes backbone circuit breakers and rate limiters using DynamoDB atomic counters. It enforces a **Fail-Closed** strategy (Principle 13): if the system cannot verify safety state due to database failure, the operation is rejected to preserve system integrity.
+1.  **Distributed Flow Control**: The `FlowController` centralizes backbone circuit breakers and rate limiters using DynamoDB atomic counters. It enforces a **Fail-Closed** strategy (Principle 13): if the system cannot verify safety state (including corrupted state fallbacks), the operation is rejected to preserve system integrity.
 2.  **Surgical Security Enforcement**: The `ToolSecurityValidator` decouples security logic from tool execution. It enforces the "Shield" (SafetyEngine) rules, RBAC permissions, and system-level circuit breakers before any tool interaction occurs.
 3.  **Strict Payload Validation**: The `EventHandler` enforces mandatory presence of `traceId` and `sessionId` at the entry point, preventing malformed signals from polluting the backbone.
 4.  **Stable Idempotency**: Implements content-aware deduplication in the Spine. Uses a stable hash of the event payload to catch application-level double-emissions, preventing redundant processing of destructive actions.
@@ -321,7 +323,8 @@ To maintain a **Stateless Core** (Principle 1) while ensuring systemic safety, t
 6.  **Selection Integrity**: The `AgentMultiplexer` acts as the authoritative gateway. It performs a mandatory configuration check for every agent before invocation, ensuring that `enabled: false` status is strictly enforced regardless of the event source.
 7.  **Dynamic Routing**: The `AgentRouter` uses historical success rates and reputation scores to dynamically select the best agent for a given task, prioritizing capability match over marginal token cost differences (Principle 10).
 8.  **Monotonic Recursion Tracking**: Cross-session recursion depth is managed via atomic increments in the `recursion-tracker`, preventing loop-bypass attacks in concurrent swarm scenarios.
-9.  **Unified Security Constants**: Protection patterns are consolidated into a single source of truth (`core/lib/constants/safety.ts`), ensuring consistent enforcement across the filesystem and cloud resources.
+9.  **Adaptive Mode Enforcement**: To satisfy **Principle 10 (Lean Evolution)**, all agent-to-agent processes are forced into structured `json` mode. This eliminates conversational filler and optimizes for machine-readable feedback loops.
+10. **Unified Security Constants**: Protection patterns are consolidated into a single source of truth (`core/lib/constants/safety.ts`), ensuring consistent enforcement across the filesystem and cloud resources.
 
 ---
 
