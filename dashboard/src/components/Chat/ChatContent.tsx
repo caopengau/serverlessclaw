@@ -333,16 +333,11 @@ export default function ChatContent() {
 
   // --- Session Management Handlers ---
 
-  const createNewChat = (agentId?: string) => {
-    if (agentId) {
-      setCurrentAgentId(agentId);
-      setActiveCollaborators([agentId]);
-      setCollaborationId(null);
-      setIsAgentSelectorOpen(false);
-    } else {
-      setIsAgentSelectorOpen(true);
-      return;
-    }
+  const createNewChat = (agentId: string = AgentType.SUPERCLAW) => {
+    setCurrentAgentId(agentId);
+    setActiveCollaborators([agentId]);
+    setCollaborationId(null);
+    setIsAgentSelectorOpen(false);
 
     if (!activeSessionId && agentId === currentAgentId) {
       setIsShaking(true);
@@ -355,7 +350,7 @@ export default function ChatContent() {
     setMessages([]);
     setAttachments([]);
     if (mounted) {
-      router.push('/', { scroll: false });
+      router.push('/chat', { scroll: false });
     }
   };
 
@@ -418,7 +413,7 @@ export default function ChatContent() {
           setActiveSessionId('');
           setMessages([]);
           if (mounted) {
-            router.push('/', { scroll: false });
+            router.push('/chat', { scroll: false });
           }
         }
         fetchSessions();
@@ -436,7 +431,7 @@ export default function ChatContent() {
         setActiveSessionId('');
         setMessages([]);
         if (mounted) {
-          router.push('/', { scroll: false });
+          router.push('/chat', { scroll: false });
         }
         fetchSessions();
       }

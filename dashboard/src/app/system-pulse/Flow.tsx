@@ -128,7 +128,7 @@ const FLOW_COLORS = {
 const nodeTypes = {
   agent: ({ data }: { data: FlowNodeData }) => (
     <div className="relative group transition-all duration-300 z-10 hover:z-50">
-      <div className="px-4 py-3 shadow-lg rounded-md bg-card border border-cyber-green/50 min-w-[180px] max-w-[240px] relative overflow-hidden">
+      <div className="px-4 py-3 shadow-lg rounded-md bg-background border border-cyber-green/50 min-w-[180px] max-w-[240px] relative overflow-hidden">
         <div className="absolute top-0 right-0 w-16 h-16 bg-cyber-green/5 rounded-full blur-xl -mr-8 -mt-8"></div>
         <div className="flex items-center gap-3">
           <div
@@ -173,7 +173,7 @@ const nodeTypes = {
   ),
   bus: ({ data }: { data: FlowNodeData }) => (
     <div className="relative group transition-all duration-300 z-10 hover:z-50">
-      <div className="px-4 py-2 shadow-lg rounded-md bg-card border border-orange-500/50 min-w-[220px] text-center relative overflow-hidden">
+      <div className="px-4 py-2 shadow-lg rounded-md bg-background border border-orange-500/50 min-w-[220px] text-center relative overflow-hidden">
         <div className="absolute inset-0 bg-orange-500/5 animate-pulse"></div>
         <div className="text-[8px] font-bold text-orange-500 uppercase tracking-[0.3em] mb-1 relative z-10">
           Central_Orchestrator
@@ -207,7 +207,7 @@ const nodeTypes = {
   infra: ({ data }: { data: FlowNodeData }) => (
     <div className="relative group transition-all duration-300 z-10 hover:z-50">
       <div
-        className={`px-4 py-2 shadow-lg rounded-md bg-card border border-${THEME.COLORS.INTEL}/30 min-w-[150px] relative overflow-hidden`}
+        className={`px-4 py-2 shadow-lg rounded-md bg-background border border-${THEME.COLORS.INTEL}/30 min-w-[150px] relative overflow-hidden`}
       >
         <div
           className={`absolute top-0 right-0 w-12 h-12 bg-${THEME.COLORS.INTEL}/5 rounded-full blur-lg -mr-6 -mt-6`}

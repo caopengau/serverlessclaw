@@ -51,7 +51,16 @@ interface AgentSelectorProps {
   excludeIds?: string[];
 }
 
-export function AgentSelector({ onSelect, onClose, title, excludeIds = [] }: AgentSelectorProps) {
+// Use a stable reference for the default empty array to prevent infinite re-render loops
+// when this component is used in a useEffect dependency array.
+const EMPTY_ARRAY: string[] = [];
+
+export function AgentSelector({
+  onSelect,
+  onClose,
+  title,
+  excludeIds = EMPTY_ARRAY,
+}: AgentSelectorProps) {
   const { t } = useTranslations();
   const [agents, setAgents] = useState<AgentConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
