@@ -97,4 +97,64 @@ export const EVOLUTION_METRICS = {
       },
     ]).catch((err) => logger.warn('Failed to emit EvolutionLockContention metric:', err));
   },
+
+  /**
+   * Records tool execution metrics for ROI analysis.
+   */
+  recordToolExecution(
+    toolName: string,
+    success: boolean,
+    durationMs: number,
+    options?: { workspaceId?: string; orgId?: string }
+  ): void {
+    emitMetrics([
+      {
+        MetricName: 'ToolExecutionCount',
+        Value: 1,
+        Unit: 'Count',
+        Dimensions: [
+          { Name: 'ToolName', Value: toolName },
+          { Name: 'Success', Value: String(success) },
+          { Name: 'OrgId', Value: options?.orgId || 'GLOBAL' },
+        ],
+      },
+      {
+        MetricName: 'ToolExecutionDuration',
+        Value: durationMs,
+        Unit: 'Milliseconds',
+        Dimensions: [{ Name: 'ToolName', Value: toolName }],
+      },
+    ]).catch((err) => logger.warn('Failed to emit ToolExecution metrics:', err));
+  },
+
+  /**
+   * Records estimated ROI value for a tool execution.
+   */
+  recordToolROI(
+    toolName: string,
+    estimatedValue: number,
+    actualCost: number,
+    options?: { workspaceId?: string; orgId?: string }
+  ): void {
+    emitMetrics([
+      {
+        MetricName: 'ToolROIValue',
+        Value: estimatedValue,
+        Unit: 'Count',
+        Dimensions: [
+          { Name: 'ToolName', Value: toolName },
+          { Name: 'OrgId', Value: options?.orgId || 'GLOBAL' },
+        ],
+      },
+      {
+        MetricName: 'ToolROICost',
+        Value: actualCost,
+        Unit: 'Count',
+        Dimensions: [
+          { Name: 'ToolName', Value: toolName },
+          { Name: 'OrgId', Value: options?.orgId || 'GLOBAL' },
+        ],
+      },
+    ]).catch((err) => logger.warn('Failed to emit ToolROI metrics:', err));
+  },
 };

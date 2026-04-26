@@ -49,6 +49,7 @@ function createMockMemory(overrides: Partial<any> = {}) {
     getGlobalLessons: vi.fn().mockResolvedValue([]),
     getSummary: vi.fn().mockResolvedValue(null),
     updateDistilledMemory: vi.fn().mockResolvedValue(undefined),
+    getScopedUserId: vi.fn((userId: string) => userId),
     ...overrides,
   };
 }

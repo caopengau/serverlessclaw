@@ -58,7 +58,7 @@ export class ConfigManager {
    */
   public static async getRawConfig(
     key: string,
-    options?: { workspaceId?: string }
+    options?: { workspaceId?: string; orgId?: string }
   ): Promise<unknown> {
     const tableName = this._getTableName();
     if (!tableName) {
@@ -66,7 +66,12 @@ export class ConfigManager {
       return undefined;
     }
 
-    const effectiveKey = options?.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    let effectiveKey = key;
+    if (options?.workspaceId) {
+      effectiveKey = `WS#${options.workspaceId}#${key}`;
+    } else if (options?.orgId) {
+      effectiveKey = `ORG#${options.orgId}#${key}`;
+    }
 
     try {
       const { Item } = await getDocClient().send(
@@ -89,9 +94,14 @@ export class ConfigManager {
   public static async getTypedConfig<T>(
     key: string,
     defaultValue: T,
-    options?: { workspaceId?: string }
+    options?: { workspaceId?: string; orgId?: string }
   ): Promise<T> {
-    const cacheKey = options?.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    let cacheKey = key;
+    if (options?.workspaceId) {
+      cacheKey = `WS#${options.workspaceId}#${key}`;
+    } else if (options?.orgId) {
+      cacheKey = `ORG#${options.orgId}#${key}`;
+    }
     const cached = this.configCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return cached.value as T;
@@ -130,6 +140,7 @@ export class ConfigManager {
       description?: string;
       skipVersioning?: boolean;
       workspaceId?: string;
+      orgId?: string;
     }
   ): Promise<void> {
     const tableName = this._getTableName();
@@ -138,12 +149,20 @@ export class ConfigManager {
       return;
     }
 
-    const cacheKey = options?.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    let cacheKey = key;
+    if (options?.workspaceId) {
+      cacheKey = `WS#${options.workspaceId}#${key}`;
+    } else if (options?.orgId) {
+      cacheKey = `ORG#${options.orgId}#${key}`;
+    }
     this.configCache.delete(cacheKey);
 
     if (!options?.skipVersioning) {
       try {
-        const oldValue = await this.getRawConfig(key, { workspaceId: options?.workspaceId });
+        const oldValue = await this.getRawConfig(key, {
+          workspaceId: options?.workspaceId,
+          orgId: options?.orgId,
+        });
         if (JSON.stringify(oldValue) !== JSON.stringify(value)) {
           const { ConfigVersioning } = await import('../config/config-versioning');
           await ConfigVersioning.snapshot(
@@ -152,7 +171,7 @@ export class ConfigManager {
             value,
             options?.author ?? 'system',
             options?.description,
-            { workspaceId: options?.workspaceId }
+            { workspaceId: options?.workspaceId, orgId: options?.orgId }
           );
         }
       } catch (e) {
@@ -559,12 +578,17 @@ export class ConfigManager {
     key: string,
     entityId: string,
     updates: Record<string, unknown>,
-    options?: { workspaceId?: string; retryCount?: number }
+    options?: { workspaceId?: string; orgId?: string; retryCount?: number }
   ): Promise<void> {
     const tableName = this._getTableName();
     if (!tableName) return;
 
-    const actualKey = options?.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    let actualKey = key;
+    if (options?.workspaceId) {
+      actualKey = `WS#${options.workspaceId}#${key}`;
+    } else if (options?.orgId) {
+      actualKey = `ORG#${options.orgId}#${key}`;
+    }
     this.configCache.delete(actualKey);
 
     const retryCount = options?.retryCount ?? 0;
@@ -630,6 +654,7 @@ export class ConfigManager {
                 return this.atomicUpdateMapEntity(key, entityId, updates, {
                   ...options,
                   retryCount: retryCount + 1,
+                  orgId: options?.orgId,
                 });
               }
               throw rootE;
@@ -638,6 +663,7 @@ export class ConfigManager {
             return this.atomicUpdateMapEntity(key, entityId, updates, {
               ...options,
               retryCount: retryCount + 1,
+              orgId: options?.orgId,
             });
           } else {
             throw innerE;

@@ -17,6 +17,7 @@ export async function initializeTracer(
   hasAttachments: boolean = false,
   scope?: {
     workspaceId?: string;
+    orgId?: string;
     teamId?: string;
     staffId?: string;
   }

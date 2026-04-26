@@ -79,6 +79,7 @@ export class SafetyBase {
     traceId?: string,
     userId?: string,
     workspaceId?: string,
+    orgId?: string,
     teamId?: string,
     staffId?: string
   ): SafetyViolation {
@@ -95,6 +96,7 @@ export class SafetyBase {
       traceId,
       userId,
       workspaceId,
+      orgId,
       teamId,
       staffId,
     };

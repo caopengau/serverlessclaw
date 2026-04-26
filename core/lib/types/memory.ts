@@ -98,6 +98,7 @@ export interface MemoryInsight {
  */
 export interface ContextualScope {
   workspaceId?: string;
+  orgId?: string;
   teamId?: string;
   staffId?: string;
 }

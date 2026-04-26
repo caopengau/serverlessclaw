@@ -68,6 +68,7 @@ export class Agent {
       taskId,
       sessionId,
       workspaceId,
+      orgId,
       teamId,
       staffId,
       userRole: initialUserRole,
@@ -85,7 +86,7 @@ export class Agent {
         ? initialResponseFormat || DEFAULT_SIGNAL_SCHEMA
         : initialResponseFormat;
 
-    const scope = { workspaceId, teamId, staffId };
+    const scope = { workspaceId, orgId, teamId, staffId };
 
     const { tracer, traceId, baseUserId } = await initializeTracer(
       userId,
@@ -226,6 +227,11 @@ export class Agent {
           activeProfile: resolvedProfile,
           systemPrompt: this.config?.systemPrompt ?? '',
           pageContext: options.pageContext,
+          agentId: this.config?.id,
+          workspaceId,
+          orgId,
+          teamId,
+          staffId,
         }
       );
 
@@ -366,6 +372,7 @@ export class Agent {
       taskId,
       sessionId,
       workspaceId,
+      orgId,
       teamId,
       staffId,
       userRole: initialUserRole,
@@ -375,7 +382,7 @@ export class Agent {
       communicationMode = this.config?.defaultCommunicationMode ?? 'text',
     } = options;
 
-    const scope = { workspaceId, teamId, staffId };
+    const scope = { workspaceId, orgId, teamId, staffId };
     const startTime = Date.now();
 
     const { tracer, traceId, baseUserId } = await initializeTracer(
@@ -515,6 +522,11 @@ export class Agent {
           activeProfile: resolvedProfile,
           systemPrompt: this.config?.systemPrompt ?? '',
           pageContext: options.pageContext,
+          agentId: this.config?.id,
+          workspaceId,
+          orgId,
+          teamId,
+          staffId,
         }
       );
 

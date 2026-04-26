@@ -87,6 +87,8 @@ export interface ExecutorFeatureOptions {
   sessionId?: string;
   /** Workspace ID for supporting multiple workspaces. */
   workspaceId?: string;
+  /** Organization ID for enterprise multi-tenancy. */
+  orgId?: string;
   /** Team ID. */
   teamId?: string;
   /** Staff ID. */

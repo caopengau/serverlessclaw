@@ -18,8 +18,16 @@ const CONCURRENCY_MONITOR_RATE = 'rate(12 hours)';
  * Enterprise Scale Filtering:
  * We enforce that multiplexers only trigger if a workspaceId is present.
  * This prevents cross-tenant noise and global-scope compute leakage.
+ *
+ * Per-tenant Filtering:
+ * If AUTHORIZED_ORGS is set, we restrict the agent swarm to only process events
+ * for those specific organizations at the infrastructure layer (Silo 1).
  */
-const tenantFilter = getTenantEventFilter({ requireWorkspace: true });
+const authorizedOrgs = process.env.AUTHORIZED_ORGS?.split(',').filter(Boolean);
+const tenantFilter = getTenantEventFilter({
+  requireWorkspace: true,
+  orgId: authorizedOrgs && authorizedOrgs.length > 0 ? authorizedOrgs : undefined,
+});
 
 /**
  * Create an IAM role for EventBridge Scheduler to invoke a Lambda function.
@@ -515,7 +523,10 @@ export function createAgents(
     },
   });
   bus.subscribe('OutboundMessageSubscriber', notifier.arn, {
-    pattern: { detailType: [EventType.OUTBOUND_MESSAGE] },
+    pattern: {
+      ...tenantFilter,
+      detailType: [EventType.OUTBOUND_MESSAGE],
+    },
     transform: {
       target: {
         deadLetterConfig: dlq ? { arn: dlq.arn } : undefined,

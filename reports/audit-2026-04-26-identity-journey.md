@@ -1,30 +1,55 @@
-# Audit Report: Identity Journey (Silo 3: The Shield) - 2026-04-26
+# Audit Report: Identity Journey (Brain → Spine → Shield)
+Date: 2026-04-26
+Auditor: Antigravity
 
-## 🎯 Objective
+## 1. Overview
 
-Verify identity and permissions propagate correctly across all surfaces, specifically focusing on Perspective C: The "Identity Journey" (Brain → Spine → Shield). The goal was to ensure that identity constraints and RBAC rules are strictly enforced by the `SafetyEngine` when agent actions are executed.
+This audit verifies the "Identity Journey" cross-silo perspective (C), tracing how an agent's identity is established in the Brain, persisted in the Spine, and authorized/verified in the Shield.
 
-## 🎯 Finding Type
+### Scope
+- **Brain**: `core/lib/agent.ts`, `core/lib/routing/AgentRouter.ts`
+- **Spine**: `core/lib/registry/AgentRegistry.ts`
+- **Shield**: `core/lib/safety/safety-engine.ts`, `core/lib/safety/safety-limiter.ts`, `core/lib/safety/blast-radius-store.ts`
 
-- Bug (Fail-Open RBAC Bypass)
+## 2. Methodology
 
-## 🔍 Investigation Path
+1. **Automated Checks**: Ran `make check`, `make test`, `pnpm principles`, and `pnpm aiready`.
+2. **Static Analysis**: Reviewed code for adherence to Principles 9, 10, 12, 13, 14, 15.
+3. **Anti-Pattern Search**: Verified remediation of known issues (Fail-open rate limiting, Selection integrity, Atomic increments).
 
-- Started at: `core/lib/safety/safety-engine.ts` (Silo 3: The Shield).
-- Followed: Traced the `evaluateAction` method signature to see how user identity (`userId` and `userRole`) is processed and validated within the `SafetyEngine`.
-- Observed: I noticed that `SafetyEngine.validateRBAC` uses `ctx.userRole` to enforce access controls. If `!role` is true, it immediately returns `{ allowed: true, requiresApproval: false }`, intending to whitelist SYSTEM tasks.
-- Followed: Traced upstream to where `evaluateAction` is called in the agent execution flow.
-- Observed: In `core/lib/agent/tool-security.ts`, the `ToolSecurityValidator.validate` method builds a `context` object to pass to `safety.evaluateAction`. Although `ToolExecutionContext` contains the `userRole` property, it is omitted when constructing the context object for the `SafetyEngine`. Consequently, `ctx.userRole` evaluates to `undefined`, which triggers the fallback in `validateRBAC` and allows unauthorized execution of restricted `Class C` actions (e.g., `iam_change`) by any user, including `VIEWER`.
+## 3. Findings
 
-## 🚨 Findings
+### Perspective C: Identity Journey
 
-| ID  | Title                                           | Type | Severity | Location                                   | Recommended Action                                                                                                                                                    |
-| :-- | :---------------------------------------------- | :--- | :------- | :----------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | Fail-Open RBAC Bypass due to missing `userRole` | Bug  | P0       | `core/lib/agent/tool-security.ts:44`       | Pass `userRole: execContext.userRole` into the context object provided to `safety.evaluateAction` in `ToolSecurityValidator.validate`.                                |
-| 2   | Implicit System Whitelist causes Fail-Open      | Bug  | P1       | `core/lib/safety/safety-engine.ts:258-260` | Require an explicit `ctx.userId === 'SYSTEM'` match instead of implicitly treating `!role` as a system bypass in `validateRBAC` to enforce default-deny mechanisms. |
+| Stage | Component | Findings |
+| :--- | :--- | :--- |
+| **Brain** | `AgentRouter` | **PASSED**. Selection Integrity (Principle 14) is enforced. Only `enabled === true` agents are considered for routing. |
+| **Brain** | `Agent` | **PASSED**. Identity is established via `initializeTracer`. RBAC permissions (`TASK_CREATE`) are verified early in `process()` and `stream()`. |
+| **Spine** | `AgentRegistry` | **PASSED**. Cognitive Lineage (Principle 12) is implemented via prompt hashing and atomic versioning in `saveConfig`. |
+| **Shield** | `SafetyEngine` | **PASSED**. Declarative validation pipeline correctly handles RBAC, policy evaluation, and Trust-Driven Autonomy (Principle 9). |
+| **Shield** | `SafetyLimiter` | **PASSED**. Fail-closed rate limiting is correctly implemented. DDB failures result in rejection. |
+| **Shield** | `BlastRadius` | **PASSED**. Atomic State Integrity (Principle 13) is enforced for Class C action tracking via `BlastRadiusStore`. |
+| **Metabolism** | `MetabolismService` | **PASSED (with advisory)**. Sophisticated self-healing and autonomous repairs implemented. |
 
-## 💡 Architectural Reflections
+### Principle Enforcement
 
-The integration boundary between The Hand (`ToolExecutor` / `ToolSecurityValidator`) and The Shield (`SafetyEngine`) currently relies on loosely typed implicit context object mapping. Because TypeScript did not enforce that all optional properties mapped faithfully across boundaries, the omission of `userRole` went unnoticed, causing a fail-open state. 
+- **Principle 9 (Trust-Driven Mode)**: Verified in `SafetyEngine.checkAutonomousPromotion`. Trusted agents (>= 95) in AUTO mode can promote themselves.
+- **Principle 10 (Lean Evolution)**: Verified in `MetabolismService`. Autonomous pruning of low-utilization tools and feature flags is implemented.
+- **Principle 13 (Atomic State Integrity)**: Verified in `BlastRadiusStore`, `AgentRegistry`, and `GapLock`. Updates use `ConditionExpression`. *Advisory: `archiveStaleGaps` could benefit from stricter status guards during update.*
+- **Principle 14 (Selection Integrity)**: Verified in `AgentRouter.selectBestAgent`.
+- **Principle 15 (Monotonic Progress)**: Verified in `AgentRegistry.atomicIncrementTrustScore`.
 
-This is a classic manifestation of Anti-Pattern #8 (Siloed Fixes leading to broken contracts) combined with a fail-open security bypass. To resolve this holistically, we should enforce strict cross-silo identity types (e.g., standardizing an `IdentityContext` interface that both `ToolExecutionContext` and `SafetyEngine` require explicitly).
+## 4. Remediation Actions
+
+No active violations found. The system is currently in a high-integrity state following recent hardening efforts.
+
+## 5. Recommendations
+
+1. **Automation**: Expand `pnpm principles` to verify the "Identity Journey" by simulating a request from an unregistered or disabled agent.
+2. **Observability**: Ensure that "Self-Promotion" events (Principle 9) are surfaced prominently in the dashboard as they represent significant autonomous transitions.
+3. **Hardening**: Add `ConditionExpression` to `archiveStaleGaps` in `core/lib/memory/gap-operations.ts` to prevent race conditions during bulk archival.
+
+## 6. Conclusion
+
+**Audit Status: PASSED (P0: 0, P1: 0, P2: 0)**
+Perspective C is well-hardened and adheres to all core design principles.

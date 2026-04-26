@@ -269,7 +269,7 @@ export async function emitEvent(
   const detailJson = JSON.stringify(detail);
 
   logger.info(
-    `[BUS_EMIT] From: ${source} | Type: ${type} | Priority: ${priority} | Session: ${detail.sessionId ?? 'N/A'} | User: ${detail.userId ?? 'N/A'} | Correlation: ${correlationId ?? 'N/A'}`
+    `[BUS_EMIT] From: ${source} | Type: ${type} | Priority: ${priority} | Session: ${detail.sessionId ?? 'N/A'} | User: ${detail.userId ?? 'N/A'} | Org: ${detail.orgId ?? 'N/A'} | Correlation: ${correlationId ?? 'N/A'}`
   );
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {

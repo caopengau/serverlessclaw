@@ -103,10 +103,10 @@ Serverless Claw uses a tiered, evolutionary memory system designed to provide co
 +---------------------------------------------------------------------+
 |                                                                     |
 |  [ TIER 1: CORE INTELLIGENCE ] --------> Retain: 60-365 Days         |
-|  - Key: DISTILLED# (365d) / LESSON# (90d) / FACT# (365d) / GAP# (60d)/ |
-|    GAP_LOCK#: (30m) / REPUTATION# (365d) / FAILED_PLAN#:              |
-|  - Purpose: Permanent identity, tactical lessons, strategic roadmaps,|
-|    concurrency control for evolution, and anti-pattern learning.     |
+|  - Key: DISTILLED# / LESSON# / FACT# / GAP# / FAILED_PLAN# /        |
+|    REPUTATION# / ENV_CONSTRAINTS#                                    |
+|  - Purpose: Identity, lessons, strategic maps, anti-patterns,       |
+|    and environmental awareness.                                      |
 |  - Note: GAPS_RETENTION_DAYS configurable via configDefaults           |
 |                                                                     |
 ## Extended Memory Lifecycle & Continuity
@@ -224,7 +224,16 @@ Records of structurally failed strategic plans. This tier prevents the swarm fro
       (Design Phase)
   ```
 
-### 5. Agent Operational Traces (`COGNITION-REFLECTOR#`, `CODER#`, etc.)
+  ```
+
+### 5. Environmental Constraints (`ENV_CONSTRAINTS#`)
+
+Static analysis feed containing the project's `package.json` dependencies, Node.js version, and deployment environment. This ensures that agents are aware of the technical boundaries and available tools within the specific instance they are running in.
+
+- **Data Source**: JIT file scan of the repository root.
+- **Injection**: Automated via `AgentAssembler` into the `[ENVIRONMENTAL_CONSTRAINTS]` prompt block.
+
+### 6. Agent Operational Traces (`COGNITION-REFLECTOR#`, `CODER#`, etc.)
 
 The raw execution logs of background agent loops. These are trace-specific and isolated to prevent cross-contamination.
 

@@ -55,6 +55,7 @@ To evolve the system with a new specialized node:
 2.  **Register Identity**: Add the agent to `BACKBONE_REGISTRY` in `core/lib/backbone.ts`.
 3.  **Link Infra**: In `infra/agents.ts`, create the Lambda and link necessary resources.
 4.  **Subscribe**: Ensure the agent is subscribed to its task type in the EventBus.
+5.  **Cognitive Resilience**: Autonomous agents will automatically receive the **Environmental Constraints** feed (from `SystemContext`) via the `AgentAssembler`. Ensure your agent logic can reason about available `package.json` dependencies.
 
 ---
 

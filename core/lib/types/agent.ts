@@ -183,6 +183,8 @@ export interface IAgentConfig {
   defaultCommunicationMode?: 'json' | 'text';
   /** Workspace context for multi-tenant isolation and routing. */
   workspaceId?: string;
+  /** Organization context for isolation. */
+  orgId?: string;
   /** Team context for isolation. */
   teamId?: string;
   /** Staff/User context for isolation. */
@@ -628,6 +630,8 @@ export interface SafetyViolation {
   userId?: string;
   /** Workspace ID associated with the violation. */
   workspaceId?: string;
+  /** Organization ID. */
+  orgId?: string;
   /** Team ID. */
   teamId?: string;
   /** Staff ID. */

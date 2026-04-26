@@ -30,7 +30,7 @@ export class ConfigVersioning {
     newValue: unknown,
     author: string,
     description?: string,
-    options?: { workspaceId?: string }
+    options?: { workspaceId?: string; orgId?: string }
   ): Promise<void> {
     const version: ConfigVersion = {
       versionId: generateVersionId(key),
@@ -50,6 +50,7 @@ export class ConfigVersioning {
         author: 'system:versioning',
         skipVersioning: true,
         workspaceId: options?.workspaceId,
+        orgId: options?.orgId,
       });
     } catch (e) {
       logger.warn(`Failed to snapshot config version for ${key}:`, e);
@@ -58,11 +59,12 @@ export class ConfigVersioning {
 
   static async getVersionHistory(
     key: string,
-    options?: { limit?: number; workspaceId?: string }
+    options?: { limit?: number; workspaceId?: string; orgId?: string }
   ): Promise<ConfigVersion[]> {
     const versions =
       ((await ConfigManager.getRawConfig(versionsKey(key), {
         workspaceId: options?.workspaceId,
+        orgId: options?.orgId,
       })) as ConfigVersion[]) ?? [];
     if (options?.limit) return versions.slice(-options.limit);
     return versions;
@@ -71,7 +73,7 @@ export class ConfigVersioning {
   static async rollback(
     key: string,
     versionId: string,
-    options?: { workspaceId?: string }
+    options?: { workspaceId?: string; orgId?: string }
   ): Promise<void> {
     const versions = await this.getVersionHistory(key, options);
     const target = versions.find((v) => v.versionId === versionId);
@@ -93,6 +95,7 @@ export class ConfigVersioning {
       author: 'system:rollback',
       skipVersioning: true,
       workspaceId: options?.workspaceId,
+      orgId: options?.orgId,
     });
 
     logger.info(`Config ${key} rolled back to version ${versionId}`);

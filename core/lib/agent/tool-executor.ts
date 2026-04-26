@@ -30,6 +30,7 @@ export interface ToolExecutionContext {
   depth: number;
   sessionId?: string;
   workspaceId?: string;
+  orgId?: string;
   teamId?: string;
   staffId?: string;
   userId: string;
@@ -405,6 +406,19 @@ export class ToolExecutor {
           estimatedInputTokens,
           estimatedOutputTokens
         ).catch(() => {});
+
+        // Phase 16: Evolution Analytics (Tool ROI)
+        const { EVOLUTION_METRICS } = await import('../metrics/evolution-metrics');
+        EVOLUTION_METRICS.recordToolExecution(tool.name, toolSuccess, Math.round(toolDurationMs), {
+          orgId: execContext.orgId,
+        });
+
+        // Simple cost estimation for ROI (tokens as proxy)
+        const totalTokens = estimatedInputTokens + estimatedOutputTokens;
+        const estimatedValue = toolSuccess ? 1.0 : 0.0;
+        EVOLUTION_METRICS.recordToolROI(tool.name, estimatedValue, totalTokens, {
+          orgId: execContext.orgId,
+        });
       } catch {
         // Ignore metrics errors
       }

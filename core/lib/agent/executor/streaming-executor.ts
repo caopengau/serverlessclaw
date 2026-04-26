@@ -334,6 +334,16 @@ export class StreamingExecutor extends BaseExecutor {
       iterations++;
     }
 
+    if (iterations >= maxIterations && !fullContent) {
+      const { AGENT_LOG_MESSAGES } = await import('../executor-types');
+      this.recordPlanFailure(
+        options.userText || 'Unknown Task',
+        fullContent || 'No plan extracted',
+        AGENT_LOG_MESSAGES.TASK_PAUSED_ITERATION_LIMIT,
+        options
+      ).catch(() => {});
+    }
+
     usage.durationMs = Date.now() - loopStartTime;
 
     if (emitter) {

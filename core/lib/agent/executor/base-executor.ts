@@ -8,6 +8,7 @@ import { LoopResult, ExecutorUsage, ExecutorOptions } from '../executor-types';
 import { ExecutorHelper } from '../executor-helper';
 import { BudgetEnforcer } from './budget-enforcer';
 import { getSemanticLoopDetector, TrustManager } from '../../safety';
+import { NegativeMemory } from '../../memory/negative-memory';
 
 /**
  * Shared logic for all executor implementations.
@@ -288,6 +289,28 @@ export abstract class BaseExecutor {
         // but if it reaches here, we treat it as an explicit approval instruction.
         logger.info(`[${this.agentId}] Received explicit signal for tool approval: ${callId}`);
       }
+    }
+  }
+
+  protected async recordPlanFailure(
+    task: string,
+    plan: string,
+    reason: string,
+    options: ExecutorOptions
+  ) {
+    try {
+      const negMemory = new NegativeMemory();
+      await negMemory.recordFailure(this.agentId, task, plan, reason, {
+        traceId: options.traceId,
+        scope: {
+          workspaceId: options.workspaceId,
+          orgId: options.orgId,
+          teamId: options.teamId,
+          staffId: options.staffId,
+        },
+      });
+    } catch (e) {
+      logger.warn(`[${this.agentId}] Failed to record plan failure:`, e);
     }
   }
 }

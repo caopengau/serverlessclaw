@@ -26,6 +26,7 @@ export class ClawTracer {
   private parentId?: string;
   private userId: string;
   private workspaceId?: string;
+  private orgId?: string;
   private teamId?: string;
   private staffId?: string;
   private source: TraceSource | string;
@@ -55,6 +56,7 @@ export class ClawTracer {
     agentId?: string,
     scope?: {
       workspaceId?: string;
+      orgId?: string;
       teamId?: string;
       staffId?: string;
     },
@@ -67,6 +69,7 @@ export class ClawTracer {
     this.parentId = parentId;
     this.agentId = agentId;
     this.workspaceId = scope?.workspaceId;
+    this.orgId = scope?.orgId;
     this.teamId = scope?.teamId;
     this.staffId = scope?.staffId;
     this.startTime = Date.now();
@@ -112,6 +115,7 @@ export class ClawTracer {
               timestamp: this.startTime,
               status,
               workspaceId: this.workspaceId,
+              orgId: this.orgId,
               teamId: this.teamId,
               staffId: this.staffId,
               ...extra,
@@ -167,6 +171,7 @@ export class ClawTracer {
             source: this.source,
             agentId: this.agentId,
             workspaceId: this.workspaceId,
+            orgId: this.orgId,
             teamId: this.teamId,
             staffId: this.staffId,
             timestamp: now,
@@ -219,6 +224,7 @@ export class ClawTracer {
       childAgentId ?? this.agentId,
       {
         workspaceId: this.workspaceId,
+        orgId: this.orgId,
         teamId: this.teamId,
         staffId: this.staffId,
       },
@@ -296,6 +302,7 @@ export class ClawTracer {
       const { emitMetrics } = await import('../metrics/metrics');
       const scope = {
         workspaceId: this.workspaceId,
+        orgId: this.orgId,
         teamId: this.teamId,
         staffId: this.staffId,
       };
@@ -348,6 +355,9 @@ export class ClawTracer {
         task: 'System Operation',
         error: reason,
         metadata: finalMetadata,
+        orgId: this.orgId,
+        teamId: this.teamId,
+        staffId: this.staffId,
         source: this.source === TraceSource.DASHBOARD ? TraceSource.DASHBOARD : TraceSource.SYSTEM,
       });
     } catch (e) {

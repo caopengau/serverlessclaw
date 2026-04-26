@@ -46,6 +46,11 @@ export class AgentAssembler {
         sessionId?: string;
         agentId?: string;
       };
+      agentId?: string;
+      workspaceId?: string;
+      orgId?: string;
+      teamId?: string;
+      staffId?: string;
     }
   ): Promise<ContextResult> {
     const {
@@ -56,11 +61,20 @@ export class AgentAssembler {
       activeProfile,
       systemPrompt,
       pageContext,
+      agentId,
+      workspaceId,
+      orgId,
+      teamId,
+      staffId,
     } = options;
 
     // 1. Memory Retrieval (parallelized)
-    const [history, [distilled, lessons, prefPrefixed, prefRaw, globalLessons]] = await Promise.all(
-      [
+    const { NegativeMemory } = await import('../memory/negative-memory');
+    const negMemory = new NegativeMemory(memory as any);
+    const scope = { workspaceId, orgId, teamId, staffId };
+
+    const [history, [distilled, lessons, prefPrefixed, prefRaw, globalLessons, negativeContext]] =
+      await Promise.all([
         memory.getHistory(storageId),
         Promise.all([
           memory.getDistilledMemory(baseUserId),
@@ -68,9 +82,9 @@ export class AgentAssembler {
           memory.searchInsights(`USER#${baseUserId}`, '*', InsightCategory.USER_PREFERENCE, 50),
           memory.searchInsights(baseUserId, '*', InsightCategory.USER_PREFERENCE, 50),
           memory.getGlobalLessons(5),
+          negMemory.getNegativeContext(agentId ?? config?.id ?? 'unknown', scope),
         ]),
-      ]
-    );
+      ]);
 
     const preferences = {
       items: [...(prefPrefixed.items ?? []), ...(prefRaw.items ?? [])],
@@ -122,6 +136,12 @@ export class AgentAssembler {
     contextPrompt += `\n\n${AgentContext.getMemoryIndexBlock(distilled, lessons.length, preferences.items.length)}`;
     contextPrompt += `\n\n[INTELLIGENCE]\n${facts.length > 0 ? facts : 'No persistent knowledge available for this user yet.'}\n\n`;
     contextPrompt += globalLessonsBlock;
+    if (negativeContext) contextPrompt += negativeContext;
+
+    // Phase 17: Static Analysis Feed
+    const { SystemContext } = await import('../utils/system-context');
+    contextPrompt += SystemContext.getEnvironmentalConstraints();
+
     contextPrompt += `\n\n${AgentContext.getIdentityBlock(
       config,
       activeModel,

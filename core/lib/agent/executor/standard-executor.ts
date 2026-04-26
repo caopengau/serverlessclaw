@@ -146,7 +146,8 @@ export class StandardExecutor extends BaseExecutor {
       lastAiResponse,
       attachments,
       usage,
-      ui_blocks
+      ui_blocks,
+      options
     );
   }
 
@@ -208,9 +209,18 @@ export class StandardExecutor extends BaseExecutor {
     lastAiResponse: Message | undefined,
     attachments: NonNullable<Message['attachments']>,
     usage: ExecutorUsage,
-    ui_blocks?: Message['ui_blocks']
+    ui_blocks?: Message['ui_blocks'],
+    options?: ExecutorOptions
   ): LoopResult {
     if (!responseText && iterations >= maxIterations) {
+      if (options) {
+        this.recordPlanFailure(
+          options.userText || 'Unknown Task',
+          lastAiResponse?.content || 'No plan extracted',
+          AGENT_LOG_MESSAGES.TASK_PAUSED_ITERATION_LIMIT,
+          options
+        ).catch(() => {});
+      }
       return {
         responseText: AGENT_LOG_MESSAGES.TASK_PAUSED_ITERATION_LIMIT,
         paused: true,

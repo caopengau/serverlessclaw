@@ -22,6 +22,7 @@ export interface AgentProcessOptions {
   parentId?: string;
   sessionId?: string;
   workspaceId?: string;
+  orgId?: string;
   teamId?: string;
   staffId?: string;
   /** User role for RBAC enforcement. */

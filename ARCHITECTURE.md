@@ -19,7 +19,8 @@ This document covers the AWS topology and data flow. For operational instruction
 9.  **Multi-Lingual**: Implements a "Baseline English Prompt" strategy. Agents maintain high reasoning quality via English core prompts while communicating in the user's preferred language (English/Chinese) via dynamic runtime instruction injection.
 10. **JIT File Staging**: Implements a Just-In-Time media pipeline that intercept uploads, stages them in S3, and provides optimized cognitive context (base64/URLs) to agents, ensuring peak vision performance and trace-aware file management.
 11. **Shared Real-time Handshakes (Singleton UI Connectivity)**: To minimize AWS IoT Core authorizer costs and prevent "connection storms" during local development (HMR), the dashboard utilizes a singleton `RealtimeProvider`. This architecture ensures that regardless of the number of active components (Chat, Canvas, Agents), only **one physical WebSocket connection** is established per tab, reducing Lambda Authorizer invocations by >80%.
-12. **Multi-Tenant Identity Architecture**: Enforces strict logical isolation between different enterprise workspaces. Every cognitive signal, memory trace, and real-time event is tagged with a `workspaceId`, ensuring that humans and agents only interact within authorized security boundaries.
+13. **Mission Control Experience**: The dashboard transforms the standard chat interface into a high-fidelity "War Room". By integrating real-time telemetry (Trust, Stability, Budget) and operational phase tracking directly into the mission view, it reduces cognitive load and ensures the human remains the authoritative commander of the agentic swarm.
+14. **Multi-Human & Agent Presence**: Implements a real-time presence layer using MQTT `presence` signals. This allows multiple humans and agents to maintain shared awareness within a workspace, tracking who is active, their current status, and collaborative actions.
 
 ---
 
@@ -30,15 +31,23 @@ Serverless Claw operates on a self-correcting feedback loop that bridges real-ti
 ```text
   [ REAL-TIME SIGNALS ]
           |
-          +--> [ System Pulse HUD ] ----+
-          |    (Health / Persistence)   |
-          |                             |
-          +--> [ Resilience HUD ] ------+---> [ CIRCUIT BREAKER ]
-          |    (CB State / Burn-Rate)   |     (Block / Allow Deploys)
+          +--> [ Mission Control HUD ] <---+
+          |    (Trust / Stability / ROI)   |
+          |                                |
+          +--> [ System Pulse HUD ] ----+--+
+          |    (Health / Persistence)   |  |
+          |                             |  |
+          +--> [ Resilience HUD ] ------+--+---> [ CIRCUIT BREAKER ]
+          |    (CB State / Burn-Rate)   |        (Block / Allow Deploys)
           |                             |
           +--> [ Cognitive HUD ] -------+---> [ METABOLISM SERVICE ]
           |    (Audit / Prune / Cull)   |     (Recycle Debt / Bloat)
           |                             |
+          +--> [ Tool ROI Hub ] --------+---> [ NEGATIVE MEMORY ]
+          |    (Value / Cost / Success) |     (Avoid Repeat Failure)
+          |                             |
+          +--> [ Static Analysis Feed ] +---> [ ENV CONSTRAINTS ]
+          |    (package.json / deps)    |     (Cognitive Resilience)
           v                             v
   [ STRATEGIC PLANNING ] <------- [ ANOMALY DETECTED ]
           |
@@ -242,7 +251,28 @@ For detailed fork strategies, see [FORK_STRATEGY.md](docs/governance/FORK_STRATE
 
 ---
 
-## High-Level System Diagram: The Distributed Spine & Shield
+### Mission Control Layout (War Room)
+
+The primary interaction interface implements a three-column "War Room" model:
+
+```text
++-----------------------+-----------------------------+-----------------------+
+|    [ MISSION HUB ]    |      [ CENTRAL CORE ]       |  [ MISSION CONTROL ]  |
+|                       |                             |                       |
+|  - Collaborators      |  - Collaborative Chat       |  - Cognitive HUD      |
+|    (Presence Layer)   |  - Agent Thought Stream     |    (Trust/Stability)  |
+|                       |  - Real-time Signals        |                       |
+|  - Mission Briefing   |  - Inline Tool Execution    |  - Nerve Center       |
+|    (Goal/Status)      |                             |    (Activity Ticker)  |
+|                       |  - Context Persistence      |                       |
+|  - Operational Phases |                             |  - Autonomy Protocol  |
+|    (Analysis->Deploy) |                             |    (HITL/AUTO/Ovr)    |
++-----------------------+-----------------------------+-----------------------+
+```
+
+---
+
+## 🏗️ The Distributed Spine & Shield
 
 The system architecture follows a **Distributed Spine** model where all critical state (routing, safety, trust) is synchronized via DynamoDB to ensure consistency across serverless execution boundaries.
 

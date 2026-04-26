@@ -139,6 +139,7 @@ export class SafetyEngine extends SafetyBase {
       workspaceId?: string;
       teamId?: string;
       staffId?: string;
+      orgId?: string;
       userRole?: import('../types/agent').UserRole;
       args?: Record<string, unknown>;
       pathKeys?: string[];
@@ -148,14 +149,15 @@ export class SafetyEngine extends SafetyBase {
     const tier = agentConfig?.safetyTier ?? SafetyTier.PROD;
     const agentId = agentConfig?.id ?? 'unknown';
     const workspaceId = context?.workspaceId;
+    const orgId = context?.orgId;
     const teamId = context?.teamId;
     const staffId = context?.staffId;
     const userRole = context?.userRole;
-    const ctx = { ...context, agentId, workspaceId, teamId, staffId, userRole };
+    const ctx = { ...context, agentId, workspaceId, orgId, teamId, staffId, userRole };
 
     const normalizedAction = normalizeSafetyAction(action, context?.toolName);
 
-    const policy = await this.getResolvedPolicy(tier, workspaceId);
+    const policy = await this.getResolvedPolicy(tier, workspaceId, orgId);
     if (!policy) {
       return {
         allowed: false,
@@ -200,6 +202,7 @@ export class SafetyEngine extends SafetyBase {
           workspaceId: ctx.workspaceId,
           teamId: ctx.teamId,
           staffId: ctx.staffId,
+          orgId: ctx.orgId,
         }),
       () => this.validateDynamicRestrictions(agentConfig, normalizedAction, ctx, tier, policy),
     ];
@@ -232,6 +235,7 @@ export class SafetyEngine extends SafetyBase {
       workspaceId?: string;
       teamId?: string;
       staffId?: string;
+      orgId?: string;
     },
     tier: SafetyTier
   ): Promise<SafetyEvaluationResult> {
@@ -308,6 +312,7 @@ export class SafetyEngine extends SafetyBase {
       workspaceId?: string;
       teamId?: string;
       staffId?: string;
+      orgId?: string;
       args?: Record<string, unknown>;
       pathKeys?: string[];
     },
@@ -360,6 +365,7 @@ export class SafetyEngine extends SafetyBase {
       workspaceId?: string;
       teamId?: string;
       staffId?: string;
+      orgId?: string;
       args?: Record<string, unknown>;
     },
     tier: SafetyTier,
@@ -400,8 +406,12 @@ export class SafetyEngine extends SafetyBase {
     return finalApprovalResult;
   }
 
-  private async getResolvedPolicy(tier: SafetyTier, workspaceId?: string): Promise<SafetyPolicy> {
-    const globalPolicies = await SafetyConfigManager.getPolicies(workspaceId);
+  private async getResolvedPolicy(
+    tier: SafetyTier,
+    workspaceId?: string,
+    orgId?: string
+  ): Promise<SafetyPolicy> {
+    const globalPolicies = await SafetyConfigManager.getPolicies({ workspaceId, orgId });
     const base = globalPolicies[tier];
     const custom = this.policies.get(tier);
     return custom ? { ...base, ...custom } : base;
@@ -417,6 +427,7 @@ export class SafetyEngine extends SafetyBase {
       workspaceId?: string;
       teamId?: string;
       staffId?: string;
+      orgId?: string;
     },
     tier: SafetyTier,
     action: string,
@@ -436,6 +447,7 @@ export class SafetyEngine extends SafetyBase {
       ctx.traceId,
       ctx.userId,
       ctx.workspaceId,
+      ctx.orgId,
       ctx.teamId,
       ctx.staffId
     );
@@ -458,6 +470,7 @@ export class SafetyEngine extends SafetyBase {
       workspaceId?: string;
       teamId?: string;
       staffId?: string;
+      orgId?: string;
     },
     tier: SafetyTier,
     action: string
@@ -468,6 +481,7 @@ export class SafetyEngine extends SafetyBase {
     // Check rate limit first (blocks execution entirely) - more severe
     const rateLimitResult = await this.limiter.checkToolRateLimit(override, ctx.toolName, {
       workspaceId: ctx.workspaceId,
+      orgId: ctx.orgId,
       teamId: ctx.teamId,
       staffId: ctx.staffId,
     });
@@ -503,6 +517,7 @@ export class SafetyEngine extends SafetyBase {
       workspaceId?: string;
       teamId?: string;
       staffId?: string;
+      orgId?: string;
       args?: Record<string, unknown>;
     }
   ): Promise<SafetyEvaluationResult | null> {
@@ -527,6 +542,7 @@ export class SafetyEngine extends SafetyBase {
         userId: ctx.userId,
         workspaceId: ctx.workspaceId,
         teamId: ctx.teamId,
+        orgId: ctx.orgId,
         staffId: ctx.staffId,
       });
       return {
@@ -554,6 +570,7 @@ export class SafetyEngine extends SafetyBase {
       workspaceId?: string;
       teamId?: string;
       staffId?: string;
+      orgId?: string;
       args?: Record<string, unknown>;
     }
   ): Promise<SafetyEvaluationResult | null> {
@@ -571,6 +588,7 @@ export class SafetyEngine extends SafetyBase {
           workspaceId: ctx.workspaceId,
           teamId: ctx.teamId,
           staffId: ctx.staffId,
+          orgId: ctx.orgId,
           action,
           trustScore,
           reason: `Trust-based autonomous promotion: trustScore >= 95`,
