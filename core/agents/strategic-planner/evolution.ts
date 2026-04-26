@@ -7,16 +7,15 @@ import { EvolutionMode } from '../../lib/types/agent';
  */
 export async function getEvolutionMode(): Promise<EvolutionMode> {
   try {
+    const { getConfigTableName } = await import('../../lib/utils/resource-helpers');
     const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
     const { DynamoDBDocumentClient, GetCommand } = await import('@aws-sdk/lib-dynamodb');
-    const { Resource } = await import('sst');
 
     const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-    const typedResource = Resource as unknown as { ConfigTable: { name: string } };
 
     const response = await db.send(
       new GetCommand({
-        TableName: typedResource.ConfigTable.name,
+        TableName: getConfigTableName(),
         Key: { key: 'evolution_mode' },
       })
     );

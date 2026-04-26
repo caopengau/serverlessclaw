@@ -2,8 +2,6 @@ import { EventBridgeEvent } from 'aws-lambda';
 import { logger } from '../../lib/logger';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
-import { Resource } from 'sst';
-import type { SSTResource } from '../../lib/types/system';
 import { TaskCancellation } from '../../lib/agent/schema';
 import { emitEvent, EventPriority } from '../../lib/utils/bus';
 import { EventType } from '../../lib/types/agent';
@@ -11,10 +9,12 @@ import { addTraceStep } from '../../lib/utils/trace-helper';
 import { TRACE_TYPES } from '../../lib/constants';
 import { SessionStateManager } from '../../lib/session/session-state';
 
+import { getMemoryTableName } from '../../lib/utils/resource-helpers';
+
 const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-const typedResource = Resource as unknown as SSTResource;
 const CANCEL_PREFIX = 'CANCEL#';
 const PARALLEL_PREFIX = 'PARALLEL#';
+
 const sessionStateManager = new SessionStateManager();
 
 export async function handleTaskCancellation(
@@ -81,7 +81,7 @@ async function handleParallelCancellation(
   try {
     const result = await db.send(
       new QueryCommand({
-        TableName: typedResource.MemoryTable.name,
+        TableName: getMemoryTableName(),
         KeyConditionExpression: 'userId = :uid AND #ts = :zero',
         ExpressionAttributeNames: { '#ts': 'timestamp' },
         ExpressionAttributeValues: {
@@ -135,7 +135,7 @@ async function setCancellationFlag(
 ): Promise<void> {
   await db.send(
     new PutCommand({
-      TableName: typedResource.MemoryTable.name,
+      TableName: getMemoryTableName(),
       Item: {
         userId: `${CANCEL_PREFIX}${taskId}`,
         timestamp: Date.now(),
@@ -155,7 +155,7 @@ export async function isTaskCancelled(taskId: string): Promise<boolean> {
   try {
     const result = await db.send(
       new QueryCommand({
-        TableName: typedResource.MemoryTable.name,
+        TableName: getMemoryTableName(),
         KeyConditionExpression: 'userId = :uid',
         ExpressionAttributeValues: {
           ':uid': `${CANCEL_PREFIX}${taskId}`,

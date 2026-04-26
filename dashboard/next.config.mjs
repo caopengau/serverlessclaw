@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  transpilePackages: ['@claw/core'],
+  transpilePackages: ['@serverlessclaw/core'],
   reactStrictMode: true,
   images: {
     unoptimized: true,

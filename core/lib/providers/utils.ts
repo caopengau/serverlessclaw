@@ -1,6 +1,7 @@
 import { ReasoningProfile, ICapabilities } from '../types/llm';
 import { ITool } from '../types/tool';
 import { logger } from '../logger';
+import { resolveSSTResourceValue } from '../utils/resource-helpers';
 
 /**
  * Transforms internal tools to OpenAI function format.
@@ -103,8 +104,6 @@ export function capEffort(requested: string, max?: string): string {
   return requested;
 }
 
-import { Resource } from 'sst';
-
 export function isPlaceholderApiKey(value?: string): boolean {
   if (!value) return true;
 
@@ -132,8 +131,7 @@ export function resolveProviderApiKey(
   sstKeyName: string,
   envKeyName: string
 ): string {
-  const resource = Resource as unknown as Record<string, { value?: string } | undefined>;
-  const linkedKey = resource[sstKeyName]?.value;
+  const linkedKey = resolveSSTResourceValue(sstKeyName, 'value');
   const directEnvKey = process.env[envKeyName];
   const sstSecretEnvKey = process.env[`SST_SECRET_${sstKeyName}`];
 

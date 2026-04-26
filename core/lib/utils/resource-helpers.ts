@@ -82,6 +82,12 @@ export const getWebhookApiUrl = () =>
   resolveSSTResourceValue('WebhookApi', 'url', 'WEBHOOK_API_URL');
 export const getAwsRegion = () =>
   resolveSSTResourceValue('AwsRegion', 'value', 'AWS_REGION', 'ap-southeast-2');
+export const getMemoryTableName = () =>
+  resolveSSTResourceValue('MemoryTable', 'name', 'MEMORY_TABLE_NAME', 'MemoryTable');
+export const getTraceTableName = () =>
+  resolveSSTResourceValue('TraceTable', 'name', 'TRACE_TABLE_NAME', 'TraceTable');
+export const getConfigTableName = () =>
+  resolveSSTResourceValue('ConfigTable', 'name', 'CONFIG_TABLE_NAME', 'ConfigTable');
 
 /** Gets application metadata (name and stage) */
 export function getAppInfo(): { name: string; stage: string } {

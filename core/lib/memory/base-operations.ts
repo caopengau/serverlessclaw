@@ -125,11 +125,11 @@ export async function getDistilledMemory(
   userId: string,
   scope?: string | import('../types/memory').ContextualScope
 ): Promise<string> {
-  const scopedUserId = base.getScopedUserId(userId, scope);
+  const scopedDistilledId = base.getScopedUserId(`DISTILLED#${userId}`, scope);
   const items = await base.queryItems({
     KeyConditionExpression: 'userId = :userId',
     ExpressionAttributeValues: {
-      ':userId': `DISTILLED#${scopedUserId}`,
+      ':userId': scopedDistilledId,
     },
     ScanIndexForward: false, // Latest first
     Limit: 1,
@@ -151,11 +151,11 @@ export async function listConversations(
   userId: string,
   scope?: string | import('../types/memory').ContextualScope
 ): Promise<ConversationMeta[]> {
-  const scopedUserId = base.getScopedUserId(userId, scope);
+  const scopedSessionsId = base.getScopedUserId(`SESSIONS#${userId}`, scope);
   const items = await base.queryItems({
     KeyConditionExpression: 'userId = :userId',
     ExpressionAttributeValues: {
-      ':userId': `SESSIONS#${scopedUserId}`,
+      ':userId': scopedSessionsId,
     },
     ScanIndexForward: false, // Newest first
   });

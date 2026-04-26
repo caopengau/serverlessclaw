@@ -61,9 +61,8 @@ export function AgentSelector({ onSelect, onClose, title, excludeIds = [] }: Age
       try {
         const res = await fetch('/api/agents');
         const data = await res.json();
-
-        // Filter for LLM-based agents only
-        const llmAgents = Object.values(data as Record<string, AgentConfig>)
+        const agentsData = (data as { agents: Record<string, AgentConfig> }).agents || {};
+        const llmAgents = Object.values(agentsData)
           .filter((a) => a.agentType !== 'logic' && !excludeIds.includes(a.id))
           .sort((a, b) => a.name.localeCompare(b.name));
 
