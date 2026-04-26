@@ -37,7 +37,7 @@ describe('classifyResource', () => {
       expect(c.type).toBe(NODE_TYPE.INFRA);
       expect(c.icon).toBe(NODE_ICON.APP);
       expect(c.label).toBe('Webhook API');
-      expect(c.tier).toBe(NODE_TIER.COMM);
+      expect(c.tier).toBe(NODE_TIER.GATEWAY);
     });
 
     it('matches keys containing api', () => {
@@ -91,7 +91,7 @@ describe('classifyResource', () => {
     it('matches deployer', () => {
       const c = classifyResource('deployer')!;
       expect(c.icon).toBe(NODE_ICON.HAMMER);
-      expect(c.tier).toBe(NODE_TIER.INFRA);
+      expect(c.tier).toBe(NODE_TIER.UTILITY);
       expect(c.idOverride).toBe('deployer');
     });
 
@@ -104,7 +104,7 @@ describe('classifyResource', () => {
     it('matches notifier', () => {
       const c = classifyResource('notifier')!;
       expect(c.icon).toBe(NODE_ICON.BELL);
-      expect(c.tier).toBe(NODE_TIER.COMM);
+      expect(c.tier).toBe(NODE_TIER.UTILITY);
     });
   });
 
@@ -144,6 +144,7 @@ describe('classifyResource', () => {
       const c = classifyResource('realtimebus')!;
       expect(c.icon).toBe(NODE_ICON.RADIO);
       expect(c.label).toBe('Realtime Bus (IoT Core)');
+      expect(c.tier).toBe(NODE_TIER.GATEWAY);
       expect(c.idOverride).toBe('realtimebus');
     });
   });
@@ -153,6 +154,7 @@ describe('classifyResource', () => {
       const c = classifyResource('heartbeathandler')!;
       expect(c.icon).toBe(NODE_ICON.SIGNAL);
       expect(c.label).toBe('Heartbeat Engine');
+      expect(c.tier).toBe(NODE_TIER.GATEWAY);
       expect(c.idOverride).toBe('heartbeat');
     });
 
@@ -166,6 +168,7 @@ describe('classifyResource', () => {
       const c = classifyResource('concurrencymonitor')!;
       expect(c.icon).toBe(NODE_ICON.STETHOSCOPE);
       expect(c.label).toBe('Concurrency Monitor');
+      expect(c.tier).toBe(NODE_TIER.INFRA);
     });
   });
 
@@ -174,6 +177,7 @@ describe('classifyResource', () => {
       const c = classifyResource('eventhandler')!;
       expect(c.icon).toBe(NODE_ICON.ZAP);
       expect(c.label).toBe('Event Handler');
+      expect(c.tier).toBe(NODE_TIER.UTILITY);
     });
 
     it('matches events', () => {
@@ -185,6 +189,7 @@ describe('classifyResource', () => {
     it('matches deadmansswitch', () => {
       const c = classifyResource('deadmansswitch')!;
       expect(c.label).toBe("Dead Man's Switch");
+      expect(c.tier).toBe(NODE_TIER.UTILITY);
     });
 
     it('matches recovery', () => {
@@ -212,21 +217,13 @@ describe('classifyResource', () => {
       const c = classifyResource('mcpwarmuphandler')!;
       expect(c.icon).toBe(NODE_ICON.SIGNAL);
       expect(c.label).toBe('MCP Warmup Handler');
-      expect(c.tier).toBe(NODE_TIER.COMM);
+      expect(c.tier).toBe(NODE_TIER.UTILITY);
     });
   });
 
   describe('agent classifier', () => {
     it('matches known LLM agent names', () => {
-      const agentNames = [
-        'superclaw',
-        'coder',
-        'strategicplanner',
-        'reflector',
-        'qa',
-        'critic',
-        'agentrunner',
-      ];
+      const agentNames = ['coder', 'strategicplanner', 'reflector', 'qa', 'critic', 'agentrunner'];
       for (const name of agentNames) {
         const c = classifyResource(name)!;
         expect(c).toBeDefined();
@@ -234,6 +231,11 @@ describe('classifyResource', () => {
         expect(c.icon).toBe(NODE_ICON.BRAIN);
         expect(c.tier).toBe(NODE_TIER.AGENT);
       }
+    });
+
+    it('matches superclaw as gateway', () => {
+      const c = classifyResource('superclaw')!;
+      expect(c.tier).toBe(NODE_TIER.GATEWAY);
     });
 
     it('matches keys containing agent', () => {
@@ -248,8 +250,16 @@ describe('classifyResource', () => {
         expect(c).toBeDefined();
         expect(c.type).toBe(NODE_TYPE.AGENT);
         expect(c.icon).toBe(NODE_ICON.GEAR);
-        expect(c.tier).toBe(NODE_TIER.AGENT);
+        expect(c.tier).toBe(NODE_TIER.UTILITY);
       }
+    });
+  });
+
+  describe('multiplexer classifier', () => {
+    it('matches general mcp multiplexer', () => {
+      const c = classifyResource('GeneralMCPMultiplexer')!;
+      expect(c.tier).toBe(NODE_TIER.INFRA);
+      expect(c.label).toBe('MCP Multiplexer (Lambda)');
     });
   });
 });

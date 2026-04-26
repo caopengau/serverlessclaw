@@ -26,7 +26,7 @@ export const ORPHAN_NODES: TopologyNode[] = [
     label: 'AWS Scheduler',
     icon: NODE_ICON.CALENDAR,
     type: NODE_TYPE.INFRA,
-    tier: NODE_TIER.COMM,
+    tier: NODE_TIER.APP,
   },
   {
     id: INFRA_NODE_ID.TELEGRAM,
@@ -40,7 +40,7 @@ export const ORPHAN_NODES: TopologyNode[] = [
     label: 'Heartbeat Engine',
     icon: NODE_ICON.SIGNAL,
     type: NODE_TYPE.INFRA,
-    tier: NODE_TIER.COMM,
+    tier: NODE_TIER.GATEWAY,
   },
   {
     id: INFRA_NODE_ID.REALTIME_BRIDGE,
@@ -54,7 +54,7 @@ export const ORPHAN_NODES: TopologyNode[] = [
     label: 'Realtime Bus (IoT Core)',
     icon: NODE_ICON.RADIO,
     type: NODE_TYPE.INFRA,
-    tier: NODE_TIER.COMM,
+    tier: NODE_TIER.GATEWAY,
   },
   {
     id: 'github',
@@ -123,9 +123,9 @@ export function discoverSstNodes(resourceMap: Record<string, unknown>): Topology
     const nodeLabel = resourceClassifier?.label ?? resourceKey;
     let nodeTier = resourceClassifier?.tier ?? NODE_TIER.INFRA;
 
-    // Special Promotion Logic (SuperClaw is top tier)
+    // Special Promotion Logic (SuperClaw is in the gateway/entry tier)
     if (resourceKey.toLowerCase() === 'superclaw') {
-      nodeTier = NODE_TIER.APP;
+      nodeTier = NODE_TIER.GATEWAY;
     }
 
     const nodeId = resourceClassifier?.idOverride ?? resourceKey.toLowerCase();
@@ -358,6 +358,8 @@ export function mergeBackboneNodes(nodes: TopologyNode[]): TopologyNode[] {
       return false;
     });
 
+    const classifier = classifyResource(lowerAgentId);
+
     if (existingNodeIndex !== -1) {
       const node = mergedNodes[existingNodeIndex];
       // Update the ID to the canonical backbone ID for consistent linking
@@ -369,9 +371,21 @@ export function mergeBackboneNodes(nodes: TopologyNode[]): TopologyNode[] {
       node.icon = agentConfig.topologyOverride?.icon ?? node.icon;
       node.tier = agentConfig.topologyOverride?.tier ?? node.tier;
 
-      // Reinforce Tier for SuperClaw (top-level orchestration)
-      if (lowerAgentId === 'superclaw') {
-        node.tier = agentConfig.topologyOverride?.tier ?? NODE_TIER.APP;
+      // Reinforce Tier for SuperClaw and Heartbeat Engine (entry/gateway orchestration)
+      if (
+        lowerAgentId === 'superclaw' ||
+        lowerAgentId === 'heartbeat' ||
+        lowerAgentId === 'heartbeathandler'
+      ) {
+        node.tier = agentConfig.topologyOverride?.tier ?? NODE_TIER.GATEWAY;
+      }
+
+      // Distinguish between LLM agents and logic handlers
+      if (agentConfig.agentType === 'logic') {
+        node.type = NODE_TYPE.INFRA;
+        node.tier = agentConfig.topologyOverride?.tier ?? classifier?.tier ?? NODE_TIER.UTILITY;
+      } else {
+        node.type = NODE_TYPE.AGENT;
       }
     } else {
       // Logic for multiplexer-hosted agents that don't have their own Lambda
@@ -379,19 +393,27 @@ export function mergeBackboneNodes(nodes: TopologyNode[]): TopologyNode[] {
         MULTIPLEXER_MAP[m].includes(lowerAgentId)
       );
 
+      const isLogic = agentConfig.agentType === 'logic';
+
       mergedNodes.push({
         id: lowerAgentId,
-        type: NODE_TYPE.AGENT,
+        type: (isLogic ? NODE_TYPE.INFRA : NODE_TYPE.AGENT) as any,
         label: agentConfig.topologyOverride?.label || agentConfig.name || lowerAgentId,
         icon:
           agentConfig.topologyOverride?.icon ??
-          (agentConfig.isBackbone ? NODE_ICON.BRAIN : NODE_ICON.BOT),
+          (isLogic ? NODE_ICON.GEAR : agentConfig.isBackbone ? NODE_ICON.BRAIN : NODE_ICON.BOT),
         description: agentConfig.description,
         tier:
           agentConfig.topologyOverride?.tier ??
-          (lowerAgentId === 'superclaw' ? NODE_TIER.APP : NODE_TIER.AGENT),
+          (lowerAgentId === 'superclaw' ||
+          lowerAgentId === 'heartbeat' ||
+          lowerAgentId === 'heartbeathandler'
+            ? NODE_TIER.GATEWAY
+            : (classifier?.tier ?? (isLogic ? NODE_TIER.UTILITY : NODE_TIER.AGENT))),
         // If hosted by a multiplexer, we can optionally link it or metadata
-        metadata: multiplexerId ? { host: multiplexerId } : undefined,
+        metadata: multiplexerId
+          ? { host: multiplexerId, agentType: agentConfig.agentType }
+          : { agentType: agentConfig.agentType },
       });
     }
   }
@@ -418,12 +440,18 @@ export function addDynamicAgents(nodes: TopologyNode[], items: unknown[]): Topol
     const lowerAgentId = agentConfig.id.toLowerCase();
     if (finalNodes.some((node) => node.id === lowerAgentId)) continue;
 
+    const classifier = classifyResource(lowerAgentId);
+    const isLogic = agentConfig.agentType === 'logic';
+
     finalNodes.push({
       id: lowerAgentId,
-      type: NODE_TYPE.AGENT,
+      type: (isLogic ? NODE_TYPE.INFRA : NODE_TYPE.AGENT) as any,
       label: agentConfig.topologyOverride?.label || agentConfig.name || lowerAgentId,
-      icon: agentConfig.topologyOverride?.icon ?? NODE_ICON.BOT,
-      tier: agentConfig.topologyOverride?.tier ?? NODE_TIER.AGENT,
+      icon: agentConfig.topologyOverride?.icon ?? (isLogic ? NODE_ICON.GEAR : NODE_ICON.BOT),
+      tier:
+        agentConfig.topologyOverride?.tier ??
+        classifier?.tier ??
+        (isLogic ? NODE_TIER.UTILITY : NODE_TIER.AGENT),
     });
   }
 

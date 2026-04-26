@@ -337,12 +337,14 @@ export function FlowContent() {
       });
 
       // Spatial tiers for layout
-      const tiers = ['APP', 'COMM', 'AGENT', 'INFRA'];
+      const tiers = ['APP', 'GATEWAY', 'COMM', 'AGENT', 'UTILITY', 'INFRA'];
       const TIER_Y: Record<string, number> = {
         APP: -100,
-        COMM: 150,
-        AGENT: 330,
-        INFRA: 620, // Increased to provide breathing room from layer 3
+        GATEWAY: 80,
+        COMM: 240,
+        AGENT: 420,
+        UTILITY: 580,
+        INFRA: 740,
       };
 
       tiers.forEach((tier) => {
@@ -365,7 +367,9 @@ export function FlowContent() {
         let spacing = 260;
         if (tier === 'AGENT') spacing = 230;
         if (tier === 'COMM') spacing = 320;
-        if (tier === 'INFRA') spacing = 280; // Increased from 220 so they aren't squished
+        if (tier === 'UTILITY') spacing = 240;
+        if (tier === 'INFRA') spacing = 280;
+        if (tier === 'GATEWAY' || tier === 'COMM') spacing = 300;
 
         const totalWidth = (totalInTier - 1) * spacing;
         const startX = 400 - totalWidth / 2;
@@ -407,13 +411,15 @@ export function FlowContent() {
                     ? 'ORCHESTRATOR'
                     : node.type === 'agent'
                       ? 'Neural_Worker'
-                      : node.id === 'memorytable'
-                        ? 'DATA_STORE'
-                        : node.id === 'stagingbucket'
-                          ? 'STORAGE'
-                          : node.id === 'deployer'
-                            ? 'COMPUTE'
-                            : 'INFRA_NODE',
+                      : node.tier === 'UTILITY'
+                        ? 'Functional_Handler'
+                        : node.id === 'memorytable'
+                          ? 'DATA_STORE'
+                          : node.id === 'stagingbucket'
+                            ? 'STORAGE'
+                            : node.id === 'deployer'
+                              ? 'COMPUTE'
+                              : 'INFRA_NODE',
             },
           });
         });

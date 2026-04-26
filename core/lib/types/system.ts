@@ -93,7 +93,7 @@ export interface TopologyNode {
   /** Whether this is a core system component. */
   isBackbone?: boolean;
   /** Vertical placement tier. */
-  tier?: 'APP' | 'COMM' | 'AGENT' | 'INFRA';
+  tier?: 'APP' | 'GATEWAY' | 'COMM' | 'AGENT' | 'UTILITY' | 'INFRA';
   /** Optional key-value metadata for the node. */
   metadata?: Record<string, unknown>;
 }

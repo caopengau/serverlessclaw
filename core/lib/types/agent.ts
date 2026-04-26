@@ -201,7 +201,7 @@ export interface IAgentConfig {
   topologyOverride?: {
     label?: string;
     icon?: string;
-    tier?: 'APP' | 'COMM' | 'AGENT' | 'INFRA';
+    tier?: 'APP' | 'GATEWAY' | 'COMM' | 'AGENT' | 'UTILITY' | 'INFRA';
   };
   /** Safety trust level for this agent. Controls approval gates. */
   safetyTier?: SafetyTier;

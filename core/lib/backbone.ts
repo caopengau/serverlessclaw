@@ -86,6 +86,10 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       ConnectionProfile.TRACE,
       ConnectionProfile.KNOWLEDGE,
     ],
+    topologyOverride: {
+      tier: 'GATEWAY',
+      icon: 'Bot',
+    },
   },
   [AgentType.CODER]: {
     id: AgentType.CODER,
@@ -128,6 +132,10 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       ConnectionProfile.TRACE,
       ConnectionProfile.KNOWLEDGE,
     ],
+    topologyOverride: {
+      tier: 'AGENT',
+      icon: 'Code',
+    },
   },
   [AgentType.STRATEGIC_PLANNER]: {
     id: AgentType.STRATEGIC_PLANNER,
@@ -175,6 +183,10 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       ConnectionProfile.TRACE,
       ConnectionProfile.KNOWLEDGE,
     ],
+    topologyOverride: {
+      tier: 'AGENT',
+      icon: 'Brain',
+    },
   },
   [AgentType.COGNITION_REFLECTOR]: {
     id: AgentType.COGNITION_REFLECTOR,
@@ -204,6 +216,10 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       ConnectionProfile.TRACE,
       ConnectionProfile.KNOWLEDGE,
     ],
+    topologyOverride: {
+      tier: 'AGENT',
+      icon: 'Search',
+    },
   },
   [AgentType.QA]: {
     id: AgentType.QA,
@@ -225,6 +241,10 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       ConnectionProfile.TRACE,
       ConnectionProfile.KNOWLEDGE,
     ],
+    topologyOverride: {
+      tier: 'AGENT',
+      icon: 'FlaskConical',
+    },
   },
   [AgentType.CRITIC]: {
     id: AgentType.CRITIC,
@@ -256,6 +276,10 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       ConnectionProfile.TRACE,
       ConnectionProfile.KNOWLEDGE,
     ],
+    topologyOverride: {
+      tier: 'AGENT',
+      icon: 'Shield',
+    },
   },
   [AgentType.FACILITATOR]: {
     id: AgentType.FACILITATOR,
@@ -286,6 +310,10 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       ConnectionProfile.TRACE,
       ConnectionProfile.KNOWLEDGE,
     ],
+    topologyOverride: {
+      tier: 'AGENT',
+      icon: 'MessageSquareShare',
+    },
   },
   [AgentType.MERGER]: {
     id: AgentType.MERGER,
@@ -312,6 +340,10 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       ConnectionProfile.TRACE,
       ConnectionProfile.STORAGE,
     ],
+    topologyOverride: {
+      tier: 'AGENT',
+      icon: 'GitMerge',
+    },
   },
   // Handlers (Logic-only, but registered for topology awareness)
   [AgentType.BUILD_MONITOR]: {
@@ -329,6 +361,10 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       ConnectionProfile.CODEBUILD,
       ConnectionProfile.MEMORY,
     ],
+    topologyOverride: {
+      tier: 'UTILITY',
+      icon: 'Activity',
+    },
   },
   [AgentType.RECOVERY]: {
     id: AgentType.RECOVERY,
@@ -340,6 +376,10 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     enabled: true,
     ...BACKBONE_HANDLER_DEFAULTS,
     connectionProfile: [ConnectionProfile.DEPLOYER, ConnectionProfile.MEMORY_TABLE],
+    topologyOverride: {
+      tier: 'UTILITY',
+      icon: 'ShieldCheck',
+    },
   },
   [AgentType.RESEARCHER]: {
     id: AgentType.RESEARCHER,
@@ -361,6 +401,10 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       ConnectionProfile.TRACE,
       ConnectionProfile.KNOWLEDGE,
     ],
+    topologyOverride: {
+      tier: 'AGENT',
+      icon: 'Microscope',
+    },
   },
   [AgentType.EVENT_HANDLER]: {
     id: AgentType.EVENT_HANDLER,
@@ -368,10 +412,14 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     agentType: 'logic',
     description: 'Event processing handler. Routes and processes EventBridge events.',
     category: AgentCategory.SYSTEM,
-    icon: 'Event',
+    icon: 'Zap',
     enabled: true,
     ...BACKBONE_HANDLER_DEFAULTS,
     connectionProfile: [ConnectionProfile.MEMORY],
+    topologyOverride: {
+      tier: 'UTILITY',
+      icon: 'Zap',
+    },
   },
   [AgentType.JUDGE]: {
     id: AgentType.JUDGE,
@@ -388,5 +436,9 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     defaultCommunicationMode: 'json',
     tools: [...UNIVERSAL_SYSTEM_TOOLS],
     connectionProfile: [ConnectionProfile.MEMORY, ConnectionProfile.TRACE],
+    topologyOverride: {
+      tier: 'AGENT',
+      icon: 'Gavel',
+    },
   },
 };

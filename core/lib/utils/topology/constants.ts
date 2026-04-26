@@ -77,8 +77,10 @@ export const NODE_TYPE = {
  */
 export const NODE_TIER = {
   APP: 'APP' as const,
+  GATEWAY: 'GATEWAY' as const,
   COMM: 'COMM' as const,
   AGENT: 'AGENT' as const,
+  UTILITY: 'UTILITY' as const,
   INFRA: 'INFRA' as const,
 };
 

@@ -4,7 +4,7 @@ export interface ResourceClassifier {
   match: (key: string) => boolean;
   type: string;
   icon: string;
-  tier: 'APP' | 'COMM' | 'AGENT' | 'INFRA';
+  tier: 'APP' | 'GATEWAY' | 'COMM' | 'AGENT' | 'UTILITY' | 'INFRA';
   label?: string;
   idOverride?: string;
 }
@@ -30,7 +30,7 @@ export const CLASSIFIERS: ResourceClassifier[] = [
     type: NODE_TYPE.INFRA,
     icon: NODE_ICON.APP,
     label: 'Webhook API',
-    tier: NODE_TIER.COMM,
+    tier: NODE_TIER.GATEWAY,
     idOverride: 'webhookapi',
   },
   {
@@ -76,14 +76,14 @@ export const CLASSIFIERS: ResourceClassifier[] = [
     match: (k) => k === 'deployer' || k === 'codebuild',
     type: NODE_TYPE.INFRA,
     icon: NODE_ICON.HAMMER,
-    tier: NODE_TIER.INFRA,
+    tier: NODE_TIER.UTILITY,
     idOverride: 'deployer',
   },
   {
     match: (k) => k === 'notifier',
     type: NODE_TYPE.INFRA,
     icon: NODE_ICON.BELL,
-    tier: NODE_TIER.COMM,
+    tier: NODE_TIER.UTILITY,
   },
   {
     match: (k) => k === 'dashboard' || k === 'clawcenter',
@@ -106,7 +106,7 @@ export const CLASSIFIERS: ResourceClassifier[] = [
     type: NODE_TYPE.BUS,
     icon: NODE_ICON.RADIO,
     label: 'Realtime Bus (IoT Core)',
-    tier: NODE_TIER.COMM,
+    tier: NODE_TIER.GATEWAY,
     idOverride: 'realtimebus',
   },
   {
@@ -114,7 +114,7 @@ export const CLASSIFIERS: ResourceClassifier[] = [
     type: NODE_TYPE.AGENT,
     icon: NODE_ICON.SIGNAL,
     label: 'Heartbeat Engine',
-    tier: NODE_TIER.COMM,
+    tier: NODE_TIER.GATEWAY,
     idOverride: 'heartbeat',
   },
   {
@@ -129,17 +129,17 @@ export const CLASSIFIERS: ResourceClassifier[] = [
     type: NODE_TYPE.INFRA,
     icon: NODE_ICON.ZAP,
     label: 'Event Handler',
-    tier: NODE_TIER.COMM,
+    tier: NODE_TIER.UTILITY,
   },
   {
     match: (k) => k === 'deadmansswitch' || k === 'recovery',
     type: NODE_TYPE.INFRA,
     icon: NODE_ICON.SIGNAL,
     label: "Dead Man's Switch",
-    tier: NODE_TIER.COMM,
+    tier: NODE_TIER.UTILITY,
   },
   {
-    match: (k) => k === 'mcpservermultiplexer' || k === 'multiplexer',
+    match: (k) => k.includes('multiplexer'),
     type: NODE_TYPE.INFRA,
     icon: NODE_ICON.SERVER,
     label: 'MCP Multiplexer (Lambda)',
@@ -157,30 +157,13 @@ export const CLASSIFIERS: ResourceClassifier[] = [
     type: NODE_TYPE.INFRA,
     icon: NODE_ICON.SIGNAL,
     label: 'MCP Warmup Handler',
-    tier: NODE_TIER.COMM,
+    tier: NODE_TIER.UTILITY,
   },
   {
-    match: (k) =>
-      [
-        'superclaw',
-        'coder',
-        'strategicplanner',
-        'strategic-planner',
-        'planner',
-        'reflector',
-        'cognitionreflector',
-        'cognition-reflector',
-        'qa',
-        'critic',
-        'agentrunner',
-        'runner',
-        'merger',
-        'researcher',
-      ].includes(k) ||
-      (k.includes('agent') && !k.includes('manager')),
+    match: (k) => k === 'superclaw',
     type: NODE_TYPE.AGENT,
     icon: NODE_ICON.BRAIN,
-    tier: NODE_TIER.AGENT,
+    tier: NODE_TIER.GATEWAY,
   },
   {
     match: (k) =>
@@ -206,6 +189,32 @@ export const CLASSIFIERS: ResourceClassifier[] = [
       k.includes('monitor'),
     type: NODE_TYPE.AGENT,
     icon: NODE_ICON.GEAR,
+    tier: NODE_TIER.UTILITY,
+  },
+  {
+    match: (k) =>
+      [
+        'coder',
+        'strategicplanner',
+        'strategic-planner',
+        'planner',
+        'reflector',
+        'cognitionreflector',
+        'cognition-reflector',
+        'qa',
+        'critic',
+        'agentrunner',
+        'runner',
+        'merger',
+        'researcher',
+      ].includes(k) ||
+      (k.includes('agent') &&
+        !k.includes('handler') &&
+        !k.includes('worker') &&
+        !k.includes('monitor') &&
+        !k.includes('manager')),
+    type: NODE_TYPE.AGENT,
+    icon: NODE_ICON.BRAIN,
     tier: NODE_TIER.AGENT,
   },
   {
@@ -220,7 +229,7 @@ export const CLASSIFIERS: ResourceClassifier[] = [
     type: NODE_TYPE.INFRA,
     icon: NODE_ICON.RADIO,
     label: 'Realtime Bus (IoT)',
-    tier: NODE_TIER.COMM,
+    tier: NODE_TIER.GATEWAY,
   },
 ];
 
