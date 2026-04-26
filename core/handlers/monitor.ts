@@ -155,6 +155,59 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
         }
       }
 
+      // Handle Emergency Recovery Success
+      const isRecovery = getEnv('EMERGENCY_ROLLBACK') === 'true';
+      if (isRecovery) {
+        logger.info(
+          `[RECOVERY] Emergency rollback SUCCEEDED for build ${buildId}. Resetting counters.`
+        );
+        await memory.resetRecoveryAttemptCount();
+
+        // Notify Brain of successful restoration
+        await emitEvent('system.recovery', EventType.OUTBOUND_MESSAGE, {
+          source: 'core.monitor',
+          userId: userId || 'ADMIN',
+          traceId,
+          taskId: traceId,
+          initiatorId: 'RecoveryMonitor',
+          depth: 0,
+          timestamp: Date.now(),
+          message: `✅ **SYSTEM RESTORED**: Automatic recovery build ${buildId} has successfully restored the system to its Last Known Good state.`,
+          agentName: 'RecoveryMonitor',
+          memoryContexts: [],
+          attachments: [],
+          metadata: { buildId, isRecovery: true },
+          sessionId: sessionId || `recovery-${Date.now()}`,
+        });
+
+        // Trigger post-recovery warmup
+        const warmUpFunctions = process.env.WARM_UP_FUNCTIONS;
+        const mcpServerArns = process.env.MCP_SERVER_ARNS;
+        if (warmUpFunctions || mcpServerArns) {
+          try {
+            const { WarmupManager } = await import('../lib/warmup');
+            const agentArns = warmUpFunctions ? JSON.parse(warmUpFunctions) : {};
+            const serverArns = mcpServerArns ? JSON.parse(mcpServerArns) : {};
+
+            const warmupManager = new WarmupManager({
+              servers: serverArns,
+              agents: agentArns,
+              ttlSeconds: 900,
+            });
+
+            await warmupManager.smartWarmup({
+              agents: Object.keys(agentArns),
+              servers: Object.keys(serverArns),
+              intent: 'recovery-complete',
+              warmedBy: 'recovery',
+            });
+            logger.info('[RECOVERY] Post-recovery warmup completed successfully');
+          } catch (warmErr) {
+            logger.warn('[RECOVERY] Failed to trigger post-recovery warmup:', warmErr);
+          }
+        }
+      }
+
       // Self-Aware Topology Discovery
       const { discoverSystemTopology } = await import('../lib/utils/topology');
       const topology = await discoverSystemTopology();

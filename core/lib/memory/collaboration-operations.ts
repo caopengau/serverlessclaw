@@ -153,6 +153,17 @@ export async function addCollaborationParticipant(
     joinedAt: now,
   };
 
+  // Sh10: Verify agent is enabled before adding (Principle 14)
+  if (newParticipant.type === 'agent') {
+    const { AgentRegistry } = await import('../registry');
+    const agentConfig = await AgentRegistry.getAgentConfig(newParticipant.id, {
+      workspaceId,
+    });
+    if (agentConfig && agentConfig.enabled === false) {
+      throw new Error(`Agent ${newParticipant.id} is disabled and cannot be invited.`);
+    }
+  }
+
   const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, scope || workspaceId);
 
   // Update collaboration metadata atomically (Principle 13)
