@@ -112,7 +112,7 @@ describe('discoverSystemTopology', () => {
 
       const node = topology.nodes.find((n) => n.id === lowerId);
       if (lowerId === 'superclaw') {
-        expect(node?.tier).toBe('APP');
+        expect(node?.tier).toBe('GATEWAY');
       }
     });
   });
