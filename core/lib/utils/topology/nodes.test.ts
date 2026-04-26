@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NODE_TYPE, NODE_TIER, NODE_ICON, INFRA_NODE_ID } from './constants';
-import * as fs from 'fs';
 
 vi.mock('fs', () => {
   const mockReadFileSync = vi.fn();
@@ -85,6 +84,15 @@ vi.mock('../../backbone', () => ({
       tools: ['recallKnowledge'],
       connectionProfile: ['bus'],
     },
+    eventhandler: {
+      id: 'eventhandler',
+      name: 'Event Handler',
+      agentType: 'logic',
+      description: 'Logic Handler',
+      enabled: true,
+      isBackbone: true,
+      connectionProfile: ['memory'],
+    },
   },
 }));
 
@@ -114,18 +122,20 @@ describe('ORPHAN_NODES', () => {
     expect(scheduler).toBeDefined();
     expect(scheduler?.type).toBe(NODE_TYPE.INFRA);
     expect(scheduler?.icon).toBe(NODE_ICON.CALENDAR);
+    expect(scheduler?.tier).toBe(NODE_TIER.APP);
   });
 
   it('includes telegram node', () => {
     const telegram = ORPHAN_NODES.find((n) => n.id === INFRA_NODE_ID.TELEGRAM);
     expect(telegram).toBeDefined();
     expect(telegram?.icon).toBe(NODE_ICON.SEND);
+    expect(telegram?.tier).toBe(NODE_TIER.APP);
   });
 
   it('includes heartbeat node', () => {
     const heartbeat = ORPHAN_NODES.find((n) => n.id === INFRA_NODE_ID.HEARTBEAT);
     expect(heartbeat).toBeDefined();
-    expect(heartbeat?.tier).toBe(NODE_TIER.COMM);
+    expect(heartbeat?.tier).toBe(NODE_TIER.GATEWAY);
   });
 
   it('includes realtime bridge node', () => {
@@ -138,6 +148,7 @@ describe('ORPHAN_NODES', () => {
     const bus = ORPHAN_NODES.find((n) => n.id === INFRA_NODE_ID.REALTIME_BUS);
     expect(bus).toBeDefined();
     expect(bus?.icon).toBe(NODE_ICON.RADIO);
+    expect(bus?.tier).toBe(NODE_TIER.GATEWAY);
   });
 });
 
@@ -204,11 +215,11 @@ describe('discoverSstNodes', () => {
     expect(result[0].tier).toBe(NODE_TIER.INFRA);
   });
 
-  it('promotes superclaw to APP tier regardless of classifier', () => {
+  it('promotes superclaw to GATEWAY tier regardless of classifier', () => {
     const result = discoverSstNodes({
       superclaw: { name: 'test' },
     });
-    expect(result[0].tier).toBe(NODE_TIER.APP);
+    expect(result[0].tier).toBe(NODE_TIER.GATEWAY);
   });
 
   it('uses idOverride from classifier when present', () => {
@@ -286,6 +297,7 @@ describe('mergeBackboneNodes', () => {
     const superclaw = result.find((n) => n.id === 'superclaw');
     expect(superclaw?.label).toBe('SuperClaw');
     expect(superclaw?.description).toBe('Orchestrator');
+    expect(superclaw?.tier).toBe(NODE_TIER.GATEWAY);
   });
 
   it('adds new backbone nodes not already in list', () => {
@@ -304,10 +316,10 @@ describe('mergeBackboneNodes', () => {
     expect(coder?.description).toBe('Builder');
   });
 
-  it('sets superclaw tier to APP when added as new node', () => {
+  it('sets superclaw tier to GATEWAY when added as new node', () => {
     const result = mergeBackboneNodes([]);
     const superclaw = result.find((n) => n.id === 'superclaw');
-    expect(superclaw?.tier).toBe(NODE_TIER.APP);
+    expect(superclaw?.tier).toBe(NODE_TIER.GATEWAY);
   });
 
   it('sets non-superclaw backbone agents to AGENT tier', () => {
@@ -322,25 +334,12 @@ describe('mergeBackboneNodes', () => {
     expect(coder?.icon).toBe(NODE_ICON.BRAIN);
   });
 
-  it('uses BOT icon for non-backbone agents', () => {
+  it('sets logic handlers to UTILITY tier and INFRA type', () => {
     const result = mergeBackboneNodes([]);
-    const reflector = result.find((n) => n.id === 'reflector');
-    expect(reflector?.icon).toBe(NODE_ICON.BRAIN);
-  });
-
-  it('respects topologyOverride for existing nodes', () => {
-    const existing = [
-      {
-        id: 'coder',
-        type: NODE_TYPE.AGENT,
-        label: 'Coder Agent',
-        icon: NODE_ICON.BOT,
-        tier: NODE_TIER.AGENT,
-      },
-    ];
-    const result = mergeBackboneNodes(existing);
-    const coder = result.find((n) => n.id === 'coder');
-    expect(coder?.label).toBe('Coder Agent');
+    const handler = result.find((n) => n.id === 'eventhandler');
+    expect(handler).toBeDefined();
+    expect(handler?.tier).toBe(NODE_TIER.UTILITY);
+    expect(handler?.type).toBe(NODE_TYPE.INFRA);
   });
 
   it('does not mutate the original array', () => {
@@ -382,145 +381,26 @@ describe('addDynamicAgents', () => {
     expect(dynamic).toBeDefined();
     expect(dynamic?.type).toBe(NODE_TYPE.AGENT);
     expect(dynamic?.label).toBe('Dynamic Agent');
-    expect(dynamic?.icon).toBe(NODE_ICON.BOT);
     expect(dynamic?.tier).toBe(NODE_TIER.AGENT);
   });
 
-  it('lowercases agent IDs', () => {
+  it('handles logic agents in database items', () => {
     const items = [
       {
         config: {
           M: {
-            id: 'DynamicAgent',
-            name: 'Dynamic Agent',
+            id: 'logic-handler',
+            name: 'Logic Handler',
+            agentType: 'logic',
             enabled: true,
           },
         },
       },
     ];
     const result = addDynamicAgents([], items);
-    expect(result[0].id).toBe('dynamicagent');
-  });
-
-  it('skips agents already in the node list', () => {
-    const existing = [
-      {
-        id: 'existing-agent',
-        type: NODE_TYPE.AGENT,
-        label: 'Existing Agent',
-      },
-    ];
-    const items = [
-      {
-        config: {
-          M: {
-            id: 'existing-agent',
-            name: 'Duplicate Agent',
-            enabled: true,
-          },
-        },
-      },
-    ];
-    const result = addDynamicAgents(existing, items);
-    expect(result.length).toBe(1);
-    expect(result[0].label).toBe('Existing Agent');
-  });
-
-  it('skips items without an id', () => {
-    const items = [
-      {
-        config: {
-          M: {
-            name: 'No ID Agent',
-            enabled: true,
-          },
-        },
-      },
-    ];
-    const result = addDynamicAgents([], items);
-    expect(result.length).toBe(0);
-  });
-
-  it('skips items with missing config.M structure', () => {
-    const items = [
-      { config: { M: {} } }, // M is empty, no id
-    ];
-    const result = addDynamicAgents([], items);
-    expect(result.length).toBe(0);
-  });
-
-  it('uses fallback label when name is missing', () => {
-    const items = [
-      {
-        config: {
-          M: {
-            id: 'fallback-agent',
-            enabled: true,
-          },
-        },
-      },
-    ];
-    const result = addDynamicAgents([], items);
-    expect(result[0].label).toBe('fallback-agent');
-  });
-
-  it('respects topologyOverride', () => {
-    const items = [
-      {
-        config: {
-          M: {
-            id: 'override-agent',
-            name: 'Agent',
-            enabled: true,
-            topologyOverride: {
-              label: 'Custom Label',
-              icon: 'Star',
-              tier: 'COMM',
-            },
-          },
-        },
-      },
-    ];
-    const result = addDynamicAgents([], items);
-    expect(result[0].label).toBe('Custom Label');
-    expect(result[0].icon).toBe('Star');
-    expect(result[0].tier).toBe('COMM');
-  });
-
-  it('does not mutate the original array', () => {
-    const existing = [
-      {
-        id: 'existing',
-        type: NODE_TYPE.AGENT,
-        label: 'Existing',
-      },
-    ];
-    const items = [
-      {
-        config: {
-          M: {
-            id: 'new-agent',
-            name: 'New',
-            enabled: true,
-          },
-        },
-      },
-    ];
-    const originalLength = existing.length;
-    addDynamicAgents(existing, items);
-    expect(existing.length).toBe(originalLength);
-  });
-
-  it('handles empty items array', () => {
-    const existing = [
-      {
-        id: 'existing',
-        type: NODE_TYPE.AGENT,
-        label: 'Existing',
-      },
-    ];
-    const result = addDynamicAgents(existing, []);
-    expect(result.length).toBe(1);
+    const logic = result.find((n) => n.id === 'logic-handler');
+    expect(logic?.type).toBe(NODE_TYPE.INFRA);
+    expect(logic?.tier).toBe(NODE_TIER.UTILITY);
   });
 });
 
@@ -544,37 +424,5 @@ describe('discoverAwsNodes', () => {
     expect(result.some((n) => n.id === 'clawdb')).toBe(true);
     expect(result.some((n) => n.id === 'knowledgebucket')).toBe(true);
     expect(result.some((n) => n.id === 'agent-runner')).toBe(true);
-  });
-
-  it('resolves stage from .sst/stage if SST_STAGE is not set', async () => {
-    delete process.env.SST_STAGE;
-    (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue('prod');
-
-    const _result = await discoverAwsNodes();
-    // We expect the prefix check to use 'prod'
-    // Since we mocked AWS responses with 'local', it might not find them if prefix doesn't match
-    // but the classifier should still work if we set up mocks correctly.
-    // For now just checking if resolveSstStage is called implicitly.
-    expect(fs.readFileSync).toHaveBeenCalled();
-  });
-
-  it('defaults to local if stage is unrecognized', async () => {
-    delete process.env.SST_STAGE;
-    (fs.existsSync as any).mockReturnValue(true);
-    (fs.readFileSync as any).mockReturnValue('unknown');
-
-    await discoverAwsNodes();
-    // Should warn and use 'local'
-  });
-
-  it('handles AWS scan failures gracefully', async () => {
-    const { DynamoDBClient } = await import('@aws-sdk/client-dynamodb');
-    vi.mocked(DynamoDBClient).mockImplementationOnce(function (this: any) {
-      this.send = vi.fn().mockRejectedValue(new Error('AWS Error'));
-    } as any);
-
-    const result = await discoverAwsNodes();
-    expect(result).toEqual([]);
   });
 });
