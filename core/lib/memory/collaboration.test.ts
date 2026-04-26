@@ -12,6 +12,7 @@ import { DynamoMemory } from './dynamo-memory';
 vi.mock('../registry', () => ({
   AgentRegistry: {
     getRetentionDays: vi.fn().mockResolvedValue(30),
+    getAgentConfig: vi.fn().mockResolvedValue({ enabled: true }),
   },
 }));
 
