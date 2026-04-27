@@ -254,49 +254,66 @@ export class AgentRegistry {
     timestamp: number
   ): Promise<void> {
     const tableName = getConfigTableName();
-
     if (!tableName) return;
 
-    try {
-      // Try to increment existing stats
-      await getDocClient().send(
-        new UpdateCommand({
-          TableName: tableName,
-          Key: { key },
-          UpdateExpression:
-            'SET #val.#tool.#count = if_not_exists(#val.#tool.#count, :zero) + :one, #val.#tool.#last = :now',
-          ConditionExpression: 'attribute_exists(#val.#tool)',
-          ExpressionAttributeNames: {
-            '#val': 'value',
-            '#tool': toolName,
-            '#count': 'count',
-            '#last': 'lastUsed',
-          },
-          ExpressionAttributeValues: { ':one': 1, ':zero': 0, ':now': timestamp },
-        })
-      );
-    } catch (e: unknown) {
-      // Fallback: tool doesn't exist in map yet, initialize it
-      if (
-        e instanceof Error &&
-        (e.name === 'ConditionalCheckFailedException' || e.name === 'ValidationException')
-      ) {
-        try {
-          await getDocClient().send(
-            new UpdateCommand({
-              TableName: tableName,
-              Key: { key },
-              UpdateExpression: 'SET #val.#tool = :newStats',
-              ConditionExpression: 'attribute_not_exists(#val.#tool)',
-              ExpressionAttributeNames: { '#val': 'value', '#tool': toolName },
-              ExpressionAttributeValues: {
-                ':newStats': { count: 1, lastUsed: timestamp, firstRegistered: timestamp },
-              },
-            })
-          );
-        } catch (innerE) {
-          // If map itself doesn't exist, we'd need a root initialization (very rare for TOOL_USAGE)
-          logger.debug(`[REGISTRY] Tool initialization failed for ${toolName} in ${key}:`, innerE);
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    while (retryCount < maxRetries) {
+      try {
+        // Try to increment existing stats
+        await getDocClient().send(
+          new UpdateCommand({
+            TableName: tableName,
+            Key: { key },
+            UpdateExpression:
+              'SET #val.#tool.#count = if_not_exists(#val.#tool.#count, :zero) + :one, #val.#tool.#last = :now',
+            ConditionExpression: 'attribute_exists(#val.#tool)',
+            ExpressionAttributeNames: {
+              '#val': 'value',
+              '#tool': toolName,
+              '#count': 'count',
+              '#last': 'lastUsed',
+            },
+            ExpressionAttributeValues: { ':one': 1, ':zero': 0, ':now': timestamp },
+          })
+        );
+        return; // Success
+      } catch (e: unknown) {
+        if (
+          e instanceof Error &&
+          (e.name === 'ConditionalCheckFailedException' || e.name === 'ValidationException')
+        ) {
+          try {
+            // Fallback: tool doesn't exist in map yet, initialize it
+            await getDocClient().send(
+              new UpdateCommand({
+                TableName: tableName,
+                Key: { key },
+                UpdateExpression: 'SET #val.#tool = :newStats',
+                ConditionExpression: 'attribute_not_exists(#val.#tool)',
+                ExpressionAttributeNames: { '#val': 'value', '#tool': toolName },
+                ExpressionAttributeValues: {
+                  ':newStats': { count: 1, lastUsed: timestamp, firstRegistered: timestamp },
+                },
+              })
+            );
+            return; // Success
+          } catch (innerE: unknown) {
+            if (innerE instanceof Error && innerE.name === 'ConditionalCheckFailedException') {
+              // Someone else initialized it while we were trying. Retry the increment.
+              retryCount++;
+              continue;
+            }
+            logger.debug(
+              `[REGISTRY] Tool initialization failed for ${toolName} in ${key}:`,
+              innerE
+            );
+            break;
+          }
+        } else {
+          logger.warn(`[REGISTRY] Failed to record tool usage for ${toolName} in ${key}:`, e);
+          break;
         }
       }
     }

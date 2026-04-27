@@ -18,7 +18,7 @@ Last Updated: 2026-04-26
 | **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             |     11      | 2026-04-26   | Medium     |
 | **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         |     11      | 2026-04-26   | Low        |
 | **6** | The Scales     | `core/lib/safety/trust-manager.ts`              |     12      | 2026-04-26   | Low        |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            |      3      | 2026-04-26   | Low        |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            |      4      | 2026-04-27   | Low        |
 
 ---
 
@@ -30,7 +30,7 @@ Last Updated: 2026-04-26
 | **B**       | Evolution Cycle   | Hand → Shield → Scales | 5           | 2026-04-26  |
 | **C**       | Identity Journey  | Brain → Spine → Shield | 5           | 2026-04-26  |
 | **D**       | Trust Loop        | Eye → Scales → Spine   | 5           | 2026-04-26  |
-| **E**       | Recovery Path     | Shield → Spine → Brain | 5           | 2026-04-26  |
+| **E**       | Recovery Path     | Shield → Spine → Brain | 6           | 2026-04-27  |
 
 ---
 
@@ -38,6 +38,7 @@ Last Updated: 2026-04-26
 
 | Date       | Report                                        | Silos Covered         | Cross-Silo | Key Findings                                                   |
 | :--------- | :-------------------------------------------- | :-------------------- | :--------- | :------------------------------------------------------------- |
+| 2026-04-27 | `audit-2026-04-27-metabolism-recovery.md`     | Metabolism, Recovery  | E          | FIXED: P1 Tool usage count loss, P1 LKG record collision       |
 | 2026-04-26 | `audit-2026-04-26-identity-journey.md`        | Brain, Spine, Shield  | C          | PASSED: Verified Principle 12, 13, 14, 15 across silos.        |
 | 2026-04-26 | `audit-2026-04-26-trust-loop.md`              | Eye, Scales, Spine    | D          | FIXED: Disconnected trust engine, Telemetry data loss          |
 | 2026-04-26 | `audit-2026-04-26-evolution-cycle.md`         | Hand, Shield, Scales  | B          | FIXED: Selection Integrity (Sh10), JSON Mode enforcement (Sh9) |
@@ -80,11 +81,11 @@ Last Updated: 2026-04-26
 
 ### High Priority (Needs Re-Audit)
 
-1. **The Metabolism** (Silo 7) - Only 2 audits, needs verification of pruning logic and resource reclamation.
+1. **Perspective A: Life of a Message** - Needs verification of full-stack observability with the new unified metrics partition.
 
 ### Medium Priority (Rarely Audited)
 
-1. **Perspective A: Life of a Message** - Needs verification of full-stack observability with the new unified metrics partition.
+1. **The Metabolism** (Silo 7) - Now has 4 audits, regenerative logic for tools and trust verified. Next audit should focus on S3 resource reclamation.
 
 ### High Risk (Most Violations)
 

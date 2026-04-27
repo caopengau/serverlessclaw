@@ -254,13 +254,28 @@ export async function saveConversationMeta(
  */
 export async function saveLKGHash(base: BaseMemoryProvider, hash: string): Promise<void> {
   const { expiresAt, type } = await RetentionManager.getExpiresAt('DISTILLED', 'SYSTEM#LKG');
-  await base.putItem({
-    userId: 'SYSTEM#LKG',
-    timestamp: Date.now(),
-    type,
-    expiresAt,
-    content: hash,
-  });
+  let retryCount = 0;
+  while (retryCount < 5) {
+    const timestamp = Date.now() + retryCount; // Minimal jitter
+    try {
+      await base.putItem({
+        userId: 'SYSTEM#LKG',
+        timestamp,
+        type,
+        expiresAt,
+        content: hash,
+        ConditionExpression: 'attribute_not_exists(#ts)',
+        ExpressionAttributeNames: { '#ts': 'timestamp' },
+      });
+      return;
+    } catch (e: any) {
+      if (e.name === 'ConditionalCheckFailedException') {
+        retryCount++;
+        continue;
+      }
+      throw e;
+    }
+  }
 }
 
 /**
@@ -352,14 +367,29 @@ export async function saveDistilledRecoveryLog(
   log: string
 ): Promise<void> {
   const { expiresAt, type } = await RetentionManager.getExpiresAt('DISTILLED', 'SYSTEM#RECOVERY');
-  await base.putItem({
-    userId: 'DISTILLED#RECOVERY',
-    timestamp: Date.now(),
-    type,
-    expiresAt,
-    content: log,
-    traceId,
-  });
+  let retryCount = 0;
+  while (retryCount < 5) {
+    const timestamp = Date.now() + retryCount;
+    try {
+      await base.putItem({
+        userId: 'DISTILLED#RECOVERY',
+        timestamp,
+        type,
+        expiresAt,
+        content: log,
+        traceId,
+        ConditionExpression: 'attribute_not_exists(#ts)',
+        ExpressionAttributeNames: { '#ts': 'timestamp' },
+      });
+      return;
+    } catch (e: any) {
+      if (e.name === 'ConditionalCheckFailedException') {
+        retryCount++;
+        continue;
+      }
+      throw e;
+    }
+  }
 }
 
 /**

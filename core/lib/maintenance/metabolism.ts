@@ -142,6 +142,43 @@ export class MetabolismService {
       });
     }
 
+    // Repair 4: Low-Trust Agent Mitigation (Perspective D: Trust Loop)
+    try {
+      const allAgents = await AgentRegistry.getAllConfigs({ workspaceId: scope.workspaceId });
+      let disabledCount = 0;
+      for (const [agentId, config] of Object.entries(allAgents)) {
+        // Only target dynamic agents with critically low trust (< 20) that are still enabled
+        if (
+          !AgentRegistry.isBackboneAgent(agentId) &&
+          config.enabled !== false &&
+          (config.trustScore ?? 100) < 20
+        ) {
+          logger.warn(
+            `[Metabolism] Critically low trust detected for agent ${agentId}. Disabling.`
+          );
+          await AgentRegistry.updateAgentConfig(
+            agentId,
+            { enabled: false },
+            { workspaceId: scope.workspaceId }
+          );
+          disabledCount++;
+        }
+      }
+
+      if (disabledCount > 0) {
+        repairFindings.push({
+          silo: 'Metabolism',
+          expected: 'Trust-verified agent registry',
+          actual: `Autonomously disabled ${disabledCount} critically low-trust agents.`,
+          severity: 'P1',
+          recommendation:
+            'Perspective D (Trust Loop) reinforced. Review reputation logs for disabled agents.',
+        });
+      }
+    } catch (e) {
+      logger.error('[Metabolism] Trust metabolism failed:', e);
+    }
+
     return repairFindings;
   }
 

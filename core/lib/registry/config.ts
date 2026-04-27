@@ -481,18 +481,20 @@ export class ConfigManager {
     entityId: string,
     field: string,
     value: unknown,
-    expectedValue: unknown
+    expectedValue: unknown,
+    options: { workspaceId?: string } = {}
   ): Promise<void> {
     const tableName = this._getTableName();
     if (!tableName) return;
 
-    this.configCache.delete(key);
+    const effectiveKey = options.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    this.configCache.delete(effectiveKey);
 
     try {
       await getDocClient().send(
         new UpdateCommand({
           TableName: tableName,
-          Key: { key },
+          Key: { key: effectiveKey },
           UpdateExpression: 'SET #val.#id.#field = :value',
           ConditionExpression: '#val.#id.#field = :expected',
           ExpressionAttributeNames: { '#val': 'value', '#id': entityId, '#field': field },
@@ -501,7 +503,7 @@ export class ConfigManager {
       );
     } catch (e: unknown) {
       if (e instanceof Error && e.name === 'ConditionalCheckFailedException') throw e;
-      logger.error(`Failed to atomically update ${key}/${entityId}.${field}:`, e);
+      logger.error(`Failed to atomically update ${effectiveKey}/${entityId}.${field}:`, e);
       throw e;
     }
   }
