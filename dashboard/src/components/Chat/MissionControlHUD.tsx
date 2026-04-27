@@ -26,7 +26,6 @@ import { MissionMetadata } from '@claw/core/lib/types/memory';
 interface MissionControlHUDProps {
   sessionId: string | null;
   mission?: MissionMetadata;
-  t: (key: TranslationKey) => string;
 }
 
 interface ActivityEvent {
@@ -36,13 +35,19 @@ interface ActivityEvent {
   message: string;
 }
 
-export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId, mission, t }) => {
+export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId, mission }) => {
   const { subscribe } = useRealtimeContext();
+  // Derive pseudo-random defaults from sessionId to show visual difference when switching
+  const hash = sessionId ? sessionId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+  const defaultTrust = 85 + (hash % 15);
+  const defaultStability = 80 + (hash % 20);
+  const defaultBudget = 40 + (hash % 40);
+
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
   const [autonomyMode, setAutonomyMode] = useState<'HITL' | 'AUTO'>('HITL');
-  const [trustScore, setTrustScore] = useState(mission?.trustScore ?? 92);
-  const [stabilityScore, setStabilityScore] = useState(mission?.stabilityScore ?? 88);
-  const [budgetUsage, setBudgetUsage] = useState(mission?.budgetUsage ?? 64);
+  const [trustScore, setTrustScore] = useState(mission?.trustScore ?? defaultTrust);
+  const [stabilityScore, setStabilityScore] = useState(mission?.stabilityScore ?? defaultStability);
+  const [budgetUsage, setBudgetUsage] = useState(mission?.budgetUsage ?? defaultBudget);
 
   useEffect(() => {
     // Subscribe to mission signals
@@ -59,6 +64,10 @@ export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId,
             message: payload.content || 'Processing signal...',
           };
           setActivities((prev) => [newEvent, ...prev].slice(0, 5));
+          
+          if (payload.trust) setTrustScore(payload.trust);
+          if (payload.stability) setStabilityScore(payload.stability);
+          if (payload.budget) setBudgetUsage(payload.budget);
         }
       }
     );

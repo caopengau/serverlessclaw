@@ -612,7 +612,6 @@ export default function ChatContent() {
               key={`control-${activeSessionId}`}
               sessionId={activeSessionId}
               mission={currentSession?.mission}
-              t={t}
             />
           )}
         </div>

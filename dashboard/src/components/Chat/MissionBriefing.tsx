@@ -50,15 +50,13 @@ export const MissionBriefing: React.FC<MissionBriefingProps> = ({
 
   // Mock mission data
   // Merge provided session mission with defaults for visualization
-  const mission = {
-    name: sessionMission?.name || (sessionId ? 'Operation_In_Progress' : 'Awaiting_Mission'),
-    status: sessionMission?.status || (sessionId ? 'ACTIVE - 0%' : 'PENDING'),
-    goal:
-      sessionMission?.goal ||
-      (sessionId ? 'Analyzing session context...' : 'Start a session to begin mission.'),
-    phases: sessionMission?.phases || [
-      { id: '1', label: 'Context Acquisition', status: sessionId ? 'active' : 'pending' },
-      { id: '2', label: 'Strategic Planning', status: 'pending' },
+  const mission = sessionMission ?? {
+    name: sessionId ? `Operation_${sessionId.slice(-6).toUpperCase()}` : 'Awaiting_Mission',
+    status: 'ACTIVE',
+    goal: `Strategic analysis for mission ${sessionId || 'unknown'} in progress.`,
+    phases: [
+      { id: '1', label: 'Context Acquisition', status: 'completed' },
+      { id: '2', label: 'Strategic Planning', status: 'active' },
       { id: '3', label: 'Execution', status: 'pending' },
       { id: '4', label: 'Verification', status: 'pending' },
     ],
@@ -178,7 +176,7 @@ export const MissionBriefing: React.FC<MissionBriefingProps> = ({
           <div className="space-y-4 relative pl-3">
             <div className="absolute left-[7px] top-1 bottom-1 w-px bg-border" />
 
-            {mission.phases.map((phase) => (
+            {(mission.phases || []).map((phase) => (
               <div key={phase.id} className="relative flex items-start gap-4">
                 <div
                   className={`absolute -left-5 w-4 h-4 rounded-full border-2 border-background flex items-center justify-center z-10 transition-colors ${phase.status === 'completed' ? 'bg-cyber-green border-cyber-green' : phase.status === 'active' ? 'bg-background border-cyber-blue' : 'bg-background border-border'}`}
