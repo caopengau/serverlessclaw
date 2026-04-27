@@ -201,6 +201,10 @@ export async function saveConversationMeta(
     updateExprParts.push('content = :content');
     attrValues[':content'] = meta.lastMessage;
   }
+  if (meta.mission !== undefined) {
+    updateExprParts.push('mission = :mission');
+    attrValues[':mission'] = meta.mission;
+  }
 
   let workspaceId: string | undefined;
   if (typeof scope === 'string') {

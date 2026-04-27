@@ -188,12 +188,25 @@ export class MetricsCollector {
 
     const expiresAt = Math.floor((Date.now() + this.config.retentionDays * TIME.MS_PER_DAY) / 1000);
 
+    // Sh6 Fix: Track timestamps to prevent MS collisions for the same agent
+    const lastTimestamps = new Map<string, number>();
+
     for (const metric of metricsToFlush) {
       try {
         const prefix = metric.workspaceId ? `WS#${metric.workspaceId}#` : '';
+        const pk = `${prefix}${MEMORY_KEYS.HEALTH_PREFIX}METRIC#${metric.agentId}`;
+
+        // Ensure unique timestamp within this flush/partition
+        let ts = metric.timestamp;
+        const lastTs = lastTimestamps.get(pk) ?? 0;
+        if (ts <= lastTs) {
+          ts = lastTs + 0.0001; // Tiny offset
+        }
+        lastTimestamps.set(pk, ts);
+
         await this.base.putItem({
-          userId: `${prefix}${MEMORY_KEYS.HEALTH_PREFIX}METRIC#${metric.agentId}`,
-          timestamp: metric.timestamp,
+          userId: pk,
+          timestamp: ts,
           type: 'COGNITIVE_METRIC',
           metricName: metric.name,
           value: metric.value,

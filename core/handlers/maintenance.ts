@@ -79,7 +79,18 @@ export const handler = async (_event: unknown, _context: Context): Promise<void>
 
     // 4. Trust Score Decay (Silo 6: The Scales)
     // Periodically decay trust scores to ensure continuous autonomy earning
-    await TrustManager.decayTrustScores();
+    // Sh6 Fix: Must iterate all workspaces to maintain multi-tenant trust integrity
+    await TrustManager.decayTrustScores(); // Global scores
+
+    try {
+      const { listWorkspaceIds } = await import('../lib/memory/workspace-operations');
+      const workspaceIds = await listWorkspaceIds();
+      for (const workspaceId of workspaceIds) {
+        await TrustManager.decayTrustScores(workspaceId);
+      }
+    } catch (error) {
+      logger.warn('[MAINTENANCE] Workspace trust decay failed:', error);
+    }
 
     logger.info('[MAINTENANCE] cycle completed successfully.');
   } catch (error) {

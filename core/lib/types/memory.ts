@@ -134,8 +134,32 @@ export interface ConversationMeta {
   isPinned?: boolean;
   /** Optional expiration timestamp (Unix epoch). */
   expiresAt?: number;
+  /** Mission-specific metadata for War Room mode. */
+  mission?: MissionMetadata;
   /** Additional dynamic metadata */
   metadata?: Record<string, unknown>;
+}
+
+/**
+ * Operational phase within a mission.
+ */
+export interface MissionPhase {
+  id: string;
+  label: string;
+  status: 'completed' | 'active' | 'pending';
+}
+
+/**
+ * Metadata specifically for the Mission Control and Mission Hub sidebars.
+ */
+export interface MissionMetadata {
+  name?: string;
+  status?: string;
+  goal?: string;
+  phases?: MissionPhase[];
+  trustScore?: number;
+  stabilityScore?: number;
+  budgetUsage?: number;
 }
 
 /**

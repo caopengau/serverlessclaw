@@ -19,7 +19,7 @@ This document covers the AWS topology and data flow. For operational instruction
 9.  **Multi-Lingual**: Implements a "Baseline English Prompt" strategy. Agents maintain high reasoning quality via English core prompts while communicating in the user's preferred language (English/Chinese) via dynamic runtime instruction injection.
 10. **JIT File Staging**: Implements a Just-In-Time media pipeline that intercept uploads, stages them in S3, and provides optimized cognitive context (base64/URLs) to agents, ensuring peak vision performance and trace-aware file management.
 11. **Shared Real-time Handshakes (Singleton UI Connectivity)**: To minimize AWS IoT Core authorizer costs and prevent "connection storms" during local development (HMR), the dashboard utilizes a singleton `RealtimeProvider`. This architecture ensures that regardless of the number of active components (Chat, Canvas, Agents), only **one physical WebSocket connection** is established per tab, reducing Lambda Authorizer invocations by >80%.
-12. **Mission Control Experience**: The dashboard transforms the standard chat interface into a high-fidelity "War Room". By integrating real-time telemetry (Trust, Stability, Budget) and operational phase tracking directly into the mission view, it reduces cognitive load and ensures the human remains the authoritative commander of the agentic swarm.
+12. **Mission Control Experience**: The dashboard transforms the standard chat interface into a high-fidelity "War Room". By integrating real-time telemetry (Trust, Stability, Budget) and operational phase tracking directly into the mission view, it reduces cognitive load and ensures the human remains the authoritative commander of the agentic swarm. This experience is fully dynamic, driven by session-specific metadata for persistent cross-session state.
 13. **Multi-Human & Agent Presence**: Implements a real-time presence layer using MQTT `presence` signals. This allows multiple humans and agents to maintain shared awareness within a workspace, tracking who is active, their current status, and collaborative actions.
 
 ---
@@ -253,7 +253,7 @@ For detailed fork strategies, see [FORK_STRATEGY.md](docs/governance/FORK_STRATE
 
 ### Mission Control Layout (War Room)
 
-The primary interaction interface implements a three-column "War Room" model:
+The primary interaction interface implements a three-column "War Room" model, synchronized via session metadata:
 
 ```text
 +-----------------------+-----------------------------+-----------------------+
@@ -264,8 +264,8 @@ The primary interaction interface implements a three-column "War Room" model:
 |                       |  - Real-time Signals        |                       |
 |  - Mission Briefing   |  - Inline Tool Execution    |  - Nerve Center       |
 |    (Goal/Status)      |                             |    (Activity Ticker)  |
-|                       |  - Context Persistence      |                       |
-|  - Operational Phases |                             |  - Autonomy Protocol  |
+|                       |  - Metadata-Driven UI       |                       |
+|  - Operational Phases |    (Session Persistence)    |  - Autonomy Protocol  |
 |    (Analysis->Deploy) |                             |    (HITL/AUTO/Ovr)    |
 +-----------------------+-----------------------------+-----------------------+
 ```

@@ -238,7 +238,7 @@ export class TrustManager {
       await AgentRegistry.atomicIncrementTrustScore(agentId, delta, {
         workspaceId: context?.workspaceId,
       })
-        .then(() => this.recordHistory(agentId, next, context))
+        .then((newScore) => this.recordHistory(agentId, newScore, context))
         .catch((err) => logger.error(`[TrustManager] Failed to decay score for ${agentId}:`, err));
     }
   }

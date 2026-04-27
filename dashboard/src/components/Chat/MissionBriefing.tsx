@@ -17,16 +17,19 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { TranslationKey } from '@/components/Providers/TranslationsProvider';
 import { usePresence } from '@/components/Providers/PresenceProvider';
+import { MissionMetadata } from '@claw/core/lib/types/memory';
 
 interface MissionBriefingProps {
   sessionId: string | null;
   collaborators: string[];
+  mission?: MissionMetadata;
   t: (key: TranslationKey) => string;
 }
 
 export const MissionBriefing: React.FC<MissionBriefingProps> = ({
   sessionId,
   collaborators,
+  mission: sessionMission,
   t,
 }) => {
   const { members, myPresence } = usePresence();
@@ -46,14 +49,17 @@ export const MissionBriefing: React.FC<MissionBriefingProps> = ({
   ];
 
   // Mock mission data
+  // Merge provided session mission with defaults for visualization
   const mission = {
-    name: 'Operation_Cobalt_Shield',
-    status: 'ACTIVE - 88%',
-    goal: 'Stabilize Infrastructure & Deploy Security Patches',
-    phases: [
-      { id: '1', label: 'Analysis', status: 'completed' },
-      { id: '2', label: 'Testing', status: 'completed' },
-      { id: '3', label: 'Deployment', status: 'active' },
+    name: sessionMission?.name || (sessionId ? 'Operation_In_Progress' : 'Awaiting_Mission'),
+    status: sessionMission?.status || (sessionId ? 'ACTIVE - 0%' : 'PENDING'),
+    goal:
+      sessionMission?.goal ||
+      (sessionId ? 'Analyzing session context...' : 'Start a session to begin mission.'),
+    phases: sessionMission?.phases || [
+      { id: '1', label: 'Context Acquisition', status: sessionId ? 'active' : 'pending' },
+      { id: '2', label: 'Strategic Planning', status: 'pending' },
+      { id: '3', label: 'Execution', status: 'pending' },
       { id: '4', label: 'Verification', status: 'pending' },
     ],
   };

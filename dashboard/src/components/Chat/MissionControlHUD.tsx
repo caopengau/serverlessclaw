@@ -21,9 +21,11 @@ import Badge from '@/components/ui/Badge';
 import TrustGauge from '@/components/TrustGauge';
 import { useRealtimeContext } from '@/components/Providers/RealtimeProvider';
 import { TranslationKey } from '@/components/Providers/TranslationsProvider';
+import { MissionMetadata } from '@claw/core/lib/types/memory';
 
 interface MissionControlHUDProps {
   sessionId: string | null;
+  mission?: MissionMetadata;
   t: (key: TranslationKey) => string;
 }
 
@@ -34,17 +36,18 @@ interface ActivityEvent {
   message: string;
 }
 
-export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId, t }) => {
+export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId, mission, t }) => {
   const { subscribe } = useRealtimeContext();
   const [activities, setActivities] = useState<ActivityEvent[]>([]);
   const [autonomyMode, setAutonomyMode] = useState<'HITL' | 'AUTO'>('HITL');
-  const [trustScore, setTrustScore] = useState(92);
-  const [stabilityScore, setStabilityScore] = useState(88);
-  const [budgetUsage, setBudgetUsage] = useState(64);
+  const [trustScore, setTrustScore] = useState(mission?.trustScore ?? 92);
+  const [stabilityScore, setStabilityScore] = useState(mission?.stabilityScore ?? 88);
+  const [budgetUsage, setBudgetUsage] = useState(mission?.budgetUsage ?? 64);
 
   useEffect(() => {
     // Subscribe to mission signals
     if (!sessionId) return;
+
     const unsubscribe = subscribe(
       [`sessions/${sessionId}/signal`],
       (topic: string, payload: any) => {
@@ -83,7 +86,7 @@ export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId,
     }
 
     return () => unsubscribe();
-  }, [sessionId, subscribe]);
+  }, [sessionId, subscribe, mission?.trustScore, mission?.stabilityScore, mission?.budgetUsage]);
 
   const toggleAutonomy = () => {
     setAutonomyMode((prev) => (prev === 'HITL' ? 'AUTO' : 'HITL'));

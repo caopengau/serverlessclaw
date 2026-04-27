@@ -268,7 +268,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
  */
 export async function PATCH(req: NextRequest): Promise<NextResponse> {
   try {
-    const { sessionId, title, isPinned, workspaceId = 'default' } = await req.json();
+    const { sessionId, title, isPinned, mission, workspaceId = 'default' } = await req.json();
     const userId = getUserId(req);
 
     if (!sessionId) {
@@ -281,6 +281,7 @@ export async function PATCH(req: NextRequest): Promise<NextResponse> {
       {
         title,
         isPinned,
+        mission,
         updatedAt: Date.now(),
       },
       { workspaceId }

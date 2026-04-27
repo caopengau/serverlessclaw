@@ -259,6 +259,25 @@ describe('session-operations', () => {
       expect(firstCall).toBe(secondCall);
       expect(typeof firstCall).toBe('number');
     });
+
+    it('should include mission metadata in update expression when provided', async () => {
+      const mission = {
+        name: 'Operation_Test',
+        goal: 'Verify mission saving',
+        phases: [{ id: '1', label: 'Phase 1', status: 'completed' as const }],
+      };
+
+      await saveConversationMeta(mockBase, 'user123', 'sess1', { mission });
+
+      expect(mockBase.updateItem).toHaveBeenCalledWith(
+        expect.objectContaining({
+          UpdateExpression: expect.stringContaining('mission = :mission'),
+          ExpressionAttributeValues: expect.objectContaining({
+            ':mission': mission,
+          }),
+        })
+      );
+    });
   });
 
   describe('saveLKGHash', () => {

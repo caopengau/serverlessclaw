@@ -240,29 +240,25 @@ export class ConfigManager {
 
     try {
       const { limit } = options || {};
-      await getDocClient().send(
-        new UpdateCommand({
-          TableName: tableName,
-          Key: { key: effectiveKey },
-          UpdateExpression: 'SET #val = if_not_exists(#val, :empty_list)',
-          ExpressionAttributeNames: { '#val': 'value' },
-          ExpressionAttributeValues: { ':empty_list': [] },
-        })
-      );
 
+      // Sh6 Fix: Combine initialization and append into a single atomic call
       const result = await getDocClient().send(
         new UpdateCommand({
           TableName: tableName,
           Key: { key: effectiveKey },
-          UpdateExpression: 'SET #val = list_append(#val, :items)',
+          UpdateExpression: 'SET #val = list_append(if_not_exists(#val, :empty_list), :items)',
           ExpressionAttributeNames: { '#val': 'value' },
-          ExpressionAttributeValues: { ':items': [item] },
+          ExpressionAttributeValues: {
+            ':empty_list': [],
+            ':items': [item],
+          },
           ReturnValues: 'ALL_NEW',
         })
       );
 
       const currentList = result.Attributes?.value as unknown[];
       if (limit && currentList && currentList.length > limit) {
+        // Capping remains a separate best-effort operation to stay within item limits
         const excess = currentList.length - limit;
         await getDocClient()
           .send(

@@ -267,6 +267,19 @@ describe('Dashboard API: PATCH /api/chat', () => {
       expect.anything()
     );
   });
+
+  it('updates mission metadata', async () => {
+    mockVerifyAuth.mockResolvedValue({ success: true, userId: 'dashboard-user' });
+    const mission = { name: 'Op Test' };
+    const res = await (PATCH as any)(makeRequest({ sessionId: 's1', mission }));
+    expect(res.status).toBe(200);
+    expect(mockSaveConversationMeta).toHaveBeenCalledWith(
+      'dashboard-user',
+      's1',
+      expect.objectContaining({ mission }),
+      expect.anything()
+    );
+  });
 });
 
 describe('Dashboard API: DELETE /api/chat', () => {

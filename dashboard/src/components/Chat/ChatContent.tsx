@@ -564,8 +564,10 @@ export default function ChatContent() {
         <div className="flex-1 flex overflow-hidden">
           {warRoomMode && (
             <MissionBriefing
+              key={`briefing-${activeSessionId}`}
               sessionId={activeSessionId}
               collaborators={activeCollaborators}
+              mission={currentSession?.mission}
               t={t}
             />
           )}
@@ -605,7 +607,14 @@ export default function ChatContent() {
             />
           </div>
 
-          {warRoomMode && <MissionControlHUD sessionId={activeSessionId} t={t} />}
+          {warRoomMode && (
+            <MissionControlHUD
+              key={`control-${activeSessionId}`}
+              sessionId={activeSessionId}
+              mission={currentSession?.mission}
+              t={t}
+            />
+          )}
         </div>
 
         {isAgentSelectorOpen && (
