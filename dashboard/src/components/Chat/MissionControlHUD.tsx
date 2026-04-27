@@ -38,7 +38,9 @@ interface ActivityEvent {
 export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId, mission }) => {
   const { subscribe } = useRealtimeContext();
   // Derive pseudo-random defaults from sessionId to show visual difference when switching
-  const hash = sessionId ? sessionId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+  const hash = sessionId
+    ? sessionId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    : 0;
   const defaultTrust = 85 + (hash % 15);
   const defaultStability = 80 + (hash % 20);
   const defaultBudget = 40 + (hash % 40);
@@ -64,7 +66,7 @@ export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId,
             message: payload.content || 'Processing signal...',
           };
           setActivities((prev) => [newEvent, ...prev].slice(0, 5));
-          
+
           if (payload.trust) setTrustScore(payload.trust);
           if (payload.stability) setStabilityScore(payload.stability);
           if (payload.budget) setBudgetUsage(payload.budget);
