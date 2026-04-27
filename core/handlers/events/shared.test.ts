@@ -11,7 +11,7 @@ vi.mock('../../lib/recursion-tracker', () => ({
     mockDepth.value += 1;
     return mockDepth.value;
   }),
-  getRecursionLimit: vi.fn(async (isMission) => (isMission ? 5 : 15)),
+  getRecursionLimit: vi.fn(async (opts) => (opts?.isMissionContext ? 5 : 15)),
 }));
 
 // Mock ConfigManager

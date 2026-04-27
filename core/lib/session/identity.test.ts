@@ -64,6 +64,14 @@ describe('IdentityManager', () => {
           // Mock simple updates for test coverage
           const key = cmd.input.Key.userId || cmd.input.Key.key;
           const item = state.get(key);
+
+          // Handle ConditionExpression (basic support for attribute_exists)
+          if (cmd.input.ConditionExpression?.includes('attribute_exists(userId)') && !item) {
+            const error = new Error('Conditional check failed');
+            (error as any).name = 'ConditionalCheckFailedException';
+            throw error;
+          }
+
           if (item) {
             if (cmd.input.UpdateExpression.includes('lastActiveAt')) {
               item.lastActiveAt = cmd.input.ExpressionAttributeValues[':lastActiveAt'];
@@ -72,8 +80,12 @@ describe('IdentityManager', () => {
               item.role = cmd.input.ExpressionAttributeValues[':role'];
             }
             if (cmd.input.UpdateExpression.includes('list_append')) {
-              const ws = cmd.input.ExpressionAttributeValues[':workspaceId'][0];
-              item.workspaceIds = [...(item.workspaceIds || []), ws];
+              const wsList = cmd.input.ExpressionAttributeValues[':workspaceId'];
+              const ws = Array.isArray(wsList) ? wsList[0] : wsList;
+              const current = item.workspaceIds || [];
+              if (!current.includes(ws)) {
+                item.workspaceIds = [...current, ws];
+              }
             }
             if (cmd.input.UpdateExpression.includes('workspaceIds = :workspaceIds')) {
               item.workspaceIds = cmd.input.ExpressionAttributeValues[':workspaceIds'];

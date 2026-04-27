@@ -155,12 +155,16 @@ export class UserOps extends IdentityBase {
           TableName: tableName,
           Key: { userId: this.getUserKey(userId, orgId), timestamp: 0 },
           UpdateExpression: `SET ${expressions.join(', ')}, updatedAt = :updatedAt`,
+          ConditionExpression: 'attribute_exists(userId)',
           ExpressionAttributeNames: Object.keys(names).length > 0 ? names : undefined,
           ExpressionAttributeValues: values,
         })
       );
       return true;
-    } catch (e) {
+    } catch (e: any) {
+      if (e.name === 'ConditionalCheckFailedException') {
+        return false;
+      }
       logger.error(`Failed to update user ${userId}:`, e);
       return false;
     }
@@ -195,7 +199,9 @@ export class UserOps extends IdentityBase {
       return true;
     } catch (e: any) {
       if (e.name === 'ConditionalCheckFailedException') {
-        return true;
+        // If the user doesn't exist, we should return false.
+        const user = await this.loadUser(userId, orgId);
+        return !!user;
       }
       logger.error(`Failed to add user ${userId} to workspace ${workspaceId}:`, e);
       return false;

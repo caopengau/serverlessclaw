@@ -29,7 +29,7 @@ export function isMissionContext(eventType?: string, metadata?: Record<string, u
   if (eventType && MISSION_EVENT_TYPES.includes(eventType as EventType)) {
     return true;
   }
-  if (metadata?.isMission === true) {
+  if (metadata?.isMissionContext === true) {
     return true;
   }
   return false;
