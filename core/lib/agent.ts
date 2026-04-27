@@ -17,6 +17,14 @@ import { resolveAgentConfig } from './agent/config-resolver';
 import { validateAgentConfig } from './agent/validator';
 import { reportAgentMetrics } from './agent/metrics-helper';
 import { isE2ETest } from './utils/agent-helpers';
+import { AGENT_SYSTEM_IDS, COMMUNICATION_MODES, TRACE_MESSAGES } from './constants/agent';
+
+const DEFAULT_CONFIG: Partial<IAgentConfig> = {
+  id: AGENT_SYSTEM_IDS.UNKNOWN,
+  name: AGENT_SYSTEM_IDS.SUPERCLAW,
+  maxIterations: 10,
+  defaultCommunicationMode: COMMUNICATION_MODES.TEXT,
+};
 
 // Re-export validation for backward compatibility and tests
 export { validateAgentConfig };
@@ -35,8 +43,8 @@ export class Agent {
     this.memory = memory;
     this.provider = provider;
     this.tools = tools;
-    this.config = config;
-    this.emitter = new AgentEmitter(config);
+    this.config = config ?? (DEFAULT_CONFIG as IAgentConfig);
+    this.emitter = new AgentEmitter(this.config);
   }
 
   /**
@@ -82,39 +90,43 @@ export class Agent {
     } = options;
 
     const responseFormat =
-      communicationMode === 'json'
+      communicationMode === COMMUNICATION_MODES.JSON
         ? initialResponseFormat || DEFAULT_SIGNAL_SCHEMA
         : initialResponseFormat;
 
     const scope = { workspaceId, orgId, teamId, staffId };
 
-    const { tracer, traceId, baseUserId } = await initializeTracer(
-      userId,
-      source,
+    const { tracer, traceId, baseUserId } = await initializeTracer(userId, source, {
       incomingTraceId,
       incomingNodeId,
       incomingParentId,
-      this.config?.id,
-      options.isContinuation,
+      agentId: this.config?.id,
+      isContinuation: options.isContinuation,
       userText,
       sessionId,
-      !!incomingAttachments,
-      scope
-    );
+      hasAttachments: !!incomingAttachments,
+      scope,
+    });
 
     const effectiveTaskId = taskId ?? traceId;
     const nodeId = tracer.getNodeId();
     const parentId = tracer.getParentId();
-    const currentInitiator = options.initiatorId ?? this.config?.id ?? 'orchestrator';
+    const currentInitiator =
+      options.initiatorId ?? this.config?.id ?? AGENT_SYSTEM_IDS.ORCHESTRATOR;
 
     const storageId = isIsolated
-      ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
+      ? `${(this.config?.id ?? AGENT_SYSTEM_IDS.UNKNOWN).toUpperCase()}#${userId}#${traceId}`
       : userId;
 
     let userRole: import('./types/agent').UserRole | undefined = initialUserRole;
 
     // Authorization check
-    if (baseUserId && baseUserId !== 'SYSTEM' && baseUserId !== 'dashboard-user' && !isE2ETest()) {
+    if (
+      baseUserId &&
+      baseUserId !== AGENT_SYSTEM_IDS.SYSTEM &&
+      baseUserId !== AGENT_SYSTEM_IDS.DASHBOARD_USER &&
+      !isE2ETest()
+    ) {
       try {
         const { getIdentityManager, Permission } = await import('./session/identity');
         const identityManager = await getIdentityManager();
@@ -145,7 +157,7 @@ export class Agent {
     // Early exit if global trace budget is already exceeded
     const { isBudgetExceeded } = await import('./recursion-tracker');
     if (await isBudgetExceeded(traceId)) {
-      const responseText = `[BUDGET_EXCEEDED] Global execution budget for trace ${traceId} has been reached. Halting further processing.`;
+      const responseText = TRACE_MESSAGES.BUDGET_EXCEEDED(traceId);
       await tracer.endTrace(responseText);
       return { responseText, traceId };
     }
@@ -153,7 +165,7 @@ export class Agent {
     const { isHumanTakingControl } = await import('./handoff');
     const ignoreHandoff = options.ignoreHandoff ?? false;
     if (!ignoreHandoff && (await isHumanTakingControl(baseUserId, sessionId))) {
-      const responseText = 'HUMAN_TAKING_CONTROL: Entering observe mode.';
+      const responseText = TRACE_MESSAGES.OBSERVE_MODE;
       await tracer.endTrace(responseText);
       return { responseText, traceId };
     }
@@ -324,7 +336,7 @@ export class Agent {
               role: MessageRole.ASSISTANT,
               content: responseText,
               thought: finalThought,
-              agentName: this.config?.name ?? 'Agent',
+              agentName: this.config?.name ?? AGENT_SYSTEM_IDS.SUPERCLAW,
               traceId,
               messageId: `msg-assistant-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             },
@@ -337,7 +349,7 @@ export class Agent {
               role: MessageRole.ASSISTANT,
               content: responseText,
               thought: finalThought,
-              agentName: this.config?.name ?? 'Agent',
+              agentName: this.config?.name ?? AGENT_SYSTEM_IDS.SUPERCLAW,
               traceId,
               messageId: `msg-assistant-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
             },
@@ -348,10 +360,10 @@ export class Agent {
 
       if (!process.env.VITEST) {
         await reportAgentMetrics({
-          agentId: this.config?.id ?? 'unknown',
+          agentId: this.config?.id ?? AGENT_SYSTEM_IDS.UNKNOWN,
           traceId,
-          activeProvider: finalProvider ?? 'unknown',
-          activeModel: finalModel ?? 'unknown',
+          activeProvider: finalProvider ?? AGENT_SYSTEM_IDS.UNKNOWN,
+          activeModel: finalModel ?? AGENT_SYSTEM_IDS.UNKNOWN,
           inputTokens: loopUsage.totalInputTokens,
           outputTokens: loopUsage.totalOutputTokens,
           toolCalls: loopUsage.toolCallCount,
@@ -403,27 +415,26 @@ export class Agent {
     const scope = { workspaceId, orgId, teamId, staffId };
     const startTime = Date.now();
 
-    const { tracer, traceId, baseUserId } = await initializeTracer(
-      userId,
-      source,
+    const { tracer, traceId, baseUserId } = await initializeTracer(userId, source, {
       incomingTraceId,
       incomingNodeId,
       incomingParentId,
-      this.config?.id,
-      options.isContinuation,
+      agentId: this.config?.id,
+      isContinuation: options.isContinuation,
       userText,
       sessionId,
-      !!incomingAttachments,
-      scope
-    );
+      hasAttachments: !!incomingAttachments,
+      scope,
+    });
 
     const effectiveTaskId = taskId ?? traceId;
     const nodeId = tracer.getNodeId();
     const parentId = tracer.getParentId();
-    const currentInitiator = options.initiatorId ?? this.config?.id ?? 'orchestrator';
+    const currentInitiator =
+      options.initiatorId ?? this.config?.id ?? AGENT_SYSTEM_IDS.ORCHESTRATOR;
 
     const storageId = isIsolated
-      ? `${(this.config?.id ?? 'unknown').toUpperCase()}#${userId}#${traceId}`
+      ? `${(this.config?.id ?? AGENT_SYSTEM_IDS.UNKNOWN).toUpperCase()}#${userId}#${traceId}`
       : userId;
 
     let userRole: import('./types/agent').UserRole | undefined = initialUserRole;
@@ -471,11 +482,11 @@ export class Agent {
     const ignoreHandoff = options.ignoreHandoff ?? false;
     if (!ignoreHandoff && (await isHumanTakingControl(baseUserId, sessionId))) {
       yield {
-        content: 'HUMAN_TAKING_CONTROL: Entering observe mode.',
+        content: TRACE_MESSAGES.OBSERVE_MODE,
         thought: undefined,
         messageId: `msg-handoff-${Date.now()}`,
       };
-      await tracer.endTrace('HUMAN_TAKING_CONTROL: Entering observe mode.');
+      await tracer.endTrace(TRACE_MESSAGES.OBSERVE_MODE);
       return;
     }
 
@@ -582,7 +593,7 @@ export class Agent {
         activeProfile: resolvedProfile,
         userText,
         responseFormat:
-          communicationMode === 'json'
+          communicationMode === COMMUNICATION_MODES.JSON
             ? initialResponseFormat || DEFAULT_SIGNAL_SCHEMA
             : initialResponseFormat,
         currentInitiator,
@@ -625,10 +636,10 @@ export class Agent {
             role: MessageRole.ASSISTANT,
             content: fullContent,
             thought: fullThought,
-            agentName: this.config?.name ?? 'SuperClaw',
+            agentName: this.config?.name ?? AGENT_SYSTEM_IDS.SUPERCLAW,
             traceId,
             messageId: assistantMessageId,
-            modelName: finalModel ?? 'unknown',
+            modelName: finalModel ?? AGENT_SYSTEM_IDS.UNKNOWN,
             usage: {
               prompt_tokens: totalInputTokens,
               completion_tokens: totalOutputTokens,

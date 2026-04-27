@@ -334,10 +334,11 @@ To ensure high-performance auditability and automatic data aging (Principle 1), 
 
 To satisfy **Principle 5 (Low Latency)** and **Principle 10 (Lean Evolution)**, Serverless Claw implements a unified, hot-swappable configuration layer:
 
-1. **Cached Dynamic Lookups**: The `ConfigManager` maintains a 60-second in-memory cache for all configuration keys. This reduces DynamoDB read IOPS by >90% during high-concurrency swarm missions while allowing system-wide behavioral changes (e.g., disabling an agent, opening a circuit) to propagate within one minute.
-2. **Authoritative Async Bridge**: The `getDynamicConfigValue` utility provides a type-safe, non-blocking interface for fetching hot-swappable settings. It automatically falls back to hardcoded defaults if DynamoDB is unreachable or the key is missing.
-3. **Atomic Writes & Invalidation**: Configuration updates use DynamoDB conditional writes to prevent lost updates. Any write to the `ConfigTable` automatically invalidates the local cache instance, ensuring immediate consistency for the writing process. **Supports Principle 15 (Monotonic Progress) via `atomicIncrementMapField` for numeric counters.**
-4. **Centralized Table Resolution**: Table names are resolved via `ddb-client.ts`, supporting environment variable overrides (`MEMORY_TABLE_NAME`, `CONFIG_TABLE_NAME`) for robust local development and multi-stage deployment alignment.
+1. **Modular Architecture**: The `ConfigManager` (`core/lib/registry/config.ts`) is refactored into specialized sub-modules within `core/lib/registry/config/` (base, list, map). This ensures high neural cohesion and stays within AI context limits during systemic audits.
+2. **Cached Dynamic Lookups**: Maintains a 60-second in-memory cache for all configuration keys. This reduces DynamoDB read IOPS by >90% during high-concurrency swarm missions.
+3. **Authoritative Async Bridge**: The `getDynamicConfigValue` utility provides a type-safe, non-blocking interface for fetching hot-swappable settings.
+4. **Atomic Writes & Invalidation**: Configuration updates use DynamoDB conditional writes to prevent lost updates. **Supports Principle 15 (Monotonic Progress) via `atomicIncrementMapField` for numeric counters.**
+5. **Centralized Table Resolution**: Table names are resolved via `ddb-client.ts`, supporting environment variable overrides for robust stage alignment.
 
 ---
 
@@ -538,7 +539,7 @@ Serverless Claw utilizes a tiered logic system to ensure efficiency and cost-con
 The system supports multi-human multi-agent coordination through **Moderated Sessions** and **Workspaces**.
 
 - **Workspaces**: Identity management, RBAC, and multi-tenant isolation. Every workspace acts as a sandbox for a specific swarm of agents and humans.
-- **Identity Management**: A centralized `IdentityManager` handles user provisioning, role-based access control (RBAC), and secure credential verification (Claw Keyphrases).
+- **Identity Management**: A centralized `IdentityManager` (`core/lib/session/identity/manager.ts`) handles user provisioning, RBAC, and secure credential verification. The implementation is modularized into specialized operations for Users, Sessions, and Access Control to optimize for AI grounding.
 - **Collaboration**: Facilitator-moderated sessions for strategic peer review, now scoped per workspace to prevent data leakage.
 
 ### 5. Multi-Human Shared Awareness

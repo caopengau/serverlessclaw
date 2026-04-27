@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { logger } from '@claw/core/lib/logger';
-import { DynamoMemory } from '@claw/core/lib/memory';
+import { BaseMemoryProvider } from '@claw/core/lib/memory/base';
 import { TIME } from '@claw/core/lib/constants';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const days = parseInt(searchParams.get('days') || '7', 10);
 
   try {
-    const memory = new DynamoMemory();
+    const memory = new BaseMemoryProvider();
     const now = Date.now();
     const startTime = now - days * TIME.MS_PER_DAY;
 

@@ -288,6 +288,14 @@ export class BaseMemoryProvider {
   }
 
   /**
+   * Universal fetcher for memory items by their prefix.
+   * Note: This uses an expensive Scan operation. Use sparingly.
+   */
+  public async listByPrefix(prefix: string): Promise<Record<string, unknown>[]> {
+    return this.scanByPrefix(prefix);
+  }
+
+  /**
    * Standard implementation for getHistory.
    * Filters out expired items based on TTL.
    */

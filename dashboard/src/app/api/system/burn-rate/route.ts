@@ -8,11 +8,11 @@ import { withApiHandler } from '@/lib/api-handler';
 export const dynamic = 'force-dynamic';
 
 export const GET = withApiHandler(async () => {
-  const { DynamoMemory } = await import('@claw/core/lib/memory');
+  const { BaseMemoryProvider } = await import('@claw/core/lib/memory/base');
   const { CONFIG_DEFAULTS } = await import('@claw/core/lib/config/config-defaults');
   const { ConfigManager } = await import('@claw/core/lib/registry/config');
 
-  const memory = new DynamoMemory();
+  const memory = new BaseMemoryProvider();
 
   // List all token rollups for today
   // Format: TOKEN_ROLLUP#<agentId>

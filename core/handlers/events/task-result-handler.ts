@@ -136,7 +136,7 @@ export async function handleTaskResult(
   // Defense-in-depth: Validate recursion depth before processing (P1 fix)
   // The depth should have been checked at the entry point, but verify to prevent bypass.
   // Use general recursion limit (task results aren't mission-critical themselves).
-  const recursionLimit = await getRecursionLimit(false);
+  const recursionLimit = await getRecursionLimit({ isMission: false });
   const currentDepth = depth ?? 0;
   if (currentDepth >= recursionLimit) {
     logger.error(

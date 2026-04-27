@@ -96,9 +96,9 @@ export class ClawTracer {
    */
   private async updateSummary(
     status: string,
-    extra: Record<string, unknown> = {},
-    isNew: boolean = false
+    options: { extra?: Record<string, unknown>; isNew?: boolean } = {}
   ): Promise<void> {
+    const { extra = {}, isNew = false } = options;
     if (!(await this.isSummaryEnabled())) return;
 
     await this.withRetry(async () => {
@@ -184,14 +184,13 @@ export class ClawTracer {
         })
       );
 
-      await this.updateSummary(
-        TRACE_STATUS.STARTED,
-        {
+      await this.updateSummary(TRACE_STATUS.STARTED, {
+        extra: {
           title: initialContext?.title ?? initialContext?.message ?? null,
           expiresAt,
         },
-        true
-      );
+        isNew: true,
+      });
     } catch (e: unknown) {
       if (
         e &&
@@ -258,7 +257,9 @@ export class ClawTracer {
       })
     );
 
-    await this.updateSummary(TRACE_STATUS.STARTED, { lastStepType: step.type });
+    await this.updateSummary(TRACE_STATUS.STARTED, {
+      extra: { lastStepType: step.type },
+    });
   }
 
   /**
@@ -287,14 +288,20 @@ export class ClawTracer {
       })
     );
 
-    await this.updateSummary(TRACE_STATUS.COMPLETED, { finalResponse });
-    await this.emitCompletionMetrics(endTime, true);
+    await this.updateSummary(TRACE_STATUS.COMPLETED, {
+      extra: { finalResponse },
+    });
+    await this.emitCompletionMetrics(endTime, { success: true });
   }
 
   /**
    * Internal helper to emit agent-level metrics on trace completion/failure.
    */
-  private async emitCompletionMetrics(endTime: number, success: boolean = true): Promise<void> {
+  private async emitCompletionMetrics(
+    endTime: number,
+    options: { success?: boolean } = {}
+  ): Promise<void> {
+    const { success = true } = options;
     if (!this.agentId) return;
 
     try {
@@ -342,7 +349,7 @@ export class ClawTracer {
       })
     );
 
-    await this.emitCompletionMetrics(endTime, false);
+    await this.emitCompletionMetrics(endTime, { success: false });
 
     // Emit immediate failure event for monitoring to trigger real-time remediation
     try {
@@ -365,7 +372,9 @@ export class ClawTracer {
       logger.warn('[Tracer] Failed to emit immediate failure event:', e);
     }
 
-    await this.updateSummary(TRACE_STATUS.FAILED, { failureReason: reason });
+    await this.updateSummary(TRACE_STATUS.FAILED, {
+      extra: { failureReason: reason },
+    });
   }
 
   /**
@@ -419,7 +428,8 @@ export class ClawTracer {
    *
    * @param immediate - If true, triggers drift detection immediately regardless of elapsed time
    */
-  async detectDrift(immediate: boolean = false): Promise<void> {
+  async detectDrift(options: { immediate?: boolean } = {}): Promise<void> {
+    const { immediate = false } = options;
     if (!this.agentId) return;
 
     if (immediate) {

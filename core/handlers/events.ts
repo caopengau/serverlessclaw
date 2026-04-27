@@ -13,7 +13,7 @@ import { incrementRecursionDepth, getRecursionLimit } from '../lib/recursion-tra
 import { EventType } from '../lib/types/agent';
 import * as crypto from 'crypto';
 
-import { STATIC_HANDLERS } from './events/handlers-map';
+import { HANDLER_LOADERS } from './events/handlers-map';
 import { validateEvent } from './events/validation';
 
 // Verify event routing configuration on module load
@@ -58,12 +58,12 @@ export async function handler(
     );
   } else {
     const isMission = isMissionContext(detailType, eventDetail as Record<string, unknown>);
-    const recursionLimit = await getRecursionLimit(isMission);
+    const recursionLimit = await getRecursionLimit({ isMission });
     const currentDepth = await incrementRecursionDepth(
       traceId,
       sessionId,
       'system.spine',
-      isMission
+      { isMission }
     );
 
     if (currentDepth > recursionLimit || currentDepth === -1) {
@@ -167,10 +167,11 @@ export async function handler(
     let handlerModule;
     try {
       const moduleName = routing.module.split('/').pop()!;
-      handlerModule = STATIC_HANDLERS[moduleName];
-      if (!handlerModule) {
-        throw new Error(`Module ${moduleName} not found in static handlers map`);
+      const loader = HANDLER_LOADERS[moduleName];
+      if (!loader) {
+        throw new Error(`Module ${moduleName} not found in handler loaders map`);
       }
+      handlerModule = await loader();
     } catch (importError) {
       logger.error(`[SAFE_MODE] Static import lookup failed for ${routing.module}:`, importError);
       // Attempt fallback to default routing if not already using it
@@ -180,10 +181,11 @@ export async function handler(
           logger.info(`[SAFE_MODE] Recovering via default routing for ${detailType}`);
           const fallbackModuleName = fallback.module.split('/').pop()!;
           try {
-            handlerModule = STATIC_HANDLERS[fallbackModuleName];
-            if (!handlerModule) {
-              throw new Error(`Fallback module ${fallbackModuleName} not found in static map`);
+            const fallbackLoader = HANDLER_LOADERS[fallbackModuleName];
+            if (!fallbackLoader) {
+              throw new Error(`Fallback module ${fallbackModuleName} not found in loaders map`);
             }
+            handlerModule = await fallbackLoader();
           } catch (fallbackError) {
             const errorMsg = `[SAFE_MODE] Critical fallback lookup failed for ${fallbackModuleName}: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`;
             logger.error(errorMsg);

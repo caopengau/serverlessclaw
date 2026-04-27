@@ -1,44 +1,27 @@
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../../logger';
-import { MEMORY_KEYS, TIME } from '../../constants';
-import { generateSessionId } from '../../utils/id-generator';
-import { createHash } from 'crypto';
-import {
-  UserRole,
-  Permission,
-  UserIdentity,
-  Session,
-  AuthResult,
-  AccessControlEntry,
-} from './types';
-import { ROLE_PERMISSIONS, WORKSPACE_SCOPED_PERMISSIONS } from './constants';
+import { UserRole, Permission, UserIdentity, Session, AuthResult, AccessControlEntry } from './types';
+import { IdentityBase } from './base';
+import { UserOps } from './user-ops';
+import { SessionOps } from './session-ops';
+import { AccessOps } from './access-ops';
 
 /**
  * Identity and Access Manager.
+ * 
+ * Refactored into functional sub-modules (user-ops, session-ops, access-ops)
+ * to maintain AI grounding and resolve "Extreme file length" critical issues.
  */
-export class IdentityManager {
-  private base: import('../../memory/base').BaseMemoryProvider;
+export class IdentityManager extends IdentityBase {
+  private userOps: UserOps;
+  private sessionOps: SessionOps;
+  private accessOps: AccessOps;
 
   constructor(base: import('../../memory/base').BaseMemoryProvider) {
-    this.base = base;
-  }
-
-  private getUserKey(userId: string, orgId?: string): string {
-    const prefix = orgId ? MEMORY_KEYS.ORG_PREFIX : MEMORY_KEYS.WORKSPACE_PREFIX;
-    const scope = orgId ? `ORG#${orgId}#` : '';
-    return `${prefix}${scope}USER#${userId}`;
-  }
-
-  private getSessionKey(sessionId: string, orgId?: string): string {
-    const prefix = orgId ? MEMORY_KEYS.ORG_PREFIX : MEMORY_KEYS.WORKSPACE_PREFIX;
-    const scope = orgId ? `ORG#${orgId}#` : '';
-    return `${prefix}${scope}SESSION#${sessionId}`;
-  }
-
-  private getAclKey(resourceType: string, resourceId: string, orgId?: string): string {
-    const prefix = orgId ? MEMORY_KEYS.ORG_PREFIX : MEMORY_KEYS.WORKSPACE_PREFIX;
-    const scope = orgId ? `ORG#${orgId}#` : '';
-    return `${prefix}${scope}ACL#${resourceType}#${resourceId}`;
+    super(base);
+    this.userOps = new UserOps(base);
+    this.sessionOps = new SessionOps(base);
+    this.accessOps = new AccessOps(base);
   }
 
   /**
@@ -54,9 +37,9 @@ export class IdentityManager {
       const workspaceId = metadata?.workspaceId as string | undefined;
 
       // Get or create user identity
-      let user = await this.getUser(userId, undefined, orgId);
+      let user = await this.userOps.loadUser(userId, orgId);
       if (!user) {
-        user = await this.createUser(userId, authProvider, metadata?.password as string);
+        user = await this.userOps.createUser(userId, authProvider, metadata?.password as string, orgId);
       }
 
       // Validate workspace membership if workspaceId provided
@@ -83,7 +66,7 @@ export class IdentityManager {
       }
 
       // Create session with workspace context
-      const session = await this.createSession(userId, workspaceId, metadata);
+      const session = await this.sessionOps.createSession(userId, workspaceId, metadata);
 
       logger.info(`User authenticated: ${userId} via ${authProvider}`, {
         sessionId: session.sessionId,
@@ -108,25 +91,22 @@ export class IdentityManager {
    * Validate a session.
    */
   async validateSession(sessionId: string, orgId?: string): Promise<Session | null> {
-    const session = await this.getSession(sessionId, undefined, orgId);
+    const session = await this.sessionOps.getSession(sessionId, orgId);
     if (!session) return null;
 
-    // Check expiration
     if (Date.now() > session.expiresAt) {
-      await this.terminateSession(sessionId, orgId);
+      await this.sessionOps.terminateSession(sessionId, orgId);
       logger.info(`Session expired: ${sessionId}`);
       return null;
     }
 
-    // Update last activity
     session.lastActivityTime = Date.now();
-    await this.saveSession(session, orgId);
+    await this.sessionOps.saveSession(session, orgId);
     return session;
   }
 
   /**
    * Check if a user has a specific permission.
-   * Validates workspace membership for workspace-scoped permissions.
    */
   async hasPermission(
     userId: string,
@@ -134,13 +114,12 @@ export class IdentityManager {
     workspaceId?: string,
     orgId?: string
   ): Promise<boolean> {
-    const user = await this.getUser(userId, undefined, orgId);
+    const user = await this.userOps.loadUser(userId, orgId);
     if (!user) return false;
 
-    const rolePermissions = ROLE_PERMISSIONS[user.role];
-    if (!rolePermissions.includes(permission)) return false;
+    if (!this.accessOps.hasPermissionSync(user.role, permission)) return false;
 
-    if (workspaceId && WORKSPACE_SCOPED_PERMISSIONS.has(permission)) {
+    if (workspaceId && this.accessOps.isWorkspaceScoped(permission)) {
       return user.workspaceIds.includes(workspaceId);
     }
 
@@ -149,7 +128,6 @@ export class IdentityManager {
 
   /**
    * Check if a user has access to a specific resource.
-   * Validates workspace membership when workspaceId is provided.
    */
   async hasResourceAccess(
     userId: string,
@@ -157,629 +135,103 @@ export class IdentityManager {
     resourceId: string,
     orgId?: string
   ): Promise<boolean> {
-    const user = await this.loadUser(userId, orgId);
+    const user = await this.userOps.loadUser(userId, orgId);
     if (!user) return false;
 
-    // Owners and admins have access to everything
     if (user.role === UserRole.OWNER || user.role === UserRole.ADMIN) {
       return true;
     }
 
-    // Check specific access control entries
-    const entry = await this.getAccessControlEntry(resourceType, resourceId, orgId);
+    const entry = await this.accessOps.getAccessControlEntry(resourceType, resourceId, orgId);
 
     if (entry) {
-      // Check if user ID is explicitly allowed
-      if (entry.allowedUserIds?.includes(userId)) {
-        return true;
-      }
-      // Check if user's role is allowed
-      if (entry.allowedRoles.includes(user.role)) {
-        return true;
-      }
+      if (entry.allowedUserIds?.includes(userId)) return true;
+      if (entry.allowedRoles.includes(user.role)) return true;
 
-      // Check hierarchical inheritance - if parent resource is accessible, inherit permission
       if (entry.parentId) {
-        const parentEntry = await this.getAccessControlEntry('workspace', entry.parentId, orgId);
+        const parentEntry = await this.accessOps.getAccessControlEntry('workspace', entry.parentId, orgId);
         if (parentEntry) {
-          if (parentEntry.allowedUserIds?.includes(userId)) {
-            return true;
-          }
-          if (parentEntry.allowedRoles.includes(user.role)) {
-            return true;
-          }
+          if (parentEntry.allowedUserIds?.includes(userId)) return true;
+          if (parentEntry.allowedRoles.includes(user.role)) return true;
         }
-        // Also check workspace membership
-        if (user.workspaceIds.includes(entry.parentId)) {
-          return true;
-        }
+        if (user.workspaceIds.includes(entry.parentId)) return true;
       }
     }
 
-    // Default: check workspace membership for workspace resources
     if (resourceType === 'workspace') {
       return user.workspaceIds.includes(resourceId);
     }
 
-    // For other resources, deny by default unless explicitly granted via ACL
     return false;
   }
 
-  /**
-   * Get user identity. Loads from storage.
-   * @param userId - The user ID to retrieve
-   * @param callerId - Optional caller ID for permission validation.
-   */
-  async getUser(
-    userId: string,
-    callerId?: string,
-    orgId?: string
-  ): Promise<UserIdentity | undefined> {
+  // Delegated methods for API consistency
+  async getUser(userId: string, callerId?: string, orgId?: string): Promise<UserIdentity | undefined> {
     if (callerId && callerId !== userId) {
       const hasAccess = await this.hasResourceAccess(callerId, 'agent', userId, orgId);
-      if (!hasAccess) {
-        logger.warn(`Permission denied: ${callerId} attempted to access user ${userId}`);
-        return undefined;
-      }
+      if (!hasAccess) return undefined;
     }
-    return this.loadUser(userId, orgId);
+    return this.userOps.loadUser(userId, orgId);
   }
 
-  /**
-   * Get all registered users.
-   */
   async getAllUsers(): Promise<UserIdentity[]> {
-    try {
-      const { getMemoryByType } = await import('../../memory/utils');
-      const items = await getMemoryByType(this.base, 'USER_IDENTITY', 1000);
-      return items.map((item) => ({
-        userId: (item.userId as string).split('#').pop()!,
-        displayName: (item.displayName as string) ?? '',
-        email: item.email as string | undefined,
-        role: item.role as UserRole,
-        workspaceIds: (item.workspaceIds as string[]) ?? [],
-        authProvider: item.authProvider as 'telegram' | 'dashboard' | 'api_key',
-        createdAt: item.createdAt as number,
-        lastActiveAt: item.lastActiveAt as number,
-        hashedPassword: item.hashedPassword as string | undefined,
-      }));
-    } catch (error) {
-      logger.error('Failed to list users:', error);
-      return [];
-    }
+    return this.userOps.getAllUsers();
   }
 
-  /**
-   * Get session from storage.
-   * @param sessionId - The session ID to retrieve
-   * @param callerId - Optional caller ID for permission validation.
-   */
-  async getSession(
-    sessionId: string,
-    callerId?: string,
-    orgId?: string
-  ): Promise<Session | undefined> {
-    try {
-      const items = await this.base.queryItems({
-        KeyConditionExpression: 'userId = :pk AND #ts = :zero',
-        ExpressionAttributeNames: { '#ts': 'timestamp' },
-        ExpressionAttributeValues: {
-          ':pk': this.getSessionKey(sessionId, orgId),
-          ':zero': 0,
-        },
-      });
-
-      if (items.length > 0) {
-        const item = items[0];
-        const sessionUserId = item.sessionUserId as string;
-
-        if (callerId && callerId !== sessionUserId) {
-          const hasAccess = await this.hasResourceAccess(callerId, 'trace', sessionUserId, orgId);
-          if (!hasAccess) {
-            logger.warn(`Permission denied: ${callerId} attempted to access session ${sessionId}`);
-            return undefined;
-          }
-        }
-
-        return {
-          sessionId,
-          userId: sessionUserId,
-          workspaceId: item.workspaceId as string | undefined,
-          startTime: item.startTime as number,
-          lastActivityTime: item.lastActivityTime as number,
-          expiresAt: item.expiresAt as number,
-          metadata: item.metadata as Record<string, unknown> | undefined,
-        };
-      }
-    } catch (error) {
-      logger.error(`Failed to load session ${sessionId}:`, error);
+  async getSession(sessionId: string, callerId?: string, orgId?: string): Promise<Session | undefined> {
+    const session = await this.sessionOps.getSession(sessionId, orgId);
+    if (session && callerId && callerId !== session.userId) {
+      const hasAccess = await this.hasResourceAccess(callerId, 'trace', session.userId, orgId);
+      if (!hasAccess) return undefined;
     }
-    return undefined;
-  }
-
-  /**
-   * Terminate a session.
-   */
-  async terminateSession(sessionId: string, orgId?: string): Promise<void> {
-    try {
-      await this.base.deleteItem({
-        userId: this.getSessionKey(sessionId, orgId),
-        timestamp: 0,
-      });
-      logger.info(`Session terminated: ${sessionId}`);
-    } catch (error) {
-      logger.error(`Failed to terminate session ${sessionId}:`, error);
-    }
-  }
-
-  /**
-   * Get all active sessions for a user.
-   */
-  async getUserSessions(userId: string): Promise<Session[]> {
-    try {
-      const result = await this.base.queryItemsPaginated({
-        IndexName: 'TypeTimestampIndex',
-        KeyConditionExpression: '#tp = :type',
-        FilterExpression: 'sessionUserId = :uid',
-        ExpressionAttributeNames: {
-          '#tp': 'type',
-        },
-        ExpressionAttributeValues: {
-          ':type': 'SESSION',
-          ':uid': userId,
-        },
-        Limit: 100,
-        ScanIndexForward: false,
-      });
-
-      return result.items.map((item) => ({
-        sessionId: (item.userId as string).split('#').pop()!,
-        userId: item.sessionUserId as string,
-        workspaceId: item.workspaceId as string | undefined,
-        startTime: item.startTime as number,
-        lastActivityTime: item.lastActivityTime as number,
-        expiresAt: item.expiresAt as number,
-        metadata: item.metadata as Record<string, unknown> | undefined,
-      }));
-    } catch (error) {
-      logger.error(`Failed to get sessions for user ${userId}:`, error);
-      return [];
-    }
-  }
-
-  /**
-   * Update user role. Requires OWNER/ADMIN caller.
-   */
-  async updateUserRole(
-    userId: string,
-    role: UserRole,
-    callerId: string,
-    orgId?: string
-  ): Promise<boolean> {
-    const caller = await this.getUser(callerId, undefined, orgId);
-    if (!caller || (caller.role !== UserRole.OWNER && caller.role !== UserRole.ADMIN)) {
-      logger.error(`Unauthorized role update attempt by ${callerId} for ${userId}`);
-      return false;
-    }
-
-    const user = await this.getUser(userId, undefined, orgId);
-    if (!user) {
-      logger.error(`User not found: ${userId}`);
-      return false;
-    }
-
-    const docClient = this.base.getDocClient();
-    const tableName = this.base.getTableName();
-    if (!tableName) return false;
-
-    try {
-      await docClient.send(
-        new UpdateCommand({
-          TableName: tableName,
-          Key: { userId: this.getUserKey(userId, orgId), timestamp: 0 },
-          UpdateExpression: 'SET #role = :role, updatedAt = :updatedAt',
-          ConditionExpression: 'attribute_exists(userId)',
-          ExpressionAttributeNames: { '#role': 'role' },
-          ExpressionAttributeValues: { ':role': role, ':updatedAt': Date.now() },
-        })
-      );
-      logger.info(`User role updated: ${userId} -> ${role}${callerId ? ` by ${callerId}` : ''}`);
-      return true;
-    } catch (e) {
-      logger.error(`Failed to update role for user ${userId}:`, e);
-      return false;
-    }
-  }
-
-  /**
-   * Add user to workspace.
-   */
-  async addUserToWorkspace(userId: string, workspaceId: string, orgId?: string): Promise<boolean> {
-    const user = await this.getUser(userId, undefined, orgId);
-    if (!user) {
-      logger.error(`User not found: ${userId}`);
-      return false;
-    }
-
-    if (user.workspaceIds.includes(workspaceId)) {
-      return true; // Already a member
-    }
-
-    const docClient = this.base.getDocClient();
-    const tableName = this.base.getTableName();
-    if (!tableName) return false;
-
-    try {
-      // Sh6 Fix: Enforce Principle 13 (Atomic State Integrity)
-      // and prevent duplicate membership via ConditionExpression
-      await docClient.send(
-        new UpdateCommand({
-          TableName: tableName,
-          Key: { userId: this.getUserKey(userId, orgId), timestamp: 0 },
-          UpdateExpression:
-            'SET workspaceIds = list_append(if_not_exists(workspaceIds, :empty), :workspaceId), updatedAt = :updatedAt',
-          ConditionExpression:
-            'attribute_exists(userId) AND NOT contains(workspaceIds, :workspaceIdStr)',
-          ExpressionAttributeValues: {
-            ':empty': [],
-            ':workspaceId': [workspaceId],
-            ':workspaceIdStr': workspaceId,
-            ':updatedAt': Date.now(),
-          },
-        })
-      );
-      logger.info(`User ${userId} added to workspace ${workspaceId}`);
-      return true;
-    } catch (e: any) {
-      if (e.name === 'ConditionalCheckFailedException') {
-        return true; // Concurrent add or already exists
-      }
-      logger.error(`Failed to add user ${userId} to workspace ${workspaceId}:`, e);
-      return false;
-    }
-  }
-
-  /**
-   * Remove user from workspace.
-   */
-  async removeUserFromWorkspace(
-    userId: string,
-    workspaceId: string,
-    orgId?: string
-  ): Promise<boolean> {
-    const docClient = this.base.getDocClient();
-    const tableName = this.base.getTableName();
-    if (!tableName) return false;
-
-    const maxRetries = 3;
-    let retryCount = 0;
-
-    while (retryCount < maxRetries) {
-      const user = await this.getUser(userId, undefined, orgId);
-      if (!user) return false;
-
-      const index = user.workspaceIds.indexOf(workspaceId);
-      if (index === -1) return true; // Already removed
-
-      const newIds = user.workspaceIds.filter((id) => id !== workspaceId);
-
-      try {
-        // Sh6 Fix: Enforce Principle 13 (Atomic State Integrity)
-        // Uses Optimistic Concurrency to prevent race conditions on list modification
-        await docClient.send(
-          new UpdateCommand({
-            TableName: tableName,
-            Key: { userId: this.getUserKey(userId, orgId), timestamp: 0 },
-            UpdateExpression: 'SET workspaceIds = :workspaceIds, updatedAt = :updatedAt',
-            ConditionExpression: 'workspaceIds = :oldIds',
-            ExpressionAttributeValues: {
-              ':workspaceIds': newIds,
-              ':oldIds': user.workspaceIds,
-              ':updatedAt': Date.now(),
-            },
-          })
-        );
-        logger.info(`User ${userId} removed from workspace ${workspaceId}`);
-        return true;
-      } catch (e: any) {
-        if (e.name === 'ConditionalCheckFailedException') {
-          retryCount++;
-          continue;
-        }
-        logger.error(`Failed to remove user ${userId} from workspace ${workspaceId}:`, e);
-        return false;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Add access control entry.
-   */
-  async addAccessControlEntry(entry: AccessControlEntry, orgId?: string): Promise<void> {
-    try {
-      await this.base.putItem({
-        userId: this.getAclKey(entry.resourceType, entry.resourceId, orgId),
-        timestamp: 0,
-        type: 'ACCESS_CONTROL',
-        resourceType: entry.resourceType,
-        resourceId: entry.resourceId,
-        parentId: entry.parentId,
-        allowedRoles: entry.allowedRoles,
-        allowedUserIds: entry.allowedUserIds,
-        updatedAt: Date.now(),
-      });
-      logger.info(`Access control entry saved: ${entry.resourceType}:${entry.resourceId}`);
-    } catch (error) {
-      logger.error(`Failed to save ACL entry:`, error);
-    }
-  }
-
-  /**
-   * Load user identity from storage.
-   */
-  private async loadUser(userId: string, orgId?: string): Promise<UserIdentity | undefined> {
-    try {
-      const items = await this.base.queryItems({
-        KeyConditionExpression: 'userId = :pk AND #ts = :zero',
-        ExpressionAttributeNames: { '#ts': 'timestamp' },
-        ExpressionAttributeValues: {
-          ':pk': this.getUserKey(userId, orgId),
-          ':zero': 0,
-        },
-      });
-
-      if (items.length > 0) {
-        const item = items[0];
-        return {
-          userId,
-          displayName: (item.displayName as string) ?? userId,
-          email: item.email as string | undefined,
-          role: item.role as UserRole,
-          workspaceIds: (item.workspaceIds as string[]) ?? [],
-          authProvider: item.authProvider as 'telegram' | 'dashboard' | 'api_key',
-          createdAt: item.createdAt as number,
-          lastActiveAt: item.lastActiveAt as number,
-          hashedPassword: item.hashedPassword as string | undefined,
-        };
-      }
-    } catch (error) {
-      logger.error(`Failed to load user ${userId}:`, error);
-    }
-    return undefined;
-  }
-
-  /**
-   * Create new user identity.
-   */
-  private async createUser(
-    userId: string,
-    authProvider: 'telegram' | 'dashboard' | 'api_key',
-    password?: string,
-    orgId?: string
-  ): Promise<UserIdentity> {
-    const newUser: UserIdentity = {
-      userId,
-      displayName: userId,
-      role: UserRole.MEMBER,
-      workspaceIds: [],
-      authProvider,
-      createdAt: Date.now(),
-      lastActiveAt: Date.now(),
-      hashedPassword: password ? this.hashPassword(userId, password) : undefined,
-    };
-
-    await this.saveUser(newUser, orgId);
-    return newUser;
-  }
-
-  /**
-   * Save user to storage.
-   */
-  private async saveUser(user: UserIdentity, orgId?: string): Promise<void> {
-    try {
-      await this.base.putItem(
-        {
-          userId: this.getUserKey(user.userId, orgId),
-          timestamp: 0,
-          type: 'USER_IDENTITY',
-          displayName: user.displayName,
-          email: user.email,
-          role: user.role,
-          workspaceIds: user.workspaceIds,
-          authProvider: user.authProvider,
-          createdAt: user.createdAt,
-          lastActiveAt: user.lastActiveAt,
-          hashedPassword: user.hashedPassword,
-          updatedAt: Date.now(),
-        },
-        { ConditionExpression: 'attribute_not_exists(userId)' }
-      );
-    } catch (error) {
-      logger.error(`Failed to save user ${user.userId}:`, error);
-    }
-  }
-
-  /**
-   * Create a new session.
-   */
-  private async createSession(
-    userId: string,
-    workspaceId: string | undefined,
-    metadata?: Record<string, unknown>
-  ): Promise<Session> {
-    const sessionId = generateSessionId();
-    const now = Date.now();
-    const session: Session = {
-      sessionId,
-      userId,
-      workspaceId,
-      startTime: now,
-      lastActivityTime: now,
-      expiresAt: now + 24 * TIME.MS_PER_HOUR,
-      metadata,
-    };
-
-    await this.saveSession(session, metadata?.orgId as string | undefined);
     return session;
   }
 
-  /**
-   * Save session to storage.
-   */
-  private async saveSession(session: Session, orgId?: string): Promise<void> {
-    try {
-      await this.base.putItem({
-        userId: this.getSessionKey(session.sessionId, orgId),
-        timestamp: 0,
-        type: 'SESSION',
-        sessionUserId: session.userId,
-        workspaceId: session.workspaceId,
-        startTime: session.startTime,
-        lastActivityTime: session.lastActivityTime,
-        expiresAt: session.expiresAt,
-        metadata: session.metadata,
-        ttl: Math.floor(session.expiresAt / 1000),
-      });
-    } catch (error) {
-      logger.error(`Failed to save session ${session.sessionId}:`, error);
-    }
+  async terminateSession(sessionId: string, orgId?: string): Promise<void> {
+    return this.sessionOps.terminateSession(sessionId, orgId);
   }
 
-  /**
-   * Get ACL entry from storage.
-   */
-  private async getAccessControlEntry(
-    resourceType: string,
-    resourceId: string,
-    orgId?: string
-  ): Promise<AccessControlEntry | undefined> {
-    try {
-      const items = await this.base.queryItems({
-        KeyConditionExpression: 'userId = :pk AND #ts = :zero',
-        ExpressionAttributeNames: { '#ts': 'timestamp' },
-        ExpressionAttributeValues: {
-          ':pk': this.getAclKey(resourceType, resourceId, orgId),
-          ':zero': 0,
-        },
-      });
-
-      if (items.length > 0) {
-        const item = items[0];
-        return {
-          resourceType: item.resourceType as 'agent' | 'workspace' | 'config' | 'trace',
-          resourceId: item.resourceId as string,
-          parentId: item.parentId as string | undefined,
-          allowedRoles: item.allowedRoles as UserRole[],
-          allowedUserIds: item.allowedUserIds as string[] | undefined,
-        };
-      }
-    } catch (error) {
-      logger.error(`Failed to load ACL entry for ${resourceType}:${resourceId}:`, error);
-    }
-    return undefined;
+  async getUserSessions(userId: string): Promise<Session[]> {
+    return this.sessionOps.getUserSessions(userId);
   }
 
-  /**
-   * Cleanup expired sessions.
-   */
+  async updateUserRole(userId: string, role: UserRole, callerId: string, orgId?: string): Promise<boolean> {
+    const caller = await this.getUser(callerId, undefined, orgId);
+    if (!caller || (caller.role !== UserRole.OWNER && caller.role !== UserRole.ADMIN)) return false;
+    return this.userOps.updateUser(userId, { role }, orgId);
+  }
+
+  async addUserToWorkspace(userId: string, workspaceId: string, orgId?: string): Promise<boolean> {
+    return this.userOps.addUserToWorkspace(userId, workspaceId, orgId);
+  }
+
+  async removeUserFromWorkspace(userId: string, workspaceId: string, orgId?: string): Promise<boolean> {
+    return this.userOps.removeUserFromWorkspace(userId, workspaceId, orgId);
+  }
+
+  async addAccessControlEntry(entry: AccessControlEntry, orgId?: string): Promise<void> {
+    return this.accessOps.addAccessControlEntry(entry, orgId);
+  }
+
   async cleanupExpiredSessions(): Promise<number> {
-    const now = Date.now();
-    try {
-      const { getMemoryByType } = await import('../../memory/utils');
-      const items = await getMemoryByType(this.base, 'SESSION', 1000);
-      let cleaned = 0;
-
-      for (const item of items) {
-        if (now > (item.expiresAt as number)) {
-          const sessionId = (item.userId as string).split('#').pop()!;
-          const orgId = (item.userId as string).includes('ORG#')
-            ? (item.userId as string).split('#')[2]
-            : undefined;
-          await this.terminateSession(sessionId, orgId);
-          cleaned++;
-        }
-      }
-
-      if (cleaned > 0) {
-        logger.info(`Cleaned up ${cleaned} expired sessions`);
-      }
-      return cleaned;
-    } catch (error) {
-      logger.error('Failed to cleanup expired sessions:', error);
-      return 0;
-    }
+    return this.sessionOps.cleanupExpiredSessions();
   }
 
-  /**
-   * Hash a password for storage using userId as salt.
-   */
-  private hashPassword(userId: string, password: string): string {
-    return createHash('sha256').update(`${userId}:${password}`).digest('hex');
-  }
-
-  /**
-   * Verify a password against stored hash.
-   */
   async verifyPassword(userId: string, password: string): Promise<boolean> {
-    const user = await this.getUser(userId);
+    const user = await this.userOps.loadUser(userId);
     if (!user || !user.hashedPassword) return false;
-    return this.hashPassword(userId, password) === user.hashedPassword;
+    return this.userOps.hashPassword(userId, password) === user.hashedPassword;
   }
 
-  /**
-   * Update user details.
-   */
   async updateUser(
     userId: string,
-    updates: Partial<Pick<UserIdentity, 'displayName' | 'email' | 'role'>>,
+    updates: Record<string, unknown>,
     callerId: string,
     orgId?: string
   ): Promise<boolean> {
     const caller = await this.getUser(callerId, undefined, orgId);
-    if (!caller || (caller.role !== UserRole.OWNER && caller.role !== UserRole.ADMIN)) {
-      return false;
-    }
-
-    const docClient = this.base.getDocClient();
-    const tableName = this.base.getTableName();
-    if (!tableName) return false;
-
-    const expressions = [];
-    const values: Record<string, any> = { ':updatedAt': Date.now() };
-    const names: Record<string, string> = {};
-
-    if (updates.displayName) {
-      expressions.push('displayName = :displayName');
-      values[':displayName'] = updates.displayName;
-    }
-    if (updates.email) {
-      expressions.push('email = :email');
-      values[':email'] = updates.email;
-    }
-    if (updates.role) {
-      expressions.push('#role = :role');
-      values[':role'] = updates.role;
-      names['#role'] = 'role';
-    }
-
-    if (expressions.length === 0) return true;
-
-    try {
-      await docClient.send(
-        new UpdateCommand({
-          TableName: tableName,
-          Key: { userId: this.getUserKey(userId, orgId), timestamp: 0 },
-          UpdateExpression: `SET ${expressions.join(', ')}, updatedAt = :updatedAt`,
-          ExpressionAttributeNames: Object.keys(names).length > 0 ? names : undefined,
-          ExpressionAttributeValues: values,
-        })
-      );
-      return true;
-    } catch (e) {
-      logger.error(`Failed to update user ${userId}:`, e);
-      return false;
-    }
+    if (!caller || (caller.role !== UserRole.OWNER && caller.role !== UserRole.ADMIN)) return false;
+    return this.userOps.updateUser(userId, updates, orgId);
   }
 }
 

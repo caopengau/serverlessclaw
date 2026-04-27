@@ -3,7 +3,7 @@ import {
   SharedContext,
   getValidSecrets,
   AGENT_CONFIG,
-  getDomainConfig,
+  provisionDomainConfig,
   LAMBDA_ARCHITECTURE,
   NODEJS_LOADERS,
   LOG_RETENTION_PERIOD,
@@ -16,7 +16,7 @@ import {
  * @returns An object containing the created API resource.
  */
 export function createApi(_ctx: SharedContext): { api: sst.aws.ApiGatewayV2 } {
-  const apiDomain = getDomainConfig('api');
+  const apiDomain = provisionDomainConfig('api');
   const api = new sst.aws.ApiGatewayV2('WebhookApi', {
     domain: apiDomain,
   });

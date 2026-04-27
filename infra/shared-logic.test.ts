@@ -13,7 +13,7 @@ vi.stubGlobal('sst', {
   },
 });
 
-import { getDomainConfig } from './shared';
+import { provisionDomainConfig } from './shared';
 
 describe('infra/shared logic', () => {
   beforeEach(() => {
@@ -26,16 +26,16 @@ describe('infra/shared logic', () => {
     delete process.env.ACM_CERTIFICATE_ARN;
   });
 
-  describe('getDomainConfig', () => {
+  describe('provisionDomainConfig', () => {
     it('should return undefined if stage is not prod', () => {
       vi.stubGlobal('$app', { stage: 'dev' });
-      const config = getDomainConfig('api');
+      const config = provisionDomainConfig('api');
       expect(config).toBeUndefined();
     });
 
     it('should return undefined if domain env var is missing in prod', () => {
       vi.stubGlobal('$app', { stage: 'prod' });
-      const config = getDomainConfig('api');
+      const config = provisionDomainConfig('api');
       expect(config).toBeUndefined();
     });
 
@@ -44,7 +44,7 @@ describe('infra/shared logic', () => {
       process.env.CLAW_DOMAIN_API = 'api.example.com';
       process.env.CLOUDFLARE_ZONE_ID = 'zone123';
 
-      const config = getDomainConfig('api');
+      const config = provisionDomainConfig('api');
 
       expect(config).toBeDefined();
       expect(config?.name).toBe('api.example.com');
@@ -56,7 +56,7 @@ describe('infra/shared logic', () => {
       process.env.CLAW_DOMAIN_API = 'api.example.com';
       process.env.ACM_CERTIFICATE_ARN = 'arn:aws:acm:us-east-1:123456789012:certificate/abc';
 
-      const config = getDomainConfig('api');
+      const config = provisionDomainConfig('api');
 
       expect(config?.cert).toBe('arn:aws:acm:us-east-1:123456789012:certificate/abc');
     });

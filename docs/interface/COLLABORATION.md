@@ -66,7 +66,7 @@ Humans can connect to a workspace via multiple channels:
 - `createWorkspace`, `getWorkspace`, `inviteMember`
 - `createCollaboration`, `joinCollaboration`, `writeToCollaboration`
 
-- **Implementation**: See [`core/lib/session/identity.ts`](../../core/lib/session/identity.ts) and [`core/lib/memory/workspace-operations.ts`](../../core/lib/memory/workspace-operations.ts).
+- **Implementation**: See [`core/lib/session/identity/manager.ts`](../../core/lib/session/identity/manager.ts) and its specialized sub-modules (user-ops.ts, session-ops.ts, access-ops.ts).
 
 ---
 

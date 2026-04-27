@@ -1,47 +1,38 @@
-import * as buildHandler from './build-handler';
-import * as continuationHandler from './continuation-handler';
-import * as healthHandler from './health-handler';
-import * as taskResultHandler from './task-result-handler';
-import * as clarificationHandler from './clarification-handler';
-import * as clarificationTimeoutHandler from './clarification-timeout-handler';
-import * as parallelHandler from './parallel-handler';
-import * as parallelBarrierTimeoutHandler from './parallel-barrier-timeout-handler';
-import * as parallelTaskCompletedHandler from './parallel-task-completed-handler';
-import * as dagSupervisorHandler from './dag-supervisor-handler';
-import * as cancellationHandler from './cancellation-handler';
-import * as proactiveHandler from './proactive-handler';
-import * as escalationHandler from './escalation-handler';
-import * as consensusHandler from './consensus-handler';
-import * as cognitiveHealthHandler from './cognitive-health-handler';
-import * as strategicTieBreakHandler from './strategic-tie-break-handler';
-import * as reportBackHandler from './report-back-handler';
-import * as auditHandler from './audit-handler';
-import * as recoveryHandler from './recovery-handler';
-import * as dashboardFailureHandler from './dashboard-failure-handler';
-import * as dlqHandler from './dlq-handler';
-import * as reputationHandler from './reputation-handler';
+/**
+ * Handler Loaders Map
+ * 
+ * To optimize AI context budget and metabolic efficiency, we use a dynamic loader pattern.
+ * This prevents the central multiplexer from transitively importing the entire handler 
+ * graph into its top-level context, which would exceed AI reasoning limits.
+ */
 
-export const STATIC_HANDLERS: Record<string, unknown> = {
-  'build-handler': buildHandler,
-  'continuation-handler': continuationHandler,
-  'health-handler': healthHandler,
-  'task-result-handler': taskResultHandler,
-  'clarification-handler': clarificationHandler,
-  'clarification-timeout-handler': clarificationTimeoutHandler,
-  'parallel-handler': parallelHandler,
-  'parallel-barrier-timeout-handler': parallelBarrierTimeoutHandler,
-  'parallel-task-completed-handler': parallelTaskCompletedHandler,
-  'dag-supervisor-handler': dagSupervisorHandler,
-  'cancellation-handler': cancellationHandler,
-  'proactive-handler': proactiveHandler,
-  'escalation-handler': escalationHandler,
-  'consensus-handler': consensusHandler,
-  'cognitive-health-handler': cognitiveHealthHandler,
-  'strategic-tie-break-handler': strategicTieBreakHandler,
-  'report-back-handler': reportBackHandler,
-  'audit-handler': auditHandler,
-  'recovery-handler': recoveryHandler,
-  'dashboard-failure-handler': dashboardFailureHandler,
-  'dlq-handler': dlqHandler,
-  'reputation-handler': reputationHandler,
+export const HANDLER_LOADERS: Record<string, () => Promise<unknown>> = {
+  'build-handler': () => import('./build-handler'),
+  'continuation-handler': () => import('./continuation-handler'),
+  'health-handler': () => import('./health-handler'),
+  'task-result-handler': () => import('./task-result-handler'),
+  'clarification-handler': () => import('./clarification-handler'),
+  'clarification-timeout-handler': () => import('./clarification-timeout-handler'),
+  'parallel-handler': () => import('./parallel-handler'),
+  'parallel-barrier-timeout-handler': () => import('./parallel-barrier-timeout-handler'),
+  'parallel-task-completed-handler': () => import('./parallel-task-completed-handler'),
+  'dag-supervisor-handler': () => import('./dag-supervisor-handler'),
+  'cancellation-handler': () => import('./cancellation-handler'),
+  'proactive-handler': () => import('./proactive-handler'),
+  'escalation-handler': () => import('./escalation-handler'),
+  'consensus-handler': () => import('./consensus-handler'),
+  'cognitive-health-handler': () => import('./cognitive-health-handler'),
+  'strategic-tie-break-handler': () => import('./strategic-tie-break-handler'),
+  'report-back-handler': () => import('./report-back-handler'),
+  'audit-handler': () => import('./audit-handler'),
+  'recovery-handler': () => import('./recovery-handler'),
+  'dashboard-failure-handler': () => import('./dashboard-failure-handler'),
+  'dlq-handler': () => import('./dlq-handler'),
+  'reputation-handler': () => import('./reputation-handler'),
 };
+
+/**
+ * @deprecated Use HANDLER_LOADERS with await instead.
+ * This is kept temporarily to prevent immediate build breakages if used elsewhere.
+ */
+export const STATIC_HANDLERS = HANDLER_LOADERS;

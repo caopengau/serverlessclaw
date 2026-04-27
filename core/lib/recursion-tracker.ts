@@ -26,12 +26,17 @@ const docClient = DynamoDBDocumentClient.from(client, {
   marshallOptions: { removeUndefinedValues: true },
 });
 
+const RECURSION_TYPE = 'RECURSION_ENTRY';
+const MISSION_RECURSION_CONFIG_KEY = 'mission_recursion_limit';
+const DEFAULT_GLOBAL_BUDGET = 1_000_000;
+
 /**
  * Get the recursion limit from config or use default.
  * Validates that mission_recursion_limit <= recursion_limit to prevent limit bypass.
- * @param isMission - Whether this is a mission-critical workflow (uses stricter limit)
+ * @param options - Configuration options
  */
-export async function getRecursionLimit(isMission: boolean = false): Promise<number> {
+export async function getRecursionLimit(options: { isMission?: boolean } = {}): Promise<number> {
+  const { isMission = false } = options;
   const { CONFIG_DEFAULTS } = await import('./config/config-defaults');
 
   // Get general recursion limit (upper bound)
@@ -49,7 +54,7 @@ export async function getRecursionLimit(isMission: boolean = false): Promise<num
   if (isMission) {
     let missionLimit: number = CONFIG_DEFAULTS.MISSION_RECURSION_LIMIT.code;
     try {
-      const customMissionLimit = await ConfigManager.getRawConfig('mission_recursion_limit');
+      const customMissionLimit = await ConfigManager.getRawConfig(MISSION_RECURSION_CONFIG_KEY);
       if (customMissionLimit !== undefined) {
         missionLimit = parseConfigInt(
           customMissionLimit,
@@ -82,15 +87,16 @@ export async function getRecursionLimit(isMission: boolean = false): Promise<num
  * @param traceId - The trace ID for the execution chain
  * @param sessionId - Current session ID
  * @param agentId - Current agent ID
- * @param isMission - Whether this is a mission-critical workflow
+ * @param options - Configuration options
  * @returns A promise resolving to the new depth if successful, or -1 on error.
  */
 export async function incrementRecursionDepth(
   traceId: string,
   sessionId: string,
   agentId: string,
-  isMission: boolean = false
+  options: { isMission?: boolean } = {}
 ): Promise<number> {
+  const { isMission = false } = options;
   const key = `${RECURSION_STACK_PREFIX}${traceId}`;
   const ttlSeconds = isMission ? MISSION_RECURSION_TTL_SECONDS : RECURSION_TTL_SECONDS;
   const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
@@ -114,7 +120,7 @@ export async function incrementRecursionDepth(
           ':agentId': agentId,
           ':now': now,
           ':exp': expiresAt,
-          ':type': 'RECURSION_ENTRY',
+          ':type': RECURSION_TYPE,
         },
         ReturnValues: 'UPDATED_NEW',
       })
@@ -163,7 +169,7 @@ export async function incrementTokenUsage(traceId: string, tokens: number): Prom
           ':tokens': tokens,
           ':now': Date.now(),
           ':exp': expiresAt,
-          ':type': 'RECURSION_ENTRY',
+          ':type': RECURSION_TYPE,
         },
         ReturnValues: 'UPDATED_NEW',
       })
@@ -193,7 +199,7 @@ export async function isBudgetExceeded(traceId: string): Promise<boolean> {
     );
 
     // Re-resolve budget carefully from system defaults if config lookup fails
-    const effectiveBudget = (budget as number) || 1000000;
+    const effectiveBudget = (budget as number) || DEFAULT_GLOBAL_BUDGET;
 
     const { Item } = await docClient.send(
       new GetCommand({
