@@ -17,5 +17,6 @@ export const COMMUNICATION_MODES = {
 
 export const TRACE_MESSAGES = {
   OBSERVE_MODE: 'HUMAN_TAKING_CONTROL: Entering observe mode.',
-  BUDGET_EXCEEDED: (traceId: string) => `[BUDGET_EXCEEDED] Global execution budget for trace ${traceId} has been reached. Halting further processing.`,
+  BUDGET_EXCEEDED: (traceId: string) =>
+    `[BUDGET_EXCEEDED] Global execution budget for trace ${traceId} has been reached. Halting further processing.`,
 };

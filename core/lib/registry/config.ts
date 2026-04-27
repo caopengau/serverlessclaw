@@ -8,7 +8,7 @@ export { setDocClient, getDocClient, defaultDocClient } from './config/client';
 /**
  * Handles raw configuration storage and retrieval from DynamoDB.
  * Implements a local cache to satisfy Low Latency goals (Principle 5).
- * 
+ *
  * This class is split into multiple modules in the ./config directory to maintain
  * AI grounding and stay within context limits.
  */
