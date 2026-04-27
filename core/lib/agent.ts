@@ -346,6 +346,24 @@ export class Agent {
         }
       }
 
+      if (!process.env.VITEST) {
+        await reportAgentMetrics({
+          agentId: this.config?.id ?? 'unknown',
+          traceId,
+          activeProvider: finalProvider ?? 'unknown',
+          activeModel: finalModel ?? 'unknown',
+          inputTokens: loopUsage.totalInputTokens,
+          outputTokens: loopUsage.totalOutputTokens,
+          toolCalls: loopUsage.toolCallCount,
+          durationMs: loopUsage.durationMs,
+          success: !paused,
+          paused: !!paused,
+          scope,
+        });
+      }
+
+      await tracer.endTrace(responseText);
+
       return { responseText, traceId, attachments, thought: finalThought };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

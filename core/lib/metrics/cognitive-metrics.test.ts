@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { MetricsCollector } from './cognitive/collector';
 import {
-  MetricsCollector,
   DegradationDetector,
   HealthTrendAnalyzer,
   CognitiveHealthMonitor,
@@ -117,19 +117,22 @@ describe('MetricsCollector', () => {
         type: 'COGNITIVE_METRIC',
         metricName: 'task_completed',
         value: 1,
-      })
+      }),
+      { ConditionExpression: 'attribute_not_exists(userId)' }
     );
     expect(mockBase.putItem).toHaveBeenCalledWith(
       expect.objectContaining({
         metricName: 'task_latency_ms',
         value: 150,
-      })
+      }),
+      { ConditionExpression: 'attribute_not_exists(userId)' }
     );
     expect(mockBase.putItem).toHaveBeenCalledWith(
       expect.objectContaining({
         metricName: 'tokens_used',
         value: 500,
-      })
+      }),
+      { ConditionExpression: 'attribute_not_exists(userId)' }
     );
   });
 
@@ -141,7 +144,8 @@ describe('MetricsCollector', () => {
       expect.objectContaining({
         metricName: 'task_completed',
         value: 0,
-      })
+      }),
+      { ConditionExpression: 'attribute_not_exists(userId)' }
     );
   });
 
@@ -154,25 +158,29 @@ describe('MetricsCollector', () => {
       expect.objectContaining({
         metricName: 'reasoning_coherence',
         value: 8.5,
-      })
+      }),
+      { ConditionExpression: 'attribute_not_exists(userId)' }
     );
     expect(mockBase.putItem).toHaveBeenCalledWith(
       expect.objectContaining({
         metricName: 'reasoning_steps',
         value: 5,
-      })
+      }),
+      { ConditionExpression: 'attribute_not_exists(userId)' }
     );
     expect(mockBase.putItem).toHaveBeenCalledWith(
       expect.objectContaining({
         metricName: 'pivot',
         value: 0,
-      })
+      }),
+      { ConditionExpression: 'attribute_not_exists(userId)' }
     );
     expect(mockBase.putItem).toHaveBeenCalledWith(
       expect.objectContaining({
         metricName: 'clarification_request',
         value: 1,
-      })
+      }),
+      { ConditionExpression: 'attribute_not_exists(userId)' }
     );
   });
 
@@ -185,7 +193,8 @@ describe('MetricsCollector', () => {
         userId: 'HEALTH#METRIC#agent-1',
         metricName: 'self_correction',
         value: 1,
-      })
+      }),
+      { ConditionExpression: 'attribute_not_exists(userId)' }
     );
   });
 
@@ -197,13 +206,15 @@ describe('MetricsCollector', () => {
       expect.objectContaining({
         metricName: 'memory_hit',
         value: 1,
-      })
+      }),
+      { ConditionExpression: 'attribute_not_exists(userId)' }
     );
     expect(mockBase.putItem).toHaveBeenCalledWith(
       expect.objectContaining({
         metricName: 'memory_latency_ms',
         value: 10,
-      })
+      }),
+      { ConditionExpression: 'attribute_not_exists(userId)' }
     );
   });
 
@@ -263,6 +274,23 @@ describe('MetricsCollector', () => {
     );
   });
 
+  it('should ensure unique timestamps for metrics in the same flush [Sh6]', async () => {
+    vi.useRealTimers();
+    await collector.recordReasoningQuality('agent-1', 9.0, 4, false, false);
+    await new Promise((r) => setTimeout(r, 10)); // Ensure time passes
+    await collector.recordTaskCompletion('agent-1', true, 100, 200);
+
+    await collector.flush();
+
+    expect(mockBase.putItem).toHaveBeenCalledTimes(7);
+
+    const timestamps = mockBase.putItem.mock.calls.map((call) => call[0].timestamp);
+    const uniqueTimestamps = new Set(timestamps);
+
+    // 4 from recordReasoningQuality + 3 from recordTaskCompletion
+    expect(uniqueTimestamps.size).toBe(7);
+  });
+
   describe('Tenant Isolation [Sh5]', () => {
     it('should record metrics with workspaceId in partition key', async () => {
       await collector.recordTaskCompletion(
@@ -279,7 +307,8 @@ describe('MetricsCollector', () => {
         expect.objectContaining({
           userId: 'WS#workspace-abc#HEALTH#METRIC#agent-1',
           type: 'COGNITIVE_METRIC',
-        })
+        }),
+        { ConditionExpression: 'attribute_not_exists(userId)' }
       );
     });
 
@@ -289,10 +318,12 @@ describe('MetricsCollector', () => {
       await collector.flush();
 
       expect(mockBase.putItem).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'WS#ws-1#HEALTH#METRIC#agent-1' })
+        expect.objectContaining({ userId: 'WS#ws-1#HEALTH#METRIC#agent-1' }),
+        { ConditionExpression: 'attribute_not_exists(userId)' }
       );
       expect(mockBase.putItem).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'WS#ws-2#HEALTH#METRIC#agent-1' })
+        expect.objectContaining({ userId: 'WS#ws-2#HEALTH#METRIC#agent-1' }),
+        { ConditionExpression: 'attribute_not_exists(userId)' }
       );
     });
 
@@ -301,7 +332,8 @@ describe('MetricsCollector', () => {
       await collector.flush();
 
       expect(mockBase.putItem).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'HEALTH#METRIC#agent-1' })
+        expect.objectContaining({ userId: 'HEALTH#METRIC#agent-1' }),
+        { ConditionExpression: 'attribute_not_exists(userId)' }
       );
     });
   });

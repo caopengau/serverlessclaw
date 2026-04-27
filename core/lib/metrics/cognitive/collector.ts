@@ -193,26 +193,50 @@ export class MetricsCollector {
     let globalCounter = 0;
 
     for (const metric of metricsToFlush) {
-      try {
-        const prefix = metric.workspaceId ? `WS#${metric.workspaceId}#` : '';
-        const pk = `${prefix}${MEMORY_KEYS.HEALTH_PREFIX}METRIC#${metric.agentId}`;
+      let success = false;
+      let attempts = 0;
+      const maxAttempts = 3;
 
-        // Add a tiny fractional increment based on a global counter for this flush.
-        // This guarantees uniqueness even if multiple record calls happen in the same MS.
-        const ts = metric.timestamp + globalCounter * 0.00001;
-        globalCounter++;
+      while (!success && attempts < maxAttempts) {
+        try {
+          const prefix = metric.workspaceId ? `WS#${metric.workspaceId}#` : '';
+          const pk = `${prefix}${MEMORY_KEYS.HEALTH_PREFIX}METRIC#${metric.agentId}`;
 
-        await this.base.putItem({
-          userId: pk,
-          timestamp: ts,
-          type: 'COGNITIVE_METRIC',
-          metricName: metric.name,
-          value: metric.value,
-          metadata: metric.metadata ?? {},
-          expiresAt,
+          // Add a tiny fractional increment + jitter to guarantee uniqueness
+          const ts = metric.timestamp + globalCounter * 0.00001 + Math.random() * 0.000001;
+          globalCounter++;
+
+          await this.base.putItem(
+            {
+              userId: pk,
+              timestamp: ts,
+              type: 'COGNITIVE_METRIC',
+              metricName: metric.name,
+              value: metric.value,
+              metadata: metric.metadata ?? {},
+              expiresAt,
+            },
+            {
+              ConditionExpression: 'attribute_not_exists(userId)',
+            }
+          );
+          success = true;
+        } catch (error) {
+          if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
+            attempts++;
+            // Slightly back off and retry with a new timestamp jitter
+            await new Promise((r) => setTimeout(r, 10));
+          } else {
+            logger.error('Failed to persist cognitive metric', { error, metric });
+            break;
+          }
+        }
+      }
+
+      if (!success && attempts >= maxAttempts) {
+        logger.error('Failed to persist cognitive metric after max attempts due to collisions', {
+          metric,
         });
-      } catch (error) {
-        logger.error('Failed to persist cognitive metric', { error, metric });
       }
     }
 

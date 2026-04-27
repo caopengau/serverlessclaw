@@ -270,6 +270,20 @@ describe('TrustManager', () => {
         expect.any(Object)
       );
     });
+
+    it('should support workspaceId scoping during decay [Sh6]', async () => {
+      const mockConfigs = { 'tenant-agent': { trustScore: 98 } };
+      mockAgentRegistry.getAllConfigs.mockResolvedValue(mockConfigs);
+
+      await TrustManager.decayTrustScores('ws-123');
+
+      expect(mockAgentRegistry.getAllConfigs).toHaveBeenCalledWith({ workspaceId: 'ws-123' });
+      expect(mockAgentRegistry.atomicIncrementTrustScore).toHaveBeenCalledWith(
+        'tenant-agent',
+        -0.75,
+        expect.objectContaining({ workspaceId: 'ws-123' })
+      );
+    });
   });
 
   describe('fallback behavior', () => {

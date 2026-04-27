@@ -10,15 +10,15 @@ Last Updated: 2026-04-27
 
 ## Silo Coverage (1-7)
 
-| Silo | Name           | Primary Code Paths                              | Audit Count | Last Audited | Risk Level |
-| :--- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
-| **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    |     14      | 2026-04-26   | Low        |
-| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` |      8      | 2026-04-26   | Low        |
-| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              |     15+     | 2026-04-27   | Medium     |
-| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             |     11      | 2026-04-26   | Medium     |
-| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         |     12      | 2026-04-27   | Low        |
-| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              |     13      | 2026-04-27   | Low        |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            |      4      | 2026-04-27   | Low        |
+| Silo  | Name           | Primary Code Paths                              | Audit Count | Last Audited | Risk Level |
+| :---- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
+| **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 14          | 2026-04-26   | Low        |
+| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 8           | 2026-04-26   | Low        |
+| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 15+         | 2026-04-27   | Medium     |
+| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 11          | 2026-04-26   | Medium     |
+| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 12          | 2026-04-27   | Low        |
+| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 13          | 2026-04-27   | Low        |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 4           | 2026-04-27   | Low        |
 
 ---
 
@@ -36,16 +36,16 @@ Last Updated: 2026-04-27
 
 ## Audit Reports History
 
-| Date       | Report                                        | Silos Covered         | Cross-Silo | Key Findings                                                                                        |
-| :--------- | :-------------------------------------------- | :-------------------- | :--------- | :-------------------------------------------------------------------------------------------------- |
-| 2026-04-27 | `audit-2026-04-27-trust-loop.md`              | Scales, Eye           | D          | FIXED: P1 Cognitive metric collisions, P1 Trust history inconsistency, P1 Multi-tenant decay gap   |
-| 2026-04-27 | `audit-2026-04-27-perspective-a.md`           | Spine, Eye            | A          | FIXED: Telemetry Blindness in metrics, Scoping bugs in events, Cognitive data loss                  |
-| 2026-04-27 | `audit-2026-04-27-metabolism-recovery.md`     | Metabolism, Recovery  | E          | FIXED: P1 Tool usage count loss, P1 LKG record collision, P2 Config atomicity, P2 Scan optimization |
-| 2026-04-27 | `audit-2026-04-27-identity-journey.md`        | Brain, Spine, Shield  | C          | FIXED: P1 Identity race condition, P2 Safety bypasses, P2 Adaptive failure                          |
-| 2026-04-26 | `audit-2026-04-26-identity-journey.md`        | Brain, Spine, Shield  | C          | PASSED: Verified Principle 12, 13, 14, 15 across silos.                                             |
-| 2026-04-26 | `audit-2026-04-26-trust-loop.md`              | Eye, Scales, Spine    | D          | FIXED: Disconnected trust engine, Telemetry data loss                                               |
-| 2026-04-26 | `audit-2026-04-26-evolution-cycle.md`         | Hand, Shield, Scales  | B          | FIXED: Selection Integrity (Sh10), JSON Mode enforcement (Sh9)                                      |
-| 2026-04-26 | `audit-2026-04-26-life-of-a-message.md`       | Spine, Brain, Eye     | A          | FIXED: Fail-Closed rate limiting, Atomic session updates                                            |
+| Date       | Report                                    | Silos Covered        | Cross-Silo | Key Findings                                                                                        |
+| :--------- | :---------------------------------------- | :------------------- | :--------- | :-------------------------------------------------------------------------------------------------- |
+| 2026-04-27 | `audit-2026-04-27-trust-loop.md`          | Scales, Eye          | D          | FIXED: P1 Cognitive metric collisions, P1 Trust history inconsistency, P1 Multi-tenant decay gap    |
+| 2026-04-27 | `audit-2026-04-27-perspective-a.md`       | Spine, Eye           | A          | FIXED: Telemetry Blindness in metrics, Scoping bugs in events, Cognitive data loss                  |
+| 2026-04-27 | `audit-2026-04-27-metabolism-recovery.md` | Metabolism, Recovery | E          | FIXED: P1 Tool usage count loss, P1 LKG record collision, P2 Config atomicity, P2 Scan optimization |
+| 2026-04-27 | `audit-2026-04-27-identity-journey.md`    | Brain, Spine, Shield | C          | FIXED: P1 Identity race condition, P2 Safety bypasses, P2 Adaptive failure                          |
+| 2026-04-26 | `audit-2026-04-26-identity-journey.md`    | Brain, Spine, Shield | C          | PASSED: Verified Principle 12, 13, 14, 15 across silos.                                             |
+| 2026-04-26 | `audit-2026-04-26-trust-loop.md`          | Eye, Scales, Spine   | D          | FIXED: Disconnected trust engine, Telemetry data loss                                               |
+| 2026-04-26 | `audit-2026-04-26-evolution-cycle.md`     | Hand, Shield, Scales | B          | FIXED: Selection Integrity (Sh10), JSON Mode enforcement (Sh9)                                      |
+| 2026-04-26 | `audit-2026-04-26-life-of-a-message.md`   | Spine, Brain, Eye    | A          | FIXED: Fail-Closed rate limiting, Atomic session updates                                            |
 
 ---
 

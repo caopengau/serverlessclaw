@@ -142,7 +142,8 @@ export class HealthTrendAnalyzer {
 
     for (const item of allItems) {
       const userId = (item.userId as string) ?? '';
-      const match = userId.match(/^([A-Z_]+#)/);
+      // Fix: Skip potential WS#...# prefix to find the actual tier prefix (e.g. LESSON#)
+      const match = userId.match(/(?:WS#.*?#)?([A-Z_]+#)/);
       const prefix = match?.[1] ?? 'UNKNOWN#';
       itemsByTier[prefix] = (itemsByTier[prefix] || 0) + 1;
       const ts = (item.timestamp as number) ?? 0;

@@ -461,30 +461,30 @@ The dashboard implements a **Singleton Connectivity** model via the `RealtimePro
 
 ## ⚖️ The Dynamic Trust Loop (Silo 5 ↔ Silo 6)
 
-The system maintains a continuous feedback loop between execution observability and agent authority.
+The system maintains a continuous feedback loop between execution observability, trust calibration, and routing selection:
 
 ```text
-[ Execution ] ---- (Telemetry) ----> [ Silo 5: The Eye ]
-                                     (Collector -> Analyzer -> Detector)
-                                             |
-                                     [ Anomaly Detected? ]
-                                             |
-                                             v
-[ Council Review ] <--- (Alert) --- [ Silo 6: The Scales ]
-       ^                             (TrustManager)
-       |                                     |
-[ Mode Shift ] <--- (Trust < 95) -----------+
-(AUTO -> HITL)
+  [ PERFORMANCE ]                     [ TRUST ]                         [ SELECTION ]
+        |                                |                                    |
+  (Silo 5: Eye)                    (Silo 6: Scales)                     (Silo 1: Spine)
+        |                                |                                    |
+  +-----------+                    +------------+                      +-------------+
+  | Telemetry | --(Anomaly/SLO)--> | TrustScore | --(Weighted Score)-->| AgentRouter |
+  | (Tracer)  | <--(Success/Fail)- | (Manager)  | <---(Select best)----| (Multiplexer)|
+  +-----------+                    +------------+                      +-------------+
+        ^                                |                                    |
+        |                                v                                    |
+        +----------------------- [ Registry Overrides ] <---------------------+
 ```
 
 1. **Silo 5: The Eye (Observability & Health)**
-   - **Collector**: Buffers raw cognitive telemetry (success, latency, tokens, coherence) with **strict tenant isolation** using `WS#<workspaceId>` prefixes. Implements **Unique Timestamp Jittering** (millisecond offsets) to prevent data loss from concurrent metric emissions within the same collection cycle.
-   - **Analyzer**: Aggregates trends over time windows (HOURLY, DAILY, WEEKLY) to feed Silo 6.
+   - **Collector**: Buffers raw cognitive telemetry (success, latency, tokens, coherence) with **strict tenant isolation** using `WS#<workspaceId>` prefixes. Implements **Unique Timestamp Jittering** (micro-offsets) to prevent telemetry data loss from concurrent emissions.
+   - **Analyzer**: Aggregates trends over time windows to feed Silo 6.
    - **Detector**: Identifies reasoning loops, degradation, and performance anomalies.
 2. **Silo 6: The Scales (Trust & Reputation)**
    - **TrustManager**: Authoritative agent reputation scoring. Enforces **Fail-Closed Integrity** (Principle 13) during trust updates to prevent silent penalty drops.
-   - **Reputation Logic**: Dynamic weighted scoring based on task difficulty and historical consistency.
-   - **Selection Signal**: Feeds directly into `AgentRouter` to gate autonomous capabilities.
+   - **Metabolism (Silo 7)**: Periodically decays trust scores across all workspaces to ensure continuous earning of autonomy.
+3. **Perspective D (Trust Loop)**: The **AgentRouter** uses these scores to bias selection toward high-performing workers, ensuring "Selection Integrity" (Principle 14) is data-driven.
 
 ````
 

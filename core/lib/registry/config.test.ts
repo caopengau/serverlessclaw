@@ -250,6 +250,24 @@ describe('ConfigManager atomic operations', () => {
     expect(docClientMock.send).toHaveBeenCalledTimes(4);
   });
 
+  describe('appendToList', () => {
+    it('should use a single UpdateCommand with list_append and if_not_exists', async () => {
+      // Mock successful update
+      docClientMock.send.mockResolvedValueOnce({
+        Attributes: { value: ['item1'] },
+      });
+
+      await ConfigManager.appendToList('test_list', 'item1');
+
+      expect(docClientMock.send).toHaveBeenCalledTimes(1);
+      const command = docClientMock.send.mock.calls[0][0];
+      expect(command.input.UpdateExpression).toContain(
+        'list_append(if_not_exists(#val, :empty_list), :items)'
+      );
+      expect(command.input.ExpressionAttributeValues[':items']).toEqual(['item1']);
+    });
+  });
+
   describe('atomicAppendToList', () => {
     it('should append to list', async () => {
       await ConfigManager.atomicAppendToList('test_list', ['new_item']);
