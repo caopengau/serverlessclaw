@@ -340,8 +340,10 @@ export async function processEventWithAgent(
           (parsedData?.response as string) ||
           responseText;
       }
-    } catch {
-      // Fallback
+    } catch (err) {
+      logger.debug(
+        `[SHARED] Message is not JSON, using raw text fallback. Error: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
 
     if (!isPaused && responseText.trim().length > 0 && !options.skipOutbound) {

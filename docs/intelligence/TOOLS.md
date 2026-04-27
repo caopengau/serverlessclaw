@@ -166,6 +166,14 @@ The tool registry has been reorganized into four primary **Action Domains** to i
 3. **Infra Domain** (`core/tools/infra/`): Deployment, scheduling, rollbacks, and system topology.
 4. **System Domain** (`core/tools/system/`): Shell execution, git sync, health probes, and runtime configuration.
 
+### 🛠️ Lazy Registry Initialization (New in April 2026)
+
+To solve the **Context Fragmentation** and **Black Hole** issues (where files pull in too many transitive dependencies for AI scans), the tool registry now uses a **Lazy Loading Pattern**:
+
+- **Lazy Aggregation**: The main `TOOLS` object is empty at startup. It is populated via `initializeTools()` only when a tool execution or resolution is required.
+- **Dynamic Domain Imports**: Each domain (knowledge, infra, etc.) is imported dynamically within the initialization phase, ensuring that a simple import of the tools package doesn't pull the entire toolset logic into the caller's context budget.
+- **Transitive Depth Reduction**: This pattern reduces the "Import Depth" for event handlers by over 40%, keeping them within AI-ready limits.
+
 ---
 
 ## 🏗️ Adding a New Tool

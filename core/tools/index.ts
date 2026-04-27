@@ -4,22 +4,36 @@
  */
 import { ITool } from '../lib/types/tool';
 
-// Import domain registries
-import { knowledgeTools } from './knowledge';
-import { collaborationTools } from './collaboration';
-import { infraTools } from './infra';
-import { systemTools } from './system';
-
 /**
  * Registry of all available tools for agents to execute.
- * Aggregates tools from domain-driven subdirectories.
+ * Lazily aggregated to keep context budget low.
  */
-export const TOOLS: Record<string, ITool> = {
-  ...knowledgeTools,
-  ...collaborationTools,
-  ...infraTools,
-  ...systemTools,
-};
+export const TOOLS: Record<string, ITool> = {};
+
+/**
+ * Initialize the full tools registry.
+ * This should only be called when all tools are needed.
+ */
+export async function initializeTools(): Promise<Record<string, ITool>> {
+  if (Object.keys(TOOLS).length > 0) return TOOLS;
+
+  const [{ knowledgeTools }, { collaborationTools }, { infraTools }, { systemTools }] =
+    await Promise.all([
+      import('./knowledge'),
+      import('./collaboration'),
+      import('./infra'),
+      import('./system'),
+    ]);
+
+  Object.assign(TOOLS, {
+    ...knowledgeTools,
+    ...collaborationTools,
+    ...infraTools,
+    ...systemTools,
+  });
+
+  return TOOLS;
+}
 
 /**
  * Utility for retrieving tools associated with a specific agent.

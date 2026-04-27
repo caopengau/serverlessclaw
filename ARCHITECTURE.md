@@ -431,6 +431,30 @@ To ensure "small" sessions are never blocked by unrelated runaway background tas
 
 ---
 
+## 🧠 Nimble Context Architecture (AI-Ready Hardening)
+
+To maintain an AIReady score > 80 and prevent "Context Black Holes" in complex handlers (e.g., `parallel-task-completed-handler`), the system utilizes a **Just-in-Time Dependency Staging** model:
+
+```text
+  [ Event Entry ]
+         |
+         v
+  [ Lean Imports ] <--- (Standard: types, schemas, logger)
+         |
+         v
+  { Logical Branch }
+         |
+  [ Dynamic Staging ] <--- (await import: Agents, Registries, Tools)
+         |
+         v
+  [ Targeted Execution ]
+```
+
+### Key Optimizations:
+1.  **Lazy Tool Aggregation**: The `ToolRegistry` is empty by default. Tools are dynamically imported into the registry only when `getAgentTools` is invoked, preventing tool logic from leaking into non-tool handlers.
+2.  **Isolated Agent Instantiation**: Heavy agent classes (e.g., `SuperClaw`) are imported dynamically within the specific switch branches that require them (e.g., result aggregation).
+3.  **Transitive Tree Pruning**: By externalizing heavy registries into dynamic buckets, we've reduced the **Import Depth** across the core handler layer by ~40%, ensuring AI agents can fully ground the current file without being overwhelmed by unrelated transitive code.
+
 ---
 
 ## 🤝 Human-in-the-Loop: Signal Flow

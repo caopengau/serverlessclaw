@@ -30,6 +30,7 @@ vi.mock('../lib/mcp', () => ({
 
 vi.mock('./index', () => ({
   TOOLS: mockTOOLS,
+  initializeTools: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../lib/warmup', () => ({

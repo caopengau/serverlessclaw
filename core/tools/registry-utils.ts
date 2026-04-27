@@ -20,7 +20,8 @@ export async function getAgentTools(
 ): Promise<ITool[]> {
   const { AgentRegistry } = await import('../lib/registry');
   const { MCPBridge } = await import('../lib/mcp');
-  const { TOOLS } = await import('./index');
+  const { initializeTools, TOOLS } = await import('./index');
+  await initializeTools();
 
   const workspaceId = options?.workspaceId;
 

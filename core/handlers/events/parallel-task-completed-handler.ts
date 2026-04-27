@@ -3,12 +3,9 @@ import { wakeupInitiator } from './shared';
 import { AgentType, EventType } from '../../lib/types/agent';
 import { clearRecursionStack } from '../../lib/recursion-tracker';
 import { PARALLEL_TASK_COMPLETED_EVENT_SCHEMA } from '../../lib/schema/events';
-import { SuperClaw } from '../../agents/superclaw';
 import { BaseMemoryProvider } from '../../lib/memory/base';
 import { ProviderManager } from '../../lib/providers';
 import { IMemory, ReasoningProfile, TraceSource } from '../../lib/types';
-import { AgentRegistry } from '../../lib/registry/AgentRegistry';
-import { getAgentTools } from '../../tools/index';
 
 /**
  * Event handler for when all sub-tasks in a parallel dispatch are completed.
@@ -131,6 +128,11 @@ export async function handleParallelTaskCompleted(
     try {
       const memory = new BaseMemoryProvider();
       const provider = new ProviderManager();
+
+      const { AgentRegistry } = await import('../../lib/registry/AgentRegistry');
+      const { getAgentTools } = await import('../../tools/index');
+      const { SuperClaw } = await import('../../agents/superclaw');
+
       const config = await AgentRegistry.getAgentConfig(AgentType.SUPERCLAW);
       const agentTools = await getAgentTools(AgentType.SUPERCLAW);
 
