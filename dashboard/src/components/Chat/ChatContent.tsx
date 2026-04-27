@@ -21,6 +21,8 @@ import { logger } from '@claw/core/lib/logger';
 import type { ChatMessage } from './types';
 import { ChatHeader } from './ChatHeader';
 import { ContextPanel } from './ContextPanel';
+import { MissionControlHUD } from './MissionControlHUD';
+import { MissionBriefing } from './MissionBriefing';
 import type { ConversationMeta } from '@claw/core/lib/types/memory';
 
 /**
@@ -80,6 +82,34 @@ export default function ChatContent() {
   const [activeCollaborators, setActiveCollaborators] = useState<string[]>([AgentType.SUPERCLAW]);
   const [collaborationId, setCollaborationId] = useState<string | null>(null);
   const [isTransiting, setIsTransiting] = useState(false);
+  const [warRoomMode, setWarRoomMode] = useState(true);
+  const [isChatSidebarCollapsed, setIsChatSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const savedWarRoom = localStorage.getItem('claw_war_room_mode');
+    const actualWarRoom = savedWarRoom !== null ? savedWarRoom === 'true' : true;
+    setWarRoomMode(actualWarRoom);
+
+    const savedCollapsed = localStorage.getItem('claw_chat_sidebar_collapsed');
+    if (savedCollapsed !== null) {
+      setIsChatSidebarCollapsed(savedCollapsed === 'true');
+    } else {
+      // Default to collapsed in war room mode if no saved preference
+      setIsChatSidebarCollapsed(actualWarRoom);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('claw_war_room_mode', String(warRoomMode));
+    // Auto-collapse sidebar when entering war room mode if it wasn't explicitly set
+    if (warRoomMode && localStorage.getItem('claw_chat_sidebar_collapsed') === null) {
+      setIsChatSidebarCollapsed(true);
+    }
+  }, [warRoomMode]);
+
+  useEffect(() => {
+    localStorage.setItem('claw_chat_sidebar_collapsed', String(isChatSidebarCollapsed));
+  }, [isChatSidebarCollapsed]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -483,10 +513,12 @@ export default function ChatContent() {
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         searchInputRef={searchInputRef}
+        isCollapsed={isChatSidebarCollapsed}
+        onToggleCollapse={() => setIsChatSidebarCollapsed(!isChatSidebarCollapsed)}
       />
 
       <main
-        className={`flex-1 flex flex-col min-w-0 ${CHAT_STYLES.GRADIENTS.MAIN_BG} transition-colors relative ${isDragging ? CHAT_STYLES.GRADIENTS.DRAG_OVER : ''}`}
+        className={`flex-1 flex flex-col min-w-0 overflow-y-hidden ${CHAT_STYLES.GRADIENTS.MAIN_BG} transition-colors relative ${isDragging ? CHAT_STYLES.GRADIENTS.DRAG_OVER : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -525,38 +557,56 @@ export default function ChatContent() {
           isContextPanelOpen={isContextPanelOpen}
           setIsContextPanelOpen={setIsContextPanelOpen}
           t={t}
+          warRoomMode={warRoomMode}
+          setWarRoomMode={setWarRoomMode}
         />
 
-        <ChatMessageList
-          messages={messages}
-          isLoading={isLoading}
-          scrollRef={scrollRef}
-          onOptionClick={handleOptionClick}
-          showThinking={showThinking}
-        />
+        <div className="flex-1 flex overflow-hidden">
+          {warRoomMode && (
+            <MissionBriefing
+              sessionId={activeSessionId}
+              collaborators={activeCollaborators}
+              t={t}
+            />
+          )}
 
-        <ChatInput
-          input={input}
-          setInput={setInput}
-          isLoading={isLoading}
-          onSend={(e) => {
-            e.preventDefault();
-            sendMessage(input, {
-              agentId: currentAgentId,
-              collaborationId: collaborationId || undefined,
-              profile: showThinking ? 'thinking' : 'fast',
-            });
-            setInput('');
-          }}
-          attachments={attachments}
-          onRemoveAttachment={(i) => setAttachments((prev) => prev.filter((_, idx) => idx !== i))}
-          fileInputRef={fileInputRef}
-          onFileSelect={(e) => {
-            if (e.target.files) handleFiles(Array.from(e.target.files));
-          }}
-          isShaking={isShaking}
-          chatInputRef={chatInputRef}
-        />
+          <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out">
+            <ChatMessageList
+              messages={messages}
+              isLoading={isLoading}
+              scrollRef={scrollRef}
+              onOptionClick={handleOptionClick}
+              showThinking={showThinking}
+            />
+
+            <ChatInput
+              input={input}
+              setInput={setInput}
+              isLoading={isLoading}
+              onSend={(e) => {
+                e.preventDefault();
+                sendMessage(input, {
+                  agentId: currentAgentId,
+                  collaborationId: collaborationId || undefined,
+                  profile: showThinking ? 'thinking' : 'fast',
+                });
+                setInput('');
+              }}
+              attachments={attachments}
+              onRemoveAttachment={(i) =>
+                setAttachments((prev) => prev.filter((_, idx) => idx !== i))
+              }
+              fileInputRef={fileInputRef}
+              onFileSelect={(e) => {
+                if (e.target.files) handleFiles(Array.from(e.target.files));
+              }}
+              isShaking={isShaking}
+              chatInputRef={chatInputRef}
+            />
+          </div>
+
+          {warRoomMode && <MissionControlHUD sessionId={activeSessionId} t={t} />}
+        </div>
 
         {isAgentSelectorOpen && (
           <AgentSelector

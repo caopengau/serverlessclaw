@@ -99,6 +99,16 @@ To ensure coordination doesn't break, follow a **Contract-First** pattern:
 
 ---
 
+## 🛰️ Tactical Feedback Loop
+
+Agents provide real-time visibility into their progress via the **Mission Control** interface. This is achieved by emitting structured signals during execution:
+
+- **Mission Briefing Updates**: Agents emit `MISSION_STATUS` and `PHASE_TRANSITION` signals to update the left-hand **Mission Briefing** sidebar (e.g., Analysis -> Deployment).
+- **HUD Telemetry**: Performance metrics (Trust, Stability, Budget) are derived from the `Usage` and `CognitiveHealth` signals emitted at the end of each reasoning turn.
+- **Thought Streaming**: Intermediate reasoning steps are published to the `TEXT_MESSAGE_CONTENT` stream, providing the human with a "monologue" of the agent's internal logic.
+
+---
+
 ## 📥 Related Documentation
 
 - **[SWARM.md](./SWARM.md)**: Orchestration, mission decomposition, and parallel dispatch.

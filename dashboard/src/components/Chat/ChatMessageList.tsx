@@ -125,7 +125,7 @@ const markdownComponents = (role: string): MarkdownComponents => ({
       variant="body"
       as="div"
       color={role === 'assistant' ? 'inherit' : 'primary'}
-      className="block mb-2 last:mb-0 break-words"
+      className="block mb-1 last:mb-0 break-words"
     >
       {children}
     </Typography>
@@ -160,10 +160,10 @@ const markdownComponents = (role: string): MarkdownComponents => ({
     </Typography>
   ),
   ul: ({ children }: MarkdownNodeProps) => (
-    <ul className="list-disc pl-5 mb-2 space-y-1">{children}</ul>
+    <ul className="list-disc pl-5 mb-1 space-y-0.5">{children}</ul>
   ),
   ol: ({ children }: MarkdownNodeProps) => (
-    <ol className="list-decimal pl-5 mb-2 space-y-1">{children}</ol>
+    <ol className="list-decimal pl-5 mb-1 space-y-0.5">{children}</ol>
   ),
   li: ({ children }: MarkdownNodeProps) => (
     <li>
@@ -204,12 +204,17 @@ const markdownComponents = (role: string): MarkdownComponents => ({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-cyber-green hover:underline decoration-cyber-green/50 underline-offset-4"
+      className="text-cyber-green hover:text-cyber-green/80 underline decoration-cyber-green/30 underline-offset-4 transition-colors font-medium"
     >
       {children}
     </a>
   ),
 });
+
+const formatTime = (ts?: number) => {
+  if (!ts) return '';
+  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+};
 
 interface ChatMessageRowProps {
   message: ChatMessage;
@@ -232,6 +237,14 @@ const ChatMessageRow = memo(function ChatMessageRow({
   const [comment, setComment] = React.useState('');
 
   const shouldShowThought = showThinking ?? true;
+  const [copied, setCopied] = useState(false);
+
+  const copyMessage = () => {
+    if (!m.content) return;
+    navigator.clipboard.writeText(m.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // Visibility Guard: Hide the entire row if there's no visible content and it's not thinking
   const hasVisibleContent = !!(
@@ -263,21 +276,43 @@ const ChatMessageRow = memo(function ChatMessageRow({
         </div>
         <div className="flex flex-col gap-1">
           {m.role === 'assistant' && m.agentName && (
-            <Typography
-              variant="caption"
-              weight="bold"
-              color="primary"
-              className="flex items-center gap-1 pl-2"
-            >
-              <span className="w-1 h-1 rounded-full bg-cyber-green/60 inline-block" />
-              {m.agentName}
-            </Typography>
+            <div className="flex items-center gap-2 pl-2">
+              <Typography
+                variant="caption"
+                weight="bold"
+                color="primary"
+                className="flex items-center gap-1"
+              >
+                <span className="w-1 h-1 rounded-full bg-cyber-green/60 inline-block" />
+                {m.agentName}
+              </Typography>
+              {m.createdAt && (
+                <Typography variant="mono" className="text-[9px] text-muted-foreground/40">
+                  {formatTime(m.createdAt)}
+                </Typography>
+              )}
+              {m.modelName && (
+                <Typography
+                  variant="mono"
+                  className="text-[8px] text-cyber-blue/30 uppercase tracking-tighter"
+                >
+                  {m.modelName}
+                </Typography>
+              )}
+            </div>
+          )}
+          {m.role === 'user' && m.createdAt && (
+            <div className="flex justify-end pr-2">
+              <Typography variant="mono" className="text-[9px] text-muted-foreground/30">
+                {formatTime(m.createdAt)}
+              </Typography>
+            </div>
           )}
           <div className="flex flex-col gap-2">
             {m.role === 'assistant' && m.thought && shouldShowThought && (
               <Card
                 variant="glass"
-                padding="sm"
+                padding="xs"
                 className="rounded-lg bg-cyber-green/[0.03] border-dashed border-cyber-green/20 text-cyber-green/80 italic text-[11px] leading-relaxed max-w-full mb-1 shadow-[0_0_15px_rgba(0,255,145,0.02)]"
               >
                 <div className="flex items-start gap-2">
@@ -288,35 +323,80 @@ const ChatMessageRow = memo(function ChatMessageRow({
             )}
 
             {(m.role === 'user' || (m.content && m.content.trim().length > 0) || m.isThinking) && (
-              <Card
-                variant="glass"
-                padding="md"
-                className={`rounded-lg ${
-                  m.role === 'user'
-                    ? 'bg-input text-foreground border border-border shadow-[0_4px_12px_rgba(0,0,0,0.02)]'
-                    : 'text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
-                }`}
-              >
-                {m.isThinking ? (
-                  <div className="flex items-center gap-2 py-1">
-                    <Loader2 size={14} className="animate-spin text-cyber-green" />
-                    <Typography
-                      variant="caption"
-                      weight="bold"
-                      color="primary"
-                      className="animate-pulse uppercase tracking-wider text-[10px]"
-                    >
-                      Analysing Signal...
-                    </Typography>
+              <div className="relative group/msg">
+                <Card
+                  variant="glass"
+                  padding="xs"
+                  className={`rounded-lg ${
+                    m.role === 'user'
+                      ? 'bg-input text-foreground border border-border shadow-[0_4px_12px_rgba(0,0,0,0.02)]'
+                      : 'text-cyber-green/90 border-cyber-green/20 shadow-[0_0_20px_rgba(0,255,145,0.05)]'
+                  }`}
+                >
+                  {m.isThinking ? (
+                    <div className="flex items-center gap-2 py-1">
+                      <Loader2 size={14} className="animate-spin text-cyber-green" />
+                      <Typography
+                        variant="caption"
+                        weight="bold"
+                        color="primary"
+                        className="animate-pulse uppercase tracking-wider text-[10px]"
+                      >
+                        Analysing Signal...
+                      </Typography>
+                    </div>
+                  ) : (
+                    m.content && (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+                        {m.content}
+                      </ReactMarkdown>
+                    )
+                  )}
+                </Card>
+
+                {!m.isThinking && m.content && (
+                  <div
+                    className={`absolute top-2 ${
+                      m.role === 'user' ? '-left-8' : '-right-8'
+                    } opacity-0 group-hover/msg:opacity-100 transition-opacity flex flex-col gap-1`}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={copyMessage}
+                      className="!p-1.5 h-auto hover:text-cyber-green"
+                      icon={copied ? <Check size={12} /> : <Copy size={12} />}
+                      title="Copy message"
+                    />
                   </div>
-                ) : (
-                  m.content && (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-                      {m.content}
-                    </ReactMarkdown>
-                  )
                 )}
-              </Card>
+              </div>
+            )}
+
+            {m.pageContext && (
+              <div
+                className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} mt-1 mb-2`}
+              >
+                <div className="flex items-center gap-2 px-2 py-1 rounded border border-cyber-blue/20 bg-cyber-blue/[0.03] max-w-[80%]">
+                  <div className="w-1 h-1 rounded-full bg-cyber-blue animate-pulse" />
+                  <Typography variant="mono" className="text-[9px] text-cyber-blue/70 truncate">
+                    Context: {m.pageContext.title || m.pageContext.url}
+                  </Typography>
+                </div>
+              </div>
+            )}
+
+            {m.role === 'assistant' && m.usage && (
+              <div className="flex items-center gap-3 pl-2 opacity-40 hover:opacity-100 transition-opacity">
+                <Typography variant="mono" className="text-[8px] uppercase tracking-widest">
+                  IO_TKS: {m.usage.prompt_tokens} / {m.usage.completion_tokens}
+                </Typography>
+                <div className="w-1 h-1 rounded-full bg-muted-foreground/20" />
+                <Typography variant="mono" className="text-[8px] uppercase tracking-widest">
+                  TTL_TKS:{' '}
+                  {m.usage.total_tokens || m.usage.prompt_tokens + m.usage.completion_tokens}
+                </Typography>
+              </div>
             )}
 
             {m.role === 'assistant' && m.tool_calls && m.tool_calls.length > 0 && (

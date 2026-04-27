@@ -18,6 +18,12 @@ interface ChatApiResponse {
   tool_calls?: ToolCall[];
   error?: string;
   details?: string;
+  model?: string;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
 }
 
 export function useChatMessages(
@@ -136,6 +142,8 @@ export function useChatMessages(
           agentName: data.agentName || existing.agentName,
           ui_blocks: data.ui_blocks || existing.ui_blocks,
           isThinking: false,
+          modelName: data.model || existing.modelName,
+          usage: data.usage || existing.usage,
         };
         return updated;
       }
@@ -149,6 +157,9 @@ export function useChatMessages(
           agentName: data.agentName || 'SuperClaw',
           tool_calls: data.tool_calls,
           ui_blocks: data.ui_blocks,
+          createdAt: Date.now(),
+          modelName: data.model,
+          usage: data.usage,
         },
       ];
     });
@@ -234,6 +245,7 @@ export function useChatMessages(
           mimeType: a.file.type,
           url: a.preview,
         })),
+        createdAt: Date.now(),
       },
       {
         role: 'assistant',
@@ -242,6 +254,7 @@ export function useChatMessages(
         messageId: `${tempId}-${primaryAgentId}`,
         agentName: primaryAgentId,
         isThinking: true,
+        createdAt: Date.now(),
       },
     ]);
 

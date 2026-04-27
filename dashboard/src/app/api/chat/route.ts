@@ -20,6 +20,22 @@ import { SessionStateManager } from '@claw/core/lib/session/session-state';
 let memoryInstance: CachedMemory | null = null;
 let providerInstance: ProviderManager | null = null;
 
+interface Usage {
+  prompt_tokens: number;
+  completion_tokens: number;
+  total_tokens: number;
+}
+
+interface StreamChunk {
+  content?: string;
+  thought?: string;
+  tool_calls?: import('@claw/core/lib/types/index').ToolCall[];
+  messageId?: string;
+  usage?: Usage;
+  modelName?: string;
+  model?: string;
+}
+
 function getMemory() {
   if (!memoryInstance) memoryInstance = new CachedMemory(new DynamoMemory());
   return memoryInstance;
@@ -181,12 +197,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       let finalThought = '';
       let finalToolCalls: import('@claw/core/lib/types/index').ToolCall[] = [];
       let finalMessageId = '';
+      let finalUsage: Usage | null = null;
+      let finalModelName = config.model || 'unknown';
 
-      for await (const chunk of stream) {
+      for await (const chunk of stream as AsyncIterable<StreamChunk>) {
         if (chunk.content) finalResponse += chunk.content;
         if (chunk.thought) finalThought += chunk.thought;
         if (chunk.tool_calls) finalToolCalls = chunk.tool_calls;
         if (chunk.messageId) finalMessageId = chunk.messageId;
+        if (chunk.usage) finalUsage = chunk.usage;
+        if (chunk.modelName || chunk.model) {
+          finalModelName = chunk.modelName || chunk.model || finalModelName;
+        }
       }
 
       logger.info(
@@ -221,6 +243,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         messageId: finalMessageId,
         tool_calls: finalToolCalls,
         sessionId: sessionId || undefined,
+        model: finalModelName,
+        usage: finalUsage,
       });
     } finally {
       if (sessionId) {

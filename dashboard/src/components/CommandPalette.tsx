@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -114,13 +113,12 @@ const CommandPalette: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
-      setQuery('');
-      setSelectedIndex(0);
+      setTimeout(() => setQuery(''), 0);
+      setTimeout(() => setSelectedIndex(0), 0);
     }
   }, [isOpen]);
 

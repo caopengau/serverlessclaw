@@ -573,6 +573,12 @@ export class Agent {
         costLimit: sessionCostLimit || undefined,
       });
 
+      // Yield model info in the first chunk
+      yield {
+        modelName: finalModel,
+        model: finalModel,
+      } as any;
+
       for await (const chunk of stream) {
         if (chunk.content) fullContent += chunk.content;
         if (chunk.thought) fullThought += chunk.thought;
@@ -610,6 +616,12 @@ export class Agent {
             agentName: this.config?.name ?? 'SuperClaw',
             traceId,
             messageId: assistantMessageId,
+            modelName: finalModel ?? 'unknown',
+            usage: {
+              prompt_tokens: totalInputTokens,
+              completion_tokens: totalOutputTokens,
+              total_tokens: totalInputTokens + totalOutputTokens,
+            },
           },
           scope
         );

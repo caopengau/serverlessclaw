@@ -276,6 +276,29 @@ describe('applyChunkToMessages', () => {
 
     expect(result).toHaveLength(0);
   });
+
+  it('propagates usage and model information to the message', () => {
+    const prev: ChatMessage[] = [
+      { role: 'assistant', content: 'Partial...', messageId: 't1', agentName: 'SuperClaw' },
+    ];
+    const chunk: IncomingChunk = {
+      message: ' Final',
+      messageId: 't1',
+      model: 'gpt-4o',
+      usage: {
+        prompt_tokens: 100,
+        completion_tokens: 50,
+        total_tokens: 150,
+      },
+    };
+
+    const result = applyChunkToMessages(prev, chunk);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].content).toBe('Partial... Final');
+    expect(result[0].modelName).toBe('gpt-4o');
+    expect(result[0].usage?.total_tokens).toBe(150);
+  });
 });
 
 describe('mergeHistoryWithMessages', () => {

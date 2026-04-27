@@ -2,7 +2,7 @@ import React from 'react';
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'glass' | 'glass-elevated' | 'solid' | 'outline';
-  padding?: 'none' | 'sm' | 'md' | 'lg';
+  padding?: 'none' | 'xs' | 'sm' | 'md' | 'lg';
   children: React.ReactNode;
   className?: string;
 }
@@ -23,6 +23,7 @@ const Card: React.FC<CardProps> = ({
 
   const paddingStyles = {
     none: 'p-0',
+    xs: 'p-3',
     sm: 'p-4',
     md: 'p-6',
     lg: 'p-8',

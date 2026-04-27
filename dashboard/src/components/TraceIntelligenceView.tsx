@@ -178,7 +178,7 @@ export default function TraceIntelligenceView({
 
       return matchesSearch && matchesStatus && matchesSource;
     });
-  }, [traces, searchQuery, statusFilter, sourceFilter, dateFilter, mountTime]);
+  }, [traces, searchQuery, statusFilter, sourceFilter]);
 
   // Grouping logic
   const groupedData = useMemo(() => {

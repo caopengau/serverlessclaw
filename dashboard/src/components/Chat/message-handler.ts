@@ -18,6 +18,10 @@ export interface IncomingChunk {
   tool_calls?: ChatMessage['tool_calls'];
   ui_blocks?: ChatMessage['ui_blocks'];
   pageContext?: ChatMessage['pageContext'];
+  model?: string;
+  modelName?: string;
+  usage?: ChatMessage['usage'];
+  createdAt?: number;
 }
 
 /**
@@ -161,6 +165,9 @@ export function applyChunkToMessages(
       tool_calls: data.toolCalls || data.tool_calls || existing.tool_calls,
       options: data.options ?? existing.options,
       ui_blocks: data.ui_blocks ?? existing.ui_blocks,
+      modelName: data.model || data.modelName || existing.modelName,
+      usage: data.usage || existing.usage,
+      createdAt: data.createdAt || existing.createdAt,
     };
     return updated;
   }
@@ -203,6 +210,9 @@ export function applyChunkToMessages(
       tool_calls: data.toolCalls || data.tool_calls || existing.tool_calls,
       options: data.options ?? existing.options,
       ui_blocks: data.ui_blocks ?? existing.ui_blocks,
+      modelName: data.model || data.modelName,
+      usage: data.usage,
+      createdAt: data.createdAt || Date.now(),
     };
     return updated;
   }
@@ -246,6 +256,9 @@ export function applyChunkToMessages(
       tool_calls: data.toolCalls || data.tool_calls,
       ui_blocks: data.ui_blocks,
       pageContext: data.pageContext,
+      modelName: data.model || data.modelName,
+      usage: data.usage,
+      createdAt: data.createdAt || Date.now(),
     },
   ];
 }
@@ -267,6 +280,9 @@ export function mapHistoryMessage(m: HistoryMessage): ChatMessage {
     messageId: m.messageId || m.traceId,
     ui_blocks: m.ui_blocks,
     pageContext: m.pageContext,
+    createdAt: m.createdAt,
+    modelName: m.modelName,
+    usage: m.usage,
   };
 }
 

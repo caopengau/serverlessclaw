@@ -225,6 +225,7 @@
   "COLLABORATION_MODE_DESC": "多代理协作已激活。代理现在可以共同处理复杂任务。",
   "COLLABORATORS": "协作者",
   "UNFOLD": "展开",
+  "FOLD": "折叠",
 
   "COMMON_ACTIONS": "操作",
   "COMMON_EDIT": "编辑",

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Edit2, Check, X, Brain, Plus, Bot, Database } from 'lucide-react';
+import { Edit2, Check, X, Brain, Plus, Bot, Database, Crosshair } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 import CyberTooltip from '@/components/CyberTooltip';
@@ -27,6 +27,8 @@ interface ChatHeaderProps {
   isContextPanelOpen: boolean;
   setIsContextPanelOpen: (val: boolean) => void;
   t: (key: TranslationKey) => string;
+  warRoomMode: boolean;
+  setWarRoomMode: (val: boolean) => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -47,6 +49,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   isContextPanelOpen,
   setIsContextPanelOpen,
   t,
+  warRoomMode,
+  setWarRoomMode,
 }) => {
   return (
     <header className="px-6 py-4 border-b border-border flex flex-row items-center justify-between shrink-0 min-h-[70px] gap-6">
@@ -118,9 +122,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
         )}
       </div>
 
-      <div className="flex items-center gap-5">
-        <div className="flex items-center gap-4">
-          <div className="flex -space-x-3">
+      <div className="flex items-center gap-5 shrink-0 transition-all duration-300 justify-end">
+        <div className="flex items-center gap-4 shrink-0">
+          <div className="flex -space-x-3 shrink-0">
             {activeCollaborators.map((id) => (
               <CyberTooltip key={id} content={id} position="bottom" showIcon={false} width="w-auto">
                 <div
@@ -177,6 +181,23 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
         <div className="flex items-center gap-3">
           <CyberTooltip
+            content={warRoomMode ? 'Exit War Room Mode' : 'Enter War Room Mode'}
+            position="bottom"
+            showIcon={false}
+            width="w-auto"
+          >
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setWarRoomMode(!warRoomMode)}
+              className={`px-2 py-1 h-8 flex items-center justify-center gap-2 rounded-md transition-all border min-w-[110px] ${warRoomMode ? 'bg-cyber-blue/5 text-cyber-blue border-cyber-blue/20 shadow-[0_0_10px_rgba(0,255,255,0.1)]' : 'text-muted-foreground hover:text-foreground border-transparent'}`}
+              icon={<Crosshair size={18} />}
+            >
+              <span className="text-[10px] font-mono uppercase tracking-wider">WAR_ROOM</span>
+            </Button>
+          </CyberTooltip>
+
+          <CyberTooltip
             content={showThinking ? t('CHAT_HIDE_THINKING') : t('CHAT_SHOW_THINKING')}
             position="bottom"
             showIcon={false}
@@ -186,10 +207,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => setShowThinking(!showThinking)}
-              className={`px-2 py-1 h-8 flex items-center gap-2 rounded-md transition-all ${showThinking ? 'bg-cyber-green/5 text-cyber-green border border-cyber-green/20' : 'text-muted-foreground hover:text-foreground'}`}
+              className={`px-2 py-1 h-8 flex items-center justify-center gap-2 rounded-md transition-all border min-w-[110px] ${showThinking ? 'bg-cyber-green/5 text-cyber-green border-cyber-green/20' : 'text-muted-foreground hover:text-foreground border-transparent'}`}
               icon={<Brain size={18} />}
             >
-              <span className="text-[10px] font-mono uppercase tracking-wider hidden xl:inline">
+              <span className="text-[10px] font-mono uppercase tracking-wider">
                 {t('CHAT_THINKING')}
               </span>
             </Button>
@@ -206,7 +227,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
               size="sm"
               aria-label="Toggle Session Intelligence"
               onClick={() => setIsContextPanelOpen(!isContextPanelOpen)}
-              className={`p-1.5 h-8 w-8 rounded-md transition-all ${isContextPanelOpen ? 'bg-cyber-blue/10 text-cyber-blue border border-cyber-blue/20 shadow-[0_0_10px_rgba(0,255,255,0.1)]' : 'text-muted-foreground/50 hover:text-cyber-green hover:bg-foreground/5'}`}
+              className={`p-1.5 h-8 w-8 rounded-md transition-all border ${isContextPanelOpen ? 'bg-cyber-blue/10 text-cyber-blue border-cyber-blue/20 shadow-[0_0_10px_rgba(0,255,255,0.1)]' : 'text-muted-foreground/50 hover:text-cyber-green hover:bg-foreground/5 border-transparent'}`}
               icon={<Database size={18} />}
             />
           </CyberTooltip>

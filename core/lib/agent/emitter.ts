@@ -196,6 +196,9 @@ export class AgentEmitter {
       attachments?: Message['attachments'];
       detailType?: EventType;
       scope?: string | import('../types/memory').ContextualScope;
+      model?: string;
+      modelName?: string;
+      usage?: Message['usage'];
     } = {}
   ): Promise<void> {
     const {
@@ -209,6 +212,9 @@ export class AgentEmitter {
       attachments,
       detailType = EventType.TEXT_MESSAGE_CONTENT,
       scope,
+      model,
+      modelName,
+      usage,
     } = options;
 
     try {
@@ -285,6 +291,9 @@ export class AgentEmitter {
         workspaceId,
         teamId,
         staffId,
+        model: model || modelName,
+        modelName: modelName || model,
+        usage,
       };
 
       await publishToRealtime(topic, payload);

@@ -143,6 +143,7 @@ export class StreamingExecutor extends BaseExecutor {
           thoughtDelta: '\u2026',
           detailType: EventType.TEXT_MESSAGE_CONTENT,
           scope,
+          model: options.activeModel,
         });
       }
 
@@ -160,6 +161,7 @@ export class StreamingExecutor extends BaseExecutor {
               initiatorId: options.currentInitiator,
               detailType: EventType.TEXT_MESSAGE_CONTENT,
               scope,
+              model: options.activeModel,
             });
           }
         }
@@ -178,6 +180,7 @@ export class StreamingExecutor extends BaseExecutor {
               thoughtDelta,
               detailType: EventType.TEXT_MESSAGE_CONTENT,
               scope,
+              model: options.activeModel,
             });
           }
         }
@@ -242,6 +245,7 @@ export class StreamingExecutor extends BaseExecutor {
           initiatorId: options.currentInitiator,
           thoughtDelta: `I am executing: ${toolNames}...`,
           scope,
+          model: options.activeModel,
         });
       }
 
@@ -254,6 +258,7 @@ export class StreamingExecutor extends BaseExecutor {
             isThought: false,
             initiatorId: options.currentInitiator,
             scope,
+            model: options.activeModel,
           });
         }
         yield { content: ackMsg };
@@ -299,6 +304,7 @@ export class StreamingExecutor extends BaseExecutor {
             initiatorId: options.currentInitiator,
             attachments: newAttachments,
             scope,
+            model: options.activeModel,
           });
         }
         yield { attachments: newAttachments } as MessageChunk;
@@ -311,6 +317,7 @@ export class StreamingExecutor extends BaseExecutor {
           initiatorId: options.currentInitiator,
           ui_blocks: toolResult.ui_blocks,
           scope,
+          model: options.activeModel,
         });
         yield { ui_blocks: toolResult.ui_blocks } as MessageChunk;
       }
@@ -325,6 +332,7 @@ export class StreamingExecutor extends BaseExecutor {
               isThought: false,
               initiatorId: options.currentInitiator,
               scope,
+              model: options.activeModel,
             });
           }
           yield { content: pauseMessage };
@@ -355,6 +363,12 @@ export class StreamingExecutor extends BaseExecutor {
         thoughtDelta: fullThought,
         detailType: EventType.OUTBOUND_MESSAGE,
         scope,
+        model: options.activeModel,
+        usage: {
+          prompt_tokens: usage.totalInputTokens,
+          completion_tokens: usage.totalOutputTokens,
+          total_tokens: usage.total_tokens,
+        },
       });
     }
 

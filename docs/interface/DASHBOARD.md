@@ -12,6 +12,13 @@ The dashboard is built with **Next.js (App Router)** and **Tailwind CSS**. It se
 
 A specialized, high-density dashboard state for human-agent collaboration, featuring real-time task visualization, trust monitoring, and human-in-the-loop (HITL) intervention gates.
 
+#### Tactical Stability & Persistence
+
+To ensure a consistent "in-command" experience, the Mission Control interface implements:
+- **Geometry Locking**: Buttons and controls use fixed minimum widths (`min-w-[110px]`) and transparent borders to prevent "jiggling" or 1px shifts when toggling the War Room or Intelligence modes.
+- **Contextual Persistence**: Tactical sidebars (**Mission Briefing** and **Mission Control HUD**) persist during new chat initialization. Even before a session ID is assigned, the commander maintains a view of the operational theater.
+- **Typography Polish**: Tactical metrics are rendered as distinct blocks with descriptive labels, preventing text merging during high-velocity updates.
+
 ---
 
 ## 🕹️ Mission Control Components

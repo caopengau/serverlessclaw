@@ -58,16 +58,18 @@ export default function TenantSwitcher({ isCollapsed }: TenantSwitcherProps) {
   const activeName = tenantInfo?.name || 'Global Hive';
 
   return (
-    <div className="relative px-2 mb-4 group">
+    <div className={`relative mb-4 group ${isCollapsed ? 'px-0' : 'px-2'}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`
-          w-full flex items-center gap-3 p-2 rounded transition-all border
+          w-full flex items-center gap-3 rounded transition-all border
           ${isOpen ? 'bg-foreground/10 border-cyber-green/50 shadow-premium' : 'bg-foreground/5 border-border/50 hover:bg-foreground/80 hover:border-border'}
-          ${isCollapsed ? 'justify-center h-10' : 'justify-between'}
+          ${isCollapsed ? 'justify-center h-10 p-0' : 'justify-between p-2'}
         `}
       >
-        <div className="flex items-center gap-3 overflow-hidden">
+        <div
+          className={`flex items-center gap-3 overflow-hidden ${isCollapsed ? 'justify-center' : ''}`}
+        >
           <div
             className={`
             shrink-0 flex items-center justify-center rounded-sm

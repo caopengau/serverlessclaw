@@ -111,6 +111,10 @@ export interface Message {
     total_tokens?: number;
   };
   /**
+   * Optional name of the model that generated this message.
+   */
+  modelName?: string;
+  /**
    * Optional UI options (buttons) associated with the message.
    */
   options?: Array<{
@@ -164,6 +168,7 @@ export function createMessage(params: {
     completion_tokens: number;
     total_tokens?: number;
   };
+  modelName?: string;
   options?: Array<{
     label: string;
     value: string;
@@ -201,6 +206,7 @@ export function createMessage(params: {
     messageId: params.messageId,
     attachments: params.attachments ?? [],
     usage: params.usage,
+    modelName: params.modelName,
     options: params.options ?? [],
     pageContext: params.pageContext,
     ui_blocks: params.ui_blocks ?? [],
@@ -352,6 +358,8 @@ export interface MessageChunk {
    * Optional dynamic UI blocks during streaming.
    */
   ui_blocks?: Message['ui_blocks'];
+  /** Optional model name for streaming chunks. */
+  modelName?: string;
 }
 
 /**

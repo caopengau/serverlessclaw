@@ -50,6 +50,16 @@ export interface ChatMessage {
   ui_blocks?: DynamicComponent[];
   /** Whether the assistant is currently thinking/processing a response for this message ID */
   isThinking?: boolean;
+  /** Timestamp of when the message was created */
+  createdAt?: number;
+  /** The model name used for the response (assistant only) */
+  modelName?: string;
+  /** Token usage for the message (assistant only) */
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens?: number;
+  };
 }
 
 export interface HistoryMessage {
@@ -64,6 +74,9 @@ export interface HistoryMessage {
   tool_calls?: ToolCall[];
   pageContext?: PageContextData;
   ui_blocks?: DynamicComponent[];
+  createdAt?: number;
+  modelName?: string;
+  usage?: ChatMessage['usage'];
 }
 
 export interface AttachmentPreview {
