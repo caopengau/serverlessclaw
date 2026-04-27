@@ -68,7 +68,7 @@ describe('recursion-tracker', () => {
       });
 
       // Mission context uses 30 min (1800s) TTL vs normal 1 hour (3600s)
-      await incrementRecursionDepth('trace-1', 'sess-1', 'agent-1', true);
+      await incrementRecursionDepth('trace-1', 'sess-1', 'agent-1', { isMissionContext: true });
 
       const cmd = mockSend.mock.calls[0][0];
       const expectedExpires = Math.floor(Date.now() / 1000) + 1800;

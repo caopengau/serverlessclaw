@@ -7,11 +7,25 @@ import {
 } from '../../types';
 import { DynamoMemoryGaps } from './gaps';
 import * as InsightOps from '../insight-operations';
+import { getDistilledMemory } from '../base-operations';
+import { updateDistilledMemory } from '../session-operations';
 
 /**
  * DynamoMemory implementation for Knowledge and Insight operations.
  */
 export class DynamoMemoryInsights extends DynamoMemoryGaps implements IKnowledgeStore {
+  async getDistilledMemory(userId: string, scope?: string | ContextualScope): Promise<string> {
+    return getDistilledMemory(this, userId, scope);
+  }
+
+  async updateDistilledMemory(
+    userId: string,
+    facts: string,
+    scope?: string | ContextualScope
+  ): Promise<void> {
+    return updateDistilledMemory(this, userId, facts, scope);
+  }
+
   async addLesson(
     userId: string,
     lesson: string,

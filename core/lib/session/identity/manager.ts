@@ -1,6 +1,13 @@
 import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../../logger';
-import { UserRole, Permission, UserIdentity, Session, AuthResult, AccessControlEntry } from './types';
+import {
+  UserRole,
+  Permission,
+  UserIdentity,
+  Session,
+  AuthResult,
+  AccessControlEntry,
+} from './types';
 import { IdentityBase } from './base';
 import { UserOps } from './user-ops';
 import { SessionOps } from './session-ops';
@@ -8,7 +15,7 @@ import { AccessOps } from './access-ops';
 
 /**
  * Identity and Access Manager.
- * 
+ *
  * Refactored into functional sub-modules (user-ops, session-ops, access-ops)
  * to maintain AI grounding and resolve "Extreme file length" critical issues.
  */
@@ -39,7 +46,12 @@ export class IdentityManager extends IdentityBase {
       // Get or create user identity
       let user = await this.userOps.loadUser(userId, orgId);
       if (!user) {
-        user = await this.userOps.createUser(userId, authProvider, metadata?.password as string, orgId);
+        user = await this.userOps.createUser(
+          userId,
+          authProvider,
+          metadata?.password as string,
+          orgId
+        );
       }
 
       // Validate workspace membership if workspaceId provided
@@ -149,7 +161,11 @@ export class IdentityManager extends IdentityBase {
       if (entry.allowedRoles.includes(user.role)) return true;
 
       if (entry.parentId) {
-        const parentEntry = await this.accessOps.getAccessControlEntry('workspace', entry.parentId, orgId);
+        const parentEntry = await this.accessOps.getAccessControlEntry(
+          'workspace',
+          entry.parentId,
+          orgId
+        );
         if (parentEntry) {
           if (parentEntry.allowedUserIds?.includes(userId)) return true;
           if (parentEntry.allowedRoles.includes(user.role)) return true;
@@ -166,7 +182,11 @@ export class IdentityManager extends IdentityBase {
   }
 
   // Delegated methods for API consistency
-  async getUser(userId: string, callerId?: string, orgId?: string): Promise<UserIdentity | undefined> {
+  async getUser(
+    userId: string,
+    callerId?: string,
+    orgId?: string
+  ): Promise<UserIdentity | undefined> {
     if (callerId && callerId !== userId) {
       const hasAccess = await this.hasResourceAccess(callerId, 'agent', userId, orgId);
       if (!hasAccess) return undefined;
@@ -178,7 +198,11 @@ export class IdentityManager extends IdentityBase {
     return this.userOps.getAllUsers();
   }
 
-  async getSession(sessionId: string, callerId?: string, orgId?: string): Promise<Session | undefined> {
+  async getSession(
+    sessionId: string,
+    callerId?: string,
+    orgId?: string
+  ): Promise<Session | undefined> {
     const session = await this.sessionOps.getSession(sessionId, orgId);
     if (session && callerId && callerId !== session.userId) {
       const hasAccess = await this.hasResourceAccess(callerId, 'trace', session.userId, orgId);
@@ -195,7 +219,12 @@ export class IdentityManager extends IdentityBase {
     return this.sessionOps.getUserSessions(userId);
   }
 
-  async updateUserRole(userId: string, role: UserRole, callerId: string, orgId?: string): Promise<boolean> {
+  async updateUserRole(
+    userId: string,
+    role: UserRole,
+    callerId: string,
+    orgId?: string
+  ): Promise<boolean> {
     const caller = await this.getUser(callerId, undefined, orgId);
     if (!caller || (caller.role !== UserRole.OWNER && caller.role !== UserRole.ADMIN)) return false;
     return this.userOps.updateUser(userId, { role }, orgId);
@@ -205,7 +234,11 @@ export class IdentityManager extends IdentityBase {
     return this.userOps.addUserToWorkspace(userId, workspaceId, orgId);
   }
 
-  async removeUserFromWorkspace(userId: string, workspaceId: string, orgId?: string): Promise<boolean> {
+  async removeUserFromWorkspace(
+    userId: string,
+    workspaceId: string,
+    orgId?: string
+  ): Promise<boolean> {
     return this.userOps.removeUserFromWorkspace(userId, workspaceId, orgId);
   }
 

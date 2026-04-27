@@ -91,7 +91,7 @@ export function getTenantEventFilter(options: {
   teamId?: string[];
   requireWorkspace?: boolean;
 }) {
-  const pattern: any = {
+  const pattern: Record<string, any> = {
     detail: {},
   };
 

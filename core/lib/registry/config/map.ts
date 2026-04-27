@@ -1,4 +1,5 @@
 import { GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { logger } from '../../logger';
 import { ConfigManagerList } from './list';
 import { getDocClient } from './client';
 
@@ -37,8 +38,7 @@ export class ConfigManagerMap extends ConfigManagerList {
           ExpressionAttributeValues: { ':value': value },
         })
       );
-    } catch (e: unknown) {
-      if (!(e instanceof Error)) throw e;
+    } catch (e: any) {
       if (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException') {
         try {
           await docClient.send(
@@ -51,8 +51,7 @@ export class ConfigManagerMap extends ConfigManagerList {
               ExpressionAttributeValues: { ':entityObj': { [field]: value } },
             })
           );
-        } catch (innerE: unknown) {
-          if (!(innerE instanceof Error)) throw innerE;
+        } catch (innerE: any) {
           if (innerE.name === 'ValidationException') {
             try {
               await docClient.send(
@@ -65,12 +64,8 @@ export class ConfigManagerMap extends ConfigManagerList {
                   ExpressionAttributeValues: { ':rootObj': { [entityId]: { [field]: value } } },
                 })
               );
-            } catch (rootE: unknown) {
-              if (
-                rootE instanceof Error &&
-                rootE.name === 'ConditionalCheckFailedException' &&
-                retryCount < maxRetries
-              ) {
+            } catch (rootE: any) {
+              if (rootE.name === 'ConditionalCheckFailedException' && retryCount < maxRetries) {
                 return this.atomicUpdateMapField(key, entityId, field, value, {
                   ...options,
                   retryCount: retryCount + 1,
@@ -121,8 +116,57 @@ export class ConfigManagerMap extends ConfigManagerList {
         })
       );
       return result.Attributes?.value?.[entityId]?.[field] ?? 0;
-    } catch (e: unknown) {
+    } catch (e: any) {
       logger.error(`Failed to atomically add ${delta} to ${effectiveKey}/${entityId}.${field}:`, e);
+      throw e;
+    }
+  }
+
+  /**
+   * Atomically increments a numeric field for an entity within a map configuration.
+   * Supports optional min/max clamping.
+   */
+  public static async atomicIncrementMapField(
+    key: string,
+    entityId: string,
+    field: string,
+    delta: number,
+    options: { workspaceId?: string; min?: number; max?: number } = {}
+  ): Promise<number> {
+    const tableName = this._getTableName();
+    if (!tableName) return 0;
+
+    const effectiveKey = options.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    this.configCache.delete(effectiveKey);
+
+    const { min = -Infinity, max = Infinity } = options;
+
+    try {
+      const result = await getDocClient().send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { key: effectiveKey },
+          UpdateExpression: 'SET #val.#id.#field = if_not_exists(#val.#id.#field, :zero) + :delta',
+          ExpressionAttributeNames: { '#val': 'value', '#id': entityId, '#field': field },
+          ExpressionAttributeValues: { ':delta': delta, ':zero': 0 },
+          ReturnValues: 'ALL_NEW',
+        })
+      );
+      const newValue = result.Attributes?.value?.[entityId]?.[field] ?? 0;
+
+      // Clamping if needed (Note: this is not perfectly atomic for clamping, but consistent with old implementation)
+      if (newValue < min || newValue > max) {
+        const clamped = Math.min(Math.max(newValue, min), max);
+        await this.atomicUpdateMapField(key, entityId, field, clamped, options);
+        return clamped;
+      }
+
+      return newValue;
+    } catch (e: any) {
+      logger.error(
+        `Failed to atomically increment ${effectiveKey}/${entityId}.${field} by ${delta}:`,
+        e
+      );
       throw e;
     }
   }
@@ -155,8 +199,8 @@ export class ConfigManagerMap extends ConfigManagerList {
           ExpressionAttributeValues: { ':value': value, ':expected': expectedValue },
         })
       );
-    } catch (e: unknown) {
-      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') throw e;
+    } catch (e: any) {
+      if (e.name === 'ConditionalCheckFailedException') throw e;
       logger.error(`Failed to atomically update ${effectiveKey}/${entityId}.${field}:`, e);
       throw e;
     }
@@ -212,7 +256,7 @@ export class ConfigManagerMap extends ConfigManagerList {
           })
         );
         return;
-      } catch (e: unknown) {
+      } catch (e: any) {
         if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
           retryCount++;
           continue;
@@ -271,8 +315,8 @@ export class ConfigManagerMap extends ConfigManagerList {
           })
         );
         return;
-      } catch (e: unknown) {
-        if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+      } catch (e: any) {
+        if (e.name === 'ConditionalCheckFailedException') {
           retryCount++;
           continue;
         }
@@ -346,8 +390,7 @@ export class ConfigManagerMap extends ConfigManagerList {
           ExpressionAttributeValues: values,
         })
       );
-    } catch (e: unknown) {
-      if (!(e instanceof Error)) throw e;
+    } catch (e: any) {
       if (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException') {
         try {
           const initialObject = { ...updates };
@@ -367,8 +410,7 @@ export class ConfigManagerMap extends ConfigManagerList {
               ExpressionAttributeValues: { ':entity': initialObject },
             })
           );
-        } catch (innerE: unknown) {
-          if (!(innerE instanceof Error)) throw innerE;
+        } catch (innerE: any) {
           if (innerE.name === 'ValidationException') {
             try {
               const initialObject = { ...updates };
@@ -388,12 +430,8 @@ export class ConfigManagerMap extends ConfigManagerList {
                   ExpressionAttributeValues: { ':rootObj': { [entityId]: initialObject } },
                 })
               );
-            } catch (rootE: unknown) {
-              if (
-                rootE instanceof Error &&
-                rootE.name === 'ConditionalCheckFailedException' &&
-                retryCount < maxRetries
-              ) {
+            } catch (rootE: any) {
+              if (rootE.name === 'ConditionalCheckFailedException' && retryCount < maxRetries) {
                 return this.atomicUpdateMapEntity(key, entityId, updates, {
                   ...options,
                   retryCount: retryCount + 1,

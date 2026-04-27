@@ -23,7 +23,7 @@ describe('Events Shared Recursion Guard', () => {
       'trace-123',
       'session-123',
       'agent-123',
-      false
+      { isMissionContext: false }
     );
   });
 
@@ -41,14 +41,16 @@ describe('Events Shared Recursion Guard', () => {
     vi.mocked(tracker.getRecursionLimit).mockResolvedValue(10);
     vi.mocked(tracker.incrementRecursionDepth).mockResolvedValue(5);
 
-    await checkAndPushRecursion('trace-123', 'session-123', 'agent-123', true);
+    await checkAndPushRecursion('trace-123', 'session-123', 'agent-123', {
+      isMissionContext: true,
+    });
 
-    expect(tracker.getRecursionLimit).toHaveBeenCalledWith(true);
+    expect(tracker.getRecursionLimit).toHaveBeenCalledWith({ isMissionContext: true });
     expect(tracker.incrementRecursionDepth).toHaveBeenCalledWith(
       'trace-123',
       'session-123',
       'agent-123',
-      true
+      { isMissionContext: true }
     );
   });
 

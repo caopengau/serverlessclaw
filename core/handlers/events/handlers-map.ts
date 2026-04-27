@@ -1,8 +1,8 @@
 /**
  * Handler Loaders Map
- * 
+ *
  * To optimize AI context budget and metabolic efficiency, we use a dynamic loader pattern.
- * This prevents the central multiplexer from transitively importing the entire handler 
+ * This prevents the central multiplexer from transitively importing the entire handler
  * graph into its top-level context, which would exceed AI reasoning limits.
  */
 

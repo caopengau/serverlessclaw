@@ -1,6 +1,5 @@
 import { BaseMemoryProvider } from '../base';
 import { logger } from '../../logger';
-import { ContextualScope } from '../../types';
 
 /**
  * Base implementation for DynamoMemory providing core utility methods.

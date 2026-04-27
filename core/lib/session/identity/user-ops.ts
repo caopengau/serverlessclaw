@@ -193,9 +193,9 @@ export class UserOps extends IdentityBase {
       );
       logger.info(`User ${userId} added to workspace ${workspaceId}`);
       return true;
-    } catch (e: unknown) {
+    } catch (e: any) {
       if (e.name === 'ConditionalCheckFailedException') {
-        return true; 
+        return true;
       }
       logger.error(`Failed to add user ${userId} to workspace ${workspaceId}:`, e);
       return false;
@@ -242,7 +242,7 @@ export class UserOps extends IdentityBase {
         );
         logger.info(`User ${userId} removed from workspace ${workspaceId}`);
         return true;
-      } catch (e: unknown) {
+      } catch (e: any) {
         if (e.name === 'ConditionalCheckFailedException') {
           retryCount++;
           continue;

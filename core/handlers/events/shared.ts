@@ -49,10 +49,13 @@ export async function checkAndPushRecursion(
   traceId: string,
   sessionId: string,
   agentId: string,
-  isMission: boolean = false
+  options: { isMissionContext?: boolean } = {}
 ): Promise<number | null> {
-  const RECURSION_LIMIT = await getRecursionLimit({ isMission });
-  const newDepth = await incrementRecursionDepth(traceId, sessionId, agentId, { isMission });
+  const isMission = !!options.isMissionContext;
+  const RECURSION_LIMIT = await getRecursionLimit({ isMissionContext: isMission });
+  const newDepth = await incrementRecursionDepth(traceId, sessionId, agentId, {
+    isMissionContext: isMission,
+  });
 
   if (newDepth > RECURSION_LIMIT || newDepth === -1) {
     logger.error(
@@ -109,7 +112,7 @@ export async function wakeupInitiator(
   }
 
   const missionContext = isMissionContext(eventType as string);
-  const RECURSION_LIMIT = await getRecursionLimit({ isMission: missionContext });
+  const RECURSION_LIMIT = await getRecursionLimit({ isMissionContext: missionContext });
 
   if (depth >= RECURSION_LIMIT) {
     logger.error(

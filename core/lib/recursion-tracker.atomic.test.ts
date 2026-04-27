@@ -51,7 +51,7 @@ describe('RecursionTracker Atomicity', () => {
       Attributes: { depth: 1 },
     });
 
-    await incrementRecursionDepth('mission-trace', 's1', 'a1', true);
+    await incrementRecursionDepth('mission-trace', 's1', 'a1', { isMissionContext: true });
 
     const lastCall = ddbMock.commandCalls(UpdateCommand)[0];
     const input = lastCall.args[0].input as any;

@@ -334,11 +334,46 @@ To ensure high-performance auditability and automatic data aging (Principle 1), 
 
 To satisfy **Principle 5 (Low Latency)** and **Principle 10 (Lean Evolution)**, Serverless Claw implements a unified, hot-swappable configuration layer:
 
-1. **Modular Architecture**: The `ConfigManager` (`core/lib/registry/config.ts`) is refactored into specialized sub-modules within `core/lib/registry/config/` (base, list, map). This ensures high neural cohesion and stays within AI context limits during systemic audits.
+1. **Modular Architecture**: The `ConfigManager` (`core/lib/registry/config.ts`) is refactored into specialized sub-modules within `core/lib/registry/config/` using an inheritance chain:
+   ```text
+   [ ConfigBase ] -> [ ConfigClient ] -> [ ConfigList ] -> [ ConfigMap ] -> [ ConfigManager ]
+   ```
+   This ensures high neural cohesion and stays within AI context limits during systemic audits.
 2. **Cached Dynamic Lookups**: Maintains a 60-second in-memory cache for all configuration keys. This reduces DynamoDB read IOPS by >90% during high-concurrency swarm missions.
 3. **Authoritative Async Bridge**: The `getDynamicConfigValue` utility provides a type-safe, non-blocking interface for fetching hot-swappable settings.
 4. **Atomic Writes & Invalidation**: Configuration updates use DynamoDB conditional writes to prevent lost updates. **Supports Principle 15 (Monotonic Progress) via `atomicIncrementMapField` for numeric counters.**
 5. **Centralized Table Resolution**: Table names are resolved via `ddb-client.ts`, supporting environment variable overrides for robust stage alignment.
+
+---
+
+## 🧠 Modular Memory Engine (DynamoMemory)
+
+To comply with AI context budgets and prevent "God Class" bloat, the `DynamoMemory` implementation is decomposed into a tiered inheritance chain. Each layer encapsulates a specific domain of the `IMemory` interface:
+
+```text
+[ BaseMemoryProvider ]
+          |
+          v
+[ DynamoMemoryBase ] -------- (Core DDB Utils, listByPrefix)
+          |
+          v
+[ DynamoMemoryGaps ] -------- (Strategic Gaps, Locks)
+          |
+          v
+[ DynamoMemoryInsights ] ---- (Lessons, Knowledge, Failure Patterns)
+          |
+          v
+[ DynamoMemorySessions ] ---- (History, Summary, LKG Hashes)
+          |
+          v
+[ DynamoMemoryCollaboration ] (Collaboration, Clarifications)
+          |
+          v
+[ DynamoMemory ] ------------ (Thin Wrapper, Cache Stats)
+```
+
+1. **Inheritance over Composition**: Uses inheritance to preserve a flat, performant `IMemory` interface while keeping source files under 500 lines.
+2. **Transitive Efficiency**: Dashboard routes and light clients can import `BaseMemoryProvider` directly to avoid pulling the full dependency graph of the entire memory engine, reducing context budget from 112k to <5k tokens.
 
 ---
 

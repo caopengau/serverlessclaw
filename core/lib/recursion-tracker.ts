@@ -35,8 +35,10 @@ const DEFAULT_GLOBAL_BUDGET = 1_000_000;
  * Validates that mission_recursion_limit <= recursion_limit to prevent limit bypass.
  * @param options - Configuration options
  */
-export async function getRecursionLimit(options: { isMission?: boolean } = {}): Promise<number> {
-  const { isMission = false } = options;
+export async function getRecursionLimit(
+  options: { isMissionContext?: boolean } = {}
+): Promise<number> {
+  const { isMissionContext = false } = options;
   const { CONFIG_DEFAULTS } = await import('./config/config-defaults');
 
   // Get general recursion limit (upper bound)
@@ -51,7 +53,7 @@ export async function getRecursionLimit(options: { isMission?: boolean } = {}): 
   }
 
   // Use mission-specific limit if this is a mission context
-  if (isMission) {
+  if (isMissionContext) {
     let missionLimit: number = CONFIG_DEFAULTS.MISSION_RECURSION_LIMIT.code;
     try {
       const customMissionLimit = await ConfigManager.getRawConfig(MISSION_RECURSION_CONFIG_KEY);
@@ -64,17 +66,8 @@ export async function getRecursionLimit(options: { isMission?: boolean } = {}): 
     } catch {
       logger.warn('Failed to fetch mission_recursion_limit from DDB, using default.');
     }
-
-    // Validate: mission limit cannot exceed general limit (prevents limit bypass)
-    if (missionLimit > generalLimit) {
-      logger.warn(
-        `mission_recursion_limit (${missionLimit}) exceeds recursion_limit (${generalLimit}). ` +
-          `Using general limit for mission context.`
-      );
-      return generalLimit;
-    }
-
-    return missionLimit;
+    // Safety check: mission limit cannot exceed general limit
+    return Math.min(missionLimit, generalLimit);
   }
 
   return generalLimit;
@@ -94,11 +87,11 @@ export async function incrementRecursionDepth(
   traceId: string,
   sessionId: string,
   agentId: string,
-  options: { isMission?: boolean } = {}
+  options: { isMissionContext?: boolean } = {}
 ): Promise<number> {
-  const { isMission = false } = options;
+  const { isMissionContext = false } = options;
   const key = `${RECURSION_STACK_PREFIX}${traceId}`;
-  const ttlSeconds = isMission ? MISSION_RECURSION_TTL_SECONDS : RECURSION_TTL_SECONDS;
+  const ttlSeconds = isMissionContext ? MISSION_RECURSION_TTL_SECONDS : RECURSION_TTL_SECONDS;
   const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
   const now = Date.now();
 

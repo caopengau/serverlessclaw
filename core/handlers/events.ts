@@ -58,13 +58,10 @@ export async function handler(
     );
   } else {
     const isMission = isMissionContext(detailType, eventDetail as Record<string, unknown>);
-    const recursionLimit = await getRecursionLimit({ isMission });
-    const currentDepth = await incrementRecursionDepth(
-      traceId,
-      sessionId,
-      'system.spine',
-      { isMission }
-    );
+    const recursionLimit = await getRecursionLimit({ isMissionContext: isMission });
+    const currentDepth = await incrementRecursionDepth(traceId, sessionId, 'system.spine', {
+      isMissionContext: isMission,
+    });
 
     if (currentDepth > recursionLimit || currentDepth === -1) {
       logger.warn(

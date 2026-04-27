@@ -63,7 +63,7 @@ export class ConfigManagerList extends ConfigManagerBase {
    */
   public static async atomicAppendToList(
     key: string,
-    items: any[],
+    items: unknown[],
     options: { workspaceId?: string; preventDuplicates?: boolean } = {}
   ): Promise<void> {
     const tableName = this._getTableName();
@@ -75,7 +75,7 @@ export class ConfigManagerList extends ConfigManagerBase {
     const docClient = getDocClient();
 
     if (options.preventDuplicates) {
-      const current = await this.getTypedConfig<any[]>(key, [], options);
+      const current = await this.getTypedConfig<unknown[]>(key, [], options);
       const filtered = items.filter((item) => !current.includes(item));
       if (filtered.length === 0) return;
       items = filtered;
@@ -105,7 +105,7 @@ export class ConfigManagerList extends ConfigManagerBase {
    */
   public static async atomicRemoveFromList(
     key: string,
-    itemsToRemove: any[],
+    itemsToRemove: unknown[],
     options: { workspaceId?: string } = {}
   ): Promise<void> {
     const tableName = this._getTableName();
@@ -120,7 +120,7 @@ export class ConfigManagerList extends ConfigManagerBase {
 
     while (retryCount < maxRetries) {
       try {
-        const current = await this.getTypedConfig<any[]>(key, [], options);
+        const current = await this.getTypedConfig<unknown[]>(key, [], options);
         const newList = current.filter((item) => !itemsToRemove.includes(item));
 
         if (newList.length === current.length) return;

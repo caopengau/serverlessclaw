@@ -45,7 +45,7 @@ describe('EventHandler Shared Utilities', () => {
     });
 
     it('should return true if isMission flag is set in metadata', () => {
-      expect(isMissionContext(EventType.TASK_COMPLETED, { isMission: true })).toBe(true);
+      expect(isMissionContext(EventType.TASK_COMPLETED, { isMissionContext: true })).toBe(true);
     });
 
     it('should return false for standard events', () => {
@@ -74,7 +74,9 @@ describe('EventHandler Shared Utilities', () => {
       // Mission limit is 5 by default
       mockDepth.value = 5;
       const traceId = 'trace-mission';
-      const result = await checkAndPushRecursion(traceId, 'sess-1', 'agent-1', true);
+      const result = await checkAndPushRecursion(traceId, 'sess-1', 'agent-1', {
+        isMissionContext: true,
+      });
 
       expect(result).toBeNull();
     });
@@ -82,12 +84,12 @@ describe('EventHandler Shared Utilities', () => {
 
   describe('getRecursionLimit', () => {
     it('should return default limit when no config exists', async () => {
-      const limit = await getRecursionLimit(false);
+      const limit = await getRecursionLimit({ isMissionContext: false });
       expect(limit).toBe(15);
     });
 
     it('should return mission limit when requested', async () => {
-      const limit = await getRecursionLimit(true);
+      const limit = await getRecursionLimit({ isMissionContext: true });
       expect(limit).toBe(5);
     });
   });
