@@ -684,12 +684,18 @@ export class ConfigManager {
 
   /**
    * Atomically updates multiple fields for an entity using a partial object.
+   * Supports optional atomic increments for specific fields.
    */
   public static async atomicUpdateMapEntity(
     key: string,
     entityId: string,
     updates: Record<string, unknown>,
-    options?: { workspaceId?: string; orgId?: string; retryCount?: number }
+    options?: {
+      workspaceId?: string;
+      orgId?: string;
+      retryCount?: number;
+      increments?: Record<string, number>;
+    }
   ): Promise<void> {
     const tableName = this._getTableName();
     if (!tableName) return;
@@ -709,18 +715,35 @@ export class ConfigManager {
     const names: Record<string, string> = { '#val': 'value', '#id': entityId };
     const values: Record<string, unknown> = {};
 
-    Object.entries(updates).forEach(([field, value], i) => {
-      sets.push(`#val.#id.#f${i} = :v${i}`);
-      names[`#f${i}`] = field;
-      values[`:v${i}`] = value;
+    let valIdx = 0;
+    Object.entries(updates).forEach(([field, value]) => {
+      sets.push(`#val.#id.#f${valIdx} = :v${valIdx}`);
+      names[`#f${valIdx}`] = field;
+      values[`:v${valIdx}`] = value;
+      valIdx++;
     });
+
+    if (options?.increments) {
+      Object.entries(options.increments).forEach(([field, delta]) => {
+        // Use SET #field = if_not_exists(#field, :zero) + :delta for mixing with other SETs
+        sets.push(
+          `#val.#id.#f${valIdx} = if_not_exists(#val.#id.#f${valIdx}, :zero) + :v${valIdx}`
+        );
+        names[`#f${valIdx}`] = field;
+        values[`:v${valIdx}`] = delta;
+        values[':zero'] = 0;
+        valIdx++;
+      });
+    }
+
+    const updateExpression = `SET ${sets.join(', ')}`;
 
     try {
       await docClient.send(
         new UpdateCommand({
           TableName: tableName,
           Key: { key: actualKey },
-          UpdateExpression: `SET ${sets.join(', ')}`,
+          UpdateExpression: updateExpression,
           ConditionExpression: 'attribute_exists(#val.#id)',
           ExpressionAttributeNames: names,
           ExpressionAttributeValues: values,
@@ -731,6 +754,13 @@ export class ConfigManager {
       if (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException') {
         try {
           // Entity doesn't exist - create entity object
+          const initialObject = { ...updates };
+          if (options?.increments) {
+            Object.entries(options.increments).forEach(([field, delta]) => {
+              initialObject[field] = delta;
+            });
+          }
+
           await docClient.send(
             new UpdateCommand({
               TableName: tableName,
@@ -738,7 +768,7 @@ export class ConfigManager {
               UpdateExpression: 'SET #val.#id = :entity',
               ConditionExpression: 'attribute_not_exists(#val.#id)',
               ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
-              ExpressionAttributeValues: { ':entity': updates },
+              ExpressionAttributeValues: { ':entity': initialObject },
             })
           );
         } catch (innerE: unknown) {
@@ -746,6 +776,13 @@ export class ConfigManager {
           if (innerE.name === 'ValidationException') {
             try {
               // Root 'value' doesn't exist - create map object
+              const initialObject = { ...updates };
+              if (options?.increments) {
+                Object.entries(options.increments).forEach(([field, delta]) => {
+                  initialObject[field] = delta;
+                });
+              }
+
               await docClient.send(
                 new UpdateCommand({
                   TableName: tableName,
@@ -753,7 +790,7 @@ export class ConfigManager {
                   UpdateExpression: 'SET #val = :rootObj',
                   ConditionExpression: 'attribute_not_exists(#val)',
                   ExpressionAttributeNames: { '#val': 'value' },
-                  ExpressionAttributeValues: { ':rootObj': { [entityId]: updates } },
+                  ExpressionAttributeValues: { ':rootObj': { [entityId]: initialObject } },
                 })
               );
             } catch (rootE: unknown) {
@@ -765,7 +802,6 @@ export class ConfigManager {
                 return this.atomicUpdateMapEntity(key, entityId, updates, {
                   ...options,
                   retryCount: retryCount + 1,
-                  orgId: options?.orgId,
                 });
               }
               throw rootE;
@@ -774,7 +810,6 @@ export class ConfigManager {
             return this.atomicUpdateMapEntity(key, entityId, updates, {
               ...options,
               retryCount: retryCount + 1,
-              orgId: options?.orgId,
             });
           } else {
             throw innerE;

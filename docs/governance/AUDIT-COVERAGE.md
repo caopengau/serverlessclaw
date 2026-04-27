@@ -38,7 +38,7 @@ Last Updated: 2026-04-26
 
 | Date       | Report                                        | Silos Covered         | Cross-Silo | Key Findings                                                   |
 | :--------- | :-------------------------------------------- | :-------------------- | :--------- | :------------------------------------------------------------- |
-| 2026-04-27 | `audit-2026-04-27-metabolism-recovery.md`     | Metabolism, Recovery  | E          | FIXED: P1 Tool usage count loss, P1 LKG record collision       |
+| 2026-04-27 | `audit-2026-04-27-metabolism-recovery.md`     | Metabolism, Recovery  | E          | FIXED: P1 Tool usage count loss, P1 LKG record collision, P2 Config atomicity, P2 Scan optimization |
 | 2026-04-26 | `audit-2026-04-26-identity-journey.md`        | Brain, Spine, Shield  | C          | PASSED: Verified Principle 12, 13, 14, 15 across silos.        |
 | 2026-04-26 | `audit-2026-04-26-trust-loop.md`              | Eye, Scales, Spine    | D          | FIXED: Disconnected trust engine, Telemetry data loss          |
 | 2026-04-26 | `audit-2026-04-26-evolution-cycle.md`         | Hand, Shield, Scales  | B          | FIXED: Selection Integrity (Sh10), JSON Mode enforcement (Sh9) |

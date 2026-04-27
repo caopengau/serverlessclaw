@@ -4,7 +4,7 @@ import {
   DynamoDBDocumentClient,
   PutCommand,
   DeleteCommand,
-  ScanCommand,
+  QueryCommand,
 } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
@@ -64,20 +64,27 @@ async function cleanupStaleGapLocks(): Promise<number> {
   let lastEvaluatedKey: Record<string, unknown> | undefined;
 
   do {
-    const scanResult = await db.send(
-      new ScanCommand({
+    const queryResult = await db.send(
+      new QueryCommand({
         TableName: typedResource.MemoryTable.name,
-        FilterExpression: 'begins_with(userId, :lockPrefix) AND expiresAt < :staleThreshold',
+        IndexName: 'TypeTimestampIndex',
+        KeyConditionExpression: '#tp = :lockType AND #ts = :zero',
+        FilterExpression: 'expiresAt < :staleThreshold',
+        ExpressionAttributeNames: {
+          '#tp': 'type',
+          '#ts': 'timestamp',
+        },
         ExpressionAttributeValues: {
-          ':lockPrefix': MEMORY_KEYS.GAP_LOCK_PREFIX,
+          ':lockType': 'GAP_LOCK',
+          ':zero': 0,
           ':staleThreshold': staleThreshold,
         },
         ExclusiveStartKey: lastEvaluatedKey,
       })
     );
 
-    if (scanResult.Items) {
-      for (const item of scanResult.Items) {
+    if (queryResult.Items) {
+      for (const item of queryResult.Items) {
         try {
           await db.send(
             new DeleteCommand({
@@ -103,7 +110,7 @@ async function cleanupStaleGapLocks(): Promise<number> {
       }
     }
 
-    lastEvaluatedKey = scanResult.LastEvaluatedKey as Record<string, unknown> | undefined;
+    lastEvaluatedKey = queryResult.LastEvaluatedKey as Record<string, unknown> | undefined;
   } while (lastEvaluatedKey);
 
   if (deletedCount > 0) {

@@ -173,10 +173,9 @@ export class AgentRegistry {
       },
     };
 
-    await ConfigManager.atomicUpdateMapEntity(DYNAMO_KEYS.AGENTS_CONFIG, agentId, enrichedConfig);
-
-    // Increment version atomically to track cognitive evolution
-    await this.atomicAddAgentField(agentId, 'version', 1).catch(() => {});
+    await ConfigManager.atomicUpdateMapEntity(DYNAMO_KEYS.AGENTS_CONFIG, agentId, enrichedConfig, {
+      increments: { version: 1 },
+    });
 
     logger.info(`[REGISTRY] Configuration saved for agent: ${agentId}`);
 

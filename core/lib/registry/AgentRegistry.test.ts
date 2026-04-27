@@ -222,12 +222,9 @@ describe('AgentRegistry', () => {
     it('should implement cognitive lineage with versioning and hashing', async () => {
       const config = { id: 'evolution-bot', name: 'Evolution Bot', systemPrompt: 'Be helpful.' };
 
-      // Mock the atomic field update to simulate versioning
-      vi.spyOn(AgentRegistry, 'atomicAddAgentField').mockResolvedValue(1);
-
       await AgentRegistry.saveConfig('evolution-bot', config);
 
-      // Verify hashing
+      // Verify hashing and consolidated atomic update
       expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalledWith(
         DYNAMO_KEYS.AGENTS_CONFIG,
         'evolution-bot',
@@ -235,6 +232,9 @@ describe('AgentRegistry', () => {
           metadata: expect.objectContaining({
             promptHash: expect.any(String),
           }),
+        }),
+        expect.objectContaining({
+          increments: { version: 1 },
         })
       );
     });
