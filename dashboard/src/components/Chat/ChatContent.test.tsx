@@ -74,15 +74,39 @@ vi.mock('./useChatConnection', () => ({
   }),
 }));
 
+// Create a functional localStorage mock for this test suite
+const createLocalStorageMock = () => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value.toString();
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key];
+    }),
+    clear: vi.fn(() => {
+      store = {};
+    }),
+    key: vi.fn((index: number) => Object.keys(store)[index] || null),
+    get length() {
+      return Object.keys(store).length;
+    },
+  };
+};
+
+const mockStorage = createLocalStorageMock();
+vi.stubGlobal('localStorage', mockStorage);
+
 describe('ChatContent Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    mockStorage.clear();
   });
 
   it('renders Mission Control layout by default (warRoomMode is on)', async () => {
-    // Explicitly mock getItem to return 'true'
-    const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockReturnValue('true');
+    // Set to true explicitly
+    mockStorage.setItem('claw_war_room_mode', 'true');
     
     render(<ChatContent />);
     
@@ -90,13 +114,11 @@ describe('ChatContent Component', () => {
       expect(screen.getByTestId('mission-briefing')).toBeInTheDocument();
       expect(screen.getByTestId('mission-hud')).toBeInTheDocument();
     }, { timeout: 2000 });
-    
-    getItemSpy.mockRestore();
   });
 
   it('renders standard chat layout when warRoomMode is off', async () => {
-    // Explicitly mock getItem to return 'false'
-    const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockReturnValue('false');
+    // Set to false explicitly
+    mockStorage.setItem('claw_war_room_mode', 'false');
     
     render(<ChatContent />);
     
@@ -107,12 +129,10 @@ describe('ChatContent Component', () => {
 
     expect(screen.queryByTestId('mission-briefing')).not.toBeInTheDocument();
     expect(screen.queryByTestId('mission-hud')).not.toBeInTheDocument();
-    
-    getItemSpy.mockRestore();
   });
 
   it('persists sidebars even when activeSessionId is null if warRoomMode is on', async () => {
-    const getItemSpy = vi.spyOn(Storage.prototype, 'getItem').mockReturnValue('true');
+    mockStorage.setItem('claw_war_room_mode', 'true');
     
     render(<ChatContent />);
     
@@ -121,7 +141,5 @@ describe('ChatContent Component', () => {
       expect(screen.getByTestId('mission-briefing')).toBeInTheDocument();
       expect(screen.getByTestId('mission-hud')).toBeInTheDocument();
     }, { timeout: 2000 });
-    
-    getItemSpy.mockRestore();
   });
 });
