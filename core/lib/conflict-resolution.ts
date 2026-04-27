@@ -109,6 +109,7 @@ export async function checkCollaborationTimeout(
     userId?: string;
     task?: string;
     agentId?: string;
+    workspaceId?: string;
   },
   traceId: string
 ): Promise<boolean> {
@@ -135,6 +136,7 @@ export async function checkCollaborationTimeout(
         sessionId: collaboration.sessionId,
         initiatorId: 'system.supervisor',
         depth: 0,
+        workspaceId: collaboration.workspaceId,
         metadata: {
           timeoutMs,
           elapsedMs: elapsed,

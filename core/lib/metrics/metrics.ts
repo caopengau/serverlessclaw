@@ -206,11 +206,20 @@ export const METRICS = {
     };
   },
 
-  taskDispatchLatency(latencyMs: number): MetricDatum {
+  taskDispatchLatency(
+    latencyMs: number,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions: Array<{ Name: string; Value: string }> = [];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'TaskDispatchLatency',
       Value: latencyMs,
       Unit: 'Milliseconds',
+      Dimensions: dimensions.length > 0 ? dimensions : undefined,
     };
   },
 
@@ -250,63 +259,131 @@ export const METRICS = {
     };
   },
 
-  mcpHubPing(opts: { success: boolean; latencyMs?: number }): MetricDatum {
+  mcpHubPing(opts: {
+    success: boolean;
+    latencyMs?: number;
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string };
+  }): MetricDatum {
+    const dimensions = [{ Name: 'Success', Value: String(opts.success) }];
+    if (opts.scope?.workspaceId)
+      dimensions.push({ Name: 'WorkspaceId', Value: opts.scope.workspaceId });
+    if (opts.scope?.teamId) dimensions.push({ Name: 'TeamId', Value: opts.scope.teamId });
+    if (opts.scope?.staffId) dimensions.push({ Name: 'StaffId', Value: opts.scope.staffId });
+
     return {
       MetricName: 'MCPHubPing',
       Value: opts.success ? 1 : 0,
       Unit: 'Count',
-      Dimensions: [{ Name: 'Success', Value: String(opts.success) }],
+      Dimensions: dimensions,
     };
   },
 
-  mcpHubLatency(latencyMs: number): MetricDatum {
+  mcpHubLatency(
+    latencyMs: number,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions: Array<{ Name: string; Value: string }> = [];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'MCPHubLatency',
       Value: latencyMs,
       Unit: 'Milliseconds',
+      Dimensions: dimensions.length > 0 ? dimensions : undefined,
     };
   },
 
-  eventBridgeEmit(success: boolean, latencyMs: number): MetricDatum {
+  eventBridgeEmit(
+    success: boolean,
+    latencyMs: number,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [{ Name: 'Success', Value: String(success) }];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'EventBridgeEmit',
       Value: latencyMs,
       Unit: 'Milliseconds',
-      Dimensions: [{ Name: 'Success', Value: String(success) }],
+      Dimensions: dimensions,
     };
   },
 
-  dlqEvents(count: number): MetricDatum {
+  dlqEvents(
+    count: number,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions: Array<{ Name: string; Value: string }> = [];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'DLQEvents',
       Value: count,
       Unit: 'Count',
+      Dimensions: dimensions.length > 0 ? dimensions : undefined,
     };
   },
 
-  lockAcquired(lockId: string, success: boolean): MetricDatum {
+  lockAcquired(
+    lockId: string,
+    success: boolean,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [
+      { Name: 'LockId', Value: lockId },
+      { Name: 'Success', Value: String(success) },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'LockAcquisition',
       Value: success ? 1 : 0,
       Unit: 'Count',
-      Dimensions: [{ Name: 'LockId', Value: lockId }],
+      Dimensions: dimensions,
     };
   },
 
-  deploymentStarted(): MetricDatum {
+  deploymentStarted(scope?: {
+    workspaceId?: string;
+    teamId?: string;
+    staffId?: string;
+  }): MetricDatum {
+    const dimensions: Array<{ Name: string; Value: string }> = [];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'DeploymentStarted',
       Value: 1,
       Unit: 'Count',
+      Dimensions: dimensions.length > 0 ? dimensions : undefined,
     };
   },
 
-  deploymentCompleted(opts: { success: boolean }): MetricDatum {
+  deploymentCompleted(opts: {
+    success: boolean;
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string };
+  }): MetricDatum {
+    const dimensions = [{ Name: 'Success', Value: String(opts.success) }];
+    if (opts.scope?.workspaceId)
+      dimensions.push({ Name: 'WorkspaceId', Value: opts.scope.workspaceId });
+    if (opts.scope?.teamId) dimensions.push({ Name: 'TeamId', Value: opts.scope.teamId });
+    if (opts.scope?.staffId) dimensions.push({ Name: 'StaffId', Value: opts.scope.staffId });
+
     return {
       MetricName: 'DeploymentCompleted',
       Value: 1,
       Unit: 'Count',
-      Dimensions: [{ Name: 'Success', Value: String(opts.success) }],
+      Dimensions: dimensions,
     };
   },
 
@@ -354,44 +431,80 @@ export const METRICS = {
     };
   },
 
-  protocolFallback(agentId: string, originalMode: string, fallbackMode?: string): MetricDatum {
+  protocolFallback(
+    agentId: string,
+    originalMode: string,
+    fallbackMode?: string,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [
+      { Name: 'AgentId', Value: agentId },
+      { Name: 'OriginalMode', Value: originalMode },
+      { Name: 'FallbackMode', Value: fallbackMode ?? 'none' },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'ProtocolFallback',
       Value: 1,
       Unit: 'Count',
-      Dimensions: [
-        { Name: 'AgentId', Value: agentId },
-        { Name: 'OriginalMode', Value: originalMode },
-        { Name: 'FallbackMode', Value: fallbackMode ?? 'none' },
-      ],
+      Dimensions: dimensions,
     };
   },
 
   // Event handler specific metrics
-  eventHandlerInvoked(eventType: string): MetricDatum {
+  eventHandlerInvoked(
+    eventType: string,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [{ Name: 'EventType', Value: eventType }];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'EventHandlerInvoked',
       Value: 1,
       Unit: 'Count',
-      Dimensions: [{ Name: 'EventType', Value: eventType }],
+      Dimensions: dimensions,
     };
   },
 
-  eventHandlerDuration(eventType: string, durationMs: number): MetricDatum {
+  eventHandlerDuration(
+    eventType: string,
+    durationMs: number,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [{ Name: 'EventType', Value: eventType }];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'EventHandlerDuration',
       Value: durationMs,
       Unit: 'Milliseconds',
-      Dimensions: [{ Name: 'EventType', Value: eventType }],
+      Dimensions: dimensions,
     };
   },
 
-  eventHandlerErrorDuration(eventType: string, durationMs: number): MetricDatum {
+  eventHandlerErrorDuration(
+    eventType: string,
+    durationMs: number,
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): MetricDatum {
+    const dimensions = [{ Name: 'EventType', Value: eventType }];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
     return {
       MetricName: 'EventHandlerErrorDuration',
       Value: durationMs,
       Unit: 'Milliseconds',
-      Dimensions: [{ Name: 'EventType', Value: eventType }],
+      Dimensions: dimensions,
     };
   },
 

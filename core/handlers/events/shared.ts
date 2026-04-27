@@ -185,6 +185,9 @@ export async function handleRecursionLimitExceeded(
       sessionId,
       initiatorId: 'system.supervisor',
       depth: 99,
+      workspaceId,
+      teamId,
+      staffId,
     });
   } catch (err) {
     logger.error('Failed to emit TASK_FAILED for recursion limit:', err);
@@ -404,6 +407,7 @@ export async function reportHealthIssue(params: {
   severity: 'low' | 'medium' | 'high' | 'critical';
   userId: string;
   traceId?: string;
+  workspaceId?: string;
   context?: Record<string, unknown>;
 }): Promise<void> {
   await emitEvent('events.shared', EventType.SYSTEM_HEALTH_REPORT, params);

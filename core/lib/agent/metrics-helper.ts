@@ -72,6 +72,19 @@ export async function reportAgentMetrics(params: {
       },
       scope
     ).catch(() => {});
+
+    // P2 Gap Fix: Also update rollup for the specific model to enable weighted model selection
+    TokenTracker.updateRollup(
+      `${activeProvider}_${activeModel}`,
+      {
+        inputTokens,
+        outputTokens,
+        toolCalls,
+        success: !paused,
+        durationMs,
+      },
+      scope
+    ).catch(() => {});
   } catch (e) {
     logger.warn('Failed to emit agent metrics or persist token usage', e);
   }

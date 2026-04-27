@@ -355,6 +355,7 @@ export class ClawTracer {
         task: 'System Operation',
         error: reason,
         metadata: finalMetadata,
+        workspaceId: this.workspaceId,
         orgId: this.orgId,
         teamId: this.teamId,
         staffId: this.staffId,

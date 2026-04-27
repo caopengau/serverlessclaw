@@ -60,11 +60,30 @@ export class MetricsCollector {
   ): Promise<void> {
     if (!this.config.enabled) return;
 
-    const timestamp = Date.now();
+    const baseTimestamp = Date.now();
     this.buffer.push(
-      { agentId, workspaceId, name: 'task_completed', value: success ? 1 : 0, timestamp, metadata },
-      { agentId, workspaceId, name: 'task_latency_ms', value: latencyMs, timestamp },
-      { agentId, workspaceId, name: 'tokens_used', value: tokensUsed, timestamp }
+      {
+        agentId,
+        workspaceId,
+        name: 'task_completed',
+        value: success ? 1 : 0,
+        timestamp: baseTimestamp,
+        metadata,
+      },
+      {
+        agentId,
+        workspaceId,
+        name: 'task_latency_ms',
+        value: latencyMs,
+        timestamp: baseTimestamp + 0.001,
+      },
+      {
+        agentId,
+        workspaceId,
+        name: 'tokens_used',
+        value: tokensUsed,
+        timestamp: baseTimestamp + 0.002,
+      }
     );
 
     const MAX_BUFFER_SIZE = 200;
@@ -92,17 +111,35 @@ export class MetricsCollector {
   ): Promise<void> {
     if (!this.config.enabled) return;
 
-    const timestamp = Date.now();
+    const baseTimestamp = Date.now();
     this.buffer.push(
-      { agentId, workspaceId, name: 'reasoning_coherence', value: coherenceScore, timestamp },
-      { agentId, workspaceId, name: 'reasoning_steps', value: reasoningSteps, timestamp },
-      { agentId, workspaceId, name: 'pivot', value: pivoted ? 1 : 0, timestamp },
+      {
+        agentId,
+        workspaceId,
+        name: 'reasoning_coherence',
+        value: coherenceScore,
+        timestamp: baseTimestamp,
+      },
+      {
+        agentId,
+        workspaceId,
+        name: 'reasoning_steps',
+        value: reasoningSteps,
+        timestamp: baseTimestamp + 0.001,
+      },
+      {
+        agentId,
+        workspaceId,
+        name: 'pivot',
+        value: pivoted ? 1 : 0,
+        timestamp: baseTimestamp + 0.002,
+      },
       {
         agentId,
         workspaceId,
         name: 'clarification_request',
         value: requestedClarification ? 1 : 0,
-        timestamp,
+        timestamp: baseTimestamp + 0.003,
       }
     );
   }
@@ -127,10 +164,16 @@ export class MetricsCollector {
   ): Promise<void> {
     if (!this.config.enabled) return;
 
-    const timestamp = Date.now();
+    const baseTimestamp = Date.now();
     this.buffer.push(
-      { agentId, workspaceId, name: `memory_${operation}`, value: 1, timestamp },
-      { agentId, workspaceId, name: 'memory_latency_ms', value: latencyMs, timestamp }
+      { agentId, workspaceId, name: `memory_${operation}`, value: 1, timestamp: baseTimestamp },
+      {
+        agentId,
+        workspaceId,
+        name: 'memory_latency_ms',
+        value: latencyMs,
+        timestamp: baseTimestamp + 0.001,
+      }
     );
   }
 

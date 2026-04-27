@@ -153,6 +153,7 @@ export const handler = async (
           userId: _userId,
           task: (detail.task as string) || (event.task as string),
           agentId: targetAgent,
+          workspaceId: _workspaceId,
         },
         _traceId
       );

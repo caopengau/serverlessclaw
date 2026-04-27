@@ -225,13 +225,17 @@ describe('Metrics', () => {
 
       expect(metric.MetricName).toBe('LockAcquisition');
       expect(metric.Value).toBe(1);
-      expect(metric.Dimensions).toEqual([{ Name: 'LockId', Value: 'gap-lock-1' }]);
+      expect(metric.Dimensions).toEqual([
+        { Name: 'LockId', Value: 'gap-lock-1' },
+        { Name: 'Success', Value: 'true' },
+      ]);
     });
 
     it('should return lock metric for failure', () => {
       const metric = METRICS.lockAcquired('gap-lock-1', false);
 
       expect(metric.Value).toBe(0);
+      expect(metric.Dimensions).toContainEqual({ Name: 'Success', Value: 'false' });
     });
   });
 
