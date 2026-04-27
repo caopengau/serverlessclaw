@@ -80,4 +80,21 @@ describe('MissionControlHUD Component', () => {
     const activity = await screen.findByText(/Mission initialized/i);
     expect(activity).toBeInTheDocument();
   });
+
+  it('initializes with custom mission scores', () => {
+    const customMission = {
+      trustScore: 75,
+      stabilityScore: 60,
+      budgetUsage: 45,
+    };
+    render(
+      <TranslationsProvider>
+        <MissionControlHUD {...defaultProps} mission={customMission} />
+      </TranslationsProvider>
+    );
+
+    expect(screen.getAllByText('75%').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('60%').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('45%').length).toBeGreaterThanOrEqual(1);
+  });
 });

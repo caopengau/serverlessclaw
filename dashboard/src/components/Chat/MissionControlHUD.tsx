@@ -126,7 +126,7 @@ export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId,
                 </Typography>
                 <div className="flex items-center gap-2">
                   <Typography variant="h3" color="primary" glow className="text-lg">
-                    92%
+                    {trustScore}%
                   </Typography>
                   <Badge variant="primary" className="text-[8px] py-0 px-1 font-black">
                     STABLE
@@ -134,7 +134,10 @@ export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId,
                 </div>
               </div>
               <div className="w-1.5 h-12 bg-muted/20 rounded-full overflow-hidden flex flex-col justify-end">
-                <div className="bg-cyber-green w-full h-[92%] shadow-[0_0_10px_rgba(0,255,163,0.5)]" />
+                <div
+                  className="bg-cyber-green w-full shadow-[0_0_10px_rgba(0,255,163,0.5)]"
+                  style={{ height: `${trustScore}%` }}
+                />
               </div>
             </div>
 
@@ -173,7 +176,7 @@ export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId,
                 </Typography>
                 <div className="flex items-center gap-2">
                   <Typography variant="h3" className="text-cyber-blue text-lg" glow>
-                    88%
+                    {stabilityScore}%
                   </Typography>
                   <Badge variant="intel" className="text-[8px] py-0 px-1 font-black">
                     NORMAL
@@ -181,7 +184,10 @@ export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId,
                 </div>
               </div>
               <div className="w-1.5 h-12 bg-muted/20 rounded-full overflow-hidden flex flex-col justify-end">
-                <div className="bg-cyber-blue w-full h-[88%] shadow-[0_0_10px_rgba(0,255,255,0.5)]" />
+                <div
+                  className="bg-cyber-blue w-full shadow-[0_0_10px_rgba(0,255,255,0.5)]"
+                  style={{ height: `${stabilityScore}%` }}
+                />
               </div>
             </div>
 
@@ -198,7 +204,7 @@ export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId,
                 </Typography>
                 <div className="flex items-center gap-2">
                   <Typography variant="h3" className="text-orange-500 text-lg" glow>
-                    64%
+                    {budgetUsage}%
                   </Typography>
                   <Badge
                     variant="outline"
@@ -209,7 +215,10 @@ export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId,
                 </div>
               </div>
               <div className="w-1.5 h-12 bg-muted/20 rounded-full overflow-hidden flex flex-col justify-end">
-                <div className="bg-orange-500 w-full h-[64%] shadow-[0_0_10px_rgba(249,115,22,0.5)]" />
+                <div
+                  className="bg-orange-500 w-full shadow-[0_0_10px_rgba(249,115,22,0.5)]"
+                  style={{ height: `${budgetUsage}%` }}
+                />
               </div>
             </div>
 
