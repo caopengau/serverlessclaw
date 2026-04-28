@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MCPToolMapper } from './tool-mapper';
+import { ToolResult } from '../types/tool';
 
 vi.mock('../logger', () => ({
   logger: {
@@ -601,6 +602,118 @@ describe('MCPToolMapper', () => {
       expect(tools[0].pathKeys).toContain('input');
       expect(tools[0].pathKeys).toContain('output');
       expect(tools[0].pathKeys).not.toContain('nonPath');
+    });
+
+    it('returns empty array if parameters is not an object', () => {
+      const tool = {
+        name: 'test',
+        inputSchema: { type: 'string' },
+      };
+      const tools = MCPToolMapper.mapTools('test', makeMockClient(), [tool]);
+      expect(tools[0].pathKeys).toBeUndefined();
+    });
+  });
+
+  describe('parseMcpToolResult', () => {
+    it('handles image content in MCP results', async () => {
+      const client = makeMockClient();
+      client.callTool.mockResolvedValueOnce({
+        content: [
+          { type: 'text', text: 'Here is an image:' },
+          { type: 'image', data: 'base64data', mimeType: 'image/png' },
+        ],
+      });
+
+      const tools = MCPToolMapper.mapTools('srv', client, [
+        { name: 'get_image', inputSchema: { type: 'object', properties: {} } },
+      ]);
+      const result = (await tools[0].execute({})) as ToolResult;
+
+      expect(result.text).toContain('Here is an image:');
+      expect(result.images).toEqual(['base64data']);
+      expect(result.metadata?.imageMimeTypes).toEqual(['image/png']);
+    });
+
+    it('handles resource content in MCP results', async () => {
+      const client = makeMockClient();
+      client.callTool.mockResolvedValueOnce({
+        content: [
+          {
+            type: 'resource',
+            uri: 'file:///test.txt',
+            text: 'Resource content',
+            mimeType: 'text/plain',
+          },
+        ],
+      });
+
+      const tools = MCPToolMapper.mapTools('srv', client, [
+        { name: 'get_resource', inputSchema: { type: 'object', properties: {} } },
+      ]);
+      const result = (await tools[0].execute({})) as ToolResult;
+
+      expect(result.text).toBe('Resource content');
+      expect(result.metadata?.resources).toEqual([
+        { uri: 'file:///test.txt', text: 'Resource content', mimeType: 'text/plain' },
+      ]);
+    });
+
+    it('handles unknown content types in MCP results', async () => {
+      const client = makeMockClient();
+      client.callTool.mockResolvedValueOnce({
+        content: [{ type: 'unknown', data: 'some data' }],
+      });
+
+      const tools = MCPToolMapper.mapTools('srv', client, [
+        { name: 'unknown_type', inputSchema: { type: 'object', properties: {} } },
+      ]);
+      const result = (await tools[0].execute({})) as ToolResult;
+
+      expect(result.metadata?.unknown).toBeDefined();
+    });
+
+    it('handles isError flag with custom text', async () => {
+      const client = makeMockClient();
+      client.callTool.mockResolvedValueOnce({
+        isError: true,
+        content: [{ type: 'text', text: 'Specific error message' }],
+      });
+
+      const tools = MCPToolMapper.mapTools('srv', client, [
+        { name: 'error_tool', inputSchema: { type: 'object', properties: {} } },
+      ]);
+      const result = (await tools[0].execute({})) as ToolResult;
+
+      expect(result.text).toBe('FAILED: Specific error message');
+    });
+
+    it('handles isError flag without text content', async () => {
+      const client = makeMockClient();
+      client.callTool.mockResolvedValueOnce({
+        isError: true,
+        content: [],
+      });
+
+      const tools = MCPToolMapper.mapTools('srv', client, [
+        { name: 'silent_error', inputSchema: { type: 'object', properties: {} } },
+      ]);
+      const result = (await tools[0].execute({})) as ToolResult;
+
+      expect(result.text).toBe('FAILED: Tool execution failed');
+    });
+
+    it('handles success without text content', async () => {
+      const client = makeMockClient();
+      client.callTool.mockResolvedValueOnce({
+        content: [],
+      });
+
+      const tools = MCPToolMapper.mapTools('srv', client, [
+        { name: 'silent_success', inputSchema: { type: 'object', properties: {} } },
+      ]);
+      const result = (await tools[0].execute({})) as ToolResult;
+
+      expect(result.text).toBe('MCP tool executed successfully');
     });
   });
 });

@@ -1,27 +1,54 @@
-import * as gitTools from './git';
-import * as healthTools from './health';
-import * as validationTools from './validation';
-import * as promotionTools from './promotion';
-import * as hotConfigTools from './hot-config';
-import * as reputationTools from './reputation';
-import * as uiTools from './ui';
-import * as governanceTools from './governance';
-import * as workflowTools from './workflow';
+import { ITool } from '../../lib/types/tool';
 
 /**
  * System Domain Tool Registry
+ * Aggregates specialized system tools.
  */
-export const systemTools = {
-  ...gitTools,
-  ...healthTools,
-  ...validationTools,
-  ...promotionTools,
-  ...hotConfigTools,
-  ...reputationTools,
-  ...uiTools,
-  ...governanceTools,
-  ...workflowTools,
-};
+export const systemTools: Record<string, ITool> = {};
 
-// Re-exporting schemas and specific utilities
+/**
+ * Lazily loads all system tools.
+ */
+export async function getSystemTools(): Promise<Record<string, ITool>> {
+  if (Object.keys(systemTools).length > 0) return systemTools;
+
+  const [
+    { proposeAutonomyUpdate, scanMetabolism },
+    git,
+    health,
+    validation,
+    promotion,
+    hotConfig,
+    reputation,
+    ui,
+    workflow,
+  ] = await Promise.all([
+    import('./governance'),
+    import('./git'),
+    import('./health'),
+    import('./validation'),
+    import('./promotion'),
+    import('./hot-config'),
+    import('./reputation'),
+    import('./ui'),
+    import('./workflow'),
+  ]);
+
+  Object.assign(systemTools, {
+    proposeAutonomyUpdate,
+    scanMetabolism,
+    ...git,
+    ...health,
+    ...validation,
+    ...promotion,
+    ...hotConfig,
+    ...reputation,
+    ...ui,
+    ...workflow,
+  });
+
+  return systemTools;
+}
+
+// Re-exporting schemas for UI and metadata needs
 export { systemSchema } from './schema';

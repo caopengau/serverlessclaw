@@ -1,73 +1,118 @@
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
-import { render, act } from '@testing-library/react';
-import { vi } from 'vitest';
+import { render, screen, act } from '@testing-library/react';
 import { PresenceProvider, usePresence } from './PresenceProvider';
+import { useRealtimeContext } from './RealtimeProvider';
+import { useTenant } from './TenantProvider';
 
 vi.mock('./RealtimeProvider', () => ({
-  __esModule: true,
-  RealtimeProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  useRealtimeContext: () => ({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    subscribe: vi.fn((topics: string[], callback: (topic: string, payload: any) => void) => {
-      // Simulate receiving a presence message
-      setTimeout(() => {
-        callback('workspaces/test-ws/presence', {
-          'detail-type': 'presence',
-          detail: {},
-          memberId: 'agent-1',
-          displayName: 'Test Agent',
-          type: 'agent',
-          status: 'online',
-        });
-      }, 0);
-      return vi.fn(); // unsubscribe
-    }),
-    isLive: true,
-    userId: 'user-1',
-  }),
+  useRealtimeContext: vi.fn(),
 }));
 
 vi.mock('./TenantProvider', () => ({
-  __esModule: true,
-  TenantProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-  useTenant: () => ({
-    activeWorkspaceId: 'test-ws',
-  }),
+  useTenant: vi.fn(),
 }));
 
 const TestComponent = () => {
-  const { members, myPresence } = usePresence();
+  const { members, myPresence, updateStatus } = usePresence();
   return (
     <div>
-      <div data-testid="my-id">{myPresence?.memberId}</div>
+      <div data-testid="my-status">{myPresence?.status}</div>
       <div data-testid="member-count">{members.length}</div>
-      <div data-testid="member-name">{members[0]?.displayName}</div>
+      <button onClick={() => updateStatus('away')}>Go Away</button>
     </div>
   );
 };
 
 describe('PresenceProvider', () => {
-  it('provides own presence and tracks other members', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let getByTestId: any;
+  const mockSubscribe = vi.fn();
+  const mockUnsubscribe = vi.fn();
 
-    await act(async () => {
-      const result = render(
-        <PresenceProvider>
-          <TestComponent />
-        </PresenceProvider>
-      );
-      getByTestId = result.getByTestId;
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+    mockSubscribe.mockReturnValue(mockUnsubscribe);
+    (useRealtimeContext as any).mockReturnValue({
+      subscribe: mockSubscribe,
+      isLive: true,
+      userId: 'user-1',
+    });
+    (useTenant as any).mockReturnValue({
+      activeWorkspaceId: 'ws-1',
+    });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('subscribes to presence and updates members', () => {
+    render(
+      <PresenceProvider>
+        <TestComponent />
+      </PresenceProvider>
+    );
+
+    expect(mockSubscribe).toHaveBeenCalledWith(
+      ['workspaces/ws-1/presence'],
+      expect.any(Function)
+    );
+
+    const handler = mockSubscribe.mock.calls[0][1];
+
+    // Simulate incoming presence
+    act(() => {
+      handler('topic', { memberId: 'user-2', status: 'online' });
     });
 
-    expect(getByTestId('my-id').textContent).toBe('user-1');
+    expect(screen.getByTestId('member-count')).toHaveTextContent('1');
+    
+    // Update existing member
+    act(() => {
+      handler('topic', { memberId: 'user-2', status: 'away' });
+    });
+    expect(screen.getByTestId('member-count')).toHaveTextContent('1');
+  });
 
-    // Wait for mock subscription to trigger
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
+  it('cleans up stale members', () => {
+    render(
+      <PresenceProvider>
+        <TestComponent />
+      </PresenceProvider>
+    );
+
+    const handler = mockSubscribe.mock.calls[0][1];
+    act(() => {
+      handler('topic', { memberId: 'user-2', status: 'online' });
+    });
+    expect(screen.getByTestId('member-count')).toHaveTextContent('1');
+
+    // Advance time by 61 seconds
+    act(() => {
+      vi.advanceTimersByTime(61000);
     });
 
-    expect(getByTestId('member-count').textContent).toBe('1');
-    expect(getByTestId('member-name').textContent).toBe('Test Agent');
+    expect(screen.getByTestId('member-count')).toHaveTextContent('0');
+  });
+
+  it('updates my status', () => {
+    render(
+      <PresenceProvider>
+        <TestComponent />
+      </PresenceProvider>
+    );
+
+    act(() => {
+      screen.getByText('Go Away').click();
+    });
+
+    expect(screen.getByTestId('my-status')).toHaveTextContent('away');
+  });
+
+  it('throws error outside provider', () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(() => render(<TestComponent />)).toThrow('usePresence must be used within a PresenceProvider');
+    consoleSpy.mockRestore();
   });
 });

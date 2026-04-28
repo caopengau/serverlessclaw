@@ -10,7 +10,7 @@ import { ConversationMeta } from '../types/memory';
 import { RetentionManager } from './tiering';
 import type { BaseMemoryProvider } from './base';
 import { filterPIIFromObject } from '../utils/pii';
-import { queryLatestContentByUserId } from './utils';
+import { queryLatestContentByUserId, atomicIncrement, putWithCollisionRetry } from './utils';
 import { RETENTION } from '../constants/memory';
 import { sessionIdToSortKey, fnv1aHash } from '../utils/id-generator';
 
@@ -264,28 +264,12 @@ export async function saveConversationMeta(
  */
 export async function saveLKGHash(base: BaseMemoryProvider, hash: string): Promise<void> {
   const { expiresAt, type } = await RetentionManager.getExpiresAt('DISTILLED', 'SYSTEM#LKG');
-  let retryCount = 0;
-  while (retryCount < 5) {
-    const timestamp = Date.now() + retryCount; // Minimal jitter
-    try {
-      await base.putItem({
-        userId: 'SYSTEM#LKG',
-        timestamp,
-        type,
-        expiresAt,
-        content: hash,
-        ConditionExpression: 'attribute_not_exists(#ts)',
-        ExpressionAttributeNames: { '#ts': 'timestamp' },
-      });
-      return;
-    } catch (e: any) {
-      if (e.name === 'ConditionalCheckFailedException') {
-        retryCount++;
-        continue;
-      }
-      throw e;
-    }
-  }
+  await putWithCollisionRetry(base, {
+    userId: 'SYSTEM#LKG',
+    type,
+    expiresAt,
+    content: hash,
+  });
 }
 
 /**
@@ -307,22 +291,7 @@ export async function getLatestLKGHash(base: BaseMemoryProvider): Promise<string
  * @returns A promise resolving to the new recovery attempt count.
  */
 export async function incrementRecoveryAttemptCount(base: BaseMemoryProvider): Promise<number> {
-  const result = await base.updateItem({
-    Key: {
-      userId: 'SYSTEM#RECOVERY#STATS',
-      timestamp: 0,
-    },
-    UpdateExpression: 'SET attempts = if_not_exists(attempts, :zero) + :one, updatedAt = :now',
-    ExpressionAttributeValues: {
-      ':zero': 0,
-      ':one': 1,
-      ':now': Date.now(),
-    },
-    ReturnValues: 'ALL_NEW',
-  });
-
-  const attributes = (result as { Attributes?: Record<string, unknown> }).Attributes;
-  return (attributes?.attempts as number) ?? 1;
+  return atomicIncrement(base, 'SYSTEM#RECOVERY#STATS', 0, 'attempts', false);
 }
 
 /**
@@ -377,29 +346,13 @@ export async function saveDistilledRecoveryLog(
   log: string
 ): Promise<void> {
   const { expiresAt, type } = await RetentionManager.getExpiresAt('DISTILLED', 'SYSTEM#RECOVERY');
-  let retryCount = 0;
-  while (retryCount < 5) {
-    const timestamp = Date.now() + retryCount;
-    try {
-      await base.putItem({
-        userId: 'DISTILLED#RECOVERY',
-        timestamp,
-        type,
-        expiresAt,
-        content: log,
-        traceId,
-        ConditionExpression: 'attribute_not_exists(#ts)',
-        ExpressionAttributeNames: { '#ts': 'timestamp' },
-      });
-      return;
-    } catch (e: any) {
-      if (e.name === 'ConditionalCheckFailedException') {
-        retryCount++;
-        continue;
-      }
-      throw e;
-    }
-  }
+  await putWithCollisionRetry(base, {
+    userId: 'DISTILLED#RECOVERY',
+    type,
+    expiresAt,
+    content: log,
+    traceId,
+  });
 }
 
 /**

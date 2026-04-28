@@ -19,6 +19,7 @@ import {
   getGapTimestamp,
   resolveItemById,
   atomicUpdateMetadata,
+  atomicIncrement,
 } from './utils';
 
 /** Minimal interface for track operations — satisfied by BaseMemoryProvider and DynamoMemory. */
@@ -199,25 +200,7 @@ export async function incrementGapAttemptCount(
     return 0;
   }
 
-  try {
-    const now = Date.now();
-    const result = await base.updateItem({
-      Key: { userId: target.id, timestamp: target.timestamp },
-      UpdateExpression:
-        'SET metadata.#retryCount = if_not_exists(metadata.#retryCount, :zero) + :one, updatedAt = :now, metadata.#lastAttemptTime = :now',
-      ExpressionAttributeNames: {
-        '#retryCount': 'retryCount',
-        '#lastAttemptTime': 'lastAttemptTime',
-      },
-      ExpressionAttributeValues: { ':zero': 0, ':one': 1, ':now': now },
-      ConditionExpression: 'attribute_exists(userId)',
-      ReturnValues: 'ALL_NEW',
-    });
-    return (result?.Attributes?.metadata?.retryCount as number) || 0;
-  } catch (error) {
-    logger.error(`[incrementGapAttemptCount] Atomic increment failed for gap ${gapId}:`, error);
-    throw error;
-  }
+  return atomicIncrement(base, target.id, target.timestamp, 'retryCount', true);
 }
 
 /**

@@ -1,5 +1,6 @@
 import { ITool } from '../lib/types/tool';
 import { logger } from '../lib/logger';
+import { EventSource } from '../lib/types/agent';
 
 /**
  * Registry-less tool resolution logic.
@@ -43,7 +44,8 @@ export async function getAgentTools(
   logger.info(`[TOOLS] Local tools found: ${localTools.map((t) => t.name).join(', ')}`);
 
   // 2. Resolve external MCP tools if any match the requested tool names
-  const externalTools = await MCPBridge.getExternalTools(config.tools, false, workspaceId);
+  const skipConnection = false;
+  const externalTools = await MCPBridge.getExternalTools(config.tools, skipConnection, workspaceId);
 
   // 3. Merge and deduplicate (Local tools take priority)
   const allToolsMap = new Map<string, ITool>();
@@ -86,7 +88,7 @@ export async function getAgentTools(
             .smartWarmup({
               servers: serversToWarm,
               intent: `agent-needs-tools:${agentId}`,
-              warmedBy: 'webhook', // Reusing webhook category for manual/agent triggers
+              warmedBy: EventSource.WEBHOOK,
               workspaceId,
             })
             .catch((err) => logger.warn('[TOOLS] Smart warmup background error:', err));

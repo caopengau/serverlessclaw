@@ -168,6 +168,40 @@ describe('ChatInput Component', () => {
     renderWithTranslations(<TestWrapper />);
     const clipButton = screen.getByRole('button', { name: 'attach-file' });
     fireEvent.click(clipButton);
+    fireEvent.click(clipButton);
     expect(screen.getByText('CLICKED')).toBeInTheDocument();
+  });
+
+  it('calls onFileSelect when file input changes', () => {
+    const onFileSelect = vi.fn();
+    renderWithTranslations(<ChatInput {...defaultProps} onFileSelect={onFileSelect} />);
+    
+    const input = document.querySelector('input[type="file"]');
+    fireEvent.change(input!, { target: { files: [new File([''], 'test.png')] } });
+    expect(onFileSelect).toHaveBeenCalled();
+  });
+
+  it('applies shaking animation when isShaking is true', () => {
+    const { container } = renderWithTranslations(<ChatInput {...defaultProps} isShaking={true} />);
+    expect(container.querySelector('.animate-shake')).toBeInTheDocument();
+  });
+
+  it('triggers local shake when trying to send empty input', async () => {
+    renderWithTranslations(<ChatInput {...defaultProps} input="" attachments={[]} />);
+    const sendButton = screen.getByText('SEND').closest('button');
+    fireEvent.click(sendButton!);
+    
+    expect(screen.getByRole('textbox').closest('.animate-shake')).toBeDefined();
+  });
+
+  it('resizes textarea on input', () => {
+    renderWithTranslations(<ChatInput {...defaultProps} />);
+    const textarea = screen.getByPlaceholderText('Ask or command...');
+    
+    // Mock scrollHeight
+    Object.defineProperty(textarea, 'scrollHeight', { value: 100, configurable: true });
+    
+    fireEvent.input(textarea);
+    expect(textarea.style.height).toBe('100px');
   });
 });

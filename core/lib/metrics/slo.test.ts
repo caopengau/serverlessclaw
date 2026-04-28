@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SLOTracker, SLODefinition } from './slo';
+import { SLOTracker, SLODefinition, SLOWindow, SLOMetric } from './slo';
 import { TokenRollup } from './token-usage';
 
 describe('SLOTracker', () => {
@@ -26,8 +26,8 @@ describe('SLOTracker', () => {
       const slo: SLODefinition = {
         name: 'test',
         target: 0.95,
-        window: 'daily',
-        metric: 'task_success_rate',
+        window: SLOWindow.DAILY,
+        metric: SLOMetric.SUCCESS_RATE,
       };
       const result = await SLOTracker.checkSLO(slo, []);
       expect(result.burnRate).toBe(0);
@@ -38,8 +38,8 @@ describe('SLOTracker', () => {
       const slo: SLODefinition = {
         name: 'api_availability',
         target: 0.99,
-        window: 'monthly',
-        metric: 'availability',
+        window: SLOWindow.MONTHLY,
+        metric: SLOMetric.AVAILABILITY,
       };
       const rollups = [mockRollup({ invocationCount: 100, successCount: 98 })];
       const result = await SLOTracker.checkSLO(slo, rollups);
@@ -51,8 +51,8 @@ describe('SLOTracker', () => {
       const slo: SLODefinition = {
         name: 'task_success_rate',
         target: 0.9,
-        window: 'weekly',
-        metric: 'task_success_rate',
+        window: SLOWindow.WEEKLY,
+        metric: SLOMetric.SUCCESS_RATE,
       };
       const rollups = [mockRollup({ invocationCount: 100, successCount: 95 })];
       const result = await SLOTracker.checkSLO(slo, rollups);
@@ -63,8 +63,8 @@ describe('SLOTracker', () => {
       const slo: SLODefinition = {
         name: 'response_latency',
         target: 1000,
-        window: 'daily',
-        metric: 'avg_latency',
+        window: SLOWindow.DAILY,
+        metric: SLOMetric.LATENCY,
       };
       const rollups = [mockRollup({ totalInputTokens: 500, totalOutputTokens: 500 })];
       const result = await SLOTracker.checkSLO(slo, rollups);
@@ -75,8 +75,8 @@ describe('SLOTracker', () => {
       const slo: SLODefinition = {
         name: 'task_success_rate',
         target: 0.95,
-        window: 'weekly',
-        metric: 'task_success_rate',
+        window: SLOWindow.WEEKLY,
+        metric: SLOMetric.SUCCESS_RATE,
       };
       const rollups = [
         mockRollup({ invocationCount: 50, successCount: 48 }),

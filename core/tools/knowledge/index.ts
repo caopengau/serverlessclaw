@@ -1,20 +1,35 @@
-import * as agentTools from './agent';
-import * as storageTools from './storage';
-import * as mcpTools from './mcp';
-import * as metadataTools from './metadata';
-import * as configTools from './config';
-import * as researchTools from './research';
+import { ITool } from '../../lib/types/tool';
 
 /**
  * Knowledge Domain Tool Registry
  */
-export const knowledgeTools = {
-  ...agentTools,
-  ...storageTools,
-  ...mcpTools,
-  ...metadataTools,
-  ...configTools,
-  ...researchTools,
-};
+export const knowledgeTools: Record<string, ITool> = {};
+
+/**
+ * Lazily loads all knowledge tools.
+ */
+export async function getKnowledgeTools(): Promise<Record<string, ITool>> {
+  if (Object.keys(knowledgeTools).length > 0) return knowledgeTools;
+
+  const [agent, storage, mcp, metadata, config, research] = await Promise.all([
+    import('./agent'),
+    import('./storage'),
+    import('./mcp'),
+    import('./metadata'),
+    import('./config'),
+    import('./research'),
+  ]);
+
+  Object.assign(knowledgeTools, {
+    ...agent,
+    ...storage,
+    ...mcp,
+    ...metadata,
+    ...config,
+    ...research,
+  });
+
+  return knowledgeTools;
+}
 
 export { knowledgeSchema } from './schema';

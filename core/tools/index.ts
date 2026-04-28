@@ -17,7 +17,7 @@ export const TOOLS: Record<string, ITool> = {};
 export async function initializeTools(): Promise<Record<string, ITool>> {
   if (Object.keys(TOOLS).length > 0) return TOOLS;
 
-  const [{ knowledgeTools }, { collaborationTools }, { infraTools }, { systemTools }] =
+  const [{ getKnowledgeTools }, { getCollaborationTools }, { getInfraTools }, { getSystemTools }] =
     await Promise.all([
       import('./knowledge'),
       import('./collaboration'),
@@ -25,11 +25,18 @@ export async function initializeTools(): Promise<Record<string, ITool>> {
       import('./system'),
     ]);
 
+  const [knowledge, collaboration, infra, system] = await Promise.all([
+    getKnowledgeTools(),
+    getCollaborationTools(),
+    getInfraTools(),
+    getSystemTools(),
+  ]);
+
   Object.assign(TOOLS, {
-    ...knowledgeTools,
-    ...collaborationTools,
-    ...infraTools,
-    ...systemTools,
+    ...knowledge,
+    ...collaboration,
+    ...infra,
+    ...system,
   });
 
   return TOOLS;

@@ -8,15 +8,33 @@ import { logger } from '../logger';
  */
 const LATENCY_P95_ESTIMATION_FACTOR = 1.25;
 
+/**
+ * Supported SLO metric types.
+ */
+export enum SLOMetric {
+  AVAILABILITY = 'availability',
+  SUCCESS_RATE = 'task_success_rate',
+  LATENCY = 'avg_latency',
+}
+
+/**
+ * Supported SLO measurement windows.
+ */
+export enum SLOWindow {
+  DAILY = 'daily',
+  WEEKLY = 'weekly',
+  MONTHLY = 'monthly',
+}
+
 async function emitSLOStatusMetrics(
   sloName: string,
-  metricType: 'availability' | 'task_success_rate' | 'avg_latency',
+  metricType: SLOMetric,
   current: number,
   target: number,
   withinBudget: boolean
 ): Promise<void> {
   try {
-    const isLatency = metricType === 'avg_latency';
+    const isLatency = metricType === SLOMetric.LATENCY;
     const unit = isLatency ? 'Milliseconds' : 'Count';
 
     const { emitMetrics } = await import('./metrics');
@@ -51,14 +69,24 @@ async function emitSLOStatusMetrics(
 export interface SLODefinition {
   name: string;
   target: number;
-  window: 'daily' | 'weekly' | 'monthly';
-  metric: 'availability' | 'task_success_rate' | 'avg_latency';
+  window: SLOWindow;
+  metric: SLOMetric;
 }
 
 const DEFAULT_SLOS: SLODefinition[] = [
-  { name: 'api_availability', target: 0.995, window: 'monthly', metric: 'availability' },
-  { name: 'task_success_rate', target: 0.95, window: 'weekly', metric: 'task_success_rate' },
-  { name: 'response_latency', target: 30000, window: 'daily', metric: 'avg_latency' },
+  {
+    name: 'api_availability',
+    target: 0.995,
+    window: SLOWindow.MONTHLY,
+    metric: SLOMetric.AVAILABILITY,
+  },
+  {
+    name: 'task_success_rate',
+    target: 0.95,
+    window: SLOWindow.WEEKLY,
+    metric: SLOMetric.SUCCESS_RATE,
+  },
+  { name: 'response_latency', target: 30000, window: SLOWindow.DAILY, metric: SLOMetric.LATENCY },
 ];
 
 export class SLOTracker {
@@ -86,20 +114,20 @@ export class SLOTracker {
 
     let current = 0;
     switch (definition.metric) {
-      case 'availability':
-      case 'task_success_rate': {
+      case SLOMetric.AVAILABILITY:
+      case SLOMetric.SUCCESS_RATE: {
         const totalInvocations = rollups.reduce((s, r) => s + r.invocationCount, 0);
         const totalSuccesses = rollups.reduce((s, r) => s + r.successCount, 0);
         current = totalInvocations > 0 ? totalSuccesses / totalInvocations : 1;
         break;
       }
-      case 'avg_latency':
+      case SLOMetric.LATENCY:
         current = this.calculateLatencyCurrent(rollups);
         break;
     }
 
     const burnRate =
-      definition.metric === 'avg_latency'
+      definition.metric === SLOMetric.LATENCY
         ? current / definition.target
         : (1 - current) / (1 - definition.target);
 
@@ -138,11 +166,11 @@ export class SLOTracker {
       }
 
       let current: number;
-      if (slo.metric === 'availability' || slo.metric === 'task_success_rate') {
+      if (slo.metric === SLOMetric.AVAILABILITY || slo.metric === SLOMetric.SUCCESS_RATE) {
         const total = rollups.reduce((s, r) => s + r.invocationCount, 0);
         const successes = rollups.reduce((s, r) => s + r.successCount, 0);
         current = total > 0 ? successes / total : 1;
-      } else if (slo.metric === 'avg_latency') {
+      } else if (slo.metric === SLOMetric.LATENCY) {
         current = this.calculateLatencyCurrent(rollups);
       } else {
         current = 0;

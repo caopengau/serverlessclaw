@@ -446,3 +446,65 @@ export async function queryByTypeAndMap(
     ),
   }));
 }
+
+/**
+ * Atomically increments a numeric counter field in an item.
+ */
+export async function atomicIncrement(
+  base: BaseMemoryProvider,
+  userId: string,
+  timestamp: number | string,
+  field: string,
+  nestedInMetadata: boolean = true
+): Promise<number> {
+  const fieldPath = nestedInMetadata ? `metadata.#field` : `#field`;
+  const attrNames = { '#field': field };
+  const attrValues = { ':zero': 0, ':one': 1, ':now': Date.now() };
+
+  try {
+    const result = await base.updateItem({
+      Key: { userId, timestamp: Number(timestamp) },
+      UpdateExpression: `SET ${fieldPath} = if_not_exists(${fieldPath}, :zero) + :one, updatedAt = :now`,
+      ExpressionAttributeNames: attrNames,
+      ExpressionAttributeValues: attrValues,
+      ConditionExpression: 'attribute_exists(userId)',
+      ReturnValues: 'ALL_NEW',
+    });
+    const attributes = result?.Attributes as Record<string, any>;
+    return (nestedInMetadata ? attributes?.metadata?.[field] : attributes?.[field]) || 0;
+  } catch (error) {
+    logger.error(`[atomicIncrement] Failed for ${userId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Puts an item with a collision retry strategy (timestamp jitter).
+ */
+export async function putWithCollisionRetry(
+  base: BaseMemoryProvider,
+  item: Record<string, unknown>,
+  maxRetries: number = 5
+): Promise<void> {
+  let retryCount = 0;
+  const baseTimestamp = (item.timestamp as number) || Date.now();
+
+  while (retryCount < maxRetries) {
+    try {
+      await base.putItem({
+        ...item,
+        timestamp: baseTimestamp + retryCount,
+        ConditionExpression: 'attribute_not_exists(userId) AND attribute_not_exists(#ts)',
+        ExpressionAttributeNames: { '#ts': 'timestamp' },
+      });
+      return;
+    } catch (e: any) {
+      if (e.name === 'ConditionalCheckFailedException') {
+        retryCount++;
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error(`Max retries reached for putWithCollisionRetry: ${item.userId}`);
+}

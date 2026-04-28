@@ -2,7 +2,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { AgentSelector } from './AgentSelector';
 import { TranslationsProvider } from '@/components/Providers/TranslationsProvider';
 
@@ -124,5 +124,28 @@ describe('AgentSelector Component', () => {
     );
 
     expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls onSelect when an agent is clicked', async () => {
+    renderWithTranslations(<AgentSelector {...defaultProps} />);
+
+    resolveFetch({
+      json: async () => mockAgents,
+    });
+
+    await waitFor(() => screen.getByText('SuperClaw'));
+    fireEvent.click(screen.getByText('SuperClaw'));
+    expect(defaultProps.onSelect).toHaveBeenCalledWith('superclaw');
+  });
+
+  it('handles fetch errors gracefully', async () => {
+    renderWithTranslations(<AgentSelector {...defaultProps} />);
+
+    resolveFetch(new Error('Network error'));
+
+    await waitFor(() => {
+      // It should stop loading even on error
+      expect(screen.queryByText(/Synchronizing Agent Registry/i)).not.toBeInTheDocument();
+    });
   });
 });

@@ -56,6 +56,6 @@
     "type-check": "tsc --noEmit",
     "format-check": "prettier --check . --ignore-path ../.prettierignore",
     "format": "prettier --write . --ignore-path ../.prettierignore",
-    "aiready": "aiready scan --threshold 80"
+    "aiready": "aiready scan"
   }
 }

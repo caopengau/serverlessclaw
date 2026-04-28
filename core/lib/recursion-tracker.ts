@@ -83,98 +83,88 @@ export async function getRecursionLimit(
  * @param options - Configuration options
  * @returns A promise resolving to the new depth if successful, or -1 on error.
  */
+/**
+ * Internal helper for atomic trace metadata updates.
+ */
+async function _updateTraceMetadata(
+  traceId: string,
+  updates: {
+    expression: string;
+    names: Record<string, string>;
+    values: Record<string, unknown>;
+  },
+  ttlSeconds: number = RECURSION_TTL_SECONDS
+): Promise<Record<string, unknown> | null> {
+  const key = `${RECURSION_STACK_PREFIX}${traceId}`;
+  const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
+
+  try {
+    const response = await docClient.send(
+      new UpdateCommand({
+        TableName: getMemoryTableName(),
+        Key: { userId: key, timestamp: 0 },
+        UpdateExpression: updates.expression,
+        ExpressionAttributeNames: {
+          '#type': 'type',
+          ...updates.names,
+        },
+        ExpressionAttributeValues: {
+          ':now': Date.now(),
+          ':exp': expiresAt,
+          ':type': RECURSION_TYPE,
+          ...updates.values,
+        },
+        ReturnValues: 'UPDATED_NEW',
+      })
+    );
+    return response.Attributes ?? null;
+  } catch (error) {
+    logger.warn(`[RECURSION] Update failed for ${traceId}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Atomically increments the recursion depth for a trace and returns the new depth.
+ */
 export async function incrementRecursionDepth(
   traceId: string,
   sessionId: string,
   agentId: string,
   options: { isMissionContext?: boolean } = {}
 ): Promise<number> {
-  const { isMissionContext = false } = options;
-  const key = `${RECURSION_STACK_PREFIX}${traceId}`;
-  const ttlSeconds = isMissionContext ? MISSION_RECURSION_TTL_SECONDS : RECURSION_TTL_SECONDS;
-  const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
-  const now = Date.now();
+  const ttlSeconds = options.isMissionContext
+    ? MISSION_RECURSION_TTL_SECONDS
+    : RECURSION_TTL_SECONDS;
 
-  try {
-    const response = await docClient.send(
-      new UpdateCommand({
-        TableName: getMemoryTableName(),
-        Key: { userId: key, timestamp: 0 },
-        UpdateExpression:
-          'SET #depth = if_not_exists(#depth, :zero) + :one, sessionId = :sessionId, agentId = :agentId, updatedAt = :now, expiresAt = :exp, #type = :type',
-        ExpressionAttributeNames: {
-          '#type': 'type',
-          '#depth': 'depth',
-        },
-        ExpressionAttributeValues: {
-          ':zero': 0,
-          ':one': 1,
-          ':sessionId': sessionId,
-          ':agentId': agentId,
-          ':now': now,
-          ':exp': expiresAt,
-          ':type': RECURSION_TYPE,
-        },
-        ReturnValues: 'UPDATED_NEW',
-      })
-    );
+  const attributes = await _updateTraceMetadata(
+    traceId,
+    {
+      expression:
+        'SET #depth = if_not_exists(#depth, :zero) + :one, sessionId = :sessionId, agentId = :agentId, updatedAt = :now, expiresAt = :exp, #type = :type',
+      names: { '#depth': 'depth' },
+      values: { ':zero': 0, ':one': 1, ':sessionId': sessionId, ':agentId': agentId },
+    },
+    ttlSeconds
+  );
 
-    const newDepth = response.Attributes?.depth as number;
-    logger.info(`[RECURSION] Incremented depth for ${traceId} to ${newDepth} (Agent: ${agentId})`);
-    return newDepth;
-  } catch (error: unknown) {
-    logger.warn(`[RECURSION] Failed to increment depth for ${traceId}:`, error);
-    return -1;
-  }
+  return (attributes?.depth as number) ?? -1;
 }
 
 /**
  * Atomically increments the token usage for a trace.
- * Sets expiry to 1 hour if not already present.
- *
- * @param traceId - The trace ID for the execution chain
- * @param tokens - Number of tokens to add
  */
 export async function incrementTokenUsage(traceId: string, tokens: number): Promise<number> {
-  const key = `${RECURSION_STACK_PREFIX}${traceId}`;
-  const expiresAt = Math.floor(Date.now() / 1000) + RECURSION_TTL_SECONDS;
+  if (!traceId || traceId === 'unknown') return -1;
 
-  // Protect against global budget poisoning via generic IDs
-  if (!traceId || traceId === 'unknown') {
-    logger.warn(
-      `[BUDGET] Attempted to increment tokens for generic traceId: ${traceId}. Skipping.`
-    );
-    return -1;
-  }
+  const attributes = await _updateTraceMetadata(traceId, {
+    expression:
+      'SET tokens = if_not_exists(tokens, :zero) + :tokens, updatedAt = :now, expiresAt = if_not_exists(expiresAt, :exp), #type = if_not_exists(#type, :type)',
+    names: {},
+    values: { ':zero': 0, ':tokens': tokens },
+  });
 
-  try {
-    const response = await docClient.send(
-      new UpdateCommand({
-        TableName: getMemoryTableName(),
-        Key: { userId: key, timestamp: 0 },
-        UpdateExpression:
-          'SET tokens = if_not_exists(tokens, :zero) + :tokens, updatedAt = :now, expiresAt = if_not_exists(expiresAt, :exp), #type = if_not_exists(#type, :type)',
-        ExpressionAttributeNames: {
-          '#type': 'type',
-        },
-        ExpressionAttributeValues: {
-          ':zero': 0,
-          ':tokens': tokens,
-          ':now': Date.now(),
-          ':exp': expiresAt,
-          ':type': RECURSION_TYPE,
-        },
-        ReturnValues: 'UPDATED_NEW',
-      })
-    );
-
-    const totalTokens = response.Attributes?.tokens as number;
-    logger.info(`[BUDGET] Trace ${traceId} cumulative tokens: ${totalTokens}`);
-    return totalTokens;
-  } catch (error) {
-    logger.warn(`[BUDGET] Failed to increment tokens for ${traceId}:`, error);
-    return -1;
-  }
+  return (attributes?.tokens as number) ?? -1;
 }
 
 /**

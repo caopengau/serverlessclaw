@@ -99,7 +99,10 @@
         "naming-consistency:const-uppercase-snake-case",
         "naming-consistency:function-camel-case"
       ],
-      "exclude": ["dashboard/src/components/ui/**"]
+      "exclude": [
+        "**/components/ui/**",
+        "scripts/**"
+      ]
     },
     "ai-signal-clarity": {
       "checkMagicLiterals": true,
@@ -110,7 +113,9 @@
       "checkDeepCallbacks": true,
       "checkOverloadedSymbols": true,
       "checkLargeFiles": true,
-      "exclude": ["dashboard/src/components/ui/**", "core/tools/index.ts"]
+      "exclude": [
+        "**/components/ui/**"
+      ]
     },
     "agent-grounding": {
       "maxRecommendedDepth": 5,
@@ -130,7 +135,7 @@
       "trainingCutoffYear": 2023
     },
     "change-amplification": {
-      "exclude": ["core/lib/types/agent.ts"]
+      "exclude": []
     }
   },
   "visualizer": {

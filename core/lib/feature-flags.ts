@@ -3,13 +3,24 @@ import { CONFIG_DEFAULTS } from './config/config-defaults';
 import { logger } from './logger';
 import { TIME } from './constants';
 
+/**
+ * Represents a dynamic feature flag configuration.
+ * Supports rollout percentages and agent-specific targeting.
+ */
 export interface FeatureFlag {
+  /** Unique identifier for the feature flag */
   name: string;
+  /** Overall enabled status */
   enabled: boolean;
+  /** Percentage of actors who see the feature (0-100) */
   rolloutPercent: number;
+  /** Optional list of agent IDs this flag applies to */
   targetAgents?: string[];
+  /** Human-readable explanation of the flag's purpose */
   description: string;
+  /** Epoch timestamp when this flag should be automatically pruned */
   expiresAt?: number;
+  /** Epoch timestamp when this flag was created */
   createdAt?: number;
 }
 
@@ -18,11 +29,22 @@ interface CachedFlag {
   expiresAt: number;
 }
 
+/**
+ * Centralized manager for feature flags and dynamic capability toggling.
+ * Implements local caching with TTL to minimize configuration registry overhead.
+ */
 export class FeatureFlags {
   private static readonly CACHE_TTL_MS = TIME.MS_PER_MINUTE;
   private static readonly FLAG_KEY_PREFIX = 'feature_flag_';
   private static cache = new Map<string, CachedFlag>();
 
+  /**
+   * Evaluates if a feature flag is enabled for a specific agent.
+   *
+   * @param flagName - The name of the flag to check.
+   * @param agentId - Optional ID of the agent performing the check.
+   * @returns A promise resolving to true if the feature is active for the requester.
+   */
   static async isEnabled(flagName: string, agentId?: string): Promise<boolean> {
     try {
       const flagsEnabled = await ConfigManager.getTypedConfig(

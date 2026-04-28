@@ -284,4 +284,111 @@ describe('AgentRegistry', () => {
       expect(result).toBe(false);
     });
   });
+
+  describe('atomicSetAgentTrustScore', () => {
+    it('should update trust score conditionally', async () => {
+      mockDocClient.send.mockResolvedValueOnce({});
+      const result = await AgentRegistry.atomicSetAgentTrustScore('agent1', 100, 80);
+      expect(result).toBe(true);
+      expect(mockDocClient.send).toHaveBeenCalled();
+    });
+
+    it('should throw on conditional check failure', async () => {
+      const error = new Error('ConditionalCheckFailedException');
+      error.name = 'ConditionalCheckFailedException';
+      mockDocClient.send.mockRejectedValueOnce(error);
+      await expect(AgentRegistry.atomicSetAgentTrustScore('agent1', 100, 80)).rejects.toThrow();
+    });
+  });
+
+  describe('recordToolUsage with scope', () => {
+    it('should record usage for workspace, team, and staff', async () => {
+      mockDocClient.send.mockResolvedValue({});
+      await AgentRegistry.recordToolUsage('tool1', 'agent1', {
+        workspaceId: 'ws1',
+        teamId: 'team1',
+        staffId: 'staff1',
+      });
+
+      // global + per-agent + ws + team + staff = 5 calls
+      expect(mockDocClient.send).toHaveBeenCalledTimes(5);
+    });
+  });
+
+  describe('initializeToolStats', () => {
+    it('should initialize stats for multiple tools', async () => {
+      mockDocClient.send.mockResolvedValue({});
+      await AgentRegistry.initializeToolStats(['tool1', 'tool2']);
+      expect(mockDocClient.send).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('pruneLowUtilizationTools', () => {
+    it('should prune tools with 0 usage beyond threshold', async () => {
+      const now = Date.now();
+      const thresholdMs = 30 * 24 * 60 * 60 * 1000;
+
+      vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
+        if (key === DYNAMO_KEYS.TOOL_USAGE) {
+          return {
+            old_unused_tool: { count: 0, firstRegistered: now - thresholdMs - 1000 },
+            new_unused_tool: { count: 0, firstRegistered: now - 1000 },
+            used_tool: { count: 10, firstRegistered: now - thresholdMs - 1000 },
+          };
+        }
+        if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
+          return { agent1: { id: 'agent1', name: 'Agent 1' } };
+        }
+        if (key === DYNAMO_KEYS.AGENT_TOOL_OVERRIDES) {
+          return { agent1: ['old_unused_tool', 'used_tool'] };
+        }
+        return undefined;
+      });
+
+      // Mock getAgentConfig to return the tools
+      vi.spyOn(AgentRegistry, 'getAgentConfig').mockImplementation(async (id) => {
+        if (id === 'agent1') {
+          return {
+            id: 'agent1',
+            name: 'Agent 1',
+            tools: ['old_unused_tool', 'used_tool'],
+            enabled: true,
+            evolutionMode: 'HITL' as any,
+            trustScore: 100,
+          };
+        }
+        return undefined;
+      });
+
+      const pruned = await AgentRegistry.pruneLowUtilizationTools('ws1', 30);
+      expect(pruned).toBe(1);
+      expect(ConfigManager.atomicRemoveFromMap).toHaveBeenCalledWith(
+        DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
+        'agent1',
+        ['old_unused_tool'],
+        { workspaceId: 'ws1' }
+      );
+    });
+
+    it('should return 0 if no usage data exists', async () => {
+      vi.mocked(ConfigManager.getRawConfig).mockResolvedValueOnce(undefined);
+      const pruned = await AgentRegistry.pruneLowUtilizationTools();
+      expect(pruned).toBe(0);
+    });
+  });
+
+  describe('getInfraConfig', () => {
+    it('should return infra topology nodes', async () => {
+      const nodes = [{ id: 'n1' }];
+      vi.mocked(ConfigManager.getRawConfig).mockResolvedValueOnce(nodes);
+      const result = await AgentRegistry.getInfraConfig();
+      expect(result).toEqual(nodes);
+    });
+
+    it('should return empty array if config is not an array', async () => {
+      vi.mocked(ConfigManager.getRawConfig).mockResolvedValueOnce({});
+      const result = await AgentRegistry.getInfraConfig();
+      expect(result).toEqual([]);
+    });
+  });
 });

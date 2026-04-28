@@ -1,3 +1,5 @@
+import { STAGES } from './shared';
+
 /**
  * Creates and configures the storage resources for the application.
  *
@@ -109,11 +111,11 @@ export function createStorage() {
   };
 
   // Conditionally add optional secrets to avoid undefined values in link arrays
-  if ($app.stage === 'prod' || process.env.SST_SECRET_DiscordBotToken) {
+  if ($app.stage === STAGES.PROD || process.env.SST_SECRET_DiscordBotToken) {
     secrets.DiscordBotToken = new sst.Secret('DiscordBotToken');
   }
 
-  if ($app.stage === 'prod' || process.env.SST_SECRET_SlackBotToken) {
+  if ($app.stage === STAGES.PROD || process.env.SST_SECRET_SlackBotToken) {
     secrets.SlackBotToken = new sst.Secret('SlackBotToken');
   }
 

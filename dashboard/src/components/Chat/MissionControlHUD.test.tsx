@@ -1,16 +1,21 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MissionControlHUD } from './MissionControlHUD';
 import { TranslationsProvider } from '@/components/Providers/TranslationsProvider';
+import { useRealtimeContext } from '@/components/Providers/RealtimeProvider';
 
 // Mock RealtimeProvider
-vi.mock('@/components/Providers/RealtimeProvider', () => ({
-  useRealtimeContext: () => ({
+const { mockUseRealtimeContext } = vi.hoisted(() => ({
+  mockUseRealtimeContext: vi.fn(() => ({
     subscribe: vi.fn(() => vi.fn()),
     isLive: true,
-  }),
+  })),
+}));
+
+vi.mock('@/components/Providers/RealtimeProvider', () => ({
+  useRealtimeContext: mockUseRealtimeContext,
 }));
 
 // Mock TrustGauge (to avoid SVG rendering issues in simple tests)
@@ -96,5 +101,39 @@ describe('MissionControlHUD Component', () => {
     expect(screen.getAllByText('75%').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('60%').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('45%').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('updates metrics when a signal is received', async () => {
+    let signalCallback: any;
+    const subscribeMock = vi.fn((topics, callback) => {
+      signalCallback = callback;
+      return vi.fn(); // Unsubscribe
+    });
+
+    mockUseRealtimeContext.mockReturnValue({
+      subscribe: subscribeMock,
+      isLive: true,
+    } as any);
+
+    render(
+      <TranslationsProvider>
+        <MissionControlHUD {...defaultProps} />
+      </TranslationsProvider>
+    );
+
+    expect(subscribeMock).toHaveBeenCalledWith(['sessions/sess-1/signal'], expect.any(Function));
+
+    // Simulate signal
+    signalCallback('sessions/sess-1/signal', {
+      type: 'COGNITIVE_SIGNAL',
+      trust: 99,
+      stability: 95,
+      budget: 10,
+      content: 'Major breakthrough',
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Major breakthrough')).toBeInTheDocument();
+    });
   });
 });

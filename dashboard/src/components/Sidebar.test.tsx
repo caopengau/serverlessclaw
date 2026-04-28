@@ -1,16 +1,24 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { useRouter } from 'next/navigation';
 import Sidebar from './Sidebar';
 
 // Define the mock before hoisting it
 const {
+  mockUseRouter,
   mockUseUICommand,
   mockUseRealtimeContext,
   mockUseTheme,
   mockUseTranslations,
   mockUseTenant,
 } = vi.hoisted(() => ({
+  mockUseRouter: vi.fn().mockReturnValue({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    refresh: vi.fn(),
+  }),
   mockUseUICommand: vi.fn().mockReturnValue({
     isSidebarCollapsed: false,
     setSidebarCollapsed: vi.fn(),
@@ -57,11 +65,7 @@ vi.mock('next-themes', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
-  useRouter: () => ({
-    push: vi.fn(),
-    replace: vi.fn(),
-    prefetch: vi.fn(),
-  }),
+  useRouter: mockUseRouter,
   useSearchParams: () => ({
     get: vi.fn(),
   }),
@@ -146,5 +150,138 @@ describe('Sidebar Component', () => {
     // Verification: CyberTooltip should be present for nav links when collapsed
     const tooltips = screen.getAllByTestId('cyber-tooltip');
     expect(tooltips.length).toBeGreaterThan(0);
+  });
+
+  it('toggles theme when theme button is clicked', () => {
+    mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
+    const setTheme = vi.fn();
+    mockUseTheme.mockReturnValue({ theme: 'dark', setTheme });
+    render(<Sidebar />);
+
+    const themeButton = screen.getByTestId('icon-sun').closest('button');
+    fireEvent.click(themeButton!);
+
+    expect(setTheme).toHaveBeenCalledWith('light');
+  });
+
+  it('toggles locale when locale button is clicked', () => {
+    mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
+    const setLocale = vi.fn();
+    mockUseTranslations.mockReturnValue({ t: (k: string) => k, locale: 'en', setLocale });
+    render(<Sidebar />);
+
+    const localeButton = screen.getByText('CN');
+    fireEvent.click(localeButton);
+
+    expect(setLocale).toHaveBeenCalledWith('cn');
+  });
+
+  it('calls logout API and redirects on logout click', async () => {
+    mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
+    const push = vi.fn();
+    mockUseRouter.mockReturnValue({ push, refresh: vi.fn() });
+    const fetchMock = vi.fn().mockResolvedValue({});
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<Sidebar />);
+
+    const logoutButton = screen.getByText('EXIT').closest('button');
+    fireEvent.click(logoutButton!);
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/logout', { method: 'POST' });
+    await waitFor(() => {
+      expect(push).toHaveBeenCalledWith('/login');
+    });
+  });
+
+  it('shows online status when connected', () => {
+    mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
+    mockUseRealtimeContext.mockReturnValue({ isConnected: true });
+    render(<Sidebar />);
+    expect(screen.getByText('ONLINE')).toBeInTheDocument();
+  });
+
+  it('shows offline status when disconnected', () => {
+    mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
+    mockUseRealtimeContext.mockReturnValue({ isConnected: false });
+    render(<Sidebar />);
+    expect(screen.getByText('OFFLINE')).toBeInTheDocument();
+  });
+
+  it('toggles sidebar collapse state', () => {
+    const setSidebarCollapsed = vi.fn();
+    mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed });
+    render(<Sidebar />);
+    
+    const toggleButton = screen.getByTestId('icon-panel-close').closest('button');
+    fireEvent.click(toggleButton!);
+    expect(setSidebarCollapsed).toHaveBeenCalledWith(true);
+  });
+
+  it('toggles mobile menu', () => {
+    // We need to trigger the mobile view condition, but since we're using JSDOM 
+    // it's always "desktop" unless we mock matchMedia or just find the button that is hidden by CSS.
+    // In React, the button is always rendered but hidden by CSS.
+    mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
+    render(<Sidebar />);
+    
+    const mobileMenuButton = screen.getByTestId('icon-menu').closest('button');
+    fireEvent.click(mobileMenuButton!);
+    
+    // mobile menu should be open, check for the close icon
+    expect(screen.getAllByTestId('icon-x')[0]).toBeInTheDocument();
+    
+    fireEvent.click(screen.getAllByTestId('icon-x')[0].closest('button')!);
+    expect(screen.getByTestId('icon-menu')).toBeInTheDocument();
+  });
+
+  it('closes mobile menu when backdrop is clicked', async () => {
+    mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
+    render(<Sidebar />);
+    
+    // Open it first
+    fireEvent.click(screen.getByTestId('icon-menu').closest('button')!);
+    
+    // Find backdrop by class
+    const backdrop = document.querySelector('.bg-background\\/60');
+    fireEvent.click(backdrop!);
+    
+    await waitFor(() => {
+      // The toggle button should show menu icon again
+      expect(screen.getByTestId('icon-menu')).toBeInTheDocument();
+    });
+  });
+
+  it('triggers shortcuts modal when keyboard icon is clicked', () => {
+    const setActiveModal = vi.fn();
+    mockUseUICommand.mockReturnValue({ 
+      isSidebarCollapsed: false, 
+      setSidebarCollapsed: vi.fn(),
+      setActiveModal
+    });
+    render(<Sidebar />);
+    
+    const shortcutsButton = screen.getByTestId('icon-keyboard').closest('button');
+    fireEvent.click(shortcutsButton!);
+    expect(setActiveModal).toHaveBeenCalledWith('shortcuts');
+  });
+
+  it('handles logout fetch failure gracefully', async () => {
+    mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
+    const push = vi.fn();
+    mockUseRouter.mockReturnValue({ push, refresh: vi.fn() });
+    
+    const fetchMock = vi.fn().mockRejectedValue(new Error('Logout failed'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<Sidebar />);
+
+    const logoutButton = screen.getByText('EXIT').closest('button');
+    fireEvent.click(logoutButton!);
+
+    // Should still redirect even if fetch fails (finally block)
+    await waitFor(() => {
+      expect(push).toHaveBeenCalledWith('/login');
+    });
   });
 });

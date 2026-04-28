@@ -82,6 +82,13 @@ export const NODEJS_LOADERS = { '.md': 'text' } as const;
 /** Default log retention period for Lambda functions */
 export const LOG_RETENTION_PERIOD = '1 week';
 
+/** Deployment stage identifiers */
+export const STAGES = {
+  PROD: 'prod',
+  DEV: 'dev',
+  LOCAL: 'local',
+} as const;
+
 /**
  * Generates a tenant-aware EventBridge filter pattern.
  * Enforces organizational and team-level boundaries at the infrastructure layer (Silo 1).
@@ -130,7 +137,7 @@ export function provisionDomainConfig(component: 'api' | 'dashboard' | 'router')
 
   // Only use custom domains for production stage to avoid conflicts
   // The two-tier model (local/prod) ensures personal stages use default AWS URLs.
-  if (stage !== 'prod') {
+  if (stage !== STAGES.PROD) {
     return undefined;
   }
 
@@ -160,7 +167,7 @@ export function provisionDomainConfig(component: 'api' | 'dashboard' | 'router')
     config.dns = sst.cloudflare.dns({
       zone: zoneId,
     });
-  } else if (stage === 'prod') {
+  } else if (stage === STAGES.PROD) {
     // In prod, if a domain is defined but no zone ID is present, it's an error.
     // This maintains the "Cloudflare controls it" constraint.
     console.warn(`[WARNING] Missing CLOUDFLARE_ZONE_ID for domain ${domain} in stage ${stage}.`);

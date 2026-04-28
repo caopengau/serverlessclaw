@@ -2,8 +2,6 @@ import { ITool, ToolResult } from '../../lib/types/index';
 import { proposeAutonomyUpdate as proposeLogic } from '../../lib/agent/tools/governance';
 import { systemSchema as schema } from './schema';
 import { logger } from '../../lib/logger';
-import { MetabolismService } from '../../lib/maintenance/metabolism';
-import { DynamoMemory } from '../../lib/memory/dynamo-memory';
 
 /**
  * Tool for SuperClaw to propose autonomy level updates (AUTO vs HITL).
@@ -29,6 +27,9 @@ export const scanMetabolism: ITool = {
   ...schema.scanMetabolism,
   execute: async (_args: Record<string, unknown>): Promise<ToolResult> => {
     try {
+      const { DynamoMemory } = await import('../../lib/memory/dynamo-memory');
+      const { MetabolismService } = await import('../../lib/maintenance/metabolism');
+
       // 1. Initialize memory for repair context - uses default client
       const memory = new DynamoMemory();
 
