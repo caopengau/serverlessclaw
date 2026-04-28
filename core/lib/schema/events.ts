@@ -3,6 +3,7 @@ import { AttachmentType } from '../types/llm';
 import { HealthSeverity, ParallelTaskStatus } from '../types/constants';
 import { EventType, AgentType } from '../types/index';
 import { normalizeBaseUserId } from '../utils/normalize';
+import { generateId, generateMessageId } from '../utils/id-generator';
 
 export const ATTACHMENT_SCHEMA = z
   .object({
@@ -22,8 +23,8 @@ export const ATTACHMENT_SCHEMA = z
 export const BASE_EVENT_SCHEMA = z.object({
   source: z.string().default('unknown'),
   userId: z.string().default('SYSTEM'),
-  traceId: z.string().default(() => `t-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`),
-  taskId: z.string().default(() => `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`),
+  traceId: z.string().default(() => generateId('t')),
+  taskId: z.string().default(() => generateId('task')),
   nodeId: z.string().optional(),
   parentId: z.string().optional(),
   agentId: z.string().optional(),
@@ -143,7 +144,7 @@ const BRIDGE_DETAIL_PAYLOAD_SCHEMA = z
   .object({
     userId: z.string().default('dashboard-user'),
     sessionId: z.string().optional(),
-    messageId: z.string().optional(),
+    messageId: z.string().default(() => generateMessageId('pending')),
     traceId: z.string().default('unknown'),
     agentName: z.string().default('SuperClaw'),
     message: z.string().default(''),

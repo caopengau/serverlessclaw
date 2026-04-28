@@ -101,7 +101,7 @@ export class ClawTracer {
     const { extra = {}, isNew = false } = options;
     if (!(await this.isSummaryEnabled())) return;
 
-    await this.withRetry(async () => {
+    await this.bestEffort(async () => {
       if (isNew) {
         await this.docClient.send(
           new PutCommand({
@@ -120,6 +120,7 @@ export class ClawTracer {
               staffId: this.staffId,
               ...extra,
             },
+            ConditionExpression: 'attribute_not_exists(traceId)',
           })
         );
       } else {
@@ -458,7 +459,7 @@ export class ClawTracer {
   /**
    * Generic retry wrapper for best-effort secondary operations.
    */
-  private async withRetry(fn: () => Promise<void>, label: string): Promise<void> {
+  private async bestEffort(fn: () => Promise<void>, label: string): Promise<void> {
     try {
       await fn();
     } catch (e) {

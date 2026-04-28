@@ -521,6 +521,14 @@ export const CONFIG_DEFAULTS = {
     configKey: 'simple_task_threshold',
     description: 'Maximum character limit for auto-routing simple tasks to cheaper models.',
   },
+
+  /** TTL for S3 staging artifacts (days). Default: 30 */
+  STAGING_RETENTION_DAYS: {
+    code: 30,
+    hotSwappable: true,
+    configKey: 'staging_retention_days',
+    description: 'Days to retain temporary files in the staging bucket before metabolism pruning.',
+  },
 } as const;
 
 export type ConfigKey = keyof typeof CONFIG_DEFAULTS;

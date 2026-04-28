@@ -30,7 +30,8 @@ export class BudgetEnforcer {
         sessionId,
         currentUsage.totalInputTokens,
         currentUsage.totalOutputTokens,
-        agentId
+        agentId,
+        options.workspaceId
       );
 
       // Note: We deliberately do not await here to keep check() synchronous.
@@ -116,7 +117,8 @@ export class BudgetEnforcer {
         sessionId,
         currentUsage.totalInputTokens,
         currentUsage.totalOutputTokens,
-        agentId
+        agentId,
+        options.workspaceId
       );
 
       if (!sessionResult.allowed) {

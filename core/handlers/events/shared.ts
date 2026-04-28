@@ -1,7 +1,7 @@
 import { EventType } from '../../lib/types/index';
 import { sendOutboundMessage } from '../../lib/outbound';
 import { logger } from '../../lib/logger';
-import { emitEvent } from '../../lib/utils/bus';
+import { emitTypedEvent } from '../../lib/utils/typed-emit';
 import { TraceSource, Attachment } from '../../lib/types/index';
 import { Context } from 'aws-lambda';
 import { isTaskPaused } from '../../lib/utils/agent-helpers';
@@ -129,7 +129,7 @@ export async function wakeupInitiator(
     return;
   }
 
-  await emitEvent('events.handler', eventType as EventType, {
+  await emitTypedEvent('events.handler', eventType as EventType, {
     userId,
     agentId: initiatorId,
     task: finalTask,
@@ -415,5 +415,5 @@ export async function reportHealthIssue(params: {
   workspaceId?: string;
   context?: Record<string, unknown>;
 }): Promise<void> {
-  await emitEvent('events.shared', EventType.SYSTEM_HEALTH_REPORT, params);
+  await emitTypedEvent('events.shared', EventType.SYSTEM_HEALTH_REPORT, params);
 }

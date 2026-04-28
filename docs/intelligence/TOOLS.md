@@ -283,21 +283,20 @@ To prevent "Context Window Bloat" and maintain high reasoning performance, Serve
 
 The MCP vertical has been refactored into a **Layered Transport Architecture** to improve isolation and reduce cognitive load on the manager.
 
-```mermaid
-graph TD
-    A[MCP Client Manager] --> B{Transport Factory}
-    B -->|arn:aws:lambda:*| C[Lambda Invoke Transport]
-    B -->|http/https| D[SSE Client Transport]
-    B -->|command| E[Stdio Client Transport]
-
-    C --> F[Remote Multiplexer]
-    D --> G[Remote Server]
-    E --> H[Local Process (npx)]
-
-    subgraph "Hand Silo (Lean Evolution)"
-    A
-    B
-    end
+```ascii
+    +------------------------------------------+
+    |           MCP Client Manager             |
+    +------------------------------------------+
+                       |
+                       v
+            { Transport Factory }
+                       |
+        +--------------+--------------+
+        |              |              |
+ [Lambda Invoke] [SSE Transport] [Stdio Transport]
+        |              |              |
+        v              v              v
+ [Multiplexer]  [Remote Server] [Local Process]
 ```
 
 ### Reliability Guardrails:

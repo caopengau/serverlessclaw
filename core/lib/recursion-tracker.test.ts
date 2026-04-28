@@ -3,6 +3,7 @@ import {
   incrementRecursionDepth,
   getRecursionDepth,
   clearRecursionStack,
+  getRecursionLimit,
 } from './recursion-tracker';
 import { UpdateCommand, GetCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
 
@@ -140,6 +141,19 @@ describe('recursion-tracker', () => {
       expect(cmd.input.ConditionExpression).toBe('attribute_exists(#depth)');
       expect(cmd.input.ExpressionAttributeNames).toEqual({ '#depth': 'depth' });
       expect(cmd.input.Key.timestamp).toBe(0);
+    });
+  });
+
+  describe('getRecursionLimit', () => {
+    it('should return default global budget when no options provided', async () => {
+      const limit = await getRecursionLimit();
+      expect(limit).toBeGreaterThan(0);
+    });
+
+    it('should return stricter (lower) limit for mission context', async () => {
+      const normalLimit = await getRecursionLimit({ isMissionContext: false });
+      const missionLimit = await getRecursionLimit({ isMissionContext: true });
+      expect(missionLimit).toBeLessThan(normalLimit);
     });
   });
 });

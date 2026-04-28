@@ -1,14 +1,15 @@
 import { logger } from '../logger';
-import { AuditFinding } from '../../agents/cognition-reflector/lib/audit-definitions';
 import { MCPBridge } from '../mcp/mcp-bridge';
+import { BaseMemoryProvider } from '../memory/base';
+import { getStagingBucketName } from '../utils/resource-helpers';
+import { getConfigValue } from '../config/config-defaults';
+import { AuditFinding } from '../../agents/cognition-reflector/lib/audit-definitions';
 import { AgentRegistry } from '../registry/AgentRegistry';
 import { archiveStaleGaps, cullResolvedGaps, setGap } from '../memory/gap-operations';
 import { InsightCategory } from '../types/memory';
 import { EvolutionScheduler } from '../safety/evolution-scheduler';
 import { FailureEventPayload } from '../schema/events';
-import { BaseMemoryProvider } from '../memory';
 import { FeatureFlags } from '../feature-flags';
-import { CONFIG_DEFAULTS } from '../config/config-defaults';
 
 /**
  * MetabolismService coordinates the "Regenerative Metabolism" silo.
@@ -179,7 +180,65 @@ export class MetabolismService {
       logger.error('[Metabolism] Trust metabolism failed:', e);
     }
 
+    // Repair 5: S3 Staging Reclamation (Silo 7)
+    try {
+      const reclaimed = await this.pruneStagingBucket(scope);
+      if (reclaimed > 0) {
+        repairFindings.push({
+          silo: 'Metabolism',
+          expected: 'Lean S3 staging storage',
+          actual: `Reclaimed ${reclaimed} stale objects from staging bucket.`,
+          severity: 'P2',
+          recommendation: 'Silo 7 (Regenerative Metabolism) S3 reclamation enforced.',
+        });
+      }
+    } catch (e) {
+      logger.error('[Metabolism] S3 reclamation failed:', e);
+    }
+
     return repairFindings;
+  }
+
+  /**
+   * Prunes stale objects from the staging bucket.
+   */
+  private static async pruneStagingBucket(scope: { workspaceId?: string }): Promise<number> {
+    const bucketName = getStagingBucketName();
+    if (!bucketName || bucketName === 'StagingBucket') return 0;
+
+    try {
+      const { S3Client, ListObjectsV2Command, DeleteObjectsCommand } =
+        await import('@aws-sdk/client-s3');
+      const s3 = new S3Client({});
+
+      const prefix = scope.workspaceId ? `workspaces/${scope.workspaceId}/` : '';
+      const listCmd = new ListObjectsV2Command({
+        Bucket: bucketName,
+        Prefix: prefix,
+      });
+
+      const response = await s3.send(listCmd);
+      if (!response.Contents || response.Contents.length === 0) return 0;
+
+      const retentionDays = getConfigValue('STAGING_RETENTION_DAYS');
+      const cutoff = Date.now() - retentionDays * 24 * 3600 * 1000;
+      const toDelete = response.Contents.filter(
+        (obj) => obj.Key && obj.LastModified && obj.LastModified.getTime() < cutoff
+      ).map((obj) => ({ Key: obj.Key! }));
+
+      if (toDelete.length === 0) return 0;
+
+      const deleteCmd = new DeleteObjectsCommand({
+        Bucket: bucketName,
+        Delete: { Objects: toDelete.slice(0, 1000) },
+      });
+
+      await s3.send(deleteCmd);
+      return Math.min(toDelete.length, 1000);
+    } catch (e) {
+      logger.error('[Metabolism] Staging bucket pruning failed:', e);
+      return 0;
+    }
   }
 
   /**
@@ -309,6 +368,23 @@ export class MetabolismService {
       }
     }
 
+    // Strategy 1b: S3 Artifact/Staging inconsistencies
+    if (error.includes('s3') || error.includes('access denied') || error.includes('not found')) {
+      const bucketName = getStagingBucketName();
+      if (bucketName && bucketName !== 'StagingBucket') {
+        const reclaimed = await this.pruneStagingBucket({ workspaceId });
+        if (reclaimed > 0) {
+          return {
+            silo: 'Metabolism',
+            expected: 'Accessible staging artifacts',
+            actual: `Real-time repair: Metabolized staging bucket to clear access/stale inconsistencies.`,
+            severity: 'P2',
+            recommendation: 'S3 state reset performed. Retrying operation may now succeed.',
+          };
+        }
+      }
+    }
+
     // Strategy 2: Memory/Gap inconsistencies
     if (error.includes('memory') || error.includes('gap')) {
       await cullResolvedGaps(memory, undefined, workspaceId);
@@ -367,22 +443,23 @@ export class MetabolismService {
 
     try {
       const corePath = process.cwd() + '/core';
-      const { readFileSync, readdirSync, statSync } = await import('fs');
+      const { readFile, readdir, stat } = await import('fs/promises');
       const { join } = await import('path');
 
-      const scanDir = (dir: string, depth: number = 0): string[] => {
-        if (depth > CONFIG_DEFAULTS.AUDIT_SCAN_DEPTH.code) return [];
+      const scanDir = async (dir: string, depth: number = 0): Promise<string[]> => {
+        const maxDepth = getConfigValue('AUDIT_SCAN_DEPTH');
+        if (depth > maxDepth) return [];
         const results: string[] = [];
         try {
-          const entries = readdirSync(dir);
+          const entries = await readdir(dir);
           for (const entry of entries) {
             const fullPath = join(dir, entry);
-            const stat = statSync(fullPath);
-            if (stat.isDirectory() && !entry.startsWith('.') && entry !== 'node_modules') {
-              results.push(...scanDir(fullPath, depth + 1));
-            } else if (stat.isFile() && entry.endsWith('.ts')) {
+            const s = await stat(fullPath);
+            if (s.isDirectory() && !entry.startsWith('.') && entry !== 'node_modules') {
+              results.push(...(await scanDir(fullPath, depth + 1)));
+            } else if (s.isFile() && (entry.endsWith('.ts') || entry.endsWith('.js'))) {
               try {
-                const content = readFileSync(fullPath, 'utf-8');
+                const content = await readFile(fullPath, 'utf-8');
                 if (content.includes('TODO') || content.includes('FIXME')) {
                   results.push(fullPath);
                 }
@@ -397,7 +474,7 @@ export class MetabolismService {
         return results;
       };
 
-      const filesWithMarkers = scanDir(corePath);
+      const filesWithMarkers = await scanDir(corePath);
       if (filesWithMarkers.length > 0) {
         findings.push({
           silo: 'Metabolism',

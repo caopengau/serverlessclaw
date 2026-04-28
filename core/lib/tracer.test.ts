@@ -1,15 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ClawTracer } from './tracer';
-import { resetDocClient } from './utils/ddb-client';
 import { TraceType } from './types/constants';
 import { AgentRegistry } from './registry';
 import { TraceSource } from './types/agent';
 
-// Mock AgentRegistry
 vi.mock('./registry', () => ({
   AgentRegistry: {
     getRetentionDays: vi.fn(),
     recordToolUsage: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+vi.mock('./routing/flow-controller', () => ({
+  FlowController: {
+    areTraceSummariesEnabled: vi.fn().mockResolvedValue(true),
   },
 }));
 
@@ -61,13 +65,25 @@ vi.mock('uuid', () => ({
   v4: vi.fn(() => 'test-uuid-1234'),
 }));
 
-describe('ClawTracer', () => {
-  let tracer: ClawTracer;
+vi.mock('./utils/ddb-client', async (importOriginal) => {
+  const actual = (await importOriginal()) as any;
+  return {
+    ...actual,
+    getDocClient: vi.fn(() => ({
+      send: mockSend,
+    })),
+    resetDocClient: vi.fn(),
+  };
+});
 
-  beforeEach(() => {
+describe('ClawTracer', () => {
+  let tracer: any;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
     (AgentRegistry.getRetentionDays as any).mockResolvedValue(30);
-    resetDocClient();
+    const { FlowController } = await import('./routing/flow-controller');
+    (FlowController.areTraceSummariesEnabled as any).mockResolvedValue(true);
     tracer = new ClawTracer('user-123', TraceSource.SYSTEM, 'test-trace-123', 'root');
   });
 
@@ -154,6 +170,24 @@ describe('ClawTracer', () => {
       expect(child.getTraceId()).toBe(tracer.getTraceId());
       expect(child.getParentId()).toBe(tracer.getNodeId());
       expect(child.getNodeId()).toBe('child-node');
+    });
+  });
+
+  describe('Summary Updates', () => {
+    it('should use ConditionExpression when creating a new summary', async () => {
+      mockSend.mockResolvedValue({});
+      await tracer.updateSummary('STARTED', { isNew: true });
+
+      const cmd = mockSend.mock.calls[0][0];
+      expect(cmd.input.ConditionExpression).toBe('attribute_not_exists(traceId)');
+    });
+
+    it('should NOT use ConditionExpression when updating an existing summary', async () => {
+      mockSend.mockResolvedValue({});
+      await tracer.updateSummary('COMPLETED', { isNew: false });
+
+      const cmd = mockSend.mock.calls[0][0];
+      expect(cmd.input.ConditionExpression).toBeUndefined();
     });
   });
 });

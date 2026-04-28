@@ -188,7 +188,7 @@ export async function isBudgetExceeded(traceId: string): Promise<boolean> {
     const key = `${RECURSION_STACK_PREFIX}${traceId}`;
     const budget = await ConfigManager.getTypedConfig(
       CONFIG_KEYS.GLOBAL_TOKEN_BUDGET,
-      SYSTEM.DEFAULT_DEPLOY_LIMIT // Fallback to something safe if not found, actually I should use the proper constant
+      DEFAULT_GLOBAL_BUDGET
     );
 
     // Re-resolve budget carefully from system defaults if config lookup fails

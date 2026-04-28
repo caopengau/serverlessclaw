@@ -299,6 +299,8 @@ export class StreamingExecutor extends BaseExecutor {
         approvedToolCalls
       );
 
+      usage.toolCallCount += toolResult.toolCallCount;
+
       if (attachments.length > attachmentsBefore) {
         const newAttachments = attachments.slice(attachmentsBefore);
         if (emitter) {
@@ -381,6 +383,7 @@ export class StreamingExecutor extends BaseExecutor {
         prompt_tokens: usage.totalInputTokens,
         completion_tokens: usage.totalOutputTokens,
         total_tokens: usage.total_tokens,
+        tool_calls: usage.toolCallCount,
       },
     } as MessageChunk;
   }

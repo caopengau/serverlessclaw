@@ -102,7 +102,14 @@ export class TokenTracker {
     try {
       await Promise.all(
         items.map((item) =>
-          docClient.send(new PutCommand({ TableName: getTableName(), Item: item }))
+          docClient.send(
+            new PutCommand({
+              TableName: getTableName(),
+              Item: item,
+              ConditionExpression: 'attribute_not_exists(userId) AND attribute_not_exists(#ts)',
+              ExpressionAttributeNames: { '#ts': 'timestamp' },
+            })
+          )
         )
       );
     } catch (e) {

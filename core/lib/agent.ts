@@ -509,6 +509,8 @@ export class Agent {
     let fullContent = '';
     let fullThought = '';
 
+    let totalToolCalls = 0;
+
     try {
       const {
         activeModel: resolvedModel,
@@ -608,6 +610,7 @@ export class Agent {
         if (chunk.usage) {
           totalInputTokens += chunk.usage.prompt_tokens;
           totalOutputTokens += chunk.usage.completion_tokens;
+          if (chunk.usage.tool_calls) totalToolCalls += chunk.usage.tool_calls;
         }
         yield chunk;
       }
@@ -620,7 +623,7 @@ export class Agent {
           activeModel: finalModel ?? 'unknown',
           inputTokens: totalInputTokens,
           outputTokens: totalOutputTokens,
-          toolCalls: 0,
+          toolCalls: totalToolCalls,
           durationMs: Date.now() - startTime,
           success: true,
           paused: false,

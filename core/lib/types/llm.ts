@@ -109,6 +109,7 @@ export interface Message {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens?: number;
+    tool_calls?: number;
   };
   /**
    * Optional name of the model that generated this message.
@@ -167,6 +168,7 @@ export function createMessage(params: {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens?: number;
+    tool_calls?: number;
   };
   modelName?: string;
   options?: Array<{
@@ -349,6 +351,7 @@ export interface MessageChunk {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens?: number;
+    tool_calls?: number;
   };
   /**
    * Optional attachments (images, files) during streaming.

@@ -167,7 +167,8 @@ export class TokenBudgetEnforcer {
     sessionId: string,
     promptTokens: number,
     completionTokens: number,
-    agentId?: string
+    agentId?: string,
+    workspaceId?: string
   ): Promise<BudgetCheckResult> {
     await this.ensureInitialized();
 
@@ -209,10 +210,17 @@ export class TokenBudgetEnforcer {
           `$${sessionCostUsd.toFixed(4)} / $${this.config.maxSessionCostUsd.toFixed(2)}`
       );
       if (this.metricsCollector && agentId) {
-        this.metricsCollector.recordTaskCompletion(agentId, false, 0, 0, {
-          reason: 'session_budget_exhausted',
-          cost: sessionCostUsd,
-        });
+        this.metricsCollector.recordTaskCompletion(
+          agentId,
+          false,
+          0,
+          0,
+          {
+            reason: 'session_budget_exhausted',
+            cost: sessionCostUsd,
+          },
+          workspaceId
+        );
       }
       return {
         allowed: false,
@@ -230,10 +238,17 @@ export class TokenBudgetEnforcer {
           `$${estimatedCostUsd.toFixed(4)} / $${this.config.maxAgentCostUsd.toFixed(2)}`
       );
       if (this.metricsCollector && agentId) {
-        this.metricsCollector.recordTaskCompletion(agentId, false, 0, 0, {
-          reason: 'agent_budget_exhausted',
-          cost: estimatedCostUsd,
-        });
+        this.metricsCollector.recordTaskCompletion(
+          agentId,
+          false,
+          0,
+          0,
+          {
+            reason: 'agent_budget_exhausted',
+            cost: estimatedCostUsd,
+          },
+          workspaceId
+        );
       }
       return {
         allowed: false,

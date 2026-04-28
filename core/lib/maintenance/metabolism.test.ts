@@ -39,6 +39,24 @@ vi.mock('../mcp/mcp-bridge', () => ({
   },
 }));
 
+const mockS3Send = vi.fn();
+vi.mock('@aws-sdk/client-s3', () => ({
+  S3Client: class {
+    send = mockS3Send;
+  },
+  ListObjectsV2Command: class {
+    constructor(public input: any) {}
+  },
+  DeleteObjectsCommand: class {
+    constructor(public input: any) {}
+  },
+}));
+
+vi.mock('../config/config-defaults', () => ({
+  getConfigValue: vi.fn().mockReturnValue(30),
+  CONFIG_DEFAULTS: {},
+}));
+
 vi.mock('../logger', () => ({
   logger: {
     info: vi.fn(),
@@ -46,6 +64,11 @@ vi.mock('../logger', () => ({
     warn: vi.fn(),
     debug: vi.fn(),
   },
+}));
+
+vi.mock('../utils/resource-helpers', () => ({
+  getStagingBucketName: vi.fn().mockReturnValue('real-staging-bucket'),
+  getKnowledgeBucketName: vi.fn().mockReturnValue('real-knowledge-bucket'),
 }));
 
 describe('MetabolismService', () => {
@@ -82,6 +105,24 @@ describe('MetabolismService', () => {
       expect(findings.some((f) => f.actual.includes('Pruned 5'))).toBe(true);
       expect(findings.some((f) => f.actual.includes('Metabolized memory state'))).toBe(true);
       expect(findings.some((f) => f.actual.includes('Pruned 2 stale feature flags'))).toBe(true);
+    });
+
+    it('should reclaim S3 staging objects', async () => {
+      mockS3Send.mockResolvedValueOnce({
+        Contents: [
+          { Key: 'old-file', LastModified: new Date(Date.now() - 40 * 24 * 3600 * 1000) },
+          { Key: 'new-file', LastModified: new Date() },
+        ],
+      });
+      mockS3Send.mockResolvedValueOnce({}); // Delete response
+
+      const findings = await MetabolismService.runMetabolismAudit(mockMemory, {
+        repair: true,
+        workspaceId: 'ws-1',
+      });
+
+      expect(mockS3Send).toHaveBeenCalled();
+      expect(findings.some((f) => f.actual.includes('Reclaimed 1 stale objects'))).toBe(true);
     });
 
     it('should fallback to native audit if MCP tools are missing', async () => {

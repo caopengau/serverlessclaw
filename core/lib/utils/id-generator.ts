@@ -1,3 +1,5 @@
+import { randomBytes, randomUUID } from 'node:crypto';
+
 /**
  * @module IdGenerator
  * @description Unified ID generation utilities with consistent entropy and collision handling.
@@ -13,7 +15,7 @@ const FNV_1A_OFFSET_32 = 0x811c9dc5;
  * @returns Unique session ID
  */
 export function generateSessionId(): string {
-  return `session_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  return `session_${Date.now()}_${randomBytes(4).toString('hex')}`;
 }
 
 /**
@@ -22,7 +24,7 @@ export function generateSessionId(): string {
  * @returns Unique workspace ID
  */
 export function generateWorkspaceId(): string {
-  return `ws-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  return `ws-${Date.now()}-${randomBytes(3).toString('hex')}`;
 }
 
 /**
@@ -30,7 +32,7 @@ export function generateWorkspaceId(): string {
  * @returns UUID-formatted collaboration ID
  */
 export function generateCollaborationId(): string {
-  return `${generateHex(8)}-${generateHex(4)}-4${generateHex(3)}-${generateHex(4)}-${generateHex(12)}`;
+  return randomUUID();
 }
 
 /**
@@ -39,7 +41,16 @@ export function generateCollaborationId(): string {
  * @returns Unique gap ID
  */
 export function generateGapId(): string {
-  return `gap_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  return `gap_${Date.now()}_${randomBytes(4).toString('hex')}`;
+}
+
+/**
+ * Generates a message ID with timestamp + entropy.
+ * Format: msg-<timestamp>-<random>
+ * @returns Unique message ID
+ */
+export function generateMessageId(type: string = 'assistant'): string {
+  return `msg-${type}-${Date.now()}-${randomBytes(4).toString('hex')}`;
 }
 
 /**
@@ -49,7 +60,7 @@ export function generateGapId(): string {
  * @returns Unique ID with optional prefix
  */
 export function generateId(prefix?: string): string {
-  const base = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+  const base = `${Date.now()}_${randomBytes(4).toString('hex')}`;
   return prefix ? `${prefix}_${base}` : base;
 }
 
@@ -85,13 +96,4 @@ export function sessionIdToSortKey(sessionId: string): number {
     }
   }
   return Number(fnv1aHash(sessionId));
-}
-
-function generateHex(length: number): string {
-  let result = '';
-  const chars = '0123456789abcdef';
-  for (let i = 0; i < length; i++) {
-    result += chars[Math.floor(Math.random() * 16)];
-  }
-  return result;
 }

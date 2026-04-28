@@ -12,6 +12,7 @@ const LOCK_TTL_SECONDS = 300; // 5 minutes for lock timeout (crash recovery)
 const SESSION_TTL_SECONDS = RETENTION.SESSION_METADATA_DAYS * 24 * 60 * 60; // Uses centralized RETENTION config
 
 import { getMemoryTableName } from '../utils/ddb-client';
+import { generateMessageId } from '../utils/id-generator';
 
 // Default client for backward compatibility - can be overridden via constructor for testing
 const defaultClient = new DynamoDBClient({});
@@ -259,7 +260,7 @@ export class SessionStateManager {
   ): Promise<void> {
     const key = this.getKey(sessionId);
     const now = Date.now();
-    const messageId = `pending_${now}_${Math.random().toString(36).substring(7)}`;
+    const messageId = generateMessageId('pending');
 
     const pendingMessage: PendingMessage = {
       id: messageId,

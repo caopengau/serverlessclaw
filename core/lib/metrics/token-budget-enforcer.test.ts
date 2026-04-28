@@ -18,7 +18,7 @@ describe('TokenBudgetEnforcer', () => {
 
   describe('recordUsage', () => {
     it('should allow operations within budget', async () => {
-      const result = await enforcer.recordUsage('session1', 1000, 500, 'agent1');
+      const result = await enforcer.recordUsage('session1', 1000, 500, 'agent1', 'ws-1');
       expect(result.allowed).toBe(true);
       expect(result.sessionCostUsd).toBeGreaterThan(0);
       expect(result.sessionTokens).toBe(1500);
