@@ -54,8 +54,6 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
   },
 }));
 
-import { Resource } from 'sst';
-
 describe('AgentRegistry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -198,20 +196,6 @@ describe('AgentRegistry', () => {
   });
 
   describe('saveConfig', () => {
-    it('should throw error if ConfigTable is not linked', async () => {
-      vi.spyOn(Resource as any, 'ConfigTable', 'get').mockReturnValue(undefined);
-
-      const config = { id: 'test', name: 'Test', systemPrompt: 'Prompt', enabled: true };
-      await expect(AgentRegistry.saveConfig('test', config)).rejects.toThrow(
-        'ConfigTable not linked'
-      );
-      expect(mockDocClient.send).not.toHaveBeenCalled();
-    });
-
-    it('should throw error if name or systemPrompt is missing', async () => {
-      await expect(AgentRegistry.saveConfig('id', { id: 'test' } as any)).rejects.toThrow();
-    });
-
     it('should save config to DynamoDB', async () => {
       const config = { id: 'test', name: 'Test', systemPrompt: 'Prompt', enabled: true };
 

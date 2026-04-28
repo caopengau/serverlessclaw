@@ -1,28 +1,53 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// Mock Tracer functions
+const { mockAddStep, mockStartTrace, mockEndTrace } = vi.hoisted(() => ({
+  mockAddStep: vi.fn(),
+  mockStartTrace: vi.fn().mockResolvedValue('test-trace-id'),
+  mockEndTrace: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('./index', () => {
+  const mockTracer = {
+    getTraceId: () => 'test-trace-id',
+    getNodeId: () => 'root',
+    getParentId: () => undefined,
+    startTrace: mockStartTrace,
+    addStep: mockAddStep,
+    endTrace: mockEndTrace,
+    failTrace: vi.fn(),
+    detectDrift: vi.fn(),
+  };
+  return {
+    ClawTracer: vi.fn().mockImplementation(function () {
+      return mockTracer;
+    }),
+  };
+});
+
+vi.mock('../agent/tracer-init', () => {
+  const mockTracer = {
+    getTraceId: () => 'test-trace-id',
+    getNodeId: () => 'root',
+    getParentId: () => undefined,
+    startTrace: mockStartTrace,
+    addStep: mockAddStep,
+    endTrace: mockEndTrace,
+    failTrace: vi.fn(),
+    detectDrift: vi.fn(),
+  };
+  return {
+    initializeTracer: vi.fn().mockResolvedValue({
+      tracer: mockTracer,
+      traceId: 'test-trace-id',
+      baseUserId: 'user-1',
+    }),
+  };
+});
+
 import { Agent } from '../agent';
 import { IMemory, IProvider, MessageRole, ReasoningProfile } from '../types/index';
 import { TRACE_TYPES } from '../constants';
-
-// Mock Tracer functions
-const mockAddStep = vi.fn();
-const mockStartTrace = vi.fn().mockResolvedValue('test-trace-id');
-const mockEndTrace = vi.fn().mockResolvedValue(undefined);
-
-vi.mock('../tracer', () => {
-  return {
-    ClawTracer: class {
-      constructor() {}
-      getTraceId = () => 'test-trace-id';
-      getNodeId = () => 'root';
-      getParentId = () => undefined;
-      startTrace = mockStartTrace;
-      addStep = mockAddStep;
-      endTrace = mockEndTrace;
-      failTrace = vi.fn();
-      detectDrift = vi.fn();
-    },
-  };
-});
 
 describe('Tracing Metadata Verification', () => {
   let mockMemory: IMemory;
@@ -68,9 +93,15 @@ describe('Tracing Metadata Verification', () => {
       provider: 'openai',
     });
 
-    await agent.process('user-1', 'hello');
+    try {
+      await agent.process('user-1', 'hello');
+    } catch (e) {
+      console.error('agent.process failed:', e);
+      throw e;
+    }
 
     // Verify LLM_CALL step
+    console.log('mockAddStep calls:', mockAddStep.mock.calls.length);
     expect(mockAddStep).toHaveBeenCalledWith(
       expect.objectContaining({
         type: TRACE_TYPES.LLM_CALL,

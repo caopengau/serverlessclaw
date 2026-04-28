@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, act } from '@testing-library/react';
 import { PresenceProvider, usePresence } from './PresenceProvider';
-import { useRealtimeContext } from './RealtimeProvider';
+import { useRealtimeContext, RealtimeContextType } from './RealtimeProvider';
 import { useTenant } from './TenantProvider';
 
 vi.mock('./RealtimeProvider', () => ({
@@ -33,13 +33,26 @@ describe('PresenceProvider', () => {
     vi.clearAllMocks();
     vi.useFakeTimers();
     mockSubscribe.mockReturnValue(mockUnsubscribe);
-    (useRealtimeContext as any).mockReturnValue({
+    vi.mocked(useRealtimeContext).mockReturnValue({
       subscribe: mockSubscribe,
       isLive: true,
       userId: 'user-1',
-    });
-    (useTenant as any).mockReturnValue({
+      isConnected: true,
+      error: null,
+      sessions: [],
+      pendingMessages: [],
+      setPendingMessages: vi.fn(),
+      fetchSessions: vi.fn().mockResolvedValue(undefined),
+    } as unknown as RealtimeContextType);
+    vi.mocked(useTenant).mockReturnValue({
       activeWorkspaceId: 'ws-1',
+      activeOrgId: 'org-1',
+      activeTeamId: null,
+      setActiveWorkspace: vi.fn(),
+      tenantInfo: null,
+      workspaces: [],
+      isLoading: false,
+      refreshWorkspaces: vi.fn().mockResolvedValue(undefined),
     });
   });
 

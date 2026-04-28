@@ -70,7 +70,7 @@ describe('Agents API Route', () => {
       mockGetAllConfigs.mockResolvedValue(configs);
 
       const { GET } = await import('./route');
-      const res = await GET();
+      const res = await GET(new NextRequest('http://localhost/api/agents'));
       const data = await res.json();
 
       expect(res.status).toBe(200);
@@ -81,7 +81,7 @@ describe('Agents API Route', () => {
       mockGetAllConfigs.mockRejectedValue(new Error('DynamoDB error'));
 
       const { GET } = await import('./route');
-      const res = await GET();
+      const res = await GET(new NextRequest('http://localhost/api/agents'));
       const data = await res.json();
 
       expect(res.status).toBe(500);

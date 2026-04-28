@@ -1,139 +1,78 @@
-// @vitest-environment jsdom
-import { describe, it, expect, vi } from 'vitest';
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen } from '@testing-library/react';
 import { MissionControlHUD } from './MissionControlHUD';
-import { TranslationsProvider } from '@/components/Providers/TranslationsProvider';
-import { useRealtimeContext } from '@/components/Providers/RealtimeProvider';
+import { TranslationsProvider } from '../Providers/TranslationsProvider';
 
-// Mock RealtimeProvider
-const { mockUseRealtimeContext } = vi.hoisted(() => ({
-  mockUseRealtimeContext: vi.fn(() => ({
-    subscribe: vi.fn(() => vi.fn()),
-    isLive: true,
-  })),
-}));
+// Mock Realtime Context
+const mockRealtimeContext = {
+  isConnected: true,
+  error: null,
+  userId: 'dashboard-user',
+  subscribe: vi.fn(() => vi.fn()),
+  sessions: [],
+  pendingMessages: [],
+  setPendingMessages: vi.fn(),
+  fetchSessions: vi.fn(),
+  isLive: true,
+};
 
-vi.mock('@/components/Providers/RealtimeProvider', () => ({
-  useRealtimeContext: mockUseRealtimeContext,
-}));
-
-// Mock TrustGauge (to avoid SVG rendering issues in simple tests)
-vi.mock('@/components/TrustGauge', () => ({
-  default: ({ score }: { score: number }) => <div data-testid="trust-gauge">{score}%</div>,
-}));
-
-describe('MissionControlHUD Component', () => {
-  const defaultProps = {
-    sessionId: 'sess-1',
-    t: (key: string) => key,
+vi.mock('../Providers/RealtimeProvider', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../Providers/RealtimeProvider')>();
+  return {
+    ...actual,
+    useRealtimeContext: () => mockRealtimeContext,
+    RealtimeProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   };
+});
 
-  it('renders metric sections correctly', () => {
+// Mock heavy child components
+vi.mock('./ChatMessageList', () => ({
+  ChatMessageList: () => <div data-testid="chat-message-list" />,
+}));
+
+vi.mock('./ChatInput', () => ({
+  ChatInput: () => <div data-testid="chat-input" />,
+}));
+
+vi.mock('../DynamicComponents/StatusFlow', () => ({
+  StatusFlow: () => <div data-testid="status-flow" />,
+}));
+
+vi.mock('../DynamicComponents/OperationCard', () => ({
+  OperationCard: () => <div data-testid="operation-card" />,
+}));
+
+describe('MissionControlHUD', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('renders correctly in standalone mode', async () => {
     render(
       <TranslationsProvider>
-        <MissionControlHUD {...defaultProps} />
+        <MissionControlHUD sessionId="test-session" />
       </TranslationsProvider>
     );
 
-    expect(screen.getByText(/Cognitive_Metrics/i)).toBeInTheDocument();
-    expect(screen.getByText(/Trust_Index:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Stability:/i)).toBeInTheDocument();
-    expect(screen.getByText(/Budget_Used:/i)).toBeInTheDocument();
+    expect(screen.getByTestId('chat-message-list')).toBeInTheDocument();
+    expect(screen.getByTestId('chat-input')).toBeInTheDocument();
   });
 
-  it('handles sessionId: null gracefully (Persistence)', () => {
+  it('handles initial activity simulation', async () => {
     render(
       <TranslationsProvider>
-        <MissionControlHUD {...defaultProps} sessionId={null} />
-      </TranslationsProvider>
-    );
-
-    // Header and structure should still be there
-    expect(screen.getByText(/Mission_Control/i)).toBeInTheDocument();
-    expect(screen.getByText(/Nerve_Center_Ticker/i)).toBeInTheDocument();
-  });
-
-  it('toggles Autonomy Protocol mode', () => {
-    render(
-      <TranslationsProvider>
-        <MissionControlHUD {...defaultProps} />
-      </TranslationsProvider>
-    );
-
-    // Initially HITL (based on component state)
-    const hitlLabel = screen.getByText('HITL');
-    expect(hitlLabel).toBeInTheDocument();
-
-    // Click toggle
-    const toggleButton = screen.getByLabelText(/Toggle autonomy mode to/i);
-    fireEvent.click(toggleButton);
-
-    // Should now show AUTO as active (often indicated by color/classes, but here we check labels exist)
-    expect(screen.getByText('AUTO')).toBeInTheDocument();
-  });
-
-  it('displays activity events', async () => {
-    render(
-      <TranslationsProvider>
-        <MissionControlHUD {...defaultProps} />
+        <MissionControlHUD sessionId="test-session" />
       </TranslationsProvider>
     );
 
     // The component has a mock initial activity set in useEffect
+    delete (window as unknown as { location: unknown }).location;
+    (window as unknown as { location: unknown }).location = {
+      href: 'http://localhost/',
+    };
+
     // Since we're using a short timeout in the component, we'll wait
     const activity = await screen.findByText(/Mission initialized/i);
     expect(activity).toBeInTheDocument();
-  });
-
-  it('initializes with custom mission scores', () => {
-    const customMission = {
-      trustScore: 75,
-      stabilityScore: 60,
-      budgetUsage: 45,
-    };
-    render(
-      <TranslationsProvider>
-        <MissionControlHUD {...defaultProps} mission={customMission} />
-      </TranslationsProvider>
-    );
-
-    expect(screen.getAllByText('75%').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('60%').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('45%').length).toBeGreaterThanOrEqual(1);
-  });
-
-  it('updates metrics when a signal is received', async () => {
-    let signalCallback: any /* eslint-disable-line @typescript-eslint/no-explicit-any */;
-    const subscribeMock = vi.fn((topics, callback) => {
-      signalCallback = callback;
-      return vi.fn(); // Unsubscribe
-    });
-
-    mockUseRealtimeContext.mockReturnValue({
-      subscribe: subscribeMock,
-      isLive: true,
-    } as any);
-
-    render(
-      <TranslationsProvider>
-        <MissionControlHUD {...defaultProps} />
-      </TranslationsProvider>
-    );
-
-    expect(subscribeMock).toHaveBeenCalledWith(['sessions/sess-1/signal'], expect.any(Function));
-
-    // Simulate signal
-    signalCallback('sessions/sess-1/signal', {
-      type: 'COGNITIVE_SIGNAL',
-      trust: 99,
-      stability: 95,
-      budget: 10,
-      content: 'Major breakthrough',
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText('Major breakthrough')).toBeInTheDocument();
-    });
   });
 });

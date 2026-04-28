@@ -138,8 +138,9 @@ export class AgentRegistry {
     config: Partial<IAgentConfig>,
     options?: { workspaceId?: string }
   ): Promise<void> {
-    // Mandatory fields check relaxed to allow partial updates (e.g., disabling an agent).
-    // Higher-level validation should ensure data integrity for full creation.
+    if (!config.name || !config.systemPrompt) {
+      throw new Error('Agent name and systemPrompt are required');
+    }
     const { hashString } = await import('../utils/crypto');
     const enriched = {
       ...config,
@@ -148,6 +149,7 @@ export class AgentRegistry {
     };
     await ConfigManager.atomicUpdateMapEntity(DYNAMO_KEYS.AGENTS_CONFIG, agentId, enriched, {
       increments: { version: 1 },
+      workspaceId: options?.workspaceId,
     });
 
     try {
@@ -160,6 +162,10 @@ export class AgentRegistry {
     } catch (e) {
       logger.error('Topology refresh failed:', e);
     }
+  }
+
+  static async deleteConfig(agentId: string, options?: { workspaceId?: string }): Promise<void> {
+    await ConfigManager.deleteConfig(DYNAMO_KEYS.AGENTS_CONFIG, options);
   }
 
   /**
@@ -190,7 +196,9 @@ export class AgentRegistry {
    * @deprecated Use ConfigManager directly.
    */
   static async getInfraConfig<T>(options?: { workspaceId?: string }): Promise<T | undefined> {
-    return (await ConfigManager.getRawConfig(DYNAMO_KEYS.INFRA_CONFIG, options)) as T | undefined;
+    const config = await ConfigManager.getRawConfig(DYNAMO_KEYS.INFRA_CONFIG, options);
+    if (config === undefined) return undefined;
+    return (Array.isArray(config) ? config : []) as unknown as T;
   }
 
   /**

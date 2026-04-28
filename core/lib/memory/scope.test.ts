@@ -9,20 +9,41 @@ import {
   AgentCategory,
 } from '../types/index';
 
-// Mock Tracer to avoid SST link errors in tests
-vi.mock('../tracer', () => {
+vi.mock('../../tracer', () => {
+  const mockTracer = {
+    getTraceId: vi.fn().mockReturnValue('mock-trace-id'),
+    getNodeId: vi.fn().mockReturnValue('mock-node-id'),
+    getParentId: vi.fn().mockReturnValue('mock-parent-id'),
+    startTrace: vi.fn().mockResolvedValue('mock-trace-id'),
+    addStep: vi.fn().mockResolvedValue(undefined),
+    endTrace: vi.fn().mockResolvedValue(undefined),
+    failTrace: vi.fn().mockResolvedValue(undefined),
+    detectDrift: vi.fn().mockResolvedValue(undefined),
+  };
   return {
-    ClawTracer: class {
-      constructor() {}
-      getTraceId = vi.fn().mockReturnValue('mock-trace-id');
-      getNodeId = vi.fn().mockReturnValue('mock-node-id');
-      getParentId = vi.fn().mockReturnValue('mock-parent-id');
-      startTrace = vi.fn().mockResolvedValue('mock-trace-id');
-      addStep = vi.fn().mockResolvedValue(undefined);
-      endTrace = vi.fn().mockResolvedValue(undefined);
-      failTrace = vi.fn().mockResolvedValue(undefined);
-      detectDrift = vi.fn().mockResolvedValue(undefined);
-    },
+    ClawTracer: vi.fn().mockImplementation(function () {
+      return mockTracer;
+    }),
+  };
+});
+
+vi.mock('../agent/tracer-init', () => {
+  const mockTracer = {
+    getTraceId: vi.fn().mockReturnValue('mock-trace-id'),
+    getNodeId: vi.fn().mockReturnValue('mock-node-id'),
+    getParentId: vi.fn().mockReturnValue('mock-parent-id'),
+    startTrace: vi.fn().mockResolvedValue('mock-trace-id'),
+    addStep: vi.fn().mockResolvedValue(undefined),
+    endTrace: vi.fn().mockResolvedValue(undefined),
+    failTrace: vi.fn().mockResolvedValue(undefined),
+    detectDrift: vi.fn().mockResolvedValue(undefined),
+  };
+  return {
+    initializeTracer: vi.fn().mockImplementation(async (userId) => ({
+      tracer: mockTracer,
+      traceId: 'mock-trace-id',
+      baseUserId: userId.replace('CONV#', '').split('#')[0],
+    })),
   };
 });
 

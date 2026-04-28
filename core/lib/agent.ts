@@ -1,42 +1,68 @@
-import { IMemory, IProvider, ITool, IAgentConfig, Attachment, MessageChunk } from './types/index';
+import { IMemory, IProvider, ITool, Attachment, MessageChunk } from './types/index';
+import { IAgentConfig } from './types/agent';
+import { AgentExecutor } from './agent/executor';
 import { AgentProcessOptions } from './agent/options';
+import { handleProcess } from './agent/handlers/process';
+import { handleStream } from './agent/handlers/stream';
 import { AgentEmitter } from './agent/emitter';
-import { validateAgentConfig } from './agent/validator';
-import { AGENT_SYSTEM_IDS, COMMUNICATION_MODES } from './constants/agent';
 
-const DEFAULT_CONFIG: Partial<IAgentConfig> = {
-  id: AGENT_SYSTEM_IDS.UNKNOWN,
-  name: AGENT_SYSTEM_IDS.SUPERCLAW,
-  maxIterations: 10,
-  defaultCommunicationMode: COMMUNICATION_MODES.TEXT,
-};
-
-// Re-export validation for backward compatibility and tests
-export { validateAgentConfig };
+export * from './agent/options';
+export * from './agent/validator';
+export * from './agent/executor';
 
 /**
- * Main Agent Class
- * Refactored to delegate complex processing to specialized handlers.
+ * Core Agent class responsible for orchestrating memory, LLM providers, and tool execution.
  */
 export class Agent {
-  public memory: IMemory;
-  public provider: IProvider;
-  public tools: ITool[];
-  public config?: IAgentConfig;
-  public emitter: AgentEmitter;
+  public readonly executor: AgentExecutor;
+  public readonly emitter: AgentEmitter;
 
-  constructor(memory: IMemory, provider: IProvider, tools: ITool[], config?: IAgentConfig) {
-    this.memory = memory;
-    this.provider = provider;
-    this.tools = tools;
-    this.config = config ?? (DEFAULT_CONFIG as IAgentConfig);
-    this.emitter = new AgentEmitter(this.config);
+  /**
+   * Initializes the Agent with its required subsystems.
+   *
+   * @param memory - Memory provider for history and long-term storage.
+   * @param provider - LLM provider for intelligence.
+   * @param tools - Array of tools available to the agent.
+   * @param config - Agent identity and behavior configuration.
+   */
+  constructor(
+    public readonly memory: IMemory,
+    public readonly provider: IProvider,
+    public readonly tools: ITool[],
+    public readonly config: IAgentConfig
+  ) {
+    this.emitter = new AgentEmitter();
+    this.executor = new AgentExecutor(
+      provider,
+      tools,
+      config.id,
+      config.name,
+      config.systemPrompt,
+      null, // Initial summary is null
+      undefined, // Default context limit
+      config
+    );
   }
 
   /**
-   * Returns the agent's configuration.
+   * Returns the agent's unique identifier.
    */
-  public getConfig(): IAgentConfig | undefined {
+  get id(): string {
+    return this.config.id;
+  }
+
+  /**
+   * Returns the full agent configuration.
+   * @deprecated Use configuration property directly.
+   */
+  getConfig(): IAgentConfig {
+    return this.config;
+  }
+
+  /**
+   * Returns the full agent configuration.
+   */
+  get configuration(): IAgentConfig {
     return this.config;
   }
 
@@ -53,19 +79,17 @@ export class Agent {
     attachments?: Attachment[];
     thought?: string;
   }> {
-    const { handleProcess } = await import('./agent/handlers/process');
     return handleProcess(this, userId, userText, options);
   }
 
   /**
-   * Streaming version of process().
+   * Processes a user message and returns a stream of response chunks.
    */
-  async *stream(
+  stream(
     userId: string,
     userText: string,
     options: AgentProcessOptions = {}
   ): AsyncGenerator<MessageChunk> {
-    const { handleStream } = await import('./agent/handlers/stream');
-    yield* handleStream(this, userId, userText, options);
+    return handleStream(this, userId, userText, options);
   }
 }

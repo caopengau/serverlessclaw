@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Shield,
   Activity,
   Wallet,
   Zap,
@@ -19,7 +18,6 @@ import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import TrustGauge from '@/components/TrustGauge';
 import { useRealtimeContext, RealtimeMessage } from '@/components/Providers/RealtimeProvider';
-import { TranslationKey } from '@/components/Providers/TranslationsProvider';
 import { MissionMetadata } from '@claw/core/lib/types/memory';
 
 interface CognitiveSignalPayload {
@@ -82,11 +80,15 @@ export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId,
       }
     );
 
+    return () => unsubscribe();
+  }, [sessionId, subscribe, mission?.trustScore, mission?.stabilityScore, mission?.budgetUsage]);
+
+  useEffect(() => {
     // Mock initial activities if empty
-    if (activities.length === 0) {
-      setTimeout(
-        () =>
-          setActivities([
+    setTimeout(() => {
+      setActivities((prev) => {
+        if (prev.length === 0) {
+          return [
             {
               id: '1',
               timestamp: Date.now() - 10000,
@@ -99,13 +101,12 @@ export const MissionControlHUD: React.FC<MissionControlHUDProps> = ({ sessionId,
               type: 'ALPHA',
               message: 'Analyzing workspace state... context acquired.',
             },
-          ]),
-        0
-      );
-    }
-
-    return () => unsubscribe();
-  }, [sessionId, subscribe, mission?.trustScore, mission?.stabilityScore, mission?.budgetUsage]);
+          ];
+        }
+        return prev;
+      });
+    }, 0);
+  }, []); // Only on mount
 
   const toggleAutonomy = () => {
     setAutonomyMode((prev) => (prev === 'HITL' ? 'AUTO' : 'HITL'));

@@ -90,7 +90,9 @@ export const setSystemConfig = {
     const { key, value } = args as { key: string; value: string };
     try {
       const { ConfigManager } = await import('../../lib/registry/config');
-      await ConfigManager.saveRawConfig(key, value);
+      await ConfigManager.saveRawConfig(key, value, {
+        workspaceId: args.workspaceId as string | undefined,
+      });
       return `Successfully updated system configuration: ${key}`;
     } catch (e: unknown) {
       return `Failed to update configuration: ${formatErrorMessage(e)}`;

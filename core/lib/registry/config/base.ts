@@ -151,7 +151,10 @@ export class ConfigManagerBase {
   /**
    * Deletes a configuration value from the ConfigTable.
    */
-  public static async deleteConfig(key: string): Promise<void> {
+  public static async deleteConfig(
+    key: string,
+    options?: { workspaceId?: string; orgId?: string }
+  ): Promise<void> {
     const tableName = this._getTableName();
     if (!tableName) {
       logger.warn(`ConfigTable not linked. Skipping delete for ${key}`);
@@ -159,19 +162,20 @@ export class ConfigManagerBase {
     }
 
     const { emitMetrics, METRICS } = await import('../../metrics/metrics');
-    emitMetrics([METRICS.configAccessed(key, 'delete')]).catch(() => {});
+    emitMetrics([METRICS.configAccessed(key, 'delete', options)]).catch(() => {});
 
-    this.configCache.delete(key);
+    const effectiveKey = this.getEffectiveKey(key, options);
+    this.configCache.delete(effectiveKey);
 
     try {
       await getDocClient().send(
         new DeleteCommand({
           TableName: tableName,
-          Key: { key },
+          Key: { key: effectiveKey },
         })
       );
     } catch (e) {
-      logger.error(`Failed to delete ${key} from DDB:`, e);
+      logger.error(`Failed to delete ${effectiveKey} from DDB:`, e);
       throw e;
     }
   }

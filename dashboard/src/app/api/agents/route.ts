@@ -22,10 +22,14 @@ const docClient = DynamoDBDocumentClient.from(client);
  *
  * @returns A promise that resolves to a NextResponse containing the agents configurations.
  */
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: Request): Promise<NextResponse> {
   try {
+    const { searchParams } = new URL(request.url);
+    const workspaceId =
+      searchParams.get('workspaceId') || request.headers.get('x-workspace-id') || undefined;
+
     const { AgentRegistry } = await import('@claw/core/lib/registry');
-    const configs = await AgentRegistry.getAllConfigs();
+    const configs = await AgentRegistry.getAllConfigs({ workspaceId: workspaceId ?? undefined });
     return NextResponse.json({ agents: configs });
   } catch (error) {
     logger.error('Failed to fetch agents:', error);
@@ -41,13 +45,12 @@ export async function GET(): Promise<NextResponse> {
 
 /**
  * POST handler for agents configuration.
- * Updates the global agents configuration in DynamoDB.
- *
- * @param request - The incoming NextRequest containing the new agents configuration.
- * @returns A promise that resolves to a NextResponse indicating success or failure.
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
+    const { searchParams } = new URL(request.url);
+    const workspaceId =
+      searchParams.get('workspaceId') || request.headers.get('x-workspace-id') || undefined;
     const body = await request.json();
     let agentsToSave: Record<string, Partial<IAgentConfig>> = {};
 
@@ -77,7 +80,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     for (const [agentId, config] of Object.entries(agentsToSave)) {
-      await AgentRegistry.saveConfig(agentId, config);
+      await AgentRegistry.saveConfig(agentId, config, { workspaceId: workspaceId ?? undefined });
     }
 
     return NextResponse.json({ success: true });
@@ -98,6 +101,9 @@ export async function POST(request: Request): Promise<NextResponse> {
  */
 export async function PATCH(request: Request): Promise<NextResponse> {
   try {
+    const { searchParams } = new URL(request.url);
+    const workspaceId =
+      searchParams.get('workspaceId') || request.headers.get('x-workspace-id') || undefined;
     const body = await request.json();
     const { agentId, config } = body as { agentId: string; config: Partial<IAgentConfig> };
 
@@ -125,7 +131,7 @@ export async function PATCH(request: Request): Promise<NextResponse> {
       );
     }
 
-    await AgentRegistry.saveConfig(agentId, config);
+    await AgentRegistry.saveConfig(agentId, config, { workspaceId: workspaceId ?? undefined });
 
     return NextResponse.json({ success: true, agentId });
   } catch (error) {
@@ -145,15 +151,9 @@ export async function PATCH(request: Request): Promise<NextResponse> {
  */
 export async function DELETE(request: Request): Promise<NextResponse> {
   try {
-    const tableName = getConfigTableName();
-    if (!tableName) {
-      return NextResponse.json(
-        { error: 'ConfigTable name is missing from resources.' },
-        { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
-      );
-    }
-
     const { searchParams } = new URL(request.url);
+    const workspaceId =
+      searchParams.get('workspaceId') || request.headers.get('x-workspace-id') || undefined;
     const agentId = searchParams.get('agentId');
 
     if (!agentId) {
@@ -170,23 +170,16 @@ export async function DELETE(request: Request): Promise<NextResponse> {
       );
     }
 
-    // Remove agent from agents_config
-    await docClient.send(
-      new UpdateCommand({
-        TableName: tableName,
-        Key: { key: DYNAMO_KEYS.AGENTS_CONFIG ?? 'agents_config' },
-        UpdateExpression: 'REMOVE #agents.#id',
-        ExpressionAttributeNames: { '#agents': 'value', '#id': agentId },
-      })
-    );
+    const { ConfigManager } = await import('@claw/core/lib/registry/config');
+    const { DYNAMO_KEYS } = await import('@claw/core/lib/constants');
 
-    // Remove tool overrides
-    await docClient.send(
-      new DeleteCommand({
-        TableName: tableName,
-        Key: { key: `${agentId}_tools` },
-      })
-    );
+    // Remove agent from agents_config atomically and scoped
+    await ConfigManager.atomicRemoveFromMap(DYNAMO_KEYS.AGENTS_CONFIG, agentId, [], {
+      workspaceId: workspaceId ?? undefined,
+    });
+
+    // Remove tool overrides scoped
+    await ConfigManager.deleteConfig(`${agentId}_tools`, { workspaceId: workspaceId ?? undefined });
 
     return NextResponse.json({ success: true, agentId });
   } catch (error) {

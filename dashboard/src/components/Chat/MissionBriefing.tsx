@@ -30,7 +30,6 @@ export const MissionBriefing: React.FC<MissionBriefingProps> = ({
   sessionId,
   collaborators,
   mission: sessionMission,
-  t,
 }) => {
   const { members, myPresence } = usePresence();
 
@@ -88,7 +87,7 @@ export const MissionBriefing: React.FC<MissionBriefingProps> = ({
           </Typography>
 
           <div className="space-y-2">
-            {allCollaborators.map((member, index) => (
+            {allCollaborators.map((member) => (
               <div
                 key={member.memberId}
                 className="flex items-center justify-between p-2 rounded-lg hover:bg-card/40 transition-colors border border-transparent hover:border-border/40 group"

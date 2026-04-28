@@ -61,9 +61,7 @@ describe('DynamicComponentRegistry', () => {
 
   it('renders error message for unsupported component types', () => {
     render(
-      <DynamicComponentRegistry
-        component={{ componentType: 'unknown' as any, props: {}, id: '7' }}
-      />
+      <DynamicComponentRegistry component={{ componentType: 'unknown', props: {}, id: '7' }} />
     );
     expect(screen.getByText(/UNSUPPORTED DYNAMIC COMPONENT/i)).toBeInTheDocument();
   });

@@ -29,12 +29,15 @@ vi.mock('../../lib/registry/index', () => ({
     getAllConfigs: vi.fn().mockResolvedValue({}),
     saveConfig: vi.fn().mockResolvedValue(undefined),
     saveRawConfig: vi.fn().mockResolvedValue(undefined),
+    deleteConfig: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
 vi.mock('../../lib/registry/config', () => ({
   ConfigManager: {
     saveRawConfig: vi.fn().mockResolvedValue(undefined),
+    atomicRemoveFromMap: vi.fn().mockResolvedValue(undefined),
+    deleteConfig: vi.fn().mockResolvedValue(undefined),
   },
   defaultDocClient: {
     send: vi.fn().mockResolvedValue({}),
@@ -203,7 +206,11 @@ Deploy the entire application to AWS using SST and verify all resources are acti
       });
 
       expect(result).toContain('Successfully updated tools for agent superclaw');
-      expect(ConfigManager.saveRawConfig).toHaveBeenCalledWith('superclaw_tools', ['tool1']);
+      expect(ConfigManager.saveRawConfig).toHaveBeenCalledWith(
+        'superclaw_tools',
+        ['tool1'],
+        expect.any(Object)
+      );
     });
   });
 
@@ -215,7 +222,11 @@ Deploy the entire application to AWS using SST and verify all resources are acti
         value: '{"foo": "bar"}',
       });
 
-      expect(ConfigManager.saveRawConfig).toHaveBeenCalledWith('test_key', '{"foo": "bar"}');
+      expect(ConfigManager.saveRawConfig).toHaveBeenCalledWith(
+        'test_key',
+        '{"foo": "bar"}',
+        expect.any(Object)
+      );
     });
   });
 
@@ -241,15 +252,16 @@ Deploy the entire application to AWS using SST and verify all resources are acti
           name: 'My Agent',
           systemPrompt: 'You are a helpful assistant.',
           isBackbone: false,
-        })
+        }),
+        expect.any(Object)
       );
     });
   });
 
   describe('deleteAgent', () => {
     it('should delete a non-backbone agent', async () => {
-      const { defaultDocClient } = await import('../../lib/registry/config');
-      vi.mocked(defaultDocClient.send).mockResolvedValue({} as any);
+      const { AgentRegistry } = await import('../../lib/registry/index');
+      vi.mocked(AgentRegistry.deleteConfig).mockResolvedValueOnce(undefined);
 
       const result = await deleteAgent.execute({ agentId: 'my-custom-agent' });
       expect(result).toContain("Successfully deleted agent 'my-custom-agent'");

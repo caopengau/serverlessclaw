@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import TenantSwitcher from './TenantSwitcher';
-import { useTenant } from '@/components/Providers/TenantProvider';
+import { useTenant, TenantContextType } from '@/components/Providers/TenantProvider';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 vi.mock('@/components/Providers/TenantProvider', () => ({
@@ -22,12 +22,15 @@ describe('TenantSwitcher', () => {
     { id: 'ws-2', name: 'Workspace 2' },
   ];
 
-  const defaultTenantContext = {
+  const defaultTenantContext: TenantContextType = {
     activeWorkspaceId: null,
+    activeOrgId: 'org-1',
+    activeTeamId: null,
     setActiveWorkspace: vi.fn(),
     workspaces: mockWorkspaces,
-    tenantInfo: { name: 'Global Hive', orgId: 'org-1' },
+    tenantInfo: { id: 'org-1', name: 'Global Hive', orgId: 'org-1' },
     isLoading: false,
+    refreshWorkspaces: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockPush = vi.fn();
@@ -35,9 +38,13 @@ describe('TenantSwitcher', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useTenant).mockReturnValue(defaultTenantContext as any);
-    vi.mocked(useRouter).mockReturnValue({ push: mockPush } as any);
-    vi.mocked(useSearchParams).mockReturnValue(mockSearchParams as any);
+    vi.mocked(useTenant).mockReturnValue(defaultTenantContext);
+    vi.mocked(useRouter).mockReturnValue({ push: mockPush } as unknown as ReturnType<
+      typeof useRouter
+    >);
+    vi.mocked(useSearchParams).mockReturnValue(
+      mockSearchParams as unknown as ReturnType<typeof useSearchParams>
+    );
     vi.mocked(usePathname).mockReturnValue('/chat');
   });
 
@@ -55,7 +62,7 @@ describe('TenantSwitcher', () => {
 
   it('opens dropdown and switches workspace', () => {
     const setActiveWorkspace = vi.fn();
-    vi.mocked(useTenant).mockReturnValue({ ...defaultTenantContext, setActiveWorkspace } as any);
+    vi.mocked(useTenant).mockReturnValue({ ...defaultTenantContext, setActiveWorkspace });
 
     render(<TenantSwitcher />);
 
@@ -74,7 +81,7 @@ describe('TenantSwitcher', () => {
       ...defaultTenantContext,
       activeWorkspaceId: 'ws-1',
       setActiveWorkspace,
-    } as any);
+    });
 
     render(<TenantSwitcher />);
 
@@ -85,7 +92,7 @@ describe('TenantSwitcher', () => {
   });
 
   it('shows loading state', () => {
-    vi.mocked(useTenant).mockReturnValue({ ...defaultTenantContext, isLoading: true } as any);
+    vi.mocked(useTenant).mockReturnValue({ ...defaultTenantContext, isLoading: true });
     const { container } = render(<TenantSwitcher />);
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
   });
@@ -94,8 +101,8 @@ describe('TenantSwitcher', () => {
     // Current implementation doesn't have a fallback, let's just test that it renders something
     vi.mocked(useTenant).mockReturnValue({
       ...defaultTenantContext,
-      workspaces: [{ id: 'ws-3', name: 'WS3' } as any],
-    } as any);
+      workspaces: [{ id: 'ws-3', name: 'WS3' }],
+    });
     render(<TenantSwitcher />);
     fireEvent.click(screen.getByRole('button'));
     expect(screen.getByText('WS3')).toBeInTheDocument();

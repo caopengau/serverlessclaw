@@ -12,16 +12,20 @@ import { logger } from '../../lib/logger';
  */
 export const listAgents = {
   ...knowledgeSchema.listAgents,
-  execute: async (): Promise<string> => {
+  execute: async (args: Record<string, unknown> = {}): Promise<string> => {
+    const { workspaceId } = args as { workspaceId?: string };
     const { AgentRegistry } = await import('../../lib/registry');
-    const configs = await AgentRegistry.getAllConfigs();
+    const configs = await AgentRegistry.getAllConfigs({ workspaceId });
 
     const summary = Object.values(configs)
       .filter((a) => a.enabled && a.id !== 'superclaw')
       .map((a) => `- [${a.id}] ${a.name}: ${a.description} (Backbone: ${a.isBackbone ?? false})`)
       .join('\n');
 
-    return summary || 'No enabled agents found in the registry.';
+    return (
+      summary ||
+      `No enabled agents found in the registry${workspaceId ? ` for workspace ${workspaceId}` : ''}.`
+    );
   },
 };
 
@@ -44,10 +48,10 @@ export const pulseCheck = {
       };
 
     const { AgentRegistry } = await import('../../lib/registry');
-    const config = await AgentRegistry.getAgentConfig(targetAgentId);
+    const config = await AgentRegistry.getAgentConfig(targetAgentId, { workspaceId });
 
     if (!config || !config.enabled) {
-      return `FAILED: Target agent '${targetAgentId}' is not registered or disabled.`;
+      return `FAILED: Target agent '${targetAgentId}' is not registered or disabled in workspace ${workspaceId ?? 'global'}.`;
     }
 
     const { ClawTracer } = await import('../../lib/tracer');
@@ -109,10 +113,10 @@ export const dispatchTask = {
     }
 
     const { AgentRegistry } = await import('../../lib/registry');
-    const config = await AgentRegistry.getAgentConfig(agentId);
+    const config = await AgentRegistry.getAgentConfig(agentId, { workspaceId });
 
     if (!config || !config.enabled) {
-      return `FAILED: Agent '${agentId}' is not registered or is disabled.`;
+      return `FAILED: Agent '${agentId}' is not registered or is disabled in workspace ${workspaceId ?? 'global'}.`;
     }
 
     const { ClawTracer } = await import('../../lib/tracer');
@@ -237,10 +241,14 @@ export const technicalResearch = {
 export const manageAgentTools = {
   ...knowledgeSchema.manageAgentTools,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { agentId, toolNames } = args as { agentId: string; toolNames: string[] };
+    const { agentId, toolNames, workspaceId } = args as {
+      agentId: string;
+      toolNames: string[];
+      workspaceId?: string;
+    };
     try {
-      await ConfigManager.saveRawConfig(`${agentId}_tools`, toolNames);
-      return `Successfully updated tools for agent ${agentId}: ${toolNames.join(', ')}`;
+      await ConfigManager.saveRawConfig(`${agentId}_tools`, toolNames, { workspaceId });
+      return `Successfully updated tools for agent ${agentId} in workspace ${workspaceId ?? 'global'}: ${toolNames.join(', ')}`;
     } catch {
       return `Failed to update agent tools`;
     }
@@ -253,13 +261,14 @@ export const manageAgentTools = {
 export const createAgent = {
   ...knowledgeSchema.createAgent,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { agentId, name, systemPrompt, provider, model, enabled } = args as {
+    const { agentId, name, systemPrompt, provider, model, enabled, workspaceId } = args as {
       agentId: string;
       name: string;
       systemPrompt: string;
       provider?: string;
       model?: string;
       enabled?: boolean;
+      workspaceId?: string;
     };
 
     if (BACKBONE_REGISTRY[agentId]) {
@@ -268,9 +277,9 @@ export const createAgent = {
 
     try {
       const { AgentRegistry } = await import('../../lib/registry');
-      const existing = await AgentRegistry.getAgentConfig(agentId);
+      const existing = await AgentRegistry.getAgentConfig(agentId, { workspaceId });
       if (existing) {
-        return `FAILED: Agent '${agentId}' already exists. Use manageAgentTools to modify its tools, or deleteAgent first.`;
+        return `FAILED: Agent '${agentId}' already exists in workspace ${workspaceId ?? 'global'}. Use manageAgentTools to modify its tools, or deleteAgent first.`;
       }
 
       const config = {
@@ -287,8 +296,8 @@ export const createAgent = {
         tools: [],
       };
 
-      await AgentRegistry.saveConfig(agentId, config);
-      return `Successfully created agent '${agentId}' (${name}). Agent is ${config.enabled ? 'enabled' : 'disabled'}. Use manageAgentTools to assign tools.`;
+      await AgentRegistry.saveConfig(agentId, config, { workspaceId });
+      return `Successfully created agent '${agentId}' (${name}) in workspace ${workspaceId ?? 'global'}. Agent is ${config.enabled ? 'enabled' : 'disabled'}. Use manageAgentTools to assign tools.`;
     } catch (error) {
       return `Failed to create agent: ${formatErrorMessage(error)}`;
     }
@@ -301,42 +310,24 @@ export const createAgent = {
 export const deleteAgent = {
   ...knowledgeSchema.deleteAgent,
   execute: async (args: Record<string, unknown>): Promise<string> => {
-    const { agentId } = args as { agentId: string };
+    const { agentId, workspaceId } = args as { agentId: string; workspaceId?: string };
 
     if (BACKBONE_REGISTRY[agentId]) {
       return `FAILED: Cannot delete backbone agent '${agentId}'. Backbone agents are protected system components.`;
     }
 
     try {
-      const sst = await import('sst');
-      const { ConfigTable } = sst.Resource as { ConfigTable?: { name: string } };
-      if (!ConfigTable?.name) {
-        return 'FAILED: ConfigTable not linked.';
-      }
-
-      const { defaultDocClient } = await import('../../lib/registry/config');
-      const { UpdateCommand, DeleteCommand } = await import('@aws-sdk/lib-dynamodb');
       const { DYNAMO_KEYS } = await import('../../lib/constants');
 
-      // Remove agent from agents_config
-      await defaultDocClient.send(
-        new UpdateCommand({
-          TableName: ConfigTable.name,
-          Key: { key: DYNAMO_KEYS.AGENTS_CONFIG },
-          UpdateExpression: 'REMOVE #agents.#id',
-          ExpressionAttributeNames: { '#agents': 'value', '#id': agentId },
-        })
-      );
+      // Remove agent from agents_config atomically
+      await ConfigManager.atomicRemoveFromMap(DYNAMO_KEYS.AGENTS_CONFIG, agentId, [], {
+        workspaceId,
+      });
 
       // Remove tool overrides
-      await defaultDocClient.send(
-        new DeleteCommand({
-          TableName: ConfigTable.name,
-          Key: { key: `${agentId}_tools` },
-        })
-      );
+      await ConfigManager.deleteConfig(`${agentId}_tools`, { workspaceId });
 
-      return `Successfully deleted agent '${agentId}' and its tool overrides.`;
+      return `Successfully deleted agent '${agentId}' and its tool overrides from workspace ${workspaceId ?? 'global'}.`;
     } catch (error) {
       return `Failed to delete agent: ${formatErrorMessage(error)}`;
     }
@@ -348,33 +339,23 @@ export const deleteAgent = {
  */
 export const syncAgentRegistry = {
   ...knowledgeSchema.syncAgentRegistry,
-  execute: async (): Promise<string> => {
+  execute: async (args: Record<string, unknown> = {}): Promise<string> => {
+    const { workspaceId } = args as { workspaceId?: string };
     try {
       const { AgentRegistry } = await import('../../lib/registry');
-      const configs = await AgentRegistry.getAllConfigs();
+      const configs = await AgentRegistry.getAllConfigs({ workspaceId });
 
       const { discoverSystemTopology } = await import('../../lib/utils/topology');
       const topology = await discoverSystemTopology();
 
-      const sst = await import('sst');
-      const { ConfigTable } = sst.Resource as { ConfigTable?: { name: string } };
-      if (ConfigTable?.name) {
-        const { PutCommand } = await import('@aws-sdk/lib-dynamodb');
-        const { defaultDocClient } = await import('../../lib/registry/config');
-        const { DYNAMO_KEYS } = await import('../../lib/constants');
-        await defaultDocClient.send(
-          new PutCommand({
-            TableName: ConfigTable.name,
-            Item: { key: DYNAMO_KEYS.SYSTEM_TOPOLOGY, value: topology },
-          })
-        );
-      }
+      const { DYNAMO_KEYS } = await import('../../lib/constants');
+      await ConfigManager.saveRawConfig(DYNAMO_KEYS.SYSTEM_TOPOLOGY, topology, { workspaceId });
 
       const agentNames = Object.values(configs)
         .filter((a) => a.enabled)
         .map((a) => `${a.id} (${a.name})`);
 
-      return `Registry synchronized. ${agentNames.length} active agents: ${agentNames.join(', ')}. Topology refreshed.`;
+      return `Registry synchronized for workspace ${workspaceId ?? 'global'}. ${agentNames.length} active agents: ${agentNames.join(', ')}. Topology refreshed.`;
     } catch (error) {
       return `Failed to sync registry: ${formatErrorMessage(error)}`;
     }

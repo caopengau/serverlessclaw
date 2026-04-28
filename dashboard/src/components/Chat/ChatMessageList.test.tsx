@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { ChatMessageList } from './ChatMessageList';
+import { ChatMessage } from './types';
 
 // Mock Lucide icons
 vi.mock('lucide-react', () => ({
@@ -31,7 +32,7 @@ Object.defineProperty(navigator, 'clipboard', {
 });
 
 describe('ChatMessageList', () => {
-  const mockMessages = [
+  const mockMessages: ChatMessage[] = [
     {
       role: 'user',
       content: 'Hello, world!',
@@ -46,6 +47,7 @@ describe('ChatMessageList', () => {
       tool_calls: [
         {
           id: 'tc-1',
+          type: 'function',
           function: { name: 'get_weather', arguments: '{"city": "Tokyo"}' },
         },
       ],
@@ -57,9 +59,9 @@ describe('ChatMessageList', () => {
   ];
 
   const defaultProps = {
-    messages: mockMessages as any[],
+    messages: mockMessages,
     isLoading: false,
-    scrollRef: { current: null } as any,
+    scrollRef: { current: null } as unknown as React.RefObject<HTMLDivElement>,
     onOptionClick: vi.fn(),
   };
 
@@ -128,12 +130,12 @@ describe('ChatMessageList', () => {
   });
 
   it('renders various markdown elements', () => {
-    const markdownMsg = {
+    const markdownMsg: ChatMessage = {
       role: 'assistant',
       content:
         '# Title1\n## Title2\n### Title3\n**Strong**\n[Link](https://google.com)\n* Item 1\n* Item 2\n`inline code`',
     };
-    render(<ChatMessageList {...defaultProps} messages={[markdownMsg as any]} />);
+    render(<ChatMessageList {...defaultProps} messages={[markdownMsg]} />);
 
     expect(screen.getByText('Title1')).toBeInTheDocument();
     expect(screen.getByText('Title2')).toBeInTheDocument();
@@ -145,11 +147,11 @@ describe('ChatMessageList', () => {
   });
 
   it('renders code blocks and handles copying', async () => {
-    const codeMsg = {
+    const codeMsg: ChatMessage = {
       role: 'assistant',
       content: '```javascript\nconst x = 1;\n```',
     };
-    render(<ChatMessageList {...defaultProps} messages={[codeMsg as any]} />);
+    render(<ChatMessageList {...defaultProps} messages={[codeMsg]} />);
 
     expect(screen.getByText('const x = 1;')).toBeInTheDocument();
 
@@ -159,14 +161,15 @@ describe('ChatMessageList', () => {
   });
 
   it('renders attachments (image and file)', () => {
-    const attachmentMsg = {
+    const attachmentMsg: ChatMessage = {
       role: 'user',
+      content: '', // ChatMessage content is mandatory
       attachments: [
         { type: 'image', url: 'https://example.com/img.png', name: 'my-image.png' },
         { type: 'file', url: 'https://example.com/doc.pdf', name: 'my-doc.pdf' },
       ],
     };
-    render(<ChatMessageList {...defaultProps} messages={[attachmentMsg as any]} />);
+    render(<ChatMessageList {...defaultProps} messages={[attachmentMsg]} />);
 
     expect(screen.getByAltText('my-image.png')).toBeInTheDocument();
     expect(screen.getByText('my-doc.pdf')).toBeInTheDocument();
@@ -178,11 +181,12 @@ describe('ChatMessageList', () => {
   });
 
   it('shows thinking state for a message', () => {
-    const thinkingMessage = {
+    const thinkingMessage: ChatMessage = {
       role: 'assistant',
+      content: '',
       isThinking: true,
     };
-    render(<ChatMessageList {...defaultProps} messages={[thinkingMessage as any]} />);
+    render(<ChatMessageList {...defaultProps} messages={[thinkingMessage]} />);
     expect(screen.getByText(/Analysing Signal/i)).toBeInTheDocument();
   });
 });

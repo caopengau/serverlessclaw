@@ -3,9 +3,13 @@ import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import OperationCard from './OperationCard';
+import { DynamicComponent } from '../Chat/types';
 
 describe('OperationCard', () => {
-  const defaultProps = {
+  const defaultProps: {
+    component: DynamicComponent;
+    onAction: (id: string, payload?: unknown) => void;
+  } = {
     component: {
       id: '1',
       componentType: 'operation-card',
@@ -23,11 +27,11 @@ describe('OperationCard', () => {
         { id: 'view-report', label: 'View Report', type: 'primary' },
       ],
     },
-    onAction: vi.fn(),
+    onAction: vi.fn() as (id: string, payload?: unknown) => void,
   };
 
   it('renders correctly with all props', () => {
-    render(<OperationCard {...(defaultProps as any)} />);
+    render(<OperationCard component={defaultProps.component} onAction={defaultProps.onAction} />);
     expect(screen.getByText('Security Scan')).toBeInTheDocument();
     expect(screen.getByText('active')).toBeInTheDocument();
     expect(screen.getByText('Vulnerability assessment in progress.')).toBeInTheDocument();
@@ -36,7 +40,7 @@ describe('OperationCard', () => {
   });
 
   it('calls onAction when buttons are clicked', () => {
-    render(<OperationCard {...(defaultProps as any)} />);
+    render(<OperationCard component={defaultProps.component} onAction={defaultProps.onAction} />);
 
     fireEvent.click(screen.getByText('Stop Scan'));
     expect(defaultProps.onAction).toHaveBeenCalledWith('stop', undefined);
@@ -55,7 +59,7 @@ describe('OperationCard', () => {
         },
       },
     };
-    render(<OperationCard {...(minimalProps as any)} />);
+    render(<OperationCard component={minimalProps.component as DynamicComponent} />);
     expect(screen.getByText('Simple Task')).toBeInTheDocument();
     expect(screen.queryByText('active')).not.toBeInTheDocument();
   });

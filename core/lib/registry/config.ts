@@ -38,20 +38,25 @@ export class ConfigManager extends ConfigManagerMap {
   /**
    * Atomically increments a numeric configuration value.
    */
-  public static async incrementConfig(key: string, increment: number = 1): Promise<number> {
+  public static async incrementConfig(
+    key: string,
+    increment: number = 1,
+    options?: { workspaceId?: string; orgId?: string }
+  ): Promise<number> {
     const tableName = this._getTableName();
     if (!tableName) return 0;
 
     const { emitMetrics, METRICS } = await import('../metrics/metrics');
-    emitMetrics([METRICS.configAccessed(key, 'increment')]).catch(() => {});
+    emitMetrics([METRICS.configAccessed(key, 'increment', options)]).catch(() => {});
 
-    this.configCache.delete(key);
+    const effectiveKey = this.getEffectiveKey(key, options);
+    this.configCache.delete(effectiveKey);
 
     try {
       const result = await getDocClient().send(
         new UpdateCommand({
           TableName: tableName,
-          Key: { key },
+          Key: { key: effectiveKey },
           UpdateExpression: 'ADD #val :inc',
           ExpressionAttributeNames: { '#val': 'value' },
           ExpressionAttributeValues: { ':inc': increment },
@@ -60,7 +65,7 @@ export class ConfigManager extends ConfigManagerMap {
       );
       return (result.Attributes?.value as number) ?? 0;
     } catch (e) {
-      logger.warn(`Failed to increment ${key} in DDB:`, e);
+      logger.warn(`Failed to increment ${effectiveKey} in DDB:`, e);
       return 0;
     }
   }

@@ -14,7 +14,7 @@ Based on audit findings and commit history patterns, this document tracks recurr
 // ❌ WRONG (Budget)
 try {
   const exceeded = await checkBudget();
-  return exceeded; 
+  return exceeded;
 } catch {
   return false; // Returns false even on DB failure!
 }

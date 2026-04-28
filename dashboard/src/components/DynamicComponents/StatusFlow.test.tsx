@@ -3,9 +3,13 @@ import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import StatusFlow from './StatusFlow';
+import { DynamicComponent } from '../Chat/types';
 
 describe('StatusFlow', () => {
-  const defaultProps = {
+  const defaultProps: {
+    component: DynamicComponent;
+    onAction: (id: string, payload?: unknown) => void;
+  } = {
     component: {
       id: '1',
       componentType: 'status-flow',
@@ -17,13 +21,13 @@ describe('StatusFlow', () => {
           { id: '3', label: 'Deploy', status: 'pending' },
         ],
       },
-      actions: [{ id: 'cancel', label: 'Cancel Deployment' }],
+      actions: [{ id: 'cancel', label: 'Cancel Deployment', type: 'danger' }],
     },
     onAction: vi.fn(),
   };
 
   it('renders correctly with all step statuses', () => {
-    render(<StatusFlow {...(defaultProps as any)} />);
+    render(<StatusFlow component={defaultProps.component} onAction={defaultProps.onAction} />);
     expect(screen.getByText('Deployment Pipeline')).toBeInTheDocument();
 
     expect(screen.getByText('Build')).toBeInTheDocument();
@@ -44,13 +48,13 @@ describe('StatusFlow', () => {
         },
       },
     };
-    render(<StatusFlow {...(failedProps as any)} />);
+    render(<StatusFlow component={failedProps.component as DynamicComponent} />);
     expect(screen.getByText('Build')).toBeInTheDocument();
     expect(screen.getByText('Build error.')).toBeInTheDocument();
   });
 
   it('calls onAction when footer buttons are clicked', () => {
-    render(<StatusFlow {...(defaultProps as any)} />);
+    render(<StatusFlow component={defaultProps.component} onAction={defaultProps.onAction} />);
     fireEvent.click(screen.getByText('Cancel Deployment'));
     expect(defaultProps.onAction).toHaveBeenCalledWith('cancel', undefined);
   });

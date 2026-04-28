@@ -3,9 +3,13 @@ import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ResourcePreview from './ResourcePreview';
+import { DynamicComponent } from '../Chat/types';
 
 describe('ResourcePreview', () => {
-  const defaultProps = {
+  const defaultProps: {
+    component: DynamicComponent;
+    onAction: (id: string, payload?: unknown) => void;
+  } = {
     component: {
       id: '1',
       componentType: 'resource-preview',
@@ -19,13 +23,13 @@ describe('ResourcePreview', () => {
           errors: 0,
         },
       },
-      actions: [{ id: 'invoke', label: 'Invoke' }],
+      actions: [{ id: 'invoke', label: 'Invoke', type: 'primary' }],
     },
     onAction: vi.fn(),
   };
 
   it('renders lambda resource correctly', () => {
-    render(<ResourcePreview {...(defaultProps as any)} />);
+    render(<ResourcePreview component={defaultProps.component} onAction={defaultProps.onAction} />);
     expect(screen.getByText('LAMBDA')).toBeInTheDocument();
     expect(screen.getByText(/my-function/i)).toBeInTheDocument();
     expect(screen.getByText('ACTIVE')).toBeInTheDocument();
@@ -36,33 +40,29 @@ describe('ResourcePreview', () => {
   it('renders other resource types (dynamodb, s3)', () => {
     const { rerender } = render(
       <ResourcePreview
-        {...(defaultProps as any)}
-        component={
-          {
-            ...defaultProps.component,
-            props: { ...defaultProps.component.props, resourceType: 'dynamodb' },
-          } as any
-        }
+        component={{
+          ...defaultProps.component,
+          props: { ...defaultProps.component.props, resourceType: 'dynamodb' },
+        }}
+        onAction={defaultProps.onAction}
       />
     );
     expect(screen.getByText('DYNAMODB')).toBeInTheDocument();
 
     rerender(
       <ResourcePreview
-        {...(defaultProps as any)}
-        component={
-          {
-            ...defaultProps.component,
-            props: { ...defaultProps.component.props, resourceType: 's3' },
-          } as any
-        }
+        component={{
+          ...defaultProps.component,
+          props: { ...defaultProps.component.props, resourceType: 's3' },
+        }}
+        onAction={defaultProps.onAction}
       />
     );
     expect(screen.getByText('S3')).toBeInTheDocument();
   });
 
   it('calls onAction when footer buttons are clicked', () => {
-    render(<ResourcePreview {...(defaultProps as any)} />);
+    render(<ResourcePreview component={defaultProps.component} onAction={defaultProps.onAction} />);
     fireEvent.click(screen.getByText('Invoke'));
     expect(defaultProps.onAction).toHaveBeenCalledWith('invoke', undefined);
   });
@@ -74,7 +74,7 @@ describe('ResourcePreview', () => {
         actions: undefined,
       },
     };
-    render(<ResourcePreview {...(noActionsProps as any)} />);
+    render(<ResourcePreview component={noActionsProps.component as DynamicComponent} />);
     expect(screen.getByText(/View Console/i)).toBeInTheDocument();
   });
 });

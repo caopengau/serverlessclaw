@@ -42,7 +42,9 @@ vi.mock('../utils/pii', () => ({
 }));
 
 vi.mock('./utils', () => ({
-  queryLatestContentByUserId: vi.fn().mockResolvedValue(['hash123']),
+  queryLatestContentByUserId: vi.fn(),
+  atomicIncrement: vi.fn(),
+  putWithCollisionRetry: vi.fn(),
 }));
 
 describe('session-operations', () => {
@@ -289,12 +291,13 @@ describe('session-operations', () => {
 
   describe('saveLKGHash', () => {
     it('should save LKG hash', async () => {
+      const { putWithCollisionRetry } = await import('./utils');
       await saveLKGHash(mockBase, 'abc123');
 
-      expect(mockBase.putItem).toHaveBeenCalledWith(
+      expect(putWithCollisionRetry).toHaveBeenCalledWith(
+        mockBase,
         expect.objectContaining({
           userId: 'SYSTEM#LKG',
-          type: 'DISTILLED',
           content: 'abc123',
         })
       );
@@ -304,7 +307,7 @@ describe('session-operations', () => {
   describe('getLatestLKGHash', () => {
     it('should return latest LKG hash', async () => {
       const { queryLatestContentByUserId } = await import('./utils');
-      (queryLatestContentByUserId as ReturnType<typeof vi.fn>).mockResolvedValue(['hash123']);
+      vi.mocked(queryLatestContentByUserId).mockResolvedValue(['hash123']);
 
       const result = await getLatestLKGHash(mockBase);
 
@@ -313,7 +316,7 @@ describe('session-operations', () => {
 
     it('should return null when no hash exists', async () => {
       const { queryLatestContentByUserId } = await import('./utils');
-      (queryLatestContentByUserId as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+      vi.mocked(queryLatestContentByUserId).mockResolvedValue([]);
 
       const result = await getLatestLKGHash(mockBase);
 
@@ -323,22 +326,24 @@ describe('session-operations', () => {
 
   describe('incrementRecoveryAttemptCount', () => {
     it('should increment and return new count', async () => {
-      mockBase.updateItem = vi.fn().mockResolvedValue({ Attributes: { attempts: 5 } });
+      const { atomicIncrement } = await import('./utils');
+      vi.mocked(atomicIncrement).mockResolvedValue(5);
 
       const result = await incrementRecoveryAttemptCount(mockBase);
 
       expect(result).toBe(5);
-      expect(mockBase.updateItem).toHaveBeenCalledWith(
-        expect.objectContaining({
-          Key: { userId: 'SYSTEM#RECOVERY#STATS', timestamp: 0 },
-          UpdateExpression: expect.stringContaining('attempts'),
-          ReturnValues: 'ALL_NEW',
-        })
+      expect(atomicIncrement).toHaveBeenCalledWith(
+        mockBase,
+        'SYSTEM#RECOVERY#STATS',
+        0,
+        'attempts',
+        false
       );
     });
 
     it('should return 1 when Attributes is missing', async () => {
-      mockBase.updateItem = vi.fn().mockResolvedValue({});
+      const { atomicIncrement } = await import('./utils');
+      vi.mocked(atomicIncrement).mockResolvedValue(1);
 
       const result = await incrementRecoveryAttemptCount(mockBase);
 

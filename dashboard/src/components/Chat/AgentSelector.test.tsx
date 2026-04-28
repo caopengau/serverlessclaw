@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
@@ -60,17 +59,15 @@ describe('AgentSelector Component', () => {
     },
   };
 
-  let resolveFetch: (
-    value: any /* eslint-disable-line @typescript-eslint/no-explicit-any */
-  ) => void;
-  let fetchPromise: Promise<any>;
+  let resolveFetch: (value: unknown) => void;
+  let fetchPromise: Promise<unknown>;
 
   beforeEach(() => {
     vi.clearAllMocks();
     fetchPromise = new Promise((resolve) => {
       resolveFetch = resolve;
     });
-    (global.fetch as any).mockReturnValue(fetchPromise);
+    vi.mocked(global.fetch).mockReturnValue(fetchPromise as Promise<Response>);
   });
 
   it('renders loading state initially', () => {

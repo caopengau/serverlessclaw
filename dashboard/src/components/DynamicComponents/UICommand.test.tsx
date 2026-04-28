@@ -4,6 +4,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import UICommand from './UICommand';
 import { useRouter } from 'next/navigation';
+import { DynamicComponent } from '../Chat/types';
 
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),
@@ -14,7 +15,9 @@ describe('UICommand', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useRouter).mockReturnValue({ push: mockPush } as any);
+    vi.mocked(useRouter).mockReturnValue({ push: mockPush } as unknown as ReturnType<
+      typeof useRouter
+    >);
   });
 
   it('performs auto-navigation', () => {
@@ -28,7 +31,7 @@ describe('UICommand', () => {
         params: { id: 'test' },
       },
     };
-    render(<UICommand component={component as any} />);
+    render(<UICommand component={component as DynamicComponent} />);
     expect(mockPush).toHaveBeenCalledWith('/playground?id=test');
   });
 
@@ -42,7 +45,7 @@ describe('UICommand', () => {
         path: '/security',
       },
     };
-    render(<UICommand component={component as any} />);
+    render(<UICommand component={component as DynamicComponent} />);
     expect(screen.getByText(/suggested view: \/security/i)).toBeInTheDocument();
   });
 
@@ -58,7 +61,7 @@ describe('UICommand', () => {
         payload: { collapsed: true },
       },
     };
-    render(<UICommand component={component as any} />);
+    render(<UICommand component={component as DynamicComponent} />);
 
     expect(dispatchSpy).toHaveBeenCalled();
     const event = dispatchSpy.mock.calls[0][0] as CustomEvent;

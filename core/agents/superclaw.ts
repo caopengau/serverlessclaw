@@ -21,7 +21,7 @@ export class SuperClaw extends Agent {
   public readonly safetyEngine: SafetyEngine;
 
   constructor(memory: IMemory, provider: IProvider, tools: ITool[], config?: IAgentConfig) {
-    super(memory, provider, tools, config);
+    super(memory, provider, tools, config!);
     this.safetyEngine = new SafetyEngine();
   }
 

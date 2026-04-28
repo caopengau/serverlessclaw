@@ -29,7 +29,7 @@ interface DashboardConfig {
   };
 }
 
-interface RealtimeContextType {
+export interface RealtimeContextType {
   isConnected: boolean;
   error: Error | null;
   userId: string | null;

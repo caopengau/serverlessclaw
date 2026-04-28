@@ -6,14 +6,17 @@ import ChatContent from './ChatContent';
 
 // Mock sub-components
 vi.mock('./ChatSidebar', () => ({
-  ChatSidebar: (
-    {
-      onSessionSelect,
-      onNewChat,
-      onDeleteSession,
-      onDeleteAll,
-    }: any /* eslint-disable-line @typescript-eslint/no-explicit-any */
-  ) => (
+  ChatSidebar: ({
+    onSessionSelect,
+    onNewChat,
+    onDeleteSession,
+    onDeleteAll,
+  }: {
+    onSessionSelect: (id: string) => void;
+    onNewChat: () => void;
+    onDeleteSession: (e: React.MouseEvent, id: string) => void;
+    onDeleteAll: () => void;
+  }) => (
     <div data-testid="chat-sidebar">
       <button onClick={() => onSessionSelect('session-1')}>Select Session</button>
       <button onClick={() => onNewChat()}>New Chat</button>
@@ -23,12 +26,13 @@ vi.mock('./ChatSidebar', () => ({
   ),
 }));
 vi.mock('./ChatHeader', () => ({
-  ChatHeader: (
-    {
-      saveTitle,
-      setIsEditingTitle,
-    }: any /* eslint-disable-line @typescript-eslint/no-explicit-any */
-  ) => (
+  ChatHeader: ({
+    saveTitle,
+    setIsEditingTitle,
+  }: {
+    saveTitle: () => void;
+    setIsEditingTitle: (val: boolean) => void;
+  }) => (
     <div data-testid="chat-header">
       <button onClick={() => setIsEditingTitle(true)}>Edit Title</button>
       <button onClick={() => saveTitle()}>Save Title</button>
@@ -39,9 +43,9 @@ vi.mock('./ChatMessageList', () => ({
   ChatMessageList: () => <div data-testid="message-list">ChatMessageList</div>,
 }));
 vi.mock('./ChatInput', () => ({
-  ChatInput: (props: any) => (
+  ChatInput: (props: { onSend: (e: React.FormEvent) => void }) => (
     <div data-testid="chat-input">
-      <button onClick={(e: any) => props.onSend(e)}>Send</button>
+      <button onClick={(e) => props.onSend(e)}>Send</button>
     </div>
   ),
 }));
@@ -52,7 +56,11 @@ vi.mock('./MissionControlHUD', () => ({
   MissionControlHUD: () => <div data-testid="mission-hud">MissionControlHUD</div>,
 }));
 vi.mock('./AgentSelector', () => ({
-  AgentSelector: (props: any) => (
+  AgentSelector: (props: {
+    title: string;
+    onSelect: (id: string) => void;
+    onClose: () => void;
+  }) => (
     <div data-testid="agent-selector">
       <span>{props.title}</span>
       <button onClick={() => props.onSelect('agent-1')}>Select Agent</button>
@@ -61,9 +69,13 @@ vi.mock('./AgentSelector', () => ({
   ),
 }));
 vi.mock('./QueuedMessages', () => ({
-  QueuedMessagesList: (props: any) => (
+  QueuedMessagesList: (props: {
+    messages: { id: string; content: string }[];
+    onEdit: (id: string, content: string) => void;
+    onRemove: (id: string) => void;
+  }) => (
     <div data-testid="queued-messages">
-      {(props.messages || []).map((m: any) => (
+      {(props.messages || []).map((m: { id: string; content: string }) => (
         <div key={m.id}>
           <span>{m.content}</span>
           <button onClick={() => props.onEdit(m.id, 'new content')}>Edit {m.id}</button>

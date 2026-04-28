@@ -2,14 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 
-interface TenantInfo {
+export interface TenantInfo {
   id: string;
   name: string;
   orgId?: string;
   teamId?: string;
 }
 
-interface TenantContextType {
+export interface TenantContextType {
   activeWorkspaceId: string | null;
   activeOrgId: string | null;
   activeTeamId: string | null;
