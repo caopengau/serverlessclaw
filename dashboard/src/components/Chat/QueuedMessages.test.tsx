@@ -25,11 +25,7 @@ describe('QueuedMessages', () => {
   describe('QueuedMessageItem', () => {
     it('renders message content and timestamp', () => {
       render(
-        <QueuedMessageItem
-          message={mockMessage}
-          onEdit={mockOnEdit}
-          onRemove={mockOnRemove}
-        />
+        <QueuedMessageItem message={mockMessage} onEdit={mockOnEdit} onRemove={mockOnRemove} />
       );
 
       expect(screen.getByText('Test message')).toBeInTheDocument();
@@ -38,11 +34,7 @@ describe('QueuedMessages', () => {
 
     it('enters edit mode when edit button is clicked', () => {
       render(
-        <QueuedMessageItem
-          message={mockMessage}
-          onEdit={mockOnEdit}
-          onRemove={mockOnRemove}
-        />
+        <QueuedMessageItem message={mockMessage} onEdit={mockOnEdit} onRemove={mockOnRemove} />
       );
 
       const editButton = screen.getByTitle('Edit message');
@@ -55,17 +47,13 @@ describe('QueuedMessages', () => {
     it('calls onEdit when save button is clicked in edit mode', async () => {
       mockOnEdit.mockResolvedValueOnce(undefined);
       render(
-        <QueuedMessageItem
-          message={mockMessage}
-          onEdit={mockOnEdit}
-          onRemove={mockOnRemove}
-        />
+        <QueuedMessageItem message={mockMessage} onEdit={mockOnEdit} onRemove={mockOnRemove} />
       );
 
       fireEvent.click(screen.getByTitle('Edit message'));
       const textarea = screen.getByRole('textbox');
       fireEvent.change(textarea, { target: { value: 'Updated message' } });
-      
+
       const saveButton = screen.getByRole('button', { name: '' }); // The Check icon button
       fireEvent.click(saveButton);
 
@@ -76,11 +64,7 @@ describe('QueuedMessages', () => {
 
     it('cancels edit mode and resets content when cancel is clicked', () => {
       render(
-        <QueuedMessageItem
-          message={mockMessage}
-          onEdit={mockOnEdit}
-          onRemove={mockOnRemove}
-        />
+        <QueuedMessageItem message={mockMessage} onEdit={mockOnEdit} onRemove={mockOnRemove} />
       );
 
       fireEvent.click(screen.getByTitle('Edit message'));
@@ -94,11 +78,7 @@ describe('QueuedMessages', () => {
     it('calls onRemove when remove button is clicked', async () => {
       mockOnRemove.mockResolvedValueOnce(undefined);
       render(
-        <QueuedMessageItem
-          message={mockMessage}
-          onEdit={mockOnEdit}
-          onRemove={mockOnRemove}
-        />
+        <QueuedMessageItem message={mockMessage} onEdit={mockOnEdit} onRemove={mockOnRemove} />
       );
 
       fireEvent.click(screen.getByTitle('Remove message'));
@@ -112,11 +92,7 @@ describe('QueuedMessages', () => {
   describe('QueuedMessagesList', () => {
     it('returns null when messages array is empty', () => {
       const { container } = render(
-        <QueuedMessagesList
-          messages={[]}
-          onEdit={mockOnEdit}
-          onRemove={mockOnRemove}
-        />
+        <QueuedMessagesList messages={[]} onEdit={mockOnEdit} onRemove={mockOnRemove} />
       );
 
       expect(container.firstChild).toBeNull();
@@ -129,11 +105,7 @@ describe('QueuedMessages', () => {
       ];
 
       render(
-        <QueuedMessagesList
-          messages={messages}
-          onEdit={mockOnEdit}
-          onRemove={mockOnRemove}
-        />
+        <QueuedMessagesList messages={messages} onEdit={mockOnEdit} onRemove={mockOnRemove} />
       );
 
       expect(screen.getByText('2 queued messages (waiting for current task)')).toBeInTheDocument();

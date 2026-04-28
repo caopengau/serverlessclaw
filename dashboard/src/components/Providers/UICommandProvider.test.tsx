@@ -10,7 +10,8 @@ vi.mock('sonner', () => ({
 }));
 
 const TestComponent = () => {
-  const { activeModal, setActiveModal, isSidebarCollapsed, setSidebarCollapsed, lastCommand } = useUICommand();
+  const { activeModal, setActiveModal, isSidebarCollapsed, setSidebarCollapsed, lastCommand } =
+    useUICommand();
   return (
     <div>
       <div data-testid="modal">{activeModal}</div>
@@ -34,10 +35,10 @@ describe('UICommandProvider', () => {
         <TestComponent />
       </UICommandProvider>
     );
-    
+
     fireEvent.click(screen.getByText('Open Modal'));
     expect(screen.getByTestId('modal')).toHaveTextContent('test-modal');
-    
+
     fireEvent.click(screen.getByText('Collapse Sidebar'));
     await waitFor(() => {
       expect(screen.getByTestId('sidebar')).toHaveTextContent('collapsed');
@@ -50,43 +51,53 @@ describe('UICommandProvider', () => {
         <TestComponent />
       </UICommandProvider>
     );
-    
+
     // Test open_modal
     act(() => {
-      window.dispatchEvent(new CustomEvent('claw:ui-command', {
-        detail: { action: 'open_modal', target: 'agent-config' }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('claw:ui-command', {
+          detail: { action: 'open_modal', target: 'agent-config' },
+        })
+      );
     });
     expect(screen.getByTestId('modal')).toHaveTextContent('agent-config');
-    
+
     // Test close_modal
     act(() => {
-      window.dispatchEvent(new CustomEvent('claw:ui-command', {
-        detail: { action: 'close_modal', target: 'agent-config' }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('claw:ui-command', {
+          detail: { action: 'close_modal', target: 'agent-config' },
+        })
+      );
     });
     expect(screen.getByTestId('modal')).toHaveTextContent('');
-    
+
     // Test focus_resource (triggers toast)
     act(() => {
-      window.dispatchEvent(new CustomEvent('claw:ui-command', {
-        detail: { action: 'focus_resource', target: 'lambda-1' }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('claw:ui-command', {
+          detail: { action: 'focus_resource', target: 'lambda-1' },
+        })
+      );
     });
     expect(toast).toHaveBeenCalledWith('Focusing resource: lambda-1');
-    
+
     // Test toggle_sidebar
     act(() => {
-      window.dispatchEvent(new CustomEvent('claw:ui-command', {
-        detail: { action: 'toggle_sidebar', target: 'sidebar', payload: { collapsed: true } }
-      }));
+      window.dispatchEvent(
+        new CustomEvent('claw:ui-command', {
+          detail: { action: 'toggle_sidebar', target: 'sidebar', payload: { collapsed: true } },
+        })
+      );
     });
     expect(screen.getByTestId('sidebar')).toHaveTextContent('collapsed');
   });
 
   it('throws error when useUICommand is used outside provider', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => render(<TestComponent />)).toThrow('useUICommand must be used within a UICommandProvider');
+    expect(() => render(<TestComponent />)).toThrow(
+      'useUICommand must be used within a UICommandProvider'
+    );
     consoleSpy.mockRestore();
   });
 });

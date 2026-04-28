@@ -59,7 +59,7 @@ describe('UICommand', () => {
       },
     };
     render(<UICommand component={component as any} />);
-    
+
     expect(dispatchSpy).toHaveBeenCalled();
     const event = dispatchSpy.mock.calls[0][0] as CustomEvent;
     expect(event.type).toBe('claw:ui-command');

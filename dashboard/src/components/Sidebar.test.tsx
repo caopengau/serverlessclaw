@@ -212,25 +212,25 @@ describe('Sidebar Component', () => {
     const setSidebarCollapsed = vi.fn();
     mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed });
     render(<Sidebar />);
-    
+
     const toggleButton = screen.getByTestId('icon-panel-close').closest('button');
     fireEvent.click(toggleButton!);
     expect(setSidebarCollapsed).toHaveBeenCalledWith(true);
   });
 
   it('toggles mobile menu', () => {
-    // We need to trigger the mobile view condition, but since we're using JSDOM 
+    // We need to trigger the mobile view condition, but since we're using JSDOM
     // it's always "desktop" unless we mock matchMedia or just find the button that is hidden by CSS.
     // In React, the button is always rendered but hidden by CSS.
     mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
     render(<Sidebar />);
-    
+
     const mobileMenuButton = screen.getByTestId('icon-menu').closest('button');
     fireEvent.click(mobileMenuButton!);
-    
+
     // mobile menu should be open, check for the close icon
     expect(screen.getAllByTestId('icon-x')[0]).toBeInTheDocument();
-    
+
     fireEvent.click(screen.getAllByTestId('icon-x')[0].closest('button')!);
     expect(screen.getByTestId('icon-menu')).toBeInTheDocument();
   });
@@ -238,14 +238,14 @@ describe('Sidebar Component', () => {
   it('closes mobile menu when backdrop is clicked', async () => {
     mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
     render(<Sidebar />);
-    
+
     // Open it first
     fireEvent.click(screen.getByTestId('icon-menu').closest('button')!);
-    
+
     // Find backdrop by class
     const backdrop = document.querySelector('.bg-background\\/60');
     fireEvent.click(backdrop!);
-    
+
     await waitFor(() => {
       // The toggle button should show menu icon again
       expect(screen.getByTestId('icon-menu')).toBeInTheDocument();
@@ -254,13 +254,13 @@ describe('Sidebar Component', () => {
 
   it('triggers shortcuts modal when keyboard icon is clicked', () => {
     const setActiveModal = vi.fn();
-    mockUseUICommand.mockReturnValue({ 
-      isSidebarCollapsed: false, 
+    mockUseUICommand.mockReturnValue({
+      isSidebarCollapsed: false,
       setSidebarCollapsed: vi.fn(),
-      setActiveModal
+      setActiveModal,
     });
     render(<Sidebar />);
-    
+
     const shortcutsButton = screen.getByTestId('icon-keyboard').closest('button');
     fireEvent.click(shortcutsButton!);
     expect(setActiveModal).toHaveBeenCalledWith('shortcuts');
@@ -270,7 +270,7 @@ describe('Sidebar Component', () => {
     mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
     const push = vi.fn();
     mockUseRouter.mockReturnValue({ push, refresh: vi.fn() });
-    
+
     const fetchMock = vi.fn().mockRejectedValue(new Error('Logout failed'));
     vi.stubGlobal('fetch', fetchMock);
 

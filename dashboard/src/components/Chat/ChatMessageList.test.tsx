@@ -82,14 +82,14 @@ describe('ChatMessageList', () => {
   it('expands and collapses tool calls', () => {
     render(<ChatMessageList {...defaultProps} />);
     const toolCallButton = screen.getByText(/1 tool call/i);
-    
+
     // Initial state: tool name should be visible but arguments might not be
     expect(screen.getByText('get_weather')).toBeInTheDocument();
-    
+
     // Expand
     fireEvent.click(toolCallButton);
     expect(screen.getByText(/"city": "Tokyo"/i)).toBeInTheDocument();
-    
+
     // Collapse
     fireEvent.click(toolCallButton);
     expect(screen.queryByText(/"city": "Tokyo"/i)).not.toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('ChatMessageList', () => {
     render(<ChatMessageList {...defaultProps} />);
     const commentInput = screen.getByPlaceholderText(/Add an optional comment/i);
     fireEvent.change(commentInput, { target: { value: 'My comment' } });
-    
+
     fireEvent.click(screen.getByText('Yes'));
     expect(defaultProps.onOptionClick).toHaveBeenCalledWith('yes', 'My comment');
     expect(commentInput).toHaveValue(''); // Should clear after click
@@ -107,34 +107,34 @@ describe('ChatMessageList', () => {
 
   it('copies message content to clipboard', async () => {
     render(<ChatMessageList {...defaultProps} />);
-    
+
     // Find the copy button for the first message
     // It's hidden by default, but we can still find it by title or icon test-id
     const copyButtons = screen.getAllByTitle('Copy message');
     fireEvent.click(copyButtons[0]);
-    
+
     expect(mockClipboard.writeText).toHaveBeenCalledWith('Hello, world!');
   });
 
   it('filters messages based on search query', () => {
     render(<ChatMessageList {...defaultProps} />);
     const searchInput = screen.getByPlaceholderText(/Search messages/i);
-    
+
     fireEvent.change(searchInput, { target: { value: 'assistant' } });
-    
+
     expect(screen.queryByText('Hello, world!')).not.toBeInTheDocument();
     expect(screen.getByText('Hi there! I am your assistant.')).toBeInTheDocument();
     expect(screen.getByText('1 Matches')).toBeInTheDocument();
   });
 
-
   it('renders various markdown elements', () => {
     const markdownMsg = {
       role: 'assistant',
-      content: '# Title1\n## Title2\n### Title3\n**Strong**\n[Link](https://google.com)\n* Item 1\n* Item 2\n`inline code`',
+      content:
+        '# Title1\n## Title2\n### Title3\n**Strong**\n[Link](https://google.com)\n* Item 1\n* Item 2\n`inline code`',
     };
     render(<ChatMessageList {...defaultProps} messages={[markdownMsg as any]} />);
-    
+
     expect(screen.getByText('Title1')).toBeInTheDocument();
     expect(screen.getByText('Title2')).toBeInTheDocument();
     expect(screen.getByText('Title3')).toBeInTheDocument();
@@ -150,9 +150,9 @@ describe('ChatMessageList', () => {
       content: '```javascript\nconst x = 1;\n```',
     };
     render(<ChatMessageList {...defaultProps} messages={[codeMsg as any]} />);
-    
+
     expect(screen.getByText('const x = 1;')).toBeInTheDocument();
-    
+
     const copyBtn = screen.getByTitle('Copy to clipboard');
     fireEvent.click(copyBtn);
     expect(mockClipboard.writeText).toHaveBeenCalledWith('const x = 1;');
@@ -167,7 +167,7 @@ describe('ChatMessageList', () => {
       ],
     };
     render(<ChatMessageList {...defaultProps} messages={[attachmentMsg as any]} />);
-    
+
     expect(screen.getByAltText('my-image.png')).toBeInTheDocument();
     expect(screen.getByText('my-doc.pdf')).toBeInTheDocument();
   });

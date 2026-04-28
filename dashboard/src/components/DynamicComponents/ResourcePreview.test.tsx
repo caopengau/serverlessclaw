@@ -19,15 +19,13 @@ describe('ResourcePreview', () => {
           errors: 0,
         },
       },
-      actions: [
-        { id: 'invoke', label: 'Invoke' },
-      ],
+      actions: [{ id: 'invoke', label: 'Invoke' }],
     },
     onAction: vi.fn(),
   };
 
   it('renders lambda resource correctly', () => {
-    render(<ResourcePreview {...defaultProps as any} />);
+    render(<ResourcePreview {...(defaultProps as any)} />);
     expect(screen.getByText('LAMBDA')).toBeInTheDocument();
     expect(screen.getByText(/my-function/i)).toBeInTheDocument();
     expect(screen.getByText('ACTIVE')).toBeInTheDocument();
@@ -36,15 +34,35 @@ describe('ResourcePreview', () => {
   });
 
   it('renders other resource types (dynamodb, s3)', () => {
-    const { rerender } = render(<ResourcePreview {...defaultProps as any} component={{ ...defaultProps.component, props: { ...defaultProps.component.props, resourceType: 'dynamodb' } } as any} />);
+    const { rerender } = render(
+      <ResourcePreview
+        {...(defaultProps as any)}
+        component={
+          {
+            ...defaultProps.component,
+            props: { ...defaultProps.component.props, resourceType: 'dynamodb' },
+          } as any
+        }
+      />
+    );
     expect(screen.getByText('DYNAMODB')).toBeInTheDocument();
 
-    rerender(<ResourcePreview {...defaultProps as any} component={{ ...defaultProps.component, props: { ...defaultProps.component.props, resourceType: 's3' } } as any} />);
+    rerender(
+      <ResourcePreview
+        {...(defaultProps as any)}
+        component={
+          {
+            ...defaultProps.component,
+            props: { ...defaultProps.component.props, resourceType: 's3' },
+          } as any
+        }
+      />
+    );
     expect(screen.getByText('S3')).toBeInTheDocument();
   });
 
   it('calls onAction when footer buttons are clicked', () => {
-    render(<ResourcePreview {...defaultProps as any} />);
+    render(<ResourcePreview {...(defaultProps as any)} />);
     fireEvent.click(screen.getByText('Invoke'));
     expect(defaultProps.onAction).toHaveBeenCalledWith('invoke', undefined);
   });
@@ -56,7 +74,7 @@ describe('ResourcePreview', () => {
         actions: undefined,
       },
     };
-    render(<ResourcePreview {...noActionsProps as any} />);
+    render(<ResourcePreview {...(noActionsProps as any)} />);
     expect(screen.getByText(/View Console/i)).toBeInTheDocument();
   });
 });

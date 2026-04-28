@@ -61,7 +61,7 @@ describe('RealtimeProvider', () => {
     });
 
     // Simulate connect event
-    const connectCallback = mockMqttClient.on.mock.calls.find(call => call[0] === 'connect')?.[1];
+    const connectCallback = mockMqttClient.on.mock.calls.find((call) => call[0] === 'connect')?.[1];
     connectCallback();
 
     await waitFor(() => {

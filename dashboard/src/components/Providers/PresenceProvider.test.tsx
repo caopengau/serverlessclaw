@@ -54,10 +54,7 @@ describe('PresenceProvider', () => {
       </PresenceProvider>
     );
 
-    expect(mockSubscribe).toHaveBeenCalledWith(
-      ['workspaces/ws-1/presence'],
-      expect.any(Function)
-    );
+    expect(mockSubscribe).toHaveBeenCalledWith(['workspaces/ws-1/presence'], expect.any(Function));
 
     const handler = mockSubscribe.mock.calls[0][1];
 
@@ -67,7 +64,7 @@ describe('PresenceProvider', () => {
     });
 
     expect(screen.getByTestId('member-count')).toHaveTextContent('1');
-    
+
     // Update existing member
     act(() => {
       handler('topic', { memberId: 'user-2', status: 'away' });
@@ -112,7 +109,9 @@ describe('PresenceProvider', () => {
 
   it('throws error outside provider', () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => render(<TestComponent />)).toThrow('usePresence must be used within a PresenceProvider');
+    expect(() => render(<TestComponent />)).toThrow(
+      'usePresence must be used within a PresenceProvider'
+    );
     consoleSpy.mockRestore();
   });
 });

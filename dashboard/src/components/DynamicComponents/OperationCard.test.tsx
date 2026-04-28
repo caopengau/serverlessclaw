@@ -27,7 +27,7 @@ describe('OperationCard', () => {
   };
 
   it('renders correctly with all props', () => {
-    render(<OperationCard {...defaultProps as any} />);
+    render(<OperationCard {...(defaultProps as any)} />);
     expect(screen.getByText('Security Scan')).toBeInTheDocument();
     expect(screen.getByText('active')).toBeInTheDocument();
     expect(screen.getByText('Vulnerability assessment in progress.')).toBeInTheDocument();
@@ -36,11 +36,11 @@ describe('OperationCard', () => {
   });
 
   it('calls onAction when buttons are clicked', () => {
-    render(<OperationCard {...defaultProps as any} />);
-    
+    render(<OperationCard {...(defaultProps as any)} />);
+
     fireEvent.click(screen.getByText('Stop Scan'));
     expect(defaultProps.onAction).toHaveBeenCalledWith('stop', undefined);
-    
+
     fireEvent.click(screen.getByText('View Report'));
     expect(defaultProps.onAction).toHaveBeenCalledWith('view-report', undefined);
   });
@@ -55,7 +55,7 @@ describe('OperationCard', () => {
         },
       },
     };
-    render(<OperationCard {...minimalProps as any} />);
+    render(<OperationCard {...(minimalProps as any)} />);
     expect(screen.getByText('Simple Task')).toBeInTheDocument();
     expect(screen.queryByText('active')).not.toBeInTheDocument();
   });

@@ -144,7 +144,7 @@ describe('AgentTuningHub', () => {
   });
 
   it('dismisses suggestions', async () => {
-     const fetchMock = vi.fn().mockResolvedValue({
+    const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
         suggestions: {

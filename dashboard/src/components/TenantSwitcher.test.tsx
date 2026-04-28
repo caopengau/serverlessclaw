@@ -58,29 +58,29 @@ describe('TenantSwitcher', () => {
     vi.mocked(useTenant).mockReturnValue({ ...defaultTenantContext, setActiveWorkspace } as any);
 
     render(<TenantSwitcher />);
-    
+
     fireEvent.click(screen.getByRole('button'));
     expect(screen.getByText('Switch Workspace')).toBeInTheDocument();
 
     fireEvent.click(screen.getByText('Workspace 1', { exact: false }));
-    
+
     expect(setActiveWorkspace).toHaveBeenCalledWith('ws-1');
     expect(mockPush).toHaveBeenCalledWith('/chat?workspaceId=ws-1');
   });
 
   it('switches to global hive when null is passed', () => {
     const setActiveWorkspace = vi.fn();
-    vi.mocked(useTenant).mockReturnValue({ 
-      ...defaultTenantContext, 
+    vi.mocked(useTenant).mockReturnValue({
+      ...defaultTenantContext,
       activeWorkspaceId: 'ws-1',
-      setActiveWorkspace 
+      setActiveWorkspace,
     } as any);
 
     render(<TenantSwitcher />);
-    
+
     fireEvent.click(screen.getByRole('button'));
     fireEvent.click(screen.getAllByText('Global Hive', { exact: false, selector: 'span' })[1]);
-    
+
     expect(setActiveWorkspace).toHaveBeenCalledWith(null);
   });
 
@@ -92,9 +92,9 @@ describe('TenantSwitcher', () => {
 
   it('handles missing names by showing id if we were to fix it, but currently it just shows empty', () => {
     // Current implementation doesn't have a fallback, let's just test that it renders something
-    vi.mocked(useTenant).mockReturnValue({ 
-      ...defaultTenantContext, 
-      workspaces: [{ id: 'ws-3', name: 'WS3' } as any] 
+    vi.mocked(useTenant).mockReturnValue({
+      ...defaultTenantContext,
+      workspaces: [{ id: 'ws-3', name: 'WS3' } as any],
     } as any);
     render(<TenantSwitcher />);
     fireEvent.click(screen.getByRole('button'));

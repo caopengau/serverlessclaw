@@ -17,23 +17,21 @@ describe('StatusFlow', () => {
           { id: '3', label: 'Deploy', status: 'pending' },
         ],
       },
-      actions: [
-        { id: 'cancel', label: 'Cancel Deployment' },
-      ],
+      actions: [{ id: 'cancel', label: 'Cancel Deployment' }],
     },
     onAction: vi.fn(),
   };
 
   it('renders correctly with all step statuses', () => {
-    render(<StatusFlow {...defaultProps as any} />);
+    render(<StatusFlow {...(defaultProps as any)} />);
     expect(screen.getByText('Deployment Pipeline')).toBeInTheDocument();
-    
+
     expect(screen.getByText('Build')).toBeInTheDocument();
     expect(screen.getByText('Docker image built.')).toBeInTheDocument();
-    
+
     expect(screen.getByText('Test')).toBeInTheDocument();
     expect(screen.getByText('Running unit tests...')).toBeInTheDocument();
-    
+
     expect(screen.getByText('Deploy')).toBeInTheDocument();
   });
 
@@ -46,13 +44,13 @@ describe('StatusFlow', () => {
         },
       },
     };
-    render(<StatusFlow {...failedProps as any} />);
+    render(<StatusFlow {...(failedProps as any)} />);
     expect(screen.getByText('Build')).toBeInTheDocument();
     expect(screen.getByText('Build error.')).toBeInTheDocument();
   });
 
   it('calls onAction when footer buttons are clicked', () => {
-    render(<StatusFlow {...defaultProps as any} />);
+    render(<StatusFlow {...(defaultProps as any)} />);
     fireEvent.click(screen.getByText('Cancel Deployment'));
     expect(defaultProps.onAction).toHaveBeenCalledWith('cancel', undefined);
   });

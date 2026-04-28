@@ -208,17 +208,20 @@ describe('ChatContent Component', () => {
     fireEvent.click(screen.getByText('Save Title'));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/chat', expect.objectContaining({
-        method: 'PATCH',
-      }));
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/chat',
+        expect.objectContaining({
+          method: 'PATCH',
+        })
+      );
     });
   });
 
   it('switches sessions when a session is selected', async () => {
     render(<ChatContent />);
-    
+
     fireEvent.click(screen.getByText('Select Session'));
-    
+
     // Check if session ID is updated in the URL or component state
     // Since we can't easily check internal state, we check if router.push was called
     // because of the useEffect that syncs activeSessionId to URL
@@ -226,7 +229,7 @@ describe('ChatContent Component', () => {
 
   it('sends a message when send button is clicked', async () => {
     render(<ChatContent />);
-    
+
     fireEvent.click(screen.getByText('Send'));
     expect(mockSendMessage).toHaveBeenCalled();
   });
@@ -242,9 +245,12 @@ describe('ChatContent Component', () => {
     fireEvent.click(screen.getByText('Confirm Action')); // CyberConfirm button
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('sessionId=session-2'), expect.objectContaining({
-        method: 'DELETE',
-      }));
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('sessionId=session-2'),
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
     });
   });
 
@@ -258,9 +264,12 @@ describe('ChatContent Component', () => {
     fireEvent.click(screen.getByText('Confirm Action'));
 
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith(expect.stringContaining('sessionId=all'), expect.objectContaining({
-        method: 'DELETE',
-      }));
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('sessionId=all'),
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
     });
   });
 
@@ -269,22 +278,28 @@ describe('ChatContent Component', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<ChatContent />);
-    
+
     // Need a session to be active for queued message handlers to run
     fireEvent.click(screen.getByText('Select Session'));
 
     fireEvent.click(screen.getByText('Edit q-1'));
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/pending-messages', expect.objectContaining({
-        method: 'PATCH',
-      }));
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/pending-messages',
+        expect.objectContaining({
+          method: 'PATCH',
+        })
+      );
     });
 
     fireEvent.click(screen.getByText('Remove q-1'));
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/pending-messages', expect.objectContaining({
-        method: 'DELETE',
-      }));
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/pending-messages',
+        expect.objectContaining({
+          method: 'DELETE',
+        })
+      );
     });
   });
 });

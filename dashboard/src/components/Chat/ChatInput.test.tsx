@@ -175,7 +175,7 @@ describe('ChatInput Component', () => {
   it('calls onFileSelect when file input changes', () => {
     const onFileSelect = vi.fn();
     renderWithTranslations(<ChatInput {...defaultProps} onFileSelect={onFileSelect} />);
-    
+
     const input = document.querySelector('input[type="file"]');
     fireEvent.change(input!, { target: { files: [new File([''], 'test.png')] } });
     expect(onFileSelect).toHaveBeenCalled();
@@ -190,17 +190,17 @@ describe('ChatInput Component', () => {
     renderWithTranslations(<ChatInput {...defaultProps} input="" attachments={[]} />);
     const sendButton = screen.getByText('SEND').closest('button');
     fireEvent.click(sendButton!);
-    
+
     expect(screen.getByRole('textbox').closest('.animate-shake')).toBeDefined();
   });
 
   it('resizes textarea on input', () => {
     renderWithTranslations(<ChatInput {...defaultProps} />);
     const textarea = screen.getByPlaceholderText('Ask or command...');
-    
+
     // Mock scrollHeight
     Object.defineProperty(textarea, 'scrollHeight', { value: 100, configurable: true });
-    
+
     fireEvent.input(textarea);
     expect(textarea.style.height).toBe('100px');
   });

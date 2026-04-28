@@ -90,7 +90,9 @@ describe('ChatSidebar Component', () => {
   it('renders initials for untitled traces', () => {
     const props = {
       ...defaultProps,
-      sessions: [{ sessionId: '3', title: 'Untitled Trace', updatedAt: Date.now() } as ConversationMeta],
+      sessions: [
+        { sessionId: '3', title: 'Untitled Trace', updatedAt: Date.now() } as ConversationMeta,
+      ],
     };
     render(<ChatSidebar {...props} />);
     // Check initials in collapsed mode to trigger getInitials
@@ -158,7 +160,7 @@ describe('ChatSidebar Component', () => {
     const nowSeconds = Math.floor(Date.now() / 1000);
     const in24h = nowSeconds + (60 * 60 * 24 - 10);
     const in3d = nowSeconds + (60 * 60 * 24 * 3 + 10);
-    
+
     const props = {
       ...defaultProps,
       sessions: [
@@ -167,7 +169,7 @@ describe('ChatSidebar Component', () => {
       ],
     };
     render(<ChatSidebar {...props} />);
-    
+
     await waitFor(() => {
       expect(screen.getByText(/Expires in 23h|Expires soon/)).toBeInTheDocument();
       expect(screen.getByText('Expires in 3d')).toBeInTheDocument();
