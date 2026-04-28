@@ -2,8 +2,6 @@ import { IMemory, IProvider, ITool, Attachment, MessageChunk } from './types/ind
 import { IAgentConfig } from './types/agent';
 import { AgentExecutor } from './agent/executor';
 import { AgentProcessOptions } from './agent/options';
-import { handleProcess } from './agent/handlers/process';
-import { handleStream } from './agent/handlers/stream';
 import { AgentEmitter } from './agent/emitter';
 
 export * from './agent/options';
@@ -79,17 +77,19 @@ export class Agent {
     attachments?: Attachment[];
     thought?: string;
   }> {
+    const { handleProcess } = await import('./agent/handlers/process');
     return handleProcess(this, userId, userText, options);
   }
 
   /**
    * Processes a user message and returns a stream of response chunks.
    */
-  stream(
+  async *stream(
     userId: string,
     userText: string,
     options: AgentProcessOptions = {}
   ): AsyncGenerator<MessageChunk> {
-    return handleStream(this, userId, userText, options);
+    const { handleStream } = await import('./agent/handlers/stream');
+    yield* handleStream(this, userId, userText, options);
   }
 }
