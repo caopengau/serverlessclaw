@@ -42,6 +42,9 @@ export class ConfigManager extends ConfigManagerMap {
     const tableName = this._getTableName();
     if (!tableName) return 0;
 
+    const { emitMetrics, METRICS } = await import('../metrics/metrics');
+    emitMetrics([METRICS.configAccessed(key, 'increment')]).catch(() => {});
+
     this.configCache.delete(key);
 
     try {

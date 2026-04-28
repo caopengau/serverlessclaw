@@ -42,8 +42,8 @@ describe('AgentRegistry Performance', () => {
     // Total should be small and NOT 10+
     const callCount = vi.mocked(ConfigManager.getRawConfig).mock.calls.length;
 
-    // It should be exactly 1 (for agents) - tool overrides are now applied lazily per agent
+    // It should be exactly 2 (1 for agents, 1 for batch overrides)
     expect(callCount).toBeLessThan(5);
-    expect(callCount).toBe(1);
+    expect(callCount).toBe(2);
   });
 });

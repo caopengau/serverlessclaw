@@ -18,6 +18,22 @@ export class ConfigManagerBase {
   }
 
   /**
+   * Resolves the effective key based on workspace or organization scoping.
+   */
+  protected static getEffectiveKey(
+    key: string,
+    options?: { workspaceId?: string; orgId?: string }
+  ): string {
+    if (options?.workspaceId) {
+      return `WS#${options.workspaceId}#${key}`;
+    }
+    if (options?.orgId) {
+      return `ORG#${options.orgId}#${key}`;
+    }
+    return key;
+  }
+
+  /**
    * Fetches a raw value from the ConfigTable by key.
    */
   public static async getRawConfig(
@@ -30,12 +46,10 @@ export class ConfigManagerBase {
       return undefined;
     }
 
-    let effectiveKey = key;
-    if (options?.workspaceId) {
-      effectiveKey = `WS#${options.workspaceId}#${key}`;
-    } else if (options?.orgId) {
-      effectiveKey = `ORG#${options.orgId}#${key}`;
-    }
+    const { emitMetrics, METRICS } = await import('../../metrics/metrics');
+    emitMetrics([METRICS.configAccessed(key, 'get', options)]).catch(() => {});
+
+    const effectiveKey = this.getEffectiveKey(key, options);
 
     try {
       const { Item } = await getDocClient().send(
@@ -60,12 +74,7 @@ export class ConfigManagerBase {
     defaultValue: T,
     options?: { workspaceId?: string; orgId?: string }
   ): Promise<T> {
-    let cacheKey = key;
-    if (options?.workspaceId) {
-      cacheKey = `WS#${options.workspaceId}#${key}`;
-    } else if (options?.orgId) {
-      cacheKey = `ORG#${options.orgId}#${key}`;
-    }
+    const cacheKey = this.getEffectiveKey(key, options);
     const cached = this.configCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return cached.value as T;
@@ -98,12 +107,10 @@ export class ConfigManagerBase {
       return;
     }
 
-    let cacheKey = key;
-    if (options?.workspaceId) {
-      cacheKey = `WS#${options.workspaceId}#${key}`;
-    } else if (options?.orgId) {
-      cacheKey = `ORG#${options.orgId}#${key}`;
-    }
+    const { emitMetrics, METRICS } = await import('../../metrics/metrics');
+    emitMetrics([METRICS.configAccessed(key, 'set', options)]).catch(() => {});
+
+    const cacheKey = this.getEffectiveKey(key, options);
     this.configCache.delete(cacheKey);
 
     if (!options?.skipVersioning) {
@@ -150,6 +157,9 @@ export class ConfigManagerBase {
       logger.warn(`ConfigTable not linked. Skipping delete for ${key}`);
       return;
     }
+
+    const { emitMetrics, METRICS } = await import('../../metrics/metrics');
+    emitMetrics([METRICS.configAccessed(key, 'delete')]).catch(() => {});
 
     this.configCache.delete(key);
 

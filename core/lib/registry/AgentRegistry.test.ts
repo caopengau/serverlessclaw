@@ -216,7 +216,7 @@ describe('AgentRegistry', () => {
       const config = { id: 'test', name: 'Test', systemPrompt: 'Prompt', enabled: true };
 
       await AgentRegistry.saveConfig('test', config);
-      expect(mockDocClient.send).toHaveBeenCalled();
+      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalled();
     });
 
     it('should implement cognitive lineage with versioning and hashing', async () => {

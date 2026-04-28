@@ -574,4 +574,24 @@ export const METRICS = {
       Dimensions: dimensions,
     };
   },
+
+  configAccessed(
+    key: string,
+    operation: 'get' | 'set' | 'delete' | 'increment',
+    scope?: { workspaceId?: string; orgId?: string }
+  ): MetricDatum {
+    const dimensions = [
+      { Name: 'Key', Value: key },
+      { Name: 'Operation', Value: operation },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
+
+    return {
+      MetricName: 'ConfigAccess',
+      Value: 1,
+      Unit: 'Count',
+      Dimensions: dimensions,
+    };
+  },
 };

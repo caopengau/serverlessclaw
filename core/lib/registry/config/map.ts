@@ -20,7 +20,7 @@ export class ConfigManagerMap extends ConfigManagerList {
     const tableName = this._getTableName();
     if (!tableName) return;
 
-    const effectiveKey = options.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    const effectiveKey = this.getEffectiveKey(key, options);
     this.configCache.delete(effectiveKey);
 
     const retryCount = options.retryCount ?? 0;
@@ -101,7 +101,7 @@ export class ConfigManagerMap extends ConfigManagerList {
     const tableName = this._getTableName();
     if (!tableName) return 0;
 
-    const effectiveKey = options.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    const effectiveKey = this.getEffectiveKey(key, options);
     this.configCache.delete(effectiveKey);
 
     try {
@@ -116,7 +116,7 @@ export class ConfigManagerMap extends ConfigManagerList {
         })
       );
       return result.Attributes?.value?.[entityId]?.[field] ?? 0;
-    } catch (e: any) {
+    } catch (e: unknown) {
       logger.error(`Failed to atomically add ${delta} to ${effectiveKey}/${entityId}.${field}:`, e);
       throw e;
     }
@@ -136,7 +136,7 @@ export class ConfigManagerMap extends ConfigManagerList {
     const tableName = this._getTableName();
     if (!tableName) return 0;
 
-    const effectiveKey = options.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    const effectiveKey = this.getEffectiveKey(key, options);
     this.configCache.delete(effectiveKey);
 
     const { min = -Infinity, max = Infinity } = options;
@@ -162,7 +162,7 @@ export class ConfigManagerMap extends ConfigManagerList {
       }
 
       return newValue;
-    } catch (e: any) {
+    } catch (e: unknown) {
       logger.error(
         `Failed to atomically increment ${effectiveKey}/${entityId}.${field} by ${delta}:`,
         e
@@ -185,7 +185,7 @@ export class ConfigManagerMap extends ConfigManagerList {
     const tableName = this._getTableName();
     if (!tableName) return;
 
-    const effectiveKey = options.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    const effectiveKey = this.getEffectiveKey(key, options);
     this.configCache.delete(effectiveKey);
 
     try {
@@ -199,8 +199,8 @@ export class ConfigManagerMap extends ConfigManagerList {
           ExpressionAttributeValues: { ':value': value, ':expected': expectedValue },
         })
       );
-    } catch (e: any) {
-      if (e.name === 'ConditionalCheckFailedException') throw e;
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') throw e;
       logger.error(`Failed to atomically update ${effectiveKey}/${entityId}.${field}:`, e);
       throw e;
     }
@@ -218,7 +218,7 @@ export class ConfigManagerMap extends ConfigManagerList {
     const tableName = this._getTableName();
     if (!tableName) return;
 
-    const effectiveKey = options.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    const effectiveKey = this.getEffectiveKey(key, options);
     this.configCache.delete(effectiveKey);
 
     let retryCount = 0;
@@ -256,7 +256,7 @@ export class ConfigManagerMap extends ConfigManagerList {
           })
         );
         return;
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
           retryCount++;
           continue;
@@ -276,7 +276,7 @@ export class ConfigManagerMap extends ConfigManagerList {
     const tableName = this._getTableName();
     if (!tableName) return;
 
-    const effectiveKey = options.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    const effectiveKey = this.getEffectiveKey(key, options);
     this.configCache.delete(effectiveKey);
 
     let retryCount = 0;
@@ -315,8 +315,8 @@ export class ConfigManagerMap extends ConfigManagerList {
           })
         );
         return;
-      } catch (e: any) {
-        if (e.name === 'ConditionalCheckFailedException') {
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
           retryCount++;
           continue;
         }
@@ -342,12 +342,7 @@ export class ConfigManagerMap extends ConfigManagerList {
     const tableName = this._getTableName();
     if (!tableName) return;
 
-    let actualKey = key;
-    if (options?.workspaceId) {
-      actualKey = `WS#${options.workspaceId}#${key}`;
-    } else if (options?.orgId) {
-      actualKey = `ORG#${options.orgId}#${key}`;
-    }
+    const actualKey = this.getEffectiveKey(key, options);
     this.configCache.delete(actualKey);
 
     const retryCount = options?.retryCount ?? 0;
@@ -390,8 +385,11 @@ export class ConfigManagerMap extends ConfigManagerList {
           ExpressionAttributeValues: values,
         })
       );
-    } catch (e: any) {
-      if (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException') {
+    } catch (e: unknown) {
+      if (
+        e instanceof Error &&
+        (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException')
+      ) {
         try {
           const initialObject = { ...updates };
           if (options?.increments) {
@@ -410,8 +408,8 @@ export class ConfigManagerMap extends ConfigManagerList {
               ExpressionAttributeValues: { ':entity': initialObject },
             })
           );
-        } catch (innerE: any) {
-          if (innerE.name === 'ValidationException') {
+        } catch (innerE: unknown) {
+          if (innerE instanceof Error && innerE.name === 'ValidationException') {
             try {
               const initialObject = { ...updates };
               if (options?.increments) {
@@ -430,8 +428,12 @@ export class ConfigManagerMap extends ConfigManagerList {
                   ExpressionAttributeValues: { ':rootObj': { [entityId]: initialObject } },
                 })
               );
-            } catch (rootE: any) {
-              if (rootE.name === 'ConditionalCheckFailedException' && retryCount < maxRetries) {
+            } catch (rootE: unknown) {
+              if (
+                rootE instanceof Error &&
+                rootE.name === 'ConditionalCheckFailedException' &&
+                retryCount < maxRetries
+              ) {
                 return this.atomicUpdateMapEntity(key, entityId, updates, {
                   ...options,
                   retryCount: retryCount + 1,
@@ -439,7 +441,11 @@ export class ConfigManagerMap extends ConfigManagerList {
               }
               throw rootE;
             }
-          } else if (innerE.name === 'ConditionalCheckFailedException' && retryCount < maxRetries) {
+          } else if (
+            innerE instanceof Error &&
+            innerE.name === 'ConditionalCheckFailedException' &&
+            retryCount < maxRetries
+          ) {
             return this.atomicUpdateMapEntity(key, entityId, updates, {
               ...options,
               retryCount: retryCount + 1,

@@ -1,5 +1,5 @@
-import { PutCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { IAgentConfig } from '../types/agent';
+import { UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import { IAgentConfig, AgentType, EvolutionMode } from '../types/index';
 import { BACKBONE_REGISTRY } from '../backbone';
 import { logger } from '../logger';
 import type { Topology } from '../types/index';
@@ -33,7 +33,7 @@ export class AgentRegistry {
    * Returns a list of agents configured as global fallbacks.
    */
   static getFallbackAgents(): string[] {
-    return ['superclaw', 'facilitator'];
+    return [AgentType.SUPERCLAW, AgentType.FACILITATOR];
   }
 
   /**
@@ -63,8 +63,23 @@ export class AgentRegistry {
 
     if (!dynamicConfig && !backboneConfig) return undefined;
 
-    const { EvolutionMode } = await import('../types/agent');
+    // Apply tool overrides (e.g., from metabolic pruning or batch updates)
+    const toolOverrides = (await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, {
+      workspaceId: options?.workspaceId,
+    })) as Record<string, (string | { name: string; expiresAt: number })[]>;
 
+    return this.mergeAgentConfig(agentId, dynamicConfig, backboneConfig, toolOverrides?.[agentId]);
+  }
+
+  /**
+   * Internal helper to merge backbone and dynamic configurations with tool overrides.
+   */
+  private static mergeAgentConfig(
+    agentId: string,
+    dynamicConfig?: IAgentConfig,
+    backboneConfig?: IAgentConfig,
+    toolOverrides?: (string | { name: string; expiresAt: number })[]
+  ): IAgentConfig {
     const config: IAgentConfig = {
       evolutionMode: EvolutionMode.HITL,
       trustScore: TRUST.DEFAULT_SCORE,
@@ -76,14 +91,9 @@ export class AgentRegistry {
       enabled: dynamicConfig?.enabled ?? backboneConfig?.enabled ?? true,
     };
 
-    // Apply tool overrides (e.g., from metabolic pruning or batch updates)
-    const toolOverrides = (await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, {
-      workspaceId: options?.workspaceId,
-    })) as Record<string, (string | { name: string; expiresAt: number })[]>;
-
-    if (toolOverrides?.[agentId]) {
+    if (toolOverrides) {
       const now = Date.now();
-      const overrides = toolOverrides[agentId]
+      const overrides = toolOverrides
         .map((t) => {
           if (typeof t === 'string') return t;
           if (t.expiresAt > now) return t.name;
@@ -103,22 +113,28 @@ export class AgentRegistry {
   static async getAllConfigs(options?: {
     workspaceId?: string;
   }): Promise<Record<string, IAgentConfig>> {
-    const dynamicAgents = (await ConfigManager.getRawConfig(
-      DYNAMO_KEYS.AGENTS_CONFIG,
-      options
-    )) as Record<string, IAgentConfig>;
-    const all: Record<string, IAgentConfig> = { ...BACKBONE_REGISTRY };
+    const [dynamicAgents, toolOverrides] = await Promise.all([
+      ConfigManager.getRawConfig(DYNAMO_KEYS.AGENTS_CONFIG, options) as Promise<
+        Record<string, IAgentConfig>
+      >,
+      ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, options) as Promise<
+        Record<string, (string | { name: string; expiresAt: number })[]>
+      >,
+    ]);
 
+    const all: Record<string, IAgentConfig> = {};
+
+    // 1. Process Backbone Registry
+    for (const [id, backboneCfg] of Object.entries(BACKBONE_REGISTRY)) {
+      all[id] = this.mergeAgentConfig(id, dynamicAgents?.[id], backboneCfg, toolOverrides?.[id]);
+    }
+
+    // 2. Process purely dynamic agents
     if (dynamicAgents) {
-      for (const [id, cfg] of Object.entries(dynamicAgents)) {
-        all[id] = {
-          tools: [],
-          ...BACKBONE_REGISTRY[id as keyof typeof BACKBONE_REGISTRY],
-          ...cfg,
-          id,
-          name: cfg.name ?? id,
-          enabled: cfg.enabled ?? true,
-        };
+      for (const [id, dynamicCfg] of Object.entries(dynamicAgents)) {
+        if (!all[id]) {
+          all[id] = this.mergeAgentConfig(id, dynamicCfg, undefined, toolOverrides?.[id]);
+        }
       }
     }
 
@@ -152,7 +168,11 @@ export class AgentRegistry {
    * @param config - The partial configuration updates to apply.
    * @throws Error if mandatory fields (name, systemPrompt) are missing during initialization.
    */
-  static async saveConfig(agentId: string, config: Partial<IAgentConfig>): Promise<void> {
+  static async saveConfig(
+    agentId: string,
+    config: Partial<IAgentConfig>,
+    options?: { workspaceId?: string }
+  ): Promise<void> {
     const tableName = getConfigTableName();
 
     if (!tableName) {
@@ -183,12 +203,10 @@ export class AgentRegistry {
     try {
       const { discoverSystemTopology } = await import('../utils/topology');
       const topology = await discoverSystemTopology();
-      await getDocClient().send(
-        new PutCommand({
-          TableName: tableName,
-          Item: { key: DYNAMO_KEYS.SYSTEM_TOPOLOGY, value: topology },
-        })
-      );
+      await ConfigManager.saveRawConfig(DYNAMO_KEYS.SYSTEM_TOPOLOGY, topology, {
+        description: 'Auto-refreshed after agent save',
+        workspaceId: options?.workspaceId,
+      });
       logger.info('Topology auto-refreshed after agent save.');
     } catch (e) {
       logger.error('Failed to auto-refresh topology:', e);

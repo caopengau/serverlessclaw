@@ -18,7 +18,7 @@ export class ConfigManagerList extends ConfigManagerBase {
     const tableName = this._getTableName();
     if (!tableName) return;
 
-    const effectiveKey = options?.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    const effectiveKey = this.getEffectiveKey(key, options);
     this.configCache.delete(effectiveKey);
 
     try {
@@ -69,7 +69,7 @@ export class ConfigManagerList extends ConfigManagerBase {
     const tableName = this._getTableName();
     if (!tableName) return;
 
-    const effectiveKey = options.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    const effectiveKey = this.getEffectiveKey(key, options);
     this.configCache.delete(effectiveKey);
 
     const docClient = getDocClient();
@@ -111,7 +111,7 @@ export class ConfigManagerList extends ConfigManagerBase {
     const tableName = this._getTableName();
     if (!tableName) return;
 
-    const effectiveKey = options.workspaceId ? `WS#${options.workspaceId}#${key}` : key;
+    const effectiveKey = this.getEffectiveKey(key, options);
     this.configCache.delete(effectiveKey);
 
     const docClient = getDocClient();
@@ -139,8 +139,8 @@ export class ConfigManagerList extends ConfigManagerBase {
           })
         );
         return;
-      } catch (e: any) {
-        if (e.name === 'ConditionalCheckFailedException') {
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
           this.configCache.delete(effectiveKey);
           retryCount++;
           continue;
