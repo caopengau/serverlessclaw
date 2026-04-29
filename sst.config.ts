@@ -29,6 +29,7 @@ export default $config({
       defaults: {
         function: {
           architecture: APP_CONFIG.architecture,
+          runtime: APP_CONFIG.runtime,
           environment: {
             AWS_PROFILE: '', // Clear profile to avoid conflict warning as SST injects static credentials
           },
