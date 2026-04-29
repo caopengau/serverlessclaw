@@ -238,6 +238,35 @@ await db.put({
 
 ---
 
+### 13. Blind Tool Failures (Telemetry Gap)
+
+**What**: Catching tool execution errors or security blocks without reporting them to the `TrustManager` (Scales).
+
+**Pattern**:
+
+```typescript
+// ❌ WRONG
+try {
+  await tool.execute(args);
+} catch (e) {
+  messages.push({ role: 'tool', content: `FAILED: ${e.message}` });
+  return { toolCallCount: 0 }; // Trust is never updated!
+}
+
+// ✅ CORRECT
+try {
+  await tool.execute(args);
+} catch (e) {
+  messages.push({ role: 'tool', content: `FAILED: ${e.message}` });
+  await TrustManager.recordFailure(agentId, `Tool crash: ${e.message}`, 2);
+  return { toolCallCount: 0 };
+}
+```
+
+**Occurrences**: 2 critical paths (fixed in audit 2026-04-29)
+
+---
+
 ## How to Use This Document
 
 1. **During Code Review**: Check this document before submitting

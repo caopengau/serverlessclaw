@@ -14,10 +14,14 @@ import { TRACE_TYPES } from '../constants';
 import { MCP } from '../constants/tools';
 
 function isToolExecutionSuccessful(rawResult: ToolResult | string, resultText: string): boolean {
-  if (typeof rawResult === 'string') {
-    return !resultText.startsWith('FAILED');
+  if (resultText.startsWith('FAILED')) return false;
+  if (typeof rawResult === 'object' && rawResult !== null) {
+    const res = rawResult as any;
+    if (res.success === false) return false;
+    if (res.error) return false;
+    if (res.status === 'error' || res.status === 'failed') return false;
   }
-  return !resultText.startsWith('FAILED');
+  return true;
 }
 
 export interface ToolExecutionContext {
@@ -232,6 +236,25 @@ export class ToolExecutor {
         traceId: execContext.traceId,
         messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       });
+
+      // Record security violation as a heavy trust penalty
+      try {
+        const { TrustManager } = await import('../safety/trust-manager');
+        await TrustManager.recordFailure(
+          execContext.agentId,
+          `Security block: ${securityResult.reason} on tool ${tool.name}`,
+          5, // Higher penalty for security violations
+          0,
+          {
+            workspaceId: execContext.workspaceId,
+            teamId: execContext.teamId,
+            staffId: execContext.staffId,
+          }
+        );
+      } catch (e) {
+        logger.error('[EXECUTOR] Failed to record security failure:', e);
+      }
+
       return { toolCallCount: 0 };
     }
 
@@ -315,6 +338,25 @@ export class ToolExecutor {
         traceId: execContext.traceId,
         messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       });
+
+      // Record execution crash as a trust penalty
+      try {
+        const { TrustManager } = await import('../safety/trust-manager');
+        await TrustManager.recordFailure(
+          execContext.agentId,
+          `Tool ${tool.name} crashed: ${execError instanceof Error ? execError.message : String(execError)}`,
+          2, // Medium penalty for crashes
+          0,
+          {
+            workspaceId: execContext.workspaceId,
+            teamId: execContext.teamId,
+            staffId: execContext.staffId,
+          }
+        );
+      } catch (e) {
+        logger.error('[EXECUTOR] Failed to record execution failure:', e);
+      }
+
       return { toolCallCount: 0 };
     }
     const toolDurationMs = performance.now() - toolStart;

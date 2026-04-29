@@ -16,6 +16,15 @@ vi.mock('../registry', () => ({
   AgentRegistry: { recordToolUsage: vi.fn() },
 }));
 
+const mockRecordFailure = vi.fn().mockResolvedValue(undefined);
+const mockRecordSuccess = vi.fn().mockResolvedValue(undefined);
+vi.mock('../safety/trust-manager', () => ({
+  TrustManager: {
+    recordFailure: mockRecordFailure,
+    recordSuccess: mockRecordSuccess,
+  },
+}));
+
 const mockAddStep = vi.fn();
 vi.mock('../tracer', () => ({
   ClawTracer: vi.fn().mockImplementation(function (this: any) {
@@ -675,6 +684,83 @@ describe('ToolExecutor', () => {
         expect(result.paused).toBe(true);
         expect(result.asyncWait).toBe(true);
         expect(executeFn).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('Trust Loop Instrumentation', () => {
+      it('records a heavy trust penalty on security block', async () => {
+        const tool = createTool({
+          requiredPermissions: ['admin'],
+        });
+        const messages: any[] = [];
+
+        await ToolExecutor.executeToolCalls(
+          [createToolCall()],
+          [tool],
+          messages,
+          [],
+          createExecContext({ userId: 'user-no-perms' }),
+          tracer
+        );
+
+        expect(mockRecordFailure).toHaveBeenCalledWith(
+          'agent1',
+          expect.stringContaining('Security block'),
+          5,
+          0,
+          expect.any(Object)
+        );
+      });
+
+      it('records a medium trust penalty on execution crash', async () => {
+        const tool = createTool({
+          execute: vi.fn().mockRejectedValue(new Error('crash')),
+        });
+        const messages: any[] = [];
+
+        await ToolExecutor.executeToolCalls(
+          [createToolCall()],
+          [tool],
+          messages,
+          [],
+          createExecContext(),
+          tracer
+        );
+
+        expect(mockRecordFailure).toHaveBeenCalledWith(
+          'agent1',
+          expect.stringContaining('Tool test-tool crashed: crash'),
+          2,
+          0,
+          expect.any(Object)
+        );
+      });
+
+      it('correctly detects failure in complex ToolResult objects', async () => {
+        const tool = createTool({
+          execute: vi.fn().mockResolvedValue({
+            success: false,
+            error: 'Custom failure message',
+          }),
+        });
+        const messages: any[] = [];
+
+        await ToolExecutor.executeToolCalls(
+          [createToolCall()],
+          [tool],
+          messages,
+          [],
+          createExecContext(),
+          tracer
+        );
+
+        expect(mockRecordFailure).toHaveBeenCalledWith(
+          'agent1',
+          expect.stringContaining('Tool test-tool execution failed.'),
+          1,
+          0,
+          expect.any(Object)
+        );
       });
     });
   });

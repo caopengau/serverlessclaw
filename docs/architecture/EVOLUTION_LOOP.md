@@ -12,17 +12,22 @@ The **Cognitive Evolution Loop** is the core mechanism by which the Serverless C
     |  Failure       | (EventBridge)| Reflector     | (Metabolic Gap) | Persona Updates |
     | (Pulse Health) |              | (Silo 5/Eye)  |                 | (Silo 7/Metab)  |
     ------------------              -----------------                 -------------------
-            ^                                                                  |
-            |                                                                  |
-            |Promote to Prod                                                   |Replay Failure
-            |(AgentRegistry)                                                   |In Sandbox
-            |                                                                  |
-    ------------------              ------------------                -------------------
-    |                |              |                |                |                 |
-    |  DEPLOYED      |<-------------|  HUMAN/SYSTEM  |<---------------|  EVOLUTION      |
-    |  v(N+1)        | (Verification|  APPROVAL      | (Isolated Mode)|  SANDBOX        |
-    |  PERSONA       |     Gate)    |                | (Drift-Free)   |  (PLAYGROUND)   |
-    ------------------              ------------------                -------------------
+            ^                               |                                  |
+            |                               |                                  |
+            |Promote to Prod                |      [ THE MIRROR ]              |Replay Failure
+            |(AgentRegistry)                |      --------------              |In Sandbox
+            |                               |      |            |              |
+    ------------------              ------------------  |  SCALES    |  -------------------
+    |                |              |                |  | (Silo 6)   |  |                 |
+    |  DEPLOYED      |<-------------|  HUMAN/SYSTEM  |<-|            |<-|  EVOLUTION      |
+    |  v(N+1)        | (Verification|  APPROVAL      |  | (Trust     |  |  SANDBOX        |
+    |  PERSONA       |     Gate)    |                |  |  Scores)   |  |  (PLAYGROUND)   |
+    ------------------              ------------------  --------------  -------------------
+                                           ^               |
+                                           |               |
+                                           -----------------
+                                            (Auto-Disable
+                                             if Trust < 20)
 ```
 
 ## 🏗 Key Components

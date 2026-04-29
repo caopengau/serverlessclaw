@@ -126,6 +126,28 @@ function verifyAtomicUpdates(): Finding[] {
   return findings;
 }
 
+function verifyToolTelemetry(): Finding[] {
+  const findings: Finding[] = [];
+  const executorFiles = globSync(`${CORE_DIR}/**/tool-executor.ts`);
+
+  executorFiles.forEach((file) => {
+    const content = readFileSync(file, 'utf-8');
+
+    if (content.includes('catch') && !content.includes('TrustManager.recordFailure')) {
+      findings.push({
+        file: relative(process.cwd(), file),
+        line: 1,
+        principle: 'Evolution Cycle',
+        issue:
+          'Tool execution catch block missing TrustManager reporting - MUST record failure for reputation decay',
+        severity: 'P1',
+      });
+    }
+  });
+
+  return findings;
+}
+
 async function main() {
   const verbose = process.argv.includes('--verbose');
 
@@ -137,6 +159,7 @@ async function main() {
     ...verifySelectionIntegrity(),
     ...verifyMonotonicProgress(),
     ...verifyAtomicUpdates(),
+    ...verifyToolTelemetry(),
   ];
 
   if (verbose || allFindings.length > 0) {
