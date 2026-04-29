@@ -206,6 +206,15 @@ describe('Metrics', () => {
 
       expect(metric.Dimensions?.[0].Value).toBe('gap');
     });
+
+    it('should include eventType and scope dimensions when provided', () => {
+      const scope = { workspaceId: 'ws-123' };
+      const metric = METRICS.circuitBreakerTriggered('event', scope, 'test_event');
+
+      expect(metric.Dimensions).toContainEqual({ Name: 'Type', Value: 'event' });
+      expect(metric.Dimensions).toContainEqual({ Name: 'EventType', Value: 'test_event' });
+      expect(metric.Dimensions).toContainEqual({ Name: 'WorkspaceId', Value: 'ws-123' });
+    });
   });
 
   describe('METRICS.mcpHubPing', () => {
@@ -261,6 +270,11 @@ describe('Metrics', () => {
       expect(metric.Unit).toBe('Count');
       expect(metric.Dimensions).toBeUndefined();
     });
+
+    it('should include scope dimensions when provided', () => {
+      const metric = METRICS.dlqEvents(1, { workspaceId: 'ws-dlq' });
+      expect(metric.Dimensions).toContainEqual({ Name: 'WorkspaceId', Value: 'ws-dlq' });
+    });
   });
 
   describe('METRICS.lockAcquired', () => {
@@ -291,6 +305,11 @@ describe('Metrics', () => {
       expect(metric.Value).toBe(1);
       expect(metric.Unit).toBe('Count');
     });
+
+    it('should include scope dimensions when provided', () => {
+      const metric = METRICS.deploymentStarted({ workspaceId: 'ws-deploy' });
+      expect(metric.Dimensions).toContainEqual({ Name: 'WorkspaceId', Value: 'ws-deploy' });
+    });
   });
 
   describe('METRICS.deploymentCompleted', () => {
@@ -305,6 +324,14 @@ describe('Metrics', () => {
       const metric = METRICS.deploymentCompleted({ success: false });
 
       expect(metric.Dimensions?.[0].Value).toBe('false');
+    });
+
+    it('should include scope dimensions when provided', () => {
+      const metric = METRICS.deploymentCompleted({
+        success: true,
+        scope: { workspaceId: 'ws-done' },
+      });
+      expect(metric.Dimensions).toContainEqual({ Name: 'WorkspaceId', Value: 'ws-done' });
     });
   });
 

@@ -335,6 +335,11 @@ export const triggerDeployment = {
         })
       );
 
+      const { emitMetrics, METRICS: metricHelper } = await import('../../lib/metrics');
+      await emitMetrics([metricHelper.deploymentStarted({ workspaceId, teamId, staffId })]).catch(
+        (err) => logger.warn('Failed to emit DeploymentStarted metric:', err)
+      );
+
       const buildId = build.build?.id;
       if (buildId) {
         // Save Build Metadata

@@ -37,6 +37,12 @@ export class FlowController {
 
     // 1. Rate Limiting check
     if (!(await DistributedState.consumeToken(eventType, rateCapacity, rateRefill, workspaceId))) {
+      try {
+        const { emitMetrics, METRICS } = await import('../metrics');
+        emitMetrics([METRICS.rateLimitExceeded(eventType, { workspaceId })]).catch(() => {});
+      } catch {
+        /* ignore metrics errors */
+      }
       return { allowed: false, reason: 'Rate limit exceeded' };
     }
 
@@ -44,6 +50,14 @@ export class FlowController {
     if (
       await DistributedState.isCircuitOpen(eventType, circuitThreshold, circuitTimeout, workspaceId)
     ) {
+      try {
+        const { emitMetrics, METRICS } = await import('../metrics');
+        emitMetrics([METRICS.circuitBreakerTriggered('event', { workspaceId }, eventType)]).catch(
+          () => {}
+        );
+      } catch {
+        /* ignore metrics errors */
+      }
       return { allowed: false, reason: 'Circuit breaker open' };
     }
 

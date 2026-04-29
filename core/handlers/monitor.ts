@@ -114,9 +114,9 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
     if (status === BuildStatus.SUCCEEDED) {
       logger.info(`Build ${buildId} SUCCEEDED. Marking ${gapIds.length} gaps as DEPLOYED.`);
       const { emitMetrics, METRICS } = await import('../lib/metrics');
-      emitMetrics([METRICS.deploymentCompleted({ success: true })]).catch((err) =>
-        logger.warn('Metrics emission failed after build success:', err)
-      );
+      emitMetrics([
+        METRICS.deploymentCompleted({ success: true, scope: { workspaceId, teamId, staffId } }),
+      ]).catch((err) => logger.warn('Metrics emission failed after build success:', err));
 
       // Reset failure counter on success
       try {
@@ -251,9 +251,9 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
     ) {
       logger.info(`Build ${buildId} ${status}. Marking ${gapIds.length} gaps as FAILED.`);
       const { emitMetrics, METRICS } = await import('../lib/metrics');
-      emitMetrics([METRICS.deploymentCompleted({ success: false })]).catch((err) =>
-        logger.warn('Metrics emission failed after build failure:', err)
-      );
+      emitMetrics([
+        METRICS.deploymentCompleted({ success: false, scope: { workspaceId, teamId, staffId } }),
+      ]).catch((err) => logger.warn('Metrics emission failed after build failure:', err));
 
       // Circuit Breaker: record failure in sliding window
       try {

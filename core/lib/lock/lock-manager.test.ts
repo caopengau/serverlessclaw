@@ -32,12 +32,32 @@ vi.mock('../logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
+const mockEmitMetrics = vi.fn();
+const mockMETRICS = {
+  lockAcquired: vi.fn((id, success, scope) => ({
+    MetricName: 'LockAcquisition',
+    Value: success ? 1 : 0,
+    Dimensions: [
+      { Name: 'LockId', Value: id },
+      { Name: 'Success', Value: String(success) },
+      ...(scope?.workspaceId ? [{ Name: 'WorkspaceId', Value: scope.workspaceId }] : []),
+    ],
+  })),
+};
+
+vi.mock('../metrics', () => ({
+  emitMetrics: (...args: any[]) => mockEmitMetrics(...args),
+  METRICS: mockMETRICS,
+}));
+
 describe('LockManager', () => {
   let lockManager: LockManager;
 
   beforeEach(() => {
     lockManager = new LockManager();
     mockSend.mockReset();
+    mockEmitMetrics.mockReset();
+    vi.clearAllMocks();
   });
 
   describe('acquire', () => {
@@ -54,6 +74,26 @@ describe('LockManager', () => {
       const input = mockSend.mock.calls[0][0].input;
       expect(input.Key.userId).toBe('LOCK#test-lock');
       expect(input.ExpressionAttributeValues[':owner']).toBe('agent-1');
+
+      // Verify metrics emission
+      expect(mockEmitMetrics).toHaveBeenCalled();
+      expect(mockMETRICS.lockAcquired).toHaveBeenCalledWith('test-lock', true, {
+        workspaceId: undefined,
+      });
+    });
+
+    it('should include workspaceId in metrics when provided', async () => {
+      mockSend.mockResolvedValueOnce({});
+
+      await lockManager.acquire('scoped-lock', {
+        ownerId: 'agent-1',
+        workspaceId: 'ws-123',
+        ttlSeconds: 60,
+      });
+
+      expect(mockMETRICS.lockAcquired).toHaveBeenCalledWith('scoped-lock', true, {
+        workspaceId: 'ws-123',
+      });
     });
 
     it('should return false if lock is already held', async () => {

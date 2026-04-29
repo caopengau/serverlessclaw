@@ -133,8 +133,11 @@ Standard event types and their default priority levels are centrally defined to 
           |                                                             (Tie-break)
           | (NO)
           v
+  [ Multi-Tenant Scope ] -- (Propagate workspaceId) -> [ Context Ready ]
+          |
+          v
   [ Flow Control ] -- (Principle 13) -> [ Circuit/Rate Gate ] -- FAIL --> [ Reject & DLQ ]
-          |                                 (Fail-Closed)
+          |                                 (Fail-Closed)         (Scoped Metrics)
           v
   [ Agent Router ] -- (Principle 14 Guard) -> [ Selection Integrity ] -- FAIL --> [ Fallback ]
           |                                         (Verify Enabled)
@@ -148,7 +151,7 @@ Standard event types and their default priority levels are centrally defined to 
           | (NO)
           v
   [ Agent Executor ] -- (Lock Acquisition) -> [ Session Lock ]
-          |                                          |
+          |                                     (Scoped)
           v                                          v
   [ Tool Executor ] -- (Shield Gate) -> [ Safety Engine ]
           |

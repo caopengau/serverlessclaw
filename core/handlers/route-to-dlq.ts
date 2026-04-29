@@ -10,7 +10,8 @@ export async function routeToDlq(
   userId: string,
   traceId: string,
   errorMessage?: string,
-  sessionId?: string
+  sessionId?: string,
+  workspaceId?: string
 ): Promise<void> {
   const { emitEvent } = await import('../lib/utils/bus');
   const { EventType } = await import('../lib/types/agent');
@@ -25,6 +26,7 @@ export async function routeToDlq(
       severity: 'high',
       userId,
       traceId,
+      workspaceId,
       context: {
         detailType,
         sessionId: sessionId || (event.detail.sessionId as string) || 'system-spine',
@@ -46,6 +48,7 @@ export async function routeToDlq(
       errorMessage,
       retryCount: (event.detail.retryCount as number) ?? 0,
       timestamp: Date.now(),
+      workspaceId,
       observability: {
         detailType,
         envelopeId: event.id,
@@ -55,10 +58,12 @@ export async function routeToDlq(
         errorMessage,
         retryCount: (event.detail.retryCount as number) ?? 0,
         timestamp: Date.now(),
+        workspaceId,
       },
     });
     logger.info(`[EVENTS] Event ${detailType} routed to DLQ for retry`, {
       detailType,
+      workspaceId: workspaceId || 'GLOBAL',
       timestamp: Date.now(),
     });
   } catch (dlqError) {
@@ -70,6 +75,7 @@ export async function routeToDlq(
       severity: 'high',
       userId,
       traceId,
+      workspaceId,
       context: { detailType, dlqError: String(dlqError) },
     });
     throw new Error(`Unhandled event type: ${detailType}`);

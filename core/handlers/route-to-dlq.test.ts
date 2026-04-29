@@ -154,4 +154,31 @@ describe('routeToDlq', () => {
       })
     );
   });
+
+  it('propagates workspaceId to the DLQ event', async () => {
+    await routeToDlq(
+      {
+        'detail-type': EventType.SYSTEM_HEALTH_REPORT,
+        detail: { sessionId: 's1', traceId: 't1' },
+        id: 'e1',
+      },
+      EventType.SYSTEM_HEALTH_REPORT,
+      'SYSTEM',
+      't1',
+      'test error',
+      's1',
+      'ws-123'
+    );
+
+    expect(mockEmitEvent).toHaveBeenCalledWith(
+      'events.handler',
+      EventType.DLQ_ROUTE,
+      expect.objectContaining({
+        workspaceId: 'ws-123',
+        observability: expect.objectContaining({
+          workspaceId: 'ws-123',
+        }),
+      })
+    );
+  });
 });

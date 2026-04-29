@@ -94,6 +94,16 @@ export class LockManager {
         })
       );
       logger.debug(`Lock [${fullId}] acquired by ${options.ownerId}`);
+
+      try {
+        const { emitMetrics, METRICS } = await import('../metrics');
+        emitMetrics([
+          METRICS.lockAcquired(lockId, true, { workspaceId: options.workspaceId }),
+        ]).catch(() => {});
+      } catch {
+        /* ignore metrics errors */
+      }
+
       return true;
     } catch (error: unknown) {
       if ((error as Error).name === 'ConditionalCheckFailedException') {

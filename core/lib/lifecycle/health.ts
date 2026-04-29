@@ -91,6 +91,7 @@ export interface HealthIssue {
   context?: Record<string, unknown>;
   userId: string;
   traceId?: string;
+  workspaceId?: string;
 }
 
 export interface ProbeResult {

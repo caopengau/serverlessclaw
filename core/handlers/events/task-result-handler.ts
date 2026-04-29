@@ -149,7 +149,7 @@ export async function handleTaskResult(
       traceId ?? 'unknown',
       `Recursion limit exceeded (depth:${currentDepth})`
     );
-    emitMetrics([METRICS.dlqEvents(1)]).catch(() => {});
+    emitMetrics([METRICS.dlqEvents(1, { workspaceId, teamId, staffId })]).catch(() => {});
     return;
   }
 

@@ -37,15 +37,17 @@ export async function handler(
   if (!validation.valid) {
     const errorMsg = `[VALIDATION] Missing required fields: ${validation.errors?.join(', ')}`;
     logger.error(errorMsg);
+    const workspaceId = (eventDetail.workspaceId as string) || undefined;
     await routeToDlq(
       event,
       detailType,
       'SYSTEM',
       (eventDetail.traceId as string) || 'unknown',
       errorMsg,
-      (eventDetail.sessionId as string) || 'system-spine'
+      (eventDetail.sessionId as string) || 'system-spine',
+      workspaceId
     );
-    emitMetrics([METRICS.dlqEvents(1)]).catch(() => {});
+    emitMetrics([METRICS.dlqEvents(1, { workspaceId })]).catch(() => {});
     return;
   }
 
@@ -69,7 +71,15 @@ export async function handler(
       logger.warn(
         `[RECURSION] Limit exceeded for trace ${traceId} (Depth: ${currentDepth}, Limit: ${recursionLimit})`
       );
-      await routeToDlq(event, detailType, 'SYSTEM', traceId, `Recursion limit exceeded`, sessionId);
+      await routeToDlq(
+        event,
+        detailType,
+        'SYSTEM',
+        traceId,
+        `Recursion limit exceeded`,
+        sessionId,
+        workspaceId
+      );
       emitMetrics([METRICS.dlqEvents(1, scope)]).catch(() => {});
       return;
     }
@@ -94,7 +104,15 @@ export async function handler(
   const flowResult = await FlowController.canProceed(detailType, workspaceId);
   if (!flowResult.allowed) {
     logger.warn(`[FLOW_CONTROL] ${flowResult.reason} for ${detailType}`);
-    await routeToDlq(event, detailType, 'SYSTEM', traceId, flowResult.reason!, sessionId);
+    await routeToDlq(
+      event,
+      detailType,
+      'SYSTEM',
+      traceId,
+      flowResult.reason!,
+      sessionId,
+      workspaceId
+    );
     emitMetrics([METRICS.dlqEvents(1, scope)]).catch(() => {});
     return;
   }
@@ -124,7 +142,15 @@ export async function handler(
   const retryCount = (eventDetail.retryCount as number) ?? 0;
   if (retryCount > maxRetryCount) {
     logger.warn(`[RETRY] Exceeded max retries (${maxRetryCount}) for ${detailType}`);
-    await routeToDlq(event, detailType, 'SYSTEM', traceId, 'Max retry count exceeded', sessionId);
+    await routeToDlq(
+      event,
+      detailType,
+      'SYSTEM',
+      traceId,
+      'Max retry count exceeded',
+      sessionId,
+      workspaceId
+    );
     emitMetrics([METRICS.dlqEvents(1, scope)]).catch(() => {});
     return;
   }
@@ -164,7 +190,7 @@ export async function handler(
     const routing = routingTable[detailType] || DEFAULT_EVENT_ROUTING[detailType];
     if (!routing) {
       logger.warn(`Unhandled event type: ${detailType}. Routing to DLQ.`);
-      await routeToDlq(event, detailType, 'SYSTEM', traceId, undefined, sessionId);
+      await routeToDlq(event, detailType, 'SYSTEM', traceId, undefined, sessionId, workspaceId);
       emitMetrics([METRICS.dlqEvents(1, scope)]).catch(() => {});
       return;
     }
@@ -195,21 +221,29 @@ export async function handler(
           } catch (fallbackError) {
             const errorMsg = `[SAFE_MODE] Critical fallback lookup failed for ${fallbackModuleName}: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`;
             logger.error(errorMsg);
-            await routeToDlq(event, detailType, 'SYSTEM', traceId, errorMsg, sessionId);
+            await routeToDlq(
+              event,
+              detailType,
+              'SYSTEM',
+              traceId,
+              errorMsg,
+              sessionId,
+              workspaceId
+            );
             emitMetrics([METRICS.dlqEvents(1, scope)]).catch(() => {});
             throw new Error(errorMsg);
           }
         } else {
           const errorMsg = `[SAFE_MODE] Primary lookup failed and no fallback exists for ${detailType}`;
           logger.error(errorMsg);
-          await routeToDlq(event, detailType, 'SYSTEM', traceId, errorMsg, sessionId);
+          await routeToDlq(event, detailType, 'SYSTEM', traceId, errorMsg, sessionId, workspaceId);
           emitMetrics([METRICS.dlqEvents(1, scope)]).catch(() => {});
           throw new Error(errorMsg);
         }
       } else {
         const errorMsg = `Already using default routing and lookup failed: ${importError instanceof Error ? importError.message : String(importError)}`;
         logger.error(errorMsg);
-        await routeToDlq(event, detailType, 'SYSTEM', traceId, errorMsg, sessionId);
+        await routeToDlq(event, detailType, 'SYSTEM', traceId, errorMsg, sessionId, workspaceId);
         emitMetrics([METRICS.dlqEvents(1, scope)]).catch(() => {});
         throw new Error(errorMsg);
       }
@@ -256,7 +290,7 @@ export async function handler(
     await FlowController.recordFailure(detailType, workspaceId);
 
     // Route to DLQ
-    await routeToDlq(event, detailType, 'SYSTEM', traceId, errorMessage, sessionId);
+    await routeToDlq(event, detailType, 'SYSTEM', traceId, errorMessage, sessionId, workspaceId);
     emitMetrics([METRICS.dlqEvents(1, scope)]).catch(() => {});
 
     // Emit error timing metric

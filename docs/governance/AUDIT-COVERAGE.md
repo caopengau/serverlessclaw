@@ -38,6 +38,7 @@ Last Updated: 2026-04-29
 
 | Date       | Report                                          | Silos Covered         | Cross-Silo | Key Findings                                                                                        |
 | :--------- | :---------------------------------------------- | :-------------------- | :--------- | :-------------------------------------------------------------------------------------------------- |
+| 2026-04-29 | `audit-2026-04-29-perspective-a-v4.md`      | Spine, Brain, Eye     | A          | FIXED: P1 DLQ multi-tenant blindness, P1 missing metrics scope, P2 deployment/traffic telemetry gaps |
 | 2026-04-29 | `audit-2026-04-29-trust-loop-v2.md`            | Scales, Eye, Spine    | D          | FIXED: P1 Missing collab context summary (Anti-Pattern 8), P1 Collab Creation Race Condition (Anti-Pattern 11) |
 | 2026-04-29 | `audit-2026-04-29-identity-metabolism.md`      | Brain, Shield, Metabolism | C, D       | FIXED: P1 Global telemetry blindness in evolution metrics, P1 Missing workspaceId in Tool ROI. |
 | 2026-04-29 | `audit-2026-04-29-evolution-cycle-v2.md`       | Hand, Shield, Scales  | B          | FIXED: P1 Blind Tool Failures (JSON/Zod), P1 Adaptive Mode routing bug, P1 Selection Integrity   |
@@ -60,19 +61,19 @@ Last Updated: 2026-04-29
 | 2026-04-26 | `audit-2026-04-26-trust-loop.md`                | Eye, Scales, Spine    | D          | FIXED: Disconnected trust engine, Telemetry data loss                                               |
 | 2026-04-26 | `audit-2026-04-26-evolution-cycle.md`           | Hand, Shield, Scales  | B          | FIXED: Selection Integrity (Sh10), JSON Mode enforcement (Sh9)                                      |
 | 2026-04-26 | `audit-2026-04-26-life-of-a-message.md`         | Spine, Brain, Eye     | A          | FIXED: Fail-Closed rate limiting, Atomic session updates                                            |
-
 ---
 
 ## Gap Analysis
 
 ### High Priority (Needs Re-Audit)
 
-1. **Perspective A: Life of a Message** - Needs verification of full-stack observability with the new unified metrics partition.
+1. **The Shield (Silo 3)** - Needs verification of fail-closed behavior in new cognitive safety guards.
 
 ### Medium Priority (Rarely Audited)
 
-1. **The Metabolism** (Silo 7) - Now has 4 audits, regenerative logic for tools and trust verified. Next audit should focus on S3 resource reclamation.
+1. **The Metabolism** (Silo 7) - Focus next audit on S3 resource reclamation and stale tool pruning.
 
+---
 ### High Risk (Most Violations)
 
 1. **All core silos (1-6) have been significantly hardened on 2026-04-26.** Risk levels have been downgraded based on comprehensive remediation of cross-silo leaks and race conditions.

@@ -300,6 +300,12 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
     logger.info(
       `Triggering CodeBuild Deployer for emergency recovery to LKG: ${lkgHash ?? 'HEAD^'}...`
     );
+
+    const { emitMetrics, METRICS } = await import('../lib/metrics');
+    await emitMetrics([METRICS.deploymentStarted()]).catch((err) =>
+      logger.warn('Failed to emit DeploymentStarted metric during recovery:', err)
+    );
+
     const command = new StartBuildCommand({
       projectName: typedResource.Deployer.name,
       environmentVariablesOverride: [

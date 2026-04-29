@@ -236,9 +236,11 @@ export const METRICS = {
 
   circuitBreakerTriggered(
     type: 'deploy' | 'recovery' | 'gap' | 'event',
-    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string },
+    eventType?: string
   ): MetricDatum {
     const dimensions: Array<{ Name: string; Value: string }> = [{ Name: 'Type', Value: type }];
+    if (eventType) dimensions.push({ Name: 'EventType', Value: eventType });
     if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
     if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
     if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
