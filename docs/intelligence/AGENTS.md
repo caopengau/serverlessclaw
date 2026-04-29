@@ -10,17 +10,17 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 
 ### 1. Autonomous Agents (LLM-Powered)
 
-| Agent                   | Host (Tier)  | Responsibilities                                                                                                     |
-| :---------------------- | :----------- | :------------------------------------------------------------------------------------------------------------------- |
+| Agent                   | Host (Tier)  | Responsibilities                                                                                                                                          |
+| :---------------------- | :----------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **SuperClaw**           | `Standard`   | **Nimble Orchestrator**. See [`core/agents/superclaw.ts`](../../core/agents/superclaw.ts) and [`constants.ts`](../../core/agents/superclaw/constants.ts). |
-| **Coder Agent**         | `High-Power` | Writes code, validates deployments. See [`core/agents/coder.ts`](../../core/agents/coder.ts).                        |
-| **Researcher**          | `High-Power` | Deep exploration. See [RESEARCH.md](./RESEARCH.md) & [`core/agents/researcher.ts`](../../core/agents/researcher.ts). |
-| **Strategic Planner**   | `High-Power` | **Technical Auditor**. See [`core/agents/strategic-planner.ts`](../../core/agents/strategic-planner.ts).             |
-| **QA Auditor**          | `Standard`   | Verifies changes. See [`core/agents/qa.ts`](../../core/agents/qa.ts).                                                |
-| **Facilitator**         | `Standard`   | **Session Moderator**. See [`core/agents/facilitator.ts`](../../core/agents/facilitator.ts).                         |
-| **Merger**              | `Standard`   | **Code Integration**. See [`core/agents/merger.ts`](../../core/agents/merger.ts).                                    |
-| **Critic**              | `Standard`   | **Logic Oversight**. See [`core/agents/critic.ts`](../../core/agents/critic.ts).                                     |
-| **Cognition Reflector** | `Light`      | **Knowledge Custodian**. See [`core/agents/cognition-reflector.ts`](../../core/agents/cognition-reflector.ts).       |
+| **Coder Agent**         | `High-Power` | Writes code, validates deployments. See [`core/agents/coder.ts`](../../core/agents/coder.ts).                                                             |
+| **Researcher**          | `High-Power` | Deep exploration. See [RESEARCH.md](./RESEARCH.md) & [`core/agents/researcher.ts`](../../core/agents/researcher.ts).                                      |
+| **Strategic Planner**   | `High-Power` | **Technical Auditor**. See [`core/agents/strategic-planner.ts`](../../core/agents/strategic-planner.ts).                                                  |
+| **QA Auditor**          | `Standard`   | Verifies changes. See [`core/agents/qa.ts`](../../core/agents/qa.ts).                                                                                     |
+| **Facilitator**         | `Standard`   | **Session Moderator**. See [`core/agents/facilitator.ts`](../../core/agents/facilitator.ts).                                                              |
+| **Merger**              | `Standard`   | **Code Integration**. See [`core/agents/merger.ts`](../../core/agents/merger.ts).                                                                         |
+| **Critic**              | `Standard`   | **Logic Oversight**. See [`core/agents/critic.ts`](../../core/agents/critic.ts).                                                                          |
+| **Cognition Reflector** | `Light`      | **Knowledge Custodian**. See [`core/agents/cognition-reflector.ts`](../../core/agents/cognition-reflector.ts).                                            |
 
 ### 2. System Handlers (Logic-Powered)
 

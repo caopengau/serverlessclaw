@@ -726,6 +726,23 @@ describe('edge cases', () => {
     const expectedSeconds = Math.floor((MOCK_NOW + 7 * 24 * 60 * 60 * 1000) / 1000);
     expect(collabItem.expiresAt).toBe(expectedSeconds);
   });
+
+  it('should update activity atomically via updateItem', async () => {
+    const base = createMockBase();
+    base.updateItem.mockResolvedValue(undefined);
+
+    await import('./collaboration-operations').then((m) =>
+      m.updateCollaborationActivity(base, 'collab-1', 'ws-1')
+    );
+
+    expect(base.updateItem).toHaveBeenCalledWith(
+      expect.objectContaining({
+        Key: { userId: 'WS#ws-1#COLLAB#collab-1', timestamp: 0 },
+        UpdateExpression: 'SET lastActivityAt = :now, updatedAt = :now',
+        ConditionExpression: 'attribute_exists(userId)',
+      })
+    );
+  });
 });
 
 import { transitToCollaboration } from './collaboration-operations';

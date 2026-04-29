@@ -266,7 +266,7 @@ export class TokenTracker {
     } else if (scope?.teamId) {
       userId = `TEAM#${scope.teamId}#TOKEN_ROLLUP#${agentId}`;
     } else {
-      userId = `TOKEN_ROLLUP#${agentId}`;
+      userId = `GLOBAL#TOKEN_ROLLUP#${agentId}`;
     }
     try {
       const { Items } = await docClient.send(

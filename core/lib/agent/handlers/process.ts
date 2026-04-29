@@ -171,8 +171,8 @@ export async function handleProcess(
     );
   }
 
+  const startTime = Date.now();
   try {
-    const startTime = Date.now();
     const {
       activeModel: resolvedModel,
       activeProvider: resolvedProvider,
@@ -356,6 +356,23 @@ export async function handleProcess(
     const errorMessage = error instanceof Error ? error.message : String(error);
     logger.error(`[AGENT] Process Error: ${errorMessage}`, { agentId: agent.config?.id, traceId });
     await tracer.failTrace(errorMessage, { error: errorMessage });
+
+    if (!process.env.VITEST) {
+      reportAgentMetrics({
+        agentId: agent.config?.id ?? AGENT_SYSTEM_IDS.UNKNOWN,
+        traceId,
+        activeProvider: AGENT_SYSTEM_IDS.UNKNOWN,
+        activeModel: AGENT_SYSTEM_IDS.UNKNOWN,
+        inputTokens: 0,
+        outputTokens: 0,
+        toolCalls: 0,
+        durationMs: Date.now() - startTime,
+        success: false,
+        paused: false,
+        scope,
+      }).catch(() => {});
+    }
+
     throw error;
   }
 }

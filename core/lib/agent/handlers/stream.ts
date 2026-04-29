@@ -292,6 +292,23 @@ export async function* handleStream(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     await tracer.failTrace(errorMessage, { error: errorMessage });
+
+    if (!process.env.VITEST) {
+      reportAgentMetrics({
+        agentId: agent.config?.id ?? 'unknown',
+        traceId,
+        activeProvider: 'unknown',
+        activeModel: 'unknown',
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
+        toolCalls: totalToolCalls,
+        durationMs: Date.now() - startTime,
+        success: false,
+        paused: false,
+        scope,
+      }).catch(() => {});
+    }
+
     throw error;
   }
 }

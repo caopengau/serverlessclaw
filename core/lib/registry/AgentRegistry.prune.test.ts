@@ -149,4 +149,39 @@ describe('AgentRegistry Pruning', () => {
     expect(prunedCount).toBe(0);
     expect(ConfigManager.saveRawConfig).not.toHaveBeenCalled();
   });
+
+  it('should prune tools that are stale based on lastUsed', async () => {
+    const now = Date.now();
+    const thresholdMs = 30 * 24 * 60 * 60 * 1000;
+    const veryOldTimestamp = now - thresholdMs - 10000;
+
+    // toolA was used in the past (count: 5) but is now stale (lastUsed is old)
+    vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
+      if (key === DYNAMO_KEYS.TOOL_USAGE) {
+        return {
+          toolA: { count: 5, firstRegistered: veryOldTimestamp - 1000, lastUsed: veryOldTimestamp },
+        };
+      }
+      if (key === DYNAMO_KEYS.AGENTS_CONFIG) {
+        return {
+          agent1: { name: 'Agent 1', tools: ['toolA'] },
+        };
+      }
+      if (key === DYNAMO_KEYS.AGENT_TOOL_OVERRIDES) {
+        return {
+          agent1: ['toolA'],
+        };
+      }
+      return undefined;
+    });
+
+    const prunedCount = await AgentRegistry.pruneLowUtilizationTools(undefined, 30);
+    expect(prunedCount).toBe(1);
+    expect(ConfigManager.atomicRemoveFromMap).toHaveBeenCalledWith(
+      DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
+      'agent1',
+      ['toolA'],
+      undefined
+    );
+  });
 });

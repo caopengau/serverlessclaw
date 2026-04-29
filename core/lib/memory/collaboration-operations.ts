@@ -354,27 +354,34 @@ export async function closeCollaboration(
 }
 
 /**
- * Updates the last activity timestamp for a collaboration
+ * Updates the last activity timestamp for a collaboration atomically (Principle 13)
  */
 export async function updateCollaborationActivity(
   base: BaseMemoryProvider,
   collaborationId: string,
   scope?: string | ContextualScope
 ): Promise<void> {
-  const collaboration = await getCollaboration(base, collaborationId, scope);
-  if (!collaboration) return;
-
-  collaboration.lastActivityAt = Date.now();
-  collaboration.updatedAt = Date.now();
-
-  const workspaceId = collaboration.workspaceId;
+  const workspaceId = resolveScopeId(scope);
   const pk = base.getScopedUserId(`${COLLAB_PREFIX}${collaborationId}`, scope || workspaceId);
-  await base.putItem({
-    userId: pk,
-    timestamp: 0,
-    type: 'COLLABORATION',
-    ...collaboration,
-  });
+  const now = Date.now();
+
+  try {
+    await base.updateItem({
+      Key: {
+        userId: pk,
+        timestamp: 0,
+      },
+      UpdateExpression: 'SET lastActivityAt = :now, updatedAt = :now',
+      ConditionExpression: 'attribute_exists(userId)',
+      ExpressionAttributeValues: {
+        ':now': now,
+      },
+    });
+  } catch (e) {
+    if ((e as Error).name !== 'ConditionalCheckFailedException') {
+      logger.warn(`Failed to update collaboration activity for ${collaborationId}:`, e);
+    }
+  }
 }
 
 /**

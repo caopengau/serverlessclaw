@@ -10,7 +10,7 @@ The **Cognitive Evolution Loop** is the core mechanism by which the Serverless C
     |                |              |               |                 |                 |
     |  Real-world    |------------->| Cognition     |---------------->| Proposed        |
     |  Failure       | (EventBridge)| Reflector     | (Metabolic Gap) | Persona Updates |
-    |                |              |               |                 |                 |
+    | (Pulse Health) |              | (Silo 5/Eye)  |                 | (Silo 7/Metab)  |
     ------------------              -----------------                 -------------------
             ^                                                                  |
             |                                                                  |

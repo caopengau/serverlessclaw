@@ -292,20 +292,20 @@ describe('TokenTracker', () => {
 
   describe('getRollup', () => {
     it('should query with default date (today)', async () => {
-      mockSend.mockResolvedValueOnce({ Items: [{ userId: 'TOKEN_ROLLUP#agent-1' }] });
+      mockSend.mockResolvedValueOnce({ Items: [{ userId: 'GLOBAL#TOKEN_ROLLUP#agent-1' }] });
 
       const result = await TokenTracker.getRollup('agent-1');
 
-      expect(result).toEqual({ userId: 'TOKEN_ROLLUP#agent-1' });
+      expect(result).toEqual({ userId: 'GLOBAL#TOKEN_ROLLUP#agent-1' });
     });
 
     it('should query with specific date', async () => {
-      mockSend.mockResolvedValueOnce({ Items: [{ userId: 'TOKEN_ROLLUP#agent-1' }] });
+      mockSend.mockResolvedValueOnce({ Items: [{ userId: 'GLOBAL#TOKEN_ROLLUP#agent-1' }] });
 
       await TokenTracker.getRollup('agent-1', '2026-01-15');
 
       const cmd = mockSend.mock.calls[0][0] as QueryCommand;
-      expect(cmd.input.ExpressionAttributeValues?.[':pk']).toBe('TOKEN_ROLLUP#agent-1');
+      expect(cmd.input.ExpressionAttributeValues?.[':pk']).toBe('GLOBAL#TOKEN_ROLLUP#agent-1');
     });
 
     it('should return null when no items found', async () => {

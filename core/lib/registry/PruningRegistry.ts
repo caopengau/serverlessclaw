@@ -22,14 +22,19 @@ export class PruningRegistry {
     const scope = workspaceId !== 'default' ? { workspaceId } : undefined;
     const usage = (await ConfigManager.getRawConfig(DYNAMO_KEYS.TOOL_USAGE, scope)) as Record<
       string,
-      { count: number; firstRegistered: number }
+      { count: number; firstRegistered: number; lastUsed?: number }
     >;
     if (!usage) return 0;
 
     const thresholdMs = daysThreshold * 24 * 60 * 60 * 1000;
     const now = Date.now();
     const lowUtilTools = Object.entries(usage)
-      .filter(([, stats]) => stats.count === 0 && now - stats.firstRegistered > thresholdMs)
+      .filter(([, stats]) => {
+        const isOldAndUnused =
+          stats.count === 0 && now - (stats.firstRegistered || 0) > thresholdMs;
+        const isStale = (stats.lastUsed || 0) > 0 && now - (stats.lastUsed as number) > thresholdMs;
+        return isOldAndUnused || isStale;
+      })
       .map(([name]) => name);
 
     if (lowUtilTools.length === 0) return 0;
