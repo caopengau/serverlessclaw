@@ -17,6 +17,12 @@ vi.mock('../logger', () => ({
   },
 }));
 
+vi.mock('../registry', () => ({
+  AgentRegistry: {
+    getAgentConfig: vi.fn().mockResolvedValue({ enabled: true }),
+  },
+}));
+
 // Mock RetentionManager
 vi.mock('./tiering', () => ({
   RetentionManager: {
