@@ -51,14 +51,9 @@ const Button: React.FC<ButtonProps> = ({
       `}
       disabled={loading || disabled}
     >
-      {loading ? (
-        <Loader2 size={16} className="animate-spin" />
-      ) : (
-        <>
-          {icon}
-          {children}
-        </>
-      )}
+      {loading && <Loader2 size={16} className="animate-spin" />}
+      {!loading && icon}
+      <span className={loading ? 'opacity-0' : ''}>{children}</span>
     </button>
   );
 };

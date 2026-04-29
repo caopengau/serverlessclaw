@@ -231,6 +231,7 @@ export default function AgentTuningHub({
                   <button
                     onClick={copySnippet}
                     className="text-cyber-blue/60 hover:text-cyber-blue transition-colors"
+                    data-testid="copy-snippet-button"
                   >
                     <Copy size={12} />
                   </button>
@@ -247,6 +248,7 @@ export default function AgentTuningHub({
                 variant="outline"
                 size="sm"
                 className="flex-1 text-[10px] uppercase font-bold"
+                data-testid="dismiss-suggestions-button"
               >
                 Dismiss
               </Button>
