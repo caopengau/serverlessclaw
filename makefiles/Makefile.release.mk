@@ -8,7 +8,8 @@ include makefiles/Makefile.shared.mk
 release: ## Full Release: Quality Gates -> Deploy -> Audit Tag (Auditing & Costs tracking)
 	@$(call log_step,Starting audited release for environment: $(ENV)...)
 	@if [ "$(ENV)" != "prod" ]; then \
-		$(call log_warning,WARNING: Running release on non-prod environment: $(ENV)); \
+		$(call log_error,ERROR: Release target can ONLY be run for ENV=prod. Detected: $(ENV)); \
+		exit 1; \
 	fi
 	@$(call verify_clean)
 	@$(MAKE) pre-release-check
