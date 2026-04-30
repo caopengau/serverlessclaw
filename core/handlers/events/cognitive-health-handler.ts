@@ -1,6 +1,9 @@
 import { logger } from '../../lib/logger';
 import { EventType } from '../../lib/types/agent';
 import type { BaseMemoryProvider } from '../../lib/memory/base';
+import { CognitiveHealthMonitor } from '../../lib/metrics/cognitive-metrics';
+import { DynamoMemory } from '../../lib/memory';
+import { emitEvent, EventPriority } from '../../lib/utils/bus';
 
 /**
  * Handles cognitive health check events.
@@ -11,9 +14,6 @@ import type { BaseMemoryProvider } from '../../lib/memory/base';
 export async function handleCognitiveHealthCheck(
   eventDetail: Record<string, unknown>
 ): Promise<void> {
-  const { CognitiveHealthMonitor } = await import('../../lib/metrics/cognitive-metrics');
-  const { DynamoMemory } = await import('../../lib/memory');
-
   const memory = new DynamoMemory();
   const monitor = new CognitiveHealthMonitor(memory as unknown as BaseMemoryProvider);
   monitor.start();
@@ -59,28 +59,34 @@ async function alertDegradedHealth(
   label: string,
   workspaceId?: string
 ): Promise<void> {
-  const { emitEvent } = await import('../../lib/utils/bus');
   const criticalAnomalies = snapshot.anomalies.filter(
     (a: any) => a.severity === 'critical' || a.severity === 'high'
   );
 
   try {
-    await emitEvent('cognitive-health', EventType.SYSTEM_HEALTH_REPORT, {
-      component: 'CognitiveHealthMonitor',
-      issue: `[${label}] Cognitive health score dropped to ${snapshot.overallScore}/100. ${criticalAnomalies.length} critical anomalies detected.`,
-      severity: snapshot.overallScore < 50 ? 'critical' : 'high',
-      workspaceId,
-      context: {
-        overallScore: snapshot.overallScore,
-        anomalyCount: snapshot.anomalies.length,
-        criticalCount: criticalAnomalies.length,
-        agentMetrics: snapshot.agentMetrics.map((m: any) => ({
-          agentId: m.agentId,
-          completionRate: m.taskCompletionRate,
-          errorRate: m.errorRate,
-        })),
+    const severity = snapshot.overallScore < 50 ? 'critical' : 'high';
+    const priority = severity === 'critical' ? EventPriority.CRITICAL : EventPriority.HIGH;
+    await emitEvent(
+      'cognitive-health',
+      EventType.SYSTEM_HEALTH_REPORT,
+      {
+        component: 'CognitiveHealthMonitor',
+        issue: `[${label}] Cognitive health score dropped to ${snapshot.overallScore}/100. ${criticalAnomalies.length} critical anomalies detected.`,
+        severity,
+        workspaceId,
+        context: {
+          overallScore: snapshot.overallScore,
+          anomalyCount: snapshot.anomalies.length,
+          criticalCount: criticalAnomalies.length,
+          agentMetrics: snapshot.agentMetrics.map((m: any) => ({
+            agentId: m.agentId,
+            completionRate: m.taskCompletionRate,
+            errorRate: m.errorRate,
+          })),
+        },
       },
-    });
+      { priority }
+    );
   } catch (error) {
     logger.error(`Failed to emit cognitive health alert for ${label}:`, error);
   }

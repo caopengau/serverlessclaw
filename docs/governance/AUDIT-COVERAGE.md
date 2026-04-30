@@ -38,6 +38,7 @@ Last Updated: 2026-04-29
 
 | Date       | Report                                          | Silos Covered             | Cross-Silo | Key Findings                                                                                                   |
 | :--------- | :---------------------------------------------- | :------------------------ | :--------- | :------------------------------------------------------------------------------------------------------------- |
+| 2026-04-30 | `audit-2026-04-30-cognitive-safety-guards.md`   | Shield, Eye               | D          | FIXED: P1 Fail-open Cognitive Trace Coherence, P2 Inconsistent Priority |
 | 2026-04-30 | `audit-2026-04-30-identity-journey.md`          | Brain, Spine, Shield      | C          | FIXED: P1 Identity Leak in selection boundary, P2 Unauthorized agent invitation (Anti-Pattern 10)              |
 | 2026-04-30 | `audit-2026-04-30-metabolism-repairs.md`        | Metabolism                | E          | FIXED: P1 Direct Object-Level Overwrite (Anti-Pattern 6), P1 False Positive Pruning Success, P1 Crash fallback |
 | 2026-04-30 | `audit-20260430-trust-loop.md`                  | Eye, Scales, Metabolism   | D          | FIXED: P1 Disconnected Cognitive Eye, P2 Passive Mode Shifting, P2 Multi-tenant Health Gaps                    |

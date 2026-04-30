@@ -36,9 +36,14 @@ vi.mock('../../lib/memory', () => ({
   }),
 }));
 
-vi.mock('../../lib/utils/bus', () => ({
-  emitEvent: (...args: unknown[]) => mockEmitEvent(...args),
-}));
+vi.mock('../../lib/utils/bus', async () => {
+  const actual = await vi.importActual<typeof import('../../lib/utils/bus')>('../../lib/utils/bus');
+  return {
+    ...actual,
+    emitEvent: (...args: unknown[]) => mockEmitEvent(...args),
+    EventPriority: actual.EventPriority,
+  };
+});
 
 vi.mock('../../lib/memory/workspace-operations', () => ({
   listWorkspaceIds: vi.fn().mockResolvedValue([]),
@@ -111,7 +116,8 @@ describe('cognitive-health-handler', () => {
       expect.objectContaining({
         component: 'CognitiveHealthMonitor',
         severity: 'high',
-      })
+      }),
+      expect.objectContaining({ priority: 'HIGH' })
     );
   });
 
@@ -129,7 +135,8 @@ describe('cognitive-health-handler', () => {
       'system_health_report',
       expect.objectContaining({
         severity: 'critical',
-      })
+      }),
+      expect.objectContaining({ priority: 'CRITICAL' })
     );
   });
 
