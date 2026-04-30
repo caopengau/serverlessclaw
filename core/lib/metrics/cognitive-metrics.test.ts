@@ -5,6 +5,7 @@ import {
   HealthTrendAnalyzer,
   CognitiveHealthMonitor,
 } from './cognitive-metrics';
+import { SafetyConfigManager } from '../safety/safety-config-manager';
 import { MetricsWindow, AnomalySeverity, AnomalyType } from '../types/metrics';
 import type { AggregatedMetrics } from '../types/metrics';
 
@@ -373,6 +374,18 @@ describe('DegradationDetector', () => {
     const anomalies = await detector.detectAnomalies('agent-1', metrics);
 
     expect(anomalies).toHaveLength(0);
+  });
+
+  it('should use strict failsafe thresholds if policy load fails', async () => {
+    vi.mocked(SafetyConfigManager.getPolicy).mockRejectedValueOnce(new Error('DB Down'));
+    // With strict failsafe: minCompletionRate: 0.9. A rate of 0.8 should trigger a high severity anomaly.
+    const metrics = createMetrics({ taskCompletionRate: 0.8 });
+    const anomalies = await detector.detectAnomalies('agent-1', metrics);
+
+    const taskAnomaly = anomalies.find((a) => a.type === AnomalyType.TASK_FAILURE_SPIKE);
+    expect(taskAnomaly).toBeDefined();
+    expect(taskAnomaly!.description).toContain('80.0%');
+    expect(taskAnomaly!.severity).toBe(AnomalySeverity.HIGH);
   });
 
   it('should detect task failure spike when completion rate drops below threshold', async () => {

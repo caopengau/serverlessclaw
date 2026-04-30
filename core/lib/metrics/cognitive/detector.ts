@@ -35,8 +35,19 @@ export class DegradationDetector {
         ...(policy.cognitiveThresholds ?? {}),
       };
     } catch (e) {
-      logger.warn(`Failed to resolve dynamic thresholds for agent ${agentId}, using defaults`, e);
-      return this.config.thresholds;
+      logger.warn(
+        `Failed to resolve dynamic thresholds for agent ${agentId}, using strict failsafe`,
+        e
+      );
+      return {
+        ...this.config.thresholds,
+        minCompletionRate: 0.9,
+        maxErrorRate: 0.1,
+        minCoherence: 7.0,
+        maxMissRate: 0.1,
+        maxAvgLatencyMs: 10000,
+        maxPivotRate: 0.1,
+      };
     }
   }
 

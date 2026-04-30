@@ -131,17 +131,12 @@ export class BlastRadiusStore {
             if (innerE instanceof Error && innerE.name === 'ConditionalCheckFailedException') {
               // Guard against infinite recursion - max 3 retries
               if (retryCount >= MAX_RETRY_COUNT) {
-                logger.warn(
-                  `[BlastRadiusStore] Max retry count exceeded for ${pk}, allowing operation`
+                logger.error(
+                  `[BlastRadiusStore] Max retry count exceeded for ${pk}, failing closed`
                 );
-                const fallbackEntry: BlastRadiusEntry = {
-                  key: pk,
-                  count: 1,
-                  lastAction: now,
-                  resourceCount: resource ? 1 : 0,
-                  expiresAt,
-                };
-                return fallbackEntry;
+                throw new Error(
+                  `BLAST_RADIUS_STORE_ERROR: Max retry count exceeded for concurrent writes on ${pk}.`
+                );
               }
               return this.incrementBlastRadius(agentId, action, resource, retryCount + 1);
             }

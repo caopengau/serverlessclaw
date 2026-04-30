@@ -279,4 +279,19 @@ manifest: ## Generate a failure manifest from CI logs (LOG_DIR, OUTPUT_DIR)
 	OUTPUT_DIR=$(or $(OUTPUT_DIR),.); \
 	pnpm exec tsx scripts/ci/generate-manifest.ts "$$LOG_DIR" "$$OUTPUT_DIR"
 
+.PHONY: clean clean-all
+
+clean: ## Remove temporary build and test artifacts (.turbo, .next, .sst, coverage)
+	@$(call log_step,Cleaning temporary artifacts...)
+	@rm -rf .turbo .sst/artifacts coverage test-results
+	@find . -name ".next" -type d -prune -exec rm -rf {} +
+	@$(call log_success,Cleaned build artifacts.)
+
+clean-all: clean ## Remove all artifacts including node_modules and pnpm store pruning
+	@$(call log_step,Deep cleaning repository...)
+	@rm -rf node_modules .sst
+	@find . -name "node_modules" -type d -prune -exec rm -rf {} +
+	@pnpm store prune
+	@$(call log_success,Deep clean completed. Run 'pnpm install' to restore dependencies.)
+
 endif

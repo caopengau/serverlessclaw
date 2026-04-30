@@ -162,6 +162,24 @@ describe('BlastRadiusStore', () => {
         'attribute_not_exists(userId) OR expiresAt <= :nowSec'
       );
     });
+
+    it('should fail closed by throwing an error if Phase 2 atomic reset exceeds max retries', async () => {
+      const conditionalError = new Error('ConditionalCheckFailed');
+      conditionalError.name = 'ConditionalCheckFailedException';
+
+      // Ensure all phase 1 and phase 2 calls fail
+      mockSend.mockRejectedValue(conditionalError);
+
+      await expect(store.incrementBlastRadius('agent-1', 'deployment', 'res-1')).rejects.toThrow(
+        'BLAST_RADIUS_STORE_ERROR: Max retry count exceeded'
+      );
+
+      // 4 iterations (retry 0, 1, 2, 3). Each has Phase 1 + Phase 2 = 8 calls.
+      expect(mockSend).toHaveBeenCalledTimes(8);
+
+      // Restore default mock
+      mockSend.mockResolvedValue({ Item: undefined });
+    });
   });
 
   describe('checkLimit', () => {
