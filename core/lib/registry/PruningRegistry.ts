@@ -48,13 +48,17 @@ export class PruningRegistry {
 
       const pruneTargets = config.tools?.filter((t) => lowUtilTools.includes(t)) ?? [];
       if (pruneTargets.length > 0) {
-        await ConfigManager.atomicRemoveFromMap(
-          DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
-          agentId,
-          pruneTargets,
-          scope
-        ).catch((e) => logger.warn(`[PruningRegistry] Failed to prune tools for ${agentId}:`, e));
-        totalPruned += pruneTargets.length;
+        try {
+          await ConfigManager.atomicRemoveFromMap(
+            DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
+            agentId,
+            pruneTargets,
+            scope
+          );
+          totalPruned += pruneTargets.length;
+        } catch (e) {
+          logger.warn(`[PruningRegistry] Failed to prune tools for ${agentId}:`, e);
+        }
       }
     }
     return totalPruned;

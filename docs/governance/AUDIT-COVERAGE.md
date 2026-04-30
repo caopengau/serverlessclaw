@@ -38,6 +38,7 @@ Last Updated: 2026-04-29
 
 | Date       | Report                                          | Silos Covered             | Cross-Silo | Key Findings                                                                                                   |
 | :--------- | :---------------------------------------------- | :------------------------ | :--------- | :------------------------------------------------------------------------------------------------------------- |
+| 2026-04-30 | `audit-2026-04-30-metabolism-repairs.md`        | Metabolism                | E          | FIXED: P1 Direct Object-Level Overwrite (Anti-Pattern 6), P1 False Positive Pruning Success, P1 Crash fallback |
 | 2026-04-30 | `audit-20260430-trust-loop.md`                  | Eye, Scales, Metabolism   | D          | FIXED: P1 Disconnected Cognitive Eye, P2 Passive Mode Shifting, P2 Multi-tenant Health Gaps                    |
 | 2026-04-30 | `audit-2026-04-30-the-shield.md`                | Shield                    | C          | FIXED: P1 Fail-open Class C Blast Radius on Concurrent Writes (Anti-Pattern 1)                                 |
 | 2026-04-29 | `audit-2026-04-29-perspective-a-v4.md`          | Spine, Brain, Eye         | A          | FIXED: P1 DLQ multi-tenant blindness, P1 missing metrics scope, P2 deployment/traffic telemetry gaps           |

@@ -143,11 +143,20 @@ export class AgentRegistry {
       throw new Error('Agent name and systemPrompt cannot be empty if provided');
     }
     const { hashString } = await import('../utils/crypto');
-    const enriched = {
+    const enriched: any = {
       ...config,
       lastUpdated: new Date().toISOString(),
-      metadata: { ...config.metadata, promptHash: hashString(config.systemPrompt || '') },
     };
+
+    // Prevent wiping existing metadata (Anti-pattern 6: Direct object-level overwrite)
+    if (config.metadata !== undefined || config.systemPrompt !== undefined) {
+      const existing = await this.getAgentConfig(agentId, options);
+      enriched.metadata = { ...existing?.metadata, ...config.metadata };
+      if (config.systemPrompt !== undefined) {
+        enriched.metadata.promptHash = hashString(config.systemPrompt);
+      }
+    }
+
     await ConfigManager.atomicUpdateMapEntity(DYNAMO_KEYS.AGENTS_CONFIG, agentId, enriched, {
       increments: { version: 1 },
       workspaceId: options?.workspaceId,

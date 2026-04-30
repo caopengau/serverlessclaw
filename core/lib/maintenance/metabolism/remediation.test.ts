@@ -132,4 +132,74 @@ describe('remediateDashboardFailure', () => {
     expect(setGap).toHaveBeenCalled();
     expect(result).toBeUndefined();
   });
+
+  it('should fall back to HITL scheduling if tool override remediation throws an error', async () => {
+    const failure = {
+      traceId: 'trace-1',
+      workspaceId: 'ws-1',
+      agentId: 'coder',
+      userId: 'user-1',
+      error: 'Tool registry inconsistency detected',
+    } as any;
+
+    vi.mocked(AgentRegistry.pruneLowUtilizationTools).mockRejectedValueOnce(
+      new Error('DynamoDB timeout')
+    );
+    const mockScheduleAction = vi.fn();
+    vi.mocked(EvolutionScheduler).mockImplementation(function () {
+      return { scheduleAction: mockScheduleAction };
+    } as any);
+
+    const result = await remediateDashboardFailure(mockMemory, failure);
+
+    expect(mockScheduleAction).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'REMEDIATION', workspaceId: 'ws-1' })
+    );
+    expect(result).toBeUndefined();
+  });
+
+  it('should fall back to HITL scheduling if S3 staging bucket pruning throws an error', async () => {
+    const failure = {
+      traceId: 'trace-1',
+      workspaceId: 'ws-1',
+      userId: 'user-1',
+      error: 'S3 Access Denied on artifact',
+    } as any;
+
+    const { pruneStagingBucket } = await import('./repairs');
+    vi.mocked(pruneStagingBucket).mockRejectedValueOnce(new Error('S3 AccessDenied'));
+    const mockScheduleAction = vi.fn();
+    vi.mocked(EvolutionScheduler).mockImplementation(function () {
+      return { scheduleAction: mockScheduleAction };
+    } as any);
+
+    const result = await remediateDashboardFailure(mockMemory, failure);
+
+    expect(mockScheduleAction).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'REMEDIATION', workspaceId: 'ws-1' })
+    );
+    expect(result).toBeUndefined();
+  });
+
+  it('should fall back to HITL scheduling if memory gap remediation throws an error', async () => {
+    const failure = {
+      traceId: 'trace-1',
+      workspaceId: 'ws-1',
+      userId: 'user-1',
+      error: 'Memory gap inconsistency',
+    } as any;
+
+    vi.mocked(cullResolvedGaps).mockRejectedValueOnce(new Error('Table not found'));
+    const mockScheduleAction = vi.fn();
+    vi.mocked(EvolutionScheduler).mockImplementation(function () {
+      return { scheduleAction: mockScheduleAction };
+    } as any);
+
+    const result = await remediateDashboardFailure(mockMemory, failure);
+
+    expect(mockScheduleAction).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'REMEDIATION', workspaceId: 'ws-1' })
+    );
+    expect(result).toBeUndefined();
+  });
 });

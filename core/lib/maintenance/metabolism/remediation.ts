@@ -37,24 +37,29 @@ export async function remediateDashboardFailure(
       failure.error.match(/tool\s+['"]([^'"]+)['"]/i) ||
       failure.error.match(/['"]([^'"]+)['"]\s+tool/i);
 
-    if (toolMatch && toolMatch[1]) {
-      const toolName = toolMatch[1];
-      const agentId = failure.agentId || 'unknown';
+    try {
+      if (toolMatch && toolMatch[1]) {
+        const toolName = toolMatch[1];
+        const agentId = failure.agentId || 'unknown';
 
-      logger.info(`[Metabolism] Surgical remediation for tool: ${toolName}`);
-      await ConfigManager.atomicRemoveFromMap(
-        DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
-        agentId,
-        [toolName],
-        { workspaceId }
-      );
-      pruned = true;
-    }
+        logger.info(`[Metabolism] Surgical remediation for tool: ${toolName}`);
+        await ConfigManager.atomicRemoveFromMap(
+          DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
+          agentId,
+          [toolName],
+          { workspaceId }
+        );
+        pruned = true;
+      }
 
-    if (!pruned && workspaceId) {
-      // Fallback to broad pruning using atomic utilization check
-      const prunedCount = await AgentRegistry.pruneLowUtilizationTools(workspaceId, 1);
-      pruned = prunedCount > 0;
+      if (!pruned && workspaceId) {
+        // Fallback to broad pruning using atomic utilization check
+        const prunedCount = await AgentRegistry.pruneLowUtilizationTools(workspaceId, 1);
+        pruned = prunedCount > 0;
+      }
+    } catch (e) {
+      logger.error(`[Metabolism] Tool override remediation failed:`, e);
+      // Let it fall through to the HITL scheduling below
     }
 
     if (pruned) {
@@ -72,29 +77,37 @@ export async function remediateDashboardFailure(
   if (error.includes('s3') || error.includes('access denied') || error.includes('not found')) {
     const bucketName = getStagingBucketName();
     if (bucketName && bucketName !== 'StagingBucket') {
-      const reclaimed = await pruneStagingBucket({ workspaceId });
-      if (reclaimed > 0) {
-        return {
-          silo: 'Metabolism',
-          expected: 'Accessible staging artifacts',
-          actual: `Real-time repair: Metabolized staging bucket to clear access/stale inconsistencies.`,
-          severity: 'P2',
-          recommendation: 'S3 state reset performed. Retrying operation may now succeed.',
-        };
+      try {
+        const reclaimed = await pruneStagingBucket({ workspaceId });
+        if (reclaimed > 0) {
+          return {
+            silo: 'Metabolism',
+            expected: 'Accessible staging artifacts',
+            actual: `Real-time repair: Metabolized staging bucket to clear access/stale inconsistencies.`,
+            severity: 'P2',
+            recommendation: 'S3 state reset performed. Retrying operation may now succeed.',
+          };
+        }
+      } catch (e) {
+        logger.error(`[Metabolism] S3 staging bucket remediation failed:`, e);
       }
     }
   }
 
   // Strategy 2: Memory/Gap inconsistencies
   if (error.includes('memory') || error.includes('gap')) {
-    await cullResolvedGaps(memory, undefined, workspaceId);
-    return {
-      silo: 'Metabolism',
-      expected: 'Clean memory state',
-      actual: `Real-time repair: Culled resolved gaps to resolve memory inconsistency.`,
-      severity: 'P2',
-      recommendation: 'Autonomous repair executed successfully.',
-    };
+    try {
+      await cullResolvedGaps(memory, undefined, workspaceId);
+      return {
+        silo: 'Metabolism',
+        expected: 'Clean memory state',
+        actual: `Real-time repair: Culled resolved gaps to resolve memory inconsistency.`,
+        severity: 'P2',
+        recommendation: 'Autonomous repair executed successfully.',
+      };
+    } catch (e) {
+      logger.error(`[Metabolism] Memory gap remediation failed:`, e);
+    }
   }
 
   // Fallback: Schedule HITL evolution for complex/unknown errors

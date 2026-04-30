@@ -237,6 +237,35 @@ describe('AgentRegistry', () => {
         })
       );
     });
+
+    it('should preserve existing metadata during partial updates', async () => {
+      vi.spyOn(AgentRegistry, 'getAgentConfig').mockResolvedValueOnce({
+        id: 'test',
+        name: 'Test',
+        enabled: true,
+        evolutionMode: 'HITL' as any,
+        trustScore: 100,
+        metadata: { existingKey: 'preserved', promptHash: 'oldHash' },
+      });
+
+      const partialConfig = { enabled: false, metadata: { newKey: 'added' } };
+      // Override validation to avoid throw since name and systemPrompt aren't provided
+      // Wait, validation only throws if name === '' or systemPrompt === '', missing is fine
+      await AgentRegistry.saveConfig('test', partialConfig as any);
+
+      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalledWith(
+        DYNAMO_KEYS.AGENTS_CONFIG,
+        'test',
+        expect.objectContaining({
+          enabled: false,
+          metadata: expect.objectContaining({
+            existingKey: 'preserved',
+            newKey: 'added',
+          }),
+        }),
+        expect.anything()
+      );
+    });
   });
 
   describe('recordToolUsage', () => {
