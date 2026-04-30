@@ -72,17 +72,19 @@ function createScheduledInvocation(
   name: string,
   rate: string,
   targetFn: sst.aws.Function,
-  description?: string
+  description?: string,
+  input?: Record<string, unknown>
 ): void {
   new aws.scheduler.Schedule(`${name}Schedule`, {
     name: `${$app.name}-${$app.stage}-${name}`,
     ...(description ? { description } : {}),
     scheduleExpression: rate,
-    state: 'DISABLED',
+    state: 'ENABLED',
     flexibleTimeWindow: { mode: 'OFF' },
     target: {
       arn: targetFn.arn,
       roleArn: createSchedulerRole(name, targetFn.arn).arn,
+      ...(input ? { input: JSON.stringify(input) } : {}),
     },
   });
 
@@ -639,6 +641,21 @@ export function createAgents(
     CONCURRENCY_MONITOR_RATE,
     concurrencyMonitor,
     'Monitors Lambda concurrent execution usage — alerts at 80% utilization'
+  );
+
+  // 4-hour Schedule (Cognitive Health Check) - Fix P1
+  createScheduledInvocation(
+    'CognitiveHealth',
+    'rate(4 hours)',
+    eventHandler,
+    'Triggers cognitive health check to update Trust scores based on anomalies',
+    {
+      'detail-type': 'cognitive_health_check',
+      detail: {
+        traceId: `t-health-${Date.now()}`,
+        sessionId: 'system-health',
+      },
+    }
   );
 
   // Merger Subscriptions handled by Multiplexer

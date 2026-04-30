@@ -286,6 +286,16 @@ These perspectives intentionally span multiple silos to identify integration gap
 
 **Objective**: Verify the feedback loop from observation through trust to action.
 
+```text
+ [ Observation ] (Eye) <---(4h Schedule)---+
+        |                                  |
+ [ Anomaly Det ] (Eye)                     |
+        |                                  |
+ [ Trust Update ] (Scales) ----------------+
+        |
+ [ Mode Shift ] (Metabolism) --(12h Schedule)--> [ Autonomy ] (Spine)
+```
+
 ### E. The "Recovery Path" (Shield ↔ Spine ↔ Brain)
 
 **Objective**: Verify system recovery maintains consistency.

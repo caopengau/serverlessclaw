@@ -104,4 +104,57 @@ describe('PromotionManager', () => {
       expect(AgentRegistry.updateAgentConfig).not.toHaveBeenCalled();
     });
   });
+
+  describe('promoteAgentToAuto', () => {
+    it('should promote agent when trust is above threshold', async () => {
+      vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValueOnce({
+        id: 'agent-1',
+        evolutionMode: EvolutionMode.HITL,
+        trustScore: 98,
+      } as any);
+
+      const result = await PromotionManager.promoteAgentToAuto('agent-1', 98);
+
+      expect(result).toBe(true);
+      expect(AgentRegistry.updateAgentConfig).toHaveBeenCalledWith(
+        'agent-1',
+        { evolutionMode: EvolutionMode.AUTO },
+        undefined
+      );
+      expect(emitEvent).toHaveBeenCalledWith(
+        'promotion.manager',
+        EventType.REPORT_BACK,
+        expect.objectContaining({
+          agentId: 'agent-1',
+          task: expect.stringContaining('promoted to AUTO mode'),
+        })
+      );
+    });
+
+    it('should not promote if already in AUTO mode', async () => {
+      vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValueOnce({
+        id: 'agent-1',
+        evolutionMode: EvolutionMode.AUTO,
+        trustScore: 98,
+      } as any);
+
+      const result = await PromotionManager.promoteAgentToAuto('agent-1', 98);
+
+      expect(result).toBe(false);
+      expect(AgentRegistry.updateAgentConfig).not.toHaveBeenCalled();
+    });
+
+    it('should not promote if trust is below threshold', async () => {
+      vi.mocked(AgentRegistry.getAgentConfig).mockResolvedValueOnce({
+        id: 'agent-1',
+        evolutionMode: EvolutionMode.HITL,
+        trustScore: 90,
+      } as any);
+
+      const result = await PromotionManager.promoteAgentToAuto('agent-1', 90);
+
+      expect(result).toBe(false);
+      expect(AgentRegistry.updateAgentConfig).not.toHaveBeenCalled();
+    });
+  });
 });

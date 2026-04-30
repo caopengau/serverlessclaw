@@ -119,4 +119,44 @@ export class PromotionManager {
       };
     }
   }
+
+  /**
+   * Promotes an agent to AUTO mode globally if their trust score is very high.
+   * Fulfills Principle 9: Trust-Driven Mode Shifting.
+   */
+  static async promoteAgentToAuto(
+    agentId: string,
+    trustScore: number,
+    scope?: { workspaceId?: string }
+  ): Promise<boolean> {
+    try {
+      const config = await AgentRegistry.getAgentConfig(agentId, scope);
+      if (!config || config.evolutionMode === EvolutionMode.AUTO) return false;
+
+      const { TRUST } = await import('../constants/system');
+      if (trustScore >= TRUST.AUTONOMY_THRESHOLD) {
+        logger.info(
+          `[PROMOTION] Autonomous Mode Shift: Promoting agent ${agentId} to AUTO mode (TrustScore: ${trustScore})`
+        );
+        await AgentRegistry.updateAgentConfig(
+          agentId,
+          { evolutionMode: EvolutionMode.AUTO },
+          scope
+        );
+
+        await emitEvent('promotion.manager', EventType.REPORT_BACK, {
+          userId: 'SYSTEM',
+          agentId,
+          task: `Autonomous Mode Shift: Agent ${agentId} promoted to AUTO mode due to high trust.`,
+          workspaceId: scope?.workspaceId,
+          metadata: { trustScore, previousMode: config.evolutionMode },
+        });
+
+        return true;
+      }
+    } catch (e) {
+      logger.error(`[PROMOTION] Failed to autonomously promote agent ${agentId}:`, e);
+    }
+    return false;
+  }
 }

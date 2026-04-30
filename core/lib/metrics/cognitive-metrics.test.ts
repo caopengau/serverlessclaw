@@ -791,7 +791,8 @@ describe('CognitiveHealthMonitor', () => {
           agentId: 'agent-1',
           type: expect.any(String),
         }),
-      ])
+      ]),
+      { workspaceId: undefined }
     );
   });
 

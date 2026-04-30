@@ -63,9 +63,14 @@ To handle severe system-wide failure (e.g., corrupted backbone, backbone outage,
 
 ### Recovery Loop
 
-The DMS runs on a disciplined 15-minute cadence via a recurring EventBridge schedule.
+The DMS runs on a disciplined 15-minute cadence, complemented by a 4-hour cognitive health loop.
 
 ```text
+ [ Scheduler ] --rate(4h)----> [ CognitiveHealth ]
+                     |               |
+                     |               +--> takeSnapshot(multi-tenant)
+                     |               |    (Updates Trust Scores)
+                     |               V
  [ Scheduler ] --rate(15m)--> [ DeadMansSwitch ]
                      |
                      +--> checkCognitiveHealth()

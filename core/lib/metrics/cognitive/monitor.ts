@@ -57,7 +57,7 @@ export class CognitiveHealthMonitor {
     return this.collector;
   }
 
-  async takeSnapshot(agentIds?: string[]): Promise<CognitiveHealthSnapshot> {
+  async takeSnapshot(agentIds?: string[], workspaceId?: string): Promise<CognitiveHealthSnapshot> {
     const now = Date.now();
     const hourAgo = now - TIME.MS_PER_HOUR;
 
@@ -73,7 +73,7 @@ export class CognitiveHealthMonitor {
     }
 
     const metricsPromises = agents.map((agentId) =>
-      this.analyzer.getAggregatedMetrics(agentId, MetricsWindow.HOURLY, hourAgo, now)
+      this.analyzer.getAggregatedMetrics(agentId, MetricsWindow.HOURLY, hourAgo, now, workspaceId)
     );
 
     const trustManagerPromises: Promise<number>[] = [];
@@ -93,11 +93,11 @@ export class CognitiveHealthMonitor {
           const baseDelay = 100;
           for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {
-              return await TrustManager.recordAnomalies(agentId, anomalies);
+              return await TrustManager.recordAnomalies(agentId, anomalies, { workspaceId });
             } catch (err) {
               if (attempt === maxRetries) {
                 logger.error(
-                  `[TrustCalibration] All ${maxRetries} retries failed for agent ${agentId}`,
+                  `[TrustCalibration] All ${maxRetries} retries failed for agent ${agentId} (WS: ${workspaceId || 'global'})`,
                   err
                 );
                 return 0;
@@ -147,18 +147,22 @@ export class CognitiveHealthMonitor {
       agentMetrics,
     };
 
-    await this.persistSnapshot(snapshot);
+    await this.persistSnapshot(snapshot, workspaceId);
     return snapshot;
   }
 
-  private async persistSnapshot(snapshot: CognitiveHealthSnapshot): Promise<void> {
+  private async persistSnapshot(
+    snapshot: CognitiveHealthSnapshot,
+    workspaceId?: string
+  ): Promise<void> {
     try {
       const expiresAt = Math.floor(
         (Date.now() + this.config.retentionDays * TIME.MS_PER_DAY) / 1000
       );
+      const prefix = workspaceId ? `WS#${workspaceId}#` : '';
       for (const metrics of snapshot.agentMetrics) {
         await this.base.putItem({
-          userId: `${MEMORY_KEYS.HEALTH_PREFIX}SNAPSHOT#${metrics.agentId}`,
+          userId: `${prefix}${MEMORY_KEYS.HEALTH_PREFIX}SNAPSHOT#${metrics.agentId}`,
           timestamp: snapshot.timestamp,
           type: 'COGNITIVE_SNAPSHOT',
           overallScore: snapshot.overallScore,
@@ -167,10 +171,11 @@ export class CognitiveHealthMonitor {
           errorRate: metrics.errorRate,
           memoryFragmentation: snapshot.memory.fragmentationScore,
           expiresAt,
+          workspaceId,
         });
       }
     } catch (error) {
-      logger.error('Failed to persist cognitive health snapshot', { error });
+      logger.error('Failed to persist cognitive health snapshot', { error, workspaceId });
     }
   }
 

@@ -25,9 +25,13 @@ export const handler = async (_event: unknown, _context: Context): Promise<void>
     // 1. Process Proactive Evolutions & Trust Score Decay (Multi-tenant scoped)
     await TrustManager.decayTrustScores(); // Global scores first
 
+    const { PromotionManager } = await import('../lib/lifecycle/promotion-manager');
+
     try {
       const { listWorkspaceIds } = await import('../lib/memory/workspace-operations');
       const workspaceIds = await listWorkspaceIds();
+
+      const { AgentRegistry } = await import('../lib/registry/AgentRegistry');
 
       for (const workspaceId of workspaceIds) {
         // Proactive evolution for each workspace
@@ -38,6 +42,22 @@ export const handler = async (_event: unknown, _context: Context): Promise<void>
 
         // Trust decay for each workspace
         await TrustManager.decayTrustScores(workspaceId);
+
+        // Principle 9: Autonomous Mode Shift check
+        const workspaceConfigs = await AgentRegistry.getAllConfigs({ workspaceId });
+        for (const [id, cfg] of Object.entries(workspaceConfigs)) {
+          if (cfg.trustScore && cfg.trustScore >= 95) {
+            await PromotionManager.promoteAgentToAuto(id, cfg.trustScore, { workspaceId });
+          }
+        }
+      }
+
+      // Also check global agents
+      const globalConfigs = await AgentRegistry.getAllConfigs();
+      for (const [id, cfg] of Object.entries(globalConfigs)) {
+        if (cfg.trustScore && cfg.trustScore >= 95) {
+          await PromotionManager.promoteAgentToAuto(id, cfg.trustScore);
+        }
       }
     } catch (error) {
       logger.warn('[MAINTENANCE] Multi-tenant maintenance cycle failed:', error);
