@@ -17,6 +17,14 @@ vi.mock('./registry', () => ({
     saveRawConfig: vi.fn(),
     getRawConfig: vi.fn().mockResolvedValue({}),
     recordToolUsage: vi.fn().mockResolvedValue(undefined),
+    initializeToolStats: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
+// Mock ConfigManager
+vi.mock('./registry/config', () => ({
+  ConfigManager: {
+    atomicAppendToMapList: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -74,14 +82,14 @@ describe('SkillRegistry', () => {
       const now = Date.now();
       vi.stubGlobal('Date', { now: () => now });
 
+      const { ConfigManager } = await import('./registry/config');
       await SkillRegistry.installSkill('agent-1', 'tool1', { ttlMinutes: 10 });
 
-      expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
+      expect(ConfigManager.atomicAppendToMapList).toHaveBeenCalledWith(
         'agent_tool_overrides',
-        expect.objectContaining({
-          'agent-1': expect.arrayContaining([{ name: 'tool1', expiresAt: now + 10 * 60 * 1000 }]),
-        }),
-        { workspaceId: undefined }
+        'agent-1',
+        [{ name: 'tool1', expiresAt: now + 10 * 60 * 1000 }],
+        expect.objectContaining({ preventDuplicates: true })
       );
 
       vi.unstubAllGlobals();
@@ -96,14 +104,14 @@ describe('SkillRegistry', () => {
         enabled: true,
       } as any);
 
+      const { ConfigManager } = await import('./registry/config');
       await SkillRegistry.installSkill('agent-1', 'tool1');
 
-      expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
+      expect(ConfigManager.atomicAppendToMapList).toHaveBeenCalledWith(
         'agent_tool_overrides',
-        expect.objectContaining({
-          'agent-1': expect.arrayContaining(['tool1']),
-        }),
-        { workspaceId: undefined }
+        'agent-1',
+        ['tool1'],
+        expect.objectContaining({ preventDuplicates: true })
       );
     });
 
@@ -117,9 +125,10 @@ describe('SkillRegistry', () => {
         isBackbone: true,
       } as any);
 
+      const { ConfigManager } = await import('./registry/config');
       await SkillRegistry.installSkill('agent-1', 'tool1');
 
-      expect(AgentRegistry.saveRawConfig).not.toHaveBeenCalled();
+      expect(ConfigManager.atomicAppendToMapList).not.toHaveBeenCalled();
     });
   });
 });

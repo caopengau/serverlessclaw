@@ -43,7 +43,7 @@
   "license": "MIT",
   "type": "commonjs",
   "engines": {
-    "node": ">=24"
+    "node": ">=24 <25"
   },
   "dependencies": {
     "@aiready/ast-mcp-server": "0.8.3",

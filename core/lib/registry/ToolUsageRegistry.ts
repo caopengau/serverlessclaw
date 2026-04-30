@@ -117,9 +117,16 @@ export class ToolUsageRegistry {
   /**
    * Initializes firstRegistered timestamp for tools.
    */
-  static async initializeToolStats(toolNames: string[]): Promise<void> {
+  static async initializeToolStats(
+    toolNames: string[],
+    options?: { workspaceId?: string }
+  ): Promise<void> {
     const tableName = getConfigTableName();
     if (!tableName || toolNames.length === 0) return;
+
+    const key = options?.workspaceId
+      ? `WS#${options.workspaceId}#${DYNAMO_KEYS.TOOL_USAGE_PREFIX}`
+      : DYNAMO_KEYS.TOOL_USAGE;
 
     for (const toolName of toolNames) {
       const now = Date.now();
@@ -127,7 +134,7 @@ export class ToolUsageRegistry {
         await getDocClient().send(
           new UpdateCommand({
             TableName: tableName,
-            Key: { key: DYNAMO_KEYS.TOOL_USAGE },
+            Key: { key },
             UpdateExpression:
               'SET #val.#tool = if_not_exists(#val.#tool, :newStats), #val.#tool.#first = if_not_exists(#val.#tool.#first, :now)',
             ExpressionAttributeNames: {

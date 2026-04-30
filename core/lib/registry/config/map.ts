@@ -347,6 +347,45 @@ export class ConfigManagerMap extends ConfigManagerList {
   }
 
   /**
+   * Atomically removes multiple fields from a flat map configuration.
+   */
+  public static async atomicRemoveFieldsFromMap(
+    key: string,
+    fields: string[],
+    options: { workspaceId?: string } = {}
+  ): Promise<void> {
+    const tableName = this._getTableName();
+    if (!tableName || fields.length === 0) return;
+
+    const effectiveKey = this.getEffectiveKey(key, options);
+    this.configCache.delete(effectiveKey);
+
+    const docClient = getDocClient();
+    const names: Record<string, string> = { '#val': 'value' };
+    const expressions: string[] = [];
+
+    fields.forEach((field, idx) => {
+      const fieldId = `#f${idx}`;
+      names[fieldId] = field;
+      expressions.push(`#val.${fieldId}`);
+    });
+
+    try {
+      await docClient.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { key: effectiveKey },
+          UpdateExpression: `REMOVE ${expressions.join(', ')}`,
+          ExpressionAttributeNames: names,
+        })
+      );
+    } catch (e) {
+      logger.error(`Failed to remove fields from map ${effectiveKey}:`, e);
+      throw e;
+    }
+  }
+
+  /**
    * Removes items from a list within a map entity atomically using conditional updates.
    */
   public static async atomicRemoveFromMap(
@@ -400,6 +439,96 @@ export class ConfigManagerMap extends ConfigManagerList {
         if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
           retryCount++;
           continue;
+        }
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * Atomically appends items to a list within a map entity using conditional updates.
+   */
+  public static async atomicAppendToMapList(
+    key: string,
+    entityId: string,
+    newItems: unknown[],
+    options: { workspaceId?: string; preventDuplicates?: boolean } = {}
+  ): Promise<void> {
+    const tableName = this._getTableName();
+    if (!tableName) return;
+
+    const effectiveKey = this.getEffectiveKey(key, options);
+    this.configCache.delete(effectiveKey);
+
+    let retryCount = 0;
+    const maxRetries = 5;
+
+    while (retryCount < maxRetries) {
+      try {
+        const { Item } = await getDocClient().send(
+          new GetCommand({
+            TableName: tableName,
+            Key: { key: effectiveKey },
+            ProjectionExpression: '#val.#id',
+            ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
+          })
+        );
+
+        const currentMap = Item?.value as Record<string, unknown[]>;
+        const currentList = currentMap?.[entityId] || [];
+        if (!Array.isArray(currentList)) {
+          throw new Error(`Field ${entityId} in map ${key} is not a list`);
+        }
+
+        let itemsToAdd = newItems;
+        if (options.preventDuplicates) {
+          itemsToAdd = newItems.filter(
+            (item) =>
+              !currentList.some((existing) => JSON.stringify(existing) === JSON.stringify(item))
+          );
+        }
+
+        if (itemsToAdd.length === 0) return;
+
+        const newList = [...currentList, ...itemsToAdd];
+
+        await getDocClient().send(
+          new UpdateCommand({
+            TableName: tableName,
+            Key: { key: effectiveKey },
+            UpdateExpression: 'SET #val.#id = :newList',
+            ConditionExpression: 'attribute_not_exists(#val.#id) OR #val.#id = :oldList',
+            ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
+            ExpressionAttributeValues: { ':newList': newList, ':oldList': currentList },
+          })
+        );
+        return;
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+          retryCount++;
+          continue;
+        }
+        // If the map itself doesn't exist, try to create it
+        if (e instanceof Error && e.name === 'ValidationException') {
+          try {
+            await getDocClient().send(
+              new UpdateCommand({
+                TableName: tableName,
+                Key: { key: effectiveKey },
+                UpdateExpression: 'SET #val = :newMap',
+                ConditionExpression: 'attribute_not_exists(#val)',
+                ExpressionAttributeNames: { '#val': 'value' },
+                ExpressionAttributeValues: { ':newMap': { [entityId]: newItems } },
+              })
+            );
+            return;
+          } catch (innerE: unknown) {
+            if (innerE instanceof Error && innerE.name === 'ConditionalCheckFailedException') {
+              retryCount++;
+              continue;
+            }
+            throw innerE;
+          }
         }
         throw e;
       }

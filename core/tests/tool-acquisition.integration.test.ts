@@ -96,6 +96,7 @@ vi.mock('../lib/registry', () => ({
     saveRawConfig: vi.fn(),
     getRawConfig: vi.fn().mockResolvedValue({}),
     recordToolUsage: vi.fn().mockResolvedValue(undefined),
+    initializeToolStats: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -105,6 +106,7 @@ vi.mock('../lib/registry/config', () => ({
     getRawConfig: vi.fn().mockResolvedValue({}),
     saveRawConfig: vi.fn().mockResolvedValue(undefined),
     getTypedConfig: vi.fn().mockResolvedValue(0),
+    atomicAppendToMapList: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -267,13 +269,13 @@ describe('Tool Acquisition Integration', () => {
       })
     );
 
-    // Verify registry was updated (SkillRegistry calls AgentRegistry.saveRawConfig)
-    expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
+    // Verify registry was updated (SkillRegistry calls ConfigManager.atomicAppendToMapList)
+    const { ConfigManager } = await import('../lib/registry/config');
+    expect(ConfigManager.atomicAppendToMapList).toHaveBeenCalledWith(
       'agent_tool_overrides',
-      expect.objectContaining({
-        'skeleton-agent': expect.arrayContaining(['target_tool']),
-      }),
-      { workspaceId: undefined }
+      'skeleton-agent',
+      ['target_tool'],
+      expect.objectContaining({ preventDuplicates: true })
     );
 
     expect(result.responseText).toContain('ready to use it');

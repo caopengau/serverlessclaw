@@ -357,7 +357,7 @@ describe('AgentRegistry', () => {
       const thresholdMs = 30 * 24 * 60 * 60 * 1000;
 
       vi.mocked(ConfigManager.getRawConfig).mockImplementation(async (key) => {
-        if (key === DYNAMO_KEYS.TOOL_USAGE) {
+        if (key === DYNAMO_KEYS.TOOL_USAGE || key === DYNAMO_KEYS.TOOL_USAGE_PREFIX) {
           return {
             old_unused_tool: { count: 0, firstRegistered: now - thresholdMs - 1000 },
             new_unused_tool: { count: 0, firstRegistered: now - 1000 },

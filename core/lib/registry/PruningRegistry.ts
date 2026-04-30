@@ -20,7 +20,8 @@ export class PruningRegistry {
     daysThreshold: number = 30
   ): Promise<number> {
     const scope = workspaceId !== 'default' ? { workspaceId } : undefined;
-    const usage = (await ConfigManager.getRawConfig(DYNAMO_KEYS.TOOL_USAGE, scope)) as Record<
+    const usageKey = scope ? DYNAMO_KEYS.TOOL_USAGE_PREFIX : DYNAMO_KEYS.TOOL_USAGE;
+    const usage = (await ConfigManager.getRawConfig(usageKey, scope)) as Record<
       string,
       { count: number; firstRegistered: number; lastUsed?: number }
     >;
@@ -61,6 +62,20 @@ export class PruningRegistry {
         }
       }
     }
+
+    // Prune stale tool metadata (Lean Evolution)
+    if (totalPruned > 0) {
+      try {
+        await ConfigManager.atomicRemoveFieldsFromMap(
+          DYNAMO_KEYS.TOOL_METADATA_OVERRIDES,
+          lowUtilTools,
+          scope
+        );
+      } catch (e) {
+        logger.warn(`[PruningRegistry] Failed to prune tool metadata:`, e);
+      }
+    }
+
     return totalPruned;
   }
 }

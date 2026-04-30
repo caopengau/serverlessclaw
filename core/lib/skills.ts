@@ -59,7 +59,7 @@ export class SkillRegistry {
 
   /**
    * Dynamically "installs" a skill for a specific agent session.
-   * Uses batch tool overrides for efficiency.
+   * Uses atomic map updates to prevent race conditions (Principle 13).
    *
    * @param agentId - The ID of the agent receiving the skill.
    * @param skillName - The name of the tool/skill to install.
@@ -76,43 +76,29 @@ export class SkillRegistry {
     const currentConfig = await AgentRegistry.getAgentConfig(agentId, { workspaceId });
     if (!currentConfig) throw new Error(`Agent ${agentId} not found`);
 
-    const batchOverrides =
-      ((await ConfigManager.getRawConfig(DYNAMO_KEYS.AGENT_TOOL_OVERRIDES, {
-        workspaceId,
-      })) as Record<string, (string | import('./types/agent').InstalledSkill)[]>) ?? {};
-    const agentOverrides =
-      (batchOverrides[agentId] as (string | import('./types/agent').InstalledSkill)[]) ?? [];
-    const batchTools = Array.isArray(agentOverrides) ? agentOverrides : [];
-
     const perAgentTools = Array.isArray(currentConfig.tools) ? currentConfig.tools : [];
+    const exists = perAgentTools.some((t) =>
+      typeof t === 'string'
+        ? t === skillName
+        : (t as import('./types/agent').InstalledSkill).name === skillName
+    );
 
-    // Check existence across both per-agent and batch overrides
-    const exists =
-      perAgentTools.some((t) =>
-        typeof t === 'string'
-          ? t === skillName
-          : (t as import('./types/agent').InstalledSkill).name === skillName
-      ) ||
-      batchTools.some((t) =>
-        typeof t === 'string'
-          ? t === skillName
-          : (t as import('./types/agent').InstalledSkill).name === skillName
-      );
     if (exists) return;
 
     const newTool = ttlMinutes
       ? { name: skillName, expiresAt: Date.now() + ttlMinutes * 60 * 1000 }
       : skillName;
 
-    // Persist batch override (backwards-compatible with new batch model)
-    await AgentRegistry.saveRawConfig(
+    // Persist batch override atomically (Principle 13)
+    await ConfigManager.atomicAppendToMapList(
       DYNAMO_KEYS.AGENT_TOOL_OVERRIDES,
-      {
-        ...batchOverrides,
-        [agentId]: [...batchTools, newTool],
-      },
-      { workspaceId }
+      agentId,
+      [newTool],
+      { workspaceId, preventDuplicates: true }
     );
+
+    // Initialize tool stats for metabolism tracking (Lean Evolution)
+    await AgentRegistry.initializeToolStats([skillName], { workspaceId });
 
     // Also persist per-agent tools for compatibility with existing consumers/tests
     await AgentRegistry.saveRawConfig(`${agentId}_tools`, [...perAgentTools, newTool], {
