@@ -45,18 +45,29 @@ export function applyWorkspaceIsolation(
   scope?: string | import('../types/memory').ContextualScope
 ): void {
   const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
-  if (!workspaceId) return;
 
-  const isolationExpr = 'workspaceId = :workspaceId AND begins_with(userId, :pkPrefix)';
-  params.FilterExpression = params.FilterExpression
-    ? `(${params.FilterExpression as string}) AND (${isolationExpr})`
-    : isolationExpr;
+  if (workspaceId) {
+    // Principle 14: Selection Integrity
+    // Allow the specific workspace AND truly global items (no workspaceId)
+    const isolationExpr =
+      '(workspaceId = :workspaceId OR attribute_not_exists(workspaceId)) AND (begins_with(userId, :pkPrefix) OR begins_with(userId, :globalPrefix))';
+    params.FilterExpression = params.FilterExpression
+      ? `(${params.FilterExpression as string}) AND (${isolationExpr})`
+      : isolationExpr;
 
-  params.ExpressionAttributeValues = {
-    ...((params.ExpressionAttributeValues as Record<string, unknown>) || {}),
-    ':workspaceId': workspaceId,
-    ':pkPrefix': `WS#${workspaceId}#`,
-  };
+    params.ExpressionAttributeValues = {
+      ...((params.ExpressionAttributeValues as Record<string, unknown>) || {}),
+      ':workspaceId': workspaceId,
+      ':pkPrefix': `WS#${workspaceId}#`,
+      ':globalPrefix': 'SYSTEM#', // Common global prefix (e.g. SYSTEM#GLOBAL)
+    };
+  } else {
+    // Strictly isolate to items WITHOUT a workspaceId to prevent cross-tenant leakage
+    const isolationExpr = 'attribute_not_exists(workspaceId)';
+    params.FilterExpression = params.FilterExpression
+      ? `(${params.FilterExpression as string}) AND (${isolationExpr})`
+      : isolationExpr;
+  }
 }
 
 /**

@@ -314,7 +314,7 @@ export async function searchInsights(
   }
 
   return {
-    items: workspaceId ? filtered.filter((f) => f.workspaceId === workspaceId) : filtered,
+    items: filtered.filter((f) => f.workspaceId === workspaceId || f.workspaceId === undefined),
   };
 }
 

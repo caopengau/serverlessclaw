@@ -295,7 +295,8 @@ describe('Gap Operations', () => {
       expect(queryCalls.length).toBeGreaterThanOrEqual(1);
 
       const queryInput = queryCalls[0].args[0].input;
-      expect(queryInput.FilterExpression).toBe('#status IN (:open, :planned)');
+      expect(queryInput.FilterExpression).toContain('#status IN (:open, :planned)');
+      expect(queryInput.FilterExpression).toContain('attribute_not_exists(workspaceId)');
       expect(queryInput.ExpressionAttributeValues).toEqual(
         expect.objectContaining({
           ':open': GapStatus.OPEN,

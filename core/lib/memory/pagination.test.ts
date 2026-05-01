@@ -102,7 +102,7 @@ describe('DynamoMemory Pagination & Search', () => {
           ':type': 'MEMORY:INSIGHT',
           ':query': 'tool X',
         },
-        FilterExpression: 'contains(content, :query)',
+        FilterExpression: expect.stringContaining('attribute_not_exists(workspaceId)'),
         Limit: 10,
       });
     });

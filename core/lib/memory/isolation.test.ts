@@ -47,8 +47,8 @@ describe('Memory Isolation Safeguards', () => {
 
       const queryCalls = ddbMock.commandCalls(QueryCommand);
       const gsiCall = queryCalls[1].args[0].input;
-      // Should find the type-based prefix in FilterExpression
-      expect(gsiCall.FilterExpression).toBeUndefined(); // Base getMemoryByTypePaginated without workspaceId has no filter by default
+      // Should find the global isolation check (attribute_not_exists)
+      expect(gsiCall.FilterExpression).toContain('attribute_not_exists(workspaceId)');
     });
 
     it('should ignore injected items from other workspaces in GSI results', async () => {

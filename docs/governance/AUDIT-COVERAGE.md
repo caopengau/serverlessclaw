@@ -12,10 +12,10 @@ Last Updated: 2026-05-01
 
 | Silo  | Name           | Primary Code Paths                              | Audit Count | Last Audited | Risk Level |
 | :---- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
-| **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 14          | 2026-04-26   | Low        |
-| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 9           | 2026-04-29   | Low        |
+| **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 14          | 2026-05-01   | Low        |
+| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 10          | 2026-05-01   | Low        |
 | **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 16+         | 2026-05-01   | Low        |
-| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 12          | 2026-05-01   | Low        |
+| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 13          | 2026-05-01   | Low        |
 | **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 13          | 2026-04-29   | Low        |
 | **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 14          | 2026-04-29   | Low        |
 | **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 7           | 2026-05-01   | Low        |
@@ -26,7 +26,7 @@ Last Updated: 2026-05-01
 
 | Perspective | Name              | Description            | Usage Count | Last Tested |
 | :---------- | :---------------- | :--------------------- | :---------- | :---------- |
-| **A**       | Life of a Message | Spine → Brain → Eye    | 7           | 2026-04-29  |
+| **A**       | Life of a Message | Spine → Brain → Eye    | 8           | 2026-05-01  |
 | **B**       | Evolution Cycle   | Hand → Shield → Scales | 7           | 2026-04-29  |
 | **C**       | Identity Journey  | Brain → Spine → Shield | 9           | 2026-05-01  |
 | **D**       | Trust Loop        | Eye → Scales → Spine   | 10          | 2026-05-01  |
@@ -38,8 +38,8 @@ Last Updated: 2026-05-01
 
 | Date       | Report                                          | Silos Covered             | Cross-Silo | Key Findings                                                                                                   |
 | :--------- | :---------------------------------------------- | :------------------------ | :--------- | :------------------------------------------------------------------------------------------------------------- |
+| 2026-05-01 | `audit-2026-05-01-brain-isolation.md`          | Brain, Hand, Spine        | A          | FIXED: P1 Critical Memory Isolation Leakage, P2 Global Item Invisibility in workspaces. Verified Silo 2 Budget. |
 | 2026-05-01 | `audit-2026-05-01-recovery-path.md`            | Shield, Spine, Brain      | E          | FIXED: P1 Sticky Recovery Counter, P2 Conservative lock cleanup, P2 Global remediation bypass.                 |
-| 2026-05-01 | `audit-2026-05-01-trust-loop.md`              | Scales, Eye, Metabolism   | D          | FIXED: P1 Double Decay in TrustManager, P2 redundant anomaly penalization.                                     |
 | 2026-05-01 | `audit-2026-05-01-identity-journey.md`         | Brain, Spine, Shield      | C          | FIXED: P1 Fail-Open RBAC Bypass in IdentityManager. Updated tests to enforce workspace isolation.              |
 | 2026-05-01 | `audit-2026-05-01-shield-metabolism.md`        | Shield, Metabolism        | C, D, E    | FIXED: P1 Race Condition in Trust Clamping, P2 S3 Reclamation Telemetry Blindness, P2 Lock Release Race        |
 | 2026-05-01 | `audit-2026-05-01-the-shield-identity.md`       | Shield                    | C          | FIXED: P0 Fail-Open RBAC Viewer Bypass, P1 Fail-Open Policy Fallback, P1 Blind Tool Failures                   |
