@@ -49,3 +49,4 @@ tier2.log
 vitest_output.txt
 yarn-debug.log*
 yarn-error.log*
+scratch/
