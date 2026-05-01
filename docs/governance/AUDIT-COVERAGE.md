@@ -4,7 +4,7 @@
 
 This document tracks which system silos and cross-silo perspectives have been audited across all rounds. It helps identify under-audited areas and guide future audit efforts.
 
-Last Updated: 2026-04-29
+Last Updated: 2026-05-01
 
 ---
 
@@ -14,11 +14,11 @@ Last Updated: 2026-04-29
 | :---- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
 | **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 14          | 2026-04-26   | Low        |
 | **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 9           | 2026-04-29   | Low        |
-| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 15+         | 2026-04-27   | Medium     |
+| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 16+         | 2026-05-01   | Low        |
 | **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 11          | 2026-04-26   | Medium     |
 | **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 13          | 2026-04-29   | Low        |
 | **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 14          | 2026-04-29   | Low        |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 6           | 2026-04-29   | Low        |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 7           | 2026-05-01   | Low        |
 
 ---
 
@@ -28,9 +28,9 @@ Last Updated: 2026-04-29
 | :---------- | :---------------- | :--------------------- | :---------- | :---------- |
 | **A**       | Life of a Message | Spine → Brain → Eye    | 7           | 2026-04-29  |
 | **B**       | Evolution Cycle   | Hand → Shield → Scales | 7           | 2026-04-29  |
-| **C**       | Identity Journey  | Brain → Spine → Shield | 7           | 2026-04-29  |
-| **D**       | Trust Loop        | Eye → Scales → Spine   | 8           | 2026-04-29  |
-| **E**       | Recovery Path     | Shield → Spine → Brain | 7           | 2026-04-29  |
+| **C**       | Identity Journey  | Brain → Spine → Shield | 8           | 2026-05-01  |
+| **D**       | Trust Loop        | Eye → Scales → Spine   | 9           | 2026-05-01  |
+| **E**       | Recovery Path     | Shield → Spine → Brain | 8           | 2026-05-01  |
 
 ---
 
@@ -38,6 +38,7 @@ Last Updated: 2026-04-29
 
 | Date       | Report                                          | Silos Covered             | Cross-Silo | Key Findings                                                                                                   |
 | :--------- | :---------------------------------------------- | :------------------------ | :--------- | :------------------------------------------------------------------------------------------------------------- |
+| 2026-05-01 | `audit-2026-05-01-shield-metabolism.md`        | Shield, Metabolism        | C, D, E    | FIXED: P1 Race Condition in Trust Clamping, P2 S3 Reclamation Telemetry Blindness, P2 Lock Release Race        |
 | 2026-05-01 | `audit-2026-05-01-the-shield-identity.md`       | Shield                    | C          | FIXED: P0 Fail-Open RBAC Viewer Bypass, P1 Fail-Open Policy Fallback, P1 Blind Tool Failures                   |
 | 2026-04-30 | `audit-2026-04-30-cognitive-safety-guards.md`   | Shield, Eye               | D          | FIXED: P1 Fail-open Cognitive Trace Coherence, P2 Inconsistent Priority |
 | 2026-04-30 | `audit-2026-04-30-identity-journey.md`          | Brain, Spine, Shield      | C          | FIXED: P1 Identity Leak in selection boundary, P2 Unauthorized agent invitation (Anti-Pattern 10)              |
@@ -61,7 +62,7 @@ Last Updated: 2026-04-29
 | 2026-04-27 | `audit-2026-04-27-life-of-a-message-v2.md`      | Spine, Brain, Eye         | A          | FIXED: P1 Missing metrics in non-streaming path, P1 Non-atomic persistence, P2 Multi-tenant regex              |
 | 2026-04-27 | `audit-2026-04-27-trust-loop.md`                | Scales, Eye               | D          | FIXED: P1 Cognitive metric collisions, P1 Trust history inconsistency, P1 Multi-tenant decay gap               |
 | 2026-04-27 | `audit-2026-04-27-perspective-a.md`             | Spine, Eye                | A          | FIXED: Telemetry Blindness in metrics, Scoping bugs in events, Cognitive data loss                             |
-| 2026-04-27 | `audit-2026-04-27-metabolism-recovery.md`       | Metabolism, Recovery      | E          | FIXED: P1 Tool usage count loss, P1 LKG record collision, P2 Config atomicity, P2 Scan optimization            |
+| 2026-04-27 | `audit-2026-04-27-metabolism-recovery.md`       | Metabolism, Recovery      | E          | FIXED: P1 Tool usage count loss, P1 LKG record collision, P2 Config atomicity, P2 Sample task threshold         |
 | 2026-04-27 | `audit-2026-04-27-identity-journey.md`          | Brain, Spine, Shield      | C          | FIXED: P1 Identity race condition, P2 Safety bypasses, P2 Adaptive failure                                     |
 | 2026-04-26 | `audit-2026-04-26-identity-journey.md`          | Brain, Spine, Shield      | C          | PASSED: Verified Principle 12, 13, 14, 15 across silos.                                                        |
 | 2026-04-26 | `audit-2026-04-26-trust-loop.md`                | Eye, Scales, Spine        | D          | FIXED: Disconnected trust engine, Telemetry data loss                                                          |
@@ -74,17 +75,18 @@ Last Updated: 2026-04-29
 
 ### High Priority (Needs Re-Audit)
 
-1. **The Shield (Silo 3)** - Needs verification of fail-closed behavior in new cognitive safety guards.
+1. **The Brain (Silo 4)** - Focus next audit on vector store multi-tenant isolation and RAG leakage.
 
 ### Medium Priority (Rarely Audited)
 
-1. **The Metabolism** (Silo 7) - Focus next audit on S3 resource reclamation and stale tool pruning.
+1. **The Hand (Silo 2)** - Verify tool acquisition cost estimation and budget enforcement.
 
 ---
 
 ### High Risk (Most Violations)
 
-1. **All core silos (1-6) have been significantly hardened on 2026-04-26.** Risk levels have been downgraded based on comprehensive remediation of cross-silo leaks and race conditions.
+1. **All core silos (1-7) have been significantly hardened as of 2026-05-01.** Risk levels have been downgraded based on comprehensive remediation of cross-silo leaks, race conditions, and cognitive safety gaps.
+
 
 ---
 

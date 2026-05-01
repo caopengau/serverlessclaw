@@ -54,7 +54,7 @@ describe('LockManager Concurrency & Cleanup [Sh1]', () => {
     expect(result).toBe(true);
     // The call is the UpdateCommand
     const command = mockSend.mock.calls[0][0] as UpdateCommand;
-    expect(command.input.ConditionExpression).toBe('ownerId = :owner OR expiresAt < :now');
+    expect(command.input.ConditionExpression).toBe('ownerId = :owner');
   });
 
   it('should fail release if owner ID does not match and not expired', async () => {

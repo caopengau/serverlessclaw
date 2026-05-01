@@ -172,7 +172,6 @@ export class LockManager {
     options?: { prefix?: string; workspaceId?: string }
   ): Promise<boolean> {
     const fullId = this.getFullId(lockId, options);
-    const now = Math.floor(Date.now() / 1000);
 
     try {
       await this.docClient.send(
@@ -183,11 +182,10 @@ export class LockManager {
             timestamp: 0,
           },
           UpdateExpression: 'REMOVE ownerId, expiresAt, acquiredAt, lockType, renewedAt',
-          // Release if we own it, or if it's already expired (cleanup)
-          ConditionExpression: 'ownerId = :owner OR expiresAt < :now',
+          // Principle 13: Only release if we are the current owner to prevent race conditions
+          ConditionExpression: 'ownerId = :owner',
           ExpressionAttributeValues: {
             ':owner': ownerId,
-            ':now': now,
           },
         })
       );

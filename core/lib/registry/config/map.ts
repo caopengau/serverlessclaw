@@ -8,6 +8,19 @@ import { getDocClient } from './client';
  */
 export class ConfigManagerMap extends ConfigManagerList {
   /**
+   * Fetches a specific entity from a map-based configuration.
+   */
+  public static async getMapEntity<T = Record<string, unknown>>(
+    key: string,
+    entityId: string,
+    options?: { workspaceId?: string; orgId?: string }
+  ): Promise<T | undefined> {
+    const rootMap = await this.getRawConfig(key, options);
+    if (!rootMap || typeof rootMap !== 'object') return undefined;
+    return (rootMap as Record<string, T>)[entityId];
+  }
+
+  /**
    * Atomically updates a specific field for an entity within a map-based configuration.
    */
   public static async atomicUpdateMapField(
@@ -233,11 +246,39 @@ export class ConfigManagerMap extends ConfigManagerList {
       );
       const newValue = result.Attributes?.value?.[entityId]?.[field] ?? 0;
 
-      // Clamping if needed
+      // Clamping if needed (Principle 15: Monotonic Progress)
       if (newValue < min || newValue > max) {
         const clamped = Math.min(Math.max(newValue, min), max);
-        await this.atomicUpdateMapField(key, entityId, field, clamped, options);
-        return clamped;
+        const condition = newValue < min ? '#val.#id.#field < :min' : '#val.#id.#field > :max';
+        try {
+          await docClient.send(
+            new UpdateCommand({
+              TableName: tableName,
+              Key: { key: effectiveKey },
+              UpdateExpression: 'SET #val.#id.#field = :clamped',
+              ConditionExpression: `attribute_exists(#val.#id) AND (${condition})`,
+              ExpressionAttributeNames: { '#val': 'value', '#id': entityId, '#field': field },
+              ExpressionAttributeValues: {
+                ':clamped': clamped,
+                ':min': min,
+                ':max': max,
+              },
+            })
+          );
+          return clamped;
+        } catch (clampError: unknown) {
+          if (
+            clampError instanceof Error &&
+            clampError.name === 'ConditionalCheckFailedException'
+          ) {
+            // Value was corrected or changed back into range concurrently - fetch fresh state
+            const fresh = await this.getMapEntity(key, entityId, {
+              workspaceId: options.workspaceId,
+            });
+            return (fresh?.[field] as number) ?? clamped;
+          }
+          throw clampError;
+        }
       }
 
       return newValue;

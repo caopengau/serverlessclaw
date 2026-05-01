@@ -160,7 +160,7 @@ describe('LockManager', () => {
       expect(mockSend).toHaveBeenCalledTimes(1);
       expect(mockSend).toHaveBeenCalledWith(expect.any(UpdateCommand));
       const input = mockSend.mock.calls[0][0].input;
-      expect(input.ConditionExpression).toBe('ownerId = :owner OR expiresAt < :now');
+      expect(input.ConditionExpression).toBe('ownerId = :owner');
       expect(input.ExpressionAttributeValues[':owner']).toBe('agent-1');
     });
 

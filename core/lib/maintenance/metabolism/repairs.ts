@@ -202,13 +202,20 @@ export async function pruneStagingBucket(scope: { workspaceId: string }): Promis
         .map((obj) => ({ Key: obj.Key! }));
 
       if (toDelete.length > 0) {
-        await s3Client.send(
+        const deleteResponse = await s3Client.send(
           new DeleteObjectsCommand({
             Bucket: bucket,
             Delete: { Objects: toDelete },
           })
         );
-        prunedCount += toDelete.length;
+
+        if (deleteResponse.Errors && deleteResponse.Errors.length > 0) {
+          const errorMsgs = deleteResponse.Errors.map((e) => `${e.Key}: ${e.Code}`).join(', ');
+          logger.warn(`[Metabolism] Partial failure during S3 reclamation: ${errorMsgs}`);
+          prunedCount += deleteResponse.Deleted?.length ?? 0;
+        } else {
+          prunedCount += toDelete.length;
+        }
       }
 
       continuationToken = listResponse.NextContinuationToken;

@@ -286,6 +286,32 @@ emitMetrics([METRICS.dlqEvents(1, scope)]); // Partitioned via dimension
 
 ---
 
+### 15. Non-Atomic Clamping in Increments
+
+**What**: Incrementing a value and then conditionally setting it to a min/max bound in a separate unconditional update.
+
+**Risk**: Concurrent updates between the increment and the clamp will be lost.
+
+**Pattern**:
+
+```typescript
+// ❌ WRONG
+const newValue = current + delta;
+if (newValue > max) {
+  await db.update({ SET val = :max }); // Overwrites any concurrent changes!
+}
+
+// ✅ CORRECT
+if (newValue > max) {
+  await db.update({
+    SET val = :max,
+    ConditionExpression: 'val > :max' // Only overwrite if still out of bounds
+  });
+}
+```
+
+---
+
 ## How to Use This Document
 
 1. **During Code Review**: Check this document before submitting
