@@ -175,9 +175,13 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
     if (httpHealthy && healthResult.ok) {
       logger.info('System is healthy (HTTP and Cognitive Checks PASSED). No action needed.');
 
+      await memory.resetRecoveryAttemptCount();
       await cleanupStaleGapLocks();
       return;
     }
+
+    // Even if unhealthy, attempt to cleanup stale locks as they might be part of the problem
+    await cleanupStaleGapLocks();
 
     if (!httpHealthy) {
       logger.warn(

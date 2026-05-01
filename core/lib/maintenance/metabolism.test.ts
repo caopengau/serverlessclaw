@@ -247,5 +247,28 @@ describe('MetabolismService', () => {
         expect.anything()
       );
     });
+
+    it('should proceed with "default" workspaceId if missing from failure payload', async () => {
+      const failure = {
+        traceId: 'trace-global',
+        agentId: 'system-agent',
+        error: "Global Tool 'system_check' failed",
+        userId: 'SYSTEM',
+        // workspaceId missing
+      };
+
+      const { ConfigManager } = await import('../registry/config');
+      vi.mocked(ConfigManager.atomicRemoveFromMap).mockResolvedValueOnce(undefined);
+
+      const finding = await MetabolismService.remediateDashboardFailure(mockMemory, failure as any);
+
+      expect(ConfigManager.atomicRemoveFromMap).toHaveBeenCalledWith(
+        'agent_tool_overrides',
+        'system-agent',
+        ['system_check'],
+        { workspaceId: 'default' }
+      );
+      expect(finding?.actual).toContain('Pruned stale/failing tool overrides atomically');
+    });
   });
 });

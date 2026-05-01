@@ -29,8 +29,8 @@ Last Updated: 2026-05-01
 | **A**       | Life of a Message | Spine → Brain → Eye    | 7           | 2026-04-29  |
 | **B**       | Evolution Cycle   | Hand → Shield → Scales | 7           | 2026-04-29  |
 | **C**       | Identity Journey  | Brain → Spine → Shield | 9           | 2026-05-01  |
-| **D**       | Trust Loop        | Eye → Scales → Spine   | 9           | 2026-05-01  |
-| **E**       | Recovery Path     | Shield → Spine → Brain | 8           | 2026-05-01  |
+| **D**       | Trust Loop        | Eye → Scales → Spine   | 10          | 2026-05-01  |
+| **E**       | Recovery Path     | Shield → Spine → Brain | 9           | 2026-05-01  |
 
 ---
 
@@ -38,6 +38,7 @@ Last Updated: 2026-05-01
 
 | Date       | Report                                          | Silos Covered             | Cross-Silo | Key Findings                                                                                                   |
 | :--------- | :---------------------------------------------- | :------------------------ | :--------- | :------------------------------------------------------------------------------------------------------------- |
+| 2026-05-01 | `audit-2026-05-01-recovery-path.md`            | Shield, Spine, Brain      | E          | FIXED: P1 Sticky Recovery Counter, P2 Conservative lock cleanup, P2 Global remediation bypass.                 |
 | 2026-05-01 | `audit-2026-05-01-trust-loop.md`              | Scales, Eye, Metabolism   | D          | FIXED: P1 Double Decay in TrustManager, P2 redundant anomaly penalization.                                     |
 | 2026-05-01 | `audit-2026-05-01-identity-journey.md`         | Brain, Spine, Shield      | C          | FIXED: P1 Fail-Open RBAC Bypass in IdentityManager. Updated tests to enforce workspace isolation.              |
 | 2026-05-01 | `audit-2026-05-01-shield-metabolism.md`        | Shield, Metabolism        | C, D, E    | FIXED: P1 Race Condition in Trust Clamping, P2 S3 Reclamation Telemetry Blindness, P2 Lock Release Race        |

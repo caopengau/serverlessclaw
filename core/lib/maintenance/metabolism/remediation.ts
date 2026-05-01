@@ -19,11 +19,9 @@ export async function remediateDashboardFailure(
   memory: BaseMemoryProvider,
   failure: FailureEventPayload
 ): Promise<AuditFinding | undefined> {
-  const workspaceId = (failure as Record<string, unknown>).workspaceId as string | undefined;
-  if (!workspaceId) {
-    logger.warn('[Metabolism] Skipping real-time remediation: missing workspaceId');
-    return undefined;
-  }
+  const workspaceId =
+    ((failure as Record<string, unknown>).workspaceId as string | undefined) || 'default';
+
   logger.info(
     `[Metabolism] Attempting immediate remediation for trace ${failure.traceId} in workspace ${workspaceId}`
   );
