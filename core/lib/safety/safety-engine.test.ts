@@ -298,12 +298,14 @@ describe('SafetyEngine', () => {
       // Allowed path
       const result1 = await customEngine.evaluateAction(config, 'file_operation', {
         resource: 'src/main.ts',
+        userId: 'SYSTEM',
       });
       expect(result1.allowed).toBe(true);
 
       // Path NOT in whitelist
       const result2 = await customEngine.evaluateAction(config, 'file_operation', {
         resource: 'README.md',
+        userId: 'SYSTEM',
       });
       expect(result2.allowed).toBe(false);
       expect(result2.appliedPolicy).toBe('resource_not_allowed');
@@ -372,6 +374,7 @@ describe('SafetyEngine', () => {
 
       const result = await customEngine.evaluateAction(config, 'mcp_tool', {
         toolName: 'dangerousTool',
+        userId: 'SYSTEM',
       });
 
       expect(result.requiresApproval).toBe(true);
@@ -543,7 +546,10 @@ describe('SafetyEngine', () => {
         },
       };
 
-      const result = await engine.evaluateAction(config, 'file_operation', { args });
+      const result = await engine.evaluateAction(config, 'file_operation', {
+        args,
+        userId: 'SYSTEM',
+      });
 
       // .git/config is a protected resource
       expect(result.allowed).toBe(false);
@@ -586,6 +592,7 @@ describe('SafetyEngine', () => {
       const result = await engine.evaluateAction(config, 'file_operation', {
         isProactive: true,
         resource: 'core/lib/safety/safety-engine.ts', // Highly protected
+        userId: 'SYSTEM',
       });
 
       // System protected should always be blocked unless manuallyApproved (which it isn't here)

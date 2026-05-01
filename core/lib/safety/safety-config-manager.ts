@@ -75,11 +75,13 @@ export class SafetyConfigManager {
 
       return policies;
     } catch (e) {
-      logger.warn(
-        `Failed to fetch safety policies from DDB for ${cacheKey}, falling back to defaults:`,
+      logger.error(
+        `[SafetyConfigManager] Failed to fetch safety policies from DDB for ${cacheKey}. Failing closed to prevent security bypass:`,
         e
       );
-      return DEFAULT_POLICIES;
+      throw new Error(
+        `[SafetyConfigManager] Database outage - cannot safely evaluate policies for ${cacheKey}`
+      );
     }
   }
 

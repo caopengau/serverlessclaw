@@ -229,13 +229,27 @@ export class ToolExecutor {
 
     // 1.5 Security Validation
     const { ToolSecurityValidator } = await import('./tool-security');
-    const securityResult = await ToolSecurityValidator.validate(
-      tool,
-      toolCall,
-      args,
-      execContext,
-      approvedToolCalls
-    );
+    let securityResult: {
+      allowed: boolean;
+      requiresApproval?: boolean;
+      reason?: string;
+      modifiedArgs?: Record<string, unknown>;
+    };
+    try {
+      securityResult = await ToolSecurityValidator.validate(
+        tool,
+        toolCall,
+        args,
+        execContext,
+        approvedToolCalls
+      );
+    } catch (secError) {
+      logger.error(`[SECURITY] Validator crashed (failing closed) for ${tool.name}:`, secError);
+      securityResult = {
+        allowed: false,
+        reason: `System safety block active due to an internal security check failure: ${secError instanceof Error ? secError.message : String(secError)}`,
+      };
+    }
 
     if (!securityResult.allowed) {
       if (securityResult.requiresApproval) {

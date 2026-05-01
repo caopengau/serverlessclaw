@@ -163,6 +163,7 @@ describe('SuperClaw', () => {
         } as any;
         const result = await superclaw.evaluateAction(config, 'mcp_tool', {
           toolName: 'sensitive_tool',
+          userId: 'SYSTEM',
         });
         expect(result.requiresApproval).toBe(true);
         expect(result.appliedPolicy).toBe('tool_override');

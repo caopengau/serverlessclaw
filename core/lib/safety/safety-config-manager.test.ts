@@ -69,6 +69,14 @@ describe('SafetyConfigManager', () => {
       expect(policies).toEqual(DEFAULT_POLICIES);
     });
 
+    it('throws error to fail-closed on DDB failure', async () => {
+      mockGetRawConfig.mockRejectedValue(new Error('DDB Outage'));
+
+      await expect(SafetyConfigManager.getPolicies()).rejects.toThrow(
+        '[SafetyConfigManager] Database outage'
+      );
+    });
+
     it('ignores invalid tier keys in DDB data', async () => {
       mockGetRawConfig.mockResolvedValue({
         invalid_tier: { requireCodeApproval: true },

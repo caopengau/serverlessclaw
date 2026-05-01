@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ToolExecutor, ToolExecutionContext } from './tool-executor';
+import { ToolSecurityValidator } from './tool-security';
 import { ITool, ToolType, MessageRole } from '../types/index';
 import { ClawTracer } from '../tracer';
 
@@ -178,5 +179,42 @@ describe('ToolExecutor Security', () => {
 
     expect(result.toolCallCount).toBe(1);
     expect(mockTools[0].execute).toHaveBeenCalled();
+  });
+
+  it('fails closed when ToolSecurityValidator throws an exception', async () => {
+    // Force the validator to throw an error
+    vi.spyOn(ToolSecurityValidator, 'validate').mockRejectedValueOnce(
+      new Error('Simulated DDB outage')
+    );
+
+    const toolCalls = [
+      {
+        id: 'call-crash',
+        type: 'function' as const,
+        function: {
+          name: 'any_tool',
+          arguments: JSON.stringify({ path: 'src/index.ts' }),
+        },
+      },
+    ];
+
+    const messages: any[] = [];
+    const attachments: any[] = [];
+
+    const result = await ToolExecutor.executeToolCalls(
+      toolCalls,
+      mockTools,
+      messages,
+      attachments,
+      execContext,
+      mockTracer
+    );
+
+    // It should fail closed, meaning the tool is NOT executed
+    expect(result.toolCallCount).toBe(0);
+    expect(mockTools[0].execute).not.toHaveBeenCalled();
+    expect(messages.length).toBe(1);
+    expect(messages[0].role).toBe(MessageRole.TOOL);
+    expect(messages[0].content).toContain('internal security check failure');
   });
 });

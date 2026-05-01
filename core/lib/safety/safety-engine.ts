@@ -283,7 +283,7 @@ export class SafetyEngine extends SafetyBase {
     }
 
     // 2. Class B - Restricted to non-VIEWER
-    if (role === UserRole.VIEWER) {
+    if (role === UserRole.VIEWER || role === undefined) {
       // For Viewers, we block any action that isn't purely observational (Class A).
       // Since Class categorization is additive, any action that isn't Class A is blocked.
       // For now, we block everything that isn't explicitly Class A.
@@ -293,7 +293,7 @@ export class SafetyEngine extends SafetyBase {
         tier,
         action,
         'rbac_viewer_denied',
-        `Action '${action}' denied for VIEWER role. Viewers have read-only access.`
+        `Action '${action}' denied for VIEWER role or missing role. Viewers have read-only access.`
       );
     }
 
