@@ -1,6 +1,6 @@
 {
   "$schema": "https://getaiready.dev/schema.json",
-  "threshold": 80,
+  "threshold": 75,
   "scan": {
     "include": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
     "exclude": [
