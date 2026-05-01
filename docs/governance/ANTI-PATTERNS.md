@@ -312,6 +312,33 @@ if (newValue > max) {
 
 ---
 
+### 16. Non-Idempotent Maintenance Tasks
+
+**What**: Background tasks (decay, pruning, cleanup) that lack idempotent guards, leading to double-execution in serverless environments or concurrent runs.
+
+**Risk**: Double-penalization of trust scores, excessive culling of memory, or corrupted telemetry.
+
+**Pattern**:
+
+```typescript
+// ❌ WRONG
+async function decayTrust() {
+  await atomicIncrement(score, -1); // Runs every time the cron triggers
+}
+
+// ✅ CORRECT
+async function decayTrust() {
+  await atomicUpdate({
+    SET score = score - 1, lastDecayedAt = :today,
+    Condition: 'lastDecayedAt <> :today'
+  });
+}
+```
+
+**Occurrences**: Fixed in TrustManager decay and Anomaly Calibration (Audit 2026-05-01).
+
+---
+
 ## How to Use This Document
 
 1. **During Code Review**: Check this document before submitting
