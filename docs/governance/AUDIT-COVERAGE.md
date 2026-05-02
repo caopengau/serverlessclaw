@@ -4,7 +4,7 @@
 
 This document tracks which system silos and cross-silo perspectives have been audited across all rounds. It helps identify under-audited areas and guide future audit efforts.
 
-Last Updated: 2026-05-01
+Last Updated: 2026-05-02
 
 ---
 
@@ -31,6 +31,7 @@ Last Updated: 2026-05-01
 | **C**       | Identity Journey  | Brain → Spine → Shield | 10          | 2026-05-01  |
 | **D**       | Trust Loop        | Eye → Scales → Spine   | 12          | 2026-05-02  |
 | **E**       | Recovery Path     | Shield → Spine → Brain | 10          | 2026-05-02  |
+| **F**       | Metabolic Loop    | Metabolism ↔ Scales ↔ Spine | 0           | N/A         |
 
 ---
 

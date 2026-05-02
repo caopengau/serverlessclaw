@@ -136,7 +136,7 @@ Every audit finding falls into one of four categories. Classifying findings corr
    - Recommended action or further investigation
 
 > [!IMPORTANT]
-> **Every audit MUST verify at least ONE Cross-Silo Perspective** (A-E). Siloed audits miss integration bugs. See [Audit Coverage Matrix](AUDIT-COVERAGE.md) for which perspectives have been tested.
+> **Every audit MUST verify at least ONE Cross-Silo Perspective** (A-F). Siloed audits miss integration bugs. See [Audit Coverage Matrix](AUDIT-COVERAGE.md) for which perspectives have been tested.
 >
 > **Track Pattern Recurrence**: When documenting findings, include `related_issues` field to link to past similar issues. See [Anti-Patterns](ANTI-PATTERNS.md) for known recurring issues to watch for.
 
@@ -212,7 +212,7 @@ Use this table to map high-level silos to the primary code areas that should be 
 | **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | [MEMORY.md](../intelligence/MEMORY.md)    |
 | **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | [DASHBOARD.md](../interface/DASHBOARD.md) |
 | **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | [SAFETY.md](../intelligence/SAFETY.md)    |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | [METABOLISM.md](../system/METABOLISM.md)  |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`, `core/lib/lifecycle/health.ts`, `core/lib/recovery/` | [METABOLISM.md](../system/METABOLISM.md) |
 
 ---
 
@@ -225,7 +225,7 @@ Each silo represents a core functional domain. Reviews within a silo should adop
 **Perspective**: _How does the system ensure the signal never dies?_
 
 - **Angle**: Audit the journey of events through the asynchronous backbone. Look for "dead ends," race conditions in the distributed lock, and the effectiveness of **Conflict Resolution Timeouts** during agent handoffs.
-- **Baseline**: Hardened April 2026. DistributedState utilizes atomic conditional updates for circuit breakers and fail-closed rate limiting. AgentRouter enforces explicit selection integrity.
+- **Baseline**: Hardened May 2026. DistributedState utilizes atomic conditional updates for circuit breakers and fail-closed rate limiting. AgentRouter enforces explicit selection integrity.
 
 ### 2. The Hand (Agency & Skill Mastery)
 
@@ -261,8 +261,7 @@ The Shield acts as the authoritative gate for all tool executions, enforcing lea
 
 **Perspective**: _Is the system capable of autonomously healing its own debt and recycling waste?_
 
-- **Angle**: Audit the system through the lens of **Regenerative Metabolism**. Unlike passive audits, Silo 7 operates on the "Perform while Auditing" philosophy — identifying metabolic waste (dead overrides, memory bloat) and executing repairs in real-time.
-- **Angle**: Audit the system through the lens of **Regenerative Metabolism**. Look for metabolic waste (dead overrides, memory bloat) and evaluate the system's ability to autonomously heal its own debt.
+- **Angle**: Audit the system through the lens of **Regenerative Metabolism**. Unlike passive audits, Silo 7 operates on the "Perform while Auditing" philosophy — identifying metabolic waste (dead overrides, memory bloat) and executing repairs in real-time. Look for metabolic waste and evaluate the system's ability to autonomously heal its own debt.
 
 ---
 
@@ -294,11 +293,17 @@ These perspectives intentionally span multiple silos to identify integration gap
  [ Trust Update ] (Scales) ----------------+
         |
  [ Mode Shift ] (Metabolism) --(12h Schedule)--> [ Autonomy ] (Spine)
+                                                       |
+ [ Repair Action ] (Metabolism) <---(F: Loop)---------+
 ```
 
 ### E. The "Recovery Path" (Shield ↔ Spine ↔ Brain)
 
 **Objective**: Verify system recovery maintains consistency.
+
+### F. The "Metabolic Loop" (Metabolism ↔ Scales ↔ Spine)
+
+**Objective**: Verify that autonomous self-healing and cleanup do not disrupt trust or action integrity.
 
 ---
 
