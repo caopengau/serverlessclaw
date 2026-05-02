@@ -63,6 +63,17 @@
     ]
   },
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "@mcp-server/google-search-mcp",
+      "@swc/core",
+      "@vscode/ripgrep",
+      "esbuild",
+      "puppeteer",
+      "sharp",
+      "tree-sitter-java",
+      "tree-sitter-python",
+      "unrs-resolver"
+    ],
     "overrides": {
       "fast-xml-parser": ">=5.5.7",
       "flatted": ">=3.4.2",
