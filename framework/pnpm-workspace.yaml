@@ -1,0 +1,7 @@
+packages:
+  - 'core'
+  - 'infra'
+  - 'dashboard'
+  - 'cli'
+  - 'integrations/*'
+  - 'packages/*'
