@@ -50,7 +50,7 @@ function parseArgs(): {
   let threshold = 5;
   let baselineFile = '.coverage-baseline.json';
   let updateBaseline = false;
-  let outputFile = 'coverage-trend-report.md';
+  let outputFile = 'reports/coverage-trend-report.md';
 
   for (let i = 0; i < args.length; i++) {
     switch (args[i]) {

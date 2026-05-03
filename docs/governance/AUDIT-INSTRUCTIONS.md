@@ -62,6 +62,9 @@ Choose ONE from the Silo table (1-7) and ONE Cross-Silo Perspective (A-F).
 Create report in `reports/audit-<YYYY-MM-DD>-<topic>.md`.
 Include ID, Title, Type (Bug/Gap/Inconsistency/Refactor), Severity (P0-P3), and Related Anti-Pattern ID.
 
+> [!IMPORTANT]
+> **Git Tracking**: Audit reports in the `reports/` directory are NOT to be tracked in git. They are local artifacts for rotation and context. Do NOT use `git add -f` to override the `.gitignore` for these files.
+
 ## 5. Priority Areas (Current Blind Spots)
 
 Prioritize these under-audited or high-complexity areas:
