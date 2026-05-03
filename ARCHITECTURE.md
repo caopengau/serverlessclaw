@@ -653,6 +653,32 @@ Serverless Claw provides high-leverage integration points at every layer of the 
 1. **Cognitive Plugins**: Apps can register agents and tools via a `ClawPlugin` interface. These are dynamically merged into the core registry at runtime.
 2. **Spoke Stacks**: Infrastructure is pluggable. Project-specific SST stacks are loaded dynamically, allowing them to share the core `AgentBus` while provisioning their own specialized resources (buckets, queues).
 3. **Shared Awareness**: All integrations communicate via the standardized `AgentBus`, ensuring a unified trace history across diverse monorepo projects.
+4. **Dashboard Slot Architecture**: The frontend implements a **Component-Level Injection** model using named `Slots`. This allows apps to inject custom UI (e.g., VoltX branding, project metrics) into core layouts without iframes.
+
+---
+
+## 🎨 Dashboard Extensibility: The Slot Model
+
+To avoid the performance and UX penalties of iframes, Serverless Claw uses a native React injection model:
+
+```text
+[ ExtensionRegistry ] <--- (registerLayoutExtension) --- [ Project App (Voltx) ]
+          |
+          v
+[ ExtensionProvider ] (Context)
+          |
+          +--> [ Slot (name="sidebar_top") ] ----> [ Voltx Branding ]
+          |
+          +--> [ Slot (name="main_top") ] -------> [ Voltx Global Alerts ]
+          |
+          +--> [ Slot (name="sidebar_bottom") ] -> [ Voltx Status Bar ]
+```
+
+### Extraction Hub
+The dashboard also serves as a **Component Library**. Other apps can import high-fidelity Claw components directly via monorepo aliases:
+```typescript
+import { Card, Typography, MissionHUD } from '@dashboard/components';
+```
 
 ---
 

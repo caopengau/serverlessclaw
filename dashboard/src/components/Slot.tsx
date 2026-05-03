@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { useExtensions, LayoutSlot } from '../Providers/ExtensionProvider';
+import { useExtensions, LayoutSlot } from '@/components/Providers/ExtensionProvider';
 
 interface SlotProps {
   name: LayoutSlot;
