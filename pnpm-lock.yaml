@@ -32,8 +32,8 @@ importers:
   .:
     dependencies:
       '@aiready/ast-mcp-server':
-        specifier: 0.8.3
-        version: 0.8.3(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3)
+        specifier: 0.8.6
+        version: 0.8.6(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3)
       '@octokit/rest':
         specifier: ^22.0.1
         version: 22.0.1
@@ -205,8 +205,8 @@ importers:
   core:
     dependencies:
       '@aiready/ast-mcp-server':
-        specifier: 0.8.3
-        version: 0.8.3(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3)
+        specifier: 0.8.6
+        version: 0.8.6(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3)
       '@anthropic-ai/sdk':
         specifier: ^0.92.0
         version: 0.92.0(zod@4.4.2)
@@ -431,8 +431,8 @@ packages:
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  '@aiready/ast-mcp-server@0.8.3':
-    resolution: {integrity: sha512-/0Bey8leoexWKlsfcoXkXMhmREeb4eeruR0xlz94TBtbVAhDncLs7dmpU2PcZYTunyk1x4cbIODaBHtxJFrXpQ==}
+  '@aiready/ast-mcp-server@0.8.6':
+    resolution: {integrity: sha512-zttGn/kIGTQSxSMyEDDkQS65rfNaE9RJdxT/ljsWnvwpsRNnPt2Pr2K+rOEkjaqrkXlXUfn3++EuYoEnSfRyqw==}
     hasBin: true
     peerDependencies:
       typescript: ^6.0.0
@@ -464,6 +464,9 @@ packages:
 
   '@aiready/core@0.29.5':
     resolution: {integrity: sha512-QD5P/BKBkmYYnV4L9TH4idFeKpk8bRhXhk5pO6kp6SKCWsvrJGoPsh5NvJXuWQiSMbwGBdNYC6g50DVDkXjISA==}
+
+  '@aiready/core@0.29.7':
+    resolution: {integrity: sha512-k1+okaS8fY7lLXhDU0LxvGi3y5woHUsNXM2iRIEE9ki8exKUC25nf8OSJLbNbK9v/uN8HCCBd+eoFstAJqLHzg==}
 
   '@aiready/deps@0.14.27':
     resolution: {integrity: sha512-NDkcYijPjCRPeg+73F7IV/VMRgp7+xsPd33nVrDUucS8vyoIa8A9NgUK1QPLsrutpNY1DHOkhrtpmN4juqjK6Q==}
@@ -2165,6 +2168,7 @@ packages:
   '@smithy/util-retry@4.3.6':
     resolution: {integrity: sha512-p6/FO1n2KxMeQyna067i0uJ6TSbb165ZhnRtCpWh4Foxqbfc6oW+XITaL8QkFJj3KFnDe2URt4gOhgU06EP9ew==}
     engines: {node: '>=18.0.0'}
+    deprecated: '@smithy/util-retry v4.3.6 contains a bug in Adaptive Retry, see https://github.com/smithy-lang/smithy-typescript/issues/1993. Upgrade to 4.3.7+'
 
   '@smithy/util-stream@4.5.25':
     resolution: {integrity: sha512-/PFpG4k8Ze8Ei+mMKj3oiPICYekthuzePZMgZbCqMiXIHHf4n2aZ4Ps0aSRShycFTGuj/J6XldmC0x0DwednIA==}
@@ -6636,9 +6640,9 @@ snapshots:
       - tree-sitter
       - typescript
 
-  '@aiready/ast-mcp-server@0.8.3(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3)':
+  '@aiready/ast-mcp-server@0.8.6(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3)':
     dependencies:
-      '@aiready/core': 0.29.5(eslint@10.3.0(jiti@2.6.1))
+      '@aiready/core': 0.29.7(eslint@10.3.0(jiti@2.6.1))
       '@aiready/hygiene-audit': 0.8.0(eslint@10.3.0(jiti@2.6.1))
       '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.2)
       '@vscode/ripgrep': 1.17.1
@@ -6744,6 +6748,29 @@ snapshots:
       - tree-sitter
 
   '@aiready/core@0.29.5(eslint@10.3.0(jiti@2.6.1))':
+    dependencies:
+      '@octokit/rest': 22.0.1
+      '@typescript-eslint/parser': 8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3)
+      '@typescript-eslint/typescript-estree': 8.59.1(typescript@6.0.3)
+      '@unit-mesh/treesitter-artifacts': 1.7.7
+      '@vscode/ripgrep': 1.17.1
+      chalk: 5.6.2
+      commander: 14.0.3
+      glob: 13.0.6
+      ignore: 7.0.5
+      minimatch: 10.2.5
+      tree-sitter-java: 0.23.5
+      tree-sitter-python: 0.25.0
+      tree-sitter-wasms: 0.1.13
+      typescript: 6.0.3
+      web-tree-sitter: 0.26.8
+      zod: 4.4.2
+    transitivePeerDependencies:
+      - eslint
+      - supports-color
+      - tree-sitter
+
+  '@aiready/core@0.29.7(eslint@10.3.0(jiti@2.6.1))':
     dependencies:
       '@octokit/rest': 22.0.1
       '@typescript-eslint/parser': 8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3)
