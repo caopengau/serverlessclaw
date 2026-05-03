@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node", "aws-lambda", "vitest/globals"],
+    "paths": {
+      "@serverlessclaw/core": ["./framework/core/lib/agent.ts"],
+      "@serverlessclaw/core/*": ["./framework/core/lib/*"],
+      "@voltx/core": ["./packages/voltx-core/src/index.ts"],
+      "@voltx/core/*": ["./packages/voltx-core/src/*"]
+    }
+  },
+  "include": [
+    "framework/**/*.ts",
+    "packages/**/*.ts",
+    "apps/**/*.ts",
+    "sst.config.ts",
+    ".sst/platform/config.d.ts",
+    "sst-env.d.ts"
+  ],
+  "exclude": ["node_modules", "framework/dashboard/src", "apps/dashboard/src"]
+}
