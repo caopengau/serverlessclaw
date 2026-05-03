@@ -292,25 +292,28 @@ The system architecture follows a **Distributed Spine** model where all critical
           v
    [ Agent Execution (Silo 2: The Hand) ]
            |-- (7) Unified Config (ConfigManager: 60s Cached Dynamic Lookups)
-           |-- (8) Security Enforcement (ToolSecurityValidator: Safety/RBAC/Breaker)
-           |-- (9) Budget Enforcement (BudgetEnforcer + TokenBudgetEnforcer: Session + Task-level Tokens/Cost)
-           |-- (10) Isolated Workspace (/tmp/workspace-<traceId> or /tmp/merge-<traceId>)
-           |-- (11) Partitioned S3 Staging (Key: staged_${traceId}.zip)
+           |-- (8) Cognitive Decoration (PromptDecoratorRegistry: Phase 2 dynamic context)
+           |-- (9) Security Enforcement (ToolSecurityValidator: Safety/RBAC/Breaker)
+           |-- (10) Lifecycle Hooks (AgentHookRegistry: onStart/onMessage/onComplete)
+           |-- (11) Budget Enforcement (BudgetEnforcer + TokenBudgetEnforcer: Session + Task-level Tokens/Cost)
+           |-- (12) Isolated Workspace (/tmp/workspace-<traceId> or /tmp/merge-<traceId>)
+           |-- (13) Partitioned S3 Staging (Key: staged_${traceId}.zip)
           v
   [ Outcome (Success/Failure) ]
           |
           v
   [ Silo 6: The Scales (TrustManager) ]
-          |-- (11) Quality-Weighted Reputation Update
-          |-- (12) Atomic History Recording (list_append with WorkspaceId isolation)
-          |-- (13) Atomic Trust Score (Conditional atomicIncrementMapField)
-          |-- (14) Fail-Closed Integrity (Throw on update failure)
-          |-- (15) Capability Graduation (PromotionManager: PENDING -> PROMOTED)
+          |-- (14) Quality-Weighted Reputation Update
+          |-- (15) Atomic History Recording (list_append with WorkspaceId isolation)
+          |-- (16) Atomic Trust Score (Conditional atomicIncrementMapField)
+          |-- (17) Fail-Closed Integrity (Throw on update failure)
+          |-- (18) Capability Graduation (PromotionManager: PENDING -> PROMOTED)
           v
   [ Silo 8: The Extension (PluginManager) ]
-          |-- (16) Dynamic Registry Injection (AgentRegistry hooks)
-          |-- (17) Project-Specific Tool Mapping (getAgentTools bridge)
-          |-- (18) Spoke Infrastructure Inclusion (Dynamic SST Stacks)
+          |-- (19) Dynamic Registry Injection (Agents, Tools, Memory)
+          |-- (20) Prompt Decorator Registration (Cognitive injection points)
+          |-- (21) Lifecycle Hook Registration (onStart, onMessage, etc.)
+          |-- (22) Spoke Infrastructure Inclusion (Dynamic SST Stacks)
           v
   [ ConfigTable (DDB) ] <--- (Feedback Loop for Selection Integrity)
 ````
@@ -677,6 +680,26 @@ Serverless Claw provides high-leverage integration points at every layer of the 
 2. **Spoke Stacks**: Infrastructure is pluggable. Project-specific SST stacks are loaded dynamically, allowing them to share the core `AgentBus` while provisioning their own specialized resources (buckets, queues).
 3. **Semantic whitelabeling**: By overriding `--brand-primary` and `--surface-*` variables, an integration (e.g., VoltX) can rebrand the dashboard without modifying a single line of component code.
 4. **Dashboard Slot Architecture**: The frontend implements a **Component-Level Injection** model using named `Slots`. This allows apps to inject custom UI (e.g., VoltX branding, project metrics) into core layouts without iframes.
+
+---
+
+## 🧠 Cognitive Extensibility (Phase 2)
+
+To enable project-specific intelligence without modifying core agent logic, Serverless Claw implements a **Dynamic Cognitive Bridge**:
+
+### 1. Prompt Decorators
+Allows external applications to inject just-in-time instructions into agent system prompts.
+- **Ordered Execution**: Multiple decorators can be applied in sequence (e.g., Global Rules -> Tenant Rules -> Project Context).
+- **Dynamic Context**: Decorators receive the full `workspaceId`, `agentId`, and `metadata` from the request.
+- **Isolation**: Decorators are registered via plugins and executed in the `AgentAssembler` before context management.
+
+### 2. Agent Lifecycle Hooks
+Enables "Mission Awareness" for third-party integrations by providing interception points across the execution loop:
+- **`onStart`**: Intercept task initiation (Trace/Session mapping).
+- **`onMessage`**: Observe real-time thought streams and chunks.
+- **`onToolCall`**: Audit tool execution (Arguments, Results, Latency).
+- **`onComplete`**: Finalize outcomes and summary state.
+- **`onError`**: Catch and log internal engine failures.
 
 ---
 

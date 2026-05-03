@@ -1,5 +1,9 @@
 import { IAgentConfig, ITool, IMemory, IProvider } from './types';
 import { logger } from './logger';
+import { PromptDecorator, PromptDecoratorRegistry } from './registry/prompt-decorator';
+import { IAgentHooks, AgentHookRegistry } from './registry/agent-hook';
+import { IToolMiddleware, ToolMiddlewareRegistry } from './registry/tool-middleware';
+import { IAuditSink, AuditSinkRegistry } from './registry/audit-sink';
 
 export interface ClawPlugin {
   id: string;
@@ -7,6 +11,10 @@ export interface ClawPlugin {
   tools?: Record<string, ITool>;
   memoryProviders?: Record<string, IMemory>;
   llmProviders?: Record<string, IProvider>;
+  promptDecorators?: PromptDecorator[];
+  hooks?: IAgentHooks;
+  toolMiddleware?: IToolMiddleware[];
+  auditSinks?: IAuditSink[];
   onInit?: () => Promise<void>;
 }
 
@@ -24,6 +32,32 @@ export class PluginManager {
     }
     this.plugins.set(plugin.id, plugin);
     logger.info(`[PluginManager] Registered plugin: ${plugin.id}`);
+
+    // Register prompt decorators if any
+    if (plugin.promptDecorators) {
+      plugin.promptDecorators.forEach((decorator) => {
+        PromptDecoratorRegistry.register(decorator);
+      });
+    }
+
+    // Register agent hooks if any
+    if (plugin.hooks) {
+      AgentHookRegistry.register(plugin.hooks);
+    }
+
+    // Register tool middleware if any
+    if (plugin.toolMiddleware) {
+      plugin.toolMiddleware.forEach((mw) => {
+        ToolMiddlewareRegistry.register(mw);
+      });
+    }
+
+    // Register audit sinks if any
+    if (plugin.auditSinks) {
+      plugin.auditSinks.forEach((sink) => {
+        AuditSinkRegistry.register(sink);
+      });
+    }
 
     if (plugin.onInit) {
       await plugin.onInit();
