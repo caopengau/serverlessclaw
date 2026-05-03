@@ -307,7 +307,13 @@ The system architecture follows a **Distributed Spine** model where all critical
           |-- (14) Fail-Closed Integrity (Throw on update failure)
           |-- (15) Capability Graduation (PromotionManager: PENDING -> PROMOTED)
           v
+  [ Silo 8: The Extension (PluginManager) ]
+          |-- (16) Dynamic Registry Injection (AgentRegistry hooks)
+          |-- (17) Project-Specific Tool Mapping (getAgentTools bridge)
+          |-- (18) Spoke Infrastructure Inclusion (Dynamic SST Stacks)
+          v
   [ ConfigTable (DDB) ] <--- (Feedback Loop for Selection Integrity)
+````
 
 ---
 
@@ -331,7 +337,7 @@ graph TD
     J --> K[Evolution Plan Event]
     K --> L[Planner Agent]
     F --> M[Resolve Gaps]
-````
+```
 
 2. **Pre-flight Verification**: The **`verifyChanges`** tool executes the full project quality suite (`make check && make test`) locally in the agent's worker context. Passing this suite is a mandatory **Definition of Done (DoD)** requirement for staging or pushing code.
 3. **Trunk Integration**: Verified changes are pushed to `main` and deployed to `prod`.
@@ -344,7 +350,7 @@ To ensure high-performance auditability and automatic data aging (Principle 1), 
 3. **Blast Radius Tracking**: Class C action frequency is tracked per agent/action using the `SAFETY#BLAST_RADIUS#` prefix with a **1-hour rolling window (TTL)**.
 4. **Storage Strategy**: This migration from `ConfigTable` to `MemoryTable` ensures that audit logs do not pollute persistent configuration state and are automatically reclaimed by DynamoDB after their operational relevance expires.
 
-````
+---
 
 ## 🛡️ Security & RBAC Enforcement
 
@@ -366,9 +372,9 @@ To satisfy **Principle 5 (Low Latency)** and **Principle 10 (Lean Evolution)**, 
 1. **Modular Architecture**: The `ConfigManager` (`core/lib/registry/config.ts`) is refactored into specialized sub-modules within `core/lib/registry/config/` using an inheritance chain:
    ```text
    [ ConfigBase ] -> [ ConfigClient ] -> [ ConfigList ] -> [ ConfigMap ] -> [ ConfigManager ]
-````
+   ```
 
-This ensures high neural cohesion and stays within AI context limits during systemic audits. 2. **Cached Dynamic Lookups**: Maintains a 60-second in-memory cache for all configuration keys. This reduces DynamoDB read IOPS by >90% during high-concurrency swarm missions. 3. **Authoritative Async Bridge**: The `getDynamicConfigValue` utility provides a type-safe, non-blocking interface for fetching hot-swappable settings. 4. **Atomic Writes & Invalidation**: Configuration updates use DynamoDB conditional writes to prevent lost updates. **Supports Principle 15 (Monotonic Progress) via `atomicIncrementMapField` for numeric counters.** 5. **Centralized Table Resolution**: Table names are resolved via `ddb-client.ts`, supporting environment variable overrides for robust stage alignment.
+2. **Cached Dynamic Lookups**: Maintains a 60-second in-memory cache for all configuration keys. This reduces DynamoDB read IOPS by >90% during high-concurrency swarm missions. 3. **Authoritative Async Bridge**: The `getDynamicConfigValue` utility provides a type-safe, non-blocking interface for fetching hot-swappable settings. 4. **Atomic Writes & Invalidation**: Configuration updates use DynamoDB conditional writes to prevent lost updates. **Supports Principle 15 (Monotonic Progress) via `atomicIncrementMapField` for numeric counters.** 5. **Centralized Table Resolution**: Table names are resolved via `ddb-client.ts`, supporting environment variable overrides for robust stage alignment.
 
 ---
 
@@ -576,10 +582,6 @@ The system maintains a continuous feedback loop between execution observability,
    - **Metabolism (Silo 7)**: Periodically decays trust scores across all workspaces to ensure continuous earning of autonomy.
 3. **Perspective D (Trust Loop)**: The **AgentRouter** uses these scores to bias selection toward high-performing workers, ensuring "Selection Integrity" (Principle 14) is data-driven.
 
-````
-
----
-
 ---
 
 ## 🔌 Adapter & Processing Layer
@@ -620,6 +622,37 @@ Serverless Claw utilizes a tiered logic system to ensure efficiency and cost-con
 | **Memory Strategy**       | [docs/intelligence/MEMORY.md](./docs/intelligence/MEMORY.md) |
 | **Resource Provisioning** | [docs/system/PROVISIONING.md](./docs/system/PROVISIONING.md) |
 | **Real-time Streaming**   | [docs/intelligence/STREAMING.md](./docs/intelligence/STREAMING.md) |
+| **Pluggable Plugins**     | [core/lib/plugin-manager.ts](./core/lib/plugin-manager.ts)   |
+
+---
+
+## 🔌 Pluggable Monorepo Integration
+
+Serverless Claw provides high-leverage integration points at every layer of the stack:
+
+```text
+[ Monorepo Root ]
+  |
+  +-- [ core ] (The Spine)
+  |     |-- PluginManager (Registration Hub)
+  |     |-- AgentRegistry (Cognitive Bridge)
+  |
+  +-- [ infra ] (The Ground)
+  |     |-- sst.config.ts (Dynamic Spoke Stacks)
+  |
+  +-- [ integrations ] (The Spokes)
+        |-- [ github ]
+        |     |-- plugin.ts (Agents/Tools)
+        |     |-- stack.ts  (AWS Resources)
+        |
+        |-- [ voltx ]
+              |-- plugin.ts
+              |-- stack.ts
+```
+
+1. **Cognitive Plugins**: Apps can register agents and tools via a `ClawPlugin` interface. These are dynamically merged into the core registry at runtime.
+2. **Spoke Stacks**: Infrastructure is pluggable. Project-specific SST stacks are loaded dynamically, allowing them to share the core `AgentBus` while provisioning their own specialized resources (buckets, queues).
+3. **Shared Awareness**: All integrations communicate via the standardized `AgentBus`, ensuring a unified trace history across diverse monorepo projects.
 
 ---
 
