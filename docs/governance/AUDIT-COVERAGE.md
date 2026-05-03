@@ -14,7 +14,7 @@ Last Updated: 2026-05-03
 | :---- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
 | **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 20          | 2026-05-03   | Low        |
 | **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 12          | 2026-05-03   | Low        |
-| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 19          | 2026-05-02   | Low        |
+| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 20          | 2026-05-03   | Low        |
 | **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 17          | 2026-05-03   | Low        |
 | **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 17          | 2026-05-03   | Low        |
 | **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 17          | 2026-05-03   | Low        |
@@ -30,7 +30,7 @@ Last Updated: 2026-05-03
 | **B**       | Evolution Cycle   | Hand → Shield → Scales      | 9           | 2026-05-03  |
 | **C**       | Identity Journey  | Brain → Spine → Shield      | 10          | 2026-05-01  |
 | **D**       | Trust Loop        | Eye → Scales → Spine        | 13          | 2026-05-03  |
-| **E**       | Recovery Path     | Shield → Spine → Brain      | 10          | 2026-05-02  |
+| **E**       | Recovery Path     | Shield → Spine → Brain      | 11          | 2026-05-03  |
 | **F**       | Metabolic Loop    | Metabolism ↔ Scales ↔ Spine | 2           | 2026-05-03  |
 
 ---
@@ -39,6 +39,7 @@ Last Updated: 2026-05-03
 
 | Date       | Report                                             | Silos Covered                    | Cross-Silo | Key Findings                                                                                                      |
 | :--------- | :------------------------------------------------- | :------------------------------- | :--------- | :---------------------------------------------------------------------------------------------------------------- |
+| 2026-05-03 | `audit-2026-05-03-shield-recovery.md`             | Shield                           | E          | FIXED: P1 BlastRadiusStore Isolation Breach, P1 Non-idempotent Proactive Evolution, P2 Telemetry dimensions.       |
 | 2026-05-03 | `audit-2026-05-03-hand-eye-isolation.md`          | Hand, Eye                        | B, D       | FIXED: P1 Unscoped Budget PKs, P1 Missing workspace in MCP transport, P2 Global budget summaries, P2 Sort key drift. |
 | 2026-05-03 | `audit-2026-05-03-memory-isolation.md`            | Brain, Spine                     | A, C       | FIXED: P1 In-memory filtering in search, P1 Global idempotency keys, P1 Missing workspace in recovery logs.       |
 | 2026-05-03 | `audit-2026-05-03-metabolism-loop.md`              | Metabolism, Scales, Spine        | F          | FIXED: P1 Missing workspaceId in setGap, P2 In-memory DLQ filtering, P2 Global FeatureFlags pruning.              |

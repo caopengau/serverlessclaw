@@ -22,15 +22,20 @@ interface BlastRadiusEntry {
   expiresAt?: number;
 }
 
-function makePk(agentId: string, action: string): string {
-  return `${MEMORY_KEYS.SAFETY_BLAST_RADIUS_PREFIX}${agentId}:${action}`;
+function makePk(agentId: string, action: string, workspaceId?: string): string {
+  const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
+  return `${scopePrefix}${MEMORY_KEYS.SAFETY_BLAST_RADIUS_PREFIX}${agentId}:${action}`;
 }
 
 export class BlastRadiusStore {
   private localCache: Map<string, BlastRadiusEntry> = new Map();
 
-  async getBlastRadius(agentId: string, action: string): Promise<BlastRadiusEntry | null> {
-    const pk = makePk(agentId, action);
+  async getBlastRadius(
+    agentId: string,
+    action: string,
+    workspaceId?: string
+  ): Promise<BlastRadiusEntry | null> {
+    const pk = makePk(agentId, action, workspaceId);
     const now = Date.now();
     const db = getDocClient();
 
@@ -68,10 +73,11 @@ export class BlastRadiusStore {
   async incrementBlastRadius(
     agentId: string,
     action: string,
+    workspaceId?: string,
     resource?: string,
     retryCount: number = 0
   ): Promise<BlastRadiusEntry> {
-    const pk = makePk(agentId, action);
+    const pk = makePk(agentId, action, workspaceId);
     const now = Date.now();
     const db = getDocClient();
 
@@ -138,7 +144,13 @@ export class BlastRadiusStore {
                   `BLAST_RADIUS_STORE_ERROR: Max retry count exceeded for concurrent writes on ${pk}.`
                 );
               }
-              return this.incrementBlastRadius(agentId, action, resource, retryCount + 1);
+              return this.incrementBlastRadius(
+                agentId,
+                action,
+                workspaceId,
+                resource,
+                retryCount + 1
+              );
             }
             throw innerE;
           });
@@ -163,17 +175,25 @@ export class BlastRadiusStore {
    * Check if agent can execute action within blast radius limits.
    * Uses canExecute internally for consistency.
    */
-  async checkLimit(agentId: string, action: string): Promise<{ allowed: boolean; count: number }> {
-    const result = await this.canExecute(agentId, action);
-    const entry = await this.getBlastRadius(agentId, action);
+  async checkLimit(
+    agentId: string,
+    action: string,
+    workspaceId?: string
+  ): Promise<{ allowed: boolean; count: number }> {
+    const result = await this.canExecute(agentId, action, workspaceId);
+    const entry = await this.getBlastRadius(agentId, action, workspaceId);
     return { allowed: result.allowed, count: entry?.count ?? 0 };
   }
 
   /**
    * Check if agent can execute action and return detailed result.
    */
-  async canExecute(agentId: string, action: string): Promise<{ allowed: boolean; error?: string }> {
-    const entry = await this.getBlastRadius(agentId, action);
+  async canExecute(
+    agentId: string,
+    action: string,
+    workspaceId?: string
+  ): Promise<{ allowed: boolean; error?: string }> {
+    const entry = await this.getBlastRadius(agentId, action, workspaceId);
     const count = entry?.count ?? 0;
 
     if (count >= LIMIT_PER_HOUR) {
@@ -184,8 +204,12 @@ export class BlastRadiusStore {
     return { allowed: true };
   }
 
-  private async deleteBlastRadius(agentId: string, action: string): Promise<void> {
-    const pk = makePk(agentId, action);
+  private async deleteBlastRadius(
+    agentId: string,
+    action: string,
+    workspaceId?: string
+  ): Promise<void> {
+    const pk = makePk(agentId, action, workspaceId);
     this.localCache.delete(pk);
 
     const db = getDocClient();

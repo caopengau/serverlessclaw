@@ -530,7 +530,7 @@ export class SafetyEngine extends SafetyBase {
       args?: Record<string, unknown>;
     }
   ): Promise<SafetyEvaluationResult | null> {
-    const error = await this.enforceClassCBlastRadius(agentId, action);
+    const error = await this.enforceClassCBlastRadius(agentId, action, ctx.workspaceId);
     if (error) {
       const tier =
         (await AgentRegistry.getAgentConfig(agentId, { workspaceId: ctx.workspaceId }))
@@ -562,7 +562,7 @@ export class SafetyEngine extends SafetyBase {
       };
     }
 
-    await this.trackClassCBlastRadius(agentId, action, ctx.resource);
+    await this.trackClassCBlastRadius(agentId, action, ctx.workspaceId, ctx.resource);
     return null;
   }
 

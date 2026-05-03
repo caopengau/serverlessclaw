@@ -133,7 +133,8 @@ describe('EvolutionScheduler', () => {
         agentId: 'test-agent',
         workspaceId: 'ws-1',
         metadata: expect.objectContaining({ actionId }),
-      })
+      }),
+      expect.objectContaining({ idempotencyKey: `eve-trigger:${actionId}` })
     );
 
     const updated = Array.from(mockMemory.items.values()).find(

@@ -214,26 +214,32 @@ export class EvolutionScheduler {
       }
     }
 
-    await emitTypedEvent('evolution.scheduler', EventType.STRATEGIC_TIE_BREAK, {
-      userId: action.userId || 'SYSTEM',
-      workspaceId: action.workspaceId,
-      orgId: action.orgId,
-      teamId: action.teamId,
-      staffId: action.staffId,
-      agentId: action.agentId,
-      task: `Proactive evolution for: ${action.action} (Reason: ${action.reason}) ${contextSummary ? `\n\n${contextSummary}` : ''}`,
-      originalTask,
-      traceId: action.traceId,
-      sessionId: action.traceId,
-      metadata: {
-        actionId: action.actionId,
-        proactive: true,
-        originalAction: action.action,
-        toolName: action.toolName,
-        args: action.args,
-        resource: action.resource,
+    const idempotencyKey = `eve-trigger:${action.actionId}`;
+    await emitTypedEvent(
+      'evolution.scheduler',
+      EventType.STRATEGIC_TIE_BREAK,
+      {
+        userId: action.userId || 'SYSTEM',
+        workspaceId: action.workspaceId,
+        orgId: action.orgId,
+        teamId: action.teamId,
+        staffId: action.staffId,
+        agentId: action.agentId,
+        task: `Proactive evolution for: ${action.action} (Reason: ${action.reason}) ${contextSummary ? `\n\n${contextSummary}` : ''}`,
+        originalTask,
+        traceId: action.traceId,
+        sessionId: action.traceId,
+        metadata: {
+          actionId: action.actionId,
+          proactive: true,
+          originalAction: action.action,
+          toolName: action.toolName,
+          args: action.args,
+          resource: action.resource,
+        },
       },
-    });
+      { idempotencyKey }
+    );
   }
 
   /**

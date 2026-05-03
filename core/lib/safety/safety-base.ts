@@ -112,6 +112,7 @@ export class SafetyBase {
 
     logger.warn('Safety violation detected', {
       violationId: violation.id,
+      workspaceId: violation.workspaceId,
       agentId: violation.agentId,
       action: violation.action,
       reason: violation.reason,
@@ -173,10 +174,21 @@ export class SafetyBase {
   protected async trackClassCBlastRadius(
     agentId: string,
     action: string,
+    workspaceId?: string,
     resource?: string
   ): Promise<void> {
-    const entry = await this.blastRadiusStore.incrementBlastRadius(agentId, action, resource);
-    logger.info('[SafetyBase] Class C action tracked', { agentId, action, count: entry.count });
+    const entry = await this.blastRadiusStore.incrementBlastRadius(
+      agentId,
+      action,
+      workspaceId,
+      resource
+    );
+    logger.info('[SafetyBase] Class C action tracked', {
+      agentId,
+      action,
+      workspaceId,
+      count: entry.count,
+    });
   }
 
   /**
@@ -184,9 +196,10 @@ export class SafetyBase {
    */
   protected async enforceClassCBlastRadius(
     agentId: string,
-    action: string
+    action: string,
+    workspaceId?: string
   ): Promise<string | null> {
-    const result = await this.blastRadiusStore.canExecute(agentId, action);
+    const result = await this.blastRadiusStore.canExecute(agentId, action, workspaceId);
     return result.allowed ? null : (result.error ?? 'BLAST_RADIUS_EXCEEDED');
   }
 
