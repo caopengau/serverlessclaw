@@ -4,6 +4,9 @@ import { PromptDecorator, PromptDecoratorRegistry } from './registry/prompt-deco
 import { IAgentHooks, AgentHookRegistry } from './registry/agent-hook';
 import { IToolMiddleware, ToolMiddlewareRegistry } from './registry/tool-middleware';
 import { IAuditSink, AuditSinkRegistry } from './registry/audit-sink';
+import { IEventMirror, EventMirrorRegistry } from './registry/event-mirror';
+import { ITelemetrySink, TelemetrySinkRegistry } from './registry/telemetry-sink';
+import { IMissionObserver, MissionControlRegistry } from './registry/mission-control';
 
 export interface ClawPlugin {
   id: string;
@@ -15,6 +18,9 @@ export interface ClawPlugin {
   hooks?: IAgentHooks;
   toolMiddleware?: IToolMiddleware[];
   auditSinks?: IAuditSink[];
+  eventMirrors?: IEventMirror[];
+  telemetrySinks?: ITelemetrySink[];
+  missionObservers?: IMissionObserver[];
   onInit?: () => Promise<void>;
 }
 
@@ -56,6 +62,27 @@ export class PluginManager {
     if (plugin.auditSinks) {
       plugin.auditSinks.forEach((sink) => {
         AuditSinkRegistry.register(sink);
+      });
+    }
+
+    // Register event mirrors if any
+    if (plugin.eventMirrors) {
+      plugin.eventMirrors.forEach((mirror) => {
+        EventMirrorRegistry.register(mirror);
+      });
+    }
+
+    // Register telemetry sinks if any
+    if (plugin.telemetrySinks) {
+      plugin.telemetrySinks.forEach((sink) => {
+        TelemetrySinkRegistry.register(sink);
+      });
+    }
+
+    // Register mission observers if any
+    if (plugin.missionObservers) {
+      plugin.missionObservers.forEach((observer) => {
+        MissionControlRegistry.register(observer);
       });
     }
 
