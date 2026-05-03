@@ -61,6 +61,23 @@ Token usage and recursion depth are tracked with strict `workspaceId` dimensioni
 |           [ checkBudget() ] --> ( ALLOW / DENY )            |
 |                                                             |
 +-------------------------------------------------------------+
+
+### 2b. Class C Blast Radius Isolation (Shield)
+
+To prevent cross-tenant limit sharing, the `BlastRadiusStore` uses workspace-prefixed partition keys for sensitive action frequency tracking.
+
+```ascii
+[ Class C Action ] --(agentId, action, workspaceId)--> [ BlastRadiusStore ]
+                                                            |
+                                                            v
+                                                   +-------------------------+
+                                                   | DynamoDB (MemoryTable)  |
+                                                   | PK: WS#<id>#SAFETY#BLAST#<agentId>:<action> |
+                                                   +-------------------------+
+                                                            |
+                                                            v
+                                                   [ Count < 5/hour? ] --> ( ALLOW / BLOCK )
+```
 ```
 
 ## 3. Regenerative Metabolism (Silo 7)

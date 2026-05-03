@@ -45,6 +45,32 @@ graph TD
     E --> F[Purge DLQ Entry]
     D -- Duplicate --> F
     C -- Failure --> G[Wait for next retry]
+
+## Proactive Evolution Recovery (Safety Guard)
+
+For Class C actions that require human approval, the `EvolutionScheduler` monitors for timeouts and triggers "Proactive Evolution" (Strategic Tie-Breaking). This path uses deterministic idempotency keys to ensure that a timed-out action is only triggered once across the system.
+
+```mermaid
+sequenceDiagram
+    participant Scheduler as EvolutionScheduler
+    participant DDB as DynamoDB (MemoryTable)
+    participant Bus as AgentBus
+
+    Scheduler->>DDB: triggerTimedOutActions(workspaceId)
+    DDB-->>Scheduler: List of pending (status=pending, expiresAt <= now)
+    loop For each action
+        Scheduler->>DDB: claimActionForTrigger(actionId) [Atomic Update]
+        alt Status was 'pending'
+            DDB-->>Scheduler: SUCCESS (status set to 'triggered')
+            Scheduler->>Bus: emitTypedEvent(EventType.STRATEGIC_TIE_BREAK, {idempotencyKey})
+            Note over Scheduler,Bus: key = eve-trigger:{actionId}
+            Bus-->>Scheduler: EMMITED
+        else Status already 'triggered'/'approved'
+            DDB-->>Scheduler: ConditionalCheckFailed
+            Note right of Scheduler: SKIP (already handled)
+        end
+    end
+```
 ```
 
 ## Atomic Multi-Tenant DLQ Retrieval
