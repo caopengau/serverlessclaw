@@ -223,8 +223,6 @@ export async function searchInsights(
     resolvedQuery = queryText || '';
   }
 
-  const workspaceId = resolveScopeId(resolvedScope);
-
   // 2. Build DynamoDB Query Parameters
   const params: Record<string, unknown> = {
     ExpressionAttributeNames: { '#tp': 'type' },
