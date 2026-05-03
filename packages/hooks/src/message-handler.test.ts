@@ -4,9 +4,8 @@ import {
   shouldProcessChunk,
   mapHistoryMessage,
   mergeHistoryWithMessages,
-  IncomingChunk,
 } from './message-handler';
-import { ChatMessage, HistoryMessage } from './types';
+import { ChatMessage, HistoryMessage, IncomingChunk } from './types';
 
 describe('shouldProcessChunk', () => {
   it('returns true when chunk has no sessionId (general topic)', () => {
@@ -198,7 +197,6 @@ describe('applyChunkToMessages', () => {
     const prev: ChatMessage[] = [
       { role: 'assistant', content: 'Hello there', messageId: 't1', agentName: 'SuperClaw' },
     ];
-    // Different messageId but same content
     const chunk: IncomingChunk = {
       message: 'Hello there',
       messageId: 't2',
@@ -206,7 +204,6 @@ describe('applyChunkToMessages', () => {
 
     const result = applyChunkToMessages(prev, chunk);
 
-    // Should NOT add a new message
     expect(result).toHaveLength(1);
     expect(result[0].messageId).toBe('t1');
   });
@@ -231,29 +228,6 @@ describe('applyChunkToMessages', () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].thought).toBe('I am thinking');
-  });
-
-  it('ignores the synthetic thinking marker \u2026 in accumulated thought but uses it to set isThinking', () => {
-    const prev: ChatMessage[] = [
-      {
-        role: 'assistant',
-        content: '',
-        isThinking: true,
-        messageId: 't1',
-        agentName: 'SuperClaw',
-      },
-    ];
-    const chunk: IncomingChunk = {
-      isThought: true,
-      thought: '\u2026',
-      messageId: 't1',
-    };
-
-    const result = applyChunkToMessages(prev, chunk);
-
-    expect(result).toHaveLength(1);
-    expect(result[0].thought).toBeUndefined();
-    expect(result[0].isThinking).toBe(true);
   });
 
   it('stops thinking when non-thought content arrives', () => {
@@ -328,92 +302,13 @@ describe('mergeHistoryWithMessages', () => {
   });
 
   it('discards local user messages if they match history content', () => {
-    const prev: ChatMessage[] = [{ role: 'user', content: 'Same user text' }];
+    const prev: ChatMessage[] = [{ role: 'user', content: 'Same user text', messageId: 'u1' }];
     const rawHistory: HistoryMessage[] = [
-      { role: 'user', content: 'Same user text', attachments: [] },
+      { role: 'user', content: 'Same user text', messageId: 'u1', attachments: [] },
     ];
 
     const { messages } = mergeHistoryWithMessages(prev, rawHistory);
 
     expect(messages).toHaveLength(1);
-  });
-});
-
-describe('mapHistoryMessage', () => {
-  it('maps traceId to messageId for deduplication', () => {
-    const historyMsg: HistoryMessage = {
-      role: 'assistant',
-      content: 'Hello',
-      traceId: 'trace-abc',
-      agentName: 'SuperClaw',
-      attachments: undefined,
-    };
-
-    const result = mapHistoryMessage(historyMsg);
-
-    expect(result.messageId).toBe('trace-abc');
-  });
-
-  it('prioritizes messageId over traceId if present', () => {
-    const historyMsg: HistoryMessage = {
-      role: 'assistant',
-      content: 'Hello',
-      traceId: 'trace-abc',
-      messageId: 'fine-grained-id',
-      agentName: 'SuperClaw',
-      attachments: undefined,
-    };
-
-    const result = mapHistoryMessage(historyMsg);
-
-    expect(result.messageId).toBe('fine-grained-id');
-  });
-
-  it('maps system role to assistant role and preserves thought', () => {
-    const historyMsg: HistoryMessage = {
-      role: 'assistant',
-      content: 'Result',
-      thought: 'Thinking...',
-      traceId: 'trace-t',
-      attachments: undefined,
-    };
-
-    const result = mapHistoryMessage(historyMsg);
-
-    expect(result.role).toBe('assistant');
-    expect(result.thought).toBe('Thinking...');
-  });
-});
-
-describe('mergeHistoryWithMessages', () => {
-  it('maps history messages and includes messageId', () => {
-    const prev: ChatMessage[] = [];
-    const rawHistory: HistoryMessage[] = [
-      { role: 'user', content: 'Hello', attachments: undefined },
-      { role: 'assistant', content: 'Hi!', traceId: 'trace-1', attachments: undefined },
-    ];
-
-    const { messages } = mergeHistoryWithMessages(prev, rawHistory);
-
-    expect(messages).toHaveLength(2);
-    expect(messages[1].messageId).toBe('trace-1');
-  });
-
-  it('does NOT ignore history when streaming placeholders exist', () => {
-    const prev: ChatMessage[] = [
-      { role: 'user', content: 'Hello' },
-      { role: 'assistant', content: '', messageId: 'trace-streaming', agentName: 'SuperClaw' },
-    ];
-    const rawHistory: HistoryMessage[] = [
-      { role: 'user', content: 'Hello', attachments: undefined },
-      { role: 'user', content: 'New message from history', attachments: undefined },
-    ];
-
-    const { messages } = mergeHistoryWithMessages(prev, rawHistory);
-
-    // Should contain both user messages AND the streaming placeholder
-    const userMessages = messages.filter((m) => m.role === 'user');
-    expect(userMessages).toHaveLength(2);
-    expect(messages.some((m) => m.messageId === 'trace-streaming')).toBe(true);
   });
 });

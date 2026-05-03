@@ -626,6 +626,31 @@ Serverless Claw utilizes a tiered logic system to ensure efficiency and cost-con
 
 ---
 
+---
+
+## 🏛️ Layered Framework Architecture
+
+Serverless Claw is architected as a **Headless Framework** to enable seamless third-party integration. The system is decomposed into three primary layers:
+
+```text
++-------------------------------------------------------------+
+| [ THE FACE ] - @claw/ui & Dashboard                         |
+| (Whitelabel UI / Semantic Theming / Slot Injection)         |
++-------------------------------------------------------------+
+| [ THE SPINE ] - @claw/hooks                                 |
+| (Headless Logic / Chat Orchestration / Real-time Handler)   |
++-------------------------------------------------------------+
+| [ THE GROUND ] - @serverlessclaw/core                       |
+| (Stateless execution / AgentBus / DynamoDB Memory)          |
++-------------------------------------------------------------+
+```
+
+1.  **@serverlessclaw/core (The Ground)**: The engine. Handles stateless execution, AWS infrastructure bridging, and high-performance memory.
+2.  **@claw/hooks (The Spine)**: The intelligence bridge. Provides headless React hooks (`useChatMessages`) and pure logic (`applyChunkToMessages`) for managing chat state and real-time streaming independent of UI.
+3.  **@claw/ui & Dashboard (The Face)**: The experience. A premium design system built on **Semantic CSS Variables**. External apps can rebrand the system by injecting a custom CSS scope or using the **Slot Model** for native UI extensions.
+
+---
+
 ## 🔌 Pluggable Monorepo Integration
 
 Serverless Claw provides high-leverage integration points at every layer of the stack:
@@ -633,26 +658,24 @@ Serverless Claw provides high-leverage integration points at every layer of the 
 ```text
 [ Monorepo Root ]
   |
-  +-- [ core ] (The Spine)
+  +-- [ core ] (The Ground)
   |     |-- PluginManager (Registration Hub)
   |     |-- AgentRegistry (Cognitive Bridge)
   |
-  +-- [ infra ] (The Ground)
-  |     |-- sst.config.ts (Dynamic Spoke Stacks)
+  +-- [ packages ] (The Spine & Face)
+  |     |-- [ hooks ] (@claw/hooks)
+  |     |-- [ ui ] (@claw/ui)
   |
   +-- [ integrations ] (The Spokes)
-        |-- [ github ]
-        |     |-- plugin.ts (Agents/Tools)
-        |     |-- stack.ts  (AWS Resources)
-        |
         |-- [ voltx ]
-              |-- plugin.ts
-              |-- stack.ts
+              |-- plugin.ts (Logic Injection)
+              |-- branding.css (Visual Injection)
+              |-- stack.ts  (Infra Injection)
 ```
 
 1. **Cognitive Plugins**: Apps can register agents and tools via a `ClawPlugin` interface. These are dynamically merged into the core registry at runtime.
 2. **Spoke Stacks**: Infrastructure is pluggable. Project-specific SST stacks are loaded dynamically, allowing them to share the core `AgentBus` while provisioning their own specialized resources (buckets, queues).
-3. **Shared Awareness**: All integrations communicate via the standardized `AgentBus`, ensuring a unified trace history across diverse monorepo projects.
+3. **Semantic whitelabeling**: By overriding `--brand-primary` and `--surface-*` variables, an integration (e.g., VoltX) can rebrand the dashboard without modifying a single line of component code.
 4. **Dashboard Slot Architecture**: The frontend implements a **Component-Level Injection** model using named `Slots`. This allows apps to inject custom UI (e.g., VoltX branding, project metrics) into core layouts without iframes.
 
 ---
