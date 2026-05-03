@@ -13,10 +13,10 @@ Last Updated: 2026-05-03
 | Silo  | Name           | Primary Code Paths                              | Audit Count | Last Audited | Risk Level |
 | :---- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
 | **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 20          | 2026-05-03   | Low        |
-| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 11          | 2026-05-02   | Low        |
+| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 12          | 2026-05-03   | Low        |
 | **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 19          | 2026-05-02   | Low        |
 | **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 17          | 2026-05-03   | Low        |
-| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 16          | 2026-05-02   | Low        |
+| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 17          | 2026-05-03   | Low        |
 | **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 17          | 2026-05-03   | Low        |
 | **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 10          | 2026-05-03   | Low        |
 
@@ -27,9 +27,9 @@ Last Updated: 2026-05-03
 | Perspective | Name              | Description                 | Usage Count | Last Tested |
 | :---------- | :---------------- | :-------------------------- | :---------- | :---------- |
 | **A**       | Life of a Message | Spine → Brain → Eye         | 9           | 2026-05-02  |
-| **B**       | Evolution Cycle   | Hand → Shield → Scales      | 8           | 2026-05-02  |
+| **B**       | Evolution Cycle   | Hand → Shield → Scales      | 9           | 2026-05-03  |
 | **C**       | Identity Journey  | Brain → Spine → Shield      | 10          | 2026-05-01  |
-| **D**       | Trust Loop        | Eye → Scales → Spine        | 12          | 2026-05-02  |
+| **D**       | Trust Loop        | Eye → Scales → Spine        | 13          | 2026-05-03  |
 | **E**       | Recovery Path     | Shield → Spine → Brain      | 10          | 2026-05-02  |
 | **F**       | Metabolic Loop    | Metabolism ↔ Scales ↔ Spine | 2           | 2026-05-03  |
 
@@ -39,6 +39,7 @@ Last Updated: 2026-05-03
 
 | Date       | Report                                             | Silos Covered                    | Cross-Silo | Key Findings                                                                                                      |
 | :--------- | :------------------------------------------------- | :------------------------------- | :--------- | :---------------------------------------------------------------------------------------------------------------- |
+| 2026-05-03 | `audit-2026-05-03-hand-eye-isolation.md`          | Hand, Eye                        | B, D       | FIXED: P1 Unscoped Budget PKs, P1 Missing workspace in MCP transport, P2 Global budget summaries, P2 Sort key drift. |
 | 2026-05-03 | `audit-2026-05-03-memory-isolation.md`            | Brain, Spine                     | A, C       | FIXED: P1 In-memory filtering in search, P1 Global idempotency keys, P1 Missing workspace in recovery logs.       |
 | 2026-05-03 | `audit-2026-05-03-metabolism-loop.md`              | Metabolism, Scales, Spine        | F          | FIXED: P1 Missing workspaceId in setGap, P2 In-memory DLQ filtering, P2 Global FeatureFlags pruning.              |
 | 2026-05-02 | `audit-2026-05-02-evolution-cycle-G.md`            | Hand, Shield, Eye, Scales, Met.  | G          | FIXED: P1 SYSTEM identity workspace scoping, P1 Trust success bump capping, P1 Metabolic hygiene reporting.       |

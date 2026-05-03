@@ -121,7 +121,10 @@ export class MCPClientManager {
     }
 
     logger.info(`Starting new connection for ${serverName} (WS: ${workspaceId || 'global'})`);
-    const transport = await TransportFactory.createTransport(serverName, connectionString, env);
+    const transport = await TransportFactory.createTransport(serverName, connectionString, {
+      ...env,
+      workspaceId,
+    } as any);
 
     const newClient = new Client(
       { name: 'ServerlessClaw-Client', version: '1.0.0' },
@@ -202,14 +205,17 @@ class TransportFactory {
     env?: Record<string, string>
   ): Promise<Transport> {
     if (connectionString.startsWith('arn:aws:lambda:')) {
-      return new LambdaInvokeTransport(connectionString, serverName);
+      return new LambdaInvokeTransport(connectionString, serverName, (env as any)?.workspaceId);
     }
 
     if (connectionString.startsWith('http')) {
       return new SSEClientTransport(new URL(connectionString));
     }
 
-    return await this.createStdioTransport(serverName, connectionString, env);
+    return await this.createStdioTransport(serverName, connectionString, {
+      ...env,
+      workspaceId: (env as any)?.workspaceId,
+    } as any);
   }
 
   private static async createStdioTransport(
@@ -284,7 +290,8 @@ class LambdaInvokeTransport implements Transport {
 
   constructor(
     private readonly functionArn: string,
-    private readonly serverName: string
+    private readonly serverName: string,
+    private readonly workspaceId?: string
   ) {}
 
   async start(): Promise<void> {}
@@ -301,6 +308,7 @@ class LambdaInvokeTransport implements Transport {
             headers: {
               'Content-Type': 'application/json',
               'x-mcp-server': this.serverName,
+              'x-workspace-id': this.workspaceId || '',
             },
             body: JSON.stringify(message),
           }),

@@ -153,7 +153,7 @@ export class ToolExecutor {
         await tracer.batchAddSteps(allBatchedSteps);
 
         logger.warn(
-          `[EXECUTOR] Parallel execution paused by tool ${res.result.responseText}. ${toolCalls.length - parallelResults.indexOf(res) - 1} tool(s) may still be in-flight.`
+          `[EXECUTOR] Parallel execution paused by tool ${res.result.responseText} (WS: ${execContext.workspaceId || 'global'}). ${toolCalls.length - parallelResults.indexOf(res) - 1} tool(s) may still be in-flight.`
         );
         return {
           ...res.result,
@@ -205,6 +205,7 @@ export class ToolExecutor {
         content: 'EXECUTED_BY_PROVIDER',
         traceId: execContext.traceId,
         messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        workspaceId: execContext.workspaceId,
       });
 
       // Record failure if no implementation found (Anti-Pattern 13: Blind Tool Failure)
@@ -556,6 +557,8 @@ export class ToolExecutor {
         EVOLUTION_METRICS.recordToolExecution(tool.name, toolSuccess, Math.round(toolDurationMs), {
           workspaceId: execContext.workspaceId,
           orgId: execContext.orgId,
+          teamId: execContext.teamId,
+          staffId: execContext.staffId,
         });
 
         // Simple cost estimation for ROI (tokens as proxy)
@@ -564,6 +567,8 @@ export class ToolExecutor {
         EVOLUTION_METRICS.recordToolROI(tool.name, estimatedValue, totalTokens, {
           workspaceId: execContext.workspaceId,
           orgId: execContext.orgId,
+          teamId: execContext.teamId,
+          staffId: execContext.staffId,
         });
       } catch {
         // Ignore metrics errors

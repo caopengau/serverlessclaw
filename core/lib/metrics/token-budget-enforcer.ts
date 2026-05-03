@@ -48,6 +48,7 @@ export interface TokenUsageRecord {
   estimatedCostUsd: number;
   timestamp: number;
   agentId?: string;
+  workspaceId?: string;
 }
 
 /**
@@ -94,9 +95,14 @@ export class TokenBudgetEnforcer {
     this.initialized = true;
   }
 
-  private async persistSession(sessionId: string, history: TokenUsageRecord[]): Promise<void> {
+  private async persistSession(
+    sessionId: string,
+    history: TokenUsageRecord[],
+    workspaceId?: string
+  ): Promise<void> {
     try {
-      const userId = `BUDGET#${sessionId}`;
+      const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
+      const userId = `${scopePrefix}BUDGET#${sessionId}`;
       const now = Math.floor(Date.now() / 1000);
       const expiresAt = now + TTL_DAYS_BUDGET * TIME.SECONDS_IN_DAY;
       const totalCost = history.reduce((sum, r) => sum + r.estimatedCostUsd, 0);
@@ -113,21 +119,23 @@ export class TokenBudgetEnforcer {
             totalCostUsd: totalCost,
             totalTokens,
             callCount: history.length,
+            workspaceId,
             expiresAt,
           },
         })
       );
-    } catch {
-      // Silently fail persistence, don't break the agent loop
+    } catch (e) {
+      logger.warn(`[TokenBudgetEnforcer] Failed to persist session ${sessionId}:`, e);
     }
   }
 
   /**
    * Loads session state from DynamoDB for durability.
    */
-  async loadSession(sessionId: string): Promise<TokenUsageRecord[] | null> {
+  async loadSession(sessionId: string, workspaceId?: string): Promise<TokenUsageRecord[] | null> {
     try {
-      const userId = `BUDGET#${sessionId}`;
+      const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
+      const userId = `${scopePrefix}BUDGET#${sessionId}`;
       const { Items } = await docClient.send(
         new QueryCommand({
           TableName: getBudgetTableName(),
@@ -140,8 +148,8 @@ export class TokenBudgetEnforcer {
         return (Items[0].history as TokenUsageRecord[]) || [];
       }
       return [];
-    } catch {
-      logger.error('[TokenBudgetEnforcer] Failed to load session (FAIL-CLOSED)');
+    } catch (e) {
+      logger.error(`[TokenBudgetEnforcer] Failed to load session ${sessionId} (FAIL-CLOSED):`, e);
       throw new Error('Failed to load session history'); // Fail-closed
     }
   }
@@ -176,7 +184,7 @@ export class TokenBudgetEnforcer {
     try {
       // Load from DynamoDB if not in memory (cold start recovery)
       if (!this.sessions.has(sessionId)) {
-        const loaded = await this.loadSession(sessionId);
+        const loaded = await this.loadSession(sessionId, workspaceId);
         if (loaded) {
           this.sessions.set(sessionId, loaded);
         }
@@ -207,6 +215,7 @@ export class TokenBudgetEnforcer {
       estimatedCostUsd,
       timestamp: Date.now(),
       agentId,
+      workspaceId,
     });
 
     // Calculate totals
@@ -298,7 +307,7 @@ export class TokenBudgetEnforcer {
     }
 
     // Persist to DynamoDB for durability
-    this.persistSession(sessionId, history).catch(() => {});
+    this.persistSession(sessionId, history, workspaceId).catch(() => {});
 
     return {
       allowed: true,
@@ -311,12 +320,12 @@ export class TokenBudgetEnforcer {
   /**
    * Checks if a session is within budget without recording usage.
    */
-  async checkBudget(sessionId: string): Promise<BudgetCheckResult> {
+  async checkBudget(sessionId: string, workspaceId?: string): Promise<BudgetCheckResult> {
     await this.ensureInitialized();
 
     // Load from DynamoDB if not in memory
     if (!this.sessions.has(sessionId)) {
-      const loaded = await this.loadSession(sessionId);
+      const loaded = await this.loadSession(sessionId, workspaceId);
       if (loaded && loaded.length > 0) {
         this.sessions.set(sessionId, loaded);
       }
@@ -345,10 +354,17 @@ export class TokenBudgetEnforcer {
   /**
    * Returns summary of all tracked sessions.
    */
-  getSummary(): Array<{ sessionId: string; costUsd: number; tokens: number; calls: number }> {
+  getSummary(
+    workspaceId?: string
+  ): Array<{ sessionId: string; costUsd: number; tokens: number; calls: number }> {
     const summary: Array<{ sessionId: string; costUsd: number; tokens: number; calls: number }> =
       [];
     for (const [sessionId, history] of this.sessions) {
+      // Check if session belongs to the requested workspace
+      if (workspaceId && history.length > 0 && history[0].workspaceId !== workspaceId) {
+        continue;
+      }
+ 
       summary.push({
         sessionId,
         costUsd: history.reduce((sum, r) => sum + r.estimatedCostUsd, 0),

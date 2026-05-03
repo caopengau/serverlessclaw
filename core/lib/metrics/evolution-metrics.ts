@@ -14,11 +14,13 @@ export const EVOLUTION_METRICS = {
    */
   recordDuplicateSuppression(
     source: string,
-    scope?: { workspaceId?: string; orgId?: string }
+    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
   ): void {
     const dimensions = [{ Name: 'Source', Value: source }];
     if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
     if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
 
     emitMetrics([
       {
@@ -38,7 +40,7 @@ export const EVOLUTION_METRICS = {
     fromStatus: string,
     toStatus: string,
     reason: string,
-    scope?: { workspaceId?: string; orgId?: string }
+    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
   ): void {
     const dimensions = [
       { Name: 'FromStatus', Value: fromStatus },
@@ -47,6 +49,8 @@ export const EVOLUTION_METRICS = {
     ];
     if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
     if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
 
     emitMetrics([
       {
@@ -65,7 +69,7 @@ export const EVOLUTION_METRICS = {
     traceId: string,
     taskCount: number,
     completedCount: number,
-    scope?: { workspaceId?: string; orgId?: string }
+    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
   ): void {
     const dimensions = [
       { Name: 'TaskCount', Value: String(taskCount) },
@@ -76,6 +80,8 @@ export const EVOLUTION_METRICS = {
     ];
     if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
     if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
 
     emitMetrics([
       {
@@ -93,11 +99,13 @@ export const EVOLUTION_METRICS = {
   recordGapReopen(
     gapId: string,
     attemptCount: number,
-    scope?: { workspaceId?: string; orgId?: string }
+    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
   ): void {
     const dimensions = [{ Name: 'AttemptCount', Value: String(attemptCount) }];
     if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
     if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
 
     emitMetrics([
       {
@@ -115,7 +123,7 @@ export const EVOLUTION_METRICS = {
   recordLockContention(
     lockId: string,
     agentId: string,
-    scope?: { workspaceId?: string; orgId?: string }
+    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
   ): void {
     const dimensions = [
       { Name: 'LockId', Value: lockId },
@@ -123,6 +131,8 @@ export const EVOLUTION_METRICS = {
     ];
     if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
     if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
 
     emitMetrics([
       METRICS.lockAcquired(lockId, false, scope),
@@ -142,7 +152,7 @@ export const EVOLUTION_METRICS = {
     toolName: string,
     success: boolean,
     durationMs: number,
-    options?: { workspaceId?: string; orgId?: string }
+    options?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
   ): void {
     const dimensions = [
       { Name: 'ToolName', Value: toolName },
@@ -150,6 +160,8 @@ export const EVOLUTION_METRICS = {
       { Name: 'OrgId', Value: options?.orgId || 'GLOBAL' },
     ];
     if (options?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: options.workspaceId });
+    if (options?.teamId) dimensions.push({ Name: 'TeamId', Value: options.teamId });
+    if (options?.staffId) dimensions.push({ Name: 'StaffId', Value: options.staffId });
 
     emitMetrics([
       {
@@ -174,13 +186,15 @@ export const EVOLUTION_METRICS = {
     toolName: string,
     estimatedValue: number,
     actualCost: number,
-    options?: { workspaceId?: string; orgId?: string }
+    options?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
   ): void {
     const dimensions = [
       { Name: 'ToolName', Value: toolName },
       { Name: 'OrgId', Value: options?.orgId || 'GLOBAL' },
     ];
     if (options?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: options.workspaceId });
+    if (options?.teamId) dimensions.push({ Name: 'TeamId', Value: options.teamId });
+    if (options?.staffId) dimensions.push({ Name: 'StaffId', Value: options.staffId });
 
     emitMetrics([
       {

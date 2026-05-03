@@ -454,6 +454,10 @@ export class ClawTracer {
    * @returns A promise resolving to an array of trace nodes.
    */
   static async getTrace(traceId: string, workspaceId?: string): Promise<Trace[]> {
+    if (!workspaceId && !process.env.VITEST) {
+      logger.warn(`[ClawTracer] getTrace called without workspaceId for traceId: ${traceId}`);
+    }
+
     const response = await getDocClient().send(
       new QueryCommand({
         TableName: getTraceTableName(),
@@ -469,8 +473,7 @@ export class ClawTracer {
     const items = (response.Items as Trace[]) ?? [];
 
     if (workspaceId && items.length > 0) {
-      // All nodes in a trace should share the same workspaceId
-      // We check the summary node or the first available node
+      // Defense-in-depth: Ensure items match workspaceId even if FilterExpression was bypassed/ignored
       return items.filter((item) => item.workspaceId === workspaceId);
     }
 
