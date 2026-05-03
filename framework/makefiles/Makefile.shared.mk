@@ -112,6 +112,18 @@ endef
 verify-up-to-date: ## Verify local branch is up to date with remote
 	@$(call verify_up_to_date)
 
+# --- SYNC ---
+sync-downstream: ## Pull latest evolution from upstream framework
+	@$(call log_step,Syncing downstream from upstream/main...)
+	@git fetch upstream main
+	@git merge upstream/main -m "chore: sync with upstream framework evolution"
+	@$(call log_success,Framework synced successfully.)
+
+sync-upstream: ## Push core framework improvements to upstream
+	@$(call log_step,Pushing framework improvements to upstream/main...)
+	@git push upstream HEAD:main
+	@$(call log_success,Framework improvements promoted to upstream.)
+
 show-env: ## Show current environment variables (filtered)
 	@$(call load_env); \
 	$(call log_info,Current Environment Settings (Loaded from files):); \
