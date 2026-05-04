@@ -1,4 +1,4 @@
-import { ITool, ToolCall } from '../types/index';
+import { ITool } from '../types/index';
 import { ToolExecutionContext } from '../agent/tool-executor';
 import { logger } from '../logger';
 
@@ -32,7 +32,9 @@ export class ToolMiddlewareRegistry {
    */
   static register(middleware: IToolMiddleware) {
     this.middlewares.push(middleware);
-    logger.debug(`[ToolMiddlewareRegistry] Registered new middleware. Total: ${this.middlewares.length}`);
+    logger.debug(
+      `[ToolMiddlewareRegistry] Registered new middleware. Total: ${this.middlewares.length}`
+    );
   }
 
   /**
@@ -49,7 +51,7 @@ export class ToolMiddlewareRegistry {
       if (middleware.beforeExecute) {
         try {
           const result = await middleware.beforeExecute(tool, currentArgs, context);
-          
+
           if (!result.allowed) {
             return {
               allowed: false,

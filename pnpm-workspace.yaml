@@ -3,4 +3,5 @@ packages:
   - 'infra'
   - 'dashboard'
   - 'cli'
+  - 'packages/*'
   - 'integrations/*'

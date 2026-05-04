@@ -1,4 +1,4 @@
-import { IAgentConfig, ITool, IMemory, IProvider } from './types';
+import { IAgentConfig, ITool, IMemory, IProvider, MCPServerConfig } from './types';
 import { logger } from './logger';
 
 export interface ClawPlugin {
@@ -9,6 +9,8 @@ export interface ClawPlugin {
   prompts?: Record<string, string>;
   memoryProviders?: Record<string, IMemory>;
   llmProviders?: Record<string, IProvider>;
+  sidebarExtensions?: any[];
+  layoutExtensions?: any[];
   onInit?: () => Promise<void>;
 }
 
@@ -30,6 +32,13 @@ export class PluginManager {
     if (plugin.onInit) {
       await plugin.onInit();
     }
+  }
+
+  /**
+   * Retrieves all registered plugins.
+   */
+  static getAllPlugins(): ClawPlugin[] {
+    return Array.from(this.plugins.values());
   }
 
   static getRegisteredAgents(): Record<string, IAgentConfig> {
@@ -94,10 +103,10 @@ export class PluginManager {
 
   static async initialize() {
     if (this.initialized) return;
-    
+
     // Auto-discovery of internal plugins could go here if we had a standard path
     // For now, we rely on explicit registration in the entry points.
-    
+
     this.initialized = true;
     logger.info(`[PluginManager] Initialized with ${this.plugins.size} plugins.`);
   }

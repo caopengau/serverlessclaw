@@ -24,6 +24,7 @@ export function DynamicComponentRegistry({ component, onAction }: RegistryProps)
   // Check for domain-specific extensions first
   const ExtendedComponent = dynamicComponents.get(component.componentType);
   if (ExtendedComponent) {
+    // eslint-disable-next-line react-hooks/static-components
     return <ExtendedComponent component={component} onAction={onAction} />;
   }
 

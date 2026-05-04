@@ -126,7 +126,7 @@ export class AgentRegistry {
     for (const [id, appCfg] of Object.entries(this.appRegistry)) {
       all[id] = this.mergeAgentConfig(id, dynamicAgents?.[id], appCfg, toolOverrides?.[id]);
     }
-    
+
     // Merge plugin-registered agents
     for (const [id, pluginCfg] of Object.entries(PluginManager.getRegisteredAgents())) {
       if (!all[id]) {
