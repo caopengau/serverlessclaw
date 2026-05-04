@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handlePulsePing } from './pulse-handler';
 import { emitEvent } from '../../lib/utils/bus';
-import { AgentType, EventType } from '../../lib/types/agent';
+import { AGENT_TYPES, EventType } from '../../lib/types/agent';
 
 vi.mock('../../lib/utils/bus', () => ({
   emitEvent: vi.fn(),
@@ -18,7 +18,7 @@ vi.mock('../../lib/logger', () => ({
 describe('Pulse Handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.AGENT_ID = AgentType.CODER;
+    process.env.AGENT_ID = AGENT_TYPES.CODER;
   });
 
   describe('handlePulsePing', () => {
@@ -26,21 +26,21 @@ describe('Pulse Handler', () => {
       const payload = {
         userId: 'user-123',
         traceId: 'trace-123',
-        targetAgentId: AgentType.CODER,
-        initiatorId: AgentType.SUPERCLAW,
+        targetAgentId: AGENT_TYPES.CODER,
+        initiatorId: AGENT_TYPES.SUPERCLAW,
         timestamp: Date.now(),
       };
 
       await handlePulsePing(payload, {} as any);
 
       expect(emitEvent).toHaveBeenCalledWith(
-        AgentType.CODER,
+        AGENT_TYPES.CODER,
         EventType.PULSE_PONG,
         expect.objectContaining({
           userId: 'user-123',
           traceId: 'trace-123',
           status: 'pong',
-          targetAgentId: AgentType.CODER,
+          targetAgentId: AGENT_TYPES.CODER,
         })
       );
     });
@@ -49,8 +49,8 @@ describe('Pulse Handler', () => {
       const payload = {
         userId: 'user-123',
         traceId: 'trace-123',
-        targetAgentId: AgentType.RESEARCHER,
-        initiatorId: AgentType.SUPERCLAW,
+        targetAgentId: AGENT_TYPES.RESEARCHER,
+        initiatorId: AGENT_TYPES.SUPERCLAW,
         timestamp: Date.now(),
       };
 

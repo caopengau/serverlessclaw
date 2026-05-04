@@ -1,4 +1,10 @@
-import { GapStatus, AgentType, EvolutionMode, AgentEvent, AgentPayload } from '../lib/types/agent';
+import {
+  GapStatus,
+  AGENT_TYPES,
+  EvolutionMode,
+  AgentEvent,
+  AgentPayload,
+} from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import {
@@ -42,7 +48,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
   const trustContext = { workspaceId, teamId, staffId };
 
   // 2. Discovery & Initialization
-  const { config, memory } = await initAgent(AgentType.QA, { workspaceId: payload.workspaceId });
+  const { config, memory } = await initAgent(AGENT_TYPES.QA, { workspaceId: payload.workspaceId });
 
   // 1. Process QA Audit via unified lifecycle (Session Locking + Heartbeat)
   const { processEventWithAgent } = await import('../handlers/events/shared');
@@ -58,7 +64,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
   let auditReport: string;
   let parsedData: QAParsedData | undefined;
   try {
-    const result = await processEventWithAgent(userId, AgentType.QA, qaPrompt, {
+    const result = await processEventWithAgent(userId, AGENT_TYPES.QA, qaPrompt, {
       context: _context,
       traceId,
       taskId: traceId,
@@ -67,7 +73,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
       initiatorId,
       isContinuation: true,
       handlerTitle: 'QA Auditor',
-      outboundHandlerName: AgentType.QA,
+      outboundHandlerName: AGENT_TYPES.QA,
       formatResponse: (text) => text,
     });
     auditReport = result.responseText;
@@ -112,19 +118,19 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
     if (evolutionMode === EvolutionMode.AUTO) {
       logger.info('Verification successful. Auto-closing gaps.');
       for (const gapId of gapIds) {
-        const lockAcquired = await memory.acquireGapLock(gapId, AgentType.QA);
+        const lockAcquired = await memory.acquireGapLock(gapId, AGENT_TYPES.QA);
         if (lockAcquired) {
           try {
             await memory.updateGapStatus(gapId, GapStatus.DONE);
           } finally {
-            await memory.releaseGapLock(gapId, AgentType.QA);
+            await memory.releaseGapLock(gapId, AGENT_TYPES.QA);
           }
         }
       }
     } else {
       logger.info('Verification successful. Awaiting human confirmation (HITL).');
       for (const gapId of gapIds) {
-        const lockAcquired = await memory.acquireGapLock(gapId, AgentType.QA);
+        const lockAcquired = await memory.acquireGapLock(gapId, AGENT_TYPES.QA);
         if (lockAcquired) {
           try {
             await memory.updateGapStatus(gapId, GapStatus.PENDING_APPROVAL, undefined, {
@@ -132,13 +138,13 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
               requestingUserId: userId,
             });
           } finally {
-            await memory.releaseGapLock(gapId, AgentType.QA);
+            await memory.releaseGapLock(gapId, AGENT_TYPES.QA);
           }
         }
       }
 
       await sendOutboundMessage(
-        AgentType.QA,
+        AGENT_TYPES.QA,
         userId,
         `✅ **Verification Passed for Gaps: ${gapIds.join(', ')}**\n\nThe implementation has passed QA verification. Please confirm to complete the evolution.\n\n**Action Required:** Reply with "APPROVE" to close these gaps, or "REJECT" to reopen them for revision.`,
         [baseUserId],
@@ -167,7 +173,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
     const retryGaps: string[] = [];
 
     for (const gapId of gapIds) {
-      const lockAcquired = await memory.acquireGapLock(gapId, AgentType.QA);
+      const lockAcquired = await memory.acquireGapLock(gapId, AGENT_TYPES.QA);
       if (lockAcquired) {
         try {
           const attempts = await memory.incrementGapAttemptCount(gapId);
@@ -178,7 +184,7 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
             retryGaps.push(gapId);
           }
         } finally {
-          await memory.releaseGapLock(gapId, AgentType.QA);
+          await memory.releaseGapLock(gapId, AGENT_TYPES.QA);
         }
       }
     }

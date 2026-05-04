@@ -5,7 +5,7 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { Resource } from 'sst';
 import { logger } from '../lib/logger';
-import { EventType, GapStatus, AgentType } from '../lib/types/agent';
+import { EventType, GapStatus, AGENT_TYPES } from '../lib/types/agent';
 import { BuildStatus } from '../lib/types/constants';
 import { SSTResource, TopologyNode } from '../lib/types/system';
 import { reportHealthIssue } from '../lib/lifecycle/health';
@@ -130,12 +130,12 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
       const { EVOLUTION_METRICS } = await import('../lib/metrics/evolution-metrics');
       for (const gapId of gapIds) {
         // PROGRESS -> DEPLOYED: Acquire lock before transition
-        const lockAcquired = await memory.acquireGapLock(gapId, AgentType.BUILD_MONITOR);
+        const lockAcquired = await memory.acquireGapLock(gapId, AGENT_TYPES.BUILD_MONITOR);
         if (!lockAcquired) {
           logger.warn(
             `[Monitor] Could not acquire lock for gap ${gapId}, skipping transition to DEPLOYED.`
           );
-          EVOLUTION_METRICS.recordLockContention(gapId, AgentType.BUILD_MONITOR);
+          EVOLUTION_METRICS.recordLockContention(gapId, AGENT_TYPES.BUILD_MONITOR);
           continue;
         }
 
@@ -151,7 +151,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
             );
           }
         } finally {
-          await memory.releaseGapLock(gapId, AgentType.BUILD_MONITOR);
+          await memory.releaseGapLock(gapId, AGENT_TYPES.BUILD_MONITOR);
         }
       }
 
@@ -282,12 +282,12 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
 
       for (const gapId of gapIds) {
         // PROGRESS -> OPEN/FAILED: Acquire lock before transition
-        const lockAcquired = await memory.acquireGapLock(gapId, AgentType.BUILD_MONITOR);
+        const lockAcquired = await memory.acquireGapLock(gapId, AGENT_TYPES.BUILD_MONITOR);
         if (!lockAcquired) {
           logger.warn(
             `[Monitor] Could not acquire lock for gap ${gapId}, skipping failure transition.`
           );
-          evolMetrics.recordLockContention(gapId, AgentType.BUILD_MONITOR);
+          evolMetrics.recordLockContention(gapId, AGENT_TYPES.BUILD_MONITOR);
           continue;
         }
 
@@ -322,7 +322,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
             }
           }
         } finally {
-          await memory.releaseGapLock(gapId, AgentType.BUILD_MONITOR);
+          await memory.releaseGapLock(gapId, AGENT_TYPES.BUILD_MONITOR);
         }
       }
 

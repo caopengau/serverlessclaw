@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './merger';
-import { AgentType, EventType } from '../lib/types/agent';
+import { AGENT_TYPES, EventType } from '../lib/types/agent';
 import { AGENT_ERRORS } from '../lib/constants';
 import { initAgent } from '../lib/utils/agent-helpers';
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
@@ -44,7 +44,7 @@ describe('Merger Agent Handler', () => {
   };
 
   const mockMemory = {};
-  const mockConfig = { id: AgentType.MERGER, name: 'Structural Merger' };
+  const mockConfig = { id: AGENT_TYPES.MERGER, name: 'Structural Merger' };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -76,7 +76,7 @@ describe('Merger Agent Handler', () => {
 
     const result = await handler(event as any, {} as any);
 
-    expect(initAgent).toHaveBeenCalledWith(AgentType.MERGER, { workspaceId: undefined });
+    expect(initAgent).toHaveBeenCalledWith(AGENT_TYPES.MERGER, { workspaceId: undefined });
     expect(mockAgent.process).toHaveBeenCalledWith(
       'user-1',
       expect.stringContaining('Reconcile the following code patches'),
@@ -88,8 +88,8 @@ describe('Merger Agent Handler', () => {
 
     expect(emitTaskEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        source: AgentType.MERGER,
-        agentId: AgentType.MERGER,
+        source: AGENT_TYPES.MERGER,
+        agentId: AGENT_TYPES.MERGER,
         response: expect.stringContaining('Merged successfully'),
       })
     );
@@ -119,7 +119,7 @@ describe('Merger Agent Handler', () => {
     expect(mockAgent.process).not.toHaveBeenCalled();
     expect(emitTaskEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentId: AgentType.MERGER,
+        agentId: AGENT_TYPES.MERGER,
         response: expect.stringContaining('FAILED: Patch payload too large for LLM reconciliation'),
       })
     );

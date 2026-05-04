@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { discoverSystemTopology } from './topology';
 import { BACKBONE_REGISTRY } from '../backbone';
-import { AgentType } from '../types/index';
+import { AGENT_TYPES } from '../types/index';
 
 // Mock ConfigManager
 vi.mock('../registry/config', () => ({
@@ -181,7 +181,7 @@ describe('discoverSystemTopology', () => {
 
   it('should respect topologyOverride in agent configurations', async () => {
     // Inject an override into a backbone agent for testing
-    BACKBONE_REGISTRY[AgentType.SUPERCLAW].topologyOverride = {
+    BACKBONE_REGISTRY[AGENT_TYPES.SUPERCLAW].topologyOverride = {
       label: 'Commander-in-Chief',
       icon: 'Shield',
       tier: 'INFRA',

@@ -1,4 +1,4 @@
-import { EventType, AgentType } from '../../lib/types/agent';
+import { EventType, AGENT_TYPES } from '../../lib/types/agent';
 import { ClarificationStatus } from '../../lib/types/memory';
 import { logger } from '../../lib/logger';
 import { emitEvent, EventPriority } from '../../lib/utils/bus';
@@ -111,7 +111,7 @@ export async function handleClarificationTimeout(
         agentId,
         question: `[RETRY ${newRetryCount}/${maxRetries}] ${question}`,
         traceId,
-        initiatorId: initiatorId ?? AgentType.SUPERCLAW,
+        initiatorId: initiatorId ?? AGENT_TYPES.SUPERCLAW,
         depth: depth ?? 0,
         sessionId,
         originalTask,
@@ -143,7 +143,7 @@ export async function handleClarificationTimeout(
       originalTask,
       question,
       traceId,
-      initiatorId: initiatorId ?? AgentType.SUPERCLAW,
+      initiatorId: initiatorId ?? AGENT_TYPES.SUPERCLAW,
       sessionId,
       depth: depth ?? 0,
     },
@@ -158,7 +158,7 @@ export async function handleClarificationTimeout(
     result: `The system is continuing with best-effort assumptions to maintain momentum.`,
     traceId,
     sessionId,
-    agentId: AgentType.SUPERCLAW,
+    agentId: AGENT_TYPES.SUPERCLAW,
   });
 
   logger.info(`Initiated Strategic Tie-break for user ${userId} due to clarification timeout.`);

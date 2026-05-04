@@ -273,7 +273,7 @@ export default function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 space-y-0 text-sm overflow-y-auto overflow-x-hidden custom-scrollbar">
           {navItems.map((item, idx) => {
-            if (item.type === 'header') {
+            if ('type' in item && item.type === 'header') {
               if (isCollapsed) return <div key={idx} className="h-px bg-border/40 my-1.5 mx-2" />;
               return (
                 <div

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { HealthSeverity } from '../types/constants';
-import { EventType, AgentType } from '../types/index';
+import { EventType, AGENT_TYPES } from '../types/index';
 import { normalizeBaseUserId } from '../utils/normalize';
 import { generateMessageId } from '../utils/id-generator';
 
@@ -346,11 +346,11 @@ export const EVENT_SCHEMA_MAP = {
   [EventType.OUTBOUND_MESSAGE as string]: OUTBOUND_MESSAGE_EVENT_SCHEMA,
   [EventType.PARALLEL_TASK_COMPLETED as string]: PARALLEL_TASK_COMPLETED_EVENT_SCHEMA,
   [EventType.HEARTBEAT_PROACTIVE as string]: PROACTIVE_HEARTBEAT_PAYLOAD_SCHEMA,
-  [`${AgentType.STRATEGIC_PLANNER}_task`]: TASK_EVENT_SCHEMA,
-  [`${AgentType.COGNITION_REFLECTOR}_task`]: TASK_EVENT_SCHEMA,
-  [`${AgentType.QA}_task`]: TASK_EVENT_SCHEMA,
-  [`${AgentType.CRITIC}_task`]: TASK_EVENT_SCHEMA,
-  [`${AgentType.FACILITATOR}_task`]: TASK_EVENT_SCHEMA,
+  [`${AGENT_TYPES.STRATEGIC_PLANNER}_task`]: TASK_EVENT_SCHEMA,
+  [`${AGENT_TYPES.COGNITION_REFLECTOR}_task`]: TASK_EVENT_SCHEMA,
+  [`${AGENT_TYPES.QA}_task`]: TASK_EVENT_SCHEMA,
+  [`${AGENT_TYPES.CRITIC}_task`]: TASK_EVENT_SCHEMA,
+  [`${AGENT_TYPES.FACILITATOR}_task`]: TASK_EVENT_SCHEMA,
   [EventType.CONSENSUS_REQUEST as string]: CONSENSUS_REQUEST_SCHEMA,
   [EventType.CONSENSUS_VOTE as string]: CONSENSUS_VOTE_SCHEMA,
   [EventType.CONSENSUS_REACHED as string]: CONSENSUS_REACHED_SCHEMA,
@@ -365,7 +365,7 @@ export const EVENT_SCHEMA_MAP = {
   [EventType.CLARIFICATION_TIMEOUT as string]: TASK_EVENT_SCHEMA,
   [EventType.SCHEDULE_TASK as string]: TASK_EVENT_SCHEMA,
   [EventType.CHUNK as string]: z.object({ content: z.string() }).passthrough(),
-  [`${AgentType.RESEARCHER}_task`]: TASK_EVENT_SCHEMA,
+  [`${AGENT_TYPES.RESEARCHER}_task`]: TASK_EVENT_SCHEMA,
   [EventType.RESEARCH_TASK as string]: TASK_EVENT_SCHEMA,
   [EventType.MERGER_TASK as string]: TASK_EVENT_SCHEMA,
   [EventType.COGNITIVE_HEALTH_CHECK as string]: TASK_EVENT_SCHEMA,
@@ -383,12 +383,12 @@ export type SchemaEventType = keyof typeof EVENT_SCHEMA_MAP;
 
 /** Agent task event type strings (for use with validateEventPayload). */
 export const AGENT_TASK_EVENT_TYPES = [
-  `${AgentType.STRATEGIC_PLANNER}_task`,
-  `${AgentType.COGNITION_REFLECTOR}_task`,
-  `${AgentType.QA}_task`,
-  `${AgentType.CRITIC}_task`,
-  `${AgentType.FACILITATOR}_task`,
-  `${AgentType.RESEARCHER}_task`,
+  `${AGENT_TYPES.STRATEGIC_PLANNER}_task`,
+  `${AGENT_TYPES.COGNITION_REFLECTOR}_task`,
+  `${AGENT_TYPES.QA}_task`,
+  `${AGENT_TYPES.CRITIC}_task`,
+  `${AGENT_TYPES.FACILITATOR}_task`,
+  `${AGENT_TYPES.RESEARCHER}_task`,
 ] as const;
 
 export type AgentTaskEventType = (typeof AGENT_TASK_EVENT_TYPES)[number];

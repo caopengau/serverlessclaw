@@ -1,6 +1,6 @@
 import { infraSchema as schema } from './schema';
 import { logger } from '../../lib/logger';
-import { AgentStatus, AgentType, GapStatus } from '../../lib/types/agent';
+import { AgentStatus, AgentRole, GapStatus } from '../../lib/types/agent';
 import { formatErrorMessage } from '../../lib/utils/error';
 
 /**
@@ -62,7 +62,7 @@ export const signalOrchestration = {
         status: AgentStatus;
         reasoning: string;
         nextStep?: string;
-        targetAgentId?: AgentType;
+        targetAgentId?: AgentRole;
         emit?: boolean;
         userId?: string;
         traceId?: string;

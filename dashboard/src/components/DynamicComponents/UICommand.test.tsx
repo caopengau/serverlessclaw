@@ -4,7 +4,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import UICommand from './UICommand';
 import { useRouter } from 'next/navigation';
-import { DynamicComponent } from '../Chat/types';
+import { DynamicComponent } from '@claw/hooks';
 
 vi.mock('next/navigation', () => ({
   useRouter: vi.fn(),

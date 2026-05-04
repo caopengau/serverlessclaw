@@ -14,13 +14,13 @@ describe('PluginManager', () => {
           tools: [],
           evolutionMode: EvolutionMode.HITL,
           enabled: true,
-        }
-      }
+        },
+      },
     };
 
     await PluginManager.register(plugin);
     const agents = PluginManager.getRegisteredAgents();
-    
+
     expect(agents['test-agent']).toBeDefined();
     expect(agents['test-agent'].name).toBe('Test Agent');
   });
@@ -29,19 +29,37 @@ describe('PluginManager', () => {
     const plugin1 = {
       id: 'p1',
       tools: {
-        'tool1': { name: 'tool1', description: 'd1', type: 'function' as any, parameters: {}, requiresApproval: false, connectionProfile: [], requiredPermissions: [], execute: async () => 'r1' }
-      }
+        tool1: {
+          name: 'tool1',
+          description: 'd1',
+          type: 'function' as any,
+          parameters: {},
+          requiresApproval: false,
+          connectionProfile: [],
+          requiredPermissions: [],
+          execute: async () => 'r1',
+        },
+      },
     };
     const plugin2 = {
       id: 'p2',
       tools: {
-        'tool2': { name: 'tool2', description: 'd2', type: 'function' as any, parameters: {}, requiresApproval: false, connectionProfile: [], requiredPermissions: [], execute: async () => 'r2' }
-      }
+        tool2: {
+          name: 'tool2',
+          description: 'd2',
+          type: 'function' as any,
+          parameters: {},
+          requiresApproval: false,
+          connectionProfile: [],
+          requiredPermissions: [],
+          execute: async () => 'r2',
+        },
+      },
     };
 
     await PluginManager.register(plugin1);
     await PluginManager.register(plugin2);
-    
+
     const tools = PluginManager.getRegisteredTools();
     expect(tools['tool1']).toBeDefined();
     expect(tools['tool2']).toBeDefined();

@@ -13,7 +13,7 @@
  */
 
 import { logger } from '../logger';
-import { AgentType } from '../types/agent';
+import { AGENT_TYPES } from '../types/agent';
 
 /** Standard prefix for aggregated swarm results. */
 export const AGGREGATED_RESULTS_PREFIX = '[AGGREGATED_RESULTS]';
@@ -184,7 +184,7 @@ export async function decomposePlan(
   const maxTasks = await getDynamicMaxSubTasks(options.maxSubTasks, options.workspaceId);
 
   // 2026: Default to SuperClaw or Coder based on input
-  const defaultAgent = options.defaultAgentId ?? AgentType.CODER;
+  const defaultAgent = options.defaultAgentId ?? AGENT_TYPES.CODER;
 
   // Bypass length check if plan uses explicit ### Goal: headers (structured missions)
   // but still require minimum content per header to avoid fragmenting trivial plans
@@ -372,7 +372,7 @@ function estimateComplexity(text: string): number {
 
 /**
  * Heuristically determines the best agent for a plan segment.
- * Prioritizes explicit ### Goal: [AgentType] headers over keyword matching.
+ * Prioritizes explicit ### Goal: [AgentRole] headers over keyword matching.
  */
 function determineAgent(text: string, defaultAgent: string): string {
   // Priority 1: explicit goal header declaration
@@ -381,11 +381,11 @@ function determineAgent(text: string, defaultAgent: string): string {
   );
   if (goalHeader) {
     const declared = goalHeader[1].toUpperCase();
-    if (declared === 'RESEARCHER') return AgentType.RESEARCHER;
-    if (declared === 'CODER') return AgentType.CODER;
-    if (declared === 'QA') return AgentType.QA;
-    if (declared === 'CRITIC') return AgentType.CRITIC;
-    if (declared === 'FACILITATOR') return AgentType.FACILITATOR;
+    if (declared === 'RESEARCHER') return AGENT_TYPES.RESEARCHER;
+    if (declared === 'CODER') return AGENT_TYPES.CODER;
+    if (declared === 'QA') return AGENT_TYPES.QA;
+    if (declared === 'CRITIC') return AGENT_TYPES.CRITIC;
+    if (declared === 'FACILITATOR') return AGENT_TYPES.FACILITATOR;
   }
 
   const researchKeywords = [
@@ -455,19 +455,19 @@ function determineAgent(text: string, defaultAgent: string): string {
 
   // Detected specializations take priority over generic coding/research
   if (isFacilitator && !isCoding && !isResearch) {
-    return AgentType.FACILITATOR;
+    return AGENT_TYPES.FACILITATOR;
   }
   if (isCritic && !isCoding && !isResearch) {
-    return AgentType.CRITIC;
+    return AGENT_TYPES.CRITIC;
   }
   if (isQA && !isCoding && !isResearch) {
-    return AgentType.QA;
+    return AGENT_TYPES.QA;
   }
   if (isResearch && !isCoding) {
-    return AgentType.RESEARCHER;
+    return AGENT_TYPES.RESEARCHER;
   }
   if (isCoding && !isResearch) {
-    return AgentType.CODER;
+    return AGENT_TYPES.CODER;
   }
 
   return defaultAgent;

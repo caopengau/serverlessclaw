@@ -1,4 +1,4 @@
-import { IAgentConfig, AgentType, EvolutionMode, Topology } from '../types/index';
+import { IAgentConfig, AGENT_TYPES, EvolutionMode, Topology } from '../types/index';
 import { BACKBONE_REGISTRY } from '../backbone';
 import { logger } from '../logger';
 import { DYNAMO_KEYS, RETENTION, TRUST } from '../constants';
@@ -39,7 +39,7 @@ export class AgentRegistry {
    * Returns a list of agents configured as global fallbacks.
    */
   static getFallbackAgents(): string[] {
-    return [AgentType.SUPERCLAW, AgentType.FACILITATOR];
+    return [AGENT_TYPES.SUPERCLAW, AGENT_TYPES.FACILITATOR];
   }
 
   /**
@@ -126,7 +126,7 @@ export class AgentRegistry {
     for (const [id, appCfg] of Object.entries(this.appRegistry)) {
       all[id] = this.mergeAgentConfig(id, dynamicAgents?.[id], appCfg, toolOverrides?.[id]);
     }
-    
+
     // Merge plugin-registered agents
     for (const [id, pluginCfg] of Object.entries(PluginManager.getRegisteredAgents())) {
       if (!all[id]) {

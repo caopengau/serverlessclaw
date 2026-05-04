@@ -22,7 +22,11 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@claw/core/*": ["../core/*"]
+      "@claw/core/*": ["../core/*"],
+      "@claw/ui": ["../packages/ui/src/index.ts"],
+      "@claw/ui/*": ["../packages/ui/src/*"],
+      "@claw/hooks": ["../packages/hooks/src/index.ts"],
+      "@claw/hooks/*": ["../packages/hooks/src/*"]
     }
   },
   "include": [

@@ -370,7 +370,7 @@ export function buildReactivePrompt(
     
     INSTRUCTIONS:
     1. If this is a capability gap (gapId present), design a STRATEGIC_PLAN as a Mission Commander. 
-       - For multi-step missions, you MUST use deterministic headers: ### Goal: [AgentType] - [Mission Summary].
+       - For multi-step missions, you MUST use deterministic headers: ### Goal: [AgentRole] - [Mission Summary].
        - Ensure you do not repeat any KNOWN_FAILURE_PATTERNS.
     2. If this is an architectural inquiry or system question, use your tools (listAgents, inspectTopology) to provide a deep, accurate answer. You MAY use Rich Markdown (tables, diagrams) instead of the JSON format for these consultations to provide a better user experience.
     3. If you are just answering a question and no code changes are required, set 'coveredGapIds' to an empty array (if using JSON) or simply provide the markdown answer.

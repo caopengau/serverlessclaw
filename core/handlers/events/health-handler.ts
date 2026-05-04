@@ -1,5 +1,5 @@
 import { HEALTH_REPORT_EVENT_SCHEMA } from '../../lib/schema/events';
-import { AgentType, UserRole } from '../../lib/types/agent';
+import { AGENT_TYPES, UserRole } from '../../lib/types/agent';
 import { Context } from 'aws-lambda';
 import { processEventWithAgent } from './shared';
 
@@ -40,7 +40,7 @@ export async function handleHealthReport(
     Please investigate this health issue. Determine if it requires a code modification (Coder Agent), configuration change, or if it can be resolved via an autonomous recovery action.
     Start by diagnosing the root cause using your tools.`;
 
-  await processEventWithAgent(userId, AgentType.SUPERCLAW, triageTask, {
+  await processEventWithAgent(userId, AGENT_TYPES.SUPERCLAW, triageTask, {
     context,
     traceId,
     sessionId,

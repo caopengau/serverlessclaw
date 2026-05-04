@@ -1,7 +1,12 @@
 import { logger } from '../logger';
 
 export interface MissionSignal {
-  type: 'strategy_update' | 'progress_update' | 'milestone_reached' | 'resource_allocated' | 'handover';
+  type:
+    | 'strategy_update'
+    | 'progress_update'
+    | 'milestone_reached'
+    | 'resource_allocated'
+    | 'handover';
   agentId: string;
   traceId: string;
   workspaceId?: string;
@@ -28,7 +33,9 @@ export class MissionControlRegistry {
    */
   static register(observer: IMissionObserver) {
     this.observers.push(observer);
-    logger.debug(`[MissionControlRegistry] Registered new observer. Total: ${this.observers.length}`);
+    logger.debug(
+      `[MissionControlRegistry] Registered new observer. Total: ${this.observers.length}`
+    );
   }
 
   /**

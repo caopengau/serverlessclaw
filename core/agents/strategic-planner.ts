@@ -1,4 +1,4 @@
-import { AgentType, Attachment, AgentPayload } from '../lib/types/agent';
+import { AGENT_TYPES, Attachment, AgentPayload } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import { randomUUID } from 'node:crypto';
@@ -61,12 +61,12 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   // 1. Fetch System Context
   const [config, { memory }, { getAgentTools }] = await Promise.all([
-    loadAgentConfig(AgentType.STRATEGIC_PLANNER),
+    loadAgentConfig(AGENT_TYPES.STRATEGIC_PLANNER),
     getAgentContext(),
     import('../tools/registry-utils'),
   ]);
 
-  const agentTools = await getAgentTools(AgentType.STRATEGIC_PLANNER);
+  const agentTools = await getAgentTools(AGENT_TYPES.STRATEGIC_PLANNER);
 
   // 1.1 Council Review Continuation Logic
   const councilResult = await handleCouncilReviewResult(
@@ -145,7 +145,7 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
 
   // 2b. Conflict Detection: Acquire gap lock to prevent race conditions
   if (gapId) {
-    const lockAcquired = await memory.acquireGapLock(gapId, AgentType.STRATEGIC_PLANNER);
+    const lockAcquired = await memory.acquireGapLock(gapId, AGENT_TYPES.STRATEGIC_PLANNER);
     if (!lockAcquired) {
       const lockInfo = await memory.getGapLock(gapId);
       if (lockInfo?.agentId === '__LOCK_CHECK_FAILED__') {
@@ -168,26 +168,31 @@ export async function handler(event: PlannerEvent, _context: Context): Promise<P
   let parsedData: unknown;
 
   try {
-    const result = await processEventWithAgent(userId, AgentType.STRATEGIC_PLANNER, plannerPrompt, {
-      context: _context,
-      traceId,
-      taskId: traceId,
-      sessionId,
-      depth,
-      initiatorId,
-      isContinuation: isProactive,
-      workspaceId,
-      teamId,
-      staffId,
-      metadata: metadata as Record<string, unknown>,
-      attachments: (metadata as unknown as AgentPayload | undefined)?.attachments as Attachment[],
-      handlerTitle: 'Strategic Planner',
-      outboundHandlerName: AgentType.STRATEGIC_PLANNER,
-      skipOutbound: true,
-      formatResponse: (text) => text,
-      tokenBudget: config.tokenBudget,
-      costLimit: config.costLimit,
-    });
+    const result = await processEventWithAgent(
+      userId,
+      AGENT_TYPES.STRATEGIC_PLANNER,
+      plannerPrompt,
+      {
+        context: _context,
+        traceId,
+        taskId: traceId,
+        sessionId,
+        depth,
+        initiatorId,
+        isContinuation: isProactive,
+        workspaceId,
+        teamId,
+        staffId,
+        metadata: metadata as Record<string, unknown>,
+        attachments: (metadata as unknown as AgentPayload | undefined)?.attachments as Attachment[],
+        handlerTitle: 'Strategic Planner',
+        outboundHandlerName: AGENT_TYPES.STRATEGIC_PLANNER,
+        skipOutbound: true,
+        formatResponse: (text) => text,
+        tokenBudget: config.tokenBudget,
+        costLimit: config.costLimit,
+      }
+    );
     responseText = result.responseText;
     parsedData = result.parsedData;
   } catch (error) {

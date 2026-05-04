@@ -8,9 +8,9 @@ import { PluginManager } from '@serverlessclaw/core/lib/plugin-manager';
 export async function GET() {
   try {
     const plugins = PluginManager.getAllPlugins();
-    
+
     // Filter to only include serializable UI metadata
-    const manifest = plugins.map(p => ({
+    const manifest = plugins.map((p) => ({
       id: p.id,
       sidebarExtensions: p.sidebarExtensions || [],
       layoutExtensions: p.layoutExtensions || [],
@@ -18,12 +18,15 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      plugins: manifest
+      plugins: manifest,
     });
   } catch (error) {
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to load plugins'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to load plugins',
+      },
+      { status: 500 }
+    );
   }
 }

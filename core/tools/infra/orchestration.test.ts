@@ -5,7 +5,7 @@ import {
   requestConsensus,
   voteOnProposal,
 } from './orchestration';
-import { AgentStatus, AgentType } from '../../lib/types/agent';
+import { AgentStatus, AGENT_TYPES } from '../../lib/types/agent';
 import { logger } from '../../lib/logger';
 
 vi.mock('../../lib/logger', () => ({
@@ -57,7 +57,7 @@ describe('signalOrchestration Tool', () => {
       status: AgentStatus.SUCCESS,
       reasoning: 'The task was completed according to requirements.',
       nextStep: 'Notify the user of completion.',
-      targetAgentId: AgentType.SUPERCLAW,
+      targetAgentId: AGENT_TYPES.SUPERCLAW,
     };
 
     const result = await signalOrchestration.execute(args);
@@ -72,7 +72,7 @@ describe('signalOrchestration Tool', () => {
       status: AgentStatus.PIVOT,
       reasoning: 'The task requires deep architectural analysis.',
       nextStep: 'Analyze the system topology for bottlenecks.',
-      targetAgentId: AgentType.STRATEGIC_PLANNER,
+      targetAgentId: AGENT_TYPES.STRATEGIC_PLANNER,
     };
 
     const result = await signalOrchestration.execute(args);
@@ -87,7 +87,7 @@ describe('signalOrchestration Tool', () => {
       status: AgentStatus.ESCALATE,
       reasoning: 'The user requested a change to a protected system file.',
       nextStep: 'Ask the user for manual approval to modify core/lib/auth.ts',
-      targetAgentId: AgentType.SUPERCLAW,
+      targetAgentId: AGENT_TYPES.SUPERCLAW,
     };
 
     const result = await signalOrchestration.execute(args);
@@ -115,7 +115,7 @@ describe('signalOrchestration Tool', () => {
     const args = {
       status: AgentStatus.RETRY,
       reasoning: 'Retry needed.',
-      targetAgentId: AgentType.CODER,
+      targetAgentId: AGENT_TYPES.CODER,
     };
 
     const result = await signalOrchestration.execute(args);

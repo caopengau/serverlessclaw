@@ -13,13 +13,12 @@ export function ExtensionLoader() {
 
   useEffect(() => {
     if (loaded.current) return;
-    
+
     async function loadExtensions() {
       try {
         // Attempt to load from the conventional extension point
-        // @ts-ignore - This file might not exist in the base framework
         const extension = await import('../../extensions');
-        
+
         if (extension && typeof extension.init === 'function') {
           extension.init({
             registerSidebar: registerSidebarExtension,
@@ -27,7 +26,7 @@ export function ExtensionLoader() {
           });
           console.log('[Dashboard] Domain extensions loaded successfully.');
         }
-      } catch (e) {
+      } catch {
         // Silence errors - it just means no extensions are configured
         console.debug('[Dashboard] No extensions found.');
       }

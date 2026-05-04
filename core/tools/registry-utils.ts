@@ -39,7 +39,7 @@ export async function getAgentTools(
   // 1. Resolve local tools
   const { PluginManager } = await import('../lib/plugin-manager');
   const pluginTools = PluginManager.getRegisteredTools();
-  
+
   const localTools = config.tools
     .map((name: string) => (TOOLS as Record<string, ITool>)[name] || pluginTools[name])
     .filter((t: ITool | undefined): t is ITool => !!t);

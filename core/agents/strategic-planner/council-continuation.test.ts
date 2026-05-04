@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AgentType } from '../../lib/types/agent';
+import { AGENT_TYPES } from '../../lib/types/agent';
 
 /**
  * Council of Agents Continuation Logic Tests
@@ -125,7 +125,7 @@ describe('Council of Agents — Continuation Logic', () => {
 
     // Verify outbound message
     expect(sendOutboundMessageMock).toHaveBeenCalledWith(
-      AgentType.STRATEGIC_PLANNER,
+      AGENT_TYPES.STRATEGIC_PLANNER,
       'user-1',
       expect.stringContaining('Council Approval Received'),
       undefined,
@@ -136,7 +136,7 @@ describe('Council of Agents — Continuation Logic', () => {
     // Verify dispatch to Coder
     expect(dispatchTaskMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentId: AgentType.CODER,
+        agentId: AGENT_TYPES.CODER,
         task: plan,
         metadata: { gapIds },
       })
@@ -174,7 +174,7 @@ describe('Council of Agents — Continuation Logic', () => {
 
     // Verify outbound message with buttons
     expect(sendOutboundMessageMock).toHaveBeenCalledWith(
-      AgentType.STRATEGIC_PLANNER,
+      AGENT_TYPES.STRATEGIC_PLANNER,
       'user-1',
       expect.stringContaining('Council Approval Received'),
       undefined,
@@ -221,7 +221,7 @@ describe('Council of Agents — Continuation Logic', () => {
 
     // Verify outbound rejection message
     expect(sendOutboundMessageMock).toHaveBeenCalledWith(
-      AgentType.STRATEGIC_PLANNER,
+      AGENT_TYPES.STRATEGIC_PLANNER,
       'user-1',
       expect.stringContaining('Council Review REJECTED'),
       undefined,

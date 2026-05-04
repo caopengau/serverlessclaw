@@ -9,7 +9,7 @@
  */
 
 import { logger } from '../logger';
-import { AgentType, TraceSource, ReasoningProfile } from '../types/index';
+import { AgentRole, AGENT_TYPES, TraceSource, ReasoningProfile } from '../types/index';
 import {
   AGENT_ERRORS,
   AGENT_ERRORS_CN,
@@ -77,7 +77,7 @@ export function isWarmupEvent(event: unknown): boolean {
  * @param agentId - The agent ID to warm.
  * @returns A promise that resolves to true if handled as warmup, false otherwise.
  */
-export async function handleWarmup(event: unknown, agentId: string | AgentType): Promise<boolean> {
+export async function handleWarmup(event: unknown, agentId: string | AgentRole): Promise<boolean> {
   if (isWarmupEvent(event)) {
     const target = agentId === 'brain' ? 'all cognitive agents' : `agent ${agentId}`;
     logger.info(`[WARMUP] Warming ${target}...`);
@@ -85,12 +85,12 @@ export async function handleWarmup(event: unknown, agentId: string | AgentType):
       if (agentId === 'brain') {
         // Warm a representative set of agents
         await Promise.all([
-          initAgent(AgentType.CODER),
-          initAgent(AgentType.RESEARCHER),
-          initAgent(AgentType.STRATEGIC_PLANNER),
+          initAgent(AGENT_TYPES.CODER),
+          initAgent(AGENT_TYPES.RESEARCHER),
+          initAgent(AGENT_TYPES.STRATEGIC_PLANNER),
         ]);
       } else {
-        await initAgent(agentId as AgentType);
+        await initAgent(agentId as AgentRole);
       }
       logger.info(`[WARMUP] ${target} is now warm.`);
       return true;
@@ -141,7 +141,7 @@ export function isTaskPaused(response: string): boolean {
  * @returns A promise resolving to the agent configuration.
  */
 export async function loadAgentConfig(
-  agentId: string | AgentType,
+  agentId: string | AgentRole,
   options?: { workspaceId?: string }
 ): Promise<import('../types/index').IAgentConfig> {
   const { AgentRegistry } = await import('../registry');
@@ -217,7 +217,7 @@ export async function createAgent(
  * @returns A promise resolving to { config, memory, provider, agent }.
  */
 export async function initAgent(
-  agentId: string | AgentType,
+  agentId: string | AgentRole,
   options?: { workspaceId?: string }
 ): Promise<{
   config: import('../types/index').IAgentConfig;
@@ -248,7 +248,7 @@ export async function initAgent(
  * Combines initialization and processing into a single call.
  */
 export async function processWithAgent(
-  agentId: string | AgentType,
+  agentId: string | AgentRole,
   userId: string,
   task: string,
   options: ProcessOptionsParams
@@ -349,7 +349,7 @@ export function validatePayload(
  * This provides fail-fast runtime validation with Zod schemas.
  *
  * @param event - The EventBridge event or direct payload.
- * @param schemaKey - The key to lookup in EVENT_SCHEMA_MAP (e.g., `${AgentType.RESEARCHER}_task`).
+ * @param schemaKey - The key to lookup in EVENT_SCHEMA_MAP (e.g., `${AGENT_TYPES.RESEARCHER}_task`).
  * @returns The validated and typed payload.
  * @throws Error if validation fails.
  */

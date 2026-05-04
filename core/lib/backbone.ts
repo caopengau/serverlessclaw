@@ -1,5 +1,5 @@
 import {
-  AgentType,
+  AGENT_TYPES,
   IAgentConfig,
   AgentCategory,
   ConnectionProfile,
@@ -57,8 +57,8 @@ const BACKBONE_HANDLER_DEFAULTS = {
 };
 
 export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
-  [AgentType.SUPERCLAW]: {
-    id: AgentType.SUPERCLAW,
+  [AGENT_TYPES.SUPERCLAW]: {
+    id: AGENT_TYPES.SUPERCLAW,
     name: 'SuperClaw',
     systemPrompt: SUPERCLAW_SYSTEM_PROMPT,
     description: 'Orchestrator node. Directs traffic, retrieves memory, and delegates tasks.',
@@ -91,8 +91,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       icon: 'Bot',
     },
   },
-  [AgentType.CODER]: {
-    id: AgentType.CODER,
+  [AGENT_TYPES.CODER]: {
+    id: AGENT_TYPES.CODER,
     name: 'Coder Agent',
     systemPrompt: CODER_SYSTEM_PROMPT,
     description: 'Autonomous builder. Implements changes and validates via pre-flight checks.',
@@ -137,8 +137,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       icon: 'Code',
     },
   },
-  [AgentType.STRATEGIC_PLANNER]: {
-    id: AgentType.STRATEGIC_PLANNER,
+  [AGENT_TYPES.STRATEGIC_PLANNER]: {
+    id: AGENT_TYPES.STRATEGIC_PLANNER,
     name: 'Strategic Planner',
     systemPrompt: PLANNER_SYSTEM_PROMPT,
     description: 'Design node. Identifies missing features and architecting upgrades.',
@@ -188,8 +188,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       icon: 'Brain',
     },
   },
-  [AgentType.COGNITION_REFLECTOR]: {
-    id: AgentType.COGNITION_REFLECTOR,
+  [AGENT_TYPES.COGNITION_REFLECTOR]: {
+    id: AGENT_TYPES.COGNITION_REFLECTOR,
     name: 'Cognition Reflector',
     systemPrompt: REFLECTOR_SYSTEM_PROMPT,
     description: 'Intelligence audit node. Extracts facts, lessons, and gaps from logs.',
@@ -221,8 +221,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       icon: 'Search',
     },
   },
-  [AgentType.QA]: {
-    id: AgentType.QA,
+  [AGENT_TYPES.QA]: {
+    id: AGENT_TYPES.QA,
     name: 'QA Auditor',
     systemPrompt: QA_SYSTEM_PROMPT,
     description: 'Validation node. Audits deployments to ensure they actually solve the gaps.',
@@ -246,8 +246,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       icon: 'FlaskConical',
     },
   },
-  [AgentType.CRITIC]: {
-    id: AgentType.CRITIC,
+  [AGENT_TYPES.CRITIC]: {
+    id: AGENT_TYPES.CRITIC,
     name: 'Critic Agent',
     systemPrompt: CRITIC_SYSTEM_PROMPT,
     description:
@@ -281,8 +281,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       icon: 'Shield',
     },
   },
-  [AgentType.FACILITATOR]: {
-    id: AgentType.FACILITATOR,
+  [AGENT_TYPES.FACILITATOR]: {
+    id: AGENT_TYPES.FACILITATOR,
     name: 'Facilitator',
     systemPrompt: FACILITATOR_SYSTEM_PROMPT,
     description: 'Moderator node. Manages multi-party collaboration sessions and drives consensus.',
@@ -315,8 +315,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       icon: 'MessageSquareShare',
     },
   },
-  [AgentType.MERGER]: {
-    id: AgentType.MERGER,
+  [AGENT_TYPES.MERGER]: {
+    id: AGENT_TYPES.MERGER,
     name: 'Structural Merger',
     systemPrompt: MERGER_SYSTEM_PROMPT,
     description: 'Reconciliation node. Resolves semantic conflicts between parallel code changes.',
@@ -346,8 +346,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
     },
   },
   // Handlers (Logic-only, but registered for topology awareness)
-  [AgentType.BUILD_MONITOR]: {
-    id: AgentType.BUILD_MONITOR,
+  [AGENT_TYPES.BUILD_MONITOR]: {
+    id: AGENT_TYPES.BUILD_MONITOR,
     name: 'Build Monitor',
     agentType: 'logic',
     description: 'Observability node. Watches builds, updates gaps, and discovers infra.',
@@ -366,8 +366,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       icon: 'Activity',
     },
   },
-  [AgentType.RECOVERY]: {
-    id: AgentType.RECOVERY,
+  [AGENT_TYPES.RECOVERY]: {
+    id: AGENT_TYPES.RECOVERY,
     name: "Dead Man's Switch",
     agentType: 'logic',
     description: 'Resilience node. Performs health probes and emergency git-reverts.',
@@ -381,8 +381,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       icon: 'ShieldCheck',
     },
   },
-  [AgentType.RESEARCHER]: {
-    id: AgentType.RESEARCHER,
+  [AGENT_TYPES.RESEARCHER]: {
+    id: AGENT_TYPES.RESEARCHER,
     name: 'Researcher',
     systemPrompt: RESEARCHER_SYSTEM_PROMPT,
     description: 'Technical discovery node. Researches libraries, frameworks, and patterns.',
@@ -406,8 +406,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       icon: 'Microscope',
     },
   },
-  [AgentType.EVENT_HANDLER]: {
-    id: AgentType.EVENT_HANDLER,
+  [AGENT_TYPES.EVENT_HANDLER]: {
+    id: AGENT_TYPES.EVENT_HANDLER,
     name: 'Event Handler',
     agentType: 'logic',
     description: 'Event processing handler. Routes and processes EventBridge events.',
@@ -421,8 +421,8 @@ export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
       icon: 'Zap',
     },
   },
-  [AgentType.JUDGE]: {
-    id: AgentType.JUDGE,
+  [AGENT_TYPES.JUDGE]: {
+    id: AGENT_TYPES.JUDGE,
     name: 'Judge Agent',
     systemPrompt: JUDGE_SYSTEM_PROMPT,
     description:

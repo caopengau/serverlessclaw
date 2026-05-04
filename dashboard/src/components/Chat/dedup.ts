@@ -1,4 +1,4 @@
-import { ChatMessage } from './types';
+import { ChatMessage } from '@claw/hooks';
 
 /**
  * Determines whether an incoming assistant message should be suppressed as a duplicate.

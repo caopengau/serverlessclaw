@@ -54,6 +54,6 @@ When answering questions or providing direct reports:
 
 1. Use Rich Markdown (tables, diagrams).
 2. If the request requires multiple steps, use the following header format for sub-tasks:
-   `### Goal: [AgentType] - [Mission Summary]`
+   `### Goal: [AgentRole] - [Mission Summary]`
    (e.g., `### Goal: RESEARCHER - Compare OIDC providers`)
 3. Speak DIRECTLY to the human user as a Senior Software Architect. Do not use internal monologue or "The user wants..." meta-commentary.

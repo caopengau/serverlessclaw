@@ -28,7 +28,8 @@ const Button: React.FC<ButtonProps> = ({
     danger: THEME.CLASSES.BUTTON_DANGER,
     outline:
       'border border-[var(--surface-border)] hover:bg-[var(--surface-card)] text-[var(--surface-foreground)]',
-    ghost: 'hover:bg-[var(--surface-card)] text-[var(--surface-foreground)]/70 hover:text-[var(--surface-foreground)]',
+    ghost:
+      'hover:bg-[var(--surface-card)] text-[var(--surface-foreground)]/70 hover:text-[var(--surface-foreground)]',
   }[variant];
 
   const sizeStyles = {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { EventType, AgentType } from '../lib/types/agent';
+import { EventType, AGENT_TYPES } from '../lib/types/agent';
 import {
   TASK_EVENT_SCHEMA,
   COMPLETION_EVENT_SCHEMA,
@@ -696,13 +696,13 @@ describe('Event Contract Verification', () => {
 
     it('should have a schema for every agent task type', () => {
       const agentTaskTypes = [
-        `${AgentType.STRATEGIC_PLANNER}_task`,
-        `${AgentType.COGNITION_REFLECTOR}_task`,
-        `${AgentType.QA}_task`,
-        `${AgentType.CRITIC}_task`,
-        `${AgentType.FACILITATOR}_task`,
-        `${AgentType.RESEARCHER}_task`,
-        `${AgentType.MERGER}_task`,
+        `${AGENT_TYPES.STRATEGIC_PLANNER}_task`,
+        `${AGENT_TYPES.COGNITION_REFLECTOR}_task`,
+        `${AGENT_TYPES.QA}_task`,
+        `${AGENT_TYPES.CRITIC}_task`,
+        `${AGENT_TYPES.FACILITATOR}_task`,
+        `${AGENT_TYPES.RESEARCHER}_task`,
+        `${AGENT_TYPES.MERGER}_task`,
       ];
 
       for (const taskType of agentTaskTypes) {

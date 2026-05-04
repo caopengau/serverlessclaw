@@ -1,5 +1,5 @@
 import { ReasoningProfile } from '../types/llm';
-import { AgentType, TraceSource } from '../types/agent';
+import { AGENT_TYPES, TraceSource } from '../types/agent';
 import { initAgent } from '../utils/agent-helpers';
 import { logger } from '../logger';
 
@@ -47,7 +47,7 @@ export class LLMJudge {
     context?: Record<string, unknown> & { workspaceId?: string },
     timeoutMs: number = LLMJudge.DEFAULT_TIMEOUT_MS
   ): Promise<JudgeResult> {
-    const { agent } = await initAgent(AgentType.JUDGE, { workspaceId: context?.workspaceId });
+    const { agent } = await initAgent(AGENT_TYPES.JUDGE, { workspaceId: context?.workspaceId });
 
     const prompt = `
 # LLM-as-a-Judge: Semantic Evaluation

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { IToolDefinition, ToolType } from '../../lib/types/index';
-import { AgentStatus, AgentType } from '../../lib/types/agent';
+import { AgentStatus, AGENT_TYPES } from '../../lib/types/agent';
 
 /**
  * Infra Domain Tool Definitions
@@ -207,7 +207,7 @@ export const infraSchema: Record<string, IToolDefinition> = {
         },
         reasoning: { type: 'string' },
         nextStep: { type: 'string' },
-        targetAgentId: { type: 'string', enum: Object.values(AgentType) },
+        targetAgentId: { type: 'string', enum: Object.values(AGENT_TYPES) },
         emit: {
           type: 'boolean',
           description: 'Whether to emit this signal to the EventBus for automated transition.',

@@ -4,7 +4,7 @@ import React from 'react';
 import { CheckCircle2, Circle, Activity, AlertCircle } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
-import { DynamicComponent } from '../Chat/types';
+import { DynamicComponent } from '@claw/hooks';
 
 interface StatusFlowProps {
   component: DynamicComponent;

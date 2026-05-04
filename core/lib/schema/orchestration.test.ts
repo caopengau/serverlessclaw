@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { AgentStatus, AgentType } from '../types/agent';
+import { AgentStatus, AGENT_TYPES } from '../types/agent';
 import { OrchestrationSignalSchema, QAFailureFeedbackSchema } from './orchestration';
 
 describe('OrchestrationSignalSchema', () => {
@@ -37,10 +37,10 @@ describe('OrchestrationSignalSchema', () => {
         status: AgentStatus.PIVOT,
         reasoning: 'Current strategy not working, delegating to specialist.',
         nextStep: 'Hand off to QA agent for verification.',
-        targetAgentId: AgentType.QA,
+        targetAgentId: AGENT_TYPES.QA,
       });
       expect(result.status).toBe(AgentStatus.PIVOT);
-      expect(result.targetAgentId).toBe(AgentType.QA);
+      expect(result.targetAgentId).toBe(AGENT_TYPES.QA);
     });
 
     it('should validate ESCALATE signal', () => {
@@ -73,7 +73,7 @@ describe('OrchestrationSignalSchema', () => {
         status: AgentStatus.PIVOT,
         reasoning: 'Switching strategy after analysis.',
         nextStep: 'Delegate to merger agent.',
-        targetAgentId: AgentType.MERGER,
+        targetAgentId: AGENT_TYPES.MERGER,
         metadata: { priority: 'high', source: 'orchestrator' },
       };
       const result = OrchestrationSignalSchema.parse(input);
@@ -191,9 +191,9 @@ describe('OrchestrationSignalSchema', () => {
     });
   });
 
-  describe('all AgentType enum values for targetAgentId', () => {
-    it.each(Object.values(AgentType))(
-      'should accept AgentType.%s as targetAgentId',
+  describe('all AgentRole enum values for targetAgentId', () => {
+    it.each(Object.values(AGENT_TYPES))(
+      'should accept AGENT_TYPES.%s as targetAgentId',
       (agentType) => {
         const result = OrchestrationSignalSchema.parse({
           status: AgentStatus.PIVOT,

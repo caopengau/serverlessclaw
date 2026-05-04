@@ -1,4 +1,4 @@
-import { AgentType, AgentEvent, AgentPayload } from '../lib/types/agent';
+import { AGENT_TYPES, AgentEvent, AgentPayload } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { AGENT_ERRORS } from '../lib/constants';
 import { Context } from 'aws-lambda';
@@ -50,7 +50,9 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   }
 
   // 1. Initialize agent
-  const { agent, memory } = await initAgent(AgentType.MERGER, { workspaceId: payload.workspaceId });
+  const { agent, memory } = await initAgent(AGENT_TYPES.MERGER, {
+    workspaceId: payload.workspaceId,
+  });
 
   // 1.5 Acquire gap locks to prevent concurrent state changes during reconciliation
   const gapIds = (metadata?.gapIds as string[]) ?? [];
@@ -59,7 +61,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
 
   for (const gapId of gapIds) {
     try {
-      const lockAcquired = await memory.acquireGapLock(gapId, AgentType.MERGER);
+      const lockAcquired = await memory.acquireGapLock(gapId, AGENT_TYPES.MERGER);
       if (lockAcquired) {
         acquiredLocks.push(gapId);
       } else {
@@ -78,13 +80,13 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     // Rollback: release any locks we DID manage to get
     for (const lock of acquiredLocks) {
       await memory
-        .releaseGapLock(lock, AgentType.MERGER)
+        .releaseGapLock(lock, AGENT_TYPES.MERGER)
         .catch((e) => logger.warn(`[Merger] Rollback: Failed to release lock for ${lock}:`, e));
     }
 
     await emitTaskEvent({
-      source: AgentType.MERGER,
-      agentId: AgentType.MERGER,
+      source: AGENT_TYPES.MERGER,
+      agentId: AGENT_TYPES.MERGER,
       userId,
       task: task || '',
       response: `FAILED: Could not acquire all required gap locks. Another agent is working on them.`,
@@ -104,8 +106,8 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       const overSizeMsg = `FAILED: Patch payload too large for LLM reconciliation (${(patchSizeBytes / 1024).toFixed(1)} KB > ${(MAX_PATCH_SIZE_BYTES / 1024).toFixed(0)} KB).`;
       logger.error(`[Merger] ${overSizeMsg}`);
       await emitTaskEvent({
-        source: AgentType.MERGER,
-        agentId: AgentType.MERGER,
+        source: AGENT_TYPES.MERGER,
+        agentId: AGENT_TYPES.MERGER,
         userId,
         task: task || '',
         response: overSizeMsg,
@@ -146,7 +148,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
           reason: `LLM-based structural reconciliation completed for ${traceId}`,
           userId,
           traceId: traceId ?? '',
-          initiatorId: AgentType.MERGER,
+          initiatorId: AGENT_TYPES.MERGER,
           sessionId: sessionId ?? '',
           gapIds,
         });
@@ -160,8 +162,8 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
 
     // Emit Result
     await emitTaskEvent({
-      source: AgentType.MERGER,
-      agentId: AgentType.MERGER,
+      source: AGENT_TYPES.MERGER,
+      agentId: AGENT_TYPES.MERGER,
       userId,
       task: task || '',
       response: processResult.responseText,
@@ -178,8 +180,8 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     logger.error(`[MergerAgent] Critical failure: ${errorDetail}`, error);
 
     await emitTaskEvent({
-      source: AgentType.MERGER,
-      agentId: AgentType.MERGER,
+      source: AGENT_TYPES.MERGER,
+      agentId: AGENT_TYPES.MERGER,
       userId,
       task: task || '',
       response: AGENT_ERRORS.PROCESS_FAILURE,
@@ -195,7 +197,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     // Release all acquired gap locks
     for (const gapId of acquiredLocks) {
       try {
-        await memory.releaseGapLock(gapId, AgentType.MERGER);
+        await memory.releaseGapLock(gapId, AGENT_TYPES.MERGER);
       } catch (e) {
         logger.warn(`[Merger] Failed to release lock for gap ${gapId}:`, e);
       }

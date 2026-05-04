@@ -39,7 +39,7 @@ vi.mock('../../lib/types/agent', async (importOriginal) => {
   const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
-    AgentType: { FACILITATOR: 'facilitator' },
+    AgentRole: { FACILITATOR: 'facilitator' },
   };
 });
 

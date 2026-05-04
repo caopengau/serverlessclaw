@@ -10,7 +10,7 @@ import { ITool } from '../../lib/types/tool';
 import { MessageRole } from '../../lib/types/llm';
 import { addTraceStep } from '../../lib/utils/trace-helper';
 import { TraceType } from '../../lib/types/constants';
-import { AgentType } from '../../lib/types/agent';
+import { AGENT_TYPES } from '../../lib/types/agent';
 import { emitTypedEvent } from '../../lib/utils/typed-emit';
 import { logger } from '../../lib/logger';
 import { sendOutboundMessage } from '../../lib/outbound';
@@ -37,10 +37,10 @@ export const createCollaboration: ITool = {
           }>
         | undefined) ?? [];
 
-    if (!initialParticipants.some((p) => p.id === AgentType.FACILITATOR)) {
+    if (!initialParticipants.some((p) => p.id === AGENT_TYPES.FACILITATOR)) {
       initialParticipants.push({
         type: 'agent',
-        id: AgentType.FACILITATOR,
+        id: AGENT_TYPES.FACILITATOR,
         role: 'editor',
       });
     }
@@ -101,7 +101,7 @@ export const createCollaboration: ITool = {
 
     // Wake up the Facilitator to start moderating
     try {
-      await emitTypedEvent('collaboration.tool', `${AgentType.FACILITATOR}_task`, {
+      await emitTypedEvent('collaboration.tool', `${AGENT_TYPES.FACILITATOR}_task`, {
         userId,
         task: `A new collaboration session "${collaboration.name}" has been created. Please start moderating. Collaboration ID: ${collaboration.collaborationId}`,
         traceId,

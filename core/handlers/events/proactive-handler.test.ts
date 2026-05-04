@@ -7,7 +7,7 @@ import {
   PutEventsCommandInput,
 } from '@aws-sdk/client-eventbridge';
 import { mockClient } from 'aws-sdk-client-mock';
-import { AgentType, EventType } from '../../lib/types/agent';
+import { AGENT_TYPES, EventType } from '../../lib/types/agent';
 
 const eventBridgeMock = mockClient(EventBridgeClient);
 
@@ -28,7 +28,7 @@ describe('ProactiveHandler', () => {
     eventBridgeMock.on(PutEventsCommand).resolves({});
 
     const payload = {
-      agentId: AgentType.CODER,
+      agentId: AGENT_TYPES.CODER,
       task: 'Fix the bug',
       goalId: 'GOAL#123',
       userId: 'user-1',
@@ -47,7 +47,7 @@ describe('ProactiveHandler', () => {
     expect(input.Entries![0].DetailType).toBe(EventType.TASK_COMPLETED); // emitTaskEvent defaults to TASK_COMPLETED if no error
     const detail = JSON.parse(input.Entries![0].Detail!);
 
-    expect(detail.agentId).toBe(AgentType.CODER);
+    expect(detail.agentId).toBe(AGENT_TYPES.CODER);
     expect(detail.task).toBe('Fix the bug');
     expect(detail.initiatorId).toBe('SYSTEM#SCHEDULER');
     expect(detail.metadata.goalId).toBe('GOAL#123');
@@ -58,7 +58,7 @@ describe('ProactiveHandler', () => {
     eventBridgeMock.on(PutEventsCommand).rejects(new Error('EB Down'));
 
     const payload = {
-      agentId: AgentType.STRATEGIC_PLANNER,
+      agentId: AGENT_TYPES.STRATEGIC_PLANNER,
       task: 'Review',
       goalId: 'GOAL#456',
     };

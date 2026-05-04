@@ -1,4 +1,4 @@
-import { AgentType, AgentEvent, AgentPayload, Attachment } from '../lib/types/agent';
+import { AGENT_TYPES, AgentEvent, AgentPayload, Attachment } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import { extractPayload, validatePayload } from '../lib/utils/agent-helpers';
@@ -27,7 +27,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   try {
     const { responseText } = await processEventWithAgent(
       userId,
-      AgentType.FACILITATOR,
+      AGENT_TYPES.FACILITATOR,
       task || '',
       {
         context,
@@ -50,8 +50,8 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     const errorMsg = error instanceof Error ? error.message : String(error);
 
     await emitTaskEvent({
-      source: `${AgentType.FACILITATOR}.agent`,
-      agentId: AgentType.FACILITATOR,
+      source: `${AGENT_TYPES.FACILITATOR}.agent`,
+      agentId: AGENT_TYPES.FACILITATOR,
       userId: userId,
       task: task || '',
       error: `Facilitator task failed: ${errorMsg}`,

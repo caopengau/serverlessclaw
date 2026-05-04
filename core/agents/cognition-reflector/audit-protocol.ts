@@ -7,7 +7,7 @@
 
 import { logger } from '../../lib/logger';
 import { emitEvent } from '../../lib/utils/bus';
-import { AgentType, EventType, GapStatus } from '../../lib/types/agent';
+import { AGENT_TYPES, EventType, GapStatus } from '../../lib/types/agent';
 import { AuditSilo, AuditFinding, AuditReport, AUDIT_SILOS } from './lib/audit-definitions';
 import { MetabolismService } from '../../lib/maintenance/metabolism';
 import { setGap } from '../../lib/memory/gap-operations';
@@ -314,7 +314,7 @@ async function saveAuditReport(memory: MemoryForAudit, report: AuditReport): Pro
 
 async function emitAuditCompleteEvent(report: AuditReport): Promise<void> {
   try {
-    await emitEvent(AgentType.COGNITION_REFLECTOR, EventType.SYSTEM_AUDIT_TRIGGER, {
+    await emitEvent(AGENT_TYPES.COGNITION_REFLECTOR, EventType.SYSTEM_AUDIT_TRIGGER, {
       auditId: report.auditId,
       triggerType: 'AUDIT_COMPLETED',
       findingsCount: report.findings.length,

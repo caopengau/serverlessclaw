@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ResourcePreview from './ResourcePreview';
-import { DynamicComponent } from '../Chat/types';
+import { DynamicComponent } from '@claw/hooks';
 
 describe('ResourcePreview', () => {
   const defaultProps: {

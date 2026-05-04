@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './dlq-handler';
-import { EventType, AgentType } from '../lib/types/agent';
+import { EventType, AGENT_TYPES } from '../lib/types/agent';
 
 const mockEmitTypedEvent = vi.fn();
 
@@ -42,7 +42,7 @@ describe('DLQ Handler', () => {
       {
         body: JSON.stringify({
           'detail-type': EventType.CODER_TASK,
-          detail: { task: 'write code', sourceAgent: AgentType.CODER },
+          detail: { task: 'write code', sourceAgent: AGENT_TYPES.CODER },
         }),
       },
     ]);
@@ -51,7 +51,7 @@ describe('DLQ Handler', () => {
 
     expect(mockEmitTypedEvent).toHaveBeenCalledTimes(1);
     expect(mockEmitTypedEvent).toHaveBeenCalledWith(
-      AgentType.CODER,
+      AGENT_TYPES.CODER,
       EventType.CODER_TASK,
       expect.objectContaining({ task: 'write code' })
     );
@@ -62,13 +62,13 @@ describe('DLQ Handler', () => {
       {
         body: JSON.stringify({
           'detail-type': EventType.CODER_TASK,
-          detail: { sourceAgent: AgentType.CODER },
+          detail: { sourceAgent: AGENT_TYPES.CODER },
         }),
       },
       {
         body: JSON.stringify({
           'detail-type': EventType.REFLECT_TASK,
-          detail: { sourceAgent: AgentType.COGNITION_REFLECTOR },
+          detail: { sourceAgent: AGENT_TYPES.COGNITION_REFLECTOR },
         }),
       },
     ]);
@@ -111,7 +111,7 @@ describe('DLQ Handler', () => {
     await handler(event, {} as any);
 
     expect(mockEmitTypedEvent).toHaveBeenCalledWith(
-      AgentType.SUPERCLAW,
+      AGENT_TYPES.SUPERCLAW,
       'Unknown' as EventType,
       expect.any(Object)
     );
@@ -125,7 +125,7 @@ describe('DLQ Handler', () => {
     await handler(event, {} as any);
 
     expect(mockEmitTypedEvent).toHaveBeenCalledWith(
-      AgentType.SUPERCLAW,
+      AGENT_TYPES.SUPERCLAW,
       'some_event' as EventType,
       expect.any(Object)
     );
@@ -146,7 +146,7 @@ describe('DLQ Handler', () => {
 
     await handler(event, {} as any);
 
-    expect(mockEmitTypedEvent).toHaveBeenCalledWith(AgentType.SUPERCLAW, EventType.CODER_TASK, {
+    expect(mockEmitTypedEvent).toHaveBeenCalledWith(AGENT_TYPES.SUPERCLAW, EventType.CODER_TASK, {
       replayCount: 1,
     });
   });

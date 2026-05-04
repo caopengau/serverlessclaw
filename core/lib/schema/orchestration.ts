@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AgentStatus, AgentType } from '../types/agent';
+import { AgentStatus, AGENT_TYPES } from '../types/agent';
 
 /**
  * Standardized Orchestration Signal Schema.
@@ -32,7 +32,7 @@ export const OrchestrationSignalSchema = z
      * The ID of the agent to delegate to.
      * Required if status is PIVOT.
      */
-    targetAgentId: z.nativeEnum(AgentType).optional(),
+    targetAgentId: z.nativeEnum(AGENT_TYPES).optional(),
 
     /**
      * Additional data to pass to the next agent or human.

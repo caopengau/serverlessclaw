@@ -16,9 +16,9 @@ import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { useUICommand } from '@/components/Providers/UICommandProvider';
 import { useTenant } from '@/components/Providers/TenantProvider';
 import { AgentSelector } from './AgentSelector';
-import { AgentType } from '@claw/core/lib/types/index';
+import { AGENT_TYPES } from '@claw/core/lib/types/index';
 import { logger } from '@claw/core/lib/logger';
-import type { ChatMessage } from './types';
+import type { ChatMessage } from '@claw/hooks';
 import { ChatHeader } from './ChatHeader';
 import { ContextPanel } from './ContextPanel';
 import { MissionControlHUD } from './MissionControlHUD';
@@ -76,10 +76,10 @@ export default function ChatContent() {
   const [isContextPanelOpen, setIsContextPanelOpen] = useState(false);
 
   // --- Multi-Agent / Collaboration State ---
-  const [currentAgentId, setCurrentAgentId] = useState<string>(AgentType.SUPERCLAW);
+  const [currentAgentId, setCurrentAgentId] = useState<string>(AGENT_TYPES.SUPERCLAW);
   const [isAgentSelectorOpen, setIsAgentSelectorOpen] = useState(false);
   const [isInviteSelectorOpen, setIsInviteSelectorOpen] = useState(false);
-  const [activeCollaborators, setActiveCollaborators] = useState<string[]>([AgentType.SUPERCLAW]);
+  const [activeCollaborators, setActiveCollaborators] = useState<string[]>([AGENT_TYPES.SUPERCLAW]);
   const [collaborationId, setCollaborationId] = useState<string | null>(null);
   const [isTransiting, setIsTransiting] = useState(false);
   const [warRoomMode, setWarRoomMode] = useState(true);
@@ -377,7 +377,7 @@ export default function ChatContent() {
 
   // --- Session Management Handlers ---
 
-  const createNewChat = (agentId: string = AgentType.SUPERCLAW) => {
+  const createNewChat = (agentId: string = AGENT_TYPES.SUPERCLAW) => {
     setCurrentAgentId(agentId);
     setActiveCollaborators([agentId]);
     setCollaborationId(null);
@@ -418,7 +418,7 @@ export default function ChatContent() {
         const data = await res.json();
         if (data.collaborationId) {
           setCollaborationId(data.collaborationId);
-          setActiveCollaborators((prev) => [...prev, agentId, AgentType.FACILITATOR]);
+          setActiveCollaborators((prev) => [...prev, agentId, AGENT_TYPES.FACILITATOR]);
 
           setMessages((prev) => [
             ...prev,

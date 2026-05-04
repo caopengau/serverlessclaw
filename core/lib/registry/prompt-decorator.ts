@@ -24,16 +24,15 @@ export class PromptDecoratorRegistry {
    */
   static register(decorator: PromptDecorator) {
     this.decorators.push(decorator);
-    logger.debug(`[PromptDecoratorRegistry] Registered new decorator. Total: ${this.decorators.length}`);
+    logger.debug(
+      `[PromptDecoratorRegistry] Registered new decorator. Total: ${this.decorators.length}`
+    );
   }
 
   /**
    * Applies all registered decorators to a prompt.
    */
-  static async decorate(
-    prompt: string,
-    context: PromptDecorationContext
-  ): Promise<string> {
+  static async decorate(prompt: string, context: PromptDecorationContext): Promise<string> {
     let decoratedPrompt = prompt;
 
     for (const decorator of this.decorators) {

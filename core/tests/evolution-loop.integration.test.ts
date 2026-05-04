@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GapStatus, AgentType, EventType } from '../lib/types/agent';
+import { GapStatus, AGENT_TYPES, EventType } from '../lib/types/agent';
 
 /**
  * Evolution Loop Integration Tests
@@ -609,10 +609,10 @@ describe('Evolution Loop — Gap Locking (Race Condition Prevention)', () => {
 
     memoryMocks.acquireGapLock.mockResolvedValueOnce(true);
 
-    const lockAcquired = await memoryMocks.acquireGapLock(gapId, AgentType.STRATEGIC_PLANNER);
+    const lockAcquired = await memoryMocks.acquireGapLock(gapId, AGENT_TYPES.STRATEGIC_PLANNER);
 
     expect(lockAcquired).toBe(true);
-    expect(memoryMocks.acquireGapLock).toHaveBeenCalledWith(gapId, AgentType.STRATEGIC_PLANNER);
+    expect(memoryMocks.acquireGapLock).toHaveBeenCalledWith(gapId, AGENT_TYPES.STRATEGIC_PLANNER);
   });
 
   it('should skip processing if gap is already locked by another agent', async () => {
@@ -624,7 +624,7 @@ describe('Evolution Loop — Gap Locking (Race Condition Prevention)', () => {
       timestamp: Date.now(),
     });
 
-    const lockAcquired = await memoryMocks.acquireGapLock(gapId, AgentType.STRATEGIC_PLANNER);
+    const lockAcquired = await memoryMocks.acquireGapLock(gapId, AGENT_TYPES.STRATEGIC_PLANNER);
     const lockInfo = await memoryMocks.getGapLock(gapId);
 
     expect(lockAcquired).toBe(false);
