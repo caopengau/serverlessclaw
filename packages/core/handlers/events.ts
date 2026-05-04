@@ -131,7 +131,7 @@ export async function handler(
   // it should be in the detail or we can use the contentHash.
   const idempotencyKey = (eventDetail.idempotencyKey as string) || contentHash;
 
-  const alreadyProcessed = await checkAndMarkIdempotent(idempotencyKey, detailType);
+  const alreadyProcessed = await checkAndMarkIdempotent(idempotencyKey, detailType, workspaceId);
   if (alreadyProcessed) {
     logger.info(
       `[EVENTS] Duplicate event detected (logical): ${idempotencyKey} (${detailType} | envelope: ${envelopeId})`

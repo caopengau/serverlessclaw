@@ -33,9 +33,13 @@ interface IdempotencyRecord {
  * Checks if an idempotency key already exists and returns the cached result.
  *
  * @param idempotencyKey - The unique idempotency key for the operation.
+ * @param workspaceId - Optional workspace ID for multi-tenant isolation.
  * @returns The cached result if found, null otherwise.
  */
-export async function getIdempotentResult(idempotencyKey: string): Promise<unknown | null> {
+export async function getIdempotentResult(
+  idempotencyKey: string,
+  workspaceId?: string
+): Promise<unknown | null> {
   try {
     const tableName = getMemoryTableName();
 
@@ -44,11 +48,13 @@ export async function getIdempotentResult(idempotencyKey: string): Promise<unkno
       return null;
     }
 
+    const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
+
     const response = await docClient.send(
       new GetCommand({
         TableName: tableName,
         Key: {
-          userId: `IDEMPOTENCY#${idempotencyKey}`,
+          userId: `${scopePrefix}IDEMPOTENCY#${idempotencyKey}`,
           timestamp: 0,
         },
       })
@@ -80,8 +86,13 @@ export async function getIdempotentResult(idempotencyKey: string): Promise<unkno
  *
  * @param idempotencyKey - The unique idempotency key for the operation.
  * @param result - The result to cache.
+ * @param workspaceId - Optional workspace ID for multi-tenant isolation.
  */
-export async function setIdempotentResult(idempotencyKey: string, result: unknown): Promise<void> {
+export async function setIdempotentResult(
+  idempotencyKey: string,
+  result: unknown,
+  workspaceId?: string
+): Promise<void> {
   try {
     const tableName = getMemoryTableName();
 
@@ -91,6 +102,7 @@ export async function setIdempotentResult(idempotencyKey: string, result: unknow
     }
 
     const now = Math.floor(Date.now() / 1000);
+    const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
 
     const record: IdempotencyRecord = {
       idempotencyKey,
@@ -103,9 +115,10 @@ export async function setIdempotentResult(idempotencyKey: string, result: unknow
       new PutCommand({
         TableName: tableName,
         Item: {
-          userId: `IDEMPOTENCY#${idempotencyKey}`,
+          userId: `${scopePrefix}IDEMPOTENCY#${idempotencyKey}`,
           timestamp: 0,
           type: 'IDEMPOTENCY',
+          workspaceId,
           ...record,
         },
         // Only set if the key doesn't exist (atomic check-and-set)
@@ -130,17 +143,23 @@ export async function setIdempotentResult(idempotencyKey: string, result: unknow
  * Deletes an idempotency key (for cleanup or retry scenarios).
  *
  * @param idempotencyKey - The unique idempotency key to delete.
+ * @param workspaceId - Optional workspace ID for multi-tenant isolation.
  */
-export async function deleteIdempotentKey(idempotencyKey: string): Promise<void> {
+export async function deleteIdempotentKey(
+  idempotencyKey: string,
+  workspaceId?: string
+): Promise<void> {
   try {
     const tableName = getMemoryTableName();
     if (!tableName) return;
+
+    const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
 
     await docClient.send(
       new DeleteCommand({
         TableName: tableName,
         Key: {
-          userId: `IDEMPOTENCY#${idempotencyKey}`,
+          userId: `${scopePrefix}IDEMPOTENCY#${idempotencyKey}`,
           timestamp: 0,
         },
       })
@@ -157,14 +176,16 @@ export async function deleteIdempotentKey(idempotencyKey: string): Promise<void>
  *
  * @param idempotencyKey - The unique idempotency key for the operation.
  * @param operation - The async operation to execute.
+ * @param workspaceId - Optional workspace ID for multi-tenant isolation.
  * @returns The result of the operation (cached or fresh).
  */
 export async function withIdempotency<T>(
   idempotencyKey: string,
-  operation: () => Promise<T>
+  operation: () => Promise<T>,
+  workspaceId?: string
 ): Promise<T> {
   // Check for cached result
-  const cachedResult = await getIdempotentResult(idempotencyKey);
+  const cachedResult = await getIdempotentResult(idempotencyKey, workspaceId);
   if (cachedResult !== null) {
     logger.info(`[IDEMPOTENCY] Returning cached result for key: ${idempotencyKey}`);
     return cachedResult as T;
@@ -174,7 +195,7 @@ export async function withIdempotency<T>(
   const result = await operation();
 
   // Cache the result
-  await setIdempotentResult(idempotencyKey, result);
+  await setIdempotentResult(idempotencyKey, result, workspaceId);
 
   return result;
 }

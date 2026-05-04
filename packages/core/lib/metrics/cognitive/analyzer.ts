@@ -114,6 +114,7 @@ export class HealthTrendAnalyzer {
 
   /**
    * Analyze memory health by scanning memory tiers.
+   * Scans both global and workspace-scoped items.
    */
   async analyzeMemoryHealth(): Promise<MemoryHealthAnalysis> {
     const now = Date.now();
@@ -129,8 +130,15 @@ export class HealthTrendAnalyzer {
 
     for (const prefix of prefixes) {
       try {
-        const items = await this.base.scanByPrefix(prefix, { limit: MAX_ITEMS_PER_PREFIX });
-        allItems.push(...items);
+        // Global prefix scan
+        const globalItems = await this.base.scanByPrefix(prefix, { limit: MAX_ITEMS_PER_PREFIX });
+        allItems.push(...globalItems);
+
+        // Workspace-scoped scan (WS# prefix)
+        // Since we can't easily scan all workspaces by tier prefix in DDB efficiently,
+        // we scan for the WS# prefix and filter for the tier in JS for this sample.
+        const wsItems = await this.base.scanByPrefix('WS#', { limit: MAX_ITEMS_PER_PREFIX });
+        allItems.push(...wsItems.filter((item) => (item.userId as string).includes(prefix)));
       } catch (error) {
         logger.warn('Failed to scan prefix for memory health analysis', { prefix, error });
       }
@@ -142,7 +150,7 @@ export class HealthTrendAnalyzer {
 
     for (const item of allItems) {
       const userId = (item.userId as string) ?? '';
-      // Fix: Skip potential WS#...# prefix to find the actual tier prefix (e.g. LESSON#)
+      // Extract the tier prefix (e.g. LESSON#) from the userId, even if workspace-scoped
       const match = userId.match(/(?:WS#.*?#)?([A-Z_]+#)/);
       const prefix = match?.[1] ?? 'UNKNOWN#';
       itemsByTier[prefix] = (itemsByTier[prefix] || 0) + 1;

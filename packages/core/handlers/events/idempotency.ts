@@ -30,9 +30,11 @@ const docClient = DynamoDBDocumentClient.from(client, {
  */
 export async function checkAndMarkIdempotent(
   envelopeId: string,
-  eventType: string
+  eventType: string,
+  workspaceId?: string
 ): Promise<boolean> {
-  const key = `${IDEMPOTENCY_KEY_PREFIX}${envelopeId}`;
+  const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
+  const key = `${scopePrefix}${IDEMPOTENCY_KEY_PREFIX}${envelopeId}`;
   const expiresAt = Math.floor(Date.now() / 1000) + IDEMPOTENCY_TTL_SECONDS;
   const now = Date.now();
 

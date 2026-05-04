@@ -20,7 +20,7 @@ const processedEvents = new LRUSet<string>(DEDUP_MAX_SIZE);
  * Checks and marks an event as processed using DynamoDB for cross-invocation dedup.
  * Falls back gracefully if DynamoDB write fails.
  */
-async function checkAndMarkProcessed(eventId: string): Promise<boolean> {
+async function checkAndMarkProcessed(eventId: string, workspaceId?: string): Promise<boolean> {
   try {
     const [{ DynamoDBClient }, { DynamoDBDocumentClient, PutCommand }, { Resource }] =
       await Promise.all([
@@ -32,15 +32,17 @@ async function checkAndMarkProcessed(eventId: string): Promise<boolean> {
     const tableName = (Resource as unknown as { MemoryTable: { name: string } }).MemoryTable.name;
     const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
     const expiresAt = Math.floor(Date.now() / 1000) + 3600; // 1 hour TTL
+    const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
 
     await db.send(
       new PutCommand({
         TableName: tableName,
         Item: {
-          userId: `IDEMPOTENCY#task_result:${eventId}`,
+          userId: `${scopePrefix}IDEMPOTENCY#task_result:${eventId}`,
           timestamp: Date.now(),
           type: 'IDEMPOTENCY',
           expiresAt,
+          workspaceId,
         },
         ConditionExpression: 'attribute_not_exists(userId)',
       })
@@ -70,6 +72,7 @@ export async function handleTaskResult(
 ): Promise<void> {
   const eventDetail = event.detail;
   const { logger } = await import('../../lib/logger');
+  const workspaceId = (eventDetail.workspaceId as string) || undefined;
 
   // 1. Stable Content Idempotency (Sh6 Fix)
   // Derive a stable hash from the content to catch application-level double-emissions
@@ -103,7 +106,7 @@ export async function handleTaskResult(
   processedEvents.add(idempotencyKey);
 
   // DynamoDB durable dedup for cold-start resilience
-  const isFirstProcessing = await checkAndMarkProcessed(idempotencyKey);
+  const isFirstProcessing = await checkAndMarkProcessed(idempotencyKey, workspaceId);
   if (!isFirstProcessing) {
     logger.info(`Duplicate event ${idempotencyKey} detected in DynamoDB, skipping.`);
     import('../../lib/metrics/evolution-metrics').then(({ EVOLUTION_METRICS }) => {
@@ -126,7 +129,6 @@ export async function handleTaskResult(
     depth,
     sessionId,
     userNotified,
-    workspaceId,
     teamId,
     staffId,
     userRole,
