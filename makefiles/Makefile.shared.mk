@@ -26,6 +26,9 @@ PNPM := $(shell command -v pnpm 2>/dev/null || echo npm)
 # Prerequisite: run `pnpm install` so this binary exists.
 SST := ./node_modules/.bin/sst
 
+# Detect scripts directory (subtree aware)
+SCRIPTS_DIR := $(shell if [ -d "scripts" ]; then echo "scripts"; else echo "framework/scripts"; fi)
+
 # Logging macros
 define log_info
 	printf '$(CYAN)[INFO] %s$(RESET)\n' "$(1)"
