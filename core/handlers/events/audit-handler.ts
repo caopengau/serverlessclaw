@@ -7,7 +7,7 @@
 import { logger } from '../../lib/logger';
 import { getDynamicConfigValue } from '../../lib/config';
 import { emitEvent } from '../../lib/utils/bus';
-import { AgentType, EventType } from '../../lib/types/agent';
+import { AGENT_TYPES, EventType } from '../../lib/types/agent';
 import { runSystemAudit } from '../../agents/cognition-reflector/audit-protocol';
 import { getAgentContext } from '../../lib/utils/agent-helpers';
 
@@ -82,7 +82,7 @@ export async function handleSystemAuditTrigger(
     );
     if (p0Findings.length > 0) {
       logger.error(`[AuditHandler] P0 findings detected: ${p0Findings.length}`);
-      await emitEvent(AgentType.COGNITION_REFLECTOR, EventType.HEALTH_ALERT, {
+      await emitEvent(AGENT_TYPES.COGNITION_REFLECTOR, EventType.HEALTH_ALERT, {
         component: 'AuditSystem',
         issue: `P0 audit findings: ${p0Findings.map((f: { silo: string }) => f.silo).join(', ')}`,
         severity: 'critical',

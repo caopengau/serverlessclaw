@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import CodeDiff from './CodeDiff';
-import { DynamicComponent } from '../Chat/types';
+import { DynamicComponent } from '@claw/hooks';
 
 describe('CodeDiff Component', () => {
   const mockAction = vi.fn();

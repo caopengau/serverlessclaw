@@ -1,5 +1,5 @@
 import { logger } from '../lib/logger';
-import { EventType, AgentType } from '../lib/types/agent';
+import { AgentRole, EventType, AGENT_TYPES } from '../lib/types/agent';
 
 const MAX_REPLAY_ATTEMPTS = 3;
 
@@ -54,7 +54,7 @@ export async function handler(
       }
 
       const { emitTypedEvent } = await import('../lib/utils/typed-emit');
-      const sourceAgent = (detail.sourceAgent as AgentType) || AgentType.SUPERCLAW;
+      const sourceAgent = (detail.sourceAgent as AgentRole) || AGENT_TYPES.SUPERCLAW;
 
       await emitTypedEvent(sourceAgent, detailType as EventType, {
         ...detail,

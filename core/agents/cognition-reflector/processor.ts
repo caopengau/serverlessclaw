@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { logger } from '../../lib/logger';
-import { EventType, GapStatus, AgentType } from '../../lib/types/agent';
+import { EventType, GapStatus, AGENT_TYPES } from '../../lib/types/agent';
 import { InsightCategory, MemoryInsight } from '../../lib/types/memory';
 import { emitEvent } from '../../lib/utils/bus';
 import { normalizeGapId, getGapIdPK, getGapTimestamp } from '../../lib/memory/utils';
@@ -61,7 +61,7 @@ export async function processReflectionReport(
 
         // Notify Planner Agent via EventBridge
         try {
-          await emitEvent(AgentType.COGNITION_REFLECTOR, EventType.EVOLUTION_PLAN, {
+          await emitEvent(AGENT_TYPES.COGNITION_REFLECTOR, EventType.EVOLUTION_PLAN, {
             gapId,
             details: gap.content,
             metadata,

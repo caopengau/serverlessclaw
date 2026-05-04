@@ -7,7 +7,7 @@
 import { logger } from '../../lib/logger';
 import { getDynamicConfigValue } from '../../lib/config';
 import { emitEvent } from '../../lib/utils/bus';
-import { AgentType, EventType } from '../../lib/types/agent';
+import { AGENT_TYPES, EventType } from '../../lib/types/agent';
 
 export interface CodeGrowthMetrics {
   previousLOC: number;
@@ -77,7 +77,7 @@ export async function calculateCodeGrowth(
 
 export async function emitAuditEvent(growthMetrics: CodeGrowthMetrics): Promise<void> {
   try {
-    await emitEvent(AgentType.STRATEGIC_PLANNER, EventType.SYSTEM_AUDIT_TRIGGER, {
+    await emitEvent(AGENT_TYPES.STRATEGIC_PLANNER, EventType.SYSTEM_AUDIT_TRIGGER, {
       triggerType: 'CODE_GROWTH',
       metrics: growthMetrics,
       timestamp: Date.now(),

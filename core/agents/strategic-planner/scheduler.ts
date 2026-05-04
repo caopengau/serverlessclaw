@@ -1,5 +1,5 @@
 import { logger } from '../../lib/logger';
-import { AgentType } from '../../lib/types/agent';
+import { AGENT_TYPES } from '../../lib/types/agent';
 import { parseConfigInt } from '../../lib/providers/utils';
 import { CONFIG_DEFAULTS } from '../../lib/config/config-defaults';
 
@@ -31,7 +31,7 @@ export async function manageProactiveScheduling(
 
     await DynamicScheduler.ensureProactiveGoal({
       goalId: GOAL_ID,
-      agentId: AgentType.STRATEGIC_PLANNER,
+      agentId: AGENT_TYPES.STRATEGIC_PLANNER,
       task: 'Proactive Strategic Review',
       userId: userId,
       frequencyHrs,

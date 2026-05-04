@@ -1,7 +1,7 @@
 /**
  * Predefined agent role types.
  */
-export const AgentType = {
+export const AGENT_TYPES = {
   SUPERCLAW: 'superclaw',
   CODER: 'coder',
   BUILD_MONITOR: 'monitor',
@@ -17,7 +17,7 @@ export const AgentType = {
   JUDGE: 'judge',
 } as const;
 
-export type AgentType = (typeof AgentType)[keyof typeof AgentType] | (string & {});
+export type AgentRole = (typeof AGENT_TYPES)[keyof typeof AGENT_TYPES] | (string & {});
 
 /**
  * Categorization of agents to guide orchestration.

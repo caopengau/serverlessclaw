@@ -1,5 +1,5 @@
 import { ReasoningProfile, ResponseFormat } from '../lib/types/llm';
-import { AgentType, TraceSource } from '../lib/types/agent';
+import { AGENT_TYPES, TraceSource } from '../lib/types/agent';
 import { BaseMemoryProvider } from '../lib/memory/base';
 import { LIMITS } from '../lib/constants';
 import { logger } from '../lib/logger';
@@ -78,7 +78,7 @@ export const handler = async (
   }
 
   // Reflector Agent is a specialized Agent instance
-  const config = await loadAgentConfig(AgentType.COGNITION_REFLECTOR);
+  const config = await loadAgentConfig(AGENT_TYPES.COGNITION_REFLECTOR);
   const { memory, provider: providerManager } = await getAgentContext();
 
   // Check if this is a system audit trigger
@@ -165,8 +165,8 @@ export const handler = async (
   // Universal Coordination: Notify Initiator (if any)
   if (!isTaskPaused(response)) {
     await emitTaskEvent({
-      source: AgentType.COGNITION_REFLECTOR,
-      agentId: AgentType.COGNITION_REFLECTOR,
+      source: AGENT_TYPES.COGNITION_REFLECTOR,
+      agentId: AGENT_TYPES.COGNITION_REFLECTOR,
       userId,
       task: task || 'Session Reflection',
       response: response || 'No insights extracted.',

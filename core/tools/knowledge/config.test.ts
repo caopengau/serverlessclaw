@@ -47,7 +47,7 @@ vi.mock('../../lib/types/llm', async (importOriginal) => ({
 }));
 
 vi.mock('../../lib/types/agent', () => ({
-  AgentType: { FACILITATOR: 'facilitator' },
+  AgentRole: { FACILITATOR: 'facilitator' },
   Attachment: {},
 }));
 

@@ -1,4 +1,4 @@
-import { AgentType, AgentEvent, AgentPayload, TraceSource } from '../lib/types/agent';
+import { AGENT_TYPES, AgentEvent, AgentPayload, TraceSource } from '../lib/types/agent';
 import { ReasoningProfile } from '../lib/types/llm';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
@@ -21,7 +21,7 @@ import { RESEARCH_TASK_METADATA } from '../lib/schema/events';
 export const handler = async (event: AgentEvent, context: Context): Promise<string | undefined> => {
   logger.info('Researcher Agent received task:', JSON.stringify(event, null, 2));
 
-  const payload = validateEventPayload<AgentPayload>(event, `${AgentType.RESEARCHER}_task`);
+  const payload = validateEventPayload<AgentPayload>(event, `${AGENT_TYPES.RESEARCHER}_task`);
   const {
     userId,
     task,
@@ -39,7 +39,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   const isAggregation = task?.includes('[AGGREGATED_RESULTS]');
 
   // 1. Discovery & Initialization (config + context loaded in parallel)
-  const { memory, agent } = await initAgent(AgentType.RESEARCHER, { workspaceId });
+  const { memory, agent } = await initAgent(AGENT_TYPES.RESEARCHER, { workspaceId });
 
   // 2. Swarm Self-Organization: Decompose high-level goals into parallel exploration
   if (!isAggregation && (depth ?? 0) < SWARM.MAX_RECURSIVE_DEPTH && task) {
@@ -51,7 +51,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       payload.taskId || traceId || `plan-${Date.now()}`,
       parentGapIds,
       {
-        defaultAgentId: AgentType.RESEARCHER,
+        defaultAgentId: AGENT_TYPES.RESEARCHER,
         maxSubTasks: SWARM.DEFAULT_MAX_SUB_TASKS,
         minLength: 300,
       }
@@ -80,7 +80,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       }));
 
       try {
-        await emitTypedEvent(AgentType.RESEARCHER, EventType.PARALLEL_TASK_DISPATCH, {
+        await emitTypedEvent(AGENT_TYPES.RESEARCHER, EventType.PARALLEL_TASK_DISPATCH, {
           userId: userId,
           tasks: subTaskEvents,
           barrierTimeoutMs: 10 * 60 * 1000, // 10 mins
@@ -91,7 +91,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
                              Prepend the response with [AGGREGATED_RESULTS].`,
           initialQuery: task,
           traceId,
-          initiatorId: AgentType.RESEARCHER,
+          initiatorId: AGENT_TYPES.RESEARCHER,
           depth: depth ?? 0,
           sessionId,
           tokenBudget,
@@ -157,8 +157,8 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
 
     // 5. Notification
     await emitTaskEvent({
-      source: `${AgentType.RESEARCHER}.agent`,
-      agentId: AgentType.RESEARCHER,
+      source: `${AGENT_TYPES.RESEARCHER}.agent`,
+      agentId: AGENT_TYPES.RESEARCHER,
       userId: userId,
       task: task || '',
       response: finalResponseText,
@@ -179,8 +179,8 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     const errorMsg = error instanceof Error ? error.message : String(error);
 
     await emitTaskEvent({
-      source: `${AgentType.RESEARCHER}.agent`,
-      agentId: AgentType.RESEARCHER,
+      source: `${AGENT_TYPES.RESEARCHER}.agent`,
+      agentId: AGENT_TYPES.RESEARCHER,
       userId: userId,
       task: task || '',
       error: `Research task failed: ${errorMsg}`,

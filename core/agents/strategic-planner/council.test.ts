@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { EventType, AgentType } from '../../lib/types/agent';
+import { EventType, AGENT_TYPES } from '../../lib/types/agent';
 
 /**
  * Council of Agents Dispatch Logic Tests
@@ -305,15 +305,15 @@ describe('Council of Agents — Threshold Logic', () => {
         userId: 'user-1',
         tasks: expect.arrayContaining([
           expect.objectContaining({
-            agentId: AgentType.CRITIC,
+            agentId: AGENT_TYPES.CRITIC,
             metadata: expect.objectContaining({ reviewMode: 'security' }),
           }),
           expect.objectContaining({
-            agentId: AgentType.CRITIC,
+            agentId: AGENT_TYPES.CRITIC,
             metadata: expect.objectContaining({ reviewMode: 'performance' }),
           }),
           expect.objectContaining({
-            agentId: AgentType.CRITIC,
+            agentId: AGENT_TYPES.CRITIC,
             metadata: expect.objectContaining({ reviewMode: 'architect' }),
           }),
         ]),
@@ -405,7 +405,7 @@ describe('Council of Agents — Threshold Logic', () => {
     // Verify direct dispatch to Coder was called
     expect(dispatchTaskMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentId: AgentType.CODER,
+        agentId: AGENT_TYPES.CODER,
         userId: 'user-1',
       })
     );

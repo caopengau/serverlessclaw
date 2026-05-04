@@ -1,5 +1,5 @@
 import { MessageRole } from '../lib/types/llm';
-import { AgentType, AgentEvent, AgentPayload } from '../lib/types/agent';
+import { AGENT_TYPES, AgentEvent, AgentPayload } from '../lib/types/agent';
 import { ReasoningProfile } from '../lib/types/llm';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
@@ -45,7 +45,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   );
 
   // 1. Initialize agent
-  const { config, agent, memory } = await initAgent(AgentType.CRITIC, {
+  const { config, agent, memory } = await initAgent(AGENT_TYPES.CRITIC, {
     workspaceId: payload.workspaceId,
   });
 
@@ -56,7 +56,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       if (collaboration) {
         const hasAccess = await memory.checkCollaborationAccess(
           collaborationId,
-          AgentType.CRITIC,
+          AGENT_TYPES.CRITIC,
           'agent',
           'editor'
         );
@@ -143,7 +143,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
         await memory.addMessage(collaboration.syntheticUserId, {
           role: MessageRole.ASSISTANT,
           content: `**CRITIC VERDICT: ${verdict.verdict}**\n\nMode: ${verdict.reviewMode}\nConfidence: ${verdict.confidence}\nSummary: ${verdict.summary}\n\nFindings: ${JSON.stringify(verdict.findings, null, 2)}`,
-          agentName: AgentType.CRITIC,
+          agentName: AGENT_TYPES.CRITIC,
           traceId,
           messageId: `critic-${planId}-${Date.now()}`,
         });
@@ -160,7 +160,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   if (hasCriticalFindings) {
     logger.warn(`[CRITIC] CRITICAL findings detected for plan ${planId}`);
     await sendOutboundMessage(
-      AgentType.CRITIC,
+      AGENT_TYPES.CRITIC,
       userId,
       `🚨 **Critical Review Finding** (${reviewMode}):\n\n${verdict.summary}`,
       [baseUserId],
@@ -172,8 +172,8 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   // 6. Notify initiator via universal coordination
   if (!isTaskPaused(rawResponse)) {
     await emitTaskEvent({
-      source: AgentType.CRITIC,
-      agentId: AgentType.CRITIC,
+      source: AGENT_TYPES.CRITIC,
+      agentId: AGENT_TYPES.CRITIC,
       userId: baseUserId,
       task: `Review plan ${planId} (${reviewMode})`,
       response: JSON.stringify(verdict),

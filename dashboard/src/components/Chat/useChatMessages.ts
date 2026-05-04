@@ -6,9 +6,9 @@ import {
   ToolCall,
   DynamicComponent,
   PageContextData,
-} from './types';
+} from '@claw/hooks';
 import { AGENT_ERRORS } from '@/lib/constants';
-import { mergeHistoryWithMessages } from './message-handler';
+import { mergeHistoryWithMessages } from '@claw/hooks';
 
 interface ChatApiResponse {
   reply?: string;

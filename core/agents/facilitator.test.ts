@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './facilitator';
-import { AgentType, EventType } from '../lib/types/agent';
+import { AGENT_TYPES, EventType } from '../lib/types/agent';
 import { processEventWithAgent } from '../handlers/events/shared';
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
 
@@ -52,7 +52,7 @@ describe('Facilitator Agent', () => {
     expect(result).toBe('Facilitator Decision: Proceed with Plan A.');
     expect(processEventWithAgent).toHaveBeenCalledWith(
       'system_tiebreak',
-      AgentType.FACILITATOR,
+      AGENT_TYPES.FACILITATOR,
       'Conflict resolution required for Collab-123',
       expect.objectContaining({
         traceId: 'trace-456',
@@ -77,7 +77,7 @@ describe('Facilitator Agent', () => {
 
     expect(emitTaskEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentId: AgentType.FACILITATOR,
+        agentId: AGENT_TYPES.FACILITATOR,
         error: expect.stringContaining('LLM Timeout'),
       })
     );

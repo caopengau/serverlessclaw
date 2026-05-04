@@ -395,8 +395,8 @@ export class ClawTracer {
     // Emit immediate failure event for monitoring to trigger real-time remediation
     try {
       const { emitEvent } = await import('../utils/bus');
-      const { AgentType, EventType } = await import('../types/agent');
-      await emitEvent(AgentType.RECOVERY, EventType.DASHBOARD_FAILURE_DETECTED, {
+      const { AGENT_TYPES, EventType } = await import('../types/agent');
+      await emitEvent(AGENT_TYPES.RECOVERY, EventType.DASHBOARD_FAILURE_DETECTED, {
         userId: this.userId,
         traceId: this.traceId,
         agentId: this.agentId || 'unknown',

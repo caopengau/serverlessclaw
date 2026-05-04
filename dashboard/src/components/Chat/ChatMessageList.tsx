@@ -18,7 +18,7 @@ import {
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import { ChatMessage } from './types';
+import { ChatMessage } from '@claw/hooks';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { DynamicComponentRegistry } from '@/components/DynamicComponents/Registry';

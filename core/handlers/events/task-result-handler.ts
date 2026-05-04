@@ -1,4 +1,4 @@
-import { EventType, AgentType, UserRole } from '../../lib/types/index';
+import { EventType, AGENT_TYPES, UserRole } from '../../lib/types/index';
 import { COMPLETION_EVENT_SCHEMA, FAILURE_EVENT_SCHEMA } from '../../lib/schema/events';
 import { wakeupInitiator } from './shared';
 import { LRUSet } from '../../lib/utils/lru';
@@ -184,7 +184,7 @@ export async function handleTaskResult(
   // Also, prevent the main agent from waking itself up to avoid infinite acknowledgment loops.
   if (
     initiatorId === 'orchestrator' ||
-    (agentId === AgentType.SUPERCLAW && initiatorId === AgentType.SUPERCLAW)
+    (agentId === AGENT_TYPES.SUPERCLAW && initiatorId === AGENT_TYPES.SUPERCLAW)
   ) {
     logger.info(
       `No continuation needed for ${agentId} task (Initiator: ${initiatorId}). Treating as background completion.`
@@ -420,14 +420,14 @@ export async function handleTaskResult(
     workspaceId?: string
   ): Promise<string | null> {
     const fallbackChain: Record<string, string[]> = {
-      [AgentType.CODER]: [AgentType.CRITIC, AgentType.QA, AgentType.RESEARCHER],
-      [AgentType.CRITIC]: [AgentType.QA, AgentType.RESEARCHER, AgentType.CODER],
-      [AgentType.QA]: [AgentType.RESEARCHER, AgentType.CODER, AgentType.CRITIC],
-      [AgentType.RESEARCHER]: [AgentType.CODER, AgentType.CRITIC, AgentType.QA],
-      [AgentType.FACILITATOR]: [AgentType.CRITIC, AgentType.QA],
+      [AGENT_TYPES.CODER]: [AGENT_TYPES.CRITIC, AGENT_TYPES.QA, AGENT_TYPES.RESEARCHER],
+      [AGENT_TYPES.CRITIC]: [AGENT_TYPES.QA, AGENT_TYPES.RESEARCHER, AGENT_TYPES.CODER],
+      [AGENT_TYPES.QA]: [AGENT_TYPES.RESEARCHER, AGENT_TYPES.CODER, AGENT_TYPES.CRITIC],
+      [AGENT_TYPES.RESEARCHER]: [AGENT_TYPES.CODER, AGENT_TYPES.CRITIC, AGENT_TYPES.QA],
+      [AGENT_TYPES.FACILITATOR]: [AGENT_TYPES.CRITIC, AGENT_TYPES.QA],
     };
 
-    const candidates = fallbackChain[failedAgentId] ?? [AgentType.CODER];
+    const candidates = fallbackChain[failedAgentId] ?? [AGENT_TYPES.CODER];
 
     try {
       for (const candidate of candidates) {

@@ -12,7 +12,7 @@ import { ProviderManager } from '@claw/core/lib/providers/index';
 import { getAgentTools } from '@claw/core/tools/index';
 import { Agent } from '@claw/core/lib/agent';
 import { SUPERCLAW_SYSTEM_PROMPT } from '@claw/core/agents/superclaw/constants';
-import { AgentType, IAgentConfig, TraceSource } from '@claw/core/lib/types/index';
+import { AGENT_TYPES, IAgentConfig, TraceSource } from '@claw/core/lib/types/index';
 import { AgentRegistry } from '@claw/core/lib/registry';
 import { logger } from '@claw/core/lib/logger';
 import { SessionStateManager } from '@claw/core/lib/session/session-state';
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       traceId: clientTraceId,
       pageContext,
       profile,
-      agentId = AgentType.SUPERCLAW,
+      agentId = AGENT_TYPES.SUPERCLAW,
       agentIds,
       collaborationId,
       isIsolated = false,
@@ -254,7 +254,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
             updatedAt: Date.now(),
             // Store the last agent used in this session if it's not superclaw
             metadata:
-              primaryAgentId !== AgentType.SUPERCLAW ? { lastAgentId: primaryAgentId } : undefined,
+              primaryAgentId !== AGENT_TYPES.SUPERCLAW
+                ? { lastAgentId: primaryAgentId }
+                : undefined,
           },
           { workspaceId, teamId, staffId }
         );

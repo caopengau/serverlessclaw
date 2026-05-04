@@ -4,7 +4,7 @@ import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { triggerDeployment, triggerInfraRebuild, stageChanges, generatePatch } from './deployment';
-import { AgentType } from '../../lib/types/agent';
+import { AGENT_TYPES } from '../../lib/types/agent';
 
 const codebuildMock = mockClient(CodeBuildClient);
 const ddbMock = mockClient(DynamoDBDocumentClient);
@@ -101,7 +101,7 @@ describe('Deployment Tools', () => {
     mockArchiveFile.mockReset();
     mockArchiveFinalize.mockReset();
     mockCreateWriteStream.mockReset();
-    process.env.AGENT_ID = AgentType.CODER;
+    process.env.AGENT_ID = AGENT_TYPES.CODER;
     vi.mocked(getAgentContext).mockResolvedValue({
       memory: {
         getAllGaps: vi.fn().mockResolvedValue([]),

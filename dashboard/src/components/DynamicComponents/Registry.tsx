@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { DynamicComponent } from '../Chat/types';
+import { DynamicComponent } from '@claw/hooks';
 import { useExtensions } from '../Providers/ExtensionProvider';
 import OperationCard from './OperationCard';
 import UICommand from './UICommand';

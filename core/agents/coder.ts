@@ -1,4 +1,4 @@
-import { AgentType, AgentEvent, AgentPayload, Attachment, GapStatus } from '../lib/types/agent';
+import { AGENT_TYPES, AgentEvent, AgentPayload, Attachment, GapStatus } from '../lib/types/agent';
 import { Message } from '../lib/types/llm';
 import { sendOutboundMessage } from '../lib/outbound';
 import { logger } from '../lib/logger';
@@ -69,7 +69,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       sessionId,
       depth,
       isAggregation,
-      sourceAgentId: AgentType.CODER,
+      sourceAgentId: AGENT_TYPES.CODER,
       lockedGapIds: gapIds || [],
       barrierTimeoutMs: 30 * 60 * 1000, // 30 mins for complex coding tasks
       aggregationType: 'merge_patches',
@@ -88,12 +88,12 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   }
 
   // 2. Discovery & Initialization
-  const { config, memory } = await initAgent(AgentType.CODER, { workspaceId });
+  const { config, memory } = await initAgent(AGENT_TYPES.CODER, { workspaceId });
 
   // 3. Gap Management - PROGRESS (Phase B2: Atomic Transitions)
   if (gapIds && gapIds.length > 0) {
     for (const gapId of gapIds) {
-      const lockAcquired = await memory.acquireGapLock(gapId, AgentType.CODER);
+      const lockAcquired = await memory.acquireGapLock(gapId, AGENT_TYPES.CODER);
       if (lockAcquired) {
         try {
           const res = await memory.updateGapStatus(gapId, GapStatus.PROGRESS);
@@ -101,7 +101,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
             logger.warn(`[Coder] Failed to transition gap ${gapId} to PROGRESS: ${res.error}`);
           }
         } finally {
-          await memory.releaseGapLock(gapId, AgentType.CODER);
+          await memory.releaseGapLock(gapId, AGENT_TYPES.CODER);
         }
       }
     }
@@ -121,7 +121,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     parsedData?: CoderParsedData;
   };
   try {
-    const processResult = await processEventWithAgent(userId, AgentType.CODER, task || '', {
+    const processResult = await processEventWithAgent(userId, AGENT_TYPES.CODER, task || '', {
       context,
       traceId,
       taskId: taskId ?? traceId,
@@ -135,7 +135,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
       metadata,
       attachments: metadata?.attachments as Attachment[],
       handlerTitle: 'Coder Agent',
-      outboundHandlerName: AgentType.CODER,
+      outboundHandlerName: AGENT_TYPES.CODER,
       formatResponse: (text) => text,
     });
     result = {
@@ -175,7 +175,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
           : GapStatus.DEPLOYED;
 
     for (const gapId of gapIds) {
-      const lockAcquired = await memory.acquireGapLock(gapId, AgentType.CODER);
+      const lockAcquired = await memory.acquireGapLock(gapId, AGENT_TYPES.CODER);
       if (lockAcquired) {
         try {
           const res = await memory.updateGapStatus(gapId, finalStatus);
@@ -184,7 +184,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
             logger.warn(`[Gaps] Failed to ${step} gap ${gapId} to ${finalStatus}: ${res.error}`);
           }
         } finally {
-          await memory.releaseGapLock(gapId, AgentType.CODER);
+          await memory.releaseGapLock(gapId, AGENT_TYPES.CODER);
         }
       }
     }
@@ -196,7 +196,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   if (responseText !== result.responseText && !isTaskPaused(responseText)) {
     const baseUserId = extractBaseUserId(userId);
     await sendOutboundMessage(
-      AgentType.CODER,
+      AGENT_TYPES.CODER,
       userId,
       responseText,
       [baseUserId],
@@ -222,8 +222,8 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   // 9. Emit Task Result
   const { emitTaskEvent } = await import('../lib/utils/agent-helpers/event-emitter');
   await emitTaskEvent({
-    source: `${AgentType.CODER}.agent`,
-    agentId: AgentType.CODER,
+    source: `${AGENT_TYPES.CODER}.agent`,
+    agentId: AGENT_TYPES.CODER,
     userId: extractBaseUserId(userId),
     task: task || '',
     response: responseText,

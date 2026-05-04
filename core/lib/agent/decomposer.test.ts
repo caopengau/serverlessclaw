@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { decomposePlan } from './decomposer';
-import { AgentType } from '../types/agent';
+import { AGENT_TYPES } from '../types/agent';
 
 describe('Plan Decomposer', () => {
   const planId = 'test-plan';
@@ -24,9 +24,9 @@ describe('Plan Decomposer', () => {
 
     expect(result.wasDecomposed).toBe(true);
     expect(result.subTasks).toHaveLength(3);
-    expect(result.subTasks[0].agentId).toBe(AgentType.RESEARCHER);
-    expect(result.subTasks[1].agentId).toBe(AgentType.CODER);
-    expect(result.subTasks[2].agentId).toBe(AgentType.CODER);
+    expect(result.subTasks[0].agentId).toBe(AGENT_TYPES.RESEARCHER);
+    expect(result.subTasks[1].agentId).toBe(AGENT_TYPES.CODER);
+    expect(result.subTasks[2].agentId).toBe(AGENT_TYPES.CODER);
     expect(result.subTasks[0].task).toContain('### Goal: RESEARCHER - Initial Audit');
   });
 
@@ -50,7 +50,7 @@ describe('Plan Decomposer', () => {
     `;
 
     const result = await decomposePlan(plan, planId, gapIds, { force: true });
-    expect(result.subTasks[0].agentId).toBe(AgentType.CODER); // Default
+    expect(result.subTasks[0].agentId).toBe(AGENT_TYPES.CODER); // Default
   });
 
   it('should not split if the plan is too short and not forced', async () => {

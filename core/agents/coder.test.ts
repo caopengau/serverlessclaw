@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './coder';
-import { AgentType, GapStatus } from '../lib/types/agent';
+import { AGENT_TYPES, GapStatus } from '../lib/types/agent';
 import { initAgent } from '../lib/utils/agent-helpers';
 import { emitTaskEvent } from '../lib/utils/agent-helpers/event-emitter';
 
@@ -95,7 +95,7 @@ describe('Coder Agent', () => {
     expect(processEventWithAgent).toHaveBeenCalled();
     expect(emitTaskEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentId: AgentType.CODER,
+        agentId: AGENT_TYPES.CODER,
         userId: 'user123',
         task: 'implement feature',
         response: 'Completed task',
@@ -128,7 +128,7 @@ describe('Coder Agent', () => {
 
     expect(emitTaskEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentId: AgentType.CODER,
+        agentId: AGENT_TYPES.CODER,
         userId: 'user123',
         response: 'Completed with patch',
         metadata: expect.objectContaining({
@@ -153,7 +153,7 @@ describe('Coder Agent', () => {
 
     expect(emitTaskEvent).toHaveBeenCalledWith(
       expect.objectContaining({
-        agentId: AgentType.CODER,
+        agentId: AGENT_TYPES.CODER,
         metadata: {
           patch: undefined,
           buildId: undefined,

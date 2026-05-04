@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
-import { AgentType } from '@claw/core/lib/types/index';
+import { AGENT_TYPES } from '@claw/core/lib/types/index';
 import { DynamoMemory, CachedMemory } from '@claw/core/lib/memory';
 import { AgentRegistry } from '@claw/core/lib/registry';
 import { logger } from '@claw/core/lib/logger';
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
 
     // Principle 14: Verify all invited agents are enabled
-    const allInvited = [...(invitedAgentIds || []), AgentType.FACILITATOR];
+    const allInvited = [...(invitedAgentIds || []), AGENT_TYPES.FACILITATOR];
     for (const agentId of allInvited) {
       const cfg = await AgentRegistry.getAgentConfig(agentId);
       if (!cfg || cfg.enabled !== true) {

@@ -2,7 +2,7 @@ import {
   TraceSource,
   TaskEvent,
   Attachment,
-  AgentType,
+  AgentRole,
   AgentPayload,
   isValidAttachment,
 } from '../lib/types/agent';
@@ -258,7 +258,7 @@ export async function handler(event: WorkerEvent, context: Context): Promise<str
       if (wasDecomposed) {
         await emitTaskEvent({
           source: `${agentId}.runner`,
-          agentId: agentId as AgentType,
+          agentId: agentId as AgentRole,
           userId: baseUserId,
           task,
           response: finalResponseText,

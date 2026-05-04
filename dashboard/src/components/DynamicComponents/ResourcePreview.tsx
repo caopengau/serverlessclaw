@@ -4,7 +4,7 @@ import React from 'react';
 import { Database, Cloud, FileCode, ExternalLink, Zap } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
-import { DynamicComponent } from '../Chat/types';
+import { DynamicComponent } from '@claw/hooks';
 
 interface ResourcePreviewProps {
   component: DynamicComponent;

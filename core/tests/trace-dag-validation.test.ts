@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AgentType } from '../lib/types/agent';
+import { AGENT_TYPES } from '../lib/types/agent';
 import { TraceType } from '../lib/types/constants';
 
 /**
@@ -88,7 +88,7 @@ describe('Trace DAG — Parent-Child Node Linking', () => {
     await rootTracer.startTrace({ task: 'User request' });
 
     // Child spawned by dispatchTask (Planner)
-    const childTracer = rootTracer.getChildTracer('node-planner', AgentType.STRATEGIC_PLANNER);
+    const childTracer = rootTracer.getChildTracer('node-planner', AGENT_TYPES.STRATEGIC_PLANNER);
     await childTracer.startTrace({ task: 'Design plan' });
 
     // Verify child node has correct parentId
@@ -106,7 +106,7 @@ describe('Trace DAG — Parent-Child Node Linking', () => {
     };
     expect(childInput.input.Item.traceId).toBe('trace-001');
     expect(childInput.input.Item.parentId).toBe('root');
-    expect(childInput.input.Item.agentId).toBe(AgentType.STRATEGIC_PLANNER);
+    expect(childInput.input.Item.agentId).toBe(AGENT_TYPES.STRATEGIC_PLANNER);
   });
 
   it('should maintain same traceId across all nodes in a workflow', async () => {
@@ -119,11 +119,11 @@ describe('Trace DAG — Parent-Child Node Linking', () => {
     await root.startTrace({ task: 'Start' });
 
     // Level 1 children
-    const planner = root.getChildTracer('node-planner', AgentType.STRATEGIC_PLANNER);
+    const planner = root.getChildTracer('node-planner', AGENT_TYPES.STRATEGIC_PLANNER);
     await planner.startTrace({ task: 'Plan' });
 
     // Level 2 children (planner dispatches to coder)
-    const coder = planner.getChildTracer('node-coder', AgentType.CODER);
+    const coder = planner.getChildTracer('node-coder', AGENT_TYPES.CODER);
     await coder.startTrace({ task: 'Implement' });
 
     // All nodes should share the same traceId
@@ -232,7 +232,7 @@ describe('Trace DAG — Evolution Loop Path', () => {
     await rootTracer.startTrace({ task: 'Evolution cycle' });
 
     // Planner node
-    const plannerTracer = rootTracer.getChildTracer('node-planner', AgentType.STRATEGIC_PLANNER);
+    const plannerTracer = rootTracer.getChildTracer('node-planner', AGENT_TYPES.STRATEGIC_PLANNER);
     await plannerTracer.startTrace({ task: 'Design plan for gap-001' });
     await plannerTracer.addStep({
       type: TraceType.PLAN_GENERATED,
@@ -240,12 +240,12 @@ describe('Trace DAG — Evolution Loop Path', () => {
     });
 
     // Coder node (child of planner)
-    const coderTracer = plannerTracer.getChildTracer('node-coder', AgentType.CODER);
+    const coderTracer = plannerTracer.getChildTracer('node-coder', AGENT_TYPES.CODER);
     await coderTracer.startTrace({ task: 'Implement fix for gap-001' });
     await coderTracer.addStep({ type: TraceType.CODE_WRITTEN, content: 'Modified files' });
 
     // QA node (child of coder)
-    const qaTracer = coderTracer.getChildTracer('node-qa', AgentType.QA);
+    const qaTracer = coderTracer.getChildTracer('node-qa', AGENT_TYPES.QA);
     await qaTracer.startTrace({ task: 'Verify implementation' });
     await qaTracer.addStep({ type: TraceType.AUDIT_COMPLETE, content: 'SUCCESS' });
 
@@ -266,9 +266,9 @@ describe('Trace DAG — Evolution Loop Path', () => {
     });
 
     const rootNode = nodes.find((n) => n.nodeId === 'root');
-    const plannerNode = nodes.find((n) => n.agentId === AgentType.STRATEGIC_PLANNER);
-    const coderNode = nodes.find((n) => n.agentId === AgentType.CODER);
-    const qaNode = nodes.find((n) => n.agentId === AgentType.QA);
+    const plannerNode = nodes.find((n) => n.agentId === AGENT_TYPES.STRATEGIC_PLANNER);
+    const coderNode = nodes.find((n) => n.agentId === AGENT_TYPES.CODER);
+    const qaNode = nodes.find((n) => n.agentId === AGENT_TYPES.QA);
 
     // Verify all nodes exist
     expect(rootNode).toBeDefined();
@@ -290,13 +290,13 @@ describe('Trace DAG — Evolution Loop Path', () => {
     const rootTracer = new ClawTracer('user-123', 'system', traceId, 'root');
     await rootTracer.startTrace({ task: 'Evolution' });
 
-    const plannerTracer = rootTracer.getChildTracer('node-planner', AgentType.STRATEGIC_PLANNER);
+    const plannerTracer = rootTracer.getChildTracer('node-planner', AGENT_TYPES.STRATEGIC_PLANNER);
     await plannerTracer.startTrace({ task: 'Plan' });
 
-    const coderTracer = plannerTracer.getChildTracer('node-coder', AgentType.CODER);
+    const coderTracer = plannerTracer.getChildTracer('node-coder', AGENT_TYPES.CODER);
     await coderTracer.startTrace({ task: 'Code' });
 
-    const qaTracer = coderTracer.getChildTracer('node-qa', AgentType.QA);
+    const qaTracer = coderTracer.getChildTracer('node-qa', AGENT_TYPES.QA);
     await qaTracer.startTrace({ task: 'Verify' });
 
     // Verify temporal ordering via PutCommand call sequence
@@ -311,7 +311,11 @@ describe('Trace DAG — Evolution Loop Path', () => {
 
     // Verify order: root (undefined) → planner → coder → qa
     const definedAgents = agentOrder.filter((a): a is string => !!a);
-    expect(definedAgents).toEqual([AgentType.STRATEGIC_PLANNER, AgentType.CODER, AgentType.QA]);
+    expect(definedAgents).toEqual([
+      AGENT_TYPES.STRATEGIC_PLANNER,
+      AGENT_TYPES.CODER,
+      AGENT_TYPES.QA,
+    ]);
   });
 });
 
@@ -387,13 +391,13 @@ describe('Trace DAG — Trace Retrieval', () => {
         traceId: 'trace-retrieve-001',
         nodeId: 'node-planner',
         parentId: 'root',
-        agentId: AgentType.STRATEGIC_PLANNER,
+        agentId: AGENT_TYPES.STRATEGIC_PLANNER,
       },
       {
         traceId: 'trace-retrieve-001',
         nodeId: 'node-coder',
         parentId: 'node-planner',
-        agentId: AgentType.CODER,
+        agentId: AGENT_TYPES.CODER,
       },
     ];
 

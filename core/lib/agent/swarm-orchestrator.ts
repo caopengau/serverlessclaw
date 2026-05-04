@@ -1,5 +1,5 @@
 import { logger } from '../logger';
-import { AgentType, EventType, AgentPayload } from '../types/agent';
+import { AgentRole, AGENT_TYPES, EventType, AgentPayload } from '../types/agent';
 import { SWARM, SYSTEM } from '../constants/system';
 import { isTaskPaused } from '../utils/agent-helpers';
 import { ConfigManager } from '../registry/config';
@@ -34,7 +34,7 @@ export interface SwarmDecompositionOptions {
   /** Whether this is an aggregation of parallel results. */
   isAggregation?: boolean;
   /** Default agent to assign sub-tasks to (usually CODER). */
-  defaultAgentId?: AgentType;
+  defaultAgentId?: AgentRole;
   /** Maximum number of sub-tasks to generate. */
   maxSubTasks?: number;
   /** Minimum length of text to trigger decomposition (default: 800). */
@@ -79,7 +79,7 @@ export async function handleSwarmDecomposition(
     depth = 0,
     isContinuation = false,
     isAggregation = false,
-    defaultAgentId = AgentType.CODER,
+    defaultAgentId = AGENT_TYPES.CODER,
     maxSubTasks = SWARM.DEFAULT_MAX_SUB_TASKS,
     minLength = 800,
     barrierTimeoutMs = SWARM.DEFAULT_BARRIER_TIMEOUT_MS,

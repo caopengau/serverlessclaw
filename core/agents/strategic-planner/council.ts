@@ -1,5 +1,5 @@
 import { logger } from '../../lib/logger';
-import { AgentType, EvolutionMode } from '../../lib/types/agent';
+import { AGENT_TYPES, EvolutionMode } from '../../lib/types/agent';
 import { sendOutboundMessage } from '../../lib/outbound';
 import { TRACE_TYPES } from '../../lib/constants';
 import { getEvolutionMode } from './evolution';
@@ -56,7 +56,7 @@ export async function handleCouncilReviewResult(
     content: {
       verdict,
       summary: task,
-      initiatorId: AgentType.STRATEGIC_PLANNER,
+      initiatorId: AGENT_TYPES.STRATEGIC_PLANNER,
     },
     metadata: { event: 'council_review_processed', traceId },
   });
@@ -103,7 +103,7 @@ export async function handleCouncilReviewResult(
     if (evolutionMode === EvolutionMode.AUTO) {
       logger.info('[PLANNER] Evolution mode is auto, dispatching CODER_TASK.');
       await sendOutboundMessage(
-        AgentType.STRATEGIC_PLANNER,
+        AGENT_TYPES.STRATEGIC_PLANNER,
         originalUserId,
         `✅ **Council Approval Received**\n\nThe Council of Agents has ${isApproved ? 'approved' : 'conditionally approved'} the plan. Dispatching to Coder Agent for execution.\n\nSummary of Review:\n${task}`,
         undefined,
@@ -113,7 +113,7 @@ export async function handleCouncilReviewResult(
 
       const { dispatchTask: dispatcher } = await import('../../tools/knowledge/agent');
       await dispatcher.execute({
-        agentId: AgentType.CODER,
+        agentId: AGENT_TYPES.CODER,
         userId: baseUserId,
         task: originalPlan,
         metadata: { gapIds },
@@ -123,7 +123,7 @@ export async function handleCouncilReviewResult(
     } else {
       logger.info('[PLANNER] Evolution mode is hitl, asking for human approval.');
       await sendOutboundMessage(
-        AgentType.STRATEGIC_PLANNER,
+        AGENT_TYPES.STRATEGIC_PLANNER,
         originalUserId,
         `✅ **Council Approval Received**\n\nThe Council of Agents has approved the plan with findings:\n\n${task}\n\nDo you want to execute the original plan?\n\nPlan:\n${originalPlan}`,
         undefined,
@@ -145,7 +145,7 @@ export async function handleCouncilReviewResult(
   } else {
     logger.warn(`[PLANNER] Council REJECTED plan for trace ${traceId}. Informing user.`);
     await sendOutboundMessage(
-      AgentType.STRATEGIC_PLANNER,
+      AGENT_TYPES.STRATEGIC_PLANNER,
       userId,
       `❌ **Council Review REJECTED**\n\nThe Council has rejected the strategic plan. Implementation has been blocked for safety. Please review the findings and revise the strategy.\n\nFeedback:\n${task}`,
       undefined,

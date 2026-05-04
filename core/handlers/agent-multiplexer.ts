@@ -1,4 +1,4 @@
-import { AgentType, EventType, UserRole } from '../lib/types/agent';
+import { AgentRole, AGENT_TYPES, EventType, UserRole } from '../lib/types/agent';
 import { logger } from '../lib/logger';
 import { Context } from 'aws-lambda';
 import { handleWarmup } from '../lib/utils/agent-helpers';
@@ -67,44 +67,44 @@ export const handler = async (
   const sessionStateManager = new SessionStateManager();
 
   // 3. Identify Target Agent
-  let targetAgent: AgentType | undefined;
+  let targetAgent: AgentRole | undefined;
   let handlerPath: string | undefined;
 
   switch (detailType) {
     case EventType.CODER_TASK:
-      targetAgent = AgentType.CODER;
+      targetAgent = AGENT_TYPES.CODER;
       handlerPath = '../agents/coder';
       break;
     case EventType.RESEARCH_TASK:
-      targetAgent = AgentType.RESEARCHER;
+      targetAgent = AGENT_TYPES.RESEARCHER;
       handlerPath = '../agents/researcher';
       break;
     case EventType.CRITIC_TASK:
-      targetAgent = AgentType.CRITIC;
+      targetAgent = AGENT_TYPES.CRITIC;
       handlerPath = '../agents/critic';
       break;
     case EventType.FACILITATOR_TASK:
-      targetAgent = AgentType.FACILITATOR;
+      targetAgent = AGENT_TYPES.FACILITATOR;
       handlerPath = '../agents/facilitator';
       break;
     case EventType.MERGER_TASK:
-      targetAgent = AgentType.MERGER;
+      targetAgent = AGENT_TYPES.MERGER;
       handlerPath = '../agents/merger';
       break;
     case EventType.QA_TASK:
     case EventType.CODER_TASK_COMPLETED:
     case EventType.SYSTEM_BUILD_SUCCESS:
-      targetAgent = AgentType.QA;
+      targetAgent = AGENT_TYPES.QA;
       handlerPath = '../agents/qa';
       break;
     case EventType.EVOLUTION_PLAN:
     case EventType.STRATEGIC_PLANNER_TASK:
-      targetAgent = AgentType.STRATEGIC_PLANNER;
+      targetAgent = AGENT_TYPES.STRATEGIC_PLANNER;
       handlerPath = '../agents/strategic-planner';
       break;
     case EventType.REFLECT_TASK:
     case EventType.COGNITION_REFLECTOR_TASK:
-      targetAgent = AgentType.COGNITION_REFLECTOR;
+      targetAgent = AGENT_TYPES.COGNITION_REFLECTOR;
       handlerPath = '../agents/cognition-reflector';
       break;
     case EventType.DELEGATION_TASK:
@@ -118,19 +118,19 @@ export const handler = async (
           detail.capabilityScores as Record<string, number>,
           scope
         );
-        targetAgent = selectedId as AgentType;
+        targetAgent = selectedId as AgentRole;
         handlerPath = './agent-runner';
         logger.info(`[MULTIPLEXER] Dynamic delegation: selected ${targetAgent} via AgentRouter.`);
       } catch (err) {
         logger.error(`[MULTIPLEXER] Failed to perform dynamic delegation:`, err);
         // Fallback to static if provided
-        targetAgent = (detail.agentId as AgentType) || (event.agentId as AgentType);
+        targetAgent = (detail.agentId as AgentRole) || (event.agentId as AgentRole);
         handlerPath = './agent-runner';
       }
       break;
     default:
       // Check if it's a dynamic agent or explicitly specified in the payload (P2 Gap Fix)
-      targetAgent = (detail.agentId as AgentType) || (event.agentId as AgentType);
+      targetAgent = (detail.agentId as AgentRole) || (event.agentId as AgentRole);
       if (targetAgent && detailType.startsWith('dynamic_')) {
         logger.info(`[MULTIPLEXER] Routing dynamic agent ${targetAgent} to Agent Runner.`);
         handlerPath = './agent-runner';

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './strategic-planner';
 import { GapStatus } from '../lib/types/agent';
-import { AgentType } from '../lib/types/index';
+import { AGENT_TYPES } from '../lib/types/index';
 
 const memoryMocks = vi.hoisted(() => ({
   updateGapStatus: vi.fn().mockResolvedValue(undefined),
@@ -368,7 +368,7 @@ describe('Strategic Planner — tool loading (Bug 1 regression)', () => {
     memoryMocks.getAllGaps.mockResolvedValue([]);
     registryMocks.getRawConfig.mockResolvedValue(undefined);
     registryMocks.getAgentConfig.mockResolvedValue({
-      id: AgentType.STRATEGIC_PLANNER,
+      id: AGENT_TYPES.STRATEGIC_PLANNER,
       name: 'Strategic Planner',
       systemPrompt: 'Planner prompt',
       enabled: true,
@@ -380,7 +380,7 @@ describe('Strategic Planner — tool loading (Bug 1 regression)', () => {
     });
   });
 
-  it('should call getAgentTools with AgentType.STRATEGIC_PLANNER, not "planner"', async () => {
+  it('should call getAgentTools with AGENT_TYPES.STRATEGIC_PLANNER, not "planner"', async () => {
     const event = {
       detail: {
         userId: 'user-1',
@@ -390,7 +390,7 @@ describe('Strategic Planner — tool loading (Bug 1 regression)', () => {
 
     await handler(event as any, {} as any);
 
-    expect(registryUtilsMocks.getAgentTools).toHaveBeenCalledWith(AgentType.STRATEGIC_PLANNER);
+    expect(registryUtilsMocks.getAgentTools).toHaveBeenCalledWith(AGENT_TYPES.STRATEGIC_PLANNER);
     expect(registryUtilsMocks.getAgentTools).not.toHaveBeenCalledWith('planner');
   });
 });

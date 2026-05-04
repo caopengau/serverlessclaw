@@ -1,8 +1,8 @@
 import type { ToolCall } from '@claw/core/lib/types/llm';
-
+export type { ToolCall };
 export interface PageContextData {
   url: string;
-  title: string;
+  title?: string;
   content?: string;
   metadata?: Record<string, unknown>;
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { isDuplicate } from './dedup';
-import { ChatMessage } from './types';
+import { ChatMessage } from '@claw/hooks';
 
 const assistant = (content: string, messageId?: string): ChatMessage => ({
   role: 'assistant',

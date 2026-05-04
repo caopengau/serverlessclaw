@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { AttachmentType } from '../types/llm';
 import { HealthSeverity, ParallelTaskStatus } from '../types/constants';
-import { EventType, AgentType } from '../types/agent';
+import { EventType, AGENT_TYPES } from '../types/agent';
 import {
   ATTACHMENT_SCHEMA,
   BASE_EVENT_SCHEMA,
@@ -1441,11 +1441,11 @@ describe('EVENT_SCHEMA_MAP', () => {
   });
 
   it('should map agent task types to TASK_EVENT_SCHEMA', () => {
-    expect(EVENT_SCHEMA_MAP[`${AgentType.STRATEGIC_PLANNER}_task`]).toBe(TASK_EVENT_SCHEMA);
-    expect(EVENT_SCHEMA_MAP[`${AgentType.COGNITION_REFLECTOR}_task`]).toBe(TASK_EVENT_SCHEMA);
-    expect(EVENT_SCHEMA_MAP[`${AgentType.QA}_task`]).toBe(TASK_EVENT_SCHEMA);
-    expect(EVENT_SCHEMA_MAP[`${AgentType.CRITIC}_task`]).toBe(TASK_EVENT_SCHEMA);
-    expect(EVENT_SCHEMA_MAP[`${AgentType.FACILITATOR}_task`]).toBe(TASK_EVENT_SCHEMA);
+    expect(EVENT_SCHEMA_MAP[`${AGENT_TYPES.STRATEGIC_PLANNER}_task`]).toBe(TASK_EVENT_SCHEMA);
+    expect(EVENT_SCHEMA_MAP[`${AGENT_TYPES.COGNITION_REFLECTOR}_task`]).toBe(TASK_EVENT_SCHEMA);
+    expect(EVENT_SCHEMA_MAP[`${AGENT_TYPES.QA}_task`]).toBe(TASK_EVENT_SCHEMA);
+    expect(EVENT_SCHEMA_MAP[`${AGENT_TYPES.CRITIC}_task`]).toBe(TASK_EVENT_SCHEMA);
+    expect(EVENT_SCHEMA_MAP[`${AGENT_TYPES.FACILITATOR}_task`]).toBe(TASK_EVENT_SCHEMA);
   });
 
   it('should map CONSENSUS_REQUEST to CONSENSUS_REQUEST_SCHEMA', () => {

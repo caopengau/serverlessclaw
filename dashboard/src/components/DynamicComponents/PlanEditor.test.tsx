@@ -2,7 +2,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import PlanEditor from './PlanEditor';
-import { DynamicComponent } from '../Chat/types';
+import { DynamicComponent } from '@claw/hooks';
 
 describe('PlanEditor Component', () => {
   const mockAction = vi.fn();

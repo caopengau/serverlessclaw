@@ -12,7 +12,7 @@ import { useChatConnection } from './useChatConnection';
 import { useChatMessages } from './useChatMessages';
 import { usePageContext } from '@/components/Providers/PageContextProvider';
 import { useTenant } from '@/components/Providers/TenantProvider';
-import { ChatMessage } from './types';
+import { ChatMessage } from '@claw/hooks';
 
 /**
  * Global Chat Bubble component that floats on all pages.

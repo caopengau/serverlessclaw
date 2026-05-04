@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handler } from './agent-runner';
 import { SWARM } from '../lib/constants/system';
-import { AgentType, EventType } from '../lib/types/agent';
+import { AGENT_TYPES, EventType } from '../lib/types/agent';
 
 // Mock helpers
 const { mockEmitTypedEvent } = vi.hoisted(() => ({
@@ -113,8 +113,8 @@ Once the research is complete, we will implement the new login module using the 
       EventType.PARALLEL_TASK_DISPATCH,
       expect.objectContaining({
         tasks: expect.arrayContaining([
-          expect.objectContaining({ agentId: AgentType.RESEARCHER }),
-          expect.objectContaining({ agentId: AgentType.CODER }),
+          expect.objectContaining({ agentId: AGENT_TYPES.RESEARCHER }),
+          expect.objectContaining({ agentId: AGENT_TYPES.CODER }),
         ]),
       })
     );

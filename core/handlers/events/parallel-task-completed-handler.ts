@@ -1,6 +1,6 @@
 import { logger } from '../../lib/logger';
 import { wakeupInitiator } from './shared';
-import { AgentType, EventType } from '../../lib/types/agent';
+import { AGENT_TYPES, EventType } from '../../lib/types/agent';
 import { clearRecursionStack } from '../../lib/recursion-tracker';
 import { PARALLEL_TASK_COMPLETED_EVENT_SCHEMA } from '../../lib/schema/events';
 import { BaseMemoryProvider } from '../../lib/memory/base';
@@ -133,8 +133,8 @@ export async function handleParallelTaskCompleted(
       const { getAgentTools } = await import('../../tools/index');
       const { SuperClaw } = await import('../../agents/superclaw');
 
-      const config = await AgentRegistry.getAgentConfig(AgentType.SUPERCLAW);
-      const agentTools = await getAgentTools(AgentType.SUPERCLAW);
+      const config = await AgentRegistry.getAgentConfig(AGENT_TYPES.SUPERCLAW);
+      const agentTools = await getAgentTools(AGENT_TYPES.SUPERCLAW);
 
       const aggregatorAgent = new SuperClaw(
         memory as unknown as IMemory,

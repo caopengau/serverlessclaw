@@ -101,7 +101,7 @@ vi.mock('../../tools/index', () => ({
 
 // 7. Import code under test
 import { handleResearchTask } from './research-handler';
-import { AgentType, EventType } from '../../lib/types/agent';
+import { AGENT_TYPES, EventType } from '../../lib/types/agent';
 
 describe('research-handler', () => {
   beforeEach(() => {
@@ -116,7 +116,7 @@ describe('research-handler', () => {
         task: '[AGGREGATED_RESULTS] Some aggregated findings',
         metadata: {},
         traceId: 'trace-1',
-        initiatorId: AgentType.RESEARCHER,
+        initiatorId: AGENT_TYPES.RESEARCHER,
         depth: 1,
         sessionId: 'session-1',
       };
@@ -128,7 +128,7 @@ describe('research-handler', () => {
 
       // Should NOT dispatch parallel tasks
       expect(mockEmitTypedEvent).not.toHaveBeenCalledWith(
-        AgentType.RESEARCHER,
+        AGENT_TYPES.RESEARCHER,
         EventType.PARALLEL_TASK_DISPATCH,
         expect.anything()
       );
@@ -147,7 +147,7 @@ describe('research-handler', () => {
         task: 'Research authentication patterns',
         metadata: {},
         traceId: 'trace-1',
-        initiatorId: AgentType.RESEARCHER,
+        initiatorId: AGENT_TYPES.RESEARCHER,
         depth: 1,
         sessionId: 'session-1',
       };
@@ -158,7 +158,7 @@ describe('research-handler', () => {
           {
             subTaskId: 'sub-0',
             task: 'Research authentication patterns',
-            agentId: AgentType.RESEARCHER,
+            agentId: AGENT_TYPES.RESEARCHER,
             planId: 'plan-1',
             gapIds: [],
             order: 0,
@@ -191,7 +191,7 @@ describe('research-handler', () => {
         task: 'Research Auth0 vs Cognito for authentication',
         metadata: {},
         traceId: 'trace-1',
-        initiatorId: AgentType.RESEARCHER,
+        initiatorId: AGENT_TYPES.RESEARCHER,
         depth: 1,
         sessionId: 'session-1',
       };
@@ -202,7 +202,7 @@ describe('research-handler', () => {
           {
             subTaskId: 'sub-0',
             task: 'Research Auth0 features',
-            agentId: AgentType.RESEARCHER,
+            agentId: AGENT_TYPES.RESEARCHER,
             planId: 'task-1',
             gapIds: [],
             order: 0,
@@ -212,7 +212,7 @@ describe('research-handler', () => {
           {
             subTaskId: 'sub-1',
             task: 'Research Cognito features',
-            agentId: AgentType.RESEARCHER,
+            agentId: AGENT_TYPES.RESEARCHER,
             planId: 'task-1',
             gapIds: [],
             order: 1,
@@ -232,14 +232,14 @@ describe('research-handler', () => {
         expectedPlanId,
         [],
         expect.objectContaining({
-          defaultAgentId: AgentType.RESEARCHER,
+          defaultAgentId: AGENT_TYPES.RESEARCHER,
           maxSubTasks: 4,
           minLength: 300,
         })
       );
 
       expect(mockEmitTypedEvent).toHaveBeenCalledWith(
-        AgentType.RESEARCHER,
+        AGENT_TYPES.RESEARCHER,
         EventType.PARALLEL_TASK_DISPATCH,
         expect.objectContaining({
           userId: 'user-1',
@@ -262,7 +262,7 @@ describe('research-handler', () => {
         task: 'Research something deep',
         metadata: {},
         traceId: 'trace-1',
-        initiatorId: AgentType.RESEARCHER,
+        initiatorId: AGENT_TYPES.RESEARCHER,
         depth: 15,
         sessionId: 'session-1',
       };
@@ -280,7 +280,7 @@ describe('research-handler', () => {
         task: 'Research something simple',
         metadata: {},
         traceId: 'trace-1',
-        initiatorId: AgentType.RESEARCHER,
+        initiatorId: AGENT_TYPES.RESEARCHER,
         depth: 1,
         sessionId: 'session-1',
       };
@@ -291,7 +291,7 @@ describe('research-handler', () => {
           {
             subTaskId: 'sub-0',
             task: 'Research something simple',
-            agentId: AgentType.RESEARCHER,
+            agentId: AGENT_TYPES.RESEARCHER,
             planId: 'task-1',
             gapIds: [],
             order: 0,
@@ -317,7 +317,7 @@ describe('research-handler', () => {
         task: 'Research authentication',
         metadata: {},
         traceId: 'trace-1',
-        initiatorId: AgentType.RESEARCHER,
+        initiatorId: AGENT_TYPES.RESEARCHER,
         depth: 1,
         sessionId: 'session-1',
       };
@@ -328,7 +328,7 @@ describe('research-handler', () => {
           {
             subTaskId: 'sub-0',
             task: 'Research authentication',
-            agentId: AgentType.RESEARCHER,
+            agentId: AGENT_TYPES.RESEARCHER,
             planId: 'task-1',
             gapIds: [],
             order: 0,
@@ -347,7 +347,7 @@ describe('research-handler', () => {
         EventType.TASK_COMPLETED,
         expect.objectContaining({
           userId: 'user-1',
-          agentId: AgentType.RESEARCHER,
+          agentId: AGENT_TYPES.RESEARCHER,
           task: 'Research authentication',
           traceId: 'trace-1',
           depth: 1,
@@ -366,7 +366,7 @@ describe('research-handler', () => {
         task: 'Research authentication',
         metadata: {},
         traceId: 'trace-1',
-        initiatorId: AgentType.RESEARCHER,
+        initiatorId: AGENT_TYPES.RESEARCHER,
         depth: 1,
         sessionId: 'session-1',
       };
@@ -377,7 +377,7 @@ describe('research-handler', () => {
           {
             subTaskId: 'sub-0',
             task: 'Research authentication',
-            agentId: AgentType.RESEARCHER,
+            agentId: AGENT_TYPES.RESEARCHER,
             planId: 'task-1',
             gapIds: [],
             order: 0,
@@ -415,7 +415,7 @@ describe('research-handler', () => {
         task: 'Research authentication',
         metadata: {},
         traceId: 'trace-1',
-        initiatorId: AgentType.RESEARCHER,
+        initiatorId: AGENT_TYPES.RESEARCHER,
         depth: 0,
         sessionId: 'session-1',
       };
@@ -426,7 +426,7 @@ describe('research-handler', () => {
           {
             subTaskId: 'sub-0',
             task: 'Research authentication',
-            agentId: AgentType.RESEARCHER,
+            agentId: AGENT_TYPES.RESEARCHER,
             planId: 'task-1',
             gapIds: [],
             order: 0,

@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ChatMessageList } from './ChatMessageList';
-import { ChatMessage } from './types';
+import { ChatMessage } from '@claw/hooks';
 
 // Mock Lucide icons
 vi.mock('lucide-react', () => ({

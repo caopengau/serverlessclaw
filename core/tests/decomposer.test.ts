@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { decomposePlan } from '../lib/agent/decomposer';
-import { AgentType } from '../lib/types/agent';
+import { AGENT_TYPES } from '../lib/types/agent';
 
 describe('decomposePlan', () => {
   const planId = 'PLAN-TEST-001';
@@ -144,7 +144,7 @@ Finally we should add PayPal as a secondary option for international customers.
 
       const result = await decomposePlan(plan, planId, gapIds, { minLength: 50 });
 
-      const researchTasks = result.subTasks.filter((s) => s.agentId === AgentType.RESEARCHER);
+      const researchTasks = result.subTasks.filter((s) => s.agentId === AGENT_TYPES.RESEARCHER);
       expect(researchTasks.length).toBeGreaterThan(0);
     });
 
@@ -156,7 +156,7 @@ Finally we should add PayPal as a secondary option for international customers.
 
       const result = await decomposePlan(plan, planId, gapIds, { minLength: 50 });
 
-      const coderTasks = result.subTasks.filter((s) => s.agentId === AgentType.CODER);
+      const coderTasks = result.subTasks.filter((s) => s.agentId === AGENT_TYPES.CODER);
       expect(coderTasks.length).toBeGreaterThan(0);
     });
 
@@ -168,10 +168,10 @@ Finally we should add PayPal as a secondary option for international customers.
 
       const result = await decomposePlan(plan, planId, gapIds, {
         minLength: 50,
-        defaultAgentId: AgentType.CODER,
+        defaultAgentId: AGENT_TYPES.CODER,
       });
 
-      expect(result.subTasks.every((s) => s.agentId === AgentType.CODER)).toBe(true);
+      expect(result.subTasks.every((s) => s.agentId === AGENT_TYPES.CODER)).toBe(true);
     });
   });
 

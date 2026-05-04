@@ -158,8 +158,8 @@ export class ConsistencyProbe {
 
       try {
         const { emitEvent } = await import('../../utils/bus');
-        const { AgentType, EventType, TraceSource } = await import('../../types/agent');
-        await emitEvent(AgentType.RECOVERY, EventType.DASHBOARD_FAILURE_DETECTED, {
+        const { AGENT_TYPES, EventType, TraceSource } = await import('../../types/agent');
+        await emitEvent(AGENT_TYPES.RECOVERY, EventType.DASHBOARD_FAILURE_DETECTED, {
           userId: 'SYSTEM',
           traceId: `drift-${agentId}-${now}`,
           agentId,

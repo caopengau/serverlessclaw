@@ -6,7 +6,7 @@
  * Extracted from agent-helpers.ts to improve modularity.
  */
 
-import { Attachment, AgentType, EventType } from '../../types/index';
+import { Attachment, AgentRole, EventType } from '../../types/index';
 import { emitTypedEvent } from '../typed-emit';
 
 /**
@@ -17,7 +17,7 @@ import { emitTypedEvent } from '../typed-emit';
  */
 export async function emitTaskEvent(params: {
   source: string;
-  agentId: string | AgentType;
+  agentId: string | AgentRole;
   userId: string;
   task: string;
   response?: string;

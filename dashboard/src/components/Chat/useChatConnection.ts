@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { ChatMessage } from './types';
+import { ChatMessage } from '@claw/hooks';
 import { logger } from '@claw/core/lib/logger';
 import {
   shouldProcessChunk,
   applyChunkToMessages,
   mergeHistoryWithMessages,
   type IncomingChunk,
-} from './message-handler';
+} from '@claw/hooks';
 import { useRealtime, RealtimeMessage } from '@/hooks/useRealtime';
 import type { PendingMessage } from '@claw/core/lib/types/session';
 

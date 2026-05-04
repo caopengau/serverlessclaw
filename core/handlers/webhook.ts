@@ -4,7 +4,7 @@ import { logger } from '../lib/logger';
 import { isE2ETest } from '../lib/utils/agent-helpers';
 import {
   TraceSource,
-  AgentType,
+  AGENT_TYPES,
   Attachment,
   isValidAttachment,
   GapStatus,
@@ -203,7 +203,7 @@ export const handler = async (
   try {
     // 3. Process message via Agent
     logger.info('[WEBHOOK] Loading config...');
-    const config = await AgentRegistry.getAgentConfig(AgentType.SUPERCLAW);
+    const config = await AgentRegistry.getAgentConfig(AGENT_TYPES.SUPERCLAW);
     if (!config) throw new Error('Main agent config missing');
 
     const { profile, cleanText, command } = SuperClaw.parseCommand(text);
@@ -314,7 +314,7 @@ export const handler = async (
     }
 
     logger.info('[WEBHOOK] Loading tools...');
-    const agentTools = await getAgentTools(AgentType.SUPERCLAW);
+    const agentTools = await getAgentTools(AGENT_TYPES.SUPERCLAW);
 
     const agent = new SuperClaw(memory, provider, agentTools, config);
     logger.info('[WEBHOOK] Starting agent process...');

@@ -1,5 +1,5 @@
 import { TokenRollup } from './token-usage';
-import { AgentType } from '../types/agent';
+import { AGENT_TYPES } from '../types/agent';
 import { logger } from '../logger';
 
 /**
@@ -156,7 +156,7 @@ export class SLOTracker {
           const { SafetyEngine } = await import('../safety/safety-engine');
           const safety = new SafetyEngine();
           await safety.recordFailure(
-            AgentType.SUPERCLAW,
+            AGENT_TYPES.SUPERCLAW,
             `System SLO Breach: ${slo.name}`,
             2 // Severity 2 for system-level SLO breaches
           );
