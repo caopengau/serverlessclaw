@@ -80,7 +80,7 @@ export interface BudgetCheckResult {
  * @since Phase C2
  */
 export class TokenBudgetEnforcer {
-  private sessions: Map<string, TokenUsageRecord[]> = new Map();
+  private sessions: Map<string, { history: TokenUsageRecord[]; version: number }> = new Map();
   private config: BudgetConfig;
   private metricsCollector?: MetricsCollector;
   private initialized: boolean = false;
@@ -88,6 +88,10 @@ export class TokenBudgetEnforcer {
   constructor(config: Partial<BudgetConfig> = {}, metricsCollector?: MetricsCollector) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.metricsCollector = metricsCollector;
+  }
+
+  private makeSessionKey(sessionId: string, workspaceId?: string): string {
+    return workspaceId ? `${workspaceId}#${sessionId}` : sessionId;
   }
 
   private async ensureInitialized(): Promise<void> {
@@ -98,6 +102,7 @@ export class TokenBudgetEnforcer {
   private async persistSession(
     sessionId: string,
     history: TokenUsageRecord[],
+    version: number,
     workspaceId?: string
   ): Promise<void> {
     try {
@@ -121,10 +126,29 @@ export class TokenBudgetEnforcer {
             callCount: history.length,
             workspaceId,
             expiresAt,
+            version: version + 1,
+          },
+          // Principle 13: Atomic State Integrity
+          ConditionExpression: 'attribute_not_exists(userId) OR version = :v',
+          ExpressionAttributeValues: {
+            ':v': version,
           },
         })
       );
-    } catch (e) {
+
+      // Update local version if successful
+      const key = this.makeSessionKey(sessionId, workspaceId);
+      const cached = this.sessions.get(key);
+      if (cached) {
+        cached.version = version + 1;
+      }
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+        logger.warn(
+          `[TokenBudgetEnforcer] Concurrent update detected for session ${sessionId}, skipping persist`
+        );
+        return;
+      }
       logger.warn(`[TokenBudgetEnforcer] Failed to persist session ${sessionId}:`, e);
     }
   }
@@ -132,7 +156,10 @@ export class TokenBudgetEnforcer {
   /**
    * Loads session state from DynamoDB for durability.
    */
-  async loadSession(sessionId: string, workspaceId?: string): Promise<TokenUsageRecord[] | null> {
+  async loadSession(
+    sessionId: string,
+    workspaceId?: string
+  ): Promise<{ history: TokenUsageRecord[]; version: number } | null> {
     try {
       const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
       const userId = `${scopePrefix}BUDGET#${sessionId}`;
@@ -145,9 +172,12 @@ export class TokenBudgetEnforcer {
         })
       );
       if (Items && Items.length > 0) {
-        return (Items[0].history as TokenUsageRecord[]) || [];
+        return {
+          history: (Items[0].history as TokenUsageRecord[]) || [],
+          version: (Items[0].version as number) || 0,
+        };
       }
-      return [];
+      return { history: [], version: 0 };
     } catch (e) {
       logger.error(`[TokenBudgetEnforcer] Failed to load session ${sessionId} (FAIL-CLOSED):`, e);
       throw new Error('Failed to load session history'); // Fail-closed
@@ -181,12 +211,14 @@ export class TokenBudgetEnforcer {
   ): Promise<BudgetCheckResult> {
     await this.ensureInitialized();
 
+    const key = this.makeSessionKey(sessionId, workspaceId);
+
     try {
       // Load from DynamoDB if not in memory (cold start recovery)
-      if (!this.sessions.has(sessionId)) {
+      if (!this.sessions.has(key)) {
         const loaded = await this.loadSession(sessionId, workspaceId);
         if (loaded) {
-          this.sessions.set(sessionId, loaded);
+          this.sessions.set(key, loaded);
         }
       }
     } catch {
@@ -202,14 +234,14 @@ export class TokenBudgetEnforcer {
     const estimatedCostUsd = this.estimateCost(promptTokens, completionTokens);
 
     // Get or create session history
-    let history = this.sessions.get(sessionId);
-    if (!history) {
-      history = [];
-      this.sessions.set(sessionId, history);
+    let sessionData = this.sessions.get(key);
+    if (!sessionData) {
+      sessionData = { history: [], version: 0 };
+      this.sessions.set(key, sessionData);
     }
 
     // Record usage
-    history.push({
+    sessionData.history.push({
       promptTokens,
       completionTokens,
       estimatedCostUsd,
@@ -219,8 +251,11 @@ export class TokenBudgetEnforcer {
     });
 
     // Calculate totals
-    const sessionCostUsd = history.reduce((sum, r) => sum + r.estimatedCostUsd, 0);
-    const sessionTokens = history.reduce((sum, r) => sum + r.promptTokens + r.completionTokens, 0);
+    const sessionCostUsd = sessionData.history.reduce((sum, r) => sum + r.estimatedCostUsd, 0);
+    const sessionTokens = sessionData.history.reduce(
+      (sum, r) => sum + r.promptTokens + r.completionTokens,
+      0
+    );
     const percentUsed = (sessionCostUsd / this.config.maxSessionCostUsd) * 100;
 
     // Check session budget
@@ -295,19 +330,21 @@ export class TokenBudgetEnforcer {
     }
 
     // Velocity gate: warn at 25%, 50%, 75% thresholds
-    if (percentUsed >= 75 && history.length > 1) {
+    if (percentUsed >= 75 && sessionData.history.length > 1) {
       const prevPercent =
         ((sessionCostUsd - estimatedCostUsd) / this.config.maxSessionCostUsd) * 100;
       if (prevPercent < 75) {
         logger.warn(
           `[TokenBudgetEnforcer] Session ${sessionId} at ${percentUsed.toFixed(1)}% budget. ` +
-            `Last ${history.length} calls.`
+            `Last ${sessionData.history.length} calls.`
         );
       }
     }
 
     // Persist to DynamoDB for durability
-    this.persistSession(sessionId, history, workspaceId).catch(() => {});
+    this.persistSession(sessionId, sessionData.history, sessionData.version, workspaceId).catch(
+      () => {}
+    );
 
     return {
       allowed: true,
@@ -323,17 +360,22 @@ export class TokenBudgetEnforcer {
   async checkBudget(sessionId: string, workspaceId?: string): Promise<BudgetCheckResult> {
     await this.ensureInitialized();
 
+    const key = this.makeSessionKey(sessionId, workspaceId);
+
     // Load from DynamoDB if not in memory
-    if (!this.sessions.has(sessionId)) {
+    if (!this.sessions.has(key)) {
       const loaded = await this.loadSession(sessionId, workspaceId);
-      if (loaded && loaded.length > 0) {
-        this.sessions.set(sessionId, loaded);
+      if (loaded && loaded.history.length > 0) {
+        this.sessions.set(key, loaded);
       }
     }
 
-    const history = this.sessions.get(sessionId) ?? [];
-    const sessionCostUsd = history.reduce((sum, r) => sum + r.estimatedCostUsd, 0);
-    const sessionTokens = history.reduce((sum, r) => sum + r.promptTokens + r.completionTokens, 0);
+    const sessionData = this.sessions.get(key) ?? { history: [], version: 0 };
+    const sessionCostUsd = sessionData.history.reduce((sum, r) => sum + r.estimatedCostUsd, 0);
+    const sessionTokens = sessionData.history.reduce(
+      (sum, r) => sum + r.promptTokens + r.completionTokens,
+      0
+    );
     const percentUsed = (sessionCostUsd / this.config.maxSessionCostUsd) * 100;
 
     return {
@@ -347,8 +389,9 @@ export class TokenBudgetEnforcer {
   /**
    * Clears budget tracking for a session.
    */
-  clearSession(sessionId: string): void {
-    this.sessions.delete(sessionId);
+  clearSession(sessionId: string, workspaceId?: string): void {
+    const key = this.makeSessionKey(sessionId, workspaceId);
+    this.sessions.delete(key);
   }
 
   /**
@@ -359,17 +402,25 @@ export class TokenBudgetEnforcer {
   ): Array<{ sessionId: string; costUsd: number; tokens: number; calls: number }> {
     const summary: Array<{ sessionId: string; costUsd: number; tokens: number; calls: number }> =
       [];
-    for (const [sessionId, history] of this.sessions) {
+    const scopePrefix = workspaceId ? `${workspaceId}#` : '';
+
+    for (const [key, sessionData] of this.sessions) {
       // Check if session belongs to the requested workspace
-      if (workspaceId && history.length > 0 && history[0].workspaceId !== workspaceId) {
+      if (workspaceId && !key.startsWith(scopePrefix)) {
         continue;
       }
 
+      // Extract original sessionId from the key
+      const sessionId = workspaceId ? key.replace(scopePrefix, '') : key;
+
       summary.push({
         sessionId,
-        costUsd: history.reduce((sum, r) => sum + r.estimatedCostUsd, 0),
-        tokens: history.reduce((sum, r) => sum + r.promptTokens + r.completionTokens, 0),
-        calls: history.length,
+        costUsd: sessionData.history.reduce((sum, r) => sum + r.estimatedCostUsd, 0),
+        tokens: sessionData.history.reduce(
+          (sum, r) => sum + r.promptTokens + r.completionTokens,
+          0
+        ),
+        calls: sessionData.history.length,
       });
     }
     return summary;

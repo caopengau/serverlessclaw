@@ -136,5 +136,38 @@ describe('TokenBudgetEnforcer', () => {
       expect(result.allowed).toBe(false);
       expect(result.reason).toContain('fail-closed');
     });
+
+    it('should isolate sessions with same ID but different workspaceId', async () => {
+      const sessionId = 'shared-session-id';
+
+      await enforcer.recordUsage(sessionId, 1000, 500, 'agent1', 'ws-1');
+      await enforcer.recordUsage(sessionId, 2000, 1000, 'agent1', 'ws-2');
+
+      const summaryWS1 = enforcer.getSummary('ws-1');
+      const summaryWS2 = enforcer.getSummary('ws-2');
+
+      expect(summaryWS1).toHaveLength(1);
+      expect(summaryWS1[0].tokens).toBe(1500);
+
+      expect(summaryWS2).toHaveLength(1);
+      expect(summaryWS2[0].tokens).toBe(3000);
+    });
+
+    it('should use conditional updates to prevent race conditions', async () => {
+      mockDocClient.send.mockResolvedValueOnce({
+        Items: [{ history: [], version: 5 }],
+      });
+      mockDocClient.send.mockResolvedValueOnce({}); // Success for PutCommand
+
+      await enforcer.recordUsage('session1', 100, 50, 'agent1', 'ws-1');
+
+      // Check the PutCommand call
+      const lastCall = mockDocClient.send.mock.calls[mockDocClient.send.mock.calls.length - 1][0];
+      expect(lastCall.input.ConditionExpression).toBe(
+        'attribute_not_exists(userId) OR version = :v'
+      );
+      expect(lastCall.input.ExpressionAttributeValues[':v']).toBe(5);
+      expect(lastCall.input.Item.version).toBe(6);
+    });
   });
 });

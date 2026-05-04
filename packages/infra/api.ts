@@ -115,6 +115,26 @@ export function configureApiRoutes(
     },
   });
 
+  // Hub-and-Spoke Sync Webhook
+  api.route('POST /webhook/sync', {
+    handler: `${prefix}packages/core/handlers/sync-webhook.handler`,
+    nodejs: { loader: NODEJS_LOADERS },
+    link: [memoryTable, configTable, bus, ...validSecrets],
+    permissions: [
+      ...apiPermissions,
+      {
+        actions: ['dynamodb:GetItem', 'dynamodb:PutItem', 'dynamodb:UpdateItem'],
+        resources: [memoryTable.nodes.table.arn],
+      },
+    ],
+    architecture: LAMBDA_ARCHITECTURE,
+    memory: AGENT_CONFIG.memory.SMALL,
+    timeout: AGENT_CONFIG.timeout.MEDIUM,
+    logging: {
+      retention: LOG_RETENTION_PERIOD,
+    },
+  });
+
   // Health Probe
   api.route('GET /health', {
     handler: `${prefix}packages/core/handlers/health.handler`,

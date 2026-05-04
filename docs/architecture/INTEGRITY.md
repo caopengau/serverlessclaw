@@ -54,7 +54,7 @@ Token usage and recursion depth are tracked with strict `workspaceId` dimensioni
 |                       v                                     |
 |           +-----------------------+                         |
 |           | DynamoDB (Tenanted)   |                         |
-|           | PK: WS#<id>#SESSION#<id>|                       |
+|           | PK: WS#<id>#BUDGET#<id> | (Atomic Versioning)   |
 |           +-----------------------+                         |
 |                       |                                     |
 |                       v                                     |

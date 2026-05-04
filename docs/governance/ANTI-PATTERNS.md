@@ -384,20 +384,24 @@ await purgeDlqEntry(entry);
 
 ---
 
-### 19. In-Memory Multi-Tenant Filtering
+### 19. In-Memory Multi-Tenant Isolation Breach
 
-**What**: Performing a global database query and then filtering results by `WorkspaceId` in application memory instead of using server-side filters (Partition Keys, Global Secondary Indexes, or FilterExpressions).
+**What**: Using unpartitioned keys in application memory (Maps, Sets, Caches) or performing a global database query and filtering by `WorkspaceId` in memory instead of server-side.
 
-**Risk**: Multi-tenant data leakage if the filter is forgotten or bypassed. Performance degradation as the database returns irrelevant data that is then discarded.
+**Risk**: Multi-tenant data leakage or collision. If two tenants share an ID (e.g., Session ID), their in-memory state will collide.
 
 **Pattern**:
 
 ```typescript
-// ❌ WRONG
+// ❌ WRONG (In-Memory Map)
+private sessions = new Map<string, SessionData>(); // Keyed only by sessionId
+// ❌ WRONG (DB Filtering)
 const items = await db.query({ KeyCondition: 'id = :id' });
 return items.filter((i) => i.workspaceId === currentWs);
 
-// ✅ CORRECT
+// ✅ CORRECT (In-Memory Map)
+private makeKey = (wsId: string, sId: string) => `${wsId}#${sId}`;
+// ✅ CORRECT (DB Filtering)
 return await db.query({
   KeyCondition: 'id = :id',
   FilterExpression: 'workspaceId = :ws',
@@ -405,7 +409,7 @@ return await db.query({
 });
 ```
 
-**Occurrences**: Fixed in `ClawTracer.getTrace` (Audit 2026-05-02).
+**Occurrences**: Fixed in `ClawTracer.getTrace` (Audit 2026-05-02) and `TokenBudgetEnforcer` (Audit 2026-05-04).
 
 ### 20. Domain Pollution (Hardcoded Business Logic)
 

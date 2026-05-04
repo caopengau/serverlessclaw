@@ -12,13 +12,13 @@ Last Updated: 2026-05-03
 
 | Silo  | Name           | Primary Code Paths                              | Audit Count | Last Audited | Risk Level |
 | :---- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
-| **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 20          | 2026-05-03   | Low        |
+| **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 21          | 2026-05-04   | Low        |
 | **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 12          | 2026-05-03   | Low        |
-| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 20          | 2026-05-03   | Low        |
-| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 17          | 2026-05-03   | Low        |
+| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 21          | 2026-05-04   | Low        |
+| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 18          | 2026-05-04   | Low        |
 | **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 17          | 2026-05-03   | Low        |
 | **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 17          | 2026-05-03   | Low        |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 11          | 2026-05-03   | Low        |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 12          | 2026-05-04   | Low        |
 
 ---
 
@@ -30,8 +30,8 @@ Last Updated: 2026-05-03
 | **B**       | Evolution Cycle   | Hand → Shield → Scales      | 9           | 2026-05-03  |
 | **C**       | Identity Journey  | Brain → Spine → Shield      | 10          | 2026-05-01  |
 | **D**       | Trust Loop        | Eye → Scales → Spine        | 13          | 2026-05-03  |
-| **E**       | Recovery Path     | Shield → Spine → Brain      | 11          | 2026-05-03  |
-| **F**       | Metabolic Loop    | Metabolism ↔ Scales ↔ Spine | 3           | 2026-05-03  |
+| **E**       | Recovery Path     | Shield → Spine → Brain      | 12          | 2026-05-04  |
+| **F**       | Metabolic Loop    | Metabolism ↔ Scales ↔ Spine | 4           | 2026-05-04  |
 
 ---
 
@@ -39,6 +39,10 @@ Last Updated: 2026-05-03
 
 | Date       | Report                                             | Silos Covered                    | Cross-Silo | Key Findings                                                                                                         |
 | :--------- | :------------------------------------------------- | :------------------------------- | :--------- | :------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-04 | `audit-2026-05-04-tenant-isolation.md`             | Shield, Spine, Brain, Met.       | E, F       | FIXED: P0 Multi-tenant Idempotency leakage, P0 Budget Race Conditions, P1 Orphaned Handlers.                         |
+| 2026-05-04 | `audit-2026-05-04-spine-dlq.md`                    | Spine                            | A          | FIXED: P1 Infinite replay loop in DLQ triage and permanent data loss of failed events.                               |
+| 2026-05-04 | `audit-2026-05-04-metabolism-trace-cleanup.md`     | Metabolism, Infra                | F          | FIXED: P1 Orphaned trace cleanup handler. Provisioned infrastructure and fixed missing TraceTable index.             |
+| 2026-05-04 | `audit-2026-05-04-webhook-isolation.md`            | Spine                            | A          | FIXED: P1 In-Memory Multi-Tenant Filtering (Anti-Pattern 19) in Webhook approval gap queries.                        |
 | 2026-05-03 | `audit-2026-05-03-metabolism-isolation.md`         | Metabolism, Hand, Scales         | F          | FIXED: P1 Schedule name collisions, P1 Unpartitioned S3 keys, P1 Metabolism cleanup blind spot.                      |
 | 2026-05-03 | `audit-2026-05-03-spine-recursion-isolation.md`    | Spine, Brain, Eye                | A          | FIXED: P1 Multi-tenant leakage in recursion tracking, P1 Partitioned token usage, P2 Telemetry/Doc drift.            |
 | 2026-05-03 | `audit-2026-05-03-utility-isolation.md`            | Metabolism, Hand, Spine          | G          | FIXED: P1 S3 Staging Isolation Breach, P1 Merger flow functional bug, P2 In-memory DLQ filtering.                    |

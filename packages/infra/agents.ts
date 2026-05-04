@@ -629,12 +629,59 @@ export function createAgents(
     },
   });
 
+  // 12. Trace Cleanup Handler (Orphan trace cleanup)
+  const traceCleanupHandler = new sst.aws.Function('TraceCleanupHandler', {
+    handler: `${prefix}packages/core/handlers/trace-cleanup.handler`,
+    dev: liveInLocalOnly,
+    link: [traceTable],
+    permissions: basePermissions,
+    architecture: LAMBDA_ARCHITECTURE,
+    nodejs: { loader: NODEJS_LOADERS },
+    memory: AGENT_CONFIG.memory.SMALL,
+    timeout: AGENT_CONFIG.timeout.MEDIUM,
+    logging: {
+      retention: LOG_RETENTION_PERIOD,
+    },
+  });
+
+  // 13. MCP Warmup Handler
+  const mcpWarmupHandler = new sst.aws.Function('MCPWarmupHandler', {
+    handler: `${prefix}packages/core/handlers/mcp-warmup.handler`,
+    dev: liveInLocalOnly,
+    link: baseLink,
+    permissions: basePermissions,
+    architecture: LAMBDA_ARCHITECTURE,
+    nodejs: { loader: NODEJS_LOADERS },
+    environment: agentEnv,
+    memory: AGENT_CONFIG.memory.SMALL,
+    timeout: AGENT_CONFIG.timeout.MEDIUM,
+    logging: {
+      retention: LOG_RETENTION_PERIOD,
+    },
+  });
+
   // 12-hour Schedule (Maintenance)
   createScheduledInvocation(
     'Maintenance',
     'rate(12 hours)',
     maintenanceHandler,
     'Triggers proactive evolution, tie-breaks, and stale gap archival'
+  );
+
+  // 12-hour Schedule (Trace Cleanup)
+  createScheduledInvocation(
+    'TraceCleanup',
+    'rate(12 hours)',
+    traceCleanupHandler,
+    'Cleans up orphan traces and parallel barriers'
+  );
+
+  // 1-hour Schedule (MCP Warmup)
+  createScheduledInvocation(
+    'MCPWarmup',
+    'rate(1 hour)',
+    mcpWarmupHandler,
+    'Warms up MCP servers to reduce cold starts for tool execution'
   );
 
   // 1-hour Schedule (Concurrency Monitor)
@@ -699,6 +746,7 @@ export function createAgents(
     heartbeatHandler,
     concurrencyMonitor,
     maintenanceHandler,
+    traceCleanupHandler,
     mergerAgent,
     qaAgent,
     researcherAgent,

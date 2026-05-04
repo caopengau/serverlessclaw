@@ -85,4 +85,24 @@ describe('checkAndMarkIdempotent', () => {
 
     expect(result).toBe(false);
   });
+
+  it('partitions keys by workspaceId for isolation', async () => {
+    mockSend.mockResolvedValueOnce({});
+
+    const result = await checkAndMarkIdempotent('envelope-5', 'task_completed', 'tenant-1');
+
+    expect(result).toBe(false);
+    const cmd = mockSend.mock.calls[0][0] as { input: { Item: { userId: string } } };
+    expect(cmd.input.Item.userId).toBe('WS#tenant-1#IDEMPOTENCY#envelope-5');
+  });
+
+  it('uses global namespace if workspaceId is missing', async () => {
+    mockSend.mockResolvedValueOnce({});
+
+    const result = await checkAndMarkIdempotent('envelope-6', 'task_completed');
+
+    expect(result).toBe(false);
+    const cmd = mockSend.mock.calls[0][0] as { input: { Item: { userId: string } } };
+    expect(cmd.input.Item.userId).toBe('IDEMPOTENCY#envelope-6');
+  });
 });

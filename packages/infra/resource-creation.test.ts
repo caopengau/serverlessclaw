@@ -418,9 +418,9 @@ describe('Infrastructure Resource Creation', () => {
       } as unknown as sst.aws.ApiGatewayV2;
 
       const mockCtx = {
-        memoryTable: { name: 'memory' },
-        traceTable: { name: 'trace' },
-        configTable: { name: 'config' },
+        memoryTable: new MockDynamo('memory'),
+        traceTable: new MockDynamo('trace'),
+        configTable: new MockDynamo('config'),
         stagingBucket: { name: 'staging' },
         knowledgeBucket: { name: 'knowledge' },
         secrets: {},
