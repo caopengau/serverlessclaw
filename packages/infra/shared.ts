@@ -135,9 +135,8 @@ export function provisionDomainConfig(component: 'api' | 'dashboard' | 'router')
   // Check multiple ways to get the stage for robustness
   const stage = $app.stage;
 
-  // Only use custom domains for production stage to avoid conflicts
-  // The two-tier model (local/prod) ensures personal stages use default AWS URLs.
-  if (stage !== STAGES.PROD) {
+  // Use custom domains for dev and prod stages
+  if (stage !== STAGES.PROD && stage !== STAGES.DEV) {
     return undefined;
   }
 
@@ -147,9 +146,14 @@ export function provisionDomainConfig(component: 'api' | 'dashboard' | 'router')
     router: 'CLAW_DOMAIN_ROUTER',
   };
   const envVar = envVarMap[component];
-  const domain = process.env[envVar];
+  let domain = process.env[envVar];
+  
+  // VoltX Default Domains if not overridden in .env
+  if (!domain && component === 'dashboard') {
+    domain = stage === STAGES.PROD ? 'voltx.clawmore.ai' : 'dev.voltx.clawmore.ai';
+  }
 
-  // Use custom domains if provided in .env
+  // Use custom domains if provided in .env or defaults above
   if (!domain) return undefined;
 
   const zoneId = process.env.CLOUDFLARE_ZONE_ID;
