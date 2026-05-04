@@ -1,9 +1,16 @@
 {
-  "name": "voltx",
-  "version": "0.1.0",
+  "name": "serverlessclaw",
+  "version": "1.0.27",
   "packageManager": "pnpm@10.33.2",
-  "description": "VoltX: AI-Native Virtual Power Plant (VPP) Trading Platform (Private)",
-  "private": true,
+  "description": "A serverless implementation of OpenClaw AI agent using SST, AWS Lambda, and DynamoDB.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serverlessclaw/serverlessclaw.git"
+  },
+  "homepage": "https://github.com/serverlessclaw/serverlessclaw#readme",
+  "bugs": {
+    "url": "https://github.com/serverlessclaw/serverlessclaw/issues"
+  },
   "main": "index.js",
   "scripts": {
     "test": "turbo run test",
@@ -132,8 +139,6 @@
     "turbo": "^2.9.3",
     "typescript-eslint": "^8.58.0",
     "vite-tsconfig-paths": "^6.1.1",
-    "vitest": "^4.1.2",
-    "@voltx/core": "workspace:*",
-    "@voltx/ui": "workspace:*"
+    "vitest": "^4.1.2"
   }
 }

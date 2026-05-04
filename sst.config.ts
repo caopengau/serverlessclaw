@@ -1,7 +1,7 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
 const APP_CONFIG = {
-  name: 'voltx',
+  name: 'serverlessclaw',
   region: 'ap-southeast-2',
   architecture: 'arm64' as const,
   runtime: 'nodejs24.x',
@@ -61,22 +61,20 @@ export default $config({
   },
   async run() {
     // SST v4 Modular Infrastructure via Dynamic Imports
-    const { createStorage } = await import('./framework/infra/storage.js');
-    const { createBus } = await import('./framework/infra/bus.js');
-    const { createDeployer } = await import('./framework/infra/deployer.js');
-    const { createApi, configureApiRoutes } = await import('./framework/infra/api.js');
-    const { createMCPServers } = await import('./framework/infra/mcp-servers.js');
-    const { createAgents } = await import('./framework/infra/agents.js');
-    const { createDashboard } = await import('./framework/infra/dashboard.js');
-
-    const infraOptions = { pathPrefix: 'framework/' };
+    const { createStorage } = await import('./infra/storage.js');
+    const { createBus } = await import('./infra/bus.js');
+    const { createDeployer } = await import('./infra/deployer.js');
+    const { createApi, configureApiRoutes } = await import('./infra/api.js');
+    const { createMCPServers } = await import('./infra/mcp-servers.js');
+    const { createAgents } = await import('./infra/agents.js');
+    const { createDashboard } = await import('./infra/dashboard.js');
 
     // 1. Storage & Secrets
     const { memoryTable, traceTable, configTable, stagingBucket, knowledgeBucket, secrets } =
       createStorage();
 
     // 2. Multi-Agent Orchestration (EventBridge)
-    const { bus, realtime, dlq } = createBus(infraOptions);
+    const { bus, realtime, dlq } = createBus();
 
     // 3. The Deployer (CodeBuild)
     const { deployer, linkable: deployerLink } = createDeployer({
@@ -109,7 +107,7 @@ export default $config({
       deployer,
       deployerLink,
       api, // Now available for linking if needed
-    }, infraOptions);
+    });
     const multiplexer = mcpServers.multiplexer;
 
     // 6. Sub-Agents (Handlers & Logic)
@@ -129,8 +127,7 @@ export default $config({
         api, // Linkable API instance
         multiplexer,
       },
-      mcpServers,
-      infraOptions
+      mcpServers
     );
 
     // 7. API Routes (Configured after agents exist)
@@ -145,7 +142,7 @@ export default $config({
       deployer,
       deployerLink,
       agents: agentResources,
-    }, infraOptions);
+    });
 
     // 8. ClawCenter (Next.js 16)
     const { dashboard } = createDashboard({
@@ -166,7 +163,7 @@ export default $config({
     });
 
     // 9. Billing & Cost Alerts ($5/day Daily Budget)
-    const { createBilling } = await import('./framework/infra/billing.js');
+    const { createBilling } = await import('./infra/billing.js');
     const { billingTopic } = createBilling();
 
     return {

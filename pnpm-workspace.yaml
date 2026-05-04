@@ -1,8 +1,6 @@
 packages:
-  - 'framework/core'
-  - 'framework/infra'
-  - 'framework/dashboard'
-  - 'framework/cli'
-  - 'framework/integrations/*'
-  - 'packages/*'
-  - 'apps/*'
+  - 'core'
+  - 'infra'
+  - 'dashboard'
+  - 'cli'
+  - 'integrations/*'

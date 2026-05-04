@@ -12,19 +12,16 @@
     "skipLibCheck": true,
     "types": ["node", "aws-lambda", "vitest/globals"],
     "paths": {
-      "@serverlessclaw/core": ["./framework/core/lib/agent.ts"],
-      "@serverlessclaw/core/*": ["./framework/core/lib/*"],
-      "@voltx/core": ["./packages/voltx-core/src/index.ts"],
-      "@voltx/core/*": ["./packages/voltx-core/src/*"]
+      "@serverlessclaw/integration-github": ["./integrations/github/src/index.ts"],
+      "@serverlessclaw/core/*": ["./core/*"]
     }
   },
   "include": [
-    "framework/**/*.ts",
-    "packages/**/*.ts",
-    "apps/**/*.ts",
+    "core/**/*.ts",
+    "infra/**/*.ts",
     "sst.config.ts",
     ".sst/platform/config.d.ts",
     "sst-env.d.ts"
   ],
-  "exclude": ["node_modules", "framework/dashboard/src", "apps/dashboard/src"]
+  "exclude": ["node_modules", "dashboard/src"]
 }
