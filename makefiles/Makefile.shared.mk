@@ -51,8 +51,8 @@ define separator
 	printf '%s$(BOLD)================================================================================$(RESET)\n' "$(1)"
 endef
 
-# Environment handling (2-tier: local or prod)
-ENV ?= prod
+# Environment handling (3-tier: local, dev, or prod)
+ENV ?= dev
 AWS_REGION ?= ap-southeast-2
 
 # Parallelism
@@ -64,14 +64,15 @@ else
 endif
 
 # Environment file resolution
-# For local dev, we load only .env.local.
-# For prod, we load only .env.prod.
-ENV_FILES = $(if $(filter local,$(ENV)),.env.local,.env.prod)
+# .env.local: local development secrets
+# .env.dev: development environment configuration
+# .env.prod: production environment configuration
+ENV_FILES = .env.$(ENV)
 
 # Usage: $(call load_env)
 # Loads available env files and exports variables.
 # In CI (CodeBuild), AWS credentials come from the service role — AWS_PROFILE is unset.
-# In local dev, AWS_PROFILE must be set in .env.
+# In local/dev/prod, AWS_PROFILE should be set in the respective .env file.
 define load_env
 	@if [ -f "$$HOME/.nvm/nvm.sh" ]; then \
 		export NVM_DIR="$$HOME/.nvm" && . "$$HOME/.nvm/nvm.sh" && nvm use --silent 2>/dev/null || true; \
@@ -79,12 +80,12 @@ define load_env
 	if [[ $$(node -v) != v24.* ]]; then \
 		$(call log_warning,Node.js 24 is recommended (detected $$(node -v)). If deployment fails, please switch to Node 24.); \
 	fi; \
-	for f in $(ENV_FILES); do \
-		if [ -f "$$f" ]; then \
-			$(call log_info,Loading env file: $$f); \
-			set -a; . ./$$f; set +a; \
-		fi; \
-	done; \
+	if [ ! -f "$(ENV_FILES)" ]; then \
+		$(call log_error,Environment file $(ENV_FILES) not found.); \
+		exit 1; \
+	fi; \
+	$(call log_info,Loading env file: $(ENV_FILES)); \
+	set -a; . ./$(ENV_FILES); set +a; \
 	if [ -n "$$AWS_PROFILE" ]; then \
 		if [ -n "$$AWS_ACCESS_KEY_ID" ] || [ -n "$$AWS_SECRET_ACCESS_KEY" ]; then \
 			$(call log_warning,Multiple AWS credential sources detected (PROFILE and static keys). Unsetting static keys to favor PROFILE.); \
@@ -98,11 +99,11 @@ define load_env
 		unset AWS_PROFILE; \
 		$(call log_info,CI environment detected — using service role credentials); \
 	elif [ -z "$$AWS_PROFILE" ]; then \
-		$(call log_error,AWS_PROFILE is not set. Please ensure it is defined in your .env file.); \
+		$(call log_error,AWS_PROFILE is not set in $(ENV_FILES).); \
 		exit 1; \
 	fi; \
-	if [ "$(ENV)" = "prod" ] && [ -z "$$EXPECTED_ACCOUNT" ]; then \
-		$(call log_error,EXPECTED_ACCOUNT is not set for stage $(ENV). Please ensure it is defined in your .env file.); \
+	if { [ "$(ENV)" = "prod" ] || [ "$(ENV)" = "dev" ]; } && [ -z "$$EXPECTED_ACCOUNT" ]; then \
+		$(call log_error,EXPECTED_ACCOUNT is not set for stage $(ENV) in $(ENV_FILES).); \
 		exit 1; \
 	fi
 endef
