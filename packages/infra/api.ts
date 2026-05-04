@@ -99,10 +99,14 @@ export function configureApiRoutes(
     },
     permissions: [
       ...apiPermissions,
-      {
-        actions: ['lambda:InvokeFunction'],
-        resources: Object.values(agentBuckets),
-      },
+      ...(Object.keys(agentBuckets).length > 0
+        ? [
+            {
+              actions: ['lambda:InvokeFunction'],
+              resources: Object.values(agentBuckets),
+            },
+          ]
+        : []),
     ],
     architecture: LAMBDA_ARCHITECTURE,
     timeout: AGENT_CONFIG.timeout.SHORT,

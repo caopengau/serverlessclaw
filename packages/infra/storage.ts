@@ -95,20 +95,30 @@ export function createStorage() {
     },
   });
 
-  // Base secrets (always required)
-  const secrets: Record<string, sst.Secret> = {
-    TelegramBotToken: new sst.Secret('TelegramBotToken'),
-    MiniMaxApiKey: new sst.Secret('MiniMaxApiKey'),
-    OpenAIApiKey: new sst.Secret('OpenAIApiKey'),
-    OpenRouterApiKey: new sst.Secret('OpenRouterApiKey'),
-    AwsRegion: new sst.Secret('AwsRegion'),
-    ActiveProvider: new sst.Secret('ActiveProvider'),
-    ActiveModel: new sst.Secret('ActiveModel'),
-    GitHubToken: new sst.Secret('GitHubToken'),
-    GitHubWebhookSecret: new sst.Secret('GitHubWebhookSecret'),
-    JiraWebhookSecret: new sst.Secret('JiraWebhookSecret'),
-    DashboardPassword: new sst.Secret('DashboardPassword'),
-  };
+  // Base secrets (always required in non-local stages)
+  const baseSecretNames = [
+    'TelegramBotToken',
+    'MiniMaxApiKey',
+    'OpenAIApiKey',
+    'OpenRouterApiKey',
+    'AwsRegion',
+    'ActiveProvider',
+    'ActiveModel',
+    'GitHubToken',
+    'GitHubWebhookSecret',
+    'JiraWebhookSecret',
+    'DashboardPassword',
+  ];
+
+  const secrets: Record<string, sst.Secret> = {};
+  for (const name of baseSecretNames) {
+    // In prod/dev, we always require these secrets to be set.
+    // In local, we only declare them if they are actually provided (or if it's DashboardPassword, which we'll handle in dashboard.ts)
+    // to avoid SecretMissingError during initial local setup.
+    if ($app.stage !== STAGES.LOCAL || process.env[`SST_SECRET_${name}`]) {
+      secrets[name] = new sst.Secret(name);
+    }
+  }
 
   // Conditionally add optional secrets to avoid undefined values in link arrays
   if ($app.stage === STAGES.PROD || process.env.SST_SECRET_DiscordBotToken) {

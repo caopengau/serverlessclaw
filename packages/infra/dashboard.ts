@@ -43,10 +43,10 @@ export function createDashboard(
       ...getValidSecrets(ctx.secrets),
     ],
     environment: {
-      DASHBOARD_PASSWORD: ctx.secrets.DashboardPassword.value,
+      DASHBOARD_PASSWORD: ctx.secrets.DashboardPassword?.value || 'admin',
       DEPLOYER_NAME: deployer.name,
-      DYNAMIC_SCHEDULER_ROLE_ARN: schedulerRole!.arn,
-      HEARTBEAT_HANDLER_ARN: heartbeatHandler!.arn,
+      DYNAMIC_SCHEDULER_ROLE_ARN: schedulerRole?.arn || '',
+      HEARTBEAT_HANDLER_ARN: heartbeatHandler?.arn || '',
       API_URL: api?.url || '',
       STAGING_BUCKET_NAME: stagingBucket.name,
       KNOWLEDGE_BUCKET_NAME: knowledgeBucket.name,
@@ -88,10 +88,14 @@ export function createDashboard(
         ],
         resources: ['*'],
       },
-      {
-        actions: ['iam:PassRole'],
-        resources: [schedulerRole!.arn],
-      },
+      ...(schedulerRole
+        ? [
+            {
+              actions: ['iam:PassRole'],
+              resources: [schedulerRole.arn],
+            },
+          ]
+        : []),
       {
         actions: ['dynamodb:*'],
         resources: [
