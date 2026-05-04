@@ -113,6 +113,16 @@ verify-up-to-date: ## Verify local branch is up to date with remote
 	@$(call verify_up_to_date)
 
 # --- SYNC ---
+pull: ## Fetch and pull both latest remote (origin and framework upstream)
+	@$(call log_step,Pulling latest changes from origin...)
+	@git pull origin $$(git rev-parse --abbrev-ref HEAD)
+	@$(MAKE) sync-downstream
+
+sync: ## Push both to remote (origin and framework upstream)
+	@$(call log_step,Pushing latest changes to origin...)
+	@git push origin $$(git rev-parse --abbrev-ref HEAD)
+	@$(MAKE) sync-upstream
+
 sync-downstream: ## Pull latest evolution from upstream framework (serverlessclaw)
 	@$(call log_step,Syncing downstream via subtree pull from upstream/main...)
 	@GIT_EDITOR=true git subtree pull --prefix=framework upstream main --squash
