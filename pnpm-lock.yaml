@@ -375,7 +375,7 @@ importers:
         version: 1.1.2
       openai:
         specifier: ^6.31.0
-        version: 6.35.0(ws@8.20.0)(zod@4.4.3)
+        version: 6.36.0(ws@8.20.0)(zod@4.4.3)
       uuid:
         specifier: ^14.0.0
         version: 14.0.0
@@ -5244,8 +5244,8 @@ packages:
     resolution: {integrity: sha512-VXJjc87FScF88uafS3JllDgvAm+c/Slfz06lorj2uAY34rlUu0Nt+v8wreiImcrgAjjIHp1rXpTDlLOGw29WwQ==}
     engines: {node: '>=18'}
 
-  openai@6.35.0:
-    resolution: {integrity: sha512-L/skwIGnt5xQZHb0UfTu9uAUKbis3ehKypOuJKi20QvG7UStV6C8IC3myGYHcdiF4kms/bAvOJ9UqqNWqi8x/Q==}
+  openai@6.36.0:
+    resolution: {integrity: sha512-Has2YbIusMq9wQEierFsgf9c783dy1y9arX459LmphNacEkkM5yxi2RIyXP0LmkOroQyW19iTwALHL8Yf26UKA==}
     hasBin: true
     peerDependencies:
       ws: ^8.18.0
@@ -9078,7 +9078,7 @@ snapshots:
   '@openai/agents-core@0.8.5(ws@8.20.0)(zod@4.4.3)':
     dependencies:
       debug: 4.4.3
-      openai: 6.35.0(ws@8.20.0)(zod@4.4.3)
+      openai: 6.36.0(ws@8.20.0)(zod@4.4.3)
     optionalDependencies:
       '@modelcontextprotocol/sdk': 1.29.0(zod@4.4.3)
       zod: 4.4.3
@@ -13110,7 +13110,7 @@ snapshots:
     dependencies:
       mimic-function: 5.0.1
 
-  openai@6.35.0(ws@8.20.0)(zod@4.4.3):
+  openai@6.36.0(ws@8.20.0)(zod@4.4.3):
     optionalDependencies:
       ws: 8.20.0
       zod: 4.4.3
