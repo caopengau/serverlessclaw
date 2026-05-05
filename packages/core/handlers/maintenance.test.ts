@@ -1,8 +1,6 @@
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { handler } from './maintenance';
 import { TrustManager } from '../lib/safety/trust-manager';
-import { AgentRegistry } from '../lib/registry/AgentRegistry';
-import { PromotionManager } from '../lib/lifecycle/promotion-manager';
 
 vi.mock('../lib/safety/trust-manager', () => ({
   TrustManager: {
@@ -48,6 +46,12 @@ vi.mock('../lib/safety/evolution-scheduler', () => ({
   }),
 }));
 
+vi.mock('../lib/maintenance/metabolism', () => ({
+  MetabolismService: {
+    runMetabolismAudit: vi.fn().mockResolvedValue({}),
+  },
+}));
+
 describe('maintenance handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -60,19 +64,20 @@ describe('maintenance handler', () => {
     expect(TrustManager.decayTrustScores).toHaveBeenCalledWith('ws-1'); // Workspace
   });
 
-  it('should check for agent promotion in global and workspace', async () => {
-    vi.mocked(AgentRegistry.getAllConfigs).mockResolvedValueOnce({
-      'agent-ws': { trustScore: 96, evolutionMode: 'HITL' } as any,
-    }); // Workspace call (first in loop)
-    vi.mocked(AgentRegistry.getAllConfigs).mockResolvedValueOnce({
-      'agent-global': { trustScore: 98, evolutionMode: 'HITL' } as any,
-    }); // Global call (after loop)
+  it('should delegate repairs to MetabolismService per-workspace', async () => {
+    const { MetabolismService } = await import('../lib/maintenance/metabolism');
 
     await handler({}, {} as any);
 
-    expect(PromotionManager.promoteAgentToAuto).toHaveBeenCalledWith('agent-ws', 96, {
-      workspaceId: 'ws-1',
-    });
-    expect(PromotionManager.promoteAgentToAuto).toHaveBeenCalledWith('agent-global', 98);
+    // One for workspace loop, one for global run at the end
+    expect(MetabolismService.runMetabolismAudit).toHaveBeenCalledTimes(2);
+    expect(MetabolismService.runMetabolismAudit).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ workspaceId: 'ws-1', repair: true })
+    );
+    expect(MetabolismService.runMetabolismAudit).toHaveBeenCalledWith(
+      expect.any(Object),
+      expect.objectContaining({ repair: true })
+    );
   });
 });

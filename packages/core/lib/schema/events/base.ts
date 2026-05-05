@@ -31,11 +31,17 @@ export const BASE_EVENT_SCHEMA = z.object({
   /** Origin of the event. */
   source: z.string().default('unknown'),
   /** The user ID context for the event. */
-  userId: z.string().default('SYSTEM'),
+  userId: z.string().min(1).default('SYSTEM'),
   /** Unique identifier for the trace. */
-  traceId: z.string().default(() => generateId('t')),
+  traceId: z
+    .string()
+    .min(1)
+    .default(() => generateId('t')),
   /** Unique identifier for the task. */
-  taskId: z.string().default(() => generateId('task')),
+  taskId: z
+    .string()
+    .min(1)
+    .default(() => generateId('task')),
   /** Identifier of the node that produced this event. */
   nodeId: z.string().optional(),
   /** Parent task or event identifier. */
@@ -45,7 +51,7 @@ export const BASE_EVENT_SCHEMA = z.object({
   /** Entity that initiated the current workflow. */
   initiatorId: z.string().default('orchestrator'),
   /** Recursion depth. */
-  depth: z.number().default(0),
+  depth: z.number().min(0).default(0),
   /** Unique identifier for the session. */
   sessionId: z.string().default('default-session'),
   /** Multi-tenant workspace identifier. */
@@ -59,7 +65,10 @@ export const BASE_EVENT_SCHEMA = z.object({
   /** The role of the user associated with this event. */
   userRole: z.nativeEnum(UserRole).optional(),
   /** Epoch timestamp in milliseconds. */
-  timestamp: z.number().default(() => Date.now()),
+  timestamp: z
+    .number()
+    .min(0)
+    .default(() => Date.now()),
   /** Optional token budget for the task. */
   tokenBudget: z.number().min(0).optional(),
   /** Optional cost limit for the task. */

@@ -1,11 +1,11 @@
 import { ITool, ToolResult } from '../../lib/types/index';
-import { systemSchema as schema } from './schema';
+import { uiSchema } from './definitions/ui';
 
 /**
  * Tool for agents to render specialized UI components in the dashboard.
  */
 export const renderComponent: ITool = {
-  ...schema.renderComponent,
+  ...uiSchema.renderComponent,
   execute: async (args: Record<string, unknown>): Promise<ToolResult> => {
     // This tool is purely instructional for the frontend.
     // The executor will capture the tool call and include it in the response as ui_blocks.
@@ -36,7 +36,7 @@ export const renderComponent: ITool = {
  * Tool for SuperClaw to navigate the user to different parts of the dashboard.
  */
 export const navigateTo: ITool = {
-  ...schema.navigateTo,
+  ...uiSchema.navigateTo,
   execute: async (args: Record<string, unknown>): Promise<ToolResult> => {
     const { path, mode, params } = args as {
       path: string;
@@ -84,7 +84,7 @@ export const navigateTo: ITool = {
  * Tool for agents to trigger specific UI actions.
  */
 export const uiAction: ITool = {
-  ...schema.uiAction,
+  ...uiSchema.uiAction,
   execute: async (args: Record<string, unknown>): Promise<ToolResult> => {
     const { action, target, payload } = args as {
       action: string;
@@ -117,7 +117,7 @@ export const uiAction: ITool = {
  * Tool for agents to render a code diff/patch in the dashboard.
  */
 export const renderCodeDiff: ITool = {
-  ...schema.renderCodeDiff,
+  ...uiSchema.renderCodeDiff,
   execute: async (args: Record<string, unknown>): Promise<ToolResult> => {
     return {
       text: `Code diff for '${args.fileName}' rendered successfully.`,
@@ -151,7 +151,7 @@ export const renderCodeDiff: ITool = {
  * Tool for agents to render a strategic plan editor.
  */
 export const renderPlanEditor: ITool = {
-  ...schema.renderPlanEditor,
+  ...uiSchema.renderPlanEditor,
   execute: async (args: Record<string, unknown>): Promise<ToolResult> => {
     return {
       text: `Plan editor for '${args.planId}' rendered successfully.`,

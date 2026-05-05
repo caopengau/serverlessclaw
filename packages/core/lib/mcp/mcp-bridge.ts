@@ -10,22 +10,36 @@ import { DYNAMO_KEYS } from '../constants/system';
 import { DEFAULT_MCP_SERVERS } from './mcp-defaults';
 import { PluginManager } from '../plugin-manager';
 
+interface EffectiveScope {
+  workspaceId: string;
+  isRecursive: boolean;
+  skipHubRouting: boolean;
+}
+
 /**
  * MCPBridge coordinates connections to external Model Context Protocol (MCP) servers.
  * It provides a "Unified Multiplexer" interface for agents to discover and execute external tools
  * while maintaining a modular architecture for scalability and AI readiness.
- * Supports hub-priority routing and local command-based execution.
- *
- * Renamed from MCPMultiplexer to align with Unified Architecture docs.
  */
 export class MCPBridge {
   private static discovering: Map<string, Promise<ITool[]>> = new Map();
   private static lastFailures: Map<string, number> = new Map();
   private static readonly FAILURE_BACKOFF_MS = MCP.FAILURE_BACKOFF_MS;
 
+  private static getEffectiveScope(options?: {
+    skipHubRouting?: boolean;
+    isRecursive?: boolean;
+    workspaceId?: string;
+  }): EffectiveScope {
+    return {
+      workspaceId: options?.workspaceId || 'global',
+      isRecursive: !!options?.isRecursive,
+      skipHubRouting: !!options?.skipHubRouting,
+    };
+  }
+
   /**
    * Connects to an MCP server and returns its tools.
-   * Handles hub priority, remote URLs, and local fallbacks.
    */
   static async getToolsFromServer(
     serverName: string,
@@ -33,24 +47,25 @@ export class MCPBridge {
     env?: Record<string, string>,
     options?: { skipHubRouting?: boolean; isRecursive?: boolean; workspaceId?: string }
   ): Promise<ITool[]> {
-    const scopePrefix = options?.workspaceId ? `WS#${options.workspaceId}#` : '';
+    const scope = this.getEffectiveScope(options);
+    const scopePrefix = scope.workspaceId === 'global' ? '' : `WS#${scope.workspaceId}#`;
     const cacheKey = `${scopePrefix}mcp_tools_cache_${serverName}`;
 
     // 0. Check for recent failures (Discovery Backoff)
     const lastFailure = this.lastFailures.get(cacheKey);
     if (lastFailure && Date.now() - lastFailure < this.FAILURE_BACKOFF_MS) {
       logger.info(
-        `[MCPBridge] Discovery recently failed for ${serverName} (WS: ${options?.workspaceId || 'global'}), skipping until backoff expires.`
+        `[MCPBridge] Discovery recently failed for ${serverName} (WS: ${scope.workspaceId}), skipping until backoff expires.`
       );
       return [];
     }
 
     // 1. Check in-memory discovery map first (Thundering Herd Protection)
-    if (!options?.isRecursive) {
+    if (!scope.isRecursive) {
       const existingDiscovery = this.discovering.get(cacheKey);
       if (existingDiscovery) {
         logger.info(
-          `[MCPBridge] Discovery already in progress for ${serverName} (WS: ${options?.workspaceId || 'global'}), awaiting...`
+          `[MCPBridge] Discovery already in progress for ${serverName} (WS: ${scope.workspaceId}), awaiting...`
         );
         return await existingDiscovery;
       }
@@ -62,10 +77,9 @@ export class MCPBridge {
       let lockId = '';
       let ownerId = '';
 
-      if (!options?.isRecursive) {
-        // 1. Check Distributed Lock
+      if (!scope.isRecursive) {
         lockManager = new LockManager();
-        lockId = `mcp_discovery_lock_${serverName}_${options?.workspaceId || 'global'}`;
+        lockId = `mcp_discovery_lock_${serverName}_${scope.workspaceId}`;
         ownerId =
           process.env.AWS_LAMBDA_LOG_STREAM_NAME ||
           `node_${process.pid}_${Math.random().toString(36).substring(7)}`;
@@ -73,11 +87,11 @@ export class MCPBridge {
         const hubUrl = process.env.MCP_HUB_URL;
         const isLocalCommand = !connectionString.startsWith('http');
 
-        if (hubUrl && isLocalCommand && !options?.skipHubRouting) {
+        if (hubUrl && isLocalCommand && !scope.skipHubRouting) {
           try {
             const hubServerUrl = `${hubUrl.replace(/\/$/, '')}/${serverName}`;
             logger.info(
-              `[MCPBridge] Attempting Hub connection for ${serverName}: ${hubServerUrl} (WS: ${options?.workspaceId || 'global'})`
+              `[MCPBridge] Attempting Hub connection for ${serverName}: ${hubServerUrl} (WS: ${scope.workspaceId})`
             );
             const tools = await this.getToolsFromServer(serverName, hubServerUrl, env, {
               ...options,
@@ -87,7 +101,7 @@ export class MCPBridge {
             if (tools.length > 0) return tools;
           } catch {
             logger.warn(
-              `[MCPBridge] Hub connection failed for ${serverName} (WS: ${options?.workspaceId || 'global'}), switching to local.`
+              `[MCPBridge] Hub connection failed for ${serverName} (WS: ${scope.workspaceId}), switching to local.`
             );
           }
         }
@@ -102,11 +116,11 @@ export class MCPBridge {
           tools: Record<string, unknown>[];
           timestamp: number;
         } | null;
+
         if (cached && Date.now() - cached.timestamp < cacheTTL) {
           logger.info(
-            `[MCPBridge] Using cached tool definitions for MCP server ${serverName} (WS: ${options?.workspaceId || 'global'})`
+            `[MCPBridge] Using cached tool definitions for MCP server ${serverName} (WS: ${scope.workspaceId})`
           );
-          // Load overrides
           const overrides = (await AgentRegistry.getRawConfig(DYNAMO_KEYS.TOOL_METADATA_OVERRIDES, {
             workspaceId: options?.workspaceId,
           })) as Record<string, Partial<ITool>> | undefined;
@@ -130,13 +144,13 @@ export class MCPBridge {
       const cachedResult = await checkCache();
       if (cachedResult) return cachedResult;
 
-      if (!options?.isRecursive && lockManager) {
+      if (!scope.isRecursive && lockManager) {
         for (let i = 0; i < 3; i++) {
           acquired = await lockManager.acquire(lockId, { ttlSeconds: 60, ownerId });
           if (acquired) break;
 
           logger.info(
-            `[MCPBridge] Discovery lock for ${serverName} held by another node (WS: ${options?.workspaceId || 'global'}), waiting...`
+            `[MCPBridge] Discovery lock for ${serverName} held by another node (WS: ${scope.workspaceId}), waiting...`
           );
           await new Promise((r) => setTimeout(r, 2000));
 
@@ -145,7 +159,7 @@ export class MCPBridge {
         }
 
         if (!acquired) {
-          const errorMsg = `[MCPBridge] Failed to acquire discovery lock for ${serverName} (WS: ${options?.workspaceId || 'global'}). Aborting.`;
+          const errorMsg = `[MCPBridge] Failed to acquire discovery lock for ${serverName} (WS: ${scope.workspaceId}). Aborting.`;
           logger.error(errorMsg);
           throw new Error(errorMsg);
         }
@@ -160,25 +174,20 @@ export class MCPBridge {
         );
         const response = await client.listTools();
 
-        // Load overrides
         const overrides = (await AgentRegistry.getRawConfig(DYNAMO_KEYS.TOOL_METADATA_OVERRIDES, {
           workspaceId: options?.workspaceId,
         })) as Record<string, Partial<ITool>> | undefined;
 
-        // Update cache
         await AgentRegistry.saveRawConfig(
           cacheKey,
-          {
-            tools: response.tools,
-            timestamp: Date.now(),
-          },
+          { tools: response.tools, timestamp: Date.now() },
           { workspaceId: options?.workspaceId }
         );
 
         return MCPToolMapper.mapTools(serverName, client, response.tools, overrides);
       } catch (e: unknown) {
         logger.warn(
-          `[MCPBridge] Failed to fetch tools from ${serverName} (WS: ${options?.workspaceId || 'global'}):`,
+          `[MCPBridge] Failed to fetch tools from ${serverName} (WS: ${scope.workspaceId}):`,
           e
         );
         this.lastFailures.set(cacheKey, Date.now());
@@ -188,22 +197,22 @@ export class MCPBridge {
         }).catch(() => {});
         return [];
       } finally {
-        if (acquired) {
-          await lockManager!.release(lockId, ownerId).catch((err: unknown) => {
+        if (acquired && lockManager) {
+          await lockManager.release(lockId, ownerId).catch((err: unknown) => {
             logger.warn(`[MCPBridge] Failed to release discovery lock for ${serverName}:`, err);
           });
         }
       }
     })();
 
-    if (!options?.isRecursive) {
+    if (!scope.isRecursive) {
       this.discovering.set(cacheKey, discoveryPromise);
     }
 
     try {
       return await discoveryPromise;
     } finally {
-      if (!options?.isRecursive) {
+      if (!scope.isRecursive) {
         this.discovering.delete(cacheKey);
       }
     }
@@ -225,12 +234,10 @@ export class MCPBridge {
     const finalConfig = serversConfig ?? {};
     let configUpdated = false;
 
-    // Determine base path for filesystem
     const defaultFsPath = process.env.AWS_LAMBDA_FUNCTION_NAME
       ? (process.env.MCP_FILESYSTEM_PATH ?? (process.env.LAMBDA_TASK_ROOT || '/var/task'))
       : '.';
 
-    // Use environment variables to override default servers with Lambda multiplexer ARNs
     let serverArns: Record<string, string> = {};
     try {
       if (process.env.MCP_SERVER_ARNS) {
@@ -318,7 +325,6 @@ export class MCPBridge {
         return [];
       }
 
-      // Special handling for filesystem: Always attempt local execution if we're in a Lambda with a workspace
       if (name === 'filesystem' && !!process.env.AWS_LAMBDA_FUNCTION_NAME) {
         const fsPath = process.env.MCP_FILESYSTEM_PATH ?? '/tmp';
         logger.info(
@@ -346,27 +352,29 @@ export class MCPBridge {
   /**
    * Retrieves tool definitions from all cached MCP server results.
    */
-  static async getCachedTools(workspaceId?: string): Promise<Partial<ITool>[]> {
+  static async getCachedTools(workspaceId: string = 'global'): Promise<Partial<ITool>[]> {
     const serversConfig = (await AgentRegistry.getRawConfig('mcp_servers', {
-      workspaceId,
+      workspaceId: workspaceId === 'global' ? undefined : workspaceId,
     })) as Record<string, string | MCPServerConfig>;
 
     if (!serversConfig) return [];
 
     const allCached: Partial<ITool>[] = [];
     const serverNames = Object.keys(serversConfig);
-
     const overrides = (await AgentRegistry.getRawConfig(DYNAMO_KEYS.TOOL_METADATA_OVERRIDES, {
-      workspaceId,
+      workspaceId: workspaceId === 'global' ? undefined : workspaceId,
     })) as Record<string, Partial<ITool>> | undefined;
 
-    const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
+    const scopePrefix = workspaceId === 'global' ? '' : `WS#${workspaceId}#`;
 
     for (const name of serverNames) {
       const cacheKey = `${scopePrefix}mcp_tools_cache_${name}`;
-      const cached = (await AgentRegistry.getRawConfig(cacheKey, { workspaceId })) as {
+      const cached = (await AgentRegistry.getRawConfig(cacheKey, {
+        workspaceId: workspaceId === 'global' ? undefined : workspaceId,
+      })) as {
         tools: Array<{ name: string; description?: string; inputSchema?: Record<string, unknown> }>;
       } | null;
+
       if (cached?.tools && Array.isArray(cached.tools)) {
         const mapped = cached.tools.map((t) => {
           const toolName = `${name}_${t.name}`;

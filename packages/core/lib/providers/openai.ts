@@ -4,7 +4,6 @@ import {
   Message,
   ITool,
   ReasoningProfile,
-  AttachmentType,
   MessageRole,
   OpenAIModel,
   MessageChunk,
@@ -13,13 +12,11 @@ import {
 import { OPENAI } from '../constants';
 import { logger } from '../logger';
 import { normalizeProfile, capEffort, resolveProviderApiKey } from './utils';
-import { OpenAIResponse } from './openai/types';
+import { OpenAIResponse, EffectiveCallOptions, EffectiveResponseFormat } from './openai/types';
 import {
   shouldRequestReasoningSummary,
   isReasoningSummaryUnsupportedError,
-  extractSummaryText,
   extractReasoningSummary,
-  splitThoughtIntoChunks,
   mapMessagesToResponsesInput,
   mapToolsToOpenAI,
 } from './openai/utils';
@@ -30,6 +27,9 @@ const REASONING_MAP: Record<ReasoningProfile, OpenAI.ReasoningEffort> = {
   [ReasoningProfile.THINKING]: 'xhigh',
   [ReasoningProfile.DEEP]: 'xhigh',
 };
+
+const OPENAI_JSON_SCHEMA = 'json_schema';
+const OPENAI_DEFAULT_RESPONSE_NAME = 'response';
 
 /**
  * Provider for OpenAI's LLM services, supporting GPT-5 and reasoning models.
@@ -43,7 +43,6 @@ export class OpenAIProvider implements IProvider {
 
   /**
    * Lazily initializes and returns the OpenAI client instance.
-   * Handles API key rotation if the key is updated in the environment.
    */
   private get client(): OpenAI {
     const apiKey = resolveProviderApiKey('OpenAI', 'OpenAIApiKey', 'OPENAI_API_KEY');
@@ -55,15 +54,44 @@ export class OpenAIProvider implements IProvider {
     return OpenAIProvider._client;
   }
 
-  /**
-   * Executes a non-streaming call to the OpenAI Responses API.
-   * @param messages - Array of conversation history.
-   * @param tools - Optional list of available tools.
-   * @param profile - Reasoning profile (FAST, STANDARD, THINKING, DEEP).
-   * @param model - Specific model override.
-   * @param responseFormat - Schema for structured output.
-   * @returns A Promise resolving to the assistant's message.
-   */
+  private async getEffectiveOptions(
+    messages: Message[],
+    model?: string,
+    profile: ReasoningProfile = ReasoningProfile.STANDARD
+  ): Promise<EffectiveCallOptions> {
+    let activeModel = model ?? this.model;
+    if (!model && profile) {
+      const profileToModel: Record<ReasoningProfile, string> = {
+        [ReasoningProfile.FAST]: OpenAIModel.GPT_5_4_NANO,
+        [ReasoningProfile.STANDARD]: OpenAIModel.GPT_5_4_MINI,
+        [ReasoningProfile.THINKING]: OpenAIModel.GPT_5_4_MINI,
+        [ReasoningProfile.DEEP]: OpenAIModel.GPT_5_4,
+      };
+      activeModel = profileToModel[profile] ?? activeModel;
+    }
+
+    const capabilities = await this.getCapabilities(activeModel);
+    const normalizedProfile = normalizeProfile(profile, capabilities, activeModel);
+
+    return {
+      model: activeModel,
+      profile: normalizedProfile,
+      workspaceId: messages[0]?.workspaceId ?? 'default',
+      traceId: messages[0]?.traceId ?? 'unknown-trace',
+    };
+  }
+
+  private getEffectiveResponseFormat(rf?: ResponseFormat): EffectiveResponseFormat | undefined {
+    if (!rf) return undefined;
+    return {
+      type: rf.type,
+      name: rf.json_schema?.name ?? OPENAI_DEFAULT_RESPONSE_NAME,
+      schema: (rf.json_schema?.schema as Record<string, unknown>) ?? {},
+      strict: rf.json_schema?.strict ?? true,
+      description: rf.json_schema?.description,
+    };
+  }
+
   async call(
     messages: Message[],
     tools?: ITool[],
@@ -76,69 +104,40 @@ export class OpenAIProvider implements IProvider {
     topP?: number,
     stopSequences?: string[]
   ): Promise<Message> {
-    const client = this.client;
-    const requestedProfile = profile;
-
-    // Resolve model if only profile is provided
-    let activeModel = model ?? this.model;
-    if (!model && profile) {
-      const profileToModel: Record<ReasoningProfile, string> = {
-        [ReasoningProfile.FAST]: OpenAIModel.GPT_5_4_NANO,
-        [ReasoningProfile.STANDARD]: OpenAIModel.GPT_5_4_MINI,
-        [ReasoningProfile.THINKING]: OpenAIModel.GPT_5_4_MINI,
-        [ReasoningProfile.DEEP]: OpenAIModel.GPT_5_4,
-      };
-      activeModel = (profileToModel[profile] ?? activeModel) as string;
-    }
-
-    // Fallback if profile not supported
-    const capabilities = await this.getCapabilities(activeModel);
-    profile = normalizeProfile(profile, capabilities, activeModel);
-
-    const reasoningEffort = capEffort(
-      REASONING_MAP[profile] as string,
-      capabilities.maxReasoningEffort
-    );
-
+    const options = await this.getEffectiveOptions(messages, model, profile);
+    const rf = this.getEffectiveResponseFormat(responseFormat);
     const hasTools = tools && tools.length > 0;
 
-    logger.info(`Using OpenAI Responses API for model ${activeModel}`);
+    const capabilities = await this.getCapabilities(options.model);
+    const reasoningEffort = capEffort(REASONING_MAP[options.profile] as string, capabilities.maxReasoningEffort);
 
     const responsesInput = mapMessagesToResponsesInput(messages);
-
-    const shouldRequestSummary = shouldRequestReasoningSummary(activeModel, requestedProfile);
+    const shouldRequestSummary = shouldRequestReasoningSummary(options.model, profile);
 
     const requestPayload: Record<string, unknown> = {
-      model: activeModel as OpenAI.ResponsesModel,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      input: responsesInput as any,
+      model: options.model as OpenAI.ResponsesModel,
+      input: responsesInput,
       reasoning: {
         effort: reasoningEffort as OpenAI.ReasoningEffort,
         ...(shouldRequestSummary ? { summary: 'auto' } : {}),
       },
-      // 2026 Responses API: response_format has moved to text.format
-      ...(responseFormat
+      ...(rf
         ? {
             text: {
               format:
-                responseFormat.type === 'json_schema'
+                rf.type === OPENAI_JSON_SCHEMA
                   ? {
-                      type: 'json_schema',
-                      name: responseFormat.json_schema?.name ?? 'response',
-                      schema: responseFormat.json_schema?.schema ?? {},
-                      strict: responseFormat.json_schema?.strict ?? true,
-                      description: responseFormat.json_schema?.description,
+                      type: OPENAI_JSON_SCHEMA,
+                      name: rf.name,
+                      schema: rf.schema,
+                      strict: rf.strict,
+                      description: rf.description,
                     }
-                  : { type: responseFormat.type },
+                  : { type: rf.type },
             },
           }
         : {}),
-      ...(hasTools
-        ? {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            tools: mapToolsToOpenAI(tools) as any,
-          }
-        : {}),
+      ...(hasTools ? { tools: mapToolsToOpenAI(tools) } : {}),
       ...(temperature !== undefined ? { temperature } : {}),
       ...(maxTokens !== undefined ? { max_tokens: maxTokens } : {}),
       ...(topP !== undefined ? { top_p: topP } : {}),
@@ -148,30 +147,23 @@ export class OpenAIProvider implements IProvider {
     try {
       let response: OpenAIResponse;
       try {
-        response = (await client.responses.create(requestPayload)) as unknown as OpenAIResponse;
+        response = (await this.client.responses.create(requestPayload)) as unknown as OpenAIResponse;
       } catch (err) {
-        if (!shouldRequestSummary || !isReasoningSummaryUnsupportedError(err)) {
-          throw err;
-        }
+        if (!shouldRequestSummary || !isReasoningSummaryUnsupportedError(err)) throw err;
 
-        logger.warn(
-          `OpenAI reasoning.summary unsupported for ${activeModel}; retrying without summary.`
-        );
-
+        logger.warn(`OpenAI reasoning.summary unsupported for ${options.model}; retrying.`);
         const fallbackPayload = {
           ...requestPayload,
           reasoning: { effort: reasoningEffort as OpenAI.ReasoningEffort },
         };
-
-        response = (await client.responses.create(fallbackPayload)) as unknown as OpenAIResponse;
+        response = (await this.client.responses.create(fallbackPayload)) as unknown as OpenAIResponse;
       }
 
-      // Extract output
       const content = response.output_text ?? '';
-      const thought = response.output_thought ?? extractReasoningSummary(response.output);
+      const thought = response.output_thought ?? extractReasoningSummary(response.output) ?? '';
       const toolCalls: Message['tool_calls'] = [];
 
-      if (response.output && Array.isArray(response.output)) {
+      if (response.output) {
         for (const item of response.output) {
           if (item.type === OPENAI.ITEM_TYPES.FUNCTION_CALL) {
             toolCalls.push({
@@ -191,8 +183,13 @@ export class OpenAIProvider implements IProvider {
         content,
         thought,
         tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
-        traceId: messages[0]?.traceId ?? 'unknown-trace', // propagate or fallback
+        traceId: options.traceId,
         messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        workspaceId: options.workspaceId,
+        attachments: [],
+        options: [],
+        ui_blocks: [],
+        agentName: 'OpenAI',
         usage: response.usage
           ? {
               prompt_tokens: response.usage.prompt_tokens ?? 0,
@@ -209,10 +206,6 @@ export class OpenAIProvider implements IProvider {
     }
   }
 
-  /**
-   * Executes a streaming call to the OpenAI Responses API.
-   * Yields content, thought, and tool call chunks as they arrive.
-   */
   async *stream(
     messages: Message[],
     tools?: ITool[],
@@ -225,62 +218,41 @@ export class OpenAIProvider implements IProvider {
     topP?: number,
     stopSequences?: string[]
   ): AsyncGenerator<MessageChunk> {
-    const client = this.client;
-    const requestedProfile = profile;
+    const options = await this.getEffectiveOptions(messages, model, profile);
+    const rf = this.getEffectiveResponseFormat(responseFormat);
+    const hasTools = tools && tools.length > 0;
 
-    let activeModel = model ?? this.model;
-    if (!model && profile) {
-      const profileToModel: Record<ReasoningProfile, string> = {
-        [ReasoningProfile.FAST]: OpenAIModel.GPT_5_4_NANO,
-        [ReasoningProfile.STANDARD]: OpenAIModel.GPT_5_4_MINI,
-        [ReasoningProfile.THINKING]: OpenAIModel.GPT_5_4_MINI,
-        [ReasoningProfile.DEEP]: OpenAIModel.GPT_5_4,
-      };
-      activeModel = (profileToModel[profile] ?? activeModel) as string;
-    }
-
-    const capabilities = await this.getCapabilities(activeModel);
-    profile = normalizeProfile(profile, capabilities, activeModel);
-    const reasoningEffort = capEffort(
-      REASONING_MAP[profile] as string,
-      capabilities.maxReasoningEffort
-    );
+    const capabilities = await this.getCapabilities(options.model);
+    const reasoningEffort = capEffort(REASONING_MAP[options.profile] as string, capabilities.maxReasoningEffort);
 
     const responsesInput = mapMessagesToResponsesInput(messages);
-
-    const shouldRequestSummary = shouldRequestReasoningSummary(activeModel, requestedProfile);
+    const shouldRequestSummary = shouldRequestReasoningSummary(options.model, profile);
 
     const requestPayload: Record<string, unknown> = {
-      model: activeModel as OpenAI.ResponsesModel,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      input: responsesInput as any,
+      model: options.model as OpenAI.ResponsesModel,
+      input: responsesInput,
+      stream: true,
       reasoning: {
         effort: reasoningEffort as OpenAI.ReasoningEffort,
         ...(shouldRequestSummary ? { summary: 'auto' } : {}),
       },
-      stream: true,
-      ...(responseFormat
+      ...(rf
         ? {
             text: {
               format:
-                responseFormat.type === 'json_schema'
+                rf.type === OPENAI_JSON_SCHEMA
                   ? {
-                      type: 'json_schema',
-                      name: responseFormat.json_schema?.name ?? 'response',
-                      schema: responseFormat.json_schema?.schema ?? {},
-                      strict: responseFormat.json_schema?.strict ?? true,
-                      description: responseFormat.json_schema?.description,
+                      type: OPENAI_JSON_SCHEMA,
+                      name: rf.name,
+                      schema: rf.schema,
+                      strict: rf.strict,
+                      description: rf.description,
                     }
-                  : { type: responseFormat.type },
+                  : { type: rf.type },
             },
           }
         : {}),
-      ...(tools && tools.length > 0
-        ? {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            tools: mapToolsToOpenAI(tools) as any,
-          }
-        : {}),
+      ...(hasTools ? { tools: mapToolsToOpenAI(tools) } : {}),
       ...(temperature !== undefined ? { temperature } : {}),
       ...(maxTokens !== undefined ? { max_tokens: maxTokens } : {}),
       ...(topP !== undefined ? { top_p: topP } : {}),
@@ -288,152 +260,58 @@ export class OpenAIProvider implements IProvider {
     };
 
     try {
-      let stream: AsyncIterable<unknown>;
-      try {
-        stream = (await client.responses.create(
-          requestPayload
-        )) as unknown as AsyncIterable<unknown>;
-      } catch (err) {
-        if (!shouldRequestSummary || !isReasoningSummaryUnsupportedError(err)) {
-          throw err;
-        }
+      const stream = await this.client.responses.create(requestPayload as any);
 
-        logger.warn(
-          `OpenAI reasoning.summary unsupported for ${activeModel} streaming; retrying without summary.`
-        );
-
-        const fallbackPayload = {
-          ...requestPayload,
-          reasoning: { effort: reasoningEffort as OpenAI.ReasoningEffort },
-        };
-        stream = (await client.responses.create(
-          fallbackPayload
-        )) as unknown as AsyncIterable<unknown>;
-      }
-
-      for await (const chunk of stream) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const rawChunk = chunk as any;
-        const type = rawChunk.type || '';
-
-        logger.info(
-          `[OPENAI:STREAM] Type: ${type}, DeltaType: ${typeof rawChunk.delta}, ItemType: ${rawChunk.item?.type}`
-        );
-
-        // Support both direct deltas and nested item deltas (2026 Responses API)
-        const delta = rawChunk.delta ?? rawChunk.item?.delta;
-
-        const isContentEvent =
-          type === OPENAI.EVENT_TYPES.TEXT_DELTA ||
-          type === OPENAI.EVENT_TYPES.OUTPUT_TEXT_DELTA ||
-          type === OPENAI.EVENT_TYPES.RESPONSE_TEXT_DELTA ||
-          type === OPENAI.EVENT_TYPES.RESPONSE_OUTPUT_TEXT_DELTA;
-        const isThoughtEvent =
-          type === OPENAI.EVENT_TYPES.REASONING_DELTA ||
-          type === OPENAI.EVENT_TYPES.OUTPUT_THOUGHT_DELTA ||
-          type === OPENAI.EVENT_TYPES.THOUGHT_DELTA ||
-          type === OPENAI.EVENT_TYPES.RESPONSE_REASONING_DELTA ||
-          type === OPENAI.EVENT_TYPES.RESPONSE_OUTPUT_THOUGHT_DELTA ||
-          type === OPENAI.EVENT_TYPES.RESPONSE_THOUGHT_DELTA ||
-          type === OPENAI.EVENT_TYPES.REASONING_SUMMARY_DELTA ||
-          type === OPENAI.EVENT_TYPES.RESPONSE_REASONING_SUMMARY_DELTA ||
-          !!rawChunk.delta?.reasoning_content ||
-          !!rawChunk.item?.delta?.reasoning_content;
-
-        const isReasoningSummaryItemDone =
-          type === OPENAI.EVENT_TYPES.OUTPUT_ITEM_DONE ||
-          type === OPENAI.EVENT_TYPES.RESPONSE_OUTPUT_ITEM_DONE;
-
-        if (isContentEvent && delta) {
-          const content = typeof delta === 'string' ? delta : (delta.value ?? delta.text ?? '');
-          if (content) {
-            yield { content };
-          }
-        } else if (isThoughtEvent) {
-          const thought =
-            typeof delta === 'string'
-              ? delta
-              : (delta?.value ??
-                delta?.text ??
-                rawChunk.delta?.reasoning_content ??
-                rawChunk.item?.delta?.reasoning_content ??
-                '');
-          if (thought) {
-            yield { thought };
-          }
-        } else if (
-          (type === OPENAI.EVENT_TYPES.MESSAGE_DELTA ||
-            type === OPENAI.EVENT_TYPES.RESPONSE_MESSAGE_DELTA) &&
-          rawChunk.delta
-        ) {
-          if (rawChunk.delta.content) yield { content: rawChunk.delta.content };
-          if (rawChunk.delta.reasoning) yield { thought: rawChunk.delta.reasoning };
-        } else if (
-          isReasoningSummaryItemDone &&
-          rawChunk.item?.type === OPENAI.STREAM_PROPS.REASONING &&
-          Array.isArray(rawChunk.item?.summary)
-        ) {
-          const summaryText = extractSummaryText(rawChunk.item.summary);
-          if (summaryText.length > 0) {
-            const summaryChunks = splitThoughtIntoChunks(summaryText);
-            for (const thoughtChunk of summaryChunks) {
-              yield { thought: thoughtChunk };
-            }
-          }
-        } else if (
-          isReasoningSummaryItemDone &&
-          rawChunk.item?.type === OPENAI.STREAM_PROPS.FUNCTION_CALL
-        ) {
-          yield {
-            tool_calls: [
-              {
-                id: rawChunk.item.call_id ?? '',
-                type: OPENAI.FUNCTION_TYPE,
-                function: {
-                  name: rawChunk.item.name ?? '',
-                  arguments: rawChunk.item.arguments ?? '',
-                },
-              },
-            ],
-          };
-        } else if (
-          (type === OPENAI.EVENT_TYPES.USAGE || type === OPENAI.EVENT_TYPES.RESPONSE_USAGE) &&
-          (rawChunk.usage || rawChunk.response?.usage)
-        ) {
-          const usage = rawChunk.usage || rawChunk.response?.usage;
+      for await (const chunk of stream as any) {
+        const choice = chunk.choices?.[0];
+        if (chunk.usage) {
           yield {
             usage: {
-              prompt_tokens: usage.prompt_tokens ?? 0,
-              completion_tokens: usage.completion_tokens ?? 0,
-              total_tokens: usage.total_tokens ?? 0,
+              prompt_tokens: chunk.usage.prompt_tokens ?? 0,
+              completion_tokens: chunk.usage.completion_tokens ?? 0,
+              total_tokens: chunk.usage.total_tokens ?? 0,
             },
+            tool_calls: [],
+            attachments: [],
+            ui_blocks: [],
+          };
+        }
+
+        if (!choice) continue;
+        const delta = choice.delta;
+        if (!delta) continue;
+
+        if (delta.content) {
+          yield { content: delta.content, tool_calls: [], attachments: [], ui_blocks: [] };
+        }
+
+        if (delta.tool_calls) {
+          yield {
+            tool_calls: delta.tool_calls.map((tc: any) => ({
+              id: tc.id ?? '',
+              type: 'function',
+              function: {
+                name: tc.function?.name ?? '',
+                arguments: tc.function?.arguments ?? '',
+              },
+            })),
+            attachments: [],
+            ui_blocks: [],
           };
         }
       }
     } catch (err) {
       logger.error('OpenAI streaming failed:', err);
-      throw new Error(
-        `OpenAI streaming failed: ${err instanceof Error ? err.message : String(err)}`
-      );
+      yield { content: ' (Streaming failed)', tool_calls: [], attachments: [], ui_blocks: [] };
     }
   }
 
-  /**
-   * Returns the capabilities of the provider for the given model.
-   * @param model - The model identifier.
-   */
   async getCapabilities(model?: string) {
     const activeModel = model ?? this.model;
-    const isReasoningModel = activeModel.includes('gpt-5');
-    const isMiniModel = activeModel.includes('mini');
-    const isNanoModel = activeModel.includes('nano');
-
-    let maxReasoningEffort = 'xhigh';
-    if (isMiniModel) maxReasoningEffort = 'high';
-    else if (isNanoModel) maxReasoningEffort = 'medium';
+    const isGpt5Family = activeModel.includes('gpt-5');
 
     return {
-      supportedReasoningProfiles: isReasoningModel
+      supportedReasoningProfiles: isGpt5Family
         ? [
             ReasoningProfile.FAST,
             ReasoningProfile.STANDARD,
@@ -441,10 +319,10 @@ export class OpenAIProvider implements IProvider {
             ReasoningProfile.DEEP,
           ]
         : [ReasoningProfile.FAST, ReasoningProfile.STANDARD],
-      maxReasoningEffort,
+      maxReasoningEffort: activeModel.includes('mini') ? 'high' : activeModel.includes('nano') ? 'medium' : 'xhigh',
       supportsStructuredOutput: true,
       contextWindow: 128000,
-      supportedAttachmentTypes: [AttachmentType.IMAGE, AttachmentType.FILE],
+      supportedAttachmentTypes: [AttachmentType.IMAGE],
     };
   }
 }

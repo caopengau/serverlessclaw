@@ -78,34 +78,35 @@ export enum ButtonType {
 
 /**
  * A single message in a conversation thread.
+ * Fields are made required to improve contract enforcement and eliminate fallback cascades.
  */
 export interface Message {
   /** The role of the message sender. */
   role: MessageRole;
   /** The textual content of the message. */
   content: string;
-  /** Intermediate reasoning content (e.g. <thought> tags). Defaults to empty string. */
-  thought?: string;
-  /** Tool calls requested by the assistant. Defaults to []. */
-  tool_calls?: ToolCall[];
+  /** Intermediate reasoning content (e.g. <thought> tags). */
+  thought: string;
+  /** Tool calls requested by the assistant. */
+  tool_calls: ToolCall[];
   /** The ID of the tool call this message is responding to (if role is TOOL). */
   tool_call_id?: string;
   /** The name of the tool or agent this message is responding from. */
   name?: string;
-  /** Optional human-readable name of the agent that generated this message. */
-  agentName?: string;
+  /** Human-readable name of the agent that generated this message. */
+  agentName: string;
   /** Required link to the isolated mechanical monologue for this message */
   traceId: string;
-  /** Required unique identifier for the message (used for streaming reconciliation). */
+  /** Required unique identifier for the message. */
   messageId: string;
   /**
-   * Optional workspace identifier for multi-tenant isolation.
+   * Workspace identifier for multi-tenant isolation.
    */
-  workspaceId?: string;
+  workspaceId: string;
   /**
-   * Attachments (images, files) associated with the message. Defaults to [].
+   * Attachments (images, files) associated with the message.
    */
-  attachments?: Attachment[];
+  attachments: Attachment[];
   /**
    * Optional usage statistics (tokens) for the message (usually only for ASSISTANT).
    */
@@ -120,9 +121,9 @@ export interface Message {
    */
   modelName?: string;
   /**
-   * Optional UI options (buttons) associated with the message.
+   * UI options (buttons) associated with the message.
    */
-  options?: Array<{
+  options: Array<{
     label: string;
     value: string;
     type?: ButtonType;
@@ -139,9 +140,9 @@ export interface Message {
     agentId?: string;
   };
   /**
-   * Optional dynamic UI blocks rendered by the assistant.
+   * Dynamic UI blocks rendered by the assistant.
    */
-  ui_blocks?: Array<{
+  ui_blocks: Array<{
     id: string;
     componentType: string;
     props: Record<string, unknown>;
@@ -208,7 +209,7 @@ export function createMessage(params: {
     tool_calls: params.tool_calls ?? [],
     tool_call_id: params.tool_call_id,
     name: params.name,
-    agentName: params.agentName,
+    agentName: params.agentName ?? 'SYSTEM',
     traceId: params.traceId,
     messageId: params.messageId,
     attachments: params.attachments ?? [],
@@ -217,7 +218,7 @@ export function createMessage(params: {
     options: params.options ?? [],
     pageContext: params.pageContext,
     ui_blocks: params.ui_blocks ?? [],
-    workspaceId: params.workspaceId,
+    workspaceId: params.workspaceId ?? 'default',
   };
 }
 
@@ -330,6 +331,7 @@ export type ResponseFormat =
 
 /**
  * A partial chunk of a message during streaming.
+ * Fields are made non-nullable where possible to eliminate fallback cascades.
  */
 export interface MessageChunk {
   /** The specific role (usually assistant). */
@@ -339,9 +341,9 @@ export interface MessageChunk {
   /** Partial reasoning content. */
   thought?: string;
   /** Partial tool calls. */
-  tool_calls?: ToolCall[];
+  tool_calls: ToolCall[];
   /** Optional UI options (buttons) for the user. */
-  options?: Array<{
+  options: Array<{
     label: string;
     value: string;
     type?: string;
@@ -362,11 +364,11 @@ export interface MessageChunk {
   /**
    * Optional attachments (images, files) during streaming.
    */
-  attachments?: Message['attachments'];
+  attachments: Attachment[];
   /**
    * Optional dynamic UI blocks during streaming.
    */
-  ui_blocks?: Message['ui_blocks'];
+  ui_blocks: Message['ui_blocks'];
   /** Optional model name for streaming chunks. */
   modelName?: string;
 }
@@ -377,14 +379,6 @@ export interface MessageChunk {
 export interface IProvider {
   /**
    * Performs a completion call to the LLM.
-   *
-   * @param messages - The full conversation history.
-   * @param tools - Optional list of tools the LLM can call.
-   * @param profile - The desired reasoning profile.
-   * @param model - Optional override for the model ID.
-   * @param provider - Optional override for the provider name.
-   * @param responseFormat - Optional structured format for the response.
-   * @returns A promise resolving to the AI's message response.
    */
   call(
     messages: Message[],
@@ -401,14 +395,6 @@ export interface IProvider {
 
   /**
    * Performs a streaming completion call to the LLM.
-   *
-   * @param messages - The full conversation history.
-   * @param tools - Optional list of tools the LLM can call.
-   * @param profile - The desired reasoning profile.
-   * @param model - Optional override for the model ID.
-   * @param provider - Optional override for the provider name.
-   * @param responseFormat - Optional structured format for the response.
-   * @returns An AsyncIterable yielding message chunks.
    */
   stream(
     messages: Message[],
@@ -425,9 +411,6 @@ export interface IProvider {
 
   /**
    * Retrieves the capabilities of a specific model.
-   *
-   * @param model - The model ID to query.
-   * @returns A promise resolving to the capabilities object.
    */
   getCapabilities(model?: string): Promise<ICapabilities>;
 }

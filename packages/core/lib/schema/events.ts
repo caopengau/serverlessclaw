@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { HealthSeverity } from '../types/constants';
-import { EventType, AGENT_TYPES } from '../types/index';
+import { EventType } from '../types/agent/events';
+import { AGENT_TYPES } from '../types/agent/constants';
 import { normalizeBaseUserId } from '../utils/normalize';
 import { generateMessageId } from '../utils/id-generator';
 
@@ -226,15 +227,21 @@ export const HANDOFF_SCHEMA = BASE_EVENT_SCHEMA.extend({
 });
 
 /**
- * Schema for escalation level timeout events from the scheduler.
+ * Internal base schema for escalation-related events.
  */
-export const ESCALATION_LEVEL_TIMEOUT_SCHEMA = z.object({
+const BASE_ESCALATION_SCHEMA = z.object({
   /** Trace ID for correlation. */
   traceId: z.string(),
-  /** Identifier of the agent being escalated. */
+  /** Identifier of the escalated agent. */
   agentId: z.string(),
   /** User ID associated with the task. */
   userId: z.string(),
+});
+
+/**
+ * Schema for escalation level timeout events from the scheduler.
+ */
+export const ESCALATION_LEVEL_TIMEOUT_SCHEMA = BASE_ESCALATION_SCHEMA.extend({
   /** Original question or task description. */
   question: z.string().optional(),
   /** Original task. */
@@ -248,13 +255,7 @@ export const ESCALATION_LEVEL_TIMEOUT_SCHEMA = z.object({
 /**
  * Schema for escalation completed events.
  */
-export const ESCALATION_COMPLETED_SCHEMA = z.object({
-  /** Trace ID for correlation. */
-  traceId: z.string(),
-  /** Identifier of the escalated agent. */
-  agentId: z.string(),
-  /** User ID associated with the task. */
-  userId: z.string(),
+export const ESCALATION_COMPLETED_SCHEMA = BASE_ESCALATION_SCHEMA.extend({
   /** Final outcome of the escalation process. */
   outcome: z.enum(['resolved', 'escalated_to_human', 'abandoned']),
   /** Final resolution text or summary. */

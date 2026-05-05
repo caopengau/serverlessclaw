@@ -168,4 +168,11 @@ export class MemoryGaps {
   ) {
     return this.underlying.getFailurePatterns(limit, scope);
   }
+
+  async cullResolvedGaps(
+    thresholdDays?: number,
+    scope?: string | import('../../types/memory').ContextualScope
+  ): Promise<number> {
+    return this.underlying.cullResolvedGaps(thresholdDays, scope);
+  }
 }

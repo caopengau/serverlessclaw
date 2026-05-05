@@ -95,14 +95,14 @@ export function mapMessagesToResponsesInput(messages: Message[]): Array<Record<s
         {
           type: OPENAI.ITEM_TYPES.FUNCTION_CALL_OUTPUT,
           call_id: m.tool_call_id ?? '',
-          output: m.content ?? '',
+          output: m.content || '',
         },
       ];
     }
 
     const items: Array<Record<string, unknown>> = [];
 
-    if (m.content || (m.attachments && m.attachments.length > 0)) {
+    if (m.content || m.attachments.length > 0) {
       let role: 'user' | 'assistant' | 'system' | 'developer' = OPENAI.ROLES.USER;
       if (m.role === MessageRole.SYSTEM) role = OPENAI.ROLES.DEVELOPER;
       else if (m.role === MessageRole.ASSISTANT) role = OPENAI.ROLES.ASSISTANT;
@@ -111,24 +111,22 @@ export function mapMessagesToResponsesInput(messages: Message[]): Array<Record<s
       const content: ContentItem[] = [];
       if (m.content) content.push({ type: OPENAI.CONTENT_TYPES.INPUT_TEXT, text: m.content });
 
-      if (m.attachments) {
-        m.attachments.forEach((att) => {
-          if (att.type === 'image') {
-            content.push({
-              type: OPENAI.CONTENT_TYPES.IMAGE_URL,
-              image_url: {
-                url: att.url ?? `data:${att.mimeType ?? 'image/png'};base64,${att.base64}`,
-              },
-            });
-          } else if (att.type === 'file') {
-            content.push({
-              type: OPENAI.CONTENT_TYPES.INPUT_FILE,
-              filename: att.name ?? OPENAI.DEFAULT_FILE_NAME,
-              file_data: `data:${att.mimeType ?? OPENAI.DEFAULT_MIME_TYPE};base64,${att.base64}`,
-            });
-          }
-        });
-      }
+      m.attachments.forEach((att) => {
+        if (att.type === 'image') {
+          content.push({
+            type: OPENAI.CONTENT_TYPES.IMAGE_URL,
+            image_url: {
+              url: att.url ?? `data:${att.mimeType ?? 'image/png'};base64,${att.base64}`,
+            },
+          });
+        } else if (att.type === 'file') {
+          content.push({
+            type: OPENAI.CONTENT_TYPES.INPUT_FILE,
+            filename: att.name ?? OPENAI.DEFAULT_FILE_NAME,
+            file_data: `data:${att.mimeType ?? OPENAI.DEFAULT_MIME_TYPE};base64,${att.base64}`,
+          });
+        }
+      });
 
       items.push({
         type: OPENAI.ITEM_TYPES.MESSAGE,
@@ -140,7 +138,7 @@ export function mapMessagesToResponsesInput(messages: Message[]): Array<Record<s
       });
     }
 
-    if (m.tool_calls && m.tool_calls.length > 0) {
+    if (m.tool_calls.length > 0) {
       for (const tc of m.tool_calls) {
         items.push({
           type: OPENAI.ITEM_TYPES.FUNCTION_CALL,

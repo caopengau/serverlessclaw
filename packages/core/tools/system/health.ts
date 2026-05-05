@@ -1,4 +1,4 @@
-import { systemSchema as schema } from './schema';
+import { healthSchema } from './definitions/health';
 import { checkCognitiveHealth } from '../../lib/lifecycle/health';
 import { CognitiveHealthMonitor } from '../../lib/metrics/cognitive-metrics';
 import { DynamoMemory } from '../../lib/memory';
@@ -9,7 +9,7 @@ import { formatErrorMessage } from '../../lib/utils/error';
  * Performs a comprehensive system-wide health and connectivity check.
  */
 export const checkHealth = {
-  ...schema.checkHealth,
+  ...healthSchema.checkHealth,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     logger.info('[Tool] Running system-wide health check...');
     try {
@@ -35,7 +35,7 @@ export const checkHealth = {
  * memory health, and detecting anomalies.
  */
 export const runCognitiveHealthCheck = {
-  ...schema.runCognitiveHealthCheck,
+  ...healthSchema.runCognitiveHealthCheck,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     logger.info('[Tool] Running deep cognitive health check...');
     try {
@@ -80,7 +80,7 @@ export const runCognitiveHealthCheck = {
  * Enables advanced debugging and logging for a specific agent.
  */
 export const debugAgent = {
-  ...schema.debugAgent,
+  ...healthSchema.debugAgent,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { agentId, level } = args as { agentId: string; level: string };
 

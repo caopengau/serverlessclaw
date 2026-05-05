@@ -1,4 +1,4 @@
-import { systemSchema as schema } from './schema';
+import { configSchema } from './definitions/config';
 import { CONFIG_KEYS } from '../../lib/constants';
 import { formatErrorMessage } from '../../lib/utils/error';
 
@@ -6,7 +6,7 @@ import { formatErrorMessage } from '../../lib/utils/error';
  * Switch the active LLM provider and model at runtime.
  */
 export const switchModel = {
-  ...schema.switchModel,
+  ...configSchema.switchModel,
   sensitive: true,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { provider, model } = args as { provider: string; model: string };
@@ -25,7 +25,7 @@ export const switchModel = {
  * Update any global system configuration.
  */
 export const setSystemConfig = {
-  ...schema.setSystemConfig,
+  ...configSchema.setSystemConfig,
   sensitive: true,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { key, value, description } = args as {
@@ -47,7 +47,7 @@ export const setSystemConfig = {
  * Retrieve a global system configuration.
  */
 export const getSystemConfig = {
-  ...schema.getSystemConfig,
+  ...configSchema.getSystemConfig,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { key } = args as { key: string };
     try {
@@ -65,7 +65,7 @@ export const getSystemConfig = {
  * List all known system configurations.
  */
 export const listSystemConfigs = {
-  ...schema.listSystemConfigs,
+  ...configSchema.listSystemConfigs,
   execute: async (): Promise<string> => {
     try {
       const { AgentRegistry } = await import('../../lib/registry');

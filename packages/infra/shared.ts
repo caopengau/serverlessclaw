@@ -118,12 +118,12 @@ export function getTenantEventFilter(options: {
 }
 
 /**
- * Provisions the optional domain configuration for a component.
+ * Retrieves the optional domain configuration for a component.
  *
  * @param component - The component to get the domain for ('api' | 'dashboard' | 'router').
  * @returns The domain configuration or undefined if not set.
  */
-export function provisionDomainConfig(component: 'api' | 'dashboard' | 'router'):
+export function getDomainConfig(component: 'api' | 'dashboard' | 'router'):
   | {
       name: string;
       dns?: ReturnType<typeof sst.cloudflare.dns>;
@@ -148,12 +148,10 @@ export function provisionDomainConfig(component: 'api' | 'dashboard' | 'router')
   };
   const envVar = envVarMap[component];
   let domain = process.env[envVar];
-  
   // VoltX Default Domains if not overridden in .env
   if (!domain && component === 'dashboard') {
     domain = stage === STAGES.PROD ? 'voltx.clawmore.ai' : 'dev.voltx.clawmore.ai';
   }
-
   // Use custom domains if provided in .env or defaults above
   if (!domain) return undefined;
 

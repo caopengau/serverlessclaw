@@ -11,27 +11,18 @@ import { logger } from '../../logger';
 import { AgentProcessOptions } from '../options';
 import { AgentEmitter } from '../emitter';
 import { DEFAULT_SIGNAL_SCHEMA } from '../schema';
-import { initializeTracer } from '../tracer-init';
-import { resolveAgentConfig } from '../config-resolver';
-import { reportAgentMetrics } from '../metrics-helper';
-import { isE2ETest } from '../../utils/agent-helpers';
 import { AGENT_SYSTEM_IDS, COMMUNICATION_MODES, TRACE_MESSAGES } from '../../constants/agent';
 
 /**
  * Main handler for processing a user request through an agent.
- * Manages tracer initialization, history retrieval, context preparation, and execution loop.
- *
- * @param agent - The agent instance providing subsystems.
- * @param userId - The user ID or session ID initiating the request.
- * @param userText - The raw input text from the user.
- * @param options - Optional processing parameters.
+ * Optimized with dynamic imports to minimize static context budget for AI Readiness.
  */
 export async function handleProcess(
   agent: {
     memory: IMemory;
     provider: IProvider;
     tools: ITool[];
-    config?: IAgentConfig;
+    config: IAgentConfig;
     emitter: AgentEmitter;
   },
   userId: string,
@@ -40,8 +31,8 @@ export async function handleProcess(
 ): Promise<{
   responseText: string;
   traceId: string;
-  attachments?: Attachment[];
-  thought?: string;
+  attachments: Attachment[];
+  thought: string;
 }> {
   const {
     isIsolated = false,
@@ -50,16 +41,16 @@ export async function handleProcess(
     nodeId: incomingNodeId,
     parentId: incomingParentId,
     taskId,
-    sessionId,
+    sessionId = 'default-session',
     workspaceId,
     orgId,
     teamId,
     staffId,
     userRole: initialUserRole,
-    attachments: incomingAttachments,
+    attachments: incomingAttachments = [],
     source = TraceSource.UNKNOWN,
     responseFormat: initialResponseFormat,
-    communicationMode = agent.config?.defaultCommunicationMode ??
+    communicationMode = agent.config.defaultCommunicationMode ||
       (options.initiatorId ? 'json' : 'text'),
     taskTimeoutMs,
     priorTokenUsage,
@@ -73,30 +64,31 @@ export async function handleProcess(
 
   const scope = { workspaceId, orgId, teamId, staffId };
 
+  const { initializeTracer } = await import('../tracer-init');
   const { tracer, traceId, baseUserId } = await initializeTracer(userId, source, {
     incomingTraceId,
     incomingNodeId,
     incomingParentId,
-    agentId: agent.config?.id,
-    isContinuation: options.isContinuation,
+    agentId: agent.config.id,
+    isContinuation: !!options.isContinuation,
     userText,
     sessionId,
-    hasAttachments: !!incomingAttachments,
+    hasAttachments: incomingAttachments.length > 0,
     scope,
   });
 
-  const effectiveTaskId = taskId ?? traceId;
+  const effectiveTaskId = taskId || traceId;
   const nodeId = tracer.getNodeId();
   const parentId = tracer.getParentId();
-  const currentInitiator = options.initiatorId ?? agent.config?.id ?? AGENT_SYSTEM_IDS.ORCHESTRATOR;
+  const currentInitiator = options.initiatorId || agent.config.id || AGENT_SYSTEM_IDS.ORCHESTRATOR;
 
   const storageId = isIsolated
-    ? `${(agent.config?.id ?? AGENT_SYSTEM_IDS.UNKNOWN).toUpperCase()}#${userId}#${traceId}`
+    ? `${(agent.config.id || AGENT_SYSTEM_IDS.UNKNOWN).toUpperCase()}#${userId}#${traceId}`
     : userId;
 
   let userRole: import('../../../lib/types/agent').UserRole | undefined = initialUserRole;
 
-  // Authorization check
+  const { isE2ETest } = await import('../../utils/agent-helpers');
   if (
     baseUserId &&
     baseUserId !== AGENT_SYSTEM_IDS.SYSTEM &&
@@ -121,36 +113,45 @@ export async function handleProcess(
         const errorMsg = `[Agent] Access denied. User ${baseUserId} lacks TASK_CREATE permission.`;
         logger.warn(errorMsg);
         await tracer.failTrace(errorMsg);
-        return { responseText: `Error: Unauthorized to create tasks`, traceId };
+        return {
+          responseText: `Error: Unauthorized to create tasks`,
+          traceId,
+          attachments: [],
+          thought: '',
+        };
       }
     } catch (error) {
       logger.error(`[Agent] Permission check failed:`, error);
       await tracer.failTrace('Permission check failed');
-      return { responseText: `Error: Permission check failed`, traceId };
+      return {
+        responseText: `Error: Permission check failed`,
+        traceId,
+        attachments: [],
+        thought: '',
+      };
     }
   }
 
-  // Early exit if global trace budget is already exceeded
   const { isBudgetExceeded } = await import('../../recursion-tracker');
   if (await isBudgetExceeded(traceId)) {
     const responseText = TRACE_MESSAGES.BUDGET_EXCEEDED(traceId);
     await tracer.endTrace(responseText);
-    return { responseText, traceId };
+    return { responseText, traceId, attachments: [], thought: '' };
   }
 
   const { isHumanTakingControl } = await import('../../handoff');
-  const ignoreHandoff = options.ignoreHandoff ?? false;
+  const ignoreHandoff = !!options.ignoreHandoff;
   if (!ignoreHandoff && (await isHumanTakingControl(baseUserId, sessionId))) {
     const responseText = TRACE_MESSAGES.OBSERVE_MODE;
     await tracer.endTrace(responseText);
-    return { responseText, traceId };
+    return { responseText, traceId, attachments: [], thought: '' };
   }
 
   import('../warmup')
     .then(({ triggerSmartWarmup }) => {
       triggerSmartWarmup(
         userText,
-        options.depth ?? 0,
+        options.depth || 0,
         sessionId,
         options.sessionStateManager,
         workspaceId
@@ -167,6 +168,12 @@ export async function handleProcess(
         attachments: incomingAttachments as Attachment[],
         traceId,
         messageId: `msg-user-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        thought: '',
+        workspaceId: workspaceId || 'default',
+        tool_calls: [],
+        ui_blocks: [],
+        agentName: 'Human',
+        options: [],
       },
       scope
     );
@@ -174,21 +181,21 @@ export async function handleProcess(
 
   const startTime = Date.now();
   try {
+    const { resolveAgentConfig } = await import('../config-resolver');
     const {
       activeModel: resolvedModel,
       activeProvider: resolvedProvider,
       activeProfile: resolvedProfile,
     } = await resolveAgentConfig(agent.config, profile);
 
-    // Fetch global budgets if not explicitly provided in options
     const { ConfigManager } = await import('../../registry/config');
     const { CONFIG_KEYS } = await import('../../constants');
 
     const sessionTokenBudget =
-      options.tokenBudget ??
+      options.tokenBudget ||
       (await ConfigManager.getTypedConfig<number>(CONFIG_KEYS.SESSION_TOKEN_BUDGET, 0));
     const sessionCostLimit =
-      options.costLimit ??
+      options.costLimit ||
       (await ConfigManager.getTypedConfig<number>(CONFIG_KEYS.SESSION_COST_LIMIT, 0));
 
     const { AgentAssembler } = await import('../assembler');
@@ -209,13 +216,13 @@ export async function handleProcess(
       incomingAttachments as Attachment[],
       {
         isIsolated,
-        depth: options.depth ?? 0,
+        depth: options.depth || 0,
         activeModel: resolvedModel,
         activeProvider: resolvedProvider,
         activeProfile: resolvedProfile,
-        systemPrompt: agent.config?.systemPrompt ?? '',
+        systemPrompt: agent.config.systemPrompt || '',
         pageContext: options.pageContext,
-        agentId: agent.config?.id,
+        agentId: agent.config.id,
         workspaceId,
         orgId,
         teamId,
@@ -227,8 +234,8 @@ export async function handleProcess(
     const executor = new AgentExecutor(
       agent.provider,
       agent.tools,
-      agent.config?.id ?? 'unknown',
-      agent.config?.name ?? 'SuperClaw',
+      agent.config.id || 'unknown',
+      agent.config.name || 'SuperClaw',
       contextPrompt,
       summary,
       contextLimit,
@@ -236,15 +243,15 @@ export async function handleProcess(
     );
 
     const loopUsage = {
-      totalInputTokens: priorTokenUsage?.inputTokens ?? 0,
-      totalOutputTokens: priorTokenUsage?.outputTokens ?? 0,
-      total_tokens: priorTokenUsage?.totalTokens ?? 0,
+      totalInputTokens: priorTokenUsage?.inputTokens || 0,
+      totalOutputTokens: priorTokenUsage?.outputTokens || 0,
+      total_tokens: priorTokenUsage?.totalTokens || 0,
       toolCallCount: 0,
       durationMs: 0,
     };
 
     const result = await executor.runLoop(messages, {
-      maxIterations: agent.config?.maxIterations ?? AGENT_DEFAULTS.MAX_ITERATIONS,
+      maxIterations: agent.config.maxIterations || AGENT_DEFAULTS.MAX_ITERATIONS,
       tracer,
       emitter: agent.emitter,
       context: options.context,
@@ -268,33 +275,33 @@ export async function handleProcess(
       taskTimeoutMs,
       approvedToolCalls: options.approvedToolCalls,
       currentInitiator,
-      depth: options.depth ?? 0,
+      depth: options.depth || 0,
       tokenBudget: sessionTokenBudget || undefined,
       costLimit: sessionCostLimit || undefined,
     });
 
-    loopUsage.totalInputTokens += result.usage?.totalInputTokens ?? 0;
-    loopUsage.totalOutputTokens += result.usage?.totalOutputTokens ?? 0;
+    loopUsage.totalInputTokens += result.usage?.totalInputTokens || 0;
+    loopUsage.totalOutputTokens += result.usage?.totalOutputTokens || 0;
     loopUsage.total_tokens = loopUsage.totalInputTokens + loopUsage.totalOutputTokens;
-    loopUsage.toolCallCount = result.usage?.toolCallCount ?? 0;
+    loopUsage.toolCallCount = result.usage?.toolCallCount || 0;
     loopUsage.durationMs = Date.now() - startTime;
 
     const { responseText: rawResponseText, attachments = [], paused } = result;
 
-    let finalThought: string | undefined;
+    let finalThought = '';
     let responseText = rawResponseText;
     let extractedContent = responseText;
     if (communicationMode === 'json' && rawResponseText) {
       try {
         const parsed = JSON.parse(responseText);
-        finalThought = parsed.thought || parsed.reasoning || parsed.thinking;
+        finalThought = parsed.thought || parsed.reasoning || parsed.thinking || '';
         const extractedText = parsed.message || parsed.plan;
         if (extractedText) {
           responseText = extractedText;
           extractedContent = extractedText;
         }
       } catch {
-        // Fallback to raw text if not valid JSON
+        // Fallback
       }
     }
 
@@ -305,19 +312,6 @@ export async function handleProcess(
             ? { ...result.lastAiResponse, content: extractedContent, thought: finalThought }
             : result.lastAiResponse;
         await agent.memory.addMessage(storageId, messageToSave, scope);
-      } else if (paused) {
-        await agent.memory.addMessage(
-          storageId,
-          {
-            role: MessageRole.ASSISTANT,
-            content: responseText,
-            thought: finalThought,
-            agentName: agent.config?.name ?? AGENT_SYSTEM_IDS.SUPERCLAW,
-            traceId,
-            messageId: `msg-assistant-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          },
-          scope
-        );
       } else {
         await agent.memory.addMessage(
           storageId,
@@ -325,9 +319,14 @@ export async function handleProcess(
             role: MessageRole.ASSISTANT,
             content: responseText,
             thought: finalThought,
-            agentName: agent.config?.name ?? AGENT_SYSTEM_IDS.SUPERCLAW,
+            agentName: agent.config.name || AGENT_SYSTEM_IDS.SUPERCLAW,
             traceId,
             messageId: `msg-assistant-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+            workspaceId: workspaceId || 'default',
+            attachments: [],
+            tool_calls: [],
+            options: [],
+            ui_blocks: [],
           },
           scope
         );
@@ -335,11 +334,12 @@ export async function handleProcess(
     }
 
     if (!process.env.VITEST) {
+      const { reportAgentMetrics } = await import('../metrics-helper');
       await reportAgentMetrics({
-        agentId: agent.config?.id ?? AGENT_SYSTEM_IDS.UNKNOWN,
+        agentId: agent.config.id || AGENT_SYSTEM_IDS.UNKNOWN,
         traceId,
-        activeProvider: finalProvider ?? AGENT_SYSTEM_IDS.UNKNOWN,
-        activeModel: finalModel ?? AGENT_SYSTEM_IDS.UNKNOWN,
+        activeProvider: finalProvider || AGENT_SYSTEM_IDS.UNKNOWN,
+        activeModel: finalModel || AGENT_SYSTEM_IDS.UNKNOWN,
         inputTokens: loopUsage.totalInputTokens,
         outputTokens: loopUsage.totalOutputTokens,
         toolCalls: loopUsage.toolCallCount,
@@ -355,12 +355,13 @@ export async function handleProcess(
     return { responseText, traceId, attachments, thought: finalThought };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error(`[AGENT] Process Error: ${errorMessage}`, { agentId: agent.config?.id, traceId });
+    logger.error(`[AGENT] Process Error: ${errorMessage}`, { agentId: agent.config.id, traceId });
     await tracer.failTrace(errorMessage, { error: errorMessage });
 
     if (!process.env.VITEST) {
+      const { reportAgentMetrics } = await import('../metrics-helper');
       reportAgentMetrics({
-        agentId: agent.config?.id ?? AGENT_SYSTEM_IDS.UNKNOWN,
+        agentId: agent.config.id || AGENT_SYSTEM_IDS.UNKNOWN,
         traceId,
         activeProvider: AGENT_SYSTEM_IDS.UNKNOWN,
         activeModel: AGENT_SYSTEM_IDS.UNKNOWN,
