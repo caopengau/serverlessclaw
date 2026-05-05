@@ -16,6 +16,11 @@ const PREFIX_GAP = 'gap';
 const ENCODING_HEX = 'hex';
 const DEFAULT_MESSAGE_TYPE = 'assistant';
 
+const ENTROPY_BYTES_SHORT = 3;
+const ENTROPY_BYTES_MEDIUM = 4;
+const ENTROPY_BYTES_LONG = 6;
+const TIMESTAMP_LENGTH = 13;
+
 /**
  * Generates a message ID with timestamp + entropy.
  * Format: msg-<type>-<timestamp>-<random>
@@ -24,7 +29,7 @@ const DEFAULT_MESSAGE_TYPE = 'assistant';
  * @returns A unique message identifier string.
  */
 export function generateMessageId(type: string = DEFAULT_MESSAGE_TYPE): string {
-  return `${PREFIX_MESSAGE}-${type}-${Date.now()}-${randomBytes(4).toString(ENCODING_HEX)}`;
+  return `${PREFIX_MESSAGE}-${type}-${Date.now()}-${randomBytes(ENTROPY_BYTES_MEDIUM).toString(ENCODING_HEX)}`;
 }
 
 /**
@@ -35,7 +40,7 @@ export function generateMessageId(type: string = DEFAULT_MESSAGE_TYPE): string {
  * @returns A unique identifier string.
  */
 export function generateId(prefix?: string): string {
-  const base = `${Date.now()}-${randomBytes(4).toString(ENCODING_HEX)}`;
+  const base = `${Date.now()}-${randomBytes(ENTROPY_BYTES_MEDIUM).toString(ENCODING_HEX)}`;
   return prefix ? `${prefix}-${base}` : base;
 }
 
@@ -63,7 +68,8 @@ export function fnv1aHash(input: string): string {
  * @returns A numeric sort key (timestamp or hash).
  */
 export function sessionIdToSortKey(sessionId: string): number {
-  const match = sessionId.match(/\d{13}/);
+  const timestampRegex = new RegExp(`\\d{${TIMESTAMP_LENGTH}}`);
+  const match = sessionId.match(timestampRegex);
   if (match) {
     const parsedTimestamp = Number.parseInt(match[0], 10);
     if (!Number.isNaN(parsedTimestamp)) {
@@ -88,7 +94,7 @@ export function generateSessionId(): string {
  * @returns A unique workspace ID string.
  */
 export function generateWorkspaceId(): string {
-  return `${PREFIX_WORKSPACE}-${randomBytes(6).toString(ENCODING_HEX)}`;
+  return `${PREFIX_WORKSPACE}-${randomBytes(ENTROPY_BYTES_LONG).toString(ENCODING_HEX)}`;
 }
 
 /**
@@ -97,5 +103,5 @@ export function generateWorkspaceId(): string {
  * @returns A unique gap ID string.
  */
 export function generateGapId(): string {
-  return `${PREFIX_GAP}-${Date.now()}-${randomBytes(3).toString(ENCODING_HEX)}`;
+  return `${PREFIX_GAP}-${Date.now()}-${randomBytes(ENTROPY_BYTES_SHORT).toString(ENCODING_HEX)}`;
 }
