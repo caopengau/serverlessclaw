@@ -9,58 +9,12 @@ import { EventOptions, EventPriority, ErrorCategory, DlqEntry } from './types';
 const MAX_RETRIES = BUS.MAX_RETRIES;
 const INITIAL_BACKOFF_MS = BUS.INITIAL_BACKOFF_MS;
 
-const ERR_THROTTLING = 'throttling';
-const ERR_RATE_LIMIT = 'rate limit';
-const ERR_TIMEOUT = 'timeout';
-const ERR_CONNECTION = 'connection';
-const ERR_TEMPORARY = 'temporary';
-const ERR_SERVICE_UNAVAILABLE = 'service unavailable';
-const ERR_TOO_MANY_REQUESTS = 'too many requests';
-const ERR_INTERNAL_ERROR = 'internal error';
-const ERR_CODE_500 = '500';
-const ERR_CODE_503 = '503';
-const ERR_SOCKET = 'socket';
-const ERR_ECONNRESET = 'econnreset';
-const ERR_ETIMEDOUT = 'etimedout';
-
-const ERR_ACCESS_DENIED = 'access denied';
-const ERR_UNAUTHORIZED = 'unauthorized';
-const ERR_FORBIDDEN = 'forbidden';
-const ERR_NOT_FOUND = 'not found';
-const ERR_INVALID = 'invalid';
-const ERR_MALFORMED = 'malformed';
+import { ErrorClass, classifyError } from '../error-classification';
 
 function categorizeError(error: unknown): ErrorCategory {
-  if (error instanceof Error) {
-    const message = error.message.toLowerCase();
-    if (
-      message.includes(ERR_THROTTLING) ||
-      message.includes(ERR_RATE_LIMIT) ||
-      message.includes(ERR_TIMEOUT) ||
-      message.includes(ERR_CONNECTION) ||
-      message.includes(ERR_TEMPORARY) ||
-      message.includes(ERR_SERVICE_UNAVAILABLE) ||
-      message.includes(ERR_TOO_MANY_REQUESTS) ||
-      message.includes(ERR_INTERNAL_ERROR) ||
-      message.includes(ERR_CODE_500) ||
-      message.includes(ERR_CODE_503) ||
-      message.includes(ERR_SOCKET) ||
-      message.includes(ERR_ECONNRESET) ||
-      message.includes(ERR_ETIMEDOUT)
-    ) {
-      return ErrorCategory.TRANSIENT;
-    }
-    if (
-      message.includes(ERR_ACCESS_DENIED) ||
-      message.includes(ERR_UNAUTHORIZED) ||
-      message.includes(ERR_FORBIDDEN) ||
-      message.includes(ERR_NOT_FOUND) ||
-      message.includes(ERR_INVALID) ||
-      message.includes(ERR_MALFORMED)
-    ) {
-      return ErrorCategory.PERMANENT;
-    }
-  }
+  const ec = classifyError(error);
+  if (ec === ErrorClass.TRANSIENT) return ErrorCategory.TRANSIENT;
+  if (ec === ErrorClass.PERMANENT) return ErrorCategory.PERMANENT;
   return ErrorCategory.UNKNOWN;
 }
 
