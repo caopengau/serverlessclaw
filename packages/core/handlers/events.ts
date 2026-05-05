@@ -1,13 +1,6 @@
 import { logger } from '../lib/logger';
-import { reportHealthIssue } from '../lib/lifecycle/health';
 import { Context } from 'aws-lambda';
-import { routeToDlq } from './route-to-dlq';
-import { checkAndMarkIdempotent } from './events/idempotency';
-import { emitMetrics, METRICS } from '../lib/metrics';
-import { ConfigManager } from '../lib/registry/config';
-import { verifyEventRoutingConfiguration } from '../lib/event-routing';
 import { performance } from 'perf_hooks';
-import { FlowController } from '../lib/routing/flow-controller';
 import { EventType } from '../lib/types/agent/events';
 import * as crypto from 'crypto';
 
@@ -15,9 +8,10 @@ import { validateEvent } from './events/validation';
 import { checkRecursionLimit } from './events/recursion-guard';
 import { getHandlerForEvent } from './events/routing-engine';
 
-// Verify event routing configuration on module load
-verifyEventRoutingConfiguration();
-
+/**
+ * Main Event Bridge Handler.
+ * Routes events to specialized handlers based on their detail-type.
+ */
 export async function handler(
   event: {
     'detail-type': string;
@@ -31,12 +25,15 @@ export async function handler(
   const eventDetail = event.detail;
   const envelopeId = event.id;
 
+  const { emitMetrics, METRICS } = await import('../lib/metrics');
+
   // 1. Validation
   const validation = validateEvent(eventDetail);
   if (!validation.valid) {
     const errorMsg = `[VALIDATION] Missing required fields: ${validation.errors?.join(', ')}`;
     logger.error(errorMsg);
     const workspaceId = (eventDetail.workspaceId as string) || undefined;
+    const { routeToDlq } = await import('./route-to-dlq');
     await routeToDlq(
       event,
       detailType,
@@ -81,9 +78,11 @@ export async function handler(
   );
 
   // 3. Flow Control
+  const { FlowController } = await import('../lib/routing/flow-controller');
   const flowResult = await FlowController.canProceed(detailType, workspaceId);
   if (!flowResult.allowed) {
     logger.warn(`[FLOW_CONTROL] ${flowResult.reason} for ${detailType}`);
+    const { routeToDlq } = await import('./route-to-dlq');
     await routeToDlq(
       event,
       detailType,
@@ -105,6 +104,7 @@ export async function handler(
   const contentHash = hash.digest('hex').substring(0, 16);
   const idempotencyKey = (eventDetail.idempotencyKey as string) || contentHash;
 
+  const { checkAndMarkIdempotent } = await import('./events/idempotency');
   const alreadyProcessed = await checkAndMarkIdempotent(idempotencyKey, detailType, workspaceId);
   if (alreadyProcessed) {
     logger.info(`[EVENTS] Duplicate event detected: ${idempotencyKey} (${detailType})`);
@@ -112,10 +112,12 @@ export async function handler(
   }
 
   // 5. Retry Guard
+  const { ConfigManager } = await import('../lib/registry/config');
   const maxRetryCount = await ConfigManager.getTypedConfig('event_max_retry_count', 3);
   const retryCount = (eventDetail.retryCount as number) ?? 0;
   if (retryCount > maxRetryCount) {
     logger.warn(`[RETRY] Exceeded max retries (${maxRetryCount}) for ${detailType}`);
+    const { routeToDlq } = await import('./route-to-dlq');
     await routeToDlq(
       event,
       detailType,
@@ -165,6 +167,7 @@ export async function handler(
     logger.error(`EventHandler failed for ${detailType}: ${errorMessage}`, error);
     await FlowController.recordFailure(detailType, workspaceId);
 
+    const { routeToDlq } = await import('./route-to-dlq');
     await routeToDlq(event, detailType, 'SYSTEM', traceId, errorMessage, sessionId, workspaceId);
     emitMetrics([METRICS.dlqEvents(1, scope)]).catch(() => {});
 
@@ -172,6 +175,7 @@ export async function handler(
       logger.warn(`Metrics emission failed for ${detailType} error:`, err)
     );
 
+    const { reportHealthIssue } = await import('../lib/lifecycle/health');
     await reportHealthIssue({
       component: 'EventHandler',
       issue: `Failed to process event ${detailType}: ${errorMessage}`,

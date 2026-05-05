@@ -26,6 +26,7 @@ describe('Auth Login API Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv('NODE_ENV', 'development');
+    process.env.DASHBOARD_PASSWORD = 'test-password-123';
     mockResource.DashboardPassword = { value: 'test-password-123' };
   });
 

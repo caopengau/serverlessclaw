@@ -1,3 +1,8 @@
+import {
+  ReasoningProfile,
+  ResponseFormat,
+} from '../../types/index';
+
 /**
  * Internal response structure from OpenAI Responses API.
  */
@@ -23,6 +28,16 @@ export interface OpenAIResponse {
 }
 
 /**
+ * Effective call options with defaults applied.
+ */
+export interface EffectiveCallOptions {
+  model: string;
+  profile: ReasoningProfile;
+  workspaceId: string;
+  traceId: string;
+}
+
+/**
  * Valid content items for message inputs.
  */
 export type ContentItem =
@@ -42,3 +57,14 @@ export type ToolConfig = {
   parameters?: Record<string, unknown>;
   strict?: boolean;
 };
+
+/**
+ * Effective response format config.
+ */
+export interface EffectiveResponseFormat {
+  type: string;
+  name: string;
+  schema: Record<string, unknown>;
+  strict: boolean;
+  description?: string;
+}

@@ -1,6 +1,7 @@
 import { ToolCall, Message, ReasoningProfile, ButtonType } from '../types/index';
 import { ClawTracer } from '../tracer';
 import { Context as LambdaContext } from 'aws-lambda';
+import { validateRequiredFields } from '../utils/validation';
 
 export const AGENT_DEFAULTS = {
   MAX_ITERATIONS: 25,
@@ -156,11 +157,5 @@ export function validateExecutorOptions(options: ExecutorOptions): void {
     'mainConversationId',
   ];
 
-  const missing = required.filter(
-    (key) => options[key] === undefined || options[key] === null || options[key] === ''
-  );
-
-  if (missing.length > 0) {
-    throw new Error(`ExecutorOptions missing required fields: ${missing.join(', ')}.`);
-  }
+  validateRequiredFields(options, required, 'ExecutorOptions');
 }

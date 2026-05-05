@@ -1,19 +1,18 @@
 import { AGENT_TYPES, UserRole } from '../../lib/types/agent';
 import { EventType } from '../../lib/types/agent/events';
 import { COMPLETION_EVENT_SCHEMA, FAILURE_EVENT_SCHEMA } from '../../lib/schema/events';
-import { wakeupInitiator } from './shared';
 import { LRUSet } from '../../lib/utils/lru';
-import { getRecursionLimit } from '../../lib/recursion-tracker';
-import { routeToDlq } from '../route-to-dlq';
-import { emitMetrics, METRICS } from '../../lib/metrics';
 import * as crypto from 'crypto';
 import { checkAndMarkProcessed } from './task-result/idempotency';
-import { handleParallelTaskRetry } from './task-result/parallel';
-import { handleDagTaskOutcome, finalizeParallelDispatch } from './task-result/dag-orchestrator';
+import { recordTaskReputation } from './task-result/reputation';
 
 const DEDUP_MAX_SIZE = 10_000;
 const processedEvents = new LRUSet<string>(DEDUP_MAX_SIZE);
 
+/**
+ * Handles the result of a delegated task (completion or failure).
+ * Orchestrates parallel aggregation, DAG updates, or initiator wakeup.
+ */
 export async function handleTaskResult(
   event: { 'detail-type': string; detail: Record<string, unknown>; id?: string },
   detailType: string
@@ -57,28 +56,30 @@ export async function handleTaskResult(
     teamId,
     staffId,
     userRole,
+    taskId,
   } = parsedEvent;
   const response = 'error' in parsedEvent ? parsedEvent.error : parsedEvent.response;
 
+  const { getRecursionLimit } = await import('../../lib/recursion-tracker');
   const recursionLimit = await getRecursionLimit({ isMissionContext: false });
-  if ((depth ?? 0) >= recursionLimit) {
-    await routeToDlq(event, detailType, 'SYSTEM', traceId ?? 'unknown', `Recursion limit exceeded`);
+  if (depth >= recursionLimit) {
+    const { routeToDlq } = await import('../route-to-dlq');
+    const { emitMetrics, METRICS } = await import('../../lib/metrics');
+    await routeToDlq(event, detailType, 'SYSTEM', traceId, `Recursion limit exceeded`);
     emitMetrics([METRICS.dlqEvents(1, { workspaceId, teamId, staffId })]).catch(() => {});
     return;
   }
 
-  // Update reputation (async)
-  import('../../lib/memory/base')
-    .then(({ BaseMemoryProvider }) => {
-      import('../../lib/memory/reputation-operations').then(({ updateReputation }) => {
-        const latencyMs = (parsedEvent.metadata as any)?.durationMs ?? 0;
-        updateReputation(new BaseMemoryProvider(), agentId, !isFailure, latencyMs, {
-          scope: { workspaceId, teamId, staffId },
-          traceId: traceId || '',
-        });
-      });
-    })
-    .catch(() => {});
+  // Update reputation (background)
+  recordTaskReputation({
+    agentId,
+    isSuccess: !isFailure,
+    metadata: parsedEvent.metadata as Record<string, unknown>,
+    workspaceId,
+    teamId,
+    staffId,
+    traceId,
+  }).catch(() => {});
 
   if (
     initiatorId === 'orchestrator' ||
@@ -91,8 +92,8 @@ export async function handleTaskResult(
     const existingState = await aggregator.getState(userId, traceId, workspaceId);
 
     if (existingState) {
-      const taskId = (eventDetail.taskId as string) ?? agentId;
       if (isFailure) {
+        const { handleParallelTaskRetry } = await import('./task-result/parallel');
         const retryDispatched = await handleParallelTaskRetry({
           userId,
           traceId,
@@ -124,6 +125,7 @@ export async function handleTaskResult(
       );
 
       if ((existingState.metadata as any)?.hasDependencies) {
+        const { handleDagTaskOutcome } = await import('./task-result/dag-orchestrator');
         await handleDagTaskOutcome(
           {
             userId,
@@ -144,6 +146,7 @@ export async function handleTaskResult(
       }
 
       if (aggregateState?.isComplete) {
+        const { finalizeParallelDispatch } = await import('./task-result/dag-orchestrator');
         await finalizeParallelDispatch(
           aggregateState,
           existingState,
@@ -156,6 +159,7 @@ export async function handleTaskResult(
   }
 
   const resultPrefix = isFailure ? 'DELEGATED_TASK_FAILURE' : 'DELEGATED_TASK_RESULT';
+  const { wakeupInitiator } = await import('./shared');
   await wakeupInitiator(
     userId,
     initiatorId,

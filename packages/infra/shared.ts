@@ -118,12 +118,12 @@ export function getTenantEventFilter(options: {
 }
 
 /**
- * Provisions the optional domain configuration for a component.
+ * Retrieves the optional domain configuration for a component.
  *
  * @param component - The component to get the domain for ('api' | 'dashboard' | 'router').
  * @returns The domain configuration or undefined if not set.
  */
-export function provisionDomainConfig(component: 'api' | 'dashboard' | 'router'):
+export function getDomainConfig(component: 'api' | 'dashboard' | 'router'):
   | {
       name: string;
       dns?: ReturnType<typeof sst.cloudflare.dns>;

@@ -2,7 +2,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import React from 'react';
-import SystemPulseFlow, { getAgentIcon, getAgentDescription } from './Flow';
+import SystemPulseFlow from './Flow';
+import { getAgentIcon, getAgentDescription } from './FlowParts';
 import { logger } from '@claw/core/lib/logger';
 
 vi.mock('@claw/core/lib/logger', () => ({
@@ -134,7 +135,7 @@ describe('SystemPulseFlow Component', () => {
   it('renders loading state initially', async () => {
     mockFetch.mockReturnValue(new Promise(() => {})); // Never resolves
     render(<SystemPulseFlow />);
-    expect(screen.getByText(/SYNCHRONIZING_NEURAL_MAP/i)).toBeInTheDocument();
+    expect(screen.getByText(/Initializing_Neural_Grid/i)).toBeInTheDocument();
   });
 
   it('fetches and renders topology data', async () => {
@@ -154,7 +155,7 @@ describe('SystemPulseFlow Component', () => {
     render(<SystemPulseFlow />);
 
     await waitFor(() => {
-      expect(screen.queryByText(/SYNCHRONIZING_NEURAL_MAP/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Initializing_Neural_Grid/i)).not.toBeInTheDocument();
     });
 
     const flow = screen.getByTestId('react-flow');
@@ -191,7 +192,7 @@ describe('SystemPulseFlow Component', () => {
     render(<SystemPulseFlow />);
 
     await waitFor(() => {
-      expect(screen.queryByText(/SYNCHRONIZING_NEURAL_MAP/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Initializing_Neural_Grid/i)).not.toBeInTheDocument();
     });
 
     const flow = screen.getByTestId('react-flow');
@@ -206,10 +207,10 @@ describe('SystemPulseFlow Component', () => {
     render(<SystemPulseFlow />);
 
     await waitFor(() => {
-      expect(screen.queryByText(/SYNCHRONIZING_NEURAL_MAP/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Initializing_Neural_Grid/i)).not.toBeInTheDocument();
     });
 
-    expect(loggerSpy).toHaveBeenCalledWith('Failed to fetch system blueprint:', expect.any(Error));
+    expect(loggerSpy).toHaveBeenCalledWith('[Topology] Fetch error:', expect.any(Error));
     loggerSpy.mockRestore();
   });
 
@@ -222,7 +223,7 @@ describe('SystemPulseFlow Component', () => {
     render(<SystemPulseFlow />);
 
     await waitFor(() => {
-      expect(screen.queryByText(/SYNCHRONIZING_NEURAL_MAP/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Initializing_Neural_Grid/i)).not.toBeInTheDocument();
     });
 
     // Reset fetch mock to track new calls
@@ -231,11 +232,11 @@ describe('SystemPulseFlow Component', () => {
     const resetButton = screen.getByTitle('Reset View & Layout');
     fireEvent.click(resetButton);
 
-    expect(screen.getByText(/SYNCHRONIZING_NEURAL_MAP/i)).toBeInTheDocument();
+    expect(screen.getByText(/Initializing_Neural_Grid/i)).toBeInTheDocument();
     expect(mockFetch).toHaveBeenCalledTimes(1);
 
     await waitFor(() => {
-      expect(screen.queryByText(/SYNCHRONIZING_NEURAL_MAP/i)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Initializing_Neural_Grid/i)).not.toBeInTheDocument();
     });
 
     // Wait for setTimeout(() => fitView(), 100)

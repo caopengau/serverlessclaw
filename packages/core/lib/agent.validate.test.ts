@@ -3,7 +3,7 @@ import { validateAgentConfig } from './agent';
 
 describe('validateAgentConfig', () => {
   it('throws when config is undefined', () => {
-    expect(() => validateAgentConfig(undefined, 'test-agent')).toThrow(/Agent config is required/i);
+    expect(() => validateAgentConfig(undefined, 'test-agent')).toThrow(/is required/i);
   });
 
   it('throws when required fields are missing', () => {

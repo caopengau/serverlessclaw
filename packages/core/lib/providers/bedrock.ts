@@ -5,8 +5,6 @@ import {
   Message as BedrockMessage,
   SystemContentBlock,
   Tool as BedrockTool,
-  ContentBlock,
-  ToolResultContentBlock,
   ConverseStreamOutput,
 } from '@aws-sdk/client-bedrock-runtime';
 import {
@@ -17,92 +15,22 @@ import {
   AttachmentType,
   MessageRole,
   BedrockModel,
-  Attachment,
   MessageChunk,
   ResponseFormat,
 } from '../types/index';
 import { logger } from '../logger';
-import { normalizeProfile, SUPPORTED_IMAGE_FORMATS } from './utils';
+import { normalizeProfile } from './utils';
+import { convertToBedrockMessage, BEDROCK_CONSTANTS } from './bedrock/message-converter';
 
-// --- Constants and Configuration ---
 const DEFAULT_TOP_P = 0.9;
 const DEFAULT_CONTEXT_WINDOW = 200000;
 const CLAUDE_46_MODELS = ['claude-sonnet-4-6', 'claude-4-6', 'claude-v4.6'];
+const COMPUTER_USE_OPTIONS = { display_height: 768, display_width: 1024, display_number: 0 };
 
-/**
- * Dimensions and options for the 'computer' tool in computer-use scenarios.
- */
-const COMPUTER_USE_OPTIONS = {
-  display_height: 768,
-  display_width: 1024,
-  display_number: 0,
-};
-
-/**
- * Standardized Bedrock values for type safety and AI signal clarity.
- */
-const BEDROCK_CONSTANTS = {
-  ROLES: {
-    USER: 'user' as const,
-    ASSISTANT: 'assistant' as const,
-  },
-  DOC_FORMATS: {
-    PDF: 'pdf' as const,
-    CSV: 'csv' as const,
-    DOC: 'doc' as const,
-    DOCX: 'docx' as const,
-    XLS: 'xls' as const,
-    XLSX: 'xlsx' as const,
-    HTML: 'html' as const,
-    TXT: 'txt' as const,
-    MD: 'md' as const,
-  },
-  IMG_FORMATS: {
-    PNG: 'png' as const,
-    JPEG: 'jpeg' as const,
-    GIF: 'gif' as const,
-    WEBP: 'webp' as const,
-  },
-  TOOL_TYPES: {
-    COMPUTER_USE: 'computer_use',
-    FUNCTION: 'function',
-  },
-  TOOL_NAMES: {
-    COMPUTER: 'computer',
-  },
-  RESPONSE_FORMATS: {
-    JSON: 'json' as const,
-    JSON_SCHEMA: 'json_schema',
-  },
-} as const;
-
-type BedrockDocFormat =
-  (typeof BEDROCK_CONSTANTS.DOC_FORMATS)[keyof typeof BEDROCK_CONSTANTS.DOC_FORMATS];
-
-/**
- * Configuration for models that support reasoning/thinking budgets.
- */
-interface BedrockReasoningConfig {
-  thinkingBudget: number;
-  thinkingEnabled: boolean;
-  maxTokens: number;
-  temperature: number;
-}
-
-/**
- * Interface for document attachments in Bedrock Converse API.
- */
-interface BedrockDocumentBlock {
-  document: {
-    name: string;
-    format: BedrockDocFormat;
-    source: {
-      bytes: Uint8Array | Buffer;
-    };
-  };
-}
-
-const BEDROCK_REASONING_MAP: Record<ReasoningProfile, BedrockReasoningConfig> = {
+const BEDROCK_REASONING_MAP: Record<
+  ReasoningProfile,
+  { thinkingBudget: number; thinkingEnabled: boolean; maxTokens: number; temperature: number }
+> = {
   [ReasoningProfile.FAST]: {
     thinkingBudget: 0,
     thinkingEnabled: false,
@@ -130,115 +58,12 @@ const BEDROCK_REASONING_MAP: Record<ReasoningProfile, BedrockReasoningConfig> = 
 };
 
 /**
- * Helper to convert a Claw message to a Bedrock Converse API message.
- * @param message The input Claw message.
- * @returns A formatted Bedrock message block.
- */
-function convertToBedrockMessage(message: Message): BedrockMessage {
-  const role =
-    message.role === MessageRole.ASSISTANT
-      ? BEDROCK_CONSTANTS.ROLES.ASSISTANT
-      : BEDROCK_CONSTANTS.ROLES.USER;
-
-  const content: ContentBlock[] = [{ text: message.content ?? '' }];
-
-  if (message.attachments && message.role !== MessageRole.TOOL) {
-    message.attachments.forEach((attachment) => {
-      const block = createAttachmentBlock(attachment);
-      if (block) content.push(block as ContentBlock);
-    });
-  }
-
-  if (message.tool_calls) {
-    message.tool_calls.forEach((toolCall) => {
-      content.push({
-        toolUse: {
-          toolUseId: toolCall.id,
-          name: toolCall.function.name,
-          input: JSON.parse(toolCall.function.arguments),
-        },
-      });
-    });
-  }
-
-  if (message.role === MessageRole.TOOL) {
-    const toolContent: ToolResultContentBlock[] = [{ text: message.content ?? '' }];
-
-    if (message.attachments) {
-      message.attachments.forEach((attachment) => {
-        const block = createAttachmentBlock(attachment);
-        if (block) toolContent.push(block as ToolResultContentBlock);
-      });
-    }
-
-    content.push({
-      toolResult: {
-        toolUseId: message.tool_call_id!,
-        content: toolContent,
-        status: 'success',
-      },
-    });
-  }
-
-  return { role, content };
-}
-
-/**
- * Helper to create an attachment block (image or document) for Bedrock.
- * @param attachment The input attachment.
- * @returns A content block or null if unsupported.
- */
-function createAttachmentBlock(
-  attachment: Attachment
-): ContentBlock | ToolResultContentBlock | null {
-  const format = (
-    attachment.mimeType?.split('/')[1] ?? BEDROCK_CONSTANTS.IMG_FORMATS.PNG
-  ).toLowerCase();
-
-  if (
-    attachment.type === 'image' &&
-    (SUPPORTED_IMAGE_FORMATS as readonly string[]).includes(format)
-  ) {
-    return {
-      image: {
-        format:
-          format as (typeof BEDROCK_CONSTANTS.IMG_FORMATS)[keyof typeof BEDROCK_CONSTANTS.IMG_FORMATS],
-        source: {
-          bytes: attachment.base64 ? Buffer.from(attachment.base64, 'base64') : new Uint8Array(),
-        },
-      },
-    };
-  }
-
-  if (attachment.type === 'file') {
-    const docFormat = format as BedrockDocFormat;
-    const docBlock: BedrockDocumentBlock = {
-      document: {
-        name: attachment.name ?? 'document',
-        format: docFormat,
-        source: {
-          bytes: attachment.base64 ? Buffer.from(attachment.base64, 'base64') : new Uint8Array(),
-        },
-      },
-    };
-    return docBlock as unknown as ContentBlock;
-  }
-
-  return null;
-}
-
-/**
- * Provider for AWS Bedrock LLM services, specifically optimized for Anthropic Claude 4.6.
- * Implements 'thinking' budgets and native multi-modal support via the Converse API.
+ * Provider for AWS Bedrock LLM services.
  */
 export class BedrockProvider implements IProvider {
   private static _client: BedrockRuntimeClient | null = null;
   private static _currentRegion: string | null = null;
 
-  /**
-   * Initializes the Bedrock provider.
-   * @param modelId The model ID to use (defaults to Claude 4.6).
-   */
   constructor(private modelId: string = BedrockModel.CLAUDE_4_6) {}
 
   private get client(): BedrockRuntimeClient {
@@ -250,21 +75,6 @@ export class BedrockProvider implements IProvider {
     return BedrockProvider._client;
   }
 
-  /**
-   * Performs a non-streaming chat completion call via Bedrock Converse API.
-   *
-   * @param messages The conversation history.
-   * @param tools Optional list of tools for function calling.
-   * @param profile The preferred reasoning profile.
-   * @param model Override for the model ID.
-   * @param _provider Ignored provider identifier.
-   * @param responseFormat Preferred format for the response.
-   * @param temperature Optional sampling temperature.
-   * @param maxTokens Optional maximum tokens to generate.
-   * @param topP Optional nucleus sampling probability.
-   * @param stopSequences Optional list of stop sequences.
-   * @returns A promise resolving to the assistant's message.
-   */
   async call(
     messages: Message[],
     tools?: ITool[],
@@ -291,7 +101,7 @@ export class BedrockProvider implements IProvider {
 
     const system: SystemContentBlock[] = messages
       .filter((m) => m.role === MessageRole.SYSTEM || m.role === MessageRole.DEVELOPER)
-      .map((m) => ({ text: m.content ?? '' }));
+      .map((m) => ({ text: m.content || '' }));
 
     const bedrockTools: BedrockTool[] | undefined = tools
       ?.filter(
@@ -316,7 +126,7 @@ export class BedrockProvider implements IProvider {
           toolSpec: {
             name: tool.name,
             description: tool.description,
-            inputSchema: { json: tool.parameters as unknown as Record<string, unknown> },
+            inputSchema: { json: tool.parameters as any },
           },
         } as BedrockTool;
       });
@@ -340,24 +150,17 @@ export class BedrockProvider implements IProvider {
       ...(responseFormat?.type === BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA
         ? { outputConfig: { format: BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON } }
         : {}),
-    } as unknown as ConstructorParameters<typeof ConverseCommand>[0]);
+    } as unknown as any);
 
     const response = await client.send(command);
 
     if (response.output?.message) {
       const msg = response.output.message;
-
-      interface ReasoningBlock {
-        reasoningContent?: { reasoningText?: { text?: string } };
-      }
-
-      const thought = (msg.content as (ContentBlock | ReasoningBlock)[])
-        ?.filter((c) => !!(c as ReasoningBlock).reasoningContent)
-        .map((c) => (c as ReasoningBlock).reasoningContent?.reasoningText?.text ?? '')
+      const thought = (msg.content as any[])
+        ?.filter((c) => !!c.reasoningContent)
+        .map((c) => c.reasoningContent?.reasoningText?.text ?? '')
         .join('\n\n');
-
       if (thought) logger.debug(`[Bedrock Reasoning] for ${activeModelId}:`, thought);
-
       const content = msg.content
         ?.filter((c) => c.text)
         .map((c) => c.text)
@@ -366,19 +169,22 @@ export class BedrockProvider implements IProvider {
       return {
         role: MessageRole.ASSISTANT,
         content: content ?? '',
-        thought: thought || undefined,
-        tool_calls: msg.content
-          ?.filter((c) => c.toolUse)
-          .map((c) => ({
-            id: c.toolUse!.toolUseId!,
-            type: BEDROCK_CONSTANTS.TOOL_TYPES.FUNCTION,
-            function: {
-              name: c.toolUse!.name!,
-              arguments: JSON.stringify(c.toolUse!.input),
-            },
-          })),
+        thought: thought || '',
+        tool_calls:
+          msg.content
+            ?.filter((c) => c.toolUse)
+            .map((c) => ({
+              id: c.toolUse!.toolUseId!,
+              type: BEDROCK_CONSTANTS.TOOL_TYPES.FUNCTION,
+              function: { name: c.toolUse!.name!, arguments: JSON.stringify(c.toolUse!.input) },
+            })) ?? [],
         traceId: messages[0]?.traceId ?? 'unknown-trace',
         messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        workspaceId: messages[0]?.workspaceId ?? 'default',
+        attachments: [],
+        options: [],
+        ui_blocks: [],
+        agentName: 'Bedrock',
         usage: response.usage
           ? {
               prompt_tokens: response.usage.inputTokens ?? 0,
@@ -388,13 +194,9 @@ export class BedrockProvider implements IProvider {
           : undefined,
       };
     }
-
     throw new Error('Bedrock provider call failed: No output message in response');
   }
 
-  /**
-   * Performs a streaming chat completion call via Bedrock Converse Stream API.
-   */
   async *stream(
     messages: Message[],
     tools?: ITool[],
@@ -409,10 +211,8 @@ export class BedrockProvider implements IProvider {
   ): AsyncIterable<MessageChunk> {
     const client = this.client;
     const activeModelId = model ?? this.modelId;
-
     const capabilities = await this.getCapabilities(activeModelId);
     profile = normalizeProfile(profile, capabilities, activeModelId);
-
     const config = BEDROCK_REASONING_MAP[profile];
 
     const bedrockMessages: BedrockMessage[] = messages
@@ -421,7 +221,7 @@ export class BedrockProvider implements IProvider {
 
     const system: SystemContentBlock[] = messages
       .filter((m) => m.role === MessageRole.SYSTEM || m.role === MessageRole.DEVELOPER)
-      .map((m) => ({ text: m.content ?? '' }));
+      .map((m) => ({ text: m.content || '' }));
 
     const bedrockTools: BedrockTool[] | undefined = tools
       ?.filter(
@@ -446,51 +246,54 @@ export class BedrockProvider implements IProvider {
           toolSpec: {
             name: tool.name,
             description: tool.description,
-            inputSchema: { json: tool.parameters as unknown as Record<string, unknown> },
+            inputSchema: { json: tool.parameters as any },
           },
         } as BedrockTool;
       });
 
-    try {
-      const command = new ConverseStreamCommand({
-        modelId: activeModelId,
-        messages: bedrockMessages,
-        system,
-        toolConfig: bedrockTools ? { tools: bedrockTools } : undefined,
-        inferenceConfig: {
-          maxTokens: maxTokens ?? config.maxTokens,
-          temperature: temperature ?? config.temperature,
-          topP: topP ?? DEFAULT_TOP_P,
-          stopSequences: stopSequences && stopSequences.length > 0 ? stopSequences : undefined,
-        },
-        additionalModelRequestFields: {
-          ...(config.thinkingEnabled
-            ? { thinking: { type: 'enabled', budget_tokens: config.thinkingBudget } }
-            : {}),
-        },
-        ...(responseFormat?.type === BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA
-          ? { outputConfig: { format: BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON } }
+    const command = new ConverseStreamCommand({
+      modelId: activeModelId,
+      messages: bedrockMessages,
+      system,
+      toolConfig: bedrockTools ? { tools: bedrockTools } : undefined,
+      inferenceConfig: {
+        maxTokens: maxTokens ?? config.maxTokens,
+        temperature: temperature ?? config.temperature,
+        topP: topP ?? DEFAULT_TOP_P,
+        stopSequences: stopSequences && stopSequences.length > 0 ? stopSequences : undefined,
+      },
+      additionalModelRequestFields: {
+        ...(config.thinkingEnabled
+          ? { thinking: { type: 'enabled', budget_tokens: config.thinkingBudget } }
           : {}),
-      } as unknown as ConstructorParameters<typeof ConverseStreamCommand>[0]);
+      },
+      ...(responseFormat?.type === BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA
+        ? { outputConfig: { format: BEDROCK_CONSTANTS.RESPONSE_FORMATS.JSON } }
+        : {}),
+    } as unknown as any);
 
+    try {
       const response = await client.send(command);
+      if (!response.stream) throw new Error('Bedrock provider call failed: No stream in response');
 
-      if (!response.stream) {
-        throw new Error('Bedrock provider call failed: No stream in response');
-      }
-
-      const activeToolCalls: Map<number, { id: string; name: string; arguments: string }> =
-        new Map();
+      const activeToolCalls: Map<number, { id: string; name: string; arguments: string }> = new Map();
 
       for await (const event of response.stream as AsyncIterable<ConverseStreamOutput>) {
         if (event.contentBlockDelta) {
           const delta = event.contentBlockDelta.delta;
           if (!delta) continue;
-
-          if ('text' in delta && delta.text) yield { content: delta.text };
+          if ('text' in delta && delta.text)
+            yield {
+              content: delta.text,
+              tool_calls: [],
+              attachments: [],
+              ui_blocks: [],
+              options: [],
+            };
           else if ('reasoningContent' in delta && delta.reasoningContent) {
             const rc = delta.reasoningContent;
-            if ('text' in rc && rc.text) yield { thought: rc.text };
+            if ('text' in rc && rc.text)
+              yield { thought: rc.text, tool_calls: [], attachments: [], ui_blocks: [], options: [] };
           } else if ('toolUse' in delta && delta.toolUse) {
             const idx = event.contentBlockDelta.contentBlockIndex ?? 0;
             const existing = activeToolCalls.get(idx);
@@ -518,40 +321,37 @@ export class BedrockProvider implements IProvider {
                   function: { name: toolCall.name, arguments: toolCall.arguments },
                 },
               ],
+              attachments: [],
+              ui_blocks: [],
+              options: [],
             };
             activeToolCalls.delete(idx);
           }
         } else if (event.metadata) {
           const usage = event.metadata.usage;
-          if (usage) {
+          if (usage)
             yield {
               usage: {
                 prompt_tokens: usage.inputTokens ?? 0,
                 completion_tokens: usage.outputTokens ?? 0,
                 total_tokens: usage.totalTokens ?? 0,
               },
+              tool_calls: [],
+              attachments: [],
+              ui_blocks: [],
+              options: [],
             };
-          }
         }
       }
     } catch (err) {
       logger.error('Bedrock streaming failed:', err);
-      throw new Error(
-        `Bedrock streaming failed: ${err instanceof Error ? err.message : String(err)}`
-      );
+      throw new Error(`Bedrock streaming failed: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  /**
-   * Retrieves the capabilities of a specific model on Bedrock.
-   *
-   * @param model The model ID to check.
-   * @returns An object describing reasoning profiles, structured output support, and context window.
-   */
   async getCapabilities(model?: string) {
     const activeModelId = model ?? this.modelId;
     const isClaude46 = CLAUDE_46_MODELS.some((m) => activeModelId.includes(m));
-
     return {
       supportedReasoningProfiles: isClaude46
         ? [

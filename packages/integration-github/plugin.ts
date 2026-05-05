@@ -30,8 +30,7 @@ export const githubPlugin: ClawPlugin = {
       requiresApproval: true,
       connectionProfile: ['github'],
       requiredPermissions: ['repo:write'],
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      execute: async (args: any) => {
+      execute: async (args: Record<string, unknown>) => {
         // Implementation would go here
         return `GitHub release ${args.tag} created.`;
       },

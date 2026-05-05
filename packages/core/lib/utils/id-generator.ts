@@ -9,86 +9,67 @@ import { randomBytes, randomUUID } from 'node:crypto';
 const FNV_1A_PRIME_32 = 0x01000193;
 const FNV_1A_OFFSET_32 = 0x811c9dc5;
 
-/**
- * Generates a session ID with timestamp + entropy.
- * Format: session_<timestamp>_<random>
- * @returns Unique session ID
- */
-export function generateSessionId(): string {
-  return `session-${Date.now()}-${randomBytes(4).toString('hex')}`;
-}
+const PREFIX_MESSAGE = 'msg';
+const PREFIX_SESSION = 'session';
+const PREFIX_WORKSPACE = 'ws';
+const PREFIX_GAP = 'gap';
+const ENCODING_HEX = 'hex';
+const DEFAULT_MESSAGE_TYPE = 'assistant';
 
-/**
- * Generates a workspace ID with timestamp + entropy.
- * Format: ws-<timestamp>-<random>
- * @returns Unique workspace ID
- */
-export function generateWorkspaceId(): string {
-  return `ws-${Date.now()}-${randomBytes(3).toString('hex')}`;
-}
-
-/**
- * Generates a collaboration ID (UUID v4).
- * @returns UUID-formatted collaboration ID
- */
-export function generateCollaborationId(): string {
-  return randomUUID();
-}
-
-/**
- * Generates a gap ID with timestamp + entropy.
- * Format: gap_<timestamp>_<random>
- * @returns Unique gap ID
- */
-export function generateGapId(): string {
-  return `gap-${Date.now()}-${randomBytes(4).toString('hex')}`;
-}
+const ENTROPY_BYTES_SHORT = 3;
+const ENTROPY_BYTES_MEDIUM = 4;
+const ENTROPY_BYTES_LONG = 6;
+const TIMESTAMP_LENGTH = 13;
 
 /**
  * Generates a message ID with timestamp + entropy.
- * Format: msg-<timestamp>-<random>
- * @returns Unique message ID
+ * Format: msg-<type>-<timestamp>-<random>
+ *
+ * @param type - The type of message (e.g., 'user', 'assistant').
+ * @returns A unique message identifier string.
  */
-export function generateMessageId(type: string = 'assistant'): string {
-  return `msg-${type}-${Date.now()}-${randomBytes(4).toString('hex')}`;
+export function generateMessageId(type: string = DEFAULT_MESSAGE_TYPE): string {
+  return `${PREFIX_MESSAGE}-${type}-${Date.now()}-${randomBytes(ENTROPY_BYTES_MEDIUM).toString(ENCODING_HEX)}`;
 }
 
 /**
  * Generates a generic unique ID with timestamp + entropy.
- * Format: <prefix>_<timestamp>_<random>
- * @param prefix - Optional prefix for the ID
- * @returns Unique ID with optional prefix
+ * Format: <prefix>-<timestamp>-<random>
+ *
+ * @param prefix - Optional prefix for the ID to categorize it.
+ * @returns A unique identifier string.
  */
 export function generateId(prefix?: string): string {
-  const base = `${Date.now()}-${randomBytes(4).toString('hex')}`;
+  const base = `${Date.now()}-${randomBytes(ENTROPY_BYTES_MEDIUM).toString(ENCODING_HEX)}`;
   return prefix ? `${prefix}-${base}` : base;
 }
 
 /**
- * Generates 32-bit FNV-1a hash for stable sort key generation.
+ * Generates a 32-bit FNV-1a hash for stable sort key generation.
  * Safely fits in JavaScript Number.MAX_SAFE_INTEGER to prevent DynamoDB errors.
- * Used when deterministic ordering is required (e.g., DynamoDB sort keys).
- * @param input - String to hash
- * @returns Numeric string for use as sort key
+ *
+ * @param input - The string to hash.
+ * @returns A numeric string representing the 32-bit hash.
  */
 export function fnv1aHash(input: string): string {
-  let h = FNV_1A_OFFSET_32;
+  let hash = FNV_1A_OFFSET_32;
   for (let i = 0; i < input.length; i++) {
-    h ^= input.charCodeAt(i);
-    h = Math.imul(h, FNV_1A_PRIME_32);
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, FNV_1A_PRIME_32);
   }
-  return (h >>> 0).toString();
+  return (hash >>> 0).toString();
 }
 
 /**
  * Converts a session ID to a stable sort key for DynamoDB.
- * If session ID contains a parseable timestamp, uses that directly.
- * Otherwise, falls back to 32-bit FNV-1a hash for stability.
- * @param sessionId - Session ID to convert
- * @returns Stable sort key (numeric string)
+ * If the session ID contains a 13-digit timestamp, it uses that directly.
+ *
+ * @param sessionId - The session identifier to convert.
+ * @returns A numeric sort key (timestamp or hash).
  */
 export function sessionIdToSortKey(sessionId: string): number {
-  const match = sessionId.match(/\d{13}/);
+  const timestampRegex = new RegExp(`\\d{${TIMESTAMP_LENGTH}}`);
+  const match = sessionId.match(timestampRegex);
   if (match) {
     const parsedTimestamp = Number.parseInt(match[0], 10);
     if (!Number.isNaN(parsedTimestamp)) {
@@ -96,4 +77,31 @@ export function sessionIdToSortKey(sessionId: string): number {
     }
   }
   return Number(fnv1aHash(sessionId));
+}
+
+/**
+ * Generates a unique session identifier using UUID v4.
+ *
+ * @returns A unique session ID string.
+ */
+export function generateSessionId(): string {
+  return `${PREFIX_SESSION}-${randomUUID()}`;
+}
+
+/**
+ * Generates a unique workspace identifier with random entropy.
+ *
+ * @returns A unique workspace ID string.
+ */
+export function generateWorkspaceId(): string {
+  return `${PREFIX_WORKSPACE}-${randomBytes(ENTROPY_BYTES_LONG).toString(ENCODING_HEX)}`;
+}
+
+/**
+ * Generates a unique capability gap identifier with timestamp.
+ *
+ * @returns A unique gap ID string.
+ */
+export function generateGapId(): string {
+  return `${PREFIX_GAP}-${Date.now()}-${randomBytes(ENTROPY_BYTES_SHORT).toString(ENCODING_HEX)}`;
 }

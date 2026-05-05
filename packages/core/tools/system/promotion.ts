@@ -1,4 +1,4 @@
-import { systemSchema as schema } from './schema';
+import { configSchema } from './definitions/config';
 import { PromotionManager } from '../../lib/lifecycle/promotion-manager';
 import { getAgentContext } from '../../lib/utils/agent-helpers';
 
@@ -6,7 +6,7 @@ import { getAgentContext } from '../../lib/utils/agent-helpers';
  * Tool for agents to autonomously promote validated capabilities.
  */
 export const promoteCapability = {
-  ...schema.promoteCapability,
+  ...configSchema.promoteCapability,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { targetAgentId, toolName, reason, _userId } = args as {
       targetAgentId: string;

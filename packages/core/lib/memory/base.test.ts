@@ -205,12 +205,12 @@ describe('BaseMemoryProvider', () => {
         expect.objectContaining({
           role: 'assistant',
           content: 'Hi there',
-          thought: undefined,
+          thought: '',
           tool_calls: [],
           attachments: [],
           tool_call_id: undefined,
           name: undefined,
-          agentName: undefined,
+          agentName: 'SYSTEM',
           traceId: expect.stringMatching(/^legacy-\d+$/),
         }),
       ]);

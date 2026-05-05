@@ -24,6 +24,9 @@ describe('System Domain Tool Schemas', () => {
     'pauseWorkflow',
     'resumeWorkflow',
     'promoteCapability',
+    'triggerSubtreePush',
+    'getAgentReputation',
+    'resetReputation',
   ];
 
   it('should export all expected tool definitions', () => {

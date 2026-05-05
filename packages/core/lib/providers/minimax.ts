@@ -12,7 +12,17 @@ import {
   ResponseFormat,
 } from '../types/index';
 import { logger } from '../logger';
-import { resolveProviderApiKey } from './utils';
+import { normalizeProfile, resolveProviderApiKey } from './utils';
+
+const MINIMAX_CONTEXT_WINDOW = 204800;
+const MINIMAX_DEFAULT_MAX_TOKENS = 4096;
+const MINIMAX_API_BASE_URL = 'https://api.minimax.io/anthropic';
+
+const BLOCK_TYPE_THINKING = 'thinking';
+const BLOCK_TYPE_TEXT = 'text';
+const BLOCK_TYPE_TOOL_USE = 'tool_use';
+const BLOCK_TYPE_TOOL_RESULT = 'tool_result';
+const FORMAT_JSON_SCHEMA = 'json_schema';
 
 const MINIMAX_REASONING_MAP: Record<ReasoningProfile, { budget_tokens: number; enabled: boolean }> =
   {
@@ -24,18 +34,6 @@ const MINIMAX_REASONING_MAP: Record<ReasoningProfile, { budget_tokens: number; e
 
 /**
  * Direct provider for MiniMax API using Anthropic-compatible endpoint.
- * Provides native access to MiniMax M2.7 models with reasoning capabilities.
- *
- * MiniMax M2.7 is their latest model with:
- * - 204,800 context window
- * - Interleaved thinking for tool use
- * - Advanced reasoning capabilities
- * - ~60 tps output speed (standard) / ~100 tps (highspeed variant)
- *
- * Uses Anthropic-compatible API (MiniMax's recommended approach) for:
- * - Native reasoning support
- * - Better tool use with interleaved thinking
- * - Direct API connection instead of OpenRouter for lower latency
  */
 export class MiniMaxProvider implements IProvider {
   constructor(private model: string = MiniMaxModel.M2_7) {}
@@ -55,27 +53,27 @@ export class MiniMaxProvider implements IProvider {
     const apiKey = resolveProviderApiKey('MiniMax', 'MiniMaxApiKey', 'MINIMAX_API_KEY');
     const activeModel = model ?? this.model;
 
+    const capabilities = await this.getCapabilities(activeModel);
+    profile = normalizeProfile(profile, capabilities, activeModel);
+
     const reasoningConfig = MINIMAX_REASONING_MAP[profile];
 
-    // Initialize Anthropic client with MiniMax's base URL
     const client = new Anthropic({
       apiKey,
-      baseURL: 'https://api.minimax.io/anthropic',
+      baseURL: MINIMAX_API_BASE_URL,
     });
 
-    // Extract system message and convert messages to Anthropic format
     const { systemMessage, anthropicMessages } = this.convertMessages(messages);
 
-    // Build request parameters
     const requestParams: Record<string, unknown> = {
       model: activeModel,
-      max_tokens: maxTokens ?? 4096,
+      max_tokens: maxTokens ?? MINIMAX_DEFAULT_MAX_TOKENS,
       messages: anthropicMessages,
       ...(systemMessage ? { system: systemMessage } : {}),
       ...(temperature !== undefined ? { temperature } : {}),
       ...(topP !== undefined ? { top_p: topP } : {}),
       ...(stopSequences && stopSequences.length > 0 ? { stop_sequences: stopSequences } : {}),
-      ...(reasoningConfig.enabled && responseFormat?.type !== 'json_schema'
+      ...(reasoningConfig.enabled && responseFormat?.type !== FORMAT_JSON_SCHEMA
         ? {
             thinking: {
               type: 'enabled',
@@ -89,39 +87,32 @@ export class MiniMaxProvider implements IProvider {
       requestParams['tools'] = this.transformToolsToAnthropic(tools);
     }
 
-    if (responseFormat?.type === 'json_schema' && responseFormat.json_schema) {
+    if (responseFormat?.type === FORMAT_JSON_SCHEMA && responseFormat.json_schema) {
       requestParams['output_config'] = {
         format: {
-          type: 'json_schema',
+          type: FORMAT_JSON_SCHEMA,
           schema: responseFormat.json_schema.schema,
         },
       };
     }
 
-    // Make the API call
     const response = await client.messages.create(
-      requestParams as unknown as Anthropic.MessageCreateParamsNonStreaming
+      requestParams as Anthropic.MessageCreateParamsNonStreaming
     );
 
-    // Handle response with thinking blocks
     const content = response.content;
-    if (!content || content.length === 0) {
-      throw new Error('MiniMax provider call failed: No content in response');
-    }
-
-    // Extract text content and log thinking content
     let textContent = '';
     const tool_calls: ToolCall[] = [];
 
     for (const block of content) {
-      if (block.type === 'thinking') {
+      if (block.type === BLOCK_TYPE_THINKING) {
         logger.debug(
           `[MiniMax Thinking] for ${activeModel}:`,
           (block as { thinking?: string }).thinking ?? ''
         );
-      } else if (block.type === 'text') {
+      } else if (block.type === BLOCK_TYPE_TEXT) {
         textContent += block.text;
-      } else if (block.type === 'tool_use') {
+      } else if (block.type === BLOCK_TYPE_TOOL_USE) {
         tool_calls.push({
           id: block.id,
           type: 'function',
@@ -135,10 +126,18 @@ export class MiniMaxProvider implements IProvider {
 
     return {
       role: MessageRole.ASSISTANT,
-      content: textContent || undefined,
-      tool_calls: tool_calls.length > 0 ? tool_calls : undefined,
+      content: textContent,
+      thought:
+        (content.find((b) => b.type === BLOCK_TYPE_THINKING) as { thinking?: string })?.thinking ??
+        '',
+      tool_calls,
       traceId: messages[0]?.traceId ?? 'unknown-trace',
-      messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      messageId: response.id,
+      workspaceId: messages[0]?.workspaceId ?? 'default',
+      attachments: [],
+      options: [],
+      ui_blocks: [],
+      agentName: 'MiniMax',
       usage: response.usage
         ? {
             prompt_tokens: response.usage.input_tokens,
@@ -146,7 +145,7 @@ export class MiniMaxProvider implements IProvider {
             total_tokens: response.usage.input_tokens + response.usage.output_tokens,
           }
         : undefined,
-    } as unknown as Message;
+    };
   }
 
   async *stream(
@@ -164,28 +163,28 @@ export class MiniMaxProvider implements IProvider {
     const apiKey = resolveProviderApiKey('MiniMax', 'MiniMaxApiKey', 'MINIMAX_API_KEY');
     const activeModel = model ?? this.model;
 
+    const capabilities = await this.getCapabilities(activeModel);
+    profile = normalizeProfile(profile, capabilities, activeModel);
+
     const reasoningConfig = MINIMAX_REASONING_MAP[profile];
 
-    // Initialize Anthropic client with MiniMax's base URL
     const client = new Anthropic({
       apiKey,
-      baseURL: 'https://api.minimax.io/anthropic',
+      baseURL: MINIMAX_API_BASE_URL,
     });
 
-    // Extract system message and convert messages to Anthropic format
     const { systemMessage, anthropicMessages } = this.convertMessages(messages);
 
-    // Build request parameters
     const requestParams: Record<string, unknown> = {
       model: activeModel,
-      max_tokens: maxTokens ?? 4096,
+      max_tokens: maxTokens ?? MINIMAX_DEFAULT_MAX_TOKENS,
       messages: anthropicMessages,
       stream: true,
       ...(systemMessage ? { system: systemMessage } : {}),
       ...(temperature !== undefined ? { temperature } : {}),
       ...(topP !== undefined ? { top_p: topP } : {}),
-      ...(stopSequences && stopSequences.length > 0 ? { stop_sequences: stopSequences } : {}),
-      ...(reasoningConfig.enabled && responseFormat?.type !== 'json_schema'
+      ...(stopSequences && stopSequences.length > 0 ? { stop: stopSequences } : {}),
+      ...(reasoningConfig.enabled && responseFormat?.type !== FORMAT_JSON_SCHEMA
         ? {
             thinking: {
               type: 'enabled',
@@ -199,25 +198,27 @@ export class MiniMaxProvider implements IProvider {
       requestParams['tools'] = this.transformToolsToAnthropic(tools);
     }
 
-    if (responseFormat?.type === 'json_schema' && responseFormat.json_schema) {
+    if (responseFormat?.type === FORMAT_JSON_SCHEMA && responseFormat.json_schema) {
       requestParams['output_config'] = {
         format: {
-          type: 'json_schema',
+          type: FORMAT_JSON_SCHEMA,
           schema: responseFormat.json_schema.schema,
         },
       };
     }
 
     try {
-      const stream = (await client.messages.create(
-        requestParams as unknown as Anthropic.MessageCreateParams
-      )) as unknown as AsyncIterable<Anthropic.MessageStreamEvent>;
+      const stream = await client.messages.create(
+        requestParams as Anthropic.MessageCreateParamsStreaming
+      );
 
       let currentToolCall: ToolCall | null = null;
-      const toolCalls: ToolCall[] = [];
 
       for await (const chunk of stream) {
-        if (chunk.type === 'content_block_start' && chunk.content_block.type === 'tool_use') {
+        if (
+          chunk.type === 'content_block_start' &&
+          chunk.content_block.type === BLOCK_TYPE_TOOL_USE
+        ) {
           currentToolCall = {
             id: chunk.content_block.id,
             type: 'function',
@@ -228,60 +229,54 @@ export class MiniMaxProvider implements IProvider {
           };
         } else if (chunk.type === 'content_block_delta') {
           if (chunk.delta.type === 'thinking_delta') {
-            yield { thought: chunk.delta.thinking };
+            yield { thought: chunk.delta.thinking, tool_calls: [], attachments: [], ui_blocks: [] };
           } else if (chunk.delta.type === 'text_delta') {
-            yield { content: chunk.delta.text };
+            yield { content: chunk.delta.text, tool_calls: [], attachments: [], ui_blocks: [] };
           } else if (chunk.delta.type === 'input_json_delta' && currentToolCall) {
             currentToolCall.function.arguments += chunk.delta.partial_json;
           }
         } else if (chunk.type === 'content_block_stop' && currentToolCall) {
-          toolCalls.push(currentToolCall);
-          yield { tool_calls: [currentToolCall] };
+          yield { tool_calls: [currentToolCall], attachments: [], ui_blocks: [] };
           currentToolCall = null;
-        } else if (chunk.type === 'message_delta' && chunk.usage) {
-          yield {
-            usage: {
-              prompt_tokens: 0,
-              completion_tokens: chunk.usage.output_tokens,
-              total_tokens: chunk.usage.output_tokens,
-            },
-          };
-        } else if (chunk.type === 'message_start' && chunk.message.usage) {
-          yield {
-            usage: {
-              prompt_tokens: chunk.message.usage.input_tokens,
-              completion_tokens: chunk.message.usage.output_tokens,
-              total_tokens: chunk.message.usage.input_tokens + chunk.message.usage.output_tokens,
-            },
-          };
+        } else if (chunk.type === 'message_delta') {
+          if (chunk.usage) {
+            yield {
+              usage: {
+                prompt_tokens: 0, // Anthropic doesn't provide input tokens in message_delta
+                completion_tokens: chunk.usage.output_tokens,
+                total_tokens: chunk.usage.output_tokens,
+              },
+              tool_calls: [],
+              attachments: [],
+              ui_blocks: [],
+            };
+          }
         }
       }
     } catch (err) {
       logger.error('MiniMax streaming failed:', err);
-      yield { content: ' (Streaming failed)' };
+      throw new Error(
+        `MiniMax streaming failed: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 
-  /**
-   * Extract system message and convert messages to Anthropic SDK format.
-   */
-  private convertMessages(messages: Message[]): {
-    systemMessage: string | undefined;
-    anthropicMessages: Anthropic.MessageParam[];
-  } {
-    let systemMessage: string | undefined;
+  private convertMessages(messages: Message[]) {
+    let systemMessage = '';
     const anthropicMessages: Anthropic.MessageParam[] = [];
 
     for (const msg of messages) {
-      if (msg.role === MessageRole.SYSTEM) {
-        systemMessage = msg.content ?? undefined;
+      const attachments = msg.attachments || [];
+      const tool_calls = msg.tool_calls || [];
+
+      if (msg.role === MessageRole.SYSTEM || msg.role === MessageRole.DEVELOPER) {
+        systemMessage += (systemMessage ? '\n' : '') + msg.content;
       } else if (msg.role === MessageRole.USER) {
-        if (msg.attachments && msg.attachments.length > 0) {
-          const content: unknown[] = [];
-          if (msg.content) {
-            content.push({ type: 'text', text: msg.content });
-          }
-          for (const att of msg.attachments) {
+        const content: unknown[] = [];
+        if (msg.content) content.push({ type: BLOCK_TYPE_TEXT, text: msg.content });
+
+        if (attachments.length > 0) {
+          for (const att of attachments) {
             if (att.type === 'image' && att.base64) {
               content.push({
                 type: 'image',
@@ -291,33 +286,21 @@ export class MiniMaxProvider implements IProvider {
                   data: att.base64,
                 },
               });
-            } else if (att.type === 'file' && att.base64) {
-              content.push({
-                type: 'document',
-                source: {
-                  type: 'base64',
-                  media_type: att.mimeType || 'application/pdf',
-                  data: att.base64,
-                },
-              });
             }
           }
-          anthropicMessages.push({
-            role: 'user',
-            content: content as Anthropic.MessageParam['content'],
-          });
-        } else {
-          anthropicMessages.push({
-            role: 'user',
-            content: msg.content ?? '',
-          });
         }
+
+        anthropicMessages.push({
+          role: 'user',
+          content:
+            attachments.length === 0
+              ? msg.content || ''
+              : (content as Anthropic.MessageParam['content']),
+        });
       } else if (msg.role === MessageRole.ASSISTANT) {
-        // For assistant messages with tool calls, we need to convert them
-        if (msg.tool_calls && msg.tool_calls.length > 0) {
-          // Convert tool calls to Anthropic format
-          const toolUseBlocks: unknown[] = msg.tool_calls.map((tc) => ({
-            type: 'tool_use',
+        if (tool_calls.length > 0) {
+          const toolUseBlocks: unknown[] = tool_calls.map((tc) => ({
+            type: BLOCK_TYPE_TOOL_USE,
             id: tc.id,
             name: tc.function.name,
             input: JSON.parse(tc.function.arguments || '{}'),
@@ -326,24 +309,23 @@ export class MiniMaxProvider implements IProvider {
           anthropicMessages.push({
             role: 'assistant',
             content: [
-              ...(msg.content ? [{ type: 'text' as const, text: msg.content }] : []),
+              ...(msg.content ? [{ type: BLOCK_TYPE_TEXT as any, text: msg.content }] : []),
               ...toolUseBlocks,
             ] as Anthropic.MessageParam['content'],
           });
         } else {
           anthropicMessages.push({
             role: 'assistant',
-            content: msg.content ?? '',
+            content: msg.content || '',
           });
         }
       } else if (msg.role === MessageRole.TOOL) {
-        // Tool result messages
-        if (msg.attachments && msg.attachments.length > 0) {
+        if (attachments.length > 0) {
           const content: unknown[] = [];
           if (msg.content) {
-            content.push({ type: 'text', text: msg.content });
+            content.push({ type: BLOCK_TYPE_TEXT, text: msg.content });
           }
-          for (const att of msg.attachments) {
+          for (const att of attachments) {
             if (att.type === 'image' && att.base64) {
               content.push({
                 type: 'image',
@@ -359,7 +341,7 @@ export class MiniMaxProvider implements IProvider {
             role: 'user',
             content: [
               {
-                type: 'tool_result',
+                type: BLOCK_TYPE_TOOL_RESULT,
                 tool_use_id: msg.tool_call_id ?? '',
                 content: content as unknown as (
                   | Anthropic.TextBlockParam
@@ -373,9 +355,9 @@ export class MiniMaxProvider implements IProvider {
             role: 'user',
             content: [
               {
-                type: 'tool_result',
+                type: BLOCK_TYPE_TOOL_RESULT,
                 tool_use_id: msg.tool_call_id ?? '',
-                content: msg.content ?? '',
+                content: msg.content || '',
               },
             ],
           });
@@ -386,9 +368,6 @@ export class MiniMaxProvider implements IProvider {
     return { systemMessage, anthropicMessages };
   }
 
-  /**
-   * Transform tools to Anthropic format.
-   */
   private transformToolsToAnthropic(tools: ITool[]) {
     return tools
       .filter((t) => !t.type || t.type === 'function')
@@ -400,8 +379,7 @@ export class MiniMaxProvider implements IProvider {
   }
 
   async getCapabilities(_model?: string) {
-    // MiniMax M2.7 has 204,800 context window
-    const contextWindow = 204800;
+    const contextWindow = MINIMAX_CONTEXT_WINDOW;
 
     return {
       supportedReasoningProfiles: [

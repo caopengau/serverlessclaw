@@ -1,13 +1,13 @@
 import { ITool, ToolResult } from '../../lib/types/index';
 import { proposeAutonomyUpdate as proposeLogic } from '../../lib/agent/tools/governance';
-import { systemSchema as schema } from './schema';
+import { configSchema } from './definitions/config';
 import { logger } from '../../lib/logger';
 
 /**
  * Tool for SuperClaw to propose autonomy level updates (AUTO vs HITL).
  */
 export const proposeAutonomyUpdate: ITool = {
-  ...schema.proposeAutonomyUpdate,
+  ...configSchema.proposeAutonomyUpdate,
   execute: async (args: Record<string, unknown>): Promise<ToolResult> => {
     const result = await proposeLogic(args as Parameters<typeof proposeLogic>[0]);
     return {
@@ -24,7 +24,7 @@ export const proposeAutonomyUpdate: ITool = {
  * Offloaded to AIReady (AST) MCP suite.
  */
 export const scanMetabolism: ITool = {
-  ...schema.scanMetabolism,
+  ...configSchema.scanMetabolism,
   execute: async (_args: Record<string, unknown>): Promise<ToolResult> => {
     try {
       const { DynamoMemory } = await import('../../lib/memory/dynamo-memory');

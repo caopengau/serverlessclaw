@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { systemSchema as schema } from './schema';
+import { validationSchema } from './definitions/validation';
 import { logger } from '../../lib/logger';
 import { formatErrorMessage } from '../../lib/utils/error';
 
@@ -12,7 +12,7 @@ const execAsync = promisify(exec);
  * Validates the current codebase using type checking and linting.
  */
 export const validateCode = {
-  ...schema.validateCode,
+  ...validationSchema.validateCode,
   execute: async (args: Record<string, unknown> = {}): Promise<string> => {
     try {
       const { dir_path } = (args || {}) as { dir_path?: string };
@@ -70,7 +70,7 @@ export const validateCode = {
  * Runs the full verification suite (check + test).
  */
 export const verifyChanges = {
-  ...schema.verifyChanges,
+  ...validationSchema.verifyChanges,
   execute: async (args: Record<string, unknown> = {}): Promise<string> => {
     try {
       const { fast, scope } = (args || {}) as { fast?: boolean; scope?: string };

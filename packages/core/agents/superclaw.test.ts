@@ -145,7 +145,7 @@ describe('SuperClaw', () => {
 
     describe('Safety Configuration', () => {
       it('configures safety policy', async () => {
-        superclaw.configureSafetyPolicy(SafetyTier.PROD, { requireDeployApproval: false });
+        await superclaw.configureSafetyPolicy(SafetyTier.PROD, { requireDeployApproval: false });
         const config = {
           id: 'test',
           name: 'Test',
@@ -162,7 +162,7 @@ describe('SuperClaw', () => {
       });
 
       it('sets tool safety override', async () => {
-        superclaw.setToolSafetyOverride({
+        await superclaw.setToolSafetyOverride({
           toolName: 'sensitive_tool',
           requireApproval: true,
         });
@@ -181,6 +181,7 @@ describe('SuperClaw', () => {
         expect(result.requiresApproval).toBe(true);
         expect(result.appliedPolicy).toBe('tool_override');
       });
+
     });
   });
 });

@@ -117,7 +117,7 @@
       "checkDeepCallbacks": true,
       "checkOverloadedSymbols": true,
       "checkLargeFiles": true,
-      "exclude": ["**/components/ui/**"]
+      "exclude": ["**/components/ui/**", "**/types/**", "**/schema/**", "scripts/**", "e2e/**"]
     },
     "agent-grounding": {
       "maxRecommendedDepth": 5,
@@ -138,6 +138,13 @@
     },
     "change-amplification": {
       "exclude": ["packages/core/tools/index.ts"]
+    },
+    "contract-enforcement": {
+      "checkTypeEscapeHatches": true,
+      "checkFallbackCascades": true,
+      "checkErrorTransparency": true,
+      "checkBoundaryValidation": true,
+      "exclude": ["scripts/**", "e2e/**"]
     }
   },
   "visualizer": {
