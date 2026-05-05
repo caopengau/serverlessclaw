@@ -21,6 +21,7 @@ export function createBus(options: { pathPrefix?: string } = {}) {
       queue: {
         messageRetentionSeconds: 14 * 24 * 60 * 60, // 14 days retention
         visibilityTimeoutSeconds: 300, // 5 minutes visibility timeout
+        receiveMessageWaitTimeSeconds: 20, // Enable long polling to reduce API calls
       },
     },
   });
