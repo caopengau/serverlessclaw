@@ -13,11 +13,10 @@ import {
   useReactFlow,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { Zap, RefreshCw, Plus, Minus, Maximize, Lock, User } from 'lucide-react';
+import { Zap, RefreshCw, User } from 'lucide-react';
 
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
-import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { useRealtime, RealtimeMessage } from '@/hooks/useRealtime';
 import { useTenant } from '@/components/Providers/TenantProvider';
@@ -27,6 +26,7 @@ import { TaskNodeData, HandoffData } from '@/lib/collaboration-utils';
 import { nodeTypes } from '@/components/CollaborationNodes';
 import { HandoffPanel } from '@/components/HandoffPanel';
 import TraceDetailSidebar from '@/components/TraceDetailSidebar';
+import { CanvasToolbar } from './Collaboration/CanvasToolbar';
 
 export default function CollaborationCanvas() {
   return (
@@ -312,15 +312,7 @@ function CollaborationCanvasContent() {
       }
 
       if (type === 'handoff') {
-        interface HandoffSignalDetail {
-          taskId?: string;
-          agentId?: string;
-          message?: string;
-          reason?: string;
-          task?: string;
-          timestamp?: number;
-        }
-        const detail = message.detail as HandoffSignalDetail;
+        const detail = message.detail as any;
         setHandoffData({
           taskId: detail.taskId || 'unknown',
           agentId: detail.agentId || 'unknown',
@@ -416,44 +408,17 @@ function CollaborationCanvasContent() {
         </ReactFlow>
       )}
 
-      {/* Trace Intelligence Sidebar */}
       <TraceDetailSidebar traceId={selectedTraceId} onClose={() => setSelectedTraceId(null)} />
 
-      {/* Control Panels */}
-      <div className="absolute bottom-6 left-6 z-20 flex flex-col gap-2">
-        <Card
-          variant="solid"
-          padding="none"
-          className="flex flex-col overflow-hidden backdrop-blur-md shadow-2xl"
-        >
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => zoomIn()}
-            className="border-b border-border p-3 rounded-none text-muted-foreground hover:text-purple-400"
-            icon={<Plus size={18} />}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => zoomOut()}
-            className="border-b border-border p-3 rounded-none text-muted-foreground hover:text-purple-400"
-            icon={<Minus size={18} />}
-          />
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleReset}
-            className="p-3 rounded-none text-muted-foreground hover:text-purple-400"
-            icon={<Maximize size={18} />}
-          />
-        </Card>
-        <div className="bg-card/80 border border-border rounded-lg p-3 backdrop-blur-md shadow-2xl flex items-center justify-center">
-          <Lock size={14} className="text-muted-foreground" />
-        </div>
-      </div>
+      <CanvasToolbar
+        onZoomIn={() => zoomIn()}
+        onZoomOut={() => zoomOut()}
+        onFitView={handleReset}
+        isHumanActive={isHumanActive}
+        onToggleHumanActive={() => setIsHumanActive(!isHumanActive)}
+        t={(k) => k}
+      />
 
-      {/* Headers and Status */}
       <div className="absolute top-4 left-4 z-10 flex gap-2">
         <div
           className={`flex items-center gap-2 px-3 py-1 bg-card/80 border ${isConnected ? 'border-cyber-green/30' : 'border-red-500/30'} rounded-full backdrop-blur-md`}

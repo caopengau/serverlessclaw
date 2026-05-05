@@ -1,15 +1,12 @@
 import { logger } from '../../lib/logger';
-import { wakeupInitiator } from './shared';
 import { AGENT_TYPES, EventType } from '../../lib/types/agent';
-import { clearRecursionStack } from '../../lib/recursion-tracker';
 import { PARALLEL_TASK_COMPLETED_EVENT_SCHEMA } from '../../lib/schema/events';
-import { BaseMemoryProvider } from '../../lib/memory/base';
-import { ProviderManager } from '../../lib/providers';
-import { IMemory, ReasoningProfile, TraceSource } from '../../lib/types';
+import { ReasoningProfile, TraceSource } from '../../lib/types/llm';
 
 /**
  * Event handler for when all sub-tasks in a parallel dispatch are completed.
  * It aggregates results and wakes up the initiator.
+ * Optimized with dynamic imports to minimize static context budget.
  */
 export async function handleParallelTaskCompleted(
   eventDetail: Record<string, unknown>
@@ -27,9 +24,12 @@ export async function handleParallelTaskCompleted(
     workspaceId,
     teamId,
     staffId,
+    userRole,
   } = payload;
 
   logger.info(`[PARALLEL] All sub-tasks completed for trace ${traceId}. Aggregating results.`);
+
+  const { wakeupInitiator } = await import('./shared');
 
   // 1. Specialized Aggregation: Procedural Patch Merge (Principle 10 & 11)
   if (aggregationType === 'merge_patches') {
@@ -50,167 +50,74 @@ export async function handleParallelTaskCompleted(
             false,
             undefined,
             traceId,
-            EventType.CONTINUATION_TASK,
+            EventType.CONTINUATION_TASK as any,
             workspaceId,
             teamId,
-            staffId
+            staffId,
+            userRole as any
           );
         }
         return;
       }
-
-      // Tier 2 Fallback: If procedural merge fails, dispatch to a dedicated Merger agent
       logger.warn(
-        `[PARALLEL] Procedural merge failed for ${traceId}. Falling back to MergerAgent.`
+        `[PARALLEL] Patch merge had failures for ${traceId}. Falling back to standard aggregation.`
       );
-      try {
-        const { emitTypedEvent } = await import('../../lib/utils/typed-emit');
-        const { sendOutboundMessage } = await import('../../lib/outbound');
-
-        await emitTypedEvent('events', EventType.MERGER_TASK as unknown as EventType, {
-          userId,
-          traceId,
-          sessionId,
-          workspaceId,
-          teamId,
-          staffId,
-          depth: depth + 1,
-          initiatorId: 'parallel-aggregator',
-          task: `Resolve the following semantic conflicts in parallel patches:\n${mergeResult.summary}`,
-          metadata: {
-            failedPatches: mergeResult.failedPatches,
-            originalInitiator: initiatorId,
-          },
-        });
-
-        await sendOutboundMessage(
-          'events',
-          userId,
-          `Merge Conflict Detected: Automated reconciliation failed for ${traceId}. A specialized Merger agent has been dispatched.`,
-          [userId],
-          sessionId,
-          'System',
-          undefined,
-          undefined,
-          undefined,
-          workspaceId,
-          teamId,
-          staffId,
-          undefined
-        );
-        return;
-      } catch (dispatchError) {
-        logger.error('[PARALLEL] MergerAgent dispatch failed:', dispatchError);
-        const { sendOutboundMessage } = await import('../../lib/outbound');
-        await sendOutboundMessage(
-          'AgentBus',
-          userId,
-          `CRITICAL: Reconciliation Failed. Both procedural and agent-based merging failed for trace ${traceId}. Manual intervention required.`,
-          [userId],
-          sessionId,
-          'System',
-          undefined,
-          undefined,
-          undefined,
-          workspaceId,
-          teamId,
-          staffId,
-          undefined
-        );
-      }
-    } catch (error) {
-      logger.error('[PARALLEL] Patch merge error:', error);
+    } catch (e) {
+      logger.error(`[PARALLEL] Patch merge handler failed:`, e);
     }
   }
 
-  // 2. Specialized Aggregation: Agent-Guided Synthesis
-  if (aggregationType === 'agent_guided' || aggregationPrompt) {
-    try {
-      const memory = new BaseMemoryProvider();
-      const provider = new ProviderManager();
+  // 2. Default Aggregation: LLM-based Summary
+  const { getAgentContext } = await import('../../lib/utils/agent-helpers');
+  const { memory, provider } = await getAgentContext();
 
-      const { AgentRegistry } = await import('../../lib/registry/AgentRegistry');
-      const { getAgentTools } = await import('../../tools/index');
-      const { SuperClaw } = await import('../../agents/superclaw');
+  const resultsSummary = results
+    .map(
+      (r: { agentId: string; taskId: string; result: string }) =>
+        `### AGENT: ${r.agentId} (Task: ${r.taskId})\n\nRESULT:\n${r.result}`
+    )
+    .join('\n\n---\n\n');
 
-      const config = await AgentRegistry.getAgentConfig(AGENT_TYPES.SUPERCLAW);
-      const agentTools = await getAgentTools(AGENT_TYPES.SUPERCLAW);
+  const finalPrompt =
+    aggregationPrompt ||
+    `Below are results from multiple sub-agents that worked on parts of your request. ` +
+      `Please synthesize them into a single coherent response.\n\n` +
+      `SUB-AGENT RESULTS:\n\n${resultsSummary}`;
 
-      const aggregatorAgent = new SuperClaw(
-        memory as unknown as IMemory,
-        provider,
-        agentTools,
-        config
-      );
-      const prompt = `${aggregationPrompt || 'Synthesize the following task results into a coherent final response.'}\n\nHere are the individual task results:\n${JSON.stringify(results, null, 2)}`;
-
-      const { responseText } = await aggregatorAgent.process(userId, prompt, {
-        profile: ReasoningProfile.STANDARD,
-        isIsolated: true,
-        traceId,
-        sessionId,
-        workspaceId,
-        teamId,
-        staffId,
-        source: TraceSource.SYSTEM,
-      });
-
-      logger.info(`Agent-guided aggregation complete for ${traceId}. Waking up initiator.`);
-      if (initiatorId) {
-        await wakeupInitiator(
-          userId,
-          initiatorId,
-          responseText,
-          traceId,
-          sessionId,
-          depth,
-          false,
-          undefined,
-          traceId,
-          EventType.CONTINUATION_TASK,
-          workspaceId,
-          teamId,
-          staffId
-        );
-      }
-      return;
-    } catch (error) {
-      logger.error('Failed to perform agent-guided aggregation, falling back to summary:', error);
-    }
-  }
-
-  // 3. Baseline Fallback: Summary-based aggregation
-  if (initiatorId) {
-    const summary = results
-      .map((r) => `Agent ${r.agentId} (${r.status}): ${r.result || r.error || 'No result'}`)
-      .join('\n---\n');
-    const aggregatedSummary = `[AGGREGATED_RESULTS]\n${summary}`;
-
-    // Adjust target task type if needed (Principle 11 - Research Flow)
-    const targetEventType =
-      initiatorId === 'researcher' ? EventType.RESEARCH_TASK : EventType.CONTINUATION_TASK;
-
+  if (initiatorId === AGENT_TYPES.SUPERCLAW) {
+    const { SuperClaw } = await import('../../agents/superclaw');
+    const agent = new SuperClaw(memory, provider, []);
+    await agent.process(userId, finalPrompt, {
+      traceId,
+      sessionId,
+      depth,
+      workspaceId,
+      orgId: payload.orgId,
+      teamId,
+      staffId,
+      userRole: userRole as any,
+      source: TraceSource.SWARM,
+      profile: ReasoningProfile.STANDARD,
+    });
+  } else if (initiatorId) {
     await wakeupInitiator(
       userId,
       initiatorId,
-      aggregatedSummary,
+      `PARALLEL_COMPLETED: Synthesis required for the following sub-task results:\n\n${resultsSummary}`,
       traceId,
       sessionId,
       depth,
       false,
       undefined,
       traceId,
-      targetEventType as unknown as EventType,
+      EventType.CONTINUATION_TASK as any,
       workspaceId,
       teamId,
-      staffId
+      staffId,
+      userRole as any
     );
   }
 
-  // Clear recursion stack to prevent DynamoDB storage growth
-  if (traceId) {
-    await clearRecursionStack(traceId).catch((err) =>
-      logger.warn(`Failed to clear recursion stack for ${traceId}:`, err)
-    );
-  }
+  const { clearRecursionStack } = await import('../../lib/recursion-tracker');
+  await clearRecursionStack(traceId);
 }

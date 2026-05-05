@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   applyChunkToMessages,
   shouldProcessChunk,
-  mapHistoryMessage,
   mergeHistoryWithMessages,
 } from './message-handler';
 import { ChatMessage, HistoryMessage, IncomingChunk } from './types';

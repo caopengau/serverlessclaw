@@ -1,11 +1,5 @@
 /**
  * Shared Agent Helper Utilities
- *
- * These functions extract common patterns from agent handlers to improve
- * AI-readability and reduce code duplication.
- *
- * NOTE: Heavy dependencies are loaded dynamically to reduce import depth
- * for context-analyzer scoring.
  */
 
 import { logger } from '../logger';
@@ -24,10 +18,6 @@ import { normalizeBaseUserId } from './normalize';
 
 /**
  * Extract the base userId by removing CONV# prefix if present.
- * Used by multiple agents to normalize userId handling.
- *
- * @param userId - The user identifier which may be prefixed with 'CONV#'.
- * @returns The normalized base user identifier.
  */
 export function extractBaseUserId(userId: string): string {
   return normalizeBaseUserId(userId);
@@ -40,13 +30,13 @@ export function isE2ETest(): boolean {
     process.env.CLAW_TEST === 'true' ||
     process.env.CORE_TEST === 'true' ||
     process.env.NODE_ENV === 'test' ||
-    (global as unknown as { __vitest_worker__?: unknown }).__vitest_worker__ !== undefined ||
+    (globalThis as any).__vitest_worker__ !== undefined ||
     process.argv.some((arg) => arg.includes('vitest')) ||
     lifecycle.includes('test') ||
     lifecycle.includes('check') ||
-    (global as unknown as { __CLAW_TEST__?: boolean }).__CLAW_TEST__ === true ||
-    (global as unknown as { CLAW_TEST?: boolean }).CLAW_TEST === true ||
-    (global as unknown as { IS_CLAW_TEST?: boolean }).IS_CLAW_TEST === true ||
+    (globalThis as any).__CLAW_TEST__ === true ||
+    (globalThis as any).CLAW_TEST === true ||
+    (globalThis as any).IS_CLAW_TEST === true ||
     new Error().stack?.includes('.test.ts');
 
   return !!(process.env.PLAYWRIGHT || process.env.CI || isVitest);
@@ -54,11 +44,6 @@ export function isE2ETest(): boolean {
 
 /**
  * Extract and normalize payload from EventBridge event.
- * EventBridge wraps the payload in 'detail', but direct invocations pass it directly.
- *
- * @param event - The input object which may be an EventBridge detail-wrapped event or a direct payload.
- * @returns The extracted payload.
- * @since 2026-03-19
  */
 export function extractPayload<T extends object>(event: { detail?: T } | T): T {
   return (event as { detail?: T }).detail ?? (event as T);
@@ -66,16 +51,11 @@ export function extractPayload<T extends object>(event: { detail?: T } | T): T {
 
 export function isWarmupEvent(event: unknown): boolean {
   const payload = extractPayload(event as Record<string, unknown>) as Record<string, unknown>;
-  return payload?.type === 'WARMUP' || payload?.intent === 'warmup';
+  return payload.type === 'WARMUP' || payload.intent === 'warmup';
 }
 
 /**
- * Handle a warmup event by pre-initializing the agent and returning true.
- * This is meant to be called at the beginning of an agent handler.
- *
- * @param event - The handler event.
- * @param agentId - The agent ID to warm.
- * @returns A promise that resolves to true if handled as warmup, false otherwise.
+ * Handle a warmup event by pre-initializing the agent.
  */
 export async function handleWarmup(event: unknown, agentId: string | AgentRole): Promise<boolean> {
   if (isWarmupEvent(event)) {
@@ -83,7 +63,6 @@ export async function handleWarmup(event: unknown, agentId: string | AgentRole):
     logger.info(`[WARMUP] Warming ${target}...`);
     try {
       if (agentId === 'brain') {
-        // Warm a representative set of agents
         await Promise.all([
           initAgent(AGENT_TYPES.CODER),
           initAgent(AGENT_TYPES.RESEARCHER),
@@ -104,10 +83,6 @@ export async function handleWarmup(event: unknown, agentId: string | AgentRole):
 
 /**
  * Detect if an agent response indicates an internal error.
- * Used consistently across all agents to determine failure state.
- *
- * @param response - The string response from the agent.
- * @returns True if the response indicates a failure, false otherwise.
  */
 export function detectFailure(response: string): boolean {
   return (
@@ -122,11 +97,7 @@ export function detectFailure(response: string): boolean {
 }
 
 /**
- * Check if response indicates a paused task (should not emit completion event).
- * This is used to maintain state across async operations.
- *
- * @param response - The string response from the agent.
- * @returns True if the task is paused, false otherwise.
+ * Check if response indicates a paused task.
  */
 export function isTaskPaused(response: string): boolean {
   return response.startsWith('TASK_PAUSED');
@@ -134,11 +105,6 @@ export function isTaskPaused(response: string): boolean {
 
 /**
  * Load and validate agent configuration from the registry.
- * Throws if config is not found or agent is disabled.
- *
- * @param agentId - The identifier or type of the agent.
- * @param options - Optional configuration options (workspaceId, etc).
- * @returns A promise resolving to the agent configuration.
  */
 export async function loadAgentConfig(
   agentId: string | AgentRole,
@@ -157,12 +123,11 @@ export async function loadAgentConfig(
     throw new Error(`Agent '${agentId}' is disabled`);
   }
 
-  // Inject MCP_SERVER_ARNS from environment if present (Lambda environment)
   if (process.env.MCP_SERVER_ARNS) {
     try {
       const mcpArns = JSON.parse(process.env.MCP_SERVER_ARNS);
       config.mcpServers = {
-        ...(config.mcpServers ?? {}),
+        ...config.mcpServers,
         ...mcpArns,
       };
     } catch (e) {
@@ -175,13 +140,6 @@ export async function loadAgentConfig(
 
 /**
  * Create an Agent instance with tools and configuration.
- * This encapsulates the common agent initialization pattern.
- *
- * @param agentId - The unique identifier for the agent.
- * @param config - The agent configuration object.
- * @param memory - The memory provider instance.
- * @param provider - The model provider manager instance.
- * @returns A promise resolving to the initialized Agent instance.
  */
 export async function createAgent(
   agentId: string,
@@ -196,8 +154,7 @@ export async function createAgent(
   ]);
   const agentTools = await getAgentTools(agentId);
 
-  // Apply dynamic localization instructions
-  let systemPrompt = config.systemPrompt ?? '';
+  let systemPrompt = config.systemPrompt || '';
   const instruction =
     locale.toLowerCase() === 'cn' ? LOCALE_INSTRUCTIONS.CN : LOCALE_INSTRUCTIONS.EN;
   if (instruction && systemPrompt) {
@@ -208,13 +165,7 @@ export async function createAgent(
 }
 
 /**
- * One-shot initialization: load config, get context, and create agent.
- * Combines the 3-step pattern (loadAgentConfig → getAgentContext → createAgent)
- * that every agent handler repeats.
- *
- * @param agentId - The agent identifier or type.
- * @param options - Optional configuration options (workspaceId, etc).
- * @returns A promise resolving to { config, memory, provider, agent }.
+ * One-shot initialization.
  */
 export async function initAgent(
   agentId: string | AgentRole,
@@ -245,7 +196,6 @@ export async function initAgent(
 
 /**
  * High-level agent execution helper.
- * Combines initialization and processing into a single call.
  */
 export async function processWithAgent(
   agentId: string | AgentRole,
@@ -287,18 +237,14 @@ export interface ProcessOptionsParams {
 }
 
 /**
- * Build a common process options object for agent.process() calls.
- * Reduces duplication in the agent execution pattern.
- *
- * @param params - The input parameters for building process options.
- * @returns A process options object.
+ * Build a common process options object.
  */
 export function buildProcessOptions(params: ProcessOptionsParams): AgentProcessOptions {
   return {
     isContinuation: !!params.isContinuation,
-    isIsolated: params.isIsolated ?? true,
-    initiatorId: params.initiatorId ?? 'orchestrator',
-    depth: params.depth ?? 0,
+    isIsolated: params.isIsolated !== false,
+    initiatorId: params.initiatorId || 'orchestrator',
+    depth: params.depth || 0,
     traceId: params.traceId,
     taskId: params.taskId,
     sessionId: params.sessionId,
@@ -306,7 +252,7 @@ export function buildProcessOptions(params: ProcessOptionsParams): AgentProcessO
     teamId: params.teamId,
     staffId: params.staffId,
     userRole: params.userRole,
-    source: params.source ?? TraceSource.SYSTEM,
+    source: params.source || TraceSource.SYSTEM,
     profile: params.profile,
     context: params.context,
     responseFormat: params.responseFormat,
@@ -321,11 +267,6 @@ export function buildProcessOptions(params: ProcessOptionsParams): AgentProcessO
 
 /**
  * Validate required fields in agent payload.
- * Returns true if valid, false otherwise.
- *
- * @param payload - The payload object to validate.
- * @param requiredFields - The list of field names that must be present.
- * @returns True if all required fields are present, false otherwise.
  */
 export function validatePayload(
   payload: Record<string, unknown> | null | undefined,
@@ -345,13 +286,7 @@ export function validatePayload(
 }
 
 /**
- * Validate an event payload against a registered schema in EVENT_SCHEMA_MAP.
- * This provides fail-fast runtime validation with Zod schemas.
- *
- * @param event - The EventBridge event or direct payload.
- * @param schemaKey - The key to lookup in EVENT_SCHEMA_MAP (e.g., `${AGENT_TYPES.RESEARCHER}_task`).
- * @returns The validated and typed payload.
- * @throws Error if validation fails.
+ * Validate an event payload against a registered schema.
  */
 export function validateEventPayload<T extends object>(
   event: { detail?: T } | T,
@@ -377,8 +312,6 @@ export function validateEventPayload<T extends object>(
 
 /**
  * Get the agent context (memory, provider) lazily.
- *
- * @returns A promise resolving to the agent context object containing memory and provider instances.
  */
 export async function getAgentContext(): Promise<{
   memory: import('../types/index').IMemory;
@@ -391,23 +324,16 @@ export async function getAgentContext(): Promise<{
   ]);
 
   // Singleton pattern
-  if (!(global as unknown as { _agentMemory?: import('../types/index').IMemory })._agentMemory) {
-    (global as unknown as { _agentMemory: import('../types/index').IMemory })._agentMemory =
-      new CachedMemory(new DynamoMemory());
+  const store = globalThis as any;
+  if (!store._agentMemory) {
+    store._agentMemory = new CachedMemory(new DynamoMemory());
   }
-  if (
-    !(global as unknown as { _agentProvider?: import('../providers/index').ProviderManager })
-      ._agentProvider
-  ) {
-    (
-      global as unknown as { _agentProvider: import('../providers/index').ProviderManager }
-    )._agentProvider = new ProviderManager();
+  if (!store._agentProvider) {
+    store._agentProvider = new ProviderManager();
   }
 
   return {
-    memory: (global as unknown as { _agentMemory: import('../types/index').IMemory })._agentMemory,
-    provider: (
-      global as unknown as { _agentProvider: import('../providers/index').ProviderManager }
-    )._agentProvider,
+    memory: store._agentMemory as import('../types/index').IMemory,
+    provider: store._agentProvider as import('../providers/index').ProviderManager,
   };
 }

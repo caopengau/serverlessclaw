@@ -1,12 +1,33 @@
 import { SafetyTier, SafetyPolicy, TimeRestriction, SafetyEvaluationResult } from '../types/agent';
 import { SafetyBase } from './safety-base';
 
+export interface ValidationContext {
+  traceId: string;
+  userId: string;
+  toolName?: string;
+  agentId: string;
+  workspaceId: string;
+  teamId?: string;
+  staffId?: string;
+}
+
+const DEFAULT_CONTEXT: ValidationContext = {
+  traceId: 'unknown',
+  userId: 'SYSTEM',
+  agentId: 'unknown',
+  workspaceId: 'GLOBAL',
+};
+
 /**
  * Validator for safety policies.
  * Extracted from SafetyEngine to reduce cognitive complexity and file size.
  */
 export class PolicyValidator {
   constructor(private base: SafetyBase) {}
+
+  private getEffectiveContext(context?: Partial<ValidationContext>): ValidationContext {
+    return { ...DEFAULT_CONTEXT, ...context };
+  }
 
   /**
    * Check if a file path is allowed for the given policy.
@@ -16,33 +37,27 @@ export class PolicyValidator {
     resource: string,
     action: string,
     tier: SafetyTier,
-    context?: {
-      traceId?: string;
-      userId?: string;
-      toolName?: string;
-      agentId?: string;
-      workspaceId?: string;
-      teamId?: string;
-      staffId?: string;
-    }
+    context?: Partial<ValidationContext>
   ): Promise<SafetyEvaluationResult> {
-    // Check blocked paths first
+    const ctx = this.getEffectiveContext(context);
+
     if (policy.blockedFilePaths) {
       for (const pattern of policy.blockedFilePaths) {
         if (this.base.matchesGlob(resource, pattern)) {
           const violation = this.base.createViolation(
-            context?.agentId ?? 'unknown',
+            ctx.agentId,
             tier,
             action,
-            context?.toolName,
+            ctx.toolName,
             resource,
             `Resource '${resource}' matches blocked pattern '${pattern}'`,
             'blocked',
-            context?.traceId,
-            context?.userId,
-            context?.workspaceId,
-            context?.teamId,
-            context?.staffId
+            ctx.traceId,
+            ctx.userId,
+            ctx.workspaceId,
+            undefined,
+            ctx.teamId,
+            ctx.staffId
           );
           return {
             allowed: false,
@@ -56,7 +71,6 @@ export class PolicyValidator {
       }
     }
 
-    // Check allowed paths (if specified, resource must match at least one)
     if (policy.allowedFilePaths && policy.allowedFilePaths.length > 0) {
       const isAllowed = policy.allowedFilePaths.some((pattern) =>
         this.base.matchesGlob(resource, pattern)
@@ -64,18 +78,19 @@ export class PolicyValidator {
 
       if (!isAllowed) {
         const violation = this.base.createViolation(
-          context?.agentId ?? 'unknown',
+          ctx.agentId,
           tier,
           action,
-          context?.toolName,
+          ctx.toolName,
           resource,
           `Resource '${resource}' not in allowed paths`,
           'blocked',
-          context?.traceId,
-          context?.userId,
-          context?.workspaceId,
-          context?.teamId,
-          context?.staffId
+          ctx.traceId,
+          ctx.userId,
+          ctx.workspaceId,
+          undefined,
+          ctx.teamId,
+          ctx.staffId
         );
         return {
           allowed: false,
@@ -97,20 +112,13 @@ export class PolicyValidator {
     policy: SafetyPolicy,
     action: string,
     tier: SafetyTier,
-    context?: {
-      traceId?: string;
-      userId?: string;
-      toolName?: string;
-      agentId?: string;
-      workspaceId?: string;
-      teamId?: string;
-      staffId?: string;
-    }
+    context?: Partial<ValidationContext>
   ): Promise<SafetyEvaluationResult> {
     if (!policy.timeRestrictions || policy.timeRestrictions.length === 0) {
       return { allowed: true, requiresApproval: false };
     }
 
+    const ctx = this.getEffectiveContext(context);
     const now = new Date();
 
     for (const restriction of policy.timeRestrictions) {
@@ -121,21 +129,26 @@ export class PolicyValidator {
       const isRestricted = this.isTimeInWindow(now, restriction);
 
       if (isRestricted) {
+        const outcome = restriction.restrictionType === 'block' ? 'blocked' : 'approval_required';
+        const violation = this.base.createViolation(
+          ctx.agentId,
+          tier,
+          action,
+          ctx.toolName,
+          undefined,
+          restriction.restrictionType === 'block'
+            ? `Action '${action}' blocked during restricted time window`
+            : `Action '${action}' requires approval during restricted time window`,
+          outcome as any,
+          ctx.traceId,
+          ctx.userId,
+          ctx.workspaceId,
+          undefined,
+          ctx.teamId,
+          ctx.staffId
+        );
+
         if (restriction.restrictionType === 'block') {
-          const violation = this.base.createViolation(
-            context?.agentId ?? 'unknown',
-            tier,
-            action,
-            context?.toolName,
-            undefined,
-            `Action '${action}' blocked during restricted time window`,
-            'blocked',
-            context?.traceId,
-            context?.userId,
-            context?.workspaceId,
-            context?.teamId,
-            context?.staffId
-          );
           return {
             allowed: false,
             requiresApproval: false,
@@ -144,20 +157,6 @@ export class PolicyValidator {
             violation,
           };
         } else {
-          const violation = this.base.createViolation(
-            context?.agentId ?? 'unknown',
-            tier,
-            action,
-            context?.toolName,
-            undefined,
-            `Action '${action}' requires approval during restricted time window`,
-            'approval_required',
-            context?.traceId,
-            context?.userId,
-            context?.workspaceId,
-            context?.teamId,
-            context?.staffId
-          );
           return {
             allowed: true,
             requiresApproval: true,
@@ -179,15 +178,7 @@ export class PolicyValidator {
     policy: SafetyPolicy,
     action: string,
     tier: SafetyTier,
-    context?: {
-      traceId?: string;
-      userId?: string;
-      toolName?: string;
-      agentId?: string;
-      workspaceId?: string;
-      teamId?: string;
-      staffId?: string;
-    }
+    context?: Partial<ValidationContext>
   ): Promise<SafetyEvaluationResult> {
     let requiresApproval: boolean;
     let reason: string;
@@ -225,19 +216,21 @@ export class PolicyValidator {
     }
 
     if (requiresApproval) {
+      const ctx = this.getEffectiveContext(context);
       const violation = this.base.createViolation(
-        context?.agentId ?? 'unknown',
+        ctx.agentId,
         tier,
         action,
-        context?.toolName,
+        ctx.toolName,
         undefined,
         reason,
         'approval_required',
-        context?.traceId,
-        context?.userId,
-        context?.workspaceId,
-        context?.teamId,
-        context?.staffId
+        ctx.traceId,
+        ctx.userId,
+        ctx.workspaceId,
+        undefined,
+        ctx.teamId,
+        ctx.staffId
       );
       return {
         allowed: true,
@@ -265,6 +258,7 @@ export class PolicyValidator {
     const hourStr = parts.find((p) => p.type === 'hour')?.value;
     const hour = hourStr !== undefined ? parseInt(hourStr, 10) : -1;
     const weekdayStr = parts.find((p) => p.type === 'weekday')?.value ?? 'Sun';
+
     const dayMap: Record<string, number> = {
       Sun: 0,
       Mon: 1,
@@ -276,18 +270,12 @@ export class PolicyValidator {
     };
     const dayOfWeek = dayMap[weekdayStr] ?? 0;
 
-    if (hour < 0) {
+    if (hour < 0 || !restriction.daysOfWeek.includes(dayOfWeek)) {
       return false;
     }
 
-    if (!restriction.daysOfWeek.includes(dayOfWeek)) {
-      return false;
-    }
-
-    if (restriction.startHour <= restriction.endHour) {
-      return hour >= restriction.startHour && hour < restriction.endHour;
-    } else {
-      return hour >= restriction.startHour || hour < restriction.endHour;
-    }
+    return restriction.startHour <= restriction.endHour
+      ? hour >= restriction.startHour && hour < restriction.endHour
+      : hour >= restriction.startHour || hour < restriction.endHour;
   }
 }

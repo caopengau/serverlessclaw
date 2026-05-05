@@ -12,27 +12,24 @@ interface NotifierEvent {
     userId: string;
     baseUserId?: string;
     message: string;
-    memoryContexts?: string[];
-    sessionId?: string;
-    traceId?: string;
+    memoryContexts: string[];
+    sessionId: string;
+    traceId: string;
     messageId?: string;
     agentName?: string;
-    attachments?: Attachment[];
-    options?: {
+    attachments: Attachment[];
+    options: {
       label: string;
       value: string;
       type?: ButtonType;
     }[];
-    /** Optional workspace ID for multi-human notification fan-out. */
     workspaceId?: string;
-    /** Optional collaboration ID for multi-human notification fan-out. */
     collaborationId?: string;
   };
 }
 
 /**
  * Handles outbound messages by syncing context with memory and sending via configured channels.
- * Supports multi-platform fan-out (Telegram, Discord, Slack) via Workspaces.
  */
 export const handler = async (event: NotifierEvent): Promise<void> => {
   logger.info('[NOTIFIER] Received event:', JSON.stringify(event, null, 2));
@@ -46,22 +43,19 @@ export const handler = async (event: NotifierEvent): Promise<void> => {
   const {
     userId,
     message,
-    memoryContexts,
+    memoryContexts = [],
     sessionId,
-    agentName,
-    attachments,
-    options,
+    agentName = 'SYSTEM',
+    attachments = [],
+    options = [],
     workspaceId,
     collaborationId,
   } = payload;
 
   const baseUserId = payload.baseUserId || extractBaseUserId(userId);
-  logger.info(
-    `[NOTIFIER] Normalized User: ${baseUserId} | Session: ${sessionId} | Workspace: ${workspaceId ?? 'none'}`
-  );
+  const traceId = payload.traceId || `notif-${Date.now()}`;
 
-  // 1. Sync context to memory
-  const contextsToSync = new Set<string>(memoryContexts ?? []);
+  const contextsToSync = new Set<string>(memoryContexts);
   contextsToSync.add(baseUserId);
   if (sessionId) {
     contextsToSync.add(`CONV#${baseUserId}#${sessionId}`);
@@ -72,53 +66,46 @@ export const handler = async (event: NotifierEvent): Promise<void> => {
       await memory.addMessage(contextId, {
         role: MessageRole.ASSISTANT,
         content: message,
-        agentName: agentName,
-        attachments: attachments,
-        options: options,
-        traceId: payload.traceId ?? `notif-${Date.now()}`,
-        messageId: payload.messageId ?? payload.traceId ?? `notif-${Date.now()}`,
+        agentName,
+        attachments,
+        options,
+        traceId,
+        messageId: payload.messageId || traceId,
+        thought: '',
+        workspaceId: workspaceId || 'default',
+        tool_calls: [],
+        ui_blocks: [],
       });
     } catch (e) {
       logger.error(`Failed to sync context to ${contextId}:`, e);
     }
   }
 
-  // 2. Deliver to channels
   if (collaborationId) {
     await sendToCollaboration(collaborationId, message, attachments, options);
   } else if (workspaceId) {
     await sendToWorkspace(workspaceId, message, attachments, options);
   } else {
-    // Legacy single-user path (defaults to Telegram)
     await sendToSingleUser(baseUserId, message, attachments, options);
   }
 };
 
-/**
- * Fans out a notification to all human participants of a collaboration.
- */
 async function sendToCollaboration(
   collaborationId: string,
   message: string,
-  attachments?: Attachment[],
-  options?: { label: string; value: string }[]
+  attachments: Attachment[],
+  options: { label: string; value: string }[]
 ): Promise<void> {
   const { getCollaboration } = await import('../lib/memory/collaboration-operations');
   const { getWorkspace, getHumanMembersWithChannels } =
     await import('../lib/memory/workspace-operations');
 
   const collaboration = await getCollaboration(memory, collaborationId);
-  if (!collaboration) {
-    logger.warn(`[NOTIFIER] Collaboration not found: ${collaborationId}`);
-    return;
-  }
+  if (!collaboration) return;
 
   const deliveryPromises: Promise<void>[] = [];
-
-  // 1. Get human participants explicitly listed in collaboration
   const humanParticipants = collaboration.participants.filter((p) => p.type === 'human');
 
-  // 2. If collaboration is in a workspace, get channels from workspace metadata
   if (collaboration.workspaceId) {
     const workspace = await getWorkspace(collaboration.workspaceId);
     if (workspace) {
@@ -136,38 +123,26 @@ async function sendToCollaboration(
       }
     }
   } else {
-    // 3. Fallback: If not in workspace, we assume human ID is a Telegram ID (legacy/simple)
     for (const hp of humanParticipants) {
-      const isTelegramChatId = /^\d+$/.test(hp.id);
-      if (isTelegramChatId) {
+      if (/^\d+$/.test(hp.id)) {
         deliveryPromises.push(sendToChannel('telegram', hp.id, message, attachments, options));
       }
     }
   }
 
-  const results = await Promise.allSettled(deliveryPromises);
-  const failed = results.filter((r) => r.status === 'rejected');
-  if (failed.length > 0) {
-    logger.warn(`${failed.length}/${results.length} collaboration deliveries failed`);
-  }
+  await Promise.allSettled(deliveryPromises);
 }
 
-/**
- * Fans out a notification to all human members of a workspace.
- */
 async function sendToWorkspace(
   workspaceId: string,
   message: string,
-  attachments?: Attachment[],
-  options?: { label: string; value: string }[]
+  attachments: Attachment[],
+  options: { label: string; value: string }[]
 ): Promise<void> {
   const { getWorkspace, getHumanMembersWithChannels } =
     await import('../lib/memory/workspace-operations');
   const workspace = await getWorkspace(workspaceId);
-  if (!workspace) {
-    logger.warn(`[NOTIFIER] Workspace not found: ${workspaceId}`);
-    return;
-  }
+  if (!workspace) return;
 
   const humans = getHumanMembersWithChannels(workspace);
   const deliveryPromises: Promise<void>[] = [];
@@ -184,30 +159,23 @@ async function sendToWorkspace(
   await Promise.allSettled(deliveryPromises);
 }
 
-/**
- * Sends to a single user via Telegram (legacy path).
- */
 async function sendToSingleUser(
   baseUserId: string,
   message: string,
-  attachments?: Attachment[],
-  options?: { label: string; value: string }[]
+  attachments: Attachment[],
+  options: { label: string; value: string }[]
 ): Promise<void> {
-  const isTelegramChatId = /^\d+$/.test(baseUserId);
-  if (!isTelegramChatId) return;
-
-  await sendToChannel('telegram', baseUserId, message, attachments, options);
+  if (/^\d+$/.test(baseUserId)) {
+    await sendToChannel('telegram', baseUserId, message, attachments, options);
+  }
 }
 
-/**
- * Routes a message to a specific platform channel.
- */
 async function sendToChannel(
   platform: string,
   identifier: string,
   message: string,
-  attachments?: Attachment[],
-  options?: { label: string; value: string }[]
+  attachments: Attachment[],
+  options: { label: string; value: string }[]
 ): Promise<void> {
   switch (platform.toLowerCase()) {
     case 'telegram':
@@ -224,16 +192,10 @@ async function sendToChannel(
   }
 }
 
-/**
- * Validates the fetch response and throws on specific retryable or fatal errors.
- * 429 (Rate Limit) and 401 (Auth Failure) should trigger retries or visibility.
- */
 async function validateResponse(response: Response, platform: string): Promise<void> {
   if (!response.ok) {
     const status = response.status;
-    const body = await response.text().catch(() => 'No body');
-    const errorMsg = `[NOTIFIER] ${platform} API error (${status}): ${body}`;
-
+    const errorMsg = `[NOTIFIER] ${platform} API error (${status})`;
     if (status === 429 || status === 401 || status >= 500) {
       throw new Error(errorMsg);
     } else {
@@ -242,19 +204,17 @@ async function validateResponse(response: Response, platform: string): Promise<v
   }
 }
 
-/**
- * Telegram Adapter
- */
 async function deliverTelegram(
   chatId: string,
   message: string,
-  attachments?: Attachment[],
-  options?: { label: string; value: string }[]
+  attachments: Attachment[],
+  options: { label: string; value: string }[]
 ): Promise<void> {
-  const token = (Resource as unknown as Record<string, { value?: string }>).TelegramBotToken?.value;
-  if (!token) throw new Error('TelegramBotToken not configured');
+  const res = Resource as any;
+  const token = res.TelegramBotToken?.value;
+  if (!token) return;
 
-  if (attachments && attachments.length > 0) {
+  if (attachments.length > 0) {
     for (const attachment of attachments) {
       if (!attachment.url) continue;
       const method = attachment.type === AttachmentType.IMAGE ? 'sendPhoto' : 'sendDocument';
@@ -268,7 +228,7 @@ async function deliverTelegram(
           [bodyKey]: attachment.url,
           caption: escapeHtml(message),
           parse_mode: 'HTML',
-          reply_markup: options?.length
+          reply_markup: options.length
             ? {
                 inline_keyboard: [options.map((o) => ({ text: o.label, callback_data: o.value }))],
               }
@@ -286,7 +246,7 @@ async function deliverTelegram(
         chat_id: chatId,
         text: escapeHtml(message),
         parse_mode: 'HTML',
-        reply_markup: options?.length
+        reply_markup: options.length
           ? {
               inline_keyboard: [options.map((o) => ({ text: o.label, callback_data: o.value }))],
             }
@@ -298,31 +258,28 @@ async function deliverTelegram(
   }
 }
 
-/**
- * Discord Adapter (Bot API)
- */
 async function deliverDiscord(
   channelId: string,
   message: string,
-  attachments?: Attachment[],
-  options?: { label: string; value: string }[]
+  attachments: Attachment[],
+  options: { label: string; value: string }[]
 ): Promise<void> {
-  const token = (Resource as unknown as Record<string, { value?: string }>).DiscordBotToken?.value;
-  if (!token) throw new Error('DiscordBotToken not configured');
+  const res = Resource as any;
+  const token = res.DiscordBotToken?.value;
+  if (!token) return;
 
   const embeds = attachments
-    ?.filter((a) => a.url)
+    .filter((a) => a.url)
     .map((a) => ({
       image: a.type === AttachmentType.IMAGE ? { url: a.url } : undefined,
       url: a.type !== AttachmentType.IMAGE ? a.url : undefined,
       title: a.name || (a.type !== AttachmentType.IMAGE ? 'Attachment' : undefined),
     }));
 
-  // Discord components for buttons
-  const components = options?.length
+  const components = options.length
     ? [
         {
-          type: 1, // Action Row
+          type: 1,
           components: options.map((o) => ({
             type: 2,
             style: 1,
@@ -341,7 +298,7 @@ async function deliverDiscord(
     },
     body: JSON.stringify({
       content: message,
-      embeds: embeds?.length ? embeds : undefined,
+      embeds: embeds.length ? embeds : undefined,
       components,
     }),
     signal: AbortSignal.timeout(10000),
@@ -349,53 +306,42 @@ async function deliverDiscord(
   await validateResponse(response, 'Discord');
 }
 
-/**
- * Slack Adapter
- */
 async function deliverSlack(
   channelId: string,
   message: string,
-  attachments?: Attachment[],
-  options?: { label: string; value: string }[]
+  attachments: Attachment[],
+  options: { label: string; value: string }[]
 ): Promise<void> {
-  const token = (Resource as unknown as Record<string, { value?: string }>).SlackBotToken?.value;
-  if (!token) throw new Error('SlackBotToken not configured');
+  const res = Resource as any;
+  const token = res.SlackBotToken?.value;
+  if (!token) return;
 
   const blocks: Record<string, unknown>[] = [
-    {
-      type: 'section',
-      text: { type: 'mrkdwn', text: message },
-    },
+    { type: 'section', text: { type: 'mrkdwn', text: message } },
   ];
 
-  if (attachments?.length) {
-    for (const a of attachments) {
-      if (a.type === AttachmentType.IMAGE && a.url) {
-        blocks.push({
-          type: 'image',
-          image_url: a.url,
-          alt_text: a.name || 'image',
-        });
-      } else if (a.url) {
+  attachments.forEach((a) => {
+    if (a.url) {
+      if (a.type === AttachmentType.IMAGE) {
+        blocks.push({ type: 'image', image_url: a.url, alt_text: a.name || 'image' });
+      } else {
         blocks.push({
           type: 'section',
           text: { type: 'mrkdwn', text: `*Attachment:* <${a.url}|${a.name || 'Link'}>` },
         });
       }
     }
-  }
+  });
 
-  if (options?.length) {
+  if (options.length > 0) {
     blocks.push({
       type: 'actions',
-      elements: options.map(
-        (o): Record<string, unknown> => ({
-          type: 'button',
-          text: { type: 'plain_text', text: o.label },
-          value: o.value,
-          action_id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-        })
-      ),
+      elements: options.map((o) => ({
+        type: 'button',
+        text: { type: 'plain_text', text: o.label },
+        value: o.value,
+        action_id: `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      })),
     });
   }
 
@@ -405,18 +351,12 @@ async function deliverSlack(
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      channel: channelId,
-      blocks,
-    }),
+    body: JSON.stringify({ channel: channelId, blocks }),
     signal: AbortSignal.timeout(10000),
   });
   await validateResponse(response, 'Slack');
 }
 
-/**
- * Escapes special characters for Telegram HTML parse mode.
- */
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')

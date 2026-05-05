@@ -1,4 +1,4 @@
-import { systemSchema as schema } from './schema';
+import { workflowSchema } from './definitions/workflow';
 import { formatErrorMessage } from '../../lib/utils/error';
 import { SessionStateManager } from '../../lib/session/session-state';
 import { DynamoMemory } from '../../lib/memory/dynamo-memory';
@@ -8,7 +8,7 @@ import { CachedMemory } from '../../lib/memory/cached-memory';
  * Suspends the current agent workflow and saves its state to DynamoDB.
  */
 export const pauseWorkflow = {
-  ...schema.pauseWorkflow,
+  ...workflowSchema.pauseWorkflow,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { reason, metadata, sessionId, executorAgentId, originalUserTask, userId } = args as {
       reason: string;
@@ -59,7 +59,7 @@ export const pauseWorkflow = {
  * Resumes a previously paused workflow.
  */
 export const resumeWorkflow = {
-  ...schema.resumeWorkflow,
+  ...workflowSchema.resumeWorkflow,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     const { sessionId: providedSessionId } = args as { sessionId?: string };
     try {

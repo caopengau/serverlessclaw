@@ -4,38 +4,59 @@ import { BUS } from '../../constants';
 import { getEventBridge, getBusName } from './client';
 import { reserveIdempotencyKey, commitIdempotencyKey } from './idempotency';
 import { storeInDLQ, purgeDlqEntry } from './dlq';
-import { EventOptions, EventPriority, ErrorCategory, DlqEntry, EventType } from './types';
+import { EventOptions, EventPriority, ErrorCategory, DlqEntry } from './types';
 
 const MAX_RETRIES = BUS.MAX_RETRIES;
 const INITIAL_BACKOFF_MS = BUS.INITIAL_BACKOFF_MS;
+
+const ERR_THROTTLING = 'throttling';
+const ERR_RATE_LIMIT = 'rate limit';
+const ERR_TIMEOUT = 'timeout';
+const ERR_CONNECTION = 'connection';
+const ERR_TEMPORARY = 'temporary';
+const ERR_SERVICE_UNAVAILABLE = 'service unavailable';
+const ERR_TOO_MANY_REQUESTS = 'too many requests';
+const ERR_INTERNAL_ERROR = 'internal error';
+const ERR_CODE_500 = '500';
+const ERR_CODE_503 = '503';
+const ERR_SOCKET = 'socket';
+const ERR_ECONNRESET = 'econnreset';
+const ERR_ETIMEDOUT = 'etimedout';
+
+const ERR_ACCESS_DENIED = 'access denied';
+const ERR_UNAUTHORIZED = 'unauthorized';
+const ERR_FORBIDDEN = 'forbidden';
+const ERR_NOT_FOUND = 'not found';
+const ERR_INVALID = 'invalid';
+const ERR_MALFORMED = 'malformed';
 
 function categorizeError(error: unknown): ErrorCategory {
   if (error instanceof Error) {
     const message = error.message.toLowerCase();
     if (
-      message.includes('throttling') ||
-      message.includes('rate limit') ||
-      message.includes('timeout') ||
-      message.includes('connection') ||
-      message.includes('temporary') ||
-      message.includes('service unavailable') ||
-      message.includes('too many requests') ||
-      message.includes('internal error') ||
-      message.includes('500') ||
-      message.includes('503') ||
-      message.includes('socket') ||
-      message.includes('econnreset') ||
-      message.includes('etimedout')
+      message.includes(ERR_THROTTLING) ||
+      message.includes(ERR_RATE_LIMIT) ||
+      message.includes(ERR_TIMEOUT) ||
+      message.includes(ERR_CONNECTION) ||
+      message.includes(ERR_TEMPORARY) ||
+      message.includes(ERR_SERVICE_UNAVAILABLE) ||
+      message.includes(ERR_TOO_MANY_REQUESTS) ||
+      message.includes(ERR_INTERNAL_ERROR) ||
+      message.includes(ERR_CODE_500) ||
+      message.includes(ERR_CODE_503) ||
+      message.includes(ERR_SOCKET) ||
+      message.includes(ERR_ECONNRESET) ||
+      message.includes(ERR_ETIMEDOUT)
     ) {
       return ErrorCategory.TRANSIENT;
     }
     if (
-      message.includes('access denied') ||
-      message.includes('unauthorized') ||
-      message.includes('forbidden') ||
-      message.includes('not found') ||
-      message.includes('invalid') ||
-      message.includes('malformed')
+      message.includes(ERR_ACCESS_DENIED) ||
+      message.includes(ERR_UNAUTHORIZED) ||
+      message.includes(ERR_FORBIDDEN) ||
+      message.includes(ERR_NOT_FOUND) ||
+      message.includes(ERR_INVALID) ||
+      message.includes(ERR_MALFORMED)
     ) {
       return ErrorCategory.PERMANENT;
     }
@@ -47,170 +68,164 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Emits an event to the system bus with automatic retries and DLQ fallback.
+ *
+ * @param detailType - The type of event being emitted.
+ * @param detail - The event payload.
+ * @param options - Optional configuration for priority and idempotency.
+ */
 export async function emitEvent(
-  source: string,
-  type: EventType | string,
+  detailType: string,
   detail: Record<string, unknown>,
   options: EventOptions = {}
-): Promise<{ success: boolean; eventId?: string; reason?: string }> {
-  const {
-    priority = EventPriority.NORMAL,
-    idempotencyKey,
-    maxRetries = MAX_RETRIES,
-    correlationId,
-  } = options;
-
-  const workspaceId = (detail.workspaceId as string) || undefined;
+): Promise<string> {
+  const eb = getEventBridge();
+  const busName = getBusName();
+  const priority = options.priority ?? EventPriority.STANDARD;
+  const idempotencyKey = options.idempotencyKey || (detail.idempotencyKey as string);
 
   if (idempotencyKey) {
-    const reserved = await reserveIdempotencyKey(idempotencyKey, workspaceId);
-    if (!reserved) {
-      logger.info(`Duplicate event detected: ${idempotencyKey}`);
-      return { success: false, reason: 'DUPLICATE' };
+    const isNew = await reserveIdempotencyKey(idempotencyKey);
+    if (!isNew) {
+      logger.debug(`Duplicate event suppressed: ${idempotencyKey}`);
+      return 'SUPPRESSED';
     }
   }
 
-  const busName = await getBusName();
-  const detailJson = JSON.stringify(detail);
+  let attempt = 0;
+  let lastError: unknown;
 
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  while (attempt <= MAX_RETRIES) {
     try {
       const command = new PutEventsCommand({
         Entries: [
           {
-            Source: source,
-            DetailType: type,
-            Detail: detailJson,
+            Source: 'openclaw.system',
+            DetailType: detailType,
+            Detail: JSON.stringify({
+              ...detail,
+              ...(idempotencyKey ? { idempotencyKey } : {}),
+              __priority: priority,
+              __timestamp: Date.now(),
+            }),
             EventBusName: busName,
           },
         ],
       });
 
-      const result = await getEventBridge().send(command);
+      const response = await eb.send(command);
 
-      if (result.FailedEntryCount && result.FailedEntryCount > 0) {
-        if (attempt < maxRetries) {
-          await sleep(INITIAL_BACKOFF_MS * Math.pow(2, attempt - 1));
-          continue;
-        }
-        await storeInDLQ(
-          source,
-          type as string,
-          detail,
-          {
-            retryCount: attempt,
-            maxRetries,
-            lastError: `FailedEntryCount=${result.FailedEntryCount}`,
-            priority,
-            correlationId,
-          },
-          idempotencyKey
-        );
-        return { success: false, reason: 'DLQ' };
+      if (response.FailedEntryCount && response.FailedEntryCount > 0) {
+        throw new Error(response.Entries?.[0]?.ErrorMessage || 'EventBridge emission failed');
       }
+
+      const eventId = response.Entries?.[0]?.EventId || 'unknown';
 
       if (idempotencyKey) {
-        await commitIdempotencyKey(idempotencyKey, result.Entries?.[0]?.EventId, workspaceId);
+        await commitIdempotencyKey(idempotencyKey, eventId);
       }
 
-      return { success: true, eventId: result.Entries?.[0]?.EventId };
+      return eventId;
     } catch (error) {
-      const errorCategory = categorizeError(error);
-      if (errorCategory === ErrorCategory.PERMANENT || attempt >= maxRetries) {
-        await storeInDLQ(
-          source,
-          type as string,
-          detail,
-          {
-            retryCount: attempt,
-            maxRetries,
-            lastError: error instanceof Error ? error.message : String(error),
-            errorCategory,
-            priority,
-            correlationId,
-          },
-          idempotencyKey
-        );
-        return {
-          success: false,
-          reason: errorCategory === ErrorCategory.PERMANENT ? 'PERMANENT_ERROR' : 'DLQ',
-        };
+      lastError = error;
+      const category = categorizeError(error);
+
+      if (category === ErrorCategory.PERMANENT || attempt === MAX_RETRIES) {
+        break;
       }
-      await sleep(INITIAL_BACKOFF_MS * Math.pow(2, attempt - 1));
+
+      attempt++;
+      const backoff = INITIAL_BACKOFF_MS * 2 ** (attempt - 1);
+      logger.warn(`Retrying event emission (${attempt}/${MAX_RETRIES}) in ${backoff}ms...`);
+      await sleep(backoff);
     }
   }
-  return { success: false, reason: 'MAX_RETRIES' };
+
+  logger.error(`Failed to emit event after ${attempt} attempts. Storing in DLQ.`, lastError);
+
+  await storeInDLQ({
+    detailType,
+    detail,
+    priority,
+    error: lastError instanceof Error ? lastError.message : String(lastError),
+  });
+
+  return 'QUEUED_IN_DLQ';
 }
 
-export async function retryDlqEntry(entry: DlqEntry): Promise<boolean> {
+/**
+ * Retries an event from the DLQ and removes it upon successful emission.
+ * Mutates both the system bus (outbound) and the DLQ storage (deletion).
+ *
+ * @param entry - The DLQ entry to retry.
+ * @returns True if successfully processed.
+ */
+export async function retryAndPurgeDlqEntry(entry: DlqEntry): Promise<boolean> {
   try {
-    const detail = JSON.parse(entry.detail);
-    const idempotencyKey = `dlq-retry:${entry.userId}:${entry.timestamp}`;
-    const result = await emitEvent(entry.source, entry.detailType, detail, {
-      priority: entry.priority as EventPriority,
-      correlationId: entry.correlationId,
-      maxRetries: 2,
-      idempotencyKey,
+    const result = await emitEvent(entry.detailType, entry.detail, {
+      priority: entry.priority,
     });
-    if (result.success || result.reason === 'DUPLICATE') {
-      await purgeDlqEntry(entry);
+    if (result !== 'QUEUED_IN_DLQ') {
+      await purgeDlqEntry(entry.id);
       return true;
     }
     return false;
   } catch (error) {
-    logger.error('Failed to retry DLQ entry:', error);
+    logger.error(`Failed to retry DLQ entry ${entry.id}:`, error);
     return false;
   }
 }
 
+/** Legacy alias for retryAndPurgeDlqEntry */
+export const retryDlqEntry = retryAndPurgeDlqEntry;
+
+/**
+ * Emits an event with a guaranteed idempotency key to prevent duplicate processing.
+ *
+ * @param detailType - The type of event.
+ * @param detail - The payload.
+ * @param idempotencyKey - Unique key for this event.
+ * @param options - Optional priority.
+ */
 export async function emitEventWithIdempotency(
-  source: string,
-  type: EventType | string,
+  detailType: string,
   detail: Record<string, unknown>,
+  idempotencyKey: string,
   options: Omit<EventOptions, 'idempotencyKey'> = {}
-): Promise<{ success: boolean; eventId?: string; reason?: string }> {
-  if (!detail.traceId) {
-    throw new Error('traceId is required for emitEventWithIdempotency');
-  }
-  const idempotencyKey = `${source}:${type}:${detail.sessionId ?? 'global'}:${detail.traceId}`;
-  return emitEvent(source, type, detail, { ...options, idempotencyKey });
+): Promise<string> {
+  return emitEvent(detailType, detail, { ...options, idempotencyKey });
 }
 
+/**
+ * Emits an event with CRITICAL priority.
+ */
 export async function emitCriticalEvent(
-  source: string,
-  type: EventType | string,
+  detailType: string,
   detail: Record<string, unknown>,
   options: Omit<EventOptions, 'priority'> = {}
-): Promise<{ success: boolean; eventId?: string; reason?: string }> {
-  return emitEvent(source, type, detail, {
-    ...options,
-    priority: EventPriority.CRITICAL,
-    maxRetries: options.maxRetries ?? 5,
-  });
+): Promise<string> {
+  return emitEvent(detailType, detail, { ...options, priority: EventPriority.CRITICAL });
 }
 
+/**
+ * Emits an event with HIGH priority.
+ */
 export async function emitHighPriorityEvent(
-  source: string,
-  type: EventType | string,
+  detailType: string,
   detail: Record<string, unknown>,
   options: Omit<EventOptions, 'priority'> = {}
-): Promise<{ success: boolean; eventId?: string; reason?: string }> {
-  return emitEvent(source, type, detail, {
-    ...options,
-    priority: EventPriority.HIGH,
-    maxRetries: options.maxRetries ?? 3,
-  });
+): Promise<string> {
+  return emitEvent(detailType, detail, { ...options, priority: EventPriority.HIGH });
 }
 
+/**
+ * Emits an event with LOW priority.
+ */
 export async function emitLowPriorityEvent(
-  source: string,
-  type: EventType | string,
+  detailType: string,
   detail: Record<string, unknown>,
   options: Omit<EventOptions, 'priority'> = {}
-): Promise<{ success: boolean; eventId?: string; reason?: string }> {
-  return emitEvent(source, type, detail, {
-    ...options,
-    priority: EventPriority.LOW,
-    maxRetries: options.maxRetries ?? 1,
-  });
+): Promise<string> {
+  return emitEvent(detailType, detail, { ...options, priority: EventPriority.LOW });
 }

@@ -1,11 +1,9 @@
 /**
  * Gap Operations Module
- *
  * Contains gap management methods for the DynamoMemory class.
- * These functions operate on a BaseMemoryProvider instance.
  */
 
-import { MemoryInsight, InsightMetadata, InsightCategory } from '../types/memory';
+import { MemoryInsight, InsightMetadata, InsightCategory, ContextualScope } from '../types/memory';
 import { GapStatus, EvolutionTrack, GapTransitionResult } from '../types/agent';
 import { logger } from '../logger';
 import { RetentionManager } from './tiering';
@@ -22,17 +20,15 @@ import {
   atomicIncrement,
 } from './utils';
 
-/** Minimal interface for track operations — satisfied by BaseMemoryProvider and DynamoMemory. */
+import { determineTrack } from './gap/tracks';
+export { determineTrack };
+export { acquireGapLock, releaseGapLock, getGapLock } from './gap/locks';
+
+/** Minimal interface for track operations. */
 export interface TrackStore {
   putItem(item: Record<string, unknown>): Promise<void>;
   queryItems(params: Record<string, unknown>): Promise<Record<string, unknown>[]>;
 }
-
-/**
- * Default gap lock TTL in milliseconds (30 minutes).
- * Prevents race conditions when multiple planners/coders work on the same gap.
- */
-const GAP_LOCK_TTL_MS = 30 * 60 * 1000;
 
 /**
  * Retrieves all capability gaps filtered by status.
@@ -40,7 +36,7 @@ const GAP_LOCK_TTL_MS = 30 * 60 * 1000;
 export async function getAllGaps(
   base: BaseMemoryProvider,
   status: GapStatus = GapStatus.OPEN,
-  scope?: string | import('../types/memory').ContextualScope
+  scope?: string | ContextualScope
 ): Promise<MemoryInsight[]> {
   return queryByTypeAndMap(
     base,
@@ -60,7 +56,7 @@ export async function getAllGaps(
 export async function archiveStaleGaps(
   base: BaseMemoryProvider,
   staleDays: number = LIMITS.STALE_GAP_DAYS,
-  scope?: string | import('../types/memory').ContextualScope
+  scope?: string | ContextualScope
 ): Promise<number> {
   const cutoffTime = Date.now() - staleDays * TIME.SECONDS_IN_DAY * TIME.MS_PER_SECOND;
 
@@ -111,7 +107,7 @@ export async function archiveStaleGaps(
 export async function cullResolvedGaps(
   base: BaseMemoryProvider,
   thresholdDays: number = RETENTION.GAPS_DAYS,
-  scope?: string | import('../types/memory').ContextualScope
+  scope?: string | ContextualScope
 ): Promise<number> {
   const cutoffTime = Date.now() - thresholdDays * TIME.SECONDS_IN_DAY * TIME.MS_PER_SECOND;
 
@@ -156,7 +152,7 @@ export async function setGap(
   gapId: string,
   details: string,
   metadata?: Partial<InsightMetadata>,
-  scope?: string | import('../types/memory').ContextualScope
+  scope?: string | ContextualScope
 ): Promise<void> {
   const { expiresAt, type } = await RetentionManager.getExpiresAt('GAP', '');
   const normalizedGapId = normalizeGapId(gapId);
@@ -180,19 +176,18 @@ export async function setGap(
 export async function getGap(
   base: BaseMemoryProvider,
   gapId: string,
-  scope?: string | import('../types/memory').ContextualScope
+  scope?: string | ContextualScope
 ): Promise<MemoryInsight | null> {
   return resolveItemById(base, gapId, 'GAP', scope);
 }
 
 /**
  * Atomically increments the attempt counter on a capability gap.
- * Prevents "ghost item" creation by verifying the Partition Key exists.
  */
 export async function incrementGapAttemptCount(
   base: BaseMemoryProvider,
   gapId: string,
-  scope?: string | import('../types/memory').ContextualScope
+  scope?: string | ContextualScope
 ): Promise<number> {
   const target = await resolveItemById(base, gapId, 'GAP', scope);
   if (!target) {
@@ -210,8 +205,8 @@ export async function updateGapStatus(
   base: BaseMemoryProvider,
   gapId: string,
   status: GapStatus,
-  scope?: string | import('../types/memory').ContextualScope,
-  metadata?: Record<string, unknown>
+  scope?: string | ContextualScope,
+  metadata: Record<string, unknown> = {}
 ): Promise<GapTransitionResult> {
   const target = await resolveItemById(base, gapId, 'GAP', scope);
   if (!target) {
@@ -241,14 +236,15 @@ export async function updateGapStatus(
   };
   const exprNames: Record<string, string> = { '#status': 'status' };
 
-  if (metadata) {
-    const metaEntries = Object.entries(metadata).map(([key], idx) => {
-      return `${key} = :metaVal${idx}`;
+  const metadataEntries = Object.entries(metadata);
+  if (metadataEntries.length > 0) {
+    const metaExpr = metadataEntries
+      .map((_, idx) => `${metadataEntries[idx][0]} = :metaVal${idx}`)
+      .join(', ');
+    metadataEntries.forEach(([, val], idx) => {
+      exprValues[`:metaVal${idx}`] = val;
     });
-    Object.entries(metadata).forEach(([key], idx) => {
-      exprValues[`:metaVal${idx}`] = metadata[key];
-    });
-    updateExpr += ', ' + metaEntries.join(', ');
+    updateExpr += ', ' + metaExpr;
   }
 
   const params: Record<string, unknown> = {
@@ -280,8 +276,8 @@ export async function updateGapStatus(
               workspaceId,
             }
           );
-        } catch {
-          /* ignore */
+        } catch (e) {
+          logger.debug('Failed to record evolution metrics:', e);
         }
         return {
           success: false,
@@ -296,123 +292,14 @@ export async function updateGapStatus(
 }
 
 /**
- * Acquires a lock on a gap.
- */
-export async function acquireGapLock(
-  base: BaseMemoryProvider,
-  gapId: string,
-  agentId: string,
-  ttlMs: number = GAP_LOCK_TTL_MS,
-  scope?: string | import('../types/memory').ContextualScope
-): Promise<boolean> {
-  const normalizedGapId = normalizeGapId(gapId);
-  const lockKey = base.getScopedUserId(`${MEMORY_KEYS.GAP_LOCK_PREFIX}${normalizedGapId}`, scope);
-  const now = Date.now();
-  const expiresAt = Math.floor((now + ttlMs) / 1000);
-
-  try {
-    await base.updateItem({
-      Key: { userId: lockKey, timestamp: 0 },
-      UpdateExpression:
-        'SET #tp = :type, #content = :agentId, #status = :locked, expiresAt = :exp, acquiredAt = :now, lockVersion = :version',
-      ConditionExpression: 'attribute_not_exists(userId) OR expiresAt < :nowSec',
-      ExpressionAttributeNames: { '#tp': 'type', '#content': 'agentId', '#status': 'status' },
-      ExpressionAttributeValues: {
-        ':type': 'GAP_LOCK',
-        ':agentId': agentId,
-        ':locked': 'LOCKED',
-        ':exp': expiresAt,
-        ':now': now,
-        ':nowSec': Math.floor(now / 1000),
-        ':version': now,
-      },
-    });
-    return true;
-  } catch (error: unknown) {
-    if ((error as Error).name === 'ConditionalCheckFailedException') {
-      try {
-        const { EVOLUTION_METRICS } = await import('../metrics/evolution-metrics');
-        const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
-        EVOLUTION_METRICS.recordLockContention(normalizedGapId, agentId, { workspaceId });
-      } catch {
-        /* ignore */
-      }
-    }
-    return false;
-  }
-}
-
-/**
- * Releases a gap lock.
- */
-export async function releaseGapLock(
-  base: BaseMemoryProvider,
-  gapId: string,
-  agentId: string,
-  expectedVersion?: number,
-  force: boolean = false,
-  scope?: string | import('../types/memory').ContextualScope
-): Promise<void> {
-  const normalizedGapId = normalizeGapId(gapId);
-  const lockKey = base.getScopedUserId(`${MEMORY_KEYS.GAP_LOCK_PREFIX}${normalizedGapId}`, scope);
-
-  const conditionExpr = force
-    ? 'attribute_exists(userId)'
-    : '#content = :agentId' + (expectedVersion ? ' AND lockVersion = :version' : '');
-  const exprValues: Record<string, unknown> = { ':agentId': agentId };
-  if (expectedVersion) exprValues[':version'] = expectedVersion;
-
-  try {
-    await base.deleteItem({
-      userId: lockKey,
-      timestamp: 0,
-      ConditionExpression: conditionExpr,
-      ExpressionAttributeNames: { '#content': 'agentId' },
-      ExpressionAttributeValues: exprValues,
-    });
-  } catch (e) {
-    logger.warn(`[releaseGapLock] Failed to release lock for gap ${gapId} by agent ${agentId}:`, e);
-  }
-}
-
-/**
- * Checks if a gap is locked.
- */
-export async function getGapLock(
-  base: BaseMemoryProvider,
-  gapId: string,
-  scope?: string | import('../types/memory').ContextualScope
-): Promise<{ agentId: string; expiresAt: number; lockVersion?: number } | null> {
-  const normalizedGapId = normalizeGapId(gapId);
-  const lockKey = base.getScopedUserId(`${MEMORY_KEYS.GAP_LOCK_PREFIX}${normalizedGapId}`, scope);
-  try {
-    const items = await base.queryItems({
-      KeyConditionExpression: 'userId = :lockKey AND #ts = :zero',
-      ExpressionAttributeNames: { '#ts': 'timestamp' },
-      ExpressionAttributeValues: { ':lockKey': lockKey, ':zero': 0 },
-    });
-    if (items.length === 0) return null;
-    const lock = items[0];
-    if ((lock.expiresAt as number) < Math.floor(Date.now() / 1000)) return null;
-    return {
-      agentId: lock.agentId as string,
-      expiresAt: lock.expiresAt as number,
-      lockVersion: lock.lockVersion as number,
-    };
-  } catch {
-    return { agentId: '__LOCK_CHECK_FAILED__', expiresAt: Infinity };
-  }
-}
-
-/**
  * Assigns a gap to an evolution track.
  */
 export async function assignGapToTrack(
   base: TrackStore,
   gapId: string,
   track: EvolutionTrack,
-  priority?: number,
-  scope?: string | import('../types/memory').ContextualScope
+  priority: number = 5,
+  scope?: string | ContextualScope
 ): Promise<void> {
   const transitionResult = await updateGapStatus(
     base as unknown as BaseMemoryProvider,
@@ -427,7 +314,7 @@ export async function assignGapToTrack(
   }
 
   const normalizedId = normalizeGapId(gapId);
-  const getScopedUserId = (id: string, s?: string | import('../types/memory').ContextualScope) => {
+  const getScopedUserId = (id: string, s?: string | ContextualScope) => {
     const provider = base as unknown as { getScopedUserId?: (id: string, s?: unknown) => string };
     if (typeof provider.getScopedUserId === 'function') {
       return provider.getScopedUserId(id, s);
@@ -442,7 +329,7 @@ export async function assignGapToTrack(
     type: 'TRACK_ASSIGNMENT',
     gapId: normalizedId,
     track,
-    priority: priority ?? 5,
+    priority,
     assignedAt: Date.now(),
     createdAt: Date.now(),
     expiresAt: Math.floor(Date.now() / 1000) + RETENTION.GAPS_DAYS * 86400,
@@ -455,10 +342,10 @@ export async function assignGapToTrack(
 export async function getGapTrack(
   base: TrackStore,
   gapId: string,
-  scope?: string | import('../types/memory').ContextualScope
+  scope?: string | ContextualScope
 ): Promise<{ track: EvolutionTrack; priority: number } | null> {
   const normalizedId = normalizeGapId(gapId);
-  const getScopedUserId = (id: string, s?: string | import('../types/memory').ContextualScope) => {
+  const getScopedUserId = (id: string, s?: string | ContextualScope) => {
     const provider = base as unknown as { getScopedUserId?: (id: string, s?: unknown) => string };
     if (typeof provider.getScopedUserId === 'function') {
       return provider.getScopedUserId(id, s);
@@ -478,7 +365,8 @@ export async function getGapTrack(
     });
     if (items.length === 0) return null;
     return { track: items[0].track as EvolutionTrack, priority: items[0].priority as number };
-  } catch {
+  } catch (e) {
+    logger.warn(`[getGapTrack] Retrieval failed for gap ${gapId}:`, e);
     return null;
   }
 }
@@ -490,29 +378,27 @@ export async function updateGapMetadata(
   base: BaseMemoryProvider,
   gapId: string,
   metadata: Record<string, unknown>,
-  scope?: string | import('../types/memory').ContextualScope
+  scope?: string | ContextualScope
 ): Promise<void> {
   const normalizedId = normalizeGapId(gapId);
   const gapTimestamp = getGapTimestamp(normalizedId);
   const scopedUserId = base.getScopedUserId(getGapIdPK(normalizedId), scope);
 
-  // If timestamp is not a real timestamp, resolve first
   if (gapTimestamp < TIME.EPOCH_2020_MS) {
     const target = await resolveItemById(base, gapId, 'GAP', scope);
     if (target) {
       try {
         await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, scope);
         return;
-      } catch {
-        /* ignore */
+      } catch (e) {
+        logger.debug(`[updateGapMetadata] Atomic update failed for ${target.id}:`, e);
       }
     }
-    // Leap of faith for numeric IDs even if resolution (mock) fails
     if (gapTimestamp !== 0) {
       try {
         await atomicUpdateMetadata(base, scopedUserId, gapTimestamp, metadata, scope);
-      } catch {
-        /* ignore */
+      } catch (e) {
+        logger.debug(`[updateGapMetadata] Direct atomic update failed for ${scopedUserId}:`, e);
       }
     }
     return;
@@ -520,29 +406,15 @@ export async function updateGapMetadata(
 
   try {
     await atomicUpdateMetadata(base, scopedUserId, gapTimestamp, metadata, scope);
-  } catch {
+  } catch (e) {
+    logger.debug(`[updateGapMetadata] Primary atomic update failed for ${scopedUserId}:`, e);
     const target = await resolveItemById(base, gapId, 'GAP', scope);
     if (target) {
       try {
         await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, scope);
-      } catch {
-        /* ignore */
+      } catch (e2) {
+        logger.debug(`[updateGapMetadata] Fallback atomic update failed for ${target.id}:`, e2);
       }
     }
   }
-}
-
-/**
- * Determines the appropriate track for a gap based on its content keywords.
- */
-export function determineTrack(content: string): EvolutionTrack {
-  const lower = content.toLowerCase();
-  if (lower.match(/security|auth|vulnerability|permission|secret|encrypt|xss|csrf|rbac/))
-    return EvolutionTrack.SECURITY;
-  if (lower.match(/latency|memory|cpu|optimize|slow|timeout|throughput|bottleneck|performance/))
-    return EvolutionTrack.PERFORMANCE;
-  if (lower.match(/lambda|sst|pipeline|infra|deployment|cloud/))
-    return EvolutionTrack.INFRASTRUCTURE;
-  if (lower.match(/refactor|duplicate|cleanup|debt|complexity/)) return EvolutionTrack.REFACTORING;
-  return EvolutionTrack.FEATURE;
 }

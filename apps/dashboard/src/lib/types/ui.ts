@@ -6,8 +6,8 @@
 export interface Tool {
   name: string;
   description: string;
-  isExternal?: boolean;
-  usage?: {
+  isExternal: boolean;
+  usage: {
     count: number;
     lastUsed: number;
   };
@@ -17,16 +17,16 @@ export interface Agent {
   id: string;
   name: string;
   systemPrompt: string;
-  provider?: string;
-  model?: string;
-  reasoningProfile?: string;
+  provider: string;
+  model: string;
+  reasoningProfile: string;
   enabled: boolean;
   tools: string[];
-  isBackbone?: boolean;
-  agentType?: 'llm' | 'logic';
-  usage?: Record<string, { count: number; lastUsed: number }>;
-  metadata?: Record<string, unknown>;
-  version?: number;
+  isBackbone: boolean;
+  agentType: 'llm' | 'logic';
+  usage: Record<string, { count: number; lastUsed: number }>;
+  metadata: Record<string, unknown>;
+  version: number;
 }
 
 export interface ProviderModel {
@@ -35,66 +35,66 @@ export interface ProviderModel {
 }
 
 export interface UsageInfo {
-  total_tokens?: number;
-  prompt_tokens?: number;
-  completion_tokens?: number;
-  totalInputTokens?: number;
-  totalOutputTokens?: number;
+  total_tokens: number;
+  prompt_tokens: number;
+  completion_tokens: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
 }
 
 export interface LlmCallContent {
   messages: { role: string; content: string }[];
-  model?: string;
-  usage?: UsageInfo;
+  model: string;
+  usage: UsageInfo;
 }
 
 export interface LlmResponseContent {
-  content?: string;
-  response?: string;
-  tool_calls?: { function: { name: string; arguments: string } }[];
-  usage?: UsageInfo;
-  model?: string;
+  content: string;
+  response: string;
+  tool_calls: { function: { name: string; arguments: string } }[];
+  usage: UsageInfo;
+  model: string;
 }
 
 export interface ToolCallContent {
-  tool?: string;
-  toolName?: string;
+  tool: string;
+  toolName: string;
   args: Record<string, unknown>;
-  agentId?: string;
-  connectorId?: string;
+  agentId: string;
+  connectorId: string;
 }
 
 export interface ToolResultContent {
   result: unknown;
-  tool?: string;
-  toolName?: string;
-  connectorId?: string;
+  tool: string;
+  toolName: string;
+  connectorId: string;
 }
 
 export interface ErrorContent {
   errorMessage: string;
-  agentId?: string;
+  agentId: string;
 }
 
 export interface ClarificationContent {
   question: string;
-  originalTask?: string;
-  agentId?: string;
-  retryCount?: number;
-  depth?: number;
+  originalTask: string;
+  agentId: string;
+  retryCount: number;
+  depth: number;
 }
 
 export interface ParallelDispatchContent {
   taskCount: number;
   tasks: { taskId: string; agentId: string; task: string }[];
-  aggregationType?: string;
-  barrierTimeoutMs?: number;
+  aggregationType: string;
+  barrierTimeoutMs: number;
 }
 
 export interface ParallelBarrierContent {
   taskCount: number;
   status: string;
-  targetTime?: string;
+  targetTime: string;
 }
 
 export interface CouncilReviewContent {
@@ -104,39 +104,39 @@ export interface CouncilReviewContent {
 
 export interface ContinuationContent {
   direction: 'to_initiator' | 'to_agent';
-  initiatorId?: string;
-  requestingAgent?: string;
+  initiatorId: string;
+  requestingAgent: string;
 }
 
 export interface CircuitBreakerContent {
   previousState: string;
   newState: string;
-  reason?: string;
-  failureType?: string;
-  failureCount?: number;
+  reason: string;
+  failureType: string;
+  failureCount: number;
 }
 
 export interface CancellationContent {
-  taskId?: string;
-  initiatorId?: string;
-  reason?: string;
+  taskId: string;
+  initiatorId: string;
+  reason: string;
 }
 
 export interface MemoryOperationContent {
   operation: string;
-  key?: string;
-  scope?: string;
+  key: string;
+  scope: string;
 }
 
 export interface ReflectContent {
   reflection: string;
-  agentId?: string;
+  agentId: string;
 }
 
 export interface AgentStateContent {
-  reason?: string;
-  agentId?: string;
-  question?: string;
+  reason: string;
+  agentId: string;
+  question: string;
 }
 
 export interface ResultContent {
@@ -287,26 +287,26 @@ export type TraceStepContent = TraceStep['content'];
 
 export interface Trace {
   traceId: string;
-  userId?: string;
+  userId: string;
   status: 'completed' | 'started' | 'error' | 'failed' | 'paused';
   timestamp: number;
-  source?: string;
-  initialContext?: {
-    userText?: string;
-    sessionId?: string;
-    agentId?: string;
-    model?: string;
+  source: string;
+  initialContext: {
+    userText: string;
+    sessionId: string;
+    agentId: string;
+    model: string;
   };
-  steps?: TraceStep[];
-  finalResponse?: string;
-  nodes?: Trace[];
-  parentId?: string;
+  steps: TraceStep[];
+  finalResponse: string;
+  nodes: Trace[];
+  parentId: string;
   nodeId: string;
   // Derived fields used in UI processing
-  agentId?: string;
-  totalTokens?: number;
-  toolsUsed?: string[];
-  model?: string;
-  sessionId?: string;
-  durationMs?: number;
+  agentId: string;
+  totalTokens: number;
+  toolsUsed: string[];
+  model: string;
+  sessionId: string;
+  durationMs: number;
 }

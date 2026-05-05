@@ -13,15 +13,11 @@ import {
 import { logger } from '../logger';
 import { normalizeProfile, capEffort, resolveProviderApiKey } from './utils';
 
-// --- Constants and Configuration ---
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 const PROJECT_REFERER = 'https://github.com/serverlessclaw/serverlessclaw';
 const PROJECT_TITLE = 'Serverless Claw';
 const DEFAULT_DYNAMIC_THRESHOLD = 0.3;
 
-/**
- * Standardized OpenRouter values for type safety and AI signal clarity.
- */
 const OPENROUTER_CONSTANTS = {
   CONTENT_TYPES: {
     TEXT: 'text' as const,
@@ -47,46 +43,33 @@ const OPENROUTER_CONSTANTS = {
   },
 } as const;
 
-/**
- * Known context windows for specific models to avoid magic numbers.
- */
 const CONTEXT_WINDOWS: Record<string, number> = {
   [OPENROUTER_CONSTANTS.MODELS.GEMINI_3]: 1048576,
   [OPENROUTER_CONSTANTS.MODELS.GLM]: 200000,
   default: 128000,
 };
 
-/**
- * Helper to apply model-specific configuration to the request body.
- * Centralizes provider-specific logic to ensure consistency between call() and stream().
- */
 function applyModelSpecificConfig(
   body: Record<string, unknown>,
   activeModel: string,
   tools?: ITool[],
   responseFormat?: ResponseFormat
 ): void {
-  // GLM Specifics
   if (activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GLM)) {
     body['plugin_id'] = 'reasoning';
     body['include_reasoning'] = true;
   }
 
-  // Gemini Specifics
   const isGemini = activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GEMINI_PREFIX);
   const isGemini3 = activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GEMINI_3);
 
   if (isGemini3) {
-    // Force JSON_OBJECT if JSON_SCHEMA requested (Gemini 3 specific quirk)
     if (responseFormat?.type === OPENROUTER_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA) {
       body['response_format'] = { type: OPENROUTER_CONSTANTS.RESPONSE_FORMATS.JSON_OBJECT };
     }
-
-    // Safety settings (documented intentional override for evolution autonomy)
     body['safety_settings'] = 'off';
   }
 
-  // Google Search Retrieval (Gemini feature)
   if (isGemini && tools?.some((t) => t.type === OPENROUTER_CONSTANTS.TOOL_TYPES.GOOGLE_SEARCH)) {
     body['google_search_retrieval'] = {
       dynamic_retrieval: { mode: 'unspecified', dynamic_threshold: DEFAULT_DYNAMIC_THRESHOLD },
@@ -94,9 +77,6 @@ function applyModelSpecificConfig(
   }
 }
 
-/**
- * Mapping of reasoning profiles to OpenRouter-specific reasoning parameters.
- */
 const OPENROUTER_REASONING_MAP: Record<
   ReasoningProfile,
   { effort: 'low' | 'medium' | 'high'; enabled: boolean; route: 'latency' | 'fallback' }
@@ -107,9 +87,6 @@ const OPENROUTER_REASONING_MAP: Record<
   [ReasoningProfile.DEEP]: { effort: 'high', enabled: true, route: 'fallback' },
 };
 
-/**
- * Interface for OpenRouter/OpenAI-compatible content blocks.
- */
 interface OpenRouterContentBlock {
   type: (typeof OPENROUTER_CONSTANTS.CONTENT_TYPES)[keyof typeof OPENROUTER_CONSTANTS.CONTENT_TYPES];
   text?: string;
@@ -117,9 +94,6 @@ interface OpenRouterContentBlock {
   input_file?: { file_id: string };
 }
 
-/**
- * Interface for OpenRouter API response.
- */
 interface OpenRouterResponse {
   choices?: {
     message?: Message & {
@@ -138,40 +112,6 @@ interface OpenRouterResponse {
   };
 }
 
-/**
- * Helper to convert a Claw message to an OpenRouter-compatible message.
- * @param message The input Claw message.
- * @returns A formatted message object.
- */
-function convertToOpenRouterMessage(message: Message) {
-  if (!message.attachments || message.attachments.length === 0) {
-    return message;
-  }
-
-  const content: OpenRouterContentBlock[] = [];
-  if (message.content) {
-    content.push({ type: OPENROUTER_CONSTANTS.CONTENT_TYPES.TEXT, text: message.content });
-  }
-
-  message.attachments.forEach((attachment) => {
-    const block = createContentBlock(attachment);
-    if (block) content.push(block);
-  });
-
-  return {
-    ...message,
-    content:
-      content.length === 1 && content[0].type === OPENROUTER_CONSTANTS.CONTENT_TYPES.TEXT
-        ? message.content
-        : content,
-  };
-}
-
-/**
- * Helper to create a content block for OpenRouter.
- * @param attachment The input attachment.
- * @returns A content block or null if unsupported.
- */
 function createContentBlock(attachment: Attachment): OpenRouterContentBlock | null {
   if (attachment.type === 'image') {
     return {
@@ -198,32 +138,36 @@ function createContentBlock(attachment: Attachment): OpenRouterContentBlock | nu
   return null;
 }
 
+function convertToOpenRouterMessage(message: Message) {
+  if (message.attachments.length === 0) {
+    return message;
+  }
+
+  const content: OpenRouterContentBlock[] = [];
+  if (message.content) {
+    content.push({ type: OPENROUTER_CONSTANTS.CONTENT_TYPES.TEXT, text: message.content });
+  }
+
+  message.attachments.forEach((attachment) => {
+    const block = createContentBlock(attachment);
+    if (block) content.push(block);
+  });
+
+  return {
+    ...message,
+    content:
+      content.length === 1 && content[0].type === OPENROUTER_CONSTANTS.CONTENT_TYPES.TEXT
+        ? message.content
+        : content,
+  };
+}
+
 /**
- * Provider for OpenRouter, aggregating multiple high-capability models (GLM, Gemini).
- * Implements dynamic capability detection and standardized reasoning parameters.
+ * Provider for OpenRouter.
  */
 export class OpenRouterProvider implements IProvider {
-  /**
-   * Initializes the OpenRouter provider.
-   * @param model The model ID to use (defaults to Gemini 3 Flash).
-   */
   constructor(private model: string = OpenRouterModel.GEMINI_3_FLASH) {}
 
-  /**
-   * Performs a non-streaming chat completion call.
-   *
-   * @param messages The conversation history.
-   * @param tools Optional list of tools for function calling.
-   * @param profile The preferred reasoning profile.
-   * @param model Override for the model ID.
-   * @param _provider Ignored provider identifier.
-   * @param responseFormat Preferred format for the response.
-   * @param temperature Optional sampling temperature.
-   * @param maxTokens Optional maximum tokens to generate.
-   * @param topP Optional nucleus sampling probability.
-   * @param stopSequences Optional list of stop sequences.
-   * @returns A promise resolving to the assistant's message.
-   */
   async call(
     messages: Message[],
     tools?: ITool[],
@@ -308,7 +252,7 @@ export class OpenRouterProvider implements IProvider {
       );
     }
 
-    let thought: string | undefined;
+    let thought = '';
     if (msg.reasoning_details && Array.isArray(msg.reasoning_details)) {
       const parts = msg.reasoning_details.filter((d) => d.text).map((d) => d.text as string);
       if (parts.length > 0) thought = parts.join('\n\n');
@@ -318,9 +262,14 @@ export class OpenRouterProvider implements IProvider {
       role: MessageRole.ASSISTANT,
       content: msg.content ?? '',
       thought,
-      tool_calls: msg.tool_calls,
+      tool_calls: msg.tool_calls ?? [],
       traceId: messages[0]?.traceId ?? 'unknown-trace',
       messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      workspaceId: messages[0]?.workspaceId ?? 'default',
+      attachments: [],
+      options: [],
+      ui_blocks: [],
+      agentName: 'OpenRouter',
       usage: data.usage
         ? {
             prompt_tokens: data.usage.prompt_tokens ?? 0,
@@ -328,12 +277,9 @@ export class OpenRouterProvider implements IProvider {
             total_tokens: data.usage.total_tokens ?? 0,
           }
         : undefined,
-    } as Message;
+    };
   }
 
-  /**
-   * Performs a streaming chat completion call.
-   */
   async *stream(
     messages: Message[],
     tools?: ITool[],
@@ -409,7 +355,7 @@ export class OpenRouterProvider implements IProvider {
       }
 
       if (!response.body) {
-        yield { content: ' (No stream body)' };
+        yield { content: ' (No stream body)', tool_calls: [], attachments: [], ui_blocks: [] };
         return;
       }
 
@@ -454,6 +400,9 @@ export class OpenRouterProvider implements IProvider {
                 completion_tokens: parsed.usage.completion_tokens ?? 0,
                 total_tokens: parsed.usage.total_tokens ?? 0,
               },
+              tool_calls: [],
+              attachments: [],
+              ui_blocks: [],
             };
           }
 
@@ -462,16 +411,23 @@ export class OpenRouterProvider implements IProvider {
           const delta = choice.delta;
           if (!delta) continue;
 
-          if (delta.content) yield { content: delta.content };
+          if (delta.content)
+            yield { content: delta.content, tool_calls: [], attachments: [], ui_blocks: [] };
 
           if (delta.reasoning_details && Array.isArray(delta.reasoning_details)) {
             for (const detail of delta.reasoning_details) {
-              if (detail.text) yield { thought: (detail as { text: string }).text };
+              if (detail.text)
+                yield {
+                  thought: (detail as { text: string }).text,
+                  tool_calls: [],
+                  attachments: [],
+                  ui_blocks: [],
+                };
             }
           }
 
           if (delta.reasoning && typeof delta.reasoning === 'string')
-            yield { thought: delta.reasoning };
+            yield { thought: delta.reasoning, tool_calls: [], attachments: [], ui_blocks: [] };
 
           if (delta.tool_calls && Array.isArray(delta.tool_calls)) {
             for (const toolCall of delta.tool_calls) {
@@ -486,6 +442,8 @@ export class OpenRouterProvider implements IProvider {
                     },
                   },
                 ],
+                attachments: [],
+                ui_blocks: [],
               };
             }
           }
@@ -501,21 +459,18 @@ export class OpenRouterProvider implements IProvider {
               completion_tokens: parsed.usage.completion_tokens ?? 0,
               total_tokens: parsed.usage.total_tokens ?? 0,
             },
+            tool_calls: [],
+            attachments: [],
+            ui_blocks: [],
           };
         }
       }
     } catch (err) {
       logger.error('OpenRouter streaming failed:', err);
-      yield { content: ' (Streaming failed)' };
+      yield { content: ' (Streaming failed)', tool_calls: [], attachments: [], ui_blocks: [] };
     }
   }
 
-  /**
-   * Retrieves the capabilities of a specific model.
-   *
-   * @param model The model ID to check.
-   * @returns An object describing reasoning profiles, structured output support, and context window.
-   */
   async getCapabilities(model?: string) {
     const activeModel = model ?? this.model;
     const isHighCapability =

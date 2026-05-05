@@ -1,16 +1,12 @@
-import { METRICS, emitMetrics } from './metrics';
+import { emitMetrics } from './metrics';
 import { logger } from '../logger';
 
 /**
  * Evolution Metrics Utility
- *
- * Provides specialized metrics for monitoring the self-evolution loop,
- * including idempotency suppressions, state transition rejections,
- * parallel barrier timeouts, and retry bursts.
  */
 export const EVOLUTION_METRICS = {
   /**
-   * Records a duplicate continuation event that was suppressed by the idempotency layer.
+   * Records a duplicate continuation event that was suppressed.
    */
   recordDuplicateSuppression(
     source: string,
@@ -19,8 +15,6 @@ export const EVOLUTION_METRICS = {
     const dimensions = [{ Name: 'Source', Value: source }];
     if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
     if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
-    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
-    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
 
     emitMetrics([
       {
@@ -33,7 +27,7 @@ export const EVOLUTION_METRICS = {
   },
 
   /**
-   * Records a failed gap state transition (e.g., due to lock contention or invalid guard).
+   * Records a failed gap state transition.
    */
   recordTransitionRejection(
     gapId: string,
@@ -48,9 +42,6 @@ export const EVOLUTION_METRICS = {
       { Name: 'Reason', Value: reason },
     ];
     if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
-    if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
-    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
-    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
 
     emitMetrics([
       {
@@ -63,79 +54,17 @@ export const EVOLUTION_METRICS = {
   },
 
   /**
-   * Records a parallel barrier timeout event.
-   */
-  recordBarrierTimeout(
-    traceId: string,
-    taskCount: number,
-    completedCount: number,
-    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
-  ): void {
-    const dimensions = [
-      { Name: 'TaskCount', Value: String(taskCount) },
-      {
-        Name: 'CompletionRate',
-        Value: String(taskCount > 0 ? (completedCount / taskCount).toFixed(2) : 0),
-      },
-    ];
-    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
-    if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
-    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
-    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
-
-    emitMetrics([
-      {
-        MetricName: 'EvolutionBarrierTimeout',
-        Value: 1,
-        Unit: 'Count',
-        Dimensions: dimensions,
-      },
-    ]).catch((err) => logger.warn('Failed to emit EvolutionBarrierTimeout metric:', err));
-  },
-
-  /**
-   * Records a gap being reopened (retry) after a failure.
-   */
-  recordGapReopen(
-    gapId: string,
-    attemptCount: number,
-    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
-  ): void {
-    const dimensions = [{ Name: 'AttemptCount', Value: String(attemptCount) }];
-    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
-    if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
-    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
-    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
-
-    emitMetrics([
-      {
-        MetricName: 'EvolutionGapReopen',
-        Value: 1,
-        Unit: 'Count',
-        Dimensions: dimensions,
-      },
-    ]).catch((err) => logger.warn('Failed to emit EvolutionGapReopen metric:', err));
-  },
-
-  /**
-   * Records a lock acquisition failure.
+   * Records contention on a gap lock.
    */
   recordLockContention(
-    lockId: string,
+    gapId: string,
     agentId: string,
-    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
+    scope?: { workspaceId?: string; orgId?: string }
   ): void {
-    const dimensions = [
-      { Name: 'LockId', Value: lockId },
-      { Name: 'AgentId', Value: agentId },
-    ];
+    const dimensions = [{ Name: 'AgentId', Value: agentId }];
     if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
-    if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
-    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
-    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
 
     emitMetrics([
-      METRICS.lockAcquired(lockId, false, scope),
       {
         MetricName: 'EvolutionLockContention',
         Value: 1,
@@ -146,69 +75,92 @@ export const EVOLUTION_METRICS = {
   },
 
   /**
-   * Records tool execution metrics for ROI analysis.
+   * Records the outcome of an evolutionary step.
+   */
+  recordEvolutionOutcome(
+    track: string,
+    success: boolean,
+    durationMs: number,
+    scope?: { workspaceId?: string; orgId?: string }
+  ): void {
+    const dimensions = [
+      { Name: 'Track', Value: track },
+      { Name: 'Success', Value: String(success) },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+
+    emitMetrics([
+      {
+        MetricName: 'EvolutionOutcome',
+        Value: success ? 1 : 0,
+        Unit: 'Count',
+        Dimensions: dimensions,
+      },
+      {
+        MetricName: 'EvolutionDuration',
+        Value: durationMs,
+        Unit: 'Milliseconds',
+        Dimensions: dimensions,
+      },
+    ]).catch((err) => logger.warn('Failed to emit EvolutionOutcome metrics:', err));
+  },
+
+  /**
+   * Records a tool execution within an evolution context.
    */
   recordToolExecution(
     toolName: string,
     success: boolean,
     durationMs: number,
-    options?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
+    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
   ): void {
     const dimensions = [
       { Name: 'ToolName', Value: toolName },
       { Name: 'Success', Value: String(success) },
-      { Name: 'OrgId', Value: options?.orgId || 'GLOBAL' },
     ];
-    if (options?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: options.workspaceId });
-    if (options?.teamId) dimensions.push({ Name: 'TeamId', Value: options.teamId });
-    if (options?.staffId) dimensions.push({ Name: 'StaffId', Value: options.staffId });
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
 
     emitMetrics([
       {
-        MetricName: 'ToolExecutionCount',
+        MetricName: 'EvolutionToolExecution',
         Value: 1,
         Unit: 'Count',
         Dimensions: dimensions,
       },
       {
-        MetricName: 'ToolExecutionDuration',
+        MetricName: 'EvolutionToolDuration',
         Value: durationMs,
         Unit: 'Milliseconds',
-        Dimensions: dimensions.filter((d) => d.Name !== 'Success'),
+        Dimensions: dimensions,
       },
-    ]).catch((err) => logger.warn('Failed to emit ToolExecution metrics:', err));
+    ]).catch((err) => logger.warn('Failed to emit EvolutionToolExecution metrics:', err));
   },
 
   /**
-   * Records estimated ROI value for a tool execution.
+   * Records the ROI (Return on Investment) for a tool execution.
    */
   recordToolROI(
     toolName: string,
-    estimatedValue: number,
-    actualCost: number,
-    options?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
+    value: number,
+    cost: number,
+    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
   ): void {
-    const dimensions = [
-      { Name: 'ToolName', Value: toolName },
-      { Name: 'OrgId', Value: options?.orgId || 'GLOBAL' },
-    ];
-    if (options?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: options.workspaceId });
-    if (options?.teamId) dimensions.push({ Name: 'TeamId', Value: options.teamId });
-    if (options?.staffId) dimensions.push({ Name: 'StaffId', Value: options.staffId });
+    const dimensions = [{ Name: 'ToolName', Value: toolName }];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
 
     emitMetrics([
       {
-        MetricName: 'ToolROIValue',
-        Value: estimatedValue,
+        MetricName: 'EvolutionToolValue',
+        Value: value,
         Unit: 'Count',
         Dimensions: dimensions,
       },
       {
-        MetricName: 'ToolROICost',
-        Value: actualCost,
+        MetricName: 'EvolutionToolCost',
+        Value: cost,
         Unit: 'Count',
         Dimensions: dimensions,
       },
-    ]).catch((err) => logger.warn('Failed to emit ToolROI metrics:', err));
+    ]).catch((err) => logger.warn('Failed to emit EvolutionToolROI metrics:', err));
   },
 };

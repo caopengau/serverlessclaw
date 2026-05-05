@@ -1,9 +1,8 @@
 import { CodeBuildClient, StartBuildCommand } from '@aws-sdk/client-codebuild';
 import { Resource } from 'sst';
-import { systemSchema as schema } from './schema';
+import { gitSchema } from './definitions/git';
 import { logger } from '../../lib/logger';
 import { formatErrorMessage } from '../../lib/utils/error';
-import { ToolType } from '../../lib/types/tool';
 
 const codebuild = new CodeBuildClient({});
 
@@ -11,7 +10,7 @@ const codebuild = new CodeBuildClient({});
  * Triggers a CI/CD job to sync with the origin main branch.
  */
 export const triggerTrunkSync = {
-  ...schema.triggerTrunkSync,
+  ...gitSchema.triggerTrunkSync,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     try {
       const { commitMessage, gapIds, traceId } = args as {
@@ -56,28 +55,7 @@ export const triggerTrunkSync = {
  * Triggers an atomic subtree push back to the Mother Hub for verified contributions.
  */
 export const triggerSubtreePush = {
-  name: 'triggerSubtreePush',
-  type: ToolType.FUNCTION,
-  description:
-    'Triggers a subtree push back to the Mother Hub (Source of Truth) for verified client contributions.',
-  connectionProfile: ['codebuild', 'deployer'],
-  requiresApproval: true,
-  requiredPermissions: ['codebuild:StartBuild'],
-  parameters: {
-    type: 'object' as const,
-    properties: {
-      commitMessage: { type: 'string' as const, description: 'The message for the sync commit.' },
-      prefix: { type: 'string' as const, description: 'The subtree prefix (e.g., core/).' },
-      hubUrl: { type: 'string' as const, description: 'The target hub git URL.' },
-      gapIds: {
-        type: 'array' as const,
-        items: { type: 'string' as const },
-        description: 'Gaps resolved by this contribution.',
-      },
-    },
-    required: ['commitMessage', 'prefix', 'hubUrl'],
-    additionalProperties: false,
-  },
+  ...gitSchema.triggerSubtreePush,
   execute: async (args: Record<string, unknown>): Promise<string> => {
     try {
       const { commitMessage, prefix, hubUrl, gapIds } = args as {

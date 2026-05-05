@@ -1,11 +1,8 @@
-import { SafetyPolicy } from '../lib/types/agent';
-import { ToolSafetyOverride } from '../lib/safety/safety-limiter';
 import { Agent } from '../lib/agent';
 import { IMemory } from '../lib/types/memory';
 import { IProvider, ReasoningProfile } from '../lib/types/llm';
 import { ITool } from '../lib/types/tool';
-import { IAgentConfig, SafetyTier } from '../lib/types/agent';
-import { SafetyEngine } from '../lib/safety/safety-engine';
+import { IAgentConfig, SafetyTier, SafetyPolicy } from '../lib/types/agent';
 
 /**
  * SuperClaw Agent.
@@ -14,12 +11,20 @@ import { SafetyEngine } from '../lib/safety/safety-engine';
 export class SuperClaw extends Agent {
   /**
    * SafetyEngine instance for granular safety evaluation.
+   * Lazily loaded to reduce static context budget.
    */
-  public readonly safetyEngine: SafetyEngine;
+  private _safetyEngine: any;
 
   constructor(memory: IMemory, provider: IProvider, tools: ITool[], config?: IAgentConfig) {
     super(memory, provider, tools, config!);
-    this.safetyEngine = new SafetyEngine();
+  }
+
+  private async getSafetyEngine() {
+    if (!this._safetyEngine) {
+      const { SafetyEngine } = await import('../lib/safety/safety-engine');
+      this._safetyEngine = new SafetyEngine();
+    }
+    return this._safetyEngine;
   }
 
   /**
@@ -70,7 +75,8 @@ export class SuperClaw extends Agent {
       workspaceId?: string;
     }
   ): Promise<boolean> {
-    const result = await this.safetyEngine.evaluateAction(agentConfig, actionType, context);
+    const engine = await this.getSafetyEngine();
+    const result = await engine.evaluateAction(agentConfig, actionType, context);
     return result.requiresApproval;
   }
 
@@ -93,7 +99,8 @@ export class SuperClaw extends Agent {
       workspaceId?: string;
     }
   ) {
-    return this.safetyEngine.evaluateAction(agentConfig, actionType, context);
+    const engine = await this.getSafetyEngine();
+    return engine.evaluateAction(agentConfig, actionType, context);
   }
 
   /**
@@ -102,8 +109,9 @@ export class SuperClaw extends Agent {
    * @param tier - The safety tier to configure.
    * @param policy - Partial policy updates.
    */
-  configureSafetyPolicy(tier: SafetyTier, policy: Partial<SafetyPolicy>): void {
-    this.safetyEngine.updatePolicy(tier, policy);
+  async configureSafetyPolicy(tier: SafetyTier, policy: Partial<SafetyPolicy>): Promise<void> {
+    const engine = await this.getSafetyEngine();
+    engine.updatePolicy(tier, policy);
   }
 
   /**
@@ -111,7 +119,8 @@ export class SuperClaw extends Agent {
    *
    * @param override - The tool safety override configuration.
    */
-  setToolSafetyOverride(override: ToolSafetyOverride): void {
-    this.safetyEngine.setToolOverride(override);
+  async setToolSafetyOverride(override: any): Promise<void> {
+    const engine = await this.getSafetyEngine();
+    engine.setToolOverride(override);
   }
 }
