@@ -59,13 +59,15 @@ export default function TraceIntelligenceView({
   const [mountTime, setMountTime] = useState<number>(0);
   const [expandedGroup, setExpandedGroup] = useState<string | null>(null);
 
-  useEffect(() => {
-    setMountTime(Date.now());
-  }, []);
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setExpandedGroup(null);
+  };
 
   useEffect(() => {
-    setExpandedGroup(null);
-  }, [activeTab]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMountTime(Date.now());
+  }, []);
 
   const traces = useMemo(() => {
     return initialTraces.map((trace) => {
@@ -191,7 +193,7 @@ export default function TraceIntelligenceView({
 
       <FilterBar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         statusFilter={statusFilter}
