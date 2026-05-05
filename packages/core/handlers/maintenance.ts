@@ -25,8 +25,6 @@ export const handler = async (_event: unknown, _context: Context): Promise<void>
     // 1. Process Proactive Evolutions & Trust Score Decay (Multi-tenant scoped)
     await TrustManager.decayTrustScores(); // Global scores first
 
-    const { PromotionManager } = await import('../lib/lifecycle/promotion-manager');
-
     const { MetabolismService } = await import('../lib/maintenance/metabolism');
     const { AgentRegistry } = await import('../lib/registry/AgentRegistry');
 
@@ -56,7 +54,6 @@ export const handler = async (_event: unknown, _context: Context): Promise<void>
       // Also check global agents and perform global repairs
       await TrustManager.decayTrustScores();
       await MetabolismService.runMetabolismAudit(memory, { repair: true });
-
     } catch (error) {
       logger.warn('[MAINTENANCE] Multi-tenant maintenance cycle failed:', error);
     }
