@@ -6,164 +6,28 @@ import {
   AttachmentType,
   MessageRole,
   OpenRouterModel,
-  Attachment,
   MessageChunk,
   ResponseFormat,
 } from '../types/index';
 import { logger } from '../logger';
 import { normalizeProfile, capEffort, resolveProviderApiKey } from './utils';
-
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const PROJECT_REFERER = 'https://github.com/serverlessclaw/serverlessclaw';
-const PROJECT_TITLE = 'Serverless Claw';
-const DEFAULT_DYNAMIC_THRESHOLD = 0.3;
-
-const OPENROUTER_CONSTANTS = {
-  CONTENT_TYPES: {
-    TEXT: 'text' as const,
-    IMAGE_URL: 'image_url' as const,
-    INPUT_FILE: 'input_file' as const,
-  },
-  MIME_TYPES: {
-    PNG: 'image/png',
-    OCTET_STREAM: 'application/octet-stream',
-  },
-  TOOL_TYPES: {
-    FUNCTION: 'function',
-    GOOGLE_SEARCH: 'google_search_retrieval',
-  },
-  MODELS: {
-    GEMINI_PREFIX: 'gemini',
-    GEMINI_3: 'gemini-3',
-    GLM: 'glm',
-  },
-  RESPONSE_FORMATS: {
-    JSON_SCHEMA: 'json_schema',
-    JSON_OBJECT: 'json_object' as const,
-  },
-} as const;
-
-const CONTEXT_WINDOWS: Record<string, number> = {
-  [OPENROUTER_CONSTANTS.MODELS.GEMINI_3]: 1048576,
-  [OPENROUTER_CONSTANTS.MODELS.GLM]: 200000,
-  default: 128000,
-};
-
-function applyModelSpecificConfig(
-  body: Record<string, unknown>,
-  activeModel: string,
-  tools?: ITool[],
-  responseFormat?: ResponseFormat
-): void {
-  if (activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GLM)) {
-    body['plugin_id'] = 'reasoning';
-    body['include_reasoning'] = true;
-  }
-
-  const isGemini = activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GEMINI_PREFIX);
-  const isGemini3 = activeModel.includes(OPENROUTER_CONSTANTS.MODELS.GEMINI_3);
-
-  if (isGemini3) {
-    if (responseFormat?.type === OPENROUTER_CONSTANTS.RESPONSE_FORMATS.JSON_SCHEMA) {
-      body['response_format'] = { type: OPENROUTER_CONSTANTS.RESPONSE_FORMATS.JSON_OBJECT };
-    }
-    body['safety_settings'] = 'off';
-  }
-
-  if (isGemini && tools?.some((t) => t.type === OPENROUTER_CONSTANTS.TOOL_TYPES.GOOGLE_SEARCH)) {
-    body['google_search_retrieval'] = {
-      dynamic_retrieval: { mode: 'unspecified', dynamic_threshold: DEFAULT_DYNAMIC_THRESHOLD },
-    };
-  }
-}
-
-const OPENROUTER_REASONING_MAP: Record<
-  ReasoningProfile,
-  { effort: 'low' | 'medium' | 'high'; enabled: boolean; route: 'latency' | 'fallback' }
-> = {
-  [ReasoningProfile.FAST]: { effort: 'low', enabled: false, route: 'latency' },
-  [ReasoningProfile.STANDARD]: { effort: 'low', enabled: true, route: 'fallback' },
-  [ReasoningProfile.THINKING]: { effort: 'medium', enabled: true, route: 'fallback' },
-  [ReasoningProfile.DEEP]: { effort: 'high', enabled: true, route: 'fallback' },
-};
-
-interface OpenRouterContentBlock {
-  type: (typeof OPENROUTER_CONSTANTS.CONTENT_TYPES)[keyof typeof OPENROUTER_CONSTANTS.CONTENT_TYPES];
-  text?: string;
-  image_url?: { url: string };
-  input_file?: { file_id: string };
-}
-
-interface OpenRouterResponse {
-  choices?: {
-    message?: Message & {
-      reasoning_details?: Array<{ text?: string }>;
-      reasoning?: string;
-    };
-    delta?: Message & {
-      reasoning_details?: Array<{ text?: string }>;
-      reasoning?: string;
-    };
-  }[];
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-}
-
-function createContentBlock(attachment: Attachment): OpenRouterContentBlock | null {
-  if (attachment.type === 'image') {
-    return {
-      type: OPENROUTER_CONSTANTS.CONTENT_TYPES.IMAGE_URL,
-      image_url: {
-        url:
-          attachment.url ??
-          `data:${attachment.mimeType ?? OPENROUTER_CONSTANTS.MIME_TYPES.PNG};base64,${attachment.base64}`,
-      },
-    };
-  }
-
-  if (attachment.type === 'file') {
-    return {
-      type: OPENROUTER_CONSTANTS.CONTENT_TYPES.INPUT_FILE,
-      input_file: {
-        file_id:
-          attachment.url ??
-          `data:${attachment.mimeType ?? OPENROUTER_CONSTANTS.MIME_TYPES.OCTET_STREAM};base64,${attachment.base64}`,
-      },
-    };
-  }
-
-  return null;
-}
-
-function convertToOpenRouterMessage(message: Message) {
-  if (message.attachments.length === 0) {
-    return message;
-  }
-
-  const content: OpenRouterContentBlock[] = [];
-  if (message.content) {
-    content.push({ type: OPENROUTER_CONSTANTS.CONTENT_TYPES.TEXT, text: message.content });
-  }
-
-  message.attachments.forEach((attachment) => {
-    const block = createContentBlock(attachment);
-    if (block) content.push(block);
-  });
-
-  return {
-    ...message,
-    content:
-      content.length === 1 && content[0].type === OPENROUTER_CONSTANTS.CONTENT_TYPES.TEXT
-        ? message.content
-        : content,
-  };
-}
+import {
+  OPENROUTER_BASE_URL,
+  PROJECT_REFERER,
+  PROJECT_TITLE,
+  OPENROUTER_CONSTANTS,
+  CONTEXT_WINDOWS,
+  OPENROUTER_REASONING_MAP,
+  OpenRouterResponse,
+} from './openrouter/types';
+import {
+  applyModelSpecificConfig,
+  convertToOpenRouterMessage,
+} from './openrouter/utils';
 
 /**
  * Provider for OpenRouter.
+ * Optimized and modularized to maintain small file size and high AI readiness.
  */
 export class OpenRouterProvider implements IProvider {
   constructor(private model: string = OpenRouterModel.GEMINI_3_FLASH) {}

@@ -1,4 +1,4 @@
-import { SharedContext, provisionDomainConfig, AGENT_CONFIG, getValidSecrets } from './shared';
+import { SharedContext, getDomainConfig, AGENT_CONFIG, getValidSecrets } from './shared';
 
 /**
  * Deploys the Next.js dashboard for monitoring and managing the agents.
@@ -28,7 +28,7 @@ export function createDashboard(
 
   const dashboard = new sst.aws.Nextjs('ClawCenter', {
     path: `${prefix}apps/dashboard`,
-    domain: provisionDomainConfig('dashboard'),
+    domain: getDomainConfig('dashboard'),
     link: [
       memoryTable,
       traceTable,
