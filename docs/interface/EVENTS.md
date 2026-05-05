@@ -120,6 +120,27 @@ Standard event types and their default priority levels are centrally defined to 
 - **Enum**: `EventType` in [`core/lib/types/agent/index.ts`](../../core/lib/types/agent/index.ts).
 - **Mapping**: `EVENT_PRIORITY_MAP` in [`core/lib/utils/bus.ts`](../../core/lib/utils/bus.ts).
 
+## Dynamic Event Routing
+
+The Event Spine uses a **Dynamic Routing Engine** (`routing-engine.ts`) to resolve the appropriate handler for every incoming event. This provides operational flexibility without sacrificing system integrity.
+
+### 1. Hot-Config Routing
+
+Routing is not hardcoded; it is retrieved from the `event_routing_table` in the configuration registry via `ConfigManager`. This allows operators to re-route events to different modules or functions in real-time.
+
+### 2. Combinatorial Validation (Guardrail)
+
+To prevent arbitrary code execution or unauthorized routing, the engine validates all custom routes against a set of **ALLOWED_COMBINATIONS**:
+
+- The custom `module:function` pair must exist in the `DEFAULT_EVENT_ROUTING` table.
+- If a combination is not recognized, the system falls back to the default handler for that event type.
+
+### 3. Context Propagation
+
+The router ensures that the `workspaceId` and execution context are correctly propagated to the resolved handler, maintaining the Principle 11 isolation model across the entire event lifecycle.
+
+---
+
 ## Spine Event Flow
 
 ```text

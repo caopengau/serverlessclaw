@@ -28,6 +28,8 @@ jobs:
 
       - name: Install Dependencies
         run: pnpm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Providers & Generate Types
         run: pnpm exec sst install

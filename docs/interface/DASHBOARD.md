@@ -47,6 +47,26 @@ A real-time metrics cluster showing the stability and reputation of the active s
 - **Anomaly Highlight**: Triggers visual warnings when reasoning loops or cognitive degradation are detected.
 - **Autonomy Mode**: Allows global toggling between `AUTO` and `HITL` modes.
 
+### 4. Trace Intelligence View
+
+The primary interface for auditing historical and live traces. It has been modularized into a hierarchy of single-responsibility components for maximum maintainability:
+
+#### Component Hierarchy (ASCII)
+
+```text
+TraceIntelligenceView (Parent)
+├── StatsBar
+│   └── [Total Ops, Active Sessions, Tools Invoked, Token Cost]
+├── FilterBar
+│   ├── Tab Switcher (Live, Timeline, Sessions, Agents, Models, Tools)
+│   └── Filters (Search, Status, Source, Date)
+├── TraceCard (Individual Trace Visualization)
+└── GroupedTableView (Tabular view for Agents/Models/Tools)
+```
+
+- **Modular State Management**: Shared types and filtering logic are encapsulated in `components/TraceIntelligence/types.ts`.
+- **Enriched Telemetry**: Each trace is augmented with `toolsUsed`, `totalTokens`, and model attribution during the render phase for high-fidelity auditing.
+
 ---
 
 ### Real-time Communication (MQTT)
