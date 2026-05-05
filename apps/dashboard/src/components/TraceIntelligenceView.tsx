@@ -118,7 +118,7 @@ export default function TraceIntelligenceView({
   }, [initialTraces]);
 
   const filteredTraces = useMemo(() => {
-    return (traces as any[]).filter((trace) => {
+    return traces.filter((trace) => {
       const text = trace.initialContext?.userText || '';
       const matchesSearch =
         trace.traceId.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -137,7 +137,7 @@ export default function TraceIntelligenceView({
   const groupedData = useMemo(() => {
     if (activeTab === 'timeline' || activeTab === 'live') return filteredTraces;
 
-    const groups: Record<string, Trace[]> = {};
+    const groups: Record<string, typeof traces> = {};
     filteredTraces.forEach((t) => {
       let key = 'UNKNOWN';
       if (activeTab === 'agents') key = t.agentId;
@@ -165,7 +165,8 @@ export default function TraceIntelligenceView({
     const startTimeParam = searchParams.get('startTime');
     if (!startTimeParam) return '24h';
     const startTimeNum = parseInt(startTimeParam);
-    const now = mountTime || Date.now();
+    const now = mountTime || 0;
+    if (now === 0) return 'all'; // Default while loading mount time
     const diffHours = (now - startTimeNum) / (1000 * 60 * 60);
 
     if (diffHours <= 25 && diffHours >= 23) return '24h';
@@ -186,7 +187,7 @@ export default function TraceIntelligenceView({
 
   return (
     <div className="space-y-8">
-      <StatsBar traces={traces as any} t={t} />
+      <StatsBar traces={traces} t={t} />
 
       <FilterBar
         activeTab={activeTab}
@@ -209,8 +210,8 @@ export default function TraceIntelligenceView({
           </div>
         ) : activeTab === 'timeline' ? (
           <div className="grid gap-3">
-            {(groupedData as Trace[]).map((trace) => (
-              <TraceCard key={trace.traceId} trace={trace as any} />
+            {(groupedData as typeof traces).map((trace) => (
+              <TraceCard key={trace.traceId} trace={trace} />
             ))}
           </div>
         ) : expandedGroup ? (
@@ -231,16 +232,16 @@ export default function TraceIntelligenceView({
               </Typography>
             </div>
             <div className="grid gap-3">
-              {(groupedData as Array<[string, Trace[]]>)
+              {(groupedData as Array<[string, typeof traces]>)
                 .find(([name]) => name === expandedGroup)?.[1]
-                .map((trace: Trace) => (
-                  <TraceCard key={trace.traceId} trace={trace as any} />
+                .map((trace) => (
+                  <TraceCard key={trace.traceId} trace={trace} />
                 ))}
             </div>
           </div>
         ) : (
           <GroupedTableView
-            groupedData={groupedData as Array<[string, Trace[]]>}
+            groupedData={groupedData as Array<[string, typeof traces]>}
             t={t}
             onExpand={setExpandedGroup}
           />

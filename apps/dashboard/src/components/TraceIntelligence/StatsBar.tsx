@@ -5,9 +5,11 @@ import { Activity, LayoutGrid, Wrench, Zap } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import { Trace } from '@/lib/types/ui';
 
+import { TranslationFn } from './types';
+
 interface StatsBarProps {
   traces: Trace[];
-  t: (key: any) => string;
+  t: TranslationFn;
 }
 
 export default function StatsBar({ traces, t }: StatsBarProps) {

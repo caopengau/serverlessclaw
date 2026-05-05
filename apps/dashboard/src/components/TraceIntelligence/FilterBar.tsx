@@ -2,20 +2,20 @@
 
 import React from 'react';
 import { Activity, Clock, LayoutGrid, Cpu, Bot, Wrench, Search } from 'lucide-react';
-import { TabType } from './types';
+import { TabType, TranslationFn } from './types';
 
 interface FilterBarProps {
   activeTab: TabType;
   setActiveTab: (tab: TabType) => void;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  statusFilter: string;
-  setStatusFilter: (status: any) => void;
+  statusFilter: 'all' | 'completed' | 'started' | 'error';
+  setStatusFilter: (status: 'all' | 'completed' | 'started' | 'error') => void;
   sourceFilter: string;
   setSourceFilter: (source: string) => void;
   dateFilter: string;
-  setDateFilter: (date: any) => void;
-  t: (key: any) => string;
+  setDateFilter: (date: 'all' | '24h' | '7d') => void;
+  t: TranslationFn;
 }
 
 export default function FilterBar({

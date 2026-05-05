@@ -4,10 +4,11 @@ import React from 'react';
 import { Zap } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import { Trace } from '@/lib/types/ui';
+import { TranslationFn } from './types';
 
 interface GroupedTableViewProps {
   groupedData: Array<[string, Trace[]]>;
-  t: (key: any) => string;
+  t: TranslationFn;
   onExpand: (groupName: string) => void;
 }
 
