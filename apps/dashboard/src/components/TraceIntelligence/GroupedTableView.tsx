@@ -44,10 +44,7 @@ export default function GroupedTableView({ groupedData, t, onExpand }: GroupedTa
               const errorCount = groupTraces.filter((t) => t.status === 'error').length;
 
               return (
-                <tr
-                  key={groupName}
-                  className="hover:bg-foreground/[0.02] transition-colors group"
-                >
+                <tr key={groupName} className="hover:bg-foreground/[0.02] transition-colors group">
                   <td className="px-6 py-4">
                     <Typography
                       variant="mono"
@@ -58,9 +55,7 @@ export default function GroupedTableView({ groupedData, t, onExpand }: GroupedTa
                     </Typography>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className="text-xs font-mono text-cyber-blue">
-                      {groupTraces.length}
-                    </span>
+                    <span className="text-xs font-mono text-cyber-blue">{groupTraces.length}</span>
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-1.5 text-xs font-mono text-cyber-green/70">

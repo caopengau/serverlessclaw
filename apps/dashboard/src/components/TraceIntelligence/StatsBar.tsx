@@ -32,7 +32,7 @@ export default function StatsBar({ traces, t }: StatsBarProps) {
     },
     {
       label: t('TOKEN_COST'),
-      value: `${((traces.reduce((acc, t) => acc + ((t as any).totalTokens || 0), 0)) / 1000).toFixed(1)}k`,
+      value: `${(traces.reduce((acc, t) => acc + ((t as any).totalTokens || 0), 0) / 1000).toFixed(1)}k`,
       icon: Zap,
       color: 'text-cyber-green',
     },
