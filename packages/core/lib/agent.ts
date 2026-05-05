@@ -1,4 +1,6 @@
-import { IMemory, IProvider, ITool, Attachment, MessageChunk } from './types/index';
+import { IMemory } from './types/memory';
+import { IProvider, Attachment, MessageChunk } from './types/llm';
+import { ITool } from './types/tool';
 import { IAgentConfig } from './types/agent';
 import { AgentExecutor } from './agent/executor';
 import { AgentProcessOptions } from './agent/options';
