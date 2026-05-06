@@ -29,6 +29,8 @@ export function createDashboard(
   const dashboard = new sst.aws.Nextjs('ClawCenter', {
     path: `${prefix}apps/dashboard`,
     domain: getDomainConfig('dashboard'),
+    // Disable warmer to save SQS requests/costs
+    warm: 0,
     link: [
       memoryTable,
       traceTable,

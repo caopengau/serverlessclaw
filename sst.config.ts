@@ -162,7 +162,11 @@ export default $config({
       schedulerRole: agentResources.schedulerRole,
     });
 
-    // 9. Billing & Cost Alerts ($5/day Daily Budget)
+    // 9. Integration Stacks (GitHub, etc.)
+    const { createGitHubStack } = await import('./packages/integration-github/stack.js');
+    const githubResources = createGitHubStack({ bus, dlq });
+
+    // 10. Billing & Cost Alerts ($5/day Daily Budget)
     const { createBilling } = await import('./packages/infra/billing.js');
     const { billingTopic } = createBilling();
 
@@ -170,6 +174,7 @@ export default $config({
       apiUrl: api.url,
       dashboardUrl: dashboard.url,
       billingTopicArn: billingTopic?.arn,
+      githubBucket: githubResources.githubBucket.name,
     };
   },
 });

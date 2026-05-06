@@ -16,14 +16,7 @@ export function createBus(options: { pathPrefix?: string } = {}) {
   });
 
   // B3: Dead Letter Queue for EventBridge failed events
-  const dlq = new sst.aws.Queue('EventDLQ', {
-    transform: {
-      queue: {
-        messageRetentionSeconds: 14 * 24 * 60 * 60, // 14 days retention
-        visibilityTimeoutSeconds: 300, // 5 minutes visibility timeout
-      },
-    },
-  });
+  const dlq = new sst.aws.Queue('EventDLQ');
 
   return { bus, realtime, dlq };
 }
