@@ -5,7 +5,7 @@ import { logger } from '../lib/logger';
  */
 export const handler = async (event: any) => {
   logger.info('Received GitHub release event:', event);
-  
+
   // Basic implementation to satisfy the deployment
   return {
     statusCode: 200,
