@@ -496,5 +496,7 @@
   "SHORTCUTS_CLOSE_MODALS": "Close modals",
   "SHORTCUTS_SHOW_HELP": "Show this help",
   "SHORTCUTS_TOGGLE_THINKING_VISIBILITY": "Toggle thinking visibility",
-  "SHORTCUTS_SHOW_KEYBOARD_HELP": "Show keyboard shortcuts help"
+  "SHORTCUTS_SHOW_KEYBOARD_HELP": "Show keyboard shortcuts help",
+  "SYNC_TOPOLOGY": "SYNC_TOPOLOGY",
+  "INFRASTRUCTURE_MAP": "Infrastructure Map"
 }

@@ -20,10 +20,12 @@ test.describe('Nerve Center (Unified Observability)', () => {
 
   test('Pulse tab displays architecture map', async ({ page }) => {
     await page.getByRole('tab', { name: /Infra Pulse|结构脉搏/i }).click();
-    await expect(page.getByText(/Infrastructure Map|Live Architecture Feed/i).first()).toBeVisible({
+    await expect(
+      page.getByText(/Infrastructure Map|基础设施图谱|Live Architecture Feed/i).first()
+    ).toBeVisible({
       timeout: 20000,
     });
-    await expect(page.getByRole('button', { name: /Manual Resync/i })).toBeVisible({
+    await expect(page.getByRole('button', { name: /SYNC_TOPOLOGY|同步拓扑/i })).toBeVisible({
       timeout: 20000,
     });
   });

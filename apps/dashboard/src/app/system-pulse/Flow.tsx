@@ -17,6 +17,7 @@ import { Zap, RefreshCw } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { logger } from '@claw/core/lib/logger';
 import {
   FLOW_COLORS,
@@ -32,6 +33,7 @@ import {
  * Main logical content of the topology flow.
  */
 export function FlowContent() {
+  const { t } = useTranslations();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [loading, setLoading] = useState(true);
@@ -134,7 +136,7 @@ export function FlowContent() {
           className="bg-black/60 border-cyber-blue/30 text-cyber-blue hover:bg-cyber-blue/10 backdrop-blur-md"
           icon={<RefreshCw size={12} className={loading ? 'animate-spin' : ''} />}
         >
-          SYNC_TOPOLOGY
+          {t('SYNC_TOPOLOGY')}
         </Button>
       </div>
 
