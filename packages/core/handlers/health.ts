@@ -27,6 +27,12 @@ export async function handler(): Promise<{
   headers: Record<string, string>;
   body: string;
 }> {
+  logger.info('[HEALTH] Starting health check...');
+
+  // Debug SST resources
+  const sstResources = Object.keys(process.env).filter((k) => k.startsWith('SST_RESOURCE_'));
+  logger.info('[HEALTH] SST Resources in ENV:', sstResources);
+
   try {
     const deepCheck = await runDeepHealthCheck();
 
