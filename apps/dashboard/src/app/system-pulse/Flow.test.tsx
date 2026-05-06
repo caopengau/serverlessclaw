@@ -6,6 +6,14 @@ import SystemPulseFlow from './Flow';
 import { getAgentIcon, getAgentDescription } from './FlowParts';
 import { logger } from '@claw/core/lib/logger';
 
+vi.mock('@/components/Providers/TranslationsProvider', () => ({
+  useTranslations: () => ({
+    t: (key: string) => key,
+    locale: 'en',
+    setLocale: vi.fn(),
+  }),
+}));
+
 vi.mock('@claw/core/lib/logger', () => ({
   logger: {
     info: vi.fn(),
