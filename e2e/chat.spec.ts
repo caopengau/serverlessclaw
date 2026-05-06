@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { logger } from '../core/lib/logger';
+import { logger } from '../packages/core/src/lib/logger';
 
 test.describe('Chat Flow', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
