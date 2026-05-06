@@ -4,7 +4,6 @@ import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
-
 interface WorkspaceModalsProps {
   showModal: boolean;
   setShowModal: (show: boolean) => void;
