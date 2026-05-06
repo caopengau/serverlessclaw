@@ -39,7 +39,7 @@ importers:
         version: 22.0.1
       '@opennextjs/aws':
         specifier: 3.10.4
-        version: 3.10.4(next@16.2.4(@babel/core@7.29.0)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))
+        version: 3.10.4(next@16.2.4(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))
       dotenv:
         specifier: ^17.4.0
         version: 17.4.2
@@ -64,37 +64,37 @@ importers:
         version: 0.15.37(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3)
       '@aws-sdk/client-bedrock-runtime':
         specifier: ^3.1031.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-cloudfront':
         specifier: ^3.1024.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-cloudwatch-logs':
         specifier: ^3.1031.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-codebuild':
         specifier: ^3.1031.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-dynamodb':
         specifier: ^3.1031.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-eventbridge':
         specifier: ^3.1031.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-iot':
         specifier: ^3.1031.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-lambda':
         specifier: ^3.1024.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-s3':
         specifier: ^3.1024.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-scheduler':
         specifier: ^3.1031.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/lib-dynamodb':
         specifier: ^3.1031.0
-        version: 3.1042.0(@aws-sdk/client-dynamodb@3.1042.0)
+        version: 3.1043.0(@aws-sdk/client-dynamodb@3.1043.0)
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.3.0(jiti@2.6.1))
@@ -206,19 +206,19 @@ importers:
     dependencies:
       '@aws-sdk/client-codebuild':
         specifier: ^3.1004.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-dynamodb':
         specifier: ^3.1004.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-scheduler':
         specifier: ^3.1004.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/lib-dynamodb':
         specifier: ^3.1004.0
-        version: 3.1042.0(@aws-sdk/client-dynamodb@3.1042.0)
+        version: 3.1043.0(@aws-sdk/client-dynamodb@3.1043.0)
       '@opennextjs/aws':
         specifier: 3.10.4
-        version: 3.10.4(next@16.2.4(@babel/core@7.29.0)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))
+        version: 3.10.4(next@16.2.4(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))
       '@serverlessclaw/core':
         specifier: workspace:*
         version: link:../../packages/core
@@ -303,40 +303,40 @@ importers:
         version: 0.93.0(zod@4.4.3)
       '@aws-sdk/client-bedrock-runtime':
         specifier: ^3.1010.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-cloudwatch':
         specifier: ^3.1014.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-cloudwatch-logs':
         specifier: ^3.1009.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-codebuild':
         specifier: ^3.1010.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-dynamodb':
         specifier: ^3.1009.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-eventbridge':
         specifier: ^3.1010.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-iot':
         specifier: ^3.1019.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-iot-data-plane':
         specifier: ^3.1009.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-lambda':
         specifier: ^3.1014.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-s3':
         specifier: ^3.1010.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/client-scheduler':
         specifier: ^3.1010.0
-        version: 3.1042.0
+        version: 3.1043.0
       '@aws-sdk/lib-dynamodb':
         specifier: ^3.1010.0
-        version: 3.1042.0(@aws-sdk/client-dynamodb@3.1042.0)
+        version: 3.1043.0(@aws-sdk/client-dynamodb@3.1043.0)
       '@aws/run-mcp-servers-with-aws-lambda':
         specifier: ^0.5.0
         version: 0.5.17(zod@4.4.3)
@@ -643,68 +643,68 @@ packages:
   '@aws-crypto/util@5.2.0':
     resolution: {integrity: sha512-4RkU9EsI6ZpBve5fseQlGNUWKMa1RLPQ1dnjnQoe07ldfIzcsGb5hC5W0Dm7u423KWzawlrpbjXBrXCEv9zazQ==}
 
-  '@aws-sdk/client-bedrock-runtime@3.1042.0':
-    resolution: {integrity: sha512-uYJ/HDSQvorlgYqZSwRFGolEx5wygqyuBRfemXJ3Bla2yiRj9maSVOvWP88i/hDC2BKoH6NQw8GPB9Z4RYAnwQ==}
+  '@aws-sdk/client-bedrock-runtime@3.1043.0':
+    resolution: {integrity: sha512-J22pIYr7ZND7F9oYvqALUeHBsA2ND8fHm7ZIu2SBkoYXuvTMdRIfbHwyas3cZkYp+W/zGaLC/5mAHcmQQuaSOw==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-cloudfront@3.1042.0':
-    resolution: {integrity: sha512-LE79zvUbdvXGExuJBbJAvvNWtnxwVXYYuyQMU3pzVv4gPUknsR3WTsaEhrdR8CkRM2wXq3ZKOPSyph3C2ZYa7g==}
+  '@aws-sdk/client-cloudfront@3.1043.0':
+    resolution: {integrity: sha512-0vnJdNmw0Q41yd21GQYgG6Iij3+ByqCS8YlZ3xloUGjRaavr0b1/pXrQJMDVuFNeDQOaVpAWaArr6VPmCz1ATg==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-cloudfront@3.984.0':
     resolution: {integrity: sha512-couDuDLpJtoeWne/nYyJ+I+5ntBVdNgBVRTCoDaXuVV7OC3u/wz5Ps0+GogspEwMLEFoOJ8t691h3YXQtnpQTw==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-cloudwatch-logs@3.1042.0':
-    resolution: {integrity: sha512-AQtiHAbLev+9LVlCpGsZuoeOM81b1EFeQOWLnmUCYy9wgyJhnWBlYYCwj9YlMiwLySLXgsIipdZxcikAnS/KCQ==}
+  '@aws-sdk/client-cloudwatch-logs@3.1043.0':
+    resolution: {integrity: sha512-iBQkeDlGfKhh1GDfbD31/t2QCNZ3rOl8iuVWsNdA6gL7T3GR9KhCWCbQ9ZgmEIrcnmEwbbDmQEx7VFvqCS5Hyw==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-cloudwatch@3.1042.0':
-    resolution: {integrity: sha512-rGvviVCfiOkS6ACwcJJsMDEc8zI7Q5kD/jUc33Vo/qdTMoSVJzpHlTJCMwtotOkkhEYVeoNsYn7U8PmNrY+UhQ==}
+  '@aws-sdk/client-cloudwatch@3.1043.0':
+    resolution: {integrity: sha512-s/TjLAnkULfZY8Iob7Jtzf4HIvfCxG+Y1WD9nlUoq2WTM3tc3BVl0bcM0lIUQaxYybw3mrpNIAduvOa5Y5v+ng==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-codebuild@3.1042.0':
-    resolution: {integrity: sha512-zbHw1FxVdVqtw3Bq6FEtzpkwB/RvPnff/1exgiKHOmTMOMaQgVkc5YN9bIRQkfPJ6ijEAAYBA5rH2xqx6OSk7A==}
+  '@aws-sdk/client-codebuild@3.1043.0':
+    resolution: {integrity: sha512-mqzzRMtBzKVmLpOcyVPfGH6idg/cMlOaaMgooNKZOOyefj8zdSFf9f45abo1tu36VOV72SAvZdA2saejNIwzQw==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-dynamodb@3.1042.0':
-    resolution: {integrity: sha512-cCd2X6V+au7o1Slh1UGCXksXLfSQ8rBSPKPrGg0l6R5UssfUB8H9udQySH38y7mfDCRXx2ZQCQQ0wpPnDQKRaQ==}
+  '@aws-sdk/client-dynamodb@3.1043.0':
+    resolution: {integrity: sha512-xKZFIjBA1AbyMYPAfcslBypcI9n8Ga3N2dSiuzX3OHdmG3TXAmhiAEV9reoi/4lI3HXW3dV94OizOAcPEbsWAA==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-dynamodb@3.984.0':
     resolution: {integrity: sha512-8/Oft9MWQtbG6p9f8eY5fsKC2CcO5YVDlwive8eUYS9mEbgnyQxm68OyH26WvsSTykQ9QkIbR+fOG56RsIBODw==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-eventbridge@3.1042.0':
-    resolution: {integrity: sha512-/FHs+osVewzKRMf/go0o1QnOtv3ttzAjkN0CxXzs145O7XqBDIM9Y214SlcDlIyZH5YFyf8bqd1j9jSQ9vW/hg==}
+  '@aws-sdk/client-eventbridge@3.1043.0':
+    resolution: {integrity: sha512-zIp1N9uyhlx65hT8AbUEx225JOOQEZ9zVUHPnYeVjFt2S62tfgU1YSe3eaRRoXkHpOR13vRIQc8ph+0aF83ZOQ==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-iot-data-plane@3.1042.0':
-    resolution: {integrity: sha512-SbFcEaJSXUk57QcsNdfSQ1aRdybRzBlRJY6OILgwxmrDhNS10mpYLYkrHu7P28GxlahhKQVjtTZN4gIBr2mjAQ==}
+  '@aws-sdk/client-iot-data-plane@3.1043.0':
+    resolution: {integrity: sha512-en4tF/VBjxQ5SwlZ+fA5hBtH3/nCd0fHJOP1yuHM1EKmO9AfOC3Y2CCXSo2xEZtcLyogK6fohnzm3fDkckymZg==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-iot@3.1042.0':
-    resolution: {integrity: sha512-2CjFYm72C2iKOHqJPnWsNb/nZa7k9PWQ7zhW7PytZRNYUMJILYg7lC5iWaadnik1awFNCmnfJxKxRRwoAHm20w==}
+  '@aws-sdk/client-iot@3.1043.0':
+    resolution: {integrity: sha512-pvCHd4E+UeFVBroBK6+0toFzQEnmoD783FU0Vj/K/BO+rLwtVZsDsHoMaY/W5aFN26mUaoCun6+P6eP0fDmNuQ==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-lambda@3.1042.0':
-    resolution: {integrity: sha512-g2NJMMGjQ18LvPapz75s8UzRaxJ2P5bF2Y025/eyVuBtzdCuW6XYoJxP29Tp39BzYgFb+HEtwATyZss/V6KdZg==}
+  '@aws-sdk/client-lambda@3.1043.0':
+    resolution: {integrity: sha512-4q7hRDe+NHGRTZQmY07FPAMY65HevqHlzQG3SiBEoQfv6vvRVQQAHHOKU4nBzWFU2sICMFsfnqfFhRDIjMiafg==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-lambda@3.984.0':
     resolution: {integrity: sha512-kqwNBIGNxGVhINwgN/UQfdsQkaMjbu9PFV2EhATWouV+RT60uMjK9JENgLDwbgJmEVbbnPsh9HaZ5KKwPSdiDg==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-s3@3.1042.0':
-    resolution: {integrity: sha512-z3Ibstr7ckDT10dz/nkk4+93LitrrO49Oq563/JoFHt30ZNodPBCfSxysKcelLyi/lNVF1MZrhZZfikUAG3iNQ==}
+  '@aws-sdk/client-s3@3.1043.0':
+    resolution: {integrity: sha512-QrDh9PACpmijOgbVnvQIvoWFZcMEBoGw0qiQRfGvsUEcB1JPCS2U5R0irB4XQSmsBlQUNlNeXVfpx3JI++NqrA==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-s3@3.984.0':
     resolution: {integrity: sha512-7ny2Slr93Y+QniuluvcfWwyDi32zWQfznynL56Tk0vVh7bWrvS/odm8WP2nInKicRVNipcJHY2YInur6Q/9V0A==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-scheduler@3.1042.0':
-    resolution: {integrity: sha512-js4kPwdXPBJJZuDwoKyrTSwY3YHttCQpqIbmlePxBqM2FaJEZLJJxz43m5Bf2lLSAN+A/puDTIFvg8lrEiMMpw==}
+  '@aws-sdk/client-scheduler@3.1043.0':
+    resolution: {integrity: sha512-GsMfe+valmUa5IHjAEKmTmvN8e8OguGuXfdP1uleHrvr4L8ljzg40s64r3LyX4VZSkiRKIV88KVTPho9VQHJag==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/client-sqs@3.984.0':
@@ -763,11 +763,11 @@ packages:
     resolution: {integrity: sha512-m4X56gxG76/CKfxNVbOFuYwnAZcHgS6HOH8lgp15HoGHIAVTcZfZrXvcYzJFOMLEJgVn+JHBu6EiNV+xSNXXFg==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/lib-dynamodb@3.1042.0':
-    resolution: {integrity: sha512-RI3FVVZutlmQ1WnjhhvFTcDuiQoEsJ2paypbWM6fjmdkJl/xFW8EjSBzVwjiplJ/IrVWcV8wQGVl+OPd1gd29Q==}
+  '@aws-sdk/lib-dynamodb@3.1043.0':
+    resolution: {integrity: sha512-BbMY8HuAfY9F/kWYMVzY3pWMti9J1ZhX3WRLTaHsMOgyXAtz+Cs+1uPYYlri8J07xrDM22jMrBhqJgAa0ZnFVg==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
-      '@aws-sdk/client-dynamodb': ^3.1042.0
+      '@aws-sdk/client-dynamodb': ^3.1043.0
 
   '@aws-sdk/middleware-bucket-endpoint@3.972.10':
     resolution: {integrity: sha512-Vbc2frZH7wXlMNd+ZZSXUEs/l1Sv8Jj4zUnIfwrYF5lwaLdXHZ9xx4U3rjUcaye3HRhFVc+E5DbBxpRAbB16BA==}
@@ -850,8 +850,8 @@ packages:
     resolution: {integrity: sha512-Th7kPI6YPtvJUcdznooXJMy+9rQWjmEF81LxaJssngBzuysK4a/x+l8kjm1zb7nYsUPbndnBdUnwng/3PLvtGw==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/token-providers@3.1042.0':
-    resolution: {integrity: sha512-rOEGTVOrceb/1CfIWK0zl1v2WS70f/i5bDirLl5xdFAbVQ5znub6Ezf2ugmJEg+rionO0IkwbKX3Dh3T/oZjbA==}
+  '@aws-sdk/token-providers@3.1043.0':
+    resolution: {integrity: sha512-Rlh9piVFV4WOMGgcHY0+O4TMDOSJGYxh7dvxWIhmhf6ASvRPMA2HZb6DSCan8nl5IFXjCYxYXWjpb5+Ii77MjQ==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/types@3.973.8':
@@ -4080,11 +4080,11 @@ packages:
   fast-uri@3.1.0:
     resolution: {integrity: sha512-iPeeDKJSWf4IEOasVVrknXpaBV0IApz/gp7S2bb7Z4Lljbl2MGJRqInZiUrQwV16cpzw/D3S5j5Julj/gT52AA==}
 
-  fast-uri@3.1.1:
-    resolution: {integrity: sha512-h2r7rcm6Ee/J8o0LD5djLuFVcfbZxhvho4vvsbeV0aMvXjUgqv4YpxpkEx0d68l6+IleVfLAdVEfhR7QNMkGHQ==}
+  fast-uri@3.1.2:
+    resolution: {integrity: sha512-rVjf7ArG3LTk+FS6Yw81V1DLuZl1bRbNrev6Tmd/9RaroeeRRJhAt7jg/6YFxbvAQXUCavSoZhPPj6oOx+5KjQ==}
 
-  fast-xml-builder@1.1.7:
-    resolution: {integrity: sha512-Yh7/7rQuMXICNr0oMYDR2yHP6oUvmQsTToFeOWj/kIDhAwQ+c4Ol/lbcwOmEM5OHYQmh6S6EQSQ1sljCKP36bQ==}
+  fast-xml-builder@1.1.8:
+    resolution: {integrity: sha512-sDVBc2gg8pSKvcbE8rBmOyjSGQf0AdsbqvHeIOv3D/uYNoV4eCReQXyDF8Pdv8+m1FHazACypSz2hR7O2S1LLw==}
 
   fast-xml-parser@5.7.3:
     resolution: {integrity: sha512-C0AaNuC+mscy6vrAQKAc/rMq+zAPHodfHGZu4sGVehvAQt/JLG1O5zEcYcXSY5zSqr4YVgxsB+pHXTq0i7eDlg==}
@@ -7051,7 +7051,7 @@ snapshots:
       '@smithy/util-utf8': 2.3.0
       tslib: 2.8.1
 
-  '@aws-sdk/client-bedrock-runtime@3.1042.0':
+  '@aws-sdk/client-bedrock-runtime@3.1043.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -7065,7 +7065,7 @@ snapshots:
       '@aws-sdk/middleware-user-agent': 3.972.38
       '@aws-sdk/middleware-websocket': 3.972.16
       '@aws-sdk/region-config-resolver': 3.972.13
-      '@aws-sdk/token-providers': 3.1042.0
+      '@aws-sdk/token-providers': 3.1043.0
       '@aws-sdk/types': 3.973.8
       '@aws-sdk/util-endpoints': 3.996.8
       '@aws-sdk/util-user-agent-browser': 3.972.10
@@ -7103,7 +7103,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/client-cloudfront@3.1042.0':
+  '@aws-sdk/client-cloudfront@3.1043.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -7195,7 +7195,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/client-cloudwatch-logs@3.1042.0':
+  '@aws-sdk/client-cloudwatch-logs@3.1043.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -7242,7 +7242,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/client-cloudwatch@3.1042.0':
+  '@aws-sdk/client-cloudwatch@3.1043.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -7288,7 +7288,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/client-codebuild@3.1042.0':
+  '@aws-sdk/client-codebuild@3.1043.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -7332,7 +7332,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/client-dynamodb@3.1042.0':
+  '@aws-sdk/client-dynamodb@3.1043.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -7426,7 +7426,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/client-eventbridge@3.1042.0':
+  '@aws-sdk/client-eventbridge@3.1043.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -7471,7 +7471,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/client-iot-data-plane@3.1042.0':
+  '@aws-sdk/client-iot-data-plane@3.1043.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -7516,7 +7516,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/client-iot@3.1042.0':
+  '@aws-sdk/client-iot@3.1043.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -7560,7 +7560,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/client-lambda@3.1042.0':
+  '@aws-sdk/client-lambda@3.1043.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -7658,7 +7658,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/client-s3@3.1042.0':
+  '@aws-sdk/client-s3@3.1043.0':
     dependencies:
       '@aws-crypto/sha1-browser': 5.2.0
       '@aws-crypto/sha256-browser': 5.2.0
@@ -7778,7 +7778,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/client-scheduler@3.1042.0':
+  '@aws-sdk/client-scheduler@3.1043.0':
     dependencies:
       '@aws-crypto/sha256-browser': 5.2.0
       '@aws-crypto/sha256-js': 5.2.0
@@ -8014,11 +8014,11 @@ snapshots:
       '@smithy/types': 4.14.1
       tslib: 2.8.1
 
-  '@aws-sdk/lib-dynamodb@3.1042.0(@aws-sdk/client-dynamodb@3.1042.0)':
+  '@aws-sdk/lib-dynamodb@3.1043.0(@aws-sdk/client-dynamodb@3.1043.0)':
     dependencies:
-      '@aws-sdk/client-dynamodb': 3.1042.0
+      '@aws-sdk/client-dynamodb': 3.1043.0
       '@aws-sdk/core': 3.974.8
-      '@aws-sdk/util-dynamodb': 3.996.2(@aws-sdk/client-dynamodb@3.1042.0)
+      '@aws-sdk/util-dynamodb': 3.996.2(@aws-sdk/client-dynamodb@3.1043.0)
       '@smithy/core': 3.23.17
       '@smithy/smithy-client': 4.12.13
       '@smithy/types': 4.14.1
@@ -8246,7 +8246,7 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@aws-sdk/token-providers@3.1042.0':
+  '@aws-sdk/token-providers@3.1043.0':
     dependencies:
       '@aws-sdk/core': 3.974.8
       '@aws-sdk/nested-clients': 3.997.6
@@ -8267,9 +8267,9 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  '@aws-sdk/util-dynamodb@3.996.2(@aws-sdk/client-dynamodb@3.1042.0)':
+  '@aws-sdk/util-dynamodb@3.996.2(@aws-sdk/client-dynamodb@3.1043.0)':
     dependencies:
-      '@aws-sdk/client-dynamodb': 3.1042.0
+      '@aws-sdk/client-dynamodb': 3.1043.0
       tslib: 2.8.1
 
   '@aws-sdk/util-endpoints@3.984.0':
@@ -8324,7 +8324,7 @@ snapshots:
 
   '@aws/durable-execution-sdk-js@1.0.2':
     dependencies:
-      '@aws-sdk/client-lambda': 3.1042.0
+      '@aws-sdk/client-lambda': 3.1043.0
     transitivePeerDependencies:
       - aws-crt
 
@@ -8333,7 +8333,7 @@ snapshots:
   '@aws/run-mcp-servers-with-aws-lambda@0.5.17(zod@4.4.3)':
     dependencies:
       '@aws-crypto/sha256-js': 5.2.0
-      '@aws-sdk/client-lambda': 3.1042.0
+      '@aws-sdk/client-lambda': 3.1043.0
       '@aws-sdk/credential-provider-node': 3.972.39
       '@aws-sdk/protocol-http': 3.374.0
       '@aws-sdk/types': 3.973.8
@@ -8705,7 +8705,7 @@ snapshots:
 
   '@geunoh/s3-mcp-server@1.3.1':
     dependencies:
-      '@aws-sdk/client-s3': 3.1042.0
+      '@aws-sdk/client-s3': 3.1043.0
       '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
       adm-zip: 0.5.17
       commander: 11.1.0
@@ -9102,7 +9102,7 @@ snapshots:
       - supports-color
       - ws
 
-  '@opennextjs/aws@3.10.4(next@16.2.4(@babel/core@7.29.0)(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))':
+  '@opennextjs/aws@3.10.4(next@16.2.4(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))':
     dependencies:
       '@ast-grep/napi': 0.40.5
       '@aws-sdk/client-cloudfront': 3.984.0
@@ -10461,7 +10461,7 @@ snapshots:
   ajv@8.20.0:
     dependencies:
       fast-deep-equal: 3.1.3
-      fast-uri: 3.1.1
+      fast-uri: 3.1.2
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
@@ -11393,8 +11393,8 @@ snapshots:
       '@next/eslint-plugin-next': 16.2.4
       eslint: 10.3.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@10.3.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint-import-resolver-typescript@3.10.1)(eslint@10.3.0(jiti@2.6.1))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@10.3.0(jiti@2.6.1))
       eslint-plugin-react: 7.37.5(eslint@10.3.0(jiti@2.6.1))
       eslint-plugin-react-hooks: 7.0.1(eslint@10.3.0(jiti@2.6.1))
@@ -11420,7 +11420,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@10.3.0(jiti@2.6.1)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3
@@ -11431,22 +11431,22 @@ snapshots:
       tinyglobby: 0.2.16
       unrs-resolver: 1.11.1
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1))
+      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint-import-resolver-typescript@3.10.1)(eslint@10.3.0(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1)):
+  eslint-module-utils@2.12.1(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@10.3.0(jiti@2.6.1)):
     dependencies:
       debug: 3.2.7
     optionalDependencies:
       '@typescript-eslint/parser': 8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3)
       eslint: 10.3.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@10.3.0(jiti@2.6.1))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1)):
+  eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint-import-resolver-typescript@3.10.1)(eslint@10.3.0(jiti@2.6.1)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
@@ -11457,7 +11457,7 @@ snapshots:
       doctrine: 2.1.0
       eslint: 10.3.0(jiti@2.6.1)
       eslint-import-resolver-node: 0.3.10
-      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1)))(eslint@10.3.0(jiti@2.6.1))
+      eslint-module-utils: 2.12.1(@typescript-eslint/parser@8.59.1(eslint@10.3.0(jiti@2.6.1))(typescript@6.0.3))(eslint-import-resolver-node@0.3.10)(eslint-import-resolver-typescript@3.10.1)(eslint@10.3.0(jiti@2.6.1))
       hasown: 2.0.2
       is-core-module: 2.16.1
       is-glob: 4.0.3
@@ -11736,16 +11736,16 @@ snapshots:
 
   fast-uri@3.1.0: {}
 
-  fast-uri@3.1.1: {}
+  fast-uri@3.1.2: {}
 
-  fast-xml-builder@1.1.7:
+  fast-xml-builder@1.1.8:
     dependencies:
       path-expression-matcher: 1.5.0
 
   fast-xml-parser@5.7.3:
     dependencies:
       '@nodable/entities': 2.1.0
-      fast-xml-builder: 1.1.7
+      fast-xml-builder: 1.1.8
       path-expression-matcher: 1.5.0
       strnum: 2.2.3
 
