@@ -54,19 +54,16 @@ export default function UsersPage() {
     try {
       const res = await fetch('/api/users');
       const data = await res.json();
-      setUsers(data.users || []);
+      setTimeout(() => setUsers(data.users || []), 0);
     } catch (e) {
       logger.error('Failed to fetch users:', e);
     } finally {
-      setLoading(false);
+      setTimeout(() => setLoading(false), 0);
     }
   };
 
   useEffect(() => {
-    const init = async () => {
-      await fetchUsers();
-    };
-    init();
+    void fetchUsers();
   }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {

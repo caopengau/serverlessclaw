@@ -290,12 +290,14 @@ function CollaborationCanvasContent() {
         }
       );
 
-      setNodes(newNodes);
-      setEdges(newEdges);
-      setLoading(false);
+      setTimeout(() => {
+        setNodes(newNodes);
+        setEdges(newEdges);
+        setLoading(false);
+      }, 0);
     } catch (e) {
       logger.error('Failed to fetch collaboration data:', e);
-      setLoading(false);
+      setTimeout(() => setLoading(false), 0);
     }
   }, [setNodes, setEdges, activeWorkspaceId]);
 
@@ -308,7 +310,7 @@ function CollaborationCanvasContent() {
         type === 'task_failed' ||
         type === 'handoff'
       ) {
-        fetchActiveTasks();
+        void fetchActiveTasks();
       }
 
       if (type === 'handoff') {
@@ -351,7 +353,10 @@ function CollaborationCanvasContent() {
   });
 
   useEffect(() => {
-    fetchActiveTasks();
+    const timer = setTimeout(() => {
+      void fetchActiveTasks();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [fetchActiveTasks]);
 
   const handleReset = useCallback(async () => {

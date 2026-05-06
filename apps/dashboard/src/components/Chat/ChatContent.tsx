@@ -102,14 +102,11 @@ export default function ChatContent() {
   });
 
   useEffect(() => {
-    const sync = async () => {
-      localStorage.setItem('claw_war_room_mode', String(warRoomMode));
-      // Auto-collapse sidebar when entering war room mode if it wasn't explicitly set
-      if (warRoomMode && localStorage.getItem('claw_chat_sidebar_collapsed') === null) {
-        setIsChatSidebarCollapsed(true);
-      }
-    };
-    sync();
+    localStorage.setItem('claw_war_room_mode', String(warRoomMode));
+    // Auto-collapse sidebar when entering war room mode if it wasn't explicitly set
+    if (warRoomMode && localStorage.getItem('claw_chat_sidebar_collapsed') === null) {
+      setTimeout(() => setIsChatSidebarCollapsed(true), 0);
+    }
   }, [warRoomMode]);
 
   useEffect(() => {
@@ -191,7 +188,7 @@ export default function ChatContent() {
 
   useKeyboardShortcuts(shortcuts, !!activeSessionId);
   const hasProcessedPrompt = useRef<boolean>(false);
-  const isPostInFlight = useRef<boolean>(false);
+  const isPostInFlightRef = useRef<boolean>(false);
 
   // --- Hooks ---
   const searchParams = useSearchParams();
@@ -201,7 +198,7 @@ export default function ChatContent() {
     activeSessionId,
     setMessagesRef,
     setIsLoading,
-    isPostInFlight,
+    isPostInFlightRef,
     activeWorkspaceId
   );
 
@@ -211,8 +208,8 @@ export default function ChatContent() {
     pendingMessages,
     setPendingMessages,
     fetchSessions,
-    skipNextHistoryFetch,
-    seenMessageIds,
+    skipNextHistoryFetchRef,
+    seenMessageIdsRef,
   } = chatConnection;
 
   const {
@@ -230,16 +227,16 @@ export default function ChatContent() {
     activeSessionId,
     setActiveSessionId,
     setIsLoading,
-    isPostInFlight,
-    seenMessageIds,
+    isPostInFlightRef,
+    seenMessageIdsRef,
     fetchSessions,
-    skipNextHistoryFetch,
+    skipNextHistoryFetchRef,
     activeSessionRef,
     activeWorkspaceId
   );
 
   useEffect(() => {
-    setMounted(true);
+    setTimeout(() => setMounted(true), 0);
   }, []);
 
   useEffect(() => {
@@ -251,7 +248,7 @@ export default function ChatContent() {
   // --- Title and Session Sync ---
   useEffect(() => {
     if (currentSession) {
-      setEditedTitle(currentSession.title ?? t('CHAT_UNTITLED_TRACE'));
+      setTimeout(() => setEditedTitle(currentSession.title ?? t('CHAT_UNTITLED_TRACE')), 0);
     }
   }, [currentSession, t]);
 
@@ -264,7 +261,7 @@ export default function ChatContent() {
   useEffect(() => {
     const sessionFromUrl = searchParams.get('session');
     if (sessionFromUrl && sessionFromUrl !== activeSessionId) {
-      setActiveSessionId(sessionFromUrl);
+      setTimeout(() => setActiveSessionId(sessionFromUrl), 0);
     }
 
     const prompt = searchParams.get('prompt');
@@ -394,7 +391,7 @@ export default function ChatContent() {
       return;
     }
 
-    seenMessageIds.current.clear();
+    seenMessageIdsRef.current.clear();
     setActiveSessionId('');
     setMessages([]);
     setAttachments([]);
@@ -445,7 +442,9 @@ export default function ChatContent() {
     }
   };
 
-  createNewChatRef.current = createNewChat;
+  useEffect(() => {
+    createNewChatRef.current = createNewChat;
+  }, [createNewChat]);
 
   const deleteSession = (e: React.MouseEvent, sessionId: string) => {
     e.stopPropagation();

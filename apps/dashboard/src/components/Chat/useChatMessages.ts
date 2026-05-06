@@ -30,10 +30,10 @@ export function useChatMessages(
   activeSessionId: string,
   setActiveSessionId: (id: string) => void,
   setIsLoading: (loading: boolean) => void,
-  isPostInFlight: React.MutableRefObject<boolean>,
-  seenMessageIds: React.MutableRefObject<Set<string>>,
+  isPostInFlightRef: React.MutableRefObject<boolean>,
+  seenMessageIdsRef: React.MutableRefObject<Set<string>>,
   fetchSessions: () => void,
-  skipNextHistoryFetch: React.MutableRefObject<boolean>,
+  skipNextHistoryFetchRef: React.MutableRefObject<boolean>,
   activeSessionRef: React.MutableRefObject<string>,
   workspaceId: string | null = null,
   disabled = false
@@ -63,7 +63,7 @@ export function useChatMessages(
             );
 
             // Sync the shared ref
-            seenIds.forEach((id) => seenMessageIds.current.add(id));
+            seenIds.forEach((id) => seenMessageIdsRef.current.add(id));
 
             return mergedMessages;
           });
@@ -74,38 +74,42 @@ export function useChatMessages(
         setIsLoading(false);
       }
     },
-    [setIsLoading, seenMessageIds, workspaceId]
+    [setIsLoading, seenMessageIdsRef, workspaceId]
   );
 
   // Handle immediate history fetch on session change
   useEffect(() => {
     if (disabled) return;
     if (activeSessionId) {
-      if (skipNextHistoryFetch.current) {
+      if (skipNextHistoryFetchRef.current) {
         // If this was a new session creation from sendMessage,
         // we already have the user message and thinking placeholder in state.
         // We just need to clear the skip flag and fetch history (which will merge).
-        skipNextHistoryFetch.current = false;
-        fetchHistory(activeSessionId);
+        skipNextHistoryFetchRef.current = false;
+        void fetchHistory(activeSessionId);
         return;
       }
 
-      // Clear current messages to prevent ghosting from previous session
-      setMessages([]);
-      seenMessageIds.current.clear();
-      fetchHistory(activeSessionId);
+      setTimeout(() => {
+        // Clear current messages to prevent ghosting from previous session
+        setMessages([]);
+        seenMessageIdsRef.current.clear();
+        void fetchHistory(activeSessionId);
+      }, 0);
     } else {
-      setMessages([]);
-      seenMessageIds.current.clear();
+      setTimeout(() => {
+        setMessages([]);
+        seenMessageIdsRef.current.clear();
+      }, 0);
     }
-  }, [activeSessionId, disabled, fetchHistory, seenMessageIds, skipNextHistoryFetch]);
+  }, [activeSessionId, disabled, fetchHistory, seenMessageIdsRef, skipNextHistoryFetchRef]);
 
   const updateAssistantResponse = (
     data: ChatApiResponse & { ui_blocks?: DynamicComponent[] },
     tempId: string
   ) => {
     const targetId = data.messageId || tempId;
-    seenMessageIds.current.add(targetId);
+    seenMessageIdsRef.current.add(targetId);
     setMessages((prev: ChatMessage[]) => {
       let existingIdx = prev.findIndex(
         (m: ChatMessage) => m.messageId === targetId && m.role === 'assistant'
@@ -168,7 +172,7 @@ export function useChatMessages(
     const errorMsg = AGENT_ERRORS.CONNECTION_FAILURE;
     if (sessionId === activeSessionRef.current) {
       const errorId = `error_${Date.now()}`;
-      seenMessageIds.current.add(errorId);
+      seenMessageIdsRef.current.add(errorId);
       setMessages((prev: ChatMessage[]) => [
         ...prev,
         {
@@ -223,7 +227,7 @@ export function useChatMessages(
     } = options;
 
     if (!text.trim() && attachments.length === 0) return;
-    if (isPostInFlight.current) return;
+    if (isPostInFlightRef.current) return;
 
     const userMsg = text.trim();
     const currentAttachments = [...attachments];
@@ -262,7 +266,7 @@ export function useChatMessages(
     let isNewSession = false;
     if (!currentSessionId) {
       currentSessionId = `session_${Date.now()}`;
-      skipNextHistoryFetch.current = true;
+      skipNextHistoryFetchRef.current = true;
       activeSessionRef.current = currentSessionId;
       setActiveSessionId(currentSessionId);
       isNewSession = true;
@@ -362,7 +366,7 @@ export function useChatMessages(
     } catch (error) {
       handleConnectionError(currentSessionId, error);
     } finally {
-      isPostInFlight.current = false;
+      isPostInFlightRef.current = false;
       setIsLoading(false);
     }
   };
@@ -373,7 +377,7 @@ export function useChatMessages(
   const handleToolApproval = async (callId: string, comment?: string) => {
     const currentSessionId = activeSessionRef.current;
     setIsLoading(true);
-    isPostInFlight.current = true;
+    isPostInFlightRef.current = true;
 
     try {
       const response = await fetch('/api/chat', {
@@ -415,7 +419,7 @@ export function useChatMessages(
     } catch (error) {
       logger.error('Approval error:', error);
     } finally {
-      isPostInFlight.current = false;
+      isPostInFlightRef.current = false;
       setIsLoading(false);
     }
   };
@@ -426,7 +430,7 @@ export function useChatMessages(
   const handleToolRejection = async (callId: string, comment?: string) => {
     const currentSessionId = activeSessionRef.current;
     setIsLoading(true);
-    isPostInFlight.current = true;
+    isPostInFlightRef.current = true;
 
     try {
       const response = await fetch('/api/chat', {
@@ -461,7 +465,7 @@ export function useChatMessages(
     } catch (error) {
       logger.error('Rejection error:', error);
     } finally {
-      isPostInFlight.current = false;
+      isPostInFlightRef.current = false;
       setIsLoading(false);
     }
   };
@@ -472,7 +476,7 @@ export function useChatMessages(
   const handleToolClarification = async (callId: string, comment?: string) => {
     const currentSessionId = activeSessionRef.current;
     setIsLoading(true);
-    isPostInFlight.current = true;
+    isPostInFlightRef.current = true;
 
     try {
       const response = await fetch('/api/chat', {
@@ -507,7 +511,7 @@ export function useChatMessages(
     } catch (error) {
       logger.error('Clarification error:', error);
     } finally {
-      isPostInFlight.current = false;
+      isPostInFlightRef.current = false;
       setIsLoading(false);
     }
   };
@@ -518,7 +522,7 @@ export function useChatMessages(
   const handleTaskCancellation = async (taskId: string, comment?: string) => {
     const currentSessionId = activeSessionRef.current;
     setIsLoading(true);
-    isPostInFlight.current = true;
+    isPostInFlightRef.current = true;
 
     try {
       const response = await fetch('/api/chat', {
@@ -561,7 +565,7 @@ export function useChatMessages(
     } catch (error) {
       logger.error('Cancellation error:', error);
     } finally {
-      isPostInFlight.current = false;
+      isPostInFlightRef.current = false;
       setIsLoading(false);
     }
   };

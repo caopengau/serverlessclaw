@@ -65,20 +65,19 @@ export function FlowContent() {
         style: { stroke: FLOW_COLORS.CYBER_BLUE, strokeWidth: 2 },
       }));
 
-      setNodes(newNodes);
-      setEdges(newEdges);
-      setLoading(false);
+      setTimeout(() => {
+        setNodes(newNodes);
+        setEdges(newEdges);
+        setLoading(false);
+      }, 0);
     } catch (err) {
       logger.error('[Topology] Fetch error:', err);
-      setLoading(false);
+      setTimeout(() => setLoading(false), 0);
     }
   }, [setNodes, setEdges]);
 
   useEffect(() => {
-    const init = async () => {
-      await fetchTopology();
-    };
-    init();
+    void fetchTopology();
   }, [fetchTopology]);
 
   return (

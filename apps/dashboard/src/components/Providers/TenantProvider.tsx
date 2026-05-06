@@ -40,17 +40,17 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await fetch('/api/workspaces');
       const data = await res.json();
-      setWorkspaces(data.workspaces || []);
+      setTimeout(() => setWorkspaces(data.workspaces || []), 0);
     } catch (e) {
       console.error('Failed to fetch workspaces:', e);
     } finally {
-      setIsLoading(false);
+      setTimeout(() => setIsLoading(false), 0);
     }
   }, []);
 
   // Fetch list on mount
   useEffect(() => {
-    fetchWorkspaces();
+    void fetchWorkspaces();
   }, [fetchWorkspaces]);
 
   const setActiveWorkspace = useCallback((id: string | null) => {
