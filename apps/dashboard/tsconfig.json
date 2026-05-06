@@ -14,7 +14,7 @@
     "jsx": "react-jsx",
     "incremental": true,
     "allowImportingTsExtensions": true,
-    "types": ["vitest/globals", "@testing-library/jest-dom"],
+    "types": ["vitest/globals", "@testing-library/jest-dom", "react", "react-dom"],
     "plugins": [
       {
         "name": "next"
@@ -26,7 +26,9 @@
       "@claw/ui": ["../../packages/ui/src/index.ts"],
       "@claw/ui/*": ["../../packages/ui/src/*"],
       "@claw/hooks": ["../../packages/hooks/src/index.ts"],
-      "@claw/hooks/*": ["../../packages/hooks/src/*"]
+      "@claw/hooks/*": ["../../packages/hooks/src/*"],
+      "@voltx/ui": ["../../../packages/voltx-ui/src/index.ts"],
+      "@voltx/ui/*": ["../../../packages/voltx-ui/src/*"]
     }
   },
   "include": [

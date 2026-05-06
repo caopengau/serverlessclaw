@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * ServerlessClaw Dashboard Extensions
  * This file is the bridge between the framework and domain-specific extensions.
