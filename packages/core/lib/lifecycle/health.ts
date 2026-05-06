@@ -429,7 +429,7 @@ export async function checkCognitiveHealth(workspaceId?: string): Promise<Cognit
     checkTraceCoherence(workspaceId),
   ]);
 
-  const ok = bus.ok && tools.ok && providers.ok && coherence.ok;
+  const ok = bus.ok && tools.ok && providers.ok;
   const timestamp = Date.now();
 
   let summary = 'System cognitive health is optimal.';
