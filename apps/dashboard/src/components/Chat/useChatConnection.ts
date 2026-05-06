@@ -14,14 +14,14 @@ export function useChatConnection(
   activeSessionId: string,
   setMessagesRef: React.MutableRefObject<React.Dispatch<React.SetStateAction<ChatMessage[]>>>,
   _setIsLoading: React.Dispatch<React.SetStateAction<boolean>>,
-  isPostInFlight: React.MutableRefObject<boolean>,
+  isPostInFlightRef: React.MutableRefObject<boolean>,
   workspaceId: string | null = null,
   disabled = false
 ) {
   const [pendingMessages, setPendingMessages] = useState<PendingMessage[]>([]);
   const activeSessionRef = useRef<string>(activeSessionId);
-  const skipNextHistoryFetch = useRef<boolean>(false);
-  const seenMessageIds = useRef<Set<string>>(new Set());
+  const skipNextHistoryFetchRef = useRef<boolean>(false);
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
   const lastFetchedSessionRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function useChatConnection(
 
   const fetchHistorySilently = useCallback(
     async (sessionId: string) => {
-      if (isPostInFlight.current || sessionId === lastFetchedSessionRef.current) return;
+      if (isPostInFlightRef.current || sessionId === lastFetchedSessionRef.current) return;
       try {
         const url = new URL('/api/chat', window.location.origin);
         url.searchParams.set('sessionId', sessionId);
@@ -45,7 +45,7 @@ export function useChatConnection(
           lastFetchedSessionRef.current = sessionId;
           setMessagesRef.current((prev) => {
             const { messages, seenIds } = mergeHistoryWithMessages(prev, data.history);
-            seenMessageIds.current = seenIds;
+            seenMessageIdsRef.current = seenIds;
             return messages;
           });
         }
@@ -53,12 +53,12 @@ export function useChatConnection(
         logger.warn('Silent History fetch failed:', e);
       }
     },
-    [isPostInFlight, setMessagesRef, workspaceId]
+    [isPostInFlightRef, setMessagesRef, workspaceId]
   );
 
   const fetchPendingSilently = useCallback(
     async (sessionId: string) => {
-      if (isPostInFlight.current) return;
+      if (isPostInFlightRef.current) return;
       try {
         const url = new URL('/api/pending-messages', window.location.origin);
         url.searchParams.set('sessionId', sessionId);
@@ -73,7 +73,7 @@ export function useChatConnection(
         // Silently ignore
       }
     },
-    [isPostInFlight, workspaceId]
+    [isPostInFlightRef, workspaceId]
   );
 
   const handleMessage = useCallback(
@@ -90,18 +90,18 @@ export function useChatConnection(
           `[SIGNAL] ✅ Processing chunk: ${normalized.messageId} (msg: ${normalized.message?.length ?? 0} chars)`
         );
         setMessagesRef.current((prev) =>
-          applyChunkToMessages(prev, normalized, seenMessageIds.current)
+          applyChunkToMessages(prev, normalized, seenMessageIdsRef.current)
         );
       } else {
         logger.warn(
           `[SIGNAL] ⚠️ Chunk ignored (filter): ${normalized.messageId} on topic ${topic}`
         );
-        if (currentActiveId && !isPostInFlight.current) {
+        if (currentActiveId && !isPostInFlightRef.current) {
           fetchHistorySilently(currentActiveId);
         }
       }
     },
-    [fetchHistorySilently, isPostInFlight, setMessagesRef]
+    [fetchHistorySilently, isPostInFlightRef, setMessagesRef]
   );
 
   const {
@@ -143,7 +143,7 @@ export function useChatConnection(
         const freq = 60000; // Increased to 60s
         if (now - lastSyncRef.current < freq) return;
 
-        if (!document.hidden && !isPostInFlight.current) {
+        if (!document.hidden && !isPostInFlightRef.current) {
           lastSyncRef.current = now;
           fetchHistorySilently(sessionId);
           fetchPendingSilently(sessionId);
@@ -151,7 +151,7 @@ export function useChatConnection(
       };
       intervalRef.current = setInterval(runSync, 2000);
     }
-  }, [activeSessionId, disabled, fetchHistorySilently, fetchPendingSilently, isPostInFlight]);
+  }, [activeSessionId, disabled, fetchHistorySilently, fetchPendingSilently, isPostInFlightRef]);
 
   useEffect(() => {
     return () => {
@@ -166,7 +166,7 @@ export function useChatConnection(
     setPendingMessages,
     fetchPendingSilently,
     fetchSessions,
-    skipNextHistoryFetch,
-    seenMessageIds,
+    skipNextHistoryFetchRef,
+    seenMessageIdsRef,
   };
 }

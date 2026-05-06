@@ -1,5 +1,5 @@
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { logger } from '../../logger';
+import { logger } from '../logger';
 import type { SessionState } from './session-state';
 
 /**

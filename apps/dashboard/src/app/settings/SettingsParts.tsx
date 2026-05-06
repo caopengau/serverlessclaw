@@ -140,6 +140,7 @@ export function EvolutionEngineSection({
   ConfigTooltip: Tooltip,
   CyberSelect,
   CyberTooltip: CTooltip,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 }: any) {
   return (
     <SettingSection

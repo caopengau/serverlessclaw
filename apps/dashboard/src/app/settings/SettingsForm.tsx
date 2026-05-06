@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Save } from 'lucide-react';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
-import { SYSTEM } from '@claw/core/lib/constants';
 import { LLMProvider, OpenAIModel } from '@claw/core/lib/types/llm';
 import { EvolutionMode } from '@claw/core/lib/types/agent';
 import Button from '@/components/ui/Button';
@@ -28,15 +27,21 @@ export default function SettingsForm({ config, updateConfig }: SettingsFormProps
   const [optimizationPolicy, setOptimizationPolicy] = useState(config.optimizationPolicy);
   const [activeLocale, setActiveLocale] = useState(config.activeLocale);
   const [maxToolIterations, setMaxToolIterations] = useState(config.maxToolIterations);
-  const [circuitBreakerThreshold, setCircuitBreakerThreshold] = useState(config.circuitBreakerThreshold);
+  const [circuitBreakerThreshold, setCircuitBreakerThreshold] = useState(
+    config.circuitBreakerThreshold
+  );
   const [protectedResources, setProtectedResources] = useState(config.protectedResources);
   const [reflectionFrequency, setReflectionFrequency] = useState(config.reflectionFrequency);
-  const [strategicReviewFrequency, setStrategicReviewFrequency] = useState(config.strategicReviewFrequency);
+  const [strategicReviewFrequency, setStrategicReviewFrequency] = useState(
+    config.strategicReviewFrequency
+  );
   const [minGapsForReview, setMinGapsForReview] = useState(config.minGapsForReview);
   const [recursionLimit, setRecursionLimit] = useState(config.recursionLimit);
   const [deployLimit, setDeployLimit] = useState(config.deployLimit);
   const [escalationEnabled, setEscalationEnabled] = useState(config.escalationEnabled);
-  const [protocolFallbackEnabled, setProtocolFallbackEnabled] = useState(config.protocolFallbackEnabled);
+  const [protocolFallbackEnabled, setProtocolFallbackEnabled] = useState(
+    config.protocolFallbackEnabled
+  );
 
   const { t, setLocale } = useTranslations();
 

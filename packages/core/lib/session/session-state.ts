@@ -247,6 +247,19 @@ export class SessionStateManager {
     );
   }
 
+  async clearPendingMessages(
+    sessionId: string,
+    messageIds?: string[],
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+  ): Promise<void> {
+    return this.messageHandler.clear(
+      this.tableName,
+      this.getKey(sessionId, scope),
+      this.getSessionExpiresAt(),
+      messageIds
+    );
+  }
+
   // --- SNAPSHOT OPERATIONS ---
 
   async saveSnapshot(

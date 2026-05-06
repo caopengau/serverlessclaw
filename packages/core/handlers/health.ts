@@ -27,6 +27,8 @@ export async function handler(): Promise<{
   headers: Record<string, string>;
   body: string;
 }> {
+  logger.info('[HEALTH] Starting health check...');
+
   try {
     const deepCheck = await runDeepHealthCheck();
 

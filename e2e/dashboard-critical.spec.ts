@@ -14,7 +14,7 @@ test.describe('Dashboard Critical Flows', () => {
     const tabs = [
       {
         name: /Infra Pulse|结构脉搏/i,
-        text: /Infrastructure Map|Live Architecture Feed|Manual Resync/i,
+        text: /Infrastructure Map|基础设施图谱|SYNC_TOPOLOGY|同步拓扑/i,
       },
       { name: /Resilience|韧性中心/i, text: /Stability_Diagnostics|SYSTEM_ADVISORY|HEALTH_SCORE/i },
       {
@@ -63,7 +63,7 @@ test.describe('Dashboard Critical Flows', () => {
     await page.getByRole('tab', { name: /Infra Pulse|结构脉搏/i }).click();
 
     // Wait for pulse view controls to become interactive.
-    await expect(page.getByRole('button', { name: /Manual Resync/i })).toBeVisible({
+    await expect(page.getByRole('button', { name: /SYNC_TOPOLOGY|同步拓扑/i })).toBeVisible({
       timeout: 20000,
     });
     await page.waitForTimeout(2000);

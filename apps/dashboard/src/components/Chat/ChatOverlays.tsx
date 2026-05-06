@@ -51,10 +51,7 @@ export const ChatOverlays: React.FC<ChatOverlaysProps> = ({
           <div
             className={`flex flex-col items-center gap-4 bg-background/80 p-12 rounded-2xl border border-cyber-green/30 ${CHAT_STYLES.SHADOWS.DROP_ZONE}`}
           >
-            <Paperclip
-              size={64}
-              className={`text-cyber-green ${CHAT_STYLES.ANIMATIONS.BOUNCE}`}
-            />
+            <Paperclip size={64} className={`text-cyber-green ${CHAT_STYLES.ANIMATIONS.BOUNCE}`} />
             <Typography variant="h2" weight="bold" color="primary" glow>
               {t('CHAT_DROP_FILES')}
             </Typography>

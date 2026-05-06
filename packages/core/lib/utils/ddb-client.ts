@@ -1,6 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-import { resolveSSTResourceValue } from './resource-helpers';
+export { getConfigTableName, getMemoryTableName, getTraceTableName } from './resource-helpers';
 
 /**
  * Shared DynamoDB document client instance for tracing and other utilities.
@@ -32,34 +32,4 @@ export function getDocClient(): DynamoDBDocumentClient {
  */
 export function resetDocClient(): void {
   _docClient = undefined;
-}
-
-/**
- * Returns the name of the ConfigTable resource.
- * Respects CONFIG_TABLE_NAME environment variable.
- *
- * @returns The table name string or undefined if not resolved.
- */
-export function getConfigTableName(): string | undefined {
-  return resolveSSTResourceValue('ConfigTable', 'name', 'CONFIG_TABLE_NAME');
-}
-
-/**
- * Returns the name of the MemoryTable resource.
- * Respects MEMORY_TABLE_NAME environment variable.
- *
- * @returns The table name string or undefined if not resolved.
- */
-export function getMemoryTableName(): string | undefined {
-  return resolveSSTResourceValue('MemoryTable', 'name', 'MEMORY_TABLE_NAME');
-}
-
-/**
- * Returns the name of the TraceTable resource.
- * Respects TRACE_TABLE_NAME environment variable.
- *
- * @returns The table name string or undefined if not resolved.
- */
-export function getTraceTableName(): string | undefined {
-  return resolveSSTResourceValue('TraceTable', 'name', 'TRACE_TABLE_NAME');
 }

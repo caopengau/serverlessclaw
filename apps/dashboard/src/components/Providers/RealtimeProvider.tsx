@@ -86,7 +86,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       }
 
       const data = (await res.json()) as { sessions?: ConversationMeta[] };
-      setSessions(data.sessions || []);
+      setTimeout(() => setSessions(data.sessions || []), 0);
     } catch (err) {
       logger.warn('[Realtime] Failed to fetch sessions', err);
     }
@@ -213,18 +213,21 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     isUnmountedRef.current = false;
-    connect();
-    fetchSessions(); // Immediate fetch on mount
+    void connect();
+    const timer = setTimeout(() => {
+      void fetchSessions(); // Immediate fetch on mount
+    }, 0);
 
     const interval = setInterval(() => {
       // Periodic fetch as fallback
       if (!isUnmountedRef.current && !document.hidden) {
-        fetchSessions();
+        void fetchSessions();
       }
     }, 60000); // Increased to 60s
 
     return () => {
       isUnmountedRef.current = true;
+      clearTimeout(timer);
       clearInterval(interval);
       if (mqttClientRef.current) {
         mqttClientRef.current.end(true);
@@ -235,7 +238,10 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
   // Re-fetch sessions when workspace context changes
   useEffect(() => {
-    fetchSessions();
+    const timer = setTimeout(() => {
+      void fetchSessions();
+    }, 0);
+    return () => clearTimeout(timer);
   }, [activeWorkspaceId, fetchSessions]);
 
   const subscribe = useCallback((topics: string[], callback: MessageCallback) => {

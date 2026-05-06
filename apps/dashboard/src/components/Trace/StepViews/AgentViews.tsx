@@ -38,17 +38,26 @@ export const ClarificationView = ({ content }: { content: ClarificationContent }
 export const AgentStateView = ({ content, type }: { content: AgentStateContent; type: string }) => (
   <div className="space-y-4">
     <div className="space-y-2">
-      <div className={`text-[10px] ${type.includes('waiting') ? 'text-yellow-400' : 'text-emerald-400'} font-bold tracking-tighter flex items-center gap-1`}>
+      <div
+        className={`text-[10px] ${type.includes('waiting') ? 'text-yellow-400' : 'text-emerald-400'} font-bold tracking-tighter flex items-center gap-1`}
+      >
         {type.includes('waiting') ? <Pause size={12} /> : <Play size={12} />}
         {type.includes('waiting') ? 'Agent Waiting' : 'Agent Resumed'}
       </div>
-      <div className={`p-3 ${type.includes('waiting') ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-emerald-500/5 border-emerald-500/20'} border rounded text-[11px] font-mono text-white/90 whitespace-pre-wrap`}>
-        {content.reason || (type.includes('waiting') ? 'Agent is waiting for external input' : 'Agent resumed execution')}
+      <div
+        className={`p-3 ${type.includes('waiting') ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-emerald-500/5 border-emerald-500/20'} border rounded text-[11px] font-mono text-white/90 whitespace-pre-wrap`}
+      >
+        {content.reason ||
+          (type.includes('waiting')
+            ? 'Agent is waiting for external input'
+            : 'Agent resumed execution')}
       </div>
     </div>
     <div className="space-y-1">
       <div className="text-[9px] text-white/40 font-bold">Agent</div>
-      <div className={`text-[10px] ${type.includes('waiting') ? 'text-yellow-400' : 'text-emerald-400'} font-mono`}>
+      <div
+        className={`text-[10px] ${type.includes('waiting') ? 'text-yellow-400' : 'text-emerald-400'} font-mono`}
+      >
         {content.agentId || 'unknown'}
       </div>
     </div>

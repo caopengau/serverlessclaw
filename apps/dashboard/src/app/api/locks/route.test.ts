@@ -27,6 +27,7 @@ vi.mock('@claw/core/lib/constants', () => ({
 describe('Locks API Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.MEMORY_TABLE_NAME = 'test-memory-table';
   });
 
   describe('GET', () => {

@@ -20,6 +20,7 @@ vi.mock('@aws-sdk/lib-dynamodb', () => ({
 describe('Collaboration API Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.MEMORY_TABLE_NAME = 'test-memory-table';
   });
 
   describe('GET', () => {

@@ -30,14 +30,13 @@ export class EscalationStateHandler {
 
   async completeEscalation(
     state: EscalationState,
-    finalStatus: EscalationState['status']
+    finalOutcome: EscalationState['outcome']
   ): Promise<void> {
     const updated: EscalationState = {
       ...state,
-      status: finalStatus,
-      updatedAt: Date.now(),
+      outcome: finalOutcome,
     };
     await this.saveState(updated);
-    logger.info(`Escalation for ${state.traceId} completed with status: ${finalStatus}`);
+    logger.info(`Escalation for ${state.traceId} completed with outcome: ${finalOutcome}`);
   }
 }

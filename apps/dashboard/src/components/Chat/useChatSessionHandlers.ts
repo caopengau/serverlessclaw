@@ -7,7 +7,7 @@ interface ChatSessionHandlersProps {
   setActiveSessionId: (id: string) => void;
   fetchSessions: () => void;
   router: { push: (path: string, options?: { scroll?: boolean }) => void };
-  seenMessageIds: React.MutableRefObject<Set<string>>;
+  seenMessageIdsRef: React.MutableRefObject<Set<string>>;
   setCurrentAgentId: (id: string) => void;
   setActiveCollaborators: (ids: string[]) => void;
   setCollaborationId: (id: string | null) => void;
@@ -23,7 +23,7 @@ export function useChatSessionHandlers({
   setActiveSessionId,
   fetchSessions,
   router,
-  seenMessageIds,
+  seenMessageIdsRef,
   setCurrentAgentId,
   setActiveCollaborators,
   setCollaborationId,
@@ -81,7 +81,7 @@ export function useChatSessionHandlers({
         return;
       }
 
-      seenMessageIds.current.clear();
+      seenMessageIdsRef.current.clear();
       setActiveSessionId('');
       router.push('/chat', { scroll: false });
     },
@@ -93,7 +93,7 @@ export function useChatSessionHandlers({
       setCollaborationId,
       setIsAgentSelectorOpen,
       setIsShaking,
-      seenMessageIds,
+      seenMessageIdsRef,
       setActiveSessionId,
       router,
     ]

@@ -1,14 +1,5 @@
-import {
-  ITool,
-  Message,
-  Attachment,
-  ResponseFormat,
-} from '../../types/index';
-import {
-  OPENROUTER_CONSTANTS,
-  DEFAULT_DYNAMIC_THRESHOLD,
-  OpenRouterContentBlock,
-} from './types';
+import { ITool, Message, Attachment, ResponseFormat } from '../../types/index';
+import { OPENROUTER_CONSTANTS, DEFAULT_DYNAMIC_THRESHOLD, OpenRouterContentBlock } from './types';
 
 /**
  * Applies model-specific configurations to the OpenRouter request body.
@@ -74,7 +65,8 @@ export function createContentBlock(attachment: Attachment): OpenRouterContentBlo
  * Converts a standard Message to an OpenRouter-compatible message.
  */
 export function convertToOpenRouterMessage(message: Message) {
-  if (message.attachments.length === 0) {
+  const attachments = message.attachments || [];
+  if (attachments.length === 0) {
     return message;
   }
 
@@ -83,7 +75,7 @@ export function convertToOpenRouterMessage(message: Message) {
     content.push({ type: OPENROUTER_CONSTANTS.CONTENT_TYPES.TEXT, text: message.content });
   }
 
-  message.attachments.forEach((attachment) => {
+  attachments.forEach((attachment) => {
     const block = createContentBlock(attachment);
     if (block) content.push(block);
   });

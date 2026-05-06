@@ -28,14 +28,6 @@ import { checkAutonomousPromotion } from './engine/autonomy';
 
 let sharedEngine: SafetyEngine | null = null;
 
-/**
- * Retrieves the shared SafetyEngine instance, initializing it if necessary.
- *
- * @param customPolicies - Optional tier-specific policy overrides.
- * @param toolOverrides - Optional tool-specific safety overrides.
- * @param base - Optional memory provider for persistent rate limiting.
- * @returns The shared SafetyEngine singleton.
- */
 export function getSafetyEngine(
   customPolicies?: Partial<Record<SafetyTier, Partial<SafetyPolicy>>>,
   toolOverrides?: ToolSafetyOverride[],
@@ -47,15 +39,6 @@ export function getSafetyEngine(
   return sharedEngine;
 }
 
-/**
- * Resets and re-initializes the shared SafetyEngine instance.
- * Useful for switching between isolated testing environments.
- *
- * @param customPolicies - Optional tier-specific policy overrides.
- * @param toolOverrides - Optional tool-specific safety overrides.
- * @param base - Optional memory provider for persistent rate limiting.
- * @returns A fresh SafetyEngine singleton.
- */
 export function resetSafetyEngine(
   customPolicies?: Partial<Record<SafetyTier, Partial<SafetyPolicy>>>,
   toolOverrides?: ToolSafetyOverride[],
@@ -65,11 +48,6 @@ export function resetSafetyEngine(
   return getSafetyEngine(customPolicies, toolOverrides, base);
 }
 
-/**
- * Checks whether a shared SafetyEngine instance is currently active.
- *
- * @returns True if an engine instance has been initialized.
- */
 export function hasSafetyEngine(): boolean {
   return sharedEngine !== null;
 }

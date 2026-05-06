@@ -1,7 +1,4 @@
-import {
-  ReasoningProfile,
-  ResponseFormat,
-} from '../../types/index';
+import { ReasoningProfile } from '../../types/index';
 
 /**
  * Internal response structure from OpenAI Responses API.

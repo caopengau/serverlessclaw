@@ -102,7 +102,9 @@ export interface ProbeResult {
 }
 
 export interface CognitiveHealthResult {
-  ok: boolean;
+  ok: boolean; // Overall system status
+  structuralOk: boolean; // Critical infrastructure (bus, tools, providers)
+  cognitiveOk: boolean; // Reasoning and coherence (non-blocking)
   timestamp: number;
   results: {
     bus: ProbeResult;
@@ -222,7 +224,7 @@ export async function checkTraceCoherence(workspaceId?: string): Promise<Coheren
     if (errorRate > 0.3) {
       healthIssues.push(`High error rate: ${(errorRate * 100).toFixed(1)}%`);
     }
-    if (stepDeviation > avgStepCount * 0.5) {
+    if (stepDeviation > avgStepCount * 0.5 && traceCount > 20) {
       healthIssues.push(
         `High step count variance: std dev ${stepDeviation.toFixed(1)} vs avg ${avgStepCount.toFixed(1)}`
       );
@@ -429,28 +431,29 @@ export async function checkCognitiveHealth(workspaceId?: string): Promise<Cognit
     checkTraceCoherence(workspaceId),
   ]);
 
-  const ok = bus.ok && tools.ok && providers.ok && coherence.ok;
+  const structuralOk = bus.ok && tools.ok && providers.ok;
+  const cognitiveOk = coherence ? coherence.ok : true;
+  const ok = structuralOk && cognitiveOk;
   const timestamp = Date.now();
 
-  let summary = 'System cognitive health is optimal.';
+  let summary: string;
   const failures: string[] = [];
 
-  if (!ok) {
+  if (!structuralOk) {
     if (!bus.ok) failures.push('AgentBus');
     if (!tools.ok) failures.push('Core Tools');
     if (!providers.ok) failures.push('LLM Providers');
-  }
-
-  if (coherence && !coherence.ok) {
-    failures.push(`TraceCoherence (${coherence.issues.length} issues)`);
-  }
-
-  if (failures.length > 0) {
-    summary = `Cognitive degradation detected in: ${failures.join(', ')}.`;
+    summary = `CRITICAL: Structural degradation in: ${failures.join(', ')}.`;
+  } else if (!cognitiveOk) {
+    summary = `WARNING: Cognitive coherence issues detected (${coherence?.issues.length} anomalies). System is structurally sound.`;
+  } else {
+    summary = 'System structural and cognitive health is optimal.';
   }
 
   return {
     ok,
+    structuralOk,
+    cognitiveOk,
     timestamp,
     results: { bus, tools, providers, coherence },
     summary,
@@ -465,9 +468,9 @@ export async function runDeepHealthCheck(
 ): Promise<{ ok: boolean; details?: string }> {
   const result = await checkCognitiveHealth(workspaceId);
   return {
-    ok: result.ok,
-    details: result.ok
+    ok: result.structuralOk, // Use structural health as the primary "is it up" flag
+    details: result.structuralOk
       ? result.summary
-      : `${result.summary} Details: ${JSON.stringify(result.results)}`,
+      : `STRUCTURAL FAILURE: ${result.summary} Details: ${JSON.stringify(result.results)}`,
   };
 }

@@ -1,5 +1,5 @@
 import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { logger } from '../../logger';
+import { logger } from '../logger';
 import { generateMessageId } from '../utils/id-generator';
 import type { PendingMessage } from '../types/session';
 
@@ -169,5 +169,34 @@ export class SessionMessageHandler {
       }
     }
     return false;
+  }
+
+  async clear(
+    tableName: string,
+    key: string,
+    expiresAt: number,
+    messageIds?: string[]
+  ): Promise<void> {
+    if (messageIds && messageIds.length > 0) {
+      for (const id of messageIds) {
+        await this.remove(undefined as any, id, tableName, key, expiresAt);
+      }
+      return;
+    }
+    try {
+      await this.docClient.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { userId: key, timestamp: 0 },
+          UpdateExpression: 'SET pendingMessages = :empty, expiresAt = :exp',
+          ExpressionAttributeValues: {
+            ':empty': [],
+            ':exp': expiresAt,
+          },
+        })
+      );
+    } catch (error) {
+      logger.error(`Failed to clear pending messages for key ${key}:`, error);
+    }
   }
 }

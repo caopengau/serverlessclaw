@@ -195,7 +195,8 @@ async function sendToChannel(
 async function validateResponse(response: Response, platform: string): Promise<void> {
   if (!response.ok) {
     const status = response.status;
-    const errorMsg = `[NOTIFIER] ${platform} API error (${status})`;
+    const body = await response.text().catch(() => 'No body');
+    const errorMsg = `[NOTIFIER] ${platform} API error (${status}): ${body}`;
     if (status === 429 || status === 401 || status >= 500) {
       throw new Error(errorMsg);
     } else {

@@ -36,30 +36,11 @@ export async function executeSingleToolCall(
     else await tracer.addStep(step);
   };
 
-  if (!tool) {
-    logger.info(`Tool ${toolCall.function.name} requested but no local implementation found.`);
-    messages.push({
-      role: MessageRole.TOOL,
-      tool_call_id: toolCall.id,
-      name: toolCall.function.name,
-      content: 'EXECUTED_BY_PROVIDER',
-      traceId: execContext.traceId,
-      messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      workspaceId: execContext.workspaceId,
-      attachments: [],
-      options: [],
-      ui_blocks: [],
-      thought: '',
-      agentName: 'SYSTEM',
-    });
-    return { toolCallCount: 0 };
-  }
-
   let args: Record<string, unknown>;
   try {
     args = JSON.parse(toolCall.function.arguments);
   } catch (e) {
-    logger.error(`Failed to parse arguments for tool ${tool.name}:`, e);
+    logger.error(`Failed to parse arguments for tool ${toolCall.function.name}:`, e);
     messages.push({
       role: MessageRole.TOOL,
       tool_call_id: toolCall.id,
@@ -77,14 +58,82 @@ export async function executeSingleToolCall(
     return { toolCallCount: 0 };
   }
 
+  if (!tool) {
+    logger.info(`Tool ${toolCall.function.name} requested but no local implementation found.`);
+    const resultText = 'EXECUTED_BY_PROVIDER';
+    const reason = `Tool ${toolCall.function.name} requested but not found in registry.`;
+
+    await recordToolAnalytics(
+      toolCall.function.name,
+      execContext.agentId,
+      false,
+      0,
+      args,
+      resultText,
+      execContext,
+      reason,
+      1.5 // Severity for missing tool
+    );
+
+    messages.push({
+      role: MessageRole.TOOL,
+      tool_call_id: toolCall.id,
+      name: toolCall.function.name,
+      content: resultText,
+      traceId: execContext.traceId,
+      messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      workspaceId: execContext.workspaceId,
+      attachments: [],
+      options: [],
+      ui_blocks: [],
+      thought: '',
+      agentName: 'SYSTEM',
+    });
+    return { toolCallCount: 0 };
+  }
+
   const { ToolSecurityValidator } = await import('../tool-security');
-  const securityResult = await ToolSecurityValidator.validate(
-    tool,
-    toolCall,
-    args,
-    execContext,
-    approvedToolCalls
-  );
+  let securityResult;
+  try {
+    securityResult = await ToolSecurityValidator.validate(
+      tool,
+      toolCall,
+      args,
+      execContext,
+      approvedToolCalls
+    );
+  } catch (securityError) {
+    logger.error(`[SECURITY] Validator failed for tool ${tool.name}:`, securityError);
+    const errorMsg = securityError instanceof Error ? securityError.message : String(securityError);
+
+    await recordToolAnalytics(
+      tool.name,
+      execContext.agentId,
+      false,
+      0,
+      args,
+      `FAILED: Security validator error - ${errorMsg}`,
+      execContext,
+      `Security validator failed: ${errorMsg}`,
+      5.0 // Max penalty for security system failure
+    );
+
+    messages.push({
+      role: MessageRole.TOOL,
+      tool_call_id: toolCall.id,
+      name: toolCall.function.name,
+      content: `FAILED: Security validator error (internal security check failure). Execution blocked for safety.`,
+      traceId: execContext.traceId,
+      messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      workspaceId: execContext.workspaceId,
+      attachments: [],
+      options: [],
+      ui_blocks: [],
+      thought: '',
+      agentName: 'SYSTEM',
+    });
+    return { toolCallCount: 0 };
+  }
 
   if (!securityResult.allowed) {
     if (securityResult.requiresApproval) {
@@ -95,6 +144,19 @@ export async function executeSingleToolCall(
         responseText: securityResult.reason,
       };
     }
+
+    await recordToolAnalytics(
+      tool.name,
+      execContext.agentId,
+      false,
+      0,
+      args,
+      `FAILED: ${securityResult.reason}`,
+      execContext,
+      `Security block: ${securityResult.reason}`,
+      5.0 // Matches test expectation
+    );
+
     messages.push({
       role: MessageRole.TOOL,
       tool_call_id: toolCall.id,
@@ -118,6 +180,12 @@ export async function executeSingleToolCall(
   args.userId = args.userId ?? execContext.userId;
   args.sessionId = args.sessionId ?? execContext.sessionId;
   args.workspaceId = args.workspaceId ?? execContext.workspaceId;
+  args.traceId = args.traceId ?? execContext.traceId;
+  args.nodeId = args.nodeId ?? execContext.nodeId;
+  args.parentId = args.parentId ?? execContext.parentId;
+  args.executorAgentId = args.executorAgentId ?? execContext.agentId;
+  args.initiatorId = args.initiatorId ?? execContext.currentInitiator;
+  args.originalUserTask = args.originalUserTask ?? execContext.userText;
 
   if (tool.argSchema) {
     try {
@@ -157,11 +225,25 @@ export async function executeSingleToolCall(
     rawResult = await Promise.race([tool.execute(args), timeoutPromise]);
   } catch (execError) {
     logger.error(`[EXECUTOR] Tool ${tool.name} failed:`, execError);
+    const errorMsg = execError instanceof Error ? execError.message : String(execError);
+
+    await recordToolAnalytics(
+      tool.name,
+      execContext.agentId,
+      false,
+      performance.now() - toolStart,
+      args,
+      `FAILED: Tool execution failed - ${errorMsg}`,
+      execContext,
+      `Tool ${tool.name} crashed: ${errorMsg}`,
+      2.0 // Matches test expectation
+    );
+
     messages.push({
       role: MessageRole.TOOL,
       tool_call_id: toolCall.id,
       name: toolCall.function.name,
-      content: `FAILED: Tool execution failed - ${execError instanceof Error ? execError.message : String(execError)}`,
+      content: `FAILED: Tool execution failed - ${errorMsg}`,
       traceId: execContext.traceId,
       messageId: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
       workspaceId: execContext.workspaceId,

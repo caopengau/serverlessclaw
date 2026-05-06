@@ -28,10 +28,10 @@ export async function recordToolAnalytics(
   durationMs: number,
   args: Record<string, unknown>,
   resultText: string,
-  execContext: any
+  execContext: any,
+  failureReason?: string,
+  severity: number = 1
 ): Promise<void> {
-  if (process.env.VITEST) return;
-
   try {
     const { AgentRegistry } = await import('../../registry');
     await AgentRegistry.recordToolUsage(toolName, agentId, {
@@ -52,8 +52,8 @@ export async function recordToolAnalytics(
     } else {
       await TrustManager.recordFailure(
         agentId,
-        `Tool ${toolName} execution failed.`,
-        1,
+        failureReason || `Tool ${toolName} execution failed.`,
+        severity,
         0,
         trustContext
       );

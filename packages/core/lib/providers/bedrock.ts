@@ -272,75 +272,89 @@ export class BedrockProvider implements IProvider {
         : {}),
     } as unknown as any);
 
-    const response = await client.send(command);
-    if (!response.stream) throw new Error('Bedrock provider call failed: No stream in response');
+    try {
+      const response = await client.send(command);
+      if (!response.stream) throw new Error('Bedrock provider call failed: No stream in response');
 
-    const activeToolCalls: Map<number, { id: string; name: string; arguments: string }> = new Map();
+      const activeToolCalls: Map<number, { id: string; name: string; arguments: string }> =
+        new Map();
 
-    for await (const event of response.stream as AsyncIterable<ConverseStreamOutput>) {
-      if (event.contentBlockDelta) {
-        const delta = event.contentBlockDelta.delta;
-        if (!delta) continue;
-        if ('text' in delta && delta.text)
-          yield {
-            content: delta.text,
-            tool_calls: [],
-            attachments: [],
-            ui_blocks: [],
-            options: [],
-          };
-        else if ('reasoningContent' in delta && delta.reasoningContent) {
-          const rc = delta.reasoningContent;
-          if ('text' in rc && rc.text)
-            yield { thought: rc.text, tool_calls: [], attachments: [], ui_blocks: [], options: [] };
-        } else if ('toolUse' in delta && delta.toolUse) {
-          const idx = event.contentBlockDelta.contentBlockIndex ?? 0;
-          const existing = activeToolCalls.get(idx);
-          if (existing) existing.arguments += (delta.toolUse as { input?: string }).input ?? '';
-        }
-      } else if (event.contentBlockStart) {
-        const start = event.contentBlockStart.start;
-        if (start && 'toolUse' in start && start.toolUse) {
-          const idx = event.contentBlockStart.contentBlockIndex ?? 0;
-          activeToolCalls.set(idx, {
-            id: start.toolUse.toolUseId ?? '',
-            name: start.toolUse.name ?? '',
-            arguments: '',
-          });
-        }
-      } else if (event.contentBlockStop) {
-        const idx = event.contentBlockStop.contentBlockIndex ?? 0;
-        const toolCall = activeToolCalls.get(idx);
-        if (toolCall) {
-          yield {
-            tool_calls: [
-              {
-                id: toolCall.id,
-                type: BEDROCK_CONSTANTS.TOOL_TYPES.FUNCTION,
-                function: { name: toolCall.name, arguments: toolCall.arguments },
+      for await (const event of response.stream as AsyncIterable<ConverseStreamOutput>) {
+        if (event.contentBlockDelta) {
+          const delta = event.contentBlockDelta.delta;
+          if (!delta) continue;
+          if ('text' in delta && delta.text)
+            yield {
+              content: delta.text,
+              tool_calls: [],
+              attachments: [],
+              ui_blocks: [],
+              options: [],
+            };
+          else if ('reasoningContent' in delta && delta.reasoningContent) {
+            const rc = delta.reasoningContent;
+            if ('text' in rc && rc.text)
+              yield {
+                thought: rc.text,
+                tool_calls: [],
+                attachments: [],
+                ui_blocks: [],
+                options: [],
+              };
+          } else if ('toolUse' in delta && delta.toolUse) {
+            const idx = event.contentBlockDelta.contentBlockIndex ?? 0;
+            const existing = activeToolCalls.get(idx);
+            if (existing) existing.arguments += (delta.toolUse as { input?: string }).input ?? '';
+          }
+        } else if (event.contentBlockStart) {
+          const start = event.contentBlockStart.start;
+          if (start && 'toolUse' in start && start.toolUse) {
+            const idx = event.contentBlockStart.contentBlockIndex ?? 0;
+            activeToolCalls.set(idx, {
+              id: start.toolUse.toolUseId ?? '',
+              name: start.toolUse.name ?? '',
+              arguments: '',
+            });
+          }
+        } else if (event.contentBlockStop) {
+          const idx = event.contentBlockStop.contentBlockIndex ?? 0;
+          const toolCall = activeToolCalls.get(idx);
+          if (toolCall) {
+            yield {
+              tool_calls: [
+                {
+                  id: toolCall.id,
+                  type: BEDROCK_CONSTANTS.TOOL_TYPES.FUNCTION,
+                  function: { name: toolCall.name, arguments: toolCall.arguments },
+                },
+              ],
+              attachments: [],
+              ui_blocks: [],
+              options: [],
+            };
+            activeToolCalls.delete(idx);
+          }
+        } else if (event.metadata) {
+          const usage = event.metadata.usage;
+          if (usage)
+            yield {
+              usage: {
+                prompt_tokens: usage.inputTokens ?? 0,
+                completion_tokens: usage.outputTokens ?? 0,
+                total_tokens: usage.totalTokens ?? 0,
               },
-            ],
-            attachments: [],
-            ui_blocks: [],
-            options: [],
-          };
-          activeToolCalls.delete(idx);
+              tool_calls: [],
+              attachments: [],
+              ui_blocks: [],
+              options: [],
+            };
         }
-      } else if (event.metadata) {
-        const usage = event.metadata.usage;
-        if (usage)
-          yield {
-            usage: {
-              prompt_tokens: usage.inputTokens ?? 0,
-              completion_tokens: usage.outputTokens ?? 0,
-              total_tokens: usage.totalTokens ?? 0,
-            },
-            tool_calls: [],
-            attachments: [],
-            ui_blocks: [],
-            options: [],
-          };
       }
+    } catch (err) {
+      logger.error('Bedrock streaming failed:', err);
+      throw new Error(
+        `Bedrock streaming failed: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 

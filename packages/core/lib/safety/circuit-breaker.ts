@@ -9,10 +9,6 @@ import { reportHealthIssue } from '../lifecycle/health';
 export type CircuitBreakerStates = 'closed' | 'open' | 'half_open';
 export type FailureType = 'timeout' | 'error' | 'security' | 'validation' | 'recovery';
 
-const LOCK_RETRIES = 3;
-const LOCK_RETRY_DELAY_MS = 2000;
-const EMERGENCY_WINDOW_MS = 3600000; // 1 hour
-
 export interface CircuitBreakerStateData {
   state: CircuitBreakerStates;
   failures: { timestamp: number; type: string }[];
@@ -31,10 +27,6 @@ export interface CanProceedResult {
   reason?: string;
 }
 
-/**
- * Distributed Circuit Breaker for agentic workflows.
- * Provides protection against cascading failures and autonomous recursion loops.
- */
 export class CircuitBreaker {
   private stateKey: string;
   private workspaceId?: string;
@@ -69,6 +61,7 @@ export class CircuitBreaker {
         `[CircuitBreaker] Failed to load state for ${this.stateKey} (WS: ${this.workspaceId}). Failsafe to OPEN state.`,
         e
       );
+      // Fail-closed: if we can't load the circuit state, assume it's open for safety
       return { ...this.freshState(), state: 'open', lastStateChange: Date.now() };
     }
   }
@@ -78,9 +71,10 @@ export class CircuitBreaker {
     updateFn?: (s: CircuitBreakerStateData) => CircuitBreakerStateData
   ): Promise<CircuitBreakerStateData> {
     const db = getDocClient();
+    const maxRetries = 3;
     let currentState = { ...state };
 
-    for (let i = 0; i < LOCK_RETRIES; i++) {
+    for (let i = 0; i < maxRetries; i++) {
       const oldVersion = currentState.version;
       const nextState = { ...currentState, version: oldVersion + 1 };
 
@@ -101,10 +95,14 @@ export class CircuitBreaker {
           typeof e === 'object' &&
           'name' in e &&
           e.name === 'ConditionalCheckFailedException' &&
-          i < LOCK_RETRIES - 1
+          i < maxRetries - 1
         ) {
           const fresh = await this.loadState();
-          currentState = updateFn ? updateFn({ ...fresh }) : { ...fresh };
+          if (updateFn) {
+            currentState = updateFn({ ...fresh });
+          } else {
+            currentState = { ...fresh };
+          }
           continue;
         }
         throw e;
@@ -170,7 +168,7 @@ export class CircuitBreaker {
         const metricType = metricTypeMap[type] || 'event';
         await emitMetrics([METRICS.circuitBreakerTriggered(metricType, scope)]);
       } catch {
-        // Ignored
+        // Metrics emission failure should not block circuit breaker operation
       }
     }
 
@@ -280,7 +278,7 @@ export class CircuitBreaker {
       CONFIG_DEFAULTS.CIRCUIT_BREAKER_EMERGENCY_RATE_LIMIT.code
     );
     const now = Date.now();
-    if (now - state.emergencyDeployWindowStart > EMERGENCY_WINDOW_MS) {
+    if (now - state.emergencyDeployWindowStart > 3600000) {
       state.emergencyDeployCount = 0;
       state.emergencyDeployWindowStart = now;
     }
@@ -317,25 +315,15 @@ export class CircuitBreaker {
 
 const _instances = new Map<string, CircuitBreaker>();
 
-/**
- * Factory for circuit breaker instances.
- */
 export function getCircuitBreaker(
   key: string = 'circuit_breaker_state',
   workspaceId?: string
 ): CircuitBreaker {
   const fullKey = workspaceId ? `WS#${workspaceId}#${key}` : key;
-  const existing = _instances.get(fullKey);
-  if (existing) return existing;
-  
-  const instance = new CircuitBreaker(key, workspaceId);
-  _instances.set(fullKey, instance);
-  return instance;
+  if (!_instances.has(fullKey)) _instances.set(fullKey, new CircuitBreaker(key, workspaceId));
+  return _instances.get(fullKey)!;
 }
 
-/**
- * Resets circuit breaker singleton instances.
- */
 export function resetCircuitBreakerInstance(key?: string): void {
   if (key) _instances.delete(key);
   else _instances.clear();

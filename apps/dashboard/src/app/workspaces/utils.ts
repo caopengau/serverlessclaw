@@ -1,4 +1,4 @@
-export function roleBadge(role: string) {
+export function roleBadge(role: string): 'primary' | 'intel' | 'audit' | 'outline' {
   switch (role) {
     case 'owner':
       return 'primary';

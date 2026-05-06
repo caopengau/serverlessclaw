@@ -84,7 +84,7 @@ export const WorkspaceMemberList = ({
               <Typography variant="caption" weight="bold" color="white">
                 {m.id}
               </Typography>
-              <Badge variant={roleBadge(m.role) as any} className="text-[9px] uppercase">
+              <Badge variant={roleBadge(m.role)} className="text-[9px] uppercase">
                 {m.role}
               </Badge>
             </div>

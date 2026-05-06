@@ -1,6 +1,6 @@
 {
   "name": "serverlessclaw",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "packageManager": "pnpm@10.33.3",
   "description": "A serverless implementation of OpenClaw AI agent using SST, AWS Lambda, and DynamoDB.",
   "repository": {
@@ -47,18 +47,18 @@
     "node": ">=24 <25"
   },
   "dependencies": {
-    "@aiready/ast-mcp-server": "0.8.6",
+    "@aiready/ast-mcp-server": "0.8.7",
     "@octokit/rest": "^22.0.1",
     "@opennextjs/aws": "3.10.4",
     "dotenv": "^17.4.0",
-    "sst": "4.13.0",
+    "sst": "4.13.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^6.0.2",
     "zod": "^4.3.6"
   },
   "lint-staged": {
-    "**/*.ts": [
+    "**/*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ]
@@ -92,7 +92,7 @@
       "next": "16.2.4",
       "lodash": ">=4.18.1",
       "vite": "8.0.10",
-      "hono": "4.12.16",
+      "hono": "4.12.17",
       "@hono/node-server": "2.0.1",
       "@modelcontextprotocol/server-filesystem": "2026.1.14",
       "@modelcontextprotocol/sdk": "1.29.0",

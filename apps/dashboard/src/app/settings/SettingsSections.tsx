@@ -5,11 +5,7 @@ import CyberSelect from '@/components/CyberSelect';
 import CyberTooltip from '@/components/CyberTooltip';
 import { THEME } from '@/lib/theme';
 import { EvolutionMode } from '@claw/core/lib/types/agent';
-import {
-  PROVIDERS,
-  ConfigTooltip,
-  SettingSection,
-} from './SettingsParts';
+import { PROVIDERS, ConfigTooltip, SettingSection } from './SettingsParts';
 
 interface BaseSectionProps {
   t: (key: string) => string;
@@ -40,7 +36,13 @@ export function LlmRoutingSection({
       color="intel"
     >
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_ACTIVE_PROVIDER')}
           <ConfigTooltip id="active_provider" t={t} />
         </Typography>
@@ -62,7 +64,13 @@ export function LlmRoutingSection({
         />
       </div>
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_DEFAULT_MODEL_ID')}
           <ConfigTooltip id="active_model" t={t} />
         </Typography>
@@ -88,7 +96,13 @@ interface LanguageSectionProps extends BaseSectionProps {
   resetLanguage: () => void;
 }
 
-export function LanguageSection({ t, activeLocale, setActiveLocale, setLocale, resetLanguage }: LanguageSectionProps) {
+export function LanguageSection({
+  t,
+  activeLocale,
+  setActiveLocale,
+  setLocale,
+  resetLanguage,
+}: LanguageSectionProps) {
   return (
     <SettingSection
       title={t('LANGUAGE')}
@@ -98,7 +112,13 @@ export function LanguageSection({ t, activeLocale, setActiveLocale, setLocale, r
       color="intel"
     >
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('LANGUAGE')}
         </Typography>
         <CyberSelect
@@ -174,7 +194,13 @@ export function EvolutionEngineSection({
       color="primary"
     >
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_EVOLUTION_MODE')}
           <ConfigTooltip id="evolution_mode" t={t} />
         </Typography>
@@ -190,7 +216,13 @@ export function EvolutionEngineSection({
         />
       </div>
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_DAILY_DEPLOY_LIMIT')}
           <ConfigTooltip id="deploy_limit" t={t} />
         </Typography>
@@ -203,7 +235,13 @@ export function EvolutionEngineSection({
         />
       </div>
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_OPTIMIZATION_POLICY')}
           <CyberTooltip
             content={
@@ -229,7 +267,13 @@ export function EvolutionEngineSection({
         />
       </div>
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_MAX_TOOL_ITERATIONS')}
           <CyberTooltip
             content={
@@ -256,11 +300,22 @@ export function EvolutionEngineSection({
       </div>
       <div className="space-y-2">
         <div className="flex justify-between items-center">
-          <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+          <Typography
+            variant="caption"
+            weight="bold"
+            color="white"
+            uppercase
+            className="flex items-center"
+          >
             {t('SETTINGS_CIRCUIT_BREAKER_THRESHOLD')}
             <ConfigTooltip id="circuit_breaker_threshold" t={t} />
           </Typography>
-          <Typography variant="mono" weight="bold" color={Number(consecutiveBuildFailures) > 0 ? 'danger' : 'primary'} className="text-[10px]">
+          <Typography
+            variant="mono"
+            weight="bold"
+            color={Number(consecutiveBuildFailures) > 0 ? 'danger' : 'primary'}
+            className="text-[10px]"
+          >
             {t('SETTINGS_FAILURES').replace('{count}', String(consecutiveBuildFailures))}
           </Typography>
         </div>
@@ -273,7 +328,13 @@ export function EvolutionEngineSection({
         />
       </div>
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_RECURSION_LIMIT')}
           <ConfigTooltip id="recursion_limit" t={t} />
         </Typography>
@@ -286,7 +347,13 @@ export function EvolutionEngineSection({
         />
       </div>
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_ESCALATION_ENGINE')}
           <ConfigTooltip id="escalation_enabled" t={t} />
         </Typography>
@@ -302,7 +369,13 @@ export function EvolutionEngineSection({
         />
       </div>
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_PROTOCOL_FALLBACK')}
           <ConfigTooltip id="protocol_fallback_enabled" t={t} />
         </Typography>
@@ -318,7 +391,13 @@ export function EvolutionEngineSection({
         />
       </div>
       <div className="space-y-2 md:col-span-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_PROTECTED_RESOURCE_SCOPES')}
           <ConfigTooltip id="protected_resources" t={t} />
         </Typography>
@@ -363,7 +442,13 @@ export function ReflectionConfigSection({
       color="reflect"
     >
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_REFLECTION_FREQUENCY')}
           <ConfigTooltip id="reflection_frequency" t={t} />
         </Typography>
@@ -376,7 +461,13 @@ export function ReflectionConfigSection({
         />
       </div>
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_STRATEGIC_REVIEW_INTERVAL')}
           <ConfigTooltip id="strategic_review_frequency" t={t} />
         </Typography>
@@ -389,7 +480,13 @@ export function ReflectionConfigSection({
         />
       </div>
       <div className="space-y-2">
-        <Typography variant="caption" weight="bold" color="white" uppercase className="flex items-center">
+        <Typography
+          variant="caption"
+          weight="bold"
+          color="white"
+          uppercase
+          className="flex items-center"
+        >
           {t('SETTINGS_MIN_GAPS_FOR_REVIEW')}
           <ConfigTooltip id="min_gaps_for_review" t={t} />
         </Typography>

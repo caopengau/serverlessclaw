@@ -7,7 +7,7 @@ export interface Tool {
   name: string;
   description: string;
   isExternal: boolean;
-  usage: {
+  usage?: {
     count: number;
     lastUsed: number;
   };
@@ -26,6 +26,7 @@ export interface Agent {
   agentType: 'llm' | 'logic';
   usage: Record<string, { count: number; lastUsed: number }>;
   metadata: Record<string, unknown>;
+  description?: string;
   version: number;
 }
 

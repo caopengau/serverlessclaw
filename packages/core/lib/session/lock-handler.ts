@@ -1,7 +1,7 @@
 import { DynamoDBDocumentClient, UpdateCommand } from '@aws-sdk/lib-dynamodb';
-import { logger } from '../../logger';
-import { LockManager } from '../../lock/lock-manager';
-import { TIME } from '../../constants';
+import { logger } from '../logger';
+import { LockManager } from '../lock/lock-manager';
+import { TIME } from '../constants';
 
 const LOCK_PREFIX = 'LOCK#SESSION#';
 const LOCK_TTL_SECONDS = 300;

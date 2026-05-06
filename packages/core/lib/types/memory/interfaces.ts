@@ -1,8 +1,10 @@
-import { Message } from '../llm';
+import type { Message } from '../llm';
+export type { Message };
 import { GapStatus, GapTransitionResult } from '../agent';
 import { Collaboration, CollaborationRole, ParticipantType } from '../collaboration';
 import { MemoryInsight, InsightMetadata, InsightCategory } from './insight';
 import { ConversationMeta } from './conversation';
+export type { ConversationMeta };
 import { ClarificationState, ClarificationStatus } from './clarification';
 
 /**

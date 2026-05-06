@@ -65,6 +65,7 @@ export enum TraceSource {
   TELEGRAM = 'telegram',
   API = 'api',
   SYSTEM = 'system',
+  SWARM = 'swarm',
   UNKNOWN = 'unknown',
   PLAYGROUND = 'playground',
   PLAYWRIGHT = 'playwright',

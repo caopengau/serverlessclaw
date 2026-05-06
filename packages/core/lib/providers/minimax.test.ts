@@ -261,7 +261,7 @@ describe('MiniMaxProvider', () => {
         arguments: '{"content":"test","category":"fact"}',
       },
     });
-    expect(response.content).toBeUndefined();
+    expect(response.content).toBe('');
   });
 
   it('should extract both text content and tool_calls', async () => {

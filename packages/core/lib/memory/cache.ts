@@ -274,6 +274,11 @@ export const CacheKeys = {
    */
   gapsByStatus: (status: string, scope?: string | import('../types/memory').ContextualScope) =>
     `gaps:${status}${CacheKeys.normalizeScope(scope)}`,
+
+  /**
+   * Key for the latest LKG (Last Known Good) state hash.
+   */
+  lkgHash: () => 'lkg_hash',
 } as const;
 
 /**

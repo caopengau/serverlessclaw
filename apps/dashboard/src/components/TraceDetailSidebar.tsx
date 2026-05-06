@@ -22,12 +22,8 @@ export default function TraceDetailSidebar({ traceId, onClose, isOpen }: TraceDe
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!traceId) {
-      setTrace(null);
-      return;
-    }
-
     async function fetchTrace() {
+      if (!traceId) return;
       setLoading(true);
       setError(null);
       try {
@@ -59,6 +55,7 @@ export default function TraceDetailSidebar({ traceId, onClose, isOpen }: TraceDe
 
   return (
     <div
+      key={traceId || 'none'}
       className={`
       fixed top-0 right-0 h-full w-[450px] bg-background border-l border-white/10 z-[100] shadow-2xl transition-transform duration-300 transform
       ${traceId || isOpen ? 'translate-x-0' : 'translate-x-full'}

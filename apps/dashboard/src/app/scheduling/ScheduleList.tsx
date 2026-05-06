@@ -63,7 +63,10 @@ export default function ScheduleList() {
   );
 
   useEffect(() => {
-    fetchSchedules();
+    const init = async () => {
+      await fetchSchedules();
+    };
+    init();
   }, [fetchSchedules]);
 
   const filteredSchedules = schedules.filter(

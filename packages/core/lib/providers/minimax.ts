@@ -26,10 +26,10 @@ const FORMAT_JSON_SCHEMA = 'json_schema';
 
 const MINIMAX_REASONING_MAP: Record<ReasoningProfile, { budget_tokens: number; enabled: boolean }> =
   {
-    [ReasoningProfile.FAST]: { budget_tokens: 0, enabled: false },
+    [ReasoningProfile.FAST]: { budget_tokens: 2000, enabled: false },
     [ReasoningProfile.STANDARD]: { budget_tokens: 4000, enabled: true },
-    [ReasoningProfile.THINKING]: { budget_tokens: 16000, enabled: true },
-    [ReasoningProfile.DEEP]: { budget_tokens: 64000, enabled: true },
+    [ReasoningProfile.THINKING]: { budget_tokens: 8000, enabled: true },
+    [ReasoningProfile.DEEP]: { budget_tokens: 16000, enabled: true },
   };
 
 /**
@@ -97,7 +97,7 @@ export class MiniMaxProvider implements IProvider {
     }
 
     const response = await client.messages.create(
-      requestParams as Anthropic.MessageCreateParamsNonStreaming
+      requestParams as unknown as Anthropic.MessageCreateParamsNonStreaming
     );
 
     const content = response.content;
@@ -138,11 +138,13 @@ export class MiniMaxProvider implements IProvider {
       options: [],
       ui_blocks: [],
       agentName: 'MiniMax',
-      usage: {
-        prompt_tokens: response.usage.input_tokens,
-        completion_tokens: response.usage.output_tokens,
-        total_tokens: response.usage.input_tokens + response.usage.output_tokens,
-      },
+      usage: response.usage
+        ? {
+            prompt_tokens: response.usage.input_tokens,
+            completion_tokens: response.usage.output_tokens,
+            total_tokens: response.usage.input_tokens + response.usage.output_tokens,
+          }
+        : undefined,
     };
   }
 
@@ -207,7 +209,7 @@ export class MiniMaxProvider implements IProvider {
 
     try {
       const stream = await client.messages.create(
-        requestParams as Anthropic.MessageCreateParamsStreaming
+        requestParams as unknown as Anthropic.MessageCreateParamsStreaming
       );
 
       let currentToolCall: ToolCall | null = null;
@@ -264,14 +266,17 @@ export class MiniMaxProvider implements IProvider {
     const anthropicMessages: Anthropic.MessageParam[] = [];
 
     for (const msg of messages) {
+      const attachments = msg.attachments || [];
+      const tool_calls = msg.tool_calls || [];
+
       if (msg.role === MessageRole.SYSTEM || msg.role === MessageRole.DEVELOPER) {
         systemMessage += (systemMessage ? '\n' : '') + msg.content;
       } else if (msg.role === MessageRole.USER) {
         const content: unknown[] = [];
         if (msg.content) content.push({ type: BLOCK_TYPE_TEXT, text: msg.content });
 
-        if (msg.attachments.length > 0) {
-          for (const att of msg.attachments) {
+        if (attachments.length > 0) {
+          for (const att of attachments) {
             if (att.type === 'image' && att.base64) {
               content.push({
                 type: 'image',
@@ -287,11 +292,14 @@ export class MiniMaxProvider implements IProvider {
 
         anthropicMessages.push({
           role: 'user',
-          content: content as Anthropic.MessageParam['content'],
+          content:
+            attachments.length === 0
+              ? msg.content || ''
+              : (content as Anthropic.MessageParam['content']),
         });
       } else if (msg.role === MessageRole.ASSISTANT) {
-        if (msg.tool_calls.length > 0) {
-          const toolUseBlocks: unknown[] = msg.tool_calls.map((tc) => ({
+        if (tool_calls.length > 0) {
+          const toolUseBlocks: unknown[] = tool_calls.map((tc) => ({
             type: BLOCK_TYPE_TOOL_USE,
             id: tc.id,
             name: tc.function.name,
@@ -312,12 +320,12 @@ export class MiniMaxProvider implements IProvider {
           });
         }
       } else if (msg.role === MessageRole.TOOL) {
-        if (msg.attachments.length > 0) {
+        if (attachments.length > 0) {
           const content: unknown[] = [];
           if (msg.content) {
             content.push({ type: BLOCK_TYPE_TEXT, text: msg.content });
           }
-          for (const att of msg.attachments) {
+          for (const att of attachments) {
             if (att.type === 'image' && att.base64) {
               content.push({
                 type: 'image',

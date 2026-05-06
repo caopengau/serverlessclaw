@@ -43,7 +43,6 @@ export function resolveSSTResourceValue(
 
   // 3. Try traditional Resource access
   // We check for SST_RESOURCE_App to avoid triggering the Proxy's "links not active" error
-  // BUT we allow it in test environments where Resource is often mocked
   if (
     process.env.SST_RESOURCE_App ||
     process.env.VITEST ||
@@ -51,21 +50,28 @@ export function resolveSSTResourceValue(
     process.env.PLAYWRIGHT
   ) {
     try {
-      // Use a more defensive approach to access Resource
       const resource = Resource as unknown as Record<string, Record<string, string>>;
       if (resource && typeof resource === 'object') {
         const item = resource[resourceName];
         if (item && item[property]) return item[property];
       }
     } catch {
-      // Resource access might throw if not linked
-      // We log it only if we were reasonably sure it should have worked
-      if (process.env.SST_RESOURCE_App) {
-        logger.debug(
-          `[ResourceHelpers] Failed to access Resource.${resourceName}.${property} even with SST_RESOURCE_App present`
-        );
-      }
+      // ignore
     }
+  }
+
+  // 4. Fuzzy Env Match (Last Resort for maximum resilience)
+  // Look for any env var that contains the resource name and the property
+  const fuzzyPrefix = resourceName.toUpperCase().replace(/[^A-Z0-9]/g, '_');
+  const fuzzyProp = property.toUpperCase();
+  const fuzzyMatch = Object.keys(process.env).find(
+    (k) => k.includes(fuzzyPrefix) && k.includes(fuzzyProp)
+  );
+  if (fuzzyMatch) {
+    logger.debug(
+      `[ResourceHelpers] Found fuzzy env match for ${resourceName}.${property}: ${fuzzyMatch}`
+    );
+    return process.env[fuzzyMatch];
   }
 
   return defaultValue;
@@ -83,11 +89,11 @@ export const getWebhookApiUrl = () =>
 export const getAwsRegion = () =>
   resolveSSTResourceValue('AwsRegion', 'value', 'AWS_REGION', 'ap-southeast-2');
 export const getMemoryTableName = () =>
-  resolveSSTResourceValue('MemoryTable', 'name', 'MEMORY_TABLE_NAME', 'MemoryTable');
+  resolveSSTResourceValue('MemoryTable', 'name', 'MEMORY_TABLE_NAME');
 export const getTraceTableName = () =>
-  resolveSSTResourceValue('TraceTable', 'name', 'TRACE_TABLE_NAME', 'TraceTable');
+  resolveSSTResourceValue('TraceTable', 'name', 'TRACE_TABLE_NAME');
 export const getConfigTableName = () =>
-  resolveSSTResourceValue('ConfigTable', 'name', 'CONFIG_TABLE_NAME', 'ConfigTable');
+  resolveSSTResourceValue('ConfigTable', 'name', 'CONFIG_TABLE_NAME');
 
 /** Gets application metadata (name and stage) */
 export function getAppInfo(): { name: string; stage: string } {

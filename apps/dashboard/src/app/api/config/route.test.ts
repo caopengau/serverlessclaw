@@ -34,6 +34,10 @@ import { AUTH } from '@/lib/constants';
 describe('Config API Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.IOT_ENDPOINT = 'wss://example.com/mqtt';
+    process.env.IOT_AUTHORIZER = 'TestAuth';
+    process.env.MEMORY_TABLE_NAME = 'test-memory-table';
+    process.env.CONFIG_TABLE_NAME = 'test-config-table';
   });
 
   const mockAuthReq = (overrides = {}) =>

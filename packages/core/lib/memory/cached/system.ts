@@ -32,10 +32,16 @@ export class MemorySystem {
     return this.underlying.recordMemoryHit(u, t, scope);
   }
   async saveLKGHash(h: string) {
-    return this.underlying.saveLKGHash(h);
+    await this.underlying.saveLKGHash(h);
+    MemoryCaches.global.delete('lkg_hash');
   }
   async getLatestLKGHash() {
-    return this.underlying.getLatestLKGHash();
+    const cached = MemoryCaches.global.get('lkg_hash') as string | undefined;
+    if (cached) return cached;
+
+    const hash = await this.underlying.getLatestLKGHash();
+    if (hash) MemoryCaches.global.set('lkg_hash', hash);
+    return hash;
   }
   async incrementRecoveryAttemptCount() {
     return this.underlying.incrementRecoveryAttemptCount();

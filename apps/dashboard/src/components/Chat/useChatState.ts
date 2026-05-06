@@ -37,21 +37,19 @@ export function useChatState() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const chatInputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const isPostInFlight = useRef(false);
-  const seenMessageIds = useRef<Set<string>>(new Set());
-  const skipNextHistoryFetch = useRef(false);
+  const isPostInFlightRef = useRef(false);
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
+  const skipNextHistoryFetchRef = useRef(false);
   const activeSessionRef = useRef(searchParams.get('session') || '');
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
+    setTimeout(() => setMounted(true), 0);
   }, []);
 
   useEffect(() => {
     const session = searchParams.get('session');
     if (session && session !== activeSessionRef.current) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setActiveSessionId(session);
+      setTimeout(() => setActiveSessionId(session), 0);
       activeSessionRef.current = session;
     }
   }, [searchParams]);
@@ -101,9 +99,9 @@ export function useChatState() {
     searchInputRef,
     chatInputRef,
     fileInputRef,
-    isPostInFlight,
-    seenMessageIds,
-    skipNextHistoryFetch,
+    isPostInFlightRef,
+    seenMessageIdsRef,
+    skipNextHistoryFetchRef,
     activeSessionRef,
   };
 }

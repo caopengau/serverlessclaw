@@ -11,7 +11,7 @@ export type Locale = 'en' | 'cn';
 export type TranslationKey = keyof Messages;
 
 interface TranslationsContextType {
-  t: (key: TranslationKey) => string;
+  t: (key: string) => string;
   locale: Locale;
   setLocale: (locale: Locale) => void;
 }
@@ -70,8 +70,8 @@ export const TranslationsProvider: React.FC<{
     }
   };
 
-  const t = (key: keyof Messages): string => {
-    return messages[key] ?? key;
+  const t = (key: string): string => {
+    return (messages as Record<string, string>)[key] ?? key;
   };
 
   return (

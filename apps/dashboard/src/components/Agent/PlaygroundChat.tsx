@@ -21,23 +21,26 @@ export default function PlaygroundChat({
   onTraceUpdate?: (traceId: string) => void;
   replayTraceId?: string;
 }) {
-  const [activeSessionId, setActiveSessionId] = useState<string>(`playground_${Date.now()}`);
+  const [activeSessionId, setActiveSessionId] = useState<string>(() => {
+    // Generate a stable initial ID once
+    return `playground_${Date.now()}`;
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [input, setInput] = useState('');
-  const isPostInFlight = useRef(false);
-  const seenMessageIds = useRef<Set<string>>(new Set());
+  const isPostInFlightRef = useRef(false);
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
   const activeSessionRef = useRef(activeSessionId);
-  const skipNextHistoryFetch = useRef(false);
+  const skipNextHistoryFetchRef = useRef(false);
 
   const { messages, setMessages, attachments, sendMessage, handleFiles, removeAttachment } =
     useChatMessages(
       activeSessionId,
       setActiveSessionId,
       setIsLoading,
-      isPostInFlight,
-      seenMessageIds,
+      isPostInFlightRef,
+      seenMessageIdsRef,
       () => {}, // fetchSessions dummy
-      skipNextHistoryFetch,
+      skipNextHistoryFetchRef,
       activeSessionRef,
       null, // workspaceId
       false // disabled
@@ -52,7 +55,7 @@ export default function PlaygroundChat({
     setMessagesRef.current = setMessages;
   }, [setMessages]);
 
-  useChatConnection(activeSessionId, setMessagesRef, setIsLoading, isPostInFlight);
+  useChatConnection(activeSessionId, setMessagesRef, setIsLoading, isPostInFlightRef);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);

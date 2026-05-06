@@ -1,6 +1,6 @@
-import { ConfigManager } from '../registry/config';
-import { EscalationPolicy, DEFAULT_ESCALATION_POLICY } from '../types/escalation';
-import { logger } from '../logger';
+import { ConfigManager } from '../../registry/config';
+import { EscalationPolicy, DEFAULT_ESCALATION_POLICY } from '../../types/escalation';
+import { logger } from '../../logger';
 
 const ESCALATION_POLICY_PREFIX = 'ESCALATION_POLICY#';
 

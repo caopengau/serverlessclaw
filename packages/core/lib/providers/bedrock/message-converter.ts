@@ -90,15 +90,18 @@ export function convertToBedrockMessage(message: Message): BedrockMessage {
 
   const content: ContentBlock[] = [{ text: message.content || '' }];
 
-  if (message.attachments.length > 0 && message.role !== MessageRole.TOOL) {
-    message.attachments.forEach((attachment) => {
+  const attachments = message.attachments || [];
+  const tool_calls = message.tool_calls || [];
+
+  if (attachments.length > 0 && message.role !== MessageRole.TOOL) {
+    attachments.forEach((attachment) => {
       const block = createAttachmentBlock(attachment);
       if (block) content.push(block as ContentBlock);
     });
   }
 
-  if (message.tool_calls.length > 0) {
-    message.tool_calls.forEach((toolCall) => {
+  if (tool_calls.length > 0) {
+    tool_calls.forEach((toolCall) => {
       content.push({
         toolUse: {
           toolUseId: toolCall.id,
@@ -112,8 +115,8 @@ export function convertToBedrockMessage(message: Message): BedrockMessage {
   if (message.role === MessageRole.TOOL) {
     const toolContent: ToolResultContentBlock[] = [{ text: message.content || '' }];
 
-    if (message.attachments.length > 0) {
-      message.attachments.forEach((attachment) => {
+    if (attachments.length > 0) {
+      attachments.forEach((attachment) => {
         const block = createAttachmentBlock(attachment);
         if (block) toolContent.push(block as ToolResultContentBlock);
       });

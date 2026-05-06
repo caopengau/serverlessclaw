@@ -4,12 +4,6 @@ import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
-interface Member {
-  id: string;
-  role: string;
-  channel: string;
-}
-
 interface WorkspaceModalsProps {
   showModal: boolean;
   setShowModal: (show: boolean) => void;
@@ -29,11 +23,13 @@ interface WorkspaceModalsProps {
   setInviteRole: (role: string) => void;
   inviteMember: (id: string) => void;
   inviting: boolean;
-  editingMember: { workspaceId: string, memberId: string, currentRole: string } | null;
-  setEditingMember: (m: { workspaceId: string, memberId: string, currentRole: string } | null) => void;
+  editingMember: { workspaceId: string; memberId: string; currentRole: string } | null;
+  setEditingMember: (
+    m: { workspaceId: string; memberId: string; currentRole: string } | null
+  ) => void;
   updateMemberRole: (wsId: string, mId: string, role: string) => void;
-  removingMember: { workspaceId: string, memberId: string } | null;
-  setRemovingMember: (m: { workspaceId: string, memberId: string } | null) => void;
+  removingMember: { workspaceId: string; memberId: string } | null;
+  setRemovingMember: (m: { workspaceId: string; memberId: string } | null) => void;
   removeMember: (wsId: string, mId: string) => void;
   ROLES: readonly string[];
 }
