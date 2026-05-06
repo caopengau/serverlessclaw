@@ -139,7 +139,15 @@ export function configureApiRoutes(
   api.route('GET /health', {
     handler: `${prefix}packages/core/handlers/health.handler`,
     nodejs: { loader: NODEJS_LOADERS },
-    link: [memoryTable, traceTable, configTable, stagingBucket, knowledgeBucket, bus],
+    link: [
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      knowledgeBucket,
+      bus,
+      ...validSecrets,
+    ],
     permissions: [
       ...apiPermissions,
       {
@@ -168,6 +176,12 @@ export function configureApiRoutes(
             return 'dev';
           }
         })(),
+      CONFIG_TABLE_NAME: configTable.name,
+      MEMORY_TABLE_NAME: memoryTable.name,
+      TRACE_TABLE_NAME: traceTable.name,
+      STAGING_BUCKET_NAME: stagingBucket.name,
+      KNOWLEDGE_BUCKET_NAME: knowledgeBucket.name,
+      AGENT_BUS_NAME: bus.name,
     },
     logging: {
       retention: LOG_RETENTION_PERIOD,

@@ -29,23 +29,6 @@ export async function handler(): Promise<{
 }> {
   logger.info('[HEALTH] Starting health check...');
 
-  // Debug SST resources
-  const sstResources = Object.keys(process.env).filter((k) => k.startsWith('SST_RESOURCE_'));
-  logger.info('[HEALTH] SST Resources in ENV:', sstResources);
-
-  try {
-    const { Resource } = await import('sst');
-    logger.info('[HEALTH] Resource keys:', Object.keys(Resource));
-    if (Resource.ConfigTable) {
-      logger.info('[HEALTH] ConfigTable keys:', Object.keys(Resource.ConfigTable));
-      logger.info('[HEALTH] ConfigTable value:', JSON.stringify(Resource.ConfigTable));
-    } else {
-      logger.warn('[HEALTH] ConfigTable MISSING from Resource object!');
-    }
-  } catch (err) {
-    logger.warn('[HEALTH] Failed to import Resource:', err);
-  }
-
   try {
     const deepCheck = await runDeepHealthCheck();
 
