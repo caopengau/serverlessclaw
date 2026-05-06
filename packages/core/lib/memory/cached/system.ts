@@ -38,7 +38,7 @@ export class MemorySystem {
   async getLatestLKGHash() {
     const cached = MemoryCaches.global.get('lkg_hash') as string | undefined;
     if (cached) return cached;
-    
+
     const hash = await this.underlying.getLatestLKGHash();
     if (hash) MemoryCaches.global.set('lkg_hash', hash);
     return hash;

@@ -29,7 +29,7 @@ export const METRICS = {
       Dimensions: [
         { Name: 'AgentId', Value: agentId },
         { Name: 'Success', Value: String(success) },
-        ...getDimensions(scope) || [],
+        ...(getDimensions(scope) || []),
       ],
     };
   },
@@ -43,7 +43,7 @@ export const METRICS = {
       MetricName: 'AgentDuration',
       Value: durationMs,
       Unit: 'Milliseconds',
-      Dimensions: [{ Name: 'AgentId', Value: agentId }, ...getDimensions(scope) || []],
+      Dimensions: [{ Name: 'AgentId', Value: agentId }, ...(getDimensions(scope) || [])],
     };
   },
 
@@ -59,7 +59,7 @@ export const METRICS = {
       Dimensions: [
         { Name: 'ToolName', Value: toolName },
         { Name: 'Success', Value: String(success) },
-        ...getDimensions(scope) || [],
+        ...(getDimensions(scope) || []),
       ],
     };
   },
@@ -73,7 +73,7 @@ export const METRICS = {
       MetricName: 'ToolDuration',
       Value: durationMs,
       Unit: 'Milliseconds',
-      Dimensions: [{ Name: 'ToolName', Value: toolName }, ...getDimensions(scope) || []],
+      Dimensions: [{ Name: 'ToolName', Value: toolName }, ...(getDimensions(scope) || [])],
     };
   },
 
@@ -94,7 +94,7 @@ export const METRICS = {
     scope?: { workspaceId?: string; teamId?: string; staffId?: string },
     eventType?: string
   ): MetricDatum {
-    const dimensions = [{ Name: 'Type', Value: type }, ...getDimensions(scope) || []];
+    const dimensions = [{ Name: 'Type', Value: type }, ...(getDimensions(scope) || [])];
     if (eventType) dimensions.push({ Name: 'EventType', Value: eventType });
 
     return {
@@ -113,7 +113,7 @@ export const METRICS = {
       MetricName: 'RateLimitExceeded',
       Value: 1,
       Unit: 'Count',
-      Dimensions: [{ Name: 'EventType', Value: eventType }, ...getDimensions(scope) || []],
+      Dimensions: [{ Name: 'EventType', Value: eventType }, ...(getDimensions(scope) || [])],
     };
   },
 
@@ -126,7 +126,10 @@ export const METRICS = {
       MetricName: 'MCPHubPing',
       Value: opts.success ? 1 : 0,
       Unit: 'Count',
-      Dimensions: [{ Name: 'Success', Value: String(opts.success) }, ...getDimensions(opts.scope) || []],
+      Dimensions: [
+        { Name: 'Success', Value: String(opts.success) },
+        ...(getDimensions(opts.scope) || []),
+      ],
     };
   },
 
@@ -151,7 +154,7 @@ export const METRICS = {
       MetricName: 'EventBridgeEmit',
       Value: latencyMs,
       Unit: 'Milliseconds',
-      Dimensions: [{ Name: 'Success', Value: String(success) }, ...getDimensions(scope) || []],
+      Dimensions: [{ Name: 'Success', Value: String(success) }, ...(getDimensions(scope) || [])],
     };
   },
 
@@ -179,7 +182,7 @@ export const METRICS = {
       Dimensions: [
         { Name: 'LockId', Value: lockId },
         { Name: 'Success', Value: String(success) },
-        ...getDimensions(scope) || [],
+        ...(getDimensions(scope) || []),
       ],
     };
   },
@@ -205,7 +208,10 @@ export const METRICS = {
       MetricName: 'DeploymentCompleted',
       Value: 1,
       Unit: 'Count',
-      Dimensions: [{ Name: 'Success', Value: String(opts.success) }, ...getDimensions(opts.scope) || []],
+      Dimensions: [
+        { Name: 'Success', Value: String(opts.success) },
+        ...(getDimensions(opts.scope) || []),
+      ],
     };
   },
 
@@ -222,7 +228,7 @@ export const METRICS = {
       Dimensions: [
         { Name: 'AgentId', Value: agentId },
         { Name: 'Provider', Value: provider },
-        ...getDimensions(scope) || [],
+        ...(getDimensions(scope) || []),
       ],
     };
   },
@@ -240,7 +246,7 @@ export const METRICS = {
       Dimensions: [
         { Name: 'AgentId', Value: agentId },
         { Name: 'Provider', Value: provider },
-        ...getDimensions(scope) || [],
+        ...(getDimensions(scope) || []),
       ],
     };
   },
@@ -259,7 +265,7 @@ export const METRICS = {
         { Name: 'AgentId', Value: agentId },
         { Name: 'OriginalMode', Value: originalMode },
         { Name: 'FallbackMode', Value: fallbackMode || 'none' },
-        ...getDimensions(scope) || [],
+        ...(getDimensions(scope) || []),
       ],
     };
   },
@@ -272,7 +278,7 @@ export const METRICS = {
       MetricName: 'EventHandlerInvoked',
       Value: 1,
       Unit: 'Count',
-      Dimensions: [{ Name: 'EventType', Value: eventType }, ...getDimensions(scope) || []],
+      Dimensions: [{ Name: 'EventType', Value: eventType }, ...(getDimensions(scope) || [])],
     };
   },
 
@@ -285,7 +291,7 @@ export const METRICS = {
       MetricName: 'EventHandlerDuration',
       Value: durationMs,
       Unit: 'Milliseconds',
-      Dimensions: [{ Name: 'EventType', Value: eventType }, ...getDimensions(scope) || []],
+      Dimensions: [{ Name: 'EventType', Value: eventType }, ...(getDimensions(scope) || [])],
     };
   },
 
@@ -298,7 +304,7 @@ export const METRICS = {
       MetricName: 'EventHandlerErrorDuration',
       Value: durationMs,
       Unit: 'Milliseconds',
-      Dimensions: [{ Name: 'EventType', Value: eventType }, ...getDimensions(scope) || []],
+      Dimensions: [{ Name: 'EventType', Value: eventType }, ...(getDimensions(scope) || [])],
     };
   },
 
@@ -315,7 +321,7 @@ export const METRICS = {
       Dimensions: [
         { Name: 'AgentId', Value: agentId },
         { Name: 'Depth', Value: String(depth) },
-        ...getDimensions(scope) || [],
+        ...(getDimensions(scope) || []),
       ],
     };
   },
@@ -334,7 +340,7 @@ export const METRICS = {
       Dimensions: [
         { Name: 'TraceId', Value: traceId },
         { Name: 'OverallStatus', Value: overallStatus },
-        ...getDimensions(scope) || [],
+        ...(getDimensions(scope) || []),
       ],
     };
   },
@@ -353,7 +359,7 @@ export const METRICS = {
         { Name: 'Operation', Value: operation },
         { Name: 'ErrorName', Value: errorName },
         { Name: 'TableName', Value: tableName },
-        ...getDimensions(scope) || [],
+        ...(getDimensions(scope) || []),
       ],
     };
   },
@@ -370,7 +376,7 @@ export const METRICS = {
       Dimensions: [
         { Name: 'Key', Value: key },
         { Name: 'Operation', Value: operation },
-        ...getDimensions(scope) || [],
+        ...(getDimensions(scope) || []),
       ],
     };
   },

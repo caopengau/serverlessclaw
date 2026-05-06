@@ -97,7 +97,7 @@ export class MiniMaxProvider implements IProvider {
     }
 
     const response = await client.messages.create(
-      requestParams as Anthropic.MessageCreateParamsNonStreaming
+      requestParams as unknown as Anthropic.MessageCreateParamsNonStreaming
     );
 
     const content = response.content;
@@ -209,7 +209,7 @@ export class MiniMaxProvider implements IProvider {
 
     try {
       const stream = await client.messages.create(
-        requestParams as Anthropic.MessageCreateParamsStreaming
+        requestParams as unknown as Anthropic.MessageCreateParamsStreaming
       );
 
       let currentToolCall: ToolCall | null = null;

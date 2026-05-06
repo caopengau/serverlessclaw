@@ -27,7 +27,10 @@ export const ParallelDispatchView = ({ content }: { content: ParallelDispatchCon
         <div className="text-[10px] text-white/60 font-bold">Tasks</div>
         <div className="space-y-1">
           {content.tasks.map((t, idx) => (
-            <div key={idx} className="p-2 bg-white/[0.02] border border-white/10 rounded text-[10px] font-mono">
+            <div
+              key={idx}
+              className="p-2 bg-white/[0.02] border border-white/10 rounded text-[10px] font-mono"
+            >
               <div className="text-violet-400 font-bold">{t.agentId}</div>
               <div className="text-white/60 truncate">{t.task}</div>
             </div>
@@ -38,7 +41,9 @@ export const ParallelDispatchView = ({ content }: { content: ParallelDispatchCon
     <div className="flex gap-4">
       <div className="space-y-1">
         <div className="text-[9px] text-white/40 font-bold">Aggregation</div>
-        <div className="text-[10px] text-violet-400 font-mono">{content.aggregationType || 'summary'}</div>
+        <div className="text-[10px] text-violet-400 font-mono">
+          {content.aggregationType || 'summary'}
+        </div>
       </div>
       <div className="space-y-1">
         <div className="text-[9px] text-white/40 font-bold">Timeout</div>
@@ -99,7 +104,9 @@ export const ContinuationView = ({ content }: { content: ContinuationContent }) 
         <GitBranch size={12} /> Continuation
       </div>
       <div className="p-3 bg-teal-500/5 border border-teal-500/20 rounded text-[11px] font-mono text-white/90">
-        {content.direction === 'to_initiator' ? 'Result routed back to initiator' : 'Agent resuming with new context'}
+        {content.direction === 'to_initiator'
+          ? 'Result routed back to initiator'
+          : 'Agent resuming with new context'}
       </div>
     </div>
     <div className="flex gap-4">
@@ -109,7 +116,9 @@ export const ContinuationView = ({ content }: { content: ContinuationContent }) 
       </div>
       <div className="space-y-1">
         <div className="text-[9px] text-white/40 font-bold">Requesting Agent</div>
-        <div className="text-[10px] text-teal-400 font-mono">{content.requestingAgent || 'N/A'}</div>
+        <div className="text-[10px] text-teal-400 font-mono">
+          {content.requestingAgent || 'N/A'}
+        </div>
       </div>
     </div>
   </div>
@@ -122,12 +131,16 @@ export const CircuitBreakerView = ({ content }: { content: CircuitBreakerContent
         <Cpu size={12} /> Circuit Breaker State Change
       </div>
       <div className="p-3 bg-orange-500/5 border border-orange-500/20 rounded text-[11px] font-mono text-white/90">
-        State transitioned from <span className="text-orange-400 font-bold">{content.previousState}</span> to <span className="text-orange-400 font-bold">{content.newState}</span>
+        State transitioned from{' '}
+        <span className="text-orange-400 font-bold">{content.previousState}</span> to{' '}
+        <span className="text-orange-400 font-bold">{content.newState}</span>
       </div>
     </div>
     <div className="space-y-2">
       <div className="text-[10px] text-white/60 font-bold">Reason</div>
-      <div className="p-2 bg-white/[0.02] border border-white/10 rounded text-[10px] font-mono text-white/70">{content.reason || 'N/A'}</div>
+      <div className="p-2 bg-white/[0.02] border border-white/10 rounded text-[10px] font-mono text-white/70">
+        {content.reason || 'N/A'}
+      </div>
     </div>
     <div className="flex gap-4">
       <div className="space-y-1">
@@ -155,7 +168,9 @@ export const CancellationView = ({ content }: { content: CancellationContent }) 
     <div className="flex gap-4">
       <div className="space-y-1">
         <div className="text-[9px] text-white/40 font-bold">Task ID</div>
-        <div className="text-[10px] text-rose-400 font-mono">{content.taskId ? content.taskId.slice(0, 8) : 'N/A'}</div>
+        <div className="text-[10px] text-rose-400 font-mono">
+          {content.taskId ? content.taskId.slice(0, 8) : 'N/A'}
+        </div>
       </div>
       <div className="space-y-1">
         <div className="text-[9px] text-white/40 font-bold">Initiator</div>
@@ -164,7 +179,9 @@ export const CancellationView = ({ content }: { content: CancellationContent }) 
     </div>
     <div className="space-y-2">
       <div className="text-[10px] text-white/60 font-bold">Reason</div>
-      <div className="p-2 bg-white/[0.02] border border-white/10 rounded text-[10px] font-mono text-white/70">{content.reason || 'No reason provided'}</div>
+      <div className="p-2 bg-white/[0.02] border border-white/10 rounded text-[10px] font-mono text-white/70">
+        {content.reason || 'No reason provided'}
+      </div>
     </div>
   </div>
 );
@@ -175,7 +192,9 @@ export const MemoryOperationView = ({ content }: { content: MemoryOperationConte
       <div className="text-[10px] text-cyan-400 font-bold tracking-tighter flex items-center gap-1">
         <Brain size={12} /> Memory Operation
       </div>
-      <div className="p-3 bg-cyan-500/5 border border-cyan-500/20 rounded text-[11px] font-mono text-white/90">{content.operation}</div>
+      <div className="p-3 bg-cyan-500/5 border border-cyan-500/20 rounded text-[11px] font-mono text-white/90">
+        {content.operation}
+      </div>
     </div>
     <div className="flex gap-4">
       <div className="space-y-1">

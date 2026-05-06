@@ -181,7 +181,6 @@ describe('SuperClaw', () => {
         expect(result.requiresApproval).toBe(true);
         expect(result.appliedPolicy).toBe('tool_override');
       });
-
     });
   });
 });

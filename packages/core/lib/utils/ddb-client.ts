@@ -1,10 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
-export {
-  getConfigTableName,
-  getMemoryTableName,
-  getTraceTableName,
-} from './resource-helpers';
+export { getConfigTableName, getMemoryTableName, getTraceTableName } from './resource-helpers';
 
 /**
  * Shared DynamoDB document client instance for tracing and other utilities.

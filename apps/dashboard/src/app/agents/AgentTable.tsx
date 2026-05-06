@@ -10,7 +10,7 @@ import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { useRouter } from 'next/navigation';
 
 interface AgentTableProps {
-  agents: Record<string, Agent>;
+  agents: Record<string, Agent> | Agent[];
   reputation?: Record<
     string,
     { successRate: number; avgLatencyMs: number; tasksCompleted: number; tasksFailed: number }
@@ -34,7 +34,7 @@ export default function AgentTable({
 }: AgentTableProps) {
   const { t } = useTranslations();
   const router = useRouter();
-  const agentList = Object.values(agents);
+  const agentList = Array.isArray(agents) ? agents : Object.values(agents);
 
   return (
     <>

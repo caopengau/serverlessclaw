@@ -33,13 +33,9 @@ export const BASE_EVENT_SCHEMA = z.object({
   /** The user ID context for the event. */
   userId: z.string().min(1).default('SYSTEM'),
   /** Unique identifier for the trace. */
-  traceId: z
-    .string()
-    .default(() => generateId('t')),
+  traceId: z.string().default(() => generateId('t')),
   /** Unique identifier for the task. */
-  taskId: z
-    .string()
-    .default(() => generateId('task')),
+  taskId: z.string().default(() => generateId('task')),
   /** Identifier of the node that produced this event. */
   nodeId: z.string().optional(),
   /** Parent task or event identifier. */

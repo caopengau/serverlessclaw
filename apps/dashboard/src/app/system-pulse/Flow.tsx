@@ -152,7 +152,10 @@ export function FlowContent() {
         <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-30 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3">
             <Zap size={32} className="text-cyber-blue animate-pulse" />
-            <Typography variant="mono" className="text-[10px] text-cyber-blue tracking-widest uppercase">
+            <Typography
+              variant="mono"
+              className="text-[10px] text-cyber-blue tracking-widest uppercase"
+            >
               Initializing_Neural_Grid...
             </Typography>
           </div>
@@ -164,15 +167,36 @@ export function FlowContent() {
 
 function Plus({ size, className }: { size: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
     </svg>
   );
 }
 
 function Minus({ size, className }: { size: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
       <line x1="5" y1="12" x2="19" y2="12"></line>
     </svg>
   );
@@ -180,8 +204,21 @@ function Minus({ size, className }: { size: number; className?: string }) {
 
 function Maximize({ size, className }: { size: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+      <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+      <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+      <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
     </svg>
   );
 }

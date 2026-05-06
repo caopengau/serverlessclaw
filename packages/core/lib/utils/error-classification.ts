@@ -13,7 +13,7 @@ export enum ErrorClass {
 export function classifyError(error: unknown): ErrorClass {
   const message =
     error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-  
+
   const transientPatterns = [
     'rate limit',
     'too many requests',

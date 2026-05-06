@@ -2,8 +2,8 @@
 // This file orchestrates all types used across the core library.
 
 export * from './llm';
-export * from './agent';
 export * from './memory';
+export * from './agent';
 export * from './system';
 export * from './tool';
 export * from './mcp';
@@ -13,3 +13,4 @@ export * from './collaboration';
 export * from './workspace';
 export * from './sync';
 export * from './common';
+export * from '../tracer/types';

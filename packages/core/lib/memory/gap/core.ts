@@ -4,6 +4,7 @@ import {
   MemoryInsight,
   InsightCategory,
   ContextualScope,
+  InsightMetadata,
 } from '../../types/memory';
 import { GapStatus, GapTransitionResult } from '../../types/agent';
 import { resolveItemById, atomicIncrement, atomicUpdateMetadata } from '../utils';
@@ -161,7 +162,9 @@ export async function updateGapStatus(
             'guard-mismatch',
             { workspaceId }
           );
-        } catch { /* ignore */ }
+        } catch {
+          /* ignore */
+        }
         return {
           success: false,
           error: `Cannot transition gap ${gapId} from ${target.status} to ${status}: expected ${guard.expectedStatus}`,
@@ -185,7 +188,7 @@ export async function updateGapMetadata(
 ): Promise<void> {
   const { normalizeGapId, getGapTimestamp, getGapIdPK } = await import('../utils');
   const { TIME } = await import('../../constants');
-  
+
   const normalizedId = normalizeGapId(gapId);
   const gapTimestamp = getGapTimestamp(normalizedId);
   const scopedUserId = base.getScopedUserId(getGapIdPK(normalizedId), scope);
@@ -193,7 +196,9 @@ export async function updateGapMetadata(
   if (gapTimestamp < TIME.EPOCH_2020_MS) {
     const target = await resolveItemById(base, gapId, 'GAP', scope);
     if (target) {
-      await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, scope).catch(() => {});
+      await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, scope).catch(
+        () => {}
+      );
       return;
     }
     // Leap of faith for numeric IDs (like GAP#42 in tests) even if resolution fails
@@ -206,7 +211,9 @@ export async function updateGapMetadata(
   await atomicUpdateMetadata(base, scopedUserId, gapTimestamp, metadata, scope).catch(async () => {
     const target = await resolveItemById(base, gapId, 'GAP', scope);
     if (target) {
-      await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, scope).catch(() => {});
+      await atomicUpdateMetadata(base, target.id, target.timestamp, metadata, scope).catch(
+        () => {}
+      );
     }
   });
 }

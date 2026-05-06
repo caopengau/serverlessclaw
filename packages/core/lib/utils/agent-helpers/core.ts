@@ -1,5 +1,5 @@
 import { logger } from '../../logger';
-import { AgentRole, AGENT_TYPES, TraceSource, ReasoningProfile } from '../../types/index';
+import { AgentRole, TraceSource, ReasoningProfile } from '../../types/index';
 import {
   AGENT_ERRORS,
   AGENT_ERRORS_CN,

@@ -5,7 +5,8 @@
 
 import { AgentRole } from '../types/index';
 import { normalizeBaseUserId } from './normalize';
-import { buildProcessOptions, ProcessOptionsParams, initAgent } from './agent-helpers/init';
+import { initAgent } from './agent-helpers/init';
+import { buildProcessOptions, ProcessOptionsParams } from './agent-helpers/core';
 
 /**
  * Extract the base userId by removing CONV# prefix if present.

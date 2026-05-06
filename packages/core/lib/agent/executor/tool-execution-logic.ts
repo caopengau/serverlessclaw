@@ -62,7 +62,7 @@ export async function executeSingleToolCall(
     logger.info(`Tool ${toolCall.function.name} requested but no local implementation found.`);
     const resultText = 'EXECUTED_BY_PROVIDER';
     const reason = `Tool ${toolCall.function.name} requested but not found in registry.`;
-    
+
     await recordToolAnalytics(
       toolCall.function.name,
       execContext.agentId,
@@ -105,7 +105,7 @@ export async function executeSingleToolCall(
   } catch (securityError) {
     logger.error(`[SECURITY] Validator failed for tool ${tool.name}:`, securityError);
     const errorMsg = securityError instanceof Error ? securityError.message : String(securityError);
-    
+
     await recordToolAnalytics(
       tool.name,
       execContext.agentId,
@@ -226,7 +226,7 @@ export async function executeSingleToolCall(
   } catch (execError) {
     logger.error(`[EXECUTOR] Tool ${tool.name} failed:`, execError);
     const errorMsg = execError instanceof Error ? execError.message : String(execError);
-    
+
     await recordToolAnalytics(
       tool.name,
       execContext.agentId,

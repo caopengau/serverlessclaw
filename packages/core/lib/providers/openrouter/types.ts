@@ -1,6 +1,4 @@
-import {
-  ReasoningProfile,
-} from '../../types/index';
+import { ReasoningProfile } from '../../types/index';
 
 export const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 export const PROJECT_REFERER = 'https://github.com/serverlessclaw/serverlessclaw';

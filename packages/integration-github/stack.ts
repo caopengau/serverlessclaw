@@ -3,7 +3,7 @@
  * Example of a project-specific infrastructure layer.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function createGitHubStack(resources: Record<string, unknown>) {
+export function createGitHubStack(resources: { bus: sst.aws.Bus } & Record<string, any>) {
   const { bus } = resources;
 
   // Example: A specialized bucket for GitHub artifacts

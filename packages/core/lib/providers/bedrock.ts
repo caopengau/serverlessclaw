@@ -276,7 +276,8 @@ export class BedrockProvider implements IProvider {
       const response = await client.send(command);
       if (!response.stream) throw new Error('Bedrock provider call failed: No stream in response');
 
-      const activeToolCalls: Map<number, { id: string; name: string; arguments: string }> = new Map();
+      const activeToolCalls: Map<number, { id: string; name: string; arguments: string }> =
+        new Map();
 
       for await (const event of response.stream as AsyncIterable<ConverseStreamOutput>) {
         if (event.contentBlockDelta) {
@@ -293,7 +294,13 @@ export class BedrockProvider implements IProvider {
           else if ('reasoningContent' in delta && delta.reasoningContent) {
             const rc = delta.reasoningContent;
             if ('text' in rc && rc.text)
-              yield { thought: rc.text, tool_calls: [], attachments: [], ui_blocks: [], options: [] };
+              yield {
+                thought: rc.text,
+                tool_calls: [],
+                attachments: [],
+                ui_blocks: [],
+                options: [],
+              };
           } else if ('toolUse' in delta && delta.toolUse) {
             const idx = event.contentBlockDelta.contentBlockIndex ?? 0;
             const existing = activeToolCalls.get(idx);
@@ -345,7 +352,9 @@ export class BedrockProvider implements IProvider {
       }
     } catch (err) {
       logger.error('Bedrock streaming failed:', err);
-      throw new Error(`Bedrock streaming failed: ${err instanceof Error ? err.message : String(err)}`);
+      throw new Error(
+        `Bedrock streaming failed: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 

@@ -86,15 +86,15 @@ export interface Message {
   /** The textual content of the message. */
   content: string;
   /** Intermediate reasoning content (e.g. <thought> tags). */
-  thought: string;
+  thought?: string;
   /** Tool calls requested by the assistant. */
-  tool_calls: ToolCall[];
+  tool_calls?: ToolCall[];
   /** The ID of the tool call this message is responding to (if role is TOOL). */
   tool_call_id?: string;
   /** The name of the tool or agent this message is responding from. */
   name?: string;
   /** Human-readable name of the agent that generated this message. */
-  agentName: string;
+  agentName?: string;
   /** Required link to the isolated mechanical monologue for this message */
   traceId: string;
   /** Required unique identifier for the message. */
@@ -102,11 +102,11 @@ export interface Message {
   /**
    * Workspace identifier for multi-tenant isolation.
    */
-  workspaceId: string;
+  workspaceId?: string;
   /**
    * Attachments (images, files) associated with the message.
    */
-  attachments: Attachment[];
+  attachments?: Attachment[];
   /**
    * Optional usage statistics (tokens) for the message (usually only for ASSISTANT).
    */
@@ -123,7 +123,7 @@ export interface Message {
   /**
    * UI options (buttons) associated with the message.
    */
-  options: Array<{
+  options?: Array<{
     label: string;
     value: string;
     type?: ButtonType;
@@ -142,7 +142,7 @@ export interface Message {
   /**
    * Dynamic UI blocks rendered by the assistant.
    */
-  ui_blocks: Array<{
+  ui_blocks?: Array<{
     id: string;
     componentType: string;
     props: Record<string, unknown>;
@@ -341,9 +341,9 @@ export interface MessageChunk {
   /** Partial reasoning content. */
   thought?: string;
   /** Partial tool calls. */
-  tool_calls: ToolCall[];
+  tool_calls?: ToolCall[];
   /** Optional UI options (buttons) for the user. */
-  options: Array<{
+  options?: Array<{
     label: string;
     value: string;
     type?: string;
@@ -364,11 +364,11 @@ export interface MessageChunk {
   /**
    * Optional attachments (images, files) during streaming.
    */
-  attachments: Attachment[];
+  attachments?: Attachment[];
   /**
    * Optional dynamic UI blocks during streaming.
    */
-  ui_blocks: Message['ui_blocks'];
+  ui_blocks?: Message['ui_blocks'];
   /** Optional model name for streaming chunks. */
   modelName?: string;
 }

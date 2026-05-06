@@ -1,14 +1,5 @@
-import {
-  ITool,
-  Message,
-  Attachment,
-  ResponseFormat,
-} from '../../types/index';
-import {
-  OPENROUTER_CONSTANTS,
-  DEFAULT_DYNAMIC_THRESHOLD,
-  OpenRouterContentBlock,
-} from './types';
+import { ITool, Message, Attachment, ResponseFormat } from '../../types/index';
+import { OPENROUTER_CONSTANTS, DEFAULT_DYNAMIC_THRESHOLD, OpenRouterContentBlock } from './types';
 
 /**
  * Applies model-specific configurations to the OpenRouter request body.

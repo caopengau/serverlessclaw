@@ -29,11 +29,13 @@ interface WorkspaceModalsProps {
   setInviteRole: (role: string) => void;
   inviteMember: (id: string) => void;
   inviting: boolean;
-  editingMember: { workspaceId: string, memberId: string, currentRole: string } | null;
-  setEditingMember: (m: { workspaceId: string, memberId: string, currentRole: string } | null) => void;
+  editingMember: { workspaceId: string; memberId: string; currentRole: string } | null;
+  setEditingMember: (
+    m: { workspaceId: string; memberId: string; currentRole: string } | null
+  ) => void;
   updateMemberRole: (wsId: string, mId: string, role: string) => void;
-  removingMember: { workspaceId: string, memberId: string } | null;
-  setRemovingMember: (m: { workspaceId: string, memberId: string } | null) => void;
+  removingMember: { workspaceId: string; memberId: string } | null;
+  setRemovingMember: (m: { workspaceId: string; memberId: string } | null) => void;
   removeMember: (wsId: string, mId: string) => void;
   ROLES: readonly string[];
 }

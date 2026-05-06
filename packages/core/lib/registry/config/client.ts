@@ -1,7 +1,7 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
-let defaultDocClient: DynamoDBDocumentClient | undefined;
+export let defaultDocClient: DynamoDBDocumentClient | undefined;
 let injectedDocClient: DynamoDBDocumentClient | undefined;
 
 /**

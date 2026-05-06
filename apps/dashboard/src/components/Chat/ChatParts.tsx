@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  Copy,
-  Check,
-  Wrench,
-  ChevronDown,
-  ChevronRight,
-} from 'lucide-react';
+import { Copy, Check, Wrench, ChevronDown, ChevronRight } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 

@@ -57,7 +57,10 @@ export default function AgentsPage() {
 
   const handleRealtimeMessage = useCallback(
     (_topic: string, message: RealtimeMessage) => {
-      if (message['detail-type'] === 'agent_updated' || message['detail-type'] === 'agent_created') {
+      if (
+        message['detail-type'] === 'agent_updated' ||
+        message['detail-type'] === 'agent_created'
+      ) {
         fetchAgents();
       }
     },
@@ -69,24 +72,25 @@ export default function AgentsPage() {
     onMessage: handleRealtimeMessage,
   });
 
-  const toggleAgentStatus = async (agent: Agent) => {
+  const updateAgent = async (id: string, updates: Partial<Agent>) => {
     try {
-      const res = await fetch(`/api/agents/${agent.id}`, {
+      const res = await fetch(`/api/agents/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: !agent.enabled }),
+        body: JSON.stringify(updates),
       });
 
-      if (!res.ok) throw new Error('Failed to update status');
+      if (!res.ok) throw new Error('Failed to update agent');
 
-      setAgents((prev) =>
-        prev.map((a) => (a.id === agent.id ? { ...a, enabled: !a.enabled } : a))
-      );
-      toast.success(
-        agent.enabled ? t('AGENTS_DISABLED_SUCCESS') : t('AGENTS_ENABLED_SUCCESS')
-      );
+      setAgents((prev) => prev.map((a) => (a.id === id ? { ...a, ...updates } : a)));
+
+      if (updates.enabled !== undefined) {
+        toast.success(updates.enabled ? t('AGENTS_ENABLED_SUCCESS') : t('AGENTS_DISABLED_SUCCESS'));
+      } else {
+        toast.success(t('AGENTS_UPDATE_SUCCESS'));
+      }
     } catch (error) {
-      logger.error('Failed to toggle agent status:', error);
+      logger.error('Failed to update agent:', error);
       toast.error(t('AGENTS_UPDATE_ERROR'));
     }
   };
@@ -169,15 +173,31 @@ export default function AgentsPage() {
           <Card variant="glass" padding="none" className="overflow-hidden">
             <AgentTable
               agents={filteredAgents}
-              onToggleStatus={toggleAgentStatus}
-              onEditTools={(agent) => {
-                setSelectedAgent(agent);
-                setShowToolsModal(true);
+              updateAgent={updateAgent}
+              deleteAgent={(id) => {
+                const agent = agents.find((a) => a.id === id);
+                if (agent) {
+                  setSelectedAgent(agent);
+                  setShowDeleteConfirm(true);
+                }
               }}
-              onDelete={(agent) => {
-                setSelectedAgent(agent);
-                setShowDeleteConfirm(true);
+              cloneAgent={(id) => {
+                const agent = agents.find((a) => a.id === id);
+                if (agent) {
+                  // Implement clone logic or just toast
+                  toast.info(`Cloning agent ${agent.name}...`);
+                }
               }}
+              setSelectedAgentIdForTools={(id) => {
+                const agent = agents.find((a) => a.id === id);
+                if (agent) {
+                  setSelectedAgent(agent);
+                  setShowToolsModal(true);
+                }
+              }}
+              onSave={() => {}}
+              saving={false}
+              hasChanges={false}
             />
           </Card>
         ) : (

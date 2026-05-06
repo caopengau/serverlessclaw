@@ -34,7 +34,10 @@ export async function assignGapToTrack(
   }
 
   const normalizedId = normalizeGapId(gapId);
-  const getScopedUserId = (id: string, s?: string | import('../../types/memory').ContextualScope) => {
+  const getScopedUserId = (
+    id: string,
+    s?: string | import('../../types/memory').ContextualScope
+  ) => {
     const provider = base as unknown as { getScopedUserId?: (id: string, s?: unknown) => string };
     if (typeof provider.getScopedUserId === 'function') {
       return provider.getScopedUserId(id, s);
@@ -65,7 +68,10 @@ export async function getGapTrack(
   scope?: string | import('../../types/memory').ContextualScope
 ): Promise<{ track: EvolutionTrack; priority: number } | null> {
   const normalizedId = normalizeGapId(gapId);
-  const getScopedUserId = (id: string, s?: string | import('../../types/memory').ContextualScope) => {
+  const getScopedUserId = (
+    id: string,
+    s?: string | import('../../types/memory').ContextualScope
+  ) => {
     const provider = base as unknown as { getScopedUserId?: (id: string, s?: unknown) => string };
     if (typeof provider.getScopedUserId === 'function') {
       return provider.getScopedUserId(id, s);

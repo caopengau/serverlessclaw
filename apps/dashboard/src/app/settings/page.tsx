@@ -11,7 +11,9 @@ import SettingsClient from './SettingsClient';
 import PageHeader from '@/components/PageHeader';
 import { logger } from '@claw/core/lib/logger';
 
-async function getConfig() {
+import { type SystemConfig } from './SettingsParts';
+
+async function getConfig(): Promise<SystemConfig> {
   try {
     const tableName = getResourceName('ConfigTable');
     if (!tableName) {
@@ -21,6 +23,18 @@ async function getConfig() {
         model: SYSTEM.DEFAULT_MODEL,
         evolutionMode: EvolutionMode.HITL,
         optimizationPolicy: 'balanced',
+        activeLocale: 'en',
+        maxToolIterations: '15',
+        circuitBreakerThreshold: '5',
+        protectedResources: 'sst.config.ts, buildspec.yml, infra/',
+        reflectionFrequency: '10',
+        strategicReviewFrequency: '24',
+        minGapsForReview: '10',
+        recursionLimit: '50',
+        deployLimit: '5',
+        escalationEnabled: 'true',
+        protocolFallbackEnabled: 'true',
+        consecutiveBuildFailures: 0,
       };
     }
     const client = new DynamoDBClient({});
@@ -169,8 +183,10 @@ async function getConfig() {
       maxToolIterations: '15',
       circuitBreakerThreshold: '5',
       recursionLimit: '50',
+      deployLimit: '5',
       escalationEnabled: 'true',
       protocolFallbackEnabled: 'true',
+      activeLocale: 'en',
       consecutiveBuildFailures: 0,
       protectedResources: 'sst.config.ts, buildspec.yml, infra/',
     };

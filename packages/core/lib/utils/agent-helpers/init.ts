@@ -59,9 +59,12 @@ export async function initAgent(
   return { config, memory, provider, agent };
 }
 
-export function isWarmupEvent(event: unknown): boolean {
-  const { extractPayload } = require('./validation');
-  const payload = extractPayload(event as Record<string, unknown>) as Record<string, unknown>;
+export async function isWarmupEvent(event: unknown): Promise<boolean> {
+  const { extractPayload } = await import('./validation');
+  const payload = (await extractPayload(event as Record<string, unknown>)) as Record<
+    string,
+    unknown
+  >;
   return payload.type === 'WARMUP' || payload.intent === 'warmup';
 }
 
@@ -69,7 +72,7 @@ export function isWarmupEvent(event: unknown): boolean {
  * Handle a warmup event by pre-initializing the agent.
  */
 export async function handleWarmup(event: unknown, agentId: string | AgentRole): Promise<boolean> {
-  if (isWarmupEvent(event)) {
+  if (await isWarmupEvent(event)) {
     const target = agentId === 'brain' ? 'all cognitive agents' : `agent ${agentId}`;
     logger.info(`[WARMUP] Warming ${target}...`);
     try {

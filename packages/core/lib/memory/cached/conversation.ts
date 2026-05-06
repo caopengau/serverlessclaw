@@ -1,4 +1,4 @@
-import type { IMemory, Message, ConversationMeta, ContextualScope } from '../../types/memory';
+import { IMemory, Message, ConversationMeta, ContextualScope } from '../../types/memory/interfaces';
 import { logger } from '../../logger';
 import { MemoryCaches, CacheKeys } from '../cache';
 import { CACHE_TTL } from '../../constants/memory';
