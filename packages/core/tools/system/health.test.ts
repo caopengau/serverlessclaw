@@ -99,6 +99,8 @@ describe('system tools', () => {
     it('should return JSON when verbose=true', async () => {
       vi.mocked(checkCognitiveHealth).mockResolvedValue({
         ok: true,
+        structuralOk: true,
+        cognitiveOk: true,
         summary: 'All systems green',
         timestamp: Date.now(),
         results: {
@@ -117,6 +119,8 @@ describe('system tools', () => {
     it('should return FAILED when checkCognitiveHealth says false and verbose=false', async () => {
       vi.mocked(checkCognitiveHealth).mockResolvedValue({
         ok: false,
+        structuralOk: false,
+        cognitiveOk: true,
         summary: 'System unstable',
         timestamp: Date.now(),
         results: {
