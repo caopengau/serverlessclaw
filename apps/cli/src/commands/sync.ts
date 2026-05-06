@@ -1,6 +1,8 @@
 import { execSync } from 'child_process';
 
 export interface CLISyncOptions {
+  action?: 'pull' | 'push';
+  branch?: string;
   hub: string;
   prefix: string;
   workingDir: string;
@@ -91,12 +93,15 @@ function checkForConflicts(
       }
     } else {
       execSync(`git fetch ${remote} main`, { cwd, stdio: 'ignore' });
-      const subtreeDiff = execSync(`git diff ${remote}/main...HEAD -- ${prefix}`, {
+      const subtreeDiff = execSync(`git diff ${remote}/main...HEAD --name-only -- ${prefix}`, {
         cwd,
         encoding: 'utf-8',
+        maxBuffer: 10 * 1024 * 1024,
       });
       if (subtreeDiff.trim()) {
-        conflicts.push(`${prefix} has local modifications`);
+        const modifiedFiles = subtreeDiff.trim().split('\\n').slice(0, 5).join(', ');
+        const hasMore = subtreeDiff.trim().split('\\n').length > 5 ? ' and more...' : '';
+        conflicts.push(`${prefix} has local modifications: ${modifiedFiles}${hasMore}`);
       }
     }
   } catch (e: unknown) {
@@ -120,15 +125,28 @@ function checkForConflicts(
 }
 
 export async function runSync(options: CLISyncOptions): Promise<void> {
-  const { hub, prefix, workingDir, method = 'subtree' } = options;
-  const hubUrl = `https://github.com/${hub}.git`;
+  const {
+    action = 'pull',
+    branch = 'evolution-contribution',
+    hub,
+    prefix,
+    workingDir,
+    method = 'subtree',
+  } = options;
+  const hubUrl =
+    hub.includes('://') || hub.startsWith('/') || hub.startsWith('git@')
+      ? hub
+      : `https://github.com/${hub}.git`;
   const hubRemote = 'hub-origin';
 
   if (options.verbose) {
     log(`Starting sync with options: ${JSON.stringify(options)}`, options);
   }
 
-  log(`Syncing ${workingDir} with Hub: ${hubUrl} using ${method} method...`, options);
+  log(
+    `Syncing ${workingDir} with Hub: ${hubUrl} using ${method} method (Action: ${action})...`,
+    options
+  );
 
   try {
     ensureRemote(workingDir, hubRemote, hubUrl);
@@ -144,111 +162,161 @@ export async function runSync(options: CLISyncOptions): Promise<void> {
       process.exit(1);
     }
 
-    if (options.check) {
-      const checkResult = checkForConflicts(workingDir, method, hubRemote, prefix);
-      outputJson(checkResult, options);
-      if (!checkResult.canSync) {
-        process.exit(1);
+    if (options.check || options.dryRun) {
+      if (action === 'push') {
+        const result = {
+          success: true,
+          message:
+            'Dry run/check for push action successful. Ensure you have network access to push.',
+        };
+        outputJson(result, options);
+        return;
       }
-      return;
-    }
 
-    if (options.dryRun) {
       const checkResult = checkForConflicts(workingDir, method, hubRemote, prefix);
-      const result = {
-        success: checkResult.canSync,
-        message: checkResult.canSync
-          ? 'Dry run: sync would succeed'
-          : `Dry run: conflicts detected - ${checkResult.conflicts.join(', ')}`,
-        conflicts: checkResult.conflicts,
-      };
-      outputJson(result, options);
-      if (!checkResult.canSync && options.abortOnConflict) {
-        process.exit(1);
-      }
-      return;
-    }
 
-    log(`Fetching updates from ${hubRemote}...`, options);
-    execSync(`git fetch ${hubRemote} main`, {
-      cwd: workingDir,
-      stdio: options.verbose ? 'inherit' : 'ignore',
-    });
+      if (options.check) {
+        outputJson(checkResult, options);
+        if (!checkResult.canSync) {
+          process.exit(1);
+        }
+        return;
+      }
+
+      if (options.dryRun) {
+        const result = {
+          success: checkResult.canSync,
+          message: checkResult.canSync
+            ? 'Dry run: sync would succeed'
+            : `Dry run: conflicts detected - ${checkResult.conflicts.join(', ')}`,
+          conflicts: checkResult.conflicts,
+        };
+        outputJson(result, options);
+        if (!checkResult.canSync && options.abortOnConflict) {
+          process.exit(1);
+        }
+        return;
+      }
+    }
 
     let syncResult: SyncResult;
 
-    if (method === 'fork') {
-      log(`Merging changes from ${hubRemote}/main...`, options);
-      try {
-        execSync(
-          `git merge ${hubRemote}/main -m "chore: sync with serverlessclaw hub via fork merge"`,
-          {
+    if (action === 'push') {
+      log(`Pushing subtree contributions from prefix ${prefix} to branch ${branch}...`, options);
+      if (method === 'fork') {
+        try {
+          execSync(`git push ${hubRemote} HEAD:${branch}`, {
             cwd: workingDir,
             stdio: options.verbose ? 'inherit' : 'pipe',
-            env: { ...process.env, GIT_MERGE_AUTOEDIT: 'no' },
-          }
-        );
-        const commitHash = execSync('git rev-parse HEAD', {
-          cwd: workingDir,
-          encoding: 'utf-8',
-        }).trim();
-        syncResult = {
-          success: true,
-          message: 'Sync completed successfully',
-          commitHash,
-        };
-      } catch (mergeError: unknown) {
-        const errMsg = (mergeError as Error).message;
-        if (options.abortOnConflict) {
+          });
+          syncResult = {
+            success: true,
+            message: `Successfully pushed to ${branch} on ${hubRemote}`,
+          };
+        } catch (error: unknown) {
           syncResult = {
             success: false,
-            message: `Merge conflict detected. Aborting. Error: ${errMsg}`,
+            message: `Failed to push. Error: ${(error as Error).message}`,
           };
-          log(syncResult.message, options);
-          outputJson(syncResult, options);
-          execSync('git merge --abort', { cwd: workingDir, stdio: 'ignore' });
-          process.exit(1);
         }
-        syncResult = {
-          success: false,
-          message: `Merge conflict detected. Please resolve manually. Error: ${errMsg}`,
-        };
+      } else {
+        try {
+          execSync(`git subtree push --prefix=${prefix} ${hubRemote} ${branch}`, {
+            cwd: workingDir,
+            stdio: options.verbose ? 'inherit' : 'pipe',
+          });
+          syncResult = {
+            success: true,
+            message: `Successfully pushed subtree ${prefix} to ${branch} on ${hubRemote}`,
+          };
+        } catch (error: unknown) {
+          syncResult = {
+            success: false,
+            message: `Failed to push subtree. Error: ${(error as Error).message}`,
+          };
+        }
       }
     } else {
-      log(`Pulling subtree updates for prefix ${prefix}...`, options);
-      try {
-        execSync(
-          `git subtree pull --prefix=${prefix} ${hubRemote} main --squash -m "chore: sync with serverlessclaw hub via subtree"`,
-          {
+      // Pull Action
+      log(`Fetching updates from ${hubRemote}...`, options);
+      execSync(`git fetch ${hubRemote} main`, {
+        cwd: workingDir,
+        stdio: options.verbose ? 'inherit' : 'ignore',
+      });
+
+      if (method === 'fork') {
+        log(`Merging changes from ${hubRemote}/main...`, options);
+        try {
+          execSync(
+            `git merge ${hubRemote}/main -m "chore: sync with serverlessclaw hub via fork merge"`,
+            {
+              cwd: workingDir,
+              stdio: options.verbose ? 'inherit' : 'pipe',
+              env: { ...process.env, GIT_MERGE_AUTOEDIT: 'no' },
+            }
+          );
+          const commitHash = execSync('git rev-parse HEAD', {
             cwd: workingDir,
-            stdio: options.verbose ? 'inherit' : 'pipe',
-            env: { ...process.env, GIT_MERGE_AUTOEDIT: 'no' },
+            encoding: 'utf-8',
+          }).trim();
+          syncResult = {
+            success: true,
+            message: 'Sync completed successfully',
+            commitHash,
+          };
+        } catch (mergeError: unknown) {
+          const errMsg = (mergeError as Error).message;
+          if (options.abortOnConflict) {
+            syncResult = {
+              success: false,
+              message: `Merge conflict detected. Aborting. Error: ${errMsg}`,
+            };
+            log(syncResult.message, options);
+            outputJson(syncResult, options);
+            execSync('git merge --abort', { cwd: workingDir, stdio: 'ignore' });
+            process.exit(1);
           }
-        );
-        const commitHash = execSync('git rev-parse HEAD', {
-          cwd: workingDir,
-          encoding: 'utf-8',
-        }).trim();
-        syncResult = {
-          success: true,
-          message: 'Sync completed successfully',
-          commitHash,
-        };
-      } catch (error: unknown) {
-        const errMsg = (error as Error).message;
-        if (options.abortOnConflict) {
           syncResult = {
             success: false,
-            message: `Subtree conflict detected. Aborting. Error: ${errMsg}`,
+            message: `Merge conflict detected. Please resolve manually. Error: ${errMsg}`,
           };
-          log(syncResult.message, options);
-          outputJson(syncResult, options);
-          process.exit(1);
         }
-        syncResult = {
-          success: false,
-          message: `Conflict detected during subtree pull. Please resolve manually. Error: ${errMsg}`,
-        };
+      } else {
+        log(`Pulling subtree updates for prefix ${prefix}...`, options);
+        try {
+          execSync(
+            `git subtree pull --prefix=${prefix} ${hubRemote} main --squash -m "chore: sync with serverlessclaw hub via subtree"`,
+            {
+              cwd: workingDir,
+              stdio: options.verbose ? 'inherit' : 'pipe',
+              env: { ...process.env, GIT_MERGE_AUTOEDIT: 'no' },
+            }
+          );
+          const commitHash = execSync('git rev-parse HEAD', {
+            cwd: workingDir,
+            encoding: 'utf-8',
+          }).trim();
+          syncResult = {
+            success: true,
+            message: 'Sync completed successfully',
+            commitHash,
+          };
+        } catch (error: unknown) {
+          const errMsg = (error as Error).message;
+          if (options.abortOnConflict) {
+            syncResult = {
+              success: false,
+              message: `Subtree conflict detected. Aborting. Error: ${errMsg}`,
+            };
+            log(syncResult.message, options);
+            outputJson(syncResult, options);
+            process.exit(1);
+          }
+          syncResult = {
+            success: false,
+            message: `Conflict detected during subtree pull. Please resolve manually. Error: ${errMsg}`,
+          };
+        }
       }
     }
 
