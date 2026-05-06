@@ -1,5 +1,5 @@
 import { Command } from 'commander';
-import { runSync } from './commands/sync';
+import { runSync } from './commands/sync.js';
 
 const program = new Command();
 
@@ -7,6 +7,12 @@ program
   .name('claw-sync')
   .description('Sync your repository with the ServerlessClaw Mother Hub')
   .requiredOption('--hub <owner/repo>', 'Hub repository in format owner/repo')
+  .option('--action <action>', 'Sync action: pull (update) or push (contribute)', 'pull')
+  .option(
+    '--branch <branch>',
+    'Branch to push to (required for action=push)',
+    'evolution-contribution'
+  )
   .option('--prefix <path>', 'Subtree prefix (e.g., core/)', 'core/')
   .option('--method <method>', 'Sync method: fork or subtree', 'subtree')
   .option('--working-dir <path>', 'Working directory', process.cwd())
@@ -20,6 +26,8 @@ program
 const options = program.opts();
 
 runSync({
+  action: options.action,
+  branch: options.branch,
   hub: options.hub,
   prefix: options.prefix,
   method: options.method,
