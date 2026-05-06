@@ -36,6 +36,12 @@ export async function handler(): Promise<{
   try {
     const { Resource } = await import('sst');
     logger.info('[HEALTH] Resource keys:', Object.keys(Resource));
+    if (Resource.ConfigTable) {
+      logger.info('[HEALTH] ConfigTable keys:', Object.keys(Resource.ConfigTable));
+      logger.info('[HEALTH] ConfigTable value:', JSON.stringify(Resource.ConfigTable));
+    } else {
+      logger.warn('[HEALTH] ConfigTable MISSING from Resource object!');
+    }
   } catch (err) {
     logger.warn('[HEALTH] Failed to import Resource:', err);
   }
