@@ -5,7 +5,7 @@ test.describe('Dashboard API Integrity (Black-box)', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
 
   test('config api returns valid configuration', async ({ request }) => {
-    const response = await request.get('/api/config');
+    const response = await request.get('/api/config', { timeout: 10000 });
     expect(response.status()).toBe(200);
     const body = await response.json();
 
@@ -16,7 +16,7 @@ test.describe('Dashboard API Integrity (Black-box)', () => {
   });
 
   test('infra pulse api returns active nodes for observability', async ({ request }) => {
-    const response = await request.get('/api/infrastructure'); // Adjusted to correct path
+    const response = await request.get('/api/infrastructure', { timeout: 10000 }); // Adjusted to correct path
     if (response.status() === 401) return;
 
     expect(response.status()).toBe(200);
@@ -26,7 +26,7 @@ test.describe('Dashboard API Integrity (Black-box)', () => {
   });
 
   test('chat api returns sessions list', async ({ request }) => {
-    const response = await request.get('/api/chat');
+    const response = await request.get('/api/chat', { timeout: 10000 });
     if (response.status() === 401) return;
 
     expect(response.status()).toBe(200);
@@ -37,7 +37,7 @@ test.describe('Dashboard API Integrity (Black-box)', () => {
 
   test('trace api allows listing and deleting traces', async ({ request }) => {
     // 1. List traces (assuming /api/trace returns a list or 404/200 if empty)
-    const listRes = await request.get('/api/trace');
+    const listRes = await request.get('/api/trace', { timeout: 10000 });
     if (listRes.status() === 401) return;
 
     // Some routes return 200 [] or 404 if no data, we check for 200
@@ -47,13 +47,16 @@ test.describe('Dashboard API Integrity (Black-box)', () => {
     }
 
     // 2. Test DELETE endpoint (idempotent purge check)
-    const deleteRes = await request.delete('/api/trace?traceId=test-integrity-purge');
+    const deleteRes = await request.delete('/api/trace?traceId=test-integrity-purge', {
+      timeout: 10000,
+    });
     if (deleteRes.status() === 401) return;
     expect([200, 404]).toContain(deleteRes.status());
   });
 
   test('memory status api updates capability gaps', async ({ request }) => {
     const response = await request.post('/api/memory/status', {
+      timeout: 10000,
       data: {
         gapId: 'integrity-test-gap',
         status: 'PLANNED',
