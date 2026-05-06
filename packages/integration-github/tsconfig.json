@@ -4,6 +4,6 @@
     "rootDir": "../../",
     "outDir": "./dist"
   },
-  "include": ["**/*.ts", "../../../.sst/platform/config.d.ts"],
+  "include": ["**/*.ts", "../core/lib/types/sst.d.ts"],
   "exclude": ["node_modules", "dist"]
 }
