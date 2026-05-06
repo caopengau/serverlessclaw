@@ -45,10 +45,15 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Fetch the active locale from system config (server-side)
-  const initialLocale = (await ConfigManager.getTypedConfig<string>(
-    CONFIG_KEYS.ACTIVE_LOCALE,
-    'en'
-  )) as 'en' | 'cn';
+  let initialLocale: 'en' | 'cn' = 'en';
+  try {
+    initialLocale = (await ConfigManager.getTypedConfig<string>(
+      CONFIG_KEYS.ACTIVE_LOCALE,
+      'en'
+    )) as 'en' | 'cn';
+  } catch (err) {
+    console.error('[Dashboard] Failed to fetch initial locale:', err);
+  }
 
   return (
     <html

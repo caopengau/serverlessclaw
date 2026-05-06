@@ -1,3 +1,4 @@
+/// <reference types="sst" />
 /**
  * GitHub Integration Stack
  * Example of a project-specific infrastructure layer.

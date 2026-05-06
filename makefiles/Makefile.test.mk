@@ -14,11 +14,11 @@ test-tier-3: ## Run Tier 3: Deployment health and E2E (uses .sst/outputs.json if
 	@OUTPUTS=$$(cat .sst/outputs.json 2>/dev/null) ; \
 	API_URL=$(URL) ; \
 	if [ -z "$$API_URL" ] && [ -n "$$OUTPUTS" ]; then \
-		API_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('apiUrl',''))" 2>/dev/null) ; \
+		API_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('api',''))" 2>/dev/null) ; \
 	fi ; \
 	FINAL_DASHBOARD_URL=$(DASHBOARD_URL) ; \
 	if [ -z "$$FINAL_DASHBOARD_URL" ] && [ -n "$$OUTPUTS" ]; then \
-		FINAL_DASHBOARD_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboardUrl',''))" 2>/dev/null) ; \
+		FINAL_DASHBOARD_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboard',''))" 2>/dev/null) ; \
 	fi ; \
 	if [ -z "$$API_URL" ]; then $(call log_error,API URL is required for Tier 3); exit 1; fi; \
 	if [ -z "$$FINAL_DASHBOARD_URL" ]; then $(call log_error,DASHBOARD URL is required for Tier 3); exit 1; fi; \
@@ -43,8 +43,8 @@ verify-deploy: ## Full post-deploy verification: API, dashboard, CSS, JS
 	@$(call log_step,Running post-deploy verification...) ; \
 	OUTPUTS=$$(cat .sst/outputs.json 2>/dev/null) ; \
 	if [ -z "$$OUTPUTS" ]; then $(call log_error,.sst/outputs.json not found); exit 1; fi ; \
-	API_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('apiUrl',''))" 2>/dev/null) ; \
-	DASHBOARD_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboardUrl',''))" 2>/dev/null) ; \
+	API_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('api',''))" 2>/dev/null) ; \
+	DASHBOARD_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboard',''))" 2>/dev/null) ; \
 	FAIL=0 ; \
 	echo "" ; \
 	echo "  =========================================" ; \
@@ -109,7 +109,7 @@ smoke-test: ## Fast HTTP smoke test of key routes. Usage: make smoke-test [URL=h
 	FINAL_URL=$(URL) ; \
 	if [ -z "$$FINAL_URL" ]; then \
 		OUTPUTS=$$(cat .sst/outputs.json 2>/dev/null) ; \
-		FINAL_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboardUrl',''))" 2>/dev/null) ; \
+		FINAL_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboard',''))" 2>/dev/null) ; \
 	fi ; \
 	if [ -z "$$FINAL_URL" ] || [[ "$$FINAL_URL" == *"unavailable"* ]]; then \
 		$(call log_warning,No valid URL found for smoke test (detected placeholder or empty). Skipping.); \

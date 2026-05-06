@@ -59,7 +59,6 @@ export async function resetRecoveryAttemptCount(
     UpdateExpression: 'SET #field = :zero, updatedAt = :now',
     ExpressionAttributeNames: { '#field': 'attempts' },
     ExpressionAttributeValues: { ':zero': 0, ':now': Date.now() },
-    ConditionExpression: 'attribute_exists(userId)',
   });
 }
 

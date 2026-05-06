@@ -147,7 +147,7 @@ export function getDomainConfig(component: 'api' | 'dashboard' | 'router'):
     router: 'CLAW_DOMAIN_ROUTER',
   };
   const envVar = envVarMap[component];
-  let domain = process.env[envVar];
+  let domain = process.env[envVar]?.trim();
   // VoltX Default Domains if not overridden in .env
   if (!domain && component === 'dashboard') {
     domain = stage === STAGES.PROD ? 'voltx.clawmore.ai' : 'dev.voltx.clawmore.ai';

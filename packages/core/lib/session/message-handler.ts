@@ -1,5 +1,6 @@
 import { DynamoDBDocumentClient, GetCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../logger';
+
 import { generateMessageId } from '../utils/id-generator';
 import type { PendingMessage } from '../types/session';
 

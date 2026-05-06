@@ -61,6 +61,8 @@ export function createDashboard(
       IOT_AUTHORIZER: ctx.realtime?.authorizer || '',
       AWS_PROFILE: '', // Clear profile to avoid conflict warning as SST injects static credentials
     },
+    architecture: 'arm64',
+    buildCommand: 'pnpm build',
     server: {
       memory: AGENT_CONFIG.memory.LARGE,
       timeout: AGENT_CONFIG.timeout.LONG,

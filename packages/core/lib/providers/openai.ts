@@ -9,6 +9,7 @@ import {
   OpenAIModel,
   MessageChunk,
   ResponseFormat,
+  AttachmentType,
 } from '../types/index';
 import { OPENAI } from '../constants';
 import { logger } from '../logger';

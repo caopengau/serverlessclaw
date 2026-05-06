@@ -42,7 +42,7 @@ function err(msg: string): never {
 async function getNewestBucketName(): Promise<string> {
   const buckets = await s3.send(new ListBucketsCommand({}));
   const bucketName = buckets.Buckets?.filter(
-    (b) => b.Name?.includes('prod') && b.Name?.includes('clawcenterassetsbucket')
+    (b) => b.Name?.includes(STAGE) && b.Name?.includes('clawcenterassetsbucket')
   ).sort((a, b) => (b.CreationDate?.getTime() || 0) - (a.CreationDate?.getTime() || 0))?.[0]?.Name;
   if (!bucketName) err('Could not find ClawCenter assets bucket');
   return bucketName;
@@ -55,8 +55,8 @@ async function findDistribution(): Promise<string> {
   let dashboardDomain = '';
   try {
     const outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf-8'));
-    if (outputs.dashboardUrl) {
-      dashboardDomain = new URL(outputs.dashboardUrl).hostname;
+    if (outputs.dashboard) {
+      dashboardDomain = new URL(outputs.dashboard).hostname;
       log(`Dashboard domain: ${dashboardDomain}`);
     }
   } catch {
@@ -96,7 +96,7 @@ async function addS3Origin(distId: string) {
   const etag = current.ETag!;
 
   const bucketName = await getNewestBucketName();
-  const s3Domain = `${bucketName}.s3.ap-southeast-2.amazonaws.com`;
+  const s3Domain = `${bucketName}.s3.ap-southeast-1.amazonaws.com`;
 
   // Check if S3 origin already exists
   const existingS3 = config.Origins?.Items?.find((o) => o.Id === 's3');
@@ -189,7 +189,7 @@ async function fixCloudFrontFunctionInner(distId: string, fnArn: string) {
   const lambda = new LambdaClient({});
   const lambdaFns = await lambda.send(new ListLambdaFunctions({}));
   const serverFn = lambdaFns.Functions?.filter(
-    (f) => f.FunctionName?.includes('ClawCenterServer') && f.FunctionName?.includes('prod')
+    (f) => f.FunctionName?.includes('ClawCenterServer') && f.FunctionName?.includes(STAGE)
   ).sort((a, b) => new Date(b.LastModified!).getTime() - new Date(a.LastModified!).getTime())?.[0];
   if (!serverFn?.FunctionName) err('Could not find ClawCenter server Lambda');
 
@@ -217,7 +217,7 @@ async function handler(event) {
   var uri = event.request.uri;
   if (uri.startsWith("/_next/") || uri.endsWith(".css") || uri.endsWith(".js") || uri.endsWith(".woff2") || uri.endsWith(".woff") || uri.endsWith(".png") || uri.endsWith(".jpg") || uri.endsWith(".svg") || uri.endsWith(".ico") || uri.endsWith(".json") || uri.endsWith(".map") || uri.endsWith(".txt") || uri.endsWith(".xml")) {
     cf.updateRequestOrigin({
-      domainName: "${bucketName}.s3.ap-southeast-2.amazonaws.com",
+      domainName: "${bucketName}.s3.ap-southeast-1.amazonaws.com",
       originPath: "/_assets",
       originAccessControlConfig: { enabled: true, signingBehavior: "always", signingProtocol: "sigv4", originType: "s3" }
     });

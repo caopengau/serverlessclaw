@@ -61,7 +61,6 @@ export async function atomicUpdateMetadata(
       Key: { userId: pk, timestamp: Number(timestamp) },
       UpdateExpression: `SET updatedAt = :now, ${updates.join(', ')}`,
       ExpressionAttributeValues: updateValues,
-      ConditionExpression: 'attribute_exists(userId)',
     };
     if (Object.keys(attributeNames).length > 0) {
       params.ExpressionAttributeNames = attributeNames;
@@ -93,7 +92,6 @@ export async function atomicIncrement(
       UpdateExpression: `SET ${fieldPath} = if_not_exists(${fieldPath}, :zero) + :one, updatedAt = :now`,
       ExpressionAttributeNames: attrNames,
       ExpressionAttributeValues: attrValues,
-      ConditionExpression: 'attribute_exists(userId)',
       ReturnValues: 'ALL_NEW',
     });
     const attributes = result?.Attributes as Record<string, unknown> | undefined;
