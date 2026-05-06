@@ -1,6 +1,7 @@
 /**
  * Fallback type definitions for SST infrastructure globals.
  */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 declare namespace sst {
   // Values
@@ -25,7 +26,7 @@ declare namespace sst {
     export type dns = any;
   }
   export type Secret = any;
-  export type Linkable<T = any> = any;
+  export type Linkable<_T = any> = any;
 }
 
 declare namespace aws {
@@ -74,7 +75,7 @@ declare namespace aws {
 }
 
 declare namespace $util {
-  export type Input<T> = any;
+  export type Input<_T> = any;
   export const interpolate: any;
   export const jsonStringify: any;
 }
