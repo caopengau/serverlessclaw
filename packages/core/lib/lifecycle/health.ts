@@ -222,7 +222,7 @@ export async function checkTraceCoherence(workspaceId?: string): Promise<Coheren
     if (errorRate > 0.3) {
       healthIssues.push(`High error rate: ${(errorRate * 100).toFixed(1)}%`);
     }
-    if (stepDeviation > avgStepCount * 0.5) {
+    if (stepDeviation > avgStepCount * 0.5 && traceCount > 20) {
       healthIssues.push(
         `High step count variance: std dev ${stepDeviation.toFixed(1)} vs avg ${avgStepCount.toFixed(1)}`
       );
