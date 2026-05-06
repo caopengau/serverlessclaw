@@ -24,12 +24,14 @@ vi.mock('./ChatSidebar', () => ({
 }));
 vi.mock('./ChatHeader', () => ({
   ChatHeader: (props: {
+    activeSessionId: string | null;
     saveTitle: () => void;
     setIsEditingTitle: (val: boolean) => void;
     setIsInviteSelectorOpen: (val: boolean) => void;
     setWarRoomMode: (val: boolean) => void;
   }) => (
     <div data-testid="chat-header">
+      <span data-testid="active-session-id">{props.activeSessionId}</span>
       <button onClick={() => props.setIsEditingTitle(true)}>Edit Title</button>
       <button onClick={() => props.saveTitle()}>Save Title</button>
       <button onClick={() => props.setIsInviteSelectorOpen(true)}>Invite Agent</button>
@@ -243,6 +245,11 @@ describe('ChatContent Component', () => {
 
     // Select a session first
     fireEvent.click(screen.getByText('Select Session'));
+
+    // Wait for the session to be active in the component state
+    await waitFor(() => {
+      expect(screen.getByTestId('active-session-id')).toHaveTextContent('session-1');
+    });
 
     fireEvent.click(screen.getByText('Edit Title'));
     fireEvent.click(screen.getByText('Save Title'));

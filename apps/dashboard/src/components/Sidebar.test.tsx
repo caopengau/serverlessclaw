@@ -151,13 +151,13 @@ describe('Sidebar Component', () => {
     expect(tooltips.length).toBeGreaterThan(0);
   });
 
-  it('toggles theme when theme button is clicked', () => {
+  it('toggles theme when theme button is clicked', async () => {
     mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
     const setTheme = vi.fn();
     mockUseTheme.mockReturnValue({ theme: 'dark', setTheme });
     render(<Sidebar />);
 
-    const themeButton = screen.getByTestId('icon-sun').closest('button');
+    const themeButton = await waitFor(() => screen.getByTestId('icon-sun').closest('button'));
     fireEvent.click(themeButton!);
 
     expect(setTheme).toHaveBeenCalledWith('light');
