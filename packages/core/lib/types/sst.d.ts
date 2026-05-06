@@ -3,9 +3,13 @@
  */
 
 declare namespace sst {
+  // Values
   export const aws: any;
   export const cloudflare: any;
+  export const Secret: any;
+  export const Linkable: any;
 
+  // Types
   export namespace aws {
     export type Bus = any;
     export type Queue = any;
@@ -25,13 +29,19 @@ declare namespace sst {
 }
 
 declare namespace aws {
+  // Values
   export const iam: any;
   export const s3: any;
   export const lambda: any;
   export const codebuild: any;
   export const sns: any;
   export const budgets: any;
+  export const scheduler: any;
+  export const cloudwatch: any;
+  export const getRegionOutput: any;
+  export const getCallerIdentityOutput: any;
 
+  // Types
   export namespace iam {
     export type Role = any;
     export type Policy = any;
@@ -54,6 +64,19 @@ declare namespace aws {
   export namespace budgets {
     export type Budget = any;
   }
+  export namespace scheduler {
+    export type Schedule = any;
+  }
+  export namespace cloudwatch {
+    export type EventRule = any;
+    export type EventTarget = any;
+  }
+}
+
+declare namespace $util {
+  export type Input<T> = any;
+  export const interpolate: any;
+  export const jsonStringify: any;
 }
 
 declare const sst: any;
