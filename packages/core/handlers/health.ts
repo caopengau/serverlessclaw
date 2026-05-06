@@ -34,6 +34,13 @@ export async function handler(): Promise<{
   logger.info('[HEALTH] SST Resources in ENV:', sstResources);
 
   try {
+    const { Resource } = await import('sst');
+    logger.info('[HEALTH] Resource keys:', Object.keys(Resource));
+  } catch (err) {
+    logger.warn('[HEALTH] Failed to import Resource:', err);
+  }
+
+  try {
     const deepCheck = await runDeepHealthCheck();
 
     if (!deepCheck.ok) {
