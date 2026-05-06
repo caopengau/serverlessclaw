@@ -208,11 +208,3 @@ export async function pruneStagingBucket(scope: { workspaceId?: string }): Promi
     throw e;
   }
 }
-/**
- * Prunes stale artifacts from the staging bucket.
- */
-export async function pruneStagingBucket(options?: { workspaceId?: string }): Promise<number> {
-  // TODO: Implement actual S3 cleanup logic
-  logger.info(`[Metabolism] Pruning staging bucket (Scope: ${options?.workspaceId || 'GLOBAL'})...`);
-  return 0;
-}
