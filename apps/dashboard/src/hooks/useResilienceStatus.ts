@@ -63,7 +63,10 @@ export function useResilienceStatus(intervalMs = 30000) {
   }, []);
 
   useEffect(() => {
-    fetchStatus();
+    const init = async () => {
+      await fetchStatus();
+    };
+    init();
     const interval = setInterval(fetchStatus, intervalMs);
     return () => clearInterval(interval);
   }, [fetchStatus, intervalMs]);

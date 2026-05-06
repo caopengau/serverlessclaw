@@ -51,8 +51,10 @@ export default function AgentsPage() {
   }, []);
 
   useEffect(() => {
-    fetchAgents();
-    fetchTools();
+    const init = async () => {
+      await Promise.all([fetchAgents(), fetchTools()]);
+    };
+    init();
   }, [fetchAgents, fetchTools]);
 
   const handleRealtimeMessage = useCallback(

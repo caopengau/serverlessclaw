@@ -1,5 +1,4 @@
 import { test, expect } from '@playwright/test';
-import { logger } from '../packages/core/src/lib/logger';
 
 test.describe('Chat Flow', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });
@@ -58,7 +57,7 @@ test.describe('Chat Flow', () => {
       const executingButton = page.getByText(/EXECUTING|处理中/i);
       await expect(executingButton).toBeVisible({ timeout: 1000 });
     } catch {
-      logger.info('Response was likely too fast to catch EXECUTING state');
+      console.info('Response was likely too fast to catch EXECUTING state');
     }
   });
 

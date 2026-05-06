@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, BarChart2, Clock, TrendingUp, Zap, Trash2, Edit3, Save, RefreshCw } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Badge from '@/components/ui/Badge';
@@ -67,16 +67,9 @@ export default function MemoryDetailModal({
 }: MemoryDetailModalProps) {
   const { t } = useTranslations();
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState('');
+  const [editContent, setEditContent] = useState(item?.content || '');
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  useEffect(() => {
-    if (item) {
-      setEditContent(item.content);
-      setIsEditing(false);
-    }
-  }, [item]);
 
   if (!item) return null;
 
@@ -129,7 +122,10 @@ export default function MemoryDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div
+      key={item ? `${item.userId}-${item.timestamp}` : 'none'}
+      className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+    >
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative w-full max-w-3xl max-h-[85vh] flex flex-col bg-background border border-border rounded-lg shadow-xl overflow-hidden">
