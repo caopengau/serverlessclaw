@@ -56,7 +56,10 @@ export default function Sidebar() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const init = async () => {
+      setMounted(true);
+    };
+    init();
   }, []);
 
   // Close mobile sidebar on navigation

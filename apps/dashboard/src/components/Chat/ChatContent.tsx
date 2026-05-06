@@ -82,29 +82,34 @@ export default function ChatContent() {
   const [activeCollaborators, setActiveCollaborators] = useState<string[]>([AGENT_TYPES.SUPERCLAW]);
   const [collaborationId, setCollaborationId] = useState<string | null>(null);
   const [isTransiting, setIsTransiting] = useState(false);
-  const [warRoomMode, setWarRoomMode] = useState(true);
-  const [isChatSidebarCollapsed, setIsChatSidebarCollapsed] = useState(false);
+  const [warRoomMode, setWarRoomMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('claw_war_room_mode');
+      return saved !== null ? saved === 'true' : true;
+    }
+    return true;
+  });
+
+  const [isChatSidebarCollapsed, setIsChatSidebarCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('claw_chat_sidebar_collapsed');
+      if (saved !== null) return saved === 'true';
+      const savedWarRoom = localStorage.getItem('claw_war_room_mode');
+      const actualWarRoom = savedWarRoom !== null ? savedWarRoom === 'true' : true;
+      return actualWarRoom;
+    }
+    return false;
+  });
 
   useEffect(() => {
-    const savedWarRoom = localStorage.getItem('claw_war_room_mode');
-    const actualWarRoom = savedWarRoom !== null ? savedWarRoom === 'true' : true;
-    setWarRoomMode(actualWarRoom);
-
-    const savedCollapsed = localStorage.getItem('claw_chat_sidebar_collapsed');
-    if (savedCollapsed !== null) {
-      setIsChatSidebarCollapsed(savedCollapsed === 'true');
-    } else {
-      // Default to collapsed in war room mode if no saved preference
-      setIsChatSidebarCollapsed(actualWarRoom);
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('claw_war_room_mode', String(warRoomMode));
-    // Auto-collapse sidebar when entering war room mode if it wasn't explicitly set
-    if (warRoomMode && localStorage.getItem('claw_chat_sidebar_collapsed') === null) {
-      setIsChatSidebarCollapsed(true);
-    }
+    const sync = async () => {
+      localStorage.setItem('claw_war_room_mode', String(warRoomMode));
+      // Auto-collapse sidebar when entering war room mode if it wasn't explicitly set
+      if (warRoomMode && localStorage.getItem('claw_chat_sidebar_collapsed') === null) {
+        setIsChatSidebarCollapsed(true);
+      }
+    };
+    sync();
   }, [warRoomMode]);
 
   useEffect(() => {

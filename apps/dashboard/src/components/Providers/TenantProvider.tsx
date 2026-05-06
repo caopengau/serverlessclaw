@@ -27,9 +27,13 @@ const TenantContext = createContext<TenantContextType | undefined>(undefined);
  * Enables Enterprise Scale isolation across the dashboard.
  */
 export function TenantProvider({ children }: { children: React.ReactNode }) {
-  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(null);
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('claw_active_workspace');
+    }
+    return null;
+  });
   const [workspaces, setWorkspaces] = useState<TenantInfo[]>([]);
-  const [tenantInfo, setTenantInfo] = useState<TenantInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchWorkspaces = useCallback(async () => {
@@ -44,12 +48,8 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Load selection and fetch list on mount
+  // Fetch list on mount
   useEffect(() => {
-    const saved = localStorage.getItem('claw_active_workspace');
-    if (saved) {
-      setActiveWorkspaceId(saved);
-    }
     fetchWorkspaces();
   }, [fetchWorkspaces]);
 
@@ -63,13 +63,11 @@ export function TenantProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Update detailed tenant info when selection or list changes
-  useEffect(() => {
+  const tenantInfo = useMemo(() => {
     if (activeWorkspaceId && workspaces.length > 0) {
-      const info = workspaces.find((w) => w.id === activeWorkspaceId);
-      setTenantInfo(info || null);
-    } else {
-      setTenantInfo(null);
+      return workspaces.find((w) => w.id === activeWorkspaceId) || null;
     }
+    return null;
   }, [activeWorkspaceId, workspaces]);
 
   const value = useMemo(
