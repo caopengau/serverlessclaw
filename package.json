@@ -58,7 +58,7 @@
     "zod": "^4.3.6"
   },
   "lint-staged": {
-    "**/*.ts": [
+    "**/*.{ts,tsx}": [
       "eslint --fix",
       "prettier --write"
     ]

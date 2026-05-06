@@ -4,11 +4,6 @@ import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
-interface Member {
-  id: string;
-  role: string;
-  channel: string;
-}
 
 interface WorkspaceModalsProps {
   showModal: boolean;

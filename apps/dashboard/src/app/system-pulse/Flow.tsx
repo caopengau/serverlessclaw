@@ -75,7 +75,10 @@ export function FlowContent() {
   }, [setNodes, setEdges]);
 
   useEffect(() => {
-    fetchTopology();
+    const init = async () => {
+      await fetchTopology();
+    };
+    init();
   }, [fetchTopology]);
 
   return (

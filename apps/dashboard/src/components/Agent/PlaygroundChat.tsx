@@ -21,8 +21,14 @@ export default function PlaygroundChat({
   onTraceUpdate?: (traceId: string) => void;
   replayTraceId?: string;
 }) {
-  const [activeSessionId, setActiveSessionId] = useState<string>(`playground_${Date.now()}`);
+  const [activeSessionId, setActiveSessionId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!activeSessionId) {
+      setActiveSessionId(`playground_${Date.now()}`);
+    }
+  }, [activeSessionId]);
   const [input, setInput] = useState('');
   const isPostInFlight = useRef(false);
   const seenMessageIds = useRef<Set<string>>(new Set());

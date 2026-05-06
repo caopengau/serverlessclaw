@@ -63,7 +63,10 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
+    const init = async () => {
+      await fetchUsers();
+    };
+    init();
   }, []);
 
   const handleCreateUser = async (e: React.FormEvent) => {

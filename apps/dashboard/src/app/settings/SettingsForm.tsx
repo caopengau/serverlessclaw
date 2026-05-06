@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import { Save } from 'lucide-react';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
-import { SYSTEM } from '@claw/core/lib/constants';
 import { LLMProvider, OpenAIModel } from '@claw/core/lib/types/llm';
 import { EvolutionMode } from '@claw/core/lib/types/agent';
 import Button from '@/components/ui/Button';
