@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from 'react';
 import { Plus, Loader2, Zap, Trash2 } from 'lucide-react';
-import { deleteMCPServer, registerMCPServer } from '../../app/capabilities/actions';
+import { deleteMCPServer, registerMCPServer } from '../../app/(dashboard)/capabilities/actions';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Button from '../ui/Button';

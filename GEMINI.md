@@ -1,8 +1,7 @@
 # ServerlessClaw Framework Instructions
 
 ## Core Mandate: OSS Purity
-
-ServerlessClaw is a generic, product-agnostic OSS framework.
+ServerlessClaw is a generic, product-agnostic OSS framework. 
 
 1.  **Strict Product Separation:** This directory (`framework/`) MUST NOT contain any code, assets, or configuration specific to downstream products (e.g., Voltx, propertyflow).
 2.  **Extensibility First:** If a product needs a custom behavior, implement a generic hook, provider slot, or extension point within the framework.

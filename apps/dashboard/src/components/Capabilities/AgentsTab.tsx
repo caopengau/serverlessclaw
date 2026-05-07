@@ -2,7 +2,7 @@
 
 import React, { useState, useTransition } from 'react';
 import { Cpu, Zap, Loader2, X, Search } from 'lucide-react';
-import { updateAgentTools } from '../../app/capabilities/actions';
+import { updateAgentTools } from '../../app/(dashboard)/capabilities/actions';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Button from '../ui/Button';

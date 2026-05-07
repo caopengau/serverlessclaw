@@ -6,7 +6,7 @@ import { Activity, ShieldAlert, Brain, Lock, Loader2, Zap } from 'lucide-react';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 // Dynamic imports for the heavy sub-views
-const PulseFlow = dynamic(() => import('../../app/system-pulse/Flow'), {
+const PulseFlow = dynamic(() => import('../../app/(dashboard)/system-pulse/Flow'), {
   ssr: false,
   loading: () => <LoadingPlaceholder label="Establishing Neural Uplink..." />,
 });

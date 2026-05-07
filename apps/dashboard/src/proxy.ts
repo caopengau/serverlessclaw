@@ -29,6 +29,12 @@ export default function proxy(request: NextRequest): NextResponse {
 
   const authCookie = request.cookies.get(AUTH.COOKIE_NAME);
 
+  // Redirect authenticated users from landing to dashboard
+  if (pathname === '/' && authCookie && authCookie.value === AUTH.COOKIE_VALUE) {
+    const dashboardUrl = new URL('/dashboard', request.url);
+    return NextResponse.redirect(dashboardUrl);
+  }
+
   if (!authCookie || authCookie.value !== AUTH.COOKIE_VALUE) {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
