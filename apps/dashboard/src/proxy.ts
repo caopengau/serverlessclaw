@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { AUTH } from '@/lib/constants';
 import { logger } from '@claw/core/lib/logger';
 
-const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout'];
+const PUBLIC_PATHS = ['/', '/login', '/api/auth/login', '/api/auth/logout'];
 
 const PUBLIC_PATH_PREFIXES = ['/_next', '/static', '/favicon', '/icon', '/robots.txt'];
 
@@ -33,8 +33,8 @@ export default function proxy(request: NextRequest): NextResponse {
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
+    const landingUrl = new URL('/', request.url);
+    return NextResponse.redirect(landingUrl);
   }
 
   return NextResponse.next();

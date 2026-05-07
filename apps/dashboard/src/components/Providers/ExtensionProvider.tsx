@@ -40,7 +40,7 @@ interface ExtensionContextType {
 const ExtensionContext = createContext<ExtensionContextType | undefined>(undefined);
 
 /**
- * ExtensionProvider allows domain-specific applications (like VoltX) to inject
+ * ExtensionProvider allows domain-specific applications to inject
  * custom UI elements into the base ServerlessClaw dashboard.
  */
 export function ExtensionProvider({ children }: { children: ReactNode }) {

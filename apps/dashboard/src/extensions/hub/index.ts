@@ -1,7 +1,15 @@
 /**
- * Generic placeholder extension for framework builds.
- * Product-specific registrations should be injected by downstream repos.
+ * Extension Hub Template
+ * 
+ * Includes both landing page and dashboard extension components.
+ * The framework dashboard build process copies these exports into
+ * the extensions/hub directory at build time from the target product.
  */
-export function init(_registrar: unknown): void {
-  // Intentionally no-op in the framework base package.
+export { LandingPage } from './components/landing/LandingPage';
+
+/**
+ * Product Dashboard Extension Initializer
+ */
+export function init({ registerSidebar, registerComponent }: any) {
+  // Products can register their own sidebar items and components here
 }
