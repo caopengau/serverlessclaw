@@ -3,7 +3,7 @@
  * Consolidates duplicate pattern-detect issues across capabilities components
  */
 import { useState, useTransition } from 'react';
-import { updateAgentTools } from '../../app/capabilities/actions';
+import { updateAgentTools } from '../../app/(dashboard)/capabilities/actions';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
