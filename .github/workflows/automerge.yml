@@ -1,0 +1,20 @@
+name: Auto-merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+
+jobs:
+  enable-automerge:
+    name: Enable Auto-merge
+    runs-on: ubuntu-latest
+    # Enable auto-merge for Renovate PRs or PRs with 'automerge' label
+    if: |
+      github.event.pull_request.user.login == 'renovate[bot]' ||
+      contains(github.event.pull_request.labels.*.name, 'automerge')
+    steps:
+      - name: Enable Auto-merge
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
