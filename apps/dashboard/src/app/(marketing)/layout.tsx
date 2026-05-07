@@ -90,9 +90,7 @@ export default async function RootLayout({
                             },
                           }}
                         />
-                        <div className="flex-1 overflow-y-auto">
-                          {children}
-                        </div>
+                        <div className="flex-1 overflow-y-auto">{children}</div>
                       </PageContextProvider>
                     </UICommandProvider>
                   </PresenceProvider>
