@@ -22,3 +22,4 @@ coverage/
 **/next-env.d.ts
 test-results/
 reports/
+e2e/.auth/

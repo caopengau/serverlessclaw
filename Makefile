@@ -10,6 +10,7 @@ include makefiles/Makefile.release.mk
 pre-commit: ## Run pre-commit checks in sequence (resource-aware local defaults)
 	@$(call log_step,Running pre-commit checks (resource-aware)...)
 	@$(MAKE) lint-staged
+	@$(MAKE) format-check
 	@$(MAKE) type-check TURBO_FLAGS="--concurrency=2"
 	@$(MAKE) docs-check
 
@@ -17,6 +18,7 @@ pre-push: ## Run full pre-push checks in sequence (monorepo-wide)
 	@$(call log_step,Running full pre-push checks (monorepo-wide)...)
 	@$(MAKE) verify-up-to-date
 	@$(MAKE) gate-tier-1 TURBO_FLAGS="--concurrency=2"
+	@$(MAKE) test-tier-1
 
 pre-push-full: ## Run strict pre-push checks in parallel (rebase + gate-fast + aiready + smoke)
 	@$(call log_step,Running strict pre-push checks in parallel...)

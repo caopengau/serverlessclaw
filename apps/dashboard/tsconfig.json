@@ -1,11 +1,7 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -18,36 +14,19 @@
     "jsx": "react-jsx",
     "incremental": true,
     "allowImportingTsExtensions": true,
-    "types": [
-      "vitest/globals",
-      "@testing-library/jest-dom",
-      "react",
-      "react-dom"
-    ],
+    "types": ["vitest/globals", "@testing-library/jest-dom", "react", "react-dom"],
     "plugins": [
       {
         "name": "next"
       }
     ],
     "paths": {
-      "@/*": [
-        "./src/*"
-      ],
-      "@claw/core/*": [
-        "../../packages/core/*"
-      ],
-      "@claw/ui": [
-        "../../packages/ui/src/index.ts"
-      ],
-      "@claw/ui/*": [
-        "../../packages/ui/src/*"
-      ],
-      "@claw/hooks": [
-        "../../packages/hooks/src/index.ts"
-      ],
-      "@claw/hooks/*": [
-        "../../packages/hooks/src/*"
-      ]
+      "@/*": ["./src/*"],
+      "@claw/core/*": ["../../packages/core/*"],
+      "@claw/ui": ["../../packages/ui/src/index.ts"],
+      "@claw/ui/*": ["../../packages/ui/src/*"],
+      "@claw/hooks": ["../../packages/hooks/src/index.ts"],
+      "@claw/hooks/*": ["../../packages/hooks/src/*"]
     }
   },
   "include": [
@@ -60,7 +39,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": [
-    "node_modules"
-  ]
+  "exclude": ["node_modules"]
 }
