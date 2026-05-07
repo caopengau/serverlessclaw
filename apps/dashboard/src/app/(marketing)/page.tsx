@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 
 /**
  * Landing Page with Extension Support
- * 
+ *
  * Dynamically loads a custom landing page from the hub extension if available.
  * Falls back to generic landing page if no custom implementation exists.
- * 
+ *
  * Products can provide a custom landing page by exporting from their hub extension:
  *   export { LandingPage } from '@product-ui/components/landing';
  */

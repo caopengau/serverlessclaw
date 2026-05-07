@@ -1,6 +1,6 @@
 /**
  * Extension Hub Template
- * 
+ *
  * Includes both landing page and dashboard extension components.
  * The framework dashboard build process copies these exports into
  * the extensions/hub directory at build time from the target product.
