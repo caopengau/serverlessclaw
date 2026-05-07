@@ -38,8 +38,8 @@ importers:
         specifier: ^22.0.1
         version: 22.0.1
       '@opennextjs/aws':
-        specifier: 3.10.4
-        version: 3.10.4(next@16.2.4(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))
+        specifier: 4.0.0
+        version: 4.0.0(next@16.2.4(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))
       dotenv:
         specifier: ^17.4.0
         version: 17.4.2
@@ -1800,8 +1800,8 @@ packages:
       zod:
         optional: true
 
-  '@opennextjs/aws@3.10.4':
-    resolution: {integrity: sha512-xVmWHGdptJgVhQivuoeAYqsWpIgGoDEeZJC6AYMgvQYisDicGuS7gh10Z8MEmrgsJxNGdZ0arCCDieGxM88afw==}
+  '@opennextjs/aws@4.0.0':
+    resolution: {integrity: sha512-lIP93yjhP8SPo9Pi0Q8ZNzefoMBuef+i1aZXgoNbovNDv6auz6rtsTwE4EUCqIcff5mfYyXPjoE1F6tYdIRvdw==}
     hasBin: true
     peerDependencies:
       next: 16.2.4
@@ -2659,6 +2659,7 @@ packages:
 
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
+    deprecated: Potential CWE-502 - Update to 1.3.1 or higher
 
   '@unit-mesh/treesitter-artifacts@1.7.7':
     resolution: {integrity: sha512-eBon4TXCsBU3pyjfBChU2UAiCc6UPSSqH0BgwSoufgGNcPxb3xw94Gy0J4BHnnIXWLGHjqd24wzXa5Ftk6gAUw==}
@@ -8980,7 +8981,7 @@ snapshots:
       - supports-color
       - ws
 
-  '@opennextjs/aws@3.10.4(next@16.2.4(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))':
+  '@opennextjs/aws@4.0.0(next@16.2.4(@playwright/test@1.59.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))':
     dependencies:
       '@ast-grep/napi': 0.40.5
       '@aws-sdk/client-cloudfront': 3.984.0
