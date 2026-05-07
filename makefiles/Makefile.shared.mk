@@ -111,31 +111,54 @@ define load_env
 	fi
 endef
 
-.PHONY: show-env verify-up-to-date
+.PHONY: show-env verify-up-to-date pull sync sync-downstream sync-upstream sync-status
 
 verify-up-to-date: ## Verify local branch is up to date with remote
 	@$(call verify_up_to_date)
 
 # --- SYNC ---
-pull: ## Fetch and pull both latest remote (origin and framework upstream)
+# Repo boundary policy:
+# - voltx is the primary repo (origin)
+# - framework is a subtree sourced from serverlessclaw
+# - official serverlessclaw remote is fetch-only in voltx by default
+SUBTREE_OFFICIAL_REMOTE ?= sc-official
+SUBTREE_BRANCH ?= main
+
+pull: ## Pull latest origin branch, then pull latest official framework subtree
 	@$(call log_step,Pulling latest changes from origin...)
 	@git pull origin $$(git rev-parse --abbrev-ref HEAD)
 	@$(MAKE) sync-downstream
 
-sync: ## Push both to remote (origin and framework upstream)
+sync: ## Push voltx to origin only (safe default)
 	@$(call log_step,Pushing latest changes to origin...)
 	@git push origin $$(git rev-parse --abbrev-ref HEAD)
-	@$(MAKE) sync-upstream
 
-sync-downstream: ## Pull latest evolution from upstream framework (serverlessclaw)
-	@$(call log_step,Syncing downstream via subtree pull from upstream/main...)
-	@GIT_EDITOR=true git subtree pull --prefix=framework upstream main --squash
-	@$(call log_success,Framework synced successfully.)
+sync-status: ## Show sync remote safety status for subtree operations
+	@$(call log_step,Checking subtree remote safety...)
+	@echo "origin (push):       $$(git remote get-url --push origin 2>/dev/null || echo 'N/A')" ; \
+	 echo "$(SUBTREE_OFFICIAL_REMOTE) (fetch): $$(git remote get-url $(SUBTREE_OFFICIAL_REMOTE) 2>/dev/null || echo 'N/A')" ; \
+	 echo "$(SUBTREE_OFFICIAL_REMOTE) (push):  $$(git remote get-url --push $(SUBTREE_OFFICIAL_REMOTE) 2>/dev/null || echo 'N/A')"
 
-sync-upstream: ## Push core framework improvements back to upstream
-	@$(call log_step,Pushing framework improvements via subtree push to upstream/main...)
-	@git subtree push --prefix=framework upstream main
-	@$(call log_success,Framework improvements promoted to upstream.)
+sync-downstream: ## Pull latest framework subtree from official upstream (fetch-only remote)
+	@$(call log_step,Syncing framework subtree from $(SUBTREE_OFFICIAL_REMOTE)/$(SUBTREE_BRANCH)...)
+	@git fetch $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH)
+	@GIT_EDITOR=true git subtree pull --prefix=framework $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH)
+	@$(call log_success,Framework subtree synced from official upstream.)
+
+sync-upstream: ## Push framework subtree to explicit remote (required: SYNC_UPSTREAM_REMOTE)
+	@$(call log_step,Preparing framework subtree push...)
+	@if [ -z "$(SYNC_UPSTREAM_REMOTE)" ]; then \
+		$(call log_error,SYNC_UPSTREAM_REMOTE is required. Example: make sync-upstream SYNC_UPSTREAM_REMOTE=hub-origin); \
+		exit 1; \
+	fi
+	@if [ "$$(git remote get-url --push $(SYNC_UPSTREAM_REMOTE) 2>/dev/null || echo 'MISSING')" = "DISABLED" ]; then \
+		$(call log_error,Push remote $(SYNC_UPSTREAM_REMOTE) is DISABLED. Enable intentionally before pushing subtree.); \
+		exit 1; \
+	fi
+	@$(call verify_clean)
+	@$(call log_step,Pushing framework subtree to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH)...)
+	@git subtree push --prefix=framework $(SYNC_UPSTREAM_REMOTE) $(SUBTREE_BRANCH)
+	@$(call log_success,Framework subtree pushed to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH).)
 
 show-env: ## Show current environment variables (filtered)
 	@$(call load_env); \

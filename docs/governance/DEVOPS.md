@@ -35,11 +35,40 @@ The main `Makefile` at the root is the "Hub". It includes specialized "Spoke" fi
 | `make test-affected`   | Test     | Run only tests affected by recent changes (smart selection)    |
 | `make security-scan`   | Test     | Scan dependencies for security vulnerabilities                 |
 | `make docs-check`      | Test     | Validate documentation is in sync with code                    |
-| `make sync-downstream` | Sync     | Pull latest evolution from upstream framework (serverlessclaw) |
-| `make sync-upstream`   | Sync     | Push core framework improvements back to upstream              |
+| `make sync-status`     | Sync     | Show safe remote mapping and push/fetch state for subtree      |
+| `make sync-downstream` | Sync     | Pull latest framework subtree from official serverlessclaw      |
+| `make sync-upstream`   | Sync     | Push framework subtree to explicit remote (must opt in)         |
 | `make manifest`        | CI       | Generate a failure manifest from CI logs                       |
 
 Note: SST-related Make targets invoke the workspace-local SST binary (`./node_modules/.bin/sst`) directly. Run `pnpm install` first so this binary is available.
+
+### Two-Repo Boundary (Critical)
+
+This workspace intentionally uses two repos with different roles:
+
+1. `voltx` is the primary product repo (push target: `origin`).
+2. `framework/` is a git subtree sourced from `serverlessclaw`.
+3. Official `serverlessclaw` remote in `voltx` is fetch-only by default (`sc-official`).
+4. Subtree push is never implicit; it requires explicit `SYNC_UPSTREAM_REMOTE`.
+
+Safe defaults in Make targets:
+
+1. `make sync` pushes only `voltx` to `origin`.
+2. `make sync-downstream` fetches/pulls subtree from `sc-official/main`.
+3. `make sync-upstream` fails unless `SYNC_UPSTREAM_REMOTE` is set and push is enabled.
+
+Examples:
+
+```bash
+# Pull latest official framework into voltx subtree
+make sync-downstream
+
+# Push voltx repo only
+make sync
+
+# Push framework subtree intentionally to local hub clone
+make sync-upstream SYNC_UPSTREAM_REMOTE=hub-origin
+```
 
 ### Stage Hygiene (Safety-Critical)
 
@@ -285,6 +314,8 @@ Triggers `make pre-push`, which runs:
 2. `make gate-fast`: Fast quality sweep for affected work with constrained Turbo concurrency.
 
 For stricter local validation, run `make pre-push-full` manually. This executes `verify-up-to-date`, `gate-fast`, `aiready`, and `smoke-test` in parallel.
+
+Note: if your local branch intentionally diverges from `origin/main` (for subtree experiments or long-running sync branches), pre-push may block until rebased. This is expected and protects accidental history drift.
 
 ---
 
