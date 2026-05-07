@@ -9,9 +9,10 @@ import { SharedContext, getDomainConfig, AGENT_CONFIG, getValidSecrets } from '.
  */
 export function createDashboard(
   ctx: SharedContext,
-  options: { pathPrefix?: string } = {}
+  options: { pathPrefix?: string; extensionSource?: string } = {}
 ): { dashboard: sst.aws.Nextjs } {
   const prefix = options.pathPrefix ?? '';
+  const extSource = options.extensionSource ?? '';
   const {
     memoryTable,
     traceTable,
@@ -62,7 +63,9 @@ export function createDashboard(
       AWS_PROFILE: '', // Clear profile to avoid conflict warning as SST injects static credentials
     },
     architecture: 'arm64',
-    buildCommand: 'pnpm build',
+    buildCommand: `mkdir -p src/extensions/hub && find src/extensions/hub -mindepth 1 ! -name 'index.ts' -exec rm -rf {} + && ${
+      extSource ? `cp -rL ${extSource} src/extensions/hub/ && ` : ''
+    }npx open-next build`,
     server: {
       memory: AGENT_CONFIG.memory.LARGE,
       timeout: AGENT_CONFIG.timeout.LONG,

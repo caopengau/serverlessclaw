@@ -64,7 +64,7 @@ export const AGENT_CONFIG = {
     SMALL: '256 MB',
     MEDIUM: '512 MB',
     MEDIUM_LARGE: '768 MB',
-    LARGE: '1024 MB',
+    LARGE: '2048 MB',
   },
   timeout: {
     SHORT: '30 seconds',

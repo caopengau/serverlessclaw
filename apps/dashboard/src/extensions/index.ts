@@ -1,19 +1,20 @@
-// @ts-nocheck
 /**
  * ServerlessClaw Dashboard Extensions
- * This file is the bridge between the framework and domain-specific extensions.
+ * This file is the bridge between the framework and hub-specific extensions.
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function init(registry: any) {
   try {
-    // Dynamically attempt to load VoltX UI if present
-    // @ts-expect-error - External package
-    const { init: initVoltX } = await import('@voltx/ui');
-    if (typeof initVoltX === 'function') {
-      initVoltX(registry);
+    /**
+     * Standardized hub extension entry point.
+     * The /src/extensions/hub folder is a generic hook for project-specific UI logic.
+     */
+    const { init: hubInit } = await import('./hub');
+    if (typeof hubInit === 'function') {
+      hubInit(registry);
     }
   } catch {
-    // VoltX not present or failed to load, skip gracefully
+    // No hub extensions present or failed to load, skip gracefully
   }
 }

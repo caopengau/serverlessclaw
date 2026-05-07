@@ -20,6 +20,7 @@
     "@aws-sdk/client-scheduler": "^3.1004.0",
     "@aws-sdk/lib-dynamodb": "^3.1004.0",
     "@serverlessclaw/core": "workspace:*",
+    "@swc/helpers": "^0.5.21",
     "@xyflow/react": "^12.10.1",
     "lucide-react": "^1.0.0",
     "mqtt": "^5.15.0",
@@ -28,8 +29,8 @@
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "react-markdown": "^10.1.0",
-    "remark-gfm": "^4.0.1",
     "recharts": "^3.0.0",
+    "remark-gfm": "^4.0.1",
     "sonner": "^2.0.7",
     "sst": "4.13.1",
     "zod": "^4.3.6"
