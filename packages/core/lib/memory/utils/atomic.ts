@@ -61,6 +61,7 @@ export async function atomicUpdateMetadata(
       Key: { userId: pk, timestamp: Number(timestamp) },
       UpdateExpression: `SET updatedAt = :now, ${updates.join(', ')}`,
       ExpressionAttributeValues: updateValues,
+      ConditionExpression: 'attribute_exists(userId)',
     };
     if (Object.keys(attributeNames).length > 0) {
       params.ExpressionAttributeNames = attributeNames;
