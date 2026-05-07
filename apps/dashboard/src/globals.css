@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 @source "./**/*.{ts,tsx}";
+@source "../../packages/*/src/**/*.{ts,tsx}";
+@source "../../../../packages/*/src/**/*.{ts,tsx}";
 
 @theme {
   --color-cyber-green: var(--cyber-green);
@@ -91,6 +93,17 @@ body {
 
 .cyber-border {
   border-left: 2px solid var(--cyber-green);
+}
+
+.bg-grid-white {
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.bg-grid-cyber-green {
+  background-image: linear-gradient(rgba(0, 255, 163, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 163, 0.05) 1px, transparent 1px);
+  background-size: 50px 50px;
 }
 
 /* Custom Utilities for Dynamic Theme Colors */
