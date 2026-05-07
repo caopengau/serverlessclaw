@@ -10,6 +10,7 @@ include makefiles/Makefile.release.mk
 pre-commit: ## Run pre-commit checks in sequence (resource-aware local defaults)
 	@$(call log_step,Running pre-commit checks (resource-aware)...)
 	@$(MAKE) lint-staged
+	@$(MAKE) format-check
 	@$(MAKE) type-check TURBO_FLAGS="--concurrency=2"
 	@$(MAKE) docs-check
 
