@@ -342,7 +342,7 @@ importers:
         version: 0.5.18(zod@4.4.3)
       '@cyanheads/git-mcp-server':
         specifier: ^2.10.5
-        version: 2.15.0
+        version: 2.15.1
       '@geunoh/s3-mcp-server':
         specifier: ^1.3.1
         version: 1.3.1
@@ -1035,8 +1035,8 @@ packages:
     resolution: {integrity: sha512-QxULHAm7cNu72w97JUNCBFODFaXpbDg+dP8b/oWFAZ2MTRppA3U00Y2L1HqaS4J6yBqxwa/Y3nMBaxVKbB/NsA==}
     engines: {node: '>=20.19.0'}
 
-  '@cyanheads/git-mcp-server@2.15.0':
-    resolution: {integrity: sha512-yJh4fVqyd1uXawpW+//Gf94CCJp9JCYJpb1TV+VpE1xsGnCyI00Ft1KogCOAhRtFIwPcGV8tiWBjR2HHNxLZIw==}
+  '@cyanheads/git-mcp-server@2.15.1':
+    resolution: {integrity: sha512-IuBjTfFhyNCceNwfTWcda2SPiQaGqyo3fw2OVwXzRzPT+vKAybFH4ntZTbZt5VRlpdTIpVevUkmGC0ZY09roLQ==}
     engines: {bun: '>=1.2.0', node: '>=20.0.0'}
     hasBin: true
 
@@ -8379,7 +8379,7 @@ snapshots:
 
   '@csstools/css-tokenizer@4.0.0': {}
 
-  '@cyanheads/git-mcp-server@2.15.0':
+  '@cyanheads/git-mcp-server@2.15.1':
     dependencies:
       cross-spawn: 7.0.6
       pino: 10.3.1
