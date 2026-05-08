@@ -2,7 +2,7 @@ import { PluginManager } from './plugin-manager';
 
 /**
  * Hub for all internal monorepo plugins.
- * Projects like 'voltx' or specialized integrations can register their
+ * Projects like 'product' or specialized integrations can register their
  * capabilities here.
  */
 export async function initializePlugins() {
@@ -14,8 +14,8 @@ export async function initializePlugins() {
 
   /*
   try {
-    const { voltxPlugin } = await import('../../integrations/voltx/plugin');
-    await PluginManager.register(voltxPlugin);
+    const { productPlugin } = await import('../../integrations/product/plugin');
+    await PluginManager.register(productPlugin);
   } catch (e) {
     // Ignore if project is not present in this build
   }

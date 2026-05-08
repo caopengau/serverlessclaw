@@ -1,10 +1,10 @@
 # Git Subtree Workflow: Hub-and-Spoke
 
-This document defines the bidirectional synchronization workflow between the **VoltX Hub** and the **ServerlessClaw Framework**.
+This document defines the bidirectional synchronization workflow between a **Product Hub** and the **ServerlessClaw Framework**.
 
 ## 1. Architectural Model
 
-The relationship follows a "Local-First Hub-and-Spoke" pattern. VoltX consumes the framework as a subtree while contributing generic improvements back.
+The relationship follows a "Local-First Hub-and-Spoke" pattern. A Product Hub consumes the framework as a subtree while contributing generic improvements back.
 
 ```text
   ┌─────────────────────────────────┐
@@ -18,10 +18,10 @@ The relationship follows a "Local-First Hub-and-Spoke" pattern. VoltX consumes t
   └────────────────┬────────────────┘
                    │
                    │ git subtree pull / push
-                   │ (upstream remote in VoltX)
+                   │ (upstream remote in Product)
                    ▼
   ┌─────────────────────────────────┐
-  │           VoltX Hub             │ ◄─── (Current Workspace)
+  │           Product Hub             │ ◄─── (Current Workspace)
   │      (./framework/ prefix)      │
   └─────────────────────────────────┘
 ```
@@ -33,16 +33,16 @@ The relationship follows a "Local-First Hub-and-Spoke" pattern. VoltX consumes t
 Use this when new features or fixes are available in the framework.
 
 1.  **Update Local Source:** Go to `/Users/pengcao/projects/serverlessclaw` and run `git pull origin main`.
-2.  **Pull into Hub:** In the VoltX root, run `make pull`.
+2.  **Pull into Hub:** In the Product root, run `make pull`.
     - This executes: `git subtree pull --prefix=framework upstream main --squash`.
     - **Agent Tip:** Ensure your worktree is clean before pulling.
 
 ### B. Promoting Upstream (Contributing Back)
 
-Use this when you have improved framework code (inside `./framework/`) while working on VoltX.
+Use this when you have improved framework code (inside `./framework/`) while working on Product.
 
-1.  **Commit locally:** Commit your changes in the VoltX repository.
-2.  **Push to Upstream:** In the VoltX root, run `make sync`.
+1.  **Commit locally:** Commit your changes in the Product repository.
+2.  **Push to Upstream:** In the Product root, run `make sync`.
     - This executes: `git push origin [branch]` followed by `make sync-upstream`.
     - `make sync-upstream` runs: `git subtree push --prefix=framework upstream main`.
 3.  **Finalize Local Source:**
@@ -53,7 +53,7 @@ Use this when you have improved framework code (inside `./framework/`) while wor
 
 - **Subtree Prefix:** Always use `--prefix=framework` when manually running subtree commands.
 - **Remote Names:**
-  - `origin`: The VoltX remote.
+  - `origin`: The Product remote.
   - `upstream`: The local path to the `serverlessclaw` repository.
-- **Squashing:** Always use `--squash` when pulling to keep the VoltX history clean.
-- **Conflict Resolution:** If conflicts occur in `./framework/`, they must be resolved within the VoltX repository first.
+- **Squashing:** Always use `--squash` when pulling to keep the Product history clean.
+- **Conflict Resolution:** If conflicts occur in `./framework/`, they must be resolved within the Product repository first.

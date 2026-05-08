@@ -4,7 +4,7 @@ let initialized = false;
 
 /**
  * Framework-level bootstrap hook.
- * Dynamically attempts to load domain-specific extensions (like VoltX).
+ * Dynamically attempts to load domain-specific extensions (like Product).
  */
 export async function bootstrap() {
   if (initialized) return;
@@ -13,7 +13,7 @@ export async function bootstrap() {
     // Attempt to load domain-specific extensions
     // We use a dynamic import with a variable to bypass Vite static analysis
     // and keep the core framework decoupled from private logic
-    const domainName = '@voltx/core';
+    const domainName = '@product/core';
     const domain = await import(domainName);
     if (domain && typeof domain.bootstrap === 'function') {
       domain.bootstrap();

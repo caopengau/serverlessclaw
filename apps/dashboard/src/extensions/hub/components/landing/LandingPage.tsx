@@ -21,39 +21,39 @@ import { translations } from './translations';
 
 /**
  * Robust Electric Current Flow
- * Uses CSS-animated divs for guaranteed visibility.
- * Fixed 'relative' positioning on parent and improved high-impact glow.
+ * Uses CSS-animated divs for guaranteed visibility and high-impact look.
+ * Thicker lines and stronger glow for better visibility on all screens.
  */
 const ElectricBackground = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_30%,_rgba(0,255,157,0.15)_0%,_transparent_70%)]" />
+      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_30%,_rgba(0,255,157,0.18)_0%,_transparent_70%)]" />
       
-      {/* Horizontal Flowing Lines - Guaranteed Visibility */}
+      {/* Horizontal Flowing Lines - High Visibility */}
       <div className="absolute inset-0">
         {[...Array(15)].map((_, i) => (
           <div
             key={i}
-            className="absolute left-[-100%] w-[200%] h-[1px] opacity-60"
+            className="absolute left-[-100%] w-[200%] h-[2px] opacity-80"
             style={{
               top: `${5 + i * 6.5}%`,
-              background: 'linear-gradient(90deg, transparent 0%, #00ff9d 50%, transparent 100%)',
-              boxShadow: '0 0 15px rgba(0, 255, 157, 0.6)',
-              animation: `electric-slide ${4 + (i % 3) * 2}s linear infinite`,
-              animationDelay: `${i * -0.9}s`,
+              background: 'linear-gradient(90deg, transparent 0%, #00ff9d 30%, #00ff9d 70%, transparent 100%)',
+              boxShadow: '0 0 20px rgba(0, 255, 157, 0.8)',
+              animation: `electric-slide ${3 + (i % 4) * 2}s linear infinite`,
+              animationDelay: `${i * -0.8}s`,
             }}
           />
         ))}
       </div>
 
-      <style jsx>{`
+      <style jsx global>{`
         @keyframes electric-slide {
           0% { transform: translateX(0); }
           100% { transform: translateX(50%); }
         }
       `}</style>
       
-      <div className="absolute inset-0 bg-grid-white/[0.04] bg-[length:50px_50px]" />
+      <div className="absolute inset-0 bg-grid-white/[0.05] bg-[length:50px_50px]" />
     </div>
   );
 };
@@ -135,31 +135,36 @@ const LocaleSwitcher = ({ locale, setLocale }: { locale: 'en' | 'cn', setLocale:
 
 /**
  * Ultimate Reliability Reveal
- * No complex animations, just simple fade-in when in view.
- * Defaults to visible if IntersectionObserver fails.
+ * Guaranteed visibility with fail-safe timeout.
  */
 const RevealSection = ({ children, id, delay = 0 }: { children: React.ReactNode, id: string, delay?: number }) => {
-  const [isVisible, setIsVisible] = useState(true); // Default to true to prevent "missing sections"
+  const [isVisible, setIsVisible] = useState(true);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!window.IntersectionObserver) return;
+    if (typeof window === 'undefined' || !window.IntersectionObserver) return;
     
-    // Set to false initially only if observer is available
     setIsVisible(false);
+
+    // Fail-safe: force visibility if observer doesn't trigger
+    const timeout = setTimeout(() => setIsVisible(true), 3000);
 
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
+          clearTimeout(timeout);
           setTimeout(() => setIsVisible(true), delay);
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.001, rootMargin: '200px 0px' }
+      { threshold: 0.001, rootMargin: '250px 0px' }
     );
     
     if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+    };
   }, [delay]);
 
   return (
@@ -182,12 +187,12 @@ const SciFiCard = ({ icon: Icon, title, description, index, t }: { icon: any, ti
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!window.IntersectionObserver) return;
+    if (typeof window === 'undefined' || !window.IntersectionObserver) return;
     setIsVisible(false);
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), index * 50);
+          setTimeout(() => setIsVisible(true), index * 40);
           observer.unobserve(entry.target);
         }
       },
@@ -223,7 +228,7 @@ const SciFiCard = ({ icon: Icon, title, description, index, t }: { icon: any, ti
 };
 
 /**
- * Voltx Landing Page
+ * Product Landing Page
  */
 export function LandingPage({ t: frameworkT, locale: frameworkLocale, setLocale: frameworkSetLocale }: { t?: (key: string) => string, locale?: 'en' | 'cn', setLocale?: (l: 'en' | 'cn') => void }) {
   const [scrolled, setScrolled] = useState(false);
@@ -267,7 +272,7 @@ export function LandingPage({ t: frameworkT, locale: frameworkLocale, setLocale:
             <div className="w-8 h-8 relative overflow-hidden bg-cyber-green rounded-[4px] flex items-center justify-center shadow-[0_0_15px_rgba(0,255,157,0.4)]">
               <Zap size={20} className="text-black fill-black" />
             </div>
-            <span className="text-2xl font-black tracking-tighter uppercase italic group-hover:tracking-widest transition-all duration-500">Voltx</span>
+            <span className="text-2xl font-black tracking-tighter uppercase italic group-hover:tracking-widest transition-all duration-500">Product</span>
           </div>
           
           <div className="hidden md:flex items-center gap-8 text-[11px] font-black uppercase tracking-[0.2em] text-white/60">
