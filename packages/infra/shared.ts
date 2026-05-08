@@ -120,10 +120,10 @@ export function getTenantEventFilter(options: {
 /**
  * Retrieves the optional domain configuration for a component.
  *
- * @param component - The component to get the domain for ('api' | 'dashboard' | 'router').
+ * @param component - The component to get the domain for ('api' | 'dashboard' | 'router' | 'landing').
  * @returns The domain configuration or undefined if not set.
  */
-export function getDomainConfig(component: 'api' | 'dashboard' | 'router'):
+export function getDomainConfig(component: 'api' | 'dashboard' | 'router' | 'landing'):
   | {
       name: string;
       dns?: ReturnType<typeof sst.cloudflare.dns>;
@@ -145,6 +145,7 @@ export function getDomainConfig(component: 'api' | 'dashboard' | 'router'):
     api: 'CLAW_DOMAIN_API',
     dashboard: 'CLAW_DOMAIN_DASHBOARD',
     router: 'CLAW_DOMAIN_ROUTER',
+    landing: 'CLAW_DOMAIN_LANDING',
   };
   const envVar = envVarMap[component];
   let domain = process.env[envVar]?.trim();
