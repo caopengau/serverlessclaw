@@ -20,48 +20,53 @@ import {
 import { translations } from './translations';
 
 /**
- * Enhanced Electric Flow Background
- * Focuses on high-visibility horizontal currents.
+ * Animated Electric Current Background - Maximum Visibility
  */
 const ElectricBackground = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_20%,_rgba(0,255,157,0.15)_0%,_transparent_70%)]" />
-    <svg className="w-full h-full opacity-80" xmlns="http://www.w3.org/2000/svg">
+    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_30%,_rgba(0,255,157,0.18)_0%,_transparent_70%)]" />
+    <svg
+      className="w-full h-full opacity-100"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="none"
+    >
       <defs>
-        <linearGradient id="flow-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <linearGradient id="glow-line" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="transparent" />
           <stop offset="50%" stopColor="#00ff9d" />
           <stop offset="100%" stopColor="transparent" />
         </linearGradient>
-        <filter id="flow-glow">
+        <filter id="svg-glow">
           <feGaussianBlur stdDeviation="3" result="blur" />
-          <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
       </defs>
-      {[...Array(12)].map((_, i) => (
-        <line
+      {[...Array(15)].map((_, i) => (
+        <rect
           key={i}
-          x1="-100%"
-          y1={`${10 + i * 8}%`}
-          x2="200%"
-          y2={`${10 + i * 8}%`}
-          stroke="url(#flow-grad)"
-          strokeWidth="2"
-          className="animate-[electric_flow_8s_linear_infinite]"
+          x="-100%"
+          y={`${5 + i * 6.5}%`}
+          width="100%"
+          height="1.5"
+          fill="url(#glow-line)"
+          filter="url(#svg-glow)"
+          className="animate-[electric_slide_6s_linear_infinite]"
           style={{
-            animationDelay: `${i * -1.3}s`,
-            filter: 'url(#flow-glow)',
-            opacity: 0.4 + (i % 3) * 0.2,
+            animationDelay: `${i * -1.1}s`,
+            opacity: 0.5 + (i % 2) * 0.3,
           }}
         />
       ))}
     </svg>
-    <div className="absolute inset-0 bg-grid-white/[0.03] bg-[length:40px_40px]" />
+    <div className="absolute inset-0 bg-grid-white/[0.04] bg-[length:60px_60px]" />
   </div>
 );
 
 /**
- * Locale Switcher Component
+ * Locale Switcher
  */
 const LocaleSwitcher = ({
   locale,
@@ -140,8 +145,7 @@ const LocaleSwitcher = ({
 };
 
 /**
- * Enhanced Scroll Reveal Wrapper
- * Uses a curtain/phase-in effect with diagonal clip-path for extra 'coolness'.
+ * Section Reveal with Curtain Effect
  */
 const RevealSection = ({
   children,
@@ -171,10 +175,10 @@ const RevealSection = ({
   return (
     <div
       ref={sectionRef}
-      className={`relative transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+      className={`relative transition-all duration-1000 ease-[cubic-bezier(0.19,1,0.22,1)] ${
         isVisible
-          ? 'opacity-100 translate-y-0 [clip-path:polygon(0%_0%,_100%_0%,_100%_100%,_0%_100%)]'
-          : 'opacity-0 translate-y-20 [clip-path:polygon(0%_0%,_0%_0%,_0%_100%,_0%_100%)]'
+          ? 'opacity-100 translate-y-0 [clip-path:inset(0%_0%_0%_0%)]'
+          : 'opacity-0 translate-y-12 [clip-path:inset(0%_100%_0%_0%)]'
       }`}
     >
       {children}
@@ -219,7 +223,7 @@ const SciFiCard = ({
       ref={cardRef}
       className={`relative group p-[1px] rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-cyber-green/40 transition-all duration-700 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-      } hover:shadow-[0_0_30px_rgba(0,255,157,0.15)]`}
+      }`}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-cyber-green/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       <div className="relative p-6 bg-black/60 backdrop-blur-xl rounded-[11px] h-full flex flex-col border border-white/5">
@@ -242,7 +246,7 @@ const SciFiCard = ({
 };
 
 /**
- * Voltx Landing Page - Premium Sci-Fi / Energy Edition
+ * Voltx Landing Page
  */
 export function LandingPage({
   t: frameworkT,
@@ -278,12 +282,12 @@ export function LandingPage({
   return (
     <div className="min-h-screen bg-[#020202] text-white selection:bg-cyber-green selection:text-black font-mono overflow-x-hidden">
       <style jsx global>{`
-        @keyframes electric_flow {
+        @keyframes electric_slide {
           0% {
             transform: translateX(0);
           }
           100% {
-            transform: translateX(100%);
+            transform: translateX(300%);
           }
         }
         @keyframes fade-in {
@@ -295,9 +299,6 @@ export function LandingPage({
             opacity: 1;
             transform: translateY(0);
           }
-        }
-        body {
-          background-color: #020202;
         }
       `}</style>
 
@@ -344,10 +345,10 @@ export function LandingPage({
       </nav>
 
       <main className="relative z-10">
-        {/* Hero Section - Reduced min-h and better centering */}
-        <section className="relative min-h-[85vh] flex items-center pt-24 pb-12 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden">
+        {/* Hero Section - Reduced height and padding */}
+        <section className="relative min-h-[75vh] flex items-center pt-24 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
-            <div className="space-y-8 animate-[fade-in_1s_ease-out]">
+            <div className="space-y-6 animate-[fade-in_1s_ease-out]">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-green/10 border border-cyber-green/20 text-cyber-green text-[9px] font-black uppercase tracking-[0.2em] animate-pulse">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyber-green animate-ping" />
                 {vt('hero_badge')}
@@ -377,7 +378,7 @@ export function LandingPage({
                 </button>
               </div>
 
-              <div className="flex items-center gap-8 pt-8 border-t border-white/10">
+              <div className="flex items-center gap-8 pt-6 border-t border-white/10">
                 <div>
                   <div className="text-2xl font-black text-white">99.99%</div>
                   <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
@@ -434,13 +435,13 @@ export function LandingPage({
           </div>
         </section>
 
-        {/* Feature Grid - Tighter spacing */}
+        {/* Feature Grid - Reduced padding */}
         <section
           id="core"
-          className="px-6 py-20 md:px-12 max-w-7xl mx-auto border-t border-white/5 bg-[radial-gradient(circle_at_50%_0%,_rgba(0,255,157,0.05)_0%,_transparent_50%)]"
+          className="px-6 py-12 md:px-12 max-w-7xl mx-auto border-t border-white/5 bg-[radial-gradient(circle_at_50%_0%,_rgba(0,255,157,0.05)_0%,_transparent_50%)]"
         >
           <RevealSection id="features-header">
-            <div className="mb-16 space-y-4">
+            <div className="mb-12 space-y-4">
               <div className="text-cyber-green text-[10px] font-black uppercase tracking-[0.3em]">
                 {vt('core_engine_capabilities')}
               </div>
@@ -508,17 +509,17 @@ export function LandingPage({
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="relative px-6 py-20 md:px-12 max-w-7xl mx-auto overflow-hidden">
+        {/* CTA Section - Reduced padding */}
+        <section className="relative px-6 py-12 md:px-12 max-w-7xl mx-auto overflow-hidden">
           <div className="absolute inset-0 bg-cyber-green/5 blur-[100px] rounded-full translate-y-1/2" />
-          <RevealSection id="cta" delay={200}>
-            <div className="relative border border-white/10 bg-white/[0.03] rounded-3xl p-12 md:p-24 text-center overflow-hidden border-t-cyber-green/20">
+          <RevealSection id="cta" delay={150}>
+            <div className="relative border border-white/10 bg-white/[0.03] rounded-3xl p-12 md:p-20 text-center overflow-hidden border-t-cyber-green/20">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-green to-transparent" />
-              <h2 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter">
+              <h2 className="text-5xl md:text-7xl font-black mb-6 tracking-tighter">
                 {vt('cta_title_1')} <br className="md:hidden" />{' '}
                 <span className="italic text-cyber-green">{vt('cta_title_2')}</span>
               </h2>
-              <p className="text-gray-400 mb-12 max-w-xl mx-auto text-lg font-medium">
+              <p className="text-gray-400 mb-10 max-w-xl mx-auto text-lg font-medium">
                 {vt('cta_desc')}
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
