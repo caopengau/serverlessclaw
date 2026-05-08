@@ -12,7 +12,6 @@ interface ChatOverlaysProps {
   isInviteSelectorOpen: boolean;
   isTransiting: boolean;
   activeCollaborators: string[];
-  activeSessionId: string;
   showDeleteConfirm: boolean;
   showDeleteAllConfirm: boolean;
   createNewChat: (agentId?: string) => void;
@@ -32,7 +31,6 @@ export const ChatOverlays: React.FC<ChatOverlaysProps> = ({
   isInviteSelectorOpen,
   isTransiting,
   activeCollaborators,
-  activeSessionId,
   showDeleteConfirm,
   showDeleteAllConfirm,
   createNewChat,
