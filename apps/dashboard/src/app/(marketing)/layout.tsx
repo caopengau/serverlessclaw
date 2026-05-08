@@ -33,13 +33,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Fetch the active locale from system config (server-side)
-  let initialLocale: 'en' | 'cn' = 'en';
+  // Voltx project defaults to Chinese
+  let initialLocale: 'en' | 'cn' = 'cn';
   try {
     // Only attempt config fetch if we can reach the ConfigManager
-    const locale = await ConfigManager.getTypedConfig<string>(CONFIG_KEYS.ACTIVE_LOCALE, 'en');
-    initialLocale = (locale === 'cn' ? 'cn' : 'en') as 'en' | 'cn';
+    const locale = await ConfigManager.getTypedConfig<string>(CONFIG_KEYS.ACTIVE_LOCALE, 'cn');
+    initialLocale = (locale === 'en' ? 'en' : 'cn') as 'en' | 'cn';
   } catch (err) {
-    // Silent fallback to 'en' for marketing pages
+    // Silent fallback to 'cn' for marketing pages
     console.debug('[Dashboard] Using default locale for marketing:', err);
   }
 

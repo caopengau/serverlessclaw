@@ -15,7 +15,7 @@ import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 export default function LandingPage() {
   const [Component, setComponent] = useState<any>(null);
-  const { t, locale } = useTranslations();
+  const { t, locale, setLocale } = useTranslations();
 
   useEffect(() => {
     (async () => {
@@ -41,5 +41,5 @@ export default function LandingPage() {
     );
   }
 
-  return <Component t={t} locale={locale} />;
+  return <Component t={t} locale={locale} setLocale={setLocale} />;
 }

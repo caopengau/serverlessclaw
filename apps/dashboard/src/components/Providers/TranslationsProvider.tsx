@@ -28,7 +28,7 @@ const STORAGE_KEY = 'clawcenter_locale';
 export const TranslationsProvider: React.FC<{
   children: React.ReactNode;
   initialLocale?: Locale;
-}> = ({ children, initialLocale = 'en' }) => {
+}> = ({ children, initialLocale = 'cn' }) => {
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
   const messages = useMemo<Messages>(() => (locale === 'cn' ? (cn as Messages) : en), [locale]);
 
