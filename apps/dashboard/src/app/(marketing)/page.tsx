@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 /**
@@ -45,6 +45,12 @@ export default function LandingPage() {
     );
   }
 
-  // Cast setLocale to match the expected 'en' | 'cn' union type
-  return <Component t={t} locale={locale as 'en' | 'cn'} setLocale={setLocale as (l: 'en' | 'cn') => void} />;
+  // Cast locale and setLocale to match the expected 'en' | 'cn' union type
+  return (
+    <Component
+      t={t}
+      locale={locale as 'en' | 'cn'}
+      setLocale={setLocale as (l: 'en' | 'cn') => void}
+    />
+  );
 }

@@ -1,12 +1,16 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import {
   Zap,
   Brain,
   Shield,
   ArrowRight,
+  MessageSquare,
+  Gauge,
+  Lock,
+  BarChart3,
   Cpu,
   Globe,
   Database,
@@ -21,70 +25,55 @@ import { translations } from './translations';
 
 /**
  * Animated Electric Current Background - Enhanced for obvious horizontal flow
+ * Using fixed path lengths and better animation parameters to ensure visibility.
  */
-const ElectricBackground = () => {
-  // Fixed values to satisfy react-hooks/purity
-  const paths = useMemo(() => {
-    return [
-      { d: "M -200 50 L 1200 50", delay: "0s", opacity: 0.6 },
-      { d: "M -200 130 L 1200 130", delay: "-1.2s", opacity: 0.4 },
-      { d: "M -200 210 L 1200 210", delay: "-2.4s", opacity: 0.5 },
-      { d: "M -200 290 L 1200 290", delay: "-3.6s", opacity: 0.7 },
-      { d: "M -200 370 L 1200 370", delay: "-4.8s", opacity: 0.3 },
-      { d: "M -200 450 L 1200 450", delay: "-6s", opacity: 0.6 },
-      { d: "M -200 530 L 1200 530", delay: "-7.2s", opacity: 0.4 },
-      { d: "M -200 610 L 1200 610", delay: "-8.4s", opacity: 0.5 },
-      { d: "M -200 690 L 1200 690", delay: "-9.6s", opacity: 0.7 },
-      { d: "M -200 770 L 1200 770", delay: "-10.8s", opacity: 0.3 },
-    ];
-  }, []);
-
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_rgba(0,255,157,0.08)_0%,_transparent_70%)]" />
-      <svg
-        className="w-full h-full opacity-30"
-        viewBox="0 0 1000 1000"
-        xmlns="http://www.w3.org/2000/svg"
-        preserveAspectRatio="none"
-      >
-        <defs>
-          <linearGradient id="electric-line-1" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="transparent" />
-            <stop offset="50%" stopColor="#00ff9d" />
-            <stop offset="100%" stopColor="transparent" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
-            <feMerge>
-              <feMergeNode in="coloredBlur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        {paths.map((path, i) => (
-          <g key={i} filter="url(#glow)">
-            <path
-              d={path.d}
-              stroke="url(#electric-line-1)"
-              strokeWidth="2"
-              fill="transparent"
-              className="animate-[electric_6s_linear_infinite]"
-              style={{
-                animationDelay: path.delay,
-                opacity: path.opacity,
-              }}
-            />
-          </g>
-        ))}
-      </svg>
-      <div className="absolute inset-0 bg-grid-white/[0.03] bg-[length:60px_60px]" />
-    </div>
-  );
-};
+const ElectricBackground = () => (
+  <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_rgba(0,255,157,0.1)_0%,_transparent_70%)]" />
+    <svg
+      className="w-full h-full opacity-40"
+      viewBox="0 0 1000 1000"
+      xmlns="http://www.w3.org/2000/svg"
+      preserveAspectRatio="none"
+    >
+      <defs>
+        <linearGradient id="electric-line-1" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="transparent" />
+          <stop offset="50%" stopColor="#00ff9d" />
+          <stop offset="100%" stopColor="transparent" />
+        </linearGradient>
+        <filter id="glow-enhanced">
+          <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+          <feMerge>
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="coloredBlur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      {[...Array(15)].map((_, i) => (
+        <g key={i} filter="url(#glow-enhanced)">
+          <path
+            d={`M ${-200} ${70 * i + 30} L ${1200} ${70 * i + 30}`}
+            stroke="url(#electric-line-1)"
+            strokeWidth="3"
+            fill="transparent"
+            className="animate-[electric_flow_5s_linear_infinite]"
+            style={{
+              animationDelay: `${i * -0.8}s`,
+              opacity: 0.6,
+              strokeWidth: 2,
+            }}
+          />
+        </g>
+      ))}
+    </svg>
+    <div className="absolute inset-0 bg-grid-white/[0.04] bg-[length:50px_50px]" />
+  </div>
+);
 
 /**
- * Locale Switcher Component (Referencing clawmore.ai)
+ * Locale Switcher Component
  */
 const LocaleSwitcher = ({
   locale,
@@ -111,7 +100,7 @@ const LocaleSwitcher = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentLocaleData = locales.find((l) => l.code === locale) || locales[1]; // Default to ZH
+  const currentLocaleData = locales.find((l) => l.code === locale) || locales[1];
 
   return (
     <div ref={dropdownRef} className="relative">
@@ -163,7 +152,7 @@ const LocaleSwitcher = ({
 };
 
 /**
- * Hook for scroll reveal animations
+ * Hook for scroll reveal animations with curtain/phase-in support
  */
 function useScrollReveal() {
   const [revealed, setRevealed] = useState<Set<string>>(new Set());
@@ -175,22 +164,47 @@ function useScrollReveal() {
       (entries) => {
         if (entries[0].isIntersecting) {
           setRevealed((prev) => new Set(prev).add(id));
-          observer.unobserve(el);
+          // Do not unobserve to allow for re-triggering if needed, but for now we keep it simple
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.15 }
     );
     observer.observe(el);
     observers.current.push(observer);
   };
 
   useEffect(() => {
-    const currentObservers = observers.current;
-    return () => currentObservers.forEach((o) => o.disconnect());
+    return () => observers.current.forEach((o) => o.disconnect());
   }, []);
 
   return { register, isRevealed: (id: string) => revealed.has(id) };
 }
+
+/**
+ * Section Curtain Wrapper
+ */
+const SectionCurtain = ({
+  children,
+  id,
+  register,
+  isRevealed,
+}: {
+  children: React.ReactNode;
+  id: string;
+  register: any;
+  isRevealed: boolean;
+}) => (
+  <div
+    ref={register(id)}
+    className={`relative transition-all duration-1000 ease-out overflow-hidden ${
+      isRevealed
+        ? 'opacity-100 [clip-path:inset(0%_0%_0%_0%)] translate-y-0'
+        : 'opacity-0 [clip-path:inset(0%_100%_0%_0%)] translate-y-10'
+    }`}
+  >
+    {children}
+  </div>
+);
 
 /**
  * Premium Sci-Fi Feature Card
@@ -203,7 +217,7 @@ const SciFiCard = ({
   t,
   isRevealed,
 }: {
-  icon: React.ElementType;
+  icon: any;
   title: string;
   description: string;
   delay: string;
@@ -237,6 +251,7 @@ const SciFiCard = ({
  * Voltx Landing Page - Premium Sci-Fi / Energy Edition
  */
 export function LandingPage({
+  t: frameworkT,
   locale: frameworkLocale,
   setLocale: frameworkSetLocale,
 }: {
@@ -248,23 +263,17 @@ export function LandingPage({
   const [localLocale, setLocalLocale] = useState<'en' | 'cn'>(frameworkLocale || 'cn');
   const { register, isRevealed } = useScrollReveal();
 
-  // Synchronize local locale with framework locale if provided
   useEffect(() => {
-    if (frameworkLocale && frameworkLocale !== localLocale) {
-      const timer = setTimeout(() => setLocalLocale(frameworkLocale), 0);
-      return () => clearTimeout(timer);
-    }
-  }, [frameworkLocale, localLocale]);
+    if (frameworkLocale) setLocalLocale(frameworkLocale);
+  }, [frameworkLocale]);
 
   const setLocale = (l: 'en' | 'cn') => {
     setLocalLocale(l);
     if (frameworkSetLocale) frameworkSetLocale(l);
   };
 
-  // Use translations based on locale
-  const vt = (key: string) => {
-    const k = key as keyof typeof translations.en;
-    return translations[localLocale][k] || translations.en[k] || key;
+  const vt = (key: keyof typeof translations.en) => {
+    return translations[localLocale][key] || translations.en[key] || key;
   };
 
   useEffect(() => {
@@ -274,19 +283,20 @@ export function LandingPage({
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-cyber-green selection:text-black font-mono">
+    <div className="min-h-screen bg-[#050505] text-white selection:bg-cyber-green selection:text-black font-mono overflow-x-hidden">
       <style jsx global>{`
-        @keyframes electric {
+        @keyframes electric_flow {
           0% {
             stroke-dasharray: 0 1000;
-            stroke-dashoffset: 0;
+            stroke-dashoffset: 200;
           }
           50% {
-            stroke-dasharray: 500 500;
+            stroke-dasharray: 400 600;
+            stroke-dashoffset: -300;
           }
           100% {
             stroke-dasharray: 0 1000;
-            stroke-dashoffset: -1000;
+            stroke-dashoffset: -800;
           }
         }
         @keyframes fade-in {
@@ -304,9 +314,6 @@ export function LandingPage({
             linear-gradient(rgba(0, 255, 157, 0.05) 1px, transparent 1px),
             linear-gradient(90deg, rgba(0, 255, 157, 0.05) 1px, transparent 1px);
           background-size: 50px 50px;
-        }
-        .reveal-transition {
-          transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
       `}</style>
 
@@ -356,7 +363,7 @@ export function LandingPage({
       <section className="relative pt-32 pb-20 md:pt-48 md:pb-40 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div
-            className={`relative z-10 space-y-8 reveal-transition ${isRevealed('hero-text') ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10'}`}
+            className={`relative z-10 space-y-8 transition-all duration-1000 ${isRevealed('hero-text') ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'}`}
             ref={register('hero-text')}
           >
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-green/10 border border-cyber-green/20 text-cyber-green text-[9px] font-black uppercase tracking-[0.2em] animate-pulse">
@@ -411,7 +418,7 @@ export function LandingPage({
           </div>
 
           <div
-            className={`relative hidden lg:block reveal-transition ${isRevealed('hero-visual') ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
+            className={`relative hidden lg:block transition-all duration-1000 ${isRevealed('hero-visual') ? 'opacity-100 scale-100' : 'opacity-0 scale-75 rotate-12'}`}
             ref={register('hero-visual')}
           >
             <div className="absolute inset-0 bg-cyber-green/20 blur-[120px] rounded-full animate-pulse" />
@@ -453,15 +460,18 @@ export function LandingPage({
         id="core"
         className="px-6 py-24 md:px-12 max-w-7xl mx-auto border-t border-white/5 bg-[radial-gradient(circle_at_50%_0%,_rgba(0,255,157,0.03)_0%,_transparent_50%)]"
       >
-        <div
-          className={`mb-16 space-y-4 reveal-transition ${isRevealed('features-header') ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-          ref={register('features-header')}
+        <SectionCurtain
+          id="features-header"
+          register={register}
+          isRevealed={isRevealed('features-header')}
         >
-          <div className="text-cyber-green text-[10px] font-black uppercase tracking-[0.3em]">
-            {vt('core_engine_capabilities')}
+          <div className="mb-16 space-y-4">
+            <div className="text-cyber-green text-[10px] font-black uppercase tracking-[0.3em]">
+              {vt('core_engine_capabilities')}
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tight">{vt('powered_by')}</h2>
           </div>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tight">{vt('powered_by')}</h2>
-        </div>
+        </SectionCurtain>
 
         <div
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
@@ -537,30 +547,29 @@ export function LandingPage({
       {/* CTA Section */}
       <section className="relative px-6 py-24 md:px-12 max-w-7xl mx-auto overflow-hidden">
         <div className="absolute inset-0 bg-cyber-green/5 blur-[100px] rounded-full translate-y-1/2" />
-        <div
-          className={`relative border border-white/10 bg-white/[0.02] rounded-3xl p-12 md:p-24 text-center overflow-hidden reveal-transition ${isRevealed('cta') ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
-          ref={register('cta')}
-        >
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-green to-transparent" />
-          <h2 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter">
-            {vt('cta_title_1')} <br className="md:hidden" />{' '}
-            <span className="italic text-cyber-green">{vt('cta_title_2')}</span>
-          </h2>
-          <p className="text-gray-400 mb-12 max-w-xl mx-auto text-lg font-medium">
-            {vt('cta_desc')}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link
-              href="/login"
-              className="px-10 py-5 bg-white text-black font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] hover:bg-cyber-green transition-all"
-            >
-              {vt('cta_sign_in')}
-            </Link>
-            <button className="px-10 py-5 border border-white/10 text-white font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] hover:bg-white/5 transition-all">
-              {vt('cta_demo')}
-            </button>
+        <SectionCurtain id="cta" register={register} isRevealed={isRevealed('cta')}>
+          <div className="relative border border-white/10 bg-white/[0.02] rounded-3xl p-12 md:p-24 text-center overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-green to-transparent" />
+            <h2 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter">
+              {vt('cta_title_1')} <br className="md:hidden" />{' '}
+              <span className="italic text-cyber-green">{vt('cta_title_2')}</span>
+            </h2>
+            <p className="text-gray-400 mb-12 max-w-xl mx-auto text-lg font-medium">
+              {vt('cta_desc')}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
+              <Link
+                href="/login"
+                className="px-10 py-5 bg-white text-black font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] hover:bg-cyber-green transition-all"
+              >
+                {vt('cta_sign_in')}
+              </Link>
+              <button className="px-10 py-5 border border-white/10 text-white font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] hover:bg-white/5 transition-all">
+                {vt('cta_demo')}
+              </button>
+            </div>
           </div>
-        </div>
+        </SectionCurtain>
       </section>
 
       {/* Footer */}
