@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { ArrowRight, Terminal } from 'lucide-react';
@@ -12,26 +12,7 @@ import { ArrowRight, Terminal } from 'lucide-react';
  * It is designed to be brand-agnostic and strictly OSS.
  */
 export default function LandingPage() {
-  const [Component, setComponent] = useState<React.ComponentType<any> | null>(null);
-  const { t, locale, setLocale } = useTranslations();
-
-  useEffect(() => {
-    (async () => {
-      try {
-        // Only load if the hub provides a custom LandingPage
-        const hub = await import('@/extensions/hub/index');
-        if (hub.LandingPage) {
-          setComponent(() => hub.LandingPage);
-        }
-      } catch {
-        // Silent catch: use generic framework landing
-      }
-    })();
-  }, []);
-
-  if (Component) {
-    return <Component t={t} locale={locale} setLocale={setLocale} />;
-  }
+  const { t } = useTranslations();
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground px-6 text-center">
