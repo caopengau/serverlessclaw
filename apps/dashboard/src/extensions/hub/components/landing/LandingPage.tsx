@@ -21,23 +21,26 @@ import { translations } from './translations';
 
 /**
  * Robust Electric Current Flow
- * Uses CSS-animated divs for guaranteed visibility and high-impact "cool" look.
+ * Uses CSS-animated divs for guaranteed visibility.
+ * Fixed 'relative' positioning on parent and improved high-impact glow.
  */
 const ElectricBackground = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_30%,_rgba(0,255,157,0.12)_0%,_transparent_70%)]" />
+      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_30%,_rgba(0,255,157,0.15)_0%,_transparent_70%)]" />
 
-      {/* Horizontal Flowing Lines */}
+      {/* Horizontal Flowing Lines - Guaranteed Visibility */}
       <div className="absolute inset-0">
-        {[...Array(12)].map((_, i) => (
+        {[...Array(15)].map((_, i) => (
           <div
             key={i}
-            className="absolute left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyber-green to-transparent opacity-40 shadow-[0_0_10px_rgba(0,255,157,0.5)]"
+            className="absolute left-[-100%] w-[200%] h-[1px] opacity-60"
             style={{
-              top: `${10 + i * 8}%`,
-              animation: `electric-slide ${5 + (i % 3) * 2}s linear infinite`,
-              animationDelay: `${i * -0.7}s`,
+              top: `${5 + i * 6.5}%`,
+              background: 'linear-gradient(90deg, transparent 0%, #00ff9d 50%, transparent 100%)',
+              boxShadow: '0 0 15px rgba(0, 255, 157, 0.6)',
+              animation: `electric-slide ${4 + (i % 3) * 2}s linear infinite`,
+              animationDelay: `${i * -0.9}s`,
             }}
           />
         ))}
@@ -46,15 +49,15 @@ const ElectricBackground = () => {
       <style jsx>{`
         @keyframes electric-slide {
           0% {
-            transform: translateX(-100%);
+            transform: translateX(0);
           }
           100% {
-            transform: translateX(100%);
+            transform: translateX(50%);
           }
         }
       `}</style>
 
-      <div className="absolute inset-0 bg-grid-white/[0.03] bg-[length:50px_50px]" />
+      <div className="absolute inset-0 bg-grid-white/[0.04] bg-[length:50px_50px]" />
     </div>
   );
 };
@@ -139,8 +142,9 @@ const LocaleSwitcher = ({
 };
 
 /**
- * Robust Scroll Reveal
- * Simplified animation (fade + slide) and extremely low threshold to ensure visibility.
+ * Ultimate Reliability Reveal
+ * No complex animations, just simple fade-in when in view.
+ * Defaults to visible if IntersectionObserver fails.
  */
 const RevealSection = ({
   children,
@@ -151,15 +155,14 @@ const RevealSection = ({
   id: string;
   delay?: number;
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true); // Default to true to prevent "missing sections"
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Immediate fallback if IntersectionObserver is not supported
-    if (!window.IntersectionObserver) {
-      setIsVisible(true);
-      return;
-    }
+    if (!window.IntersectionObserver) return;
+
+    // Set to false initially only if observer is available
+    setIsVisible(false);
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -168,7 +171,7 @@ const RevealSection = ({
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.01, rootMargin: '100px 0px' } // Load early
+      { threshold: 0.001, rootMargin: '200px 0px' }
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
@@ -178,8 +181,8 @@ const RevealSection = ({
   return (
     <div
       ref={sectionRef}
-      className={`relative transition-all duration-1000 ease-out ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+      className={`relative transition-all duration-1000 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
       }`}
     >
       {children}
@@ -188,7 +191,7 @@ const RevealSection = ({
 };
 
 /**
- * Premium Sci-Fi Feature Card
+ * Feature Card
  */
 const SciFiCard = ({
   icon: Icon,
@@ -203,18 +206,20 @@ const SciFiCard = ({
   index: number;
   t: (key: string) => string;
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!window.IntersectionObserver) return;
+    setIsVisible(false);
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), index * 60);
+          setTimeout(() => setIsVisible(true), index * 50);
           observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.05 }
     );
     if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
@@ -282,7 +287,7 @@ export function LandingPage({
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#020202] text-white selection:bg-cyber-green selection:text-black font-mono overflow-x-hidden">
+    <div className="relative min-h-screen bg-[#020202] text-white selection:bg-cyber-green selection:text-black font-mono overflow-x-hidden">
       <style jsx global>{`
         @keyframes fade-in {
           from {
@@ -295,7 +300,7 @@ export function LandingPage({
           }
         }
         body {
-          background-color: #020202;
+          background-color: #020202 !important;
         }
       `}</style>
 
@@ -506,7 +511,7 @@ export function LandingPage({
           </div>
         </section>
 
-        {/* CTA Section - restoring explicit visibility */}
+        {/* CTA Section */}
         <section className="relative px-6 py-24 md:px-12 max-w-7xl mx-auto overflow-hidden">
           <div className="absolute inset-0 bg-cyber-green/5 blur-[100px] rounded-full translate-y-1/2" />
           <RevealSection id="cta" delay={100}>
