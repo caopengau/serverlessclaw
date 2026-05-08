@@ -3,7 +3,7 @@ import { Activity } from 'lucide-react';
 
 /**
  * Voltx UI Extension Exports
- * 
+ *
  * Includes both landing page and dashboard extension components.
  * The framework dashboard build process copies these exports into
  * the extensions/hub directory at build time.
@@ -13,7 +13,12 @@ export { LandingPage } from './components/landing/LandingPage';
 /**
  * VoltX Dashboard Extension Initializer
  */
-export function init({ registerSidebar, registerComponent }: any) {
+interface InitOptions {
+  registerSidebar: (options: Record<string, unknown>) => void;
+  registerComponent: (options: Record<string, unknown>) => void;
+}
+
+export function init({ registerSidebar, registerComponent }: InitOptions) {
   // 1. Register Energy Sidebar Item
   registerSidebar({
     id: 'voltx-grid',

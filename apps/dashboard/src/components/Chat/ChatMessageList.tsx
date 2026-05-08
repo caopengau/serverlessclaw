@@ -9,9 +9,6 @@ import {
   MessageCircle,
   Copy,
   Check,
-  Wrench,
-  ChevronDown,
-  ChevronRight,
   Search,
   X as CloseIcon,
 } from 'lucide-react';
@@ -22,10 +19,8 @@ import { ChatMessage } from '@claw/hooks';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { DynamicComponentRegistry } from '@/components/DynamicComponents/Registry';
-import { CodeBlock, ToolCallsDisplay } from './ChatParts';
+import { ToolCallsDisplay } from './ChatParts';
 import { getMarkdownComponents } from './MarkdownConfig';
-
-type MarkdownComponents = NonNullable<React.ComponentProps<typeof ReactMarkdown>['components']>;
 
 const formatTime = (ts?: number) => {
   if (!ts) return '';

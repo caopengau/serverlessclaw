@@ -1,4 +1,4 @@
-import { ChatMessage, ToolCall, DynamicComponent } from '@claw/hooks';
+import { ToolCall, DynamicComponent } from '@claw/hooks';
 
 export interface ChatApiResponse {
   reply?: string;

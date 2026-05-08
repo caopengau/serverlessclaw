@@ -1,19 +1,23 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 /**
  * Landing Page with Extension Support
- * 
+ *
  * Dynamically loads a custom landing page from the hub extension if available.
  * Falls back to generic landing page if no custom implementation exists.
- * 
+ *
  * Products can provide a custom landing page by exporting from their hub extension:
  *   export { LandingPage } from '@product-ui/components/landing';
  */
 
 export default function LandingPage() {
-  const [Component, setComponent] = useState<any>(null);
+  const [Component, setComponent] = useState<React.ComponentType<{
+    t: (key: string) => string;
+    locale: string;
+  }> | null>(null);
   const { t, locale } = useTranslations();
 
   useEffect(() => {
@@ -42,4 +46,3 @@ export default function LandingPage() {
 
   return <Component t={t} locale={locale} />;
 }
-
