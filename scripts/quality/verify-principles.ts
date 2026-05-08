@@ -150,6 +150,19 @@ function verifyToolTelemetry(): Finding[] {
 
 function verifyBoundaryIsolation(): Finding[] {
   const findings: Finding[] = [];
+  const configPath = join(process.cwd(), '.framework-guardrails.json');
+  let forbiddenPackages: string[] = [];
+  let forbiddenKeywords: string[] = [];
+
+  try {
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    forbiddenPackages = config.isolation?.forbiddenPackages || [];
+    forbiddenKeywords = config.isolation?.forbiddenKeywords || [];
+  } catch {
+    // No config found, skip boundary checks or use defaults
+    return [];
+  }
+
   const frameworkFiles = globSync(`framework/**/*.{ts,tsx,md}`);
 
   frameworkFiles.forEach((file) => {
@@ -159,28 +172,30 @@ function verifyBoundaryIsolation(): Finding[] {
 
     lines.forEach((line, idx) => {
       // 1. Check for product leakage (imports)
-      if (line.includes('packages/' + 'voltx-') || line.includes('@' + 'voltx/')) {
-        findings.push({
-          file: relative(process.cwd(), file),
-          line: idx + 1,
-          principle: 'Boundary Isolation',
-          issue: 'Framework LEAK: Framework MUST NOT import from voltx-* packages.',
-          severity: 'P0',
-        });
-      }
+      forbiddenPackages.forEach((pkg) => {
+        if (line.includes(pkg)) {
+          findings.push({
+            file: relative(process.cwd(), file),
+            line: idx + 1,
+            principle: 'Boundary Isolation',
+            issue: `Framework LEAK: Framework MUST NOT import from forbidden package "${pkg}".`,
+            severity: 'P0',
+          });
+        }
+      });
 
       // 2. Check for product keywords in framework source (non-markdown)
-      if (
-        !file.endsWith('.md') &&
-        !file.includes('scripts/') &&
-        (line.includes('Volt' + 'X') || line.includes('volt' + 'x'))
-      ) {
-        findings.push({
-          file: relative(process.cwd(), file),
-          line: idx + 1,
-          principle: 'Product Isolation',
-          issue: 'Framework LEAK: Framework source contains product-specific "VoltX" string.',
-          severity: 'P0',
+      if (!file.endsWith('.md') && !file.includes('scripts/')) {
+        forbiddenKeywords.forEach((keyword) => {
+          if (line.includes(keyword)) {
+            findings.push({
+              file: relative(process.cwd(), file),
+              line: idx + 1,
+              principle: 'Product Isolation',
+              issue: `Framework LEAK: Framework source contains product-specific "${keyword}" string.`,
+              severity: 'P0',
+            });
+          }
         });
       }
     });

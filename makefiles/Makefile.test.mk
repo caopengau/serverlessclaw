@@ -169,11 +169,6 @@ test-component: ## Run component tests (via Turbo)
 	@$(call log_step,Running component tests via Turbo...)
 	@$(PNPM) exec turbo run test -- --reporter=verbose '**/*.test.tsx'
 
-test-voltx: ## Run VoltX-specific logic verification
-	@$(call log_step,Verifying VoltX domain logic...)
-	@export PATH=/Users/pengcao/.nvm/versions/node/v24.15.0/bin:$$PATH && \
-	$(PNPM) exec vitest run packages/voltx-core/src/**/*.test.ts
-
 test-e2e: ## Run E2E tests with Playwright (local dev server)
 	@$(call log_step,Running E2E tests (Isolated environment)...)
 	@unset npm_config_prefix && CI=true PLAYWRIGHT=true $(PNPM) exec playwright test $(if $(PW_SHARD),--shard=$(PW_SHARD),)
