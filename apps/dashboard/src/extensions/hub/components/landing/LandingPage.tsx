@@ -20,50 +20,44 @@ import {
 import { translations } from './translations';
 
 /**
- * Animated Electric Current Background - Maximum Visibility
- * Using path elements with stroke-dasharray for a true "flowing" look.
+ * Robust Electric Current Flow
+ * Uses CSS-animated divs for guaranteed visibility and high-impact "cool" look.
  */
-const ElectricBackground = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_30%,_rgba(0,255,157,0.15)_0%,_transparent_70%)]" />
-    <svg
-      className="w-full h-full opacity-60"
-      xmlns="http://www.w3.org/2000/svg"
-      preserveAspectRatio="none"
-    >
-      <defs>
-        <linearGradient id="current-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="transparent" />
-          <stop offset="50%" stopColor="#00ff9d" />
-          <stop offset="100%" stopColor="transparent" />
-        </linearGradient>
-        <filter id="current-glow">
-          <feGaussianBlur stdDeviation="2" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      {[...Array(15)].map((_, i) => (
-        <path
-          key={i}
-          d={`M ${-500} ${40 + i * 60} L ${1500} ${40 + i * 60}`}
-          stroke="url(#current-grad)"
-          strokeWidth="2"
-          fill="none"
-          filter="url(#current-glow)"
-          className="animate-[current_flow_7s_linear_infinite]"
-          style={{
-            animationDelay: `${i * -1.2}s`,
-            opacity: 0.4 + (i % 3) * 0.2,
-          }}
-        />
-      ))}
-    </svg>
-    <div className="absolute inset-0 bg-grid-white/[0.03] bg-[length:50px_50px]" />
-  </div>
-);
+const ElectricBackground = () => {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_30%,_rgba(0,255,157,0.12)_0%,_transparent_70%)]" />
+
+      {/* Horizontal Flowing Lines */}
+      <div className="absolute inset-0">
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyber-green to-transparent opacity-40 shadow-[0_0_10px_rgba(0,255,157,0.5)]"
+            style={{
+              top: `${10 + i * 8}%`,
+              animation: `electric-slide ${5 + (i % 3) * 2}s linear infinite`,
+              animationDelay: `${i * -0.7}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      <style jsx>{`
+        @keyframes electric-slide {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+      `}</style>
+
+      <div className="absolute inset-0 bg-grid-white/[0.03] bg-[length:50px_50px]" />
+    </div>
+  );
+};
 
 /**
  * Locale Switcher
@@ -145,7 +139,8 @@ const LocaleSwitcher = ({
 };
 
 /**
- * Section Reveal with Cool Cut-in Effect
+ * Robust Scroll Reveal
+ * Simplified animation (fade + slide) and extremely low threshold to ensure visibility.
  */
 const RevealSection = ({
   children,
@@ -160,14 +155,22 @@ const RevealSection = ({
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Immediate fallback if IntersectionObserver is not supported
+    if (!window.IntersectionObserver) {
+      setIsVisible(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
           setTimeout(() => setIsVisible(true), delay);
+          observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.05, rootMargin: '0px 0px -50px 0px' }
+      { threshold: 0.01, rootMargin: '100px 0px' } // Load early
     );
+
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
   }, [delay]);
@@ -175,10 +178,8 @@ const RevealSection = ({
   return (
     <div
       ref={sectionRef}
-      className={`relative transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-        isVisible
-          ? 'opacity-100 translate-y-0 [clip-path:polygon(0_0,100%_0,100%_100%,0_100%)]'
-          : 'opacity-0 translate-y-24 [clip-path:polygon(0_0,0_0,0_100%,0_100%)]'
+      className={`relative transition-all duration-1000 ease-out ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
       }`}
     >
       {children}
@@ -209,7 +210,8 @@ const SciFiCard = ({
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), index * 80);
+          setTimeout(() => setIsVisible(true), index * 60);
+          observer.unobserve(entry.target);
         }
       },
       { threshold: 0.1 }
@@ -222,7 +224,7 @@ const SciFiCard = ({
     <div
       ref={cardRef}
       className={`relative group p-[1px] rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-cyber-green/40 transition-all duration-700 ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-cyber-green/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -282,20 +284,6 @@ export function LandingPage({
   return (
     <div className="min-h-screen bg-[#020202] text-white selection:bg-cyber-green selection:text-black font-mono overflow-x-hidden">
       <style jsx global>{`
-        @keyframes current_flow {
-          0% {
-            stroke-dasharray: 0 1000;
-            stroke-dashoffset: 0;
-          }
-          50% {
-            stroke-dasharray: 400 600;
-            stroke-dashoffset: -300;
-          }
-          100% {
-            stroke-dasharray: 0 1000;
-            stroke-dashoffset: -1000;
-          }
-        }
         @keyframes fade-in {
           from {
             opacity: 0;
@@ -315,7 +303,7 @@ export function LandingPage({
 
       {/* Navigation */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-black/90 backdrop-blur-xl border-b border-white/5 py-4' : 'py-8'}`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-black/95 backdrop-blur-xl border-b border-white/5 py-4' : 'py-8'}`}
       >
         <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
           <div className="flex items-center gap-2 group cursor-pointer">
@@ -355,7 +343,7 @@ export function LandingPage({
 
       <main className="relative z-10">
         {/* Hero Section */}
-        <section className="relative min-h-[80vh] flex items-center pt-24 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden">
+        <section className="relative min-h-[85vh] flex items-center pt-24 px-6 md:px-12 max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
             <div className="space-y-6 animate-[fade-in_1s_ease-out]">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-green/10 border border-cyber-green/20 text-cyber-green text-[9px] font-black uppercase tracking-[0.2em] animate-pulse">
@@ -447,7 +435,7 @@ export function LandingPage({
         {/* Feature Grid */}
         <section
           id="core"
-          className="px-6 py-16 md:px-12 max-w-7xl mx-auto border-t border-white/5 bg-[radial-gradient(circle_at_50%_0%,_rgba(0,255,157,0.05)_0%,_transparent_50%)]"
+          className="px-6 py-20 md:px-12 max-w-7xl mx-auto border-t border-white/5 bg-[radial-gradient(circle_at_50%_0%,_rgba(0,255,157,0.05)_0%,_transparent_50%)]"
         >
           <RevealSection id="features-header">
             <div className="mb-12 space-y-4">
@@ -518,17 +506,17 @@ export function LandingPage({
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="relative px-6 py-16 md:px-12 max-w-7xl mx-auto overflow-hidden">
+        {/* CTA Section - restoring explicit visibility */}
+        <section className="relative px-6 py-24 md:px-12 max-w-7xl mx-auto overflow-hidden">
           <div className="absolute inset-0 bg-cyber-green/5 blur-[100px] rounded-full translate-y-1/2" />
-          <RevealSection id="cta" delay={200}>
-            <div className="relative border border-white/10 bg-white/[0.03] rounded-3xl p-12 md:p-20 text-center overflow-hidden border-t-cyber-green/20 shadow-[0_0_50px_rgba(0,255,157,0.1)]">
+          <RevealSection id="cta" delay={100}>
+            <div className="relative border border-white/10 bg-white/[0.03] rounded-3xl p-12 md:p-24 text-center overflow-hidden border-t-cyber-green/20 shadow-2xl">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-green to-transparent" />
-              <h2 className="text-5xl md:text-7xl font-black mb-6 tracking-tighter">
+              <h2 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter">
                 {vt('cta_title_1')} <br className="md:hidden" />{' '}
                 <span className="italic text-cyber-green">{vt('cta_title_2')}</span>
               </h2>
-              <p className="text-gray-400 mb-10 max-w-xl mx-auto text-lg font-medium">
+              <p className="text-gray-400 mb-12 max-w-xl mx-auto text-lg font-medium">
                 {vt('cta_desc')}
               </p>
               <div className="flex flex-col sm:flex-row gap-6 justify-center">
