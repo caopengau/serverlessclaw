@@ -6,8 +6,8 @@ import { SharedContext, getDomainConfig } from './shared';
  */
 export function createLanding(
   ctx: SharedContext,
-  options: { 
-    appPath: string; 
+  options: {
+    appPath: string;
     resourceName?: string;
     domainKey?: string;
   }
