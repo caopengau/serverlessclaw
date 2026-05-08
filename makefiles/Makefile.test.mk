@@ -102,7 +102,18 @@ verify-deploy: ## Full post-deploy verification: API, dashboard, CSS, JS
 	\
 	echo "" ; \
 	if [ "$$FAIL" -ne 0 ]; then $(call log_error,Verification FAILED); exit 1; fi ; \
+	$(MAKE) verify-connectivity URL=$$API_URL ; \
 	$(call log_success,All checks passed)
+
+verify-connectivity: ## Verify resource connectivity (DB, IoT, MCP). Usage: make verify-connectivity URL=https://...
+	@$(call log_step,Verifying resource connectivity at $(URL)...)
+	@if [ -z "$(URL)" ]; then $(call log_error,URL is required); exit 1; fi; \
+	STATUS=$$(curl -s -L --max-time 15 "$(URL)/health" | jq -r '.status') ; \
+	if [ "$$STATUS" != "ok" ]; then \
+		$(call log_error,Connectivity check FAILED: Deep health check reported issues); \
+		exit 1; \
+	fi; \
+	$(call log_success,Resource connectivity verified.)
 
 smoke-test: ## Fast HTTP smoke test of key routes. Usage: make smoke-test [URL=https://...]
 	@$(call log_step,Running fast smoke test...) ; \
@@ -157,6 +168,11 @@ test-coverage-ci: ## Run unit tests with coverage enforcement for CI (via Turbo)
 test-component: ## Run component tests (via Turbo)
 	@$(call log_step,Running component tests via Turbo...)
 	@$(PNPM) exec turbo run test -- --reporter=verbose '**/*.test.tsx'
+
+test-voltx: ## Run VoltX-specific logic verification
+	@$(call log_step,Verifying VoltX domain logic...)
+	@export PATH=/Users/pengcao/.nvm/versions/node/v24.15.0/bin:$$PATH && \
+	$(PNPM) exec vitest run packages/voltx-core/src/**/*.test.ts
 
 test-e2e: ## Run E2E tests with Playwright (local dev server)
 	@$(call log_step,Running E2E tests (Isolated environment)...)

@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { DeepSeekProvider } from './deepseek';
 import { MessageRole, ReasoningProfile, DeepSeekModel } from '../types/index';
-import { resolveProviderApiKey } from './utils';
 
 vi.mock('./utils', () => ({
   resolveProviderApiKey: vi.fn().mockReturnValue('sk-test-deepseek-key'),
@@ -140,7 +139,10 @@ describe('DeepSeekProvider', () => {
             name: 'get_weather',
             description: 'Get weather for a city',
             parameters: { type: 'object', properties: { city: { type: 'string' } } },
-          },
+            type: 'function' as any,
+            connectionProfile: [],
+            execute: async () => 'Cloudy',
+          } as any,
         ]
       );
 

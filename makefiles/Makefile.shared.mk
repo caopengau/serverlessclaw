@@ -145,8 +145,8 @@ sync-downstream: ## Pull latest framework subtree from official upstream (fetch-
 	@GIT_EDITOR=true git subtree pull --prefix=framework $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH)
 	@$(call log_success,Framework subtree synced from official upstream.)
 
-sync-upstream: ## Push framework subtree to explicit remote (required: SYNC_UPSTREAM_REMOTE)
-	@$(call log_step,Preparing framework subtree push...)
+sync-upstream: ## Run framework quality gates and promote subtree to upstream (required: SYNC_UPSTREAM_REMOTE)
+	@$(call log_step,Preparing framework subtree promotion...)
 	@if [ -z "$(SYNC_UPSTREAM_REMOTE)" ]; then \
 		$(call log_error,SYNC_UPSTREAM_REMOTE is required. Example: make sync-upstream SYNC_UPSTREAM_REMOTE=hub-origin); \
 		exit 1; \
@@ -156,9 +156,11 @@ sync-upstream: ## Push framework subtree to explicit remote (required: SYNC_UPST
 		exit 1; \
 	fi
 	@$(call verify_clean)
-	@$(call log_step,Pushing framework subtree to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH)...)
+	@$(call log_step,Step 1/2: Running framework quality gates...)
+	@$(MAKE) -C framework pre-push
+	@$(call log_step,Step 2/2: Pushing framework subtree to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH)...)
 	@git subtree push --prefix=framework $(SYNC_UPSTREAM_REMOTE) $(SUBTREE_BRANCH)
-	@$(call log_success,Framework subtree pushed to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH).)
+	@$(call log_success,Framework subtree successfully promoted to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH).)
 
 show-env: ## Show current environment variables (filtered)
 	@$(call load_env); \

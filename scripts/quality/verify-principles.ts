@@ -148,6 +148,47 @@ function verifyToolTelemetry(): Finding[] {
   return findings;
 }
 
+function verifyBoundaryIsolation(): Finding[] {
+  const findings: Finding[] = [];
+  const frameworkFiles = globSync(`framework/**/*.{ts,tsx,md}`);
+
+  frameworkFiles.forEach((file) => {
+    if (file.includes('node_modules') || file.includes('.test.') || file.includes('.d.ts')) return;
+    const content = readFileSync(file, 'utf-8');
+    const lines = content.split('\n');
+
+    lines.forEach((line, idx) => {
+      // 1. Check for product leakage (imports)
+      if (line.includes('packages/voltx-') || line.includes('@voltx/')) {
+        findings.push({
+          file: relative(process.cwd(), file),
+          line: idx + 1,
+          principle: 'Boundary Isolation',
+          issue: 'Framework LEAK: Framework MUST NOT import from voltx-* packages.',
+          severity: 'P0',
+        });
+      }
+
+      // 2. Check for product keywords in framework source (non-markdown)
+      if (
+        !file.endsWith('.md') &&
+        !file.includes('scripts/') &&
+        (line.includes('VoltX') || line.includes('voltx'))
+      ) {
+        findings.push({
+          file: relative(process.cwd(), file),
+          line: idx + 1,
+          principle: 'Product Isolation',
+          issue: 'Framework LEAK: Framework source contains product-specific "VoltX" string.',
+          severity: 'P0',
+        });
+      }
+    });
+  });
+
+  return findings;
+}
+
 async function main() {
   const verbose = process.argv.includes('--verbose');
 
@@ -160,6 +201,7 @@ async function main() {
     ...verifyMonotonicProgress(),
     ...verifyAtomicUpdates(),
     ...verifyToolTelemetry(),
+    ...verifyBoundaryIsolation(),
   ];
 
   if (verbose || allFindings.length > 0) {
