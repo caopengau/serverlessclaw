@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 /**
@@ -14,7 +14,11 @@ import { useTranslations } from '@/components/Providers/TranslationsProvider';
  */
 
 export default function LandingPage() {
-  const [Component, setComponent] = useState<any>(null);
+  const [Component, setComponent] = useState<React.ComponentType<{
+    t?: (key: string) => string;
+    locale?: 'en' | 'cn';
+    setLocale?: (locale: 'en' | 'cn') => void;
+  }> | null>(null);
   const { t, locale, setLocale } = useTranslations();
 
   useEffect(() => {
@@ -41,5 +45,6 @@ export default function LandingPage() {
     );
   }
 
-  return <Component t={t} locale={locale} setLocale={setLocale} />;
+  // Cast setLocale to match the expected 'en' | 'cn' union type
+  return <Component t={t} locale={locale as 'en' | 'cn'} setLocale={setLocale as (l: 'en' | 'cn') => void} />;
 }

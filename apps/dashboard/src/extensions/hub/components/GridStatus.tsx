@@ -1,12 +1,20 @@
-// @ts-nocheck
-/// <reference types="react" />
 'use client';
 
 import React from 'react';
 
-export default function GridStatus({ component }: any) {
-  const { data } = component;
+interface GridStatusProps {
+  component: {
+    data?: {
+      nodeId?: string;
+      load?: string;
+      frequency?: string;
+    };
+  };
+}
 
+export default function GridStatus({ component }: GridStatusProps) {
+  const { data } = component;
+  
   return (
     <div className="p-4 border border-cyber-green/30 bg-cyber-green/5 rounded-lg font-mono">
       <div className="flex justify-between items-center mb-4">
@@ -16,7 +24,7 @@ export default function GridStatus({ component }: any) {
         </h3>
         <span className="text-[10px] text-foreground/40">NODE: {data?.nodeId || 'GLOBAL'}</span>
       </div>
-
+      
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <div className="text-[8px] text-foreground/50 uppercase">Current Load</div>
@@ -27,7 +35,7 @@ export default function GridStatus({ component }: any) {
           <div className="text-xl text-foreground font-black">{data?.frequency || '50.02'} Hz</div>
         </div>
       </div>
-
+      
       <div className="mt-4 pt-4 border-t border-cyber-green/10">
         <div className="flex justify-between items-end">
           <div>
