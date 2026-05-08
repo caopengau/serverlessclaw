@@ -14,9 +14,6 @@ const jetbrainsMono = JetBrains_Mono({
 
 import { Toaster } from 'sonner';
 import { TranslationsProvider } from '@/components/Providers/TranslationsProvider';
-import { PageContextProvider } from '@/components/Providers/PageContextProvider';
-import { UICommandProvider } from '@/components/Providers/UICommandProvider';
-import { RealtimeProvider } from '@/components/Providers/RealtimeProvider';
 import { ConfigManager } from '@claw/core/lib/registry/config';
 import { CONFIG_KEYS } from '@claw/core/lib/constants';
 
@@ -28,13 +25,7 @@ export const metadata: Metadata = {
 export const dynamic = 'force-dynamic';
 
 import { ThemeProvider } from '@/components/Providers/ThemeProvider';
-import { TenantProvider } from '@/components/Providers/TenantProvider';
-import { GlobalModals } from '@/components/GlobalModals';
-import CommandPalette from '@/components/CommandPalette';
-
-import { PresenceProvider } from '@/components/Providers/PresenceProvider';
 import { ExtensionProvider } from '@/components/Providers/ExtensionProvider';
-import { ExtensionLoader } from '@/components/Providers/ExtensionLoader';
 
 export default async function RootLayout({
   children,
@@ -64,38 +55,25 @@ export default async function RootLayout({
       >
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <ExtensionProvider>
-            <ExtensionLoader />
             <TranslationsProvider initialLocale={initialLocale}>
-              <TenantProvider>
-                <RealtimeProvider>
-                  <PresenceProvider>
-                    <UICommandProvider>
-                      <PageContextProvider>
-                        <GlobalModals />
-                        <CommandPalette />
-                        <a
-                          href="#main-content"
-                          className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-cyber-green focus:text-black"
-                        >
-                          Skip to content
-                        </a>
-                        <Toaster
-                          position="bottom-right"
-                          toastOptions={{
-                            className: 'cyber-toast',
-                            classNames: {
-                              success: 'cyber-toast-success',
-                              error: 'cyber-toast-error',
-                              description: 'cyber-toast-description',
-                            },
-                          }}
-                        />
-                        <div className="flex-1 overflow-y-auto">{children}</div>
-                      </PageContextProvider>
-                    </UICommandProvider>
-                  </PresenceProvider>
-                </RealtimeProvider>
-              </TenantProvider>
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-cyber-green focus:text-black"
+              >
+                Skip to content
+              </a>
+              <Toaster
+                position="bottom-right"
+                toastOptions={{
+                  className: 'cyber-toast',
+                  classNames: {
+                    success: 'cyber-toast-success',
+                    error: 'cyber-toast-error',
+                    description: 'cyber-toast-description',
+                  },
+                }}
+              />
+              <div className="flex-1 overflow-y-auto">{children}</div>
             </TranslationsProvider>
           </ExtensionProvider>
         </ThemeProvider>

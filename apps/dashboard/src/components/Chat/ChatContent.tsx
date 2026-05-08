@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Paperclip } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
@@ -123,70 +123,6 @@ export default function ChatContent() {
   const createNewChatRef = useRef<() => void>(() => {});
   const currentSessionRef = useRef<ConversationMeta | null | undefined>(null);
 
-  const shortcuts: ShortcutDefinition[] = [
-    {
-      keys: 'meta+k',
-      handler: () => searchInputRef.current?.focus(),
-      description: t('SHORTCUTS_FOCUS_SEARCH'),
-    },
-    {
-      keys: 'ctrl+k',
-      handler: () => searchInputRef.current?.focus(),
-      description: t('SHORTCUTS_FOCUS_SEARCH'),
-    },
-    {
-      keys: 'meta+alt+n',
-      handler: () => createNewChatRef.current(),
-      description: t('SHORTCUTS_NEW_CHAT'),
-    },
-    {
-      keys: 'ctrl+alt+n',
-      handler: () => createNewChatRef.current(),
-      description: t('SHORTCUTS_NEW_CHAT'),
-    },
-    {
-      keys: 'meta+/',
-      handler: () => chatInputRef.current?.focus(),
-      description: t('SHORTCUTS_FOCUS_CHAT_INPUT'),
-    },
-    {
-      keys: 'ctrl+/',
-      handler: () => chatInputRef.current?.focus(),
-      description: t('SHORTCUTS_FOCUS_CHAT_INPUT'),
-    },
-    {
-      keys: 'meta+e',
-      handler: () => {
-        if (activeSessionId && currentSessionRef.current) setIsEditingTitle(true);
-      },
-      description: t('SHORTCUTS_EDIT_SESSION_TITLE'),
-    },
-    {
-      keys: 'ctrl+e',
-      handler: () => {
-        if (activeSessionId && currentSessionRef.current) setIsEditingTitle(true);
-      },
-      description: t('SHORTCUTS_EDIT_SESSION_TITLE'),
-    },
-    {
-      keys: 'meta+t',
-      handler: () => setShowThinking((prev) => !prev),
-      description: t('SHORTCUTS_TOGGLE_THINKING_VISIBILITY'),
-    },
-    {
-      keys: 'ctrl+t',
-      handler: () => setShowThinking((prev) => !prev),
-      description: t('SHORTCUTS_TOGGLE_THINKING_VISIBILITY'),
-    },
-    {
-      keys: '?',
-      handler: () => setActiveModal(activeModal === 'shortcuts' ? null : 'shortcuts'),
-      description: t('SHORTCUTS_SHOW_KEYBOARD_HELP'),
-      preventDefault: false,
-    },
-  ];
-
-  useKeyboardShortcuts(shortcuts, !!activeSessionId);
   const hasProcessedPrompt = useRef<boolean>(false);
   const isPostInFlightRef = useRef<boolean>(false);
 
@@ -235,8 +171,108 @@ export default function ChatContent() {
     activeWorkspaceId
   );
 
+  // --- Session Management Handlers ---
+
+  const createNewChat = useCallback(
+    (agentId: string = AGENT_TYPES.SUPERCLAW) => {
+      setCurrentAgentId(agentId);
+      setActiveCollaborators([agentId]);
+      setCollaborationId(null);
+      setIsAgentSelectorOpen(false);
+
+      if (!activeSessionId && agentId === currentAgentId) {
+        setIsShaking(true);
+        setTimeout(() => setIsShaking(false), 500);
+        return;
+      }
+
+      seenMessageIdsRef.current.clear();
+      setActiveSessionId('');
+      setMessages([]);
+      setAttachments([]);
+      if (mounted) {
+        router.push('/chat', { scroll: false });
+      }
+    },
+    [
+      activeSessionId,
+      currentAgentId,
+      mounted,
+      router,
+      seenMessageIdsRef,
+      setAttachments,
+      setMessages,
+    ]
+  );
+
+  const shortcuts: ShortcutDefinition[] = [
+    {
+      keys: 'meta+k',
+      handler: () => searchInputRef.current?.focus(),
+      description: t('SHORTCUTS_FOCUS_SEARCH'),
+    },
+    {
+      keys: 'ctrl+k',
+      handler: () => searchInputRef.current?.focus(),
+      description: t('SHORTCUTS_FOCUS_SEARCH'),
+    },
+    {
+      keys: 'meta+alt+n',
+      handler: () => createNewChat(),
+      description: t('SHORTCUTS_NEW_CHAT'),
+    },
+    {
+      keys: 'ctrl+alt+n',
+      handler: () => createNewChat(),
+      description: t('SHORTCUTS_NEW_CHAT'),
+    },
+    {
+      keys: 'meta+/',
+      handler: () => chatInputRef.current?.focus(),
+      description: t('SHORTCUTS_FOCUS_CHAT_INPUT'),
+    },
+    {
+      keys: 'ctrl+/',
+      handler: () => chatInputRef.current?.focus(),
+      description: t('SHORTCUTS_FOCUS_CHAT_INPUT'),
+    },
+    {
+      keys: 'meta+e',
+      handler: () => {
+        if (activeSessionId && currentSessionRef.current) setIsEditingTitle(true);
+      },
+      description: t('SHORTCUTS_EDIT_SESSION_TITLE'),
+    },
+    {
+      keys: 'ctrl+e',
+      handler: () => {
+        if (activeSessionId && currentSessionRef.current) setIsEditingTitle(true);
+      },
+      description: t('SHORTCUTS_EDIT_SESSION_TITLE'),
+    },
+    {
+      keys: 'meta+t',
+      handler: () => setShowThinking((prev) => !prev),
+      description: t('SHORTCUTS_TOGGLE_THINKING_VISIBILITY'),
+    },
+    {
+      keys: 'ctrl+t',
+      handler: () => setShowThinking((prev) => !prev),
+      description: t('SHORTCUTS_TOGGLE_THINKING_VISIBILITY'),
+    },
+    {
+      keys: '?',
+      handler: () => setActiveModal(activeModal === 'shortcuts' ? null : 'shortcuts'),
+      description: t('SHORTCUTS_SHOW_KEYBOARD_HELP'),
+      preventDefault: false,
+    },
+  ];
+
+  useKeyboardShortcuts(shortcuts, !!activeSessionId);
+
   useEffect(() => {
-    setTimeout(() => setMounted(true), 0);
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -374,29 +410,6 @@ export default function ChatContent() {
         collaborationId: collaborationId || undefined,
         profile: showThinking ? 'thinking' : 'fast',
       });
-    }
-  };
-
-  // --- Session Management Handlers ---
-
-  const createNewChat = (agentId: string = AGENT_TYPES.SUPERCLAW) => {
-    setCurrentAgentId(agentId);
-    setActiveCollaborators([agentId]);
-    setCollaborationId(null);
-    setIsAgentSelectorOpen(false);
-
-    if (!activeSessionId && agentId === currentAgentId) {
-      setIsShaking(true);
-      setTimeout(() => setIsShaking(false), 500);
-      return;
-    }
-
-    seenMessageIdsRef.current.clear();
-    setActiveSessionId('');
-    setMessages([]);
-    setAttachments([]);
-    if (mounted) {
-      router.push('/chat', { scroll: false });
     }
   };
 

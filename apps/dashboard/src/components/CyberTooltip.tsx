@@ -34,8 +34,10 @@ export default function CyberTooltip({
 
   // Mounting flag for portal safety
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   const hideTooltip = () => {
@@ -68,7 +70,6 @@ export default function CyberTooltip({
         finalPos = 'left';
       }
 
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActivePosition(finalPos);
 
       let top = 0;

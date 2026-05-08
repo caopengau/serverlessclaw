@@ -2,10 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
-export default function GlobalError({
-  error,
-  reset,
-}: {
+export default function GlobalError(props: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
@@ -13,7 +10,7 @@ export default function GlobalError({
     <html>
       <body>
         <h2>Something went wrong!</h2>
-        <button onClick={() => reset()}>Try again</button>
+        <button onClick={() => props.reset()}>Try again</button>
       </body>
     </html>
   );

@@ -8,6 +8,9 @@ jobs:
   enable-automerge:
     name: Enable Auto-merge
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
     # Enable auto-merge for Renovate PRs or PRs with 'automerge' label
     if: |
       github.event.pull_request.user.login == 'renovate[bot]' ||

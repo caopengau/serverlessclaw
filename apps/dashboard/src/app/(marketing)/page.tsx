@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 /**
  * Landing Page with Extension Support
@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react';
 
 export default function LandingPage() {
   const [Component, setComponent] = useState<any>(null);
+  const { t, locale } = useTranslations();
 
   useEffect(() => {
     (async () => {
@@ -39,5 +40,5 @@ export default function LandingPage() {
     );
   }
 
-  return <Component />;
+  return <Component t={t} locale={locale} />;
 }
