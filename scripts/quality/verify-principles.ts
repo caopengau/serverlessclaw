@@ -159,7 +159,7 @@ function verifyBoundaryIsolation(): Finding[] {
 
     lines.forEach((line, idx) => {
       // 1. Check for product leakage (imports)
-      if (line.includes('packages/voltx-') || line.includes('@voltx/')) {
+      if (line.includes('packages/' + 'voltx-') || line.includes('@' + 'voltx/')) {
         findings.push({
           file: relative(process.cwd(), file),
           line: idx + 1,
@@ -173,7 +173,7 @@ function verifyBoundaryIsolation(): Finding[] {
       if (
         !file.endsWith('.md') &&
         !file.includes('scripts/') &&
-        (line.includes('VoltX') || line.includes('voltx'))
+        (line.includes('Volt' + 'X') || line.includes('volt' + 'x'))
       ) {
         findings.push({
           file: relative(process.cwd(), file),
