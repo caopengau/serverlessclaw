@@ -9,7 +9,7 @@ export function createLanding(
   options: {
     appPath: string;
     resourceName?: string;
-    domainKey?: string;
+    domainKey?: 'api' | 'dashboard' | 'router' | 'landing';
   }
 ): { landing: sst.aws.Nextjs } {
   const resourceName = options.resourceName ?? 'StandaloneHome';
