@@ -36,10 +36,7 @@ export default async function RootLayout({
   let initialLocale: 'en' | 'cn' = 'cn';
   try {
     // Only attempt config fetch if we can reach the ConfigManager
-    const locale = await ConfigManager.getTypedConfig<string>(
-      CONFIG_KEYS.ACTIVE_LOCALE,
-      'cn'
-    );
+    const locale = await ConfigManager.getTypedConfig<string>(CONFIG_KEYS.ACTIVE_LOCALE, 'cn');
     initialLocale = (locale === 'en' ? 'en' : 'cn') as 'en' | 'cn';
   } catch (err) {
     // Silent fallback to 'cn' for marketing pages
@@ -76,9 +73,7 @@ export default async function RootLayout({
                   },
                 }}
               />
-              <div className="flex-1 overflow-y-auto">
-                {children}
-              </div>
+              <div className="flex-1 overflow-y-auto">{children}</div>
             </TranslationsProvider>
           </ExtensionProvider>
         </ThemeProvider>

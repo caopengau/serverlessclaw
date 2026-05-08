@@ -14,14 +14,6 @@ import { normalizeProfile, resolveProviderApiKey } from './utils';
 
 // --- Constants and Configuration ---
 const DEEPSEEK_BASE_URL = 'https://api.deepseek.com/v1';
-const CONTENT_TYPES = {
-  TEXT: 'text' as const,
-  IMAGE_URL: 'image_url' as const,
-};
-const MIME_TYPES = {
-  PNG: 'image/png',
-  OCTET_STREAM: 'application/octet-stream',
-};
 const TOOL_TYPES = {
   FUNCTION: 'function',
 } as const;
