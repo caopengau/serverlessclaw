@@ -15,6 +15,7 @@ import { OpenAIProvider } from './openai';
 import { OpenRouterProvider } from './openrouter';
 import { BedrockProvider } from './bedrock';
 import { MiniMaxProvider } from './minimax';
+import { DeepSeekProvider } from './deepseek';
 import { FallbackProvider } from './fallback';
 import { SYSTEM, CONFIG_KEYS } from '../constants';
 import { ConfigManager } from '../registry/config';
@@ -115,6 +116,8 @@ export class ProviderManager implements IProvider {
         return new BedrockProvider(model ?? SYSTEM.DEFAULT_BEDROCK_MODEL);
       case LLMProvider.OPENROUTER:
         return new OpenRouterProvider(model ?? SYSTEM.DEFAULT_OPENROUTER_MODEL);
+      case LLMProvider.DEEPSEEK:
+        return new DeepSeekProvider(model ?? SYSTEM.DEFAULT_DEEPSEEK_MODEL);
       case LLMProvider.MINIMAX:
         return new MiniMaxProvider(model ?? SYSTEM.DEFAULT_MINIMAX_MODEL);
       case LLMProvider.ANTHROPIC:
@@ -392,10 +395,11 @@ export class ProviderManager implements IProvider {
         (configValue as unknown as LLMProvider) ?? sstProvider ?? SYSTEM.DEFAULT_PROVIDER;
     }
 
-    // Default fallback chain: OpenAI → Bedrock → OpenRouter → MiniMax
+    // Default fallback chain: OpenAI → Bedrock → DeepSeek → OpenRouter → MiniMax
     const defaultFallbacks: LLMProvider[] = [
       LLMProvider.OPENAI,
       LLMProvider.BEDROCK,
+      LLMProvider.DEEPSEEK,
       LLMProvider.OPENROUTER,
       LLMProvider.MINIMAX,
     ].filter((p) => p !== primaryProvider);
