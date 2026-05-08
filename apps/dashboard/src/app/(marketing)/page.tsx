@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { ArrowRight, Terminal } from 'lucide-react';
 
 /**
@@ -12,8 +11,6 @@ import { ArrowRight, Terminal } from 'lucide-react';
  * It is designed to be brand-agnostic and strictly OSS.
  */
 export default function LandingPage() {
-  const { t } = useTranslations();
-
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground px-6 text-center">
       <div className="w-16 h-16 rounded-2xl bg-cyber-green/10 flex items-center justify-center mb-8 border border-cyber-green/20">
