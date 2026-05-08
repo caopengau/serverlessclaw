@@ -97,13 +97,14 @@ Use this checklist to enforce [Principles](./PRINCIPLES.md) as measurable operat
 
 Before any production release, all items below must be true:
 
-1. `make gate` passes.
-2. `make test` passes.
-3. `make aiready` passes with threshold **80+**.
-4. `make security-scan` passes at your chosen severity policy.
-5. `make docs-check` reports no blocking drift.
-6. `make verify URL=...` passes after deployment.
-7. Human approval is recorded for any Governance Class C change from [PRINCIPLES.md](./PRINCIPLES.md).
+1. **Workspace Hygiene**: `pnpm install` is run and `git status` shows no untracked/unintended files (especially generated ones like `next-env.d.ts`).
+2. `make gate` passes.
+3. `make test` passes.
+4. `make aiready` passes with threshold **80+**.
+5. `make security-scan` passes at your chosen severity policy.
+6. `make docs-check` reports no blocking drift.
+7. `make verify URL=...` passes after deployment.
+8. Human approval is recorded for any Governance Class C change from [PRINCIPLES.md](./PRINCIPLES.md).
 
 CodeBuild enforcement: the release pipeline in [buildspec.yml](../../buildspec.yml) runs these checks as **blocking gates** (not warnings) for non-`SYNC_ONLY` deployments.
 
