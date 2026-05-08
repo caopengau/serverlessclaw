@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import CyberTooltip from './CyberTooltip';
 
@@ -28,8 +28,8 @@ describe('CyberTooltip Component', () => {
     const trigger = screen.getByText('Hover Me');
     fireEvent.mouseEnter(trigger);
 
-    // Since it uses Portals, we look for it in the document body
-    expect(screen.getByText('Tooltip Content')).toBeInTheDocument();
+    // Since it uses Portals and async mounting, we wait for it
+    expect(await screen.findByText('Tooltip Content')).toBeInTheDocument();
   });
 
   it('hides tooltip content on mouse leave', async () => {
@@ -41,10 +41,12 @@ describe('CyberTooltip Component', () => {
 
     const trigger = screen.getByText('Hover Me');
     fireEvent.mouseEnter(trigger);
-    expect(screen.getByText('Tooltip Content')).toBeInTheDocument();
+    expect(await screen.findByText('Tooltip Content')).toBeInTheDocument();
 
     fireEvent.mouseLeave(trigger);
-    expect(screen.queryByText('Tooltip Content')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByText('Tooltip Content')).not.toBeInTheDocument();
+    });
   });
 
   it('renders info icon when no children are provided and showIcon is true', () => {

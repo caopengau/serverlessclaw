@@ -21,7 +21,7 @@ vi.mock('@claw/core/lib/constants', () => ({
 }));
 
 const renderWithTranslations = (component: React.ReactElement) => {
-  return render(<TranslationsProvider>{component}</TranslationsProvider>);
+  return render(<TranslationsProvider initialLocale="en">{component}</TranslationsProvider>);
 };
 
 describe('ChatInput Component', () => {
@@ -38,6 +38,7 @@ describe('ChatInput Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
   });
 
   it('renders the input textarea', () => {

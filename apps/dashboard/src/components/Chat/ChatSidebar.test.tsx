@@ -43,6 +43,8 @@ describe('ChatSidebar Component', () => {
     onTogglePin: vi.fn(),
     searchQuery: '',
     setSearchQuery: vi.fn(),
+    isCollapsed: false,
+    onToggleCollapse: vi.fn(),
   };
 
   it('renders session titles correctly', () => {
@@ -74,17 +76,14 @@ describe('ChatSidebar Component', () => {
     fireEvent.mouseEnter(sessionItem);
 
     // The buttons have CyberTooltip wrappers
-    // We can't easily "hover" to trigger the portal in this test environment without more setup,
-    // but we can check if the tooltip components are present in the DOM structure if they were children.
-    // However, since they use Portals, they'll only appear on mouseEnter of the BUTTON, not the session.
-
     const pinButton = sessionItem.querySelector('button'); // First button is Pin
     if (!pinButton) throw new Error('Pin button not found');
 
     fireEvent.mouseEnter(pinButton);
 
     // Check if tooltip content appears in portal (document.body)
-    expect(screen.getByText('CHAT_SIDEBAR_PIN_SESSION')).toBeInTheDocument();
+    // Using findByText because CyberTooltip mounting is now async
+    expect(await screen.findByText('CHAT_SIDEBAR_PIN_SESSION')).toBeInTheDocument();
   });
 
   it('renders initials for untitled traces', () => {

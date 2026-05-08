@@ -66,7 +66,7 @@ describe('constants', () => {
 
   describe('ROUTES', () => {
     it('has all navigation routes', () => {
-      expect(ROUTES.HOME).toBe('/');
+      expect(ROUTES.HOME).toBe('/dashboard');
       expect(ROUTES.CHAT).toBe('/chat');
       expect(ROUTES.TRACE).toBe('/trace');
       expect(ROUTES.AGENTS).toBe('/agents');

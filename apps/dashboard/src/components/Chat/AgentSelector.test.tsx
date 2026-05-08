@@ -27,7 +27,7 @@ const localStorageMock = (() => {
 Object.defineProperty(global, 'localStorage', { value: localStorageMock });
 
 const renderWithTranslations = (component: React.ReactElement) => {
-  return render(<TranslationsProvider>{component}</TranslationsProvider>);
+  return render(<TranslationsProvider initialLocale="en">{component}</TranslationsProvider>);
 };
 
 describe('AgentSelector Component', () => {
@@ -64,6 +64,7 @@ describe('AgentSelector Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     fetchPromise = new Promise((resolve) => {
       resolveFetch = resolve;
     });
@@ -117,7 +118,7 @@ describe('AgentSelector Component', () => {
 
     // Rerender with same stable props (including default EMPTY_ARRAY for excludeIds)
     rerender(
-      <TranslationsProvider>
+      <TranslationsProvider initialLocale="en">
         <AgentSelector {...defaultProps} />
       </TranslationsProvider>
     );
