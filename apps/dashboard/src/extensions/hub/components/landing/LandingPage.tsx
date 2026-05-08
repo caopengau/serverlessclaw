@@ -21,23 +21,24 @@ import { translations } from './translations';
 
 /**
  * Animated Electric Current Background - Maximum Visibility
+ * Using path elements with stroke-dasharray for a true "flowing" look.
  */
 const ElectricBackground = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_30%,_rgba(0,255,157,0.18)_0%,_transparent_70%)]" />
+    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_30%,_rgba(0,255,157,0.15)_0%,_transparent_70%)]" />
     <svg
-      className="w-full h-full opacity-100"
+      className="w-full h-full opacity-60"
       xmlns="http://www.w3.org/2000/svg"
       preserveAspectRatio="none"
     >
       <defs>
-        <linearGradient id="glow-line" x1="0%" y1="0%" x2="100%" y2="0%">
+        <linearGradient id="current-grad" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="transparent" />
           <stop offset="50%" stopColor="#00ff9d" />
           <stop offset="100%" stopColor="transparent" />
         </linearGradient>
-        <filter id="svg-glow">
-          <feGaussianBlur stdDeviation="3" result="blur" />
+        <filter id="current-glow">
+          <feGaussianBlur stdDeviation="2" result="blur" />
           <feMerge>
             <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
@@ -45,23 +46,22 @@ const ElectricBackground = () => (
         </filter>
       </defs>
       {[...Array(15)].map((_, i) => (
-        <rect
+        <path
           key={i}
-          x="-100%"
-          y={`${5 + i * 6.5}%`}
-          width="100%"
-          height="1.5"
-          fill="url(#glow-line)"
-          filter="url(#svg-glow)"
-          className="animate-[electric_slide_6s_linear_infinite]"
+          d={`M ${-500} ${40 + i * 60} L ${1500} ${40 + i * 60}`}
+          stroke="url(#current-grad)"
+          strokeWidth="2"
+          fill="none"
+          filter="url(#current-glow)"
+          className="animate-[current_flow_7s_linear_infinite]"
           style={{
-            animationDelay: `${i * -1.1}s`,
-            opacity: 0.5 + (i % 2) * 0.3,
+            animationDelay: `${i * -1.2}s`,
+            opacity: 0.4 + (i % 3) * 0.2,
           }}
         />
       ))}
     </svg>
-    <div className="absolute inset-0 bg-grid-white/[0.04] bg-[length:60px_60px]" />
+    <div className="absolute inset-0 bg-grid-white/[0.03] bg-[length:50px_50px]" />
   </div>
 );
 
@@ -145,7 +145,7 @@ const LocaleSwitcher = ({
 };
 
 /**
- * Section Reveal with Curtain Effect
+ * Section Reveal with Cool Cut-in Effect
  */
 const RevealSection = ({
   children,
@@ -166,7 +166,7 @@ const RevealSection = ({
           setTimeout(() => setIsVisible(true), delay);
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.05, rootMargin: '0px 0px -50px 0px' }
     );
     if (sectionRef.current) observer.observe(sectionRef.current);
     return () => observer.disconnect();
@@ -175,10 +175,10 @@ const RevealSection = ({
   return (
     <div
       ref={sectionRef}
-      className={`relative transition-all duration-1000 ease-[cubic-bezier(0.19,1,0.22,1)] ${
+      className={`relative transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${
         isVisible
-          ? 'opacity-100 translate-y-0 [clip-path:inset(0%_0%_0%_0%)]'
-          : 'opacity-0 translate-y-12 [clip-path:inset(0%_100%_0%_0%)]'
+          ? 'opacity-100 translate-y-0 [clip-path:polygon(0_0,100%_0,100%_100%,0_100%)]'
+          : 'opacity-0 translate-y-24 [clip-path:polygon(0_0,0_0,0_100%,0_100%)]'
       }`}
     >
       {children}
@@ -209,7 +209,7 @@ const SciFiCard = ({
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          setTimeout(() => setIsVisible(true), index * 100);
+          setTimeout(() => setIsVisible(true), index * 80);
         }
       },
       { threshold: 0.1 }
@@ -222,7 +222,7 @@ const SciFiCard = ({
     <div
       ref={cardRef}
       className={`relative group p-[1px] rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-cyber-green/40 transition-all duration-700 ${
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
       }`}
     >
       <div className="absolute inset-0 bg-gradient-to-br from-cyber-green/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -282,12 +282,18 @@ export function LandingPage({
   return (
     <div className="min-h-screen bg-[#020202] text-white selection:bg-cyber-green selection:text-black font-mono overflow-x-hidden">
       <style jsx global>{`
-        @keyframes electric_slide {
+        @keyframes current_flow {
           0% {
-            transform: translateX(0);
+            stroke-dasharray: 0 1000;
+            stroke-dashoffset: 0;
+          }
+          50% {
+            stroke-dasharray: 400 600;
+            stroke-dashoffset: -300;
           }
           100% {
-            transform: translateX(300%);
+            stroke-dasharray: 0 1000;
+            stroke-dashoffset: -1000;
           }
         }
         @keyframes fade-in {
@@ -299,6 +305,9 @@ export function LandingPage({
             opacity: 1;
             transform: translateY(0);
           }
+        }
+        body {
+          background-color: #020202;
         }
       `}</style>
 
@@ -345,8 +354,8 @@ export function LandingPage({
       </nav>
 
       <main className="relative z-10">
-        {/* Hero Section - Reduced height and padding */}
-        <section className="relative min-h-[75vh] flex items-center pt-24 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden">
+        {/* Hero Section */}
+        <section className="relative min-h-[80vh] flex items-center pt-24 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
             <div className="space-y-6 animate-[fade-in_1s_ease-out]">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-green/10 border border-cyber-green/20 text-cyber-green text-[9px] font-black uppercase tracking-[0.2em] animate-pulse">
@@ -435,10 +444,10 @@ export function LandingPage({
           </div>
         </section>
 
-        {/* Feature Grid - Reduced padding */}
+        {/* Feature Grid */}
         <section
           id="core"
-          className="px-6 py-12 md:px-12 max-w-7xl mx-auto border-t border-white/5 bg-[radial-gradient(circle_at_50%_0%,_rgba(0,255,157,0.05)_0%,_transparent_50%)]"
+          className="px-6 py-16 md:px-12 max-w-7xl mx-auto border-t border-white/5 bg-[radial-gradient(circle_at_50%_0%,_rgba(0,255,157,0.05)_0%,_transparent_50%)]"
         >
           <RevealSection id="features-header">
             <div className="mb-12 space-y-4">
@@ -509,11 +518,11 @@ export function LandingPage({
           </div>
         </section>
 
-        {/* CTA Section - Reduced padding */}
-        <section className="relative px-6 py-12 md:px-12 max-w-7xl mx-auto overflow-hidden">
+        {/* CTA Section */}
+        <section className="relative px-6 py-16 md:px-12 max-w-7xl mx-auto overflow-hidden">
           <div className="absolute inset-0 bg-cyber-green/5 blur-[100px] rounded-full translate-y-1/2" />
-          <RevealSection id="cta" delay={150}>
-            <div className="relative border border-white/10 bg-white/[0.03] rounded-3xl p-12 md:p-20 text-center overflow-hidden border-t-cyber-green/20">
+          <RevealSection id="cta" delay={200}>
+            <div className="relative border border-white/10 bg-white/[0.03] rounded-3xl p-12 md:p-20 text-center overflow-hidden border-t-cyber-green/20 shadow-[0_0_50px_rgba(0,255,157,0.1)]">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-green to-transparent" />
               <h2 className="text-5xl md:text-7xl font-black mb-6 tracking-tighter">
                 {vt('cta_title_1')} <br className="md:hidden" />{' '}
