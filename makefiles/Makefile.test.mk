@@ -174,14 +174,13 @@ test-affected: ## Run only tests in affected packages (via Turbo)
 
 docs-check: ## Validate documentation is in sync with code changes
 	@$(call log_step,Checking documentation...)
-	@$(PNPM) exec tsx scripts/quality/docs-check.ts $(if $(BASE),--base $(BASE),) $(if $(STRICT),--strict,)
+	@$(PNPM) exec tsx framework/scripts/quality/docs-check.ts $(if $(BASE),--base $(BASE),) $(if $(STRICT),--strict,)
 
 test-coverage-trend: ## Track coverage trends and detect regressions. Usage: make test-coverage-trend [THRESHOLD=5] [UPDATE_BASELINE=true]
 	@$(call log_step,Running coverage trend analysis...)
-	@$(PNPM) exec tsx scripts/quality/coverage-trend.ts \
+	@$(PNPM) exec tsx framework/scripts/quality/coverage-trend.ts \
 		$(if $(THRESHOLD),--threshold $(THRESHOLD),) \
 		$(if $(UPDATE_BASELINE),--update-baseline,)
-
 security-scan: ## Run security audit and basic static analysis
 	@$(call log_step,Running security audit...)
 	@$(PNPM) audit --audit-level=high || $(call log_warning,High-severity security vulnerabilities detected. Review required.)
