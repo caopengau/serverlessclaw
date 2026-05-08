@@ -1,25 +1,8 @@
 /**
- * Extension Hub Template
+ * Generic Extension Hub
  * 
- * Includes both landing page and dashboard extension components.
- * The framework dashboard build process copies these exports into
- * the extensions/hub directory at build time from the target product.
- */
-export { LandingPage } from './components/landing/LandingPage';
-
-/**
- * Product Dashboard Extension Initializer
+ * Products can register sidebar items and components here.
  */
 export function init({ registerSidebar, registerComponent }: any) {
-  // Products can register their own sidebar items and components here
-  // Example:
-  /*
-  registerSidebar({
-    id: 'product-feature',
-    label: 'Product Feature',
-    href: '/product/feature',
-    icon: Activity,
-    section: 'OPERATIONS',
-  });
-  */
+  // Hub is initialized empty; products inject logic via this hook.
 }
