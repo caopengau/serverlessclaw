@@ -250,8 +250,20 @@ export enum LLMProvider {
   MINIMAX = 'minimax',
   /** Anthropic (Claude models). */
   ANTHROPIC = 'anthropic',
+  /** DeepSeek (Direct API, OpenAI-compatible). */
+  DEEPSEEK = 'deepseek',
   /** Mock provider for testing. */
   MOCK = 'mock',
+}
+
+/**
+ * Specific model identifiers for DeepSeek.
+ */
+export enum DeepSeekModel {
+  /** DeepSeek V4 Flash (fast, cost-efficient). */
+  V4_FLASH = 'deepseek-v4-flash',
+  /** DeepSeek V4 Pro (max reasoning capability). */
+  V4_PRO = 'deepseek-v4-pro',
 }
 
 /**

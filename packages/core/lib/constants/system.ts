@@ -5,6 +5,7 @@ import {
   BedrockModel,
   OpenRouterModel,
   MiniMaxModel,
+  DeepSeekModel,
 } from '../types/llm';
 
 /**
@@ -16,6 +17,7 @@ export const SYSTEM = {
   DEFAULT_OPENAI_MODEL: OpenAIModel.GPT_5_4_MINI,
   DEFAULT_BEDROCK_MODEL: BedrockModel.CLAUDE_4_6,
   DEFAULT_OPENROUTER_MODEL: OpenRouterModel.GLM_5,
+  DEFAULT_DEEPSEEK_MODEL: DeepSeekModel.V4_FLASH,
   DEFAULT_MINIMAX_MODEL: MiniMaxModel.M2_7,
   DEFAULT_RECURSION_LIMIT: 7,
   DEFAULT_DEPLOY_LIMIT: CONFIG_DEFAULTS?.DEPLOY_LIMIT?.code ?? 5,
@@ -145,6 +147,7 @@ export const TRUST = {
 export const UTILITY_MODELS: Record<string, string> = {
   [LLMProvider.OPENAI]: OpenAIModel.GPT_5_4_NANO,
   [LLMProvider.BEDROCK]: 'anthropic.claude-3-haiku-20240307-v1:0',
+  [LLMProvider.DEEPSEEK]: DeepSeekModel.V4_FLASH,
   [LLMProvider.MINIMAX]: MiniMaxModel.M2_7_HIGHSPEED,
   [LLMProvider.OPENROUTER]: OpenRouterModel.GEMINI_3_FLASH,
 };

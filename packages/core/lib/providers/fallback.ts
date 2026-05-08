@@ -13,6 +13,7 @@ import { OpenAIProvider } from './openai';
 import { BedrockProvider } from './bedrock';
 import { OpenRouterProvider } from './openrouter';
 import { MiniMaxProvider } from './minimax';
+import { DeepSeekProvider } from './deepseek';
 
 /**
  * Health state for a provider circuit breaker.
@@ -96,6 +97,8 @@ export class FallbackProvider implements IProvider {
         return new BedrockProvider(model);
       case LLMProvider.OPENROUTER:
         return new OpenRouterProvider(model);
+      case LLMProvider.DEEPSEEK:
+        return new DeepSeekProvider(model);
       case LLMProvider.MINIMAX:
         return new MiniMaxProvider(model);
       case LLMProvider.ANTHROPIC:

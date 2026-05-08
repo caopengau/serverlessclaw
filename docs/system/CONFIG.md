@@ -120,6 +120,7 @@ This document outlines the system-wide configuration keys available in the `Conf
 - **Implications**:
   - **OpenAI**: Fast, cost-efficient (GPT-5 Mini), and generally reliable. Default for most tasks.
   - **Bedrock (Claude)**: Better for complex coding tasks; higher latency in some regions.
+  - **DeepSeek**: Cost-effective OpenAI-compatible API with reasoning support (V4 Flash for speed, V4 Pro for deep reasoning).
   - **MiniMax**: Native reasoning support; interleaved thinking blocks.
   - **OpenRouter**: Access to a wide range of models via a single API gateway.
 
