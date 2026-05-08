@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 /**
