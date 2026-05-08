@@ -35,12 +35,12 @@ export default async function RootLayout({
   // Fetch the active locale from system config (server-side)
   let initialLocale: 'en' | 'cn' = 'en';
   try {
-    initialLocale = (await ConfigManager.getTypedConfig<string>(
-      CONFIG_KEYS.ACTIVE_LOCALE,
-      'en'
-    )) as 'en' | 'cn';
+    // Only attempt config fetch if we can reach the ConfigManager
+    const locale = await ConfigManager.getTypedConfig<string>(CONFIG_KEYS.ACTIVE_LOCALE, 'en');
+    initialLocale = (locale === 'cn' ? 'cn' : 'en') as 'en' | 'cn';
   } catch (err) {
-    console.error('[Dashboard] Failed to fetch initial locale:', err);
+    // Silent fallback to 'en' for marketing pages
+    console.debug('[Dashboard] Using default locale for marketing:', err);
   }
 
   return (
