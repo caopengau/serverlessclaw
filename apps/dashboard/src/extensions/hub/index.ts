@@ -1,37 +1,25 @@
-import GridStatus from './components/GridStatus';
-import { Activity } from 'lucide-react';
-
 /**
- * Voltx UI Extension Exports
+ * Extension Hub Template
  *
  * Includes both landing page and dashboard extension components.
  * The framework dashboard build process copies these exports into
- * the extensions/hub directory at build time.
+ * the extensions/hub directory at build time from the target product.
  */
 export { LandingPage } from './components/landing/LandingPage';
 
-interface InitOptions {
-  registerSidebar: (options: Record<string, unknown>) => void;
-  registerComponent: (options: Record<string, unknown>) => void;
-}
-
 /**
- * VoltX Dashboard Extension Initializer
+ * Product Dashboard Extension Initializer
  */
-export function init({ registerSidebar, registerComponent }: InitOptions) {
-  // 1. Register Energy Sidebar Item
+export function init({ registerSidebar, registerComponent }: any) {
+  // Products can register their own sidebar items and components here
+  // Example:
+  /*
   registerSidebar({
-    id: 'voltx-grid',
-    label: 'Energy Grid',
-    subtitle: 'Real-time VPP performance',
-    href: '/voltx/grid',
+    id: 'product-feature',
+    label: 'Product Feature',
+    href: '/product/feature',
     icon: Activity,
     section: 'OPERATIONS',
   });
-
-  // 2. Register Energy Chat Components
-  registerComponent({
-    type: 'voltx-grid-status',
-    component: GridStatus,
-  });
+  */
 }

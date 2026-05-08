@@ -33,7 +33,6 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   // Fetch the active locale from system config (server-side)
-  // Voltx project defaults to Chinese
   let initialLocale: 'en' | 'cn' = 'cn';
   try {
     // Only attempt config fetch if we can reach the ConfigManager

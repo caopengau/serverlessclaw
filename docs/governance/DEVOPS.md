@@ -46,24 +46,24 @@ Note: SST-related Make targets invoke the workspace-local SST binary (`./node_mo
 
 This workspace intentionally uses two repos with different roles:
 
-1. `voltx` is the primary product repo (push target: `origin`).
+1. `product` is the primary product repo (push target: `origin`).
 2. `framework/` is a git subtree sourced from `serverlessclaw`.
-3. Official `serverlessclaw` remote in `voltx` is fetch-only by default (`sc-official`).
+3. Official `serverlessclaw` remote in `product` is fetch-only by default (`sc-official`).
 4. Subtree push is never implicit; it requires explicit `SYNC_UPSTREAM_REMOTE`.
 
 Safe defaults in Make targets:
 
-1. `make sync` pushes only `voltx` to `origin`.
+1. `make sync` pushes only `product` to `origin`.
 2. `make sync-downstream` fetches/pulls subtree from `sc-official/main`.
 3. `make sync-upstream` fails unless `SYNC_UPSTREAM_REMOTE` is set and push is enabled.
 
 Examples:
 
 ```bash
-# Pull latest official framework into voltx subtree
+# Pull latest official framework into product subtree
 make sync-downstream
 
-# Push voltx repo only
+# Push product repo only
 make sync
 
 # Push framework subtree intentionally to local hub clone

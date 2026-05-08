@@ -34,10 +34,10 @@ describe('PromptDecoratorRegistry', () => {
 
     const result = await PromptDecoratorRegistry.decorate('Base', {
       agentId: 'agent-1',
-      workspaceId: 'ws-voltx',
+      workspaceId: 'ws-product',
     });
 
-    expect(result).toContain('Workspace: ws-voltx');
+    expect(result).toContain('Workspace: ws-product');
   });
 
   it('handles async decorators', async () => {

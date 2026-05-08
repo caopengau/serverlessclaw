@@ -118,9 +118,9 @@ verify-up-to-date: ## Verify local branch is up to date with remote
 
 # --- SYNC ---
 # Repo boundary policy:
-# - voltx is the primary repo (origin)
+# - product is the primary repo (origin)
 # - framework is a subtree sourced from serverlessclaw
-# - official serverlessclaw remote is fetch-only in voltx by default
+# - official serverlessclaw remote is fetch-only in product by default
 SUBTREE_OFFICIAL_REMOTE ?= sc-official
 SUBTREE_BRANCH ?= main
 
@@ -129,7 +129,7 @@ pull: ## Pull latest origin branch, then pull latest official framework subtree
 	@git pull origin $$(git rev-parse --abbrev-ref HEAD)
 	@$(MAKE) sync-downstream
 
-sync: ## Push voltx to origin only (safe default)
+sync: ## Push product to origin only (safe default)
 	@$(call log_step,Pushing latest changes to origin...)
 	@git push origin $$(git rev-parse --abbrev-ref HEAD)
 

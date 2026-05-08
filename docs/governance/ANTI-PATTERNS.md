@@ -426,12 +426,12 @@ return await db.query({
   tools: [...BUSINESS_TOOLS], // Domain tools in core!
 }
 
-// ✅ CORRECT (in apps/voltx/src/plugin.ts)
-const voltxPlugin: ClawPlugin = {
-  id: 'voltx',
-  agents: { /* custom voltx agents */ }
+// ✅ CORRECT (in apps/product/src/plugin.ts)
+const productPlugin: ClawPlugin = {
+  id: 'product',
+  agents: { /* custom product agents */ }
 };
-PluginManager.register(voltxPlugin);
+PluginManager.register(productPlugin);
 ```
 
 **Occurrences**: Reverted and refactored into `PluginManager` architecture in audit round 2026-05-04.
