@@ -10,10 +10,15 @@ import { Activity } from 'lucide-react';
  */
 export { LandingPage } from './components/landing/LandingPage';
 
+interface InitOptions {
+  registerSidebar: (options: Record<string, unknown>) => void;
+  registerComponent: (options: Record<string, unknown>) => void;
+}
+
 /**
  * VoltX Dashboard Extension Initializer
  */
-export function init({ registerSidebar, registerComponent }: any) {
+export function init({ registerSidebar, registerComponent }: InitOptions) {
   // 1. Register Energy Sidebar Item
   registerSidebar({
     id: 'voltx-grid',

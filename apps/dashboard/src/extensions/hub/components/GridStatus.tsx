@@ -1,10 +1,18 @@
-// @ts-nocheck
-/// <reference types="react" />
 'use client';
 
 import React from 'react';
 
-export default function GridStatus({ component }: any) {
+interface GridStatusProps {
+  component: {
+    data?: {
+      nodeId?: string;
+      load?: string;
+      frequency?: string;
+    };
+  };
+}
+
+export default function GridStatus({ component }: GridStatusProps) {
   const { data } = component;
 
   return (

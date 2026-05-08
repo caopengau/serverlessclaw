@@ -148,11 +148,9 @@ const LocaleSwitcher = ({
  */
 const RevealSection = ({
   children,
-  id,
   delay = 0,
 }: {
   children: React.ReactNode;
-  id: string;
   delay?: number;
 }) => {
   const [isVisible, setIsVisible] = useState(true); // Default to true to prevent "missing sections"
@@ -162,7 +160,7 @@ const RevealSection = ({
     if (!window.IntersectionObserver) return;
 
     // Set to false initially only if observer is available
-    setIsVisible(false);
+    const timer = setTimeout(() => setIsVisible(false), 0);
 
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -175,7 +173,10 @@ const RevealSection = ({
     );
 
     if (sectionRef.current) observer.observe(sectionRef.current);
-    return () => observer.disconnect();
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
   }, [delay]);
 
   return (
@@ -200,7 +201,7 @@ const SciFiCard = ({
   index,
   t,
 }: {
-  icon: any;
+  icon: React.ElementType;
   title: string;
   description: string;
   index: number;
@@ -211,7 +212,7 @@ const SciFiCard = ({
 
   useEffect(() => {
     if (!window.IntersectionObserver) return;
-    setIsVisible(false);
+    const timer = setTimeout(() => setIsVisible(false), 0);
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -222,7 +223,10 @@ const SciFiCard = ({
       { threshold: 0.05 }
     );
     if (cardRef.current) observer.observe(cardRef.current);
-    return () => observer.disconnect();
+    return () => {
+      clearTimeout(timer);
+      observer.disconnect();
+    };
   }, [index]);
 
   return (
@@ -256,7 +260,6 @@ const SciFiCard = ({
  * Voltx Landing Page
  */
 export function LandingPage({
-  t: frameworkT,
   locale: frameworkLocale,
   setLocale: frameworkSetLocale,
 }: {
@@ -268,16 +271,20 @@ export function LandingPage({
   const [localLocale, setLocalLocale] = useState<'en' | 'cn'>(frameworkLocale || 'cn');
 
   useEffect(() => {
-    if (frameworkLocale) setLocalLocale(frameworkLocale);
-  }, [frameworkLocale]);
+    if (frameworkLocale && frameworkLocale !== localLocale) {
+      const timer = setTimeout(() => setLocalLocale(frameworkLocale), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [frameworkLocale, localLocale]);
 
   const setLocale = (l: 'en' | 'cn') => {
     setLocalLocale(l);
     if (frameworkSetLocale) frameworkSetLocale(l);
   };
 
-  const vt = (key: keyof typeof translations.en) => {
-    return translations[localLocale][key] || translations.en[key] || key;
+  const vt = (key: string) => {
+    const k = key as keyof typeof translations.en;
+    return translations[localLocale][k] || translations.en[k] || key;
   };
 
   useEffect(() => {
@@ -442,7 +449,7 @@ export function LandingPage({
           id="core"
           className="px-6 py-20 md:px-12 max-w-7xl mx-auto border-t border-white/5 bg-[radial-gradient(circle_at_50%_0%,_rgba(0,255,157,0.05)_0%,_transparent_50%)]"
         >
-          <RevealSection id="features-header">
+          <RevealSection>
             <div className="mb-12 space-y-4">
               <div className="text-cyber-green text-[10px] font-black uppercase tracking-[0.3em]">
                 {vt('core_engine_capabilities')}
@@ -514,7 +521,7 @@ export function LandingPage({
         {/* CTA Section */}
         <section className="relative px-6 py-24 md:px-12 max-w-7xl mx-auto overflow-hidden">
           <div className="absolute inset-0 bg-cyber-green/5 blur-[100px] rounded-full translate-y-1/2" />
-          <RevealSection id="cta" delay={100}>
+          <RevealSection delay={100}>
             <div className="relative border border-white/10 bg-white/[0.03] rounded-3xl p-12 md:p-24 text-center overflow-hidden border-t-cyber-green/20 shadow-2xl">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-green to-transparent" />
               <h2 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter">
