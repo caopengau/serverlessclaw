@@ -7,10 +7,6 @@ import {
   Brain,
   Shield,
   ArrowRight,
-  MessageSquare,
-  Gauge,
-  Lock,
-  BarChart3,
   Cpu,
   Globe,
   Database,
@@ -24,51 +20,43 @@ import {
 import { translations } from './translations';
 
 /**
- * Animated Electric Current Background - Enhanced for obvious horizontal flow
- * Using fixed path lengths and better animation parameters to ensure visibility.
+ * Enhanced Electric Flow Background
+ * Focuses on high-visibility horizontal currents.
  */
 const ElectricBackground = () => (
   <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_50%,_rgba(0,255,157,0.1)_0%,_transparent_70%)]" />
-    <svg
-      className="w-full h-full opacity-40"
-      viewBox="0 0 1000 1000"
-      xmlns="http://www.w3.org/2000/svg"
-      preserveAspectRatio="none"
-    >
+    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_20%,_rgba(0,255,157,0.15)_0%,_transparent_70%)]" />
+    <svg className="w-full h-full opacity-80" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <linearGradient id="electric-line-1" x1="0%" y1="0%" x2="100%" y2="0%">
+        <linearGradient id="flow-grad" x1="0%" y1="0%" x2="100%" y2="0%">
           <stop offset="0%" stopColor="transparent" />
           <stop offset="50%" stopColor="#00ff9d" />
           <stop offset="100%" stopColor="transparent" />
         </linearGradient>
-        <filter id="glow-enhanced">
-          <feGaussianBlur stdDeviation="3" result="coloredBlur" />
-          <feMerge>
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="coloredBlur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
+        <filter id="flow-glow">
+          <feGaussianBlur stdDeviation="3" result="blur" />
+          <feComposite in="SourceGraphic" in2="blur" operator="over" />
         </filter>
       </defs>
-      {[...Array(15)].map((_, i) => (
-        <g key={i} filter="url(#glow-enhanced)">
-          <path
-            d={`M ${-200} ${70 * i + 30} L ${1200} ${70 * i + 30}`}
-            stroke="url(#electric-line-1)"
-            strokeWidth="3"
-            fill="transparent"
-            className="animate-[electric_flow_5s_linear_infinite]"
-            style={{
-              animationDelay: `${i * -0.8}s`,
-              opacity: 0.6,
-              strokeWidth: 2,
-            }}
-          />
-        </g>
+      {[...Array(12)].map((_, i) => (
+        <line
+          key={i}
+          x1="-100%"
+          y1={`${10 + i * 8}%`}
+          x2="200%"
+          y2={`${10 + i * 8}%`}
+          stroke="url(#flow-grad)"
+          strokeWidth="2"
+          className="animate-[electric_flow_8s_linear_infinite]"
+          style={{
+            animationDelay: `${i * -1.3}s`,
+            filter: 'url(#flow-glow)',
+            opacity: 0.4 + (i % 3) * 0.2,
+          }}
+        />
       ))}
     </svg>
-    <div className="absolute inset-0 bg-grid-white/[0.04] bg-[length:50px_50px]" />
+    <div className="absolute inset-0 bg-grid-white/[0.03] bg-[length:40px_40px]" />
   </div>
 );
 
@@ -152,59 +140,47 @@ const LocaleSwitcher = ({
 };
 
 /**
- * Hook for scroll reveal animations with curtain/phase-in support
+ * Enhanced Scroll Reveal Wrapper
+ * Uses a curtain/phase-in effect with diagonal clip-path for extra 'coolness'.
  */
-function useScrollReveal() {
-  const [revealed, setRevealed] = useState<Set<string>>(new Set());
-  const observers = useRef<IntersectionObserver[]>([]);
-
-  const register = (id: string) => (el: HTMLElement | null) => {
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          setRevealed((prev) => new Set(prev).add(id));
-          // Do not unobserve to allow for re-triggering if needed, but for now we keep it simple
-        }
-      },
-      { threshold: 0.15 }
-    );
-    observer.observe(el);
-    observers.current.push(observer);
-  };
-
-  useEffect(() => {
-    return () => observers.current.forEach((o) => o.disconnect());
-  }, []);
-
-  return { register, isRevealed: (id: string) => revealed.has(id) };
-}
-
-/**
- * Section Curtain Wrapper
- */
-const SectionCurtain = ({
+const RevealSection = ({
   children,
   id,
-  register,
-  isRevealed,
+  delay = 0,
 }: {
   children: React.ReactNode;
   id: string;
-  register: any;
-  isRevealed: boolean;
-}) => (
-  <div
-    ref={register(id)}
-    className={`relative transition-all duration-1000 ease-out overflow-hidden ${
-      isRevealed
-        ? 'opacity-100 [clip-path:inset(0%_0%_0%_0%)] translate-y-0'
-        : 'opacity-0 [clip-path:inset(0%_100%_0%_0%)] translate-y-10'
-    }`}
-  >
-    {children}
-  </div>
-);
+  delay?: number;
+}) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => setIsVisible(true), delay);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (sectionRef.current) observer.observe(sectionRef.current);
+    return () => observer.disconnect();
+  }, [delay]);
+
+  return (
+    <div
+      ref={sectionRef}
+      className={`relative transition-all duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+        isVisible
+          ? 'opacity-100 translate-y-0 [clip-path:polygon(0%_0%,_100%_0%,_100%_100%,_0%_100%)]'
+          : 'opacity-0 translate-y-20 [clip-path:polygon(0%_0%,_0%_0%,_0%_100%,_0%_100%)]'
+      }`}
+    >
+      {children}
+    </div>
+  );
+};
 
 /**
  * Premium Sci-Fi Feature Card
@@ -213,39 +189,57 @@ const SciFiCard = ({
   icon: Icon,
   title,
   description,
-  delay,
+  index,
   t,
-  isRevealed,
 }: {
   icon: any;
   title: string;
   description: string;
-  delay: string;
+  index: number;
   t: (key: string) => string;
-  isRevealed: boolean;
-}) => (
-  <div
-    className={`relative group p-[1px] rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-cyber-green/40 transition-all duration-700 hover:shadow-[0_0_20px_rgba(0,255,157,0.1)] ${isRevealed ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'}`}
-    style={{ transitionDelay: delay }}
-  >
-    <div className="absolute inset-0 bg-gradient-to-br from-cyber-green/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-    <div className="relative p-6 bg-black/40 backdrop-blur-xl rounded-[11px] h-full flex flex-col">
-      <div className="mb-4 relative">
-        <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-cyber-green group-hover:scale-110 transition-transform duration-500">
-          <Icon size={24} />
+}) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => setIsVisible(true), index * 100);
+        }
+      },
+      { threshold: 0.1 }
+    );
+    if (cardRef.current) observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, [index]);
+
+  return (
+    <div
+      ref={cardRef}
+      className={`relative group p-[1px] rounded-xl overflow-hidden bg-white/5 border border-white/10 hover:border-cyber-green/40 transition-all duration-700 ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+      } hover:shadow-[0_0_30px_rgba(0,255,157,0.15)]`}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-cyber-green/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="relative p-6 bg-black/60 backdrop-blur-xl rounded-[11px] h-full flex flex-col border border-white/5">
+        <div className="mb-4 relative">
+          <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-cyber-green group-hover:scale-110 transition-transform duration-500 shadow-[0_0_15px_rgba(0,255,157,0.2)]">
+            <Icon size={24} />
+          </div>
+          <div className="absolute -top-1 -right-1 w-2 h-2 border-t border-r border-cyber-green/40 opacity-0 group-hover:opacity-100 transition-all duration-500" />
         </div>
-        <div className="absolute -top-1 -right-1 w-2 h-2 border-t border-r border-cyber-green/40 opacity-0 group-hover:opacity-100 transition-all duration-500" />
-      </div>
-      <h3 className="text-lg font-bold text-white mb-2 tracking-tight group-hover:text-cyber-green transition-colors">
-        {title}
-      </h3>
-      <p className="text-gray-400 text-sm leading-relaxed mb-4 flex-1">{description}</p>
-      <div className="flex items-center gap-2 text-[10px] font-mono text-cyber-green/40 group-hover:text-cyber-green/80 transition-colors tracking-widest uppercase">
-        <Activity size={10} /> {t('operational_core')}
+        <h3 className="text-lg font-bold text-white mb-2 tracking-tight group-hover:text-cyber-green transition-colors">
+          {title}
+        </h3>
+        <p className="text-gray-400 text-sm leading-relaxed mb-4 flex-1">{description}</p>
+        <div className="flex items-center gap-2 text-[10px] font-mono text-cyber-green/40 group-hover:text-cyber-green/80 transition-colors tracking-widest uppercase">
+          <Activity size={10} /> {t('operational_core')}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 /**
  * Voltx Landing Page - Premium Sci-Fi / Energy Edition
@@ -261,7 +255,6 @@ export function LandingPage({
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [localLocale, setLocalLocale] = useState<'en' | 'cn'>(frameworkLocale || 'cn');
-  const { register, isRevealed } = useScrollReveal();
 
   useEffect(() => {
     if (frameworkLocale) setLocalLocale(frameworkLocale);
@@ -283,20 +276,14 @@ export function LandingPage({
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white selection:bg-cyber-green selection:text-black font-mono overflow-x-hidden">
+    <div className="min-h-screen bg-[#020202] text-white selection:bg-cyber-green selection:text-black font-mono overflow-x-hidden">
       <style jsx global>{`
         @keyframes electric_flow {
           0% {
-            stroke-dasharray: 0 1000;
-            stroke-dashoffset: 200;
-          }
-          50% {
-            stroke-dasharray: 400 600;
-            stroke-dashoffset: -300;
+            transform: translateX(0);
           }
           100% {
-            stroke-dasharray: 0 1000;
-            stroke-dashoffset: -800;
+            transform: translateX(100%);
           }
         }
         @keyframes fade-in {
@@ -309,11 +296,8 @@ export function LandingPage({
             transform: translateY(0);
           }
         }
-        .cyber-grid {
-          background-image:
-            linear-gradient(rgba(0, 255, 157, 0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 255, 157, 0.05) 1px, transparent 1px);
-          background-size: 50px 50px;
+        body {
+          background-color: #020202;
         }
       `}</style>
 
@@ -321,11 +305,11 @@ export function LandingPage({
 
       {/* Navigation */}
       <nav
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-black/80 backdrop-blur-md border-b border-white/5 py-4' : 'py-8'}`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-black/90 backdrop-blur-xl border-b border-white/5 py-4' : 'py-8'}`}
       >
         <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between">
           <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="w-8 h-8 relative overflow-hidden bg-cyber-green rounded-[4px] flex items-center justify-center">
+            <div className="w-8 h-8 relative overflow-hidden bg-cyber-green rounded-[4px] flex items-center justify-center shadow-[0_0_15px_rgba(0,255,157,0.4)]">
               <Zap size={20} className="text-black fill-black" />
             </div>
             <span className="text-2xl font-black tracking-tighter uppercase italic group-hover:tracking-widest transition-all duration-500">
@@ -349,7 +333,7 @@ export function LandingPage({
             <LocaleSwitcher locale={localLocale} setLocale={setLocale} />
             <Link
               href="/login"
-              className="relative group overflow-hidden px-6 py-2 bg-white text-black font-black uppercase text-[11px] tracking-widest rounded-[4px] hover:bg-cyber-green transition-colors duration-500"
+              className="relative group overflow-hidden px-6 py-2 bg-white text-black font-black uppercase text-[11px] tracking-widest rounded-[4px] hover:bg-cyber-green transition-colors duration-500 shadow-xl"
             >
               <span className="relative z-10 flex items-center gap-2">
                 {vt('nav_access')} <ArrowUpRight size={14} />
@@ -359,221 +343,202 @@ export function LandingPage({
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-40 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div
-            className={`relative z-10 space-y-8 transition-all duration-1000 ${isRevealed('hero-text') ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'}`}
-            ref={register('hero-text')}
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-green/10 border border-cyber-green/20 text-cyber-green text-[9px] font-black uppercase tracking-[0.2em] animate-pulse">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyber-green animate-ping" />
-              {vt('hero_badge')}
-            </div>
-
-            <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-transparent bg-clip-text bg-gradient-to-br from-white via-white to-white/40">
-              {vt('hero_title_1')} <br />
-              <span className="text-cyber-green italic">{vt('hero_title_2')}</span>
-            </h1>
-
-            <p className="text-lg md:text-xl text-gray-400 max-w-xl font-medium leading-relaxed">
-              {vt('hero_description')}
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
-              <Link
-                href="/login"
-                className="group relative px-8 py-4 bg-cyber-green text-black font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] overflow-hidden transition-all hover:scale-105 active:scale-95"
-              >
-                <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-[-20deg]" />
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  {vt('init_mission')} <ArrowRight size={18} />
-                </span>
-              </Link>
-              <button className="px-8 py-4 border border-white/10 hover:border-white/20 hover:bg-white/5 text-white font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] transition-all">
-                {vt('project_specs')}
-              </button>
-            </div>
-
-            <div className="flex items-center gap-8 pt-8 border-t border-white/5">
-              <div>
-                <div className="text-2xl font-black text-white">99.99%</div>
-                <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
-                  {vt('uptime')}
-                </div>
+      <main className="relative z-10">
+        {/* Hero Section - Reduced min-h and better centering */}
+        <section className="relative min-h-[85vh] flex items-center pt-24 pb-12 px-6 md:px-12 max-w-7xl mx-auto overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center w-full">
+            <div className="space-y-8 animate-[fade-in_1s_ease-out]">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-green/10 border border-cyber-green/20 text-cyber-green text-[9px] font-black uppercase tracking-[0.2em] animate-pulse">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyber-green animate-ping" />
+                {vt('hero_badge')}
               </div>
-              <div>
-                <div className="text-2xl font-black text-white">~12ms</div>
-                <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
-                  {vt('latency')}
-                </div>
-              </div>
-              <div>
-                <div className="text-2xl font-black text-white">1.2M</div>
-                <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
-                  {vt('sync_rate')}
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <div
-            className={`relative hidden lg:block transition-all duration-1000 ${isRevealed('hero-visual') ? 'opacity-100 scale-100' : 'opacity-0 scale-75 rotate-12'}`}
-            ref={register('hero-visual')}
-          >
-            <div className="absolute inset-0 bg-cyber-green/20 blur-[120px] rounded-full animate-pulse" />
-            <div className="relative border border-white/10 rounded-2xl overflow-hidden bg-black/40 backdrop-blur-3xl shadow-2xl">
-              <div className="h-8 border-b border-white/5 bg-white/5 flex items-center px-4 gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-red-500/50" />
-                <div className="w-2 h-2 rounded-full bg-amber-500/50" />
-                <div className="w-2 h-2 rounded-full bg-green-500/50" />
-                <div className="flex-1" />
-                <div className="text-[8px] font-mono text-white/20 uppercase tracking-[0.2em]">
-                  {vt('grid_status')}
-                </div>
+              <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.9] text-white">
+                {vt('hero_title_1')} <br />
+                <span className="text-cyber-green italic">{vt('hero_title_2')}</span>
+              </h1>
+
+              <p className="text-lg md:text-xl text-gray-400 max-w-xl font-medium leading-relaxed">
+                {vt('hero_description')}
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Link
+                  href="/login"
+                  className="group relative px-8 py-4 bg-cyber-green text-black font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] overflow-hidden transition-all hover:scale-105 active:scale-95 shadow-[0_0_20px_rgba(0,255,157,0.3)]"
+                >
+                  <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700 skew-x-[-20deg]" />
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {vt('init_mission')} <ArrowRight size={18} />
+                  </span>
+                </Link>
+                <button className="px-8 py-4 border border-white/10 hover:border-white/20 hover:bg-white/5 text-white font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] transition-all">
+                  {vt('project_specs')}
+                </button>
               </div>
-              <div className="p-8 aspect-square flex items-center justify-center">
-                <div className="relative w-64 h-64">
-                  <div className="absolute inset-0 border-2 border-cyber-green/20 rounded-full animate-[spin_20s_linear_infinite]" />
-                  <div className="absolute inset-4 border border-white/5 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
-                  <div className="absolute inset-12 flex items-center justify-center">
-                    <div className="w-32 h-32 rounded-3xl bg-cyber-green rotate-45 animate-pulse shadow-[0_0_50px_rgba(0,255,157,0.3)] flex items-center justify-center">
-                      <Zap size={64} className="text-black -rotate-45" />
-                    </div>
+
+              <div className="flex items-center gap-8 pt-8 border-t border-white/10">
+                <div>
+                  <div className="text-2xl font-black text-white">99.99%</div>
+                  <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                    {vt('uptime')}
                   </div>
-                  {[...Array(8)].map((_, i) => (
-                    <div
-                      key={i}
-                      className="absolute top-1/2 left-1/2 w-full h-px bg-gradient-to-r from-transparent via-cyber-green/20 to-transparent"
-                      style={{ transform: `translate(-50%, -50%) rotate(${i * 45}deg)` }}
-                    />
-                  ))}
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-white">~12ms</div>
+                  <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                    {vt('latency')}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-black text-white">1.2M</div>
+                  <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">
+                    {vt('sync_rate')}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative hidden lg:block animate-[fade-in_1s_ease-out_0.3s_both]">
+              <div className="absolute inset-0 bg-cyber-green/20 blur-[120px] rounded-full animate-pulse" />
+              <div className="relative border border-white/10 rounded-2xl overflow-hidden bg-black/60 backdrop-blur-3xl shadow-2xl">
+                <div className="h-8 border-b border-white/10 bg-white/5 flex items-center px-4 gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-red-500/50" />
+                  <div className="w-2 h-2 rounded-full bg-amber-500/50" />
+                  <div className="w-2 h-2 rounded-full bg-green-500/50" />
+                  <div className="flex-1" />
+                  <div className="text-[8px] font-mono text-white/30 uppercase tracking-[0.2em]">
+                    {vt('grid_status')}
+                  </div>
+                </div>
+                <div className="p-8 aspect-square flex items-center justify-center">
+                  <div className="relative w-64 h-64">
+                    <div className="absolute inset-0 border-2 border-cyber-green/20 rounded-full animate-[spin_20s_linear_infinite]" />
+                    <div className="absolute inset-4 border border-white/5 rounded-full animate-[spin_15s_linear_infinite_reverse]" />
+                    <div className="absolute inset-12 flex items-center justify-center">
+                      <div className="w-32 h-32 rounded-3xl bg-cyber-green rotate-45 animate-pulse shadow-[0_0_50px_rgba(0,255,157,0.4)] flex items-center justify-center">
+                        <Zap size={64} className="text-black -rotate-45" />
+                      </div>
+                    </div>
+                    {[...Array(8)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute top-1/2 left-1/2 w-full h-px bg-gradient-to-r from-transparent via-cyber-green/20 to-transparent"
+                        style={{ transform: `translate(-50%, -50%) rotate(${i * 45}deg)` }}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Feature Grid */}
-      <section
-        id="core"
-        className="px-6 py-24 md:px-12 max-w-7xl mx-auto border-t border-white/5 bg-[radial-gradient(circle_at_50%_0%,_rgba(0,255,157,0.03)_0%,_transparent_50%)]"
-      >
-        <SectionCurtain
-          id="features-header"
-          register={register}
-          isRevealed={isRevealed('features-header')}
+        {/* Feature Grid - Tighter spacing */}
+        <section
+          id="core"
+          className="px-6 py-20 md:px-12 max-w-7xl mx-auto border-t border-white/5 bg-[radial-gradient(circle_at_50%_0%,_rgba(0,255,157,0.05)_0%,_transparent_50%)]"
         >
-          <div className="mb-16 space-y-4">
-            <div className="text-cyber-green text-[10px] font-black uppercase tracking-[0.3em]">
-              {vt('core_engine_capabilities')}
+          <RevealSection id="features-header">
+            <div className="mb-16 space-y-4">
+              <div className="text-cyber-green text-[10px] font-black uppercase tracking-[0.3em]">
+                {vt('core_engine_capabilities')}
+              </div>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight">{vt('powered_by')}</h2>
             </div>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tight">{vt('powered_by')}</h2>
+          </RevealSection>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <SciFiCard
+              icon={Cpu}
+              title={vt('feat_1_title')}
+              description={vt('feat_1_desc')}
+              index={0}
+              t={vt}
+            />
+            <SciFiCard
+              icon={Brain}
+              title={vt('feat_2_title')}
+              description={vt('feat_2_desc')}
+              index={1}
+              t={vt}
+            />
+            <SciFiCard
+              icon={Shield}
+              title={vt('feat_3_title')}
+              description={vt('feat_3_desc')}
+              index={2}
+              t={vt}
+            />
+            <SciFiCard
+              icon={Activity}
+              title={vt('feat_4_title')}
+              description={vt('feat_4_desc')}
+              index={3}
+              t={vt}
+            />
+            <SciFiCard
+              icon={Infinity}
+              title={vt('feat_5_title')}
+              description={vt('feat_5_desc')}
+              index={4}
+              t={vt}
+            />
+            <SciFiCard
+              icon={Database}
+              title={vt('feat_6_title')}
+              description={vt('feat_6_desc')}
+              index={5}
+              t={vt}
+            />
+            <SciFiCard
+              icon={Globe}
+              title={vt('feat_7_title')}
+              description={vt('feat_7_desc')}
+              index={6}
+              t={vt}
+            />
+            <SciFiCard
+              icon={Zap}
+              title={vt('feat_8_title')}
+              description={vt('feat_8_desc')}
+              index={7}
+              t={vt}
+            />
           </div>
-        </SectionCurtain>
+        </section>
 
-        <div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-          ref={register('features-grid')}
-        >
-          <SciFiCard
-            icon={Cpu}
-            title={vt('feat_1_title')}
-            description={vt('feat_1_desc')}
-            delay="0.1s"
-            t={vt}
-            isRevealed={isRevealed('features-grid')}
-          />
-          <SciFiCard
-            icon={Brain}
-            title={vt('feat_2_title')}
-            description={vt('feat_2_desc')}
-            delay="0.2s"
-            t={vt}
-            isRevealed={isRevealed('features-grid')}
-          />
-          <SciFiCard
-            icon={Shield}
-            title={vt('feat_3_title')}
-            description={vt('feat_3_desc')}
-            delay="0.3s"
-            t={vt}
-            isRevealed={isRevealed('features-grid')}
-          />
-          <SciFiCard
-            icon={Activity}
-            title={vt('feat_4_title')}
-            description={vt('feat_4_desc')}
-            delay="0.4s"
-            t={vt}
-            isRevealed={isRevealed('features-grid')}
-          />
-          <SciFiCard
-            icon={Infinity}
-            title={vt('feat_5_title')}
-            description={vt('feat_5_desc')}
-            delay="0.5s"
-            t={vt}
-            isRevealed={isRevealed('features-grid')}
-          />
-          <SciFiCard
-            icon={Database}
-            title={vt('feat_6_title')}
-            description={vt('feat_6_desc')}
-            delay="0.6s"
-            t={vt}
-            isRevealed={isRevealed('features-grid')}
-          />
-          <SciFiCard
-            icon={Globe}
-            title={vt('feat_7_title')}
-            description={vt('feat_7_desc')}
-            delay="0.7s"
-            t={vt}
-            isRevealed={isRevealed('features-grid')}
-          />
-          <SciFiCard
-            icon={Zap}
-            title={vt('feat_8_title')}
-            description={vt('feat_8_desc')}
-            delay="0.8s"
-            t={vt}
-            isRevealed={isRevealed('features-grid')}
-          />
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="relative px-6 py-24 md:px-12 max-w-7xl mx-auto overflow-hidden">
-        <div className="absolute inset-0 bg-cyber-green/5 blur-[100px] rounded-full translate-y-1/2" />
-        <SectionCurtain id="cta" register={register} isRevealed={isRevealed('cta')}>
-          <div className="relative border border-white/10 bg-white/[0.02] rounded-3xl p-12 md:p-24 text-center overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-green to-transparent" />
-            <h2 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter">
-              {vt('cta_title_1')} <br className="md:hidden" />{' '}
-              <span className="italic text-cyber-green">{vt('cta_title_2')}</span>
-            </h2>
-            <p className="text-gray-400 mb-12 max-w-xl mx-auto text-lg font-medium">
-              {vt('cta_desc')}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <Link
-                href="/login"
-                className="px-10 py-5 bg-white text-black font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] hover:bg-cyber-green transition-all"
-              >
-                {vt('cta_sign_in')}
-              </Link>
-              <button className="px-10 py-5 border border-white/10 text-white font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] hover:bg-white/5 transition-all">
-                {vt('cta_demo')}
-              </button>
+        {/* CTA Section */}
+        <section className="relative px-6 py-20 md:px-12 max-w-7xl mx-auto overflow-hidden">
+          <div className="absolute inset-0 bg-cyber-green/5 blur-[100px] rounded-full translate-y-1/2" />
+          <RevealSection id="cta" delay={200}>
+            <div className="relative border border-white/10 bg-white/[0.03] rounded-3xl p-12 md:p-24 text-center overflow-hidden border-t-cyber-green/20">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyber-green to-transparent" />
+              <h2 className="text-5xl md:text-7xl font-black mb-8 tracking-tighter">
+                {vt('cta_title_1')} <br className="md:hidden" />{' '}
+                <span className="italic text-cyber-green">{vt('cta_title_2')}</span>
+              </h2>
+              <p className="text-gray-400 mb-12 max-w-xl mx-auto text-lg font-medium">
+                {vt('cta_desc')}
+              </p>
+              <div className="flex flex-col sm:flex-row gap-6 justify-center">
+                <Link
+                  href="/login"
+                  className="px-10 py-5 bg-white text-black font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] hover:bg-cyber-green transition-all shadow-2xl"
+                >
+                  {vt('cta_sign_in')}
+                </Link>
+                <button className="px-10 py-5 border border-white/10 text-white font-black uppercase text-[12px] tracking-[0.2em] rounded-[4px] hover:bg-white/5 transition-all">
+                  {vt('cta_demo')}
+                </button>
+              </div>
             </div>
-          </div>
-        </SectionCurtain>
-      </section>
+          </RevealSection>
+        </section>
+      </main>
 
       {/* Footer */}
-      <footer className="px-6 py-12 md:px-12 max-w-7xl mx-auto border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-8 opacity-50">
+      <footer className="relative z-10 px-6 py-12 md:px-12 max-w-7xl mx-auto border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-8 opacity-50">
         <div className="flex items-center gap-2">
           <Zap size={16} className="text-cyber-green" />
           <span className="text-sm font-black uppercase tracking-widest">
