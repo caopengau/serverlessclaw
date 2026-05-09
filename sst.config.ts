@@ -1,8 +1,8 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
 const APP_CONFIG = {
-  name: 'voltx',
-  region: 'ap-southeast-1',
+  name: 'serverlessclaw',
+  region: 'ap-southeast-2',
   architecture: 'arm64' as const,
   runtime: 'nodejs24.x',
   retention: '1 month' as const,
@@ -16,7 +16,7 @@ export default $config({
   app(input) {
     return {
       name: APP_CONFIG.name,
-      removal: input?.stage === 'prod' ? 'retain' : 'remove',
+      removal: input?.stage === 'prod' ? 'retain' : 'remove', // Non-prod/local stages remove resources by default
       protect: ['prod'].includes(input?.stage),
       home: 'aws',
       providers: {
@@ -24,7 +24,7 @@ export default $config({
           region: APP_CONFIG.region,
           version: '7.23.0',
         },
-        ...(process.env.CLOUDFLARE_API_TOKEN ? { cloudflare: '6.13.0' } : {}),
+        cloudflare: '6.13.0',
       },
       defaults: {
         function: {
@@ -42,6 +42,7 @@ export default $config({
               // Externalizing it reduces bundle size by ~2-3MB per function.
               external: [
                 '@aws-sdk/*',
+                // Dashboard-only packages — safety net against accidental bundling
                 'sonner',
                 'react-markdown',
                 'remark-gfm',
@@ -59,24 +60,21 @@ export default $config({
     };
   },
   async run() {
-    const infraOptions = { pathPrefix: 'framework/' };
-
     // SST v4 Modular Infrastructure via Dynamic Imports
-    const { createStorage } = await import('./framework/packages/infra/storage.js');
-    const { createBus } = await import('./framework/packages/infra/bus.js');
-    const { createDeployer } = await import('./framework/packages/infra/deployer.js');
-    const { createApi, configureApiRoutes } = await import('./framework/packages/infra/api.js');
-    const { createMCPServers } = await import('./framework/packages/infra/mcp-servers.js');
-    const { createAgents } = await import('./framework/packages/infra/agents.js');
-    const { createDashboard } = await import('./framework/packages/infra/dashboard.js');
-    const { createLanding } = await import('./framework/packages/infra/landing.js');
+    const { createStorage } = await import('./packages/infra/storage.js');
+    const { createBus } = await import('./packages/infra/bus.js');
+    const { createDeployer } = await import('./packages/infra/deployer.js');
+    const { createApi, configureApiRoutes } = await import('./packages/infra/api.js');
+    const { createMCPServers } = await import('./packages/infra/mcp-servers.js');
+    const { createAgents } = await import('./packages/infra/agents.js');
+    const { createDashboard } = await import('./packages/infra/dashboard.js');
 
     // 1. Storage & Secrets
     const { memoryTable, traceTable, configTable, stagingBucket, knowledgeBucket, secrets } =
       createStorage();
 
     // 2. Multi-Agent Orchestration (EventBridge)
-    const { bus, realtime, dlq } = createBus(infraOptions);
+    const { bus, realtime, dlq } = createBus();
 
     // 3. The Deployer (CodeBuild)
     const { deployer, linkable: deployerLink } = createDeployer({
@@ -98,21 +96,18 @@ export default $config({
     });
 
     // 5. MCP Servers
-    const mcpServers = createMCPServers(
-      {
-        memoryTable,
-        traceTable,
-        configTable,
-        stagingBucket,
-        knowledgeBucket,
-        secrets,
-        bus,
-        deployer,
-        deployerLink,
-        api,
-      },
-      infraOptions
-    );
+    const mcpServers = createMCPServers({
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      knowledgeBucket,
+      secrets,
+      bus,
+      deployer,
+      deployerLink,
+      api, // Now available for linking if needed
+    });
     const multiplexer = mcpServers.multiplexer;
 
     // 6. Sub-Agents (Handlers & Logic)
@@ -129,78 +124,57 @@ export default $config({
         deployerLink,
         realtime,
         dlq,
-        api,
+        api, // Linkable API instance
         multiplexer,
       },
-      mcpServers,
-      infraOptions
+      mcpServers
     );
 
     // 7. API Routes (Configured after agents exist)
-    configureApiRoutes(
+    configureApiRoutes(api, {
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      knowledgeBucket,
+      secrets,
+      bus,
+      deployer,
+      deployerLink,
+      agents: agentResources,
+    });
+
+    // 8. ClawCenter (Next.js 16)
+    const { dashboard } = createDashboard({
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      knowledgeBucket,
+      secrets,
+      bus,
+      deployer,
+      deployerLink,
       api,
-      {
-        memoryTable,
-        traceTable,
-        configTable,
-        stagingBucket,
-        knowledgeBucket,
-        secrets,
-        bus,
-        deployer,
-        deployerLink,
-        agents: agentResources,
-      },
-      infraOptions
-    );
+      realtime,
+      multiplexer,
+      heartbeatHandler: agentResources.heartbeatHandler,
+      schedulerRole: agentResources.schedulerRole,
+    });
 
-    // 8. Dashboard (The Nerve Center - ClawCenter)
-    const { dashboard } = createDashboard(
-      {
-        memoryTable,
-        traceTable,
-        configTable,
-        stagingBucket,
-        knowledgeBucket,
-        bus,
-        realtime,
-        secrets,
-        api,
-        deployer,
-        deployerLink,
-        multiplexer,
-        heartbeatHandler: agentResources.heartbeatHandler,
-        schedulerRole: agentResources.schedulerRole,
-      },
-      infraOptions
-    );
+    // 9. Integration Stacks (GitHub, etc.)
+    const { createGitHubStack } = await import('./packages/integration-github/stack.js');
+    const githubResources = createGitHubStack({ bus, dlq });
 
-    // 9. Voltx Landing (Standalone Brand Site)
-    const { landing } = createLanding(
-      {
-        memoryTable,
-        traceTable,
-        configTable,
-        stagingBucket,
-        knowledgeBucket,
-        bus,
-        realtime,
-        secrets,
-        api,
-        deployer,
-        deployerLink,
-      },
-      {
-        appPath: 'apps/voltx-landing',
-        resourceName: 'VoltxHome',
-      }
-    );
+    // 10. Billing & Cost Alerts ($5/day Daily Budget)
+    const { createBilling } = await import('./packages/infra/billing.js');
+    const { billingTopic } = createBilling();
 
     return {
-      landing: landing.url,
-      dashboard: dashboard.url,
-      api: api.url,
-      realtime: realtime.endpoint,
+      apiUrl: api.url,
+      dashboardUrl: dashboard.url,
+      billingTopicArn: billingTopic?.arn,
+      githubBucket: githubResources.githubBucket.name,
     };
   },
 });

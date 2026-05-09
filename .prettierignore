@@ -18,4 +18,4 @@ coverage/
 **/next-env.d.ts
 test-results/
 reports/
-.aiready/
+e2e/.auth/

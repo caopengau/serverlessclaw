@@ -1,6 +1,0 @@
-{
-  "isolation": {
-    "forbiddenPackages": ["packages/voltx-", "@voltx/"],
-    "forbiddenKeywords": ["VoltX", "voltx"]
-  }
-}

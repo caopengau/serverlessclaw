@@ -1,5 +1,3 @@
 packages:
-  - 'framework/packages/*'
-  - 'framework/apps/*'
-  - 'packages/*'
   - 'apps/*'
+  - 'packages/*'

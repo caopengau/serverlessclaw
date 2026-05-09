@@ -10,13 +10,15 @@ include makefiles/Makefile.release.mk
 pre-commit: ## Run pre-commit checks in sequence (resource-aware local defaults)
 	@$(call log_step,Running pre-commit checks (resource-aware)...)
 	@$(MAKE) lint-staged
+	@$(MAKE) format-check
 	@$(MAKE) type-check TURBO_FLAGS="--concurrency=2"
 	@$(MAKE) docs-check
 
-pre-push: ## Run fast pre-push checks in sequence (resource-aware local defaults)
-	@$(call log_step,Running pre-push checks (resource-aware)...)
+pre-push: ## Run full pre-push checks in sequence (monorepo-wide)
+	@$(call log_step,Running full pre-push checks (monorepo-wide)...)
 	@$(MAKE) verify-up-to-date
-	@$(MAKE) gate-fast TURBO_FLAGS="--concurrency=2"
+	@$(MAKE) gate-tier-1 TURBO_FLAGS="--concurrency=2"
+	@$(MAKE) test-tier-1
 
 pre-push-full: ## Run strict pre-push checks in parallel (rebase + gate-fast + aiready + smoke)
 	@$(call log_step,Running strict pre-push checks in parallel...)
@@ -46,12 +48,3 @@ help: ## Show all targets and descriptions in a markdown table
 			printf "  \033[1m%-20s\033[0m %s\n" "$$target" "$$desc"; \
 		done; \
 	done
-
-###############################################################################
-# VoltX Product Targets
-###############################################################################
-
-test-voltx: ## Run VoltX-specific logic verification
-	@$(call log_step,Verifying VoltX domain logic...)
-	@export PATH=/Users/pengcao/.nvm/versions/node/v24.15.0/bin:$PATH && \
-	pnpm exec vitest run packages/voltx-core/src/**/*.test.ts

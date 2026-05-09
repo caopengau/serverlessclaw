@@ -1,5 +1,4 @@
 import path from 'node:path';
-import fs from 'node:fs';
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react-swc';
 
@@ -8,6 +7,7 @@ import react from '@vitejs/plugin-react-swc';
  * for both core logic and dashboard components with 2026-grade aliases.
  */
 export default defineConfig({
+  assetsInclude: ['**/*.md'],
   resolve: {
     tsconfigPaths: true,
   },
@@ -15,21 +15,14 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     include: ['**/*.test.{ts,tsx}'],
-    exclude: [
-      '**/node_modules/**',
-      '**/.next/**',
-      '**/.open-next/**',
-      'e2e/**',
-      'framework/e2e/**',
-      '**/*.md',
-    ],
+    exclude: ['**/node_modules/**', '**/.next/**', '**/.open-next/**', 'e2e/**'],
     // Increase default test timeout to accommodate larger import/setup times
     // when running the full monorepo test suite on CI or local machines.
     testTimeout: 20000,
-    setupFiles: [path.resolve(__dirname, './framework/packages/core/tests/setup.ts')],
+    setupFiles: [path.resolve(__dirname, './packages/core/tests/setup.ts')],
     alias: {
-      '@': path.resolve(__dirname, './framework/apps/dashboard/src'),
-      '@serverlessclaw/core': path.resolve(__dirname, './framework/packages/core'),
+      '@': path.resolve(__dirname, './apps/dashboard/src'),
+      '@claw/core': path.resolve(__dirname, './packages/core'),
     },
     // Ensure TSX files are transformed for the web environment (jsdom)
     browser: {
@@ -37,17 +30,15 @@ export default defineConfig({
     },
     server: {
       deps: {
-        inline: [/framework\/apps\/dashboard/],
+        inline: [/apps\/dashboard/],
       },
     },
     coverage: {
       provider: 'v8',
       include: [
-        'framework/packages/core/**/*.ts',
-        'framework/packages/infra/**/*.ts',
-        'framework/apps/dashboard/src/**/*.{ts,tsx}',
-        'packages/voltx-core/src/**/*.ts',
-        'packages/voltx-ui/src/**/*.{ts,tsx}',
+        'packages/core/**/*.ts',
+        'packages/infra/**/*.ts',
+        'apps/dashboard/src/**/*.{ts,tsx}',
       ],
       exclude: [
         '**/*.test.ts',
@@ -67,16 +58,5 @@ export default defineConfig({
       },
     },
   },
-  plugins: [
-    react(),
-    {
-      name: 'markdown-loader',
-      load(id) {
-        if (id.endsWith('.md')) {
-          const content = fs.readFileSync(id, 'utf-8');
-          return `export default ${JSON.stringify(content)};`;
-        }
-      },
-    },
-  ],
+  plugins: [react()],
 });

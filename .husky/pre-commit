@@ -1,2 +1,1 @@
-export PATH=/Users/pengcao/.nvm/versions/node/v24.15.0/bin:$PATH
 make pre-commit

@@ -6,34 +6,35 @@ export default tseslint.config(
   {
     ignores: [
       '.sst/',
+      '**/.sst/',
       '.turbo/',
+      '**/.turbo/',
       '.opencode/',
+      '**/.opencode/',
       '.git/',
       'node_modules/',
+      '**/node_modules/',
       'dist/',
-      'dashboard/.next/',
-      'dashboard/.open-next/',
-      'dashboard/out/',
-      'dashboard/build/',
+      '**/dist/',
+      'apps/dashboard/.next/',
+      'apps/dashboard/.open-next/',
+      'apps/dashboard/out/',
+      'apps/dashboard/build/',
       'coverage/',
+      '**/coverage/',
       'test-results/',
+      '**/test-results/',
       'reports/',
+      '**/reports/',
       '*.zip',
       '*.tsbuildinfo',
       '*.tmp',
       'lint_report.json',
       'sst-env.d.ts',
-      'scripts/sst-env.d.ts',
+      '**/sst-env.d.ts',
       '.aiready/',
+      '**/.aiready/',
     ],
-  },
-  {
-    languageOptions: {
-      parserOptions: {
-        project: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
-    },
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
@@ -54,14 +55,6 @@ export default tseslint.config(
     files: ['sst.config.ts'],
     rules: {
       '@typescript-eslint/triple-slash-reference': 'off',
-    },
-  },
-  {
-    files: ['*.config.ts', '*.config.mjs', 'eslint.config.mjs'],
-    languageOptions: {
-      parserOptions: {
-        project: false,
-      },
     },
   },
   {

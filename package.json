@@ -1,9 +1,16 @@
 {
-  "name": "voltx",
-  "version": "0.1.2",
-  "packageManager": "pnpm@10.33.2",
-  "description": "VoltX: AI-Native Virtual Power Plant (VPP) Trading Platform (Private)",
-  "private": true,
+  "name": "serverlessclaw",
+  "version": "1.0.28",
+  "packageManager": "pnpm@10.33.4",
+  "description": "A serverless implementation of OpenClaw AI agent using SST, AWS Lambda, and DynamoDB.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serverlessclaw/serverlessclaw.git"
+  },
+  "homepage": "https://github.com/serverlessclaw/serverlessclaw#readme",
+  "bugs": {
+    "url": "https://github.com/serverlessclaw/serverlessclaw/issues"
+  },
   "main": "index.js",
   "scripts": {
     "test": "turbo run test",
@@ -22,8 +29,8 @@
     "gate": "turbo run gate",
     "aiready": "aiready scan",
     "seed-e2e": "make seed-e2e",
-    "principles": "npx tsx framework/scripts/quality/verify-principles.ts",
-    "docs:check": "npx tsx framework/scripts/quality/docs-check.ts"
+    "principles": "npx tsx scripts/quality/verify-principles.ts",
+    "docs:check": "npx tsx scripts/quality/docs-check.ts"
   },
   "keywords": [
     "openclaw",
@@ -40,11 +47,10 @@
     "node": ">=24 <25"
   },
   "dependencies": {
-    "@aiready/ast-mcp-server": "0.8.6",
+    "@aiready/ast-mcp-server": "0.8.7",
     "@octokit/rest": "^22.0.1",
     "@opennextjs/aws": "4.0.0",
     "dotenv": "^17.4.0",
-    "next": "16.2.4",
     "sst": "4.13.1",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
@@ -79,14 +85,14 @@
       "yaml": ">=2.8.3",
       "path-to-regexp": ">=8.4.0",
       "glob": ">=10.5.0",
-      "react": "19.2.5",
-      "react-dom": "19.2.5",
+      "react": "19.2.6",
+      "react-dom": "19.2.6",
       "@types/react": "19.2.14",
       "@types/react-dom": "19.2.3",
-      "next": "16.2.4",
+      "next": "16.2.5",
       "lodash": ">=4.18.1",
-      "vite": "8.0.10",
-      "hono": "4.12.16",
+      "vite": "8.0.11",
+      "hono": "4.12.18",
       "@hono/node-server": "2.0.1",
       "@modelcontextprotocol/server-filesystem": "2026.1.14",
       "@modelcontextprotocol/sdk": "1.29.0",
@@ -121,15 +127,13 @@
     "@vitejs/plugin-react-swc": "^4.3.0",
     "@vitest/coverage-v8": "4.1.5",
     "@vitest/ui": "^4.1.2",
-    "@voltx/core": "workspace:*",
-    "@voltx/ui": "workspace:*",
     "aws-sdk-client-mock": "^4.1.0",
     "eslint": "^10.2.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "husky": "^9.1.7",
     "jsdom": "^29.0.1",
-    "lint-staged": "^16.4.0",
+    "lint-staged": "^17.0.0",
     "prettier": "^3.8.1",
     "tsx": "^4.21.0",
     "turbo": "^2.9.3",
