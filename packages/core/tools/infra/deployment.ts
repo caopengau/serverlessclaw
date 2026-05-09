@@ -220,7 +220,7 @@ export const triggerDeployment = {
 
     const codebuild = new CodeBuildClient({});
     const db = DynamoDBDocumentClient.from(new DynamoDBClient({}));
-    const cb = getCircuitBreaker('circuit_breaker_state', args.workspaceId);
+    const cb = getCircuitBreaker('circuit_breaker_state', workspaceId);
     const today = new Date().toISOString().split('T')[0];
 
     // Added safeguard: prevent local stage from triggering remote builds
@@ -237,7 +237,7 @@ export const triggerDeployment = {
         return `CIRCUIT_BREAKER_ACTIVE: ${proceed.reason}`;
       }
 
-      const count = await getDeployCountToday(args.workspaceId);
+      const count = await getDeployCountToday(workspaceId);
 
       const typedResource = Resource as unknown as import('../../lib/types/system').SSTResource;
       const configTable = typedResource.ConfigTable?.name;
@@ -385,7 +385,7 @@ export const triggerDeployment = {
         }
       }
 
-      await incrementDeployCount(today, LIMIT, args.workspaceId);
+      await incrementDeployCount(today, LIMIT, workspaceId);
       return `SUCCESS: Deployment triggered. Build ID: ${buildId}. Reasoning: ${reason}${warning}`;
     } catch (error) {
       await cb.recordFailure('deploy', { userId, traceId });
