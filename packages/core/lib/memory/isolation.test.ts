@@ -3,6 +3,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoMemory } from '../memory';
 import { resolveItemById, atomicUpdateMetadata } from './utils';
+import { InsightCategory } from '../types/memory/insight';
 
 vi.mock('sst', () => ({
   Resource: {
@@ -110,7 +111,7 @@ describe('Memory Isolation Safeguards', () => {
       const { searchInsights } = await import('./insights/query-operations');
       ddbMock.on(QueryCommand).resolves({ Items: [] });
 
-      await searchInsights(memory, { category: 'TACTICAL_LESSON' }, undefined, undefined, 10, undefined, undefined, undefined, 'WS1');
+      await searchInsights(memory, { category: InsightCategory.TACTICAL_LESSON }, undefined, undefined, 10, undefined, undefined, undefined, 'WS1');
 
       const calls = ddbMock.commandCalls(QueryCommand);
       const input = calls[0].args[0].input;
@@ -126,7 +127,7 @@ describe('Memory Isolation Safeguards', () => {
       const { searchInsights } = await import('./insights/query-operations');
       ddbMock.on(QueryCommand).resolves({ Items: [] });
 
-      await searchInsights(memory, { category: 'TACTICAL_LESSON' });
+      await searchInsights(memory, { category: InsightCategory.TACTICAL_LESSON });
 
       const calls = ddbMock.commandCalls(QueryCommand);
       const input = calls[0].args[0].input;
