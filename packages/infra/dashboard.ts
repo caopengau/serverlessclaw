@@ -46,7 +46,7 @@ export function createDashboard(
       ...getValidSecrets(ctx.secrets),
     ],
     environment: {
-      DEPLOYER_NAME: deployer.name,
+      DEPLOYER_NAME: deployer.name || 'default',
       DYNAMIC_SCHEDULER_ROLE_ARN: schedulerRole?.arn || '',
       HEARTBEAT_HANDLER_ARN: heartbeatHandler?.arn || '',
       API_URL: api?.url || '',
