@@ -30,8 +30,8 @@ This diagram visualizes the interaction between the **Metabolism (Silo 7)**, **S
        [ Silo 7: The Metabolism ] <--- (MetabolismService Consolidated)
                |
         (5) Autonomous Repairs (Regenerative Metabolism)
-               |-- Prune Stale Overrides (WS Scoped)
-               |-- Cull Memory Bloat (WS Scoped)
+               |-- Prune Stale Overrides (WorkspaceTypeIndex Scoped)
+               |-- Cull Memory Bloat (WorkspaceTypeIndex Scoped)
                |-- Atomic DLQ Recovery (FilterExpression Scoped)
                |-- Feature Flag Pruning (WS Scoped)
                |-- Reclaim S3 Staging (WS Prefix Scoped)

@@ -154,9 +154,16 @@ export async function queryByTypeAndGetContent(
       scope
     );
   } else {
-    params.IndexName = 'TypeTimestampIndex';
-    params.KeyConditionExpression = '#tp = :type';
-    applyWorkspaceIsolation(params, scope);
+    const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
+    if (workspaceId) {
+      params.IndexName = 'WorkspaceTypeIndex';
+      params.KeyConditionExpression = 'workspaceId = :wsId AND #tp = :type';
+      (params.ExpressionAttributeValues as Record<string, unknown>)[':wsId'] = workspaceId;
+    } else {
+      params.IndexName = 'TypeTimestampIndex';
+      params.KeyConditionExpression = '#tp = :type';
+      applyWorkspaceIsolation(params, scope);
+    }
   }
   const items = await base.queryItems(params);
   return items.map((item) => item.content as string).filter(Boolean);
@@ -190,11 +197,20 @@ export async function queryByTypeAndMap(
     );
     (params.ExpressionAttributeValues as Record<string, unknown>)[':type'] = type;
   } else {
-    params.IndexName = 'TypeTimestampIndex';
-    params.KeyConditionExpression = '#tp = :type';
-    params.ExpressionAttributeNames = { '#tp': 'type' };
-    (params.ExpressionAttributeValues as Record<string, unknown>)[':type'] = type;
-    applyWorkspaceIsolation(params, scope);
+    const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
+    if (workspaceId) {
+      params.IndexName = 'WorkspaceTypeIndex';
+      params.KeyConditionExpression = 'workspaceId = :wsId AND #tp = :type';
+      params.ExpressionAttributeNames = { '#tp': 'type' };
+      (params.ExpressionAttributeValues as Record<string, unknown>)[':type'] = type;
+      (params.ExpressionAttributeValues as Record<string, unknown>)[':wsId'] = workspaceId;
+    } else {
+      params.IndexName = 'TypeTimestampIndex';
+      params.KeyConditionExpression = '#tp = :type';
+      params.ExpressionAttributeNames = { '#tp': 'type' };
+      (params.ExpressionAttributeValues as Record<string, unknown>)[':type'] = type;
+      applyWorkspaceIsolation(params, scope);
+    }
     if (filterExpression) {
       params.FilterExpression = params.FilterExpression
         ? `${params.FilterExpression as string} AND (${filterExpression})`

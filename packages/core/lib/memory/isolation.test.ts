@@ -104,4 +104,35 @@ describe('Memory Isolation Safeguards', () => {
       expect(input.Key?.userId).toBe('WS#SECURE_WS#GAP#42');
     });
   });
+
+  describe('Starvation Prevention (Anti-Pattern 19)', () => {
+    it('should use WorkspaceTypeIndex instead of TypeTimestampIndex when workspaceId is provided', async () => {
+      const { searchInsights } = await import('./insights/query-operations');
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
+
+      await searchInsights(memory, { category: 'TACTICAL_LESSON' }, undefined, undefined, 10, undefined, undefined, undefined, 'WS1');
+
+      const calls = ddbMock.commandCalls(QueryCommand);
+      const input = calls[0].args[0].input;
+
+      expect(input.IndexName).toBe('WorkspaceTypeIndex');
+      expect(input.KeyConditionExpression).toContain('workspaceId = :wsId');
+      expect(input.ExpressionAttributeValues?.[':wsId']).toBe('WS1');
+      // We keep FilterExpression as defense-in-depth, so just verify IndexName changed
+      expect(input.FilterExpression).toBeDefined();
+    });
+
+    it('should fall back to TypeTimestampIndex + FilterExpression when no workspaceId is present', async () => {
+      const { searchInsights } = await import('./insights/query-operations');
+      ddbMock.on(QueryCommand).resolves({ Items: [] });
+
+      await searchInsights(memory, { category: 'TACTICAL_LESSON' });
+
+      const calls = ddbMock.commandCalls(QueryCommand);
+      const input = calls[0].args[0].input;
+
+      expect(input.IndexName).toBe('TypeTimestampIndex');
+      expect(input.FilterExpression).toContain('attribute_not_exists(workspaceId)');
+    });
+  });
 });
