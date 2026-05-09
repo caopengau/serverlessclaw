@@ -25,29 +25,10 @@ import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { readFileSync } from 'fs';
 
 const STAGE = process.argv[2] || 'prod';
-const APP = process.argv[3] || 'serverlessclaw';
-const RESOURCE = process.argv[4] || 'ClawCenter';
+const APP = 'serverlessclaw';
 
-// Resolve region: try SST config first, then env var, then hardcoded default
-const DEFAULT_REGION = 'ap-southeast-2';
-function getRegion(): string {
-  // 1. Try SST outputs
-  try {
-    const outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf-8'));
-    if (outputs.region) return outputs.region;
-  } catch {
-    /* ignore */
-  }
-  // 2. Try env var
-  if (process.env.AWS_REGION) return process.env.AWS_REGION;
-  // 3. Default
-  return DEFAULT_REGION;
-}
-
-const REGION = getRegion();
-log(`Using region: ${REGION}`);
-const cf = new CloudFrontClient({ region: REGION });
-const s3 = new S3Client({ region: REGION });
+const cf = new CloudFrontClient({});
+const s3 = new S3Client({});
 
 function log(msg: string) {
   console.log(`\x1b[36m[fix-cloudfront]\x1b[0m ${msg}`);
@@ -61,12 +42,9 @@ function err(msg: string): never {
 async function getNewestBucketName(): Promise<string> {
   const buckets = await s3.send(new ListBucketsCommand({}));
   const bucketName = buckets.Buckets?.filter(
-    (b) =>
-      b.Name?.includes(STAGE) &&
-      b.Name?.toLowerCase().includes(RESOURCE.toLowerCase()) &&
-      b.Name?.includes('assetsbucket')
+    (b) => b.Name?.includes(STAGE) && b.Name?.includes('clawcenterassetsbucket')
   ).sort((a, b) => (b.CreationDate?.getTime() || 0) - (a.CreationDate?.getTime() || 0))?.[0]?.Name;
-  if (!bucketName) err(`Could not find assets bucket for ${RESOURCE} in stage ${STAGE}`);
+  if (!bucketName) err('Could not find ClawCenter assets bucket');
   return bucketName;
 }
 
@@ -77,15 +55,9 @@ async function findDistribution(): Promise<string> {
   let dashboardDomain = '';
   try {
     const outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf-8'));
-    // Try to find the URL for the specific resource
-    if (outputs[RESOURCE]) {
-      dashboardDomain = new URL(outputs[RESOURCE]).hostname;
-    } else if (outputs.dashboard) {
+    if (outputs.dashboard) {
       dashboardDomain = new URL(outputs.dashboard).hostname;
-    }
-
-    if (dashboardDomain) {
-      log(`Resource domain: ${dashboardDomain}`);
+      log(`Dashboard domain: ${dashboardDomain}`);
     }
   } catch {
     // outputs.json may not exist yet
@@ -106,7 +78,7 @@ async function findDistribution(): Promise<string> {
 
   // Fallback: match by comment (picks the one with most recent LastModifiedTime)
   const byComment = allDists.DistributionList?.Items?.filter(
-    (d) => d.Comment?.includes(RESOURCE) && d.Comment?.includes('app')
+    (d) => d.Comment === 'ClawCenter app'
   ).sort(
     (a, b) => new Date(b.LastModifiedTime!).getTime() - new Date(a.LastModifiedTime!).getTime()
   );
@@ -115,7 +87,7 @@ async function findDistribution(): Promise<string> {
     return byComment[0].Id;
   }
 
-  err(`Could not find CloudFront distribution for ${RESOURCE}`);
+  err('Could not find ClawCenter CloudFront distribution');
 }
 
 async function addS3Origin(distId: string) {
@@ -124,7 +96,7 @@ async function addS3Origin(distId: string) {
   const etag = current.ETag!;
 
   const bucketName = await getNewestBucketName();
-  const s3Domain = `${bucketName}.s3.${REGION}.amazonaws.com`;
+  const s3Domain = `${bucketName}.s3.ap-southeast-1.amazonaws.com`;
 
   // Check if S3 origin already exists
   const existingS3 = config.Origins?.Items?.find((o) => o.Id === 's3');
@@ -139,14 +111,16 @@ async function addS3Origin(distId: string) {
     log(`Adding S3 origin for bucket ${bucketName}...`);
     // Find or create OAC
     const oacs = await cf.send(new ListOriginAccessControlsCommand({}));
-    let oacId = oacs.OriginAccessControlList?.Items?.find((o) => o.Name?.includes(RESOURCE))?.Id;
+    let oacId = oacs.OriginAccessControlList?.Items?.find((o) =>
+      o.Name?.includes('ClawCenter')
+    )?.Id;
 
     if (!oacId) {
       log('Creating Origin Access Control...');
       const oac = await cf.send(
         new CreateOriginAccessControlCommand({
           OriginAccessControlConfig: {
-            Name: `${APP}-${STAGE}-${RESOURCE}OAC`,
+            Name: `${APP}-${STAGE}-ClawCenterOAC`,
             OriginAccessControlOriginType: 's3',
             SigningBehavior: 'always',
             SigningProtocol: 'sigv4',
@@ -215,12 +189,9 @@ async function fixCloudFrontFunctionInner(distId: string, fnArn: string) {
   const lambda = new LambdaClient({});
   const lambdaFns = await lambda.send(new ListLambdaFunctions({}));
   const serverFn = lambdaFns.Functions?.filter(
-    (f) =>
-      f.FunctionName?.includes(RESOURCE) &&
-      f.FunctionName?.includes('Server') &&
-      f.FunctionName?.includes(STAGE)
+    (f) => f.FunctionName?.includes('ClawCenterServer') && f.FunctionName?.includes(STAGE)
   ).sort((a, b) => new Date(b.LastModified!).getTime() - new Date(a.LastModified!).getTime())?.[0];
-  if (!serverFn?.FunctionName) err(`Could not find server Lambda for ${RESOURCE}`);
+  if (!serverFn?.FunctionName) err('Could not find ClawCenter server Lambda');
 
   const urlConfig = await lambda.send(
     new ListFunctionUrlConfigsCommand({
@@ -233,26 +204,28 @@ async function fixCloudFrontFunctionInner(distId: string, fnArn: string) {
   const lambdaHost = new URL(lambdaUrl).host;
   const bucketName = await getNewestBucketName();
 
-  log(`Updating CloudFront function for ${RESOURCE} to use bucket: ${bucketName}`);
+  log(`Updating CloudFront function to use bucket: ${bucketName}`);
 
   // Build routing function code - route static to S3, rest to Lambda
   const code = `import cf from "cloudfront";
-function handler(event) {
+async function handler(event) {
   var host = event.request.headers.host ? event.request.headers.host.value : "";
   if (host.includes("cloudfront.net")) {
-    return { statusCode: 403, statusDescription: "Forbidden", body: { encoding: "text", data: "<html><body>403 Forbidden</body></html>" } };
+    return { statusCode: 403, statusDescription: "Forbidden", body: { encoding: "text", data: "<html><body><h1>403</h1></body></html>" } };
   }
   event.request.headers["x-forwarded-host"] = event.request.headers.host;
   var uri = event.request.uri;
   if (uri.startsWith("/_next/") || uri.endsWith(".css") || uri.endsWith(".js") || uri.endsWith(".woff2") || uri.endsWith(".woff") || uri.endsWith(".png") || uri.endsWith(".jpg") || uri.endsWith(".svg") || uri.endsWith(".ico") || uri.endsWith(".json") || uri.endsWith(".map") || uri.endsWith(".txt") || uri.endsWith(".xml")) {
     cf.updateRequestOrigin({
-      domainName: "${bucketName}.s3.${REGION}.amazonaws.com",
-      originPath: "/_assets"
+      domainName: "${bucketName}.s3.ap-southeast-1.amazonaws.com",
+      originPath: "/_assets",
+      originAccessControlConfig: { enabled: true, signingBehavior: "always", signingProtocol: "sigv4", originType: "s3" }
     });
   } else {
     cf.updateRequestOrigin({
       domainName: "${lambdaHost}",
-      customOriginConfig: { port: 443, protocol: "https", sslProtocols: ["TLSv1.2"] }
+      customOriginConfig: { port: 443, protocol: "https", sslProtocols: ["TLSv1.2"] },
+      originAccessControlConfig: { enabled: false }
     });
   }
   return event.request;

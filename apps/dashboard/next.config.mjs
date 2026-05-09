@@ -6,6 +6,10 @@ const __dirname = path.dirname(__filename);
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone',
+  // Keep tracing scoped to the framework workspace so standalone layout is
+  // .next/standalone/apps/dashboard (compatible with OpenNext monorepo resolver).
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   transpilePackages: ['@serverlessclaw/core', '@serverlessclaw/ui', '@serverlessclaw/hooks'],
   reactStrictMode: true,
   images: {

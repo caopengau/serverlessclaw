@@ -11,23 +11,13 @@ import {
 import { logger } from '../logger';
 import { getMemoryTableName } from '../utils/ddb-client';
 
-/**
- * Lazy singleton DynamoDB Document Client.
- * Created on first access to avoid blocking module initialization during Lambda cold start.
- */
-let _sharedDocClient: DynamoDBDocumentClient | undefined;
-
-function getDefaultDocClient(): DynamoDBDocumentClient {
-  if (!_sharedDocClient) {
-    const client = new DynamoDBClient({});
-    _sharedDocClient = DynamoDBDocumentClient.from(client, {
-      marshallOptions: {
-        removeUndefinedValues: true,
-      },
-    });
-  }
-  return _sharedDocClient;
-}
+// Default client for backward compatibility - can be overridden via constructor for testing
+const defaultClient = new DynamoDBClient({});
+const defaultDocClient = DynamoDBDocumentClient.from(defaultClient, {
+  marshallOptions: {
+    removeUndefinedValues: true,
+  },
+});
 
 /**
  * Base logic for DynamoDB interactions within the memory system.
@@ -42,7 +32,7 @@ export class BaseMemoryProvider {
    * @param docClient - Optional DynamoDB Document Client for dependency injection (useful for testing)
    */
   constructor(docClient?: DynamoDBDocumentClient) {
-    this.docClient = docClient ?? getDefaultDocClient();
+    this.docClient = docClient ?? defaultDocClient;
   }
 
   /**

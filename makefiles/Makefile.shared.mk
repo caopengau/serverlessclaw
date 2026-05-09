@@ -8,9 +8,6 @@ _SHARED_MK_INCLUDED := 1
 # Explicitly use bash for all shell commands to ensure macro robustness
 SHELL := /bin/bash
 
-# Ensure Node.js is in the path (fallback for specific environment)
-export PATH := /Users/pengcao/.nvm/versions/node/v24.15.0/bin:$(PATH)
-
 # Colors
 RED        := $(shell printf '\033[0;31m')
 GREEN      := $(shell printf '\033[0;32m')
@@ -145,7 +142,7 @@ sync-status: ## Show sync remote safety status for subtree operations
 sync-downstream: ## Pull latest framework subtree from official upstream (fetch-only remote)
 	@$(call log_step,Syncing framework subtree from $(SUBTREE_OFFICIAL_REMOTE)/$(SUBTREE_BRANCH)...)
 	@git fetch $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH)
-	@GIT_EDITOR=true git subtree pull --prefix=framework $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH) --squash
+	@GIT_EDITOR=true git subtree pull --prefix=framework $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH)
 	@$(call log_success,Framework subtree synced from official upstream.)
 
 sync-upstream: ## Run framework quality gates and promote subtree to upstream (required: SYNC_UPSTREAM_REMOTE)
@@ -160,7 +157,7 @@ sync-upstream: ## Run framework quality gates and promote subtree to upstream (r
 	fi
 	@$(call verify_clean)
 	@$(call log_step,Step 1/2: Running framework quality gates...)
-	@$(MAKE) -C framework pre-push VERIFY_REMOTE=$(SYNC_UPSTREAM_REMOTE) SKIP_VERIFY=1
+	@$(MAKE) -C framework pre-push
 	@$(call log_step,Step 2/2: Pushing framework subtree to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH)...)
 	@git subtree push --prefix=framework $(SYNC_UPSTREAM_REMOTE) $(SUBTREE_BRANCH)
 	@$(call log_success,Framework subtree successfully promoted to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH).)
@@ -288,32 +285,31 @@ endef
 
 # Usage: $(call verify_up_to_date)
 # Fetches remote and verifies local branch is not behind or diverged. Use before push in trunk-based dev.
-VERIFY_REMOTE ?= origin
 define verify_up_to_date
        current=$$(git rev-parse --abbrev-ref HEAD); \
        if [ "$$current" = "HEAD" ]; then \
                $(call log_error,Detached HEAD detected. Push to a branch instead.); \
                exit 1; \
        fi; \
-       if ! git remote | grep -qE "^$(VERIFY_REMOTE)([[:space:]]|$$)"; then \
-               $(call log_warning,No '$(VERIFY_REMOTE)' remote found. Skipping up-to-date check.); \
+       if ! git remote | grep -q "^origin$$"; then \
+               $(call log_warning,No 'origin' remote found. Skipping up-to-date check.); \
        else \
-               $(call log_info,Verifying connectivity to $(VERIFY_REMOTE)...); \
-               git fetch $(VERIFY_REMOTE) "$$current" --quiet --dry-run --timeout=10 2>/dev/null || true; \
+               $(call log_info,Verifying connectivity to origin...); \
+               git fetch origin "$$current" --quiet --dry-run --timeout=10 2>/dev/null || true; \
                local_rev=$$(git rev-parse HEAD); \
-               remote_rev=$$(git rev-parse "$(VERIFY_REMOTE)/$$current" 2>/dev/null || echo ""); \
+               remote_rev=$$(git rev-parse "origin/$$current" 2>/dev/null || echo ""); \
                if [ -n "$$remote_rev" ]; then \
-                       merge_base=$$(git merge-base HEAD "$(VERIFY_REMOTE)/$$current" 2>/dev/null || echo ""); \
+                       merge_base=$$(git merge-base HEAD "origin/$$current" 2>/dev/null || echo ""); \
                        if [ "$$merge_base" != "$$remote_rev" ]; then \
                                if [ "$$merge_base" = "$$local_rev" ]; then \
-                                       $(call log_error,Local branch is behind $(VERIFY_REMOTE)/$$current. Run: git pull --rebase); \
+                                       $(call log_error,Local branch is behind origin/$$current. Run: git pull --rebase); \
                                else \
-                                       $(call log_error,Local branch has diverged from $(VERIFY_REMOTE)/$$current. Rebase first.); \
+                                       $(call log_error,Local branch has diverged from origin/$$current. Rebase first.); \
                                fi; \
                                exit 1; \
                        fi; \
                fi; \
-               $(call log_success,Branch is up to date with $(VERIFY_REMOTE)); \
+               $(call log_success,Branch is up to date with remote); \
        fi
 endef
 

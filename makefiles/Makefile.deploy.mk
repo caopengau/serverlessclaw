@@ -12,7 +12,7 @@ dev: clear-port ## Start SST in development mode (mono mode)
 	@$(call log_step,Starting SST dev mode on stage $(LOCAL_STAGE) in mono mode...)
 	@$(call load_env); \
 	unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN; \
-	TERM=xterm $(SST) dev --stage $(LOCAL_STAGE)
+	TERM=xterm $(SST) dev --stage $(LOCAL_STAGE) --mode=mono
 
 
 deploy: ## Deploy SST to the environment (default: prod)
@@ -29,9 +29,7 @@ deploy: ## Deploy SST to the environment (default: prod)
 	$(call log_info,Starting SST deployment...) && \
 	$(SST) deploy --stage $(ENV) --yes && \
 	$(call log_info,Running post-deploy CloudFront fix...) && \
-	APP_NAME=$$(jq -r .name package.json 2>/dev/null || echo 'serverlessclaw') && \
-	$(call log_info,Resolved APP_NAME=$$APP_NAME from package.json) && \
-	$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/fix-cloudfront-deploy.ts $(ENV) $$APP_NAME ClawCenter && \
+	$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/fix-cloudfront-deploy.ts $(ENV) && \
 	$(MAKE) verify-deploy ; \
 	if [ "$(E2E)" = "true" ]; then $(MAKE) test-tier-3 ; fi
 	@$(call log_success,SST deploy to $(ENV) completed successfully)

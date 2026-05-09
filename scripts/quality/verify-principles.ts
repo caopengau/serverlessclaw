@@ -206,7 +206,11 @@ function verifyBoundaryIsolation(): Finding[] {
 
 function verifyMultiTenantScoping(): Finding[] {
   const findings: Finding[] = [];
-  const files = globSync(`${CORE_DIR}/lib/**/*.ts`);
+  const files = [
+    ...globSync(`${CORE_DIR}/lib/**/*.ts`),
+    ...globSync(`${CORE_DIR}/tools/**/*.ts`),
+    ...globSync(`${CORE_DIR}/handlers/**/*.ts`),
+  ];
 
   files.forEach((file) => {
     if (file.includes('.test.') || file.includes('.d.ts')) return;

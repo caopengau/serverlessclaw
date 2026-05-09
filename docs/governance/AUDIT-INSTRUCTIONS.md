@@ -101,15 +101,14 @@ See `ANTI-PATTERNS.md` for the full list of 19+ patterns, including:
 5. Race conditions in Lock/Session management
 6. **New**: In-Memory Multi-Tenant Filtering (Anti-Pattern 19)
 
-## 8. Framework Integrity & Sync (Subtree Governance)
+## 8. Framework Integrity & Sync (Hub-and-Spoke)
 
 As a consumer of the ServerlessClaw framework, you must maintain the boundary between core framework code and application-specific logic.
 
-1. **Core vs Spoke**: Framework-level changes (Registry logic, Bus, Memory, Safety) happen in `framework/`. Application-level changes happen in the product-specific packages (e.g., `packages/app-*`).
-2. **Promotion (sync-upstream)**: If you improve the framework core, promote these changes back using `make sync-upstream SYNC_UPSTREAM_REMOTE=<remote>`. This requires passing local quality gates first.
-3. **Evolution (sync-downstream)**: Use `make sync-downstream` (or `make pull`) to pull improvements from the official upstream.
-4. **Mandatory Squash**: **NEVER** perform a subtree pull without `--squash`. This is enforced by the `make` targets.
-5. **Anti-Pattern 20: Domain Pollution**: Do NOT hardcode domain-specific logic (e.g., product-name, industry-specific terms) into the `framework/` directory. Ensure framework code remains product-agnostic for future OSS release.
+1. **Core vs Spoke**: Framework-level changes (Registry logic, Bus, Memory, Safety) happen in `framework/core/lib`. Application-level changes (custom agents, business tools) happen in `packages/` or via `PluginManager` registration.
+2. **Promotion (sync-upstream)**: If you improve the framework core (e.g., adding a new Registry feature or fixing a bug in the Bus), you MUST promote these changes back to the upstream repository using `make sync-upstream`.
+3. **Evolution (sync-downstream)**: Periodically run `make sync-downstream` to pull the latest canonical improvements from the Mother Hub.
+4. **Anti-Pattern 20: Domain Pollution**: Do NOT hardcode domain-specific logic (e.g., Energy, CRM, Finance) into the `framework/` directory. Use the `PluginManager` to inject these capabilities.
 
 ## Summary Checklist
 

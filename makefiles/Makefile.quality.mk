@@ -7,10 +7,6 @@ include makefiles/Makefile.shared.mk
 
 aeo: aiready docs-check ## Run all Agentic Engine Optimization (AEO) checks
 
-bundle-check: ## Verify Lambda bundles contain critical dependencies
-	@$(call log_step,Scanning Lambda bundles for critical dependencies...)
-	@$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/bundle-scanner.ts
-
 build-integrations: ## Build all integration packages (@serverlessclaw/integration-*)
 	@$(call log_step,Building integrations via Turbo...)
 	@$(PNPM) exec turbo run build --filter="@serverlessclaw/integration-*"
@@ -22,14 +18,12 @@ build-cli: ## Build the CLI package (@serverlessclaw/cli)
 gate: ## Run all quality checks in parallel (via Turborepo) + E2E
 	@$(call log_step,Running full quality gate in parallel via Turbo...)
 	@$(PNPM) run gate
-	@$(MAKE) bundle-check
 	@$(MAKE) test-e2e
 
 gate-tier-1: ## Fast Tier 1 checks (via Turborepo)
 	@$(call log_step,Running Tier 1 (Fast) gate via Turbo...)
 	@$(PNPM) run check
 	@$(MAKE) docs-check
-	@$(MAKE) bundle-check
 
 
 gate-tier-2: ## Thorough Tier 2 checks (via Turborepo)

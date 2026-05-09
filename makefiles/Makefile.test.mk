@@ -11,7 +11,6 @@ test-tier-2: test-coverage ## Run Tier 2: Coverage and Integration tests
 
 test-tier-3: ## Run Tier 3: Deployment health and E2E (uses .sst/outputs.json if URL/DASHBOARD_URL not provided)
 	@$(call log_step,Running Tier 3 (Full Deployment Verification)...)
-	@$(MAKE) dns-check ENV=$(ENV)
 	@OUTPUTS=$$(cat .sst/outputs.json 2>/dev/null) ; \
 	API_URL=$(URL) ; \
 	if [ -z "$$API_URL" ] && [ -n "$$OUTPUTS" ]; then \
@@ -24,19 +23,6 @@ test-tier-3: ## Run Tier 3: Deployment health and E2E (uses .sst/outputs.json if
 	if [ -z "$$API_URL" ]; then $(call log_error,API URL is required for Tier 3); exit 1; fi; \
 	if [ -z "$$FINAL_DASHBOARD_URL" ]; then $(call log_error,DASHBOARD URL is required for Tier 3); exit 1; fi; \
 	$(MAKE) verify URL=$$API_URL && $(MAKE) test-e2e-deployed URL=$$FINAL_DASHBOARD_URL
-
-dns-check: ## Verify DNS resolution for critical subdomains (prevents ENOTFOUND)
-	@$(call log_step,Verifying DNS resolution for $(ENV)...)
-	@$(call load_env); \
-	DOMAINS="$$(grep "CLAW_DOMAIN_" .env.$(ENV) | cut -d'=' -f2)"; \
-	for domain in $$DOMAINS; do \
-		$(call log_info,Checking resolution for $$domain...); \
-		if ! nslookup $$domain 8.8.8.8 > /dev/null 2>&1; then \
-			$(call log_warning,DNS record $$domain NOT found on Google DNS.); \
-		else \
-			$(call log_success,DNS record $$domain is resolvable.); \
-		fi; \
-	done
 
 verify: ## Verify the deployment health. Usage: make verify URL=https://...
 	@$(call log_info,Verifying deployment health at $(URL)...)

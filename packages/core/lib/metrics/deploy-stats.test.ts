@@ -135,4 +135,34 @@ describe('deploy-stats', () => {
       await expect(rewardDeployLimit()).rejects.toThrow('Network error');
     });
   });
+
+  describe('Multi-Tenant Isolation', () => {
+    it('should use Workspace prefix in PK when workspaceId is provided', async () => {
+      mockSend.mockResolvedValueOnce({ Item: null });
+      await getDeployCountToday('WS1');
+      const input = mockSend.mock.calls[0][0].input;
+      expect(input.Key.userId).toContain('WS#WS1#');
+    });
+
+    it('should NOT use Workspace prefix when workspaceId is missing', async () => {
+      mockSend.mockResolvedValueOnce({ Item: null });
+      await getDeployCountToday();
+      const input = mockSend.mock.calls[0][0].input;
+      expect(input.Key.userId).not.toContain('WS#');
+    });
+
+    it('should propagate workspaceId to incrementDeployCount', async () => {
+      mockSend.mockResolvedValueOnce({});
+      await incrementDeployCount('2026-03-26', 5, 'WS1');
+      const input = mockSend.mock.calls[0][0].input;
+      expect(input.Key.userId).toContain('WS#WS1#');
+    });
+
+    it('should propagate workspaceId to rewardDeployLimit', async () => {
+      mockSend.mockResolvedValueOnce({});
+      await rewardDeployLimit('WS1');
+      const input = mockSend.mock.calls[0][0].input;
+      expect(input.Key.userId).toContain('WS#WS1#');
+    });
+  });
 });

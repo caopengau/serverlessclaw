@@ -120,7 +120,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
 
       // Reset failure counter on success
       try {
-        const cb = getCircuitBreaker();
+        const cb = getCircuitBreaker('circuit_breaker_state', workspaceId);
         await cb.recordSuccess();
       } catch (e) {
         logger.error('Failed to record build success in circuit breaker:', e);
@@ -257,7 +257,7 @@ export const handler = async (event: { detail: Record<string, unknown> }): Promi
 
       // Circuit Breaker: record failure in sliding window
       try {
-        const cb = getCircuitBreaker();
+        const cb = getCircuitBreaker('circuit_breaker_state', workspaceId);
         const result = await cb.recordFailure('deploy', { userId, traceId });
         if (result.state === 'open') {
           logger.warn(

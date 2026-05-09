@@ -16,7 +16,7 @@ pre-commit: ## Run pre-commit checks in sequence (resource-aware local defaults)
 
 pre-push: ## Run full pre-push checks in sequence (monorepo-wide)
 	@$(call log_step,Running full pre-push checks (monorepo-wide)...)
-	@if [ "$(SKIP_VERIFY)" != "1" ]; then $(MAKE) verify-up-to-date; fi
+	@$(MAKE) verify-up-to-date
 	@$(MAKE) gate-tier-1 TURBO_FLAGS="--concurrency=2"
 	@$(MAKE) test-tier-1
 
