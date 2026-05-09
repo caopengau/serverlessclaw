@@ -142,7 +142,7 @@ sync-status: ## Show sync remote safety status for subtree operations
 sync-downstream: ## Pull latest framework subtree from official upstream (fetch-only remote)
 	@$(call log_step,Syncing framework subtree from $(SUBTREE_OFFICIAL_REMOTE)/$(SUBTREE_BRANCH)...)
 	@git fetch $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH)
-	@GIT_EDITOR=true git subtree pull --prefix=framework $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH)
+	@GIT_EDITOR=true git subtree pull --prefix=framework $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH) --squash
 	@$(call log_success,Framework subtree synced from official upstream.)
 
 sync-upstream: ## Run framework quality gates and promote subtree to upstream (required: SYNC_UPSTREAM_REMOTE)

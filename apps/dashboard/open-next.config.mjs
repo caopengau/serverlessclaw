@@ -1,7 +1,5 @@
 const config = {
-  default: {
-    installDependencies: true,
-  },
+  default: {},
 };
 
 export default config;

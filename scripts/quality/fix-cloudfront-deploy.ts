@@ -25,7 +25,8 @@ import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { readFileSync } from 'fs';
 
 const STAGE = process.argv[2] || 'prod';
-const APP = 'serverlessclaw';
+const APP = process.argv[3] || 'serverlessclaw';
+const RESOURCE = process.argv[4] || 'ClawCenter';
 
 const cf = new CloudFrontClient({});
 const s3 = new S3Client({});
@@ -42,9 +43,12 @@ function err(msg: string): never {
 async function getNewestBucketName(): Promise<string> {
   const buckets = await s3.send(new ListBucketsCommand({}));
   const bucketName = buckets.Buckets?.filter(
-    (b) => b.Name?.includes(STAGE) && b.Name?.includes('clawcenterassetsbucket')
+    (b) =>
+      b.Name?.includes(STAGE) &&
+      b.Name?.toLowerCase().includes(RESOURCE.toLowerCase()) &&
+      b.Name?.includes('assetsbucket')
   ).sort((a, b) => (b.CreationDate?.getTime() || 0) - (a.CreationDate?.getTime() || 0))?.[0]?.Name;
-  if (!bucketName) err('Could not find ClawCenter assets bucket');
+  if (!bucketName) err(`Could not find assets bucket for ${RESOURCE} in stage ${STAGE}`);
   return bucketName;
 }
 
@@ -55,9 +59,15 @@ async function findDistribution(): Promise<string> {
   let dashboardDomain = '';
   try {
     const outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf-8'));
-    if (outputs.dashboard) {
+    // Try to find the URL for the specific resource
+    if (outputs[RESOURCE]) {
+      dashboardDomain = new URL(outputs[RESOURCE]).hostname;
+    } else if (outputs.dashboard) {
       dashboardDomain = new URL(outputs.dashboard).hostname;
-      log(`Dashboard domain: ${dashboardDomain}`);
+    }
+
+    if (dashboardDomain) {
+      log(`Resource domain: ${dashboardDomain}`);
     }
   } catch {
     // outputs.json may not exist yet
@@ -78,7 +88,7 @@ async function findDistribution(): Promise<string> {
 
   // Fallback: match by comment (picks the one with most recent LastModifiedTime)
   const byComment = allDists.DistributionList?.Items?.filter(
-    (d) => d.Comment === 'ClawCenter app'
+    (d) => d.Comment?.includes(RESOURCE) && d.Comment?.includes('app')
   ).sort(
     (a, b) => new Date(b.LastModifiedTime!).getTime() - new Date(a.LastModifiedTime!).getTime()
   );
@@ -87,7 +97,7 @@ async function findDistribution(): Promise<string> {
     return byComment[0].Id;
   }
 
-  err('Could not find ClawCenter CloudFront distribution');
+  err(`Could not find CloudFront distribution for ${RESOURCE}`);
 }
 
 async function addS3Origin(distId: string) {
@@ -111,16 +121,14 @@ async function addS3Origin(distId: string) {
     log(`Adding S3 origin for bucket ${bucketName}...`);
     // Find or create OAC
     const oacs = await cf.send(new ListOriginAccessControlsCommand({}));
-    let oacId = oacs.OriginAccessControlList?.Items?.find((o) =>
-      o.Name?.includes('ClawCenter')
-    )?.Id;
+    let oacId = oacs.OriginAccessControlList?.Items?.find((o) => o.Name?.includes(RESOURCE))?.Id;
 
     if (!oacId) {
       log('Creating Origin Access Control...');
       const oac = await cf.send(
         new CreateOriginAccessControlCommand({
           OriginAccessControlConfig: {
-            Name: `${APP}-${STAGE}-ClawCenterOAC`,
+            Name: `${APP}-${STAGE}-${RESOURCE}OAC`,
             OriginAccessControlOriginType: 's3',
             SigningBehavior: 'always',
             SigningProtocol: 'sigv4',
@@ -189,9 +197,12 @@ async function fixCloudFrontFunctionInner(distId: string, fnArn: string) {
   const lambda = new LambdaClient({});
   const lambdaFns = await lambda.send(new ListLambdaFunctions({}));
   const serverFn = lambdaFns.Functions?.filter(
-    (f) => f.FunctionName?.includes('ClawCenterServer') && f.FunctionName?.includes(STAGE)
+    (f) =>
+      f.FunctionName?.includes(RESOURCE) &&
+      f.FunctionName?.includes('Server') &&
+      f.FunctionName?.includes(STAGE)
   ).sort((a, b) => new Date(b.LastModified!).getTime() - new Date(a.LastModified!).getTime())?.[0];
-  if (!serverFn?.FunctionName) err('Could not find ClawCenter server Lambda');
+  if (!serverFn?.FunctionName) err(`Could not find server Lambda for ${RESOURCE}`);
 
   const urlConfig = await lambda.send(
     new ListFunctionUrlConfigsCommand({
@@ -204,7 +215,7 @@ async function fixCloudFrontFunctionInner(distId: string, fnArn: string) {
   const lambdaHost = new URL(lambdaUrl).host;
   const bucketName = await getNewestBucketName();
 
-  log(`Updating CloudFront function to use bucket: ${bucketName}`);
+  log(`Updating CloudFront function for ${RESOURCE} to use bucket: ${bucketName}`);
 
   // Build routing function code - route static to S3, rest to Lambda
   const code = `import cf from "cloudfront";
