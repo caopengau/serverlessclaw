@@ -27,7 +27,8 @@ The main `Makefile` at the root is the "Hub". It includes specialized "Spoke" fi
 | Command                | Category | Description                                                 |
 | ---------------------- | -------- | ----------------------------------------------------------- |
 | `make help`            | Hub      | Show all available targets in a categorized markdown table  |
-| `make dev`             | Deploy   | Start local development mode with SST Ion                   |
+| `make pull`            | Sync     | Pull origin + sync-downstream (The standard daily refresh)  |
+| `make sync`            | Sync     | Safe push to origin only (Standard daily push)              |
 | `make check`           | Quality  | Run all quality checks (lint, format, type-check)           |
 | `make test`            | Test     | Run the full unit test suite                                |
 | `make verify URL=...`  | Test     | Verify deployed `/health` endpoint returns success          |
@@ -42,20 +43,31 @@ The main `Makefile` at the root is the "Hub". It includes specialized "Spoke" fi
 
 Note: SST-related Make targets invoke the workspace-local SST binary (`./node_modules/.bin/sst`) directly. Run `pnpm install` first so this binary is available.
 
-### Two-Repo Boundary (Critical)
+### Two-Repo Boundary & Subtree Governance (CRITICAL)
 
-This workspace intentionally uses two repos with different roles:
+This workspace uses a **subtree-based monorepo** model to isolate the core framework from product-specific logic. Failure to follow these rules will result in git history contamination.
 
-1. `product` is the primary product repo (push target: `origin`).
-2. `framework/` is a git subtree sourced from `serverlessclaw`.
-3. Official `serverlessclaw` remote in `product` is fetch-only by default (`sc-official`).
-4. Subtree push is never implicit; it requires explicit `SYNC_UPSTREAM_REMOTE`.
+#### 1. Remote Mappings
+- `origin` is the primary product repo (e.g., `voltx`).
+- `sc-official` (Fetch-only) is the upstream framework (`serverlessclaw`).
+- `hub-origin` (Push-target) is used when promoting local framework fixes back to the hub.
 
-Safe defaults in Make targets:
+#### 2. The Squash Rule
+**All framework syncs MUST use the `--squash` flag.** 
+Never perform a raw `git subtree pull` without `--squash`. This prevents the 1,600+ commits of framework history from leaking into the product repository. The `Makefile` targets enforce this by default.
 
-1. `make sync` pushes only `product` to `origin`.
-2. `make sync-downstream` fetches/pulls subtree from `sc-official/main`.
-3. `make sync-upstream` fails unless `SYNC_UPSTREAM_REMOTE` is set and push is enabled.
+#### 3. Agent Instructions (for AI Coders)
+Agents performing synchronization tasks MUST:
+1. **Always use Make targets**: Use `make sync-downstream` or `make pull`. Never execute raw `git subtree` commands manually.
+2. **Verify Clean History**: After any sync, check `git log -n 5 --oneline`. If you see hundreds of framework commits or non-squashed merges, you have failed.
+3. **Product-Agnostic Framework**: Ensure any changes made within `framework/` are generic. If a change is Voltx-specific, it must be abstracted or moved to `packages/voltx-*`.
+4. **No Leaky Abstractions**: Never import product-level packages from the `framework/` subtree.
+
+#### 4. Safe Sync Defaults
+- `make sync`: Pushes only product changes to `origin`. Safe for daily use.
+- `make pull`: Updates your branch from `origin` and then refreshes the framework subtree from `sc-official`.
+- `make sync-downstream`: Fetches/pulls subtree from `sc-official/main` with mandatory `--squash`.
+- `make sync-upstream`: Promotional path. Requires explicit `SYNC_UPSTREAM_REMOTE` and local quality gates must pass.
 
 Examples:
 
