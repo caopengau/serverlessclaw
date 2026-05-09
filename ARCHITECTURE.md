@@ -317,21 +317,38 @@ To support autonomous swarm growth while maintaining the "Trunk is Sacred" rule,
 
 1. **Strategic Planning**: The Reflector and Planner identify and plan fixes for `strategic_gap` records.
 
-```mermaid
-graph TD
-    A[Conversation Finished] --> B{Reflector Agent}
-    B --> C[Fetch Execution Trace]
-    B --> D[Build Reflection Prompt]
-    D --> E[LLM: Generate Reflection Report]
-    E --> F[Processor: Handle Insights]
-    F --> G[Update Facts in Memory]
-    F --> H[Add Lessons]
-    F --> I[Identify/Update Gaps]
-    I --> J{EventBridge}
-    J --> K[Evolution Plan Event]
-    K --> L[Planner Agent]
-    F --> M[Resolve Gaps]
-````
+```ascii
+  [ Conversation Finished ]
+              |
+              v
+     < Reflector Agent >
+              |
+              +--------------------------+
+              |                          |
+      [ Fetch Trace ]             [ Build Prompt ]
+              |                          |
+              +--------------------------+
+              |
+              v
+  [ LLM: Generate Reflection ]
+              |
+              v
+   [ Processor: Insights ]
+              |
+      +-------+-------+-------+-------+
+      |       |       |       |       |
+  [ Memory ] [ Lessons ] [ Gaps ] [ Resolve ]
+      |               |       |       |
+      +---------------+       |       v
+                              v    ( DONE )
+                       { EventBridge }
+                              |
+                              v
+                    [ Evolution Plan Event ]
+                              |
+                              v
+                       [ Planner Agent ]
+```
 
 2. **Pre-flight Verification**: The **`verifyChanges`** tool executes the full project quality suite (`make check && make test`) locally in the agent's worker context. Passing this suite is a mandatory **Definition of Done (DoD)** requirement for staging or pushing code.
 3. **Trunk Integration**: Verified changes are pushed to `main` and deployed to `prod`.
@@ -684,6 +701,56 @@ The system is designed for autonomous survival and continuous optimization throu
                                     |
                           [ System Flow Restored ]
 ````
+
+## 🌀 Self-Healing & Isolation Perspectives (F & G)
+
+This diagram visualizes the interaction between the **Metabolism (Silo 7)**, **Scales (Silo 6)**, and **Shield (Silo 3)** during autonomous self-healing, reputation calibration, and multi-tenant isolation.
+
+```ascii
+                        Perspective F (Metabolic Loop) & G (Isolation)
+                        ==============================================
+
+       [ Silo 5: The Eye ]
+               |
+        (1) Anomaly Detected (Failures/Trace Errors)
+               |
+               v
+       [ Silo 6: The Scales ] <----------------------------------+
+               |                                                 |
+        (2) Trust Penalty/Success                                |
+               |                                                 |
+               v
+       [ Silo 3: The Shield ]                                    |
+               |                                                 |
+        (3) Mandatory Scoping Check (Perspective G Hardening)    |
+               | (Must have workspaceId for SYSTEM identity)     |
+               |                                                 |
+               v
+       [ Silo 2: The Hand ]                                      |
+               |                                                 |
+        (4) Tool Execution (Deferred Trace Collection)           |
+               |                                                 |
+               v
+       [ Silo 7: The Metabolism ] <--- (MetabolismService Consolidated)
+               |
+        (5) Autonomous Repairs (Regenerative Metabolism)
+               |-- Prune Stale Overrides (WorkspaceTypeIndex Scoped)
+               |-- Cull Memory Bloat (WorkspaceTypeIndex Scoped)
+               |-- Atomic DLQ Recovery (FilterExpression Scoped)
+               |-- Feature Flag Pruning (WS Scoped)
+               |-- Reclaim S3 Staging (WS Prefix Scoped)
+               |-- Trust-Based Mode Shifting (AUTO/HITL)
+               |-- Orphan Trace Cleanup (Status Index Scoped)
+```
+
+### Key Mechanisms
+
+1.  **Perspective G: Mandatory SYSTEM Scoping**: All autonomous repairs (Silo 7) and reputation updates (Silo 6) must be anchored to a `workspaceId`. Unscoped background tasks are rejected by the Shield to prevent cross-tenant elevation.
+2.  **Perspective F: Atomic Regenerative Repairs**: Repairs utilize DynamoDB `ConditionExpression` and `FilterExpression` to ensure that maintenance tasks are idempotent and isolated. The `MetabolismService` centralizes these repairs to prevent logic drift in maintenance handlers.
+3.  **Metabolic hygiene**: S3 staging reclamation and tool pruning are monitored; failures trigger P1 audit findings to notify the Eye and the Scales of hygiene blind spots.
+4.  **Trust-Based Shift**: High-trust agents are promoted to `AUTO` mode via atomic conditional updates, while low-trust agents are mitigated via registry disabling, closing the metabolic loop.
+
+---
 
 | Component                 | Deep Dive                                                    |
 | :------------------------ | :----------------------------------------------------------- |

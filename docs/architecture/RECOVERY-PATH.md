@@ -4,73 +4,102 @@ This document describes the idempotent recovery mechanisms used in Serverless Cl
 
 ## Recovery Flow Diagram
 
-```mermaid
-sequenceDiagram
-    participant Agent as Agent (The Hand)
-    participant Lock as LockManager
-    participant Session as SessionStateManager (The Brain)
-    participant Bus as AgentBus (The Spine)
-    participant DLQ as Dead Letter Queue
-
-    Note over Agent,DLQ: NORMAL EXECUTION
-    Agent->>Lock: acquire()
-    Agent->>Session: addPendingMessage(Task A)
-    Note over Agent: Agent Crashes! 💥
-
-    Note over Agent,DLQ: RECOVERY PATH
-    Session->>Lock: check expired locks
-    Session->>Lock: acquire()
-    Session->>Session: releaseProcessing()
-    Note right of Session: IDEMPOTENCY GUARD
-    Session->>Bus: emitEvent(Task A, {idempotencyKey})
-    Bus->>Bus: reserveIdempotencyKey()
-    alt Key not exists
-        Bus-->>Agent: New Execution Triggered
-        Bus->>Bus: commitIdempotencyKey()
-        Session->>Session: removePendingMessage(Task A)
-    else Key exists (Duplicate)
-        Bus-->>Session: DUPLICATE
-        Session->>Session: removePendingMessage(Task A)
-    end
+```ascii
+      Agent (Hand)       LockManager       Session (Brain)     AgentBus (Spine)        DLQ
+           |                  |                  |                  |                  |
+           |__________________|__________________|__________________|__________________|
+           |                                NORMAL EXECUTION                            |
+           |                  |                  |                  |                  |
+           |--- acquire() --->|                  |                  |                  |
+           |                  |                  |                  |                  |
+           |--- addPending(Task A) ------------->|                  |                  |
+           |                  |                  |                  |                  |
+           |  [ CRASH! 💥 ]   |                  |                  |                  |
+           |__________________|__________________|__________________|__________________|
+           |                                 RECOVERY PATH                              |
+           |                  |                  |                  |                  |
+           |                  |<-- check exp. ---|                  |                  |
+           |                  |                  |                  |                  |
+           |                  |<-- acquire() ----|                  |                  |
+           |                  |                  |                  |                  |
+           |                  |                  |-- releaseProc() -|                  |
+           |                  |                  |                  |                  |
+           |                  |                  | [ IDEMPOTENCY ]  |                  |
+           |                  |                  |--- emitEvent --->|                  |
+           |                  |                  |    (Task A)      |                  |
+           |                  |                  |                  |                  |
+           |                  |                  |                  |-- reserveKey() --|
+           |                  |                  |                  |                  |
+           |                  |                  |                  | [ Key Not Exists ]
+           |<------------------- New Trigger -----------------------|                  |
+           |                  |                  |                  |                  |
+           |                  |                  |                  |-- commitKey() ---|
+           |                  |                  |                  |                  |
+           |                  |                  |<-- removeMsg ----|                  |
+           |                  |                  |                  |                  |
+           |                  |                  |                  | [ Key Exists ]   |
+           |                  |                  |<--- DUPLICATE ---|                  |
+           |                  |                  |                  |                  |
+           |                  |                  |-- removeMsg() ---|                  |
+           |                  |                  |                  |                  |
 ```
 
 ## DLQ Retry Flow (Spine Resilience)
 
-````mermaid
-graph TD
-    A[DLQ Entry] --> B{retryDlqEntry}
-    B --> C[emitEvent with IdempotencyKey]
-    C --> D{reserveIdempotencyKey}
-    D -- New --> E[Commit & Emit]
-    E --> F[Purge DLQ Entry]
-    D -- Duplicate --> F
-    C -- Failure --> G[Wait for next retry]
+```ascii
+  [ DLQ Entry ]
+        |
+        v
+  < retryDlqEntry >
+        |
+        v
+  [ emitEvent with IdempotencyKey ]
+        |
+        +-----------------------------+
+        |                             |
+  < reserveIdempotencyKey >       [ Failure ]
+        |                             |
+        +-------------+               v
+        |             |      [ Wait for next retry ]
+     ( New )     ( Duplicate )
+        |             |
+        v             |
+  [ Commit & Emit ]   |
+        |             |
+        v             v
+      [ Purge DLQ Entry ]
+```
 
 ## Proactive Evolution Recovery (Safety Guard)
 
 For Class C actions that require human approval, the `EvolutionScheduler` monitors for timeouts and triggers "Proactive Evolution" (Strategic Tie-Breaking). This path uses deterministic idempotency keys to ensure that a timed-out action is only triggered once across the system.
 
-```mermaid
-sequenceDiagram
-    participant Scheduler as EvolutionScheduler
-    participant DDB as DynamoDB (MemoryTable)
-    participant Bus as AgentBus
-
-    Scheduler->>DDB: triggerTimedOutActions(workspaceId)
-    DDB-->>Scheduler: List of pending (status=pending, expiresAt <= now)
-    loop For each action
-        Scheduler->>DDB: claimActionForTrigger(actionId) [Atomic Update]
-        alt Status was 'pending'
-            DDB-->>Scheduler: SUCCESS (status set to 'triggered')
-            Scheduler->>Bus: emitTypedEvent(EventType.STRATEGIC_TIE_BREAK, {idempotencyKey})
-            Note over Scheduler,Bus: key = eve-trigger:{actionId}
-            Bus-->>Scheduler: EMMITED
-        else Status already 'triggered'/'approved'
-            DDB-->>Scheduler: ConditionalCheckFailed
-            Note right of Scheduler: SKIP (already handled)
-        end
-    end
-````
+```ascii
+ EvolutionScheduler        DynamoDB (MemoryTable)           AgentBus
+         |                           |                         |
+         |-- triggerTimedOut(wsId) ->|                         |
+         |                           |                         |
+         |<-- List of pending -------|                         |
+         |                           |                         |
+         | [ Loop: Each Action ]     |                         |
+         |                           |                         |
+         |-- claimAction(actionId) ->|                         |
+         |   (Atomic Update)         |                         |
+         |                           |                         |
+         |      [ Status Pending ]   |                         |
+         |<-- SUCCESS (triggered) ---|                         |
+         |                           |                         |
+         |--- emitTypedEvent(STRATEGIC_TIE_BREAK) ------------>|
+         |    (key = eve-trigger:{id})                         |
+         |                           |                         |
+         |<-------------------------- EMMITED -----------------|
+         |                           |                         |
+         |      [ Status != Pending ]|                         |
+         |<-- ConditionalCheckFailed-|                         |
+         |                           |                         |
+         |      ( SKIP )             |                         |
+         |                           |                         |
+```
 
 ````
 
