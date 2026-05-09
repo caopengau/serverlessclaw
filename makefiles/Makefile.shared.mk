@@ -317,11 +317,11 @@ endef
 
 clean-ddb: ## Clean up temporary E2E/test data from DynamoDB
 	@$(call log_step,Cleaning DynamoDB test data for $(ENV)...)
-	@$(call load_env); $(SST) shell --stage $(ENV) -- npx tsx framework/scripts/dev/clean-ddb.ts
+	@$(call load_env); $(SST) shell --stage $(ENV) -- npx tsx $(SCRIPTS_DIR)/dev/clean-ddb.ts
 
 seed-e2e: ## Seed DynamoDB with data for E2E tests
 	@$(call log_step,Seeding DynamoDB for E2E tests in $(ENV)...)
-	@$(call load_env); $(SST) shell --stage $(ENV) -- npx tsx framework/scripts/dev/seed-e2e.ts
+	@$(call load_env); $(SST) shell --stage $(ENV) -- npx tsx $(SCRIPTS_DIR)/dev/seed-e2e.ts
 
 manifest: ## Generate a failure manifest from CI logs (LOG_DIR, OUTPUT_DIR)
 	@$(call log_step,Generating failure manifest...)
