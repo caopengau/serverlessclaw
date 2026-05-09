@@ -134,7 +134,7 @@ verify-up-to-date: ## Verify local branch is up to date with remote
 # - product is the primary repo (origin)
 # - framework is a subtree sourced from serverlessclaw
 # - official serverlessclaw remote is fetch-only in product by default
-SUBTREE_OFFICIAL_REMOTE ?= sc-official
+SUBTREE_OFFICIAL_REMOTE ?= upstream-origin
 SUBTREE_BRANCH ?= main
 
 pull: ## Pull latest origin branch, then pull latest official framework subtree
@@ -161,7 +161,7 @@ sync-downstream: ## Pull latest framework subtree from official upstream (fetch-
 sync-upstream: ## Run framework quality gates and promote subtree to upstream (required: SYNC_UPSTREAM_REMOTE)
 	@$(call log_step,Preparing framework subtree promotion...)
 	@if [ -z "$(SYNC_UPSTREAM_REMOTE)" ]; then \
-		$(call log_error,SYNC_UPSTREAM_REMOTE is required. Example: make sync-upstream SYNC_UPSTREAM_REMOTE=hub-origin); \
+		$(call log_error,SYNC_UPSTREAM_REMOTE is required. Example: make sync-upstream SYNC_UPSTREAM_REMOTE=upstream-local); \
 		exit 1; \
 	fi
 	@if [ "$$(git remote get-url --push $(SYNC_UPSTREAM_REMOTE) 2>/dev/null || echo 'MISSING')" = "DISABLED" ]; then \

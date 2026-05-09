@@ -50,8 +50,8 @@ This workspace uses a **subtree-based monorepo** model to isolate the core frame
 #### 1. Remote Mappings
 
 - `origin` is the primary product repo.
-- `sc-official` (Fetch-only) is the upstream framework (`serverlessclaw`).
-- `hub-origin` (Push-target) is used when promoting local framework fixes back to the hub.
+- `upstream-origin` (Fetch-only) is the upstream framework (`serverlessclaw`).
+- `upstream-local` (Push-target) is used when promoting local framework fixes back to the hub.
 
 #### 2. The Squash Rule
 
@@ -70,8 +70,8 @@ Agents performing synchronization tasks MUST:
 #### 4. Safe Sync Defaults
 
 - `make sync`: Pushes only product changes to `origin`. Safe for daily use.
-- `make pull`: Updates your branch from `origin` and then refreshes the framework subtree from `sc-official`.
-- `make sync-downstream`: Fetches/pulls subtree from `sc-official/main` with mandatory `--squash`.
+- `make pull`: Updates your branch from `origin` and then refreshes the framework subtree from `upstream-origin`.
+- `make sync-downstream`: Fetches/pulls subtree from `upstream-origin/main` with mandatory `--squash`.
 - `make sync-upstream`: Promotional path. Requires explicit `SYNC_UPSTREAM_REMOTE` and local quality gates must pass.
 
 Examples:
@@ -84,7 +84,7 @@ make sync-downstream
 make sync
 
 # Push framework subtree intentionally to local hub clone
-make sync-upstream SYNC_UPSTREAM_REMOTE=hub-origin
+make sync-upstream SYNC_UPSTREAM_REMOTE=upstream-local
 ```
 
 ### Stage Hygiene (Safety-Critical)
