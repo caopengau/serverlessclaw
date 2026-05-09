@@ -46,9 +46,7 @@ When we identify a generic improvement in the core engine while building VoltX (
   │ serverlessclaw Local   │ (/Users/pengcao/projects/serverlessclaw)
   └───────────┬────────────┘
               │
-              │ make pull / make sync (git subtree)
-              ▼
-  ┌────────────────────────┐
+              ┌────────────────────────┐
   │       VoltX Hub        │ (./framework/ subdirectory)
   └────────────────────────┘
 ```
@@ -56,8 +54,9 @@ When we identify a generic improvement in the core engine while building VoltX (
 1. Implement the fix in `framework/`.
 2. Verify locally or trust the automated gate in Step 3.
 3. Use `make sync-upstream SYNC_UPSTREAM_REMOTE=...` which automatically runs framework quality gates (lint, tests) before promoting.
+4. Use `make pull` for daily updates from origin and official framework.
 
-By doing this, VoltX stays lean and focused on Energy logic, while the underlying platform grows more resilient.
+**History Sanitization Rule**: All subtree operations must use `--squash` to prevent framework history from leaking into the VoltX repository.
 
 ---
 

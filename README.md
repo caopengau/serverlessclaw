@@ -49,22 +49,32 @@ We maintain a two-way synchronization with the canonical ServerlessClaw reposito
   └─────────────────────────────────┘
 ```
 
-### 1. Downstream Evolution
+### 1. Daily Workflow (Safe Orchestration)
 
-Pull the latest architectural innovations and security guardrails from the Mother Hub:
+Use the standard orchestration targets to keep the product and framework in sync:
 
 ```bash
-make sync-downstream
+# Pull latest origin changes + sync latest official framework subtree
+make pull
+
+# Push latest product changes to origin only
+make sync
 ```
 
-### 2. Upstream Promotion
+### 2. Manual Subtree Management
 
-Promote core framework fixes or generic enhancements (made within the `framework/` directory) back to the canonical repository. This target automatically enforces the framework's quality gates (lint, type-check, tests) before pushing to ensure upstream integrity:
+For explicit framework synchronization, always use the following targets which enforce the **Mandatory Squash Policy**:
 
 ```bash
-# Example: Promoting to a local checkout of the official repo
+# Pull latest official framework into product subtree (with --squash)
+make sync-downstream
+
+# Promote framework fixes back to the hub (requires explicit remote)
 make sync-upstream SYNC_UPSTREAM_REMOTE=sc-official
 ```
+
+> [!CAUTION]
+> **Git History Policy**: Never use raw `git subtree` commands manually. Always use the `make` targets to ensure history remains clean and product-agnostic.
 
 ## 🛠️ DevOps & CI/CD
 
