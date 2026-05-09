@@ -9,7 +9,7 @@ aeo: aiready docs-check ## Run all Agentic Engine Optimization (AEO) checks
 
 bundle-check: ## Verify Lambda bundles contain critical dependencies
 	@$(call log_step,Scanning Lambda bundles for critical dependencies...)
-	@$(PNPM) exec tsx scripts/quality/bundle-scanner.ts
+	@$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/bundle-scanner.ts
 
 build-integrations: ## Build all integration packages (@serverlessclaw/integration-*)
 	@$(call log_step,Building integrations via Turbo...)

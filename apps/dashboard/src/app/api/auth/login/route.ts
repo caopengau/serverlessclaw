@@ -18,16 +18,23 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const { userId, password } = await req.json();
     const isDev = process.env.NODE_ENV !== 'production';
 
-    const { getIdentityManager, UserRole } = await import('@claw/core/lib/session/identity');
-    const identityManager = await getIdentityManager();
+    // Debug SST Resources
+    const sstKeys = Object.keys(process.env).filter((k) => k.startsWith('SST_RESOURCE_'));
+    logger.info(`[Auth:Login] Available SST Resources: ${sstKeys.join(', ')}`);
 
     // 1. Check for Legacy/Root Dashboard Password
-    let rootPassword = resolveSSTResourceValue('DashboardPassword', 'value', 'DASHBOARD_PASSWORD');
+    let rootPassword = process.env.DASHBOARD_PASSWORD;
+
+    logger.info(
+      `[Auth:Login] Checking DASHBOARD_PASSWORD env... Found: ${rootPassword ? 'YES' : 'NO'}`
+    );
+
     if (
       isDev &&
       (!rootPassword || (typeof rootPassword === 'string' && rootPassword.includes('{{')))
     ) {
       rootPassword = 'test-password';
+      logger.info('[Auth:Login] Using dev fallback password');
     }
 
     const isRootAuth =
@@ -41,9 +48,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // 2. Check for Specific User Identity
     if (!isAuthorized && userId && password) {
-      isAuthorized = await identityManager.verifyPassword(userId, password);
-      if (isAuthorized) {
-        finalUserId = userId;
+      try {
+        const { getIdentityManager } = await import('@claw/core/lib/session/identity');
+        const identityManager = await getIdentityManager();
+        isAuthorized = await identityManager.verifyPassword(userId, password);
+        if (isAuthorized) {
+          finalUserId = userId;
+        }
+      } catch (idErr) {
+        logger.error('[Auth:Login] IdentityManager failure:', idErr);
+        // Fallback to false, don't crash the whole route
+        isAuthorized = false;
       }
     }
 
@@ -53,6 +68,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
       // Register session with IdentityManager
       try {
+        const { getIdentityManager, UserRole } = await import('@claw/core/lib/session/identity');
+        const identityManager = await getIdentityManager();
         const authResult = await identityManager.authenticate(finalUserId, 'dashboard');
 
         // Auto-provision dashboard-user as admin if needed

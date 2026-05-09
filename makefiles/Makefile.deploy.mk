@@ -29,7 +29,8 @@ deploy: ## Deploy SST to the environment (default: prod)
 	$(call log_info,Starting SST deployment...) && \
 	$(SST) deploy --stage $(ENV) --yes && \
 	$(call log_info,Running post-deploy CloudFront fix...) && \
-	APP_NAME=$$(jq -r .name package.json) && \
+	APP_NAME=$$(jq -r .name package.json 2>/dev/null || echo 'voltx') && \
+	$(call log_info,Resolved APP_NAME=$$APP_NAME from package.json) && \
 	$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/fix-cloudfront-deploy.ts $(ENV) $$APP_NAME ClawCenter && \
 	$(MAKE) verify-deploy ; \
 	if [ "$(E2E)" = "true" ]; then $(MAKE) test-tier-3 ; fi

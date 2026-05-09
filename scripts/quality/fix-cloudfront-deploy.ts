@@ -28,8 +28,26 @@ const STAGE = process.argv[2] || 'prod';
 const APP = process.argv[3] || 'serverlessclaw';
 const RESOURCE = process.argv[4] || 'ClawCenter';
 
-const cf = new CloudFrontClient({});
-const s3 = new S3Client({});
+// Resolve region: try SST config first, then env var, then hardcoded default
+const DEFAULT_REGION = 'ap-southeast-2';
+function getRegion(): string {
+  // 1. Try SST outputs
+  try {
+    const outputs = JSON.parse(readFileSync('.sst/outputs.json', 'utf-8'));
+    if (outputs.region) return outputs.region;
+  } catch {
+    /* ignore */
+  }
+  // 2. Try env var
+  if (process.env.AWS_REGION) return process.env.AWS_REGION;
+  // 3. Default
+  return DEFAULT_REGION;
+}
+
+const REGION = getRegion();
+log(`Using region: ${REGION}`);
+const cf = new CloudFrontClient({ region: REGION });
+const s3 = new S3Client({ region: REGION });
 
 function log(msg: string) {
   console.log(`\x1b[36m[fix-cloudfront]\x1b[0m ${msg}`);
@@ -106,7 +124,7 @@ async function addS3Origin(distId: string) {
   const etag = current.ETag!;
 
   const bucketName = await getNewestBucketName();
-  const s3Domain = `${bucketName}.s3.ap-southeast-1.amazonaws.com`;
+  const s3Domain = `${bucketName}.s3.${REGION}.amazonaws.com`;
 
   // Check if S3 origin already exists
   const existingS3 = config.Origins?.Items?.find((o) => o.Id === 's3');
@@ -219,24 +237,22 @@ async function fixCloudFrontFunctionInner(distId: string, fnArn: string) {
 
   // Build routing function code - route static to S3, rest to Lambda
   const code = `import cf from "cloudfront";
-async function handler(event) {
+function handler(event) {
   var host = event.request.headers.host ? event.request.headers.host.value : "";
   if (host.includes("cloudfront.net")) {
-    return { statusCode: 403, statusDescription: "Forbidden", body: { encoding: "text", data: "<html><body><h1>403</h1></body></html>" } };
+    return { statusCode: 403, statusDescription: "Forbidden", body: { encoding: "text", data: "<html><body>403 Forbidden</body></html>" } };
   }
   event.request.headers["x-forwarded-host"] = event.request.headers.host;
   var uri = event.request.uri;
   if (uri.startsWith("/_next/") || uri.endsWith(".css") || uri.endsWith(".js") || uri.endsWith(".woff2") || uri.endsWith(".woff") || uri.endsWith(".png") || uri.endsWith(".jpg") || uri.endsWith(".svg") || uri.endsWith(".ico") || uri.endsWith(".json") || uri.endsWith(".map") || uri.endsWith(".txt") || uri.endsWith(".xml")) {
     cf.updateRequestOrigin({
-      domainName: "${bucketName}.s3.ap-southeast-1.amazonaws.com",
-      originPath: "/_assets",
-      originAccessControlConfig: { enabled: true, signingBehavior: "always", signingProtocol: "sigv4", originType: "s3" }
+      domainName: "${bucketName}.s3.${REGION}.amazonaws.com",
+      originPath: "/_assets"
     });
   } else {
     cf.updateRequestOrigin({
       domainName: "${lambdaHost}",
-      customOriginConfig: { port: 443, protocol: "https", sslProtocols: ["TLSv1.2"] },
-      originAccessControlConfig: { enabled: false }
+      customOriginConfig: { port: 443, protocol: "https", sslProtocols: ["TLSv1.2"] }
     });
   }
   return event.request;

@@ -4,13 +4,14 @@ const authFile = 'e2e/.auth/user.json';
 
 setup('authenticate', async ({ request }) => {
   const password = process.env.DASHBOARD_PASSWORD || 'test-password';
+  const userId = 'dashboard-user'; // Default userId for E2E tests
   console.log(
-    `[E2E:Auth] Authenticating via API with password from ${process.env.DASHBOARD_PASSWORD ? 'env' : 'fallback'}`
+    `[E2E:Auth] Authenticating via API with userId=${userId} and password from ${process.env.DASHBOARD_PASSWORD ? 'env' : 'fallback'}`
   );
 
   const response = await request.post('/api/auth/login', {
     timeout: 15000,
-    data: { password },
+    data: { userId, password },
   });
 
   expect(response.status()).toBe(200);

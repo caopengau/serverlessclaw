@@ -59,6 +59,7 @@ export function createDashboard(
       WEBHOOK_API_URL: api?.url || '',
       IOT_ENDPOINT: ctx.realtime?.endpoint || '',
       IOT_AUTHORIZER: ctx.realtime?.authorizer || '',
+      DASHBOARD_PASSWORD: process.env.DASHBOARD_PASSWORD || '',
       AWS_PROFILE: '', // Clear profile to avoid conflict warning as SST injects static credentials
     },
     architecture: 'arm64',

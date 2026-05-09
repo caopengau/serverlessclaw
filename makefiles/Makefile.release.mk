@@ -3,25 +3,37 @@
 ###############################################################################
 include makefiles/Makefile.shared.mk
 
-.PHONY: release tag
+.PHONY: release tag pre-deploy post-deploy release-all
 
-release: ## Full Release: Quality Gates -> Deploy -> Audit Tag (Auditing & Costs tracking)
+release: ## Full Release: Pre-deploy Gates -> Deploy -> Post-deploy Gates -> Tag (prod only)
 	@$(call log_step,Starting audited release for environment: $(ENV)...)
-	@if [ "$(ENV)" != "prod" ]; then \
-		$(call log_error,ERROR: Release target can ONLY be run for ENV=prod. Detected: $(ENV)); \
+	@if [ "$(ENV)" != "prod" ] && [ "$(ENV)" != "dev" ]; then \
+		$(call log_error,ERROR: Release target can ONLY be run for ENV=prod or ENV=dev. Detected: $(ENV)); \
 		exit 1; \
 	fi
 	@$(call verify_clean)
+	@$(MAKE) pre-deploy
+	@$(MAKE) deploy ENV=$(ENV) E2E=false
+	@$(MAKE) post-deploy
+	@if [ "$(ENV)" = "prod" ]; then \
+		$(MAKE) tag; \
+	fi
+	@$(call log_success,Release to $(ENV) completed successfully!)
+
+pre-deploy: ## Run all pre-deployment quality gates
+	@$(call log_step,Running PRE-DEPLOYMENT gates for $(ENV)...)
 	@$(MAKE) pre-release-check
 	@$(MAKE) gate-tier-1
-	@$(call log_info,Tier 1 passed. Running Tier 2 (Coverage/AIReady) sequentially for safety...)
 	@$(MAKE) gate-tier-2
-	@$(call log_info,Tier 2 passed. Starting deployment...)
-	@$(MAKE) deploy ENV=$(ENV) E2E=false
+
+post-deploy: ## Run all post-deployment verification gates
+	@$(call log_step,Running POST-DEPLOYMENT gates for $(ENV)...)
 	@$(MAKE) seed-e2e ENV=$(ENV)
 	@$(MAKE) test-tier-3
-	@$(MAKE) tag
-	@$(call log_success,Release completed successfully!)
+
+release-all: ## Release to both dev and prod sequentially
+	@$(MAKE) release ENV=dev
+	@$(MAKE) release ENV=prod
 
 pre-release-check: ## Validate environment and credentials before release
 	@$(call log_step,Running pre-release environment check for $(ENV)...)
