@@ -73,7 +73,7 @@ export async function getDlqEntries(
         TableName: tableName,
         IndexName: 'TypeTimestampIndex',
         KeyConditionExpression: '#type = :type AND #ts > :cutoff',
-        FilterExpression: workspaceId ? 'workspaceId = :ws' : undefined,
+        FilterExpression: workspaceId ? 'workspaceId = :ws' : 'attribute_not_exists(workspaceId)',
         ExpressionAttributeNames: {
           '#type': 'type',
           '#ts': 'timestamp',

@@ -204,6 +204,54 @@ function verifyBoundaryIsolation(): Finding[] {
   return findings;
 }
 
+function verifyMultiTenantScoping(): Finding[] {
+  const findings: Finding[] = [];
+  const files = globSync(`${CORE_DIR}/lib/**/*.ts`);
+
+  files.forEach((file) => {
+    if (file.includes('.test.') || file.includes('.d.ts')) return;
+    const content = readFileSync(file, 'utf-8');
+    const lines = content.split('\n');
+
+    lines.forEach((line, idx) => {
+      // 1. getCircuitBreaker() without arguments
+      if (line.includes('getCircuitBreaker()')) {
+        findings.push({
+          file: relative(process.cwd(), file),
+          line: idx + 1,
+          principle: 'Principle 11',
+          issue: 'Global Circuit Breaker - MUST pass workspaceId to getCircuitBreaker() to prevent multi-tenant DoS',
+          severity: 'P1',
+        });
+      }
+
+      // 2. getRecoveryStats() without arguments
+      if (line.includes('getRecoveryStats()')) {
+        findings.push({
+          file: relative(process.cwd(), file),
+          line: idx + 1,
+          principle: 'Principle 11',
+          issue: 'Global Recovery Stats - MUST pass workspaceId to getRecoveryStats() to prevent cross-tenant data leakage',
+          severity: 'P1',
+        });
+      }
+
+      // 3. getDlqEntries() without arguments
+      if (line.includes('getDlqEntries()')) {
+        findings.push({
+          file: relative(process.cwd(), file),
+          line: idx + 1,
+          principle: 'Principle 11',
+          issue: 'Global DLQ Retrieval - MUST pass workspaceId to getDlqEntries() to prevent multi-tenant data leakage',
+          severity: 'P1',
+        });
+      }
+    });
+  });
+
+  return findings;
+}
+
 async function main() {
   const verbose = process.argv.includes('--verbose');
 
@@ -217,6 +265,7 @@ async function main() {
     ...verifyAtomicUpdates(),
     ...verifyToolTelemetry(),
     ...verifyBoundaryIsolation(),
+    ...verifyMultiTenantScoping(),
   ];
 
   if (verbose || allFindings.length > 0) {

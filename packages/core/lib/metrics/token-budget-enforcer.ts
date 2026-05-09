@@ -405,8 +405,14 @@ export class TokenBudgetEnforcer {
     const scopePrefix = workspaceId ? `${workspaceId}#` : '';
 
     for (const [key, sessionData] of this.sessions) {
-      // Check if session belongs to the requested workspace
-      if (workspaceId && !key.startsWith(scopePrefix)) {
+      const isWorkspaceKey = key.includes('#');
+
+      if (workspaceId) {
+        if (!key.startsWith(scopePrefix)) {
+          continue;
+        }
+      } else if (isWorkspaceKey) {
+        // If no workspaceId requested, do NOT return workspace-scoped sessions
         continue;
       }
 
