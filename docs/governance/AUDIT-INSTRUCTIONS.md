@@ -105,11 +105,11 @@ See `ANTI-PATTERNS.md` for the full list of 19+ patterns, including:
 
 As a consumer of the ServerlessClaw framework, you must maintain the boundary between core framework code and application-specific logic.
 
-1. **Core vs Spoke**: Framework-level changes (Registry logic, Bus, Memory, Safety) happen in `framework/`. Application-level changes happen in `packages/voltx-*`.
+1. **Core vs Spoke**: Framework-level changes (Registry logic, Bus, Memory, Safety) happen in `framework/`. Application-level changes happen in the product-specific packages (e.g., `packages/app-*`).
 2. **Promotion (sync-upstream)**: If you improve the framework core, promote these changes back using `make sync-upstream SYNC_UPSTREAM_REMOTE=<remote>`. This requires passing local quality gates first.
-3. **Evolution (sync-downstream)**: Use `make sync-downstream` (or `make pull`) to pull improvements from the official upstream. 
+3. **Evolution (sync-downstream)**: Use `make sync-downstream` (or `make pull`) to pull improvements from the official upstream.
 4. **Mandatory Squash**: **NEVER** perform a subtree pull without `--squash`. This is enforced by the `make` targets.
-5. **Anti-Pattern 20: Domain Pollution**: Do NOT hardcode domain-specific logic (e.g., VoltX, Energy) into the `framework/` directory. Ensure framework code remains product-agnostic for future OSS release.
+5. **Anti-Pattern 20: Domain Pollution**: Do NOT hardcode domain-specific logic (e.g., product-name, industry-specific terms) into the `framework/` directory. Ensure framework code remains product-agnostic for future OSS release.
 
 ## Summary Checklist
 

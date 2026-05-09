@@ -48,22 +48,27 @@ Note: SST-related Make targets invoke the workspace-local SST binary (`./node_mo
 This workspace uses a **subtree-based monorepo** model to isolate the core framework from product-specific logic. Failure to follow these rules will result in git history contamination.
 
 #### 1. Remote Mappings
-- `origin` is the primary product repo (e.g., `voltx`).
+
+- `origin` is the primary product repo.
 - `sc-official` (Fetch-only) is the upstream framework (`serverlessclaw`).
 - `hub-origin` (Push-target) is used when promoting local framework fixes back to the hub.
 
 #### 2. The Squash Rule
-**All framework syncs MUST use the `--squash` flag.** 
+
+**All framework syncs MUST use the `--squash` flag.**
 Never perform a raw `git subtree pull` without `--squash`. This prevents the 1,600+ commits of framework history from leaking into the product repository. The `Makefile` targets enforce this by default.
 
 #### 3. Agent Instructions (for AI Coders)
+
 Agents performing synchronization tasks MUST:
+
 1. **Always use Make targets**: Use `make sync-downstream` or `make pull`. Never execute raw `git subtree` commands manually.
 2. **Verify Clean History**: After any sync, check `git log -n 5 --oneline`. If you see hundreds of framework commits or non-squashed merges, you have failed.
-3. **Product-Agnostic Framework**: Ensure any changes made within `framework/` are generic. If a change is Voltx-specific, it must be abstracted or moved to `packages/voltx-*`.
+3. **Product-Agnostic Framework**: Ensure any changes made within `framework/` are generic. If a change is product-specific, it must be abstracted or moved to the application packages (e.g., `packages/app-*`).
 4. **No Leaky Abstractions**: Never import product-level packages from the `framework/` subtree.
 
 #### 4. Safe Sync Defaults
+
 - `make sync`: Pushes only product changes to `origin`. Safe for daily use.
 - `make pull`: Updates your branch from `origin` and then refreshes the framework subtree from `sc-official`.
 - `make sync-downstream`: Fetches/pulls subtree from `sc-official/main` with mandatory `--squash`.
