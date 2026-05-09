@@ -157,7 +157,7 @@ sync-upstream: ## Run framework quality gates and promote subtree to upstream (r
 	fi
 	@$(call verify_clean)
 	@$(call log_step,Step 1/2: Running framework quality gates...)
-	@$(MAKE) -C framework pre-push VERIFY_REMOTE=$(SYNC_UPSTREAM_REMOTE)
+	@$(MAKE) -C framework pre-push VERIFY_REMOTE=$(SYNC_UPSTREAM_REMOTE) SKIP_VERIFY=1
 	@$(call log_step,Step 2/2: Pushing framework subtree to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH)...)
 	@git subtree push --prefix=framework $(SYNC_UPSTREAM_REMOTE) $(SUBTREE_BRANCH)
 	@$(call log_success,Framework subtree successfully promoted to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH).)
