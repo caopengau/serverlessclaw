@@ -1,5 +1,4 @@
 import { ChatMessage, HistoryMessage, IncomingChunk } from './types';
-import { logger } from '@claw/core/lib/logger';
 
 /**
  * Determines if an incoming MQTT chunk should be processed based on session routing.

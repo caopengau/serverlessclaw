@@ -1,13 +1,7 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { logger } from '@claw/core/lib/logger';
 import { AGENT_ERRORS } from '@claw/core/lib/constants';
-import {
-  ChatMessage,
-  AttachmentPreview,
-  IncomingChunk,
-  PageContextData,
-  DynamicComponent,
-} from './types';
+import { ChatMessage, AttachmentPreview, PageContextData, DynamicComponent } from './types';
 import { mergeHistoryWithMessages } from './message-handler';
 
 interface ChatApiResponse {
