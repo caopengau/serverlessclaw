@@ -89,9 +89,16 @@ export async function searchInsights(
     (params.ExpressionAttributeNames as Record<string, string>)['#uid'] = 'userId';
     (params.ExpressionAttributeValues as Record<string, unknown>)[':userId'] = pk;
   } else if (resolvedCategory) {
-    params.IndexName = 'TypeTimestampIndex';
-    params.KeyConditionExpression = '#tp = :type';
-    applyWorkspaceIsolation(params, resolvedScope);
+    const workspaceId = resolveScopeId(resolvedScope);
+    if (workspaceId) {
+      params.IndexName = 'WorkspaceTypeIndex';
+      params.KeyConditionExpression = 'workspaceId = :wsId AND #tp = :type';
+      (params.ExpressionAttributeValues as Record<string, unknown>)[':wsId'] = workspaceId;
+    } else {
+      params.IndexName = 'TypeTimestampIndex';
+      params.KeyConditionExpression = '#tp = :type';
+      applyWorkspaceIsolation(params, resolvedScope);
+    }
   } else {
     params.IndexName = 'UserInsightIndex';
     params.KeyConditionExpression = 'userId = :pk AND #tp = :type';

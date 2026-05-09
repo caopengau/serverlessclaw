@@ -85,13 +85,20 @@ export async function getLowUtilizationMemory(
   const allItems: Record<string, unknown>[] = [];
   for (const type of types) {
     const params: any = {
-      IndexName: 'TypeTimestampIndex',
-      KeyConditionExpression: '#tp = :type',
       ExpressionAttributeNames: { '#tp': 'type' },
       ExpressionAttributeValues: { ':type': type },
       Limit: limit,
     };
-    applyWorkspaceIsolation(params, scope);
+
+    if (workspaceId) {
+      params.IndexName = 'WorkspaceTypeIndex';
+      params.KeyConditionExpression = 'workspaceId = :wsId AND #tp = :type';
+      params.ExpressionAttributeValues[':wsId'] = workspaceId;
+    } else {
+      params.IndexName = 'TypeTimestampIndex';
+      params.KeyConditionExpression = '#tp = :type';
+      applyWorkspaceIsolation(params, scope);
+    }
 
     const typeItems = await base.queryItems(params);
     allItems.push(...(typeItems as Record<string, unknown>[]));
