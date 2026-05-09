@@ -8,6 +8,9 @@ _SHARED_MK_INCLUDED := 1
 # Explicitly use bash for all shell commands to ensure macro robustness
 SHELL := /bin/bash
 
+# Ensure Node.js is in the path (fallback for specific environment)
+export PATH := /Users/pengcao/.nvm/versions/node/v24.15.0/bin:$(PATH)
+
 # Colors
 RED        := $(shell printf '\033[0;31m')
 GREEN      := $(shell printf '\033[0;32m')
