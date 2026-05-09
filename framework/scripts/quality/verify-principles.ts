@@ -1,0 +1,310 @@
+#!/usr/bin/env tsx
+/**
+ * Principles Verification Scanner
+ *
+ * Verifies that key architectural principles are properly implemented in the codebase.
+ * This helps prevent recurring issues like race conditions and fail-open behavior.
+ *
+ * Principles checked:
+ * - Principle 13: Atomic State Integrity (conditional updates)
+ * - Principle 14: Selection Integrity (enabled check before selection)
+ * - Principle 15: Monotonic Progress Guards (atomic increment)
+ *
+ * Usage:
+ *   npx tsx scripts/quality/verify-principles.ts [--verbose]
+ */
+
+import { readFileSync, globSync } from 'fs';
+import { join, relative } from 'path';
+
+interface Finding {
+  file: string;
+  line: number;
+  principle: string;
+  issue: string;
+  severity: 'P0' | 'P1' | 'P2' | 'P3';
+}
+
+const CORE_DIR = join(process.cwd(), 'packages/core');
+
+function verifyFailClosed(): Finding[] {
+  const findings: Finding[] = [];
+  const stateFiles = globSync(`${CORE_DIR}/**/distributed-state.ts`);
+
+  stateFiles.forEach((file) => {
+    if (file.includes('.test.') || file.includes('.d.ts')) return;
+    const content = readFileSync(file, 'utf-8');
+    const lines = content.split('\n');
+
+    lines.forEach((line, idx) => {
+      if (
+        line.includes('rateLimit') &&
+        line.includes('return true') &&
+        !line.includes('return false')
+      ) {
+        findings.push({
+          file: relative(process.cwd(), file),
+          line: idx + 1,
+          principle: 'Principle 13',
+          issue: 'Fail-open rate limiting - MUST return false on DynamoDB failure',
+          severity: 'P1',
+        });
+      }
+    });
+  });
+
+  return findings;
+}
+
+function verifySelectionIntegrity(): Finding[] {
+  const findings: Finding[] = [];
+  const routerFiles = globSync(`${CORE_DIR}/**/routing/AgentRouter*.ts`);
+
+  routerFiles.forEach((file) => {
+    if (file.includes('.test.') || file.includes('.d.ts')) return;
+    const content = readFileSync(file, 'utf-8');
+
+    if ((content.includes('route') || content.includes('select')) && !content.includes('enabled')) {
+      findings.push({
+        file: relative(process.cwd(), file),
+        line: 1,
+        principle: 'Principle 14',
+        issue: 'Missing enabled check in router - MUST verify enabled === true before selection',
+        severity: 'P1',
+      });
+    }
+  });
+
+  return findings;
+}
+
+function verifyMonotonicProgress(): Finding[] {
+  const findings: Finding[] = [];
+  const recursionFiles = globSync(`${CORE_DIR}/**/recursion*.ts`);
+
+  recursionFiles.forEach((file) => {
+    if (file.includes('.test.') || file.includes('.d.ts')) return;
+    const content = readFileSync(file, 'utf-8');
+
+    if (content.includes('depth') || content.includes('recursion')) {
+      if (content.includes('++') || content.includes('+= 1')) {
+        findings.push({
+          file: relative(process.cwd(), file),
+          line: 1,
+          principle: 'Principle 15',
+          issue: 'Non-atomic increment - MUST use if_not_exists + 1 for monotonic progress',
+          severity: 'P1',
+        });
+      }
+    }
+  });
+
+  return findings;
+}
+
+function verifyAtomicUpdates(): Finding[] {
+  const findings: Finding[] = [];
+  const files = globSync(`${CORE_DIR}/lib/**/*.ts`);
+
+  files.forEach((file) => {
+    if (file.includes('.test.') || file.includes('.d.ts')) return;
+    const content = readFileSync(file, 'utf-8');
+
+    if (content.includes('Table.put') || content.includes('Table.update')) {
+      if (!content.includes('conditionExpression') && !content.includes('atomicUpdate')) {
+        findings.push({
+          file: relative(process.cwd(), file),
+          line: 1,
+          principle: 'Principle 13',
+          issue: 'Missing conditional update - use atomicUpdateMapField',
+          severity: 'P2',
+        });
+      }
+    }
+  });
+
+  return findings;
+}
+
+function verifyToolTelemetry(): Finding[] {
+  const findings: Finding[] = [];
+  const executorFiles = globSync(`${CORE_DIR}/**/tool-executor.ts`);
+
+  executorFiles.forEach((file) => {
+    const content = readFileSync(file, 'utf-8');
+
+    if (content.includes('catch') && !content.includes('TrustManager.recordFailure')) {
+      findings.push({
+        file: relative(process.cwd(), file),
+        line: 1,
+        principle: 'Evolution Cycle',
+        issue:
+          'Tool execution catch block missing TrustManager reporting - MUST record failure for reputation decay',
+        severity: 'P1',
+      });
+    }
+  });
+
+  return findings;
+}
+
+function verifyBoundaryIsolation(): Finding[] {
+  const findings: Finding[] = [];
+  const configPath = join(process.cwd(), '.framework-guardrails.json');
+  let forbiddenPackages: string[] = [];
+  let forbiddenKeywords: string[] = [];
+
+  try {
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    forbiddenPackages = config.isolation?.forbiddenPackages || [];
+    forbiddenKeywords = config.isolation?.forbiddenKeywords || [];
+  } catch {
+    // No config found, skip boundary checks or use defaults
+    return [];
+  }
+
+  const frameworkFiles = globSync(`framework/**/*.{ts,tsx,md}`);
+
+  frameworkFiles.forEach((file) => {
+    if (file.includes('node_modules') || file.includes('.test.') || file.includes('.d.ts')) return;
+    const content = readFileSync(file, 'utf-8');
+    const lines = content.split('\n');
+
+    lines.forEach((line, idx) => {
+      // 1. Check for product leakage (imports)
+      forbiddenPackages.forEach((pkg) => {
+        if (line.includes(pkg)) {
+          findings.push({
+            file: relative(process.cwd(), file),
+            line: idx + 1,
+            principle: 'Boundary Isolation',
+            issue: `Framework LEAK: Framework MUST NOT import from forbidden package "${pkg}".`,
+            severity: 'P0',
+          });
+        }
+      });
+
+      // 2. Check for product keywords in framework source (non-markdown)
+      if (!file.endsWith('.md') && !file.includes('scripts/')) {
+        forbiddenKeywords.forEach((keyword) => {
+          if (line.includes(keyword)) {
+            findings.push({
+              file: relative(process.cwd(), file),
+              line: idx + 1,
+              principle: 'Product Isolation',
+              issue: `Framework LEAK: Framework source contains product-specific "${keyword}" string.`,
+              severity: 'P0',
+            });
+          }
+        });
+      }
+    });
+  });
+
+  return findings;
+}
+
+function verifyMultiTenantScoping(): Finding[] {
+  const findings: Finding[] = [];
+  const files = globSync(`${CORE_DIR}/lib/**/*.ts`);
+
+  files.forEach((file) => {
+    if (file.includes('.test.') || file.includes('.d.ts')) return;
+    const content = readFileSync(file, 'utf-8');
+    const lines = content.split('\n');
+
+    lines.forEach((line, idx) => {
+      // 1. getCircuitBreaker() without arguments
+      if (line.includes('getCircuitBreaker()')) {
+        findings.push({
+          file: relative(process.cwd(), file),
+          line: idx + 1,
+          principle: 'Principle 11',
+          issue:
+            'Global Circuit Breaker - MUST pass workspaceId to getCircuitBreaker() to prevent multi-tenant DoS',
+          severity: 'P1',
+        });
+      }
+
+      // 2. getRecoveryStats() without arguments
+      if (line.includes('getRecoveryStats()')) {
+        findings.push({
+          file: relative(process.cwd(), file),
+          line: idx + 1,
+          principle: 'Principle 11',
+          issue:
+            'Global Recovery Stats - MUST pass workspaceId to getRecoveryStats() to prevent cross-tenant data leakage',
+          severity: 'P1',
+        });
+      }
+
+      // 3. getDlqEntries() without arguments
+      if (line.includes('getDlqEntries()')) {
+        findings.push({
+          file: relative(process.cwd(), file),
+          line: idx + 1,
+          principle: 'Principle 11',
+          issue:
+            'Global DLQ Retrieval - MUST pass workspaceId to getDlqEntries() to prevent multi-tenant data leakage',
+          severity: 'P1',
+        });
+      }
+    });
+  });
+
+  return findings;
+}
+
+async function main() {
+  const verbose = process.argv.includes('--verbose');
+
+  console.log('\n🔍 Principles Verification\n');
+  console.log('Checking key principles for proper implementation...\n');
+
+  const allFindings: Finding[] = [
+    ...verifyFailClosed(),
+    ...verifySelectionIntegrity(),
+    ...verifyMonotonicProgress(),
+    ...verifyAtomicUpdates(),
+    ...verifyToolTelemetry(),
+    ...verifyBoundaryIsolation(),
+    ...verifyMultiTenantScoping(),
+  ];
+
+  if (verbose || allFindings.length > 0) {
+    console.log(`\n📊 Found ${allFindings.length} potential issues:\n`);
+
+    const byPrinciple = new Map<string, Finding[]>();
+    allFindings.forEach((f) => {
+      const key = f.principle;
+      if (!byPrinciple.has(key)) byPrinciple.set(key, []);
+      byPrinciple.get(key)!.push(f);
+    });
+
+    byPrinciple.forEach((findings, principle) => {
+      console.log(`\n### ${principle} (${findings.length} findings)`);
+      findings.forEach((f) => {
+        console.log(`  ${f.file}:${f.line} [${f.severity}]`);
+        console.log(`    ${f.issue}`);
+      });
+    });
+  } else {
+    console.log('\n✅ All principles verified successfully!\n');
+  }
+
+  const p0Count = allFindings.filter((f) => f.severity === 'P0').length;
+  const p1Count = allFindings.filter((f) => f.severity === 'P1').length;
+
+  if (p0Count > 0) {
+    console.log(`\n❌ BLOCKING: ${p0Count} P0 issues found\n`);
+    process.exit(1);
+  }
+
+  if (p1Count > 0) {
+    console.log(`\n⚠️  WARNING: ${p1Count} P1 issues found - should fix in current sprint\n`);
+  }
+
+  process.exit(p0Count > 0 ? 1 : 0);
+}
+
+main().catch(console.error);

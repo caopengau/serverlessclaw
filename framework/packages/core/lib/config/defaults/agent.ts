@@ -1,0 +1,86 @@
+export const AGENT_DEFAULTS = {
+  MAX_TOOL_ITERATIONS: {
+    code: 50,
+    hotSwappable: true,
+    configKey: 'max_tool_iterations',
+    description: 'Maximum tool calls per agent process before pausing.',
+  },
+  TIMEOUT_BUFFER_MS: {
+    code: 30000,
+    hotSwappable: false,
+    configKey: null,
+    description: 'Time reserved before Lambda timeout for graceful shutdown.',
+  },
+  LARGE_LAMBDA_MEMORY_MB: {
+    code: 2048,
+    hotSwappable: false,
+    configKey: null,
+    description: 'Memory allocation for backbone agents.',
+  },
+  LARGE_LAMBDA_TIMEOUT_SECONDS: {
+    code: 900,
+    hotSwappable: false,
+    configKey: null,
+    description: 'Timeout for backbone agent Lambdas.',
+  },
+  AUTO_PRUNE_ENABLED: {
+    code: false,
+    hotSwappable: true,
+    configKey: 'auto_prune_enabled',
+    description: 'Whether to automatically prune unused tools without HITL.',
+  },
+  TOOL_PRUNE_THRESHOLD_DAYS: {
+    code: 30,
+    hotSwappable: true,
+    configKey: 'tool_prune_threshold_days',
+    description: 'Days without tool usage before auto-prune eligible.',
+  },
+  CLARIFICATION_TIMEOUT_MS: {
+    code: 300000,
+    hotSwappable: true,
+    configKey: 'clarification_timeout_ms',
+    description: 'Timeout for clarification requests before escalation.',
+  },
+  CLARIFICATION_MAX_RETRIES: {
+    code: 1,
+    hotSwappable: true,
+    configKey: 'clarification_max_retries',
+    description: 'Max clarification retries before marking task failed.',
+  },
+  PARALLEL_BARRIER_TIMEOUT_MS: {
+    code: 300000,
+    hotSwappable: true,
+    configKey: 'parallel_barrier_timeout_ms',
+    description: 'Barrier timeout for parallel task dispatch.',
+  },
+  PARALLEL_PARTIAL_SUCCESS_THRESHOLD: {
+    code: 0.5,
+    hotSwappable: true,
+    configKey: 'parallel_partial_success_threshold',
+    description: 'Fraction of parallel tasks that must succeed.',
+  },
+  ESCALATION_ENABLED: {
+    code: true,
+    hotSwappable: true,
+    configKey: 'escalation_enabled',
+    description: 'Whether multi-level escalation is enabled.',
+  },
+  PROTOCOL_FALLBACK_ENABLED: {
+    code: true,
+    hotSwappable: true,
+    configKey: 'protocol_fallback_enabled',
+    description: 'Automatic fallback to Text mode when JSON communication fails.',
+  },
+  SIMPLE_TASK_THRESHOLD: {
+    code: 500,
+    hotSwappable: true,
+    configKey: 'simple_task_threshold',
+    description: 'Maximum character limit for auto-routing simple tasks.',
+  },
+  LOW_TRUST_THRESHOLD: {
+    code: 20,
+    hotSwappable: true,
+    configKey: 'low_trust_threshold',
+    description: 'Trust score threshold below which an agent is automatically disabled.',
+  },
+};

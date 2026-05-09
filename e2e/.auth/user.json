@@ -1,0 +1,25 @@
+{
+  "cookies": [
+    {
+      "name": "claw_auth_session",
+      "value": "authenticated",
+      "domain": "dashboard.voltx.clawmore.ai",
+      "path": "/",
+      "expires": 1778908582.149,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Strict"
+    },
+    {
+      "name": "claw_session_id",
+      "value": "dashboard-user",
+      "domain": "dashboard.voltx.clawmore.ai",
+      "path": "/",
+      "expires": 1778908582.149,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite": "Strict"
+    }
+  ],
+  "origins": []
+}

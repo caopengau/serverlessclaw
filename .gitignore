@@ -1,0 +1,67 @@
+# Dependencies
+node_modules/
+**/node_modules/
+.pnpm-debug.log*
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+.next/
+**/.next/
+.sst/
+**/.sst/
+.turbo/
+**/.turbo/
+.open-next/
+**/.open-next/
+.serverless/
+**/.serverless/
+out/
+**/out/
+
+# Types & Config
+sst-env.d.ts
+**/sst-env.d.ts
+next-env.d.ts
+**/next-env.d.ts
+
+# Environment variables & Secrets
+.env
+.env.*
+!.env.example
+.env.dev
+.env.prod
+.aws/
+credentials
+secrets.json
+*.pem
+*.key
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# Testing
+coverage/
+**/coverage/
+.nyc_output/
+test-results/
+**/test-results/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temp
+.tmp/
+temp/
+tmp/
