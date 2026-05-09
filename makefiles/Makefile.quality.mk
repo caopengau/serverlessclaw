@@ -51,32 +51,32 @@ gate-deploy: ## Pre-deploy gate (Tier 1 + aiready + e2e)
 	@$(PNPM) exec turbo run check aiready
 	@$(MAKE) test-e2e
 
-check: ## Run all quality checks (via Turborepo)
+check: check-tools ## Run all quality checks (via Turborepo)
 	@$(call log_step,Running all quality checks via Turbo...)
-	@$(PNPM) run check
+	@$(call load_env); $(PNPM) run check
 	@$(call log_success,Worktree is clean and of high quality)
 
 fix: lint-fix format ## Run all auto-fixers (lint --fix, prettier)
 
 lint: ## Run ESLint check
 	@$(call log_info,Running ESLint via Turbo...)
-	@$(PNPM) run lint
+	@$(call load_env); $(PNPM) run lint
 
 lint-fix: ## Run ESLint with --fix
 	@$(call log_info,Fixing lint issues via Turbo...)
-	@$(PNPM) run lint:fix
+	@$(call load_env); $(PNPM) run lint:fix
 
 format: ## Run Prettier to format code
 	@$(call log_info,Formatting code with Prettier...)
-	@$(PNPM) run format
+	@$(call load_env); $(PNPM) run format
 
 format-check: ## Check if code is formatted with Prettier
 	@$(call log_info,Checking formatting via Turbo...)
-	@$(PNPM) run format-check
+	@$(call load_env); $(PNPM) run format-check
 
 type-check: ## Run TypeScript type checking
 	@$(call log_info,Type checking via Turbo...)
-	@$(PNPM) run type-check
+	@$(call load_env); $(PNPM) run type-check
 
 aiready: ## Run AIReady scan to evaluate agent-friendliness
 	@$(call log_info,Running AIReady scan...)

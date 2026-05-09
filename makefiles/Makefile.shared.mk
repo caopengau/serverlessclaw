@@ -83,6 +83,10 @@ define load_env
 	@if [ -f "$$HOME/.nvm/nvm.sh" ]; then \
 		export NVM_DIR="$$HOME/.nvm" && . "$$HOME/.nvm/nvm.sh" && nvm use --silent 2>/dev/null || true; \
 	fi; \
+	if ! command -v node >/dev/null 2>&1; then \
+		$(call log_error,Node.js not found in PATH. Please ensure Node.js is installed and in your PATH.); \
+		exit 1; \
+	fi; \
 	if [[ $$(node -v) != v24.* ]]; then \
 		$(call log_warning,Node.js 24 is recommended (detected $$(node -v)). If deployment fails, please switch to Node 24.); \
 	fi; \
@@ -113,6 +117,12 @@ define load_env
 		exit 1; \
 	fi
 endef
+
+check-tools: ## Verify that required tools (node, pnpm) are installed and in PATH
+	@$(call log_step,Verifying environment tools...)
+	@command -v node >/dev/null 2>&1 || { $(call log_error,Node.js is missing); exit 1; }
+	@command -v pnpm >/dev/null 2>&1 || { $(call log_error,pnpm is missing); exit 1; }
+	@$(call log_success,All required tools (node, pnpm) are available.)
 
 .PHONY: show-env verify-up-to-date pull sync sync-downstream sync-upstream sync-status
 

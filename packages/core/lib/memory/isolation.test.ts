@@ -3,7 +3,7 @@ import { mockClient } from 'aws-sdk-client-mock';
 import { DynamoDBDocumentClient, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { DynamoMemory } from '../memory';
 import { resolveItemById, atomicUpdateMetadata } from './utils';
-import { InsightCategory } from '../types/memory/insight';
+import { InsightCategory } from '../types/memory';
 
 vi.mock('sst', () => ({
   Resource: {
@@ -137,7 +137,9 @@ describe('Memory Isolation Safeguards', () => {
       const { searchInsights } = await import('./insights/query-operations');
       ddbMock.on(QueryCommand).resolves({ Items: [] });
 
-      await searchInsights(memory, { category: InsightCategory.TACTICAL_LESSON });
+      await searchInsights(memory, {
+        category: InsightCategory.TACTICAL_LESSON,
+      });
 
       const calls = ddbMock.commandCalls(QueryCommand);
       const input = calls[0].args[0].input;

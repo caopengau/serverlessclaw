@@ -8,16 +8,20 @@ const db = getDocClient();
 /**
  * Retrieves the current deployment count for today.
  *
+ * @param workspaceId - Optional workspace identifier for multi-tenant isolation.
  * @returns A promise that resolves to the current deployment count.
  * @since 2026-03-19
  */
-export async function getDeployCountToday(): Promise<number> {
+export async function getDeployCountToday(workspaceId?: string): Promise<number> {
   const today = new Date().toISOString().split('T')[0];
+  const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
+  const pk = `${scopePrefix}${SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS'}`;
+
   const { Item } = await db.send(
     new GetCommand({
       TableName: getMemoryTableName(),
       Key: {
-        userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
+        userId: pk,
         timestamp: 0,
       },
     })
@@ -35,16 +39,24 @@ export async function getDeployCountToday(): Promise<number> {
  *
  * @param today - The current date string (YYYY-MM-DD).
  * @param limit - The maximum allowed count before blocking.
+ * @param workspaceId - Optional workspace identifier for multi-tenant isolation.
  * @returns A promise that resolves to true if incremented, false if limit reached.
  */
-export async function incrementDeployCount(today: string, limit: number): Promise<boolean> {
+export async function incrementDeployCount(
+  today: string,
+  limit: number,
+  workspaceId?: string
+): Promise<boolean> {
+  const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
+  const pk = `${scopePrefix}${SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS'}`;
+
   // Step 1: Same-day increment (most common hot path)
   try {
     await db.send(
       new UpdateCommand({
         TableName: getMemoryTableName(),
         Key: {
-          userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
+          userId: pk,
           timestamp: 0,
         },
         UpdateExpression: 'SET #count = #count + :one',
@@ -67,7 +79,7 @@ export async function incrementDeployCount(today: string, limit: number): Promis
       new UpdateCommand({
         TableName: getMemoryTableName(),
         Key: {
-          userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
+          userId: pk,
           timestamp: 0,
         },
         UpdateExpression: 'SET #count = :one, lastReset = :today',
@@ -86,7 +98,7 @@ export async function incrementDeployCount(today: string, limit: number): Promis
           new UpdateCommand({
             TableName: getMemoryTableName(),
             Key: {
-              userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
+              userId: pk,
               timestamp: 0,
             },
             UpdateExpression: 'SET #count = #count + :one',
@@ -110,54 +122,31 @@ export async function incrementDeployCount(today: string, limit: number): Promis
  * Uses a conditional write to prevent the counter from going negative,
  * which would silently grant extra deploy budget beyond the configured limit.
  *
- * On day rollover: attempts to reset the counter to 0 for the new day
- * instead of silently returning, ensuring the reward is not lost.
- *
- * @returns A promise that resolves when the count is rewarded.
+ * @param workspaceId - Optional workspace identifier for multi-tenant isolation.
+ * @returns A promise that resolves to true if decremented, false otherwise.
  */
-export async function rewardDeployLimit(): Promise<void> {
-  const today = new Date().toISOString().split('T')[0];
+export async function rewardDeployLimit(workspaceId?: string): Promise<boolean> {
+  const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
+  const pk = `${scopePrefix}${SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS'}`;
+
   try {
     await db.send(
       new UpdateCommand({
         TableName: getMemoryTableName(),
         Key: {
-          userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
+          userId: pk,
           timestamp: 0,
         },
         UpdateExpression: 'SET #count = #count - :one',
-        ConditionExpression: '#count > :zero AND lastReset = :today',
+        ConditionExpression: 'attribute_exists(userId) AND #count > :zero',
         ExpressionAttributeNames: { '#count': 'count' },
-        ExpressionAttributeValues: { ':one': 1, ':zero': 0, ':today': today },
+        ExpressionAttributeValues: { ':one': 1, ':zero': 0 },
       })
     );
+    return true;
   } catch (error: unknown) {
     if (error instanceof Error && error.name === 'ConditionalCheckFailedException') {
-      // Day may have changed — try to reset counter to 0 for the new day
-      try {
-        await db.send(
-          new UpdateCommand({
-            TableName: getMemoryTableName(),
-            Key: {
-              userId: SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS',
-              timestamp: 0,
-            },
-            UpdateExpression: 'SET #count = :zero, lastReset = :today',
-            ConditionExpression: 'attribute_not_exists(lastReset) OR lastReset <> :today',
-            ExpressionAttributeNames: { '#count': 'count' },
-            ExpressionAttributeValues: { ':zero': 0, ':today': today },
-          })
-        );
-        logger.info('rewardDeployLimit: day changed, reset counter to 0 for new day.');
-      } catch (resetError: unknown) {
-        if (resetError instanceof Error && resetError.name === 'ConditionalCheckFailedException') {
-          // A concurrent call already reset the counter — no action needed
-          logger.info('rewardDeployLimit: day already reset by concurrent call.');
-        } else {
-          throw resetError;
-        }
-      }
-      return;
+      return false;
     }
     throw error;
   }
