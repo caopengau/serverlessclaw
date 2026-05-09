@@ -333,7 +333,8 @@ manifest: ## Generate a failure manifest from CI logs (LOG_DIR, OUTPUT_DIR)
 
 clean: ## Remove temporary build and test artifacts (.turbo, .next, .sst, coverage)
 	@$(call log_step,Cleaning temporary artifacts...)
-	@rm -rf .turbo .sst/artifacts coverage test-results .aiready
+	@rm -rf .turbo .sst/artifacts coverage test-results
+	@find . -name ".aiready" -type d -prune -exec rm -rf {} +
 	@find . -name ".next" -type d -prune -exec rm -rf {} +
 	@$(call log_success,Cleaned build artifacts.)
 
