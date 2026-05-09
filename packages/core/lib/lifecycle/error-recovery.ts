@@ -381,6 +381,7 @@ export async function withResilientExecution<T>(
     onRetry?: (attempt: number, error: Error, delayMs: number) => void;
     maxRetries?: number;
     baseDelayMs?: number;
+    workspaceId?: string;
   }
 ): Promise<T> {
   const {
@@ -390,9 +391,10 @@ export async function withResilientExecution<T>(
     onRetry,
     maxRetries = 3,
     baseDelayMs = 1000,
+    workspaceId,
   } = options;
 
-  const circuitBreaker = getCircuitBreaker();
+  const circuitBreaker = getCircuitBreaker('circuit_breaker_state', workspaceId);
 
   // Check circuit breaker if type specified
   if (circuitBreakerType) {
@@ -508,10 +510,10 @@ export async function withMCPResilience<T>(
 /**
  * Gets current error recovery statistics.
  */
-export function getRecoveryStats(): {
+export function getRecoveryStats(workspaceId?: string): {
   circuitBreakerState: Promise<string>;
 } {
-  const cb = getCircuitBreaker();
+  const cb = getCircuitBreaker('circuit_breaker_state', workspaceId);
   return {
     circuitBreakerState: cb.getState().then((s) => s.state),
   };

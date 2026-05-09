@@ -48,6 +48,7 @@ export async function handler(
           severity: 'critical',
           userId: (detail.userId as string) ?? 'SYSTEM',
           traceId: (detail.traceId as string) ?? 'unknown',
+          workspaceId: (detail.workspaceId as string) ?? undefined,
           context: { envelopeId: record.messageId, originalDetailType: detailType },
         });
 

@@ -19,19 +19,23 @@ export class FlowController {
     const [circuitThreshold, circuitTimeout, rateCapacity, rateRefill] = await Promise.all([
       ConfigManager.getTypedConfig(
         CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.configKey!,
-        CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.code
+        CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.code,
+        { workspaceId }
       ),
       ConfigManager.getTypedConfig(
         CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.configKey!,
-        CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.code
+        CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.code,
+        { workspaceId }
       ),
       ConfigManager.getTypedConfig(
         CONFIG_DEFAULTS.EVENT_RATE_BUCKET_CAPACITY.configKey!,
-        CONFIG_DEFAULTS.EVENT_RATE_BUCKET_CAPACITY.code
+        CONFIG_DEFAULTS.EVENT_RATE_BUCKET_CAPACITY.code,
+        { workspaceId }
       ),
       ConfigManager.getTypedConfig(
         CONFIG_DEFAULTS.EVENT_RATE_BUCKET_REFILL_MS.configKey!,
-        CONFIG_DEFAULTS.EVENT_RATE_BUCKET_REFILL_MS.code
+        CONFIG_DEFAULTS.EVENT_RATE_BUCKET_REFILL_MS.code,
+        { workspaceId }
       ),
     ]);
 
@@ -68,14 +72,18 @@ export class FlowController {
    * Records a failure for an event type.
    */
   static async recordFailure(eventType: string, workspaceId?: string): Promise<void> {
-    const circuitThreshold = await ConfigManager.getTypedConfig(
-      CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.configKey!,
-      CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.code
-    );
-    const circuitTimeout = await ConfigManager.getTypedConfig(
-      CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.configKey!,
-      CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.code
-    );
+    const [circuitThreshold, circuitTimeout] = await Promise.all([
+      ConfigManager.getTypedConfig(
+        CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.configKey!,
+        CONFIG_DEFAULTS.EVENT_CIRCUIT_THRESHOLD.code,
+        { workspaceId }
+      ),
+      ConfigManager.getTypedConfig(
+        CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.configKey!,
+        CONFIG_DEFAULTS.EVENT_CIRCUIT_TIMEOUT_MS.code,
+        { workspaceId }
+      ),
+    ]);
 
     await DistributedState.recordFailure(eventType, circuitThreshold, circuitTimeout, workspaceId);
   }

@@ -83,9 +83,9 @@ export class RetentionManager {
    *
    * @returns A promise resolving when the cleanup is complete.
    */
-  static async performSystemCleanup(): Promise<void> {
+  static async performSystemCleanup(workspaceId?: string): Promise<void> {
     try {
-      await getCircuitBreaker().reset();
+      await getCircuitBreaker('circuit_breaker_state', workspaceId).reset();
     } catch {
       logger.error('Failed to reset circuit breaker');
     }

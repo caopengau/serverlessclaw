@@ -50,7 +50,7 @@ export class ToolSecurityValidator {
     });
 
     // 3. Circuit Breaker Check
-    const cb = getCircuitBreaker();
+    const cb = getCircuitBreaker('circuit_breaker_state', execContext.workspaceId);
     const cbResult = await cb.canProceed('autonomous');
     if (!cbResult.allowed) {
       logger.error(`[EXECUTOR] System Circuit Breaker is OPEN: ${cbResult.reason}`);

@@ -18,7 +18,8 @@ export async function getHandlerForEvent(
   // Fetch routing configuration
   const rawRoutingTable = await ConfigManager.getTypedConfig(
     'event_routing_table',
-    DEFAULT_EVENT_ROUTING
+    DEFAULT_EVENT_ROUTING,
+    { workspaceId }
   );
   const ALLOWED_COMBINATIONS = new Set(
     Object.values(DEFAULT_EVENT_ROUTING).map((r: any) => `${r.module}:${r.function}`)
