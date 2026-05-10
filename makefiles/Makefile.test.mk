@@ -88,12 +88,32 @@ verify-deploy: ## Full post-deploy verification: API, dashboard, CSS, JS
 		if [ "$$STATUS" = "200" ]; then printf "  ✅ Dashboard HTML:     HTTP %s\n" "$$STATUS"; else printf "  ❌ Dashboard HTML:     HTTP %s\n" "$$STATUS"; FAIL=1; fi ; \
 		\
 		if [ "$$STATUS" = "200" ]; then \
+			retry_asset_fetch() { \
+				URL="$$1"; \
+				MAX_ATTEMPTS=6; \
+				ATTEMPT=1; \
+				while [ $$ATTEMPT -le $$MAX_ATTEMPTS ]; do \
+					INFO=$$(curl -s -o /dev/null -w "%{http_code} %{size_download}" --max-time 15 "$$URL"); \
+					STATUS_CODE=$$(echo $$INFO | cut -d' ' -f1); \
+					if [ "$$STATUS_CODE" = "200" ]; then \
+						echo "$$INFO"; \
+						return 0; \
+					fi; \
+					if [ $$ATTEMPT -lt $$MAX_ATTEMPTS ] && { [ "$$STATUS_CODE" = "403" ] || [ "$$STATUS_CODE" = "404" ] || [ "$$STATUS_CODE" = "000" ]; }; then \
+						sleep 10; \
+						ATTEMPT=$$((ATTEMPT + 1)); \
+						continue; \
+					fi; \
+					echo "$$INFO"; \
+					return 0; \
+				done; \
+			}; \
 			HTML=$$(curl -s -L --max-time 15 "$$DASHBOARD_URL") ; \
 			CSS_PATHS=$$(echo "$$HTML" | grep -o 'href="/_next/static/css/[^"]*\.css"' | sed 's/href="//;s/"//' | sort -u) ; \
 			JS_PATHS=$$(echo "$$HTML" | grep -o 'src="/_next/static/[^"]*\.js"' | sed 's/src="//;s/"//' | sort -u) ; \
 			\
 			for CSS_PATH in $$CSS_PATHS; do \
-				CSS_INFO=$$(curl -s -o /dev/null -w "%{http_code} %{size_download}" --max-time 15 "$$DASHBOARD_URL$$CSS_PATH") ; \
+				CSS_INFO=$$(retry_asset_fetch "$$DASHBOARD_URL$$CSS_PATH") ; \
 				CSS_STATUS=$$(echo $$CSS_INFO | cut -d' ' -f1) ; \
 				CSS_SIZE=$$(echo $$CSS_INFO | cut -d' ' -f2) ; \
 				CSS_NAME=$$(basename "$$CSS_PATH") ; \
@@ -109,7 +129,7 @@ verify-deploy: ## Full post-deploy verification: API, dashboard, CSS, JS
 			done ; \
 			\
 			for JS_PATH in $$JS_PATHS; do \
-				JS_INFO=$$(curl -s -o /dev/null -w "%{http_code} %{size_download}" --max-time 15 "$$DASHBOARD_URL$$JS_PATH") ; \
+				JS_INFO=$$(retry_asset_fetch "$$DASHBOARD_URL$$JS_PATH") ; \
 				JS_STATUS=$$(echo $$JS_INFO | cut -d' ' -f1) ; \
 				JS_SIZE=$$(echo $$JS_INFO | cut -d' ' -f2) ; \
 				JS_NAME=$$(basename "$$JS_PATH") ; \

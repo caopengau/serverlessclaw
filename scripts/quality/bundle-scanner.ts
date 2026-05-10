@@ -51,6 +51,12 @@ async function scanApp(appPath: string) {
 
   const serverDirs = readdirSync(serverFunctionsPath);
   for (const serverDir of serverDirs) {
+    // Skip non-function directories (e.g., 'node_modules' is OpenNext internal structure)
+    if (serverDir === 'node_modules' || serverDir === 'assets' || serverDir.startsWith('.')) {
+      log(`Skipping internal directory [${serverDir}]`);
+      continue;
+    }
+
     const serverPath = join(serverFunctionsPath, serverDir);
     const bundleNodeModules = join(serverPath, 'node_modules');
     const bundlePnpmNodeModules = join(serverPath, 'node_modules', '.pnpm');

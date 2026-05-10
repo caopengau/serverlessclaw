@@ -60,13 +60,29 @@ function err(msg: string): never {
 
 async function getNewestBucketName(): Promise<string> {
   const buckets = await s3.send(new ListBucketsCommand({}));
-  const bucketName = buckets.Buckets?.filter(
+
+  const candidates = (buckets.Buckets || []).filter(
     (b) =>
       b.Name?.includes(STAGE) &&
       b.Name?.toLowerCase().includes(RESOURCE.toLowerCase()) &&
       b.Name?.includes('assetsbucket')
-  ).sort((a, b) => (b.CreationDate?.getTime() || 0) - (a.CreationDate?.getTime() || 0))?.[0]?.Name;
+  );
+
+  const appScoped = candidates.filter((b) => b.Name?.startsWith(`${APP}-${STAGE}-`));
+  const selectedPool = appScoped.length > 0 ? appScoped : candidates;
+
+  const bucketName = selectedPool.sort(
+    (a, b) => (b.CreationDate?.getTime() || 0) - (a.CreationDate?.getTime() || 0)
+  )?.[0]?.Name;
+
   if (!bucketName) err(`Could not find assets bucket for ${RESOURCE} in stage ${STAGE}`);
+
+  if (appScoped.length === 0) {
+    log(
+      `No app-scoped assets bucket found for ${APP}; using best stage/resource match: ${bucketName}`
+    );
+  }
+
   return bucketName;
 }
 

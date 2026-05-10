@@ -75,9 +75,16 @@ verify_local() {
 
 verify_production() {
   log_step "Verifying PRODUCTION environment..."
-  
-  api_url="https://api.demo.clawmore.ai"
-  dashboard_url="https://demo.clawmore.ai"
+
+  # Must be provided by environment to keep framework generic.
+  # Accepted names are backwards-compatible for existing automation.
+  api_url="${VERIFY_API_URL:-${API_URL:-}}"
+  dashboard_url="${VERIFY_DASHBOARD_URL:-${DASHBOARD_URL:-}}"
+
+  if [ -z "$api_url" ] || [ -z "$dashboard_url" ]; then
+    log_error "Missing production endpoints. Set VERIFY_API_URL/VERIFY_DASHBOARD_URL (or API_URL/DASHBOARD_URL)."
+    return 1
+  fi
   
   # (a) API health check
   log_step "Checking API health at $api_url/health..."
@@ -158,10 +165,11 @@ main() {
     log_error "LOCAL (http://localhost:3000) has issues"
   fi
   
+  prod_dashboard="${VERIFY_DASHBOARD_URL:-${DASHBOARD_URL:-not-configured}}"
   if [ $prod_ok -eq 1 ]; then
-    log_success "PRODUCTION (https://demo.clawmore.ai) is working"
+    log_success "PRODUCTION (${prod_dashboard}) is working"
   else
-    log_error "PRODUCTION (https://demo.clawmore.ai) has issues"
+    log_error "PRODUCTION (${prod_dashboard}) has issues"
   fi
   
   echo ""
