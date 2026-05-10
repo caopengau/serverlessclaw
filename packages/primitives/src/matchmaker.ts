@@ -1,8 +1,8 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 export const EntitySchema = z.object({
   id: z.string(),
-  type: z.enum(["supply", "demand"]),
+  type: z.enum(['supply', 'demand']),
   capacity: z.number(), // MW or kW depending on context
   price: z.number().optional(), // Expected or target price
   location: z.string().optional(),
@@ -27,8 +27,8 @@ export class UniversalMatchmaker {
    * Matches supply entities to demand entities based on a simple capacity/price heuristic.
    */
   match(supply: Entity[], demand: Entity[]): MatchScore[] {
-    const validSupply = supply.filter(s => s.type === "supply" && s.capacity > 0);
-    const validDemand = demand.filter(d => d.type === "demand" && d.capacity > 0);
+    const validSupply = supply.filter((s) => s.type === 'supply' && s.capacity > 0);
+    const validDemand = demand.filter((d) => d.type === 'demand' && d.capacity > 0);
 
     const matches: MatchScore[] = [];
 
