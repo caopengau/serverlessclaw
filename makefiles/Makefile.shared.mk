@@ -175,6 +175,9 @@ sync-upstream: ## Run framework quality gates and promote subtree to upstream (r
 	@git subtree push --prefix=framework $(SYNC_UPSTREAM_REMOTE) $(SUBTREE_BRANCH)
 	@$(call log_success,Framework subtree successfully promoted to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH).)
 
+framework-sync: ## Sync framework between VoltX and ServerlessClaw (CMD=status|up|down)
+	@bash scripts/dev/framework-sync.sh $(CMD)
+
 show-env: ## Show current environment variables (filtered)
 	@$(call load_env); \
 	$(call log_info,Current Environment Settings (Loaded from files):); \
