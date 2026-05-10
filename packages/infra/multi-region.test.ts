@@ -4,9 +4,12 @@ import { createMultiRegionScaling } from './multi-region';
 beforeAll(() => {
   (global as any).sst = {
     aws: {
-      Queue: vi.fn().mockImplementation((name) => ({
-        url: `https://sqs.ap-southeast-2.amazonaws.com/123456789012/${name}`,
-      })),
+      Queue: class {
+        url: string;
+        constructor(name: string) {
+          this.url = `https://sqs.ap-southeast-2.amazonaws.com/123456789012/${name}`;
+        }
+      },
     },
   };
 });
