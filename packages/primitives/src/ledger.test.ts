@@ -4,7 +4,7 @@ import { Ledger } from './ledger';
 describe('Ledger (Value Attribution Engine)', () => {
   it('should record transactions and calculate balance', () => {
     const ledger = new Ledger();
-    
+
     ledger.record({
       entityId: 'agent-1',
       type: 'value_creation',
@@ -25,13 +25,13 @@ describe('Ledger (Value Attribution Engine)', () => {
 
   it('should track total value created', () => {
     const ledger = new Ledger();
-    
+
     ledger.record({
       entityId: 'agent-1',
       type: 'value_creation',
       amount: 150,
     });
-    
+
     ledger.record({
       entityId: 'agent-2',
       type: 'value_creation',

@@ -17,7 +17,9 @@ export class SelfUpdateEngine {
    * Attempts to self-update the agent's codebase.
    */
   static async checkAndApplyUpdates(workspaceId?: string): Promise<SelfUpdateResult> {
-    logger.info(`[SelfUpdateEngine] Checking for autonomous metabolism updates (WS: ${workspaceId || 'GLOBAL'})`);
+    logger.info(
+      `[SelfUpdateEngine] Checking for autonomous metabolism updates (WS: ${workspaceId || 'GLOBAL'})`
+    );
 
     // In a real implementation, this would interact with the Github MCP server or an update API
     // to fetch signed patches, verify them using `make gate`, and apply them.

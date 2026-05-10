@@ -33,14 +33,16 @@ export class Ledger {
   /**
    * Records a new transaction in the ledger.
    */
-  record(entry: Omit<LedgerEntry, 'id' | 'timestamp' | 'currency'> & { currency?: string }): LedgerEntry {
+  record(
+    entry: Omit<LedgerEntry, 'id' | 'timestamp' | 'currency'> & { currency?: string }
+  ): LedgerEntry {
     const newEntry: LedgerEntry = {
       ...entry,
       id: `txn-${Math.random().toString(36).substring(2, 9)}`,
       timestamp: Date.now(),
       currency: entry.currency || 'CREDIT',
     };
-    
+
     this.entries.push(newEntry);
     return newEntry;
   }
