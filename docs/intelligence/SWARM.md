@@ -38,7 +38,31 @@ User (Telegram)       SuperClaw (Lambda)       AgentBus (EB)       Specialized A
 
 The system supports recursive task decomposition. Any agent can act as a **Mission Commander** by returning a plan with structured markers.
 
-### 1. Mission Markers
+### 1. Intent-based Mission Orchestration (SC-3.1)
+
+For long-running, complex objectives, the `MissionOrchestrator` manages the durable lifecycle of a mission. Unlike standard parallel dispatch, Missions maintain state across many turns and can resume after long pauses.
+
+```text
+[ User Intent ]
+       |
+       v
+[ MissionOrchestrator ]
+       |
+       +--- (1) Decompose Intent ---> [ Mission Plan ]
+       |                              - Step 1 (Coder)
+       |                              - Step 2 (Researcher)
+       |                              - Step 3 (QA)
+       |
+       +--- (2) Dispatch Steps  ----> [ Agent Bus ]
+       |                              (Sequential or DAG)
+       |
+       +--- (3) Track Progress  <---- [ Mission Control Registry ]
+       |                              (Signal: strategy_update)
+       v
+[ Mission Completed ]
+```
+
+### 2. Mission Markers
 
 When an agent returns a response containing specific markers, the `AgentRunner` intercepts it and dispatches parallel tasks:
 

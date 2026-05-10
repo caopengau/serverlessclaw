@@ -23,6 +23,10 @@ export enum AgentStatus {
   RETRY = 'RETRY',
   PIVOT = 'PIVOT',
   ESCALATE = 'ESCALATE',
+  IDLE = 'IDLE',
+  BUSY = 'BUSY',
+  COMPLETED = 'COMPLETED',
+  ERROR = 'ERROR',
 }
 
 /**

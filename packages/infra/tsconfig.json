@@ -6,5 +6,5 @@
     "noImplicitAny": false
   },
   "include": ["**/*.ts", "../core/lib/types/sst.d.ts"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": ["node_modules", "dist", "vitest.config.ts"]
 }

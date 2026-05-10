@@ -21,6 +21,7 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 | **Merger**              | `Standard`   | **Code Integration**. See [`core/agents/merger.ts`](../../core/agents/merger.ts).                                                                         |
 | **Critic**              | `Standard`   | **Logic Oversight**. See [`core/agents/critic.ts`](../../core/agents/critic.ts).                                                                          |
 | **Cognition Reflector** | `Light`      | **Knowledge Custodian**. See [`core/agents/cognition-reflector.ts`](../../core/agents/cognition-reflector.ts).                                            |
+| **Mission Orchestrator**| `Core`       | **Durable Planning**. Manages high-level intents and multi-step missions. See [`core/lib/agent/mission-orchestrator.ts`](../../core/lib/agent/mission-orchestrator.ts). |
 
 ### 2. System Handlers (Logic-Powered)
 
