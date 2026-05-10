@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest';
+import { defineConfig } from 'vitest/config';
 
 /**
  * Vitest configuration for the infra package.

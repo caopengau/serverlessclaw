@@ -56,6 +56,10 @@ coverage/
 **/coverage/
 test-results/
 **/test-results/
+playwright-report/
+**/playwright-report/
+blob-report/
+**/blob-report/
 reports/
 **/reports/
 .aiready/

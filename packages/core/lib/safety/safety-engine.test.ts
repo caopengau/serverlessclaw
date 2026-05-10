@@ -194,6 +194,7 @@ describe('SafetyEngine', () => {
         systemPrompt: '',
         enabled: true,
         safetyTier: SafetyTier.PROD,
+        trustScore: 80,
         description: 'test',
         category: AgentCategory.SYSTEM,
         icon: 'test',

@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { checkTrustEscalation } from './escalation';
-import { TRUST } from '../../constants';
 import { SafetyTier, SafetyEvaluationResult } from '../../types/agent';
 
 describe('checkTrustEscalation', () => {
