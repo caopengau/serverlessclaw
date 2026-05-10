@@ -1,9 +1,9 @@
 import { SharedContext } from './shared';
 
 /**
- * Multi-Region Operator Scaling (VX-4.2)
+ * Multi-Region Operator Scaling (SC-4.2 framework support)
  *
- * Simulates the infrastructure expansion required for VoltX multi-region deployment.
+ * Simulates the infrastructure expansion required for multi-region deployment.
  * In a real implementation, this would instantiate cross-region DynamoDB replicas,
  * global accelerators, and regional MCP clusters.
  */
@@ -17,7 +17,7 @@ export function createMultiRegionScaling(ctx: SharedContext) {
   }
 
   // Define cross-region sync queues if needed (Mock logic for Phase 4)
-  const regionSyncQueue = new sst.aws.Queue('VoltXRegionSyncQueue', {
+  const regionSyncQueue = new sst.aws.Queue('FrameworkRegionSyncQueue', {
     visibilityTimeout: '60 seconds',
   });
 
