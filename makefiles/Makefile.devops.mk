@@ -143,7 +143,7 @@ cleanup-stale-resources: ## [CLEANUP] Identify stale AWS resources (Lambda, Clou
 	done; \
 	\
 	$(call log_info,Checking for orphaned Lambda functions...); \
-	ORPHANED=$$(aws lambda list-functions --region $${AWS_REGION:-ap-southeast-1} --query "Functions[?LastModified<'$$(date -u -d '90 days ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-90d +%Y-%m-%dT%H:%M:%SZ)'].FunctionName" --output text 2>/dev/null); \
+	ORPHANED=$$(aws lambda list-functions --region $${AWS_REGION:-ap-southeast-2} --query "Functions[?LastModified<'$$(date -u -d '90 days ago' +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || date -u -v-90d +%Y-%m-%dT%H:%M:%SZ)'].FunctionName" --output text 2>/dev/null); \
 	if [ -z "$$ORPHANED" ]; then \
 		$(call log_success,✓ No orphaned Lambda functions found); \
 	else \
