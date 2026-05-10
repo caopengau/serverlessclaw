@@ -14,7 +14,6 @@
   "automergeType": "pr",
   "automergeStrategy": "squash",
   "prCreation": "immediate",
-  "rebaseConflictedPrs": true,
   "rebaseWhen": "behind-base-branch",
   "semanticCommits": "enabled",
   "ignoreTests": false,
