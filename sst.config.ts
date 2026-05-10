@@ -8,12 +8,18 @@ const APP_CONFIG = {
   retention: '1 month' as const,
 } as const;
 
+function getAppRegion(): string {
+  return process.env.AWS_REGION?.trim() || APP_CONFIG.region;
+}
+
 /**
  * SST v4 Platform Configuration for ServerlessClaw.
  * Defines the main application entry point, infrastructure providers, and modular resource setup.
  */
 export default $config({
   app(input) {
+    const region = getAppRegion();
+
     return {
       name: APP_CONFIG.name,
       removal: input?.stage === 'prod' ? 'retain' : 'remove', // Non-prod/local stages remove resources by default
@@ -21,7 +27,7 @@ export default $config({
       home: 'aws',
       providers: {
         aws: {
-          region: APP_CONFIG.region,
+          region,
           version: '7.23.0',
         },
         cloudflare: '6.13.0',

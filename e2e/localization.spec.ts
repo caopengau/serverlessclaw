@@ -1,4 +1,4 @@
-import { test } from '@playwright/test';
+import { test } from 'playwright/test';
 
 test.describe('Localization', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page } from 'playwright/test';
 
 async function openAnyTraceDetail(page: Page) {
   await page.goto('/trace');

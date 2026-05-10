@@ -148,12 +148,9 @@ export function getDomainConfig(component: 'api' | 'dashboard' | 'router' | 'lan
     landing: 'CLAW_DOMAIN_LANDING',
   };
   const envVar = envVarMap[component];
-  let domain = process.env[envVar]?.trim();
-  // Standard OSS fallbacks if not provided in .env
-  if (!domain && component === 'dashboard') {
-    domain = stage === STAGES.PROD ? 'clawmore.ai' : 'dev.clawmore.ai';
-  }
-  // Use custom domains if provided in .env or defaults above
+  const domain = process.env[envVar]?.trim();
+  // No OSS fallback domain — must be configured via CLAW_DOMAIN_* env vars
+  // Use custom domains if provided in .env
   if (!domain) return undefined;
 
   const zoneId = process.env.CLOUDFLARE_ZONE_ID;

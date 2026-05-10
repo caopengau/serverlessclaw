@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from 'playwright/test';
 
 /**
  * Synthetic Mission Loop: Verified the full loop from UI Trigger to Observability Trace.

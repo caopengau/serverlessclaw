@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from 'playwright/test';
 
 test.describe('Dashboard API Integrity (Black-box)', () => {
   // Use the setup auth state for protected routes

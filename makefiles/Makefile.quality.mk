@@ -1,15 +1,18 @@
 ###############################################################################
-# Makefile.quality: Linting, formatting, and type-checking
+# Makefile.quality: Linting, formatting, and type-checking (with fail-fast)
 ###############################################################################
 include makefiles/Makefile.shared.mk
 
-.PHONY: check gate gate-deploy gate-tier-1 gate-tier-2 gate-fast fix lint lint-fix format format-check type-check aiready aeo lint-staged build-integrations build-cli
+.PHONY: check gate gate-deploy gate-tier-1 gate-tier-2 gate-fast fix lint lint-fix format format-check type-check aiready aeo lint-staged build-integrations build-cli bundle-check docs-check security-scan
 
 aeo: aiready docs-check ## Run all Agentic Engine Optimization (AEO) checks
 
-bundle-check: ## Verify Lambda bundles contain critical dependencies
+bundle-check: ## [FAIL-FAST] Verify Lambda bundles contain critical dependencies
 	@$(call log_step,Scanning Lambda bundles for critical dependencies...)
-	@$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/bundle-scanner.ts
+	@$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/bundle-scanner.ts || { \
+		$(call log_error,Bundle check failed - critical dependencies missing from Lambda zip); \
+		exit 1; \
+	}
 
 build-integrations: ## Build all integration packages (@serverlessclaw/integration-*)
 	@$(call log_step,Building integrations via Turbo...)
@@ -25,17 +28,35 @@ gate: ## Run all quality checks in parallel (via Turborepo) + E2E
 	@$(MAKE) bundle-check
 	@$(MAKE) test-e2e
 
-gate-tier-1: ## Fast Tier 1 checks (via Turborepo)
-	@$(call log_step,Running Tier 1 (Fast) gate via Turbo...)
-	@$(PNPM) run check
-	@$(MAKE) docs-check
-	@$(MAKE) bundle-check
+gate-tier-1: ## [FAIL-FAST #3/3] Fast Tier 1 checks (linting, formatting, types) - must pass before deployment
+	@$(call log_step,[FAIL-FAST #3/3] Running Tier 1 (Fast) gate via Turbo...)
+	@$(call log_info,Running: lint, format, type-check...)
+	@$(PNPM) run check || { \
+		$(call log_error,Tier 1 gate FAILED - fix lint/format/type errors and try again); \
+		exit 1; \
+	}
+	@$(MAKE) docs-check || { \
+		$(call log_error,Documentation check FAILED - update docs to match code changes); \
+		exit 1; \
+	}
+	@$(MAKE) bundle-check || { \
+		$(call log_error,Bundle check FAILED - verify @swc/helpers and critical deps in bundle); \
+		exit 1; \
+	}
+	@$(call log_success,[FAIL-FAST #3/3] Tier 1 gate PASSED)
 
-
-gate-tier-2: ## Thorough Tier 2 checks (via Turborepo)
+gate-tier-2: ## Thorough Tier 2 checks (tests, coverage, security, agentic optimization)
 	@$(call log_step,Running Tier 2 (Thorough) gate via Turbo...)
-	@$(PNPM) exec turbo run test-coverage aiready
-	@$(MAKE) security-scan
+	@$(call log_info,Running: tests, coverage, security scan, AEO...)
+	@$(PNPM) exec turbo run test-coverage aiready || { \
+		$(call log_error,Tier 2 gate FAILED - tests or AEO checks failed); \
+		exit 1; \
+	}
+	@$(MAKE) security-scan || { \
+		$(call log_error,Security scan FAILED - vulnerabilities detected); \
+		exit 1; \
+	}
+	@$(call log_success,Tier 2 gate PASSED)
 
 gate-fast: ## Fast local gate (only affected packages + principles)
 	@$(call log_step,Running fast local gate via Turbo...)

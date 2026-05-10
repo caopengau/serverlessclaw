@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from 'playwright/test';
 
 test.describe('Capabilities / Tools & Skills', () => {
   test.use({ storageState: 'e2e/.auth/user.json' });

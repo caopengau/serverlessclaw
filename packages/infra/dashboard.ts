@@ -65,10 +65,12 @@ export function createDashboard(
     architecture: 'arm64',
     buildCommand: `mkdir -p src/extensions/hub && find src/extensions/hub -mindepth 1 ! -name 'index.ts' -exec rm -rf {} + && ${
       extSource ? `cp -rL ${extSource} src/extensions/hub/ && ` : ''
-    }pnpm run build`,
+    }npx open-next build`,
     server: {
       memory: AGENT_CONFIG.memory.LARGE,
       timeout: AGENT_CONFIG.timeout.LONG,
+      // Ensure runtime packages are present in Lambda package when esbuild externalizes them.
+      install: ['next', 'react', 'react-dom', '@swc/helpers', '@swc/core'],
     },
 
     permissions: [

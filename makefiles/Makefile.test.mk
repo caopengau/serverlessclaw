@@ -28,15 +28,25 @@ test-tier-3: ## Run Tier 3: Deployment health and E2E (uses .sst/outputs.json if
 dns-check: ## Verify DNS resolution for critical subdomains (prevents ENOTFOUND)
 	@$(call log_step,Verifying DNS resolution for $(ENV)...)
 	@$(call load_env); \
+	FAIL=0; \
 	DOMAINS="$$(grep "CLAW_DOMAIN_" .env.$(ENV) | cut -d'=' -f2)"; \
 	for domain in $$DOMAINS; do \
 		$(call log_info,Checking resolution for $$domain...); \
 		if ! nslookup $$domain 8.8.8.8 > /dev/null 2>&1; then \
-			$(call log_warning,DNS record $$domain NOT found on Google DNS.); \
+			if [ "$(ENV)" = "prod" ] || [ "$(ENV)" = "dev" ]; then \
+				$(call log_error,DNS record $$domain NOT found on Google DNS.); \
+				FAIL=1; \
+			else \
+				$(call log_warning,DNS record $$domain NOT found on Google DNS.); \
+			fi; \
 		else \
 			$(call log_success,DNS record $$domain is resolvable.); \
 		fi; \
-	done
+	done; \
+	if [ $$FAIL -ne 0 ]; then \
+		$(call log_error,DNS verification failed for $(ENV)); \
+		exit 1; \
+	fi
 
 verify: ## Verify the deployment health. Usage: make verify URL=https://...
 	@$(call log_info,Verifying deployment health at $(URL)...)
@@ -185,13 +195,13 @@ test-component: ## Run component tests (via Turbo)
 
 test-e2e: ## Run E2E tests with Playwright (local dev server)
 	@$(call log_step,Running E2E tests (Isolated environment)...)
-	@unset npm_config_prefix && CI=true PLAYWRIGHT=true $(PNPM) exec playwright test $(if $(PW_SHARD),--shard=$(PW_SHARD),)
+	@unset npm_config_prefix && CI=true PLAYWRIGHT=true node ./node_modules/@playwright/test/cli.js test $(if $(PW_SHARD),--shard=$(PW_SHARD),)
 
 test-e2e-deployed: ## Run E2E tests against deployed URL. Usage: make test-e2e-deployed URL=https://...
 	@$(call log_step,Running E2E tests against deployed URL...)
 	@if [ "$(URL)" = "" ]; then $(call log_error,URL is required); exit 1; fi
 	@$(call load_env); \
-	$(SST) shell --stage $(ENV) -- sh -c "CI=true PLAYWRIGHT=true BASE_URL=$(URL) $(PNPM) exec playwright test"
+	$(SST) shell --stage $(ENV) -- sh -c "CI=true PLAYWRIGHT=true BASE_URL=$(URL) node ./node_modules/@playwright/test/cli.js test"
 
 test-affected: ## Run only tests in affected packages (via Turbo)
 	@$(call log_step,Running affected tests via Turbo...)

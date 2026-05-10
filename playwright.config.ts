@@ -1,6 +1,4 @@
-import { defineConfig, devices } from '@playwright/test';
-
-export default defineConfig({
+export default {
   testDir: './e2e',
   timeout: 30_000,
   expect: {
@@ -26,8 +24,12 @@ export default defineConfig({
     { name: 'setup', testMatch: /.*\.setup\.ts/, timeout: 120_000 },
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'], storageState: 'e2e/.auth/user.json' },
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 1280, height: 720 },
+        storageState: 'e2e/.auth/user.json',
+      },
       dependencies: ['setup'],
     },
   ],
-});
+};

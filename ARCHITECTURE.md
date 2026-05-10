@@ -383,6 +383,8 @@ To satisfy **Principle 5 (Low Latency)** and **Principle 10 (Lean Evolution)**, 
 1. **Modular Architecture**: The `ConfigManager` (`core/lib/registry/config.ts`) is refactored into specialized sub-modules within `core/lib/registry/config/` using an inheritance chain:
    ```text
    [ ConfigBase ] -> [ ConfigClient ] -> [ ConfigList ] -> [ ConfigMap ] -> [ ConfigManager ]
+   ```
+
 ````
 
 This ensures high neural cohesion and stays within AI context limits during systemic audits. 2. **Cached Dynamic Lookups**: Maintains a 60-second in-memory cache for all configuration keys. This reduces DynamoDB read IOPS by >90% during high-concurrency swarm missions. 3. **Authoritative Async Bridge**: The `getDynamicConfigValue` utility provides a type-safe, non-blocking interface for fetching hot-swappable settings. 4. **Atomic Writes & Invalidation**: Configuration updates use DynamoDB conditional writes to prevent lost updates. **Supports Principle 15 (Monotonic Progress) via `atomicIncrementMapField` for numeric counters.** 5. **Centralized Table Resolution**: Table names are resolved via `ddb-client.ts`, supporting environment variable overrides for robust stage alignment.
@@ -630,12 +632,12 @@ Serverless Claw utilizes a tiered logic system to ensure efficiency and cost-con
 - **Hybrid Tooling**: Just-in-Time skill discovery via the **MCPMultiplexer** (Unified MCP Multiplexer architecture).
 - **Memory & Context**: Flattened DynamoDB model for sub-50ms context retrieval.
 
-| Component                 | Deep Dive                                                    |
-| :------------------------ | :----------------------------------------------------------- |
-| **LLM Reasoning**         | [docs/intelligence/LLM.md](./docs/intelligence/LLM.md)       |
-| **Dynamic Tools**         | [docs/intelligence/TOOLS.md](./docs/intelligence/TOOLS.md)   |
-| **Memory Strategy**       | [docs/intelligence/MEMORY.md](./docs/intelligence/MEMORY.md) |
-| **Resource Provisioning** | [docs/system/PROVISIONING.md](./docs/system/PROVISIONING.md) |
+| Component                 | Deep Dive                                                          |
+| :------------------------ | :----------------------------------------------------------------- |
+| **LLM Reasoning**         | [docs/intelligence/LLM.md](./docs/intelligence/LLM.md)             |
+| **Dynamic Tools**         | [docs/intelligence/TOOLS.md](./docs/intelligence/TOOLS.md)         |
+| **Memory Strategy**       | [docs/intelligence/MEMORY.md](./docs/intelligence/MEMORY.md)       |
+| **Resource Provisioning** | [docs/system/PROVISIONING.md](./docs/system/PROVISIONING.md)       |
 | **Real-time Streaming**   | [docs/intelligence/STREAMING.md](./docs/intelligence/STREAMING.md) |
 
 ---
@@ -649,6 +651,7 @@ The system supports multi-human multi-agent coordination through **Moderated Ses
 - **Collaboration**: Facilitator-moderated sessions for strategic peer review, now scoped per workspace to prevent data leakage.
 
 ### 5. Multi-Human Shared Awareness
+
 The system enables seamless multi-human & multi-agent collaboration via a tiered MQTT signaling strategy:
 
 - **Session Topic**: `users/{userId}/sessions/{sessionId}/signal` (Legacy/Isolated)
@@ -657,7 +660,9 @@ The system enables seamless multi-human & multi-agent collaboration via a tiered
 When an agent operates within a Workspace, all real-time signals (chunks, thoughts, tool calls) are broadcast to the Workspace Topic. This ensures that every human currently viewing the workspace has immediate visual parity with the agent's progress, regardless of who initiated the request.
 
 #### Collision Prevention
+
 To prevent "race-to-the-finish" bugs in shared sessions, the system utilizes **Distributed Locking**:
+
 - **Agent Lock**: Prevents multiple agents from processing the same session concurrently.
 - **Dashboard API Lock**: Prevents multiple humans from triggering concurrent agent loops in the same session.
 
@@ -700,7 +705,7 @@ The system is designed for autonomous survival and continuous optimization throu
           +-------------------------+----------------+-------------------------+
                                     |
                           [ System Flow Restored ]
-````
+```
 
 ## 🌀 Self-Healing & Isolation Perspectives (F & G)
 

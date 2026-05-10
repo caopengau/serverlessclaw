@@ -21,14 +21,14 @@ import {
   CreateOriginAccessControlCommand,
   ListOriginAccessControlsCommand,
 } from '@aws-sdk/client-cloudfront';
-import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
+import { S3Client, ListBucketsCommand, GetBucketLocationCommand } from '@aws-sdk/client-s3';
 import { readFileSync } from 'fs';
 
 const STAGE = process.argv[2] || 'prod';
 const APP = process.argv[3] || 'serverlessclaw';
 const RESOURCE = process.argv[4] || 'ClawCenter';
 
-// Resolve region: try SST config first, then env var, then hardcoded default
+// Resolve region: try SST config first, then env var, then framework default
 const DEFAULT_REGION = 'ap-southeast-2';
 function getRegion(): string {
   // 1. Try SST outputs
@@ -68,6 +68,13 @@ async function getNewestBucketName(): Promise<string> {
   ).sort((a, b) => (b.CreationDate?.getTime() || 0) - (a.CreationDate?.getTime() || 0))?.[0]?.Name;
   if (!bucketName) err(`Could not find assets bucket for ${RESOURCE} in stage ${STAGE}`);
   return bucketName;
+}
+
+async function getBucketRegionalDomain(bucketName: string): Promise<string> {
+  const location = await s3.send(new GetBucketLocationCommand({ Bucket: bucketName }));
+  const bucketRegion =
+    location.LocationConstraint === 'EU' ? 'eu-west-1' : location.LocationConstraint || 'us-east-1';
+  return `${bucketName}.s3.${bucketRegion}.amazonaws.com`;
 }
 
 async function findDistribution(): Promise<string> {
@@ -124,17 +131,17 @@ async function addS3Origin(distId: string) {
   const etag = current.ETag!;
 
   const bucketName = await getNewestBucketName();
-  const s3Domain = `${bucketName}.s3.${REGION}.amazonaws.com`;
+  const s3Domain = await getBucketRegionalDomain(bucketName);
 
   // Check if S3 origin already exists
   const existingS3 = config.Origins?.Items?.find((o) => o.Id === 's3');
   if (existingS3) {
     if (existingS3.DomainName === s3Domain) {
       log(`S3 origin already points to the correct bucket (${bucketName}), skipping`);
-      return;
+    } else {
+      log(`Updating S3 origin from ${existingS3.DomainName} to ${s3Domain}...`);
+      existingS3.DomainName = s3Domain;
     }
-    log(`Updating S3 origin from ${existingS3.DomainName} to ${s3Domain}...`);
-    existingS3.DomainName = s3Domain;
   } else {
     log(`Adding S3 origin for bucket ${bucketName}...`);
     // Find or create OAC
@@ -170,6 +177,45 @@ async function addS3Origin(distId: string) {
     });
     config.Origins!.Quantity = config.Origins!.Items!.length;
   }
+
+  const cacheBehaviors = config.CacheBehaviors ?? { Quantity: 0, Items: [] };
+  config.CacheBehaviors = cacheBehaviors;
+  cacheBehaviors.Items ??= [];
+
+  const staticBehavior = cacheBehaviors.Items.find(
+    (item) => item.PathPattern === '/_next/static/*'
+  );
+  if (!staticBehavior) {
+    log('Adding CloudFront cache behavior for /_next/static/* via S3 origin...');
+    cacheBehaviors.Items.push({
+      PathPattern: '/_next/static/*',
+      TargetOriginId: 's3',
+      ViewerProtocolPolicy: 'redirect-to-https',
+      AllowedMethods: {
+        Quantity: 2,
+        Items: ['HEAD', 'GET'],
+        CachedMethods: {
+          Quantity: 2,
+          Items: ['HEAD', 'GET'],
+        },
+      },
+      SmoothStreaming: false,
+      Compress: true,
+      LambdaFunctionAssociations: { Quantity: 0 },
+      FunctionAssociations: { Quantity: 0 },
+      FieldLevelEncryptionId: '',
+      CachePolicyId: '658327ea-f89d-4fab-a63d-7e88639e58f6',
+      GrpcConfig: { Enabled: false },
+    });
+  } else {
+    staticBehavior.TargetOriginId = 's3';
+    staticBehavior.ViewerProtocolPolicy = 'redirect-to-https';
+    staticBehavior.Compress = true;
+    staticBehavior.LambdaFunctionAssociations = { Quantity: 0 };
+    staticBehavior.FunctionAssociations = { Quantity: 0 };
+    staticBehavior.CachePolicyId = '658327ea-f89d-4fab-a63d-7e88639e58f6';
+  }
+  cacheBehaviors.Quantity = cacheBehaviors.Items.length;
 
   await cf.send(
     new UpdateDistributionCommand({
@@ -207,19 +253,28 @@ async function fixCloudFrontFunctionInner(distId: string, fnArn: string) {
     .replace(/^(function\/)/, '');
 
   // Find Lambda function URL
-  const {
-    LambdaClient,
-    ListFunctionUrlConfigsCommand,
-    ListFunctionsCommand: ListLambdaFunctions,
-  } = await import('@aws-sdk/client-lambda');
+  const { LambdaClient, ListFunctionUrlConfigsCommand, ListFunctionsCommand } =
+    await import('@aws-sdk/client-lambda');
   const lambda = new LambdaClient({});
-  const lambdaFns = await lambda.send(new ListLambdaFunctions({}));
-  const serverFn = lambdaFns.Functions?.filter(
-    (f) =>
-      f.FunctionName?.includes(RESOURCE) &&
-      f.FunctionName?.includes('Server') &&
-      f.FunctionName?.includes(STAGE)
-  ).sort((a, b) => new Date(b.LastModified!).getTime() - new Date(a.LastModified!).getTime())?.[0];
+  // ListFunctions is paginated (max 50/page). We must scan all pages to avoid missing the server function.
+  const allFunctions: Array<{ FunctionName?: string; LastModified?: string }> = [];
+  let marker: string | undefined;
+  do {
+    const page = await lambda.send(new ListFunctionsCommand({ Marker: marker }));
+    if (page.Functions) allFunctions.push(...page.Functions);
+    marker = page.NextMarker;
+  } while (marker);
+
+  const serverFn = allFunctions
+    .filter(
+      (f) =>
+        f.FunctionName?.includes(RESOURCE) &&
+        f.FunctionName?.includes('Server') &&
+        f.FunctionName?.includes(STAGE)
+    )
+    .sort(
+      (a, b) => new Date(b.LastModified || 0).getTime() - new Date(a.LastModified || 0).getTime()
+    )[0];
   if (!serverFn?.FunctionName) err(`Could not find server Lambda for ${RESOURCE}`);
 
   const urlConfig = await lambda.send(
@@ -231,22 +286,32 @@ async function fixCloudFrontFunctionInner(distId: string, fnArn: string) {
   if (!lambdaUrl) err('Lambda function has no URL');
 
   const lambdaHost = new URL(lambdaUrl).host;
+  log(`Lambda host: ${lambdaHost}`);
   const bucketName = await getNewestBucketName();
+  const s3Domain = await getBucketRegionalDomain(bucketName);
 
   log(`Updating CloudFront function for ${RESOURCE} to use bucket: ${bucketName}`);
 
-  // Build routing function code - route static to S3, rest to Lambda
+  // Build optimized routing function code - significantly reduced complexity for CloudFront validation
+  // The previous long if-chain was causing validation errors; now using object-based lookup
   const code = `import cf from "cloudfront";
 function handler(event) {
   var host = event.request.headers.host ? event.request.headers.host.value : "";
   if (host.includes("cloudfront.net")) {
-    return { statusCode: 403, statusDescription: "Forbidden", body: { encoding: "text", data: "<html><body>403 Forbidden</body></html>" } };
+    return { statusCode: 403, statusDescription: "Forbidden", body: { encoding: "text", data: "Forbidden" } };
   }
   event.request.headers["x-forwarded-host"] = event.request.headers.host;
   var uri = event.request.uri;
-  if (uri.startsWith("/_next/") || uri.endsWith(".css") || uri.endsWith(".js") || uri.endsWith(".woff2") || uri.endsWith(".woff") || uri.endsWith(".png") || uri.endsWith(".jpg") || uri.endsWith(".svg") || uri.endsWith(".ico") || uri.endsWith(".json") || uri.endsWith(".map") || uri.endsWith(".txt") || uri.endsWith(".xml")) {
+  var isStatic = uri.startsWith("/_next/") || uri.startsWith("/_assets/");
+  if (!isStatic) {
+    var ext = uri.split(".").pop();
+    if (ext) ext = ext.toLowerCase();
+    var staticExts = {"css": 1, "js": 1, "woff2": 1, "woff": 1, "png": 1, "jpg": 1, "svg": 1, "ico": 1, "json": 1, "map": 1, "txt": 1, "xml": 1};
+    isStatic = !!staticExts[ext];
+  }
+  if (isStatic) {
     cf.updateRequestOrigin({
-      domainName: "${bucketName}.s3.${REGION}.amazonaws.com",
+      domainName: "${s3Domain}",
       originPath: "/_assets"
     });
   } else {

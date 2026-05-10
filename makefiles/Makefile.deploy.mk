@@ -15,7 +15,7 @@ dev: clear-port ## Start SST in development mode (mono mode)
 	TERM=xterm $(SST) dev --stage $(LOCAL_STAGE)
 
 
-deploy: ## Deploy SST to the environment (default: prod)
+deploy: ## Deploy SST to the environment (default: prod) - WITH FAIL-FAST CHECKS
 	@if [ "$(ENV)" = "prod" ]; then \
 		$(call log_warning,WARNING: Direct deployment to production is discouraged.); \
 		$(call log_warning,Run 'make release' instead for full quality gates and auditing (tagging).); \
@@ -25,17 +25,28 @@ deploy: ## Deploy SST to the environment (default: prod)
 	@if [ ! -f "$(SST)" ]; then $(call log_error,SST binary not found. Run pnpm install first.); exit 1; fi
 	@$(call load_env); \
 	chmod +x ./$(SCRIPTS_DIR)/ci/check-aws-account.sh; \
-	./$(SCRIPTS_DIR)/ci/check-aws-account.sh "$(ENV)" "$$EXPECTED_ACCOUNT" && \
-	$(call log_info,Starting SST deployment...) && \
-	$(SST) deploy --stage $(ENV) --yes && \
-	$(call log_info,Running post-deploy CloudFront fix...) && \
-	APP_NAME=$$(jq -r .name package.json 2>/dev/null || echo 'serverlessclaw') && \
-	$(call log_info,Resolved APP_NAME=$$APP_NAME from package.json) && \
-	$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/fix-cloudfront-deploy.ts $(ENV) $$APP_NAME ClawCenter && \
-	$(MAKE) verify-deploy ; \
-	if [ "$(E2E)" = "true" ]; then $(MAKE) test-tier-3 ; fi
-	@$(call log_success,SST deploy to $(ENV) completed successfully)
-
+	if \
+		$(call log_info,[DEPLOY STEP 1/4] Verifying AWS account and permissions...) && \
+		./$(SCRIPTS_DIR)/ci/check-aws-account.sh "$(ENV)" "$$EXPECTED_ACCOUNT" && \
+		$(call log_success,[DEPLOY STEP 1/4] AWS account verified) && \
+		$(call log_info,[DEPLOY STEP 2/4] Starting SST deployment...) && \
+		$(SST) deploy --stage $(ENV) --yes && \
+		$(call log_success,[DEPLOY STEP 2/4] SST deployment completed) && \
+		$(call log_info,[DEPLOY STEP 3/4] Running post-deploy CloudFront fix...) && \
+		APP_NAME=$$(jq -r .name package.json 2>/dev/null || echo 'serverlessclaw') && \
+		$(call log_info,Resolved APP_NAME=$$APP_NAME from package.json) && \
+		$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/fix-cloudfront-deploy.ts $(ENV) $$APP_NAME ClawCenter && \
+		$(call log_success,[DEPLOY STEP 3/4] CloudFront configuration updated) && \
+		$(call log_info,[DEPLOY STEP 4/4] Running post-deploy verification...) && \
+		$(MAKE) verify-deploy && \
+		$(call log_success,[DEPLOY STEP 4/4] Post-deploy verification passed); \
+	then \
+		if [ "$(E2E)" = "true" ]; then $(MAKE) test-tier-3 ; fi; \
+		$(call log_success,SST deploy to $(ENV) completed successfully); \
+	else \
+		$(call log_error,SST deploy to $(ENV) failed); \
+		exit 1; \
+	fi
 
 diff: ## Show SST infrastructure changes
 	@$(call log_info,SST diff for $(ENV)...)

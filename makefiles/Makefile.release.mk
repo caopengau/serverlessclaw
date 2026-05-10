@@ -1,9 +1,9 @@
 ###############################################################################
-# Makefile.release: Release and Tagging targets
+# Makefile.release: Release and Tagging targets (with fail-fast improvements)
 ###############################################################################
 include makefiles/Makefile.shared.mk
 
-.PHONY: release tag pre-deploy post-deploy release-all
+.PHONY: release tag pre-deploy post-deploy release-all pre-release-check verify-build-readiness verify-clean
 
 release: ## Full Release: Pre-deploy Gates -> Deploy -> Post-deploy Gates -> Tag (prod only)
 	@$(call log_step,Starting audited release for environment: $(ENV)...)
@@ -20,11 +20,14 @@ release: ## Full Release: Pre-deploy Gates -> Deploy -> Post-deploy Gates -> Tag
 	fi
 	@$(call log_success,Release to $(ENV) completed successfully!)
 
-pre-deploy: ## Run all pre-deployment quality gates
+pre-deploy: ## Run all pre-deployment quality gates (fail-fast: env -> build -> tier-1 -> tier-2 -> devops-verify)
 	@$(call log_step,Running PRE-DEPLOYMENT gates for $(ENV)...)
 	@$(MAKE) pre-release-check
+	@$(MAKE) verify-build-readiness
 	@$(MAKE) gate-tier-1
 	@$(MAKE) gate-tier-2
+	@$(MAKE) verify-devops-standards
+	@$(MAKE) check-framework-purity
 
 post-deploy: ## Run all post-deployment verification gates
 	@$(call log_step,Running POST-DEPLOYMENT gates for $(ENV)...)
@@ -35,8 +38,8 @@ release-all: ## Release to both dev and prod sequentially
 	@$(MAKE) release ENV=dev
 	@$(MAKE) release ENV=prod
 
-pre-release-check: ## Validate environment and credentials before release
-	@$(call log_step,Running pre-release environment check for $(ENV)...)
+pre-release-check: ## [FAIL-FAST #1/3] Validate environment and credentials before release
+	@$(call log_step,[FAIL-FAST #1/3] Pre-release environment check for $(ENV)...)
 	@$(call load_env); \
 	$(call verify_env,EXPECTED_ACCOUNT); \
 	$(call log_info,Verifying AWS identity...); \
@@ -45,7 +48,46 @@ pre-release-check: ## Validate environment and credentials before release
 		$(call log_error,AWS Account mismatch! Expected $$EXPECTED_ACCOUNT but found $$ACTUAL_ACCOUNT); \
 		exit 1; \
 	fi; \
-	$(call log_success,Environment validated for release to $$EXPECTED_ACCOUNT)
+	$(call log_info,Verifying AWS permissions...); \
+	aws lambda list-functions --region $(AWS_REGION) > /dev/null 2>&1 || { $(call log_error,AWS credentials invalid or Lambda access denied); exit 1; }; \
+	$(call log_success,Environment validated: Account $$EXPECTED_ACCOUNT, Region $(AWS_REGION))
+
+verify-build-readiness: ## [FAIL-FAST #2/3] Verify the dashboard build will succeed
+	@$(call log_step,[FAIL-FAST #2/3] Verifying build configuration...)
+	@$(call log_info,Checking swc helpers bundling setup...)
+	@if ! grep -q "install" framework/apps/dashboard/open-next.config.ts 2>/dev/null || ! grep -q "@swc/helpers" framework/apps/dashboard/open-next.config.ts 2>/dev/null; then \
+		$(call log_warning,open-next.config.ts missing swc/helpers in install list); \
+		echo "  Expected: install: ['@swc/helpers', ...]"; \
+		$(call log_error,Build configuration incomplete - swc/helpers not in bundle list); \
+		exit 1; \
+	else \
+		$(call log_success,swc/helpers bundling configured); \
+	fi
+	@$(call log_info,Checking outputFileTracingRoot configuration...)
+	@if ! grep -q "outputFileTracingRoot" framework/apps/dashboard/next.config.mjs 2>/dev/null; then \
+		$(call log_warning,next.config.mjs missing outputFileTracingRoot); \
+		$(call log_error,Build configuration incomplete - tracing scope not expanded); \
+		exit 1; \
+	else \
+		$(call log_success,Output file tracing configured); \
+	fi
+	@$(call log_info,Checking esbuild external packages...)
+	@if [ -f sst.config.ts ] && grep -q "external.*swc" sst.config.ts 2>/dev/null; then \
+		$(call log_error,esbuild still has swc in external list - will cause MODULE_NOT_FOUND); \
+		exit 1; \
+	else \
+		$(call log_success,swc packages not externalized); \
+	fi
+	@$(call log_success,[FAIL-FAST #2/3] Build configuration verified)
+
+verify-clean:
+	@$(call log_info,Verifying working directory is clean...)
+	@if ! git diff-index --quiet HEAD --; then \
+		$(call log_error,Working directory has uncommitted changes); \
+		git status --short; \
+		exit 1; \
+	fi
+	@$(call log_success,Working directory is clean)
 
 tag: ## Create and push a git tag for the current release (for auditing)
 	@$(call log_info,Bumping version and creating release tag for auditing...)
