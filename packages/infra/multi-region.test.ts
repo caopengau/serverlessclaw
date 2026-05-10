@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeAll } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { createMultiRegionScaling } from './multi-region';
 
 beforeAll(() => {
