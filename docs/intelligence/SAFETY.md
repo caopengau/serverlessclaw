@@ -63,11 +63,11 @@ Multiplies the base bump by a weight in the range **[0.0x, 2.0x]**:
 
 High-trust agents can bypass manual approval gates for non-critical actions to accelerate system evolution.
 
-| Trust Score | Tier   | Escalation Level                                                              |
-| :---------- | :----- | :---------------------------------------------------------------------------- |
-| **>= 85**   | `local`| Full Auto: All standard tool and deployment gates are automatically bypassed. |
-| **>= 90**   | `prod` | Level 2: Standard Class B actions (file writes, etc.) are auto-approved.      |
-| **>= 95**   | `prod` | Principle 9: Class C actions (IAM, Infrastructure) are auto-promoted.         |
+| Trust Score | Tier    | Escalation Level                                                              |
+| :---------- | :------ | :---------------------------------------------------------------------------- |
+| **>= 85**   | `local` | Full Auto: All standard tool and deployment gates are automatically bypassed. |
+| **>= 90**   | `prod`  | Level 2: Standard Class B actions (file writes, etc.) are auto-approved.      |
+| **>= 95**   | `prod`  | Principle 9: Class C actions (IAM, Infrastructure) are auto-promoted.         |
 
 ---
 
