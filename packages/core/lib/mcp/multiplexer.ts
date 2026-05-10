@@ -94,7 +94,7 @@ export class MCPMultiplexer {
 
   /**
    * Registers a new MCP server configuration at runtime.
-   * This is used by plugins (like VoltX) to dynamically add capabilities.
+   * This is used by plugins to dynamically add capabilities.
    */
   static async registerServer(name: string, config: unknown, workspaceId?: string): Promise<void> {
     const currentConfig =

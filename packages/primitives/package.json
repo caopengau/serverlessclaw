@@ -1,0 +1,27 @@
+{
+  "name": "@serverlessclaw/primitives",
+  "version": "1.0.0",
+  "description": "Optional primitive modules for ServerlessClaw, including matchmaker, digital twins, and value attribution.",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./matchmaker": "./src/matchmaker.ts"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "eslint": "^10.2.0",
+    "prettier": "^3.8.1",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "lint": "eslint .",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write ."
+  }
+}
