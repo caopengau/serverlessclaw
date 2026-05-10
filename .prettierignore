@@ -19,3 +19,4 @@ coverage/
 test-results/
 reports/
 e2e/.auth/
+**/.aiready/**

@@ -2,11 +2,12 @@ import { IMemory } from './types/memory';
 import { IProvider, Attachment, MessageChunk } from './types/llm';
 import { ITool } from './types/tool';
 import { IAgentConfig } from './types/agent';
+import { IAgent } from './types/agent/behavior';
 import { AgentExecutor } from './agent/executor';
 import { AgentProcessOptions } from './agent/options';
 import { AgentEmitter } from './agent/emitter';
-import { MissionOrchestrator, MissionOptions } from './agent/mission-orchestrator';
-import { Mission } from './types/mission';
+import { MissionOrchestrator } from './agent/mission-orchestrator';
+import { Mission, MissionOptions } from './types/mission';
 
 export * from './agent/options';
 export * from './agent/validator';
@@ -16,7 +17,7 @@ export * from './agent/mission-orchestrator';
 /**
  * Core Agent class responsible for orchestrating memory, LLM providers, and tool execution.
  */
-export class Agent {
+export class Agent implements IAgent {
   public readonly executor: AgentExecutor;
   public readonly emitter: AgentEmitter;
   public readonly orchestrator: MissionOrchestrator;

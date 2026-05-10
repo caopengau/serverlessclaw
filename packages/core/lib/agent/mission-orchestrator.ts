@@ -1,25 +1,31 @@
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../logger';
-import { Agent } from '../agent';
-import { Mission, MissionStatus } from '../types/mission';
+import { IAgent } from '../types/agent/behavior';
+import { Mission, MissionStatus, MissionOptions } from '../types/mission';
 import { decomposePlan } from './decomposer';
 import { AgentStatus } from '../types/agent';
 import { MissionControlRegistry } from '../registry/mission-control';
 
-export interface MissionOptions {
-  metadata?: Record<string, any>;
-  maxSteps?: number;
-}
-
 /**
  * Mission Orchestrator
  * Implements SC-3.1: Intent-based Mission Orchestrator.
+ * Handles mission lifecycle from planning to execution.
  */
 export class MissionOrchestrator {
-  constructor(private agent: Agent) {}
+  /**
+   * Initializes the orchestrator with a primary agent.
+   * @param agent The agent responsible for processing mission steps.
+   */
+  constructor(private agent: IAgent) {}
 
   /**
    * Creates and starts a new mission based on a high-level intent.
+   *
+   * @param userId ID of the user initiating the mission.
+   * @param workspaceId ID of the workspace where the mission resides.
+   * @param intent High-level description of what the mission should achieve.
+   * @param options Optional configuration for the mission.
+   * @returns A Promise resolving to the initialized Mission object.
    */
   async createMission(
     userId: string,
@@ -56,8 +62,6 @@ export class MissionOrchestrator {
     });
 
     // 2. Planning Phase: Decompose Intent into Steps
-    // In a real implementation, we might first ask the LLM to create a plan string.
-    // For now, we use the intent as the plan and let the decomposer break it down.
     const decomposition = await decomposePlan(intent, missionId, [], {
       workspaceId,
       maxSubTasks: options.maxSteps ?? 5,
@@ -66,7 +70,7 @@ export class MissionOrchestrator {
     mission.steps = decomposition.subTasks.map((sub) => ({
       id: sub.subTaskId,
       task: sub.task,
-      agentId: sub.agentId as any,
+      agentId: sub.agentId as string,
       status: AgentStatus.IDLE,
       dependencies: sub.dependencies.map((d) => `${missionId}-sub-${d}`),
     }));
@@ -86,13 +90,16 @@ export class MissionOrchestrator {
   }
 
   /**
-   * Executes a mission.
-   * This is a simplified version of DAG execution.
+   * Executes a mission by processing its steps.
+   * Currently implements a sequential execution model.
+   *
+   * @param mission The mission object to execute.
+   * @returns A Promise resolving to the updated Mission object.
    */
   async executeMission(mission: Mission): Promise<Mission> {
     logger.info(`[MissionOrchestrator] Executing mission: ${mission.id}`);
 
-    // Simple sequential execution for now (can be expanded to parallel using DAGExecutor logic)
+    // Simple sequential execution for now
     for (const step of mission.steps) {
       if (step.status === AgentStatus.COMPLETED) continue;
 
@@ -108,11 +115,8 @@ export class MissionOrchestrator {
       });
 
       try {
-        // Here we would dispatch the task to the appropriate agent.
-        // For SC-3.1, we simulate the execution.
         logger.info(`[MissionOrchestrator] Dispatching step ${step.id} to ${step.agentId}`);
 
-        // Simulation of processing
         const response = await this.agent.process(mission.userId, step.task, {
           workspaceId: mission.workspaceId,
           traceId: step.id,
@@ -124,10 +128,11 @@ export class MissionOrchestrator {
 
         // Update mission context with step result
         mission.context[step.id] = step.result;
-      } catch (err: any) {
-        logger.error(`[MissionOrchestrator] Step ${step.id} failed:`, err);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        logger.error(`[MissionOrchestrator] Step ${step.id} failed:`, errorMessage);
         step.status = AgentStatus.ERROR;
-        step.error = err.message;
+        step.error = errorMessage;
         mission.status = MissionStatus.FAILED;
         break;
       }

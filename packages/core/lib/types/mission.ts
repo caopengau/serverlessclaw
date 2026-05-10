@@ -32,6 +32,16 @@ export const MissionStepSchema = z.object({
 export type MissionStep = z.infer<typeof MissionStepSchema>;
 
 /**
+ * Configuration options for creating a mission.
+ */
+export interface MissionOptions {
+  /** Optional metadata to attach to the mission */
+  metadata?: Record<string, unknown>;
+  /** Maximum number of sub-tasks to generate during planning */
+  maxSteps?: number;
+}
+
+/**
  * A high-level Mission.
  */
 export const MissionSchema = z.object({
