@@ -176,11 +176,27 @@ export default $config({
     const { createBilling } = await import('./packages/infra/billing.js');
     const { billingTopic } = createBilling();
 
+    // 11. Multi-Region Operator Scaling (VX-4.2)
+    const { createMultiRegionScaling } = await import('./packages/infra/multi-region.js');
+    const multiRegion = createMultiRegionScaling({
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      knowledgeBucket,
+      secrets,
+      bus,
+      deployer,
+      deployerLink,
+      api,
+    });
+
     return {
       apiUrl: api.url,
       dashboardUrl: dashboard.url,
       billingTopicArn: billingTopic?.arn,
       githubBucket: githubResources.githubBucket.name,
+      regionSyncQueueUrl: multiRegion.regionSyncQueue.url,
     };
   },
 });

@@ -35,6 +35,13 @@ export class MetabolismService {
       const { executeRepairs } = await import('./metabolism/repairs');
       const repairs = await executeRepairs(memory, scope);
       findings.push(...repairs);
+
+      // SC-4.2 Autonomous Metabolism Update
+      const { SelfUpdateEngine } = await import('./metabolism/self-update');
+      const updateResult = await SelfUpdateEngine.checkAndApplyUpdates(options.workspaceId);
+      if (updateResult.finding) {
+        findings.push(updateResult.finding);
+      }
     }
 
     // 2. Delegate to AIReady (AST) MCP if available
