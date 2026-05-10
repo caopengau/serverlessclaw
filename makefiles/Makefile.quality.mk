@@ -95,6 +95,15 @@ format-check: ## Check if code is formatted with Prettier
 	@$(call log_info,Checking formatting via Turbo...)
 	@$(call load_env); $(PNPM) run format-check
 
+lockfile-check: ## Check if pnpm-lock.yaml is in sync with package.json
+	@$(call log_step,Verifying lockfile freshness...)
+	@if git diff --quiet pnpm-lock.yaml; then \
+		$(call log_success,Lockfile is in sync with package.json); \
+	else \
+		$(call log_error,pnpm-lock.yaml is out of sync. Run: pnpm install); \
+		exit 1; \
+	fi
+
 type-check: ## Run TypeScript type checking
 	@$(call log_info,Type checking via Turbo...)
 	@$(call load_env); $(PNPM) run type-check
