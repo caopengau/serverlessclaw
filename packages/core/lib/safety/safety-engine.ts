@@ -25,6 +25,7 @@ import { CONFIG_DEFAULTS } from '../config/config-defaults';
 import { validateStaticPolicies, validateRBAC } from './engine/rbac';
 import { validateAccessControl } from './engine/access-control';
 import { checkAutonomousPromotion } from './engine/autonomy';
+import { checkTrustEscalation } from './engine/escalation';
 
 let sharedEngine: SafetyEngine | null = null;
 
@@ -165,7 +166,9 @@ export class SafetyEngine extends SafetyBase {
     const rateResult = await this.limiter.checkRateLimits(policy, normalizedAction, ctx);
     if (!rateResult.allowed) return rateResult;
 
-    // 2. Trust-Driven Autonomy (Principle 9)
+    // 2. Trust-Driven Autonomy & Escalation (Principle 9 / SC-3.2)
+
+    // Proactive Autonomy (Current Principle 9)
     if (
       context?.isProactive &&
       (agentConfig?.trustScore ?? 0) >= TRUST.AUTONOMY_THRESHOLD &&
@@ -189,6 +192,16 @@ export class SafetyEngine extends SafetyBase {
       tier,
       ctx
     );
+
+    // Try Escalation (SC-3.2)
+    const escalationResult = await checkTrustEscalation(
+      agentConfig,
+      normalizedAction,
+      approvalResult,
+      { ...ctx, isClassC: this.isClassCAction(normalizedAction) }
+    );
+    if (escalationResult) return escalationResult;
+
     const promotionResult = await checkAutonomousPromotion(
       agentConfig,
       normalizedAction,

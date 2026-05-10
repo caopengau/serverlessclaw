@@ -137,6 +137,8 @@ export const TRUST = {
   DECAY_BASELINE: 70,
   /** Trust score threshold for autonomous mode promotion (Principle 9). */
   AUTONOMY_THRESHOLD: 95,
+  /** Trust score threshold for reduced approval requirements (Escalation). */
+  ESCALATION_THRESHOLD: 85,
   /** Trust score threshold for facilitator tie-breaking. */
   FACILITATOR_THRESHOLD: 90,
 } as const;

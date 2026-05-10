@@ -5,10 +5,13 @@ import { IAgentConfig } from './types/agent';
 import { AgentExecutor } from './agent/executor';
 import { AgentProcessOptions } from './agent/options';
 import { AgentEmitter } from './agent/emitter';
+import { MissionOrchestrator, MissionOptions } from './agent/mission-orchestrator';
+import { Mission } from './types/mission';
 
 export * from './agent/options';
 export * from './agent/validator';
 export * from './agent/executor';
+export * from './agent/mission-orchestrator';
 
 /**
  * Core Agent class responsible for orchestrating memory, LLM providers, and tool execution.
@@ -16,6 +19,7 @@ export * from './agent/executor';
 export class Agent {
   public readonly executor: AgentExecutor;
   public readonly emitter: AgentEmitter;
+  public readonly orchestrator: MissionOrchestrator;
 
   /**
    * Initializes the Agent with its required subsystems.
@@ -42,6 +46,7 @@ export class Agent {
       undefined, // Default context limit
       config
     );
+    this.orchestrator = new MissionOrchestrator(this);
   }
 
   /**
@@ -93,5 +98,19 @@ export class Agent {
   ): AsyncGenerator<MessageChunk> {
     const { handleStream } = await import('./agent/handlers/stream');
     yield* handleStream(this, userId, userText, options);
+  }
+
+  /**
+   * Orchestrates a multi-step mission based on user intent.
+   * Implements SC-3.1.
+   */
+  async mission(
+    userId: string,
+    workspaceId: string,
+    intent: string,
+    options: MissionOptions = {}
+  ): Promise<Mission> {
+    const mission = await this.orchestrator.createMission(userId, workspaceId, intent, options);
+    return this.orchestrator.executeMission(mission);
   }
 }
