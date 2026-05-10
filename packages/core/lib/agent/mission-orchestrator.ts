@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '../logger';
 import { Agent } from '../agent';
-import { Mission, MissionStatus, MissionStep } from '../types/mission';
+import { Mission, MissionStatus } from '../types/mission';
 import { decomposePlan } from './decomposer';
 import { AgentStatus } from '../types/agent';
 import { MissionControlRegistry } from '../registry/mission-control';
