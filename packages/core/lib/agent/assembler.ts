@@ -2,7 +2,6 @@ import {
   IMemory,
   IProvider,
   IAgentConfig,
-  ReasoningProfile,
   InsightCategory,
   AttachmentType,
   Message,
@@ -65,7 +64,15 @@ export class AgentAssembler {
       // Silently ignore
     }
 
-    return { history, distilled, lessons, preferences, globalLessons, negativeContext, recoveryContext };
+    return {
+      history,
+      distilled,
+      lessons,
+      preferences,
+      globalLessons,
+      negativeContext,
+      recoveryContext,
+    };
   }
 
   private static async buildContextPrompt(
@@ -75,9 +82,16 @@ export class AgentAssembler {
     options: any
   ) {
     const {
-      isIsolated, depth, activeModel, activeProvider, activeProfile, systemPrompt, pageContext
+      isIsolated,
+      depth,
+      activeModel,
+      activeProvider,
+      activeProfile,
+      systemPrompt,
+      pageContext,
     } = options;
-    const { distilled, lessons, preferences, globalLessons, negativeContext, recoveryContext } = memoryState;
+    const { distilled, lessons, preferences, globalLessons, negativeContext, recoveryContext } =
+      memoryState;
 
     const facts = [
       ...distilled.split('\n').filter(Boolean),
@@ -206,19 +220,39 @@ export class AgentAssembler {
     incomingAttachments: import('../types/index').Attachment[] | undefined,
     options: any
   ): Promise<ContextResult> {
-    const scope = { workspaceId: options.workspaceId, orgId: options.orgId, teamId: options.teamId, staffId: options.staffId };
+    const scope = {
+      workspaceId: options.workspaceId,
+      orgId: options.orgId,
+      teamId: options.teamId,
+      staffId: options.staffId,
+    };
 
     const memoryState = await this.retrieveMemoryState(
-      memory, baseUserId, storageId, options.agentId ?? config?.id ?? 'unknown', scope
+      memory,
+      baseUserId,
+      storageId,
+      options.agentId ?? config?.id ?? 'unknown',
+      scope
     );
 
     const { contextPrompt, contextLimit } = await this.buildContextPrompt(
-      provider, config, memoryState, options
+      provider,
+      config,
+      memoryState,
+      options
     );
 
     const { messages, summary } = await this.manageHistoryAndSummarization(
-      memory, provider, memoryState.history, userText, incomingAttachments,
-      contextPrompt, contextLimit, storageId, options, scope
+      memory,
+      provider,
+      memoryState.history,
+      userText,
+      incomingAttachments,
+      contextPrompt,
+      contextLimit,
+      storageId,
+      options,
+      scope
     );
 
     return {

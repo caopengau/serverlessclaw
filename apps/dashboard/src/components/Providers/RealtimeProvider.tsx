@@ -244,10 +244,9 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       (t) =>
         new RegExp(
           `^${t
-            .replace(/\\/g, '\\\\')
-            .replace(/\\//g, '\\\\/')
-            .replace(/\\+/g, '[^\\\\/]+')
-            .replace(/#/g, '.*')}$`
+            .replace(/\//g, '\\/') // Escape slashes
+            .replace(/\+/g, '[^\\/]+') // '+' matches one level
+            .replace(/#/g, '.*')}$` // '#' matches everything after
         )
     );
     const sub = { topics, compiledTopics, callback };

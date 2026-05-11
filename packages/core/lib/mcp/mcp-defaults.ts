@@ -27,7 +27,10 @@ export const DEFAULT_MCP_SERVERS: Record<string, MCPServerConfig> = {
  * Registry of dynamic resolvers to eliminate special-case handling in the MCPBridge.
  * Each resolver modifies the server configuration based on the environment.
  */
-export const SERVER_RESOLVERS: Record<string, (config: MCPServerConfig, env: NodeJS.ProcessEnv) => MCPServerConfig> = {
+export const SERVER_RESOLVERS: Record<
+  string,
+  (config: MCPServerConfig, env: NodeJS.ProcessEnv) => MCPServerConfig
+> = {
   filesystem: (config, env) => {
     if (env.AWS_LAMBDA_FUNCTION_NAME) {
       const fsPath = env.MCP_FILESYSTEM_PATH ?? '/tmp';
@@ -40,7 +43,7 @@ export const SERVER_RESOLVERS: Record<string, (config: MCPServerConfig, env: Nod
       type: 'local',
       command: `npx -y @modelcontextprotocol/server-filesystem .`,
     };
-  }
+  },
 };
 
 /**
