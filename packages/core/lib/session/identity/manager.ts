@@ -67,14 +67,27 @@ export class IdentityManager extends IdentityBase {
       const docClient = this.base.getDocClient();
       const tableName = this.base.getTableName();
       if (tableName) {
-        await docClient.send(
-          new UpdateCommand({
-            TableName: tableName,
-            Key: { userId: this.getUserKey(userId, orgId), timestamp: 0 },
-            UpdateExpression: 'SET lastActiveAt = :lastActiveAt',
-            ExpressionAttributeValues: { ':lastActiveAt': user.lastActiveAt },
-          })
-        );
+        try {
+          await docClient.send(
+            new UpdateCommand({
+              TableName: tableName,
+              Key: { userId: this.getUserKey(userId, orgId), timestamp: 0 },
+              UpdateExpression: 'SET lastActiveAt = :lastActiveAt',
+              ConditionExpression: 'attribute_exists(userId)',
+              ExpressionAttributeValues: { ':lastActiveAt': user.lastActiveAt },
+            })
+          );
+        } catch (updateError) {
+          // Ignore conditional check failures for the lastActiveAt update
+          // if the user was just created but not yet visible in the store
+          if (
+            !(
+              updateError instanceof Error && updateError.name === 'ConditionalCheckFailedException'
+            )
+          ) {
+            logger.warn(`Failed to update lastActiveAt for ${userId}:`, updateError);
+          }
+        }
       }
 
       // Create session with workspace context
