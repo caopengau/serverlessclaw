@@ -244,9 +244,8 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
       (t) =>
         new RegExp(
           `^${t
-            .replace(/\\/g, '\\\\')
-            .replace(/\//g, '\\/')
-            .replace(/\\+/g, '[^\\\\/]+')
+            .replace(/\//g, '\\/') // Escape slashes
+            .replace(/\+/g, '[^\\/]+') // '+' matches one level
             .replace(/#/g, '.*')}$`
         )
     );
