@@ -7,7 +7,7 @@ import { execSync } from 'child_process';
  * This is a quality gate to prevent 500 Internal Server Errors in Lambda.
  */
 
-const APPS_ROOT = 'framework/apps';
+const APPS_ROOT = 'apps';
 
 import { log as commonLog, warn as commonWarn, err as commonErr } from './common';
 

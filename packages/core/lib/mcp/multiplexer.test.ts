@@ -6,6 +6,13 @@ import { AgentRegistry } from '../registry';
 vi.mock('./mcp-bridge');
 vi.mock('../registry');
 vi.mock('../logger');
+vi.mock('../registry/config', () => ({
+  ConfigManager: {
+    atomicUpdateMapEntity: vi.fn().mockResolvedValue(true),
+  },
+}));
+
+import { ConfigManager } from '../registry/config';
 
 describe('MCPMultiplexer', () => {
   beforeEach(() => {
@@ -33,9 +40,10 @@ describe('MCPMultiplexer', () => {
 
     await MCPMultiplexer.registerServer('new-server', mockConfig, 'test-ws');
 
-    expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
+    expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalledWith(
       'mcp_servers',
-      { 'new-server': mockConfig },
+      'new-server',
+      mockConfig,
       { workspaceId: 'test-ws' }
     );
   });

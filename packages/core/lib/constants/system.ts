@@ -41,6 +41,7 @@ export const SYSTEM = {
  */
 export const DYNAMO_KEYS = {
   AGENTS_CONFIG: 'agents_config',
+  MCP_SERVERS: 'mcp_servers',
   DEPLOY_LIMIT: 'deploy_limit',
   RECURSION_LIMIT: 'recursion_limit',
   MISSION_RECURSION_LIMIT: 'mission_recursion_limit',

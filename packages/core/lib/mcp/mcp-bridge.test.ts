@@ -11,6 +11,14 @@ vi.mock('../registry', () => ({
   },
 }));
 
+vi.mock('../registry/config', () => ({
+  ConfigManager: {
+    atomicUpdateMapEntity: vi.fn().mockResolvedValue(true),
+  },
+}));
+
+import { ConfigManager } from '../registry/config';
+
 vi.mock('../logger', () => ({
   logger: {
     info: vi.fn(),
@@ -392,7 +400,7 @@ describe('MCPBridge', () => {
 
       await MCPBridge.getExternalTools();
 
-      expect(AgentRegistry.saveRawConfig).toHaveBeenCalled();
+      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalled();
     });
 
     it('merges default servers with existing config', async () => {
@@ -407,14 +415,11 @@ describe('MCPBridge', () => {
 
       await MCPBridge.getExternalTools();
 
-      expect(AgentRegistry.saveRawConfig).toHaveBeenCalledWith(
+      expect(ConfigManager.atomicUpdateMapEntity).toHaveBeenCalledWith(
         'mcp_servers',
-        expect.objectContaining({
-          custom: { command: 'npx custom' },
-          filesystem: expect.any(Object),
-          git: expect.any(Object),
-        }),
-        { workspaceId: undefined }
+        'filesystem',
+        expect.any(Object),
+        { workspaceId: undefined, conditionExpression: expect.any(String) }
       );
     });
 
@@ -437,10 +442,7 @@ describe('MCPBridge', () => {
 
       await MCPBridge.getExternalTools();
 
-      expect(AgentRegistry.saveRawConfig).not.toHaveBeenCalledWith(
-        'mcp_servers',
-        expect.any(Object)
-      );
+      expect(ConfigManager.atomicUpdateMapEntity).not.toHaveBeenCalled();
     });
 
     it('handles discovery failure gracefully per server', async () => {

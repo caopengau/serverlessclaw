@@ -13,12 +13,12 @@ Last Updated: 2026-05-11
 | Silo  | Name           | Primary Code Paths                              | Audit Count | Last Audited | Risk Level |
 | :---- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
 | **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 23          | 2026-05-09   | Low        |
-| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 12          | 2026-05-03   | Low        |
+| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 13          | 2026-05-11   | Low        |
 | **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 22          | 2026-05-09   | Low        |
 | **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 18          | 2026-05-04   | Low        |
 | **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 17          | 2026-05-03   | Low        |
 | **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 18          | 2026-05-04   | Low        |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 15          | 2026-05-11   | Low        |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 16          | 2026-05-11   | Low        |
 
 ---
 
@@ -27,11 +27,11 @@ Last Updated: 2026-05-11
 | Perspective | Name              | Description                 | Usage Count | Last Tested |
 | :---------- | :---------------- | :-------------------------- | :---------- | :---------- |
 | **A**       | Life of a Message | Spine → Brain → Eye         | 10          | 2026-05-09  |
-| **B**       | Evolution Cycle   | Hand → Shield → Scales      | 9           | 2026-05-03  |
+| **B**       | Evolution Cycle   | Hand → Shield → Scales      | 10          | 2026-05-11  |
 | **C**       | Identity Journey  | Brain → Spine → Shield      | 10          | 2026-05-01  |
-| **D**       | Trust Loop        | Eye → Scales → Spine        | 13          | 2026-05-03  |
+| **D**       | Trust Loop        | Eye → Scales → Spine        | 14          | 2026-05-11  |
 | **E**       | Recovery Path     | Shield → Spine → Brain      | 13          | 2026-05-09  |
-| **F**       | Metabolic Loop    | Metabolism ↔ Scales ↔ Spine | 7           | 2026-05-11  |
+| **F**       | Metabolic Loop    | Metabolism ↔ Scales ↔ Spine | 8           | 2026-05-11  |
 
 ---
 
@@ -39,6 +39,7 @@ Last Updated: 2026-05-11
 
 | Date       | Report                                             | Silos                            | Perspective | Status/Summary                                                                                                        |
 | :--------- | :------------------------------------------------- | :------------------------------- | :---------- | :-------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-11 | `audit-2026-05-11-tool-execution.md`               | Hand, Metabolism                 | B, D, F     | FIXED: Non-atomic MCP server registration, Race condition in default server discovery. Verified cost/budget.          |
 | 2026-05-11 | `audit-2026-05-11-metabolism-hardening.md`         | Metabolism                       | F           | FIXED: P2 Telemetry blindness, P1 CLI gate blocker, P1 Script duplication.                                            |
 | 2026-05-09 | `audit-2026-05-09-spine.md`                        | Spine                            | A           | FIXED: P1 DLQ Retrieval Leakage, P1 Event Routing Override failure, P2 Health Reporting scoping gap, P2 Flow Control. |
 | 2026-05-09 | `audit-2026-05-09-metabolism-loop.md`              | Metabolism, Scales, Spine        | F           | FIXED: P1 Global Circuit Breaker (Multi-Tenant DoS), P2 Budget reporting leakage, P3 Principles checker gap.          |

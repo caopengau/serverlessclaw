@@ -2,11 +2,11 @@ import { ITool, ToolType } from '../types/tool';
 import { MCPServerConfig } from '../types/mcp';
 import { logger } from '../logger';
 import { AgentRegistry } from '../registry';
+import { DYNAMO_KEYS } from '../constants/system';
 import { MCPClientManager } from './client-manager';
 import { MCPToolMapper } from './tool-mapper';
 import { LockManager } from '../lock/lock-manager';
 import { MCP } from '../constants/tools';
-import { DYNAMO_KEYS } from '../constants/system';
 import { DEFAULT_MCP_SERVERS } from './mcp-defaults';
 import { PluginManager } from '../plugin-manager';
 
@@ -226,13 +226,13 @@ export class MCPBridge {
     skipConnection: boolean = false,
     workspaceId?: string
   ): Promise<ITool[]> {
-    const serversConfig = (await AgentRegistry.getRawConfig('mcp_servers', {
+    const serversConfig = (await AgentRegistry.getRawConfig(DYNAMO_KEYS.MCP_SERVERS, {
       workspaceId,
     })) as Record<string, string | MCPServerConfig>;
 
     const allTools: ITool[] = [];
     const finalConfig = serversConfig ?? {};
-    let configUpdated = false;
+    const { ConfigManager } = await import('../registry/config');
 
     const defaultFsPath = process.env.AWS_LAMBDA_FUNCTION_NAME
       ? (process.env.MCP_FILESYSTEM_PATH ?? (process.env.LAMBDA_TASK_ROOT || '/var/task'))
@@ -251,25 +251,48 @@ export class MCPBridge {
 
     for (const [name, defaultConfig] of Object.entries(defaultServers)) {
       if (!finalConfig[name]) {
+        let serverConfig: string | MCPServerConfig;
         if (serverArns[name]) {
           logger.info(
             `[MCPBridge] Configuring default MCP server ${name} as remote Lambda via MCP_SERVER_ARNS`
           );
-          finalConfig[name] = { type: 'remote', url: serverArns[name] };
+          serverConfig = { type: 'remote', url: serverArns[name] };
         } else if (name === 'filesystem') {
-          finalConfig[name] = {
+          serverConfig = {
             type: 'local',
             command: `npx -y @modelcontextprotocol/server-filesystem ${defaultFsPath}`,
           };
         } else {
-          finalConfig[name] = defaultConfig;
+          serverConfig = defaultConfig;
         }
-        configUpdated = true;
-      }
-    }
 
-    if (configUpdated) {
-      await AgentRegistry.saveRawConfig('mcp_servers', finalConfig, { workspaceId });
+        // Principle 13: Atomic initialization of missing default servers
+        try {
+          await ConfigManager.atomicUpdateMapEntity(
+            DYNAMO_KEYS.MCP_SERVERS,
+            name,
+            serverConfig as unknown as Record<string, unknown>,
+            {
+              workspaceId,
+              conditionExpression: 'attribute_not_exists(#val.#id)',
+            }
+          );
+          finalConfig[name] = serverConfig;
+        } catch (e: unknown) {
+          if (
+            e instanceof Error &&
+            (e.name === 'ConditionalCheckFailedException' || e.message.includes('ConditionalCheck'))
+          ) {
+            // Already initialized by another process, fetch it to be sure
+            const freshConfig = await AgentRegistry.getRawConfig(DYNAMO_KEYS.MCP_SERVERS, {
+              workspaceId,
+            });
+            if (freshConfig && (freshConfig as any)[name]) {
+              finalConfig[name] = (freshConfig as any)[name];
+            }
+          }
+        }
+      }
     }
 
     const neededConfigs = Object.entries(finalConfig).filter(([name]) => {
@@ -353,7 +376,7 @@ export class MCPBridge {
    * Retrieves tool definitions from all cached MCP server results.
    */
   static async getCachedTools(workspaceId: string = 'global'): Promise<Partial<ITool>[]> {
-    const serversConfig = (await AgentRegistry.getRawConfig('mcp_servers', {
+    const serversConfig = (await AgentRegistry.getRawConfig(DYNAMO_KEYS.MCP_SERVERS, {
       workspaceId: workspaceId === 'global' ? undefined : workspaceId,
     })) as Record<string, string | MCPServerConfig>;
 
