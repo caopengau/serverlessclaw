@@ -24,9 +24,9 @@ export class DegradationDetector {
   /**
    * Resolves the effective thresholds for an agent based on its safety tier.
    */
-  private async getThresholds(agentId: string) {
+  private async getThresholds(agentId: string, workspaceId?: string) {
     try {
-      const agentConfig = await AgentRegistry.getAgentConfig(agentId);
+      const agentConfig = await AgentRegistry.getAgentConfig(agentId, { workspaceId });
       const tier = agentConfig?.safetyTier ?? SafetyTier.LOCAL;
       const policy = await SafetyConfigManager.getPolicy(tier);
 
@@ -36,7 +36,7 @@ export class DegradationDetector {
       };
     } catch (e) {
       logger.warn(
-        `Failed to resolve dynamic thresholds for agent ${agentId}, using strict failsafe`,
+        `Failed to resolve dynamic thresholds for agent ${agentId} (WS: ${workspaceId || 'global'}), using strict failsafe`,
         e
       );
       return {
@@ -54,10 +54,15 @@ export class DegradationDetector {
   /**
    * Analyze aggregated metrics for anomalies.
    */
-  async detectAnomalies(agentId: string, metrics: AggregatedMetrics): Promise<CognitiveAnomaly[]> {
-    const thresholds = await this.getThresholds(agentId);
+  async detectAnomalies(
+    agentId: string,
+    metrics: AggregatedMetrics,
+    workspaceId?: string
+  ): Promise<CognitiveAnomaly[]> {
+    const thresholds = await this.getThresholds(agentId, workspaceId || metrics.workspaceId);
     const anomalies: CognitiveAnomaly[] = [];
     const now = Date.now();
+    const effectiveWorkspaceId = workspaceId || metrics.workspaceId;
 
     // Check task completion rate
     if (metrics.taskCompletionRate < thresholds.minCompletionRate) {
@@ -69,6 +74,7 @@ export class DegradationDetector {
             ? AnomalySeverity.CRITICAL
             : AnomalySeverity.HIGH,
         agentId,
+        workspaceId: effectiveWorkspaceId,
         detectedAt: now,
         description: `Task completion rate dropped to ${(metrics.taskCompletionRate * 100).toFixed(1)}%`,
         triggerMetrics: { taskCompletionRate: metrics.taskCompletionRate },
@@ -86,6 +92,7 @@ export class DegradationDetector {
             ? AnomalySeverity.CRITICAL
             : AnomalySeverity.HIGH,
         agentId,
+        workspaceId: effectiveWorkspaceId,
         detectedAt: now,
         description: `Error rate elevated to ${(metrics.errorRate * 100).toFixed(1)}%`,
         triggerMetrics: { errorRate: metrics.errorRate },
@@ -103,6 +110,7 @@ export class DegradationDetector {
             ? AnomalySeverity.CRITICAL
             : AnomalySeverity.MEDIUM,
         agentId,
+        workspaceId: effectiveWorkspaceId,
         detectedAt: now,
         description: `Reasoning coherence dropped to ${metrics.reasoningCoherence.toFixed(1)}/10`,
         triggerMetrics: { reasoningCoherence: metrics.reasoningCoherence },
@@ -120,6 +128,7 @@ export class DegradationDetector {
             ? AnomalySeverity.HIGH
             : AnomalySeverity.MEDIUM,
         agentId,
+        workspaceId: effectiveWorkspaceId,
         detectedAt: now,
         description: `Memory miss rate at ${(metrics.memoryMissRate * 100).toFixed(1)}%`,
         triggerMetrics: { memoryMissRate: metrics.memoryMissRate },
@@ -134,6 +143,7 @@ export class DegradationDetector {
         type: AnomalyType.TOKEN_OVERUSE,
         severity: AnomalySeverity.MEDIUM,
         agentId,
+        workspaceId: effectiveWorkspaceId,
         detectedAt: now,
         description: `Token efficiency is low: ${metrics.tokenEfficiency.toFixed(2)} tasks/1000 tokens`,
         triggerMetrics: { tokenEfficiency: metrics.tokenEfficiency },
@@ -154,6 +164,7 @@ export class DegradationDetector {
             ? AnomalySeverity.HIGH
             : AnomalySeverity.MEDIUM,
         agentId,
+        workspaceId: effectiveWorkspaceId,
         detectedAt: now,
         description: `Average task latency elevated to ${metrics.avgTaskLatencyMs.toFixed(0)}ms`,
         triggerMetrics: { avgTaskLatencyMs: metrics.avgTaskLatencyMs },
@@ -172,6 +183,7 @@ export class DegradationDetector {
             ? AnomalySeverity.CRITICAL
             : AnomalySeverity.HIGH,
         agentId,
+        workspaceId: effectiveWorkspaceId,
         detectedAt: now,
         description: `High pivot rate detected: ${(pivotRate * 100).toFixed(1)}% — agent may be stuck in a reasoning loop`,
         triggerMetrics: {
@@ -192,6 +204,7 @@ export class DegradationDetector {
           type: AnomalyType.MEMORY_FRAGMENTATION,
           severity: fragScore > 0.9 ? AnomalySeverity.HIGH : AnomalySeverity.MEDIUM,
           agentId,
+          workspaceId: effectiveWorkspaceId,
           detectedAt: now,
           description: `Memory fragmentation score: ${(fragScore * 100).toFixed(0)}% — consider consolidation`,
           triggerMetrics: { memoryFragmentationScore: fragScore },

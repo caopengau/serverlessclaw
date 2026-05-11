@@ -29,7 +29,7 @@ Last Updated: 2026-05-11
 | **A**       | Life of a Message | Spine → Brain → Eye         | 11          | 2026-05-11  |
 | **B**       | Evolution Cycle   | Hand → Shield → Scales      | 10          | 2026-05-11  |
 | **C**       | Identity Journey  | Brain → Spine → Shield      | 11          | 2026-05-11  |
-| **D**       | Trust Loop        | Eye → Scales → Spine        | 14          | 2026-05-11  |
+| **D**       | Trust Loop        | Eye → Scales → Spine        | 15          | 2026-05-12  |
 | **E**       | Recovery Path     | Shield → Spine → Brain      | 13          | 2026-05-09  |
 | **F**       | Metabolic Loop    | Metabolism ↔ Scales ↔ Spine | 8           | 2026-05-11  |
 
@@ -124,6 +124,14 @@ Last Updated: 2026-05-11
 1. **Principle 13/15 First**: Prioritize checking `ConditionExpression` and `ADD` patterns in DynamoDB.
 2. **Multi-Tenancy Scoping**: Verify `workspaceId` propagation in all cross-silo events.
 3. **Automated Verification**: Always run `pnpm principles` and update the rule list in `scripts/quality/verify-principles.ts` to include new patterns.
+4. **Track Recurrence**: Use `ANTI-PATTERNS.md` to prevent regression of fixed P1 issues.
+
+---
+
+## Anti-Patterns Identified
+
+See `docs/governance/ANTI-PATTERNS.md` for recurring issues to avoid.
+y-principles.ts` to include new patterns.
 4. **Track Recurrence**: Use `ANTI-PATTERNS.md` to prevent regression of fixed P1 issues.
 
 ---
