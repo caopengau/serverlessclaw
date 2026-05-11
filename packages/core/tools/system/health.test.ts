@@ -39,6 +39,7 @@ vi.mock('../../lib/registry/config', async () => {
   return {
     ConfigManager: {
       saveRawConfig: mockSaveRawConfig,
+      getRawConfig: vi.fn().mockResolvedValue({}),
     },
   };
 });

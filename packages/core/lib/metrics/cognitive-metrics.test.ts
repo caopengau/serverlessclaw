@@ -46,15 +46,19 @@ vi.mock('../safety/safety-config-manager', () => ({
 }));
 
 // Mock AgentRegistry
-vi.mock('../registry/AgentRegistry', () => ({
-  AgentRegistry: {
-    getAgentConfig: vi.fn().mockResolvedValue({
-      id: 'agent-1',
-      safetyTier: 'local',
-    }),
-    atomicUpdateAgentField: vi.fn().mockResolvedValue(undefined),
-  },
-}));
+vi.mock('../registry/AgentRegistry', async () => {
+  const { BACKBONE_REGISTRY } = await import('../backbone');
+  return {
+    AgentRegistry: {
+      getAgentConfig: vi.fn().mockResolvedValue({
+        id: 'agent-1',
+        safetyTier: 'local',
+      }),
+      getAllConfigs: vi.fn().mockResolvedValue(BACKBONE_REGISTRY),
+      atomicUpdateAgentField: vi.fn().mockResolvedValue(undefined),
+    },
+  };
+});
 
 // Mock constants
 vi.mock('./constants', () => ({

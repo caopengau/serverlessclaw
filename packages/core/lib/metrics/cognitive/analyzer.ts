@@ -93,6 +93,7 @@ export class HealthTrendAnalyzer {
 
     return {
       agentId,
+      workspaceId,
       window,
       windowStart,
       windowEnd,

@@ -15,6 +15,8 @@ import { MetricsCollector, DEFAULT_CONFIG } from './collector';
 import { DegradationDetector } from './detector';
 import { HealthTrendAnalyzer } from './analyzer';
 
+import { AgentRegistry } from '../../registry/AgentRegistry';
+
 /**
  * Main cognitive health monitor combining all components.
  */
@@ -68,8 +70,8 @@ export class CognitiveHealthMonitor {
     if (agentIds && agentIds.length > 0) {
       agents = agentIds;
     } else {
-      const { BACKBONE_REGISTRY } = await import('../../backbone');
-      agents = Object.keys(BACKBONE_REGISTRY);
+      const allConfigs = await AgentRegistry.getAllConfigs({ workspaceId });
+      agents = Object.keys(allConfigs);
     }
 
     const metricsPromises = agents.map((agentId) =>
@@ -83,9 +85,11 @@ export class CognitiveHealthMonitor {
     for (let i = 0; i < agents.length; i++) {
       const agentId = agents[i];
       const metrics = results[i];
+      // Attach workspaceId to metrics for downstream traceability
+      metrics.workspaceId = workspaceId;
       agentMetrics.push(metrics);
 
-      const anomalies = await this.detector.detectAnomalies(agentId, metrics);
+      const anomalies = await this.detector.detectAnomalies(agentId, metrics, workspaceId);
       allAnomalies.push(...anomalies);
 
       if (anomalies.length > 0) {

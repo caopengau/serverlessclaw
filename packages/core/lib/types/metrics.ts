@@ -59,6 +59,8 @@ export interface CognitiveMetric {
 export interface AggregatedMetrics {
   /** Agent ID. */
   agentId: string;
+  /** Optional workspace ID for tenant isolation. */
+  workspaceId?: string;
   /** Time window. */
   window: MetricsWindow;
   /** Window start timestamp. */
@@ -116,6 +118,8 @@ export interface CognitiveAnomaly {
   severity: AnomalySeverity;
   /** Agent ID where anomaly was detected. */
   agentId: string;
+  /** Optional workspace ID for tenant isolation. */
+  workspaceId?: string;
   /** Timestamp of detection. */
   detectedAt: number;
   /** Human-readable description. */

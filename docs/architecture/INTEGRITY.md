@@ -172,7 +172,31 @@ To maintain AI context integrity and modularity, `ConfigManager` is implemented 
 +--------------+--------------+
                |
                v
-+--------------+--------------+
-|       ConfigManager         | (Agent Overrides & Entry Point)
++-----------------------------+
+|      ConfigManager         | (Agent Overrides & Entry Point)
 +-----------------------------+
 ```
+
+## 6. Isolated Trust Calibration Loop (Silo 6)
+
+To maintain trust integrity without cross-tenant interference, the Trust Calibration Loop (Perspective D) enforces strict `workspaceId` scoping from metric collection to anomaly detection and final trust score updates.
+
+```ascii
+[ The Eye ]          [ The Scales ]             [ DynamoDB ]
+     |                    |                          |
+     |-- getMetrics(WS1) ->|                          |
+     |                    |                          |
+     |                    |-- getThresholds(WS1) --->|
+     |                    |                          |
+     |                    |<- (WS1 Safety Tier) -----|
+     |                    |                          |
+     |-- (Metrics) ------>|                          |
+     |                    |-- detectAnomalies(WS1) ->|
+     |                    |                          |
+     |                    |-- recordTrust(WS1) ----->|
+     |                    |   (Atomic Condition)     |
+     |                    |                          |
+```
+
+The system ensures that an agent's safety tier (and thus its calibration thresholds) are resolved specifically for the workspace context. Anomalies are recorded with full tenant dimensions to prevent global trust poisoning.
+
