@@ -49,14 +49,10 @@ log(`Using region: ${REGION}`);
 const cf = new CloudFrontClient({ region: REGION });
 const s3 = new S3Client({ region: REGION });
 
-function log(msg: string) {
-  console.log(`\x1b[36m[fix-cloudfront]\x1b[0m ${msg}`);
-}
+import { log as commonLog, err as commonErr } from './common';
 
-function err(msg: string): never {
-  console.error(`\x1b[31m[fix-cloudfront ERROR]\x1b[0m ${msg}`);
-  process.exit(1);
-}
+const log = (msg: string) => commonLog('fix-cloudfront', msg);
+const err = (msg: string) => commonErr('fix-cloudfront', msg);
 
 async function getNewestBucketName(): Promise<string> {
   const buckets = await s3.send(new ListBucketsCommand({}));
