@@ -135,16 +135,22 @@ export class ClawTracer {
           attrValues[valKey] = val;
         });
 
-        await this.docClient.send(
-          new UpdateCommand({
-            TableName: this.getTableName(),
-            Key: { traceId: this.traceId, nodeId: '__summary__' },
-            UpdateExpression: `SET ${updateExprParts.join(', ')}`,
-            ConditionExpression: 'attribute_exists(traceId)',
-            ExpressionAttributeNames: attrNames,
-            ExpressionAttributeValues: attrValues,
-          })
-        );
+        const updateParams: any = {
+          TableName: this.getTableName(),
+          Key: { traceId: this.traceId, nodeId: '__summary__' },
+          UpdateExpression: `SET ${updateExprParts.join(', ')}`,
+          ConditionExpression: this.workspaceId
+            ? 'attribute_exists(traceId) AND workspaceId = :wsId'
+            : 'attribute_exists(traceId)',
+          ExpressionAttributeNames: attrNames,
+          ExpressionAttributeValues: attrValues,
+        };
+
+        if (this.workspaceId) {
+          updateParams.ExpressionAttributeValues[':wsId'] = this.workspaceId;
+        }
+
+        await this.docClient.send(new UpdateCommand(updateParams));
       }
     }, 'UpdateSummary');
   }
@@ -246,19 +252,25 @@ export class ClawTracer {
       timestamp: Date.now(),
     }) as TraceStep;
 
-    await this.docClient.send(
-      new UpdateCommand({
-        TableName: this.getTableName(),
-        Key: { traceId: this.traceId, nodeId: this.nodeId },
-        UpdateExpression: 'SET #steps = list_append(if_not_exists(#steps, :empty_list), :step)',
-        ConditionExpression: 'attribute_exists(traceId)',
-        ExpressionAttributeNames: { '#steps': 'steps' },
-        ExpressionAttributeValues: {
-          ':step': [fullStep],
-          ':empty_list': [],
-        },
-      })
-    );
+    const updateParams: any = {
+      TableName: this.getTableName(),
+      Key: { traceId: this.traceId, nodeId: this.nodeId },
+      UpdateExpression: 'SET #steps = list_append(if_not_exists(#steps, :empty_list), :step)',
+      ConditionExpression: this.workspaceId
+        ? 'attribute_exists(traceId) AND workspaceId = :wsId'
+        : 'attribute_exists(traceId)',
+      ExpressionAttributeNames: { '#steps': 'steps' },
+      ExpressionAttributeValues: {
+        ':step': [fullStep],
+        ':empty_list': [],
+      },
+    };
+
+    if (this.workspaceId) {
+      updateParams.ExpressionAttributeValues[':wsId'] = this.workspaceId;
+    }
+
+    await this.docClient.send(new UpdateCommand(updateParams));
 
     await this.updateSummary(TRACE_STATUS.STARTED, {
       extra: { lastStepType: step.type },
@@ -282,19 +294,25 @@ export class ClawTracer {
       })
     ) as TraceStep[];
 
-    await this.docClient.send(
-      new UpdateCommand({
-        TableName: this.getTableName(),
-        Key: { traceId: this.traceId, nodeId: this.nodeId },
-        UpdateExpression: 'SET #steps = list_append(if_not_exists(#steps, :empty_list), :steps)',
-        ConditionExpression: 'attribute_exists(traceId)',
-        ExpressionAttributeNames: { '#steps': 'steps' },
-        ExpressionAttributeValues: {
-          ':steps': fullSteps,
-          ':empty_list': [],
-        },
-      })
-    );
+    const updateParams: any = {
+      TableName: this.getTableName(),
+      Key: { traceId: this.traceId, nodeId: this.nodeId },
+      UpdateExpression: 'SET #steps = list_append(if_not_exists(#steps, :empty_list), :steps)',
+      ConditionExpression: this.workspaceId
+        ? 'attribute_exists(traceId) AND workspaceId = :wsId'
+        : 'attribute_exists(traceId)',
+      ExpressionAttributeNames: { '#steps': 'steps' },
+      ExpressionAttributeValues: {
+        ':steps': fullSteps,
+        ':empty_list': [],
+      },
+    };
+
+    if (this.workspaceId) {
+      updateParams.ExpressionAttributeValues[':wsId'] = this.workspaceId;
+    }
+
+    await this.docClient.send(new UpdateCommand(updateParams));
 
     await this.updateSummary(TRACE_STATUS.STARTED, {
       extra: { lastStepType: steps[steps.length - 1].type },
@@ -311,22 +329,28 @@ export class ClawTracer {
   async endTrace(finalResponse: string, metadata?: Record<string, unknown>): Promise<void> {
     const endTime = Date.now();
 
-    await this.docClient.send(
-      new UpdateCommand({
-        TableName: this.getTableName(),
-        Key: { traceId: this.traceId, nodeId: this.nodeId },
-        UpdateExpression:
-          'SET #status = :status, finalResponse = :resp, endTime = :end, metadata = :meta',
-        ConditionExpression: 'attribute_exists(traceId)',
-        ExpressionAttributeNames: { '#status': 'status' },
-        ExpressionAttributeValues: {
-          ':status': TRACE_STATUS.COMPLETED,
-          ':resp': finalResponse,
-          ':end': endTime,
-          ':meta': metadata ?? {},
-        },
-      })
-    );
+    const updateParams: any = {
+      TableName: this.getTableName(),
+      Key: { traceId: this.traceId, nodeId: this.nodeId },
+      UpdateExpression:
+        'SET #status = :status, finalResponse = :resp, endTime = :end, metadata = :meta',
+      ConditionExpression: this.workspaceId
+        ? 'attribute_exists(traceId) AND workspaceId = :wsId'
+        : 'attribute_exists(traceId)',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: {
+        ':status': TRACE_STATUS.COMPLETED,
+        ':resp': finalResponse,
+        ':end': endTime,
+        ':meta': metadata ?? {},
+      },
+    };
+
+    if (this.workspaceId) {
+      updateParams.ExpressionAttributeValues[':wsId'] = this.workspaceId;
+    }
+
+    await this.docClient.send(new UpdateCommand(updateParams));
 
     await this.updateSummary(TRACE_STATUS.COMPLETED, {
       extra: { finalResponse },
@@ -373,22 +397,28 @@ export class ClawTracer {
     const finalMetadata = { ...metadata, failureReason: reason };
     const endTime = Date.now();
 
-    await this.docClient.send(
-      new UpdateCommand({
-        TableName: this.getTableName(),
-        Key: { traceId: this.traceId, nodeId: this.nodeId },
-        UpdateExpression:
-          'SET #status = :status, failureReason = :reason, endTime = :end, metadata = :meta',
-        ConditionExpression: 'attribute_exists(traceId)',
-        ExpressionAttributeNames: { '#status': 'status' },
-        ExpressionAttributeValues: {
-          ':status': TRACE_STATUS.FAILED,
-          ':reason': reason,
-          ':end': endTime,
-          ':meta': finalMetadata,
-        },
-      })
-    );
+    const updateParams: any = {
+      TableName: this.getTableName(),
+      Key: { traceId: this.traceId, nodeId: this.nodeId },
+      UpdateExpression:
+        'SET #status = :status, failureReason = :reason, endTime = :end, metadata = :meta',
+      ConditionExpression: this.workspaceId
+        ? 'attribute_exists(traceId) AND workspaceId = :wsId'
+        : 'attribute_exists(traceId)',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: {
+        ':status': TRACE_STATUS.FAILED,
+        ':reason': reason,
+        ':end': endTime,
+        ':meta': finalMetadata,
+      },
+    };
+
+    if (this.workspaceId) {
+      updateParams.ExpressionAttributeValues[':wsId'] = this.workspaceId;
+    }
+
+    await this.docClient.send(new UpdateCommand(updateParams));
 
     await this.emitCompletionMetrics(endTime, { success: false });
 
@@ -520,8 +550,19 @@ export class ClawTracer {
   private async bestEffort(fn: () => Promise<void>, label: string): Promise<void> {
     try {
       await fn();
-    } catch (e) {
+    } catch (e: any) {
       logger.warn(`[Tracer] Best-effort ${label} failed for ${this.traceId}:`, e);
+      try {
+        const { emitMetrics } = await import('../metrics/metrics');
+        await emitMetrics([
+          METRICS.storageError(label, e?.name || 'UnknownError', this.getTableName(), {
+            workspaceId: this.workspaceId,
+            orgId: this.orgId,
+          }),
+        ]);
+      } catch {
+        // Suppress metrics emission errors to avoid infinite loops/nested failures
+      }
     }
   }
 }

@@ -16,7 +16,7 @@ Last Updated: 2026-05-11
 | **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 13          | 2026-05-11   | Low        |
 | **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 22          | 2026-05-09   | Low        |
 | **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 19          | 2026-05-11   | Low        |
-| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 17          | 2026-05-03   | Low        |
+| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 18          | 2026-05-11   | Low        |
 | **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 18          | 2026-05-04   | Low        |
 | **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 16          | 2026-05-11   | Low        |
 
@@ -26,7 +26,7 @@ Last Updated: 2026-05-11
 
 | Perspective | Name              | Description                 | Usage Count | Last Tested |
 | :---------- | :---------------- | :-------------------------- | :---------- | :---------- |
-| **A**       | Life of a Message | Spine → Brain → Eye         | 10          | 2026-05-09  |
+| **A**       | Life of a Message | Spine → Brain → Eye         | 11          | 2026-05-11  |
 | **B**       | Evolution Cycle   | Hand → Shield → Scales      | 10          | 2026-05-11  |
 | **C**       | Identity Journey  | Brain → Spine → Shield      | 11          | 2026-05-11  |
 | **D**       | Trust Loop        | Eye → Scales → Spine        | 14          | 2026-05-11  |
