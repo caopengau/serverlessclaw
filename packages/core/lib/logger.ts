@@ -29,7 +29,7 @@ class Logger {
     }
 
     if (env.NODE_ENV === 'test' || env.VITEST) {
-      this.level = env.DEBUG_TESTS ? LogLevel.DEBUG : LogLevel.NONE;
+      this.level = env.DEBUG_TESTS ? LogLevel.DEBUG : logEnv ? this.level : LogLevel.ERROR;
     }
   }
 
