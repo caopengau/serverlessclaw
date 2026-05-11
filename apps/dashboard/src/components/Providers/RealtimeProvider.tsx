@@ -246,7 +246,7 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
           `^${t
             .replace(/\//g, '\\/') // Escape slashes
             .replace(/\+/g, '[^\\/]+') // '+' matches one level
-            .replace(/#/g, '.*')}$` // '#' matches everything after
+            .replace(/#/g, '.*')}$`
         )
     );
     const sub = { topics, compiledTopics, callback };
