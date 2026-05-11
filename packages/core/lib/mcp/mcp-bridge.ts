@@ -7,7 +7,7 @@ import { MCPClientManager } from './client-manager';
 import { MCPToolMapper } from './tool-mapper';
 import { LockManager } from '../lock/lock-manager';
 import { MCP } from '../constants/tools';
-import { DEFAULT_MCP_SERVERS } from './mcp-defaults';
+import { DEFAULT_MCP_SERVERS, SERVER_RESOLVERS } from './mcp-defaults';
 import { PluginManager } from '../plugin-manager';
 
 interface EffectiveScope {
@@ -234,10 +234,6 @@ export class MCPBridge {
     const finalConfig = serversConfig ?? {};
     const { ConfigManager } = await import('../registry/config');
 
-    const defaultFsPath = process.env.AWS_LAMBDA_FUNCTION_NAME
-      ? (process.env.MCP_FILESYSTEM_PATH ?? (process.env.LAMBDA_TASK_ROOT || '/var/task'))
-      : '.';
-
     let serverArns: Record<string, string> = {};
     try {
       if (process.env.MCP_SERVER_ARNS) {
@@ -257,11 +253,8 @@ export class MCPBridge {
             `[MCPBridge] Configuring default MCP server ${name} as remote Lambda via MCP_SERVER_ARNS`
           );
           serverConfig = { type: 'remote', url: serverArns[name] };
-        } else if (name === 'filesystem') {
-          serverConfig = {
-            type: 'local',
-            command: `npx -y @modelcontextprotocol/server-filesystem ${defaultFsPath}`,
-          };
+        } else if (SERVER_RESOLVERS[name] && typeof defaultConfig !== 'string') {
+          serverConfig = SERVER_RESOLVERS[name](defaultConfig, process.env);
         } else {
           serverConfig = defaultConfig;
         }
@@ -334,6 +327,10 @@ export class MCPBridge {
         ];
       }
 
+      if (SERVER_RESOLVERS[name] && typeof config !== 'string') {
+        config = SERVER_RESOLVERS[name](config, process.env);
+      }
+
       let connectionString: string;
       let env: Record<string, string> | undefined;
 
@@ -346,14 +343,6 @@ export class MCPBridge {
         env = config.env;
       } else {
         return [];
-      }
-
-      if (name === 'filesystem' && !!process.env.AWS_LAMBDA_FUNCTION_NAME) {
-        const fsPath = process.env.MCP_FILESYSTEM_PATH ?? '/tmp';
-        logger.info(
-          `[MCPBridge] Forcing local execution for 'filesystem' server to preserve workspace access (Path: ${fsPath}).`
-        );
-        connectionString = `npx -y @modelcontextprotocol/server-filesystem ${fsPath}`;
       }
 
       try {

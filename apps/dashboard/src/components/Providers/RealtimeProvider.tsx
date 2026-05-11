@@ -17,6 +17,7 @@ type MessageCallback = (topic: string, payload: RealtimeMessage) => void;
 
 interface Subscription {
   topics: string[];
+  compiledTopics: RegExp[];
   callback: MessageCallback;
 }
 
@@ -169,18 +170,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
           let matchCount = 0;
           subscriptionsRef.current.forEach((sub) => {
-            const matches = sub.topics.some((t) => {
+            const matches = sub.topics.some((t, index) => {
               // 1. Exact match
               if (t === displayTopic) return true;
 
-              // 2. MQTT Wildcard matching
-              const pattern = t
-                .replace(/\//g, '\\/') // Escape slashes
-                .replace(/\+/g, '[^\\/]+') // '+' matches one level
-                .replace(/#/g, '.*'); // '#' matches everything after
-
-              const regex = new RegExp(`^${pattern}$`);
-              return regex.test(displayTopic);
+              // 2. MQTT Wildcard matching (using pre-compiled regex)
+              return sub.compiledTopics[index].test(displayTopic);
             });
             if (matches) {
               matchCount++;
@@ -245,7 +240,17 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
   }, [activeWorkspaceId, fetchSessions]);
 
   const subscribe = useCallback((topics: string[], callback: MessageCallback) => {
-    const sub = { topics, callback };
+    const compiledTopics = topics.map(
+      (t) =>
+        new RegExp(
+          `^${t
+            .replace(/\\/g, '\\\\')
+            .replace(/\\//g, '\\\\/')
+            .replace(/\\+/g, '[^\\\\/]+')
+            .replace(/#/g, '.*')}$`
+        )
+    );
+    const sub = { topics, compiledTopics, callback };
     subscriptionsRef.current.add(sub);
 
     if (mqttClientRef.current?.connected) {

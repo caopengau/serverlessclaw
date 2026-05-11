@@ -24,55 +24,15 @@ export interface ContextResult {
 }
 
 export class AgentAssembler {
-  static async prepareContext(
+  private static async retrieveMemoryState(
     memory: IMemory,
-    provider: IProvider,
-    config: IAgentConfig | undefined,
     baseUserId: string,
     storageId: string,
-    userText: string,
-    incomingAttachments: import('../types/index').Attachment[] | undefined,
-    options: {
-      isIsolated: boolean;
-      depth: number;
-      activeModel: string;
-      activeProvider: string;
-      activeProfile: ReasoningProfile;
-      systemPrompt: string;
-      pageContext?: {
-        url: string;
-        title?: string;
-        data?: Record<string, unknown>;
-        traceId?: string;
-        sessionId?: string;
-        agentId?: string;
-      };
-      agentId?: string;
-      workspaceId?: string;
-      orgId?: string;
-      teamId?: string;
-      staffId?: string;
-    }
-  ): Promise<ContextResult> {
-    const {
-      isIsolated,
-      depth,
-      activeModel,
-      activeProvider,
-      activeProfile,
-      systemPrompt,
-      pageContext,
-      agentId,
-      workspaceId,
-      orgId,
-      teamId,
-      staffId,
-    } = options;
-
-    // 1. Memory Retrieval (parallelized)
+    agentId: string,
+    scope: any
+  ) {
     const { NegativeMemory } = await import('../memory/negative-memory');
     const negMemory = new NegativeMemory(memory);
-    const scope = { workspaceId, orgId, teamId, staffId };
 
     const [history, [distilled, lessons, prefPrefixed, prefRaw, globalLessons, negativeContext]] =
       await Promise.all([
@@ -83,18 +43,13 @@ export class AgentAssembler {
           memory.searchInsights(`USER#${baseUserId}`, '*', InsightCategory.USER_PREFERENCE, 50),
           memory.searchInsights(baseUserId, '*', InsightCategory.USER_PREFERENCE, 50),
           memory.getGlobalLessons(5),
-          negMemory.getNegativeContext(agentId ?? config?.id ?? 'unknown', scope),
+          negMemory.getNegativeContext(agentId, scope),
         ]),
       ]);
 
     const preferences = {
       items: [...(prefPrefixed.items ?? []), ...(prefRaw.items ?? [])],
     };
-
-    const facts = [
-      ...distilled.split('\n').filter(Boolean),
-      ...(preferences.items?.map((i) => i.content) ?? []),
-    ].join('\n');
 
     let recoveryContext = '';
     try {
@@ -110,14 +65,32 @@ export class AgentAssembler {
       // Silently ignore
     }
 
+    return { history, distilled, lessons, preferences, globalLessons, negativeContext, recoveryContext };
+  }
+
+  private static async buildContextPrompt(
+    provider: IProvider,
+    config: IAgentConfig | undefined,
+    memoryState: any,
+    options: any
+  ) {
+    const {
+      isIsolated, depth, activeModel, activeProvider, activeProfile, systemPrompt, pageContext
+    } = options;
+    const { distilled, lessons, preferences, globalLessons, negativeContext, recoveryContext } = memoryState;
+
+    const facts = [
+      ...distilled.split('\n').filter(Boolean),
+      ...(preferences.items?.map((i: any) => i.content) ?? []),
+    ].join('\n');
+
     const pageContextBlock = pageContext
       ? `\n\n[CURRENT_PAGE_CONTEXT]:\nThe user is currently interacting with this dashboard page. Use this to provide context-aware assistance.\nURL: ${pageContext.url}${pageContext.title ? `\nTitle: ${pageContext.title}` : ''}${pageContext.traceId ? `\nActive Trace ID: ${pageContext.traceId}` : ''}${pageContext.sessionId ? `\nActive Session ID: ${pageContext.sessionId}` : ''}${pageContext.agentId ? `\nActive Agent ID: ${pageContext.agentId}` : ''}${pageContext.data ? `\nPage Data: ${JSON.stringify(pageContext.data)}` : ''}\n`
       : '';
 
-    // 3. Prompt Assembly
     const globalLessonsBlock =
       globalLessons.length > 0
-        ? `\n\n[COLLECTIVE_SWARM_INTELLIGENCE]:\nThese are system-wide lessons learned across ALL sessions. Apply them universally:\n${globalLessons.map((l) => `- ${l}`).join('\n')}\n`
+        ? `\n\n[COLLECTIVE_SWARM_INTELLIGENCE]:\nThese are system-wide lessons learned across ALL sessions. Apply them universally:\n${globalLessons.map((l: string) => `- ${l}`).join('\n')}\n`
         : '';
 
     const [capabilities, resolvedPrompt] = await Promise.all([
@@ -139,7 +112,6 @@ export class AgentAssembler {
     contextPrompt += globalLessonsBlock;
     if (negativeContext) contextPrompt += negativeContext;
 
-    // Phase 17: Static Analysis Feed
     const { SystemContext } = await import('../utils/system-context');
     contextPrompt += SystemContext.getEnvironmentalConstraints();
 
@@ -158,21 +130,35 @@ export class AgentAssembler {
       - BEHAVIOR: ${isIsolated ? 'Be technical, precise, and structured.' : 'Be friendly, direct, and conversational. Skip internal monologue.'}
       `;
 
+    return { contextPrompt, contextLimit: capabilities.contextWindow ?? LIMITS.MAX_CONTEXT_LENGTH };
+  }
+
+  private static async manageHistoryAndSummarization(
+    memory: IMemory,
+    provider: IProvider,
+    history: Message[],
+    userText: string,
+    incomingAttachments: any[] | undefined,
+    contextPrompt: string,
+    contextLimit: number,
+    storageId: string,
+    options: any,
+    scope: any
+  ) {
+    const { activeModel, activeProvider, pageContext } = options;
     const [{ MessageRole }, summary] = await Promise.all([
       import('../types/index'),
       memory.getSummary(storageId),
     ]);
 
-    // B1: Deduplicate history by messageId to prevent context inflation from retries/multiple saves
     const seenIds = new Set<string>();
     const uniqueHistory = history.filter((m) => {
-      if (!m.messageId) return true; // Keep messages without IDs
+      if (!m.messageId) return true;
       if (seenIds.has(m.messageId)) return false;
       seenIds.add(m.messageId);
       return true;
     });
 
-    // Ensure we have a valid ID even if pageContext is missing
     const effectiveTraceId = pageContext?.traceId || generateId('trace');
 
     const currentMessage: Message = {
@@ -187,8 +173,6 @@ export class AgentAssembler {
 
     const fullHistory = [...uniqueHistory, currentMessage];
 
-    const contextLimit = capabilities.contextWindow ?? LIMITS.MAX_CONTEXT_LENGTH;
-
     const managed = await ContextManager.getManagedContext(
       fullHistory,
       summary,
@@ -198,9 +182,7 @@ export class AgentAssembler {
       currentMessage.traceId
     );
 
-    // Trigger background summarization if context limits are reached
     if (await ContextManager.needsSummarization(fullHistory, contextLimit)) {
-      // Fire and forget summarization to not block the current turn
       ContextManager.summarize(
         memory,
         storageId,
@@ -211,13 +193,41 @@ export class AgentAssembler {
       ).catch((err) => logger.error('Background summarization failed:', err));
     }
 
+    return { messages: managed.messages, summary };
+  }
+
+  static async prepareContext(
+    memory: IMemory,
+    provider: IProvider,
+    config: IAgentConfig | undefined,
+    baseUserId: string,
+    storageId: string,
+    userText: string,
+    incomingAttachments: import('../types/index').Attachment[] | undefined,
+    options: any
+  ): Promise<ContextResult> {
+    const scope = { workspaceId: options.workspaceId, orgId: options.orgId, teamId: options.teamId, staffId: options.staffId };
+
+    const memoryState = await this.retrieveMemoryState(
+      memory, baseUserId, storageId, options.agentId ?? config?.id ?? 'unknown', scope
+    );
+
+    const { contextPrompt, contextLimit } = await this.buildContextPrompt(
+      provider, config, memoryState, options
+    );
+
+    const { messages, summary } = await this.manageHistoryAndSummarization(
+      memory, provider, memoryState.history, userText, incomingAttachments,
+      contextPrompt, contextLimit, storageId, options, scope
+    );
+
     return {
       contextPrompt,
-      messages: managed.messages,
-      summary: summary, // Use the original summary since ContextManager doesn't return a new one
+      messages,
+      summary,
       contextLimit,
-      activeModel,
-      activeProvider,
+      activeModel: options.activeModel,
+      activeProvider: options.activeProvider,
     };
   }
 }
