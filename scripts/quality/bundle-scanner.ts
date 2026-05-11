@@ -1,12 +1,3 @@
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
-import { execSync } from 'child_process';
-
-/**
- * Bundle Scanner: Verifies OpenNext build artifacts for critical modules.
- * This is a quality gate to prevent 500 Internal Server Errors in Lambda.
- */
-
 import { readFileSync, existsSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { execSync } from 'child_process';
@@ -16,20 +7,13 @@ import { execSync } from 'child_process';
  * This is a quality gate to prevent 500 Internal Server Errors in Lambda.
  */
 
-const APPS_ROOT = 'framework/apps';
+const APPS_ROOT = 'apps';
 
-function log(msg: string) {
-  console.log(`\x1b[35m[bundle-scanner]\x1b[0m ${msg}`);
-}
+import { log as commonLog, warn as commonWarn, err as commonErr } from './common';
 
-function warn(msg: string) {
-  console.log(`\x1b[33m[bundle-scanner WARNING]\x1b[0m ${msg}`);
-}
-
-function err(msg: string): never {
-  console.error(`\x1b[31m[bundle-scanner ERROR]\x1b[0m ${msg}`);
-  process.exit(1);
-}
+const log = (msg: string) => commonLog('bundle-scanner', msg);
+const warn = (msg: string) => commonWarn('bundle-scanner', msg);
+const err = (msg: string) => commonErr('bundle-scanner', msg);
 
 async function scanApp(appPath: string) {
   log(`Scanning app build: ${appPath}`);

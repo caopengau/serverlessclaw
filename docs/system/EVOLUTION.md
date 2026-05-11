@@ -88,6 +88,18 @@ The system tracks the economic viability of its own evolution through the **Valu
 
 ---
 
+## 📊 Self-evolution Economics (SC-4.1)
+
+The system tracks the economic viability of its own evolution through the **Value Attribution Engine (Ledger)**. Every strategic gap resolved and every tool execution is mapped to a value-creation or resource-consumption event.
+
+### Value Attribution Loop
+
+1. **Value Creation**: When the `QA Auditor` marks a gap as `DONE`, the system records a `value_creation` event in the Ledger, attributing "Credits" to the agents involved.
+2. **Resource Consumption**: Token usage and infrastructure costs are recorded as `resource_consumption` events.
+3. **ROI Analysis**: The `Strategic Planner` uses these ledger entries to calculate the **Return on Innovation (ROI)** for various evolution tracks, prioritizing high-value/low-cost optimizations.
+
+---
+
 ## Evolution Modes: HITL vs AUTO
 
 Serverless Claw supports two primary evolution modes that dictate how autonomously the system can execute tasks and use tools.

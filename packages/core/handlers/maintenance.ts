@@ -45,15 +45,45 @@ export const handler = async (_event: unknown, _context: Context): Promise<void>
 
         // Run full Metabolism Audit (including Repair 2: Gap Archival/Culling)
         // This fixes the multi-tenant memory leak (Audit Finding 2)
-        await MetabolismService.runMetabolismAudit(memory, {
+        const findings = await MetabolismService.runMetabolismAudit(memory, {
           repair: true,
           workspaceId,
         });
+
+        if (findings.length > 0) {
+          await emitTypedEvent('maintenance.handler', EventType.REPORT_BACK, {
+            userId: 'SYSTEM',
+            agentId: 'superclaw',
+            task: `Metabolism Maintenance Cycle: Performed ${findings.length} regenerative repairs.`,
+            workspaceId,
+            metadata: {
+              findings: findings.map((f) => ({
+                expected: f.expected,
+                actual: f.actual,
+                severity: f.severity,
+              })),
+            },
+          });
+        }
       }
 
       // Also check global agents and perform global repairs
       await TrustManager.decayTrustScores();
-      await MetabolismService.runMetabolismAudit(memory, { repair: true });
+      const globalFindings = await MetabolismService.runMetabolismAudit(memory, { repair: true });
+      if (globalFindings.length > 0) {
+        await emitTypedEvent('maintenance.handler', EventType.REPORT_BACK, {
+          userId: 'SYSTEM',
+          agentId: 'superclaw',
+          task: `Global Metabolism Maintenance: Performed ${globalFindings.length} regenerative repairs.`,
+          metadata: {
+            findings: globalFindings.map((f) => ({
+              expected: f.expected,
+              actual: f.actual,
+              severity: f.severity,
+            })),
+          },
+        });
+      }
     } catch (error) {
       logger.warn('[MAINTENANCE] Multi-tenant maintenance cycle failed:', error);
     }

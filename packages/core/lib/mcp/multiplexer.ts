@@ -2,6 +2,7 @@ import { ITool } from '../types/tool';
 import { MCPBridge } from './mcp-bridge';
 import { logger } from '../logger';
 import { AgentRegistry } from '../registry';
+import { DYNAMO_KEYS } from '../constants/system';
 
 /**
  * MCPMultiplexer provides a high-level interface for managing multiple MCP sources.
@@ -58,7 +59,7 @@ export class MCPMultiplexer {
   static async getHealthStatus(
     workspaceId?: string
   ): Promise<Record<string, 'online' | 'offline' | 'unknown'>> {
-    const serversConfig = (await AgentRegistry.getRawConfig('mcp_servers', {
+    const serversConfig = (await AgentRegistry.getRawConfig(DYNAMO_KEYS.MCP_SERVERS, {
       workspaceId,
     })) as Record<string, unknown>;
     const status: Record<string, 'online' | 'offline' | 'unknown'> = {};
@@ -96,14 +97,21 @@ export class MCPMultiplexer {
    * Registers a new MCP server configuration at runtime.
    * This is used by plugins to dynamically add capabilities.
    */
-  static async registerServer(name: string, config: unknown, workspaceId?: string): Promise<void> {
-    const currentConfig =
-      ((await AgentRegistry.getRawConfig('mcp_servers', { workspaceId })) as Record<
-        string,
-        unknown
-      >) || {};
-    currentConfig[name] = config;
-    await AgentRegistry.saveRawConfig('mcp_servers', currentConfig, { workspaceId });
+  static async registerServer(
+    name: string,
+    config: Record<string, unknown> | string,
+    workspaceId?: string
+  ): Promise<void> {
+    const { ConfigManager } = await import('../registry/config');
+
+    // Principle 13: Atomic registration of new MCP servers
+    await ConfigManager.atomicUpdateMapEntity(
+      DYNAMO_KEYS.MCP_SERVERS,
+      name,
+      typeof config === 'string' ? { url: config, type: 'remote' } : config,
+      { workspaceId }
+    );
+
     logger.info(
       `[MCPMultiplexer] Registered new MCP server: ${name} (WS: ${workspaceId || 'global'})`
     );

@@ -349,7 +349,7 @@ export const METRICS = {
     operation: string,
     errorName: string,
     tableName: string,
-    scope?: { workspaceId?: string; teamId?: string; staffId?: string }
+    scope?: { workspaceId?: string; teamId?: string; staffId?: string; orgId?: string }
   ): MetricDatum {
     return {
       MetricName: 'StorageError',

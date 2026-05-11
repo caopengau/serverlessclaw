@@ -6,13 +6,12 @@ export async function getHandlerForEvent(
   detailType: string,
   traceId: string,
   sessionId: string,
-  eventDetail: any
+  workspaceId?: string
 ) {
   const { logger: localLogger } = await import('../../lib/logger');
   const { ConfigManager } = await import('../../lib/registry/config');
   const { DEFAULT_EVENT_ROUTING } = await import('../../lib/event-routing');
 
-  const workspaceId = (eventDetail?.workspaceId as string) || undefined;
   const scope = { workspaceId };
 
   // Fetch routing configuration
