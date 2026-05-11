@@ -146,17 +146,34 @@ sync: ## Push product to origin only (safe default)
 	@$(call log_step,Pushing latest changes to origin...)
 	@git push origin $$(git rev-parse --abbrev-ref HEAD)
 
-sync-status: ## Show sync remote safety status for subtree operations
-	@$(call log_step,Checking subtree remote safety...)
-	@echo "origin (push):       $$(git remote get-url --push origin 2>/dev/null || echo 'N/A')" ; \
-	 echo "$(SUBTREE_OFFICIAL_REMOTE) (fetch): $$(git remote get-url $(SUBTREE_OFFICIAL_REMOTE) 2>/dev/null || echo 'N/A')" ; \
-	 echo "$(SUBTREE_OFFICIAL_REMOTE) (push):  $$(git remote get-url --push $(SUBTREE_OFFICIAL_REMOTE) 2>/dev/null || echo 'N/A')"
+sync-status: ## Show sync remote safety status and commit/file differences
+	@$(call log_step,Checking subtree remote safety and sync status...); \
+	echo "origin (push):       $$(git remote get-url --push origin 2>/dev/null || echo 'N/A')" ; \
+	echo "$(SUBTREE_OFFICIAL_REMOTE) (fetch): $$(git remote get-url $(SUBTREE_OFFICIAL_REMOTE) 2>/dev/null || echo 'N/A')" ; \
+	echo "$(SUBTREE_OFFICIAL_REMOTE) (push):  $$(git remote get-url --push $(SUBTREE_OFFICIAL_REMOTE) 2>/dev/null || echo 'N/A')" ; \
+	echo "upstream-local (push): $$(git remote get-url --push upstream-local 2>/dev/null || echo 'N/A')" ; \
+	\
+	REMOTE=$$(git remote | grep -q "^upstream-local$$" && echo "upstream-local" || echo "$(SUBTREE_OFFICIAL_REMOTE)"); \
+	git fetch $$REMOTE $(SUBTREE_BRANCH) --quiet 2>/dev/null || true; \
+	\
+	DIFF_FILES=$$(git diff $$REMOTE/$(SUBTREE_BRANCH) --name-only -- framework/ 2>/dev/null | wc -l | tr -d ' '); \
+	AHEAD=$$(git rev-list --count $$REMOTE/$(SUBTREE_BRANCH)..HEAD -- framework/ 2>/dev/null || echo 0); \
+	\
+	if [ "$$DIFF_FILES" -gt 0 ]; then \
+		$(call log_warning,Found $$DIFF_FILES modified files in framework/ compared to $$REMOTE); \
+	else \
+		$(call log_success,Framework files are in sync with $$REMOTE); \
+	fi; \
+	if [ "$$AHEAD" -gt 0 ]; then \
+		$(call log_info,VoltX is ahead of $$REMOTE by $$AHEAD commits in framework/); \
+	fi
 
-sync-downstream: ## Pull latest framework subtree from official upstream (fetch-only remote)
-	@$(call log_step,Syncing framework subtree from $(SUBTREE_OFFICIAL_REMOTE)/$(SUBTREE_BRANCH)...)
-	@git fetch $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH)
-	@GIT_EDITOR=true git subtree pull --prefix=framework $(SUBTREE_OFFICIAL_REMOTE) $(SUBTREE_BRANCH) --squash
-	@$(call log_success,Framework subtree synced from official upstream.)
+sync-downstream: ## Pull latest framework subtree (Remote: SUBTREE_OFFICIAL_REMOTE or SYNC_DOWNSTREAM_REMOTE)
+	@REMOTE=$(or $(SYNC_DOWNSTREAM_REMOTE),$(SUBTREE_OFFICIAL_REMOTE)); \
+	$(call log_step,Syncing framework subtree from $$REMOTE/$(SUBTREE_BRANCH)...); \
+	git fetch $$REMOTE $(SUBTREE_BRANCH); \
+	GIT_EDITOR=true git subtree pull --prefix=framework $$REMOTE $(SUBTREE_BRANCH) --squash
+	@$(call log_success,Framework subtree synced.)
 
 sync-upstream: ## Run framework quality gates and promote subtree to upstream (required: SYNC_UPSTREAM_REMOTE)
 	@$(call log_step,Preparing framework subtree promotion...)
@@ -169,14 +186,28 @@ sync-upstream: ## Run framework quality gates and promote subtree to upstream (r
 		exit 1; \
 	fi
 	@$(call verify_clean)
-	@$(call log_step,Step 1/2: Running framework quality gates...)
+	@$(call log_step,Step 1/3: Updating framework lockfile (OSS purity)...)
+	@cd framework && $(PNPM) install --lockfile-only --ignore-workspace >/dev/null 2>&1 || true
+	@if [ -n "$$(git status --porcelain framework/pnpm-lock.yaml)" ]; then \
+		$(call log_info,Lockfile was outdated. Committing updated framework lockfile...); \
+		git add framework/pnpm-lock.yaml; \
+		git commit -m "chore: synchronize framework lockfile for OSS purity"; \
+	fi
+	@$(call log_step,Step 2/3: Running framework quality gates...)
 	@$(MAKE) -C framework pre-push VERIFY_REMOTE=$(SYNC_UPSTREAM_REMOTE) SKIP_VERIFY=1
-	@$(call log_step,Step 2/2: Pushing framework subtree to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH)...)
+	@$(call log_step,Step 3/3: Pushing framework subtree to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH)...)
 	@git subtree push --prefix=framework $(SYNC_UPSTREAM_REMOTE) $(SUBTREE_BRANCH)
 	@$(call log_success,Framework subtree successfully promoted to $(SYNC_UPSTREAM_REMOTE)/$(SUBTREE_BRANCH).)
 
-framework-sync: ## Sync framework between VoltX and ServerlessClaw (CMD=status|up|down)
-	@bash scripts/dev/framework-sync.sh $(CMD)
+framework-sync: ## [DEPRECATED] Use sync-upstream or sync-downstream instead
+	@$(call log_warning,framework-sync is deprecated. Delegating to sync targets...); \
+	if [ "$(CMD)" = "up" ]; then \
+		$(MAKE) sync-upstream SYNC_UPSTREAM_REMOTE=upstream-local; \
+	elif [ "$(CMD)" = "down" ]; then \
+		$(MAKE) sync-downstream SYNC_DOWNSTREAM_REMOTE=upstream-local; \
+	else \
+		$(MAKE) sync-status; \
+	fi
 
 show-env: ## Show current environment variables (filtered)
 	@$(call load_env); \
