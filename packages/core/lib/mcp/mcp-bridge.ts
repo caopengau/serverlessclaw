@@ -71,160 +71,164 @@ export class MCPBridge {
       }
     }
 
-    const performDiscovery = async () => {
-      let acquired = false;
-      let lockManager: LockManager | null = null;
-      let lockId = '';
-      let ownerId = '';
-
-      if (!scope.isRecursive) {
-        lockManager = new LockManager();
-        lockId = `mcp_discovery_lock_${serverName}_${scope.workspaceId}`;
-        ownerId =
-          process.env.AWS_LAMBDA_LOG_STREAM_NAME ||
-          `node_${process.pid}_${Math.random().toString(36).substring(7)}`;
-
-        const hubUrl = process.env.MCP_HUB_URL;
-        const isLocalCommand = !connectionString.startsWith('http');
-
-        if (hubUrl && isLocalCommand && !scope.skipHubRouting) {
-          try {
-            const hubUrlObj = new URL(hubUrl.replace(/\/$/, '') + `/${serverName}`);
-            // Propagate workspaceId to Hub for multi-tenant routing
-            if (scope.workspaceId !== 'global') {
-              hubUrlObj.searchParams.set('workspaceId', scope.workspaceId);
-            }
-            const hubServerUrl = hubUrlObj.toString();
-
-            logger.info(
-              `[MCPBridge] Attempting Hub connection for ${serverName}: ${hubServerUrl} (WS: ${scope.workspaceId})`
-            );
-            const tools = await this.getToolsFromServer(serverName, hubServerUrl, env, {
-              ...options,
-              skipHubRouting: true,
-              isRecursive: true,
-            });
-            if (tools.length > 0) return tools;
-          } catch {
-            logger.warn(
-              `[MCPBridge] Hub connection failed for ${serverName} (WS: ${scope.workspaceId}), switching to local.`
-            );
-          }
-        }
-      }
-
-      const cacheTTL = parseInt(process.env.MCP_CACHE_TTL_MS ?? String(MCP.DEFAULT_CACHE_TTL_MS));
-
-      const checkCache = async () => {
-        const cached = (await AgentRegistry.getRawConfig(cacheKey, {
-          workspaceId: options?.workspaceId,
-        })) as {
-          tools: Record<string, unknown>[];
-          timestamp: number;
-        } | null;
-
-        if (cached && Date.now() - cached.timestamp < cacheTTL) {
-          logger.info(
-            `[MCPBridge] Using cached tool definitions for MCP server ${serverName} (WS: ${scope.workspaceId})`
-          );
-          const overrides = (await AgentRegistry.getRawConfig(DYNAMO_KEYS.TOOL_METADATA_OVERRIDES, {
-            workspaceId: options?.workspaceId,
-          })) as Record<string, Partial<ITool>> | undefined;
-
-          return MCPToolMapper.mapCachedTools(
-            serverName,
-            cached.tools,
-            async () =>
-              await MCPClientManager.connect(
-                serverName,
-                connectionString,
-                env,
-                options?.workspaceId
-              ),
-            overrides
-          );
-        }
-        return null;
-      };
-
-      const cachedResult = await checkCache();
-      if (cachedResult) return cachedResult;
-
-      if (!scope.isRecursive && lockManager) {
-        for (let i = 0; i < 3; i++) {
-          acquired = await lockManager.acquire(lockId, { ttlSeconds: 60, ownerId });
-          if (acquired) break;
-
-          logger.info(
-            `[MCPBridge] Discovery lock for ${serverName} held by another node (WS: ${scope.workspaceId}), waiting...`
-          );
-          await new Promise((r) => setTimeout(r, 2000));
-
-          const retryCached = await checkCache();
-          if (retryCached) return retryCached;
-        }
-
-        if (!acquired) {
-          const errorMsg = `[MCPBridge] Failed to acquire discovery lock for ${serverName} (WS: ${scope.workspaceId}). Aborting.`;
-          logger.error(errorMsg);
-          throw new Error(errorMsg);
-        }
-      }
-
-      try {
-        const client = await MCPClientManager.connect(
-          serverName,
-          connectionString,
-          env,
-          options?.workspaceId
-        );
-        const response = await client.listTools();
-
-        const overrides = (await AgentRegistry.getRawConfig(DYNAMO_KEYS.TOOL_METADATA_OVERRIDES, {
-          workspaceId: options?.workspaceId,
-        })) as Record<string, Partial<ITool>> | undefined;
-
-        await AgentRegistry.saveRawConfig(
-          cacheKey,
-          { tools: response.tools, timestamp: Date.now() },
-          { workspaceId: options?.workspaceId }
-        );
-
-        return MCPToolMapper.mapTools(serverName, client, response.tools, overrides);
-      } catch (e: unknown) {
-        logger.warn(
-          `[MCPBridge] Failed to fetch tools from ${serverName} (WS: ${scope.workspaceId}):`,
-          e
-        );
-        this.lastFailures.set(cacheKey, Date.now());
-        // Principle 11: Prune failure map to prevent memory leaks
-        if (this.lastFailures.size > 1000) {
-          const oldestKey = this.lastFailures.keys().next().value;
-          if (oldestKey) this.lastFailures.delete(oldestKey);
-        }
-        MCPClientManager.deleteClient(serverName, options?.workspaceId);
-        await AgentRegistry.saveRawConfig(cacheKey, null, {
-          workspaceId: options?.workspaceId,
-        }).catch(() => {});
-        return [];
-      } finally {
-        if (acquired && lockManager) {
-          await lockManager.release(lockId, ownerId).catch((err: unknown) => {
-            logger.warn(`[MCPBridge] Failed to release discovery lock for ${serverName}:`, err);
-          });
-        }
-      }
-    };
-
-    const discoveryPromise = performDiscovery();
+    // 2. Start discovery and register immediately to prevent thundering herds
+    const discoveryPromise = (async () => {
+      // Body of discovery...
+      // (I'll keep the logic the same but ensure it's wrapped correctly)
+      return await this._doDiscovery(serverName, connectionString, env, options, cacheKey, scope);
+    })();
 
     if (!scope.isRecursive) {
       this.discovering.set(cacheKey, discoveryPromise);
     }
 
+    return await discoveryPromise;
+  }
+
+  private static async _doDiscovery(
+    serverName: string,
+    connectionString: string,
+    env: Record<string, string> | undefined,
+    options: any,
+    cacheKey: string,
+    scope: EffectiveScope
+  ): Promise<ITool[]> {
+    let acquired = false;
+    let lockManager: LockManager | null = null;
+    let lockId = '';
+    let ownerId = '';
+
+    if (!scope.isRecursive) {
+      lockManager = new LockManager();
+      lockId = `mcp_discovery_lock_${serverName}_${scope.workspaceId}`;
+      ownerId =
+        process.env.AWS_LAMBDA_LOG_STREAM_NAME ||
+        `node_${process.pid}_${Math.random().toString(36).substring(7)}`;
+
+      const hubUrl = process.env.MCP_HUB_URL;
+      const isLocalCommand = !connectionString.startsWith('http');
+
+      if (hubUrl && isLocalCommand && !scope.skipHubRouting) {
+        try {
+          const hubUrlObj = new URL(hubUrl.replace(/\/$/, '') + `/${serverName}`);
+          // Propagate workspaceId to Hub for multi-tenant routing
+          if (scope.workspaceId !== 'global') {
+            hubUrlObj.searchParams.set('workspaceId', scope.workspaceId);
+          }
+          const hubServerUrl = hubUrlObj.toString();
+
+          logger.info(
+            `[MCPBridge] Attempting Hub connection for ${serverName}: ${hubServerUrl} (WS: ${scope.workspaceId})`
+          );
+          const tools = await this.getToolsFromServer(serverName, hubServerUrl, env, {
+            ...options,
+            skipHubRouting: true,
+            isRecursive: true,
+          });
+          if (tools.length > 0) return tools;
+        } catch {
+          logger.warn(
+            `[MCPBridge] Hub connection failed for ${serverName} (WS: ${scope.workspaceId}), switching to local.`
+          );
+        }
+      }
+    }
+
+    const cacheTTL = parseInt(process.env.MCP_CACHE_TTL_MS ?? String(MCP.DEFAULT_CACHE_TTL_MS));
+
+    const checkCache = async () => {
+      const cached = (await AgentRegistry.getRawConfig(cacheKey, {
+        workspaceId: options?.workspaceId,
+      })) as {
+        tools: Record<string, unknown>[];
+        timestamp: number;
+      } | null;
+
+      if (cached && Date.now() - cached.timestamp < cacheTTL) {
+        logger.info(
+          `[MCPBridge] Using cached tool definitions for MCP server ${serverName} (WS: ${scope.workspaceId})`
+        );
+        const overrides = (await AgentRegistry.getRawConfig(DYNAMO_KEYS.TOOL_METADATA_OVERRIDES, {
+          workspaceId: options?.workspaceId,
+        })) as Record<string, Partial<ITool>> | undefined;
+
+        return MCPToolMapper.mapCachedTools(
+          serverName,
+          cached.tools,
+          async () =>
+            await MCPClientManager.connect(serverName, connectionString, env, options?.workspaceId),
+          overrides
+        );
+      }
+      return null;
+    };
+
+    const cachedResult = await checkCache();
+    if (cachedResult) return cachedResult;
+
+    if (!scope.isRecursive && lockManager) {
+      for (let i = 0; i < 3; i++) {
+        acquired = await lockManager.acquire(lockId, { ttlSeconds: 60, ownerId });
+        if (acquired) break;
+
+        logger.info(
+          `[MCPBridge] Discovery lock for ${serverName} held by another node (WS: ${scope.workspaceId}), waiting...`
+        );
+        await new Promise((r) => setTimeout(r, 2000));
+
+        const retryCached = await checkCache();
+        if (retryCached) return retryCached;
+      }
+
+      if (!acquired) {
+        const errorMsg = `[MCPBridge] Failed to acquire discovery lock for ${serverName} (WS: ${scope.workspaceId}). Aborting.`;
+        logger.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+    }
+
     try {
-      return await discoveryPromise;
+      const client = await MCPClientManager.connect(
+        serverName,
+        connectionString,
+        env,
+        options?.workspaceId
+      );
+      const response = await client.listTools();
+
+      const overrides = (await AgentRegistry.getRawConfig(DYNAMO_KEYS.TOOL_METADATA_OVERRIDES, {
+        workspaceId: options?.workspaceId,
+      })) as Record<string, Partial<ITool>> | undefined;
+
+      await AgentRegistry.saveRawConfig(
+        cacheKey,
+        { tools: response.tools, timestamp: Date.now() },
+        { workspaceId: options?.workspaceId }
+      );
+
+      return MCPToolMapper.mapTools(serverName, client, response.tools, overrides);
+    } catch (e: unknown) {
+      logger.warn(
+        `[MCPBridge] Failed to fetch tools from ${serverName} (WS: ${scope.workspaceId}):`,
+        e
+      );
+      this.lastFailures.set(cacheKey, Date.now());
+      // Principle 11: Prune failure map to prevent memory leaks
+      if (this.lastFailures.size > 1000) {
+        const oldestKey = this.lastFailures.keys().next().value;
+        if (oldestKey) this.lastFailures.delete(oldestKey);
+      }
+      MCPClientManager.deleteClient(serverName, options?.workspaceId);
+      await AgentRegistry.saveRawConfig(cacheKey, null, {
+        workspaceId: options?.workspaceId,
+      }).catch(() => {});
+      return [];
     } finally {
+      if (acquired && lockManager) {
+        await lockManager.release(lockId, ownerId).catch((err: unknown) => {
+          logger.warn(`[MCPBridge] Failed to release discovery lock for ${serverName}:`, err);
+        });
+      }
       if (!scope.isRecursive) {
         this.discovering.delete(cacheKey);
       }

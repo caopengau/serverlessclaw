@@ -10,7 +10,7 @@ vi.mock('@aws/run-mcp-servers-with-aws-lambda', () => ({
 vi.mock('./registry', () => ({
   MCP_SERVER_REGISTRY: {
     git: { command: 'npx', args: ['git-server'] },
-    filesystem: { command: 'npx', args: ['fs-server'] },
+    filesystem: { command: 'npx', args: ['fs-server', '/tmp'] },
   },
 }));
 

@@ -1,3 +1,4 @@
+import { DYNAMO_KEYS } from '../constants';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MCPBridge } from './mcp-bridge';
 import { AgentRegistry } from '../registry';
@@ -133,10 +134,6 @@ describe('MCPBridge Parallel Discovery', () => {
     const hubUrl = 'http://localhost:3000';
     process.env.MCP_HUB_URL = hubUrl;
 
-    (AgentRegistry.getRawConfig as any).mockResolvedValue({
-      srv1: { type: 'local', command: 'npx srv1' },
-    });
-
     const mockClient = {
       listTools: vi.fn().mockResolvedValue({ tools: [] }),
     };
@@ -156,7 +153,12 @@ describe('MCPBridge Parallel Discovery', () => {
   });
 
   it('should prevent thundering herds by sharing discovery promises', async () => {
-    (AgentRegistry.getRawConfig as any).mockResolvedValue(null); // Force discovery
+    (AgentRegistry.getRawConfig as any).mockImplementation((key: string) => {
+      if (key === DYNAMO_KEYS.MCP_SERVERS) {
+        return { srv1: { type: 'local', command: 'npx srv1' } };
+      }
+      return null; // Force discovery
+    });
     vi.mocked(MCPClientManager.connect).mockImplementation(async () => {
       await new Promise((resolve) => setTimeout(resolve, 100)); // Simulate slow discovery
       return { listTools: vi.fn().mockResolvedValue({ tools: [] }) } as any;

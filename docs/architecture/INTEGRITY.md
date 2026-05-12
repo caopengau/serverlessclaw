@@ -221,3 +221,24 @@ To maintain trust integrity without cross-tenant interference, the Trust Calibra
 ```
 
 The system ensures that an agent's safety tier (and thus its calibration thresholds) are resolved specifically for the workspace context. Anomalies are recorded with full tenant dimensions to prevent global trust poisoning.
+
+## 7. Workspace-Scoped MCP Multiplexing (Silo 2)
+
+To prevent cross-tenant data leakage in the Unified MCP Multiplexer, the system enforces dynamic path scoping for all filesystem-based tools.
+
+```ascii
+[ MCP Request ] --(headers: x-workspace-id=WS1)--> [ Multiplexer ]
+                                                        |
+                                                        v
+                                             [ resolveWorkspace(WS1) ]
+                                                        |
+                                                        v
+                                             [ execSync: mkdir -p /tmp/ws-WS1 ]
+                                                        |
+                                                        v
+                                             [ Spawn MCP Server ]
+                                             [ args: --root /tmp/ws-WS1 ]
+                                             [ env: HOME=/tmp/ws-WS1 ]
+```
+
+This ensures that tools like `filesystem_write_file` or `git-mcp-server` are physically restricted to a tenant-specific jail within the shared Lambda `/tmp` space.```

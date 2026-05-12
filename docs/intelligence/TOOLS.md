@@ -102,10 +102,14 @@ Connected via the **Model Context Protocol (MCP)**. This is the primary scaling 
 
 - **Unified Multiplexer Architecture**: The system consolidates multiple MCP servers (Git, Filesystem, AWS, etc.) into a single **Unified Multiplexer Lambda**. This reduces infrastructure sprawl, minimizes CloudWatch log fragmentation, and improves warming efficiency by keeping a single high-resource execution environment hot.
 - **Path-Based Routing**: The bridge routes requests to specific "virtual" servers using URL paths (e.g., `/mcp/git`) or the `x-mcp-server` header.
+- **Multi-Tenant Isolation (P0 Remediation)**:
+  - **Workspace Scoping**: Filesystem-based tools are dynamically scoped to `/tmp/ws-<workspaceId>` to prevent cross-tenant data leakage.
+  - **Environment Isolation**: Each MCP process receives a tenant-specific `HOME` and `XDG_CACHE_HOME`, ensuring isolation of tool-specific caches and configs.
+- **Thundering Herd Protection**: Concurrent tool discovery requests for the same server are synchronized using a discovery promise map and distributed locks to prevent redundant initialization and resource contention.
 - **Graceful Local Fallback**: If the external Hub or Multiplexer is unreachable, the system falls back to on-demand `npx` execution within the calling agent's context.
 - **Lambda Environment Hardening**:
   - **Memory/Timeout**: The Multiplexer is provisioned with **1024MB** and **10m** timeout to handle concurrent child processes and resource-heavy tools.
-  - **Writable Cache**: Uses `/tmp/mcp-cache` and `/tmp/npm-cache` to ensure `npx` has a writable scratch space in the read-only Lambda environment.
+  - **Writable Cache**: Uses tenant-scoped subdirectories in `/tmp` to ensure `npx` has a writable scratch space in the read-only Lambda environment.
 
 ### MCP Unified Multiplexer Flow (Hand Silo)
 

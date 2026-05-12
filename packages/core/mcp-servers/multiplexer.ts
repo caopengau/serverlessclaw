@@ -81,7 +81,12 @@ export const handler: Handler = async (
   }
 
   // 2. Resolve Workspace ID for isolation
-  const workspaceId = (event.headers['x-workspace-id'] || 'global').replace(/[^a-zA-Z0-9_-]/g, '');
+  const workspaceId = (
+    event.headers['x-workspace-id'] ||
+    event.headers['X-Workspace-Id'] ||
+    event.queryStringParameters?.['workspaceId'] ||
+    'global'
+  ).replace(/[^a-zA-Z0-9_-]/g, '');
   const workspacePath = `/tmp/ws-${workspaceId}`;
 
   // Ensure workspace-specific directory exists to prevent cross-tenant leakage
@@ -117,6 +122,8 @@ export const handler: Handler = async (
   if (serverName === 'filesystem' && Array.isArray(resolvedParams.args)) {
     const tmpIndex = resolvedParams.args.indexOf('/tmp');
     if (tmpIndex !== -1) {
+      // Clone args to avoid mutating the global registry in-memory
+      resolvedParams.args = [...resolvedParams.args];
       resolvedParams.args[tmpIndex] = workspacePath;
       logger.info(`[MCP-MULTIPLEXER] Scoped filesystem root to: ${workspacePath}`);
     }
