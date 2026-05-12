@@ -31,7 +31,7 @@ export default function proxy(request: NextRequest): NextResponse {
 
   // Redirect authenticated users from landing to dashboard
   if (pathname === '/' && authCookie && authCookie.value === AUTH.COOKIE_VALUE) {
-    const dashboardUrl = new URL('/dashboard', request.url);
+    const dashboardUrl = new URL('/', request.url);
     return NextResponse.redirect(dashboardUrl);
   }
 

@@ -1,9 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import '../../globals.css';
-import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
-import { AUTH } from '@/lib/constants';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -19,39 +16,27 @@ import { Toaster } from 'sonner';
 import { TranslationsProvider } from '@/components/Providers/TranslationsProvider';
 import { ConfigManager } from '@claw/core/lib/registry/config';
 import { CONFIG_KEYS } from '@claw/core/lib/constants';
+import { ThemeProvider } from '@/components/Providers/ThemeProvider';
+import { ExtensionProvider } from '@/components/Providers/ExtensionProvider';
 
 export const metadata: Metadata = {
-  title: 'ClawCenter | Neural Hub',
-  description: 'Autonomous Agent Command & Control Hub',
+  title: 'ClawCenter | Authentication',
+  description: 'Secure access to the Command & Control Hub',
 };
 
 export const dynamic = 'force-dynamic';
 
-import { ThemeProvider } from '@/components/Providers/ThemeProvider';
-import { ExtensionProvider } from '@/components/Providers/ExtensionProvider';
-
-export default async function RootLayout({
+export default async function AuthLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // 0. Check for authentication (Server-side redirect)
-  const cookieStore = await cookies();
-  const isAuthenticated = cookieStore.get(AUTH.COOKIE_NAME)?.value === AUTH.COOKIE_VALUE;
-
-  if (isAuthenticated) {
-    redirect('/dashboard');
-  }
-
-  // 1. Fetch the active locale from system config (server-side)
   let initialLocale: 'en' | 'cn' = 'cn';
   try {
-    // Only attempt config fetch if we can reach the ConfigManager
     const locale = await ConfigManager.getTypedConfig<string>(CONFIG_KEYS.ACTIVE_LOCALE, 'cn');
     initialLocale = (locale === 'en' ? 'en' : 'cn') as 'en' | 'cn';
   } catch (err) {
-    // Silent fallback to 'cn' for marketing pages
-    console.debug('[Dashboard] Using default locale for marketing:', err);
+    console.debug('[Dashboard] Using default locale for auth:', err);
   }
 
   return (
@@ -67,12 +52,6 @@ export default async function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <ExtensionProvider>
             <TranslationsProvider initialLocale={initialLocale}>
-              <a
-                href="#main-content"
-                className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-cyber-green focus:text-black"
-              >
-                Skip to content
-              </a>
               <Toaster
                 position="bottom-right"
                 toastOptions={{

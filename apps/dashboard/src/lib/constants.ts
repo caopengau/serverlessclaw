@@ -95,7 +95,7 @@ export const UI_STRINGS = {
 } as const;
 
 export const ROUTES = {
-  HOME: '/dashboard',
+  HOME: '/',
   LANDING: '/',
   CHAT: '/chat',
   TRACE: '/trace',
