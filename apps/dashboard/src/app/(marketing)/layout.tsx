@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import '../../globals.css';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { AUTH } from '@/lib/constants';
 
 const inter = Inter({
   variable: '--font-inter',
@@ -32,7 +35,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Fetch the active locale from system config (server-side)
+  // 0. Check for authentication (Server-side redirect)
+  const cookieStore = await cookies();
+  const isAuthenticated = cookieStore.get(AUTH.COOKIE_NAME)?.value === AUTH.COOKIE_VALUE;
+
+  if (isAuthenticated) {
+    redirect('/dashboard');
+  }
+
+  // 1. Fetch the active locale from system config (server-side)
   let initialLocale: 'en' | 'cn' = 'cn';
   try {
     // Only attempt config fetch if we can reach the ConfigManager

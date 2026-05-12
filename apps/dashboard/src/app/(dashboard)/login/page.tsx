@@ -26,7 +26,7 @@ export default function LoginPage() {
       });
 
       if (response.ok) {
-        router.push('/');
+        router.push('/dashboard');
         router.refresh();
       } else {
         const data = await response.json();
