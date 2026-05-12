@@ -11,7 +11,13 @@ const {
   mockUseTheme,
   mockUseTranslations,
   mockUseTenant,
+  mockUseUser,
 } = vi.hoisted(() => ({
+  mockUseUser: vi.fn().mockReturnValue({
+    user: { userId: 'test-user', role: 'admin' },
+    loading: false,
+    isAdmin: true,
+  }),
   mockUseRouter: vi.fn().mockReturnValue({
     push: vi.fn(),
     replace: vi.fn(),
@@ -56,6 +62,10 @@ vi.mock('@/components/Providers/UICommandProvider', () => ({
 
 vi.mock('@/components/Providers/TenantProvider', () => ({
   useTenant: mockUseTenant,
+}));
+
+vi.mock('@/components/Providers/UserProvider', () => ({
+  useUser: mockUseUser,
 }));
 
 vi.mock('next-themes', () => ({
