@@ -92,11 +92,17 @@ define load_env
 		$(call log_warning,Node.js 24 is recommended (detected $$(node -v)). If deployment fails, please switch to Node 24.); \
 	fi; \
 	if [ ! -f "$(ENV_FILES)" ]; then \
-		$(call log_error,Environment file $(ENV_FILES) not found.); \
-		exit 1; \
+		if [ "$(ENV)" == "local" ] && [ -f ".env.dev" ]; then \
+			$(call log_warning,Environment file .env.local not found. Falling back to .env.dev...); \
+			set -a; . ./.env.dev; set +a; \
+		else \
+			$(call log_error,Environment file $(ENV_FILES) not found.); \
+			exit 1; \
+		fi; \
+	else \
+		$(call log_info,Loading env file: $(ENV_FILES)); \
+		set -a; . ./$(ENV_FILES); set +a; \
 	fi; \
-	$(call log_info,Loading env file: $(ENV_FILES)); \
-	set -a; . ./$(ENV_FILES); set +a; \
 	if [ -n "$$AWS_PROFILE" ]; then \
 		if [ -n "$$AWS_ACCESS_KEY_ID" ] || [ -n "$$AWS_SECRET_ACCESS_KEY" ]; then \
 			$(call log_warning,Multiple AWS credential sources detected (PROFILE and static keys). Unsetting static keys to favor PROFILE.); \

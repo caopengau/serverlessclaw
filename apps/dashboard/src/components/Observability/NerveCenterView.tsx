@@ -53,7 +53,7 @@ export default function NerveCenterView() {
   ];
 
   return (
-    <div className="flex flex-col h-full space-y-6">
+    <div className="flex flex-col flex-1 space-y-6">
       {/* Tab Switcher */}
       <div
         className="flex items-center gap-2 p-1 bg-card/40 border border-border rounded-lg w-fit"
@@ -81,13 +81,13 @@ export default function NerveCenterView() {
       {/* View Container */}
       <div className="flex-1 min-h-0 flex flex-col">
         {activeTab === 'pulse' && (
-          <div className="flex-1 min-h-[600px] glass-card border-border overflow-hidden flex flex-col bg-card/20">
+          <div className="flex-1 min-h-[600px] mb-8 glass-card border-border overflow-hidden flex flex-col bg-card/20">
             <div className="px-6 py-3 border-b border-border bg-card/40 flex items-center justify-between">
               <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground">
                 <Zap size={14} className="text-cyber-blue" /> Infrastructure Map
               </div>
             </div>
-            <div className="flex-1 relative">
+            <div className="flex-1 relative flex flex-col">
               <PulseFlow />
             </div>
           </div>

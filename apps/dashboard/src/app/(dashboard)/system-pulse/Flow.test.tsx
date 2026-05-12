@@ -206,6 +206,52 @@ describe('SystemPulseFlow Component', () => {
     const flow = screen.getByTestId('react-flow');
     const nodes = JSON.parse(flow.getAttribute('data-nodes') || '[]');
     expect(nodes).toHaveLength(6);
+
+    // Verify Tiered Positioning
+    const n1 = nodes.find((n: { id: string }) => n.id === 'n1'); // APP
+    const n2 = nodes.find((n: { id: string }) => n.id === 'n2'); // COMM
+    const n3 = nodes.find((n: { id: string }) => n.id === 'n3'); // INFRA
+    const n4 = nodes.find((n: { id: string }) => n.id === 'n4'); // AGENT
+
+    expect(n1?.position.y).toBe(0);
+    expect(n2?.position.y).toBe(440); // 2 * 220
+    expect(n3?.position.y).toBe(1100); // 5 * 220
+    expect(n4?.position.y).toBe(660); // 3 * 220
+  });
+
+  it('applies correct styling to edges based on source type', async () => {
+    const mockData = {
+      nodes: [
+        { id: 'bus', type: 'bus', tier: 'COMM', label: 'Message Bus' },
+        { id: 'agent', type: 'agent', tier: 'AGENT', label: 'Agent' },
+      ],
+      edges: [
+        { id: 'e1', source: 'bus', target: 'agent' },
+        { id: 'e2', source: 'agent', target: 'bus' },
+      ],
+    };
+
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => mockData,
+    });
+
+    render(<SystemPulseFlow />);
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Initializing_Neural_Grid/i)).not.toBeInTheDocument();
+    });
+
+    const flow = screen.getByTestId('react-flow');
+    const edges = JSON.parse(flow.getAttribute('data-edges') || '[]');
+
+    // Edge from Bus should be Vivid Orange (#f97316)
+    const busEdge = edges.find((e: { id: string }) => e.id === 'e1');
+    expect(busEdge?.style.stroke).toBe('#f97316');
+
+    // Edge from Agent should be Cyber Blue (#00f3ff)
+    const agentEdge = edges.find((e: { id: string }) => e.id === 'e2');
+    expect(agentEdge?.style.stroke).toBe('#00f3ff');
   });
 
   it('handles fetch error gracefully', async () => {

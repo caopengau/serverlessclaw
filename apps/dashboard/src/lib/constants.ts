@@ -55,6 +55,7 @@ export const API_ROUTES = {
   CHAT: '/api/chat',
   MEMORY_PRIORITIZE: '/api/memory/prioritize',
   MEMORY_STATUS: '/api/memory/status',
+  INFRASTRUCTURE: '/api/infrastructure',
 } as const;
 
 export const UI_STRINGS = {

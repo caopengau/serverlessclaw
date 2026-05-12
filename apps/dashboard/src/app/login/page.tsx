@@ -61,7 +61,7 @@ export default function LoginPage() {
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
-          <div className="space-y-2">
+          <div className="space-y-2" suppressHydrationWarning>
             <label className="text-[10px] text-white font-bold uppercase tracking-widest block ml-1">
               User Identity
             </label>
@@ -75,7 +75,7 @@ export default function LoginPage() {
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2" suppressHydrationWarning>
             <label className="text-[10px] text-white font-bold uppercase tracking-widest block ml-1">
               Claw Keyphrase
             </label>

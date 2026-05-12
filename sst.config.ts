@@ -30,7 +30,7 @@ export default $config({
           region,
           version: '7.23.0',
         },
-        cloudflare: '6.13.0',
+        ...(input?.stage !== 'local' ? { cloudflare: '6.13.0' } : {}),
       },
       defaults: {
         function: {

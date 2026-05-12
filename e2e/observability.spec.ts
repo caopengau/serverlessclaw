@@ -30,6 +30,26 @@ test.describe('Nerve Center (Unified Observability)', () => {
     });
   });
 
+  test('Visual Regression: Infrastructure Map', async ({ page }) => {
+    await page.getByRole('tab', { name: /Infra Pulse|结构脉搏/i }).click();
+    const map = page.locator('.react-flow');
+    await expect(map).toBeVisible();
+
+    // Wait for the neural grid to initialize and stabilize
+    await expect(page.getByText(/Initializing_Neural_Grid/i)).not.toBeVisible({ timeout: 15000 });
+
+    // Hide dynamic elements like the Sync button to avoid noise in screenshot
+    await page.evaluate(() => {
+      const syncBtn = document.querySelector('button:has-text("SYNC")');
+      if (syncBtn) (syncBtn as HTMLElement).style.display = 'none';
+    });
+
+    // Capture and compare screenshot
+    await expect(map).toHaveScreenshot('infrastructure-map.png', {
+      maxDiffPixelRatio: 0.1, // Allow minor rendering variance due to neural animations
+    });
+  });
+
   test('Resilience tab displays health metrics', async ({ page }) => {
     await page.getByRole('tab', { name: /Resilience|韧性中心/i }).click();
     await page.waitForTimeout(1000); // Wait for tab transition

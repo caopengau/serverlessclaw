@@ -141,6 +141,12 @@ body {
 .border-cyber-green\/30 {
   border-color: color-mix(in srgb, var(--cyber-green) 30%, transparent);
 }
+.border-cyber-green\/50 {
+  border-color: color-mix(in srgb, var(--cyber-green) 50%, transparent);
+}
+.bg-cyber-green\/50 {
+  background-color: color-mix(in srgb, var(--cyber-green) 50%, transparent);
+}
 .border-l-2 {
   border-left-width: 2px;
 }
@@ -189,6 +195,12 @@ body {
 }
 .border-cyber-blue\/30 {
   border-color: color-mix(in srgb, var(--cyber-blue) 30%, transparent);
+}
+.border-cyber-blue\/50 {
+  border-color: color-mix(in srgb, var(--cyber-blue) 50%, transparent);
+}
+.bg-cyber-blue\/50 {
+  background-color: color-mix(in srgb, var(--cyber-blue) 50%, transparent);
 }
 .border-cyber-blue\/40 {
   border-color: color-mix(in srgb, var(--cyber-blue) 40%, transparent);
@@ -368,4 +380,9 @@ body {
   font-size: 9px !important;
   font-weight: 400 !important;
   margin-top: 4px !important;
+}
+
+/* Hide React Flow Attribution */
+.react-flow__attribution {
+  display: none !important;
 }

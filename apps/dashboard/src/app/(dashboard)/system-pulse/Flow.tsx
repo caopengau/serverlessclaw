@@ -13,12 +13,14 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Zap, RefreshCw } from 'lucide-react';
+import { z } from 'zod';
 
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { logger } from '@claw/core/lib/logger';
+import { API_ROUTES } from '@/lib/constants';
 import {
   FLOW_COLORS,
   nodeTypes,
@@ -28,6 +30,31 @@ import {
   type BlueprintEdge,
   type BlueprintTopology,
 } from './FlowParts';
+
+/**
+ * Zod schemas for robust topology validation.
+ */
+const NodeSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  tier: z.enum(['APP', 'GATEWAY', 'COMM', 'AGENT', 'UTILITY', 'INFRA']).default('INFRA'),
+  label: z.string(),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  enabled: z.boolean().optional(),
+});
+
+const EdgeSchema = z.object({
+  id: z.string(),
+  source: z.string(),
+  target: z.string(),
+  label: z.string().optional(),
+});
+
+const TopologySchema = z.object({
+  nodes: z.array(NodeSchema),
+  edges: z.array(EdgeSchema),
+});
 
 /**
  * Main logical content of the topology flow.
@@ -41,31 +68,88 @@ export function FlowContent() {
 
   const fetchTopology = useCallback(async () => {
     try {
-      const response = await fetch('/api/topology');
+      const response = await fetch(API_ROUTES.INFRASTRUCTURE);
       if (!response.ok) throw new Error('Failed to fetch topology');
-      const data: BlueprintTopology = await response.json();
+      const rawData = await response.json();
 
-      const newNodes: Node[] = data.nodes.map((n: BlueprintNode, i: number) => ({
-        id: n.id,
-        type: n.type === 'agent' ? 'agent' : n.type === 'bus' ? 'bus' : 'infra',
-        position: { x: (i % 3) * 300, y: Math.floor(i / 3) * 200 },
-        data: {
-          label: n.label,
-          description: n.description || getAgentDescription(n.id),
-          icon: getAgentIcon(n.id, n.icon),
-          enabled: n.enabled !== false,
-          type: n.type,
-        },
-      }));
+      // Validate data with Zod
+      const result = TopologySchema.safeParse(rawData);
+      if (!result.success) {
+        logger.error('[Topology] Validation failed:', result.error);
+        throw new Error('Malformed topology data');
+      }
 
-      const newEdges: Edge[] = data.edges.map((e: BlueprintEdge) => ({
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        label: e.label,
-        animated: true,
-        style: { stroke: FLOW_COLORS.CYBER_BLUE, strokeWidth: 2 },
-      }));
+      const data: BlueprintTopology = result.data;
+
+      // Group nodes by tier for layout
+      const tierMap: Record<string, BlueprintNode[]> = {
+        APP: [],
+        GATEWAY: [],
+        COMM: [],
+        AGENT: [],
+        UTILITY: [],
+        INFRA: [],
+      };
+
+      data.nodes.forEach((n) => {
+        const tier = n.tier || 'INFRA';
+        if (!tierMap[tier]) tierMap[tier] = [];
+        tierMap[tier].push(n);
+      });
+
+      const TIER_ORDER = ['APP', 'GATEWAY', 'COMM', 'AGENT', 'UTILITY', 'INFRA'];
+      const TIER_Y_SPACING = 220;
+      const DEFAULT_X_SPACING = 350;
+      const AGENT_X_SPACING = 260; // Tighter spacing for the crowded agent layer
+
+      const newNodes: Node[] = [];
+      TIER_ORDER.forEach((tier, tierIdx) => {
+        const nodesInTier = tierMap[tier];
+        const xSpacing = tier === 'AGENT' ? AGENT_X_SPACING : DEFAULT_X_SPACING;
+        const tierWidth = (nodesInTier.length - 1) * xSpacing;
+        const startX = -tierWidth / 2;
+
+        nodesInTier.forEach((n, i) => {
+          newNodes.push({
+            id: n.id,
+            type: n.type === 'agent' ? 'agent' : n.type === 'bus' ? 'bus' : 'infra',
+            position: { x: startX + i * xSpacing, y: tierIdx * TIER_Y_SPACING },
+            data: {
+              label: n.label,
+              description: n.description || getAgentDescription(n.id),
+              icon: getAgentIcon(n.id, n.icon),
+              enabled: n.enabled !== false,
+              type: n.type,
+              tier: n.tier,
+            },
+          });
+        });
+      });
+
+      const newEdges: Edge[] = data.edges.map((e: BlueprintEdge) => {
+        // Find source and target to determine color
+        const sourceNode = data.nodes.find((n) => n.id === e.source);
+        const isOrchestrator = sourceNode?.type === 'bus';
+
+        return {
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          label: e.label,
+          animated: true,
+          type: 'default',
+          style: {
+            stroke: isOrchestrator ? FLOW_COLORS.VIVID_ORANGE : FLOW_COLORS.CYBER_BLUE,
+            strokeWidth: 1.5,
+            opacity: 0.6,
+            filter: 'drop-shadow(0 0 2px rgba(0, 243, 255, 0.3))',
+          },
+          labelStyle: { fill: '#fff', fontSize: 8, fontWeight: 700, textTransform: 'uppercase' },
+          labelBgStyle: { fill: 'rgba(0,0,0,0.7)', fillOpacity: 0.8 },
+          labelBgPadding: [4, 2],
+          labelBgBorderRadius: 2,
+        };
+      });
 
       setTimeout(() => {
         setNodes(newNodes);
@@ -84,16 +168,6 @@ export function FlowContent() {
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-[#020202]">
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-        <Typography
-          variant="mono"
-          className="text-[10px] text-cyber-blue font-bold tracking-[0.4em] uppercase"
-          glow
-        >
-          Neural_System_Spine
-        </Typography>
-      </div>
-
       <div className="absolute top-4 left-4 z-20 flex flex-col gap-2">
         <Card variant="glass" padding="none" className="p-1 flex flex-col gap-1 border-white/5">
           <Button
@@ -147,6 +221,7 @@ export function FlowContent() {
         onEdgesChange={onEdgesChange}
         nodeTypes={nodeTypes}
         fitView
+        proOptions={{ hideAttribution: true }}
         className="bg-dot-pattern"
       >
         <Background color="#111" gap={20} />

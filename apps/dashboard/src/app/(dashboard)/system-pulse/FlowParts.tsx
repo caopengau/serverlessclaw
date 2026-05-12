@@ -20,7 +20,6 @@ import {
   Calendar,
   Database,
 } from 'lucide-react';
-import { THEME } from '@/lib/theme';
 
 /**
  * Maps agnostic icon keys to Lucide components.
@@ -55,6 +54,7 @@ export interface FlowNodeData {
   icon: React.ReactNode;
   enabled: boolean;
   type: string;
+  tier: string;
 }
 
 /**
@@ -103,7 +103,7 @@ export const FLOW_COLORS = {
 export const nodeTypes = {
   agent: ({ data }: { data: FlowNodeData }) => (
     <div className="relative group transition-all duration-300 z-10 hover:z-50">
-      <div className="px-4 py-3 shadow-lg rounded-md bg-background border border-cyber-green/50 min-w-[180px] max-w-[240px] relative overflow-hidden">
+      <div className="px-4 py-3 shadow-[0_0_20px_rgba(0,0,0,0.5)] rounded-md bg-[#0a0a0a] border border-cyber-green/30 min-w-[180px] max-w-[240px] relative overflow-hidden group-hover:border-cyber-green/60 group-hover:shadow-[0_0_25px_rgba(0,255,163,0.15)] transition-all">
         <div className="absolute top-0 right-0 w-16 h-16 bg-cyber-green/5 rounded-full blur-xl -mr-8 -mt-8"></div>
         <div className="flex items-center gap-3">
           <div
@@ -113,11 +113,11 @@ export const nodeTypes = {
           </div>
           <div className="overflow-hidden">
             <div
-              className={`text-[10px] font-bold uppercase tracking-tighter truncate ${data.enabled ? 'text-cyber-green' : 'text-red-500'}`}
+              className={`text-[8px] font-bold uppercase tracking-widest truncate ${data.enabled ? 'text-cyber-green' : 'text-red-500'}`}
             >
-              {data.type ?? 'NEURAL_NODE'} {!data.enabled && '[OFFLINE]'}
+              NEURAL_WORKER {!data.enabled && '[OFFLINE]'}
             </div>
-            <div className="text-sm font-bold text-foreground break-words leading-tight">
+            <div className="text-sm font-bold text-foreground break-words leading-tight font-mono uppercase tracking-tighter">
               {data.label}
             </div>
           </div>
@@ -125,102 +125,108 @@ export const nodeTypes = {
         <Handle
           type="target"
           position={Position.Top}
-          className="!bg-cyber-green/50 !border-none !w-2 !h-2"
+          className="!bg-cyber-green/50 !border-none !w-1.5 !h-1.5"
         />
         <Handle
           type="source"
           position={Position.Bottom}
-          className="!bg-cyber-green/50 !border-none !w-2 !h-2"
+          className="!bg-cyber-green/50 !border-none !w-1.5 !h-1.5"
         />
       </div>
 
       {/* Description Tooltip Above on Hover */}
-      <div className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-[220px] bg-card-elevated border border-cyber-green/30 p-3 rounded-md shadow-[0_10px_30px_rgba(0,0,0,0.8)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[100] pointer-events-none after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-8 after:border-transparent after:border-t-[var(--card-bg-elevated)]">
-        <div className="flex items-center gap-2 mb-1">
+      <div className="absolute bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 w-[220px] bg-[#0f0f0f] border border-cyber-green/30 p-3 rounded shadow-[0_10px_30px_rgba(0,0,0,0.9)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[100] pointer-events-none backdrop-blur-md">
+        <div className="flex items-center gap-2 mb-1.5">
           <Info size={10} className="text-cyber-green" />
-          <span className="text-[8px] font-bold text-cyber-green uppercase tracking-widest">
-            Documentation
+          <span className="text-[8px] font-bold text-cyber-green uppercase tracking-[0.2em]">
+            Capability_Manifest
           </span>
         </div>
-        <p className="text-[10px] text-foreground leading-relaxed italic">{data.description}</p>
+        <p className="text-[10px] text-muted-foreground leading-relaxed italic font-mono">
+          {data.description}
+        </p>
       </div>
     </div>
   ),
   bus: ({ data }: { data: FlowNodeData }) => (
     <div className="relative group transition-all duration-300 z-10 hover:z-50">
-      <div className="px-4 py-2 shadow-lg rounded-md bg-background border border-orange-500/50 min-w-[220px] text-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-orange-500/5 animate-pulse"></div>
-        <div className="text-[8px] font-bold text-orange-500 uppercase tracking-[0.3em] mb-1 relative z-10">
-          Central_Orchestrator
+      <div className="px-5 py-3 shadow-[0_0_30px_rgba(249,115,22,0.1)] rounded-md bg-[#0a0a0a] border border-orange-500/40 min-w-[240px] text-center relative overflow-hidden group-hover:border-orange-500/80 group-hover:shadow-[0_0_40px_rgba(249,115,22,0.2)] transition-all">
+        <div className="absolute inset-0 bg-orange-500/[0.03] animate-pulse"></div>
+        <div className="text-[7px] font-bold text-orange-500 uppercase tracking-[0.5em] mb-2 relative z-10 opacity-70">
+          Central_Orchestration_Grid
         </div>
-        <div className="text-xs font-bold text-foreground flex items-center justify-center gap-2 relative z-10">
-          <Zap size={14} className="text-orange-500" /> {data.label}
+        <div className="text-sm font-bold text-foreground flex items-center justify-center gap-2 relative z-10 font-mono uppercase tracking-widest">
+          <Zap size={16} className="text-orange-500 animate-pulse" /> {data.label}
         </div>
-        <Handle type="target" position={Position.Top} className="!bg-orange-500/50" />
+        <Handle type="target" position={Position.Top} className="!bg-orange-500/50 !border-none" />
         <Handle
           type="source"
           position={Position.Bottom}
           id="bottom"
-          className="!bg-orange-500/50"
+          className="!bg-orange-500/50 !border-none"
         />
-        <Handle type="source" position={Position.Left} id="left" className="!bg-orange-500/50" />
-        <Handle type="source" position={Position.Right} id="right" className="!bg-orange-500/50" />
+        <Handle
+          type="source"
+          position={Position.Left}
+          id="left"
+          className="!bg-orange-500/50 !border-none"
+        />
+        <Handle
+          type="source"
+          position={Position.Right}
+          id="right"
+          className="!bg-orange-500/50 !border-none"
+        />
       </div>
 
-      {/* Description Tooltip Above on Hover */}
-      <div className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-[240px] bg-card-elevated border border-orange-500/30 p-3 rounded-md shadow-[0_10px_30px_rgba(0,0,0,0.8)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[100] pointer-events-none text-left after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-8 after:border-transparent after:border-t-[var(--card-bg-elevated)]">
-        <div className="flex items-center gap-2 mb-1">
+      <div className="absolute bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 w-[240px] bg-[#0f0f0f] border border-orange-500/30 p-3 rounded shadow-[0_10px_30px_rgba(0,0,0,0.9)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[100] pointer-events-none text-left backdrop-blur-md">
+        <div className="flex items-center gap-2 mb-1.5">
           <Info size={10} className="text-orange-500" />
-          <span className="text-[8px] font-bold text-orange-500 uppercase tracking-widest">
-            Protocol_Info
+          <span className="text-[8px] font-bold text-orange-500 uppercase tracking-[0.2em]">
+            Neural_Routing_Protocol
           </span>
         </div>
-        <p className="text-[10px] text-foreground leading-relaxed italic">{data.description}</p>
+        <p className="text-[10px] text-muted-foreground leading-relaxed italic font-mono">
+          {data.description}
+        </p>
       </div>
     </div>
   ),
   infra: ({ data }: { data: FlowNodeData }) => (
     <div className="relative group transition-all duration-300 z-10 hover:z-50">
-      <div
-        className={`px-4 py-2 shadow-lg rounded-md bg-background border border-${THEME.COLORS.INTEL}/30 min-w-[150px] relative overflow-hidden`}
-      >
-        <div
-          className={`absolute top-0 right-0 w-12 h-12 bg-${THEME.COLORS.INTEL}/5 rounded-full blur-lg -mr-6 -mt-6`}
-        ></div>
+      <div className="px-4 py-3 shadow-[0_0_20px_rgba(0,0,0,0.5)] rounded-md bg-[#0a0a0a] border border-cyber-blue/30 min-w-[170px] relative overflow-hidden group-hover:border-cyber-blue/60 group-hover:shadow-[0_0_25px_rgba(0,243,255,0.15)] transition-all">
+        <div className="absolute top-0 right-0 w-12 h-12 bg-cyber-blue/5 rounded-full blur-lg -mr-6 -mt-6"></div>
         <div className="flex items-center gap-3">
-          <div className={`p-2 bg-${THEME.COLORS.INTEL}/10 rounded-sm text-${THEME.COLORS.INTEL}`}>
+          <div className="p-2 bg-cyber-blue/10 rounded-sm text-cyber-blue shrink-0">
             {data.icon}
           </div>
-          <div>
-            <div
-              className={`text-[10px] font-bold text-${THEME.COLORS.INTEL} uppercase tracking-tighter`}
-            >
-              {data.type ?? 'INFRA_SPOKE'}
+          <div className="overflow-hidden">
+            <div className="text-[8px] font-bold text-cyber-blue uppercase tracking-widest truncate opacity-70">
+              {data.tier === 'APP' ? 'CONSUMER_NODE' : 'INFRA_RESOURCE'}
             </div>
-            <div className="text-sm font-bold text-foreground">{data.label}</div>
+            <div className="text-sm font-bold text-foreground font-mono uppercase tracking-tighter truncate">
+              {data.label}
+            </div>
           </div>
         </div>
-        <Handle type="target" position={Position.Top} className={`!bg-${THEME.COLORS.INTEL}/50`} />
+        <Handle type="target" position={Position.Top} className="!bg-cyber-blue/50 !border-none" />
         <Handle
           type="source"
           position={Position.Bottom}
-          className={`!bg-${THEME.COLORS.INTEL}/50`}
+          className="!bg-cyber-blue/50 !border-none"
         />
       </div>
 
-      {/* Description Tooltip Above on Hover */}
-      <div
-        className={`absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-[220px] bg-card-elevated border border-${THEME.COLORS.INTEL}/30 p-3 rounded-md shadow-[0_10px_30px_rgba(0,0,0,0.8)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[100] pointer-events-none after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-8 after:border-transparent after:border-t-[var(--card-bg-elevated)]`}
-      >
-        <div className="flex items-center gap-2 mb-1">
-          <Info size={10} className={`text-${THEME.COLORS.INTEL}`} />
-          <span
-            className={`text-[8px] font-bold text-${THEME.COLORS.INTEL} uppercase tracking-widest`}
-          >
-            Resource_Spec
+      <div className="absolute bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 w-[220px] bg-[#0f0f0f] border border-cyber-blue/30 p-3 rounded shadow-[0_10px_30px_rgba(0,0,0,0.9)] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[100] pointer-events-none backdrop-blur-md">
+        <div className="flex items-center gap-2 mb-1.5">
+          <Info size={10} className="text-cyber-blue" />
+          <span className="text-[8px] font-bold text-cyber-blue uppercase tracking-[0.2em]">
+            Resource_Telemetry
           </span>
         </div>
-        <p className="text-[10px] text-foreground leading-relaxed italic">{data.description}</p>
+        <p className="text-[10px] text-muted-foreground leading-relaxed italic font-mono">
+          {data.description}
+        </p>
       </div>
     </div>
   ),
