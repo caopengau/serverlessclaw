@@ -4,6 +4,7 @@ import React from 'react';
 import { AlertTriangle, X, Info } from 'lucide-react';
 import Typography from './ui/Typography';
 import Button from './ui/Button';
+import { useTranslations } from './Providers/TranslationsProvider';
 
 interface CyberConfirmProps {
   isOpen: boolean;
@@ -49,11 +50,15 @@ export default function CyberConfirm({
   onCancel,
   title,
   message,
-  confirmText = 'Confirm Action',
-  cancelText = 'Abort Operation',
+  confirmText,
+  cancelText,
   variant = 'warning',
 }: CyberConfirmProps) {
+  const { t } = useTranslations();
   if (!isOpen) return null;
+
+  const actualConfirmText = confirmText || t('CONFIRM_ACTION');
+  const actualCancelText = cancelText || t('ABORT_OPERATION');
 
   const styles = variantStyles[variant];
   const Icon = variant === 'info' ? Info : AlertTriangle;
@@ -87,7 +92,7 @@ export default function CyberConfirm({
             onClick={onConfirm}
             className="tracking-[0.2em] font-black"
           >
-            {confirmText}
+            {actualConfirmText}
           </Button>
           <Button
             variant="ghost"
@@ -97,7 +102,7 @@ export default function CyberConfirm({
             icon={<X size={12} />}
             className="text-white/40 border border-white/5 font-bold tracking-[0.2em]"
           >
-            {cancelText}
+            {actualCancelText}
           </Button>
         </div>
       </div>

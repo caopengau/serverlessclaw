@@ -201,7 +201,7 @@ export default function Sidebar() {
           variant="ghost"
           size="sm"
           onClick={() => setIsOpen(!isOpen)}
-          aria-label="Toggle navigation"
+          aria-label={t('TOGGLE_NAVIGATION')}
           className="p-2 h-auto text-foreground"
           icon={isOpen ? <X size={24} /> : <Menu size={24} />}
         />

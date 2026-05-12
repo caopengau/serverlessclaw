@@ -3,6 +3,7 @@ import { User, Send, ThumbsUp, ThumbsDown, Loader } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
 import { HandoffData } from '@/lib/collaboration-utils';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface HandoffPanelProps {
   handoffData: HandoffData | null;
@@ -19,6 +20,7 @@ export const HandoffPanel: React.FC<HandoffPanelProps> = ({
   submittingResponse,
   onSubmit,
 }) => {
+  const { t } = useTranslations();
   return (
     <div className="absolute bottom-6 right-6 z-30 w-[360px] bg-background border border-orange-500/50 rounded-xl shadow-[0_0_30px_color-mix(in_srgb,theme(colors.orange.500)_20%,transparent)] overflow-hidden">
       <div className="px-4 py-3 bg-orange-500/10 border-b border-orange-500/20 flex items-center gap-3">
@@ -78,7 +80,7 @@ export const HandoffPanel: React.FC<HandoffPanelProps> = ({
             <textarea
               value={handoffResponse}
               onChange={(e) => setHandoffResponse(e.target.value)}
-              placeholder="Provide guidance or approve/reject the agent's request..."
+              placeholder={t('HANDOFF_PLACEHOLDER')}
               className="w-full bg-foreground/5 border border-border rounded-lg px-3 py-2 text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-orange-500/50 resize-none h-20"
             />
           </div>

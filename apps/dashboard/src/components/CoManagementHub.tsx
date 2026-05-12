@@ -5,6 +5,7 @@ import Button from './ui/Button';
 import Badge from './ui/Badge';
 import { Shield, Zap, TrendingUp, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 import TrustGauge from './TrustGauge';
+import { useTranslations } from './Providers/TranslationsProvider';
 
 interface Proposal {
   id: string;
@@ -17,6 +18,7 @@ interface Proposal {
 }
 
 export default function CoManagementHub() {
+  const { t, formatTime } = useTranslations();
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -55,19 +57,19 @@ export default function CoManagementHub() {
           weight="bold"
           className="tracking-[0.2em] flex items-center gap-2"
         >
-          <Shield size={14} className="text-[var(--cyber-green)]" /> Co-Management Hub
+          <Shield size={14} className="text-[var(--cyber-green)]" /> {t('CO_MANAGEMENT_HUB')}
         </Typography>
         <Badge variant="primary" className="animate-pulse">
-          Active Trust Negotiation
+          {t('TRUST_NEGOTIATION')}
         </Badge>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card variant="glass" className="flex flex-col items-center justify-center p-8 bg-card/10">
-          <TrustGauge score={94} label="System Trust" size={140} />
+          <TrustGauge score={94} label={t('SYSTEM_TRUST')} size={140} />
           <div className="mt-4 text-center">
             <Typography variant="caption" color="muted">
-              COGNITIVE HEALTH:{' '}
+              {t('COGNITIVE_HEALTH')}
             </Typography>
             <Typography variant="mono" color="primary" weight="bold" className="text-[10px]">
               OPTIMAL
@@ -79,7 +81,7 @@ export default function CoManagementHub() {
           <div className="flex items-center gap-2 mb-6">
             <Zap size={16} className="text-yellow-400" />
             <Typography variant="body" weight="bold">
-              Active Autonomy Proposals
+              {t('AUTONOMY_PROPOSALS')}
             </Typography>
           </div>
 
@@ -110,7 +112,7 @@ export default function CoManagementHub() {
                           Shift {proposal.agentId.toUpperCase()} to {proposal.targetMode}
                         </Typography>
                         <Typography variant="mono" color="muted" className="opacity-60 text-[10px]">
-                          ID: {proposal.id} • {new Date(proposal.createdAt).toLocaleTimeString()}
+                          ID: {proposal.id} • {formatTime(proposal.createdAt)}
                         </Typography>
                       </div>
                     </div>
@@ -148,14 +150,14 @@ export default function CoManagementHub() {
                         className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/20"
                         onClick={() => handleAction(proposal.id, 'reject')}
                       >
-                        <XCircle size={14} className="mr-2" /> Reject
+                        <XCircle size={14} className="mr-2" /> {t('REJECT')}
                       </Button>
                       <Button
                         variant="primary"
                         size="sm"
                         onClick={() => handleAction(proposal.id, 'approve')}
                       >
-                        <CheckCircle2 size={14} className="mr-2" /> Approve Autonomy
+                        <CheckCircle2 size={14} className="mr-2" /> {t('APPROVE_AUTONOMY')}
                       </Button>
                     </div>
                   )}
@@ -177,12 +179,10 @@ export default function CoManagementHub() {
           </div>
           <div>
             <Typography variant="body" weight="bold" color="intel">
-              Governance Policy Notice
+              {t('GOVERNANCE_NOTICE')}
             </Typography>
             <Typography variant="caption" color="muted" className="mt-1 leading-relaxed">
-              Moving an agent to <strong>AUTO</strong> mode allows it to execute Class A and B
-              actions without human intervention. Class C (Critical Infrastructure) actions still
-              require explicit governance class overrides even in AUTO mode.
+              {t('GOVERNANCE_NOTICE_BODY')}
             </Typography>
           </div>
         </div>

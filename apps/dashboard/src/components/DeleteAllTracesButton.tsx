@@ -7,9 +7,11 @@ import { toast } from 'sonner';
 import { logger } from '@claw/core/lib/logger';
 import CyberConfirm from './CyberConfirm';
 import Button from './ui/Button';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 export default function DeleteAllTracesButton() {
   const router = useRouter();
+  const { t } = useTranslations();
   const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -40,10 +42,10 @@ export default function DeleteAllTracesButton() {
     <>
       <CyberConfirm
         isOpen={showConfirm}
-        title="Total Archive Purge"
-        message="You are about to permanently erase ALL neural execution traces from the database. This will eliminate the entire historical logic record."
+        title={t('ARCHIVE_PURGE')}
+        message={t('PURGE_MESSAGE')}
         variant="danger"
-        confirmText={isDeleting ? 'Purging...' : 'Confirm Total Purge'}
+        confirmText={isDeleting ? t('PURGING') : t('CONFIRM_PURGE')}
         onConfirm={handleDeleteAll}
         onCancel={() => setShowConfirm(false)}
       />
@@ -54,9 +56,9 @@ export default function DeleteAllTracesButton() {
         onClick={() => setShowConfirm(true)}
         className="border-red-500/30 text-red-500 hover:bg-red-500/10"
         icon={isDeleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-        title="Purge All Traces"
+        title={t('PURGE_ALL')}
       >
-        Purge All Traces
+        {t('PURGE_ALL_BUTTON')}
       </Button>
     </>
   );

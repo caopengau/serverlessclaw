@@ -47,7 +47,7 @@ const Breadcrumbs: React.FC = () => {
 
   return (
     <nav
-      aria-label="Breadcrumb"
+      aria-label={t('BREADCRUMB')}
       className="mb-4 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1"
     >
       <Link

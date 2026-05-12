@@ -31,6 +31,12 @@ describe('Realtime Auth Handler', () => {
     expect(response.isAuthenticated).toBe(true);
     expect(response.principalId).toBeDefined();
     expect(Array.isArray(response.policyDocuments)).toBe(true);
+
+    const policy = JSON.parse(response.policyDocuments[0]);
+    const hasConnectAllow = policy.Statement.some(
+      (s: any) => s.Action && s.Action.includes('iot:Connect')
+    );
+    expect(hasConnectAllow).toBe(true);
   });
 
   it('handles token in query string parameters', async () => {

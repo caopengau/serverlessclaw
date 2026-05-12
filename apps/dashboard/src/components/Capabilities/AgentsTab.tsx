@@ -10,6 +10,7 @@ import Typography from '../ui/Typography';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import CyberConfirm from '../CyberConfirm';
+import { useTranslations } from '../Providers/TranslationsProvider';
 import type { Tool } from '@/lib/types/ui';
 
 import { AgentConfig } from './types';
@@ -29,6 +30,7 @@ export default function AgentsTab({
   setOptimisticAgents,
   searchQuery,
 }: AgentsTabProps) {
+  const { t } = useTranslations();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
@@ -211,7 +213,7 @@ export default function AgentsTab({
                 className="w-full font-black text-[9px] tracking-[0.2em] border-border hover:border-yellow-500/40 hover:text-yellow-500 group-hover:bg-yellow-500/5 transition-all"
                 icon={<Cpu size={12} />}
               >
-                OPEN NEURAL ROSTER
+                {t('OPEN_NEURAL_ROSTER')}
               </Button>
             </div>
           </Card>
@@ -269,7 +271,7 @@ export default function AgentsTab({
                 />
                 <input
                   type="text"
-                  placeholder="Filter neural patterns by name or protocol..."
+                  placeholder={t('AGENTS_FILTER_PLACEHOLDER')}
                   value={modalSearchQuery}
                   onChange={(e) => setModalSearchQuery(e.target.value)}
                   className="w-full bg-background border border-border focus:border-yellow-500/40 rounded p-3 pl-10 text-[10px] font-mono outline-none tracking-widest placeholder:text-muted-more font-black"
@@ -287,7 +289,7 @@ export default function AgentsTab({
                   variant="outline"
                   className="text-[10px] border-yellow-500/20 text-yellow-500"
                 >
-                  {selectedAgent.tools.length} Attached
+                  {selectedAgent.tools.length} {t('ATTACHED')}
                 </Badge>
               </div>
             </div>
@@ -392,7 +394,7 @@ export default function AgentsTab({
                                 )
                               }
                             >
-                              {isAttached ? 'DETACH' : 'ATTACH'}
+                              {isAttached ? t('DETACH') : t('ATTACH')}
                             </Button>
                           </div>
                         );

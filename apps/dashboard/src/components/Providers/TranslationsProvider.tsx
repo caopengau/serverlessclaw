@@ -14,6 +14,8 @@ interface TranslationsContextType {
   t: (key: string) => string;
   locale: Locale;
   setLocale: (locale: Locale) => void;
+  formatDate: (date: Date | number, options?: Intl.DateTimeFormatOptions) => string;
+  formatTime: (date: Date | number, options?: Intl.DateTimeFormatOptions) => string;
 }
 
 const TranslationsContext = createContext<TranslationsContextType | undefined>(undefined);
@@ -74,8 +76,20 @@ export const TranslationsProvider: React.FC<{
     return (messages as Record<string, string>)[key] ?? key;
   };
 
+  const getLanguageTag = (loc: Locale) => (loc === 'cn' ? 'zh-CN' : 'en-US');
+
+  const formatDate = (date: Date | number, options?: Intl.DateTimeFormatOptions) => {
+    const d = typeof date === 'number' ? new Date(date) : date;
+    return d.toLocaleDateString(getLanguageTag(locale), options);
+  };
+
+  const formatTime = (date: Date | number, options?: Intl.DateTimeFormatOptions) => {
+    const d = typeof date === 'number' ? new Date(date) : date;
+    return d.toLocaleTimeString(getLanguageTag(locale), options);
+  };
+
   return (
-    <TranslationsContext.Provider value={{ t, locale, setLocale }}>
+    <TranslationsContext.Provider value={{ t, locale, setLocale, formatDate, formatTime }}>
       {children}
     </TranslationsContext.Provider>
   );

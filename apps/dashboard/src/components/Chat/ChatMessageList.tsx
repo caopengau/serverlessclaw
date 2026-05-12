@@ -1,5 +1,6 @@
 import React, { memo, useMemo, useState } from 'react';
 import Image from 'next/image';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import {
   User,
   Bot,
@@ -22,11 +23,6 @@ import { DynamicComponentRegistry } from '@/components/DynamicComponents/Registr
 import { ToolCallsDisplay } from './ChatParts';
 import { getMarkdownComponents } from './MarkdownConfig';
 
-const formatTime = (ts?: number) => {
-  if (!ts) return '';
-  return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-};
-
 interface ChatMessageRowProps {
   message: ChatMessage;
   index: number;
@@ -42,6 +38,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
   onOptionClick,
   showThinking,
 }: Omit<ChatMessageRowProps, 'isLast' | 'isLoading'>) {
+  const { t, formatTime } = useTranslations();
   const m = message;
   const key = m.messageId ? `${m.role}-${m.messageId}` : `local-${index}`;
   const components = useMemo(() => getMarkdownComponents(m.role), [m.role]);
@@ -99,7 +96,9 @@ const ChatMessageRow = memo(function ChatMessageRow({
               </Typography>
               {m.createdAt && (
                 <Typography variant="mono" className="text-[9px] text-muted-foreground/40">
-                  {formatTime(m.createdAt)}
+                  {m.createdAt
+                    ? formatTime(m.createdAt, { hour: '2-digit', minute: '2-digit' })
+                    : ''}
                 </Typography>
               )}
               {m.modelName && (
@@ -115,7 +114,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
           {m.role === 'user' && m.createdAt && (
             <div className="flex justify-end pr-2">
               <Typography variant="mono" className="text-[9px] text-muted-foreground/30">
-                {formatTime(m.createdAt)}
+                {m.createdAt ? formatTime(m.createdAt, { hour: '2-digit', minute: '2-digit' }) : ''}
               </Typography>
             </div>
           )}
@@ -153,7 +152,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
                         color="primary"
                         className="animate-pulse uppercase tracking-wider text-[10px]"
                       >
-                        Analysing Signal...
+                        {t('ANALYSING_SIGNAL')}
                       </Typography>
                     </div>
                   ) : (
@@ -191,7 +190,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
                       onClick={copyMessage}
                       className="!p-1.5 h-auto hover:text-cyber-green"
                       icon={copied ? <Check size={12} /> : <Copy size={12} />}
-                      title="Copy message"
+                      title={t('COPY_MESSAGE')}
                     />
                   </div>
                 )}
@@ -328,7 +327,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
                   </div>
                   <input
                     type="text"
-                    placeholder="Add an optional comment..."
+                    placeholder={t('COMMENT_PLACEHOLDER')}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     className="w-full bg-input border border-border rounded-lg py-1.5 pl-9 pr-3 text-[11px] text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-cyber-green/30 transition-colors font-mono"
@@ -358,6 +357,7 @@ export function ChatMessageList({
   onOptionClick,
   showThinking,
 }: ChatMessageListProps) {
+  const { t } = useTranslations();
   const [msgSearchQuery, setMsgSearchQuery] = useState('');
 
   const filteredMessages = useMemo(() => {
@@ -414,7 +414,7 @@ export function ChatMessageList({
           />
           <input
             type="text"
-            placeholder="Search messages..."
+            placeholder={t('SEARCH_MESSAGES_PLACEHOLDER')}
             value={msgSearchQuery}
             onChange={(e) => setMsgSearchQuery(e.target.value)}
             className="w-full bg-input border border-border focus:border-cyber-green/40 rounded py-1 pl-8 pr-4 text-[10px] text-foreground outline-none transition-all placeholder:text-muted-foreground/40"
@@ -433,7 +433,7 @@ export function ChatMessageList({
             variant="mono"
             className="text-[9px] text-cyber-green/60 uppercase whitespace-nowrap"
           >
-            {filteredMessages.length} Matches
+            {filteredMessages.length} {t('MATCHES')}
           </Typography>
         )}
       </div>
@@ -446,14 +446,10 @@ export function ChatMessageList({
           <div className="flex-1 flex flex-col items-center justify-center text-foreground/40 px-8 min-h-0">
             <Terminal size={48} className="mb-4 opacity-10" />
             <Typography variant="h3" weight="normal" color="primary" className="opacity-80">
-              {msgSearchQuery
-                ? 'No matching signals found'
-                : 'System Ready // Waiting for Input Command/File'}
+              {msgSearchQuery ? t('NO_MATCHING_SIGNALS') : t('SYSTEM_READY_WAITING')}
             </Typography>
             <Typography variant="mono" color="muted" className="mt-2 block">
-              {msgSearchQuery
-                ? 'Try a different search query'
-                : 'Initialise interaction by sending a message'}
+              {msgSearchQuery ? t('TRY_DIFFERENT_SEARCH') : t('INITIALISE_INTERACTION')}
             </Typography>
           </div>
         )}
@@ -483,7 +479,7 @@ export function ChatMessageList({
                   color="primary"
                   className="animate-pulse"
                 >
-                  Processing...
+                  {t('PROCESSING')}
                 </Typography>
               </Card>
             </div>

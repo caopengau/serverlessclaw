@@ -38,7 +38,7 @@ export default function PipelineBoard({
   pruneGap,
   triggerBatchEvolution,
 }: PipelineBoardProps) {
-  const { t } = useTranslations();
+  const { t, formatDate } = useTranslations();
   const [selectedGaps, setSelectedGaps] = useState<Set<string>>(new Set());
   const [expandedGaps, setExpandedGaps] = useState<Set<string>>(new Set());
   const [processing, setProcessing] = useState<string | null>(null);
@@ -346,7 +346,7 @@ export default function PipelineBoard({
                       <div className="flex items-center justify-between pt-2 border-t border-border">
                         <div className="flex items-center gap-2 text-[8px] text-muted-more font-mono">
                           <Clock size={8} />
-                          {new Date(gap.timestamp).toLocaleDateString()}
+                          {formatDate(new Date(gap.timestamp))}
                         </div>
 
                         <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">

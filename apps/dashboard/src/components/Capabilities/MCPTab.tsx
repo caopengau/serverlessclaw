@@ -10,6 +10,7 @@ import Typography from '../ui/Typography';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import CyberConfirm from '../CyberConfirm';
+import { useTranslations } from '../Providers/TranslationsProvider';
 
 interface MCPTabProps {
   mcpServers: Record<string, string | { command: string; env?: Record<string, string> }>;
@@ -17,6 +18,7 @@ interface MCPTabProps {
 }
 
 export default function MCPTab({ mcpServers, searchQuery }: MCPTabProps) {
+  const { t } = useTranslations();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [newBridge, setNewBridge] = useState({ name: '', command: '', env: '{}' });
@@ -113,7 +115,7 @@ export default function MCPTab({ mcpServers, searchQuery }: MCPTabProps) {
             </Typography>
             <input
               type="text"
-              placeholder="e.g. brave-search"
+              placeholder={t('MCP_NAME_PLACEHOLDER')}
               value={newBridge.name}
               onChange={(e) => setNewBridge({ ...newBridge, name: e.target.value })}
               className="w-full bg-background border border-border focus:border-cyber-blue/40 rounded-sm p-3 text-[10px] font-mono outline-none text-foreground transition-all placeholder:text-muted-more"
@@ -130,7 +132,7 @@ export default function MCPTab({ mcpServers, searchQuery }: MCPTabProps) {
             </Typography>
             <input
               type="text"
-              placeholder="npx -y @modelcontextprotocol/server-brave-search"
+              placeholder={t('MCP_COMMAND_PLACEHOLDER')}
               value={newBridge.command}
               onChange={(e) => setNewBridge({ ...newBridge, command: e.target.value })}
               className="w-full bg-background border border-border focus:border-cyber-blue/40 rounded-sm p-3 text-[10px] font-mono outline-none text-foreground transition-all placeholder:text-muted-more"

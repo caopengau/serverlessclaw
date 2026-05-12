@@ -6,6 +6,7 @@ import Typography from '@/components/ui/Typography';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface CouncilJudgePanelProps {
   requestId: string;
@@ -13,6 +14,7 @@ interface CouncilJudgePanelProps {
 }
 
 export default function CouncilJudgePanel({ requestId, onJudgement }: CouncilJudgePanelProps) {
+  const { t } = useTranslations();
   const [directive, setDirective] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -53,7 +55,7 @@ export default function CouncilJudgePanel({ requestId, onJudgement }: CouncilJud
             <Input
               value={directive}
               onChange={(e) => setDirective(e.target.value)}
-              placeholder="Enter specific instructions or rationale for your judgement..."
+              placeholder={t('JUDGEMENT_PLACEHOLDER')}
               className="bg-background/50 border-white/10 text-sm italic"
             />
           </div>

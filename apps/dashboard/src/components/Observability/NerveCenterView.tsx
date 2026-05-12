@@ -8,19 +8,35 @@ import { useTranslations } from '@/components/Providers/TranslationsProvider';
 // Dynamic imports for the heavy sub-views
 const PulseFlow = dynamic(() => import('../../app/(dashboard)/system-pulse/Flow'), {
   ssr: false,
-  loading: () => <LoadingPlaceholder label="Establishing Neural Uplink..." />,
+  loading: () => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { t } = useTranslations();
+    return <LoadingPlaceholder label={t('ESTABLISHING_UPLINK')} />;
+  },
 });
 
 const ResilienceSection = dynamic(() => import('./ResilienceView'), {
-  loading: () => <LoadingPlaceholder label="Quantizing Stability Gauges..." />,
+  loading: () => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { t } = useTranslations();
+    return <LoadingPlaceholder label={t('QUANTIZING_GAUGES')} />;
+  },
 });
 
 const CognitiveSection = dynamic(() => import('./CognitiveView'), {
-  loading: () => <LoadingPlaceholder label="Calibrating Reasoning Coherence..." />,
+  loading: () => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { t } = useTranslations();
+    return <LoadingPlaceholder label={t('CALIBRATING_REASONING')} />;
+  },
 });
 
 const LocksSection = dynamic(() => import('./LocksView'), {
-  loading: () => <LoadingPlaceholder label="Querying Concurrency State..." />,
+  loading: () => {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    const { t } = useTranslations();
+    return <LoadingPlaceholder label={t('QUERYING_CONCURRENCY')} />;
+  },
 });
 
 function LoadingPlaceholder({ label }: { label: string }) {
@@ -84,7 +100,7 @@ export default function NerveCenterView() {
           <div className="flex-1 min-h-[600px] mb-8 glass-card border-border overflow-hidden flex flex-col bg-card/20">
             <div className="px-6 py-3 border-b border-border bg-card/40 flex items-center justify-between">
               <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-[0.2em] text-muted-foreground">
-                <Zap size={14} className="text-cyber-blue" /> Infrastructure Map
+                <Zap size={14} className="text-cyber-blue" /> {t('INFRASTRUCTURE_MAP')}
               </div>
             </div>
             <div className="flex-1 relative flex flex-col">
