@@ -81,6 +81,9 @@ describe('session-operations', () => {
           type: 'msg',
           role: MessageRole.USER,
           content: 'Hello',
+        }),
+        expect.objectContaining({
+          ConditionExpression: expect.stringContaining('attribute_not_exists'),
         })
       );
     });
