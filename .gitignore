@@ -81,6 +81,7 @@ e2e/.auth/
 **/.opencode/
 
 # --- PROJECT SPECIFIC ---
+apps/dashboard/public/voltx-*
 scratch/
 temp/
 tmp/
