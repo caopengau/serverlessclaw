@@ -83,7 +83,7 @@ describe('ChatMessageList', () => {
 
   it('expands and collapses tool calls', () => {
     render(<ChatMessageList {...defaultProps} />);
-    const toolCallButton = screen.getByText(/1 tool call/i);
+    const toolCallButton = screen.getByText(/TOOL_CALLS/i);
 
     // Initial state: tool name should be visible but arguments might not be
     expect(screen.getByText('get_weather')).toBeInTheDocument();
