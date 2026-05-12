@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { LucideIcon } from 'lucide-react';
+import { UserRole } from '@claw/core/lib/types/common';
 
 export interface SidebarExtension {
   id: string;
@@ -10,6 +11,7 @@ export interface SidebarExtension {
   href: string;
   icon: LucideIcon;
   section?: string; // e.g., 'OPERATIONS', 'INTELLIGENCE'
+  requiredRoles?: UserRole[];
 }
 
 export interface DynamicComponentExtension {

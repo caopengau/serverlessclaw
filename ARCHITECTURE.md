@@ -370,11 +370,30 @@ To ensure high-performance auditability and automatic data aging (Principle 1), 
 To ensure enterprise-grade multi-tenancy and prevent privilege escalation, the system enforces a strict security perimeter:
 
 1. **Identity Hardening**: `getUserId` in the dashboard (`dashboard/src/lib/auth-utils.ts`) verifies both the session ID and a dedicated auth marker cookie. It explicitly blacklists the `SYSTEM` identity to prevent spoofing of internal agent credentials.
-2. **Permission-Gated API Routes**: All critical dashboard API routes (`/api/chat`, `/api/agents`) verify the requesting user's permissions via the `IdentityManager`.
-   - **`TASK_CREATE`**: Required to initiate new chat sessions or tasks.
-   - **`AGENT_VIEW / UPDATE / DELETE`**: Required to manage agent configurations.
-3. **Workspace Isolation**: Permission checks are scoped to a specific `workspaceId` (passed via headers or query params), ensuring users cannot access or modify resources belonging to other tenants.
-4. **Token Budgeting**: The `TokenBudgetEnforcer` prevents runaway LLM costs by monitoring per-session token consumption and blocking requests that exceed the allocated budget.
+2. **Permission-Gated API Routes**: All critical dashboard API routes (`/api/auth/me`, `/api/chat`, `/api/agents`) verify the requesting user's permissions via the `IdentityManager`.
+3. **Role-Based UI Filtering (RBAC)**: The dashboard utilizes a `UserProvider` to enforce visibility constraints. Sidebar items and views are filtered based on the user's role (`ADMIN`, `OWNER`, `MEMBER`, `VIEWER`).
+   - **Management View**: Reserved for `ADMIN` and `OWNER` roles. Includes System Pulse, Traces, and Pipeline.
+   - **User/Project View**: Accessible to all roles. Can be extended via `SidebarExtension` with project-specific `requiredRoles`.
+4. **Workspace Isolation**: Permission checks are scoped to a specific `workspaceId` (passed via headers or query params), ensuring users cannot access or modify resources belonging to other tenants.
+5. **Token Budgeting**: The `TokenBudgetEnforcer` prevents runaway LLM costs by monitoring per-session token consumption and blocking requests that exceed the allocated budget.
+
+### RBAC UI Filtering Flow
+
+```ascii
+[ User Login ]
+      |
+      v
+[ API: /api/auth/me ] ----> [ IdentityManager ]
+      |                          |
+      v                  [ Fetch User Role ]
+[ UserProvider (React) ] <-------+
+      |
+      +----( isAdmin? )----> [ Show Management Sidebar Sections ]
+      |                      (Pulse, Traces, Security, Users)
+      |
+      +----( userRole )----> [ Filter SidebarExtensions ]
+                             (requiredRoles check)
+```
 
 ---
 

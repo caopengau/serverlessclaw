@@ -35,9 +35,11 @@ import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 import { useRealtimeContext } from '@/components/Providers/RealtimeProvider';
 import { useExtensions } from '@/components/Providers/ExtensionProvider';
+import { useUser } from '@/components/Providers/UserProvider';
 import CyberTooltip from '@/components/CyberTooltip';
 import TenantSwitcher from '@/components/TenantSwitcher';
 import { logger } from '@claw/core/lib/logger';
+import { UserRole } from '@claw/core/lib/types/common';
 
 /**
  * Main application sidebar component.
@@ -50,6 +52,7 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(false);
   const { isSidebarCollapsed: isCollapsed, setSidebarCollapsed, setActiveModal } = useUICommand();
   const { sidebarExtensions } = useExtensions();
+  const { user } = useUser();
   const { t, locale, setLocale } = useTranslations();
   const { theme, setTheme } = useTheme();
   const { isConnected } = useRealtimeContext();
@@ -87,13 +90,16 @@ export default function Sidebar() {
     }
   };
 
-  const navItems = [
+  const userRole = (user?.role as UserRole) || UserRole.MEMBER;
+
+  const rawNavItems = [
     { label: t('OPERATIONS'), type: 'header' },
     {
       href: ROUTES.CHAT,
       label: t('CHAT_DIRECT'),
       subtitle: t('CHAT_SUBTITLE'),
       icon: MessageSquare,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
     },
     {
       href: ROUTES.TRACE,
@@ -101,42 +107,54 @@ export default function Sidebar() {
       subtitle: t('TRACE_SUBTITLE'),
       icon: Activity,
       activePaths: [ROUTES.TRACE, '/trace'],
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER],
     },
     {
       href: ROUTES.PIPELINE,
       label: t('EVOLUTION_PIPELINE'),
       subtitle: t('PIPELINE_SUBTITLE'),
       icon: Server,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER],
     },
     {
       href: ROUTES.SCHEDULING,
       label: t('SCHEDULING'),
       subtitle: t('SCHEDULING_SUBTITLE'),
       icon: Calendar,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
     },
     {
       href: ROUTES.COLLABORATION,
       label: t('CONSENSUS'),
       subtitle: t('COLLABORATION_SUBTITLE'),
       icon: Vote,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
     },
     ...sidebarExtensions
       .filter((e) => !e.section || e.section === 'OPERATIONS')
       .map((e) => ({ ...e, activePaths: [e.href] })),
 
     { label: t('INTELLIGENCE'), type: 'header' },
-    { href: ROUTES.AGENTS, label: t('AGENTS'), subtitle: t('AGENTS_SUBTITLE'), icon: Users },
+    {
+      href: ROUTES.AGENTS,
+      label: t('AGENTS'),
+      subtitle: t('AGENTS_SUBTITLE'),
+      icon: Users,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
+    },
     {
       href: ROUTES.MEMORY,
       label: t('MEMORY_RESERVE'),
       subtitle: t('MEMORY_SUBTITLE'),
       icon: Brain,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
     },
     {
       href: ROUTES.CAPABILITIES,
       label: t('CAPABILITIES'),
       subtitle: t('CAPABILITIES_SUBTITLE'),
       icon: Wrench,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
     },
     ...sidebarExtensions
       .filter((e) => e.section === 'INTELLIGENCE')
@@ -155,6 +173,7 @@ export default function Sidebar() {
         ROUTES.COGNITIVE_HEALTH,
         ROUTES.LOCKS,
       ],
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER],
     },
 
     { label: t('GOVERNANCE'), type: 'header' },
@@ -163,21 +182,46 @@ export default function Sidebar() {
       label: t('SECURITY_MANIFEST'),
       subtitle: t('SECURITY_SUBTITLE'),
       icon: Lock,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER],
     },
     {
       href: ROUTES.WORKSPACES,
       label: t('WORKSPACES'),
       subtitle: t('WORKSPACES_SUBTITLE'),
       icon: Building2,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER],
     },
     {
       href: '/users',
       label: t('USERS'),
       subtitle: t('USERS_SUBTITLE'),
       icon: Users,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER],
     },
-    { href: ROUTES.SETTINGS, label: t('CONFIG'), subtitle: t('SETTINGS_SUBTITLE'), icon: Settings },
+    {
+      href: ROUTES.SETTINGS,
+      label: t('CONFIG'),
+      subtitle: t('SETTINGS_SUBTITLE'),
+      icon: Settings,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER],
+    },
   ];
+
+  // Filter items based on roles
+  const filteredNavItems = rawNavItems.filter((item) => {
+    if ('type' in item && item.type === 'header') return true;
+    if (item.requiredRoles && !item.requiredRoles.includes(userRole)) return false;
+    return true;
+  });
+
+  // Filter out empty headers
+  const navItems = filteredNavItems.filter((item, idx) => {
+    if ('type' in item && item.type === 'header') {
+      const nextItem = filteredNavItems[idx + 1];
+      if (!nextItem || ('type' in nextItem && nextItem.type === 'header')) return false;
+    }
+    return true;
+  });
 
   return (
     <>
