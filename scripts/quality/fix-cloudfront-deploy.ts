@@ -44,15 +44,15 @@ function getRegion(): string {
   return DEFAULT_REGION;
 }
 
-const REGION = getRegion();
-log(`Using region: ${REGION}`);
-const cf = new CloudFrontClient({ region: REGION });
-const s3 = new S3Client({ region: REGION });
-
 import { log as commonLog, err as commonErr } from './common';
 
 const log = (msg: string) => commonLog('fix-cloudfront', msg);
 const err = (msg: string) => commonErr('fix-cloudfront', msg);
+
+const REGION = getRegion();
+log(`Using region: ${REGION}`);
+const cf = new CloudFrontClient({ region: REGION });
+const s3 = new S3Client({ region: REGION });
 
 async function getNewestBucketName(): Promise<string> {
   const buckets = await s3.send(new ListBucketsCommand({}));
