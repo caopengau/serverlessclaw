@@ -204,7 +204,7 @@ export abstract class BaseExecutor {
     options: ExecutorOptions
   ): Promise<LoopResult | null> {
     const loopDetector = getSemanticLoopDetector();
-    const loopResult = loopDetector.check(sessionId, currentContent);
+    const loopResult = loopDetector.check(sessionId, currentContent, options.workspaceId);
 
     if (loopResult.isLoop) {
       logger.warn(

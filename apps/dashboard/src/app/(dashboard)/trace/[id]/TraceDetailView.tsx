@@ -26,7 +26,14 @@ import TraceContextRegistrar from '@/components/Trace/TraceContextRegistrar';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { TRACE_TYPES, TRACE_STATUS } from '@claw/core/lib/constants';
 import { THEME } from '@/lib/theme';
-import { Trace, TraceStep, ToolCallContent, ToolResultContent, LlmCallContent, LlmResponseContent } from '@/lib/types/ui';
+import {
+  Trace,
+  TraceStep,
+  ToolCallContent,
+  ToolResultContent,
+  LlmCallContent,
+  LlmResponseContent,
+} from '@/lib/types/ui';
 
 interface TraceDetailViewProps {
   id: string;
@@ -225,7 +232,12 @@ export default function TraceDetailView({ id, nodes }: TraceDetailViewProps) {
                           </Typography>
                         </div>
                       </div>
-                      <Typography variant="mono" color="muted" className="text-[9px]" suppressHydrationWarning>
+                      <Typography
+                        variant="mono"
+                        color="muted"
+                        className="text-[9px]"
+                        suppressHydrationWarning
+                      >
                         {formatTime(step.timestamp as number)}
                       </Typography>
                     </div>
@@ -282,28 +294,29 @@ export default function TraceDetailView({ id, nodes }: TraceDetailViewProps) {
                               }
                             })()}
                           </div>
-                          {(step.content as LlmResponseContent).tool_calls && ((step.content as LlmResponseContent).tool_calls?.length ?? 0) > 0 && (
-                            <div className="mt-4 pt-4 border-t border-cyber-green/10">
-                              <div className="text-[10px] text-yellow-500/60 uppercase font-bold mb-2 tracking-widest">
-                                {t('TRACE_REQUESTED_TOOLS')}
+                          {(step.content as LlmResponseContent).tool_calls &&
+                            ((step.content as LlmResponseContent).tool_calls?.length ?? 0) > 0 && (
+                              <div className="mt-4 pt-4 border-t border-cyber-green/10">
+                                <div className="text-[10px] text-yellow-500/60 uppercase font-bold mb-2 tracking-widest">
+                                  {t('TRACE_REQUESTED_TOOLS')}
+                                </div>
+                                <div className="space-y-2">
+                                  {(step.content as LlmResponseContent).tool_calls?.map(
+                                    (
+                                      tc: { function: { name: string; arguments: string } },
+                                      tci: number
+                                    ) => (
+                                      <div
+                                        key={tci}
+                                        className="text-[10px] bg-yellow-500/5 border border-yellow-500/10 p-2 rounded font-mono text-yellow-500/80"
+                                      >
+                                        {tc.function.name}({tc.function.arguments})
+                                      </div>
+                                    )
+                                  )}
+                                </div>
                               </div>
-                              <div className="space-y-2">
-                                {(step.content as LlmResponseContent).tool_calls?.map(
-                                  (
-                                    tc: { function: { name: string; arguments: string } },
-                                    tci: number
-                                  ) => (
-                                    <div
-                                      key={tci}
-                                      className="text-[10px] bg-yellow-500/5 border border-yellow-500/10 p-2 rounded font-mono text-yellow-500/80"
-                                    >
-                                      {tc.function.name}({tc.function.arguments})
-                                    </div>
-                                  )
-                                )}
-                              </div>
-                            </div>
-                          )}
+                            )}
                         </div>
                       ) : null}
 

@@ -27,7 +27,7 @@ const CollaborationCanvas = dynamic(() => import('@/components/CollaborationCanv
   loading: () => (
     <div className="flex-1 flex items-center justify-center h-96">
       <div className="text-cyber-blue animate-pulse font-mono uppercase text-sm tracking-widest">
-        {t('TRACE_INITIALIZING_MATRIX')}
+        INITIALIZING TRACE MATRIX...
       </div>
     </div>
   ),
@@ -140,24 +140,24 @@ export default function TraceIntelligenceView({
     if (activeTab === 'timeline' || activeTab === 'live') return filteredTraces;
 
     const groups: Record<string, typeof traces> = {};
-    filteredTraces.forEach((t) => {
+    filteredTraces.forEach((trace) => {
       let key = t('UNKNOWN');
-      if (activeTab === 'agents') key = t.agentId;
+      if (activeTab === 'agents') key = trace.agentId;
       else if (activeTab === 'sessions') {
-        key = sessionTitles?.[t.sessionId]
-          ? `${sessionTitles[t.sessionId]} (${t.sessionId.substring(0, 8)}...)`
-          : t.sessionId;
-      } else if (activeTab === 'models') key = t.model;
+        key = sessionTitles?.[trace.sessionId]
+          ? `${sessionTitles[trace.sessionId]} (${trace.sessionId.substring(0, 8)}...)`
+          : trace.sessionId;
+      } else if (activeTab === 'models') key = trace.model;
       else if (activeTab === 'tools') {
-        t.toolsUsed.forEach((tool: string) => {
+        trace.toolsUsed.forEach((tool: string) => {
           if (!groups[tool]) groups[tool] = [];
-          groups[tool].push(t);
+          groups[tool].push(trace);
         });
         return;
       }
 
       if (!groups[key]) groups[key] = [];
-      groups[key].push(t);
+      groups[key].push(trace);
     });
 
     return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);

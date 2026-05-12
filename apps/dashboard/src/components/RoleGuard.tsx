@@ -24,7 +24,10 @@ export default function RoleGuard({ children, requiredRoles, fallback }: RoleGua
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] animate-pulse">
-        <Typography variant="mono" className="text-cyber-green/50 text-[10px] uppercase tracking-widest">
+        <Typography
+          variant="mono"
+          className="text-cyber-green/50 text-[10px] uppercase tracking-widest"
+        >
           Verifying Identity...
         </Typography>
       </div>
@@ -47,9 +50,13 @@ export default function RoleGuard({ children, requiredRoles, fallback }: RoleGua
         <Typography variant="h2" color="primary" glow uppercase className="mb-4">
           Access Denied
         </Typography>
-        <Typography variant="mono" color="muted" className="max-w-md mb-8 text-xs uppercase leading-loose">
-          Your current clearance level ({userRole}) is insufficient for this terminal. 
-          Contact a system administrator to request an upgrade.
+        <Typography
+          variant="mono"
+          color="muted"
+          className="max-w-md mb-8 text-xs uppercase leading-loose"
+        >
+          Your current clearance level ({userRole}) is insufficient for this terminal. Contact a
+          system administrator to request an upgrade.
         </Typography>
         <Button onClick={() => router.push('/')} variant="outline" size="sm">
           Return to Neural Hub

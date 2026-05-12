@@ -98,7 +98,7 @@ describe('ClawTracer Update Isolation', () => {
 
     mockSend.mockResolvedValue({});
     await tracer.endTrace('done');
-    
+
     expect(FlowController.areTraceSummariesEnabled).toHaveBeenCalledWith('ws-1');
   });
 });

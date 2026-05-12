@@ -306,7 +306,7 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
     );
 
     const { emitMetrics, METRICS } = await import('../lib/metrics');
-    await emitMetrics([METRICS.deploymentStarted()]).catch((err) =>
+    await emitMetrics([METRICS.deploymentStarted({ workspaceId: 'GLOBAL' })]).catch((err) =>
       logger.warn('Failed to emit DeploymentStarted metric during recovery:', err)
     );
 

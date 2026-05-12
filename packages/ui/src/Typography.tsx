@@ -10,6 +10,7 @@ export interface TypographyProps {
   italic?: boolean;
   children: React.ReactNode;
   className?: string;
+  suppressHydrationWarning?: boolean;
 }
 
 const Typography: React.FC<TypographyProps> = ({
@@ -22,6 +23,7 @@ const Typography: React.FC<TypographyProps> = ({
   italic = false,
   children,
   className = '',
+  suppressHydrationWarning,
   ...props
 }: TypographyProps & React.HTMLAttributes<HTMLElement>) => {
   const Component =
@@ -73,6 +75,7 @@ const Typography: React.FC<TypographyProps> = ({
         ${glow ? 'glow-text' : ''}
         ${className}
       `}
+      suppressHydrationWarning={suppressHydrationWarning}
       {...props}
     >
       {children}

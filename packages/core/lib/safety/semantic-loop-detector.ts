@@ -111,18 +111,20 @@ export class SemanticLoopDetector {
    *
    * @param sessionId - The session to track outputs for.
    * @param output - The agent output text.
+   * @param workspaceId - The tenant boundary to prevent cross-tenant collisions.
    * @returns Detection result with recommended action.
    */
-  check(sessionId: string, output: string): LoopDetectionResult {
+  check(sessionId: string, output: string, workspaceId?: string): LoopDetectionResult {
     const normalized = this.normalize(output);
     const wordSet = this.toWordSet(normalized);
     const now = Date.now();
+    const key = workspaceId ? `WS#${workspaceId}#${sessionId}` : sessionId;
 
     // Get or create session history
-    let history = this.sessions.get(sessionId);
+    let history = this.sessions.get(key);
     if (!history) {
       history = [];
-      this.sessions.set(sessionId, history);
+      this.sessions.set(key, history);
     }
 
     // If output is too short, skip detection (likely a greeting or simple ack)
@@ -180,8 +182,9 @@ export class SemanticLoopDetector {
   /**
    * Clears the history for a specific session.
    */
-  clearSession(sessionId: string): void {
-    this.sessions.delete(sessionId);
+  clearSession(sessionId: string, workspaceId?: string): void {
+    const key = workspaceId ? `WS#${workspaceId}#${sessionId}` : sessionId;
+    this.sessions.delete(key);
   }
 
   /**

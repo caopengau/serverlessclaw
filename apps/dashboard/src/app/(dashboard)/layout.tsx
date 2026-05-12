@@ -34,10 +34,10 @@ export async function generateMetadata() {
     CONFIG_KEYS.ACTIVE_LOCALE,
     'en'
   )) as 'en' | 'cn';
-  
+
   const messages = initialLocale === 'cn' ? cn : en;
   const appTitle = process.env.NEXT_PUBLIC_APP_TITLE || messages.DASHBOARD_TITLE;
-  
+
   return {
     title: `${appTitle} | ${messages.LAYOUT_NEURAL_HUB}`,
     description: messages.LAYOUT_DESCRIPTION,

@@ -101,7 +101,11 @@ export default function DeploySyncStatus() {
                       {t('SETTINGS_GAPS').replace('{count}', String(sync.gapIds.length))}
                     </Typography>
                   </div>
-                  <Typography variant="mono" className="text-[10px] opacity-20" suppressHydrationWarning>
+                  <Typography
+                    variant="mono"
+                    className="text-[10px] opacity-20"
+                    suppressHydrationWarning
+                  >
                     {formatTime(sync.timestamp)}
                   </Typography>
                 </div>

@@ -76,6 +76,20 @@ describe('SemanticLoopDetector', () => {
       const result = detector.check('session1', 'Another unique output for the session.');
       expect(result.isLoop).toBe(false);
     });
+
+    it('should handle different workspaceIds independently', () => {
+      const output = 'This is a repetitive output for loop detection test.';
+
+      detector.check('session1', output, 'wsA');
+      detector.check('session1', output, 'wsA');
+      const resultA = detector.check('session1', output, 'wsA');
+
+      const resultB = detector.check('session1', output, 'wsB');
+
+      expect(resultA.isLoop).toBe(true);
+      expect(resultB.isLoop).toBe(false);
+      expect(resultB.consecutiveCount).toBe(0);
+    });
   });
 
   describe('clearSession', () => {
@@ -84,6 +98,19 @@ describe('SemanticLoopDetector', () => {
       expect(detector.sessionCount).toBe(1);
       detector.clearSession('session1');
       expect(detector.sessionCount).toBe(0);
+    });
+
+    it('should handle clearing session with workspaceId correctly', () => {
+      const output = 'Repetitive test output.';
+      detector.check('session1', output, 'wsA');
+
+      detector.clearSession('session1', 'wsB');
+      const result = detector.check('session1', output, 'wsA');
+      expect(result.similarity).toBeGreaterThan(0.85); // Still exists
+
+      detector.clearSession('session1', 'wsA');
+      const cleanResult = detector.check('session1', output, 'wsA');
+      expect(cleanResult.similarity).toBe(0); // Cleared
     });
   });
 });

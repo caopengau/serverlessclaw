@@ -268,8 +268,8 @@ export default function SecurityManifestPage() {
                 <Lock size={14} className="text-cyber-blue" /> Infrastructure Boundaries (IAM)
               </h3>
               <p className="text-xs text-foreground leading-relaxed mb-4 font-light">
-                Permissions are hardware-enforced at the AWS IAM level. Agents only have access to the
-                specific resources linked in{' '}
+                Permissions are hardware-enforced at the AWS IAM level. Agents only have access to
+                the specific resources linked in{' '}
                 <code className="text-cyber-blue font-bold">sst.config.ts</code>.
               </p>
               <div className="flex flex-wrap gap-2">

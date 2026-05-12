@@ -67,7 +67,8 @@ export default function MissionDashboard() {
               weight="black"
               className="tracking-[0.2em] flex items-center gap-2"
             >
-              <MessageSquare size={14} className="text-cyber-green" /> {t('DASHBOARD_RECENT_MISSIONS')}
+              <MessageSquare size={14} className="text-cyber-green" />{' '}
+              {t('DASHBOARD_RECENT_MISSIONS')}
             </Typography>
             <Link href={ROUTES.CHAT}>
               <Button
@@ -123,8 +124,12 @@ export default function MissionDashboard() {
                         >
                           {session.title || t('DASHBOARD_UNTITLED_OPERATION')}
                         </Typography>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono" suppressHydrationWarning>
-                          <Clock size={12} /> {formatDate(session.updatedAt)} {formatTime(session.updatedAt)}
+                        <div
+                          className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono"
+                          suppressHydrationWarning
+                        >
+                          <Clock size={12} /> {formatDate(session.updatedAt)}{' '}
+                          {formatTime(session.updatedAt)}
                         </div>
                       </div>
                       <div className="flex justify-end">

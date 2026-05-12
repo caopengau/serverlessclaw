@@ -49,7 +49,15 @@ export async function getHandlerForEvent(
     localLogger.error(`[ROUTING] No handler found for event type: ${detailType}`);
     const { routeToDlq } = await import('../route-to-dlq');
     const { emitMetrics, METRICS } = await import('../../lib/metrics');
-    await routeToDlq(event, detailType, 'SYSTEM', traceId, `No routing for ${detailType}`, sessionId, workspaceId);
+    await routeToDlq(
+      event,
+      detailType,
+      'SYSTEM',
+      traceId,
+      `No routing for ${detailType}`,
+      sessionId,
+      workspaceId
+    );
     emitMetrics([METRICS.dlqEvents(1, scope)]).catch(() => {});
     return null;
   }

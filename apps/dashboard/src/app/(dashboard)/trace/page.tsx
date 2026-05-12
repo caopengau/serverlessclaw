@@ -116,11 +116,7 @@ export default async function AnalyticsTab({
             <DeleteAllTracesButton />
             <ExportTracesButton traces={traces} />
           </div>
-          <TraceStats
-            provider={config.provider}
-            model={config.model}
-            totalOps={traces.length}
-          />
+          <TraceStats provider={config.provider} model={config.model} totalOps={traces.length} />
         </div>
       </PageHeader>
 

@@ -199,4 +199,3 @@ To maintain trust integrity without cross-tenant interference, the Trust Calibra
 ```
 
 The system ensures that an agent's safety tier (and thus its calibration thresholds) are resolved specifically for the workspace context. Anomalies are recorded with full tenant dimensions to prevent global trust poisoning.
-

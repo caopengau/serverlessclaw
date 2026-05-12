@@ -173,7 +173,10 @@ export default function UsersPage() {
         {/* Toolbar */}
         <div className="flex items-center justify-between gap-4 glass-card p-4 border-border/40 bg-card/20">
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-more" size={16} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-more"
+              size={16}
+            />
             <input
               type="text"
               placeholder="Search by ID, Name or Email..."

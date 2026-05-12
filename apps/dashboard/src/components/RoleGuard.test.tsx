@@ -20,9 +20,10 @@ describe('RoleGuard', () => {
   it('renders children when user has required role', async () => {
     (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        user: { userId: 'admin-1', role: UserRole.ADMIN }
-      }),
+      json: () =>
+        Promise.resolve({
+          user: { userId: 'admin-1', role: UserRole.ADMIN },
+        }),
     });
 
     render(
@@ -41,9 +42,10 @@ describe('RoleGuard', () => {
   it('renders access denied message when user does not have required role', async () => {
     (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        user: { userId: 'member-1', role: UserRole.MEMBER }
-      }),
+      json: () =>
+        Promise.resolve({
+          user: { userId: 'member-1', role: UserRole.MEMBER },
+        }),
     });
 
     render(
@@ -62,9 +64,10 @@ describe('RoleGuard', () => {
   it('always allows OWNER even if not in requiredRoles', async () => {
     (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
-      json: () => Promise.resolve({
-        user: { userId: 'owner-1', role: UserRole.OWNER }
-      }),
+      json: () =>
+        Promise.resolve({
+          user: { userId: 'owner-1', role: UserRole.OWNER },
+        }),
     });
 
     render(
