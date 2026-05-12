@@ -89,7 +89,13 @@ export class MCPBridge {
 
         if (hubUrl && isLocalCommand && !scope.skipHubRouting) {
           try {
-            const hubServerUrl = `${hubUrl.replace(/\/$/, '')}/${serverName}`;
+            const hubUrlObj = new URL(hubUrl.replace(/\/$/, '') + `/${serverName}`);
+            // Propagate workspaceId to Hub for multi-tenant routing
+            if (scope.workspaceId !== 'global') {
+              hubUrlObj.searchParams.set('workspaceId', scope.workspaceId);
+            }
+            const hubServerUrl = hubUrlObj.toString();
+
             logger.info(
               `[MCPBridge] Attempting Hub connection for ${serverName}: ${hubServerUrl} (WS: ${scope.workspaceId})`
             );
@@ -191,6 +197,11 @@ export class MCPBridge {
           e
         );
         this.lastFailures.set(cacheKey, Date.now());
+        // Principle 11: Prune failure map to prevent memory leaks
+        if (this.lastFailures.size > 1000) {
+          const oldestKey = this.lastFailures.keys().next().value;
+          if (oldestKey) this.lastFailures.delete(oldestKey);
+        }
         MCPClientManager.deleteClient(serverName, options?.workspaceId);
         await AgentRegistry.saveRawConfig(cacheKey, null, {
           workspaceId: options?.workspaceId,

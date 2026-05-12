@@ -72,6 +72,7 @@ export class ConfigManagerBase {
   /**
    * Fetches a configuration value with a type-safe fallback.
    * Implements internal caching to minimize DynamoDB overhead.
+   * Scoped by workspace or org to ensure multi-tenant isolation (Principle 11).
    */
   public static async getTypedConfig<T>(
     key: string,
@@ -86,6 +87,12 @@ export class ConfigManagerBase {
 
     const value = await this.getRawConfig(key, options);
     const result = (value as T) ?? defaultValue;
+
+    // Principle 11: Multi-tenant safety - prevent unbounded map growth (Anti-Pattern 19)
+    if (this.configCache.size > 2000) {
+      const oldestKey = this.configCache.keys().next().value;
+      if (oldestKey) this.configCache.delete(oldestKey);
+    }
 
     this.configCache.set(cacheKey, { value: result, expiresAt: Date.now() + this.CACHE_TTL_MS });
     return result;

@@ -13,12 +13,12 @@ Last Updated: 2026-05-12
 | Silo  | Name           | Primary Code Paths                              | Audit Count | Last Audited | Risk Level |
 | :---- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
 | **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 24          | 2026-05-12   | Low        |
-| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 13          | 2026-05-11   | Low        |
+| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 14          | 2026-05-12   | Low        |
 | **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 23          | 2026-05-12   | Low        |
-| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 20          | 2026-05-12   | Low        |
+| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 21          | 2026-05-12   | Low        |
 | **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 18          | 2026-05-11   | Low        |
 | **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 19          | 2026-05-12   | Low        |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 16          | 2026-05-11   | Low        |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 17          | 2026-05-12   | Low        |
 
 ---
 
@@ -26,12 +26,12 @@ Last Updated: 2026-05-12
 
 | Perspective | Name              | Description                 | Usage Count | Last Tested |
 | :---------- | :---------------- | :-------------------------- | :---------- | :---------- |
-| **A**       | Life of a Message | Spine → Brain → Eye         | 11          | 2026-05-11  |
-| **B**       | Evolution Cycle   | Hand → Shield → Scales      | 11          | 2026-05-12  |
+| **A**       | Life of a Message | Spine → Brain → Eye         | 12          | 2026-05-12  |
+| **B**       | Evolution Cycle   | Hand → Shield → Scales      | 12          | 2026-05-12  |
 | **C**       | Identity Journey  | Brain → Spine → Shield      | 12          | 2026-05-12  |
 | **D**       | Trust Loop        | Eye → Scales → Spine        | 15          | 2026-05-12  |
 | **E**       | Recovery Path     | Shield → Spine → Brain      | 14          | 2026-05-12  |
-| **F**       | Metabolic Loop    | Metabolism ↔ Scales ↔ Spine | 9           | 2026-05-12  |
+| **F**       | Metabolic Loop    | Metabolism ↔ Scales ↔ Spine | 10          | 2026-05-12  |
 
 ---
 
@@ -40,6 +40,8 @@ Last Updated: 2026-05-12
 | Date       | Report                                             | Silos                            | Perspective | Status/Summary                                                                                                        |
 | :--------- | :------------------------------------------------- | :------------------------------- | :---------- | :-------------------------------------------------------------------------------------------------------------------- |
 | 2026-05-12 | `audit-2026-05-12-brain-identity.md`               | Brain                            | C           | FIXED: P1 Anti-Pattern 19 (In-Memory filtering) in 3 areas, P1 Principle 13 (Atomic Updates) in 9 files.              |
+| 2026-05-12 | `audit-2026-05-12-hand-evolution.md`        | Hand                             | B           | FIXED: P1 Hub routing context propagation, P2 Static map memory leaks (Anti-Pattern 19), Verified Tool Security.      |
+| 2026-05-12 | `audit-2026-05-12-brain-metabolism.md`             | Brain, Metabolism                | A, F        | FIXED: P1 Millisecond message collisions, P1 DLQ telemetry scoping, Verified Atomic Persistence.                     |
 | 2026-05-12 | `audit-2026-05-12-shield-recovery.md`              | Shield                           | E           | FIXED: P1 Cross-Tenant Leak in Loop Detector, P1 Alerting Blindness in Dead Mans Switch. Verified IAM.                |
 | 2026-05-12 | `audit-2026-05-12-scales-evolution.md`             | Scales                           | B           | FIXED: P1 Missing Atomic Sync for Inferred Gap IDs in Deployment. Verified TrustManager and PromotionManager.         |
 | 2026-05-12 | `audit-2026-05-12-spine-metabolic-loop.md`         | Spine, Metabolism                | F           | FIXED: P1 Tenant-blind Config Load, P1 Multi-tenant Leakage in Event DLQ Routing, P2 Trace Summaries Global Flag.     |
