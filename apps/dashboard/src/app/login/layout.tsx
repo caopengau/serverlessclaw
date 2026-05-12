@@ -22,6 +22,11 @@ import { ExtensionProvider } from '@/components/Providers/ExtensionProvider';
 export const metadata: Metadata = {
   title: `${process.env.NEXT_PUBLIC_APP_TITLE || 'ClawCenter'} | Authentication`,
   description: 'Secure access to the Command & Control Hub',
+  icons: {
+    icon: '/icon.png',
+    shortcut: '/favicon.ico',
+    apple: '/icon.png',
+  },
 };
 
 export const dynamic = 'force-dynamic';

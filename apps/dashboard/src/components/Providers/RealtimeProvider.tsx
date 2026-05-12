@@ -128,9 +128,12 @@ export function RealtimeProvider({ children }: { children: React.ReactNode }) {
 
       // AWS IoT Core standard WebSocket URL with custom authorizer
       const host = config.realtime.url.replace(/^wss?:\/\//, '').replace(/\/mqtt$/, '');
-      const mqttUrl = `wss://${host}/mqtt?x-amz-customauthorizer-name=${config.realtime.authorizer}&x-amz-customauthorizer-token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`;
+      const authorizerName = config.realtime.authorizer;
+      const mqttUrl = `wss://${host}/mqtt?x-amz-customauthorizer-name=${authorizerName}&x-amz-customauthorizer-token=${encodeURIComponent(token)}&clientId=${encodeURIComponent(clientId)}`;
 
-      logger.info(`[Realtime] ⚡ Connecting to: wss://${host}/mqtt`);
+      logger.info(
+        `[Realtime] ⚡ Connecting to: wss://${host}/mqtt (Authorizer: ${authorizerName})`
+      );
 
       const client = mqtt.connect(mqttUrl, {
         clientId,

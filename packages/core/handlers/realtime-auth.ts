@@ -64,11 +64,14 @@ export const handler = async (event: unknown, context: unknown, callback: unknow
       return { publish: [], subscribe: [] };
     }
 
-    logger.info(`[RealtimeAuth] ✅ Authorized for scope: ${prefix}/*`);
+    logger.info(
+      `[RealtimeAuth] ✅ Authorized for scope: ${prefix}/* (Token: ${finalToken?.substring(0, 8)}...)`
+    );
     return {
+      connect: ['*'],
       publish: [`${prefix}/*`],
       subscribe: [`${prefix}/*`],
-    };
+    } as any;
   });
 
   // Inject token so SST's internal logic might find it
