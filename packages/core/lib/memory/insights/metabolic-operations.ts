@@ -48,9 +48,10 @@ export async function recordFailurePattern(
   const pk = base.getScopedUserId('SYSTEM#GLOBAL', scope);
   const workspaceId = resolveScopeId(scope);
 
-  await base.putItem({
+  const { putWithCollisionRetry } = await import('../utils/atomic');
+  await putWithCollisionRetry(base as any, {
     userId: pk,
-    timestamp,
+    timestamp: parseInt(timestamp, 10),
     type: 'MEMORY:FAILURE_PATTERN',
     tags: normalizeTags(['failed_plan', ...(metadata?.tags ?? [])]),
     content,

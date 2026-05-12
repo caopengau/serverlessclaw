@@ -172,6 +172,7 @@ export async function updateClarificationStatus(
   await base.updateItem({
     Key: { userId: pk, timestamp: 0 },
     UpdateExpression: 'SET #status = :status',
+    ConditionExpression: 'attribute_exists(userId)',
     ExpressionAttributeNames: {
       '#status': 'status',
     },
@@ -201,11 +202,11 @@ export async function findExpiredClarifications(
   const now = Math.floor(Date.now() / TIME.MS_PER_SECOND);
 
   const params: Record<string, unknown> = {
-    IndexName: 'TypeTimestampIndex',
-    KeyConditionExpression: '#tp = :type',
-    FilterExpression: workspaceId
-      ? 'expiresAt < :now AND #status = :pending AND workspaceId = :workspaceId'
-      : 'expiresAt < :now AND #status = :pending',
+    IndexName: workspaceId ? 'WorkspaceTypeIndex' : 'TypeTimestampIndex',
+    KeyConditionExpression: workspaceId
+      ? 'workspaceId = :workspaceId AND #tp = :type'
+      : '#tp = :type',
+    FilterExpression: 'expiresAt < :now AND #status = :pending',
     ExpressionAttributeNames: {
       '#tp': 'type',
       '#status': 'status',
@@ -244,6 +245,7 @@ export async function incrementClarificationRetry(
   const result = await base.updateItem({
     Key: { userId: pk, timestamp: 0 },
     UpdateExpression: 'SET retryCount = if_not_exists(retryCount, :zero) + :one',
+    ConditionExpression: 'attribute_exists(userId)',
     ExpressionAttributeValues: {
       ':one': 1,
       ':zero': 0,

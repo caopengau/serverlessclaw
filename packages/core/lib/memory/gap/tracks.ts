@@ -6,7 +6,14 @@ import type { BaseMemoryProvider } from '../base';
 
 /** Minimal interface for track operations — satisfied by BaseMemoryProvider and DynamoMemory. */
 export interface TrackStore {
-  putItem(item: Record<string, unknown>): Promise<void>;
+  putItem(
+    item: Record<string, unknown>,
+    params?: Partial<{
+      ConditionExpression: string;
+      ExpressionAttributeNames: Record<string, string>;
+      ExpressionAttributeValues: Record<string, unknown>;
+    }>
+  ): Promise<void>;
   queryItems(params: Record<string, unknown>): Promise<Record<string, unknown>[]>;
 }
 
@@ -46,17 +53,22 @@ export async function assignGapToTrack(
     return wid ? `WS#${wid}#${id}` : id;
   };
 
-  await base.putItem({
-    userId: getScopedUserId(`${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`, scope),
-    timestamp: 0,
-    type: 'TRACK_ASSIGNMENT',
-    gapId: normalizedId,
-    track,
-    priority: priority ?? 5,
-    assignedAt: Date.now(),
-    createdAt: Date.now(),
-    expiresAt: Math.floor(Date.now() / 1000) + RETENTION.GAPS_DAYS * 86400,
-  });
+  await base.putItem(
+    {
+      userId: getScopedUserId(`${MEMORY_KEYS.TRACK_PREFIX}${normalizedId}`, scope),
+      timestamp: 0,
+      type: 'TRACK_ASSIGNMENT',
+      gapId: normalizedId,
+      track,
+      priority: priority ?? 5,
+      assignedAt: Date.now(),
+      createdAt: Date.now(),
+      expiresAt: Math.floor(Date.now() / 1000) + RETENTION.GAPS_DAYS * 86400,
+    },
+    {
+      ConditionExpression: 'attribute_not_exists(userId)',
+    }
+  );
 }
 
 /**

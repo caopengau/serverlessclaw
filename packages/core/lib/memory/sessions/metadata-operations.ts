@@ -1,6 +1,7 @@
 import { ConversationMeta } from '../../types/memory';
 import { RetentionManager } from '../tiering';
 import type { BaseMemoryProvider } from '../base';
+import { logger } from '../../logger';
 import { RETENTION } from '../../constants/memory';
 import { sessionIdToSortKey, fnv1aHash } from '../../utils/id-generator';
 
@@ -100,12 +101,29 @@ export async function saveConversationMeta(
     }
   }
 
-  await base.updateItem({
+  const params: Record<string, unknown> = {
     Key: { userId: partitionKey, timestamp: stableSortKey },
     UpdateExpression: `SET ${updateExprParts.join(', ')}`,
     ExpressionAttributeNames: attrNames,
     ExpressionAttributeValues: attrValues,
-  });
+  };
+
+  // Principle 13: Atomic State Integrity
+  if (existing) {
+    params.ConditionExpression = 'attribute_exists(userId)';
+  }
+
+  try {
+    await base.updateItem(params);
+  } catch (error) {
+    if (existing && (error as any).name === 'ConditionalCheckFailedException') {
+      logger.warn(
+        `[saveConversationMeta] Session meta for ${sessionId} changed concurrently. Retrying update.`
+      );
+      return saveConversationMeta(base, userId, sessionId, meta, scope);
+    }
+    throw error;
+  }
 }
 
 /**

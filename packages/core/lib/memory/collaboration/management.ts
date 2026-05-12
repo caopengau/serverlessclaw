@@ -229,11 +229,11 @@ export async function findStaleCollaborations(
   const now = Date.now();
 
   const params: Record<string, unknown> = {
-    IndexName: 'TypeTimestampIndex',
-    KeyConditionExpression: '#type = :type',
-    FilterExpression: workspaceId
-      ? '#status = :active AND workspaceId = :workspaceId'
-      : '#status = :active',
+    IndexName: workspaceId ? 'WorkspaceTypeIndex' : 'TypeTimestampIndex',
+    KeyConditionExpression: workspaceId
+      ? 'workspaceId = :workspaceId AND #type = :type'
+      : '#type = :type',
+    FilterExpression: '#status = :active',
     ExpressionAttributeNames: { '#status': 'status', '#type': 'type' },
     ExpressionAttributeValues: {
       ':active': 'active',

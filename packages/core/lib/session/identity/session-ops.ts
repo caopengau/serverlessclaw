@@ -45,18 +45,25 @@ export class SessionOps extends IdentityBase {
    */
   async saveSession(session: Session, orgId?: string): Promise<void> {
     try {
-      await this.base.putItem({
-        userId: this.getSessionKey(session.sessionId, orgId),
-        timestamp: 0,
-        type: 'SESSION',
-        sessionUserId: session.userId,
-        workspaceId: session.workspaceId,
-        startTime: session.startTime,
-        lastActivityTime: session.lastActivityTime,
-        expiresAt: session.expiresAt,
-        metadata: session.metadata,
-        ttl: Math.floor(session.expiresAt / 1000),
-      });
+      await this.base.putItem(
+        {
+          userId: this.getSessionKey(session.sessionId, orgId),
+          timestamp: 0,
+          type: 'SESSION',
+          sessionUserId: session.userId,
+          workspaceId: session.workspaceId,
+          startTime: session.startTime,
+          lastActivityTime: session.lastActivityTime,
+          expiresAt: session.expiresAt,
+          metadata: session.metadata,
+          ttl: Math.floor(session.expiresAt / 1000),
+        },
+        {
+          ConditionExpression: 'attribute_not_exists(userId) OR #tp = :type',
+          ExpressionAttributeNames: { '#tp': 'type' },
+          ExpressionAttributeValues: { ':type': 'SESSION' },
+        }
+      );
     } catch (error) {
       logger.error(`Failed to save session ${session.sessionId}:`, error);
     }
@@ -104,11 +111,11 @@ export class SessionOps extends IdentityBase {
   /**
    * Get all active sessions for a user.
    */
-  async getUserSessions(userId: string): Promise<Session[]> {
+  async getUserSessions(userId: string, workspaceId?: string): Promise<Session[]> {
     try {
       const result = await this.base.queryItemsPaginated({
-        IndexName: 'TypeTimestampIndex',
-        KeyConditionExpression: '#tp = :type',
+        IndexName: workspaceId ? 'WorkspaceTypeIndex' : 'TypeTimestampIndex',
+        KeyConditionExpression: workspaceId ? 'workspaceId = :wsId AND #tp = :type' : '#tp = :type',
         FilterExpression: 'sessionUserId = :uid',
         ExpressionAttributeNames: {
           '#tp': 'type',
@@ -116,6 +123,7 @@ export class SessionOps extends IdentityBase {
         ExpressionAttributeValues: {
           ':type': 'SESSION',
           ':uid': userId,
+          ...(workspaceId ? { ':wsId': workspaceId } : {}),
         },
         Limit: 100,
         ScanIndexForward: false,

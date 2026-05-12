@@ -54,17 +54,24 @@ export class AccessOps extends IdentityBase {
    */
   async addAccessControlEntry(entry: AccessControlEntry, orgId?: string): Promise<void> {
     try {
-      await this.base.putItem({
-        userId: this.getAclKey(entry.resourceType, entry.resourceId, orgId),
-        timestamp: 0,
-        type: 'ACCESS_CONTROL',
-        resourceType: entry.resourceType,
-        resourceId: entry.resourceId,
-        parentId: entry.parentId,
-        allowedRoles: entry.allowedRoles,
-        allowedUserIds: entry.allowedUserIds,
-        updatedAt: Date.now(),
-      });
+      await this.base.putItem(
+        {
+          userId: this.getAclKey(entry.resourceType, entry.resourceId, orgId),
+          timestamp: 0,
+          type: 'ACCESS_CONTROL',
+          resourceType: entry.resourceType,
+          resourceId: entry.resourceId,
+          parentId: entry.parentId,
+          allowedRoles: entry.allowedRoles,
+          allowedUserIds: entry.allowedUserIds,
+          updatedAt: Date.now(),
+        },
+        {
+          ConditionExpression: 'attribute_not_exists(userId) OR #tp = :type',
+          ExpressionAttributeNames: { '#tp': 'type' },
+          ExpressionAttributeValues: { ':type': 'ACCESS_CONTROL' },
+        }
+      );
       logger.info(`Access control entry saved: ${entry.resourceType}:${entry.resourceId}`);
     } catch (error) {
       logger.error(`Failed to save ACL entry:`, error);

@@ -164,12 +164,13 @@ export class CognitiveHealthMonitor {
     workspaceId?: string
   ): Promise<void> {
     try {
+      const { putWithCollisionRetry } = await import('../../memory/utils/atomic');
       const expiresAt = Math.floor(
         (Date.now() + this.config.retentionDays * TIME.MS_PER_DAY) / 1000
       );
       const prefix = workspaceId ? `WS#${workspaceId}#` : '';
       for (const metrics of snapshot.agentMetrics) {
-        await this.base.putItem({
+        await putWithCollisionRetry(this.base as any, {
           userId: `${prefix}${MEMORY_KEYS.HEALTH_PREFIX}SNAPSHOT#${metrics.agentId}`,
           timestamp: snapshot.timestamp,
           type: 'COGNITIVE_SNAPSHOT',

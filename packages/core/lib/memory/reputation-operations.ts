@@ -138,7 +138,7 @@ export async function updateReputation(
     await base.updateItem({
       Key: { userId: pk, timestamp: 0 },
       UpdateExpression:
-        'SET type = :type, ' +
+        'SET #tp = :type, ' +
         'agentId = :agentId, ' +
         'lastActive = :now, ' +
         'expiresAt = :exp, ' +
@@ -152,7 +152,11 @@ export async function updateReputation(
         (errorType
           ? ', errorDistribution.#err = if_not_exists(errorDistribution.#err, :zero) + :one'
           : ''),
-      ExpressionAttributeNames: errorType ? { '#err': errorType } : undefined,
+      ConditionExpression: 'attribute_not_exists(userId) OR #tp = :type',
+      ExpressionAttributeNames: {
+        '#tp': 'type',
+        ...(errorType ? { '#err': errorType } : {}),
+      },
       ExpressionAttributeValues: {
         ':type': 'REPUTATION',
         ':agentId': agentId,

@@ -651,6 +651,9 @@ describe('IdentityManager', () => {
         expect.objectContaining({
           type: 'ACCESS_CONTROL',
           resourceId: 'agent-1',
+        }),
+        expect.objectContaining({
+          ConditionExpression: expect.stringContaining('attribute_not_exists'),
         })
       );
     });

@@ -56,9 +56,11 @@ export class NegativeMemory {
     const scopedPk = this.base.getScopedUserId(pk, options?.scope);
 
     try {
-      await this.base.putItem({
+      const { putWithCollisionRetry } = await import('./utils/atomic');
+      await putWithCollisionRetry(this.base as any, {
         userId: scopedPk,
         type: 'FAILED_PLAN',
+        workspaceId: options?.scope?.workspaceId,
         ...record,
       });
       logger.info(
