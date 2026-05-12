@@ -110,13 +110,13 @@ tag: ## Create and push a git tag for the current release (for auditing)
 receipt: ## Generate deployment receipt and log details
 	@$(call log_step,Generating deployment receipt for $(ENV)...)
 	@OUTPUTS=$$(cat .sst/outputs.json 2>/dev/null || echo "{}"); \
-	DASH_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboard',''))" 2>/dev/null); \
-	LANDING_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('landing',''))" 2>/dev/null); \
+	DASH_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('dashboardUrl',''))" 2>/dev/null); \
+	API_URL=$$(echo "$$OUTPUTS" | python3 -c "import json,sys; print(json.load(sys.stdin).get('apiUrl',''))" 2>/dev/null); \
 	if [ -z "$$DASH_URL" ]; then \
-		DASH_URL="unavailable (missing .sst/outputs.json dashboard)"; \
+		DASH_URL="unavailable (missing .sst/outputs.json dashboardUrl)"; \
 	fi; \
-	if [ -z "$$LANDING_URL" ]; then \
-		LANDING_URL="unavailable (missing .sst/outputs.json landing)"; \
+	if [ -z "$$API_URL" ]; then \
+		API_URL="unavailable (missing .sst/outputs.json apiUrl)"; \
 	fi; \
 	echo ""; \
 	echo "╔════════════════════════════════════════════════════════════════╗"; \
@@ -149,7 +149,7 @@ receipt: ## Generate deployment receipt and log details
 	echo "║                                                                ║"; \
 	echo "║ Environment Details:                                           ║"; \
 	echo "║   Dashboard: $$DASH_URL"; \
-	echo "║   Landing: $$LANDING_URL"; \
+	echo "║   API: $$API_URL"; \
 	echo "║                                                                ║"; \
 	echo "║ Next steps:                                                    ║"; \
 	echo "║   → Monitor deployment health                                  ║"; \
