@@ -289,7 +289,7 @@ describe('ChatContent Component', () => {
 
     fireEvent.click(screen.getByText('Delete Session'));
     // CyberConfirm should be visible
-    fireEvent.click(screen.getByText('Confirm Action')); // CyberConfirm button
+    fireEvent.click(screen.getByText(/CONFIRM_ACTION/i)); // CyberConfirm button
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -308,7 +308,7 @@ describe('ChatContent Component', () => {
     render(<ChatContent />);
 
     fireEvent.click(screen.getByText('Delete All'));
-    fireEvent.click(screen.getByText('Confirm Action'));
+    fireEvent.click(screen.getByText(/CONFIRM_ACTION/i));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(

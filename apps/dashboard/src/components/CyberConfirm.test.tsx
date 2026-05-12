@@ -36,8 +36,8 @@ describe('CyberConfirm Component', () => {
     render(
       <CyberConfirm isOpen={true} onConfirm={vi.fn()} onCancel={vi.fn()} title="T" message="M" />
     );
-    expect(screen.getByText('Confirm Action')).toBeInTheDocument();
-    expect(screen.getByText('Abort Operation')).toBeInTheDocument();
+    expect(screen.getByText(/CONFIRM_ACTION/i)).toBeInTheDocument();
+    expect(screen.getByText(/ABORT_OPERATION/i)).toBeInTheDocument();
   });
 
   it('renders custom button text', () => {
@@ -63,7 +63,7 @@ describe('CyberConfirm Component', () => {
       <CyberConfirm isOpen={true} onConfirm={onConfirm} onCancel={vi.fn()} title="T" message="M" />
     );
 
-    await user.click(screen.getByText('Confirm Action'));
+    await user.click(screen.getByText(/CONFIRM_ACTION/i));
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
@@ -74,7 +74,7 @@ describe('CyberConfirm Component', () => {
       <CyberConfirm isOpen={true} onConfirm={vi.fn()} onCancel={onCancel} title="T" message="M" />
     );
 
-    await user.click(screen.getByText('Abort Operation'));
+    await user.click(screen.getByText(/ABORT_OPERATION/i));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 

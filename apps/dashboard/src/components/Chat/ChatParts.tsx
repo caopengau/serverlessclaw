@@ -2,8 +2,10 @@ import React from 'react';
 import { Copy, Check, Wrench, ChevronDown, ChevronRight } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
+import { useTranslations } from '../Providers/TranslationsProvider';
 
 export const CodeBlock = ({ children }: { children: string }) => {
+  const { t } = useTranslations();
   const [copied, setCopied] = React.useState(false);
 
   const copyToClipboard = () => {
@@ -21,7 +23,7 @@ export const CodeBlock = ({ children }: { children: string }) => {
           onClick={copyToClipboard}
           className="!p-1.5 h-auto bg-card-elevated border border-border text-muted-foreground hover:text-cyber-green"
           icon={copied ? <Check size={12} /> : <Copy size={12} />}
-          title="Copy to clipboard"
+          title={t('COPY_TO_CLIPBOARD')}
         />
       </div>
       <pre className="bg-input p-3 rounded-md border border-border overflow-x-auto custom-scrollbar">
@@ -38,6 +40,7 @@ export interface ToolCall {
 }
 
 export const ToolCallsDisplay = ({ toolCalls }: { toolCalls: ToolCall[] }) => {
+  const { t } = useTranslations();
   const [expanded, setExpanded] = React.useState(false);
 
   if (!toolCalls || toolCalls.length === 0) return null;
@@ -58,7 +61,7 @@ export const ToolCallsDisplay = ({ toolCalls }: { toolCalls: ToolCall[] }) => {
           variant="mono"
           className="text-[10px] text-amber-500/80 uppercase tracking-wider"
         >
-          {toolCalls.length} tool call{toolCalls.length !== 1 ? 's' : ''}
+          {toolCalls.length} {t('TOOL_CALLS')}
         </Typography>
         <Typography variant="mono" className="text-[9px] text-muted-foreground/40 ml-auto">
           {toolCalls
@@ -72,7 +75,7 @@ export const ToolCallsDisplay = ({ toolCalls }: { toolCalls: ToolCall[] }) => {
           {toolCalls.map((tc, i) => (
             <div key={tc.id || i} className="bg-input rounded p-2">
               <Typography variant="mono" className="text-[10px] text-amber-400 font-bold">
-                {tc.function?.name ?? 'unknown'}
+                {tc.function?.name ?? t('UNKNOWN')}
               </Typography>
               {tc.function?.arguments && (
                 <pre className="mt-1 text-[10px] text-muted-foreground whitespace-pre-wrap overflow-x-auto custom-scrollbar">

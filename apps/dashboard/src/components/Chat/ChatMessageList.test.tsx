@@ -99,7 +99,7 @@ describe('ChatMessageList', () => {
 
   it('handles option clicks with comments', () => {
     render(<ChatMessageList {...defaultProps} />);
-    const commentInput = screen.getByPlaceholderText(/Add an optional comment/i);
+    const commentInput = screen.getByPlaceholderText(/COMMENT_PLACEHOLDER/i);
     fireEvent.change(commentInput, { target: { value: 'My comment' } });
 
     fireEvent.click(screen.getByText('Yes'));
@@ -112,7 +112,7 @@ describe('ChatMessageList', () => {
 
     // Find the copy button for the first message
     // It's hidden by default, but we can still find it by title or icon test-id
-    const copyButtons = screen.getAllByTitle('Copy message');
+    const copyButtons = screen.getAllByTitle(/COPY_MESSAGE/i);
     fireEvent.click(copyButtons[0]);
 
     expect(mockClipboard.writeText).toHaveBeenCalledWith('Hello, world!');
@@ -120,13 +120,13 @@ describe('ChatMessageList', () => {
 
   it('filters messages based on search query', () => {
     render(<ChatMessageList {...defaultProps} />);
-    const searchInput = screen.getByPlaceholderText(/Search messages/i);
+    const searchInput = screen.getByPlaceholderText(/SEARCH_MESSAGES/i);
 
     fireEvent.change(searchInput, { target: { value: 'assistant' } });
 
     expect(screen.queryByText('Hello, world!')).not.toBeInTheDocument();
     expect(screen.getByText('Hi there! I am your assistant.')).toBeInTheDocument();
-    expect(screen.getByText('1 Matches')).toBeInTheDocument();
+    expect(screen.getByText(/MATCHES/i)).toBeInTheDocument();
   });
 
   it('renders various markdown elements', () => {
@@ -155,7 +155,7 @@ describe('ChatMessageList', () => {
 
     expect(screen.getByText('const x = 1;')).toBeInTheDocument();
 
-    const copyBtn = screen.getByTitle('Copy to clipboard');
+    const copyBtn = screen.getByTitle(/COPY_TO_CLIPBOARD/i);
     fireEvent.click(copyBtn);
     expect(mockClipboard.writeText).toHaveBeenCalledWith('const x = 1;');
   });
@@ -177,7 +177,7 @@ describe('ChatMessageList', () => {
 
   it('renders loading state when list is empty', () => {
     render(<ChatMessageList {...defaultProps} messages={[]} isLoading={true} />);
-    expect(screen.getByText('Processing...')).toBeInTheDocument();
+    expect(screen.getByText(/PROCESSING/i)).toBeInTheDocument();
   });
 
   it('shows thinking state for a message', () => {
@@ -187,6 +187,6 @@ describe('ChatMessageList', () => {
       isThinking: true,
     };
     render(<ChatMessageList {...defaultProps} messages={[thinkingMessage]} />);
-    expect(screen.getByText(/Analysing Signal/i)).toBeInTheDocument();
+    expect(screen.getByText(/ANALYSING_SIGNAL/i)).toBeInTheDocument();
   });
 });

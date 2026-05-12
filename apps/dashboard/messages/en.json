@@ -552,5 +552,9 @@
   "SHORTCUTS_TOGGLE_THINKING_VISIBILITY": "Toggle thinking visibility",
   "SHORTCUTS_SHOW_KEYBOARD_HELP": "Show keyboard shortcuts help",
   "SYNC_TOPOLOGY": "SYNC_TOPOLOGY",
-  "INFRASTRUCTURE_MAP": "Infrastructure Map"
+  "INFRASTRUCTURE_MAP": "Infrastructure Map",
+  "COPY_TO_CLIPBOARD": "Copy to clipboard",
+  "TOOL_CALLS": "Tool Calls",
+  "UNKNOWN": "Unknown",
+  "ATTACH_FILE": "Attach File"
 }
