@@ -32,7 +32,10 @@ describe('Realtime Auth Handler', () => {
     expect(response.principalId).toBeDefined();
     expect(Array.isArray(response.policyDocuments)).toBe(true);
 
-    const policy = JSON.parse(response.policyDocuments[0]);
+    const policy =
+      typeof response.policyDocuments[0] === 'string'
+        ? JSON.parse(response.policyDocuments[0])
+        : response.policyDocuments[0];
     const hasConnectAllow = policy.Statement.some(
       (s: any) => s.Action && s.Action.includes('iot:Connect')
     );
