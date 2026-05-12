@@ -9,8 +9,6 @@ import { DynamoMemory } from '@claw/core/lib/memory';
 import { GapItem } from '@claw/core/lib/types/memory';
 import { deleteMemoryItem } from '@/lib/actions/dynamodb-actions';
 import PageHeader from '@/components/PageHeader';
-import Typography from '@/components/ui/Typography';
-import Badge from '@/components/ui/Badge';
 import { logger } from '@claw/core/lib/logger';
 
 async function getGaps(): Promise<GapItem[]> {

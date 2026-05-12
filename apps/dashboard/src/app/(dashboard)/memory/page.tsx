@@ -12,7 +12,6 @@ import { Database, Brain, Search as SearchIcon, Lightbulb, Target, Filter } from
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
 import Typography from '@/components/ui/Typography';
-import Badge from '@/components/ui/Badge';
 import PageHeader from '@/components/PageHeader';
 import MemoryTabs from './MemoryTabs';
 import MemoryPagination from './MemoryPagination';

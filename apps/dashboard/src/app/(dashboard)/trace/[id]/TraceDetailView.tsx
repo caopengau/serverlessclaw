@@ -31,7 +31,6 @@ import {
   TraceStep,
   ToolCallContent,
   ToolResultContent,
-  LlmCallContent,
   LlmResponseContent,
 } from '@/lib/types/ui';
 

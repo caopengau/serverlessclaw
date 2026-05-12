@@ -3,10 +3,7 @@
  *
  * Products can register sidebar items and components here.
  */
-export function init({
-  _registerSidebar,
-  _registerComponent,
-}: {
+export function init(_config: {
   _registerSidebar: (config: unknown) => void;
   _registerComponent: (config: unknown) => void;
 }) {

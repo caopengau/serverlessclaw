@@ -3,8 +3,6 @@ import { getResourceName } from '@/lib/sst-utils';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import DeleteAllTracesButton from '@/components/DeleteAllTracesButton';
-import Typography from '@/components/ui/Typography';
-import Badge from '@/components/ui/Badge';
 import TraceIntelligenceView from '@/components/TraceIntelligenceView';
 import ExportTracesButton from '@/components/ExportTracesButton';
 import { getTraces } from '@/lib/traces';

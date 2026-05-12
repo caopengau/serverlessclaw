@@ -117,7 +117,7 @@ export default function TraceIntelligenceView({
         agentId: trace.agentId || trace.initialContext?.agentId || t('TRACE_UNKNOWN_AGENT'),
       };
     });
-  }, [initialTraces]);
+  }, [initialTraces, t]);
 
   const filteredTraces = useMemo(() => {
     return traces.filter((trace) => {
@@ -161,7 +161,7 @@ export default function TraceIntelligenceView({
     });
 
     return Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
-  }, [filteredTraces, activeTab, sessionTitles]);
+  }, [filteredTraces, activeTab, sessionTitles, t]);
 
   const dateFilter = useMemo(() => {
     const startTimeParam = searchParams.get('startTime');
