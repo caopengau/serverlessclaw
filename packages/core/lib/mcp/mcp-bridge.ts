@@ -71,7 +71,7 @@ export class MCPBridge {
       }
     }
 
-    const discoveryPromise = (async () => {
+    const performDiscovery = async () => {
       let acquired = false;
       let lockManager: LockManager | null = null;
       let lockId = '';
@@ -214,7 +214,9 @@ export class MCPBridge {
           });
         }
       }
-    })();
+    };
+
+    const discoveryPromise = performDiscovery();
 
     if (!scope.isRecursive) {
       this.discovering.set(cacheKey, discoveryPromise);

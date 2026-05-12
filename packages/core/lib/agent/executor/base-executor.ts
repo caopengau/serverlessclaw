@@ -262,6 +262,7 @@ export abstract class BaseExecutor {
           content: `USER_REJECTED_EXECUTION: ${reason || 'User rejected this tool execution.'}`,
           traceId: options.traceId,
           messageId: `msg-rej-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          workspaceId: options.workspaceId,
         });
         return;
       }
@@ -280,6 +281,7 @@ export abstract class BaseExecutor {
           content: `USER_CLARIFICATION: ${comment || ''}`,
           traceId: options.traceId,
           messageId: `msg-clar-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          workspaceId: options.workspaceId,
         });
         return;
       }

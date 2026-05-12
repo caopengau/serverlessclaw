@@ -80,7 +80,23 @@ export const handler: Handler = async (
     };
   }
 
-  // 2. Prepare resolved parameters
+  // 2. Resolve Workspace ID for isolation
+  const workspaceId = (event.headers['x-workspace-id'] || 'global').replace(/[^a-zA-Z0-9_-]/g, '');
+  const workspacePath = `/tmp/ws-${workspaceId}`;
+
+  // Ensure workspace-specific directory exists to prevent cross-tenant leakage
+  if (workspaceId !== 'global') {
+    try {
+      if (!existsSync(workspacePath)) {
+        execSync(`mkdir -p ${workspacePath}`);
+        logger.info(`[MCP-MULTIPLEXER] Created workspace directory: ${workspacePath}`);
+      }
+    } catch (e) {
+      logger.error(`[MCP-MULTIPLEXER] Failed to create workspace directory ${workspacePath}:`, e);
+    }
+  }
+
+  // 3. Prepare resolved parameters with multi-tenant scoping
   const resolvedParams: StdioServerParameters =
     baseConfig.command === 'npx'
       ? {
@@ -89,10 +105,22 @@ export const handler: Handler = async (
           env: {
             ...baseConfig.env,
             PATH: process.env.PATH ?? '/var/lang/bin:/usr/local/bin:/usr/bin',
-            MCP_SERVER_NAME: serverName, // Pass to sub-process for logging/identification
+            MCP_SERVER_NAME: serverName,
+            WORKSPACE_ID: workspaceId,
+            HOME: workspacePath, // Isolate HOME per tenant
+            XDG_CACHE_HOME: `${workspacePath}/.cache`,
           },
         }
       : baseConfig;
+
+  // Dynamic scoping for filesystem server (P0 remediation)
+  if (serverName === 'filesystem' && Array.isArray(resolvedParams.args)) {
+    const tmpIndex = resolvedParams.args.indexOf('/tmp');
+    if (tmpIndex !== -1) {
+      resolvedParams.args[tmpIndex] = workspacePath;
+      logger.info(`[MCP-MULTIPLEXER] Scoped filesystem root to: ${workspacePath}`);
+    }
+  }
 
   try {
     // 3. Parse JSON-RPC request

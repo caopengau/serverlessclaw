@@ -129,6 +129,51 @@ describe('MCPBridge Parallel Discovery', () => {
     delete process.env.MCP_HUB_URL;
   });
 
+  it('should propagate workspaceId to hub URL', async () => {
+    const hubUrl = 'http://localhost:3000';
+    process.env.MCP_HUB_URL = hubUrl;
+
+    (AgentRegistry.getRawConfig as any).mockResolvedValue({
+      srv1: { type: 'local', command: 'npx srv1' },
+    });
+
+    const mockClient = {
+      listTools: vi.fn().mockResolvedValue({ tools: [] }),
+    };
+    vi.mocked(MCPClientManager.connect).mockResolvedValue(mockClient as any);
+
+    await MCPBridge.getExternalTools(['srv1_tool'], false, 'test-ws');
+
+    // Hub URL should include workspaceId search parameter
+    expect(MCPClientManager.connect).toHaveBeenCalledWith(
+      'srv1',
+      'http://localhost:3000/srv1?workspaceId=test-ws',
+      undefined,
+      'test-ws'
+    );
+
+    delete process.env.MCP_HUB_URL;
+  });
+
+  it('should prevent thundering herds by sharing discovery promises', async () => {
+    (AgentRegistry.getRawConfig as any).mockResolvedValue(null); // Force discovery
+    vi.mocked(MCPClientManager.connect).mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 100)); // Simulate slow discovery
+      return { listTools: vi.fn().mockResolvedValue({ tools: [] }) } as any;
+    });
+
+    // Fire multiple concurrent requests for the same server
+    const p1 = MCPBridge.getToolsFromServer('srv1', 'npx srv1', {}, { workspaceId: 'ws1' });
+    const p2 = MCPBridge.getToolsFromServer('srv1', 'npx srv1', {}, { workspaceId: 'ws1' });
+    const p3 = MCPBridge.getToolsFromServer('srv1', 'npx srv1', {}, { workspaceId: 'ws1' });
+
+    const results = await Promise.all([p1, p2, p3]);
+
+    expect(results.length).toBe(3);
+    // Connect should only be called ONCE despite 3 requests
+    expect(MCPClientManager.connect).toHaveBeenCalledTimes(1);
+  });
+
   it('should only request specific servers when requestedTools is provided', async () => {
     (AgentRegistry.getRawConfig as any).mockResolvedValue({
       srv1: { type: 'local', command: 'npx srv1' },

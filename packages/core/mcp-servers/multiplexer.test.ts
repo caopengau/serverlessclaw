@@ -77,4 +77,32 @@ describe('MCP Multiplexer', () => {
     const body = JSON.parse(result.body);
     expect(body.error).toBe('Not Found');
   });
+
+  it('should enforce multi-tenant isolation for filesystem and environment', async () => {
+    const event: Partial<APIGatewayProxyEvent> = {
+      path: '/mcp/filesystem',
+      httpMethod: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-workspace-id': 'tenant-123',
+      },
+      body: JSON.stringify({ jsonrpc: '2.0', method: 'list_tools', id: 1 }),
+    };
+
+    vi.mocked(stdioServerAdapter).mockResolvedValue({ response: 'mocked-ok' } as any);
+
+    await handler(event as APIGatewayProxyEvent, mockContext, () => {});
+
+    expect(stdioServerAdapter).toHaveBeenCalled();
+    const [params] = vi.mocked(stdioServerAdapter).mock.calls[0];
+
+    // Verify filesystem root scoping
+    expect(params.args).toContain('/tmp/ws-tenant-123');
+    expect(params.args).not.toContain('/tmp '); // Should not contain original /tmp alone
+
+    // Verify environment isolation
+    expect(params.env!.WORKSPACE_ID).toBe('tenant-123');
+    expect(params.env!.HOME).toBe('/tmp/ws-tenant-123');
+    expect(params.env!.XDG_CACHE_HOME).toBe('/tmp/ws-tenant-123/.cache');
+  });
 });
