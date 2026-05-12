@@ -94,6 +94,11 @@
   "LANGUAGE": "语言",
   "THEME": "主题",
   "CAPABILITIES": "能力集",
+  "PIPELINE_ACTIVE": "活跃",
+  "PIPELINE_SUCCESS": "成功",
+  "USERS": "用户管理",
+  "USERS_SUBTITLE": "管理身份与访问权限",
+  "PIPELINE_ID": "ID",
 
   "ENGLISH": "英语 (English)",
   "CHINESE": "中文",

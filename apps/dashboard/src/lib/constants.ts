@@ -59,7 +59,8 @@ export const API_ROUTES = {
 } as const;
 
 export const UI_STRINGS = {
-  DASHBOARD_TITLE: 'ClawCenter',
+  DASHBOARD_TITLE: process.env.NEXT_PUBLIC_APP_TITLE || 'ClawCenter',
+  APP_LOGO: process.env.NEXT_PUBLIC_APP_LOGO || '/icon.png',
   MISSING_MESSAGE: 'Missing message',
   API_CHAT_ERROR: 'API Chat Error:',
   TRACE_NOT_FOUND: 'Trace not found',

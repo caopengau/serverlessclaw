@@ -3,6 +3,7 @@ import { GapStatus } from '@claw/core/lib/types';
 import { revalidatePath } from 'next/cache';
 import PipelineBoard from './PipelineBoard';
 import EvolutionBudgetSection from './EvolutionBudgetSection';
+import PipelineStats from './PipelineStats';
 import PlanView from './PlanView';
 import { DynamoMemory } from '@claw/core/lib/memory';
 import { GapItem } from '@claw/core/lib/types/memory';
@@ -95,38 +96,11 @@ export default async function EvolutionPipeline() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-amber-500/5 via-transparent to-transparent">
-      <div className="flex-1 overflow-y-auto space-y-8 min-w-[1240px] pb-32">
+      <div className="flex-1 overflow-y-auto space-y-8 min-w-[1024px] pb-32">
         <PageHeader
           titleKey="PIPELINE_TITLE"
           subtitleKey="PIPELINE_SUBTITLE"
-          stats={
-            <div className="flex gap-4">
-              <div className="flex flex-col items-center text-center">
-                <Typography
-                  variant="mono"
-                  color="muted"
-                  className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
-                >
-                  ACTIVE
-                </Typography>
-                <Badge variant="primary" className="px-4 py-1 font-black text-xs">
-                  {gaps.filter((g) => g.status !== GapStatus.DONE).length}
-                </Badge>
-              </div>
-              <div className="flex flex-col items-center text-center">
-                <Typography
-                  variant="mono"
-                  color="muted"
-                  className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
-                >
-                  SUCCESS
-                </Typography>
-                <Badge variant="intel" className="px-4 py-1 font-black text-xs">
-                  {gaps.filter((g) => g.status === GapStatus.DONE).length}
-                </Badge>
-              </div>
-            </div>
-          }
+          stats={<PipelineStats gaps={gaps} />}
         />
 
         <EvolutionBudgetSection />

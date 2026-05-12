@@ -20,7 +20,7 @@ import { ThemeProvider } from '@/components/Providers/ThemeProvider';
 import { ExtensionProvider } from '@/components/Providers/ExtensionProvider';
 
 export const metadata: Metadata = {
-  title: 'ClawCenter | Authentication',
+  title: `${process.env.NEXT_PUBLIC_APP_TITLE || 'ClawCenter'} | Authentication`,
   description: 'Secure access to the Command & Control Hub',
 };
 

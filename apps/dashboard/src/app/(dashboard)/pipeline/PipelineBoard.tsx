@@ -210,7 +210,7 @@ export default function PipelineBoard({
 
   return (
     <>
-      <div className="grid grid-cols-6 gap-6 h-[calc(100vh-250px)]">
+      <div className="grid grid-cols-6 gap-4 h-[calc(100vh-250px)]">
         {columns.map((col) => {
           const colGaps = initialGaps.filter((g) => g.status === col.status);
           const Icon = col.icon;
@@ -272,7 +272,7 @@ export default function PipelineBoard({
                       data-testid="gap-card"
                       draggable={!processing}
                       onDragStart={(e) => handleDragStart(e, gap.userId)}
-                      className={`glass-card gap-card pt-3 pl-3 pr-3 pb-2 border-border hover:border-border/50 transition-all group relative overflow-hidden bg-card/60 ${selectedGaps.has(gap.userId) ? 'ring-1 ring-indigo-500/50 bg-indigo-500/10' : ''} ${processing === gap.userId ? 'opacity-50 cursor-wait' : 'cursor-grab active:cursor-grabbing'}`}
+                      className={`glass-card gap-card pt-3 pl-2 pr-2 pb-2 border-border hover:border-border/50 transition-all group relative overflow-hidden bg-card/60 ${selectedGaps.has(gap.userId) ? 'ring-1 ring-indigo-500/50 bg-indigo-500/10' : ''} ${processing === gap.userId ? 'opacity-50 cursor-wait' : 'cursor-grab active:cursor-grabbing'}`}
                     >
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">
@@ -287,7 +287,7 @@ export default function PipelineBoard({
                             )}
                           </button>
                           <div className="text-[8px] font-mono text-muted-more uppercase">
-                            ID: {gap.userId.split('#').slice(-1)[0]}
+                            {t('PIPELINE_ID')}: {gap.userId.split('#').slice(-1)[0]}
                           </div>
                         </div>
                         <div className="flex items-center gap-2">

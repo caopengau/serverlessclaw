@@ -26,7 +26,7 @@ import { ConfigManager } from '@claw/core/lib/registry/config';
 import { CONFIG_KEYS } from '@claw/core/lib/constants';
 
 export const metadata: Metadata = {
-  title: 'ClawCenter | Neural Hub',
+  title: `${process.env.NEXT_PUBLIC_APP_TITLE || 'ClawCenter'} | Neural Hub`,
   description: 'Autonomous Agent Command & Control Hub',
 };
 

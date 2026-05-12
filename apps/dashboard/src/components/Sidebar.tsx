@@ -27,7 +27,7 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
-import { ROUTES } from '@/lib/constants';
+import { ROUTES, UI_STRINGS } from '@/lib/constants';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { useUICommand } from '@/components/Providers/UICommandProvider';
 import { useTheme } from 'next-themes';
@@ -172,8 +172,8 @@ export default function Sidebar() {
     },
     {
       href: '/users',
-      label: 'Users',
-      subtitle: 'Manage identities and access',
+      label: t('USERS'),
+      subtitle: t('USERS_SUBTITLE'),
       icon: Users,
     },
     { href: ROUTES.SETTINGS, label: t('CONFIG'), subtitle: t('SETTINGS_SUBTITLE'), icon: Settings },
@@ -186,15 +186,15 @@ export default function Sidebar() {
         <Link href={ROUTES.HOME} className="flex items-center gap-3 group shrink-0">
           <div className="relative w-8 h-8 shrink-0 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
             <Image
-              src="/icon.png"
-              alt="ClawCenter Logo"
+              src={UI_STRINGS.APP_LOGO}
+              alt={`${UI_STRINGS.DASHBOARD_TITLE} Logo`}
               width={32}
               height={32}
               className="object-contain"
             />
           </div>
           <Typography variant="h3" weight="black" className="text-lg tracking-tighter shrink-0">
-            ClawCenter
+            {UI_STRINGS.DASHBOARD_TITLE}
           </Typography>
         </Link>
         <Button
@@ -229,8 +229,8 @@ export default function Sidebar() {
           <Link href={ROUTES.HOME} className="flex items-center gap-3 group shrink-0">
             <div className="relative w-8 h-8 shrink-0 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
               <Image
-                src="/icon.png"
-                alt="ClawCenter Logo"
+                src={UI_STRINGS.APP_LOGO}
+                alt={`${UI_STRINGS.DASHBOARD_TITLE} Logo`}
                 width={32}
                 height={32}
                 className="object-contain"
@@ -242,7 +242,7 @@ export default function Sidebar() {
                 weight="black"
                 className="text-xl tracking-tighter shrink-0 transition-opacity"
               >
-                ClawCenter
+                {UI_STRINGS.DASHBOARD_TITLE}
               </Typography>
             )}
           </Link>

@@ -101,6 +101,11 @@
   "THEME": "Theme",
   "LANGUAGE": "Language",
   "CAPABILITIES": "Capabilities",
+  "PIPELINE_ACTIVE": "ACTIVE",
+  "PIPELINE_SUCCESS": "SUCCESS",
+  "USERS": "Users",
+  "USERS_SUBTITLE": "Manage identities and access",
+  "PIPELINE_ID": "ID",
 
   "ENGLISH": "English",
   "CHINESE": "Chinese (中文)",
