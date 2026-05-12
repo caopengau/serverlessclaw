@@ -9,11 +9,14 @@ import React from 'react';
 global.fetch = vi.fn().mockResolvedValue({ ok: true });
 
 const TestComponent = () => {
-  const { t, locale } = useTranslations();
+  const { t, locale, formatDate, formatTime } = useTranslations();
+  const testDate = new Date('2026-05-12T10:00:00Z');
   return (
     <div>
       <span data-testid="locale">{locale}</span>
       <span data-testid="title">{t('DASHBOARD_TITLE')}</span>
+      <span data-testid="date">{formatDate(testDate)}</span>
+      <span data-testid="time">{formatTime(testDate)}</span>
     </div>
   );
 };
@@ -31,6 +34,8 @@ describe('TranslationsProvider Basic', () => {
     );
     expect(screen.getByTestId('locale').textContent).toBe('en');
     expect(typeof screen.getByTestId('title').textContent).toBe('string');
+    expect(typeof screen.getByTestId('date').textContent).toBe('string');
+    expect(typeof screen.getByTestId('time').textContent).toBe('string');
   });
 
   it('returns translation key if not found in messages', () => {
