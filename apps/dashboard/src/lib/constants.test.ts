@@ -58,10 +58,10 @@ describe('constants', () => {
     });
 
     it('has navigation labels', () => {
-      expect(UI_STRINGS.CHAT_DIRECT).toBe('Direct Chat');
-      expect(UI_STRINGS.TRACE_INTEL).toBe('Traces');
-      expect(UI_STRINGS.AGENTS).toBe('Agents');
-      expect(UI_STRINGS.MEMORY_RESERVE).toBe('Memory');
+      expect(UI_STRINGS.CHAT_DIRECT).toBe('CHAT_DIRECT');
+      expect(UI_STRINGS.TRACE_INTEL).toBe('TRACE_INTEL');
+      expect(UI_STRINGS.AGENTS).toBe('AGENTS');
+      expect(UI_STRINGS.MEMORY_RESERVE).toBe('MEMORY_RESERVE');
     });
   });
 

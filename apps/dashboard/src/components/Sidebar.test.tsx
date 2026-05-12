@@ -207,14 +207,14 @@ describe('Sidebar Component', () => {
     mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
     mockUseRealtimeContext.mockReturnValue({ isConnected: true });
     render(<Sidebar />);
-    expect(screen.getByText('ONLINE')).toBeInTheDocument();
+    expect(screen.getByText('STATUS_ONLINE')).toBeInTheDocument();
   });
 
   it('shows offline status when disconnected', () => {
     mockUseUICommand.mockReturnValue({ isSidebarCollapsed: false, setSidebarCollapsed: vi.fn() });
     mockUseRealtimeContext.mockReturnValue({ isConnected: false });
     render(<Sidebar />);
-    expect(screen.getByText('OFFLINE')).toBeInTheDocument();
+    expect(screen.getByText('STATUS_OFFLINE')).toBeInTheDocument();
   });
 
   it('toggles sidebar collapse state', () => {

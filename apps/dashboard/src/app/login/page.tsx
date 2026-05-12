@@ -5,8 +5,10 @@ import { Lock, Zap, ArrowRight, ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Button from '@/components/ui/Button';
 import Typography from '@/components/ui/Typography';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 export default function LoginPage() {
+  const { t } = useTranslations();
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -53,31 +55,31 @@ export default function LoginPage() {
             <Lock size={32} />
           </div>
           <Typography variant="h1" color="primary" glow uppercase className="mb-2">
-            Claw Center Auth
+            {t('LOGIN_TITLE')}
           </Typography>
           <Typography variant="mono" color="muted" uppercase>
-            Restricted Access
+            {t('LOGIN_RESTRICTED_ACCESS')}
           </Typography>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div className="space-y-2" suppressHydrationWarning>
             <label className="text-[10px] text-white font-bold uppercase tracking-widest block ml-1">
-              User Identity
+              {t('LOGIN_USER_IDENTITY')}
             </label>
             <input
               type="text"
               value={userId}
               onChange={(e) => setUserId(e.target.value)}
               className="w-full bg-white/3 border border-white/10 rounded px-4 py-3 outline-none focus:border-cyber-green/50 transition-all text-sm font-mono placeholder:text-white/10"
-              placeholder="DASHBOARD_USER..."
+              placeholder={t('LOGIN_USER_ID_PLACEHOLDER')}
               disabled={loading}
             />
           </div>
 
           <div className="space-y-2" suppressHydrationWarning>
             <label className="text-[10px] text-white font-bold uppercase tracking-widest block ml-1">
-              Claw Keyphrase
+              {t('LOGIN_KEYPHRASE')}
             </label>
             <div className="relative">
               <input
@@ -85,7 +87,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full bg-white/3 border border-white/10 rounded px-4 py-3 outline-none focus:border-cyber-green/50 transition-all text-sm font-mono placeholder:text-white/10"
-                placeholder="ENTER_PASSPHRASE..."
+                placeholder={t('LOGIN_PASSPHRASE_PLACEHOLDER')}
                 disabled={loading}
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -115,13 +117,13 @@ export default function LoginPage() {
             }
             className="flex-row-reverse"
           >
-            {loading ? 'Synchronizing' : 'Initialize Claw Link'}
+            {loading ? t('LOGIN_SYNCHRONIZING') : t('LOGIN_INITIALIZE_LINK')}
           </Button>
         </form>
 
         <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center text-[9px] text-white/50 font-bold tracking-widest">
-          <span>SERVERLESS_CLAW_OS</span>
-          <span>EST_2026</span>
+          <span>{t('LOGIN_FOOTER_OS')}</span>
+          <span>{t('LOGIN_FOOTER_YEAR')}</span>
         </div>
 
         {process.env.NODE_ENV !== 'production' && (

@@ -65,7 +65,7 @@ export async function handleTaskResult(
   if (depth >= recursionLimit) {
     const { routeToDlq } = await import('../route-to-dlq');
     const { emitMetrics, METRICS } = await import('../../lib/metrics');
-    await routeToDlq(event, detailType, 'SYSTEM', traceId, `Recursion limit exceeded`);
+    await routeToDlq(event, detailType, 'SYSTEM', traceId, `Recursion limit exceeded`, sessionId, workspaceId);
     emitMetrics([METRICS.dlqEvents(1, { workspaceId, teamId, staffId })]).catch(() => {});
     return;
   }

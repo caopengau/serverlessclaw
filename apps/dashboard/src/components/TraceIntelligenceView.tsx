@@ -27,7 +27,7 @@ const CollaborationCanvas = dynamic(() => import('@/components/CollaborationCanv
   loading: () => (
     <div className="flex-1 flex items-center justify-center h-96">
       <div className="text-cyber-blue animate-pulse font-mono uppercase text-sm tracking-widest">
-        Initializing Collaboration Matrix...
+        {t('TRACE_INITIALIZING_MATRIX')}
       </div>
     </div>
   ),
@@ -97,7 +97,7 @@ export default function TraceIntelligenceView({
         (typeof llmResponseStep?.metadata?.model === 'string'
           ? llmResponseStep.metadata.model
           : '') ||
-        'UNKNOWN_MODEL';
+        t('TRACE_UNKNOWN_MODEL');
 
       let totalTokens = 0;
       trace.steps?.forEach((s: TraceStep) => {
@@ -113,8 +113,8 @@ export default function TraceIntelligenceView({
         toolsUsed,
         model,
         totalTokens,
-        sessionId: trace.initialContext?.sessionId ?? 'ANONYMOUS_SESSION',
-        agentId: trace.agentId || trace.initialContext?.agentId || 'UNKNOWN_AGENT',
+        sessionId: trace.initialContext?.sessionId ?? t('TRACE_ANONYMOUS_SESSION'),
+        agentId: trace.agentId || trace.initialContext?.agentId || t('TRACE_UNKNOWN_AGENT'),
       };
     });
   }, [initialTraces]);
@@ -141,7 +141,7 @@ export default function TraceIntelligenceView({
 
     const groups: Record<string, typeof traces> = {};
     filteredTraces.forEach((t) => {
-      let key = 'UNKNOWN';
+      let key = t('UNKNOWN');
       if (activeTab === 'agents') key = t.agentId;
       else if (activeTab === 'sessions') {
         key = sessionTitles?.[t.sessionId]
@@ -259,7 +259,7 @@ export default function TraceIntelligenceView({
               })()}`}
               className="px-6 py-2 rounded bg-cyber-blue/10 border border-cyber-blue/30 text-cyber-blue text-xs font-bold uppercase tracking-widest hover:bg-cyber-blue/20 transition-colors"
             >
-              Load More Traces
+              {t('TRACE_LOAD_MORE')}
             </Link>
           </div>
         )}

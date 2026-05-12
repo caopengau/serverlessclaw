@@ -60,7 +60,7 @@ export default function NewAgentModal({
             uppercase
             className="italic tracking-tighter"
           >
-            Agent Evolution Factory
+            {t('AGENTS_FACTORY_TITLE')}
           </Typography>
         </div>
 
@@ -76,11 +76,11 @@ export default function NewAgentModal({
                 className={creationMode === 'standard' ? 'text-cyber-blue' : 'text-muted-more'}
               />
               <Typography variant="mono" weight="bold" className="text-xs uppercase">
-                Quick Register
+                {t('AGENTS_MODE_STANDARD')}
               </Typography>
             </div>
             <Typography variant="caption" color="muted" className="text-[10px] leading-relaxed">
-              Immediate deployment to the swarm. Best for simple, verified personas.
+              {t('AGENTS_MODE_STANDARD_DESC')}
             </Typography>
           </div>
 
@@ -94,11 +94,11 @@ export default function NewAgentModal({
                 className={creationMode === 'sandbox' ? 'text-cyber-green' : 'text-muted-more'}
               />
               <Typography variant="mono" weight="bold" className="text-xs uppercase">
-                Evolution Sandbox
+                {t('AGENTS_MODE_SANDBOX')}
               </Typography>
             </div>
             <Typography variant="caption" color="muted" className="text-[10px] leading-relaxed">
-              Sandboxed verification. Recommended for complex agents to avoid budget burn.
+              {t('AGENTS_MODE_SANDBOX_DESC')}
             </Typography>
           </div>
         </div>
@@ -223,7 +223,7 @@ export default function NewAgentModal({
             className="shadow-[0_0_20px_rgba(0,255,163,0.2)] hover:scale-[1.02]"
           >
             {creationMode === 'sandbox'
-              ? 'Initialize Sandbox Session'
+              ? t('AGENTS_INITIALIZE_SANDBOX')
               : t('AGENTS_AUTHORIZE_INITIALIZATION')}
           </Button>
           <Button

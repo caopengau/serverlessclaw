@@ -89,4 +89,16 @@ describe('ClawTracer Update Isolation', () => {
       }),
     });
   });
+
+  it('should pass workspaceId to FlowController.areTraceSummariesEnabled', async () => {
+    const { FlowController } = await import('../routing/flow-controller');
+    const tracer = new ClawTracer('user-1', 'test', 'trace-1', 'root', undefined, 'agent-1', {
+      workspaceId: 'ws-1',
+    });
+
+    mockSend.mockResolvedValue({});
+    await tracer.endTrace('done');
+    
+    expect(FlowController.areTraceSummariesEnabled).toHaveBeenCalledWith('ws-1');
+  });
 });

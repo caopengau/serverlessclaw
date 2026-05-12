@@ -187,7 +187,7 @@ export default function AgentsPage() {
                 const agent = agents.find((a) => a.id === id);
                 if (agent) {
                   // Implement clone logic or just toast
-                  toast.info(`Cloning agent ${agent.name}...`);
+                  toast.info(t('AGENTS_CLONING').replace('{name}', agent.name));
                 }
               }}
               setSelectedAgentIdForTools={(id) => {

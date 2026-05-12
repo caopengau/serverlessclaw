@@ -339,8 +339,11 @@ describe('EventHandler', () => {
     it('should include trace/session context when retry count exceeds configured max', async () => {
       const { ConfigManager } = await import('../lib/registry/config');
       vi.mocked(ConfigManager.getTypedConfig).mockImplementation(
-        async (key: string, fallback: unknown) => {
-          if (key === 'event_max_retry_count') return 1 as any;
+        async (key: string, fallback: unknown, options?: { workspaceId?: string }) => {
+          if (key === 'event_max_retry_count') {
+            expect(options).toEqual({ workspaceId: 'ws-retry' });
+            return 1 as any;
+          }
           if (key === 'event_routing_table') return fallback as any;
           return fallback as any;
         }
@@ -353,6 +356,7 @@ describe('EventHandler', () => {
           sessionId: 's-retry',
           traceId: 't-retry',
           retryCount: 2,
+          workspaceId: 'ws-retry',
         },
       };
 
@@ -366,6 +370,7 @@ describe('EventHandler', () => {
         detailType: EventType.SYSTEM_HEALTH_REPORT,
         traceId: 't-retry',
         sessionId: 's-retry',
+        workspaceId: 'ws-retry',
         errorMessage: 'Max retry count exceeded',
       });
 

@@ -20,6 +20,7 @@ import Badge from '@/components/ui/Badge';
 import PageHeader from '@/components/PageHeader';
 import { ROUTES } from '@/lib/constants';
 import { useTenant } from '@/components/Providers/TenantProvider';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface SessionMetadata {
   sessionId: string;
@@ -33,6 +34,7 @@ interface SessionMetadata {
  */
 export default function MissionDashboard() {
   const { activeWorkspaceId } = useTenant();
+  const { t, formatDate, formatTime } = useTranslations();
   const [recentSessions, setRecentSessions] = useState<SessionMetadata[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -65,7 +67,7 @@ export default function MissionDashboard() {
               weight="black"
               className="tracking-[0.2em] flex items-center gap-2"
             >
-              <MessageSquare size={14} className="text-cyber-green" /> Recent_Missions
+              <MessageSquare size={14} className="text-cyber-green" /> {t('DASHBOARD_RECENT_MISSIONS')}
             </Typography>
             <Link href={ROUTES.CHAT}>
               <Button
@@ -73,7 +75,7 @@ export default function MissionDashboard() {
                 size="sm"
                 className="text-[10px] uppercase font-bold tracking-widest hover:text-cyber-green"
               >
-                Intelligence Sector <ArrowRight size={12} className="ml-1" />
+                {t('DASHBOARD_INTELLIGENCE_SECTOR')} <ArrowRight size={12} className="ml-1" />
               </Button>
             </Link>
           </div>
@@ -119,10 +121,10 @@ export default function MissionDashboard() {
                           weight="bold"
                           className="block mb-2 group-hover:text-cyber-green transition-colors truncate"
                         >
-                          {session.title || 'Untitled Operation'}
+                          {session.title || t('DASHBOARD_UNTITLED_OPERATION')}
                         </Typography>
-                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono">
-                          <Clock size={12} /> {new Date(session.updatedAt).toLocaleString()}
+                        <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-mono" suppressHydrationWarning>
+                          <Clock size={12} /> {formatDate(session.updatedAt)} {formatTime(session.updatedAt)}
                         </div>
                       </div>
                       <div className="flex justify-end">
@@ -130,7 +132,7 @@ export default function MissionDashboard() {
                           variant="outline"
                           className="text-[8px] opacity-40 group-hover:opacity-100 transition-opacity"
                         >
-                          Resume_Task
+                          {t('DASHBOARD_RESUME_TASK')}
                         </Badge>
                       </div>
                     </div>
@@ -143,12 +145,12 @@ export default function MissionDashboard() {
                 padding="lg"
                 className="col-span-full border-dashed border-border/40 bg-card/10 h-32 flex flex-col items-center justify-center text-center opacity-40"
               >
-                <Typography variant="caption">No active mission logs detected.</Typography>
+                <Typography variant="caption">{t('DASHBOARD_NO_MISSIONS')}</Typography>
                 <Link
                   href={ROUTES.CHAT}
                   className="mt-2 text-cyber-green text-[10px] uppercase font-bold hover:underline"
                 >
-                  Initiate New Conversation
+                  {t('DASHBOARD_INITIATE_CONVERSATION')}
                 </Link>
               </Card>
             )}
@@ -167,7 +169,7 @@ export default function MissionDashboard() {
                     variant="mono"
                     className="text-[10px] uppercase font-bold text-cyber-green tracking-widest"
                   >
-                    New_Operation
+                    {t('DASHBOARD_NEW_OPERATION')}
                   </Typography>
                 </div>
               </Card>
@@ -182,7 +184,7 @@ export default function MissionDashboard() {
             weight="black"
             className="tracking-[0.2em] flex items-center gap-2"
           >
-            <Activity size={14} className="text-cyber-blue" /> Nerve_Center_Summary
+            <Activity size={14} className="text-cyber-blue" /> {t('DASHBOARD_NERVE_CENTER_SUMMARY')}
           </Typography>
 
           <Card
@@ -200,10 +202,10 @@ export default function MissionDashboard() {
                     variant="mono"
                     className="text-[10px] font-bold uppercase tracking-wider block"
                   >
-                    System_Stability
+                    {t('DASHBOARD_SYSTEM_STABILITY')}
                   </Typography>
                   <Typography variant="caption" color="muted" className="text-[8px]">
-                    All circuits operational
+                    {t('DASHBOARD_ALL_CIRCUITS_OPERATIONAL')}
                   </Typography>
                 </div>
               </div>
@@ -211,7 +213,7 @@ export default function MissionDashboard() {
                 variant="mono"
                 className="text-cyber-green font-bold text-xs uppercase tracking-tighter"
               >
-                [NOMINAL]
+                {t('DASHBOARD_NOMINAL')}
               </Typography>
             </div>
 
@@ -225,10 +227,10 @@ export default function MissionDashboard() {
                     variant="mono"
                     className="text-[10px] font-bold uppercase tracking-wider block"
                   >
-                    Cognitive_Health
+                    {t('DASHBOARD_COGNITIVE_HEALTH')}
                   </Typography>
                   <Typography variant="caption" color="muted" className="text-[8px]">
-                    Cross-Agent Trust: 98.4%
+                    {t('DASHBOARD_CROSS_AGENT_TRUST').replace('{percent}', '98.4')}
                   </Typography>
                 </div>
               </div>
@@ -236,7 +238,7 @@ export default function MissionDashboard() {
                 variant="mono"
                 className="text-cyan-400 font-bold text-xs uppercase tracking-tighter"
               >
-                GOOD
+                {t('DASHBOARD_GOOD')}
               </Typography>
             </div>
 
@@ -245,7 +247,7 @@ export default function MissionDashboard() {
                 variant="outline"
                 className="w-full text-[10px] uppercase tracking-widest py-2 border-cyber-blue/30 text-cyber-blue hover:bg-cyber-blue/5"
               >
-                Inspect Nerve Center
+                {t('DASHBOARD_INSPECT_NERVE_CENTER')}
               </Button>
             </Link>
           </Card>
@@ -257,18 +259,18 @@ export default function MissionDashboard() {
                 variant="mono"
                 className="text-[10px] uppercase font-bold tracking-widest"
               >
-                Operator_Quick_Actions
+                {t('DASHBOARD_OPERATOR_QUICK_ACTIONS')}
               </Typography>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Link href={ROUTES.AGENTS}>
                 <button className="w-full text-left p-2 rounded bg-card/60 hover:bg-card border border-border/40 text-[9px] uppercase font-mono tracking-wider transition-colors">
-                  Sync_Agents
+                  {t('DASHBOARD_SYNC_AGENTS')}
                 </button>
               </Link>
               <Link href={ROUTES.SECURITY}>
                 <button className="w-full text-left p-2 rounded bg-card/60 hover:bg-card border border-border/40 text-[9px] uppercase font-mono tracking-wider transition-colors">
-                  Safety_Scan
+                  {t('DASHBOARD_SAFETY_SCAN')}
                 </button>
               </Link>
             </div>

@@ -18,6 +18,7 @@ import MemoryTabs from './MemoryTabs';
 import MemoryPagination from './MemoryPagination';
 import MemoryTable from './MemoryTable';
 import MemoryEmptyState from './MemoryEmptyState';
+import MemoryStats from './MemoryStats';
 import { headers } from 'next/headers';
 import { AUTH } from '@/lib/constants';
 import { logger } from '@claw/core/lib/logger';
@@ -400,47 +401,11 @@ export default async function MemoryVault({
         titleKey="MEMORY_RESERVE"
         subtitleKey="MEMORY_SUBTITLE"
         stats={
-          <div className="flex gap-4">
-            <div className="flex flex-col items-center text-center">
-              <Typography
-                variant="mono"
-                color="muted"
-                className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
-              >
-                FACTS
-              </Typography>
-              <Badge variant="primary" className="px-4 py-1 font-black text-xs">
-                {counts.facts}
-              </Badge>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <Typography
-                variant="mono"
-                color="muted"
-                className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
-              >
-                LESSONS
-              </Typography>
-              <Badge variant="intel" className="px-4 py-1 font-black text-xs">
-                {counts.lessons}
-              </Badge>
-            </div>
-            <div className="flex flex-col items-center text-center">
-              <Typography
-                variant="mono"
-                color="muted"
-                className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
-              >
-                TOTAL_NODES
-              </Typography>
-              <Badge
-                variant="outline"
-                className="px-4 py-1 font-black text-xs border-white/10 text-white/60"
-              >
-                {counts.dynamic}
-              </Badge>
-            </div>
-          </div>
+          <MemoryStats
+            factsCount={counts.facts}
+            lessonsCount={counts.lessons}
+            dynamicCount={counts.dynamic}
+          />
         }
       />
 
@@ -456,7 +421,7 @@ export default async function MemoryVault({
                 variant="mono"
                 className="text-[10px] uppercase font-bold tracking-widest"
               >
-                Type Filter:
+                MEMORY_TYPE_FILTER
               </Typography>
             </div>
             {dynamicTypes.map((type) => (

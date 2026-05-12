@@ -86,7 +86,7 @@ export class ClawTracer {
   private async isSummaryEnabled(): Promise<boolean> {
     if (this.summariesEnabled === null) {
       this.summariesEnabled =
-        (await FlowController.areTraceSummariesEnabled()) && this.nodeId === 'root';
+        (await FlowController.areTraceSummariesEnabled(this.workspaceId)) && this.nodeId === 'root';
     }
     return this.summariesEnabled;
   }

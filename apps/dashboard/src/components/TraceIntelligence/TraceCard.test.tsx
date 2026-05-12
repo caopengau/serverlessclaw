@@ -5,6 +5,14 @@ import React from 'react';
 import TraceCard from './TraceCard';
 import { EnrichedTrace } from './types';
 
+// Mock useTranslations hook
+vi.mock('@/components/Providers/TranslationsProvider', () => ({
+  useTranslations: () => ({
+    t: (key: string) => key,
+    formatTime: (ts: number) => new Date(ts).toISOString().slice(11, 19),
+  }),
+}));
+
 // Mock DeleteTraceButton
 vi.mock('@/components/DeleteTraceButton', () => ({
   default: () => <button>Delete</button>,
@@ -41,12 +49,12 @@ describe('TraceCard Component', () => {
   it('renders system task when user text is missing', () => {
     const systemTrace = { ...mockTrace, initialContext: undefined };
     render(<TraceCard trace={systemTrace as unknown as EnrichedTrace} />);
-    expect(screen.getByText('System Task')).toBeInTheDocument();
+    expect(screen.getByText('TRACE_SYSTEM_TASK')).toBeInTheDocument();
   });
 
   it('renders token count correctly', () => {
     render(<TraceCard trace={mockTrace} />);
-    expect(screen.getByText('1200')).toBeInTheDocument();
+    expect(screen.getByText('TRACE_TKN')).toBeInTheDocument();
   });
 
   it('renders tool tags', () => {

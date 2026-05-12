@@ -91,9 +91,9 @@ export class FlowController {
   /**
    * Checks if trace summaries are enabled (for dashboard performance).
    */
-  static async areTraceSummariesEnabled(): Promise<boolean> {
+  static async areTraceSummariesEnabled(workspaceId?: string): Promise<boolean> {
     return (
-      (await ConfigManager.getTypedConfig('trace_summaries_enabled', false)) ||
+      (await ConfigManager.getTypedConfig('trace_summaries_enabled', false, { workspaceId })) ||
       process.env.TRACE_SUMMARIES_ENABLED === 'true'
     );
   }

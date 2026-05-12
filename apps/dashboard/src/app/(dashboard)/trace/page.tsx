@@ -9,6 +9,7 @@ import TraceIntelligenceView from '@/components/TraceIntelligenceView';
 import ExportTracesButton from '@/components/ExportTracesButton';
 import { getTraces } from '@/lib/traces';
 import PageHeader from '@/components/PageHeader';
+import TraceStats from './TraceStats';
 
 export const dynamic = 'force-dynamic';
 import { logger } from '@claw/core/lib/logger';
@@ -61,7 +62,7 @@ async function getSessionTitles() {
     const items = res.Items as Array<{ sessionId?: string; title?: string }> | undefined;
     items?.forEach((item) => {
       if (item.sessionId) {
-        titles[item.sessionId] = item.title ?? 'Untitled Conversation';
+        titles[item.sessionId] = item.title ?? 'TRACE_UNTITLED_CONVERSATION';
       }
     });
     return titles;
@@ -103,54 +104,23 @@ export default async function AnalyticsTab({
     ? (params.tab as (typeof validTabs)[number])
     : undefined;
 
+  // Since this is a Server Component, we use PageHeader which handles its own translations if titleKey is passed
+  // However, for the children components, we might need a way to pass translated strings if they aren't hook-based.
+  // TraceIntelligenceView is a client component, so it will handle its own.
+
   return (
     <div className="flex-1 space-y-10 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-cyber-green/5 via-transparent to-transparent">
       <PageHeader titleKey="TRACE_TITLE" subtitleKey="TRACE_SUBTITLE">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:flex gap-3 lg:gap-4">
-          <DeleteAllTracesButton />
-          <ExportTracesButton traces={traces} />
-          <div className="flex flex-col items-center">
-            <Typography
-              variant="mono"
-              color="muted"
-              className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
-            >
-              PROVIDER
-            </Typography>
-            <Badge
-              variant="outline"
-              className="px-4 py-1 font-bold text-xs border-cyber-blue/20 text-cyber-blue/60 uppercase"
-            >
-              {config.provider}
-            </Badge>
+        <div className="flex flex-col lg:flex-row gap-4 items-end lg:items-center">
+          <div className="flex gap-3">
+            <DeleteAllTracesButton />
+            <ExportTracesButton traces={traces} />
           </div>
-          <div className="flex flex-col items-center">
-            <Typography
-              variant="mono"
-              color="muted"
-              className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
-            >
-              MODEL
-            </Typography>
-            <Badge
-              variant="outline"
-              className="px-4 py-1 font-bold text-xs border-white/10 text-white/60 uppercase"
-            >
-              {config.model}
-            </Badge>
-          </div>
-          <div className="flex flex-col items-center">
-            <Typography
-              variant="mono"
-              color="muted"
-              className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
-            >
-              TOTAL_OPS
-            </Typography>
-            <Badge variant="primary" className="px-4 py-1 font-black text-xs">
-              {traces.length}
-            </Badge>
-          </div>
+          <TraceStats
+            provider={config.provider}
+            model={config.model}
+            totalOps={traces.length}
+          />
         </div>
       </PageHeader>
 

@@ -149,7 +149,7 @@ export default function AgentTable({
                       <Typography variant="mono" className="text-[11px] text-muted">
                         {agent.provider
                           ? agent.provider.charAt(0).toUpperCase() + agent.provider.slice(1)
-                          : 'Default'}
+                          : t('UNKNOWN')}
                       </Typography>
                     </td>
                     <td className="px-5 py-3">

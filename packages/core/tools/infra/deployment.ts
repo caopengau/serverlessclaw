@@ -370,7 +370,7 @@ export const triggerDeployment = {
           })
         );
 
-        if (gapIds && gapIds.length > 0) {
+        if (effectiveGapIds && effectiveGapIds.length > 0) {
           await db.send(
             new PutCommand({
               TableName: memoryTable,
@@ -378,7 +378,7 @@ export const triggerDeployment = {
                 userId: `BUILD_GAPS#${buildId}`,
                 timestamp: 0,
                 role: 'system',
-                content: JSON.stringify(gapIds),
+                content: JSON.stringify(effectiveGapIds),
               },
             })
           );

@@ -6,7 +6,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { AUTH } from '@/lib/constants';
 import { HTTP_STATUS } from '@claw/core/lib/constants';
 import { logger } from '@claw/core/lib/logger';
-import { resolveSSTResourceValue } from '@claw/core/lib/utils/resource-helpers';
 
 /**
  * Handles dashboard login and sets the session cookie
@@ -43,8 +42,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       rootPassword &&
       (password === rootPassword || (isDev && password === 'test-password'));
 
-    let finalUserId = 'dashboard-user';
-    let isAuthorized = isRootAuth;
+    const isTestUser =
+      isDev &&
+      ['admin-user', 'owner-user', 'member-user', 'viewer-user'].includes(userId) &&
+      password === 'test-password';
+
+    let finalUserId = userId || 'dashboard-user';
+    let isAuthorized = isRootAuth || isTestUser;
 
     // 2. Check for Specific User Identity
     if (!isAuthorized && userId && password) {
@@ -72,8 +76,18 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         const identityManager = await getIdentityManager();
         const authResult = await identityManager.authenticate(finalUserId, 'dashboard');
 
-        // Auto-provision dashboard-user as admin if needed
-        if (
+        // Auto-provision test users with specific roles in local dev
+        if (isDev) {
+          if (finalUserId === 'dashboard-user' || finalUserId === 'admin-user') {
+            await identityManager.updateUserRole(finalUserId, UserRole.ADMIN, finalUserId);
+          } else if (finalUserId === 'owner-user') {
+            await identityManager.updateUserRole(finalUserId, UserRole.OWNER, finalUserId);
+          } else if (finalUserId === 'member-user') {
+            await identityManager.updateUserRole(finalUserId, UserRole.MEMBER, finalUserId);
+          } else if (finalUserId === 'viewer-user') {
+            await identityManager.updateUserRole(finalUserId, UserRole.VIEWER, finalUserId);
+          }
+        } else if (
           finalUserId === 'dashboard-user' &&
           authResult.user?.role !== UserRole.ADMIN &&
           authResult.user?.role !== UserRole.OWNER

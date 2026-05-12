@@ -231,14 +231,14 @@ export default function Sidebar() {
           <div className="relative w-8 h-8 shrink-0 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
             <Image
               src={UI_STRINGS.APP_LOGO}
-              alt={`${UI_STRINGS.DASHBOARD_TITLE} Logo`}
+              alt={`${t('DASHBOARD_TITLE')} Logo`}
               width={32}
               height={32}
               className="object-contain"
             />
           </div>
           <Typography variant="h3" weight="black" className="text-lg tracking-tighter shrink-0">
-            {UI_STRINGS.DASHBOARD_TITLE}
+            {t('DASHBOARD_TITLE')}
           </Typography>
         </Link>
         <Button
@@ -274,7 +274,7 @@ export default function Sidebar() {
             <div className="relative w-8 h-8 shrink-0 rounded-sm overflow-hidden group-hover:scale-105 transition-transform">
               <Image
                 src={UI_STRINGS.APP_LOGO}
-                alt={`${UI_STRINGS.DASHBOARD_TITLE} Logo`}
+                alt={`${t('DASHBOARD_TITLE')} Logo`}
                 width={32}
                 height={32}
                 className="object-contain"
@@ -286,7 +286,7 @@ export default function Sidebar() {
                 weight="black"
                 className="text-xl tracking-tighter shrink-0 transition-opacity"
               >
-                {UI_STRINGS.DASHBOARD_TITLE}
+                {t('DASHBOARD_TITLE')}
               </Typography>
             )}
           </Link>
@@ -441,7 +441,7 @@ export default function Sidebar() {
                     variant="mono"
                     className={`text-[8px] font-bold uppercase ${isConnected ? 'text-cyber-green' : 'text-amber-500'}`}
                   >
-                    {isConnected ? 'ONLINE' : 'OFFLINE'}
+                    {isConnected ? t('STATUS_ONLINE') : t('STATUS_OFFLINE')}
                   </Typography>
                 )}
               </div>
@@ -493,7 +493,7 @@ export default function Sidebar() {
               >
                 <LogOut size={12} />
                 <Typography variant="mono" className="text-[9px] font-bold uppercase">
-                  EXIT
+                  {t('EXIT')}
                 </Typography>
               </button>
             )}

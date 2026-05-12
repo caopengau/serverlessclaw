@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import '../../globals.css';
 import { cookies } from 'next/headers';
@@ -25,17 +24,30 @@ import { RealtimeProvider } from '@/components/Providers/RealtimeProvider';
 import { ConfigManager } from '@claw/core/lib/registry/config';
 import { CONFIG_KEYS } from '@claw/core/lib/constants';
 
-export const metadata: Metadata = {
-  title: `${process.env.NEXT_PUBLIC_APP_TITLE || 'ClawCenter'} | Neural Hub`,
-  description: 'Autonomous Agent Command & Control Hub',
-  icons: {
-    icon: '/icon.png',
-    shortcut: '/favicon.ico',
-    apple: '/icon.png',
-  },
-};
+import en from '../../../messages/en.json';
+import cn from '../../../messages/cn.json';
 
 export const dynamic = 'force-dynamic';
+
+export async function generateMetadata() {
+  const initialLocale = (await ConfigManager.getTypedConfig<string>(
+    CONFIG_KEYS.ACTIVE_LOCALE,
+    'en'
+  )) as 'en' | 'cn';
+  
+  const messages = initialLocale === 'cn' ? cn : en;
+  const appTitle = process.env.NEXT_PUBLIC_APP_TITLE || messages.DASHBOARD_TITLE;
+  
+  return {
+    title: `${appTitle} | ${messages.LAYOUT_NEURAL_HUB}`,
+    description: messages.LAYOUT_DESCRIPTION,
+    icons: {
+      icon: '/icon.png',
+      shortcut: '/favicon.ico',
+      apple: '/icon.png',
+    },
+  };
+}
 
 import { ThemeProvider } from '@/components/Providers/ThemeProvider';
 import { TenantProvider } from '@/components/Providers/TenantProvider';
@@ -72,6 +84,8 @@ export default async function RootLayout({
     console.error('[Dashboard] Failed to fetch initial locale:', err);
   }
 
+  const messages = initialLocale === 'cn' ? cn : en;
+
   return (
     <html
       lang={initialLocale}
@@ -98,7 +112,7 @@ export default async function RootLayout({
                             href="#main-content"
                             className="sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-4 focus:bg-cyber-green focus:text-black"
                           >
-                            Skip to content
+                            {messages.LAYOUT_SKIP_TO_CONTENT}
                           </a>
                           <Toaster
                             position="bottom-right"

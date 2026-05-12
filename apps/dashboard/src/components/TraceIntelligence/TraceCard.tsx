@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Clock, ChevronRight, Zap } from 'lucide-react';
 import DeleteTraceButton from '@/components/DeleteTraceButton';
 
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { EnrichedTrace } from './types';
 
 interface TraceCardProps {
@@ -12,6 +13,8 @@ interface TraceCardProps {
 }
 
 export default function TraceCard({ trace }: TraceCardProps) {
+  const { t, formatTime } = useTranslations();
+
   return (
     <div className="relative group">
       <Link
@@ -32,21 +35,21 @@ export default function TraceCard({ trace }: TraceCardProps) {
               {trace.status.toUpperCase()}
             </div>
             <div className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-cyber-blue/20 text-cyber-blue/80 uppercase">
-              {trace.source ?? 'UNKNOWN'}
+              {trace.source ?? t('UNKNOWN')}
             </div>
             <div className="text-sm font-medium text-foreground/90 truncate max-w-[200px] md:max-w-md">
-              {trace.initialContext?.userText ?? 'System Task'}
+              {trace.initialContext?.userText ?? t('TRACE_SYSTEM_TASK')}
             </div>
           </div>
           <div className="flex items-center justify-between md:justify-end gap-3 md:gap-6 text-[11px] text-foreground/90 pr-14">
             {(trace.totalTokens ?? 0) > 0 && (
               <div className="flex items-center gap-1.5 text-cyber-green/70 font-mono">
                 <Zap size={12} /> {trace.totalTokens}{' '}
-                <span className="text-[9px] opacity-50 uppercase">TKN</span>
+                <span className="text-[9px] opacity-50 uppercase">{t('TRACE_TKN')}</span>
               </div>
             )}
-            <div className="flex items-center gap-2 font-mono opacity-60">
-              <Clock size={12} /> {new Date(trace.timestamp).toISOString().slice(11, 19)}
+            <div className="flex items-center gap-2 font-mono opacity-60" suppressHydrationWarning>
+              <Clock size={12} /> {formatTime(trace.timestamp)}
             </div>
             <div className="group-hover:text-cyber-green transition-all transform group-hover:translate-x-1">
               <ChevronRight size={18} />

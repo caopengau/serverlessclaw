@@ -113,7 +113,7 @@ export async function handler(
 
   // 5. Retry Guard
   const { ConfigManager } = await import('../lib/registry/config');
-  const maxRetryCount = await ConfigManager.getTypedConfig('event_max_retry_count', 3);
+  const maxRetryCount = await ConfigManager.getTypedConfig('event_max_retry_count', 3, { workspaceId });
   const retryCount = (eventDetail.retryCount as number) ?? 0;
   if (retryCount > maxRetryCount) {
     logger.warn(`[RETRY] Exceeded max retries (${maxRetryCount}) for ${detailType}`);

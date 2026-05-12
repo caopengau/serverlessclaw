@@ -371,13 +371,13 @@ To ensure enterprise-grade multi-tenancy and prevent privilege escalation, the s
 
 1. **Identity Hardening**: `getUserId` in the dashboard (`dashboard/src/lib/auth-utils.ts`) verifies both the session ID and a dedicated auth marker cookie. It explicitly blacklists the `SYSTEM` identity to prevent spoofing of internal agent credentials.
 2. **Permission-Gated API Routes**: All critical dashboard API routes (`/api/auth/me`, `/api/chat`, `/api/agents`) verify the requesting user's permissions via the `IdentityManager`.
-3. **Role-Based UI Filtering (RBAC)**: The dashboard utilizes a `UserProvider` to enforce visibility constraints. Sidebar items and views are filtered based on the user's role (`ADMIN`, `OWNER`, `MEMBER`, `VIEWER`).
-   - **Management View**: Reserved for `ADMIN` and `OWNER` roles. Includes System Pulse, Traces, and Pipeline.
+3. **Role-Based Access Control (RBAC)**: The system enforces security at two levels:
+   - **UI Visibility (Sidebar)**: The `Sidebar` component dynamically filters navigation items using `UserProvider` context. If a user lacks the `requiredRoles`, the link is not rendered.
+   - **Page Enforcement (RoleGuard)**: Sensitive routes (e.g., `/security`, `/users`, `/settings`) are wrapped in a `<RoleGuard>` component. This component performs a secondary, hard-check on the client-side, rendering an "Access Denied" terminal if the user's role is insufficient. This prevents manual URL entry bypass.
+   - **Management View**: Reserved for `ADMIN` and `OWNER` roles. Includes System Pulse, Traces, Security, and Pipeline.
    - **User/Project View**: Accessible to all roles. Can be extended via `SidebarExtension` with project-specific `requiredRoles`.
-4. **Workspace Isolation**: Permission checks are scoped to a specific `workspaceId` (passed via headers or query params), ensuring users cannot access or modify resources belonging to other tenants.
-5. **Token Budgeting**: The `TokenBudgetEnforcer` prevents runaway LLM costs by monitoring per-session token consumption and blocking requests that exceed the allocated budget.
 
-### RBAC UI Filtering Flow
+### RBAC Enforcement Flow
 
 ```ascii
 [ User Login ]
@@ -388,11 +388,18 @@ To ensure enterprise-grade multi-tenancy and prevent privilege escalation, the s
       v                  [ Fetch User Role ]
 [ UserProvider (React) ] <-------+
       |
-      +----( isAdmin? )----> [ Show Management Sidebar Sections ]
+      +----( isAdmin? )----> [ Sidebar: Show Mgmt Sections ]
       |                      (Pulse, Traces, Security, Users)
       |
-      +----( userRole )----> [ Filter SidebarExtensions ]
-                             (requiredRoles check)
+      +----( Navigation )--> [ Page Component ]
+             |                      |
+             v                      v
+      [ URL Manual Entry ] -> [ RoleGuard Wrapper ]
+             |                      |
+             +----( !hasAccess )--> [ Access Denied UI ]
+             |                      (Hard Block)
+             |
+             +----( hasAccess )---> [ Render Page Content ]
 ```
 
 ---

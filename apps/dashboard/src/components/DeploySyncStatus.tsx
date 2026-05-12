@@ -5,6 +5,7 @@ import Typography from '@/components/ui/Typography';
 import Badge from '@/components/ui/Badge';
 import { GitBranch, CheckCircle2, XCircle, Loader2, Link2 } from 'lucide-react';
 import { logger } from '@claw/core/lib/logger';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface SyncRecord {
   buildId: string;
@@ -15,6 +16,7 @@ interface SyncRecord {
 }
 
 export default function DeploySyncStatus() {
+  const { t, formatTime } = useTranslations();
   const [syncs, setSyncs] = useState<SyncRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -49,7 +51,7 @@ export default function DeploySyncStatus() {
       <div className="flex items-center gap-2 mb-6">
         <GitBranch size={18} className="text-cyber-blue" />
         <Typography variant="h3" uppercase glow>
-          Deployment Sync Tracker
+          {t('SETTINGS_DEPLOY_SYNC_TRACKER')}
         </Typography>
       </div>
 
@@ -96,11 +98,11 @@ export default function DeploySyncStatus() {
                   <div className="flex items-center gap-1 opacity-40">
                     <Link2 size={10} />
                     <Typography variant="mono" className="text-[10px]">
-                      {sync.gapIds.length} GAPS
+                      {t('SETTINGS_GAPS').replace('{count}', String(sync.gapIds.length))}
                     </Typography>
                   </div>
-                  <Typography variant="mono" className="text-[10px] opacity-20">
-                    {new Date(sync.timestamp).toLocaleTimeString()}
+                  <Typography variant="mono" className="text-[10px] opacity-20" suppressHydrationWarning>
+                    {formatTime(sync.timestamp)}
                   </Typography>
                 </div>
               </div>
@@ -116,7 +118,7 @@ export default function DeploySyncStatus() {
 
         {syncs.length === 0 && (
           <div className="text-center py-10 opacity-40 italic">
-            <Typography variant="body">No recent deployment syncs recorded.</Typography>
+            <Typography variant="body">{t('SETTINGS_NO_SYNC_RECORDS')}</Typography>
           </div>
         )}
       </div>
