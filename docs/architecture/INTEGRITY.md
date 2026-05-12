@@ -22,7 +22,29 @@ We use DynamoDB `ConditionExpression` to prevent "Last Write Wins" race conditio
      |<-- Error (Conflict)|                      |
 ```
 
-## 1b. Collaboration Index Jitter (Perspective C)
+## 1b. Atomic Message Persistence (Silo 4)
+
+To prevent overwrites when multiple messages for the same user/session arrive at the same millisecond, the system uses a unique micro-timestamp with entropy and conditional writes.
+
+```ascii
+   Agent 1             Agent 2                DynamoDB
+      |                   |                      |
+      |-- addMsg(T=now) --|                      |
+      |                   |-- addMsg(T=now) -----|
+      |                   |                      |
+      |-- Put (SK=now#r1) ---------------------->|
+      |   w/ attribute_not_exists                |
+      |                   |                      |
+      |                   |<-- SUCCESS (200) ----|
+      |                   |                      |
+      |                   |-- Put (SK=now#r2) -->|
+      |                   |   w/ attribute_not_exists
+      |                   |                      |
+      |<-- SUCCESS (200) -|                      |
+      |                   |<-- SUCCESS (200) ----|
+```
+
+## 1c. Collaboration Index Jitter (Perspective C)
 
 To prevent overwrites when multiple collaborations share a participant at the same millisecond, the system uses a jittered retry loop.
 

@@ -44,7 +44,7 @@ The system enforces hard limits on high-impact actions to prevent runaway costs 
 
 **Key Features**:
 
-- DynamoDB-backed storage with key pattern `safety:blast_radius:{agentId}:{action}`
+- DynamoDB-backed storage with key pattern `WS#{workspaceId}#safety:blast_radius:{agentId}:{action}`
 - **Atomic Integrity**: Handles window resets atomically during the increment phase, eliminating "get-then-delete" race conditions.
 - Local cache for performance within same Lambda instance.
 - 1-hour TTL (WINDOW_MS) with automatic cleanup via `expiresAt` GSI.
@@ -54,6 +54,7 @@ The system enforces hard limits on high-impact actions to prevent runaway costs 
 Reasoning loops and repetitive "semantic grinding" are caught by the **SemanticLoopDetector**.
 
 - **Penalty**: Detected loops result in automatic trust penalties recorded via `SafetyBase.recordFailure`.
+- **Multi-Tenant Isolation**: Output history is cached with `workspaceId` scoping to prevent reasoning loop poisoning across different tenants (Anti-Pattern 19).
 
 ---
 

@@ -37,13 +37,16 @@ describe('handleDlqRoute', () => {
     expect(reportHealthIssue).not.toHaveBeenCalled();
   });
 
-  it('reports health issue for non-recursion DLQ events', async () => {
+  it('reports health issue with workspaceId scoping for failed events', async () => {
     await handleDlqRoute(
       {
         detailType: EventType.DASHBOARD_FAILURE_DETECTED,
         errorMessage: 'handler import failed',
-        userId: 'SYSTEM',
+        userId: 'USER_123',
         traceId: 'trace-1',
+        workspaceId: 'WS_XYZ',
+        teamId: 'TEAM_A',
+        staffId: 'STAFF_1',
         originalEvent: { dashboard: true },
       },
       EventType.DLQ_ROUTE
@@ -51,8 +54,13 @@ describe('handleDlqRoute', () => {
 
     expect(reportHealthIssue).toHaveBeenCalledWith(
       expect.objectContaining({
-        issue: expect.stringContaining('Routed event to DLQ: dashboard_failure_detected'),
+        workspaceId: 'WS_XYZ',
+        userId: 'USER_123',
         traceId: 'trace-1',
+        context: expect.objectContaining({
+          teamId: 'TEAM_A',
+          staffId: 'STAFF_1',
+        }),
       })
     );
   });

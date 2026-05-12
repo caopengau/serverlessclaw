@@ -17,18 +17,23 @@ export async function handleDlqRoute(
   const detailType = detail.detailType as string;
   const envelopeId = detail.envelopeId as string;
   const errorMessage = detail.errorMessage as string;
-  const userId = (detail.userId as string) || 'SYSTEM';
-  const traceId = (detail.traceId as string) || 'unknown';
+  const workspaceId =
+    (detail.workspaceId as string) || (originalEvent.workspaceId as string) || undefined;
+  const teamId = (detail.teamId as string) || (originalEvent.teamId as string) || undefined;
+  const staffId = (detail.staffId as string) || (originalEvent.staffId as string) || undefined;
+
+  const userId = (detail.userId as string) || (originalEvent.userId as string) || 'SYSTEM';
+  const traceId = (detail.traceId as string) || (originalEvent.traceId as string) || 'unknown';
 
   logger.error(`[DLQ_ROUTE] Received unhandled or failed event: ${detailType}`, {
     envelopeId,
     errorMessage,
+    workspaceId,
+    traceId,
     originalEvent: JSON.stringify(originalEvent).substring(0, 500), // Log preview
   });
 
   // Prevent SYSTEM_HEALTH_REPORT -> DLQ_ROUTE -> SYSTEM_HEALTH_REPORT feedback loops.
-  // When recursion tracking fails and system health events are rerouted, emitting another
-  // health issue here can re-enter the same failing path indefinitely.
   if (
     detailType === EventType.SYSTEM_HEALTH_REPORT &&
     typeof errorMessage === 'string' &&
@@ -47,10 +52,13 @@ export async function handleDlqRoute(
     severity: 'high',
     userId,
     traceId,
+    workspaceId,
     context: {
       envelopeId,
       originalEvent,
       routeReason: errorMessage,
+      teamId,
+      staffId,
     },
   });
 

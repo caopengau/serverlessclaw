@@ -73,7 +73,9 @@ describe('Dead Man Switch Recovery Handler', () => {
     expect(ebMock.commandCalls(PutEventsCommand)).toHaveLength(1);
     const ebInput = ebMock.commandCalls(PutEventsCommand)[0].args[0].input;
     expect(ebInput.Entries![0].DetailType).toBe(EventType.OUTBOUND_MESSAGE);
-    expect(ebInput.Entries![0].Detail).toContain('🚨 *CRITICAL SYSTEM FAILURE*');
+    const detail = JSON.parse(ebInput.Entries![0].Detail ?? '{}');
+    expect(detail.workspaceId).toBe('GLOBAL');
+    expect(detail.message).toContain('🚨 *CRITICAL SYSTEM FAILURE*');
   });
 
   it('should retrieve LKG hash and trigger CodeBuild on health failure', async () => {

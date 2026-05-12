@@ -2,6 +2,7 @@ import { Message } from '../../types/llm';
 import { RetentionManager } from '../tiering';
 import type { BaseMemoryProvider } from '../base';
 import { filterPIIFromObject } from '../../utils/pii';
+import { logger } from '../../logger';
 
 /**
  * Appends a new message with tiered retention.
@@ -23,15 +24,43 @@ export async function addMessage(
     workspaceId = scope.workspaceId;
   }
 
-  await base.putItem({
-    userId: scopedUserId,
-    timestamp: Date.now(),
-    createdAt: Date.now(),
-    type,
-    expiresAt,
-    workspaceId: workspaceId || undefined,
-    ...scrubbedMessage,
-  });
+  let attempts = 0;
+  let success = false;
+  const now = Date.now();
+
+  while (attempts < 5 && !success) {
+    try {
+      // Use micro-timestamp (ms * 1000) + entropy to ensure uniqueness and chronological order
+      const timestamp = now * 1000 + (attempts > 0 ? attempts : Math.floor(Math.random() * 1000));
+
+      await base.putItem(
+        {
+          userId: scopedUserId,
+          timestamp,
+          createdAt: now,
+          type,
+          expiresAt,
+          workspaceId: workspaceId || undefined,
+          ...scrubbedMessage,
+        },
+        {
+          ConditionExpression: 'attribute_not_exists(userId) AND attribute_not_exists(#ts)',
+          ExpressionAttributeNames: { '#ts': 'timestamp' },
+        }
+      );
+      success = true;
+    } catch (e: unknown) {
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+        attempts++;
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  if (!success) {
+    logger.error(`[History] Failed to add message after ${attempts} attempts (collision risk).`);
+  }
 }
 
 /**

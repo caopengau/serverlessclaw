@@ -39,9 +39,8 @@ Last Updated: 2026-05-11
 
 | Date       | Report                                             | Silos                            | Perspective | Status/Summary                                                                                                        |
 | :--------- | :------------------------------------------------- | :------------------------------- | :---------- | :-------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-12 | `audit-2026-05-12-brain-metabolism.md`             | Brain, Metabolism                | A, F        | FIXED: P1 Millisecond Collision Overwrites in messages, P2 Global Telemetry in DLQ, P2 Principles Verifier Gap.      |
 | 2026-05-12 | `audit-2026-05-12-shield-recovery.md`              | Shield                           | E           | FIXED: P1 Cross-Tenant Leak in Loop Detector, P1 Alerting Blindness in Dead Mans Switch. Verified IAM.                |
-| 2026-05-12 | `audit-2026-05-12-scales-evolution.md`             | Scales                           | B           | FIXED: P1 Missing Atomic Sync for Inferred Gap IDs in Deployment. Verified TrustManager and PromotionManager.         |
-| 2026-05-12 | `audit-2026-05-12-spine-metabolic-loop.md`         | Spine, Metabolism                | F           | FIXED: P1 Tenant-blind Config Load, P1 Multi-tenant Leakage in Event DLQ Routing, P2 Trace Summaries Global Flag.     |
 | 2026-05-11 | `audit-2026-05-11-tool-execution.md`               | Hand, Metabolism                 | B, D, F     | FIXED: Non-atomic MCP server registration, Race condition in default server discovery. Verified cost/budget.          |
 | 2026-05-11 | `audit-2026-05-11-metabolism-hardening.md`         | Metabolism                       | F           | FIXED: P2 Telemetry blindness, P1 CLI gate blocker, P1 Script duplication.                                            |
 | 2026-05-09 | `audit-2026-05-09-spine.md`                        | Spine                            | A           | FIXED: P1 DLQ Retrieval Leakage, P1 Event Routing Override failure, P2 Health Reporting scoping gap, P2 Flow Control. |
@@ -88,6 +87,9 @@ Last Updated: 2026-05-11
 | 2026-04-29 | `audit-2026-04-29-metabolism-identity.md`          | Metabolism, Identity             | C, D        | FIXED: P1 Registry partial update, P1 Participant index collision, P1 S3 Reclamation telemetry                        |
 | 2026-04-29 | `audit-2026-04-29-evolution-hand.md`               | Hand, Scales                     | B           | FIXED: P1 Blind Security Failures, P1 Blind Execution Crashes, P1 Inconsistent Success Detection                      |
 | 2026-04-29 | `audit-2026-04-29-message-metabolism.md`           | Eye, Metabolism                  | A           | FIXED: P1 Collaboration race condition, P1 Telemetry blindness, P2 Stale tool pruning gap                             |
+
+## 1c. Collaboration Index Jitter (Perspective C)
+
 | 2026-04-27 | `audit-2026-04-27-evolution-scoping.md`            | Hand, Brain                      | B           | FIXED: P1 Tenant-Blind Config Load, P1 Unscoped Activation Chain                                                      |
 | 2026-04-27 | `audit-2026-04-27-identity-journey-v2.md`          | Brain, Hand                      | C           | FIXED: P0 Global Identity Leakage, P0 Dashboard Bypass, P0 AST Tool Bypass                                            |
 | 2026-04-27 | `audit-2026-04-27-metabolism-evolution.md`         | Metabolism, Evolution            | B, E        | FIXED: P1 Cross-Tenant Evolution, P1 Global S3 Pruning, P2 Scoping Inconsistencies                                    |

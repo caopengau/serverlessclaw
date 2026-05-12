@@ -240,6 +240,7 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
       const alert: OutboundMessageEvent = {
         source: 'core.recovery',
         userId: 'ADMIN',
+        workspaceId: 'GLOBAL',
         traceId: `recovery-${Date.now()}`,
         taskId: `recovery-${Date.now()}`,
         initiatorId: 'DeadManSwitch',

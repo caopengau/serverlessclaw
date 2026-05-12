@@ -18,6 +18,10 @@ export function inferNodeEdges(nodes: TopologyNode[]): TopologyEdge[] {
   );
   const busId = busNode?.id ?? INFRA_NODE_ID.AGENT_BUS;
 
+  // E. Real-time Signaling Flow Components (Moved up for availability)
+  const hasRealtimeBridge = nodes.some((node) => node.id === INFRA_NODE_ID.REALTIME_BRIDGE);
+  const hasRealtimeBus = nodes.some((node) => node.id === INFRA_NODE_ID.REALTIME_BUS);
+
   // A. Agent <-> Bus Relationship
   nodes
     .filter(
@@ -36,6 +40,16 @@ export function inferNodeEdges(nodes: TopologyNode[]): TopologyEdge[] {
         target: agent.id,
         label: EDGE_LABEL.SIGNAL,
       });
+
+      // Hot Path (SC-P3): Agents emit real-time chunks directly to IoT Core for sub-50ms latency
+      if (hasRealtimeBus) {
+        edges.push({
+          id: `${agent.id}-realtime-hotpath`,
+          source: agent.id,
+          target: INFRA_NODE_ID.REALTIME_BUS,
+          label: EDGE_LABEL.REALTIME,
+        });
+      }
     });
 
   // B. Scheduler to Heartbeat
@@ -73,10 +87,7 @@ export function inferNodeEdges(nodes: TopologyNode[]): TopologyEdge[] {
     });
   }
 
-  // E. Real-time Signaling Flow
-  const hasRealtimeBridge = nodes.some((node) => node.id === INFRA_NODE_ID.REALTIME_BRIDGE);
-  const hasRealtimeBus = nodes.some((node) => node.id === INFRA_NODE_ID.REALTIME_BUS);
-
+  // E. Real-time Signaling Flow (Bridge Fallback)
   if (hasRealtimeBridge && busNode) {
     edges.push({
       id: `${busId}-realtime-bridge`,

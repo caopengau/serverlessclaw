@@ -110,8 +110,17 @@ function verifyAtomicUpdates(): Finding[] {
     if (file.includes('.test.') || file.includes('.d.ts')) return;
     const content = readFileSync(file, 'utf-8');
 
-    if (content.includes('Table.put') || content.includes('Table.update')) {
-      if (!content.includes('conditionExpression') && !content.includes('atomicUpdate')) {
+    if (
+      content.includes('Table.put') ||
+      content.includes('Table.update') ||
+      content.includes('base.putItem') ||
+      content.includes('base.updateItem')
+    ) {
+      if (
+        !content.includes('atomicUpdate') &&
+        !/\bConditionExpression\b/.test(content) &&
+        !/\bconditionExpression\b/.test(content)
+      ) {
         findings.push({
           file: relative(process.cwd(), file),
           line: 1,
