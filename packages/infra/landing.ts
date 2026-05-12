@@ -15,11 +15,14 @@ export function createLanding(
   const resourceName = options.resourceName ?? 'StandaloneHome';
   const domainKey = options.domainKey ?? 'landing';
 
+  const dashboardDomain = process.env.CLAW_DOMAIN_DASHBOARD;
+  const dashboardUrl = dashboardDomain ? `https://${dashboardDomain}` : 'http://localhost:7777';
+
   const landing = new sst.aws.Nextjs(resourceName, {
     path: options.appPath,
     domain: getDomainConfig(domainKey),
     environment: {
-      DASHBOARD_URL: 'http://localhost:7777', // Default for local dev
+      NEXT_PUBLIC_DASHBOARD_URL: dashboardUrl,
     },
   });
 
