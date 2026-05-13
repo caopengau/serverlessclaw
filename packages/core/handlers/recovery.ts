@@ -196,7 +196,7 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
     logger.error(`System health check FAILED: ${formatErrorMessage(error)}`);
 
     try {
-      const cb = getCircuitBreaker('system_health');
+      const cb = getCircuitBreaker('system_health', 'global');
       const result = await cb.recordFailure('health');
       if (result.state === 'open') {
         logger.warn(

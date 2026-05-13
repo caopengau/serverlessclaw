@@ -153,7 +153,7 @@ export class SyncWebhookHandler {
       body += `\n**Instructions**: Please resolve these conflicts locally, commit the changes, and close this issue.\n`;
     }
 
-    body += `\n---\n*Automated by ServerlessClaw Issue-Driven Sync*`;
+    body += `\n---\n*Automated by ${process.env.SST_APP || 'Framework'} Issue-Driven Sync*`;
     return body;
   }
 }

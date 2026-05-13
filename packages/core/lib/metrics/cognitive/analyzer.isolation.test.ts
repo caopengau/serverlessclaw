@@ -20,45 +20,52 @@ describe('HealthTrendAnalyzer', () => {
   });
 
   describe('analyzeMemoryHealth', () => {
-    it('scans both global and workspace-scoped items', async () => {
-      // Mock global items
-      mockBase.scanByPrefix.mockImplementation((prefix) => {
-        if (prefix === MEMORY_KEYS.LESSON_PREFIX) {
-          return Promise.resolve([{ userId: 'LESSON#1', timestamp: Date.now() }]);
-        }
-        if (prefix === 'WS#') {
-          return Promise.resolve([
-            { userId: 'WS#ws-1#LESSON#2', timestamp: Date.now() },
-            { userId: 'WS#ws-2#FACT#1', timestamp: Date.now() },
-          ]);
-        }
-        return Promise.resolve([]);
-      });
+    it('scans global items when no workspaceId is provided', async () => {
+      mockBase.scanByPrefix.mockResolvedValue([]);
 
-      const health = await analyzer.analyzeMemoryHealth();
+      await analyzer.analyzeMemoryHealth();
 
       expect(mockBase.scanByPrefix).toHaveBeenCalledWith(
         MEMORY_KEYS.LESSON_PREFIX,
         expect.anything()
       );
-      expect(mockBase.scanByPrefix).toHaveBeenCalledWith('WS#', expect.anything());
+      expect(mockBase.scanByPrefix).not.toHaveBeenCalledWith(
+        `WS#ws-1#${MEMORY_KEYS.LESSON_PREFIX}`,
+        expect.anything()
+      );
+    });
 
-      // Should find LESSON#1 (global) and LESSON#2 (workspace)
-      expect(health.itemsByTier[MEMORY_KEYS.LESSON_PREFIX]).toBe(2);
+    it('scans workspace-scoped items when workspaceId is provided', async () => {
+      mockBase.scanByPrefix.mockResolvedValue([]);
+
+      await analyzer.analyzeMemoryHealth('ws-1');
+
+      expect(mockBase.scanByPrefix).toHaveBeenCalledWith(
+        `WS#ws-1#${MEMORY_KEYS.LESSON_PREFIX}`,
+        expect.anything()
+      );
+      expect(mockBase.scanByPrefix).not.toHaveBeenCalledWith(
+        MEMORY_KEYS.LESSON_PREFIX,
+        expect.anything()
+      );
     });
 
     it('correctly extracts tier prefixes from scoped userIds', async () => {
       mockBase.scanByPrefix.mockImplementation((prefix) => {
-        if (prefix === 'WS#') {
+        if (prefix.includes(MEMORY_KEYS.LESSON_PREFIX)) {
           return Promise.resolve([
-            { userId: 'WS#tenant-A#LESSON#abc', timestamp: Date.now() },
-            { userId: 'WS#TEAM:t1#STAFF:s1#WSID:ws1#FACT#def', timestamp: Date.now() },
+            { userId: `WS#ws-1#${MEMORY_KEYS.LESSON_PREFIX}abc`, timestamp: Date.now() },
+          ]);
+        }
+        if (prefix.includes(MEMORY_KEYS.FACT_PREFIX)) {
+          return Promise.resolve([
+            { userId: `WS#ws-1#${MEMORY_KEYS.FACT_PREFIX}def`, timestamp: Date.now() },
           ]);
         }
         return Promise.resolve([]);
       });
 
-      const health = await analyzer.analyzeMemoryHealth();
+      const health = await analyzer.analyzeMemoryHealth('ws-1');
 
       expect(health.itemsByTier[MEMORY_KEYS.LESSON_PREFIX]).toBe(1);
       expect(health.itemsByTier[MEMORY_KEYS.FACT_PREFIX]).toBe(1);

@@ -39,6 +39,8 @@ Last Updated: 2026-05-12
 
 | Date       | Report                                             | Silos                            | Perspective | Status/Summary                                                                                                        |
 | :--------- | :------------------------------------------------- | :------------------------------- | :---------- | :-------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-13 | `audit-2026-05-13-hand-metabolism.md`              | Hand, Metabolism                 | B, F        | FIXED: P1 Missing WS Scoping in MCP Audit, P1 Global Circuit Breaker ambiguity, P2 Domain Pollution in Framework Sync.|
+| 2026-05-13 | `audit-2026-05-13-eye-telemetry.md`                | Eye                              | D           | FIXED: P1 Anti-Pattern 19 (In-Memory filtering), P1 Missing WS Scoping, P2 Domain Pollution in metrics.               |
 | 2026-05-12 | `audit-2026-05-12-brain-identity.md`               | Brain                            | C           | FIXED: P1 Anti-Pattern 19 (In-Memory filtering) in 3 areas, P1 Principle 13 (Atomic Updates) in 9 files.              |
 | 2026-05-12 | `audit-2026-05-12-hand-evolution.md`        | Hand                             | B           | FIXED: P1 Hub routing context propagation, P2 Static map memory leaks (Anti-Pattern 19), Verified Tool Security.      |
 | 2026-05-12 | `audit-2026-05-12-brain-metabolism.md`             | Brain, Metabolism                | A, F        | FIXED: P1 Millisecond message collisions, P1 DLQ telemetry scoping, Verified Atomic Persistence.                     |

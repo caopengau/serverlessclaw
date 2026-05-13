@@ -126,7 +126,7 @@ export class CognitiveHealthMonitor {
       this.anomalies = this.anomalies.slice(-1000);
     }
 
-    const memoryHealth = await this.analyzer.analyzeMemoryHealth();
+    const memoryHealth = await this.analyzer.analyzeMemoryHealth(workspaceId);
     const overallScore = this.calculateOverallScore(agentMetrics, memoryHealth);
 
     const totalReasoningSteps = agentMetrics.reduce((sum, m) => sum + m.totalReasoningSteps, 0);
