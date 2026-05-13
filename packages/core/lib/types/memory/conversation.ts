@@ -36,7 +36,7 @@ export interface ConversationMeta {
   isPinned?: boolean;
   /** Optional expiration timestamp (Unix epoch). */
   expiresAt?: number;
-  /** Mission-specific metadata for War Room mode. */
+  /** Mission-specific metadata for Mission Control mode. */
   mission?: MissionMetadata;
   /** Multi-tenant workspace identifier. */
   workspaceId?: string;

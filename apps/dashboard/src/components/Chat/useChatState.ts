@@ -31,7 +31,7 @@ export function useChatState() {
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [showThinking, setShowThinking] = useState(true);
   const [isChatSidebarCollapsed, setIsChatSidebarCollapsed] = useState(false);
-  const [warRoomMode, setWarRoomMode] = useState(true);
+  const [missionControlMode, setMissionControlMode] = useState(true);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -93,8 +93,8 @@ export function useChatState() {
     setShowThinking,
     isChatSidebarCollapsed,
     setIsChatSidebarCollapsed,
-    warRoomMode,
-    setWarRoomMode,
+    missionControlMode,
+    setMissionControlMode,
     scrollRef,
     searchInputRef,
     chatInputRef,

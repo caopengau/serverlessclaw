@@ -27,8 +27,8 @@ interface ChatHeaderProps {
   isContextPanelOpen: boolean;
   setIsContextPanelOpen: (val: boolean) => void;
   t: (key: TranslationKey) => string;
-  warRoomMode: boolean;
-  setWarRoomMode: (val: boolean) => void;
+  missionControlMode: boolean;
+  setMissionControlMode: (val: boolean) => void;
 }
 
 export const ChatHeader: React.FC<ChatHeaderProps> = ({
@@ -49,8 +49,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
   isContextPanelOpen,
   setIsContextPanelOpen,
   t,
-  warRoomMode,
-  setWarRoomMode,
+  missionControlMode,
+  setMissionControlMode,
 }) => {
   return (
     <header className="px-6 py-4 border-b border-border flex flex-row items-center justify-between shrink-0 min-h-[70px] gap-6">
@@ -181,7 +181,9 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
         <div className="flex items-center gap-3">
           <CyberTooltip
-            content={warRoomMode ? 'Exit War Room Mode' : 'Enter War Room Mode'}
+            content={
+              missionControlMode ? 'Exit Mission Control Mode' : 'Enter Mission Control Mode'
+            }
             position="bottom"
             showIcon={false}
             width="w-auto"
@@ -189,11 +191,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setWarRoomMode(!warRoomMode)}
-              className={`px-2 py-1 h-8 flex items-center justify-center gap-2 rounded-md transition-all border min-w-[110px] ${warRoomMode ? 'bg-cyber-blue/5 text-cyber-blue border-cyber-blue/20 shadow-[0_0_10px_rgba(0,255,255,0.1)]' : 'text-muted-foreground hover:text-foreground border-transparent'}`}
+              onClick={() => setMissionControlMode(!missionControlMode)}
+              className={`px-2 py-1 h-8 flex items-center justify-center gap-2 rounded-md transition-all border min-w-[110px] ${missionControlMode ? 'bg-cyber-blue/5 text-cyber-blue border-cyber-blue/20 shadow-[0_0_10px_rgba(0,255,255,0.1)]' : 'text-muted-foreground hover:text-foreground border-transparent'}`}
               icon={<Crosshair size={18} />}
             >
-              <span className="text-[10px] font-mono uppercase tracking-wider">WAR_ROOM</span>
+              <span className="text-[10px] font-mono uppercase tracking-wider">
+                MISSION_CONTROL
+              </span>
             </Button>
           </CyberTooltip>
 

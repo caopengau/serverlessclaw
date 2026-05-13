@@ -28,15 +28,15 @@ vi.mock('./ChatHeader', () => ({
     saveTitle: () => void;
     setIsEditingTitle: (val: boolean) => void;
     setIsInviteSelectorOpen: (val: boolean) => void;
-    setWarRoomMode: (val: boolean) => void;
+    setMissionControlMode: (val: boolean) => void;
   }) => (
     <div data-testid="chat-header">
       <span data-testid="active-session-id">{props.activeSessionId}</span>
       <button onClick={() => props.setIsEditingTitle(true)}>Edit Title</button>
       <button onClick={() => props.saveTitle()}>Save Title</button>
       <button onClick={() => props.setIsInviteSelectorOpen(true)}>Invite Agent</button>
-      <button onClick={() => props.setWarRoomMode(true)}>Enable War Room</button>
-      <button onClick={() => props.setWarRoomMode(false)}>Disable War Room</button>
+      <button onClick={() => props.setMissionControlMode(true)}>Enable Mission Control</button>
+      <button onClick={() => props.setMissionControlMode(false)}>Disable Mission Control</button>
     </div>
   ),
 }));
@@ -188,9 +188,9 @@ describe('ChatContent Component', () => {
     mockStorage.clear();
   });
 
-  it('renders Mission Control layout by default (warRoomMode is on)', async () => {
+  it('renders Mission Control layout by default (missionControlMode is on)', async () => {
     // Set to true explicitly
-    mockStorage.setItem('claw_war_room_mode', 'true');
+    mockStorage.setItem('claw_mission_control_mode', 'true');
 
     render(<ChatContent />);
 
@@ -203,9 +203,9 @@ describe('ChatContent Component', () => {
     );
   });
 
-  it('renders standard chat layout when warRoomMode is off', async () => {
+  it('renders standard chat layout when missionControlMode is off', async () => {
     // Set to false explicitly
-    mockStorage.setItem('claw_war_room_mode', 'false');
+    mockStorage.setItem('claw_mission_control_mode', 'false');
 
     render(<ChatContent />);
 
@@ -221,8 +221,8 @@ describe('ChatContent Component', () => {
     expect(screen.queryByTestId('mission-hud')).not.toBeInTheDocument();
   });
 
-  it('persists sidebars even when activeSessionId is null if warRoomMode is on', async () => {
-    mockStorage.setItem('claw_war_room_mode', 'true');
+  it('persists sidebars even when activeSessionId is null if missionControlMode is on', async () => {
+    mockStorage.setItem('claw_mission_control_mode', 'true');
 
     render(<ChatContent />);
 
@@ -237,7 +237,7 @@ describe('ChatContent Component', () => {
   });
 
   it('updates title when edited and saved', async () => {
-    mockStorage.setItem('claw_war_room_mode', 'false');
+    mockStorage.setItem('claw_mission_control_mode', 'false');
     const fetchMock = vi.fn().mockResolvedValue({ ok: true });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -431,13 +431,13 @@ describe('ChatContent Component', () => {
     });
   });
 
-  it('toggles war room mode', async () => {
+  it('toggles mission control mode', async () => {
     render(<ChatContent />);
 
-    fireEvent.click(screen.getByText('Disable War Room'));
-    expect(mockStorage.getItem('claw_war_room_mode')).toBe('false');
+    fireEvent.click(screen.getByText('Disable Mission Control'));
+    expect(mockStorage.getItem('claw_mission_control_mode')).toBe('false');
 
-    fireEvent.click(screen.getByText('Enable War Room'));
-    expect(mockStorage.getItem('claw_war_room_mode')).toBe('true');
+    fireEvent.click(screen.getByText('Enable Mission Control'));
+    expect(mockStorage.getItem('claw_mission_control_mode')).toBe('true');
   });
 });

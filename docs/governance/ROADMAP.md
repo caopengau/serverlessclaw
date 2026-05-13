@@ -151,11 +151,11 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 
 - [ ] **Workflow State Snapshots**: Persistent DynamoDB snapshots of active workflows allowing mid-task "Suspend & Resume".
 - [ ] **Milestone Checkpoints**: Automatic session snapshotting before high-risk agent operations.
-- [x] **Live Collaboration Interface**: Real-time collaborative "War Room" interface in ClawCenter for human-agent pairing.
+- [x] **Live Collaboration Interface**: Real-time collaborative "Mission Control" interface in ClawCenter for human-agent pairing.
 
 ## ✅ Phase 22: Cognitive Mission Command (Operational)
 
-- [x] **Unified War Room Layout**: Integrated operational phase tracking and real-time metrics into the primary chat interface.
+- [x] **Unified Mission Control Layout**: Integrated operational phase tracking and real-time metrics into the primary chat interface.
 - [x] **Mission Control HUD**: High-fidelity telemetry gauges for Trust, Stability, and ROI.
 - [x] **Neural Presence Layer**: Workspace-wide awareness of active humans and agents via MQTT presence signals.
 - [x] **Mode Persistence**: State-aware layout toggles for focused "Commander" sessions.

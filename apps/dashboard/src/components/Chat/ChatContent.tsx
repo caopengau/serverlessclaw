@@ -82,9 +82,9 @@ export default function ChatContent() {
   const [activeCollaborators, setActiveCollaborators] = useState<string[]>([AGENT_TYPES.SUPERCLAW]);
   const [collaborationId, setCollaborationId] = useState<string | null>(null);
   const [isTransiting, setIsTransiting] = useState(false);
-  const [warRoomMode, setWarRoomMode] = useState(() => {
+  const [missionControlMode, setMissionControlMode] = useState(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('claw_war_room_mode');
+      const saved = localStorage.getItem('claw_mission_control_mode');
       return saved !== null ? saved === 'true' : true;
     }
     return true;
@@ -94,20 +94,21 @@ export default function ChatContent() {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('claw_chat_sidebar_collapsed');
       if (saved !== null) return saved === 'true';
-      const savedWarRoom = localStorage.getItem('claw_war_room_mode');
-      const actualWarRoom = savedWarRoom !== null ? savedWarRoom === 'true' : true;
-      return actualWarRoom;
+      const savedMissionControl = localStorage.getItem('claw_mission_control_mode');
+      const actualMissionControl =
+        savedMissionControl !== null ? savedMissionControl === 'true' : true;
+      return actualMissionControl;
     }
     return false;
   });
 
   useEffect(() => {
-    localStorage.setItem('claw_war_room_mode', String(warRoomMode));
-    // Auto-collapse sidebar when entering war room mode if it wasn't explicitly set
-    if (warRoomMode && localStorage.getItem('claw_chat_sidebar_collapsed') === null) {
+    localStorage.setItem('claw_mission_control_mode', String(missionControlMode));
+    // Auto-collapse sidebar when entering mission control mode if it wasn't explicitly set
+    if (missionControlMode && localStorage.getItem('claw_chat_sidebar_collapsed') === null) {
       setTimeout(() => setIsChatSidebarCollapsed(true), 0);
     }
-  }, [warRoomMode]);
+  }, [missionControlMode]);
 
   useEffect(() => {
     localStorage.setItem('claw_chat_sidebar_collapsed', String(isChatSidebarCollapsed));
@@ -588,12 +589,12 @@ export default function ChatContent() {
           isContextPanelOpen={isContextPanelOpen}
           setIsContextPanelOpen={setIsContextPanelOpen}
           t={t}
-          warRoomMode={warRoomMode}
-          setWarRoomMode={setWarRoomMode}
+          missionControlMode={missionControlMode}
+          setMissionControlMode={setMissionControlMode}
         />
 
         <div className="flex-1 flex overflow-hidden">
-          {warRoomMode && (
+          {missionControlMode && (
             <MissionBriefing
               key={`briefing-${activeSessionId}`}
               sessionId={activeSessionId}
@@ -644,7 +645,7 @@ export default function ChatContent() {
             />
           </div>
 
-          {warRoomMode && (
+          {missionControlMode && (
             <MissionControlHUD
               key={`control-${activeSessionId}`}
               sessionId={activeSessionId}
