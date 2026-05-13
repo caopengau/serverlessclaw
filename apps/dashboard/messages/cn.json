@@ -1,5 +1,5 @@
 {
-  "DASHBOARD_TITLE": "Claw中心",
+  "DASHBOARD_TITLE": "Nexus中心",
   "MISSING_MESSAGE": "消息缺失",
   "API_CHAT_ERROR": "API 聊天错误：",
   "TRACE_NOT_FOUND": "未找到链路",
@@ -550,14 +550,14 @@
   "UNKNOWN": "未知",
   "ATTACH_FILE": "挂载文件",
 
-  "LOGIN_TITLE": "Claw中心身份验证",
+  "LOGIN_TITLE": "Nexus中心身份验证",
   "LOGIN_RESTRICTED_ACCESS": "受限访问",
   "LOGIN_USER_IDENTITY": "用户身份",
   "LOGIN_USER_ID_PLACEHOLDER": "请输入用户ID...",
-  "LOGIN_KEYPHRASE": "Claw密钥短语",
+  "LOGIN_KEYPHRASE": "Nexus密钥短语",
   "LOGIN_PASSPHRASE_PLACEHOLDER": "请输入密钥短语...",
   "LOGIN_SYNCHRONIZING": "同步中",
-  "LOGIN_INITIALIZE_LINK": "初始化Claw链路",
+  "LOGIN_INITIALIZE_LINK": "初始化Nexus链路",
   "LOGIN_FOOTER_OS": "SERVERLESS_CLAW_OS",
   "LOGIN_FOOTER_YEAR": "2026年建立",
 

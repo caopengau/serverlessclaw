@@ -1,5 +1,5 @@
 {
-  "DASHBOARD_TITLE": "ClawCenter",
+  "DASHBOARD_TITLE": "NexusCenter",
   "MISSING_MESSAGE": "Missing message",
   "API_CHAT_ERROR": "API Chat Error:",
   "TRACE_NOT_FOUND": "Trace not found",
@@ -561,7 +561,7 @@
   "UNKNOWN": "Unknown",
   "ATTACH_FILE": "Attach File",
 
-  "LOGIN_TITLE": "Claw Center Auth",
+  "LOGIN_TITLE": "NexusCenter Auth",
   "LOGIN_RESTRICTED_ACCESS": "Restricted Access",
   "LOGIN_USER_IDENTITY": "User Identity",
   "LOGIN_USER_ID_PLACEHOLDER": "DASHBOARD_USER...",
