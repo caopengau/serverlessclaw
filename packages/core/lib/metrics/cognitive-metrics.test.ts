@@ -741,6 +741,28 @@ describe('CognitiveHealthMonitor', () => {
     expect(anomalies.length).toBeLessThanOrEqual(10);
   });
 
+  it('should isolate anomalies by workspaceId [Sh6]', async () => {
+    // Simulate metrics that trigger anomalies
+    // completionRate 0 < 0.9 (failsafe) -> anomaly 1
+    // errorRate 1 > 0.1 (failsafe) -> anomaly 2
+    mockBase.queryItems.mockResolvedValue([{ metricName: 'task_completed', value: 0 }]);
+
+    // Snapshot for WS1
+    await monitor.takeSnapshot(['agent-1'], 'ws-1');
+    const ws1Anomalies = monitor.getRecentAnomalies(10, 'ws-1');
+    expect(ws1Anomalies).toHaveLength(2);
+
+    // Snapshot for GLOBAL
+    // Completion 100%, Error 0% -> No anomalies
+    mockBase.queryItems.mockResolvedValue([{ metricName: 'task_completed', value: 1 }]);
+    await monitor.takeSnapshot(['agent-1']);
+    const globalAnomalies = monitor.getRecentAnomalies(10);
+    expect(globalAnomalies).toHaveLength(0);
+
+    // WS1 anomalies should still be there
+    expect(monitor.getRecentAnomalies(10, 'ws-1')).toHaveLength(2);
+  });
+
   it('should use default agent IDs when none provided', async () => {
     mockBase.queryItems.mockResolvedValue([]);
 

@@ -1,6 +1,6 @@
 /**
  * @module SafetyEngine
- * @description Granular safety tier enforcement engine for Serverless Claw.
+ * @description Granular safety tier enforcement engine.
  */
 
 import {

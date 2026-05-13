@@ -40,12 +40,13 @@ export const runCognitiveHealthCheck = {
     logger.info('[Tool] Running deep cognitive health check...');
     try {
       const agentIds = args.agentIds as string[] | undefined;
+      const workspaceId = args.workspaceId as string | undefined;
       const verbose = !!args.verbose;
 
       const memory = new DynamoMemory();
       const monitor = new CognitiveHealthMonitor(memory);
       monitor.start();
-      const snapshot = await monitor.takeSnapshot(agentIds);
+      const snapshot = await monitor.takeSnapshot(agentIds, workspaceId);
       monitor.stop();
 
       if (verbose) {

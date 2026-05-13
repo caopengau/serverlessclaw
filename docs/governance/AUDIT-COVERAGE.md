@@ -13,12 +13,12 @@ Last Updated: 2026-05-12
 | Silo  | Name           | Primary Code Paths                              | Audit Count | Last Audited | Risk Level |
 | :---- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
 | **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 24          | 2026-05-12   | Low        |
-| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 14          | 2026-05-12   | Low        |
-| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 23          | 2026-05-12   | Low        |
+| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 14          | 2026-05-13   | Low        |
+| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 24          | 2026-05-13   | Low        |
 | **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 21          | 2026-05-12   | Low        |
-| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 18          | 2026-05-11   | Low        |
-| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 19          | 2026-05-12   | Low        |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 17          | 2026-05-12   | Low        |
+| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 18          | 2026-05-13   | Low        |
+| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 20          | 2026-05-13   | Low        |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 17          | 2026-05-13   | Low        |
 
 ---
 
@@ -39,6 +39,7 @@ Last Updated: 2026-05-12
 
 | Date       | Report                                             | Silos                            | Perspective | Status/Summary                                                                                                        |
 | :--------- | :------------------------------------------------- | :------------------------------- | :---------- | :-------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-13 | `audit-2026-05-13-shield-scales.md`               | Shield, Scales                  | E, B        | FIXED: P1 Multi-tenant leak in Cognitive Tool, P2 Leak in Blast Radius Stats, P2 Monitor Anomaly leakage.             |
 | 2026-05-13 | `audit-2026-05-13-hand-metabolism.md`              | Hand, Metabolism                 | B, F        | FIXED: P1 Missing WS Scoping in MCP Audit, P1 Global Circuit Breaker ambiguity, P2 Domain Pollution in Framework Sync.|
 | 2026-05-13 | `audit-2026-05-13-eye-telemetry.md`                | Eye                              | D           | FIXED: P1 Anti-Pattern 19 (In-Memory filtering), P1 Missing WS Scoping, P2 Domain Pollution in metrics.               |
 | 2026-05-12 | `audit-2026-05-12-brain-identity.md`               | Brain                            | C           | FIXED: P1 Anti-Pattern 19 (In-Memory filtering) in 3 areas, P1 Principle 13 (Atomic Updates) in 9 files.              |

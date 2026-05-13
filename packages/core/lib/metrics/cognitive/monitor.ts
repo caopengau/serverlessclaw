@@ -25,7 +25,7 @@ export class CognitiveHealthMonitor {
   private detector: DegradationDetector;
   private analyzer: HealthTrendAnalyzer;
   private base: BaseMemoryProvider;
-  private anomalies: CognitiveAnomaly[] = [];
+  private anomaliesByWorkspace: Map<string, CognitiveAnomaly[]> = new Map();
   private config: CognitiveMetricsConfig;
   private started: boolean = false;
 
@@ -121,9 +121,13 @@ export class CognitiveHealthMonitor {
 
     await Promise.all(trustManagerPromises);
 
-    this.anomalies.push(...allAnomalies);
-    if (this.anomalies.length > 1000) {
-      this.anomalies = this.anomalies.slice(-1000);
+    const wsKey = workspaceId || 'GLOBAL';
+    const currentAnomalies = this.anomaliesByWorkspace.get(wsKey) || [];
+    currentAnomalies.push(...allAnomalies);
+    if (currentAnomalies.length > 1000) {
+      this.anomaliesByWorkspace.set(wsKey, currentAnomalies.slice(-1000));
+    } else {
+      this.anomaliesByWorkspace.set(wsKey, currentAnomalies);
     }
 
     const memoryHealth = await this.analyzer.analyzeMemoryHealth(workspaceId);
@@ -188,8 +192,9 @@ export class CognitiveHealthMonitor {
     }
   }
 
-  getRecentAnomalies(limit: number = 50): CognitiveAnomaly[] {
-    return this.anomalies.slice(-limit);
+  getRecentAnomalies(limit: number = 50, workspaceId?: string): CognitiveAnomaly[] {
+    const wsKey = workspaceId || 'GLOBAL';
+    return (this.anomaliesByWorkspace.get(wsKey) || []).slice(-limit);
   }
 
   private calculateOverallScore(
