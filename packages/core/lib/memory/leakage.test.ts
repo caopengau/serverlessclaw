@@ -82,7 +82,9 @@ describe('Memory Leakage & Visibility Audit (Post-Fix)', () => {
       expect(result.items.find((i) => i.content === 'Truly global lesson')).toBeDefined();
 
       const calls = ddbMock.commandCalls(QueryCommand);
-      expect(calls[0].args[0].input.FilterExpression).toContain('workspaceId = :workspaceId');
+      const input = calls[0].args[0].input;
+      expect(input.IndexName).toBe('WorkspaceTypeIndex');
+      expect(input.KeyConditionExpression).toContain('workspaceId = :wsId');
     });
 
     it('should INCLUDE truly global items when searching with resolvedUserId and orgId', async () => {
