@@ -254,10 +254,10 @@ describe('Event Bus', () => {
 
       const entries = await getDlqEntries({ workspaceId: 'ws-1' });
 
-      // The mock returns all 3 because it doesn't process FilterExpression,
-      // so we verify that the correct filter parameters were sent.
+      // We verify that the correct GSI and KeyCondition were used (Optimized AP-19)
       const input = ddbMock.call(0).args[0].input as QueryCommandInput;
-      expect(input.FilterExpression).toBe('workspaceId = :ws');
+      expect(input.IndexName).toBe('WorkspaceTypeIndex');
+      expect(input.KeyConditionExpression).toContain('workspaceId = :ws');
       expect(input.ExpressionAttributeValues?.[':ws']).toBe('ws-1');
       expect(entries).toHaveLength(3);
     });

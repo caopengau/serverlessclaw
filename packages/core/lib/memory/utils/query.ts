@@ -15,16 +15,26 @@ export async function getMemoryByTypePaginated(
   lastEvaluatedKey?: Record<string, unknown>,
   scope?: string | import('../../types/memory').ContextualScope
 ): Promise<{ items: Record<string, unknown>[]; lastEvaluatedKey?: Record<string, unknown> }> {
+  const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
+
   const params: Record<string, unknown> = {
-    IndexName: 'TypeTimestampIndex',
-    KeyConditionExpression: '#tp = :type',
+    Limit: limit,
+    ScanIndexForward: false,
+    ExclusiveStartKey: lastEvaluatedKey,
     ExpressionAttributeNames: { '#tp': 'type' },
     ExpressionAttributeValues: { ':type': type },
-    ScanIndexForward: false,
-    Limit: limit,
-    ExclusiveStartKey: lastEvaluatedKey,
   };
-  applyWorkspaceIsolation(params, scope);
+
+  if (workspaceId) {
+    params.IndexName = 'WorkspaceTypeIndex';
+    params.KeyConditionExpression = 'workspaceId = :wsId AND #tp = :type';
+    (params.ExpressionAttributeValues as Record<string, unknown>)[':wsId'] = workspaceId;
+  } else {
+    params.IndexName = 'TypeTimestampIndex';
+    params.KeyConditionExpression = '#tp = :type';
+    applyWorkspaceIsolation(params, scope);
+  }
+
   const result = await base.queryItemsPaginated(params);
   return { items: result.items, lastEvaluatedKey: result.lastEvaluatedKey };
 }

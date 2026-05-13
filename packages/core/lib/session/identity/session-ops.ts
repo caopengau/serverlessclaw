@@ -113,18 +113,28 @@ export class SessionOps extends IdentityBase {
    */
   async getUserSessions(userId: string, workspaceId?: string): Promise<Session[]> {
     try {
+      // Optimized: Use UserInsightIndex (userId + type) for efficient lookup
+      // instead of scanning all sessions in a workspace (Anti-Pattern 19).
       const result = await this.base.queryItemsPaginated({
-        IndexName: workspaceId ? 'WorkspaceTypeIndex' : 'TypeTimestampIndex',
-        KeyConditionExpression: workspaceId ? 'workspaceId = :wsId AND #tp = :type' : '#tp = :type',
-        FilterExpression: 'sessionUserId = :uid',
+        IndexName: 'UserInsightIndex',
+        KeyConditionExpression: 'userId = :pk AND #tp = :type',
         ExpressionAttributeNames: {
           '#tp': 'type',
         },
         ExpressionAttributeValues: {
+          ':pk': this.getUserKey(userId), // Global user key
           ':type': 'SESSION',
-          ':uid': userId,
-          ...(workspaceId ? { ':wsId': workspaceId } : {}),
         },
+        FilterExpression: workspaceId ? 'workspaceId = :wsId' : undefined,
+        ...(workspaceId
+          ? {
+              ExpressionAttributeValues: {
+                ':pk': this.getUserKey(userId),
+                ':type': 'SESSION',
+                ':wsId': workspaceId,
+              },
+            }
+          : {}),
         Limit: 100,
         ScanIndexForward: false,
       });

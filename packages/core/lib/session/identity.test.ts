@@ -40,14 +40,30 @@ describe('IdentityManager', () => {
       }),
       queryItemsPaginated: vi
         .fn()
-        .mockImplementation(async ({ ExpressionAttributeValues, FilterExpression }) => {
+        .mockImplementation(async ({ ExpressionAttributeValues, FilterExpression, IndexName }) => {
           const type = ExpressionAttributeValues[':type'];
           let items = Array.from(state.values()).filter((item) => item.type === type);
+
+          if (IndexName === 'UserInsightIndex') {
+            const pk = ExpressionAttributeValues[':pk'];
+            items = items.filter((item) => {
+              // Extract the base user ID from the user item or sessionUserId
+              const itemUserId =
+                item.sessionUserId || (item.userId && item.userId.split('#').pop());
+              return itemUserId === pk.split('#').pop();
+            });
+          }
+
           if (FilterExpression && FilterExpression.includes('sessionUserId = :uid')) {
             items = items.filter(
               (item) => item.sessionUserId === ExpressionAttributeValues[':uid']
             );
           }
+
+          if (FilterExpression && FilterExpression.includes('workspaceId = :wsId')) {
+            items = items.filter((item) => item.workspaceId === ExpressionAttributeValues[':wsId']);
+          }
+
           return { items, lastEvaluatedKey: null };
         }),
       putItem: vi.fn().mockImplementation(async (item) => {
@@ -168,12 +184,11 @@ describe('IdentityManager', () => {
     it('should handle save user error gracefully', async () => {
       // Make putItem fail
       mockBase.putItem.mockRejectedValue(new Error('Save Error'));
-
       const result = await manager.authenticate('user-1', 'telegram');
 
-      // saveUser catches error and logs it, but user is still created in memory
-      expect(result.success).toBe(true);
-      expect(result.user?.userId).toBe('user-1');
+      // saveUser now throws, so authenticate should fail
+      expect(result.success).toBe(false);
+      expect(result.error).toBe('Save Error');
     });
   });
 

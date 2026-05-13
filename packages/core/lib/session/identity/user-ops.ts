@@ -68,29 +68,26 @@ export class UserOps extends IdentityBase {
 
   /**
    * Save user to storage.
+   * Throws if user already exists (ConditionExpression failure).
    */
   async saveUser(user: UserIdentity, orgId?: string): Promise<void> {
-    try {
-      await this.base.putItem(
-        {
-          userId: this.getUserKey(user.userId, orgId),
-          timestamp: 0,
-          type: 'USER_IDENTITY',
-          displayName: user.displayName,
-          email: user.email,
-          role: user.role,
-          workspaceIds: user.workspaceIds,
-          authProvider: user.authProvider,
-          createdAt: user.createdAt,
-          lastActiveAt: user.lastActiveAt,
-          hashedPassword: user.hashedPassword,
-          updatedAt: Date.now(),
-        },
-        { ConditionExpression: 'attribute_not_exists(userId)' }
-      );
-    } catch (error) {
-      logger.error(`Failed to save user ${user.userId}:`, error);
-    }
+    await this.base.putItem(
+      {
+        userId: this.getUserKey(user.userId, orgId),
+        timestamp: 0,
+        type: 'USER_IDENTITY',
+        displayName: user.displayName,
+        email: user.email,
+        role: user.role,
+        workspaceIds: user.workspaceIds,
+        authProvider: user.authProvider,
+        createdAt: user.createdAt,
+        lastActiveAt: user.lastActiveAt,
+        hashedPassword: user.hashedPassword,
+        updatedAt: Date.now(),
+      },
+      { ConditionExpression: 'attribute_not_exists(userId)' }
+    );
   }
 
   /**

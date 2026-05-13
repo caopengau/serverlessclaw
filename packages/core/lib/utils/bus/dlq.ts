@@ -68,25 +68,33 @@ export async function getDlqEntries(
   const { limit = 50, workspaceId } = options;
   try {
     const tableName = await getMemoryTableName();
-    const result = await getDb().send(
-      new QueryCommand({
-        TableName: tableName,
-        IndexName: 'TypeTimestampIndex',
-        KeyConditionExpression: '#type = :type AND #ts > :cutoff',
-        FilterExpression: workspaceId ? 'workspaceId = :ws' : 'attribute_not_exists(workspaceId)',
-        ExpressionAttributeNames: {
-          '#type': 'type',
-          '#ts': 'timestamp',
-        },
-        ExpressionAttributeValues: {
-          ':type': DLQ_TYPE,
-          ':cutoff': Date.now() - TIME.MS_PER_DAY,
-          ...(workspaceId ? { ':ws': workspaceId } : {}),
-        },
-        ScanIndexForward: false,
-        Limit: limit,
-      })
-    );
+
+    const params: Record<string, unknown> = {
+      TableName: tableName,
+      ExpressionAttributeNames: {
+        '#type': 'type',
+      },
+      ExpressionAttributeValues: {
+        ':type': DLQ_TYPE,
+      },
+      ScanIndexForward: false,
+      Limit: limit,
+    };
+
+    if (workspaceId) {
+      params.IndexName = 'WorkspaceTypeIndex';
+      params.KeyConditionExpression = 'workspaceId = :ws AND #type = :type';
+      (params.ExpressionAttributeValues as Record<string, unknown>)[':ws'] = workspaceId;
+    } else {
+      params.IndexName = 'TypeTimestampIndex';
+      params.KeyConditionExpression = '#type = :type AND #ts > :cutoff';
+      params.FilterExpression = 'attribute_not_exists(workspaceId)';
+      (params.ExpressionAttributeNames as Record<string, string>)['#ts'] = 'timestamp';
+      (params.ExpressionAttributeValues as Record<string, unknown>)[':cutoff'] =
+        Date.now() - TIME.MS_PER_DAY;
+    }
+
+    const result = await getDb().send(new QueryCommand(params as any));
 
     return (result.Items ?? []) as DlqEntry[];
   } catch (error) {

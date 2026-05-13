@@ -135,9 +135,6 @@ export async function inviteMember(
     active: true,
   };
 
-  workspace.members.push(newMember);
-  workspace.updatedAt = Date.now();
-
   // Sh10: Verify agent is enabled before adding (Principle 14)
   if (input.type === 'agent') {
     const { AgentRegistry } = await import('../registry');
@@ -147,9 +144,14 @@ export async function inviteMember(
     }
   }
 
-  await ConfigManager.saveRawConfig(workspaceKey(workspaceId), workspace);
+  // Atomic update: prevent overwrite race conditions
+  await ConfigManager.atomicAppendToValueList(workspaceKey(workspaceId), 'members', [newMember], {
+    preventDuplicates: true,
+  });
+
   logger.info(`[Workspace] Member invited: ${input.memberId} to ${workspaceId} as ${input.role}`);
-  return workspace;
+  // Return the latest workspace state (reloaded for safety)
+  return (await getWorkspace(workspaceId))!;
 }
 
 /**
@@ -182,12 +184,17 @@ export async function updateMemberRole(
   const target = workspace.members.find((m) => m.memberId === targetMemberId);
   if (!target) throw new Error(`Member not found: ${targetMemberId}`);
 
-  target.role = newRole;
-  workspace.updatedAt = Date.now();
+  // Atomic update using RMW with ConditionExpression
+  await ConfigManager.atomicUpdateValue<Workspace>(workspaceKey(workspaceId), (current) => {
+    if (!current) return workspace; // Should not happen
+    const updatedMembers = current.members.map((m) =>
+      m.memberId === targetMemberId ? { ...m, role: newRole } : m
+    );
+    return { ...current, members: updatedMembers, updatedAt: Date.now() };
+  });
 
-  await ConfigManager.saveRawConfig(workspaceKey(workspaceId), workspace);
   logger.info(`[Workspace] Role updated: ${targetMemberId} -> ${newRole} in ${workspaceId}`);
-  return workspace;
+  return (await getWorkspace(workspaceId))!;
 }
 
 /**
@@ -215,12 +222,14 @@ export async function removeMember(
     throw new Error('Cannot remove the workspace owner');
   }
 
-  workspace.members = workspace.members.filter((m) => m.memberId !== targetMemberId);
-  workspace.updatedAt = Date.now();
+  const target = workspace.members.find((m) => m.memberId === targetMemberId);
+  if (!target) return workspace;
 
-  await ConfigManager.saveRawConfig(workspaceKey(workspaceId), workspace);
+  // Atomic update: prevent overwrite race conditions
+  await ConfigManager.atomicRemoveFromValueList(workspaceKey(workspaceId), 'members', [target]);
+
   logger.info(`[Workspace] Member removed: ${targetMemberId} from ${workspaceId}`);
-  return workspace;
+  return (await getWorkspace(workspaceId))!;
 }
 
 /**

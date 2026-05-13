@@ -153,4 +153,134 @@ export class ConfigManagerList extends ConfigManagerBase {
       `Failed to atomically remove from list ${effectiveKey} after ${maxRetries} retries`
     );
   }
+
+  /**
+   * Atomically appends items to a list field within a configuration value object.
+   */
+  public static async atomicAppendToValueList(
+    key: string,
+    field: string,
+    items: unknown[],
+    options: { workspaceId?: string; preventDuplicates?: boolean } = {}
+  ): Promise<void> {
+    const tableName = this._getTableName();
+    if (!tableName) return;
+
+    const effectiveKey = this.getEffectiveKey(key, options);
+    this.configCache.delete(effectiveKey);
+
+    const docClient = getDocClient();
+    let retryCount = 0;
+    const maxRetries = 5;
+
+    while (retryCount < maxRetries) {
+      try {
+        const current = await this.getRawConfig(key, options);
+        if (current && typeof current !== 'object') {
+          throw new Error(`Value for ${key} is not an object, cannot append to field ${field}`);
+        }
+
+        const currentList = (current as any)?.[field] || [];
+        if (!Array.isArray(currentList)) {
+          throw new Error(`Field ${field} in ${key} is not a list`);
+        }
+
+        let itemsToAdd = items;
+        if (options.preventDuplicates) {
+          itemsToAdd = items.filter(
+            (item) =>
+              !currentList.some((existing) => JSON.stringify(existing) === JSON.stringify(item))
+          );
+        }
+
+        if (itemsToAdd.length === 0) return;
+
+        const newList = [...currentList, ...itemsToAdd];
+
+        await docClient.send(
+          new UpdateCommand({
+            TableName: tableName,
+            Key: { key: effectiveKey },
+            UpdateExpression: 'SET #val.#field = :newList, updatedAt = :now',
+            ConditionExpression:
+              'attribute_exists(#val) AND (attribute_not_exists(#val.#field) OR #val.#field = :oldList)',
+            ExpressionAttributeNames: { '#val': 'value', '#field': field },
+            ExpressionAttributeValues: {
+              ':newList': newList,
+              ':oldList': currentList,
+              ':now': Date.now(),
+            },
+          })
+        );
+        return;
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+          this.configCache.delete(effectiveKey);
+          retryCount++;
+          continue;
+        }
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * Atomically removes items from a list field within a configuration value object.
+   */
+  public static async atomicRemoveFromValueList(
+    key: string,
+    field: string,
+    itemsToRemove: unknown[],
+    options: { workspaceId?: string } = {}
+  ): Promise<void> {
+    const tableName = this._getTableName();
+    if (!tableName) return;
+
+    const effectiveKey = this.getEffectiveKey(key, options);
+    this.configCache.delete(effectiveKey);
+
+    const docClient = getDocClient();
+    let retryCount = 0;
+    const maxRetries = 5;
+
+    while (retryCount < maxRetries) {
+      try {
+        const current = await this.getRawConfig(key, options);
+        if (!current || typeof current !== 'object') return;
+
+        const currentList = (current as any)?.[field];
+        if (!Array.isArray(currentList)) return;
+
+        const newList = currentList.filter(
+          (item) =>
+            !itemsToRemove.some((toRemove) => JSON.stringify(item) === JSON.stringify(toRemove))
+        );
+
+        if (newList.length === currentList.length) return;
+
+        await docClient.send(
+          new UpdateCommand({
+            TableName: tableName,
+            Key: { key: effectiveKey },
+            UpdateExpression: 'SET #val.#field = :newList, updatedAt = :now',
+            ConditionExpression: '#val.#field = :oldList',
+            ExpressionAttributeNames: { '#val': 'value', '#field': field },
+            ExpressionAttributeValues: {
+              ':newList': newList,
+              ':oldList': currentList,
+              ':now': Date.now(),
+            },
+          })
+        );
+        return;
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+          this.configCache.delete(effectiveKey);
+          retryCount++;
+          continue;
+        }
+        throw e;
+      }
+    }
+  }
 }

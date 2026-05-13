@@ -1,4 +1,4 @@
-import { GetCommand, PutCommand, DeleteCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, PutCommand, DeleteCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../../logger';
 import { getConfigTableName } from '../../utils/ddb-client';
 import { getDocClient } from './client';
@@ -183,5 +183,65 @@ export class ConfigManagerBase {
       logger.error(`Failed to delete ${effectiveKey} from DDB:`, e);
       throw e;
     }
+  }
+
+  /**
+   * Atomically updates a configuration value using a transform function.
+   * Implements Read-Modify-Write with optimistic concurrency control.
+   */
+  public static async atomicUpdateValue<T>(
+    key: string,
+    transform: (current: T | undefined) => T | Promise<T>,
+    options?: { workspaceId?: string; orgId?: string; maxRetries?: number }
+  ): Promise<T> {
+    const tableName = this._getTableName();
+    if (!tableName) throw new Error('ConfigTable not linked');
+
+    const effectiveKey = this.getEffectiveKey(key, options);
+    const maxRetries = options?.maxRetries ?? 5;
+    let retryCount = 0;
+
+    while (retryCount < maxRetries) {
+      try {
+        const { Item } = await getDocClient().send(
+          new GetCommand({
+            TableName: tableName,
+            Key: { key: effectiveKey },
+            ConsistentRead: true,
+          })
+        );
+
+        const current = Item?.value as T | undefined;
+        const next = await transform(current);
+
+        if (JSON.stringify(current) === JSON.stringify(next)) return next;
+
+        await getDocClient().send(
+          new UpdateCommand({
+            TableName: tableName,
+            Key: { key: effectiveKey },
+            UpdateExpression: 'SET #val = :next, updatedAt = :now',
+            ConditionExpression: Item ? '#val = :old' : 'attribute_not_exists(#val)',
+            ExpressionAttributeNames: { '#val': 'value' },
+            ExpressionAttributeValues: {
+              ':next': next,
+              ':old': current,
+              ':now': Date.now(),
+            },
+          })
+        );
+
+        this.configCache.delete(effectiveKey);
+        return next;
+      } catch (e: unknown) {
+        if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+          retryCount++;
+          continue;
+        }
+        throw e;
+      }
+    }
+
+    throw new Error(`Failed to atomically update ${effectiveKey} after ${maxRetries} retries`);
   }
 }
