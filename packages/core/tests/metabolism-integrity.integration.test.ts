@@ -43,7 +43,8 @@ describe('Metabolic Loop Integrity [Perspective F]', () => {
     const call = ddbMock.call(0);
     const input = call.args[0].input as any;
 
-    expect(input.FilterExpression).toBe('workspaceId = :ws');
+    expect(input.IndexName).toBe('WorkspaceTypeIndex');
+    expect(input.KeyConditionExpression).toContain('workspaceId = :ws');
     expect(input.ExpressionAttributeValues[':ws']).toBe('ws-test');
   });
 

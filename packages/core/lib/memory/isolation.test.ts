@@ -34,11 +34,11 @@ describe('Memory Isolation Safeguards', () => {
       const queryCalls = ddbMock.commandCalls(QueryCommand);
       expect(queryCalls.length).toBeGreaterThanOrEqual(2);
 
-      // Verify second call (GSI) uses Workspace prefix in FilterExpression
+      // Verify second call (GSI) uses WorkspaceTypeIndex with KeyCondition
       const gsiCall = queryCalls[1].args[0].input;
-      expect(gsiCall.FilterExpression).toContain('begins_with(userId, :pkPrefix)');
-      expect(gsiCall.FilterExpression).toContain('workspaceId = :workspaceId');
-      expect(gsiCall.ExpressionAttributeValues?.[':pkPrefix']).toBe('WS#WS1#');
+      expect(gsiCall.IndexName).toBe('WorkspaceTypeIndex');
+      expect(gsiCall.KeyConditionExpression).toContain('workspaceId = :wsId');
+      expect(gsiCall.ExpressionAttributeValues?.[':wsId']).toBe('WS1');
     });
 
     it('should fall back to raw user search if no workspaceId is provided', async () => {
@@ -129,8 +129,8 @@ describe('Memory Isolation Safeguards', () => {
       expect(input.IndexName).toBe('WorkspaceTypeIndex');
       expect(input.KeyConditionExpression).toContain('workspaceId = :wsId');
       expect(input.ExpressionAttributeValues?.[':wsId']).toBe('WS1');
-      // We keep FilterExpression as defense-in-depth, so just verify IndexName changed
-      expect(input.FilterExpression).toBeDefined();
+      // No FilterExpression needed for isolation when using WorkspaceTypeIndex
+      expect(input.FilterExpression).toBeUndefined();
     });
 
     it('should fall back to TypeTimestampIndex + FilterExpression when no workspaceId is present', async () => {
