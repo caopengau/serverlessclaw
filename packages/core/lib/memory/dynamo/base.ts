@@ -6,15 +6,24 @@ import { logger } from '../../logger';
  */
 export class DynamoMemoryBase extends BaseMemoryProvider {
   /**
-   * LEGACY: Retrieves a raw configuration JSON from the memory table.
+   * Retrieves a configuration JSON from the memory table.
+   * Supports optional workspace scoping.
+   *
+   * @param key - The configuration key.
+   * @param scope - Optional workspace scoping.
    */
-  async getConfig(key: string): Promise<Record<string, unknown> | undefined> {
-    logger.debug(`[DynamoMemory] LEGACY getConfig: ${key}`);
+  async getConfig(
+    key: string,
+    scope?: string | import('../../types/memory').ContextualScope
+  ): Promise<Record<string, unknown> | undefined> {
+    const scopedKey = this.getScopedUserId(key, scope);
+    logger.debug(`[DynamoMemory] getConfig: ${scopedKey}`);
+
     const { GetCommand } = await import('@aws-sdk/lib-dynamodb');
     const response = await this.docClient.send(
       new GetCommand({
         TableName: this.tableName,
-        Key: { userId: key, timestamp: 0 },
+        Key: { userId: scopedKey, timestamp: 0 },
       })
     );
     return response.Item as Record<string, unknown> | undefined;

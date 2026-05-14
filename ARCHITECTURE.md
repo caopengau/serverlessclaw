@@ -756,7 +756,9 @@ This diagram visualizes the interaction between the **Metabolism (Silo 7)**, **S
        [ Silo 3: The Shield ]                                    |
                |                                                 |
         (3) Mandatory Scoping Check (Perspective G Hardening)    |
-               | (Must have workspaceId for SYSTEM identity)     |
+               |-- Identity Verification (Blacklist SYSTEM)      |
+               |-- Dashboard API Integrity (Workspace Partitioning)|
+               |-- Permission-Gated Routes (AGENT_VIEW/DELETE)   |
                |                                                 |
                v
        [ Silo 2: The Hand ]                                      |
@@ -778,10 +780,11 @@ This diagram visualizes the interaction between the **Metabolism (Silo 7)**, **S
 
 ### Key Mechanisms
 
-1.  **Perspective G: Mandatory SYSTEM Scoping**: All autonomous repairs (Silo 7) and reputation updates (Silo 6) must be anchored to a `workspaceId`. Unscoped background tasks are rejected by the Shield to prevent cross-tenant elevation.
-2.  **Perspective F: Atomic Regenerative Repairs**: Repairs utilize DynamoDB `ConditionExpression` and `FilterExpression` to ensure that maintenance tasks are idempotent and isolated. The `MetabolismService` centralizes these repairs to prevent logic drift in maintenance handlers.
-3.  **Metabolic hygiene**: S3 staging reclamation and tool pruning are monitored; failures trigger P1 audit findings to notify the Eye and the Scales of hygiene blind spots.
-4.  **Trust-Based Shift**: High-trust agents are promoted to `AUTO` mode via atomic conditional updates, while low-trust agents are mitigated via registry disabling, closing the metabolic loop.
+1.  **Perspective G: Dashboard Integrity & Mandatory Scoping**: All dashboard APIs are hardened against cross-tenant leaks. Mandatory `workspaceId` partitioning is enforced for all queries (`ScanCommand`, `listByPrefix`), ensuring that users can only view or delete data (including Traces, Metrics, and Reputation) within their authorized workspace. Global trace scans (e.g., `DELETE /api/trace?traceId=all`) are strictly partitioned.
+2.  **Identity Verification**: The dashboard explicitly blacklists the `SYSTEM` identity to prevent spoofing of internal agent credentials during API interaction.
+3.  **Perspective F: Atomic Regenerative Repairs**: Repairs utilize DynamoDB `ConditionExpression` and `FilterExpression` to ensure that maintenance tasks are idempotent and isolated. The `MetabolismService` centralizes these repairs to prevent logic drift in maintenance handlers.
+4.  **Metabolic hygiene**: S3 staging reclamation and tool pruning are monitored; failures trigger P1 audit findings to notify the Eye and the Scales of hygiene blind spots.
+5.  **Trust-Based Shift**: High-trust agents are promoted to `AUTO` mode via atomic conditional updates, while low-trust agents are mitigated via registry disabling, closing the metabolic loop.
 
 ---
 

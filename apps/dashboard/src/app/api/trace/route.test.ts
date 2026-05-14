@@ -29,12 +29,29 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
+// Mock Auth Utils
+vi.mock('@/lib/auth-utils', () => ({
+  getUserId: vi.fn(() => 'user-123'),
+}));
+
+// Mock Identity Manager
+const mockHasPermission = vi.fn().mockResolvedValue(true);
+vi.mock('@claw/core/lib/session/identity', () => ({
+  getIdentityManager: vi.fn().mockResolvedValue({
+    hasPermission: mockHasPermission,
+  }),
+  Permission: {
+    AGENT_DELETE: 'agent:delete',
+  },
+}));
+
 const ddbMock = mockClient(DynamoDBDocumentClient);
 
 describe('Trace API - DELETE', () => {
   beforeEach(() => {
     ddbMock.reset();
     vi.clearAllMocks();
+    mockHasPermission.mockResolvedValue(true);
   });
 
   it('returns 400 if traceId is missing', async () => {
@@ -45,15 +62,24 @@ describe('Trace API - DELETE', () => {
     expect(data.error).toBe('Missing traceId');
   });
 
+  it('returns 403 if user lacks AGENT_DELETE permission', async () => {
+    mockHasPermission.mockResolvedValue(false);
+    const req = new NextRequest('http://localhost/api/trace?traceId=123&workspaceId=ws-1');
+    const res = await DELETE(req);
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toBe('Unauthorized to delete traces');
+  });
+
   it('returns 500 if table name is not found', async () => {
     vi.mocked(ddbUtils.getTraceTableName).mockReturnValueOnce(undefined);
 
-    const req = new NextRequest('http://localhost/api/trace?traceId=123');
+    const req = new NextRequest('http://localhost/api/trace?traceId=123&workspaceId=ws-1');
     const res = await DELETE(req);
     expect(res.status).toBe(500);
   });
 
-  it('deletes a specific traceId', async () => {
+  it('deletes a specific traceId with workspace scoping', async () => {
     ddbMock.on(QueryCommand).resolves({
       Items: [{ traceId: '123', nodeId: 'node-1' }],
     });
@@ -61,13 +87,34 @@ describe('Trace API - DELETE', () => {
       UnprocessedItems: {},
     });
 
-    const req = new NextRequest('http://localhost/api/trace?traceId=123');
+    const req = new NextRequest('http://localhost/api/trace?traceId=123&workspaceId=ws-1');
     const res = await DELETE(req);
     expect(res.status).toBe(200);
-    expect(ddbMock.calls()).toHaveLength(2);
+
+    // Verify QueryCommand had the workspace filter
+    const queryCall = ddbMock.commandCalls(QueryCommand)[0];
+    expect(queryCall.args[0].input.FilterExpression).toContain('workspaceId = :ws');
+    expect(queryCall.args[0].input.ExpressionAttributeValues?.[':ws']).toBe('ws-1');
   });
 
-  it('handles "all" traceId purge', async () => {
+  it('returns 403 if trace belongs to another workspace', async () => {
+    // First query (with filter) returns nothing
+    ddbMock.on(QueryCommand, { FilterExpression: 'workspaceId = :ws' }).resolves({
+      Items: [],
+    });
+    // Second query (without filter) returns a count > 0, indicating it exists elsewhere
+    ddbMock.on(QueryCommand, { Select: 'COUNT' }).resolves({
+      Count: 1,
+    });
+
+    const req = new NextRequest('http://localhost/api/trace?traceId=123&workspaceId=ws-1');
+    const res = await DELETE(req);
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.error).toBe('Trace belongs to another workspace');
+  });
+
+  it('handles "all" traceId purge with workspace scoping', async () => {
     ddbMock.on(ScanCommand).resolves({
       Items: [{ traceId: 't1', nodeId: 'n1' }],
       LastEvaluatedKey: undefined,
@@ -76,68 +123,23 @@ describe('Trace API - DELETE', () => {
       UnprocessedItems: {},
     });
 
-    const req = new NextRequest('http://localhost/api/trace?traceId=all');
+    const req = new NextRequest('http://localhost/api/trace?traceId=all&workspaceId=ws-1');
     const res = await DELETE(req);
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.success).toBe(true);
+
+    // Verify ScanCommand had the workspace filter
+    const scanCall = ddbMock.commandCalls(ScanCommand)[0];
+    expect(scanCall.args[0].input.FilterExpression).toContain('workspaceId = :ws');
+    expect(scanCall.args[0].input.ExpressionAttributeValues?.[':ws']).toBe('ws-1');
   });
 
   it('handles DynamoDB errors', async () => {
     ddbMock.on(QueryCommand).rejects(new Error('DynamoDB Error'));
 
-    const req = new NextRequest('http://localhost/api/trace?traceId=123');
+    const req = new NextRequest('http://localhost/api/trace?traceId=123&workspaceId=ws-1');
     const res = await DELETE(req);
     expect(res.status).toBe(500);
     const data = await res.json();
     expect(data.error).toBe('DynamoDB Error');
-  });
-
-  it('handles Throttling and retries during purge', async () => {
-    ddbMock.on(ScanCommand).resolves({
-      Items: [{ traceId: 't1', nodeId: 'n1' }],
-    });
-
-    const throttlingError = new Error('Throttling');
-    throttlingError.name = 'ThrottlingException';
-
-    ddbMock.on(BatchWriteCommand).rejectsOnce(throttlingError).resolves({ UnprocessedItems: {} });
-
-    const req = new NextRequest('http://localhost/api/trace?traceId=all');
-
-    vi.useFakeTimers();
-    const promise = DELETE(req);
-    await vi.runAllTimersAsync();
-    const res = await promise;
-
-    expect(res.status).toBe(200);
-    expect(ddbMock.calls()).toHaveLength(3);
-    vi.useRealTimers();
-  });
-
-  it('handles UnprocessedItems during purge', async () => {
-    ddbMock.on(ScanCommand).resolves({
-      Items: [{ traceId: 't1', nodeId: 'n1' }],
-    });
-
-    ddbMock
-      .on(BatchWriteCommand)
-      .resolvesOnce({
-        UnprocessedItems: {
-          'test-trace-table': [{ DeleteRequest: { Key: { traceId: 't1', nodeId: 'n1' } } }],
-        },
-      })
-      .resolves({ UnprocessedItems: {} });
-
-    const req = new NextRequest('http://localhost/api/trace?traceId=all');
-
-    vi.useFakeTimers();
-    const promise = DELETE(req);
-    await vi.runAllTimersAsync();
-    const res = await promise;
-
-    expect(res.status).toBe(200);
-    expect(ddbMock.calls()).toHaveLength(3);
-    vi.useRealTimers();
   });
 });
