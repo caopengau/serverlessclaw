@@ -5,6 +5,6 @@
     "outDir": "./dist",
     "noImplicitAny": false
   },
-  "include": ["**/*.ts", "../core/lib/types/sst.d.ts"],
+  "include": ["**/*.ts", "../core/lib/types/sst.d.ts", "../core/lib/types/markdown-module.ts"],
   "exclude": ["node_modules", "dist"]
 }
