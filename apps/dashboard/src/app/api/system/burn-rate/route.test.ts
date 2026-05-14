@@ -1,29 +1,28 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET } from './route';
 import { NextRequest } from 'next/server';
 
-// Mock the core dependencies without breaking other constants
+// Mock Auth Utils
+vi.mock('@/lib/auth-utils', () => ({
+  getUserId: vi.fn(() => 'user-123'),
+}));
+
+// Mock Identity Manager
+const mockHasPermission = vi.fn().mockResolvedValue(true);
+vi.mock('@claw/core/lib/session/identity', () => ({
+  getIdentityManager: vi.fn().mockResolvedValue({
+    hasPermission: mockHasPermission,
+  }),
+  Permission: {
+    AGENT_VIEW: 'agent:view',
+  },
+}));
+
+// Mock the core dependencies
+const mockListByPrefix = vi.fn();
 vi.mock('@claw/core/lib/memory/base', () => ({
   BaseMemoryProvider: class {
-    listByPrefix = vi.fn().mockImplementation(() => {
-      const now = Date.now();
-      return Promise.resolve([
-        {
-          userId: 'TOKEN_ROLLUP#agent1',
-          totalInputTokens: 1000,
-          totalOutputTokens: 500,
-          invocationCount: 10,
-          timestamp: now,
-        },
-        {
-          userId: 'TOKEN_ROLLUP#agent2',
-          totalInputTokens: 2000,
-          totalOutputTokens: 1000,
-          invocationCount: 20,
-          timestamp: now,
-        },
-      ]);
-    });
+    listByPrefix = mockListByPrefix;
   },
 }));
 
@@ -46,16 +45,48 @@ vi.mock('@claw/core/lib/config/config-defaults', async (importActual) => {
 });
 
 describe('Burn-Rate API', () => {
-  it('should calculate daily burn rate against budget', async () => {
-    // Note: GET signature is (body, req) in withApiHandler
-    const response = await GET(
-      new Request('http://localhost/api/system/burn-rate') as unknown as NextRequest
-    );
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockHasPermission.mockResolvedValue(true);
+  });
+
+  it('should calculate daily burn rate against budget with workspace scoping', async () => {
+    const now = Date.now();
+    mockListByPrefix.mockResolvedValue([
+      {
+        userId: 'WS#ws-1#TOKEN_ROLLUP#agent1',
+        totalInputTokens: 1000,
+        totalOutputTokens: 500,
+        invocationCount: 10,
+        timestamp: now,
+      },
+      {
+        userId: 'WS#ws-1#TOKEN_ROLLUP#agent2',
+        totalInputTokens: 2000,
+        totalOutputTokens: 1000,
+        invocationCount: 20,
+        timestamp: now,
+      },
+    ]);
+
+    const req = new NextRequest('http://localhost/api/system/burn-rate?workspaceId=ws-1');
+    const response = await GET(req);
     const data = await response.json();
 
     expect(data).toHaveProperty('totalTokens');
     expect(data).toHaveProperty('burnRatePerHour');
     expect(data.totalTokens).toBe(4500); // (1000+500) + (2000+1000)
     expect(data.usageRatio).toBe(4500 / 1000000);
+    expect(mockListByPrefix).toHaveBeenCalledWith('WS#ws-1#TOKEN_ROLLUP#');
+  });
+
+  it('should return 403 if user lacks permission', async () => {
+    mockHasPermission.mockResolvedValue(false);
+    const req = new NextRequest('http://localhost/api/system/burn-rate?workspaceId=ws-1');
+    const response = await GET(req);
+    const data = await response.json();
+
+    expect(response.status).toBe(403);
+    expect(data.error).toBe('Unauthorized workspace access');
   });
 });
