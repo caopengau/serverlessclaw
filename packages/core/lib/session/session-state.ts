@@ -138,7 +138,7 @@ export class SessionStateManager {
             `${agentId}.session-release`,
             `dynamic_${targetAgentId}_task`,
             {
-              userId: attributes.userId?.replace(SESSION_PREFIX, '') || 'unknown',
+              userId: sessionId, // Use clean sessionId instead of scoped PK (Anti-Pattern 3)
               task: taskContent,
               sessionId,
               traceId: `resume-${nextMsg.id}`,

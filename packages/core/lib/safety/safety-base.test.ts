@@ -106,4 +106,34 @@ describe('SafetyBase', () => {
       expect(safetyBase.matchesGlob('core/lib/foo.ts', 'core/**')).toBe(true);
     });
   });
+
+  describe('getClassCBlastRadius', () => {
+    it('should isolate blast radius stats by workspaceId', () => {
+      // Accessing internal store to simulate state
+      const store = (safetyBase as any).blastRadiusStore;
+      const entry1 = {
+        key: 'SAFETY#BLAST_RADIUS#agent1:deploy',
+        count: 5,
+        lastAction: Date.now(),
+        resourceCount: 1,
+      };
+      const entry2 = {
+        key: 'WS#ws-1#SAFETY#BLAST_RADIUS#agent1:deploy',
+        count: 2,
+        lastAction: Date.now(),
+        resourceCount: 1,
+      };
+
+      store.localCache.set(entry1.key, entry1);
+      store.localCache.set(entry2.key, entry2);
+
+      const globalStats = safetyBase.getClassCBlastRadius();
+      expect(Object.keys(globalStats)).toHaveLength(1);
+      expect(globalStats[entry1.key].count).toBe(5);
+
+      const wsStats = safetyBase.getClassCBlastRadius('ws-1');
+      expect(Object.keys(wsStats)).toHaveLength(1);
+      expect(wsStats[entry2.key].count).toBe(2);
+    });
+  });
 });

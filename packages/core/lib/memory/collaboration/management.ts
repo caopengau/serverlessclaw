@@ -227,24 +227,29 @@ export async function findStaleCollaborations(
 ): Promise<Collaboration[]> {
   const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
   const now = Date.now();
+  // Use a conservative threshold for filtering: any item that COULD be stale
+  // (we use the default timeout as a base, but since items can have custom timeouts,
+  // we filter for items that haven't been active in at least 1 minute as a safety gate).
+  const staleThreshold = now - 60000;
 
   const params: Record<string, unknown> = {
     IndexName: workspaceId ? 'WorkspaceTypeIndex' : 'TypeTimestampIndex',
     KeyConditionExpression: workspaceId
       ? 'workspaceId = :workspaceId AND #type = :type'
       : '#type = :type',
-    FilterExpression: '#status = :active',
+    FilterExpression: '#status = :active AND lastActivityAt < :staleThreshold',
     ExpressionAttributeNames: { '#status': 'status', '#type': 'type' },
     ExpressionAttributeValues: {
       ':active': 'active',
       ':type': 'COLLABORATION',
+      ':staleThreshold': staleThreshold,
       ...(workspaceId ? { ':workspaceId': workspaceId } : {}),
     },
   };
 
-  const allActive = await base.queryItems(params);
+  const potentiallyStale = await base.queryItems(params);
 
-  return (allActive as unknown as Collaboration[]).filter((c) => {
+  return (potentiallyStale as unknown as Collaboration[]).filter((c) => {
     const timeout = c.timeoutMs || defaultTimeoutMs;
     return now - c.lastActivityAt > timeout;
   });

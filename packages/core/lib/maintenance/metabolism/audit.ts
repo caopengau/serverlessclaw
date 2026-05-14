@@ -12,7 +12,9 @@ export async function runMcpAudit(scope: {
   const findings: AuditFinding[] = [];
   try {
     const { MCPBridge } = await import('../../mcp/mcp-bridge');
-    const astTools = await MCPBridge.getToolsFromServer('ast', '');
+    const astTools = await MCPBridge.getToolsFromServer('ast', '', undefined, {
+      workspaceId: scope.workspaceId,
+    });
     const auditTool = astTools.find((t: { name: string }) => {
       const name = t.name.toLowerCase();
       return name.includes('metabolism') || name.includes('audit');

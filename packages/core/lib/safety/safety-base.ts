@@ -209,20 +209,34 @@ export class SafetyBase {
 
   /**
    * Get Class C blast radius stats for all tracked actions.
+   * Scoped by workspaceId to prevent multi-tenant leakage (Anti-Pattern 3).
    */
-  public getClassCBlastRadius(): Record<
-    string,
-    { count: number; affectedResources: number; lastAction: number }
-  > {
+  public getClassCBlastRadius(
+    workspaceId?: string
+  ): Record<string, { count: number; affectedResources: number; lastAction: number }> {
     const stats = this.blastRadiusStore.getLocalStats();
     const result: Record<string, { count: number; affectedResources: number; lastAction: number }> =
       {};
+    const prefix = workspaceId ? `WS#${workspaceId}#` : '';
+
     for (const [key, entry] of Object.entries(stats)) {
-      result[key] = {
-        count: entry.count,
-        affectedResources: entry.resourceCount,
-        lastAction: entry.lastAction,
-      };
+      // Only include stats that match the requested workspace scope
+      if (workspaceId) {
+        if (key.startsWith(prefix)) {
+          result[key] = {
+            count: entry.count,
+            affectedResources: entry.resourceCount,
+            lastAction: entry.lastAction,
+          };
+        }
+      } else if (!key.startsWith('WS#')) {
+        // Global scope: only include non-prefixed entries
+        result[key] = {
+          count: entry.count,
+          affectedResources: entry.resourceCount,
+          lastAction: entry.lastAction,
+        };
+      }
     }
     return result;
   }

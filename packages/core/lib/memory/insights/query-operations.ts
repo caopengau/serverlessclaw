@@ -171,7 +171,10 @@ export async function searchInsights(
     const results = await Promise.all(queries);
     items = results.flatMap((r) => r);
   } else {
-    applyWorkspaceIsolation(params, resolvedScope);
+    // 3. Apply isolation if not using optimized GSI path
+    if (params.IndexName !== 'WorkspaceTypeIndex') {
+      applyWorkspaceIsolation(params, resolvedScope);
+    }
     items = await queryByTypeAndMap(base, params);
   }
 

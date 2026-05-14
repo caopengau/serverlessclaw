@@ -47,12 +47,25 @@ export class IdentityManager extends IdentityBase {
       // Get or create user identity
       let user = await this.userOps.loadUser(userId, orgId);
       if (!user) {
-        user = await this.userOps.createUser(
-          userId,
-          authProvider,
-          metadata?.password as string,
-          orgId
-        );
+        try {
+          user = await this.userOps.createUser(
+            userId,
+            authProvider,
+            metadata?.password as string,
+            orgId
+          );
+        } catch (createError: unknown) {
+          if (
+            createError instanceof Error &&
+            createError.name === 'ConditionalCheckFailedException'
+          ) {
+            // User was created by another request concurrently
+            user = await this.userOps.loadUser(userId, orgId);
+            if (!user) throw new Error(`User ${userId} creation race condition: load failed`);
+          } else {
+            throw createError;
+          }
+        }
       }
 
       // Validate workspace membership if workspaceId provided

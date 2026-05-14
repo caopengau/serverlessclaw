@@ -164,10 +164,11 @@ export class DefaultSyncOrchestrator implements SyncOrchestrator {
     const cwd = process.cwd();
     const remoteName = 'hub-origin';
     const lockKey = `${hubUrl}_${prefix || 'root'}`;
+    const appName = process.env.SST_APP || 'framework';
     const defaultMessage =
       method === 'subtree'
-        ? `chore: sync with serverlessclaw hub via subtree (${prefix})`
-        : 'chore: sync with serverlessclaw hub via fork merge';
+        ? `chore: sync with ${appName} hub via subtree (${prefix})`
+        : `chore: sync with ${appName} hub via fork merge`;
 
     if (lock) {
       const acquired = await lock.acquire(lockKey);
