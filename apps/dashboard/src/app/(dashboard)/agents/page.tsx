@@ -11,6 +11,7 @@ import Skeleton from '@/components/ui/Skeleton';
 import { Tool, Agent } from '@/lib/types/ui';
 import PageHeader from '@/components/PageHeader';
 import { useRealtime, RealtimeMessage } from '@/hooks/useRealtime';
+import { useTenant } from '@/components/Providers/TenantProvider';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import { logger } from '@claw/core/lib/logger';
 import { AgentStats } from './AgentStats';
@@ -18,6 +19,7 @@ import { AgentModals } from './AgentModals';
 
 export default function AgentsPage() {
   const { t } = useTranslations();
+  const { activeWorkspaceId } = useTenant();
   const [agents, setAgents] = useState<Agent[]>([]);
   const [availableTools, setAvailableTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,10 @@ export default function AgentsPage() {
 
   const fetchAgents = useCallback(async () => {
     try {
-      const res = await fetch('/api/agents');
+      const url = activeWorkspaceId
+        ? `/api/agents?workspaceId=${activeWorkspaceId}`
+        : '/api/agents';
+      const res = await fetch(url);
       const data = await res.json();
       setAgents(data.agents || []);
     } catch (error) {
@@ -38,17 +43,18 @@ export default function AgentsPage() {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, activeWorkspaceId]);
 
   const fetchTools = useCallback(async () => {
     try {
-      const res = await fetch('/api/tools');
+      const url = activeWorkspaceId ? `/api/tools?workspaceId=${activeWorkspaceId}` : '/api/tools';
+      const res = await fetch(url);
       const data = await res.json();
       setAvailableTools(data.tools || []);
     } catch (error) {
       logger.error('Failed to fetch tools:', error);
     }
-  }, []);
+  }, [activeWorkspaceId]);
 
   useEffect(() => {
     const init = async () => {
@@ -76,10 +82,13 @@ export default function AgentsPage() {
 
   const updateAgent = async (id: string, updates: Partial<Agent>) => {
     try {
-      const res = await fetch(`/api/agents/${id}`, {
+      const url = activeWorkspaceId
+        ? `/api/agents?workspaceId=${activeWorkspaceId}`
+        : '/api/agents';
+      const res = await fetch(url, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: JSON.stringify({ agentId: id, config: updates }),
       });
 
       if (!res.ok) throw new Error('Failed to update agent');
@@ -100,7 +109,10 @@ export default function AgentsPage() {
   const deleteAgent = async () => {
     if (!selectedAgent) return;
     try {
-      const res = await fetch(`/api/agents/${selectedAgent.id}`, {
+      const url = activeWorkspaceId
+        ? `/api/agents?workspaceId=${activeWorkspaceId}&agentId=${selectedAgent.id}`
+        : `/api/agents?agentId=${selectedAgent.id}`;
+      const res = await fetch(url, {
         method: 'DELETE',
       });
 

@@ -427,7 +427,7 @@ To comply with AI context budgets and prevent "God Class" bloat, the `DynamoMemo
 [ BaseMemoryProvider ]
           |
           v
-[ DynamoMemoryBase ] -------- (Core DDB Utils, listByPrefix)
+[ DynamoMemoryBase ] -------- (Core DDB Utils, listByPrefix, getConfig)
           |
           v
 [ DynamoMemoryGaps ] -------- (Strategic Gaps, Locks)

@@ -101,7 +101,7 @@ export const OUTBOUND_MESSAGE_EVENT_SCHEMA = BASE_EVENT_SCHEMA.extend({
   /** The message text. */
   message: z.string(),
   /** Display name of the sender. */
-  agentName: z.string().default('SuperClaw'),
+  agentName: z.string().default('System Orchestrator'),
   /** Context identifiers used to generate the message. */
   memoryContexts: z.array(z.string()).default([]),
   /** Message attachments. */
@@ -168,7 +168,7 @@ const BRIDGE_DETAIL_PAYLOAD_SCHEMA = z
     sessionId: z.string().optional(),
     messageId: z.string().optional(),
     traceId: z.string().default('unknown'),
-    agentName: z.string().default('SuperClaw'),
+    agentName: z.string().default('System Orchestrator'),
     message: z.string().default(''),
     isThought: z.boolean().default(false),
     workspaceId: z.string().optional(),

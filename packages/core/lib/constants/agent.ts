@@ -6,7 +6,6 @@ export const AGENT_SYSTEM_IDS = {
   SYSTEM: 'SYSTEM',
   DASHBOARD_USER: 'dashboard-user',
   UNKNOWN: 'unknown',
-  SUPERCLAW: 'SuperClaw',
   DEFAULT_AGENT: 'Agent',
 };
 
