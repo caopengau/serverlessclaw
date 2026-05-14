@@ -37,7 +37,7 @@ async function getConfig() {
   }
 }
 
-async function getSessionTitles() {
+async function getSessionTitles(workspaceId?: string) {
   try {
     const tableName = getResourceName('MemoryTable');
     if (!tableName) return {};
@@ -45,13 +45,16 @@ async function getSessionTitles() {
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
 
-    // Scan for all session metadata records across all users
+    // Scan for all session metadata records - scoped to workspace if provided
     const res = await docClient.send(
       new ScanCommand({
         TableName: tableName,
-        FilterExpression: 'begins_with(userId, :prefix)',
+        FilterExpression: workspaceId
+          ? 'begins_with(userId, :prefix) AND workspaceId = :ws'
+          : 'begins_with(userId, :prefix)',
         ExpressionAttributeValues: {
           ':prefix': 'SESSIONS#',
+          ...(workspaceId ? { ':ws': workspaceId } : {}),
         },
       })
     );
@@ -91,7 +94,7 @@ export default async function AnalyticsTab({
   const [tracesResult, config, sessionTitles] = await Promise.all([
     getTraces(params.nextToken, { startTime, endTime, workspaceId }),
     getConfig(),
-    getSessionTitles(),
+    getSessionTitles(workspaceId),
   ]);
 
   const traces = tracesResult.items;

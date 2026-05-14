@@ -59,7 +59,7 @@ const BACKBONE_HANDLER_DEFAULTS = {
 export const BACKBONE_REGISTRY: Record<string, IAgentConfig> = {
   [AGENT_TYPES.SUPERCLAW]: {
     id: AGENT_TYPES.SUPERCLAW,
-    name: 'SuperClaw',
+    name: 'System Orchestrator',
     systemPrompt: SUPERCLAW_SYSTEM_PROMPT,
     description: 'Orchestrator node. Directs traffic, retrieves memory, and delegates tasks.',
     category: AgentCategory.SYSTEM,

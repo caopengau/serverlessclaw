@@ -13,12 +13,12 @@ Last Updated: 2026-05-14
 | Silo  | Name           | Primary Code Paths                              | Audit Count | Last Audited | Risk Level |
 | :---- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
 | **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 26          | 2026-05-14   | Low        |
-| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 14          | 2026-05-13   | Low        |
+| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 15          | 2026-05-14   | Low        |
 | **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 24          | 2026-05-13   | Low        |
 | **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 23          | 2026-05-14   | Low        |
-| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 19          | 2026-05-14   | Low        |
+| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 20          | 2026-05-14   | Low        |
 | **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 20          | 2026-05-13   | Low        |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 17          | 2026-05-13   | Low        |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 18          | 2026-05-14   | Low        |
 
 ---
 
@@ -27,12 +27,12 @@ Last Updated: 2026-05-14
 | Perspective | Name              | Description                 | Usage Count | Last Tested |
 | :---------- | :---------------- | :-------------------------- | :---------- | :---------- |
 | **A**       | Life of a Message | Spine → Brain → Eye         | 12          | 2026-05-12  |
-| **B**       | Evolution Cycle   | Hand → Shield → Scales      | 12          | 2026-05-12  |
+| **B**       | Evolution Cycle   | Hand → Shield → Scales      | 13          | 2026-05-14  |
 | **C**       | Identity Journey  | Brain → Spine → Shield      | 12          | 2026-05-12  |
 | **D**       | Trust Loop        | Eye → Scales → Spine        | 16          | 2026-05-14  |
 | **E**       | Recovery Path     | Shield → Spine → Brain      | 14          | 2026-05-12  |
 | **F**       | Metabolic Loop    | Metabolism ↔ Scales ↔ Spine | 10          | 2026-05-12  |
-| **G**       | Dashboard Integrity| Cross-Silo API Safety      | 1           | 2026-05-14  |
+| **G**       | Dashboard Integrity| Cross-Silo API Safety      | 2           | 2026-05-14  |
 
 ---
 
@@ -40,6 +40,7 @@ Last Updated: 2026-05-14
 
 | Date       | Report                                             | Silos                            | Perspective | Status/Summary                                                                                                        |
 | :--------- | :------------------------------------------------- | :------------------------------- | :---------- | :-------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-14 | `audit-2026-05-14-hand-metabolism-pollution.md`    | Hand, Metabolism, Eye            | B, G        | FIXED: P1 Domain Pollution in Core Framework, P1 Multi-tenant leak in Dashboard Trace/Memory pages, P2 Infra Branding.|
 | 2026-05-14 | `audit-2026-05-14-dashboard-isolation.md`          | Spine, Brain, Eye                | D, G        | FIXED: Critical Multi-tenant isolation in 10+ Dashboard APIs, P1 Trace Purge leak, P1 Aggregated metrics leakage.     |
 | 2026-05-13 | `audit-2026-05-13-spine-brain.md`                | Spine, Brain                    | C, F        | FIXED: P1 AP-19 in Memory Fetcher/DLQ/Sessions, P1 Race in Workspace Management, P2 Identity Race.                    |
 | 2026-05-13 | `audit-2026-05-13-shield-scales.md`               | Shield, Scales                  | E, B        | FIXED: P1 Multi-tenant leak in Cognitive Tool, P2 Leak in Blast Radius Stats, P2 Monitor Anomaly leakage.             |

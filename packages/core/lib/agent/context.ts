@@ -25,8 +25,8 @@ export class AgentContext {
   ): string {
     return `
       [SYSTEM_IDENTITY]:
-      - AGENT_NAME: ${config?.name ?? 'SuperClaw'}
-      - AGENT_ID: ${config?.id ?? 'superclaw'}
+      - AGENT_NAME: ${config?.name ?? 'Orchestrator'}
+      - AGENT_ID: ${config?.id ?? 'orchestrator'}
       - ACTIVE_PROVIDER: ${provider ?? `${SYSTEM.DEFAULT_PROVIDER} (default)`}
       - ACTIVE_MODEL: ${model ?? `${SYSTEM.DEFAULT_MODEL} (default)`}
       - REASONING_PROFILE: ${profile}

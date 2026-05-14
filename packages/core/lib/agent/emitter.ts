@@ -91,7 +91,7 @@ export class AgentEmitter {
           new PutEventsCommand({
             Entries: [
               {
-                Source: 'superclaw.agent',
+                Source: 'framework.agent',
                 DetailType: EventType.REFLECT_TASK,
                 Detail: JSON.stringify({
                   userId,
@@ -107,7 +107,7 @@ export class AgentEmitter {
                     {
                       role: MessageRole.ASSISTANT,
                       content: responseText,
-                      agentName: this.config?.name ?? 'SuperClaw',
+                      agentName: this.config?.name ?? 'Orchestrator',
                       traceId: traceId ?? 'unknown',
                     },
                   ],
@@ -149,11 +149,11 @@ export class AgentEmitter {
         new PutEventsCommand({
           Entries: [
             {
-              Source: this.config?.id ?? 'superclaw.agent',
+              Source: this.config?.id ?? 'framework.agent',
               DetailType: EventType.CONTINUATION_TASK,
               Detail: JSON.stringify({
                 userId,
-                agentId: this.config?.id ?? 'superclaw',
+                agentId: this.config?.id ?? 'orchestrator',
                 task,
                 isContinuation: true,
                 traceId,
@@ -243,8 +243,8 @@ export class AgentEmitter {
         }
         if (!feedbackEnabled) return;
       }
-      // Standardize assistant ID format: root agents use -superclaw, sub-agents use -agentId
-      const messageId = isRoot ? `${traceId}-superclaw` : `${traceId}-${agentId}`;
+      // Standardize assistant ID format: root agents use -orchestrator, sub-agents use -agentId
+      const messageId = isRoot ? `${traceId}-orchestrator` : `${traceId}-${agentId}`;
 
       // Normalize userId to base form for MQTT topic consistency
       const { extractBaseUserId } = await import('../utils/agent-helpers');
@@ -322,7 +322,7 @@ export class AgentEmitter {
         new PutEventsCommand({
           Entries: [
             {
-              Source: this.config?.id ?? 'superclaw.agent',
+              Source: this.config?.id ?? 'framework.agent',
               DetailType: EventType.REPUTATION_UPDATE,
               Detail: JSON.stringify(payload),
               EventBusName: getAgentBusName(),
