@@ -6,7 +6,7 @@ This document outlines the core principles, quality standards, and missions that
 
 ## 🎯 Core Design Principles
 
-The system architecture follows ten foundational philosophies:
+The system architecture follows sixteen foundational philosophies:
 
 1. **Stateless Core:** Execution is entirely stateless with persistence offloaded to highly available managed services ([DynamoDB](../../core/lib/memory/)) using Tiered Retention.
 2. **AI-Native:** Optimized for agent-human pair programming. Prioritizes semantic transparency, strict neural typing, and direct schema definitions over traditional boilerplate.
@@ -23,6 +23,7 @@ The system architecture follows ten foundational philosophies:
 13. **Atomic State Integrity:** In a stateless, serverless environment with high concurrency, the system MUST prioritize field-level atomic updates over object-level overwrites. Every agent configuration change (TrustScore, EvolutionMode, Enabled status) and distributed lock acquisition must utilize conditional DynamoDB operations (`atomicUpdateMapField`, `LockManager.acquire`). **Fail-Closed Strategy**: Rate limiting must adopt a fail-closed posture; if atomic quota verification fails due to extreme contention, the operation is rejected to preserve system stability. **Status: Enforced in LockManager, DistributedState, and TrustManager.**
 14. **Selection Integrity:** Operational state must be enforced at the gateway. Any system entity responsible for delegating or routing tasks MUST verify the active status (`enabled === true`) of candidates in the registry before selection. No history or reputation score can override an explicit "disabled" flag. Mutator routes (invite, remove) must also enforce `active` member status. **Status: Enforced in AgentRouter and WorkspaceOperations.**
 15. **Monotonic Progress Guards:** To prevent safety bypasses in recursive execution chains, the system MUST utilize monotonic progress checks. Recursion depth tracking must use atomic increments (`if_not_exists` + 1) to ensure depth only ever increases within a trace, preventing any branch from resetting its own depth counter. **Status: Enforced in RecursionTracker.**
+16. **Multi-tenant Isolation:** The system MUST maintain strict logical separation between workspaces. Every cross-silo event, memory lookup, and API request must be anchored to a `workspaceId`. **Dashboard Integrity**: All dashboard API routes MUST implement mandatory identity verification and permission gating. Global scans or unscoped prefix queries are strictly forbidden in the dashboard layer; data retrieval must always be partitioned via `workspaceId` dimensions to prevent cross-tenant leakage. **Status: Enforced in Dashboard APIs (Perspective G) and Trace/Memory Lookups.**
 
 ---
 
@@ -48,6 +49,7 @@ Each design principle has associated audit verification questions. Auditors shou
 | **Quality-Weighted**      | Are quality scores 0-10? Are increments weighted? Are penalties severity-adjusted?                                                   |
 | **Atomic State**          | Are updates using conditional writes? Is there object-level overwrites? Can race conditions occur?                                   |
 | **Selection Integrity**   | Is enabled checked before selection? Can disabled agent be selected? Is there gateway enforcement?                                   |
+| **Multi-tenant Isolation**| Are all dashboard queries scoped by workspaceId? Are permission checks enforced at the API route? Is there global data leakage?       |
 
 ## ⚖️ Governance and Autonomy Boundaries
 

@@ -22,6 +22,29 @@ To ensure a consistent "in-command" experience, the Mission Control interface im
 
 ---
 
+## 🔒 Multi-tenant Data Isolation (Perspective G)
+
+The dashboard enforces strict logical separation between tenants to prevent data leakage and unauthorized cross-workspace operations.
+
+### API Hardening & Scoping
+
+All dashboard API routes (`/api/...`) implement mandatory isolation layers:
+
+1.  **Identity Verification**: Extracts the `userId` from the session cookie and explicitly blacklists the `SYSTEM` identity to prevent spoofing of internal agent credentials.
+2.  **Permission Gating**: Every request is verified against the `IdentityManager` to ensure the user has the required permission (e.g., `AGENT_VIEW`, `AGENT_DELETE`) for the specific `workspaceId`.
+3.  **Mandatory Scoping**: Data retrieval and mutation are partitioned via `workspaceId`.
+    - **Memory/Config**: Lookups use the `WS#${workspaceId}#` prefix.
+    - **Scans/Queries**: DynamoDB `ScanCommand` and `QueryCommand` calls include a `FilterExpression` on the `workspaceId` field.
+    - **Global Actions**: Potentially destructive global actions (e.g., "Purge All Traces") are strictly scoped to the user's active workspace.
+
+### Drift Detection & Consistency
+
+The dashboard periodically probes for consistency across silos:
+- **Resilience Metrics**: Aggregates recovery operations scoped by `workspaceId`.
+- **Cognitive Health**: Visualizes agent stability metrics partitioned by tenant.
+
+---
+
 ## 🕹️ Mission Control Components
 
 The dashboard introduces a set of specialized interactive components for co-managing the swarm:

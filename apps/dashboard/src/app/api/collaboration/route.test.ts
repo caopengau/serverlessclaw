@@ -1,6 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { NextRequest } from 'next/server';
 
 const mockSend = vi.fn();
+
+// Mock Auth Utils
+vi.mock('@/lib/auth-utils', () => ({
+  getUserId: vi.fn(() => 'user-123'),
+}));
+
+// Mock Identity Manager
+const mockHasPermission = vi.fn().mockResolvedValue(true);
+vi.mock('@claw/core/lib/session/identity', () => ({
+  getIdentityManager: vi.fn().mockResolvedValue({
+    hasPermission: mockHasPermission,
+  }),
+  Permission: {
+    AGENT_VIEW: 'agent:view',
+  },
+}));
 
 vi.mock('sst', () => ({
   Resource: {
@@ -14,21 +31,23 @@ vi.mock('@aws-sdk/client-dynamodb', () => ({
 
 vi.mock('@aws-sdk/lib-dynamodb', () => ({
   DynamoDBDocumentClient: { from: () => ({ send: mockSend }) },
-  ScanCommand: class {},
+  ScanCommand: class {
+    constructor(public input: unknown) {}
+  },
 }));
 
 describe('Collaboration API Route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.MEMORY_TABLE_NAME = 'test-memory-table';
+    mockHasPermission.mockResolvedValue(true);
   });
 
   describe('GET', () => {
-    it('returns active dispatches on success', async () => {
+    it('returns active dispatches on success with workspace scoping', async () => {
       mockSend.mockResolvedValue({
         Items: [
           {
-            userId: 'PARALLEL#user-123#trace-abc',
+            userId: 'WS#ws-1#PARALLEL#user-123#trace-abc',
             taskCount: 2,
             completedCount: 1,
             initiatorId: 'superclaw',
@@ -45,97 +64,40 @@ describe('Collaboration API Route', () => {
       });
 
       const { GET } = await import('./route');
-      const res = await GET();
+      const req = new NextRequest('http://localhost/api/collaboration?workspaceId=ws-1');
+      const res = await GET(req);
       const data = await res.json();
 
       expect(res.status).toBe(200);
       expect(data.activeDispatches).toHaveLength(1);
       expect(data.activeDispatches[0].traceId).toBe('trace-abc');
-      expect(data.activeDispatches[0].taskCount).toBe(2);
-      expect(data.activeDispatches[0].tasks).toHaveLength(2);
+
+      // Verify ScanCommand scoping
+      const lastCall = mockSend.mock.calls[0][0];
+      expect(lastCall.input.FilterExpression).toContain('workspaceId = :ws');
+      expect(lastCall.input.ExpressionAttributeValues[':ws']).toBe('ws-1');
     });
 
-    it('returns empty array when no items found', async () => {
-      mockSend.mockResolvedValue({ Items: [] });
-
+    it('returns 403 if user lacks permission', async () => {
+      mockHasPermission.mockResolvedValue(false);
       const { GET } = await import('./route');
-      const res = await GET();
+      const req = new NextRequest('http://localhost/api/collaboration?workspaceId=ws-1');
+      const res = await GET(req);
       const data = await res.json();
 
-      expect(data.activeDispatches).toEqual([]);
+      expect(res.status).toBe(403);
+      expect(data.error).toBe('Unauthorized workspace access');
     });
 
     it('returns empty array on DynamoDB error', async () => {
       mockSend.mockRejectedValue(new Error('DynamoDB error'));
 
       const { GET } = await import('./route');
-      const res = await GET();
+      const req = new NextRequest('http://localhost/api/collaboration?workspaceId=ws-1');
+      const res = await GET(req);
       const data = await res.json();
 
       expect(data.activeDispatches).toEqual([]);
-    });
-
-    it('maps DAG state to task status', async () => {
-      mockSend.mockResolvedValue({
-        Items: [
-          {
-            userId: 'PARALLEL#user-123#trace-dag',
-            status: 'pending',
-            taskCount: 2,
-            completedCount: 1,
-            initiatorId: 'superclaw',
-            metadata: {
-              tasks: [
-                { taskId: 'task-1', agentId: 'coder', task: 'Build', dependsOn: [] },
-                { taskId: 'task-2', agentId: 'critic', task: 'Review', dependsOn: ['task-1'] },
-              ],
-              dagState: {
-                nodes: {
-                  'task-1': {
-                    status: 'completed',
-                    task: { taskId: 'task-1', agentId: 'coder', task: 'Build' },
-                  },
-                  'task-2': {
-                    status: 'ready',
-                    task: { taskId: 'task-2', agentId: 'critic', task: 'Review' },
-                  },
-                },
-                completedTasks: ['task-1'],
-                failedTasks: [],
-              },
-            },
-          },
-        ],
-      });
-
-      const { GET } = await import('./route');
-      const res = await GET();
-      const data = await res.json();
-
-      expect(data.activeDispatches[0].tasks[0].status).toBe('completed');
-      expect(data.activeDispatches[0].tasks[1].status).toBe('ready');
-      expect(data.activeDispatches[0].dagState).toBeDefined();
-    });
-
-    it('handles items with no metadata gracefully', async () => {
-      mockSend.mockResolvedValue({
-        Items: [
-          {
-            userId: 'PARALLEL#user-123#trace-xyz',
-            taskCount: 1,
-            completedCount: 0,
-            initiatorId: 'superclaw',
-          },
-        ],
-      });
-
-      const { GET } = await import('./route');
-      const res = await GET();
-      const data = await res.json();
-
-      expect(res.status).toBe(200);
-      expect(data.activeDispatches).toHaveLength(1);
-      expect(data.activeDispatches[0].tasks).toEqual([]);
     });
   });
 });

@@ -219,6 +219,7 @@ function verifyMultiTenantScoping(): Finding[] {
     ...globSync(`${CORE_DIR}/lib/**/*.ts`),
     ...globSync(`${CORE_DIR}/tools/**/*.ts`),
     ...globSync(`${CORE_DIR}/handlers/**/*.ts`),
+    ...globSync(`apps/dashboard/src/app/api/**/*.ts`),
   ];
 
   files.forEach((file) => {
@@ -261,6 +262,40 @@ function verifyMultiTenantScoping(): Finding[] {
             'Global DLQ Retrieval - MUST pass workspaceId to getDlqEntries() to prevent multi-tenant data leakage',
           severity: 'P1',
         });
+      }
+
+      // 4. listByPrefix() without scoping in dashboard APIs
+      if (file.includes('apps/dashboard') && line.includes('listByPrefix(')) {
+        if (
+          !line.includes('`WS#${workspaceId}#') &&
+          !line.includes('WS#') &&
+          !line.includes('workspaceId')
+        ) {
+          findings.push({
+            file: relative(process.cwd(), file),
+            line: idx + 1,
+            principle: 'Principle 11',
+            issue:
+              'Unscoped listByPrefix in dashboard - MUST use workspaceId scoping for multi-tenant isolation',
+            severity: 'P1',
+          });
+        }
+      }
+
+      // 5. ScanCommand in dashboard without workspace filter
+      if (file.includes('apps/dashboard') && line.includes('ScanCommand(')) {
+        // Check following lines for workspaceId filter (this is a bit naive but helpful)
+        const nextLines = lines.slice(idx, idx + 10).join('\n');
+        if (!nextLines.includes('workspaceId')) {
+          findings.push({
+            file: relative(process.cwd(), file),
+            line: idx + 1,
+            principle: 'Principle 11',
+            issue:
+              'Unscoped ScanCommand in dashboard - MUST include workspaceId filter for multi-tenant isolation',
+            severity: 'P1',
+          });
+        }
       }
     });
   });

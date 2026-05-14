@@ -10,18 +10,40 @@ import {
 import { revalidatePath } from 'next/cache';
 import { logger } from '@claw/core/lib/logger';
 import { getTraceTableName } from '@claw/core/lib/utils/ddb-client';
+import { getUserId } from '@/lib/auth-utils';
+import { HTTP_STATUS } from '@claw/core/lib/constants';
 
 /**
- * Handles trace deletion (single or all) with robust throttling management
+ * Handles trace deletion (single or all) with robust throttling management and multi-tenant isolation.
  *
  * @param req - The incoming DELETE request with traceId query parameter.
  */
 export async function DELETE(req: NextRequest): Promise<NextResponse> {
   try {
-    const traceId = req.nextUrl.searchParams.get('traceId');
+    const userId = getUserId(req);
+    const { searchParams } = new URL(req.url);
+    const traceId = searchParams.get('traceId');
+    const workspaceId =
+      searchParams.get('workspaceId') || req.headers.get('x-workspace-id') || 'default';
 
     if (!traceId) {
       return NextResponse.json({ error: 'Missing traceId' }, { status: 400 });
+    }
+
+    const { getIdentityManager, Permission } = await import('@claw/core/lib/session/identity');
+    const identityManager = await getIdentityManager();
+
+    // Verify delete permission
+    const hasPermission = await identityManager.hasPermission(
+      userId,
+      Permission.AGENT_DELETE,
+      workspaceId
+    );
+    if (!hasPermission) {
+      return NextResponse.json(
+        { error: 'Unauthorized to delete traces' },
+        { status: HTTP_STATUS.FORBIDDEN }
+      );
     }
 
     const tableName = getTraceTableName();
@@ -38,7 +60,9 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
     });
 
     if (traceId === 'all') {
-      logger.info('[Trace API] Purging all traces from table:', tableName);
+      logger.info(
+        `[Trace API] Purging all traces for workspace ${workspaceId} from table: ${tableName}`
+      );
       let deletedCount = 0;
       let lastKey: Record<string, unknown> | undefined;
 
@@ -48,7 +72,11 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
             new ScanCommand({
               TableName: tableName,
               ExclusiveStartKey: lastKey,
-              Limit: 50, // Even smaller scan batches
+              FilterExpression: 'workspaceId = :ws',
+              ExpressionAttributeValues: {
+                ':ws': workspaceId,
+              },
+              Limit: 50,
             })
           );
 
@@ -122,7 +150,9 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
           lastKey = scanRes.LastEvaluatedKey;
         } while (lastKey);
 
-        logger.info(`[Trace API] Successfully purged ${deletedCount} trace nodes`);
+        logger.info(
+          `[Trace API] Successfully purged ${deletedCount} trace nodes for workspace ${workspaceId}`
+        );
         revalidatePath('/trace');
         return NextResponse.json({ success: true, count: deletedCount });
       } catch (scanError: unknown) {
@@ -131,14 +161,15 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    logger.info('[Trace API] Deleting all nodes for trace:', traceId);
+    logger.info(`[Trace API] Deleting all nodes for trace: ${traceId} in workspace ${workspaceId}`);
 
-    // 1. Query all nodes for this traceId
+    // 1. Query all nodes for this traceId and verify workspaceId
     const { Items } = await docClient.send(
       new QueryCommand({
         TableName: tableName,
         KeyConditionExpression: 'traceId = :tid',
-        ExpressionAttributeValues: { ':tid': traceId },
+        FilterExpression: 'workspaceId = :ws',
+        ExpressionAttributeValues: { ':tid': traceId, ':ws': workspaceId },
         ProjectionExpression: 'traceId, nodeId',
       })
     );
@@ -161,7 +192,22 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       }
       logger.info(`[Trace API] Successfully deleted ${Items.length} nodes for trace ${traceId}`);
     } else {
-      logger.warn(`[Trace API] No nodes found for traceId ${traceId}`);
+      logger.warn(`[Trace API] No nodes found for traceId ${traceId} in workspace ${workspaceId}`);
+      // If no nodes found with the filter, double check if it exists at all to provide better error
+      const { Count } = await docClient.send(
+        new QueryCommand({
+          TableName: tableName,
+          KeyConditionExpression: 'traceId = :tid',
+          ExpressionAttributeValues: { ':tid': traceId },
+          Select: 'COUNT',
+        })
+      );
+      if (Count && Count > 0) {
+        return NextResponse.json(
+          { error: 'Trace belongs to another workspace' },
+          { status: HTTP_STATUS.FORBIDDEN }
+        );
+      }
     }
 
     revalidatePath('/trace');

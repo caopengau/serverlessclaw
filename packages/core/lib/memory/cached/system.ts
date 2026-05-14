@@ -95,13 +95,19 @@ export class MemorySystem {
   }
 
   /**
-   * LEGACY: Retrieves a raw configuration JSON.
+   * Retrieves a configuration JSON.
    */
-  async getConfig(key: string): Promise<unknown> {
+  async getConfig(
+    key: string,
+    scope?: string | ContextualScope
+  ): Promise<Record<string, unknown> | undefined> {
     const provider = this.underlying as unknown as {
-      getConfig?: (key: string) => Promise<unknown>;
+      getConfig?: (
+        key: string,
+        scope?: string | ContextualScope
+      ) => Promise<Record<string, unknown> | undefined>;
     };
-    return provider.getConfig?.(key);
+    return provider.getConfig?.(key, scope);
   }
 
   async queryItems(params: Record<string, unknown>): Promise<Record<string, unknown>[]> {

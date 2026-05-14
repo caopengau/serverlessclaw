@@ -277,8 +277,11 @@ export class CachedMemory implements IMemory {
       scope
     );
   }
-  async getConfig(key: string): Promise<unknown> {
-    return this.system.getConfig(key);
+  async getConfig(
+    key: string,
+    scope?: string | import('../types/memory').ContextualScope
+  ): Promise<Record<string, unknown> | undefined> {
+    return this.system.getConfig(key, scope);
   }
   async findStaleCollaborations(defaultTimeoutMs: number, scope?: Scope): Promise<any[]> {
     return this.system.findStaleCollaborations(defaultTimeoutMs, scope);

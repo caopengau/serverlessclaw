@@ -1,11 +1,34 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '@claw/core/lib/logger';
 import { getMemoryTableName } from '@claw/core/lib/utils/ddb-client';
+import { getUserId } from '@/lib/auth-utils';
+import { HTTP_STATUS } from '@claw/core/lib/constants';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const userId = getUserId(req);
+    const { searchParams } = new URL(req.url);
+    const workspaceId =
+      searchParams.get('workspaceId') || req.headers.get('x-workspace-id') || 'default';
+
+    const { getIdentityManager, Permission } = await import('@claw/core/lib/session/identity');
+    const identityManager = await getIdentityManager();
+
+    // Verify workspace access
+    const hasAccess = await identityManager.hasPermission(
+      userId,
+      Permission.AGENT_VIEW,
+      workspaceId
+    );
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Unauthorized workspace access' },
+        { status: HTTP_STATUS.FORBIDDEN }
+      );
+    }
+
     const tableName = getMemoryTableName();
 
     if (!tableName) {
@@ -15,17 +38,19 @@ export async function GET() {
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
 
-    // Scan for active parallel dispatches
+    // Scan for active parallel dispatches - filtered by workspaceId
     const res = await docClient.send(
       new ScanCommand({
         TableName: tableName,
-        FilterExpression: 'begins_with(userId, :prefix) AND #status = :pending',
+        FilterExpression:
+          'begins_with(userId, :prefix) AND #status = :pending AND workspaceId = :ws',
         ExpressionAttributeNames: {
           '#status': 'status',
         },
         ExpressionAttributeValues: {
           ':prefix': 'PARALLEL#',
           ':pending': 'pending',
+          ':ws': workspaceId,
         },
       })
     );
@@ -68,14 +93,19 @@ export async function GET() {
         };
       });
 
-      // Trace ID extraction
+      // Trace ID extraction from potentially scoped key: PARALLEL#user#workspace#trace
       const userIdParts = item.userId?.split('#') ?? [];
-      const traceId =
-        userIdParts.length > 2
-          ? userIdParts[2] // PARALLEL#user#trace
-          : userIdParts.length > 1
-            ? userIdParts[1] // user#trace or PARALLEL#trace
-            : 'unknown';
+      let traceId = 'unknown';
+      if (userIdParts.length > 3) {
+        // PARALLEL#user#workspace#trace
+        traceId = userIdParts[3];
+      } else if (userIdParts.length === 3) {
+        // PARALLEL#user#trace (legacy or unscoped)
+        traceId = userIdParts[2];
+      } else if (userIdParts.length === 2) {
+        // PARALLEL#trace
+        traceId = userIdParts[1];
+      }
 
       return {
         traceId,

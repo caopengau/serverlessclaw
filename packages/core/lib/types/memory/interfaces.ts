@@ -375,6 +375,14 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
 
   resetRecoveryAttemptCount(): Promise<void>;
 
+  /**
+   * Retrieves a configuration JSON from the memory table.
+   */
+  getConfig(
+    key: string,
+    scope?: string | ContextualScope
+  ): Promise<Record<string, unknown> | undefined>;
+
   /** Gets cache statistics for monitoring. Returns hit rates and sizes for all caches. */
   getCacheStats(): {
     userData: { hits: number; misses: number; evictions: number; size: number };
