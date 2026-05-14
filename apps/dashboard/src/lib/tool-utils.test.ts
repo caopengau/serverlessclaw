@@ -39,6 +39,7 @@ describe('tool-utils', () => {
       expect(result).toEqual({
         dispatchTask: { count: 5, lastUsed: 1700000000 },
       });
+      expect(AgentRegistry.getRawConfig).toHaveBeenCalledWith(expect.any(String), undefined);
     });
 
     it('returns empty object on error', async () => {
@@ -116,7 +117,7 @@ describe('tool-utils', () => {
 
       const result = await getAllTools({}, { forceRefresh: true });
 
-      expect(MCPMultiplexer.getExternalTools).toHaveBeenCalled();
+      expect(MCPMultiplexer.getExternalTools).toHaveBeenCalledWith(undefined, false, undefined);
       expect(result).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -136,7 +137,7 @@ describe('tool-utils', () => {
 
       const result = await getAllTools({});
 
-      expect(MCPMultiplexer.getExternalTools).toHaveBeenCalledWith(undefined, true);
+      expect(MCPMultiplexer.getExternalTools).toHaveBeenCalledWith(undefined, true, undefined);
       expect(result).toEqual(
         expect.arrayContaining([expect.objectContaining({ name: 'fallback_tool' })])
       );
