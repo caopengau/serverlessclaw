@@ -225,7 +225,7 @@ describe('Infrastructure Resource Creation', () => {
 
       const result = createDashboard(mockCtx as any);
 
-      expect(mockNextjs).toHaveBeenCalledWith('ClawCenter', expect.any(Object));
+      expect(mockNextjs).toHaveBeenCalledWith('MissionControl', expect.any(Object));
       expect(result.dashboard).toBeDefined();
     });
   });
