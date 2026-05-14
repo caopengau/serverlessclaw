@@ -32,7 +32,10 @@ test.describe('Goal Scheduling', () => {
 
   test('navigation from sidebar to scheduling works', async ({ page }) => {
     await page.goto('/');
-    await page.click('a[href="/scheduling"]');
-    await expect(page).toHaveURL('/scheduling');
+    // Use role-based selector which is more robust
+    const link = page.getByRole('link', { name: /SCHEDULING|目标调度/i }).first();
+    await expect(link).toBeVisible();
+    await link.click();
+    await expect(page).toHaveURL(/\/scheduling/);
   });
 });

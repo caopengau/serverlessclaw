@@ -40,7 +40,8 @@ test.describe('Nerve Center (Unified Observability)', () => {
 
     // Hide dynamic elements like the Sync button to avoid noise in screenshot
     await page.evaluate(() => {
-      const syncBtn = document.querySelector('button:has-text("SYNC")');
+      const btns = Array.from(document.querySelectorAll('button'));
+      const syncBtn = btns.find((b) => b.textContent?.includes('SYNC'));
       if (syncBtn) (syncBtn as HTMLElement).style.display = 'none';
     });
 

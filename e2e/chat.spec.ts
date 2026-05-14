@@ -24,7 +24,8 @@ test.describe('Chat Flow', () => {
 
   test('send button is disabled when input is empty', async ({ page }) => {
     await page.goto('/chat');
-    await expect(page.locator('textarea')).toBeVisible({ timeout: 10000 });
+    const chatInput = page.locator('main textarea').first();
+    await expect(chatInput).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('button', { name: /SEND|发送/i }).first()).toBeDisabled();
   });
 
