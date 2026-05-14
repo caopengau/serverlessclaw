@@ -32,7 +32,7 @@ vi.mock('../session/identity', async (importOriginal) => {
         if (!config) return false;
         const roles = config.roles || [actual.AgentRole.WORKER];
         const { AGENT_ROLE_PERMISSIONS } = await import('../session/identity/constants');
-        return roles.some((role: any) => AGENT_ROLE_PERMISSIONS[role]?.includes(perm));
+        return roles.some((role: any) => (AGENT_ROLE_PERMISSIONS as any)[role]?.includes(perm));
       },
     }),
   };
