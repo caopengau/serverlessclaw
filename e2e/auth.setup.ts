@@ -1,6 +1,8 @@
+import path from 'path';
 import { test as setup, expect } from 'playwright/test';
 
-const authFile = 'e2e/.auth/user.json';
+// Use path resolution to ensure the auth file is saved in the same directory as the setup script
+const authFile = path.join(__dirname, '.auth/user.json');
 
 setup('authenticate', async ({ request }) => {
   const password = process.env.DASHBOARD_PASSWORD || 'test-password';
