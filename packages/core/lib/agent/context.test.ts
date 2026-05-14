@@ -40,8 +40,8 @@ describe('AgentContext', () => {
         0
       );
 
-      expect(result).toContain('AGENT_NAME: SuperClaw');
-      expect(result).toContain('AGENT_ID: superclaw');
+      expect(result).toContain('AGENT_NAME: Orchestrator');
+      expect(result).toContain('AGENT_ID: orchestrator');
     });
 
     it('should use system defaults when model or provider is empty', () => {

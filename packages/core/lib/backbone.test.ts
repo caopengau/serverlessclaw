@@ -22,7 +22,7 @@ describe('Backbone Registry', () => {
   it('should have correct agent structure', () => {
     const mainAgent = BACKBONE_REGISTRY[AGENT_TYPES.SUPERCLAW];
     expect(mainAgent.id).toBe(AGENT_TYPES.SUPERCLAW);
-    expect(mainAgent.name).toBe('SuperClaw');
+    expect(mainAgent.name).toBe('System Orchestrator');
     expect(mainAgent.category).toBe(AgentCategory.SYSTEM);
     expect(mainAgent.isBackbone).toBe(true);
     expect(mainAgent.enabled).toBe(true);
