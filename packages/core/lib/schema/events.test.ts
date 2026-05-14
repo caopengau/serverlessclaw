@@ -425,7 +425,7 @@ describe('OUTBOUND_MESSAGE_EVENT_SCHEMA', () => {
 
   it('should default agentName to SuperClaw', () => {
     const result = OUTBOUND_MESSAGE_EVENT_SCHEMA.parse({ message: 'hi' });
-    expect(result.agentName).toBe('SuperClaw');
+    expect(result.agentName).toBe('System Orchestrator');
   });
 
   it('should default memoryContexts to empty array', () => {
@@ -690,7 +690,7 @@ describe('BRIDGE_EVENT_SCHEMA', () => {
     };
     const result = BRIDGE_EVENT_SCHEMA.parse(input);
     expect(result.detail.traceId).toBe('unknown');
-    expect(result.detail.agentName).toBe('SuperClaw');
+    expect(result.detail.agentName).toBe('System Orchestrator');
     expect(result.detail.message).toBe('');
     expect(result.detail.isThought).toBe(false);
   });
