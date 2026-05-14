@@ -40,6 +40,7 @@ export interface IAgentConfig {
   };
   safetyTier?: SafetyTier;
   evolutionMode?: EvolutionMode;
+  roles?: import('../../session/identity').AgentRole[];
   tokenBudget?: number;
   costLimit?: number;
   trustScore?: number;

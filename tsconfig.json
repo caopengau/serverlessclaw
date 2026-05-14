@@ -17,6 +17,7 @@
     }
   },
   "include": [
+    "../declarations.d.ts",
     "packages/core/**/*.ts",
     "packages/infra/**/*.ts",
     "sst.config.ts",

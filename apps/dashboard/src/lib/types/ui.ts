@@ -24,6 +24,7 @@ export interface Agent {
   tools: string[];
   isBackbone: boolean;
   agentType: 'llm' | 'logic';
+  roles?: string[];
   usage: Record<string, { count: number; lastUsed: number }>;
   metadata: Record<string, unknown>;
   description?: string;

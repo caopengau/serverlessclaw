@@ -10,11 +10,13 @@ export enum Permission {
   AGENT_DELETE = 'agent:delete',
   AGENT_UPDATE = 'agent:update',
   AGENT_VIEW = 'agent:view',
+  AGENT_CONTROL = 'agent:control', // Start/Stop/Force
 
   // Task permissions
   TASK_CREATE = 'task:create',
   TASK_CANCEL = 'task:cancel',
   TASK_VIEW = 'task:view',
+  TASK_APPROVE = 'task:approve',
 
   // Evolution permissions
   EVOLUTION_VIEW = 'evolution:view',
@@ -29,6 +31,7 @@ export enum Permission {
   WORKSPACE_CREATE = 'workspace:create',
   WORKSPACE_DELETE = 'workspace:delete',
   WORKSPACE_MEMBERS = 'workspace:members',
+  WORKSPACE_POLICY_UPDATE = 'workspace:policy',
 
   // Trace permissions
   TRACE_VIEW = 'trace:view',
@@ -37,6 +40,25 @@ export enum Permission {
   // Dashboard permissions
   DASHBOARD_VIEW = 'dashboard:view',
   DASHBOARD_ADMIN = 'dashboard:admin',
+
+  // Mission & Action permissions
+  MISSION_COMMAND = 'mission:command',
+  ACTION_DISPATCH = 'action:dispatch',
+  ACTION_FINANCIAL = 'action:financial',
+  ACTION_INFRA = 'action:infra',
+}
+
+/**
+ * Agent Roles for RBAC within the swarm.
+ */
+export enum AgentRole {
+  ORCHESTRATOR = 'ORCHESTRATOR',
+  WORKER = 'WORKER',
+  CRITIC = 'CRITIC',
+  RESEARCHER = 'RESEARCHER',
+  TRADER = 'TRADER',
+  OPERATOR = 'OPERATOR',
+  SYSTEM = 'SYSTEM',
 }
 
 /**

@@ -3,6 +3,7 @@ import { logger } from '../../logger';
 import {
   UserRole,
   Permission,
+  AgentRole,
   UserIdentity,
   Session,
   AuthResult,
@@ -153,6 +154,23 @@ export class IdentityManager extends IdentityBase {
     }
 
     return true;
+  }
+
+  /**
+   * Check if an agent has a specific permission.
+   */
+  async hasAgentPermission(
+    agentId: string,
+    permission: Permission,
+    workspaceId?: string
+  ): Promise<boolean> {
+    const { AgentRegistry } = await import('../../registry');
+    const config = await AgentRegistry.getAgentConfig(agentId, { workspaceId });
+    if (!config) return false;
+
+    // Use default worker role if none specified
+    const roles = config.roles || [AgentRole.WORKER];
+    return this.accessOps.hasAgentPermissionSync(roles, permission);
   }
 
   /**

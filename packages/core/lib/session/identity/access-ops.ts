@@ -1,6 +1,10 @@
 import { logger } from '../../logger';
-import { UserRole, Permission, AccessControlEntry } from './types';
-import { ROLE_PERMISSIONS, WORKSPACE_SCOPED_PERMISSIONS } from './constants';
+import { UserRole, Permission, AccessControlEntry, AgentRole } from './types';
+import {
+  ROLE_PERMISSIONS,
+  WORKSPACE_SCOPED_PERMISSIONS,
+  AGENT_ROLE_PERMISSIONS,
+} from './constants';
 import { IdentityBase } from './base';
 
 /**
@@ -13,6 +17,14 @@ export class AccessOps extends IdentityBase {
   hasPermissionSync(userRole: UserRole, permission: Permission): boolean {
     const rolePermissions = ROLE_PERMISSIONS[userRole];
     return rolePermissions.includes(permission);
+  }
+
+  /**
+   * Check if an agent has specific permission.
+   */
+  hasAgentPermissionSync(agentRoles: AgentRole[], permission: Permission): boolean {
+    if (!agentRoles || agentRoles.length === 0) return false;
+    return agentRoles.some((role) => AGENT_ROLE_PERMISSIONS[role]?.includes(permission));
   }
 
   /**

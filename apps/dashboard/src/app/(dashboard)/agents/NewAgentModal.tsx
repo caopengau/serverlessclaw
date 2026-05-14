@@ -144,6 +144,39 @@ export default function NewAgentModal({
             </div>
           </div>
 
+          <div className="space-y-3">
+            <Typography
+              variant="mono"
+              weight="bold"
+              uppercase
+              className="text-[10px] text-muted-more"
+            >
+              {t('AGENT_ROLES')}
+            </Typography>
+            <div className="flex flex-wrap gap-2">
+              {['ORCHESTRATOR', 'WORKER', 'CRITIC', 'TRADER', 'OPERATOR'].map((role) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => {
+                    const currentRoles = newAgent.roles || [];
+                    const newRoles = currentRoles.includes(role)
+                      ? currentRoles.filter((r) => r !== role)
+                      : [...currentRoles, role];
+                    setNewAgent((prev) => ({ ...prev, roles: newRoles }));
+                  }}
+                  className={`px-3 py-1.5 rounded border font-mono text-[10px] uppercase tracking-wider transition-all ${
+                    (newAgent.roles || []).includes(role)
+                      ? 'bg-amber-500/20 border-amber-500 text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                      : 'bg-background/40 border-border text-muted hover:bg-background/60'
+                  }`}
+                >
+                  {t(`AGENT_ROLE_${role}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Typography
               variant="mono"

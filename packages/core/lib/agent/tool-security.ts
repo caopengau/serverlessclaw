@@ -139,6 +139,31 @@ export class ToolSecurityValidator {
       }
     }
 
+    // 5. Agent-Role RBAC Check
+    if (tool.requiredPermissions && tool.requiredPermissions.length > 0) {
+      try {
+        const { getIdentityManager } = await import('../session/identity');
+        const identity = await getIdentityManager();
+        const hasAgentPerm = await identity.hasAgentPermission(
+          execContext.agentId,
+          tool.requiredPermissions[0] as Permission, // Check first permission for agent role alignment
+          execContext.workspaceId
+        );
+
+        if (!hasAgentPerm) {
+          logger.warn(
+            `[SECURITY] Agent '${execContext.agentId}' role unauthorized for tool '${tool.name}'. Required: ${tool.requiredPermissions[0]}`
+          );
+          return {
+            allowed: false,
+            reason: `AGENT_ROLE_UNAUTHORIZED - Your current role does not permit executing '${tool.name}'.`,
+          };
+        }
+      } catch (error) {
+        logger.error(`Agent RBAC check failed for tool ${tool.name}:`, error);
+      }
+    }
+
     // Apply auto-approval flag logic
     const modifiedArgs = { ...args };
     if (evolutionMode === EvolutionMode.AUTO || effectiveApproved) {

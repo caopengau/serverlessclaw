@@ -163,7 +163,7 @@ export class TokenTracker {
     const ts = dayStart();
     const expiresAt = Math.floor(Date.now() / 1000) + TTL_DAYS_ROLLUP * TIME.SECONDS_IN_DAY;
 
-    const rollupKeys = [];
+    const rollupKeys: string[] = [];
     // Unified global aggregate
     rollupKeys.push(`GLOBAL#TOKEN_ROLLUP#${agentId}`);
 
@@ -334,7 +334,7 @@ export class TokenTracker {
     const ts = dayStart();
     const expiresAt = Math.floor(Date.now() / 1000) + TTL_DAYS_ROLLUP * TIME.SECONDS_IN_DAY;
 
-    const rollupKeys = [];
+    const rollupKeys: string[] = [];
     if (!scope || (!scope.workspaceId && !scope.teamId)) {
       rollupKeys.push(`TOOL_TOKEN#${toolName}`);
     } else {

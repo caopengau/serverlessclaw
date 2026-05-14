@@ -181,7 +181,7 @@ export class SafetyRateLimiter {
   ): boolean {
     let memoryKey = key;
     if (scope) {
-      const parts = [];
+      const parts: string[] = [];
       if (scope.orgId) parts.push(`ORG:${scope.orgId}`);
       if (scope.teamId) parts.push(`TEAM:${scope.teamId}`);
       if (scope.staffId) parts.push(`STAFF:${scope.staffId}`);

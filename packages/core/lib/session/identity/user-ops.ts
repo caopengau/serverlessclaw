@@ -134,7 +134,7 @@ export class UserOps extends IdentityBase {
     const tableName = this.base.getTableName();
     if (!tableName) return false;
 
-    const expressions = [];
+    const expressions: string[] = [];
     const values: Record<string, unknown> = { ':updatedAt': Date.now() };
     const names: Record<string, string> = {};
 

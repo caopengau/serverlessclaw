@@ -294,6 +294,76 @@ export default function AgentDetailModal({
                 </Typography>
               </Card>
 
+              <Card variant="solid" padding="sm" className="space-y-4">
+                <Typography
+                  variant="caption"
+                  weight="bold"
+                  color="white"
+                  uppercase
+                  className="flex items-center gap-2"
+                >
+                  <Shield size={12} className="text-amber-400" /> {t('AGENT_ROLES')}
+                </Typography>
+                <div className="flex flex-wrap gap-2">
+                  {['ORCHESTRATOR', 'WORKER', 'CRITIC', 'TRADER', 'OPERATOR'].map((role) => (
+                    <button
+                      key={role}
+                      onClick={() => {
+                        const currentRoles = agent.roles || [];
+                        const newRoles = currentRoles.includes(role)
+                          ? currentRoles.filter((r) => r !== role)
+                          : [...currentRoles, role];
+                        updateAgent(agent.id, { roles: newRoles });
+                      }}
+                      className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-tighter border transition-all ${
+                        (agent.roles || []).includes(role)
+                          ? 'bg-amber-500/20 border-amber-500/50 text-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                          : 'bg-background/40 border-border text-muted-more hover:border-muted'
+                      }`}
+                    >
+                      {t(`AGENT_ROLE_${role}`)}
+                    </button>
+                  ))}
+                </div>
+              </Card>
+
+              <Card variant="solid" padding="sm" className="space-y-3">
+                <Typography
+                  variant="caption"
+                  weight="bold"
+                  color="white"
+                  uppercase
+                  className="flex items-center gap-2"
+                >
+                  <Settings2 size={12} className="text-purple-400" /> {t('PERMISSION_BOUNDARIES')}
+                </Typography>
+                <div className="space-y-2">
+                  {[
+                    'agent:control',
+                    'task:approve',
+                    'action:dispatch',
+                    'action:financial',
+                    'action:infra',
+                  ].map((perm) => (
+                    <div key={perm} className="flex items-center justify-between opacity-80">
+                      <Typography variant="mono" className="text-[9px] uppercase">
+                        {perm.replace(':', '_')}
+                      </Typography>
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          (agent.roles || []).some((role) =>
+                            // This is a visual-only check for UI feedback
+                            ['ORCHESTRATOR', 'SYSTEM', 'TRADER', 'OPERATOR'].includes(role)
+                          )
+                            ? 'bg-cyber-green shadow-[0_0_5px_rgba(0,255,163,0.5)]'
+                            : 'bg-muted-more'
+                        }`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
               {reputation && reputation[agent.id] && (
                 <Card variant="solid" padding="sm" className="border-border">
                   <Typography

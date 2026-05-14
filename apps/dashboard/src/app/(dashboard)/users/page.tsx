@@ -23,6 +23,7 @@ import PageHeader from '@/components/PageHeader';
 import RoleGuard from '@/components/RoleGuard';
 import { UserRole } from '@claw/core/lib/types/common';
 import { logger } from '@claw/core/lib/logger';
+import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface UserIdentity {
   userId: string;
@@ -34,6 +35,7 @@ interface UserIdentity {
 }
 
 export default function UsersPage() {
+  const { t } = useTranslations();
   const [users, setUsers] = useState<UserIdentity[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -136,7 +138,7 @@ export default function UsersPage() {
                   color="muted"
                   className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
                 >
-                  TOTAL_USERS
+                  {t('TOTAL_USERS')}
                 </Typography>
                 <Badge variant="primary" className="px-4 py-1 font-black text-xs">
                   {users.length}
@@ -148,7 +150,7 @@ export default function UsersPage() {
                   color="muted"
                   className="text-[10px] uppercase tracking-widest opacity-40 mb-1"
                 >
-                  ADMINS
+                  {t('ADMINS')}
                 </Typography>
                 <Badge variant="intel" className="px-4 py-1 font-black text-xs">
                   {users.filter((u) => u.role === 'admin' || u.role === 'owner').length}
@@ -166,7 +168,7 @@ export default function UsersPage() {
               setShowCreateModal(true);
             }}
           >
-            Provision User
+            {t('PROVISION_USER')}
           </Button>
         </PageHeader>
 
@@ -179,7 +181,7 @@ export default function UsersPage() {
             />
             <input
               type="text"
-              placeholder="Search by ID, Name or Email..."
+              placeholder={t('COMMON_SEARCH_PLACEHOLDER')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-background/40 border border-border/50 rounded-lg pl-10 pr-4 py-2 text-sm focus:border-cyber-blue/50 outline-none transition-all"
@@ -187,7 +189,7 @@ export default function UsersPage() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" icon={<Filter size={14} />}>
-              Filter
+              {t('EXPLORE')}
             </Button>
           </div>
         </div>
@@ -230,7 +232,7 @@ export default function UsersPage() {
                     variant={user.role === 'admin' || user.role === 'owner' ? 'intel' : 'outline'}
                     className="uppercase font-black text-[9px] tracking-tighter"
                   >
-                    {user.role}
+                    {t(`USER_ROLE_${user.role.toUpperCase()}`)}
                   </Badge>
                 </div>
 
@@ -266,7 +268,7 @@ export default function UsersPage() {
                       setShowEditModal(user);
                     }}
                   >
-                    Edit
+                    {t('COMMON_EDIT')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -280,7 +282,7 @@ export default function UsersPage() {
           ) : (
             <div className="col-span-full h-64 flex flex-col items-center justify-center border-2 border-dashed border-border/20 rounded-2xl opacity-40">
               <Users size={48} className="mb-4" />
-              <Typography variant="h3">No entities found</Typography>
+              <Typography variant="h3">{t('AGENTS_NONE_FOUND')}</Typography>
             </div>
           )}
         </div>
@@ -303,7 +305,7 @@ export default function UsersPage() {
                   </div>
                   <div>
                     <Typography variant="h2" uppercase glow>
-                      Provision_Identity
+                      {t('PROVISION_USER')}
                     </Typography>
                     <Typography variant="mono" color="muted" className="text-[10px] uppercase">
                       New access token creation
@@ -354,18 +356,25 @@ export default function UsersPage() {
 
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase tracking-widest font-black text-muted block ml-1">
-                    Access_Level
+                    {t('ACCESS_LEVEL')}
                   </label>
                   <div className="flex gap-2">
-                    {['member', 'admin'].map((role) => (
+                    {['viewer', 'member', 'admin'].map((role) => (
                       <button
                         key={role}
                         type="button"
                         onClick={() => setFormData({ ...formData, role })}
                         className={`flex-1 py-3 px-4 rounded border font-mono text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${formData.role === role ? 'bg-cyber-blue/20 border-cyber-blue text-cyber-blue shadow-[0_0_15px_rgba(0,186,255,0.2)]' : 'bg-background/40 border-border hover:bg-background/60 text-muted'}`}
                       >
-                        {role === 'admin' ? <Shield size={14} /> : <Users size={14} />}
-                        {role}
+                        {role === 'admin' ? (
+                          <Shield size={14} />
+                        ) : role === 'viewer' ? (
+                          <Search size={14} />
+                        ) : (
+                          <Users size={14} />
+                        )}
+                        {t(`USER_ROLE_${role.toUpperCase()}`).split(' ')[1] ||
+                          t(`USER_ROLE_${role.toUpperCase()}`)}
                       </button>
                     ))}
                   </div>
@@ -373,10 +382,10 @@ export default function UsersPage() {
 
                 <div className="pt-6 flex gap-3">
                   <Button variant="ghost" fullWidth onClick={() => setShowCreateModal(false)}>
-                    Abort
+                    {t('ABORT_OPERATION')}
                   </Button>
                   <Button variant="primary" fullWidth type="submit" loading={submitting}>
-                    Execute Provisioning
+                    {t('EXECUTE_PROVISIONING')}
                   </Button>
                 </div>
               </form>
@@ -402,7 +411,7 @@ export default function UsersPage() {
                   </div>
                   <div>
                     <Typography variant="h2" uppercase glow>
-                      Modify_Identity
+                      {t('MODIFY_USER')}
                     </Typography>
                     <Typography variant="mono" color="muted" className="text-[10px] uppercase">
                       Updating {showEditModal.userId}
@@ -435,18 +444,25 @@ export default function UsersPage() {
 
                 <div className="space-y-2">
                   <label className="text-[10px] uppercase tracking-widest font-black text-muted block ml-1">
-                    Access_Level
+                    {t('ACCESS_LEVEL')}
                   </label>
                   <div className="flex gap-2">
-                    {['member', 'admin'].map((role) => (
+                    {['viewer', 'member', 'admin'].map((role) => (
                       <button
                         key={role}
                         type="button"
                         onClick={() => setFormData({ ...formData, role })}
                         className={`flex-1 py-3 px-4 rounded border font-mono text-[11px] uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${formData.role === role ? 'bg-cyber-blue/20 border-cyber-blue text-cyber-blue shadow-[0_0_15px_rgba(0,186,255,0.2)]' : 'bg-background/40 border-border hover:bg-background/60 text-muted'}`}
                       >
-                        {role === 'admin' ? <Shield size={14} /> : <Users size={14} />}
-                        {role}
+                        {role === 'admin' ? (
+                          <Shield size={14} />
+                        ) : role === 'viewer' ? (
+                          <Search size={14} />
+                        ) : (
+                          <Users size={14} />
+                        )}
+                        {t(`USER_ROLE_${role.toUpperCase()}`).split(' ')[1] ||
+                          t(`USER_ROLE_${role.toUpperCase()}`)}
                       </button>
                     ))}
                   </div>
@@ -454,10 +470,10 @@ export default function UsersPage() {
 
                 <div className="pt-6 flex gap-3">
                   <Button variant="ghost" fullWidth onClick={() => setShowEditModal(null)}>
-                    Abort
+                    {t('ABORT_OPERATION')}
                   </Button>
                   <Button variant="primary" fullWidth type="submit" loading={submitting}>
-                    Confirm Changes
+                    {t('CONFIRM_CHANGES')}
                   </Button>
                 </div>
               </form>

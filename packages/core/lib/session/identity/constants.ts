@@ -1,7 +1,7 @@
-import { UserRole, Permission } from './types';
+import { UserRole, Permission, AgentRole } from './types';
 
 /**
- * Role-to-permission mapping.
+ * Role-to-permission mapping for users.
  */
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.OWNER]: Object.values(Permission),
@@ -10,19 +10,23 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     Permission.AGENT_DELETE,
     Permission.AGENT_UPDATE,
     Permission.AGENT_VIEW,
+    Permission.AGENT_CONTROL,
     Permission.TASK_CREATE,
     Permission.TASK_CANCEL,
     Permission.TASK_VIEW,
+    Permission.TASK_APPROVE,
     Permission.EVOLUTION_VIEW,
     Permission.EVOLUTION_APPROVE,
     Permission.EVOLUTION_TRIGGER,
     Permission.CONFIG_VIEW,
     Permission.CONFIG_UPDATE,
     Permission.WORKSPACE_MEMBERS,
+    Permission.WORKSPACE_POLICY_UPDATE,
     Permission.TRACE_VIEW,
     Permission.TRACE_DELETE,
     Permission.DASHBOARD_VIEW,
     Permission.DASHBOARD_ADMIN,
+    Permission.MISSION_COMMAND,
   ],
   [UserRole.MEMBER]: [
     Permission.AGENT_VIEW,
@@ -45,19 +49,57 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
 };
 
 /**
+ * Role-to-permission mapping for agents.
+ */
+export const AGENT_ROLE_PERMISSIONS: Record<AgentRole, Permission[]> = {
+  [AgentRole.ORCHESTRATOR]: [
+    Permission.AGENT_VIEW,
+    Permission.TASK_CREATE,
+    Permission.TASK_VIEW,
+    Permission.TRACE_VIEW,
+    Permission.MISSION_COMMAND,
+  ],
+  [AgentRole.WORKER]: [Permission.AGENT_VIEW, Permission.TASK_VIEW, Permission.TRACE_VIEW],
+  [AgentRole.CRITIC]: [
+    Permission.AGENT_VIEW,
+    Permission.TASK_VIEW,
+    Permission.TASK_APPROVE,
+    Permission.TRACE_VIEW,
+    Permission.EVOLUTION_VIEW,
+  ],
+  [AgentRole.RESEARCHER]: [Permission.AGENT_VIEW, Permission.TASK_VIEW, Permission.TRACE_VIEW],
+  [AgentRole.TRADER]: [
+    Permission.AGENT_VIEW,
+    Permission.TASK_VIEW,
+    Permission.TRACE_VIEW,
+    Permission.ACTION_FINANCIAL,
+  ],
+  [AgentRole.OPERATOR]: [
+    Permission.AGENT_VIEW,
+    Permission.TASK_VIEW,
+    Permission.TRACE_VIEW,
+    Permission.ACTION_DISPATCH,
+  ],
+  [AgentRole.SYSTEM]: Object.values(Permission),
+};
+
+/**
  * Permissions that are strictly scoped to workspace membership.
  */
 export const WORKSPACE_SCOPED_PERMISSIONS = new Set([
   Permission.WORKSPACE_CREATE,
   Permission.WORKSPACE_DELETE,
   Permission.WORKSPACE_MEMBERS,
+  Permission.WORKSPACE_POLICY_UPDATE,
   Permission.AGENT_CREATE,
   Permission.AGENT_DELETE,
   Permission.AGENT_UPDATE,
   Permission.AGENT_VIEW,
+  Permission.AGENT_CONTROL,
   Permission.TASK_CREATE,
   Permission.TASK_CANCEL,
   Permission.TASK_VIEW,
+  Permission.TASK_APPROVE,
   Permission.EVOLUTION_VIEW,
   Permission.EVOLUTION_APPROVE,
   Permission.EVOLUTION_TRIGGER,
@@ -66,4 +108,8 @@ export const WORKSPACE_SCOPED_PERMISSIONS = new Set([
   Permission.TRACE_VIEW,
   Permission.TRACE_DELETE,
   Permission.DASHBOARD_VIEW,
+  Permission.MISSION_COMMAND,
+  Permission.ACTION_DISPATCH,
+  Permission.ACTION_FINANCIAL,
+  Permission.ACTION_INFRA,
 ]);
