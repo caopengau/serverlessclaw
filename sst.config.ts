@@ -76,8 +76,15 @@ export default $config({
     const { createDashboard } = await import('./packages/infra/dashboard.js');
 
     // 1. Storage & Secrets
-    const { memoryTable, traceTable, configTable, stagingBucket, knowledgeBucket, secrets } =
-      createStorage();
+    const {
+      memoryTable,
+      traceTable,
+      configTable,
+      stagingBucket,
+      knowledgeBucket,
+      dataLakeBucket,
+      secrets,
+    } = createStorage();
 
     // 2. Multi-Agent Orchestration (EventBridge)
     const { bus, realtime, dlq } = createBus();
@@ -124,6 +131,7 @@ export default $config({
         configTable,
         stagingBucket,
         knowledgeBucket,
+        dataLakeBucket,
         secrets,
         bus,
         deployer,

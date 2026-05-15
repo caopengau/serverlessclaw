@@ -20,6 +20,7 @@
 | [docs/interface/COLLABORATION.md](./docs/interface/COLLABORATION.md) | Shared sessions, Workspaces, RBAC, and human-in-the-loop chat              |
 | [docs/intelligence/MEMORY.md](./docs/intelligence/MEMORY.md)         | Understand the tiered memory system, recall mechanism, and storage options |
 | [docs/system/PROVISIONING.md](./docs/system/PROVISIONING.md)         | Setup infrastructure, storage, resources, and environments                 |
+| [docs/architecture/EVALS_AND_TUNING.md](./docs/architecture/EVALS_AND_TUNING.md) | Architecture for Quantitative Evals and Fine-Tuning Pipelines              |
 | [docs/system/RESILIENCE.md](./docs/system/RESILIENCE.md)             | Circuit breakers, Dead Man's Switch, and self-healing loops                |
 | [docs/intelligence/SAFETY.md](./docs/intelligence/SAFETY.md)         | Understand guardrails, safety tiers, and policy enforcement                |
 | [docs/interface/EVENTS.md](./docs/interface/EVENTS.md)               | Understand event routing, bus logic, and DLQ handling                      |

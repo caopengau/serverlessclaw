@@ -2,6 +2,7 @@ import { PutCommand, UpdateCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { logger } from '../logger';
 import { getDocClient, getMemoryTableName } from '../utils/ddb-client';
 import { TIME } from '../constants';
+import { exportToDataLake } from '../tracer/data-lake';
 
 const docClient = getDocClient();
 
@@ -112,6 +113,14 @@ export class TokenTracker {
           )
         )
       );
+
+      // S3 Data Lake Export (SONA Loop Phase A)
+      // Done asynchronously to avoid blocking the critical path
+      if (record.success && record.traceId) {
+        exportToDataLake(record.traceId, scope?.workspaceId, record as TokenUsageRecord).catch(
+          (err) => logger.debug('Data Lake export failed in background', err)
+        );
+      }
     } catch (e) {
       logger.warn('Failed to record token invocation:', e);
     }

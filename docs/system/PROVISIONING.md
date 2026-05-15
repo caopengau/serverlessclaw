@@ -17,7 +17,7 @@ Serverless Claw is built on AWS using the **SST (Serverless Stack)** framework. 
 | **Events**    | EventBridge      | Asynchronous "AgentBus" orchestration   |
 | **Real-time** | IoT Core (MQTT)  | Low-latency signals to the dashboard    |
 | **Secrets**   | SM / SST Secrets | Secure storage for API keys and tokens  |
-| **Storage**   | Amazon S3        | Knowledge vectors and trace archival    |
+| **Storage**   | Amazon S3        | Knowledge vectors, JIT media, and Data Lake fine-tuning traces |
 | **UI**        | Next.js (SST)    | The ClawCenter dashboard                |
 | **CI/CD**     | AWS CodeBuild    | The autonomous `Deployer` for recovery  |
 
@@ -27,13 +27,16 @@ Serverless Claw is built on AWS using the **SST (Serverless Stack)** framework. 
 
 Data is partitioned to ensure strict multi-tenant isolation and millisecond-level retrieval.
 
-### Primary Tables
+### Primary Tables & Storage
 
-| Table           | Key Pattern                    | Purpose                                          |
-| :-------------- | :----------------------------- | :----------------------------------------------- |
-| **MemoryTable** | `PK: userId`, `SK: timestamp`  | Long-term facts, lessons, and sessions           |
-| **ConfigTable** | `PK: configId`                 | Global system settings and circuit breaker state |
-| **TraceTable**  | `PK: traceId`, `SK: timestamp` | Granular execution logs for all agents           |
+| Resource | Key Pattern / Scope | Purpose |
+| :------- | :------------------ | :------ |
+| **MemoryTable** (DDB) | `PK: userId`, `SK: timestamp`  | Long-term facts, lessons, and sessions           |
+| **ConfigTable** (DDB) | `PK: configId`                 | Global system settings and circuit breaker state |
+| **TraceTable**  (DDB) | `PK: traceId`, `SK: timestamp` | Granular execution logs for all agents           |
+| **StagingBucket** (S3) | Temporary / JIT | File uploads waiting to be processed (30-day TTL) |
+| **KnowledgeBucket** (S3) | Persistent / Vectors | Document storage for RAG and long-term files |
+| **DataLakeBucket** (S3) | `tuning-traces/` | High-quality, anonymized trace exports for fine-tuning (365-day TTL) |
 
 > [!TIP]
 > Use the `Memory Management` dashboard sector to audit and prune stale memories.

@@ -29,7 +29,16 @@ export function createAgents(
   options: { pathPrefix?: string } = {}
 ): AgentFunctionResources {
   const prefix = options.pathPrefix ?? '';
-  const { memoryTable, traceTable, configTable, knowledgeBucket, secrets, bus, dlq } = ctx;
+  const {
+    memoryTable,
+    traceTable,
+    configTable,
+    knowledgeBucket,
+    dataLakeBucket,
+    secrets,
+    bus,
+    dlq,
+  } = ctx;
 
   const validSecrets = getValidSecrets(secrets);
   const liveInLocalOnly = $app.stage === 'local' ? undefined : false;
@@ -48,6 +57,7 @@ export function createAgents(
     traceTable,
     configTable,
     knowledgeBucket,
+    dataLakeBucket,
     ...validSecrets,
     ...(ctx.realtime ? [ctx.realtime] : []),
   ];
