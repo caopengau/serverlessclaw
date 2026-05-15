@@ -90,6 +90,14 @@ TraceIntelligenceView (Parent)
 - **Modular State Management**: Shared types and filtering logic are encapsulated in `components/TraceIntelligence/types.ts`.
 - **Enriched Telemetry**: Each trace is augmented with `toolsUsed`, `totalTokens`, and model attribution during the render phase for high-fidelity auditing.
 
+### 5. Neural Tuning Ground
+
+A Human-in-the-Loop (HITL) curation queue designed to support the system's fine-tuning pipelines.
+
+- **Trace Curation**: Allows administrators to review, approve, or reject high-quality execution traces stored in the Data Lake.
+- **Dataset Export**: Enables exporting approved traces in JSONL format for offline analysis or manual training.
+- **Fine-Tuning Trigger**: Provides a centralized action to trigger specialized model fine-tuning jobs (e.g., via AWS Bedrock) once a critical mass of verified traces is curated.
+
 ---
 
 ### Real-time Communication (MQTT)

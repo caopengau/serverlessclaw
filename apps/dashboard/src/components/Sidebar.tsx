@@ -15,6 +15,7 @@ import {
   Brain,
   Wrench,
   Server,
+  Database,
   Calendar,
   BrainCircuit,
   Building2,
@@ -141,6 +142,13 @@ export default function Sidebar() {
       subtitle: t('AGENTS_SUBTITLE'),
       icon: Users,
       requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
+    },
+    {
+      href: ROUTES.TUNING,
+      label: t('TUNING'),
+      subtitle: 'Neural Tuning Ground',
+      icon: Database,
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER],
     },
     {
       href: ROUTES.MEMORY,
