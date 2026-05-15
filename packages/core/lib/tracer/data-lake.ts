@@ -1,7 +1,7 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Resource } from 'sst';
 import { logger } from '../logger';
-import { TokenUsageRecord } from '../metrics/token-usage';
+import type { TokenUsageRecord } from '../metrics/token-usage';
 import { filterPIIFromObject } from '../utils/pii';
 import { TRACE_STATUS } from '../constants';
 import { ClawTracer } from './tracer-implementation';
