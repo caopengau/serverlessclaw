@@ -123,62 +123,13 @@ export function getTenantEventFilter(options: {
  * @param component - The component to get the domain for ('api' | 'dashboard' | 'router' | 'landing').
  * @returns The domain configuration or undefined if not set.
  */
-export function getDomainConfig(component: 'api' | 'dashboard' | 'router' | 'landing'):
+export function getDomainConfig(_component: 'api' | 'dashboard' | 'router' | 'landing'):
   | {
       name: string;
       dns?: ReturnType<typeof sst.cloudflare.dns>;
       cert?: string;
     }
   | undefined {
-  // Only use custom domains for production stage to avoid conflicts
-  // API Gateway domain names are global within an AWS account
-  // DNS records in Cloudflare must also be unique
-  // Check multiple ways to get the stage for robustness
-  const stage = $app.stage;
-
-  // Use custom domains for dev and prod stages
-  if (stage !== STAGES.PROD && stage !== STAGES.DEV) {
-    return undefined;
-  }
-
-  const envVarMap: Record<string, string> = {
-    api: 'CLAW_DOMAIN_API',
-    dashboard: 'CLAW_DOMAIN_DASHBOARD',
-    router: 'CLAW_DOMAIN_ROUTER',
-    landing: 'CLAW_DOMAIN_LANDING',
-  };
-  const envVar = envVarMap[component];
-  const domain = process.env[envVar]?.trim();
-  // No OSS fallback domain — must be configured via CLAW_DOMAIN_* env vars
-  // Use custom domains if provided in .env
-  if (!domain) return undefined;
-
-  const zoneId = process.env.CLOUDFLARE_ZONE_ID;
-  const acmCertificateArn = process.env.ACM_CERTIFICATE_ARN;
-
-  const config: {
-    name: string;
-    dns?: ReturnType<typeof sst.cloudflare.dns>;
-    cert?: string;
-  } = {
-    name: domain,
-  };
-
-  if (zoneId) {
-    /* 
-    config.dns = sst.cloudflare.dns({
-      zone: zoneId,
-    });
-    */
-  } else if (stage === STAGES.PROD) {
-    // In prod, if a domain is defined but no zone ID is present, it's an error.
-    // This maintains the "Cloudflare controls it" constraint.
-    console.warn(`[WARNING] Missing CLOUDFLARE_ZONE_ID for domain ${domain} in stage ${stage}.`);
-  }
-
-  if (acmCertificateArn) {
-    config.cert = acmCertificateArn;
-  }
-
-  return config;
+  // CUSTOM_DOMAIN_BYPASS: Temporarily disabled to bypass Cloudflare conflicts
+  return undefined;
 }
