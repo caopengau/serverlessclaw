@@ -35,7 +35,7 @@ deploy: ## Deploy SST to the environment (default: prod) - WITH FAIL-FAST CHECKS
 		$(call log_info,[DEPLOY STEP 3/4] Running post-deploy CloudFront fix...) && \
 		APP_NAME=$$(jq -r .name package.json 2>/dev/null || echo 'serverlessclaw') && \
 		$(call log_info,Resolved APP_NAME=$$APP_NAME from package.json) && \
-		$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/fix-cloudfront-deploy.ts $(ENV) $$APP_NAME ClawCenter && \
+		$(PNPM) exec tsx $(SCRIPTS_DIR)/quality/fix-cloudfront-deploy.ts $(ENV) $$APP_NAME MissionControl && \
 		$(call log_success,[DEPLOY STEP 3/4] CloudFront configuration updated) && \
 		$(call log_info,[DEPLOY STEP 4/4] Running post-deploy verification...) && \
 		$(MAKE) verify-deploy && \
