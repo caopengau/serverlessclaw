@@ -165,9 +165,11 @@ export function getDomainConfig(component: 'api' | 'dashboard' | 'router' | 'lan
   };
 
   if (zoneId) {
+    /* 
     config.dns = sst.cloudflare.dns({
       zone: zoneId,
     });
+    */
   } else if (stage === STAGES.PROD) {
     // In prod, if a domain is defined but no zone ID is present, it's an error.
     // This maintains the "Cloudflare controls it" constraint.
