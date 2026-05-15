@@ -49,4 +49,5 @@ SuperClaw acts as the facilitator for the tuning process. It is equipped with ad
 1. **Phase A:** Extend `TokenTracker` and `ClawTracer` to write to the S3 Data Lake (JSONL).
 2. **Phase B:** Build the `claw eval` CLI harness and integrate LLM-as-a-judge scoring.
 3. **Phase C:** Develop the Tuning Ground Dashboard sector.
-4. **Phase D:** Integrate Bedrock/OpenAI fine-tuning API triggers.
+4. **Phase D:** Integrate provider-agnostic fine-tuning API triggers (DeepSeek, MiniMax, etc.).
+ne-tuning API triggers.

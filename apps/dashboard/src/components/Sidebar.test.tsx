@@ -100,6 +100,7 @@ vi.mock('lucide-react', () => ({
   Brain: () => <div data-testid="icon-brain" />,
   Wrench: () => <div data-testid="icon-wrench" />,
   Server: () => <div data-testid="icon-server" />,
+  Database: () => <div data-testid="icon-database" />,
   Calendar: () => <div data-testid="icon-calendar" />,
   BrainCircuit: () => <div data-testid="icon-brain-circuit" />,
   Building2: () => <div data-testid="icon-building" />,

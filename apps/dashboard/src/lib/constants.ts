@@ -91,6 +91,7 @@ export const UI_STRINGS = {
   OBSERVABILITY: 'OBSERVABILITY',
   WORKSPACES: 'WORKSPACES',
   CONSENSUS: 'CONSENSUS',
+  TUNING: 'TUNING',
   NODE_STATUS: 'CORE_SYNC',
   SYSTEM_ONLINE: 'LINK_ESTABLISHED',
   SYSTEM_OFFLINE: 'LINK_INTERRUPTED',
@@ -115,4 +116,5 @@ export const ROUTES = {
   OBSERVABILITY: '/observability',
   WORKSPACES: '/workspaces',
   COLLABORATION: '/collaboration',
+  TUNING: '/tuning',
 } as const;

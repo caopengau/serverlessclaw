@@ -11,6 +11,7 @@ This CLI is the primary interface for triggering the **Issue-Driven Sync** proto
 - **Repository Sync**: Harmonize local changes with the Mother Hub via `subtree` or `fork` methods.
 - **Verification**: Perform dry-runs and conflict checks before applying updates.
 - **AI-Readiness Scanning**: Enforce system-wide documentation and code standards using the `aiready` suite.
+- **Integrated Quantitative Evals**: Run `claw eval` to execute Test-Driven Agent Development (TDAD) suites and score agent logic using an LLM-as-a-judge.
 
 ## 🛠 Usage
 
@@ -18,10 +19,13 @@ The CLI is typically invoked via `npx` or `pnpm`:
 
 ```bash
 # Sync with hub
-pnpm run cli --hub <owner/repo> --prefix core/
+pnpm run cli sync --hub <owner/repo> --prefix core/
 
 # Check sync feasibility
-pnpm run cli --hub <owner/repo> --check
+pnpm run cli sync --hub <owner/repo> --check
+
+# Run evaluation suite
+pnpm run cli eval --suite default
 ```
 
 ## 📂 Structure
