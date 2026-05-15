@@ -1,23 +1,26 @@
-import SUPERCLAW_SYSTEM_PROMPT from './superclaw.md';
-import CODER_SYSTEM_PROMPT from './coder.md';
-import PLANNER_SYSTEM_PROMPT from './planner.md';
-import REFLECTOR_SYSTEM_PROMPT from './reflector.md';
-import QA_SYSTEM_PROMPT from './qa.md';
-import CRITIC_SYSTEM_PROMPT from './critic.md';
-import FACILITATOR_SYSTEM_PROMPT from './facilitator.md';
-import MERGER_SYSTEM_PROMPT from './merger.md';
-import RESEARCHER_SYSTEM_PROMPT from './researcher.md';
-import JUDGE_SYSTEM_PROMPT from './judge.md';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-export {
-  SUPERCLAW_SYSTEM_PROMPT,
-  CODER_SYSTEM_PROMPT,
-  PLANNER_SYSTEM_PROMPT,
-  REFLECTOR_SYSTEM_PROMPT,
-  QA_SYSTEM_PROMPT,
-  CRITIC_SYSTEM_PROMPT,
-  FACILITATOR_SYSTEM_PROMPT,
-  MERGER_SYSTEM_PROMPT,
-  RESEARCHER_SYSTEM_PROMPT,
-  JUDGE_SYSTEM_PROMPT,
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const readPrompt = (filename: string) => {
+  try {
+    return fs.readFileSync(path.join(__dirname, filename), 'utf-8');
+  } catch (err) {
+    console.error(`Failed to read prompt file: ${filename}`, err);
+    return '';
+  }
 };
+
+export const SUPERCLAW_SYSTEM_PROMPT = readPrompt('superclaw.md');
+export const CODER_SYSTEM_PROMPT = readPrompt('coder.md');
+export const PLANNER_SYSTEM_PROMPT = readPrompt('planner.md');
+export const REFLECTOR_SYSTEM_PROMPT = readPrompt('reflector.md');
+export const QA_SYSTEM_PROMPT = readPrompt('qa.md');
+export const CRITIC_SYSTEM_PROMPT = readPrompt('critic.md');
+export const FACILITATOR_SYSTEM_PROMPT = readPrompt('facilitator.md');
+export const MERGER_SYSTEM_PROMPT = readPrompt('merger.md');
+export const RESEARCHER_SYSTEM_PROMPT = readPrompt('researcher.md');
+export const JUDGE_SYSTEM_PROMPT = readPrompt('judge.md');

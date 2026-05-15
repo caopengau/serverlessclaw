@@ -14,7 +14,53 @@ export { CachedMemory } from './cached-memory';
  */
 export class DynamoMemory extends DynamoMemoryCollaboration implements IMemory {
   /**
+   * Retrieves a single item by PK and SK.
+   */
+  async get(userId: string, timestamp: number | string) {
+    const { GetCommand } = await import('@aws-sdk/lib-dynamodb');
+    const response = await this.docClient.send(
+      new GetCommand({
+        TableName: this.tableName,
+        Key: { userId, timestamp },
+      })
+    );
+    return response.Item;
+  }
+
+  /**
+   * Puts a complete item into the memory table.
+   */
+  async put(item: Record<string, unknown>) {
+    return this.putItem(item);
+  }
+
+  /**
+   * Queries items by PK and SK prefix.
+   */
+  async query(userId: string, prefix: string) {
+    return this.queryItems({
+      KeyConditionExpression: 'userId = :userId AND begins_with(#ts, :prefix)',
+      ExpressionAttributeNames: {
+        '#ts': 'timestamp',
+      },
+      ExpressionAttributeValues: {
+        ':userId': userId,
+        ':prefix': prefix,
+      },
+    });
+  }
+
+  /**
+   * Deletes an item by PK and SK.
+   */
+  async delete(userId: string, timestamp: number | string) {
+    return this.deleteItem({ userId, timestamp });
+  }
+
+  /**
    * Gets cache statistics for monitoring.
+[... unchanged lines ...]
+
    * Implementation is currently a placeholder as DynamoMemory is stateless.
    */
   getCacheStats() {
