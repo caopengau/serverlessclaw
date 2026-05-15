@@ -1,10 +1,13 @@
 import { Command } from 'commander';
 import { runSync } from './commands/sync.js';
+import { runEval } from './commands/eval.js';
 
 const program = new Command();
 
+program.name('claw').description('ServerlessClaw CLI for syncing and evaluation').version('1.0.0');
+
 program
-  .name('claw-sync')
+  .command('sync')
   .description('Sync your repository with the ServerlessClaw Mother Hub')
   .requiredOption('--hub <owner/repo>', 'Hub repository in format owner/repo')
   .option('--action <action>', 'Sync action: pull (update) or push (contribute)', 'pull')
@@ -21,23 +24,36 @@ program
   .option('--json', 'Output results as JSON')
   .option('--dry-run', 'Validate sync without making changes')
   .option('--verbose', 'Verbose output')
-  .parse(process.argv);
+  .action((options) => {
+    runSync({
+      action: options.action,
+      branch: options.branch,
+      hub: options.hub,
+      prefix: options.prefix,
+      method: options.method,
+      workingDir: options.workingDir,
+      check: options.check,
+      abortOnConflict: options.abortOnConflict,
+      json: options.json,
+      dryRun: options.dryRun,
+      verbose: options.verbose,
+    }).catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+  });
 
-const options = program.opts();
+program
+  .command('eval')
+  .description('Run Integrated Quantitative Evals (TDAD)')
+  .option('--suite <suite>', 'Eval suite to run', 'default')
+  .option('--json', 'Output results as JSON')
+  .option('--verbose', 'Verbose output')
+  .action((options) => {
+    runEval(options).catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+  });
 
-runSync({
-  action: options.action,
-  branch: options.branch,
-  hub: options.hub,
-  prefix: options.prefix,
-  method: options.method,
-  workingDir: options.workingDir,
-  check: options.check,
-  abortOnConflict: options.abortOnConflict,
-  json: options.json,
-  dryRun: options.dryRun,
-  verbose: options.verbose,
-}).catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+program.parse(process.argv);

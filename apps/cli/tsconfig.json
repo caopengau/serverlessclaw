@@ -3,9 +3,13 @@
   "compilerOptions": {
     "outDir": "dist",
     "noEmit": false,
-    "rootDir": "src",
+    "rootDir": "../../",
     "allowImportingTsExtensions": false
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts",
+    "../../packages/core/lib/types/sst.d.ts",
+    "../../packages/core/lib/types/markdown-module.ts"
+  ],
   "exclude": ["node_modules", "dist"]
 }

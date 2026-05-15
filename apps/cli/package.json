@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "description": "CLI tool for managing and syncing serverlessclaw agentic stack.",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/apps/cli/src/index.js",
   "bin": {
-    "claw-sync": "dist/bin.js"
+    "claw": "dist/apps/cli/src/bin.js",
+    "claw-sync": "dist/apps/cli/src/bin.js"
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/bin.js",
+    "build": "tsc && chmod +x dist/apps/cli/src/bin.js",
     "dev": "tsc -w",
     "test": "vitest run",
     "test-silent": "vitest run --reporter=dot",
