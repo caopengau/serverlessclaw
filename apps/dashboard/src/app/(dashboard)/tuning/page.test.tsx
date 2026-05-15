@@ -77,4 +77,21 @@ describe('Tuning Ground Page', () => {
       'Insufficient approved traces. Require at least 10 to trigger fine-tuning.'
     );
   });
+
+  it('renders the provider selection dropdown', async () => {
+    render(<TuningGroundPage />);
+
+    const select = screen.getByRole('combobox');
+    expect(select).toBeInTheDocument();
+    expect(select).toHaveValue('DeepSeek v4 Flash');
+  });
+
+  it('allows changing the provider selection', async () => {
+    render(<TuningGroundPage />);
+
+    const select = screen.getByRole('combobox');
+    fireEvent.change(select, { target: { value: 'MiniMax 2.7' } });
+
+    expect(select).toHaveValue('MiniMax 2.7');
+  });
 });
