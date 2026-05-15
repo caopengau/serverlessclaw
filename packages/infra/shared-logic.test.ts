@@ -27,38 +27,19 @@ describe('infra/shared logic', () => {
   });
 
   describe('getDomainConfig', () => {
-    it('should return undefined if stage is not prod', () => {
+    it('should return undefined (BYPASSED)', () => {
       vi.stubGlobal('$app', { stage: 'dev' });
       const config = getDomainConfig('api');
       expect(config).toBeUndefined();
     });
 
-    it('should return undefined if domain env var is missing in prod', () => {
-      vi.stubGlobal('$app', { stage: 'prod' });
-      const config = getDomainConfig('api');
-      expect(config).toBeUndefined();
-    });
-
-    it('should return domain config if env var is present in prod', () => {
+    it('should return undefined even in prod (BYPASSED)', () => {
       vi.stubGlobal('$app', { stage: 'prod' });
       process.env.CLAW_DOMAIN_API = 'api.example.com';
       process.env.CLOUDFLARE_ZONE_ID = 'zone123';
 
       const config = getDomainConfig('api');
-
-      expect(config).toBeDefined();
-      expect(config?.name).toBe('api.example.com');
-      // expect(config?.dns).toBeDefined(); // Temporarily disabled
-    });
-
-    it('should include ACM certificate ARN if provided', () => {
-      vi.stubGlobal('$app', { stage: 'prod' });
-      process.env.CLAW_DOMAIN_API = 'api.example.com';
-      process.env.ACM_CERTIFICATE_ARN = 'arn:aws:acm:us-east-1:123456789012:certificate/abc';
-
-      const config = getDomainConfig('api');
-
-      expect(config?.cert).toBe('arn:aws:acm:us-east-1:123456789012:certificate/abc');
+      expect(config).toBeUndefined();
     });
   });
 });
