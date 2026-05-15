@@ -115,7 +115,7 @@ describe('Trace API - DELETE', () => {
   });
 
   it('handles "all" traceId purge with workspace scoping', async () => {
-    ddbMock.on(ScanCommand).resolves({
+    ddbMock.on(QueryCommand).resolves({
       Items: [{ traceId: 't1', nodeId: 'n1' }],
       LastEvaluatedKey: undefined,
     });
@@ -127,10 +127,11 @@ describe('Trace API - DELETE', () => {
     const res = await DELETE(req);
     expect(res.status).toBe(200);
 
-    // Verify ScanCommand had the workspace filter
-    const scanCall = ddbMock.commandCalls(ScanCommand)[0];
-    expect(scanCall.args[0].input.FilterExpression).toContain('workspaceId = :ws');
-    expect(scanCall.args[0].input.ExpressionAttributeValues?.[':ws']).toBe('ws-1');
+    // Verify QueryCommand had the workspace index and filter
+    const queryCall = ddbMock.commandCalls(QueryCommand)[0];
+    expect(queryCall.args[0].input.IndexName).toBe('WorkspaceSummaryIndex');
+    expect(queryCall.args[0].input.KeyConditionExpression).toContain('workspaceId = :ws');
+    expect(queryCall.args[0].input.ExpressionAttributeValues?.[':ws']).toBe('ws-1');
   });
 
   it('handles DynamoDB errors', async () => {
