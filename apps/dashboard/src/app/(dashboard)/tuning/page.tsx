@@ -19,6 +19,7 @@ interface TuningTrace {
 export default function TuningGroundPage() {
   const [traces, setTraces] = useState<TuningTrace[]>([]);
   const [loading, setLoading] = useState(true);
+  const [targetProvider, setTargetProvider] = useState('DeepSeek v4 Flash');
 
   // Mock fetching traces from the DataLake API
   useEffect(() => {
@@ -62,7 +63,7 @@ export default function TuningGroundPage() {
       toast.error('Insufficient approved traces. Require at least 10 to trigger fine-tuning.');
       return;
     }
-    toast.success('Fine-tuning job triggered on AWS Bedrock.');
+    toast.success(`Fine-tuning job triggered on ${targetProvider}.`);
   };
 
   return (
@@ -82,6 +83,14 @@ export default function TuningGroundPage() {
         </div>
 
         <div className="flex items-center gap-3">
+          <select
+            value={targetProvider}
+            onChange={(e) => setTargetProvider(e.target.value)}
+            className="bg-background border border-border text-sm rounded-md px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-cyber-green"
+          >
+            <option value="DeepSeek v4 Flash">DeepSeek v4 Flash</option>
+            <option value="MiniMax 2.7">MiniMax 2.7</option>
+          </select>
           <Button
             variant="outline"
             icon={<Download size={16} />}

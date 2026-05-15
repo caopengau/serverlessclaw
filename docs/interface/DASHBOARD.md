@@ -96,7 +96,7 @@ A Human-in-the-Loop (HITL) curation queue designed to support the system's fine-
 
 - **Trace Curation**: Allows administrators to review, approve, or reject high-quality execution traces stored in the Data Lake.
 - **Dataset Export**: Enables exporting approved traces in JSONL format for offline analysis or manual training.
-- **Fine-Tuning Trigger**: Provides a centralized action to trigger specialized model fine-tuning jobs (e.g., via AWS Bedrock) once a critical mass of verified traces is curated.
+- **Fine-Tuning Trigger**: Provides a centralized action to trigger specialized model fine-tuning jobs (supporting DeepSeek v4 Flash, MiniMax 2.7, etc.) once a critical mass of verified traces is curated.
 
 ---
 
