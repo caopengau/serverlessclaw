@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# branding
+/public/branding/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
