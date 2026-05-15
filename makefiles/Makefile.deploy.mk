@@ -45,12 +45,20 @@ deploy: ## Deploy SST to the environment (default: prod) - WITH FAIL-FAST CHECKS
 		$(call log_success,SST deploy to $(ENV) completed successfully); \
 	else \
 		$(call log_error,SST deploy to $(ENV) failed); \
+		$(call log_warning,If the failure was 'record already exists' or a state drift issue, run:); \
+		$(call log_warning,  make heal ENV=$(ENV)); \
 		exit 1; \
 	fi
 
 diff: ## Show SST infrastructure changes
 	@$(call log_info,SST diff for $(ENV)...)
 	@$(call load_env); $(SST) diff --stage $(ENV)
+
+heal: ## Attempt to automatically fix Infrastructure as Code (IaC) state drift
+	@$(call log_step,Attempting to reconcile IaC state for environment: $(ENV)...)
+	@$(call log_warning,This will query actual AWS/Cloudflare resources and update the local state file.)
+	@$(call load_env); $(SST) refresh --stage $(ENV)
+	@$(call log_success,State reconciliation complete. You can now retry the deployment.)
 
 synth: ## Synthesize SST resources (mapped to sst diff in v4)
 	@$(call log_info,Validating SST resources for $(ENV)...)
