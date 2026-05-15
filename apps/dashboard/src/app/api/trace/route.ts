@@ -69,10 +69,11 @@ export async function DELETE(req: NextRequest): Promise<NextResponse> {
       try {
         do {
           const scanRes = await docClient.send(
-            new ScanCommand({
+            new QueryCommand({
               TableName: tableName,
+              IndexName: 'WorkspaceSummaryIndex',
               ExclusiveStartKey: lastKey,
-              FilterExpression: 'workspaceId = :ws',
+              KeyConditionExpression: 'workspaceId = :ws',
               ExpressionAttributeValues: {
                 ':ws': workspaceId,
               },
