@@ -33,7 +33,7 @@ export const SYSTEM = {
     ROUTER: 'router',
     BUS: 'bus',
   },
-  DEFAULT_GITHUB_REPO: 'serverlessclaw/serverlessclaw',
+  DEFAULT_GITHUB_REPO: process.env.GITHUB_REPO || 'owner/repo',
 } as const;
 
 /**

@@ -19,7 +19,7 @@ export function createBilling() {
   const billingTopic = new sst.aws.SnsTopic('BillingAlerts', {
     transform: {
       topic: (args) => {
-        args.displayName = 'Claw Billing Alerts';
+        args.displayName = 'System Billing Alerts';
       },
     },
   });

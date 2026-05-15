@@ -127,7 +127,7 @@ export class MCPClientManager {
     } as any);
 
     const newClient = new Client(
-      { name: 'ServerlessClaw-Client', version: '1.0.0' },
+      { name: 'Framework-MCP-Client', version: '1.0.0' },
       { capabilities: {} }
     );
 

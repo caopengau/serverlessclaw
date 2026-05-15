@@ -5,7 +5,7 @@
 import { persistToDynamoDB } from './persistence';
 import { MetricDatum } from './types';
 
-const NAMESPACE = process.env.SST_APP || 'ServerlessClaw';
+const NAMESPACE = process.env.SST_APP || 'Framework';
 
 interface CloudWatchClientType {
   send: (command: unknown) => Promise<unknown>;

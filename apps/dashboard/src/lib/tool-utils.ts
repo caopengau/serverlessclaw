@@ -16,12 +16,14 @@ interface GetAllToolsOptions {
  * Retrieves the usage statistics for all tools.
  * @returns A record mapping tool names to their usage count and last-used timestamp.
  */
-export async function getToolUsage(): Promise<Record<string, { count: number; lastUsed: number }>> {
+export async function getToolUsage(options?: {
+  workspaceId?: string;
+}): Promise<Record<string, { count: number; lastUsed: number }>> {
   try {
     const { AgentRegistry } = await import('@claw/core/lib/registry');
     const { DYNAMO_KEYS } = await import('@claw/core/lib/constants');
     return (
-      ((await AgentRegistry.getRawConfig(DYNAMO_KEYS.TOOL_USAGE)) as Record<
+      ((await AgentRegistry.getRawConfig(DYNAMO_KEYS.TOOL_USAGE, options)) as Record<
         string,
         { count: number; lastUsed: number }
       >) ?? {}
@@ -40,9 +42,9 @@ export async function getToolUsage(): Promise<Record<string, { count: number; la
  */
 export async function getAllTools(
   usage: Record<string, { count: number; lastUsed: number }>,
-  options: GetAllToolsOptions = {}
+  options: GetAllToolsOptions & { workspaceId?: string } = {}
 ) {
-  const { forceRefresh = false } = options;
+  const { forceRefresh = false, workspaceId } = options;
 
   try {
     const { MCPMultiplexer } = await import('@claw/core/lib/mcp');
@@ -58,19 +60,27 @@ export async function getAllTools(
     // 2. MCP tools (use cache by default for dashboard speed)
     let externalToolsDefinitions: { name: string; description: string }[] = [];
     if (forceRefresh) {
-      externalToolsDefinitions = (await MCPMultiplexer.getExternalTools()) as {
+      externalToolsDefinitions = (await MCPMultiplexer.getExternalTools(
+        undefined,
+        false,
+        workspaceId
+      )) as {
         name: string;
         description: string;
       }[];
     } else {
-      externalToolsDefinitions = (await MCPMultiplexer.getCachedTools()) as {
+      externalToolsDefinitions = (await MCPMultiplexer.getCachedTools(workspaceId)) as {
         name: string;
         description: string;
       }[];
       // If cache is empty, use skipConnection mode to avoid timeout and ENOSPC
       // This shows server names without actually connecting to them (no npx execution)
       if (externalToolsDefinitions.length === 0) {
-        externalToolsDefinitions = (await MCPMultiplexer.getExternalTools(undefined, true)) as {
+        externalToolsDefinitions = (await MCPMultiplexer.getExternalTools(
+          undefined,
+          true,
+          workspaceId
+        )) as {
           name: string;
           description: string;
         }[];

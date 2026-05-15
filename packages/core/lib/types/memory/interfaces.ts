@@ -191,6 +191,7 @@ export interface IMemory extends IHistoryStore, IKnowledgeStore, IGapManager {
           category?: InsightCategory;
           limit?: number;
           scope?: ContextualScope;
+          userId?: string;
         },
     queryText?: string,
     category?: InsightCategory,

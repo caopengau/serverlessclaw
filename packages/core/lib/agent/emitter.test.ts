@@ -339,7 +339,7 @@ describe('AgentEmitter', () => {
         initiatorId: 'orchestrator',
       });
       const payload = mockPublishToRealtime.mock.calls[0][1];
-      expect(payload.messageId).toBe('trace1-superclaw');
+      expect(payload.messageId).toBe('trace1-orchestrator');
     });
 
     it('uses traceId as messageId for root agents (orchestrator)', async () => {
@@ -352,7 +352,7 @@ describe('AgentEmitter', () => {
         initiatorId: 'orchestrator',
       });
       const payload = mockPublishToRealtime.mock.calls[0][1];
-      expect(payload.messageId).toBe('trace1-superclaw');
+      expect(payload.messageId).toBe('trace1-orchestrator');
     });
 
     it('uses traceId-agentId as messageId for worker agents (no superclaw/orchestrator)', async () => {
@@ -447,7 +447,7 @@ describe('AgentEmitter', () => {
         initiatorId: 'orchestrator',
       });
       const payload = mockPublishToRealtime.mock.calls[0][1];
-      expect(payload.messageId).toBe('trace1-superclaw');
+      expect(payload.messageId).toBe('trace1-orchestrator');
     });
 
     it('includes correct detail-type', async () => {

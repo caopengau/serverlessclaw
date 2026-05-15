@@ -276,7 +276,7 @@ export async function* handleStream(
           role: MessageRole.ASSISTANT,
           content: fullContent,
           thought: fullThought,
-          agentName: agent.config?.name ?? AGENT_SYSTEM_IDS.SUPERCLAW,
+          agentName: agent.config?.name ?? 'System Orchestrator',
           traceId,
           messageId: assistantMessageId,
           modelName: finalModel ?? AGENT_SYSTEM_IDS.UNKNOWN,

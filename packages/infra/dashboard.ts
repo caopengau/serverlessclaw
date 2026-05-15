@@ -27,7 +27,7 @@ export function createDashboard(
     heartbeatHandler,
   } = ctx;
 
-  const dashboard = new sst.aws.Nextjs('ClawCenter', {
+  const dashboard = new sst.aws.Nextjs('MissionControl', {
     path: `${prefix}apps/dashboard`,
     domain: getDomainConfig('dashboard'),
     // Disable warmer to save SQS requests/costs

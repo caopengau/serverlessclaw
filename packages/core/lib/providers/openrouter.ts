@@ -15,8 +15,8 @@ import { normalizeProfile, capEffort, resolveProviderApiKey } from './utils';
 
 // --- Constants and Configuration ---
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const PROJECT_REFERER = 'https://github.com/serverlessclaw/serverlessclaw';
-const PROJECT_TITLE = 'Serverless Claw';
+const PROJECT_REFERER = process.env.PROJECT_REFERER || 'https://github.com/framework/core';
+const PROJECT_TITLE = process.env.PROJECT_TITLE || 'AI Framework Assistant';
 const DEFAULT_DYNAMIC_THRESHOLD = 0.3;
 
 /**

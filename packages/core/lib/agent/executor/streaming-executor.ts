@@ -37,7 +37,7 @@ export class StreamingExecutor extends BaseExecutor {
 
     const agentSuffix =
       options.currentInitiator === 'orchestrator' || this.agentId === 'superclaw'
-        ? 'superclaw'
+        ? 'orchestrator'
         : this.agentId;
     const assistantMessageId = `${traceId}-${agentSuffix}`;
 

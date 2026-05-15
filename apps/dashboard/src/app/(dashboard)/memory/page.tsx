@@ -68,7 +68,8 @@ async function getMemoryData(
   activeTab: string,
   query: string,
   nextToken?: string,
-  subType?: string
+  subType?: string,
+  workspaceId?: string
 ) {
   const { DynamoMemory } = await import('@claw/core/lib/memory');
   const memory = new DynamoMemory();
@@ -92,7 +93,9 @@ async function getMemoryData(
         new ScanCommand({
           TableName: getResourceName('MemoryTable') ?? '',
           ProjectionExpression: '#tp',
+          FilterExpression: workspaceId ? 'workspaceId = :ws' : undefined,
           ExpressionAttributeNames: { '#tp': 'type' },
+          ExpressionAttributeValues: workspaceId ? { ':ws': workspaceId } : undefined,
           Limit: 100,
         })
       );
@@ -107,12 +110,22 @@ async function getMemoryData(
   const dynamicTypes = registeredTypes.filter((type) => !knownTypes.has(type)).sort();
 
   const parsedNext = decodePaginationToken(nextToken ?? '');
+  const scope = workspaceId ? { workspaceId } : undefined;
 
   // Handle Search Tab
   if (query) {
     try {
       const searchUserId = await getUserIdFromCookies();
-      const result = await memory.searchInsights(searchUserId, query, undefined, 20, parsedNext);
+      const result = await memory.searchInsights(
+        searchUserId,
+        query,
+        undefined,
+        20,
+        parsedNext,
+        undefined,
+        undefined,
+        scope
+      );
       return {
         items: (result.items || []).map(coerceToMemoryItem).filter(Boolean) as MemoryItem[],
         nextToken: encodePaginationToken(result.lastEvaluatedKey),
@@ -137,26 +150,26 @@ async function getMemoryData(
 
   // Define counts fetcher (parallel with individual error boundaries)
   const countPromises = [
-    memory.getMemoryByType('DISTILLED', 50).catch((e) => {
+    memory.getMemoryByType('DISTILLED', 50, scope).catch((e) => {
       logger.error('Count error DISTILLED:', e);
       return [];
     }),
     Promise.all([
-      memory.getMemoryByType('LESSON', 50).catch((e) => {
+      memory.getMemoryByType('LESSON', 50, scope).catch((e) => {
         logger.error('Count error LESSON:', e);
         return [];
       }),
-      memory.getMemoryByType('lesson', 50).catch((e) => {
+      memory.getMemoryByType('lesson', 50, scope).catch((e) => {
         logger.error('Count error lesson:', e);
         return [];
       }),
     ]).then(([a, b]) => [...a, ...b]),
-    memory.getMemoryByType('GAP', 50).catch((e) => {
+    memory.getMemoryByType('GAP', 50, scope).catch((e) => {
       logger.error('Count error GAP:', e);
       return [];
     }),
     ...dynamicTypes.map((t) =>
-      memory.getMemoryByType(t, 50).catch((e) => {
+      memory.getMemoryByType(t, 50, scope).catch((e) => {
         logger.error(`Count error ${t}:`, e);
         return [];
       })
@@ -169,20 +182,20 @@ async function getMemoryData(
 
   try {
     if (activeTab === 'facts') {
-      const res = await memory.getMemoryByTypePaginated('DISTILLED', 20, parsedNext);
+      const res = await memory.getMemoryByTypePaginated('DISTILLED', 20, parsedNext, scope);
       items = (res.items || []).map(coerceToMemoryItem).filter(Boolean) as MemoryItem[];
       next = res.lastEvaluatedKey;
     } else if (activeTab === 'lessons') {
       // Fetch from all three lesson sources sequentially to build a proper merged cursor
       const [resNew, resLegacy, resStandard] = await Promise.all([
         memory
-          .getMemoryByTypePaginated('LESSON', 20, parsedNext)
+          .getMemoryByTypePaginated('LESSON', 20, parsedNext, scope)
           .catch(() => ({ items: [], lastEvaluatedKey: undefined })),
         memory
-          .getMemoryByTypePaginated('lesson', 20, parsedNext)
+          .getMemoryByTypePaginated('lesson', 20, parsedNext, scope)
           .catch(() => ({ items: [], lastEvaluatedKey: undefined })),
         memory
-          .getMemoryByTypePaginated('MEMORY:TACTICAL_LESSSON', 20, parsedNext)
+          .getMemoryByTypePaginated('MEMORY:TACTICAL_LESSSON', 20, parsedNext, scope)
           .catch(() => ({ items: [], lastEvaluatedKey: undefined })),
       ]);
       const allItems = [
@@ -204,13 +217,13 @@ async function getMemoryData(
           (resStandard as { lastEvaluatedKey?: Record<string, unknown> }).lastEvaluatedKey;
       }
     } else if (activeTab === 'gaps') {
-      const res = await memory.getMemoryByTypePaginated('GAP', 20, parsedNext);
+      const res = await memory.getMemoryByTypePaginated('GAP', 20, parsedNext, scope);
       items = (res.items || []).map(coerceToMemoryItem).filter(Boolean) as MemoryItem[];
       next = res.lastEvaluatedKey;
     } else if (activeTab === 'dynamic') {
       const typeToFetch = subType || dynamicTypes[0];
       if (typeToFetch) {
-        const res = await memory.getMemoryByTypePaginated(typeToFetch, 20, parsedNext);
+        const res = await memory.getMemoryByTypePaginated(typeToFetch, 20, parsedNext, scope);
         items = (res.items || []).map(coerceToMemoryItem).filter(Boolean) as MemoryItem[];
         next = res.lastEvaluatedKey;
       }
@@ -350,20 +363,27 @@ async function updateMemoryContent(formData: FormData) {
 export default async function MemoryVault({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string; q?: string; next?: string; type?: string }>;
+  searchParams: Promise<{
+    tab?: string;
+    q?: string;
+    next?: string;
+    type?: string;
+    workspaceId?: string;
+  }>;
 }) {
   const params = await searchParams;
   const query = params.q || '';
   const activeTab = query ? 'search' : params.tab || 'facts';
   const nextToken = params.next;
   const subType = params.type;
+  const workspaceId = params.workspaceId;
 
   const {
     items,
     nextToken: next,
     dynamicTypes,
     counts,
-  } = await getMemoryData(activeTab, query, nextToken, subType);
+  } = await getMemoryData(activeTab, query, nextToken, subType, workspaceId);
 
   const tabs = [
     { id: 'facts', label: 'MEMORY_TAB_FACTS', count: counts.facts, icon: <Brain size={14} /> },

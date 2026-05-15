@@ -313,7 +313,7 @@ describe('Schema-Type Drift Detection', () => {
         message: 'Hello',
       });
 
-      expect(parsed.agentName).toBe('SuperClaw');
+      expect(parsed.agentName).toBe('System Orchestrator');
       expect(parsed.memoryContexts).toEqual([]);
       expect(parsed.attachments).toEqual([]);
     });
