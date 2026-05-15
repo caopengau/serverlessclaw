@@ -97,6 +97,22 @@ export function createStorage() {
     },
   });
 
+  const dataLakeBucket = new sst.aws.Bucket('DataLakeBucket', {
+    transform: {
+      bucket: {
+        lifecycleRules: [
+          {
+            id: 'expire-tuning-traces',
+            enabled: true,
+            expiration: {
+              days: 365,
+            },
+          },
+        ],
+      },
+    },
+  });
+
   // Base secrets (always required in non-local stages)
   const baseSecretNames = [
     'TelegramBotToken',
@@ -131,7 +147,15 @@ export function createStorage() {
     secrets.SlackBotToken = new sst.Secret('SlackBotToken');
   }
 
-  return { memoryTable, traceTable, stagingBucket, knowledgeBucket, secrets, configTable };
+  return {
+    memoryTable,
+    traceTable,
+    stagingBucket,
+    knowledgeBucket,
+    dataLakeBucket,
+    secrets,
+    configTable,
+  };
 }
 
 const STAGING_EXPIRATION_DAYS = 30;

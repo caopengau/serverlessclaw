@@ -33,6 +33,7 @@ export interface SharedContext {
   configTable: sst.aws.Dynamo;
   stagingBucket: sst.aws.Bucket;
   knowledgeBucket: sst.aws.Bucket;
+  dataLakeBucket: sst.aws.Bucket;
   secrets: Record<string, sst.Secret>;
   bus: sst.aws.Bus;
   deployer: aws.codebuild.Project;
