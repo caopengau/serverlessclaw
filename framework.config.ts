@@ -13,7 +13,8 @@ export interface IFrameworkConfig {
   };
   theme: {
     defaultMode: 'light' | 'dark';
-    primaryColor: string;
+    primaryColor: string; // Light mode brand color
+    primaryColorDark: string; // Dark mode brand color
   };
   locales: {
     supported: string[];
@@ -30,7 +31,8 @@ export const frameworkConfig: IFrameworkConfig = {
   },
   theme: {
     defaultMode: 'dark',
-    primaryColor: '#00FF9D', // Cyber Green
+    primaryColor: process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#008f5a', // Default Cyber Green (Light)
+    primaryColorDark: process.env.NEXT_PUBLIC_PRIMARY_COLOR_DARK || '#00ffa3', // Default Cyber Green (Dark)
   },
   locales: {
     supported: ['en', 'cn'],

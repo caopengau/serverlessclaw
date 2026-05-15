@@ -4,7 +4,8 @@
 @source "../../../../packages/*/src/**/*.{ts,tsx}";
 
 @theme {
-  --color-cyber-green: var(--cyber-green);
+  --color-brand-primary: var(--brand-primary);
+  --color-cyber-green: var(--brand-primary);
   --color-cyber-blue: var(--cyber-blue);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -31,7 +32,8 @@
 :root {
   --background: #ffffff;
   --foreground: #0a0a0a;
-  --cyber-green: #008f5a; /* Darker green for light mode contrast */
+  --brand-primary: #008f5a; /* Default Cyber Green (Light) */
+  --cyber-green: var(--brand-primary);
   --cyber-blue: #007a8a; /* Darker blue for light mode contrast */
   --card-bg: rgba(0, 0, 0, 0.02);
   --card-bg-elevated: #ffffff;
@@ -47,7 +49,8 @@
 .dark {
   --background: #0a0a0a;
   --foreground: #ededed;
-  --cyber-green: #00ffa3;
+  --brand-primary: #00ffa3; /* Default Cyber Green (Dark) */
+  --cyber-green: var(--brand-primary);
   --cyber-blue: #00e0ff;
   --card-bg: rgba(255, 255, 255, 0.03);
   --card-bg-elevated: rgba(255, 255, 255, 0.05);

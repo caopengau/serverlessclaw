@@ -92,6 +92,16 @@ export default async function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
+      <head>
+        <style>{`
+          :root {
+            --brand-primary: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR || '#008f5a'};
+          }
+          .dark {
+            --brand-primary: ${process.env.NEXT_PUBLIC_PRIMARY_COLOR_DARK || '#00ffa3'};
+          }
+        `}</style>
+      </head>
       <body
         suppressHydrationWarning
         className="min-h-full flex bg-background text-foreground font-mono text-base antialiased"
