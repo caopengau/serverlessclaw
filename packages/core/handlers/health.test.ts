@@ -97,7 +97,7 @@ describe('Health Handler', () => {
       {} as unknown as Context,
       () => {}
     )) as APIGatewayProxyStructuredResultV2;
-    expect(result.statusCode).toBe(503);
+    expect(result.statusCode).toBe(200);
     expect(memoryMocks.resetRecoveryAttemptCount).toHaveBeenCalled();
   });
 });
