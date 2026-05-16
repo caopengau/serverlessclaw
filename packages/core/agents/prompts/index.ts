@@ -2,12 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const _filename = fileURLToPath(import.meta.url);
+const _dirname = path.dirname(_filename);
 
 const readPrompt = (filename: string) => {
   try {
-    return fs.readFileSync(path.join(__dirname, filename), 'utf-8');
+    return fs.readFileSync(path.join(_dirname, filename), 'utf-8');
   } catch (err) {
     console.error(`Failed to read prompt file: ${filename}`, err);
     return '';
