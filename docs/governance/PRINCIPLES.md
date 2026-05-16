@@ -33,23 +33,23 @@ Each design principle has associated audit verification questions. Auditors shou
 
 ### Audit Questions by Principle
 
-| Principle                 | Audit Questions                                                                                                                      |
-| :------------------------ | :----------------------------------------------------------------------------------------------------------------------------------- |
-| **Stateless Core**        | Is any state local to function instances? Are there race conditions from in-memory state? Is persistence always to managed services? |
-| **AI-Native**             | Are prompts clear and unambiguous? Do schema definitions match actual behavior? Are there unnecessary boilerplates?                  |
-| **Safety-First**          | Are all guardrails implemented? Is there defense in depth? Are safety failures testable?                                             |
-| **Proactive & Efficient** | Are there unnecessary scheduled jobs? Is warm-up triggered on actual need? Is idling minimized?                                      |
-| **Low Latency**           | Are latency targets declared with percentile? Is SLO verified? Are there latent slow paths?                                          |
-| **Extensible**            | Are components swappable? Are interfaces defined? Is there tight coupling that prevents extension?                                   |
-| **Multi-Lingual**         | Are core prompts in English? Is safety policy consistent across languages? Are there localization gaps?                              |
-| **Stable Addressing**     | Is FNV-1a used deterministically? Is collision handling implemented? Are namespace boundaries enforced?                              |
-| **Trust-Driven Mode**     | Is trust score calculated correctly? Does >=95 enable AUTO? Is mode shifting logged?                                                 |
-| **Lean Evolution**        | Is there duplicated code? Can patterns be extracted? Is there unused code?                                                           |
-| **Durable Observability** | Are signals flushed immediately? Is telemetry lost on crashes? Is there 'telemetry blindness'?                                       |
-| **Quality-Weighted**      | Are quality scores 0-10? Are increments weighted? Are penalties severity-adjusted?                                                   |
-| **Atomic State**          | Are updates using conditional writes? Is there object-level overwrites? Can race conditions occur?                                   |
-| **Selection Integrity**   | Is enabled checked before selection? Can disabled agent be selected? Is there gateway enforcement?                                   |
-| **Multi-tenant Isolation**| Are all dashboard queries scoped by workspaceId? Are permission checks enforced at the API route? Is there global data leakage?       |
+| Principle                  | Audit Questions                                                                                                                      |
+| :------------------------- | :----------------------------------------------------------------------------------------------------------------------------------- |
+| **Stateless Core**         | Is any state local to function instances? Are there race conditions from in-memory state? Is persistence always to managed services? |
+| **AI-Native**              | Are prompts clear and unambiguous? Do schema definitions match actual behavior? Are there unnecessary boilerplates?                  |
+| **Safety-First**           | Are all guardrails implemented? Is there defense in depth? Are safety failures testable?                                             |
+| **Proactive & Efficient**  | Are there unnecessary scheduled jobs? Is warm-up triggered on actual need? Is idling minimized?                                      |
+| **Low Latency**            | Are latency targets declared with percentile? Is SLO verified? Are there latent slow paths?                                          |
+| **Extensible**             | Are components swappable? Are interfaces defined? Is there tight coupling that prevents extension?                                   |
+| **Multi-Lingual**          | Are core prompts in English? Is safety policy consistent across languages? Are there localization gaps?                              |
+| **Stable Addressing**      | Is FNV-1a used deterministically? Is collision handling implemented? Are namespace boundaries enforced?                              |
+| **Trust-Driven Mode**      | Is trust score calculated correctly? Does >=95 enable AUTO? Is mode shifting logged?                                                 |
+| **Lean Evolution**         | Is there duplicated code? Can patterns be extracted? Is there unused code?                                                           |
+| **Durable Observability**  | Are signals flushed immediately? Is telemetry lost on crashes? Is there 'telemetry blindness'?                                       |
+| **Quality-Weighted**       | Are quality scores 0-10? Are increments weighted? Are penalties severity-adjusted?                                                   |
+| **Atomic State**           | Are updates using conditional writes? Is there object-level overwrites? Can race conditions occur?                                   |
+| **Selection Integrity**    | Is enabled checked before selection? Can disabled agent be selected? Is there gateway enforcement?                                   |
+| **Multi-tenant Isolation** | Are all dashboard queries scoped by workspaceId? Are permission checks enforced at the API route? Is there global data leakage?      |
 
 ## ⚖️ Governance and Autonomy Boundaries
 

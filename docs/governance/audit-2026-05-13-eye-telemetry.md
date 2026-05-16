@@ -1,9 +1,11 @@
 # Audit Report: The Eye (Telemetry & Metrics)
+
 **Date**: 2026-05-13
 **Silo**: 5 (The Eye)
 **Perspective**: D (Trust Loop / Telemetry)
 
 ## Focus Areas
+
 - Multi-tenant leakage (Missing workspaceId scoping)
 - Telemetry Blindness (Missing or unscoped metrics)
 - Race conditions in Lock/Session management
@@ -32,4 +34,5 @@
    - **Observation**: Checked for race conditions in LockManager release and Session release. Conditional Expressions correctly included checks for `ownerId` and `processingAgentId` (Principle 13). Compliant.
 
 ## Next Steps
+
 - Verify the impact of the updated telemetry scoping by confirming that Dashboard metrics and logs do not display cross-tenant cognitive anomalies.

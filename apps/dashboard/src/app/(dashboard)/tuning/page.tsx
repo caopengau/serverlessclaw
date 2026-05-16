@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Database, Download, Play, Save, CheckCircle, XCircle } from 'lucide-react';
+import { Database, Download, Play, CheckCircle, XCircle } from 'lucide-react';
 import Typography from '@/components/ui/Typography';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';

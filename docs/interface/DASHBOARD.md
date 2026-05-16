@@ -40,6 +40,7 @@ All dashboard API routes (`/api/...`) implement mandatory isolation layers:
 ### Drift Detection & Consistency
 
 The dashboard periodically probes for consistency across silos:
+
 - **Resilience Metrics**: Aggregates recovery operations scoped by `workspaceId`.
 - **Cognitive Health**: Visualizes agent stability metrics partitioned by tenant.
 
@@ -166,12 +167,15 @@ The dashboard implements a "Hub-and-Spoke" UI model, allowing domain-specific pr
 ```
 
 ### 1. Sidebar Extensions
+
 Plugins can register custom navigation items. These items support RBAC (Role-Based Access Control) and are dynamically merged into the main sidebar.
 
 ### 2. Dynamic Components
+
 Plugins can register custom React components that the framework can render dynamically (e.g., in the chat interface or specialized dashboards).
 
 ### 3. Layout Slots
+
 Specialized "slots" (e.g., `sidebar_bottom`, `header_right`) allow plugins to inject UI elements into existing framework layouts.
 
 ---

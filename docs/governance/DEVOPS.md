@@ -528,19 +528,22 @@ The `make test-coverage-trend` command:
 
 ## Infrastructure State Drift and Recovery
 
-ServerlessClaw uses SST (Pulumi) to manage infrastructure as code (IaC). The system maintains a *state file* that tracks the actual resources deployed in AWS and Cloudflare. If the state file loses synchronization with reality, you will encounter **State Drift**.
+ServerlessClaw uses SST (Pulumi) to manage infrastructure as code (IaC). The system maintains a _state file_ that tracks the actual resources deployed in AWS and Cloudflare. If the state file loses synchronization with reality, you will encounter **State Drift**.
 
 ### Symptoms of State Drift
+
 - Deployments fail with `400 Bad Request: Record already exists` (common with Cloudflare DNS).
 - Deployments fail with `ResourceAlreadyExistsException` in AWS.
 - SST attempts to create a resource that you know is already running.
 
 ### The Golden Rules of IaC
+
 1. **Never Edit Manually**: DO NOT create, modify, or delete managed resources (like DNS records, DynamoDB tables, or Lambda functions) directly in the Cloudflare or AWS console. This instantly causes state drift.
 2. **Always Teardown Cleanly**: Use `make remove ENV=<stage>` to destroy environments. Do not delete the CloudFormation stacks manually.
 3. **Automated Recovery**: If state drift occurs (e.g., due to an interrupted initial deployment), do not try to manually "fix" the cloud resources. Let the system reconcile itself.
 
 ### How to Recover (The `heal` Command)
+
 If a deployment fails due to a state conflict, use the built-in reconciliation target:
 
 ```bash
