@@ -664,5 +664,11 @@
   "WORKSPACES_CREATE_WORKSPACE": "Create Workspace",
   "WORKSPACES_SUBTITLE": "Team collaboration environments and access control.",
   "WORKSPACES_TITLE": "Workspaces",
+  "DEVICES": "Devices",
+  "DEVICES_SUBTITLE": "Energy asset fleet",
+  "ACTIVE_ASSETS": "Active Assets",
+  "REGISTER_DEVICE": "Register Device",
+  "SYNC_FLEET": "Sync Fleet",
+  "CONFIGURE": "Configure",
   "ZOMBIE_LOCKS": "Zombie Locks"
 }

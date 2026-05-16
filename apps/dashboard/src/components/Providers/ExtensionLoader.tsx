@@ -21,8 +21,10 @@ export function ExtensionLoader() {
 
         if (extension && typeof extension.init === 'function') {
           extension.init({
-            registerSidebar: registerSidebarExtension,
-            registerComponent: registerDynamicComponent,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            registerSidebar: registerSidebarExtension as any,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            registerComponent: registerDynamicComponent as any,
           });
           console.log('[Dashboard] Domain extensions loaded successfully.');
         }

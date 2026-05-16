@@ -241,4 +241,23 @@ To prevent cross-tenant data leakage in the Unified MCP Multiplexer, the system 
                                              [ env: HOME=/tmp/ws-WS1 ]
 ```
 
-This ensures that tools like `filesystem_write_file` or `git-mcp-server` are physically restricted to a tenant-specific jail within the shared Lambda `/tmp` space.```
+This ensures that tools like `filesystem_write_file` or `git-mcp-server` are physically restricted to a tenant-specific jail within the shared Lambda `/tmp` space.
+ 
+ ## 8. Domain-Driven UI Isolation (Silo 8)
+ 
+ To prevent domain-specific UI defects from compromising the framework's operational stability, the dashboard uses a sandboxed "Spoke Injection" pattern.
+ 
+ ```ascii
+ [ Dashboard Hub ] --(render)--> [ Hub Navigation ]
+                                         |
+                            [ Extension Loader (Silo 8) ]
+                                         |
+                            [ Try-Catch Dynamic Import ]
+                                         |
+                            [ Plugin Registry (Spoke) ]
+ ```
+ 
+ 1. **Failure Tolerance**: The `ExtensionLoader` uses a non-blocking `try-catch` during the dynamic import of `extensions/index.ts`. If a plugin is missing or contains syntax errors, the framework continues to function with default capabilities.
+ 2. **RBAC Propagation**: Permissions (e.g., `requiredRoles`) are verified before a plugin item is rendered in the sidebar, ensuring that domain-specific tools are only visible to authorized users even if they are dynamically injected.
+ 3. **Mount-Once Enforcement**: The system uses a `loaded` ref to ensure that domain extensions are initialized exactly once per session, preventing duplicate event listeners or memory leaks during navigation.
+ ```

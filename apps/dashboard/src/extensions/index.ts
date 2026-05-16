@@ -1,20 +1,31 @@
-/**
- * ServerlessClaw Dashboard Extensions
- * This file is the bridge between the framework and hub-specific extensions.
- */
+import { Server } from 'lucide-react';
+import { UserRole } from '@claw/core/lib/types/common';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function init(registry: any) {
-  try {
-    /**
-     * Standardized hub extension entry point.
-     * The /src/extensions/hub folder is a generic hook for project-specific UI logic.
-     */
-    const { init: hubInit } = await import('./hub');
-    if (typeof hubInit === 'function') {
-      hubInit(registry);
-    }
-  } catch {
-    // No hub extensions present or failed to load, skip gracefully
-  }
+/**
+ * Domain Extensions
+ *
+ * This file registers domain-specific UI elements into the generic
+ * ServerlessClaw dashboard.
+ */
+export function init({
+  registerSidebar,
+  registerComponent,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  registerSidebar: (ext: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  registerComponent: (ext: any) => void;
+}) {
+  // 1. Register the Devices Fleet Management page
+  registerSidebar({
+    id: 'nexus-devices',
+    label: 'DEVICES',
+    subtitle: 'DEVICES_SUBTITLE',
+    href: '/devices',
+    icon: Server,
+    section: 'OPERATIONS',
+    requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
+  });
+
+  console.log('[Domain-Extension] Registered energy asset management modules.');
 }

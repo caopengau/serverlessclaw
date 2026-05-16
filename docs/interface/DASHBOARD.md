@@ -146,6 +146,36 @@ The dashboard connects to AWS IoT using a WebSocket `wss://.../mqtt` URL returne
 
 ---
 
+## 🔌 Extension Architecture (Spoke Injection)
+
+The dashboard implements a "Hub-and-Spoke" UI model, allowing domain-specific projects (like VoltX) to inject custom pages, sidebar items, and components without modifying the core framework.
+
+### Extension Signal Flow (ASCII)
+
+```text
+[ Dashboard Hub ]           [ Extension Loader ]           [ Domain Spoke ]
+       |                           |                             |
+       |--- (Mount) -------------->|                             |
+       |                           |--- (Dynamic Import) ------->| (extensions/index.ts)
+       |                           |                             |
+       |                           |<-- (init API) --------------|
+       |                           |                             |
+       | <--- (Register Items) ----|                             |
+       |                           |                             |
+[ Sidebar/Layouts Update ] <-------|                             |
+```
+
+### 1. Sidebar Extensions
+Plugins can register custom navigation items. These items support RBAC (Role-Based Access Control) and are dynamically merged into the main sidebar.
+
+### 2. Dynamic Components
+Plugins can register custom React components that the framework can render dynamically (e.g., in the chat interface or specialized dashboards).
+
+### 3. Layout Slots
+Specialized "slots" (e.g., `sidebar_bottom`, `header_right`) allow plugins to inject UI elements into existing framework layouts.
+
+---
+
 ## 🎨 Design System & Theme
 
 The dashboard follows a "Cyber-Industrial" aesthetic, prioritized for high-density information display and tactical observability.
