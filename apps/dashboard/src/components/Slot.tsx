@@ -1,7 +1,11 @@
 'use client';
 
 import React from 'react';
-import { useExtensions, LayoutSlot } from '@/components/Providers/ExtensionProvider';
+import {
+  useExtensions,
+  LayoutSlot,
+  LayoutExtension,
+} from '@/components/Providers/ExtensionProvider';
 
 interface SlotProps {
   name: LayoutSlot;
@@ -21,9 +25,10 @@ export function Slot({ name, fallback }: SlotProps) {
 
   return (
     <>
-      {extensions.map((ext) => (
-        <ext.component key={ext.id} />
-      ))}
+      {extensions.map((ext: LayoutExtension) => {
+        const Comp = ext.component;
+        return <Comp key={ext.id} />;
+      })}
     </>
   );
 }

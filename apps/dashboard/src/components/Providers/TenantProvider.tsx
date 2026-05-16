@@ -28,7 +28,7 @@ const TenantContext = createContext<TenantContextType | undefined>(undefined);
  */
 export function TenantProvider({ children }: { children: React.ReactNode }) {
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<string | null>(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && window.localStorage) {
       return localStorage.getItem('claw_active_workspace');
     }
     return null;

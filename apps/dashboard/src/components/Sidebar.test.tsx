@@ -12,11 +12,20 @@ const {
   mockUseTranslations,
   mockUseTenant,
   mockUseUser,
+  mockUseExtensions,
 } = vi.hoisted(() => ({
   mockUseUser: vi.fn().mockReturnValue({
     user: { userId: 'test-user', role: 'admin' },
     loading: false,
     isAdmin: true,
+  }),
+  mockUseExtensions: vi.fn().mockReturnValue({
+    sidebarExtensions: [],
+    dynamicComponents: new Map(),
+    layoutExtensions: new Map(),
+    registerSidebarExtension: vi.fn(),
+    registerDynamicComponent: vi.fn(),
+    registerLayoutExtension: vi.fn(),
   }),
   mockUseRouter: vi.fn().mockReturnValue({
     push: vi.fn(),
@@ -66,6 +75,15 @@ vi.mock('@/components/Providers/TenantProvider', () => ({
 
 vi.mock('@/components/Providers/UserProvider', () => ({
   useUser: mockUseUser,
+}));
+
+vi.mock('@/components/Providers/ExtensionProvider', () => ({
+  useExtensions: mockUseExtensions,
+}));
+
+vi.mock('@/components/NotificationBell', () => ({
+  __esModule: true,
+  default: () => <div data-testid="notification-bell" />,
 }));
 
 vi.mock('next-themes', () => ({

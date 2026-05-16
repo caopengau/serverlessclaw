@@ -11,18 +11,35 @@ const localStorageMock = {
 };
 global.localStorage = localStorageMock as unknown as Storage;
 
-// Global mock for ExtensionProvider to support tests of components that use it
-vi.mock('@/components/Providers/ExtensionProvider', async (importOriginal) => {
-  const actual = (await importOriginal()) as unknown;
-  return {
-    ...(actual as Record<string, unknown>),
-    useExtensions: vi.fn(() => ({
-      sidebarExtensions: [],
-      dynamicComponents: new Map(),
-      layoutExtensions: new Map(),
-      registerSidebarExtension: vi.fn(),
-      registerDynamicComponent: vi.fn(),
-      registerLayoutExtension: vi.fn(),
-    })),
-  };
-});
+// Global mock for next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    refresh: vi.fn(),
+    back: vi.fn(),
+  })),
+  usePathname: vi.fn(() => '/'),
+  useSearchParams: vi.fn(() => ({
+    get: vi.fn(),
+  })),
+}));
+
+// Simple mock for ExtensionProvider
+vi.mock('@/components/Providers/ExtensionProvider', () => ({
+  useExtensions: () => ({
+    sidebarExtensions: [],
+    dynamicComponents: new Map(),
+    layoutExtensions: new Map(),
+    registerSidebarExtension: vi.fn(),
+    registerDynamicComponent: vi.fn(),
+    registerLayoutExtension: vi.fn(),
+  }),
+}));
+
+// Mock NotificationBell to prevent tests from failing due to internal fetching
+vi.mock('@/components/NotificationBell', () => ({
+  __esModule: true,
+  default: () => null,
+}));

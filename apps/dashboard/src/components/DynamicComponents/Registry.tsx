@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { DynamicComponent } from '@claw/hooks';
-import { useExtensions } from '../Providers/ExtensionProvider';
+import { useExtensions } from '@/components/Providers/ExtensionProvider';
 import OperationCard from './OperationCard';
 import UICommand from './UICommand';
 import StatusFlow from './StatusFlow';

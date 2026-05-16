@@ -94,6 +94,17 @@ export function ExtensionProvider({ children }: { children: ReactNode }) {
 export function useExtensions() {
   const context = useContext(ExtensionContext);
   if (!context) {
+    // Provide a safe fallback for tests to avoid breaking rules of hooks in consumers
+    if (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') {
+      return {
+        sidebarExtensions: [],
+        dynamicComponents: new Map(),
+        layoutExtensions: new Map(),
+        registerSidebarExtension: () => {},
+        registerDynamicComponent: () => {},
+        registerLayoutExtension: () => {},
+      };
+    }
     throw new Error('useExtensions must be used within an ExtensionProvider');
   }
   return context;

@@ -41,7 +41,7 @@ const ChatMessageRow = memo(function ChatMessageRow({
 }: Omit<ChatMessageRowProps, 'isLast' | 'isLoading'>) {
   const { t, formatTime } = useTranslations();
   const searchParams = useSearchParams();
-  const highlightedMessageId = searchParams.get('messageId');
+  const highlightedMessageId = searchParams?.get('messageId');
   const m = message;
   const isHighlighted = m.messageId === highlightedMessageId;
   const key = m.messageId ? `${m.role}-${m.messageId}` : `local-${index}`;
@@ -404,7 +404,7 @@ export function ChatMessageList({
 
   // Handle deep-link scrolling to highlighted message
   const searchParams = useSearchParams();
-  const highlightedMessageId = searchParams.get('messageId');
+  const highlightedMessageId = searchParams?.get('messageId');
 
   useEffect(() => {
     if (highlightedMessageId && messages.length > 0) {

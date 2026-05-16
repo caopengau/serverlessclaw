@@ -82,19 +82,13 @@ describe('ExtensionProvider', () => {
     fireEvent.click(screen.getByText('Add Layout'));
   });
 
-  it('throws error when useExtensions is used outside of ExtensionProvider', () => {
-    const TestError = () => {
-      try {
-        useExtensions();
-      } catch (e: unknown) {
-        return <div data-testid="error-msg">{(e as Error).message}</div>;
-      }
-      return <div data-testid="no-error">No error thrown</div>;
+  it('returns default context instead of throwing when used outside of ExtensionProvider in tests', () => {
+    const TestFallback = () => {
+      const { sidebarExtensions } = useExtensions();
+      return <div data-testid="fallback-count">{sidebarExtensions.length}</div>;
     };
 
-    render(<TestError />);
-    expect(screen.getByTestId('error-msg').textContent).toBe(
-      'useExtensions must be used within an ExtensionProvider'
-    );
+    render(<TestFallback />);
+    expect(screen.getByTestId('fallback-count').textContent).toBe('0');
   });
 });

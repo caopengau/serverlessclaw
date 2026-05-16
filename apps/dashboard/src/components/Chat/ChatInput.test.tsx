@@ -38,7 +38,7 @@ describe('ChatInput Component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    if (typeof localStorage !== 'undefined') localStorage.clear();
   });
 
   it('renders the input textarea', () => {

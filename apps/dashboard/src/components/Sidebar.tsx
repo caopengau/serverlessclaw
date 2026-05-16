@@ -53,6 +53,7 @@ export default function Sidebar() {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const { isSidebarCollapsed: isCollapsed, setSidebarCollapsed, setActiveModal } = useUICommand();
+
   const { sidebarExtensions } = useExtensions();
   const { user } = useUser();
   const { t, locale, setLocale } = useTranslations();

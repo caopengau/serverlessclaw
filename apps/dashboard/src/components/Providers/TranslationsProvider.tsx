@@ -36,14 +36,16 @@ export const TranslationsProvider: React.FC<{
 
   // Sync with localStorage on mount (Client-side only)
   useEffect(() => {
-    const savedLocale = localStorage.getItem(STORAGE_KEY) as Locale | null;
-    if (
-      savedLocale &&
-      savedLocale !== initialLocale &&
-      (savedLocale === 'en' || savedLocale === 'cn')
-    ) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLocaleState(savedLocale);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const savedLocale = localStorage.getItem(STORAGE_KEY) as Locale | null;
+      if (
+        savedLocale &&
+        savedLocale !== initialLocale &&
+        (savedLocale === 'en' || savedLocale === 'cn')
+      ) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setLocaleState(savedLocale);
+      }
     }
   }, [initialLocale]);
 
@@ -53,7 +55,9 @@ export const TranslationsProvider: React.FC<{
 
   const setLocale = async (newLocale: Locale) => {
     setLocaleState(newLocale);
-    localStorage.setItem(STORAGE_KEY, newLocale);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem(STORAGE_KEY, newLocale);
+    }
 
     // Persist to backend
     try {

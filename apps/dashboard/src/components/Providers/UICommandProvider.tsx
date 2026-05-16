@@ -34,16 +34,20 @@ export function UICommandProvider({ children }: { children: React.ReactNode }) {
 
   // Load initial state from localStorage on client-side mount
   useEffect(() => {
-    const saved = localStorage.getItem('sidebar_collapsed');
-    if (saved === 'true') {
-      const timer = setTimeout(() => setSidebarCollapsedState(true), 0);
-      return () => clearTimeout(timer);
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const saved = localStorage.getItem('sidebar_collapsed');
+      if (saved === 'true') {
+        const timer = setTimeout(() => setSidebarCollapsedState(true), 0);
+        return () => clearTimeout(timer);
+      }
     }
   }, []);
 
   const setSidebarCollapsed = (collapsed: boolean) => {
     setSidebarCollapsedState(collapsed);
-    localStorage.setItem('sidebar_collapsed', String(collapsed));
+    if (typeof window !== 'undefined' && window.localStorage) {
+      localStorage.setItem('sidebar_collapsed', String(collapsed));
+    }
   };
 
   useEffect(() => {
