@@ -44,7 +44,7 @@ export function createDashboard(
       ...(ctx.realtime ? [ctx.realtime] : []),
       ...(ctx.multiplexer ? [ctx.multiplexer] : []), // Added for topology discovery
       ...getValidSecrets(ctx.secrets),
-    ],
+    ].filter(Boolean),
     environment: {
       DEPLOYER_NAME: deployer.name || 'default',
       DYNAMIC_SCHEDULER_ROLE_ARN: schedulerRole?.arn || '',

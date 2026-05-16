@@ -60,7 +60,7 @@ export function createAgents(
     dataLakeBucket,
     ...validSecrets,
     ...(ctx.realtime ? [ctx.realtime] : []),
-  ];
+  ].filter(Boolean);
 
   const basePermissions = [
     {

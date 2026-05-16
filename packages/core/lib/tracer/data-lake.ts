@@ -19,8 +19,7 @@ export async function exportToDataLake(
 ): Promise<void> {
   try {
     // 1. Check if DataLakeBucket is configured
-    // @ts-expect-error - SST types might not be perfectly synced in this environment
-    const bucketName = Resource.DataLakeBucket?.name;
+    const bucketName = (Resource as any).DataLakeBucket?.name;
     if (!bucketName) {
       logger.debug('[DataLake] DataLakeBucket not configured, skipping export.');
       return;

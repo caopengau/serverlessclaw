@@ -92,7 +92,7 @@ export function configureApiRoutes(
       deployerLink,
       bus,
       ...criticalAgents,
-    ],
+    ].filter(Boolean),
     environment: {
       // Pass the ARNs for the smart warm-up utility
       WARM_UP_FUNCTIONS: $util.jsonStringify(agentBuckets),

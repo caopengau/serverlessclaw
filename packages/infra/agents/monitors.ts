@@ -21,7 +21,12 @@ export function createMonitors(ctx: SharedContext, options: MonitorOptions) {
   const buildMonitor = new sst.aws.Function('BuildMonitor', {
     handler: `${prefix}packages/core/handlers/monitor.handler`,
     dev: liveInLocalOnly as any,
-    link: [...baseLink, stagingBucket, deployerLink, ...(ctx.multiplexer ? [ctx.multiplexer] : [])],
+    link: [
+      ...baseLink,
+      stagingBucket,
+      deployerLink,
+      ...(ctx.multiplexer ? [ctx.multiplexer] : []),
+    ].filter(Boolean),
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
     environment: { TRACE_SUMMARIES_ENABLED: 'true' },

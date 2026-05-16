@@ -35,7 +35,7 @@ export function createMultiplexers(ctx: SharedContext, options: MultiplexerOptio
   const highPowerMultiplexer = new sst.aws.Function('HighPowerMultiplexer', {
     handler: `${prefix}packages/core/handlers/agent-multiplexer.handler`,
     dev: liveInLocalOnly as any,
-    link: [...baseLink, stagingBucket, deployerLink],
+    link: [...baseLink, stagingBucket, deployerLink].filter(Boolean),
     permissions: [...basePermissions, ...schedulerPermissions],
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
@@ -62,7 +62,7 @@ export function createMultiplexers(ctx: SharedContext, options: MultiplexerOptio
   const standardMultiplexer = new sst.aws.Function('StandardMultiplexer', {
     handler: `${prefix}packages/core/handlers/agent-multiplexer.handler`,
     dev: liveInLocalOnly as any,
-    link: [...baseLink, deployerLink],
+    link: [...baseLink, deployerLink].filter(Boolean),
     permissions: [...basePermissions, ...schedulerPermissions],
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
@@ -89,7 +89,7 @@ export function createMultiplexers(ctx: SharedContext, options: MultiplexerOptio
   const lightMultiplexer = new sst.aws.Function('LightMultiplexer', {
     handler: `${prefix}packages/core/handlers/agent-multiplexer.handler`,
     dev: liveInLocalOnly as any,
-    link: [...baseLink, stagingBucket, deployerLink],
+    link: [...baseLink, stagingBucket, deployerLink].filter(Boolean),
     permissions: [...basePermissions, ...schedulerPermissions],
     architecture: LAMBDA_ARCHITECTURE,
     nodejs: { loader: NODEJS_LOADERS },
