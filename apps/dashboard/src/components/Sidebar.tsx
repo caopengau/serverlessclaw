@@ -41,6 +41,7 @@ import CyberTooltip from '@/components/CyberTooltip';
 import TenantSwitcher from '@/components/TenantSwitcher';
 import { logger } from '@claw/core/lib/logger';
 import { UserRole } from '@claw/core/lib/types/common';
+import NotificationBell from '@/components/NotificationBell';
 
 /**
  * Main application sidebar component.
@@ -491,6 +492,7 @@ export default function Sidebar() {
               >
                 {locale === 'en' ? 'CN' : 'EN'}
               </button>
+              <NotificationBell />
             </div>
 
             {!isCollapsed && (

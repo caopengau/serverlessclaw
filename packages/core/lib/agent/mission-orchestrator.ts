@@ -5,6 +5,8 @@ import { Mission, MissionStatus, MissionOptions } from '../types/mission';
 import { decomposePlan } from './decomposer';
 import { AgentStatus } from '../types/agent';
 import { MissionControlRegistry } from '../registry/mission-control';
+import { getNotificationManager } from '../services/notification-manager';
+import { NotificationType, ResourceType } from '../types/notification';
 
 /**
  * Mission Orchestrator
@@ -48,6 +50,7 @@ export class MissionOrchestrator {
       status: MissionStatus.PLANNING,
       steps: [],
       context: {},
+      participants: options.participants || [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
       metadata: options.metadata,
@@ -152,6 +155,29 @@ export class MissionOrchestrator {
       workspaceId: mission.workspaceId,
       payload: { mission, message: `Mission ${mission.status.toUpperCase()}` },
     });
+
+    // Notify the initiator human colleague and relevant colleagues
+    try {
+      const nm = getNotificationManager();
+      const recipients = Array.from(new Set([mission.userId, ...(mission.participants || [])]));
+
+      await Promise.all(
+        recipients.map((recipientId) =>
+          nm.createNotification({
+            type: NotificationType.SYSTEM_ALERT,
+            senderId: this.agent.id,
+            senderName: `Agent ${this.agent.id}`,
+            receiverId: recipientId,
+            workspaceId: mission.workspaceId,
+            content: `Mission "${mission.intent}" has been ${mission.status.toLowerCase()}.`,
+            resourceId: mission.id,
+            resourceType: ResourceType.MISSION,
+          })
+        )
+      );
+    } catch (e) {
+      logger.error('[MissionOrchestrator] Failed to send mission notifications:', e);
+    }
 
     return mission;
   }

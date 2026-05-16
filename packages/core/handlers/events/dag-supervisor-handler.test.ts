@@ -5,6 +5,12 @@ import * as dagExecutor from '../../lib/agent/dag-executor';
 import { emitTypedEvent } from '../../lib/utils/typed-emit';
 import { EventType } from '../../lib/types/agent';
 
+vi.mock('../../lib/services/notification-manager', () => ({
+  getNotificationManager: vi.fn().mockReturnValue({
+    createNotification: vi.fn().mockResolvedValue({}),
+  }),
+}));
+
 // Mock Aggregator
 vi.mock('../../lib/agent/parallel-aggregator', () => ({
   aggregator: {
@@ -127,6 +133,16 @@ describe('dag-supervisor-handler', () => {
       expect.objectContaining({
         overallStatus: 'success',
         completedCount: 1,
+      })
+    );
+
+    const { getNotificationManager } = await import('../../lib/services/notification-manager');
+    const mockNM = getNotificationManager();
+    expect(mockNM.createNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        receiverId: 'user-1',
+        resourceType: 'task',
+        content: expect.stringContaining('completed'),
       })
     );
   });

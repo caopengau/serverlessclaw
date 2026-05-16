@@ -1,5 +1,6 @@
-import React, { memo, useMemo, useState } from 'react';
+import React, { memo, useMemo, useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 import {
   User,
@@ -39,7 +40,10 @@ const ChatMessageRow = memo(function ChatMessageRow({
   showThinking,
 }: Omit<ChatMessageRowProps, 'isLast' | 'isLoading'>) {
   const { t, formatTime } = useTranslations();
+  const searchParams = useSearchParams();
+  const highlightedMessageId = searchParams.get('messageId');
   const m = message;
+  const isHighlighted = m.messageId === highlightedMessageId;
   const key = m.messageId ? `${m.role}-${m.messageId}` : `local-${index}`;
   const components = useMemo(() => getMarkdownComponents(m.role), [m.role]);
   const [comment, setComment] = React.useState('');
@@ -69,7 +73,11 @@ const ChatMessageRow = memo(function ChatMessageRow({
   }
 
   return (
-    <div key={key} className={`flex gap-4 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+    <div
+      key={key}
+      id={m.messageId}
+      className={`flex gap-4 transition-all duration-1000 ${m.role === 'user' ? 'justify-end' : 'justify-start'} ${isHighlighted ? 'bg-cyber-blue/5 -mx-4 px-4 py-2 rounded-xl ring-2 ring-cyber-blue/20 ring-offset-4 ring-offset-background' : ''}`}
+    >
       <div
         className={`flex gap-4 max-w-[90%] ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
       >
@@ -393,6 +401,19 @@ export function ChatMessageList({
       });
     }
   }, [messages, scrollRef]);
+
+  // Handle deep-link scrolling to highlighted message
+  const searchParams = useSearchParams();
+  const highlightedMessageId = searchParams.get('messageId');
+
+  useEffect(() => {
+    if (highlightedMessageId && messages.length > 0) {
+      const element = document.getElementById(highlightedMessageId);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+  }, [highlightedMessageId, messages.length]);
 
   // Force scroll to bottom when the component mounts or messages change for the first time in a session
   React.useEffect(() => {

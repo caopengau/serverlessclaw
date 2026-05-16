@@ -214,6 +214,10 @@ const BASE_EVENT_ROUTING: EventRoutingTable = {
     module: './events/pulse-handler',
     function: 'handlePulsePing',
   },
+  [EventType.NOTIFICATION_CREATED]: {
+    module: './events/internal-notifier',
+    function: 'handleNotificationCreated',
+  },
 };
 
 /**

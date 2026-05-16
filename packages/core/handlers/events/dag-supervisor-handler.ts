@@ -14,6 +14,8 @@ import {
 import { emitTypedEvent } from '../../lib/utils/typed-emit';
 import { EVENT_SCHEMA_MAP } from '../../lib/schema/events';
 import { DAGExecutionState } from '../../lib/types/dag';
+import { getNotificationManager } from '../../lib/services/notification-manager';
+import { NotificationType, ResourceType } from '../../lib/types/notification';
 import { ParallelTaskDefinition } from '../../lib/agent/schema';
 
 /**
@@ -154,6 +156,25 @@ export async function handleDagStep(
             aggregationType: currentState.aggregationType,
             aggregationPrompt: currentState.aggregationPrompt,
           });
+
+          // Notify the initiator human colleague
+          try {
+            const nm = getNotificationManager();
+            const workspaceId = (finalState as { workspaceId?: string })?.workspaceId || 'default';
+
+            await nm.createNotification({
+              type: NotificationType.SYSTEM_ALERT,
+              senderId: 'SYSTEM',
+              senderName: 'DAG Supervisor',
+              receiverId: userId as string,
+              workspaceId: workspaceId,
+              content: `Background task "${traceId}" completed with status: ${overallStatus}.`,
+              resourceId: traceId as string,
+              resourceType: ResourceType.TASK,
+            });
+          } catch (e) {
+            logger.error('DAG Supervisor: Failed to send completion notification:', e);
+          }
 
           // Clear recursion stack to prevent DynamoDB storage growth
           await clearRecursionStack(traceId as string).catch((err) =>

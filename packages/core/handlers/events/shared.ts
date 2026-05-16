@@ -7,6 +7,8 @@ import { Context } from 'aws-lambda';
 import { isTaskPaused } from '../../lib/utils/agent-helpers';
 import { SessionStateManager } from '../../lib/session/session-state';
 import { incrementRecursionDepth, getRecursionLimit } from '../../lib/recursion-tracker';
+import { getNotificationManager } from '../../lib/services/notification-manager';
+import { NotificationType, ResourceType } from '../../lib/types/notification';
 
 /**
  * Event types that indicate mission-critical workflows with stricter recursion limits.
@@ -180,6 +182,24 @@ export async function handleRecursionLimitExceeded(
     teamId,
     staffId
   );
+
+  // Notify the initiator human colleague of the failure
+  try {
+    const nm = getNotificationManager();
+    await nm.createNotification({
+      type: NotificationType.SYSTEM_ALERT,
+      senderId: 'SYSTEM',
+      senderName: 'System Monitor',
+      receiverId: userId,
+      workspaceId: workspaceId || 'default',
+      sessionId: sessionId,
+      content: `Task execution aborted: Recursion limit exceeded. ${reason}`,
+      resourceId: traceId,
+      resourceType: ResourceType.TASK,
+    });
+  } catch (e) {
+    logger.error('[SharedHandlers] Failed to send recursion limit notification:', e);
+  }
 
   try {
     const { emitTypedEvent } = await import('../../lib/utils/typed-emit');

@@ -39,6 +39,8 @@ export interface MissionOptions {
   metadata?: Record<string, unknown>;
   /** Maximum number of sub-tasks to generate during planning */
   maxSteps?: number;
+  /** Colleagues who should be notified of mission updates */
+  participants?: string[];
 }
 
 /**
@@ -55,6 +57,7 @@ export const MissionSchema = z.object({
   createdAt: z.number(),
   updatedAt: z.number(),
   completedAt: z.number().optional(),
+  participants: z.array(z.string()).default([]),
   metadata: z.record(z.string(), z.any()).optional(),
 });
 

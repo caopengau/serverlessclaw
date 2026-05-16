@@ -30,6 +30,7 @@ export const HANDLER_LOADERS: Record<string, () => Promise<unknown>> = {
   './events/dlq-handler': () => import('./dlq-handler'),
   './events/reputation-handler': () => import('./reputation-handler'),
   './events/pulse-handler': () => import('./pulse-handler'),
+  './events/internal-notifier': () => import('./internal-notifier'),
 };
 
 /**

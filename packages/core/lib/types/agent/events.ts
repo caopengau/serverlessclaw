@@ -129,6 +129,8 @@ export enum EventType {
   PULSE_PING = 'pulse_ping',
   /** Pulse pong response for connectivity checks. */
   PULSE_PONG = 'pulse_pong',
+  /** Internal notification was created. */
+  NOTIFICATION_CREATED = 'notification.created',
 }
 
 /**

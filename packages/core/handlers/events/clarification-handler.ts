@@ -7,6 +7,8 @@ import { addTraceStep } from '../../lib/utils/trace-helper';
 import { TRACE_TYPES } from '../../lib/constants';
 import { z } from 'zod';
 import { UserRole } from '../../lib/types/index';
+import { getNotificationManager } from '../../lib/services/notification-manager';
+import { NotificationType, ResourceType } from '../../lib/types/notification';
 
 import { AGENT_PAYLOAD_SCHEMA } from '../../lib/schema/events';
 
@@ -165,4 +167,23 @@ export async function handleClarificationRequest(
     staffId,
     userRole as UserRole
   );
+
+  // Notify the initiator human colleague that clarification is needed
+  try {
+    const nm = getNotificationManager();
+    await nm.createNotification({
+      type: NotificationType.CLARIFICATION,
+      senderId: safeAgentId,
+      senderName: `Agent ${safeAgentId}`,
+      receiverId: userId,
+      workspaceId: workspaceId || 'default',
+      sessionId: sessionId,
+      content: `Agent '${safeAgentId}' needs clarification: "${question.substring(0, 100)}${question.length > 100 ? '...' : ''}"`,
+      resourceId: safeTraceId,
+      resourceType: ResourceType.TASK,
+    });
+  } catch (e) {
+    // We don't throw here to avoid failing the whole clarification relay
+    console.error('[ClarificationHandler] Failed to send clarification notification:', e);
+  }
 }
