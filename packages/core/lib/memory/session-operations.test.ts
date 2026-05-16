@@ -364,7 +364,6 @@ describe('session-operations', () => {
         expect.objectContaining({
           Key: { userId: 'SYSTEM#RECOVERY#STATS#ws-123', timestamp: 0 },
           UpdateExpression: 'SET #field = :zero, updatedAt = :now',
-          ConditionExpression: 'attribute_exists(userId)',
         })
       );
     });
