@@ -503,6 +503,8 @@
   "SESSIONS_TITLE": "Multi-Human Sessions",
   "SESSION_TRAFFIC": "Session Traffic",
   "SETTINGS": "Settings",
+  "TUNING": "Neural Tuning",
+  "TUNING_SUBTITLE": "Neural Tuning and Model Alignment Ground",
   "SETTINGS_ACTIVE_PROVIDER": "Active Provider",
   "SETTINGS_AGGRESSIVE": "Aggressive (Velocity)",
   "SETTINGS_BALANCED": "Balanced (Stability)",

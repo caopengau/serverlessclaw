@@ -146,7 +146,7 @@ export default function Sidebar() {
     {
       href: ROUTES.TUNING,
       label: t('TUNING'),
-      subtitle: 'Neural Tuning Ground',
+      subtitle: t('TUNING_SUBTITLE'),
       icon: Database,
       requiredRoles: [UserRole.ADMIN, UserRole.OWNER],
     },

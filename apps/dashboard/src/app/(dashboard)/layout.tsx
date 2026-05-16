@@ -32,7 +32,7 @@ export const dynamic = 'force-dynamic';
 export async function generateMetadata() {
   const initialLocale = (await ConfigManager.getTypedConfig<string>(
     CONFIG_KEYS.ACTIVE_LOCALE,
-    'en'
+    'cn'
   )) as 'en' | 'cn';
 
   const messages = initialLocale === 'cn' ? cn : en;
@@ -74,11 +74,11 @@ export default async function RootLayout({
   }
 
   // 1. Fetch the active locale from system config (server-side)
-  let initialLocale: 'en' | 'cn' = 'en';
+  let initialLocale: 'en' | 'cn' = 'cn';
   try {
     initialLocale = (await ConfigManager.getTypedConfig<string>(
       CONFIG_KEYS.ACTIVE_LOCALE,
-      'en'
+      'cn'
     )) as 'en' | 'cn';
   } catch (err) {
     console.error('[Dashboard] Failed to fetch initial locale:', err);
