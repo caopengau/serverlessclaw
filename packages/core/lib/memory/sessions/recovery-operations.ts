@@ -57,7 +57,6 @@ export async function resetRecoveryAttemptCount(
   await base.updateItem({
     Key: { userId: pk, timestamp: 0 },
     UpdateExpression: 'SET #field = :zero, updatedAt = :now',
-    ConditionExpression: 'attribute_exists(userId)',
     ExpressionAttributeNames: { '#field': 'attempts' },
     ExpressionAttributeValues: { ':zero': 0, ':now': Date.now() },
   });

@@ -147,7 +147,7 @@ export function configureApiRoutes(
       knowledgeBucket,
       bus,
       ...validSecrets,
-    ],
+    ].filter(Boolean),
     permissions: [
       ...apiPermissions,
       {
@@ -165,7 +165,7 @@ export function configureApiRoutes(
     ],
     architecture: LAMBDA_ARCHITECTURE,
     memory: '128 MB',
-    timeout: AGENT_CONFIG.timeout.SHORT,
+    timeout: AGENT_CONFIG.timeout.MEDIUM,
     environment: {
       GIT_HASH:
         process.env.GIT_HASH ||
