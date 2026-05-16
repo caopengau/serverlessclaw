@@ -1,7 +1,14 @@
 import { getResourceName } from '@/lib/sst-utils';
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, GetCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import {
+  DynamoDBDocumentClient,
+  GetCommand,
+  ScanCommand,
+  QueryCommand,
+} from '@aws-sdk/lib-dynamodb';
+import { redirect } from 'next/navigation';
+import { AUTH } from '@/lib/constants';
 import DeleteAllTracesButton from '@/components/DeleteAllTracesButton';
 import TraceIntelligenceView from '@/components/TraceIntelligenceView';
 import ExportTracesButton from '@/components/ExportTracesButton';
@@ -45,15 +52,18 @@ async function getSessionTitles(workspaceId?: string) {
     const client = new DynamoDBClient({});
     const docClient = DynamoDBDocumentClient.from(client);
 
-    // Scan for all session metadata records - scoped to workspace if provided
+    // Principle 11: Optimized GSI-based retrieval to avoid Scan (Anti-Pattern 19)
+    // MemoryTable GSI 'WorkspaceTypeIndex' has workspaceId as PK and type as SK
     const res = await docClient.send(
-      new ScanCommand({
+      new QueryCommand({
         TableName: tableName,
-        FilterExpression: workspaceId
-          ? 'begins_with(userId, :prefix) AND workspaceId = :ws'
-          : 'begins_with(userId, :prefix)',
+        IndexName: workspaceId ? 'WorkspaceTypeIndex' : 'TypeTimestampIndex',
+        KeyConditionExpression: workspaceId
+          ? 'workspaceId = :ws AND #type = :type'
+          : '#type = :type',
+        ExpressionAttributeNames: { '#type': 'type' },
         ExpressionAttributeValues: {
-          ':prefix': 'SESSIONS#',
+          ':type': 'SESSION',
           ...(workspaceId ? { ':ws': workspaceId } : {}),
         },
       })
@@ -85,11 +95,27 @@ export default async function AnalyticsTab({
   }>;
 }) {
   const params = await searchParams;
+
+  // Principle 11: Enforce workspace isolation in Server Components (P0 Multi-tenant leak fix)
+  const { cookies: getCookies } = await import('next/headers');
+  const cookieStore = await getCookies();
+  const userId = cookieStore.get(AUTH.SESSION_USER_ID)?.value || 'dashboard-user';
+
+  const { getIdentityManager, Permission } = await import('@claw/core/lib/session/identity');
+  const identityManager = await getIdentityManager();
+
+  const workspaceId = params.workspaceId || 'default';
+
+  const hasAccess = await identityManager.hasPermission(userId, Permission.AGENT_VIEW, workspaceId);
+
+  if (!hasAccess) {
+    redirect('/unauthorized');
+  }
+
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const startTime = params.startTime ? parseInt(params.startTime) : now - 24 * 60 * 60 * 1000;
   const endTime = params.endTime ? parseInt(params.endTime) : undefined;
-  const workspaceId = params.workspaceId;
 
   const [tracesResult, config, sessionTitles] = await Promise.all([
     getTraces(params.nextToken, { startTime, endTime, workspaceId }),

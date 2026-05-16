@@ -65,6 +65,41 @@ export const handler = async (_event: unknown, _context: Context): Promise<void>
             },
           });
         }
+
+        // 2. Process Stale Collaborations (Conflict resolution timeouts) - Multi-tenant scoped
+        const staleCollabs = await memory.findStaleCollaborations(
+          CONFIG_DEFAULTS.TIE_BREAK_TIMEOUT_MS.code,
+          { workspaceId }
+        );
+
+        const { TRUST } = await import('../lib/constants/system');
+
+        for (const collab of staleCollabs) {
+          const facilitatorConfig = await AgentRegistry.getAgentConfig('facilitator', {
+            workspaceId,
+          });
+          const trustScore = facilitatorConfig?.trustScore ?? TRUST.DEFAULT_SCORE;
+
+          if (trustScore < TRUST.FACILITATOR_THRESHOLD) {
+            logger.warn(
+              `[MAINTENANCE] Skipping tie-break for ${collab.collaborationId} (WS: ${workspaceId}): Facilitator trust (${trustScore}) below threshold (${TRUST.FACILITATOR_THRESHOLD}).`
+            );
+            continue;
+          }
+
+          await emitTypedEvent('maintenance.handler', EventType.STRATEGIC_TIE_BREAK, {
+            userId: collab.syntheticUserId,
+            agentId: 'facilitator',
+            task: `Strategic tie-break required for timed out collaboration: ${collab.name}.`,
+            sessionId: collab.sessionId,
+            workspaceId, // Critical: propagate workspaceId to the event
+            metadata: {
+              collaborationId: collab.collaborationId,
+              timeout: true,
+              lastActivityAt: collab.lastActivityAt,
+            },
+          });
+        }
       }
 
       // Also check global agents and perform global repairs
@@ -86,37 +121,6 @@ export const handler = async (_event: unknown, _context: Context): Promise<void>
       }
     } catch (error) {
       logger.warn('[MAINTENANCE] Multi-tenant maintenance cycle failed:', error);
-    }
-
-    // 2. Process Stale Collaborations (Conflict resolution timeouts)
-    const staleCollabs = await memory.findStaleCollaborations(
-      CONFIG_DEFAULTS.TIE_BREAK_TIMEOUT_MS.code
-    );
-
-    const { TRUST } = await import('../lib/constants/system');
-
-    for (const collab of staleCollabs) {
-      const facilitatorConfig = await AgentRegistry.getAgentConfig('facilitator');
-      const trustScore = facilitatorConfig?.trustScore ?? TRUST.DEFAULT_SCORE;
-
-      if (trustScore < TRUST.FACILITATOR_THRESHOLD) {
-        logger.warn(
-          `[MAINTENANCE] Skipping tie-break for ${collab.collaborationId}: Facilitator trust (${trustScore}) below threshold (${TRUST.FACILITATOR_THRESHOLD}).`
-        );
-        continue;
-      }
-
-      await emitTypedEvent('maintenance.handler', EventType.STRATEGIC_TIE_BREAK, {
-        userId: collab.syntheticUserId,
-        agentId: 'facilitator',
-        task: `Strategic tie-break required for timed out collaboration: ${collab.name}.`,
-        sessionId: collab.sessionId,
-        metadata: {
-          collaborationId: collab.collaborationId,
-          timeout: true,
-          lastActivityAt: collab.lastActivityAt,
-        },
-      });
     }
 
     logger.info('[MAINTENANCE] cycle completed successfully.');
