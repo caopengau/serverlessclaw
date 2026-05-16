@@ -66,6 +66,9 @@ export class BlastRadiusStore {
       return null;
     }
 
+    if (this.localCache.size >= 1000) {
+      this.localCache.clear();
+    }
     this.localCache.set(pk, entry);
     return entry;
   }
@@ -106,6 +109,9 @@ export class BlastRadiusStore {
 
       const val = response.Attributes;
       const entry = { key: pk, ...val } as unknown as BlastRadiusEntry;
+      if (this.localCache.size >= 1000) {
+        this.localCache.clear();
+      }
       this.localCache.set(pk, entry);
       return entry;
     } catch (e: unknown) {
@@ -163,6 +169,9 @@ export class BlastRadiusStore {
             : { count: 1, lastAction: now, resourceCount: resource ? 1 : 0, expiresAt, key: pk };
         } else {
           entry = { ...(response as unknown as BlastRadiusEntry), key: pk };
+        }
+        if (this.localCache.size >= 1000) {
+          this.localCache.clear();
         }
         this.localCache.set(pk, entry);
         return entry;

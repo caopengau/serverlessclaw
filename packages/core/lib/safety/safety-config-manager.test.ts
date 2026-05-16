@@ -156,4 +156,23 @@ describe('SafetyConfigManager', () => {
       expect(mockAtomicUpdate).toHaveBeenCalledTimes(10);
     });
   });
+  describe('Metabolic Health (Cache Culling)', () => {
+    it('clears cache if it exceeds 1000 entries (AP-22)', async () => {
+      mockGetRawConfig.mockResolvedValue(DEFAULT_POLICIES);
+
+      // Fill cache with 1000 unique entries
+      for (let i = 0; i < 1000; i++) {
+        await SafetyConfigManager.getPolicies({ workspaceId: `ws-${i}` });
+      }
+
+      // Check cache size (internal access for testing)
+      expect((SafetyConfigManager as any).caches.size).toBe(1000);
+
+      // Add 1001st entry
+      await SafetyConfigManager.getPolicies({ workspaceId: 'ws-final' });
+
+      // Cache should have been cleared and now contains only the final entry
+      expect((SafetyConfigManager as any).caches.size).toBe(1);
+    });
+  });
 });

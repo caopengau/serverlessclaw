@@ -85,8 +85,8 @@ function normalizeSafetyAction(action: string, toolName?: string): string {
 }
 
 export class SafetyEngine extends SafetyBase {
-  private policies: Map<SafetyTier, Partial<SafetyPolicy>>;
-  private toolOverrides: Map<string, ToolSafetyOverride>;
+  private policies: Map<string, Partial<SafetyPolicy>>; // Keyed by "workspaceId#tier"
+  private toolOverrides: Map<string, ToolSafetyOverride>; // Keyed by "workspaceId#toolName"
   private limiter: SafetyRateLimiter;
   private validator: PolicyValidator;
   private evolutionScheduler: EvolutionScheduler;
@@ -105,13 +105,13 @@ export class SafetyEngine extends SafetyBase {
 
     if (customPolicies) {
       for (const [tier, overrides] of Object.entries(customPolicies)) {
-        if (overrides) this.policies.set(tier as SafetyTier, overrides);
+        if (overrides) this.policies.set(`global#${tier}`, overrides);
       }
     }
 
     if (toolOverrides) {
       for (const override of toolOverrides) {
-        this.toolOverrides.set(override.toolName, override);
+        this.toolOverrides.set(`global#${override.toolName}`, override);
       }
     }
   }
@@ -123,7 +123,7 @@ export class SafetyEngine extends SafetyBase {
   ): Promise<SafetyEvaluationResult> {
     const tier = agentConfig?.safetyTier ?? SafetyTier.PROD;
     const agentId = agentConfig?.id ?? 'unknown';
-    const workspaceId = context?.workspaceId;
+    const workspaceId = context?.workspaceId ?? 'global';
     const ctx = { ...context, agentId, workspaceId };
 
     const normalizedAction = normalizeSafetyAction(action, context?.toolName);
@@ -227,12 +227,18 @@ export class SafetyEngine extends SafetyBase {
 
   private async getResolvedPolicy(
     tier: SafetyTier,
-    workspaceId?: string,
+    workspaceId: string = 'global',
     orgId?: string
   ): Promise<SafetyPolicy> {
-    const globalPolicies = await SafetyConfigManager.getPolicies({ workspaceId, orgId });
+    const globalPolicies = await SafetyConfigManager.getPolicies({
+      workspaceId: workspaceId === 'global' ? undefined : workspaceId,
+      orgId,
+    });
     const base = globalPolicies[tier];
-    const custom = this.policies.get(tier);
+    let custom = this.policies.get(`${workspaceId}#${tier}`);
+    if (!custom && workspaceId !== 'global') {
+      custom = this.policies.get(`global#${tier}`);
+    }
     return custom ? { ...base, ...custom } : base;
   }
 
@@ -276,7 +282,11 @@ export class SafetyEngine extends SafetyBase {
     action: string
   ): Promise<SafetyEvaluationResult> {
     if (!ctx.toolName) return { allowed: true, requiresApproval: false };
-    const override = this.toolOverrides.get(ctx.toolName);
+    const workspaceId = ctx.workspaceId ?? 'global';
+    let override = this.toolOverrides.get(`${workspaceId}#${ctx.toolName}`);
+    if (!override && workspaceId !== 'global') {
+      override = this.toolOverrides.get(`global#${ctx.toolName}`);
+    }
     const rateLimitResult = await this.limiter.checkToolRateLimit(override, ctx.toolName, ctx);
     if (!rateLimitResult.allowed) return rateLimitResult;
     if (override?.requireApproval)
@@ -331,16 +341,21 @@ export class SafetyEngine extends SafetyBase {
     return null;
   }
 
-  updatePolicy(tier: SafetyTier, updates: Partial<SafetyPolicy>): void {
-    const existing = this.policies.get(tier) || {};
-    this.policies.set(tier, { ...existing, ...updates });
+  updatePolicy(
+    tier: SafetyTier,
+    updates: Partial<SafetyPolicy>,
+    workspaceId: string = 'global'
+  ): void {
+    const key = `${workspaceId}#${tier}`;
+    const existing = this.policies.get(key) || {};
+    this.policies.set(key, { ...existing, ...updates });
   }
 
-  setToolOverride(override: ToolSafetyOverride): void {
-    this.toolOverrides.set(override.toolName, override);
+  setToolOverride(override: ToolSafetyOverride, workspaceId: string = 'global'): void {
+    this.toolOverrides.set(`${workspaceId}#${override.toolName}`, override);
   }
 
-  removeToolOverride(toolName: string): void {
-    this.toolOverrides.delete(toolName);
+  removeToolOverride(toolName: string, workspaceId: string = 'global'): void {
+    this.toolOverrides.delete(`${workspaceId}#${toolName}`);
   }
 }
