@@ -36,7 +36,11 @@ export async function handler(): Promise<{
       throw new Error(`Deep health check failed: ${deepCheck.details}`);
     }
 
-    await updateLKGAfterHealthPass(memory);
+    try {
+      await updateLKGAfterHealthPass(memory);
+    } catch (err) {
+      logger.warn('[HEALTH] Failed to update LKG baseline (non-blocking):', err);
+    }
 
     // Get warm state information for health reporting
     let warmServers: string[] = [];
