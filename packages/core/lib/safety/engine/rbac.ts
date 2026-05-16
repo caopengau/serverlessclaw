@@ -51,7 +51,7 @@ export async function validateRBAC(
   const role = ctx.userRole;
 
   if (ctx.userId === 'SYSTEM') {
-    if (!ctx.workspaceId) {
+    if (!ctx.workspaceId || ctx.workspaceId === 'global') {
       return handleViolation(
         ctx,
         tier,

@@ -51,9 +51,10 @@ export class CircuitBreaker {
 
   private async loadState(): Promise<CircuitBreakerStateData> {
     try {
-      const { Item } = await getDocClient().send(
+      const response = await getDocClient().send(
         new GetCommand({ TableName: getConfigTableName(), Key: { key: this.stateKey } })
       );
+      const Item = response?.Item;
       if (Item?.value) return { ...this.freshState(), ...Item.value };
       return this.freshState();
     } catch (e) {

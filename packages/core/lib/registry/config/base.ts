@@ -56,12 +56,13 @@ export class ConfigManagerBase {
     const effectiveKey = this.getEffectiveKey(key, options);
 
     try {
-      const { Item } = await getDocClient().send(
+      const response = await getDocClient().send(
         new GetCommand({
           TableName: tableName,
           Key: { key: effectiveKey },
         })
       );
+      const Item = response?.Item;
       return Item?.value;
     } catch (e) {
       logger.warn(`Failed to fetch ${effectiveKey} from DDB:`, e);
@@ -203,13 +204,14 @@ export class ConfigManagerBase {
 
     while (retryCount < maxRetries) {
       try {
-        const { Item } = await getDocClient().send(
+        const response = await getDocClient().send(
           new GetCommand({
             TableName: tableName,
             Key: { key: effectiveKey },
             ConsistentRead: true,
           })
         );
+        const Item = response?.Item;
 
         const current = Item?.value as T | undefined;
         const next = await transform(current);

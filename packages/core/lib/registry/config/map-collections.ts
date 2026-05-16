@@ -26,7 +26,7 @@ export class ConfigManagerMapCollections extends ConfigManagerMapAtomic {
 
     while (retryCount < maxRetries) {
       try {
-        const { Item } = await getDocClient().send(
+        const response = await getDocClient().send(
           new GetCommand({
             TableName: tableName,
             Key: { key: effectiveKey },
@@ -34,6 +34,7 @@ export class ConfigManagerMapCollections extends ConfigManagerMapAtomic {
             ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
           })
         );
+        const Item = response?.Item;
 
         const currentMap = Item?.value as Record<string, unknown[]>;
         const currentList = currentMap?.[entityId];
@@ -86,7 +87,7 @@ export class ConfigManagerMapCollections extends ConfigManagerMapAtomic {
 
     while (retryCount < maxRetries) {
       try {
-        const { Item } = await getDocClient().send(
+        const response = await getDocClient().send(
           new GetCommand({
             TableName: tableName,
             Key: { key: effectiveKey },
@@ -94,6 +95,7 @@ export class ConfigManagerMapCollections extends ConfigManagerMapAtomic {
             ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
           })
         );
+        const Item = response?.Item;
 
         const currentMap = Item?.value as Record<string, unknown[]>;
         const currentList = currentMap?.[entityId] || [];
@@ -177,7 +179,7 @@ export class ConfigManagerMapCollections extends ConfigManagerMapAtomic {
 
     while (retryCount < maxRetries) {
       try {
-        const { Item } = await getDocClient().send(
+        const response = await getDocClient().send(
           new GetCommand({
             TableName: tableName,
             Key: { key: effectiveKey },
@@ -185,6 +187,7 @@ export class ConfigManagerMapCollections extends ConfigManagerMapAtomic {
             ExpressionAttributeNames: { '#val': 'value', '#id': entityId, '#field': field },
           })
         );
+        const Item = response?.Item;
 
         const currentMap = Item?.value as Record<string, Record<string, unknown[]>>;
         const currentList = currentMap?.[entityId]?.[field];

@@ -17,7 +17,7 @@ export async function getDeployCountToday(workspaceId?: string): Promise<number>
   const scopePrefix = workspaceId ? `WS#${workspaceId}#` : '';
   const pk = `${scopePrefix}${SYSTEM.DEPLOY_STATS_KEY ?? 'SYSTEM#DEPLOY_STATS'}`;
 
-  const { Item } = await db.send(
+  const response = await db.send(
     new GetCommand({
       TableName: getMemoryTableName(),
       Key: {
@@ -26,6 +26,7 @@ export async function getDeployCountToday(workspaceId?: string): Promise<number>
       },
     })
   );
+  const Item = response?.Item;
 
   return Item?.lastReset === today ? (Item?.count ?? 0) : 0;
 }

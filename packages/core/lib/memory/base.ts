@@ -182,8 +182,8 @@ export class BaseMemoryProvider {
     try {
       const response = await this.docClient.send(command);
       return {
-        items: (response.Items as Record<string, unknown>[]) ?? [],
-        lastEvaluatedKey: response.LastEvaluatedKey,
+        items: (response?.Items as Record<string, unknown>[]) ?? [],
+        lastEvaluatedKey: response?.LastEvaluatedKey,
       };
     } catch (error) {
       const errorName = (error as Error).name || 'UnknownError';
@@ -326,12 +326,12 @@ export class BaseMemoryProvider {
         const scanResponse = (await this.docClient.send(
           scanCommand
         )) as import('@aws-sdk/lib-dynamodb').ScanCommandOutput;
-        if (scanResponse.Items && scanResponse.Items.length > 0) {
+        if (scanResponse?.Items && scanResponse.Items.length > 0) {
           items.push(...(scanResponse.Items as Record<string, unknown>[]));
         }
 
         if (limit && items.length >= limit) break;
-        lastEvaluatedKey = scanResponse.LastEvaluatedKey;
+        lastEvaluatedKey = scanResponse?.LastEvaluatedKey;
       } while (lastEvaluatedKey);
 
       return items;

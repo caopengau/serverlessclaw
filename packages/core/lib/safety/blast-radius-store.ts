@@ -44,13 +44,13 @@ export class BlastRadiusStore {
       return cached;
     }
 
-    const { Item } = await db.send(
+    const response = await db.send(
       new GetCommand({
         TableName: getMemoryTableName(),
         Key: { userId: pk, timestamp: 0 },
       })
     );
-
+    const Item = response?.Item;
     if (!Item) return null;
 
     const entry: BlastRadiusEntry = {
