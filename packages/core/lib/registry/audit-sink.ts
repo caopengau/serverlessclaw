@@ -7,7 +7,7 @@ export interface AuditEvent {
   sessionId?: string;
   workspaceId?: string;
   userId?: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   timestamp: number;
 }
 

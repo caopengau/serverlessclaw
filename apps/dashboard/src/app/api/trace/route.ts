@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DynamoDBDocumentClient,
-  ScanCommand,
-  BatchWriteCommand,
-  QueryCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, BatchWriteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { revalidatePath } from 'next/cache';
 import { logger } from '@claw/core/lib/logger';
 import { getTraceTableName } from '@claw/core/lib/utils/ddb-client';

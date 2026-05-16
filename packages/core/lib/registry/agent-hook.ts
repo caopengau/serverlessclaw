@@ -6,15 +6,15 @@ export interface AgentHookContext {
   sessionId?: string;
   workspaceId?: string;
   userId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface IAgentHooks {
   onStart?: (context: AgentHookContext) => Promise<void> | void;
-  onMessage?: (chunk: any, context: AgentHookContext) => Promise<void> | void;
-  onToolCall?: (toolCall: any, context: AgentHookContext) => Promise<void> | void;
-  onComplete?: (result: any, context: AgentHookContext) => Promise<void> | void;
-  onError?: (error: any, context: AgentHookContext) => Promise<void> | void;
+  onMessage?: (chunk: unknown, context: AgentHookContext) => Promise<void> | void;
+  onToolCall?: (toolCall: unknown, context: AgentHookContext) => Promise<void> | void;
+  onComplete?: (result: unknown, context: AgentHookContext) => Promise<void> | void;
+  onError?: (error: unknown, context: AgentHookContext) => Promise<void> | void;
 }
 
 /**
@@ -50,7 +50,7 @@ export class AgentHookRegistry {
   /**
    * Triggers the onMessage hook for all registered listeners.
    */
-  static async triggerMessage(chunk: any, context: AgentHookContext) {
+  static async triggerMessage(chunk: unknown, context: AgentHookContext) {
     for (const hook of this.hooks) {
       if (hook.onMessage) {
         try {
@@ -65,7 +65,7 @@ export class AgentHookRegistry {
   /**
    * Triggers the onToolCall hook for all registered listeners.
    */
-  static async triggerToolCall(toolCall: any, context: AgentHookContext) {
+  static async triggerToolCall(toolCall: unknown, context: AgentHookContext) {
     for (const hook of this.hooks) {
       if (hook.onToolCall) {
         try {
@@ -80,7 +80,7 @@ export class AgentHookRegistry {
   /**
    * Triggers the onComplete hook for all registered listeners.
    */
-  static async triggerComplete(result: any, context: AgentHookContext) {
+  static async triggerComplete(result: unknown, context: AgentHookContext) {
     for (const hook of this.hooks) {
       if (hook.onComplete) {
         try {
@@ -95,7 +95,7 @@ export class AgentHookRegistry {
   /**
    * Triggers the onError hook for all registered listeners.
    */
-  static async triggerError(error: any, context: AgentHookContext) {
+  static async triggerError(error: unknown, context: AgentHookContext) {
     for (const hook of this.hooks) {
       if (hook.onError) {
         try {

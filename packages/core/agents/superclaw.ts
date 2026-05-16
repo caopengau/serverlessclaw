@@ -3,6 +3,8 @@ import { IMemory } from '../lib/types/memory';
 import { IProvider, ReasoningProfile } from '../lib/types/llm';
 import { ITool } from '../lib/types/tool';
 import { IAgentConfig, SafetyTier, SafetyPolicy } from '../lib/types/agent';
+import type { SafetyEngine } from '../lib/safety/safety-engine';
+import type { ToolSafetyOverride } from '../lib/safety/safety-limiter';
 
 /**
  * SuperClaw Agent.
@@ -13,16 +15,16 @@ export class SuperClaw extends Agent {
    * SafetyEngine instance for granular safety evaluation.
    * Lazily loaded to reduce static context budget.
    */
-  private _safetyEngine: any;
+  private _safetyEngine: SafetyEngine | undefined;
 
   constructor(memory: IMemory, provider: IProvider, tools: ITool[], config?: IAgentConfig) {
     super(memory, provider, tools, config!);
   }
 
-  private async getSafetyEngine() {
+  private async getSafetyEngine(): Promise<SafetyEngine> {
     if (!this._safetyEngine) {
       const { SafetyEngine } = await import('../lib/safety/safety-engine');
-      this._safetyEngine = new SafetyEngine();
+      this._safetyEngine = new SafetyEngine() as unknown as SafetyEngine;
     }
     return this._safetyEngine;
   }
@@ -119,7 +121,7 @@ export class SuperClaw extends Agent {
    *
    * @param override - The tool safety override configuration.
    */
-  async setToolSafetyOverride(override: any): Promise<void> {
+  async setToolSafetyOverride(override: ToolSafetyOverride): Promise<void> {
     const engine = await this.getSafetyEngine();
     engine.setToolOverride(override);
   }

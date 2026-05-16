@@ -9,6 +9,7 @@ import {
   SafetyPolicy,
   SafetyEvaluationResult,
   EvolutionMode,
+  SafetyContext,
 } from '../types/agent';
 import { TRUST } from '../constants';
 import { CLASS_C_ACTIONS } from '../constants/safety';
@@ -118,7 +119,7 @@ export class SafetyEngine extends SafetyBase {
   async evaluateAction(
     agentConfig: Partial<IAgentConfig> | undefined,
     action: string,
-    context?: any
+    context?: SafetyContext
   ): Promise<SafetyEvaluationResult> {
     const tier = agentConfig?.safetyTier ?? SafetyTier.PROD;
     const agentId = agentConfig?.id ?? 'unknown';
@@ -236,7 +237,7 @@ export class SafetyEngine extends SafetyBase {
   }
 
   public async handleViolation(
-    ctx: any,
+    ctx: SafetyContext,
     tier: SafetyTier,
     action: string,
     appliedPolicy: string,
@@ -245,7 +246,7 @@ export class SafetyEngine extends SafetyBase {
     resource?: string
   ): Promise<SafetyEvaluationResult> {
     const violation = this.createViolation(
-      ctx.agentId,
+      ctx.agentId || 'unknown',
       tier,
       action,
       ctx.toolName,
@@ -270,7 +271,7 @@ export class SafetyEngine extends SafetyBase {
   }
 
   public async checkToolSafety(
-    ctx: any,
+    ctx: SafetyContext,
     tier: SafetyTier,
     action: string
   ): Promise<SafetyEvaluationResult> {
@@ -294,7 +295,7 @@ export class SafetyEngine extends SafetyBase {
     agentId: string,
     action: string,
     approvalResult: SafetyEvaluationResult,
-    ctx: any
+    ctx: SafetyContext
   ): Promise<SafetyEvaluationResult | null> {
     const error = await this.enforceClassCBlastRadius(agentId, action, ctx.workspaceId);
     if (error) {

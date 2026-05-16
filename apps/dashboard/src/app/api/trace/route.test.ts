@@ -3,12 +3,7 @@ import { DELETE } from './route';
 import { NextRequest } from 'next/server';
 import * as ddbUtils from '@claw/core/lib/utils/ddb-client';
 import { mockClient } from 'aws-sdk-client-mock';
-import {
-  DynamoDBDocumentClient,
-  ScanCommand,
-  BatchWriteCommand,
-  QueryCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, BatchWriteCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 
 // Mock Logger
 vi.mock('@claw/core/lib/logger', () => ({

@@ -43,6 +43,7 @@ describe('event-routing', () => {
       EventType.REPUTATION_UPDATE,
       EventType.ESCALATION_COMPLETED,
       EventType.PULSE_PING,
+      EventType.NOTIFICATION_CREATED,
     ];
 
     it.each(REQUIRED_EVENT_TYPES)('should have routing entry for %s', (eventType) => {
@@ -54,7 +55,7 @@ describe('event-routing', () => {
     it('should have exactly the expected number of routing entries', () => {
       // This test will fail if someone adds a new event type without adding routing
       // Update this count when adding new routable event types
-      expect(Object.keys(DEFAULT_EVENT_ROUTING)).toHaveLength(30);
+      expect(Object.keys(DEFAULT_EVENT_ROUTING)).toHaveLength(31);
     });
   });
 
@@ -103,6 +104,7 @@ describe('event-routing', () => {
         'reputation-handler',
         'recovery-handler',
         'pulse-handler',
+        'internal-notifier',
       ];
 
       for (const [, routing] of Object.entries(DEFAULT_EVENT_ROUTING)) {

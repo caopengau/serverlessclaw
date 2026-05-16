@@ -77,6 +77,24 @@ export interface SafetyViolation {
 }
 
 /**
+ * Context for safety evaluation.
+ */
+export interface SafetyContext {
+  agentId?: string;
+  toolName?: string;
+  resource?: string;
+  traceId?: string;
+  userId?: string;
+  workspaceId?: string;
+  orgId?: string;
+  teamId?: string;
+  staffId?: string;
+  isProactive?: boolean;
+  args?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/**
  * Result of a safety evaluation.
  */
 export interface SafetyEvaluationResult {

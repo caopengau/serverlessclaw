@@ -1,12 +1,7 @@
 import { getResourceName } from '@/lib/sst-utils';
 
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import {
-  DynamoDBDocumentClient,
-  GetCommand,
-  ScanCommand,
-  QueryCommand,
-} from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, GetCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { redirect } from 'next/navigation';
 import { AUTH } from '@/lib/constants';
 import DeleteAllTracesButton from '@/components/DeleteAllTracesButton';
