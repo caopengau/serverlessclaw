@@ -71,17 +71,17 @@ Include:
 
 ## 4. Priority Areas (Based on Coverage Matrix)
 
-The following have NEVER been audited - prioritize these:
+All cross-silo perspectives (A through G) have now been successfully audited at least once. Refer to [AUDIT-COVERAGE.md](./AUDIT-COVERAGE.md) for the full history of reports.
 
-- **Perspective C**: Identity Journey (Brain → Spine → Shield)
-- **Perspective D**: Trust Loop (Eye → Scales → Spine)
-- **Perspective E**: Recovery Path (Shield → Spine → Brain)
+When choosing areas for new audits, prioritize:
+- **Perspective G (Dashboard Integrity)**: Verify that no cross-tenant leaks occur when adding new workspace API endpoints or mutator operations.
+- **Perspective F (Metabolic Loop)**: Ensure atomic tool pruning and cache invalidation are working under high concurrency without data starvation.
+- **Enterprise Features**: Validate new multi-human presence layers (`presence` signals in MQTT) and trust-driven permission escalations.
 
-The following are high-risk (most violations):
-
-- **The Shield** (Silo 3) - Safety violations
-- **The Scales** (Silo 6) - Race conditions
-- **The Spine** (Silo 1) - Fail-open behavior
+High-risk areas to continuously monitor for regressions:
+- **The Shield** (Silo 3) - Safety rule bypasses and rate limit fail-open edge cases.
+- **The Scales** (Silo 6) - Race conditions in TrustScore updates under heavy parallel execution.
+- **The Spine** (Silo 1) - Monotonic recursion tracker bypasses or trace identification gaps.
 
 ## 5. Quick Reference Commands
 

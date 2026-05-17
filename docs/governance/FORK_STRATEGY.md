@@ -42,18 +42,18 @@ Focus on keeping your custom logic in separate directories or behind adapters to
 
 ## 🏗️ Workflow 2: The Subtree Method
 
-Best for projects that include ServerlessClaw as a managed "core" directory (e.g., `core/`).
+Best for projects that include ServerlessClaw as a managed "framework" directory (e.g., `framework/`).
 
 ### 1. Initial Addition
 
 ```bash
-git subtree add --prefix=core/ https://github.com/serverlessclaw/serverlessclaw.git main --squash
+git subtree add --prefix=framework/ https://github.com/serverlessclaw/serverlessclaw.git main --squash
 ```
 
 ### 2. Pulling Evolution
 
 ```bash
-git subtree pull --prefix=core/ https://github.com/serverlessclaw/serverlessclaw.git main --squash
+git subtree pull --prefix=framework/ https://github.com/serverlessclaw/serverlessclaw.git main --squash
 ```
 
 ---
@@ -67,7 +67,7 @@ For a unified experience, use the `@serverlessclaw/cli` (The Nerve) to manage yo
 claw-sync --hub serverlessclaw/serverlessclaw --method fork
 
 # Sync via Subtree
-claw-sync --hub serverlessclaw/serverlessclaw --method subtree --prefix core/
+claw-sync --hub serverlessclaw/serverlessclaw --method subtree --prefix framework/
 ```
 
 > [!TIP]

@@ -147,11 +147,17 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [ ] **Consensus Protocols**: Implement "Council of Agents" (Raft-lite) for 3-agent agreement on critical production merges.
 - [ ] **Unified Claim System**: Dashboard-based ownership management between human and agents for shared tasks.
 
-## ✅ Phase 20: Persistent Human-in-the-Loop (Inspired by Mastra)
+## 🏗️ Phase 20: Persistent Human-in-the-Loop (Inspired by Mastra)
 
 - [ ] **Workflow State Snapshots**: Persistent DynamoDB snapshots of active workflows allowing mid-task "Suspend & Resume".
 - [ ] **Milestone Checkpoints**: Automatic session snapshotting before high-risk agent operations.
 - [x] **Live Collaboration Interface**: Real-time collaborative "Mission Control" interface in ClawCenter for human-agent pairing.
+
+## 🏗️ Phase 21: Neural Evolution & Quantitative Evals
+
+- [ ] **SONA Learning Loop**: Track tool success rates to dynamically route tasks to the most cost-effective provider.
+- [ ] **Integrated Agent Evals**: Built-in benchmarking suite to measure PR success rate, security regressions, and "Time to Fix".
+- [ ] **Trajectory Analysis**: Extract high-performance reasoning patterns from successful traces and inject them as system-level guidance.
 
 ## ✅ Phase 22: Cognitive Mission Command (Operational)
 
@@ -160,21 +166,7 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [x] **Neural Presence Layer**: Workspace-wide awareness of active humans and agents via MQTT presence signals.
 - [x] **Mode Persistence**: State-aware layout toggles for focused "Commander" sessions.
 
----
-
-## 🏗️ Phase 23: Advanced Multi-Agent Orchestration (Next Priority)
-
-- [ ] **Dynamic Workflow Engine (ClawFlow)**: Transition from fixed agent roles to a graph-based orchestration engine with parallel execution.
-- [ ] **Consensus Protocols**: Implement "Council of Agents" (Raft-lite) for 3-agent agreement on critical production merges.
-- [ ] **Unified Claim System**: Dashboard-based ownership management between human and agents for shared tasks.
-
-## ✅ Phase 21: Neural Evolution & Quantitative Evals
-
-- [ ] **SONA Learning Loop**: Track tool success rates to dynamically route tasks to the most cost-effective provider.
-- [ ] **Integrated Agent Evals**: Built-in benchmarking suite to measure PR success rate, security regressions, and "Time to Fix".
-- [ ] **Trajectory Analysis**: Extract high-performance reasoning patterns from successful traces and inject them as system-level guidance.
-
-## 🏗️ Phase 24: Spec-Driven Development (SDD) Integration (Active Priority)
+## 🏗️ Phase 23: Spec-Driven Development (SDD) Integration (Active Priority)
 
 - [x] **DynamoDB-Backed Runtime Specs**: Upgrade Strategic Planner to output formal EARS-compliant technical specifications stored statefully in the DynamoDB `PLAN#` distilled memory record for low-latency multi-agent execution.
 - [x] **SuperClaw Refinement Touchpoint**: Integrate SuperClaw and the Dashboard as the interactive Human-in-the-Loop (HITL) gate for editing and approving specification records in DynamoDB before execution.

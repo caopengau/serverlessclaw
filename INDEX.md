@@ -30,8 +30,8 @@
 | [docs/governance/ROADMAP.md](./docs/governance/ROADMAP.md)                       | Understand what's planned, pick the next task                              |
 | [docs/intelligence/STREAMING.md](./docs/intelligence/STREAMING.md)               | Real-time reasoning streaming (MQTT) and signal flow                       |
 | [docs/governance/CONTRIBUTING.md](./docs/governance/CONTRIBUTING.md)             | Understand how to contribute code or update documentation                  |
-| [Extensibility](./core/lib/registry/)                                            | Dynamic Skill and Agent registries for spoke extension                     |
-| [Evolution](./core/lib/safety/evolution-scheduler.ts)                            | Evolution Manager for proposing optimizations and bug fixes                |
+| [Extensibility](./packages/core/lib/registry/)                                    | Dynamic Skill and Agent registries for spoke extension                     |
+| [Evolution](./packages/core/lib/safety/evolution-scheduler.ts)                    | Evolution Manager for proposing optimizations and bug fixes                |
 
 ## System Overview (One Paragraph)
 
@@ -59,13 +59,13 @@ make dev
 
 | Changed File               | Update This Spoke                                       | Diagram? |
 | -------------------------- | ------------------------------------------------------- | :------: |
-| `core/agents/`             | [intelligence/AGENTS.md](./docs/intelligence/AGENTS.md) |   Yes    |
-| `core/tools/`              | [intelligence/TOOLS.md](./docs/intelligence/TOOLS.md)   |   Yes    |
-| `core/handlers/events.ts`  | [interface/EVENTS.md](./docs/interface/EVENTS.md)       |   Yes    |
-| `core/handlers/monitor.ts` | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |   Yes    |
-| `core/lib/types/`          | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |  Struct  |
-| `core/lib/memory/`         | [intelligence/MEMORY.md](./docs/intelligence/MEMORY.md) |   Yes    |
-| `core/lib/providers/`      | [intelligence/LLM.md](./docs/intelligence/LLM.md)       |    No    |
+| `packages/core/agents/`     | [intelligence/AGENTS.md](./docs/intelligence/AGENTS.md) |   Yes    |
+| `packages/core/tools/`      | [intelligence/TOOLS.md](./docs/intelligence/TOOLS.md)   |   Yes    |
+| `packages/core/handlers/events.ts` | [interface/EVENTS.md](./docs/interface/EVENTS.md)       |   Yes    |
+| `packages/core/handlers/monitor.ts` | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |   Yes    |
+| `packages/core/lib/types/`  | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |  Struct  |
+| `packages/core/lib/memory/` | [intelligence/MEMORY.md](./docs/intelligence/MEMORY.md) |   Yes    |
+| `packages/core/lib/providers/` | [intelligence/LLM.md](./docs/intelligence/LLM.md)       |    No    |
 | `infra/`                   | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |   Yes    |
 | `makefiles/`               | [governance/DEVOPS.md](./docs/governance/DEVOPS.md)     |    No    |
 | `sst.config.ts`            | [ARCHITECTURE.md](./ARCHITECTURE.md)                    |   Yes    |
@@ -100,18 +100,18 @@ For any agent working in this repo, load context in this order:
 
 - [ ] **New module**: Create co-located `*.test.ts` with unit tests covering happy path + error cases
 - [ ] **Modified module**: Update existing `*.test.ts` to cover new behavior
-- [ ] **New event type/schema**: Add test case to `core/tests/contract.test.ts`
-- [ ] **New tool**: Verify tool is listed in `core/lib/constants.ts` TOOLS enum
+- [ ] **New event type/schema**: Add test case to `packages/core/tests/contract.test.ts`
+- [ ] **New tool**: Verify tool is listed in `packages/core/lib/constants.ts` TOOLS enum
 - [ ] **Run**: `make test` passes before committing
 
 ### 2. Documentation (REQUIRED)
 
-- [ ] **Changed `core/agents/`** -> update [`docs/intelligence/AGENTS.md`](./docs/intelligence/AGENTS.md) (registry) and [`docs/intelligence/SWARM.md`](./docs/intelligence/SWARM.md) (coordination)
-- [ ] **Changed `core/tools/`** -> update [`docs/intelligence/TOOLS.md`](./docs/intelligence/TOOLS.md) and [`docs/interface/PROTOCOL.md`](./docs/interface/PROTOCOL.md)
-- [ ] **Changed `core/handlers/events.ts` or `monitor.ts`** -> update [`docs/intelligence/SWARM.md`](./docs/intelligence/SWARM.md) and [`docs/system/RESILIENCE.md`](./docs/system/RESILIENCE.md)
-- [ ] **Changed `core/lib/types/`** -> update [`ARCHITECTURE.md`](./ARCHITECTURE.md)
-- [ ] **Changed `core/lib/memory/`** -> update [`docs/intelligence/MEMORY.md`](./docs/intelligence/MEMORY.md)
-- [ ] **Changed `core/lib/providers/`** -> update [`docs/intelligence/LLM.md`](./docs/intelligence/LLM.md)
+- [ ] **Changed `packages/core/agents/`** -> update [`docs/intelligence/AGENTS.md`](./docs/intelligence/AGENTS.md) (registry) and [`docs/intelligence/SWARM.md`](./docs/intelligence/SWARM.md) (coordination)
+- [ ] **Changed `packages/core/tools/`** -> update [`docs/intelligence/TOOLS.md`](./docs/intelligence/TOOLS.md) and [`docs/interface/PROTOCOL.md`](./docs/interface/PROTOCOL.md)
+- [ ] **Changed `packages/core/handlers/events.ts` or `monitor.ts`** -> update [`docs/intelligence/SWARM.md`](./docs/intelligence/SWARM.md) and [`docs/system/RESILIENCE.md`](./docs/system/RESILIENCE.md)
+- [ ] **Changed `packages/core/lib/types/`** -> update [`ARCHITECTURE.md`](./ARCHITECTURE.md)
+- [ ] **Changed `packages/core/lib/memory/`** -> update [`docs/intelligence/MEMORY.md`](./docs/intelligence/MEMORY.md)
+- [ ] **Changed `packages/core/lib/providers/`** -> update [`docs/intelligence/LLM.md`](./docs/intelligence/LLM.md)
 - [ ] **Changed `infra/`** -> update [`docs/system/PROVISIONING.md`](./docs/system/PROVISIONING.md)
 - [ ] **Changed `makefiles/`** -> update [`docs/governance/DEVOPS.md`](./docs/governance/DEVOPS.md)
 
@@ -131,12 +131,12 @@ For any agent working in this repo, load context in this order:
 
 ### 5. Constants & Types (REQUIRED for new tools/events)
 
-- [ ] New tool name added to `TOOLS` enum in `core/lib/constants.ts`
-- [ ] New memory key prefix added to `MEMORY_KEYS` in `core/lib/constants.ts`
-- [ ] New event type added to `EventType` enum in `core/lib/types/agent.ts`
-- [ ] New event schema added to `EVENT_SCHEMA_MAP` in `core/lib/schema/events.ts`
-- [ ] New type exported from `core/lib/types/index.ts`
-- [ ] New memory operations exported from `core/lib/memory/index.ts`
+- [ ] New tool name added to `TOOLS` enum in `packages/core/lib/constants.ts`
+- [ ] New memory key prefix added to `MEMORY_KEYS` in `packages/core/lib/constants.ts`
+- [ ] New event type added to `EventType` enum in `packages/core/lib/types/agent.ts`
+- [ ] New event schema added to `EVENT_SCHEMA_MAP` in `packages/core/lib/schema/events.ts`
+- [ ] New type exported from `packages/core/lib/types/index.ts`
+- [ ] New memory operations exported from `packages/core/lib/memory/index.ts`
 
 ## Commit Message Format
 
