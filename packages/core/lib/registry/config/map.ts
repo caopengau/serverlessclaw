@@ -28,7 +28,13 @@ export class ConfigManagerMap extends ConfigManagerMapCollections {
     entityId: string,
     field: string,
     value: unknown,
-    options: { workspaceId?: string; retryCount?: number } = {}
+    options: {
+      workspaceId?: string;
+      retryCount?: number;
+      conditionExpression?: string;
+      expressionAttributeNames?: Record<string, string>;
+      expressionAttributeValues?: Record<string, unknown>;
+    } = {}
   ): Promise<void> {
     const tableName = this._getTableName();
     if (!tableName) return;
@@ -41,14 +47,27 @@ export class ConfigManagerMap extends ConfigManagerMapCollections {
     const docClient = getDocClient();
 
     try {
+      let conditionExpression = 'attribute_exists(#val.#id)';
+      if (options.conditionExpression) {
+        conditionExpression = `(${conditionExpression}) AND (${options.conditionExpression})`;
+      }
+
       await docClient.send(
         new UpdateCommand({
           TableName: tableName,
           Key: { key: effectiveKey },
           UpdateExpression: 'SET #val.#id.#field = :value',
-          ConditionExpression: 'attribute_exists(#val.#id)',
-          ExpressionAttributeNames: { '#val': 'value', '#id': entityId, '#field': field },
-          ExpressionAttributeValues: { ':value': value },
+          ConditionExpression: conditionExpression,
+          ExpressionAttributeNames: {
+            '#val': 'value',
+            '#id': entityId,
+            '#field': field,
+            ...(options.expressionAttributeNames || {}),
+          },
+          ExpressionAttributeValues: {
+            ':value': value,
+            ...(options.expressionAttributeValues || {}),
+          },
         })
       );
     } catch (e: unknown) {
@@ -56,6 +75,14 @@ export class ConfigManagerMap extends ConfigManagerMapCollections {
         e instanceof Error &&
         (e.name === 'ValidationException' || e.name === 'ConditionalCheckFailedException')
       ) {
+        if (
+          e.name === 'ConditionalCheckFailedException' &&
+          options.conditionExpression &&
+          !e.message.includes('attribute_exists')
+        ) {
+          throw e;
+        }
+
         try {
           await docClient.send(
             new UpdateCommand({

@@ -335,4 +335,38 @@ describe('ConfigManager atomic operations', () => {
       expect(updateCommand.input.Key.key).toBe('WS#ws-1#test_list');
     });
   });
+
+  describe('atomicUpdateMapField', () => {
+    it('should support conditional expressions and pass options correctly', async () => {
+      await ConfigManager.atomicUpdateMapField('key', 'entity', 'field', 100, {
+        conditionExpression: '#trust < :min',
+        expressionAttributeNames: { '#trust': 'trustScore' },
+        expressionAttributeValues: { ':min': 20 },
+      });
+
+      expect(docClientMock.send).toHaveBeenCalled();
+      const command = docClientMock.send.mock.calls[0][0];
+      expect(command.input.ConditionExpression).toBe(
+        '(attribute_exists(#val.#id)) AND (#trust < :min)'
+      );
+      expect(command.input.ExpressionAttributeNames['#trust']).toBe('trustScore');
+      expect(command.input.ExpressionAttributeValues[':min']).toBe(20);
+      expect(command.input.ExpressionAttributeValues[':value']).toBe(100);
+    });
+
+    it('should skip fallback and rethrow ConditionalCheckFailedException if the custom condition fails', async () => {
+      const error = new Error('The conditional request failed');
+      error.name = 'ConditionalCheckFailedException';
+      docClientMock.send.mockRejectedValueOnce(error);
+
+      await expect(
+        ConfigManager.atomicUpdateMapField('key', 'entity', 'field', 100, {
+          conditionExpression: '#trust < :min',
+        })
+      ).rejects.toThrow('The conditional request failed');
+
+      // It should NOT fall back to creating the entity because the failure was due to the custom condition
+      expect(docClientMock.send).toHaveBeenCalledTimes(1);
+    });
+  });
 });

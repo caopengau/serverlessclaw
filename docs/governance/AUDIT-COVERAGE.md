@@ -4,7 +4,7 @@
 
 This document tracks which system silos and cross-silo perspectives have been audited across all rounds. It helps identify under-audited areas and guide future audit efforts.
 
-Last Updated: 2026-05-14
+Last Updated: 2026-05-18
 
 ---
 
@@ -16,8 +16,8 @@ Last Updated: 2026-05-14
 | **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 18          | 2026-05-17   | Low        |
 | **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 28          | 2026-05-17   | Low        |
 | **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 26          | 2026-05-17   | Low        |
-| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 22          | 2026-05-17   | Low        |
-| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 23          | 2026-05-17   | Low        |
+| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 23          | 2026-05-18   | Low        |
+| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 24          | 2026-05-18   | Low        |
 | **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 21          | 2026-05-17   | Low        |
 
 ---
@@ -29,7 +29,7 @@ Last Updated: 2026-05-14
 | **A**       | Life of a Message   | Spine → Brain → Eye         | 13          | 2026-05-17  |
 | **B**       | Evolution Cycle     | Hand → Shield → Scales      | 14          | 2026-05-17  |
 | **C**       | Identity Journey    | Brain → Spine → Shield      | 13          | 2026-05-17  |
-| **D**       | Trust Loop          | Eye → Scales → Spine        | 16          | 2026-05-14  |
+| **D**       | Trust Loop          | Eye → Scales → Spine        | 17          | 2026-05-18  |
 | **E**       | Recovery Path       | Shield → Spine → Brain      | 15          | 2026-05-16  |
 | **F**       | Metabolic Loop      | Metabolism ↔ Scales ↔ Spine | 12          | 2026-05-17  |
 | **G**       | Dashboard Integrity | Cross-Silo API Safety       | 4           | 2026-05-17  |
@@ -40,6 +40,7 @@ Last Updated: 2026-05-14
 
 | Date       | Report                                                  | Silos                                | Perspective | Status/Summary                                                                                                         |
 | :--------- | :------------------------------------------------------ | :----------------------------------- | :---------- | :--------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-18 | `reports/audit-2026-05-18-trust-loop-race.md`           | Eye, Scales, Spine                   | D           | FIXED: P1 Bypassed Conditional Clamping in ConfigManagerMap, P1 Race Condition in Trust Calibration Clamping.          |
 | 2026-05-17 | `reports/audit-2026-05-17-session-listing-remediation.md` | Brain, Spine, Shield                 | C           | FIXED: P1 GSI Active Session Mismatch (Dual-write), P1 Missing Org Scoping, P1 Lenient Mock.                           |
 | 2026-05-17 | `reports/audit-2026-05-17-evolution-cycle.md`           | Hand, Shield, Scales, Metabolism     | B           | FIXED: P1 Test Runner Config Change Blindness (Silo 7), Audited tool crash calibration & security gates.              |
 | 2026-05-17 | `reports/audit-2026-05-17-life-of-a-message.md`        | Spine, Brain, Eye                    | A           | FIXED: P1 Millisecond Collision Overwrites in DLQ (AP-12), P1 In-Memory Filtering in Insights (AP-19).                 |
