@@ -56,12 +56,12 @@ Once verified in the sandbox, the change is committed.
 
 ### 5. Spec-Driven Evolution Contracts (SDD Lifecycle)
 
-Capability evolution is governed strictly by the **Technical Specification contract** statefully saved in DynamoDB (`PLAN#${gapId}`). 
+Capability evolution is governed strictly by the **Technical Specification contract** statefully saved in DynamoDB (`PLAN#${gapId}`).
 
-*   **Strategic Planner (Drafting)**: Formulates the plan and writes the initial EARS specification.
-*   **Human Developer (HITL Approval)**: Reviews, refines, and saves updates using the monospaced Spec Editor in the dashboard, setting the target contract in DynamoDB.
-*   **Coder & Researcher Agents (Ground Work)**: Automatically fetch the user-approved specs from DynamoDB and inject them into their prompts as `[TARGET_TECHNICAL_SPECIFICATIONS]` to focus implementation and discovery on the exact design criteria.
-*   **QA Agent (Audit Gate)**: Auditor runs semantic validation directly against the EARS acceptance criteria to verify the evolution DoD.
+- **Strategic Planner (Drafting)**: Formulates the plan and writes the initial EARS specification.
+- **Human Developer (HITL Approval)**: Reviews, refines, and saves updates using the monospaced Spec Editor in the dashboard, setting the target contract in DynamoDB.
+- **Coder & Researcher Agents (Ground Work)**: Automatically fetch the user-approved specs from DynamoDB and inject them into their prompts as `[TARGET_TECHNICAL_SPECIFICATIONS]` to focus implementation and discovery on the exact design criteria.
+- **QA Agent (Audit Gate)**: Auditor runs semantic validation directly against the EARS acceptance criteria to verify the evolution DoD.
 
 ---
 
