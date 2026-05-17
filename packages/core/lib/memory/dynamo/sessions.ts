@@ -55,6 +55,14 @@ export class DynamoMemorySessions extends DynamoMemoryInsights implements IHisto
     return SessionOps.resetRecoveryAttemptCount(this);
   }
 
+  async saveDistilledRecoveryLog(
+    traceId: string,
+    log: string,
+    scope?: string | ContextualScope
+  ): Promise<void> {
+    return SessionOps.saveDistilledRecoveryLog(this, traceId, log, scope);
+  }
+
   async getSummary(userId: string, scope?: string | ContextualScope): Promise<string | null> {
     return SessionOps.getSummary(this, userId, scope);
   }

@@ -183,6 +183,22 @@ The system uses a tiered fallback mechanism ("Dead Man's Switch") to handle fail
        +--(Critical)--> [ Dead Man's Switch ] --> [ Emergency Rollback ]
 ```
 
+### 4b. Shielded Cognitive Health (The Shield)
+
+To maintain health check integrity without cross-tenant performance interference, workspace-specific cognitive probes use the `WorkspaceSummaryIndex` SK-filtered query instead of full table scans.
+
+```ascii
+[ Health Probe ]        [ WorkspaceSummaryIndex ]        [ Result ]
+       |                         |                          |
+       |-- Query(WS1, T > -30m) ->|                          |
+       |                         |-- (Returns WS1 Traces) ->|
+       |                         |                          | (Isolated)
+```
+
+### 4c. Standardized Recovery Traceability (The Brain)
+
+Emergency handlers utilize the unified `saveDistilledRecoveryLog` interface to ensure system baseline changes (e.g., rollbacks) are recorded with full metadata (`type: DISTILLED`) for dashboard visibility and auditability.
+
 ## 5. Modular Configuration Hierarchy (Silo 5)
 
 To maintain AI context integrity and modularity, `ConfigManager` is implemented via a multi-level inheritance chain.

@@ -1,6 +1,6 @@
 import { EventBridgeClient, ListEventBusesCommand } from '@aws-sdk/client-eventbridge';
 import { DynamoDBClient, GetItemCommand } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
+import { DynamoDBDocumentClient, ScanCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
 import { S3Client, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { IoTClient, DescribeEndpointCommand } from '@aws-sdk/client-iot';
 import { EventType } from '../types/agent';
@@ -148,29 +148,42 @@ export async function checkTraceCoherence(workspaceId?: string): Promise<Coheren
   const healthIssues: string[] = [];
 
   try {
-    let filterExpr = '#ts > :recentWindow';
-    const exprValues: Record<string, unknown> = {
-      ':recentWindow': Math.floor(recentWindow / 1000),
-    };
-
+    let result;
     if (workspaceId) {
-      filterExpr += ' AND workspaceId = :ws';
-      exprValues[':ws'] = workspaceId;
+      // P1 Fix: Use QueryCommand on WorkspaceSummaryIndex for isolation and efficiency
+      result = await getDynamoDbClient().send(
+        new QueryCommand({
+          TableName: tableName,
+          IndexName: 'WorkspaceSummaryIndex',
+          KeyConditionExpression: 'workspaceId = :ws AND #ts > :recentWindow',
+          ExpressionAttributeNames: {
+            '#ts': 'timestamp',
+          },
+          ExpressionAttributeValues: {
+            ':ws': workspaceId,
+            ':recentWindow': Math.floor(recentWindow / 1000),
+          },
+          Limit: 100,
+        })
+      );
+    } else {
+      // Fallback to Scan for global health check (rare)
+      result = await getDynamoDbClient().send(
+        new ScanCommand({
+          TableName: tableName,
+          FilterExpression: '#ts > :recentWindow',
+          ExpressionAttributeNames: {
+            '#ts': 'timestamp',
+          },
+          ExpressionAttributeValues: {
+            ':recentWindow': Math.floor(recentWindow / 1000),
+          },
+          Limit: 100,
+        })
+      );
     }
 
-    const scanResult = await getDynamoDbClient().send(
-      new ScanCommand({
-        TableName: tableName,
-        FilterExpression: filterExpr,
-        ExpressionAttributeNames: {
-          '#ts': 'timestamp',
-        },
-        ExpressionAttributeValues: exprValues,
-        Limit: 100,
-      })
-    );
-
-    const traces = (scanResult.Items ?? []) as Record<string, unknown>[];
+    const traces = (result.Items ?? []) as Record<string, unknown>[];
     const traceCount = traces.length;
 
     if (traceCount === 0) {

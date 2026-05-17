@@ -26,6 +26,7 @@ const memoryMocks = vi.hoisted(() => ({
   getLatestLKGHash: vi.fn(),
   incrementRecoveryAttemptCount: vi.fn(),
   resetRecoveryAttemptCount: vi.fn(),
+  saveDistilledRecoveryLog: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../lib/memory', () => ({
@@ -33,6 +34,7 @@ vi.mock('../lib/memory', () => ({
     getLatestLKGHash = memoryMocks.getLatestLKGHash;
     incrementRecoveryAttemptCount = memoryMocks.incrementRecoveryAttemptCount;
     resetRecoveryAttemptCount = memoryMocks.resetRecoveryAttemptCount;
+    saveDistilledRecoveryLog = memoryMocks.saveDistilledRecoveryLog;
   },
 }));
 

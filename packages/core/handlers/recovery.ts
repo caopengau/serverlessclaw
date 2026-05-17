@@ -91,7 +91,7 @@ async function cleanupStaleGapLocks(): Promise<number> {
               TableName: typedResource.MemoryTable.name,
               Key: {
                 userId: (item.userId as string) || '',
-                timestamp: String((item.timestamp as string) || '0'),
+                timestamp: Number((item.timestamp as string) || 0),
               },
               ConditionExpression: 'expiresAt < :staleThreshold',
               ExpressionAttributeValues: {
@@ -260,16 +260,10 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
         alert as unknown as Record<string, unknown>
       );
 
-      await db.send(
-        new PutCommand({
-          TableName: typedResource.MemoryTable.name,
-          Item: {
-            userId: 'DISTILLED#RECOVERY',
-            timestamp: Date.now(),
-            content: `Recovery halted. Circuit-breaker triggered after ${attemptCount} failed attempts. Escalated via Notifier.`,
-            expiresAt: Math.floor((Date.now() + RETENTION.HEALTH_DAYS * 86400000) / 1000),
-          },
-        })
+      await memory.saveDistilledRecoveryLog(
+        `recovery-${Date.now()}`,
+        `Recovery halted. Circuit-breaker triggered after ${attemptCount} failed attempts. Escalated via Notifier.`,
+        { workspaceId: 'GLOBAL' }
       );
       logger.info('Recovery circuit-breaker handled, skipping rollback.');
       return;
@@ -282,16 +276,10 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
       logger.error(
         `Invalid LKG hash detected: ${lkgHash}. Aborting recovery to prevent possible corruption.`
       );
-      await db.send(
-        new PutCommand({
-          TableName: typedResource.MemoryTable.name,
-          Item: {
-            userId: 'DISTILLED#RECOVERY',
-            timestamp: Date.now(),
-            content: `Recovery ABORTED: Invalid LKG hash "${lkgHash}" detected. Manual intervention required.`,
-            expiresAt: Math.floor((Date.now() + RETENTION.HEALTH_DAYS * 86400000) / 1000),
-          },
-        })
+      await memory.saveDistilledRecoveryLog(
+        `recovery-${Date.now()}`,
+        `Recovery ABORTED: Invalid LKG hash "${lkgHash}" detected. Manual intervention required.`,
+        { workspaceId: 'GLOBAL' }
       );
       return;
     }
@@ -321,16 +309,10 @@ export const handler = async (_event?: { detail: Record<string, unknown> }): Pro
 
     await codebuild.send(command);
 
-    await db.send(
-      new PutCommand({
-        TableName: typedResource.MemoryTable.name,
-        Item: {
-          userId: 'DISTILLED#RECOVERY',
-          timestamp: Date.now(),
-          content: `Dead Man's Switch detected unhealthy system and triggered attempt #${attemptCount} for rollback to ${lkgHash ?? 'previous state'}.`,
-          expiresAt: Math.floor((Date.now() + RETENTION.HEALTH_DAYS * 86400000) / 1000),
-        },
-      })
+    await memory.saveDistilledRecoveryLog(
+      `recovery-${Date.now()}`,
+      `Dead Man's Switch detected unhealthy system and triggered attempt #${attemptCount} for rollback to ${lkgHash ?? 'previous state'}.`,
+      { workspaceId: 'GLOBAL' }
     );
   } catch (recoveryError) {
     logger.error("FATAL: Dead Man's Switch recovery flow failed!", recoveryError);

@@ -26,12 +26,16 @@ vi.mock('../lib/lock/lock-manager', () => ({
 const memoryMocks = vi.hoisted(() => ({
   getLatestLKGHash: vi.fn(),
   incrementRecoveryAttemptCount: vi.fn(),
+  saveDistilledRecoveryLog: vi.fn().mockResolvedValue(undefined),
+  resetRecoveryAttemptCount: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('../lib/memory', () => ({
   DynamoMemory: class {
     getLatestLKGHash = memoryMocks.getLatestLKGHash;
     incrementRecoveryAttemptCount = memoryMocks.incrementRecoveryAttemptCount;
+    saveDistilledRecoveryLog = memoryMocks.saveDistilledRecoveryLog;
+    resetRecoveryAttemptCount = memoryMocks.resetRecoveryAttemptCount;
   },
 }));
 

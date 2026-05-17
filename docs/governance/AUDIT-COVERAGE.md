@@ -40,6 +40,7 @@ Last Updated: 2026-05-14
 
 | Date       | Report                                                  | Silos                                | Perspective | Status/Summary                                                                                                         |
 | :--------- | :------------------------------------------------------ | :----------------------------------- | :---------- | :--------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-17 | `reports/audit-2026-05-17-recovery-path.md`        | Shield, Spine, Brain                 | E           | FIXED: P1 Type Mismatch in Lock Cleanup, P1 In-memory filtering in Health Check. Standardized Recovery Logs.         |
 | 2026-05-17 | `reports/audit-2026-05-17-trust-loop.md`           | Eye, Scales, Spine                   | D           | FIXED: P1 Race Condition in Token Rollup, P2 Missing Clamping in recordAnomalies. Verified SLO penalties.             |
 | 2026-05-17 | `reports/audit-2026-05-17-identity-journey.md`       | Brain, Spine, Shield                 | C           | FIXED: P0 Identity Spoofing via CONV#, P2 Principle 13 violations. Verified RBAC.                                      |
 | 2026-05-17 | `reports/audit-2026-05-17-evolution-telemetry.md`       | Spine, Hand, Eye, Scales, Metabolism | B, D, F     | FIXED: P0 Telemetry Blindness in Trust/Memory/Metabolism, P1 Race in Session Handoff, P1 Domain Pollution in Audit.    |
