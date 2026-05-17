@@ -81,6 +81,35 @@ To prevent identity spoofing and internal protocol leakage, the system enforces 
         |                       |                       |   (Auth verified)
 ```
 
+## 1e. Session Dual-Write Pattern (Perspective C)
+
+To list a user's active sessions efficiently without scanning the entire workspace (Anti-Pattern 19 prevention), the system implements a dual-write pattern that propagates sessions under both session ID and user ID partitions.
+
+```ascii
+     Client                 IdentityManager                  DynamoDB (MemoryTable)
+       |                           |                                   |
+       |-- authenticate(userId) -->|                                   |
+       |                           |-- putItem (Primary Session) ---->|
+       |                           |   PK: WS#SESSION#sessionId        |
+       |                           |   SK: 0                           |
+       |                           |                                   |
+       |                           |-- putItem (User GSI Ref) ------->|
+       |                           |   PK: WS#USER#userId              |
+       |                           |   SK: startTime                   |
+       |                           |                                   |
+       |<-- Session Created -------|                                   |
+       |                           |                                   |
+       |                           |OR (Retrieve Sessions)             |
+       |                           |                                   |
+       |-- getUserSessions() ----->|                                   |
+       |                           |-- Query (UserInsightIndex) ------>|
+       |                           |   PK: WS#USER#userId              |
+       |                           |   SK: SESSION                     |
+       |                           |                                   |
+       |                           |<-- Active Session References -----|
+       |<-- User Sessions ---------|                                   |
+```
+
 ## 2. Multi-Tenant Budget Enforcement (Shield)
 
 Token usage and recursion depth are tracked with strict `workspaceId` dimensioning to prevent cross-tenant budget leakage.
