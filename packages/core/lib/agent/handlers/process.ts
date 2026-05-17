@@ -220,6 +220,7 @@ export async function handleProcess(
         orgId,
         teamId,
         staffId,
+        activeUser: options.activeUser,
       }
     );
 

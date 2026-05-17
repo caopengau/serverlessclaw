@@ -195,6 +195,7 @@ export async function* handleStream(
         orgId,
         teamId,
         staffId,
+        activeUser: options.activeUser,
       }
     );
 

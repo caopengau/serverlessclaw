@@ -27,6 +27,7 @@ const {
   mockGetIdentityManager: vi.fn().mockResolvedValue({
     getUser: vi.fn().mockResolvedValue({ role: 'admin' }),
     hasPermission: vi.fn().mockResolvedValue(true),
+    hasResourceAccess: vi.fn().mockResolvedValue(true),
   }),
   mockVerifyAuth: vi.fn().mockResolvedValue({ success: true, userId: 'dashboard-user' }),
   mockHasPermission: vi.fn().mockResolvedValue(true),
@@ -68,7 +69,7 @@ const { mockHasPermission: _mockHasPermission } = vi.hoisted(() => ({
 
 vi.mock('@claw/core/lib/session/identity', () => ({
   getIdentityManager: mockGetIdentityManager,
-  Permission: { TASK_CREATE: 'task:create' },
+  Permission: { TASK_CREATE: 'task:create', AGENT_INVOKE: 'agent:invoke' },
 }));
 
 vi.mock('@/lib/auth/verify-auth', () => ({
@@ -169,6 +170,7 @@ describe('Dashboard API: POST /api/chat', () => {
     mockGetIdentityManager.mockResolvedValue({
       getUser: vi.fn().mockResolvedValue({ role: 'admin' }),
       hasPermission: vi.fn().mockResolvedValue(true),
+      hasResourceAccess: vi.fn().mockResolvedValue(true),
     });
     mockVerifyAuth.mockResolvedValue({ success: true, userId: 'dashboard-user' });
     mockAcquireProcessing.mockResolvedValue(true);
@@ -265,6 +267,7 @@ describe('Dashboard API: POST /api/chat', () => {
     mockGetIdentityManager.mockResolvedValueOnce({
       getUser: vi.fn().mockResolvedValue({ role: 'guest' }),
       hasPermission: vi.fn().mockResolvedValue(false),
+      hasResourceAccess: vi.fn().mockResolvedValue(true),
     });
 
     const req = makeRequest({ text: 'Hi' });
@@ -273,11 +276,44 @@ describe('Dashboard API: POST /api/chat', () => {
 
     const res = await (POST as any)(req);
     const data = await res.json();
-    console.log('Response status:', res.status);
-    console.log('Response data:', data);
 
     expect(res.status).toBe(403);
     expect(data.error).toBe('Unauthorized workspace access or missing TASK_CREATE permission');
+  });
+
+  it('returns 403 when user lacks AGENT_INVOKE permission', async () => {
+    mockGetIdentityManager.mockResolvedValueOnce({
+      getUser: vi.fn().mockResolvedValue({ role: 'member' }),
+      hasPermission: vi.fn().mockImplementation(async (_userId, perm) => {
+        if (perm === 'task:create') return true;
+        return false; // Lacks agent:invoke
+      }),
+      hasResourceAccess: vi.fn().mockResolvedValue(true),
+    });
+
+    const req = makeRequest({ text: 'Hi' });
+    const res = await (POST as any)(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(403);
+    expect(data.error).toBe('Unauthorized workspace access or missing AGENT_INVOKE permission');
+  });
+
+  it('returns 403 when user lacks fine-grained agent resource access', async () => {
+    mockGetIdentityManager.mockResolvedValueOnce({
+      getUser: vi.fn().mockResolvedValue({ role: 'member' }),
+      hasPermission: vi.fn().mockResolvedValue(true),
+      hasResourceAccess: vi.fn().mockResolvedValue(false), // Lacks agent resource access
+    });
+
+    const req = makeRequest({ text: 'Hi', agentId: 'restricted-agent' });
+    const res = await (POST as any)(req);
+    const data = await res.json();
+
+    expect(res.status).toBe(403);
+    expect(data.error).toBe(
+      "Unauthorized. You do not have access to trigger agent 'restricted-agent'"
+    );
   });
 });
 

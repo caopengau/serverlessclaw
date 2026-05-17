@@ -27,6 +27,13 @@ export interface AgentProcessOptions {
   staffId?: string;
   /** User role for RBAC enforcement. */
   userRole?: import('../types/agent').UserRole;
+  /** Active user profile information for personalized agent grounding. */
+  activeUser?: {
+    id: string;
+    displayName?: string;
+    role: import('../types/agent').UserRole;
+    workspaceIds: string[];
+  };
   /** Arbitrary metadata passed from the event payload. */
   metadata?: Record<string, unknown>;
   attachments?: Array<{

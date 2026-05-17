@@ -220,6 +220,24 @@ export class IdentityManager extends IdentityBase {
         }
         if (user.workspaceIds.includes(entry.parentId)) return true;
       }
+    } else {
+      // If no explicit access control entry exists for the agent, default to checking the user's AGENT_INVOKE permission,
+      // but only for built-in backbone agents (custom agents require an ACE mapping to their parent workspace).
+      if (resourceType === 'agent') {
+        const isBackbone = [
+          'superclaw',
+          'orchestrator',
+          'coder',
+          'deployer',
+          'critic',
+          'researcher',
+          'trader',
+          'operator',
+        ].includes(resourceId.toLowerCase());
+        if (isBackbone) {
+          return this.accessOps.hasPermissionSync(user.role, Permission.AGENT_INVOKE);
+        }
+      }
     }
 
     if (resourceType === 'workspace') {

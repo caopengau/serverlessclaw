@@ -11,6 +11,9 @@ export enum Permission {
   AGENT_UPDATE = 'agent:update',
   AGENT_VIEW = 'agent:view',
   AGENT_CONTROL = 'agent:control', // Start/Stop/Force
+  AGENT_INVOKE = 'agent:invoke', // Permitted to send messages / run loop on the agent
+  AGENT_CONFIG = 'agent:config', // Permitted to modify agent system prompts / settings
+  AGENT_ROSTER_INVITE = 'agent:roster-invite', // Permitted to add an agent to a workspace
 
   // Task permissions
   TASK_CREATE = 'task:create',

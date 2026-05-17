@@ -109,6 +109,32 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // In multi-agent mode, use the primary agentId (usually the first in the list)
     const primaryAgentId = agentIds && agentIds.length > 0 ? agentIds[0] : agentId;
 
+    // Verify workspace access and agent invocation permission
+    const hasAgentInvokePermission = await identityManager.hasPermission(
+      userId,
+      Permission.AGENT_INVOKE,
+      workspaceId
+    );
+    if (!hasAgentInvokePermission) {
+      return NextResponse.json(
+        { error: 'Unauthorized workspace access or missing AGENT_INVOKE permission' },
+        { status: HTTP_STATUS.FORBIDDEN }
+      );
+    }
+
+    // Verify fine-grained agent resource access (e.g. customized ACLs)
+    const hasAgentResourceAccess = await identityManager.hasResourceAccess(
+      userId,
+      'agent',
+      primaryAgentId
+    );
+    if (!hasAgentResourceAccess) {
+      return NextResponse.json(
+        { error: `Unauthorized. You do not have access to trigger agent '${primaryAgentId}'` },
+        { status: HTTP_STATUS.FORBIDDEN }
+      );
+    }
+
     logger.info(
       `[Chat API] POST - userId: ${userId}, sessionId: ${sessionId}, traceId: ${clientTraceId}, agentId: ${primaryAgentId}, workspaceId: ${workspaceId}`
     );
@@ -219,6 +245,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         teamId,
         staffId,
         userRole,
+        activeUser: identity
+          ? {
+              id: identity.userId,
+              displayName: identity.displayName,
+              role: identity.role,
+              workspaceIds: identity.workspaceIds,
+            }
+          : undefined,
       });
 
       let finalResponse = '';

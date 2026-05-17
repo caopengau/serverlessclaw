@@ -278,5 +278,35 @@ describe('AgentAssembler', () => {
 
       expect(result.contextLimit).toBeGreaterThan(0);
     });
+
+    it('injects active user context when provided', async () => {
+      const memory = createMockMemory();
+      const provider = createMockProvider();
+
+      const result = await AgentAssembler.prepareContext(
+        memory as any,
+        provider as any,
+        undefined,
+        'user1',
+        'storage1',
+        'hello',
+        undefined,
+        {
+          ...defaultOptions,
+          activeUser: {
+            id: 'user1',
+            displayName: 'Alice Watson',
+            role: 'ADMIN',
+            workspaceIds: ['ws-123', 'ws-456'],
+          },
+        }
+      );
+
+      expect(result.contextPrompt).toContain('[ACTIVE_USER_CONTEXT]');
+      expect(result.contextPrompt).toContain('USER_ID: user1');
+      expect(result.contextPrompt).toContain('DISPLAY_NAME: Alice Watson');
+      expect(result.contextPrompt).toContain('ROLE: ADMIN');
+      expect(result.contextPrompt).toContain('WORKSPACE_MEMBERSHIP: ws-123, ws-456');
+    });
   });
 });

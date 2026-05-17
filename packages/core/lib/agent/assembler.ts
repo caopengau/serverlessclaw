@@ -89,6 +89,7 @@ export class AgentAssembler {
       activeProfile,
       systemPrompt,
       pageContext,
+      activeUser,
     } = options;
     const { distilled, lessons, preferences, globalLessons, negativeContext, recoveryContext } =
       memoryState;
@@ -143,6 +144,16 @@ export class AgentAssembler {
       - AUDIENCE: ${isIsolated ? 'Orchestrator' : 'Human User'}
       - BEHAVIOR: ${isIsolated ? 'Be technical, precise, and structured.' : 'Be friendly, direct, and conversational. Skip internal monologue.'}
       `;
+
+    if (activeUser) {
+      contextPrompt += `
+      [ACTIVE_USER_CONTEXT]:
+      - USER_ID: ${activeUser.id}
+      - DISPLAY_NAME: ${activeUser.displayName || 'Human User'}
+      - ROLE: ${activeUser.role}
+      - WORKSPACE_MEMBERSHIP: ${activeUser.workspaceIds?.join(', ') || 'None'}
+      `;
+    }
 
     return { contextPrompt, contextLimit: capabilities.contextWindow ?? LIMITS.MAX_CONTEXT_LENGTH };
   }

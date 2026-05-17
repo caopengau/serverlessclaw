@@ -376,6 +376,9 @@ To ensure enterprise-grade multi-tenancy and prevent privilege escalation, the s
    - **Page Enforcement (RoleGuard)**: Sensitive routes (e.g., `/security`, `/users`, `/settings`) are wrapped in a `<RoleGuard>` component. This component performs a secondary, hard-check on the client-side, rendering an "Access Denied" terminal if the user's role is insufficient. This prevents manual URL entry bypass.
    - **Management View**: Reserved for `ADMIN` and `OWNER` roles. Includes System Pulse, Traces, Security, and Pipeline.
    - **User/Project View**: Accessible to all roles. Can be extended via `SidebarExtension` with project-specific `requiredRoles`.
+4. **Agent Invocation & Resource Access Gates**: The chat API (`/api/chat`) performs two pre-flight checks before invoking any agent reasoning loop:
+   - **Workspace Scoped Gate**: Ensures the requesting user possesses `Permission.AGENT_INVOKE` within the target workspace.
+   - **Fine-Grained Agent Access Control (ACL)**: Evaluates access using `IdentityManager.hasResourceAccess(userId, 'agent', agentId)`. If an explicit Access Control Entry (ACE) is registered in DynamoDB, it checks allowed user IDs and roles. If no explicit ACE exists, it defaults to checking if the user's role is allowed to invoke built-in backbone agents (preventing unauthorized custom agent activation).
 
 ### RBAC Enforcement Flow
 
@@ -386,7 +389,7 @@ To ensure enterprise-grade multi-tenancy and prevent privilege escalation, the s
 [ API: /api/auth/me ] ----> [ IdentityManager ]
       |                          |
       v                  [ Fetch User Role ]
-[ UserProvider (React) ] <-------+
+[ User Provider (React) ] <-------+
       |
       +----( isAdmin? )----> [ Sidebar: Show Mgmt Sections ]
       |                      (Pulse, Traces, Security, Users)
@@ -401,6 +404,65 @@ To ensure enterprise-grade multi-tenancy and prevent privilege escalation, the s
              |
              +----( hasAccess )---> [ Render Page Content ]
 ```
+
+### Agent Access Verification Flow
+
+```ascii
+      [ Chat Client POST /api/chat ]
+                    |
+                    v
+          [ Resolve Primary Agent ]
+                    |
+                    v
+    [ IdentityManager.hasPermission ]
+       ( Check Permission.AGENT_INVOKE )
+                    |
+        +-----------+-----------+
+        |                       |
+     [ Denied ]             [ Allowed ]
+        |                       |
+        v                       v
+ [ Return 403 Forbidden ]  [ IdentityManager.hasResourceAccess ]
+                           ( Evaluate Agent ACL & Custom ACE )
+                                |
+                    +-----------+-----------+
+                    |                       |
+               [ ACE Found ]         [ No ACE Found ]
+                    |                       |
+             ( Check Allowed )         ( Is Backbone? )
+             (  Users/Roles  )              |
+                    |            +----------+----------+
+            +-------+-------+    |                     |
+            |               | [ Yes, Allowed ]    [ No, Denied ]
+         [ Allow ]      [ Deny ] |                     |
+            |               |    v                     v
+            v               +---------> [ Return 403 Forbidden ]
+     [ Stream Agent ]
+```
+
+---
+
+### 🧠 Cognitive Personalization & Dynamic Grounding
+
+To ground agent actions and safety boundaries in the caller's identity, Serverless Claw injects an active human profile context directly into the prompter context:
+
+1. **Identity Extraction**: The chat API endpoint (`apps/dashboard/src/app/api/chat/route.ts`) resolves the caller's identity using `identityManager.getUser(userId)` and constructs an `activeUser` options block.
+2. **Pipelines Propagation**: The options block is fully preserved through streaming and background execution chains (`handleStream` and `handleProcess`).
+3. **Context Assembly**: The `AgentAssembler` compiles the final system prompt by dynamically injecting the `[ACTIVE_USER_CONTEXT]` block:
+   ```markdown
+   [ACTIVE_USER_CONTEXT]:
+   - USER_ID: <userId>
+   - DISPLAY_NAME: <displayName>
+   - ROLE: <role>
+   - WORKSPACE_MEMBERSHIP: <workspaceIds>
+   ```
+   This ensures LLM models adapt their language and behavior to the exact privilege tier and personality of the caller (e.g., welcoming administrators vs restricting general members from executing high-risk activities).
+
+### 🖥️ Human-to-Agent Access Control Roster UI
+
+The `/security` page of the dashboard exposes the human access roster to administrators:
+- **RBAC Matrix Control**: Allows administrators to toggle workspace permission scopes (`agent:invoke`, `agent:config`, `agent:roster-invite`) dynamically.
+- **Custom ACL/ACE Ledger**: Supports hot-registering explicit Access Control Entries (ACE) via an elegant glassmorphic creation modal to map custom workspace agents to roles or distinct users.
 
 ---
 
