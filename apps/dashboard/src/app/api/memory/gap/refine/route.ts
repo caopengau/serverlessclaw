@@ -18,7 +18,7 @@ const RefineGapSchema = z.object({
   plan: z.record(z.string(), z.unknown()).optional(), // Use record instead of any
 });
 
-export const POST = withApiHandler(async (body) => {
+export const POST = withApiHandler(async (body, req) => {
   const { DynamoMemory } = await import('@claw/core/lib/memory');
   const { InsightCategory } = await import('@claw/core/lib/types/memory');
   const { gapId, content, impact, priority, rejectionReason, plan } = validateBody(
@@ -26,6 +26,8 @@ export const POST = withApiHandler(async (body) => {
     RefineGapSchema
   );
 
+  const workspaceId =
+    req.nextUrl.searchParams.get('workspaceId') || req.headers.get('x-workspace-id') || 'default';
   const memory = new DynamoMemory();
   const normalizedId = gapId.replace(/^GAP#/, '');
 
@@ -36,10 +38,10 @@ export const POST = withApiHandler(async (body) => {
       if (impact !== undefined) metadata.impact = impact;
       if (priority !== undefined) metadata.priority = priority;
 
-      await memory.updateGapMetadata(normalizedId, metadata);
+      await memory.updateGapMetadata(normalizedId, metadata, { workspaceId });
 
       if (content !== undefined) {
-        await memory.updateGapStatus(normalizedId, 'OPEN' as never);
+        await memory.updateGapStatus(normalizedId, 'OPEN' as never, { workspaceId });
         // Store refined content as a distilled memory for the planner to pick up
         await memory.updateDistilledMemory(
           `REFINED#GAP#${normalizedId}`,
@@ -47,7 +49,8 @@ export const POST = withApiHandler(async (body) => {
             originalGapId: normalizedId,
             refinedContent: content,
             refinedAt: Date.now(),
-          })
+          }),
+          { workspaceId }
         );
       }
     }
@@ -55,7 +58,9 @@ export const POST = withApiHandler(async (body) => {
     // Update associated plan if provided
     if (plan !== undefined) {
       // Plans are stored with PLAN#<numericId>
-      await memory.updateDistilledMemory(`PLAN#${normalizedId}`, JSON.stringify(plan));
+      await memory.updateDistilledMemory(`PLAN#${normalizedId}`, JSON.stringify(plan), {
+        workspaceId,
+      });
       logger.info(`Updated plan for gap ${normalizedId}`);
     }
 
@@ -72,7 +77,8 @@ export const POST = withApiHandler(async (body) => {
           risk: 0,
           urgency: 5,
           priority: 8,
-        }
+        },
+        { workspaceId }
       );
     }
 

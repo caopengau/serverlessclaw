@@ -43,14 +43,16 @@ function toInsightMetadata(metadata?: Record<string, unknown>): InsightMetadata 
 /**
  * POST handler for creating a new capability gap from the dashboard.
  */
-export const POST = withApiHandler(async (body) => {
+export const POST = withApiHandler(async (body, req) => {
   const { DynamoMemory } = await import('@claw/core/lib/memory');
   const { details, metadata } = validateBody(body, CreateGapSchema);
 
+  const workspaceId =
+    req.nextUrl.searchParams.get('workspaceId') || req.headers.get('x-workspace-id') || 'default';
   const memory = new DynamoMemory();
   const gapId = Date.now().toString();
 
-  await memory.setGap(gapId, details, toInsightMetadata(metadata));
+  await memory.setGap(gapId, details, toInsightMetadata(metadata), { workspaceId });
 
   return { success: true, gapId };
 });

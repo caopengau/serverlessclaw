@@ -32,7 +32,7 @@ Last Updated: 2026-05-14
 | **D**       | Trust Loop          | Eye → Scales → Spine        | 16          | 2026-05-14  |
 | **E**       | Recovery Path       | Shield → Spine → Brain      | 15          | 2026-05-16  |
 | **F**       | Metabolic Loop      | Metabolism ↔ Scales ↔ Spine | 11          | 2026-05-16  |
-| **G**       | Dashboard Integrity | Cross-Silo API Safety       | 3           | 2026-05-16  |
+| **G**       | Dashboard Integrity | Cross-Silo API Safety       | 4           | 2026-05-17  |
 
 ---
 
@@ -40,6 +40,7 @@ Last Updated: 2026-05-14
 
 | Date       | Report                                                  | Silos                                | Perspective | Status/Summary                                                                                                         |
 | :--------- | :------------------------------------------------------ | :----------------------------------- | :---------- | :--------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-17 | `reports/audit-2026-05-17-dashboard-api-safety.md`      | Brain, Metabolism, Eye               | G           | FIXED: P1 Tenant isolation in 6 Dashboard APIs (Anti-Patterns 14, 19, 22) during memory and metabolism operations.     |
 | 2026-05-17 | `reports/audit-2026-05-17-recovery-path.md`        | Shield, Spine, Brain                 | E           | FIXED: P1 Type Mismatch in Lock Cleanup, P1 In-memory filtering in Health Check. Standardized Recovery Logs.         |
 | 2026-05-17 | `reports/audit-2026-05-17-trust-loop.md`           | Eye, Scales, Spine                   | D           | FIXED: P1 Race Condition in Token Rollup, P2 Missing Clamping in recordAnomalies. Verified SLO penalties.             |
 | 2026-05-17 | `reports/audit-2026-05-17-identity-journey.md`       | Brain, Spine, Shield                 | C           | FIXED: P0 Identity Spoofing via CONV#, P2 Principle 13 violations. Verified RBAC.                                      |

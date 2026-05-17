@@ -60,6 +60,20 @@ export class ToolSecurityValidator {
       };
     }
 
+    // Resolve dynamic tool policy override from ConfigTable
+    const { ToolPolicyManager } = await import('./tool-policy-manager');
+    const { ApprovalStrategy } = await import('./tool-policy');
+
+    const dynamicPolicy = execContext.workspaceId
+      ? await ToolPolicyManager.getPolicy(execContext.workspaceId, tool.name)
+      : null;
+
+    const requiredPermissions = dynamicPolicy
+      ? dynamicPolicy.requiredPermissions
+      : ((tool.requiredPermissions as Permission[] | undefined) ?? []);
+
+    const allowedAgents = dynamicPolicy?.allowedAgents;
+
     const isApproved =
       approvedToolCalls?.includes(toolCall.id) || approvedToolCalls?.includes(toolCallFingerprint);
 
@@ -71,16 +85,16 @@ export class ToolSecurityValidator {
       return { allowed: false, reason: `PERMISSION_DENIED - ${safetyResult.reason}` };
     }
 
-    const requiresApproval = safetyResult.requiresApproval || tool.requiresApproval;
+    const requiresApproval = dynamicPolicy
+      ? dynamicPolicy.approvalStrategy !== ApprovalStrategy.AUTO
+      : safetyResult.requiresApproval || tool.requiresApproval;
+
     // Note: safetyResult.allowed being true with requiresApproval true means it's a soft restriction.
     // In AUTO mode, we only bypass if the SafetyEngine itself didn't flag it as requiring approval
     // (it would have already handled Principle 9 trust-based promotion internally).
     const effectiveApproved =
       isApproved ||
-      (evolutionMode === EvolutionMode.AUTO &&
-        safetyResult.allowed &&
-        !safetyResult.requiresApproval &&
-        !tool.requiresApproval);
+      (evolutionMode === EvolutionMode.AUTO && !requiresApproval && safetyResult.allowed);
 
     // Self-approval block
     if (args.manuallyApproved === true && !effectiveApproved) {
@@ -95,13 +109,30 @@ export class ToolSecurityValidator {
 
     if (requiresApproval && !effectiveApproved) {
       logger.info(
-        `Tool ${tool.name} requires human approval. Reason: ${safetyResult.reason}. Pausing...`
+        `Tool ${tool.name} requires human approval. Reason: ${safetyResult.reason || 'Dynamic policy requirement'}. Pausing...`
       );
-      return { allowed: false, requiresApproval: true, reason: safetyResult.reason };
+      return {
+        allowed: false,
+        requiresApproval: true,
+        reason: safetyResult.reason || 'Dynamic policy approval required',
+      };
     }
 
-    // 4. RBAC Check
-    if (tool.requiredPermissions && tool.requiredPermissions.length > 0) {
+    // 4A. Swarm Whitelist Containment Check (Dynamic)
+    if (allowedAgents && allowedAgents.length > 0) {
+      if (!allowedAgents.includes(execContext.agentId)) {
+        logger.warn(
+          `[SECURITY] Agent '${execContext.agentId}' is not whitelisted to execute tool '${tool.name}'. Whitelist: ${allowedAgents.join(', ')}`
+        );
+        return {
+          allowed: false,
+          reason: `AGENT_CONTAINMENT_BLOCK - Agent '${execContext.agentId}' is not authorized to use tool '${tool.name}'.`,
+        };
+      }
+    }
+
+    // 4B. Human User RBAC Check (Dynamic/Static)
+    if (requiredPermissions && requiredPermissions.length > 0) {
       let hasPermission = false;
       try {
         const { getIdentityManager } = await import('../session/identity');
@@ -117,13 +148,17 @@ export class ToolSecurityValidator {
         } else if (!execContext.userId) {
           hasPermission = false;
         } else {
-          for (const perm of tool.requiredPermissions) {
-            hasPermission = await identity.hasPermission(
+          hasPermission = true;
+          for (const perm of requiredPermissions) {
+            const hasP = await identity.hasPermission(
               execContext.userId,
-              perm as Permission,
+              perm,
               execContext.workspaceId
             );
-            if (!hasPermission) break;
+            if (!hasP) {
+              hasPermission = false;
+              break;
+            }
           }
         }
       } catch (error) {
@@ -134,13 +169,13 @@ export class ToolSecurityValidator {
         logger.warn(`RBAC validation failed for user ${execContext.userId} on tool ${tool.name}`);
         return {
           allowed: false,
-          reason: `Unauthorized. You do not have the required permissions (${tool.requiredPermissions.join(', ')}) to execute this tool.`,
+          reason: `Unauthorized. You do not have the required permissions (${requiredPermissions.join(', ')}) to execute this tool.`,
         };
       }
     }
 
-    // 5. Agent-Role RBAC Check
-    if (tool.requiredPermissions && tool.requiredPermissions.length > 0) {
+    // 5. Agent-Role RBAC Check (Fallback to static if first check was skipped/non-isolated)
+    if (!dynamicPolicy && tool.requiredPermissions && tool.requiredPermissions.length > 0) {
       try {
         const { getIdentityManager } = await import('../session/identity');
         const identity = await getIdentityManager();
@@ -161,6 +196,57 @@ export class ToolSecurityValidator {
         }
       } catch (error) {
         logger.error(`Agent RBAC check failed for tool ${tool.name}:`, error);
+      }
+    }
+
+    // 6. Parameter Guardrails Validation (Dynamic Constraints)
+    if (dynamicPolicy?.constraints) {
+      const constraints = dynamicPolicy.constraints;
+
+      // CLI Shell command blacklists
+      if (constraints.commandBlacklist && constraints.commandBlacklist.length > 0) {
+        const cmdStr = (args.command || args.cmd || args.script || '') as string;
+        if (cmdStr) {
+          for (const word of constraints.commandBlacklist) {
+            if (cmdStr.toLowerCase().includes(word.toLowerCase())) {
+              logger.warn(
+                `[SECURITY] Shell execution blocked. Command violates SwarmGuard blacklist: "${word}". Input: "${cmdStr}"`
+              );
+              return {
+                allowed: false,
+                reason: `CONTAINMENT_VIOLATION - Command includes restricted instruction: "${word}".`,
+              };
+            }
+          }
+        }
+      }
+
+      // Path write containment restrictions
+      if (constraints.allowedDirectories && constraints.allowedDirectories.length > 0) {
+        const filePath = resourcePath;
+        if (filePath) {
+          let pathAllowed = false;
+          const { resolve, normalize } = await import('path');
+          const resolvedPath = resolve(normalize(filePath));
+
+          for (const dir of constraints.allowedDirectories) {
+            const resolvedDir = resolve(normalize(dir));
+            if (resolvedPath.startsWith(resolvedDir)) {
+              pathAllowed = true;
+              break;
+            }
+          }
+
+          if (!pathAllowed) {
+            logger.warn(
+              `[SECURITY] File path blocked. Path "${filePath}" resides outside SwarmGuard whitelisted folders: ${constraints.allowedDirectories.join(', ')}`
+            );
+            return {
+              allowed: false,
+              reason: `CONTAINMENT_VIOLATION - File interaction restricted outside whitelisted directories.`,
+            };
+          }
+        }
       }
     }
 

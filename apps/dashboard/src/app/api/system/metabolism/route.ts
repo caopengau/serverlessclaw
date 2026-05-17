@@ -13,11 +13,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   try {
     const body = await req.json();
     const repair = body.repair === true;
+    const workspaceId =
+      req.nextUrl.searchParams.get('workspaceId') || req.headers.get('x-workspace-id') || 'default';
 
-    logger.info(`[API] Metabolism trigger - repair: ${repair}`);
+    logger.info(`[API] Metabolism trigger - repair: ${repair}, workspaceId: ${workspaceId}`);
 
     const memory = new DynamoMemory();
-    const findings = await MetabolismService.runMetabolismAudit(memory, { repair });
+    const findings = await MetabolismService.runMetabolismAudit(memory, { repair, workspaceId });
 
     return NextResponse.json({
       success: true,

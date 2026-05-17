@@ -17,13 +17,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { searchParams } = new URL(request.url);
   const grain = searchParams.get('grain') === 'daily' ? 'DAY' : 'HOUR';
   const days = parseInt(searchParams.get('days') || '7', 10);
+  const workspaceId =
+    searchParams.get('workspaceId') || request.headers.get('x-workspace-id') || 'default';
 
   try {
     const memory = new BaseMemoryProvider();
     const now = Date.now();
     const startTime = now - days * TIME.MS_PER_DAY;
 
-    const pk = `METRIC#${grain}#${id}`;
+    const prefix = workspaceId && workspaceId !== 'default' ? `WS#${workspaceId}#` : '';
+    const pk = `${prefix}METRIC#${grain}#${id}`;
 
     // Query metrics within the requested window
     const items = await memory.queryItems({

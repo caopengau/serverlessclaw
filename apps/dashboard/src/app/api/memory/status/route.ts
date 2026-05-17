@@ -16,12 +16,14 @@ const UpdateGapStatusSchema = z.object({
 /**
  * POST handler for updating the status of a capability gap.
  */
-export const POST = withApiHandler(async (body) => {
+export const POST = withApiHandler(async (body, req) => {
   const { DynamoMemory } = await import('@claw/core/lib/memory');
   const { gapId, status } = validateBody(body, UpdateGapStatusSchema);
 
+  const workspaceId =
+    req.nextUrl.searchParams.get('workspaceId') || req.headers.get('x-workspace-id') || 'default';
   const memory = new DynamoMemory();
-  await memory.updateGapStatus(gapId, status as GapStatus);
+  await memory.updateGapStatus(gapId, status as GapStatus, { workspaceId });
 
   return { success: true, gapId, status };
 });

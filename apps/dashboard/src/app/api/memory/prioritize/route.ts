@@ -19,16 +19,23 @@ const PrioritizeSchema = z.object({
 /**
  * POST handler for prioritizing memory insights.
  */
-export const POST = withApiHandler(async (body) => {
+export const POST = withApiHandler(async (body, req) => {
   const { userId, timestamp, priority, urgency, impact } = validateBody(body, PrioritizeSchema);
 
+  const workspaceId =
+    req.nextUrl.searchParams.get('workspaceId') || req.headers.get('x-workspace-id') || 'default';
   const memory = new DynamoMemory();
 
-  await memory.updateInsightMetadata(userId, timestamp, {
-    priority,
-    urgency,
-    impact,
-  });
+  await memory.updateInsightMetadata(
+    userId,
+    timestamp,
+    {
+      priority,
+      urgency,
+      impact,
+    },
+    { workspaceId }
+  );
 
   return { success: true };
 });

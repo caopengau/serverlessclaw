@@ -11,9 +11,12 @@ export const GET = withApiHandler(async (_, req) => {
   const { logger } = await import('@claw/core/lib/logger');
 
   let gapId: string | null = null;
+  let workspaceId = 'default';
   try {
     const url = new URL(req.url, 'http://localhost');
     gapId = url.searchParams.get('gapId');
+    workspaceId =
+      url.searchParams.get('workspaceId') || req.headers.get('x-workspace-id') || 'default';
   } catch {
     logger.warn('URL parsing failed in GapPlanAPI, attempting fallback', { url: req.url });
   }
@@ -26,7 +29,7 @@ export const GET = withApiHandler(async (_, req) => {
   const normalizedId = gapId.replace(/^GAP#/, '');
 
   try {
-    const planStr = await memory.getDistilledMemory(`PLAN#${normalizedId}`);
+    const planStr = await memory.getDistilledMemory(`PLAN#${normalizedId}`, { workspaceId });
     if (!planStr) {
       return { plan: null };
     }
