@@ -117,7 +117,7 @@ export default function Sidebar() {
       label: t('EVOLUTION_PIPELINE'),
       subtitle: t('PIPELINE_SUBTITLE'),
       icon: Server,
-      requiredRoles: [UserRole.ADMIN, UserRole.OWNER],
+      requiredRoles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MEMBER],
     },
     {
       href: ROUTES.SCHEDULING,

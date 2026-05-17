@@ -363,19 +363,50 @@ export async function processEventWithAgent(
     let finalMessage = responseText;
     let parsedData: Record<string, unknown> | null = null;
 
-    try {
-      if (responseText.trim().startsWith('{')) {
-        parsedData = JSON.parse(responseText);
+    if (communicationMode === 'json' || responseText.trim().startsWith('{')) {
+      try {
+        const trimmed = responseText.trim();
+        if (!trimmed.startsWith('{')) {
+          throw new Error('LLM response did not return a valid JSON object block.');
+        }
+
+        parsedData = JSON.parse(trimmed);
+
+        if (communicationMode === 'json') {
+          if (!parsedData || typeof parsedData !== 'object') {
+            throw new Error('Response is not a valid JSON object.');
+          }
+          if (parsedData.status === undefined || parsedData.message === undefined) {
+            const missing = ['status', 'message'].filter((k) => parsedData![k] === undefined);
+            throw new Error(`JSON response is missing required fields: ${missing.join(', ')}`);
+          }
+          const validStatuses = ['SUCCESS', 'FAILED', 'CONTINUE', 'REOPEN'];
+          if (!validStatuses.includes(parsedData.status as string)) {
+            throw new Error(
+              `Invalid status: "${parsedData.status}". Must be one of: ${validStatuses.join(', ')}`
+            );
+          }
+        }
+
         finalMessage =
           (parsedData?.message as string) ||
           (parsedData?.plan as string) ||
           (parsedData?.response as string) ||
           responseText;
+      } catch (err) {
+        logger.warn(
+          `[SHARED] JSON schema validation failed for communicationMode=${communicationMode}: ${err instanceof Error ? err.message : String(err)}`
+        );
+        if (communicationMode === 'json') {
+          // Intercept failure and return a standard, schema-compliant FAILED signal
+          parsedData = {
+            status: 'FAILED',
+            message: `JSON_SCHEMA_VALIDATION_ERROR: ${err instanceof Error ? err.message : String(err)}`,
+            data: { rawResponse: responseText },
+          };
+          finalMessage = parsedData.message as string;
+        }
       }
-    } catch (err) {
-      logger.debug(
-        `[SHARED] Message is not JSON, using raw text fallback. Error: ${err instanceof Error ? err.message : String(err)}`
-      );
     }
 
     if (!isPaused && responseText.trim().length > 0 && !options.skipOutbound) {

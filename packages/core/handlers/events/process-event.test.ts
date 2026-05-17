@@ -24,11 +24,21 @@ vi.mock('../../lib/agent', () => {
   return {
     Agent: vi.fn().mockImplementation(function () {
       return {
-        stream: vi.fn().mockReturnValue(
-          (async function* () {
-            yield { type: 'text', text: 'hello' };
-          })()
-        ),
+        stream: vi.fn().mockImplementation((_userId, task) => {
+          let text = 'hello';
+          if (task.includes('yield invalid json')) {
+            text = 'This is invalid JSON!';
+          } else if (task.includes('yield valid json')) {
+            text = JSON.stringify({
+              status: 'SUCCESS',
+              message: 'Task completed successfully',
+              data: { key: 'value' },
+            });
+          }
+          return (async function* () {
+            yield { type: 'text', content: text };
+          })();
+        }),
       };
     }),
   };
@@ -110,5 +120,47 @@ describe('processEventWithAgent', () => {
         communicationMode: 'text',
       })
     );
+  });
+
+  it('should intercept invalid JSON response when initiatorId is provided and return a schema-compliant FAILED signal', async () => {
+    const userId = 'user-1';
+    const agentId = 'agent-1';
+    const task = 'yield invalid json';
+    const options = {
+      initiatorId: 'initiator-agent',
+      traceId: 'trace-1',
+      sessionId: 'sess-1',
+      handlerTitle: 'TEST',
+    };
+
+    const result = await processEventWithAgent(userId, agentId, task, options as any);
+
+    expect(result.responseText).toContain('JSON_SCHEMA_VALIDATION_ERROR');
+    expect(result.parsedData).toEqual(
+      expect.objectContaining({
+        status: 'FAILED',
+        message: expect.stringContaining('JSON_SCHEMA_VALIDATION_ERROR'),
+      })
+    );
+  });
+
+  it('should pass validation for valid JSON responses', async () => {
+    const userId = 'user-1';
+    const agentId = 'agent-1';
+    const task = 'yield valid json';
+    const options = {
+      initiatorId: 'initiator-agent',
+      traceId: 'trace-1',
+      sessionId: 'sess-1',
+      handlerTitle: 'TEST',
+    };
+
+    const result = await processEventWithAgent(userId, agentId, task, options as any);
+
+    expect(result.parsedData).toEqual({
+      status: 'SUCCESS',
+      message: 'Task completed successfully',
+      data: { key: 'value' },
+    });
   });
 });

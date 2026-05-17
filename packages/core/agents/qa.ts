@@ -50,10 +50,31 @@ export const handler = async (event: AgentEvent, _context: Context): Promise<voi
   // 2. Discovery & Initialization
   const { config, memory } = await initAgent(AGENT_TYPES.QA, { workspaceId: payload.workspaceId });
 
+  // Load plans from DDB to retrieve active EARS specifications
+  const specDetails: string[] = [];
+  for (const gapId of gapIds) {
+    try {
+      const planStr = await memory.getDistilledMemory(`PLAN#${gapId}`);
+      if (planStr) {
+        const parsedPlan = JSON.parse(planStr);
+        if (parsedPlan.spec) {
+          specDetails.push(`### Target Spec for Gap [${gapId}]:\n${parsedPlan.spec}`);
+        }
+      }
+    } catch (e) {
+      logger.warn(`[QA] Failed to load spec for gap ${gapId}:`, e);
+    }
+  }
+
+  const specContext =
+    specDetails.length > 0
+      ? `\n\n[TARGET_TECHNICAL_SPECIFICATIONS]:\n${specDetails.join('\n\n')}`
+      : '';
+
   // 1. Process QA Audit via unified lifecycle (Session Locking + Heartbeat)
   const { processEventWithAgent } = await import('../handlers/events/shared');
 
-  const qaPrompt = `Verify and audit the following gaps: ${gapIds.join(', ')}\n\nImplementation Output:\n${implementationResponse || 'No implementation response provided.'}`;
+  const qaPrompt = `Verify and audit the following gaps: ${gapIds.join(', ')}\n\nImplementation Output:\n${implementationResponse || 'No implementation response provided.'}${specContext}`;
 
   interface QAParsedData {
     status?: string;

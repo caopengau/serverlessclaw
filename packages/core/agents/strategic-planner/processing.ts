@@ -209,7 +209,64 @@ export async function postProcessPlan(
 
     // 6. Save plan for QA auditing and HITL resolution
     for (const gapIdToSave of processedGapIds) {
-      postProcessingPromises.push(memory.updateDistilledMemory(`PLAN#${gapIdToSave}`, plan));
+      let strategy = '';
+      let subTasks: Array<{
+        id: string | number;
+        description: string;
+        status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+      }> = [];
+      let spec = '';
+
+      try {
+        const trimmedPlan = plan.trim();
+        if (trimmedPlan.startsWith('{')) {
+          // Proactive Mode: Parse structured JSON plan
+          const parsed = JSON.parse(trimmedPlan);
+          strategy = parsed.plan || parsed.strategy || plan;
+
+          const rawTasks = parsed.tasks || parsed.subTasks || [];
+          subTasks = rawTasks.map((t: any, idx: number) => ({
+            id: t.id || `${gapIdToSave}-task-${idx + 1}`,
+            description: t.task || t.description || (typeof t === 'string' ? t : JSON.stringify(t)),
+            status: t.status || 'PENDING',
+          }));
+
+          spec = parsed.spec || '';
+        } else {
+          // Reactive Mode: Parse Rich Markdown plan
+          strategy = plan;
+
+          // Parse subtasks by finding goal headers or bullet tasks
+          const taskMatches = [...plan.matchAll(/(?:### Goal:|- \[ \])\s*(.*)/g)];
+          subTasks = taskMatches.map((m, idx) => ({
+            id: `${gapIdToSave}-task-${idx + 1}`,
+            description: m[1].trim(),
+            status: 'PENDING',
+          }));
+
+          // Locate EARS specification by looking for ## Technical Specification header
+          const specHeaderIndex = plan.search(/##\s+Technical\s+Specification/i);
+          if (specHeaderIndex !== -1) {
+            spec = plan.substring(specHeaderIndex).trim();
+            // Keep strategy clean by separating out the technical specification
+            strategy = plan.substring(0, specHeaderIndex).trim();
+          }
+        }
+      } catch (err) {
+        logger.error(`[PLANNER] Failed to parse plan to EvolutionPlan:`, err);
+        strategy = plan;
+      }
+
+      const evolutionPlan = {
+        gapId: gapIdToSave,
+        strategy,
+        subTasks,
+        spec,
+      };
+
+      postProcessingPromises.push(
+        memory.updateDistilledMemory(`PLAN#${gapIdToSave}`, JSON.stringify(evolutionPlan))
+      );
     }
     postProcessingPromises.push(
       memory.updateDistilledMemory(

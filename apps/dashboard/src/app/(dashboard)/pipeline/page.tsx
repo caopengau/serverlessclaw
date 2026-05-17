@@ -11,15 +11,41 @@ import { deleteMemoryItem } from '@/lib/actions/dynamodb-actions';
 import PageHeader from '@/components/PageHeader';
 import { logger } from '@claw/core/lib/logger';
 
-async function getGaps(): Promise<GapItem[]> {
+async function getGaps(): Promise<(GapItem & { hasPlan?: boolean; hasSpec?: boolean })[]> {
   try {
     const memory = new DynamoMemory();
     const items = await memory.listByPrefix('GAP#');
-    return ((items as unknown as GapItem[]) ?? []).sort((a, b) => {
+    const sorted = ((items as unknown as GapItem[]) ?? []).sort((a, b) => {
       const aTs = typeof a.timestamp === 'string' ? parseInt(a.timestamp, 10) : (a.timestamp ?? 0);
       const bTs = typeof b.timestamp === 'string' ? parseInt(b.timestamp, 10) : (b.timestamp ?? 0);
       return bTs - aTs;
     });
+
+    const gapsWithPlanInfo = await Promise.all(
+      sorted.map(async (gap) => {
+        const numericId = gap.userId.replace(/^GAP#/, '');
+        try {
+          const planStr = await memory.getDistilledMemory(`PLAN#${numericId}`);
+          if (planStr) {
+            const parsed = JSON.parse(planStr);
+            return {
+              ...gap,
+              hasPlan: true,
+              hasSpec: !!parsed.spec,
+            };
+          }
+        } catch {
+          // ignore
+        }
+        return {
+          ...gap,
+          hasPlan: false,
+          hasSpec: false,
+        };
+      })
+    );
+
+    return gapsWithPlanInfo;
   } catch (e) {
     logger.error('Error fetching gaps:', e);
     return [];

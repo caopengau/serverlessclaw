@@ -43,7 +43,8 @@ export default function GapRefinementPanel({
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [error, setError] = useState('');
 
-  const [plan, setPlan] = useState<EvolutionPlan | null>(null);
+  const [plan, setPlan] = useState<(EvolutionPlan & { spec?: string }) | null>(null);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'spec'>('tasks');
 
   // Fetch real plan from DynamoDB
   useEffect(() => {
@@ -123,6 +124,22 @@ export default function GapRefinementPanel({
     }
   };
 
+  const updateSpec = (spec: string) => {
+    if (!plan) {
+      setPlan({
+        gapId: gapId.replace(/^GAP#/, ''),
+        strategy: 'User defined strategy',
+        subTasks: [],
+        spec,
+      });
+    } else {
+      setPlan({
+        ...plan,
+        spec,
+      });
+    }
+  };
+
   const handleReject = async () => {
     if (!rejectionReason.trim()) {
       setError(t('PIPELINE_REJECTION_REQUIRED'));
@@ -189,49 +206,94 @@ export default function GapRefinementPanel({
             />
           </div>
 
-          {/* Evolution Plan Decomposition */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-[10px] font-bold text-cyber-green/70 uppercase tracking-wider">
-                <ListFilter size={12} /> {t('PIPELINE_PLAN_DECOMPOSITION')}
-              </label>
-              <button
-                onClick={addSubTask}
-                className="text-[9px] font-bold text-muted-more hover:text-cyber-green transition-colors flex items-center gap-1 uppercase tracking-widest"
-              >
-                <Plus size={10} /> {t('PIPELINE_ADD_SUBTASK')}
-              </button>
-            </div>
+          {/* Spec vs Task Tabs */}
+          <div className="flex border border-border rounded p-0.5 bg-input/40">
+            <button
+              onClick={() => setActiveTab('tasks')}
+              className={`flex-1 text-center py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                activeTab === 'tasks'
+                  ? 'bg-background text-cyber-green shadow-sm'
+                  : 'text-muted-more hover:text-foreground'
+              }`}
+            >
+              📋 {t('PIPELINE_TASKS_TAB') || 'Tasks'}
+            </button>
+            <button
+              onClick={() => setActiveTab('spec')}
+              className={`flex-1 text-center py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-colors ${
+                activeTab === 'spec'
+                  ? 'bg-background text-cyber-green shadow-sm'
+                  : 'text-muted-more hover:text-foreground'
+              }`}
+            >
+              📄 {t('PIPELINE_SPEC_TAB') || 'Technical Spec'}
+            </button>
+          </div>
 
-            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+          {/* Evolution Plan Decomposition */}
+          {activeTab === 'tasks' ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-[10px] font-bold text-cyber-green/70 uppercase tracking-wider">
+                  <ListFilter size={12} /> {t('PIPELINE_PLAN_DECOMPOSITION')}
+                </label>
+                <button
+                  onClick={addSubTask}
+                  className="text-[9px] font-bold text-muted-more hover:text-cyber-green transition-colors flex items-center gap-1 uppercase tracking-widest"
+                >
+                  <Plus size={10} /> {t('PIPELINE_ADD_SUBTASK')}
+                </button>
+              </div>
+
+              <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
+                {loadingPlan ? (
+                  <div className="py-8 text-center animate-pulse text-[10px] text-muted-more uppercase font-mono tracking-widest">
+                    {t('PIPELINE_LOADING_EVOLUTION_PLAN')}
+                  </div>
+                ) : plan?.subTasks.length ? (
+                  plan.subTasks.map((st) => (
+                    <div key={st.id} className="group relative">
+                      <textarea
+                        value={st.description}
+                        onChange={(e) => updateSubTask(st.id, e.target.value)}
+                        rows={2}
+                        className="w-full bg-foreground/[0.02] border border-border rounded px-3 py-2 text-[11px] text-foreground/70 focus:outline-none focus:border-cyber-green/30 resize-none group-hover:bg-foreground/[0.04] transition-colors"
+                      />
+                      <button
+                        onClick={() => removeSubTask(st.id)}
+                        className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-red-500/50 hover:text-red-500 transition-all font-bold"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="py-4 text-center border border-dashed border-border rounded text-[10px] text-muted-more/40 uppercase tracking-widest italic">
+                    {t('PIPELINE_NO_PLAN_GENERATED')}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <label className="block text-[10px] font-bold text-cyber-green/70 uppercase tracking-wider">
+                📄 {t('PIPELINE_SPECIFICATION') || 'Technical Specification (Markdown)'}
+              </label>
               {loadingPlan ? (
                 <div className="py-8 text-center animate-pulse text-[10px] text-muted-more uppercase font-mono tracking-widest">
                   {t('PIPELINE_LOADING_EVOLUTION_PLAN')}
                 </div>
-              ) : plan?.subTasks.length ? (
-                plan.subTasks.map((st) => (
-                  <div key={st.id} className="group relative">
-                    <textarea
-                      value={st.description}
-                      onChange={(e) => updateSubTask(st.id, e.target.value)}
-                      rows={2}
-                      className="w-full bg-foreground/[0.02] border border-border rounded px-3 py-2 text-[11px] text-foreground/70 focus:outline-none focus:border-cyber-green/30 resize-none group-hover:bg-foreground/[0.04] transition-colors"
-                    />
-                    <button
-                      onClick={() => removeSubTask(st.id)}
-                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 text-red-500/50 hover:text-red-500 transition-all font-bold"
-                    >
-                      <Trash2 size={10} />
-                    </button>
-                  </div>
-                ))
               ) : (
-                <div className="py-4 text-center border border-dashed border-border rounded text-[10px] text-muted-more/40 uppercase tracking-widest italic">
-                  {t('PIPELINE_NO_PLAN_GENERATED')}
-                </div>
+                <textarea
+                  value={plan?.spec || ''}
+                  onChange={(e) => updateSpec(e.target.value)}
+                  rows={12}
+                  placeholder="# Spec: Title\n\n## 1. Requirements (EARS)\n- WHEN trigger, THE system SHALL outcome.\n\n## 2. Technical Architecture & Constraints\n- ..."
+                  className="w-full bg-foreground/[0.01] border border-border rounded px-3 py-2 text-[11px] font-mono text-foreground/80 focus:outline-none focus:border-cyber-green/30 resize-none transition-colors custom-scrollbar"
+                />
               )}
             </div>
-          </div>
+          )}
 
           {/* Impact + Priority */}
           <div className="grid grid-cols-2 gap-4">

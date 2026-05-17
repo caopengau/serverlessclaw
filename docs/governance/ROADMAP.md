@@ -173,3 +173,9 @@ Our goal: the most customizable, cost-effective, and self-evolving personal AI a
 - [ ] **SONA Learning Loop**: Track tool success rates to dynamically route tasks to the most cost-effective provider.
 - [ ] **Integrated Agent Evals**: Built-in benchmarking suite to measure PR success rate, security regressions, and "Time to Fix".
 - [ ] **Trajectory Analysis**: Extract high-performance reasoning patterns from successful traces and inject them as system-level guidance.
+
+## 🏗️ Phase 24: Spec-Driven Development (SDD) Integration (Active Priority)
+
+- [x] **DynamoDB-Backed Runtime Specs**: Upgrade Strategic Planner to output formal EARS-compliant technical specifications stored statefully in the DynamoDB `PLAN#` distilled memory record for low-latency multi-agent execution.
+- [x] **SuperClaw Refinement Touchpoint**: Integrate SuperClaw and the Dashboard as the interactive Human-in-the-Loop (HITL) gate for editing and approving specification records in DynamoDB before execution.
+- [x] **Intent-Aligned QA Auditor**: Train the QA Auditor/Critic agents to perform adversarial spec compliance audits verifying codebase changes against the DynamoDB specification.

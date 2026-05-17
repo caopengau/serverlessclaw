@@ -450,4 +450,54 @@ describe('QA Agent — REOPEN cap and HITL escalation', () => {
     const { wakeupInitiator } = await import('../handlers/events/shared');
     expect(wakeupInitiator).not.toHaveBeenCalled();
   });
+
+  it('should fetch target specifications from memory and inject [TARGET_TECHNICAL_SPECIFICATIONS] into task', async () => {
+    let capturedTask = '';
+    const { processEventWithAgent } = await import('../handlers/events/shared');
+    vi.mocked(processEventWithAgent).mockImplementationOnce(
+      (userId: string, agentId: string, task: string) => {
+        capturedTask = task;
+        return Promise.resolve({
+          responseText: 'QA verification satisfied.',
+          attachments: [],
+          parsedData: {
+            status: 'SUCCESS',
+            satisfied: true,
+            reasoning: 'verified',
+            issues: [],
+            suggestions: [],
+            score: 10,
+          },
+        });
+      }
+    );
+
+    // Mock memory to return a plan with a spec
+    const { initAgent } = await import('../lib/utils/agent-helpers');
+    vi.mocked(initAgent).mockImplementationOnce(async () => {
+      return {
+        config: { id: 'qa', name: 'QA', enabled: true },
+        memory: {
+          updateGapStatus: memoryMocks.updateGapStatus,
+          incrementGapAttemptCount: memoryMocks.incrementGapAttemptCount,
+          acquireGapLock: memoryMocks.acquireGapLock,
+          releaseGapLock: memoryMocks.releaseGapLock,
+          recordFailurePattern: memoryMocks.recordFailurePattern,
+          getDistilledMemory: vi.fn().mockResolvedValue(
+            JSON.stringify({
+              spec: 'QA Target spec content from DynamoDB',
+            })
+          ),
+        },
+        agent: {
+          process: agentProcess,
+        },
+      } as any;
+    });
+
+    await handler(BASE_PAYLOAD as any, {} as any);
+
+    expect(capturedTask).toContain('[TARGET_TECHNICAL_SPECIFICATIONS]');
+    expect(capturedTask).toContain('QA Target spec content from DynamoDB');
+  });
 });

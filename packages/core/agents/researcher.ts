@@ -111,6 +111,31 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   const parsedMetadata = RESEARCH_TASK_METADATA.parse(metadata || {});
   const timeBudgetMs = parsedMetadata.timeBudgetMs ?? 600000;
 
+  const gapIds = (metadata?.gapIds as string[]) ?? (metadata?.coveredGapIds as string[]) ?? [];
+  const specDetails: string[] = [];
+  if (gapIds && gapIds.length > 0) {
+    for (const gapId of gapIds) {
+      try {
+        const planStr = await memory.getDistilledMemory(`PLAN#${gapId}`);
+        if (planStr) {
+          const parsedPlan = JSON.parse(planStr);
+          if (parsedPlan.spec) {
+            specDetails.push(`### Target Spec for Gap [${gapId}]:\n${parsedPlan.spec}`);
+          }
+        }
+      } catch (e) {
+        logger.warn(`[RESEARCHER] Failed to load spec for gap ${gapId}:`, e);
+      }
+    }
+  }
+
+  const specContext =
+    specDetails.length > 0
+      ? `\n\n[TARGET_TECHNICAL_SPECIFICATIONS]:\nThese are the active technical specifications and EARS evolution contracts for this research scope. Use them to focus your mapping and discovery:\n${specDetails.join('\n\n')}`
+      : '';
+
+  const researchTask = `${task || ''}${specContext}`;
+
   const processOptions = buildProcessOptions({
     isContinuation,
     isIsolated: true,
@@ -131,7 +156,7 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
   let finalResponseText: string;
 
   try {
-    const result = await agent.process(userId, task || '', processOptions);
+    const result = await agent.process(userId, researchTask, processOptions);
     finalResponseText = result?.responseText || '';
 
     // 4. Persistence: Store final synthesis as a granular memory item

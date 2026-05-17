@@ -2,32 +2,26 @@
 
 The **Cognitive Evolution Loop** is the core mechanism by which the Serverless Claw swarm iteratively improves its own reasoning capabilities without manual engineering intervention for every failure.
 
-## 🌀 The Evolution Cycle (ASCII Diagram)
+## 🌀 The Spec-Driven Evolution Cycle (ASCII Diagram)
 
 ```text
-       [ SIGNAL ]                      [ ANALYSIS ]                      [ REMEDIATION ]
-    ------------------              -----------------                 -------------------
-    |                |              |               |                 |                 |
-    |  Real-world    |------------->| Cognition     |---------------->| Proposed        |
-    |  Failure       | (EventBridge)| Reflector     | (Metabolic Gap) | Persona Updates |
-    | (Pulse Health) |              | (Silo 5/Eye)  |                 | (Silo 7/Metab)  |
-    ------------------              -----------------                 -------------------
-            ^                               |                                  |
-            |                               |                                  |
-            |Promote to Prod                |      [ THE MIRROR ]              |Replay Failure
-            |(AgentRegistry)                |      --------------              |In Sandbox
-            |                               |      |            |              |
-    ------------------              ------------------  |  SCALES    |  -------------------
-    |                |              |                |  | (Silo 6)   |  |                 |
-    |  DEPLOYED      |<-------------|  HUMAN/SYSTEM  |<-|            |<-|  EVOLUTION      |
-    |  v(N+1)        | (Verification|  APPROVAL      |  | (Trust     |  |  SANDBOX        |
-    |  PERSONA       |     Gate)    |                |  |  Scores)   |  |  (PLAYGROUND)   |
-    ------------------              ------------------  --------------  -------------------
-                                           ^               |
-                                           |               |
-                                           -----------------
-                                            (Auto-Disable
-                                             if Trust < 20)
+       [ SIGNAL ]                    [ SPEC DRAFTING ]                 [ HITL APPROVAL ]
+    ----------------              ----------------------              -------------------
+    |              |              |                    |              |                 |
+    |  Real-world  |------------->|  Strategic Planner |------------->| Dashboard Spec  |
+    |  Failure /   | (EventBridge)| (EARS Spec Draft)  | (DDB State)  | Editor & Gate   |
+    |  Metabolic   |              |                    |              |                 |
+    ----------------              ----------------------              -------------------
+           ^                                                                   |
+           |                                                                   | User Approved
+           | Promote                                                           | Spec Contract
+           | to Prod                                                           v
+    ----------------              ----------------------              -------------------
+    |              |              |                    |              |                 |
+    |  DEPLOYED    |              |  QA Auditor        |              | Coder &         |
+    |  CAPABILITY  |<-------------| (Adversarial Spec  |<-------------| Researcher      |
+    |  (Dynamic)   | (Verify DoD) |  Audit Gate)       | (Git Patch)  | (Evolution CWD) |
+    ----------------              ----------------------              -------------------
 ```
 
 ## 🏗 Key Components
@@ -59,6 +53,15 @@ Once verified in the sandbox, the change is committed.
 - **Prompt Hash**: Ensures uniqueness of the behavioral change.
 - **Atomic Versioning**: Increments the agent version (e.g., v1 -> v2) to track historical lineage.
 - **Reputation Reset**: Optionally resets specific failure flags for the new version to allow for a fresh performance baseline.
+
+### 5. Spec-Driven Evolution Contracts (SDD Lifecycle)
+
+Capability evolution is governed strictly by the **Technical Specification contract** statefully saved in DynamoDB (`PLAN#${gapId}`). 
+
+*   **Strategic Planner (Drafting)**: Formulates the plan and writes the initial EARS specification.
+*   **Human Developer (HITL Approval)**: Reviews, refines, and saves updates using the monospaced Spec Editor in the dashboard, setting the target contract in DynamoDB.
+*   **Coder & Researcher Agents (Ground Work)**: Automatically fetch the user-approved specs from DynamoDB and inject them into their prompts as `[TARGET_TECHNICAL_SPECIFICATIONS]` to focus implementation and discovery on the exact design criteria.
+*   **QA Agent (Audit Gate)**: Auditor runs semantic validation directly against the EARS acceptance criteria to verify the evolution DoD.
 
 ---
 

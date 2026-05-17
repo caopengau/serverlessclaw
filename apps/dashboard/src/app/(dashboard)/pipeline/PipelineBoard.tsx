@@ -26,7 +26,7 @@ import GapRefinementPanel from './GapRefinementPanel';
 import { useTranslations } from '@/components/Providers/TranslationsProvider';
 
 interface PipelineBoardProps {
-  initialGaps: GapItem[];
+  initialGaps: (GapItem & { hasPlan?: boolean; hasSpec?: boolean })[];
   updateStatus: (gapId: string, status: string) => Promise<void>;
   pruneGap: (gapId: string, timestamp: number | string) => Promise<void>;
   triggerBatchEvolution: (gapIds: string[]) => Promise<void>;
@@ -305,6 +305,22 @@ export default function PipelineBoard({
                             <div className="w-1.5 h-1.5 rounded-full bg-cyber-blue animate-spin"></div>
                           ) : (
                             <div className="flex items-center gap-1.5">
+                              {gap.hasSpec && (
+                                <Badge
+                                  variant="audit"
+                                  className="text-[7px] px-1 py-0 uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.1)]"
+                                >
+                                  Spec Approved
+                                </Badge>
+                              )}
+                              {gap.hasPlan && !gap.hasSpec && (
+                                <Badge
+                                  variant="warning"
+                                  className="text-[7px] px-1 py-0 uppercase bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_8px_rgba(245,158,11,0.1)]"
+                                >
+                                  Plan Ready
+                                </Badge>
+                              )}
                               {gap.status === 'FAILED' && (
                                 <Badge variant="danger" className="text-[7px] px-1 py-0 uppercase">
                                   {gap.status}

@@ -115,13 +115,38 @@ export const handler = async (event: AgentEvent, context: Context): Promise<stri
     buildId?: string;
   }
 
+  // Load specs from DDB to retrieve approved evolution contracts
+  const specDetails: string[] = [];
+  if (gapIds && gapIds.length > 0) {
+    for (const gapId of gapIds) {
+      try {
+        const planStr = await memory.getDistilledMemory(`PLAN#${gapId}`);
+        if (planStr) {
+          const parsedPlan = JSON.parse(planStr);
+          if (parsedPlan.spec) {
+            specDetails.push(`### Target Spec for Gap [${gapId}]:\n${parsedPlan.spec}`);
+          }
+        }
+      } catch (e) {
+        logger.warn(`[CODER] Failed to load spec for gap ${gapId}:`, e);
+      }
+    }
+  }
+
+  const specContext =
+    specDetails.length > 0
+      ? `\n\n[TARGET_TECHNICAL_SPECIFICATIONS]:\nThese are the user-approved EARS functional requirements and technical architecture/constraints that you MUST strictly implement. Do NOT deviate from this contract.\n${specDetails.join('\n\n')}`
+      : '';
+
+  const coderTask = `${task || ''}${specContext}`;
+
   let result: {
     responseText: string;
     attachments: Message['attachments'];
     parsedData?: CoderParsedData;
   };
   try {
-    const processResult = await processEventWithAgent(userId, AGENT_TYPES.CODER, task || '', {
+    const processResult = await processEventWithAgent(userId, AGENT_TYPES.CODER, coderTask, {
       context,
       traceId,
       taskId: taskId ?? traceId,
