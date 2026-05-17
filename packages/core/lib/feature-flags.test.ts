@@ -210,6 +210,8 @@ describe('FeatureFlags', () => {
       expect(result).toBe(1);
       expect(mockConfigManager.deleteConfig).toHaveBeenCalledWith('feature_flag_expired_flag', {
         workspaceId: undefined,
+        conditionExpression: 'attribute_exists(#k)',
+        expressionAttributeNames: { '#k': 'key' },
       });
       expect(mockConfigManager.atomicRemoveFromList).toHaveBeenCalledWith(
         'feature_flags_list',

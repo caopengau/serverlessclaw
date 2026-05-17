@@ -145,11 +145,18 @@ export class FeatureFlags {
       const prunedNames: string[] = [];
       for (const flag of staleFlags) {
         try {
-          await ConfigManager.deleteConfig(`${this.FLAG_KEY_PREFIX}${flag.name}`, { workspaceId });
+          // Add idempotency check by using deleteConfig with condition
+          await ConfigManager.deleteConfig(`${this.FLAG_KEY_PREFIX}${flag.name}`, {
+            workspaceId,
+            conditionExpression: 'attribute_exists(#k)',
+            expressionAttributeNames: { '#k': 'key' },
+          } as any);
           prunedNames.push(flag.name);
           this.cache.delete(this.getCacheKey(flag.name, workspaceId));
-        } catch (e) {
-          logger.warn(`Failed to delete stale flag ${flag.name}:`, e);
+        } catch (e: unknown) {
+          if ((e as Error).name !== 'ConditionalCheckFailedException') {
+            logger.warn(`Failed to delete stale flag ${flag.name}:`, e);
+          }
         }
       }
 

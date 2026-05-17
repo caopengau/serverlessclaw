@@ -162,7 +162,13 @@ export class ConfigManagerBase {
    */
   public static async deleteConfig(
     key: string,
-    options?: { workspaceId?: string; orgId?: string }
+    options?: {
+      workspaceId?: string;
+      orgId?: string;
+      conditionExpression?: string;
+      expressionAttributeNames?: Record<string, string>;
+      expressionAttributeValues?: Record<string, unknown>;
+    }
   ): Promise<void> {
     const tableName = this._getTableName();
     if (!tableName) {
@@ -178,9 +184,15 @@ export class ConfigManagerBase {
         new DeleteCommand({
           TableName: tableName,
           Key: { key: effectiveKey },
+          ConditionExpression: options?.conditionExpression,
+          ExpressionAttributeNames: options?.expressionAttributeNames,
+          ExpressionAttributeValues: options?.expressionAttributeValues,
         })
       );
     } catch (e) {
+      if (e instanceof Error && e.name === 'ConditionalCheckFailedException') {
+        throw e;
+      }
       logger.error(`Failed to delete ${effectiveKey} from DDB:`, e);
       throw e;
     }

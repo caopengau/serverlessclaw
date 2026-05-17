@@ -31,7 +31,7 @@ Last Updated: 2026-05-14
 | **C**       | Identity Journey    | Brain → Spine → Shield      | 12          | 2026-05-12  |
 | **D**       | Trust Loop          | Eye → Scales → Spine        | 16          | 2026-05-14  |
 | **E**       | Recovery Path       | Shield → Spine → Brain      | 15          | 2026-05-16  |
-| **F**       | Metabolic Loop      | Metabolism ↔ Scales ↔ Spine | 11          | 2026-05-16  |
+| **F**       | Metabolic Loop      | Metabolism ↔ Scales ↔ Spine | 12          | 2026-05-17  |
 | **G**       | Dashboard Integrity | Cross-Silo API Safety       | 4           | 2026-05-17  |
 
 ---
@@ -40,6 +40,7 @@ Last Updated: 2026-05-14
 
 | Date       | Report                                                  | Silos                                | Perspective | Status/Summary                                                                                                         |
 | :--------- | :------------------------------------------------------ | :----------------------------------- | :---------- | :--------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-17 | `reports/audit-2026-05-17-metabolic-loop.md`        | Metabolism, Scales, Spine            | F           | FIXED: P1 Non-idempotent gap culling/flag pruning (AP-16), P2 Telemetry blindness in gap archival (AP-22).             |
 | 2026-05-17 | `reports/audit-2026-05-17-dashboard-api-safety.md`      | Brain, Metabolism, Eye               | G           | FIXED: P1 Tenant isolation in 6 Dashboard APIs (Anti-Patterns 14, 19, 22) during memory and metabolism operations.     |
 | 2026-05-17 | `reports/audit-2026-05-17-recovery-path.md`        | Shield, Spine, Brain                 | E           | FIXED: P1 Type Mismatch in Lock Cleanup, P1 In-memory filtering in Health Check. Standardized Recovery Logs.         |
 | 2026-05-17 | `reports/audit-2026-05-17-trust-loop.md`           | Eye, Scales, Spine                   | D           | FIXED: P1 Race Condition in Token Rollup, P2 Missing Clamping in recordAnomalies. Verified SLO penalties.             |

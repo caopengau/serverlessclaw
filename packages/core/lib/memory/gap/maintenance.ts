@@ -14,6 +14,7 @@ export async function archiveStaleGaps(
   scope?: string | ContextualScope
 ): Promise<number> {
   const cutoffTime = Date.now() - staleDays * TIME.SECONDS_IN_DAY * TIME.MS_PER_SECOND;
+  const workspaceId = typeof scope === 'string' ? scope : scope?.workspaceId;
 
   const gaps = await queryByTypeAndMap(
     base,
@@ -44,12 +45,15 @@ export async function archiveStaleGaps(
           ':open': GapStatus.OPEN,
           ':planned': GapStatus.PLANNED,
           ':now': Date.now(),
+          ...(workspaceId ? { ':workspaceId': workspaceId } : {}),
         },
       });
       archived++;
       logger.info(`Archived stale gap: ${gap.id}`);
     } catch (e: unknown) {
-      logger.warn(`Failed to archive gap ${gap.id}:`, e);
+      if ((e as Error).name !== 'ConditionalCheckFailedException') {
+        logger.warn(`Failed to archive gap ${gap.id}:`, e);
+      }
     }
   }
 
@@ -88,11 +92,14 @@ export async function cullResolvedGaps(
       await base.deleteItem({
         userId: gap.id,
         timestamp: gap.timestamp,
+        ConditionExpression: 'attribute_exists(userId)',
       });
       deleted++;
       logger.info(`Culled resolved gap: ${gap.id}`);
     } catch (e: unknown) {
-      logger.warn(`Failed to cull gap ${gap.id}:`, e);
+      if ((e as Error).name !== 'ConditionalCheckFailedException') {
+        logger.warn(`Failed to cull gap ${gap.id}:`, e);
+      }
     }
   }
 
