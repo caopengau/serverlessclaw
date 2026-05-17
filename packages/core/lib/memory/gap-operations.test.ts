@@ -312,6 +312,28 @@ describe('Gap Operations', () => {
         userId: 'GAP#1',
         timestamp: staleTime,
       });
+      // Verify idempotency guard
+      expect(updateCalls[0].args[0].input.ConditionExpression).toBe('#status IN (:open, :planned)');
+    });
+  });
+
+  describe('cullResolvedGaps', () => {
+    it('should delete items with attribute_exists guard for idempotency', async () => {
+      const now = Date.now();
+      const cutoff = now - 90 * 24 * 60 * 60 * 1000;
+
+      ddbMock.on(QueryCommand).resolves({
+        Items: [{ userId: 'GAP#3', timestamp: cutoff, type: 'GAP', status: GapStatus.DONE }],
+      });
+      ddbMock.on(DeleteCommand).resolves({});
+
+      const { cullResolvedGaps } = await import('./gap-operations');
+      const culledCount = await cullResolvedGaps(memory, 60);
+
+      expect(culledCount).toBe(1);
+      const deleteCalls = ddbMock.commandCalls(DeleteCommand);
+      expect(deleteCalls).toHaveLength(1);
+      expect(deleteCalls[0].args[0].input.ConditionExpression).toBe('attribute_exists(userId)');
     });
   });
 });
