@@ -272,8 +272,9 @@ export class ConfigManagerMapAtomic extends ConfigManagerList {
 
   /**
    * Atomically updates multiple fields for an entity using a partial object.
+   * Returns the updated entity attributes if successful.
    */
-  public static async atomicUpdateMapEntity(
+  public static async atomicUpdateMapEntity<T = Record<string, unknown>>(
     key: string,
     entityId: string,
     updates: Record<string, unknown>,
@@ -286,9 +287,9 @@ export class ConfigManagerMapAtomic extends ConfigManagerList {
       expressionAttributeNames?: Record<string, string>;
       expressionAttributeValues?: Record<string, unknown>;
     }
-  ): Promise<void> {
+  ): Promise<T | undefined> {
     const tableName = this._getTableName();
-    if (!tableName) return;
+    if (!tableName) return undefined;
 
     const actualKey = this.getEffectiveKey(key, options);
     this.configCache.delete(actualKey);
@@ -333,7 +334,7 @@ export class ConfigManagerMapAtomic extends ConfigManagerList {
     }
 
     try {
-      await docClient.send(
+      const result = await docClient.send(
         new UpdateCommand({
           TableName: tableName,
           Key: { key: actualKey },
@@ -341,8 +342,10 @@ export class ConfigManagerMapAtomic extends ConfigManagerList {
           ConditionExpression: conditionExpression,
           ExpressionAttributeNames: names,
           ExpressionAttributeValues: values,
+          ReturnValues: 'ALL_NEW',
         })
       );
+      return result.Attributes?.value?.[entityId] as T;
     } catch (e: unknown) {
       if (
         e instanceof Error &&
@@ -364,7 +367,7 @@ export class ConfigManagerMapAtomic extends ConfigManagerList {
             });
           }
 
-          await docClient.send(
+          const result = await docClient.send(
             new UpdateCommand({
               TableName: tableName,
               Key: { key: actualKey },
@@ -372,8 +375,10 @@ export class ConfigManagerMapAtomic extends ConfigManagerList {
               ConditionExpression: 'attribute_not_exists(#val.#id)',
               ExpressionAttributeNames: { '#val': 'value', '#id': entityId },
               ExpressionAttributeValues: { ':entity': initialObject },
+              ReturnValues: 'ALL_NEW',
             })
           );
+          return result.Attributes?.value?.[entityId] as T;
         } catch (innerE: unknown) {
           if (innerE instanceof Error && innerE.name === 'ValidationException') {
             try {
@@ -384,7 +389,7 @@ export class ConfigManagerMapAtomic extends ConfigManagerList {
                 });
               }
 
-              await docClient.send(
+              const result = await docClient.send(
                 new UpdateCommand({
                   TableName: tableName,
                   Key: { key: actualKey },
@@ -392,8 +397,10 @@ export class ConfigManagerMapAtomic extends ConfigManagerList {
                   ConditionExpression: 'attribute_not_exists(#val)',
                   ExpressionAttributeNames: { '#val': 'value' },
                   ExpressionAttributeValues: { ':rootObj': { [entityId]: initialObject } },
+                  ReturnValues: 'ALL_NEW',
                 })
               );
+              return result.Attributes?.value?.[entityId] as T;
             } catch (rootE: unknown) {
               if (
                 rootE instanceof Error &&

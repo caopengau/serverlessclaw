@@ -62,6 +62,7 @@ const { mockConfigManager } = vi.hoisted(() => ({
   mockConfigManager: {
     appendToList: vi.fn().mockResolvedValue(undefined),
     atomicUpdateMapEntity: vi.fn().mockResolvedValue(undefined),
+    atomicUpdateMapField: vi.fn().mockResolvedValue(undefined),
     getEffectiveKey: vi.fn((k) => k),
   },
 }));
@@ -194,6 +195,49 @@ describe('TrustManager', () => {
         expect.any(Object),
         expect.objectContaining({
           increments: { trustScore: -15.5 },
+          workspaceId: 'ws1',
+        })
+      );
+    });
+
+    it('clamps trust score to MIN_SCORE when batched anomalies drive it below zero (P2 Fix)', async () => {
+      mockAgentRegistry.getAgentConfig.mockResolvedValue({
+        id: 'fail-agent',
+        trustScore: 10,
+        enabled: true,
+      });
+
+      // Mock atomicUpdateMapEntity to return a score that would be -5.5 (clamped to 0)
+      mockConfigManager.atomicUpdateMapEntity.mockResolvedValueOnce({
+        trustScore: -5.5,
+        lastAnomalyCalibrationAt: 'window-1',
+      });
+
+      const anomalies = [
+        {
+          id: 'a1',
+          agentId: 'fail-agent',
+          detectedAt: Date.now(),
+          type: AnomalyType.COGNITIVE_LOOP,
+          severity: AnomalySeverity.CRITICAL,
+          description: 'Big loop',
+          triggerMetrics: {},
+        },
+      ];
+
+      const score = await TrustManager.recordAnomalies('fail-agent', anomalies, {
+        workspaceId: 'ws1',
+        windowId: 'window-1',
+      });
+
+      expect(score).toBe(0);
+      expect(mockConfigManager.atomicUpdateMapField).toHaveBeenCalledWith(
+        expect.any(String),
+        'fail-agent',
+        'trustScore',
+        0,
+        expect.objectContaining({
+          conditionExpression: expect.stringContaining('#trust < :min'),
           workspaceId: 'ws1',
         })
       );

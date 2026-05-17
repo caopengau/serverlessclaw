@@ -111,6 +111,7 @@ export class NotificationManager {
       await this.base.updateItem({
         Key: { userId: key, timestamp },
         UpdateExpression: 'SET #status = :read',
+        ConditionExpression: 'attribute_exists(userId)',
         ExpressionAttributeNames: { '#status': 'status' },
         ExpressionAttributeValues: { ':read': NotificationStatus.READ },
       });

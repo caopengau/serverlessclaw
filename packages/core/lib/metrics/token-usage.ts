@@ -221,6 +221,7 @@ export class TokenTracker {
 
         const updated = result.Attributes;
         if (updated && updated.invocationCount > 0) {
+          const currentCount = updated.invocationCount;
           const avgTokens =
             (updated.totalInputTokens + updated.totalOutputTokens) / updated.invocationCount;
           const avgDuration = (updated.totalDurationMs ?? 0) / updated.invocationCount;
@@ -236,6 +237,8 @@ export class TokenTracker {
           const p95Duration = sortedSamples.length > 0 ? (sortedSamples[p95Idx] ?? 0) : 0;
           const p99Duration = sortedSamples.length > 0 ? (sortedSamples[p99Idx] ?? 0) : 0;
 
+          // P1 Fix: Use invocationCount as a condition to ensure no other samples were added concurrently.
+          // If this fails, the next invocation will pick up the new samples and update percentiles.
           await docClient.send(
             new UpdateCommand({
               TableName: getTableName(),
@@ -249,8 +252,9 @@ export class TokenTracker {
                 ':p95': p95Duration,
                 ':p99': p99Duration,
                 ':samples': sortedSamples.slice(-1000),
+                ':expectedCount': currentCount,
               },
-              ConditionExpression: 'attribute_exists(invocationCount)',
+              ConditionExpression: 'invocationCount = :expectedCount',
             })
           );
         }

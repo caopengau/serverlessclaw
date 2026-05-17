@@ -11,18 +11,18 @@ Input adapters receive events from external systems (via webhooks or API polling
 ### Normalization Flow
 
 ```text
-[ External System ]        [ Input Adapter ]        [ InboundMessage ]
-+----------------+         +----------------+       +------------------+
-| Telegram       | ------> | TelegramAdapter| ----> | { source, userId,|
-| Webhook        |         |                |       |   sessionId, text}|
-+----------------+         +----------------+       |   attachments,   |
-                                                    |   metadata }     |
-+----------------+         +----------------+       +--------|---------+
-| GitHub         | ------> | GitHubAdapter  | ---->          |
-| Webhook/API    |         |                |                v
-+----------------+         +----------------+       +------------------+
-| Jira           | ------> | JiraAdapter    | ----> | SuperClaw.process|
-+----------------+         +----------------+       +------------------+
+[ External System ]        [ Input Adapter ]        [ Hard Shell Normalization ]        [ NormalizedMessage ]
++----------------+         +----------------+       +--------------------------+        +--------------------+
+| Telegram       | ------> | TelegramAdapter| ----> | sanitize(# -> _)         | ---->  | { source, userId,  |
+| Webhook        |         |                |       | block internal prefixes  |        |   sessionId, text, |
++----------------+         +----------------+       +--------------------------+        |   attachments,     |
+                                                                                        |   metadata }       |
++----------------+         +----------------+       +--------------------------+        +---------|----------+
+| GitHub         | ------> | GitHubAdapter  | ----> | normalizeMessage()       | ---->            |
+| Webhook/API    |         |                |       | (Security boundary)      |                  v
++----------------+         +----------------+       +--------------------------+        +--------------------+
+| Jira           | ------> | JiraAdapter    | ---->                                     | SuperClaw.process  |
++----------------+         +----------------+                                           +--------------------+
 ```
 
 ### Implementing a New Adapter

@@ -62,6 +62,25 @@ To prevent overwrites when multiple collaborations share a participant at the sa
          |                        |
 ```
 
+## 1d. Hard Shell Identity Normalization (Perspective C)
+
+To prevent identity spoofing and internal protocol leakage, the system enforces a strict sanitization boundary at the input layer.
+
+```ascii
+  External Input        normalizeMessage()        Internal Event Bus
+ (Telegram/Slack)        (The Hard Shell)           (SuperClaw)
+        |                       |                       |
+        |-- {userId: "CONV#S"}->|                       |
+        |                       |-- sanitize(# -> _) ---|
+        |                       |                       |-- {userId: "CONV_S"}
+        |                       |                       |   (Safe/Unprivileged)
+        |                       |                       |
+        |-- {userId: "SYSTEM"}->|                       |
+        |                       |-- allow (no #) -------|
+        |                       |                       |-- {userId: "SYSTEM"}
+        |                       |                       |   (Auth verified)
+```
+
 ## 2. Multi-Tenant Budget Enforcement (Shield)
 
 Token usage and recursion depth are tracked with strict `workspaceId` dimensioning to prevent cross-tenant budget leakage.
@@ -218,9 +237,27 @@ To maintain trust integrity without cross-tenant interference, the Trust Calibra
      |                    |-- recordTrust(WS1) ----->|
      |                    |   (Atomic Condition)     |
      |                    |                          |
+     |                    |-- clamp(0-100) --------->|
+     |                    |   (Conditional Update)   |
 ```
 
-The system ensures that an agent's safety tier (and thus its calibration thresholds) are resolved specifically for the workspace context. Anomalies are recorded with full tenant dimensions to prevent global trust poisoning.
+### 6b. Version-Conditional Telemetry (The Eye)
+
+To prevent "Last Write Wins" races during latency rollup calculations, the system uses the `invocationCount` as a monotonic version marker.
+
+```ascii
+Process 1 (Eye)          Process 2 (Eye)          DynamoDB (Rollup)
+      |                        |                         |
+      |-- (1) Read (v=5) ------------------------------> |
+      |                        |-- (2) Read (v=5) ------>|
+      |                        |                         |
+      |-- (3) Write (v=6) -----------------------------> | (Success)
+      |   Condition: v=5       |                         |
+      |                        |-- (4) Write (v=6) ----> | (REJECTED)
+      |                        |   Condition: v=5        | (Conflict 409)
+```
+
+This ensures that high-precision metrics (p95/p99) are never corrupted by concurrent telemetry streams, preventing false SLO breaches.
 
 ## 7. Workspace-Scoped MCP Multiplexing (Silo 2)
 

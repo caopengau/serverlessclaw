@@ -182,7 +182,11 @@ export class TrustManager {
       }
 
       // Use atomicUpdateMapEntity to increment trustScore and set lastAnomalyCalibrationAt atomically
-      await ConfigManager.atomicUpdateMapEntity(DYNAMO_KEYS.AGENTS_CONFIG, agentId, updates, {
+      // P1 Fix: Capture the updated attributes to enable atomic clamping if needed
+      const updatedEntity = await ConfigManager.atomicUpdateMapEntity<{
+        trustScore: number;
+        lastAnomalyCalibrationAt: string;
+      }>(DYNAMO_KEYS.AGENTS_CONFIG, agentId, updates, {
         workspaceId: context?.workspaceId,
         increments: { trustScore: totalDelta },
         conditionExpression: context?.windowId
@@ -192,11 +196,35 @@ export class TrustManager {
         expressionAttributeValues: context?.windowId ? { ':windowId': context.windowId } : {},
       });
 
-      // Fetch fresh score for return and history
-      const updated = await AgentRegistry.getAgentConfig(agentId, {
-        workspaceId: context?.workspaceId,
-      });
-      const score = updated?.trustScore ?? 0;
+      let score = updatedEntity?.trustScore ?? 0;
+
+      // P1 Fix: Atomic clamping (Principle 15)
+      if (score < TRUST.MIN_SCORE || score > TRUST.MAX_SCORE) {
+        const clamped = Math.min(Math.max(score, TRUST.MIN_SCORE), TRUST.MAX_SCORE);
+        try {
+          await ConfigManager.atomicUpdateMapField(
+            DYNAMO_KEYS.AGENTS_CONFIG,
+            agentId,
+            'trustScore',
+            clamped,
+            {
+              workspaceId: context?.workspaceId,
+              conditionExpression: score < TRUST.MIN_SCORE ? '#trust < :min' : '#trust > :max',
+              expressionAttributeNames: { '#trust': 'trustScore' },
+              expressionAttributeValues: { ':min': TRUST.MIN_SCORE, ':max': TRUST.MAX_SCORE },
+            } as any
+          );
+          score = clamped;
+        } catch (clampErr: unknown) {
+          if (clampErr instanceof Error && clampErr.name === 'ConditionalCheckFailedException') {
+            // Concurrently updated or already clamped, fetch fresh
+            const fresh = await AgentRegistry.getAgentConfig(agentId, {
+              workspaceId: context?.workspaceId,
+            });
+            score = fresh?.trustScore ?? clamped;
+          }
+        }
+      }
 
       await this.logPenalty(
         {

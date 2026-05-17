@@ -37,15 +37,16 @@ export interface NormalizedMessage {
  */
 export function normalizeMessage(raw: InboundMessage): NormalizedMessage {
   // Ensure required fields exist; fall back to safe defaults.
-  const {
-    source = 'unknown',
-    userId = 'unknown',
-    sessionId = userId,
-    text = '',
-    attachments = [],
-    metadata = {},
-    timestamp,
-  } = raw;
+  let { userId = 'unknown', sessionId = userId } = raw;
+  const { source = 'unknown', text = '', attachments = [], metadata = {}, timestamp } = raw;
+
+  // Security: Prevent external identity spoofing via internal prefixes (P0 finding)
+  if (userId.startsWith('CONV#') || userId.includes('#')) {
+    userId = userId.replace(/#/g, '_');
+  }
+  if (sessionId.startsWith('CONV#') || (sessionId !== userId && sessionId.includes('#'))) {
+    sessionId = sessionId.replace(/#/g, '_');
+  }
 
   // Preserve the original timestamp if provided; otherwise generate now.
   const isoTimestamp = timestamp ?? new Date().toISOString();

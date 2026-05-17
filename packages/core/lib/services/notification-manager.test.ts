@@ -112,7 +112,7 @@ describe('NotificationManager', () => {
   });
 
   describe('markAsRead', () => {
-    it('should update notification status to READ', async () => {
+    it('should update notification status to READ with Principle 13 ConditionExpression', async () => {
       await notificationManager.markAsRead('user_2', 'ws_1', 1000);
 
       expect(mockMemoryProvider.updateItem).toHaveBeenCalledWith(
@@ -122,6 +122,7 @@ describe('NotificationManager', () => {
             timestamp: 1000,
           },
           UpdateExpression: 'SET #status = :read',
+          ConditionExpression: 'attribute_exists(userId)',
         })
       );
     });

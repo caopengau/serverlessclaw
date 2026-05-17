@@ -276,13 +276,45 @@ describe('TokenTracker', () => {
       ).resolves.not.toThrow();
     });
 
-    it('should not throw on other errors', async () => {
-      mockSend.mockRejectedValueOnce(new Error('network error'));
+    it('should use invocationCount as a condition to prevent race conditions (P1 Fix)', async () => {
+      mockSend
+        .mockResolvedValueOnce({
+          Attributes: {
+            totalInputTokens: 100,
+            totalOutputTokens: 50,
+            invocationCount: 5,
+            durationSamples: [100],
+          },
+        })
+        .mockResolvedValueOnce({}); // Second pass success
+
+      await TokenTracker.updateRollup('test-agent', {
+        inputTokens: 100,
+        outputTokens: 50,
+        toolCalls: 1,
+        success: true,
+      });
+
+      // Verify the second pass used the correct condition
+      const secondCall = mockSend.mock.calls[1][0] as UpdateCommand;
+      expect(secondCall.input.ConditionExpression).toBe('invocationCount = :expectedCount');
+      expect(secondCall.input.ExpressionAttributeValues?.[':expectedCount']).toBe(5);
+    });
+
+    it('should not throw if the second pass condition fails (concurrency)', async () => {
+      const condErr = new Error('Condition failed');
+      condErr.name = 'ConditionalCheckFailedException';
+
+      mockSend
+        .mockResolvedValueOnce({
+          Attributes: { invocationCount: 5, durationSamples: [100] },
+        })
+        .mockRejectedValueOnce(condErr); // Concurrently updated
 
       await expect(
-        TokenTracker.updateRollup('agent', {
-          inputTokens: 100,
-          outputTokens: 50,
+        TokenTracker.updateRollup('test-agent', {
+          inputTokens: 10,
+          outputTokens: 10,
           toolCalls: 0,
           success: true,
         })

@@ -36,6 +36,8 @@ Trust scores are dynamically updated via the **Atomic Field Pattern** in DynamoD
 - **Success Bumps**: Weighted by the Judge's quality score.
 - **Failure Penalties**: SLO breaches, QA failures, or anomalies detected result in immediate trust decay.
 - **Anomaly Feedback**: Batched anomalies from the `DegradationDetector` are processed into trust penalties.
+- **Atomic Clamping**: Batched increments are protected by conditional updates that enforce `MIN_SCORE` (0) and `MAX_SCORE` (100) boundaries, preventing reputation corruption (Audit Finding 2026-05-17).
+- **Version-Conditional Telemetry**: Latency rollups use `invocationCount` as a monotonic version marker to prevent data loss during concurrent percentile calculations (p50/p95/p99).
 - **Idempotency Guard**: Maintenance tasks (e.g. daily decay) utilize `lastDecayedAt` and `lastAnomalyCalibrationAt` timestamps with atomic conditional updates to prevent double-penalization in concurrent scenarios.
 
 ### 3. Quality-Weighted Trust Formulas

@@ -455,3 +455,19 @@ PluginManager.register(productPlugin);
 **Principle**: [7. Resource Efficiency (Metabolic Balance)](./PRINCIPLES.md), [11. Multi-tenant Isolation](./PRINCIPLES.md).
 **Detection**: Audit maintenance handlers (`maintenance.ts`) for culling/archival loops that occur outside of workspace iteration blocks.
 **Remediation**: Use `MetabolismService.runMetabolismAudit` and ensure all repairs are passed a `workspaceId` scope during iteration.
+
+### 23. Identity Spoofing via Internal Prefixes (CONV#)
+
+**What**: External input adapters allowing `userId` or `sessionId` values that contain internal system prefixes (like `CONV#`).
+**Risk**: Bypassing RBAC checks by masquerading as `SYSTEM` or other privileged identities when the prefix is stripped by internal normalization utilities (e.g., `normalizeBaseUserId`).
+**Pattern**:
+```typescript
+// ❌ WRONG (InboundMessage from external source)
+{ userId: "CONV#SYSTEM#evil" } // normalizeBaseUserId results in "SYSTEM" 💥
+
+// ✅ CORRECT (Sanitization at the Hard Shell)
+if (userId.includes('#')) {
+  userId = userId.replace(/#/g, '_');
+}
+```
+**Occurrences**: Fixed in `normalizeMessage` (Audit 2026-05-17).
