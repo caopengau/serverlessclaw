@@ -2,11 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { POST } from './route';
 
+const mockUpdateGapStatus = vi.fn().mockResolvedValue({ success: true });
+
 // Mock the core memory module
 vi.mock('@claw/core/lib/memory', () => {
   return {
     DynamoMemory: class {
-      updateGapStatus = vi.fn().mockResolvedValue({ success: true });
+      updateGapStatus = mockUpdateGapStatus;
     },
   };
 });
@@ -68,7 +70,7 @@ describe('Dashboard API: /api/memory/status', () => {
   });
 
   it('should return 200 and call updateGapStatus if request is valid', async () => {
-    const req = new NextRequest('http://localhost/api/memory/status', {
+    const req = new NextRequest('http://localhost/api/memory/status?workspaceId=ws-123', {
       method: 'POST',
       body: JSON.stringify({ gapId: 'GAP#123', status: 'PLANNED' }),
     });
@@ -78,5 +80,9 @@ describe('Dashboard API: /api/memory/status', () => {
 
     expect(res.status).toBe(200);
     expect(data.success).toBe(true);
+
+    expect(mockUpdateGapStatus).toHaveBeenCalledWith('GAP#123', 'PLANNED', {
+      workspaceId: 'ws-123',
+    });
   });
 });

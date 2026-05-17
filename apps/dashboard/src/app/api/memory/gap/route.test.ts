@@ -33,7 +33,7 @@ describe('Memory Gap API Route', () => {
 
   it('creates gap and returns success with gapId', async () => {
     const { POST } = await import('./route');
-    const req = new NextRequest('http://localhost/api/memory/gap', {
+    const req = new NextRequest('http://localhost/api/memory/gap?workspaceId=ws-123', {
       method: 'POST',
       body: JSON.stringify({ details: 'Need database access', metadata: { priority: 5 } }),
     });
@@ -43,7 +43,12 @@ describe('Memory Gap API Route', () => {
     expect(res.status).toBe(200);
     expect(data.success).toBe(true);
     expect(data.gapId).toBeDefined();
-    expect(mockSetGap).toHaveBeenCalled();
+    expect(mockSetGap).toHaveBeenCalledWith(
+      expect.any(String),
+      'Need database access',
+      expect.objectContaining({ priority: 5 }),
+      { workspaceId: 'ws-123' }
+    );
   });
 
   it('returns 500 on memory error', async () => {

@@ -46,7 +46,7 @@ describe('Memory Prioritize API Route', () => {
 
   it('updates metadata and returns success', async () => {
     const { POST } = await import('./route');
-    const req = new NextRequest('http://localhost/api/memory/prioritize', {
+    const req = new NextRequest('http://localhost/api/memory/prioritize?workspaceId=ws-123', {
       method: 'POST',
       body: JSON.stringify({
         userId: 'user1',
@@ -69,7 +69,7 @@ describe('Memory Prioritize API Route', () => {
         urgency: 5,
         impact: 7,
       },
-      { workspaceId: 'default' }
+      { workspaceId: 'ws-123' }
     );
   });
 
