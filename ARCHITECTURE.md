@@ -752,12 +752,12 @@ This diagram visualizes the interaction between the **Metabolism (Silo 7)**, **S
                |                                                 |
         (2) Trust Penalty/Success                                |
                |                                                 |
-               v
        [ Silo 3: The Shield ]                                    |
                |                                                 |
         (3) Mandatory Scoping Check (Perspective G Hardening)    |
                |-- Identity Verification (Blacklist SYSTEM)      |
                |-- Dashboard API Integrity (Workspace Partitioning)|
+               |-- Safety Policy Partitioning (WS#<id>#<tier>)   |
                |-- Permission-Gated Routes (AGENT_VIEW/DELETE)   |
                |                                                 |
                v
@@ -771,6 +771,7 @@ This diagram visualizes the interaction between the **Metabolism (Silo 7)**, **S
         (5) Autonomous Repairs (Regenerative Metabolism)
                |-- Prune Stale Overrides (WorkspaceTypeIndex Scoped)
                |-- Cull Memory Bloat (WorkspaceTypeIndex Scoped)
+               |-- In-memory Cache Culling (Anti-Pattern 22)     |
                |-- Atomic DLQ Recovery (FilterExpression Scoped)
                |-- Feature Flag Pruning (WS Scoped)
                |-- Reclaim S3 Staging (WS Prefix Scoped)

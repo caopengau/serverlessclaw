@@ -22,6 +22,12 @@ export async function executeRepairs(
   try {
     const pruned = await AgentRegistry.pruneLowUtilizationTools(workspaceId, 30);
     if (pruned > 0) {
+      try {
+        const { EVOLUTION_METRICS } = await import('../../metrics/evolution-metrics');
+        EVOLUTION_METRICS.recordMetabolismRepair('tool_pruning', pruned, scope);
+      } catch {
+        /* ignore */
+      }
       repairFindings.push({
         silo: 'Metabolism',
         expected: 'Lean agent tool registry',
@@ -39,6 +45,13 @@ export async function executeRepairs(
     const archived = await archiveStaleGaps(memory, undefined, workspaceId);
     const culled = await cullResolvedGaps(memory, undefined, workspaceId);
     if (archived > 0 || culled > 0) {
+      try {
+        const { EVOLUTION_METRICS } = await import('../../metrics/evolution-metrics');
+        if (archived > 0) EVOLUTION_METRICS.recordMetabolismRepair('gap_archival', archived, scope);
+        if (culled > 0) EVOLUTION_METRICS.recordMetabolismRepair('gap_culling', culled, scope);
+      } catch {
+        /* ignore */
+      }
       repairFindings.push({
         silo: 'Metabolism',
         expected: 'Clean knowledge state',
@@ -55,6 +68,12 @@ export async function executeRepairs(
   try {
     const prunedFlags = await FeatureFlags.pruneStaleFlags(30, workspaceId);
     if (prunedFlags > 0) {
+      try {
+        const { EVOLUTION_METRICS } = await import('../../metrics/evolution-metrics');
+        EVOLUTION_METRICS.recordMetabolismRepair('flag_pruning', prunedFlags, scope);
+      } catch {
+        /* ignore */
+      }
       repairFindings.push({
         silo: 'Metabolism',
         expected: 'Clean feature flag state',
@@ -123,6 +142,12 @@ export async function executeRepairs(
   try {
     const reclaimed = await pruneStagingBucket({ workspaceId });
     if (reclaimed > 0) {
+      try {
+        const { EVOLUTION_METRICS } = await import('../../metrics/evolution-metrics');
+        EVOLUTION_METRICS.recordMetabolismRepair('s3_reclamation', reclaimed, scope);
+      } catch {
+        /* ignore */
+      }
       repairFindings.push({
         silo: 'Metabolism',
         expected: 'Lean S3 staging storage',

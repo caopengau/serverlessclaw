@@ -12,6 +12,10 @@ const CRITICAL_METRICS = new Set([
   'EventHandlerDuration',
   'EventHandlerErrorDuration',
   'StorageError',
+  'EvolutionTrustDelta',
+  'EvolutionTrustScore',
+  'EvolutionFailedPlanCount',
+  'MetabolismRepairCount',
 ]);
 
 /**
@@ -23,10 +27,14 @@ export async function persistToDynamoDB(metrics: MetricDatum[]): Promise<void> {
 
   try {
     const { PutCommand } = await import('@aws-sdk/lib-dynamodb');
-    const { getDocClient, getMemoryTableName } = await import('../utils/ddb-client');
-    const docClient = getDocClient();
+    const ddbUtils = await import('../utils/ddb-client').catch(() => ({}) as any);
 
-    const tableName = getMemoryTableName();
+    if (!ddbUtils.getDocClient || !ddbUtils.getMemoryTableName) {
+      return; // Silent skip if environment/mocks are incomplete
+    }
+
+    const docClient = ddbUtils.getDocClient();
+    const tableName = ddbUtils.getMemoryTableName();
     if (!tableName) return;
 
     const now = Date.now();

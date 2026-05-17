@@ -68,6 +68,9 @@ export class SafetyConfigManager {
       }
 
       // 3. Update Cache
+      if (this.caches.size >= 1000) {
+        this.caches.clear();
+      }
       this.caches.set(cacheKey, {
         value: policies,
         expiresAt: Date.now() + this.CACHE_TTL_MS,
