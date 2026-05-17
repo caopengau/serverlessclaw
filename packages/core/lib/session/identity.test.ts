@@ -9,6 +9,7 @@ vi.mock('../logger', () => import('../../__mocks__/logger'));
 vi.mock('../constants', () => ({
   MEMORY_KEYS: {
     WORKSPACE_PREFIX: 'WORKSPACE#',
+    ORG_PREFIX: 'ORG#',
   },
   TIME: {
     MS_PER_HOUR: 3600000,
@@ -30,12 +31,49 @@ describe('IdentityManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    state = new Map();
+    const rawState = new Map();
+    state = {
+      get: (key: string) => {
+        if (rawState.has(key)) return rawState.get(key);
+        if (key.includes('#') && !isNaN(Number(key.split('#').pop()))) {
+          const pkOnly = key.split('#').slice(0, -1).join('#');
+          if (rawState.has(pkOnly)) return rawState.get(pkOnly);
+        }
+        const withZero = `${key}#0`;
+        if (rawState.has(withZero)) return rawState.get(withZero);
+        const entries = Array.from(rawState.entries());
+        const match = entries.find(([k]) => k.startsWith(`${key}#`));
+        return match ? match[1] : undefined;
+      },
+      set: (key: string, value: any) => {
+        const k = key.includes('#') && !isNaN(Number(key.split('#').pop())) ? key : `${key}#0`;
+        rawState.set(k, value);
+      },
+      has: (key: string) => {
+        if (rawState.has(key)) return true;
+        const withZero = `${key}#0`;
+        if (rawState.has(withZero)) return true;
+        const entries = Array.from(rawState.keys());
+        return entries.some((k) => k.startsWith(`${key}#`));
+      },
+      delete: (key: string) => {
+        if (rawState.has(key)) return rawState.delete(key);
+        const withZero = `${key}#0`;
+        if (rawState.has(withZero)) return rawState.delete(withZero);
+        const keys = Array.from(rawState.keys());
+        const toDelete = keys.filter((k) => k.startsWith(`${key}#`));
+        toDelete.forEach((k) => rawState.delete(k));
+      },
+      values: () => rawState.values(),
+      clear: () => rawState.clear(),
+    } as any;
 
     mockBase = {
       queryItems: vi.fn().mockImplementation(async ({ ExpressionAttributeValues }) => {
         const pk = ExpressionAttributeValues[':pk'];
-        const item = state.get(pk);
+        const ts =
+          ExpressionAttributeValues[':zero'] !== undefined ? ExpressionAttributeValues[':zero'] : 0;
+        const item = state.get(`${pk}#${ts}`);
         return item ? [item] : [];
       }),
       queryItemsPaginated: vi
@@ -46,12 +84,7 @@ describe('IdentityManager', () => {
 
           if (IndexName === 'UserInsightIndex') {
             const pk = ExpressionAttributeValues[':pk'];
-            items = items.filter((item) => {
-              // Extract the base user ID from the user item or sessionUserId
-              const itemUserId =
-                item.sessionUserId || (item.userId && item.userId.split('#').pop());
-              return itemUserId === pk.split('#').pop();
-            });
+            items = items.filter((item) => item.userId === pk);
           }
 
           if (FilterExpression && FilterExpression.includes('sessionUserId = :uid')) {
@@ -67,10 +100,10 @@ describe('IdentityManager', () => {
           return { items, lastEvaluatedKey: null };
         }),
       putItem: vi.fn().mockImplementation(async (item) => {
-        state.set(item.userId, item);
+        state.set(`${item.userId}#${item.timestamp ?? 0}`, item);
       }),
-      deleteItem: vi.fn().mockImplementation(async ({ userId }) => {
-        state.delete(userId);
+      deleteItem: vi.fn().mockImplementation(async ({ userId, timestamp }) => {
+        state.delete(`${userId}#${timestamp ?? 0}`);
       }),
       scanByPrefix: vi.fn().mockImplementation(async (prefix) => {
         return Array.from(state.values()).filter((item) => item.userId.startsWith(prefix));
@@ -79,7 +112,8 @@ describe('IdentityManager', () => {
         send: vi.fn().mockImplementation(async (cmd) => {
           // Mock simple updates for test coverage
           const key = cmd.input.Key.userId || cmd.input.Key.key;
-          const item = state.get(key);
+          const ts = cmd.input.Key.timestamp !== undefined ? cmd.input.Key.timestamp : 0;
+          const item = state.get(`${key}#${ts}`);
 
           // Handle ConditionExpression (basic support for attribute_exists)
           if (cmd.input.ConditionExpression?.includes('attribute_exists(userId)') && !item) {
@@ -594,8 +628,11 @@ describe('IdentityManager', () => {
     });
 
     it('should get all sessions for a user', async () => {
+      vi.useFakeTimers();
       await manager.authenticate('user-1', 'telegram');
+      vi.advanceTimersByTime(1000);
       await manager.authenticate('user-1', 'telegram');
+      vi.advanceTimersByTime(1000);
       await manager.authenticate('user-2', 'telegram');
 
       const sessions = await manager.getUserSessions('user-1');
@@ -620,6 +657,44 @@ describe('IdentityManager', () => {
 
       expect(cleaned).toBe(2);
       expect(await manager.getUserSessions('user-3')).toHaveLength(1);
+    });
+
+    it('should correctly support organization-scoped user sessions via dual-write', async () => {
+      const orgId = 'org-1';
+      const result = await manager.authenticate('org-user', 'dashboard', { orgId });
+      expect(result.success).toBe(true);
+
+      const sessionId = result.session!.sessionId;
+
+      // Verify dual-write items in mock database state
+      const sessionKey = `ORG#ORG#org-1#SESSION#${sessionId}`;
+      const userRefKey = `ORG#ORG#org-1#USER#org-user`; // timestamp will be result.session!.startTime
+
+      expect(state.has(sessionKey)).toBe(true);
+
+      // Find the user session reference in the mock state map
+      const items = Array.from(state.values());
+      const userRef = items.find(
+        (item) => item.userId === userRefKey && item.timestamp === result.session!.startTime
+      );
+      expect(userRef).toBeDefined();
+      expect(userRef?.type).toBe('SESSION');
+      expect(userRef?.sessionId).toBe(sessionId);
+
+      // Query sessions with org context
+      const sessions = await manager.getUserSessions('org-user', undefined, orgId);
+      expect(sessions).toHaveLength(1);
+      expect(sessions[0].sessionId).toBe(sessionId);
+      expect(sessions[0].userId).toBe('org-user');
+
+      // Terminate session and check cleanup of both records
+      await manager.terminateSession(sessionId, orgId);
+      expect(state.has(sessionKey)).toBe(false);
+
+      const userRefAfterDelete = Array.from(state.values()).find(
+        (item) => item.userId === userRefKey && item.timestamp === result.session!.startTime
+      );
+      expect(userRefAfterDelete).toBeUndefined();
     });
   });
 

@@ -45,11 +45,34 @@ export class SessionOps extends IdentityBase {
    */
   async saveSession(session: Session, orgId?: string): Promise<void> {
     try {
+      // 1. Save session item by sessionId (for direct O(1) retrieval)
       await this.base.putItem(
         {
           userId: this.getSessionKey(session.sessionId, orgId),
           timestamp: 0,
           type: 'SESSION',
+          sessionUserId: session.userId,
+          workspaceId: session.workspaceId,
+          startTime: session.startTime,
+          lastActivityTime: session.lastActivityTime,
+          expiresAt: session.expiresAt,
+          metadata: session.metadata,
+          ttl: Math.floor(session.expiresAt / 1000),
+        },
+        {
+          ConditionExpression: 'attribute_not_exists(userId) OR #tp = :type',
+          ExpressionAttributeNames: { '#tp': 'type' },
+          ExpressionAttributeValues: { ':type': 'SESSION' },
+        }
+      );
+
+      // 2. Dual-write: save session reference under user ID partition (for UserInsightIndex GSI lookup)
+      await this.base.putItem(
+        {
+          userId: this.getUserKey(session.userId, orgId),
+          timestamp: session.startTime, // unique range key per session
+          type: 'SESSION',
+          sessionId: session.sessionId,
           sessionUserId: session.userId,
           workspaceId: session.workspaceId,
           startTime: session.startTime,
@@ -98,11 +121,20 @@ export class SessionOps extends IdentityBase {
    */
   async terminateSession(sessionId: string, orgId?: string): Promise<void> {
     try {
-      await this.base.deleteItem({
-        userId: this.getSessionKey(sessionId, orgId),
-        timestamp: 0,
-      });
-      logger.info(`Session terminated: ${sessionId}`);
+      const session = await this.getSession(sessionId, orgId);
+      if (session) {
+        // Delete primary session item
+        await this.base.deleteItem({
+          userId: this.getSessionKey(sessionId, orgId),
+          timestamp: 0,
+        });
+        // Delete user session reference item
+        await this.base.deleteItem({
+          userId: this.getUserKey(session.userId, orgId),
+          timestamp: session.startTime,
+        });
+        logger.info(`Session terminated: ${sessionId}`);
+      }
     } catch (error) {
       logger.error(`Failed to terminate session ${sessionId}:`, error);
     }
@@ -111,7 +143,7 @@ export class SessionOps extends IdentityBase {
   /**
    * Get all active sessions for a user.
    */
-  async getUserSessions(userId: string, workspaceId?: string): Promise<Session[]> {
+  async getUserSessions(userId: string, workspaceId?: string, orgId?: string): Promise<Session[]> {
     try {
       // Optimized: Use UserInsightIndex (userId + type) for efficient lookup
       // instead of scanning all sessions in a workspace (Anti-Pattern 19).
@@ -122,14 +154,14 @@ export class SessionOps extends IdentityBase {
           '#tp': 'type',
         },
         ExpressionAttributeValues: {
-          ':pk': this.getUserKey(userId), // Global user key
+          ':pk': this.getUserKey(userId, orgId), // Organization-scoped user key
           ':type': 'SESSION',
         },
         FilterExpression: workspaceId ? 'workspaceId = :wsId' : undefined,
         ...(workspaceId
           ? {
               ExpressionAttributeValues: {
-                ':pk': this.getUserKey(userId),
+                ':pk': this.getUserKey(userId, orgId),
                 ':type': 'SESSION',
                 ':wsId': workspaceId,
               },
@@ -140,7 +172,7 @@ export class SessionOps extends IdentityBase {
       });
 
       return result.items.map((item) => ({
-        sessionId: (item.userId as string).split('#').pop()!,
+        sessionId: (item.sessionId as string) || (item.userId as string).split('#').pop()!,
         userId: item.sessionUserId as string,
         workspaceId: item.workspaceId as string | undefined,
         startTime: item.startTime as number,

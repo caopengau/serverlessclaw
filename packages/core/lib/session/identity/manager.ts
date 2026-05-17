@@ -281,8 +281,8 @@ export class IdentityManager extends IdentityBase {
     return this.sessionOps.terminateSession(sessionId, orgId);
   }
 
-  async getUserSessions(userId: string): Promise<Session[]> {
-    return this.sessionOps.getUserSessions(userId);
+  async getUserSessions(userId: string, workspaceId?: string, orgId?: string): Promise<Session[]> {
+    return this.sessionOps.getUserSessions(userId, workspaceId, orgId);
   }
 
   async updateUserRole(
