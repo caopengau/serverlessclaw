@@ -26,8 +26,8 @@ export interface ToolPolicy {
   constraints?: {
     commandBlacklist?: string[]; // Denied terminal command substrings
     allowedDirectories?: string[]; // Whitelisted file write paths
-    maxTransactionUSD?: number; // Maximum transaction value
     allowedHosts?: string[]; // Allowed network destinations
+    custom?: Record<string, unknown>; // Custom extensible constraints for domain-specific spokes
   };
   updatedAt: number;
 }
