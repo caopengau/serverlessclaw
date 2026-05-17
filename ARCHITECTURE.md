@@ -466,6 +466,46 @@ The `/security` page of the dashboard exposes the human access roster to adminis
 
 ---
 
+### 🧬 Swarm Governance & Co-Management Protocol (SGCP)
+
+To allow safe and structured self-evolution, Serverless Claw transitions from hardcoded topologies and system prompts to the **Dual-Gate Co-Management Protocol (SGCP)**. This model empowers humans and designated agent assistants to collaboratively inspect, optimize, and hot-swap swarm configurations in real-time.
+
+1. **Dynamic Topologies (Pillar 1)**: Directed Acyclic Graphs (DAGs) representing agent collaboration networks are stored as dynamic configurations in DynamoDB. Agents can rewrite topologies to bypass bottlenecks or provision critical nodes, staging changes as proposals.
+2. **Dynamic Prompt Fragments (Pillar 4)**: Cognitive instruction templates reside in a hot-reloading prompt fragment registry. The system compiles prompt layouts dynamically using the `AgentAssembler`, allowing the swarm to self-tune its parameters under human authorization.
+3. **Dynamic Trust Scales (Pillar 5)**: Manages reputational scores, cost limits, and anomaly thresholds per agent, dynamically downgrading autonomy (triggering human intervention) if failure rates spike.
+
+#### Co-Management Governance & Proposal Flow
+
+```ascii
+              [ Trace Execution Data / SLA Telemetry ]
+                                |
+                                v
+               [ Swarm Co-Manager Governance Agent ]
+                                |
+                                v
+             [ Compile SwarmProposal Configuration ]
+        ( ProposalType: TOPOLOGY | PROMPT | TRUST_SCALES )
+                                |
+                                v
+           [ Staged in DynamoDB / ConfigTable Registry ]
+                                |
+                                v
+          [ Real-time Notification in Governance UI ]
+                                |
+                                v
+                  [ Human Commander Dashboard ]
+                                |
+                  +-------------+-------------+
+                  |                           |
+            [ Approved ]                 [ Rejected ]
+                  |                           |
+                  v                           v
+     [ Dynamic Cache Invalidation ]     [ Feedback Logged ]
+    ( Hot-swap Live Configuration )
+```
+
+---
+
 ## ⚙️ Unified Configuration System
 
 To satisfy **Principle 5 (Low Latency)** and **Principle 10 (Lean Evolution)**, Serverless Claw implements a unified, hot-swappable configuration layer:
