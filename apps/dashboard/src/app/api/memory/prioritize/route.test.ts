@@ -61,11 +61,16 @@ describe('Memory Prioritize API Route', () => {
 
     expect(res.status).toBe(200);
     expect(data.success).toBe(true);
-    expect(mockUpdateInsightMetadata).toHaveBeenCalledWith('user1', 12345, {
-      priority: 8,
-      urgency: 5,
-      impact: 7,
-    });
+    expect(mockUpdateInsightMetadata).toHaveBeenCalledWith(
+      'user1',
+      12345,
+      {
+        priority: 8,
+        urgency: 5,
+        impact: 7,
+      },
+      { workspaceId: 'default' }
+    );
   });
 
   it('returns 400 if priority is not a number', async () => {

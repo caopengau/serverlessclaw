@@ -27,7 +27,8 @@ export interface ToolPolicy {
     commandBlacklist?: string[]; // Denied terminal command substrings
     allowedDirectories?: string[]; // Whitelisted file write paths
     allowedHosts?: string[]; // Allowed network destinations
-    custom?: Record<string, unknown>; // Custom extensible constraints for domain-specific spokes
+    /** Extensible payload constraints for product-specific spoke validation overlays. */
+    custom?: Record<string, unknown>;
   };
   updatedAt: number;
 }

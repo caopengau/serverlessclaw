@@ -41,9 +41,10 @@ describe('Dashboard API: /api/memory/status', () => {
   });
 
   it('should return 400 if gapId or status is missing', async () => {
-    const req = {
-      json: vi.fn().mockResolvedValue({}),
-    } as unknown as NextRequest;
+    const req = new NextRequest('http://localhost/api/memory/status', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
 
     const res = await POST(req);
     const data = await res.json();
@@ -53,9 +54,10 @@ describe('Dashboard API: /api/memory/status', () => {
   });
 
   it('should return 400 if status is invalid', async () => {
-    const req = {
-      json: vi.fn().mockResolvedValue({ gapId: 'GAP#123', status: 'INVALID_STATUS' }),
-    } as unknown as NextRequest;
+    const req = new NextRequest('http://localhost/api/memory/status', {
+      method: 'POST',
+      body: JSON.stringify({ gapId: 'GAP#123', status: 'INVALID_STATUS' }),
+    });
 
     const res = await POST(req);
     const data = await res.json();
@@ -66,9 +68,10 @@ describe('Dashboard API: /api/memory/status', () => {
   });
 
   it('should return 200 and call updateGapStatus if request is valid', async () => {
-    const req = {
-      json: vi.fn().mockResolvedValue({ gapId: 'GAP#123', status: 'PLANNED' }),
-    } as unknown as NextRequest;
+    const req = new NextRequest('http://localhost/api/memory/status', {
+      method: 'POST',
+      body: JSON.stringify({ gapId: 'GAP#123', status: 'PLANNED' }),
+    });
 
     const res = await POST(req);
     const data = await res.json();
