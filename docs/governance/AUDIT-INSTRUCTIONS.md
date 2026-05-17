@@ -69,19 +69,16 @@ Include:
 - Severity (P0/P1/P2/P3)
 - Related anti-patterns (if any)
 
-## 4. Priority Areas (Based on Coverage Matrix)
+## 4. Identifying Priority Areas (Based on Coverage Matrix)
 
-All cross-silo perspectives (A through G) have now been successfully audited at least once. Refer to [AUDIT-COVERAGE.md](./AUDIT-COVERAGE.md) for the full history of reports.
+Audits should target areas that have either never been audited or have the lowest audit counts. To identify priority areas:
 
-When choosing areas for new audits, prioritize:
-- **Perspective G (Dashboard Integrity)**: Verify that no cross-tenant leaks occur when adding new workspace API endpoints or mutator operations.
-- **Perspective F (Metabolic Loop)**: Ensure atomic tool pruning and cache invalidation are working under high concurrency without data starvation.
-- **Enterprise Features**: Validate new multi-human presence layers (`presence` signals in MQTT) and trust-driven permission escalations.
-
-High-risk areas to continuously monitor for regressions:
-- **The Shield** (Silo 3) - Safety rule bypasses and rate limit fail-open edge cases.
-- **The Scales** (Silo 6) - Race conditions in TrustScore updates under heavy parallel execution.
-- **The Spine** (Silo 1) - Monotonic recursion tracker bypasses or trace identification gaps.
+1. **Check Coverage Matrix**: Open [AUDIT-COVERAGE.md](./AUDIT-COVERAGE.md) and check the **Silo Coverage** and **Cross-Silo Perspectives Coverage** tables.
+2. **Prioritize Gaps**: Any perspective with the lowest usage count or the oldest "Last Tested" date in the coverage matrix should be prioritized.
+3. **High-Risk Silos**: The following components continuously warrant attention due to their safety-critical and high-concurrency nature:
+   - **The Shield** (Silo 3) - Safety rule logic and rate limit boundaries.
+   - **The Scales** (Silo 6) - Trust score calculations and parallel race conditions.
+   - **The Spine** (Silo 1) - Monotonic recursion counters and EventBridge routing.
 
 ## 5. Quick Reference Commands
 

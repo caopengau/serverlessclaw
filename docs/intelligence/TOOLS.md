@@ -94,7 +94,7 @@ Serverless Claw has evolved from static tools to a **Dynamic Skill Architecture*
 
 ### 1. Custom Skills (Internal)
 
-Tools written specifically for the ServerlessClaw environment (e.g., `triggerDeployment`). These run within the agent's AWS Lambda execution context and are defined in `core/tools/`.
+Tools written specifically for the ServerlessClaw environment (e.g., `triggerDeployment`). These run within the agent's AWS Lambda execution context and are defined in `packages/core/tools/`.
 
 ### 2. MCP Skills (Unified Multiplexer Model)
 
@@ -155,8 +155,8 @@ We have evolved from a static tool registry to a **dynamic Skill-Based Architect
 
 ### Adding a New Skill
 
-1. Implement the tool in `core/tools/`.
-2. Add the definition to `core/tools/definitions.ts`.
+1. Implement the tool in `packages/core/tools/`.
+2. Add the definition to `packages/core/tools/definitions.ts`.
 3. It is now automatically discoverable by all agents via `discoverSkills`.
 
 ---
@@ -165,10 +165,10 @@ We have evolved from a static tool registry to a **dynamic Skill-Based Architect
 
 The tool registry has been reorganized into four primary **Action Domains** to improve maintainability and token efficiency:
 
-1. **Knowledge Domain** (`core/tools/knowledge/`): Registry, memory, context, and MCP/Skill management.
-2. **Collaboration Domain** (`core/tools/collaboration/`): Workspace management, sessions, and agent-to-human messaging.
-3. **Infra Domain** (`core/tools/infra/`): Deployment, scheduling, rollbacks, and system topology.
-4. **System Domain** (`core/tools/system/`): Shell execution, git sync, health probes, and runtime configuration.
+1. **Knowledge Domain** (`packages/core/tools/knowledge/`): Registry, memory, context, and MCP/Skill management.
+2. **Collaboration Domain** (`packages/core/tools/collaboration/`): Workspace management, sessions, and agent-to-human messaging.
+3. **Infra Domain** (`packages/core/tools/infra/`): Deployment, scheduling, rollbacks, and system topology.
+4. **System Domain** (`packages/core/tools/system/`): Shell execution, git sync, health probes, and runtime configuration.
 
 ### 🛠️ Lazy Registry Initialization (New in April 2026)
 
@@ -182,11 +182,11 @@ To solve the **Context Fragmentation** and **Black Hole** issues (where files pu
 
 ## 🏗️ Adding a New Tool
 
-1. **Identify the Domain**: Choose the appropriate subdirectory in `core/tools/`.
+1. **Identify the Domain**: Choose the appropriate subdirectory in `packages/core/tools/`.
 2. **Define the Schema**: Add the tool's `JsonSchema` to the domain's `schema.ts`. Ensure `additionalProperties: false` is set.
 3. **Implement the Logic**: Create a new `.ts` file or add to an existing one in that domain.
 4. **Register in Domain Index**: Export the new tool from the domain's `index.ts`.
-5. **Update Main Registry**: The main `core/tools/index.ts` will automatically pick up the new tool if the domain index is updated.
+5. **Update Main Registry**: The main `packages/core/tools/index.ts` will automatically pick up the new tool if the domain index is updated.
 6. **Verify**: Run `make check` and `make test`.
 
 ### Dynamic Scoping (Evolution Sector)
@@ -202,7 +202,7 @@ Agents no longer receive all tools by default. They call `getAgentTools(agentId)
 
 Definitions are now strictly typed using a unified `JsonSchema` interface to ensure compatibility across providers.
 
-- **Interface**: `IToolDefinition` and `JsonSchema` in [`core/lib/types/agent/index.ts`](../../core/lib/types/agent/index.ts)
+- **Interface**: `IToolDefinition` and `JsonSchema` in [`packages/core/lib/types/agent/index.ts`](../../packages/core/lib/types/agent/index.ts)
 
 ### AI-Native Coding Standards (April 2026 Refresh)
 
@@ -219,7 +219,7 @@ To maximize semantic transparency for both humans and AI agents, follow these ru
 The system enforces protection via a centralized `isProtectedPath` utility. All filesystem-related tools (both local and MCP-driven like `filesystem_write_file`) block writes to these files to prevent accidental system destruction:
 
 ```
-core/**
+packages/core/**
 infra/**
 docs/governance/**
 sst.config.ts
@@ -341,7 +341,7 @@ dispatchTask (coder) → filesystem_write_file → [human approves if protected]
 
 ### Merger Payload Safety Cap
 
-`core/agents/merger.ts` now rejects oversized inline patch payloads before sending to the LLM.
+`packages/core/agents/merger.ts` now rejects oversized inline patch payloads before sending to the LLM.
 
 - Limit: 100 KB total serialized patch payload.
 - Behavior on overflow: emits a failed task result immediately with remediation guidance.
@@ -363,6 +363,6 @@ dispatchTask (coder) → filesystem_write_file → [human approves if protected]
 
 ### Tool Resolution Logging
 
-`getAgentTools` in `core/tools/registry-utils.ts` now uses the structured logger (`logger.info`) for tool resolution steps, replacing `console.log` and improving CloudWatch queryability.
+`getAgentTools` in `packages/core/tools/registry-utils.ts` now uses the structured logger (`logger.info`) for tool resolution steps, replacing `console.log` and improving CloudWatch queryability.
 
 ---

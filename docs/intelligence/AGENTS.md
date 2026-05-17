@@ -12,16 +12,16 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 
 | Agent                    | Host (Tier)  | Responsibilities                                                                                                                                                        |
 | :----------------------- | :----------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **SuperClaw**            | `Standard`   | **Nimble Orchestrator**. See [`core/agents/superclaw.ts`](../../core/agents/superclaw.ts) and [`constants.ts`](../../core/agents/superclaw/constants.ts).               |
-| **Coder Agent**          | `High-Power` | Writes code, validates deployments. See [`core/agents/coder.ts`](../../core/agents/coder.ts).                                                                           |
-| **Researcher**           | `High-Power` | Deep exploration. See [RESEARCH.md](./RESEARCH.md) & [`core/agents/researcher.ts`](../../core/agents/researcher.ts).                                                    |
-| **Strategic Planner**    | `High-Power` | **Technical Auditor**. See [`core/agents/strategic-planner.ts`](../../core/agents/strategic-planner.ts).                                                                |
-| **QA Auditor**           | `Standard`   | Verifies changes. See [`core/agents/qa.ts`](../../core/agents/qa.ts).                                                                                                   |
-| **Facilitator**          | `Standard`   | **Session Moderator**. See [`core/agents/facilitator.ts`](../../core/agents/facilitator.ts).                                                                            |
-| **Merger**               | `Standard`   | **Code Integration**. See [`core/agents/merger.ts`](../../core/agents/merger.ts).                                                                                       |
-| **Critic**               | `Standard`   | **Logic Oversight**. See [`core/agents/critic.ts`](../../core/agents/critic.ts).                                                                                        |
-| **Cognition Reflector**  | `Light`      | **Knowledge Custodian**. See [`core/agents/cognition-reflector.ts`](../../core/agents/cognition-reflector.ts).                                                          |
-| **Mission Orchestrator** | `Core`       | **Durable Planning**. Manages high-level intents and multi-step missions. See [`core/lib/agent/mission-orchestrator.ts`](../../core/lib/agent/mission-orchestrator.ts). |
+| **SuperClaw**            | `Standard`   | **Nimble Orchestrator**. See [`packages/core/agents/superclaw.ts`](../../packages/core/agents/superclaw.ts) and [`constants.ts`](../../packages/core/agents/superclaw/constants.ts).               |
+| **Coder Agent**          | `High-Power` | Writes code, validates deployments. See [`packages/core/agents/coder.ts`](../../packages/core/agents/coder.ts).                                                                           |
+| **Researcher**           | `High-Power` | Deep exploration. See [RESEARCH.md](./RESEARCH.md) & [`packages/core/agents/researcher.ts`](../../packages/core/agents/researcher.ts).                                                    |
+| **Strategic Planner**    | `High-Power` | **Technical Auditor**. See [`packages/core/agents/strategic-planner.ts`](../../packages/core/agents/strategic-planner.ts).                                                                |
+| **QA Auditor**           | `Standard`   | Verifies changes. See [`packages/core/agents/qa.ts`](../../packages/core/agents/qa.ts).                                                                                                   |
+| **Facilitator**          | `Standard`   | **Session Moderator**. See [`packages/core/agents/facilitator.ts`](../../packages/core/agents/facilitator.ts).                                                                            |
+| **Merger**               | `Standard`   | **Code Integration**. See [`packages/core/agents/merger.ts`](../../packages/core/agents/merger.ts).                                                                                       |
+| **Critic**               | `Standard`   | **Logic Oversight**. See [`packages/core/agents/critic.ts`](../../packages/core/agents/critic.ts).                                                                                        |
+| **Cognition Reflector**  | `Light`      | **Knowledge Custodian**. See [`packages/core/agents/cognition-reflector.ts`](../../packages/core/agents/cognition-reflector.ts).                                                          |
+| **Mission Orchestrator** | `Core`       | **Durable Planning**. Manages high-level intents and multi-step missions. See [`packages/core/lib/agent/mission-orchestrator.ts`](../../packages/core/lib/agent/mission-orchestrator.ts). |
 
 ### 2. System Handlers (Logic-Powered)
 
@@ -36,7 +36,7 @@ We distinguish between **Autonomous Agents** (LLM-powered decision-makers) and *
 
 ## 🦾 The Backbone Registry
 
-The system identity is defined in `core/lib/backbone.ts`. This centralized registry acts as the "genetic code" of the stack.
+The system identity is defined in `packages/core/lib/backbone.ts`. Centralized registry acts as the "genetic code" of the stack.
 
 ### Topology vs. Permissions
 
@@ -52,8 +52,8 @@ The system identity is defined in `core/lib/backbone.ts`. This centralized regis
 
 To evolve the system with a new specialized node:
 
-1.  **Implement**: Create `core/agents/<name>.ts` (or `core/agents/<name>/index.ts`) with agent logic and tools. Modular constants should go in `core/agents/<name>/constants.ts`.
-2.  **Register Identity**: Add the agent to `BACKBONE_REGISTRY` in `core/lib/backbone.ts`.
+1.  **Implement**: Create `packages/core/agents/<name>.ts` (or `packages/core/agents/<name>/index.ts`) with agent logic and tools. Modular constants should go in `packages/core/agents/<name>/constants.ts`.
+2.  **Register Identity**: Add the agent to `BACKBONE_REGISTRY` in `packages/core/lib/backbone.ts`.
 3.  **Link Infra**: In `infra/agents.ts`, create the Lambda and link necessary resources.
 4.  **Subscribe**: Ensure the agent is subscribed to its task type in the EventBus.
 5.  **Cognitive Resilience**: Autonomous agents will automatically receive the **Environmental Constraints** feed (from `SystemContext`) via the `AgentAssembler`. Ensure your agent logic can reason about available `package.json` dependencies.
@@ -93,10 +93,10 @@ Agents can transition from a private 1:1 session to a multi-agent **Collaboratio
 
 To ensure coordination doesn't break, follow a **Contract-First** pattern:
 
-1.  **Define Schema**: Update `core/lib/schema/events.ts` with any new event types.
+1.  **Define Schema**: Update `packages/core/lib/schema/events.ts` with any new event types.
 2.  **Standard Defaults**: Leverage `BASE_EVENT_SCHEMA` for shared metadata.
 3.  **Interactive Signaling**: Ensure the agent supports `APPROVE_TOOL_CALL`, `REJECT_TOOL_CALL`, and `CLARIFY_TOOL_CALL` signals via its executor.
-4.  **Contract Test**: Add a test case to `core/tests/contract.test.ts` and verify signal interception in `core/lib/agent/executor.test.ts`.
+4.  **Contract Test**: Add a test case to `packages/core/tests/contract.test.ts` and verify signal interception in `packages/core/lib/agent/executor.test.ts`.
 
 ---
 
