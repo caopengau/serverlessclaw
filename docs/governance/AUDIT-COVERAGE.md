@@ -26,7 +26,7 @@ Last Updated: 2026-05-14
 
 | Perspective | Name                | Description                 | Usage Count | Last Tested |
 | :---------- | :------------------ | :-------------------------- | :---------- | :---------- |
-| **A**       | Life of a Message   | Spine → Brain → Eye         | 12          | 2026-05-12  |
+| **A**       | Life of a Message   | Spine → Brain → Eye         | 13          | 2026-05-17  |
 | **B**       | Evolution Cycle     | Hand → Shield → Scales      | 13          | 2026-05-14  |
 | **C**       | Identity Journey    | Brain → Spine → Shield      | 12          | 2026-05-12  |
 | **D**       | Trust Loop          | Eye → Scales → Spine        | 16          | 2026-05-14  |
@@ -40,6 +40,7 @@ Last Updated: 2026-05-14
 
 | Date       | Report                                                  | Silos                                | Perspective | Status/Summary                                                                                                         |
 | :--------- | :------------------------------------------------------ | :----------------------------------- | :---------- | :--------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-17 | `reports/audit-2026-05-17-life-of-a-message.md`        | Spine, Brain, Eye                    | A           | FIXED: P1 Millisecond Collision Overwrites in DLQ (AP-12), P1 In-Memory Filtering in Insights (AP-19).                 |
 | 2026-05-17 | `reports/audit-2026-05-17-metabolic-loop.md`        | Metabolism, Scales, Spine            | F           | FIXED: P1 Non-idempotent gap culling/flag pruning (AP-16), P2 Telemetry blindness in gap archival (AP-22).             |
 | 2026-05-17 | `reports/audit-2026-05-17-dashboard-api-safety.md`      | Brain, Metabolism, Eye               | G           | FIXED: P1 Tenant isolation in 6 Dashboard APIs (Anti-Patterns 14, 19, 22) during memory and metabolism operations.     |
 | 2026-05-17 | `reports/audit-2026-05-17-recovery-path.md`        | Shield, Spine, Brain                 | E           | FIXED: P1 Type Mismatch in Lock Cleanup, P1 In-memory filtering in Health Check. Standardized Recovery Logs.         |

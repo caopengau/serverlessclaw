@@ -129,8 +129,8 @@ describe('Memory Isolation Safeguards', () => {
       expect(input.IndexName).toBe('WorkspaceTypeIndex');
       expect(input.KeyConditionExpression).toContain('workspaceId = :wsId');
       expect(input.ExpressionAttributeValues?.[':wsId']).toBe('WS1');
-      // No FilterExpression needed for isolation when using WorkspaceTypeIndex
-      expect(input.FilterExpression).toBeUndefined();
+      // FilterExpression is used for category filtering, but isolation is handled by KeyConditionExpression
+      expect(input.FilterExpression).toBe('metadata.category = :category');
     });
 
     it('should fall back to TypeTimestampIndex + FilterExpression when no workspaceId is present', async () => {

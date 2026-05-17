@@ -91,7 +91,7 @@ describe('DynamoMemory Pagination & Search', () => {
 
       const calls = ddbMock.commandCalls(QueryCommand);
 
-      expect(result.items).toHaveLength(1);
+      expect(result.items).toHaveLength(2);
       expect(result.lastEvaluatedKey).toBeUndefined();
 
       expect(calls[0].args[0].input).toMatchObject({
@@ -103,8 +103,10 @@ describe('DynamoMemory Pagination & Search', () => {
           ':query': 'tool X',
         },
         FilterExpression: expect.stringContaining('attribute_not_exists(workspaceId)'),
-        Limit: 10,
       });
+      // We expect the FilterExpression to contain both the content search and the category
+      expect(calls[0].args[0].input.FilterExpression).toContain('metadata.category = :category');
+      expect(calls[0].args[0].input.FilterExpression).toContain('contains(content, :query)');
     });
 
     it('should handle empty query by returning all items for a user', async () => {

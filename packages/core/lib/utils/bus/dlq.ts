@@ -33,28 +33,45 @@ export async function storeInDLQ(
       ? `${scopePrefix}${DLQ_PREFIX}#${idempotencyKey}`
       : `${scopePrefix}${DLQ_PREFIX}#${now}#${type.slice(0, 20)}`;
 
-    await getDb().send(
-      new PutCommand({
-        TableName: tableName,
-        Item: {
-          userId: dlqKey,
-          timestamp: now,
-          type: DLQ_TYPE,
-          source,
-          detailType: type,
-          detail: JSON.stringify(detail),
-          retryCount: options.retryCount,
-          maxRetries: options.maxRetries,
-          lastError: options.lastError,
-          errorCategory: options.errorCategory ?? ErrorCategory.UNKNOWN,
-          priority: options.priority,
-          correlationId: options.correlationId,
-          createdAt: now,
-          expiresAt,
-          workspaceId,
-        },
-      })
-    );
+    let attempt = 0;
+    while (attempt < 3) {
+      try {
+        await getDb().send(
+          new PutCommand({
+            TableName: tableName,
+            Item: {
+              userId: dlqKey,
+              timestamp: now + attempt,
+              type: DLQ_TYPE,
+              source,
+              detailType: type,
+              detail: JSON.stringify(detail),
+              retryCount: options.retryCount,
+              maxRetries: options.maxRetries,
+              lastError: options.lastError,
+              errorCategory: options.errorCategory ?? ErrorCategory.UNKNOWN,
+              priority: options.priority,
+              correlationId: options.correlationId,
+              createdAt: now,
+              expiresAt,
+              workspaceId,
+            },
+            ...(idempotencyKey ? {} : { ConditionExpression: 'attribute_not_exists(userId)' }),
+          })
+        );
+        break; // Success
+      } catch (dlqError: any) {
+        if (!idempotencyKey && dlqError.name === 'ConditionalCheckFailedException') {
+          attempt++;
+          if (attempt >= 3) {
+            logger.error('Failed to store event in DLQ after 3 collision retries', dlqError);
+            return;
+          }
+        } else {
+          throw dlqError;
+        }
+      }
+    }
 
     logger.warn(`Event stored in DLQ: ${source}/${type} | WS: ${workspaceId || 'GLOBAL'}`);
   } catch (dlqError) {

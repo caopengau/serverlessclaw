@@ -116,6 +116,14 @@ export async function searchInsights(
     (params.ExpressionAttributeValues as Record<string, unknown>)[':query'] = resolvedQuery;
   }
 
+  if (resolvedCategory) {
+    const catExpr = 'metadata.category = :category';
+    params.FilterExpression = params.FilterExpression
+      ? `(${params.FilterExpression as string}) AND (${catExpr})`
+      : catExpr;
+    (params.ExpressionAttributeValues as Record<string, unknown>)[':category'] = resolvedCategory;
+  }
+
   if (resolvedLimit) params.Limit = resolvedLimit;
   if (lastEvaluatedKey) params.ExclusiveStartKey = lastEvaluatedKey;
 
@@ -184,10 +192,6 @@ export async function searchInsights(
     filtered = items.filter((item) => searchTags.some((t) => (item.tags || []).includes(t)));
   }
 
-  if (resolvedCategory) {
-    filtered = filtered.filter((item) => item.metadata?.category === resolvedCategory);
-  }
-
   return {
     items: filtered,
   };
@@ -206,16 +210,16 @@ export async function getLessons(
   const items = await queryByTypeAndMap(base, {
     IndexName: 'UserInsightIndex',
     KeyConditionExpression: 'userId = :pk AND #type = :type',
+    FilterExpression: 'metadata.category = :category',
     ExpressionAttributeNames: { '#type': 'type' },
     ExpressionAttributeValues: {
       ':pk': pk,
       ':type': 'MEMORY:INSIGHT',
+      ':category': InsightCategory.TACTICAL_LESSON,
     },
   });
 
-  return items
-    .filter((i) => i.metadata?.category === InsightCategory.TACTICAL_LESSON)
-    .map((i) => i.content);
+  return items.map((i) => i.content);
 }
 
 /**
@@ -231,16 +235,15 @@ export async function getGlobalLessons(
   const items = await queryByTypeAndMap(base, {
     IndexName: 'UserInsightIndex',
     KeyConditionExpression: 'userId = :pk AND #type = :type',
+    FilterExpression: 'metadata.category = :category',
     ExpressionAttributeNames: { '#type': 'type' },
     ExpressionAttributeValues: {
       ':pk': pk,
       ':type': 'MEMORY:INSIGHT',
+      ':category': InsightCategory.SYSTEM_KNOWLEDGE,
     },
     Limit: limit,
   });
 
-  return items
-    .filter((i) => i.metadata?.category === InsightCategory.SYSTEM_KNOWLEDGE)
-    .slice(0, limit)
-    .map((i) => i.content);
+  return items.slice(0, limit).map((i) => i.content);
 }
