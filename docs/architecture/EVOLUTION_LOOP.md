@@ -24,6 +24,32 @@ The **Cognitive Evolution Loop** is the core mechanism by which the Serverless C
     ----------------              ----------------------              -------------------
 ```
 
+## 🛡️ Tool Safety & Reputation Calibration Flow (Hand ↔ Shield ↔ Scales)
+
+During the execution cycle, when an agent intends to execute an action/tool, the execution is gated by the Safety Engine (Shield) and evaluated dynamically using the agent's current reputation score tracked by the Trust Manager (Scales).
+
+```text
+  [ Hand (Silo 2: Executor) ]      [ Shield (Silo 3: Safety) ]      [ Scales (Silo 6: Trust) ]
+      |                                        |                                  |
+      |--- 1. executeSingleToolCall ---------->|                                  |
+      |                                        |--- 2. evaluateAction ---------->| (Read Agent Config
+      |                                        |<-- 3. Return configuration -----|  & Trust Score)
+      |                                        |                                  |
+      |                                        |--- 4. Enforce Safety Policies ->|
+      |                                        |      (RBAC, Access Control,      |
+      |                                        |       Blast Radius Class C)      |
+      |                                        |                                  |
+      |<-- 5. SafetyEvaluationResult ----------|                                  |
+      |                                        |                                  |
+      |--- 6. If blocked: skip execution ------>|                                  |
+      |       If allowed: run tool & get res   |                                  |
+      |                                        |                                  |
+      |--- 7. recordToolAnalytics ------------>|                                  |
+      |                                        |--- 8. Update Reputation -------->|
+      |                                        |       (Success Bump /            | (Write/Increment
+      |                                        |        Failure Penalty)          |  Atomic Clamping)
+```
+
 ## 🏗 Key Components
 
 ### 1. Signal Receipt (Pulse Health)

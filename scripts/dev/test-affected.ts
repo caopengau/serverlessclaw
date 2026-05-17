@@ -105,7 +105,23 @@ export class TestImpactAnalyzer {
   isConfigChange(changedFiles: string[]): boolean {
     return changedFiles.some((file) => {
       const rel = relative(this.rootDir, file);
-      return CONFIG_TRIGGERS.includes(rel);
+      if (CONFIG_TRIGGERS.includes(rel)) return true;
+
+      // Robust check: match any key configuration files in any subdirectory
+      const base = rel.split('/').pop();
+      if (
+        base &&
+        [
+          'tsconfig.json',
+          'vitest.config.ts',
+          'vitest.config.mts',
+          'package.json',
+          'pnpm-lock.yaml',
+        ].includes(base)
+      ) {
+        return true;
+      }
+      return false;
     });
   }
 

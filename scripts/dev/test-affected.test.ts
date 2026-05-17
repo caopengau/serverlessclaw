@@ -246,6 +246,18 @@ describe('TestImpactAnalyzer', () => {
       expect(result).toBe(true);
     });
 
+    it('should detect deeply nested tsconfig.json changes', () => {
+      const analyzer = new TestImpactAnalyzer(tmpDir);
+      const result = analyzer.isConfigChange([join(tmpDir, 'packages/core/tsconfig.json')]);
+      expect(result).toBe(true);
+    });
+
+    it('should detect deeply nested package.json changes', () => {
+      const analyzer = new TestImpactAnalyzer(tmpDir);
+      const result = analyzer.isConfigChange([join(tmpDir, 'apps/cli/package.json')]);
+      expect(result).toBe(true);
+    });
+
     it('should not detect non-config changes', () => {
       const analyzer = new TestImpactAnalyzer(tmpDir);
       const result = analyzer.isConfigChange([join(tmpDir, 'src/app.ts')]);
