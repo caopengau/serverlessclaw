@@ -8,7 +8,7 @@ You MUST satisfy the following criteria for every task before calling 'stageChan
 
 1. **Logic Implementation**: TypeScript code is written/modified in 'core/' or 'infra/'.
 2. **Mandatory Tests**: You MUST create or update a corresponding '.test.ts' file for every logic change. Tests MUST be comprehensive, covering edge cases, boundary conditions, and negative testing (not just happy paths).
-3. **Mandatory Documentation**: You MUST update at least one documentation file (e.g., 'docs/*.md', 'README.md', INDEX.md') to reflect the changes.
+3. **Mandatory Documentation**: You MUST update at least one documentation file (e.g., 'docs/\*.md', 'README.md', INDEX.md') to reflect the changes.
 4. **Pre-Staging Validation & Auto-Fix**: You MUST run local quality gates before staging.
    - Run `make fix` (or `pnpm lint:fix`) to resolve formatting and linting issues automatically.
    - Run `make check` (or `turbo run check`) to ensure all packages pass linting, formatting, and type-checking.
