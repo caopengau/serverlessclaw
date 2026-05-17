@@ -31,7 +31,11 @@ export async function runMcpAudit(scope: {
       return findings;
     }
 
-    const auditPath = process.cwd() + '/core';
+    const { ConfigManager } = await import('../../registry/config');
+    const scanPath = await ConfigManager.getTypedConfig('metabolism_scan_path', '.', {
+      workspaceId: scope.workspaceId,
+    });
+    const auditPath = scanPath.startsWith('/') ? scanPath : `${process.cwd()}/${scanPath}`;
     const result = await auditTool.execute({
       path: auditPath,
       workspaceId: scope.workspaceId,
@@ -101,11 +105,14 @@ export async function runNativeAudit(_scope?: {
   });
 
   try {
-    const corePath = process.cwd() + '/core';
+    const { ConfigManager } = await import('../../registry/config');
+    const scanPath = await ConfigManager.getTypedConfig('metabolism_scan_path', '.', {
+      workspaceId: _scope?.workspaceId,
+    });
+    const corePath = scanPath.startsWith('/') ? scanPath : `${process.cwd()}/${scanPath}`;
     const { readFile, readdir, stat } = await import('fs/promises');
     const { join } = await import('path');
 
-    const { ConfigManager } = await import('../../registry/config');
     const scanDir = async (dir: string, depth: number = 0): Promise<string[]> => {
       const maxDepth = await ConfigManager.getTypedConfig('audit_scan_depth', 3, {
         workspaceId: _scope?.workspaceId,

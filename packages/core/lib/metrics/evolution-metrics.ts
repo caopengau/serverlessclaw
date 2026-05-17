@@ -211,4 +211,90 @@ export const EVOLUTION_METRICS = {
       },
     ]).catch((err) => logger.warn('Failed to emit ToolROI metrics:', err));
   },
+
+  /**
+   * Records a trust score update (bump or penalty).
+   */
+  recordTrustUpdate(
+    agentId: string,
+    delta: number,
+    newScore: number,
+    reason: string,
+    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
+  ): void {
+    const dimensions = [
+      { Name: 'AgentId', Value: agentId },
+      { Name: 'Reason', Value: reason.substring(0, 250) },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
+    emitMetrics([
+      {
+        MetricName: 'EvolutionTrustDelta',
+        Value: delta,
+        Unit: 'Count',
+        Dimensions: dimensions,
+      },
+      {
+        MetricName: 'EvolutionTrustScore',
+        Value: newScore,
+        Unit: 'Count',
+        Dimensions: dimensions.filter((d) => d.Name !== 'Reason'),
+      },
+    ]).catch((err) => logger.warn('Failed to emit TrustUpdate metrics:', err));
+  },
+
+  /**
+   * Records a failed plan to the evolution analytics layer.
+   */
+  recordFailedPlan(
+    agentId: string,
+    task: string,
+    reason: string,
+    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
+  ): void {
+    const dimensions = [{ Name: 'AgentId', Value: agentId }];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
+    emitMetrics([
+      {
+        MetricName: 'EvolutionFailedPlanCount',
+        Value: 1,
+        Unit: 'Count',
+        Dimensions: dimensions,
+      },
+    ]).catch((err) => logger.warn('Failed to emit FailedPlanCount metric:', err));
+  },
+
+  /**
+   * Records a metabolism repair action.
+   */
+  recordMetabolismRepair(
+    type: 'tool_pruning' | 'gap_archival' | 'gap_culling' | 'flag_pruning' | 's3_reclamation',
+    count: number,
+    scope?: { workspaceId?: string; orgId?: string; teamId?: string; staffId?: string }
+  ): void {
+    const dimensions: Array<{ Name: string; Value: string }> = [
+      { Name: 'RepairType', Value: type },
+    ];
+    if (scope?.workspaceId) dimensions.push({ Name: 'WorkspaceId', Value: scope.workspaceId });
+    if (scope?.orgId) dimensions.push({ Name: 'OrgId', Value: scope.orgId });
+    if (scope?.teamId) dimensions.push({ Name: 'TeamId', Value: scope.teamId });
+    if (scope?.staffId) dimensions.push({ Name: 'StaffId', Value: scope.staffId });
+
+    emitMetrics([
+      {
+        MetricName: 'MetabolismRepairCount',
+        Value: count,
+        Unit: 'Count',
+        Dimensions: dimensions,
+      },
+    ]).catch((err) => logger.warn('Failed to emit MetabolismRepairCount metric:', err));
+  },
 };

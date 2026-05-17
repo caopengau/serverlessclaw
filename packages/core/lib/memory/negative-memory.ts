@@ -63,6 +63,18 @@ export class NegativeMemory {
         workspaceId: options?.scope?.workspaceId,
         ...record,
       });
+
+      try {
+        const { EVOLUTION_METRICS } = await import('../metrics/evolution-metrics');
+        EVOLUTION_METRICS.recordFailedPlan(agentId, task, failureReason, {
+          workspaceId: options?.scope?.workspaceId,
+          teamId: options?.scope?.teamId,
+          staffId: options?.scope?.staffId,
+        });
+      } catch {
+        /* ignore metrics errors */
+      }
+
       logger.info(
         `[NEGATIVE_MEMORY] Recorded failed plan for agent ${agentId} (Task: ${task.substring(0, 50)}...)`
       );

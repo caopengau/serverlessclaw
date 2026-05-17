@@ -102,8 +102,6 @@ export class SessionStateManager {
     agentId: string,
     scope?: { workspaceId?: string; teamId?: string; staffId?: string }
   ): Promise<void> {
-    await this.lockHandler.release(sessionId, agentId, scope);
-
     const key = this.getKey(sessionId, scope);
     try {
       const result = await this.docClient.send(
@@ -158,6 +156,9 @@ export class SessionStateManager {
       if (!(error instanceof Error && error.name === 'ConditionalCheckFailedException')) {
         logger.error(`Session ${sessionId}: Failed to clear session metadata:`, error);
       }
+    } finally {
+      // Ensure distributed lock is released even if state clearing fails
+      await this.lockHandler.release(sessionId, agentId, scope);
     }
   }
 

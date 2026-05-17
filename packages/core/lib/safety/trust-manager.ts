@@ -62,6 +62,17 @@ export class TrustManager {
       context
     );
 
+    try {
+      const { EVOLUTION_METRICS } = await import('../metrics/evolution-metrics');
+      EVOLUTION_METRICS.recordTrustUpdate(agentId, penalty, newScore, reason, {
+        workspaceId,
+        teamId: context?.teamId,
+        staffId: context?.staffId,
+      });
+    } catch {
+      /* ignore metrics errors */
+    }
+
     await emitEvent('system.trust', EventType.REPUTATION_UPDATE, {
       agentId,
       trustScore: newScore,
@@ -101,6 +112,17 @@ export class TrustManager {
     logger.info(
       `[TrustManager] Agent ${agentId} earned trust (WS: ${workspaceId || 'global'}). Quality: ${qualityScore ?? 'N/A'}. New Score: ${newScore}`
     );
+
+    try {
+      const { EVOLUTION_METRICS } = await import('../metrics/evolution-metrics');
+      EVOLUTION_METRICS.recordTrustUpdate(agentId, bump, newScore, 'Task success', {
+        workspaceId,
+        teamId: context?.teamId,
+        staffId: context?.staffId,
+      });
+    } catch {
+      /* ignore metrics errors */
+    }
 
     await emitEvent('system.trust', EventType.REPUTATION_UPDATE, {
       agentId,
@@ -200,6 +222,23 @@ export class TrustManager {
         teamId: context?.teamId,
         staffId: context?.staffId,
       });
+
+      try {
+        const { EVOLUTION_METRICS } = await import('../metrics/evolution-metrics');
+        EVOLUTION_METRICS.recordTrustUpdate(
+          agentId,
+          totalDelta,
+          score,
+          `Batch Anomalies (${anomalies.length})`,
+          {
+            workspaceId: context?.workspaceId,
+            teamId: context?.teamId,
+            staffId: context?.staffId,
+          }
+        );
+      } catch {
+        /* ignore metrics errors */
+      }
 
       return score;
     } catch (err: unknown) {

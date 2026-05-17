@@ -12,6 +12,10 @@ const CRITICAL_METRICS = new Set([
   'EventHandlerDuration',
   'EventHandlerErrorDuration',
   'StorageError',
+  'EvolutionTrustDelta',
+  'EvolutionTrustScore',
+  'EvolutionFailedPlanCount',
+  'MetabolismRepairCount',
 ]);
 
 /**

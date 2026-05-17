@@ -12,13 +12,13 @@ Last Updated: 2026-05-14
 
 | Silo  | Name           | Primary Code Paths                              | Audit Count | Last Audited | Risk Level |
 | :---- | :------------- | :---------------------------------------------- | :---------- | :----------- | :--------- |
-| **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 27          | 2026-05-16   | Low        |
-| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 16          | 2026-05-16   | Low        |
-| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 25          | 2026-05-16   | Low        |
-| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 24          | 2026-05-16   | Low        |
-| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 21          | 2026-05-16   | Low        |
-| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 21          | 2026-05-16   | Low        |
-| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 19          | 2026-05-16   | Low        |
+| **1** | The Spine      | `core/handlers/events.ts`, `core/lib/bus.ts`    | 28          | 2026-05-17   | Low        |
+| **2** | The Hand       | `core/lib/mcp.ts`, `core/lib/agent/executor.ts` | 17          | 2026-05-17   | Low        |
+| **3** | The Shield     | `core/lib/safety/safety-engine.ts`              | 26          | 2026-05-16   | Low        |
+| **4** | The Brain      | `core/lib/memory/`, `core/lib/rag/`             | 25          | 2026-05-17   | Low        |
+| **5** | The Eye        | `core/lib/metrics/`, `core/lib/tracer/`         | 22          | 2026-05-17   | Low        |
+| **6** | The Scales     | `core/lib/safety/trust-manager.ts`              | 22          | 2026-05-17   | Low        |
+| **7** | The Metabolism | `core/lib/maintenance/metabolism.ts`            | 20          | 2026-05-17   | Low        |
 
 ---
 
@@ -40,6 +40,7 @@ Last Updated: 2026-05-14
 
 | Date       | Report                                             | Silos                            | Perspective | Status/Summary                                                                                                        |
 | :--------- | :------------------------------------------------- | :------------------------------- | :---------- | :-------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-17 | `audit-2026-05-17-evolution-telemetry.md`       | Spine, Hand, Eye, Scales, Metabolism | B, D, F | FIXED: P0 Telemetry Blindness in Trust/Memory/Metabolism, P1 Race in Session Handoff, P1 Domain Pollution in Audit. |
 | 2026-05-16 | `audit-2026-05-16-safety-isolation.md`          | Hand, Shield, Scales, Spine      | E           | FIXED: P0 Multi-tenant Leak in SafetyEngine, P1 Metabolic Blindness in Safety/Blast caches. Verified Recovery. |
 | 2026-05-16 | `audit-2026-05-16-dashboard-metabolism.md`         | Spine, Brain, Eye, Metabolism    | F, G        | FIXED: P0 Dashboard Trace Leak, P1 Anti-Pattern 19 in Dashboard/API, P1 Metabolic Blindness in Maintenance Handler.   |
 | 2026-05-14 | `audit-2026-05-14-hand-metabolism-pollution.md`    | Hand, Metabolism, Eye            | B, G        | FIXED: P1 Domain Pollution in Core Framework, P1 Multi-tenant leak in Dashboard Trace/Memory pages, P2 Infra Branding.|

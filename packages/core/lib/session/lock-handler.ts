@@ -47,19 +47,30 @@ export class SessionLockHandler {
               'SET processingAgentId = :agentId, processingStartedAt = :now, lockExpiresAt = :lockExp, expiresAt = :exp, ' +
               'pendingMessages = if_not_exists(pendingMessages, :empty), ' +
               'workspaceId = :ws, teamId = :team, staffId = :staff',
+            ConditionExpression:
+              'attribute_not_exists(processingAgentId) OR processingAgentId = :null OR lockExpiresAt < :nowSec',
             ExpressionAttributeValues: {
               ':agentId': agentId,
               ':now': Date.now(),
+              ':nowSec': nowSec,
               ':lockExp': lockExpiresAt,
               ':exp': expiresAt,
               ':empty': [],
+              ':null': null,
               ':ws': scope?.workspaceId ?? null,
               ':team': scope?.teamId ?? null,
               ':staff': scope?.staffId ?? null,
             },
           })
         );
-      } catch (error) {
+      } catch (error: any) {
+        if (error.name === 'ConditionalCheckFailedException') {
+          logger.warn(
+            `Session ${sessionId}: LockManager said yes, but state table says no. Reverting lock.`
+          );
+          await this.release(sessionId, agentId, scope);
+          return false;
+        }
         logger.warn(`Session ${sessionId}: Lock acquired but state update failed.`, error);
       }
       return true;
