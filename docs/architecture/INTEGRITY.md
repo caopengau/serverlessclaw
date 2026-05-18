@@ -304,6 +304,28 @@ Process 1 (Eye)          Process 2 (Eye)          DynamoDB (Rollup)
 
 This ensures that high-precision metrics (p95/p99) are never corrupted by concurrent telemetry streams, preventing false SLO breaches.
 
+### 6c. Concurrency-Guarded Trust Clamping (Perspective D)
+
+To prevent a concurrent reputation update from being lost or overwritten during clamping operations (violating Principle 15), the system combines DynamoDB's native conditional guards. It ensures that if a concurrent "Success Bump" raises the agent's trust score back into the safe zone, a pending out-of-bounds clamp is automatically rejected.
+
+```ascii
+Process 1 (Calibrator)        Process 2 (Success Bump)      DynamoDB (TrustScore)
+      |                             |                             |
+      |-- (1) Write Anomaly (-30) --|---------------------------->|
+      |   Score becomes -10         |                             | (Stored: -10)
+      |                             |                             |
+      |-- (2) Trigger Clamp (to 0) -|                             |
+      |   Condition: Score < 0      |                             |
+      |                             |-- (3) Success Bump (+20) -->|
+      |                             |   Score becomes +10         | (Stored: +10)
+      |                             |                             |
+      |-- (4) Exec Clamp (to 0) ----|---------------------------->|
+      |   Condition: Score < 0      |                             | (REJECTED)
+      |                             |                             | (Conflict: Score is 10)
+```
+
+By ensuring that `atomicUpdateMapField` propagates `ConditionalCheckFailedException` when the custom range conditions fail, we avoid double-penalizations and race-driven reputation degradation.
+
 ## 7. Workspace-Scoped MCP Multiplexing (Silo 2)
 
 To prevent cross-tenant data leakage in the Unified MCP Multiplexer, the system enforces dynamic path scoping for all filesystem-based tools.
